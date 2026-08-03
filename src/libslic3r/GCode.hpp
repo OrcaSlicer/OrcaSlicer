@@ -4,6 +4,8 @@
 #include "libslic3r.h"
 #include "ExPolygon.hpp"
 #include "GCodeWriter.hpp"
+#include "BeltGCodeWriter.hpp"
+#include "FirstLayerPlane.hpp"
 #include "Layer.hpp"
 #include "Point.hpp"
 #include "PlaceholderParser.hpp"
@@ -214,16 +216,18 @@ public:
         m_last_obj_copy(nullptr, Point(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max())),
         // BBS
         m_toolchange_count(0),
-        m_nominal_z(0.)
+        m_nominal_z(0.),
+        m_writer(std::make_unique<GCodeWriter>())
         {}
-    ~GCode() = default;
+    virtual ~GCode() = default;
 
+public:
     // throws std::runtime_exception on error,
     // throws CanceledException through print->throw_if_canceled().
     void            do_export(Print* print, const char* path, GCodeProcessorResult* result = nullptr, ThumbnailsGeneratorCallback thumbnail_cb = nullptr);
     void            export_layer_filaments(GCodeProcessorResult* result);
     //BBS: set offset for gcode writer
-    void set_gcode_offset(double x, double y) { m_writer.set_xy_offset(x, y); m_processor.set_xy_offset(x, y);}
+    void set_gcode_offset(double x, double y) { m_writer->set_xy_offset(x, y); m_processor.set_xy_offset(x, y);}
 
     // Exported for the helper classes (OozePrevention, Wipe) and for the Perl binding for unit tests.
     const Vec2d&    origin() const { return m_origin; }
@@ -237,8 +241,8 @@ public:
     Vec3d                    point_to_gcode_quantized(const Point3& point) const;
     const FullPrintConfig &config() const { return m_config; }
     const Layer*    layer() const { return m_layer; }
-    GCodeWriter&    writer() { return m_writer; }
-    const GCodeWriter& writer() const { return m_writer; }
+    GCodeWriter&    writer() { return *m_writer; }
+    const GCodeWriter& writer() const { return *m_writer; }
     PlaceholderParser& placeholder_parser() { return m_placeholder_parser_integration.parser; }
     const PlaceholderParser& placeholder_parser() const { return m_placeholder_parser_integration.parser; }
     // Process a template through the placeholder parser, collect error messages to be reported
@@ -261,7 +265,7 @@ public:
     bool            needs_retraction(const Polyline& travel, ExtrusionRole role, LiftType& lift_type);
     std::string     retract(bool toolchange = false, bool is_last_retraction = false, LiftType lift_type = LiftType::NormalLift, bool apply_instantly = false, ExtrusionRole role = erNone);
     // extra_retract forwards a PETG pre-extrusion over-extrusion; default 0 -> identical to the plain deretract.
-    std::string     unretract(float extra_retract = 0.f) { return m_writer.unlift() + m_writer.unretract(extra_retract); }
+    std::string     unretract(float extra_retract = 0.f) { return m_writer->unlift() + m_writer->unretract(extra_retract); }
     std::string     set_extruder(unsigned int extruder_id, double print_z, bool by_object=false, int toolchange_temp_override = -1);
     bool is_BBL_Printer();
     WipeTowerType wipe_tower_type();
@@ -319,7 +323,15 @@ public:
         }
     };
 
-private:
+    // Public accessor for the first-layer plane evaluator.  Used by
+    // CoolingBuffer (which is constructed with a GCode reference and needs
+    // to read the plane for per-segment fan re-evaluation).  All other
+    // first-layer-plane access points (on_first_layer overload, effective
+    // index helper) are in the protected section since they're called from
+    // GCode internals only.
+    const FirstLayerPlane *first_layer_plane() const { return m_first_layer_plane.get(); }
+
+protected:
     class GCodeOutputStream {
     public:
         GCodeOutputStream(FILE *f, GCodeProcessor &processor) : f(f), m_processor(processor) {}
@@ -347,9 +359,17 @@ private:
         FILE *f = nullptr;
         GCodeProcessor &m_processor;
     };
+
+    // Virtual hooks for belt printer subclass (BeltGCode).
+    // No-ops in base GCode; overridden in BeltGCode.
+    virtual void init_belt_writer(Print &print, bool is_bbl_printers) {}
+    virtual void write_belt_header(GCodeOutputStream &file, const Print &print) {}
+    virtual void on_set_origin(const PrintObject *obj, const Point &inst_shift) {}
+    virtual bool should_disable_arc_fitting() const { return false; }
+
     void            _do_export(Print &print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb);
 
-    static std::vector<LayerToPrint>        		                   collect_layers_to_print(const PrintObject &object);
+    static std::vector<LayerToPrint>        		                   collect_layers_to_print(const PrintObject &object, bool skip_empty_first_layer = false);
     static std::vector<std::pair<coordf_t, std::vector<LayerToPrint>>> collect_layers_to_print(const Print &print);
 
     std::string generate_skirt(const Print &print,
@@ -587,7 +607,7 @@ private:
     DynamicConfig                       m_calib_config;
     // scaled G-code resolution
     double                              m_scaled_resolution;
-    GCodeWriter                         m_writer;
+    std::unique_ptr<GCodeWriter>         m_writer;
 
     struct PlaceholderParserIntegration {
         void reset();
@@ -707,6 +727,11 @@ private:
 
     std::unique_ptr<CoolingBuffer>      m_cooling_buffer;
     std::unique_ptr<SpiralVase>         m_spiral_vase;
+    // First-layer plane evaluator.  Constructed once per print from the
+    // PrintConfig.  is_active() == false on non-belt printers and on belt
+    // printers without a Z-axis shear; in that case all per-path plane
+    // checks short-circuit to the legacy Layer::id() == 0 path.
+    std::unique_ptr<FirstLayerPlane>    m_first_layer_plane;
 
     std::unique_ptr<PressureEqualizer>  m_pressure_equalizer;
     
@@ -772,6 +797,25 @@ private:
     // On the first printing layer. This flag triggers first layer speeds.
     //BBS
     bool    on_first_layer() const { return m_layer != nullptr && m_layer->id() == 0 && abs(m_layer->bottom_z()) < EPSILON; }
+    // Per-point first-layer test.  When the FirstLayerPlane evaluator is
+    // active, the result depends on the supplied slicing-frame point;
+    // otherwise we delegate to the legacy per-layer test.  This is the
+    // entry point used by per-path call sites in _extrude.
+    bool on_first_layer(const Vec3d &point_slicing_mm) const {
+        if (m_first_layer_plane && m_first_layer_plane->is_active())
+            return m_first_layer_plane->is_first_layer(
+                point_slicing_mm, m_config.initial_layer_print_height.value);
+        return on_first_layer();
+    }
+    // "Effective layer index" used to drive layer-count thresholds like
+    // slow_down_layers.  When the evaluator is active this returns the
+    // perpendicular distance to the plane in band_thickness_mm units;
+    // otherwise it returns the legacy slicing layer index.
+    int effective_layer_index_for_point(const Vec3d &point_slicing_mm) const {
+        if (m_first_layer_plane && m_first_layer_plane->is_active())
+            return m_first_layer_plane->effective_layer_index(point_slicing_mm);
+        return on_first_layer() ? 0 : layer_id();
+    }
     int layer_id() const {
         if (m_layer == nullptr)
             return -1;

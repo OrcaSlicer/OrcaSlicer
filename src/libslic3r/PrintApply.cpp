@@ -1,6 +1,7 @@
 #include "ClipperUtils.hpp"
 #include "Model.hpp"
 #include "Print.hpp"
+#include "BeltTransform.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <cfloat>
@@ -135,22 +136,29 @@ struct PrintObjectTrafoAndInstances
 
 // Generate a list of trafos and XY offsets for instances of a ModelObject
 // Orca: Updated to include XYZ filament shrinkage compensation
-static std::vector<PrintObjectTrafoAndInstances> print_objects_from_model_object(const ModelObject &model_object, const Vec3d &shrinkage_compensation)
+static std::vector<PrintObjectTrafoAndInstances> print_objects_from_model_object(const ModelObject &model_object, const Vec3d &shrinkage_compensation, bool force_separate_instances = false)
 {
     std::set<PrintObjectTrafoAndInstances> trafos;
     PrintObjectTrafoAndInstances           trafo;
     //BBS: add useful logs for debug
     int index = 0;
+    int unique_counter = 0;
     for (ModelInstance *model_instance : model_object.instances) {
         if (model_instance->is_printable()) {
             // Orca: Updated with XYZ filament shrinkage compensation
             Geometry::Transformation model_instance_transformation = model_instance->get_transformation();
             trafo.trafo = model_instance_transformation.get_matrix_with_applied_shrinkage_compensation(shrinkage_compensation);
-            
+
             auto shift = Point::new_scale(trafo.trafo.data()[12], trafo.trafo.data()[13]);
             // Reset the XY axes of the transformation.
             trafo.trafo.data()[12] = 0;
             trafo.trafo.data()[13] = 0;
+            // Belt printer global mode: prevent instance grouping so each
+            // copy gets its own PrintObject with independent layer Z values.
+            // Add a tiny unique perturbation to the existing Z (don't replace
+            // it — the Z translation from ensure_on_bed must be preserved).
+            if (force_separate_instances)
+                trafo.trafo.data()[14] += 1e-10 * (++unique_counter);
             // Search or insert a trafo.
             auto it = trafos.emplace(trafo).first;
             const_cast<PrintObjectTrafoAndInstances&>(*it).instances.emplace_back(PrintInstance{ nullptr, model_instance, shift });
@@ -1666,11 +1674,20 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         PrintObjectPtrs print_objects_new;
         print_objects_new.reserve(std::max(m_objects.size(), m_model.objects.size()));
         bool new_objects = false;
+        bool belt_instances_shifted = false;
         // Walk over all new model objects and check, whether there are matching PrintObjects.
         for (ModelObject *model_object : m_model.objects) {
             ModelObjectStatus &model_object_status = const_cast<ModelObjectStatus&>(model_object_status_db.reuse(*model_object));
             // Orca: Updated for XYZ filament shrink compensation
-            model_object_status.print_instances = print_objects_from_model_object(*model_object, this->shrinkage_compensation());
+            // Belt global mode: force each instance into its own PrintObject
+            // so each gets independent layer Z values.
+            bool belt_force_separate = m_config.belt_printer.value && (
+                (m_config.belt_slice_rotation_global.value
+                    && m_config.belt_slice_rotation.value != BeltRotationAxis::None
+                    && std::abs(m_config.belt_slice_rotation_angle.value) > EPSILON)
+                || m_config.belt_preslice_global.value
+                || (m_config.preslice_remap_global.value && BeltTransformPipeline::has_preslice_remap(m_config)));
+            model_object_status.print_instances = print_objects_from_model_object(*model_object, this->shrinkage_compensation(), belt_force_separate);
             std::vector<const PrintObjectStatus*> old;
             old.reserve(print_object_status_db.count(*model_object));
             for (const PrintObjectStatus &print_object_status : print_object_status_db.get_range(*model_object))
@@ -1718,6 +1735,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                     if (status != PrintBase::APPLY_STATUS_UNCHANGED) {
                         size_t extruder_num = new_full_config.option<ConfigOptionFloats>("nozzle_diameter")->size();
                         update_apply_status(status == PrintBase::APPLY_STATUS_INVALIDATED);
+                        belt_instances_shifted = true;
                     }
 					print_objects_new.emplace_back((*it_old)->print_object);
 					const_cast<PrintObjectStatus*>(*it_old)->status = PrintObjectStatus::Reused;
@@ -1752,6 +1770,20 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             if (/*object->config().adaptive_layer_height &&*/ ept_iter != print_diff.end()) {
                 update_apply_status(object->invalidate_step(posSlice));
             }
+        }
+
+        // Belt printer global mode: when any object's instances shifted,
+        // recompute m_belt_global_z_offset for ALL objects (it depends on
+        // min_shift across all objects, so one move affects everyone).
+        if (belt_instances_shifted
+            && m_config.belt_printer.value
+            && ((m_config.belt_slice_rotation_global.value
+                    && m_config.belt_slice_rotation.value != BeltRotationAxis::None
+                    && std::abs(m_config.belt_slice_rotation_angle.value) > EPSILON)
+                || m_config.belt_preslice_global.value
+                || (m_config.preslice_remap_global.value && BeltTransformPipeline::has_preslice_remap(m_config)))) {
+            for (PrintObject *object : m_objects)
+                update_apply_status(object->invalidate_step(posSlice));
         }
     }
 

@@ -2,6 +2,9 @@
 #include "Model.hpp"
 #include "Point.hpp"
 #include "Print.hpp"
+#include "BeltTransform.hpp"
+
+#include <thread>
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
 #include "Clipper2Utils.hpp"
@@ -13,6 +16,7 @@
 #include "PrintConfig.hpp"
 #include "SLA/IndexedMesh.hpp"
 #include "Support/SupportMaterial.hpp"
+#include "Support/SupportCommon.hpp"
 #include "Support/SupportSpotsGenerator.hpp"
 #include "Support/TreeSupport.hpp"
 #include "Surface.hpp"
@@ -454,11 +458,15 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
 // 3) Generates perimeters, gap fills and fill regions (fill regions of type stInternal).
 void PrintObject::make_perimeters()
 {
+    BOOST_LOG_TRIVIAL(trace) << "[BELTRACE] make_perimeters request tid=" << std::this_thread::get_id() << " obj=" << this;
     // prerequisites
     this->slice();
 
-    if (! this->set_started(posPerimeters))
+    if (! this->set_started(posPerimeters)) {
+        BOOST_LOG_TRIVIAL(trace) << "[BELTRACE] make_perimeters SKIP tid=" << std::this_thread::get_id() << " obj=" << this << " (already started/done)";
         return;
+    }
+    BOOST_LOG_TRIVIAL(trace) << "[BELTRACE] make_perimeters ENTER tid=" << std::this_thread::get_id() << " obj=" << this;
 
     m_print->set_status(15, L("Generating walls"));
     BOOST_LOG_TRIVIAL(info) << "Generating walls..." << log_memory_info();
@@ -556,6 +564,7 @@ void PrintObject::make_perimeters()
     m_print->throw_if_canceled();
     BOOST_LOG_TRIVIAL(debug) << "Generating perimeters in parallel - end";
 
+    BOOST_LOG_TRIVIAL(trace) << "[BELTRACE] make_perimeters EXIT tid=" << std::this_thread::get_id() << " obj=" << this;
     this->set_done(posPerimeters);
 }
 
@@ -917,7 +926,9 @@ void PrintObject::detect_overhangs_for_lift()
 
 void PrintObject::generate_support_material()
 {
+    BOOST_LOG_TRIVIAL(trace) << "[BELTRACE] generate_support_material request tid=" << std::this_thread::get_id() << " obj=" << this;
     if (this->set_started(posSupportMaterial)) {
+        BOOST_LOG_TRIVIAL(trace) << "[BELTRACE] generate_support_material ENTER tid=" << std::this_thread::get_id() << " obj=" << this;
         this->clear_support_layers();
 
         if(!has_support() && !m_print->get_no_check_flag()) {
@@ -958,7 +969,10 @@ void PrintObject::generate_support_material()
             this->_generate_support_material();
             m_print->throw_if_canceled();
         }
+        BOOST_LOG_TRIVIAL(trace) << "[BELTRACE] generate_support_material EXIT tid=" << std::this_thread::get_id() << " obj=" << this;
         this->set_done(posSupportMaterial);
+    } else {
+        BOOST_LOG_TRIVIAL(trace) << "[BELTRACE] generate_support_material SKIP tid=" << std::this_thread::get_id() << " obj=" << this << " (already started/done)";
     }
 }
 
@@ -1586,9 +1600,15 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
 		invalidated |= this->invalidate_steps({ posPerimeters, posPrepareInfill, posInfill, posIroning, posContouring, posSupportMaterial, posSimplifyPath, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
         m_slicing_params.valid = false;
+        // The exact belt_floor_z_shift is recomputed when slice() runs again.
+        m_belt_floor_z_shift_cache_valid = false;
     } else if (step == posSupportMaterial) {
         invalidated |= this->invalidate_steps({ posSimplifySupportPath });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
+        // SlicingParameters depend on support config (enable_support /
+        // raft_layers / enforce_support_layers feed min/max layer height in
+        // Slicing.cpp), so invalidate them here.  The vertex-scan
+        // belt_floor_z_shift is preserved via m_belt_floor_z_shift_cached.
         m_slicing_params.valid = false;
     }
 
@@ -1607,6 +1627,7 @@ bool PrintObject::invalidate_all_steps()
     bool result = Inherited::invalidate_all_steps() | m_print->invalidate_all_steps();
 	// Then reset some of the depending values.
 	m_slicing_params.valid = false;
+	m_belt_floor_z_shift_cache_valid = false;
 	return result;
 }
 
@@ -3907,8 +3928,28 @@ void PrintObject::update_slicing_parameters()
 {
     // Orca: updated function call for XYZ shrinkage compensation
     if (!m_slicing_params.valid) {
-          m_slicing_params = SlicingParameters::create_from_config(this->print()->config(), m_config, this->model_object()->max_z(),
+          coordf_t object_height = this->model_object()->max_z();
+          BeltTransformPipeline::BeltFloorParams belt_floor;
+          const auto &pcfg = this->print()->config();
+          if (pcfg.belt_printer.value) {
+              BoundingBoxf3 bb = BeltTransformPipeline::remap_bbox(*this->model_object(), pcfg);
+              if (BeltTransformPipeline::has_preslice_remap(pcfg))
+                  object_height = bb.size().z();
+              auto hr = BeltTransformPipeline::compute_belt_height_and_floor(pcfg, bb, object_height);
+              object_height = hr.object_height;
+              belt_floor    = hr.floor_params;
+          }
+          m_slicing_params = SlicingParameters::create_from_config(pcfg, m_config, object_height,
                                                                    this->object_extruders(), this->print()->shrinkage_compensation());
+          // Populate belt floor parameters into slicing params for support clipping.
+          m_slicing_params.belt_floor_shear_factor = belt_floor.shear_factor;
+          m_slicing_params.belt_floor_from_axis    = belt_floor.from_axis;
+          m_slicing_params.belt_floor_z_shift     = belt_floor.z_shift;
+          // Prefer the vertex-scan z_shift over the bbox approximation when
+          // slice() has already produced one (e.g. this rebuild was triggered
+          // by a support-config change, which doesn't move the belt floor).
+          if (m_belt_floor_z_shift_cache_valid)
+              m_slicing_params.belt_floor_z_shift = m_belt_floor_z_shift_cached;
       }
 }
 
@@ -3949,9 +3990,24 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
     sort_remove_duplicates(object_extruders);
     //FIXME add painting extruders
 
-    if (object_max_z <= 0.f)
-        object_max_z = (float)model_object.raw_bounding_box().size().z();
-    return SlicingParameters::create_from_config(print_config, object_config, object_max_z, object_extruders, object_shrinkage_compensation);
+    BeltTransformPipeline::BeltFloorParams belt_floor;
+    if (object_max_z <= 0.f) {
+        BoundingBoxf3 bb = model_object.raw_bounding_box();
+        object_max_z = (float)bb.size().z();
+        if (print_config.belt_printer.value) {
+            bb = BeltTransformPipeline::remap_bbox(model_object, print_config);
+            if (BeltTransformPipeline::has_preslice_remap(print_config))
+                object_max_z = (float)bb.size().z();
+            auto hr = BeltTransformPipeline::compute_belt_height_and_floor(print_config, bb, object_max_z);
+            object_max_z = (float)hr.object_height;
+            belt_floor   = hr.floor_params;
+        }
+    }
+    SlicingParameters params = SlicingParameters::create_from_config(print_config, object_config, object_max_z, object_extruders, object_shrinkage_compensation);
+    params.belt_floor_shear_factor = belt_floor.shear_factor;
+    params.belt_floor_from_axis    = belt_floor.from_axis;
+    params.belt_floor_z_shift     = belt_floor.z_shift;
+    return params;
 }
 
 // returns 0-based indices of extruders used to print the object (without brim, support and other helper extrusions)
@@ -4460,6 +4516,67 @@ void PrintObject::combine_infill()
     }
 }
 
+// Belt printer: clip an ExtrusionEntityCollection to a region defined by clip_expoly.
+// Handles ExtrusionPath, ExtrusionMultiPath, ExtrusionLoop, and nested ExtrusionEntityCollection.
+static void clip_support_fills(ExtrusionEntityCollection &fills, const ExPolygons &clip_region)
+{
+    ExtrusionEntitiesPtr new_entities;
+    for (ExtrusionEntity *entity : fills.entities) {
+        if (auto *path = dynamic_cast<ExtrusionPath *>(entity)) {
+            ExtrusionEntityCollection clipped;
+            path->intersect_expolygons(clip_region, &clipped);
+            if (!clipped.empty()) {
+                for (ExtrusionEntity *e : clipped.entities)
+                    new_entities.push_back(e->clone());
+            }
+            delete entity;
+        } else if (auto *multipath = dynamic_cast<ExtrusionMultiPath *>(entity)) {
+            ExtrusionPaths new_paths;
+            for (const ExtrusionPath &p : multipath->paths) {
+                ExtrusionEntityCollection clipped;
+                p.intersect_expolygons(clip_region, &clipped);
+                for (ExtrusionEntity *e : clipped.entities)
+                    if (auto *cp = dynamic_cast<ExtrusionPath *>(e))
+                        new_paths.push_back(std::move(*cp));
+            }
+            if (!new_paths.empty()) {
+                multipath->paths = std::move(new_paths);
+                new_entities.push_back(multipath);
+            } else {
+                delete entity;
+            }
+        } else if (auto *loop = dynamic_cast<ExtrusionLoop *>(entity)) {
+            ExtrusionPaths new_paths;
+            for (const ExtrusionPath &p : loop->paths) {
+                ExtrusionEntityCollection clipped;
+                p.intersect_expolygons(clip_region, &clipped);
+                for (ExtrusionEntity *e : clipped.entities)
+                    if (auto *cp = dynamic_cast<ExtrusionPath *>(e))
+                        new_paths.push_back(std::move(*cp));
+            }
+            if (!new_paths.empty()) {
+                // Loop is no longer a closed loop after clipping; emit as individual paths.
+                for (auto &p : new_paths)
+                    new_entities.push_back(new ExtrusionPath(std::move(p)));
+                delete entity;
+            } else {
+                delete entity;
+            }
+        } else if (auto *coll = dynamic_cast<ExtrusionEntityCollection *>(entity)) {
+            clip_support_fills(*coll, clip_region);
+            if (!coll->empty()) {
+                new_entities.push_back(coll);
+            } else {
+                delete entity;
+            }
+        } else {
+            // Unknown entity type — keep as-is.
+            new_entities.push_back(entity);
+        }
+    }
+    fills.entities = std::move(new_entities);
+}
+
 void PrintObject::_generate_support_material()
 {
     if (is_tree(m_config.support_type.value)) {
@@ -4471,6 +4588,25 @@ void PrintObject::_generate_support_material()
         PrintObjectSupportMaterial support_material(this, m_slicing_params);
         support_material.generate(*this);
     }
+    // Global Z offset for support layers:
+    // - Normal support: layers already inherit global_z_offset from object layers.
+    // - Non-organic tree support (slim/strong/hybrid): plan_layer_heights() reads
+    //   from globally-offset object layers, so support layers already have it.
+    // - Organic tree support: generate_tree_support_3D() computes its own Z values
+    //   independently and does NOT inherit the offset — apply it here.
+    // Belt floor polygon clipping for non-organic tree support is done inside
+    // draw_circles() before area_groups and toolpaths are built.
+    if (is_tree(m_config.support_type.value) && std::abs(m_belt_global_z_offset) > EPSILON) {
+        // Resolve effective support style (same logic as SupportParameters).
+        auto style = m_config.support_style.value;
+        if (style == smsDefault)
+            style = smsTreeOrganic;
+        if (style == smsTreeOrganic) {
+            for (SupportLayer *sl : m_support_layers)
+                sl->print_z += m_belt_global_z_offset;
+        }
+    }
+
 }
 
 // BBS

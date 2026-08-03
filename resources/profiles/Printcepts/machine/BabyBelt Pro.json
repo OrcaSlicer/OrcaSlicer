@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "BabyBelt Pro",
+	"model_id": "Printcepts_BabyBelt_Pro",
+	"nozzle_diameter": "0.4",
+	"machine_tech": "FFF",
+	"family": "Printcepts",
+	"bed_model": "",
+	"bed_texture": "BabyBelt Pro_bed_texture.svg",
+	"hotend_model": "",
+	"default_materials": "Generic PLA @BabyBelt Pro;Generic PETG @BabyBelt Pro"
+}

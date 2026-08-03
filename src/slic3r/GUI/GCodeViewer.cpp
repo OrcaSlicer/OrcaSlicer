@@ -24,6 +24,8 @@
 #include "GLToolbar.hpp"
 #include "GUI_Preview.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/BeltTransform.hpp"
+#include "libslic3r/GCode/MachineFrameTransform.hpp"
 #include "libslic3r/Layer.hpp"
 #include "Widgets/ProgressDialog.hpp"
 #include "MsgDialog.hpp"
@@ -1122,12 +1124,73 @@ std::vector<int> GCodeViewer::get_plater_extruder()
     return m_plater_extruder;
 }
 
+// Belt printers: compute the full machine->model back-transform from the print
+// config, so the "designed" (upright) G-code preview maps each toolpath vertex
+// back to Cartesian space. The G-code forward pipeline is (BeltGCodeWriter::
+// to_machine_coords):  gcode = MachineFrame( AxisRemap( X ) ), with X = model if
+// gcode_back_transform (write already un-rotated to Cartesian) else BeltForward(
+// model). So the inverse is:
+//   model = [BeltForward^-1 if !gcode_back_transform] . AxisRemap^-1 . MachineFrame^-1
+// All parts are config-driven affines -> handles any rotation/shear/scale/axis-
+// remap combination. (origin-snap is a per-instance translation that only shifts
+// position, not orientation, so it is intentionally omitted.)
+static Transform3d compute_belt_back_transform(const PrintConfig& cfg)
+{
+    if (!cfg.belt_printer.value)
+        return Transform3d::Identity();
+
+    MachineFrameTransform mft;
+    mft.init_from_config(cfg);
+    const Transform3d mf_inv = mft.is_active() ? Transform3d(mft.transform().inverse())
+                                               : Transform3d::Identity();
+
+    // Forward G-code axis remap as an affine matrix (out_i = sign * in[r_i % 3], plus a
+    // build-volume offset for Rev axes). This is the matrix form of the per-point
+    // GCodeWriter::apply_axis_remap (row convention: each OUTPUT axis selects an input
+    // axis + sign) and MUST stay in sync with it. The build-volume max matches what the
+    // writer is fed in GCode.cpp (printable_area max + printable_height). NB: this is the
+    // transpose of the column convention used by BeltTransformPipeline::build_preslice_remap
+    // — the two remaps are not interchangeable. (Follow-up: precompute this matrix once in
+    // GCodeWriter and share it with apply_axis_remap to remove the parallel encoding.)
+    Transform3d ar = Transform3d::Identity();
+    const int rr[3] = { int(cfg.gcode_remap_x.value), int(cfg.gcode_remap_y.value), int(cfg.gcode_remap_z.value) };
+    if (rr[0] != 0 || rr[1] != 1 || rr[2] != 2) {
+        BoundingBoxf bbox_bed(cfg.printable_area.values);
+        const Vec3d vmax(bbox_bed.max.x(), bbox_bed.max.y(), cfg.printable_height.value);
+        Matrix3d M = Matrix3d::Zero();
+        Vec3d    t = Vec3d::Zero();
+        for (int i = 0; i < 3; ++i) {
+            const int axis = rr[i] % 3;
+            if (rr[i] < 3)      M(i, axis) =  1.0;
+            else if (rr[i] < 6) M(i, axis) = -1.0;
+            else              { M(i, axis) = -1.0; t[i] = vmax[axis]; }
+        }
+        ar.linear()      = M;
+        ar.translation() = t;
+    }
+    const Transform3d ar_inv = ar.inverse();
+
+    Transform3d bf_inv = Transform3d::Identity();
+    if (!cfg.gcode_back_transform.value)
+        bf_inv = BeltTransformPipeline::build_forward_transform(cfg).inverse();
+
+    return bf_inv * ar_inv * mf_inv;
+}
+
 //BBS: always load shell at preview
 void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const Print& print, const std::vector<std::string>& str_tool_colors,
                 const std::vector<std::string>& str_color_print_colors, const BuildVolume& build_volume,
                 const std::vector<BoundingBoxf3>& exclude_bounding_box, ConfigOptionMode mode, bool only_gcode)
 {
     m_loaded_as_preview = false;
+
+    // Belt printers: drive the designed/raw view UI (legend checkbox, hotkey B, canvas-toolbar
+    // menu item) from the loaded print here. Plater::set_bed_shape also calls set_belt_printer(),
+    // but only on bed-shape changes — not reliably on every slice/preview load — so the UI was
+    // staying hidden even though the (config-driven) designed view rendered. The tilt magnitude
+    // comes from the G-code header (gcode_result.belt_tilt_angle, abs of the slicing rotation).
+    m_belt_view_enabled = print.config().belt_printer.value;
+    m_belt_angle_deg    = gcode_result.belt_tilt_angle;
 
     const bool current_top_layer_only = m_viewer.is_top_layer_only_view_range();
     const bool required_top_layer_only = get_app_config()->get_bool("seq_top_layer_only");
@@ -1138,8 +1201,12 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_viewer.set_dim_previous_layers(get_app_config()->get_bool("preview_dim_previous_layers"));
     m_viewer.set_dim_previous_layers_brightness(0.01f * std::stoi(get_app_config()->get("preview_dim_previous_layers_brightness")));
 
-    // avoid processing if called with the same gcode_result
-    if (m_last_result_id == gcode_result.id && wxGetApp().is_editor()) {
+    // avoid processing if called with the same gcode_result.
+    // Belt printers are exempt: the toolpath geometry fed to libvgcode depends on
+    // the current designed/raw view state (back-transform applied in convert), so
+    // re-running the conversion is required for the upright view and for toggling
+    // it (hotkey B) to take effect even when the G-code itself is unchanged.
+    if (m_last_result_id == gcode_result.id && wxGetApp().is_editor() && !print.config().belt_printer.value) {
         //BBS: add logs
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": the same id %1%, return directly, result %2% ") % m_last_result_id % (&gcode_result);
 
@@ -1180,8 +1247,114 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         return;
     }
 
-    // convert data from PrusaSlicer format to libvgcode format
-    libvgcode::GCodeInputData data = libvgcode::convert(gcode_result, str_tool_colors, str_color_print_colors, m_viewer);
+    // convert data from PrusaSlicer format to libvgcode format.
+    // Belt printers: when the "designed (upright) view" is active, back-transform
+    // the toolpath geometry into model/Cartesian space using the general belt
+    // inverse (handles any mesh rotation + shear + axis remap). When off, the raw
+    // machine-frame G-code is shown (useful for debugging the transform itself).
+    const bool is_belt = print.config().belt_printer.value;
+    Transform3d belt_inv = (is_belt && m_belt_show_designed)
+        ? compute_belt_back_transform(print.config()) : Transform3d::Identity();
+    // Belt: move positions are stored as gcode_Z + belt_z_origin (the start G-code's
+    // purge-blob advance baked into the machine-Z origin by its G92 Z0 resets). Subtract
+    // that constant before the linear back-transform so every toolpath maps to the model's
+    // belt coordinate. Without it the back-transform mixes the offset with the gantry-Y
+    // term, leaving a per-move designed-Y error that min-corner anchoring cannot remove
+    // when a bridge/keel move happens to cancel it at the bbox minimum.
+    if (is_belt && m_belt_show_designed && gcode_result.belt_z_origin != 0.0f)
+        belt_inv = belt_inv * Transform3d(Eigen::Translation3d(Vec3d(0.0, 0.0, -double(gcode_result.belt_z_origin))));
+    const bool apply_belt = is_belt && m_belt_show_designed
+        && !belt_inv.matrix().isApprox(Transform3d::Identity().matrix());
+    if (apply_belt) {
+        // The linear belt back-transform recovers the print's shape and orientation but not
+        // the per-object placement/lift translation: the object's position on the belt, the
+        // BeltSliceStrategy min-Z lift, and the centering pre-translate are applied OUTSIDE
+        // build_forward_transform() (see PrintObjectSlice.cpp), so its linear inverse leaves
+        // them un-undone. Uncorrected, the upright toolpaths float a fixed offset from the
+        // model shell. Recover the translation generally — independent of the offset's exact
+        // source or the axis remap — by anchoring the back-transformed object body onto the
+        // upright model bounding box (the same space the shells render in).
+        BoundingBoxf3 model_bb;
+        for (const PrintObject* po : print.objects())
+            for (const ModelInstance* mi : po->model_object()->instances)
+                model_bb.merge(po->model_object()->instance_bounding_box(*mi));
+        // Build the anchor bbox from surface toolpaths only. After the belt_z_origin
+        // correction the surface back-transforms onto the model, but a few elevated
+        // features (bridges/overhangs over the chevron gap) are mis-mapped by the linear
+        // inverse to well outside the model body; if one becomes the bbox minimum it
+        // drags the min-corner anchor by ~20mm. Drop moves that land clearly outside the
+        // (correct) model bbox — a geometric filter, not a role guess.
+        // Tolerance around the model bbox for outlier rejection, and the minimum fraction
+        // of MOVES (by count) the clip must retain before we trust it over the full bbox.
+        // Count, not bbox extent: a single far-flung outlier move (e.g. a belt-entry purge
+        // that maps to y~0) inflates the full bbox so much that a size-fraction test would
+        // wrongly reject the clip and re-include the outlier, dragging the min-corner anchor
+        // by ~the offset. By count the clip keeps ~100% of moves here and ~0% only when the
+        // object is genuinely offset from the belt entry (the real fall-back-to-full case).
+        constexpr double ANCHOR_CLIP_MARGIN_MM   = 10.0;
+        constexpr double ANCHOR_CLIP_MIN_KEEP    = 0.5;
+        BoundingBoxf3 tp_bb_clip, tp_bb_full;
+        size_t n_filtered = 0, n_clip = 0;
+        const double y_lo = model_bb.defined ? model_bb.min.y() - ANCHOR_CLIP_MARGIN_MM : -1e30;
+        const double y_hi = model_bb.defined ? model_bb.max.y() + ANCHOR_CLIP_MARGIN_MM :  1e30;
+        // The anchor aligns the toolpath body onto the object-only model bbox, so it must be
+        // built from OBJECT-body toolpaths only. Support, skirt, brim and wipe-tower extrusions
+        // are not part of the model mesh and extend past it (support especially reaches well
+        // beyond the object on a belt), so including them drags tp_bb.min and shifts the whole
+        // back-transformed g-code off the mesh — but only when those features are present. That
+        // is the "g-code shifts vs mesh as soon as supports are enabled" bug. Filter them out.
+        auto is_object_body = [](ExtrusionRole r) {
+            return r != erSupportMaterial && r != erSupportMaterialInterface
+                && r != erSupportTransition
+                && r != erSkirt && r != erBrim && r != erWipeTower;
+        };
+        auto accumulate = [&](bool body_only) {
+            tp_bb_clip = BoundingBoxf3();
+            tp_bb_full = BoundingBoxf3();
+            n_filtered = 0;
+            n_clip     = 0;
+            for (const GCodeProcessorResult::MoveVertex& mv : gcode_result.moves)
+                if (mv.type == EMoveType::Extrude && mv.layer_id >= 1 // skip layer-0 prime/skirt
+                    && (!body_only || is_object_body(mv.extrusion_role))) {
+                    ++n_filtered;
+                    const Vec3d p = belt_inv * mv.position.cast<double>();
+                    tp_bb_full.merge(p);
+                    if (p.y() >= y_lo && p.y() <= y_hi) {
+                        tp_bb_clip.merge(p);
+                        ++n_clip;
+                    }
+                }
+        };
+        accumulate(/*body_only=*/true);
+        // Fallback: a plate with no object-body extrusions above layer 0 (e.g. a
+        // support-only object) would leave tp_bb undefined and silently skip the
+        // anchor. Re-accumulate over ALL extrude moves so the min-corner anchor is
+        // still computed rather than letting the preview float by the placement offset.
+        if (n_filtered == 0)
+            accumulate(/*body_only=*/false);
+        // Use the clipped bbox when it still holds the bulk of the moves (outliers removed).
+        // If the object sits far from the belt entry the toolpaths are grossly offset and the
+        // clip drops most of them — fall back to the full bbox so the min-corner anchor still
+        // recovers that gross translation rather than breaking.
+        const BoundingBoxf3& tp_bb =
+            (tp_bb_clip.defined && n_filtered > 0 &&
+             double(n_clip) >= ANCHOR_CLIP_MIN_KEEP * double(n_filtered)) ? tp_bb_clip : tp_bb_full;
+        if (model_bb.defined && tp_bb.defined) {
+            // Anchor the back-transformed toolpath body onto the upright model bbox by
+            // its MIN corner. (Center anchoring was tried and regressed when the toolpath
+            // and model bounding boxes differ in extent.) With the belt_z_origin
+            // correction above and the outlier-robust bbox below, the surface overlaps the
+            // shell to well under a millimetre when the object is at the belt entry; an
+            // object placed elsewhere in global-rotation mode still carries the placement
+            // translation, which this min-corner step recovers.
+            const Vec3d d = model_bb.min - tp_bb.min;
+            belt_inv = Transform3d(Eigen::Translation3d(d)) * belt_inv;
+            BOOST_LOG_TRIVIAL(debug) << "[BELT-PREVIEW] anchor d=[" << d.x() << "," << d.y() << "," << d.z()
+                << "] (clip kept " << n_clip << "/" << n_filtered << " moves)";
+        }
+    }
+    libvgcode::GCodeInputData data = libvgcode::convert(gcode_result, str_tool_colors, str_color_print_colors, m_viewer,
+        apply_belt ? &belt_inv : nullptr);
 
 //#define ENABLE_DATA_EXPORT 1
 //#if ENABLE_DATA_EXPORT
@@ -1348,7 +1521,9 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         m_custom_gcode_per_print_z = gcode_result.custom_gcode_per_print_z;
 
     m_max_print_height = gcode_result.printable_height;
+    m_machine_frame_transform_active = gcode_result.machine_frame_transform_active;
     m_z_offset = gcode_result.z_offset;
+
 
     // load_toolpaths(gcode_result, build_volume, exclude_bounding_box);
     
@@ -1562,6 +1737,7 @@ void GCodeViewer::reset()
     m_paths_bounding_box = BoundingBoxf3();
     m_max_bounding_box = BoundingBoxf3();
     m_max_print_height = 0.0f;
+    m_machine_frame_transform_active = false;
     m_z_offset = 0.0f;
     m_extruders_count = 0;
     m_filament_diameters = std::vector<float>();
@@ -2309,7 +2485,14 @@ void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_p
 void GCodeViewer::render_toolpaths()
 {
     const Camera& camera = wxGetApp().plater()->get_camera();
-    const libvgcode::Mat4x4 converted_view_matrix = libvgcode::convert(static_cast<Matrix4f>(camera.get_view_matrix().matrix().cast<float>()));
+    Matrix4f view = camera.get_view_matrix().matrix().cast<float>();
+    // Belt "designed" (upright) view is produced by back-transforming the toolpath
+    // GEOMETRY into model space at load time (see load_as_gcode ->
+    // compute_belt_back_transform -> libvgcode::convert). The camera is left untouched
+    // here; transforming the view as well would double-apply the inverse. Baking the
+    // transform into the geometry (not the camera) also keeps the bed and toolpaths in
+    // the same frame so they stay aligned.
+    const libvgcode::Mat4x4 converted_view_matrix = libvgcode::convert(view);
     const libvgcode::Mat4x4 converted_projetion_matrix = libvgcode::convert(static_cast<Matrix4f>(camera.get_projection_matrix().matrix().cast<float>()));
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     m_viewer.set_cog_marker_scale_factor(m_cog_marker_fixed_screen_size ? 10.0f * m_cog_marker_size * camera.get_inv_zoom() : m_cog_marker_size);
@@ -4693,6 +4876,32 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     ImGui::Dummy({ window_padding, window_padding });
     if (m_nozzle_nums > 1 && (m_viewer.get_view_type() == libvgcode::EViewType::Summary || m_viewer.get_view_type() == libvgcode::EViewType::ColorPrint)) // ORCA show only on summary and filament tab
         render_legend_color_arr_recommen(window_padding);
+
+    // Belt printer: toggle for viewing designed (upright) vs. machine-frame G-code.
+    // Rendered with a separator and hint text so users can find it easily.
+    if (m_belt_view_enabled) {
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+        ImGui::Dummy({ window_padding, 0 });
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(0.f, 0.59f, 0.53f, 1.f), "%s", _u8L("Belt Printer").c_str());
+        ImGui::Dummy({ window_padding, 0 });
+        ImGui::SameLine();
+        // Checked = show the raw machine-frame G-code (designed/upright view off). Worded to
+        // match the canvas-toolbar menu item "Show raw G-code (belt only)". m_belt_show_designed
+        // is the inverse of this checkbox, so bind a temporary and flip it on change.
+        bool show_raw = !m_belt_show_designed;
+        if (ImGui::Checkbox(_u8L("Show raw G-code (belt only) [B]").c_str(), &show_raw)) {
+            m_belt_show_designed = !show_raw;
+            // The designed-view back-transform is baked into the toolpath geometry at load
+            // time, so the toggle only takes effect once the preview is re-converted. Defer
+            // the refresh to the next event-loop tick (CallAfter) to avoid re-entering the
+            // preview load from inside legend rendering.
+            if (Plater* plater = wxGetApp().plater())
+                plater->CallAfter([plater]() { plater->refresh_belt_view(); });
+        }
+    }
 
     legend_height = ImGui::GetCurrentWindow()->Size.y;
     imgui.end();

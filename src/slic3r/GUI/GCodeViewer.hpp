@@ -203,6 +203,7 @@ private:
     //BBS: add shell bounding box
     BoundingBoxf3 m_shell_bounding_box;
     float m_max_print_height{ 0.0f };
+    bool  m_machine_frame_transform_active{ false };
     float m_z_offset{ 0.0f };
 
     ConfigOptionMode m_user_mode;
@@ -242,6 +243,11 @@ private:
     bool m_contained_in_bed{ true };
 mutable bool m_no_render_path { false };
     bool m_is_dark = false;
+
+    bool  m_belt_view_enabled = false;
+    float m_belt_angle_deg = 0.f;
+    bool  m_belt_show_designed = true;   // Toggle: designed (upright, back-transformed) view by default;
+                                         // turn off (hotkey B) to inspect the raw machine-frame G-code.
 
     libvgcode::Viewer m_viewer;
     bool m_loaded_as_preview{ false };
@@ -284,6 +290,7 @@ public:
     std::vector<int> get_plater_extruder();
 
     const float                get_max_print_height() const { return m_max_print_height; }
+    bool                       is_machine_frame_transform_active() const { return m_machine_frame_transform_active; }
     const BoundingBoxf3& get_paths_bounding_box() const { return m_paths_bounding_box; }
     const BoundingBoxf3& get_max_bounding_box() const { return m_max_bounding_box; }
     const BoundingBoxf3& get_shell_bounding_box() const { return m_shell_bounding_box; }
@@ -348,6 +355,11 @@ public:
     float get_legend_height() { return m_legend_height; }
 
     void export_toolpaths_to_obj(const char* filename) const;
+
+    void set_belt_printer(bool enabled, float angle_deg) { m_belt_view_enabled = enabled; m_belt_angle_deg = angle_deg; }
+    bool is_belt_view() const { return m_belt_view_enabled && m_belt_angle_deg > 0.f; }
+    void toggle_belt_show_designed() { if (m_belt_view_enabled) m_belt_show_designed = !m_belt_show_designed; }
+    bool is_belt_show_designed() const { return m_belt_show_designed; }
 
     size_t get_extruders_count() { return m_extruders_count; }
     void push_combo_style();

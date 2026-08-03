@@ -144,6 +144,12 @@ int idx_lower_or_equal(const std::vector<T*> &vec, int idx, FN_LOWER_EQUAL fn_lo
     return idx_lower_or_equal(vec.begin(), vec.end(), idx, fn_lower_equal);
 }
 
+// Belt floor: compute the belt-side half-plane polygon at a given print_z.
+// Used to clip support polygons against the belt surface.
+Polygons belt_floor_surface_polygon(
+    const SlicingParameters &slicing_params, const PrintConfig &print_config,
+    const PrintObject &object, coordf_t print_z);
+
 } // namespace Slic3r
 
 #endif /* slic3r_SupportCommon_hpp_ */

@@ -9,11 +9,11 @@
 #include "Polygon.hpp"
 #include "PrintConfig.hpp"
 #include "GCode/CoolingBuffer.hpp"
-
 namespace Slic3r {
 
 class GCodeWriter {
 public:
+    virtual ~GCodeWriter() = default;
     GCodeConfig config;
     bool multiple_extruders;
 
@@ -78,23 +78,23 @@ public:
     std::string set_speed(double F, const std::string &comment = std::string(), const std::string &cooling_marker = std::string());
     // SoftFever NOTE: the returned speed is mm/minute
     double      get_current_speed() const { return m_current_speed;}
-    std::string travel_to_xy(const Vec2d &point, const std::string &comment = std::string());
-    std::string travel_to_xyz(const Vec3d &point, const std::string &comment = std::string(), bool force_z = false);
+    virtual std::string travel_to_xy(const Vec2d &point, const std::string &comment = std::string());
+    virtual std::string travel_to_xyz(const Vec3d &point, const std::string &comment = std::string(), bool force_z = false);
     std::string travel_to_z(double z, const std::string &comment = std::string(), bool force = false);
     bool        will_move_z(double z) const;
-    std::string extrude_to_xy(const Vec2d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
+    virtual std::string extrude_to_xy(const Vec2d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
     //BBS: generate G2 or G3 extrude which moves by arc
     std::string extrude_arc_to_xy(const Vec2d &point, const Vec2d &center_offset, double dE, const bool is_ccw, const std::string &comment = std::string(), bool force_no_extrusion = false);
-    std::string extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
+    virtual std::string extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
     std::string retract(bool before_wipe = false, double retract_length = 0);
     std::string retract_for_toolchange(bool before_wipe = false, double retract_length = 0);
     // extra_retract adds a small over-extrusion to the deretract move (PETG pre-extrusion).
     // Default 0 -> byte-identical to the plain deretract.
     std::string unretract(float extra_retract = 0.f);
     // do lift instantly
-    std::string eager_lift(const LiftType type);
+    virtual std::string eager_lift(const LiftType type);
     // record a lift request, do realy lift in next travel
-    std::string lazy_lift(LiftType lift_type = LiftType::NormalLift, bool spiral_vase = false);
+    virtual std::string lazy_lift(LiftType lift_type = LiftType::NormalLift, bool spiral_vase = false);
     std::string unlift();
     const Vec3d& get_position() const { return m_pos; }
     Vec3d&       get_position() { return m_pos; }
@@ -136,16 +136,48 @@ public:
     void invalidate_acceleration() { m_last_acceleration = 0; m_last_travel_acceleration = 0; }
     void invalidate_jerk() { m_last_jerk = 0; }
 
+    // Axis remap: permute/negate/reverse axes in G-code output.
+    // Works standalone (without belt mode) for printers with non-standard axis conventions.
+    void set_axis_remap(int rx, int ry, int rz);
+    void set_build_volume_max(const Vec3d &max);
+    bool has_axis_remap() const;
+
     // Returns whether this flavor supports separate print and travel acceleration.
     static bool supports_separate_travel_acceleration(GCodeFlavor flavor);
-  private:
+protected:
+    // Position/lift/offset state — accessible to subclasses (e.g. BeltGCodeWriter)
+    Vec3d           m_pos = Vec3d::Zero();
+    double          m_x_offset{ 0 };
+    double          m_y_offset{ 0 };
+    double          m_lifted;
+    double          m_to_lift;
+    LiftType        m_to_lift_type;
+    bool            m_is_first_layer = true;
+    bool            m_is_current_pos_clear = false;
+    double          m_current_speed;
+
+    virtual std::string _travel_to_z(double z, const std::string &comment);
+
+    // Axis remap state — accessible to subclasses.
+    int             m_remap_x = 0;  // RemapAxis: 0=+X, 1=+Y, 2=+Z, 3=-X, etc.
+    int             m_remap_y = 1;
+    int             m_remap_z = 2;
+    Vec3d           m_build_vol_max = Vec3d::Zero();
+
+    // Apply axis remap to a point. Returns pos unchanged if remap is identity.
+    Vec3d apply_axis_remap(const Vec3d &pos) const;
+
+    // Motion uses the global/base process variant until a filament becomes active.
+    // Protected so BeltGCodeWriter indexes the per-extruder speed options (travel_speed,
+    // travel_speed_z, initial_layer_travel_speed) exactly as the base writer does.
+    size_t     m_cached_extruder_idx;
+
+private:
 	// Extruders are sorted by their ID, so that binary search is possible.
     std::vector<Extruder> m_filament_extruders;
     bool            m_single_extruder_multi_material;
     std::vector<Extruder*> m_curr_filament_extruder;
     int        m_curr_extruder_id;
-    // Motion uses the global/base process variant until a filament becomes active.
-    size_t     m_cached_extruder_idx;
     unsigned int              m_last_acceleration;
     unsigned int              m_last_travel_acceleration;
     std::vector<unsigned int> m_max_travel_acceleration;
@@ -168,19 +200,6 @@ public:
     unsigned int    m_last_additional_fan_speed;
     int             m_last_bed_temperature;
     bool            m_last_bed_temperature_reached;
-    double          m_lifted;
-
-    // BBS
-    double          m_to_lift;
-    LiftType        m_to_lift_type;
-    Vec3d           m_pos = Vec3d::Zero();
-    //BBS: this flag is used to indicate whether the m_pos is real.
-    //A example that of the first move, the m_pos is zero, but the real position of extruder doesn't
-    //Pos must be clear after the first xyz travel move
-    bool            m_is_current_pos_clear = false;
-    //BBS: x, y offset for gcode generated
-    double          m_x_offset{ 0 };
-    double          m_y_offset{ 0 };
 
     // Orca: slicing resolution in mm
     double          m_resolution = 0.01;
@@ -192,21 +211,18 @@ public:
     // non-rectangular beds such as delta/circular printers.
     Polygon              m_bed_printable_area;
     std::vector<Polygon> m_extruder_printable_areas;
-    
+
     std::string m_gcode_label_objects_start;
     std::string m_gcode_label_objects_end;
 
     //SoftFever
     bool            m_is_bbl_printers = false;
-    double          m_current_speed;
-    bool            m_is_first_layer = true;
 
     enum class Acceleration {
         Travel,
         Print
     };
 
-    std::string _travel_to_z(double z, const std::string &comment);
     std::string _spiral_travel_to_z(double z, const Vec2d &ij_offset, const std::string &comment);
     // Orca: printable area of the active extruder (per-extruder when configured, otherwise the bed). Null when unknown.
     const Polygon *active_printable_area() const;

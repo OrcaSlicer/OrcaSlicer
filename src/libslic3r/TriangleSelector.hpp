@@ -309,6 +309,7 @@ public:
                       const Transform3d        &trafo_no_translate,            // matrix to get from mesh to world without translation
                       bool                      triangle_splitting,            // If triangles will be split base on the cursor or not
                       float                     highlight_by_angle_deg = 0.f,  // The maximal angle of overhang. If it is set to a non-zero value, it is possible to paint only the triangles of overhang defined by this angle in degrees.
+                      const Vec3f              &up_direction = Vec3f::UnitZ(), // Up direction for overhang detection (accounts for build plate tilt)
                       bool                      select_partially = false);     // Select a triangle if it's partially in the cursor but too small to be subdivided
 
     void seed_fill_select_triangles(const Vec3f        &hit,                          // point where to start
@@ -317,7 +318,8 @@ public:
                                     const ClippingPlane &clp,                         // Clipping plane to limit painting to not clipped facets only
                                     float               seed_fill_angle,              // the maximal angle between two facets to be painted by the same color
                                     float               highlight_by_angle_deg = 0.f, // The maximal angle of overhang. If it is set to a non-zero value, it is possible to paint only the triangles of overhang defined by this angle in degrees.
-                                    bool                force_reselection = false);   // force reselection of the triangle mesh even in cases that mouse is pointing on the selected triangle
+                                    bool                force_reselection = false,    // force reselection of the triangle mesh even in cases that mouse is pointing on the selected triangle
+                                    const Vec3f        &up_direction = Vec3f::UnitZ()); // Up direction for overhang detection (accounts for build plate tilt)
 
     void bucket_fill_select_triangles(const Vec3f         &hit,                        // point where to start
                                       int                  facet_start,                // facet of the original mesh (unsplit) that the hit point belongs to

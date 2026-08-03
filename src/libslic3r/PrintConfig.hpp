@@ -229,6 +229,61 @@ enum class SlicingMode
     CloseHoles,
 };
 
+// Axis around which the mesh is rotated before slicing, when
+// `belt_slice_rotation` is set.  None disables the rotation stage.  This is the
+// single "belt tilt" axis: it drives both the pre-slice mesh rotation and the
+// post-slice machine-frame transform (shear + scale derived from the tilt angle).
+enum class BeltRotationAxis
+{
+    None = 0,
+    X    = 1,
+    Y    = 2,
+    Z    = 3,
+};
+
+enum class RemapAxis
+{
+    PosX = 0, PosY = 1, PosZ = 2,
+    NegX = 3, NegY = 4, NegZ = 5,
+    RevX = 6, RevY = 7, RevZ = 8,  // Reversed: max - pos
+};
+
+enum class BeltSupportFloorMode
+{
+    None,           // No belt floor awareness
+    GeneratorOnly,  // Only in tree support drop_nodes/contact_points
+    ClipOnly,       // Only post-processing clipping
+    Both,           // Both generator and clipping
+};
+
+enum class BeltSupportZOffsetMode
+{
+    None,           // Don't apply global_z_offset to support layers
+    Unconditional,  // Apply to all support layers
+    RaftOnly,       // Only apply to raft layers
+};
+
+// Selects which plane the slicer treats as the "first layer plane" — the
+// reference surface used to decide which extrusions get first-layer settings
+// (no fan, slow speed, initial-layer accel/jerk, deferred temperature drop).
+//
+// Auto resolves to:
+//   - XY (inactive, legacy behavior) for non-belt printers and for belt
+//     printers with no active belt-side transform.
+//   - BeltAffine for belt printers with any active belt-side affine
+//     transform (Z shear, slicing rotation, or both).
+//
+// XY is also used as an explicit "opt out" mode that forces legacy
+// per-layer first-layer detection even on belt printers.
+enum class FirstLayerPlaneMode
+{
+    Auto = 0,
+    XY,
+    YZ,
+    XZ,
+    BeltAffine,   // formerly BeltShear; renamed to reflect rotation support
+};
+
 enum SupportMaterialPattern {
     smpDefault,
     smpRectilinear, smpRectilinearGrid, smpHoneycomb,
@@ -647,6 +702,11 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SlicingMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BeltRotationAxis)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(RemapAxis)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BeltSupportFloorMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BeltSupportZOffsetMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FirstLayerPlaneMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialStyle)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialInterfacePattern)
@@ -1704,6 +1764,40 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     PrintConfig,
     (MachineEnvelopeConfig, GCodeConfig),
 
+    // Build plate tilt for off-axis gravity support generation (printer-level setting).
+    ((ConfigOptionFloat,               build_plate_tilt_x))
+    ((ConfigOptionFloat,               build_plate_tilt_y))
+    // Belt printer settings (printer-level).
+    ((ConfigOptionBool,                belt_printer))
+    ((ConfigOptionBool,                belt_printer_infinite_y))
+    // Mesh rotation applied before slicing — the single source of truth for the
+    // physical belt tilt.  Its angle + axis drive bed rendering, support gravity
+    // tilt, the bed-exclusion projection, AND the post-slice machine-frame
+    // transform (shear + scale, derived from the tilt angle; see
+    // MachineFrameTransform).  Isometric (no distortion) on the mesh side; the
+    // g-code back-transform inverts the rotation before the machine-frame stage.
+    ((ConfigOptionEnum<BeltRotationAxis>, belt_slice_rotation))
+    ((ConfigOptionFloat,                  belt_slice_rotation_angle))
+    ((ConfigOptionBool,                   belt_slice_rotation_global))
+    // Expert override: decouple the machine-frame tilt angle from the pre-slice
+    // rotation angle.  When disabled, the machine frame uses belt_slice_rotation_angle.
+    ((ConfigOptionBool,                   belt_frame_tilt_decouple))
+    ((ConfigOptionFloat,                  belt_frame_tilt_angle))
+    ((ConfigOptionEnum<RemapAxis>,  preslice_remap_x))
+    ((ConfigOptionEnum<RemapAxis>,  preslice_remap_y))
+    ((ConfigOptionEnum<RemapAxis>,  preslice_remap_z))
+    ((ConfigOptionBool,             preslice_remap_global))
+    ((ConfigOptionEnum<RemapAxis>,  gcode_remap_x))
+    ((ConfigOptionEnum<RemapAxis>,  gcode_remap_y))
+    ((ConfigOptionEnum<RemapAxis>,  gcode_remap_z))
+    ((ConfigOptionBool,                 gcode_back_transform))
+    ((ConfigOptionBool,                 belt_preslice_global))
+    ((ConfigOptionEnum<FirstLayerPlaneMode>, first_layer_plane))
+    ((ConfigOptionFloat,                first_layer_plane_offset))
+    ((ConfigOptionFloat,                first_layer_plane_thickness))
+    ((ConfigOptionFloat,                          belt_support_floor_offset))
+    ((ConfigOptionEnum<BeltSupportFloorMode>,     belt_support_floor_mode))
+    ((ConfigOptionEnum<BeltSupportZOffsetMode>,   belt_support_z_offset_mode))
     //BBS
     ((ConfigOptionInts,               additional_cooling_fan_speed))
     ((ConfigOptionInts,               close_additional_fan_first_x_layers))

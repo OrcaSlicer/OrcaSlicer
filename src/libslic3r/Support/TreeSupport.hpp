@@ -446,6 +446,10 @@ private:
     bool  is_slim                            = false;
     bool  with_infill                        = false;
 
+    // Belt printer: compute the belt floor print_z at a given XY position (in slicing coords).
+    // Returns -infinity if belt floor is not active.
+    double belt_floor_print_z(const Point &pos_slicing) const;
+
 
 
     /*!

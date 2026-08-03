@@ -7,6 +7,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
+#include "libslic3r/GCode/MachineFrameTransform.hpp"
 
 #include <cstdint>
 #include <array>
@@ -276,6 +277,22 @@ class Print;
         bool support_traditional_timelapse{true};
         float printable_height;
         float z_offset;
+        // Belt printer: physical tilt magnitude (deg) parsed from the slicing-rotation
+        // header comment; used to enable the preview's belt view.
+        float belt_tilt_angle{ 0.f };
+        // Belt printer: machine-Z origin offset (mm) left in m_origin[Z] by the start
+        // G-code (purge-blob belt advance + G92 Z0 resets). Move positions are stored
+        // as gcode_Z + this offset, so the designed-view back-transform must subtract it
+        // to recover the model's belt coordinate.
+        float belt_z_origin{ 0.f };
+        // Belt printer: post-gcode shear/scale/post_remap is configured and
+        // non-identity.  When set, the layer Z values in `moves` are in the
+        // machine frame and should not be compared against `printable_height`
+        // (which lives in the build-volume frame).
+        bool machine_frame_transform_active{ false };
+        RemapAxis preslice_remap_x{ RemapAxis::PosX };
+        RemapAxis preslice_remap_y{ RemapAxis::PosY };
+        RemapAxis preslice_remap_z{ RemapAxis::PosZ };
         SettingsIds settings_ids;
         size_t filaments_count;
         bool backtrace_enabled;
@@ -363,6 +380,12 @@ class Print;
             // Keep the SKIPPABLE per-type time on a copied result.
             skippable_part_time = other.skippable_part_time;
             initial_layer_time = other.initial_layer_time;
+            belt_tilt_angle = other.belt_tilt_angle;
+            belt_z_origin = other.belt_z_origin;
+            machine_frame_transform_active = other.machine_frame_transform_active;
+            preslice_remap_x = other.preslice_remap_x;
+            preslice_remap_y = other.preslice_remap_y;
+            preslice_remap_z = other.preslice_remap_z;
 #if ENABLE_GCODE_VIEWER_STATISTICS
             time = other.time;
 #endif
@@ -1128,6 +1151,12 @@ class Print;
         //BBS: x, y offset for gcode generated
         double          m_x_offset{ 0 };
         double          m_y_offset{ 0 };
+
+        // Belt-printer post-gcode shear/scale/post_remap. Used by
+        // check_multi_extruder_gcode_valid to undo the machine-frame
+        // transform on move positions so bounds checks operate in the
+        // pre-machine-frame (build-volume) frame.
+        MachineFrameTransform m_machine_frame_transform;
 
         unsigned int m_line_id;
         unsigned int m_last_line_id;

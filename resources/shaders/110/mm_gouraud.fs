@@ -37,6 +37,7 @@ struct SlopeDetection
     bool actived;
 	 float normal_z;
     mat3 volume_world_normal_matrix;
+    vec3 up_direction;
 };
 uniform SlopeDetection slope;
 
@@ -85,7 +86,7 @@ void main()
               color = LightBlue;
               alpha = 1.0;
          }
-         else if( transformed_normal.z < slope.normal_z - EPSILON)
+         else if( dot(transformed_normal, slope.up_direction) < slope.normal_z - EPSILON)
         {
             color = color * 0.5 + LightRed * 0.5;
             alpha = 1.0;

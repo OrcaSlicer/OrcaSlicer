@@ -1,0 +1,99 @@
+{
+	"type": "machine",
+	"name": "fdm_belt_common",
+	"inherits": "fdm_klipper_common",
+	"from": "system",
+	"instantiation": "false",
+	"gcode_flavor": "klipper",
+	"single_extruder_multi_material": "0",
+	"default_filament_profile": [
+		"Generic PLA @System"
+	],
+	"default_print_profile": "0.20mm Standard @System",
+	"max_layer_height": [
+		"0.32"
+	],
+	"min_layer_height": [
+		"0.08"
+	],
+	"deretraction_speed": [
+		"30"
+	],
+	"extruder_colour": [
+		"#FCE94F"
+	],
+	"extruder_offset": [
+		"0x0"
+	],
+	"long_retractions_when_cut": [
+		"0"
+	],
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"retract_before_wipe": [
+		"70%"
+	],
+	"retract_length_toolchange": [
+		"2"
+	],
+	"retract_lift_above": [
+		"0"
+	],
+	"retract_lift_below": [
+		"0"
+	],
+	"retract_lift_enforce": [
+		"All Surfaces"
+	],
+	"retract_restart_extra": [
+		"0"
+	],
+	"retract_restart_extra_toolchange": [
+		"0"
+	],
+	"retract_when_changing_layer": [
+		"1"
+	],
+	"retraction_distances_when_cut": [
+		"18"
+	],
+	"retraction_length": [
+		"0.8"
+	],
+	"retraction_minimum_travel": [
+		"1"
+	],
+	"retraction_speed": [
+		"30"
+	],
+	"travel_slope": [
+		"3"
+	],
+	"wipe": [
+		"1"
+	],
+	"wipe_distance": [
+		"1"
+	],
+	"z_hop": [
+		"0.4"
+	],
+	"z_hop_types": [
+		"Normal Lift"
+	],
+	"gcode_remap_x": "rev_x",
+	"gcode_remap_y": "pos_z",
+	"gcode_remap_z": "pos_y",
+	"printer_extruder_id": [
+		"1"
+	],
+	"belt_printer": "1",
+	"belt_slice_rotation": "x",
+	"belt_slice_rotation_angle": "45",
+	"belt_slice_rotation_global": "1",
+	"build_plate_tilt_x": "45",
+	"purge_in_prime_tower": "0",
+	"scan_first_layer": "0",
+	"auxiliary_fan": "0"
+}

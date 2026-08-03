@@ -26,6 +26,7 @@ struct SlopeDetection
     bool actived;
 	float normal_z;
     mat3 volume_world_normal_matrix;
+    vec3 up_direction;
 };
 
 uniform vec4 uniform_color;

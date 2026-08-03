@@ -377,7 +377,10 @@ private:
 
     const Calib_Params &m_params;
 
-    GCodeWriter        m_writer;
+    // Polymorphic so belt printers get a BeltGCodeWriter in world-coordinates
+    // mode (_refresh_writer); shared_ptr keeps the class copyable — the writer
+    // is rebuilt by refresh_setup() before every use anyway.
+    std::shared_ptr<GCodeWriter> m_writer{std::make_shared<GCodeWriter>()};
     Vec3d              m_starting_point;
     bool               m_is_start_point_fixed = false;
 

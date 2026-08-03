@@ -15,6 +15,13 @@
 #include <boost/filesystem.hpp>
 
 #include "test_helpers.hpp"
+#include <cmath>
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include <algorithm>
+#include <limits>
+#include "libslic3r/BeltGCodeWriter.hpp"
+#include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
@@ -846,4 +853,147 @@ TEST_CASE("Custom G-code motion limits are restored before generated moves", "[G
     REQUIRE(custom_gcode_pos != std::string::npos);
     REQUIRE(gcode.find("M204 S6000 ; adjust acceleration", custom_gcode_pos) != std::string::npos);
     REQUIRE(gcode.find("M205 X8 Y8 ; adjust jerk", custom_gcode_pos) != std::string::npos);
+}
+
+// Regression test for the belt-printer "illegal gantry move at print start" bug.
+//
+// On a belt printer the layer-change z-hop is deferred (lazy_lift) and consumed
+// by the first travel_to_xyz, whose NormalLift branch lifts in place via
+// _travel_to_z(). On a normal printer _travel_to_z emits a Z-only move, but in
+// belt mode Z is coupled to Y/X, so _travel_to_z re-emits the current m_pos
+// through the belt shear. At print start (and after custom gcode)
+// is_current_position_clear() is false and m_pos.xy is still the uninitialised
+// origin (0,0), which shears into machine (X=bed_max, Y=layer_z) — a move far up
+// the gantry, e.g. "G1 X95 Y168.19 Z237.857". The fix guards that lift on
+// is_current_position_clear(), mirroring the SlopeLift branch.
+SCENARIO("Belt: the first travel does not lift through the uninitialised origin", "[GCodeWriter][belt]")
+{
+    GIVEN("A fresh BeltGCodeWriter configured for an X-tilt 45 degree belt") {
+        // Machine-frame + slicer->world back-transform config (X tilt, 45 deg).
+        PrintConfig belt_config;
+        belt_config.belt_printer.value               = true;
+        belt_config.gcode_back_transform.value       = true;
+        belt_config.belt_slice_rotation.value        = BeltRotationAxis::X;
+        belt_config.belt_slice_rotation_angle.value  = 45.0;
+        belt_config.belt_slice_rotation_global.value = true;
+        belt_config.belt_preslice_global.value       = true;
+        belt_config.belt_frame_tilt_decouple.value   = false;
+        belt_config.belt_frame_tilt_angle.value      = 45.0;
+
+        BeltGCodeWriter writer;
+        writer.set_machine_frame_transform(belt_config);
+        writer.set_belt_back_transform(belt_config);
+
+        std::vector<unsigned int> extruder_ids { 0 };
+        writer.set_extruders(extruder_ids);
+        writer.set_extruder(0);
+        // travel_speed became per-extruder (ConfigOptionFloatsNullable) upstream.
+        writer.config.travel_speed.values       = { 100.0 };
+        writer.config.z_hop.values              = { 0.4 };
+        writer.config.retract_lift_above.values = { 0.0 };
+        writer.config.retract_lift_below.values = { 0.0 };
+
+        // A fresh writer has not established its planar position yet — this is the
+        // precondition that made the origin leak into the first move.
+        REQUIRE_FALSE(writer.is_current_position_clear());
+
+        WHEN("a layer-change z-hop is pending and we travel to the first object point") {
+            // Defer a z-hop, exactly as a retract on layer change leaves it.
+            writer.lazy_lift(LiftType::NormalLift);
+
+            // First object point in slicing coordinates: a near-belt point (y ~= -z)
+            // so its transformed gantry Y is small (~1mm). The bogus origin lift, in
+            // contrast, would shear to machine Y ~= nominal_z.
+            const double nominal_z = 100.0;
+            std::string gcode = writer.travel_to_xyz(Vec3d(10.0, -(nominal_z - 1.0), nominal_z));
+
+            THEN("no emitted move flies up the gantry; machine Y stays near the part") {
+                double max_y = std::numeric_limits<double>::lowest();
+                GCodeReader reader;
+                reader.parse_buffer(gcode, [&max_y](GCodeReader &, const GCodeReader::GCodeLine &line) {
+                    if (line.cmd_is("G1") && line.has(Y))
+                        max_y = std::max(max_y, double(line.y()));
+                });
+                // The destination shears to machine Y ~= 1mm. The old origin-lift bug
+                // produced a separate move at machine Y ~= nominal_z (100mm), so any
+                // Y well above the part means the origin leaked into a move.
+                REQUIRE(max_y > 0.0);   // the destination move was emitted and parsed
+                REQUIRE(max_y < 10.0);  // ... and nothing flew up the gantry
+            }
+        }
+    }
+}
+
+// Regression test for the belt-printer "phantom extrusion line from Y=0" bug.
+//
+// GCodeProcessor::store_move_vertex pins a move's stored Z to the first-layer
+// height while m_processing_start_custom_gcode is set (the start G-code "prepare"
+// stage), because on a normal printer the toolhead Z there is not yet a real print
+// height. On a belt printer that override is wrong: Z is written explicitly and the
+// designed-view back-transform couples machine Z into the rendered model Y (the
+// belt tilt mixes the height and belt-feed axes). Overriding it back-transforms the
+// last prepare-stage move (the unretract right before the first extrusion) to
+// model Y ~= 0, and libvgcode then draws a phantom extrusion segment from Y ~= 0 to
+// the first real toolpath — rendered in the first extrusion role's color. The fix
+// keeps the real Z for belt printers (gated on belt_tilt_angle). Here we assert the
+// prepare-stage move keeps its real Z so it can no longer leak to Y ~= 0.
+SCENARIO("Belt: start-gcode prepare-stage moves keep their real Z", "[GCode][belt]")
+{
+    // Belt printers are non-Bambu, so the G-code uses the "compatible" reserved
+    // tags ("TYPE:" for the extrusion role). The processor selects the tag table
+    // from the static s_IsBBLPrinter flag, so mirror the belt-printer setting here
+    // (saved/restored so test ordering stays unaffected).
+    struct BBLPrinterGuard {
+        bool prev = GCodeProcessor::s_IsBBLPrinter;
+        BBLPrinterGuard()  { GCodeProcessor::s_IsBBLPrinter = false; }
+        ~BBLPrinterGuard() { GCodeProcessor::s_IsBBLPrinter = prev; }
+    } bbl_guard;
+
+    GIVEN("A belt G-code whose start sequence travels to a high machine Z before the first extrusion") {
+        // The leading "; belt_slice_rotation_angle = 45" header sets belt_tilt_angle
+        // (parsed before the body), enabling the belt code path. ;TYPE:Custom before
+        // any G1 turns on the prepare stage; ;TYPE:Outer wall turns it off, exactly
+        // as a sliced belt print is laid out.
+        const std::string gcode =
+            "; belt_slice_rotation_angle = 45\n"
+            "G90\n"
+            "G21\n"
+            "M83\n"
+            ";TYPE:Custom\n"
+            "G1 E-1.5 F2100\n"            // retract at the (0,0,0) origin
+            "G1 X45 Y0.3 Z50 F12000\n"   // travel to the approach point (prepare stage)
+            "G1 E1.5 F1800\n"            // unretract in place (prepare stage)
+            ";TYPE:Outer wall\n"
+            "G1 X46 Y0.3 Z50 E0.05\n";   // first extrusion, same Z as the approach
+
+        GCodeProcessor processor;
+        processor.process_buffer(gcode);
+        const GCodeProcessorResult& result = processor.get_result();
+
+        THEN("the belt code path is active") {
+            REQUIRE_THAT(result.belt_tilt_angle, Catch::Matchers::WithinAbs(45.0, 1e-4));
+        }
+
+        WHEN("locating the first extrusion and the move that precedes it") {
+            size_t first_extrude = result.moves.size();
+            for (size_t i = 0; i < result.moves.size(); ++i)
+                if (result.moves[i].type == EMoveType::Extrude) { first_extrude = i; break; }
+
+            THEN("an extrusion and a preceding move exist") {
+                REQUIRE(first_extrude < result.moves.size());
+                REQUIRE(first_extrude > 0);
+            }
+
+            THEN("the preceding prepare-stage move shares the extrusion's real Z (no leak to Y=0)") {
+                const float extrude_z = result.moves[first_extrude].position.z();
+                const float prev_z    = result.moves[first_extrude - 1].position.z();
+                // The first extrusion is at the real Z=50; before the fix the
+                // prepare-stage move's Z was pinned to the first-layer height
+                // (0 here) instead, which back-transforms to model Y ~= 0 and
+                // produces the phantom extrusion segment.
+                REQUIRE_THAT(extrude_z, Catch::Matchers::WithinAbs(50.0, 1e-3));
+                REQUIRE_THAT(prev_z,    Catch::Matchers::WithinAbs(50.0, 1e-3));
+            }
+        }
+    }
 }

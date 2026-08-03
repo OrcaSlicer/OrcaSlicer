@@ -280,7 +280,7 @@ int TriangleSelector::select_unsplit_triangle(const Vec3f &hit, int facet_idx) c
     return this->select_unsplit_triangle(hit, facet_idx, neighbors);
 }
 
-void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&cursor, EnforcerBlockerType new_state, const Transform3d& trafo_no_translate, bool triangle_splitting, float highlight_by_angle_deg, const bool select_partially)
+void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&cursor, EnforcerBlockerType new_state, const Transform3d& trafo_no_translate, bool triangle_splitting, float highlight_by_angle_deg, const Vec3f &up_direction, const bool select_partially)
 {
     assert(facet_start < m_orig_size_indices);
 
@@ -341,8 +341,8 @@ void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&c
             int          facet = facets_to_check[facet_idx];
             const Vec3f& facet_normal = m_face_normals[m_triangles[facet].source_triangle];
             Matrix3f     normal_matrix = static_cast<Matrix3f>(trafo_no_translate.matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>());
-            float        world_normal_z = (normal_matrix* facet_normal).normalized().z();
-            if (!visited[facet] && (highlight_by_angle_deg == 0.f || world_normal_z < highlight_angle_limit)) {
+            float        world_normal_dot = (normal_matrix * facet_normal).normalized().dot(up_direction);
+            if (!visited[facet] && (highlight_by_angle_deg == 0.f || world_normal_dot < highlight_angle_limit)) {
                 if (select_triangle(facet, new_state, triangle_splitting, select_partially)) {
                     // add neighboring facets to list to be processed later
                     for (int neighbor_idx : m_neighbors[facet])
@@ -367,7 +367,7 @@ bool TriangleSelector::is_facet_clipped(int facet_idx, const ClippingPlane &clp)
 
 void TriangleSelector::seed_fill_select_triangles(const Vec3f &hit, int facet_start, const Transform3d& trafo_no_translate,
                                                   const ClippingPlane &clp, float seed_fill_angle, float highlight_by_angle_deg,
-                                                  bool force_reselection)
+                                                  bool force_reselection, const Vec3f &up_direction)
 {
     assert(facet_start < m_orig_size_indices);
 
@@ -391,8 +391,8 @@ void TriangleSelector::seed_fill_select_triangles(const Vec3f &hit, int facet_st
 
         const Vec3f &facet_normal = m_face_normals[m_triangles[current_facet].source_triangle];
         Matrix3f     normal_matrix  = static_cast<Matrix3f>(trafo_no_translate.matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>());
-        float        world_normal_z = (normal_matrix * facet_normal).normalized().z();
-        if (!visited[current_facet] && (highlight_by_angle_deg == 0.f || world_normal_z < highlight_angle_limit)) {
+        float        world_normal_dot = (normal_matrix * facet_normal).normalized().dot(up_direction);
+        if (!visited[current_facet] && (highlight_by_angle_deg == 0.f || world_normal_dot < highlight_angle_limit)) {
             if (m_triangles[current_facet].is_split()) {
                 for (int split_triangle_idx = 0; split_triangle_idx <= m_triangles[current_facet].number_of_split_sides(); ++split_triangle_idx) {
                     assert(split_triangle_idx < int(m_triangles[current_facet].children.size()));
@@ -2515,7 +2515,7 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
             if (TriangleCursor::check_normal(norm_b, -norm_a) && check_overlap(pv0, pv1, pv2, ta, tb, tc)) {
                 // Paint this face
                 target_selector.select_patch(face_idx, TriangleCursor::build_cursor(source_selector, tri), tri.get_state(),
-                                             Transform3d::Identity(), true, 0.f, true);
+                                             Transform3d::Identity(), true, 0.f, Vec3f::UnitZ(), true);
             }
             return true; // continue traversal
         });

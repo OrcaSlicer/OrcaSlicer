@@ -60,6 +60,7 @@ private:
     void select_facets_by_angle(float threshold, bool block);
     // BBS
     int get_selection_support_threshold_angle();
+    std::pair<double, double> get_build_plate_tilt();
 
     int m_support_threshold_angle = -1;
 

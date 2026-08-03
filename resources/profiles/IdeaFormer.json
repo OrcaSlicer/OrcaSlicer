@@ -1,0 +1,54 @@
+{
+    "name": "IdeaFormer",
+    "version": "02.00.00.02",
+    "force_update": "0",
+    "description": "IdeaFormer belt printer configurations",
+    "machine_model_list": [
+        {
+            "name": "IdeaFormer IR3 V2",
+            "sub_path": "machine/IdeaFormer IR3 V2.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "0.20mm Standard @IdeaFormer IR3 V2",
+            "sub_path": "process/0.20mm Standard @IdeaFormer IR3 V2.json"
+        }
+    ],
+    "filament_list": [
+        {
+            "name": "Generic PLA @IdeaFormer IR3 V2",
+            "sub_path": "filament/Generic PLA @IdeaFormer IR3 V2.json"
+        },
+        {
+            "name": "eSUN PLA @IdeaFormer IR3 V2",
+            "sub_path": "filament/eSUN PLA @IdeaFormer IR3 V2.json"
+        },
+        {
+            "name": "Generic PETG @IdeaFormer IR3 V2",
+            "sub_path": "filament/Generic PETG @IdeaFormer IR3 V2.json"
+        }
+    ],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "fdm_klipper_common",
+            "sub_path": "machine/fdm_klipper_common.json"
+        },
+        {
+            "name": "fdm_belt_common",
+            "sub_path": "machine/fdm_belt_common.json"
+        },
+        {
+            "name": "IdeaFormer IR3 V2 0.4 nozzle",
+            "sub_path": "machine/IdeaFormer IR3 V2 0.4 nozzle.json"
+        }
+    ]
+}

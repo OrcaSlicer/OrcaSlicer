@@ -548,12 +548,26 @@ int GLGizmoFdmSupports::get_selection_support_threshold_angle()
     return auto_support ? support_threshold_angle : 0;
 }
 
+std::pair<double, double> GLGizmoFdmSupports::get_build_plate_tilt()
+{
+    const DynamicPrintConfig& cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    double tilt_x = cfg.opt_float("build_plate_tilt_x");
+    double tilt_y = cfg.opt_float("build_plate_tilt_y");
+    return {tilt_x, tilt_y};
+}
+
 void GLGizmoFdmSupports::select_facets_by_angle(float threshold_deg, bool block)
 {
     float threshold = (float(M_PI)/180.f)*threshold_deg;
     const Selection& selection = m_parent.get_selection();
     const ModelObject* mo = m_c->selection_info()->model_object();
     const ModelInstance* mi = mo->instances[selection.get_instance_idx()];
+
+    // Compute gravity direction accounting for build plate tilt
+    auto [tilt_x_deg, tilt_y_deg] = get_build_plate_tilt();
+    double tilt_x_rad = tilt_x_deg * M_PI / 180.0;
+    double tilt_y_rad = tilt_y_deg * M_PI / 180.0;
+    Vec3d gravity_dir = Vec3d(-tan(tilt_y_rad), -tan(tilt_x_rad), -1.0).normalized();
 
     int mesh_id = -1;
     for (const ModelVolume* mv : mo->volumes) {
@@ -563,10 +577,8 @@ void GLGizmoFdmSupports::select_facets_by_angle(float threshold_deg, bool block)
         ++mesh_id;
 
         const Transform3d trafo_matrix = mi->get_matrix_no_offset() * mv->get_matrix_no_offset();
-        Vec3f down  = (trafo_matrix.inverse() * (-Vec3d::UnitZ())).cast<float>().normalized();
-        Vec3f limit = (trafo_matrix.inverse() * Vec3d(std::sin(threshold), 0, -std::cos(threshold))).cast<float>().normalized();
-
-        float dot_limit = limit.dot(down);
+        Vec3f down  = (trafo_matrix.inverse() * gravity_dir).cast<float>().normalized();
+        float dot_limit = std::cos(threshold);
 
         // Now calculate dot product of vert_direction and facets' normals.
         int idx = 0;

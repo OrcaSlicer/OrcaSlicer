@@ -396,6 +396,11 @@ inline void translate(ExPolygons &expolys, const Point &p) {
         expoly.translate(p);
 }
 
+inline void translate(Polygons &polys, const Point &p) {
+    for (Polygon &poly : polys)
+        poly.translate(p);
+}
+
 inline void polygons_append(Polygons &dst, const ExPolygon &src) 
 { 
     dst.reserve(dst.size() + src.holes.size() + 1);

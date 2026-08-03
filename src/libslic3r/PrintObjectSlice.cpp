@@ -1,4 +1,6 @@
 #include <boost/log/trivial.hpp>
+#include <limits>
+#include <thread>
 
 #include <tbb/parallel_for.h>
 
@@ -9,6 +11,9 @@
 #include "Layer.hpp"
 #include "MultiMaterialSegmentation.hpp"
 #include "Print.hpp"
+#include "BeltTransform.hpp"
+#include "BeltSliceStrategy.hpp"
+#include "Geometry.hpp"
 //BBS
 #include "ShortestPath.hpp"
 #include "libslic3r/Feature/Interlocking/InterlockingGenerator.hpp"
@@ -152,7 +157,8 @@ static std::vector<VolumeSlices> slice_volumes_inner(
     ModelVolumePtrs                                           model_volumes,
     const std::vector<PrintObjectRegions::LayerRangeRegions> &layer_ranges,
     const std::vector<float>                                 &zs,
-    const std::function<void()>                              &throw_on_cancel_callback)
+    const std::function<void()>                              &throw_on_cancel_callback,
+    double                                                   *out_belt_min_z = nullptr)
 {
     model_volumes_sort_by_id(model_volumes);
 
@@ -167,6 +173,10 @@ static std::vector<VolumeSlices> slice_volumes_inner(
     params_base.closing_radius = print_object_config.slice_closing_radius.value;
     params_base.extra_offset   = 0;
     params_base.trafo          = object_trafo;
+    // Pre-slice mesh transforms: axis remap (standalone — works without belt
+    // mode), belt rotation, and the per-object Z-shift.  Owned by BeltSliceStrategy
+    // so this belt/remap-specific logic stays out of the generic slicing pipeline.
+    BeltSliceStrategy::apply_preslice_transforms(params_base.trafo, print_config, model_volumes, out_belt_min_z);
     //BBS: 0.0025mm is safe enough to simplify the data to speed slicing up for high-resolution model.
     //Also has on influence on arc fitting which has default resolution 0.0125mm.
     params_base.resolution = print_config.resolution <= 0.001 ? 0.0f : 0.0025;
@@ -300,20 +310,47 @@ static std::vector<std::vector<ExPolygons>> slices_to_regions(
                 }
             } else {
                 zs_complex.reserve(zs.size());
+                // region.bbox is computed in pre-belt-transform slicer space (see PrintApply.cpp::trafo_for_bbox).
+                // When belt transforms are active, layer Z values are in post-rotation/shear/scale/remap space,
+                // so the Z components of region.bbox aren't comparable to z. Skipping the Z filter here
+                // pushes those layers into the parallel_for path below, which handles multi-volume
+                // clipping per layer without relying on the bbox Z range.
+                const bool bbox_z_in_layer_frame = !(print_config.belt_printer.value &&
+                    (BeltTransformPipeline::has_rotation(print_config)
+                        || BeltTransformPipeline::has_preslice_remap(print_config)));
+                // Belt-transform addendum: with bbox-Z untrusted, the simple path's
+                // "first model_part wins" logic drops subsequent volumes' slices unless
+                // they XY-overlap with the first.  Assemblies whose volumes are stacked
+                // or side-by-side in pre-transform Z (different bbox.z ranges) thus lose
+                // the volumes that originally sat outside the first volume's Z range —
+                // showing up as truncation at the top or bottom of the assembly.  Force
+                // every layer in a multi-volume range through the parallel_for path,
+                // which correctly merges all volumes per layer.
+                int num_model_parts = 0;
+                for (const PrintObjectRegions::VolumeRegion &vr : layer_range.volume_regions)
+                    if (vr.model_volume->is_model_part())
+                        ++num_model_parts;
+                const bool force_complex_for_belt = !bbox_z_in_layer_frame && num_model_parts > 1;
                 for (; z_idx < zs.size() && zs[z_idx] < layer_range.layer_height_range.second; ++ z_idx) {
                     float z                          = zs[z_idx];
+                    if (force_complex_for_belt) {
+                        zs_complex.push_back({ z_idx, z });
+                        continue;
+                    }
                     int   idx_first_printable_region = -1;
                     bool  complex                    = false;
                     for (int idx_region = 0; idx_region < int(layer_range.volume_regions.size()); ++ idx_region) {
                         const PrintObjectRegions::VolumeRegion &region = layer_range.volume_regions[idx_region];
-                        if (region.bbox->min().z() <= z && region.bbox->max().z() >= z) {
+                        if (!bbox_z_in_layer_frame || (region.bbox->min().z() <= z && region.bbox->max().z() >= z)) {
                             if (idx_first_printable_region == -1 && region.model_volume->is_model_part())
                                 idx_first_printable_region = idx_region;
                             else if (idx_first_printable_region != -1) {
                                 // Test for overlap with some other region.
                                 for (int idx_region2 = idx_first_printable_region; idx_region2 < idx_region; ++ idx_region2) {
                                     const PrintObjectRegions::VolumeRegion &region2 = layer_range.volume_regions[idx_region2];
-                                    if (region2.bbox->min().z() <= z && region2.bbox->max().z() >= z && overlap_in_xy(*region.bbox, *region2.bbox)) {
+                                    const bool region2_in_z = !bbox_z_in_layer_frame
+                                        || (region2.bbox->min().z() <= z && region2.bbox->max().z() >= z);
+                                    if (region2_in_z && overlap_in_xy(*region.bbox, *region2.bbox)) {
                                         complex = true;
                                         break;
                                     }
@@ -816,8 +853,12 @@ void groupingVolumesForBrim(PrintObject* object, LayerPtrs& layers, int firstLay
 // Resulting expolygons of layer regions are marked as Internal.
 void PrintObject::slice()
 {
-    if (! this->set_started(posSlice))
+    BOOST_LOG_TRIVIAL(trace) << "[BELTRACE] slice request tid=" << std::this_thread::get_id() << " obj=" << this;
+    if (! this->set_started(posSlice)) {
+        BOOST_LOG_TRIVIAL(trace) << "[BELTRACE] slice SKIP tid=" << std::this_thread::get_id() << " obj=" << this << " (already started/done)";
         return;
+    }
+    BOOST_LOG_TRIVIAL(trace) << "[BELTRACE] slice ENTER tid=" << std::this_thread::get_id() << " obj=" << this;
     //BBS: add flag to reload scene for shell rendering
     m_print->set_status(5, L("Slicing mesh"), PrintBase::SlicingStatus::RELOAD_SCENE);
     std::vector<coordf_t> layer_height_profile;
@@ -828,6 +869,34 @@ void PrintObject::slice()
     m_layers = new_layers(this, generate_object_layers(m_slicing_params, layer_height_profile, m_config.precise_z_height.value));
     this->slice_volumes();
     m_print->throw_if_canceled();
+
+    // Belt floor Z-shift: where is the belt surface in final slicer space?
+    //
+    // The belt surface is at model_Y=0 (XZ belt plane). After the full
+    // pipeline (trafo_centered → pre_remap → shear → z_shift), the belt
+    // surface equation in slicer space is:
+    //   Z_belt = sf * from_axis + belt_surface_z_centered + z_shift_val
+    //
+    // belt_surface_z_centered = remapped_bbox.min.z() (the Z position of
+    //   the belt surface in centered-pre-shear slicer space, which is 0
+    //   without pre-remap but nonzero when e.g. Y↔Z swap shifts the belt
+    //   surface away from Z=0 by the centering offset).
+    //
+    // z_shift_val = max(0, -m_belt_min_z) (lifts mesh above Z=0).
+    //
+    // So: belt_floor_z_shift = remapped_bb.min.z() + z_shift_val
+    if (std::abs(m_slicing_params.belt_floor_shear_factor) > EPSILON) {
+        double z_shift_val = (m_belt_min_z < 0.) ? -m_belt_min_z : 0.;
+        // With pre-remap, the belt surface (model_Y=0) may not be at Z=0 in
+        // centered slicer space — add the remapped bbox min Z to compensate.
+        // Without pre-remap, the belt surface IS at Z=0 and bb.min.z() is
+        // already folded into m_belt_min_z, so use 0.
+        const auto &pcfg = this->print()->config();
+        double belt_surface_z = BeltTransformPipeline::has_preslice_remap(pcfg)
+            ? BeltTransformPipeline::remap_bbox(*this->model_object(), pcfg).min.z() : 0.;
+        m_slicing_params.belt_floor_z_shift = belt_surface_z + z_shift_val;
+    }
+
     int firstLayerReplacedBy = 0;
 
 #if 0
@@ -866,7 +935,193 @@ void PrintObject::slice()
     if (m_layers.empty())
         throw Slic3r::SlicingError(L("No layers were detected. You might want to repair your STL file(s) or check their size or thickness and retry.\n"));
 
+    // Belt printer global mode: offset all layer Z values so objects at
+    // different bed positions print at different heights on the tilted belt.
+    // This is a post-slicing adjustment — the sliced geometry is identical
+    // regardless of global mode, only the output Z coordinates change.
+    {
+        const auto &pcfg = this->print()->config();
+        BOOST_LOG_TRIVIAL(trace) << "Belt global check: belt_printer=" << pcfg.belt_printer.value
+            << " belt_slice_rotation=" << int(pcfg.belt_slice_rotation.value)
+            << " belt_slice_rotation_global=" << pcfg.belt_slice_rotation_global.value
+            << " belt_preslice_global=" << pcfg.belt_preslice_global.value
+            << " object=" << this->model_object()->name;
+        if (pcfg.belt_printer.value) {
+
+            Point inst_shift = this->instances().empty() ? Point(0, 0)
+                : this->instances().front().shift - this->center_offset();
+            BOOST_LOG_TRIVIAL(trace) << "Belt global: object " << this->model_object()->name
+                << " instances=" << this->instances().size()
+                << " shift=(" << unscale<double>(inst_shift.x()) << ", " << unscale<double>(inst_shift.y()) << ")";
+
+            // Per-object Z-shift compensation, applied regardless of global mode.
+            //
+            // BeltSliceStrategy::apply_preslice_transforms lifts the mesh by max(0, -m_belt_min_z)
+            // so the slicer can slice with slicer_z >= 0.  BeltBackTransform inverts
+            // build_forward_transform() which DOES NOT include this per-object
+            // Z-shift (it's not known until vertex scan time).  Result: G-code
+            // coords emerge offset by the un-undone Z-shift — the inverse rotation
+            // couples slicer_z back into both machine_y and machine_z.  Compensating
+            // layer.print_z by belt_z_shift here makes the back-transform produce
+            // correct machine-frame coordinates whether or not a global mode is active.
+            double belt_surface_z = BeltTransformPipeline::has_preslice_remap(pcfg)
+                ? BeltTransformPipeline::remap_bbox(*this->model_object(), pcfg).min.z() : 0.;
+            // The compensation must mirror the Z-shift actually applied, which
+            // is max(0, -m_belt_min_z): when the transformed mesh starts ABOVE
+            // slicer Z=0 (m_belt_min_z > 0 — possible for counter-rotated or
+            // asymmetric geometry whose centered-frame minimum lands positive)
+            // no lift was applied, and an unclamped m_belt_min_z here would
+            // leak straight into the layer Z values, floating the whole object
+            // off the belt by exactly that amount.
+            double belt_z_shift = std::min(m_belt_min_z, 0.) - belt_surface_z;
+            double global_z_offset = belt_z_shift;
+
+            // Centering correction: trafo_centered pretranslates by
+            // -m_center_offset.{x,y}.  Under the belt forward transform, the
+            // Y component of that pretranslate couples into slicer-Z (shear:
+            // tan*c.y, rotation: sin*c.y).  BeltBackTransform inverts the
+            // rotation/shear but doesn't undo centering, so this Z component
+            // leaks into machine output as a position offset whenever
+            // m_center_offset != 0.  When a user moves a volume within an
+            // assembly such that the combined bbox center shifts, this shows
+            // up as a small Z translation in the print.  Compensate by adding
+            // the Z component of the centering through the forward transform.
+            {
+                Transform3d T_fwd = BeltTransformPipeline::build_forward_transform(pcfg);
+                Vec3d c_off(unscale<double>(m_center_offset.x()),
+                            unscale<double>(m_center_offset.y()),
+                            0.);
+                double centering_z_corr = (T_fwd.linear() * c_off).z();
+                global_z_offset += centering_z_corr;
+                BOOST_LOG_TRIVIAL(trace) << "[BELT-DEBUG] centering correction"
+                    << " obj=" << this->model_object()->name
+                    << " m_center_offset_mm=(" << c_off.x() << "," << c_off.y() << ")"
+                    << " centering_z_corr=" << centering_z_corr
+                    << " (added to global_z_offset)";
+            }
+
+            // [BELT-DEBUG] Per-object summary so Case A vs Case B can be compared
+            // side-by-side.  Lays out every value that feeds into the final layer
+            // print_z adjustment.
+            {
+                BoundingBoxf3 raw_bb = this->model_object()->raw_bounding_box();
+                BOOST_LOG_TRIVIAL(trace) << "[BELT-DEBUG] slice() per-object summary"
+                    << " obj=" << this->model_object()->name
+                    << " n_volumes=" << this->model_object()->volumes.size()
+                    << " raw_bbox.min=(" << raw_bb.min.x() << "," << raw_bb.min.y() << "," << raw_bb.min.z() << ")"
+                    << " raw_bbox.max=(" << raw_bb.max.x() << "," << raw_bb.max.y() << "," << raw_bb.max.z() << ")"
+                    << " raw_bbox.center=(" << raw_bb.center().x() << "," << raw_bb.center().y() << ")"
+                    << " m_center_offset=(" << unscale<double>(m_center_offset.x()) << "," << unscale<double>(m_center_offset.y()) << ")"
+                    << " inst_shift=(" << unscale<double>(inst_shift.x()) << "," << unscale<double>(inst_shift.y()) << ")"
+                    << " m_belt_min_z=" << m_belt_min_z
+                    << " belt_surface_z=" << belt_surface_z
+                    << " belt_z_shift=" << belt_z_shift;
+                // Per-volume bbox + get_matrix translation so order/composition is visible.
+                int vi = 0;
+                for (const ModelVolume *mv : this->model_object()->volumes) {
+                    if (!mv->is_model_part()) { ++vi; continue; }
+                    BoundingBoxf3 vol_bb = mv->mesh().transformed_bounding_box(mv->get_matrix());
+                    BOOST_LOG_TRIVIAL(trace) << "[BELT-DEBUG]   vol[" << vi
+                        << "] id=" << mv->id().id << " name='" << mv->name << "'"
+                        << " get_matrix.translation=(" << mv->get_matrix().translation().x() << "," << mv->get_matrix().translation().y() << "," << mv->get_matrix().translation().z() << ")"
+                        << " object_bbox.min=(" << vol_bb.min.x() << "," << vol_bb.min.y() << "," << vol_bb.min.z() << ")"
+                        << " object_bbox.max=(" << vol_bb.max.x() << "," << vol_bb.max.y() << "," << vol_bb.max.z() << ")";
+                    ++vi;
+                }
+            }
+
+            if (pcfg.belt_preslice_global.value) {
+                // Global pre-slice mode: compute full correction c = (T.linear() - I) * d
+                // where T is the belt forward transform and d is the bed position.
+                Transform3d T = BeltTransformPipeline::build_forward_transform(pcfg);
+                Vec3d d(unscale<double>(inst_shift.x()), unscale<double>(inst_shift.y()), 0.);
+                Vec3d c = T.linear() * d - d;
+                global_z_offset += c.z();
+                BOOST_LOG_TRIVIAL(trace) << "[BELTRACE] write m_belt_global_xy_correction tid=" << std::this_thread::get_id()
+                    << " obj=" << this << " old=(" << m_belt_global_xy_correction.x() << "," << m_belt_global_xy_correction.y()
+                    << ") new=(" << c.x() << "," << c.y() << ")";
+                m_belt_global_xy_correction = Vec2d(c.x(), c.y());
+
+                BOOST_LOG_TRIVIAL(trace) << "Belt preslice_global: correction=("
+                    << c.x() << ", " << c.y() << ", " << c.z() << ")"
+                    << " belt_z_shift=" << belt_z_shift << " (m_belt_min_z=" << m_belt_min_z << ")";
+            } else {
+                // Slicing rotation in global mode: bed-position-dependent Z offset.
+                // For R(α, X): c.z = sin(α)*d.y so objects at different bed-Y
+                // values print at different machine Z values along the inclined belt.
+                if (pcfg.belt_slice_rotation_global.value
+                    && pcfg.belt_slice_rotation.value != BeltRotationAxis::None
+                    && std::abs(pcfg.belt_slice_rotation_angle.value) > EPSILON) {
+                    Transform3d T = BeltTransformPipeline::build_forward_transform(pcfg);
+                    Vec3d d(unscale<double>(inst_shift.x()), unscale<double>(inst_shift.y()), 0.);
+                    Vec3d c = T.linear() * d - d;
+                    global_z_offset += c.z();
+                    m_belt_global_xy_correction = Vec2d(c.x(), c.y());
+                }
+
+                // Pre-slice remap global mode: when on, the remap accounts for the
+                // instance bed position. The Z component of the correction
+                // (R - I) * d shifts layer print_z so e.g. a Y↔Z swap with an
+                // object at Y=50 prints at Z=50.
+                if (pcfg.preslice_remap_global.value
+                    && BeltTransformPipeline::has_preslice_remap(pcfg)) {
+                    Transform3d R = BeltTransformPipeline::build_preslice_remap(pcfg);
+                    Vec3d d(unscale<double>(inst_shift.x()), unscale<double>(inst_shift.y()), 0.);
+                    Vec3d remap_correction = R.linear() * d - d;
+                    global_z_offset += remap_correction.z();
+                }
+            }
+
+            BOOST_LOG_TRIVIAL(trace) << "Belt global: z_offset=" << global_z_offset
+                << " (relative to min across " << this->print()->objects().size() << " objects)";
+            BOOST_LOG_TRIVIAL(trace) << "[BELTRACE] write m_belt_global_z_offset tid=" << std::this_thread::get_id()
+                << " obj=" << this << " old=" << m_belt_global_z_offset << " new=" << global_z_offset;
+            m_belt_global_z_offset = global_z_offset;
+            // [BELT-DEBUG] Final breakdown of all contributions to layer.print_z
+            // and where the first / last layer end up post-adjustment.
+            BOOST_LOG_TRIVIAL(trace) << "[BELT-DEBUG] global_z_offset breakdown"
+                << " obj=" << this->model_object()->name
+                << " belt_z_shift=" << belt_z_shift
+                << " total_global_z_offset=" << global_z_offset
+                << " xy_correction=(" << m_belt_global_xy_correction.x() << "," << m_belt_global_xy_correction.y() << ")"
+                << " belt_floor_z_shift_before=" << (m_slicing_params.belt_floor_z_shift)
+                << " n_layers=" << m_layers.size();
+            if (std::abs(global_z_offset) > EPSILON) {
+                for (Layer *layer : m_layers)
+                    layer->print_z += global_z_offset;
+                // Keep belt floor clipping in sync with the shifted print_z
+                // values — the support generator sees globally-offset object
+                // layer print_z, so belt_floor_z_shift must match.
+                m_slicing_params.belt_floor_z_shift += global_z_offset;
+            }
+            if (!m_layers.empty()) {
+                BOOST_LOG_TRIVIAL(trace) << "[BELT-DEBUG]   post-adjustment"
+                    << " first_layer.print_z=" << m_layers.front()->print_z
+                    << " last_layer.print_z=" << m_layers.back()->print_z
+                    << " belt_floor_z_shift_after=" << m_slicing_params.belt_floor_z_shift;
+            }
+            if (!m_layers.empty()) {
+                BOOST_LOG_TRIVIAL(trace) << "Belt global: first_layer_z=" << m_layers.front()->print_z
+                    << " last_layer_z=" << m_layers.back()->print_z
+                    << " num_layers=" << m_layers.size()
+                    << " center_offset=(" << unscale<double>(m_center_offset.x())
+                    << ", " << unscale<double>(m_center_offset.y()) << ")";
+            }
+
+            // Cache the final patched belt_floor_z_shift so a later support-only
+            // invalidation can rebuild m_slicing_params without losing this exact
+            // (vertex-scan-derived) value.  update_slicing_parameters() will
+            // restore it after create_from_config() seeds the bbox approximation.
+            m_belt_floor_z_shift_cached      = m_slicing_params.belt_floor_z_shift;
+            m_belt_floor_z_shift_cache_valid = true;
+        }
+    }
+
     // BBS
+    BOOST_LOG_TRIVIAL(trace) << "[BELTRACE] slice EXIT tid=" << std::this_thread::get_id() << " obj=" << this
+        << " layers=" << m_layers.size() << " belt_min_z=" << m_belt_min_z
+        << " belt_global_z_offset=" << m_belt_global_z_offset
+        << " belt_xy=(" << m_belt_global_xy_correction.x() << "," << m_belt_global_xy_correction.y() << ")";
     this->set_done(posSlice);
 }
 
@@ -1170,7 +1425,8 @@ void PrintObject::slice_volumes()
     if (!slice_zs.empty()) {
         objSliceByVolume = slice_volumes_inner(
             print->config(), this->config(), this->trafo_centered(),
-            this->model_object()->volumes, m_shared_regions->layer_ranges, slice_zs, throw_on_cancel_callback);
+            this->model_object()->volumes, m_shared_regions->layer_ranges, slice_zs, throw_on_cancel_callback,
+            &m_belt_min_z);
     }
 
     //BBS: "model_part" volumes are grouded according to their connections

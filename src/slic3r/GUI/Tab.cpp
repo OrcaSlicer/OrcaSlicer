@@ -4,6 +4,7 @@
 #include "PresetHints.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/BeltTransform.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
@@ -1560,6 +1561,13 @@ void Tab::reload_config()
 void Tab::update_mode()
 {
     m_mode = wxGetApp().get_mode();
+
+    // toggle_options reads m_mode to gate Lines whose contents are mode-mixed
+    // (e.g., a multi-option row where some options are Advanced and some Expert):
+    // when all of a Line's options would be hidden, we hide the Line itself.
+    // Without refreshing here, the toggle_visible state stays stale across mode
+    // switches and Lines stay hidden.
+    toggle_options();
 
     update_visibility();
 
@@ -5025,6 +5033,83 @@ void TabPrinter::build_fff()
         //option.opt.full_width = true;
         //optgroup->append_single_option_line(option);
         optgroup->append_single_option_line("disable_m73", "printer_basic_information_advanced#disable-set-remaining-print-time");
+
+        // Belt printer: dedicated section. Everything except the "Enable belt printing"
+        // checkbox is hidden when belt_printer is off (see TabPrinter::toggle_options).
+        auto belt_og = page->new_optgroup(L("Belt printer"), L"param_advanced");
+        belt_og->append_single_option_line("belt_printer");
+        belt_og->append_single_option_line("belt_printer_infinite_y");
+        // Belt tilt: the sole mesh-side transform and the single source of truth for
+        // the physical tilt (drives bed rendering and support gravity tilt too).
+        // Isometric rotation, no distortion; the back-transform inverts it before the
+        // machine-frame remap.
+        {
+            Line line = { L("Belt tilt"),
+                          L("Belt tilt axis and angle, applied as a mesh rotation before "
+                            "slicing.  Also drives bed rendering and support gravity tilt.  "
+                            "Isometric (no distortion); the back-transform inverts it before "
+                            "the machine-frame remap.") };
+            line.append_option(belt_og->get_option("belt_slice_rotation"));
+            line.append_option(belt_og->get_option("belt_slice_rotation_angle"));
+            line.append_option(belt_og->get_option("belt_slice_rotation_global"));
+            belt_og->append_line(line);
+        }
+        {
+            Line line = { L("Pre-slice axis remap"),
+                          L("Remap model axes before slicing so the slicer's coordinate system matches "
+                            "the physical bed orientation. For belt printers whose bed is NOT in the XY plane, "
+                            "use this to swap axes so layers are stacked in the correct physical direction.") };
+            line.append_option(belt_og->get_option("preslice_remap_x"));
+            line.append_option(belt_og->get_option("preslice_remap_y"));
+            line.append_option(belt_og->get_option("preslice_remap_z"));
+            line.append_option(belt_og->get_option("preslice_remap_global"));
+            belt_og->append_line(line);
+        }
+        belt_og->append_single_option_line("belt_preslice_global");
+        belt_og->append_single_option_line("gcode_back_transform");
+        {
+            Line line = { L("First layer plane"),
+                          L("Reference plane used to decide which extrusions get first-layer "
+                            "settings (no fan, slow speed, deferred temperature drop). On belt "
+                            "printers, Auto resolves to the tilted belt-shear plane so that "
+                            "first-layer treatment follows perpendicular distance from the belt "
+                            "surface, not slicing layer index.") };
+            line.append_option(belt_og->get_option("first_layer_plane"));
+            line.append_option(belt_og->get_option("first_layer_plane_offset"));
+            line.append_option(belt_og->get_option("first_layer_plane_thickness"));
+            belt_og->append_line(line);
+        }
+        // Support floor: split across lines so each setting's own mode controls
+        // its visibility (floor_mode = Develop, floor_offset = Advanced, z_offset_mode = Expert).
+        belt_og->append_single_option_line("belt_support_floor_offset");
+        belt_og->append_single_option_line("belt_support_z_offset_mode");
+        belt_og->append_single_option_line("belt_support_floor_mode");
+
+        // Machine-frame transform: the shear (tan) + scale (1/cos) that map
+        // Cartesian G-code into the printer's physical machine frame are derived
+        // from the belt tilt angle.  Only the post-slice axis remap and the expert
+        // decouple override are exposed here.
+        {
+            auto mf = page->new_optgroup(L("Machine frame transforms"), L"param_advanced");
+            {
+                Line line = { L("G-code axis remap (post-slice)"), L("Remap slicing-frame axes to machine axes in G-code output. Applied AFTER slicing, during G-code generation.") };
+                line.append_option(mf->get_option("gcode_remap_x"));
+                line.append_option(mf->get_option("gcode_remap_y"));
+                line.append_option(mf->get_option("gcode_remap_z"));
+                mf->append_line(line);
+            }
+            {
+                Line line = { L("Machine-frame tilt"),
+                              L("The machine-frame shear (tan) and scale (1/cos) are derived from "
+                                "the belt tilt angle.  Enable 'Decouple' to set an independent "
+                                "machine-frame angle when the physical gantry tilt differs from "
+                                "the slicing rotation.") };
+                line.append_option(mf->get_option("belt_frame_tilt_decouple"));
+                line.append_option(mf->get_option("belt_frame_tilt_angle"));
+                mf->append_line(line);
+            }
+        }
+
         option = optgroup->get_option("thumbnails");
         option.opt.full_width = true;
         optgroup->append_single_option_line(option, "printer_basic_information_advanced#g-code-thumbnails");
@@ -5069,6 +5154,8 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("use_firmware_retraction", "printer_basic_information_advanced#use-firmware-retraction");
         // optgroup->append_single_option_line("spaghetti_detector");
         optgroup->append_single_option_line("time_cost", "printer_basic_information_advanced#time-cost");
+        optgroup->append_single_option_line("build_plate_tilt_x");
+        optgroup->append_single_option_line("build_plate_tilt_y");
 
         optgroup = page->new_optgroup(L("Plugin Configuration"), L"param_gcode");
         optgroup->append_single_option_line("printer_plugin_config_overrides");
@@ -6049,6 +6136,44 @@ void TabPrinter::toggle_options()
         bool gcf_is_marlin_firmware = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value == GCodeFlavor::gcfMarlinFirmware;
         toggle_line("enable_power_loss_recovery", is_BBL_printer || gcf_is_marlin_firmware);
 
+        // Belt printer: show belt-specific settings only when belt_printer is enabled.
+        bool is_belt = m_config->opt_bool("belt_printer");
+        bool expert_or_above = (m_mode >= comExpert);
+        toggle_line("belt_printer_infinite_y", is_belt);
+        // Belt tilt: the sole mesh-side belt transform (visible by default in belt mode).
+        toggle_line("belt_slice_rotation", is_belt);
+
+        // Remap, back-transform, and global mesh-transforms toggles are gated by belt
+        // mode here; finer mode-based visibility (Advanced vs Expert) is handled by
+        // each option's ConfigOptionMode in PrintConfig.cpp.
+        for (auto el : {"preslice_remap_x", "gcode_remap_x", "gcode_back_transform"})
+            toggle_line(el, is_belt);
+        toggle_line("belt_preslice_global", is_belt);
+
+        bool belt_global = is_belt && m_config->opt_bool("belt_preslice_global");
+
+        // preslice_remap_global: superseded by belt_preslice_global
+        toggle_option("preslice_remap_global", is_belt && !belt_global);
+
+        // Rotation is the only mesh-side belt transform.  Gray out its angle/global
+        // sub-options when no rotation axis is selected.
+        auto rot_axis = m_config->option<ConfigOptionEnum<BeltRotationAxis>>("belt_slice_rotation")->value;
+        toggle_option("belt_slice_rotation_angle",  is_belt && rot_axis != BeltRotationAxis::None);
+        toggle_option("belt_slice_rotation_global", is_belt && rot_axis != BeltRotationAxis::None);
+
+        // Machine-frame transform: derived from the belt tilt.  Only the expert
+        // decouple override is exposed; its angle is enabled only when decoupled.
+        toggle_line("belt_frame_tilt_decouple", is_belt && expert_or_above);
+        toggle_option("belt_frame_tilt_angle",
+                      is_belt && expert_or_above && m_config->opt_bool("belt_frame_tilt_decouple"));
+
+        // First-layer plane: visible alongside the rest of belt-printer settings.
+        toggle_line("first_layer_plane", is_belt);
+        toggle_option("first_layer_plane_offset",    is_belt);
+        toggle_option("first_layer_plane_thickness", is_belt);
+
+        for (auto el : {"belt_support_floor_mode", "belt_support_floor_offset", "belt_support_z_offset_mode"})
+            toggle_line(el, is_belt);
         const bool support_parallel_printheads = printer_cfg.opt_bool("support_parallel_printheads");
         toggle_line("parallel_printheads_count", support_parallel_printheads);
 
@@ -6320,6 +6445,31 @@ void TabPrinter::update_fff()
     if (m_use_silent_mode != m_config->opt_bool("silent_mode"))	{
         m_rebuild_kinematics_page = true;
         m_use_silent_mode = m_config->opt_bool("silent_mode");
+    }
+
+    // Belt printer: auto-sync build_plate_tilt_{x,y} (which drives support gravity tilt)
+    // from the belt slicing rotation, the single source of truth for the physical tilt.
+    // Tilt about X drives tilt_x, tilt about Y drives tilt_y.  When belt mode is off,
+    // reset whichever tilt axis matches a leftover belt value so we don't clobber a
+    // manually-set tilt on a non-belt tilted printer.
+    if (m_config->opt_bool("belt_printer")) {
+        auto rot_axis = m_config->option<ConfigOptionEnum<BeltRotationAxis>>("belt_slice_rotation")->value;
+        const auto tilt = BeltTransformPipeline::physical_tilt(
+            rot_axis, m_config->opt_float("belt_slice_rotation_angle"));
+        if (m_config->opt_float("build_plate_tilt_x") != tilt.tilt_x_deg)
+            m_config->set_key_value("build_plate_tilt_x", new ConfigOptionFloat(tilt.tilt_x_deg));
+        if (m_config->opt_float("build_plate_tilt_y") != tilt.tilt_y_deg)
+            m_config->set_key_value("build_plate_tilt_y", new ConfigOptionFloat(tilt.tilt_y_deg));
+    } else {
+        const auto tilt = BeltTransformPipeline::physical_tilt(
+            m_config->option<ConfigOptionEnum<BeltRotationAxis>>("belt_slice_rotation")->value,
+            m_config->opt_float("belt_slice_rotation_angle"));
+        double tx = m_config->opt_float("build_plate_tilt_x");
+        double ty = m_config->opt_float("build_plate_tilt_y");
+        if (tx != 0. && std::abs(tx - tilt.tilt_x_deg) < 0.01)
+            m_config->set_key_value("build_plate_tilt_x", new ConfigOptionFloat(0.));
+        if (ty != 0. && std::abs(ty - tilt.tilt_y_deg) < 0.01)
+            m_config->set_key_value("build_plate_tilt_y", new ConfigOptionFloat(0.));
     }
 
     toggle_options();

@@ -635,9 +635,17 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     const bool gcf_is_marlin_firmware = gcflavor == GCodeFlavor::gcfMarlinFirmware;
     const bool gcf_is_klipper = gcflavor == GCodeFlavor::gcfKlipper;
 
+    // Belt printer: detect early since it affects multiple toggle decisions below.
+    bool is_belt_printer = false;
+    {
+        const auto *belt_opt = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("belt_printer");
+        if (belt_opt)
+            is_belt_printer = belt_opt->value;
+    }
+
     bool have_volumetric_extrusion_rate_slope = config->option<ConfigOptionFloat>("max_volumetric_extrusion_rate_slope")->value > 0;
     float have_volumetric_extrusion_rate_slope_segment_length = config->option<ConfigOptionFloat>("max_volumetric_extrusion_rate_slope_segment_length")->value;
-    toggle_field("enable_arc_fitting", !have_volumetric_extrusion_rate_slope);
+    toggle_field("enable_arc_fitting", !have_volumetric_extrusion_rate_slope && !is_belt_printer);
     toggle_line("max_volumetric_extrusion_rate_slope_segment_length", have_volumetric_extrusion_rate_slope);
     toggle_line("extrusion_rate_smoothing_external_perimeter_only", have_volumetric_extrusion_rate_slope);
     if(have_volumetric_extrusion_rate_slope) config->set_key_value("enable_arc_fitting", new ConfigOptionBool(false));
@@ -796,13 +804,20 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         }
     }
 
-    bool have_skirt = config->opt_int("skirt_loops") > 0;
+    // Belt printer: disable skirt, brim, raft, and draft shield controls.
+    bool have_skirt = config->opt_int("skirt_loops") > 0 && !is_belt_printer;
     toggle_field("skirt_height", have_skirt && config->opt_enum<DraftShield>("draft_shield") != dsEnabled);
     toggle_line("single_loop_draft_shield", have_skirt); // ORCA: Display one wall if skirt enabled
     for (auto el : {"skirt_type", "min_skirt_length", "skirt_distance", "skirt_start_angle", "skirt_speed", "draft_shield"})
         toggle_field(el, have_skirt);
+    if (is_belt_printer) {
+        toggle_field("skirt_loops", false);
+        toggle_field("skirt_height", false);
+    }
 
-    bool have_brim = (config->opt_enum<BrimType>("brim_type") != btNoBrim);
+    bool have_brim = (config->opt_enum<BrimType>("brim_type") != btNoBrim) && !is_belt_printer;
+    if (is_belt_printer)
+        toggle_field("brim_type", false);
     toggle_field("brim_object_gap", have_brim);
     toggle_field("brim_use_efc_outline", have_brim);
     toggle_field("combine_brims", have_brim);
@@ -831,7 +846,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // Hide Elephant foot compensation layers if elefant_foot_compensation is not enabled
     toggle_line("elefant_foot_compensation_layers", config->opt_float("elefant_foot_compensation") > 0 || config->option<ConfigOptionPercent>("elefant_foot_layers_density")->get_abs_value(1.0f) < 1.0f);
 
-    bool have_raft = config->opt_int("raft_layers") > 0;
+    bool have_raft = config->opt_int("raft_layers") > 0 && !is_belt_printer;
+    if (is_belt_printer)
+        toggle_field("raft_layers", false);
     bool have_support_material = config->opt_bool("enable_support") || have_raft;
 
     SupportType support_type = config->opt_enum<SupportType>("support_type");

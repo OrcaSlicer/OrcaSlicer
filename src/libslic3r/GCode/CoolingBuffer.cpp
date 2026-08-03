@@ -1,10 +1,14 @@
 #include "../GCode.hpp"
+#include "../FirstLayerPlane.hpp"
 #include "CoolingBuffer.hpp"
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/log/trivial.hpp>
+#include <algorithm>
+#include <cstdlib>
 #include <iostream>
 #include <float.h>
+#include <string_view>
 #include <system_error>
 #include <unordered_map>
 
@@ -28,6 +32,12 @@ CoolingBuffer::CoolingBuffer(GCode &gcodegen) : m_config(gcodegen.config()), m_t
         m_num_extruders = std::max(ex.id() + 1, m_num_extruders);
         m_extruder_ids.emplace_back(ex.id());
     }
+
+    // Borrow the first-layer plane from the GCode generator.  When inactive
+    // (non-belt printers and belt printers without Z shear), per-line fan
+    // re-evaluation is skipped and behavior is bit-identical to the legacy
+    // per-layer path.
+    m_first_layer_plane = gcodegen.first_layer_plane();
 }
 
 void CoolingBuffer::reset(const Vec3d &position)
@@ -328,6 +338,13 @@ std::string CoolingBuffer::process_layer(std::string &&gcode, size_t layer_id, b
         std::vector<PerExtruderAdjustments> per_extruder_adjustments = this->parse_layer_gcode(m_gcode, m_current_pos);
         float layer_time_stretched = this->calculate_layer_slowdown(per_extruder_adjustments);
         out = this->apply_layer_cooldown(m_gcode, layer_id, layer_time_stretched, per_extruder_adjustments);
+        // First-layer plane: per-segment fan re-evaluation post-pass.  Walks
+        // the cooled-down gcode and inserts inline M106 commands at band
+        // crossings (where the path's perpendicular distance to the plane
+        // crosses close_fan_the_first_x_layers thresholds).  No-op when
+        // the evaluator is inactive.
+        if (m_first_layer_plane && m_first_layer_plane->is_active())
+            out = this->apply_first_layer_plane_fan_eval(std::move(out), layer_id, layer_time_stretched);
         m_gcode.clear();
     }
     return out;
@@ -1056,6 +1073,216 @@ std::string CoolingBuffer::apply_layer_cooldown(
         new_gcode.append(pos, gcode_end - pos);
 
     return new_gcode;
+}
+
+// Pure helper: compute the main fan speed for a given effective layer index.
+// Mirrors the inline logic in change_extruder_set_fan but is callable from
+// per-line code in apply_first_layer_plane_fan_eval.
+int CoolingBuffer::compute_main_fan_speed(int effective_layer_id, float layer_time,
+                                           unsigned int extruder_id) const
+{
+#define EXTRUDER_CFG(opt) m_config.opt.get_at(extruder_id)
+    float fan_min_speed              = EXTRUDER_CFG(fan_min_speed);
+    float fan_max_speed              = EXTRUDER_CFG(fan_max_speed);
+    bool  reduce_fan_stop_start_freq = EXTRUDER_CFG(reduce_fan_stop_start_freq);
+    int   close_fan_the_first_x_layers = EXTRUDER_CFG(close_fan_the_first_x_layers);
+    int   full_fan_speed_layer       = EXTRUDER_CFG(full_fan_speed_layer);
+    float slow_down_layer_time       = float(EXTRUDER_CFG(slow_down_layer_time));
+    float fan_cooling_layer_time     = float(EXTRUDER_CFG(fan_cooling_layer_time));
+#undef EXTRUDER_CFG
+
+    if (close_fan_the_first_x_layers <= 0 && full_fan_speed_layer > 0)
+        close_fan_the_first_x_layers = 1;
+
+    float fan_speed_new = reduce_fan_stop_start_freq ? fan_min_speed : 0.f;
+    if (effective_layer_id >= close_fan_the_first_x_layers) {
+        if (layer_time < slow_down_layer_time) {
+            fan_speed_new = fan_max_speed;
+        } else if (layer_time < fan_cooling_layer_time) {
+            double t = (layer_time - slow_down_layer_time) /
+                       (fan_cooling_layer_time - slow_down_layer_time);
+            fan_speed_new = float(int(floor(t * fan_min_speed +
+                                            (1. - t) * fan_max_speed) + 0.5));
+        }
+        if (effective_layer_id + 1 < full_fan_speed_layer) {
+            float factor = float(effective_layer_id + 1 - close_fan_the_first_x_layers)
+                         / float(full_fan_speed_layer - close_fan_the_first_x_layers);
+            fan_speed_new = float(std::clamp(int(fan_speed_new * factor + 0.5f), 0, 255));
+        }
+    } else {
+        fan_speed_new = 0.f;
+    }
+    return int(fan_speed_new);
+}
+
+// Post-pass: walk the cooled-down gcode line by line, track XYZ position,
+// and insert M106 commands at first-layer-plane band crossings so the fan
+// follows perpendicular distance to the plane rather than the slicing-layer
+// index.  Only invoked when the FirstLayerPlane evaluator is active.
+//
+// This implementation is intentionally minimal: it overrides only the MAIN
+// fan (the one set by GCodeWriter::set_fan); overhang/internal-bridge/etc
+// special fans remain at their layer-level values from apply_layer_cooldown.
+// That keeps the per-line logic small while still giving the user precise
+// fan control near the belt surface, which is the main quality concern.
+std::string CoolingBuffer::apply_first_layer_plane_fan_eval(
+    std::string &&gcode_in, size_t /*layer_id*/, float layer_time)
+{
+    if (!m_first_layer_plane || !m_first_layer_plane->is_active())
+        return std::move(gcode_in);
+
+    const std::string &gcode = gcode_in;
+    std::string out;
+    out.reserve(gcode.size() + 256);
+
+    // Match the PWM floor applied at every other set_fan call in this file so
+    // band-crossing M106 emissions start the fan reliably at low speeds.
+    const unsigned int part_cooling_fan_min_pwm = static_cast<unsigned int>(std::max(0, m_config.part_cooling_fan_min_pwm.value));
+
+    // Track position in slicing-frame mm.  Seed from m_current_pos which the
+    // CoolingBuffer keeps up-to-date across layers.
+    Vec3d cur_pos_mm(m_current_pos[0], m_current_pos[1], m_current_pos[2]);
+
+    // Track current main fan speed by parsing M106 commands as we walk so
+    // we can restore it after a band exit.
+    int  current_main_fan = m_fan_speed;
+    int  pre_band_main_fan = current_main_fan;
+    // Implicit initial state: assume the layer started "out of the band"
+    // (i.e., the layer-level fan setting from apply_layer_cooldown is in
+    // effect).  The first movement we encounter will reconcile this.
+    bool in_first_layer_band = false;
+    unsigned int active_extruder = m_current_extruder;
+
+    auto parse_xyz_into = [](const std::string_view &line_sv, Vec3d &p) {
+        if (line_sv.size() < 3) return false;
+        if (line_sv[0] != 'G') return false;
+        if (line_sv[1] != '0' && line_sv[1] != '1') return false;
+        if (line_sv[2] != ' ' && line_sv[2] != '\t') return false;
+        const char *c   = line_sv.data() + 3;
+        const char *end = line_sv.data() + line_sv.size();
+        bool        any = false;
+        while (c < end && *c != ';') {
+            while (c < end && (*c == ' ' || *c == '\t')) ++c;
+            if (c >= end || *c == ';' || *c == '\n' || *c == '\r') break;
+            char axis = *c;
+            ++c;
+            if (axis == 'X' || axis == 'Y' || axis == 'Z') {
+                char *next;
+                double v = std::strtod(c, &next);
+                if (next != c) {
+                    if (axis == 'X') p.x() = v;
+                    else if (axis == 'Y') p.y() = v;
+                    else                  p.z() = v;
+                    c   = next;
+                    any = true;
+                    continue;
+                }
+            }
+            // Skip unrecognized word.
+            while (c < end && *c != ' ' && *c != '\t' && *c != ';' && *c != '\n')
+                ++c;
+        }
+        return any;
+    };
+
+    auto parse_m106 = [](const std::string_view &line_sv) -> int {
+        // Returns -1 if not an M106, otherwise the S value (0..255).
+        if (line_sv.size() < 4 || line_sv[0] != 'M') return -1;
+        if (!(line_sv[1] == '1' && line_sv[2] == '0' && line_sv[3] == '6'))
+            return -1;
+        // Find S<value>
+        size_t s_pos = line_sv.find('S');
+        if (s_pos == std::string_view::npos) return -1;
+        const char *c = line_sv.data() + s_pos + 1;
+        char *next;
+        long v = std::strtol(c, &next, 10);
+        if (next == c) return -1;
+        return int(std::clamp<long>(v, 0, 255));
+    };
+
+    auto parse_m107 = [](const std::string_view &line_sv) -> bool {
+        return line_sv.size() >= 4 && line_sv[0] == 'M' &&
+               line_sv[1] == '1' && line_sv[2] == '0' && line_sv[3] == '7';
+    };
+
+    auto parse_tool_change = [this](const std::string_view &line_sv) -> int {
+        // Returns the new extruder id, or -1 if not a toolchange.
+        if (line_sv.size() < m_toolchange_prefix.size() + 1) return -1;
+        if (line_sv.compare(0, m_toolchange_prefix.size(), m_toolchange_prefix) != 0)
+            return -1;
+        const char *c = line_sv.data() + m_toolchange_prefix.size();
+        char *next;
+        long v = std::strtol(c, &next, 10);
+        if (next == c) return -1;
+        return int(v);
+    };
+
+    const char *p   = gcode.c_str();
+    const char *end = gcode.c_str() + gcode.size();
+    while (p < end) {
+        const char *line_end = p;
+        while (line_end < end && *line_end != '\n') ++line_end;
+        const char *next_line = line_end;
+        if (next_line < end) ++next_line;  // include the '\n'
+
+        std::string_view line_sv(p, line_end - p);
+
+        // Track tool changes so the per-line fan eval uses the right extruder.
+        int new_tool = parse_tool_change(line_sv);
+        if (new_tool >= 0)
+            active_extruder = unsigned(new_tool);
+
+        // Track existing fan commands so we can restore the right value when
+        // exiting a band.
+        int m106_speed = parse_m106(line_sv);
+        if (m106_speed >= 0) {
+            current_main_fan = m106_speed;
+            if (!in_first_layer_band)
+                pre_band_main_fan = m106_speed;
+        } else if (parse_m107(line_sv)) {
+            current_main_fan = 0;
+            if (!in_first_layer_band)
+                pre_band_main_fan = 0;
+        }
+
+        // Movement line: parse XYZ, evaluate plane, possibly emit a fan
+        // change BEFORE this line.
+        bool moved = parse_xyz_into(line_sv, cur_pos_mm);
+        if (moved) {
+            const int eff_idx = m_first_layer_plane->effective_layer_index(cur_pos_mm);
+            const int close_n = m_config.close_fan_the_first_x_layers.get_at(active_extruder);
+            const bool now_in_band = eff_idx < std::max(close_n, 1);
+            if (now_in_band != in_first_layer_band) {
+                // Band crossing: emit a M106 with the appropriate speed.
+                int target_fan;
+                if (now_in_band) {
+                    // Entering the first-layer band: fan off.
+                    pre_band_main_fan = current_main_fan;
+                    target_fan = compute_main_fan_speed(eff_idx, layer_time, active_extruder);
+                } else {
+                    // Exiting the band: restore the layer's normal fan speed.
+                    // Use compute_main_fan_speed with the effective index so
+                    // the linear ramp factor (close_fan→full_fan_speed_layer)
+                    // also follows distance from the plane.
+                    target_fan = compute_main_fan_speed(eff_idx, layer_time, active_extruder);
+                    if (target_fan == 0)
+                        target_fan = pre_band_main_fan;
+                }
+                if (target_fan != current_main_fan) {
+                    out += GCodeWriter::set_fan(m_config.gcode_flavor, target_fan, part_cooling_fan_min_pwm);
+                    current_main_fan = target_fan;
+                    m_fan_speed = target_fan;
+                    m_current_fan_speed = target_fan;
+                }
+                in_first_layer_band = now_in_band;
+            }
+        }
+
+        out.append(p, next_line - p);
+        p = next_line;
+    }
+
+    return out;
 }
 
 } // namespace Slic3r

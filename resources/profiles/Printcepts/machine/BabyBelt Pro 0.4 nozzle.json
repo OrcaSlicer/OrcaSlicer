@@ -1,0 +1,87 @@
+{
+	"type": "machine",
+	"name": "BabyBelt Pro 0.4 nozzle",
+	"inherits": "fdm_belt_common",
+	"from": "system",
+	"setting_id": "GMPC0BBP01",
+	"instantiation": "true",
+	"printer_model": "BabyBelt Pro",
+	"printer_variant": "0.4",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"default_filament_profile": [
+		"Generic PLA @BabyBelt Pro"
+	],
+	"default_print_profile": "0.20mm Standard @BabyBelt Pro",
+	"printable_area": [
+		"0x0",
+		"95x0",
+		"95x500",
+		"0x500"
+	],
+	"printable_height": "100",
+	"best_object_pos": "0.5,0.05",
+	"nozzle_type": [
+		"hardened_steel"
+	],
+	"printer_extruder_id": [
+		"1"
+	],
+	"printer_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"thumbnails": [
+		"48x48/PNG",
+		"300x300/PNG"
+	],
+	"machine_max_acceleration_e": [
+		"500",
+		"5000"
+	],
+	"machine_max_acceleration_extruding": [
+		"500",
+		"20000"
+	],
+	"machine_max_acceleration_retracting": [
+		"500",
+		"5000"
+	],
+	"machine_max_acceleration_x": [
+		"500",
+		"20000"
+	],
+	"machine_max_acceleration_y": [
+		"500",
+		"20000"
+	],
+	"machine_max_junction_deviation": [
+		"0.01"
+	],
+	"machine_max_speed_x": [
+		"50",
+		"200"
+	],
+	"machine_max_speed_y": [
+		"50",
+		"200"
+	],
+	"machine_max_speed_z": [
+		"5",
+		"12"
+	],
+	"retraction_length": [
+		"1.5"
+	],
+	"retraction_speed": [
+		"20"
+	],
+	"deretraction_speed": [
+		"25"
+	],
+	"retract_lift_enforce": [
+		"Top and Bottom"
+	],
+	"support_chamber_temp_control": "0",
+	"machine_start_gcode": ";Start GCode\nPRINT_START ANGLE=[belt_slice_rotation_angle] EXTRUDER=[nozzle_temperature_initial_layer] BED=[hot_plate_temp_initial_layer] MATERIAL=[filament_type]\n"
+}

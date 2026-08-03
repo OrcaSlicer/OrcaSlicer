@@ -864,6 +864,10 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
     std::vector<unsigned int>& printExtruders,
     std::map<ObjectInstanceID, ExPolygons>* objectBrimAreasByInstanceOut)
 {
+    // Belt printer: brim is not compatible with belt printing.
+    if (print.config().belt_printer.value)
+        return;
+
     std::map<ObjectInstanceID, ExPolygons> brimAreaMap;
     Flow                 flow = print.brim_flow();
     ExPolygons           islands_area_ex = outer_inner_brim_area(print,

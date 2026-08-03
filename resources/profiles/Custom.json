@@ -1,9 +1,13 @@
 {
 	"name": "Custom Printer",
-	"version": "02.04.00.01",
+	"version": "02.04.00.03",
 	"force_update": "0",
 	"description": "My configurations",
 	"machine_model_list": [
+		{
+			"name": "Generic Belt Printer",
+			"sub_path": "machine/MyBeltPrinter.json"
+		},
 		{
 			"name": "Generic Klipper Printer",
 			"sub_path": "machine/MyKlipper.json"
@@ -263,16 +267,36 @@
 			"sub_path": "machine/MyKlipper 0.8 nozzle.json"
 		},
 		{
+			"name": "fdm_belt_common",
+			"sub_path": "machine/fdm_belt_common.json"
+		},
+		{
 			"name": "fdm_toolchanger_common",
 			"sub_path": "machine/fdm_toolchanger_common.json"
 		},
 		{
-			"name": "MyRepetier 0.4 nozzle",
-			"sub_path": "machine/MyRepetier 0.4 nozzle.json"
-		},
-		{
 			"name": "MyRRF 0.4 nozzle",
 			"sub_path": "machine/MyRRF 0.4 nozzle.json"
+		},
+		{
+			"name": "MyBeltPrinter 0.2 nozzle",
+			"sub_path": "machine/MyBeltPrinter 0.2 nozzle.json"
+		},
+		{
+			"name": "MyBeltPrinter 0.4 nozzle",
+			"sub_path": "machine/MyBeltPrinter 0.4 nozzle.json"
+		},
+		{
+			"name": "MyBeltPrinter 0.6 nozzle",
+			"sub_path": "machine/MyBeltPrinter 0.6 nozzle.json"
+		},
+		{
+			"name": "MyBeltPrinter 0.8 nozzle",
+			"sub_path": "machine/MyBeltPrinter 0.8 nozzle.json"
+		},
+		{
+			"name": "MyRepetier 0.4 nozzle",
+			"sub_path": "machine/MyRepetier 0.4 nozzle.json"
 		},
 		{
 			"name": "MyToolChanger 0.2 nozzle",

@@ -1,0 +1,94 @@
+{
+	"type": "machine",
+	"name": "IdeaFormer IR3 V2 0.4 nozzle",
+	"inherits": "fdm_belt_common",
+	"from": "system",
+	"setting_id": "GMIF001",
+	"instantiation": "true",
+	"printer_model": "IdeaFormer IR3 V2",
+	"printer_variant": "0.4",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printable_area": [
+		"0x0",
+		"250x0",
+		"250x2000",
+		"0x2000"
+	],
+	"printable_height": "250",
+	"belt_printer_infinite_y": "1",
+	"thumbnails": [
+		"48x48/PNG",
+		"300x300/PNG"
+	],
+	"default_filament_profile": [
+		"Generic PLA @IdeaFormer IR3 V2"
+	],
+	"default_print_profile": "0.20mm Standard @IdeaFormer IR3 V2",
+	"use_relative_e_distances": "1",
+	"machine_max_acceleration_e": [
+		"5000"
+	],
+	"machine_max_acceleration_extruding": [
+		"5000"
+	],
+	"machine_max_acceleration_retracting": [
+		"1000"
+	],
+	"machine_max_acceleration_travel": [
+		"9000"
+	],
+	"machine_max_acceleration_x": [
+		"5000"
+	],
+	"machine_max_acceleration_y": [
+		"5000"
+	],
+	"machine_max_acceleration_z": [
+		"100"
+	],
+	"machine_max_jerk_e": [
+		"2.5"
+	],
+	"machine_max_jerk_x": [
+		"10"
+	],
+	"machine_max_jerk_y": [
+		"10"
+	],
+	"machine_max_jerk_z": [
+		"0.4"
+	],
+	"machine_max_speed_e": [
+		"60"
+	],
+	"machine_max_speed_x": [
+		"500"
+	],
+	"machine_max_speed_y": [
+		"500"
+	],
+	"machine_max_speed_z": [
+		"20"
+	],
+	"retraction_length": [
+		"2"
+	],
+	"retraction_speed": [
+		"40"
+	],
+	"deretraction_speed": [
+		"40"
+	],
+	"z_hop": [
+		"0.4"
+	],
+	"retract_lift_below": [
+		"300"
+	],
+	"machine_start_gcode": "; === IdeaFormer IR3 V2 Belt Printer Start ===\n; Axes: X=lateral, Y=gantry height (probe), Z=belt\nG90 ; absolute positioning\nM82 ; absolute extruder\nG21 ; millimeters\nG28 ; home all axes\nG1 Y20 F500 ; lift nozzle 20mm from belt\n; Bed + hotend temps come from the active filament profile. Belt PLA requires 75 C bed — use Generic/eSun PLA @IdeaFormer IR3 V2 filament presets to get it automatically.\nM140 S[hot_plate_temp_initial_layer] ; set bed temp\nM104 S[nozzle_temperature_initial_layer] ; hotend temp\nM109 S[nozzle_temperature_initial_layer] ; wait hotend\nM190 S[hot_plate_temp_initial_layer] ; wait bed\n; --- Purge blob ---\nG92 E0 ; zero extruder\nG1 Y.1 ; nozzle 0.1mm above belt\nG1 E15 F1000 ; purge 15mm blob\nG1 Z20 E25 F800 ; belt advance 20mm + extrude\nG1 E23 ; retract 2mm\nG28 Y ; re-probe belt surface\nG1 E25 ; de-retract\n; --- Prime lines (full 250mm bed width) ---\nFMS_on ; filament motion sensor\nG1 X250 E50 F2000 ; prime line 1\nG92 Z0 ; reset belt origin\nG1 Z.4 ; belt advance 0.4mm\nG1 X0 E75 ; prime line 2\nG1 F1000 ; default feedrate\nG92 E0 Z0 ; zero extruder + belt = print origin\n",
+	"machine_end_gcode": "; === IdeaFormer IR3 V2 Belt Printer End ===\nM400 ; wait for moves to finish\nM104 S0 ; heater off\nM140 S0 ; bed off\nG92 E0 ; zero extruder\nG1 E-5 F300 ; retract 5mm\nG4 P5000 ; wait for ooze\nG91 ; relative mode - keep every end move relative on a belt\nG1 Y20 F1000 ; raise gantry 20mm for clearance over the part\nG1 Z676 F3000 ; advance belt one full machine-depth to eject the part and clean the belt\nG90 ; back to absolute\nG28 X ; home X only - NEVER 'G28' all: that homes Z/belt and reverses the whole print back into the gantry\nFMS_off ; filament motion sensor off\nBED_MESH_CLEAR\nM84 ; disable motors\n",
+	"machine_pause_gcode": "PAUSE",
+	"layer_change_gcode": "G92 E0 ; belt: reset extruder at layer change (relative E)"
+}

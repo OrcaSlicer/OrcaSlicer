@@ -17,6 +17,7 @@
 #include "GCode/ThumbnailData.hpp"
 #include "GCode/GCodeProcessor.hpp"
 #include "MultiMaterialSegmentation.hpp"
+#include "BeltTransform.hpp"
 #include "ObjectID.hpp"
 #include "libslic3r.h"
 
@@ -196,6 +197,13 @@ class ConstSupportLayerPtrsAdaptor : public ConstVectorOfPtrsAdaptor<SupportLaye
     friend PrintObject;
     ConstSupportLayerPtrsAdaptor(const SupportLayerPtrs *data) : ConstVectorOfPtrsAdaptor<SupportLayer>(data) {}
 };
+
+// Returns the model's raw bounding box with pre-slice axis remap applied.
+// When no remap is active, returns the unmodified raw_bounding_box().
+inline BoundingBoxf3 belt_remapped_bbox(const ModelObject &model_object, const PrintConfig &config)
+{
+    return BeltTransformPipeline::remap_bbox(model_object, config);
+}
 
 // Single instance of a PrintObject.
 // As multiple PrintObjects may be generated for a single ModelObject (their instances differ in rotation around Z),
@@ -586,7 +594,27 @@ private:
 
     PrintObject*                            m_shared_object{ nullptr };
 
-    
+    // Belt printer: global Z offset applied to this object's layers for shear positioning.
+    double                                  m_belt_global_z_offset { 0.0 };
+    // Belt printer: min_z of mesh after belt shear (before Z-shift), for z_offset calc.
+    double                                  m_belt_min_z { 0.0 };
+    // Belt printer: XY correction from global pre-slice mode, applied to G-code origin.
+    Vec2d                                   m_belt_global_xy_correction { Vec2d::Zero() };
+    // Belt printer: exact belt_floor_z_shift computed during posSlice from a
+    // vertex-level scan of the post-transform mesh.  Cached separately from
+    // m_slicing_params so that rebuilding m_slicing_params on a non-belt-affecting
+    // invalidation (e.g. support config change) doesn't replace the exact value
+    // with the bbox approximation seeded by create_from_config().  Cleared when
+    // posSlice is invalidated.
+    double                                  m_belt_floor_z_shift_cached { 0.0 };
+    bool                                    m_belt_floor_z_shift_cache_valid { false };
+public:
+    double belt_global_z_offset() const { return m_belt_global_z_offset; }
+    double belt_min_z() const { return m_belt_min_z; }
+    Vec2d  belt_global_xy_correction() const { return m_belt_global_xy_correction; }
+private:
+
+
     // SoftFever
     // 
     // object id
