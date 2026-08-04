@@ -7,6 +7,7 @@ add_executable(${_TEST_NAME}_tests
   printer_parts.cpp
   printer_parts.hpp
   libnest2d_test_utils.hpp
+  ../../src/libslic3r/NSVGImplementation.cpp
 )
 
 target_link_libraries(${_TEST_NAME}_tests test_common libnest2d Catch2::Catch2WithMain)
