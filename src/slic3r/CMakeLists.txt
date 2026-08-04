@@ -867,6 +867,7 @@ set_source_files_properties(
     GUI/DeviceTab/wgtDeviceNozzleRackUpdate.cpp
     GUI/DeviceTab/wgtDeviceNozzleSelect.cpp
     Utils/Bonjour.cpp
+    Utils/Serial.cpp
     plugin/PythonPluginBridge.cpp
     Utils/wxInspectorPlugins/CustomWidgetsPlugin.cpp
     ../dev-utils/StackWalker.cpp
