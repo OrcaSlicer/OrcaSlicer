@@ -9,6 +9,7 @@
 #include <wx/clipbrd.h>
 #include <wx/checkbox.h>
 #include <wx/html/htmlwin.h>
+#include <wx/html/winpars.h>
 
 #include <algorithm>
 
@@ -259,6 +260,22 @@ static std::vector<std::pair<std::string, bool>> classify_code_lines(const std::
     return tagged;
 }
 
+// Keeps whitespace literal so the caret's leading spaces survive.
+// Used inside <code>, which supplies the fixed face. <pre> does both but adds a blank line above it.
+class CodeExcerptTagHandler : public wxHtmlWinTagHandler
+{
+public:
+    wxString GetSupportedTags() override { return wxT("EXCERPT"); }
+    bool     HandleTag(const wxHtmlTag &tag) override
+    {
+        const wxHtmlWinParser::WhitespaceMode ws = m_WParser->GetWhitespaceMode();
+        m_WParser->SetWhitespaceMode(wxHtmlWinParser::Whitespace_Pre);
+        ParseInner(tag);
+        m_WParser->SetWhitespaceMode(ws);
+        return true;
+    }
+};
+
 // Render the message as HTML, monospacing only the code excerpts.
 static std::string format_parser_error_html(const std::string &msg)
 {
@@ -266,13 +283,10 @@ static std::string format_parser_error_html(const std::string &msg)
     for (const auto &[text, is_code] : classify_code_lines(msg)) {
         if (!out.empty()) out += "<br>"; // join, not trail; a trailing <br> forces a scrollbar
         std::string escaped = xml_escape(text);
-        if (is_code) {
-            // Inline <code> (fixed face, no block margin) with &nbsp; to hold the caret's columns.
-            boost::replace_all(escaped, " ", "&nbsp;");
-            out += "<code>" + escaped + "</code>";
-        } else {
+        if (is_code)
+            out += "<code><excerpt>" + escaped + "</excerpt></code>";
+        else
             out += escaped;
-        }
     }
     return out;
 }
@@ -410,6 +424,7 @@ static void add_msg_content(wxWindow   *parent,
 
     std::string msg_escaped;
     if (has_code_excerpts) {
+        html->GetParser()->AddTagHandler(new CodeExcerptTagHandler());
         msg_escaped = format_parser_error_html(msg.ToUTF8().data());
     } else {
         msg_escaped = xml_escape(msg.ToUTF8().data(), is_marked_msg);
