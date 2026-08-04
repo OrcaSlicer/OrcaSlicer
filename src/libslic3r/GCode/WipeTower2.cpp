@@ -780,7 +780,7 @@ public:
             if (m_extrusions.empty() || m_extrusions.back().pos != rotated_current_pos)
                 m_extrusions.emplace_back(WipeTower::Extrusion(rotated_current_pos, 0, m_current_tool));
             {
-                int n = wipe_tower2_arc_fit_size;
+                int n = WipeTower2Detail::wipe_tower2_arc_fit_size;
                 for (int j = 0; j < n; j++) {
                     float cur_angle = arc.polar_start_theta + (float) j / n * arc.angle_radians;
                     if (cur_angle > 2 * PI)
@@ -1804,7 +1804,7 @@ void WipeTower2::toolchange_Wipe(
             writer.travel(writer.x() - 1.5f * ironing_length, writer.y(), 600.f);
             writer.travel(writer.x() + 0.5f * ironing_length, writer.y(), 240.f);
             const Vec2f iron_end(writer.x() + ironing_length, writer.y());
-            writer.spiral_flat_ironing(writer.pos(), m_filpar[m_current_tool].tower_ironing_area, m_perimeter_width, wipe_tower2_flat_iron_speed);
+            writer.spiral_flat_ironing(writer.pos(), m_filpar[m_current_tool].tower_ironing_area, m_perimeter_width, WipeTower2Detail::wipe_tower2_flat_iron_speed);
             writer.travel(iron_end, wipe_speed);
             writer.retract(-retract_length, retract_speed);
         }
@@ -2291,7 +2291,7 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
         for (const auto& current_plan : m_plan)
             max_depth = std::max(max_depth, current_plan.depth);
         if (max_depth > EPSILON) {
-            m_wipe_tower_width = wipe_tower2_align_ceil(std::sqrt(max_depth * m_wipe_tower_width), m_perimeter_width);
+            m_wipe_tower_width = WipeTower2Detail::wipe_tower2_align_ceil(std::sqrt(max_depth * m_wipe_tower_width), m_perimeter_width);
             for (size_t idx = 0; idx < m_plan.size(); ++idx)
                 for (auto& toolchange : m_plan[idx].tool_changes)
                     toolchange = set_toolchange(toolchange.old_tool, toolchange.new_tool,
@@ -2415,8 +2415,8 @@ Polygon WipeTower2::generate_rib_polygon(const WipeTower::box_coordinates& wt_bo
     line_1.translate(-y_shift);
     line_2.translate(-y_shift);
 
-    Polygon poly_1 = wipe_tower2_generate_rectange(line_1, diagonal_width);
-    Polygon poly_2 = wipe_tower2_generate_rectange(line_2, diagonal_width);
+    Polygon poly_1 = WipeTower2Detail::wipe_tower2_generate_rectange(line_1, diagonal_width);
+    Polygon poly_2 = WipeTower2Detail::wipe_tower2_generate_rectange(line_2, diagonal_width);
     Polygon poly;
     poly.points.push_back(Point::new_scale(wt_box.ld));
     poly.points.push_back(Point::new_scale(wt_box.rd));
