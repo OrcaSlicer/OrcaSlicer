@@ -56,9 +56,6 @@
 	#include <asm-generic/ioctls.h>
 #endif
 
-using boost::optional;
-
-
 namespace Slic3r {
 namespace Utils {
 
@@ -83,7 +80,7 @@ void parse_hardware_id(const std::string &hardware_id, SerialPortInfo &spi)
 #endif
 
 #ifdef __linux__
-optional<std::string> sysfs_tty_prop(const std::string &tty_dev, const std::string &name)
+boost::optional<std::string> sysfs_tty_prop(const std::string &tty_dev, const std::string &name)
 {
 	const auto prop_path = (boost::format("/sys/class/tty/%1%/device/../%2%") % tty_dev % name).str();
 	std::ifstream file(prop_path);
@@ -94,7 +91,7 @@ optional<std::string> sysfs_tty_prop(const std::string &tty_dev, const std::stri
 	else { return boost::none; }
 }
 
-optional<unsigned long> sysfs_tty_prop_hex(const std::string &tty_dev, const std::string &name)
+boost::optional<unsigned long> sysfs_tty_prop_hex(const std::string &tty_dev, const std::string &name)
 {
 	auto prop = sysfs_tty_prop(tty_dev, name);
 	if (!prop) { return boost::none; }
