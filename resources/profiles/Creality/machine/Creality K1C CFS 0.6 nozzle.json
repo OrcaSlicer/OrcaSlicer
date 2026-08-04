@@ -1,0 +1,17 @@
+{
+	"type": "machine",
+	"name": "Creality K1C CFS 0.6 nozzle",
+	"from": "system",
+	"setting_id": "xYxu99cDIHni8Abw",
+	"instantiation": "true",
+	"inherits": "Creality K1C 0.6 nozzle",
+	"printer_model": "Creality K1C CFS",
+	"printer_variant": "0.6",
+	"single_extruder_multi_material": "1",
+	"purge_in_prime_tower": "0",
+	"machine_start_gcode": "START_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]\nT[initial_no_support_extruder]\nRESPOND TYPE=command MSG=\"Loading filament from CFS slot {initial_no_support_extruder + 1}\"\nM204 S2000\nM104 S[nozzle_temperature_initial_layer]\nG1 Z3 F600\nM83\nG92 E0\nG1 Z1 F600",
+	"machine_load_filament_time": "10",
+	"machine_unload_filament_time": "14",
+	"machine_tool_change_time": "66",
+	"default_print_profile": "0.30mm Standard @Creality K1C (0.6 nozzle)"
+}
