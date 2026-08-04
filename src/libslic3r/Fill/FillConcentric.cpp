@@ -62,7 +62,10 @@ void FillConcentric::_fill_surface_single(
     // Orca: an outward fill order prints the innermost loops first instead.
     if (params.fill_order == SurfaceFillOrder::Outward)
         std::reverse(loops.begin(), loops.end());
-    
+
+    const bool is_classic = this->print_object_config == nullptr ||
+                            this->print_object_config->wall_generator.value == PerimeterGeneratorType::Classic;
+
     size_t iPathFirst = polylines_out.size();
     if (spiralized) {
         Polyline spiral;
@@ -97,16 +100,17 @@ void FillConcentric::_fill_surface_single(
             return best_idx;
         };
 
+        int start_idx = is_classic ? 1 : find_sharpest_corner(loops.front());
+
         for (size_t i = 0; i < loops.size(); ++i) {
             const Polygon& loop = loops[i];
 
             int idx;
             if (spiral.empty()) {
-                idx = find_sharpest_corner(loop);
+                idx = start_idx;
             } else {
                 idx = current_pos.nearest_point_index(loop.points);
             }
-
 
             Polyline loop_path(loop.split_at_index(idx));
             loop_path.points = loop_points_opened(std::move(loop_path));
@@ -121,8 +125,8 @@ void FillConcentric::_fill_surface_single(
                         polylines_out.emplace_back(std::move(spiral));
 
                     spiral.clear();
-                    current_pos = Point(0, 0);
-                    idx              = find_sharpest_corner(loop);
+                    current_pos      = Point(0, 0);
+                    idx              = is_classic ? 1 : find_sharpest_corner(loop);
                     loop_path        = Polyline(loop.split_at_index(idx));
                     loop_path.points = loop_points_opened(std::move(loop_path));
                     if (loop_path.size() < 2)
@@ -133,7 +137,12 @@ void FillConcentric::_fill_surface_single(
             const bool last_loop = (i + 1 == loops.size());
             // Add the virtual closing segment and trim it to create the spiral transition.
             loop_path.points.push_back(loop_path.points.front());
-            loop_path.clip_end(distance);
+
+            if (params.fill_order == SurfaceFillOrder::Outward) {
+                loop_path.clip_start(distance);
+            } else {
+                loop_path.clip_end(distance);
+            }
 
             if (spiral.empty()) {
                 spiral = std::move(loop_path);
