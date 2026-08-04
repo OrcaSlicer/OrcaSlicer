@@ -502,6 +502,7 @@ endif ()
 set_source_files_properties(
     Config.cpp
     Emboss.cpp
+    Format/bbs_3mf.cpp
     Format/ZipperArchiveImport.cpp
     MultiMaterialSegmentation.cpp
     MultiNozzleUtils.cpp
