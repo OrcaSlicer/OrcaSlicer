@@ -1733,9 +1733,11 @@ int MachineObject::command_ams_user_settings(bool start_read_opt, bool tray_read
 
 int MachineObject::command_ams_calibrate(int ams_id)
 {
-    std::string gcode_cmd = (boost::format("M620 C%1% \n") % ams_id).str();
-    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode_cmd;
-    return this->publish_gcode(gcode_cmd);
+    if (!m_agent) return -1;
+    int rtn = m_agent->command_ams_calibrate(get_dev_id(), ams_id, MachineObject::m_sequence_id++, is_lan_mode_printer());
+    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
+        show_unsupported_dlg(rtn);
+    return rtn;
 }
 
 int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max)
@@ -1773,9 +1775,11 @@ int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::s
 
 int MachineObject::command_ams_refresh_rfid(std::string tray_id)
 {
-    std::string gcode_cmd = (boost::format("M620 R%1% \n") % tray_id).str();
-    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode_cmd;
-    return this->publish_gcode(gcode_cmd);
+    if (!m_agent) return -1;
+    int rtn = m_agent->command_ams_refresh_rfid(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer());
+    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
+        show_unsupported_dlg(rtn);
+    return rtn;
 }
 
 int MachineObject::command_ams_refresh_rfid2(int ams_id,  int slot_id)
@@ -1788,12 +1792,22 @@ int MachineObject::command_ams_refresh_rfid2(int ams_id,  int slot_id)
     return this->publish_json(j);
 }
 
+int MachineObject::command_start_camera()
+{
+    if (!m_agent) return -1;
+    // why: this fires from the camera view's renew timer, so a refusal must stay silent -
+    // show_unsupported_dlg() here would pop a dialog every ~5 min on every other printer.
+    return m_agent->command_start_camera(get_dev_id());
+}
+
 
 int MachineObject::command_ams_select_tray(std::string tray_id)
 {
-    std::string gcode_cmd = (boost::format("M620 P%1% \n") % tray_id).str();
-    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode_cmd;
-    return this->publish_gcode(gcode_cmd);
+    if (!m_agent) return -1;
+    int rtn = m_agent->command_ams_select_tray(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer());
+    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
+        show_unsupported_dlg(rtn);
+    return rtn;
 }
 
 int MachineObject::command_ams_control(std::string action)
@@ -2617,7 +2631,12 @@ void MachineObject::reset()
             vt_slot.erase(vt_slot.begin() + 1);
         }
     }
-    subtask_ = nullptr;
+    // why: reset reuses MachineObject, so release its lazy subtask
+    // before dropping the pointer to prevent reconnect leaks.
+    if (subtask_) {
+        delete subtask_;
+        subtask_ = nullptr;
+    }
     has_extra_flow_type = false;
     m_partskip_ids.clear();
 }
@@ -2625,6 +2644,20 @@ void MachineObject::reset()
 void MachineObject::set_print_state(std::string status)
 {
     print_status = status;
+}
+
+// why: printer agents can report progress without BBL cloud task identity.
+void MachineObject::update_print_progress(const json& value)
+{
+    if (value.is_string())
+        mc_print_percent = stoi(value.get<std::string>());
+    else if (value.is_number_integer())
+        mc_print_percent = value.get<int>();
+    else
+        return;
+
+    if (BBLSubTask* curr_task = get_subtask())
+        curr_task->task_progress = mc_print_percent;
 }
 
 int MachineObject::connect(bool use_openssl)
@@ -2738,6 +2771,14 @@ int MachineObject::publish_json(const json& json_item, int qos, int flag)
         BOOST_LOG_TRIVIAL(info) << "publish_json: " << json_item.dump() << " code: " << rtn;
     } else {
         BOOST_LOG_TRIVIAL(error) << "publish_json: " << json_item.dump() << " code: " << rtn;
+    }
+
+    // why: the agent is the only thing that knows what it can translate, so it reports
+    // not-supported in its return value and this - the single funnel every command_* builder
+    // passes through - is the one place that turns it into something the user sees. No list of
+    // unsupported commands is needed anywhere: an agent that has no case for a command says so.
+    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE) {
+        show_unsupported_dlg(rtn);
     }
 
     return rtn;
@@ -3297,10 +3338,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         print_type = jj["print_type"].get<std::string>();
                     }
                     if (jj.contains("mc_percent")) {
-                        if (jj["mc_percent"].is_string())
-                            mc_print_percent = stoi(j["print"]["mc_percent"].get<std::string>());
-                        else if (jj["mc_percent"].is_number_integer())
-                            mc_print_percent = j["print"]["mc_percent"].get<int>();
+                        update_print_progress(jj["mc_percent"]);
                     }
                     if (jj.contains("mc_print_sub_stage")) {
                         if (jj["mc_print_sub_stage"].is_number_integer())
@@ -3470,6 +3508,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                             this->task_id_ = jj["task_id"].get<std::string>();
                         }
 
+                        if (jj.contains("thumbnail_url") && jj["thumbnail_url"].is_string())
+                            m_agent_thumbnail_url = jj["thumbnail_url"].get<std::string>();
+
                         if (jj.contains("job_attr")) {
                             int jobAttr = jj["job_attr"].get<int>();
                             jobState_ =  get_flag_bits(jobAttr, 4, 4);
@@ -3515,7 +3556,6 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         update_slice_info(jj["project_id"].get<std::string>(), jj["profile_id"].get<std::string>(), jj["subtask_id"].get<std::string>(), plate_index);
                         BBLSubTask* curr_task = get_subtask();
                         if (curr_task) {
-                            curr_task->task_progress = mc_print_percent;
                             curr_task->printing_status = print_status;
                             curr_task->task_id = jj["subtask_id"].get<std::string>();
                         }
@@ -3818,6 +3858,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                                         has_ipcam = true;
                                     } else {
                                         has_ipcam = false;
+                                        webcam_stream_url.clear();
                                     }
                                 }
                                 if (ipcam.contains("resolution")) {
@@ -3851,6 +3892,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                                     local_rtsp_url = ipcam["rtsp_url"].get<std::string>();
                                     liveview_local = local_rtsp_url.empty() ? LVL_None : local_rtsp_url == "disable"
                                             ? LVL_Disable : boost::algorithm::starts_with(local_rtsp_url, "rtsps") ? LVL_Rtsps : LVL_Rtsp;
+                                }
+                                if (ipcam.contains("stream_url") && ipcam["stream_url"].is_string()) {
+                                    webcam_stream_url = ipcam["stream_url"].get<std::string>();
                                 }
                                 if (ipcam.contains("tutk_server")) {
                                     tutk_state = ipcam["tutk_server"].get<std::string>();
@@ -4645,6 +4689,40 @@ void MachineObject::set_ctt_dlg( wxString text){
         print_error_dlg->on_show();
 
     }
+}
+
+void MachineObject::show_unsupported_dlg(int code)
+{
+    // why: a dead control invites repeat clicks, and the frame is modeless - without the guard
+    // every click stacks another one. Same shape as set_ctt_dlg above, including the reset on
+    // both hide and close so a dismissed dialog can reappear on the next attempt.
+    if (m_unsupported_dlg_shown) {
+        return;
+    }
+    m_unsupported_dlg_shown = true;
+
+    // why: two codes so the user learns which kind of dead end this is - the slicer having no
+    // translation for the command, or the printer's own config lacking the hardware to run it.
+    const wxString text = (code == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE) ?
+                              _L("This printer is not configured with the hardware this control needs.") :
+                              _L("This control is not supported on this printer.");
+
+    // note: constructed directly rather than through CallAfter because every publish_json caller
+    // is on the UI thread - clicks come from wx handlers, and the agent marshals its own push
+    // callbacks back to main before parse_json runs. set_ctt_dlg relies on the same property.
+    auto unsupported_dlg = new GUI::SecondaryCheckDialog(nullptr, wxID_ANY, _L("Warning"),
+                                                         GUI::SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM);
+    unsupported_dlg->update_text(text);
+    unsupported_dlg->Bind(wxEVT_SHOW, [this](auto& e) {
+        if (!e.IsShown()) {
+            m_unsupported_dlg_shown = false;
+        }
+        });
+    unsupported_dlg->Bind(wxEVT_CLOSE_WINDOW, [this](auto& e) {
+        e.Skip();
+        m_unsupported_dlg_shown = false;
+        });
+    unsupported_dlg->on_show();
 }
 
 int MachineObject::publish_gcode(std::string gcode_str)

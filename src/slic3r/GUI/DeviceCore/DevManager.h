@@ -48,6 +48,10 @@ public:
     MachineObject* get_selected_machine();
     bool set_selected_machine(std::string dev_id);
 
+    // why: clears stale sidebar sync-status / AMS visuals. Public so the printer-agent
+    // swap path can reuse it instead of duplicating the two sidebar calls.
+    void OnSelectedMachineLost();
+
     void record_user_last_machine(const std::string& dev_id);
     std::string get_user_last_machine() const;
 
@@ -69,6 +73,8 @@ public:
     std::string get_first_online_user_machine() const;
     void erase_user_machine(std::string dev_id) { userMachineList.erase(dev_id); }
     void clean_user_info(bool keep_local_selection = false);
+
+    void clear_other_devices();
 
     void load_last_machine();
     void update_user_machine_list_info(const std::string& provider);
@@ -110,7 +116,6 @@ private:
     void check_pushing();
 
     void OnMachineBindStateChanged(MachineObject* obj, const std::string& new_state);
-    void OnSelectedMachineLost();
     void OnSelectedMachineChanged(const std::string& pre_dev_id, const std::string& new_dev_id);
 
 

@@ -5,6 +5,7 @@
 #include "ICloudServiceAgent.hpp"
 #include <string>
 #include <memory>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r {
 
@@ -28,6 +29,12 @@ public:
 
     // Communication
     int send_message(std::string dev_id, std::string json_str, int qos, int flag) override;
+    static std::string ams_refresh_rfid_gcode(const std::string& tray_id);
+    static std::string ams_calibrate_gcode(int ams_id);
+    static std::string ams_select_tray_gcode(const std::string& tray_id);
+    int command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override;
+    int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode) override;
+    int command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override;
     int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl) override;
     int disconnect_printer() override;
     int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag) override;
@@ -85,6 +92,9 @@ public:
     FilamentSyncMode get_filament_sync_mode() const override;
 
 private:
+    // why: the lan/cloud DECISION stays machine-side; keep this mechanical branch in sync with publish_json.
+    int publish(const std::string& dev_id, const nlohmann::json& j, bool lan_mode);
+
     std::shared_ptr<ICloudServiceAgent> m_cloud_agent;
 };
 

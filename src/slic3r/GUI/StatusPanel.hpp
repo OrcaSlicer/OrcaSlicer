@@ -14,6 +14,7 @@
 #include <wx/sizer.h>
 #include <wx/gbsizer.h>
 #include <wx/webrequest.h>
+#include <chrono>
 #include "wxMediaCtrl2.h"
 #include "MediaPlayCtrl.h"
 #include "AMSSetting.hpp"
@@ -630,6 +631,7 @@ class StatusPanel : public StatusBasePanel
 {
 private:
     friend class MonitorPanel;
+    bool load_thumbnail_from_url(const wxString &url, MachineObject *obj);
 
 protected:
     std::shared_ptr<SliceInfoPopup> m_slice_info_popup;
@@ -663,6 +665,9 @@ protected:
     int          m_last_timelapse = -1;
     int          m_last_extrusion = -1;
     int          m_last_vcamera   = -1;
+    std::string  m_printer_webcam_url;
+    // note: zero = not started; see update_camera_state() for the renew interval.
+    std::chrono::steady_clock::time_point m_camera_start_sent{};
     int          m_model_mall_request_count = 0;
     bool         m_is_load_with_temp = false;
     json         m_rating_result;
@@ -686,6 +691,13 @@ protected:
     CalibrationMethod m_calib_method;
     int cali_stage;
     PrintingTaskType m_current_print_mode = PrintingTaskType::NOT_CLEAR;
+    bool m_pause_resume_pending = false;
+    bool m_pause_resume_was_resume = false;
+    std::chrono::steady_clock::time_point m_pause_resume_deadline;
+    std::string m_pause_resume_machine_id;
+    bool m_abort_pending = false;
+    std::chrono::steady_clock::time_point m_abort_deadline;
+    std::string m_abort_machine_id;
 
     void init_scaled_buttons();
     void create_tasklist_info();
@@ -788,6 +800,7 @@ protected:
     void update_calib_bitmap();
 
     void reset_printing_values();
+    bool is_moonraker_agent() const;
     void on_webrequest_state(wxWebRequestEvent &evt);
     bool is_task_changed(MachineObject* obj);
 

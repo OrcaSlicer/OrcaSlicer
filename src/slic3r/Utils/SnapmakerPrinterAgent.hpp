@@ -16,6 +16,10 @@ public:
     AgentInfo        get_agent_info() override { return get_agent_info_static(); }
 
     bool fetch_filament_info(std::string dev_id) override;
+    int command_start_camera(std::string dev_id) override;
+
+protected:
+    std::string webcam_stream_override(const std::string& base_url) const override;
 
 private:
     // Combine filament_type + filament_sub_type into a unified type string

@@ -74,6 +74,81 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id)
     return true;
 }
 
+bool QidiPrinterAgent::apply_box_mapping(const PrintParams& params) const
+{
+    // enable_box mirrors task_use_ams: engage the multi-color box only when this
+    // job actually routes filament through it. (See qidi-ams-findings.md §2/§8.3 —
+    // if firmware treats enable_box as "a box exists" rather than "use it this job",
+    // switch this gate to HasAms()/box_count instead.)
+    const int enable = params.task_use_ams ? 1 : 0;
+    if (!send_gcode(device_info.dev_id, "SAVE_VARIABLE VARIABLE=enable_box VALUE=" + std::to_string(enable))) {
+        BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::apply_box_mapping: failed to set enable_box";
+        return false;
+    }
+
+    // When the box isn't used this job, leave the existing value_t<tool> slot
+    // assignments untouched (enable_box=0 is enough to disengage it).
+    if (!enable)
+        return true;
+
+    if (params.ams_mapping.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::apply_box_mapping: enable_box set but ams_mapping is empty";
+        return true;
+    }
+
+    // ams_mapping (v0) is a JSON array indexed by filament/tool; each value is the
+    // physical box slot (-1 = unmapped). Mirror it onto the printer's value_t<tool>
+    // variables: SAVE_VARIABLE VARIABLE=value_t<tool> VALUE='slot<n>'.
+    auto mapping = nlohmann::json::parse(params.ams_mapping, nullptr, /*allow_exceptions*/ false);
+    if (mapping.is_discarded() || !mapping.is_array()) {
+        BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::apply_box_mapping: invalid ams_mapping: " << params.ams_mapping;
+        return false;
+    }
+
+    for (size_t tool = 0; tool < mapping.size(); ++tool) {
+        if (!mapping[tool].is_number_integer())
+            continue;
+        const int slot = mapping[tool].get<int>();
+        if (slot < 0)
+            continue; // unmapped filament — skip
+        const std::string gcode = "SAVE_VARIABLE VARIABLE=value_t" + std::to_string(tool) +
+                                  " VALUE=\"'slot" + std::to_string(slot) + "'\"";
+        if (!send_gcode(device_info.dev_id, gcode)) {
+            BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::apply_box_mapping: failed to set value_t" << tool;
+            return false;
+        }
+    }
+    return true;
+}
+
+int QidiPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
+{
+    if (!apply_box_mapping(params))
+        return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
+    return MoonrakerPrinterAgent::start_local_print(std::move(params), update_fn, cancel_fn);
+}
+
+int QidiPrinterAgent::start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
+{
+    if (!apply_box_mapping(params))
+        return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
+    return MoonrakerPrinterAgent::start_print(std::move(params), update_fn, cancel_fn, wait_fn);
+}
+
+int QidiPrinterAgent::start_local_print_with_record(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
+{
+    if (!apply_box_mapping(params))
+        return BAMBU_NETWORK_ERR_PRINT_WR_UPLOAD_FTP_FAILED;
+    return MoonrakerPrinterAgent::start_local_print_with_record(std::move(params), update_fn, cancel_fn, wait_fn);
+}
+
+int QidiPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
+{
+    if (!apply_box_mapping(params))
+        return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
+    return MoonrakerPrinterAgent::start_sdcard_print(std::move(params), update_fn, cancel_fn);
+}
+
 bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
                                        const std::string&        api_key,
                                        const QidiFilamentDict&   dict,
@@ -118,20 +193,10 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
         return false;
     }
 
-    auto json = nlohmann::json::parse(response_body, nullptr, false, true);
-    if (json.is_discarded()) {
-        error = "Invalid JSON response";
+    nlohmann::json status;
+    nlohmann::json variables;
+    if (!parse_slot_response(response_body, status, variables, error))
         return false;
-    }
-
-    if (!json.contains("result") || !json["result"].contains("status") || !json["result"]["status"].contains("save_variables") ||
-        !json["result"]["status"]["save_variables"].contains("variables")) {
-        error = "Unexpected JSON structure";
-        return false;
-    }
-
-    auto& variables = json["result"]["status"]["save_variables"]["variables"];
-    auto& status    = json["result"]["status"];
 
     box_count = variables.value("box_count", 1);
     if (box_count < 0) {
@@ -203,6 +268,31 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
         trays.push_back(tray);
     }
 
+    return true;
+}
+
+bool QidiPrinterAgent::parse_slot_response(const std::string& response_body,
+                                           nlohmann::json&    status,
+                                           nlohmann::json&    variables,
+                                           std::string&       error)
+{
+    auto json = nlohmann::json::parse(response_body, nullptr, false, true);
+    if (json.is_discarded()) {
+        error = "Invalid JSON response";
+        return false;
+    }
+
+    if (!json.is_object() || !json.contains("result") || !json["result"].is_object() || !json["result"].contains("status") ||
+        !json["result"]["status"].is_object() || !json["result"]["status"].contains("save_variables") ||
+        !json["result"]["status"]["save_variables"].is_object() || !json["result"]["status"]["save_variables"].contains("variables") ||
+        !json["result"]["status"]["save_variables"]["variables"].is_object()) {
+        // why: Qidi firmware may send null here, but json::value() throws for it.
+        error = "Unexpected JSON structure: save_variables.variables must be an object";
+        return false;
+    }
+
+    status    = json["result"]["status"];
+    variables = status["save_variables"]["variables"];
     return true;
 }
 

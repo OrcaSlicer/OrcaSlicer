@@ -18,6 +18,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/clamp.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/fstream.hpp>
@@ -3387,6 +3388,27 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
     ConfigOptionStrings *filament_color_type = project_config.option<ConfigOptionStrings>("filament_colour_type");
     ConfigOptionInts *   filament_map = project_config.option<ConfigOptionInts>("filament_map");
     ConfigOptionInts *   filament_volume_map = project_config.option<ConfigOptionInts>("filament_volume_map");
+    // why: project filament_multi_colour stores space-joined components per
+    // filament; decode once so every merge branch seeds from the same view,
+    // falling back to the main color where the project has no components.
+    auto decode_project_multi_colors = [this](const std::vector<std::string> &main_colors) {
+        std::vector<std::vector<std::string>> decoded(main_colors.size());
+        for (size_t i = 0; i < main_colors.size(); ++i) decoded[i] = {main_colors[i]};
+        const ConfigOptionStrings *project_multi_color = project_config.option<ConfigOptionStrings>("filament_multi_colour");
+        if (project_multi_color) {
+            for (size_t i = 0; i < std::min(decoded.size(), project_multi_color->values.size()); ++i) {
+                std::vector<std::string> colors = split_string(project_multi_color->values[i], ' ');
+                // why: a whitespace-only persisted entry splits into empty
+                // tokens, so keep the main-color fallback rather than
+                // serializing an empty component.
+                colors.erase(std::remove_if(colors.begin(), colors.end(),
+                                            [](const std::string &c) { return c.empty(); }),
+                             colors.end());
+                if (!colors.empty()) decoded[i] = colors;
+            }
+        }
+        return decoded;
+    };
     if (color_only) {
         auto get_map_index = [&ams_infos](const std::vector<AMSMapInfo> &infos, const AMSMapInfo &temp) {
             for (int i = 0; i < infos.size(); i++) {
@@ -3399,20 +3421,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         };
 
         auto exist_colors = filament_color->values;
-        std::vector<std::vector<std::string>> exist_multi_color_filment(exist_colors.size());
-        for (size_t i = 0; i < exist_colors.size(); i++) {
-            exist_multi_color_filment[i] = {exist_colors[i]};
-        }
-
-        ConfigOptionStrings *project_multi_color = project_config.option<ConfigOptionStrings>("filament_multi_colour");
-        if (project_multi_color) {
-            for (size_t i = 0; i < std::min(exist_multi_color_filment.size(), project_multi_color->values.size()); i++) {
-                std::vector<std::string> colors = split_string(project_multi_color->values[i], ' ');
-                if (!colors.empty()) {
-                    exist_multi_color_filment[i] = colors;
-                }
-            }
-        }
+        auto exist_multi_color_filment = decode_project_multi_colors(exist_colors);
 
         bool mapped_any = false;
         if (use_map && !maps.empty()) {
@@ -3488,11 +3497,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         auto exist_colors = filament_color->values;
         auto exist_color_types = filament_color_type->values;
         auto exist_filament_presets = this->filament_presets;
-        std::vector<std::vector<std::string>> exist_multi_color_filment;
-        exist_multi_color_filment.resize(exist_colors.size());
-        for (int i = 0; i < exist_colors.size(); i++) {
-            exist_multi_color_filment[i] = {exist_colors[i]};
-        }
+        auto exist_multi_color_filment = decode_project_multi_colors(exist_colors);
         for (size_t i = 0; i < exist_colors.size(); i++) {
             if (maps.find(i) != maps.end()) {//mapping exist
                 auto valid_index = get_map_index(ams_array_maps, maps[i]);
@@ -3500,7 +3505,10 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     exist_colors[i]           = ams_filament_colors[valid_index];
                     exist_color_types[i]      = ams_filament_color_types[valid_index];
                     exist_filament_presets[i] = ams_filament_presets[valid_index];
-                    exist_multi_color_filment[i] = ams_multi_color_filment[valid_index];
+                    // why: a single-color agent tray reports no components, so
+                    // fall back to the printer main color rather than keeping
+                    // the replaced project filament's components.
+                    exist_multi_color_filment[i] = ams_multi_color_filment[valid_index].empty() ? std::vector<std::string>{ams_filament_colors[valid_index]} : ams_multi_color_filment[valid_index];
                 } else {
                     BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "check error: array bound (mapping exist)";
                 }
@@ -3560,7 +3568,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                 exist_filament_presets.push_back(need_append_colors[i].filament_preset);
                 exist_colors.push_back(need_append_colors[i].filament_color);
                 exist_color_types.push_back(need_append_colors[i].filament_color_type);
-                exist_multi_color_filment.push_back(need_append_colors[i].mutli_filament_color);
+                exist_multi_color_filment.push_back(need_append_colors[i].mutli_filament_color.empty() ? std::vector<std::string>{need_append_colors[i].filament_color} : need_append_colors[i].mutli_filament_color);
             }
         }
         filament_color->values = exist_colors;
@@ -3578,6 +3586,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             auto exist_colors       = filament_color->values;
             auto exist_color_types  = filament_color_type->values;
             auto exist_presets      = this->filament_presets;
+            auto existing_multi_colors = decode_project_multi_colors(exist_colors);
 
             size_t tray_count = ams_filament_presets.size();
             size_t total      = std::max(tray_count, exist_presets.size());
@@ -3587,25 +3596,34 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             std::vector<std::string> result_presets;
             std::vector<std::vector<std::string>> result_multi_colors;
 
-            for (size_t i = 0; i < total; i++) {
-                bool is_loaded = (i < ams_infos.size() && ams_infos[i].valid);
-
+            for (size_t i = 0; i < total; ++i) {
+                const bool is_loaded = i < ams_infos.size() && ams_infos[i].valid;
                 if (is_loaded) {
-                    // Loaded tray: use tray's filament data
+                    // The printer replaces the project filament at this index.
                     result_colors.push_back(ams_filament_colors[i]);
                     result_color_types.push_back(ams_filament_color_types[i]);
                     result_presets.push_back(ams_filament_presets[i]);
-                    result_multi_colors.push_back(
-                        i < ams_multi_color_filment.size() ? ams_multi_color_filment[i]
-                                                           : std::vector<std::string>{ams_filament_colors[i]});
-                } else if (i < exist_presets.size()) {
-                    // Empty tray or beyond tray count: keep existing filament
+                    if (i < ams_multi_color_filment.size() && !ams_multi_color_filment[i].empty()) {
+                        result_multi_colors.push_back(ams_multi_color_filment[i]);
+                    } else {
+                        // why: old project components belong to the replaced
+                        // filament, so use the new printer filament's main color.
+                        result_multi_colors.push_back({ams_filament_colors[i]});
+                    }
+                    // why: update_multi_material_filament_presets() can grow
+                    // filament_presets alone to the extruder count, so presets
+                    // may outrun the colour arrays; fall through to a generic
+                    // filament rather than read past them.
+                } else if (i < exist_presets.size() && i < exist_colors.size() && i < exist_color_types.size()) {
+                    // An empty or absent printer slot retains the project filament.
                     result_colors.push_back(exist_colors[i]);
                     result_color_types.push_back(exist_color_types[i]);
                     result_presets.push_back(exist_presets[i]);
-                    result_multi_colors.push_back({exist_colors[i]});
+                    // note: already carries the project components or its
+                    // main-color fallback.
+                    result_multi_colors.push_back(existing_multi_colors[i]);
                 } else {
-                    // New slot beyond existing count: prefer a generic filament preset
+                    // Neither source has a filament, so create a generic one.
                     auto it = std::find_if(filaments.begin(), filaments.end(), [](const Preset &f) {
                         return f.is_compatible && f.is_system
                             && boost::algorithm::starts_with(f.name, "Generic ");
@@ -3651,23 +3669,28 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
 
 void PresetBundle::update_filament_multi_color()
 {
-    std::vector<std::string> exsit_multi_colors;
-    for (auto &fil_item : ams_multi_color_filment){
-        if (fil_item.empty()) break;
-        if (fil_item.size() == 1)
-            exsit_multi_colors.push_back(fil_item[0]);
-        else {
-            std::string colors = "";
-            for (auto &color : fil_item){
-                   colors += color + " ";
-            }
-            colors.erase(colors.size() - 1); // remove last space
-            exsit_multi_colors.push_back(colors);
+    const ConfigOptionStrings *filament_color = project_config.option<ConfigOptionStrings>("filament_colour");
+    ConfigOptionStrings *filament_multi_colour = project_config.option<ConfigOptionStrings>("filament_multi_colour");
+    // note: cheap defence only. Both keys live in s_project_options and the
+    // constructor applies them unconditionally, so this never fires today.
+    if (!filament_color || !filament_multi_colour) return;
+    // note: this is std::vector::resize(), which safely creates empty inner
+    // vectors. Not ConfigOptionStrings::resize(), which throws without a
+    // default value.
+    ams_multi_color_filment.resize(filament_color->values.size());
+    for (size_t i = 0; i < filament_color->values.size(); ++i) {
+        if (ams_multi_color_filment[i].empty()) {
+            // why: every final main color requires one parallel
+            // multi-color entry.
+            ams_multi_color_filment[i] = {filament_color->values[i]};
         }
     }
-    ConfigOptionStrings *filament_multi_colour = project_config.option<ConfigOptionStrings>("filament_multi_colour");
-    filament_multi_colour->resize(exsit_multi_colors.size());
-    filament_multi_colour->values = exsit_multi_colors;
+    std::vector<std::string> serialized;
+    serialized.reserve(ams_multi_color_filment.size());
+    for (const auto &components : ams_multi_color_filment)
+        serialized.push_back(boost::algorithm::join(components, " "));
+    // why: assignment sets both size and contents, so no resize is needed.
+    filament_multi_colour->values = std::move(serialized);
 }
 
 std::vector<int> PresetBundle::get_used_tpu_filaments(const std::vector<int> &used_filaments)

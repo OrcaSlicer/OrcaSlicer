@@ -9,10 +9,15 @@
 #include <set>
 #include <string>
 #include <thread>
+#include <condition_variable>
+#include <deque>
+#include <functional>
 
 #include <nlohmann/json.hpp>
 
 namespace Slic3r {
+
+bool moonraker_is_light_name(const std::string& name);
 
 class MoonrakerPrinterAgent : public IPrinterAgent
 {
@@ -112,7 +117,7 @@ protected:
     // Helpers
     bool        is_numeric(const std::string& value);
     std::string normalize_base_url(std::string host, const std::string& port);
-    std::string sanitize_filename(const std::string& filename);
+    std::string sanitize_filename(const std::string& filename) const;
     std::string join_url(const std::string& base_url, const std::string& path) const;
 
     // Trim whitespace and convert to uppercase
@@ -121,6 +126,22 @@ protected:
     // Map filament type to OrcaFilamentLibrary preset ID for AMS sync compatibility
     static std::string map_filament_type_to_generic_id(const std::string& filament_type);
 
+    // Send a G-code script via Moonraker (/printer/gcode/script)
+    bool send_gcode(const std::string& dev_id, const std::string& gcode) const;
+    bool send_gcode(const std::string& dev_id, const std::string& gcode,
+                    const std::string& base_url, const std::string& api_key) const;
+    bool post_print_action(const std::string& action) const;
+    bool post_print_action(const std::string& action,
+                           const std::string& base_url, const std::string& api_key) const;
+
+    // Send one JSON-RPC call over a short-lived Moonraker websocket. Returns true when the
+    // request was written; it never waits for a reply.
+    bool send_ws_rpc(const std::string& method, const nlohmann::json& params);
+
+    // why: a printer with no /server/webcams/list entry can still name its stream directly;
+    // returning empty (the default) keeps the normal Moonraker discovery path.
+    virtual std::string webcam_stream_override(const std::string& base_url) const { return {}; }
+
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);
     int send_version_info(const std::string& dev_id);
@@ -128,7 +149,7 @@ private:
 
     bool fetch_object_list(const std::string& base_url, const std::string& api_key, std::set<std::string>& objects, std::string& error) const;
     bool query_printer_status(const std::string& base_url, const std::string& api_key, nlohmann::json& status, std::string& error) const;
-    bool send_gcode(const std::string& dev_id, const std::string& gcode) const;
+    bool fetch_webcam_info(const std::string& base_url, const std::string& api_key, uint64_t generation);
 
     void announce_printhost_device();
     void dispatch_local_connect(int state, const std::string& dev_id, const std::string& msg);
@@ -137,7 +158,8 @@ private:
     void start_status_stream(const std::string& dev_id, const std::string& base_url, const std::string& api_key);
     void stop_status_stream();
     void run_status_stream(std::string dev_id, std::string base_url, std::string api_key);
-    void handle_ws_message(const std::string& dev_id, const std::string& payload);
+    void handle_ws_message(std::string dev_id, std::string payload, std::string base_url, std::string api_key);
+    void refresh_thumbnail_url(std::string base_url, std::string api_key);
     void update_status_cache(const nlohmann::json& updates);
     nlohmann::json build_print_payload_locked() const;
 
@@ -151,9 +173,10 @@ private:
                       const std::string& base_url, const std::string& api_key,
                       OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
 
-    // JSON-RPC helper
-    bool send_jsonrpc_command(const std::string& base_url, const std::string& api_key,
-                              const nlohmann::json& request, std::string& response) const;
+    // Start a print of a previously uploaded G-code file (path relative to the
+    // Moonraker gcodes root).
+    bool start_print_file(const std::string& base_url, const std::string& api_key,
+                          const std::string& filename, std::string& error_msg) const;
 
     // Connection thread management
     void perform_connection_async(const std::string& dev_id,
@@ -189,9 +212,15 @@ private:
 
     mutable std::recursive_mutex payload_mutex;
     nlohmann::json     status_cache;
+    // note: guarded by payload_mutex; filled by refresh_thumbnail_url(), empty url = looked up, none found
+    std::string        thumbnail_filename;
+    std::string        thumbnail_url;
+    std::string        webcam_stream_url;
+    unsigned            thumbnail_lookup_attempts = 0;
 
     std::atomic<int>       next_jsonrpc_id{1};
     std::set<std::string>  available_objects;  // Track for feature detection
+    bool                   assumed_light_on = false;
 
     std::atomic<bool>   ws_stop{false};
     std::atomic<bool>   ws_reconnect_requested{false};  // Flag to trigger reconnection
@@ -207,7 +236,15 @@ private:
     // Connection thread management
     std::atomic<uint64_t>  connect_generation{0};
     std::thread            connect_thread;
-    std::recursive_mutex   connect_mutex;
+    mutable std::recursive_mutex connect_mutex;
+
+    void enqueue_command(std::function<void()> fn);
+    void run_command_worker();
+    std::thread cmd_thread;
+    std::deque<std::function<void()>> cmd_queue;
+    std::mutex cmd_mutex;
+    std::condition_variable cmd_cv;
+    bool cmd_stop = false;
 };
 
 } // namespace Slic3r

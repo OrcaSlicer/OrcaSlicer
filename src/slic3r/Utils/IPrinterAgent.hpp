@@ -2,6 +2,13 @@
 #define __I_PRINTER_AGENT_HPP__
 
 #include "bambu_networking.hpp"
+// why: these extend the BAMBU_NETWORK_* return space rather than opening a new one - the value
+// flows through the same int domain callers already compare against BAMBU_NETWORK_SUCCESS.
+// They live here and not in bambu_networking.hpp because that file is a vendor header replaced
+// wholesale by header-sync commits (see c09252ce11), which would silently clobber them.
+// -70xx is free: the vendor occupies -1..-25 and -10xx through -60xx.
+#define ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED -7010 // no translation exists for this command
+#define ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE -7020 // a translation exists; this printer lacks the capability
 #include <string>
 #include <memory>
 
@@ -76,6 +83,21 @@ public:
      * Publish a JSON command to a printer through cloud relay.
      */
     virtual int send_message(std::string dev_id, std::string json_str, int qos, int flag) = 0;
+
+    // why: gcode is firmware dialect, not a waist concept - commands whose body is Bambu-dialect
+    // gcode live on the agent that speaks it; the default is an honest refusal that MachineObject's
+    // publish funnel turns into a dialog.
+    virtual int command_ams_refresh_rfid(std::string, std::string, int, bool)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_ams_calibrate(std::string, int, int, bool)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_ams_select_tray(std::string, std::string, int, bool)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    // why: some printers emit camera frames only while explicitly asked, and retire the
+    // capture task on their own - the camera view starts it and renews it. Printers with an
+    // always-on stream need nothing here, hence the honest refusal by default.
+    virtual int command_start_camera(std::string)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
 
     /**
      * Establish a direct LAN connection to a printer.

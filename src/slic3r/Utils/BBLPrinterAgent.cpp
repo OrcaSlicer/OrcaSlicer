@@ -2,7 +2,9 @@
 #include "BBLNetworkPlugin.hpp"
 #include "NetworkAgentFactory.hpp"
 
+#include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r {
 
@@ -19,6 +21,65 @@ void BBLPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud)
 // ============================================================================
 // Communication
 // ============================================================================
+
+std::string BBLPrinterAgent::ams_refresh_rfid_gcode(const std::string& tray_id)
+{
+    return (boost::format("M620 R%1% \n") % tray_id).str();
+}
+
+std::string BBLPrinterAgent::ams_calibrate_gcode(int ams_id)
+{
+    return (boost::format("M620 C%1% \n") % ams_id).str();
+}
+
+std::string BBLPrinterAgent::ams_select_tray_gcode(const std::string& tray_id)
+{
+    return (boost::format("M620 P%1% \n") % tray_id).str();
+}
+
+int BBLPrinterAgent::command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
+{
+    const std::string gcode = ams_refresh_rfid_gcode(tray_id);
+    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
+    nlohmann::json j;
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = gcode;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode)
+{
+    const std::string gcode = ams_calibrate_gcode(ams_id);
+    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
+    nlohmann::json j;
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = gcode;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
+{
+    const std::string gcode = ams_select_tray_gcode(tray_id);
+    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
+    nlohmann::json j;
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = gcode;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::publish(const std::string& dev_id, const nlohmann::json& j, bool lan_mode)
+{
+    const int rtn = lan_mode ? send_message_to_printer(dev_id, j.dump(), 0, 0) : send_message(dev_id, j.dump(), 0, 0);
+    if (rtn == 0) {
+        BOOST_LOG_TRIVIAL(info) << "publish_json: " << j.dump() << " code: " << rtn;
+    } else {
+        BOOST_LOG_TRIVIAL(error) << "publish_json: " << j.dump() << " code: " << rtn;
+    }
+    return rtn;
+}
 
 int BBLPrinterAgent::send_message(std::string dev_id, std::string json_str, int qos, int flag)
 {
