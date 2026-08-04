@@ -167,6 +167,22 @@
 		{
 			"name": "Creality Sermoon V1",
 			"sub_path": "machine/Creality Sermoon V1.json"
+		},
+		{
+			"name": "Creality K1 CFS",
+			"sub_path": "machine/Creality K1 CFS.json"
+		},
+		{
+			"name": "Creality K1C CFS",
+			"sub_path": "machine/Creality K1C CFS.json"
+		},
+		{
+			"name": "Creality K1 SE CFS",
+			"sub_path": "machine/Creality K1 SE CFS.json"
+		},
+		{
+			"name": "Creality K1 Max CFS",
+			"sub_path": "machine/Creality K1 Max CFS.json"
 		}
 	],
 	"process_list": [
@@ -4245,6 +4261,54 @@
 		{
 			"name": "Creality SPARKX i7 0.8 nozzle",
 			"sub_path": "machine/Creality SPARKX i7 0.8 nozzle.json"
+		},
+		{
+			"name": "Creality K1 CFS 0.4 nozzle",
+			"sub_path": "machine/Creality K1 CFS 0.4 nozzle.json"
+		},
+		{
+			"name": "Creality K1 CFS 0.6 nozzle",
+			"sub_path": "machine/Creality K1 CFS 0.6 nozzle.json"
+		},
+		{
+			"name": "Creality K1 CFS 0.8 nozzle",
+			"sub_path": "machine/Creality K1 CFS 0.8 nozzle.json"
+		},
+		{
+			"name": "Creality K1C CFS 0.4 nozzle",
+			"sub_path": "machine/Creality K1C CFS 0.4 nozzle.json"
+		},
+		{
+			"name": "Creality K1C CFS 0.6 nozzle",
+			"sub_path": "machine/Creality K1C CFS 0.6 nozzle.json"
+		},
+		{
+			"name": "Creality K1C CFS 0.8 nozzle",
+			"sub_path": "machine/Creality K1C CFS 0.8 nozzle.json"
+		},
+		{
+			"name": "Creality K1 SE CFS 0.4 nozzle",
+			"sub_path": "machine/Creality K1 SE CFS 0.4 nozzle.json"
+		},
+		{
+			"name": "Creality K1 SE CFS 0.6 nozzle",
+			"sub_path": "machine/Creality K1 SE CFS 0.6 nozzle.json"
+		},
+		{
+			"name": "Creality K1 SE CFS 0.8 nozzle",
+			"sub_path": "machine/Creality K1 SE CFS 0.8 nozzle.json"
+		},
+		{
+			"name": "Creality K1 Max CFS 0.4 nozzle",
+			"sub_path": "machine/Creality K1 Max CFS 0.4 nozzle.json"
+		},
+		{
+			"name": "Creality K1 Max CFS 0.6 nozzle",
+			"sub_path": "machine/Creality K1 Max CFS 0.6 nozzle.json"
+		},
+		{
+			"name": "Creality K1 Max CFS 0.8 nozzle",
+			"sub_path": "machine/Creality K1 Max CFS 0.8 nozzle.json"
 		}
 	]
 }
