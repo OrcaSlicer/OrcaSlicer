@@ -6595,6 +6595,20 @@ int CLI::run(int argc, char **argv)
             }
         }
 
+        // Headless CLI exports do not enter the wxWidgets application loop.
+        // On macOS GLFW initializes NSApplication in its Cocoa backend, and
+        // recent macOS versions may abort inside AppKit before glfwInit() can
+        // report an error. Thumbnails are optional in a 3MF export, so skip
+        // only the OpenGL rendering for headless macOS CLI invocations.
+#if defined(__APPLE__)
+        if (!start_gui && (need_regenerate_thumbnail || need_regenerate_no_light_thumbnail || need_regenerate_top_thumbnail)) {
+            BOOST_LOG_TRIVIAL(warning) << "Skipping OpenGL thumbnail rendering for headless macOS CLI export" << std::endl;
+            need_create_thumbnail_group = false;
+            need_create_no_light_group = false;
+            need_create_top_group = false;
+        }
+        else
+#endif
         if (need_regenerate_thumbnail || need_regenerate_no_light_thumbnail || need_regenerate_top_thumbnail) {
             std::vector<std::string> colors;
             if (filament_color) {
