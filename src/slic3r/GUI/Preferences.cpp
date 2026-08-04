@@ -11,7 +11,6 @@
 #include <wx/language.h>
 #include "OG_CustomCtrl.hpp"
 #include "wx/graphics.h"
-#include <wx/listimpl.cpp>
 #include <wx/display.h>
 #include "NetworkTestDialog.hpp"
 #include "Widgets/StaticLine.hpp"

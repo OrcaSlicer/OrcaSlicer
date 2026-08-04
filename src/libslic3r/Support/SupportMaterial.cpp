@@ -367,7 +367,7 @@ inline void layers_append(SupportGeneratorLayersPtr &dst, const SupportGenerator
 }
 
 // Support layer that is covered by some form of dense interface.
-static constexpr const std::initializer_list<SupporLayerType> support_types_interface { 
+static constexpr const std::initializer_list<SupporLayerType> support_material_types_interface {
     SupporLayerType::RaftInterface, SupporLayerType::BottomContact, SupporLayerType::BottomInterface, SupporLayerType::TopContact, SupporLayerType::TopInterface
 };
 
@@ -3307,3 +3307,4 @@ sub clip_with_shape {
 */
 
 } // namespace Slic3r
+#undef SUPPORT_MATERIAL_MARGIN

@@ -440,7 +440,7 @@ bool reset_button(const IconManager::VIcons &icons)
     return clickable(icon, icon); // ORCA use orange color for both states
 }
 
-} // namespace 
+} // namespace
 
 void GLGizmoSVG::on_render_input_window(float x, float y, float bottom_limit)
 {
@@ -2073,7 +2073,7 @@ void GLGizmoSVG::draw_model_type()
 /////////////
 // private namespace implementation
 ///////////////
-namespace {
+namespace{
 
 std::string get_file_name(const std::string &file_path)
 {

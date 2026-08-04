@@ -23,23 +23,24 @@
 
 namespace Slic3r
 {
+namespace WipeTower2Detail {
 
-constexpr float         flat_iron_speed                = 10.f * 60.f;
-static const double     wipe_tower_wall_infill_overlap = 0.0;
-static constexpr double WIPE_TOWER_RESOLUTION          = 0.1;
-static constexpr double     WT_SIMPLIFY_TOLERANCE_SCALED   = 0.001f / SCALING_FACTOR_INTERNAL;
-static constexpr int    arc_fit_size                   = 20;
-#define SCALED_WIPE_TOWER_RESOLUTION (WIPE_TOWER_RESOLUTION / SCALING_FACTOR_INTERNAL)
-enum class LimitFlow { None, LimitPrintFlow, LimitRammingFlow };
-static const std::map<float, float> nozzle_diameter_to_nozzle_change_width{{0.2f, 0.5f}, {0.4f, 1.0f}, {0.6f, 1.2f}, {0.8f, 1.4f}};
+constexpr float         wipe_tower2_flat_iron_speed                = 10.f * 60.f;
+static const double     wipe_tower2_wall_infill_overlap = 0.0;
+static constexpr double WIPE_TOWER2_RESOLUTION          = 0.1;
+static constexpr double     WT2_SIMPLIFY_TOLERANCE_SCALED   = 0.001f / SCALING_FACTOR_INTERNAL;
+static constexpr int    wipe_tower2_arc_fit_size                   = 20;
+static constexpr double scaled_wipe_tower_resolution = WIPE_TOWER2_RESOLUTION / SCALING_FACTOR_INTERNAL;
+enum class WipeTower2LimitFlow { None, LimitPrintFlow, LimitRammingFlow };
+static const std::map<float, float> wipe_tower2_nozzle_diameter_to_nozzle_change_width{{0.2f, 0.5f}, {0.4f, 1.0f}, {0.6f, 1.2f}, {0.8f, 1.4f}};
 
-inline float align_round(float value, float base) { return std::round(value / base) * base; }
+inline float wipe_tower2_align_round(float value, float base) { return std::round(value / base) * base; }
 
-inline float align_ceil(float value, float base) { return std::ceil(value / base) * base; }
+inline float wipe_tower2_align_ceil(float value, float base) { return std::ceil(value / base) * base; }
 
-inline float align_floor(float value, float base) { return std::floor((value) / base) * base; }
+inline float wipe_tower2_align_floor(float value, float base) { return std::floor((value) / base) * base; }
 
-static bool is_valid_gcode(const std::string& gcode)
+static bool wipe_tower2_is_valid_gcode(const std::string& gcode)
 {
     int  str_size    = gcode.size();
     int  start_index = 0;
@@ -68,7 +69,7 @@ static bool is_valid_gcode(const std::string& gcode)
     return is_valid;
 }
 
-static Polygon chamfer_polygon(Polygon& polygon, double chamfer_dis = 2., double angle_tol = 30. / 180. * PI)
+static Polygon wipe_tower2_chamfer_polygon(Polygon& polygon, double chamfer_dis = 2., double angle_tol = 30. / 180. * PI)
 {
     if (polygon.points.size() < 3)
         return polygon;
@@ -147,7 +148,7 @@ static Polygon rounding_polygon(Polygon& polygon, double rounding = 2., double a
                 double     radius = (left - center).norm();
                 ArcSegment arc(scaled(center), scaled(radius), scaled(left), scaled(right),
                                is_ccw ? ArcDirection::Arc_Dir_CCW : ArcDirection::Arc_Dir_CW);
-                int        n = arc_fit_size;
+                int        n = wipe_tower2_arc_fit_size;
                 // std::cout << "start  " << arc.start_point[0] << " " << arc.start_point[1] << std::endl;
                 // std::cout << "end  " << arc.end_point[0] << " " << arc.end_point[1] << std::endl;
                 // std::cout << "start angle   " << arc.polar_start_theta << " end angle " << arc.polar_end_theta << std::endl;
@@ -173,7 +174,7 @@ static Polygon rounding_polygon(Polygon& polygon, double rounding = 2., double a
     return res;
 }
 
-static Polygon rounding_rectangle(Polygon& polygon, double rounding = 2., double angle_tol = 30. / 180. * PI)
+static Polygon wipe_tower2_rounding_rectangle(Polygon& polygon, double rounding = 2., double angle_tol = 30. / 180. * PI)
 {
     if (polygon.points.size() < 3)
         return polygon;
@@ -208,7 +209,7 @@ static Polygon rounding_rectangle(Polygon& polygon, double rounding = 2., double
                 double     radius = real_rounding_dis;
                 ArcSegment arc(scaled(center), scaled(radius), scaled(left), scaled(right),
                                is_ccw ? ArcDirection::Arc_Dir_CCW : ArcDirection::Arc_Dir_CW);
-                int        n = arc_fit_size;
+                int        n = wipe_tower2_arc_fit_size;
                 // std::cout << "start  " << arc.start_point[0] << " " << arc.start_point[1] << std::endl;
                 // std::cout << "end  " << arc.end_point[0] << " " << arc.end_point[1] << std::endl;
                 // std::cout << "start angle   " << arc.polar_start_theta << " end angle " << arc.polar_end_theta << std::endl;
@@ -233,14 +234,14 @@ static Polygon rounding_rectangle(Polygon& polygon, double rounding = 2., double
     return res;
 }
 
-static Polygon scale_polygon(const std::vector<Vec2f>& points)
+static Polygon wipe_tower2_scale_polygon(const std::vector<Vec2f>& points)
 {
     Polygon res;
     for (const auto& p : points)
         res.points.push_back(scaled(p));
     return res;
 }
-static std::vector<Vec2f> unscale_polygon(const Polygon& polygon)
+static std::vector<Vec2f> wipe_tower2_unscale_polygon(const Polygon& polygon)
 {
     std::vector<Vec2f> res;
     for (const auto& p : polygon.points)
@@ -248,7 +249,7 @@ static std::vector<Vec2f> unscale_polygon(const Polygon& polygon)
     return res;
 }
 
-static Polygon generate_rectange(const Line& line, coord_t offset)
+static Polygon wipe_tower2_generate_rectange(const Line& line, coord_t offset)
 {
     Point p1 = line.a;
     Point p2 = line.b;
@@ -278,13 +279,13 @@ static Polygon generate_rectange(const Line& line, coord_t offset)
 };
 
 // Straight or arc-fitted wall segment used by WipeTowerWriter2::generate_path().
-struct Segment
+struct WipeTower2Segment
 {
     Vec2f      start;
     Vec2f      end;
     bool       is_arc = false;
     ArcSegment arcsegment;
-    Segment(const Vec2f& s, const Vec2f& e) : start(s), end(e) {}
+    WipeTower2Segment(const Vec2f& s, const Vec2f& e) : start(s), end(e) {}
     bool is_valid() const { return start.y() < end.y(); }
 };
 
@@ -308,6 +309,9 @@ static float length_to_volume(float length, float line_width, float layer_height
 {
 	return std::max(0.f, length * layer_height * (line_width - layer_height * (1.f - float(M_PI) / 4.f)));
 }
+
+} // namespace WipeTower2Detail
+using namespace WipeTower2Detail;
 
 
 
@@ -749,7 +753,7 @@ public:
     WipeTowerWriter2& extrude_arc_explicit(ArcSegment& arc,
                                           float       f             = 0.f,
                                           bool        record_length = false,
-                                          LimitFlow   limit_flow    = LimitFlow::LimitPrintFlow)
+                                          WipeTower2LimitFlow   limit_flow    = WipeTower2LimitFlow::LimitPrintFlow)
     {
         float x   = (float) unscale(arc.end_point).x();
         float y   = (float) unscale(arc.end_point).y();
@@ -777,7 +781,7 @@ public:
             if (m_extrusions.empty() || m_extrusions.back().pos != rotated_current_pos)
                 m_extrusions.emplace_back(WipeTower::Extrusion(rotated_current_pos, 0, m_current_tool));
             {
-                int n = arc_fit_size;
+                int n = wipe_tower2_arc_fit_size;
                 for (int j = 0; j < n; j++) {
                     float cur_angle = arc.polar_start_theta + (float) j / n * arc.angle_radians;
                     if (cur_angle > 2 * PI)
@@ -808,10 +812,10 @@ public:
             m_gcode += set_format_E(e);
 
         if (f != 0.f && f != m_current_feedrate) {
-            if (limit_flow != LimitFlow::None) {
+            if (limit_flow != WipeTower2LimitFlow::None) {
                 float e_speed = e / (((len == 0.f) ? std::abs(e) : len) / f * 60.f);
                 float tmp     = m_filpar[m_current_tool].max_e_speed;
-                //if (limit_flow == LimitFlow::LimitRammingFlow)
+                //if (limit_flow == WipeTower2LimitFlow::LimitRammingFlow)
                 //    tmp = m_filpar[m_current_tool].max_e_ramming_speed;
                 f /= std::max(1.f, e_speed / tmp);
             }
@@ -827,14 +831,14 @@ public:
         return *this;
     }
 
-    WipeTowerWriter2& extrude_arc(ArcSegment& arc, float f = 0.f, LimitFlow limit_flow = LimitFlow::LimitPrintFlow)
+    WipeTowerWriter2& extrude_arc(ArcSegment& arc, float f = 0.f, WipeTower2LimitFlow limit_flow = WipeTower2LimitFlow::LimitPrintFlow)
     {
         return extrude_arc_explicit(arc, f, false, limit_flow);
     }
 
     void              generate_path(Polylines& pls, float feedrate, float retract_length, float retract_speed, bool used_fillet)
     {
-        auto get_closet_idx = [this](std::vector<Segment>& corners) -> int {
+        auto get_closet_idx = [this](std::vector<WipeTower2Segment>& corners) -> int {
             Vec2f anchor{this->m_current_pos.x(), this->m_current_pos.y()};
             int   closestIndex = -1;
             float minDistance  = std::numeric_limits<float>::max();
@@ -847,10 +851,10 @@ public:
             }
             return closestIndex;
         };
-        std::vector<Segment> segments;
+        std::vector<WipeTower2Segment> segments;
         if (m_enable_arc_fitting) {
             for (auto& pl : pls)
-                pl.simplify_by_fitting_arc(SCALED_WIPE_TOWER_RESOLUTION);
+                pl.simplify_by_fitting_arc(scaled_wipe_tower_resolution);
 
             for (const auto& pl : pls) {
                 if (pl.points.size() < 2)
@@ -869,7 +873,7 @@ public:
                 }
             }
             for (auto& pl : pls)
-                pl.simplify(SCALED_WIPE_TOWER_RESOLUTION);
+                pl.simplify(scaled_wipe_tower_resolution);
 
         } else {
             for (const auto& pl : pls) {
@@ -1801,7 +1805,7 @@ void WipeTower2::toolchange_Wipe(
             writer.travel(writer.x() - 1.5f * ironing_length, writer.y(), 600.f);
             writer.travel(writer.x() + 0.5f * ironing_length, writer.y(), 240.f);
             const Vec2f iron_end(writer.x() + ironing_length, writer.y());
-            writer.spiral_flat_ironing(writer.pos(), m_filpar[m_current_tool].tower_ironing_area, m_perimeter_width, flat_iron_speed);
+            writer.spiral_flat_ironing(writer.pos(), m_filpar[m_current_tool].tower_ironing_area, m_perimeter_width, wipe_tower2_flat_iron_speed);
             writer.travel(iron_end, wipe_speed);
             writer.retract(-retract_length, retract_speed);
         }
@@ -2288,7 +2292,7 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
         for (const auto& current_plan : m_plan)
             max_depth = std::max(max_depth, current_plan.depth);
         if (max_depth > EPSILON) {
-            m_wipe_tower_width = align_ceil(std::sqrt(max_depth * m_wipe_tower_width), m_perimeter_width);
+            m_wipe_tower_width = wipe_tower2_align_ceil(std::sqrt(max_depth * m_wipe_tower_width), m_perimeter_width);
             for (size_t idx = 0; idx < m_plan.size(); ++idx)
                 for (auto& toolchange : m_plan[idx].tool_changes)
                     toolchange = set_toolchange(toolchange.old_tool, toolchange.new_tool,
@@ -2412,8 +2416,8 @@ Polygon WipeTower2::generate_rib_polygon(const WipeTower::box_coordinates& wt_bo
     line_1.translate(-y_shift);
     line_2.translate(-y_shift);
 
-    Polygon poly_1 = generate_rectange(line_1, diagonal_width);
-    Polygon poly_2 = generate_rectange(line_2, diagonal_width);
+    Polygon poly_1 = wipe_tower2_generate_rectange(line_1, diagonal_width);
+    Polygon poly_2 = wipe_tower2_generate_rectange(line_2, diagonal_width);
     Polygon poly;
     poly.points.push_back(Point::new_scale(wt_box.ld));
     poly.points.push_back(Point::new_scale(wt_box.rd));

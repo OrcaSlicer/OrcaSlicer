@@ -337,5 +337,6 @@ void NetworkPluginRestartDialog::on_dpi_changed(const wxRect& suggested_rect)
     Fit();
 }
 
+#undef BORDER_W
 }
 }

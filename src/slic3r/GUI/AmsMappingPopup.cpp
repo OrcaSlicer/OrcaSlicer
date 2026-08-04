@@ -36,9 +36,8 @@
 #include "DeviceTab/wgtMsgPanel.h"
 
 namespace Slic3r { namespace GUI {
-#define MATERIAL_ITEM_SIZE wxSize(FromDIP(65), FromDIP(50))
 #define MATERIAL_REC_WHEEL_SIZE wxSize(FromDIP(17), FromDIP(16))
-#define MAPPING_ITEM_REAL_SIZE wxSize(FromDIP(48), FromDIP(60))
+#define AMS_MAPPING_ITEM_REAL_SIZE wxSize(FromDIP(48), FromDIP(60))
 
 
 wxDEFINE_EVENT(EVT_SET_FINISH_MAPPING, wxCommandEvent);
@@ -1530,11 +1529,11 @@ void MappingItem::doRender(wxDC &dc)
     //draw a rectangle based on the material color, single color or muti color processing
     if (m_tray_data.material_cols.size() > 1 && !m_unmatch) {
         int left = 0;
-        int gwidth = std::round(MAPPING_ITEM_REAL_SIZE.x / (m_tray_data.material_cols.size() - 1));
+        int gwidth = std::round(AMS_MAPPING_ITEM_REAL_SIZE.x / (m_tray_data.material_cols.size() - 1));
         //gradient
         if (m_tray_data.ctype == 0) {
             for (int i = 0; i < m_tray_data.material_cols.size() - 1; i++) {
-                auto rect = wxRect(left, (size.y - MAPPING_ITEM_REAL_SIZE.y) / 2 + get_remain_area_height(), MAPPING_ITEM_REAL_SIZE.x, MAPPING_ITEM_REAL_SIZE.y);
+                auto rect = wxRect(left, (size.y - AMS_MAPPING_ITEM_REAL_SIZE.y) / 2 + get_remain_area_height(), AMS_MAPPING_ITEM_REAL_SIZE.x, AMS_MAPPING_ITEM_REAL_SIZE.y);
                 fill_gradient_rect_east(dc, rect, m_tray_data.material_cols[i], m_tray_data.material_cols[i + 1]);
                 left += gwidth;
             }
@@ -1543,16 +1542,16 @@ void MappingItem::doRender(wxDC &dc)
             int cols_size = m_tray_data.material_cols.size();
             for (int i = 0; i < cols_size; i++) {
                 dc.SetBrush(wxBrush(m_tray_data.material_cols[i]));
-                float x = (float)MAPPING_ITEM_REAL_SIZE.x * i / cols_size;
-                dc.DrawRectangle(x, (size.y - MAPPING_ITEM_REAL_SIZE.y) / 2 + get_remain_area_height(), (float) MAPPING_ITEM_REAL_SIZE.x / cols_size, MAPPING_ITEM_REAL_SIZE.y);
+                float x = (float)AMS_MAPPING_ITEM_REAL_SIZE.x * i / cols_size;
+                dc.DrawRectangle(x, (size.y - AMS_MAPPING_ITEM_REAL_SIZE.y) / 2 + get_remain_area_height(), (float) AMS_MAPPING_ITEM_REAL_SIZE.x / cols_size, AMS_MAPPING_ITEM_REAL_SIZE.y);
             }
         }
     }
     else if (color.Alpha() == 0) {
-        dc.DrawBitmap(m_transparent_mapping_item.bmp(), 0, (size.y - MAPPING_ITEM_REAL_SIZE.y) / 2 + get_remain_area_height());
+        dc.DrawBitmap(m_transparent_mapping_item.bmp(), 0, (size.y - AMS_MAPPING_ITEM_REAL_SIZE.y) / 2 + get_remain_area_height());
     }
     else {
-        dc.DrawRectangle(0, (size.y - MAPPING_ITEM_REAL_SIZE.y) / 2 + get_remain_area_height(), MAPPING_ITEM_REAL_SIZE.x, MAPPING_ITEM_REAL_SIZE.y);
+        dc.DrawRectangle(0, (size.y - AMS_MAPPING_ITEM_REAL_SIZE.y) / 2 + get_remain_area_height(), AMS_MAPPING_ITEM_REAL_SIZE.x, AMS_MAPPING_ITEM_REAL_SIZE.y);
     }
 
     wxColour side_colour = wxColour("#E4E4E4");
@@ -2724,4 +2723,5 @@ void Slic3r::GUI::DevIconLabel::Rescale()
     Refresh();
 }
 
+#undef AMS_MAPPING_ITEM_REAL_SIZE
 }} // namespace Slic3r::GUI

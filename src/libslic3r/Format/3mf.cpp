@@ -28,7 +28,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/foreach.hpp>
-namespace pt = boost::property_tree;
+namespace three_mf_pt = boost::property_tree;
 
 #include <expat.h>
 #include <Eigen/Dense>
@@ -40,7 +40,7 @@ namespace pt = boost::property_tree;
 // https://github.com/boostorg/spirit/pull/586
 // where the exported string is one digit shorter than it should be to guarantee lossless round trip.
 // The code is left here for the ocasion boost guys improve.
-#define EXPORT_3MF_USE_SPIRIT_KARMA_FP 0
+#define EXPORT_CLASSIC_3MF_USE_SPIRIT_KARMA_FP 0
 
 // VERSION NUMBERS
 // 0 : .3mf, files saved by older slic3r or other applications. No version definition in them.
@@ -48,6 +48,7 @@ namespace pt = boost::property_tree;
 // 2 : Volumes' matrices and source data added to Metadata/Slic3r_PE_model.config file, meshes transformed back to their coordinate system on loading.
 // WARNING !! -> the version number has been rolled back to 1
 //               the next change should use 3
+namespace ThreeMfDetail {
 const unsigned int VERSION_3MF = 1;
 // Allow loading version 2 file as well.
 const unsigned int VERSION_3MF_COMPATIBLE = 2;
@@ -266,7 +267,10 @@ bool is_valid_object_type(const std::string& type)
     return false;
 }
 
+} // namespace ThreeMfDetail
+
 namespace Slic3r {
+using namespace ThreeMfDetail;
 
 //! macro used to mark string used at localization,
 //! return same string
@@ -1115,11 +1119,11 @@ ModelVolumeType type_from_string(const std::string &s)
             }
 
             std::istringstream iss(buffer); // wrap returned xml to istringstream
-            pt::ptree objects_tree;
-            pt::read_xml(iss, objects_tree);
+            three_mf_pt::ptree objects_tree;
+            three_mf_pt::read_xml(iss, objects_tree);
 
             for (const auto& object : objects_tree.get_child("objects")) {
-                pt::ptree object_tree = object.second;
+                three_mf_pt::ptree object_tree = object.second;
                 int obj_idx = object_tree.get<int>("<xmlattr>.id", -1);
                 if (obj_idx <= 0) {
                     add_error("Found invalid object id");
@@ -1137,7 +1141,7 @@ ModelVolumeType type_from_string(const std::string &s)
                 for (const auto& range : object_tree) {
                     if (range.first != "range")
                         continue;
-                    pt::ptree range_tree = range.second;
+                    three_mf_pt::ptree range_tree = range.second;
                     double min_z = range_tree.get<double>("<xmlattr>.min_z");
                     double max_z = range_tree.get<double>("<xmlattr>.max_z");
 
@@ -1379,18 +1383,18 @@ ModelVolumeType type_from_string(const std::string &s)
         //    }
 
         //    std::istringstream iss(buffer); // wrap returned xml to istringstream
-        //    pt::ptree main_tree;
-        //    pt::read_xml(iss, main_tree);
+        //    three_mf_pt::ptree main_tree;
+        //    three_mf_pt::read_xml(iss, main_tree);
 
         //    if (main_tree.front().first != "custom_gcodes_per_print_z")
         //        return;
-        //    pt::ptree code_tree = main_tree.front().second;
+        //    three_mf_pt::ptree code_tree = main_tree.front().second;
 
         //    m_model->custom_gcode_per_print_z.gcodes.clear();
 
         //    for (const auto& code : code_tree) {
         //        if (code.first == "mode") {
-        //            pt::ptree tree = code.second;
+        //            three_mf_pt::ptree tree = code.second;
         //            std::string mode = tree.get<std::string>("<xmlattr>.value");
         //            m_model->custom_gcode_per_print_z.mode = mode == CustomGCode::SingleExtruderMode ? CustomGCode::Mode::SingleExtruder :
         //                                                     mode == CustomGCode::MultiAsSingleMode  ? CustomGCode::Mode::MultiAsSingle  :
@@ -1399,14 +1403,14 @@ ModelVolumeType type_from_string(const std::string &s)
         //        if (code.first != "code")
         //            continue;
 
-        //        pt::ptree tree = code.second;
+        //        three_mf_pt::ptree tree = code.second;
         //        double print_z          = tree.get<double>      ("<xmlattr>.print_z" );
         //        int extruder            = tree.get<int>         ("<xmlattr>.extruder");
         //        std::string color       = tree.get<std::string> ("<xmlattr>.color"   );
 
         //        CustomGCode::Type   type;
         //        std::string         extra;
-        //        pt::ptree attr_tree = tree.find("<xmlattr>")->second;
+        //        three_mf_pt::ptree attr_tree = tree.find("<xmlattr>")->second;
         //        if (attr_tree.find("type") == attr_tree.not_found()) {
         //            // It means that data was saved in old version (2.2.0 and older) of PrusaSlicer
         //            // read old data ...
@@ -2663,7 +2667,7 @@ ModelVolumeType type_from_string(const std::string &s)
         return buf.empty() || mz_zip_writer_add_staged_data(&context, buf.data(), buf.size());
     }
 
-#if EXPORT_3MF_USE_SPIRIT_KARMA_FP
+#if EXPORT_CLASSIC_3MF_USE_SPIRIT_KARMA_FP
     template <typename Num>
     struct coordinate_policy_fixed : boost::spirit::karma::real_policies<Num>
     {
@@ -2681,7 +2685,7 @@ ModelVolumeType type_from_string(const std::string &s)
     // Define a new generator type based on the new coordinate policy.
     using coordinate_type_fixed      = boost::spirit::karma::real_generator<float, coordinate_policy_fixed<float>>;
     using coordinate_type_scientific = boost::spirit::karma::real_generator<float, coordinate_policy_scientific<float>>;
-#endif // EXPORT_3MF_USE_SPIRIT_KARMA_FP
+#endif // EXPORT_CLASSIC_3MF_USE_SPIRIT_KARMA_FP
 
     bool _3MF_Exporter::_add_mesh_to_object_stream(mz_zip_writer_staged_context &context, ModelObject& object, VolumeToOffsetsMap& volumes_offsets)
     {
@@ -2705,7 +2709,7 @@ ModelVolumeType type_from_string(const std::string &s)
 
         auto format_coordinate = [](float f, char *buf) -> char* {
             assert(is_decimal_separator_point());
-#if EXPORT_3MF_USE_SPIRIT_KARMA_FP
+#if EXPORT_CLASSIC_3MF_USE_SPIRIT_KARMA_FP
             // Slightly faster than sprintf("%.9g"), but there is an issue with the karma floating point formatter,
             // https://github.com/boostorg/spirit/pull/586
             // where the exported string is one digit shorter than it should be to guarantee lossless round trip.
@@ -2922,7 +2926,7 @@ ModelVolumeType type_from_string(const std::string &s)
     bool _3MF_Exporter::_add_layer_config_ranges_file_to_archive(mz_zip_archive& archive, Model& model)
     {
         std::string out = "";
-        pt::ptree tree;
+        three_mf_pt::ptree tree;
 
         unsigned int object_cnt = 0;
         for (const ModelObject* object : model.objects) {
@@ -2930,13 +2934,13 @@ ModelVolumeType type_from_string(const std::string &s)
             const t_layer_config_ranges& ranges = object->layer_config_ranges;
             if (!ranges.empty())
             {
-                pt::ptree& obj_tree = tree.add("objects.object","");
+                three_mf_pt::ptree& obj_tree = tree.add("objects.object","");
 
                 obj_tree.put("<xmlattr>.id", object_cnt);
 
                 // Store the layer config ranges.
                 for (const auto& range : ranges) {
-                    pt::ptree& range_tree = obj_tree.add("range", "");
+                    three_mf_pt::ptree& range_tree = obj_tree.add("range", "");
 
                     // store minX and maxZ
                     range_tree.put("<xmlattr>.min_z", range.first.first);
@@ -2945,7 +2949,7 @@ ModelVolumeType type_from_string(const std::string &s)
                     // store range configuration
                     const ModelConfig& config = range.second;
                     for (const std::string& opt_key : config.keys()) {
-                        pt::ptree& opt_tree = range_tree.add("option", config.opt_serialize(opt_key));
+                        three_mf_pt::ptree& opt_tree = range_tree.add("option", config.opt_serialize(opt_key));
                         opt_tree.put("<xmlattr>.opt_key", opt_key);
                     }
                 }
@@ -2954,7 +2958,7 @@ ModelVolumeType type_from_string(const std::string &s)
 
         if (!tree.empty()) {
             std::ostringstream oss;
-            pt::write_xml(oss, tree);
+            three_mf_pt::write_xml(oss, tree);
             out = oss.str();
 
             // Post processing("beautification") of the output string for a better preview
@@ -3201,11 +3205,11 @@ bool _3MF_Exporter::_add_custom_gcode_per_print_z_file_to_archive( mz_zip_archiv
     //std::string out = "";
 
     //if (!model.custom_gcode_per_print_z.gcodes.empty()) {
-    //    pt::ptree tree;
-    //    pt::ptree& main_tree = tree.add("custom_gcodes_per_print_z", "");
+    //    three_mf_pt::ptree tree;
+    //    three_mf_pt::ptree& main_tree = tree.add("custom_gcodes_per_print_z", "");
 
     //    for (const CustomGCode::Item& code : model.custom_gcode_per_print_z.gcodes) {
-    //        pt::ptree& code_tree = main_tree.add("code", "");
+    //        three_mf_pt::ptree& code_tree = main_tree.add("code", "");
 
     //        // store data of custom_gcode_per_print_z
     //        code_tree.put("<xmlattr>.print_z"   , code.print_z  );
@@ -3222,7 +3226,7 @@ bool _3MF_Exporter::_add_custom_gcode_per_print_z_file_to_archive( mz_zip_archiv
     //        code_tree.put("<xmlattr>.gcode"     , gcode   );
     //    }
 
-    //    pt::ptree& mode_tree = main_tree.add("mode", "");
+    //    three_mf_pt::ptree& mode_tree = main_tree.add("mode", "");
     //    // store mode of a custom_gcode_per_print_z
     //    mode_tree.put("<xmlattr>.value", model.custom_gcode_per_print_z.mode == CustomGCode::Mode::SingleExtruder ? CustomGCode::SingleExtruderMode :
     //                                     model.custom_gcode_per_print_z.mode == CustomGCode::Mode::MultiAsSingle ?  CustomGCode::MultiAsSingleMode :
@@ -3291,3 +3295,7 @@ bool store_3mf(const char* path, Model* model, const DynamicPrintConfig* config,
     return res;
 }
 } // namespace Slic3r
+
+#undef EXPORT_CLASSIC_3MF_USE_SPIRIT_KARMA_FP
+#undef L
+#undef _

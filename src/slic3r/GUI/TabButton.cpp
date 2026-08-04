@@ -16,20 +16,20 @@ END_EVENT_TABLE()
 
 static wxColour BORDER_HOVER_COL = wxColour(0, 150, 136);
 
-const static wxColour TAB_BUTTON_BG    = wxColour("#FEFFFF");
-const static wxColour TAB_BUTTON_SEL   = wxColour("#BFE1DE"); // ORCA
+const static wxColour tabbutton_button_bg  = wxColour("#FEFFFF");
+const static wxColour tabbutton_button_sel = wxColour("#BFE1DE"); // ORCA
 
 TabButton::TabButton()
     : paddingSize(18, 16) // ORCA reduce / match left margin buttons on sidebars
     , text_color(*wxBLACK)
 {
     background_color = StateColor(
-        std::make_pair(TAB_BUTTON_SEL, (int) StateColor::Checked),
+        std::make_pair(tabbutton_button_sel, (int) StateColor::Checked),
         std::make_pair(wxColour("#FEFFFF"), (int) StateColor::Hovered),
         std::make_pair(wxColour("#FEFFFF"), (int) StateColor::Normal));
 
     border_color = StateColor(
-        std::make_pair(TAB_BUTTON_SEL, (int) StateColor::Checked), // ORCA use same color for border to prevent 1px blank border
+        std::make_pair(tabbutton_button_sel, (int) StateColor::Checked), // ORCA use same color for border to prevent 1px blank border
         std::make_pair(BORDER_HOVER_COL, (int) StateColor::Hovered),
         std::make_pair(wxColour("#FEFFFF"), (int)StateColor::Normal));
 }

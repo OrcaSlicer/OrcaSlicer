@@ -11,7 +11,8 @@ static const wxColour BUTTON_IN_BG_COL = wxColour("#CECECE");
 
 static const wxColour bd = wxColour(0, 150, 136);
 static const wxColour text_num_color   = wxColour("#898989");
-static const wxColour BUTTON_PRESS_COL = wxColour(172, 172, 172);
+static const wxColour AXIS_CTRL_BUTTON_PRESS_COL = wxColour(172, 172, 172);
+#define BUTTON_PRESS_COL AXIS_CTRL_BUTTON_PRESS_COL
 static const double sqrt2 = std::sqrt(2);
 
 BEGIN_EVENT_TABLE(AxisCtrlButton, wxWindow)
@@ -370,3 +371,4 @@ void AxisCtrlButton::sendButtonEvent()
     event.SetInt(current_pos);
     GetEventHandler()->ProcessEvent(event);
 }
+#undef BUTTON_PRESS_COL

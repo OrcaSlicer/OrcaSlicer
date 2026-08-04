@@ -33,7 +33,7 @@ namespace Slic3r { namespace GUI {
 
 wxDEFINE_EVENT(EVT_PROJECT_RELOAD, wxCommandEvent);
 
-const std::vector<std::string> license_list = {
+const std::vector<std::string> project_license_list = {
     "BSD License",
     "Apache License",
     "GPL License",

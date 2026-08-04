@@ -39,7 +39,7 @@
 #include <boost/foreach.hpp>
 #include <openssl/md5.h>
 
-namespace pt = boost::property_tree;
+namespace bbs_3mf_pt = boost::property_tree;
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
@@ -62,7 +62,7 @@ namespace pt = boost::property_tree;
 // https://github.com/boostorg/spirit/pull/586
 // where the exported string is one digit shorter than it should be to guarantee lossless round trip.
 // The code is left here for the ocasion boost guys improve.
-#define EXPORT_3MF_USE_SPIRIT_KARMA_FP 0
+#define EXPORT_BBS_3MF_USE_SPIRIT_KARMA_FP 0
 
 #define WRITE_ZIP_LANGUAGE_ENCODING 1
 
@@ -146,6 +146,7 @@ static bool is_path_within_root(const std::string& file_path, const boost::files
 // 2 : Volumes' matrices and source data added to Metadata/Slic3r_PE_model.config file, meshes transformed back to their coordinate system on loading.
 // WARNING !! -> the version number has been rolled back to 1
 //               the next change should use 3
+namespace Bbs3mfDetail {
 const unsigned int VERSION_BBS_3MF = 1;
 // Allow loading version 2 file as well.
 const unsigned int VERSION_BBS_3MF_COMPATIBLE = 2;
@@ -460,10 +461,12 @@ struct hex_wrap
     T t;
 };
 
+} // namespace Bbs3mfDetail
+
 namespace std {
     template <class _Elem, class _Traits, class _Arg>
     basic_ostream<_Elem, _Traits>& operator<<(basic_ostream<_Elem, _Traits>& ostr,
-        const hex_wrap<_Arg>& wrap) { // insert by calling function with output stream and argument
+        const Bbs3mfDetail::hex_wrap<_Arg>& wrap) { // insert by calling function with output stream and argument
         auto of = ostr.fill('0');
         ostr << setw(sizeof(_Arg) * 2) << std::hex << wrap.t;
         ostr << std::dec << setw(0);
@@ -471,6 +474,8 @@ namespace std {
         return ostr;
     }
 }
+
+namespace Bbs3mfDetail {
 
 class version_error : public Slic3r::FileIOError
 {
@@ -676,7 +681,10 @@ bool bbs_is_valid_object_type(const std::string& type)
     return false;
 }
 
+} // namespace Bbs3mfDetail
+
 namespace Slic3r {
+using namespace Bbs3mfDetail;
 
 void PlateData::parse_filament_info(GCodeProcessorResult *result)
 {
@@ -2611,11 +2619,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
 
             std::istringstream iss(buffer); // wrap returned xml to istringstream
-            pt::ptree objects_tree;
-            pt::read_xml(iss, objects_tree);
+            bbs_3mf_pt::ptree objects_tree;
+            bbs_3mf_pt::read_xml(iss, objects_tree);
 
             for (const auto& object : objects_tree.get_child("objects")) {
-                pt::ptree object_tree = object.second;
+                bbs_3mf_pt::ptree object_tree = object.second;
                 int obj_idx = object_tree.get<int>("<xmlattr>.id", -1);
                 if (obj_idx <= 0) {
                     add_error("Found invalid object id");
@@ -2633,17 +2641,17 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
                 for (const auto& obj_cut_info : object_tree) {
                     if (obj_cut_info.first == "cut_id") {
-                        pt::ptree cut_id_tree = obj_cut_info.second;
+                        bbs_3mf_pt::ptree cut_id_tree = obj_cut_info.second;
                         cut_id = CutObjectBase(ObjectID( cut_id_tree.get<size_t>("<xmlattr>.id")),
                                                          cut_id_tree.get<size_t>("<xmlattr>.check_sum"),
                                                          cut_id_tree.get<size_t>("<xmlattr>.connectors_cnt"));
                     }
                     if (obj_cut_info.first == "connectors") {
-                        pt::ptree cut_connectors_tree = obj_cut_info.second;
+                        bbs_3mf_pt::ptree cut_connectors_tree = obj_cut_info.second;
                         for (const auto& cut_connector : cut_connectors_tree) {
                             if (cut_connector.first != "connector")
                                 continue;
-                            pt::ptree connector_tree = cut_connector.second;
+                            bbs_3mf_pt::ptree connector_tree = cut_connector.second;
                             CutObjectInfo::Connector connector = {connector_tree.get<int>("<xmlattr>.volume_id"),
                                                                   connector_tree.get<int>("<xmlattr>.type"),
                                                                   connector_tree.get<float>("<xmlattr>.r_tolerance"),
@@ -2938,11 +2946,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
 
             std::istringstream iss(buffer); // wrap returned xml to istringstream
-            pt::ptree objects_tree;
-            pt::read_xml(iss, objects_tree);
+            bbs_3mf_pt::ptree objects_tree;
+            bbs_3mf_pt::read_xml(iss, objects_tree);
 
             for (const auto& object : objects_tree.get_child("objects")) {
-                pt::ptree object_tree = object.second;
+                bbs_3mf_pt::ptree object_tree = object.second;
                 int obj_idx = object_tree.get<int>("<xmlattr>.id", -1);
                 if (obj_idx <= 0) {
                     add_error("Found invalid object id");
@@ -2960,7 +2968,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 for (const auto& range : object_tree) {
                     if (range.first != "range")
                         continue;
-                    pt::ptree range_tree = range.second;
+                    bbs_3mf_pt::ptree range_tree = range.second;
                     double min_z = range_tree.get<double>("<xmlattr>.min_z");
                     double max_z = range_tree.get<double>("<xmlattr>.max_z");
 
@@ -3261,30 +3269,30 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
 
             std::istringstream iss(buffer); // wrap returned xml to istringstream
-            pt::ptree main_tree;
-            pt::read_xml(iss, main_tree);
+            bbs_3mf_pt::ptree main_tree;
+            bbs_3mf_pt::read_xml(iss, main_tree);
 
             if (main_tree.front().first != "custom_gcodes_per_layer")
                 return;
 
-            auto extract_code = [this](int plate_id, pt::ptree code_tree) {
+            auto extract_code = [this](int plate_id, bbs_3mf_pt::ptree code_tree) {
                 for (const auto& code : code_tree) {
                     if (code.first == "mode") {
-                        pt::ptree tree = code.second;
+                        bbs_3mf_pt::ptree tree = code.second;
                         std::string mode = tree.get<std::string>("<xmlattr>.value");
                         m_model->plates_custom_gcodes[plate_id - 1].mode = mode == CustomGCode::SingleExtruderMode ? CustomGCode::Mode::SingleExtruder :
                             mode == CustomGCode::MultiAsSingleMode ? CustomGCode::Mode::MultiAsSingle :
                             CustomGCode::Mode::MultiExtruder;
                     }
                     if (code.first == "layer") {
-                        pt::ptree tree = code.second;
+                        bbs_3mf_pt::ptree tree = code.second;
                         double print_z = tree.get<double>("<xmlattr>.top_z");
                         int extruder = tree.get<int>("<xmlattr>.extruder");
                         std::string color = tree.get<std::string>("<xmlattr>.color");
 
                         CustomGCode::Type   type;
                         std::string         extra;
-                        pt::ptree attr_tree = tree.find("<xmlattr>")->second;
+                        bbs_3mf_pt::ptree attr_tree = tree.find("<xmlattr>")->second;
                         if (attr_tree.find("type") == attr_tree.not_found()) {
                             // It means that data was saved in old version (2.2.0 and older) of PrusaSlicer
                             // read old data ...
@@ -3313,7 +3321,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     has_plate_info = true;
 
                     int plate_id = -1;
-                    pt::ptree code_tree = element.second;
+                    bbs_3mf_pt::ptree code_tree = element.second;
                     for (const auto& code : code_tree) {
                         if (code.first == "plate_info") {
                             plate_id = code.second.get<int>("<xmlattr>.id");
@@ -3329,7 +3337,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             if (!has_plate_info) {
                 int plate_id = 1;
-                pt::ptree code_tree = main_tree.front().second;
+                bbs_3mf_pt::ptree code_tree = main_tree.front().second;
                 extract_code(plate_id, code_tree);
             }
         }
@@ -7221,7 +7229,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         stream << "  </" << OBJECT_TAG << ">\n";
     }
 
-#if EXPORT_3MF_USE_SPIRIT_KARMA_FP
+#if EXPORT_BBS_3MF_USE_SPIRIT_KARMA_FP
     template <typename Num>
     struct coordinate_policy_fixed : boost::spirit::karma::real_policies<Num>
     {
@@ -7239,7 +7247,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     // Define a new generator type based on the new coordinate policy.
     using coordinate_type_fixed      = boost::spirit::karma::real_generator<float, coordinate_policy_fixed<float>>;
     using coordinate_type_scientific = boost::spirit::karma::real_generator<float, coordinate_policy_scientific<float>>;
-#endif // EXPORT_3MF_USE_SPIRIT_KARMA_FP
+#endif // EXPORT_BBS_3MF_USE_SPIRIT_KARMA_FP
 
     //BBS: change volume to seperate objects
     bool _BBS_3MF_Exporter::_add_mesh_to_object_stream(std::function<bool(std::string &, bool)> const &flush, ObjectData const &object_data) const
@@ -7268,7 +7276,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         auto format_coordinate = [](float f, char *buf) -> char* {
             assert(is_decimal_separator_point());
-#if EXPORT_3MF_USE_SPIRIT_KARMA_FP
+#if EXPORT_BBS_3MF_USE_SPIRIT_KARMA_FP
             // Slightly faster than sprintf("%.9g"), but there is an issue with the karma floating point formatter,
             // https://github.com/boostorg/spirit/pull/586
             // where the exported string is one digit shorter than it should be to guarantee lossless round trip.
@@ -7522,19 +7530,19 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     bool _BBS_3MF_Exporter::_add_cut_information_file_to_archive(mz_zip_archive &archive, Model &model)
     {
         std::string out = "";
-        pt::ptree tree;
+        bbs_3mf_pt::ptree tree;
 
         unsigned int object_cnt = 0;
         for (const ModelObject* object : model.objects) {
             object_cnt++;
             if (!object->is_cut())
                 continue;
-            pt::ptree& obj_tree = tree.add("objects.object", "");
+            bbs_3mf_pt::ptree& obj_tree = tree.add("objects.object", "");
 
             obj_tree.put("<xmlattr>.id", object_cnt);
 
             // Store info for cut_id
-            pt::ptree& cut_id_tree = obj_tree.add("cut_id", "");
+            bbs_3mf_pt::ptree& cut_id_tree = obj_tree.add("cut_id", "");
 
             // store cut_id atributes
             cut_id_tree.put("<xmlattr>.id",             object->cut_id.id().id);
@@ -7545,7 +7553,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             for (const ModelVolume* volume : object->volumes) {
                 ++volume_idx;
                 if (volume->is_cut_connector()) {
-                    pt::ptree& connectors_tree = obj_tree.add("connectors.connector", "");
+                    bbs_3mf_pt::ptree& connectors_tree = obj_tree.add("connectors.connector", "");
                     connectors_tree.put("<xmlattr>.volume_id",   volume_idx);
                     connectors_tree.put("<xmlattr>.type",        int(volume->cut_info.connector_type));
                     connectors_tree.put("<xmlattr>.r_tolerance", volume->cut_info.radius_tolerance);
@@ -7556,7 +7564,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         if (!tree.empty()) {
             std::ostringstream oss;
-            pt::write_xml(oss, tree);
+            bbs_3mf_pt::write_xml(oss, tree);
             out = oss.str();
 
             // Post processing("beautification") of the output string for a better preview
@@ -7620,7 +7628,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     bool _BBS_3MF_Exporter::_add_layer_config_ranges_file_to_archive(mz_zip_archive& archive, Model& model)
     {
         std::string out = "";
-        pt::ptree tree;
+        bbs_3mf_pt::ptree tree;
 
         unsigned int object_cnt = 0;
         for (const ModelObject* object : model.objects) {
@@ -7628,13 +7636,13 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             const t_layer_config_ranges& ranges = object->layer_config_ranges;
             if (!ranges.empty())
             {
-                pt::ptree& obj_tree = tree.add("objects.object","");
+                bbs_3mf_pt::ptree& obj_tree = tree.add("objects.object","");
 
                 obj_tree.put("<xmlattr>.id", object_cnt);
 
                 // Store the layer config ranges.
                 for (const auto& range : ranges) {
-                    pt::ptree& range_tree = obj_tree.add("range", "");
+                    bbs_3mf_pt::ptree& range_tree = obj_tree.add("range", "");
 
                     // store minX and maxZ
                     range_tree.put("<xmlattr>.min_z", range.first.first);
@@ -7643,7 +7651,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     // store range configuration
                     const ModelConfig& config = range.second;
                     for (const std::string& opt_key : config.keys()) {
-                        pt::ptree& opt_tree = range_tree.add("option", config.opt_serialize(opt_key));
+                        bbs_3mf_pt::ptree& opt_tree = range_tree.add("option", config.opt_serialize(opt_key));
                         opt_tree.put("<xmlattr>.opt_key", opt_key);
                     }
                 }
@@ -7652,7 +7660,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         if (!tree.empty()) {
             std::ostringstream oss;
-            pt::write_xml(oss, tree);
+            bbs_3mf_pt::write_xml(oss, tree);
             out = oss.str();
 
             // Post processing("beautification") of the output string for a better preview
@@ -8621,17 +8629,17 @@ bool _BBS_3MF_Exporter::_add_custom_gcode_per_print_z_file_to_archive(mz_zip_arc
     //BBS: add plate tree related logic
     std::string out = "";
     bool has_custom_gcode = false;
-    pt::ptree tree;
-    pt::ptree& main_tree = tree.add("custom_gcodes_per_layer", "");
+    bbs_3mf_pt::ptree tree;
+    bbs_3mf_pt::ptree& main_tree = tree.add("custom_gcodes_per_layer", "");
     for (auto custom_gcodes : model.plates_custom_gcodes) {
             has_custom_gcode = true;
-            pt::ptree& plate_tree = main_tree.add("plate", "");
-            pt::ptree& plate_idx_tree = plate_tree.add("plate_info", "");
+            bbs_3mf_pt::ptree& plate_tree = main_tree.add("plate", "");
+            bbs_3mf_pt::ptree& plate_idx_tree = plate_tree.add("plate_info", "");
             plate_idx_tree.put("<xmlattr>.id", custom_gcodes.first + 1);
 
             // store data of custom_gcode_per_print_z
             for (const CustomGCode::Item& code : custom_gcodes.second.gcodes) {
-                pt::ptree& code_tree = plate_tree.add("layer", "");
+                bbs_3mf_pt::ptree& code_tree = plate_tree.add("layer", "");
                 code_tree.put("<xmlattr>.top_z", code.print_z);
                 code_tree.put("<xmlattr>.type", static_cast<int>(code.type));
                 code_tree.put("<xmlattr>.extruder", code.extruder);
@@ -8646,7 +8654,7 @@ bool _BBS_3MF_Exporter::_add_custom_gcode_per_print_z_file_to_archive(mz_zip_arc
                 code_tree.put("<xmlattr>.gcode", gcode);
             }
 
-            pt::ptree& mode_tree = plate_tree.add("mode", "");
+            bbs_3mf_pt::ptree& mode_tree = plate_tree.add("mode", "");
             // store mode of a custom_gcode_per_print_z
             mode_tree.put("<xmlattr>.value", custom_gcodes.second.mode == CustomGCode::Mode::SingleExtruder ? CustomGCode::SingleExtruderMode :
                 custom_gcodes.second.mode == CustomGCode::Mode::MultiAsSingle ? CustomGCode::MultiAsSingleMode :
@@ -9605,3 +9613,8 @@ std::optional<EmbossShape> read_emboss_shape(const char **attributes, unsigned i
 
 
 } // namespace Slic3r
+
+#undef EXPORT_BBS_3MF_USE_SPIRIT_KARMA_FP
+#undef WRITE_ZIP_LANGUAGE_ENCODING
+#undef L
+#undef _

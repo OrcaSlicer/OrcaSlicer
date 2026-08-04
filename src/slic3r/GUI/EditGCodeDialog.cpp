@@ -897,4 +897,5 @@ void ParamsViewCtrl::Rescale(int em/* = 0*/)
 //    model->Rescale();
     Refresh();
 }
+#undef BTN_GAP
 }}    // namespace Slic3r::GUI

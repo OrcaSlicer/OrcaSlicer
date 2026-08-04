@@ -1332,7 +1332,7 @@ static void modulate_extrusion_by_overlapping_layers(
 }
 
 // Support layer that is covered by some form of dense interface.
-static constexpr const std::initializer_list<SupporLayerType> support_types_interface{
+static constexpr const std::initializer_list<SupporLayerType> support_common_types_interface{
     SupporLayerType::RaftInterface, SupporLayerType::BottomContact, SupporLayerType::BottomInterface, SupporLayerType::TopContact, SupporLayerType::TopInterface
 };
 
@@ -1383,7 +1383,7 @@ SupportGeneratorLayersPtr generate_support_layers(
             if (! layer.polygons.empty()) {
                 empty             = false;
                 const bool is_base_interface = std::find(base_interface_layers.begin(), base_interface_layers.end(), &layer) != base_interface_layers.end();
-                num_interfaces += one_of(layer.layer_type, support_types_interface) || is_base_interface;
+                num_interfaces += one_of(layer.layer_type, support_common_types_interface) || is_base_interface;
                 if (layer.layer_type == SupporLayerType::TopContact) {
                     ++ num_top_contacts;
                     assert(num_top_contacts <= 1);
@@ -2059,3 +2059,4 @@ sub clip_with_shape {
 */
 
 } // namespace Slic3r
+#undef SUPPORT_MATERIAL_MARGIN

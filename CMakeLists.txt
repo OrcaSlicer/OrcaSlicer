@@ -1087,7 +1087,18 @@ endfunction()
 
 
 # libslic3r, OrcaSlicer GUI and the OrcaSlicer executable.
+if (DEFINED CMAKE_UNITY_BUILD)
+    set(_orca_unity_build "${CMAKE_UNITY_BUILD}")
+else ()
+    unset(_orca_unity_build)
+endif ()
+set(CMAKE_UNITY_BUILD OFF)
 add_subdirectory(deps_src)
+if (DEFINED _orca_unity_build)
+    set(CMAKE_UNITY_BUILD "${_orca_unity_build}")
+else ()
+    unset(CMAKE_UNITY_BUILD)
+endif ()
 add_subdirectory(src)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT OrcaSlicer_app_gui)
 

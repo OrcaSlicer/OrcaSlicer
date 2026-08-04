@@ -1,3 +1,5 @@
+#pragma once
+
 #ifdef __WXMSW__
 class TextCtrl : public wxTextCtrl
 {

@@ -14,7 +14,9 @@ namespace Slic3r { namespace GUI {
 wxDEFINE_EVENT(EVT_DEVICE_CHANGED, wxCommandEvent);
 wxDEFINE_EVENT(EVT_CALIBRATION_JOB_FINISHED, wxCommandEvent);
 
+namespace CalibrationWizardDetail {
 static const wxString NA_STR = _L("N/A");
+}
 static const float MIN_PA_K_VALUE_STEP = 0.001;
 static const int MAX_PA_HISTORY_RESULTS_NUMS = 16;
 

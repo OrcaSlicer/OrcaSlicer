@@ -462,4 +462,5 @@ void SavePresetDialog::accept(wxCommandEvent &event)
     EndModal(wxID_OK);
 }
 
+#undef BORDER_W
 }} // namespace Slic3r::GUI

@@ -491,6 +491,30 @@ endif ()
 add_library(libslic3r STATIC ${lisbslic3r_sources}
     "${CMAKE_CURRENT_BINARY_DIR}/libslic3r_version.h"
     ${OpenVDBUtils_SOURCES})
+
+# Keep the frequently edited slicing sources governed by the global unity
+# switch for faster clean builds; known collision-prone files are excluded below.
+if (DEFINED CMAKE_UNITY_BUILD)
+    set_target_properties(libslic3r PROPERTIES UNITY_BUILD "${CMAKE_UNITY_BUILD}")
+endif ()
+
+# Keep the remaining implementation-local helper surfaces out of unity units.
+set_source_files_properties(
+    Config.cpp
+    Emboss.cpp
+    Format/ZipperArchiveImport.cpp
+    GCode/WipeTower2.cpp
+    Format/bbs_3mf.cpp
+    MultiMaterialSegmentation.cpp
+    MultiNozzleUtils.cpp
+    SLA/Rotfinder.cpp
+    SLA/SupportTree.cpp
+    SLA/SupportTreeMesher.cpp
+    Support/TreeSupport.cpp
+    TriangleMeshDeal.cpp
+    utils.cpp
+    PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE
+)
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${lisbslic3r_sources})
 
 if (SLIC3R_STATIC)
@@ -515,6 +539,9 @@ add_library(libslic3r_cgal STATIC
     TryCatchSignal.hpp TryCatchSignal.cpp
     Triangulation.hpp Triangulation.cpp
 )
+# These CGAL support sources contain separate internal implementations and are
+# not safe to concatenate into one translation unit.
+set_target_properties(libslic3r_cgal PROPERTIES UNITY_BUILD OFF)
 target_include_directories(libslic3r_cgal PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 # Reset compile options of libslic3r_cgal. Despite it being linked privately, CGAL options

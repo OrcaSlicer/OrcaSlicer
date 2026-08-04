@@ -1795,4 +1795,5 @@ void AMSControl::post_event(wxEvent &&event)
     wxPostEvent(m_parent, event);
 }
 
+#undef AMS_CANS_WINDOW_SIZE
 }} // namespace Slic3r::GUI

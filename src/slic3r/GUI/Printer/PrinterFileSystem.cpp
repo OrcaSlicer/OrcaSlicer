@@ -48,7 +48,7 @@ wxDEFINE_EVENT(EVT_FILE_CALLBACK, wxCommandEvent);
 
 static wxBitmap default_thumbnail;
 
-static std::map<int, std::string> error_messages = {
+static std::map<int, std::string> printer_file_system_error_messages = {
      {PrinterFileSystem::ERROR_PIPE, L("Reconnecting the printer, the operation cannot be completed immediately, please try again later.")},
      {PrinterFileSystem::ERROR_RES_BUSY, L("The device cannot handle more conversations. Please retry later.")},
      {PrinterFileSystem::ERROR_TIME_OUT, L("Timeout, please try again.")},
@@ -530,8 +530,8 @@ void PrinterFileSystem::FetchModel(size_t index, std::function<void(int, std::st
             if (result == CONTINUE) return;
             m_task_flags &= ~FF_FETCH_MODEL;
             if (result != 0) {
-                auto iter = error_messages.find(result);
-                if (iter != error_messages.end())
+                auto iter = printer_file_system_error_messages.find(result);
+                if (iter != printer_file_system_error_messages.end())
                     *file_data = _u8L(iter->second.c_str());
                 else
                     file_data->clear();
@@ -1202,7 +1202,7 @@ void PrinterFileSystem::SendChangedEvent(wxEventType type, size_t index, std::st
     event.SetInt(index);
     if (!str.empty())
         event.SetString(wxString::FromUTF8(str.c_str()));
-    else if (auto iter = error_messages.find(extra); iter != error_messages.end())
+    else if (auto iter = printer_file_system_error_messages.find(extra); iter != printer_file_system_error_messages.end())
         event.SetString(_L(iter->second.c_str()));
     else if (extra > CONTINUE && extra != ERROR_CANCEL)
         event.SetString(wxString::Format(_L("Error code: %d"), int(extra)));

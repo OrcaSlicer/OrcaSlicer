@@ -284,5 +284,6 @@ void BitmapComboBox::Rescale()
 }
 #endif
 
+#undef BORDER_W
 }}
 

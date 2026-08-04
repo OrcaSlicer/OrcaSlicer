@@ -62,11 +62,13 @@ static const int default_champer_temp_max = 60;
 /* colors */
 static const wxColour STATUS_PANEL_BG     = wxColour(238, 238, 238);
 static const wxColour STATUS_TITLE_BG     = wxColour(248, 248, 248);
-static const wxColour STATIC_BOX_LINE_COL = wxColour(238, 238, 238);
+static const wxColour STATUS_PANEL_STATIC_BOX_LINE_COL = wxColour(238, 238, 238);
+#define STATIC_BOX_LINE_COL STATUS_PANEL_STATIC_BOX_LINE_COL
 
 static const wxColour BUTTON_NORMAL1_COL = wxColour(238, 238, 238);
 static const wxColour BUTTON_NORMAL2_COL = wxColour(206, 206, 206);
-static const wxColour BUTTON_PRESS_COL   = wxColour(172, 172, 172);
+static const wxColour STATUS_PANEL_BUTTON_PRESS_COL   = wxColour(172, 172, 172);
+#define BUTTON_PRESS_COL STATUS_PANEL_BUTTON_PRESS_COL
 static const wxColour BUTTON_HOVER_COL   = wxColour(0, 150, 136);
 
 static const wxColour DISCONNECT_TEXT_COL = wxColour(171, 172, 172);
@@ -6188,4 +6190,6 @@ void ScoreDialog::set_cloud_bitmap(std::vector<std::string> cloud_bitmaps)
 }
 
 } // namespace GUI
+#undef STATIC_BOX_LINE_COL
+#undef BUTTON_PRESS_COL
 } // namespace Slic3r

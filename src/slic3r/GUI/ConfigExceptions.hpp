@@ -1,3 +1,5 @@
+#pragma once
+
 #include <exception> 
 namespace Slic3r {
 

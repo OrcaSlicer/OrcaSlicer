@@ -26,7 +26,7 @@
 #include <wx/clipbrd.h>
 #include "wx/evtloop.h"
 
-static std::map<int, std::string> error_messages = {
+static std::map<int, std::string> media_play_error_messages = {
     {1, L("The device cannot handle more conversations. Please retry later.")},
     {2, L("Player is malfunctioning. Please reinstall the system player.")},
     {100, L("The player is not loaded; please click the \"play\" button to retry.")},
@@ -394,8 +394,8 @@ void MediaPlayCtrl::Stop(wxString const &msg, wxString const &msg2)
         if (!msg.IsEmpty())
             SetStatus(msg);
         else if (m_failed_code) {
-            auto iter = error_messages.find(m_failed_code);
-            auto msg2 = iter == error_messages.end()
+            auto iter = media_play_error_messages.find(m_failed_code);
+            auto msg2 = iter == media_play_error_messages.end()
                 ? _L("Please check the network and try again. You can restart or update the printer if the issue persists.")
                 : _L(iter->second.c_str());
             if (m_failed_code == 1) {

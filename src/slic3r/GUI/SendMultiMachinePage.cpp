@@ -13,9 +13,6 @@
 namespace Slic3r {
 namespace GUI {
 
-#define MATERIAL_ITEM_SIZE wxSize(FromDIP(64), FromDIP(34))
-#define MATERIAL_ITEM_REAL_SIZE wxSize(FromDIP(62), FromDIP(32))
-#define MAPPING_ITEM_REAL_SIZE wxSize(FromDIP(48), FromDIP(45))
 WX_DEFINE_LIST(AmsRadioSelectorList);
 
 class ScrolledWindow : public wxScrolledWindow {

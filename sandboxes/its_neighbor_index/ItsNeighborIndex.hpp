@@ -1,3 +1,5 @@
+#pragma once
+
 #include <libslic3r/TriangleMesh.hpp>
 #include "libslic3r/MeshSplitImpl.hpp"
 

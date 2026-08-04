@@ -4897,3 +4897,4 @@ Layer* PrintObject::get_layer_at_bottomz(coordf_t bottom_z, coordf_t epsilon) { 
 
 
 } // namespace Slic3r
+#undef SUPPORT_MATERIAL_MARGIN

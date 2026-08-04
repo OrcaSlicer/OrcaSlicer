@@ -348,6 +348,7 @@ modules:
         cmake . -B build_flatpak \
           -DFLATPAK=ON \
           -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_UNITY_BUILD=ON \
           -DCMAKE_PREFIX_PATH=/app \
           -DCMAKE_INSTALL_PREFIX=/app \
           -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \

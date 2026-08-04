@@ -41,8 +41,8 @@ static wxColour s_red_clr("#D01B1B");
 static const wxColour WGT_GREY200 = wxColour(248, 248, 248);
 static const wxColour WGT_GREY300 = wxColour(238, 238, 238);
 
-static std::vector<int> a_nozzle_seq = { 0, 2, 4, 1, 3, 5 };
-static std::vector<int> b_nozzle_seq = { 1, 3, 5, 0, 2, 4 };
+static std::vector<int> nozzle_rack_a_nozzle_seq = { 0, 2, 4, 1, 3, 5 };
+static std::vector<int> nozzle_rack_b_nozzle_seq = { 1, 3, 5, 0, 2, 4 };
 
 wxDEFINE_EVENT(EVT_NOZZLE_RACK_NOZZLE_ITEM_SELECTED, wxCommandEvent);
 

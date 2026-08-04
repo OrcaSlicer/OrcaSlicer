@@ -6,6 +6,7 @@
 
 namespace Slic3r { namespace GUI {
 
+namespace CapsuleButtonDetail {
 static const wxColour BgNormalColor  = wxColour("#FFFFFF");
 static const wxColour BgSelectColor  = wxColour("#E5F0EE"); // ORCA
 
@@ -14,6 +15,7 @@ static const wxColour TextSelectColor = wxColour("#262E30"); // ORCA use same co
 
 static const wxColour BorderNormalColor   = wxColour("#CECECE");
 static const wxColour BorderSelectColor = wxColour("#009688");
+} // namespace CapsuleButtonDetail
 
 CapsuleButton::CapsuleButton(wxWindow *parent, wxWindowID id, const wxString &label, bool selected) : wxPanel(parent, id)
 {
@@ -69,8 +71,8 @@ void CapsuleButton::OnPaint(wxPaintEvent &event)
         wxRect rect = GetClientRect();
         gc->SetBrush(wxTransparentColour);
         gc->DrawRoundedRectangle(0, 0, rect.width, rect.height, 0);
-        wxColour bg_color     = m_selected ? BgSelectColor : BgNormalColor;
-        wxColour border_color = m_hovered || m_selected ? BorderSelectColor : BorderNormalColor;
+        wxColour bg_color     = m_selected ? CapsuleButtonDetail::BgSelectColor : CapsuleButtonDetail::BgNormalColor;
+        wxColour border_color = m_hovered || m_selected ? CapsuleButtonDetail::BorderSelectColor : CapsuleButtonDetail::BorderNormalColor;
         bg_color = StateColor::darkModeColorFor(bg_color);
         border_color = StateColor::darkModeColorFor(border_color);
         gc->SetBrush(wxBrush(bg_color));
@@ -112,14 +114,14 @@ void CapsuleButton::UpdateStatus()
 {
     if (m_selected) {
         m_btn->SetBitmap(tag_on_bmp);
-        m_label->SetForegroundColour(TextSelectColor);
-        m_label->SetBackgroundColour(BgSelectColor);
-        m_btn->SetBackgroundColour(BgSelectColor);
+        m_label->SetForegroundColour(CapsuleButtonDetail::TextSelectColor);
+        m_label->SetBackgroundColour(CapsuleButtonDetail::BgSelectColor);
+        m_btn->SetBackgroundColour(CapsuleButtonDetail::BgSelectColor);
     } else {
         m_btn->SetBitmap(tag_off_bmp);
-        m_label->SetForegroundColour(TextNormalColor);
-        m_label->SetBackgroundColour(BgNormalColor);
-        m_btn->SetBackgroundColour(BgNormalColor);
+        m_label->SetForegroundColour(CapsuleButtonDetail::TextNormalColor);
+        m_label->SetBackgroundColour(CapsuleButtonDetail::BgNormalColor);
+        m_btn->SetBackgroundColour(CapsuleButtonDetail::BgNormalColor);
     }
 
     GUI::wxGetApp().UpdateDarkUIWin(this);

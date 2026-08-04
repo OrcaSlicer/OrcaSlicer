@@ -2145,4 +2145,5 @@ void PlaterPresetComboBox::sys_color_changed()
         clr_picker->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     }
 }
+#undef BORDER_W
 } // namespace Slic3r

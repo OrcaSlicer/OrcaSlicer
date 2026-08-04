@@ -18,6 +18,7 @@
 namespace Slic3r {
 namespace GUI {
 
+namespace PrintJobDetail {
 static auto check_gcode_failed_str      = _u8L("Abnormal print file data: please slice again.");
 static auto     printjob_cancel_str         = _u8L("Task canceled.");
 static auto     timeout_to_upload_str       = _u8L("Upload task timed out. Please check the network status and try again.");
@@ -38,6 +39,8 @@ static auto sending_over_lan_str        = _u8L("Sending print job over LAN");
 static auto sending_over_cloud_str      = _u8L("Sending print job through cloud service");
 
 static wxString wait_sending_finish         = _L("Print task sending times out.");
+} // namespace PrintJobDetail
+using namespace PrintJobDetail;
 //static wxString desc_wait_sending_finish    = _L("The printer timed out while receiving a print job. Please check if the network is functioning properly and send the print again.");
 //static wxString desc_wait_sending_finish    = _L("The printer timed out while receiving a print job. Please check if the network is functioning properly.");
 

@@ -10,6 +10,7 @@
 namespace Slic3r {
 namespace GUI {
 
+namespace SendJobDetail {
 static auto check_gcode_failed_str = _u8L("Abnormal print file data: please slice again.");
 static auto printjob_cancel_str         = _u8L("Task canceled.");
 static auto timeout_to_upload_str       = _u8L("Upload task timed out. Please check the network status and try again.");
@@ -27,6 +28,8 @@ static auto desc_upload_ftp_failed = _u8L("Failed to upload print file via FTP. 
 
 static auto sending_over_lan_str   = _u8L("Sending print job over LAN");
 static auto sending_over_cloud_str = _u8L("Sending print job through cloud service");
+} // namespace SendJobDetail
+using namespace SendJobDetail;
 
 SendJob::SendJob(std::string dev_id)
 : m_plater{wxGetApp().plater()},

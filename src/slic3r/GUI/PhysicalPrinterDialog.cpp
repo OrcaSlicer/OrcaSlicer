@@ -901,4 +901,5 @@ void PhysicalPrinterDialog::OnOK(wxEvent& event)
     });
 }
 
+#undef BORDER_W
 }}    // namespace Slic3r::GUI

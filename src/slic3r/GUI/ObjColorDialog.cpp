@@ -539,6 +539,7 @@ wxBoxSizer *ObjColorPanel::create_extruder_icon_and_rgba_sizer(wxWindow *parent,
     //icon_sizer->AddSpacer(FromDIP(5));
     return icon_sizer;
 }
+#undef BTN_GAP
 
 std::string ObjColorPanel::get_color_str(const wxColour &color) {
     std::string str = ("R:" + std::to_string(color.Red()) +

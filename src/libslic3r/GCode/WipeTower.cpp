@@ -15,13 +15,14 @@
 
 namespace Slic3r
 {
-float         flat_iron_speed                = 10.f * 60.f;
+namespace WipeTowerDetail {
+float         wipe_tower1_flat_iron_speed                = 10.f * 60.f;
 static const double wipe_tower_wall_infill_overlap = 0.0;
 static constexpr double WIPE_TOWER_RESOLUTION = 0.1;
 // Orca: SCALING_FACTOR is a runtime variable (large-printer switch), so this cannot be constexpr
-#define WT_SIMPLIFY_TOLERANCE_SCALED (0.001 / SCALING_FACTOR)
+static const double wt_simplify_tolerance_scaled = 0.001 / SCALING_FACTOR;
 static constexpr int    arc_fit_size = 20;
-#define SCALED_WIPE_TOWER_RESOLUTION (WIPE_TOWER_RESOLUTION / SCALING_FACTOR)
+static const double scaled_wipe_tower_resolution = WIPE_TOWER_RESOLUTION / SCALING_FACTOR;
 enum class LimitFlow { None, LimitPrintFlow, LimitRammingFlow, LimitRammingFlowNC};//nc:nozzle change
 static const std::map<float, float> nozzle_diameter_to_nozzle_change_width{{0.2f, 0.5f}, {0.4f, 1.0f}, {0.6f, 1.2f}, {0.8f, 1.4f}};
 
@@ -103,6 +104,10 @@ Polygon chamfer_polygon(Polygon &polygon, double chamfer_dis = 2., double angle_
     return res;
 }
 
+} // namespace WipeTowerDetail
+
+using namespace WipeTowerDetail;
+
 Polygon WipeTower::rounding_polygon(Polygon &polygon, double rounding /*= 2.*/, double angle_tol/* = 30. / 180. * PI*/)
 {
     if (polygon.points.size() < 3) return polygon;
@@ -170,6 +175,8 @@ Polygon WipeTower::rounding_polygon(Polygon &polygon, double rounding /*= 2.*/, 
     res.points.shrink_to_fit();
     return res;
 }
+
+namespace WipeTowerDetail {
 
 Polygon rounding_rectangle(Polygon &polygon, double rounding = 2., double angle_tol = 30. / 180. * PI) {
     if (polygon.points.size() < 3) return polygon;
@@ -617,6 +624,21 @@ Polygon generate_rectange_polygon(const Vec2f &wt_box_min ,const Vec2f & wt_box_
     return res;
 }
 
+} // namespace WipeTowerDetail
+
+Polylines construct_gap_for_skip_points(
+    const Polygon &polygon,
+    const std::vector<Vec2f> &skip_points,
+    float wt_width,
+    float gap_length,
+    Polygon &insert_skip_polygon)
+{
+    return WipeTowerDetail::construct_gap_for_skip_points(
+        polygon, skip_points, wt_width, gap_length, insert_skip_polygon);
+}
+
+using namespace WipeTowerDetail;
+
 class WipeTowerWriter
 {
 public:
@@ -1011,11 +1033,11 @@ public:
     WipeTowerWriter &polygon(const Polygon &wall_polygon, const float f = 0.f)
     {
         Polyline    pl = to_polyline(wall_polygon);
-        pl.simplify(WT_SIMPLIFY_TOLERANCE_SCALED);
+        pl.simplify(wt_simplify_tolerance_scaled);
         if (m_enable_arc_fitting) {
-            pl.simplify_by_fitting_arc(SCALED_WIPE_TOWER_RESOLUTION);
+            pl.simplify_by_fitting_arc(scaled_wipe_tower_resolution);
         } else {
-            pl.simplify(SCALED_WIPE_TOWER_RESOLUTION);
+            pl.simplify(scaled_wipe_tower_resolution);
             pl.reset_to_linear_move();
         }
 
@@ -1266,10 +1288,10 @@ public:
             return closestIndex;
         };
         if (m_enable_arc_fitting) {
-            for (auto &pl : pls) pl.simplify_by_fitting_arc(SCALED_WIPE_TOWER_RESOLUTION);
+            for (auto &pl : pls) pl.simplify_by_fitting_arc(scaled_wipe_tower_resolution);
         } else {
             for (auto &pl : pls) {
-                pl.simplify(SCALED_WIPE_TOWER_RESOLUTION);
+                pl.simplify(scaled_wipe_tower_resolution);
                 pl.reset_to_linear_move();
             }
         }
@@ -4108,7 +4130,7 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
                     if (should_flat_ironging) {
                         writer.travel(writer.x() + 0.5f * ironing_length, writer.y(), 240.);
                         Vec2f pos{writer.x() + 1.f * ironing_length, writer.y()};
-                        writer.spiral_flat_ironing(writer.pos(), flat_iron_area, m_perimeter_width, flat_iron_speed);
+                        writer.spiral_flat_ironing(writer.pos(), flat_iron_area, m_perimeter_width, wipe_tower1_flat_iron_speed);
                         writer.travel(pos, wipe_speed);
                     } else
                         writer.travel(writer.x() + 1.5 * ironing_length, writer.y(), 240.);
@@ -4126,7 +4148,7 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
                     if (should_flat_ironging) {
                         writer.travel(writer.x() - 0.5f * ironing_length, writer.y(), 240.);
                         Vec2f pos{writer.x() - 1.0f * ironing_length, writer.y()};
-                        writer.spiral_flat_ironing(writer.pos(), flat_iron_area, m_perimeter_width, flat_iron_speed);
+                        writer.spiral_flat_ironing(writer.pos(), flat_iron_area, m_perimeter_width, wipe_tower1_flat_iron_speed);
                         writer.travel(pos, wipe_speed);
                     } else
                         writer.travel(writer.x() - 1.5 * ironing_length, writer.y(), 240.);
@@ -5101,7 +5123,7 @@ Polygon WipeTower::generate_support_wall_new(WipeTowerWriter &writer, const box_
     if (!extrude_perimeter) return wall_polygon;
 
     if (skip_points) {
-        result_wall = construct_gap_for_skip_points(wall_polygon, m_wall_skip_points[m_cur_layer_id], m_wipe_tower_width, 2.5 * m_perimeter_width, insert_skip_polygon);
+        result_wall = WipeTowerDetail::construct_gap_for_skip_points(wall_polygon, m_wall_skip_points[m_cur_layer_id], m_wipe_tower_width, 2.5 * m_perimeter_width, insert_skip_polygon);
     }
     else {
         result_wall.push_back(to_polyline(wall_polygon));

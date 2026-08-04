@@ -16,7 +16,7 @@
 namespace Slic3r { namespace GUI {
 
  // BBS: modify param ui style
-    constexpr int titleWidth = 20;
+    constexpr int og_custom_ctrl_title_width = 20;
     constexpr int ctrlWidth = 50;
 
 #define DISABLE_BLINKING
@@ -488,7 +488,7 @@ void OG_CustomCtrl::OnLeaveWin(wxMouseEvent& event)
 bool OG_CustomCtrl::update_visibility(ConfigOptionMode mode)
 {
     // BBS: new layout
-    wxCoord    h_pos = (ctrlWidth + get_title_width() - titleWidth) * m_em_unit;
+    wxCoord    h_pos = (ctrlWidth + get_title_width() - og_custom_ctrl_title_width) * m_em_unit;
     wxCoord    h_pos2 = get_title_width() * m_em_unit;
     wxCoord    v_pos = 0;
 
@@ -570,7 +570,7 @@ void OG_CustomCtrl::init_max_win_width()
 int OG_CustomCtrl::get_title_width()
 {
     if (!GetLabel().IsEmpty())
-        return titleWidth;
+        return og_custom_ctrl_title_width;
     else
         return 2;
 }
@@ -605,7 +605,7 @@ void OG_CustomCtrl::msw_rescale()
 
     m_max_win_width = 0;
 
-    wxCoord    h_pos = (ctrlWidth + get_title_width() - titleWidth) * m_em_unit;
+    wxCoord    h_pos = (ctrlWidth + get_title_width() - og_custom_ctrl_title_width) * m_em_unit;
     wxCoord    h_pos2 = get_title_width() * m_em_unit;
     wxCoord    v_pos = 0;
     for (CtrlLine& line : ctrl_lines) {

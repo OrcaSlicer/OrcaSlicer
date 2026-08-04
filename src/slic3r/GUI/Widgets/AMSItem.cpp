@@ -4138,4 +4138,5 @@ void FeedDirectionDialog::SetExtruderMapping(MachineObject* obj,
     }
 }
 
+#undef AMS_CANS_WINDOW_SIZE
 }} // namespace Slic3r::GUI

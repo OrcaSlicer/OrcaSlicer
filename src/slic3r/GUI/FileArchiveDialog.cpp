@@ -401,5 +401,6 @@ wxBoxSizer* FileArchiveDialog::create_btn_sizer()
     return btn_sizer;
 }
 
+#undef BTN_GAP
 } // namespace GUI
 } // namespace Slic3r

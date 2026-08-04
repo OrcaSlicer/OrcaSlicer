@@ -7,7 +7,9 @@
 
 namespace Slic3r { namespace GUI {
 
+namespace CalibrationWizardCaliPageDetail {
 static const wxString NA_STR = _L("N/A");
+}
 
 
 CalibrationCaliPage::CalibrationCaliPage(wxWindow* parent, CalibMode cali_mode, CaliPageType cali_type,
@@ -337,9 +339,9 @@ void CalibrationCaliPage::update_subtask(MachineObject* obj)
                 prepare_text += wxString::Format("(%d%%)", obj->gcode_file_prepare_percent);
 
             m_printing_panel->update_stage_value(prepare_text, 0);
-            m_printing_panel->update_progress_percent(NA_STR, wxEmptyString);
-            m_printing_panel->update_left_time(NA_STR);
-            m_printing_panel->update_layers_num(true, wxString::Format(_L("Layer: %s"), NA_STR));
+            m_printing_panel->update_progress_percent(CalibrationWizardCaliPageDetail::NA_STR, wxEmptyString);
+            m_printing_panel->update_left_time(CalibrationWizardCaliPageDetail::NA_STR);
+            m_printing_panel->update_layers_num(true, wxString::Format(_L("Layer: %s"), CalibrationWizardCaliPageDetail::NA_STR));
             m_printing_panel->update_subtask_name(wxString::Format("%s", GUI::from_u8(obj->subtask_name)));
 
 
@@ -396,8 +398,8 @@ void CalibrationCaliPage::update_subtask(MachineObject* obj)
             }
             else {
                 m_printing_panel->update_stage_value(obj->get_curr_stage(), 0);
-                m_printing_panel->update_progress_percent(NA_STR, wxEmptyString);
-                m_printing_panel->update_layers_num(true, wxString::Format(_L("Layer: %s"), NA_STR));
+                m_printing_panel->update_progress_percent(CalibrationWizardCaliPageDetail::NA_STR, wxEmptyString);
+                m_printing_panel->update_layers_num(true, wxString::Format(_L("Layer: %s"), CalibrationWizardCaliPageDetail::NA_STR));
             }
         }
 
@@ -437,13 +439,13 @@ void CalibrationCaliPage::reset_printing_values()
     m_printing_panel->enable_pause_resume_button(false, "pause_disable");
     m_printing_panel->enable_abort_button(false);
     m_printing_panel->reset_printing_value();
-    m_printing_panel->update_subtask_name(NA_STR);
+    m_printing_panel->update_subtask_name(CalibrationWizardCaliPageDetail::NA_STR);
     m_printing_panel->show_profile_info(false);
     m_printing_panel->update_stage_value(wxEmptyString, 0);
-    m_printing_panel->update_progress_percent(NA_STR, wxEmptyString);
+    m_printing_panel->update_progress_percent(CalibrationWizardCaliPageDetail::NA_STR, wxEmptyString);
     m_printing_panel->get_market_scoring_button()->Hide();
-    m_printing_panel->update_left_time(NA_STR);
-    m_printing_panel->update_layers_num(true, wxString::Format(_L("Layer: %s"), NA_STR));
+    m_printing_panel->update_left_time(CalibrationWizardCaliPageDetail::NA_STR);
+    m_printing_panel->update_layers_num(true, wxString::Format(_L("Layer: %s"), CalibrationWizardCaliPageDetail::NA_STR));
     update_basic_print_data(false);
     this->Layout();
     this->Fit();

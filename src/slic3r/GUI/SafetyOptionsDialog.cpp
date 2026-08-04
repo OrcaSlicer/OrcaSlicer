@@ -10,9 +10,12 @@
 #include "DeviceCore/DevNozzleSystem.h"
 #include "DeviceCore/DevPrintOptions.h"
 
-static const wxColour STATIC_BOX_LINE_COL = wxColour(238, 238, 238);
-static const wxColour STATIC_TEXT_CAPTION_COL = wxColour(100, 100, 100);
-static const wxColour STATIC_TEXT_EXPLAIN_COL = wxColour(100, 100, 100);
+static const wxColour SAFETY_OPTIONS_STATIC_BOX_LINE_COL = wxColour(238, 238, 238);
+static const wxColour SAFETY_OPTIONS_STATIC_TEXT_CAPTION_COL = wxColour(100, 100, 100);
+static const wxColour SAFETY_OPTIONS_STATIC_TEXT_EXPLAIN_COL = wxColour(100, 100, 100);
+#define STATIC_BOX_LINE_COL SAFETY_OPTIONS_STATIC_BOX_LINE_COL
+#define STATIC_TEXT_CAPTION_COL SAFETY_OPTIONS_STATIC_TEXT_CAPTION_COL
+#define STATIC_TEXT_EXPLAIN_COL SAFETY_OPTIONS_STATIC_TEXT_EXPLAIN_COL
 
 namespace Slic3r { namespace GUI {
 
@@ -272,4 +275,7 @@ void SafetyOptionsDialog::show_idel_heating_toast(const wxString &text)
     m_idel_heating_toast_timer.StartOnce(3000);
 }
 
+#undef STATIC_BOX_LINE_COL
+#undef STATIC_TEXT_CAPTION_COL
+#undef STATIC_TEXT_EXPLAIN_COL
 }} // namespace Slic3r::GUI

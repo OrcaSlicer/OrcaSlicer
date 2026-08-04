@@ -9,6 +9,7 @@
 
 namespace Slic3r { namespace GUI {
 
+namespace FilamentMapPanelDetail {
 static const wxColour BgNormalColor  = wxColour("#FFFFFF");
 static const wxColour BgSelectColor  = wxColour("#E5F0EE"); // ORCA
 static const wxColour BgDisableColor = wxColour("#CECECE");
@@ -21,6 +22,7 @@ static const wxColour TextNormalBlackColor = wxColour("#262E30");
 static const wxColour TextNormalGreyColor = wxColour("#6B6B6B");
 static const wxColour TextDisableColor = wxColour("#CECECE");
 static const wxColour TextErrorColor = wxColour("#E14747");
+} // namespace FilamentMapPanelDetail
 
 wxDEFINE_EVENT(wxEVT_INVALID_MANUAL_MAP, wxCommandEvent);
 
@@ -275,7 +277,7 @@ FilamentMapManualPanel::FilamentMapManualPanel(wxWindow                       *p
     , m_filament_type(type)
 {
     SetName(wxT("FilamentMapManualPanel"));
-    SetBackgroundColour(BgNormalColor);
+    SetBackgroundColour(FilamentMapPanelDetail::BgNormalColor);
 
     auto top_sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -316,14 +318,14 @@ FilamentMapManualPanel::FilamentMapManualPanel(wxWindow                       *p
 
     m_tips = new Label(this, _L("Tip: You can drag the filaments to reassign them to different nozzles."));
     m_tips->SetFont(Label::Body_14);
-    m_tips->SetForegroundColour(TextNormalGreyColor);
+    m_tips->SetForegroundColour(FilamentMapPanelDetail::TextNormalGreyColor);
     m_tips->Wrap(FromDIP(520));
     top_sizer->AddSpacer(FromDIP(20));
     top_sizer->Add(m_tips, 0, wxALIGN_LEFT | wxLEFT, FromDIP(15));
 
     m_errors = new Label(this, "");
     m_errors->SetFont(Label::Body_13);
-    m_errors->SetForegroundColour(TextErrorColor);
+    m_errors->SetForegroundColour(FilamentMapPanelDetail::TextErrorColor);
     m_errors->Wrap(FromDIP(520));
     top_sizer->AddSpacer(FromDIP(10));
     top_sizer->Add(m_errors, 0, wxALIGN_LEFT | wxLEFT, FromDIP(15));
@@ -335,13 +337,13 @@ FilamentMapManualPanel::FilamentMapManualPanel(wxWindow                       *p
     auto suggestion_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto suggestion_text  = new Label(m_suggestion_panel, _L("Please adjust your grouping or click "));
     suggestion_text->SetFont(Label::Body_13);
-    suggestion_text->SetForegroundColour(TextErrorColor);
+    suggestion_text->SetForegroundColour(FilamentMapPanelDetail::TextErrorColor);
     suggestion_text->SetBackgroundColour(*wxWHITE);
     auto suggestion_btn   = new ScalableButton(m_suggestion_panel, wxID_ANY, "edit", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true, 14);
     suggestion_btn->SetBackgroundColour(*wxWHITE);
     auto suggestion_text2 = new Label(m_suggestion_panel, _L(" to set nozzle count"));
     suggestion_text2->SetFont(Label::Body_13);
-    suggestion_text2->SetForegroundColour(TextErrorColor);
+    suggestion_text2->SetForegroundColour(FilamentMapPanelDetail::TextErrorColor);
     suggestion_text2->SetBackgroundColour(*wxWHITE);
     suggestion_sizer->Add(suggestion_text, 0, wxALIGN_CENTER_VERTICAL);
     suggestion_sizer->Add(suggestion_btn, 0, wxALIGN_CENTER_VERTICAL);
@@ -361,7 +363,7 @@ FilamentMapManualPanel::FilamentMapManualPanel(wxWindow                       *p
         auto *max_nozzle_counts_opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
         auto *set_count_link = new Label(this, _L("Set the physical nozzle count..."));
         set_count_link->SetFont(Label::Body_14);
-        set_count_link->SetForegroundColour(BorderSelectedColor);
+        set_count_link->SetForegroundColour(FilamentMapPanelDetail::BorderSelectedColor);
         set_count_link->SetCursor(wxCursor(wxCURSOR_HAND));
         top_sizer->AddSpacer(FromDIP(8));
         top_sizer->Add(set_count_link, 0, wxALIGN_LEFT | wxLEFT, FromDIP(15));
@@ -500,7 +502,7 @@ GUI::FilamentMapBtnPanel::FilamentMapBtnPanel(wxWindow *parent, const wxString &
 
     m_label = new wxStaticText(this, wxID_ANY, label);
     m_label->SetFont(Label::Head_14);
-    m_label->SetForegroundColour(TextNormalBlackColor);
+    m_label->SetForegroundColour(FilamentMapPanelDetail::TextNormalBlackColor);
 
     auto label_sizer = new wxBoxSizer(wxHORIZONTAL);
     label_sizer->AddStretchSpacer();
@@ -518,7 +520,7 @@ GUI::FilamentMapBtnPanel::FilamentMapBtnPanel(wxWindow *parent, const wxString &
     auto detail_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_detail          = new Label(this, detail);
     m_detail->SetFont(Label::Body_12);
-    m_detail->SetForegroundColour(TextNormalGreyColor);
+    m_detail->SetForegroundColour(FilamentMapPanelDetail::TextNormalGreyColor);
     m_detail->Wrap(FromDIP(180));
 
     detail_sizer->AddStretchSpacer();
@@ -559,9 +561,9 @@ void FilamentMapBtnPanel::OnPaint(wxPaintEvent &event)
         wxRect rect = GetClientRect();
         gc->SetBrush(wxTransparentColour);
         gc->DrawRoundedRectangle(0, 0, rect.width, rect.height, 0);
-        wxColour bg_color = m_selected ? BgSelectColor : BgNormalColor;
+        wxColour bg_color = m_selected ? FilamentMapPanelDetail::BgSelectColor : FilamentMapPanelDetail::BgNormalColor;
 
-        wxColour border_color = m_hover || m_selected ? BorderSelectedColor : BorderNormalColor;
+        wxColour border_color = m_hover || m_selected ? FilamentMapPanelDetail::BorderSelectedColor : FilamentMapPanelDetail::BorderNormalColor;
 
         bg_color     = StateColor::darkModeColorFor(bg_color);
         border_color = StateColor::darkModeColorFor(border_color);
@@ -575,32 +577,32 @@ void FilamentMapBtnPanel::OnPaint(wxPaintEvent &event)
 void FilamentMapBtnPanel::UpdateStatus()
 {
     if (m_selected) {
-        m_btn->SetBackgroundColour(BgSelectColor);
-        m_label->SetBackgroundColour(BgSelectColor);
-        m_detail->SetBackgroundColour(BgSelectColor);
-        m_disable_tip->SetBackgroundColour(BgSelectColor);
+        m_btn->SetBackgroundColour(FilamentMapPanelDetail::BgSelectColor);
+        m_label->SetBackgroundColour(FilamentMapPanelDetail::BgSelectColor);
+        m_detail->SetBackgroundColour(FilamentMapPanelDetail::BgSelectColor);
+        m_disable_tip->SetBackgroundColour(FilamentMapPanelDetail::BgSelectColor);
     }
     else {
-        m_btn->SetBackgroundColour(BgNormalColor);
-        m_label->SetBackgroundColour(BgNormalColor);
-        m_detail->SetBackgroundColour(BgNormalColor);
-        m_disable_tip->SetBackgroundColour(BgNormalColor);
+        m_btn->SetBackgroundColour(FilamentMapPanelDetail::BgNormalColor);
+        m_label->SetBackgroundColour(FilamentMapPanelDetail::BgNormalColor);
+        m_detail->SetBackgroundColour(FilamentMapPanelDetail::BgNormalColor);
+        m_disable_tip->SetBackgroundColour(FilamentMapPanelDetail::BgNormalColor);
     }
     if (!m_enabled) {
         m_disable_tip->SetLabel(_L("(Sync with printer)"));
-        m_disable_tip->SetForegroundColour(TextDisableColor);
+        m_disable_tip->SetForegroundColour(FilamentMapPanelDetail::TextDisableColor);
         m_btn->SetBitmap(icon_disabled);
-        m_btn->SetForegroundColour(BgDisableColor);
-        m_label->SetForegroundColour(TextDisableColor);
-        m_detail->SetForegroundColour(TextDisableColor);
+        m_btn->SetForegroundColour(FilamentMapPanelDetail::BgDisableColor);
+        m_label->SetForegroundColour(FilamentMapPanelDetail::TextDisableColor);
+        m_detail->SetForegroundColour(FilamentMapPanelDetail::TextDisableColor);
     }
     else {
         m_disable_tip->SetLabel("");
-        m_disable_tip->SetForegroundColour(TextNormalBlackColor);
+        m_disable_tip->SetForegroundColour(FilamentMapPanelDetail::TextNormalBlackColor);
         m_btn->SetBitmap(icon_enabled);
-        m_btn->SetForegroundColour(BgNormalColor);
-        m_label->SetForegroundColour(TextNormalBlackColor);
-        m_detail->SetForegroundColour(TextNormalGreyColor);
+        m_btn->SetForegroundColour(FilamentMapPanelDetail::BgNormalColor);
+        m_label->SetForegroundColour(FilamentMapPanelDetail::TextNormalBlackColor);
+        m_detail->SetForegroundColour(FilamentMapPanelDetail::TextNormalGreyColor);
     }
     GUI::wxGetApp().UpdateDarkUIWin(this);
 }

@@ -828,6 +828,50 @@ if (WIN32)
 else ()
     add_library(libslic3r_gui STATIC ${SLIC3R_GUI_SOURCES})
 endif ()
+
+# Keep the frequently edited GUI sources governed by the global unity switch
+# for faster clean builds; known collision-prone files are excluded below.
+if (DEFINED CMAKE_UNITY_BUILD)
+    set_target_properties(libslic3r_gui PROPERTIES UNITY_BUILD "${CMAKE_UNITY_BUILD}")
+endif ()
+
+# Keep implementation-local helper namespaces from becoming ambiguous in a
+# concatenated unity translation unit.
+set_source_files_properties(
+    GUI/dark_mode.cpp
+    GUI/Jobs/SendJob.cpp
+    GUI/Gizmos/GLGizmoSVG.cpp
+    GUI/NetworkPluginDialog.cpp
+    GUI/PrintOptionsDialog.cpp
+    GUI/ReleaseNote.cpp
+    GUI/MsgDialog.cpp
+    GUI/wxExtensions.cpp
+    GUI/SendToPrinter.cpp
+    GUI/SelectMachinePop.cpp
+    GUI/PartSkipDialog.cpp
+    GUI/SelectMachine.cpp
+    GUI/SendMultiMachinePage.cpp
+    GUI/ImGuiWrapper.cpp
+    GUI/ConfigWizard.cpp
+    GUI/Gizmos/GLGizmoMeshBoolean.cpp
+    GUI/Gizmos/GLGizmoBrimEars.cpp
+    GUI/GUI_Factories.cpp
+    GUI/GUI_ObjectList.cpp
+    GUI/GUI_App.cpp
+    GUI/Selection.cpp
+    GUI/UserNotification.cpp
+    GUI/AuxiliaryDataViewModel.cpp
+    GUI/BindDialog.cpp
+    GUI/BitmapCache.cpp
+    GUI/calib_dlg.cpp
+    GUI/DeviceTab/wgtDeviceNozzleRackUpdate.cpp
+    GUI/DeviceTab/wgtDeviceNozzleSelect.cpp
+    Utils/Bonjour.cpp
+    plugin/PythonPluginBridge.cpp
+    Utils/wxInspectorPlugins/CustomWidgetsPlugin.cpp
+    ../dev-utils/StackWalker.cpp
+    PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE
+)
 target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DIR})
 
 if (WIN32)

@@ -38,7 +38,8 @@ wxDEFINE_EVENT(EVT_AUXILIARY_UPDATE_RENAME, wxCommandEvent);
 wxDEFINE_EVENT(EVT_AUXILIARY_DONE, wxCommandEvent);
 
 
-const std::vector<std::string> license_list = {
+const std::vector<std::string> auxiliary_license_list = {
+#define license_list auxiliary_license_list
     "",
     "CC0",
     "BY",
@@ -1200,4 +1201,5 @@ void DesignerPanel::msw_rescale()
     m_combo_license->SetSize(wxSize(FromDIP(450), -1));
     m_input_description->SetSize(wxSize(FromDIP(450), -1));}
 
+#undef license_list
 }} // namespace Slic3r::GUI

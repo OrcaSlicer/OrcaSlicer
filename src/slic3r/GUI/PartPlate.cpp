@@ -47,7 +47,8 @@
 using boost::optional;
 namespace fs = boost::filesystem;
 
-static const float GROUND_Z = -0.03f;
+static const float PART_PLATE_GROUND_Z = -0.03f;
+#define GROUND_Z PART_PLATE_GROUND_Z
 static const float GROUND_Z_GRIDLINE = -0.26f;
 static const float GRABBER_X_FACTOR = 0.20f;
 static const float GRABBER_Y_FACTOR = 0.03f;
@@ -6997,5 +6998,6 @@ void PartPlateList::on_filament_deleted(int filament_count, int filament_id)
     BOOST_LOG_TRIVIAL(info) << boost::format("%1%: filament_count=%2%, filament_id=%3%")% __FUNCTION__ %filament_count %filament_id;
 }
 
+#undef GROUND_Z
 }//end namespace GUI
 }//end namespace slic3r

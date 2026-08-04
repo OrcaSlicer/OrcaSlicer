@@ -80,4 +80,5 @@ void OAuthDialog::on_dpi_changed(const wxRect& suggested_rect)
     Refresh();
 }
 
+#undef BORDER_W
 }}
