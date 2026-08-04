@@ -48,6 +48,9 @@ public:
     MachineObject* get_selected_machine();
     bool set_selected_machine(std::string dev_id);
 
+    void record_user_last_machine(const std::string& dev_id);
+    std::string get_user_last_machine() const;
+
     // local machine
     void           set_local_selected_machine(std::string dev_id) { local_selected_machine = dev_id; };
     MachineObject* get_local_selected_machine() const { return get_local_machine(local_selected_machine); }

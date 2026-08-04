@@ -1738,6 +1738,13 @@ void Tab::toggle_line(const std::string &opt_key, bool toggle, int opt_index)
     if (line) line->toggle_visible = toggle;
 };
 
+void Tab::set_option_label(const std::string &opt_key, const wxString &label, int opt_index)
+{
+    if (!m_active_page) return;
+    Line *line = m_active_page->get_line(opt_key, opt_index);
+    if (line) line->set_label(label);
+}
+
 // To be called by custom widgets, load a value into a config,
 // update the preset selection boxes (the dirty flags)
 // If value is saved before calling this function, put saved_value = true,
@@ -1796,7 +1803,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
     // Keep this preset's "plugins" manifest in sync when a plugin picker changes, so full_config() and
     // save_to_json() always find resolved "name;uuid;capability" references and rebuild it nowhere else.
-    // Also drop any plugin_config_overrides entries for a capability the change just stopped
+    // Also drop any plugin config override entries for a capability the change just stopped
     // referencing (e.g. a plugin removed from slicing_pipeline_plugin), so a saved preset never
     // carries configuration for a capability it no longer names. The Configure button is a separate
     // field holding its own cached copy of that value, so it needs to be told explicitly, or it
@@ -1804,9 +1811,10 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
     if (const ConfigOptionDef* opt_def = m_config->def()->get(opt_key);
         opt_def && opt_def->is_plugin_backed()) {
         m_config->update_plugin_manifest();
-        if (prune_stale_plugin_overrides(*m_config)) {
-            if (Field* overrides_field = get_field(PLUGIN_OVERRIDES_OPTION_KEY))
-                overrides_field->set_value(boost::any(m_config->opt_string(PLUGIN_OVERRIDES_OPTION_KEY)), false);
+        const std::string overrides_key = Preset::plugin_overrides_key(m_type);
+        if (prune_stale_plugin_overrides(*m_config, overrides_key)) {
+            if (Field* overrides_field = get_field(overrides_key))
+                overrides_field->set_value(boost::any(m_config->opt_string(overrides_key)), false);
         }
     }
 
@@ -2815,6 +2823,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("fill_multiline", "strength_settings_infill#fill-multiline");
         optgroup->append_single_option_line("sparse_infill_pattern", "strength_settings_infill#sparse-infill-pattern");
         optgroup->append_single_option_line("gyroid_optimized", "strength_settings_patterns#gyroid-optimized");
+        optgroup->append_single_option_line("sparse_infill_smooth_factor", "strength_settings_patterns#sparse-infill-smooth-factor");
         optgroup->append_single_option_line("infill_direction", "strength_settings_infill#direction");
         optgroup->append_single_option_line("sparse_infill_rotate_template", "strength_settings_infill_rotation_template_metalanguage");
         optgroup->append_single_option_line("skin_infill_density", "strength_settings_patterns#locked-zag");
@@ -3068,6 +3077,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("combine_brims", "others_settings_brim#combine-brims");
         optgroup->append_single_option_line("brim_ears_max_angle", "others_settings_brim#ear-max-angle");
         optgroup->append_single_option_line("brim_ears_detection_length", "others_settings_brim#ear-detection-radius");
+        optgroup->append_single_option_line("brim_ears_outer_only");
 
         optgroup = page->new_optgroup(L("Special mode"), L"param_special");
         optgroup->append_single_option_line("slicing_mode", "others_settings_special_mode#slicing-mode");
@@ -3136,7 +3146,7 @@ void TabPrint::build()
         // Its own group: the one above hides its labels, and this row needs its label — and the revert
         // arrow beside it — to show. No label-width override either, as a 0 there means "no label column".
         optgroup = page->new_optgroup(L("Plugin Configuration"), L"param_gcode");
-        optgroup->append_single_option_line("plugin_config_overrides");
+        optgroup->append_single_option_line("print_plugin_config_overrides");
 
         optgroup = page->new_optgroup(L("Notes"), "note", 0);
         option = optgroup->get_option("notes");
@@ -4552,7 +4562,7 @@ void TabFilament::build()
         optgroup->append_single_option_line(option);
 
         optgroup = page->new_optgroup(L("Plugin Configuration"), L"param_gcode");
-        optgroup->append_single_option_line("plugin_config_overrides");
+        optgroup->append_single_option_line("filament_plugin_config_overrides");
 
     page = add_options_page(L("Multimaterial"), "custom-gcode_multi_material"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("Wipe tower parameters"), "param_tower");
@@ -5006,6 +5016,7 @@ void TabPrinter::build_fff()
 
         optgroup->append_single_option_line("printer_structure", "printer_basic_information_advanced#printer-structure");
         optgroup->append_single_option_line("gcode_flavor", "printer_basic_information_advanced#g-code-flavor");
+        optgroup->append_single_option_line("gcode_skip_config_block", "printer_basic_information_advanced#skip-g-code-config-block");
         optgroup->append_single_option_line("pellet_modded_printer", "printer_basic_information_advanced#pellet-modded-printer");
         optgroup->append_single_option_line("bbl_use_printhost", "printer_basic_information_advanced#use-3rd-party-print-host");
         optgroup->append_single_option_line("use_3mf");
@@ -5061,7 +5072,7 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("time_cost", "printer_basic_information_advanced#time-cost");
 
         optgroup = page->new_optgroup(L("Plugin Configuration"), L"param_gcode");
-        optgroup->append_single_option_line("plugin_config_overrides");
+        optgroup->append_single_option_line("printer_plugin_config_overrides");
 
         optgroup  = page->new_optgroup(L("Cooling Fan"), "param_cooling_fan");
         Line line = Line{ L("Fan speed-up time"), optgroup->get_option("fan_speedup_time").opt.tooltip };
@@ -7958,7 +7969,7 @@ bool Tab::validate_filament_temperature_pairs()
 
     RichMessageDialog dialog(parent(), msg_text, _L("Temperature Safety Check"), wxYES | wxNO | wxICON_WARNING);
     dialog.SetButtonLabel(wxID_YES, _L("Continue"), true);
-    dialog.SetButtonLabel(wxID_NO, _CTX("Back", "Navigation"));
+    dialog.SetButtonLabel(wxID_NO, _L_CONTEXT("Back", "Navigation"));
     dialog.ShowCheckBox(_L("Don't warn again for this preset"));
     const int answer = dialog.ShowModal();
     // Session-only suppression (does not modify/save filament preset data).
@@ -7999,7 +8010,9 @@ void Tab::update_extruder_variants(int extruder_id, bool reload)
         m_actual_nozzle_volumes.resize(extruder_nums, NozzleVolumeType::nvtStandard);
         for (int i = 0; i < extruder_nums; i++) m_actual_nozzle_volumes[i] = (NozzleVolumeType)nozzle_volumes->values[i];
 
-        if (extruder_nums == 2) {
+        // Orca: a non-Bambu dual-nozzle printer has two extruders but a single variant column, so
+        // the nozzle switch and sync button have nothing to act on. Only enable with real variants.
+        if (extruder_nums == 2 && m_preset_bundle->support_different_extruders()) {
             auto options = generate_extruder_options();
             m_extruder_switch->SetOptions(options);
 
@@ -8931,11 +8944,15 @@ ConfigManipulation Tab::get_config_manipulation()
         return toggle_line(opt_key, toggle, opt_index >= 0 ? opt_index + 256 : opt_index);
     };
 
+    auto cb_set_option_label = [this](const t_config_option_key &opt_key, const wxString &label, int opt_index) {
+        return set_option_label(opt_key, label, opt_index >= 0 ? opt_index + 256 : opt_index);
+    };
+
     auto cb_value_change = [this](const std::string& opt_key, const boost::any& value) {
         return on_value_change(opt_key, value);
     };
 
-    return ConfigManipulation(load_config, cb_toggle_field, cb_toggle_line, cb_value_change, nullptr, this);
+    return ConfigManipulation(load_config, cb_toggle_field, cb_toggle_line, cb_value_change, nullptr, this, cb_set_option_label);
 }
 
 

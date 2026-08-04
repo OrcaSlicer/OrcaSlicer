@@ -283,7 +283,7 @@ wxBoxSizer *SyncAmsInfoDialog::create_sizer_thumbnail(wxButton *image_button, bo
     auto sizer_thumbnail = new wxBoxSizer(wxVERTICAL);
     if (left) {
         wxBoxSizer *text_sizer = new wxBoxSizer(wxHORIZONTAL);
-        auto        sync_text  = new Label(image_button->GetParent(), _CTX(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS"));
+        auto        sync_text  = new Label(image_button->GetParent(), _L_CONTEXT(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS"));
         sync_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
         text_sizer->Add(sync_text, 0, wxALIGN_CENTER | wxALL, 0);
         sizer_thumbnail->Add(sync_text, FromDIP(0), wxALIGN_CENTER | wxALL, FromDIP(4));
@@ -550,7 +550,7 @@ void SyncAmsInfoDialog::add_two_image_control()
     m_choose_plate_sizer         = new wxBoxSizer(wxHORIZONTAL);
     m_choose_plate_sizer->AddStretchSpacer();
 
-    wxStaticText *chose_combox_title = new wxStaticText(m_two_thumbnail_panel, wxID_ANY, _CTX(L_CONTEXT("Plate", "Sync_AMS"), "Sync_AMS"));
+    wxStaticText *chose_combox_title = new wxStaticText(m_two_thumbnail_panel, wxID_ANY, _L_CONTEXT(L_CONTEXT("Plate", "Sync_AMS"), "Sync_AMS"));
     m_choose_plate_sizer->Add(chose_combox_title, 0, wxEXPAND | wxTOP, FromDIP(6));
     m_choose_plate_sizer->AddSpacer(FromDIP(10));
 
@@ -2598,7 +2598,7 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
             if (is_first_row) {
                 is_first_row              = false;
                 if (!m_original_in_colormap) {
-                    m_original_in_colormap = new wxStaticText(m_filament_panel, wxID_ANY, _CTX(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS") + ":");
+                    m_original_in_colormap = new wxStaticText(m_filament_panel, wxID_ANY, _L_CONTEXT(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS") + ":");
                     m_original_in_colormap->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
                     m_original_in_colormap->SetFont(::Label::Head_12);
                 }
@@ -2816,7 +2816,7 @@ void SyncAmsInfoDialog::generate_override_fix_ams_list()
             if (is_first_row) {
                 is_first_row   = false;
                 if (!m_original_in_override) {
-                    m_original_in_override = new wxStaticText(m_fix_filament_panel, wxID_ANY, _CTX(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS") + ":");
+                    m_original_in_override = new wxStaticText(m_fix_filament_panel, wxID_ANY, _L_CONTEXT(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS") + ":");
                     m_original_in_override->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
                     m_original_in_override->SetFont(::Label::Head_12);
                 }
@@ -3218,7 +3218,7 @@ SyncNozzleAndAmsDialog::SyncNozzleAndAmsDialog(InputInfo &input_info)
                                                                                             _L("Successfully synchronized nozzle and AMS number information.")
                               ) + "\n\n" + _L("Do you want to continue to sync filaments?"),
                               _L("Yes"), // ORCA use shorter text for buttons
-                              _CTX(L_CONTEXT(_L("No"), "Sync_Nozzle_AMS"), "Sync_Nozzle_AMS"),
+                              _L_CONTEXT(L_CONTEXT(_L("No"), "Sync_Nozzle_AMS"), "Sync_Nozzle_AMS"),
                               DisappearanceMode::TimedDisappearance)
     , m_input_info(input_info)
 {
@@ -3266,7 +3266,7 @@ FinishSyncAmsDialog::FinishSyncAmsDialog(InputInfo &input_info)
                               wxGetApp().app_config->get("sync_ams_filament_mode") == "1" ?
                                   _L("Successfully synchronized filament color from printer.") :
                                   _L("Successfully synchronized color and type of filament from printer."),
-                              _CTX(L_CONTEXT("OK", "FinishSyncAms"), "FinishSyncAms"),
+                              _L_CONTEXT(L_CONTEXT("OK", "FinishSyncAms"), "FinishSyncAms"),
                               "",
                               DisappearanceMode::TimedDisappearance)
     , m_input_info(input_info)
