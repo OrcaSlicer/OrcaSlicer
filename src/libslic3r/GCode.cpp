@@ -2884,6 +2884,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     DoExport::init_gcode_processor(print.config(), m_processor, m_silent_time_estimator_enabled,
                                    print.get_layered_nozzle_group_result());
     const bool is_bbl_printers = print.is_BBL_printer();
+    const bool skip_config_block = print.config().gcode_skip_config_block;
     const WipeTowerType wipe_tower_type = print.wipe_tower_type();
     m_calib_config.clear();
     // resets analyzer's tracking data
@@ -3059,7 +3060,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
       // as configuration key / value pairs to be parsable by older versions of
       // PrusaSlicer G-code viewer.
     {
-        if (is_bbl_printers) {
+        if (is_bbl_printers && !skip_config_block) {
             file.write("; CONFIG_BLOCK_START\n");
             std::string full_config;
             append_full_config(print, full_config);
@@ -4086,23 +4087,25 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 GCodeProcessor::ETags::Estimated_Printing_Time_Placeholder)
             .c_str());
       file.write("\n");
-      file.write("; CONFIG_BLOCK_START\n");
-      std::string full_config;
-      append_full_config(print, full_config);
-      if (!full_config.empty())
-        file.write(full_config);
+      if (!skip_config_block) {
+          file.write("; CONFIG_BLOCK_START\n");
+          std::string full_config;
+          append_full_config(print, full_config);
+          if (!full_config.empty())
+            file.write(full_config);
 
-      // SoftFever: write compatiple info
-      int first_layer_bed_temperature = get_bed_temperature(0, true, print.config().curr_bed_type);
-      file.write_format("; first_layer_bed_temperature = %d\n", first_layer_bed_temperature);
-      file.write_format("; bed_shape = %s\n", print.full_print_config().opt_serialize("printable_area").c_str());
-      file.write_format("; first_layer_temperature = %d\n", print.config().nozzle_temperature_initial_layer.get_at(0));
-      file.write_format("; first_layer_height = %.3f\n", print.config().initial_layer_print_height.value);
-        
-        //SF TODO
-//      file.write_format("; variable_layer_height = %d\n", print.ad.adaptive_layer_height ? 1 : 0);
-   
-      file.write("; CONFIG_BLOCK_END\n\n");
+          // SoftFever: write compatiple info
+          int first_layer_bed_temperature = get_bed_temperature(0, true, print.config().curr_bed_type);
+          file.write_format("; first_layer_bed_temperature = %d\n", first_layer_bed_temperature);
+          file.write_format("; bed_shape = %s\n", print.full_print_config().opt_serialize("printable_area").c_str());
+          file.write_format("; first_layer_temperature = %d\n", print.config().nozzle_temperature_initial_layer.get_at(0));
+          file.write_format("; first_layer_height = %.3f\n", print.config().initial_layer_print_height.value);
+
+            //SF TODO
+//          file.write_format("; variable_layer_height = %d\n", print.ad.adaptive_layer_height ? 1 : 0);
+
+          file.write("; CONFIG_BLOCK_END\n\n");
+      } // !skip_config_block
 
     }
     file.write("\n");

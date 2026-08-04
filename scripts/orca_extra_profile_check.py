@@ -46,12 +46,16 @@ def no_duplicates_object_pairs_hook(pairs):
     return seen
 
 # NOTE: currently Orca expects compatible_printers to be a defined in every instantiation profile, inheritation is not supported in Profile page
-def check_filament_compatible_printers(vendor_folder):
+def check_filament_compatible_printers(vendor, vendor_folder):
     """
     Checks JSON files in the vendor folder for missing or empty 'compatible_printers'
     when 'instantiation' is flagged as true.
 
+    In the OrcaFilamentLibrary 'compatible_printers' is optional: a profile without it is generic and
+    offered on every printer, while a profile that lists printers supersedes the generic one there.
+
     Parameters:
+        vendor (str): The vendor name the folder belongs to.
         vendor_folder (str or Path): The directory to search for JSON profile files.
 
     Returns:
@@ -115,7 +119,7 @@ def check_filament_compatible_printers(vendor_folder):
 
     for profile in profiles.values():
         instantiation = str(profile['content'].get("instantiation", "")).lower() == "true"
-        if instantiation:
+        if instantiation and vendor != 'OrcaFilamentLibrary':
             try:
                 compatible_printers = get_property(profile, "compatible_printers")
                 if not compatible_printers or (isinstance(compatible_printers, list) and not compatible_printers):
@@ -571,7 +575,7 @@ def main():
         vendor_path = profiles_dir / vendor_name
 
         if args.check_filaments or not (args.check_materials and not args.check_filaments):
-            errors_found += check_filament_compatible_printers(vendor_path / "filament")
+            errors_found += check_filament_compatible_printers(vendor_name, vendor_path / "filament")
 
         if args.check_materials:
             new_errors, new_warnings = check_machine_default_materials(profiles_dir, vendor_name)
