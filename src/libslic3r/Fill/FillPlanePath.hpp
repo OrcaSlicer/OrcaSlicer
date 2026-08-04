@@ -53,6 +53,11 @@ protected:
     friend class InfillPolylineClipper;
     
     virtual void generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution, InfillPolylineOutput &output) = 0;
+    virtual void generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution,
+                                      const FillParams & /* params */, InfillPolylineOutput &output)
+    {
+        this->generate(min_x, min_y, max_x, max_y, resolution, output);
+    }
 };
 
 class FillArchimedeanChords : public FillPlanePath
@@ -75,6 +80,8 @@ public:
 protected:
     bool centered() const override { return false; }
     void generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution, InfillPolylineOutput &output) override;
+    void generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution,
+                              const FillParams &params, InfillPolylineOutput &output) override;
 };
 
 class FillOctagramSpiral : public FillPlanePath

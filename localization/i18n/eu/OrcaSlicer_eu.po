@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -3723,6 +3723,10 @@ msgstr "Antolatzen..."
 
 msgid "Arranging"
 msgstr "Antolaketa"
+
+# AI Translated
+msgid "Arranging "
+msgstr "Antolatzen "
 
 msgid "Arranging canceled."
 msgstr "Antolaketa bertan behera utzi da."
@@ -8999,6 +9003,21 @@ msgstr "Ilundu beheko geruzak"
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "Xerratutako aurrebistan geruza-graduatzailea mugitzean, unekoaren azpiko geruzak ilunduta erakusten ditu, ikusten ari den geruza soilik distira osoz ager dadin."
 
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Ilundutako geruzen distira"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"\"Ilundu beheko geruzak\" gaituta dagoenean ilundutako geruzak zein distiratsu marrazten diren.\n"
+"%99 balioak ozta-ozta iluntzen ditu, %0 balioak beltz bihurtzen ditu. Gehienez %99 onartzen da, %100 balioak aukera desgaitzearen gauza bera egingo bailuke."
+
 msgid "Login region"
 msgstr "Saio-hasierako eskualdea"
 
@@ -12992,11 +13011,36 @@ msgstr "Objektuka"
 msgid "Intra-layer order"
 msgstr "Geruza barruko ordena"
 
-msgid "Print order within a single layer."
-msgstr "Geruza bakarreko inprimatze-ordena."
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"Geruza bakar baten barruan objektu-instantziak zein ordenatan bisitatzen diren; horrek zehazten du zenbat desplazamendu behar den haien artean mugitzeko.\n"
+"\n"
+"Lehenetsia: auzokide hurbilenaren araberako kateaketa, 2-opt bidez eta gurutzaketak kenduz findua. Aukera orokor ona.\n"
+"Objektu-zerrenda bezala: instantziak objektu-zerrendaren ordena berean inprimatzen dira, ibilbidea batere optimizatu gabe. Erabili ordena aurreikusgarri eta eskuz kontrolatu bat behar duzunean.\n"
+"Guztien onena (ibilbide laburrena): estrategia guztiak ebaluatzen dira eta laburrena erabiltzen da. Objektu-instantzien ordena behin erabakitzen da inprimaketa osorako, eta uharte bakoitzaren ordena geruzaz geruza erabakitzen da; beraz, geruza desberdinek estrategia desberdinak erabil ditzakete. Xerratzea apur bat motelagoa da.\n"
+"Sigi-saga: errenkadaz errenkadako sigi-saga ibilbidea, 2-opt bidez findua. Oso egokia pieza txiki askoren sareta erregularretarako.\n"
+"\n"
+"Geruza berean filamentu edo tresna bat baino gehiago daudenean, tresna-aldaketak gutxitzeak du lehentasuna: objektuak filamentuaren arabera multzokatzen dira lehenik, eta ezarpen honek filamentu-multzo bakoitzaren barruko instantziak baino ez ditu ordenatzen; beraz, baliteke sekuentzia orokorrak plaka osoko ibilbide laburrenaren itxurarik ez izatea."
 
 msgid "As object list"
 msgstr "Objektu-zerrenda bezala"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "Guztien onena (ibilbide laburrena)"
+
+# AI Translated
+msgid "Snake"
+msgstr "Sigi-saga"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "Moteldu inprimaketa geruza hobeto hozteko"
@@ -18269,6 +18313,20 @@ msgstr ""
 "Hainbat IP helbide ebazten dira %1% ostalari-izenerako.\n"
 "Hautatu erabili beharrekoa."
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "Eskalatze automatikoa pitarako"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"Modelo hau 0,4 mm-ko pita eta 0,2 mm-ko geruza-altuera kontuan hartuta diseinatu da. \n"
+"Eskalatze-aukera gaituta dagoenean (gomendatua), tamaina dinamikoki egokitzen zaie zure uneko pita-diametroari eta geruza-altuera egoki bati, testa zehatza eta irakurterraza izan dadin.\n"
+"Itzali eskalatzea erreferentzia-modeloa dagoen-dagoenean inprimatu nahi baduzu bakarrik."
+
 msgid "PA Calibration"
 msgstr "PA kalibrazioa"
 
@@ -18406,6 +18464,14 @@ msgstr "Hasierako abiadura: "
 msgid "End speed: "
 msgstr "Amaierako abiadura: "
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "Doikuntza automatikoa abiadura bolumetriko maximora"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "Amaierako abiadurak filamentuaren abiadura bolumetriko maximoa gaindituko balu, geruza-altuera automatikoki jaisten da (balio estandarrak mantenduz eta makinaren mugen barruan) hura lortzeko. Gutxieneko geruza-altuerarekin ere nahikoa ez bada, amaierako abiadura jaisten da haren ordez."
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -18416,6 +18482,57 @@ msgstr ""
 "hasiera > 10\n"
 "urratsa >= 0\n"
 "amaiera > hasiera + urratsa"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"Amaierako abiadurak (%.0f mm/s) filamentuaren abiadura bolumetriko maximoa (%.1f mm³/s) gainditzen du, eta horrek kanpoko horma gutxi gorabehera %.0f mm/s-ra mugatzen du lerro-zabalera eta geruza-altuera honekin.\n"
+" Horren gaineko abiadurak mugatu egingo dira, beraz dorrearen goiko blokeak ez dira eskatutako abiaduran inprimatuko.\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"Amaierako abiadurak (%.0f mm/s) filamentuaren abiadura bolumetriko maximoa (%.1f mm³/s) gainditzen du geruza-altuera lehenetsian (%.2f mm).\n"
+"\n"
+"Geruza-altuera %.2f mm-ra jaitsi da (inprimagailu honen aurrezarpenek erabiltzen duten balio bat), dorreak eskatutako abiadura lor dezan."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"Inprimagailu honen aurrezarpenek erabiltzen duten geruza-altuera txikienarekin ere (%.2f mm), amaierako abiadurak (%.0f mm/s) filamentuaren abiadura bolumetriko maximoa (%.1f mm³/s) gainditzen du.\n"
+"\n"
+"Geruza-altuera %.2f mm-ra ezarriko da eta amaierako abiadura %.0f mm/s-ra jaitsiko da.\n"
+"\n"
+"Jarraitu?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "Hala ere jarraitu?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Gaitu \"Doikuntza automatikoa\" hau automatikoki konpontzeko, edo hala ere jarraitu?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Gaitu \"Eskalatze automatikoa pitarako\" eta \"Doikuntza automatikoa\" hau automatikoki konpontzeko, edo hala ere jarraitu?"
 
 msgid "Start retraction length: "
 msgstr "Hasierako atzera-egite luzera: "
@@ -20899,6 +21016,9 @@ msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "Geruza bakarreko inprimatze-ordena."
+
 #~ msgid "Bottom"
 #~ msgstr "Behekoa"
 
@@ -21027,9 +21147,6 @@ msgstr ""
 
 #~ msgid "°"
 #~ msgstr "°"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgid "uniform scale"
 #~ msgstr "eskala uniformea"

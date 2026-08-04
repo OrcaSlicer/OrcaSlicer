@@ -310,6 +310,7 @@ void PluginManager::merge_discovered_plugins(std::vector<PluginDescriptor> disco
             }
 
             seen.push_back(descriptor.plugin_key);
+            m_missing_plugin_keys.erase(descriptor.plugin_key);
 
             Plugin* existing = find_plugin_locked(descriptor.plugin_key);
             if (existing == nullptr) {
@@ -330,12 +331,47 @@ void PluginManager::merge_discovered_plugins(std::vector<PluginDescriptor> disco
             return;
     }
 
-    // Unloading may call Python and lifecycle subscribers may re-enter the manager, so never do it
-    // while holding m_mutex. unload_and_erase_if() retries until no matching entry is loaded at the
-    // moment of erase, in case another caller starts a load between the initial snapshot and the
-    // teardown.
-    unload_and_erase_if(
-        [&seen](const Plugin& plugin) { return std::find(seen.begin(), seen.end(), plugin.descriptor.plugin_key) == seen.end(); });
+    // A package can be temporarily absent while an external side-loader replaces it. Keep the
+    // descriptor and its persisted enable state until the user explicitly removes the missing
+    // entry, or a later scan rediscovers it. In particular, do not unload here: the unload callback
+    // would turn a transient filesystem gap into enabled=false in the sidecar.
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        for (const Plugin& plugin : m_plugins) {
+            if (plugin.descriptor.has_local_package() &&
+                std::find(seen.begin(), seen.end(), plugin.descriptor.plugin_key) == seen.end())
+                m_missing_plugin_keys.insert(plugin.descriptor.plugin_key);
+        }
+    }
+}
+
+std::vector<PluginDescriptor> PluginManager::get_missing_plugin_descriptors() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    std::vector<PluginDescriptor> result;
+    result.reserve(m_missing_plugin_keys.size());
+    for (const Plugin& plugin : m_plugins)
+        if (m_missing_plugin_keys.count(plugin.descriptor.plugin_key) != 0)
+            result.push_back(plugin.descriptor);
+    return result;
+}
+
+void PluginManager::remove_missing_plugins(const std::vector<std::string>& plugin_keys)
+{
+    const std::unordered_set<std::string> requested(plugin_keys.begin(), plugin_keys.end());
+
+    // The predicate is evaluated only while m_mutex is held by unload_and_erase_if(). Checking the
+    // current missing set here prevents a package that reappeared between the dialog and removal
+    // from being erased.
+    unload_and_erase_if([this, &requested](const Plugin& plugin) {
+        return requested.count(plugin.descriptor.plugin_key) != 0 &&
+               m_missing_plugin_keys.count(plugin.descriptor.plugin_key) != 0;
+    });
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    for (const std::string& plugin_key : requested)
+        m_missing_plugin_keys.erase(plugin_key);
 }
 
 void PluginManager::unload_and_erase_if(const std::function<bool(const Plugin&)>& should_remove,
@@ -1422,7 +1458,8 @@ void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_f
 
     std::vector<PluginDescriptor> cloud_list{};
     std::vector<std::string> not_found{}, unauthorized{};
-    if (!m_cloud_service.fetch_manifests_into_descriptors(cloud_list, not_found, unauthorized)) {
+    const bool cloud_fetch_succeeded = m_cloud_service.fetch_manifests_into_descriptors(cloud_list, not_found, unauthorized);
+    if (!cloud_fetch_succeeded) {
         if (wxTheApp != nullptr) {
             GUI::wxGetApp().CallAfter([] {
                 if (GUI::wxGetApp().is_closing())
@@ -1437,9 +1474,10 @@ void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_f
         }
     }
 
-    update_cloud_metadata(cloud_list);
+    if (cloud_fetch_succeeded)
+        update_cloud_metadata(cloud_list);
 
-    {
+    if (cloud_fetch_succeeded) {
         std::lock_guard<std::mutex> lock(m_mutex);
 
         // Clear the previous cloud verdicts before re-applying the fresh ones.
@@ -1448,19 +1486,28 @@ void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_f
             if (!entry.is_cloud_plugin())
                 continue;
             entry.set_unauthorized(false);
+            if (entry.cloud.has_value())
+                entry.cloud->orphaned = false;
             if (entry.normalized_error() == CLOUD_PLUGIN_NOT_FOUND_ERROR)
                 entry.clear_error();
         }
 
-        for (const std::string& uuid : not_found) {
-            for (Plugin& plugin : m_plugins) {
-                PluginDescriptor& entry = plugin.descriptor;
-                if (!entry.is_cloud_plugin() || entry.cloud_uuid() != uuid)
-                    continue;
-                if (!entry.has_local_package())
-                    entry.set_error(CLOUD_PLUGIN_NOT_FOUND_ERROR);
-                break;
-            }
+        // A successful subscriptions response may report missing UUIDs explicitly, or it may
+        // simply omit an unsubscribed plugin from `data`. Both cases leave a locally retained
+        // cloud package orphaned. Owned plugins are returned by the separate mine endpoint and
+        // must not be orphaned merely because they are not subscribed.
+        for (Plugin& plugin : m_plugins) {
+            PluginDescriptor& entry = plugin.descriptor;
+            if (!entry.is_cloud_plugin() || entry.cloud->is_mine)
+                continue;
+
+            const bool explicitly_not_found = std::find(not_found.begin(), not_found.end(), entry.cloud_uuid()) != not_found.end();
+            const bool returned_by_cloud = std::any_of(cloud_list.begin(), cloud_list.end(), [&entry](const PluginDescriptor& cloud_entry) {
+                return cloud_entry.cloud_uuid() == entry.cloud_uuid();
+            });
+            entry.cloud->orphaned = explicitly_not_found || !returned_by_cloud;
+            if (entry.cloud->orphaned)
+                entry.cloud->update_available = false;
         }
 
         for (const std::string& uuid : unauthorized) {

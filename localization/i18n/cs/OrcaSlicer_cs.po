@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -3887,6 +3887,10 @@ msgstr "Uspořádání..."
 
 msgid "Arranging"
 msgstr "Uspořádání"
+
+# AI Translated
+msgid "Arranging "
+msgstr "Rozkládání "
 
 msgid "Arranging canceled."
 msgstr "Uspořádání zrušeno."
@@ -9305,6 +9309,21 @@ msgstr "Ztmavit nižší vrstvy"
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "Při posouvání posuvníku vrstev v náhledu po slicování vykresluje vrstvy pod aktuální ztmavené, takže v plném jasu je zobrazena pouze prohlížená vrstva."
 
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Jas ztmavených vrstev"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"Jak jasně se vykreslují ztmavené vrstvy, když je zapnuta volba „Ztmavit nižší vrstvy“.\n"
+"99 % znamená sotva znatelné ztmavení, 0 % je vykreslí černě. Maximum je 99 %, protože 100 % by odpovídalo vypnutí této volby."
+
 msgid "Login region"
 msgstr "Oblast přihlášení"
 
@@ -13475,11 +13494,36 @@ msgstr "Podle objektu"
 msgid "Intra-layer order"
 msgstr "Pořadí v rámci vrstvy"
 
-msgid "Print order within a single layer."
-msgstr "Pořadí tisku v rámci jedné vrstvy."
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"Pořadí, v jakém se v rámci jedné vrstvy navštěvují instance objektů; určuje, kolik přejezdů se stráví přesuny mezi nimi.\n"
+"\n"
+"Výchozí: řetězení metodou nejbližšího souseda, doladěné algoritmem 2-opt a odstraněním křížení. Dobrá volba pro obecné použití.\n"
+"Jako seznam objektů: instance se tisknou ve stejném pořadí jako v seznamu objektů, bez jakékoli optimalizace dráhy. Použijte, když potřebujete předvídatelné, ručně řízené pořadí.\n"
+"Nejlepší ze všech (nejkratší dráha): vyhodnotí se všechny strategie a použije se ta nejkratší. Pořadí instancí objektů se určí jednou pro celý tisk, zatímco pořadí jednotlivých ostrůvků se určuje pro každou vrstvu zvlášť, takže různé vrstvy mohou nakonec používat různé strategie. Slicování je mírně pomalejší.\n"
+"Hadovitě: klikaté procházení řádek po řádku, doladěné algoritmem 2-opt. Vhodné pro pravidelné mřížky mnoha malých dílů.\n"
+"\n"
+"Pokud je v téže vrstvě více filamentů nebo nástrojů, má přednost minimalizace výměn nástroje: objekty se nejprve seskupí podle filamentu a toto nastavení pak řadí pouze instance uvnitř každé skupiny, takže celková posloupnost nemusí vypadat jako nejkratší dráha po desce."
 
 msgid "As object list"
 msgstr "Jako seznam objektů"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "Nejlepší ze všech (nejkratší dráha)"
+
+# AI Translated
+msgid "Snake"
+msgstr "Hadovitě"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "Zpomalit tisk pro lepší chlazení vrstvy"
@@ -18850,6 +18894,20 @@ msgstr ""
 "Ke jménu hostitele %1% je přiřazeno několik IP adres.\n"
 "Vyberte prosím jednu, která má být použita."
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "Automatické měřítko podle trysky"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"Tento model je navržen pro trysku 0,4 mm a výšku vrstvy 0,2 mm. \n"
+"Je-li volba změny měřítka zapnuta (doporučeno), model se dynamicky přizpůsobí průměru vaší současné trysky a odpovídající výšce vrstvy, takže je test přesný a dobře čitelný.\n"
+"Měřítko vypněte pouze tehdy, chcete-li vytisknout referenční model přesně tak, jak je."
+
 msgid "PA Calibration"
 msgstr "PA kalibrace"
 
@@ -18988,6 +19046,14 @@ msgstr "Počáteční rychlost: "
 msgid "End speed: "
 msgstr "Konec rychlosti: "
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "Automaticky přizpůsobit maximální objemové rychlosti"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "Pokud by koncová rychlost překročila maximální objemovou rychlost filamentu, automaticky snížit výšku vrstvy (se zachováním standardních hodnot a v rámci limitů stroje), aby jí bylo možné dosáhnout. Pokud nestačí ani minimální výška vrstvy, sníží se místo toho koncová rychlost."
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -18998,6 +19064,57 @@ msgstr ""
 "start > 10\n"
 "krok >= 0\n"
 "konec > start + krok"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"Koncová rychlost (%.0f mm/s) překračuje maximální objemovou rychlost filamentu (%.1f mm³/s), která při této šířce čáry a výšce vrstvy omezuje vnější stěnu na přibližně %.0f mm/s.\n"
+" Vyšší rychlosti budou oříznuty, takže horní bloky věže se nevytisknou požadovanou rychlostí.\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"Koncová rychlost (%.0f mm/s) překračuje maximální objemovou rychlost filamentu (%.1f mm³/s) při výchozí výšce vrstvy (%.2f mm).\n"
+"\n"
+"Výška vrstvy byla snížena na %.2f mm (hodnota používaná profily této tiskárny), aby věž mohla dosáhnout požadované rychlosti."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"I při nejmenší výšce vrstvy používané profily této tiskárny (%.2f mm) koncová rychlost (%.0f mm/s) překračuje maximální objemovou rychlost filamentu (%.1f mm³/s).\n"
+"\n"
+"Výška vrstvy bude nastavena na %.2f mm a koncová rychlost snížena na %.0f mm/s.\n"
+"\n"
+"Pokračovat?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "Přesto pokračovat?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Zapnout „Automaticky přizpůsobit“ pro automatickou nápravu, nebo přesto pokračovat?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Zapnout „Automatické měřítko podle trysky“ a „Automaticky přizpůsobit“ pro automatickou nápravu, nebo přesto pokračovat?"
 
 msgid "Start retraction length: "
 msgstr "Počáteční délka retrakce: "
@@ -21756,6 +21873,9 @@ msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "Pořadí tisku v rámci jedné vrstvy."
+
 #~ msgid "Bottom"
 #~ msgstr "Dole"
 
@@ -21823,9 +21943,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "°C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgid "Align infill direction to model"
 #~ msgstr "Zarovnat směr výplně podle modelu"

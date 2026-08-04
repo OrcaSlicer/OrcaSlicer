@@ -589,6 +589,7 @@ private:
     bool m_toolpath_outside{ false };
     ECursorType m_cursor_type;
     GLSelectionRectangle m_rectangle_selection;
+    bool m_navigator_dragging{ false };
 
     //BBS:add plate related logic
     mutable std::vector<int> m_hover_volume_idxs;
@@ -916,6 +917,7 @@ public:
     void update_volumes_colors_by_extruder();
 
     bool is_dragging() const { return m_gizmos.is_dragging() || m_moving; }
+    bool has_mouse_capture() const;
 
     void render(bool only_init = false);
     bool is_rendering_enabled()
@@ -1117,6 +1119,10 @@ public:
 
     void set_mouse_as_dragging() { m_mouse.dragging = true; }
     bool is_mouse_dragging() const { return m_mouse.dragging; }
+    // True when the current left up event comes from an ImGui window and was not processed by it
+    // (e.g. a drag that started on a gizmo floating window and was released over the 3D scene).
+    // Such a release is the end of an ImGui interaction, not a click on the scene.
+    bool is_mouse_left_up_ignored() const { return m_mouse.ignore_left_up; }
 
     double get_size_proportional_to_max_bed_size(double factor) const;
 

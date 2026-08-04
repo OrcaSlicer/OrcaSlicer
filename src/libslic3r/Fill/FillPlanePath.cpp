@@ -114,12 +114,12 @@ void FillPlanePath::_fill_surface_single(
             // Filling in a bounding box over the whole object, clip generated polyline against the snug bounding box.
             snug_bounding_box.translate(-shift.x(), -shift.y());
             InfillPolylineClipper output(snug_bounding_box, distance_between_lines);
-            this->generate(min_x, min_y, max_x, max_y, resolution, output);
+            this->generate(min_x, min_y, max_x, max_y, resolution, params, output);
             polyline.points = std::move(output.result());
         } else {
             // Filling in a snug bounding box, no need to clip.
             InfillPolylineOutput output(distance_between_lines);
-            this->generate(min_x, min_y, max_x, max_y, resolution, output);
+            this->generate(min_x, min_y, max_x, max_y, resolution, params, output);
             polyline.points = std::move(output.result());
         }
     }
@@ -288,12 +288,171 @@ static void generate_hilbert_curve(coord_t min_x, coord_t min_y, coord_t max_x, 
     }
 }
 
+using QuinticBezier = std::array<Vec2d, 6>;
+
+static bool is_bezier_flat(const QuinticBezier &curve, const double deviation)
+{
+    // A Bezier curve stays inside the convex hull of its control points. Therefore, keeping every
+    // control point within a deviation-wide strip around the endpoint chord conservatively bounds the
+    // flattening error. The cross product is the perpendicular distance scaled by the chord length;
+    // comparing squared values avoids a square root.
+    const Vec2d  chord           = curve.back() - curve.front();
+    const double chord_length_sq = chord.squaredNorm();
+    const double max_cross_sq    = deviation * deviation * chord_length_sq;
+
+    for (size_t i = 1; i + 1 < curve.size(); ++i) {
+        const Vec2d  offset = curve[i] - curve.front();
+        const double cross  = chord.x() * offset.y() - chord.y() * offset.x();
+        if (cross * cross > max_cross_sq)
+            return false;
+    }
+    return true;
+}
+
+static void subdivide_bezier(const QuinticBezier &curve, QuinticBezier &left, QuinticBezier &right)
+{
+    // Split the curve at t = 0.5 using de Casteljau's algorithm. Each averaging level contributes one
+    // control point to the left half and one to the right half; the latter is filled backwards to keep
+    // both resulting control polygons in their original parameter direction.
+    QuinticBezier subdivision = curve;
+    left.front() = subdivision.front();
+    right.back() = subdivision.back();
+    for (size_t level = 1; level < curve.size(); ++level) {
+        for (size_t i = 0; i + level < curve.size(); ++i)
+            subdivision[i] = 0.5 * (subdivision[i] + subdivision[i + 1]);
+        left[level] = subdivision.front();
+        right[curve.size() - level - 1] = subdivision[curve.size() - level - 1];
+    }
+}
+
+static void flatten_bezier(const QuinticBezier &curve, const double deviation, std::vector<Vec2d> &output)
+{
+    // Subdivide to at least depth 1 so a rounded corner cannot collapse to a single diagonal chord.
+    // A uniform subdivision depth keeps samples at equal parameter intervals t = k / 2^depth,
+    // avoiding abrupt segment-length jumps at adaptive-depth boundaries.
+    static constexpr size_t max_depth = 16;
+
+    std::vector<QuinticBezier> subcurves(2);
+    subdivide_bezier(curve, subcurves[0], subcurves[1]);
+
+    for (size_t depth = 1; depth < max_depth; ++depth) {
+        bool all_flat = true;
+        for (const QuinticBezier &c : subcurves)
+            if (!is_bezier_flat(c, deviation)) {
+                all_flat = false;
+                break;
+            }
+        if (all_flat)
+            break;
+        std::vector<QuinticBezier> finer(subcurves.size() * 2);
+        for (size_t i = 0; i < subcurves.size(); ++i)
+            subdivide_bezier(subcurves[i], finer[i * 2], finer[i * 2 + 1]);
+        subcurves = std::move(finer);
+    }
+
+    // The curve start is deliberately omitted so consecutive curve pieces can share it without duplication.
+    output.reserve(output.size() + subcurves.size());
+    for (const QuinticBezier &c : subcurves)
+        output.emplace_back(c.back());
+}
+
+template<typename Output>
+static void generate_smooth_hilbert_curve(
+    coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution,
+    const double corner_distance, Output &output)
+{
+    // A Hilbert curve is defined on a square grid whose side is a power of two. As in the unsmoothed
+    // generator, expand the larger requested dimension to the next valid Hilbert grid size. The output
+    // clipper or the later region intersection removes the padded part of the traversal.
+    size_t sz = 2;
+    const size_t sz0 = std::max(max_x + 1 - min_x, max_y + 1 - min_y);
+    while (sz < sz0)
+        sz <<= 1;
+
+    const size_t point_count = sz * sz;
+    output.reserve(point_count);
+
+    // The caller normalizes resolution to the unit Hilbert grid; retain a finite positive tolerance
+    // if this helper is invoked with an invalid resolution.
+    const double deviation = resolution > 0. && std::isfinite(resolution) ? resolution : EPSILON;
+    // Construct one canonical 90-degree corner from (-corner_distance, 0) to (0, corner_distance).
+    // At each end, the first three control points are collinear and equally spaced: the tangent follows
+    // the adjoining straight leg and the second derivative is zero. The endpoint curvature is therefore
+    // zero, giving G2 joins to both legs. Every Hilbert turn is an oriented copy of this curve, so flatten
+    // it only once to the requested chordal-deviation tolerance.
+    const QuinticBezier corner_curve {{
+        {-corner_distance, 0.}, {-0.7 * corner_distance, 0.}, {-0.4 * corner_distance, 0.},
+        {0., 0.4 * corner_distance}, {0., 0.7 * corner_distance}, {0., corner_distance}
+    }};
+    std::vector<Vec2d> curve_coefficients;
+    flatten_bezier(corner_curve, deviation, curve_coefficients);
+
+    auto translated_point = [min_x, min_y](size_t idx) {
+        Point p = hilbert_n_to_xy(idx);
+        return Point(p.x() + min_x, p.y() + min_y);
+    };
+    auto to_vec2d = [](const Point &p) { return Vec2d(double(p.x()), double(p.y())); };
+    bool has_last_output = false;
+    Vec2d last_output;
+    // Fully smoothed adjacent corners may meet at the same segment midpoint. Suppress such duplicates
+    // to avoid emitting zero-length extrusion segments.
+    auto add_point = [&output, &has_last_output, &last_output](const Vec2d &point) {
+        if (!has_last_output || point.x() != last_output.x() || point.y() != last_output.y()) {
+            output.add_point(point);
+            last_output     = point;
+            has_last_output = true;
+        }
+    };
+
+    Vec2d previous = to_vec2d(translated_point(0));
+    Vec2d corner   = to_vec2d(translated_point(1));
+    add_point(previous);
+    // Replace each non-collinear Hilbert vertex by the canonical curve expressed in the local basis of
+    // its incoming and outgoing unit vectors. Collinear vertices remain part of the straight polyline.
+    for (size_t i = 1; i + 1 < point_count; ++i) {
+        const Vec2d next     = to_vec2d(translated_point(i + 1));
+        const Vec2d incoming = (corner - previous).normalized();
+        const Vec2d outgoing = (next - corner).normalized();
+        const double cross   = incoming.x() * outgoing.y() - incoming.y() * outgoing.x();
+
+        if (std::abs(cross) < EPSILON) {
+            add_point(corner);
+        } else {
+            add_point(corner - corner_distance * incoming);
+            for (const Vec2d &coefficient : curve_coefficients)
+                add_point(corner + coefficient.x() * incoming + coefficient.y() * outgoing);
+        }
+
+        previous = corner;
+        corner   = next;
+    }
+    add_point(corner);
+}
+
 void FillHilbertCurve::generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double /* resolution */, InfillPolylineOutput &output)
 {
     if (output.clips())
         generate_hilbert_curve(min_x, min_y, max_x, max_y, static_cast<InfillPolylineClipper&>(output));
     else
         generate_hilbert_curve(min_x, min_y, max_x, max_y, output);
+}
+
+void FillHilbertCurve::generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution,
+    const FillParams &params, InfillPolylineOutput &output)
+{
+    const double smooth_factor = std::isfinite(params.smooth_factor) ?
+        std::clamp(params.smooth_factor, 0., 1.) : 0.;
+    if (smooth_factor == 0.) {
+        this->generate(min_x, min_y, max_x, max_y, resolution, output);
+        return;
+    }
+
+    const double corner_distance = 0.5 * smooth_factor;
+    if (output.clips())
+        generate_smooth_hilbert_curve(
+            min_x, min_y, max_x, max_y, resolution, corner_distance, static_cast<InfillPolylineClipper&>(output));
+    else
+        generate_smooth_hilbert_curve(min_x, min_y, max_x, max_y, resolution, corner_distance, output);
 }
 
 template<typename Output>

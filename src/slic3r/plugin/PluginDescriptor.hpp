@@ -20,6 +20,7 @@ struct CloudPluginState
     bool update_available = false; // Cloud version > the local package version.
     bool unauthorized     = false; // Cloud plugin is valid locally, but cannot receive cloud updates.
     bool is_mine          = false; // Plugin was created (and uploaded) by the current user.
+    bool orphaned         = false; // Cloud identity remains locally, but the plugin is no longer subscribed/available.
 };
 
 enum class PluginUpdateStatus
@@ -105,6 +106,8 @@ struct PluginDescriptor
     PluginUpdateStatus get_update_status() const
     {
         if (!cloud.has_value())
+            return PluginUpdateStatus::Normal;
+        if (cloud->orphaned)
             return PluginUpdateStatus::Normal;
         if (cloud->unauthorized)
             return PluginUpdateStatus::Unauthorized;

@@ -1450,8 +1450,8 @@ void GCodeProcessor::run_post_process()
     // flag) runs none of this. It is pure data construction — it only fills m_filament_blocks /
     // m_extruder_blocks / m_machine_*_gcode_*_line_id and never touches the exported g-code, so even
     // the enable_pre_heating fleet stays byte-identical (nothing reads the blocks until the injection
-    // pass). In practice it also stays empty/degenerate today because no template/code yet emits the
-    // MACHINE_*_GCODE_* / NOZZLE_CHANGE_* / CP_TOOLCHANGE_WIPE markers it keys off.
+    // pass). The wipe tower emits the NOZZLE_CHANGE_* (ramming) and CP_TOOLCHANGE_WIPE markers this
+    // builder keys off; the MACHINE_*_GCODE_* markers come from the machine g-code templates.
     m_filament_blocks.clear();
     m_extruder_blocks.clear();
     m_machine_start_gcode_end_line_id = (unsigned int) (-1);
@@ -5926,8 +5926,11 @@ void GCodeProcessor::process_G10(const GCodeReader::GCodeLine& line)
     GCodeReader::GCodeLine g10;
     g10.set(Axis::E, -this->m_parser.config().retraction_length.get_at(m_extruder_id));
     g10.set(Axis::F,  this->m_parser.config().retraction_speed.get_at(m_extruder_id) * 60);
+    //Orca: Firmware retract emulation must not change the modal G1 feedrate.
+    const float feedrate = m_feedrate;
     --m_g1_line_id;
     process_G1(g10);
+    m_feedrate = feedrate;
 }
 
 void GCodeProcessor::process_G11(const GCodeReader::GCodeLine& line)
@@ -5936,8 +5939,11 @@ void GCodeProcessor::process_G11(const GCodeReader::GCodeLine& line)
     GCodeReader::GCodeLine g11;
     g11.set(Axis::E, this->m_parser.config().retraction_length.get_at(m_extruder_id) + this->m_parser.config().retract_restart_extra.get_at(m_extruder_id));
     g11.set(Axis::F, this->m_parser.config().deretraction_speed.get_at(m_extruder_id) * 60);
+    // Orca: Firmware unretract emulation must not change the modal G1 feedrate.
+    const float feedrate = m_feedrate;
     --m_g1_line_id;
     process_G1(g11);
+    m_feedrate = feedrate;
 }
 
 void GCodeProcessor::process_G20(const GCodeReader::GCodeLine& line)

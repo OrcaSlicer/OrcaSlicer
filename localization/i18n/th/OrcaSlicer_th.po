@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -3833,6 +3833,10 @@ msgstr "กำลังจัด..."
 
 msgid "Arranging"
 msgstr "การจัด"
+
+# AI Translated
+msgid "Arranging "
+msgstr "กำลังจัด "
 
 msgid "Arranging canceled."
 msgstr "ยกเลิกการจัดเตรียมแล้ว"
@@ -9156,6 +9160,21 @@ msgstr "หรี่เลเยอร์ด้านล่าง"
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "เมื่อเลื่อนแถบเลเยอร์ในตัวอย่างที่สไลซ์แล้ว จะแสดงเลเยอร์ที่อยู่ต่ำกว่าเลเยอร์ปัจจุบันแบบมืดลง เพื่อให้เห็นเฉพาะเลเยอร์ที่กำลังดูอยู่ด้วยความสว่างเต็มที่"
 
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "ความสว่างของเลเยอร์ที่หรี่"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"ความสว่างในการแสดงผลของเลเยอร์ที่ถูกหรี่ เมื่อเปิดใช้งาน \"หรี่เลเยอร์ด้านล่าง\"\n"
+"99% คือหรี่ลงเพียงเล็กน้อย ส่วน 0% จะแสดงเป็นสีดำ ค่าสูงสุดถูกจำกัดไว้ที่ 99% เพราะ 100% จะให้ผลเหมือนกับการปิดตัวเลือกนี้"
+
 msgid "Login region"
 msgstr "เข้าสู่ระบบภูมิภาค"
 
@@ -13190,11 +13209,36 @@ msgstr "ตามวัตถุ"
 msgid "Intra-layer order"
 msgstr "คำสั่งภายในชั้น"
 
-msgid "Print order within a single layer."
-msgstr "สั่งพิมพ์ภายในชั้นเดียว"
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"ลำดับการเข้าถึงอินสแตนซ์ของวัตถุภายในเลเยอร์เดียวกัน ซึ่งกำหนดว่าต้องเดินหัวเปล่าระหว่างกันมากเพียงใด\n"
+"\n"
+"ค่าเริ่มต้น: การเชื่อมต่อแบบเพื่อนบ้านที่ใกล้ที่สุด ปรับปรุงด้วย 2-opt และการกำจัดเส้นทางที่ตัดกัน เป็นตัวเลือกทั่วไปที่ดี\n"
+"เป็นรายการวัตถุ: พิมพ์อินสแตนซ์ตามลำดับเดียวกับรายการวัตถุ โดยไม่มีการปรับปรุงเส้นทางใด ๆ ใช้เมื่อคุณต้องการลำดับที่คาดเดาได้และควบคุมเองได้\n"
+"ดีที่สุดจากทั้งหมด (เส้นทางสั้นที่สุด): จะประเมินทุกกลยุทธ์แล้วเลือกใช้กลยุทธ์ที่สั้นที่สุด ลำดับอินสแตนซ์ของวัตถุจะถูกกำหนดครั้งเดียวสำหรับทั้งงานพิมพ์ ส่วนลำดับของแต่ละเกาะจะถูกกำหนดแยกในแต่ละเลเยอร์ ดังนั้นเลเยอร์ต่าง ๆ อาจใช้กลยุทธ์ที่ต่างกัน สไลซ์ช้าลงเล็กน้อย\n"
+"แบบงูเลื้อย: การไล่ทีละแถวแบบงูเลื้อย ปรับปรุงด้วย 2-opt เหมาะกับกริดที่เป็นระเบียบของชิ้นงานเล็ก ๆ จำนวนมาก\n"
+"\n"
+"เมื่อมีเส้นพลาสติกหรือหัวพิมพ์หลายชนิดในเลเยอร์เดียวกัน การลดจำนวนการเปลี่ยนหัวพิมพ์จะมีความสำคัญก่อน โดยวัตถุจะถูกจัดกลุ่มตามเส้นพลาสติกก่อน และการตั้งค่านี้จะจัดลำดับเฉพาะอินสแตนซ์ภายในแต่ละกลุ่มเส้นพลาสติกเท่านั้น ลำดับโดยรวมจึงอาจดูไม่เหมือนเส้นทางที่สั้นที่สุดบนฐานพิมพ์"
 
 msgid "As object list"
 msgstr "เป็นรายการวัตถุ"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "ดีที่สุดจากทั้งหมด (เส้นทางสั้นที่สุด)"
+
+# AI Translated
+msgid "Snake"
+msgstr "แบบงูเลื้อย"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "ชะลอการพิมพ์ลงเพื่อการระบายความร้อนที่ดีขึ้น"
@@ -18524,6 +18568,20 @@ msgstr ""
 "มีที่อยู่ IP หลายแห่งที่ใช้ชื่อโฮสต์ %1%\n"
 "โปรดเลือกอันที่ควรใช้"
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "ปรับขนาดอัตโนมัติตามหัวฉีด"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"โมเดลนี้ออกแบบมาสำหรับหัวฉีดขนาด 0.4 mm และความสูงเลเยอร์ 0.2 mm \n"
+"เมื่อเปิดใช้งานตัวเลือกการปรับขนาด (แนะนำ) โมเดลจะปรับขนาดแบบไดนามิกให้ตรงกับเส้นผ่านศูนย์กลางหัวฉีดปัจจุบันและความสูงเลเยอร์ที่เหมาะสม ทำให้การทดสอบทั้งแม่นยำและอ่านค่าได้ง่าย\n"
+"ปิดการปรับขนาดเฉพาะเมื่อคุณต้องการพิมพ์โมเดลอ้างอิงตามขนาดเดิมทุกประการ"
+
 msgid "PA Calibration"
 msgstr "ปรับเทียบ PA"
 
@@ -18660,6 +18718,14 @@ msgstr "ความเร็วเริ่มต้น:"
 msgid "End speed: "
 msgstr "ความเร็วสิ้นสุด:"
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "ปรับอัตโนมัติตามความเร็วปริมาตรสูงสุด"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "หากความเร็วปลายทางจะเกินความเร็วปริมาตรสูงสุดของเส้นพลาสติก ระบบจะลดความสูงเลเยอร์โดยอัตโนมัติ (โดยคงค่ามาตรฐานไว้และอยู่ภายในขีดจำกัดของเครื่อง) เพื่อให้ถึงค่าดังกล่าว หากแม้แต่ความสูงเลเยอร์ต่ำสุดยังไม่เพียงพอ ระบบจะลดความเร็วปลายทางแทน"
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -18670,6 +18736,57 @@ msgstr ""
 "เริ่มต้น > 10\n"
 "ขั้นตอน >= 0\n"
 "สิ้นสุด> เริ่มต้น + ขั้นตอน"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"ความเร็วปลายทาง (%.0f mm/s) เกินความเร็วปริมาตรสูงสุดของเส้นพลาสติก (%.1f mm³/s) ซึ่งจำกัดผนังด้านนอกไว้ที่ประมาณ %.0f mm/s ที่ความกว้างเส้นและความสูงเลเยอร์นี้\n"
+" ความเร็วที่สูงกว่านี้จะถูกจำกัดไว้ ดังนั้นบล็อกด้านบนของทาวเวอร์จะไม่พิมพ์ด้วยความเร็วที่ร้องขอ\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"ความเร็วปลายทาง (%.0f mm/s) เกินความเร็วปริมาตรสูงสุดของเส้นพลาสติก (%.1f mm³/s) ที่ความสูงเลเยอร์เริ่มต้น (%.2f mm)\n"
+"\n"
+"ความสูงเลเยอร์ถูกลดลงเป็น %.2f mm (ค่าที่ใช้ในพรีเซ็ตของเครื่องพิมพ์นี้) เพื่อให้ทาวเวอร์ถึงความเร็วที่ร้องขอได้"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"แม้แต่ที่ความสูงเลเยอร์ต่ำสุดที่ใช้ในพรีเซ็ตของเครื่องพิมพ์นี้ (%.2f mm) ความเร็วปลายทาง (%.0f mm/s) ก็ยังเกินความเร็วปริมาตรสูงสุดของเส้นพลาสติก (%.1f mm³/s)\n"
+"\n"
+"ความสูงเลเยอร์จะถูกตั้งเป็น %.2f mm และความเร็วปลายทางจะถูกลดลงเป็น %.0f mm/s\n"
+"\n"
+"ดำเนินการต่อหรือไม่?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "ดำเนินการต่ออยู่ดีหรือไม่?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "เปิดใช้งาน \"ปรับอัตโนมัติ\" เพื่อแก้ไขปัญหานี้โดยอัตโนมัติ หรือดำเนินการต่ออยู่ดี?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "เปิดใช้งาน \"ปรับขนาดอัตโนมัติตามหัวฉีด\" และ \"ปรับอัตโนมัติ\" เพื่อแก้ไขปัญหานี้โดยอัตโนมัติ หรือดำเนินการต่ออยู่ดี?"
 
 msgid "Start retraction length: "
 msgstr "เริ่มต้นความยาวการดึงกลับ:"
@@ -21244,6 +21361,9 @@ msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "สั่งพิมพ์ภายในชั้นเดียว"
+
 #~ msgid "Bottom"
 #~ msgstr "ล่าง"
 
@@ -21330,9 +21450,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "°C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgid "Renders cast shadows on the plate in realistic view."
 #~ msgstr "แสดงเงาแบบทอดบนเพลตในมุมมองแบบสมจริง"
