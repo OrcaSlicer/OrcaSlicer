@@ -417,6 +417,12 @@ set(SLIC3R_GUI_SOURCES
     GUI/PresetHints.hpp
     GUI/PrinterCloudAuthDialog.cpp
     GUI/PrinterCloudAuthDialog.hpp
+    GUI/PrintagoBridge.cpp
+    GUI/PrintagoBridge.hpp
+    GUI/PrintagoSendDialog.cpp
+    GUI/PrintagoSendDialog.hpp
+    GUI/PrintagoTabBridge.cpp
+    GUI/PrintagoTabBridge.hpp
     GUI/Printer/PrinterFileSystem.cpp
     GUI/Printer/PrinterFileSystem.h
     GUI/PrinterWebView.cpp
@@ -725,6 +731,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/OctoPrint.hpp
     Utils/PresetUpdater.cpp
     Utils/PresetUpdater.hpp
+    Utils/Printago.cpp
+    Utils/Printago.hpp
     Utils/PrintHost.cpp
     Utils/PrintHost.hpp
     Utils/Process.cpp

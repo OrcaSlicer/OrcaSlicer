@@ -2,6 +2,8 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/Utils/MacDarkMode.hpp"
 
+#include <utility>
+
 #include <boost/log/trivial.hpp>
 
 #include <wx/webviewarchivehandler.h>
@@ -229,7 +231,9 @@ class FakeWebView : public wxWebView
 wxDEFINE_EVENT(EVT_WEBVIEW_RECREATED, wxCommandEvent);
 
 static std::vector<wxWebView*> g_webviews;
-static std::vector<wxWebView*> g_delay_webviews;
+// Handler registrations deferred because another add is currently in progress. Each entry is
+// (webview, handler-name). See register_script_handler() for why this serialization is required.
+static std::vector<std::pair<wxWebView*, wxString>> g_delay_handlers;
 
 class WebViewRef : public wxObjectRefData
 {
@@ -249,6 +253,45 @@ public:
 static WebViewRef *webview_ref(wxWebView *webView)
 {
     return webView ? static_cast<WebViewRef *>(webView->GetRefData()) : nullptr;
+}
+
+// Add a script message handler right now, guarding the global "adding" flag around the call.
+static void add_script_handler_now(wxWebView* webView, const wxString& name)
+{
+    // Upstream fix (kept through the merge): skip if SendAPIKey() already registered
+    // "wx" — a duplicate add of the same handler throws an uncatchable NSException on
+    // WKWebView, killing the app at startup.
+    WebViewRef *ref = name == "wx" ? webview_ref(webView) : nullptr;
+    if (ref && ref->m_script_handler_added)
+        return;
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": begin to add script message handler for " << name.ToUTF8().data();
+    Slic3r::GUI::wxGetApp().set_adding_script_handler(true);
+    if (!webView->AddScriptMessageHandler(name))
+        wxLogError("Could not add script message handler: %s", name);
+    else if (ref)
+        ref->m_script_handler_added = true;
+    Slic3r::GUI::wxGetApp().set_adding_script_handler(false);
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": finished add script message handler for " << name.ToUTF8().data();
+}
+
+// Serialize script-message-handler registration. On macOS wxWebViewWebKit::AddScriptMessageHandler
+// internally calls RunScript(), which pumps the event loop (wxYield). If a second registration (or
+// any re-entrant work) runs during that pump, it corrupts webview state — and if it happens while the
+// app is still being constructed, a pending timer can run half-initialised code and crash. So while
+// one add is in flight (the global flag is set), any other add is queued and drained afterwards,
+// one at a time. Call this from a CallAfter (never synchronously during window construction).
+static void register_script_handler(wxWebView* webView, const wxString& name)
+{
+    if (Slic3r::GUI::wxGetApp().is_adding_script_handler()) {
+        g_delay_handlers.emplace_back(webView, name);
+    } else {
+        add_script_handler_now(webView, name);
+        while (!g_delay_handlers.empty()) {
+            auto pending = std::move(g_delay_handlers);
+            for (auto& h : pending)
+                add_script_handler_now(h.first, h.second);
+        }
+    }
 }
 
 wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
@@ -310,36 +353,10 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
         WKWebView * wkWebView = (WKWebView *) webView->GetNativeBackend();
         Slic3r::GUI::WKWebView_setTransparentBackground(wkWebView);
 #endif
-        auto addScriptMessageHandler = [] (wxWebView *webView) {
-            // Skip if SendAPIKey() already registered "wx"; a duplicate add throws an
-            // uncatchable NSException on WKWebView, killing the app at startup.
-            WebViewRef *ref = webview_ref(webView);
-            if (ref && ref->m_script_handler_added)
-                return;
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": begin to add script message handler for wx.";
-            Slic3r::GUI::wxGetApp().set_adding_script_handler(true);
-            if (!webView->AddScriptMessageHandler("wx"))
-                wxLogError("Could not add script message handler");
-            else if (ref)
-                ref->m_script_handler_added = true;
-            Slic3r::GUI::wxGetApp().set_adding_script_handler(false);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": finished add script message handler for wx.";
-        };
-#ifndef __WIN32__
-        webView->CallAfter([webView, addScriptMessageHandler] {
-#endif
-            if (Slic3r::GUI::wxGetApp().is_adding_script_handler()) {
-                g_delay_webviews.push_back(webView);
-            } else {
-                addScriptMessageHandler(webView);
-                while (!g_delay_webviews.empty()) {
-                    auto views = std::move(g_delay_webviews);
-                    for (auto wv : views)
-                        addScriptMessageHandler(wv);
-                }
-            }
-#ifndef __WIN32__
-        });
+#ifdef __WIN32__
+        register_script_handler(webView, "wx");
+#else
+        webView->CallAfter([webView] { register_script_handler(webView, "wx"); });
 #endif
         webView->EnableContextMenu(true);
     } else {
@@ -373,6 +390,17 @@ bool WebView::DownloadAndInstallWebViewRuntime()
     return DownloadAndInstallWV2RT() == 0;
 }
 #endif
+void WebView::AddScriptMessageHandler(wxWebView* webView, wxString const& name)
+{
+    if (webView == nullptr)
+        return;
+    // Always defer to a CallAfter and go through the serialized path: AddScriptMessageHandler pumps
+    // the event loop, so a synchronous add (especially during window construction) can re-enter and
+    // crash. The deferred add runs after the current call stack unwinds, serialized with the factory's
+    // own "wx" registration via the shared flag + queue.
+    webView->CallAfter([webView, name] { register_script_handler(webView, name); });
+}
+
 void WebView::LoadUrl(wxWebView * webView, wxString const &url)
 {
     auto url2  = url;

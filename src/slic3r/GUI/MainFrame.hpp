@@ -359,6 +359,8 @@ public:
 
     //SoftFever
     void show_device(bool bBBLPrinter);
+    // Printago: add/remove the Printago web tab (hosting the embedded Printago app).
+    void show_printago(bool show, bool select_tab = false);
     void fit_tab_labels(); // ORCA
 
     PA_Calibration_Dlg* m_pa_calib_dlg{ nullptr };
@@ -385,6 +387,7 @@ public:
     CalibrationPanel*     m_calibration{ nullptr };
     WebViewPanel*         m_webview { nullptr };
     PrinterWebView*       m_printer_view{nullptr};
+    PrinterWebView*       m_printago_view{nullptr};
     wxLogWindow*          m_log_window { nullptr };
     // BBS
     //wxBookCtrlBase*       m_tabpanel { nullptr };
