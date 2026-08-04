@@ -1043,14 +1043,14 @@ void TextCtrl::propagate_value()
 
 void TextCtrl::set_value(const boost::any& value, bool change_event/* = false*/) {
     m_disable_change_event = !change_event;
+
     if (m_opt.nullable) {
         const bool m_is_na_val = value.empty() || (boost::any_cast<wxString>(value) == _(L("N/A")));
         if (!m_is_na_val)
             m_last_meaningful_value = value;
-        text_ctrl()->SetValue(boost::any_cast<wxString>(value)); // BBS
     }
-    else
-        text_ctrl()->SetValue(value.empty() ? "" : boost::any_cast<wxString>(value)); // BBS // BBS: null value
+
+    text_ctrl()->SetValue(value.empty() ? wxString() : boost::any_cast<wxString>(value));
     m_disable_change_event = false;
 
     if (!change_event) {
@@ -1187,18 +1187,24 @@ void CheckBox::set_value(const boost::any& value, bool change_event)
     m_disable_change_event = !change_event;
     if (m_opt.nullable) {
         const bool is_value_unsigned_char = value.type() == typeid(unsigned char);
+        bool bool_value = false;
+
         m_is_na_val = value.empty() || (is_value_unsigned_char &&
                       boost::any_cast<unsigned char>(value) == ConfigOptionBoolsNullable::nil_value());
-        if (!m_is_na_val)
-            m_last_meaningful_value = is_value_unsigned_char ? value : static_cast<unsigned char>(boost::any_cast<bool>(value));
 
-        const auto bool_value = is_value_unsigned_char ?
-                                    boost::any_cast<unsigned char>(value) != 0 :
-                                    boost::any_cast<bool>(value);
-        dynamic_cast<::CheckBox*>(window)->SetValue(m_is_na_val ? false : bool_value); // BBS
+        if (!m_is_na_val) {
+            bool_value = is_value_unsigned_char ?
+                            boost::any_cast<unsigned char>(value) != 0 :
+                            boost::any_cast<bool>(value);
+            m_last_meaningful_value = is_value_unsigned_char ? value : static_cast<unsigned char>(bool_value);
+        }
+
+        dynamic_cast<::CheckBox*>(window)->SetValue(bool_value);
     }
-    else if (!value.empty()) // BBS: null value
+    else if (!value.empty()){ // BBS: null value
         dynamic_cast<::CheckBox*>(window)->SetValue(boost::any_cast<bool>(value)); // BBS
+    }
+
     dynamic_cast<::CheckBox*>(window)->SetHalfChecked(value.empty());
     m_disable_change_event = false;
 }
@@ -1328,27 +1334,7 @@ void SpinCtrl::BUILD() {
         if (!parsed || value < INT_MIN || value > INT_MAX)
             tmp_value = UNDEF_VALUE;
         else {
-            tmp_value = std::min(std::max((int)value, temp->GetMin()), temp->GetMax());
-#ifdef __WXOSX__
-#ifdef UNDEFINED__WXOSX__ // BBS
-            // Forcibly set the input value for SpinControl, since the value
-            // inserted from the keyboard or clipboard is not updated under OSX
-            SpinInput* spin = static_cast<SpinInput*>(window);
-            spin->SetValue(tmp_value);
-            // But in SetValue() is executed m_text_ctrl->SelectAll(), so
-            // discard this selection and set insertion point to the end of string
-            // temp->GetText()->SetInsertionPointEnd();
-#endif
-#else
-            // update value for the control only if it was changed in respect to the Min/max values
-            if (tmp_value != (int)value) {
-                temp->SetValue(tmp_value);
-                // But after SetValue() cursor ison the first position
-                // so put it to the end of string
-                // int pos = std::to_string(tmp_value).length();
-                // temp->SetSelection(pos, pos);
-            }
-#endif
+            tmp_value = (int)value;
         }
 	}), temp->GetTextCtrl()->GetId());
 
@@ -1369,6 +1355,10 @@ void SpinCtrl::propagate_value()
             on_kill_focus();
 	} else {
         auto ctrl = dynamic_cast<SpinInput *>(window);
+        tmp_value = std::min(std::max(tmp_value, ctrl->GetMin()), ctrl->GetMax());
+        if (ctrl->GetValue() != tmp_value)
+            ctrl->SetValue(tmp_value); // Clamp now when the user is done typing (kill focus / Enter / spin arrows)
+
         if (m_value.empty()
             ? !ctrl->GetTextCtrl()->GetLabel().IsEmpty()
             : ctrl->GetValue() != boost::any_cast<int>(m_value))

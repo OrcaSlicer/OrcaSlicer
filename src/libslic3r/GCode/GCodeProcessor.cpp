@@ -614,6 +614,8 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
             float leftover = 0.0f;
             for (size_t i = additional_buffer_idx; i < additional_buffer.size(); ++i)
                 leftover += additional_buffer[i].second;
+            BOOST_LOG_TRIVIAL(debug) << "calculate_time(is_final): leftover=" << leftover
+                << "s from " << (additional_buffer.size() - additional_buffer_idx) << " items";
             time += double(leftover);
             gcode_time.cache += leftover;
         } else {
@@ -1448,8 +1450,8 @@ void GCodeProcessor::run_post_process()
     // flag) runs none of this. It is pure data construction — it only fills m_filament_blocks /
     // m_extruder_blocks / m_machine_*_gcode_*_line_id and never touches the exported g-code, so even
     // the enable_pre_heating fleet stays byte-identical (nothing reads the blocks until the injection
-    // pass). In practice it also stays empty/degenerate today because no template/code yet emits the
-    // MACHINE_*_GCODE_* / NOZZLE_CHANGE_* / CP_TOOLCHANGE_WIPE markers it keys off.
+    // pass). The wipe tower emits the NOZZLE_CHANGE_* (ramming) and CP_TOOLCHANGE_WIPE markers this
+    // builder keys off; the MACHINE_*_GCODE_* markers come from the machine g-code templates.
     m_filament_blocks.clear();
     m_extruder_blocks.clear();
     m_machine_start_gcode_end_line_id = (unsigned int) (-1);
@@ -3492,6 +3494,7 @@ void GCodeProcessor::reset()
     m_extruder_blocks.clear();
     m_machine_start_gcode_end_line_id = (unsigned int) (-1);
     m_machine_end_gcode_start_line_id = (unsigned int) (-1);
+    m_skip_end_gcode_delays = false;
     m_remaining_volume = std::vector<float>(MAXIMUM_EXTRUDER_NUMBER, 0.f);
 
     m_line_id = 0;
@@ -4216,6 +4219,14 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
 
     if (boost::starts_with(comment, GCodeProcessor::VFlush_End_Tag)) {
         m_virtual_flushing = false;
+        return;
+    }
+
+    // End gcode marker: skip post-print M400 S/P dwells after this point so the M73 estimate reports
+    // print-completion time, not post-print filtration/cooldown. BBS drops the same remainder in
+    // calculate_time(is_final).
+    if (comment == Machine_End_GCode_Start_Tag) {
+        m_skip_end_gcode_delays = true;
         return;
     }
 
@@ -5915,8 +5926,11 @@ void GCodeProcessor::process_G10(const GCodeReader::GCodeLine& line)
     GCodeReader::GCodeLine g10;
     g10.set(Axis::E, -this->m_parser.config().retraction_length.get_at(m_extruder_id));
     g10.set(Axis::F,  this->m_parser.config().retraction_speed.get_at(m_extruder_id) * 60);
+    //Orca: Firmware retract emulation must not change the modal G1 feedrate.
+    const float feedrate = m_feedrate;
     --m_g1_line_id;
     process_G1(g10);
+    m_feedrate = feedrate;
 }
 
 void GCodeProcessor::process_G11(const GCodeReader::GCodeLine& line)
@@ -5925,8 +5939,11 @@ void GCodeProcessor::process_G11(const GCodeReader::GCodeLine& line)
     GCodeReader::GCodeLine g11;
     g11.set(Axis::E, this->m_parser.config().retraction_length.get_at(m_extruder_id) + this->m_parser.config().retract_restart_extra.get_at(m_extruder_id));
     g11.set(Axis::F, this->m_parser.config().deretraction_speed.get_at(m_extruder_id) * 60);
+    // Orca: Firmware unretract emulation must not change the modal G1 feedrate.
+    const float feedrate = m_feedrate;
     --m_g1_line_id;
     process_G1(g11);
+    m_feedrate = feedrate;
 }
 
 void GCodeProcessor::process_G20(const GCodeReader::GCodeLine& line)
@@ -6401,6 +6418,10 @@ void GCodeProcessor::process_M400(const GCodeReader::GCodeLine& line)
     float value_p = 0.0;
     if (line.has_value('S', value_s) || line.has_value('P', value_p)) {
         value_s += value_p * 0.001;
+        // Skip post-print end-gcode dwells so they don't inflate the M73 estimate (see
+        // m_skip_end_gcode_delays). Only omits dwell time — no state is updated here.
+        if (m_skip_end_gcode_delays)
+            return;
         simulate_st_synchronize(value_s);
     }
 }

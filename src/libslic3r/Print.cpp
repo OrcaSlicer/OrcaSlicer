@@ -285,6 +285,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             steps.emplace_back(psSkirtBrim);
         } else if (
                opt_key == "slicing_pipeline_plugin"
+            || opt_key == "print_plugin_config_overrides"
             || opt_key == "initial_layer_print_height"
             || opt_key == "nozzle_diameter"
             || opt_key == "filament_shrink"
@@ -3408,7 +3409,11 @@ void Print::update_filament_maps_to_config(std::vector<int> f_maps, std::vector<
             }
             else if ((extruder_volume_type_count > extruder_count) && (m_config.filament_volume_map.values.size() > index))
                 nozzle_volume_type = (NozzleVolumeType)(m_config.filament_volume_map.values[index]);
-            m_config.filament_map_2.values[index] = m_ori_full_print_config.get_index_for_extruder(f_maps[index], "print_extruder_id", extruder_type, nozzle_volume_type, "print_extruder_variant");
+            // Orca: when the process variant columns cannot be matched (degenerate
+            // print_extruder_id), key the override by plain extruder index like the seeding
+            // above instead of poisoning the map with -1.
+            int slot_index = m_ori_full_print_config.get_index_for_extruder(f_maps[index], "print_extruder_id", extruder_type, nozzle_volume_type, "print_extruder_variant");
+            m_config.filament_map_2.values[index] = slot_index >= 0 ? slot_index : f_maps[index] - 1;
         }
 
         m_full_print_config = m_ori_full_print_config;
@@ -3605,7 +3610,8 @@ std::vector<std::set<int>> Print::get_physical_unprintable_filaments(const std::
         return physical_unprintables;
 
     auto get_unprintable_extruder_id = [&](unsigned int filament_idx) -> int {
-        int status = m_config.filament_printable.values[filament_idx];
+        // filament_printable may be shorter than the filament count; get_at() clamps.
+        int status = m_config.filament_printable.get_at(filament_idx);
         for (int i = 0; i < extruder_num; ++i) {
             if (!(status >> i & 1)) {
                 return i;
@@ -4015,8 +4021,33 @@ void Print::_make_wipe_tower()
         // in BBL machine, wipe tower is only use to prime extruder. So just use a global wipe volume.
         WipeTower wipe_tower(m_config, m_plate_index, m_origin, m_wipe_tower_data.tool_ordering.first_extruder(),
                              m_wipe_tower_data.tool_ordering.empty() ? 0.f : m_wipe_tower_data.tool_ordering.back().print_z, m_wipe_tower_data.tool_ordering.all_extruders());
+        // Orca: the tower's first-layer flow follows the user's first-layer flow ratio (BBS reads
+        // its initial_layer_flow_ratio here — STUDIO-14254; first_layer_flow_ratio is Orca's analog,
+        // default 1.0 in both). Honor the set_other_flow_ratios gate that governs the option
+        // everywhere else.
+        wipe_tower.set_first_layer_flow_ratio(m_default_object_config.set_other_flow_ratios
+                                                  ? float(m_default_region_config.first_layer_flow_ratio)
+                                                  : 1.f);
         wipe_tower.set_has_tpu_filament(this->has_tpu_filament());
-        wipe_tower.set_filament_map(this->get_filament_maps());
+        // Per-layer filament->nozzle grouping. sort_and_build_data() above publishes it on the Print
+        // for by-layer prints; by-object prints publish only later (psSkirtBrim), so fall back to the
+        // ToolOrdering's own copy there. set_extruder() below dereferences it, so it must be set first.
+        auto print_group_result = get_layered_nozzle_group_result();
+        const MultiNozzleUtils::LayeredNozzleGroupResult &nozzle_group_result =
+            print_group_result ? *print_group_result : m_wipe_tower_data.tool_ordering.get_layered_nozzle_group_result();
+        wipe_tower.set_nozzle_group_result(nozzle_group_result);
+        {
+            // Orca: acceleration options are object-scope (PrintConfig members in BBS), so resolve
+            // the per-variant columns here; initial_layer_travel_acceleration is FloatOrPercent
+            // over travel_acceleration and needs the full config to resolve.
+            std::vector<double> first_layer_travel_accels;
+            for (size_t i = 0; i < m_config.initial_layer_travel_acceleration.values.size(); ++i)
+                first_layer_travel_accels.emplace_back(m_full_print_config.get_abs_value_at("initial_layer_travel_acceleration", i));
+            wipe_tower.set_accelerations(m_default_object_config.default_acceleration.values,
+                                         m_default_object_config.initial_layer_acceleration.values,
+                                         m_default_object_config.travel_acceleration.values,
+                                         first_layer_travel_accels);
+        }
         // Feed the has_filament_switcher device flag (develop-only dynamic key, read defensively from
         // the full config — no shipping profile sets it) and the shared printable bed used by the PETG
         // pre-extrusion offset clamp. Both are inert unless has_filament_switcher is set.
@@ -4052,14 +4083,24 @@ void Print::_make_wipe_tower()
             multi_extruder_flush.emplace_back(wipe_volumes);
         }
 
-        std::vector<int>filament_maps = get_filament_maps();
+        // Per-carousel-slot purge tracking via NozzleStatusRecorder (BBS pattern); the layered
+        // group result set on the tower above resolves each filament to its nozzle slot per layer.
+        MultiNozzleUtils::NozzleStatusRecorder nozzle_recorder;
 
-        std::vector<unsigned int> nozzle_cur_filament_ids(nozzle_nums, -1);
+        std::vector<int>filament_maps = get_filament_maps();
+        int layer_idx = -1;
+
         unsigned int current_filament_id = m_wipe_tower_data.tool_ordering.first_extruder();
-        size_t cur_nozzle_id = filament_maps[current_filament_id] - 1;
-        nozzle_cur_filament_ids[cur_nozzle_id] = current_filament_id;
+        // Initialize NozzleStatusRecorder with the first filament's carousel slot
+        {
+            auto nozzle = nozzle_group_result.get_nozzle_for_filament(current_filament_id, layer_idx);
+            if (nozzle)
+                nozzle_recorder.set_nozzle_status(nozzle->group_id, current_filament_id, nozzle->extruder_id);
+        }
 
         for (auto& layer_tools : m_wipe_tower_data.tool_ordering.layer_tools()) { // for all layers
+            ++layer_idx;
+
             if (!layer_tools.has_wipe_tower) continue;
             bool first_layer = &layer_tools == &m_wipe_tower_data.tool_ordering.front();
             wipe_tower.plan_toolchange((float)layer_tools.print_z, (float)layer_tools.wipe_tower_layer_height, current_filament_id, current_filament_id);
@@ -4070,30 +4111,52 @@ void Print::_make_wipe_tower()
                 if (filament_id == current_filament_id)
                     continue;
 
-                int          nozzle_id = filament_maps[filament_id] - 1;
-                unsigned int pre_filament_id = nozzle_cur_filament_ids[nozzle_id];
-
                 float volume_to_purge = 0;
-                if (pre_filament_id != (unsigned int)(-1) && pre_filament_id != filament_id) {
-                    volume_to_purge = multi_extruder_flush[nozzle_id][pre_filament_id][filament_id];
-                    // Fast purge mode uses flush_multiplier_fast; Default is inert.
-                    float flush_multiplier = (m_config.prime_volume_mode == PrimeVolumeMode::pvmFast) ? m_config.flush_multiplier_fast.get_at(nozzle_id)
-                                                                                                      : m_config.flush_multiplier.get_at(nozzle_id);
-                    volume_to_purge *= flush_multiplier;
-                    volume_to_purge = pre_filament_id == -1 ? 0 :
-                        layer_tools.wiping_extrusions().mark_wiping_extrusions(*this, current_filament_id, filament_id, volume_to_purge);
+
+                // Per-carousel-slot purge tracking via NozzleStatusRecorder
+                {
+                    auto nozzle_info = nozzle_group_result.get_nozzle_for_filament(filament_id, layer_idx);
+                    if (nozzle_info) {
+                        int extruder_id = nozzle_info->extruder_id;
+                        int nozzle_id   = nozzle_info->group_id;
+                        int prev_nozzle_filament = nozzle_recorder.get_filament_in_nozzle(nozzle_id);
+
+                        if (!nozzle_recorder.is_nozzle_empty(nozzle_id) &&
+                            static_cast<int>(filament_id) != prev_nozzle_filament) {
+                            volume_to_purge = multi_extruder_flush[extruder_id][prev_nozzle_filament][filament_id];
+                            // Fast purge mode uses flush_multiplier_fast; Default is inert.
+                            float flush_multiplier = (m_config.prime_volume_mode == PrimeVolumeMode::pvmFast)
+                                ? m_config.flush_multiplier_fast.get_at(extruder_id)
+                                : m_config.flush_multiplier.get_at(extruder_id);
+                            volume_to_purge *= flush_multiplier;
+                            volume_to_purge = layer_tools.wiping_extrusions().mark_wiping_extrusions(
+                                *this, current_filament_id, filament_id, volume_to_purge);
+                        }
+                        nozzle_recorder.set_nozzle_status(nozzle_id, filament_id, extruder_id);
+                    }
                 }
 
                 //During the filament change, the extruder will extrude an extra length of grab_length for the corresponding detection, so the purge can reduce this length.
-                float grab_purge_volume = m_config.grab_length.get_at(nozzle_id) * 2.4; //(diameter/2)^2*PI=2.4
+                int grab_extruder_id = filament_maps[filament_id] - 1;
+                float grab_purge_volume = m_config.grab_length.get_at(grab_extruder_id) * 2.4; //(diameter/2)^2*PI=2.4
                 volume_to_purge = std::max(0.f, volume_to_purge - grab_purge_volume);
 
-                // Saving mode reduces the prime volume to 15 mm3; Default is inert.
-                float prime_volume = (m_config.prime_volume_mode == PrimeVolumeMode::pvmSaving) ? 15.f : (float) m_config.prime_volume;
+                // Prime volume per-filament: the tower now picks extruder-change vs nozzle-change
+                // (carousel) internally per plan layer, so pass both candidates (BBS pattern).
+                float wipe_volume_ec = filament_id < m_config.filament_prime_volume.values.size()
+                    ? m_config.filament_prime_volume.values[filament_id]
+                    : (float) m_config.prime_volume;
+                float wipe_volume_nc = filament_id < m_config.filament_prime_volume_nc.values.size()
+                    ? m_config.filament_prime_volume_nc.values[filament_id]
+                    : (float) m_config.prime_volume;
+                if (m_config.prime_volume_mode == PrimeVolumeMode::pvmSaving) {
+                    wipe_volume_ec = 15.f;
+                    wipe_volume_nc = 15.f;
+                }
+
                 wipe_tower.plan_toolchange((float)layer_tools.print_z, (float)layer_tools.wipe_tower_layer_height, current_filament_id, filament_id,
-                    prime_volume, volume_to_purge);
+                    wipe_volume_ec, wipe_volume_nc, volume_to_purge);
                 current_filament_id = filament_id;
-                nozzle_cur_filament_ids[nozzle_id] = filament_id;
             }
             layer_tools.wiping_extrusions().ensure_perimeters_infills_order(*this);
 
@@ -4270,7 +4333,12 @@ void Print::_make_wipe_tower()
                                          wipe_tower.get_rib_width(), wipe_tower.get_rib_length(),
                                          config().wipe_tower_fillet_wall.value);
         const Vec3d origin                      = Vec3d::Zero();
-        m_fake_wipe_tower.set_fake_extrusion_data(wipe_tower.position(), wipe_tower.width(), wipe_tower.get_wipe_tower_height(),
+        // FakeWipeTower::pos is a bed-frame translation applied after rotation
+        // (getFakeExtrusionPathsFromWipeTower2 rotates about the local origin), so the
+        // tower-local rib offset must be rotated into the bed frame first.
+        m_fake_wipe_tower.rib_offset = Eigen::Rotation2Df(Geometry::deg2rad((float)config().wipe_tower_rotation_angle.value)) *
+                                       wipe_tower.get_rib_offset();
+        m_fake_wipe_tower.set_fake_extrusion_data(wipe_tower.position() + m_fake_wipe_tower.rib_offset, wipe_tower.width(), wipe_tower.get_wipe_tower_height(),
                                                   config().initial_layer_print_height, m_wipe_tower_data.depth,
                                                   m_wipe_tower_data.z_and_depth_pairs, m_wipe_tower_data.brim_width,
                                                   config().wipe_tower_rotation_angle, config().wipe_tower_cone_angle,
