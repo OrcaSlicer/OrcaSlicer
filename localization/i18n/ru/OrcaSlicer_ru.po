@@ -2133,7 +2133,7 @@ msgstr ""
 "\n"
 "Для автоматического переноса существующих профилей войдите в Orca Cloud. Посетите нашу Вики, чтобы узнать подробнее о ручном переносе, хранении и синхронизации профилей.\n"
 "\n"
-"Можно спокойно игнорировать это сообщение, если вы ранее не использовали Bambu Cloud для синхронизации."
+"Можно спокойно игнорировать это сообщение, если вы ранее не использовали Bambu Cloud для синхронизации. "
 
 msgid "Profile syncing change"
 msgstr "Изменения в синхронизации профилей"
@@ -5343,8 +5343,9 @@ msgstr "слой(-я)"
 msgid "Range"
 msgstr "Диапазон"
 
+# Подставляется в "По умолчанию" в подсказке к параметрам. Не уверен, нужно ли здесь "строка", может просто "пусто"?
 msgid "Empty string"
-msgstr "Пустая строка"
+msgstr "пустая строка"
 
 msgid "Value is out of range."
 msgstr "Введённое значение вне диапазона."
@@ -5730,7 +5731,7 @@ msgid "Fan speed (%)"
 msgstr "Скорость вентилятора (%)"
 
 msgid "Temperature (℃)"
-msgstr "Температура (°C)"
+msgstr "Температура (℃)"
 
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "Объёмный расход (мм³/с)"
@@ -9709,7 +9710,7 @@ msgstr "Выбранный профиль пуст!"
 # AI Translated
 msgctxt "Layer range"
 msgid "End"
-msgstr "до конца"
+msgstr "конца"
 
 msgid "Customize"
 msgstr "Настроить"
@@ -10749,9 +10750,9 @@ msgstr "Скрипты постобработки"
 msgid "Slicing Pipeline Plugin"
 msgstr "Плагин конвейера нарезки"
 
-# AI Translated
+# В данном контексте можно, наверное, "конфигурация", т.к. тут именно управление набором плагинов, а не просто их настройками
 msgid "Plugin Configuration"
-msgstr "Настройка плагина"
+msgstr "Настройка плагинов"
 
 msgid "Notes"
 msgstr "Заметки"
@@ -11073,10 +11074,8 @@ msgstr ""
 msgid "Firmware Retraction"
 msgstr "Откат из прошивки"
 
-# Изменения в настройках ... будут сброшены при переключении на принтер с
-# другим типом или количеством сопел.
 msgid "Switching to a printer with different extruder types or numbers will discard or reset changes to extruder or multi-nozzle-related parameters."
-msgstr "Изменения в настройках экструдера и параметрах сопел будут сброшены при переключении на принтер с другим типом или количеством сопел."
+msgstr "Изменения в настройках экструдера и параметрах сопел не будут перенесены в профиль принтера с другим типом или количеством сопел."
 
 msgid "Use Modified Value"
 msgstr "Использовать изменённое значение"
@@ -11330,8 +11329,9 @@ msgstr ""
 msgid "Extruder count"
 msgstr "Количество экструдеров"
 
+# Какая-то древняя строка. Ранее – "Характеристики принтера", сейчас используется ещё и в конфигурации плагинов в профиле материала (вкладка "Расширенные")
 msgid "Capabilities"
-msgstr "Характеристики принтера"
+msgstr "Возможности"
 
 # AI Translated
 msgid "Left: "
@@ -11661,7 +11661,7 @@ msgstr ""
 
 #, boost-format
 msgid "For constant flow rate, hold %1% while dragging."
-msgstr "Для постоянного объёмного расхода удерживайте нажатой клавишу %1% при перетаскивании."
+msgstr "Для выравнивания значений расхода удерживайте клавишу %1% при перетаскивании."
 
 msgid "ms"
 msgstr "мс"
@@ -14510,19 +14510,19 @@ msgid "Temperature drop before entering filament tower"
 msgstr "Снижение температуры перед входом в башню материала"
 
 msgid "Interface layer pre-extrusion distance"
-msgstr "Расстояние предэкструзии слоя интерфейса"
+msgstr "Дистанция избыточной подачи при смене"
 
 msgid "Pre-extrusion distance for prime tower interface layer (where different materials meet)."
-msgstr "Расстояние предэкструзии слоя интерфейса черновой башни (где соприкасаются разные материалы)."
+msgstr "Протяжённость первичного движения прочистки после смены материала. Позволяет быстро набрать давление в сопле и сбросить перегретый материал.\n\nПримечание: фактическая длина может быть ограничена шириной башни."
 
 msgid "Interface layer pre-extrusion length"
-msgstr "Длина предэкструзии слоя интерфейса"
+msgstr "Длина прутка для избыточной подачи"
 
 msgid "Pre-extrusion length for prime tower interface layer (where different materials meet)."
-msgstr "Длина предэкструзии слоя интерфейса черновой башни (где соприкасаются разные материалы)."
+msgstr "Длина прутка, которую необходимо продавить на этапе избыточной подачи.\n\n0 – отключить этот этап."
 
 msgid "Tower ironing area"
-msgstr "Разглаживание черновой башни"
+msgstr "Разглаживание кончиков"
 
 # У H2D не требует, на Вики при этом написано, что требует... В баганном порте
 # "улучшений" башни вообще не работает ни при каких обстоятельствах.
@@ -14535,15 +14535,18 @@ msgstr ""
 msgid "mm²"
 msgstr "мм²"
 
+# Сломано и ни на что не влияет, даже на H2D и даже в Bambu Studio.
 msgid "Interface layer purge length"
 msgstr "Прочистка на слое интерфейса"
 
+# Из ченжлогов Bambu: Studio will do nozzle wiping before flushing rather than after flushing, and print the prime tower directly, reducing extrusion volume fluctuations and improving layer height consistency. Added a new parameter for interface-layer flushing length.
 msgid "Purge length for prime tower interface layer (where different materials meet)."
-msgstr "Длина прочистки на слое интерфейса башни (где соприкасаются разные материалы)."
+msgstr "В настоящее время ничего не делает. Задумывалось как настройка расстояния внешней очистки сопла перед основной процедурой его прочистки."
 
 msgid "Interface layer print temperature"
 msgstr "Температура при прочистке"
 
+# Не используется, настройка сломана. Перевёл на случай, если починят в будущем.
 msgid "Print temperature for prime tower interface layer (where different materials meet). If set to -1, use max recommended nozzle temperature."
 msgstr ""
 "Целевая температура при печати слоёв прочистки в черновой башне (место контакта разных материалов).\n"
@@ -15020,7 +15023,7 @@ msgid "Ironing line spacing"
 msgstr "Интервал линий"
 
 msgid "Filament-specific override for ironing line spacing. This allows you to customize the spacing between ironing lines for each filament type."
-msgstr "Индивидуальная настройка расстояния между линиями разглаживания для каждого типа филамента."
+msgstr "Замещение интервала между линиями разглаживания. Позволяет настроить интервал отдельно для каждого материала."
 
 # "Разглаживание" явно задано в заголовке раздела
 msgid "Ironing inset"
@@ -17148,7 +17151,7 @@ msgid "Wipe tower type"
 msgstr "Тип черновой башни"
 
 msgid "Choose the wipe tower implementation for multi-material prints. Type 1 is recommended for Bambu and Qidi printers with a filament cutter. Type 2 offers better compatibility with multi-tool and MMU printers and provide overall better compatibility."
-msgstr "Выберите реализацию черновой башни для многоматериальной печати. Тип 1 рекомендуется для принтеров Bambu и Qidi с обрезкой прутка. Тип 2 обеспечивает лучшую совместимость с многоинструментальными и MMU-принтерами и в целом более универсален."
+msgstr "Выбор реализации черновой башни при печати несколькими материалами. Тип 1 рекомендуется для принтеров Bambu и Qidi с обрезкой прутка. Тип 2 – универсальный вариант с поддержкой широкого спектра принтеров (в т.ч. с системами смены материала и инструментов)."
 
 msgid "Type 1"
 msgstr "Тип 1"
@@ -18350,11 +18353,11 @@ msgstr "Экспорт настроек в файл."
 
 # командная строка? нужен ли пеевод?
 msgid "Send progress to pipe"
-msgstr "Отправлять прогресс в канал"
+msgstr "Send progress to pipe"
 
 # ??? это относится к командной строке
 msgid "Send progress to pipe."
-msgstr "Отправлять прогресс в канал."
+msgstr "Send progress to pipe."
 
 msgid "Arrange Options"
 msgstr "Параметры расстановки"
@@ -19083,7 +19086,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
-msgstr "Будет сохранён только один из одноимённых результатов (%s). Вы действительно хотите перезаписать остальные?"
+msgstr "Будет сохранён только один из одноимённых результатов (%s). Перезаписать остальные?"
 
 #, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
@@ -19094,7 +19097,7 @@ msgid ""
 "Within the same extruder, the name(%s) must be unique when the filament type, nozzle diameter, and nozzle flow are the same.\n"
 "Are you sure you want to override the historical result?"
 msgstr ""
-"Для одного экструдера имя (%s) должно быть уникальным, если тип материала, диаметр сопла и поток одинаковы.\n"
+"В рамках одного экструдера имя (%s) должно быть уникальным, если тип материала, диаметр сопла и поток одинаковы.\n"
 "Перезаписать прошлый результат?"
 
 #, c-format, boost-format
@@ -19416,7 +19419,7 @@ msgstr "Редактировать калибровку динамики пот�
 
 #, c-format, boost-format
 msgid "Within the same extruder, the name '%s' must be unique when the filament type, nozzle diameter, and nozzle flow are identical. Please choose a different name."
-msgstr "Для одного экструдера имя «%s» должно быть уникальным при одинаковых типе филамента, диаметре и потоке сопла. Пожалуйста, выберите другое имя."
+msgstr "В рамках одного экструдера имя (%s) должно быть уникальным, если тип материала, диаметр сопла и поток одинаковы. Укажите другое имя."
 
 msgid "New Flow Dynamic Calibration"
 msgstr "Новая калибровка динамики потока"
@@ -20591,8 +20594,8 @@ msgid ""
 "The currently selected nozzle type of %s extruder does not match the actual printer nozzle type.\n"
 "Please click the Sync button above and restart the calibration."
 msgstr ""
-"Выбранный тип сопла экструдера %s не соответствует фактическому типу сопла принтера.\n"
-"Нажмите кнопку «Синхронизация» выше и перезапустите калибровку."
+"Выбранный тип сопла экструдера (%s) не соответствует фактическому типу сопла принтера.\n"
+"Нажмите кнопку синхронизации выше и перезапустите калибровку."
 
 msgid "Unable to calibrate: maybe because the set calibration value range is too large, or the step is too small"
 msgstr "Невозможно выполнить калибровку: возможно, установленный диапазон значений калибровки слишком велик или шаг слишком мал"
@@ -21553,7 +21556,7 @@ msgid "Skipping objects."
 msgstr "Исключение объектов."
 
 msgid "Select Filament"
-msgstr "Выбрать филамент"
+msgstr "Выбрать материал"
 
 msgid "Null Color"
 msgstr "Цвет не задан"
@@ -21958,14 +21961,14 @@ msgstr "Материал может быть несовместим с теку�
 # подобных). Она задаётся вручную в файле профиля (производителем) и
 # отсутствует у большинства системных профилей.
 msgid "The filament model is unknown. Still using the previous filament preset."
-msgstr "Модель филамента неизвестна. Используется предыдущий профиль филамента."
+msgstr "Модель материала неизвестна. Используется предыдущий профиль материала."
 
 # Не знаю, что за "модель" материала, пропускаю. Возможно, имеется ввиду
 # модель коррекции объёмного расхода для функции адаптивного расхода у TPU (и
 # подобных). Она задаётся вручную в файле профиля (производителем) и
 # отсутствует у большинства системных профилей.
 msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr "Модель филамента неизвестна. Будут использованы стандартные профили филамента."
+msgstr "Модель материала неизвестна. Будут использованы стандартные профили материала."
 
 msgid "The filament may not be compatible with the current machine settings. A random filament preset will be used."
 msgstr "Материал может быть несовместим с текущими настройками принтера. Будет использоваться случайный профиль материала."
@@ -21975,7 +21978,7 @@ msgstr "Материал может быть несовместим с теку�
 # подобных). Она задаётся вручную в файле профиля (производителем) и
 # отсутствует у большинства системных профилей.
 msgid "The filament model is unknown. A random filament preset will be used."
-msgstr "Модель филамента неизвестна. Будет использован случайный профиль филамента."
+msgstr "Модель материала неизвестна. Будет использован случайный профиль материала."
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
