@@ -42,7 +42,7 @@ struct PluginDownloadNotFound
 // Outcome of a token-refresh attempt: decides whether a 401 should log the user
 // out (AuthRejected) or be treated as a recoverable condition (Transient).
 enum class RefreshResult {
-    Success,       // new tokens obtained
+    Succeeded,     // new tokens obtained
     AuthRejected,  // server definitively rejected the refresh token -> logout is correct
     Transient      // network/server problem -> keep the session and retry later
 };

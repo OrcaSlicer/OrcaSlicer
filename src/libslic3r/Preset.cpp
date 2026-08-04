@@ -3421,7 +3421,7 @@ size_t PresetCollection::update_compatible_internal(const PresetWithVendorProfil
 	    if (active_print != nullptr)
 	        preset_edited.is_compatible &= is_compatible_with_print(this_preset_with_vendor_profile, *active_print, active_printer);
         if (! preset_edited.is_compatible && selected &&
-            (unselect_if_incompatible == PresetSelectCompatibleType::Always || (unselect_if_incompatible == PresetSelectCompatibleType::OnlyIfWasCompatible && was_compatible)))
+            (unselect_if_incompatible == PresetSelectCompatibleType::AlwaysSelect || (unselect_if_incompatible == PresetSelectCompatibleType::OnlyIfWasCompatible && was_compatible)))
         {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":  type %1% , previous selected %2% becomes uncompatible, will select later")%Preset::get_type_string(m_type) %m_idx_selected;
             m_idx_selected = size_t(-1);

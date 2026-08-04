@@ -311,7 +311,6 @@ static float length_to_volume(float length, float line_width, float layer_height
 }
 
 } // namespace WipeTower2Detail
-using namespace WipeTower2Detail;
 
 
 
@@ -753,7 +752,7 @@ public:
     WipeTowerWriter2& extrude_arc_explicit(ArcSegment& arc,
                                           float       f             = 0.f,
                                           bool        record_length = false,
-                                          WipeTower2LimitFlow   limit_flow    = WipeTower2LimitFlow::LimitPrintFlow)
+                                          WipeTower2Detail::WipeTower2LimitFlow   limit_flow    = WipeTower2Detail::WipeTower2LimitFlow::LimitPrintFlow)
     {
         float x   = (float) unscale(arc.end_point).x();
         float y   = (float) unscale(arc.end_point).y();
@@ -812,7 +811,7 @@ public:
             m_gcode += set_format_E(e);
 
         if (f != 0.f && f != m_current_feedrate) {
-            if (limit_flow != WipeTower2LimitFlow::None) {
+            if (limit_flow != WipeTower2Detail::WipeTower2LimitFlow::None) {
                 float e_speed = e / (((len == 0.f) ? std::abs(e) : len) / f * 60.f);
                 float tmp     = m_filpar[m_current_tool].max_e_speed;
                 //if (limit_flow == WipeTower2LimitFlow::LimitRammingFlow)
@@ -831,14 +830,14 @@ public:
         return *this;
     }
 
-    WipeTowerWriter2& extrude_arc(ArcSegment& arc, float f = 0.f, WipeTower2LimitFlow limit_flow = WipeTower2LimitFlow::LimitPrintFlow)
+    WipeTowerWriter2& extrude_arc(ArcSegment& arc, float f = 0.f, WipeTower2Detail::WipeTower2LimitFlow limit_flow = WipeTower2Detail::WipeTower2LimitFlow::LimitPrintFlow)
     {
         return extrude_arc_explicit(arc, f, false, limit_flow);
     }
 
     void              generate_path(Polylines& pls, float feedrate, float retract_length, float retract_speed, bool used_fillet)
     {
-        auto get_closet_idx = [this](std::vector<WipeTower2Segment>& corners) -> int {
+        auto get_closet_idx = [this](std::vector<WipeTower2Detail::WipeTower2Segment>& corners) -> int {
             Vec2f anchor{this->m_current_pos.x(), this->m_current_pos.y()};
             int   closestIndex = -1;
             float minDistance  = std::numeric_limits<float>::max();
@@ -851,10 +850,10 @@ public:
             }
             return closestIndex;
         };
-        std::vector<WipeTower2Segment> segments;
+        std::vector<WipeTower2Detail::WipeTower2Segment> segments;
         if (m_enable_arc_fitting) {
             for (auto& pl : pls)
-                pl.simplify_by_fitting_arc(scaled_wipe_tower_resolution);
+                pl.simplify_by_fitting_arc(WipeTower2Detail::scaled_wipe_tower_resolution);
 
             for (const auto& pl : pls) {
                 if (pl.points.size() < 2)
@@ -873,7 +872,7 @@ public:
                 }
             }
             for (auto& pl : pls)
-                pl.simplify(scaled_wipe_tower_resolution);
+                pl.simplify(WipeTower2Detail::scaled_wipe_tower_resolution);
 
         } else {
             for (const auto& pl : pls) {
@@ -1497,7 +1496,7 @@ void WipeTower2::toolchange_Unload(
         // The time step is different for SEMM ramming and the MM ramming. See comments in set_extruder() for details.
         const float time_step = m_semm ? 0.25f : m_filpar[m_current_tool].multitool_ramming_time;
 
-        const float x = volume_to_length(m_filpar[m_current_tool].ramming_speed[i] * time_step, line_width, m_layer_height);
+        const float x = WipeTower2Detail::volume_to_length(m_filpar[m_current_tool].ramming_speed[i] * time_step, line_width, m_layer_height);
         const float e = m_filpar[m_current_tool].ramming_speed[i] * time_step / filament_area(); // transform volume per sec to E move;
         const float dist = std::min(x - e_done, remaining);		  // distance to travel for either the next time_step, or to the next turnaround
         const float actual_time = dist/x * time_step;
@@ -1523,9 +1522,9 @@ void WipeTower2::toolchange_Unload(
         const int   reserved_rows = std::max(1, int(std::round(planned_ramming_depth / y_step)));
         const float last_row_y    = ramming_start_pos.y() + (reserved_rows - 1) * y_step;
         // Same bead model as the ramming segments above: E per mm of ram line.
-        const float e_per_mm      = 1.f / (volume_to_length(1.f, line_width, m_layer_height) * filament_area());
+        const float e_per_mm      = 1.f / (WipeTower2Detail::volume_to_length(1.f, line_width, m_layer_height) * filament_area());
         const float fill_feed     = m_filpar[m_current_tool].ramming_speed.empty() ? 3000.f :
-            60.f * volume_to_length(m_filpar[m_current_tool].ramming_speed.back(), line_width, m_layer_height);
+            60.f * WipeTower2Detail::volume_to_length(m_filpar[m_current_tool].ramming_speed.back(), line_width, m_layer_height);
         while (true) {
             const float target_x = m_left_to_right ? xr : xl;
             if (std::abs(target_x - writer.x()) > WT_EPSILON)
@@ -1761,7 +1760,7 @@ void WipeTower2::toolchange_Wipe(
     //   the ordered volume, even if it means violating the box. This can later be removed and simply
     // wipe until the end of the assigned area.
 
-	float x_to_wipe = volume_to_length(wipe_volume, m_perimeter_width, m_layer_height) / m_extra_flow;
+	float x_to_wipe = WipeTower2Detail::volume_to_length(wipe_volume, m_perimeter_width, m_layer_height) / m_extra_flow;
 	float dy = wipe_row_spacing(is_first_layer()); // Don't use the extra spacing for the first layer, but do use the spacing resulting from increased flow.
     // All the calculations in all other places take the spacing into account for all the layers.
 
@@ -2051,7 +2050,7 @@ std::vector<std::vector<float>> WipeTower2::extract_wipe_volumes(const PrintConf
 
 static float get_wipe_depth(float volume, float layer_height, float perimeter_width, float extra_flow, float extra_spacing, float width)
 {
-    float length_to_extrude = (volume_to_length(volume, perimeter_width, layer_height)) / extra_flow;
+    float length_to_extrude = (WipeTower2Detail::volume_to_length(volume, perimeter_width, layer_height)) / extra_flow;
     length_to_extrude = std::max(length_to_extrude,0.f);
 
 	return (int(length_to_extrude / width) + 1) * perimeter_width * extra_spacing;
@@ -2080,7 +2079,7 @@ void WipeTower2::plan_toolchange(float z_par, float layer_height_par, unsigned i
 WipeTower2::WipeTowerInfo::ToolChange WipeTower2::set_toolchange(size_t old_tool, size_t new_tool, float layer_height, float wipe_volume, bool first_layer_plan)
 {
     float width = m_wipe_tower_width - 3*m_perimeter_width;
-	float length_to_extrude = volume_to_length((m_semm ? 0.25f : m_filpar[old_tool].multitool_ramming_time) * std::accumulate(m_filpar[old_tool].ramming_speed.begin(), m_filpar[old_tool].ramming_speed.end(), 0.f),
+	float length_to_extrude = WipeTower2Detail::volume_to_length((m_semm ? 0.25f : m_filpar[old_tool].multitool_ramming_time) * std::accumulate(m_filpar[old_tool].ramming_speed.begin(), m_filpar[old_tool].ramming_speed.end(), 0.f),
 										m_perimeter_width * m_filpar[old_tool].ramming_line_width_multiplicator,
 										layer_height);
     // Orca: Reserve ramming depth only when toolchange_Unload() will actually ram,
@@ -2098,7 +2097,7 @@ WipeTower2::WipeTowerInfo::ToolChange WipeTower2::set_toolchange(size_t old_tool
     // the whole wipe volume needs reserved wiping depth.
     float first_wipe_line = (do_ramming && !boundary_wipe_start) ? - (width*((length_to_extrude / width)-int(length_to_extrude / width)) - width) : 0.f;
 
-    float first_wipe_volume = length_to_volume(first_wipe_line, m_perimeter_width * m_extra_flow, layer_height);
+    float first_wipe_volume = WipeTower2Detail::length_to_volume(first_wipe_line, m_perimeter_width * m_extra_flow, layer_height);
 
     // ORCA: Keep wipe-depth planning consistent with toolchange_Wipe().
     // ORCA: On the first layer, toolchange_Wipe() advances purge rows using
@@ -2159,7 +2158,7 @@ void WipeTower2::save_on_last_wipe()
         const float width = m_wipe_tower_width - 3*m_perimeter_width; // width we draw into
         auto recompute_toolchange = [this, width](WipeTowerInfo::ToolChange& toolchange, float volume_to_save) {
             float volume_left_to_wipe = std::max(m_filpar[toolchange.new_tool].filament_minimal_purge_on_wipe_tower, toolchange.wipe_volume_total - volume_to_save);
-            float volume_we_need_depth_for = std::max(0.f, volume_left_to_wipe - length_to_volume(toolchange.first_wipe_line, m_perimeter_width*m_extra_flow, m_layer_info->height));
+        float volume_we_need_depth_for = std::max(0.f, volume_left_to_wipe - WipeTower2Detail::length_to_volume(toolchange.first_wipe_line, m_perimeter_width*m_extra_flow, m_layer_info->height));
 
             // ORCA: Keep wipe-depth planning consistent with toolchange_Wipe().
             // ORCA: On the first layer, toolchange_Wipe() advances purge rows using
@@ -2182,7 +2181,7 @@ void WipeTower2::save_on_last_wipe()
             tool_change(toolchange.new_tool);
 
             if (i == idx) {
-                recompute_toolchange(toolchange, length_to_volume(finish_layer().total_extrusion_length_in_plane(), m_perimeter_width, m_layer_info->height));
+                recompute_toolchange(toolchange, WipeTower2Detail::length_to_volume(finish_layer().total_extrusion_length_in_plane(), m_perimeter_width, m_layer_info->height));
             } else if (toolchange.wipe_volume < m_filpar[toolchange.new_tool].filament_minimal_purge_on_wipe_tower) {
                 // Keep filament_minimal_purge_on_wipe_tower enforced for toolchanges that get
                 // no finish-layer saving, e.g. a support/soluble filament skipped as the
@@ -2442,15 +2441,15 @@ Polygon WipeTower2::generate_support_rib_wall(WipeTowerWriter2&                 
 
     float     retract_length = m_filpar[m_current_tool].retract_length;
     float     retract_speed  = m_filpar[m_current_tool].retract_speed * 60;
-    Polygon   wall_polygon   = rib_wall ? generate_rib_polygon(wt_box) : generate_rectange_polygon(wt_box.ld, wt_box.ru);
+    Polygon   wall_polygon   = rib_wall ? generate_rib_polygon(wt_box) : WipeTower2Detail::generate_rectange_polygon(wt_box.ld, wt_box.ru);
     Polylines result_wall;
     Polygon   insert_skip_polygon;
     if (m_used_fillet) {
         if (!rib_wall && m_y_shift > EPSILON) // do nothing because the fillet will cause it to be suspended.
         {
         } else {
-            wall_polygon           = rib_wall ? rounding_polygon(wall_polygon) : wall_polygon; // rectangle_wall do nothing
-            Polygon wt_box_polygon = generate_rectange_polygon(wt_box.ld, wt_box.ru);
+            wall_polygon           = rib_wall ? WipeTower2Detail::rounding_polygon(wall_polygon) : wall_polygon; // rectangle_wall do nothing
+            Polygon wt_box_polygon = WipeTower2Detail::generate_rectange_polygon(wt_box.ld, wt_box.ru);
             wall_polygon           = union_({wall_polygon, wt_box_polygon}).front();
         }
     }

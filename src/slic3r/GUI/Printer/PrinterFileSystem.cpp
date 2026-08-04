@@ -132,7 +132,7 @@ void PrinterFileSystem::SetFileType(FileType type, std::string const &storage)
         return;
     if (m_session.tunnel == nullptr)
         return;
-    m_status = Status::ListSyncing;
+    m_status = FileStatus::ListSyncing;
     SendChangedEvent(EVT_STATUS_CHANGED, m_status);
 }
 
@@ -180,7 +180,7 @@ void PrinterFileSystem::ListAllFiles()
     }, [this, type = m_file_type](int result, FileList list) {
         if (result != 0) {
             m_last_error = result;
-            m_status = Status::Failed;
+            m_status = FileStatus::Failed;
             m_file_list.clear();
             BuildGroups();
             UpdateGroupSelect();
@@ -220,7 +220,7 @@ void PrinterFileSystem::ListAllFiles()
         BuildGroups();
         UpdateGroupSelect();
         m_last_error = 0;
-        m_status = Status::ListReady;
+        m_status = FileStatus::ListReady;
         SendChangedEvent(EVT_STATUS_CHANGED, m_status);
         SendChangedEvent(EVT_FILE_CHANGED);
         if ((m_task_flags & FF_DOWNLOAD) == 0)
@@ -1698,12 +1698,12 @@ void PrinterFileSystem::Reconnect(boost::unique_lock<boost::mutex> &l, int resul
         while (m_stopped) {
             if (m_session.owner == nullptr)
                 return;
-           m_status = Status::Reconnecting;
+           m_status = FileStatus::Reconnecting;
            SendChangedEvent(EVT_STATUS_CHANGED, m_status);
            m_cond.wait(l);
         }
         wxLogMessage("PrinterFileSystem::Reconnect Initializing");
-        m_status = Status::Initializing;
+        m_status = FileStatus::Initializing;
         m_last_error = 0;
         SendChangedEvent(EVT_STATUS_CHANGED, m_status);
         // wait for url
@@ -1720,7 +1720,7 @@ void PrinterFileSystem::Reconnect(boost::unique_lock<boost::mutex> &l, int resul
         } else {
             wxLogInfo("PrinterFileSystem::Reconnect Initialized: %s", wxString::FromUTF8(url));
             l.unlock();
-            m_status = Status::Connecting;
+            m_status = FileStatus::Connecting;
             wxLogMessage("PrinterFileSystem::Reconnect Connecting");
             SendChangedEvent(EVT_STATUS_CHANGED, m_status);
             Bambu_Tunnel tunnel = nullptr;
@@ -1764,7 +1764,7 @@ void PrinterFileSystem::Reconnect(boost::unique_lock<boost::mutex> &l, int resul
             m_last_error = ret;
         }
         wxLogMessage("PrinterFileSystem::Reconnect Failed");
-        m_status = Status::Failed;
+        m_status = FileStatus::Failed;
 
         SendChangedEvent(EVT_STATUS_CHANGED, m_status, "", url.size() < 2 ? 1 : m_last_error);
         m_cond.timed_wait(l, boost::posix_time::seconds(10));
@@ -1775,7 +1775,7 @@ void PrinterFileSystem::Reconnect(boost::unique_lock<boost::mutex> &l, int resul
 #else
     PostCallback([this] {
         m_task_flags = 0;
-        m_status     = Status::ListSyncing;
+    m_status     = FileStatus::ListSyncing;
         SendChangedEvent(EVT_STATUS_CHANGED, m_status);
         });
 #endif

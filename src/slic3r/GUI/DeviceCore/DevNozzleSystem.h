@@ -108,7 +108,7 @@ namespace Slic3r
    {
        friend class DevNozzleSystemParser;
    private:
-       enum Status : int
+       enum SystemStatus : int
        {
            NOZZLE_SYSTEM_IDLE = 0,
            NOZZLE_SYSTEM_REFRESHING = 1,

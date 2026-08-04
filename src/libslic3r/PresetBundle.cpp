@@ -2213,7 +2213,7 @@ void PresetBundle::remove_users_preset(AppConfig &config, std::map<std::string, 
         filaments.select_preset_by_name(selected_filament_name, false);
     }
 
-    update_compatible(PresetSelectCompatibleType::Always);
+    update_compatible(PresetSelectCompatibleType::AlwaysSelect);
 
     /* set selected preset */
     for (size_t i = 0; i < filament_presets.size(); ++i)
@@ -2753,7 +2753,7 @@ void PresetBundle::update_selections(AppConfig &config)
     // Always try to select a compatible print and filament preset to the current printer preset,
     // as the application may have been closed with an active "external" preset, which does not
     // exist.
-    this->update_compatible(PresetSelectCompatibleType::Always);
+    this->update_compatible(PresetSelectCompatibleType::AlwaysSelect);
     this->update_multi_material_filament_presets();
 
     std::string first_visible_filament_name;
@@ -2903,7 +2903,7 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     // Always try to select a compatible print and filament preset to the current printer preset,
     // as the application may have been closed with an active "external" preset, which does not
     // exist.
-    this->update_compatible(PresetSelectCompatibleType::Always);
+    this->update_compatible(PresetSelectCompatibleType::AlwaysSelect);
     this->update_multi_material_filament_presets();
 
     if (initial_printer != nullptr && (preferred_printer == nullptr || initial_printer == preferred_printer)) {
@@ -5607,13 +5607,13 @@ void PresetBundle::update_compatible(PresetSelectCompatibleType select_other_pri
             const std::string prefered_filament_profile = prefered_filament_profiles.empty() ? std::string() : prefered_filament_profiles.front();
             if (this->filament_presets.size() == 1) {
                 // The compatible profile should have been already selected for the preset editor. Just use it.
-            	if (select_other_filament_if_incompatible == PresetSelectCompatibleType::Always || filament_preset_was_compatible.front())
+                if (select_other_filament_if_incompatible == PresetSelectCompatibleType::AlwaysSelect || filament_preset_was_compatible.front())
                 	this->filament_presets.front() = this->filaments.get_edited_preset().name;
             } else {
                 for (size_t idx = 0; idx < this->filament_presets.size(); ++ idx) {
                     std::string &filament_name = this->filament_presets[idx];
                     Preset      *preset = this->filaments.find_preset(filament_name, false);
-                    if (preset == nullptr || (! preset->is_compatible && (select_other_filament_if_incompatible == PresetSelectCompatibleType::Always || filament_preset_was_compatible[idx])))
+                    if (preset == nullptr || (! preset->is_compatible && (select_other_filament_if_incompatible == PresetSelectCompatibleType::AlwaysSelect || filament_preset_was_compatible[idx])))
                         // Pick a compatible profile. If there are prefered_filament_profiles, use them.
                         filament_name = this->filaments.first_compatible(
                             PreferedFilamentProfileMatch(preset,

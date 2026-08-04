@@ -6829,9 +6829,9 @@ bool Tab::select_preset(
         // The following method should not discard changes of current print or filament presets on change of a printer profile,
         // if they are compatible with the current printer.
         auto update_compatible_type = [delete_current](bool technology_changed, bool on_page, bool show_incompatible_presets) {
-        	return (delete_current || technology_changed) ? PresetSelectCompatibleType::Always :
+            return (delete_current || technology_changed) ? PresetSelectCompatibleType::AlwaysSelect :
         	       on_page                                ? PresetSelectCompatibleType::Never  :
-        	       show_incompatible_presets              ? PresetSelectCompatibleType::OnlyIfWasCompatible : PresetSelectCompatibleType::Always;
+	       show_incompatible_presets              ? PresetSelectCompatibleType::OnlyIfWasCompatible : PresetSelectCompatibleType::AlwaysSelect;
         };
         if (current_dirty || delete_current || print_tab || printer_tab)
             m_preset_bundle->update_compatible(
@@ -6891,7 +6891,7 @@ bool Tab::select_preset(
                     preset_bundle->prints.delete_preset(preset.name);
                 }
 
-                preset_bundle->update_compatible(PresetSelectCompatibleType::Always);
+                preset_bundle->update_compatible(PresetSelectCompatibleType::AlwaysSelect);
                 preset_bundle->filaments.select_preset_by_name(old_filament_name, true);
                 preset_bundle->prints.select_preset_by_name(old_process_name, true);
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " old filament name is:" << old_filament_name << " old process name is: " << old_process_name;

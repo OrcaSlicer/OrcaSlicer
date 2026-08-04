@@ -238,7 +238,7 @@ bool PresetBundleDialog::DeleteBundleById(const wxString& id)
     if (!bundle_dir.empty() && boost::filesystem::exists(bundle_dir))
         boost::filesystem::remove_all(bundle_dir, ec);
 
-    wxGetApp().preset_bundle->update_compatible(PresetSelectCompatibleType::Always);
+    wxGetApp().preset_bundle->update_compatible(PresetSelectCompatibleType::AlwaysSelect);
 
     return true;
 }

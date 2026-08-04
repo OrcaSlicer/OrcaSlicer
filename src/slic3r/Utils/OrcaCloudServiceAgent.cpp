@@ -1806,13 +1806,13 @@ bool OrcaCloudServiceAgent::refresh_if_expiring(std::chrono::seconds skew, const
     // First attempt. refresh_from_storage blocks on the cross-process lock and reads the
     // freshest token from the store, so cross-instance contention is already resolved here.
     RefreshResult r = refresh_from_storage(reason, false);
-    if (r == RefreshResult::Success)      return true;
+    if (r == RefreshResult::Succeeded)    return true;
     if (r == RefreshResult::AuthRejected) return false;  // definitive: retrying the same token can't help
 
     // One retry, only for a transient network failure of the refresh POST (lost response,
     // timeout, 429/5xx -> Transient). The retry re-acquires the lock and re-reads the store.
     std::this_thread::sleep_for(std::chrono::milliseconds(750));
-    return refresh_from_storage(reason + "_retry", false) == RefreshResult::Success;
+    return refresh_from_storage(reason + "_retry", false) == RefreshResult::Succeeded;
 }
 
 // Maps a token-refresh HTTP outcome to a RefreshResult. http_code == 0 means the
@@ -1825,7 +1825,7 @@ static RefreshResult classify_refresh_result(unsigned http_code, bool session_es
         return RefreshResult::AuthRejected;               // refresh token rejected
     if (http_code >= 400)
         return RefreshResult::Transient;                  // rate-limit (429), server error (5xx) or other 4xx: keep the session
-    return session_established ? RefreshResult::Success    // 2xx with a usable session
+    return session_established ? RefreshResult::Succeeded  // 2xx with a usable session
                               : RefreshResult::Transient;  // 2xx but unusable body
 }
 
@@ -2065,7 +2065,7 @@ bool OrcaCloudServiceAgent::resolve_unauthorized(HttpResult& res,
         return false;
 
     RefreshResult rr = attempt_refresh_after_unauthorized(reason);
-    if (rr == RefreshResult::Success) {
+    if (rr == RefreshResult::Succeeded) {
         res = perform();   // refreshed: retry the original request with the new token
         return false;
     }

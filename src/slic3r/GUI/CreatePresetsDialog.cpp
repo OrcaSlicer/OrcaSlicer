@@ -1195,7 +1195,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
                 }
             }
         }
-        preset_bundle->update_compatible(PresetSelectCompatibleType::Always);
+        preset_bundle->update_compatible(PresetSelectCompatibleType::AlwaysSelect);
         EndModal(wxID_OK);
         });
 
@@ -2269,7 +2269,7 @@ bool CreatePrinterPresetDialog::load_system_and_user_presets_with_curr_model(Pre
 
     if (!just_template) {
         temp_preset_bundle.printers.select_preset_by_name(m_printer_preset->name, true);
-        temp_preset_bundle.update_compatible(PresetSelectCompatibleType::Always);
+        temp_preset_bundle.update_compatible(PresetSelectCompatibleType::AlwaysSelect);
     } else {
         selected_vendor_id = PRESET_TEMPLATE_DIR;
         preset_path.clear();
@@ -2947,7 +2947,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " bisic info is not rewritten, may be printer_model, printer_variant, or nozzle_diameter";
         }
         preset_bundle->printers.save_current_preset(printer_preset_name, true, false, m_printer_preset);
-        preset_bundle->update_compatible(PresetSelectCompatibleType::Always);
+        preset_bundle->update_compatible(PresetSelectCompatibleType::AlwaysSelect);
         EndModal(wxID_OK);
 
         });
@@ -3396,7 +3396,7 @@ bool CreatePrinterPresetDialog::validate_input_valid()
             if (dlg.ShowModal() == wxID_YES){
                 auto bundle = wxGetApp().preset_bundle;
                 bundle->printers.select_preset_by_name(preset->name, true);
-                bundle->update_compatible(PresetSelectCompatibleType::Always);
+                bundle->update_compatible(PresetSelectCompatibleType::AlwaysSelect);
                 wxGetApp().load_current_presets();
                 wxGetApp().mainframe->update_side_preset_ui();
                 wxGetApp().sidebar().update_ui_from_settings();
@@ -4363,7 +4363,7 @@ void ExportConfigsDialog::data_init()
         std::string preset_name        = printer_preset.name;
         if (!printer_preset.is_visible || printer_preset.is_default || printer_preset.is_project_embedded) continue;
         if (preset_bundle.printers.select_preset_by_name(preset_name, true)) {
-            preset_bundle.update_compatible(PresetSelectCompatibleType::Always);
+                preset_bundle.update_compatible(PresetSelectCompatibleType::AlwaysSelect);
 
             const std::deque<Preset> &filament_presets = preset_bundle.filaments.get_presets();
             for (const Preset &filament_preset : filament_presets) {
@@ -4859,7 +4859,7 @@ void CreatePresetForPrinterDialog::get_visible_printer_and_compatible_filament_p
         if (printer_preset.is_visible) {
             if (m_preset_bundle->printers.get_preset_base(printer_preset) != &printer_preset) continue;
             if (m_preset_bundle->printers.select_preset_by_name(printer_preset.name, true)) {
-                m_preset_bundle->update_compatible(PresetSelectCompatibleType::Always);
+                m_preset_bundle->update_compatible(PresetSelectCompatibleType::AlwaysSelect);
                 const std::deque<Preset> &filament_presets = m_preset_bundle->filaments.get_presets();
                 for (const Preset &filament_preset : filament_presets) {
                     if (filament_preset.is_default || !filament_preset.is_compatible || filament_preset.is_project_embedded) continue;

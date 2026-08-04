@@ -221,7 +221,7 @@ public:
 
     File const &GetFile(size_t index, bool &select);
 
-    enum Status {
+    enum FileStatus {
         Initializing,
         Connecting,
         ListSyncing,
@@ -230,7 +230,7 @@ public:
         Reconnecting,
     };
 
-    Status GetStatus() const { return m_status; }
+    FileStatus GetStatus() const { return m_status; }
     int GetLastError() const { return m_last_error; }
 
     void Attached();
@@ -397,7 +397,7 @@ private:
     boost::mutex m_mutex;
     boost::condition_variable m_cond;
     boost::thread m_recv_thread;
-    Status m_status;
+    FileStatus m_status;
     int m_last_error = 0;
 
     MediaAbilityList m_media_ability_list;

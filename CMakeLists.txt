@@ -61,6 +61,10 @@ endif ()
 
 project(OrcaSlicer)
 
+if (APPLE)
+    enable_language(OBJCXX)
+endif ()
+
 # Backward compatibility for old CMake versions
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_VERSION VERSION_LESS "3.25")
     set(LINUX ON CACHE BOOL "" FORCE)
@@ -1109,7 +1113,21 @@ if(SLIC3R_BUILD_SANDBOXES)
 endif()
 
 if(BUILD_TESTS)
+    # The application targets opt into unity builds explicitly. Keep tests
+    # independent because their translation units intentionally define local
+    # helpers with the same names.
+    if (DEFINED CMAKE_UNITY_BUILD)
+        set(_orca_tests_unity_build "${CMAKE_UNITY_BUILD}")
+    else ()
+        unset(_orca_tests_unity_build)
+    endif ()
+    set(CMAKE_UNITY_BUILD OFF)
     add_subdirectory(tests)
+    if (DEFINED _orca_tests_unity_build)
+        set(CMAKE_UNITY_BUILD "${_orca_tests_unity_build}")
+    else ()
+        unset(CMAKE_UNITY_BUILD)
+    endif ()
 endif()
 
 if (NOT WIN32 AND NOT APPLE)

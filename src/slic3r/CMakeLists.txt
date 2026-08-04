@@ -872,6 +872,22 @@ set_source_files_properties(
     ../dev-utils/StackWalker.cpp
     PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE
 )
+
+# Objective-C++ sources must remain separate from C++ unity units. CMake may
+# otherwise textually include a .mm source in a generated .cxx unity source.
+if (APPLE)
+    set_source_files_properties(
+        Utils/RetinaHelperImpl.mm
+        Utils/MacDarkMode.mm
+        GUI/RemovableDriveManagerMM.mm
+        GUI/Mouse3DHandlerMac.mm
+        GUI/InstanceCheckMac.mm
+        GUI/DeepLinkHandlerMac.mm
+        GUI/GUI_UtilsMac.mm
+        GUI/wxMediaCtrl2.mm
+        PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE
+    )
+endif ()
 target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DIR})
 
 if (WIN32)

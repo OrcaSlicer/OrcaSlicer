@@ -2442,9 +2442,9 @@ void DiffPresetDialog::update_compatibility(const std::string& preset_name, Pres
     // The following method should not discard changes of current print or filament presets on change of a printer profile,
     // if they are compatible with the current printer.
     auto update_compatible_type = [](bool technology_changed, bool on_page, bool show_incompatible_presets) {
-        return  technology_changed ? PresetSelectCompatibleType::Always :
+        return  technology_changed ? PresetSelectCompatibleType::AlwaysSelect :
             on_page ? PresetSelectCompatibleType::Never :
-            show_incompatible_presets ? PresetSelectCompatibleType::OnlyIfWasCompatible : PresetSelectCompatibleType::Always;
+            show_incompatible_presets ? PresetSelectCompatibleType::OnlyIfWasCompatible : PresetSelectCompatibleType::AlwaysSelect;
     };
     if (print_tab || printer_tab)
         preset_bundle->update_compatible(

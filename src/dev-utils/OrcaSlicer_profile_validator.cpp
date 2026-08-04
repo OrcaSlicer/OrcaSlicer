@@ -279,7 +279,7 @@ int slice_all_printers(const std::string &vendor, const std::string &outdir)
 
         select_printer_default_presets(bundle);          // slice with the printer's shipped process/filament
         bundle.update_multi_material_filament_presets();  // size filament_presets to nozzle count
-        bundle.update_compatible(PresetSelectCompatibleType::Always);
+        bundle.update_compatible(PresetSelectCompatibleType::AlwaysSelect);
 
         // Never slice with a generic default preset - that would validate stand-in settings, not the
         // real profile (a legit per-profile error).

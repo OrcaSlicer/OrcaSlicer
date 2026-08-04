@@ -465,7 +465,7 @@ enum class PresetSelectCompatibleType {
 	// Only select a compatible preset if the active profile used to be compatible, but it is no more.
 	OnlyIfWasCompatible,
 	// Always select a compatible preset if the active profile is no more compatible.
-	Always
+	AlwaysSelect
 };
 
 // Substitutions having been performed during parsing a single configuration file.

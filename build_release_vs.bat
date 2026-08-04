@@ -161,7 +161,7 @@ if "%USE_NINJA%"=="1" (
 cd ..
 call scripts/run_gettext.bat
 cd %build_dir%
-cmake --build . --target install --config %build_type%
+cmake --install . --config %build_type%
 
 :done
 @echo off

@@ -3779,7 +3779,7 @@ void MainFrame::load_config_file()
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " user is: " << agent->get_user_id();
         }
     }
-    wxGetApp().preset_bundle->update_compatible(PresetSelectCompatibleType::Always);
+    wxGetApp().preset_bundle->update_compatible(PresetSelectCompatibleType::AlwaysSelect);
     update_side_preset_ui();
     auto msg = wxString::Format(_L_PLURAL("There is %d config imported. (Only non-system and compatible configs)",
         "There are %d configs imported. (Only non-system and compatible configs)", cfiles.size()), cfiles.size());

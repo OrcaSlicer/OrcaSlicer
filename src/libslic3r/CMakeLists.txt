@@ -503,8 +503,6 @@ set_source_files_properties(
     Config.cpp
     Emboss.cpp
     Format/ZipperArchiveImport.cpp
-    GCode/WipeTower2.cpp
-    Format/bbs_3mf.cpp
     MultiMaterialSegmentation.cpp
     MultiNozzleUtils.cpp
     SLA/Rotfinder.cpp
@@ -515,6 +513,16 @@ set_source_files_properties(
     utils.cpp
     PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE
 )
+
+# Objective-C++ sources must remain separate from C++ unity units. CMake may
+# otherwise textually include a .mm source in a generated .cxx unity source.
+if (APPLE)
+    set_source_files_properties(
+        MacUtils.mm
+        Format/ModelIO.mm
+        PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE
+    )
+endif ()
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${lisbslic3r_sources})
 
 if (SLIC3R_STATIC)
