@@ -17319,6 +17319,77 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
                                                                    supports_material_station,
                                                                    std::move(slots),
                                                                    project_filaments);
+        } else if (host_type == htMoonraker) {
+            // ORCA-CFS: If the rooted Klipper printer exposes a Creality Filament System, show the
+            //           CFS slot-mapping dialog; otherwise fall back to the generic send dialog.
+            auto* moonraker_host = dynamic_cast<Moonraker*>(upload_job.printhost.get());
+            std::vector<CFSSlot> cfs_slots;
+            bool                 supports_cfs = false;
+            if (moonraker_host != nullptr) {
+                wxBusyCursor wait;
+                wxString     msg;
+                if (!moonraker_host->fetch_cfs_slots(cfs_slots, &supports_cfs, msg))
+                    supports_cfs = false; // non-fatal: no CFS / unreachable -> generic dialog
+            }
+
+            if (moonraker_host != nullptr && supports_cfs) {
+            std::vector<FilamentInfo> project_filaments;
+            PlateDataPtrs               plate_data_list;
+            DynamicPrintConfig          cfg                 = wxGetApp().preset_bundle->full_config();
+            const auto*                 filament_color      = dynamic_cast<const ConfigOptionStrings*>(cfg.option("filament_colour"));
+            const auto*                 filament_id_opt     = dynamic_cast<const ConfigOptionStrings*>(cfg.option("filament_ids"));
+            const int                   resolved_plate_idx  = plate_idx == PLATE_CURRENT_IDX ? get_partplate_list().get_curr_plate_index() : plate_idx;
+            auto enrich_project_filaments = [&](std::vector<FilamentInfo>& filaments) {
+                for (auto& filament : filaments) {
+                    if (filament.id < 0)
+                        continue;
+
+                    std::string display_filament_type;
+                    try {
+                        filament.type = cfg.get_filament_type(display_filament_type, filament.id);
+                    } catch (...) {
+                    }
+
+                    if (filament.type.empty())
+                        filament.type = display_filament_type;
+                    if (filament.type.empty())
+                        filament.type = "Unknown";
+
+                    filament.filament_id = filament_id_opt ? filament_id_opt->get_at(static_cast<size_t>(filament.id)) : "";
+                    filament.color       = filament_color ? filament_color->get_at(static_cast<size_t>(filament.id)) : "#FFFFFF";
+                    if (filament.color.empty())
+                        filament.color = "#FFFFFF";
+                }
+            };
+
+            p->partplate_list.store_to_3mf_structure(plate_data_list, true, plate_idx);
+            PlateData* selected_plate_data = (resolved_plate_idx >= 0 && resolved_plate_idx < static_cast<int>(plate_data_list.size())) ? plate_data_list[resolved_plate_idx] : nullptr;
+            if (selected_plate_data == nullptr && !plate_data_list.empty())
+                selected_plate_data = plate_data_list.front();
+
+            if (selected_plate_data != nullptr)
+                project_filaments = selected_plate_data->slice_filaments_info;
+
+            if (project_filaments.empty()) {
+                if (PartPlate* plate = get_partplate_list().get_plate(resolved_plate_idx); plate != nullptr)
+                    project_filaments = plate->get_slice_filaments_info();
+            }
+
+            if (!project_filaments.empty())
+                enrich_project_filaments(project_filaments);
+            release_PlateData_list(plate_data_list);
+
+                pDlg = std::make_unique<MoonrakerCFSPrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
+                                                                         storage_paths, storage_names,
+                                                                         config->get_bool("open_device_tab_post_upload"),
+                                                                         moonraker_host,
+                                                                         supports_cfs,
+                                                                         std::move(cfs_slots),
+                                                                         project_filaments);
+            } else {
+                pDlg = std::make_unique<PrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
+                                                             storage_paths, storage_names, config->get_bool("open_device_tab_post_upload"));
+            }
         } else {
             pDlg = std::make_unique<PrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
                                                          storage_paths, storage_names, config->get_bool("open_device_tab_post_upload"));
