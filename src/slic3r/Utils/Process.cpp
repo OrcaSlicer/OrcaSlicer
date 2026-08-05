@@ -76,7 +76,7 @@ static void start_new_slicer_or_gcodeviewer(const NewSlicerInstanceType instance
 				args.emplace_back("--gcodeviewer");
 			if (instance_type == NewSlicerInstanceType::Slicer && single_instance)
 				args.emplace_back("--single-instance");
-			boost::process::v1::spawn(bin_path, args);
+			boost::process::v2::spawn(bin_path, args);
 		}
 		catch (const std::exception& ex) {
 			BOOST_LOG_TRIVIAL(error) << "Failed to spawn a new slicer \"" << bin_path.string() << "\": " << ex.what();

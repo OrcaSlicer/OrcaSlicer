@@ -191,8 +191,8 @@ static int run_script(const std::string& script, const std::string& gcode, std::
 
     BOOST_LOG_TRIVIAL(debug) << boost::format("Executing script, shell: %1%, command: %2%") % shell % command;
 
-    process::v1::ipstream istd_err;
-    process::v1::child child(shell, "-c", command, process::v1::std_err > istd_err);
+    process::v2::ipstream istd_err;
+    process::v2::child child(shell, "-c", command, process::v2::std_err > istd_err);
 
     std_err.clear();
     std::string line;
