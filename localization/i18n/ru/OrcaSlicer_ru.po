@@ -9873,7 +9873,7 @@ msgid "Errors"
 msgstr "Ошибок"
 
 msgid "More than one filament types have been mapped to the same external spool, which may cause printing issues. The printer won't pause during printing."
-msgstr "На одну внешюю катушку назначено несколько типов материала, что может вызвать проблемы при печати. Принтер не будет приостанавливаться во время печати."
+msgstr "На одну внешнюю катушку назначено несколько типов материала, что может вызвать проблемы при печати. Принтер не будет приостанавливаться во время печати."
 
 msgid "The filament type setting of external spool is different from the filament in the slicing file."
 msgstr "Тип материала на внешней катушке отличается от материала в файле нарезки."
@@ -15798,7 +15798,7 @@ msgid "The allowed max printed mass"
 msgstr "Максимально допустимая масса печати"
 
 msgid "The allowed max printed mass on a plate"
-msgstr "Макисмально допустимая масса деталей на столе."
+msgstr "Максимально допустимая масса деталей на столе."
 
 msgid "Maximum acceleration for extruding"
 msgstr "Максимальное ускорение при печати"
@@ -16308,7 +16308,7 @@ msgid ""
 "The length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
-"Быстрый откат после очистки, выраженный в процентах от общей длины отката. Ы некоторых случаях позволяет значительно снизить количество «паутины»."
+"Быстрый откат после очистки, выраженный в процентах от общей длины отката. В некоторых случаях позволяет значительно снизить количество «паутины»."
 "\n"
 "Примечание: суммарное значение не должно превышать 100% и будет скорректировано автоматически."
 
@@ -21542,7 +21542,7 @@ msgid "This AMS is currently printing. To ensure print quality, the drying tempe
 msgstr "AMS сейчас печатает. Во избежание проблем с печатью температура сушки не должна превышать рекомендованную."
 
 msgid "The temperature shall not exceed the filament's heat distortion temperature"
-msgstr "Температура не должна превышать температуру размягчения материала."
+msgstr "Температура сушки не должна превышать температуру размягчения материала."
 
 msgid "Minimum time value cannot be less than 1."
 msgstr "Минимальное время не может быть меньше 1."
