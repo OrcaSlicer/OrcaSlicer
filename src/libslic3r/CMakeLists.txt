@@ -98,6 +98,8 @@ set(lisbslic3r_sources
     ClipperZUtils.hpp
     Color.cpp
     Color.hpp
+    ColorSpaceConvert.cpp
+    ColorSpaceConvert.hpp
     CommonDefs.hpp
     Config.cpp
     Config.hpp
@@ -646,3 +648,44 @@ endif()
 if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
     add_precompiled_header(libslic3r pchheader.hpp FORCEINCLUDE)
 endif ()
+
+if (SLIC3R_UNITY_BUILD)
+    if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.16)
+        set_target_properties(libslic3r PROPERTIES
+            UNITY_BUILD ON
+            UNITY_BUILD_BATCH_SIZE ${SLIC3R_UNITY_BUILD_BATCH_SIZE})
+    else ()
+        message(WARNING "SLIC3R_UNITY_BUILD requires CMake >= 3.16; ignoring.")
+    endif ()
+endif ()
+
+# These files are excluded from UNITY_BUILD because they collide with sibling
+# files (or headers they pull in) when merged into a unity translation unit:
+#   - duplicate file-scope symbols: WipeTower2.cpp vs WipeTower.cpp, bbs_3mf.cpp
+#     vs 3mf.cpp, CutUtils.cpp vs Model.cpp, TreeSupport.cpp, SupportMaterial.cpp
+#   - using-directive bleed: FilamentGroup.cpp leaks `using namespace
+#     FilamentGroupUtils` making FilamentInfo ambiguous in MultiNozzleUtils.cpp
+#   - include-guard collision: SupportTreeBuildsteps.cpp pulls in Orca's
+#     Optimize/Optimizer.hpp (guard OPTIMIZER_HPP) which suppresses libnest2d's
+#     optimizer.hpp, undeclaring Method/Optimizer in SupportTree.cpp
+#   - anonymous-ns + header collision: Rotfinder.cpp's anon-ns DOWN vs
+#     SupportTreeBuilder.hpp's DOWN
+#   - anonymous-ns symbol duplication: SL1.cpp and ZipperArchiveImport.cpp both
+#     define read_ini in the merged anon namespace; SL1.cpp's anon-ns
+#     CONFIG_FNAME/PROFILE_FNAME shadow the header versions
+#   - NDEBUG leak: TriangleMeshDeal.cpp does `#undef NDEBUG` to enable asserts,
+#     which leaks into sibling files in the TU and makes NDEBUG-guarded header
+#     declarations inconsistent with their .cpp definitions
+# Compile them standalone instead.
+set_source_files_properties(
+    GCode/WipeTower2.cpp
+    Format/bbs_3mf.cpp
+    CutUtils.cpp
+    Support/TreeSupport.cpp
+    Support/SupportMaterial.cpp
+    FilamentGroup.cpp
+    SLA/SupportTreeBuildsteps.cpp
+    SLA/Rotfinder.cpp
+    Format/SL1.cpp
+    TriangleMeshDeal.cpp
+    PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)

@@ -324,7 +324,7 @@ std::map<std::string, std::vector<json>> ProjectPanel::Reload(wxString aux_path)
     fs::directory_iterator                          iter_end;
     std::map<std::string, std::vector<json>> m_paths_list;
 
-    const static std::array<wxString, 5> s_default_folders = {
+    const static std::array<wxString, 5> s_project_panel_default_folders = {
         ("Model Pictures"),
         ("Bill of Materials"),
         ("Assembly Guide"),
@@ -333,7 +333,7 @@ std::map<std::string, std::vector<json>> ProjectPanel::Reload(wxString aux_path)
         ("Profile Pictures"),
     };
 
-    for (auto folder : s_default_folders)
+    for (auto folder : s_project_panel_default_folders)
         m_paths_list[folder.ToStdString()] = std::vector<json>{};
 
 
@@ -345,7 +345,7 @@ std::map<std::string, std::vector<json>> ProjectPanel::Reload(wxString aux_path)
     }
 
     // Create default folders if they are not loaded
-    for (auto folder : s_default_folders) {
+    for (auto folder : s_project_panel_default_folders) {
         wxString folder_path = aux_path + "/" + folder;
         if (fs::exists(folder_path.ToStdWstring())) continue;
         fs::create_directory(folder_path.ToStdWstring());
@@ -367,7 +367,7 @@ std::map<std::string, std::vector<json>> ProjectPanel::Reload(wxString aux_path)
             std::string file_path = iter->path().string();
             fs::path file_path_obj = fs::path(iter->path().string());
 
-            for (auto folder : s_default_folders) {
+            for (auto folder : s_project_panel_default_folders) {
                 auto idx = file_path.find(folder.ToStdString());
                 if (idx != std::string::npos) {
                     

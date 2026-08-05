@@ -827,7 +827,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
 
      // ai monitoring with levels
     line_sizer         = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_ai_monitoring = new CheckBox(parent);
+    m_cb_ai_monitoring = new ::CheckBox(parent);
     text_ai_monitoring = new Label(parent, _L("Enable AI monitoring of printing"));
     text_ai_monitoring->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -857,7 +857,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
 
     //spaghetti detection  with levels
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_spaghetti_detection = new CheckBox(ai_refine_panel);
+    m_cb_spaghetti_detection = new ::CheckBox(ai_refine_panel);
     text_spaghetti_detection = new Label(ai_refine_panel, _L("Spaghetti Detection"));
     text_spaghetti_detection->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -901,7 +901,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
 
     //purge chute pile-up detection
     line_sizer               = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_purgechutepileup_detection = new CheckBox(ai_refine_panel);
+    m_cb_purgechutepileup_detection = new ::CheckBox(ai_refine_panel);
     text_purgechutepileup_detection = new Label(ai_refine_panel, _L("Purge Chute Pile-Up Detection"));
     text_purgechutepileup_detection->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -940,7 +940,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
 
     //nozzle clumping detection
     line_sizer                      = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_nozzleclumping_detection = new CheckBox(ai_refine_panel);
+    m_cb_nozzleclumping_detection = new ::CheckBox(ai_refine_panel);
     text_nozzleclumping_detection = new Label(ai_refine_panel, _L("Nozzle Clumping Detection"));
     text_nozzleclumping_detection->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -981,7 +981,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
 
     //air printing detection
     line_sizer                      = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_airprinting_detection = new CheckBox(ai_refine_panel);
+    m_cb_airprinting_detection = new ::CheckBox(ai_refine_panel);
     text_airprinting_detection = new Label(ai_refine_panel, _L("Air Printing Detection"));
     text_airprinting_detection->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -1029,7 +1029,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
 
     // detection of build plate position
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_plate_mark = new CheckBox(parent);
+    m_cb_plate_mark = new ::CheckBox(parent);
     text_plate_mark = new Label(parent, _L("Enable detection of build plate position"));
     text_plate_mark->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -1062,7 +1062,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
 
     // detection of first layer
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_first_layer = new CheckBox(parent);
+    m_cb_first_layer = new ::CheckBox(parent);
     text_first_layer = new Label(parent, _L("First Layer Inspection"));
     text_first_layer->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -1079,7 +1079,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
 
     // auto-recovery from step loss
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_auto_recovery = new CheckBox(parent);
+    m_cb_auto_recovery = new ::CheckBox(parent);
     text_auto_recovery = new Label(parent, _L("Auto-recover from step loss"));
     text_auto_recovery->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -1096,7 +1096,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
 
      //Save remote file to local storage
     line_sizer     = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_save_remote_print_file_to_storage = new CheckBox(parent);
+    m_cb_save_remote_print_file_to_storage = new ::CheckBox(parent);
     text_save_remote_print_file_to_storage = new Label(parent, _L("Store Sent Files on External Storage"));
     text_save_remote_print_file_to_storage->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -1113,7 +1113,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
     //Allow prompt sound
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_sup_sound = new CheckBox(parent);
+    m_cb_sup_sound = new ::CheckBox(parent);
     text_sup_sound = new Label(parent, _L("Allow Prompt Sound"));
     text_sup_sound->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -1131,7 +1131,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
     //filament tangle detect
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_filament_tangle = new CheckBox(parent);
+    m_cb_filament_tangle = new ::CheckBox(parent);
     text_filament_tangle = new Label(parent, _L("Filament Tangle Detection"));
     text_filament_tangle->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -1149,7 +1149,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
     //nozzle blob detect
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_nozzle_blob = new CheckBox(parent);
+    m_cb_nozzle_blob = new ::CheckBox(parent);
     text_nozzle_blob = new Label(parent, _L("Nozzle Clumping Detection"));
     text_nozzle_blob->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -1182,7 +1182,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
 
     // Purify Air at Print End (tri-state: internal circulation / exhaust)
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_purify_air_at_print_end = new CheckBox(parent);
+    m_cb_purify_air_at_print_end = new ::CheckBox(parent);
     text_purify_air = new Label(parent, _L("Purify Air at Print End"));
     text_purify_air->SetFont(Label::Body_14);
     text_purify_air_context = new Label(parent, wxEmptyString);
@@ -1205,7 +1205,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
 
     // Build plate alignment detection
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_plate_align = new CheckBox(parent);
+    m_cb_plate_align = new ::CheckBox(parent);
     text_plate_align = new Label(parent, _L("Alignment Detection"));
     text_plate_align->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -1228,7 +1228,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
 
     // Foreign Object Detection
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_fod_check = new CheckBox(parent);
+    m_cb_fod_check = new ::CheckBox(parent);
     text_fod_check = new Label(parent, _L("Foreign Object Detection"));
     text_fod_check->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -1251,7 +1251,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
 
     // Printed Part Displacement Detection
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_displacement_detection = new CheckBox(parent);
+    m_cb_displacement_detection = new ::CheckBox(parent);
     text_displacement_detection = new Label(parent, _L("Printed Part Displacement Detection"));
     text_displacement_detection->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
@@ -1299,7 +1299,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
 
     //Open Door Detection
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_open_door = new CheckBox(parent);
+    m_cb_open_door = new ::CheckBox(parent);
     text_open_door = new Label(parent, _L("Open Door Detection"));
     text_open_door->SetFont(Label::Body_14);
     open_door_switch_board = new SwitchBoard(parent, _L("Notification"), _L("Pause printing"), wxSize(FromDIP(200), FromDIP(26)));
@@ -1315,7 +1315,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     // Print status snapshot (enable path shows a confirm prompt; hidden until supported)
     m_snapshot_sizer = new wxBoxSizer(wxVERTICAL);
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_snapshot_enable = new CheckBox(parent);
+    m_cb_snapshot_enable = new ::CheckBox(parent);
     Label* text_snapshot = new Label(parent, _L("Print Status Snapshot"));
     text_snapshot->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);

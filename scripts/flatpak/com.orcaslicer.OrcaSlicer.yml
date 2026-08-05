@@ -352,7 +352,9 @@ modules:
           -DCMAKE_INSTALL_PREFIX=/app \
           -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
           -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" \
-          -DCMAKE_MODULE_LINKER_FLAGS="-fuse-ld=lld"
+          -DCMAKE_MODULE_LINKER_FLAGS="-fuse-ld=lld" \
+          ${ORCA_UNITY_BUILD:+-DSLIC3R_UNITY_BUILD=ON} \
+          ${ORCA_UNITY_BUILD_BATCH_SIZE:+-DSLIC3R_UNITY_BUILD_BATCH_SIZE="$ORCA_UNITY_BUILD_BATCH_SIZE"}
       - cmake --build build_flatpak --target OrcaSlicer -j$FLATPAK_BUILDER_N_JOBS
       - ./scripts/run_gettext.sh
       - cmake --build build_flatpak --target install -j$FLATPAK_BUILDER_N_JOBS

@@ -1660,7 +1660,7 @@ void CalibrationFlowCoarseSavePage::create_page(wxWindow* parent)
     checkBox_panel->SetBackgroundColour(*wxWHITE);
     auto cb_sizer = new wxBoxSizer(wxHORIZONTAL);
     checkBox_panel->SetSizer(cb_sizer);
-    m_checkBox_skip_calibration = new CheckBox(checkBox_panel);
+    m_checkBox_skip_calibration = new ::CheckBox(checkBox_panel);
     cb_sizer->Add(m_checkBox_skip_calibration);
 
     auto cb_text = new Label(checkBox_panel, _L("Skip Calibration2"));

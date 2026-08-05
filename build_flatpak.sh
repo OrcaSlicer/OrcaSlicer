@@ -25,6 +25,7 @@ ENABLE_CCACHE=false
 DISABLE_ROFILES_FUSE=false
 NO_DEBUGINFO=true
 CACHE_DIR=".flatpak-builder"
+UNITY_BUILD=false
 
 # Help function
 show_help() {
@@ -43,6 +44,8 @@ show_help() {
     echo "  --with-debuginfo       Include debug info (slower builds, needed for Flathub)"
     echo "  --cache-dir DIR        Flatpak builder cache directory [default: $CACHE_DIR]"
     echo "  -i, --install-runtime  Install required Flatpak runtime and SDK"
+    echo "  -U, --unity-build      Enable CMake UNITY_BUILD (unity/jumbo build) for libslic3r and libslic3r_gui"
+    echo "  -B, --batch-size N     Set UNITY_BUILD batch size (implies --unity-build; default 8)"
     echo "  -h, --help             Show this help message"
     echo ""
     echo "Examples:"
@@ -95,6 +98,15 @@ while [[ $# -gt 0 ]]; do
         -i|--install-runtime)
             INSTALL_RUNTIME=true
             shift
+            ;;
+        -U|--unity-build)
+            UNITY_BUILD=true
+            shift
+            ;;
+        -B|--batch-size)
+            UNITY_BUILD=true
+            UNITY_BATCH_SIZE="$2"
+            shift 2
             ;;
         -h|--help)
             show_help
@@ -307,6 +319,16 @@ fi
 if [[ "$ENABLE_CCACHE" == true ]]; then
     BUILDER_ARGS+=(--ccache)
     echo -e "${GREEN}Using ccache for compiler caching${NC}"
+fi
+
+# Enable unity build if requested (passed to the OrcaSlicer module via env)
+if [[ "$UNITY_BUILD" == true ]]; then
+    BUILDER_ARGS+=(--env=ORCA_UNITY_BUILD=1)
+    UNITY_BATCH_SIZE="${UNITY_BATCH_SIZE:-${ORCA_UNITY_BUILD_BATCH_SIZE}}"
+    if [[ -n "${UNITY_BATCH_SIZE}" ]]; then
+        BUILDER_ARGS+=(--env=ORCA_UNITY_BUILD_BATCH_SIZE="$UNITY_BATCH_SIZE")
+    fi
+    echo -e "${GREEN}Unity build enabled${NC}"
 fi
 
 # Disable rofiles-fuse if requested (workaround for FUSE issues)

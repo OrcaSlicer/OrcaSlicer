@@ -8,7 +8,7 @@ SCRIPT_PATH=$(dirname "$(readlink -f "${0}")")
 pushd "${SCRIPT_PATH}" > /dev/null
 
 function usage() {
-    echo "Usage: ./${SCRIPT_NAME} [-1][-b][-c][-d][-D][-e][-F][-g][-h][-i][-j N][-p][-r][-s][-t][-u][-l][-L]"
+    echo "Usage: ./${SCRIPT_NAME} [-1][-b][-c][-d][-D][-e][-F][-g][-h][-i][-j N][-p][-r][-s][-t][-u][-l][-L][-U][-B N]"
     echo "   -1: limit builds to one core (where possible)"
     echo "   -j N: limit builds to N cores (where possible)"
     echo "   -b: build in Debug mode"
@@ -28,6 +28,8 @@ function usage() {
     echo "   -u: install system dependencies (asks for sudo password; build prerequisite)"
     echo "   -l: use Clang instead of GCC (default: GCC)"
     echo "   -L: use ld.lld as linker (if available)"
+    echo "   -U: enable CMake UNITY_BUILD (unity/jumbo build) for libslic3r and libslic3r_gui"
+    echo "   -B N: set UNITY_BUILD batch size (implies -U; default 8)"
     echo "For a first use, you want to './${SCRIPT_NAME} -u'"
     echo "   and then './${SCRIPT_NAME} -dsi'"
     echo "For a GitHub Actions-like Linux build locally, use './${SCRIPT_NAME} -g -istrlL'"
@@ -41,7 +43,7 @@ unset name
 BUILD_DIR=build
 BUILD_CONFIG=Release
 FORWARDED_ARGS=()
-while getopts ":1j:bcCdDeFghiprstulL" opt ; do
+while getopts ":1j:bcCdDeFghiprstulLUB:" opt ; do
   case ${opt} in
     1 )
         export CMAKE_BUILD_PARALLEL_LEVEL=1
@@ -117,6 +119,15 @@ while getopts ":1j:bcCdDeFghiprstulL" opt ; do
     L )
         USE_LLD="1"
         FORWARDED_ARGS+=("-L")
+        ;;
+    U )
+        UNITY_BUILD="1"
+        FORWARDED_ARGS+=("-U")
+        ;;
+    B )
+        UNITY_BUILD="1"
+        UNITY_BATCH_SIZE="$OPTARG"
+        FORWARDED_ARGS+=("-B" "$OPTARG")
         ;;
     * )
 	echo "Unknown argument '${opt}', aborting."
@@ -355,6 +366,9 @@ function run_in_docker() {
     if [[ -n "${ORCA_UPDATER_SIG_KEY}" ]] ; then
         container_env+=( -e "ORCA_UPDATER_SIG_KEY=${ORCA_UPDATER_SIG_KEY}" )
     fi
+    if [[ -n "${ORCA_UNITY_BUILD_BATCH_SIZE}" ]] ; then
+        container_env+=( -e "ORCA_UNITY_BUILD_BATCH_SIZE=${ORCA_UNITY_BUILD_BATCH_SIZE}" )
+    fi
 
     ensure_docker_runner_image "${container_cli}" "${runner_image}"
 
@@ -423,6 +437,7 @@ sudo -H -u "${HOST_USER}" env \
     CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL-}" \
     GITHUB_WORKSPACE="${GITHUB_WORKSPACE}" \
     ORCA_UPDATER_SIG_KEY="${ORCA_UPDATER_SIG_KEY-}" \
+    ORCA_UNITY_BUILD_BATCH_SIZE="${ORCA_UNITY_BUILD_BATCH_SIZE-}" \
     bash -c '
         set -e
         cd "${GITHUB_WORKSPACE}"
@@ -554,6 +569,13 @@ if [[ -n "${BUILD_ORCA}" ]] || [[ -n "${BUILD_TESTS}" ]] ; then
     fi
     if [[ -n "${ORCA_UPDATER_SIG_KEY}" ]] ; then
         BUILD_ARGS+=(-DORCA_UPDATER_SIG_KEY="${ORCA_UPDATER_SIG_KEY}")
+    fi
+    if [[ -n "${UNITY_BUILD}" ]] ; then
+        BUILD_ARGS+=(-DSLIC3R_UNITY_BUILD=ON)
+        UNITY_BATCH_SIZE="${UNITY_BATCH_SIZE:-${ORCA_UNITY_BUILD_BATCH_SIZE}}"
+        if [[ -n "${UNITY_BATCH_SIZE}" ]] ; then
+            BUILD_ARGS+=(-DSLIC3R_UNITY_BUILD_BATCH_SIZE="${UNITY_BATCH_SIZE}")
+        fi
     fi
 
     print_and_run cmake -S . -B $BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" "${CMAKE_CCACHE_ARGS[@]}" -G "Ninja Multi-Config" \

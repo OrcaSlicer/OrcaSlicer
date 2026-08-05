@@ -97,7 +97,7 @@ protected:
 	wxBoxSizer *m_dsa_sizer;
 	wxStaticBitmap *logo;
     MsgButtonsHash  m_buttons;
-	CheckBox* m_checkbox_dsa{nullptr};
+	::CheckBox* m_checkbox_dsa{nullptr};
     wxString  m_forward_str;
 };
 

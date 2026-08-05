@@ -1,9 +1,9 @@
 #ifndef slic3r_Utils_ColorSpaceConvert_hpp_
 #define slic3r_Utils_ColorSpaceConvert_hpp_
-#include <string>
-const int CUSTOM_COLOR_COUNT = 16;
 
 #include <tuple>
+
+const int CUSTOM_COLOR_COUNT = 16;
 
 std::tuple<int, int, int> rgb_to_yuv(float r, float g, float b);
 double PivotRGB(double n);
@@ -20,7 +20,4 @@ float DeltaE00(float l1, float a1, float b1, float l2, float a2, float b2);
 float DeltaE94(float l1, float a1, float b1, float l2, float a2, float b2);
 float DeltaE76(float l1, float a1, float b1, float l2, float a2, float b2);
 
-class wxColour;
-std::string color_to_string(const wxColour &color);
-wxColour    string_to_wxColor(const std::string &str);
 #endif /* slic3r_Utils_ColorSpaceConvert_hpp_ */

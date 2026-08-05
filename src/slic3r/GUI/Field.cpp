@@ -34,7 +34,8 @@
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/TextCtrl.h"
 
-#include "../Utils/ColorSpaceConvert.hpp"
+#include "../Utils/ColorConvert.hpp"
+
 #ifdef __WXOSX__
 #define wxOSX true
 #else

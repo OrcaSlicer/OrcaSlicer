@@ -8,7 +8,7 @@
 
 #include <wx/log.h>
 
-const static std::array<wxString, 4> s_default_folders = {
+const static std::array<wxString, 4> s_aux_data_view_model_default_folders = {
     _L("Model Pictures"),
     _L("Bill of Materials"),
     _L("Assembly Guide"),
@@ -38,7 +38,7 @@ void AuxiliaryModel::Init(wxString aux_path)
     fs::path top_dir_path(m_root_dir.ToStdWstring());
     fs::create_directory(top_dir_path);
 
-    for (auto folder : s_default_folders)
+    for (auto folder : s_aux_data_view_model_default_folders)
         CreateFolder(folder);
 }
 
@@ -85,7 +85,7 @@ void AuxiliaryModel::Reload(wxString aux_path)
         fs::create_directory(new_aux_path);
         // Create default folders if they are not loaded
         wxDataViewItemArray default_items;
-        for (auto folder : s_default_folders) {
+        for (auto folder : s_aux_data_view_model_default_folders) {
             wxString folder_path = aux_path + "\\" + folder;
             if (fs::exists(folder_path.ToStdWstring())) continue;
 
@@ -129,7 +129,7 @@ void AuxiliaryModel::Reload(wxString aux_path)
 
     // Create default folders if they are not loaded
     wxDataViewItemArray default_items;
-    for (auto folder : s_default_folders) {
+    for (auto folder : s_aux_data_view_model_default_folders) {
         wxString folder_path = aux_path + "\\" + folder;
         if (fs::exists(folder_path.ToStdWstring()))
             continue;
@@ -227,8 +227,6 @@ bool AuxiliaryModel::IsContainer(const wxDataViewItem& item) const
     return node->IsContainer();
 }
 
-static unsigned int count = 0;
-
 unsigned int AuxiliaryModel::GetChildren(const wxDataViewItem& parent,
     wxDataViewItemArray& array) const
 {
@@ -241,7 +239,7 @@ unsigned int AuxiliaryModel::GetChildren(const wxDataViewItem& parent,
         node = m_root;
     }
 
-    count = node->GetChildren().GetCount();
+    unsigned int count = node->GetChildren().GetCount();
     for (unsigned int pos = 0; pos < count; pos++)
     {
         AuxiliaryModelNode* child = node->GetChildren().Item(pos);

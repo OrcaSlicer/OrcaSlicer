@@ -36,10 +36,10 @@ int GetTextMax(wxWindow* parent, const std::vector<wxString>& labels)
     return text_size.x + parent->FromDIP(10);
 }
 
-CheckBox* add_scale_checkbox(wxWindow* parent, wxSizer* settings_sizer)
+::CheckBox* add_scale_checkbox(wxWindow* parent, wxSizer* settings_sizer)
 {
     auto row  = new wxBoxSizer(wxHORIZONTAL);
-    auto cb   = new CheckBox(parent);
+    auto cb   = new ::CheckBox(parent);
     cb->SetValue(true);
     auto text = new wxStaticText(parent, wxID_ANY, _L("Auto-scale for nozzle"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
     cb->SetToolTip(_L("This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
@@ -173,7 +173,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     // Print Numbers
     wxBoxSizer* cb_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto cb_title = new wxStaticText(this, wxID_ANY, cb_print_no_str, wxDefaultPosition, st_size, 0);
-    m_cbPrintNum = new CheckBox(this);
+    m_cbPrintNum = new ::CheckBox(this);
     m_cbPrintNum->SetValue(false);
     m_cbPrintNum->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
         (m_params.print_numbers) = (m_params.print_numbers) ? false : true;
@@ -719,7 +719,7 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
 
     // Auto-adjust parameters to the filament's max volumetric speed
     auto auto_adjust_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cbAutoAdjust = new CheckBox(this);
+    m_cbAutoAdjust = new ::CheckBox(this);
     m_cbAutoAdjust->SetValue(true);
     auto auto_adjust_text = new wxStaticText(this, wxID_ANY, _L("Auto-adjust to max volumetric speed"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
     m_cbAutoAdjust->SetToolTip(_L("If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer "

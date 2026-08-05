@@ -6,7 +6,7 @@
 #include <slic3r/GUI/Widgets/Label.hpp>
 #include <slic3r/GUI/Widgets/DialogButtons.hpp>
 
-#define BORDER FromDIP(25)
+#define RECENTER_BORDER FromDIP(25)
 #define DRAW_PANEL_SIZE wxSize(FromDIP(475), FromDIP(100))
 
 const wxColour text_color(107, 107, 107);
@@ -67,7 +67,7 @@ void RecenterDialog::render(wxDC& dc) {
 
     dc.SetFont(Label::Body_14);
     dc.SetTextForeground(text_color);
-    wxPoint pos_start = wxPoint(BORDER, BORDER);
+    wxPoint pos_start = wxPoint(RECENTER_BORDER, RECENTER_BORDER);
 
     wxSize hint1_size = dc.GetTextExtent(hint1);
     wxPoint pos_hint1 = pos_start;
@@ -82,7 +82,7 @@ void RecenterDialog::render(wxDC& dc) {
     wxPoint pos_hint2 = pos_hint1;
     pos_hint2.x = pos_hint2.x + hint1_size.x + m_home_bmp.GetBmpWidth();
 
-    if (hint2_size.x + pos_hint2.x + BORDER > DRAW_PANEL_SIZE.x) {
+    if (hint2_size.x + pos_hint2.x + RECENTER_BORDER > DRAW_PANEL_SIZE.x) {
         bool is_ch = false;
         if (hint2[0] > 0x80 && hint2[1] > 0x80) 
             is_ch = true;
@@ -95,7 +95,7 @@ void RecenterDialog::render(wxDC& dc) {
         for (int i = 0; i < hint2.length(); i++) {
             count_txt += hint2[i];
             auto text_size = dc.GetTextExtent(count_txt);
-            if (text_size.x + pos_hint2.x + BORDER < DRAW_PANEL_SIZE.x)
+            if (text_size.x + pos_hint2.x + RECENTER_BORDER < DRAW_PANEL_SIZE.x)
             {
                 if (hint2[i] == ' ' ||  hint2[i] == '\n')
                     new_line_pos = i;
@@ -122,7 +122,7 @@ void RecenterDialog::render(wxDC& dc) {
         for (int i = 0; i < remaining_line.length(); i++) {
             count_txt += remaining_line[i];
             auto text_size = dc.GetTextExtent(count_txt);
-            if (text_size.x + BORDER + BORDER < DRAW_PANEL_SIZE.x) 
+            if (text_size.x + RECENTER_BORDER + RECENTER_BORDER < DRAW_PANEL_SIZE.x) 
             {
                 if (remaining_line[i] == ' ' || remaining_line[i] == '\n')
                     new_line_pos = i;

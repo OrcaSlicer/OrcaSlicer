@@ -8,7 +8,8 @@
 #include <wx/colordlg.h>
 #include <wx/dcgraph.h>
 #include "CalibUtils.hpp"
-#include "../Utils/ColorSpaceConvert.hpp"
+#include "libslic3r/ColorSpaceConvert.hpp"
+#include "../Utils/ColorConvert.hpp"
 #include "EncodedFilament.hpp"
 
 

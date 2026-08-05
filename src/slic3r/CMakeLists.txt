@@ -657,8 +657,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/Bonjour.hpp
     Utils/CalibUtils.cpp
     Utils/CalibUtils.hpp
-    Utils/ColorSpaceConvert.cpp
-    Utils/ColorSpaceConvert.hpp
+    Utils/ColorConvert.cpp
+    Utils/ColorConvert.hpp
     Utils/CrealityPrint.cpp
     Utils/CrealityPrint.hpp
     Utils/CrealityPrintAgent.cpp
@@ -898,6 +898,84 @@ if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
     add_precompiled_header(libslic3r_gui pchheader.hpp FORCEINCLUDE)
 endif ()
 
+if (SLIC3R_UNITY_BUILD)
+    if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.16)
+        set_target_properties(libslic3r_gui PROPERTIES
+            UNITY_BUILD ON
+            UNITY_BUILD_BATCH_SIZE ${SLIC3R_UNITY_BUILD_BATCH_SIZE})
+    else ()
+        message(WARNING "SLIC3R_UNITY_BUILD requires CMake >= 3.16; ignoring.")
+    endif ()
+endif ()
+
+# These files are excluded from UNITY_BUILD because they collide with sibling
+# files (or headers they pull in) when merged into a unity translation unit:
+#   - duplicate file-scope symbols: static helpers, color constants, enums,
+#     structs, anonymous-namespace functions shared with sibling files
+#   - macro pollution: WipeTowerDialog.cpp defines `#define style` without an
+#     #undef, corrupting any file compiled after it in the same TU
+#   - GL header clash: files that include wx/glcanvas.h pull in the system
+#     GL/gl.h header, which makes glad/gl.h (included by many sibling files)
+#     fail with "OpenGL (gl.h) header already included" when merged into the
+#     same unity translation unit. Compile them standalone instead.
+#   - duplicate wxDEFINE_EVENT: SelectMachinePop.cpp and SendToPrinter.cpp
+#     define the same events (EVT_UPDATE_USER_MACHINE_LIST, EVT_CLEAR_IPADDRESS,
+#     EVT_PRINT_JOB_CANCEL) as SelectMachine.cpp
+#   - duplicate file-scope statics: SendJob.cpp and PrintJob.cpp both define the
+#     same `static auto` status strings in Slic3r::GUI
+#   - imgui math operators: ImGuiWrapper.cpp needs IMGUI_DEFINE_MATH_OPERATORS
+#     defined before imgui.h, but sibling files include imgui.h first in the TU
+#   - X11 macro pollution: LinuxDisplayBackend.cpp pulls in Xlib.h, whose
+#     `Success`/`Always`/`None`/... macros corrupt sibling files in the TU
+#   - single-header implementation: BitmapCache.cpp needs NANOSVG_IMPLEMENTATION
+#     before nanosvg.h, but sibling files include nanosvg.h first (via
+#     EmbossShape.hpp), so the implementation is skipped by the include guard
+#   - imgui math operators: GLGizmoMeshBoolean.cpp needs IMGUI_DEFINE_MATH_OPERATORS
+#     before imgui_internal.h, but GLGizmoMeasure.cpp includes it first in the TU
+# Compile them standalone instead.
+set_source_files_properties(
+    GUI/Gizmos/GLGizmoSVG.cpp
+    GUI/Gizmos/GLGizmoBrimEars.cpp
+    GUI/Gizmos/GLGizmoText.cpp
+    GUI/GUI_Factories.cpp
+    GUI/ExportPresetBundleDialog.cpp
+    GUI/WebGuideDialog.cpp
+    GUI/SafetyOptionsDialog.cpp
+    GUI/StatusPanel.cpp
+    GUI/ParamsPanel.cpp
+    GUI/Downloader.cpp
+    GUI/HintNotification.cpp
+    GUI/SlicingProgressNotification.cpp
+    GUI/CapsuleButton.cpp
+    GUI/PurgeModeDialog.cpp
+    GUI/ObjColorDialog.cpp
+    GUI/GUI_Preview.cpp
+    GUI/MarkdownTip.cpp
+    GUI/PrivacyUpdateDialog.cpp
+    GUI/CalibrationWizardCaliPage.cpp
+    GUI/NetworkTestDialog.cpp
+    GUI/3DBed.cpp
+    GUI/DeviceTab/wgtDeviceNozzleSelect.cpp
+    GUI/DeviceTab/wgtDeviceNozzleRackUpdate.cpp
+    Utils/ElegooLink.cpp
+    Utils/QidiPrinterAgent.cpp
+    GUI/WipeTowerDialog.cpp
+    GUI/SkipPartCanvas.cpp
+    GUI/SelectMachinePop.cpp
+    GUI/SendToPrinter.cpp
+    GUI/PartSkipDialog.cpp
+    GUI/NotificationManager.cpp
+    GUI/GUI_App.cpp
+    GUI/Mouse3DController.cpp
+    GUI/GLToolbar.cpp
+    GUI/Plater.cpp
+    GUI/Jobs/SendJob.cpp
+    GUI/ImGuiWrapper.cpp
+    GUI/LinuxDisplayBackend.cpp
+    GUI/BitmapCache.cpp
+    GUI/Gizmos/GLGizmoMeshBoolean.cpp
+    PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+
 # We need to implement some hacks for wxWidgets and touch the underlying GTK
 # layer and sub-libraries. This forces us to use the include locations and
 # link these libraries.
@@ -933,6 +1011,12 @@ endif ()
 
 # Add a definition so that we can tell we are compiling slic3r.
 target_compile_definitions(libslic3r_gui PRIVATE SLIC3R_CURRENTLY_COMPILING_GUI_MODULE)
+
+# Define the ImGui math operators globally so that imgui_internal.h always
+# provides ImVec2 operator+/-/* regardless of which file includes it first in a
+# unity translation unit. Files that define IMGUI_DEFINE_MATH_OPERATORS locally
+# are unaffected (their #ifndef guard makes the define a no-op).
+target_compile_definitions(libslic3r_gui PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
 
 if(ORCA_BUNDLED_UV_EXECUTABLE_CONFIG)
     target_compile_definitions(libslic3r_gui PRIVATE "ORCA_BUNDLED_UV_EXECUTABLE=\"${ORCA_BUNDLED_UV_EXECUTABLE_CONFIG}\"")

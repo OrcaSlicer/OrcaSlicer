@@ -26,6 +26,19 @@ for %%a in (%*) do (
     if /I "%%a"=="tests" set BUILD_TESTS=ON
 )
 
+@REM Check for unity-build option (-U) and batch size (-B N)
+set UNITY_BUILD=OFF
+set "UNITY_BATCH_SIZE="
+setlocal EnableDelayedExpansion
+set "PREV_ARG="
+for %%a in (%*) do (
+    if /I "%%a"=="-U" set UNITY_BUILD=ON
+    if /I "%%a"=="-B" set UNITY_BUILD=ON
+    if /I "!PREV_ARG!"=="-B" set "UNITY_BATCH_SIZE=%%a"
+    set "PREV_ARG=%%a"
+)
+endlocal & set UNITY_BUILD=%UNITY_BUILD% & set "UNITY_BATCH_SIZE=%UNITY_BATCH_SIZE%"
+
 if "%USE_NINJA%"=="1" (
     echo Using Ninja Multi-Config generator
     set CMAKE_GENERATOR="Ninja Multi-Config"
@@ -122,6 +135,11 @@ mkdir %build_dir%
 cd %build_dir%
 set "SIG_FLAG="
 if defined ORCA_UPDATER_SIG_KEY set "SIG_FLAG=-DORCA_UPDATER_SIG_KEY=%ORCA_UPDATER_SIG_KEY%"
+set "UNITY_FLAG="
+if "%UNITY_BUILD%"=="ON" set "UNITY_FLAG=-DSLIC3R_UNITY_BUILD=ON"
+set "UNITY_BATCH_FLAG="
+if defined UNITY_BATCH_SIZE set "UNITY_BATCH_FLAG=-DSLIC3R_UNITY_BUILD_BATCH_SIZE=%UNITY_BATCH_SIZE%"
+if not defined UNITY_BATCH_FLAG if defined ORCA_UNITY_BUILD_BATCH_SIZE set "UNITY_BATCH_FLAG=-DSLIC3R_UNITY_BUILD_BATCH_SIZE=%ORCA_UNITY_BUILD_BATCH_SIZE%"
 
 if "%1"=="slicer" (
     GOTO :slicer
@@ -151,10 +169,10 @@ cd %build_dir%
 echo on
 set CMAKE_POLICY_VERSION_MINIMUM=3.5
 if "%USE_NINJA%"=="1" (
-    cmake .. -G %CMAKE_GENERATOR% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake .. -G %CMAKE_GENERATOR% -DORCA_TOOLS=ON %SIG_FLAG% %UNITY_FLAG% %UNITY_BATCH_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target ALL_BUILD
 ) else (
-    cmake .. -G %CMAKE_GENERATOR% -A %arch% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake .. -G %CMAKE_GENERATOR% -A %arch% -DORCA_TOOLS=ON %SIG_FLAG% %UNITY_FLAG% %UNITY_BATCH_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target ALL_BUILD -- -m
 )
 @echo off

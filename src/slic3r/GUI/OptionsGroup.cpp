@@ -29,7 +29,7 @@
 namespace Slic3r { namespace GUI {
 
 // BBS: new layout
-constexpr int titleWidth = 20;
+constexpr int OptionsGroup_titleWidth = 20;
 
 const t_field& OptionsGroup::build_field(const Option& opt) { return build_field(opt.opt_id, opt.opt); }
 const t_field& OptionsGroup::build_field(const t_config_option_key& id)
@@ -286,7 +286,7 @@ void OptionsGroup::activate_line(Line& line)
         if (!line.get_extra_widgets().empty()) {
             bool is_first_item = true;
             for (auto extra_widget : line.get_extra_widgets()) {
-                h_sizer->Add(extra_widget(this->ctrl_parent()), is_first_item ? 1 : 0, wxLEFT, titleWidth * wxGetApp().em_unit());
+                h_sizer->Add(extra_widget(this->ctrl_parent()), is_first_item ? 1 : 0, wxLEFT, OptionsGroup_titleWidth * wxGetApp().em_unit());
                 is_first_item = false;
             }
             return;
@@ -323,7 +323,7 @@ void OptionsGroup::activate_line(Line& line)
         const auto h_sizer = new wxBoxSizer(wxHORIZONTAL);
         sizer->Add(h_sizer, 1, wxEXPAND | wxALL, (wxOSX && !staticbox) ? 0 : 5);
 
-        int left_padding = option.opt.multiline ? 0 : titleWidth * wxGetApp().em_unit();
+        int left_padding = option.opt.multiline ? 0 : OptionsGroup_titleWidth * wxGetApp().em_unit();
         if (m_labels_hidden)
             left_padding = 0;
 

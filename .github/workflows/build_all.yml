@@ -116,6 +116,68 @@ jobs:
       arch: universal
       macos-combine-only: true
     secrets: inherit
+  # Unity/jumbo build compile checks. They reuse the deps cache populated by the
+  # normal build legs above (UNITY_BUILD only affects libslic3r/libslic3r_gui,
+  # not the deps), so they only pay for the slicer compile itself. They are
+  # informational only: continue-on-error means a unity build failure never
+  # blocks the run, and no artifacts are uploaded or deployed.
+  unity_build_linux:
+    name: Unity build Linux ${{ matrix.arch }}
+    needs: build_linux
+    continue-on-error: true
+    # Don't run scheduled builds on forks; skip when a deps-only build was requested:
+    if: ${{ !cancelled() && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(vars.SELF_HOSTED
+          && '[{"arch":"","os":"orca-lnx-server"}]'
+          || '[{"arch":"","os":"ubuntu-24.04"},{"arch":"aarch64","os":"ubuntu-24.04-arm"}]') }}
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: ${{ matrix.os }}
+      arch: ${{ matrix.arch }}
+      unity-build: true
+      unity-batch-size: 8
+    secrets: inherit
+  unity_build_windows:
+    name: Unity build Windows ${{ matrix.arch }}
+    needs: build_windows
+    continue-on-error: true
+    # Don't run scheduled builds on forks; skip when a deps-only build was requested:
+    if: ${{ !cancelled() && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(vars.SELF_HOSTED
+          && '[{"arch":"x64","os":"orca-win-server"}]'
+          || '[{"arch":"x64","os":"windows-latest"},{"arch":"arm64","os":"windows-11-arm"}]') }}
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: ${{ matrix.os }}
+      arch: ${{ matrix.arch }}
+      unity-build: true
+      unity-batch-size: 8
+    secrets: inherit
+  unity_build_macos:
+    name: Unity build macOS ${{ matrix.arch }}
+    needs: build_macos_arch
+    continue-on-error: true
+    # Don't run scheduled builds on forks; skip when a deps-only build was requested:
+    if: ${{ !cancelled() && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - arm64
+          - x86_64
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-14' }}
+      arch: ${{ matrix.arch }}
+      unity-build: true
+      unity-batch-size: 8
+    secrets: inherit
   # One test job per built arch, on the runner that built it.
   unit_tests_linux_x86_64:
     name: Linux x86_64
@@ -304,3 +366,94 @@ jobs:
         asset_name: OrcaSlicer-Linux-flatpak_nightly${{ env.nightly_suffix }}_${{ matrix.variant.arch }}.flatpak
         asset_content_type: application/octet-stream
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
+  flatpak_unity:
+    name: "Flatpak (unity)"
+    # Informational only: a unity flatpak build failure never blocks the run.
+    continue-on-error: true
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
+      options: --privileged
+      volumes:
+        - /usr/local/lib/android:/usr/local/lib/android
+        - /usr/share/dotnet:/usr/share/dotnet
+        - /opt/ghc:/opt/ghc1
+        - /usr/local/share/boost:/usr/local/share/boost1
+        - /opt/hostedtoolcache:/opt/hostedtoolcache1
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    # Don't run scheduled builds on forks; skip entirely on self-hosted runners
+    if: ${{ !cancelled() && !vars.SELF_HOSTED && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+
+    runs-on: ${{ matrix.variant.runner }}
+    env:
+      date:
+      ver:
+      ver_pure:
+    steps:
+    - name: "Remove unneeded stuff to free disk space"
+      run:
+        rm -rf /usr/local/lib/android/* /usr/share/dotnet/* /opt/ghc1/* "/usr/local/share/boost1/*" /opt/hostedtoolcache1/*
+    - uses: actions/checkout@v7
+    - name: Get the version and date
+      run: |
+        ver_pure=$(grep 'set(SoftFever_VERSION' version.inc | cut -d '"' -f2)
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          ver="PR-${{ github.event.number }}"
+          git_commit_hash="${{ github.event.pull_request.head.sha }}"
+        else
+          ver=V$ver_pure
+          git_commit_hash="${{ github.sha }}"
+        fi
+        echo "ver=$ver" >> $GITHUB_ENV
+        echo "ver_pure=$ver_pure" >> $GITHUB_ENV
+        echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
+        echo "git_commit_hash=$git_commit_hash" >> $GITHUB_ENV
+      shell: bash
+    # Manage flatpak-builder cache externally so PRs restore but never upload.
+    # Distinct -unity- keys so the normal and unity flatpak jobs never race on
+    # the same cache entry.
+    - name: Restore flatpak-builder cache
+      if: github.event_name == 'pull_request'
+      uses: actions/cache/restore@v6
+      with:
+        path: .flatpak-builder
+        key: flatpak-builder-unity-${{ matrix.variant.arch }}-${{ github.event.pull_request.base.sha }}
+        restore-keys: flatpak-builder-unity-${{ matrix.variant.arch }}-
+    - name: Save/restore flatpak-builder cache
+      if: github.event_name != 'pull_request'
+      uses: actions/cache@v6
+      with:
+        path: .flatpak-builder
+        key: flatpak-builder-unity-${{ matrix.variant.arch }}-${{ github.sha }}
+        restore-keys: flatpak-builder-unity-${{ matrix.variant.arch }}-
+    - name: Disable debug info for faster CI builds
+      run: |
+        sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
+          scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
+      shell: bash
+    - name: Inject git commit hash into Flatpak manifest
+      run: |
+        sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$git_commit_hash\"|}" \
+          scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
+      shell: bash
+    # The flatpak-builder action runs the manifest's build-commands inside the
+    # sandbox, so step-level env vars don't reach it. Replace the manifest's
+    # ${ORCA_UNITY_BUILD:+-D...} placeholders with the concrete flags instead.
+    - name: Enable unity build in Flatpak manifest
+      run: |
+        sed -i 's|\${ORCA_UNITY_BUILD:+-DSLIC3R_UNITY_BUILD=ON} \\|-DSLIC3R_UNITY_BUILD=ON \\|; s|\${ORCA_UNITY_BUILD_BATCH_SIZE:+-DSLIC3R_UNITY_BUILD_BATCH_SIZE="$ORCA_UNITY_BUILD_BATCH_SIZE"}|-DSLIC3R_UNITY_BUILD_BATCH_SIZE=8|' \
+          scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
+      shell: bash
+    - uses: flatpak/flatpak-github-actions/flatpak-builder@master
+      with:
+        bundle: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
+        manifest-path: scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
+        cache: false
+        arch: ${{ matrix.variant.arch }}
+        upload-artifact: false

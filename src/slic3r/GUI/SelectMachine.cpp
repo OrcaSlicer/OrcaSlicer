@@ -497,7 +497,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
         wxPostEvent(plater, evt);
     });
 
-    m_check_ext_change_assist = new CheckBox(m_scroll_area, wxID_ANY);
+    m_check_ext_change_assist = new ::CheckBox(m_scroll_area, wxID_ANY);
     m_check_ext_change_assist->SetValue(false);
     m_check_ext_change_assist->SetBackgroundColour(*wxWHITE);
     m_check_ext_change_assist->SetToolTip(_L("Manually change external spool during printing for multi-color printing"));

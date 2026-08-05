@@ -67,7 +67,7 @@ public:
 
         main_sizer->AddSpacer(FromDIP(spacing));
 
-        m_smart_filament_checkbox = new CheckBox(this);
+        m_smart_filament_checkbox = new ::CheckBox(this);
         if (auto *opt = enable_filament_dynamic_map())
             m_smart_filament_checkbox->SetValue(opt->value);
         m_smart_filament_checkbox->Bind(wxEVT_TOGGLEBUTTON, &SmartFilamentPanel::on_smart_filament_checkbox, this);
@@ -105,7 +105,7 @@ private:
     }
 
 private:
-    CheckBox *m_smart_filament_checkbox{nullptr};
+    ::CheckBox *m_smart_filament_checkbox{nullptr};
 };
 
 
@@ -307,7 +307,7 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
     if(with_checkbox)
     {
         auto* checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
-        m_checkbox = new CheckBox(bottom_panel);
+        m_checkbox = new ::CheckBox(bottom_panel);
         m_checkbox->Bind(wxEVT_TOGGLEBUTTON, &FilamentMapDialog::on_checkbox, this);
         checkbox_sizer->Add(m_checkbox, 0, wxALIGN_CENTER, 0);
 
