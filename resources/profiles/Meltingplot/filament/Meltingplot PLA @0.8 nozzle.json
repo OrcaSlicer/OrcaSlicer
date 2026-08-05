@@ -9,7 +9,7 @@
 		"22"
 	],
 	"slow_down_layer_time": [
-		"20"
+		"30"
 	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 0.8 nozzle",

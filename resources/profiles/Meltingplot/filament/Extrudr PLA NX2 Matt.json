@@ -37,10 +37,10 @@
 		"25%"
 	],
 	"fan_cooling_layer_time": [
-		"60"
+		"100"
 	],
 	"slow_down_layer_time": [
-		"55"
+		"83"
 	],
 	"cool_plate_temp": [
 		"60"
