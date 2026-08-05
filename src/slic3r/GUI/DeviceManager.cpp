@@ -216,7 +216,7 @@ wxString Slic3r::get_stage_string(int stage)
     case 49:
         return _L("Heating chamber");
     case 50:
-        return _L("Cooling heatbed");
+        return _L("Adjusting heatbed temperature");
     case 51:
         return _L("Printing calibration lines");
     case 52:
@@ -1076,7 +1076,7 @@ bool MachineObject::is_filament_at_extruder()
 
 wxString MachineObject::get_curr_stage()
 {
-    if (stage_list_info.empty()) {
+    if (stage_curr < 0 || stage_list_info.empty()) {
         return "";
     }
     return get_stage_string(stage_curr);
