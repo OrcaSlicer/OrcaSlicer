@@ -120,8 +120,7 @@ bool delete_plugin_root(const boost::filesystem::path& resolved_root, const std:
     }
 
     if (removed_count == 0) {
-        error = "Plugin folder was not found: " + resolved_root.string();
-        return false;
+        return true;
     }
 
     BOOST_LOG_TRIVIAL(info) << "Deleted plugin: " << plugin_id << " from " << resolved_root.string();

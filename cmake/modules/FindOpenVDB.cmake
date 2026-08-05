@@ -128,6 +128,10 @@ cmake_minimum_required(VERSION 3.13)
 if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
+# Re-set after cmake_minimum_required above cleared it; use BoostConfig, not the removed FindBoost.
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
+endif()
 
 if(OpenVDB_FIND_QUIETLY)
   set (_quiet "QUIET")

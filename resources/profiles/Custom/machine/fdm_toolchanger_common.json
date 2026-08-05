@@ -172,11 +172,11 @@
 		"0.4"
 	],
 	"z_hop_types": [
-		"Normal Lift",
-		"Normal Lift",
-		"Normal Lift",
-		"Normal Lift",
-		"Normal Lift"
+		"Slope Lift",
+		"Slope Lift",
+		"Slope Lift",
+		"Slope Lift",
+		"Slope Lift"
 	],
 	"purge_in_prime_tower": "0",
 	"machine_pause_gcode": "M601",
