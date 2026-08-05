@@ -6,7 +6,6 @@
 
 #include "FillConcentric.hpp"
 #include <libslic3r/ShortestPath.hpp>
-#include <algorithm>
 
 namespace Slic3r {
 
