@@ -447,7 +447,8 @@ static ExPolygons outer_inner_brim_area(const Print& print,
             bool               has_brim_auto = object->config().brim_type == btAutoBrim;
             const bool         use_auto_brim_ears = object->config().brim_type == btEar;
             const bool         use_brim_ears = object->config().brim_type == btPainted;
-            const bool         use_inner_brim_ears = (use_auto_brim_ears || use_brim_ears) && !object->config().brim_ears_outer_only.value;
+            const bool         use_outer_only_brim_ears = (use_auto_brim_ears || use_brim_ears) && object->config().brim_ears_outer_only.value;
+            const bool         use_inner_brim_ears = (use_auto_brim_ears || use_brim_ears) && !use_outer_only_brim_ears;
             const bool         has_inner_brim = brim_type == btInnerOnly || brim_type == btOuterAndInner || use_inner_brim_ears;
             const bool         has_outer_brim = brim_type == btOuterOnly || brim_type == btOuterAndInner || brim_type == btAutoBrim || use_auto_brim_ears || use_brim_ears;
             coord_t            ear_detection_length = scale_(object->config().brim_ears_detection_length.value);
@@ -535,7 +536,14 @@ static ExPolygons outer_inner_brim_area(const Print& print,
                                 }else {
                                     outerExpoly = offset_ex(innerExpoly, brim_width_mod, jtRound, SCALED_RESOLUTION);
                                 }
-                                append(brim_area_object, diff_ex(outerExpoly, innerExpoly));
+                                // When ears are allowed inside holes, subtract the actual model
+                                // shape rather than treating its outer contour as solid. Otherwise
+                                // an ear generated for a ring erases its own central hole and only
+                                // partial overlap from a neighbouring ear can remain there.
+                                const ExPolygons brim_exclusion =
+                                    (use_auto_brim_ears || use_brim_ears) && !use_outer_only_brim_ears ?
+                                        offset_ex(ex_poly, brim_offset, jtRound, SCALED_RESOLUTION) : innerExpoly;
+                                append(brim_area_object, diff_ex(outerExpoly, brim_exclusion));
                             }
                             if (has_inner_brim) {
                                 ExPolygons outerExpoly;
@@ -559,6 +567,19 @@ static ExPolygons outer_inner_brim_area(const Print& print,
                             append(holes_object, ex_poly_holes_reversed);
                         }
                     }
+                if (use_outer_only_brim_ears && !brim_area_object.empty()) {
+                    // Treat nested material islands as enclosed geometry rather than as
+                    // independent outer contours. Unioning only the contours fills every
+                    // enclosed section while preserving genuinely separate outer islands.
+                    Polygons exterior_contours;
+                    exterior_contours.reserve(brim_slices->size());
+                    for (const ExPolygon& slice : *brim_slices)
+                        exterior_contours.push_back(slice.contour);
+                    const ExPolygons exterior_silhouette = union_ex(exterior_contours);
+                    brim_area_object = diff_ex(
+                        brim_area_object,
+                        offset_ex(exterior_silhouette, brim_offset, jtRound, SCALED_RESOLUTION));
+                }
                 auto objectIsland = offset_ex(*brim_slices, brim_offset, jtRound, SCALED_RESOLUTION);
                 append(no_brim_area_object, objectIsland);
 

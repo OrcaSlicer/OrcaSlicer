@@ -8,7 +8,10 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <algorithm>
+#include <array>
 #include <cmath>
+#include <limits>
 
 #include "test_helpers.hpp" // get access to init_print, etc
 
@@ -55,6 +58,83 @@ static bool brim_enters_first_layer_hole(Print &print)
                     return true;
     }
     return false;
+}
+
+static bool brim_fills_small_first_layer_holes(Print &print, double max_hole_area)
+{
+    const PrintObject *object = print.get_object(0);
+    Polygons holes;
+    for (const ExPolygon &slice : object->layers().front()->lslices)
+        for (const Polygon &hole : slice.holes)
+            if (std::abs(hole.area() * SCALING_FACTOR * SCALING_FACTOR) < max_hole_area)
+                holes.push_back(hole);
+
+    const Vec3d plate_origin = print.get_plate_origin();
+    Point shift = object->instances().front().shift_without_plate_offset();
+    shift += Point(scaled(plate_origin.x()), scaled(plate_origin.y()));
+    for (Polygon &hole : holes)
+        hole.translate(shift);
+
+    if (holes.empty())
+        return false;
+
+    std::vector<std::array<bool, 4>> covered_sides(holes.size());
+    for (const auto &kv : print.get_brimMap()) {
+        Polylines brim_paths;
+        kv.second.collect_polylines(brim_paths);
+        for (const Polyline &path : brim_paths)
+            for (const Point &point : path.points) {
+                for (size_t hole_idx = 0; hole_idx < holes.size(); ++hole_idx) {
+                    const Polygon &hole = holes[hole_idx];
+                    if (!hole.contains(point))
+                        continue;
+                    const BoundingBox bbox = hole.bounding_box();
+                    const Point center = bbox.center();
+                    const coord_t x_margin = bbox.size().x() / 8;
+                    const coord_t y_margin = bbox.size().y() / 8;
+                    covered_sides[hole_idx][0] |= point.x() < center.x() - x_margin;
+                    covered_sides[hole_idx][1] |= point.x() > center.x() + x_margin;
+                    covered_sides[hole_idx][2] |= point.y() < center.y() - y_margin;
+                    covered_sides[hole_idx][3] |= point.y() > center.y() + y_margin;
+                }
+            }
+    }
+
+    return std::all_of(covered_sides.begin(), covered_sides.end(), [](const auto &sides) {
+        return std::all_of(sides.begin(), sides.end(), [](bool covered) { return covered; });
+    });
+}
+
+// A frame whose hole contains a separate material island. This produces nested
+// first-layer contours: outer contour, hole, then enclosed material contour.
+static TriangleMesh frame_with_nested_island()
+{
+    TriangleMesh frame = mesh(TestMesh::cube_with_hole);
+    TriangleMesh island = make_cube(4, 4, 10);
+    island.translate(8, 8, 0);
+    frame.merge(island);
+    return frame;
+}
+
+// A large frame enclosing two ring-shaped material islands. Their centres are
+// 20 mm apart, reproducing the case where neighbouring ear overlap only
+// partially filled the rings' central holes.
+static TriangleMesh frame_with_adjacent_nested_rings()
+{
+    TriangleMesh frame = mesh(TestMesh::cube_with_hole);
+    frame.scale(Vec3f(4.f, 4.f, 1.f));
+
+    TriangleMesh left_ring = mesh(TestMesh::cube_with_hole);
+    left_ring.scale(Vec3f(0.25f, 0.25f, 1.f));
+    left_ring.translate(27.5, 37.5, 0);
+
+    TriangleMesh right_ring = mesh(TestMesh::cube_with_hole);
+    right_ring.scale(Vec3f(0.25f, 0.25f, 1.f));
+    right_ring.translate(47.5, 37.5, 0);
+
+    frame.merge(left_ring);
+    frame.merge(right_ring);
+    return frame;
 }
 
 // The span is skirt_height layers, or every layer when a draft shield is on (forced even at
@@ -270,6 +350,44 @@ TEST_CASE("Outer-only brim ears stay out of model holes", "[SkirtBrim]")
     }
 }
 
+TEST_CASE("Outer-only brim ears stay out of holes around nested islands", "[SkirtBrim]")
+{
+    const bool outer_only = GENERATE(false, true);
+    DYNAMIC_SECTION("brim_ears_outer_only=" << outer_only) {
+        Print print;
+        init_and_process_print({ frame_with_nested_island() }, print, {
+            { "skirt_loops",                0 },
+            { "brim_type",                  "brim_ears" },
+            { "brim_width",                 4 },
+            { "brim_ears_max_angle",        125 },
+            { "brim_ears_detection_length", 0 },
+            { "brim_ears_outer_only",       outer_only },
+            { "initial_layer_line_width",   0.5 },
+        });
+
+        REQUIRE(brim_loop_count(print) > 0);
+        CHECK(brim_enters_first_layer_hole(print) != outer_only);
+    }
+}
+
+TEST_CASE("Automatic brim ears fill holes covered by their radius", "[SkirtBrim]")
+{
+    Print print;
+    init_and_process_print({ frame_with_adjacent_nested_rings() }, print, {
+        { "skirt_loops",                0 },
+        { "brim_type",                  "brim_ears" },
+        { "brim_width",                 20 },
+        { "brim_object_gap",            0.1 },
+        { "brim_ears_max_angle",        135 },
+        { "brim_ears_detection_length", 1 },
+        { "brim_ears_outer_only",       false },
+        { "initial_layer_line_width",   0.6 },
+    });
+
+    REQUIRE(brim_loop_count(print) > 0);
+    CHECK(brim_fills_small_first_layer_holes(print, 10.0));
+}
+
 TEST_CASE("Painted brim ear radius controls sliced size", "[SkirtBrim]")
 {
     constexpr double ear_radius = 10.0;
@@ -373,6 +491,63 @@ TEST_CASE("Outer-only painted brim ears stay out of model holes", "[SkirtBrim]")
 
     REQUIRE(brim_loop_count(print) > 0);
     CHECK_FALSE(brim_enters_first_layer_hole(print));
+}
+
+TEST_CASE("Outer-only painted brim ears stay out of holes around nested islands", "[SkirtBrim]")
+{
+    const bool outer_only = GENERATE(false, true);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "skirt_loops",                0 },
+        { "brim_type",                  "painted" },
+        { "brim_object_gap",            0.1 },
+        { "brim_ears_outer_only",       outer_only },
+        { "initial_layer_line_width",   0.5 },
+    });
+
+    Print print;
+    Model model;
+    init_print({ frame_with_nested_island() }, print, model, config);
+    print.process();
+
+    const PrintObject *object = print.get_object(0);
+    REQUIRE(object->layers().front()->lslices.size() >= 2);
+    const ExPolygon &frame_slice = *std::max_element(
+        object->layers().front()->lslices.begin(),
+        object->layers().front()->lslices.end(),
+        [](const ExPolygon &lhs, const ExPolygon &rhs) { return lhs.area() < rhs.area(); });
+    REQUIRE(!frame_slice.holes.empty());
+
+    // Paint a large ear at the midpoint of the frame's lowest outer edge so
+    // that its disc overlaps both the enclosing hole and its material island.
+    Point ear_center;
+    coord_t lowest_midpoint_y = std::numeric_limits<coord_t>::max();
+    for (size_t i = 0; i < frame_slice.contour.points.size(); ++i) {
+        const Point &a = frame_slice.contour.points[i];
+        const Point &b = frame_slice.contour.points[(i + 1) % frame_slice.contour.points.size()];
+        const Point midpoint((a.x() + b.x()) / 2, (a.y() + b.y()) / 2);
+        if (midpoint.y() < lowest_midpoint_y) {
+            lowest_midpoint_y = midpoint.y();
+            ear_center = midpoint;
+        }
+    }
+
+    Transform3d model_transform = model.objects.front()->instances.front()->get_transformation().get_matrix_no_offset();
+    const Point &center_offset = object->center_offset();
+    model_transform = model_transform.pretranslate(
+        Vec3d(-unscale<double>(center_offset.x()), -unscale<double>(center_offset.y()), 0));
+    Vec3d model_pos = model_transform.inverse() *
+        Vec3d(unscale<double>(ear_center.x()), unscale<double>(ear_center.y()), 0);
+    model_pos.z() = model.objects.front()->raw_mesh_bounding_box().min.z() - 0.0001;
+    model.objects.front()->brim_points = {
+        BrimPoint(model_pos.cast<float>(), 14.f),
+    };
+
+    print.apply(model, config);
+    print.process();
+
+    REQUIRE(brim_loop_count(print) > 0);
+    CHECK(brim_enters_first_layer_hole(print) != outer_only);
 }
 
 SCENARIO("Skirt has the configured number of loops", "[SkirtBrim]") {
