@@ -152,17 +152,6 @@ Semver get_version_from_json(std::string file_path)
     }
 }
 
-std::string get_vendor_cache_key(const std::string& json_path)
-{
-    const Semver ver = get_version_from_json(json_path);
-    if (ver.valid())
-        return ver.to_string();
-    // No version field — use mtime as change fingerprint so edits invalidate the cache.
-    boost::system::error_code ec;
-    const std::time_t mtime = boost::filesystem::last_write_time(json_path, ec);
-    return ec ? std::string{} : ("mtime:" + std::to_string(mtime));
-}
-
 //BBS: add a function to load the key-values from xxx.json
 int get_values_from_json(std::string file_path, std::vector<std::string>& keys, std::map<std::string, std::string>& key_values)
 {
@@ -275,18 +264,28 @@ void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil
         }
     };
 
+    // The four variant sets are immutable after static init and probed for every
+    // key of every preset loaded; one merged map makes that a single lookup.
+    // emplace keeps the first insertion, preserving the first-set-wins priority
+    // of the else-if chain this replaces.
+    static const std::unordered_map<std::string, int> variant_class = [] {
+        std::unordered_map<std::string, int> m;
+        for (const std::string& k : print_options_with_variant)     m.emplace(k, 0);
+        for (const std::string& k : filament_options_with_variant)  m.emplace(k, 1);
+        for (const std::string& k : printer_options_with_variant_1) m.emplace(k, 2);
+        for (const std::string& k : printer_options_with_variant_2) m.emplace(k, 3);
+        return m;
+    }();
+
     for(auto& key :config.keys()){
-        if(auto iter = print_options_with_variant.find(key); iter != print_options_with_variant.end()){
-            replace_nil_and_resize(key, process_variant_length);
-        }
-        else if(auto iter = filament_options_with_variant.find(key); iter != filament_options_with_variant.end()){
-            replace_nil_and_resize(key, filament_variant_length);
-        }
-        else if(auto iter = printer_options_with_variant_1.find(key); iter != printer_options_with_variant_1.end()){
-            replace_nil_and_resize(key, machine_variant_length);
-        }
-        else if(auto iter = printer_options_with_variant_2.find(key); iter != printer_options_with_variant_2.end()){
-            replace_nil_and_resize(key, machine_variant_length * 2);
+        auto iter = variant_class.find(key);
+        if (iter == variant_class.end())
+            continue;
+        switch (iter->second) {
+        case 0: replace_nil_and_resize(key, process_variant_length); break;
+        case 1: replace_nil_and_resize(key, filament_variant_length); break;
+        case 2: replace_nil_and_resize(key, machine_variant_length); break;
+        case 3: replace_nil_and_resize(key, machine_variant_length * 2); break;
         }
     }
 }
@@ -758,7 +757,6 @@ void Preset::save(DynamicPrintConfig* parent_config)
         idx_file.replace_extension(".info");
         this->save_info(idx_file.string());
     }
-
 }
 
 void Preset::reload(Preset const &parent)

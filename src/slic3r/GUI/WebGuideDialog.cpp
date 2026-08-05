@@ -1,6 +1,7 @@
 #include "WebGuideDialog.hpp"
 #include "ConfigWizard.hpp"
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/filesystem/path.hpp>
@@ -42,33 +43,6 @@
 using namespace nlohmann;
 
 namespace Slic3r { namespace GUI {
-
-static std::string guide_json_cache_version_key(const boost::filesystem::path& rsrc_dir,
-                                                const boost::filesystem::path& user_dir)
-{
-    std::vector<std::string> parts;
-    auto collect = [&](const boost::filesystem::path& dir) {
-        boost::system::error_code ec;
-        if (!boost::filesystem::exists(dir, ec)) return;
-        for (const auto& e : boost::filesystem::directory_iterator(dir, ec)) {
-            if (e.path().extension().string() != ".json") continue;
-            const std::string k = get_vendor_cache_key(e.path().string());
-            if (!k.empty())
-                parts.push_back(e.path().filename().string() + "=" + k);
-        }
-    };
-    collect(rsrc_dir);
-    if (user_dir != rsrc_dir) collect(user_dir);
-    std::sort(parts.begin(), parts.end());
-    std::string result;
-    for (const auto& p : parts) { result += p; result += ';'; }
-    return result;
-}
-
-static boost::filesystem::path guide_json_cache_path()
-{
-    return boost::filesystem::path(data_dir()) / "guide_profile_cache.json";
-}
 
 static wxString update_custom_filaments()
 {
@@ -217,8 +191,7 @@ GuideFrame::GuideFrame(GUI_App *pGUI, long style)
 
 GuideFrame::~GuideFrame()
 {
-    m_destroy = true;
-    *m_cancel_token = true; // signal any queued CallAfter lambdas before join
+    *m_cancel_token = true; // stop the loading thread and any queued CallAfter lambdas before join
     if (m_load_task && m_load_task->joinable())
         m_load_task->join();
     m_load_task.reset();
@@ -327,13 +300,19 @@ void GuideFrame::OnNavigationRequest(wxWebViewEvent &evt)
 /**
  * Callback invoked when a navigation request was accepted
  */
-void GuideFrame::init_guide_paths()
+// The empty shape every profile-loading path starts from or falls back to.
+void GuideFrame::reset_profile_json()
 {
-    m_ProfileJson             = json::parse("{}");
     m_ProfileJson["model"]    = json::array();
     m_ProfileJson["machine"]  = json::object();
     m_ProfileJson["filament"] = json::object();
     m_ProfileJson["process"]  = json::array();
+}
+
+void GuideFrame::init_guide_paths()
+{
+    m_ProfileJson = json::parse("{}");
+    reset_profile_json();
 
     vendor_dir      = (boost::filesystem::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR).make_preferred();
     rsrc_vendor_dir = (boost::filesystem::path(resources_dir()) / "profiles").make_preferred();
@@ -376,27 +355,7 @@ void GuideFrame::OnNavigationComplete(wxWebViewEvent &evt)
         try {
             init_guide_paths();
             if (BuildProfileDataFromPresetBundle()) {
-                // Persist so future opens that start before preset_bundle is ready
-                // can skip the slower loading paths.  Capture by value so the
-                // thread is safe even if the dialog closes before it finishes.
-                boost::thread([data   = m_ProfileJson,
-                               rsrc   = rsrc_vendor_dir,
-                               user   = vendor_dir] {
-                    try {
-                        json cache;
-                        cache["version"] = guide_json_cache_version_key(rsrc, user);
-                        if (cache["version"].get<std::string>().empty()) return;
-                        json base = data;
-                        for (auto& entry : base["model"]) entry["nozzle_selected"] = "";
-                        cache["data"] = std::move(base);
-                        boost::nowide::ofstream ofs(guide_json_cache_path().string());
-                        ofs << cache.dump(-1, ' ', false, json::error_handler_t::ignore);
-                        BOOST_LOG_TRIVIAL(info) << "GuideFrame: guide JSON cache saved";
-                    } catch (const std::exception& e) {
-                        BOOST_LOG_TRIVIAL(warning) << "GuideFrame: failed to save guide JSON cache: " << e.what();
-                    }
-                }).detach();
-                if (!m_destroy)
+                if (!*m_cancel_token)
                     on_profile_loaded();
             } else {
                 // Presets not yet in memory — delegate to background thread.
@@ -858,11 +817,9 @@ bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle
     bool check_unsaved_preset_changes = false;
     std::vector<std::string> install_bundles;
     std::vector<std::string> remove_bundles;
-    const auto vendor_dir = (boost::filesystem::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR).make_preferred();
     for (const auto &it : enabled_vendors) {
         if (it.second.size() > 0) {
-            auto vendor_file = vendor_dir/(it.first + ".json");
-            if (!fs::exists(vendor_file)) {
+            if (!is_vendor_installed(it.first)) {
                 install_bundles.emplace_back(it.first);
             }
         }
@@ -873,8 +830,7 @@ bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle
         if (it.second.size() > 0) {
             if (enabled_vendors.find(it.first) != enabled_vendors.end())
                 continue;
-            auto vendor_file = vendor_dir/(it.first + ".json");
-            if (fs::exists(vendor_file)) {
+            if (is_vendor_installed(it.first)) {
                 remove_bundles.emplace_back(it.first);
             }
         }
@@ -1223,72 +1179,20 @@ int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, 
     return status;
 }
 
-bool GuideFrame::TryLoadGuideJsonCache()
+bool GuideFrame::BuildProfileJson(const PresetBundle& bundle, bool require_all_resource_vendors)
 {
-    const auto path = guide_json_cache_path();
-    boost::system::error_code ec;
-    if (!boost::filesystem::exists(path, ec)) return false;
-    try {
-        boost::nowide::ifstream ifs(path.string());
-        json cache;
-        ifs >> cache;
-        if (!cache.contains("version") || !cache.contains("data")) return false;
-        const std::string expected = guide_json_cache_version_key(rsrc_vendor_dir, vendor_dir);
-        if (expected.empty() || cache["version"].get<std::string>() != expected) return false;
-        m_ProfileJson = cache["data"];
-        if (m_ProfileJson["machine"].empty()) return false;
-        BOOST_LOG_TRIVIAL(info) << "GuideFrame: loaded profile data from guide JSON cache ("
-                                << m_ProfileJson["model"].size()    << " models, "
-                                << m_ProfileJson["machine"].size()  << " machines, "
-                                << m_ProfileJson["filament"].size() << " filaments)";
-        return true;
-    } catch (const std::exception& e) {
-        BOOST_LOG_TRIVIAL(warning) << "GuideFrame: guide JSON cache load failed: " << e.what();
-        return false;
-    }
-}
-
-void GuideFrame::SaveGuideJsonCache()
-{
-    try {
-        json cache;
-        cache["version"] = guide_json_cache_version_key(rsrc_vendor_dir, vendor_dir);
-        if (cache["version"].get<std::string>().empty()) return;
-        json base = m_ProfileJson;
-        // Strip user-specific state — SaveProfileData() re-applies it from AppConfig.
-        for (auto& entry : base["model"])
-            entry["nozzle_selected"] = "";
-        cache["data"] = std::move(base);
-        boost::nowide::ofstream ofs(guide_json_cache_path().string());
-        ofs << cache.dump(-1, ' ', false, json::error_handler_t::ignore);
-        BOOST_LOG_TRIVIAL(info) << "GuideFrame: guide JSON cache saved";
-    } catch (const std::exception& e) {
-        BOOST_LOG_TRIVIAL(warning) << "GuideFrame: failed to save guide JSON cache: " << e.what();
-    }
-}
-
-bool GuideFrame::BuildProfileDataFromPresetBundle()
-{
-    PresetBundle* pb = wxGetApp().preset_bundle;
-    if (!pb || pb->vendors.empty())
-        return false;
-
     try {
         // Models from vendor profiles
-        for (const auto& [vendor_id, vp] : pb->vendors) {
+        for (const auto& [vendor_id, vp] : bundle.vendors) {
             for (const auto& model : vp.models) {
                 std::string nozzle_str;
                 for (const auto& v : model.variants) {
                     if (!nozzle_str.empty()) nozzle_str += ";";
                     nozzle_str += v.name;
                 }
-                std::string materials_str;
-                for (const auto& m : model.default_materials) {
-                    if (!materials_str.empty()) materials_str += ";";
-                    materials_str += m;
-                }
+                const std::string materials_str = boost::algorithm::join(model.default_materials, ";");
                 boost::filesystem::path cover_path =
-                    (boost::filesystem::path(resources_dir()) / "profiles" / vendor_id / (model.id + "_cover.png"))
+                    (boost::filesystem::path(resources_dir()) / "profiles" / vp.id / (model.id + "_cover.png"))
                         .make_preferred();
                 if (!boost::filesystem::exists(cover_path))
                     cover_path =
@@ -1298,7 +1202,7 @@ bool GuideFrame::BuildProfileDataFromPresetBundle()
                 json entry;
                 entry["model"]           = model.id;
                 entry["name"]            = model.name;
-                entry["vendor"]          = vendor_id;
+                entry["vendor"]          = vp.id;
                 entry["nozzle_diameter"] = nozzle_str;
                 entry["materials"]       = materials_str;
                 entry["cover"]           = cover_path.string();
@@ -1309,8 +1213,8 @@ bool GuideFrame::BuildProfileDataFromPresetBundle()
         }
 
         // Machine map: preset name -> {model, nozzle variant}
-        for (const Preset& p : pb->printers()) {
-            if (!p.is_system) continue;
+        for (const Preset& p : bundle.printers()) {
+            if (!p.is_system || !p.vendor) continue;
             const auto* printer_model   = p.config.option<ConfigOptionString>("printer_model");
             const auto* printer_variant = p.config.option<ConfigOptionString>("printer_variant");
             if (!printer_model || printer_model->value.empty() || !printer_variant) continue;
@@ -1322,8 +1226,9 @@ bool GuideFrame::BuildProfileDataFromPresetBundle()
         }
 
         // Filament map from system filament presets (vendor/type already resolved in config)
-        for (const Preset& p : pb->filaments()) {
-            if (!p.is_system) continue;
+        const json& machines = m_ProfileJson["machine"];
+        for (const Preset& p : bundle.filaments()) {
+            if (!p.is_system || !p.vendor) continue;
             const auto* fila_vendor     = p.config.option<ConfigOptionStrings>("filament_vendor");
             const auto* fila_type       = p.config.option<ConfigOptionStrings>("filament_type");
             const auto* compat_printers = p.config.option<ConfigOptionStrings>("compatible_printers");
@@ -1334,9 +1239,10 @@ bool GuideFrame::BuildProfileDataFromPresetBundle()
             std::string model_list;
             if (compat_printers) {
                 for (const std::string& pname : compat_printers->values) {
-                    if (m_ProfileJson["machine"].contains(pname)) {
-                        std::string m = m_ProfileJson["machine"][pname]["model"];
-                        std::string n = m_ProfileJson["machine"][pname]["nozzle"];
+                    auto it = machines.find(pname);
+                    if (it != machines.end()) {
+                        const std::string m = (*it)["model"];
+                        const std::string n = (*it)["nozzle"];
                         model_list += "[" + m + "++" + n + "]";
                     }
                 }
@@ -1353,157 +1259,103 @@ bool GuideFrame::BuildProfileDataFromPresetBundle()
         }
 
         // Process list from visible system print presets
-        for (const Preset& p : pb->prints()) {
-            if (!p.is_system || !p.is_visible) continue;
+        for (const Preset& p : bundle.prints()) {
+            if (!p.is_system || !p.vendor || !p.is_visible) continue;
             json entry;
             entry["name"]     = p.name;
             entry["sub_path"] = p.file;
             m_ProfileJson["process"].push_back(entry);
         }
 
-        // If rsrc_vendor_dir has vendor JSONs not covered by the current bundle, the
-        // bundle is incomplete (e.g. dev env where data_dir/system only has
-        // OrcaFilamentLibrary+Custom). Fall back so LoadProfileFamily reads both dirs.
-        try {
-            for (const auto& e : boost::filesystem::directory_iterator(rsrc_vendor_dir)) {
-                if (e.path().extension().string() != ".json") continue;
-                const std::string stem = e.path().stem().string();
-                if (pb->vendors.find(stem) == pb->vendors.end()) {
-                    BOOST_LOG_TRIVIAL(info) << "GuideFrame: vendor '" << stem
-                        << "' in resources but not in preset_bundle — falling back to JSON loading";
-                    m_ProfileJson["model"]    = json::array();
-                    m_ProfileJson["machine"]  = json::object();
-                    m_ProfileJson["filament"] = json::object();
-                    m_ProfileJson["process"]  = json::array();
-                    return false;
+        if (require_all_resource_vendors) {
+            // If rsrc_vendor_dir has vendors (profile JSONs, or the preset caches a
+            // packaged build ships instead) not covered by the current bundle, the
+            // bundle is incomplete (e.g. dev env where data_dir/system only has
+            // OrcaFilamentLibrary+Custom). Fall back so the slow path reads both dirs.
+            try {
+                for (const std::string& name : vendor_names_in(rsrc_vendor_dir)) {
+                    if (bundle.vendors.find(name) == bundle.vendors.end()) {
+                        BOOST_LOG_TRIVIAL(info) << "GuideFrame: vendor '" << name
+                            << "' in resources but not in preset_bundle — falling back to JSON loading";
+                        reset_profile_json();
+                        return false;
+                    }
                 }
-            }
-        } catch (const std::exception&) {}
+            } catch (const std::exception&) {}
+        }
 
-        BOOST_LOG_TRIVIAL(info) << "GuideFrame: built profile data from preset_bundle ("
+        BOOST_LOG_TRIVIAL(info) << "GuideFrame: built profile data ("
                                 << m_ProfileJson["model"].size()    << " models, "
                                 << m_ProfileJson["machine"].size()  << " machines, "
                                 << m_ProfileJson["filament"].size() << " filaments)";
         return !m_ProfileJson["machine"].empty();
     } catch (const std::exception& e) {
-        BOOST_LOG_TRIVIAL(warning) << "GuideFrame::BuildProfileDataFromPresetBundle failed: " << e.what()
+        BOOST_LOG_TRIVIAL(warning) << "GuideFrame::BuildProfileJson failed: " << e.what()
                                    << " — falling back to JSON loading";
-        m_ProfileJson["model"]    = json::array();
-        m_ProfileJson["machine"]  = json::object();
-        m_ProfileJson["filament"] = json::object();
-        m_ProfileJson["process"]  = json::array();
+        reset_profile_json();
         return false;
     }
 }
 
-// Builds guide profile JSON from the per-vendor bundled caches
-// (resources/profiles/system_presets.cache, generated by CI).
-// This avoids the 90-second LoadProfileFamily fallback on first launch.
-bool GuideFrame::BuildProfileDataFromBundledCache()
+bool GuideFrame::BuildProfileDataFromPresetBundle()
 {
-    const std::string cache_path = PresetBundle::bundled_system_presets_cache_path();
-    if (!boost::filesystem::exists(cache_path))
+    PresetBundle* pb = wxGetApp().preset_bundle;
+    if (!pb || pb->vendors.empty())
         return false;
+    return BuildProfileJson(*pb, /*require_all_resource_vendors=*/true);
+}
 
+bool GuideFrame::BuildProfileDataFromVendors()
+{
     try {
+        // Same vendor set and precedence as the JSON scan in LoadProfileData: a
+        // vendor in the user's system dir shadows the bundled one of that name.
+        // A vendor is named by its profile or, where a build ships preset caches
+        // instead, by its cache alone — so both forms name one here.
+        std::map<std::string, boost::filesystem::path> vendor_files;
+        auto collect = [&vendor_files](const boost::filesystem::path& dir) {
+            boost::system::error_code ec;
+            if (!boost::filesystem::exists(dir, ec))
+                return;
+            for (const auto& e : boost::filesystem::directory_iterator(dir, ec))
+                if (Slic3r::is_json_file(e.path().string()) || e.path().extension() == ".opc")
+                    vendor_files.emplace(e.path().stem().string(), e.path());   // first wins
+        };
+        collect(vendor_dir);
+        collect(rsrc_vendor_dir);
+
+        // Each vendor comes from its preset cache where one covers it, which is what
+        // makes this worth doing instead of the scan below; the filament library goes
+        // first because the others' filaments inherit from it, and resolving those on
+        // the vendors the cache does not cover needs it already loaded.
         PresetBundle bundle;
-        if (!PresetBundle::load_system_presets_cache_for_guide(cache_path, bundle))
+        auto load_vendor = [this](PresetBundle& into, const std::string& vendor, const PresetBundle* base) {
+            into.load_vendor_configs_from_json(vendor_dir.string(), vendor, PresetBundle::LoadSystem,
+                                               ForwardCompatibilitySubstitutionRule::EnableSilent, base);
+        };
+        const std::string filament_library(PresetBundle::ORCA_FILAMENT_LIBRARY);
+        if (vendor_files.count(filament_library))
+            load_vendor(bundle, filament_library, nullptr);
+        for (const auto& entry : vendor_files) {
+            if (*m_cancel_token)
+                return false;   // as in the scan below: a vendor without a cache is parsed, and that takes time
+            const std::string& vendor = entry.first;
+            // A cache is only ever written for a versioned vendor; a JSON has to be
+            // asked, so that an unversioned one (blacklist.json) carrying no presets
+            // is passed over.
+            if (vendor == filament_library ||
+                (entry.second.extension() != ".opc" && ! get_version_from_json(entry.second.string()).valid()))
+                continue;
+            PresetBundle tmp;
+            load_vendor(tmp, vendor, &bundle);
+            bundle.merge_presets(std::move(tmp));
+        }
+        if (bundle.vendors.empty())
             return false;
-
-        for (const auto& [vendor_id, vp] : bundle.vendors) {
-            for (const auto& cm : vp.models) {
-                std::string nozzle_str;
-                for (const auto& v : cm.variants) {
-                    if (!nozzle_str.empty()) nozzle_str += ";";
-                    nozzle_str += v.name;
-                }
-                std::string materials_str;
-                for (const auto& m : cm.default_materials) {
-                    if (!materials_str.empty()) materials_str += ";";
-                    materials_str += m;
-                }
-                boost::filesystem::path cover_path =
-                    (boost::filesystem::path(resources_dir()) / "profiles" / vp.id / (cm.id + "_cover.png"))
-                        .make_preferred();
-                if (!boost::filesystem::exists(cover_path))
-                    cover_path =
-                        (boost::filesystem::path(resources_dir()) / "web/image/printer" / (cm.id + "_cover.png"))
-                            .make_preferred();
-
-                json entry;
-                entry["model"]           = cm.id;
-                entry["name"]            = cm.name;
-                entry["vendor"]          = vp.id;
-                entry["nozzle_diameter"] = nozzle_str;
-                entry["materials"]       = materials_str;
-                entry["cover"]           = cover_path.string();
-                entry["nozzle_selected"] = "";
-                entry["sub_path"]        = "";
-                m_ProfileJson["model"].push_back(entry);
-            }
-        }
-
-        for (const Preset& cp : bundle.printers()) {
-            if (!cp.is_system || !cp.vendor) continue;
-            const auto* pm = cp.config.option<ConfigOptionString>("printer_model");
-            const auto* pv = cp.config.option<ConfigOptionString>("printer_variant");
-            if (!pm || pm->value.empty() || !pv) continue;
-
-            json mach;
-            mach["model"]  = pm->value;
-            mach["nozzle"] = pv->value;
-            m_ProfileJson["machine"][cp.name] = mach;
-        }
-
-        for (const Preset& cp : bundle.filaments()) {
-            if (!cp.is_system || !cp.vendor) continue;
-            const auto* fv = cp.config.option<ConfigOptionStrings>("filament_vendor");
-            const auto* ft = cp.config.option<ConfigOptionStrings>("filament_type");
-            const auto* compat = cp.config.option<ConfigOptionStrings>("compatible_printers");
-
-            std::string vendor = (fv && !fv->values.empty()) ? fv->values[0] : "";
-            std::string type   = (ft && !ft->values.empty()) ? ft->values[0]   : "";
-
-            std::string model_list;
-            if (compat) {
-                for (const std::string& pname : compat->values) {
-                    if (m_ProfileJson["machine"].contains(pname)) {
-                        std::string m = m_ProfileJson["machine"][pname]["model"];
-                        std::string n = m_ProfileJson["machine"][pname]["nozzle"];
-                        model_list += "[" + m + "++" + n + "]";
-                    }
-                }
-            }
-
-            json ff;
-            ff["name"]     = cp.name;
-            ff["sub_path"] = cp.file;
-            ff["vendor"]   = vendor;
-            ff["type"]     = type;
-            ff["models"]   = model_list;
-            ff["selected"] = 0;
-            m_ProfileJson["filament"][cp.name] = ff;
-        }
-
-        for (const Preset& cp : bundle.prints()) {
-            if (!cp.is_system || !cp.vendor || !cp.is_visible) continue;
-            json entry;
-            entry["name"]     = cp.name;
-            entry["sub_path"] = cp.file;
-            m_ProfileJson["process"].push_back(entry);
-        }
-
-        BOOST_LOG_TRIVIAL(info) << "GuideFrame: built profile data from single-bundle cache ("
-            << m_ProfileJson["model"].size()    << " models, "
-            << m_ProfileJson["machine"].size()  << " machines, "
-            << m_ProfileJson["filament"].size() << " filaments)";
-        return !m_ProfileJson["machine"].empty();
-    } catch (const std::exception& ex) {
-        BOOST_LOG_TRIVIAL(warning) << "GuideFrame::BuildProfileDataFromBundledCache failed: " << ex.what();
-        m_ProfileJson["model"]    = json::array();
-        m_ProfileJson["machine"]  = json::object();
-        m_ProfileJson["filament"] = json::object();
-        m_ProfileJson["process"]  = json::array();
+        return BuildProfileJson(bundle, /*require_all_resource_vendors=*/false);
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed: " << e.what();
+        reset_profile_json();
         return false;
     }
 }
@@ -1512,55 +1364,48 @@ int GuideFrame::LoadProfileData()
 {
     // Background thread: the fast path in OnNavigationComplete failed (presets not yet loaded).
     // Loading order (fastest to slowest):
-    //   1. Guide JSON cache (data_dir/guide_profile_cache.json, sub-second)
-    //   2. Bundled per-vendor binary caches (CI-generated, ~1-2s)
-    //   3. Read all vendor JSONs (~90s)
-    // After paths 2 or 3 the guide JSON cache is written so next open uses path 1.
+    //   1. Load every vendor, from its preset cache wherever one covers it
+    //   2. Read all vendor JSONs by hand
     try {
-        if (!TryLoadGuideJsonCache()) {
-            if (!BuildProfileDataFromBundledCache()) {
-                // Last resort — read all vendor JSONs (~90s)
-                std::set<std::string> loaded_vendors;
-                auto filament_library_name = boost::filesystem::path(PresetBundle::ORCA_FILAMENT_LIBRARY).replace_extension(".json");
-                if (boost::filesystem::exists(vendor_dir / filament_library_name))
-                    LoadProfileFamily(PresetBundle::ORCA_FILAMENT_LIBRARY, (vendor_dir / filament_library_name).string());
-                else
-                    LoadProfileFamily(PresetBundle::ORCA_FILAMENT_LIBRARY, (rsrc_vendor_dir / filament_library_name).string());
-                loaded_vendors.insert(PresetBundle::ORCA_FILAMENT_LIBRARY);
+        if (!BuildProfileDataFromVendors()) {
+            // Last resort — read all vendor JSONs
+            std::set<std::string> loaded_vendors;
+            auto filament_library_name = boost::filesystem::path(PresetBundle::ORCA_FILAMENT_LIBRARY).replace_extension(".json");
+            if (boost::filesystem::exists(vendor_dir / filament_library_name))
+                LoadProfileFamily(PresetBundle::ORCA_FILAMENT_LIBRARY, (vendor_dir / filament_library_name).string());
+            else
+                LoadProfileFamily(PresetBundle::ORCA_FILAMENT_LIBRARY, (rsrc_vendor_dir / filament_library_name).string());
+            loaded_vendors.insert(PresetBundle::ORCA_FILAMENT_LIBRARY);
 
-                boost::filesystem::directory_iterator endIter;
-                for (boost::filesystem::directory_iterator iter(vendor_dir); iter != endIter; iter++) {
-                    if (!boost::filesystem::is_directory(*iter)) {
-                        wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
-                        strVendor          = strVendor.AfterLast('\\');
-                        strVendor          = strVendor.AfterLast('/');
-                        wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
-                        if (strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
-                            continue;
-                        LoadProfileFamily(w2s(strVendor), iter->path().string());
-                        loaded_vendors.insert(w2s(strVendor));
-                    }
-                    if (m_destroy) return 0;
+            boost::filesystem::directory_iterator endIter;
+            for (boost::filesystem::directory_iterator iter(vendor_dir); iter != endIter; iter++) {
+                if (!boost::filesystem::is_directory(*iter)) {
+                    wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
+                    strVendor          = strVendor.AfterLast('\\');
+                    strVendor          = strVendor.AfterLast('/');
+                    wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
+                    if (strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
+                        continue;
+                    LoadProfileFamily(w2s(strVendor), iter->path().string());
+                    loaded_vendors.insert(w2s(strVendor));
                 }
-
-                boost::filesystem::directory_iterator others_endIter;
-                for (boost::filesystem::directory_iterator iter(rsrc_vendor_dir); iter != others_endIter; iter++) {
-                    if (!boost::filesystem::is_directory(*iter)) {
-                        wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
-                        strVendor          = strVendor.AfterLast('\\');
-                        strVendor          = strVendor.AfterLast('/');
-                        wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
-                        if (strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
-                            continue;
-                        LoadProfileFamily(w2s(strVendor), iter->path().string());
-                        loaded_vendors.insert(w2s(strVendor));
-                    }
-                    if (m_destroy) return 0;
-                }
+                if (*m_cancel_token) return 0;
             }
-            // Persist the result so subsequent opens skip both the bundled cache and
-            // the slow JSON loading path entirely.
-            SaveGuideJsonCache();
+
+            boost::filesystem::directory_iterator others_endIter;
+            for (boost::filesystem::directory_iterator iter(rsrc_vendor_dir); iter != others_endIter; iter++) {
+                if (!boost::filesystem::is_directory(*iter)) {
+                    wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
+                    strVendor          = strVendor.AfterLast('\\');
+                    strVendor          = strVendor.AfterLast('/');
+                    wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
+                    if (strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
+                        continue;
+                    LoadProfileFamily(w2s(strVendor), iter->path().string());
+                    loaded_vendors.insert(w2s(strVendor));
+                }
+                if (*m_cancel_token) return 0;
+            }
         }
 
         // Capture the cancel token by value (shared_ptr) so the lambda doesn't

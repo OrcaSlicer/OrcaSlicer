@@ -146,7 +146,7 @@ TEST_CASE("Current vendor type tolerates missing printer model", "[Preset][Bundl
 {
     PresetBundle bundle;
 
-    VendorProfile orca_vendor("ORCA");
+    VendorProfile orca_vendor; orca_vendor.id = "ORCA";
     VendorProfile::PrinterModel model;
     model.name = "Orca Test";
     orca_vendor.models.emplace_back(model);

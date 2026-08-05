@@ -197,7 +197,10 @@ public:
 	std::string save_minimal(const Archive&) const { return to_string_sf(); }
 	template<class Archive>
 	void load_minimal(const Archive&, const std::string& s) {
-		if (auto v = Semver::parse(s)) *this = std::move(*v);
+		auto v = Semver::parse(s);
+		if (! v)
+			throw std::runtime_error("Semver: cannot parse serialized version: " + s);
+		*this = std::move(*v);
 	}
 
 private:

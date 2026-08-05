@@ -2,10 +2,10 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/Utils.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
-#include <boost/system/error_code.hpp>
 #include <iostream>
 
 using namespace Slic3r;
@@ -58,31 +58,27 @@ int main(int argc, char* argv[])
     auto preset_bundle = std::make_unique<PresetBundle>();
     preset_bundle->set_is_validation_mode(true);
     preset_bundle->set_default_suppressed(true);
+    preset_bundle->set_generate_vendor_caches(true);
 
     std::cout << "Loading system presets from: " << profiles_path << "\n";
 
     try {
+        // In validation mode data_dir() is the profiles directory set above, so the
+        // loader writes each <vendor>.opc next to its <vendor>.json as it parses it.
         preset_bundle->load_presets(app_config, ForwardCompatibilitySubstitutionRule::EnableSilent);
     } catch (const std::exception& ex) {
         std::cerr << "Failed to load presets: " << ex.what() << "\n";
         return 1;
     }
 
-    const std::string output_path =
-        (fs::path(profiles_path) / "system_presets.cache").make_preferred().string();
-
-    std::cout << "Saving single-bundle cache to: " << output_path << "\n";
-
-    const auto stats = preset_bundle->save_system_presets_cache(profiles_path, output_path);
-
-    if (!stats.ok) {
-        std::cerr << "ERROR: verification failed\n";
+    size_t cache_count = 0;
+    for (auto& entry : fs::directory_iterator(profiles_path))
+        if (boost::iends_with(entry.path().string(), ".opc"))
+            ++ cache_count;
+    if (cache_count == 0) {
+        std::cerr << "No vendor cache files were generated under " << profiles_path << "\n";
         return 1;
     }
-
-    std::cout << "[ok] system_presets.cache\n"
-              << "  Total print presets:    " << stats.print_presets    << "\n"
-              << "  Total filament presets: " << stats.filament_presets << "\n"
-              << "  Total printer presets:  " << stats.printer_presets  << "\n";
+    std::cout << "Generated " << cache_count << " vendor cache file(s) under " << profiles_path << "\n";
     return 0;
 }

@@ -16,14 +16,6 @@
 #include "Semver.hpp"
 #include "ProjectTask.hpp"
 
-#include <cereal/archives/binary.hpp>
-#include <cereal/cereal.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/polymorphic.hpp>
-#include <cereal/types/set.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/vector.hpp>
-
 //BBS: change system directories
 #define PRESET_SYSTEM_DIR      "system"
 #define PRESET_USER_DIR        "user"
@@ -122,10 +114,6 @@ extern Semver get_version_from_json(std::string file_path);
 //BBS: add a function to load the key-values from xxx.json
 extern int get_values_from_json(std::string file_path, std::vector<std::string>& keys, std::map<std::string, std::string>& key_values);
 
-// Returns the cache key for a vendor JSON: the Semver string for versioned
-// vendors, or "mtime:<unix_timestamp>" for vendors without a version field.
-extern std::string get_vendor_cache_key(const std::string& json_path);
-
 extern ConfigFileType guess_config_file_type(const boost::property_tree::ptree &tree);
 
 extern void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil_to_default, const DynamicPrintConfig& defaults);
@@ -144,8 +132,9 @@ public:
         PrinterVariant(const std::string &name) : name(name) {}
         std::string                 name;
 
+        // All fields, declaration order — keep in sync; bump CACHE_VERSION on change.
         template<class Archive>
-        void serialize(Archive& ar) { ar(name); }
+        void serialize(Archive& ar) { ar(name); }                       // PrinterVariant
     };
 
     struct PrinterModel {
@@ -154,7 +143,7 @@ public:
         std::string                 name;
         //BBS: this is internal id for the printer. Currently only used for searching in database
         std::string                 model_id;
-        PrinterTechnology           technology;
+        PrinterTechnology           technology = ptFFF;
         std::string                 family;
         std::vector<PrinterVariant> variants;
         std::vector<std::string>	default_materials;
@@ -178,13 +167,15 @@ public:
 
         const PrinterVariant* variant(const std::string &name) const { return const_cast<PrinterModel*>(this)->variant(name); }
 
+        // All fields, declaration order — keep in sync; bump CACHE_VERSION on change.
         template<class Archive>
-        void serialize(Archive& ar)
+        void serialize(Archive& ar)                                     // PrinterModel
         {
-            ar(id, name, model_id, family, technology, variants, default_materials,
+            ar(id, name, model_id, technology, family, variants, default_materials,
                not_support_bed_types, bed_model, bed_texture, image_bed_type,
                bottom_texture_end_name, use_double_extruder_default_texture,
-               bottom_texture_rect, middle_texture_rect, hotend_model);
+               bottom_texture_rect, bottom_texture_rect_longer, middle_texture_rect,
+               hotend_model);
         }
     };
     std::vector<PrinterModel>          models;
@@ -197,10 +188,11 @@ public:
 
     bool 		valid() const { return ! name.empty() && ! id.empty() && config_version.valid(); }
 
+    // All fields, declaration order — keep in sync; bump CACHE_VERSION on change.
     template<class Archive>
-    void serialize(Archive& ar)
+    void serialize(Archive& ar)                                         // VendorProfile
     {
-        ar(id, name, config_version, config_update_url, changelog_url,
+        ar(name, id, config_version, config_update_url, changelog_url,
            models, default_filaments, default_sla_materials);
     }
 
@@ -456,31 +448,12 @@ public:
 
     // BBS: move constructor to public
     Preset(Type type, const std::string &name, bool is_default = false) : type(type), is_default(is_default), name(name) {}
-    // Default constructor is public so cereal can default-construct elements when
-    // deserializing std::vector<Preset> (std::allocator is not a cereal::access friend).
-    Preset() = default;
 
 protected:
     friend class        PresetCollection;
     friend class        PresetBundle;
-    friend class        cereal::access;
 
-    // Serializes all value fields of Preset for the binary vendor cache.
-    // Raw pointers (vendor, loading_substitutions) are excluded — vendor is reconstructed
-    // by apply_vendor_cache() from the VendorProfile stored alongside the presets.
-    template<class Archive>
-    void serialize(Archive& ar)
-    {
-        ar(type, name, alias, file, version,
-           filament_id, setting_id, description,
-           renamed_from, is_system, is_visible,
-           is_default, is_external, is_dirty, is_compatible,
-           is_project_embedded, loaded,
-           m_from_orca_filament_lib, m_excluded_from,
-           bundle_id, user_id, base_id, sync_info,
-           updated_time, key_values, ini_str,
-           config);
-    }
+    Preset() = default;
 };
 
 bool is_compatible_with_print  (const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_print, const PresetWithVendorProfile &active_printer);

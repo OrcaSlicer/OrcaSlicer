@@ -162,14 +162,13 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
-      - name: Generate system presets cache (macOS)
+      - name: Build system preset cache (macOS)
         if: runner.os == 'macOS' && !inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
         shell: bash
-        run: |
-          tool=$(find build/${{ inputs.arch }} -name generate_system_cache -type f | head -1)
-          profiles=$(find build/${{ inputs.arch }} -path "*/Resources/profiles" -type d | head -1)
-          "$tool" --path "$profiles" --log_level 2
+        # The bundle was already packed from resources/, so the caches have to be
+        # installed into it here; the source tree keeps its JSONs for later jobs.
+        run: ./scripts/build_preset_cache.sh -b build/${{ inputs.arch }} build/${{ inputs.arch }}/OrcaSlicer/OrcaSlicer.app/Contents/Resources/profiles
 
       - name: Pack macOS app bundle ${{ inputs.arch }}
         if: runner.os == 'macOS' && !inputs.macos-combine-only
@@ -399,6 +398,13 @@ jobs:
           if ($arch -eq "arm64") { .\build_release_vs.bat slicer arm64 tests } else { .\build_release_vs.bat slicer tests }
         shell: pwsh
 
+      - name: Build system preset cache (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        # Shipped into both the already-installed tree (portable zip, MSIX) and
+        # the checkout cpack re-installs from when it builds the NSIS installer.
+        run: scripts\build_preset_cache.bat "%BUILD_DIR%" "resources\profiles" "%BUILD_DIR%\OrcaSlicer\resources\profiles"
+
       - name: Pack unit tests Win
         if: runner.os == 'Windows'
         working-directory: ${{ github.workspace }}
@@ -414,23 +420,6 @@ jobs:
           path: build_tests.tar
           retention-days: 5
           if-no-files-found: error
-
-      - name: Generate system presets cache (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $buildDir = $env:BUILD_DIR
-          $tool = Get-ChildItem -Recurse -Path $buildDir -Filter "generate_system_cache.exe" | Select-Object -First 1
-          if (-not $tool) { Write-Error "generate_system_cache.exe not found in $buildDir"; exit 1 }
-          $profiles = Get-ChildItem -Recurse -Path $buildDir -Directory -Filter profiles |
-            Where-Object { $_.FullName -match 'resources' } | Select-Object -First 1
-          if (-not $profiles) { Write-Error "profiles directory not found in $buildDir"; exit 1 }
-          # Add the slicer's runtime DLL directory to PATH so generate_system_cache.exe
-          # can resolve its dependencies (TKernel.dll etc.) without a full install step.
-          $dll_dir = Get-ChildItem -Recurse -Path $buildDir -Filter "TKernel.dll" |
-            Select-Object -First 1 | Select-Object -ExpandProperty DirectoryName
-          if ($dll_dir) { $env:PATH = "$dll_dir;$env:PATH" }
-          & $tool.FullName --path $profiles.FullName --log_level 2
 
       # NSIS is x86-only; it runs (and the installer it emits runs) under ARM64's
       # x86 emulation, packaging the native arm64 payload from build-arm64.
@@ -565,6 +554,20 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
+      - name: Build system preset cache (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # Both were packed from resources/ before the caches existed, so the
+          # AppImage is unpacked first and the caches shipped into it and into
+          # the package tree; the source tree keeps its JSONs for later steps.
+          appimage=$(find build -maxdepth 1 -name "OrcaSlicer_Linux_AppImage*.AppImage" | head -1)
+          chmod +x "$appimage"
+          "$appimage" --appimage-extract
+          ./scripts/build_preset_cache.sh -b build build/package/resources/profiles squashfs-root/resources/profiles
+          appimagetool=$(find build -name "appimagetool.AppImage" | head -1)
+          ARCH=$(uname -m) "$appimagetool" --appimage-extract-and-run squashfs-root "$appimage"
+          rm -rf squashfs-root
         # Ship the freshly-built validator so slice_check_linux (build_all.yml)
         # can slice-sweep the shipped profiles with this PR's engine. Taken from
         # the aarch64 leg so the sweep also exercises the arm build; x86_64 on
@@ -578,22 +581,6 @@ jobs:
           path: ./build/src/Release/OrcaSlicer_profile_validator
           retention-days: 5
           if-no-files-found: error
-
-      - name: Generate system presets cache (Linux)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          tool=$(find build -name generate_system_cache -type f | head -1)
-          if [ -z "$tool" ]; then echo "ERROR: generate_system_cache not found in build tree" >&2; exit 1; fi
-          "$tool" --path build/package/resources/profiles --log_level 2
-          # Re-pack the AppImage so the per-vendor caches are included
-          appimage=$(find build -maxdepth 1 -name "OrcaSlicer_Linux_AppImage*.AppImage" | head -1)
-          chmod +x "$appimage"
-          "$appimage" --appimage-extract
-          cp build/package/resources/profiles/*.cache squashfs-root/resources/profiles/
-          appimagetool=$(find build -name "appimagetool.AppImage" | head -1)
-          ARCH=$(uname -m) "$appimagetool" --appimage-extract-and-run squashfs-root "$appimage"
-          rm -rf squashfs-root
 
       - name: Run external slicer regression tests
         if: runner.os == 'Linux' && inputs.arch != 'aarch64'
