@@ -132,7 +132,11 @@ void FillConcentric::_fill_surface_single(
             // Add the virtual closing segment and trim it to create the spiral transition.
             loop_path.points.push_back(loop_path.points.front());
 
-            loop_path.clip_end(distance);
+            if (last_loop) {
+                loop_path.clip_end(0.5 * distance);
+            } else {
+                loop_path.clip_end(distance);
+            }
 
             if (spiral.empty()) {
                 spiral = std::move(loop_path);
