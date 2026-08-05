@@ -3331,6 +3331,151 @@ void DesignSketchTool::clear_extrude_gizmo()
 // Camera-billboarded depth arrow(s) along the profile normal, drawn in WORLD via a billboard
 // SketchPlane at the centroid (draw_strokes/draw_text lift 2D coords through m_plane.to_world,
 // so swapping m_plane to a screen-facing frame renders a flat, screen-aligned arrow + label).
+// The mate-connector glyph. Three elements, each answering one question, and every dimension is in
+// SCREEN PIXELS via upp (= 1/zoom) like every other gizmo here — a connector is a symbol, not a part,
+// so it must not shrink with the model.
+//
+//   disc      the XY plane        "I am a frame, and this is the plane I sit in"
+//   quadrant  the +x/+y sector    "this is where X is"  -- the roll, otherwise invisible
+//   Z arrow   +Z only, never -Z   "this is the way I point"  -- the VERSE
+//
+// POLARITY (which one is anchored, which one is about to move) is carried by the head: a filled
+// cone travels, an open collar receives. No surveyed CAD system encodes this at all; both ends of
+// their mates are drawn identically, which is why "which part moves?" is a standing complaint.
+//
+// SNAPORCA_GLYPH=A|B selects the treatment while this is being judged on the rig:
+//   A  three short axis arms, no head differentiation  (the Onshape baseline)
+//   B  one-sided Z arrow, filled vs open head          (the proposal)          -- default
+void DesignSketchTool::render_mate_connectors()
+{
+    if (m_mate_connectors.empty()) return;
+    static const bool style_A = [] {
+        const char* s = ::getenv("SNAPORCA_GLYPH");
+        return s && (*s == 'A' || *s == 'a');
+    }();
+
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const Vec3d right = cam.get_dir_right().normalized();
+    const Vec3d up    = cam.get_dir_up().normalized();
+    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double R    = 22.0 * upp;                     // disc radius, ~22 px
+    const double lw   = std::max(0.9 * upp, 1e-4);
+
+    const ColorRGBA gold (0.93f, 0.66f, 0.09f, 1.0f);
+    const ColorRGBA blue (0.18f, 0.44f, 0.93f, 1.0f);
+    const ColorRGBA grey (0.42f, 0.46f, 0.52f, 1.0f);
+    const ColorRGBA warn (0.76f, 0.26f, 0.05f, 1.0f);
+
+    const SketchPlane saved = m_plane;
+
+    for (const MateConnectorGlyph& g : m_mate_connectors) {
+        const Vec3d X = g.x.normalized();
+        const Vec3d Y = g.y.normalized();
+        const Vec3d Z = X.cross(Y).normalized();
+        const ColorRGBA body = (g.role == 2) ? blue : grey;
+
+        // ---- disc + quadrant, drawn IN the connector's own plane. This is the part that must not
+        // be billboarded: a disc that always faces the camera cannot show the frame's orientation,
+        // which is the only reason it is a disc and not a dot.
+        // Lifted off the surface by a sub-pixel epsilon. A connector's disc is EXACTLY coplanar with
+        // the face it sits on, so depth-testing it z-fights: on the rig the disc came out as a broken
+        // dotted arc that flickered with the camera. Depth off floats it through solids, depth on and
+        // coplanar tears it — the lift is what buys both. Scaled by upp so it stays sub-pixel at any
+        // zoom instead of becoming a visible gap when you zoom in.
+        SketchPlane cp; cp.origin = g.origin + Z * (0.7 * upp);
+        cp.x_axis = X; cp.y_axis = Y; cp.normal = Z;
+        m_plane = cp;
+        {
+            std::vector<std::pair<Vec2d, Vec2d>> segs;
+            const int N = 40;
+            for (int i = 0; i < N; ++i) {
+                const double a0 = (2.0 * M_PI * i) / N, a1 = (2.0 * M_PI * (i + 1)) / N;
+                segs.emplace_back(Vec2d(R * std::cos(a0), R * std::sin(a0)),
+                                  Vec2d(R * std::cos(a1), R * std::sin(a1)));
+            }
+            // Depth test ON for the disc, deliberately. With it off, a connector on a face pointing
+            // AWAY from the camera still drew its disc over the solid, so the part looked covered in
+            // frames that were really on its back — and a disc floating over an edge read as
+            // detached rather than planted. render_hole_gizmo learned the same thing for its cube.
+            glsafe(::glEnable(GL_DEPTH_TEST));
+            draw_strokes(m_mc_stroke_model, segs, lw, g.roll_undefined ? warn : body);
+
+            // The quadrant: hatched when the roll could not be derived (a full circular face or a
+            // seam offers no in-plane direction), so the fallback is a mark you cannot miss rather
+            // than a silent guess.
+            std::vector<std::pair<Vec2d, Vec2d>> q;
+            const double qr = R * 0.84;
+            const int    QN = 10;
+            for (int i = 0; i < QN; ++i) {
+                const double a0 = (M_PI_2 * i) / QN, a1 = (M_PI_2 * (i + 1)) / QN;
+                q.emplace_back(Vec2d(qr * std::cos(a0), qr * std::sin(a0)),
+                               Vec2d(qr * std::cos(a1), qr * std::sin(a1)));
+            }
+            q.emplace_back(Vec2d(0, 0), Vec2d(qr, 0));
+            q.emplace_back(Vec2d(0, 0), Vec2d(0, qr));
+            if (!g.roll_undefined)
+                for (int i = 1; i < 5; ++i) {          // fan lines read as "filled" at any angle
+                    const double a = (M_PI_2 * i) / 5.0;
+                    q.emplace_back(Vec2d(0, 0), Vec2d(qr * std::cos(a), qr * std::sin(a)));
+                }
+            draw_strokes(m_mc_stroke_model, q, lw, g.roll_undefined ? warn : gold);
+        }
+
+        // ---- the axes. Billboarded at the origin: a 3D direction is projected onto the screen
+        // frame, which is the only way an arrow keeps a readable head at any viewing angle.
+        SketchPlane bb; bb.origin = g.origin; bb.x_axis = right; bb.y_axis = up;
+        bb.normal = cam.get_dir_forward().normalized();
+        m_plane = bb;
+
+        auto arrow = [&](const Vec3d& dir, double len, const ColorRGBA& col, bool filled_head) {
+            const Vec3d tipw = g.origin + dir * len;
+            const Vec2d tip2((tipw - g.origin).dot(right), (tipw - g.origin).dot(up));
+            std::vector<std::pair<Vec2d, Vec2d>> segs;
+            // Foreshortening: when the axis points at (or away from) the camera it projects to
+            // nothing and an arrow degenerates into a dot. Draw a ring instead — "pointing at you"
+            // — rather than silently vanishing, which is what a naive projection does.
+            if (tip2.norm() < R * 0.28) {
+                const int N = 24;
+                const double rr = R * 0.30;
+                for (int i = 0; i < N; ++i) {
+                    const double a0 = (2.0 * M_PI * i) / N, a1 = (2.0 * M_PI * (i + 1)) / N;
+                    segs.emplace_back(Vec2d(rr * std::cos(a0), rr * std::sin(a0)),
+                                      Vec2d(rr * std::cos(a1), rr * std::sin(a1)));
+                }
+                draw_strokes(m_mc_stroke_model, segs, lw, col);
+                return;
+            }
+            const Vec2d u = tip2.normalized();
+            const Vec2d n(-u.y(), u.x());
+            const double as = R * 0.42;
+            const Vec2d back = tip2 - u * as;
+            segs.emplace_back(Vec2d(0, 0), back);
+            segs.emplace_back(tip2, back + n * (as * 0.45));
+            segs.emplace_back(tip2, back - n * (as * 0.45));
+            if (filled_head) {
+                // A closed head reads solid; the open one is left as two barbs. At 20-odd pixels
+                // this is the difference that says "this body travels".
+                segs.emplace_back(back + n * (as * 0.45), back - n * (as * 0.45));
+                segs.emplace_back(back + n * (as * 0.22), tip2);
+                segs.emplace_back(back - n * (as * 0.22), tip2);
+            } else {
+                segs.emplace_back(back + n * (as * 0.45), back - n * (as * 0.45));
+            }
+            glsafe(::glDisable(GL_DEPTH_TEST));
+            draw_strokes(m_mc_stroke_model, segs, lw, col);
+        };
+
+        if (style_A) {
+            arrow(X, R * 1.15, ColorRGBA(0.85f, 0.29f, 0.24f, 1.0f), true);
+            arrow(Y, R * 1.15, ColorRGBA(0.23f, 0.65f, 0.35f, 1.0f), true);
+            arrow(Z, R * 1.60, blue, true);
+        } else {
+            arrow(Z, R * 2.10, body, g.role == 2);   // +Z only. Nothing is ever drawn on -Z.
+        }
+    }
+    m_plane = saved;
+}
+
 void DesignSketchTool::render_extrude_gizmo()
 {
     if (!m_ex_active) return;
@@ -7009,6 +7154,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     // face/edge highlight overlay (whole-solid tint is handled by set_body_highlight).
     if (!m_active) {
         render_datum_planes();
+        render_mate_connectors();
         render_solid_highlight();
         if (m_dbp_active) render_base_pick();
         if (m_dz_active) render_datum_gizmo();

@@ -911,6 +911,12 @@ void DesignCanvas::set_datum_planes(std::vector<SketchPlane> planes, std::vector
     request_repaint();
 }
 
+void DesignCanvas::set_mate_connectors(std::vector<DesignSketchTool::MateConnectorGlyph> g)
+{
+    m_sketch_tool.set_mate_connectors(std::move(g));
+    request_repaint();
+}
+
 bool DesignCanvas::toggle_planes()
 {
     const bool on = m_sketch_tool.toggle_show_planes();

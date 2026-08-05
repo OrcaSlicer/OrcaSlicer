@@ -8815,6 +8815,51 @@ void DesignPanel::refresh_datum_planes()
         if (f.type == CadFeatureType::Plane && f.enabled)
             dsizes.emplace_back(f.plane_u_size, f.plane_v_size);
     m_viewport->set_datum_planes(std::move(dplanes), std::move(dsizes));
+    refresh_mate_connectors();
+}
+
+// Feed the connector frames to the viewport. resolve_datum_coordsys() emits them in document order
+// over enabled CoordSys features, so the feature index can be recovered by walking the same filter —
+// which is what tells us whether a given frame is the one the open Mate card will DRIVE.
+void DesignPanel::refresh_mate_connectors()
+{
+    if (!m_viewport) return;
+    // Polarity is a property of the MATE, not of an open dialog: a connector that some committed
+    // mate drives must read as driven whenever it is on screen, or the glyph only tells the truth
+    // while a card happens to be open. The card, when open, wins — it is the live intent.
+    std::map<int, int> role_by_feature;                       // feature index -> 1 fixed, 2 driven
+    for (const CadFeature& mf : m_doc.features) {
+        if (mf.type != CadFeatureType::Mate || !mf.enabled) continue;
+        if (mf.mate_cs_a >= 0) role_by_feature[mf.mate_cs_a] = 1;
+        if (mf.mate_cs_b >= 0) role_by_feature[mf.mate_cs_b] = 2;
+    }
+    const int cs_a = (m_active == Tool::Mate && m_mate_cs_a) ? m_mate_cs_a->GetSelection() : -1;
+    const int cs_b = (m_active == Tool::Mate && m_mate_cs_b) ? m_mate_cs_b->GetSelection() : -1;
+
+    std::vector<DesignSketchTool::MateConnectorGlyph> out;
+    const auto frames = m_doc.resolve_datum_coordsys();
+    size_t k = 0;
+    for (size_t i = 0; i < m_doc.features.size() && k < frames.size(); ++i) {
+        const CadFeature& f = m_doc.features[i];
+        if (f.type != CadFeatureType::CoordSys || !f.enabled) continue;
+        const auto& fr = frames[k];
+        const int ordinal = int(k);
+        ++k;
+        if (!fr.error.empty()) continue;               // unresolved: draw nothing, never a guess
+        DesignSketchTool::MateConnectorGlyph g;
+        g.origin = fr.origin;
+        g.x      = fr.x;
+        g.y      = fr.y;
+        const auto it = role_by_feature.find(int(i));
+        g.role   = (ordinal == cs_b) ? 2 : (ordinal == cs_a ? 1
+                 : (it != role_by_feature.end() ? it->second : 0));
+        // A face-only connector whose face gave no usable in-plane edge fell back to the hint; that
+        // is the case the glyph has to confess rather than absorb.
+        g.roll_undefined = (f.coordsys_type == CoordSysType::FaceAndDirection
+                            && f.coordsys_edge < 0);
+        out.push_back(g);
+    }
+    m_viewport->set_mate_connectors(std::move(out));
 }
 
 void DesignPanel::update_datum_gizmo()

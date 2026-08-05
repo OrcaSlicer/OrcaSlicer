@@ -262,6 +262,21 @@ public:
         m_datum_planes = std::move(planes); m_datum_sizes = std::move(sizes);
     }
 
+    // Mate connectors. Until now a connector was visible only to a program — resolve_datum_coordsys
+    // had exactly one consumer, the MCP socket — so the frame a mate is built on could not be seen
+    // at all. The glyph has to answer two questions on sight (snaporca-wgsc): which way does Z point
+    // (the VERSE), and which of the pair is anchored versus driven (the POLARITY). Nothing in any
+    // surveyed CAD system encodes the second one.
+    struct MateConnectorGlyph {
+        Vec3d origin{0, 0, 0};
+        Vec3d x{1, 0, 0};          // roll reference; the filled quadrant spans x -> y
+        Vec3d y{0, 1, 0};
+        int   role{0};             // 0 = neutral, 1 = fixed (receives), 2 = driven (moves)
+        bool  roll_undefined{false};
+    };
+    void set_mate_connectors(std::vector<MateConnectorGlyph> g) { m_mate_connectors = std::move(g); }
+    void clear_mate_connectors() { m_mate_connectors.clear(); }
+
     // Visual Revolve gizmo. The panel feeds the sketch plane + profile centroid + axis (0=plane X,
     // 1=plane Y) + angle + flip while its Revolve card is open; an angle-arc is drawn in the
     // revolve plane at the profile radius. Dragging the tip sweeps the angle, a stationary click
@@ -955,6 +970,9 @@ private:
     bool m_show_axes{false};
     std::vector<SketchPlane> m_datum_planes;
     std::vector<Vec2d>       m_datum_sizes;   // per-plane (u,v) full extent; empty -> default
+    void render_mate_connectors();            // disc + roll quadrant + one-sided Z arrow
+    std::vector<MateConnectorGlyph> m_mate_connectors;
+    GLModel m_mc_stroke_model;
     GLModel m_solid_face_model;
     GLModel m_solid_edge_model;
     GLModel m_solid_vertex_model;
