@@ -3822,7 +3822,7 @@ msgid "Arranging"
 msgstr "Расстановка"
 
 msgid "Arranging "
-msgstr "Расстановка "
+msgstr "Расстановка: "
 
 msgid "Arranging canceled."
 msgstr "Расстановка отменена."
@@ -5122,9 +5122,9 @@ msgstr "Продолжить (проблема решена)"
 msgid "Stop Printing"
 msgstr "Остановить печать"
 
-# ??? Перейти к помощнику, Помощник по проверке
+# "Ассистент" плохо ложится в "обратитесь к ассистенту", когда речь о руководстве.
 msgid "Check Assistant"
-msgstr "Ассистент проверки"
+msgstr "Помощник проверки"
 
 msgid "Filament Extruded, Continue"
 msgstr "Пруток выдавлен, продолжить"
@@ -7621,12 +7621,11 @@ msgstr "Снизу"
 msgid "Plugin Selection"
 msgstr "Выбор плагинов"
 
-# AI Translated
 msgid ""
 "No plugins capabilities available for this type.\n"
 "Enable or install some to use."
 msgstr ""
-"Для этого типа нет доступных возможностей плагинов.\n"
+"Плагины с требуемым функционалом отсутствуют для этого типа.\n"
 "Включите или установите их для использования."
 
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
@@ -12603,10 +12602,8 @@ msgstr "API-ключ"
 msgid "HTTP digest"
 msgstr "HTTP digest-авторизация"
 
-# AI Translated
-# Функционал плагинов пока не реализован полноценно и не имеет перевода, ToDo
 msgid "Configuration for the plugin capabilities this preset uses, overriding the global Capabilities configuration. Stored as a raw JSON array and edited through the dialog behind the button, never typed in directly."
-msgstr "Конфигурация возможностей плагинов, используемых этим профилем, переопределяющая глобальную конфигурацию возможностей. Хранится как необработанный массив JSON и редактируется через диалоговое окно за кнопкой, а не вводится напрямую."
+msgstr "Настройки функционала плагинов, используемого этим профилем. Переопределяет глобальные настройки функционала. Хранится как необработанный массив JSON и редактируется через диалоговое окно по кнопке."
 
 # Логическая ошибка; пересекаются не периметры, а траектория холостого
 # перемещения со стенкой модели
@@ -13103,6 +13100,7 @@ msgstr "Дополнительные периметры на нависания�
 msgid "Create additional perimeter paths over steep overhangs and areas where bridges cannot be anchored."
 msgstr ""
 "Создание дополнительных периметров над крутыми нависаниями и участками, где невозможно закрепить мосты.\n"
+"\n"
 "Внимание: включение этой настройки может повлиять на корректность генерации мостов!"
 
 # ??? Реверс на чётных слоях нависаний
@@ -13349,7 +13347,9 @@ msgstr "По очереди"
 msgid "Intra-layer order"
 msgstr "Очерёдность моделей"
 
-# AI Translated
+# До 2.5.0 было легко и просто, теперь взяли и кучу подкапотных алгоритмов на пользователя вывалили... Упростил, насколько это возможно без потери смысла, чтобы всем угодить. Контекст: в 2.5.0 настройку переработали, чтобы все алгоритмы создавали цикличный маршрут, при котором конечная точка была бы максимально близко к началу (предположительно, следующего слоя). Цикличный маршрут позволяет избежать перемещений над уже напечатанным на слое, что убирает необходимость в Z-hop для простых моделей. PR: https://github.com/OrcaSlicer/OrcaSlicer/pull/13578
+#
+# Примечания: Default использует алгоритм Greedy, 2-opt – алгоритм устранения самопересечений. Кратчайший путь проверяет всего 2 стратегии, остальные уже удалены как неэффективные и медленные.
 msgid ""
 "Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
 "\n"
@@ -13360,23 +13360,26 @@ msgid ""
 "\n"
 "With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
 msgstr ""
-"Порядок обхода экземпляров моделей в пределах одного слоя; определяет, сколько перемещений тратится на переходы между ними.\n"
+"Последовательность печати моделей в пределах одного слоя. Влияет на суммарное время перемещений от модели к модели.\n"
 "\n"
-"По умолчанию: построение цепочки методом ближайшего соседа с последующим улучшением алгоритмом 2-opt и устранением пересечений. Хороший универсальный вариант.\n"
-"По списку: экземпляры печатаются в том же порядке, что и в списке моделей, без какой-либо оптимизации пути. Используйте, когда нужен предсказуемый, задаваемый вручную порядок.\n"
-"Лучший из всех (кратчайший путь): оцениваются все стратегии и применяется та, что даёт кратчайший путь. Порядок экземпляров моделей определяется один раз для всей печати, а порядок отдельных островков — для каждого слоя, поэтому на разных слоях могут использоваться разные стратегии. Нарезка идёт немного медленнее.\n"
-"Змейкой: змеевидный обход ряд за рядом с улучшением алгоритмом 2-opt. Хорошо подходит для регулярных сеток из множества мелких деталей.\n"
+"• По умолчанию: поиск ближайших моделей с оптимизацией пути\n"
+"   и устранением пересечений. Быстрый универсальный вариант.\n"
+"• По списку: сохранять тот же порядок, что и в списке моделей, без\n"
+"   какой-либо оптимизации. Полезно для ручной настройки очерёдности.\n"
+"• Кратчайший путь: выбор кратчайшего маршрута из всех стратегий.\n"
+"   Маршрут может меняться от слоя к слою из-за изменения числа\n"
+"   отдельных контуров. Требует больше времени.\n"
+"• Змейкой: зигзагообразный маршрут с оптимизацией. Хорошо\n"
+"   подходит для массивов из множества мелких деталей.\n"
 "\n"
-"Если в одном слое используется несколько материалов или инструментов, приоритет отдаётся минимизации смен инструмента: модели сначала группируются по материалу, и эта настройка упорядочивает только экземпляры внутри каждой группы, поэтому общая последовательность может не выглядеть как кратчайший путь по столу."
+"Примечание: при использовании нескольких материалов приоритет отдаётся минимизации числа их смен. Очерёдность определяется для каждого материала отдельно, и визуально маршрут может казаться неоптимальным."
 
 msgid "As object list"
 msgstr "По списку"
 
-# AI Translated
 msgid "Best of all (shortest path)"
-msgstr "Лучший из всех (кратчайший путь)"
+msgstr "Кратчайший путь"
 
-# AI Translated
 msgid "Snake"
 msgstr "Змейкой"
 
@@ -16021,25 +16024,24 @@ msgstr ""
 "Для работы этой настройки необходимо включить поддержку вспомогательного вентилятора на стороне принтера в его профиле.\n"
 "Команда G-кода: M106 P2 S(0-255)."
 
-# AI Translated
 msgid "For the first"
 msgstr "Для первых"
 
-# AI Translated
 msgid "Set special auxiliary cooling fan for the first certain layers."
-msgstr "Задаёт особую скорость вспомогательного вентилятора обдува для первых нескольких слоёв."
+msgstr "Особая скорость вспомогательного вентилятора для первых нескольких слоёв."
 
-# AI Translated
 msgid ""
 "Auxiliary fan speed will be ramped up linearly from layer \"For the first\" to maximum at layer \"Full fan speed at layer\".\n"
 "\"Full fan speed at layer\" will be ignored if lower than \"For the first\", in which case the fan will run at maximum allowed speed at layer \"For the first\" + 1."
 msgstr ""
-"Скорость вспомогательного вентилятора будет линейно увеличиваться от слоя «Для первых» до максимума на слое «Полная скорость вентилятора на слое».\n"
-"«Полная скорость вентилятора на слое» будет проигнорирована, если она меньше «Для первых»; в этом случае вентилятор будет работать на максимально допустимой скорости на слое «Для первых» + 1."
+"Начиная с указанного слоя, интенсивность охлаждения будет равномерно меняться для перехода к требуемым условиям обдува детали.\n"
+"\n"
+"Если активна настройка «Не обдувать первые N слоёв» – с учётом этих слоёв.\n"
+"\n"
+"Примечание: если слоёв с заблокированным обдувом больше, чем указано здесь, то восстановление происходит моментально на первом доступном слое."
 
-# AI Translated
 msgid "Special auxiliary cooling fan speed, effective only for the first x layers."
-msgstr "Особая скорость вспомогательного вентилятора обдува, действует только для первых x слоёв."
+msgstr "Особая скорость вспомогательного вентилятора для первых N слоёв."
 
 msgid "The lowest printable layer height for the extruder. Used to limit the minimum layer height when enable adaptive layer height."
 msgstr "Минимальная высота слоя для печати этим экструдером. Используется в качестве ограничения при использовании адаптивной высоты слоя."
@@ -16161,9 +16163,9 @@ msgstr "Глухие отверстия в основании модели ра�
 msgid "Detect overhang walls"
 msgstr "Обнаруживать нависающие периметры"
 
-#, fuzzy, c-format, boost-format
+#, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
-msgstr "Определяет процент нависания относительно ширины линии и использует разную скорость печати. Для 100%-го нависания используется скорость печати мостов."
+msgstr "Использовать разную скорость печати в зависимости от выноса линии относительно её опоры. Для нависаний без опоры используется скорость печати мостов."
 
 # В секции "Материал для линий"
 msgid "Outer walls"
@@ -16224,13 +16226,12 @@ msgstr "Команды в G-коде, которые выполняются ме
 msgid "Plugins Used"
 msgstr "Используемые плагины"
 
-# AI Translated
+# Функционал плагинов для этого прояиля, указывается...
 msgid "Plugin capabilities referenced by this preset, stored as name;uuid;capability."
-msgstr "Возможности плагинов, на которые ссылается этот профиль, хранятся как name;uuid;capability."
+msgstr "Функционал плагинов, на который ссылается этот профиль, указывается как name;uuid;capability."
 
-# AI Translated
 msgid "Python plugin(s) invoked at each slicing pipeline step to read and modify intermediate slicing data, including a final G-code post-processing step. Research/experimental."
-msgstr "Плагины Python, вызываемые на каждом шаге конвейера нарезки для чтения и изменения промежуточных данных нарезки, включая финальный шаг постобработки G-code. Исследовательская/экспериментальная функция."
+msgstr "Python-плагины, вызываемые на каждом этапе нарезки для чтения и изменения промежуточных её данных (включая финальную постобработку G-кода). Тестовая/экспериментальная функция."
 
 msgid "Printer type"
 msgstr "Тип принтера"
@@ -16472,15 +16473,13 @@ msgid "Deretraction speed"
 msgstr "Скорость возврата"
 
 msgid "Speed for reloading filament into the nozzle. Zero means same speed of retraction."
-msgstr "Скорость возврата материала в экструдер после отката. При значении 0 используется скорость отката."
+msgstr "Скорость возврата материала в сопло после отката.\n0 – использовать скорость отката."
 
-# AI Translated
 msgid "Deretraction speed (extruder change)"
-msgstr "Скорость подачи (смена экструдера)"
+msgstr "Скорость возврата (смена экструдера)"
 
-# AI Translated
 msgid "Speed for reloading filament into the nozzle when switching extruder."
-msgstr "Скорость возврата материала в сопло при смене экструдера."
+msgstr "Скорость возврата материала в сопло после смены экструдера."
 
 msgid "Use firmware retraction"
 msgstr "Откат на уровне прошивки"
@@ -16853,21 +16852,20 @@ msgstr ""
 "Можно указать своё конечное значение потока, чтобы избежать подобных проблем."
 
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
-msgstr "На протяжении всей печати встроенная камера делает снимки, которые затем объединяются в ускоренное видео. Избыточные резкие движения в кадре можно сгладить при помощи соответствующего режима; после печати каждого слоя для создания снимка экструдер будет отводиться к лотку для удаления излишков. В этом режиме необходима черновая башня для устранения возможных подтёков во время создания снимка."
+msgstr "На протяжении всей печати в конце слоя встроенная камера делает снимки, которые затем объединяются в ускоренное видео. Избыточные резкие движения в кадре можно сгладить при помощи «Плавного» режима, в котором для создания снимка экструдер будет отводиться к лотку для сброса материала. В этом режиме необходима черновая башня для устранения возможных подтёков во время создания снимка."
 
 msgid "Traditional"
-msgstr "По умолчанию"
+msgstr "Обычный"
 
+# Для кнопки "Сгладить" добавили контекст, теперь их можно разделить.
 msgid "Smooth"
-msgstr "Сгладить"
+msgstr "Плавный"
 
-# AI Translated
 msgid "Farthest point timelapse"
-msgstr "Таймлапс из дальней точки"
+msgstr "Съёмка из дальней точки"
 
-# AI Translated
 msgid "When enabled, the timelapse snapshot is taken at the farthest point from camera instead of traveling to the wipe tower or excess chute. Only effective in traditional timelapse mode on non-I3 printers."
-msgstr "Когда включено, снимок таймлапса делается из наиболее удалённой от камеры точки вместо перемещения к черновой башне или лотку сброса излишков. Действует только в традиционном режиме таймлапса на принтерах, отличных от I3."
+msgstr "Делать снимки из наиболее удалённой от камеры точки вместо перемещения к черновой башне или лотку для сброса материала. Работает только в обычном режиме таймлапса на принтерах с кинематикой, отличной от I3."
 
 msgid "Temperature variation"
 msgstr "Разница температур"
@@ -17557,24 +17555,22 @@ msgstr ""
 "\n"
 "Примечание: влияет только на принтеры Bambu, в остальных случаях башня автоматически сужается по необходимости."
 
-# ??? настройка отключена в коде
+# настройка отключена в коде
 msgid "Purging volumes"
 msgstr "Объём прочистки"
 
-# ??? настройка отключена в коде
+# настройка отключена в коде
 msgid "Flush multiplier"
 msgstr "Множитель прочистки"
 
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "Реальные объёмы прочистки равны произведению множителя и значений, указанных в таблице."
 
-# AI Translated
 msgid "Flush multiplier (Fast mode)"
 msgstr "Множитель прочистки (быстрый режим)"
 
-# AI Translated
 msgid "The flush multiplier used in fast purge mode."
-msgstr "Множитель прочистки, используемый в режиме быстрой прочистки."
+msgstr "Множитель для режима быстрой прочистки."
 
 msgid "Prime volume"
 msgstr "Объём сброса материала на черновой башне"
@@ -17582,19 +17578,15 @@ msgstr "Объём сброса материала на черновой баш�
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Объём материала, который необходимо выдавить для подготовки экструдера на черновой башне."
 
-# AI Translated
 msgid "Prime volume mode"
-msgstr "Режим объёма подготовки"
+msgstr "Режим прочистки"
 
-# AI Translated
 msgid "Selects how the wipe-tower prime and flush volumes are computed on multi-extruder printers."
-msgstr "Определяет, как вычисляются объёмы подготовки и прочистки черновой башни на многоэкструдерных принтерах."
+msgstr "Режим расчёта прочистки на черновой башне для многоэкструдерных принтеров."
 
-# AI Translated
 msgid "Saving"
 msgstr "Экономия"
 
-# AI Translated
 msgid "Fast"
 msgstr "Быстрый"
 
@@ -17927,79 +17919,62 @@ msgstr ""
 "\n"
 "Примечание: периметр может расширяться до ширины элемента."
 
-# AI Translated
 msgid "Hotend change time"
 msgstr "Время смены хотэнда"
 
-# AI Translated
 msgid "Time to change hotend."
-msgstr "Время смены хотэнда."
+msgstr "Время, затрачиваемое на смену хотэнда."
 
-# AI Translated
 msgid "Hotend change"
 msgstr "Смена хотэнда"
 
-# AI Translated
 msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
-msgstr "При смене хотэнда рекомендуется выдавить определённую длину материала из исходного сопла. Это помогает минимизировать вытекание из сопла."
+msgstr "При смене хотэнда рекомендуется выдавить немного материала из прежнего сопла. Помогает минимизировать последующие подтёки."
 
-# AI Translated
 msgid "Extruder change"
 msgstr "Смена экструдера"
 
 msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
-msgstr "Чтобы материал не подтекал, материал после рэмминга немного отъезжает назад. Этот параметр задаёт время движения в обратном направлении."
+msgstr "Время движения сопла в обратном направлении во избежание подтёков из него. Выполняется по завершении рэмминга."
 
 msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
-msgstr "Для предотвращения подтекания материала, температура сопла будет снижена во время рэмминга. Поэтому время рэмминга должно быть больше времени охлаждения. 0 значит отключено."
+msgstr "Во избежание подтёков температура сопла будет снижена на время рэмминга. Поэтому время рэмминга должно быть больше времени охлаждения. 0 значит отключено."
 
-# AI Translated
 msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
-msgstr "Максимальный объёмный расход при рэмминге перед сменой экструдера, где -1 означает использование максимального объёмного расхода."
+msgstr "Максимальный объёмный расход для рэмминга перед сменой экструдера.\n-1 – использовать максимальный расход."
 
-# AI Translated
 msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
-msgstr "Во избежание вытекания температура сопла будет снижена во время рэмминга. Примечание: срабатывают только команда охлаждения и включение вентилятора; достижение целевой температуры не гарантируется. 0 означает отключено."
+msgstr "Во избежание подтёков температура сопла будет снижена на время рэмминга.\n0 – не менять температуру.\n\nПримечание: срабатывают только команда охлаждения и включение вентилятора; достижение целевой температуры не гарантируется."
 
-# AI Translated
 msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
-msgstr "Максимальный объёмный расход при рэмминге перед сменой хотэнда, где -1 означает использование максимального объёмного расхода."
+msgstr "Максимальный объёмный расход для рэмминга перед сменой хотэнда.\n-1 – использовать максимальный расход."
 
-# AI Translated
 msgid "length when change hotend"
-msgstr "длина при смене хотэнда"
+msgstr "Откат при смене хотэнда"
 
-# AI Translated
 msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
-msgstr "При изменении этого значения отката оно будет использоваться как величина отката материала внутри хотэнда перед сменой хотэндов."
+msgstr "Величина отката материала внутри хотэнда перед его сменой."
 
-# AI Translated
 msgid "Support fast purge mode"
-msgstr "Поддержка режима быстрой прочистки"
+msgstr "Режим быстрой прочистки"
 
-# AI Translated
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
-msgstr "Поддерживает ли этот принтер режим быстрой прочистки с оптимизированной температурой и множителем."
+msgstr "Поддерживает ли принтер режим быстрой прочистки с оптимизированной температурой и множителем."
 
-# AI Translated
 msgid "Filament change"
 msgstr "Смена материала"
 
-# AI Translated
 msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
-msgstr "Объём материала, необходимый для подготовки экструдера на башне, исключая смену хотэнда."
+msgstr "Объём материала, необходимый для прочистки экструдера на башне, не считая смены хотэнда."
 
-# AI Translated
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
-msgstr "Объём материала, необходимый для подготовки экструдера при смене хотэнда на башне."
+msgstr "Объём материала, необходимый для прочистки экструдера на башне при смене хотэнда."
 
-# AI Translated
 msgid "Preheat temperature delta"
-msgstr "Дельта температуры предварительного нагрева"
+msgstr "Дельта преднагрева"
 
-# AI Translated
 msgid "Temperature delta applied during pre-heating before tool change."
-msgstr "Дельта температуры, применяемая при предварительном нагреве перед сменой инструмента."
+msgstr "Разница температуры для предварительного нагрева перед сменой инструмента."
 
 msgid "Detect narrow internal solid infills"
 msgstr "Оптимизация заполнения узких мест"
@@ -18276,15 +18251,14 @@ msgstr ""
 msgid "Log file"
 msgstr "Файл журнала"
 
-# AI Translated
 msgid "Redirects debug logging to file.\n"
-msgstr "Перенаправляет отладочный журнал в файл.\n"
+msgstr "Направляет отладочные записи в файл.\n"
 
 msgid "Enable timelapse for print"
 msgstr "Вкл. таймлапс для печати"
 
 msgid "If enabled, this slicing will be considered using timelapse."
-msgstr "Если включено, текущая нарезка будет выполнена с учётом функции таймлапса."
+msgstr "Выполнять нарезку с учётом записи таймлапса."
 
 msgid "Load custom G-code"
 msgstr "Загрузить пользовательский G-код"
@@ -18292,7 +18266,7 @@ msgstr "Загрузить пользовательский G-код"
 msgid "Load custom G-code from json."
 msgstr "Загрузить G-код из json."
 
-# ??? назначить идентификаторы
+# назначить идентификаторы
 msgid "Load filament IDs"
 msgstr "Загрузить идентификаторы материалов"
 
@@ -18302,7 +18276,6 @@ msgstr "Загрузить идентификаторы материалов д�
 msgid "Allow multiple colors on one plate"
 msgstr "Игнорировать разницу в цвете"
 
-# ????
 msgid "If enabled, Arrange will allow multiple colors on one plate."
 msgstr "Если включено, модели разных цветов не будут разделяться на разные столы."
 
@@ -18351,9 +18324,8 @@ msgstr "Список значений метаданных, добавляемы
 msgid "Allow 3MF with newer version to be sliced"
 msgstr "Разрешить нарезку 3MF более новой версии"
 
-# ???
 msgid "Allow 3MF with newer version to be sliced."
-msgstr "Разрешить нарезку новых версий 3MF-файлов."
+msgstr "Разрешить нарезку проектов из более новых версий."
 
 msgid "Current Z-hop"
 msgstr "Подъём оси Z"
@@ -18998,13 +18970,11 @@ msgstr "Введите имя для сохранения на принтере.
 msgid "The name cannot exceed 40 characters."
 msgstr "Максимальная длина имени 40 символов."
 
-# AI Translated
 msgid "Nozzle ID"
 msgstr "ID сопла"
 
-# AI Translated
 msgid "Standard Flow"
-msgstr "Стандартный расход"
+msgstr "Обычный расход"
 
 msgid "Please find the best line on your plate"
 msgstr "Пожалуйста, найдите лучшую линию на столе"
@@ -19171,7 +19141,7 @@ msgstr "История успешных результатов калибров�
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "Обновление записей прошлых калибровок динамики потока"
 
-# AI Translated
+# Подставляется toolhead_display_name
 #, c-format, boost-format
 msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
 msgstr "Примечание: номер хотэнда на %s привязан к держателю. При перемещении хотэнда в новый держатель его номер обновится автоматически."
@@ -19234,19 +19204,19 @@ msgstr ""
 "По имени хоста %1% обнаружено несколько IP-адресов.\n"
 "Выберите адрес для использования."
 
-# AI Translated
+# В калибровке температуры и расхода
 msgid "Auto-scale for nozzle"
-msgstr "Автомасштабирование под сопло"
+msgstr "Адаптация к соплу"
 
-# AI Translated
+# Речь о температурной башне
 msgid ""
 "This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
 "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
 "Turn scaling off only if you wish to print the reference model exactly as-is."
 msgstr ""
-"Эта модель рассчитана на сопло 0,4 мм и высоту слоя 0,2 мм. \n"
-"Если включено масштабирование (рекомендуется), размер модели динамически подстраивается под диаметр вашего текущего сопла и подходящую высоту слоя, благодаря чему тест получается и точным, и легко читаемым.\n"
-"Отключайте масштабирование, только если хотите напечатать эталонную модель ровно в исходном виде."
+"Тестовая модель рассчитана на сопло 0,4 мм и высоту слоя 0,2 мм.\n"
+"При включении адаптации (рекомендуется) её размер динамически подстраивается под диаметр текущего сопла и подходящую высоту слоя, благодаря чему тест получается более точным и читаемым.\n"
+"Отключать имееет смысл для печати эталонной модели ровно в исходном виде."
 
 # В заголовке окна куча места
 msgid "PA Calibration"
@@ -19384,13 +19354,14 @@ msgstr "Начальная скорость: "
 msgid "End speed: "
 msgstr "Конечная скорость: "
 
-# AI Translated
 msgid "Auto-adjust to max volumetric speed"
-msgstr "Автоподстройка под предел объёмного расхода"
+msgstr "Адаптация к расходу"
 
-# AI Translated
 msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
-msgstr "Если конечная скорость превысит предел объёмного расхода материала, автоматически уменьшать высоту слоя (сохраняя стандартные значения и оставаясь в пределах ограничений принтера), чтобы её достичь. Если даже минимальной высоты слоя недостаточно, вместо этого снижается конечная скорость."
+msgstr ""
+"Автоматически уменьшать высоту слоя для обеспечения требуемой скорости. Позволяет не упираться в предел объёмного расхода материала.\n"
+"\n"
+"Примечание: скорость всё равно может снижаться в случае упора в минимальную высоту слоя из заданных ограничений принтера."
 
 msgid ""
 "Please input valid values:\n"
@@ -19403,7 +19374,6 @@ msgstr ""
 "Шаг ≥ 0\n"
 "Конечное > начальное + шаг"
 
-# AI Translated
 #, c-format, boost-format
 msgid ""
 "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
@@ -19411,23 +19381,20 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
-"Конечная скорость (%.0f мм/с) превышает предел объёмного расхода материала (%.1f мм³/с), который при такой ширине линии и высоте слоя ограничивает скорость внешних периметров примерно до %.0f мм/с.\n"
-" Более высокие скорости будут ограничены, поэтому верхние блоки башни не напечатаются с заданной скоростью.\n"
+"Конечная скорость (%.0f мм/с) приводит к превышению предела объёмного расхода материала (%.1f мм³/с). При такой ширине линии периметров и высоте слоя расход ограничивает линейную скорость примерно до %.0f мм/с, и верхние сегменты башни не смогут достичь заданной скорости.\n"
 "\n"
 "%s"
 
-# AI Translated
 #, c-format, boost-format
 msgid ""
 "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
 "\n"
 "The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
 msgstr ""
-"Конечная скорость (%.0f мм/с) превышает предел объёмного расхода материала (%.1f мм³/с) при высоте слоя по умолчанию (%.2f мм).\n"
+"Конечная скорость (%.0f мм/с) приводит к превышению предела объёмного расхода материала (%.1f мм³/с) при высоте слоя по умолчанию (%.2f мм).\n"
 "\n"
-"Высота слоя уменьшена до %.2f мм (значение, используемое профилями этого принтера), чтобы башня могла достичь заданной скорости."
+"Высота слоя уменьшена до %.2f мм (минимально значение из профиля принтера), чтобы башня могла достичь заданной скорости."
 
-# AI Translated
 #, c-format, boost-format
 msgid ""
 "Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
@@ -19436,23 +19403,20 @@ msgid ""
 "\n"
 "Continue?"
 msgstr ""
-"Даже при наименьшей высоте слоя, используемой профилями этого принтера (%.2f мм), конечная скорость (%.0f мм/с) превышает предел объёмного расхода материала (%.1f мм³/с).\n"
+"Конечная скорость (%.0f мм/с) приводит к превышению предела объёмного расхода материала (%.1f мм³/с) даже при минимально допустимой высоте слоя (в соответствии с профилем принтера, %.2f мм).\n"
 "\n"
-"Высота слоя будет установлена в %.2f мм, а конечная скорость снижена до %.0f мм/с.\n"
+"Высота слоя будет установлена на %.2f мм, а конечная скорость снижена до %.0f мм/с.\n"
 "\n"
 "Продолжить?"
 
-# AI Translated
 msgid "Continue anyway?"
 msgstr "Всё равно продолжить?"
 
-# AI Translated
 msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
-msgstr "Включить «Автоподстройку» для автоматического исправления или всё равно продолжить?"
+msgstr "Включить адаптацию к расходу для автоматического исправления?\nНет – игнорировать предупреждение."
 
-# AI Translated
 msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
-msgstr "Включить «Автомасштабирование под сопло» и «Автоподстройку» для автоматического исправления или всё равно продолжить?"
+msgstr "Включить адаптацию к соплу и расходу для автоматического исправления?\nНет – игнорировать предупреждение."
 
 msgid "Start retraction length: "
 msgstr "Начальная длина отката: "
@@ -21027,11 +20991,9 @@ msgstr "Ошибка печати"
 msgid "Removed"
 msgstr "Удалено"
 
-# AI Translated
 msgid "Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"
-msgstr "Включить умное назначение материалов: назначайте один материал нескольким соплам для максимальной экономии"
+msgstr "Включить умное назначение материалов: назначить один материал нескольким соплам для максимальной экономии"
 
-# AI Translated
 msgid "Fila Saving"
 msgstr "Экономия материала"
 
@@ -21070,10 +21032,10 @@ msgstr "Видеоурок"
 msgid "(Sync with printer)"
 msgstr " (состояние принтера)"
 
-# AI Translated
+# Отвратительная подстановка левое/правое и тип расхода сопла
 #, c-format, boost-format
 msgid "Error: %s extruder has no available %s nozzle, current group result is invalid."
-msgstr "Ошибка: у экструдера %s нет доступного сопла %s, текущий результат группировки недействителен."
+msgstr "Ошибка: %s сопло не поддерживает требуемый расход (%s), результат текущей группировки недействителен."
 
 msgid "We will slice according to this grouping method:"
 msgstr "Осуществлять нарезку в соответствии с этой группировкой:"
@@ -21081,15 +21043,12 @@ msgstr "Осуществлять нарезку в соответствии с �
 msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr "Совет: для назначения материала перетащите его в нужное поле."
 
-# AI Translated
 msgid "Please adjust your grouping or click "
-msgstr "Отрегулируйте группировку или нажмите "
+msgstr "Измените группировку или нажмите "
 
-# AI Translated
 msgid " to set nozzle count"
 msgstr " для задания количества сопел"
 
-# AI Translated
 msgid "Set the physical nozzle count..."
 msgstr "Задать физическое количество сопел..."
 
@@ -21359,7 +21318,7 @@ msgstr "Ошибка: %s"
 msgid "Show details"
 msgstr "Подробнее"
 
-# AI Translated
+# В информации о сетевом плагине
 msgid "Hide details"
 msgstr "Скрыть подробности"
 
@@ -21388,9 +21347,8 @@ msgstr "Установить обновление"
 msgid "(Latest)"
 msgstr "(новейшая)"
 
-# AI Translated
 msgid "(installed)"
-msgstr "(установлено)"
+msgstr "(установлена)"
 
 msgid "The Bambu Network Plug-in has been installed successfully."
 msgstr "Сетевой плагин Bambu успешно установлен."
@@ -21442,7 +21400,6 @@ msgstr "Сохранить как настройки по умолчанию"
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
 msgstr "Активируйте для сохранения настроек импорта после его завершения."
 
-# AI Translated
 msgid "PresetBundle"
 msgstr "PresetBundle"
 
@@ -21469,7 +21426,6 @@ msgstr "Удаление пакета"
 msgid "Unsubscribe bundle?"
 msgstr "Отписаться от пакета?"
 
-# AI Translated
 msgid "UnsubscribeBundle"
 msgstr "UnsubscribeBundle"
 
@@ -21480,11 +21436,9 @@ msgstr "Не удалось отписаться от пакета."
 msgid "Unsubscribe Bundle"
 msgstr "Ошибка"
 
-# AI Translated
 msgid "ExportPresetBundle"
 msgstr "ExportPresetBundle"
 
-# AI Translated
 msgid "Save preset bundle"
 msgstr "Сохранить пакет профилей"
 
@@ -21538,190 +21492,146 @@ msgstr "Просмотр архива"
 msgid "Open File"
 msgstr "Открыть файл"
 
-# AI Translated
 msgid "AMS Dryness Control"
 msgstr "Управление сушкой AMS"
 
-# AI Translated
 msgid "Filament Drying Settings"
 msgstr "Настройки сушки материала"
 
-# AI Translated
 msgid "Stopping"
 msgstr "Остановка"
 
-# AI Translated
 msgid "Unable to dry temporarily due to ..."
 msgstr "Временно невозможно выполнить сушку из-за ..."
 
-# AI Translated
 msgid "Drying Error"
 msgstr "Ошибка сушки"
 
-# AI Translated
 msgid "Please check the Assistant for troubleshooting"
 msgstr "Обратитесь к Помощнику для устранения неполадок"
 
-# AI Translated
 msgid "Please remove and store the filament (as shown)."
 msgstr "Извлеките и уберите материал на хранение (как показано)."
 
-# AI Translated
 msgid "The AMS can rotate the filament which is properly stored, providing better drying results."
-msgstr "AMS может вращать правильно уложенный на хранение материал, обеспечивая лучший результат сушки."
+msgstr "AMS может вращать правильно уложенный на хранение материал, тем самым улучшая эффективность сушки."
 
-# AI Translated
 msgid "Rotate spool when drying"
 msgstr "Вращать катушку при сушке"
 
-# AI Translated
 msgctxt "amsdrying"
 msgid "Back"
 msgstr "Назад"
 
-# AI Translated
 msgid "Drying-Heating"
 msgstr "Сушка — нагрев"
 
-# AI Translated
 msgid "Drying-Dehumidifying"
-msgstr "Сушка — осушение"
+msgstr "Сушка — вывод влаги"
 
-# AI Translated
 msgid " maximum drying temperature is "
 msgstr " максимальная температура сушки — "
 
-# AI Translated
 msgid " minimum drying temperature is "
 msgstr " минимальная температура сушки — "
 
-# AI Translated
 msgid "This filament may not be completely dried."
-msgstr "Этот материал может быть высушен не полностью."
+msgstr "Сушка этого материала может не быть эффективной."
 
-# AI Translated
 msgid "This AMS is currently printing. To ensure print quality, the drying temperature cannot exceed the recommended drying temperature."
-msgstr "Этот AMS сейчас печатает. Для обеспечения качества печати температура сушки не может превышать рекомендованную температуру сушки."
+msgstr "AMS сейчас печатает. Во избежание проблем с печатью температура сушки не должна превышать рекомендованную."
 
-# AI Translated
 msgid "The temperature shall not exceed the filament's heat distortion temperature"
-msgstr "Температура не должна превышать температуру тепловой деформации материала"
+msgstr "Температура не должна превышать температуру размягчения материала."
 
-# AI Translated
 msgid "Minimum time value cannot be less than 1."
-msgstr "Минимальное значение времени не может быть меньше 1."
+msgstr "Минимальное время не может быть меньше 1."
 
-# AI Translated
 msgid "Maximum time value cannot be greater than 24."
-msgstr "Максимальное значение времени не может быть больше 24."
+msgstr "Максимальное время не может быть больше 24."
 
-# AI Translated
 msgid "Insufficient power"
-msgstr "Недостаточно питания"
+msgstr "Нехватка мощности"
 
-# AI Translated
 msgid "  Too many AMS drying simultaneously. Please plug in the power or stop other drying processes before starting."
-msgstr "  Слишком много AMS сушат одновременно. Подключите питание или остановите другие процессы сушки перед началом."
+msgstr "  Слишком много AMS выполняют сушку. Подключите питание или остановите другие сеансы сушки перед началом."
 
-# AI Translated
 msgid "AMS is busy"
-msgstr "AMS занят"
+msgstr "AMS занята"
 
-# AI Translated
 msgid "  AMS is calibrating | reading RFID | loading/unloading material, please wait."
-msgstr "  AMS калибруется | считывает RFID | загружает/выгружает материал, подождите."
+msgstr "  AMS калибруется | считывает RFID | меняет материал, подождите."
 
-# AI Translated
+# на Вики бамбу есть упоминание: https://wiki.bambulab.com/ru/h2/troubleshooting/hmscode/0700_2000_0002_0025#:~:text=выходного%20отверстия%20AMS
 msgid "Filament in AMS outlet"
 msgstr "Материал в выходном отверстии AMS"
 
-# AI Translated
 msgid "  The high drying temperature may cause AMS blockage, please unload first."
-msgstr "  Высокая температура сушки может вызвать засорение AMS, сначала выгрузите материал."
+msgstr "  Из-за высокой температуры сушки пруток может застрять в AMS, сначала выгрузите материал."
 
-# AI Translated
 msgid "Initiating AMS drying"
 msgstr "Запуск сушки AMS"
 
-# AI Translated
 msgid "Not supported in 2D mode"
-msgstr "Не поддерживается в режиме 2D"
+msgstr "Не поддерживается в 2D-режиме"
 
-# AI Translated
 msgid "Task in progress"
 msgstr "Выполняется задача"
 
-# AI Translated
+# CannotDryReason: DryingInProgress
 msgid "  The AMS might be in use during Task."
-msgstr "  AMS может использоваться во время задачи."
+msgstr "  AMS может иметь задачи в процессе."
 
-# AI Translated
 msgid "  Firmware update in progress, please wait..."
 msgstr "  Выполняется обновление прошивки, подождите..."
 
-# AI Translated
 msgid "  Please plug in the power and then use the drying function."
 msgstr "  Подключите питание, а затем используйте функцию сушки."
 
-# AI Translated
 msgid "  The high drying temperature may cause AMS blockage. Please unload the filament manually before proceeding."
-msgstr "  Высокая температура сушки может вызвать засорение AMS. Перед продолжением выгрузите материал вручную."
+msgstr "  Из-за высокой температуры сушки пруток может застрять в AMS. Перед продолжением выгрузите материал вручную."
 
-# AI Translated
 msgid "System is busy"
 msgstr "Система занята"
 
-# AI Translated
 msgid "  Initiating other drying processes, please wait a few seconds..."
 msgstr "  Запускаются другие процессы сушки, подождите несколько секунд..."
 
-# AI Translated
 msgid "For better drying results, remove the filament and allow it to rotate."
-msgstr "Для лучшего результата сушки извлеките материал и дайте ему вращаться."
+msgstr "Для лучшего результата сушки извлеките материал и включите вращение катушки."
 
-# AI Translated
 msgid "The AMS will automatically rotate the stored filament slots to enhance the drying performance."
-msgstr "AMS будет автоматически вращать слоты с уложенным на хранение материалом для повышения эффективности сушки."
+msgstr "AMS будет автоматически вращать слоты с хранящимися катушками для повышения эффективности сушки."
 
-# AI Translated
 msgid "Alternatively, you can dry the filament without removing it."
-msgstr "Кроме того, вы можете сушить материал, не извлекая его."
+msgstr "Кроме того, сушить материал можно без его извлечения."
 
-# AI Translated
 msgid "Unknown filaments will be treated as PLA."
 msgstr "Неизвестные материалы будут рассматриваться как PLA."
 
-# AI Translated
 msgid "Please store the filament marked with an exclamation mark."
 msgstr "Уберите на хранение материал, отмеченный восклицательным знаком."
 
-# AI Translated
 msgid "Filament left in the feeder during drying may soften because the drying temperature exceeds the softening point of materials like PLA and TPU."
-msgstr "Материал, оставленный в подающем механизме во время сушки, может размягчиться, поскольку температура сушки превышает точку размягчения таких материалов, как PLA и TPU."
+msgstr "Заправленный материал может размягчиться во время сушки, поскольку её сушки превышает точку размягчения материалов вроде PLA и TPU."
 
-# AI Translated
 msgid "Starting: Checking adapter connection"
 msgstr "Запуск: проверка подключения адаптера"
 
-# AI Translated
 msgid "Starting: Checking filament status"
 msgstr "Запуск: проверка состояния материала"
 
-# AI Translated
 msgid "Starting: Checking drying presets"
 msgstr "Запуск: проверка профилей сушки"
 
-# AI Translated
 msgid "Starting: Checking filament location"
 msgstr "Запуск: проверка расположения материала"
 
-# AI Translated
 msgid "Starting: Checking air intake"
 msgstr "Запуск: проверка забора воздуха"
 
-# AI Translated
 msgid "Starting: Checking air vent"
-msgstr "Запуск: проверка вентиляционного отверстия"
+msgstr "Запуск: проверка вентиляции"
 
 msgid "The filament may not be compatible with the current machine settings. Generic filament presets will be used."
 msgstr "Материал может быть несовместим с текущими настройками принтера. Будет использоваться базовый профиль материала."
