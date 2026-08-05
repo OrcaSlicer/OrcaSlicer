@@ -9,7 +9,7 @@
 	"inner_wall_acceleration": "6000",
 	"max_volumetric_extrusion_rate_slope": "300",
 	"outer_wall_acceleration": "2000",
-	"outer_wall_line_width": "105%",
+	"outer_wall_line_width": "110%",
 	"outer_wall_speed": "80",
 	"sparse_infill_pattern": "cubic",
 	"sparse_infill_speed": "300",

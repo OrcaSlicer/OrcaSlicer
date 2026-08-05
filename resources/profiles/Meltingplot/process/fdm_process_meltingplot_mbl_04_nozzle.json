@@ -8,7 +8,7 @@
 	"initial_layer_print_height": "0.3",
 	"line_width": "115%",
 	"inner_wall_line_width": "115%",
-	"outer_wall_line_width": "105%",
+	"outer_wall_line_width": "115%",
 	"sparse_infill_line_width": "115%",
 	"internal_solid_infill_line_width": "115%"
 }

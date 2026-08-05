@@ -12,7 +12,7 @@
 	"inner_wall_acceleration": "6000",
 	"outer_wall_acceleration": "3000",
 	"outer_wall_jerk": "6",
-	"outer_wall_line_width": "110%",
+	"outer_wall_line_width": "115%",
 	"outer_wall_speed": "220",
 	"sparse_infill_speed": "270",
 	"support_top_z_distance": "0.3",
