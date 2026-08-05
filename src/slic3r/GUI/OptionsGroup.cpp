@@ -54,6 +54,9 @@ const t_field& OptionsGroup::build_field(const t_config_option_key& id, const Co
     case ConfigOptionDef::GUIType::one_string: m_fields.emplace(id, TextCtrl::Create<TextCtrl>(this->ctrl_parent(), opt, id)); break;
     case ConfigOptionDef::GUIType::plugin_picker: m_fields.emplace(id, PluginField::Create<PluginField>(this->ctrl_parent(), opt, id)); break;
     case ConfigOptionDef::GUIType::plugin_config: m_fields.emplace(id, PluginConfigField::Create<PluginConfigField>(this->ctrl_parent(), opt, id)); break;
+    case ConfigOptionDef::GUIType::printer_agent_select: m_fields.emplace(
+            id, PrinterAgentChoice::Create<PrinterAgentChoice>(this->ctrl_parent(), opt, id));
+        break;
     default:
         switch (opt.type) {
             case coFloatOrPercent:
@@ -654,6 +657,16 @@ Option ConfigOptionsGroup::get_option(const std::string& opt_key, int opt_index 
 
 void ConfigOptionsGroup::on_change_OG(const t_config_option_key& opt_id, const boost::any& value)
 {
+    if (opt_id == "printer_agent") {
+        // TODO: Replace this option-specific branch with a generic value adapter if
+        // more fields need custom field-value to config-value conversion.
+        if (const std::string* id = boost::any_cast<std::string>(&value))
+            this->change_opt_value("printer_agent", wxGetApp().canonical_printer_agent_id(*id));
+
+        OptionsGroup::on_change_OG(opt_id, value);
+        return;
+    }
+
     if (!m_opt_map.empty()) {
         auto it = m_opt_map.find(opt_id);
         if (it == m_opt_map.end()) {
@@ -772,6 +785,19 @@ void ConfigOptionsGroup::back_to_config_value(const DynamicPrintConfig& config, 
         }
     }
 #endif
+    else if (opt_key == "printer_agent")
+    {
+        // why: printer_agent is a coString kept out of m_opt_map. The generic non-opt_map revert
+        // below restores the edited config from get_value(), but a deregistered/"(missing)" saved
+        // id has no selectable row, so the field yields no value and the edited config keeps the
+        // user's interim pick -> stuck dirty. Restore the SAVED id straight into the edited config
+        // (displayable or not; config is the saved or system baseline), then repaint and notify.
+        const std::string saved_id = config.opt_string("printer_agent");
+        set_value(opt_key, saved_id);
+        this->change_opt_value(opt_key, saved_id);
+        OptionsGroup::on_change_OG(opt_key, saved_id);
+        return;
+    }
     else if (m_opt_map.find(opt_key) == m_opt_map.end() ||
              // This option don't have corresponded field
              opt_key == "printable_area" || opt_key == "compatible_printers" || opt_key == "compatible_prints" || opt_key == "thumbnails" ||

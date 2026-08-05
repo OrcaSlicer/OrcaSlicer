@@ -1135,6 +1135,14 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);
         }
 
+        if (param == "use_printer_agents")
+        {
+            // Rebuild the Device tab so the native/web-UI choice reflects the new flag
+            // immediately, instead of only on the next printer-preset change or restart.
+            if (wxGetApp().plater())
+                wxGetApp().plater()->sidebar().update_all_preset_comboboxes();
+        }
+
         if (param == "enable_high_low_temp_mixed_printing") {
             if (checkbox->GetValue()) {
                 const wxString warning_title = _L("Bed Temperature Difference Warning");
