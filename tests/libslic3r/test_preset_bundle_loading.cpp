@@ -488,3 +488,69 @@ TEST_CASE("Plugin capability override keys are scoped per preset type", "[Preset
         }
 }
 
+namespace {
+
+// A standalone filament collection that exposes the protected library masking builder, so the Orca
+// Filament Library scenario can be set up without the full system-profile load pipeline.
+struct LibraryFilamentTestCollection : public PresetCollection
+{
+    LibraryFilamentTestCollection()
+        : PresetCollection(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                           static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()))
+    {}
+    using PresetCollection::update_library_profile_excluded_from;
+};
+
+} // namespace
+
+// Orca: a filament in the Orca Filament Library that names its compatible printers has to hide the generic
+// library filament sharing its alias, the same way a vendor owned filament does. Otherwise both are compatible
+// with that printer and the plater combo box lists the shared alias twice.
+TEST_CASE("A printer specific filament supersedes the generic library filament with the same alias", "[Preset][Bundle]")
+{
+    LibraryFilamentTestCollection filaments;
+    PresetCollection              printers(Preset::TYPE_PRINTER, Preset::printer_options(),
+                                           static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+    // The masking keys off the vendor name, which VendorProfile's constructor does not derive from the id.
+    VendorProfile                 library(PresetBundle::ORCA_FILAMENT_LIBRARY);
+    VendorProfile                 vendor("Vendor");
+    library.name = PresetBundle::ORCA_FILAMENT_LIBRARY;
+    vendor.name  = "Vendor";
+
+    auto add_filament = [&filaments](const VendorProfile &owner, const std::string &name, std::vector<std::string> compatible_printers) {
+        Preset &preset = add_inmemory_preset(filaments, name);
+        preset.alias   = "Generic ABS";
+        preset.vendor  = &owner;
+        preset.config.option<ConfigOptionStrings>("compatible_printers", true)->values = std::move(compatible_printers);
+    };
+
+    add_filament(library, "Generic ABS @System", {});
+    add_filament(library, "Generic ABS @Printer A", { "Printer A" });
+    add_filament(vendor,  "Generic ABS @Printer B", { "Printer B" });
+
+    filaments.update_library_profile_excluded_from();
+
+    const Preset *generic = filaments.find_preset("Generic ABS @System");
+    REQUIRE(generic != nullptr);
+    CHECK(generic->m_excluded_from.count("Printer A") == 1);
+    CHECK(generic->m_excluded_from.count("Printer B") == 1);
+    CHECK(generic->m_excluded_from.size() == 2);
+
+    // A printer specific profile names printers, so it is never the one being hidden - not even by itself.
+    const Preset *specific = filaments.find_preset("Generic ABS @Printer A");
+    REQUIRE(specific != nullptr);
+    CHECK(specific->m_excluded_from.empty());
+
+    // ...and the generic profile really drops out of the compatible set on the printer it is hidden from.
+    add_inmemory_preset(printers, "Printer A");
+    add_inmemory_preset(printers, "Printer C");
+    const Preset *printer_a = printers.find_preset("Printer A");
+    const Preset *printer_c = printers.find_preset("Printer C");
+    REQUIRE(printer_a != nullptr);
+    REQUIRE(printer_c != nullptr);
+
+    const PresetWithVendorProfile generic_lib(*generic, &library);
+    CHECK_FALSE(is_compatible_with_printer(generic_lib, PresetWithVendorProfile(*printer_a, nullptr)));
+    CHECK(is_compatible_with_printer(generic_lib, PresetWithVendorProfile(*printer_c, nullptr)));
+}
+

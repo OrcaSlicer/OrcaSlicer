@@ -1137,8 +1137,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
                 float old_retract_length = (old_filament_id != -1) ? full_config.retraction_length.get_at(old_fi) : 0;
                 float new_retract_length = full_config.retraction_length.get_at(new_fi);
-                float old_retract_length_toolchange = (old_filament_id != -1) ? full_config.retract_length_toolchange.get_at(old_filament_id) : 0;
-                float new_retract_length_toolchange = full_config.retract_length_toolchange.get_at(new_filament_id);
+                float old_retract_length_toolchange = (old_filament_id != -1) ? full_config.retract_length_toolchange.get_at(old_fi) : 0;
+                float new_retract_length_toolchange = full_config.retract_length_toolchange.get_at(new_fi);
                 int old_filament_temp = (old_filament_id != -1) ? (gcodegen.on_first_layer()? full_config.nozzle_temperature_initial_layer.get_at(old_fi) : full_config.nozzle_temperature.get_at(old_fi)) : 210;
                 int new_filament_temp = gcodegen.on_first_layer() ? full_config.nozzle_temperature_initial_layer.get_at(new_fi) : full_config.nozzle_temperature.get_at(new_fi);
                 Vec3d nozzle_pos = gcode_writer.get_position();
@@ -2884,6 +2884,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     DoExport::init_gcode_processor(print.config(), m_processor, m_silent_time_estimator_enabled,
                                    print.get_layered_nozzle_group_result());
     const bool is_bbl_printers = print.is_BBL_printer();
+    const bool skip_config_block = print.config().gcode_skip_config_block;
     const WipeTowerType wipe_tower_type = print.wipe_tower_type();
     m_calib_config.clear();
     // resets analyzer's tracking data
@@ -3059,7 +3060,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
       // as configuration key / value pairs to be parsable by older versions of
       // PrusaSlicer G-code viewer.
     {
-        if (is_bbl_printers) {
+        if (is_bbl_printers && !skip_config_block) {
             file.write("; CONFIG_BLOCK_START\n");
             std::string full_config;
             append_full_config(print, full_config);
@@ -4086,23 +4087,25 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 GCodeProcessor::ETags::Estimated_Printing_Time_Placeholder)
             .c_str());
       file.write("\n");
-      file.write("; CONFIG_BLOCK_START\n");
-      std::string full_config;
-      append_full_config(print, full_config);
-      if (!full_config.empty())
-        file.write(full_config);
+      if (!skip_config_block) {
+          file.write("; CONFIG_BLOCK_START\n");
+          std::string full_config;
+          append_full_config(print, full_config);
+          if (!full_config.empty())
+            file.write(full_config);
 
-      // SoftFever: write compatiple info
-      int first_layer_bed_temperature = get_bed_temperature(0, true, print.config().curr_bed_type);
-      file.write_format("; first_layer_bed_temperature = %d\n", first_layer_bed_temperature);
-      file.write_format("; bed_shape = %s\n", print.full_print_config().opt_serialize("printable_area").c_str());
-      file.write_format("; first_layer_temperature = %d\n", print.config().nozzle_temperature_initial_layer.get_at(0));
-      file.write_format("; first_layer_height = %.3f\n", print.config().initial_layer_print_height.value);
-        
-        //SF TODO
-//      file.write_format("; variable_layer_height = %d\n", print.ad.adaptive_layer_height ? 1 : 0);
-   
-      file.write("; CONFIG_BLOCK_END\n\n");
+          // SoftFever: write compatiple info
+          int first_layer_bed_temperature = get_bed_temperature(0, true, print.config().curr_bed_type);
+          file.write_format("; first_layer_bed_temperature = %d\n", first_layer_bed_temperature);
+          file.write_format("; bed_shape = %s\n", print.full_print_config().opt_serialize("printable_area").c_str());
+          file.write_format("; first_layer_temperature = %d\n", print.config().nozzle_temperature_initial_layer.get_at(0));
+          file.write_format("; first_layer_height = %.3f\n", print.config().initial_layer_print_height.value);
+
+            //SF TODO
+//          file.write_format("; variable_layer_height = %d\n", print.ad.adaptive_layer_height ? 1 : 0);
+
+          file.write("; CONFIG_BLOCK_END\n\n");
+      } // !skip_config_block
 
     }
     file.write("\n");
@@ -9035,7 +9038,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     // per-layer nozzle grouping; resolve the column instead of indexing by the filament id.
     size_t new_fi = get_filament_config_index((int)new_filament_id);
     float new_retract_length = m_config.retraction_length.get_at(new_fi);
-    float new_retract_length_toolchange = m_config.retract_length_toolchange.get_at(new_filament_id);
+    float new_retract_length_toolchange = m_config.retract_length_toolchange.get_at(new_fi);
     int new_filament_temp = this->on_first_layer() ? m_config.nozzle_temperature_initial_layer.get_at(new_fi) : m_config.nozzle_temperature.get_at(new_fi);
     // BBS: if print_z == 0 use first layer temperature
     if (abs(print_z) < EPSILON)
@@ -9066,7 +9069,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         // gap-filled carry-forward, so its current-layer column matches the nozzle it occupies.
         size_t old_fi = get_filament_config_index(old_filament_id);
         old_retract_length = m_config.retraction_length.get_at(old_fi);
-        old_retract_length_toolchange = m_config.retract_length_toolchange.get_at(old_filament_id);
+        old_retract_length_toolchange = m_config.retract_length_toolchange.get_at(old_fi);
         old_filament_temp = this->on_first_layer()? m_config.nozzle_temperature_initial_layer.get_at(old_fi) : m_config.nozzle_temperature.get_at(old_fi);
 
         //During the filament change, the extruder will extrude an extra length of grab_length for the corresponding detection, so the purge can reduce this length.
