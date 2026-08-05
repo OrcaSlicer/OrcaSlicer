@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "U3ssAv86SBQsTGzv",
 	"name": "HATCHBOX PETG @Qidi X-Max 4 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "HATCHBOX PETG@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "U3ssAv86SBQsTGzv",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"
 	],

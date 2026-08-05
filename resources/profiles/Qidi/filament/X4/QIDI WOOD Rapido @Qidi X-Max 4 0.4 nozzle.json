@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "PbuzdsBOxIvSbjXa",
 	"name": "QIDI WOOD Rapido @Qidi X-Max 4 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI WOOD Rapido@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "PbuzdsBOxIvSbjXa",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.044"
 	],

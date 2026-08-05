@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Bambu PLA Tough @BBL X1C",
+	"renamed_from": "Bambu PLA Impact @BBL X1C",
 	"inherits": "Bambu PLA Tough @base",
 	"from": "system",
 	"setting_id": "GFSA09_02",

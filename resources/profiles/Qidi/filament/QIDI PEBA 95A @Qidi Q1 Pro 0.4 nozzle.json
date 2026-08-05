@@ -1,13 +1,13 @@
 {
 	"type": "filament",
-	"filament_id": "GFB99",
+	"name": "QIDI PEBA 95A @Qidi Q1 Pro 0.4 nozzle",
+	"inherits": "QIDI PEBA 95A",
 	"setting_id": "VNbCsg7HAvK02shi",
+	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"QIDI PEBA 95A @Qidi Q1 Pro 0.4 nozzle"
 	],
-	"inherits": "QIDI PEBA 95A",
-	"name": "QIDI PEBA 95A @Qidi Q1 Pro 0.4 nozzle",
 	"compatible_printers": [
 		"Qidi Q1 Pro 0.4 nozzle"
 	]

@@ -1,6 +1,6 @@
 {
 	"name": "Creality",
-	"version": "02.03.02.74",
+	"version": "02.03.02.75",
 	"force_update": "0",
 	"description": "Creality configurations",
 	"machine_model_list": [
@@ -1229,6 +1229,10 @@
 		{
 			"name": "0.40mm Standard @Creality K1C",
 			"sub_path": "process/0.40mm Standard @Creality K1C 0.8 nozzle.json"
+		},
+		{
+			"name": "0.40mm Standard @Creality K1 SE 0.8 nozzle",
+			"sub_path": "process/0.40mm Standard @Creality K1 SE 0.8 nozzle.json"
 		},
 		{
 			"name": "0.40mm Standard @Creality K1Max (0.8 nozzle)",
@@ -4033,6 +4037,14 @@
 		{
 			"name": "Creality Ender-5 Max 0.4 nozzle",
 			"sub_path": "machine/Creality Ender-5 Max 0.4 nozzle.json"
+		},
+		{
+			"name": "Creality Ender-5 Max 0.6 nozzle",
+			"sub_path": "machine/Creality Ender-5 Max 0.6 nozzle.json"
+		},
+		{
+			"name": "Creality Ender-5 Max 0.8 nozzle",
+			"sub_path": "machine/Creality Ender-5 Max 0.8 nozzle.json"
 		},
 		{
 			"name": "Creality Ender-5 Plus 0.4 nozzle",

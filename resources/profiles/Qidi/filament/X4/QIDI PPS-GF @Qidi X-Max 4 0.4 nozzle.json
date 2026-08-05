@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "6R6uV98QWzvGnfdF",
 	"name": "QIDI PPS-GF @Qidi X-Max 4 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PPS-GF@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "6R6uV98QWzvGnfdF",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.03"
 	],

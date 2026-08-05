@@ -46,20 +46,10 @@ void Slic3r::DevFan::converse_to_duct(bool is_suppt_part_fun, bool is_suppt_aux_
      }
 }
 
-static std::string _get_string_from_fantype(int type)
-{
-    switch (type) {
-    case 1: return "cooling_fan";
-    case 2: return "big_cooling_fan";
-    case 3: return "chamber_fan";
-    default: return "";
-    }
-    return "";
-}
-
 // Old protocol
 int Slic3r::DevFan::command_control_fan(int fan_type, int val)
 {
+    // Orca: strip analytics telemetry
     std::string gcode = (boost::format("M106 P%1% S%2% \n") % (int) fan_type % (val)).str();
     return m_owner->publish_gcode(gcode);
 }
@@ -166,8 +156,6 @@ void Slic3r::DevFan::ParseV3_0(const json &device)
         m_air_duct_data.modes.clear();
         m_air_duct_data.parts.clear();
 
-        m_air_duct_data.curren_mode = device["airduct"]["modeCur"].get<int>();
-
         const json &airduct = device["airduct"];
         if (airduct.contains("modeCur")) { m_air_duct_data.curren_mode = airduct["modeCur"].get<int>(); }
         if (airduct.contains("subMode")) { m_air_duct_data.m_sub_mode = airduct["subMode"].get<int>(); }
@@ -193,7 +181,7 @@ void Slic3r::DevFan::ParseV3_0(const json &device)
                     }
                 }
 
-                if (AIR_DUCT(mode.id) == AIR_DUCT::AIR_DUCT_EXHAUST) { continue; } /*STUDIO-12796*/
+                if (AIR_DUCT(mode.id) == AIR_DUCT::AIR_DUCT_EXHAUST) { continue; }
                 m_air_duct_data.modes[mode.id] = mode;
             }
         }

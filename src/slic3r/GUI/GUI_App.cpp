@@ -1,6 +1,7 @@
 #include "ExportPresetBundleDialog.hpp"
 #include "OrcaCloudServiceAgent.hpp"
 #include "libslic3r/Technologies.hpp"
+#include "libslic3r/Platform.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Init.hpp"
 #include "GUI_ObjectList.hpp"
@@ -13,6 +14,7 @@
 #include <boost/log/detail/native_typeof.hpp>
 #include <libslic3r/Config.hpp>
 #include <mutex>
+#include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <wx/event.h>
 
 // Localization headers: include libslic3r version first so everything in this file
@@ -76,6 +78,9 @@
 #include "libslic3r/miniz_extension.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Color.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
+#include "slic3r/plugin/host/PluginHostUi.hpp"
+#include "slic3r/plugin/PythonInterpreter.hpp"
 
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
@@ -91,6 +96,7 @@
 #include "../Utils/PresetUpdater.hpp"
 #include "../Utils/PrintHost.hpp"
 #include "../Utils/Process.hpp"
+#include "../Utils/wxInspectorPlugins/Registration.hpp"
 #include "../Utils/MacDarkMode.hpp"
 #include "../Utils/Http.hpp"
 #include "../Utils/InstanceID.hpp"
@@ -134,6 +140,10 @@
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "slic3r/Utils/BBLNetworkPlugin.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
+
+#include "PluginsDialog.hpp"
+#include "SpeedDialDialog.hpp"
+#include "TerminalDialog.hpp"
 
 //#ifdef WIN32
 //#include "BaseException.h"
@@ -297,6 +307,20 @@ public:
 #endif // !__APPLE__
         )
     {
+		// Some desktop environments ignore splash screen typed window properties
+		// when running the app through Wayland,resulting in the titlebar being shown 
+		// on the splash screen. The code below creates a client-side window decoration
+		// when running on Wayland and then removes that decoration. This ensures every 
+		// environment correctly targets and removes the titlebar for this screen.
+		#if defined(__WXGTK__)
+	        if (Slic3r::GUI::is_running_on_wayland()) {
+	            GtkWidget *empty = gtk_fixed_new();
+	            gtk_widget_set_size_request(empty, 0, 0);
+	            gtk_window_set_titlebar(GTK_WINDOW(GetHandle()), empty);
+	            gtk_window_set_decorated(GTK_WINDOW(GetHandle()), false);
+	        }
+		#endif
+		
         this->SetPosition(pos);
         this->CenterOnScreen();
 
@@ -304,6 +328,9 @@ public:
 
         m_bg_color = StateColor::darkModeColorFor(wxColour("#FFFFFF"));
         m_fg_color = StateColor::darkModeColorFor(wxColour("#6B6A6A"));
+        m_progress_bg_color = StateColor::darkModeColorFor(wxColour("#DFDFDF"));
+        m_progress_fg_color = StateColor::darkModeColorFor(wxColour("#009688"));
+        m_progress_h = FromDIP(6);
         bool dark_mode = m_fg_color != wxColour("#6B6A6A");
         wxSize sz  = m_window->GetClientSize();
         BitmapCache bmp_cache;
@@ -333,20 +360,34 @@ public:
         dc.DrawLabel(m_text_version, rc, wxALIGN_CENTER);
 
         dc.SetFont(m_font_action);
-        rc.y      = c_sz.GetHeight() * 0.88;
+        rc.y      = c_sz.GetHeight() * 0.85;
         rc.height = dc.GetTextExtent(m_text_action).GetHeight();
         dc.DrawLabel(m_text_action, rc, wxALIGN_CENTER);
+
+        const wxRect progress_rc(0, c_sz.GetHeight() - m_progress_h, c_sz.GetWidth(), m_progress_h);
+                
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(wxBrush(m_progress_bg_color));
+        dc.DrawRectangle(progress_rc);
+
+        const int fill_width = progress_rc.GetWidth() * m_progress * 0.01;
+        if (fill_width > 0) {
+            dc.SetBrush(wxBrush(m_progress_fg_color));
+            dc.DrawRectangle(0, progress_rc.GetTop(), fill_width, m_progress_h);
+        }
     }
 
-    void SetText(const wxString& text)
+    void SetText(const wxString& text, int progress)
     {
-        if (!text.empty()) {
+        int calc_progress = std::max(m_progress, std::clamp(progress, 0, 100));
+        if (m_text_action != text || m_progress != calc_progress){
             m_text_action = text;
+            m_progress = calc_progress;
             m_window->Refresh();
             m_window->Update();
 #ifdef __WXOSX__
-            // without this code splash screen wouldn't be updated under OSX
-            wxYield();
+        // without this code splash screen wouldn't be updated under OSX
+        wxYield();
 #endif
         }
     }
@@ -383,9 +424,13 @@ private:
     wxBitmap m_logo_bmp;
     wxColour m_fg_color;
     wxColour m_bg_color;
+    wxColour m_progress_bg_color;
+    wxColour m_progress_fg_color;
 
     wxString m_text_version = GUI_App::format_display_version();
     wxString m_text_action  = _L("Loading configuration") + dots;
+    int      m_progress     = 0;
+    int      m_progress_h   = 6;
 
     wxFont m_font_version = Label::Body_16;
     wxFont m_font_action  = Label::Body_16;
@@ -1092,6 +1137,12 @@ void GUI_App::shutdown()
     if (m_is_recreating_gui) return;
     stop_http_server();
     set_closing(true);
+    Slic3r::PluginManager::instance().set_shutting_down();
+
+    if (m_agent)
+        m_agent->set_printer_agent(nullptr);
+    NetworkAgentFactory::clear_printer_agent_cache();
+
     BOOST_LOG_TRIVIAL(info) << "GUI_App::shutdown exit";
 }
 
@@ -1153,7 +1204,7 @@ std::string GUI_App::get_plugin_url(std::string name, std::string country_code)
     std::string url = get_http_url(country_code);
 
     std::string curr_version;
-    if (NetworkAgent::use_legacy_network) {
+    if (use_legacy_network_plugin()) {
         curr_version = BAMBU_NETWORK_AGENT_VERSION_LEGACY;
     } else if (name == "plugins" && app_config) {
         std::string user_version = app_config->get_network_plugin_version();
@@ -1162,7 +1213,11 @@ std::string GUI_App::get_plugin_url(std::string name, std::string country_code)
         curr_version = get_latest_network_version();
     }
 
-    std::string using_version = curr_version.substr(0, 9) + "00";
+    // The cloud endpoint is series-keyed and serves the series' newest build: AA.BB.CC.00.
+    // Build it from the series so an 8-char series string (02.08.01) works too.
+    std::string using_version = use_legacy_network_plugin()
+        ? curr_version.substr(0, 9) + "00"
+        : network_plugin_series(curr_version) + ".00";
     if (name == "cameratools")
         using_version = curr_version.substr(0, 6) + "00.00";
     url += (boost::format("?slicer/%1%/cloud=%2%") % name % using_version).str();
@@ -1208,7 +1263,7 @@ int GUI_App::download_plugin(std::string name, std::string package_name, Install
     // Determine OS type for plugin download (must be set per-request since global
     // extra headers are no longer initialised on this branch).
 #if defined(__WINDOWS__)
-    std::string os_type = (is_running_on_arm64() && !NetworkAgent::use_legacy_network) ? "windows_arm" : "windows";
+    std::string os_type = (is_running_on_arm64() && !use_legacy_network_plugin()) ? "windows_arm" : "windows";
 #elif defined(__APPLE__)
     std::string os_type = "macos";
 #elif defined(__linux__)
@@ -1236,6 +1291,7 @@ int GUI_App::download_plugin(std::string name, std::string package_name, Install
                     if (resource.is_array()) {
                         for (auto iter = resource.begin(); iter != resource.end(); iter++) {
                             Semver version;
+                            std::string version_str;
                             std::string url;
                             std::string type;
                             std::string vendor;
@@ -1246,7 +1302,8 @@ int GUI_App::download_plugin(std::string name, std::string package_name, Install
                                     BOOST_LOG_TRIVIAL(info) << "[download_plugin]: get version of settings's type, " << sub_iter.value();
                                 }
                                 else if (boost::iequals(sub_iter.key(), "version")) {
-                                    version = *(Semver::parse(sub_iter.value()));
+                                    version_str = sub_iter.value();
+                                    version = *(Semver::parse(version_str));
                                 }
                                 else if (boost::iequals(sub_iter.key(), "description")) {
                                     description = sub_iter.value();
@@ -1346,6 +1403,11 @@ int GUI_App::download_plugin(std::string name, std::string package_name, Install
             result = -1;
         });
     http.perform_sync();
+
+    // No version adoption: the stored identity is the AA.BB.CC series, so install_plugin() names
+    // the library after the configured series regardless of which build the series-keyed endpoint
+    // served (02.08.01.53). The series config never diverges from the file name, so there is
+    // nothing to adopt.
     j["result"] = result < 0 ? "failed" : "success";
     j["error_msg"] = err_msg;
     return result;
@@ -1437,8 +1499,32 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
                 boost::filesystem::create_directories(dest_path.parent_path());
                 std::string dest_zip_file = encode_path(dest_path.string().c_str());
                 try {
-                    if (fs::exists(dest_path))
-                        fs::remove(dest_path);
+                    if (fs::exists(dest_path)) {
+                        boost::system::error_code ec;
+                        fs::remove(dest_path, ec);
+                        if (ec) {
+                            // On Windows a currently-loaded DLL (e.g. BambuSource.dll, or the
+                            // networking library in legacy mode) cannot be deleted or overwritten
+                            // in place, which failed the whole install with "The plug-in file may
+                            // be in use" (issue #14373). It CAN however be renamed aside: the
+                            // running module keeps mapping the renamed file while we write the new
+                            // one. The stale ".old" copy is cleared on the next install/launch.
+                            boost::filesystem::path aside = dest_path;
+                            aside += ".old";
+                            boost::system::error_code ec2;
+                            fs::remove(aside, ec2);
+                            fs::rename(dest_path, aside, ec2);
+                            if (ec2) {
+                                close_zip_reader(&archive);
+                                BOOST_LOG_TRIVIAL(error) << "[install_plugin] cannot replace in-use file "
+                                                         << dest_path.string() << ": " << ec2.message();
+                                if (pro_fn) { pro_fn(InstallStatusUnzipFailed, 0, cancel); }
+                                return InstallStatusUnzipFailed;
+                            }
+                            BOOST_LOG_TRIVIAL(warning) << "[install_plugin] " << dest_path.filename().string()
+                                                       << " was in use, renamed aside to .old";
+                        }
+                    }
                     mz_bool res = 0;
 #ifndef WIN32
                     if (S_ISLNK(stat.m_external_attr >> 16)) {
@@ -1593,7 +1679,13 @@ void GUI_App::restart_networking()
         m_agent->set_on_http_error_fn([this](CloudEvent event, unsigned int status, std::string body) {
             this->handle_http_error(status, body, event.provider);
         });
-        m_agent->start_discovery(true, false);
+        // on_init_network() rebuilt m_agent with a null printer agent, so calling
+        // m_agent->start_discovery() directly would no-op (NetworkAgent::start_discovery
+        // returns false when m_printer_agent is null). Re-establish the printer agent for the
+        // active preset first - switch_printer_agent() installs it and then starts discovery,
+        // mirroring startup - otherwise LAN discovery stays dead after a plugin hot reload
+        // until the user next changes a preset/tab.
+        switch_printer_agent();
         if (mainframe)
             mainframe->refresh_plugin_tips();
         if (plater_)
@@ -1678,6 +1770,53 @@ bool GUI_App::wait_for_network_idle(int timeout_ms)
     BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": timeout after " << timeout_ms
                                 << "ms, server_connected=" << (m_agent ? m_agent->is_server_connected() : false);
     return false;
+}
+
+void GUI_App::migrate_network_plugin_config()
+{
+    if (!app_config)
+        return;
+
+    const std::string cfg = app_config->get_network_plugin_version();
+    if (!is_series_managed_version(cfg) || !is_supported_network_version(cfg))
+        return; // empty / legacy / custom-named / unsupported old series -> nothing to migrate here
+                // (an unsupported old config is handled by the fallback in on_init_network)
+
+    const std::string series = network_plugin_series(cfg);
+    if (cfg != series) {
+        app_config->set_network_plugin_version(series);
+        app_config->save();
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": network_plugin_version " << cfg << " -> " << series;
+    }
+
+    // Consolidate the on-disk files onto the series name. Runs at startup before the plug-in is
+    // loaded, so the rename is safe even on Windows (nothing holds the file open yet). If it is
+    // skipped or fails, resolve_library_path() still loads the specific build for this series.
+    std::string newest;
+    for (const auto& v : BBLNetworkPlugin::scan_plugin_versions())
+        if (is_series_managed_version(v) && network_plugin_series(v) == series && (newest.empty() || v > newest))
+            newest = v;
+    if (newest.empty())
+        return;
+
+    boost::system::error_code ec;
+    const boost::filesystem::path series_path(BBLNetworkPlugin::get_versioned_library_path(series));
+    if (newest != series) {
+        // Make the newest same-series build the series file. Safe here (pre-load); if the rename
+        // fails, resolve_library_path() still loads the specific build for this series.
+        boost::filesystem::remove(series_path, ec);
+        boost::filesystem::rename(BBLNetworkPlugin::get_versioned_library_path(newest), series_path, ec);
+        if (ec)
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": rename " << newest << " -> " << series
+                                       << " failed (" << ec.message() << "), loader will resolve it";
+    }
+
+    // Tidy strictly-older same-series managed builds (best-effort; never touch custom/legacy).
+    for (const auto& v : BBLNetworkPlugin::scan_plugin_versions()) {
+        if (v == series || !is_series_managed_version(v) || network_plugin_series(v) != series)
+            continue;
+        boost::filesystem::remove(BBLNetworkPlugin::get_versioned_library_path(v), ec);
+    }
 }
 
 bool GUI_App::hot_reload_network_plugin()
@@ -1887,7 +2026,7 @@ bool GUI_App::check_networking_version()
     }
 
     std::string studio_ver;
-    if (NetworkAgent::use_legacy_network) {
+    if (use_legacy_network_plugin()) {
         studio_ver = BAMBU_NETWORK_AGENT_VERSION_LEGACY;
     } else if (app_config) {
         std::string user_version = app_config->get_network_plugin_version();
@@ -1898,6 +2037,13 @@ bool GUI_App::check_networking_version()
 
     BOOST_LOG_TRIVIAL(info) << "check_networking_version: network_ver=" << network_ver << ", expected=" << studio_ver;
 
+    // A configured version outside the whitelisted series must never pass as compatible,
+    // even if it matches the loaded library - its ABI does not match this build.
+    if (!use_legacy_network_plugin() && !is_supported_network_version(studio_ver)) {
+        m_networking_compatible = false;
+        return false;
+    }
+
     if (network_ver.length() >= 8 && studio_ver.length() >= 8) {
         if (network_ver.substr(0,8) == studio_ver.substr(0,8)) {
             m_networking_compatible = true;
@@ -1907,6 +2053,11 @@ bool GUI_App::check_networking_version()
 
     m_networking_compatible = false;
     return false;
+}
+
+bool GUI_App::use_legacy_network_plugin() const
+{
+    return app_config && BBLNetworkPlugin::is_legacy_version(app_config->get_network_plugin_version());
 }
 
 bool GUI_App::is_compatibility_version()
@@ -2191,6 +2342,14 @@ void GUI_App::init_networking_callbacks()
 GUI_App::~GUI_App()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(": enter");
+
+    if (m_agent)
+        m_agent->set_printer_agent(nullptr);
+    NetworkAgentFactory::clear_printer_agent_cache();
+
+    Slic3r::PluginManager::instance().shutdown();
+    Slic3r::PythonInterpreter::instance().shutdown();
+
     if (app_config != nullptr) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(": destroy app_config");
         delete app_config;
@@ -2211,6 +2370,7 @@ GUI_App::~GUI_App()
 
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(": exit");
+    shutdown_console_logging();
 }
 
 bool GUI_App::is_blocking_printing(MachineObject *obj_)
@@ -2492,7 +2652,6 @@ void GUI_App::on_start_subscribe_again(std::string dev_id)
 
         if ( (dev_id == obj->get_dev_id()) && obj->is_connecting() && obj->subscribe_counter > 0) {
             obj->subscribe_counter--;
-            if(wxGetApp().getAgent()) wxGetApp().getAgent()->set_user_selected_machine(dev_id);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": dev_id=" << obj->get_dev_id();
         }
     });
@@ -2627,6 +2786,98 @@ std::string get_system_info()
     return out.str();
 }
 
+// wx/app-level plugin wiring, kept in one place: subscriptions to plugin
+// loader events that drive GUI policy (plugins dialog refresh, network-agent
+// registration, plate revalidation). The libslic3r dispatch hooks are NOT
+// wired here -- PluginManager::initialize() installs those via
+// plugin_hooks::install().
+void GUI_App::init_plugin_gui_wiring()
+{
+    PluginManager& plugin_mgr = PluginManager::instance();
+
+    auto refresh_plugins_dialog = [] {
+        if (!wxTheApp)
+            return;
+
+        GUI_App* app = &GUI::wxGetApp();
+        if (app->is_closing())
+            return;
+
+        app->CallAfter([app] {
+            if (!app->is_closing() && app->m_plugins_dlg)
+                app->m_plugins_dlg->update_plugin_dialog_ui();
+        });
+    };
+
+    // why: a newly loaded plugin only adds a selectable agent
+    // refresh the dropdown and leave the live agent alone
+    auto refresh_printer_agent_dropdown_after_load = [](const std::string&)
+    {
+        if (!wxTheApp)
+            return;
+
+        GUI_App* app = &GUI::wxGetApp();
+        if (app->is_closing())
+            return;
+
+        app->CallAfter([app]
+        {
+            if (!app->is_closing())
+                app->refresh_printer_agent_dropdown();
+        });
+    };
+
+    // why: the unloaded plugin may have been the provider of the live agent
+    // re-run selection, where a now-missing agent will be cleared
+    // refresh dropdown after
+    auto switch_printer_agent_after_unload = [](const std::string&)
+    {
+        if (!wxTheApp)
+            return;
+
+        GUI_App* app = &GUI::wxGetApp();
+        if (app->is_closing())
+            return;
+
+        app->CallAfter([app] {
+            if (app->is_closing())
+                return;
+
+            app->switch_printer_agent();
+            app->refresh_printer_agent_dropdown();
+        });
+    };
+
+    plugin_mgr.subscribe_on_unload_callback(PluginHostUi::close_windows_for_plugin);
+    plugin_mgr.subscribe_on_load_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
+    plugin_mgr.subscribe_on_unload_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
+    plugin_mgr.subscribe_on_load_callback(NetworkAgentFactory::register_python_plugin);
+    plugin_mgr.subscribe_on_unload_callback(NetworkAgentFactory::deregister_python_plugin);
+    plugin_mgr.subscribe_on_load_callback(refresh_printer_agent_dropdown_after_load);
+    plugin_mgr.subscribe_on_unload_callback(switch_printer_agent_after_unload);
+    plugin_mgr.subscribe_on_capability_load_callback(
+        [refresh_plugins_dialog, refresh_printer_agent_dropdown_after_load](const PluginCapabilityId& capability) {
+            if (capability.type == PluginCapabilityType::PrinterConnection)
+                NetworkAgentFactory::register_python_printer_agent(capability.plugin_key, capability.name);
+            refresh_plugins_dialog();
+            refresh_printer_agent_dropdown_after_load(capability.plugin_key);
+            // A newly loaded capability may satisfy a missing-plugin notification; re-validate the
+            // current plate (on the UI thread) so the notification clears once its plugin is available.
+            if (wxTheApp && !wxGetApp().is_closing())
+                wxGetApp().CallAfter([]() {
+                    if (Plater* plater = wxGetApp().plater())
+                        plater->revalidate_current_plate_if_plugins_missing();
+                });
+        });
+    plugin_mgr.subscribe_on_capability_unload_callback(
+        [refresh_plugins_dialog, switch_printer_agent_after_unload](const PluginCapabilityId& capability) {
+            if (capability.type == PluginCapabilityType::PrinterConnection)
+                NetworkAgentFactory::deregister_python_printer_agent(capability.plugin_key, capability.name);
+            refresh_plugins_dialog();
+            switch_printer_agent_after_unload(capability.plugin_key);
+        });
+}
+
 bool GUI_App::on_init_inner()
 {
     wxLog::SetActiveTarget(new wxBoostLog());
@@ -2641,6 +2892,9 @@ bool GUI_App::on_init_inner()
 #endif
 
     ::Label::initSysFont();
+
+    // Register wxInspector plugins for Orca custom controls
+    RegisterOrcaInspectorPlugins();
 
     // Set initialization of image handlers before any UI actions - See GH issue #7469
     wxInitAllImageHandlers();
@@ -2810,10 +3064,11 @@ bool GUI_App::on_init_inner()
         //update_label_colours_from_appconfig();
     }
     if (bool new_sys_menu_enabled = app_config->get("sys_menu_enabled") == "1";
-        init_sys_menu_enabled != new_sys_menu_enabled)
+        init_sys_menu_enabled != new_sys_menu_enabled) {
 #ifdef __WINDOWS__
         NppDarkMode::SetSystemMenuForApp(new_sys_menu_enabled);
 #endif
+    }
 #endif
 
     // Orca: we allow user to pin the version of plugin, so we don't need to remove old networking plugins when the app version is updated
@@ -2856,7 +3111,7 @@ bool GUI_App::on_init_inner()
         //BBS use BBL splashScreen
         scrn = new SplashScreen(splashscreen_pos);
         wxYield();
-        scrn->SetText(_L("Loading configuration") + dots);
+        scrn->SetText(_L("Loading configuration") + dots, 5);
     }
 
     BOOST_LOG_TRIVIAL(info) << "loading systen presets...";
@@ -3003,9 +3258,8 @@ bool GUI_App::on_init_inner()
 
     // Orca: select network plugin version based on configured version string
     std::string configured_version = app_config->get_network_plugin_version();
-    NetworkAgent::use_legacy_network = (configured_version == BAMBU_NETWORK_AGENT_VERSION_LEGACY);
     BOOST_LOG_TRIVIAL(info) << "Network plugin mode: "
-        << (NetworkAgent::use_legacy_network ? ("legacy (version: " + std::string(BAMBU_NETWORK_AGENT_VERSION_LEGACY) + ")") : ("modern (version: " + configured_version + ")"));
+        << (use_legacy_network_plugin() ? ("legacy (version: " + std::string(BAMBU_NETWORK_AGENT_VERSION_LEGACY) + ")") : ("modern (version: " + configured_version + ")"));
     // Force legacy network plugin if debugger attached
     // See https://github.com/bambulab/BambuStudio/issues/6726
     /* if (!NetworkAgent::use_legacy_network) {
@@ -3020,13 +3274,70 @@ bool GUI_App::on_init_inner()
             wxMessageBox("Force using legacy bambu networking plugin because debugger is attached! If the app terminates itself immediately, please delete installed plugin and try again!");
         }
     } */
+
     copy_network_if_available();
+
+    if (scrn) {
+        scrn->SetText(_L("Loading Plugins") + dots, 20);
+        wxYield();
+    }
+
     on_init_network();
+
+    // Initialize plugins after network then register on_load callbacks so once the plugin loads finish, it gets registered automatically.
+    // initialize() also installs the libslic3r hooks (capability resolver,
+    // slicing-pipeline dispatcher) via plugin_hooks::install() -- no
+    // per-capability wiring belongs here.
+    PluginManager& plugin_mgr = PluginManager::instance();
+    plugin_mgr.initialize();
+
+    // Set cloud plugin directory from previous session so cloud-installed
+    // plugins are discovered even before the network agent is ready.
+    const std::string preset_folder = app_config->get("preset_folder");
+    if (!preset_folder.empty()) {
+        plugin_mgr.set_cloud_user(preset_folder);
+    }
+
+    plugin_mgr.discover_plugins(false, true);
+
+    init_plugin_gui_wiring();
+
+    // Subscribe to the plugin loader and enumerate current actions (UI thread, once).
+    m_action_registry.init();
+
+    for (const std::string& plugin_key : plugin_mgr.get_enabled_plugin_keys()) {
+        if (!plugin_mgr.is_plugin_loaded(plugin_key)) {
+            plugin_mgr.load_plugin(plugin_key, false);
+            BOOST_LOG_TRIVIAL(info) << "Auto-loading plugin on startup: " << plugin_key;
+        }
+    }
+
+    if (m_agent)
+        plugin_mgr.set_cloud_agent(std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent()));
 
     if (m_agent && m_agent->is_user_login()) {
         enable_user_preset_folder(true);
+        plugin_mgr.set_cloud_user(m_agent->get_user_id());
+        // If there is a user logged in we do an immediate sync.
+        std::vector<std::string> not_found, unauthorized;
+        plugin_mgr.fetch_plugins_from_cloud(&not_found, &unauthorized);
+        if (plater()) {
+            for (const auto& uuid : not_found) {
+                plater()->get_notification_manager()->push_notification(
+                    NotificationType::CustomNotification,
+                    NotificationManager::NotificationLevel::RegularNotificationLevel,
+                    format(_L("Plugin %s is no longer available."), uuid));
+            }
+            for (const auto& uuid : unauthorized) {
+                plater()->get_notification_manager()->push_notification(
+                    NotificationType::CustomNotification,
+                    NotificationManager::NotificationLevel::RegularNotificationLevel,
+                    format(_L("Plugin %s access is unauthorized."), uuid));
+            }
+        }
     } else {
         enable_user_preset_folder(false);
+        plugin_mgr.set_cloud_user("");
     }
 
     // BBS if load user preset failed
@@ -3035,7 +3346,7 @@ bool GUI_App::on_init_inner()
             // Enable all substitutions (in both user and system profiles), but log the substitutions in user profiles only.
             // If there are substitutions in system profiles, then a "reconfigure" event shall be triggered, which will force
             // installation of a compatible system preset, thus nullifying the system preset substitutions.
-            if (scrn) { scrn->SetText(_L("Loading printer & filament profiles") + dots); wxYield(); }
+            if (scrn) { scrn->SetText(_L("Loading printer & filament profiles") + dots, 30); wxYield(); }
             init_params->preset_substitutions = preset_bundle->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::EnableSystemSilent);
         }
         catch (const std::exception& ex) {
@@ -3066,7 +3377,7 @@ bool GUI_App::on_init_inner()
 
     if (scrn) {
         const auto scrn_txt = _L("Creating main window") + dots;
-        scrn->SetText(scrn_txt);
+        scrn->SetText(scrn_txt, 70);
         wxYield();
     }
     BOOST_LOG_TRIVIAL(info) << "create the main window";
@@ -3094,7 +3405,7 @@ bool GUI_App::on_init_inner()
             plater_->set_printer_technology(ptFFF);
     }
     else {
-        if (scrn) { scrn->SetText(_L("Loading current preset") + dots); wxYield(); }
+        if (scrn) { scrn->SetText(_L("Loading current preset") + dots, 85); wxYield(); }
         load_current_presets();
     }
 
@@ -3108,10 +3419,10 @@ bool GUI_App::on_init_inner()
 #ifdef __WINDOWS__
     mainframe->topbar()->SaveNormalRect();
 #endif
-    if (scrn) { scrn->SetText(_L("Showing main window") + dots); wxYield(); }
+    if (scrn) { scrn->SetText(_L("Showing main window") + dots, 95); wxYield(); }
     mainframe->Show(true);
     // Close the splash now that the main UI is visible.
-    if (scrn) { scrn->Destroy(); scrn = nullptr; }
+    if (scrn) { scrn->SetText(_L("Showing main window") + dots, 100); scrn->Destroy(); scrn = nullptr; }
     BOOST_LOG_TRIVIAL(info) << "main frame firstly shown";
 
 //#if BBL_HAS_FIRST_PAGE
@@ -3216,10 +3527,26 @@ void GUI_App::copy_network_if_available()
     if (app_config->get("update_network_plugin") != "true")
         return;
 
+    bool had_cache = false;
+    bool installed = install_network_plugin_from_ota(had_cache);
+    // Success consumes the cache and a missing cache leaves nothing to do; only a
+    // failed copy keeps the flag so the install is retried on the next launch.
+    if (installed || !had_cache)
+        app_config->set("update_network_plugin", "false");
+}
+
+// Installs the OTA-downloaded plug-in files from ota/plugins into the plugins folder
+// (network library under its versioned name, and the configured version updated to
+// match). Returns true when everything was installed; had_cache reports whether a
+// usable download was present at all.
+bool GUI_App::install_network_plugin_from_ota(bool& had_cache)
+{
+    had_cache = false;
+
     std::string data_dir_str = data_dir();
     boost::filesystem::path data_dir_path(data_dir_str);
     auto plugin_folder = data_dir_path / "plugins";
-    auto cache_folder = data_dir_path / "ota";
+    auto cache_folder = data_dir_path / "ota" / "plugins";
     std::string changelog_file = cache_folder.string() + "/network_plugins.json";
 
     std::string cached_version;
@@ -3237,10 +3564,10 @@ void GUI_App::copy_network_if_available()
     }
 
     if (cached_version.empty()) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": no version found in changelog, aborting copy";
-        app_config->set("update_network_plugin", "false");
-        return;
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": no version found in changelog, nothing to install";
+        return false;
     }
+    had_cache = true;
 
     std::string network_library, player_library, live555_library, network_library_dst, player_library_dst, live555_library_dst;
 #if defined(_MSC_VER) || defined(_WIN32)
@@ -3271,60 +3598,113 @@ void GUI_App::copy_network_if_available()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": create directory " << plugin_folder.string();
         boost::filesystem::create_directory(plugin_folder);
     }
-    std::string error_message;
-    if (boost::filesystem::exists(network_library)) {
-        CopyFileResult cfr = copy_file(network_library, network_library_dst, error_message, false);
-        if (cfr != CopyFileResult::SUCCESS) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Copying failed(" << cfr << "): " << error_message;
-            return;
-        }
 
+    // Replace a destination even while the running process still maps it: an in-use
+    // file cannot be deleted or overwritten on Windows, but it can be renamed aside;
+    // the stale ".old" copy is swept on the next launch (see on_init_network).
+    auto install_file = [](const std::string& src, const std::string& dst) -> bool {
+        boost::system::error_code ec;
+        if (boost::filesystem::exists(dst, ec)) {
+            boost::filesystem::remove(dst, ec);
+            if (ec) {
+                boost::filesystem::path aside(dst);
+                aside += ".old";
+                boost::system::error_code ec2;
+                boost::filesystem::remove(aside, ec2);
+                boost::filesystem::rename(dst, aside, ec2);
+                if (ec2) {
+                    BOOST_LOG_TRIVIAL(error) << "install_network_plugin_from_ota: cannot replace in-use file " << dst << ": " << ec2.message();
+                    return false;
+                }
+            }
+        }
+        std::string error_message;
+        CopyFileResult cfr = copy_file(src, dst, error_message, false);
+        if (cfr != CopyFileResult::SUCCESS) {
+            BOOST_LOG_TRIVIAL(error) << "install_network_plugin_from_ota: copying " << src << " failed(" << cfr << "): " << error_message;
+            return false;
+        }
         static constexpr const auto perms = fs::owner_read | fs::owner_write | fs::group_read | fs::others_read;
-        fs::permissions(network_library_dst, perms);
-        fs::remove(network_library);
+        fs::permissions(dst, perms);
+        boost::filesystem::remove(src, ec);
+        return true;
+    };
+
+    if (boost::filesystem::exists(network_library)) {
+        if (!install_file(network_library, network_library_dst))
+            return false;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Copying network library from " << network_library << " to " << network_library_dst << " successfully.";
 
-        app_config->set(SETTING_NETWORK_PLUGIN_VERSION, cached_version);
+        app_config->set_network_plugin_version(cached_version);
         app_config->save();
     }
 
     if (boost::filesystem::exists(player_library)) {
-        CopyFileResult cfr = copy_file(player_library, player_library_dst, error_message, false);
-        if (cfr != CopyFileResult::SUCCESS) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Copying failed(" << cfr << "): " << error_message;
-            return;
-        }
-
-        static constexpr const auto perms = fs::owner_read | fs::owner_write | fs::group_read | fs::others_read;
-        fs::permissions(player_library_dst, perms);
-        fs::remove(player_library);
+        if (!install_file(player_library, player_library_dst))
+            return false;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Copying player library from " << player_library << " to " << player_library_dst << " successfully.";
     }
 
     if (boost::filesystem::exists(live555_library)) {
-        CopyFileResult cfr = copy_file(live555_library, live555_library_dst, error_message, false);
-        if (cfr != CopyFileResult::SUCCESS) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Copying failed(" << cfr << "): " << error_message;
-            return;
-        }
-
-        static constexpr const auto perms = fs::owner_read | fs::owner_write | fs::group_read | fs::others_read;
-        fs::permissions(live555_library_dst, perms);
-        fs::remove(live555_library);
+        if (!install_file(live555_library, live555_library_dst))
+            return false;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Copying live555 library from " << live555_library << " to " << live555_library_dst << " successfully.";
     }
-    if (boost::filesystem::exists(changelog_file))
-        fs::remove(changelog_file);
-    app_config->set("update_network_plugin", "false");
+    // All cached files consumed - drop the whole ota/plugins cache folder.
+    try {
+        if (boost::filesystem::exists(cache_folder))
+            fs::remove_all(cache_folder);
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to remove the plugin cache folder " << cache_folder.string();
+    }
+    return true;
 }
 
 bool GUI_App::on_init_network(bool try_backup)
 {
+    // Clean up stale ".old" files left by install_plugin() when it had to rename an in-use
+    // DLL aside (see the rename-aside path in install_plugin). This runs before the plug-in
+    // is (re)loaded - at startup nothing is mapped yet, and on a hot reload the previous
+    // module has already been unloaded - so the previously locked files can now be removed.
+    {
+        boost::filesystem::path plugin_folder = boost::filesystem::path(data_dir()) / "plugins";
+        boost::system::error_code ec;
+        if (boost::filesystem::is_directory(plugin_folder, ec)) {
+            for (boost::filesystem::directory_iterator it(plugin_folder, ec), end; !ec && it != end; it.increment(ec)) {
+                if (it->path().extension() == ".old") {
+                    boost::system::error_code rm_ec;
+                    boost::filesystem::remove(it->path(), rm_ec);
+                    if (rm_ec)
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": could not remove stale " << it->path().filename().string()
+                                                << " (" << rm_ec.message() << "), will retry next launch";
+                }
+            }
+        }
+    }
+
     auto should_load_networking_plugin = app_config->get_bool("installed_networking");
+
+    // Normalize an older full-version identity to the AA.BB.CC series before it drives loading.
+    migrate_network_plugin_config();
 
     std::string config_version = app_config->get_network_plugin_version();
 
     if (should_load_networking_plugin) {
+        // A version outside the whitelisted series (e.g. 02.03.00.62 configured by an older
+        // Orca release) must not be loaded - its ABI no longer matches this build. Fall back
+        // to the latest supported build if it is already on disk; otherwise clear the
+        // configured version so the normal empty-version download flow takes over (the
+        // download URL and install adoption both derive from the configured version, so it
+        // must not keep pointing at the unsupported build).
+        if (!config_version.empty() && !is_supported_network_version(config_version)) {
+            std::string latest = get_latest_network_version();
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": configured plugin version " << config_version
+                                       << " is no longer supported, falling back to " << latest;
+            config_version = BBLNetworkPlugin::versioned_library_exists(latest) ? latest : "";
+            app_config->set_network_plugin_version(config_version);
+            app_config->save();
+        }
+
         if (config_version.empty()) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": no version configured, need to download";
             m_networking_need_update = true;
@@ -3344,12 +3724,18 @@ bool GUI_App::on_init_network(bool try_backup)
 
             std::string loaded_version = Slic3r::NetworkAgent::get_version();
             if (app_config && !loaded_version.empty() && loaded_version != "00.00.00.00") {
+                // Self-heal only when a genuinely different series loaded than configured (e.g. the
+                // configured build was unavailable and a fallback loaded). Within a series the
+                // loaded build (02.08.01.53) differs from the series config (02.08.01) by design, so
+                // compare series, not the raw string, and store the managed series form - a custom
+                // config (02.08.01_custom) keeps its own name.
                 std::string config_version = app_config->get_network_plugin_version();
-                std::string config_base    = extract_base_version(config_version);
-                if (config_base != loaded_version) {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": syncing config version from " << config_version << " to loaded "
-                                            << loaded_version;
-                    app_config->set(SETTING_NETWORK_PLUGIN_VERSION, loaded_version);
+                std::string loaded_series  = network_plugin_series(loaded_version);
+                if (network_plugin_series(config_version) != loaded_series) {
+                    std::string synced = is_series_managed_version(loaded_version) ? loaded_series : loaded_version;
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": syncing config version from " << config_version
+                                            << " to loaded " << loaded_version << " (stored as " << synced << ")";
+                    app_config->set_network_plugin_version(synced);
                     app_config->save();
                 }
             }
@@ -3379,6 +3765,20 @@ bool GUI_App::on_init_network(bool try_backup)
             }
         } else {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll failed";
+            // A failed install can leave the config naming a build that never made it to disk;
+            // fall back to the installed latest instead of dropping the user into the re-download
+            // flow. Only when the configured library is genuinely absent, though - a pinned series
+            // that is on disk but failed to load once must keep its pin, not be rewritten for good.
+            std::string latest = get_latest_network_version();
+            if (config_version != latest && !BBLNetworkPlugin::versioned_library_exists(config_version)
+                && BBLNetworkPlugin::versioned_library_exists(latest)) {
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": falling back to installed " << latest;
+                config_version = latest;
+                app_config->set_network_plugin_version(latest);
+                app_config->save();
+                load_agent_dll = Slic3r::NetworkAgent::initialize_network_module(false, config_version);
+                goto __retry;
+            }
             if (should_load_networking_plugin) {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, need upload network module";
                 m_networking_need_update = true;
@@ -3475,7 +3875,14 @@ bool GUI_App::on_init_network(bool try_backup)
             m_user_manager = new Slic3r::UserManager();
     }
 
-    if (should_load_networking_plugin && m_networking_compatible && !NetworkAgent::use_legacy_network) {
+    // A version pinned to something other than the latest series is a deliberate choice, so it
+    // is exempt from the upgrade prompt the same way the legacy pin already is - otherwise the
+    // dialog reappears on every launch for as long as the pin is held.
+    const std::string pinned_version = app_config->get_network_plugin_version();
+    const bool pinned_to_older_series = !pinned_version.empty() &&
+        network_plugin_series(pinned_version) != network_plugin_series(get_latest_network_version());
+
+    if (should_load_networking_plugin && m_networking_compatible && !pinned_to_older_series) {
         app_config->clear_remind_network_update_later();
 
         if (has_network_update_available()) {
@@ -3509,6 +3916,48 @@ unsigned GUI_App::get_colour_approx_luma(const wxColour &colour)
         ));
 }
 
+void GUI_App::refresh_printer_agent_dropdown()
+{
+    if (Tab* tab = get_tab(Preset::TYPE_PRINTER))
+    {
+        if (auto* printer_tab = dynamic_cast<TabPrinter*>(tab))
+            printer_tab->refresh_printer_agent_dropdown();
+    }
+}
+
+void GUI_App::set_live_printer_agent(std::shared_ptr<IPrinterAgent> agent)
+{
+    if (!m_agent)
+        return;
+
+    // why: tearing down the old machine selection is only ever the prefix of setting the live
+    // agent (to a new one, or to null when the selection is missing) - so it lives here, not as
+    // a standalone helper. Pass nullptr to clear the selection.
+    if (DeviceManager* dev = getDeviceManager())
+    {
+        dev->set_selected_machine(""); // why: empty id disconnects and deselects the current machine
+        m_agent->set_user_selected_machine("");
+        // note: belt-and-suspenders (precedent: DeviceManagerRefresher::on_timer)
+        dev->OnSelectedMachineLost(); // why: clear stale sidebar sync-status / AMS
+        dev->clear_other_devices(); // why: drop stale LAN discoveries; keep My Devices
+    }
+
+    m_agent->set_printer_agent(agent);
+    sidebar().update_all_preset_comboboxes();
+}
+
+std::string GUI_App::resolve_printer_agent_id(const std::string& stored_id)
+{
+    if (!stored_id.empty())
+        return stored_id;
+    return (preset_bundle && preset_bundle->is_bbl_vendor()) ? BBL_PRINTER_AGENT_ID : ORCA_PRINTER_AGENT_ID;
+}
+
+std::string GUI_App::canonical_printer_agent_id(const std::string& picked_id)
+{
+    return picked_id == resolve_printer_agent_id("") ? std::string() : picked_id;
+}
+
 void GUI_App::switch_printer_agent()
 {
     if (!m_agent) {
@@ -3516,55 +3965,66 @@ void GUI_App::switch_printer_agent()
         return;
     }
 
-    // Read printer_agent from config, falling back to default
-    std::string effective_agent_id = ORCA_PRINTER_AGENT_ID;
-    std::string cloud_agent_id = ORCA_CLOUD_PROVIDER;
-    if (preset_bundle->is_bbl_vendor()) {
-        effective_agent_id = BBL_PRINTER_AGENT_ID;
-        cloud_agent_id = BBL_CLOUD_PROVIDER;
-    } else {
-        const DynamicPrintConfig& config = preset_bundle->printers.get_edited_preset().config;
-        if (config.has("printer_agent")) {
-            const std::string& value = config.option<ConfigOptionString>("printer_agent")->value;
-            if (!value.empty())
-                effective_agent_id = value;
-        }
-    }
+    const DynamicPrintConfig& config = preset_bundle->printers.get_edited_preset().config;
+    const std::string effective_agent_id = resolve_printer_agent_id(config.opt_string("printer_agent"));
 
     // Check if agent is registered
-    if (!NetworkAgentFactory::is_printer_agent_registered(effective_agent_id)) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": unregistered agent ID '" << effective_agent_id
-                                   << "', keeping current agent";
-        // Keep current agent, don't switch
+    const PrinterAgentInfo* agent_info_ptr = NetworkAgentFactory::get_printer_agent_info(effective_agent_id);
+    if (!agent_info_ptr) {
+        // why: the selected agent's provider is gone (e.g. plugin unloaded); leaving the old
+        // live agent up would keep talking to a machine the user can no longer select.
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": agent ID '" << effective_agent_id
+                                << "' is unregistered; clearing live printer agent";
+        set_live_printer_agent(nullptr);
+        return;
+    }
+    const PrinterAgentInfo agent_info = *agent_info_ptr;
+
+    std::string log_dir        = data_dir();
+    std::string cloud_agent_id = agent_info.id == BBL_PRINTER_AGENT_ID ? BBL_CLOUD_PROVIDER : ORCA_CLOUD_PROVIDER;
+    std::shared_ptr<ICloudServiceAgent> cloud_agent = m_agent->get_cloud_agent(cloud_agent_id);
+
+    // Create new printer agent via registry
+    std::shared_ptr<IPrinterAgent> new_printer_agent =
+        NetworkAgentFactory::create_printer_agent_by_id(effective_agent_id, cloud_agent, log_dir);
+
+    if (!new_printer_agent) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to create agent '" << effective_agent_id
+                                   << "'; clearing live printer agent";
+        set_live_printer_agent(nullptr);
         return;
     }
 
-    std::string current_agent_id;
-    if (m_agent->get_printer_agent())
-        current_agent_id = m_agent->get_printer_agent()->get_agent_info().id;
-
-    if (current_agent_id != effective_agent_id) {
-        std::string log_dir = data_dir();
-        std::shared_ptr<ICloudServiceAgent> cloud_agent = m_agent->get_cloud_agent(cloud_agent_id);
-
-        // Create new printer agent via registry
-        std::shared_ptr<IPrinterAgent> new_printer_agent =
-            NetworkAgentFactory::create_printer_agent_by_id(effective_agent_id, cloud_agent, log_dir);
-
-        if (!new_printer_agent) {
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to create agent '" << effective_agent_id << "', keeping current agent";
-            return;
+    // The factory caches agents per ID, so an identical pointer means the agent type is unchanged.
+    if (m_agent->get_printer_agent() == new_printer_agent) {
+        // Orca: the agent type is unchanged (e.g. switching between two Moonraker/Klipper
+        // printer presets), so the selected machine and the agent's cached device_info still
+        // point at the previously active printer preset. Re-select the machine when the new
+        // preset targets a different host, otherwise filament sync keeps hitting the old
+        // printer. (#12506)
+        if (effective_agent_id != BBL_PRINTER_AGENT_ID && m_device_manager && preset_bundle) {
+            const std::string print_host = config.opt_string("print_host");
+            if (!print_host.empty()) {
+                const std::string dev_id = MachineObject::dev_id_from_address(print_host, config.opt_string("printhost_port"));
+                MachineObject*    sel    = m_device_manager->get_selected_machine();
+                if (!sel || sel->get_dev_id() != dev_id)
+                    select_machine(effective_agent_id);
+            }
         }
-
-        // Swap the agent
-        m_agent->set_printer_agent(new_printer_agent);
-        sidebar().update_all_preset_comboboxes();
-
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": printer agent switched to " << effective_agent_id;
-
-        // Auto-switch MachineObject
-        select_machine(effective_agent_id);
+        return;
     }
+
+    // Swap the agent; set_live_printer_agent resets the device selection so the new
+    // agent starts clean (#124).
+    set_live_printer_agent(new_printer_agent);
+
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": printer agent switched to " << effective_agent_id;
+
+    // Start discovery so Python agents can populate the device list via SSDP callback
+    m_agent->start_discovery(true, false);
+
+    // Auto-switch MachineObject (new agent has empty device_info, so always re-select)
+    select_machine(effective_agent_id);
 }
 
 void GUI_App::select_machine(const std::string& agent_id)
@@ -4562,8 +5022,15 @@ void GUI_App::request_user_logout(const std::string& provider/* = ORCA_CLOUD_PRO
 
             remove_user_presets();
             enable_user_preset_folder(false);
+            Slic3r::PluginManager::instance().unload_cloud_plugins();
+            Slic3r::PluginManager::instance().clear_cloud_plugin_metadata();
+            Slic3r::PluginManager::instance().set_cloud_user("");
             preset_bundle->load_user_presets(DEFAULT_USER_FOLDER_NAME, ForwardCompatibilitySubstitutionRule::Enable);
             mainframe->update_side_preset_ui();
+
+            // keep this here. refresh_from_catalog is meant to update the dialog UI.
+            if (m_plugins_dlg)
+                m_plugins_dlg->update_plugin_dialog_ui();
 
             GUI::wxGetApp().stop_sync_user_preset();
         }
@@ -5029,21 +5496,28 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
         if (plater != nullptr && wxGetApp().imgui()->display_initialized()) {
             std::string text;
 
+            // Name the specific preset in the header so the user knows which one conflicts.
+            // The agent injects the local preset name into every 409 conflict body, so this is
+            // normally populated; fall back to a generic header if it is somehow missing.
+            const std::string header = conflict_preset_name.empty()
+                ? _u8L("Cloud sync conflict:")
+                : format(_u8L("Cloud sync conflict for preset \"%s\":"), conflict_preset_name);
+
             switch (conflict_code) {
             case -1:
-                text = _u8L("Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+                text = header + " " + _u8L("This preset has a newer version in OrcaCloud.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
                 break;
             case -2:
-                text = _u8L("Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+                text = header + " " + _u8L("A preset with this name already exists in OrcaCloud.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
                 break;
             case -3:
-                text = _u8L("Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+                text = header + " " + _u8L("A preset with the same name was previously deleted from the cloud.\n"
                             "Delete will delete your local preset. Force push overwrites it with your local preset.");
                 break;
             default:
-                text = _u8L("Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+                text = header + " " + _u8L("There was an unexpected or unidentified preset conflict.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
                 break;
             };
@@ -5062,10 +5536,12 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
                 [this, conflict_setting_id, conflict_preset_name, conflict_user_id](wxEvtHandler*) {
                     if (mainframe == nullptr)
                         return false;
-                    MessageDialog
-                        dlg(mainframe,
-                            _L("Force push will overwrite the cloud copy with your local preset changes.\nDo you want to continue?"),
-                            _L("Resolve cloud sync conflict"), wxCENTER | wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+                    const wxString confirm_msg = conflict_preset_name.empty()
+                        ? _L("Force push will overwrite the cloud copy with your local preset changes.\nDo you want to continue?")
+                        : format_wxstr(_L("Force push will overwrite the cloud copy of preset \"%s\" with your local changes.\nDo you want to continue?"),
+                                       conflict_preset_name);
+                    MessageDialog dlg(mainframe, confirm_msg, _L("Resolve cloud sync conflict"),
+                                      wxCENTER | wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
                     if (dlg.ShowModal() != wxID_YES)
                         return false;
 
@@ -5094,10 +5570,12 @@ void GUI_App::enable_user_preset_folder(bool enable)
         std::string user_id = m_agent->get_user_id();
         app_config->set("preset_folder", user_id);
         GUI::wxGetApp().preset_bundle->update_user_presets_directory(user_id);
+        PluginManager::instance().set_cloud_user(user_id);
     } else {
         BOOST_LOG_TRIVIAL(info) << "preset_folder: set to empty";
         app_config->set("preset_folder", "");
         GUI::wxGetApp().preset_bundle->update_user_presets_directory(DEFAULT_USER_FOLDER_NAME);
+        PluginManager::instance().set_cloud_user("");
     }
 }
 
@@ -5135,12 +5613,27 @@ void GUI_App::on_user_login_handle(wxCommandEvent &evt)
     });
 
     if (online_login && provider == ORCA_CLOUD_PROVIDER) {
+        // The steps below run synchronously on the UI thread (cloud plugin fetch and
+        // user-preset load both block on network/disk). Show an indeterminate progress
+        // dialog so the window isn't frozen without feedback. Percentages are cosmetic
+        // milestones, not measured progress.
+        ProgressDialog dlg(_L("Loading"), _L("Syncing your account…"), 100, mainframe, wxPD_AUTO_HIDE | wxPD_APP_MODAL);
+
+        dlg.Update(10, _L("Migrating presets…"));
         maybe_migrate_user_presets_on_login();
         remove_user_presets();
         enable_user_preset_folder(true);
+
+        dlg.Update(40, _L("Fetching plugins…"));
+        PluginManager::instance().fetch_plugins_from_cloud();
+        if (m_plugins_dlg)
+            m_plugins_dlg->update_plugin_dialog_ui();
+
+        dlg.Update(70, _L("Loading user presets…"));
         preset_bundle->load_user_presets(m_agent->get_user_id(provider), ForwardCompatibilitySubstitutionRule::Enable);
         mainframe->update_side_preset_ui();
 
+        dlg.Update(100);
         GUI::wxGetApp().mainframe->show_sync_dialog();
     }
 
@@ -5301,40 +5794,6 @@ struct UpdaterQuery
     std::string arch;
     std::string os_info;
 };
-
-std::string detect_updater_os()
-{
-#if defined(_WIN32)
-    return "win";
-#elif defined(__APPLE__)
-    return "macos";
-#elif defined(__linux__) || defined(__LINUX__)
-    return "linux";
-#else
-    return "unknown";
-#endif
-}
-
-std::string detect_updater_arch()
-{
-#if defined(__aarch64__) || defined(_M_ARM64)
-    return "arm64";
-#elif defined(__x86_64__) || defined(_M_X64)
-    return "x86_64";
-#elif defined(__i386__) || defined(_M_IX86)
-    return "i386";
-#else
-    std::string arch = wxPlatformInfo::Get().GetArchName().ToStdString();
-    boost::algorithm::to_lower(arch);
-    if (arch.find("aarch64") != std::string::npos || arch.find("arm64") != std::string::npos)
-        return "arm64";
-    if (arch.find("x86_64") != std::string::npos || arch.find("amd64") != std::string::npos)
-        return "x86_64";
-    if (arch.find("i686") != std::string::npos || arch.find("i386") != std::string::npos || arch.find("x86") != std::string::npos)
-        return "i386";
-    return "unknown";
-#endif
-}
 
 std::string detect_updater_os_info()
 {
@@ -5564,8 +6023,8 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
     UpdaterQuery query{
         detect_updater_iid(app_config),
         detect_updater_version(),
-        detect_updater_os(),
-        detect_updater_arch(),
+        platform_os_type(),
+        platform_architecture(),
         detect_updater_os_info()
     };
 
@@ -5772,18 +6231,23 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
         }
         else if (msg == "unsigned_studio") {
             BOOST_LOG_TRIVIAL(info) << "process_network_msg, unsigned_studio";
-            MessageDialog
-                msg_dlg(nullptr,
-                        _L("To use OrcaSlicer with Bambu Lab printers, you need to enable LAN mode and Developer mode on your printer.\n\n"
-                           "Please go to your printer's settings and:\n"
-                           "1. Turn on LAN mode\n"
-                           "2. Enable Developer mode\n\n"
-                           "Developer mode allows the printer to work exclusively through local network access, "
-                           "enabling full functionality with OrcaSlicer."),
-                        _L("Network Plug-in Restriction"), wxAPPLY | wxOK);
-            m_show_error_msgdlg = true;
-            msg_dlg.ShowModal();
-            m_show_error_msgdlg = false;
+            // Plugin re-emits this on every subscribe retry; latch it so it shows
+            // once per connection episode.
+            if (!m_show_error_msgdlg && !m_unsigned_plugin_warning_shown) {
+                m_unsigned_plugin_warning_shown = true;
+                MessageDialog
+                    msg_dlg(nullptr,
+                            _L("To use OrcaSlicer with Bambu Lab printers, you need to enable LAN mode and Developer mode on your printer.\n\n"
+                               "Please go to your printer's settings and:\n"
+                               "1. Turn on LAN mode\n"
+                               "2. Enable Developer mode\n\n"
+                               "Developer mode allows the printer to work exclusively through local network access, "
+                               "enabling full functionality with OrcaSlicer."),
+                            _L("Network Plug-in Restriction"), wxAPPLY | wxOK);
+                m_show_error_msgdlg = true;
+                msg_dlg.ShowModal();
+                m_show_error_msgdlg = false;
+            }
             return true;
         }
     }
@@ -6501,14 +6965,14 @@ void GUI_App::sync_preset(Preset* preset, bool force)
         result = 0; // Set to 0 so the sync_info gets saved below
 
         // Show user notification
-        CallAfter([this] {
+        CallAfter([this, name = preset->name] {
             static bool size_limit_dialog_notified = false;
             if (size_limit_dialog_notified)
                 return;
             size_limit_dialog_notified = true;
             if (mainframe == nullptr)
                 return;
-            auto msg = _L("The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only.");
+            auto msg = format_wxstr(_L("The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."), name);
             MessageDialog(mainframe, msg, _L("Sync user presets"), wxICON_WARNING | wxOK).ShowModal();
         });
         // NOTE: Don't return here - let execution continue to save the sync_info
@@ -6885,6 +7349,10 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
             // finishFn tears down the progress dialog (and clears the re-entrancy guard), so it
             // must run on every exit path — otherwise an early bail-out would leak the modal
             // dialog and leave the guard stuck, blocking all later manual syncs.
+            // Guard the whole thread body: an uncaught exception here (e.g. a transient
+            // boost::filesystem error while scanning the preset folder) would otherwise
+            // propagate out of the thread and terminate the entire application.
+            try {
             if (!m_agent) { finishFn(false); return; }
 
             // One-time scan for orphaned .info files left over from offline deletions; queues HTTP DELETEs.
@@ -7060,7 +7528,7 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                                 .plater()
                                 ->get_notification_manager()
                                 ->push_notification(NotificationType::CustomNotification,
-                                                    NotificationManager::NotificationLevel::RegularNotificationLevel, "There is an update available. Open the preset bundle dialog to update it.");
+                                                    NotificationManager::NotificationLevel::RegularNotificationLevel, _u8L("There is an update available. Open the preset bundle dialog to update it."));
 
                             update_available = false;
                         }
@@ -7125,6 +7593,11 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                 } else {
                     boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
                 }
+            }
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << "user preset sync thread terminated by exception: " << e.what();
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "user preset sync thread terminated by unknown exception";
             }
         });
 }
@@ -7633,14 +8106,14 @@ bool GUI_App::load_language(wxString language, bool initial)
 
     if (!wxLocale::IsAvailable(locale_language_info->Language)) {
     	// Loading the language dictionary failed.
-	    wxString message = "Switching Orca Slicer to language " + requested_language_code + " failed.";
+	    wxString message = wxString::Format(_L("Switching Orca Slicer to language %s failed."), requested_language_code);
 #if !defined(_WIN32) && !defined(__APPLE__)
         // likely some linux system
-        message += "\nYou may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n";
+        message += _L("\nYou may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n");
 #endif
         if (initial)
         	message + "\n\nApplication will close.";
-        wxMessageBox(message, "Orca Slicer - Switching language failed", wxOK | wxICON_ERROR);
+        wxMessageBox(message, _L("Orca Slicer - Switching language failed"), wxOK | wxICON_ERROR);
         if (initial)
 			std::exit(EXIT_FAILURE);
 		else
@@ -7995,6 +8468,89 @@ void GUI_App::open_presetbundledialog(size_t open_on_tab, const std::string& hig
         
     }
 }
+
+void GUI_App::open_plugins_dialog(size_t open_on_tab, const std::string& highlight_option)
+{
+    if (m_plugins_dlg) {
+        m_plugins_dlg->Show();
+        m_plugins_dlg->Raise();
+        return;
+    }
+
+    try {
+        m_plugins_dlg = new PluginsDialog(mainframe, wxID_ANY, _L("Plugins"));
+        m_plugins_dlg->set_open_terminal_dlg_fn();
+        m_plugins_dlg->Bind(wxEVT_DESTROY, [this](wxWindowDestroyEvent& event) {
+            if (event.GetEventObject() == m_plugins_dlg)
+                m_plugins_dlg = nullptr;
+            event.Skip();
+        });
+
+        m_plugins_dlg->Show();
+        m_plugins_dlg->Raise();
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "open_plugins_dialog failed: " << e.what();
+        if (m_plugins_dlg) {
+            m_plugins_dlg->Destroy();
+            m_plugins_dlg = nullptr;
+        }
+        wxMessageBox(wxString::Format(_L("Failed to open the Plugins dialog:\n%s"), from_u8(e.what())), _L("Plugins"),
+                     wxOK | wxICON_ERROR, mainframe);
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "open_plugins_dialog failed with a non-standard exception";
+        if (m_plugins_dlg) {
+            m_plugins_dlg->Destroy();
+            m_plugins_dlg = nullptr;
+        }
+        wxMessageBox(_L("Failed to open the Plugins dialog (unknown error)."), _L("Plugins"), wxOK | wxICON_ERROR, mainframe);
+    }
+}
+
+void GUI_App::open_terminal_dialog()
+{
+    // Reached from the plugins dialog's webview ("open_terminal" command), i.e. from
+    // inside the webview script-message callback, which GTK/macOS deliver synchronously
+    // (see ui_create_window in PluginHostUi.cpp). TerminalDialog hosts a webview of its
+    // own, so creating or presenting it on that stack is the same class as the Linux
+    // gtk_window_present crash — defer all window work to a clean main-loop iteration.
+    CallAfter([this]() {
+        if (m_terminal_dlg) {
+            // Re-front the existing window; guard Show() per #13657 (GTK re-enters
+            // layout when showing an already-visible window).
+            if (!m_terminal_dlg->IsShown())
+                m_terminal_dlg->Show();
+            m_terminal_dlg->Raise();
+            return;
+        }
+
+        m_terminal_dlg = new TerminalDialog(mainframe, wxID_ANY, _L("Plugin Terminal"),
+                                            wxDefaultPosition, wxSize(820, 600));
+        m_terminal_dlg->Bind(wxEVT_DESTROY, [this](wxWindowDestroyEvent& event) {
+            if (event.GetEventObject() == m_terminal_dlg)
+                m_terminal_dlg = nullptr;
+            event.Skip();
+        });
+
+        // Show() alone activates and fronts a freshly created window on every platform.
+        m_terminal_dlg->Show();
+    });
+}
+
+void GUI_App::open_speed_dial()
+{
+    if (!mainframe)
+        return;
+    if (!m_speed_dial_dialog) {
+        m_speed_dial_dialog = new SpeedDialWebDialog(mainframe);
+        m_speed_dial_dialog->Bind(wxEVT_DESTROY, [this](wxWindowDestroyEvent& event) {
+            if (event.GetEventObject() == m_speed_dial_dialog)
+                m_speed_dial_dialog = nullptr;
+            event.Skip();
+        });
+    }
+    m_speed_dial_dialog->request_show();
+}
+
 void GUI_App::open_exportpresetbundledialog(size_t open_on_tab, const std::string& highlight_option)
 {
     bool app_layout_changed = false;
@@ -8446,8 +9002,13 @@ void GUI_App::scan_orphaned_info_files()
         if (!fs::exists(type_dir))
             continue;
 
-        // Iterate through all .info files
-        for (auto& entry : boost::filesystem::directory_iterator(type_dir)) {
+        // Iterate through all .info files. Use the error_code-based iterator so a transient
+        // directory-read failure (e.g. macOS readdir returning ENOTSUP) is logged and skipped
+        // instead of throwing an uncaught exception that would terminate the app from the
+        // background sync thread this runs on.
+        boost::system::error_code ec;
+        for (boost::filesystem::directory_iterator it(type_dir, ec), end; !ec && it != end; it.increment(ec)) {
+            const auto& entry = *it;
             if (entry.path().extension() != ".info")
                 continue;
 
@@ -8466,6 +9027,8 @@ void GUI_App::scan_orphaned_info_files()
                 }
             }
         }
+        if (ec)
+            BOOST_LOG_TRIVIAL(warning) << "scan_orphaned_info_files: failed to scan " << type_dir.string() << ": " << ec.message();
     }
 }
 

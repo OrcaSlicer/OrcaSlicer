@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "h5G8OJslnFi8fmdc",
 	"name": "QIDI PLA Matte Basic @Qidi X-Max 4 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA Matte Basic@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "h5G8OJslnFi8fmdc",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"
 	],

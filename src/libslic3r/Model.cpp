@@ -187,8 +187,8 @@ Model Model::read_from_step(const std::string&                                  
                             ImportStepProgressFn                                    stepFn,
                             StepIsUtf8Fn                                            stepIsUtf8Fn,
                             std::function<int(Slic3r::Step&, double&, double&, bool&)>     step_mesh_fn,
-                            double                                                  linear_defletion,
-                            double                                                  angle_defletion,
+                            double                                                  linear_deflection,
+                            double                                                  angle_deflection,
                             bool                                                   is_split_compound)
 {
     Model model;
@@ -201,13 +201,13 @@ Model Model::read_from_step(const std::string&                                  
         goto _finished;
     }
     if (step_mesh_fn) {
-        if (step_mesh_fn(step_file, linear_defletion, angle_defletion, is_split_compound) == -1) {
+        if (step_mesh_fn(step_file, linear_deflection, angle_deflection, is_split_compound) == -1) {
             status = Step::Step_Status::CANCEL;
             goto _finished;
         }
     }
     
-    status = step_file.mesh(&model, is_cb_cancel, is_split_compound, linear_defletion, angle_defletion);
+    status = step_file.mesh(&model, is_cb_cancel, is_split_compound, linear_deflection, angle_deflection);
 
 _finished:
 
@@ -3226,6 +3226,7 @@ double Model::findMaxSpeed(const ModelObject* object) {
     double topSolidInfillSpeedObj = Model::printSpeedMap.topSolidInfillSpeed;
     double supportSpeedObj = Model::printSpeedMap.supportSpeed;
     double smallPerimeterSpeedObj = Model::printSpeedMap.smallPerimeterSpeed;
+    double smallSupportPerimeterSpeedObj = Model::printSpeedMap.smallSupportPerimeterSpeed;
     for (std::string objectKey : objectKeys) {
         if (objectKey == "inner_wall_speed"){
             perimeterSpeedObj = object->config.get().opt_float_nullable(objectKey, 0);
@@ -3243,8 +3244,10 @@ double Model::findMaxSpeed(const ModelObject* object) {
             externalPerimeterSpeedObj = object->config.get().opt_float_nullable(objectKey, 0);
         if (objectKey == "small_perimeter_speed")
             smallPerimeterSpeedObj = object->config.get().opt_float_nullable(objectKey, 0);
+        if (objectKey == "small_support_perimeter_speed")
+            smallSupportPerimeterSpeedObj = object->config.get().opt_float_nullable(objectKey, 0);
     }
-    objMaxSpeed = std::max(perimeterSpeedObj, std::max(externalPerimeterSpeedObj, std::max(infillSpeedObj, std::max(solidInfillSpeedObj, std::max(topSolidInfillSpeedObj, std::max(supportSpeedObj, std::max(smallPerimeterSpeedObj, objMaxSpeed)))))));
+    objMaxSpeed = std::max(perimeterSpeedObj, std::max(externalPerimeterSpeedObj, std::max(infillSpeedObj, std::max(solidInfillSpeedObj, std::max(topSolidInfillSpeedObj, std::max(supportSpeedObj, std::max(smallPerimeterSpeedObj, std::max(smallSupportPerimeterSpeedObj, objMaxSpeed))))))));
     if (objMaxSpeed <= 0) objMaxSpeed = 250.;
     return objMaxSpeed;
 }

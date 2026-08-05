@@ -176,8 +176,6 @@
 		"Normal Lift",
 		"Normal Lift"
 	],
-	"bed_mesh_max": "267,267",
-	"bed_mesh_min": "3,3",
 	"purge_in_prime_tower": "0",
 	"machine_pause_gcode": "M601",
 	"change_filament_gcode": "",
@@ -186,12 +184,14 @@
 	"nozzle_type": "undefine",
 	"auxiliary_fan": "0",
 	"default_bed_type": "Textured PEI Plate",
-	"printer_agent": "snapmaker",
 	"printable_area": [
 		"0.5x1",
 		"270.5x1",
 		"270.5x271",
 		"0.5x271"
 	],
-	"printable_height": "270.05"
+	"printable_height": "270.05",
+	"bed_mesh_min": "3,3",
+	"bed_mesh_max": "267,267",
+	"printer_agent": "snapmaker"
 }

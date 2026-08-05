@@ -79,6 +79,92 @@ jobs:
               throw error;
             }
 
+  localization-pr:
+    if: github.event_name == 'pull_request_target'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-label and remind about the localization glossary
+        uses: actions/github-script@v9
+        with:
+          script: |
+            function isPermissionDenied(error) {
+              return error && error.status === 403 && /Resource not accessible by integration/i.test(error.message || '');
+            }
+
+            const pr = context.payload.pull_request;
+
+            // List changed files once (mirrors the `localization/**` paths filter in check_locale.yml)
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100
+            });
+            const touchesLocalization = files.some((file) => file.filename.startsWith('localization/'));
+            const onlyPoFiles = files.length > 0 && files.every((file) => file.filename.endsWith('.po'));
+
+            // If the PR changes only .po files, automatically apply the Localization label
+            if (onlyPoFiles) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  labels: ['Localization']
+                });
+                core.info('Applied Localization label (PR changes only .po files).');
+              } catch (error) {
+                if (isPermissionDenied(error)) {
+                  core.warning('Cannot add Localization label because token cannot write.');
+                } else {
+                  throw error;
+                }
+              }
+            }
+
+            if (!touchesLocalization) {
+              core.info('No localization changes detected; skipping glossary reminder.');
+              return;
+            }
+
+            // Avoid posting the reminder twice (e.g. on reopen)
+            const marker = '<!-- localization-glossary-reminder -->';
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              per_page: 100
+            });
+            if (comments.some((comment) => (comment.body || '').includes(marker))) {
+              core.info('Glossary reminder already present; skipping.');
+              return;
+            }
+
+            try {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body:
+                  `${marker}\n` +
+                  `Hi @${pr.user.login}, this PR changes translations (\`localization/**\`).\n\n` +
+                  `Please make sure recurring terms follow the [Localization glossary](https://www.orcaslicer.com/wiki/localization_glossary), ` +
+                  `so the same English term is always rendered the same way within a language and terms that must stay in English ` +
+                  `(brand/product names, acronyms, file formats, G-code, macros/variables) are not translated.`
+              });
+            } catch (error) {
+              if (isPermissionDenied(error)) {
+                core.warning('Skipping glossary reminder because token cannot write comments.');
+                return;
+              }
+
+              throw error;
+            }
+
   apply-label:
     if: github.event_name == 'issue_comment'
     permissions:

@@ -149,6 +149,46 @@ void OrientJob::prepare()
     }
 }
 
+/// parameters to minimize support area
+static void setMinimalSupportAreaPrams(Slic3r::orientation::OrientParams &out)
+{
+    out.TAR_A               = 0.015f;
+    out.TAR_B               = 0.177f;
+    out.RELATIVE_F          = 20;
+    out.CONTOUR_F           = 0.5f;
+    out.BOTTOM_F            = 2.5f;
+    out.BOTTOM_HULL_F       = 0.1f;
+    out.TAR_C               = 0.1f;
+    out.TAR_D               = 1;
+    out.TAR_E               = 0.0115f;
+    out.FIRST_LAY_H         = 0.2f;      // 0.0475;
+    out.VECTOR_TOL          = -0.00083f;
+    out.NEGL_FACE_SIZE      = 0.01f;
+    out.ASCENT              = -0.5f;
+    out.PLAFOND_ADV         = 0.0599f;
+    out.CONTOUR_AMOUNT      = 0.0182427f;
+    out.OV_H                = 2.574f;
+    out.height_offset       = 2.3728f;
+    out.height_log          = 0.041375f;
+    out.height_log_k        = 1.9325457f;
+    out.LAF_MAX             = 0.999f;    // cos(1.4\degree) for low angle face 0.9997f
+    out.LAF_MIN             = 0.97f;     // cos(14\degree) 0.9703f
+    out.TAR_LAF             = 0.001f;    // 0.01f
+    out.TAR_PROJ_AREA       = 0.1f;
+    out.BOTTOM_MIN          = 0.1f;      // min bottom area. If lower than it the object may be unstable
+    out.BOTTOM_MAX          = 2000;      // max bottom area. If get to it the object is stable enough (further increase bottom area won't do more help)
+    out.height_to_bottom_hull_ratio_MIN = 1,
+    out.BOTTOM_HULL_MAX     = 2000;      // max bottom hull area
+    out.APPERANCE_FACE_SUPP = 3;         // penalty of generating supports on appearance face
+    out.overhang_angle      = 60.f;
+    out.use_low_angle_face  = true;
+    out.min_volume          = false;
+    out.fun_dir             = {};
+    out.parallel            = true;
+    out.progressind         = {};
+    out.stopcondition       = {};
+}
+
 void OrientJob::process(Ctl &ctl)
 {
     static const auto arrangestr = _u8L("Orienting...");
@@ -161,9 +201,8 @@ void OrientJob::process(Ctl &ctl)
     const GLCanvas3D::OrientSettings& settings = m_plater->canvas3D()->get_orient_settings();
 
     orientation::OrientParams params;
-    orientation::OrientParamsArea params_area;
     if (settings.min_area) {
-        memcpy(&params, &params_area, sizeof(params));
+        setMinimalSupportAreaPrams(params);
         params.min_volume = false;
     }
     else {
@@ -229,15 +268,32 @@ orientation::OrientMesh OrientJob::get_orient_mesh(ModelInstance* instance)
     auto obj = instance->get_object();
     om.name = obj->name;
     om.mesh = obj->mesh(); // don't know the difference to obj->raw_mesh(). Both seem OK
+    const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
     if (obj->config.has("support_threshold_angle"))
         om.overhang_angle = obj->config.opt_int("support_threshold_angle");
     else {
-        const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
         om.overhang_angle = config.opt_int("support_threshold_angle");
+    }
+
+    if (config.has("fan_direction") && config.has("auxiliary_fan")) {
+        FanDirection config_dir = config.option<ConfigOptionEnum<FanDirection>>("fan_direction")->value;
+        if (config_dir == FanDirection::fdUndefine || !config.opt_bool("auxiliary_fan")) {
+            // no part cooling airflow to face, keep the orientation around the z axis unchanged
+            om.cooling_direction = {0, 0, 0};
+        } else if (config_dir == FanDirection::fdRight) {
+            // the part cooling airflow comes from the right side
+            om.cooling_direction = {1, 0, 0};
+            om.has_cooling_fan = true;
+        } else {
+            // the part cooling airflow comes from the left side, or from both sides
+            om.cooling_direction = {-1, 0, 0};
+            om.has_cooling_fan = true;
+        }
     }
 
     om.setter = [instance](const OrientMesh& p) {
         instance->rotate(p.rotation_matrix);
+        instance->rotate(p.rotation_matrix_vertical);
         instance->get_object()->invalidate_bounding_box();
         instance->get_object()->ensure_on_bed();
     };

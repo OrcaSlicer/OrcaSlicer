@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "2c4nAo9FUfwdwYkK",
 	"name": "QIDI TPU-GF @Qidi X-Max 4 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI TPU-GF@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "2c4nAo9FUfwdwYkK",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi X-Max 4 0.4 nozzle"
 	]

@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFB99",
-	"setting_id": "T6U1oaEsA0T3ogMM",
 	"name": "QIDI ASA-CF @Qidi X-Max 3 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ASA-CF",
+	"from": "system",
+	"setting_id": "T6U1oaEsA0T3ogMM",
+	"filament_id": "GFB99",
+	"instantiation": "true",
 	"during_print_exhaust_fan_speed": [
 		"40"
 	],

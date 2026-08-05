@@ -10,9 +10,12 @@
 		"re3D PC"
 	],
 	"compatible_printers": [
-		"re3D Gigabot 4",
-		"re3D Gigabot 4 XLT",
-		"re3D Terabot 4"
+		"re3D Gigabot 4 0.4 nozzle",
+		"re3D Gigabot 4 XLT 0.4 nozzle",
+		"re3D Terabot 4 0.4 nozzle",
+		"re3D Gigabot 4 0.8 nozzle",
+		"re3D Gigabot 4 XLT 0.8 nozzle",
+		"re3D Terabot 4 0.8 nozzle"
 	],
 	"filament_vendor": [
 		"re3D"

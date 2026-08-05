@@ -1,13 +1,13 @@
 {
 	"type": "filament",
-	"filament_id": "GFB99",
+	"name": "QIDI ASA-CF @Qidi Q1 Pro 0.8 nozzle",
+	"inherits": "QIDI ASA-CF",
 	"setting_id": "FagCR4bLL1ctSXax",
+	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"QIDI ASA-CF @Qidi Q1 Pro 0.8 nozzle"
 	],
-	"inherits": "QIDI ASA-CF",
-	"name": "QIDI ASA-CF @Qidi Q1 Pro 0.8 nozzle",
 	"during_print_exhaust_fan_speed": [
 		"0"
 	],

@@ -207,6 +207,10 @@
 			"sub_path": "process/0.24mm Fine 0.8 nozzle @Voron.json"
 		},
 		{
+			"name": "0.32mm Optimal 0.8 nozzle @Voron",
+			"sub_path": "process/0.32mm Optimal 0.8 nozzle @Voron.json"
+		},
+		{
 			"name": "0.40mm Standard 0.8 nozzle @Voron",
 			"sub_path": "process/0.40mm Standard 0.8 nozzle @Voron.json"
 		},

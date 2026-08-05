@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "TKspEfbNEp1WaWQu",
 	"name": "QIDI PLA Rapido Silk @Qidi X-Max 4 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA Rapido Silk@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "TKspEfbNEp1WaWQu",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi X-Max 4 0.4 nozzle"
 	]
