@@ -23,7 +23,7 @@
 		"0x405"
 	],
 	"printable_height": "396",
-	"default_print_profile": "0.44mm Fine 1.0 nozzle @Meltingplot MBL",
+	"default_print_profile": "0.48mm Optimal 1.0 nozzle @Meltingplot MBL",
 	"default_filament_profile": [
 		"Meltingplot PLA @1.0 nozzle"
 	]

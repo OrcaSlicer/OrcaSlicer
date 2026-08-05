@@ -55,12 +55,20 @@
 			"sub_path": "process/0.28mm Optimal 0.6 nozzle @Meltingplot CHX 350.json"
 		},
 		{
+			"name": "0.30mm Standard 0.6 nozzle @Meltingplot CHX 350",
+			"sub_path": "process/0.30mm Standard 0.6 nozzle @Meltingplot CHX 350.json"
+		},
+		{
 			"name": "0.32mm Fine 0.8 nozzle @Meltingplot CHX 350",
 			"sub_path": "process/0.32mm Fine 0.8 nozzle @Meltingplot CHX 350.json"
 		},
 		{
 			"name": "0.36mm Optimal 0.8 nozzle @Meltingplot CHX 350",
 			"sub_path": "process/0.36mm Optimal 0.8 nozzle @Meltingplot CHX 350.json"
+		},
+		{
+			"name": "0.38mm Standard 0.8 nozzle @Meltingplot CHX 350",
+			"sub_path": "process/0.38mm Standard 0.8 nozzle @Meltingplot CHX 350.json"
 		},
 		{
 			"name": "0.44mm Fine 1.0 nozzle @Meltingplot CHX 350",
@@ -103,6 +111,10 @@
 			"sub_path": "process/0.28mm Optimal 0.6 nozzle @Meltingplot MBL.json"
 		},
 		{
+			"name": "0.30mm Standard 0.6 nozzle @Meltingplot MBL",
+			"sub_path": "process/0.30mm Standard 0.6 nozzle @Meltingplot MBL.json"
+		},
+		{
 			"name": "fdm_process_meltingplot_mbl_08_nozzle",
 			"sub_path": "process/fdm_process_meltingplot_mbl_08_nozzle.json"
 		},
@@ -113,6 +125,10 @@
 		{
 			"name": "0.36mm Optimal 0.8 nozzle @Meltingplot MBL",
 			"sub_path": "process/0.36mm Optimal 0.8 nozzle @Meltingplot MBL.json"
+		},
+		{
+			"name": "0.38mm Standard 0.8 nozzle @Meltingplot MBL",
+			"sub_path": "process/0.38mm Standard 0.8 nozzle @Meltingplot MBL.json"
 		},
 		{
 			"name": "fdm_process_meltingplot_mbl_10_nozzle",
