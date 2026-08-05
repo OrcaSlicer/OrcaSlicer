@@ -315,6 +315,7 @@ set(lisbslic3r_sources
     MutablePriorityQueue.hpp
     NormalUtils.cpp
     NormalUtils.hpp
+    NSVGImpl.cpp
     NSVGUtils.cpp
     NSVGUtils.hpp
     ObjColorUtils.cpp
@@ -676,6 +677,10 @@ endif ()
 #   - NDEBUG leak: TriangleMeshDeal.cpp does `#undef NDEBUG` to enable asserts,
 #     which leaks into sibling files in the TU and makes NDEBUG-guarded header
 #     declarations inconsistent with their .cpp definitions
+#   - single-header implementation: NSVGImpl.cpp needs NANOSVG_IMPLEMENTATION
+#     before nanosvg.h, but sibling files include nanosvg.h first (via
+#     EmbossShape.hpp / NSVGUtils.hpp), so the implementation is skipped by the
+#     include guard
 # Compile them standalone instead.
 set_source_files_properties(
     GCode/WipeTower2.cpp
@@ -688,4 +693,5 @@ set_source_files_properties(
     SLA/Rotfinder.cpp
     Format/SL1.cpp
     TriangleMeshDeal.cpp
+    NSVGImpl.cpp
     PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)

@@ -1,10 +1,6 @@
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/Utils.hpp"
-#define NANOSVG_IMPLEMENTATION
-#include "nanosvg/nanosvg.h"
-#define NANOSVGRAST_IMPLEMENTATION
-#include "nanosvg/nanosvgrast.h"
 namespace {
 
 TEST_CASE("sort_remove_duplicates", "[utils]") {
