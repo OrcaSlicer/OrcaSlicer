@@ -19,6 +19,12 @@
 #include <boost/nowide/cstdlib.hpp>
 #include <boost/nowide/convert.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <boost/process/v2/child.hpp>
+#include <boost/process/v2/pipe.hpp>
+#include <boost/process/v2/start_dir.hpp>
+#include <boost/process/v2/io.hpp>
+#include <boost/process/v2/handles.hpp>
+#include <boost/asio.hpp>
 
 // BBS
 #include <algorithm>
