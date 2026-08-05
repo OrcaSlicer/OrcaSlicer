@@ -58,15 +58,9 @@ void FillConcentric::_fill_surface_single(
     loops = union_pt_chained_outside_in(loops);
 
     const bool spiralized = should_spiralize_concentric(params);
-
-    // Orca: an outward fill order prints the innermost loops first instead.
-    if (params.fill_order == SurfaceFillOrder::Outward)
-        std::reverse(loops.begin(), loops.end());
-
     const bool is_classic = this->print_object_config == nullptr ||
                             this->print_object_config->wall_generator.value == PerimeterGeneratorType::Classic;
 
-    size_t iPathFirst = polylines_out.size();
     if (spiralized) {
         Polyline spiral;
         Point current_pos(0, 0);
@@ -138,11 +132,7 @@ void FillConcentric::_fill_surface_single(
             // Add the virtual closing segment and trim it to create the spiral transition.
             loop_path.points.push_back(loop_path.points.front());
 
-            if (params.fill_order == SurfaceFillOrder::Outward) {
-                loop_path.clip_start(distance);
-            } else {
-                loop_path.clip_end(distance);
-            }
+            loop_path.clip_end(distance);
 
             if (spiral.empty()) {
                 spiral = std::move(loop_path);
@@ -152,17 +142,26 @@ void FillConcentric::_fill_surface_single(
             current_pos = spiral.last_point();
         }
 
+        if (params.fill_order == SurfaceFillOrder::Outward)
+            std::reverse(spiral.begin(), spiral.end());
+
         if (!spiral.empty())
             polylines_out.emplace_back(std::move(spiral));
 
     } else {
-        // split paths using a nearest neighbor search
+        // Orca: an outward fill order prints the innermost loops first instead.
+        if (params.fill_order == SurfaceFillOrder::Outward)
+            std::reverse(loops.begin(), loops.end());
+
         Point last_pos(0, 0);
         for (const Polygon& loop : loops) {
             polylines_out.emplace_back(loop.split_at_index(last_pos.nearest_point_index(loop.points)));
             last_pos = polylines_out.back().last_point();
         }
     }
+
+    // split paths using a nearest neighbor search
+    size_t iPathFirst = polylines_out.size();
 
     // Apply multiline offset if needed
     multiline_fill(polylines_out, params, spacing);
