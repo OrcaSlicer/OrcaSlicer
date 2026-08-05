@@ -34,6 +34,9 @@ jobs:
   build_deps:
     name: Build Deps
     if: ${{ !cancelled() && (inputs.build-deps-only || inputs.force-build || inputs.valid-cache != true) }}
+    # Unity builds are informational: tolerate a deps failure too (see the
+    # continue-on-error on the build_orca job in build_orca.yml).
+    continue-on-error: ${{ inputs.unity-build }}
     runs-on: ${{ inputs.os }}
     env:
       date:

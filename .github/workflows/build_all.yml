@@ -119,12 +119,13 @@ jobs:
   # Unity/jumbo build compile checks. They reuse the deps cache populated by the
   # normal build legs above (UNITY_BUILD only affects libslic3r/libslic3r_gui,
   # not the deps), so they only pay for the slicer compile itself. They are
-  # informational only: continue-on-error means a unity build failure never
-  # blocks the run, and no artifacts are uploaded or deployed.
+  # informational only: GitHub forbids continue-on-error on jobs that call a
+  # reusable workflow, so the tolerance lives inside build_orca.yml (gated on
+  # the unity-build input) - a unity build failure never blocks the run, and no
+  # artifacts are uploaded or deployed.
   unity_build_linux:
     name: Unity build Linux ${{ matrix.arch }}
     needs: build_linux
-    continue-on-error: true
     # Don't run scheduled builds on forks; skip when a deps-only build was requested:
     if: ${{ !cancelled() && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     strategy:
@@ -143,7 +144,6 @@ jobs:
   unity_build_windows:
     name: Unity build Windows ${{ matrix.arch }}
     needs: build_windows
-    continue-on-error: true
     # Don't run scheduled builds on forks; skip when a deps-only build was requested:
     if: ${{ !cancelled() && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     strategy:
@@ -162,7 +162,6 @@ jobs:
   unity_build_macos:
     name: Unity build macOS ${{ matrix.arch }}
     needs: build_macos_arch
-    continue-on-error: true
     # Don't run scheduled builds on forks; skip when a deps-only build was requested:
     if: ${{ !cancelled() && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     strategy:

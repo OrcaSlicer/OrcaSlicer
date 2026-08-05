@@ -28,6 +28,10 @@ on:
 jobs:
   build_orca:
     name: Build OrcaSlicer
+    # Unity builds are informational compile checks: allow them to fail without
+    # failing the caller (continue-on-error is forbidden on `uses` jobs, so the
+    # tolerance lives here, gated on the unity-build input).
+    continue-on-error: ${{ inputs.unity-build }}
     runs-on: ${{ inputs.os }}
     env:
       date:
