@@ -3,7 +3,7 @@
 	"name": "Flashforge Generic HS PLA",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "foG37d7HZKgt6l43",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"bed_temperature_difference": [

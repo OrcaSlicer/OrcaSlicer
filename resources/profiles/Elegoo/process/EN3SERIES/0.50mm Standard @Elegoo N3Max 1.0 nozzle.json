@@ -3,7 +3,7 @@
 	"name": "0.50mm Standard @Elegoo N3Max 1.0 nozzle",
 	"inherits": "fdm_process_elegoo_10050",
 	"from": "system",
-	"setting_id": "PEN3Max10050",
+	"setting_id": "ebSwXa3yYyDzIDrI",
 	"instantiation": "true",
 	"filename_format": "EN3Max_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
 	"gap_infill_speed": "30",

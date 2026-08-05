@@ -3,7 +3,7 @@
 	"name": "Qidi X-Smart 3 0.8 nozzle",
 	"inherits": "Qidi X-Smart 3 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM008",
+	"setting_id": "GWRUzX26tWoJ5dlM",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.8"

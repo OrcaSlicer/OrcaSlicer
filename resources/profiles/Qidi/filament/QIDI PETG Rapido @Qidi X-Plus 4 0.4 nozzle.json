@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Rapido @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "QIDI PETG Rapido",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "UkzoaZIuBEwTCUYL",
 	"filament_id": "QD_0_1_41",
 	"instantiation": "true",
 	"filament_settings_id": [

@@ -3,7 +3,7 @@
 	"name": "0.32mm Chunky @Creality CR-6 0.6",
 	"inherits": "fdm_process_creality_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "i2NGg5j1cOMUg3dV",
 	"instantiation": "true",
 	"initial_layer_line_width": "0.6",
 	"initial_layer_print_height": "0.32",

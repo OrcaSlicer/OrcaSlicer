@@ -3,6 +3,7 @@
 	"name": "0.24mm Standard @FF C5",
 	"inherits": "0.20mm Standard @Flashforge AD5M Pro 0.4 Nozzle",
 	"from": "system",
+	"setting_id": "vchCynehN4s32swH",
 	"instantiation": "true",
 	"bridge_speed": "35",
 	"compatible_printers": [

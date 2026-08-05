@@ -3,6 +3,7 @@
     "name": "FilAr PLA-mate Celeste Cielo",
     "inherits": "FilAr PLA-mate @base",
     "from": "system",
+    "setting_id": "UZW4F0aVz1TqstYi",
     "filament_id": "FILAR0035",
     "instantiation": "true",
     "filament_vendor": [

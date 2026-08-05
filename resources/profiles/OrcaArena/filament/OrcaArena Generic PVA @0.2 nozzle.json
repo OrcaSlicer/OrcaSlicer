@@ -3,7 +3,7 @@
 	"name": "OrcaArena Generic PVA @0.2 nozzle",
 	"inherits": "OrcaArena Generic PVA @base",
 	"from": "system",
-	"setting_id": "GFSS99_00",
+	"setting_id": "N6p6wvNCjR4Lv0WC",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"0.5"

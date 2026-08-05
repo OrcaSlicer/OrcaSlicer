@@ -3,7 +3,7 @@
 	"name": "WonderMaker ZR 0.6 nozzle",
 	"inherits": "WonderMaker ZR 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM005",
+	"setting_id": "oad2AQ17RRqjtgrk",
 	"instantiation": "true",
 	"printer_model": "WonderMaker ZR",
 	"default_print_profile": "0.30mm Standard @WonderMaker ZR 0.6 nozzle",

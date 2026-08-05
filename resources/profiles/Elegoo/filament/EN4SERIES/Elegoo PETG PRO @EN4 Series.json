@@ -3,7 +3,7 @@
 	"name": "Elegoo PETG PRO @EN4 Series",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "EPETGPROEN4",
+	"setting_id": "9vWaWFD7kELXCz9k",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Elegoo Neptune 4 0.4 nozzle",

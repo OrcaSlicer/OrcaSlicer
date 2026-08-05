@@ -2,6 +2,7 @@
 	"type": "machine",
 	"name": "SeeMeCNC BOSSdelta 300 0.4 nozzle",
 	"from": "System",
+	"setting_id": "bBNCF2OJnObaQjUG",
 	"instantiation": "true",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "0",

@@ -3,7 +3,7 @@
     "name": "eSUN ABS+ @K2 Plus-all",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "7plEfQUFL6qclQ8B",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

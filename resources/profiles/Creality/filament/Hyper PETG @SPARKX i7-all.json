@@ -3,7 +3,7 @@
     "name": "Hyper PETG @SPARKX i7-all",
     "inherits": "fdm_filament_petg",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "KCinMkKfbIlmgNY5",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

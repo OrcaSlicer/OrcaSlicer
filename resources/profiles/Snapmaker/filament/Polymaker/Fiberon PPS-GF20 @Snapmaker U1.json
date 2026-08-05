@@ -3,7 +3,7 @@
 	"name": "Fiberon PPS-GF20 @Snapmaker U1",
 	"inherits": "Fiberon PPS-GF20 @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSL73_00",
+	"setting_id": "7IpyPFHEAOmFlINJ",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

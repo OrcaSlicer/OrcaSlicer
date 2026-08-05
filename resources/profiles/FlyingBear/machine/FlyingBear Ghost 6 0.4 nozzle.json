@@ -3,7 +3,7 @@
 	"name": "FlyingBear Ghost 6 0.4 nozzle",
 	"inherits": "fdm_marlin_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "9ahoAgKHXW4Y4wMN",
 	"instantiation": "true",
 	"printer_model": "FlyingBear Ghost 6",
 	"gcode_flavor": "marlin2",

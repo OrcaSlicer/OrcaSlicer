@@ -3,7 +3,7 @@
 	"name": "Elegoo ASA @0.2 nozzle",
 	"inherits": "Elegoo ASA @base",
 	"from": "system",
-	"setting_id": "EASA00020",
+	"setting_id": "CU2k82NwHp3JdSiH",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3.2"

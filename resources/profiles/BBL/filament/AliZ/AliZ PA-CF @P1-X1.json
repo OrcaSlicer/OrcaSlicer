@@ -3,7 +3,7 @@
 	"name": "AliZ PA-CF @P1-X1",
 	"inherits": "AliZ PA-CF @base",
 	"from": "system",
-	"setting_id": "AliZPX1FSA04",
+	"setting_id": "AliZ003_00",
 	"instantiation": "true",
 	"enable_pressure_advance": [
 		"1"

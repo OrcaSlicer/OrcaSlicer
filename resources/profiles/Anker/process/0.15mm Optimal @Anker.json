@@ -3,7 +3,7 @@
 	"name": "0.15mm Optimal @Anker",
 	"inherits": "fdm_process_anker_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "B60G1FrfJwUViHQb",
 	"instantiation": "true",
 	"layer_height": "0.15",
 	"initial_layer_print_height": "0.15",

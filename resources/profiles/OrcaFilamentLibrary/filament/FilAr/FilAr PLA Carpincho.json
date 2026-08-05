@@ -3,6 +3,7 @@
     "name": "FilAr PLA Carpincho",
     "inherits": "FilAr PLA @base",
     "from": "system",
+    "setting_id": "dNsCH2BVjuq3jrN7",
     "filament_id": "FILAR0009",
     "instantiation": "true",
     "filament_vendor": [

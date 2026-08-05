@@ -3,7 +3,7 @@
 	"name": "Polymaker Generic S1",
 	"inherits": "Flashforge Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "NXQtHvtO4tyQ1ueu",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

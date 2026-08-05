@@ -3,7 +3,7 @@
 	"name": "Lulzbot 2.85mm PETG",
 	"inherits": "Generic PETG @System",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "7aS9fdn94lEOU1gJ",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"filament_diameter": [

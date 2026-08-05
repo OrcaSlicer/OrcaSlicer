@@ -3,6 +3,7 @@
 	"name": "0.42mm Standard @FF G4P 0.6 nozzle",
 	"inherits": "0.30mm Standard @Flashforge G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "DZUexA32pXw33NeC",
 	"instantiation": "true",
 	"bottom_solid_infill_flow_ratio": "0.96",
 	"bridge_acceleration": "3000",

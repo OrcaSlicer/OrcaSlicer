@@ -3,7 +3,7 @@
 	"name": "Qidi Q1 Pro 0.2 nozzle",
 	"inherits": "Qidi Q1 Pro 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM008",
+	"setting_id": "wp17yJNXUGPUMl5m",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.2"

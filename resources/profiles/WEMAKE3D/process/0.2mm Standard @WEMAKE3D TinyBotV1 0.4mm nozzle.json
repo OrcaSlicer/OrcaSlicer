@@ -2,6 +2,7 @@
 	"type": "process",
 	"name": "0.2mm Standard @WEMAKE3D TinyBotV1 0.4mm nozzle",
 	"inherits": "fdm_process_tinyBotV1_common",
+	"setting_id": "Pt0aOqxcVy8GTRXM",
 	"instantiation": "true",
 	"layer_height": "0.2",
 	"initial_layer_print_height": "0.32",

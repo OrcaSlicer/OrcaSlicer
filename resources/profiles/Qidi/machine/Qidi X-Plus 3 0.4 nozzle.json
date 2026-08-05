@@ -3,7 +3,7 @@
 	"name": "Qidi X-Plus 3 0.4 nozzle",
 	"inherits": "fdm_qidi_x3_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "qupFKHV83yltlRMj",
 	"instantiation": "true",
 	"printer_model": "Qidi X-Plus 3",
 	"gcode_flavor": "klipper",

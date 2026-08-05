@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"filament_id": "GFSEP003",
-	"setting_id": "GFSEP003_00",
+	"setting_id": "WN0GdqBsjhvnyDmG",
 	"name": "Eolas Prints PLA Silk @System",
 	"from": "system",
 	"instantiation": "true",
@@ -43,6 +43,9 @@
 		"1000"
 	],
 	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"filament_multitool_ramming_flow": [
 		"8"
 	]
 }

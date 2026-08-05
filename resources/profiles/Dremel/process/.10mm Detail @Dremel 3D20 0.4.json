@@ -3,6 +3,7 @@
 	"name": ".10mm Detail @Dremel 3D20 0.4",
 	"inherits": "fdm_process_dremel_common",
 	"from": "system",
+	"setting_id": "n2k8VXfPE45lzxmq",
 	"instantiation": "true",
 	"adaptive_layer_height": "0",
 	"bridge_flow": "1",

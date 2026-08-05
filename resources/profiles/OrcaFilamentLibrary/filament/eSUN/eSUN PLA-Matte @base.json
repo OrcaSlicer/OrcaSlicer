@@ -17,6 +17,9 @@
 	"filament_max_volumetric_speed": [
 		"8"
 	],
+	"filament_multitool_ramming_flow": [
+		"8"
+	],
 	"filament_vendor": [
 		"eSUN"
 	],

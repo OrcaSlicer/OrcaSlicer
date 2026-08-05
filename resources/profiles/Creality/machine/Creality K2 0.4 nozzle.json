@@ -1,7 +1,6 @@
 {
 	"type": "machine",
 	"from": "system",
-	"settings_id": "GM001",
 	"instantiation": "true",
 	"inherits": "fdm_creality_common",
 	"printer_model": "Creality K2",
@@ -203,5 +202,5 @@
 	"retract_lift_enforce": "All Surfaces",
 	"retraction_distances_when_cut": "30",
 	"z_hop_types": "Auto Lift",
-	"setting_id": "91520"
+	"setting_id": "XiWyoJJ90uesQMGs"
 }

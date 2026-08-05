@@ -3,6 +3,7 @@
 	"name": "Generic PET @FF G4 0.6 nozzle",
 	"inherits": "FusRock Generic PET-CF @G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "wguPruY9M7GcMt6q",
 	"instantiation": "true",
 	"close_fan_the_first_x_layers": [
 		"2"

@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "GP004",
+	"setting_id": "z3fSJ5Y0JuhRQhOU",
 	"name": "Compatible speed - 0.20mm",
 	"from": "system",
 	"inherits": "fdm_process_volumic_common",

@@ -3,7 +3,7 @@
     "name": "Hyper PLA @Hi-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "AG1UL48Bof1wFYDF",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

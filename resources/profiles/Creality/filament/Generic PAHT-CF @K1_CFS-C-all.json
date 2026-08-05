@@ -3,7 +3,7 @@
     "name": "Generic PAHT-CF @K1_CFS-C-all",
     "inherits": "fdm_filament_pa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "71tO55hudcpbpReV",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

@@ -3,7 +3,7 @@
 	"name": "MyKlipper 0.8 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM004",
+	"setting_id": "ameNjll5Z5Ptmvko",
 	"instantiation": "true",
 	"printer_model": "Generic Klipper Printer",
 	"nozzle_diameter": [

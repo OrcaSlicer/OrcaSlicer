@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Eryone TPU @0.2 nozzle",
 	"from": "system",
+	"setting_id": "6Le5wRz6cFfKcPaz",
 	"instantiation": "true",
 	"inherits": "Eryone TPU",
 	"compatible_printers": [

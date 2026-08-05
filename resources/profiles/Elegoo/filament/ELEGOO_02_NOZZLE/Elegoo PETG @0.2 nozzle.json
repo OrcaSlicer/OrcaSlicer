@@ -3,7 +3,7 @@
 	"name": "Elegoo PETG @0.2 nozzle",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "EPETG00020",
+	"setting_id": "Vua3KPuCmm7fbcYB",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.024"

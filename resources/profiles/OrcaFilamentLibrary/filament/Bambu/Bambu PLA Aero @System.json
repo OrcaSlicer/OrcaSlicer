@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Aero @System",
 	"inherits": "Bambu PLA Aero @base",
 	"from": "system",
-	"setting_id": "OGFSA11_01",
+	"setting_id": "R499nyjJA5r7khOd",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"0"

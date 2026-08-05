@@ -3,7 +3,7 @@
 	"name": "Sovol SV02 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "e07wzF8K9ePoSPUD",
 	"instantiation": "true",
 	"printer_model": "Sovol SV02",
 	"default_print_profile": "0.20mm Standard @Sovol SV02",

@@ -3,7 +3,7 @@
 	"name": "Flashforge ASA Basic @FF AD5X 0.6 nozzle",
 	"inherits": "Flashforge Generic ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "vaOyXUcrJ97KE7ZW",
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"0"

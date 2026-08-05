@@ -3,7 +3,7 @@
 	"name": "0.40 Extra Draft @Snapmaker U1 (0.6 nozzle)",
 	"inherits": "fdm_process_U1_0.6_common",
 	"from": "system",
-	"setting_id": "GP004_06_040",
+	"setting_id": "rAUffOThYmj9FVTw",
 	"instantiation": "true",
 	"description": "Maximum-speed profile for the Snapmaker U1 with 0.6 mm nozzles. 0.4 mm layer height for rapid prototyping where surface finish is not critical.",
 	"layer_height": "0.40",
@@ -13,6 +13,8 @@
 		"Snapmaker U1 (0.6 nozzle)"
 	],
 	"ooze_prevention": "1",
+	"prime_tower_width": "30",
+	"prime_volume": "90",
 	"slowdown_for_curled_perimeters": "0",
 	"standby_temperature_delta": "-150",
 	"wipe_tower_filament": "0",

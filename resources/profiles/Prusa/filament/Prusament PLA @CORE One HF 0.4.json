@@ -3,7 +3,7 @@
 	"name": "Prusament PLA @CORE One HF 0.4",
 	"inherits": "Prusament PLA @CORE One",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "mf4Muog4IcsgkYoA",
 	"filament_id": "Prusament PLA @CORE One HF 0.4",
 	"instantiation": "true",
 	"compatible_printers": [

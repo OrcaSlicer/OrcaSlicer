@@ -4,7 +4,7 @@
 	"inherits": "Generic PA @Z-Bolt Base",
 	"renamed_from": "Z-Bolt PA @0.6 nozzle",
 	"from": "system",
-	"setting_id": "GFSL406",
+	"setting_id": "MB0n4BeDFEI25yTe",
 	"filament_id": "GFL406",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "GP004",
+	"setting_id": "xHoh6Y8AfDzNA5Mf",
 	"name": "0.16mm Optimal @Creality K1 SE",
 	"from": "system",
 	"instantiation": "true",
@@ -38,7 +38,7 @@
 	"draft_shield": "disabled",
 	"elefant_foot_compensation": "0.15",
 	"elefant_foot_compensation_layers": "1",
-	"enable_arc_fitting": "1",
+	"enable_arc_fitting": "0",
 	"enable_overhang_speed": "1",
 	"enable_prime_tower": "1",
 	"enable_support": "0",

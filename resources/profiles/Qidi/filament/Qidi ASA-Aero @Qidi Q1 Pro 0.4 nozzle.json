@@ -3,7 +3,7 @@
 	"name": "Qidi ASA-Aero @Qidi Q1 Pro 0.4 nozzle",
 	"inherits": "Qidi ASA-Aero",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "OVQGLLS3QOoDEPNp",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [

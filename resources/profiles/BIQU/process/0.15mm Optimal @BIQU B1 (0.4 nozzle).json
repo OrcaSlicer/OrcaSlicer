@@ -3,7 +3,7 @@
 	"name": "0.15mm Optimal @BIQU B1 (0.4 nozzle)",
 	"inherits": "fdm_process_biqu_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "LuSsVUHsjH9AXAa7",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",

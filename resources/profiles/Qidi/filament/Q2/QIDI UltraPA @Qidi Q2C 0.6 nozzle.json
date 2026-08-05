@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSN98",
 	"name": "QIDI UltraPA @Qidi Q2C 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI UltraPA@Q2C-Series",
+	"from": "system",
+	"setting_id": "OXR5eUAK3x6nPOM3",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi Q2C 0.6 nozzle"
 	]

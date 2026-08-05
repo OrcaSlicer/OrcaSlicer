@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA Glow @Snapmaker U1",
 	"inherits": "PolyLite PLA Glow @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSL64_00",
+	"setting_id": "xYjGzOzWWE2PBfNd",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

@@ -3,7 +3,7 @@
 	"name": "Lulzbot Taz 6 0.5 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "LZ006",
+	"setting_id": "xwPUM4RYNg01eOO6",
 	"instantiation": "true",
 	"printer_model": "Lulzbot Taz 6",
 	"default_print_profile": "0.25mm Standard @Lulzbot Taz 6",

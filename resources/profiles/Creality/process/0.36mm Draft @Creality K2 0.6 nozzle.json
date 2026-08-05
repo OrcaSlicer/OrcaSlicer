@@ -3,7 +3,7 @@
 	"name": "0.36mm Draft @Creality K2 0.6 nozzle",
 	"inherits": "fdm_process_common_klipper",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "Zom4bHm3tVvrBUNT",
 	"instantiation": "true",
 	"max_travel_detour_distance": "0",
 	"bottom_surface_pattern": "monotonic",

@@ -3,7 +3,7 @@
 	"name": "Fiberon PETG-rCF @System",
 	"inherits": "Fiberon PETG-rCF @base",
 	"from": "system",
-	"setting_id": "OGFSL55_00",
+	"setting_id": "vwILb2DBGZpjNIov",
 	"instantiation": "true",
 	"compatible_printers": []
 }

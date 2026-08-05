@@ -4,7 +4,7 @@
 	"renamed_from": "Elegoo RAPID PETG @0.2 nozzle",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "ERPETG00020",
+	"setting_id": "Vn71U93sqvxWaq5J",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"1"

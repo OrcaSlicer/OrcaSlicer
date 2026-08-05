@@ -3,7 +3,7 @@
 	"name": "Flashforge HS PETG @FF AD5X 0.25 nozzle",
 	"inherits": "Flashforge PETG @FF AD5M 0.25 Nozzle",
 	"from": "system",
-	"setting_id": "GFSA04_12",
+	"setting_id": "eNOkWn5PT8rDpA0g",
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"0"
