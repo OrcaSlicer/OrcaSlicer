@@ -132,6 +132,9 @@ private:
     std::string append_tcr(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
     Polyline generate_path_to_wipe_tower(const Point &start_pos, const Point &end_pos, const BoundingBox &avoid_polygon, const BoundingBox &printer_bbx) const;
     std::string append_tcr2(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
+    std::string travel_to_tower_gap(GCode &gcodegen, const Point &route_start, const Point &start_wipe_pos) const;
+    Vec2f transform_wt2_pt(const Vec2f &pt) const;
+    BoundingBox printer_travel_bounds(GCode &gcodegen) const;
 
     // Postprocesses gcode: rotates and moves G1 extrusions and returns result
     std::string post_process_wipe_tower_moves(const WipeTower::ToolChangeResult& tcr, const Vec2f& translation, float angle) const;
@@ -181,7 +184,7 @@ struct LayerResult {
     // It is used for the pressure equalizer because it needs to buffer one layer back.
     bool        nop_layer_result { false };
 
-    static LayerResult make_nop_layer_result() { return {"", std::numeric_limits<coord_t>::max(), false, false, true}; }
+    static LayerResult make_nop_layer_result() { return {"", std::numeric_limits<size_t>::max(), false, false, true}; }
 };
 
 class GCode {
@@ -538,6 +541,40 @@ private:
     std::set<ObjectInstanceID>      m_objsWithBrim; // indicates the object instances with brim
     // Cache for custom seam enforcers/blockers for each layer.
     SeamPlacer                          m_seam_placer;
+
+    // One stop of the island-level tour: consecutive islands of a single instance. An instance
+    // can have several visits per layer when its islands are toured non-consecutively.
+    struct InstanceVisit
+    {
+        // Index into the per-filament InstanceToPrint vector.
+        size_t              instance_idx;
+        // Islands to print, in order (indices into ObjectByExtruder::islands). Empty: print all
+        // islands, ordered at extrusion time.
+        std::vector<size_t> islands;
+        // First visit of this instance this layer; skirt, brim and support are emitted here.
+        bool                first_visit;
+    };
+
+    // One node of the island-level tour, also used as cache key: identity plus quantized position.
+    struct IslandOrderNode
+    {
+        ObjectID object_id;
+        size_t   instance_id;
+        // Index into ObjectByExtruder::islands, or size_t(-1) for an instance without chainable
+        // islands (e.g. support only), which is toured as a single stop.
+        size_t   island_idx;
+        // Island centroid in G-code coordinates, quantized to 1 mm for cache stability.
+        Point    pos;
+        bool operator==(const IslandOrderNode &rhs) const {
+            return object_id == rhs.object_id && instance_id == rhs.instance_id &&
+                   island_idx == rhs.island_idx && pos == rhs.pos;
+        }
+    };
+
+    // Cache the per-filament island tour to avoid recomputing while the layer's island layout is
+    // unchanged. Key: filament_id. Value: {nodes the tour was computed from, resulting visits}.
+    std::map<unsigned int, std::pair<std::vector<IslandOrderNode>, std::vector<InstanceVisit>>>
+                                        m_ordering_cache;
 
     ExtrusionQualityEstimator m_extrusion_quality_estimator;
 

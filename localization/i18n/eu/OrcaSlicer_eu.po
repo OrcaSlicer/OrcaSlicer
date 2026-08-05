@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -19,23 +19,29 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Poedit 3.9\n"
 
+# AI Translated
 msgid "Main Extruder"
-msgstr ""
+msgstr "Estrusore nagusia"
 
+# AI Translated
 msgid "Main extruder"
-msgstr ""
+msgstr "Estrusore nagusia"
 
+# AI Translated
 msgid "main extruder"
-msgstr ""
+msgstr "estrusore nagusia"
 
+# AI Translated
 msgid "Auxiliary Extruder"
-msgstr ""
+msgstr "Estrusore lagungarria"
 
+# AI Translated
 msgid "Auxiliary extruder"
-msgstr ""
+msgstr "Estrusore lagungarria"
 
+# AI Translated
 msgid "auxiliary extruder"
-msgstr ""
+msgstr "estrusore lagungarria"
 
 msgid "Left Extruder"
 msgstr "Ezkerreko estrusorea"
@@ -55,23 +61,29 @@ msgstr "Eskuineko estrusorea"
 msgid "right extruder"
 msgstr "eskuineko estrusorea"
 
+# AI Translated
 msgid "Main Nozzle"
-msgstr ""
+msgstr "Pita nagusia"
 
+# AI Translated
 msgid "Main nozzle"
-msgstr ""
+msgstr "Pita nagusia"
 
+# AI Translated
 msgid "main nozzle"
-msgstr ""
+msgstr "pita nagusia"
 
+# AI Translated
 msgid "Auxiliary Nozzle"
-msgstr ""
+msgstr "Pita lagungarria"
 
+# AI Translated
 msgid "Auxiliary nozzle"
-msgstr ""
+msgstr "Pita lagungarria"
 
+# AI Translated
 msgid "auxiliary nozzle"
-msgstr ""
+msgstr "pita lagungarria"
 
 msgid "Left Nozzle"
 msgstr "Ezkerreko pita"
@@ -91,53 +103,69 @@ msgstr "Eskuineko pita"
 msgid "right nozzle"
 msgstr "eskuineko pita"
 
+# AI Translated
 msgid "Main Hotend"
-msgstr ""
+msgstr "Hotend nagusia"
 
+# AI Translated
 msgid "Main hotend"
-msgstr ""
+msgstr "Hotend nagusia"
 
+# AI Translated
 msgid "main hotend"
-msgstr ""
+msgstr "hotend nagusia"
 
+# AI Translated
 msgid "Auxiliary Hotend"
-msgstr ""
+msgstr "Hotend lagungarria"
 
+# AI Translated
 msgid "Auxiliary hotend"
-msgstr ""
+msgstr "Hotend lagungarria"
 
+# AI Translated
 msgid "auxiliary hotend"
-msgstr ""
+msgstr "hotend lagungarria"
 
+# AI Translated
 msgid "Left Hotend"
-msgstr ""
+msgstr "Ezkerreko hotenda"
 
+# AI Translated
 msgid "Left hotend"
-msgstr ""
+msgstr "Ezkerreko hotenda"
 
+# AI Translated
 msgid "left hotend"
-msgstr ""
+msgstr "ezkerreko hotenda"
 
+# AI Translated
 msgid "Right Hotend"
-msgstr ""
+msgstr "Eskuineko hotenda"
 
+# AI Translated
 msgid "Right hotend"
-msgstr ""
+msgstr "Eskuineko hotenda"
 
+# AI Translated
 msgid "right hotend"
-msgstr ""
+msgstr "eskuineko hotenda"
 
+# AI Translated
 msgid "main"
-msgstr ""
+msgstr "nagusia"
 
+# AI Translated
 msgid "auxiliary"
-msgstr ""
+msgstr "lagungarria"
 
+# AI Translated
 msgid "Main"
-msgstr ""
+msgstr "Nagusia"
 
+# AI Translated
 msgid "Auxiliary"
-msgstr ""
+msgstr "Lagungarria"
 
 msgid "left"
 msgstr "ezkerra"
@@ -346,8 +374,9 @@ msgstr "Irakurtzen "
 msgid "Please wait"
 msgstr "Itxaron, mesedez"
 
+# AI Translated
 msgid "Reading"
-msgstr ""
+msgstr "Irakurtzen"
 
 msgid "Running..."
 msgstr "Exekutatzen..."
@@ -553,6 +582,8 @@ msgstr "Berriro esleitu"
 msgid "Reset"
 msgstr "Berrezarri"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
 msgstr "Sartu"
 
@@ -883,6 +914,8 @@ msgstr "Hautaketatik konektorea ezabatu"
 msgid "Select all connectors"
 msgstr "Hautatu konektore guztiak"
 
+# AI Translated
+msgctxt "Cut tool"
 msgid "Cut"
 msgstr "Ebaki"
 
@@ -986,11 +1019,11 @@ msgstr "Konektore"
 #, boost-format
 msgid ""
 "Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
-"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Please report to the OrcaSlicer team in which scenario this issue happened.\n"
 "Thank you."
 msgstr ""
 "Objektuek (%1%) konektore bikoiztuak dituzte. Baliteke konektore batzuk falta izatea xerratze-emaitzan.\n"
-"Jakinarazi PrusaSlicer taldeari zer egoeratan gertatu den arazoa.\n"
+"Jakinarazi OrcaSlicer taldeari zer egoeratan gertatu den arazoa.\n"
 "Eskerrik asko."
 
 msgid "Cut by Plane"
@@ -1748,14 +1781,18 @@ msgstr "Hautatu"
 msgid "Select point"
 msgstr "Hautatu puntua"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
 msgstr "Ezabatu"
 
 msgid "Restart selection"
 msgstr "Berrabiarazi hautaketa"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
-msgstr "Esc"
+msgstr "Ihes"
 
 msgid "Cancel a feature until exit"
 msgstr "Ezaugarri bat bertan behera utzi irten arte"
@@ -1860,8 +1897,10 @@ msgstr "Neurketa tresnan sartzen"
 msgid "Leaving Measure gizmo"
 msgstr "Neurketa tresna irteten"
 
+# AI Translated
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Multzokatu"
+msgstr "Muntatu"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Mesedez, baieztatu esplosio-erlazioa = 1 dela, eta hautatu objektu bat gutxienez."
@@ -2416,6 +2455,9 @@ msgstr "Ezin izan da URLa deskargatzen hasi. Helburuko karpeta ez dago ezarrita.
 msgid "Import File"
 msgstr "Inportatu fitxategia"
 
+msgid "Delete"
+msgstr "Ezabatu"
+
 msgid "Choose files"
 msgstr "Hautatu fitxategiak"
 
@@ -2534,12 +2576,16 @@ msgstr "Eskutatu"
 msgid "Show"
 msgstr "Erakutsi"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
 msgid "Del"
 msgstr "Ezabatu"
 
 msgid "Delete the selected object"
 msgstr "Ezabatu hautatutako elementuak"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr "Atzera-tekla"
 
@@ -2729,6 +2775,9 @@ msgstr "Bihurtu metroetatik"
 
 msgid "Restore to Meter"
 msgstr "Leheneratu metroetara"
+
+msgid "Assemble"
+msgstr "Multzokatu"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Multzokatu hautatutako objektuak pieza ugariko objektu bakarrean"
@@ -3447,7 +3496,6 @@ msgstr "Ganbera"
 msgid "Innerloop"
 msgstr "Barruko begizta"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "Goikoa"
 
@@ -3478,8 +3526,10 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Ezkerrekoa (Osag.)"
 
+# AI Translated
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Hotend-a"
+msgstr "Hotend"
 
 msgid "Parts"
 msgstr "Piezak"
@@ -3673,6 +3723,10 @@ msgstr "Antolatzen..."
 
 msgid "Arranging"
 msgstr "Antolaketa"
+
+# AI Translated
+msgid "Arranging "
+msgstr "Antolatzen "
 
 msgid "Arranging canceled."
 msgstr "Antolaketa bertan behera utzi da."
@@ -4147,9 +4201,10 @@ msgstr "AMSko artekak"
 msgid "Please select from the following filaments"
 msgstr "Hautatu filamentua aukera hauetatik"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Select filament that installed to the %s"
-msgstr ""
+msgstr "Hautatu %s(e)an instalatutako filamentua"
 
 msgid "Left AMS"
 msgstr "Ezkerreko AMSa"
@@ -4167,20 +4222,24 @@ msgstr "Eskuineko AMSa"
 msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
 msgstr "Uneko pitarekin inprimatzeak %0.2f g hondakin gehiago sor ditzake."
 
+# AI Translated
 #, c-format, boost-format
 msgid "Tips: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
-msgstr ""
+msgstr "Aholkua: filamentu mota(%s) ez dator bat xerratze-fitxategiko filamentu motarekin(%s). Arteka hau erabili nahi baduzu, %s instala dezakezu %s-(r)en ordez eta artekaren informazioa alda dezakezu 'Gailua' orrian."
 
+# AI Translated
 #, c-format, boost-format
 msgid "Cannot select: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
-msgstr ""
+msgstr "Ezin da hautatu: filamentu mota(%s) ez dator bat xerratze-fitxategiko filamentu motarekin(%s). Arteka hau erabili nahi baduzu, %s instala dezakezu %s-(r)en ordez eta artekaren informazioa alda dezakezu 'Gailua' orrian."
 
+# AI Translated
 #, c-format, boost-format
 msgid "Cannot select: the slot is empty or undefined. If you want to use this slot, you can install %s and change slot information on the 'Device' page."
-msgstr ""
+msgstr "Ezin da hautatu: arteka hutsik dago edo ez dago definituta. Arteka hau erabili nahi baduzu, %s instala dezakezu eta artekaren informazioa alda dezakezu 'Gailua' orrian."
 
+# AI Translated
 msgid "Cannot select: No filament loaded in current slot."
-msgstr ""
+msgstr "Ezin da hautatu: ez dago filamenturik kargatuta uneko artekan."
 
 msgid "Enable AMS"
 msgstr "AMSa gaitu"
@@ -4217,6 +4276,16 @@ msgstr "Inprimatu kanpoko harileko filamentua erabiliz."
 
 msgid "Print with filament in AMS"
 msgstr "AMSko filamentuarekin inprimatu"
+
+# AI Translated
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr "Ezkerra"
+
+# AI Translated
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr "Eskuina"
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Uneko materiala agortzen denean, inprimagailuak hurrengo ordenean inprimatzen jarraituko du."
@@ -4910,8 +4979,9 @@ msgstr "Hutsegitea gertatu da kalibrazioko G-Code-a sortzean"
 msgid "Calibration error"
 msgstr "Kalibrazio akatsa"
 
+# AI Translated
 msgid "Network unavailable"
-msgstr ""
+msgstr "Sarea ez dago erabilgarri"
 
 msgid "Resume Printing"
 msgstr "Berrekin inprimaketari"
@@ -4946,8 +5016,9 @@ msgstr "Ikusi zuzeneko ikuspegia"
 msgid "No Reminder Next Time"
 msgstr "Ez gogorarazi hurrengoan"
 
+# AI Translated
 msgid "Recheck"
-msgstr ""
+msgstr "Berriz egiaztatu"
 
 msgid "Ignore. Don't Remind Next Time"
 msgstr "Ez ikusi egin. Ez gogorarazi hurrengoan"
@@ -4970,14 +5041,17 @@ msgstr "Gelditu lehortzea"
 msgid "Proceed"
 msgstr "Jarraitu"
 
+# AI Translated
 msgid "Abort"
-msgstr ""
+msgstr "Abortatu"
 
+# AI Translated
 msgid "Disable Purification for This Print"
-msgstr ""
+msgstr "Desgaitu araztea inprimaketa honetarako"
 
+# AI Translated
 msgid "Don't Remind Me"
-msgstr ""
+msgstr "Ez gogorarazi"
 
 msgid "Retry"
 msgstr "Saiatu berriro"
@@ -4988,8 +5062,9 @@ msgstr "Berrekin"
 msgid "Unknown error."
 msgstr "Errore ezezaguna."
 
+# AI Translated
 msgid "Loading ..."
-msgstr ""
+msgstr "Kargatzen ..."
 
 msgid "default"
 msgstr "lehenetsia"
@@ -5109,8 +5184,9 @@ msgstr "Sartutako luzapenen bat ez da baliozkoa"
 msgid "This parameter expects a valid template."
 msgstr "Parametro honek baliozko txantiloi bat behar du."
 
+# AI Translated
 msgid "Invalid pattern. Use N, N#K, or a comma-separated list with optional #K per entry. Examples: 5, 5#2, 1,7,9, 5,9#2,18."
-msgstr "Eredu baliogabea. Erabili N, N#K edo komaz bereizitako zerrenda bat, sarrera bakoitzean aukerako #K erabilita. Adibideak: 5, 5#2, 1,7,9, 5,9#2,18."
+msgstr "Patroi baliogabea. Erabili N, N#K edo komaz bereizitako zerrenda bat, sarrera bakoitzean aukerako #K erabilita. Adibideak: 5, 5#2, 1,7,9, 5,9#2,18."
 
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
@@ -5504,8 +5580,10 @@ msgstr "Egokigarria"
 msgid "Quality / Speed"
 msgstr "Kalitatea / Abiadura"
 
+# AI Translated
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Leuna"
+msgstr "Leundu"
 
 msgid "Radius"
 msgstr "Erradioa"
@@ -5604,9 +5682,26 @@ msgstr "Saihestu estrusioaren kalibraketa-eremua"
 msgid "Align to Y axis"
 msgstr "Lerrokatu Y ardatzarekin"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "Aurrekoa"
+
 msgctxt "Camera View"
 msgid "Back"
 msgstr "Atzekoa"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "Goikoa"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "Behekoa"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -5990,19 +6085,14 @@ msgstr "Lehenetsitako bista"
 msgid "Top View"
 msgstr "Goiko bista"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "Behekoa"
-
 msgid "Bottom View"
 msgstr "Beheko bista"
-
-msgid "Front"
-msgstr "Aurrekoa"
 
 msgid "Front View"
 msgstr "Aurreko bista"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
 msgstr "Atzekoa"
 
@@ -6114,6 +6204,9 @@ msgstr "Desegin"
 msgid "Redo"
 msgstr "Berregin"
 
+msgid "Cut"
+msgstr "Ebaki"
+
 msgid "Cut selection to clipboard"
 msgstr "Ebaki hautaketa arbelean"
 
@@ -6212,6 +6305,11 @@ msgstr "Erakutsi hautatutako objektuaren inguruko ingerada 3D eszenan."
 
 msgid "Preferences"
 msgstr "Hobespenak"
+
+# AI Translated
+msgctxt "Menu"
+msgid "Edit"
+msgstr "Editatu"
 
 msgid "View"
 msgstr "Bista"
@@ -7302,17 +7400,21 @@ msgstr ""
 "Mota honetarako ez dago plugin-gaitasunik eskuragarri.\n"
 "Gaitu edo instalatu batzuk erabiltzeko."
 
+# AI Translated
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
-msgstr ""
+msgstr "Uneko inprimatze-lanean harilkatzeko joera duen filamentua dago. Pitako material-metaketaren detekzioa orain gaitzeak inprimatze-kalitatea okertu dezake. Ziur zaude gaitu nahi duzula?"
 
+# AI Translated
 msgid "Enable Nozzle Clumping Detection"
-msgstr ""
+msgstr "Gaitu pitako material-metaketaren detekzioa"
 
+# AI Translated
 msgid "When enabled, the printer will automatically capture photos of printed parts and upload them to the cloud. Would you like to enable this option?"
-msgstr ""
+msgstr "Gaituta dagoenean, inprimagailuak inprimatutako piezen argazkiak automatikoki hartuko ditu eta hodeira igoko ditu. Aukera hau gaitu nahi duzu?"
 
+# AI Translated
 msgid "Confirm Enable Print Status Snapshot"
-msgstr ""
+msgstr "Berretsi Inprimatze-egoeraren argazkia gaitzea"
 
 msgid "Enable detection of build plate position"
 msgstr "Gaitu inprimatze-plakaren posizioaren detekzioa"
@@ -7326,20 +7428,25 @@ msgstr "Inprimatze-plakaren detekzioa"
 msgid "Identifies the type and position of the build plate on the heatbed. Pausing printing if a mismatch is detected."
 msgstr "Inprimatze-plakaren mota eta posizioa identifikatzen ditu ohe beroan. Bat ez badatoz, inprimatzea pausatzen du."
 
+# AI Translated
 msgid "Purifies the chamber air as the print finishes, based on the selected mode."
-msgstr ""
+msgstr "Ganberako airea arazten du inprimaketa amaitzean, hautatutako moduaren arabera."
 
+# AI Translated
 msgid "Purifies the chamber air through internal circulation as each print finishes."
-msgstr ""
+msgstr "Ganberako airea arazten du barne-zirkulazioaren bidez inprimaketa bakoitza amaitzean."
 
+# AI Translated
 msgid "Automatically match the corresponding switch strategy for leak-prone filaments (disable blob detection) and regular filaments (enable blob detection)."
-msgstr ""
+msgstr "Automatikoki egokitu dagokion aldaketa-estrategia jariotzeko joera duten filamentuentzat (desgaitu material-metaketaren detekzioa) eta filamentu arruntentzat (gaitu material-metaketaren detekzioa)."
 
+# AI Translated
 msgid "Detect whether the nozzle is wrapped by filament or other foreign matter."
-msgstr ""
+msgstr "Detektatu pita filamentuz edo beste material arrotzez inguratuta dagoen."
 
+# AI Translated
 msgid "After disabling, nozzle wrapping cannot be detected, which may lead to print failure or nozzle damage."
-msgstr ""
+msgstr "Desgaitu ondoren, ezin izango da pitaren inguraketa detektatu, eta horrek inprimaketa-hutsegitea edo pitaren kaltea eragin dezake."
 
 msgid "AI Detections"
 msgstr "AA bidezko detekzioak"
@@ -7383,8 +7490,9 @@ msgstr "Berreskuratu automatikoki urrats-galeratik"
 msgid "Store Sent Files on External Storage"
 msgstr "Gorde bidalitako fitxategiak kanpoko biltegiratze-gailuan"
 
+# AI Translated
 msgid "Save the printing files sent from the slicer and other apps on External Storage"
-msgstr ""
+msgstr "Gorde xerratzailetik eta beste aplikazioetatik bidalitako inprimatze-fitxategiak kanpoko biltegiratze-gailuan"
 
 msgid "Allow Prompt Sound"
 msgstr "Baimendu abisu-soinua"
@@ -7395,32 +7503,41 @@ msgstr "Filamentu-korapiloen detekzioa"
 msgid "Check if the nozzle is clumping by filament or other foreign objects."
 msgstr "Egiaztatu pita filamentuz edo bestelako objektu arrotzez trabatuta dagoen."
 
+# AI Translated
 msgid "Purify Air at Print End"
-msgstr ""
+msgstr "Araztu airea inprimaketaren amaieran"
 
+# AI Translated
 msgid "Internal Circulation"
-msgstr ""
+msgstr "Barne-zirkulazioa"
 
+# AI Translated
 msgid "Alignment Detection"
-msgstr ""
+msgstr "Lerrokatze-detekzioa"
 
+# AI Translated
 msgid "Pauses printing when build plate misalignment is detected."
-msgstr ""
+msgstr "Inprimaketa pausatzen du inprimatze-plakaren deslerrokatzea detektatzen denean."
 
+# AI Translated
 msgid "Foreign Object Detection"
-msgstr ""
+msgstr "Objektu arrotzen detekzioa"
 
+# AI Translated
 msgid "Checks for any objects on the build plate at the start of a print to avoid collisions."
-msgstr ""
+msgstr "Inprimaketaren hasieran inprimatze-plakan objekturik dagoen egiaztatzen du talkak saihesteko."
 
+# AI Translated
 msgid "Printed Part Displacement Detection"
-msgstr ""
+msgstr "Inprimatutako piezaren desplazamenduaren detekzioa"
 
+# AI Translated
 msgid "Monitors the printed part during printing and alerts immediately if it shifts or collapses."
-msgstr ""
+msgstr "Inprimatutako pieza gainbegiratzen du inprimatzen ari den bitartean eta berehala ohartarazten du desplazatzen edo erortzen bada."
 
+# AI Translated
 msgid "Checks if the nozzle is clumping by filament or other foreign objects."
-msgstr ""
+msgstr "Egiaztatzen du pitan filamentua edo beste objektu arrotzik metatzen ari den."
 
 msgid "On"
 msgstr "Aktibatuta"
@@ -7434,11 +7551,13 @@ msgstr "Jakinarazpena"
 msgid "Pause printing"
 msgstr "Pausatu inprimaketa"
 
+# AI Translated
 msgid "Print Status Snapshot"
-msgstr ""
+msgstr "Inprimatze-egoeraren argazkia"
 
+# AI Translated
 msgid "Automatically capture and upload print photos, showing defects during printing and the final result for remote viewing."
-msgstr ""
+msgstr "Automatikoki hartu eta igo inprimaketaren argazkiak, inprimatzean sortzen diren akatsak eta azken emaitza urrunetik ikusteko."
 
 msgctxt "Nozzle Type"
 msgid "Type"
@@ -7737,8 +7856,9 @@ msgstr "3MF fitxategia OrcaSlicer-en bertsio zaharrago batek sortu zuen, geometr
 msgid "The 3MF file was generated by BambuStudio, loading geometry data only."
 msgstr "3MF fitxategia BambuStudio bidez sortu zen, geometriaren datuak bakarrik kargatzen."
 
+# AI Translated
 msgid "This project was created with an OrcaSlicer 2.3.1-alpha and uses infill rotation template settings that may not work properly with your current infill pattern. This could result in weak support or print quality issues."
-msgstr "Proiektu hau OrcaSlicer 2.3.1-alpha bertsioarekin sortu zen, eta baliteke betegarriaren biraketa-txantiloiaren ezarpenek zure uneko betegarri-ereduarekin behar bezala ez funtzionatzea. Horrek euskarri ahulak edo inprimatze-kalitateko arazoak eragin ditzake."
+msgstr "Proiektu hau OrcaSlicer 2.3.1-alpha bertsioarekin sortu zen, eta baliteke betegarriaren biraketa-txantiloiaren ezarpenek zure uneko betegarri-patroiarekin behar bezala ez funtzionatzea. Horrek euskarri ahulak edo inprimatze-kalitateko arazoak eragin ditzake."
 
 msgid "Would you like OrcaSlicer to automatically fix this by clearing the rotation template settings?"
 msgstr "OrcaSlicerrek arazoa automatikoki konpontzea nahi duzu, biraketa-txantiloiaren ezarpenak garbituz?"
@@ -8871,6 +8991,33 @@ msgstr "Erakutsi FPS gainjartzea"
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr "Uneko ikuspegiaren FPSa goiko eskuineko izkinan erakusten du."
 
+# AI Translated
+msgid "G-code Preview"
+msgstr "G-code aurrebista"
+
+# AI Translated
+msgid "Dim lower layers"
+msgstr "Ilundu beheko geruzak"
+
+# AI Translated
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr "Xerratutako aurrebistan geruza-graduatzailea mugitzean, unekoaren azpiko geruzak ilunduta erakusten ditu, ikusten ari den geruza soilik distira osoz ager dadin."
+
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Ilundutako geruzen distira"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"\"Ilundu beheko geruzak\" gaituta dagoenean ilundutako geruzak zein distiratsu marrazten diren.\n"
+"%99 balioak ozta-ozta iluntzen ditu, %0 balioak beltz bihurtzen ditu. Gehienez %99 onartzen da, %100 balioak aukera desgaitzearen gauza bera egingo bailuke."
+
 msgid "Login region"
 msgstr "Saio-hasierako eskualdea"
 
@@ -9159,6 +9306,8 @@ msgstr "Bateraezina"
 msgid "The selected preset is null!"
 msgstr "Hautatutako aurrezarpena hutsa da!"
 
+# AI Translated
+msgctxt "Layer range"
 msgid "End"
 msgstr "Amaiera"
 
@@ -9345,8 +9494,9 @@ msgstr "Xerratutako fitxategiko filamentuen taldekatze-metodoa ez da egokiena."
 msgid "To ensure print quality, the drying temperature will be lowered during printing."
 msgstr "Inprimatze-kalitatea bermatzeko, lehortze-tenperatura jaitsi egingo da inprimatze-prozesuan zehar."
 
+# AI Translated
 msgid "Select timelapse storage location"
-msgstr ""
+msgstr "Hautatu timelapsearen biltegiratze-kokapena"
 
 msgid "Auto Bed Leveling"
 msgstr "Ohearen nibelatze automatikoa"
@@ -9378,11 +9528,13 @@ msgstr ""
 "Kalibratu pitaren desplazamenduak inprimatze-kalitatea hobetzeko.\n"
 "*Modu automatikoa: egiaztatu kalibrazioa inprimatu aurretik. Saltatu beharrezkoa ez bada."
 
+# AI Translated
 msgid "Shared PA Profile"
-msgstr ""
+msgstr "PA profil partekatua"
 
+# AI Translated
 msgid "Nozzles and filaments of the same type share the same PA profile."
-msgstr ""
+msgstr "Mota bereko pitek eta filamentuek PA profil bera partekatzen dute."
 
 msgid "Send complete"
 msgstr "Bidalketa osatuta"
@@ -9427,9 +9579,10 @@ msgstr "Inprimagailuak ezin izan du pitaren automapeatze-taula sortu { code: %d 
 msgid "The current nozzle mapping may produce an extra %0.2f g of waste."
 msgstr "Uneko pitaren mapaketak %0.2f g hondakin gehigarri sor ditzake."
 
+# AI Translated
 #, c-format, boost-format
 msgid "Recommended filament arrangement saves %s->"
-msgstr ""
+msgstr "Gomendatutako filamentu-antolaketak %s aurrezten du->"
 
 #, c-format, boost-format
 msgid "Filament %s does not match the filament in AMS slot %s. Please update the printer firmware to support AMS slot assignment."
@@ -9447,6 +9600,10 @@ msgstr "Espiral formako loreontziaren modua gaituta dagoenean, I3 egitura duten 
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "Uneko inprimagailuak ez du timelapsea onartzen Modu tradizionalean objektuz objektu inprimatzean."
+
+# AI Translated
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr "Instalatutako pita egiaztatu dut eta hala ere inprimatu nahi dut."
 
 msgid "Errors"
 msgstr "Erroreak"
@@ -9481,33 +9638,42 @@ msgstr "Prozesu honek fluxu dinamikoaren balioak zehazten ditu inprimatze-kalita
 msgid "Internal"
 msgstr "Barrukoa"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s space less than 20MB. Timelapse may not save properly. You can turn it off or"
-msgstr ""
+msgstr "%s espazioa 20MB baino gutxiago. Baliteke timelapsea behar bezala ez gordetzea. Desaktibatu dezakezu edo"
 
+# AI Translated
 msgid "Clean up files"
-msgstr ""
+msgstr "Garbitu fitxategiak"
 
+# AI Translated
 msgid "Low internal storage. This timelapse will overwrite the oldest video files."
-msgstr ""
+msgstr "Barne-biltegiratze gutxi. Timelapse honek bideo-fitxategi zaharrenak gainidatziko ditu."
 
+# AI Translated
 msgid "Low external storage. This timelapse will overwrite the oldest video files."
-msgstr ""
+msgstr "Kanpoko biltegiratze gutxi. Timelapse honek bideo-fitxategi zaharrenak gainidatziko ditu."
 
+# AI Translated
 msgid "Insufficient external storage for time-lapse photography. Connect to computer to delete files, or use a larger memory card."
-msgstr ""
+msgstr "Kanpoko biltegiratze nahikorik ez timelapse argazkigintzarako. Konektatu ordenagailura fitxategiak ezabatzeko, edo erabili memoria-txartel handiago bat."
 
+# AI Translated
 msgid "Storage Space Not Enough"
-msgstr ""
+msgstr "Biltegiratze-espazio nahikorik ez"
 
+# AI Translated
 msgid "Confirm & Print"
-msgstr ""
+msgstr "Berretsi eta inprimatu"
 
+# AI Translated
 msgid "Cancel Timelapse & Print"
-msgstr ""
+msgstr "Utzi timelapsea eta inprimatu"
 
+# AI Translated
 msgid "Clean Up"
-msgstr ""
+msgstr "Garbitu"
 
 msgid "Preparing print job"
 msgstr "Inprimatze-lana prestatzen"
@@ -9573,21 +9739,25 @@ msgstr "bi estrusoreak"
 msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). Please verify the nozzle or material settings and try again."
 msgstr "Uneko materialaren gogortasunak (%s) %s(%s)-ren gogortasuna gainditzen du. Egiaztatu pitaren edo materialaren ezarpenak eta saiatu berriro."
 
+# AI Translated
 msgid "Your current firmware version cannot start this print job. Please update to the latest version and try again."
-msgstr ""
+msgstr "Zure uneko firmware bertsioak ezin du inprimatze-lan hau hasi. Eguneratu azken bertsiora eta saiatu berriro."
 
 #, c-format, boost-format
 msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). It may cause nozzle wear, leading to material leakage and unstable flow. Please exercise caution when using it."
 msgstr "Uneko materialaren gogortasunak (%s) %s(%s)-ren gogortasuna gainditzen du. Horrek pita higatu, material-ihesak eragin eta fluxua ezegonkortu dezake. Kontuz erabili."
 
+# AI Translated
 msgid "Some filaments may switch between extruders during printing. Manual K-value calibration cannot be applied throughout the entire print, which may affect print quality. Enabling Flow Dynamics Calibration is recommended."
-msgstr ""
+msgstr "Filamentu batzuk estrusoreen artean alda daitezke inprimatzen ari den bitartean. Eskuzko K-balioaren kalibrazioa ezin da inprimaketa osoan zehar aplikatu, eta horrek inprimatze-kalitatea okertu dezake. Fluxu Dinamikaren Kalibrazioa gaitzea gomendatzen da."
 
+# AI Translated
 msgid "There is stringing-prone filament in this file. For best print quality, we recommend switching nozzle clumping detection to Auto mode."
-msgstr ""
+msgstr "Fitxategi honetan harilkatzeko joera duen filamentua dago. Inprimatze-kalitate onena lortzeko, pitako material-metaketaren detekzioa Auto modura aldatzea gomendatzen dugu."
 
+# AI Translated
 msgid "If 'Dynamic Flow Calibration' is set to Auto/On, the system will use the manual calibration value or the default value and skip the flow calibration process. You can perform a manual flow calibration for TPU filament on the 'Calibration' page."
-msgstr ""
+msgstr "'Fluxu Dinamikoaren Kalibrazioa' Auto/On ezarrita badago, sistemak eskuzko kalibrazio-balioa edo balio lehenetsia erabiliko du eta fluxu-kalibrazioaren prozesua saltatuko du. TPU filamenturako eskuzko fluxu-kalibrazioa egin dezakezu 'Kalibrazioa' orrian."
 
 #, c-format, boost-format
 msgid "[ %s ] requires printing in a high-temperature environment. Please close the door."
@@ -9692,18 +9862,21 @@ msgstr "Ezarri fluxu dinamikoaren kalibrazioa 'DESAKTIBATUTA' moduan fluxu dinam
 msgid "This printer does not support printing all plates."
 msgstr "Inprimagailu honek ez du plaka guztiak inprimatzea onartzen."
 
+# AI Translated
 #, c-format, boost-format
 msgid "The current firmware supports a maximum of %s materials. You can either reduce the number of materials to %s or fewer on the Preparation Page, or try updating the firmware. If you are still restricted after the update, please wait for subsequent firmware support."
-msgstr ""
+msgstr "Uneko firmwareak gehienez %s material onartzen ditu. Materialen kopurua %s edo gutxiagora murritz dezakezu Prestaketa Orrian, edo saiatu firmwarea eguneratzen. Eguneratu ondoren oraindik mugatuta bazaude, itxaron hurrengo firmware euskarriari."
 
 msgid "The type of external filament is unknown or does not match with the filament type in the slicing file. Please make sure you have installed the correct filament in the external spool."
 msgstr "Kanpoko filamentuaren mota ezezaguna da edo ez dator bat xerratze-fitxategiko filamentu motarekin. Egiaztatu kanpoko harilean filamentu zuzena instalatu duzula."
 
+# AI Translated
 msgid "TPU 90A/TPU 85A are too soft. It is recommended to perform manual flow calibration on the 'Calibration' page. If 'Dynamic Flow Calibration' is set to auto/on, the system will use the previous calibration value and skip the flow calibration process."
-msgstr ""
+msgstr "TPU 90A/TPU 85A bigunegiak dira. Eskuzko fluxu-kalibrazioa 'Kalibrazioa' orrian egitea gomendatzen da. 'Fluxu Dinamikoaren Kalibrazioa' auto/on ezarrita badago, sistemak aurreko kalibrazio-balioa erabiliko du eta fluxu-kalibrazioaren prozesua saltatuko du."
 
+# AI Translated
 msgid "The filament in the AMS may be insufficient for this print. Please refill or replace it."
-msgstr ""
+msgstr "Baliteke AMSko filamentua nahikoa ez izatea inprimaketa honetarako. Bete berriro edo ordeztu ezazu."
 
 msgid "Current firmware does not support file transfer to internal storage."
 msgstr "Uneko firmwareak ez du onartzen fitxategiak barne-biltegiratzera transferitzerik."
@@ -9914,12 +10087,13 @@ msgstr ""
 "Ez da gomendatzen euskarri-disolbaezinak erabiltzea euskarriaren oinarrian.\n"
 "Ziur zaude euskarriaren oinarrian erabili nahi dituzula?\n"
 
+# AI Translated
 msgid ""
 "When using support material for the support interface, we recommend the following settings:\n"
 "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern and disable independent support layer height."
 msgstr ""
 "Euskarri-interfazerako euskarri-materiala erabiltzean, ezarpen hauek gomendatzen ditugu:\n"
-"goiko Z distantzia 0, interfazearen tartea 0, eredu lerrozuzen tartekatua eta euskarrien geruza-altuera independentea desgaitzea."
+"goiko Z distantzia 0, interfazearen tartea 0, patroi lerrozuzen tartekatua eta euskarrien geruza-altuera independentea desgaitzea."
 
 msgid ""
 "Change these settings automatically?\n"
@@ -9930,13 +10104,14 @@ msgstr ""
 "Bai - Aldatu ezarpen hauek automatikoki.\n"
 "Ez - Ez aldatu ezarpen hauek."
 
+# AI Translated
 msgid ""
 "When using soluble material for the support interface, we recommend the following settings:\n"
 "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
 "and use soluble materials for both support interface and support base."
 msgstr ""
 "Euskarri-interfazerako material disolbagarria erabiltzean, ezarpen hauek gomendatzen ditugu:\n"
-"goiko Z distantzia 0, interfazearen tartea 0, eredu lerrozuzen tartekatua, euskarrien geruza-altuera independentea desgaitzea\n"
+"goiko Z distantzia 0, interfazearen tartea 0, patroi lerrozuzen tartekatua, euskarrien geruza-altuera independentea desgaitzea\n"
 "eta material disolbagarriak erabiltzea bai euskarri-interfazerako bai euskarri-oinarrirako."
 
 msgid "Enabling this option will modify the model's shape. If your print requires precise dimensions or is part of an assembly, it's important to double-check whether this change in geometry impacts the functionality of your print."
@@ -9945,8 +10120,9 @@ msgstr "Aukera hau gaitzeak modeloaren forma aldatuko du. Zure inprimaketak dime
 msgid "Are you sure you want to enable this option?"
 msgstr "Ziur aukera hau gaitu nahi duzula?"
 
+# AI Translated
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
-msgstr "Betegarri-ereduak normalean biraketa automatikoki kudeatzeko diseinatuta daude, behar bezala inprimatzeko eta nahi den efektua lortzeko (adibidez, Giroidea edo Kubikoa). Uneko dentsitate baxuko betegarri-eredua biratzeak euskarri eskasa eragin dezake. Kontuz jarraitu eta egiaztatu arretaz inprimatze-arazorik sor daitekeen. Ziur zaude aukera hau gaitu nahi duzula?"
+msgstr "Betegarri-patroiak normalean biraketa automatikoki kudeatzeko diseinatuta daude, behar bezala inprimatzeko eta nahi den efektua lortzeko (adibidez, Giroidea edo Kubikoa). Uneko dentsitate baxuko betegarri-patroia biratzeak euskarri eskasa eragin dezake. Kontuz jarraitu eta egiaztatu arretaz inprimatze-arazorik sor daitekeen. Ziur zaude aukera hau gaitu nahi duzula?"
 
 msgid ""
 "Layer height is too small.\n"
@@ -11143,26 +11319,34 @@ msgstr "Hautatu objektu bat baino gehiago"
 msgid "Select objects by rectangle"
 msgstr "Hautatu objektuak laukizuzen bidez"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
 msgstr "Gora gezia"
 
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Mugitu hautapena 10 mm Y noranzko positiboan"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
 msgstr "Behera gezia"
 
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Mugitu hautapena 10 mm Y noranzko negatiboan"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Ezker gezia"
+msgstr "Ezkerrera gezia"
 
 msgid "Move selection 10mm in negative X direction"
 msgstr "Mugitu hautapena 10 mm X noranzko negatiboan"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Eskuin gezia"
+msgstr "Eskuinera gezia"
 
 msgid "Move selection 10mm in positive X direction"
 msgstr "Mugitu hautapena 10 mm X noranzko positiboan"
@@ -11245,8 +11429,18 @@ msgstr "Txikiagotu zooma"
 msgid "Toggle printable for object/part"
 msgstr "Txandakatu objektuaren/piezaren inprimagarritasuna"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr "Tab"
+
 msgid "Switch between Prepare/Preview"
 msgstr "Aldatu Prestatu/Aurrebista artean"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Zuriunea"
 
 msgid "Open actions speed dial"
 msgstr "Ekintzen markatze azkarra ireki"
@@ -11305,8 +11499,18 @@ msgstr "G-code leihoa aktibatu/desaktibatu"
 msgid "Move slider 5x faster"
 msgstr "Mugitu graduatzailea 5 aldiz azkarrago"
 
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr "Hasiera"
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Graduatzaile horizontala - Mugitu hasierako posiziora"
+
+# AI Translated
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr "Amaiera"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Graduatzaile horizontala - Mugitu azken posiziora"
@@ -11321,11 +11525,13 @@ msgstr "%s bertsioaren eguneratze-informazioa:"
 msgid "Network plug-in update"
 msgstr "Sareko pluginaren eguneratzea"
 
+# AI Translated
 msgid "Click OK to update the Network plug-in now. If a file is in use, the update will be applied the next time Orca Slicer launches."
-msgstr ""
+msgstr "Egin klik Ados botoian Sareko plugina orain eguneratzeko. Fitxategiren bat erabiltzen ari bada, eguneraketa Orca Slicer hurrengoan abiaraztean aplikatuko da."
 
+# AI Translated
 msgid "A new Network plug-in is available. Do you want to install it?"
-msgstr ""
+msgstr "Sareko plugin berri bat dago eskuragarri. Instalatu nahi duzu?"
 
 #, c-format, boost-format
 msgid "A new Network plug-in (%s) is available. Do you want to install it?"
@@ -11805,11 +12011,13 @@ msgstr "Pitaren diametro desberdineko hainbat estrusorerekin inprimatzen. Euskar
 msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "Purgatze-dorreak euskarriak objektuaren geruza-altuera bera izatea eskatzen du."
 
+# AI Translated
 msgid "For Organic supports, two walls are supported only with the Hollow/Default base pattern."
-msgstr "Euskarri organikoetan, bi horma Hollow/Default oinarri-ereduarekin soilik onartzen dira."
+msgstr "Euskarri organikoetan, bi horma Hollow/Default oinarri-patroiarekin soilik onartzen dira."
 
+# AI Translated
 msgid "The Lightning base pattern is not supported by this support type; Rectilinear will be used instead."
-msgstr "Lightning oinarri-eredua ez du euskarri mota honek onartzen; Rectilinear erabiliko da horren ordez."
+msgstr "Lightning oinarri-patroia ez du euskarri mota honek onartzen; Rectilinear erabiliko da horren ordez."
 
 msgid "Organic support tree tip diameter must not be smaller than support material extrusion width."
 msgstr "Euskarri organikoaren zuhaitz-muturraren diametroak ezin du izan euskarri-materialaren estrusio-zabalera baino txikiagoa."
@@ -11820,8 +12028,9 @@ msgstr "Euskarri organikoaren adar-diametroak ezin du izan euskarri-materialaren
 msgid "Organic support branch diameter must not be smaller than support tree tip diameter."
 msgstr "Euskarri organikoaren adar-diametroak ezin du izan euskarri-zuhaitzaren mutur-diametroa baino txikiagoa."
 
+# AI Translated
 msgid "The Hollow base pattern is not supported by this support type; Rectilinear will be used instead."
-msgstr "Hollow oinarri-eredua ez du euskarri mota honek onartzen; Rectilinear erabiliko da horren ordez."
+msgstr "Hollow oinarri-patroia ez du euskarri mota honek onartzen; Rectilinear erabiliko da horren ordez."
 
 msgid "Support enforcers are used but support is not enabled. Please enable support."
 msgstr "Euskarri-behartzaileak erabiltzen dira, baina euskarria ez dago gaituta. Gaitu euskarriak."
@@ -12544,8 +12753,9 @@ msgstr "Doitu kanpoko hormen tartea oskolaren zehaztasuna hobetzeko. Geruzen koh
 msgid "Only one wall on top surfaces"
 msgstr "Horma bakarra goiko gainazaletan"
 
+# AI Translated
 msgid "Use only one wall on flat top surfaces, to give more space to the top infill pattern."
-msgstr "Erabili horma bakarra goiko gainazal lauetan, goiko betegarri-ereduari leku gehiago emateko."
+msgstr "Erabili horma bakarra goiko gainazal lauetan, goiko betegarri-patroiari leku gehiago emateko."
 
 msgid "One wall threshold"
 msgstr "Horma bakarraren atalasea"
@@ -12561,8 +12771,9 @@ msgstr ""
 msgid "Only one wall on first layer"
 msgstr "Horma bakarra lehen geruzan"
 
+# AI Translated
 msgid "Use only one wall on first layer, to give more space to the bottom infill pattern."
-msgstr "Erabili horma bakarra lehen geruzan, beheko betegarri-ereduari leku gehiago emateko."
+msgstr "Erabili horma bakarra lehen geruzan, beheko betegarri-patroiari leku gehiago emateko."
 
 msgid "Extra perimeters on overhangs"
 msgstr "Perimetro gehigarriak irtenguneetan"
@@ -12576,12 +12787,13 @@ msgstr "Alderantzikatu bikoitietan"
 msgid "Overhang reversal"
 msgstr "Irtenguneen alderantzikatzea"
 
+# AI Translated
 msgid ""
 "Extrude perimeters that have a part over an overhang in the reverse direction on even layers. This alternating pattern can drastically improve steep overhangs.\n"
 "\n"
 "This setting can also help reduce part warping due to the reduction of stresses in the part walls."
 msgstr ""
-"Estruitu irtengune baten gaineko zatia duten perimetroak alderantziz geruza bikoitietan. Txandakako eredu honek irtengune malkartsuak nabarmen hobetu ditzake.\n"
+"Estruitu irtengune baten gaineko zatia duten perimetroak alderantziz geruza bikoitietan. Txandakako patroi honek irtengune malkartsuak nabarmen hobetu ditzake.\n"
 "\n"
 "Ezarpen honek piezaren okertzea murrizten ere lagun dezake, piezaren hormetako tentsioak murrizten direlako."
 
@@ -12799,11 +13011,36 @@ msgstr "Objektuka"
 msgid "Intra-layer order"
 msgstr "Geruza barruko ordena"
 
-msgid "Print order within a single layer."
-msgstr "Geruza bakarreko inprimatze-ordena."
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"Geruza bakar baten barruan objektu-instantziak zein ordenatan bisitatzen diren; horrek zehazten du zenbat desplazamendu behar den haien artean mugitzeko.\n"
+"\n"
+"Lehenetsia: auzokide hurbilenaren araberako kateaketa, 2-opt bidez eta gurutzaketak kenduz findua. Aukera orokor ona.\n"
+"Objektu-zerrenda bezala: instantziak objektu-zerrendaren ordena berean inprimatzen dira, ibilbidea batere optimizatu gabe. Erabili ordena aurreikusgarri eta eskuz kontrolatu bat behar duzunean.\n"
+"Guztien onena (ibilbide laburrena): estrategia guztiak ebaluatzen dira eta laburrena erabiltzen da. Objektu-instantzien ordena behin erabakitzen da inprimaketa osorako, eta uharte bakoitzaren ordena geruzaz geruza erabakitzen da; beraz, geruza desberdinek estrategia desberdinak erabil ditzakete. Xerratzea apur bat motelagoa da.\n"
+"Sigi-saga: errenkadaz errenkadako sigi-saga ibilbidea, 2-opt bidez findua. Oso egokia pieza txiki askoren sareta erregularretarako.\n"
+"\n"
+"Geruza berean filamentu edo tresna bat baino gehiago daudenean, tresna-aldaketak gutxitzeak du lehentasuna: objektuak filamentuaren arabera multzokatzen dira lehenik, eta ezarpen honek filamentu-multzo bakoitzaren barruko instantziak baino ez ditu ordenatzen; beraz, baliteke sekuentzia orokorrak plaka osoko ibilbide laburrenaren itxurarik ez izatea."
 
 msgid "As object list"
 msgstr "Objektu-zerrenda bezala"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "Guztien onena (ibilbide laburrena)"
+
+# AI Translated
+msgid "Snake"
+msgstr "Sigi-saga"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "Moteldu inprimaketa geruza hobeto hozteko"
@@ -13013,11 +13250,13 @@ msgstr "Critical Only"
 msgid "Moderate"
 msgstr "Moderatua"
 
+# AI Translated
 msgid "Top surface pattern"
-msgstr "Top surface pattern"
+msgstr "Goiko gainazalaren patroia"
 
+# AI Translated
 msgid "This is the line pattern for top surface infill."
-msgstr "Hau da goiko gainazaleko betegarriaren lerro-eredua."
+msgstr "Hau da goiko gainazaleko betegarriaren lerro-patroia."
 
 msgid "Monotonic"
 msgstr "Monotonikoa"
@@ -13046,8 +13285,9 @@ msgstr "Oktagrama-kiribila"
 msgid "Top surface density"
 msgstr "Goiko gainazalaren dentsitatea"
 
+# AI Translated
 msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr "Goiko gainazal-geruzaren dentsitatea. %100eko balioak goiko geruza guztiz trinko eta leuna sortzen du. Balioa murrizteak testuradun goiko gainazala sortzen du, hautatutako goiko gainazal-ereduaren arabera. %0ko balioarekin goiko geruzako hormak soilik sortuko dira. Helburu estetiko edo funtzionaletarako da, ez gainestrusioa bezalako arazoak konpontzeko."
+msgstr "Goiko gainazal-geruzaren dentsitatea. %100eko balioak goiko geruza guztiz trinko eta leuna sortzen du. Balioa murrizteak testuradun goiko gainazala sortzen du, hautatutako goiko gainazal-patroiaren arabera. %0ko balioarekin goiko geruzako hormak soilik sortuko dira. Helburu estetiko edo funtzionaletarako da, ez gainestrusioa bezalako arazoak konpontzeko."
 
 msgid "Top surface expansion"
 msgstr "Goiko gainazalaren hedapena"
@@ -13074,6 +13314,7 @@ msgstr ""
 msgid "Top expansion direction"
 msgstr "Goiko hedapenaren norabidea"
 
+# AI Translated
 msgid ""
 "Direction in which the top surface expansion grows.\n"
 " - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
@@ -13082,7 +13323,7 @@ msgid ""
 msgstr ""
 "Goiko gainazalaren hedapena hazten den norabidea.\n"
 " - Barrurantz: goiko gainazal baten erditik goratzen diren ezaugarriek utzitako zulo eta hutsuneetara hazten da.\n"
-" - Kanporantz: gainazalaren kanpoko ertza hazten du, gainazala zatitu dezaketen ezaugarriek —adibidez sareta-eredu batek— bereizitako gainazalak lotuz.\n"
+" - Kanporantz: gainazalaren kanpoko ertza hazten du, gainazala zatitu dezaketen ezaugarriek —adibidez sareta-patroi batek— bereizitako gainazalak lotuz.\n"
 " - Barrurantz eta kanporantz: biak egiten ditu."
 
 msgid "Inward and Outward"
@@ -13094,11 +13335,13 @@ msgstr "Barrurantz"
 msgid "Outward"
 msgstr "Kanporantz"
 
+# AI Translated
 msgid "Bottom surface pattern"
-msgstr "Beheko gainazalaren eredua"
+msgstr "Beheko gainazalaren patroia"
 
+# AI Translated
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
-msgstr "Hau da beheko gainazaleko betegarriaren lerro-eredua, zubi-betegarria kanpo."
+msgstr "Hau da beheko gainazaleko betegarriaren lerro-patroia, zubi-betegarria kanpo."
 
 msgid "Bottom surface density"
 msgstr "Beheko gainazalaren dentsitatea"
@@ -13113,32 +13356,36 @@ msgstr ""
 msgid "Top surface fill order"
 msgstr "Goiko gainazala betetzeko ordena"
 
+# AI Translated
 msgid ""
 "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Gaineko gainazalak betetzen diren noranzkoa zentroan oinarritutako eredua erabiltzen denean (Konzentrikoa, Arkimedeen Akordeak, Oktograma Espirala).\n"
+"Gaineko gainazalak betetzen diren noranzkoa zentroan oinarritutako patroia erabiltzen denean (Konzentrikoa, Arkimedeen Akordeak, Oktograma Espirala).\n"
 "Kanporanzkoa erdialdean hasten da, beraz, gehiegizko materiala gutxien ikusten den ertzera bultzatzen da. Barruranzkoa ertzean hasten da eta erdian kurba estuekin amaitzen da.\n"
 "Lehenetsiak bide laburreneko ordena erabiltzen du, zeina norabide batean zein bestean ibil daitekeen."
 
 msgid "Bottom surface fill order"
 msgstr "Beheko gainazala betetzeko ordena"
 
+# AI Translated
 msgid ""
 "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Beheko gainazalak betetzen diren noranzkoa zentroan oinarritutako eredua erabiltzen denean (Konzentrikoa, Arkimedeen Akordeak, Oktograma Espirala).\n"
+"Beheko gainazalak betetzen diren noranzkoa zentroan oinarritutako patroia erabiltzen denean (Konzentrikoa, Arkimedeen Akordeak, Oktograma Espirala).\n"
 "Barruranzkoa hasten da gainazal bakoitza kanpoko kurba zabalagoekin, eta horrek lehen geruzaren atxikimendua hobetzen du erdiko kurba estuak itsatsi ez daitezkeen inprimatze-plaketan. Kanporanzkoa erdialdean hasten da, gehiegizko materiala ertzera bultzatuz.\n"
 "Lehenetsiak bide laburreneko ordena erabiltzen du, zeina norabide batean zein bestean ibil daitekeen."
 
+# AI Translated
 msgid "Internal solid infill pattern"
-msgstr "Barruko betegarri solidoaren eredua"
+msgstr "Barruko betegarri solidoaren patroia"
 
+# AI Translated
 msgid "Line pattern of internal solid infill. if the detect narrow internal solid infill be enabled, the concentric pattern will be used for the small area."
-msgstr "Barruko betegarri solidoaren lerro-eredua. Barruko betegarri solido estua detektatzea gaituta badago, eremu txikietan eredu kontzentrikoa erabiliko da."
+msgstr "Barruko betegarri solidoaren lerro-patroia. Barruko betegarri solido estua detektatzea gaituta badago, eremu txikietan patroi kontzentrikoa erabiliko da."
 
 msgid "Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Kanpoko hormaren lerro-zabalera. % gisa adierazten bada, pitaren diametroaren arabera kalkulatuko da."
@@ -13332,6 +13579,7 @@ msgstr ""
 msgid "Adaptive pressure advance measurements (beta)"
 msgstr "Pressure advance neurketa egokigarriak (beta)"
 
+# AI Translated
 #, no-c-format, no-boost-format
 msgid ""
 "Add sets of pressure advance (PA) values, the volumetric flow speeds and accelerations they were measured at, separated by a comma. One set of values per line. For example\n"
@@ -13353,7 +13601,7 @@ msgstr ""
 "\n"
 "Kalibratzeko:\n"
 "1. Exekutatu Pressure Advance proba gutxienez 3 abiaduratan azelerazio-balio bakoitzeko. Gomendagarria da kanpoko perimetroen abiaduran, barruko perimetroen abiaduran eta profileko ezaugarri azkarrenaren abiaduran egitea. Ondoren, errepikatu azelerazio motel eta azkarrenekin, Klipper-en input shaper-ak gomendatutako gehienekoa gainditu gabe.\n"
-"2. Idatzi fluxu bolumetriko eta azelerazio bakoitzerako PA balio optimoa. Fluxua kolore-eskeman hautatu eta irristagailua PA ereduen gainetik mugituta ikus dezakezu. PA idealak txikiagoa izan behar du fluxua handitu ahala. Hala ez bada, egiaztatu estrusoreak zuzen funtzionatzen duela.\n"
+"2. Idatzi fluxu bolumetriko eta azelerazio bakoitzerako PA balio optimoa. Fluxua kolore-eskeman hautatu eta irristagailua PA patroien gainetik mugituta ikus dezakezu. PA idealak txikiagoa izan behar du fluxua handitu ahala. Hala ez bada, egiaztatu estrusoreak zuzen funtzionatzen duela.\n"
 "3. Sartu PA, fluxu eta azelerazio hirukoteak testu-koadroan eta gorde filamentuen profila."
 
 msgid "Enable adaptive pressure advance within features (beta)"
@@ -13754,14 +14002,16 @@ msgstr "(Definitu gabe)"
 msgid "Sparse infill direction"
 msgstr "Dentsitate baxuko betegarriaren norabidea"
 
+# AI Translated
 msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
-msgstr "Hau da dentsitate baxuko betegarriaren ereduaren angelua, lerroen hasierako edo norabide nagusia kontrolatzen duena."
+msgstr "Hau da dentsitate baxuko betegarriaren patroiaren angelua, lerroen hasierako edo norabide nagusia kontrolatzen duena."
 
 msgid "Solid infill direction"
 msgstr "Betegarri solidoaren norabidea"
 
+# AI Translated
 msgid "Angle for solid infill pattern, which controls the start or main direction of line."
-msgstr "Betegarri solidoaren ereduaren angelua; lerroaren hasierako edo norabide nagusia kontrolatzen du."
+msgstr "Betegarri solidoaren patroiaren angelua; lerroaren hasierako edo norabide nagusia kontrolatzen du."
 
 msgid "Top layer direction"
 msgstr "Goiko geruzaren norabidea"
@@ -13786,9 +14036,10 @@ msgstr ""
 msgid "Sparse infill density"
 msgstr "Dentsitate baxuko betegarriaren dentsitatea"
 
+# AI Translated
 #, no-c-format, no-boost-format
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
-msgstr "Barruko dentsitate baxuko betegarriaren dentsitatea; %100ean, dentsitate baxuko betegarri guztia betegarri solido bihurtzen da eta Barruko betegarri solidoaren eredua erabiliko da."
+msgstr "Barruko dentsitate baxuko betegarriaren dentsitatea; %100ean, dentsitate baxuko betegarri guztia betegarri solido bihurtzen da eta Barruko betegarri solidoaren patroia erabiliko da."
 
 msgid "Align directions to model"
 msgstr "Lerrokatu norabideak modeloarekin"
@@ -13809,21 +14060,25 @@ msgstr "Txertatu betegarri solidoa geruza jakinetan. Erabili N N. geruza bakoitz
 msgid "Fill Multiline"
 msgstr "Lerro anitzeko betegarria"
 
+# AI Translated
 msgid "Using multiple lines for the infill pattern, if supported by infill pattern."
-msgstr "Erabili hainbat lerro betegarri-eredurako, betegarri-ereduak onartzen badu."
+msgstr "Erabili hainbat lerro betegarri-patroirako, betegarri-patroiak onartzen badu."
 
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z ardatzeko okerdura-biasaren optimizazioa (esperimentala)"
 
+# AI Translated
 #, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
-msgstr "Betegarri-dentsitate baxuan giroidearen uhina Z ardatzean (bertikalean) estutzen du, zutabe bertikalaren luzera eraginkorra laburtzeko eta Z ardatzeko konpresio-okerdurarekiko erresistentzia hobetzeko. Filamentuaren erabilera mantentzen da. Ez du eraginik dentsitate baxuko betegarriaren dentsitatea gutxi gorabehera %30ekoa edo handiagoa denean. Dentsitate baxuko betegarriaren eredua Giroidea denean bakarrik aplikatzen da."
+msgstr "Betegarri-dentsitate baxuan giroidearen uhina Z ardatzean (bertikalean) estutzen du, zutabe bertikalaren luzera eraginkorra laburtzeko eta Z ardatzeko konpresio-okerdurarekiko erresistentzia hobetzeko. Filamentuaren erabilera mantentzen da. Ez du eraginik dentsitate baxuko betegarriaren dentsitatea gutxi gorabehera %30ekoa edo handiagoa denean. Dentsitate baxuko betegarriaren patroia Giroidea denean bakarrik aplikatzen da."
 
+# AI Translated
 msgid "Sparse infill pattern"
-msgstr "Dentsitate baxuko betegarriaren eredua"
+msgstr "Dentsitate baxuko betegarriaren patroia"
 
+# AI Translated
 msgid "This is the line pattern for internal sparse infill."
-msgstr "Hau da barruko dentsitate baxuko betegarriaren lerro-eredua."
+msgstr "Hau da barruko dentsitate baxuko betegarriaren lerro-patroia."
 
 msgid "Zig Zag"
 msgstr "Zig Zag"
@@ -14102,6 +14357,7 @@ msgstr "Gainazal zimurra lehen geruzan aplikatu behar den."
 msgid "Fuzzy skin generator mode"
 msgstr "Gainazal zimurraren sorgailu-modua"
 
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Fuzzy skin generation mode. Works only with Arachne!\n"
@@ -14112,8 +14368,8 @@ msgid ""
 "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
 msgstr ""
 "Gainazal zimurra sortzeko modua. Arachne-rekin bakarrik funtzionatzen du!\n"
-"Desplazamendua: modu klasikoa; eredua pita jatorrizko ibilbidetik alboetara mugituz sortzen da.\n"
-"Estrusioa: eredua estruitutako plastiko-kantitatearen bidez sortzen den modua. Algoritmo azkar eta zuzena da, pita alferrik astindu gabe eredu leuna sortzen duena. Hala ere, erabilgarriagoa da horma solteak multzo osoan sortzeko.\n"
+"Desplazamendua: modu klasikoa; patroia pita jatorrizko ibilbidetik alboetara mugituz sortzen da.\n"
+"Estrusioa: patroia estruitutako plastiko-kantitatearen bidez sortzen den modua. Algoritmo azkar eta zuzena da, pita alferrik astindu gabe patroi leuna sortzen duena. Hala ere, erabilgarriagoa da horma solteak multzo osoan sortzeko.\n"
 "Konbinatua: [Desplazamendua] + [Estrusioa] modu bateratua. Hormen itxura [Desplazamendua] moduaren antzekoa da, baina ez du pororik uzten perimetroen artean.\n"
 "\n"
 "Kontuz! [Estrusioa] eta [Konbinatua] moduek fuzzy_skin_thickness parametroa inprimatutako begiztaren lodiera baino handiagoa ez denean bakarrik funtzionatzen dute. Aldi berean, geruza jakin bateko estrusio-zabalera ere ezin da maila jakin batetik beherakoa izan. Normalean, geruza-altueraren 15-25%% izaten da. Beraz, 0,4 mm-ko perimetro-zabalerarekin eta 0,2 mm-ko geruza-altuerarekin, gainazal zimurraren gehieneko lodiera 0,4-(0,2*0,25)=±0,35 mm izango da! Balio handiagoa sartzen baduzu, Flow::spacing() errorea bistaratuko da eta modeloa ez da xerratuko. Zenbaki hori doitu dezakezu errorea berriro agertu arte."
@@ -14130,6 +14386,7 @@ msgstr "Konbinatua"
 msgid "Fuzzy skin noise type"
 msgstr "Gainazal zimurraren zarata mota"
 
+# AI Translated
 msgid ""
 "Noise type to use for fuzzy skin generation:\n"
 "Classic: Classic uniform random noise.\n"
@@ -14145,7 +14402,7 @@ msgstr ""
 "Ondulatua: Perlin zarataren antzekoa, baina multzo handiagoekin eta pikortsuagoa.\n"
 "Multifraktal Zimurra: ertz zorrotz eta irregularrak dituen zarata. Marmol-itxurako testurak sortzen ditu.\n"
 "Voronoi: gainazala Voronoi gelaxkatan banatzen du eta bakoitza ausaz desplazatzen du. Adabaki-itxurako testura sortzen du.\n"
-"Uhin formakoa: jatorrizko bidearen ezker-eskuin errepikatzen den uhin-eredu uniformea. Ehundu-itxura ematen du."
+"Uhin formakoa: jatorrizko bidearen ezker-eskuin errepikatzen den uhin-patroi uniformea. Ehundu-itxura ematen du."
 
 msgid "Classic"
 msgstr "Klasikoa"
@@ -14192,6 +14449,7 @@ msgstr "Geruza bakoitzean zenbat uhin-ziklo oso gehituko diren kontrolatzen du."
 msgid "Ripple offset"
 msgstr "Uhinaren desplazamendua"
 
+# AI Translated
 msgid ""
 "Shifts the ripple phase forward along the print path by the specified percentage of a wavelength each layer period.\n"
 "- 0% keeps every layer identical.\n"
@@ -14202,14 +14460,15 @@ msgid ""
 msgstr ""
 "Geruza-periodo bakoitzean uhinaren fasea inprimatze-ibilbidean aurrerantz desplazatzen du, uhin-luzeraren zehaztutako ehunekoan.\n"
 "- 0%ek geruza guztiak berdin mantentzen ditu.\n"
-"- 50%ek eredua uhin-luzera erdi desplazatzen du, fasea alderantzikatuz.\n"
-"- 100%ek eredua uhin-luzera oso bat desplazatzen du, jatorrizko fasera itzuliz.\n"
+"- 50%ek patroia uhin-luzera erdi desplazatzen du, fasea alderantzikatuz.\n"
+"- 100%ek patroia uhin-luzera oso bat desplazatzen du, jatorrizko fasera itzuliz.\n"
 "\n"
 "Desplazamendua behin aplikatzen da Uhin-desplazamenduaren arteko geruzak aukeran ezarritako geruza kopuru bakoitzean; beraz, talde bereko geruzak berdin inprimatzen dira."
 
 msgid "Layers between ripple offset"
 msgstr "Uhin-desplazamenduaren arteko geruzak"
 
+# AI Translated
 msgid ""
 "Specifies how many consecutive layers share the same ripple phase before the offset is applied.\n"
 "For example:\n"
@@ -14218,8 +14477,8 @@ msgid ""
 msgstr ""
 "Desplazamendua aplikatu aurretik zenbat geruza jarraik partekatzen duten uhin-fase bera zehazten du.\n"
 "Adibidez:\n"
-"- 1 = 1. geruza oinarrizko uhin-ereduarekin inprimatzen da; 2. geruza konfiguratutako desplazamenduarekin; 3. geruza berriro oinarrizko ereduarekin; eta horrela jarraitzen du.\n"
-"- 3 = 1etik 3ra bitarteko geruzak oinarrizko uhin-ereduarekin inprimatzen dira; 4tik 6ra bitartekoak konfiguratutako desplazamenduarekin; 7tik 9ra bitartekoak berriro oinarrizko ereduarekin; eta abar."
+"- 1 = 1. geruza oinarrizko uhin-patroiarekin inprimatzen da; 2. geruza konfiguratutako desplazamenduarekin; 3. geruza berriro oinarrizko patroiarekin; eta horrela jarraitzen du.\n"
+"- 3 = 1etik 3ra bitarteko geruzak oinarrizko uhin-patroiarekin inprimatzen dira; 4tik 6ra bitartekoak konfiguratutako desplazamenduarekin; 7tik 9ra bitartekoak berriro oinarrizko patroiarekin; eta abar."
 
 msgid "Filter out tiny gaps"
 msgstr "Iragazi hutsune txikiak"
@@ -14462,14 +14721,16 @@ msgstr "Parametro honek desplazamendu txiki bat gehitzen dio betegarri-geruza ba
 msgid "Sparse infill rotation template"
 msgstr "Dentsitate baxuko betegarriaren biraketa-txantiloia"
 
+# AI Translated
 msgid "Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends. Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. When a template is set, the standard infill direction setting is ignored. Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
-msgstr "Biratu dentsitate baxuko betegarriaren norabidea geruza bakoitzean, angelu-txantiloi bat erabiliz. Sartu komaz bereizitako graduak (adibidez, '0,30,60,90'). Angeluak ordenan aplikatzen dira geruzaz geruza, eta zerrenda amaitzean errepikatu egiten dira. Sintaxi aurreratua ere onartzen da: '+5' aukerak geruza bakoitzean +5° biratzen du; '+5#5' aukerak, berriz, +5° bost geruzatik behin. Xehetasunetarako, ikusi Wikia. Txantiloi bat ezartzen denean, betegarriaren norabide estandarraren ezarpena ez da kontuan hartzen. Oharra: betegarri-eredu batzuek (adibidez, Giroidea) beren kabuz kontrolatzen dute biraketa; erabili kontuz."
+msgstr "Biratu dentsitate baxuko betegarriaren norabidea geruza bakoitzean, angelu-txantiloi bat erabiliz. Sartu komaz bereizitako graduak (adibidez, '0,30,60,90'). Angeluak ordenan aplikatzen dira geruzaz geruza, eta zerrenda amaitzean errepikatu egiten dira. Sintaxi aurreratua ere onartzen da: '+5' aukerak geruza bakoitzean +5° biratzen du; '+5#5' aukerak, berriz, +5° bost geruzatik behin. Xehetasunetarako, ikusi Wikia. Txantiloi bat ezartzen denean, betegarriaren norabide estandarraren ezarpena ez da kontuan hartzen. Oharra: betegarri-patroi batzuek (adibidez, Giroidea) beren kabuz kontrolatzen dute biraketa; erabili kontuz."
 
 msgid "Solid infill rotation template"
 msgstr "Betegarri solidoaren biraketa-txantiloia"
 
+# AI Translated
 msgid "This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation."
-msgstr "Parametro honek betegarri solidoaren norabidea geruza bakoitzean biratzen du, zehaztutako txantiloiaren arabera. Txantiloia komaz bereizitako graduetako angeluen zerrenda da, adibidez '0,90'. Lehen angelua lehen geruzari aplikatzen zaio, bigarrena bigarren geruzari, eta horrela jarraitzen du. Geruza gehiago badaude angeluak baino, angeluak errepikatu egingo dira. Kontuan izan betegarri solidoaren eredu guztiek ez dutela biraketa onartzen."
+msgstr "Parametro honek betegarri solidoaren norabidea geruza bakoitzean biratzen du, zehaztutako txantiloiaren arabera. Txantiloia komaz bereizitako graduetako angeluen zerrenda da, adibidez '0,90'. Lehen angelua lehen geruzari aplikatzen zaio, bigarrena bigarren geruzari, eta horrela jarraitzen du. Geruza gehiago badaude angeluak baino, angeluak errepikatu egingo dira. Kontuan izan betegarri solidoaren patroi guztiek ez dutela biraketa onartzen."
 
 msgid "Skeleton infill density"
 msgstr "Eskeleto-betegarriaren dentsitatea"
@@ -14722,11 +14983,13 @@ msgstr "Goikoeneko gainazala bakarrik"
 msgid "All solid layers"
 msgstr "Geruza solido guztiak"
 
+# AI Translated
 msgid "Ironing Pattern"
-msgstr "Lisatze-eredua"
+msgstr "Lisatze-patroia"
 
+# AI Translated
 msgid "The pattern that will be used when ironing."
-msgstr "Lisatzean erabiliko den eredua."
+msgstr "Lisatzean erabiliko den patroia."
 
 msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
 msgstr "Hau da lisatzean estruitu beharreko material kopurua. Geruza-altuera normalaren fluxuarekiko erlatiboa da. Balio handiegiek gainazalean gainestrusioa eragiten dute."
@@ -15418,7 +15681,7 @@ msgstr "Hau da garbitu aurreko atzera-egite azkarraren luzera, atzera-egitearen 
 msgid "Retract amount after wipe"
 msgstr "Garbitu ondorengo atzera-egite kantitatea"
 
-#, c-format
+#, no-c-format, no-boost-format
 msgid ""
 "The length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
@@ -15623,16 +15886,16 @@ msgstr ""
 "Kantitate hau milimetrotan edo uneko estrusorearen diametroaren ehuneko gisa zehaztu daiteke. Parametro honen balio lehenetsia %10 da."
 
 msgid "Scarf joint seam (beta)"
-msgstr "Bufanda junturako jostura (beta)"
+msgstr "Alaka junturako jostura (beta)"
 
 msgid "Use scarf joint to minimize seam visibility and increase seam strength."
-msgstr "Erabili bufanda junturako josturaren ikusgarritasuna minimizatzeko etajosturaren sendotasuna handitzeko."
+msgstr "Erabili alaka junturako josturaren ikusgarritasuna minimizatzeko etajosturaren sendotasuna handitzeko."
 
 msgid "Conditional scarf joint"
-msgstr "Baldintzapeko bufanda-juntura"
+msgstr "Baldintzapeko alaka-juntura"
 
 msgid "Apply scarf joints only to smooth perimeters where traditional seams do not conceal the seams at sharp corners effectively."
-msgstr "Aplikatu bufanda junturak perimetro leunetan bakarrik, jostura tradizionalek izkina zorrotzetako josturak ondo ezkutatzen ez dituztenean."
+msgstr "Aplikatu alaka junturak perimetro leunetan bakarrik, jostura tradizionalek izkina zorrotzetako josturak ondo ezkutatzen ez dituztenean."
 
 msgid "Conditional angle threshold"
 msgstr "Baldintzapeko angeluaren atalasea"
@@ -15641,7 +15904,7 @@ msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
 "If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
 msgstr ""
-"Aukera honek baldintzapeko bufanda junturako jostura aplikatzeko angelu-atalasea ezartzen du.\n"
+"Aukera honek baldintzapeko alaka junturako jostura aplikatzeko angelu-atalasea ezartzen du.\n"
 "Perimetro-begiztaren barruko gehieneko angelua balio hau baino handiagoa bada (izkina zorrotzik ez dagoela adieraziz), juntura zeiharreko jostura erabiliko da. Balio lehenetsia 155° da."
 
 msgid "Conditional overhang threshold"
@@ -15652,19 +15915,19 @@ msgid "This option determines the overhang threshold for the application of scar
 msgstr "Aukera honek juntura zeiharreko josturak aplikatzeko irtenguneen atalasea zehazten du. Perimetroaren euskarririk gabeko zatia atalase hau baino txikiagoa bada, juntura zeiharreko josturak aplikatuko dira. Atalase lehenetsia kanpoko hormaren zabaleraren %40 da. Errendimendu-arrazoiengatik, irtengunearen maila estimatu egiten da."
 
 msgid "Scarf joint speed"
-msgstr "Bufanda junturako abiadura"
+msgstr "Alaka junturako abiadura"
 
 msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Aukera honek bufanda junturako inprimatze-abiadura ezartzen du. Gomendagarria da juntura zeiharrak abiadura motelean inprimatzea (100 mm/s baino gutxiago). 'Estrusio-tasaren leuntzea' gaitzea ere komeni da ezarritako abiadura kanpoko edo barruko hormen abiaduratik nabarmen aldentzen bada. Hemen zehaztutako abiadura kanpoko edo barruko hormen abiadura baino handiagoa bada, inprimagailuak bietako motelena erabiliko du. Ehuneko gisa zehazten bada (adibidez, %80), abiadura dagokion kanpoko edo barruko hormaren abiaduraren arabera kalkulatuko da. Balio lehenetsia %100 da."
+msgstr "Aukera honek alaka junturako inprimatze-abiadura ezartzen du. Gomendagarria da juntura zeiharrak abiadura motelean inprimatzea (100 mm/s baino gutxiago). 'Estrusio-tasaren leuntzea' gaitzea ere komeni da ezarritako abiadura kanpoko edo barruko hormen abiaduratik nabarmen aldentzen bada. Hemen zehaztutako abiadura kanpoko edo barruko hormen abiadura baino handiagoa bada, inprimagailuak bietako motelena erabiliko du. Ehuneko gisa zehazten bada (adibidez, %80), abiadura dagokion kanpoko edo barruko hormaren abiaduraren arabera kalkulatuko da. Balio lehenetsia %100 da."
 
 msgid "Scarf joint flow ratio"
-msgstr "Bufanda junturako fluxu-erlazioa"
+msgstr "Alaka junturako fluxu-erlazioa"
 
 msgid "This factor affects the amount of material for scarf joints."
-msgstr "Faktore honek bufanda junturako material kantitateari eragiten dio."
+msgstr "Faktore honek alaka junturako material kantitateari eragiten dio."
 
 msgid "Scarf start height"
-msgstr "Bufandaren hasierako altuera"
+msgstr "Alakaren hasierako altuera"
 
 msgid ""
 "Start height of the scarf.\n"
@@ -15674,7 +15937,7 @@ msgstr ""
 "Kantitate hau milimetrotan edo uneko geruza-altueraren ehuneko gisa zehaztu daiteke. Parametro honen balio lehenetsia 0 da."
 
 msgid "Scarf around entire wall"
-msgstr "Bufanda horma osoan zehar"
+msgstr "Alaka horma osoan zehar"
 
 msgid "The scarf extends to the entire length of the wall."
 msgstr "Juntura hormaren luzera osora hedatzen da."
@@ -15692,10 +15955,10 @@ msgid "Minimum number of segments of each scarf."
 msgstr "Juntura bakoitzaren gutxieneko segmentu kopurua."
 
 msgid "Scarf joint for inner walls"
-msgstr "Barruko hormetarako bufanda juntura"
+msgstr "Barruko hormetarako alaka juntura"
 
 msgid "Use scarf joint for inner walls as well."
-msgstr "Erabili bufanda juntura barruko hormetan ere."
+msgstr "Erabili alaka juntura barruko hormetan ere."
 
 msgid "Role base wipe speed"
 msgstr "Eginkizunaren araberako purgatze-abiadura"
@@ -15875,6 +16138,9 @@ msgstr "Modu leuna edo tradizionala hautatzen bada, timelapse bideo bat sortuko 
 msgid "Traditional"
 msgstr "Tradizionala"
 
+msgid "Smooth"
+msgstr "Leuna"
+
 msgid "Farthest point timelapse"
 msgstr "Puntu urruneneko timelapsea"
 
@@ -16044,6 +16310,7 @@ msgstr "Euskarriaren/objektuaren lehen geruzako tartea"
 msgid "XY separation between an object and its support at the first layer."
 msgstr "Objektu baten eta haren euskarriaren arteko XY bereizketa lehen geruzan."
 
+# AI Translated
 msgid "Pattern angle"
 msgstr "Patroiaren angelua"
 
@@ -16099,8 +16366,9 @@ msgstr "Saihestu euskarri-interfazearen filamentua erabiltzea euskarriaren oinar
 msgid "Line width of support. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Euskarriaren lerro-zabalera. % gisa adierazten bada, pitaren diametroaren arabera kalkulatuko da."
 
+# AI Translated
 msgid "Loop pattern interface"
-msgstr "Begizta-ereduko interfazea"
+msgstr "Begizta-patroiko interfazea"
 
 msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "Honek euskarrien goiko kontaktu-geruza begiztekin estaltzen du. Lehenespenez desgaituta dago."
@@ -16149,9 +16417,11 @@ msgstr "Hau da beheko interfaze-lerroen arteko tartea. 0 balioak interfaze solid
 msgid "This is the speed for support interfaces."
 msgstr "Hau da euskarri-interfazeen abiadura."
 
+# AI Translated
 msgid "Base pattern"
 msgstr "Oinarri-patroia"
 
+# AI Translated
 msgid ""
 "Line pattern of support.\n"
 "\n"
@@ -16159,11 +16429,11 @@ msgid ""
 "\n"
 "NOTE: For Organic supports, the two walls are supported only with the Hollow/Default base pattern. The Lightning base pattern is supported only by Tree Slim/Strong/Hybrid supports. For the other support types, the Rectilinear will be used instead of Lightning."
 msgstr ""
-"Euskarriaren lerro-eredua.\n"
+"Euskarriaren lerro-patroia.\n"
 "\n"
-"Zuhaitz-euskarrien aukera lehenetsia Hutsa da, hau da, ez dago oinarri-eredurik. Beste euskarri motetarako, aukera lehenetsia eredu zuzenekoa da.\n"
+"Zuhaitz-euskarrien aukera lehenetsia Hutsa da, hau da, ez dago oinarri-patroirik. Beste euskarri motetarako, aukera lehenetsia patroi zuzenekoa da.\n"
 "\n"
-"OHARRA: Euskarri organikoetan, bi hormak Hutsa/Lehenetsia oinarri-ereduarekin bakarrik onartzen dira. Tximistetan oinarritutako eredua Zuhaitz mehea/Indartsua/Hibridoa euskarriek bakarrik onartzen dute. Beste euskarri motetarako, Zuzenekoa erabiliko da Tximistenaren ordez."
+"OHARRA: Euskarri organikoetan, bi hormak Hutsa/Lehenetsia oinarri-patroiarekin bakarrik onartzen dira. Tximistetan oinarritutako patroia Zuhaitz mehea/Indartsua/Hibridoa euskarriek bakarrik onartzen dute. Beste euskarri motetarako, Zuzenekoa erabiliko da Tximistenaren ordez."
 
 msgid "Rectilinear grid"
 msgstr "Sare lerrozuzena"
@@ -16171,15 +16441,18 @@ msgstr "Sare lerrozuzena"
 msgid "Hollow"
 msgstr "Hutsa"
 
+# AI Translated
 msgid "Interface pattern"
 msgstr "Interfaze-patroia"
 
+# AI Translated
 msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
-msgstr "Hau da euskarri-interfazeen lerro-eredua. Euskarri-interfaze ez-disolbagarrietarako eredu lehenetsia Lerrozuzena da; disolbagarrietarako, Kontzentrikoa."
+msgstr "Hau da euskarri-interfazeen lerro-patroia. Euskarri-interfaze ez-disolbagarrietarako patroi lehenetsia Lerrozuzena da; disolbagarrietarako, Kontzentrikoa."
 
 msgid "Rectilinear Interlaced"
 msgstr "Lerrozuzena tartekatua"
 
+# AI Translated
 msgid "Base pattern spacing"
 msgstr "Oinarri-patroiaren tartea"
 
@@ -16319,8 +16592,9 @@ msgstr "Lisatu euskarri-interfazea"
 msgid "Ironing is using small flow to print on same height of support interface again to make it more smooth. This setting controls whether support interface being ironed. When enabled, support interface will be extruded as solid too."
 msgstr "Lisatzeak fluxu txikia erabiltzen du euskarri-interfazearen altuera berean berriz inprimatzeko eta gainazala leunago uzteko. Ezarpen honek interfazea lisatuko den kontrolatzen du. Gaituta dagoenean, interfazea solido gisa ere estruituko da."
 
+# AI Translated
 msgid "Support Ironing Pattern"
-msgstr "Euskarriaren lisatze-eredua"
+msgstr "Euskarriaren lisatze-patroia"
 
 msgid "Support Ironing flow"
 msgstr "Euskarriaren lisatze-fluxua"
@@ -16416,6 +16690,7 @@ msgstr "Xerratzean goiko geruza solidoen kopurua handitzen da goiko oskol-geruze
 msgid "Separated infills"
 msgstr "Betegarri bereiziak"
 
+# AI Translated
 msgid ""
 "Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
 "Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
@@ -16424,21 +16699,23 @@ msgid ""
 msgstr ""
 "Pieza bakoitzaren barruko betegarria bere buruarekiko zentratzen du, bereiz xerratuko balitz bezala, muntaketa osoarekiko zentratu beharrean. Elkar ukitzen edo gainjartzen diren piezak gorputz bakartzat hartzen dira eta zentro bera partekatzen dute; bereizitako pieza bakoitzak (edo 3D objektu bakoitzak) bere zentroa izango du.\n"
 "Erabilgarria da muntaketa batek betegarri koherente eta autozentratua mantendu behar duten hainbat objektu biltzen dituenean.\n"
-"Lerro eta sareta ereduei eta biraketa-txantiloia duten betegarriei eragiten die.\n"
-"Koordenatu globaletara lotutako ereduei (Giroidea, Abaraska, TPMS...) ez die eragiten."
+"Lerro eta sareta patroiei eta biraketa-txantiloia duten betegarriei eragiten die.\n"
+"Koordenatu globaletara lotutako patroiei (Giroidea, Abaraska, TPMS...) ez die eragiten."
 
+# AI Translated
 msgid "Center surface pattern on"
-msgstr "Zentratu gainazal-eredua honetan"
+msgstr "Zentratu gainazal-patroia honetan"
 
+# AI Translated
 msgid ""
 "Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
 " - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
 " - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
 " - Each Assembly: uses a single shared center for the whole object or assembly."
 msgstr ""
-"Goiko eta beheko gainazaleko eredu zentratuen (Arkimedesen kordak, Oktagrama-espirala) zentroa non kokatzen den aukeratzen du.\n"
-" - Gainazal bakoitza: eredua gainazal-eskualde bakoitzean zentratzen du, uharte bakoitza bere kabuz simetrikoa izan dadin.\n"
-" - Modelo bakoitza: eredua konektatutako gorputz bakoitzean zentratzen du. Elkar ukitzen edo gainjartzen diren piezek zentro bera partekatzen dute; gainerakoetatik bereizitako piezek beren zentroa dute.\n"
+"Goiko eta beheko gainazaleko patroi zentratuen (Arkimedesen kordak, Oktagrama-espirala) zentroa non kokatzen den aukeratzen du.\n"
+" - Gainazal bakoitza: patroia gainazal-eskualde bakoitzean zentratzen du, uharte bakoitza bere kabuz simetrikoa izan dadin.\n"
+" - Modelo bakoitza: patroia konektatutako gorputz bakoitzean zentratzen du. Elkar ukitzen edo gainjartzen diren piezek zentro bera partekatzen dute; gainerakoetatik bereizitako piezek beren zentroa dute.\n"
 " - Muntaketa bakoitza: zentro partekatu bakarra erabiltzen du objektu edo muntaketa osorako."
 
 msgid "Each Surface"
@@ -16845,6 +17122,14 @@ msgstr "Euskarriaren purgatze-modu azkarra"
 
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
 msgstr "Inprimagailu honek tenperatura eta biderkatzaile optimizatuak dituen purgatze azkarreko modua onartzen duen."
+
+# AI Translated
+msgid "Filament change"
+msgstr "Filamentu-aldaketa"
+
+# AI Translated
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
+msgstr "Dorrean estrusorea prestatzeko behar den material-bolumena, hotend-aldaketa kanpo utzita."
 
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
 msgstr "Hotenda aldatzean estrusorea dorrean prestatzeko behar den material-bolumena."
@@ -17754,6 +18039,7 @@ msgstr "Horrez gain, fluxu-tasaren kalibrazioa funtsezkoa da RC hegazkinetan era
 msgid "Flow Rate Calibration measures the ratio of expected to actual extrusion volumes. The default setting works well in Bambu Lab printers and official filaments as they were pre-calibrated and fine-tuned. For a regular filament, you usually won't need to perform a Flow Rate Calibration unless you still see the listed defects after you have done other calibrations. For more details, please check out the wiki article."
 msgstr "Fluxu-tasaren kalibrazioak espero den estrusio-bolumenaren eta benetako estrusio-bolumenaren arteko erlazioa neurtzen du. Ezarpen lehenetsiak ondo funtzionatzen du Bambu Lab inprimagailuetan eta filamentu ofizialetan, aurrez kalibratuta eta doituak baitaude. Filamentu arrunt batekin, normalean ez duzu fluxu-tasaren kalibraziorik egin beharko, beste kalibrazio batzuk egin ondoren zerrendatutako akatsak oraindik ikusten ez badituzu. Xehetasun gehiagorako, ikusi wiki-artikulua."
 
+# AI Translated
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -17761,7 +18047,7 @@ msgid ""
 "\n"
 "Caution: Flow Rate Calibration is an advanced process, to be attempted only by those who fully understand its purpose and implications. Incorrect usage can lead to sub-par prints or printer damage. Please make sure to carefully read and understand the process before doing it."
 msgstr ""
-"Fluxu-tasaren kalibrazio automatikoak Bambu Lab-en Micro-Lidar teknologia erabiltzen du kalibrazio-ereduak zuzenean neurtzeko. Hala ere, metodoaren eraginkortasuna eta zehaztasuna material mota batzuekin murriztu daitezke. Filamentu garden edo erdi-gardenak, distiratsuak edo oso islatzaileak ez dira egokiak eta emaitza eskasagoak eman ditzakete.\n"
+"Fluxu-tasaren kalibrazio automatikoak Bambu Lab-en Micro-Lidar teknologia erabiltzen du kalibrazio-patroiak zuzenean neurtzeko. Hala ere, metodoaren eraginkortasuna eta zehaztasuna material mota batzuekin murriztu daitezke. Filamentu garden edo erdi-gardenak, distiratsuak edo oso islatzaileak ez dira egokiak eta emaitza eskasagoak eman ditzakete.\n"
 "\n"
 "Emaitzak kalibrazio eta filamentuen arabera alda daitezke. Firmware-eguneraketen bidez zehaztasuna eta bateragarritasuna hobetzen jarraitzen dugu.\n"
 "\n"
@@ -18027,6 +18313,20 @@ msgstr ""
 "Hainbat IP helbide ebazten dira %1% ostalari-izenerako.\n"
 "Hautatu erabili beharrekoa."
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "Eskalatze automatikoa pitarako"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"Modelo hau 0,4 mm-ko pita eta 0,2 mm-ko geruza-altuera kontuan hartuta diseinatu da. \n"
+"Eskalatze-aukera gaituta dagoenean (gomendatua), tamaina dinamikoki egokitzen zaie zure uneko pita-diametroari eta geruza-altuera egoki bati, testa zehatza eta irakurterraza izan dadin.\n"
+"Itzali eskalatzea erreferentzia-modeloa dagoen-dagoenean inprimatu nahi baduzu bakarrik."
+
 msgid "PA Calibration"
 msgstr "PA kalibrazioa"
 
@@ -18042,8 +18342,9 @@ msgstr "PA dorrea"
 msgid "PA Line"
 msgstr "PA lerroa"
 
+# AI Translated
 msgid "PA Pattern"
-msgstr "PA eredua"
+msgstr "PA patroia"
 
 msgid "Start PA: "
 msgstr "Hasierako PA: "
@@ -18163,6 +18464,14 @@ msgstr "Hasierako abiadura: "
 msgid "End speed: "
 msgstr "Amaierako abiadura: "
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "Doikuntza automatikoa abiadura bolumetriko maximora"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "Amaierako abiadurak filamentuaren abiadura bolumetriko maximoa gaindituko balu, geruza-altuera automatikoki jaisten da (balio estandarrak mantenduz eta makinaren mugen barruan) hura lortzeko. Gutxieneko geruza-altuerarekin ere nahikoa ez bada, amaierako abiadura jaisten da haren ordez."
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -18173,6 +18482,57 @@ msgstr ""
 "hasiera > 10\n"
 "urratsa >= 0\n"
 "amaiera > hasiera + urratsa"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"Amaierako abiadurak (%.0f mm/s) filamentuaren abiadura bolumetriko maximoa (%.1f mm³/s) gainditzen du, eta horrek kanpoko horma gutxi gorabehera %.0f mm/s-ra mugatzen du lerro-zabalera eta geruza-altuera honekin.\n"
+" Horren gaineko abiadurak mugatu egingo dira, beraz dorrearen goiko blokeak ez dira eskatutako abiaduran inprimatuko.\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"Amaierako abiadurak (%.0f mm/s) filamentuaren abiadura bolumetriko maximoa (%.1f mm³/s) gainditzen du geruza-altuera lehenetsian (%.2f mm).\n"
+"\n"
+"Geruza-altuera %.2f mm-ra jaitsi da (inprimagailu honen aurrezarpenek erabiltzen duten balio bat), dorreak eskatutako abiadura lor dezan."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"Inprimagailu honen aurrezarpenek erabiltzen duten geruza-altuera txikienarekin ere (%.2f mm), amaierako abiadurak (%.0f mm/s) filamentuaren abiadura bolumetriko maximoa (%.1f mm³/s) gainditzen du.\n"
+"\n"
+"Geruza-altuera %.2f mm-ra ezarriko da eta amaierako abiadura %.0f mm/s-ra jaitsiko da.\n"
+"\n"
+"Jarraitu?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "Hala ere jarraitu?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Gaitu \"Doikuntza automatikoa\" hau automatikoki konpontzeko, edo hala ere jarraitu?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Gaitu \"Eskalatze automatikoa pitarako\" eta \"Doikuntza automatikoa\" hau automatikoki konpontzeko, edo hala ere jarraitu?"
 
 msgid "Start retraction length: "
 msgstr "Hasierako atzera-egite luzera: "
@@ -18341,8 +18701,9 @@ msgstr "YOLO (gomendatua)"
 msgid "YOLO (Perfectionist)"
 msgstr "YOLO (perfekzionista)"
 
+# AI Translated
 msgid "Top Surface Pattern"
-msgstr "Goiko gainazalaren eredua"
+msgstr "Goiko gainazalaren patroia"
 
 msgid "Choose a slot for the selected color"
 msgstr "Aukeratu zirrikitu bat hautatutako kolorearentzat"
@@ -19422,8 +19783,9 @@ msgstr ""
 msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
 msgstr "Geruza-altuera txikia du. Horren ondorioz, geruza-lerroak ia hautemanezinak dira eta inprimatze-kalitatea handia da. Inprimatze-kasu gehienetarako egokia da."
 
+# AI Translated
 msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
-msgstr "0,2 mm-ko pitaren profil lehenetsiarekin alderatuta, abiadura eta azelerazio txikiagoak ditu, eta dentsitate baxuko betegarriaren eredua Giroidea da. Horrek inprimatze-kalitate askoz handiagoa ematen du, baina inprimatze-denbora askoz luzeagoa."
+msgstr "0,2 mm-ko pitaren profil lehenetsiarekin alderatuta, abiadura eta azelerazio txikiagoak ditu, eta dentsitate baxuko betegarriaren patroia Giroidea da. Horrek inprimatze-kalitate askoz handiagoa ematen du, baina inprimatze-denbora askoz luzeagoa."
 
 msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
 msgstr "0,2 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-altuera pixka bat handiagoa du. Horren ondorioz, geruza-lerroak ia hautemanezinak dira eta inprimatze-denbora pixka bat laburragoa."
@@ -19434,14 +19796,16 @@ msgstr "0,2 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-altuera hand
 msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
 msgstr "0,2 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-altuera txikiagoa du. Horrek geruza-lerro ia ikusezinak eta inprimatze-kalitate handiagoa ematen ditu, baina denbora luzeagoa behar du."
 
+# AI Translated
 msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
-msgstr "0,2 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-lerro txikiagoak, abiadura eta azelerazio txikiagoak ditu, eta dentsitate baxuko betegarriaren eredua Giroidea da. Horren ondorioz, geruza-lerroak ia ikusezinak dira eta inprimatze-kalitatea askoz handiagoa, baina inprimatze-denbora askoz luzeagoa."
+msgstr "0,2 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-lerro txikiagoak, abiadura eta azelerazio txikiagoak ditu, eta dentsitate baxuko betegarriaren patroia Giroidea da. Horren ondorioz, geruza-lerroak ia ikusezinak dira eta inprimatze-kalitatea askoz handiagoa, baina inprimatze-denbora askoz luzeagoa."
 
 msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
 msgstr "0,2 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-altuera txikiagoa du. Horrek geruza-lerro oso txikiak eta kalitate handiagoa ematen ditu, baina denbora luzeagoa behar du."
 
+# AI Translated
 msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
-msgstr "0,2 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-lerro txikiagoak, abiadura eta azelerazio txikiagoak ditu, eta dentsitate baxuko betegarriaren eredua Giroidea da. Horren ondorioz, geruza-lerroak minimoak dira eta inprimatze-kalitatea askoz handiagoa, baina inprimatze-denbora askoz luzeagoa."
+msgstr "0,2 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-lerro txikiagoak, abiadura eta azelerazio txikiagoak ditu, eta dentsitate baxuko betegarriaren patroia Giroidea da. Horren ondorioz, geruza-lerroak minimoak dira eta inprimatze-kalitatea askoz handiagoa, baina inprimatze-denbora askoz luzeagoa."
 
 msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
 msgstr "Geruza-altuera normala du. Horren ondorioz, geruza-lerroak eta inprimatze-kalitatea ertainak dira. Inprimatze-kasu gehienetarako egokia da."
@@ -19458,14 +19822,16 @@ msgstr "0,4 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-altuera hand
 msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
 msgstr "0,4 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-altuera txikiagoa du. Horren ondorioz, geruza-lerroak gutxiago nabaritzen dira eta inprimatze-kalitatea handiagoa, baina inprimatze-denbora luzeagoa."
 
+# AI Translated
 msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
-msgstr "0,4 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-altuera, abiadura eta azelerazio txikiagoak ditu, eta dentsitate baxuko betegarriaren eredua Giroidea da. Horren ondorioz, geruza-lerroak gutxiago nabaritzen dira eta inprimatze-kalitatea askoz handiagoa, baina inprimatze-denbora askoz luzeagoa."
+msgstr "0,4 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-altuera, abiadura eta azelerazio txikiagoak ditu, eta dentsitate baxuko betegarriaren patroia Giroidea da. Horren ondorioz, geruza-lerroak gutxiago nabaritzen dira eta inprimatze-kalitatea askoz handiagoa, baina inprimatze-denbora askoz luzeagoa."
 
 msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
 msgstr "0,4 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-altuera txikiagoa du. Horren ondorioz, geruza-lerroak ia hautemanezinak dira eta inprimatze-kalitatea handiagoa, baina inprimatze-denbora luzeagoa."
 
+# AI Translated
 msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
-msgstr "0,4 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-altuera, abiadura eta azelerazio txikiagoak ditu, eta dentsitate baxuko betegarriaren eredua Giroidea da. Horren ondorioz, geruza-lerroak ia hautemanezinak dira eta inprimatze-kalitatea askoz handiagoa, baina inprimatze-denbora askoz luzeagoa."
+msgstr "0,4 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-altuera, abiadura eta azelerazio txikiagoak ditu, eta dentsitate baxuko betegarriaren patroia Giroidea da. Horren ondorioz, geruza-lerroak ia hautemanezinak dira eta inprimatze-kalitatea askoz handiagoa, baina inprimatze-denbora askoz luzeagoa."
 
 msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
 msgstr "0,4 mm-ko pitaren profil lehenetsiarekin alderatuta, geruza-altuera txikiagoa du. Horren ondorioz, geruza-lerroak ia hautemanezinak dira eta inprimatze-denbora luzeagoa."
@@ -20029,14 +20395,15 @@ msgstr "Errorea: %s"
 msgid "Show details"
 msgstr "Erakutsi xehetasunak"
 
+# AI Translated
+msgid "Hide details"
+msgstr "Ezkutatu xehetasunak"
+
 msgid "Version to install:"
 msgstr "Instalatu beharreko bertsioa:"
 
 msgid "Download and Install"
 msgstr "Deskargatu eta instalatu"
-
-msgid "Skip for Now"
-msgstr "Saltatu oraingoz"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Bambu Network Plug-inaren bertsio berria erabilgarri dago."
@@ -20048,23 +20415,18 @@ msgstr "Uneko Bertsioa: %s"
 msgid "Update to version:"
 msgstr "Eguneratu bertsio honetara:"
 
-msgid "Update Now"
-msgstr "Eguneratu orain"
-
-msgid "Remind Later"
-msgstr "Gogorarazi geroago"
-
-msgid "Skip Version"
-msgstr "Saltatu bertsioa"
-
 msgid "Don't Ask Again"
 msgstr "Ez galdetu berriro"
+
+msgid "Update Now"
+msgstr "Eguneratu orain"
 
 msgid "(Latest)"
 msgstr "(Berriena)"
 
+# AI Translated
 msgid "(installed)"
-msgstr ""
+msgstr "(instalatuta)"
 
 msgid "The Bambu Network Plug-in has been installed successfully."
 msgstr "Bambu Network Plug-in behar bezala instalatu da."
@@ -20074,9 +20436,6 @@ msgstr "Berrabiarazi egin behar da plugin berria kargatzeko. Orain berrabiarazi 
 
 msgid "Restart Now"
 msgstr "Berrabiarazi orain"
-
-msgid "Restart Later"
-msgstr "Berrabiarazi geroago"
 
 msgid "NO RAMMING AT ALL"
 msgstr "MUTURRAREN MOLDAKETARIK EZ INONDIK INORA"
@@ -20657,6 +21016,60 @@ msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "Geruza bakarreko inprimatze-ordena."
+
+#~ msgid "Bottom"
+#~ msgstr "Behekoa"
+
+#~ msgid "Front"
+#~ msgstr "Aurrekoa"
+
+#~ msgid "Rear"
+#~ msgstr "Atzekoa"
+
+#~ msgid "Enter"
+#~ msgstr "Sartu"
+
+#~ msgid "Esc"
+#~ msgstr "Esc"
+
+#~ msgid "Del"
+#~ msgstr "Ezabatu"
+
+#~ msgid "Backspace"
+#~ msgstr "Atzera-tekla"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Gora gezia"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Behera gezia"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Ezker gezia"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Eskuin gezia"
+
+#~ msgid "End"
+#~ msgstr "Amaiera"
+
+#~ msgid "Hotend"
+#~ msgstr "Hotend-a"
+
+#~ msgid "Skip for Now"
+#~ msgstr "Saltatu oraingoz"
+
+#~ msgid "Remind Later"
+#~ msgstr "Gogorarazi geroago"
+
+#~ msgid "Skip Version"
+#~ msgstr "Saltatu bertsioa"
+
+#~ msgid "Restart Later"
+#~ msgstr "Berrabiarazi geroago"
+
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Flow::with_spacing() funtzioari tarte baliogabea eman zaio; egiaztatu geruza-altuera eta estrusio-zabalera"
 
@@ -20734,9 +21147,6 @@ msgstr ""
 
 #~ msgid "°"
 #~ msgstr "°"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgid "uniform scale"
 #~ msgstr "eskala uniformea"

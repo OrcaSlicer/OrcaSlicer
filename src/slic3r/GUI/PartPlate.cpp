@@ -2298,6 +2298,7 @@ arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const Dynamic
 	bool enable_wrapping = (wrapping_opt != nullptr) && wrapping_opt->value;
 	wt_size = estimate_wipe_tower_size(config, w, v, extruder_count, plate_extruder_size, use_global_objects, enable_wrapping);
 	int plate_width=m_width, plate_depth=m_depth;
+	w = wt_size(0); // effective width; differs from prime_tower_width when the rib wall squares the tower
 	float depth = wt_size(1);
 	float margin = WIPE_TOWER_MARGIN + tower_brim_width, wp_brim_width = 0.f;
 	const ConfigOption* wipe_tower_brim_width_opt = config.option("prime_tower_brim_width");
@@ -2662,7 +2663,8 @@ bool PartPlate::check_outside(int obj_id, int instance_id, BoundingBoxf3* boundi
 
 	if (instance_box.min.z() < SINKING_Z_THRESHOLD) {
 		// Orca: For sinking object, we use a more expensive algorithm so part below build plate won't be considered
-		if (plate_box.intersects(instance_box)) {
+		// m_plater is null in CLI mode.
+		if (m_plater && plate_box.intersects(instance_box)) {
 			// TODO: FIXME: this does not take exclusion area into account
             const BuildVolume build_volume(get_shape(), m_plater->build_volume().printable_height(), m_extruder_areas, m_extruder_heights);
 			const auto state = instance->calc_print_volume_state(build_volume);
@@ -4551,6 +4553,9 @@ int PartPlateList::create_plate(bool adjust_position)
 		return -1;
 	int cols = compute_colum_count(new_index + 1);
 	int old_cols = compute_colum_count(new_index);
+	// Orca: Rebuild plate membership before moving instances during a grid reflow.
+	if (adjust_position && old_cols != cols)
+		reload_all_objects();
 
 	origin = compute_origin(new_index, cols);
 	plate = new PartPlate(this, origin, m_plate_width, m_plate_depth, m_plate_height, m_plater, m_model, true, printer_technology);
@@ -5039,6 +5044,9 @@ int PartPlateList::move_plate_to_index(int old_index, int new_index)
 		BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(":should not happen, the same index %1%") % old_index;
 		return -1;
 	}
+
+	// Orca: Rebuild plate membership before moving the plates.
+	reload_all_objects();
 
 	if (old_index < new_index)
 	{

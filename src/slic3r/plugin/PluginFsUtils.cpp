@@ -120,8 +120,7 @@ bool delete_plugin_root(const boost::filesystem::path& resolved_root, const std:
     }
 
     if (removed_count == 0) {
-        error = "Plugin folder was not found: " + resolved_root.string();
-        return false;
+        return true;
     }
 
     BOOST_LOG_TRIVIAL(info) << "Deleted plugin: " << plugin_id << " from " << resolved_root.string();
@@ -172,7 +171,7 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
             // its error, rather than dropping it silently.
             if (entry_path.empty()) {
                 descriptor.set_error(entry_error);
-                read_install_state(plugin_dir, descriptor);
+                descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
                 assign_discovered_plugin_key(descriptor, plugin_dir);
                 out.push_back(std::move(descriptor));
                 BOOST_LOG_TRIVIAL(warning) << "Invalid plugin package: " << plugin_dir.string() << " - " << out.back().error;
@@ -185,7 +184,7 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
                                               read_python_plugin_metadata(entry_path, descriptor, meta_error);
             if (!parsed) {
                 descriptor.set_error(meta_error);
-                read_install_state(plugin_dir, descriptor);
+                descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
                 assign_discovered_plugin_key(descriptor, entry_path);
                 out.push_back(std::move(descriptor));
                 BOOST_LOG_TRIVIAL(warning) << (is_wheel ? "Invalid wheel plugin: " : "Invalid .py plugin: ")
@@ -199,7 +198,7 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
 
             // Cloud identity and the package-level auto-load flag. plugin_key is always derived
             // below, never read from the sidecar.
-            read_install_state(plugin_dir, descriptor);
+            descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
             assign_discovered_plugin_key(descriptor, entry_path);
 
             out.push_back(std::move(descriptor));
@@ -735,11 +734,11 @@ bool extract_zip_to_directory(const boost::filesystem::path& zip_path, const boo
     return true;
 }
 
-void read_install_state(const boost::filesystem::path& plugin_dir, PluginDescriptor& entry)
+bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescriptor& entry)
 {
     PluginInstallState state;
     if (!read_install_state(plugin_dir, state))
-        return;
+        return false;
 
     // The cloud identity and the persisted installed version are read back. plugin_key
     // is always derived by the catalog scan (filename for local, the cloud uuid for
@@ -756,6 +755,7 @@ void read_install_state(const boost::filesystem::path& plugin_dir, PluginDescrip
     // capability has no existence — and so no state — until it is materialized, at which point the
     // loader seeds the flag onto the capability itself.
     entry.enabled = state.enabled;
+    return true;
 }
 
 bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstallState& out)
