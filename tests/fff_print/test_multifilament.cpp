@@ -715,3 +715,50 @@ TEST_CASE("Multi-extruder slice stays in bounds with a short max_layer_height", 
     REQUIRE_FALSE(print.objects().front()->layers().empty());
 }
 
+
+// Re-applying the exact same, unchanged config after a completed slice -- which the GUI does on
+// every post-slice background_process update -- must report APPLY_STATUS_UNCHANGED. It did not:
+// on a Print's first-ever apply BOTH normalize_fdm_2 passes run before that apply's PrintObjects/
+// regions exist, count 0 used filaments and no-op, so the un-normalized settings get stored.
+// normalize_fdm_2 never turns a forced-off setting back on, and an undercount of <= 1 forces
+// enable_prime_tower off while independent_support_layer_height survives; the NEXT apply, counting
+// correctly, keeps the tower on and forces islh off instead -- a settings flip-flop that
+// invalidated the just-finished slice. No mapping/multi-tool machinery involved:
+// the trigger is only the used-filament count, so a plain two-filament single-nozzle config
+// reproduces it.
+TEST_CASE("Reapplying an unchanged config after slicing reports no change", "[MultiFilament]") {
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "wall_filament",                    "1" },
+        { "sparse_infill_filament",           "2" },
+        { "solid_infill_filament",            "2" },
+        { "enable_prime_tower",               "1" },
+        { "independent_support_layer_height", "1" },
+        // Matches what init_print's internal config carries, so this reapply of the bare test
+        // config differs from the print's actual first-apply config in nothing but what
+        // Print::apply()'s own normalization might (wrongly) change -- isolating the bug instead
+        // of also picking up an incidental, unrelated mismatch between the two configs.
+        { "gcode_comments",                   "1" },
+    });
+    Model model;
+    Print print;
+    Slic3r::Test::init_print({ TestMesh::cube_with_hole }, print, model, config);
+    print.process();
+    const bool ept_before  = print.config().enable_prime_tower.value;
+    const bool islh_before = print.config().independent_support_layer_height.value;
+
+    // Re-apply the exact same, unchanged config again -- matching the GUI's post-slice
+    // background_process update, which always rebuilds from the current presets rather than
+    // reusing the print's own already-resolved config.
+    const auto status = print.apply(model, config);
+    const bool ept_after  = print.config().enable_prime_tower.value;
+    const bool islh_after = print.config().independent_support_layer_height.value;
+
+    INFO("status = " << (int) status);
+    INFO("enable_prime_tower: before=" << ept_before << " after=" << ept_after);
+    INFO("independent_support_layer_height: before=" << islh_before << " after=" << islh_after);
+    CHECK(ept_before == ept_after);
+    CHECK(islh_before == islh_after);
+    // The strongest true form: not just that the two settings held steady, but that the reapply
+    // reported no change at all, so nothing invalidated the finished slice.
+    CHECK((int) status == (int) PrintBase::APPLY_STATUS_UNCHANGED);
+}
