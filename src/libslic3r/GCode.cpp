@@ -8989,6 +8989,18 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         gcode += m_writer.toolchange(new_filament_id, new_extruder_id);
         if (Extruder *fil = m_writer.filament())
             fil->set_config_index((int)get_filament_config_index((int)fil->id()));
+
+        // Set the temperature after the toolchange for single-extruder multi-material
+        // (e.g. CFS/MMU) so the slicer temperature is the last command after the
+        // auto-inserted T0, matching the multi-extruder branch below. Without this,
+        // firmware/CFS temperature overrides on T-commands win because no M104 follows.
+        if (m_config.single_extruder_multi_material && !m_config.enable_prime_tower) {
+            size_t new_fi = get_filament_config_index(new_filament_id);
+            int temp = (m_layer_index <= 0 ? m_config.nozzle_temperature_initial_layer.get_at(new_fi) :
+                                             m_config.nozzle_temperature.get_at(new_fi));
+            gcode += m_writer.set_temperature(temp, false);
+        }
+
         return gcode;
     }
 
