@@ -12665,9 +12665,8 @@ void Plater::priv::take_snapshot(const std::string& snapshot_name, const UndoRed
         model.wipe_tower.positions.resize(tower_x_opt->values.size());
         for (int plate_idx = 0; plate_idx < tower_x_opt->values.size(); plate_idx++) {
             ModelWipeTower& tower = model.wipe_tower;
-
             tower.positions[plate_idx] = Vec2d(tower_x_opt->get_at(plate_idx), tower_y_opt->get_at(plate_idx));
-            tower.rotation = proj_cfg.opt_float("wipe_tower_rotation_angle");
+            tower.rotation = config.opt_float("wipe_tower_rotation_angle");
         }
     }
     const GLGizmosManager& gizmos = get_current_canvas3D()->get_canvas_type() == GLCanvas3D::CanvasAssembleView ? assemble_view->get_canvas3d()->get_gizmos_manager() : view3D->get_canvas3d()->get_gizmos_manager();
@@ -12775,9 +12774,8 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
         model.wipe_tower.positions.resize(tower_x_opt->values.size());
         for (int plate_idx = 0; plate_idx < tower_x_opt->values.size(); plate_idx++) {
             ModelWipeTower& tower = model.wipe_tower;
-
             tower.positions[plate_idx] = Vec2d(tower_x_opt->get_at(plate_idx), tower_y_opt->get_at(plate_idx));
-            tower.rotation = proj_cfg.opt_float("wipe_tower_rotation_angle");
+            tower.rotation = config.opt_float("wipe_tower_rotation_angle");
         }
     }
     const int layer_range_idx = it_snapshot->snapshot_data.layer_range_idx;
@@ -12837,8 +12835,6 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
             const DynamicPrintConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
             ConfigOptionFloats* tower_x_opt = const_cast<ConfigOptionFloats*>(proj_cfg.option<ConfigOptionFloats>("wipe_tower_x"));
             ConfigOptionFloats* tower_y_opt = const_cast<ConfigOptionFloats*>(proj_cfg.option<ConfigOptionFloats>("wipe_tower_y"));
-            // BBS: don't support wipe tower rotation
-            //double current_rotation = proj_cfg.opt_float("wipe_tower_rotation_angle");
             bool need_update = false;
             if (tower_x_opt->values.size() != model.wipe_tower.positions.size()) {
                 tower_x_opt->clear();

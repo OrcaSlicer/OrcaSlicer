@@ -2291,7 +2291,7 @@ arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const Dynamic
 	float x = dynamic_cast<const ConfigOptionFloats*>(config.option("wipe_tower_x"))->get_at(plate_index);
 	float y = dynamic_cast<const ConfigOptionFloats*>(config.option("wipe_tower_y"))->get_at(plate_index);
 	float w = dynamic_cast<const ConfigOptionFloat*>(config.option("prime_tower_width"))->value;
-	//float a = dynamic_cast<const ConfigOptionFloat*>(config.option("wipe_tower_rotation_angle"))->value;
+	float a_deg = dynamic_cast<const ConfigOptionFloat*>(config.option("wipe_tower_rotation_angle"))->value;
 	float v = dynamic_cast<const ConfigOptionFloat*>(config.option("prime_volume"))->value;
     float tower_brim_width = dynamic_cast<const ConfigOptionFloat*>(config.option("prime_tower_brim_width"))->value;
     const ConfigOptionBool * wrapping_opt = dynamic_cast<const ConfigOptionBool *>(config.option("enable_wrapping_detection"));
@@ -2300,33 +2300,46 @@ arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const Dynamic
 	int plate_width=m_width, plate_depth=m_depth;
 	w = wt_size(0); // effective width; differs from prime_tower_width when the rib wall squares the tower
 	float depth = wt_size(1);
-	float margin = WIPE_TOWER_MARGIN + tower_brim_width, wp_brim_width = 0.f;
-	const ConfigOption* wipe_tower_brim_width_opt = config.option("prime_tower_brim_width");
-	if (wipe_tower_brim_width_opt) {
-		wp_brim_width = wipe_tower_brim_width_opt->getFloat();
-        if (wp_brim_width < 0) wp_brim_width = WipeTower::get_auto_brim_by_height((float) wt_size.z());
-		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: wp_brim_width %1%") % wp_brim_width;
-	}
+	float margin = WIPE_TOWER_MARGIN + tower_brim_width;
+	float wp_brim_width = tower_brim_width;
+	if (wp_brim_width < 0)
+		wp_brim_width = WipeTower::get_auto_brim_by_height((float)wt_size.z());
 
-	x = std::clamp(x, margin, (float)plate_width - w - margin - wp_brim_width);
-    y = std::clamp(y, margin, (float)plate_depth - depth - margin - wp_brim_width);
-    wt_pos(0) = x;
-    wt_pos(1) = y;
-    wt_pos(2) = 0.f;
+	// ArrangePolygon::rotation is in radians and rotates around the origin.
+	const double angle_rad = (double(a_deg) / 180.0) * PI;
+
+	const double x0 = -double(wp_brim_width);
+	const double y0 = -double(wp_brim_width);
+	const double x1 = double(w) + double(wp_brim_width);
+	const double y1 = double(depth) + double(wp_brim_width);
+
+	Polygon ap({
+		{scaled(x0), scaled(y0)},
+		{scaled(x1), scaled(y0)},
+		{scaled(x1), scaled(y1)},
+		{scaled(x0), scaled(y1)}
+		});
+
+	const BoundingBox ap_bb_rot = get_extents_rotated(ap, angle_rad);
+	const double      min_x_allowed = double(margin) - unscaled<double>(ap_bb_rot.min.x());
+	const double      max_x_allowed = double(plate_width) - double(margin) - unscaled<double>(ap_bb_rot.max.x());
+	const double      min_y_allowed = double(margin) - unscaled<double>(ap_bb_rot.min.y());
+	const double      max_y_allowed = double(plate_depth) - double(margin) - unscaled<double>(ap_bb_rot.max.y());
+
+	if (min_x_allowed <= max_x_allowed)
+		x = float(std::clamp(double(x), min_x_allowed, max_x_allowed));
+	if (min_y_allowed <= max_y_allowed)
+		y = float(std::clamp(double(y), min_y_allowed, max_y_allowed));
+	wt_pos(0) = x;
+	wt_pos(1) = y;
+	wt_pos(2) = 0.f;
 
 	arrangement::ArrangePolygon wipe_tower_ap;
-	Polygon ap({
-		{scaled(x - wp_brim_width), scaled(y - wp_brim_width)},
-		{scaled(x + w + wp_brim_width), scaled(y - wp_brim_width)},
-		{scaled(x + w + wp_brim_width), scaled(y + depth + wp_brim_width)},
-		{scaled(x - wp_brim_width), scaled(y + depth + wp_brim_width)}
-		});
 	wipe_tower_ap.bed_idx = plate_index;
 	wipe_tower_ap.setter = NULL; // do not move wipe tower
-
 	wipe_tower_ap.poly.contour = std::move(ap);
-	wipe_tower_ap.translation = { scaled(0.f), scaled(0.f) };
-	//wipe_tower_ap.rotation = a;
+	wipe_tower_ap.translation = { scaled(x), scaled(y) };
+	wipe_tower_ap.rotation = angle_rad;
 	wipe_tower_ap.name = "WipeTower";
 	wipe_tower_ap.is_virt_object = true;
 	wipe_tower_ap.is_wipe_tower = true;

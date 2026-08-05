@@ -5204,18 +5204,24 @@ int CLI::run(int argc, char **argv)
 
                             ArrangePolygon wipe_tower_ap;
 
+                            const double angle_rad = (double(a) / 180.0) * PI;
+                            const double x0 = -double(wp_brim_width);
+                            const double y0 = -double(wp_brim_width);
+                            const double x1 = double(w) + double(wp_brim_width);
+                            const double y1 = double(depth) + double(wp_brim_width);
+
                             Polygon ap({
-                                {scaled(x - wp_brim_width), scaled(y - wp_brim_width)},
-                                {scaled(x + w + wp_brim_width), scaled(y - wp_brim_width)},
-                                {scaled(x + w + wp_brim_width), scaled(y + depth + wp_brim_width)},
-                                {scaled(x - wp_brim_width), scaled(y + depth + wp_brim_width)}
+                                {scaled(x0), scaled(y0)},
+                                {scaled(x1), scaled(y0)},
+                                {scaled(x1), scaled(y1)},
+                                {scaled(x0), scaled(y1)}
                                 });
                             wipe_tower_ap.bed_idx = 0;
                             wipe_tower_ap.setter = NULL; // do not move wipe tower
 
                             wipe_tower_ap.poly.contour = std::move(ap);
-                            wipe_tower_ap.translation  = {scaled(0.f), scaled(0.f)};
-                            wipe_tower_ap.rotation     = a;
+                            wipe_tower_ap.translation  = {scaled(x), scaled(y)};
+                            wipe_tower_ap.rotation     = angle_rad;
                             wipe_tower_ap.name = "WipeTower";
                             wipe_tower_ap.is_virt_object = true;
                             wipe_tower_ap.is_wipe_tower = true;
