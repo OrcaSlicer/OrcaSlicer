@@ -35,6 +35,7 @@
 #include "Widgets/TextCtrl.h"
 
 #include "../Utils/ColorConvert.hpp"
+#include "libslic3r/ColorSpaceConvert.hpp"
 #include "../Utils/NetworkAgentFactory.hpp"
 
 #ifdef __WXOSX__

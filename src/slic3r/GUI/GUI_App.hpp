@@ -40,11 +40,9 @@
 
 #define BE_UNACTED_ON               0x00200001
 #define SHOW_BACKGROUND_BITMAP_PIXEL_THRESHOLD 80
-#ifdef _WIN32
-    #ifndef _MSW_DARK_MODE
-        #define _MSW_DARK_MODE            1
-    #endif // _MSW_DARK_MODE
-#endif // _WIN32
+#ifndef _MSW_DARK_MODE
+    #define _MSW_DARK_MODE            1
+#endif // _MSW_DARK_MODE
 
 class wxMenuItem;
 class wxMenuBar;

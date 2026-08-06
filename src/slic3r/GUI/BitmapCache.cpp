@@ -568,7 +568,7 @@ bool BitmapCache::load_from_svg_file_change_color(const std::string &filename, u
     unsigned char change_color_rgba[4];
     if (!parse_color4(temp_color, change_color_rgba))
         return false;
-    unsigned int change_color = (static_cast<unsigned int>(change_color_rgba[2]) << 16) | (static_cast<unsigned int>(change_color_rgba[1]) << 8) | change_color_rgba[0];
+    unsigned int change_color = (static_cast<unsigned int>(change_color_rgba[0]) << 16) | (static_cast<unsigned int>(change_color_rgba[1]) << 8) | change_color_rgba[2];
     change_color |= (unsigned int) (1.0f * 255) << 24; // opacity
     unsigned int green_color = 0xFF889600; // #009688
     for (NSVGshape* shape = image->shapes; shape != nullptr; shape = shape->next) {
