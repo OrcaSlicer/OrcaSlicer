@@ -1022,7 +1022,7 @@ if(ORCA_BUNDLED_UV_EXECUTABLE_CONFIG)
     target_compile_definitions(libslic3r_gui PRIVATE "ORCA_BUNDLED_UV_EXECUTABLE=\"${ORCA_BUNDLED_UV_EXECUTABLE_CONFIG}\"")
 endif()
 
-if (ORCA_BUILD_PYTHON_STUBGEN_MODULE)
+if (ORCA_TOOLS)
     add_library(orca_stubgen MODULE
         plugin/PythonPluginBridge.cpp
     )
