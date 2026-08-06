@@ -1554,6 +1554,23 @@ void TreeSupport::generate_toolpaths()
                             ts_layer->support_fills.entities.push_back(temp_support_fills);
                         else
                             delete temp_support_fills;
+
+                        // ORCA: Iron the roof's topmost interface layer (the surface touching the model),
+                        // the counterpart of SupportCommon.cpp's organic-tree ironing pass over top_contact_layer.
+                        if (m_support_params.ironing) {
+                            ExPolygons polys_to_iron = offset_ex(poly, -0.5 * interface_flow.scaled_spacing(), jtSquare);
+                            if (!polys_to_iron.empty()) {
+                                std::unique_ptr<Fill> filler_ironing(Fill::new_from_type(m_support_params.ironing_pattern));
+                                filler_ironing->set_bounding_box(bbox_object);
+                                filler_ironing->angle   = m_support_params.support_interface_angle(area_group.interface_id);
+                                filler_ironing->spacing = m_support_params.ironing_spacing;
+                                FillParams ironing_params;
+                                ironing_params.density     = 1.f;
+                                ironing_params.dont_adjust = true;
+                                fill_expolygons_generate_paths(ts_layer->support_fills.entities, polys_to_iron,
+                                    filler_ironing.get(), ironing_params, erIroning, m_support_params.ironing_flow);
+                            }
+                        }
                     } else if (area_group.type == SupportLayer::FloorType) {
                         // floor_areas
                         bool interface_as_base = area_group.interface_as_base;
