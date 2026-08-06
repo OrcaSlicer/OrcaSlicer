@@ -252,6 +252,22 @@ struct ScopedDirs {
     ~ScopedDirs() { set_data_dir(prev_data); set_resources_dir(prev_rsrc); }
 };
 
+// A data dir and a resources dir, both pointed at by the process-wide accessors,
+// with the two directories a vendor is installed into and shipped from already
+// created. What every install- and load-order test needs before it starts.
+struct InstallDirs {
+    TempDir    data, rsrc;
+    fs::path   system   = data.path / PRESET_SYSTEM_DIR;
+    fs::path   profiles = rsrc.path / "profiles";
+    ScopedDirs scoped { data.path, rsrc.path };
+
+    InstallDirs()
+    {
+        fs::create_directories(system);
+        fs::create_directories(profiles);
+    }
+};
+
 // Helper: filter a collection by vendor_id.
 std::vector<const Preset*> presets_for(const PresetCollection& coll, const std::string& vendor_id)
 {
@@ -955,25 +971,20 @@ TEST_CASE("a vendor with a profile in the data dir is parsed there and cached th
     // The reported regression: a valid resources/profiles/<V>.opc answered
     // first, so the JSON in system/ was never parsed and system/<V>.opc was
     // never written. Main reads system/ and nothing else.
-    TempDir data, rsrc;
-    const fs::path system = data.path / "system";
-    const fs::path profiles = rsrc.path / "profiles";
-    fs::create_directories(system);
-    fs::create_directories(profiles);
-    ScopedDirs dirs(data.path, rsrc.path);
+    InstallDirs dirs;
 
-    write_vendor_tree(system, "Shadow", "1.0.0");
+    write_vendor_tree(dirs.system, "Shadow", "1.0.0");
     // A cache in resources at the very same version — under the old two-tier
     // lookup this was accepted and the parse skipped.
-    REQUIRE(save_one_vendor((profiles / "Shadow.opc").string(), one_vendor("Shadow"), "Shadow", "1.0.0"));
+    REQUIRE(save_one_vendor((dirs.profiles / "Shadow.opc").string(), one_vendor("Shadow"), "Shadow", "1.0.0"));
 
     PresetBundle bundle;
     bundle.set_generate_vendor_caches(true);
-    REQUIRE(bundle.load_vendor_configs_from_json(system.string(), "Shadow", PresetBundle::LoadSystem,
+    REQUIRE(bundle.load_vendor_configs_from_json(dirs.system.string(), "Shadow", PresetBundle::LoadSystem,
                                                  ForwardCompatibilitySubstitutionRule::EnableSilent).second > 0);
 
     // Parsed from system/, and its cache written back beside the profile.
-    CHECK(fs::exists(system / "Shadow.opc"));
+    CHECK(fs::exists(dirs.system / "Shadow.opc"));
     CHECK(presets_for(bundle.prints, "Shadow").size() == 1);
 }
 
@@ -981,18 +992,13 @@ TEST_CASE("a vendor with nothing installed is not loaded from resources", "[Vend
 {
     // Resources reaches the app by being installed into system/ first. A vendor
     // that is not installed is not loaded, however completely resources ships it.
-    TempDir data, rsrc;
-    const fs::path system = data.path / "system";
-    const fs::path profiles = rsrc.path / "profiles";
-    fs::create_directories(system);
-    fs::create_directories(profiles);
-    ScopedDirs dirs(data.path, rsrc.path);
+    InstallDirs dirs;
 
-    write_vendor_tree(profiles, "Absent", "1.0.0");
-    REQUIRE(save_one_vendor((profiles / "Absent.opc").string(), one_vendor("Absent"), "Absent", "1.0.0"));
+    write_vendor_tree(dirs.profiles, "Absent", "1.0.0");
+    REQUIRE(save_one_vendor((dirs.profiles / "Absent.opc").string(), one_vendor("Absent"), "Absent", "1.0.0"));
 
     PresetBundle bundle;
-    REQUIRE_THROWS(bundle.load_vendor_configs_from_json(system.string(), "Absent", PresetBundle::LoadSystem,
+    REQUIRE_THROWS(bundle.load_vendor_configs_from_json(dirs.system.string(), "Absent", PresetBundle::LoadSystem,
                                                         ForwardCompatibilitySubstitutionRule::EnableSilent));
     CHECK(presets_for(bundle.prints, "Absent").empty());
 }
@@ -1199,55 +1205,47 @@ TEST_CASE("a cache that fails mid-body deserialization is rejected and leaves th
 
 TEST_CASE("a cache rejected mid-body leaves the error count where it found it", "[VendorCache]")
 {
-    TempDir data, rsrc;
-    const fs::path system = data.path / "system";
-    fs::create_directories(system);
-    fs::create_directories(rsrc.path / "profiles");
-    ScopedDirs dirs(data.path, rsrc.path);
+    InstallDirs dirs;
 
     // A vendor whose root profile counts a parse error, so the bundle carries a
     // non-zero tally into the load below. Without one there is nothing for a
     // rejected cache to zero, and nothing to underflow.
-    std::ofstream((system / "Noisy.json").string())
+    std::ofstream((dirs.system / "Noisy.json").string())
         << R"({"version":"1.0.0","name":"Noisy","process_list":"not a list"})";
 
-    write_vendor_tree(system, "Counted", "1.0.0");
+    write_vendor_tree(dirs.system, "Counted", "1.0.0");
     // A cache that passes every stamp and then dies in the entries.
-    REQUIRE(save_one_vendor((system / "Counted.opc").string(), one_vendor("Counted"), "Counted", "1.0.0",
+    REQUIRE(save_one_vendor((dirs.system / "Counted.opc").string(), one_vendor("Counted"), "Counted", "1.0.0",
                             {filament_entry("Counted PLA @0.4")}));
-    truncate_payload_and_fix_header((system / "Counted.opc").string(), 8);
+    truncate_payload_and_fix_header((dirs.system / "Counted.opc").string(), 8);
 
     PresetBundle bundle;
     bundle.set_generate_vendor_caches(true);
-    bundle.load_vendor_configs_from_json(system.string(), "Noisy", PresetBundle::LoadSystem,
+    bundle.load_vendor_configs_from_json(dirs.system.string(), "Noisy", PresetBundle::LoadSystem,
                                          ForwardCompatibilitySubstitutionRule::EnableSilent);
     REQUIRE(bundle.error_count() > 0);
 
     // The same bundle: the cache is tried, fails mid-body, and the parse that
     // follows must be measured against the tally the cache found rather than
     // against zero.
-    REQUIRE(bundle.load_vendor_configs_from_json(system.string(), "Counted", PresetBundle::LoadSystem,
+    REQUIRE(bundle.load_vendor_configs_from_json(dirs.system.string(), "Counted", PresetBundle::LoadSystem,
                                                  ForwardCompatibilitySubstitutionRule::EnableSilent).second > 0);
 
     // The rewritten cache must carry the parse's own error count, not an
     // underflowed one. Reload it and check the bundle does not inherit a
     // nonsensical tally.
     PresetBundle reloaded;
-    REQUIRE(reloaded.load_vendor_cache((system / "Counted.opc").string(), "Counted", Semver(1, 0, 0)));
+    REQUIRE(reloaded.load_vendor_cache((dirs.system / "Counted.opc").string(), "Counted", Semver(1, 0, 0)));
     CHECK(reloaded.error_count() == 0);
 }
 
 TEST_CASE("a preset is traced to its vendor in a build that ships caches alone", "[VendorCache]")
 {
-    TempDir data, rsrc;
-    const fs::path profiles = rsrc.path / "profiles";
-    fs::create_directories(profiles);
-    fs::create_directories(data.path / "system");
-    ScopedDirs dirs(data.path, rsrc.path);
+    InstallDirs dirs;
 
     std::vector<PresetBundle::CachedPreset> filaments { filament_entry("Cached PLA @0.4") };
     std::vector<PresetBundle::CachedPreset> printers  { printer_entry("Cached 0.4 nozzle") };
-    REQUIRE(save_one_vendor((profiles / "Cached.opc").string(), one_vendor("Cached"), "Cached", "1.0.0",
+    REQUIRE(save_one_vendor((dirs.profiles / "Cached.opc").string(), one_vendor("Cached"), "Cached", "1.0.0",
                             filaments, printers));
 
     CHECK(PresetBundle::find_preset_vendor("Cached PLA @0.4", Preset::TYPE_FILAMENT) == "Cached");
@@ -1257,33 +1255,23 @@ TEST_CASE("a preset is traced to its vendor in a build that ships caches alone",
 
 TEST_CASE("a bundle that cannot be installed does not drop the others", "[VendorCache]")
 {
-    TempDir data, rsrc;
-    const fs::path system = data.path / "system";
-    const fs::path profiles = rsrc.path / "profiles";
-    fs::create_directories(system);
-    fs::create_directories(profiles);
-    ScopedDirs dirs(data.path, rsrc.path);
+    InstallDirs dirs;
 
-    write_vendor_tree(profiles, "Good", "1.0.0");
+    write_vendor_tree(dirs.profiles, "Good", "1.0.0");
 
     // An empty name sorts first out of a std::map, and a name resources does not
     // carry can appear anywhere. Neither may cost the batch the vendors it can
     // install.
     CHECK_FALSE(install_vendor_bundles_from_resources({"", "Absent", "Good"}));
-    CHECK(fs::exists(system / "Good.json"));
+    CHECK(fs::exists(dirs.system / "Good.json"));
 }
 
 TEST_CASE("a cache that arrives unusable leaves the profile fallback in place", "[VendorCache]")
 {
-    TempDir data, rsrc;
-    const fs::path system = data.path / "system";
-    const fs::path profiles = rsrc.path / "profiles";
-    fs::create_directories(system);
-    fs::create_directories(profiles);
-    ScopedDirs dirs(data.path, rsrc.path);
+    InstallDirs dirs;
 
-    write_vendor_tree(profiles, "Torn", "1.0.0");
-    const std::string cache = (profiles / "Torn.opc").string();
+    write_vendor_tree(dirs.profiles, "Torn", "1.0.0");
+    const std::string cache = (dirs.profiles / "Torn.opc").string();
     REQUIRE(save_one_vendor(cache, one_vendor("Torn"), "Torn", "1.0.0"));
     // Past the stamps at the front, so the 1 KB peek that chooses the cache form
     // still succeeds — only the CRC, which decides whether it can be served,
@@ -1292,19 +1280,15 @@ TEST_CASE("a cache that arrives unusable leaves the profile fallback in place", 
     REQUIRE(PresetBundle::peek_vendor_cache_version(cache, "Torn") == "1.0.0");
 
     CHECK(install_vendor_bundles_from_resources({"Torn"}));
-    CHECK(fs::exists(system / "Torn.json"));
-    CHECK_FALSE(fs::exists(system / "Torn.opc"));
+    CHECK(fs::exists(dirs.system / "Torn.json"));
+    CHECK_FALSE(fs::exists(dirs.system / "Torn.opc"));
 }
 
 TEST_CASE("a vendor installed as an unreadable cache alone counts as not installed", "[VendorCache]")
 {
-    TempDir data, rsrc;
-    const fs::path system = data.path / "system";
-    fs::create_directories(system);
-    fs::create_directories(rsrc.path / "profiles");
-    ScopedDirs dirs(data.path, rsrc.path);
+    InstallDirs dirs;
 
-    const std::string cache = (system / "Broken.opc").string();
+    const std::string cache = (dirs.system / "Broken.opc").string();
     REQUIRE(save_one_vendor(cache, one_vendor("Broken"), "Broken", "1.0.0"));
     REQUIRE(is_vendor_installed("Broken"));
 
@@ -1318,14 +1302,10 @@ TEST_CASE("a vendor installed as an unreadable cache alone counts as not install
 
 TEST_CASE("a stale profile beside a newer cache does not hide the cache's version", "[VendorCache]")
 {
-    TempDir data, rsrc;
-    const fs::path system = data.path / "system";
-    fs::create_directories(system);
-    fs::create_directories(rsrc.path / "profiles");
-    ScopedDirs dirs(data.path, rsrc.path);
+    InstallDirs dirs;
 
-    write_vendor_json(system, "Both", "1.0.0");
-    REQUIRE(save_one_vendor((system / "Both.opc").string(), one_vendor("Both"), "Both", "2.0.0"));
+    write_vendor_json(dirs.system, "Both", "1.0.0");
+    REQUIRE(save_one_vendor((dirs.system / "Both.opc").string(), one_vendor("Both"), "Both", "2.0.0"));
 
     // The cache covers the profile, so the cache is what a load serves — and
     // 2.0.0 is the version installed, not the 1.0.0 the profile still claims.
@@ -1334,14 +1314,10 @@ TEST_CASE("a stale profile beside a newer cache does not hide the cache's versio
 
 TEST_CASE("a profile newer than the cache beside it is the installed version", "[VendorCache]")
 {
-    TempDir data, rsrc;
-    const fs::path system = data.path / "system";
-    fs::create_directories(system);
-    fs::create_directories(rsrc.path / "profiles");
-    ScopedDirs dirs(data.path, rsrc.path);
+    InstallDirs dirs;
 
-    write_vendor_json(system, "Both", "3.0.0");
-    REQUIRE(save_one_vendor((system / "Both.opc").string(), one_vendor("Both"), "Both", "2.0.0"));
+    write_vendor_json(dirs.system, "Both", "3.0.0");
+    REQUIRE(save_one_vendor((dirs.system / "Both.opc").string(), one_vendor("Both"), "Both", "2.0.0"));
 
     // The cache no longer covers the profile, so the profile is parsed — and
     // its version is the one in force.
@@ -1419,7 +1395,6 @@ DynamicPrintConfig roundtrip_config(const DynamicPrintConfig& in,
 {
     CacheDictionary wdict;
     wdict.collect(in);
-    wdict.finalize();
     std::ostringstream os(std::ios::binary);
     {
         cereal::BinaryOutputArchive ar(os);
@@ -1562,7 +1537,6 @@ TEST_CASE("skip_config consumes a config without building one", "[VendorCache]")
 
     CacheDictionary wdict;
     wdict.collect(in);
-    wdict.finalize();
     std::ostringstream os(std::ios::binary);
     {
         cereal::BinaryOutputArchive ar(os);
@@ -1588,7 +1562,6 @@ TEST_CASE("a dictionary index past the end of the table is refused", "[VendorCac
 
     CacheDictionary wdict;
     wdict.collect(in);
-    wdict.finalize();
     std::ostringstream os(std::ios::binary);
     {
         cereal::BinaryOutputArchive ar(os);

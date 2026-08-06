@@ -325,12 +325,11 @@ std::string PresetBundle::find_preset_vendor(const std::string &preset_name, Pre
     for (const std::string& vendor_name : vendor_names_in(system_dir)) {
         const fs::path vendor_json = system_dir / (vendor_name + ".json");
         if (! fs::exists(vendor_json)) {
-            for (const std::string& p_name : peek_vendor_cache_preset_names((system_dir / (vendor_name + ".opc")).string(), vendor_name, type))
-                if (p_name == preset_name) {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << p_name
-                                            << " in vendor cache " << vendor_name;
-                    return vendor_name;
-                }
+            if (cache_carries_preset((system_dir / (vendor_name + ".opc")).string(), vendor_name, type, preset_name)) {
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << preset_name
+                                        << " in vendor cache " << vendor_name;
+                return vendor_name;
+            }
             continue;
         }
         const std::string vendor_file = vendor_json.string();
@@ -2254,6 +2253,16 @@ void PresetBundle::remove_users_preset(AppConfig &config, std::map<std::string, 
 }
 
 
+// Whether a cache stamped `cache_ver` still speaks for a vendor whose profile on
+// disk claims `profile_ver`: it does unless the profile has moved ahead of it. A
+// profile that is missing or carries no judgeable version cannot be ahead of
+// anything. The one rule behind both "which form gets installed" and "which form
+// is installed"; they must not drift apart.
+static bool cache_covers(const Semver& cache_ver, const Semver& profile_ver)
+{
+    return cache_ver.valid() && (! profile_ver.valid() || cache_ver >= profile_ver);
+}
+
 bool is_vendor_installed(const std::string& vendor)
 {
     const boost::filesystem::path dir = boost::filesystem::path(data_dir()) / PRESET_SYSTEM_DIR;
@@ -2266,14 +2275,15 @@ bool is_vendor_installed(const std::string& vendor)
 
 Semver installed_vendor_version(const std::string& vendor)
 {
-    const boost::filesystem::path dir = boost::filesystem::path(data_dir()) / PRESET_SYSTEM_DIR;
-    const Semver from_json  = get_version_from_json((dir / (vendor + ".json")).string());
+    const boost::filesystem::path dir  = boost::filesystem::path(data_dir()) / PRESET_SYSTEM_DIR;
+    const boost::filesystem::path json = dir / (vendor + ".json");
+    // Guarded: get_version_from_json logs an error and throws-and-catches its way
+    // to an invalid version on a file that is not there, and a cache-only vendor
+    // never has one.
+    const Semver from_json  = boost::filesystem::exists(json) ? get_version_from_json(json.string()) : Semver();
     const Semver from_cache = PresetBundle::usable_cache_version((dir / (vendor + ".opc")).string(), vendor);
-    // Whichever form a load would serve: the cache while it covers the profile
-    // beside it, the profile once it does not.
-    if (from_cache.valid() && (! from_json.valid() || from_json < from_cache))
-        return from_cache;
-    return from_json;
+    // Whichever form a load would serve.
+    return cache_covers(from_cache, from_json) ? from_cache : from_json;
 }
 
 void remove_installed_vendor(const std::string& vendor)
@@ -2309,7 +2319,7 @@ static Semver installable_cache_version(const boost::filesystem::path& dir, cons
     if (! cache_ver)
         return Semver::invalid();
     const Semver profile_ver = get_version_from_json((dir / (vendor + ".json")).string());
-    return profile_ver.valid() && *cache_ver < profile_ver ? Semver::invalid() : *cache_ver;
+    return cache_covers(*cache_ver, profile_ver) ? *cache_ver : Semver::invalid();
 }
 
 Semver resource_vendor_version(const std::string& vendor)
@@ -6274,6 +6284,20 @@ constexpr uint32_t CACHE_VERSION = 6;
 // as Semver::inf(), which no real profile can carry (an invalid version could
 // not say it apart from "profile there but unjudgeable", and zero would
 // collide with a genuine "0.0.0").
+// The prologue every cache reader starts with: the format version, then the
+// vendor's identity. Returns the vendor version stamped on a body this build can
+// read, empty on anything else — which is the same answer as "not this vendor".
+static std::string read_cache_stamps(cereal::BinaryInputArchive& ar, const std::string& expected_vendor_name)
+{
+    uint32_t cache_version = 0;
+    ar(cache_version);
+    std::string vendor_name, vendor_version;
+    ar(vendor_name, vendor_version);
+    if (cache_version != CACHE_VERSION || vendor_name != expected_vendor_name)
+        return {};
+    return vendor_version;
+}
+
 static bool cache_covers_version(const std::string& cached, const Semver& on_disk)
 {
     if (on_disk == Semver::inf())
@@ -6284,20 +6308,32 @@ static bool cache_covers_version(const std::string& cached, const Semver& on_dis
     return cached_ver && *cached_ver >= on_disk;
 }
 
-// PresetBundle::CachedPreset on the wire. All fields, declaration order — keep
-// in sync with the struct in PresetBundle.hpp and bump CACHE_VERSION on change.
-// Written here rather than as a serialize() member because the config needs the
-// file's dictionary, which cereal cannot thread through one.
+// PresetBundle::CachedPreset on the wire: all fields, declaration order, in one
+// place. `config` writes, reads or skips the config sitting in the middle of that
+// order — the three things a reader can want to do with it — so save, load and
+// the name peek below cannot drift apart. Keep in sync with the struct in
+// PresetBundle.hpp and bump CACHE_VERSION on change. Written here rather than as
+// a serialize() member because the config needs the file's dictionary, which
+// cereal cannot thread through one.
+template<class Archive, class Entry, class ConfigFn>
+void visit_entry(Archive& ar, Entry& e, ConfigFn&& config)
+{
+    ar(e.name, e.sub_path);
+    config();
+    ar(e.inherits, e.description, e.instantiation, e.setting_id, e.filament_id, e.renamed_from);
+}
+
+// The count comes from a file that has already passed magic and CRC, but a
+// reserve is a promise to allocate: cap it and let push_back grow the rest.
+constexpr uint32_t MAX_RESERVED_ENTRIES = 4096;
+
 void save_entries(cereal::BinaryOutputArchive& ar,
                   const std::vector<PresetBundle::CachedPreset>& entries,
                   const CacheDictionary& dict)
 {
     ar(uint32_t(entries.size()));
-    for (const PresetBundle::CachedPreset& e : entries) {
-        ar(e.name, e.sub_path);
-        save_config(ar, e.config_src, dict);
-        ar(e.inherits, e.description, e.instantiation, e.setting_id, e.filament_id, e.renamed_from);
-    }
+    for (const PresetBundle::CachedPreset& e : entries)
+        visit_entry(ar, e, [&] { save_config(ar, e.config_src, dict); });
 }
 
 void load_entries(cereal::BinaryInputArchive& ar,
@@ -6307,14 +6343,10 @@ void load_entries(cereal::BinaryInputArchive& ar,
     uint32_t cnt = 0;
     ar(cnt);
     entries.clear();
-    // The count comes from a file that has already passed magic and CRC, but a
-    // reserve is a promise to allocate: cap it and let push_back grow the rest.
-    entries.reserve(std::min<uint32_t>(cnt, 4096));
+    entries.reserve(std::min(cnt, MAX_RESERVED_ENTRIES));
     for (uint32_t i = 0; i < cnt; ++ i) {
         PresetBundle::CachedPreset e;
-        ar(e.name, e.sub_path);
-        load_config(ar, e.config_src, dict);
-        ar(e.inherits, e.description, e.instantiation, e.setting_id, e.filament_id, e.renamed_from);
+        visit_entry(ar, e, [&] { load_config(ar, e.config_src, dict); });
         entries.push_back(std::move(e));
     }
 }
@@ -6425,7 +6457,6 @@ bool PresetBundle::save_vendor_cache(const std::string& cache_path, const std::s
         for (const std::vector<CachedPreset>* entries : { &process_entries, &filament_entries, &machine_entries })
             for (const CachedPreset& e : *entries)
                 dict.collect(e.config_src);
-        dict.finalize();
 
         std::ostringstream body(std::ios::binary);
         {
@@ -6463,13 +6494,7 @@ std::string PresetBundle::peek_vendor_cache_version(const std::string& cache_pat
             return {};
         std::istringstream body(head, std::ios::binary);
         cereal::BinaryInputArchive ar(body);
-        uint32_t cache_version = 0;
-        ar(cache_version);
-        std::string vendor_name, vendor_version;
-        ar(vendor_name, vendor_version);
-        if (cache_version != CACHE_VERSION || vendor_name != expected_vendor_name)
-            return {};
-        return vendor_version;
+        return read_cache_stamps(ar, expected_vendor_name);
     } catch (const std::exception&) {
         return {};
     }
@@ -6484,13 +6509,7 @@ Semver PresetBundle::usable_cache_version(const std::string& cache_path, const s
     try {
         boost::iostreams::stream<boost::iostreams::array_source> body(blob.data(), blob.size());
         cereal::BinaryInputArchive ar(body);
-        uint32_t cache_version = 0;
-        ar(cache_version);
-        std::string vendor_name, vendor_version;
-        ar(vendor_name, vendor_version);
-        if (cache_version != CACHE_VERSION || vendor_name != expected_vendor_name)
-            return Semver::invalid();
-        const auto ver = Semver::parse(vendor_version);
+        const auto ver = Semver::parse(read_cache_stamps(ar, expected_vendor_name));
         return ver ? *ver : Semver::invalid();
     } catch (const std::exception&) {
         return Semver::invalid();
@@ -6498,49 +6517,40 @@ Semver PresetBundle::usable_cache_version(const std::string& cache_path, const s
 }
 
 // static
-std::vector<std::string> PresetBundle::peek_vendor_cache_preset_names(const std::string& cache_path,
-                                                                      const std::string& vendor_name,
-                                                                      Preset::Type type)
+bool PresetBundle::cache_carries_preset(const std::string& cache_path, const std::string& vendor_name,
+                                        Preset::Type type, const std::string& preset_name)
 {
     std::string blob;
     if (! read_cache_blob(cache_path, blob))
-        return {};
+        return false;
     try {
         boost::iostreams::stream<boost::iostreams::array_source> body(blob.data(), blob.size());
         cereal::BinaryInputArchive ar(body);
-        uint32_t cache_version = 0;
-        ar(cache_version);
-        std::string name, version;
-        ar(name, version);
-        if (cache_version != CACHE_VERSION || name != vendor_name)
-            return {};
+        if (read_cache_stamps(ar, vendor_name).empty())
+            return false;
         CacheDictionary dict;
         dict.load(ar);
         VendorMap vendors;
         ar(vendors);
-        // Written in this order by save_vendor_cache; stop at the one asked for.
+        // Reused: every entry overwrites it, and only its name is ever looked at.
+        CachedPreset entry;
+        // Written in this order by save_vendor_cache. The list that could carry
+        // the preset is the last one worth reading.
         for (Preset::Type kind : { Preset::TYPE_PRINT, Preset::TYPE_FILAMENT, Preset::TYPE_PRINTER }) {
             uint32_t cnt = 0;
             ar(cnt);
-            std::vector<std::string> names;
-            if (kind == type)
-                names.reserve(std::min<uint32_t>(cnt, 4096));
             for (uint32_t i = 0; i < cnt; ++ i) {
-                std::string entry_name, sub_path, inherits, description, instantiation, setting_id, filament_id;
-                std::vector<std::string> renamed_from;
-                ar(entry_name, sub_path);
-                skip_config(ar, dict);
-                ar(inherits, description, instantiation, setting_id, filament_id, renamed_from);
-                if (kind == type)
-                    names.push_back(std::move(entry_name));
+                visit_entry(ar, entry, [&] { skip_config(ar, dict); });
+                if (kind == type && entry.name == preset_name)
+                    return true;
             }
             if (kind == type)
-                return names;
+                return false;
         }
-        return {};
+        return false;
     } catch (const std::exception& e) {
         BOOST_LOG_TRIVIAL(warning) << "PresetBundle: could not read preset names from " << cache_path << ": " << e.what();
-        return {};
+        return false;
     }
 }
 
@@ -6572,15 +6582,10 @@ bool PresetBundle::load_vendor_cache(const std::string& cache_path, const std::s
         // stream over it.
         boost::iostreams::stream<boost::iostreams::array_source> body(blob.data(), blob.size());
         cereal::BinaryInputArchive ar(body);
-        uint32_t cache_version = 0;
-        ar(cache_version);
-        if (cache_version != CACHE_VERSION)
+        const std::string vendor_version = read_cache_stamps(ar, expected_vendor_name);
+        if (vendor_version.empty() || ! cache_covers_version(vendor_version, expected_vendor_version))
             return false;
-        std::string vendor_name, vendor_version;
-        ar(vendor_name, vendor_version);
-        if (vendor_name != expected_vendor_name ||
-            ! cache_covers_version(vendor_version, expected_vendor_version))
-            return false;
+        const std::string& vendor_name = expected_vendor_name;   // read_cache_stamps checked they match
         CacheDictionary dict;
         dict.load(ar);
         ar(this->vendors);

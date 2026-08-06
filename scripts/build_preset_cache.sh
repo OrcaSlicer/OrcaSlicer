@@ -31,6 +31,11 @@
 #               the build tree's CMAKE_BUILD_TYPE)
 #   -n          skip the rebuild and run the tool already in the build tree
 #   -l <level>  tool log level (default: 2)
+#   --prune-source
+#               allow a target that is the directory the caches were generated
+#               into (resources/profiles). Pruning it deletes the checkout's own
+#               preset JSONs, which is a packaging step - not something a build
+#               should do to a working tree by surprise.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/.." && pwd -P)"
@@ -39,6 +44,14 @@ profiles_dir=""
 config=""
 build_tool=1
 log_level=2
+prune_source=0
+
+# getopts does not do long options; pull this one out first.
+args=()
+for arg in "$@"; do
+    if [ "$arg" = "--prune-source" ]; then prune_source=1; else args+=("$arg"); fi
+done
+set -- ${args+"${args[@]}"}
 
 while getopts "b:p:c:l:nh" opt; do
     case $opt in
@@ -120,6 +133,11 @@ for target in "$@"; do
         echo "ERROR: profiles directory not found: $target" >&2
         exit 1
     }
+    if [ "$resolved" = "$profiles_dir" ] && [ "$prune_source" -eq 0 ]; then
+        echo "$resolved: skipped - this is where the caches were generated."
+        echo "  Pass --prune-source to prune it; that deletes this checkout's preset JSONs."
+        continue
+    fi
     if [ "$resolved" != "$profiles_dir" ]; then
         cp "$profiles_dir"/*.opc "$resolved"/
     fi

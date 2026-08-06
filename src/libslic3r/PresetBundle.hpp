@@ -185,8 +185,8 @@ public:
     // is resolved when the entry is installed, against whatever filament library
     // is loaded then, so a cache carries no other vendor's values and no other
     // vendor's update can make it stale.
-    // Written and read by save_entries/load_entries in PresetBundle.cpp, which
-    // must list every field below in this order.
+    // Written and read by visit_entry in PresetBundle.cpp, which lists every field
+    // below in this order — once, for the save, the load and the name peek alike.
     struct CachedPreset
     {
         std::string              name;
@@ -235,15 +235,14 @@ public:
     // vendor wrongly believed installed is never repaired.
     static Semver usable_cache_version(const std::string& cache_path, const std::string& expected_vendor_name);
 
-    // The names of the presets of `type` a cache carries, without installing any
-    // of them. Empty when the file is not a cache this build can read. The three
-    // kinds are written in one stream, so reaching the machines means reading
-    // past the processes and filaments — their configs are consumed and dropped
-    // rather than built. This is how a build that ships caches instead of preset
-    // JSONs answers "which vendor carries this preset?".
-    static std::vector<std::string> peek_vendor_cache_preset_names(const std::string& cache_path,
-                                                                   const std::string& vendor_name,
-                                                                   Preset::Type type);
+    // Whether a cache carries a preset of `type` under `preset_name`, without
+    // installing any of them. False when the file is not a cache this build can
+    // read. The three kinds are written in one stream, so reaching the machines
+    // means reading past the processes and filaments — their configs are consumed
+    // and dropped rather than built. This is how a build that ships caches instead
+    // of preset JSONs answers "which vendor carries this preset?".
+    static bool cache_carries_preset(const std::string& cache_path, const std::string& vendor_name,
+                                     Preset::Type type, const std::string& preset_name);
 
     // Enable writing a per-vendor cache after a JSON parse (off by default). Cache
     // content is pure parse output, so the guard is policy, not correctness: only

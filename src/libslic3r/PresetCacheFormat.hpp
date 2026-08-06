@@ -48,10 +48,6 @@ public:
     // Record every key and enum value `config` uses. Call for every config that
     // will be written, before writing the dictionary.
     void collect(const DynamicPrintConfig& config);
-    // Throws when either table outgrew the uint16 the wire format indexes it
-    // with. Both tables are bounded by the option count (912 at the time of
-    // writing), so this is a build-time failure in CI, not a runtime one.
-    void finalize() const;
 
     uint16_t key_index(const t_config_option_key& key) const;
     // ENUM_UNNAMED for an empty name or one that was never collected.
@@ -67,9 +63,16 @@ public:
     const ConfigOptionDef* def_at(uint16_t idx) const { return m_defs[idx]; }
     ConfigOptionType       type_at(uint16_t idx) const { return ConfigOptionType(m_types[idx]); }
     const std::string&     enum_name_at(uint16_t idx) const { return m_enum_values[idx]; }
-    bool valid_key_index(uint16_t idx) const { return size_t(idx) < m_keys.size(); }
+    // m_defs, not m_keys: only load() sizes it, so this is false for every index
+    // on a dictionary that was collected rather than read.
+    bool valid_key_index(uint16_t idx) const { return size_t(idx) < m_defs.size(); }
     bool valid_enum_index(uint16_t idx) const { return size_t(idx) < m_enum_values.size(); }
 
+    // The layout these two agree on is covered by CACHE_VERSION (PresetBundle.cpp);
+    // bump it when they change.
+    // Throws when either table outgrew the uint16 the wire format indexes it
+    // with. Both are bounded by the option count (912 at the time of writing), so
+    // that is a build-time failure in CI, not a runtime one.
     void save(cereal::BinaryOutputArchive& ar) const;
     // Throws on a dictionary that cannot be indexed as written.
     void load(cereal::BinaryInputArchive& ar);

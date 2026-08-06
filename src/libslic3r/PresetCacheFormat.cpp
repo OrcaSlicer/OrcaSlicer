@@ -12,24 +12,24 @@ CacheDictionary::CacheDictionary()
     m_enum_values.emplace_back();
 }
 
-// The ints an enum option holds, each paired with the name this build gives it —
-// empty where it has none (a nullable option's nil, or a definition with no
-// enum_keys_map). Written by name so a build that reorders an enum's values
-// still reads it right.
-static std::vector<std::pair<int, std::string>> enum_values_named(const ConfigOptionDef& def, const ConfigOption* opt)
+// The ints an enum option holds — one for a coEnum, the whole vector for coEnums.
+static std::vector<int> enum_ints(const ConfigOptionDef& def, const ConfigOption* opt)
 {
-    std::vector<std::pair<int, std::string>> out;
     if (def.type == coEnum)
-        out.emplace_back(opt->getInt(), std::string());
-    else
-        for (int v : static_cast<const ConfigOptionInts*>(opt)->values)
-            out.emplace_back(v, std::string());
+        return { opt->getInt() };
+    return static_cast<const ConfigOptionInts*>(opt)->values;
+}
+
+// The name this build gives one of those ints, empty where it has none — a
+// nullable option's nil, or a definition carrying no enum_keys_map. Enums are
+// written by name so a build that reorders an enum's values still reads it right.
+static std::string enum_name_of(const ConfigOptionDef& def, int value)
+{
     if (def.enum_keys_map != nullptr)
         for (const auto& kvp : *def.enum_keys_map)
-            for (auto& iv : out)
-                if (iv.first == kvp.second)
-                    iv.second = kvp.first;
-    return out;
+            if (kvp.second == value)
+                return kvp.first;
+    return {};
 }
 
 void CacheDictionary::collect(const DynamicPrintConfig& config)
@@ -38,22 +38,18 @@ void CacheDictionary::collect(const DynamicPrintConfig& config)
         const ConfigOptionDef* def = print_config_def.get(it->first);
         if (def == nullptr)
             continue;   // save_config does not write it either
-        if (m_key_index.emplace(it->first, uint16_t(m_keys.size())).second) {
+        if (m_key_index.try_emplace(it->first, uint16_t(m_keys.size())).second) {
             m_keys.push_back(it->first);
             m_types.push_back(uint16_t(def->type));
         }
-        if (def->type == coEnum || def->type == coEnums)
-            for (const auto& iv : enum_values_named(*def, it->second.get()))
-                if (! iv.second.empty())
-                    if (m_enum_index.emplace(iv.second, uint16_t(m_enum_values.size())).second)
-                        m_enum_values.push_back(iv.second);
+        if (def->type != coEnum && def->type != coEnums)
+            continue;
+        for (int value : enum_ints(*def, it->second.get())) {
+            std::string name = enum_name_of(*def, value);
+            if (! name.empty() && m_enum_index.try_emplace(name, uint16_t(m_enum_values.size())).second)
+                m_enum_values.push_back(std::move(name));
+        }
     }
-}
-
-void CacheDictionary::finalize() const
-{
-    if (m_keys.size() > MAX_ENTRIES || m_enum_values.size() > MAX_ENTRIES)
-        throw std::runtime_error("preset cache: the option dictionary outgrew the uint16 it is indexed with");
 }
 
 uint16_t CacheDictionary::key_index(const t_config_option_key& key) const
@@ -74,6 +70,10 @@ uint16_t CacheDictionary::enum_index(const std::string& name) const
 
 void CacheDictionary::save(cereal::BinaryOutputArchive& ar) const
 {
+    // Checked here rather than left to the caller: an index that wrapped would
+    // be written silently, and nothing downstream could tell.
+    if (m_keys.size() > MAX_ENTRIES || m_enum_values.size() > MAX_ENTRIES)
+        throw std::runtime_error("preset cache: the option dictionary outgrew the uint16 it is indexed with");
     ar(m_keys, m_types, m_enum_values);
 }
 
@@ -99,13 +99,13 @@ void CacheDictionary::load(cereal::BinaryInputArchive& ar)
 static void save_enum_option(cereal::BinaryOutputArchive& ar, const ConfigOptionDef& def,
                              const ConfigOption* opt, const CacheDictionary& dict)
 {
-    const auto values = enum_values_named(def, opt);
+    const std::vector<int> values = enum_ints(def, opt);
     ar(uint32_t(values.size()));
-    for (const auto& iv : values) {
-        const uint16_t idx = dict.enum_index(iv.second);
+    for (int value : values) {
+        const uint16_t idx = dict.enum_index(enum_name_of(def, value));
         ar(idx);
         if (idx == CacheDictionary::ENUM_UNNAMED)
-            ar(int32_t(iv.first));
+            ar(int32_t(value));
     }
 }
 
@@ -128,21 +128,26 @@ static void load_enum_option(cereal::BinaryInputArchive& ar, ConfigOptionType ty
         ar(idx);
         if (! dict.valid_enum_index(idx))
             throw std::runtime_error("preset cache: enum value index past the end of the dictionary");
-        int value = 0;
         if (idx == CacheDictionary::ENUM_UNNAMED) {
+            // An int the writer could not name — a nil, or an option whose
+            // definition carried no enum_keys_map. It travels verbatim.
             int32_t raw = 0;
             ar(raw);
-            value = int(raw);
-        } else if (usable && def->enum_keys_map != nullptr) {
-            auto it = def->enum_keys_map->find(dict.enum_name_at(idx));
-            if (it == def->enum_keys_map->end())
-                usable = false;   // a value this build dropped: the option goes, its bytes still get read
-            else
-                value = it->second;
-        } else if (usable) {
-            usable = false;       // this build no longer maps this option's names
+            values.push_back(int(raw));
+            continue;
         }
-        values.push_back(value);
+        if (! usable)
+            continue;             // the index above was this element's whole payload
+        if (def->enum_keys_map == nullptr) {
+            usable = false;       // this build no longer maps this option's names
+            continue;
+        }
+        const auto it = def->enum_keys_map->find(dict.enum_name_at(idx));
+        if (it == def->enum_keys_map->end()) {
+            usable = false;       // a value this build dropped: the option goes with it
+            continue;
+        }
+        values.push_back(it->second);
     }
     if (! usable)
         return;
