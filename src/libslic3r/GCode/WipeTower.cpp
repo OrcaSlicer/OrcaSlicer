@@ -617,6 +617,18 @@ Polygon generate_rectange_polygon(const Vec2f &wt_box_min ,const Vec2f & wt_box_
     return res;
 }
 
+const char* flush_planner_queue_command(GCodeFlavor flavor)
+{
+    return flavor == gcfKlipper ? "M400\n" : "G4 S0\n";
+}
+
+std::string wait_command(GCodeFlavor flavor, float seconds)
+{
+    if (flavor == gcfKlipper)
+        return "G4 P" + std::to_string(std::lround(seconds * 1000.f)) + "\n";
+    return "G4 S" + Slic3r::float_to_string_decimal_point(seconds, 3) + "\n";
+}
+
 class WipeTowerWriter
 {
 public:
@@ -1145,7 +1157,7 @@ public:
 	{
         if (time==0.f)
             return *this;
-        m_gcode += "G4 S" + Slic3r::float_to_string_decimal_point(time, 3) + "\n";
+        m_gcode += wait_command(m_gcode_flavor, time);
 		return *this;
     }
 
@@ -1190,7 +1202,7 @@ public:
 
 	WipeTowerWriter& flush_planner_queue()
 	{
-		m_gcode += "G4 S0\n";
+		m_gcode += flush_planner_queue_command(m_gcode_flavor);
 		return *this;
 	}
 
@@ -1333,6 +1345,8 @@ public:
     {
         std::string buffer;
         if (wait_for_moves)
+            // Not flush_planner_queue_command(): this BBL precool path wants M400, which every
+            // flavor it reaches understands, not the zero dwell the other flavors flush with.
             buffer += "M400\n";
         buffer += "M104";
         if (target_extruder != -1)
@@ -1616,25 +1630,56 @@ float WipeTower::get_auto_brim_by_height(float max_height) {
     return 8.f;
 }
 
-Vec2f WipeTower::move_box_inside_box(const BoundingBox &box1, const BoundingBox &box2,int scaled_offset)
+Vec2f WipeTower::move_box_inside_polygon(const BoundingBox &box, const Polygons &polygons, coord_t offset)
 {
-    Vec2f res{0, 0};
-    if (box1.size()[0] >= box2.size()[0]- 2*scaled_offset || box1.size()[1] >= box2.size()[1]-2*scaled_offset) return res;
+    if (polygons.empty()) return Vec2f{0.f, 0.f};
 
-    if (box1.max[0] > box2.max[0] - scaled_offset) {
-        res[0] = unscaled<float>((box2.max[0] - scaled_offset) - box1.max[0]);
-    }
-    else if (box1.min[0] < box2.min[0] + scaled_offset) {
-        res[0] = unscaled<float>((box2.min[0] + scaled_offset) - box1.min[0]);
+    const BoundingBox bed = get_extents(polygons);
+    // No position fits the footprint.
+    if (box.size().x() >= bed.size().x() - 2 * offset || box.size().y() >= bed.size().y() - 2 * offset)
+        return Vec2f{0.f, 0.f};
+
+    // Clamp against the bounding box first, moving only along the axis that is violated so a dragged
+    // prime tower slides along the bed edge instead of jumping inwards.
+    Point shift(0, 0);
+    for (int axis = 0; axis < 2; ++axis) {
+        if (box.max[axis] > bed.max[axis] - offset)
+            shift[axis] = (bed.max[axis] - offset) - box.max[axis];
+        else if (box.min[axis] < bed.min[axis] + offset)
+            shift[axis] = (bed.min[axis] + offset) - box.min[axis];
     }
 
-    if (box1.max[1] > box2.max[1] - scaled_offset) {
-        res[1] = unscaled<float>((box2.max[1] - scaled_offset) - box1.max[1]);
+    // A bed that fills its own bounding box is fully clamped by that, so every rectangular bed — all
+    // but the delta-style profiles — stops here and keeps its historic placement, including when a
+    // negative margin lets the footprint hang over the edge. The tolerance is relative because an
+    // exact rectangle loses a few ulps once the areas are squared world coordinates.
+    double area = 0.;
+    for (const Polygon &poly : polygons) area += std::abs(poly.area());
+    const double bed_area = double(bed.size().x()) * double(bed.size().y());
+    if (area >= bed_area * (1. - EPSILON)) return unscaled<float>(shift);
+
+    // Clamp a negative margin (an auto brim width that has not been resolved yet) to zero: padding by
+    // it would shrink the footprint and hand back a position the validation still rejects. The
+    // epsilon lets the move's round trip through millimeters land on the outline without counting as
+    // a violation.
+    BoundingBox padded = box.inflated(std::max<coord_t>(offset, 0) - SCALED_EPSILON);
+    padded.translate(shift);
+    auto fits = [&padded, &polygons](const Point &move) {
+        BoundingBox moved = padded;
+        moved.translate(move);
+        return diff(Polygons{moved.polygon()}, polygons).empty();
+    };
+    if (fits(Point(0, 0))) return unscaled<float>(shift);
+
+    // Walk towards the middle of the bed. On every non-rectangular bed we ship, the fitting positions
+    // form a convex region around it, so bisecting stops just inside the outline.
+    Point lo(0, 0), hi = bed.center() - padded.center();
+    if (!fits(hi)) return unscaled<float>(shift);
+    for (int i = 0; i < 12; ++i) {
+        const Point mid = (lo + hi) / 2;
+        if (fits(mid)) hi = mid; else lo = mid;
     }
-    else if (box1.min[1] < box2.min[1] + scaled_offset) {
-        res[1] = unscaled<float>((box2.min[1] + scaled_offset) - box1.min[1]);
-    }
-    return res;
+    return unscaled<float>(Point(shift + hi));
 }
 
 Polygon WipeTower::rib_section(float width, float depth, float rib_length, float rib_width,bool fillet_wall)

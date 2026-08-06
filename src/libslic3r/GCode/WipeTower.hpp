@@ -26,6 +26,12 @@ enum GCodeFlavor : unsigned char;
 Polylines construct_gap_for_skip_points(
     const Polygon& polygon, const std::vector<Vec2f>& skip_points, float wt_width, float gap_length, Polygon& insert_skip_polygon);
 
+// Klipper acts on commands the instant it parses them, and its G4 reads only P (milliseconds),
+// so the zero-second and seconds-valued dwells every other flavor uses neither synchronize nor
+// pause there. Both defined in WipeTower.cpp, shared by WipeTower and WipeTower2.
+const char* flush_planner_queue_command(GCodeFlavor flavor); // finish queued moves, e.g. around M104/M109
+std::string wait_command(GCodeFlavor flavor, float seconds);  // pause for `seconds`
+
 class WipeTower
 {
 public:
@@ -39,7 +45,11 @@ public:
     static TriangleMesh                 its_make_rib_tower(float width, float depth, float height, float rib_length, float rib_width, bool fillet_wall);
     static TriangleMesh                 its_make_rib_brim(const Polygon& brim, float layer_height);
     static Polygon                      rib_section(float width, float depth, float rib_length, float rib_width, bool fillet_wall);
-    static Vec2f                        move_box_inside_box(const BoundingBox &box1, const BoundingBox &box2, int offset = 0);
+    // Translation that brings a footprint inside the printable outline, padded by offset. The prime
+    // tower is validated against the real outline (see layered_print_cleareance_valid), so clamping
+    // against the bounding box alone would leave it off a delta or hexagonal bed. box and polygons
+    // must share one scaled coordinate frame; the translation comes back in millimeters.
+    static Vec2f                        move_box_inside_polygon(const BoundingBox &box, const Polygons &polygons, coord_t offset = 0);
     static Polygon                      rounding_polygon(Polygon &polygon, double rounding = 2., double angle_tol = 30. / 180. * PI);
     struct Extrusion
     {

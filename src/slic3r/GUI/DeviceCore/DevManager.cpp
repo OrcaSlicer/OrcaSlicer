@@ -496,6 +496,26 @@ namespace Slic3r
         OnSelectedMachineChanged(previous_selected_machine, selected_machine);
     }
 
+    void DeviceManager::clear_other_devices()
+    {
+        // why: on agent swap, keep "My Devices" but drop the transient "Other Devices"
+        // Those belong to the previous agent's network scan; the new agent's start_discovery re-populates its own.
+        const auto my = get_my_machine_list();
+        for (auto it = localMachineList.begin(); it != localMachineList.end();)
+        {
+            if (my.find(it->first) == my.end())
+            {
+                // not a "My Device" -> an "Other Device"
+                delete it->second;
+                it = localMachineList.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+
     bool DeviceManager::set_selected_machine(std::string dev_id)
     {
         BOOST_LOG_TRIVIAL(info) << "set_selected_machine=" << dev_id
@@ -558,7 +578,6 @@ namespace Slic3r
             }
             else
             {
-                Slic3r::GUI::wxGetApp().reset_unsigned_plugin_warning();
                 if (m_agent)
                 {
                     if (it->second->connection_type() != "lan" || it->second->connection_type().empty())
@@ -851,7 +870,9 @@ namespace Slic3r
         int result = m_agent->get_user_print_info(&http_code, &body, provider);
         if (result == 0)
         {
-            parse_user_print_info(body);
+            // parse_user_print_info and on_machine_alive (SSDP for discovery) both mutate the same userMachineList map.
+            // on_machine_alive mutates the map on the UI thread, do the same for parse_user_print_info.
+            Slic3r::GUI::wxGetApp().CallAfter([this, body]() { parse_user_print_info(body); });
         }
     }
 
@@ -878,17 +899,15 @@ namespace Slic3r
 
     void DeviceManager::load_last_machine()
     {
-        if (userMachineList.empty()) return;
-        else if (userMachineList.size() == 1) {
-            this->set_selected_machine(userMachineList.begin()->second->get_dev_id());
-        } else {
-            const auto& last_monitor_machine = get_user_last_machine();
-            if (userMachineList.find(last_monitor_machine) != userMachineList.end()) {
-                set_selected_machine(last_monitor_machine);
-            } else {
-                this->set_selected_machine(userMachineList.begin()->second->get_dev_id());
-            }
-        }
+        // Only reconnect the remembered cloud machine. Do not select an arbitrary
+        // first machine: agent swaps intentionally leave the selection empty until
+        // the new agent explicitly selects its configured printer.
+        if (userMachineList.empty())
+            return;
+
+        const auto& last_monitor_machine = get_user_last_machine();
+        if (userMachineList.find(last_monitor_machine) != userMachineList.end())
+            set_selected_machine(last_monitor_machine);
     }
 
     void DeviceManager::OnMachineBindStateChanged(MachineObject* obj, const std::string& new_state)
