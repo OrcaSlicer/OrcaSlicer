@@ -63,7 +63,7 @@ void FillConcentric::_fill_surface_single(
     if (spiralized) {
         Polyline spiral;
         Point current_pos(0, 0);
-        const double jump_threshold = 3.0 * double(distance);
+        const double jump_threshold = 1.5 * double(distance);
 
         auto find_sharpest_corner = [](const Polygon& loop) -> int {
             size_t n = loop.points.size();
