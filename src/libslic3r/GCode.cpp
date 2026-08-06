@@ -1554,7 +1554,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     interface_temp = gcodegen.config().nozzle_temperature_range_high.get_at(new_extruder_id);
                 toolchange_temp_override = interface_temp;
             }
-            toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override); // TODO: toolchange_z vs print_z
+            toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override,
+                                                         WipeTower2::wait_for_temp_enabled(gcodegen.m_config)); // TODO: toolchange_z vs print_z
             if (!travel_to_tower_now && !tcr.priming && WipeTower2::use_gap_wall(gcodegen.m_config)) {
                 // The tool changed in place (multi-tool printer without ramming), so the
                 // tower entry is the tcr's own positioning move — a straight line across
@@ -1705,7 +1706,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 std::string trimmed = line;
                 trimmed.erase(0, trimmed.find_first_not_of(" \t"));
                 bool skip_line = false;
-                if (boost::starts_with(trimmed, "M109")) {
+                if (boost::starts_with(trimmed, "M109") && trimmed.find(WipeTower2::wait_for_temp_tag()) == std::string::npos) {
                     bool matches_extruder = true;
                     if (trimmed.find('T') != std::string::npos)
                         matches_extruder = trimmed.find(t_token) != std::string::npos;
@@ -8939,7 +8940,7 @@ void GCode::update_placeholder_parser_with_variant_params()
     }
 }
 
-std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bool by_object, int toolchange_temp_override)
+std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bool by_object, int toolchange_temp_override, bool defer_temp_wait)
 {
     int new_extruder_id = get_extruder_id(new_filament_id);
     if (!m_writer.need_toolchange(new_filament_id))
@@ -9045,6 +9046,24 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         new_filament_temp = m_config.nozzle_temperature_initial_layer.get_at(new_fi);
     if (toolchange_temp_override > 0)
         new_filament_temp = toolchange_temp_override;
+
+    // With wait_for_temp_on_wipe_tower the blocking M109 is deferred to the wipe tower, so raise
+    // the incoming filament's target here — ahead of the tool change rather than after it — and
+    // let the heat-up overlap the change itself as well as the travel to the tower. The command
+    // always carries an explicit tool index (the option is off for single extruder MM, so the
+    // writer emits one), leaving the outgoing filament that pre_toolchange just dropped to its
+    // standby temperature alone. nozzle_temperature == 0 means "use the first layer temperature".
+    if (defer_temp_wait) {
+        // Target what the tower will wait on. It waits on the first layer temperature not only on
+        // the first layer but also while priming, which runs before any layer is set: there
+        // on_first_layer() is false and print_z is the initial layer height, so neither test above
+        // catches it. nozzle_temperature == 0 means "use the first layer temperature" as well.
+        int preheat_temp = new_filament_temp;
+        if (toolchange_temp_override <= 0 && (m_layer == nullptr || preheat_temp <= 0))
+            preheat_temp = m_config.nozzle_temperature_initial_layer.get_at(new_fi);
+        if (preheat_temp > 0)
+            gcode += m_writer.set_temperature(preheat_temp, false, new_filament_id);
+    }
 
     Vec3d nozzle_pos = m_writer.get_position();
     float old_retract_length, old_retract_length_toolchange, wipe_volume;
@@ -9349,8 +9368,10 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         }
         check_add_eol(gcode);
     }
-    // Set the new extruder to the operating temperature.
-    if (m_ooze_prevention.enable)
+    // Set the new extruder to the operating temperature. With defer_temp_wait the target was
+    // already raised before the tool change and the blocking wait belongs to the wipe tower
+    // generator, so there is nothing left to restore here.
+    if (m_ooze_prevention.enable && !defer_temp_wait)
         gcode += m_ooze_prevention.post_toolchange(*this);
 
     if (m_config.enable_pressure_advance.get_at(new_filament_id)) {
