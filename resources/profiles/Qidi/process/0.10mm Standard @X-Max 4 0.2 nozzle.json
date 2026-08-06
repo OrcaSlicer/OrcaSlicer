@@ -1,10 +1,10 @@
 {
 	"type": "process",
-	"name": "0.10mm Standard @X-Max 4 0.2 nozzle",
-	"inherits": "fdm_process_n_common",
-	"from": "system",
 	"setting_id": "ABeYedxpPRk7Mv4k",
+	"name": "0.10mm Standard @X-Max 4 0.2 nozzle",
+	"from": "system",
 	"instantiation": "true",
+	"inherits": "fdm_process_n_common",
 	"bottom_color_penetration_layers": "5",
 	"bottom_shell_layers": "5",
 	"bridge_flow": "1",
@@ -12,7 +12,7 @@
 		"10000"
 	],
 	"elefant_foot_compensation": "0.15",
-	"enable_arc_fitting": "0",
+	"enable_arc_fitting": "1",
 	"initial_layer_infill_speed": [
 		"70"
 	],
@@ -22,22 +22,30 @@
 		"40"
 	],
 	"inner_wall_acceleration": [
-		"5000"
+		"0"
 	],
 	"inner_wall_line_width": "0.22",
 	"internal_solid_infill_line_width": "0.22",
+	"ironing_flow": "20%",
+	"ironing_speed": "20",
 	"layer_height": "0.1",
 	"line_width": "0.22",
 	"outer_wall_acceleration": [
-		"3000"
+		"5000"
 	],
 	"outer_wall_line_width": "0.22",
+	"overhang_1_4_speed": [
+		"60"
+	],
 	"skin_infill_line_width": "0.22",
+	"outer_wall_speed": [
+		"100"
+	],
+	"prime_tower_width": "60",
 	"skeleton_infill_line_width": "0.22",
 	"small_perimeter_threshold": [
-		"4"
+		"0"
 	],
-	"smooth_coefficient": "4",
 	"sparse_infill_line_width": "0.22",
 	"sparse_infill_speed": [
 		"100"

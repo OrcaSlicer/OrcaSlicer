@@ -147,7 +147,7 @@
 		"50%"
 	],
 	"small_perimeter_threshold": [
-		"4"
+		"0"
 	],
 	"smooth_coefficient": "90",
 	"smooth_speed_discontinuity_area": "1",

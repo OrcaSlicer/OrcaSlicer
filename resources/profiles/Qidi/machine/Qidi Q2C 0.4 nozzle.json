@@ -30,7 +30,7 @@
 	"is_support_timelapse": "1",
 	"is_support_multi_box": "0",
 	"layer_change_gcode": "SET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}",
-	"machine_end_gcode": "DISABLE_BOX_HEATER\nM140 S0\nBUFFER_MONITORING ENABLE=0\nDISABLE_ALL_SENSOR\nG1 E-3 F1800\nG0 Z{max_layer_z + 3} F600\nUNLOAD_FILAMENT T=[current_extruder]\nG0 Y270 F12000\nG0 X90 Y270 F12000\n{if max_layer_z < max_print_height / 2}G1 Z{max_print_height / 2 + 10} F600{else}G1 Z{min(max_print_height, max_layer_z + 3)}{endif}\nM104 S0",
+	"machine_end_gcode": "DISABLE_BOX_HEATER\nM140 S0\nBUFFER_MONITORING ENABLE=0\nDISABLE_ALL_SENSOR\nG1 E-3 F1800\nG0 Z{max_layer_z + 3} F600\nUNLOAD_FILAMENT T=[current_extruder]\nG0 Y270 F12000\nG0 X90 Y270 F12000\n{if max_layer_z < max_print_height / 2}G1 Z{max_print_height / 2 + 10} F600{else}G1 Z{min(max_print_height, max_layer_z + 3)}{endif}\nM104 S0\nPRINT_END",
 	"machine_load_filament_time": "35",
 	"machine_max_jerk_e": [
 		"4"

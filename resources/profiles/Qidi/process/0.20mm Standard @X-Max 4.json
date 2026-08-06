@@ -1,16 +1,16 @@
 {
 	"type": "process",
-	"name": "0.20mm Standard @X-Max 4",
-	"inherits": "fdm_process_n_common",
-	"from": "system",
 	"setting_id": "2TsaNedKJlTmULOi",
+	"name": "0.20mm Standard @X-Max 4",
+	"from": "system",
+	"inherits": "fdm_process_n_common",
 	"instantiation": "true",
 	"bridge_flow": "1",
 	"default_acceleration": [
 		"10000"
 	],
 	"elefant_foot_compensation": "0.15",
-	"enable_arc_fitting": "0",
+	"enable_arc_fitting": "1",
 	"gap_infill_speed": [
 		"250"
 	],
@@ -18,23 +18,25 @@
 		"300"
 	],
 	"inner_wall_acceleration": [
-		"5000"
+		"0"
 	],
 	"internal_solid_infill_speed": [
 		"250"
 	],
+	"ironing_flow": "15%",
 	"outer_wall_acceleration": [
-		"3000"
+		"5000"
 	],
 	"outer_wall_speed": [
 		"200"
 	],
+	"prime_tower_width": "60",
+	"prime_tower_flat_ironing": "1",
 	"small_perimeter_threshold": [
-		"4"
+		"0"
 	],
-	"smooth_coefficient": "4",
 	"sparse_infill_speed": [
-		"270"
+		"350"
 	],
 	"top_color_penetration_layers": "5",
 	"top_shell_layers": "5",
