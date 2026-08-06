@@ -12,6 +12,11 @@ rem   target_dir  profiles directories to ship into. Caches are generated into
 rem               the source tree's resources\profiles, which is what every
 rem               packaging step copies from; a target may be that same
 rem               directory, which then only gets pruned.
+rem   --prune-source
+rem               allow a target that is the directory the caches were generated
+rem               into (resources\profiles). Pruning it deletes the checkout's
+rem               own preset JSONs, which is a packaging step - not something a
+rem               build should do to a working tree by surprise. CI passes it.
 rem
 rem Shipping deletes, so it is a CI packaging step. A vendor's own <vendor>.json
 rem goes along with its preset JSONs: the cache carries the vendor profile and
@@ -25,6 +30,15 @@ rem   (default: the config of the tool already in the build tree, else Release)
 setlocal enabledelayedexpansion
 
 set "REPO_ROOT=%~dp0.."
+
+set "PRUNE_SOURCE="
+:parse_flags
+if /i "%~1"=="--prune-source" (
+    set "PRUNE_SOURCE=1"
+    shift
+    goto :parse_flags
+)
+
 set "BUILD_DIR=%~1"
 if "%BUILD_DIR%"=="" set "BUILD_DIR=build"
 if not exist "%BUILD_DIR%\" (
@@ -92,6 +106,11 @@ if not exist "%TARGET%\" (
     exit /b 1
 )
 for %%d in ("%TARGET%") do set "TARGET=%%~fd"
+if /i "%TARGET%"=="%PROFILES%" if not defined PRUNE_SOURCE (
+    echo %TARGET%: skipped - this is where the caches were generated.
+    echo   Pass --prune-source to prune it; that deletes this checkout's preset JSONs.
+    exit /b 0
+)
 if /i not "%TARGET%"=="%PROFILES%" copy /y "%PROFILES%\*.opc" "%TARGET%\" >nul
 
 set /a SHIPPED=0

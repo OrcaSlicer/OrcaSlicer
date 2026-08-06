@@ -185,7 +185,8 @@ public:
     // is resolved when the entry is installed, against whatever filament library
     // is loaded then, so a cache carries no other vendor's values and no other
     // vendor's update can make it stale.
-    // All fields, declaration order — keep in sync; bump CACHE_VERSION on change.
+    // Written and read by save_entries/load_entries in PresetBundle.cpp, which
+    // must list every field below in this order.
     struct CachedPreset
     {
         std::string              name;
@@ -197,13 +198,6 @@ public:
         std::string              setting_id;
         std::string              filament_id;
         std::vector<std::string> renamed_from;
-
-        template<class Archive>
-        void serialize(Archive& ar)
-        {
-            ar(name, sub_path, config_src, inherits, description, instantiation,
-               setting_id, filament_id, renamed_from);
-        }
     };
 
     // Save one vendor (vendor_name at vendor_version): its vendor profile and its
@@ -218,9 +212,10 @@ public:
     // Load a validated per-vendor cache into this bundle by installing its
     // entries, with base_bundle's filament library as the inheritance base.
     // Rejects (returns false, with this bundle left clean) unless the cache
-    // version, schema fingerprint and vendor name match, the cache was built
-    // from a vendor profile at least as new as the expected one, and every
-    // entry installs. An invalid expected version (a profile whose version
+    // version and vendor name match, the cache was built from a vendor profile
+    // at least as new as the expected one, and every entry installs. Options
+    // this build no longer defines are dropped, not fatal — the payload names
+    // its own keys. An invalid expected version (a profile whose version
     // cannot be judged) is never served from cache; Semver::inf() (no profile
     // beside the cache at all) accepts whatever is cached.
     bool load_vendor_cache(const std::string& cache_path, const std::string& expected_vendor_name,
@@ -231,6 +226,24 @@ public:
     // or not this vendor's. This is how an installed vendor's version is known when
     // only its cache is installed.
     static std::string peek_vendor_cache_version(const std::string& cache_path, const std::string& expected_vendor_name);
+
+    // The profile version an installed cache can actually be served at, or an
+    // invalid Semver when the file is not a cache this build can read. Unlike
+    // peek_vendor_cache_version this verifies the body's CRC, at the cost of
+    // reading the whole file: where the cache is the vendor's whole
+    // installation, "a file is there" is not enough to call it installed, and a
+    // vendor wrongly believed installed is never repaired.
+    static Semver usable_cache_version(const std::string& cache_path, const std::string& expected_vendor_name);
+
+    // The names of the presets of `type` a cache carries, without installing any
+    // of them. Empty when the file is not a cache this build can read. The three
+    // kinds are written in one stream, so reaching the machines means reading
+    // past the processes and filaments — their configs are consumed and dropped
+    // rather than built. This is how a build that ships caches instead of preset
+    // JSONs answers "which vendor carries this preset?".
+    static std::vector<std::string> peek_vendor_cache_preset_names(const std::string& cache_path,
+                                                                   const std::string& vendor_name,
+                                                                   Preset::Type type);
 
     // Enable writing a per-vendor cache after a JSON parse (off by default). Cache
     // content is pure parse output, so the guard is policy, not correctness: only
@@ -515,7 +528,7 @@ public:
     // Orca: `dir` is where the vendor is looked for — its own directory, whether or
     // not the profile JSONs are still there. A whole-vendor load comes from the
     // vendor's preset cache whenever one covers the profile on disk, and is parsed
-    // from the JSONs (falling back to the ones in resources) only when none does.
+    // from the JSONs in `dir` only when none does. Nothing here reads resources.
     std::pair<PresetsConfigSubstitutions, size_t> load_vendor_configs_from_json(
         const std::string &dir, const std::string &vendor_name, LoadConfigBundleAttributes flags, ForwardCompatibilitySubstitutionRule compatibility_rule, const PresetBundle* base_bundle = nullptr);
 
@@ -603,10 +616,9 @@ public:
     std::vector<std::string>    merge_presets(PresetBundle &&other);
 
 private:
-    // Load one vendor from its preset cache: the one in `dir`, or — when that is
-    // missing or stale — the one shipped in resources/profiles, both judged against
-    // the vendor as installed in `dir`. False, with this bundle left clean, when
-    // neither is usable and the vendor has to be parsed. This is how
+    // Load one vendor from the preset cache installed in `dir`, judged against
+    // the vendor profile there. False, with this bundle left clean, when there
+    // is no usable cache and the vendor has to be parsed. This is how
     // load_vendor_configs_from_json reads a cache.
     bool load_vendor_cache(const boost::filesystem::path& dir, const std::string& vendor_name, const PresetBundle* base_bundle);
 
@@ -682,11 +694,12 @@ ENABLE_ENUM_BITMASK_OPERATORS(PresetBundle::LoadConfigBundleAttribute)
 
 // True if `vendor` is installed in data_dir()/system. A build that ships preset
 // caches installs the cache alone, so it — not the profile — marks a vendor
-// installed, and either one on its own counts.
+// installed; a cache this build cannot read marks nothing.
 extern bool is_vendor_installed(const std::string& vendor);
 
-// The version of the installed vendor: what its profile claims, or what its cache
-// was stamped with where only the cache is installed. Invalid Semver if neither is.
+// The version the installed vendor would be loaded at: its cache's stamp while
+// that covers the profile beside it, the profile's own version once it does not.
+// Invalid Semver if neither form is installed.
 extern Semver installed_vendor_version(const std::string& vendor);
 
 // Remove every form `vendor` can be installed as from data_dir()/system: its
@@ -707,7 +720,8 @@ extern Semver resource_vendor_version(const std::string& vendor);
 // build ships at the newer version. Anything the previous install of that vendor
 // left behind goes, so only the form just installed is there to be loaded.
 // bundle_names: vendor names, without extension.
-// Returns false on the first vendor that cannot be installed.
+// Every bundle that can be installed is, whatever the others do. Returns false
+// if any named bundle could not be installed.
 extern bool install_vendor_bundles_from_resources(const std::vector<std::string>& bundle_names,
                                                   const std::string& resource_subdir = "profiles",
                                                   const std::string& data_subdir     = "system");

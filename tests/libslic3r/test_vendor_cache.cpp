@@ -2,10 +2,15 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/crc.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cstring>
 #include <fstream>
+#include <functional>
 #include <set>
+#include <sstream>
 
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PresetCacheFormat.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Utils.hpp"
@@ -129,12 +134,15 @@ std::string slurp(const fs::path& p)
     return s;
 }
 
-void corrupt_blob_byte(const std::string& path)
+// Flip one byte of the body. The default lands in the stamps at the front, which
+// every reader checks; pass an offset past them to corrupt a file that still
+// answers peek_vendor_cache_version but cannot survive its CRC.
+void corrupt_blob_byte(const std::string& path, std::streamoff at = 30)
 {
     std::fstream f(path, std::ios::in | std::ios::out | std::ios::binary);
-    f.seekp(30);
+    f.seekp(at);
     char b = 0; f.read(&b, 1);
-    f.seekp(30);
+    f.seekp(at);
     b ^= 0xFF;
     f.write(&b, 1);
 }
@@ -930,12 +938,7 @@ TEST_CASE("a vendor shipped as a cache alone is installed and loaded from it", "
     // no profile to read it from.
     CHECK(resource_vendor_version("Acme") == Semver(1, 0, 0));
 
-    // Nothing installed yet, so the shipped cache answers.
-    PresetBundle before;
-    before.load_vendor_configs_from_json(user.string(), "Acme", PresetBundle::LoadSystem,
-                                         ForwardCompatibilitySubstitutionRule::EnableSilent);
-    CHECK(before.vendors.at("Acme").name == "Shipped Acme");
-
+    // Resources reaches the app by being installed, never by being loaded from.
     REQUIRE(install_vendor_bundles_from_resources({lib, "Acme"}));
     CHECK(fs::exists(user / "Acme.opc"));
     CHECK(!fs::exists(user / "Acme.json"));
@@ -947,40 +950,51 @@ TEST_CASE("a vendor shipped as a cache alone is installed and loaded from it", "
     CHECK(after.vendors.at("Acme").name == "Shipped Acme");
 }
 
-TEST_CASE("a vendor cache installed in the data dir shadows the shipped one", "[VendorCache]")
+TEST_CASE("a vendor with a profile in the data dir is parsed there and cached there, whatever resources ships", "[VendorCache]")
 {
-    TempDir tmp;
-    const fs::path rsrc = tmp.path / "resources" / "profiles";
-    const fs::path user = tmp.path / "data" / PRESET_SYSTEM_DIR;
-    fs::create_directories(rsrc);
-    fs::create_directories(user);
+    // The reported regression: a valid resources/profiles/<V>.opc answered
+    // first, so the JSON in system/ was never parsed and system/<V>.opc was
+    // never written. Main reads system/ and nothing else.
+    TempDir data, rsrc;
+    const fs::path system = data.path / "system";
+    const fs::path profiles = rsrc.path / "profiles";
+    fs::create_directories(system);
+    fs::create_directories(profiles);
+    ScopedDirs dirs(data.path, rsrc.path);
 
-    write_vendor_tree(rsrc, "Acme", "1.0.0");
-    REQUIRE(save_one_vendor((rsrc / "Acme.opc").string(), one_vendor("Acme", "Shipped Acme"), "Acme", "1.0.0"));
+    write_vendor_tree(system, "Shadow", "1.0.0");
+    // A cache in resources at the very same version — under the old two-tier
+    // lookup this was accepted and the parse skipped.
+    REQUIRE(save_one_vendor((profiles / "Shadow.opc").string(), one_vendor("Shadow"), "Shadow", "1.0.0"));
 
-    ScopedDirs dirs(tmp.path / "data", tmp.path / "resources");
-    // The vendor profiles name the vendor "Acme"; the caches name it after where
-    // they came from, so the loaded name says which source answered.
-    auto loaded_name = [&user](PresetBundle& bundle) {
-        bundle.load_vendor_configs_from_json(user.string(), "Acme", PresetBundle::LoadSystem,
-                                             ForwardCompatibilitySubstitutionRule::EnableSilent);
-        return bundle.vendors.at("Acme").name;
-    };
+    PresetBundle bundle;
+    bundle.set_generate_vendor_caches(true);
+    REQUIRE(bundle.load_vendor_configs_from_json(system.string(), "Shadow", PresetBundle::LoadSystem,
+                                                 ForwardCompatibilitySubstitutionRule::EnableSilent).second > 0);
 
-    // Nothing installed yet: the shipped cache answers.
-    PresetBundle from_rsrc;
-    CHECK(loaded_name(from_rsrc) == "Shipped Acme");
+    // Parsed from system/, and its cache written back beside the profile.
+    CHECK(fs::exists(system / "Shadow.opc"));
+    CHECK(presets_for(bundle.prints, "Shadow").size() == 1);
+}
 
-    // Installing a newer vendor profile makes the shipped cache too old for it, even
-    // though that cache still matches the profile sitting beside it in resources.
-    write_vendor_tree(user, "Acme", "2.0.0");
-    PresetBundle stale;
-    CHECK(loaded_name(stale) == "Acme");
+TEST_CASE("a vendor with nothing installed is not loaded from resources", "[VendorCache]")
+{
+    // Resources reaches the app by being installed into system/ first. A vendor
+    // that is not installed is not loaded, however completely resources ships it.
+    TempDir data, rsrc;
+    const fs::path system = data.path / "system";
+    const fs::path profiles = rsrc.path / "profiles";
+    fs::create_directories(system);
+    fs::create_directories(profiles);
+    ScopedDirs dirs(data.path, rsrc.path);
 
-    // The cache installed alongside it does answer, and wins over the shipped one.
-    REQUIRE(save_one_vendor((user / "Acme.opc").string(), one_vendor("Acme", "Installed Acme"), "Acme", "2.0.0"));
-    PresetBundle from_user;
-    CHECK(loaded_name(from_user) == "Installed Acme");
+    write_vendor_tree(profiles, "Absent", "1.0.0");
+    REQUIRE(save_one_vendor((profiles / "Absent.opc").string(), one_vendor("Absent"), "Absent", "1.0.0"));
+
+    PresetBundle bundle;
+    REQUIRE_THROWS(bundle.load_vendor_configs_from_json(system.string(), "Absent", PresetBundle::LoadSystem,
+                                                        ForwardCompatibilitySubstitutionRule::EnableSilent));
+    CHECK(presets_for(bundle.prints, "Absent").empty());
 }
 
 TEST_CASE("a cache installed with no profile beside it is used whatever its version", "[VendorCache]")
@@ -1066,36 +1080,6 @@ TEST_CASE("a vendor whose cache is stale falls back to parsing its JSONs", "[Ven
                                           ForwardCompatibilitySubstitutionRule::EnableSilent);
     CHECK(PresetBundle::peek_vendor_cache_version((user / "Acme.opc").string(), "Acme")
           == get_version_from_json((user / "Acme.json").string()).to_string());
-}
-
-TEST_CASE("a vendor with nothing installed is parsed from the shipped profiles", "[VendorCache]")
-{
-    TempDir tmp;
-    const fs::path rsrc = tmp.path / "resources" / "profiles";
-    const fs::path user = tmp.path / "data" / PRESET_SYSTEM_DIR;
-    fs::create_directories(user);
-    fs::create_directories(rsrc);
-    write_vendor_tree(rsrc, "Acme", "1.0.0");
-
-    ScopedDirs dirs(tmp.path / "data", tmp.path / "resources");
-
-    // Neither a cache nor a profile in the directory asked for, so the vendor comes
-    // out of resources — which is where a build that ships caches keeps the JSONs a
-    // rejected cache has to be re-parsed from.
-    PresetBundle out;
-    auto [substitutions, presets_loaded] = out.load_vendor_configs_from_json(
-        user.string(), "Acme", PresetBundle::LoadSystem, ForwardCompatibilitySubstitutionRule::EnableSilent);
-    CHECK(presets_loaded == 1);
-    CHECK(out.vendors.at("Acme").config_version == Semver(1, 0, 0));
-
-    // The cache such a parse writes lands in the directory asked for, stamped with
-    // the version of the profile it was actually built from.
-    PresetBundle caching;
-    caching.set_generate_vendor_caches(true);
-    caching.load_vendor_configs_from_json(user.string(), "Acme", PresetBundle::LoadSystem,
-                                          ForwardCompatibilitySubstitutionRule::EnableSilent);
-    CHECK(PresetBundle::peek_vendor_cache_version((user / "Acme.opc").string(), "Acme")
-          == get_version_from_json((rsrc / "Acme.json").string()).to_string());
 }
 
 TEST_CASE("a cache with a mismatched vendor name is rejected", "[VendorCache]")
@@ -1211,4 +1195,416 @@ TEST_CASE("a cache that fails mid-body deserialization is rejected and leaves th
     REQUIRE(out.load_vendor_cache(valid_cache.string(), vid, Semver("1.0.0")));
     CHECK(out.vendors.count(vid) == 1);
     CHECK(presets_for(out.filaments, vid).size() == 1);
+}
+
+TEST_CASE("a cache rejected mid-body leaves the error count where it found it", "[VendorCache]")
+{
+    TempDir data, rsrc;
+    const fs::path system = data.path / "system";
+    fs::create_directories(system);
+    fs::create_directories(rsrc.path / "profiles");
+    ScopedDirs dirs(data.path, rsrc.path);
+
+    // A vendor whose root profile counts a parse error, so the bundle carries a
+    // non-zero tally into the load below. Without one there is nothing for a
+    // rejected cache to zero, and nothing to underflow.
+    std::ofstream((system / "Noisy.json").string())
+        << R"({"version":"1.0.0","name":"Noisy","process_list":"not a list"})";
+
+    write_vendor_tree(system, "Counted", "1.0.0");
+    // A cache that passes every stamp and then dies in the entries.
+    REQUIRE(save_one_vendor((system / "Counted.opc").string(), one_vendor("Counted"), "Counted", "1.0.0",
+                            {filament_entry("Counted PLA @0.4")}));
+    truncate_payload_and_fix_header((system / "Counted.opc").string(), 8);
+
+    PresetBundle bundle;
+    bundle.set_generate_vendor_caches(true);
+    bundle.load_vendor_configs_from_json(system.string(), "Noisy", PresetBundle::LoadSystem,
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent);
+    REQUIRE(bundle.error_count() > 0);
+
+    // The same bundle: the cache is tried, fails mid-body, and the parse that
+    // follows must be measured against the tally the cache found rather than
+    // against zero.
+    REQUIRE(bundle.load_vendor_configs_from_json(system.string(), "Counted", PresetBundle::LoadSystem,
+                                                 ForwardCompatibilitySubstitutionRule::EnableSilent).second > 0);
+
+    // The rewritten cache must carry the parse's own error count, not an
+    // underflowed one. Reload it and check the bundle does not inherit a
+    // nonsensical tally.
+    PresetBundle reloaded;
+    REQUIRE(reloaded.load_vendor_cache((system / "Counted.opc").string(), "Counted", Semver(1, 0, 0)));
+    CHECK(reloaded.error_count() == 0);
+}
+
+TEST_CASE("a preset is traced to its vendor in a build that ships caches alone", "[VendorCache]")
+{
+    TempDir data, rsrc;
+    const fs::path profiles = rsrc.path / "profiles";
+    fs::create_directories(profiles);
+    fs::create_directories(data.path / "system");
+    ScopedDirs dirs(data.path, rsrc.path);
+
+    std::vector<PresetBundle::CachedPreset> filaments { filament_entry("Cached PLA @0.4") };
+    std::vector<PresetBundle::CachedPreset> printers  { printer_entry("Cached 0.4 nozzle") };
+    REQUIRE(save_one_vendor((profiles / "Cached.opc").string(), one_vendor("Cached"), "Cached", "1.0.0",
+                            filaments, printers));
+
+    CHECK(PresetBundle::find_preset_vendor("Cached PLA @0.4", Preset::TYPE_FILAMENT) == "Cached");
+    CHECK(PresetBundle::find_preset_vendor("Cached 0.4 nozzle", Preset::TYPE_PRINTER) == "Cached");
+    CHECK(PresetBundle::find_preset_vendor("Nobody's PLA", Preset::TYPE_FILAMENT).empty());
+}
+
+TEST_CASE("a bundle that cannot be installed does not drop the others", "[VendorCache]")
+{
+    TempDir data, rsrc;
+    const fs::path system = data.path / "system";
+    const fs::path profiles = rsrc.path / "profiles";
+    fs::create_directories(system);
+    fs::create_directories(profiles);
+    ScopedDirs dirs(data.path, rsrc.path);
+
+    write_vendor_tree(profiles, "Good", "1.0.0");
+
+    // An empty name sorts first out of a std::map, and a name resources does not
+    // carry can appear anywhere. Neither may cost the batch the vendors it can
+    // install.
+    CHECK_FALSE(install_vendor_bundles_from_resources({"", "Absent", "Good"}));
+    CHECK(fs::exists(system / "Good.json"));
+}
+
+TEST_CASE("a cache that arrives unusable leaves the profile fallback in place", "[VendorCache]")
+{
+    TempDir data, rsrc;
+    const fs::path system = data.path / "system";
+    const fs::path profiles = rsrc.path / "profiles";
+    fs::create_directories(system);
+    fs::create_directories(profiles);
+    ScopedDirs dirs(data.path, rsrc.path);
+
+    write_vendor_tree(profiles, "Torn", "1.0.0");
+    const std::string cache = (profiles / "Torn.opc").string();
+    REQUIRE(save_one_vendor(cache, one_vendor("Torn"), "Torn", "1.0.0"));
+    // Past the stamps at the front, so the 1 KB peek that chooses the cache form
+    // still succeeds — only the CRC, which decides whether it can be served,
+    // catches this.
+    corrupt_blob_byte(cache, std::streamoff(fs::file_size(cache)) - 4);
+    REQUIRE(PresetBundle::peek_vendor_cache_version(cache, "Torn") == "1.0.0");
+
+    CHECK(install_vendor_bundles_from_resources({"Torn"}));
+    CHECK(fs::exists(system / "Torn.json"));
+    CHECK_FALSE(fs::exists(system / "Torn.opc"));
+}
+
+TEST_CASE("a vendor installed as an unreadable cache alone counts as not installed", "[VendorCache]")
+{
+    TempDir data, rsrc;
+    const fs::path system = data.path / "system";
+    fs::create_directories(system);
+    fs::create_directories(rsrc.path / "profiles");
+    ScopedDirs dirs(data.path, rsrc.path);
+
+    const std::string cache = (system / "Broken.opc").string();
+    REQUIRE(save_one_vendor(cache, one_vendor("Broken"), "Broken", "1.0.0"));
+    REQUIRE(is_vendor_installed("Broken"));
+
+    // A cache this build cannot serve is not an installation: there is no
+    // profile beside it and, since the single-tier load, nowhere else to load
+    // the vendor from.
+    corrupt_blob_byte(cache);
+    CHECK_FALSE(is_vendor_installed("Broken"));
+    CHECK_FALSE(installed_vendor_version("Broken").valid());
+}
+
+TEST_CASE("a stale profile beside a newer cache does not hide the cache's version", "[VendorCache]")
+{
+    TempDir data, rsrc;
+    const fs::path system = data.path / "system";
+    fs::create_directories(system);
+    fs::create_directories(rsrc.path / "profiles");
+    ScopedDirs dirs(data.path, rsrc.path);
+
+    write_vendor_json(system, "Both", "1.0.0");
+    REQUIRE(save_one_vendor((system / "Both.opc").string(), one_vendor("Both"), "Both", "2.0.0"));
+
+    // The cache covers the profile, so the cache is what a load serves — and
+    // 2.0.0 is the version installed, not the 1.0.0 the profile still claims.
+    CHECK(installed_vendor_version("Both") == Semver(2, 0, 0));
+}
+
+TEST_CASE("a profile newer than the cache beside it is the installed version", "[VendorCache]")
+{
+    TempDir data, rsrc;
+    const fs::path system = data.path / "system";
+    fs::create_directories(system);
+    fs::create_directories(rsrc.path / "profiles");
+    ScopedDirs dirs(data.path, rsrc.path);
+
+    write_vendor_json(system, "Both", "3.0.0");
+    REQUIRE(save_one_vendor((system / "Both.opc").string(), one_vendor("Both"), "Both", "2.0.0"));
+
+    // The cache no longer covers the profile, so the profile is parsed — and
+    // its version is the one in force.
+    CHECK(installed_vendor_version("Both") == Semver(3, 0, 0));
+}
+
+TEST_CASE("a header claiming more body than the file holds is rejected", "[VendorCache]")
+{
+    TempDir tmp;
+    const std::string cache = (tmp.path / "Bounded.opc").string();
+    REQUIRE(save_one_vendor(cache, one_vendor("Bounded"), "Bounded", "1.0.0"));
+
+    // Claim a body far larger than the file. Nothing may be allocated on the
+    // strength of that number.
+    {
+        std::fstream f(cache, std::ios::in | std::ios::out | std::ios::binary);
+        const uint64_t huge = 400ull * 1024ull * 1024ull;
+        f.seekp(8);
+        f.write(reinterpret_cast<const char*>(&huge), sizeof(huge));
+    }
+
+    PresetBundle bundle;
+    REQUIRE_FALSE(bundle.load_vendor_cache(cache, "Bounded", Semver(1, 0, 0)));
+}
+
+TEST_CASE("a failed write leaves the previous cache in place", "[VendorCache]")
+{
+    TempDir tmp;
+    const std::string cache = (tmp.path / "Durable.opc").string();
+    REQUIRE(save_one_vendor(cache, one_vendor("Durable"), "Durable", "1.0.0"));
+    const std::string before = slurp(cache);
+
+    // A directory where the temp file wants to go: the write cannot complete,
+    // and must not have destroyed what was already there to find that out.
+    const fs::path blocker = fs::path(cache + "." + std::to_string(get_current_pid()) + ".tmp");
+    fs::create_directories(blocker);
+
+    REQUIRE_FALSE(save_one_vendor(cache, one_vendor("Durable"), "Durable", "2.0.0"));
+    CHECK(slurp(cache) == before);
+
+    fs::remove_all(blocker);
+}
+
+TEST_CASE("a cache written by another build's option ordering still loads", "[VendorCache]")
+{
+    // The regression the fingerprint used to prevent by refusing the file
+    // outright: nothing in the payload depends on serialization_key_ordinal, so
+    // a build that inserted an option ahead of these reads them back correctly.
+    TempDir tmp;
+    const std::string cache = (tmp.path / "Ordinal.opc").string();
+
+    auto e = filament_entry("Ordinal PLA @0.4");
+    e.config_src.set_key_value("filament_cost", new ConfigOptionFloats({42.}));
+    e.config_src.set_key_value("filament_type", new ConfigOptionStrings({"PLA"}));
+    REQUIRE(save_one_vendor(cache, one_vendor("Ordinal"), "Ordinal", "1.0.0", {e}));
+
+    PresetBundle bundle;
+    REQUIRE(bundle.load_vendor_cache(cache, "Ordinal", Semver(1, 0, 0)));
+    const auto filaments = presets_for(bundle.filaments, "Ordinal");
+    REQUIRE(filaments.size() == 1);
+    const auto* cost = filaments.front()->config.option<ConfigOptionFloats>("filament_cost");
+    REQUIRE(cost != nullptr);
+    CHECK_THAT(cost->values.front(), WithinAbs(42., 1e-9));
+    CHECK(filaments.front()->config.option<ConfigOptionStrings>("filament_type")->values.front() == "PLA");
+}
+
+// ---- CacheDictionary and the name-keyed config payload -------------------
+
+namespace {
+
+// Round-trip one config through the dictionary payload, optionally mutating the
+// dictionary between write and read to stand in for another build's schema.
+DynamicPrintConfig roundtrip_config(const DynamicPrintConfig& in,
+                                    const std::function<void(std::string&)>& mutate_blob = {})
+{
+    CacheDictionary wdict;
+    wdict.collect(in);
+    wdict.finalize();
+    std::ostringstream os(std::ios::binary);
+    {
+        cereal::BinaryOutputArchive ar(os);
+        wdict.save(ar);
+        save_config(ar, in, wdict);
+    }
+    std::string blob = os.str();
+    if (mutate_blob)
+        mutate_blob(blob);
+    std::istringstream is(blob, std::ios::binary);
+    cereal::BinaryInputArchive ar(is);
+    CacheDictionary rdict;
+    rdict.load(ar);
+    DynamicPrintConfig out;
+    load_config(ar, out, rdict);
+    return out;
+}
+
+} // namespace
+
+TEST_CASE("a config round-trips through the cache dictionary", "[VendorCache]")
+{
+    DynamicPrintConfig in;
+    in.set_key_value("layer_height",     new ConfigOptionFloat(0.28));
+    in.set_key_value("printer_model",    new ConfigOptionString("Test Model"));
+    in.set_key_value("nozzle_diameter",  new ConfigOptionFloats({0.4, 0.6}));
+    in.set_key_value("spiral_mode",      new ConfigOptionBool(true));
+
+    const DynamicPrintConfig out = roundtrip_config(in);
+
+    CHECK_THAT(out.opt_float("layer_height"), WithinAbs(0.28, 1e-9));
+    CHECK(out.opt_string("printer_model") == "Test Model");
+    REQUIRE(out.option<ConfigOptionFloats>("nozzle_diameter") != nullptr);
+    CHECK(out.option<ConfigOptionFloats>("nozzle_diameter")->values.size() == 2);
+    CHECK(out.opt_bool("spiral_mode") == true);
+}
+
+TEST_CASE("an enum option round-trips by name, not by index", "[VendorCache]")
+{
+    // top_surface_pattern is a coEnum; its stored int is an index into an enum
+    // whose order is not a wire contract. Assert on the NAME, so a reordering
+    // of the enum in PrintConfig.cpp cannot make this test pass by accident.
+    const ConfigOptionDef* def = print_config_def.get("top_surface_pattern");
+    REQUIRE(def != nullptr);
+    REQUIRE(def->type == coEnum);
+    REQUIRE(def->enum_keys_map != nullptr);
+    const int monotonic = def->enum_keys_map->at("monotonic");
+
+    DynamicPrintConfig in;
+    in.set_key_value("top_surface_pattern", new ConfigOptionEnumGeneric(def->enum_keys_map, monotonic));
+
+    const DynamicPrintConfig out = roundtrip_config(in);
+    REQUIRE(out.option("top_surface_pattern") != nullptr);
+    CHECK(out.opt_enum<InfillPattern>("top_surface_pattern") == InfillPattern(monotonic));
+    CHECK(out.option("top_surface_pattern")->serialize() == "monotonic");
+}
+
+TEST_CASE("a nullable vector enum round-trips by name, nil included", "[VendorCache]")
+{
+    // coEnums carries a vector of ints and, unlike coEnum, its ConfigOptionType
+    // does not fit in a byte - a truncated type in the dictionary would make a
+    // reader take this for a scalar enum and run off the end of the stream.
+    // nozzle_type is also nullable, and nil is an int no enum_keys_map names,
+    // so this covers the dictionary's unnamed-value escape hatch too.
+    const ConfigOptionDef* def = print_config_def.get("nozzle_type");
+    REQUIRE(def != nullptr);
+    REQUIRE(def->type == coEnums);
+    REQUIRE(def->nullable);
+    REQUIRE(def->enum_keys_map != nullptr);
+    const int brass = def->enum_keys_map->at("brass");
+    const int nil   = ConfigOptionInts::nil_value();
+
+    DynamicPrintConfig in;
+    auto* opt = new ConfigOptionEnumsGenericNullable(def->enum_keys_map);
+    opt->values = { brass, nil };
+    in.set_key_value("nozzle_type", opt);
+    in.set_key_value("printer_model", new ConfigOptionString("Test Model"));
+
+    const DynamicPrintConfig out = roundtrip_config(in);
+    const auto* got = out.option<ConfigOptionEnumsGenericNullable>("nozzle_type");
+    REQUIRE(got != nullptr);
+    CHECK(got->values == std::vector<int>{brass, nil});
+    CHECK(out.opt_string("printer_model") == "Test Model");
+}
+
+TEST_CASE("an option the build no longer knows is dropped, and the rest still load", "[VendorCache]")
+{
+    DynamicPrintConfig in;
+    in.set_key_value("layer_height",   new ConfigOptionFloat(0.28));
+    in.set_key_value("printer_model",  new ConfigOptionString("Test Model"));
+
+    // Rename the key in the dictionary the reader sees: "layer_height" becomes
+    // "layer_heighX", a key no build defines. Same length, so the blob's
+    // offsets are untouched - this is exactly what a removed or renamed option
+    // looks like to a reader.
+    const DynamicPrintConfig out = roundtrip_config(in, [](std::string& blob) {
+        const size_t at = blob.find("layer_height");
+        REQUIRE(at != std::string::npos);
+        blob[at + 11] = 'X';
+    });
+
+    CHECK(out.option("layer_height") == nullptr);
+    CHECK(out.opt_string("printer_model") == "Test Model");
+}
+
+TEST_CASE("an option whose type changed is dropped, and the rest still load", "[VendorCache]")
+{
+    // A payload from a build where layer_height was a coString. This one has it
+    // as a coFloat, so nothing can be done with the value - but the dictionary
+    // says how it was written, so its bytes are still consumed and printer_model
+    // behind it still lands. Hand-written rather than round-tripped: only a
+    // dictionary this build did not produce can disagree with it.
+    std::ostringstream os(std::ios::binary);
+    {
+        cereal::BinaryOutputArchive ar(os);
+        const std::vector<std::string> keys  { "layer_height", "printer_model" };
+        const std::vector<uint16_t>    types { uint16_t(coString), uint16_t(coString) };
+        const std::vector<std::string> enums { std::string() };   // the ENUM_UNNAMED slot
+        ar(keys, types, enums);
+        ar(uint32_t(2));
+        ar(uint16_t(0)); ar(ConfigOptionString("0.28"));
+        ar(uint16_t(1)); ar(ConfigOptionString("Test Model"));
+    }
+
+    std::istringstream is(os.str(), std::ios::binary);
+    cereal::BinaryInputArchive ar(is);
+    CacheDictionary rdict;
+    rdict.load(ar);
+    DynamicPrintConfig out;
+    REQUIRE_NOTHROW(load_config(ar, out, rdict));
+    CHECK(out.option("layer_height") == nullptr);
+    CHECK(out.opt_string("printer_model") == "Test Model");
+}
+
+TEST_CASE("skip_config consumes a config without building one", "[VendorCache]")
+{
+    DynamicPrintConfig in;
+    in.set_key_value("layer_height",  new ConfigOptionFloat(0.28));
+    in.set_key_value("printer_model", new ConfigOptionString("Test Model"));
+
+    CacheDictionary wdict;
+    wdict.collect(in);
+    wdict.finalize();
+    std::ostringstream os(std::ios::binary);
+    {
+        cereal::BinaryOutputArchive ar(os);
+        wdict.save(ar);
+        save_config(ar, in, wdict);
+        ar(std::string("sentinel"));   // must still be reachable after the skip
+    }
+
+    std::istringstream is(os.str(), std::ios::binary);
+    cereal::BinaryInputArchive ar(is);
+    CacheDictionary rdict;
+    rdict.load(ar);
+    skip_config(ar, rdict);
+    std::string sentinel;
+    ar(sentinel);
+    CHECK(sentinel == "sentinel");
+}
+
+TEST_CASE("a dictionary index past the end of the table is refused", "[VendorCache]")
+{
+    DynamicPrintConfig in;
+    in.set_key_value("layer_height", new ConfigOptionFloat(0.28));
+
+    CacheDictionary wdict;
+    wdict.collect(in);
+    wdict.finalize();
+    std::ostringstream os(std::ios::binary);
+    {
+        cereal::BinaryOutputArchive ar(os);
+        wdict.save(ar);
+        save_config(ar, in, wdict);
+    }
+    std::string blob = os.str();
+    // The payload's tail is the option count (uint32), the key index (uint16)
+    // and the double. Point the key index somewhere the table does not go.
+    const uint16_t bad = 0xFFFE;
+    std::memcpy(&blob[blob.size() - sizeof(double) - sizeof(uint16_t)], &bad, sizeof(bad));
+
+    std::istringstream is(blob, std::ios::binary);
+    cereal::BinaryInputArchive ar(is);
+    CacheDictionary rdict;
+    rdict.load(ar);
+    DynamicPrintConfig out;
+    REQUIRE_THROWS(load_config(ar, out, rdict));
 }
