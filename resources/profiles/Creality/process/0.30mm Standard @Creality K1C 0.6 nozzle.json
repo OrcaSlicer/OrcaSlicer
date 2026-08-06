@@ -126,7 +126,7 @@
 	"detect_narrow_internal_solid_infill": "1",
 	"dont_filter_internal_bridges": "disabled",
 	"elefant_foot_compensation_layers": "1",
-	"enable_arc_fitting": "1",
+	"enable_arc_fitting": "0",
 	"enable_overhang_speed": "1",
 	"enforce_support_layers": "0",
 	"ensure_vertical_shell_thickness": "ensure_all",

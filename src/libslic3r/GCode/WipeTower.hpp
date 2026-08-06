@@ -26,6 +26,12 @@ enum GCodeFlavor : unsigned char;
 Polylines construct_gap_for_skip_points(
     const Polygon& polygon, const std::vector<Vec2f>& skip_points, float wt_width, float gap_length, Polygon& insert_skip_polygon);
 
+// Klipper acts on commands the instant it parses them, and its G4 reads only P (milliseconds),
+// so the zero-second and seconds-valued dwells every other flavor uses neither synchronize nor
+// pause there. Both defined in WipeTower.cpp, shared by WipeTower and WipeTower2.
+const char* flush_planner_queue_command(GCodeFlavor flavor); // finish queued moves, e.g. around M104/M109
+std::string wait_command(GCodeFlavor flavor, float seconds);  // pause for `seconds`
+
 class WipeTower
 {
 public:
