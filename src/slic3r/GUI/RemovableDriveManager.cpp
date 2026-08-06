@@ -304,15 +304,15 @@ void RemovableDriveManager::eject_drive()
 		// but neither triggers "succesful safe removal messege"
 		
 		BOOST_LOG_TRIVIAL(info) << "Ejecting started";
-		boost::process::v2::ipstream istd_err;
-		boost::process::v2::child child(
+		boost::process::v1::ipstream istd_err;
+		boost::process::v1::child child(
 #if __APPLE__		
-			boost::process::v2::search_path("diskutil"), "eject", correct_path.c_str(), (boost::process::v2::std_out & boost::process::v2::std_err) > istd_err);
+			boost::process::v1::search_path("diskutil"), "eject", correct_path.c_str(), (boost::process::v1::std_out & boost::process::v1::std_err) > istd_err);
 		//Another option how to eject at mac. Currently not working.
 		//used insted of system() command;
 		//this->eject_device(correct_path);
 #else
-		boost::process::v2::search_path("umount"), correct_path.c_str(), (boost::process::v2::std_out & boost::process::v2::std_err) > istd_err);
+		boost::process::v1::search_path("umount"), correct_path.c_str(), (boost::process::v1::std_out & boost::process::v1::std_err) > istd_err);
 #endif
 		std::string line;
 		while (child.running() && std::getline(istd_err, line)) {
@@ -326,7 +326,7 @@ void RemovableDriveManager::eject_drive()
             // The wait call can fail
             // It can happen even in cases where the eject is sucessful, but better report it as failed.
             // We did not find a way to reliably retrieve the exit code of the process.
-			BOOST_LOG_TRIVIAL(error) << "boost::process::v2::child::wait() failed during Ejection. State of Ejection is unknown. Error code: " << ec.value();
+			BOOST_LOG_TRIVIAL(error) << "boost::process::v1::child::wait() failed during Ejection. State of Ejection is unknown. Error code: " << ec.value();
 		} else {
 			int err = child.exit_code();
 	    	if (err) {

@@ -13,7 +13,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/process.hpp>
+#include <boost/process/v1.hpp>
 #ifdef _WIN32
 #include <boost/process/windows.hpp>
 #endif
@@ -455,7 +455,7 @@ bool install_packages(const std::vector<std::string>& pkgs, std::string& error)
                             << boost::algorithm::join(pkgs, ", ");
 
     try {
-        namespace process = boost::process;
+        namespace process = boost::process::v1;
 
         process::ipstream std_err;
         process::child    child(uv_path, process::args(args),

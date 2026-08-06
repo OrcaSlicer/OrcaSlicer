@@ -1,6 +1,6 @@
 #include "ProcessRunner.hpp"
 
-#include <boost/process/env.hpp>
+#include <boost/process/v1/env.hpp>
 #include <boost/process.hpp>
 #ifdef _WIN32
 #include <boost/process/windows.hpp>
@@ -127,7 +127,7 @@ bool ProcessRunner::run_command_line_async(const std::string& command_line,
     m_launching.store(true);
 
     m_launch_thread = std::thread([this, command_line]() {
-        namespace bp = boost::process;
+        namespace bp = boost::process::v1;
 
         try {
             auto stdout_pipe = std::make_unique<bp::ipstream>();
@@ -217,7 +217,7 @@ ProcessRunner::SyncResult ProcessRunner::run_sync(const std::string& executable,
     SyncResult result;
 
     try {
-        namespace bp = boost::process;
+        namespace bp = boost::process::v1;
 
         bp::ipstream std_out;
         bp::ipstream std_err;
