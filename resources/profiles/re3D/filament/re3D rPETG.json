@@ -1,13 +1,13 @@
 {
 	"type": "filament",
-	"name": "re3D Greengate rPETG",
+	"name": "re3D rPETG",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pet",
 	"filament_id": "GFG01",
 	"setting_id": "SdugLw5oy9GB7NID",
 	"filament_settings_id": [
-		"re3D Greengate rPETG"
+		"re3D rPETG"
 	],
 	"compatible_printers": [
 		"re3D GigabotX 2 0.8 nozzle",

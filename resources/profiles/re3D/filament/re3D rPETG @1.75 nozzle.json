@@ -2,12 +2,18 @@
 	"type": "filament",
 	"filament_id": "GFG01",
 	"setting_id": "6aPU6CYS2cmODkok",
-	"name": "re3D Greengate rPETG @1.75 nozzle",
+	"name": "re3D rPETG @1.75 nozzle",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pet",
 	"nozzle_temperature_initial_layer": [
 		"0"
+	],
+	"filament_type": [
+		"PETG"
+	],
+	"filament_vendor": [
+		"re3D"
 	],
 	"nozzle_temperature": [
 		"0"
