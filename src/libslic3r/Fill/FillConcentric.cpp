@@ -23,6 +23,104 @@ static Points loop_points_opened(Polyline loop_path)
     return std::move(loop_path.points);
 }
 
+static Polylines generate_spiralized_concentric_polylines(
+    const FillParams &params, 
+    const Polygons   &loops, 
+    const coord_t     distance,
+    const bool        is_classic)
+{
+    Polylines output;
+    Polyline spiral;
+    Point current_pos(0, 0);
+    const double jump_threshold = 1.5 * double(distance);
+
+    auto find_sharpest_corner = [](const Polygon& loop) -> int {
+        size_t n = loop.points.size();
+        if (n < 3) return 0;
+
+        double max_cos = -2.0;
+        int best_idx   = 0;
+        for (size_t i = 0; i < n; ++i) {
+            const Point& p_prev = loop.points[(i - 1 + n) % n];
+            const Point& p      = loop.points[i];
+            const Point& p_next = loop.points[(i + 1) % n];
+
+            Vec2d v1    = (p_prev - p).cast<double>();
+            Vec2d v2    = (p_next - p).cast<double>();
+            double len1 = v1.norm();
+            double len2 = v2.norm();
+            if (len1 < 1e-6 || len2 < 1e-6) continue;
+
+            double cos_val = v1.dot(v2) / (len1 * len2);
+            if (cos_val > max_cos) {
+                max_cos  = cos_val;
+                best_idx = (int) i;
+            }
+        }
+        return best_idx;
+    };
+
+    int start_idx = is_classic ? 1 : find_sharpest_corner(loops.front());
+
+    for (size_t i = 0; i < loops.size(); ++i) {
+        const Polygon& loop = loops[i];
+
+        int idx;
+        if (spiral.empty()) {
+            idx = start_idx;
+        } else {
+            idx = current_pos.nearest_point_index(loop.points);
+        }
+
+        Polyline loop_path(loop.split_at_index(idx));
+        loop_path.points = loop_points_opened(std::move(loop_path));
+        if (loop_path.size() < 2) continue;
+
+        // Island detection:
+        if (!spiral.empty()) {
+            double dist_to_new_start = spiral.last_point().distance_to(loop_path.points.front());
+            if (dist_to_new_start > jump_threshold) {
+                if (!spiral.empty())
+                    output.emplace_back(std::move(spiral));
+
+                spiral.clear();
+                current_pos = Point(0, 0);
+                idx = is_classic ? 1 : find_sharpest_corner(loop);
+                loop_path = Polyline(loop.split_at_index(idx));
+                loop_path.points = loop_points_opened(std::move(loop_path));
+                if (loop_path.size() < 2) continue;
+            }
+        }
+
+        // Clip the last segment of the loop to avoid overlapping with the next loop. The last loop is clipped by half the distance to avoid
+        // leaving a gap in the center.
+        const bool last_loop = (i + 1 == loops.size());
+        loop_path.points.push_back(loop_path.points.front());
+        if (last_loop) {
+            loop_path.clip_end(0.5 * distance);
+        } else {
+            loop_path.clip_end(distance);
+        }
+
+
+        if (spiral.empty()) {
+            spiral = std::move(loop_path);
+        } else {
+            spiral.append(std::move(loop_path));
+        }
+        current_pos = spiral.last_point();
+    }
+
+    if (!spiral.empty()) {
+        if (params.fill_order == SurfaceFillOrder::Outward)
+            std::reverse(spiral.begin(), spiral.end());
+        output.emplace_back(std::move(spiral));
+    }
+    
+    return output;
+}
+
+
 void FillConcentric::_fill_surface_single(
     const FillParams                &params, 
     unsigned int                     thickness_layers,
@@ -61,96 +159,8 @@ void FillConcentric::_fill_surface_single(
                             this->print_object_config->wall_generator.value == PerimeterGeneratorType::Classic;
 
     if (spiralized) {
-        Polyline spiral;
-        Point current_pos(0, 0);
-        const double jump_threshold = 1.5 * double(distance);
-
-        auto find_sharpest_corner = [](const Polygon& loop) -> int {
-            size_t n = loop.points.size();
-            if (n < 3)
-                return 0;
-
-            double max_cos = -2.0;
-            int best_idx   = 0;
-            for (size_t i = 0; i < n; ++i) {
-                const Point& p_prev = loop.points[(i - 1 + n) % n];
-                const Point& p      = loop.points[i];
-                const Point& p_next = loop.points[(i + 1) % n];
-
-                Vec2d v1    = (p_prev - p).cast<double>();
-                Vec2d v2    = (p_next - p).cast<double>();
-                double len1 = v1.norm();
-                double len2 = v2.norm();
-                if (len1 < 1e-6 || len2 < 1e-6)
-                    continue;
-
-                double cos_val = v1.dot(v2) / (len1 * len2);
-                if (cos_val > max_cos) {
-                    max_cos  = cos_val;
-                    best_idx = (int) i;
-                }
-            }
-            return best_idx;
-        };
-
-        int start_idx = is_classic ? 1 : find_sharpest_corner(loops.front());
-
-        for (size_t i = 0; i < loops.size(); ++i) {
-            const Polygon& loop = loops[i];
-
-            int idx;
-            if (spiral.empty()) {
-                idx = start_idx;
-            } else {
-                idx = current_pos.nearest_point_index(loop.points);
-            }
-
-            Polyline loop_path(loop.split_at_index(idx));
-            loop_path.points = loop_points_opened(std::move(loop_path));
-            if (loop_path.size() < 2)
-                continue;
-
-            // Island detection:
-            if (!spiral.empty()) {
-                double dist_to_new_start = spiral.last_point().distance_to(loop_path.points.front());
-                if (dist_to_new_start > jump_threshold) {
-                    if (!spiral.empty())
-                        polylines_out.emplace_back(std::move(spiral));
-
-                    spiral.clear();
-                    current_pos      = Point(0, 0);
-                    idx              = is_classic ? 1 : find_sharpest_corner(loop);
-                    loop_path        = Polyline(loop.split_at_index(idx));
-                    loop_path.points = loop_points_opened(std::move(loop_path));
-                    if (loop_path.size() < 2)
-                        continue;
-                }
-            }
-
-            const bool last_loop = (i + 1 == loops.size());
-            // Add the virtual closing segment and trim it to create the spiral transition.
-            loop_path.points.push_back(loop_path.points.front());
-
-            if (last_loop) {
-                loop_path.clip_end(0.5 * distance);
-            } else {
-                loop_path.clip_end(distance);
-            }
-
-            if (spiral.empty()) {
-                spiral = std::move(loop_path);
-            } else {
-                spiral.append(std::move(loop_path));
-            }
-            current_pos = spiral.last_point();
-        }
-
-        if (params.fill_order == SurfaceFillOrder::Outward)
-            std::reverse(spiral.begin(), spiral.end());
-
-        if (!spiral.empty())
-            polylines_out.emplace_back(std::move(spiral));
-
+        Polylines spiral_result = generate_spiralized_concentric_polylines(params, loops, distance, is_classic);
+        append(polylines_out, spiral_result);
     } else {
         // Orca: an outward fill order prints the innermost loops first instead.
         if (params.fill_order == SurfaceFillOrder::Outward)
