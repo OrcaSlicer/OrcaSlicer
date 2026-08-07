@@ -41,6 +41,9 @@ resources/profiles/user/default
 *.code-workspace
 deps_src/build/
 test.js
+# test results
+ctest_results.xml
+one_vertex_touch.svg
 /.cache/
 .clangd
 internal_docs/
