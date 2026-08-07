@@ -2123,30 +2123,66 @@ std::pair<double, double> WipeTower2::get_wipe_tower_cone_base(double width, dou
 }
 
 // Static method to extract wipe_volumes[from][to] from the configuration.
-std::vector<std::vector<float>> WipeTower2::extract_wipe_volumes(const PrintConfig& config)
+// Takes a ConfigBase so the GUI's wipe tower size estimate can pass the plate's
+// DynamicPrintConfig directly instead of materializing a full PrintConfig per call.
+std::vector<std::vector<float>> WipeTower2::extract_wipe_volumes(const ConfigBase& config)
 {
-    // Get wiping matrix to get number of extruders and convert vector<double> to vector<float>:
-    std::vector<float> wiping_matrix(cast<float>(config.flush_volumes_matrix.values));
-    auto scale = config.flush_multiplier.get_at(0);
+    // flush_volumes_matrix holds one filaments x filaments block per nozzle (written by
+    // PresetBundle::update_multi_material_filament_presets), so the filament count is
+    // sqrt(size / nozzles). One tower serves every nozzle and the filament to nozzle assignment is
+    // only decided later by ToolOrdering, so fold the blocks with std::max: the depth reserved here
+    // has to cover the worst nozzle. With a single nozzle the fold has one term.
+    const std::vector<double>& raw_matrix = config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
+    const auto* nozzle_diameter           = config.option<ConfigOptionFloats>("nozzle_diameter");
+    size_t nozzle_nums               = (nozzle_diameter == nullptr || nozzle_diameter->values.empty()) ? 1 : nozzle_diameter->values.size();
+    unsigned int number_of_extruders = (unsigned int) (sqrt(raw_matrix.size() / nozzle_nums) + EPSILON);
+    if (size_t(number_of_extruders) * number_of_extruders * nozzle_nums != raw_matrix.size()) {
+        // Saved for a different nozzle count (older project, or the printer was just switched):
+        // fall back to reading the whole option as one block, as this did before.
+        nozzle_nums         = 1;
+        number_of_extruders = (unsigned int) (sqrt(raw_matrix.size()) + EPSILON);
+    }
 
     // The values shall only be used when SEMM is enabled. The purging for other printers
     // is determined by filament_minimal_purge_on_wipe_tower.
-    if (!config.purge_in_prime_tower.value || !config.single_extruder_multi_material.value)
-        std::fill(wiping_matrix.begin(), wiping_matrix.end(), 0.f);
+    const bool purge = config.option<ConfigOptionBool>("purge_in_prime_tower")->value &&
+                       config.option<ConfigOptionBool>("single_extruder_multi_material")->value;
 
-    // Extract purging volumes for each extruder pair:
-    std::vector<std::vector<float>> wipe_volumes;
-    const unsigned int number_of_extruders = (unsigned int) (sqrt(wiping_matrix.size()) + EPSILON);
-    for (size_t i = 0; i < number_of_extruders; ++i)
-        wipe_volumes.push_back(
-            std::vector<float>(wiping_matrix.begin() + i * number_of_extruders, wiping_matrix.begin() + (i + 1) * number_of_extruders));
+    // Extract purging volumes for each extruder pair, each nozzle's block scaled by its own multiplier:
+    std::vector<std::vector<float>> wipe_volumes(number_of_extruders, std::vector<float>(number_of_extruders, 0.f));
+    if (purge) {
+        const auto* multiplier = config.option<ConfigOptionFloats>("flush_multiplier");
+        for (size_t nozzle_id = 0; nozzle_id < nozzle_nums; ++nozzle_id) {
+            const std::vector<double> block = get_flush_volumes_matrix(raw_matrix, nozzle_id, nozzle_nums);
+            const double scale              = multiplier->get_at(nozzle_id);
+            for (unsigned int i = 0; i < number_of_extruders; ++i)
+                for (unsigned int j = 0; j < number_of_extruders; ++j)
+                    wipe_volumes[i][j] = std::max<float>(wipe_volumes[i][j], float(block[size_t(i) * number_of_extruders + j]) * scale);
+        }
+    }
 
     // Also include filament_minimal_purge_on_wipe_tower. This is needed for the preview.
+    const auto* minimal_purge = config.option<ConfigOptionFloats>("filament_minimal_purge_on_wipe_tower");
     for (unsigned int i = 0; i < number_of_extruders; ++i)
         for (unsigned int j = 0; j < number_of_extruders; ++j)
-            wipe_volumes[i][j] = std::max<float>(wipe_volumes[i][j] * scale, config.filament_minimal_purge_on_wipe_tower.get_at(j));
+            wipe_volumes[i][j] = std::max<float>(wipe_volumes[i][j], minimal_purge->get_at(j));
 
     return wipe_volumes;
+}
+
+float WipeTower2::estimate_semm_flush_volume(const ConfigBase& config, size_t filaments_cnt)
+{
+    const std::vector<std::vector<float>> wipe_volumes = extract_wipe_volumes(config);
+    if (wipe_volumes.empty()) // an empty flush matrix would make the average below 0/0
+        return 0.f;
+    float maximum = 0.f;
+    for (const std::vector<float>& v : wipe_volumes)
+        maximum += *std::max_element(v.begin(), v.end());
+    maximum = maximum * filaments_cnt / wipe_volumes.size();
+
+    // Orca: it's overshooting a bit, so let's reduce it a bit
+    maximum *= 0.6;
+    return maximum;
 }
 
 static float get_wipe_depth(float volume, float layer_height, float perimeter_width, float extra_flow, float extra_spacing, float width)

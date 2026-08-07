@@ -2871,6 +2871,9 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
         }
 
         if (wt && (need_wipe_tower || filaments_count > 1) && !wxGetApp().plater()->only_gcode_mode() && !wxGetApp().plater()->is_gcode_3mf()) {
+            // The tower size estimate reads printer- and filament-scope keys, which the print preset
+            // does not carry; built once here rather than per plate.
+            const DynamicPrintConfig full_config = wxGetApp().preset_bundle->full_config();
             for (int plate_id = 0; plate_id < n_plates; plate_id++) {
                 // If print ByObject and there is only one object in the plate, the wipe tower is allowed to be generated.
                 PartPlate* part_plate = ppl.get_plate(plate_id);
@@ -2895,51 +2898,26 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 if (part_plate->get_objects_on_this_plate().empty()) continue;
 
                 float brim_width = print->wipe_tower_data(filaments_count).brim_width;
-                const DynamicPrintConfig &print_cfg   = wxGetApp().preset_bundle->prints.get_edited_preset().config;
                 int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
-                Vec3d wipe_tower_size = ppl.get_plate(plate_id)->estimate_wipe_tower_size(print_cfg, w, v, nozzle_nums, 0, false, dynamic_cast<const ConfigOptionBool*>(dconfig.option("enable_wrapping_detection"))->value);
+                Vec3d wipe_tower_size = ppl.get_plate(plate_id)->estimate_wipe_tower_size(full_config, w, v, nozzle_nums, 0, false, dynamic_cast<const ConfigOptionBool*>(dconfig.option("enable_wrapping_detection"))->value);
 
-                {
-                    const float                 margin     = WIPE_TOWER_MARGIN + brim_width;
-                    BoundingBoxf3               plate_bbox = part_plate->get_bounding_box();
-                    BoundingBoxf                plate_bbox_2d(Vec2d(plate_bbox.min(0), plate_bbox.min(1)), Vec2d(plate_bbox.max(0), plate_bbox.max(1)));
-                    const std::vector<Pointfs> &extruder_areas = part_plate->get_extruder_areas();
-                    for (Pointfs points : extruder_areas) {
-                        BoundingBoxf bboxf(points);
-                        plate_bbox_2d.min = plate_bbox_2d.min(0) >= bboxf.min(0) ? plate_bbox_2d.min : bboxf.min;
-                        plate_bbox_2d.max = plate_bbox_2d.max(0) <= bboxf.max(0) ? plate_bbox_2d.max : bboxf.max;
-                    }
-
-                    coordf_t plate_bbox_x_min_local_coord = plate_bbox_2d.min(0) - plate_origin(0);
-                    coordf_t plate_bbox_x_max_local_coord = plate_bbox_2d.max(0) - plate_origin(0);
-                    coordf_t plate_bbox_y_max_local_coord = plate_bbox_2d.max(1) - plate_origin(1);
-
-                    if (!current_print->is_step_done(psWipeTower) || !current_print->wipe_tower_data().wipe_tower_mesh_data) {
-                        // update for wipe tower position
-                        {
-                            int volume_idx_wipe_tower_new = m_volumes.load_wipe_tower_preview(1000 + plate_id, x + plate_origin(0), y + plate_origin(1),
-                                                                                              (float) wipe_tower_size(0), (float) wipe_tower_size(1), (float) wipe_tower_size(2),
-                                                                                              a,
-                                                                                              /*!print->is_step_done(psWipeTower)*/ true, brim_width);
-                            int volume_idx_wipe_tower_old = volume_idxs_wipe_tower_old[plate_id];
-                            if (volume_idx_wipe_tower_old != -1) map_glvolume_old_to_new[volume_idx_wipe_tower_old] = volume_idx_wipe_tower_new;
-                        }
-                    } else {
-                        const float margin                    = 2.f;
-                        auto        tower_bottom = current_print->wipe_tower_data().wipe_tower_mesh_data->bottom;
-                        tower_bottom.translate(scaled(Vec2d{x, y}));
-                        tower_bottom.translate(scaled(Vec2d{plate_origin[0], plate_origin[1]}));
-                        auto tower_bottom_bbox = get_extents(tower_bottom);
-                        BoundingBoxf3 plate_bbox        = wxGetApp().plater()->get_partplate_list().get_plate(plate_id)->get_build_volume(true);
-                        BoundingBox   plate_bbox2d      = BoundingBox(scaled(Vec2f(plate_bbox.min[0], plate_bbox.min[1])), scaled(Vec2f(plate_bbox.max[0], plate_bbox.max[1])));
-                        Vec2f         offset            = WipeTower::move_box_inside_box(tower_bottom_bbox, plate_bbox2d, scaled(margin));
-                        int volume_idx_wipe_tower_new = m_volumes.load_real_wipe_tower_preview(1000 + plate_id, x + plate_origin(0), y + plate_origin(1),
-                                                                                               current_print->wipe_tower_data().wipe_tower_mesh_data->real_wipe_tower_mesh,
-                                                                                               current_print->wipe_tower_data().wipe_tower_mesh_data->real_brim_mesh,
-                                                                                            true,a,/*!print->is_step_done(psWipeTower)*/ true, m_initialized);
-                        int volume_idx_wipe_tower_old = volume_idxs_wipe_tower_old[plate_id];
-                        if (volume_idx_wipe_tower_old != -1) map_glvolume_old_to_new[volume_idx_wipe_tower_old] = volume_idx_wipe_tower_new;
-                    }
+                // The stored position is already clamped onto the bed, by
+                // set_default_wipe_tower_pos_for_plate and again on every drag.
+                if (!current_print->is_step_done(psWipeTower) || !current_print->wipe_tower_data().wipe_tower_mesh_data) {
+                    // update for wipe tower position
+                    int volume_idx_wipe_tower_new = m_volumes.load_wipe_tower_preview(1000 + plate_id, x + plate_origin(0), y + plate_origin(1),
+                                                                                      (float) wipe_tower_size(0), (float) wipe_tower_size(1), (float) wipe_tower_size(2),
+                                                                                      a,
+                                                                                      /*!print->is_step_done(psWipeTower)*/ true, brim_width);
+                    int volume_idx_wipe_tower_old = volume_idxs_wipe_tower_old[plate_id];
+                    if (volume_idx_wipe_tower_old != -1) map_glvolume_old_to_new[volume_idx_wipe_tower_old] = volume_idx_wipe_tower_new;
+                } else {
+                    int volume_idx_wipe_tower_new = m_volumes.load_real_wipe_tower_preview(1000 + plate_id, x + plate_origin(0), y + plate_origin(1),
+                                                                                           current_print->wipe_tower_data().wipe_tower_mesh_data->real_wipe_tower_mesh,
+                                                                                           current_print->wipe_tower_data().wipe_tower_mesh_data->real_brim_mesh,
+                                                                                        true,a,/*!print->is_step_done(psWipeTower)*/ true, m_initialized);
+                    int volume_idx_wipe_tower_old = volume_idxs_wipe_tower_old[plate_id];
+                    if (volume_idx_wipe_tower_old != -1) map_glvolume_old_to_new[volume_idx_wipe_tower_old] = volume_idx_wipe_tower_new;
                 }
             }
         }
