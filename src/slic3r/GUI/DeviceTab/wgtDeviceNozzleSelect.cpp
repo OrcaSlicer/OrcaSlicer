@@ -13,11 +13,11 @@
 #include "slic3r/GUI/DeviceTab/wgtMsgBox.h"
 #include "slic3r/GUI/Widgets/Label.hpp" // Orca: explicit Label include
 
-static wxColour s_gray_clr("#B0B0B0");
-static wxColour s_hgreen_clr("#009688"); // Orca: accent green
-static wxColour s_red_clr("#D01B1B");
+static wxColour sel_s_gray_clr("#B0B0B0");
+static wxColour sel_s_hgreen_clr("#009688"); // Orca: accent green
+static wxColour sel_s_red_clr("#D01B1B");
 
-static std::vector<int> a_nozzle_seq = {16, 18, 20, 17, 19, 21};
+static std::vector<int> sel_a_nozzle_seq = {16, 18, 20, 17, 19, 21};
 
 wxDEFINE_EVENT(EVT_NOZZLE_SELECT_CHANGED, wxCommandEvent);
 wxDEFINE_EVENT(EVT_NOZZLE_SELECT_CLICKED, wxCommandEvent);
@@ -72,7 +72,7 @@ void wgtDeviceNozzleRackSelect::CreateGui()
 
     // nozzles
     wxGridSizer *nozzle_sizer = new wxGridSizer(2, 3, FromDIP(10), FromDIP(10));
-    for (auto idx : a_nozzle_seq) {
+    for (auto idx : sel_a_nozzle_seq) {
         wgtDeviceNozzleRackNozzleItem *nozzle_item = new wgtDeviceNozzleRackNozzleItem(this, idx - 16);
         nozzle_item->EnableSelect();
         nozzle_item->Bind(EVT_NOZZLE_RACK_NOZZLE_ITEM_SELECTED, &wgtDeviceNozzleRackSelect::OnNozzleItemSelected, this);

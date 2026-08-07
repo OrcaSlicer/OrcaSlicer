@@ -19,7 +19,7 @@ namespace Slic3r { namespace sla {
 
 namespace {
 
-inline const Vec3f DOWN = {0.f, 0.f, -1.f};
+inline const Vec3f DOWN_VEC3F = {0.f, 0.f, -1.f};
 constexpr double POINTS_PER_UNIT_AREA = 1.f;
 
 // Get the vertices of a triangle directly in an array of 3 points
@@ -102,7 +102,7 @@ inline double get_supportedness_score(const Facestats &fc)
 {
     // Simply get the angle (acos of dot product) between the face normal and
     // the DOWN vector.
-    float cosphi = fc.normal.dot(DOWN);
+    float cosphi = fc.normal.dot(DOWN_VEC3F);
     float phi = 1.f - std::acos(cosphi) / float(PI);
 
     // Make the huge slopes more significant than the smaller slopes
@@ -228,7 +228,7 @@ std::vector<XYRotation> get_chull_rotations(const TriangleMesh &mesh, size_t max
         Facestats fc{get_triangle_vertices(chull, fi)};
 
         if (fc.area > area_threshold)  {
-            auto q = Eigen::Quaternionf{}.FromTwoVectors(fc.normal, DOWN);
+            auto q = Eigen::Quaternionf{}.FromTwoVectors(fc.normal, DOWN_VEC3F);
             XYRotation rot = from_transform3f(Transform3f::Identity() * q);
             RotArea ra = {rot, fc.area};
 
@@ -448,7 +448,7 @@ Vec2d find_min_z_height_rotation(const ModelObject &mo,
     for (size_t fi = 0; fi < chull.its.indices.size(); ++fi) {
         Facestats fc{get_triangle_vertices(chull, fi)};
 
-        auto q = Eigen::Quaternionf{}.FromTwoVectors(fc.normal, DOWN);
+        auto q = Eigen::Quaternionf{}.FromTwoVectors(fc.normal, DOWN_VEC3F);
         XYRotation rot = from_transform3f(Transform3f::Identity() * q);
 
         auto it = std::lower_bound(inputs.begin(), inputs.end(), rot, rotcmp);

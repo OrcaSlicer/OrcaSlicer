@@ -17,7 +17,7 @@ wxDECLARE_EVENT(EVT_UPDATE_RESULT, wxCommandEvent);
 
 wxDEFINE_EVENT(EVT_UPDATE_RESULT, wxCommandEvent);
 
-static wxString NA_STR = _L("N/A");
+static wxString NA_STR_NET = _L("N/A");
 
 NetworkTestDialog::NetworkTestDialog(wxWindow* parent, wxWindowID id, const wxString& title, const wxPoint& pos, const wxSize& size, long style)
     : DPIDialog(parent,wxID_ANY,from_u8((boost::format(_utf8(L("Network Test")))).str()),wxDefaultPosition,
@@ -233,7 +233,7 @@ wxString NetworkTestDialog::get_os_info()
 
 wxString NetworkTestDialog::get_dns_info()
 {
-	return NA_STR;
+	return NA_STR_NET;
 }
 
 void NetworkTestDialog::start_all_job()
@@ -348,8 +348,8 @@ void NetworkTestDialog::set_default()
 	text_version_val->SetLabelText(get_studio_version());
 	txt_sys_info_value->SetLabelText(get_os_info());
 	txt_dns_info_value->SetLabelText(get_dns_info());
-	text_link_val->SetLabelText(NA_STR);
-	text_bing_val->SetLabelText(NA_STR);
+	text_link_val->SetLabelText(NA_STR_NET);
+	text_bing_val->SetLabelText(NA_STR_NET);
 	m_download_cancel = false;
 	m_closing = false;
 }

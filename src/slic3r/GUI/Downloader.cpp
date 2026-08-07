@@ -12,7 +12,7 @@ namespace Slic3r {
 namespace GUI {
 
 namespace {
-void open_folder(const std::string& path)
+void open_folder_downloader(const std::string& path)
 {
 	// Code taken from NotificationManager.cpp
 
@@ -212,7 +212,7 @@ bool Downloader::user_action_callback(DownloaderUserAction action, int id)
 				m_downloads[i]->resume();
 				return true;
 			case DownloadUserOpenedFolder:
-				open_folder(m_downloads[i]->get_dest_folder());
+				open_folder_downloader(m_downloads[i]->get_dest_folder());
 				return true;
 			default:
 				return false;

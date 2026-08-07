@@ -29,18 +29,17 @@
 #include "BindDialog.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "SendToPrinter.hpp"
 
 namespace Slic3r { namespace GUI {
 
 wxDEFINE_EVENT(EVT_UPDATE_WINDOWS_POSITION, wxCommandEvent);
 wxDEFINE_EVENT(EVT_FINISHED_UPDATE_MACHINE_LIST, wxCommandEvent);
-wxDEFINE_EVENT(EVT_UPDATE_USER_MACHINE_LIST, wxCommandEvent);
 wxDEFINE_EVENT(EVT_BIND_MACHINE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_UNBIND_MACHINE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_DISSMISS_MACHINE_LIST, wxCommandEvent);
 wxDEFINE_EVENT(EVT_CONNECT_LAN_PRINT, wxCommandEvent);
 wxDEFINE_EVENT(EVT_EDIT_PRINT_NAME, wxCommandEvent);
-wxDEFINE_EVENT(EVT_CLEAR_IPADDRESS, wxCommandEvent);
 
 
 #define INITIAL_NUMBER_OF_MACHINES 0
@@ -1078,3 +1077,8 @@ PinCodePanel::PinCodePanel(wxWindow* parent, int type, wxWindowID winid /*= wxID
  }
 
  }} // namespace Slic3r::GUI
+
+#undef INITIAL_NUMBER_OF_MACHINES
+#undef LIST_REFRESH_INTERVAL
+#undef MACHINE_LIST_REFRESH_INTERVAL
+#undef WRAP_GAP

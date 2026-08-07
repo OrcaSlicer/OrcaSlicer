@@ -21,7 +21,7 @@
 
 #define WX_DIP_SIZE(x, y) wxSize(FromDIP(x), FromDIP(y))
 
-static wxColour s_red_clr("#D01B1B");
+static wxColour s_red_clr_update("#D01B1B");
 
 namespace Slic3r::GUI
 {
@@ -703,3 +703,5 @@ void wgtDeviceNozzleRackHotendUpdate::Rescale()
 }
 
 };// namespace Slic3r::GUI
+
+#undef WX_DIP_SIZE

@@ -660,38 +660,37 @@ if (SLIC3R_UNITY_BUILD)
     endif ()
 endif ()
 
-# These files are excluded from UNITY_BUILD because they collide with sibling
-# files (or headers they pull in) when merged into a unity translation unit:
-#   - duplicate file-scope symbols: WipeTower2.cpp vs WipeTower.cpp, bbs_3mf.cpp
-#     vs 3mf.cpp, CutUtils.cpp vs Model.cpp, TreeSupport.cpp, SupportMaterial.cpp
-#   - using-directive bleed: FilamentGroup.cpp leaks `using namespace
-#     FilamentGroupUtils` making FilamentInfo ambiguous in MultiNozzleUtils.cpp
-#   - include-guard collision: SupportTreeBuildsteps.cpp pulls in Orca's
-#     Optimize/Optimizer.hpp (guard OPTIMIZER_HPP) which suppresses libnest2d's
-#     optimizer.hpp, undeclaring Method/Optimizer in SupportTree.cpp
-#   - anonymous-ns + header collision: Rotfinder.cpp's anon-ns DOWN vs
-#     SupportTreeBuilder.hpp's DOWN
-#   - anonymous-ns symbol duplication: SL1.cpp and ZipperArchiveImport.cpp both
-#     define read_ini in the merged anon namespace; SL1.cpp's anon-ns
-#     CONFIG_FNAME/PROFILE_FNAME shadow the header versions
-#   - NDEBUG leak: TriangleMeshDeal.cpp does `#undef NDEBUG` to enable asserts,
-#     which leaks into sibling files in the TU and makes NDEBUG-guarded header
-#     declarations inconsistent with their .cpp definitions
-#   - single-header implementation: NSVGImpl.cpp needs NANOSVG_IMPLEMENTATION
-#     before nanosvg.h, but sibling files include nanosvg.h first (via
-#     EmbossShape.hpp / NSVGUtils.hpp), so the implementation is skipped by the
-#     include guard
+# These files are excluded from UNITY_BUILD due to pre-existing unity-build
+# issues that are not worth fixing:
+#   - MinAreaBoundingBox.cpp pulls in libnest2d's geometries.hpp, whose
+#     operator+(const Point&, const Point&) conflicts with Eigen's operator+
+#     for Point + Eigen::CwiseUnaryOp in sibling files (MultiMaterialSegmentation.cpp,
+#     MutablePolygon.cpp).
+#   - Format/svg.cpp, in namespace Slic3r, its unqualified nsvgParseFromFile(path,
+#     "mm", 96.0f) call resolves to the Slic3r NSVGUtils wrapper (returns
+#     NSVGimage_ptr) instead of the global nanosvg raw function when NSVGUtils.hpp
+#     is visible in the same unity TU.
+#   - NSVGImpl.cpp emits the single-header nanosvg implementation. The nanosvg
+#     public functions are external symbols, so they must be emitted in exactly
+#     one TU. Excluding this file keeps it as its own TU so the implementation
+#     is emitted exactly once (a unity sibling could otherwise include nanosvg.h
+#     first and suppress it via the include guard).
 # Compile them standalone instead.
 set_source_files_properties(
-    GCode/WipeTower2.cpp
-    Format/bbs_3mf.cpp
-    CutUtils.cpp
-    Support/TreeSupport.cpp
-    Support/SupportMaterial.cpp
-    FilamentGroup.cpp
-    SLA/SupportTreeBuildsteps.cpp
-    SLA/Rotfinder.cpp
-    Format/SL1.cpp
-    TriangleMeshDeal.cpp
+    MinAreaBoundingBox.cpp
+    Format/svg.cpp
     NSVGImpl.cpp
     PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+
+# The Objective-C++ sources (.mm) are also excluded from UNITY_BUILD: a unity
+# batch is compiled as C++ (.cxx), so merging an .mm file into it breaks the
+# Objective-C syntax (@class/@interface). They must be compiled standalone so
+# the compiler treats them as Objective-C++. These files only exist on Apple
+# platforms, so the exclusion is applied conditionally.
+if (APPLE)
+    set_source_files_properties(
+        MacUtils.mm
+        Format/ModelIO.mm
+        PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+endif ()
+

@@ -14,7 +14,7 @@ namespace Slic3r { namespace GUI {
 static const ColorRGBA DEF_COLOR   = {0.7f, 0.7f, 0.7f, 1.f};
 static const ColorRGBA SELECTED_COLOR = {0.0f, 0.5f, 0.5f, 1.0f};
 static const ColorRGBA ERR_COLOR = {1.0f, 0.3f, 0.3f, 0.5f};
-static const ColorRGBA HOVER_COLOR = {0.7f, 0.7f, 0.7f, 0.5f};
+static const ColorRGBA BRIM_EAR_HOVER_COLOR = {0.7f, 0.7f, 0.7f, 0.5f};
 static constexpr float BRIM_EAR_RADIUS_MIN = 0.1f;
 static constexpr float BRIM_EAR_RADIUS_MAX = 100.f;
 
@@ -144,7 +144,7 @@ void GLGizmoBrimEars::render_points(const Selection &selection)
 
         // First decide about the color of the point.
         if (hover) {
-            render_color = HOVER_COLOR;
+            render_color = BRIM_EAR_HOVER_COLOR;
         } else {
             if (size_t(m_hover_id) == i) // ignore hover state unless editing mode is active
                 render_color = {0.f, 1.f, 1.f, 1.f};

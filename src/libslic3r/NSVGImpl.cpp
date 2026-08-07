@@ -5,9 +5,13 @@
 // in one dedicated TU inside libslic3r makes every consumer (GUI, tests,
 // dev-utils) link without having to define the macro themselves.
 //
-// This file must stay out of the unity build: in a merged translation unit a
-// sibling file may include nanosvg.h first (via EmbossShape.hpp / NSVGUtils.hpp),
-// whose include guard would then suppress the implementation.
+// This file is excluded from the unity build (see CMakeLists.txt) so it is
+// always its own translation unit. That guarantees the nanosvg public
+// functions (which are external symbols) are emitted exactly once across the
+// whole library. If this file were part of a unity batch, a sibling file could
+// include nanosvg.h first and either suppress this implementation (via the
+// include guard) or, if the macro were defined target-wide, cause duplicate
+// symbols at link time.
 #define NANOSVG_IMPLEMENTATION
 #include "nanosvg/nanosvg.h"
 #define NANOSVGRAST_IMPLEMENTATION

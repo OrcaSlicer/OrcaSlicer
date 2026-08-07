@@ -1291,3 +1291,5 @@ namespace Slic3r {
         return res;
     }
     }
+
+#undef MAX_UPLOAD_PACKAGE_LENGTH

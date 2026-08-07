@@ -14,6 +14,7 @@
 #include <wx/zstream.h>
 #include <wx/window.h>
 #include <wx/dcgraph.h>
+#include <glad/gl.h>
 #include <wx/glcanvas.h>
 #include <wx/utils.h>
 #include <boost/format.hpp>

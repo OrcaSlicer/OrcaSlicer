@@ -77,7 +77,7 @@ inline Point normal(Point pt, double scale)
 // ORCA:
 // Collect all polygons of a given SurfaceType from all regions of a layer.
 // Used for top-contact probing across region/modifier boundaries.
-static Polygons collect_region_slices_by_type(const Layer &layer, SurfaceType surface_type)
+static Polygons ts_collect_region_slices_by_type(const Layer &layer, SurfaceType surface_type)
 {
     size_t n_polygons_new = 0;
 
@@ -1200,6 +1200,8 @@ void TreeSupport::create_tree_support_layers()
     }
 }
 
+namespace {
+
 static inline BoundingBox fill_expolygon_generate_paths(
     ExtrusionEntitiesPtr    &dst,
     ExPolygon               &expolygon,
@@ -1242,6 +1244,8 @@ static inline std::vector<BoundingBox> fill_expolygons_generate_paths(
     }
     return fill_boxes;
 }
+
+} // namespace
 
 static void _make_loops(ExtrusionEntitiesPtr& loops_entities, ExPolygons &support_area, ExtrusionRole role, size_t wall_count, const Flow &flow)
 {
@@ -2230,8 +2234,8 @@ void TreeSupport::draw_circles()
                         // Search downward for object layers whose TOP/BOTTOM surfaces intersect this component.
                         for (size_t idx = obj_layer_nr + 1; idx-- > 0;) {
                             const Layer* below_layer = m_object->get_layer(idx);
-                            Polygons top_surfaces = collect_region_slices_by_type(*below_layer, stTop);
-                            Polygons bottom_surfaces = collect_region_slices_by_type(*below_layer, stBottom);
+                            Polygons top_surfaces = ts_collect_region_slices_by_type(*below_layer, stTop);
+                            Polygons bottom_surfaces = ts_collect_region_slices_by_type(*below_layer, stBottom);
                             Polygons surf_union = top_surfaces;
                             polygons_append(surf_union, bottom_surfaces);
                             if (surf_union.empty())

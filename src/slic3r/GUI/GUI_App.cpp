@@ -65,6 +65,7 @@
 #include <wx/splash.h>
 #include <wx/weakref.h>
 #include <wx/fontutil.h>
+#include <glad/gl.h>
 #include <wx/glcanvas.h>
 #include <wx/utils.h>
 #include <openssl/hmac.h>

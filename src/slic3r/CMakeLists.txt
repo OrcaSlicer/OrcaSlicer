@@ -908,73 +908,39 @@ if (SLIC3R_UNITY_BUILD)
     endif ()
 endif ()
 
-# These files are excluded from UNITY_BUILD because they collide with sibling
-# files (or headers they pull in) when merged into a unity translation unit:
-#   - duplicate file-scope symbols: static helpers, color constants, enums,
-#     structs, anonymous-namespace functions shared with sibling files
-#   - macro pollution: WipeTowerDialog.cpp defines `#define style` without an
-#     #undef, corrupting any file compiled after it in the same TU
-#   - GL header clash: files that include wx/glcanvas.h pull in the system
-#     GL/gl.h header, which makes glad/gl.h (included by many sibling files)
-#     fail with "OpenGL (gl.h) header already included" when merged into the
-#     same unity translation unit. Compile them standalone instead.
-#   - duplicate wxDEFINE_EVENT: SelectMachinePop.cpp and SendToPrinter.cpp
-#     define the same events (EVT_UPDATE_USER_MACHINE_LIST, EVT_CLEAR_IPADDRESS,
-#     EVT_PRINT_JOB_CANCEL) as SelectMachine.cpp
-#   - duplicate file-scope statics: SendJob.cpp and PrintJob.cpp both define the
-#     same `static auto` status strings in Slic3r::GUI
-#   - imgui math operators: ImGuiWrapper.cpp needs IMGUI_DEFINE_MATH_OPERATORS
-#     defined before imgui.h, but sibling files include imgui.h first in the TU
-#   - X11 macro pollution: LinuxDisplayBackend.cpp pulls in Xlib.h, whose
-#     `Success`/`Always`/`None`/... macros corrupt sibling files in the TU
-#   - single-header implementation: BitmapCache.cpp needs NANOSVG_IMPLEMENTATION
-#     before nanosvg.h, but sibling files include nanosvg.h first (via
-#     EmbossShape.hpp), so the implementation is skipped by the include guard
-#   - imgui math operators: GLGizmoMeshBoolean.cpp needs IMGUI_DEFINE_MATH_OPERATORS
-#     before imgui_internal.h, but GLGizmoMeasure.cpp includes it first in the TU
-# Compile them standalone instead.
+# These files were previously excluded from UNITY_BUILD due to collisions when
+# merged into a unity translation unit. The collisions have been fixed in the
+# sources themselves (file-scope symbols renamed to unique names, leaked macros
+# undefined, GL headers ordered glad-before-wx, duplicate wxDEFINE_EVENT removed,
+# imgui math operators provided target-wide, X11 macros undefined, etc.), so
+# they are now compiled as part of the unity build.
+
+# GUI_App.cpp is excluded from the unity build due to a pre-existing ambiguity:
+# when merged into a unity TU, the `class CheckBox*` forward declaration in
+# Utils/wxInspectorPlugins/CustomWidgetsPlugin.hpp becomes ambiguous because two
+# `CheckBox` types are visible in the global namespace via `using namespace
+# Slic3r::GUI` from sibling files.
 set_source_files_properties(
-    GUI/Gizmos/GLGizmoSVG.cpp
-    GUI/Gizmos/GLGizmoBrimEars.cpp
-    GUI/Gizmos/GLGizmoText.cpp
-    GUI/GUI_Factories.cpp
-    GUI/ExportPresetBundleDialog.cpp
-    GUI/WebGuideDialog.cpp
-    GUI/SafetyOptionsDialog.cpp
-    GUI/StatusPanel.cpp
-    GUI/ParamsPanel.cpp
-    GUI/Downloader.cpp
-    GUI/HintNotification.cpp
-    GUI/SlicingProgressNotification.cpp
-    GUI/CapsuleButton.cpp
-    GUI/PurgeModeDialog.cpp
-    GUI/ObjColorDialog.cpp
-    GUI/GUI_Preview.cpp
-    GUI/MarkdownTip.cpp
-    GUI/PrivacyUpdateDialog.cpp
-    GUI/CalibrationWizardCaliPage.cpp
-    GUI/NetworkTestDialog.cpp
-    GUI/3DBed.cpp
-    GUI/DeviceTab/wgtDeviceNozzleSelect.cpp
-    GUI/DeviceTab/wgtDeviceNozzleRackUpdate.cpp
-    Utils/ElegooLink.cpp
-    Utils/QidiPrinterAgent.cpp
-    GUI/WipeTowerDialog.cpp
-    GUI/SkipPartCanvas.cpp
-    GUI/SelectMachinePop.cpp
-    GUI/SendToPrinter.cpp
-    GUI/PartSkipDialog.cpp
-    GUI/NotificationManager.cpp
     GUI/GUI_App.cpp
-    GUI/Mouse3DController.cpp
-    GUI/GLToolbar.cpp
-    GUI/Plater.cpp
-    GUI/Jobs/SendJob.cpp
-    GUI/ImGuiWrapper.cpp
-    GUI/LinuxDisplayBackend.cpp
-    GUI/BitmapCache.cpp
-    GUI/Gizmos/GLGizmoMeshBoolean.cpp
     PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+
+# The Objective-C++ sources (.mm) are also excluded from UNITY_BUILD: a unity
+# batch is compiled as C++ (.cxx), so merging an .mm file into it breaks the
+# Objective-C syntax (@class/@interface). They must be compiled standalone so
+# the compiler treats them as Objective-C++. These files only exist on Apple
+# platforms, so the exclusion is applied conditionally.
+if (APPLE)
+    set_source_files_properties(
+        Utils/RetinaHelperImpl.mm
+        Utils/MacDarkMode.mm
+        GUI/RemovableDriveManagerMM.mm
+        GUI/Mouse3DHandlerMac.mm
+        GUI/InstanceCheckMac.mm
+        GUI/DeepLinkHandlerMac.mm
+        GUI/GUI_UtilsMac.mm
+        GUI/wxMediaCtrl2.mm
+        PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+endif ()
 
 # We need to implement some hacks for wxWidgets and touch the underlying GTK
 # layer and sub-libraries. This forces us to use the include locations and
