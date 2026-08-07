@@ -8320,21 +8320,21 @@ msgstr "Nebyla vybrána složka pro nahrazení"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Nahrazeno 3D soubory ze složky:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Přeskočeno %1%: stejný soubor.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Přeskočeno %s: stejný soubor.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Přeskočeno %1%: soubor neexistuje.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Přeskočeno %s: soubor neexistuje.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Přeskočeno %1%: nahrazení se nezdařilo.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Přeskočeno %s: nahrazení se nezdařilo.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Nahrazeno %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Nahrazeno %s.\n"
 
 msgid "Replaced volumes"
 msgstr "Nahrazené objemy"

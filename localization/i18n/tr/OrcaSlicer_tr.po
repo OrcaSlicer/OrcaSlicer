@@ -8335,21 +8335,21 @@ msgstr "Değiştirme için dizin seçilmedi"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Dizindeki 3D dosyalarla değiştirildi:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ %1% atlandı: aynı dosya.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ %s atlandı: aynı dosya.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ %1% atlandı: dosya mevcut değil.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ %s atlandı: dosya mevcut değil.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ %1% atlandı: değiştirilemedi.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ %s atlandı: değiştirilemedi.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ %1% değiştirildi.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ %s değiştirildi.\n"
 
 msgid "Replaced volumes"
 msgstr "Değiştirilen birimler"

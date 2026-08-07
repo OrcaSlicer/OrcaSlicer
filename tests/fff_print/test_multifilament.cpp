@@ -17,6 +17,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -165,28 +166,82 @@ static std::vector<std::string> temperature_trace(const std::string& gcode)
     return trace;
 }
 
-// Splits a trace entry into its command text and the lead time appended after a tab, if any.
-static std::pair<std::string, std::optional<double>> split_lead(const std::string& entry)
+// "M104 S240 T0 ; preheat T0 time: 31s<TAB>lead 30.9s" carries the same quantity twice, and both
+// vary by toolchain: the backtrace picks the first line at least preheat_time out, so a sub-tenth
+// difference in the estimate selects a neighbouring move and "lead" steps by that move's duration.
+// Tolerate "lead", still far below the tens of seconds a displaced preheat would shift it. Check
+// "time:" against its own entry's "lead" instead of across runs -- being a rounding of it, that
+// still catches a change in how it is derived without tracking the absolute estimate.
+static constexpr double TRACE_TIME_TOLERANCE_S = 1.5;
+static constexpr double TRACE_ROUNDING_SLACK_S = 0.05; // correct rounding keeps |time - lead| <= 0.5
+
+struct TraceEntry
 {
-    const size_t tab = entry.find('\t');
-    if (tab == std::string::npos)
-        return { entry, std::nullopt };
-    const std::string tail = entry.substr(tab + 1); // "lead 30.2s"
-    return { entry.substr(0, tab), std::stod(tail.substr(tail.find(' ') + 1)) };
+    std::string           text;   // timing values replaced by a placeholder
+    std::optional<double> time_s;
+    std::optional<double> lead_s;
+};
+
+static TraceEntry parse_trace_entry(const std::string& entry)
+{
+    TraceEntry out;
+    std::string text = entry;
+
+    // Split off the tail only when it really is a "lead <n>s", so an unexpected one still compares.
+    const size_t tab = text.find('\t');
+    if (tab != std::string::npos) {
+        const std::string tail = text.substr(tab + 1); // "lead 30.2s"
+        const size_t      sp   = tail.find(' ');
+        if (sp != std::string::npos && sp + 1 < tail.size()
+            && std::isdigit(static_cast<unsigned char>(tail[sp + 1]))) {
+            out.lead_s = std::stod(tail.substr(sp + 1));
+            text.erase(tab);
+        }
+    }
+
+    static constexpr std::string_view k_time = "time: ";
+    const size_t                      at     = text.find(k_time);
+    // Require a digit first: a dots-only run would otherwise reach std::stod and throw.
+    if (at != std::string::npos && at + k_time.size() < text.size()
+        && std::isdigit(static_cast<unsigned char>(text[at + k_time.size()]))) {
+        const size_t first = at + k_time.size();
+        size_t       last  = first;
+        while (last < text.size() && (std::isdigit(static_cast<unsigned char>(text[last])) || text[last] == '.'))
+            ++last;
+        out.time_s = std::stod(text.substr(first, last - first));
+        text.replace(first, last - first, "<n>"); // surrounding text, incl. the "s", still compared
+    }
+
+    out.text = std::move(text);
+    return out;
 }
 
-// Same command, and a lead time within half a second. The lead is an estimate summed over every
-// move before it, so it drifts slightly with unrelated changes to travel or tower geometry; half a
-// second is far below the tens of seconds a preheat leaving its backtrace position would shift it.
+static bool timings_match(const std::optional<double>& a, const std::optional<double>& b)
+{
+    if (a.has_value() != b.has_value())
+        return false;
+    return !a.has_value() || std::abs(*a - *b) <= TRACE_TIME_TOLERANCE_S;
+}
+
+// "time:" must be its own entry's "lead" rounded to a whole second.
+static bool time_is_rounded_lead(const TraceEntry& e)
+{
+    if (!e.time_s.has_value() || !e.lead_s.has_value())
+        return true; // nothing to cross-check
+    return std::abs(*e.time_s - *e.lead_s) <= 0.5 + TRACE_ROUNDING_SLACK_S;
+}
+
+// `a` is the slice under test, `b` the recorded golden.
 static bool trace_entries_match(const std::string& a, const std::string& b)
 {
-    const auto x = split_lead(a);
-    const auto y = split_lead(b);
-    if (x.first != y.first)
+    const auto x = parse_trace_entry(a);
+    const auto y = parse_trace_entry(b);
+    if (x.text != y.text)
         return false;
-    if (x.second.has_value() != y.second.has_value())
+    // A field appearing or disappearing is a real change even though the values are tolerated.
+    if (x.time_s.has_value() != y.time_s.has_value())
         return false;
-    return !x.second.has_value() || std::abs(*x.second - *y.second) <= 0.5;
+    return timings_match(x.lead_s, y.lead_s) && time_is_rounded_lead(x);
 }
 
 // Tool index = filament id - 1; brim and skirt follow the wall filament.
@@ -616,6 +671,16 @@ TEST_CASE("Toolchange temperature commands are unchanged when the wipe tower wai
         }
     }
     REQUIRE(!golden.empty());
+
+    // Reported separately from the golden comparison below: it is a different failure.
+    for (size_t i = 0; i < trace.size(); ++i) {
+        const auto entry = parse_trace_entry(trace[i]);
+        if (time_is_rounded_lead(entry))
+            continue;
+        INFO("at trace entry " << i + 1);
+        INFO("  " << trace[i]);
+        FAIL("\"time:\" is not its entry's \"lead\" rounded to a whole second");
+    }
 
     const size_t common = std::min(trace.size(), golden.size());
     for (size_t i = 0; i < common; ++i) {

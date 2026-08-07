@@ -8262,21 +8262,21 @@ msgstr "置換用のディレクトリが選択されていません"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "ディレクトリの3Dファイルで置換しました:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ スキップ %1%: 同一ファイル。\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ スキップ %s: 同一ファイル。\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ スキップ %1%: ファイルが存在しません。\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ スキップ %s: ファイルが存在しません。\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ スキップ %1%: 置換に失敗しました。\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ スキップ %s: 置換に失敗しました。\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ 置換しました %1%。\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ 置換しました %s。\n"
 
 msgid "Replaced volumes"
 msgstr "置換されたボリューム"
