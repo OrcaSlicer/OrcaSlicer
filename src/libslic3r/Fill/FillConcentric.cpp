@@ -32,7 +32,7 @@ static Polylines generate_spiralized_concentric_polylines(
     Polylines output;
     Polyline spiral;
     Point current_pos(0, 0);
-    const double jump_threshold = 1.5 * double(distance);
+    const double jump_threshold = 1.45 * double(distance);
 
     auto find_sharpest_corner = [](const Polygon& loop) -> int {
         size_t n = loop.points.size();
@@ -92,16 +92,31 @@ static Polylines generate_spiralized_concentric_polylines(
             }
         }
 
-        // Clip the last segment of the loop to avoid overlapping with the next loop. The last loop is clipped by half the distance to avoid
-        // leaving a gap in the center.
+        // Clip the last segment of the loop to avoid overlapping with the next loop. The last loop is clipped by half the distance.
         const bool last_loop = (i + 1 == loops.size());
+        double gap           = last_loop ? 0.5 * double(distance) : double(distance);
         loop_path.points.push_back(loop_path.points.front());
-        if (last_loop) {
-            loop_path.clip_end(0.5 * distance);
-        } else {
-            loop_path.clip_end(distance);
+        const Point& p_prev = loop_path.points[loop_path.points.size() - 2];
+        const Point& p_last = loop_path.points.back();
+        const Point& p_next = loop_path.points[1];
+        Vec2d v1            = (p_last - p_prev).cast<double>();
+        Vec2d v2            = (p_next - p_last).cast<double>();
+        double len1         = v1.norm();
+        double len2         = v2.norm();
+        double clip_len     = gap;
+        if (len1 > 1e-6 && len2 > 1e-6) {
+            double dot   = v1.dot(v2);
+            double cross = v1.x() * v2.y() - v1.y() * v2.x();
+            double alpha = std::atan2(std::abs(cross), dot);
+
+            if (alpha > M_PI / 8 && alpha < M_PI / 3) {
+                clip_len = gap / std::sin(alpha);
+            } else {
+                clip_len = gap;
+            }
         }
 
+        loop_path.clip_end(clip_len);
 
         if (spiral.empty()) {
             spiral = std::move(loop_path);
