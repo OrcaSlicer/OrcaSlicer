@@ -7962,7 +7962,7 @@ msgid "Click to edit preset"
 msgstr "Изменить профиль"
 
 msgid "Nozzle"
-msgstr "Экструдер"
+msgstr "Сопло"
 
 msgid "Project Filaments"
 msgstr "Материалы проекта"
@@ -13053,7 +13053,7 @@ msgstr ""
 "Фактический поток для поддержек рассчитывается путём умножения этого значения на поток материала и общий поток модели (если он задан)."
 
 msgid "Support interface flow ratio"
-msgstr "Интерфейс поддержек"
+msgstr "Связующие слои"
 
 msgid ""
 "This factor affects the amount of material for the support interface.\n"
