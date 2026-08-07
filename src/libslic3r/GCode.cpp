@@ -9228,15 +9228,19 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     // If ooze prevention is enabled, park current extruder in the nearest
     // standby point and set it to the standby temperature.
     //
-    // Same-physical short-circuit: skip the standby cool-down when the old and
-    // new filament both route to the same physical extruder via
-    // physical_extruder_map (AFC/MMU lane swaps where the active heater stays
-    // selected, just a different lane is loaded). The cool-down → re-heat
-    // round trip is pointless in that case — same nozzle, same heater, just a
-    // different filament feeding it. post_toolchange below still emits M109
-    // to the new filament's print temp, so per-lane temperature differences
-    // (e.g. PLA lane → PETG lane on the same AFC manifold) are still handled.
+    // Same-physical short-circuit: on an IMEX printer, skip the standby cool-down when the
+    // old and new filament both route to the same physical extruder via physical_extruder_map
+    // (AFC/MMU lane swaps where the active heater stays selected and only the lane changes).
+    // The cool-down → re-heat round trip is pointless there — same nozzle, same heater, just a
+    // different filament feeding it. post_toolchange below still emits M109 to the new
+    // filament's print temp, so per-lane temperature differences are still handled.
+    //
+    // Gated on is_imex so ooze prevention behaves exactly as upstream on every other printer.
+    // 73 shipping profiles enable it by default (Snapmaker, Flashforge, Prusa and others) and
+    // none of them are asking for this optimisation.
     auto same_physical_extruder = [&](int a, int b) {
+        if (!m_config.is_imex.value)
+            return false;
         const auto& pem = m_config.physical_extruder_map.values;
         return !pem.empty() && a >= 0 && b >= 0
             && a < (int)pem.size() && b < (int)pem.size()
