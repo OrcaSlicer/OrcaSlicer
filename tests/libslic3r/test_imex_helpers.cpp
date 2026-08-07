@@ -13,38 +13,52 @@ static ConfigOptionInts make_pem(std::vector<int> v) {
     return o;
 }
 
-TEST_CASE("effective_physical_extruder_map - explicit wins", "[IMEX]") {
+TEST_CASE("effective_physical_extruder_map - authored map wins", "[IMEX]") {
+    // An AFC manifold on a 7-extruder machine: logical 0-3 all feed physical 0. Not derivable,
+    // so it must be honoured verbatim.
     auto explicit_pem = make_pem({0, 0, 0, 0, 1, 2, 3});
-    auto pei          = make_pem({1, 2, 3, 4}); // would derive to {0,1,2,3}
-    auto out = effective_physical_extruder_map(&explicit_pem, &pei);
+    auto out = effective_physical_extruder_map(&explicit_pem, 7);
     REQUIRE(out.values == std::vector<int>{0, 0, 0, 0, 1, 2, 3});
 }
 
-TEST_CASE("effective_physical_extruder_map - default pem falls back to pei derive", "[IMEX]") {
-    auto default_pem = make_pem({0});           // size 1, the PrintConfig default
-    auto pei         = make_pem({1, 2});        // 1-indexed IDEX
-    auto out = effective_physical_extruder_map(&default_pem, &pei);
-    REQUIRE(out.values == std::vector<int>{0, 1}); // 1-indexed → 0-indexed
+TEST_CASE("effective_physical_extruder_map - a permutation is honoured", "[IMEX]") {
+    // Shipping BBL dual-nozzle profiles author {1,0}: a slicer/firmware numbering swap, not a
+    // sharing map. Deriving over it would silently renumber both extruders.
+    auto explicit_pem = make_pem({1, 0});
+    auto out = effective_physical_extruder_map(&explicit_pem, 2);
+    REQUIRE(out.values == std::vector<int>{1, 0});
 }
 
-TEST_CASE("effective_physical_extruder_map - null explicit, pei present", "[IMEX]") {
-    auto pei = make_pem({1, 2, 3});
-    auto out = effective_physical_extruder_map(nullptr, &pei);
-    REQUIRE(out.values == std::vector<int>{0, 1, 2});
+TEST_CASE("effective_physical_extruder_map - unauthored derives the identity", "[IMEX]") {
+    // The PrintConfig default is a single element, which is not an authored map on a 2-extruder
+    // machine. Identity is what upstream itself falls back to.
+    auto default_pem = make_pem({0});
+    auto out = effective_physical_extruder_map(&default_pem, 2);
+    REQUIRE(out.values == std::vector<int>{0, 1});
 }
 
-TEST_CASE("effective_physical_extruder_map - both absent yields empty", "[IMEX]") {
-    auto out = effective_physical_extruder_map(nullptr, nullptr);
-    REQUIRE(out.values.empty());
+TEST_CASE("effective_physical_extruder_map - result is always one entry per extruder", "[IMEX]") {
+    // The defining property: consumers index this map by logical extruder and size their own
+    // arrays from nozzle_diameter, so a shorter map is an out-of-bounds read in several of them.
+    for (int n : { 1, 2, 4, 7 }) {
+        DYNAMIC_SECTION("nozzle count " << n) {
+            REQUIRE((int) effective_physical_extruder_map(nullptr, n).values.size() == n);
+            auto stale = make_pem({0});   // wrong length: must not be mistaken for authored
+            REQUIRE((int) effective_physical_extruder_map(&stale, n).values.size() == n);
+        }
+    }
+}
+
+TEST_CASE("effective_physical_extruder_map - degenerate nozzle count still yields a usable map", "[IMEX]") {
+    // Never hand back an empty map: several consumers index it as a raw vector.
+    REQUIRE(effective_physical_extruder_map(nullptr, 0).values == std::vector<int>{0});
 }
 
 TEST_CASE("effective_physical_extruder_map - IDEX ghost-color regression guard", "[IMEX]") {
-    // Printer with printer_extruder_id = [1, 2] and no explicit pem (default {0}).
-    // Before the GUI fix, this scenario produced a black ghost on T1 because
-    // first_filament_for_physical_head({0}, 1) == -1.
+    // Dual extruder, no authored map. Before the GUI fix this produced a black ghost on T1
+    // because first_filament_for_physical_head({0}, 1) == -1.
     auto default_pem = make_pem({0});
-    auto pei         = make_pem({1, 2});
-    auto pem         = effective_physical_extruder_map(&default_pem, &pei);
+    auto pem         = effective_physical_extruder_map(&default_pem, 2);
     REQUIRE(first_filament_for_physical_head(pem, 0) == 0);
     REQUIRE(first_filament_for_physical_head(pem, 1) == 1); // no longer -1
 }

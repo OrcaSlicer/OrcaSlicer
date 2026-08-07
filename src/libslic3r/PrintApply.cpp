@@ -1230,15 +1230,13 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         }
     }
 
-    // Derive physical_extruder_map (0-indexed) from printer_extruder_id (1-indexed) when the
-    // map hasn't been explicitly configured in the printer profile (size <= 1 = default).
-    // This gives all firmware code a consistent slot → physical-extruder translation,
-    // including AFC/MMU setups where multiple tool slots share one physical extruder.
+    // Fill in physical_extruder_map when the printer profile has not authored one. It has one
+    // entry per logical extruder, so it is sized from the nozzle count -- not from
+    // printer_extruder_id, which is indexed by variant slot.
     {
         auto* pem = new_full_config.option<ConfigOptionInts>("physical_extruder_map", true);
-        const auto* pei = new_full_config.option<ConfigOptionInts>("printer_extruder_id");
         if (pem) {
-            pem->values = effective_physical_extruder_map(pem, pei).values;
+            pem->values = effective_physical_extruder_map(pem, extruder_count).values;
             // m_ori_full_print_config was snapshotted above, before this derivation, and the
             // selector write-back path rebuilds m_full_print_config from that snapshot. Without
             // mirroring the derived map into it, m_full_print_config keeps the unexpanded default

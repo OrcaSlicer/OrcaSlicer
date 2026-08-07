@@ -49,8 +49,8 @@ inline constexpr const char* kImexPrimaryMode = "primary";
 //     resolve_filament_for_head(plate_head_filament_map, pem, physical_idx)
 // (or the simpler `first_filament_for_physical_head` if no per-plate override).
 //
-// The reverse translation (logical → physical) is just `pem.get_at(filament_id)`,
-// already encapsulated in `imex_pem_tool_for` for the per-tool-qualifier case.
+// The reverse translation (logical → physical) is `pem.get_at(logical_idx)`, already
+// encapsulated in `imex_pem_tool_for` for the per-tool-qualifier case.
 //
 // Past bugs in this class:
 //   - GCode PA emission used the inline `pem.get_at(filament_id)` form at two
@@ -65,21 +65,18 @@ inline constexpr const char* kImexPrimaryMode = "primary";
 // route through one of the helpers below.
 // =============================================================================
 
-// Returns the effective physical_extruder_map given an optionally-explicit map and
-// the printer's `printer_extruder_id`. If `explicit_pem` has size >= 2 the caller
-// authored one, and it is returned verbatim. Otherwise the map is auto-derived
-// from `printer_extruder_id` by converting each 1-indexed value to 0-indexed.
-// Returns an empty ConfigOptionInts if neither source yields any values.
-// Slice-time (PrintApply) and GUI ghost-color paths both call this so a printer
-// profile without an explicit pem still gets a consistent mapping.
-ConfigOptionInts effective_physical_extruder_map(const ConfigOptionInts* explicit_pem,
-                                                  const ConfigOptionInts* printer_extruder_id);
+// physical_extruder_map has one entry per LOGICAL extruder -- the index space of
+// nozzle_diameter -- with each value a physical extruder index. It is NOT derivable from
+// printer_extruder_id, which is indexed by variant slot (one entry per extruder+variant pair):
+// an X1 Carbon has one nozzle and printer_extruder_id {1,1}, an H2D two nozzles and {1,1,2,2,2}.
+//
+// A profile has authored a map only when its length matches nozzle_count; otherwise the identity
+// is returned, which is the same default upstream applies (see Plater.cpp's extruder_map).
+ConfigOptionInts effective_physical_extruder_map(const ConfigOptionInts* explicit_pem, int nozzle_count);
 
-// GUI overload: resolves the effective pem from a live PresetBundle using the
-// project_config → printer preset fallback, then derives from printer_extruder_id
-// if neither holds a user-authored map (size >= 2). Use this instead of open-coding
-// the lookup at ghost-color, tooltip, click-gate, and cache-key call sites so they
-// all agree on what the slicer will see.
+// GUI overload: resolves the effective pem from a live PresetBundle using the project_config
+// → printer preset fallback. Use this instead of open-coding the lookup at ghost-color,
+// tooltip, click-gate and cache-key call sites so they all agree with what the slicer sees.
 ConfigOptionInts effective_physical_extruder_map(const PresetBundle& pb);
 
 // Returns the physical extruder index to emit as a per-tool qualifier (PA / temperature)
