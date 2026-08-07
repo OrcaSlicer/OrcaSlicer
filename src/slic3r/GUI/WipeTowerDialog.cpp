@@ -205,27 +205,29 @@ bool is_flush_config_modified()
     const std::vector<double> &config_matrix     = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
     const std::vector<double> &config_multiplier = (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values;
 
-    bool has_modify = false;
-    for (int i = 0; i < config_multiplier.size(); i++) {
-        if (config_multiplier[i] != 1) {
-            has_modify = true;
-            break;
-        }
-        std::vector<std::vector<double>> default_matrix = WipingDialog::CalcFlushingVolumes(i);
-        int len = default_matrix.size();
-        for (int m = 0; m < len; m++) {
-            for (int n = 0; n < len; n++) {
-                int idx = i * len * len + m * len + n;
-                if (config_matrix[idx] != default_matrix[m][n] * config_multiplier[i]) {
-                    has_modify = true;
-                    break;
-                }
-            }
-            if (has_modify) break;
-        }
-        if (has_modify) break;
+    for (double multiplier : config_multiplier)
+        if (multiplier != 1)
+            return true;
+
+    // Orca: take the row stride and the block count from the stored matrix, not from the current
+    // filament count. The two disagree until update_multi_material_filament_presets rebuilds the
+    // matrix (a project saved with fewer filaments, or a printer just switched), and indexing a
+    // stale matrix with the current stride reads past the option. Clamp to the printer's extruder
+    // count as well, since CalcFlushingVolumes indexes per-extruder options with the same id.
+    const size_t extruder_count = wxGetApp().preset_bundle->get_printer_extruder_count();
+    const FlushVolumesMatrixDims dims = get_flush_volumes_matrix_dims(config_matrix.size(), config_multiplier.size(), extruder_count);
+    const size_t nozzle_nums = std::min(dims.nozzle_nums, extruder_count);
+    for (size_t i = 0; i < nozzle_nums; i++) {
+        std::vector<std::vector<double>> default_matrix = WipingDialog::CalcFlushingVolumes(int(i));
+        if (default_matrix.size() != dims.filament_nums)
+            return false; // Stored matrix predates the current filament count; it is about to be rebuilt.
+        // Every multiplier is 1 here, so the stored block has to equal the defaults outright.
+        for (size_t m = 0; m < dims.filament_nums; m++)
+            for (size_t n = 0; n < dims.filament_nums; n++)
+                if (config_matrix[(i * dims.filament_nums + m) * dims.filament_nums + n] != default_matrix[m][n])
+                    return true;
     }
-    return has_modify;
+    return false;
 }
 
 void open_flushing_dialog(wxEvtHandler *parent, const wxEvent &event)

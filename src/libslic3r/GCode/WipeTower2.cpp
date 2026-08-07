@@ -2134,21 +2134,17 @@ std::pair<double, double> WipeTower2::get_wipe_tower_cone_base(double width, dou
 // DynamicPrintConfig directly instead of materializing a full PrintConfig per call.
 std::vector<std::vector<float>> WipeTower2::extract_wipe_volumes(const ConfigBase& config)
 {
-    // flush_volumes_matrix holds one filaments x filaments block per nozzle (written by
-    // PresetBundle::update_multi_material_filament_presets), so the filament count is
-    // sqrt(size / nozzles). One tower serves every nozzle and the filament to nozzle assignment is
-    // only decided later by ToolOrdering, so fold the blocks with std::max: the depth reserved here
-    // has to cover the worst nozzle. With a single nozzle the fold has one term.
-    const std::vector<double> &raw_matrix      = config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
-    const auto                *nozzle_diameter = config.option<ConfigOptionFloats>("nozzle_diameter");
-    size_t       nozzle_nums         = (nozzle_diameter == nullptr || nozzle_diameter->values.empty()) ? 1 : nozzle_diameter->values.size();
-    unsigned int number_of_extruders = (unsigned int)(sqrt(raw_matrix.size() / nozzle_nums) + EPSILON);
-    if (size_t(number_of_extruders) * number_of_extruders * nozzle_nums != raw_matrix.size()) {
-        // Saved for a different nozzle count (older project, or the printer was just switched):
-        // fall back to reading the whole option as one block, as this did before.
-        nozzle_nums         = 1;
-        number_of_extruders = (unsigned int)(sqrt(raw_matrix.size()) + EPSILON);
-    }
+    // One tower serves every nozzle and the filament to nozzle assignment is only decided later
+    // by ToolOrdering, so fold the per-nozzle blocks with std::max: the depth reserved here has
+    // to cover the worst nozzle. With a single nozzle the fold has one term.
+    const std::vector<double> &raw_matrix       = config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
+    const auto                *nozzle_diameter  = config.option<ConfigOptionFloats>("nozzle_diameter");
+    const auto                *flush_multiplier = config.option<ConfigOptionFloats>("flush_multiplier");
+    const FlushVolumesMatrixDims dims = get_flush_volumes_matrix_dims(raw_matrix.size(),
+        flush_multiplier == nullptr ? 0 : flush_multiplier->values.size(),
+        nozzle_diameter  == nullptr ? 0 : nozzle_diameter->values.size());
+    const size_t       nozzle_nums         = dims.nozzle_nums;
+    const unsigned int number_of_extruders = dims.filament_nums;
 
     // The values shall only be used when SEMM is enabled. The purging for other printers
     // is determined by filament_minimal_purge_on_wipe_tower.

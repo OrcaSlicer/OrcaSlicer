@@ -2367,6 +2367,33 @@ private:
     static uint64_t             s_last_timestamp;
 };
 
+// A flush_volumes_matrix option holds one (filament_nums x filament_nums) block per nozzle
+// (see PresetBundle::update_multi_material_filament_presets). Validate that partitioning
+// against the stored size; when it does not match (older project, or the printer was just
+// switched) fall back to treating the whole option as a single block — slicing or indexing
+// with a mismatched row stride would read out of bounds.
+struct FlushVolumesMatrixDims
+{
+    size_t       nozzle_nums;   // number of per-nozzle blocks actually stored
+    unsigned int filament_nums; // dimension (row stride) of each block
+};
+// Two options claim to say how many blocks are stored and either can be stale: flush_multiplier
+// lives in the project config and is written with the matrix, while nozzle_diameter comes from the
+// printer preset and changes the moment a printer is selected. Pass both where both are at hand,
+// preferred one first; the first candidate that squares up with the stored size wins.
+inline FlushVolumesMatrixDims get_flush_volumes_matrix_dims(size_t matrix_size, size_t nozzle_nums, size_t alt_nozzle_nums = 0)
+{
+    for (size_t candidate : { nozzle_nums, alt_nozzle_nums, size_t(1) }) {
+        if (candidate == 0)
+            continue;
+        const unsigned int filament_nums = (unsigned int) (std::sqrt(double(matrix_size) / candidate) + EPSILON);
+        if (size_t(filament_nums) * filament_nums * candidate == matrix_size)
+            return { candidate, filament_nums };
+    }
+    // Nothing partitions cleanly: read the whole option as one block, as this did before.
+    return { 1, (unsigned int) (std::sqrt(double(matrix_size)) + EPSILON) };
+}
+
 // const std::vector<double> &fv_matrix:  origin matrix from json
 // size_t extruder_id: -1 means single-nozzle for old file, 0 means the 1st extruder, 1 means the 2nd extruder
 template<class T>

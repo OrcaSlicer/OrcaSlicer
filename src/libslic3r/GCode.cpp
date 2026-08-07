@@ -9089,12 +9089,21 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     int old_filament_id = -1;
     int old_extruder_id = -1;
     if (m_writer.filament() != nullptr || m_start_gcode_filament != -1) {
-        std::vector<float> flush_matrix(cast<float>(get_flush_volumes_matrix(m_config.flush_volumes_matrix.values, new_extruder_id, m_config.nozzle_diameter.values.size())));
-        const unsigned int number_of_extruders = (unsigned int) (m_config.filament_colour.values.size()); // if is multi_extruder only use the fist extruder matrix
+        // The row stride of the per-nozzle flush matrix block is its validated dimension,
+        // NOT filament_colour.size() (see get_flush_volumes_matrix_dims).
+        const std::vector<double>& raw_flush_matrix = m_config.flush_volumes_matrix.values;
+        const FlushVolumesMatrixDims flush_dims = get_flush_volumes_matrix_dims(raw_flush_matrix.size(),
+            m_config.flush_multiplier.values.size(), m_config.nozzle_diameter.values.size());
+        std::vector<float> flush_matrix(cast<float>(get_flush_volumes_matrix(raw_flush_matrix, new_extruder_id, flush_dims.nozzle_nums)));
+        // Guard the read in case the stored matrix is smaller than the filament ids in play.
+        auto flush_volume_at = [&](size_t old_id, size_t new_id) -> float {
+            const size_t idx = old_id * flush_dims.filament_nums + new_id;
+            return idx < flush_matrix.size() ? flush_matrix[idx] : 0.f;
+        };
         if (m_writer.filament() != nullptr)
-            assert(m_writer.filament()->id() < number_of_extruders);
+            assert(m_writer.filament()->id() < m_config.filament_colour.values.size());
         else
-            assert(m_start_gcode_filament < number_of_extruders);
+            assert(m_start_gcode_filament < (int) m_config.filament_colour.values.size());
 
         old_filament_id = m_writer.filament() != nullptr ? m_writer.filament()->id() : m_start_gcode_filament;
         old_extruder_id = m_writer.filament() != nullptr ? m_writer.filament()->extruder_id() : get_extruder_id(m_start_gcode_filament);
@@ -9114,12 +9123,12 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             if (old_filament_id_in_new_extruder == -1)
                 wipe_volume = 0;
             else {
-                wipe_volume = flush_matrix[old_filament_id_in_new_extruder * number_of_extruders + new_filament_id];
+                wipe_volume = flush_volume_at(old_filament_id_in_new_extruder, new_filament_id);
                 wipe_volume *= m_config.flush_multiplier.get_at(new_extruder_id);
             }
         }
         else {
-            wipe_volume = flush_matrix[old_filament_id * number_of_extruders + new_filament_id];
+            wipe_volume = flush_volume_at(old_filament_id, new_filament_id);
             wipe_volume *= m_config.flush_multiplier.get_at(new_extruder_id);  // if is multi_extruder only use the fist extruder matrix
         }
         wipe_volume = std::max(0.f, wipe_volume-grab_purge_volume);

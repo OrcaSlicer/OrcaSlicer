@@ -10746,14 +10746,19 @@ bool GLCanvas3D::is_flushing_matrix_error() {
         if (multiplier == 0) return true;
     }
 
-    int  matrix_len = config_matrix.size() / config_multiplier.size();
-    int  row_len    = std::sqrt(matrix_len);
-    for (int i = 0; i < config_matrix.size(); i++)
+    // Orca: derive the block layout from the stored matrix instead of dividing by the multiplier
+    // count outright. A stale multiplier gives the wrong row stride, so cells are tested against
+    // the wrong diagonal, and an empty one divides by zero.
+    const FlushVolumesMatrixDims dims = get_flush_volumes_matrix_dims(config_matrix.size(), config_multiplier.size(),
+                                                                     wxGetApp().preset_bundle->get_printer_extruder_count());
+    if (dims.filament_nums == 0)
+        return false;
+    const size_t block_len = size_t(dims.filament_nums) * dims.filament_nums;
+    for (size_t i = 0; i < config_matrix.size(); i++)
     {
-        int relative_id = i % matrix_len;
-        int row_id      = relative_id / row_len;
-        int col_id      = relative_id % row_len;
-        if (row_id != col_id && config_matrix[i] == 0) return true;
+        const size_t relative_id = i % block_len;
+        if (relative_id / dims.filament_nums != relative_id % dims.filament_nums && config_matrix[i] == 0)
+            return true;
     }
     return false;
 }

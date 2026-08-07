@@ -5370,15 +5370,23 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
 
     // Now verify if flush_volumes_matrix has proper size (it is used to deduce number of extruders in wipe tower generator):
     std::vector<double> old_matrix = this->project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
-    size_t old_nozzle_nums = this->project_config.option<ConfigOptionFloats>("flush_multiplier")->values.size();
-    size_t old_number_of_filaments = size_t(sqrt(old_matrix.size() / old_nozzle_nums) + EPSILON);
+    // Infer the stored layout from the matrix itself rather than trusting flush_multiplier's
+    // length (stale in older projects), falling back to a single block when they disagree.
+    const FlushVolumesMatrixDims old_dims = get_flush_volumes_matrix_dims(old_matrix.size(),
+        this->project_config.option<ConfigOptionFloats>("flush_multiplier")->values.size());
+    size_t old_nozzle_nums         = old_dims.nozzle_nums;
+    size_t old_number_of_filaments = old_dims.filament_nums;
     size_t nozzle_nums = get_printer_extruder_count();
-    if (old_nozzle_nums != nozzle_nums) {
+    {
         std::vector<double>& f_multiplier = this->project_config.option<ConfigOptionFloats>("flush_multiplier")->values;
-        f_multiplier.resize(nozzle_nums, 1.f);
+        if (f_multiplier.size() != nozzle_nums)
+            f_multiplier.resize(nozzle_nums, 1.f);
     }
 
-    if ( (num_filaments * num_filaments) != size_t(old_matrix.size() / old_nozzle_nums) ) {
+    // Rebuild whenever the stored size breaks the (filaments x filaments) block-per-nozzle
+    // invariant, including a nozzle-count-only change (the old per-block gate missed those,
+    // leaving a matrix short or over by whole blocks).
+    if (old_matrix.size() != num_filaments * num_filaments * nozzle_nums) {
         // First verify if purging volumes presets for each extruder matches number of extruders
         std::vector<double>& filaments = this->project_config.option<ConfigOptionFloats>("flush_volumes_vector")->values;
         while (filaments.size() < 2* num_filaments) {
@@ -5399,14 +5407,11 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
                     unsigned int old_i = i >= to_delete_filament_id ? i + 1 : i;
                     unsigned int old_j = j >= to_delete_filament_id ? j + 1 : j;
                     for (size_t nozzle_id = 0; nozzle_id < nozzle_nums; ++nozzle_id) {
-                        // Orca: only copy from old_matrix when the old layout actually has data
-                        // for this nozzle slot; otherwise initialize from the per-filament
-                        // flush volumes the same way the (i,j) out-of-range branch does.
-                        if (nozzle_id < old_nozzle_nums) {
-                            new_matrix[i * num_filaments + j + new_matrix_size * nozzle_id] = old_matrix[old_i * old_number_of_filaments + old_j + old_matrix_size * nozzle_id];
-                        } else {
-                            new_matrix[i * num_filaments + j + new_matrix_size * nozzle_id] = (i == j ? 0. : filaments[2 * i] + filaments[2 * j + 1]);
-                        }
+                        // Orca: a nozzle with stored data keeps its own block; a brand-new nozzle
+                        // replicates the first nozzle's tuned values (the same grow policy as
+                        // Plater::update_flush_volume_matrix) rather than resetting to defaults.
+                        size_t src_nozzle_id = nozzle_id < old_nozzle_nums ? nozzle_id : 0;
+                        new_matrix[i * num_filaments + j + new_matrix_size * nozzle_id] = old_matrix[old_i * old_number_of_filaments + old_j + old_matrix_size * src_nozzle_id];
                     }
                 } else {
                     for (size_t nozzle_id = 0; nozzle_id < nozzle_nums; ++nozzle_id) {

@@ -7479,7 +7479,10 @@ void GCodeProcessor::update_slice_warnings()
             filament_hrc = m_result.required_nozzle_HRC[used_filaments[idx]];
 
         int filament_extruder_id = m_filament_maps[used_filaments[idx]];
-        int extruder_hrc = nozzle_hrc_lists[filament_extruder_id];
+        // nozzle_type is a nullable option that can be shorter than the extruder count;
+        // out-of-range extruders get hrc 0, which skips the check below.
+        int extruder_hrc = (filament_extruder_id >= 0 && filament_extruder_id < (int) nozzle_hrc_lists.size())
+                               ? nozzle_hrc_lists[filament_extruder_id] : 0;
 
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": Check HRC: filament:%1%, hrc=%2%, extruder:%3%, hrc:%4%") % used_filaments[idx] % filament_hrc % filament_extruder_id % extruder_hrc;
 
