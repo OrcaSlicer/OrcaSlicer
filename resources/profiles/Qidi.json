@@ -1,6 +1,6 @@
 {
 	"name": "Qidi",
-	"version": "02.04.00.13",
+	"version": "02.04.00.14",
 	"force_update": "0",
 	"description": "Qidi configurations",
 	"machine_model_list": [
@@ -891,24 +891,12 @@
 			"sub_path": "process/0.56mm Standard @Qidi XSmart3 0.8 nozzle.json"
 		},
 		{
-			"name": "0.08mm Extra Fine @X-Plus 5",
-			"sub_path": "process/0.08mm Extra Fine @X-Plus 5.json"
-		},
-		{
 			"name": "0.08mm High Quality @X-Plus 5",
 			"sub_path": "process/0.08mm High Quality @X-Plus 5.json"
 		},
 		{
-			"name": "0.12mm Fine @X-Plus 5",
-			"sub_path": "process/0.12mm Fine @X-Plus 5.json"
-		},
-		{
 			"name": "0.12mm High Quality @X-Plus 5",
 			"sub_path": "process/0.12mm High Quality @X-Plus 5.json"
-		},
-		{
-			"name": "0.16mm Balanced Quality @X-Plus 5",
-			"sub_path": "process/0.16mm Balanced Quality @X-Plus 5.json"
 		},
 		{
 			"name": "0.16mm High Quality @X-Plus 5",
@@ -917,10 +905,6 @@
 		{
 			"name": "0.16mm Standard @X-Plus 5",
 			"sub_path": "process/0.16mm Standard @X-Plus 5.json"
-		},
-		{
-			"name": "0.20mm Balanced Strength @X-Plus 5",
-			"sub_path": "process/0.20mm Balanced Strength @X-Plus 5.json"
 		},
 		{
 			"name": "0.20mm High Quality @X-Plus 5",
@@ -933,10 +917,6 @@
 		{
 			"name": "0.24mm Standard @X-Plus 5",
 			"sub_path": "process/0.24mm Standard @X-Plus 5.json"
-		},
-		{
-			"name": "0.08mm Extra Fine @X-Plus 5 0.2 nozzle",
-			"sub_path": "process/0.08mm Extra Fine @X-Plus 5 0.2 nozzle.json"
 		},
 		{
 			"name": "0.08mm High Quality @X-Plus 5 0.2 nozzle",
@@ -959,10 +939,6 @@
 			"sub_path": "process/0.24mm Balanced Quality @X-Plus 5 0.6 nozzle.json"
 		},
 		{
-			"name": "0.24mm Balanced Strength @X-Plus 5 0.6 nozzle",
-			"sub_path": "process/0.24mm Balanced Strength @X-Plus 5 0.6 nozzle.json"
-		},
-		{
 			"name": "0.30mm Standard @X-Plus 5 0.6 nozzle",
 			"sub_path": "process/0.30mm Standard @X-Plus 5 0.6 nozzle.json"
 		},
@@ -973,10 +949,6 @@
 		{
 			"name": "0.32mm Balanced Quality @X-Plus 5 0.8 nozzle",
 			"sub_path": "process/0.32mm Balanced Quality @X-Plus 5 0.8 nozzle.json"
-		},
-		{
-			"name": "0.32mm Balanced Strength @X-Plus 5 0.8 nozzle",
-			"sub_path": "process/0.32mm Balanced Strength @X-Plus 5 0.8 nozzle.json"
 		},
 		{
 			"name": "0.40mm Standard @X-Plus 5 0.8 nozzle",
