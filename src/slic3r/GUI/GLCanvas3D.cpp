@@ -6977,7 +6977,10 @@ void GLCanvas3D::_update_select_plate_toolbar_stats_item(bool force_selected) {
     else
         m_sel_plate_toolbar.show_stats_item = false;
 
-    if (force_selected && m_sel_plate_toolbar.show_stats_item)
+    // m_all_plates_stats_item is null until _init_select_plate_toolbar() runs, and is set back to
+    // null by IMToolbar::del_stats_item(). Slice All can reach here in either state, so guard the
+    // deref the way reset_select_plate_toolbar_selection() and is_all_plates_selected() already do.
+    if (force_selected && m_sel_plate_toolbar.show_stats_item && m_sel_plate_toolbar.m_all_plates_stats_item)
         m_sel_plate_toolbar.m_all_plates_stats_item->selected = true;
 }
 
