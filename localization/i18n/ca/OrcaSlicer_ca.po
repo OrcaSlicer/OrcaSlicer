@@ -8361,21 +8361,21 @@ msgstr "No s'ha seleccionat el directori per a la substitució"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Substituït amb fitxers 3D del directori:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Omès %1%: mateix fitxer.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Omès %s: mateix fitxer.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Omès %1%: el fitxer no existeix.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Omès %s: el fitxer no existeix.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Omès %1%: la substitució ha fallat.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Omès %s: la substitució ha fallat.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Substituït %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Substituït %s.\n"
 
 msgid "Replaced volumes"
 msgstr "Volums substituïts"
