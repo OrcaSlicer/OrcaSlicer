@@ -1,6 +1,8 @@
 #include "MarkdownTip.hpp"
-
+#include "GUI_App.hpp"
 #include "GUI.hpp"
+#include "MainFrame.hpp"
+#include "Widgets/WebView.hpp"
 
 #include "libslic3r/Utils.hpp"
 #include "I18N.hpp"

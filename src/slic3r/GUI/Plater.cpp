@@ -105,6 +105,7 @@
 
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/Platform.hpp"
+#include "libslic3r/ClipperUtils.hpp"
 #include "nlohmann/json.hpp"
 
 #include "PhysicalPrinterDialog.hpp"

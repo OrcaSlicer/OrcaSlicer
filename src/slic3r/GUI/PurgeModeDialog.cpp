@@ -1,5 +1,7 @@
 #include "PurgeModeDialog.hpp"
 
+#include "GUI_App.hpp"
+
 #include "I18N.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/Button.hpp"

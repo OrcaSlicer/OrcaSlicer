@@ -1,4 +1,7 @@
 #include "SafetyOptionsDialog.hpp"
+
+#include "GUI_App.hpp"
+
 #include "I18N.hpp"
 #include "libslic3r/Utils.hpp"
 #include "Widgets/SwitchButton.hpp"

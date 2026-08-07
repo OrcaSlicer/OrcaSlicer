@@ -1,5 +1,6 @@
 #include "CalibrationWizardCaliPage.hpp"
 #include "I18N.hpp"
+#include "MainFrame.hpp"
 
 #include "DeviceCore/DevManager.h"
 

@@ -9,8 +9,6 @@
 #include <wx/settings.h>
 #include <wx/glcanvas.h>
 
-#include <glad/gl.h>
-
 namespace Slic3r { namespace GUI {
 
 // BBS: GUI refactor: GLToolbar

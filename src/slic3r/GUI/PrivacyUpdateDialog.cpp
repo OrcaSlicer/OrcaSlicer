@@ -1,4 +1,5 @@
 #include "PrivacyUpdateDialog.hpp"
+#include "GUI_App.hpp"
 #include <wx/dcgraph.h>
 #include <slic3r/GUI/I18N.hpp>
 

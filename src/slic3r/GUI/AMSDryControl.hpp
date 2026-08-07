@@ -1,5 +1,9 @@
 #pragma once
+
 #include "GUI_ObjectLayers.hpp"
+
+#include "libslic3r/PresetBundle.hpp"
+
 #include "slic3r/GUI/Widgets/AMSItem.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/GUI/Widgets/PopupWindow.hpp"
@@ -11,28 +15,19 @@
 #include <chrono>
 #include <optional>
 
-
-//Previous defintions
+// Previous defintions
+class ComboBox;
+class ProgressBar;
 class wxGrid;
 
-namespace Slic3r {
+namespace Slic3r { namespace GUI {
 
-namespace GUI {
+enum class DryCtrState { IDLE, DRY_WHEN_PRINT, UNKNOWN };
 
+enum class DryCtrDev { N3S, N3F, UNKNOWN };
 
-enum class DryCtrState {
-    IDLE,
-    DRY_WHEN_PRINT,
-    UNKNOWN
-};
-
-enum class DryCtrDev {
-    N3S,
-    N3F,
-    UNKNOWN
-};
-
-struct DryingPreset {
+struct DryingPreset
+{
     DryCtrState state;
     DryCtrDev dev;
     int dry_temp;
@@ -42,8 +37,7 @@ struct DryingPreset {
 class FilamentItemPanel : public wxPanel
 {
 public:
-    FilamentItemPanel(wxWindow* parent, const wxString& text, const std::string& icon_name = "",
-                      wxWindowID id = wxID_ANY);
+    FilamentItemPanel(wxWindow* parent, const wxString& text, const std::string& icon_name = "", wxWindowID id = wxID_ANY);
 
     void SetText(const wxString& text);
     void SetIcon(const std::string& icon_name);
@@ -76,15 +70,15 @@ public:
     void SetAmsName(const wxString& ams_name);
     void Clear();
     void msw_rescale();
+
 private:
     void OnPaint(wxPaintEvent& event);
 };
 
-
 class AMSDryCtrWin : public DPIDialog
 {
 public:
-    AMSDryCtrWin(wxWindow *parent);
+    AMSDryCtrWin(wxWindow* parent);
     ~AMSDryCtrWin();
 
     void msw_rescale();
@@ -92,7 +86,7 @@ public:
     void set_ams_id(const std::string& ams_id);
 
 protected:
-    void on_dpi_changed(const wxRect &suggested_rect) override;
+    void on_dpi_changed(const wxRect& suggested_rect) override;
 
 private:
     wxSimplebook* m_main_simplebook{nullptr};
@@ -100,7 +94,7 @@ private:
 
     wxWindow* m_amswin{nullptr};
     wxBoxSizer* m_sizer_ams_items{nullptr};
-    wxScrolledWindow* m_panel_prv_left {nullptr};
+    wxScrolledWindow* m_panel_prv_left{nullptr};
     wxScrolledWindow* m_panel_prv_right{nullptr};
     wxBoxSizer* m_sizer_prv_left{nullptr};
     wxBoxSizer* m_sizer_prv_right{nullptr};
@@ -112,9 +106,9 @@ private:
     wxStaticBitmap* m_image_description_icon{nullptr};
     ScalableBitmap m_description_icon_bitmap;
 
-    Label* m_humidity_data_label = nullptr;
-    Label* m_temperature_data_label = nullptr;
-    Label* m_time_data_label = nullptr;
+    Label* m_humidity_data_label            = nullptr;
+    Label* m_temperature_data_label         = nullptr;
+    Label* m_time_data_label                = nullptr;
     wxBoxSizer* m_time_descrition_container = nullptr;
 
     // right panel related members
@@ -151,14 +145,9 @@ private:
     Label* m_progress_title;
     int m_progress_value;
     int m_progress_message_index;
-    std::vector<wxString> m_progress_text = {
-        _L("Starting: Checking adapter connection"),
-        _L("Starting: Checking filament status"),
-        _L("Starting: Checking drying presets"),
-        _L("Starting: Checking filament location"),
-        _L("Starting: Checking air intake"),
-        _L("Starting: Checking air vent")
-    };
+    std::vector<wxString> m_progress_text = {_L("Starting: Checking adapter connection"), _L("Starting: Checking filament status"),
+                                             _L("Starting: Checking drying presets"),     _L("Starting: Checking filament location"),
+                                             _L("Starting: Checking air intake"),         _L("Starting: Checking air vent")};
 
     // Guide page
     wxPanel* m_guide_page{nullptr};
@@ -167,13 +156,13 @@ private:
     wxStaticBitmap* m_image_placeholder{nullptr};
     ScalableBitmap m_guide_image;
 
-
     bool m_is_ams_changed = false;
     std::weak_ptr<DevFilaSystem> m_fila_system;
-    struct {
+    struct
+    {
         std::string m_ams_id;
-        DevAmsType m_model = DevAmsType::EXT_SPOOL;
-        DevAms::DryStatus m_dry_status = DevAms::DryStatus::Off;
+        DevAmsType m_model                    = DevAmsType::EXT_SPOOL;
+        DevAms::DryStatus m_dry_status        = DevAms::DryStatus::Off;
         DevAms::DrySubStatus m_dry_sub_status = DevAms::DrySubStatus::Off;
         int m_humidity_percent;
         int m_temperature;
@@ -181,14 +170,16 @@ private:
         float m_recommand_dry_temp;
     } m_ams_info;
 
-    struct {
+    struct
+    {
         std::unordered_map<std::string, std::string> m_filament_names;
         std::unordered_map<std::string, std::string> m_filament_type;
         std::unordered_map<std::string, int> m_dry_temp;
         std::unordered_map<std::string, int> m_dry_time;
     } m_dry_setting;
 
-    struct {
+    struct
+    {
         bool m_is_printing = false;
     } m_printer_status;
 
@@ -209,8 +200,8 @@ private:
     wxBoxSizer* create_normal_state_panel(wxPanel* parent);
     wxBoxSizer* create_cannot_dry_panel(wxPanel* parent);
     wxBoxSizer* create_drying_error_panel(wxPanel* parent);
-    Button* create_button(wxPanel* parent, const wxString& title,
-        const wxColour& background_color, const wxColour& border_color, const wxColour& text_color);
+    Button* create_button(
+        wxPanel* parent, const wxString& title, const wxColour& background_color, const wxColour& border_color, const wxColour& text_color);
 
     wxBoxSizer* create_progress_page_sizer(wxPanel* parent);
     void OnProgressTimer(wxTimerEvent& event);
@@ -218,7 +209,6 @@ private:
     void OnShow(wxShowEvent& event);
 
     void OnFilamentSelectionChanged(wxCommandEvent& event);
-
 
     wxScrolledWindow* create_preview_scrolled_window(wxWindow* parent);
 
@@ -246,8 +236,6 @@ private:
     bool is_dry_ctr_idle();
     bool is_tray_changed(DevAms* dev_ams);
     bool is_dry_ctr_err(DevAms* dev_ams);
-
 };
 
-} // GUI
-} // Slic3r
+}} // namespace Slic3r::GUI

@@ -8,6 +8,7 @@
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 #include "Plater.hpp"
+#include "MsgDialog.hpp"
 #include "ObjectDataViewModel.hpp"
 
 #include "GLCanvas3D.hpp"

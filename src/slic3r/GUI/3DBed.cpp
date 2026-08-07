@@ -3,6 +3,7 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Tesselate.hpp"
+#include "libslic3r/ClipperUtils.hpp"
 
 #include "GUI_Colors.hpp"
 #include "GLCanvas3D.hpp"
