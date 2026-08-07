@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "re3D rPETG",
 	"from": "system",
+	"renamed_from": "re3D Greengate rPETG",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pet",
 	"filament_id": "GFG01",

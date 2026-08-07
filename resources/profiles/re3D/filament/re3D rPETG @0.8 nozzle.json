@@ -4,6 +4,7 @@
 	"setting_id": "WlELqPVnuL7DaTxs",
 	"name": "re3D rPETG @0.8 nozzle",
 	"from": "system",
+	"renamed_from": "re3D Greengate rPETG @0.8 nozzle",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pet",
 	"nozzle_temperature_initial_layer": [
