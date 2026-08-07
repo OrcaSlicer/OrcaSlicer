@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"setting_id": "LQ1rP7NSTjw2moHk",
+	"name": "PolyLite PLA @Qidi X-Plus 5 0.8 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "PolyLite PLA@X-Plus 5-Series",
+	"pressure_advance": [
+		"0.012"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.8 nozzle"
+	]
+}

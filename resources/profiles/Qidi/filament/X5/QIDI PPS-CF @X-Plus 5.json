@@ -1,0 +1,117 @@
+{
+	"type": "filament",
+	"filament_id": "QD_4_1_44",
+	"name": "QIDI PPS-CF@X-Plus 5-Series",
+	"from": "system",
+	"instantiation": "false",
+	"inherits": "fdm_filament_x5_common",
+	"box_temperature_range_high": [
+		"65"
+	],
+	"box_temperature_range_low": [
+		"0"
+	],
+	"box_temperature": [
+		"65"
+	],
+	"chamber_temperatures": [
+		"60"
+	],
+	"close_fan_the_first_x_layers": [
+		"3"
+	],
+	"cool_plate_temp_initial_layer": [
+		"80"
+	],
+	"cool_plate_temp": [
+		"80"
+	],
+	"eng_plate_temp_initial_layer": [
+		"110"
+	],
+	"eng_plate_temp": [
+		"110"
+	],
+	"during_print_exhaust_fan_speed": [
+		"0"
+	],
+	"fan_cooling_layer_time": [
+		"5"
+	],
+	"fan_max_speed": [
+		"30"
+	],
+	"fan_min_speed": [
+		"0"
+	],
+	"filament_adhesiveness_category": [
+		"801"
+	],
+	"filament_density": [
+		"1.3"
+	],
+	"filament_flow_ratio": [
+		"0.97"
+	],
+	"filament_max_volumetric_speed": [
+		"6"
+	],
+	"filament_type": [
+		"PPS-CF"
+	],
+	"hot_plate_temp_initial_layer": [
+		"110"
+	],
+	"hot_plate_temp": [
+		"110"
+	],
+	"impact_strength_z": [
+		"2.8"
+	],
+	"nozzle_temperature_initial_layer": [
+		"320"
+	],
+	"nozzle_temperature_range_high": [
+		"350"
+	],
+	"nozzle_temperature_range_low": [
+		"300"
+	],
+	"nozzle_temperature": [
+		"320"
+	],
+	"overhang_fan_speed": [
+		"40"
+	],
+	"overhang_fan_threshold": [
+		"0%"
+	],
+	"pressure_advance": [
+		"0.032"
+	],
+	"slow_down_layer_time": [
+		"2"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"80"
+	],
+	"supertack_plate_temp": [
+		"80"
+	],
+	"temperature_vitrification": [
+		"180"
+	],
+	"textured_plate_temp_initial_layer": [
+		"110"
+	],
+	"textured_plate_temp": [
+		"110"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"80"
+	],
+	"textured_cool_plate_temp": [
+		"80"
+	],
+	"compatible_printers": []
+}
