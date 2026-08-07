@@ -206,6 +206,12 @@ enum class SurfaceFillOrder {
 enum class PrintSequence {
     ByLayer,
     ByObject,
+    // Orca: experimental "Dynamic Composite Objects" sequencing: within runs of
+    // consecutive layers that share the same set of islands (e.g. the two legs
+    // of a standing "H"), every layer of one island is printed before the next
+    // island is started. Behaves like ByLayer everywhere except the G-code
+    // export, which regroups the emitted islands.
+    DynamicCompositeObjects,
     ByDefault,
     Count,
 };
@@ -1741,6 +1747,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionEnumsGeneric,       overhang_fan_threshold))
     ((ConfigOptionEnum<PrintSequence>,print_sequence))
     ((ConfigOptionEnum<PrintOrder>,   print_order))
+    ((ConfigOptionFloat,              dynamic_composite_clearance_radius))
+    ((ConfigOptionFloat,              dynamic_composite_clearance_height))
     ((ConfigOptionInts,               first_layer_print_sequence))
     ((ConfigOptionInts,               other_layers_print_sequence))
     ((ConfigOptionInt,                other_layers_print_sequence_nums))

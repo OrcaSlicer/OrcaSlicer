@@ -326,7 +326,8 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SurfaceFillOrder)
 //BBS
 static t_config_enum_values s_keys_map_PrintSequence {
     { "by layer",     int(PrintSequence::ByLayer) },
-    { "by object",    int(PrintSequence::ByObject) }
+    { "by object",    int(PrintSequence::ByObject) },
+    { "dynamic composite objects", int(PrintSequence::DynamicCompositeObjects) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintSequence)
 
@@ -2003,10 +2004,43 @@ void PrintConfigDef::init_fff_params()
     def->enum_keys_map = &ConfigOptionEnum<PrintSequence>::get_enum_values();
     def->enum_values.push_back("by layer");
     def->enum_values.push_back("by object");
+    def->enum_values.push_back("dynamic composite objects");
     def->enum_labels.push_back(L("By layer"));
     def->enum_labels.push_back(L("By object"));
+    def->enum_labels.push_back(L("Dynamic Composite Objects [experimental]"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<PrintSequence>(PrintSequence::ByLayer));
+
+    // Orca: experimental "Dynamic Composite Objects" print sequencing. The
+    // exported G-code is regrouped so that within runs of consecutive layers
+    // that share the same set of islands (e.g. the two legs of a letter "H"
+    // standing upright), every layer of one island is printed before the next
+    // island is started; the bridging layers that join the islands are still
+    // printed layer by layer. Disabled automatically when two towers are
+    // closer than dynamic_composite_clearance_radius (mm) horizontally while
+    // the height difference between them exceeds
+    // dynamic_composite_clearance_height (mm), to keep the nozzle or gantry
+    // from colliding with the taller tower.
+    def = this->add("dynamic_composite_clearance_radius", coFloat);
+    def->label = L("Clearance radius");
+    def->tooltip = L("Minimum horizontal distance (mm) between two towers (islands) for Dynamic Composite Objects "
+                     "sequencing to be applied. When two towers are closer than this distance and the height difference "
+                     "between them exceeds the clearance height, the nozzle or gantry could collide with the taller "
+                     "tower while the shorter one is being printed, so the feature is disabled for the whole print.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(20.0));
+    def->min = 1.0;
+
+    def = this->add("dynamic_composite_clearance_height", coFloat);
+    def->label = L("Clearance height");
+    def->tooltip = L("Maximum allowed height difference (mm) between two towers of the same composite object before "
+                     "Dynamic Composite Objects sequencing is disabled. While one tower is printed to its full height, "
+                     "the other one is still at the bottom of the run; if the resulting height difference exceeds the "
+                     "clearance height and the towers are closer than the clearance radius, the moving toolhead could "
+                     "hit the taller tower, so the feature is disabled for the whole print.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(20.0));
+    def->min = 1.0;
 
     def = this->add("print_order", coEnum);
     def->label = L("Intra-layer order");

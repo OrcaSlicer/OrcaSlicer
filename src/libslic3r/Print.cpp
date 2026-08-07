@@ -229,6 +229,9 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "gcode_comments",
         "gcode_label_objects", 
         "exclude_object",
+        // Orca: Dynamic Composite Objects only affects the exported G-code.
+        "dynamic_composite_clearance_radius",
+        "dynamic_composite_clearance_height",
         "support_material_interface_fan_speed",
         "internal_bridge_fan_speed", // ORCA: Add support for separate internal bridge fan speed control
         "ironing_fan_speed",
@@ -1380,6 +1383,11 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         if (m_config.enable_wrapping_detection)
             warn(L("A prime tower is required for clumping detection; otherwise, there may be flaws on the model."), "enable_prime_tower");
     }
+
+    // Orca: Dynamic Composite Objects [experimental] silently does nothing in
+    // unsupported combinations; warn so the user knows.
+    if (m_config.print_sequence == PrintSequence::DynamicCompositeObjects && extruders.size() > 1)
+        warn(L("Dynamic Composite Objects [experimental] is only applied to single-extruder prints."), "print_sequence");
 
     if (m_config.spiral_mode) {
         size_t total_copies_count = 0;

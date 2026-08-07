@@ -1115,6 +1115,8 @@ static std::vector<std::string> s_Preset_print_options{
     "max_bridge_length",
     "print_sequence",
     "print_order",
+    "dynamic_composite_clearance_radius",
+    "dynamic_composite_clearance_height",
     "support_remove_small_overhang",
     "filename_format",
     "outer_wall_filament_id",
