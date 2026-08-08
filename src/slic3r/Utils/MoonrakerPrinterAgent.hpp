@@ -118,6 +118,12 @@ protected:
     virtual bool init_device_info(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl);
     virtual bool fetch_device_info(const std::string& base_url, const std::string& api_key, MoonrakerDeviceInfo& info, std::string& error) const;
 
+    // Builds the gcode macro start_local_print() sends once the upload has finished. Generic by
+    // default (plain Klipper SD-print start); a dialect-specific agent (e.g. SnapmakerPrinterAgent)
+    // overrides this to fold in whatever a prior send_filament_mapping() call stashed, instead of
+    // this class knowing about any vendor's print-start dialect.
+    virtual std::string build_start_print_gcode(const std::string& upload_filename) const;
+
     // Fallback for a REST entry point reached with a dev_id that was never bound through
     // bind_device_connection(): rebuilds device_info from the MachineObject's persisted state.
     // No-op if device_info is already current. See bind_device_connection() for why the bound
@@ -164,10 +170,15 @@ private:
     int resume_print(const std::string& dev_id);
     int cancel_print(const std::string& dev_id);
 
-    // File upload
+    // File upload. When confirmed_filename is non-null, it's set to the storage-relative name
+    // Moonraker's response (result.item.path) confirms the file was actually stored under --
+    // which can differ from `filename` on a server-side collision rename -- or left untouched if
+    // the response doesn't include one. Callers that go on to reference the uploaded file by name
+    // (e.g. a print-start command) should prefer this confirmed value over `filename` itself.
     bool upload_gcode(const std::string& local_path, const std::string& filename,
                       const std::string& base_url, const std::string& api_key,
-                      OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
+                      OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn,
+                      std::string* confirmed_filename = nullptr);
 
     // JSON-RPC helper
     bool send_jsonrpc_command(const std::string& base_url, const std::string& api_key,

@@ -86,6 +86,38 @@ std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection&
 
 } // anonymous namespace
 
+std::string SnapmakerProtocol::render_map_table(const std::vector<int>& filament_map_1based)
+{
+    std::string map_table = "[";
+    bool        first = true;
+    for (size_t i = 0; i < filament_map_1based.size(); ++i) {
+        // 0 (or less) means "leave unassigned" (IPrinterAgent.hpp) -- omit the entry rather than
+        // render a negative tool index. The device keeps any filament we don't list at its
+        // existing/default mapping, which is truthful since an unassigned filament doesn't print.
+        if (filament_map_1based[i] <= 0)
+            continue;
+        if (!first) map_table += ", ";
+        map_table += "[" + std::to_string(i) + ", " + std::to_string(filament_map_1based[i] - 1) + "]";
+        first = false;
+    }
+    map_table += "]";
+    return map_table;
+}
+
+std::string SnapmakerProtocol::build_start_script(const std::string& filename, const std::vector<int>& filament_map_1based)
+{
+    // BED_LEVEL is sent explicitly because the firmware treats an ABSENT parameter as OFF
+    // (verified against hardware: a send that omitted it reported auto_bed_leveling=False in
+    // print_task_config). Without this, every Orca-initiated print silently skips the bed
+    // leveling that the same print started from the printer's own screen would perform.
+    // Hard-coded on rather than user-selectable: that is the safe default and matches the
+    // touchscreen's, and making it (and flow calibration / timelapse) a per-send choice needs a
+    // per-printer capability declaration -- not every printer supports all three -- which is
+    // deferred to its own change.
+    return "SDCARD_PRINT_FILE_WITH_PARAMETERS FILENAME=\"" + filename + "\" MAP_TABLE=\"" +
+           render_map_table(filament_map_1based) + "\" BED_LEVEL=\"1\"";
+}
+
 SnapmakerPrinterAgent::SnapmakerPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}
 
 AgentInfo SnapmakerPrinterAgent::get_agent_info_static()
@@ -307,6 +339,26 @@ bool SnapmakerPrinterAgent::push_filament_info(std::string dev_id, const Filamen
     else
         BOOST_LOG_TRIVIAL(info) << "SnapmakerPrinterAgent::push_filament_info ok: " << script;
     return success;
+}
+
+bool SnapmakerPrinterAgent::send_filament_mapping(const std::string& dev_id, const std::vector<int>& tool_to_slot)
+{
+    // dev_id unused: like push_filament_info's device_info, this agent instance addresses a
+    // single bound device at a time, so there's nothing to key the stash on.
+    (void) dev_id;
+    m_pending_filament_map = tool_to_slot;
+    return true;
+}
+
+std::string SnapmakerPrinterAgent::build_start_print_gcode(const std::string& upload_filename) const
+{
+    if (m_pending_filament_map.empty())
+        return MoonrakerPrinterAgent::build_start_print_gcode(upload_filename);
+
+    // Single-use: consume the stash so a stale mapping never leaks into an unrelated later job.
+    std::vector<int> filament_map = std::move(m_pending_filament_map);
+    m_pending_filament_map.clear();
+    return SnapmakerProtocol::build_start_script(upload_filename, filament_map);
 }
 
 } // namespace Slic3r

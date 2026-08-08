@@ -337,6 +337,11 @@ int MoonrakerPrinterAgent::start_send_gcode_to_sdcard(PrintParams      params,
     return BAMBU_NETWORK_SUCCESS;
 }
 
+std::string MoonrakerPrinterAgent::build_start_print_gcode(const std::string& upload_filename) const
+{
+    return "SDCARD_PRINT_FILE FILENAME=" + upload_filename;
+}
+
 int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
 {
     if (update_fn)
@@ -372,9 +377,16 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
     // Upload file
     if (update_fn)
         update_fn(PrintingStageUpload, 0, "Uploading G-code...");
-    if (!upload_gcode(gcode_path, upload_filename, device_info.base_url, device_info.api_key, update_fn, cancel_fn)) {
+    // confirmed_filename: the server-side name Moonraker's upload response actually stored the
+    // file under, which can differ from upload_filename on a collision rename. Fall back to
+    // upload_filename when the response doesn't confirm one (older Moonraker, parse failure).
+    std::string confirmed_filename;
+    if (!upload_gcode(gcode_path, upload_filename, device_info.base_url, device_info.api_key, update_fn, cancel_fn,
+                       &confirmed_filename)) {
         return BAMBU_NETWORK_ERR_PRINT_LP_UPLOAD_FTP_FAILED;
     }
+    if (confirmed_filename.empty())
+        confirmed_filename = upload_filename;
 
     // Check cancellation
     if (cancel_fn && cancel_fn()) {
@@ -384,7 +396,7 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
     // Start print via gcode script (simpler than JSON-RPC)
     if (update_fn)
         update_fn(PrintingStageSending, 0, "Starting print...");
-    std::string gcode = "SDCARD_PRINT_FILE FILENAME=" + upload_filename;
+    const std::string gcode = build_start_print_gcode(confirmed_filename);
     if (!send_gcode(device_info.dev_id, gcode)) {
         return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
     }
@@ -2034,7 +2046,8 @@ bool MoonrakerPrinterAgent::upload_gcode(const std::string& local_path,
                                          const std::string& base_url,
                                          const std::string& api_key,
                                          OnUpdateStatusFn   update_fn,
-                                         WasCancelledFn     cancel_fn)
+                                         WasCancelledFn     cancel_fn,
+                                         std::string*       confirmed_filename)
 {
     namespace fs = boost::filesystem;
 
@@ -2069,8 +2082,17 @@ bool MoonrakerPrinterAgent::upload_gcode(const std::string& local_path,
         .timeout_connect(5)
         .timeout_max(300) // 5 minutes for large files
         .on_complete([&](std::string body, unsigned status) {
-            (void) body;
             (void) status;
+            if (confirmed_filename == nullptr)
+                return;
+            // Same envelope Moonraker::upload() parses: {"result":{"item":{"path":"<name>", ...}}}.
+            // Left unset (caller falls back to `filename`) if the response omits it or doesn't
+            // parse -- same fallback behavior as the print-host path.
+            auto json = nlohmann::json::parse(body, nullptr, false);
+            if (!json.is_discarded() && json.contains("result") && json["result"].contains("item") &&
+                json["result"]["item"].contains("path") && json["result"]["item"]["path"].is_string()) {
+                *confirmed_filename = json["result"]["item"]["path"].get<std::string>();
+            }
         })
         .on_error([&](std::string body, std::string err, unsigned status) {
             BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: Upload error: " << err << " HTTP " << status;

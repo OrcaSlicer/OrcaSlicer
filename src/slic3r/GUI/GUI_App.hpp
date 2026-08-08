@@ -483,6 +483,11 @@ public:
     void            load_gcode(wxWindow* parent, wxString& input_file) const;
 
     wxString        transition_tridid(int trid_id) const;
+    // Orca: shared toolchanger-vs-AMS tray label -- "T%d" for a toolchanger tray, else
+    // transition_tridid()'s "A1"/"B2" lettering. Callers must special-case the virtual ext-spool
+    // tray ids (VIRTUAL_TRAY_MAIN_ID/DEPUTY_ID) themselves before calling this, since their
+    // virtual-tray wording differs per view ("Ext", or "Ext-R"/"Ext-L" in the split view).
+    wxString        tray_display_label(int tray_id, bool is_toolchanger) const;
     void            ShowUserGuide();
     void            ShowDownNetPluginDlg();
     void            ShowUserLogin(bool show = true, const std::string& provider = ORCA_CLOUD_PROVIDER);

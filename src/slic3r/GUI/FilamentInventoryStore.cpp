@@ -16,7 +16,7 @@ FilamentInventory& current_inventory_for_preset(const Preset &printer_preset, Fi
     return store.for_preset(printer_preset.name, tool_count);
 }
 
-size_t addressable_tool_count_of(const Preset &printer_preset, FilamentInventories &/*store*/)
+size_t addressable_tool_count_of(const Preset &printer_preset)
 {
     const auto  *nozzle_diameters = printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
     return nozzle_diameters && !nozzle_diameters->empty() ? nozzle_diameters->size() : 1;
@@ -41,7 +41,7 @@ std::string resolve_slot_preset(const PhysicalFilament &pf, const PresetCollecti
 size_t resolve_active_printer_tool_count(FilamentInventories &store)
 {
     store = load_filament_inventories();
-    return addressable_tool_count_of(active_printer_session().profile(), store);
+    return addressable_tool_count_of(active_printer_session().profile());
 }
 
 std::string filament_vendor_of(const Preset &preset)

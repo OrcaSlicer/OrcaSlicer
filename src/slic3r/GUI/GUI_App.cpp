@@ -4929,6 +4929,11 @@ wxString GUI_App::transition_tridid(int trid_id) const
     }
 }
 
+wxString GUI_App::tray_display_label(int tray_id, bool is_toolchanger) const
+{
+    return is_toolchanger ? wxString::Format("T%d", tray_id + 1) : transition_tridid(tray_id);
+}
+
 //BBS
 void GUI_App::request_login(bool show_user_info, const std::string& provider/* = ORCA_CLOUD_PROVIDER*/)
 {
@@ -8674,7 +8679,10 @@ void GUI_App::load_current_presets(bool active_preset_combox/*= false*/, bool ch
     PrinterTechnology printer_technology = edited_printer_preset.printer_technology();
     // ORCA: Sync filament count with the printer's nozzle count before loading presets for multi-tool printers.
     // This ensures filament_presets vector is properly sized when combo boxes are created/updated.
-    if (printer_technology == ptFFF && !edited_printer_preset.config.opt_bool("single_extruder_multi_material")) {
+    // Mapped printers (slicer- or device-owned) keep their own filament count; resyncing
+    // to nozzle count would delete filament slots a toolchanger protocol is managing.
+    if (printer_technology == ptFFF && !edited_printer_preset.config.opt_bool("single_extruder_multi_material")
+        && !physical_filament_features_enabled(edited_printer_preset.config)) {
         auto* nozzle_diameter = edited_printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
         if (nozzle_diameter) {
             // Mixed-color slots are virtual filaments kept at the tail of the list, so they have no
