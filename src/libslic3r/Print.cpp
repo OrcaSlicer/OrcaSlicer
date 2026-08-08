@@ -362,6 +362,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "extruder_nozzle_stats"
             || opt_key == "filament_map_mode"
             || opt_key == "filament_map"
+            || opt_key == "filament_physical_map"
             || opt_key == "filament_nozzle_map"
             || opt_key == "filament_volume_map"
             || opt_key == "filament_adhesiveness_category"

@@ -8,6 +8,7 @@
 #include "format.hpp"
 
 #include "GCode/Thumbnails.hpp"
+#include <algorithm>
 #include <set>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -106,6 +107,67 @@ size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id)
     return 0;
 }
 
+FilamentMappingProtocol filament_mapping_protocol_of(const ConfigBase& printer_config)
+{
+    const ConfigOption* opt = printer_config.option("filament_mapping_protocol");
+    return opt == nullptr ? FilamentMappingProtocol::fmpNone : (FilamentMappingProtocol) opt->getInt();
+}
+
+bool device_owned_mapping_protocol(const ConfigBase& printer_config)
+{
+    return filament_mapping_protocol_of(printer_config) != FilamentMappingProtocol::fmpNone;
+}
+
+// Orca: per-protocol behavior for filament_mapping_protocol != fmpNone. The one axis a
+// device-owned protocol decides today: does the slicer keep its own filament->tool mapping
+// and merge/physical-map knowledge (filament_map, filament_physical_map, filament_volume_map,
+// filament_nozzle_map) alive, or does the device want pure logical space with the slicer's
+// mapping machinery fully disabled? A second protocol that owns tool resolution at print time
+// but still wants merges precomputed (e.g. a hub with fewer physical outputs than logical
+// filaments) would add its own `case` returning true here -- callers below never need editing.
+static bool protocol_keeps_slicer_mapping(FilamentMappingProtocol protocol)
+{
+    switch (protocol) {
+    case FilamentMappingProtocol::fmpSnapmaker:
+        // Snapmaker's firmware performs its own full swap-free routing: merge/physical-map
+        // knowledge is meaningless to it, so the slicer must hand over pure logical space.
+        return false;
+    case FilamentMappingProtocol::fmpNone:
+        break;
+    }
+    return true;
+}
+
+bool physical_filament_features_enabled(const ConfigBase& printer_config)
+{
+    // Physical-filament UI (inventory, count decoupling) applies to device-owned
+    // protocols (more project filaments than tools is the point).
+    return device_owned_mapping_protocol(printer_config);
+}
+
+std::vector<int> non_bbl_identity_filament_extruder_map(size_t filament_count, size_t extruder_count, int master_extruder_id_0based)
+{
+    // Clamp here, once, so every caller is safe even from a malformed master_extruder_id (e.g. 0
+    // or negative) instead of each call site having to remember to do it first.
+    master_extruder_id_0based = std::max(0, master_extruder_id_0based);
+    std::vector<int> ret(filament_count, master_extruder_id_0based);
+    for (size_t i = 0; i < filament_count && i < extruder_count; ++i)
+        ret[i] = (int) i;
+    return ret;
+}
+
+
+void normalize_plate_filament_map(std::vector<int>& values, size_t filament_count, size_t nozzle_count)
+{
+    // Empty means "fall back to the global filament_map" (see PartPlate::get_real_filament_maps);
+    // leave that semantic alone instead of padding it into a real per-plate map.
+    if (values.empty())
+        return;
+    if (values.size() < filament_count)
+        values.resize(filament_count, 1);
+    for (int& v : values)
+        v = std::clamp(v, 1, std::max((int) nozzle_count, 1));
+}
 
 // Orca: input shaping values types by flavor
 std::vector<std::string> get_shaper_type_values_for_flavor(GCodeFlavor flavor)
@@ -234,6 +296,12 @@ static t_config_enum_values s_keys_map_WipeTowerType {
     { "type2",          int(WipeTowerType::Type2) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WipeTowerType)
+
+static t_config_enum_values s_keys_map_FilamentMappingProtocol {
+    { "none",       int(FilamentMappingProtocol::fmpNone) },
+    { "snapmaker",  int(FilamentMappingProtocol::fmpSnapmaker) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FilamentMappingProtocol)
 
 static t_config_enum_values s_keys_map_FuzzySkinMode {
     { "displacement",   int(FuzzySkinMode::Displacement) },
@@ -2826,6 +2894,16 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Filament map to extruder.");
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionInts{1});
+
+    // Per project filament, the stable id of the physical filament it resolves to (0 =
+    // unassigned). A genuine per-plate user input (set by the physical-filament matching
+    // dialog), not engine-derived state: it round-trips through .3mf plate metadata
+    // (physical_filament_maps) and must diff/invalidate normally like filament_map.
+    def = this->add("filament_physical_map", coInts);
+    def->label = "Filament map to physical filament";
+    def->tooltip = "Filament map to physical filament.";
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionInts{});
 
     // Multi-nozzle: per-filament map to the config slot identified by (extruder, nozzle_volume_type).
     // Engine-internal per-filament slot map: recomputed at apply time from filament_map (plus the
@@ -6596,6 +6674,20 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("filament_mapping_protocol", coEnum);
+    def->label = L("Filament mapping protocol");
+    def->tooltip = L("The printer's native filament-to-tool mapping protocol. When set, OrcaSlicer "
+                     "slices in logical tool space and sends the mapping to the printer at print time "
+                     "instead of baking it into the G-code. This must match what the printer's firmware "
+                     "actually implements; the vendor profile normally sets this.");
+    def->enum_keys_map = &ConfigOptionEnum<FilamentMappingProtocol>::get_enum_values();
+    def->enum_values.emplace_back("none");
+    def->enum_values.emplace_back("snapmaker");
+    def->enum_labels.emplace_back(L("None"));
+    def->enum_labels.emplace_back(L("Snapmaker"));
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionEnum<FilamentMappingProtocol>(FilamentMappingProtocol::fmpNone));
+
     def = this->add("wipe_tower_type", coEnum);
     def->label = L("Wipe tower type");
     def->tooltip = L("Choose the wipe tower implementation for multi-material prints. Type 1 is recommended for Bambu and Qidi printers with a filament cutter. Type 2 offers better compatibility with multi-tool and MMU printers and provide overall better compatibility.");
@@ -9656,6 +9748,62 @@ void DynamicPrintConfig::normalize_fdm_1()
     if (auto *opt_gcode_resolution = this->opt<ConfigOptionFloat>("resolution", false); opt_gcode_resolution)
         // Resolution will be above 1um.
         opt_gcode_resolution->value = std::max(opt_gcode_resolution->value, 0.001);
+
+    // A device-owned mapping protocol (filament_mapping_protocol != none) means the printer
+    // routes logical tools itself. Whether that also means "slice in pure logical space, no
+    // merge/physical-map knowledge kept" is protocol-specific -- see protocol_keeps_slicer_mapping.
+    // This runs on every Print::apply (GUI, CLI, gcode-load, calibration), so for protocols that
+    // don't keep the slicer's mapping it is the single choke point for all filament_map consumers.
+    FilamentMappingProtocol mapping_protocol = filament_mapping_protocol_of(*this);
+    if (mapping_protocol != FilamentMappingProtocol::fmpNone && !protocol_keeps_slicer_mapping(mapping_protocol)) {
+        const ConfigOptionStrings* colours = this->option<ConfigOptionStrings>("filament_colour");
+        const size_t filament_count = colours ? colours->size() : 0;
+        // Orca: non_bbl_identity_filament_extruder_map() is the same id->extruder rule
+        // ToolOrdering::get_recommended_filament_maps()'s non-BBL multi-extruder branch uses, so
+        // filament_map/filament_volume_map/filament_nozzle_map are forced to exactly what
+        // Print::update_filament_maps_to_config() writes back after slicing. Any mismatch here
+        // becomes a permanent full_config_diff on every apply (see
+        // Print::update_filament_maps_to_config), which blocks the first Slice click from
+        // starting the background process.
+        const ConfigOptionFloats* nozzle_diams   = this->option<ConfigOptionFloats>("nozzle_diameter");
+        const size_t              extruder_count = nozzle_diams ? nozzle_diams->size() : 0;
+        int master_extruder_id = 1;
+        if (auto* me = this->option<ConfigOptionInt>("master_extruder_id"))
+            master_extruder_id = me->value;
+        const std::vector<int> extruder_of_filament =
+            non_bbl_identity_filament_extruder_map(filament_count, extruder_count, master_extruder_id - 1);
+        // nozzle_volume_type is coEnums, not ints: reading it as ints returns null, so every
+        // filament silently took nvtStandard instead of its extruder's real volume type.
+        const ConfigOptionEnumsGeneric* nozzle_volume_types = this->option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+        auto volume_type_for_extruder = [&](size_t extruder_0based) -> int {
+            return (nozzle_volume_types && extruder_0based < nozzle_volume_types->size())
+                       ? nozzle_volume_types->values[extruder_0based]
+                       : (int) nvtStandard;
+        };
+        if (auto* map = this->option<ConfigOptionInts>("filament_map"); map != nullptr && filament_count > 0) {
+            map->values.resize(filament_count);
+            for (size_t i = 0; i < filament_count; ++i)
+                map->values[i] = extruder_of_filament[i] + 1;
+        }
+        if (auto* vmap = this->option<ConfigOptionInts>("filament_volume_map"); vmap != nullptr && filament_count > 0) {
+            vmap->values.resize(filament_count);
+            for (size_t i = 0; i < filament_count; ++i)
+                vmap->values[i] = volume_type_for_extruder((size_t) extruder_of_filament[i]);
+        }
+        if (auto* nmap = this->option<ConfigOptionInts>("filament_nozzle_map"); nmap != nullptr && filament_count > 0) {
+            nmap->values.resize(filament_count);
+            for (size_t i = 0; i < filament_count; ++i)
+                nmap->values[i] = extruder_of_filament[i];
+        }
+        if (auto* pmap = this->option<ConfigOptionInts>("filament_physical_map"))
+            pmap->values.clear();
+        // fmmDefault is a GUI/plate-only sentinel ("fall back to the global mode") with no
+        // serialization entry (see s_keys_map_FilamentMapMode) -- assigning it here would crash
+        // on gcode export. fmmAutoForFlush is the option's real default (PrintConfig.cpp def
+        // above) and what PartPlate.cpp uses to reset this same field.
+        if (auto* mode = this->option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode"))
+            mode->value = FilamentMapMode::fmmAutoForFlush;
+    }
 
     return;
 }

@@ -1091,3 +1091,72 @@ TEST_CASE("get_filament_type treats empty vector options as absent", "[Config][F
         REQUIRE(displayed == "Sup.PLA");
     }
 }
+TEST_CASE("filament_physical_map defaults to empty and is a develop-mode option", "[Config]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    const ConfigOptionInts* opt = config.option<ConfigOptionInts>("filament_physical_map");
+    REQUIRE(opt != nullptr);
+    REQUIRE(opt->values.empty());
+
+    const ConfigOptionDef* def = print_config_def.get("filament_physical_map");
+    REQUIRE(def != nullptr);
+    REQUIRE(def->mode == comDevelop);
+}
+
+TEST_CASE("normalize_plate_filament_map preserves empty-means-global-fallback semantics", "[Config]") {
+    std::vector<int> values;
+    normalize_plate_filament_map(values, 4, 2);
+    REQUIRE(values.empty());
+}
+
+TEST_CASE("normalize_plate_filament_map pads a short map with 1", "[Config]") {
+    std::vector<int> values = {2, 1};
+    normalize_plate_filament_map(values, 4, 2);
+    REQUIRE(values == std::vector<int>{2, 1, 1, 1});
+}
+
+TEST_CASE("normalize_plate_filament_map clamps out-of-range entries into [1, nozzle_count]", "[Config]") {
+    // Loaded on a single-nozzle printer: any entry pointing at tool 2 must clamp to 1,
+    // reflecting Finding 1 (per-plate maps must be bounded by the PROJECT's own nozzle count).
+    std::vector<int> values = {2, 0, -5, 99};
+    normalize_plate_filament_map(values, 4, 1);
+    REQUIRE(values == std::vector<int>{1, 1, 1, 1});
+}
+
+TEST_CASE("normalize_plate_filament_map leaves a well-formed map unchanged", "[Config]") {
+    // BBL dual-nozzle no-op case: already the right length, already in range.
+    std::vector<int> values = {1, 2, 1, 2};
+    normalize_plate_filament_map(values, 4, 2);
+    REQUIRE(values == std::vector<int>{1, 2, 1, 2});
+}
+
+TEST_CASE("normalize_plate_filament_map never truncates a longer map", "[Config]") {
+    std::vector<int> values = {1, 2, 1, 2, 1};
+    normalize_plate_filament_map(values, 4, 2);
+    REQUIRE(values == std::vector<int>{1, 2, 1, 2, 1});
+}
+
+#include "libslic3r/Preset.hpp"
+
+TEST_CASE("Preset::normalize keeps per-filament options at filament count when filaments exceed extruders", "[Config]") {
+    // Regression: on a non-SEMM printer, normalize() derives n from nozzle_diameter for
+    // extruder normalization and reused that same n to resize every per-filament option. A
+    // decoupled project (more filaments than tools -- 5 filaments on a 4-tool U1) had
+    // filament_settings_id truncated 5 -> 4; the padded-back empty 5th entry then failed the
+    // installed-preset lookup on load and slot 5 surfaced as a "(project)" embedded preset.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4, 0.4, 0.4}));
+    config.set_key_value("filament_diameter", new ConfigOptionFloats({1.75, 1.75, 1.75, 1.75, 1.75}));
+    config.set_key_value("filament_settings_id",
+                         new ConfigOptionStrings({"F1", "F2", "F3", "F4", "F5"}));
+    config.set_key_value("filament_type",
+                         new ConfigOptionStrings({"PLA", "PLA", "PLA", "PLA", "PLA"}));
+
+    Preset::normalize(config);
+
+    const auto& ids = config.option<ConfigOptionStrings>("filament_settings_id")->values;
+    REQUIRE(ids.size() == 5);
+    CHECK(ids[4] == "F5");
+    REQUIRE(config.option<ConfigOptionStrings>("filament_type")->values.size() == 5);
+}
+

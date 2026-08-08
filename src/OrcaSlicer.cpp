@@ -6026,7 +6026,15 @@ int CLI::run(int argc, char **argv)
                                 flush_and_exit(CLI_ONLY_ONE_TPU_SUPPORTED);
                             }
 
-                            if (new_extruder_count > 1) {
+                            // A device-owned mapping protocol (e.g. Snapmaker) routes logical tools
+                            // itself: leave --filament-map alone and skip the CLI-side mapping
+                            // validation, matching normalize_fdm_1's identity-map enforcement.
+                            bool is_device_owned_mapping_protocol = device_owned_mapping_protocol(m_print_config);
+
+                            if (new_extruder_count > 1 && is_device_owned_mapping_protocol) {
+                                BOOST_LOG_TRIVIAL(info) << "device-owned mapping protocol: CLI leaves filament maps to the printer";
+                            }
+                            else if (new_extruder_count > 1) {
                                 std::vector<std::vector<int>> unprintable_filament_vec;
                                 for (const std::set<int>& filamnt_ids : unprintable_filament_ids) {
                                     unprintable_filament_vec.emplace_back(std::vector<int>(filamnt_ids.begin(), filamnt_ids.end()));

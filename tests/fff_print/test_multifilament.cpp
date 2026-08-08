@@ -997,3 +997,76 @@ TEST_CASE("The prime tower never heats a tool index the printer cannot have", "[
         CHECK(tools == tower_heater_tool_indices(second));
     }
 }
+
+TEST_CASE("Mapping protocol none preserves predicates; snapmaker flips them", "[MultiFilament]") {
+    DynamicPrintConfig config = multifilament_config(3, {
+        { "nozzle_diameter",                "0.4,0.4,0.4" },
+        { "single_extruder_multi_material", "0" },
+    });
+    config.set_deserialize_strict({ { "filament_mapping_protocol", "snapmaker" } });
+    REQUIRE(device_owned_mapping_protocol(config));
+    REQUIRE(physical_filament_features_enabled(config));
+    config.set_deserialize_strict({ { "filament_mapping_protocol", "none" } });
+    REQUIRE(!device_owned_mapping_protocol(config));
+    REQUIRE(!physical_filament_features_enabled(config));
+}
+
+TEST_CASE("Snapmaker protocol slices logically despite stray manual maps", "[MultiFilament]") {
+    DynamicPrintConfig config = multifilament_config(3, {
+        { "nozzle_diameter",                "0.4,0.4,0.4" },
+        { "single_extruder_multi_material", "0" },
+        { "filament_mapping_protocol",      "snapmaker" },
+        { "filament_map_mode",              "Manual" },
+        { "filament_map",                   "3,1,2" },      // stray pre-protocol mapping
+        { "filament_physical_map",          "2,2,0" },      // stray merge claim
+        { "wall_filament",                  "1" },
+        { "sparse_infill_filament",         "2" },
+        { "solid_infill_filament",          "3" },
+        { "enable_prime_tower",             "1" },
+    });
+    const std::string gcode = Slic3r::Test::slice({ TestMesh::cube_with_hole }, config);
+    // Logical emission: filament i prints as T(i-1); the stray map must not reroute Ts.
+    REQUIRE(gcode.find("\nT0") != std::string::npos);
+    REQUIRE(gcode.find("\nT1") != std::string::npos);
+    REQUIRE(gcode.find("\nT2") != std::string::npos);
+}
+
+// On a device-owned mapping protocol (filament_mapping_protocol != none, e.g. snapmaker),
+// DynamicPrintConfig::normalize_fdm_1()'s protocol clause forces filament_map/filament_map_mode/
+// filament_physical_map to fixed values on every apply, so the engine always slices in pure
+// logical space - but it left filament_volume_map and filament_nozzle_map untouched.
+// Print::update_filament_maps_to_config() (Print.cpp) writes its own derived values
+// for those two back into m_config once slicing completes; on a filament_count > extruder_count
+// printer the unclamped identity loop in the (pre-fix) clause also disagreed with the engine's
+// own derivation for filament_map itself (ToolOrdering::get_recommended_filament_maps()'s
+// non-BBL multi-extruder branch maps filament i -> extruder i only up to the physical extruder
+// count, falling back to master_extruder_id beyond it). Either mismatch is a permanent
+// full_config_diff on every later apply of an otherwise unchanged config: the first Slice click
+// invalidates instead of starting the background process, requiring a second click.
+TEST_CASE("Reapplying an unchanged snapmaker-protocol config after slicing does not report a diff", "[MultiFilament]") {
+    DynamicPrintConfig config = multifilament_config(5, {
+        { "nozzle_diameter",                "0.4,0.4,0.4,0.4" },
+        { "single_extruder_multi_material", "0" },
+        { "filament_mapping_protocol",      "snapmaker" },
+        // Stray manual map/mode, as a migrated project would carry - normalize_fdm_1 must
+        // override both on every apply so they cannot reintroduce a diff.
+        { "filament_map_mode",              "Manual" },
+        { "filament_map",                   "3,1,2,4,2" },
+        { "wall_filament",                  "1" },
+        { "sparse_infill_filament",         "2" },
+        { "solid_infill_filament",          "5" },
+        { "enable_prime_tower",             "1" },
+        { "gcode_comments",                 "1" },
+    });
+    Model model;
+    Print print;
+    Slic3r::Test::init_print({ TestMesh::cube_with_hole }, print, model, config);
+    print.process();
+
+    // Re-apply the exact same, unchanged config again - matching the GUI's post-slice
+    // background_process update, which always rebuilds from the current presets rather than
+    // reusing the print's own already-resolved config.
+    const auto status = print.apply(model, config);
+    INFO("status = " << (int)status);
+    CHECK((int)status == (int)PrintBase::APPLY_STATUS_UNCHANGED);
+}

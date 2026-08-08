@@ -424,8 +424,6 @@ void insert_points(std::vector<PointWithFlag> &pl, int idx, Vec2f pos, int pair_
     }
 }
 
-// For skip_point
-// TODO: Optimize the skip_point algorithm itself instead of adding guards here
 Polygon add_extra_point(const Polygon &polygon, int scale_range)
 {
     Polygon res;
@@ -5427,9 +5425,6 @@ bool WipeTower::is_valid_last_layer(int tool, int layer_id, double layer_z) cons
 }
 float WipeTower::get_block_gap_width(int tool,bool is_nozzlechangle)
 {
-    //assert(m_block_infill_gap_width.count(m_filpar[tool].category));//The code contains logic that attempts to access non-existent blocks,
-                                                                     // such as in case of involving two extruders with only a single head and a single layer,
-                                                                     // some code will attempt to access the block's nozzle_change_gap_width, even though the block does not exist.
     if (!m_block_infill_gap_width.count(m_filpar[tool].category)) {
         return is_nozzlechangle ? m_nozzle_change_perimeter_width : m_perimeter_width;
     }
