@@ -111,8 +111,9 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
 
     sizer->Add(m_radio_group, 0, wxEXPAND | wxTOP | wxLEFT, BORDER_W);
 
-    std::string inherits_str = sel_preset.inherits();
-    if (parent->m_mode == comDevelop && !inherits_str.empty()) {
+    // A new user copy of a system preset inherits from the selected system preset.
+    const std::string parent_name = sel_preset.is_system ? sel_preset.name : sel_preset.inherits();
+    if (parent->m_mode == comDevelop && !parent_name.empty()) {
         wxBoxSizer *detach_sizer = new wxBoxSizer(wxHORIZONTAL);
 
         auto detach_tooltip  = _L("Copies all inherited values from the parent preset into this preset and removes the connection with the parent preset.");
@@ -130,7 +131,7 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
         sizer->Add(detach_sizer, 0, wxEXPAND | wxTOP, BORDER_W);
         sizer->AddSpacer(FromDIP(5));
 
-        auto parent_label    = new wxStaticText(parent, wxID_ANY, inherits_str);
+        auto parent_label    = new wxStaticText(parent, wxID_ANY, parent_name);
         parent_label->SetFont(::Label::Body_12);
         parent_label->SetForegroundColour(wxColour("#6B6B6B"));
         parent_label->SetToolTip(_L("Parent preset"));
