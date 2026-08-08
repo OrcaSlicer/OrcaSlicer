@@ -5,6 +5,7 @@
 #include <set>
 #include <string>
 #include <functional>
+#include <vector>
 #include <boost/filesystem/path.hpp>
 
 #include <wx/string.h>
@@ -17,6 +18,7 @@ class wxArrayString;
 namespace Slic3r {
 
 class DynamicPrintConfig;
+enum class FilamentMappingProtocol;
 
 enum class PrintHostPostUploadAction {
     None,
@@ -26,6 +28,22 @@ enum class PrintHostPostUploadAction {
 };
 using PrintHostPostUploadActions = enum_bitmask<PrintHostPostUploadAction>;
 ENABLE_ENUM_BITMASK_OPERATORS(PrintHostPostUploadAction);
+
+// Orca: a caller-supplied "start_script" (see PrintHostUpload::extended_info /
+// PrintHostUpload::extended() below) may embed this generic token in place of the uploaded
+// file's name. A host whose upload confirms a server-side path -- which can differ from what was
+// requested, e.g. on a filename collision -- substitutes that confirmed path for the token after
+// the upload completes and before running the script.
+constexpr const char* PRINT_HOST_UPLOADED_FILENAME_PLACEHOLDER = "{{uploaded_filename}}";
+
+// Dispatches to the wire dialect of a device-owned mapping protocol (FilamentMappingProtocol),
+// so callers of the print-host send path need no vendor knowledge -- adding a protocol only means
+// adding a case here, in Utils, not editing GUI code. filename may be
+// PRINT_HOST_UPLOADED_FILENAME_PLACEHOLDER when the caller doesn't yet know the uploaded name.
+// Returns "" for a protocol with no start-script dialect (fmpNone, or one whose mapping is
+// delivered through IPrinterAgent::send_filament_mapping() instead); callers must not read that
+// as "nothing to send" without checking device_owned_mapping_protocol() first.
+std::string build_device_map_start_script(FilamentMappingProtocol protocol, const std::string& filename, const std::vector<int>& filament_map_1based);
 
 struct PrintHostUpload
 {

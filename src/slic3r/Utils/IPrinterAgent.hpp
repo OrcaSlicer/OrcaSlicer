@@ -11,6 +11,7 @@
 #define ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE -7020 // a translation exists; this printer lacks the capability
 #include <string>
 #include <memory>
+#include <vector>
 
 namespace Slic3r {
 
@@ -328,6 +329,37 @@ public:
      * fetch_filament_info(). Returns true on printer-confirmed success.
      */
     virtual bool push_filament_info(std::string dev_id, const FilamentSlotInfo& info) { return false; }
+
+    /**
+     * Whether this agent needs the send-time filament->tool mapping delivered as its own step,
+     * separate from the start_print()/start_local_print() call it accompanies. Printers whose
+     * mapping is owned by the device's own controller (e.g. a physical toolchanger's firmware,
+     * as opposed to a slicer-driven AMS/MMU) use this seam; every other agent leaves it false and
+     * the mapping never reaches send_filament_mapping().
+     */
+    virtual bool supports_print_time_mapping() const { return false; }
+
+    /**
+     * Deliver the filament->tool mapping for the upcoming print job. tool_to_slot[i] is the
+     * 1-based slot assigned to tool i (0-based tool index; 0 means "leave unassigned"), the same
+     * shape the filament-map UI collects from the user.
+     *
+     * TIMING is entirely the agent's choice, which is the point of this seam: an agent whose
+     * dialect folds the mapping into its own print-start call (e.g. Snapmaker's
+     * SDCARD_PRINT_FILE_WITH_PARAMETERS macro) may just stash it here and apply it inside its
+     * start_local_print() override; an agent whose dialect sends the mapping as a distinct
+     * message (e.g. a "SET_MAP" gcode issued right after upload) can act on it immediately. The
+     * caller must call this -- when supports_print_time_mapping() is true -- before the
+     * print-start call it is meant to affect.
+     *
+     * Returns true once accepted for delivery, not necessarily confirmed applied.
+     */
+    virtual bool send_filament_mapping(const std::string& dev_id, const std::vector<int>& tool_to_slot)
+    {
+        (void) dev_id;
+        (void) tool_to_slot;
+        return false;
+    }
 
     /**
      * Point this agent's REST state at a printer's address, without opening the status stream

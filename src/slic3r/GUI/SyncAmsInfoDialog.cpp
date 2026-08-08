@@ -31,6 +31,9 @@
 #include "DeviceCore/DevMapping.h"
 #include "DeviceCore/DevStorage.h"
 #include "FilamentBitmapUtils.hpp"
+#include "ActivePrinterSession.hpp"
+#include "FilamentInventoryStore.hpp" // Orca: durable per-device slot assignments (deal_ok())
+#include "libslic3r/FilamentInventory.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -217,6 +220,31 @@ void SyncAmsInfoDialog::deal_ok()
             }
             else{
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "check error:  m_result.sync_maps:" << temp_idx;
+            }
+        }
+
+        // Orca: durable per-device slot assignments -- a toolchanger's tray IDs are its physical
+        // tool IDs by construction (see sync_ams_mapping_result), so persist the sync result keyed
+        // by the current physical device, so it survives closing/reopening the project before the
+        // device reconnects. The device key must come from the session's live machine, not
+        // whatever preset is merely selected (see Sidebar::update_sync_ams_btn_enable).
+        MachineObject *obj_ = active_printer_session().live_machine();
+        if (obj_ && obj_->GetFilaSystem() && obj_->GetFilaSystem()->IsAllToolchanger() && m_plater) {
+            const Preset  &printer    = active_printer_session().profile();
+            const std::string &device_key = printer.name; // inventories are keyed by printer preset
+            if (!device_key.empty()) {
+                std::vector<SlotAssignment> assignments;
+                for (const auto &fi : m_ams_mapping_result) {
+                    int tool = fi.get_ams_id(); // tray n == tool n by construction
+                    if (fi.id >= 0 && tool >= 0)
+                        assignments.push_back({fi.id, tool, 0});
+                }
+                Model &model = m_plater->model();
+                if (!model.model_info)
+                    model.model_info = std::make_shared<ModelInfo>();
+                auto by_device = load_slot_assignments(model.model_info->metadata_items["physical_slot_assignments"]);
+                by_device[device_key] = std::move(assignments);
+                model.model_info->metadata_items["physical_slot_assignments"] = dump_slot_assignments(by_device);
             }
         }
     }
@@ -1170,6 +1198,16 @@ void SyncAmsInfoDialog::finish_mode()
 
 void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &result)
 {
+    // Orca: honest per-tool wording for Moonraker toolchangers -- bypass transition_tridid()'s
+    // "A1"/"B2" lettering below in favor of "T%d" tool labels. transition_tridid() itself is
+    // shared with BBL callers and is left untouched.
+    bool is_toolchanger = false;
+    {
+        DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
+        MachineObject  *obj_ = dev ? dev->get_selected_machine() : nullptr;
+        is_toolchanger = obj_ && obj_->GetFilaSystem()->IsAllToolchanger();
+    }
+
     m_back_ams_mapping_result = result;
     if (result.empty()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "ams_mapping result is empty";
@@ -1198,8 +1236,8 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
                 }
 
                 else if (f->tray_id >= 0) {
-                    ams_id = wxGetApp().transition_tridid(f->tray_id);
-                    // ams_id = wxString::Format("%02d", f->tray_id + 1);
+                    // Orca: shared tray_display_label (GUI_App).
+                    ams_id = wxGetApp().tray_display_label(f->tray_id, is_toolchanger);
                 } else {
                     ams_id = "-";
                 }
@@ -1311,20 +1349,30 @@ void SyncAmsInfoDialog::deal_only_exist_ext_spool(MachineObject *obj_) {
         return;
     if (!m_append_color_text) { return; }
     bool only_exist_ext_spool_flag = m_only_exist_ext_spool_flag = !obj_->GetFilaSystem()->HasAms();
-    SetTitle(only_exist_ext_spool_flag ? _L("Synchronize Filament Information") : _L("Synchronize AMS Filament Information"));
-    m_append_color_text->SetLabel(only_exist_ext_spool_flag ? _L("Add unused filaments to filaments list.") :
+    // Orca: Moonraker toolchangers (Snapmaker U1 and similar) report real per-tool AMS units
+    // (see DevAmsType::TOOLCHANGER), so only_exist_ext_spool_flag stays false for them; branch
+    // the "AMS" wording to "Tool" separately instead of folding it into that flag.
+    bool is_toolchanger = obj_->GetFilaSystem()->IsAllToolchanger();
+    SetTitle((only_exist_ext_spool_flag || is_toolchanger) ? _L("Synchronize Filament Information") : _L("Synchronize AMS Filament Information"));
+    m_append_color_text->SetLabel((only_exist_ext_spool_flag || is_toolchanger) ? _L("Add unused filaments to filaments list.") :
                                                               _L("Add unused AMS filaments to filaments list."));
     if (m_map_mode == MapModeEnum::ColorMap) {
-        m_tip_attention_color_map = only_exist_ext_spool_flag ? _L("Only synchronize filament type and color, not including slot information.") :
-                                                                _L("Only synchronize filament type and color, not including AMS slot information.");
+        // Orca: on a toolchanger, confirming this dialog also saves the current per-filament tool
+        // selections into the project for slice-time auto-mapping, so it gets its own wording.
+        if (is_toolchanger)
+            m_tip_attention_color_map = _L("Synchronizes filament type and color, and saves the current tool selections for automatic mapping.");
+        else if (only_exist_ext_spool_flag)
+            m_tip_attention_color_map = _L("Only synchronize filament type and color, not including slot information.");
+        else
+            m_tip_attention_color_map = _L("Only synchronize filament type and color, not including AMS slot information.");
         m_tip_text->SetLabel(m_tip_attention_color_map);
 
     }
     if (m_ams_or_ext_text_in_colormap) {
-        m_ams_or_ext_text_in_colormap->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : _L("AMS")) + ":");
+        m_ams_or_ext_text_in_colormap->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : is_toolchanger ? _L("Tool") : _L("AMS")) + ":");
     }
     if (m_ams_or_ext_text_in_override) {
-        m_ams_or_ext_text_in_override->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : _L("AMS")) + ":");
+        m_ams_or_ext_text_in_override->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : is_toolchanger ? _L("Tool") : _L("AMS")) + ":");
     }
 }
 

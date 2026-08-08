@@ -86,6 +86,9 @@ struct TrayData
 
     int             ams_id = 0;
     int             slot_id = 0;
+    // Orca: true when this tray belongs to a Moonraker TOOLCHANGER unit; used to bypass
+    // transition_tridid() ("A1"/"B2"...) in favor of "T%d" tool labels.
+    bool            is_toolchanger = false;
 };
 
 class MaterialItem: public wxPanel

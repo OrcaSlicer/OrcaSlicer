@@ -42,7 +42,10 @@ enum AMSModel {
     GENERIC_AMS         = 1,
     AMS_LITE            = 2,    //ams-lite
     N3F_AMS             = 3,
-    N3S_AMS             = 4     //n3s  single_ams
+    N3S_AMS             = 4,    //n3s  single_ams
+    // Orca: mirrors DevAmsType::TOOLCHANGER (value 6; 5 is AMS_LITE_MIXED, aliased away before
+    // it reaches this cast). One physical tool per unit, rendered with the existing 1-slot art.
+    TOOLCHANGER_AMS      = 6
 };
 
 enum AMSModelOriginType {

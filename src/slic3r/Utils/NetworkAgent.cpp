@@ -955,6 +955,18 @@ bool NetworkAgent::push_filament_info(std::string dev_id, const IPrinterAgent::F
     return false;
 }
 
+bool NetworkAgent::supports_print_time_mapping() const
+{
+    return m_printer_agent && m_printer_agent->supports_print_time_mapping();
+}
+
+bool NetworkAgent::send_filament_mapping(const std::string& dev_id, const std::vector<int>& tool_to_slot)
+{
+    if (m_printer_agent)
+        return m_printer_agent->send_filament_mapping(dev_id, tool_to_slot);
+    return false;
+}
+
 bool NetworkAgent::bind_device_connection(const std::string& dev_id, const std::string& address, const std::string& access_code, bool use_ssl)
 {
     if (m_printer_agent)

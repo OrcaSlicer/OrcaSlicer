@@ -22,18 +22,12 @@ void                save_filament_inventories(const FilamentInventories& store);
 // inventory itself.
 size_t resolve_active_printer_tool_count(FilamentInventories& store);
 
-// Resolves the inventory entry for THIS printer preset -- an inventory follows the same thing
-// Orca's connection settings follow, the printer preset (print_host/printhost_apikey are preset
-// options, and one preset copy per physical machine is already Orca's own convention). Creates an
-// empty entry on first resolution. Pads the returned inventory to at least tool_count tools
-// (never truncates). `store` is taken by reference because resolution may create/pad the entry.
+// Resolves (creating on first use) and pads the inventory entry for THIS printer preset to at
+// least tool_count tools; never truncates.
 FilamentInventory& current_inventory_for_preset(const Preset& printer_preset, FilamentInventories& store, size_t tool_count);
 
-// How many tools this printer preset addresses: the physical nozzle count. `store` is unused
-// here (kept so callers that also need the resolved inventory -- via
-// current_inventory_for_preset -- can pass the same one through both calls without an unrelated
-// signature split).
-size_t addressable_tool_count_of(const Preset& printer_preset, FilamentInventories& store);
+// How many tools this printer preset addresses: the physical nozzle count.
+size_t addressable_tool_count_of(const Preset& printer_preset);
 
 // Resolution for display/use: the slot's preset if it still exists in `filaments`, else
 // "Generic <type>" if that preset exists, else "".
