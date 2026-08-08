@@ -49,15 +49,17 @@ DevicePrintSpec device_print_spec(FilamentMappingProtocol protocol)
         // Verbatim the three the printer's own screen offers (2026-08-10 capture). Bed leveling
         // defaults on to match the screen; the other two default off so a send never silently
         // spends time (flow calibration) or storage (time-lapse) the user didn't ask for.
-        spec.options.push_back({"bed_leveling", L("Bed leveling"),
-                                L("Probe the bed before printing, as the printer's own screen does."),
-                                DevicePrintOptionKind::Bool, "1", {}});
-        spec.options.push_back({"flow_calibrate", L("Flow calibration"),
+        // Labels match the vendor's own slicer word for word, so a user moving between the two
+        // sees the same option named the same way.
+        spec.options.push_back({"flow_calibrate", L("Extrusion Flow Calibration"),
                                 L("Calibrate flow on each tool this plate actually uses before printing."),
                                 DevicePrintOptionKind::Bool, "0", {}});
-        spec.options.push_back({"time_lapse", L("Time-lapse"),
+        spec.options.push_back({"time_lapse", L("Time-lapse Camera"),
                                 L("Record a time-lapse video with the printer's camera."),
                                 DevicePrintOptionKind::Bool, "0", {}});
+        spec.options.push_back({"bed_leveling", L("Auto Leveling"),
+                                L("Probe the bed before printing, as the printer's own screen does."),
+                                DevicePrintOptionKind::Bool, "1", {}});
         break;
     default: break;
     }

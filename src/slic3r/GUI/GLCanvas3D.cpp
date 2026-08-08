@@ -9233,9 +9233,10 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
                 all_plates_stats_item->selected = false;
                 bool was_active = item->selected;
                 item->selected = true;
-                // begin to slicing plate
-                if (item->slice_state != IMToolbarItem::SliceState::SLICED)
-                    wxGetApp().plater()->update(true, true);
+                // ORCA: don't slice here -- the plate switch to i only happens once the queued
+                // EVT_GLTOOLBAR_SELECT_SLICED_PLATE below is dispatched, so slicing now would target
+                // the still-current (old) plate. select_plate(i, /*need_slice=*/true) switches and
+                // slices in the correct order.
                 wxCommandEvent* evt = new wxCommandEvent(EVT_GLTOOLBAR_SELECT_SLICED_PLATE);
                 // ORCA dont reset viewing angle if item was active and non sliced to allow making comparisons on parameter changes
                 if(!was_active || (was_active && item->slice_state == IMToolbarItem::SliceState::SLICED)) 
