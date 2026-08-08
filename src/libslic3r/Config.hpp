@@ -784,10 +784,9 @@ public:
                 this->values[i] = rhs_vec->values[i];
                 modified        = true;
             } else {
-                // Orca: a negative slot (failed variant lookup) must not silently collapse the
-                // whole array to the first slot's value — the int-vs-size_t comparison used to
-                // promote -1 past the bounds check. Keep the slot's own value (get_at-style
-                // clamp) when no valid index is available.
+                // default_index[i] may be negative (failed variant lookup); check >= 0 before
+                // converting to size_t, since the implicit conversion would otherwise pass the
+                // bounds check below. Fall back to this slot's own value (get_at-style clamp).
                 if ((i < default_index.size()) && (default_index[i] >= 0) && (size_t(default_index[i]) < default_value.size()))
                     this->values[i] = default_value[default_index[i]];
                 else
