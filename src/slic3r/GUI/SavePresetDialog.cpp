@@ -116,7 +116,7 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     if (parent->m_mode == comDevelop && !parent_name.empty()) {
         wxBoxSizer *detach_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-        auto detach_tooltip  = _L("Copies all inherited values from the parent preset into this preset and removes the connection with the parent preset.");
+        auto detach_tooltip  = _L("Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported.");
 
         auto detach_checkbox = new ::CheckBox(parent);
         detach_checkbox->SetToolTip(detach_tooltip);
