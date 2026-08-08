@@ -15163,6 +15163,7 @@ wxBoxSizer *ProjectDropDialog::create_remember_checkbox(wxString title, wxWindow
     checkbox_title->SetFont(::Label::Body_13);
     checkbox_title->Wrap(-1);
     checkbox_title->SetToolTip(tooltip);
+    checkbox->BindLabel(checkbox_title);
     m_sizer_checkbox->Add(checkbox_title, 0, wxALIGN_CENTER | wxALL, 3);
 
     checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox](wxCommandEvent &e) {

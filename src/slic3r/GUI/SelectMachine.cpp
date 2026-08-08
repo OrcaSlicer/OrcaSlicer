@@ -509,6 +509,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_label_ext_change_assist->SetFont(::Label::Body_13);
     m_label_ext_change_assist->SetBackgroundColour(*wxWHITE);
     m_label_ext_change_assist->SetToolTip(_L("Manually change external spool during printing for multi-color printing"));
+    m_check_ext_change_assist->BindLabel(m_label_ext_change_assist);
 
     wxSizer* suggestion_sizer = new wxBoxSizer(wxHORIZONTAL);
     suggestion_sizer->Add(m_link_edit_nozzle, 0, wxLEFT, 0);

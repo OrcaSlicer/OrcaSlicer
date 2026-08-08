@@ -33,6 +33,7 @@ CloneDialog::CloneDialog(wxWindow *parent)
     arrange_label->Wrap(FromDIP(300));
     m_arrange_cb = new ::CheckBox(this);
     m_arrange_cb->SetValue(m_config->get("auto_arrange") == "true");
+    m_arrange_cb->BindLabel(arrange_label);
 
     f_sizer->Add(arrange_label, 0, wxEXPAND | wxALIGN_CENTER_VERTICAL);
     f_sizer->Add(m_arrange_cb , 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(5));

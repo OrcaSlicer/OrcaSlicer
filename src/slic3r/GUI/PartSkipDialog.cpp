@@ -138,6 +138,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
 
     m_all_label->SetMinSize(wxSize(267, -1));
     m_all_label->SetMaxSize(wxSize(267, -1));
+    m_all_checkbox->BindLabel(m_all_label);
     all_checkbox_sizer->Add(m_all_checkbox, 0, wxALIGN_CENTER_VERTICAL, 0);
     all_checkbox_sizer->Add(m_all_label, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
 
@@ -737,6 +738,8 @@ void PartSkipDialog::InitDialogUI()
             checkbox->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
             checkbox->SetMinSize(wxSize(FromDIP(18), FromDIP(18)));
             checkbox->SetMaxSize(wxSize(FromDIP(18), FromDIP(18)));
+
+            checkbox->BindLabel(label);
 
             line_sizer->Add(checkbox, 0, wxALIGN_CENTER_VERTICAL, 0);
             line_sizer->Add(label, 1, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(8));

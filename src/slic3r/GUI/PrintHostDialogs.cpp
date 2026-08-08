@@ -507,6 +507,7 @@ void PrintHostSendDialog::init()
     checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
     checkbox_text->SetFont(::Label::Body_13);
     checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+    checkbox->BindLabel(checkbox_text);
     content_sizer->Add(checkbox_sizer);
     content_sizer->AddSpacer(VERT_SPACING);
 
@@ -713,6 +714,7 @@ void FlashforgePrintHostSendDialog::init()
         auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Switch to Device tab after upload."));
         checkbox_text->SetFont(::Label::Body_13);
         checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        checkbox->BindLabel(checkbox_text);
         checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
         content_sizer->Add(checkbox_sizer);
         content_sizer->AddSpacer(VERT_SPACING);
@@ -736,6 +738,7 @@ void FlashforgePrintHostSendDialog::init()
         auto text = new wxStaticText(this, wxID_ANY, label);
         text->SetFont(::Label::Body_13);
         text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        checkbox->BindLabel(text);
         row->Add(text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
         parent->Add(row);
         parent->AddSpacer(FromDIP(6));
@@ -1638,6 +1641,7 @@ void ElegooPrintHostSendDialog::init() {
         checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
         checkbox_text->SetFont(::Label::Body_13);
         checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        checkbox->BindLabel(checkbox_text);
         content_sizer->Add(checkbox_sizer);
         content_sizer->AddSpacer(VERT_SPACING);
     }
@@ -1664,6 +1668,7 @@ void ElegooPrintHostSendDialog::init() {
         checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
         checkbox_text->SetFont(::Label::Body_13);
         checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        checkbox->BindLabel(checkbox_text);
         content_sizer->Add(checkbox_sizer);
         content_sizer->AddSpacer(VERT_SPACING);
     }
@@ -1683,6 +1688,7 @@ void ElegooPrintHostSendDialog::init() {
         checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
         checkbox_text->SetFont(::Label::Body_13);
         checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        checkbox->BindLabel(checkbox_text);
         uploadandprint_sizer->Add(checkbox_sizer);
         uploadandprint_sizer->AddSpacer(VERT_SPACING);
     }
@@ -1702,6 +1708,7 @@ void ElegooPrintHostSendDialog::init() {
         checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
         checkbox_text->SetFont(::Label::Body_13);
         checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        checkbox->BindLabel(checkbox_text);
         uploadandprint_sizer->Add(checkbox_sizer);
         uploadandprint_sizer->AddSpacer(VERT_SPACING);
     }
@@ -1736,6 +1743,7 @@ void ElegooPrintHostSendDialog::init() {
             radio_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
             checkbox_text->SetFont(::Label::Body_13);
             checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+            radioBoxA->BindLabel(checkbox_text);
             uploadandprint_sizer->Add(radio_sizer);
             uploadandprint_sizer->AddSpacer(VERT_SPACING);
         }
@@ -1748,6 +1756,7 @@ void ElegooPrintHostSendDialog::init() {
             radio_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
             checkbox_text->SetFont(::Label::Body_13);
             checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+            radioBoxB->BindLabel(checkbox_text);
             uploadandprint_sizer->Add(radio_sizer);
             uploadandprint_sizer->AddSpacer(VERT_SPACING);
         }
@@ -1914,6 +1923,7 @@ void CrealityPrintHostSendDialog::init()
         checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
         checkbox_text->SetFont(::Label::Body_13);
         checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        checkbox->BindLabel(checkbox_text);
         group_sizer->Add(checkbox_sizer);
         group_sizer->AddSpacer(VERT_SPACING);
     }

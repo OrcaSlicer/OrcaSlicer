@@ -163,14 +163,7 @@ void NetworkPluginDownloadDialog::create_update_available_ui(const std::string& 
     });
 
     auto daa_str = new Label(this, _L("Don't Ask Again"));
-    auto on_toggle = [this, daa_chk]() {
-        daa_chk->SetValue(!daa_chk->GetValue());
-        wxCommandEvent evt(wxEVT_TOGGLEBUTTON, daa_chk->GetId());
-        evt.SetEventObject(daa_chk);
-        daa_chk->GetEventHandler()->ProcessEvent(evt);
-    };
-    daa_str->Bind(wxEVT_LEFT_DOWN,   [on_toggle](wxMouseEvent& e) {if(!e.LeftDClick()) on_toggle();});
-    daa_str->Bind(wxEVT_LEFT_DCLICK, [on_toggle](wxMouseEvent& e) {on_toggle();});
+    daa_chk->BindLabel(daa_str);
 
     daa_sizer->Add(daa_chk, 0, wxALIGN_CENTER_VERTICAL);
     daa_sizer->Add(daa_str, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));

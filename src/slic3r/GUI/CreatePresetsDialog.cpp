@@ -309,6 +309,7 @@ static wxBoxSizer* create_checkbox(wxWindow* parent, Preset* preset, wxString& p
     wxStaticText *preset_name_str = new wxStaticText(parent, wxID_ANY, preset_name);
     wxToolTip *   toolTip         = new wxToolTip(preset_name);
     preset_name_str->SetToolTip(toolTip);
+    checkbox->BindLabel(preset_name_str);
     sizer->Add(preset_name_str, 0, wxLEFT, 5);
     return sizer;
 }
@@ -320,6 +321,7 @@ static wxBoxSizer *create_checkbox(wxWindow *parent, std::string &compatible_pri
     sizer->Add(checkbox, 0, 0, 0);
     ptinter_compatible_filament_preset[checkbox] = std::make_pair(compatible_printer, preset);
     wxStaticText *preset_name_str = new wxStaticText(parent, wxID_ANY, wxString::FromUTF8(compatible_printer));
+    checkbox->BindLabel(preset_name_str);
     sizer->Add(preset_name_str, 0, wxLEFT, 5);
     return sizer;
 }
@@ -331,6 +333,7 @@ static wxBoxSizer *create_checkbox(wxWindow *parent, wxString &preset_name, std:
     sizer->Add(checkbox, 0, 0, 0);
     preset_checkbox.push_back(std::make_pair(checkbox, into_u8(preset_name)));
     wxStaticText *preset_name_str = new wxStaticText(parent, wxID_ANY, preset_name);
+    checkbox->BindLabel(preset_name_str);
     sizer->Add(preset_name_str, 0, wxLEFT, 5);
     return sizer;
 }
@@ -426,6 +429,7 @@ static wxBoxSizer *create_select_filament_preset_checkbox(wxWindow *            
 
     wxBoxSizer *combobox_sizer = new wxBoxSizer(wxVERTICAL);
     wxStaticText *machine_name_str = new wxStaticText(parent, wxID_ANY, wxString::FromUTF8(compatible_printer));
+    checkbox->BindLabel(machine_name_str);
     ComboBox *    combobox        = new ComboBox(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(200, 24), 0, nullptr, wxCB_READONLY);
     combobox->SetBackgroundColor(PRINTER_LIST_COLOUR);
     combobox->SetBorderColor(*wxWHITE);
@@ -827,6 +831,7 @@ wxBoxSizer *CreateFilamentPresetDialog::create_vendor_item()
     m_can_not_find_vendor_text->SetMinSize(wxSize(size.x + FromDIP(4), -1));
     m_can_not_find_vendor_text->Wrap(-1);
     checkbox_sizer->Add(m_can_not_find_vendor_text, 0, wxALIGN_CENTER, 0);
+    m_can_not_find_vendor_checkbox->BindLabel(m_can_not_find_vendor_text);
 
     m_can_not_find_vendor_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) {
         bool value = m_can_not_find_vendor_checkbox->GetValue();
@@ -1826,6 +1831,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_printer_item(wxWindow *parent)
     m_can_not_find_vendor_text->SetMinSize(wxSize(size.x + FromDIP(4), -1));
     m_can_not_find_vendor_text->Wrap(-1);
     checkbox_sizer->Add(m_can_not_find_vendor_text, 0, wxALIGN_CENTER, 0);
+    m_can_not_find_vendor_combox->BindLabel(m_can_not_find_vendor_text);
 
     m_can_not_find_vendor_combox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) {
         bool value = m_can_not_find_vendor_combox->GetValue();
@@ -1910,6 +1916,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_nozzle_diameter_item(wxWindow *par
     can_not_find_nozzle_diameter->SetMinSize(wxSize(size.x + FromDIP(4), -1));
     can_not_find_nozzle_diameter->Wrap(-1);
     checkbox_sizer->Add(can_not_find_nozzle_diameter, 0, wxALIGN_CENTER, 0);
+    m_can_not_find_nozzle_checkbox->BindLabel(can_not_find_nozzle_diameter);
 
     m_can_not_find_nozzle_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) {
         bool value = m_can_not_find_nozzle_checkbox->GetValue();

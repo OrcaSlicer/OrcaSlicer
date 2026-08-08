@@ -15,6 +15,10 @@ public:
 
 	void SetHalfChecked(bool value = true);
 
+	// Orca: Makes a left click anywhere on `label` toggle this box, the way the label of a
+	// native wxCheckBox does. `label` is typically the wxStaticText placed next to the box.
+	void BindLabel(wxWindow *label);
+
 	// Only meant to be used by inspector, not public API
 	bool IsHalfChecked() const { return m_half_checked; }
 
