@@ -2178,21 +2178,28 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         const size_t num_extruder = boost::any_cast<size_t>(value);
         auto        *bundle       = wxGetApp().preset_bundle;
         Sidebar     &sidebar      = wxGetApp().plater()->sidebar();
-        // A tool changer feeds filament N from nozzle N, so the extruder count sizes the physical
-        // run only; mixed slots are virtual and keep the tail. Go one slot at a time through the
-        // sidebar's own +/- calls: they insert ahead of the mixed tail and renumber filament ids,
-        // painted facets, custom g-code and mixed components, which a bulk resize clamps away.
-        // Both also refresh the print tab and export the selections, so nothing to do afterwards.
-        size_t physical = bundle->num_physical_filaments();
-        while (physical != num_extruder) {
-            if (physical < num_extruder)
-                sidebar.add_custom_filament(Plater::get_next_color_for_filament());
-            else
-                sidebar.delete_filament(physical - 1);   // physical > num_extruder >= 1
-            const size_t updated = bundle->num_physical_filaments();
-            if (updated == physical)
-                break;   // the call declined, e.g. the total slot limit - do not spin
-            physical = updated;
+        // Orca: mapped printers (slicer- or device-owned) own their filament count -- the
+        // filament->tool map absorbs any difference, so shrinking the tool count must never
+        // delete project filaments. Growth still adds through the sidebar loop below.
+        if (physical_filament_features_enabled(*m_config) && num_extruder <= bundle->num_physical_filaments()) {
+            wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
+        } else {
+            // A tool changer feeds filament N from nozzle N, so the extruder count sizes the physical
+            // run only; mixed slots are virtual and keep the tail. Go one slot at a time through the
+            // sidebar's own +/- calls: they insert ahead of the mixed tail and renumber filament ids,
+            // painted facets, custom g-code and mixed components, which a bulk resize clamps away.
+            // Both also refresh the print tab and export the selections, so nothing to do afterwards.
+            size_t physical = bundle->num_physical_filaments();
+            while (physical != num_extruder) {
+                if (physical < num_extruder)
+                    sidebar.add_custom_filament(Plater::get_next_color_for_filament());
+                else
+                    sidebar.delete_filament(physical - 1);   // physical > num_extruder >= 1
+                const size_t updated = bundle->num_physical_filaments();
+                if (updated == physical)
+                    break;   // the call declined, e.g. the total slot limit - do not spin
+                physical = updated;
+            }
         }
     }
 
