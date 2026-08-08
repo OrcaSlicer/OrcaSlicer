@@ -36,6 +36,9 @@
 	"filament_max_volumetric_speed": [
 		"1"
 	],
+	"filament_multitool_ramming_flow": [
+		"1"
+	],
 	"filament_retraction_minimum_travel": [
 		"3"
 	],

@@ -51,6 +51,8 @@ using namespace nlohmann;
 
 namespace Slic3r {
 
+Print::SlicingPipelineHookFn Print::s_slicing_pipeline_hook_fn = nullptr;
+
 template class PrintState<PrintStep, psCount>;
 template class PrintState<PrintObjectStep, posCount>;
 
@@ -124,6 +126,9 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "printing_by_object_gcode",
         "filament_end_gcode",
         "post_process",
+        // "plugins" is the derived manifest backing the plugin-picker options; on its own it only
+        // affects G-code export. The specific option (e.g. slicing_pipeline_plugin) drives any re-slice.
+        "plugins",
         "extruder_clearance_height_to_rod",
         "extruder_clearance_height_to_lid",
         "extruder_clearance_radius",
@@ -277,9 +282,19 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wipe_tower_x"
             || opt_key == "wipe_tower_y"
             || opt_key == "wipe_tower_rotation_angle") {
+            // The tower gcode itself is position-independent (position and rotation are applied
+            // at export), except that the wait_for_temp_on_wipe_tower park bakes a bed-relative
+            // side choice into it (WipeTower2::toolchange_Change) — regenerate it when the tower
+            // moves. Gating on the old config is safe: both inputs of wait_for_temp_enabled
+            // invalidate psWipeTower themselves when they are part of the same diff.
+            if ((opt_key == "wipe_tower_x" || opt_key == "wipe_tower_y" || opt_key == "wipe_tower_rotation_angle")
+                && WipeTower2::wait_for_temp_enabled(m_config))
+                steps.emplace_back(psWipeTower);
             steps.emplace_back(psSkirtBrim);
         } else if (
-               opt_key == "initial_layer_print_height"
+               opt_key == "slicing_pipeline_plugin"
+            || opt_key == "print_plugin_config_overrides"
+            || opt_key == "initial_layer_print_height"
             || opt_key == "nozzle_diameter"
             || opt_key == "filament_shrink"
             || opt_key == "filament_shrinkage_compensation_z"
@@ -375,6 +390,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wiping_volumes_extruders"
             || opt_key == "enable_filament_ramming"
             || opt_key == "tool_change_on_wipe_tower"
+            || opt_key == "wait_for_temp_on_wipe_tower"
             || opt_key == "purge_in_prime_tower"
             || opt_key == "z_offset"
             || opt_key == "support_multi_bed_types"
@@ -1032,13 +1048,14 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
             wipe_tower_convex_hull.points.emplace_back(scale_(x + width), scale_(y));
             wipe_tower_convex_hull.points.emplace_back(scale_(x + width), scale_(y + depth));
             wipe_tower_convex_hull.points.emplace_back(scale_(x), scale_(y + depth));
-            wipe_tower_convex_hull.rotate(a);
+            wipe_tower_convex_hull.rotate(Geometry::deg2rad(a), Point(scale_(x), scale_(y)));
             convex_hulls_temp.push_back(wipe_tower_convex_hull);
         } else {
             //here, wipe_tower_polygon is not always convex.
             Polygon wipe_tower_polygon;
             if (print.wipe_tower_data().wipe_tower_mesh_data)
                 wipe_tower_polygon = print.wipe_tower_data().wipe_tower_mesh_data->bottom;
+            wipe_tower_polygon.rotate(Geometry::deg2rad(a));
             wipe_tower_polygon.translate(Point(scale_(x), scale_(y)));
             convex_hulls_temp.push_back(wipe_tower_polygon);
         }
@@ -1056,6 +1073,22 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     }
     if (print_config.enable_wrapping_detection.value && !intersection({wrapping_poly}, convex_hulls_temp).empty()) {
         return {L("Prime Tower") + L(" is too close to clumping detection area, and collisions will be caused.\n")};
+    }
+    // Skip the containment check for towers that will never be printed (single-filament
+    // prints without smooth timelapse keep the config's tower position but emit nothing).
+    // Pre-generation only the body square is tested — the auto-brim estimate can overshoot
+    // the generated brim by several mm and must not hard-fail a print that physically fits.
+    // Post-generation the mesh bottom already includes the real brim, so the exact
+    // footprint is tested.
+    if (filaments_count > 1 || print.enable_timelapse_print()) {
+        // The shared printable polygon is plate-local, while the tower polygons above are
+        // already shifted by the plate origin.
+        Polygons    printable_polys = print.get_extruder_shared_printable_polygon();
+        const Point plate_shift(scale_(plate_origin.x()), scale_(plate_origin.y()));
+        for (Polygon &p : printable_polys)
+            p.translate(plate_shift);
+        if (!diff(convex_hulls_temp, printable_polys).empty())
+            return {L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n")};
     }
     return {};
 }
@@ -2207,6 +2240,11 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
     if (time_cost_with_cache)
         *time_cost_with_cache = 0;
 
+    {
+        const auto* sp = this->config().option<ConfigOptionStrings>("slicing_pipeline_plugin");
+        m_pipeline_plugin_active = s_slicing_pipeline_hook_fn && sp && !sp->values.empty();
+    }
+
     name_tbb_thread_pool_threads_set_locale();
 
     //compute the PrintObject with the same geometries
@@ -2316,20 +2354,47 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": total object counts %1% in current print, need to slice %2%")%m_objects.size()%need_slicing_objects.size();
     BOOST_LOG_TRIVIAL(info) << "Starting the slicing process." << log_memory_info();
     if (!use_cache) {
+        // Fire the SlicingPipeline hook for `obj` iff it just (re)computed `pstep` this pass.
+        auto hook_after = [this](PrintObject* obj, bool was_done, PrintObjectStep pstep, SlicingPipelineStepPlugin sstep) {
+            if (m_pipeline_plugin_active && !was_done && obj->is_step_done(pstep))
+                run_pipeline_hook(sstep, obj);
+        };
+
+        // SlicingPipeline: dedicated slice loop so the Slice boundary is hookable before perimeters.
         for (PrintObject *obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
-                obj->make_perimeters();
-            }
-            else {
-                if (obj->set_started(posSlice))
-                    obj->set_done(posSlice);
-                if (obj->set_started(posPerimeters))
-                    obj->set_done(posPerimeters);
+                const bool was_done = obj->is_step_done(posSlice);
+                obj->slice();
+                hook_after(obj, was_done, posSlice, SlicingPipelineStepPlugin::posSlice);
+                // re-snapshot each layer's raw_slices AFTER the Slice hook ran, so the
+                // plugin's mutation becomes the untyped baseline. Without this, a later
+                // perimeter-only re-run (make_perimeters -> restore_untyped_slices) reverts
+                // slices to the PRE-hook geometry while posSlice stays cached (the hook does
+                // not re-fire), silently un-applying the mutation; raw_slices consumers
+                // (sharp-tail support, ToolOrdering) also read this backup directly. Gated on
+                // an active plugin AND a genuine (re)slice, so the inactive path is untouched
+                // and re-backing-up an unmutated layer is a harmless identical copy.
+                if (m_pipeline_plugin_active && !was_done && obj->is_step_done(posSlice))
+                    for (Layer *layer : obj->layers())
+                        layer->backup_untyped_slices();
+            } else {
+                if (obj->set_started(posSlice)) obj->set_done(posSlice);   // shared/duplicate — no hook
             }
         }
         for (PrintObject *obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
+                const bool was_done = obj->is_step_done(posPerimeters);
+                obj->make_perimeters();   // slice() inside is a no-op: posSlice already DONE
+                hook_after(obj, was_done, posPerimeters, SlicingPipelineStepPlugin::posPerimeters);
+            } else {
+                if (obj->set_started(posPerimeters)) obj->set_done(posPerimeters);
+            }
+        }
+        for (PrintObject *obj : m_objects) {
+            if (need_slicing_objects.count(obj) != 0) {
+                const bool was_done = obj->is_step_done(posEstimateCurledExtrusions);
                 obj->estimate_curled_extrusions();
+                hook_after(obj, was_done, posEstimateCurledExtrusions, SlicingPipelineStepPlugin::posEstimateCurledExtrusions);
             }
             else {
                 if (obj->set_started(posEstimateCurledExtrusions))
@@ -2338,7 +2403,17 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
         for (PrintObject *obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
+                // split prepare_infill (fill-surface prep) from infill (make_fills) so a
+                // plugin can mutate fill surfaces at the PrepareInfill seam and have make_fills
+                // consume them (unlike the Infill seam, which fires after the fills are already
+                // built). infill() re-invokes prepare_infill() as a no-op once posPrepareInfill
+                // is DONE, so this is a mechanical split mirroring the slice/perimeters loop.
+                const bool prepare_was_done = obj->is_step_done(posPrepareInfill);
+                obj->prepare_infill();
+                hook_after(obj, prepare_was_done, posPrepareInfill, SlicingPipelineStepPlugin::posPrepareInfill);
+                const bool was_done = obj->is_step_done(posInfill);
                 obj->infill();
+                hook_after(obj, was_done, posInfill, SlicingPipelineStepPlugin::posInfill);
             }
             else {
                 if (obj->set_started(posPrepareInfill))
@@ -2349,7 +2424,9 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
         for (PrintObject *obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
+                const bool was_done = obj->is_step_done(posIroning);
                 obj->ironing();
+                hook_after(obj, was_done, posIroning, SlicingPipelineStepPlugin::posIroning);
             }
             else {
                 if (obj->set_started(posIroning))
@@ -2361,12 +2438,21 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         for (PrintObject *obj : m_objects) {
             bool need_contouring = need_slicing_objects.count(obj) != 0 && obj->need_z_contouring();
             if (need_contouring) {
+                const bool was_done = obj->is_step_done(posContouring);
                 obj->contour_z();
+                hook_after(obj, was_done, posContouring, SlicingPipelineStepPlugin::posContouring);
             } else {
                 if (obj->set_started(posContouring))
                     obj->set_done(posContouring);
             }
         }
+
+        // SlicingPipeline: support runs in the parallel block below; the hook must fire in a
+        // sequential loop afterward. Snapshot per-object done-state just before the parallel_for.
+        std::vector<char> sup_was_done(m_objects.size(), 1);
+        if (m_pipeline_plugin_active)
+            for (size_t i = 0; i < m_objects.size(); ++i)
+                sup_was_done[i] = m_objects[i]->is_step_done(posSupportMaterial) ? 1 : 0;
 
         tbb::parallel_for(tbb::blocked_range<int>(0, int(m_objects.size())),
             [this, need_slicing_objects](const tbb::blocked_range<int>& range) {
@@ -2383,9 +2469,17 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             }
         );
 
+        if (m_pipeline_plugin_active)
+            for (size_t i = 0; i < m_objects.size(); ++i)
+                if (need_slicing_objects.count(m_objects[i]) != 0 && !sup_was_done[i]
+                    && m_objects[i]->is_step_done(posSupportMaterial))
+                    run_pipeline_hook(SlicingPipelineStepPlugin::posSupportMaterial, m_objects[i]);
+
         for (PrintObject* obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
+                const bool was_done = obj->is_step_done(posDetectOverhangsForLift);
                 obj->detect_overhangs_for_lift();
+                hook_after(obj, was_done, posDetectOverhangsForLift, SlicingPipelineStepPlugin::posDetectOverhangsForLift);
             }
             else {
                 if (obj->set_started(posDetectOverhangsForLift))
@@ -2462,6 +2556,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
         }
         this->set_done(psWipeTower);
+        if (m_pipeline_plugin_active) run_pipeline_hook(SlicingPipelineStepPlugin::psWipeTower, nullptr);
     }
 
     if (this->has_wipe_tower()) {
@@ -2478,8 +2573,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         m_skirt_brim_groups.clear();
         m_has_shared_per_object_skirt = false;
         m_skirt_convex_hull.clear();
-        m_objectBrimAreas.clear();
-        m_supportBrimAreas.clear();
+        m_objectBrimAreasByInstance.clear();
         m_first_layer_convex_hull.points.clear();
         for (PrintObject *object : m_objects)  object->m_skirt.clear();
 
@@ -2635,14 +2729,16 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             if (!existObject && objectExtruderMap.find(print_object_ID) != objectExtruderMap.end())
                 objPrintVec.push_back(std::make_pair(print_object_ID, objectExtruderMap.at(print_object_ID)));
         }
-        // BBS: m_brimMap and m_supportBrimMap are used instead of m_brim to generate brim of objs and supports seperately
+        // Orca: Build both the old object-keyed brim map and the per-instance
+        // maps used by skirt/brim groups.
         m_brimMap.clear();
-        m_supportBrimMap.clear();
+        m_brimMapByInstance.clear();
         m_first_layer_convex_hull.points.clear();
         if (this->has_brim()) {
             Polygons islands_area;
             make_brim(*this, this->make_try_cancel(), islands_area, m_brimMap,
-                m_supportBrimMap, objPrintVec, printExtruders, &m_objectBrimAreas, &m_supportBrimAreas);
+                m_brimMapByInstance, objPrintVec, printExtruders,
+                &m_objectBrimAreasByInstance);
             for (Polygon& poly_ex : islands_area)
                 poly_ex.douglas_peucker(SCALED_RESOLUTION);
             for (Polygon &poly : union_(this->first_layer_islands(), islands_area))
@@ -2664,6 +2760,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
         this->finalize_first_layer_convex_hull();
         this->set_done(psSkirtBrim);
+        if (m_pipeline_plugin_active) run_pipeline_hook(SlicingPipelineStepPlugin::psSkirtBrim, nullptr);
 
         if (time_cost_with_cache) {
             end_time = (long long)Slic3r::Utils::get_current_time_utc();
@@ -2674,7 +2771,13 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
     for (PrintObject *obj : m_objects) {
         if (((!use_cache)&&(need_slicing_objects.count(obj) != 0))
             || (use_cache &&(re_slicing_objects.count(obj) != 0))){
+            const bool was_done = obj->is_step_done(posSimplifyPath);
             obj->simplify_extrusion_path();
+            // Unlike every other seam (all inside the `if (!use_cache)` block above), this loop is
+            // shared with the use_cache path (re_slicing_objects), so `!use_cache` must be checked
+            // explicitly here to keep hooks from ever firing on cache-loaded (plugin-final) objects.
+            if (!use_cache && m_pipeline_plugin_active && !was_done && obj->is_step_done(posSimplifyPath))
+                run_pipeline_hook(SlicingPipelineStepPlugin::posSimplifyPath, obj);
         }
         else {
             if (obj->set_started(posSimplifyPath))
@@ -2784,7 +2887,8 @@ void Print::_make_skirt()
         Polygon      hull;
     };
 
-    // Orca: build one local occupied hull per object from object and support geometry up to skirt height.
+    // Orca: Build one local occupied hull per object from object/support
+    // geometry up to skirt height. Instances translate this hull later.
     std::vector<ObjectSkirtHull> object_convex_hulls;
     for (PrintObject *object : m_objects) {
         Points object_points;
@@ -2894,49 +2998,49 @@ void Print::_make_skirt()
         object_hull.object->m_skirt.clear();
 
     if (m_config.skirt_type == stCombined || m_config.skirt_type == stPerObject) {
-        struct SkirtGroupItem {
+        struct SkirtBrimGroupItem {
             Points       occupied_points;
             ObjectID     object_id;
+            size_t       instance_id;
             bool         emits_skirt;
         };
 
-        // Orca: group items represent occupied first-layer areas. Object items emit skirts;
-        // obstacle-only items, such as wipe tower, only force nearby object groups to merge.
-        std::vector<SkirtGroupItem> group_items;
+        // Orca: Each object instance can emit skirt/brim. Wipe tower is only an
+        // obstacle here; it may merge nearby items, but does not emit anything.
+        std::vector<SkirtBrimGroupItem> group_items;
         const coord_t grouping_offset = scale_(m_config.skirt_distance.value + m_config.skirt_loops.value * spacing);
         for (const ObjectSkirtHull& object_hull : object_convex_hulls) {
             PrintObject* object = object_hull.object;
-            Points occupied_points;
-            for (const PrintInstance &instance : object->instances()) {
+            std::vector<size_t> object_item_indices;
+            object_item_indices.reserve(object->instances().size());
+            for (size_t instance_idx = 0; instance_idx < object->instances().size(); ++instance_idx) {
+                const PrintInstance &instance = object->instances()[instance_idx];
                 Points copy_points = object_hull.hull.points;
                 for (Point &pt : copy_points)
                     pt += instance.shift;
-                append(occupied_points, copy_points);
+                if (copy_points.size() < 3)
+                    continue;
+
+                object_item_indices.push_back(group_items.size());
+                group_items.push_back({ std::move(copy_points), object->id(), instance_idx, true });
             }
 
-            auto append_brim_points = [&occupied_points](const ExPolygons& areas) {
-                for (const ExPolygon& area : areas)
-                    append(occupied_points, area.contour.points);
-            };
-            if (auto it = m_objectBrimAreas.find(object->id()); it != m_objectBrimAreas.end())
-                append_brim_points(it->second);
-            if (auto it = m_supportBrimAreas.find(object->id()); it != m_supportBrimAreas.end())
-                append_brim_points(it->second);
-            if (occupied_points.size() < 3)
-                continue;
-
-            // Orca: include the object's brim/support-brim footprint before checking skirt collisions.
-            group_items.push_back({ std::move(occupied_points), object->id(), true });
+            for (size_t item_idx : object_item_indices) {
+                const ObjectInstanceID key{ object->id(), group_items[item_idx].instance_id };
+                if (auto instance_brim_it = m_objectBrimAreasByInstance.find(key); instance_brim_it != m_objectBrimAreasByInstance.end())
+                    for (const ExPolygon& area : instance_brim_it->second)
+                        append(group_items[item_idx].occupied_points, area.contour.points);
+            }
         }
 
         // Orca: the wipe tower contributes occupied area, but does not emit a skirt by itself.
         Points wipe_tower_points = this->first_layer_wipe_tower_corners();
         if (wipe_tower_points.size() >= 3)
-            group_items.push_back({ std::move(wipe_tower_points), ObjectID(), false });
+            group_items.push_back({ std::move(wipe_tower_points), ObjectID(), size_t(-1), false });
 
         std::vector<size_t> parent(group_items.size());
         std::iota(parent.begin(), parent.end(), 0);
-        // Orca: union-find keeps collision merging local without repeatedly rebuilding item lists.
+        // Orca: Use union-find so touching items can be merged while scanning.
         auto find_parent = [&parent](size_t idx) {
             while (parent[idx] != idx) {
                 parent[idx] = parent[parent[idx]];
@@ -2951,24 +3055,24 @@ void Print::_make_skirt()
                 parent[b] = a;
         };
 
-        // Orca: combined skirt is the same grouping model with all items forced into one group.
+        // Orca: Combined skirt starts with all items in the same group.
         if (m_config.skirt_type == stCombined && !group_items.empty())
             for (size_t i = 1; i < group_items.size(); ++i)
                 unite(0, i);
 
-        auto build_grouped_points = [&]() {
-            struct GroupData {
-                Points                points;
-                std::vector<ObjectID> object_ids;
-                bool                  emits_skirt = false;
+        auto build_skirt_brim_groups = [&]() {
+            struct SkirtBrimGroupData {
+                Points                                           points;
+                std::vector<ObjectInstanceID>                    instances;
+                bool                                             emits_skirt = false;
             };
 
-            std::map<size_t, GroupData> grouped;
+            std::map<size_t, SkirtBrimGroupData> grouped;
             for (size_t i = 0; i < group_items.size(); ++i) {
-                GroupData& group = grouped[find_parent(i)];
+                SkirtBrimGroupData& group = grouped[find_parent(i)];
                 append(group.points, group_items[i].occupied_points);
                 if (group_items[i].object_id.valid())
-                    group.object_ids.push_back(group_items[i].object_id);
+                    group.instances.push_back({ group_items[i].object_id, group_items[i].instance_id });
                 group.emits_skirt = group.emits_skirt || group_items[i].emits_skirt;
             }
             return grouped;
@@ -2977,16 +3081,18 @@ void Print::_make_skirt()
         bool groups_changed = m_config.skirt_type == stPerObject;
         while (groups_changed) {
             groups_changed = false;
-            auto grouped_points = build_grouped_points();
+            auto grouped_points = build_skirt_brim_groups();
             std::vector<std::pair<size_t, Polygon>> group_envelopes;
             for (const auto& [root, group] : grouped_points) {
                 if (group.points.size() < 3)
                     continue;
 
-                // Orca: emitting groups are expanded to their final skirt reach; obstacle groups are not.
+                // Orca: Only skirt-emitting groups are expanded by skirt distance;
+                // obstacle-only groups stay at their occupied outline.
                 Polygon envelope = Geometry::convex_hull(group.points);
                 if (group.emits_skirt) {
-                    // Orca: merge groups when a skirt envelope intersects another group or obstacle.
+                    // Orca: If the expanded skirt outline touches another group
+                    // or obstacle, merge them and run the pass again.
                     Polygons envelopes = offset(envelope, grouping_offset, ClipperLib::jtRound, float(scale_(0.1)));
                     if (envelopes.empty())
                         continue;
@@ -3007,28 +3113,23 @@ void Print::_make_skirt()
             }
         }
 
-        auto make_group_brims = [this](const std::vector<ObjectID>& group_object_ids) {
+        auto make_brims_for_skirt_brim_group = [this](const std::vector<ObjectInstanceID>& group_instances) {
             std::vector<SkirtBrimGroup::Brim> brims;
-            std::vector<ObjectID> brim_object_ids;
-            for (ObjectID object_id : group_object_ids) {
-                const auto brim_it = m_brimMap.find(object_id);
-                if (brim_it != m_brimMap.end() && !brim_it->second.empty())
-                    brim_object_ids.push_back(object_id);
+            std::vector<ObjectInstanceID> brim_instances;
+            for (const ObjectInstanceID& instance : group_instances) {
+                const auto brim_it = m_brimMapByInstance.find(instance);
+                if (brim_it != m_brimMapByInstance.end() && !brim_it->second.empty())
+                    brim_instances.push_back(instance);
             }
 
-            const bool global_combined_brim = m_config.combine_brims && m_config.skirt_type != stPerObject && m_brimMap.size() == 1;
-            auto brim_owner_ids = [&group_object_ids, global_combined_brim](const std::vector<ObjectID>& object_ids) {
-                return global_combined_brim ? group_object_ids : object_ids;
-            };
-
-            const bool combine_group_brims = m_config.combine_brims && brim_object_ids.size() > 1;
+            const bool combine_group_brims = m_config.combine_brims && brim_instances.size() > 1;
             if (!combine_group_brims) {
-                for (ObjectID object_id : brim_object_ids)
-                    brims.push_back({ m_brimMap.at(object_id), brim_owner_ids({ object_id }) });
+                for (const ObjectInstanceID& instance : brim_instances)
+                    brims.push_back({ m_brimMapByInstance.at(instance), { instance } });
                 return brims;
             }
 
-            std::vector<size_t> brim_parent(brim_object_ids.size());
+            std::vector<size_t> brim_parent(brim_instances.size());
             std::iota(brim_parent.begin(), brim_parent.end(), 0);
             auto find_brim_parent = [&brim_parent](size_t idx) {
                 while (brim_parent[idx] != idx) {
@@ -3045,61 +3146,64 @@ void Print::_make_skirt()
             };
 
             const coord_t brim_contact_distance = coord_t(brim_flow().scaled_spacing() * 2.);
-            for (size_t i = 0; i < brim_object_ids.size(); ++i) {
-                const auto area_i = m_objectBrimAreas.find(brim_object_ids[i]);
-                if (area_i == m_objectBrimAreas.end())
+            for (size_t i = 0; i < brim_instances.size(); ++i) {
+                const auto area_i = m_objectBrimAreasByInstance.find(brim_instances[i]);
+                if (area_i == m_objectBrimAreasByInstance.end())
                     continue;
-                for (size_t j = i + 1; j < brim_object_ids.size(); ++j) {
-                    const auto area_j = m_objectBrimAreas.find(brim_object_ids[j]);
-                    if (area_j != m_objectBrimAreas.end() &&
+                for (size_t j = i + 1; j < brim_instances.size(); ++j) {
+                    const auto area_j = m_objectBrimAreasByInstance.find(brim_instances[j]);
+                    if (area_j != m_objectBrimAreasByInstance.end() &&
                         !intersection_ex(offset_ex(area_i->second, brim_contact_distance, jtRound, SCALED_RESOLUTION), area_j->second).empty())
                         unite_brims(i, j);
                 }
             }
 
-            std::map<size_t, std::vector<ObjectID>> combined_brim_ids;
-            for (size_t i = 0; i < brim_object_ids.size(); ++i)
-                combined_brim_ids[find_brim_parent(i)].push_back(brim_object_ids[i]);
+            std::map<size_t, std::vector<ObjectInstanceID>> combined_brim_ids;
+            for (size_t i = 0; i < brim_instances.size(); ++i)
+                combined_brim_ids[find_brim_parent(i)].push_back(brim_instances[i]);
 
-            for (const auto& [_, object_ids] : combined_brim_ids) {
-                if (object_ids.size() == 1) {
-                    brims.push_back({ m_brimMap.at(object_ids.front()), brim_owner_ids(object_ids) });
+            for (const auto& [_, instances] : combined_brim_ids) {
+                if (instances.size() == 1) {
+                    const ObjectInstanceID& instance = instances.front();
+                    brims.push_back({ m_brimMapByInstance.at(instance), { instance } });
                     continue;
                 }
 
                 ExPolygons combined_area;
-                for (ObjectID object_id : object_ids)
-                    expolygons_append(combined_area, m_objectBrimAreas.at(object_id));
+                for (const ObjectInstanceID& instance : instances)
+                    expolygons_append(combined_area, m_objectBrimAreasByInstance.at(instance));
                 combined_area = union_ex(combined_area);
                 const float scaled_resolution  = float(scaled(m_config.resolution.value));
                 const float brim_cleanup_delta = std::max(scaled_resolution, float(SCALED_EPSILON));
                 combined_area = offset2_ex(combined_area, brim_cleanup_delta, -brim_cleanup_delta, jtRound, scaled_resolution);
 
                 Polygons islands_area;
-                brims.push_back({ makeBrimInfillFromPlateCoordinates(combined_area, *this, islands_area), object_ids });
+                brims.push_back({ makeBrimInfillFromPlateCoordinates(combined_area, *this, islands_area), instances });
             }
 
             return brims;
         };
 
-        auto grouped_points = build_grouped_points();
+        auto grouped_points = build_skirt_brim_groups();
         for (auto& [_, group] : grouped_points) {
             if (!group.emits_skirt || group.points.size() < 3)
                 continue;
-            if (generate_skirt && m_config.skirt_type == stPerObject && group.object_ids.size() > 1)
+            if (generate_skirt && m_config.skirt_type == stPerObject && group.instances.size() > 1)
                 m_has_shared_per_object_skirt = true;
-            // Orca: after merging, use the occupied outline directly; do not add skirt distance twice.
+            // Orca: Group points already include the occupied outline, so don't
+            // add skirt distance here again.
             ExtrusionEntityCollection group_skirt;
             if (generate_skirt)
                 append_skirt_loops_for_hull(Geometry::convex_hull(group.points), group_skirt, true);
-            std::vector<SkirtBrimGroup::Brim> group_brims = make_group_brims(group.object_ids);
+            std::vector<SkirtBrimGroup::Brim> group_brims = make_brims_for_skirt_brim_group(group.instances);
             if (!group_skirt.empty()) {
                 group_skirt.reverse();
-                // Orca: keep m_skirt as a flattened compatibility mirror for preview/extents.
+                // Orca: Keep m_skirt filled for code that still reads a flat
+                // skirt collection.
                 m_skirt.append(group_skirt.entities);
             }
             if (!group_skirt.empty() || !group_brims.empty())
-                m_skirt_brim_groups.push_back({ std::move(group_skirt), std::move(group.object_ids), std::move(group_brims) });
+                m_skirt_brim_groups.push_back({ std::move(group_skirt), std::move(group.instances), std::move(group_brims) });
         }
     }
 }
@@ -3331,7 +3435,11 @@ void Print::update_filament_maps_to_config(std::vector<int> f_maps, std::vector<
             }
             else if ((extruder_volume_type_count > extruder_count) && (m_config.filament_volume_map.values.size() > index))
                 nozzle_volume_type = (NozzleVolumeType)(m_config.filament_volume_map.values[index]);
-            m_config.filament_map_2.values[index] = m_ori_full_print_config.get_index_for_extruder(f_maps[index], "print_extruder_id", extruder_type, nozzle_volume_type, "print_extruder_variant");
+            // Orca: when the process variant columns cannot be matched (degenerate
+            // print_extruder_id), key the override by plain extruder index like the seeding
+            // above instead of poisoning the map with -1.
+            int slot_index = m_ori_full_print_config.get_index_for_extruder(f_maps[index], "print_extruder_id", extruder_type, nozzle_volume_type, "print_extruder_variant");
+            m_config.filament_map_2.values[index] = slot_index >= 0 ? slot_index : f_maps[index] - 1;
         }
 
         m_full_print_config = m_ori_full_print_config;
@@ -3528,7 +3636,8 @@ std::vector<std::set<int>> Print::get_physical_unprintable_filaments(const std::
         return physical_unprintables;
 
     auto get_unprintable_extruder_id = [&](unsigned int filament_idx) -> int {
-        int status = m_config.filament_printable.values[filament_idx];
+        // filament_printable may be shorter than the filament count; get_at() clamps.
+        int status = m_config.filament_printable.get_at(filament_idx);
         for (int i = 0; i < extruder_num; ++i) {
             if (!(status >> i & 1)) {
                 return i;
@@ -3835,6 +3944,12 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
         double volume = wipe_volume * filament_depth_count;
         if (m_config.nozzle_diameter.values.size() == 2) volume += filament_change_volume * (int) (filaments_cnt / 2);
 
+        // Sizing should take into account currently set wiping volumes.
+        // For a long time, the initial preview would just use 900/width per toolchange (15mm on a 60mm wide tower)
+        // and it worked well enough. Let's try to do slightly better by accounting for the purging volumes.
+        const bool semm_flush = m_config.purge_in_prime_tower && m_config.single_extruder_multi_material;
+        if (semm_flush) volume = WipeTower2::estimate_semm_flush_volume(m_config, filaments_cnt);
+
         if (m_config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib) {
             double depth = std::sqrt(volume / layer_height * extra_spacing);
             if (need_wipe_tower || filaments_cnt > 1) {
@@ -3846,30 +3961,16 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
             }
         }
         else {
-        double width        = m_config.prime_tower_width;
-        if (m_config.purge_in_prime_tower && m_config.single_extruder_multi_material) {
-            // Calculating depth should take into account currently set wiping volumes.
-            // For a long time, the initial preview would just use 900/width per toolchange (15mm on a 60mm wide tower)
-            // and it worked well enough. Let's try to do slightly better by accounting for the purging volumes.
-            std::vector<std::vector<float>> wipe_volumes = WipeTower2::extract_wipe_volumes(m_config);
-            std::vector<float>              max_wipe_volumes;
-            for (const std::vector<float> &v : wipe_volumes)
-                max_wipe_volumes.emplace_back(*std::max_element(v.begin(), v.end()));
-            float maximum = std::accumulate(max_wipe_volumes.begin(), max_wipe_volumes.end(), 0.f);
-            maximum       = maximum * filaments_cnt / max_wipe_volumes.size();
-            
-            // Orca: it's overshooting a bit, so let's reduce it a bit
-            maximum *= 0.6; 
-            const_cast<Print *>(this)->m_wipe_tower_data.depth = maximum / (layer_height * width);
-        } else {
-            double depth = volume / (layer_height * width) * extra_spacing;
-            if (need_wipe_tower || m_wipe_tower_data.depth > EPSILON) {
+            double width = m_config.prime_tower_width;
+            double depth = volume / (layer_height * width);
+            // The flush volumes already hold the spacing between wipes.
+            if (!semm_flush) depth *= extra_spacing;
+            if (need_wipe_tower || depth > EPSILON) {
                 float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
                 depth = std::max((double) min_wipe_tower_depth, depth);
             }
             const_cast<Print *>(this)->m_wipe_tower_data.depth = depth;
-        }
-        const_cast<Print *>(this)->m_wipe_tower_data.brim_width = m_config.prime_tower_brim_width;
+            const_cast<Print *>(this)->m_wipe_tower_data.brim_width = m_config.prime_tower_brim_width;
         }
         if (m_config.prime_tower_brim_width < 0) const_cast<Print *>(this)->m_wipe_tower_data.brim_width = WipeTower::get_auto_brim_by_height(max_height);
     }
@@ -3938,8 +4039,33 @@ void Print::_make_wipe_tower()
         // in BBL machine, wipe tower is only use to prime extruder. So just use a global wipe volume.
         WipeTower wipe_tower(m_config, m_plate_index, m_origin, m_wipe_tower_data.tool_ordering.first_extruder(),
                              m_wipe_tower_data.tool_ordering.empty() ? 0.f : m_wipe_tower_data.tool_ordering.back().print_z, m_wipe_tower_data.tool_ordering.all_extruders());
+        // Orca: the tower's first-layer flow follows the user's first-layer flow ratio (BBS reads
+        // its initial_layer_flow_ratio here — STUDIO-14254; first_layer_flow_ratio is Orca's analog,
+        // default 1.0 in both). Honor the set_other_flow_ratios gate that governs the option
+        // everywhere else.
+        wipe_tower.set_first_layer_flow_ratio(m_default_object_config.set_other_flow_ratios
+                                                  ? float(m_default_region_config.first_layer_flow_ratio)
+                                                  : 1.f);
         wipe_tower.set_has_tpu_filament(this->has_tpu_filament());
-        wipe_tower.set_filament_map(this->get_filament_maps());
+        // Per-layer filament->nozzle grouping. sort_and_build_data() above publishes it on the Print
+        // for by-layer prints; by-object prints publish only later (psSkirtBrim), so fall back to the
+        // ToolOrdering's own copy there. set_extruder() below dereferences it, so it must be set first.
+        auto print_group_result = get_layered_nozzle_group_result();
+        const MultiNozzleUtils::LayeredNozzleGroupResult &nozzle_group_result =
+            print_group_result ? *print_group_result : m_wipe_tower_data.tool_ordering.get_layered_nozzle_group_result();
+        wipe_tower.set_nozzle_group_result(nozzle_group_result);
+        {
+            // Orca: acceleration options are object-scope (PrintConfig members in BBS), so resolve
+            // the per-variant columns here; initial_layer_travel_acceleration is FloatOrPercent
+            // over travel_acceleration and needs the full config to resolve.
+            std::vector<double> first_layer_travel_accels;
+            for (size_t i = 0; i < m_config.initial_layer_travel_acceleration.values.size(); ++i)
+                first_layer_travel_accels.emplace_back(m_full_print_config.get_abs_value_at("initial_layer_travel_acceleration", i));
+            wipe_tower.set_accelerations(m_default_object_config.default_acceleration.values,
+                                         m_default_object_config.initial_layer_acceleration.values,
+                                         m_default_object_config.travel_acceleration.values,
+                                         first_layer_travel_accels);
+        }
         // Feed the has_filament_switcher device flag (develop-only dynamic key, read defensively from
         // the full config — no shipping profile sets it) and the shared printable bed used by the PETG
         // pre-extrusion offset clamp. Both are inert unless has_filament_switcher is set.
@@ -3975,14 +4101,24 @@ void Print::_make_wipe_tower()
             multi_extruder_flush.emplace_back(wipe_volumes);
         }
 
-        std::vector<int>filament_maps = get_filament_maps();
+        // Per-carousel-slot purge tracking via NozzleStatusRecorder (BBS pattern); the layered
+        // group result set on the tower above resolves each filament to its nozzle slot per layer.
+        MultiNozzleUtils::NozzleStatusRecorder nozzle_recorder;
 
-        std::vector<unsigned int> nozzle_cur_filament_ids(nozzle_nums, -1);
+        std::vector<int>filament_maps = get_filament_maps();
+        int layer_idx = -1;
+
         unsigned int current_filament_id = m_wipe_tower_data.tool_ordering.first_extruder();
-        size_t cur_nozzle_id = filament_maps[current_filament_id] - 1;
-        nozzle_cur_filament_ids[cur_nozzle_id] = current_filament_id;
+        // Initialize NozzleStatusRecorder with the first filament's carousel slot
+        {
+            auto nozzle = nozzle_group_result.get_nozzle_for_filament(current_filament_id, layer_idx);
+            if (nozzle)
+                nozzle_recorder.set_nozzle_status(nozzle->group_id, current_filament_id, nozzle->extruder_id);
+        }
 
         for (auto& layer_tools : m_wipe_tower_data.tool_ordering.layer_tools()) { // for all layers
+            ++layer_idx;
+
             if (!layer_tools.has_wipe_tower) continue;
             bool first_layer = &layer_tools == &m_wipe_tower_data.tool_ordering.front();
             wipe_tower.plan_toolchange((float)layer_tools.print_z, (float)layer_tools.wipe_tower_layer_height, current_filament_id, current_filament_id);
@@ -3993,30 +4129,52 @@ void Print::_make_wipe_tower()
                 if (filament_id == current_filament_id)
                     continue;
 
-                int          nozzle_id = filament_maps[filament_id] - 1;
-                unsigned int pre_filament_id = nozzle_cur_filament_ids[nozzle_id];
-
                 float volume_to_purge = 0;
-                if (pre_filament_id != (unsigned int)(-1) && pre_filament_id != filament_id) {
-                    volume_to_purge = multi_extruder_flush[nozzle_id][pre_filament_id][filament_id];
-                    // Fast purge mode uses flush_multiplier_fast; Default is inert.
-                    float flush_multiplier = (m_config.prime_volume_mode == PrimeVolumeMode::pvmFast) ? m_config.flush_multiplier_fast.get_at(nozzle_id)
-                                                                                                      : m_config.flush_multiplier.get_at(nozzle_id);
-                    volume_to_purge *= flush_multiplier;
-                    volume_to_purge = pre_filament_id == -1 ? 0 :
-                        layer_tools.wiping_extrusions().mark_wiping_extrusions(*this, current_filament_id, filament_id, volume_to_purge);
+
+                // Per-carousel-slot purge tracking via NozzleStatusRecorder
+                {
+                    auto nozzle_info = nozzle_group_result.get_nozzle_for_filament(filament_id, layer_idx);
+                    if (nozzle_info) {
+                        int extruder_id = nozzle_info->extruder_id;
+                        int nozzle_id   = nozzle_info->group_id;
+                        int prev_nozzle_filament = nozzle_recorder.get_filament_in_nozzle(nozzle_id);
+
+                        if (!nozzle_recorder.is_nozzle_empty(nozzle_id) &&
+                            static_cast<int>(filament_id) != prev_nozzle_filament) {
+                            volume_to_purge = multi_extruder_flush[extruder_id][prev_nozzle_filament][filament_id];
+                            // Fast purge mode uses flush_multiplier_fast; Default is inert.
+                            float flush_multiplier = (m_config.prime_volume_mode == PrimeVolumeMode::pvmFast)
+                                ? m_config.flush_multiplier_fast.get_at(extruder_id)
+                                : m_config.flush_multiplier.get_at(extruder_id);
+                            volume_to_purge *= flush_multiplier;
+                            volume_to_purge = layer_tools.wiping_extrusions().mark_wiping_extrusions(
+                                *this, current_filament_id, filament_id, volume_to_purge);
+                        }
+                        nozzle_recorder.set_nozzle_status(nozzle_id, filament_id, extruder_id);
+                    }
                 }
 
                 //During the filament change, the extruder will extrude an extra length of grab_length for the corresponding detection, so the purge can reduce this length.
-                float grab_purge_volume = m_config.grab_length.get_at(nozzle_id) * 2.4; //(diameter/2)^2*PI=2.4
+                int grab_extruder_id = filament_maps[filament_id] - 1;
+                float grab_purge_volume = m_config.grab_length.get_at(grab_extruder_id) * 2.4; //(diameter/2)^2*PI=2.4
                 volume_to_purge = std::max(0.f, volume_to_purge - grab_purge_volume);
 
-                // Saving mode reduces the prime volume to 15 mm3; Default is inert.
-                float prime_volume = (m_config.prime_volume_mode == PrimeVolumeMode::pvmSaving) ? 15.f : (float) m_config.prime_volume;
+                // Prime volume per-filament: the tower now picks extruder-change vs nozzle-change
+                // (carousel) internally per plan layer, so pass both candidates (BBS pattern).
+                float wipe_volume_ec = filament_id < m_config.filament_prime_volume.values.size()
+                    ? m_config.filament_prime_volume.values[filament_id]
+                    : (float) m_config.prime_volume;
+                float wipe_volume_nc = filament_id < m_config.filament_prime_volume_nc.values.size()
+                    ? m_config.filament_prime_volume_nc.values[filament_id]
+                    : (float) m_config.prime_volume;
+                if (m_config.prime_volume_mode == PrimeVolumeMode::pvmSaving) {
+                    wipe_volume_ec = 15.f;
+                    wipe_volume_nc = 15.f;
+                }
+
                 wipe_tower.plan_toolchange((float)layer_tools.print_z, (float)layer_tools.wipe_tower_layer_height, current_filament_id, filament_id,
-                    prime_volume, volume_to_purge);
+                    wipe_volume_ec, wipe_volume_nc, volume_to_purge);
                 current_filament_id = filament_id;
-                nozzle_cur_filament_ids[nozzle_id] = filament_id;
             }
             layer_tools.wiping_extrusions().ensure_perimeters_infills_order(*this);
 
@@ -4049,6 +4207,7 @@ void Print::_make_wipe_tower()
 
         // Unload the current filament over the purge tower.
         coordf_t layer_height = m_objects.front()->config().layer_height.value;
+        bool generate_final_purge = true;
         if (m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions > 0) {
             // The wipe tower goes up to the last layer of the print.
             if (wipe_tower.layer_finished()) {
@@ -4060,11 +4219,14 @@ void Print::_make_wipe_tower()
                 // There is yet enough space at this layer of the wipe tower for the final purge.
             }
         } else {
-            // The wipe tower does not reach the last print layer, perform the pruge at the last print layer.
+            // The wipe tower does not reach the last print layer.
+            // Skip final purge to avoid generating purge lines in mid-air.
             assert(m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions == 0);
-            wipe_tower.set_layer(float(m_wipe_tower_data.tool_ordering.back().print_z), float(layer_height), 0, false, true);
+            generate_final_purge = false;
         }
-        m_wipe_tower_data.final_purge = Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int) (-1)));
+        m_wipe_tower_data.final_purge = generate_final_purge
+            ? Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int)(-1)))
+            : Slic3r::make_unique<WipeTower::ToolChangeResult>();
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
@@ -4160,6 +4322,7 @@ void Print::_make_wipe_tower()
 
         // Unload the current filament over the purge tower.
         coordf_t layer_height = m_objects.front()->config().layer_height.value;
+        bool generate_final_purge = true;
         if (m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions > 0) {
             // The wipe tower goes up to the last layer of the print.
             if (wipe_tower.layer_finished()) {
@@ -4171,11 +4334,14 @@ void Print::_make_wipe_tower()
                 // There is yet enough space at this layer of the wipe tower for the final purge.
             }
         } else {
-            // The wipe tower does not reach the last print layer, perform the pruge at the last print layer.
+            // The wipe tower does not reach the last print layer.
+            // Skip final purge to avoid generating purge lines in mid-air.
             assert(m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions == 0);
-            wipe_tower.set_layer(float(m_wipe_tower_data.tool_ordering.back().print_z), float(layer_height), 0, false, true);
+            generate_final_purge = false;
         }
-        m_wipe_tower_data.final_purge = Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int) (-1)));
+        m_wipe_tower_data.final_purge = generate_final_purge
+            ? Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int)(-1)))
+            : Slic3r::make_unique<WipeTower::ToolChangeResult>();
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
@@ -4185,7 +4351,12 @@ void Print::_make_wipe_tower()
                                          wipe_tower.get_rib_width(), wipe_tower.get_rib_length(),
                                          config().wipe_tower_fillet_wall.value);
         const Vec3d origin                      = Vec3d::Zero();
-        m_fake_wipe_tower.set_fake_extrusion_data(wipe_tower.position(), wipe_tower.width(), wipe_tower.get_wipe_tower_height(),
+        // FakeWipeTower::pos is a bed-frame translation applied after rotation
+        // (getFakeExtrusionPathsFromWipeTower2 rotates about the local origin), so the
+        // tower-local rib offset must be rotated into the bed frame first.
+        m_fake_wipe_tower.rib_offset = Eigen::Rotation2Df(Geometry::deg2rad((float)config().wipe_tower_rotation_angle.value)) *
+                                       wipe_tower.get_rib_offset();
+        m_fake_wipe_tower.set_fake_extrusion_data(wipe_tower.position() + m_fake_wipe_tower.rib_offset, wipe_tower.width(), wipe_tower.get_wipe_tower_height(),
                                                   config().initial_layer_print_height, m_wipe_tower_data.depth,
                                                   m_wipe_tower_data.z_and_depth_pairs, m_wipe_tower_data.brim_width,
                                                   config().wipe_tower_rotation_angle, config().wipe_tower_cone_angle,

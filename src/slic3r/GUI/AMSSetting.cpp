@@ -272,7 +272,7 @@ void AMSSetting::create()
     m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(10));
     m_sizer_main->Add(m_static_ams_settings, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(24));
     m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(10));
-    m_sizer_main->Add(m_panel_body, 1, wxBottom | wxLEFT | wxRIGHT | wxEXPAND, FromDIP(24));
+    m_sizer_main->Add(m_panel_body, 1, wxBOTTOM | wxLEFT | wxRIGHT | wxEXPAND, FromDIP(24)); // Orca: wxBOTTOM (REF uses the wxEdge enum by mistake)
 
     this->SetSizer(m_sizer_main);
     this->Layout();
@@ -644,7 +644,7 @@ void AMSSettingTypePanel::Update(const MachineObject* obj)
     }
 
     if (ptr->IsSwitching())  {
-        int display_percent = obj->get_upgrade_percent();
+        int display_percent = obj->get_upgrade_percent(); // Orca: read upgrade progress via the kept MachineObject accessor
         if (display_percent == 100 || display_percent == 0) {
             display_percent = 1;// special case, sometimes it's switching but percent is 0 or 100
         }
@@ -735,6 +735,7 @@ void AMSSettingTypePanel::OnAmsTypeChanged(wxCommandEvent& event)
     event.Skip();
 }
 
+// Orca: AMSSettingArrangeAMSOrder impl kept compiled-out (feature intentionally not shipped).
 #if 0 /*used option*/
 AMSSettingArrangeAMSOrder::AMSSettingArrangeAMSOrder(wxWindow* parent)
     : wxPanel(parent)

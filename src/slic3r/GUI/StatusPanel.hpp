@@ -556,6 +556,7 @@ protected:
     wxStaticBitmap *m_filament_load_img;
 
     Button *m_button_retry {nullptr};
+    Button *m_fila_change_abort {nullptr}; // Orca: filament-change Stop button
     StaticBox* m_filament_load_box;
 
     // Virtual event handlers, override them in your derived class

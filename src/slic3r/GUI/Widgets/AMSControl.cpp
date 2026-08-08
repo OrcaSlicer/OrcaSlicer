@@ -145,6 +145,8 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     m_button_ams_setting_press = ScalableBitmap(this, "ams_setting_press", 24);
 
     m_button_ams_setting = new wxStaticBitmap(m_panel_option_left, wxID_ANY, m_button_ams_setting_normal.bmp(), wxDefaultPosition, wxSize(FromDIP(24), FromDIP(24)));
+    m_button_ams_setting->SetMinSize(wxSize(FromDIP(24), FromDIP(24)));
+    m_button_ams_setting->SetMaxSize(wxSize(FromDIP(24), FromDIP(24)));
     m_sizer_option_left->Add(m_button_auto_refill, 0, wxALIGN_CENTER, 0);
     m_sizer_option_left->Add(0, 0, 0, wxLEFT, FromDIP(20));
     m_sizer_option_left->Add(m_button_ams_setting, 0, wxALIGN_CENTER, 0);
@@ -332,7 +334,8 @@ std::string AMSControl::GetCurrentCan(std::string amsid)
 
 bool AMSControl::IsAmsInRightPanel(std::string ams_id) {
     if (m_total_ext_count == 2){
-        if (m_ams_item_list.find(ams_id) != m_ams_item_list.end() && m_ams_item_list[ams_id]->get_nozzle_id() == MAIN_EXTRUDER_ID) {
+        // Orca: inlet-aware panel routing (see AMSinfo::routes_to_main_extruder)
+        if (m_ams_item_list.find(ams_id) != m_ams_item_list.end() && m_ams_item_list[ams_id]->routes_to_main_extruder()) {
             return true;
         }
         else{
@@ -602,30 +605,32 @@ void AMSControl::CreateAmsDoubleNozzle(const std::string &series_name, const std
     std::vector<AMSinfo> single_info_right;
 
     //Freeze();
+    // Orca: place each AMS by its switch inlet when a Filament Track Switch is installed, else by the pinned
+    // nozzle_id (routes_to_main_extruder). Switch-less machines are unaffected; ext spools keep nozzle_id.
     for (auto ams_info = m_ams_info.begin(); ams_info != m_ams_info.end(); ams_info++){
         if (ams_info->cans.size() == GENERIC_AMS_SLOT_NUM){
-            ams_info->nozzle_id == MAIN_EXTRUDER_ID ? m_item_ids[MAIN_EXTRUDER_ID].push_back(ams_info->ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(ams_info->ams_id);
+            ams_info->routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(ams_info->ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(ams_info->ams_id);
             AddAmsPreview(*ams_info, ams_info->ams_type);
             AddAms(*ams_info);
         }
         else if (ams_info->cans.size() == 1){
 
-            if (ams_info->nozzle_id == MAIN_EXTRUDER_ID){
+            if (ams_info->routes_to_main_extruder()){
                 single_info_right.push_back(*ams_info);
                 if (single_info_right.size() == 2){
-                    single_info_right[0].nozzle_id == MAIN_EXTRUDER_ID ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[0].ams_id);
-                    single_info_right[1].nozzle_id == MAIN_EXTRUDER_ID ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[1].ams_id);
+                    single_info_right[0].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[0].ams_id);
+                    single_info_right[1].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[1].ams_id);
                     AddAms(single_info_right, series_name, printer_type);
                     AddAmsPreview(single_info_right, AMSPanelPos::RIGHT_PANEL);
                     pair_id.push_back(std::make_pair(single_info_right[0].ams_id, single_info_right[1].ams_id));
                     single_info_right.clear();
                 }
             }
-            else if (ams_info->nozzle_id == 1){
+            else if (!ams_info->routes_to_main_extruder()){
                 single_info_left.push_back(*ams_info);
                 if (single_info_left.size() == 2){
-                    single_info_left[0].nozzle_id == MAIN_EXTRUDER_ID ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[0].ams_id);
-                    single_info_left[1].nozzle_id == MAIN_EXTRUDER_ID ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[1].ams_id);
+                    single_info_left[0].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[0].ams_id);
+                    single_info_left[1].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[1].ams_id);
                     AddAms(single_info_left, series_name, printer_type);
                     AddAmsPreview(single_info_left, AMSPanelPos::LEFT_PANEL);
                     pair_id.push_back(std::make_pair(single_info_left[0].ams_id, single_info_left[1].ams_id));
@@ -650,9 +655,9 @@ void AMSControl::CreateAmsDoubleNozzle(const std::string &series_name, const std
     //wait add
 
 
-    single_info_right[0].nozzle_id == MAIN_EXTRUDER_ID ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[0].ams_id);
+    single_info_right[0].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[0].ams_id);
     if (single_info_right.size() == 2){
-        single_info_right[1].nozzle_id == MAIN_EXTRUDER_ID ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[1].ams_id);
+        single_info_right[1].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_right[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_right[1].ams_id);
         pair_id.push_back(std::make_pair(single_info_right[0].ams_id, single_info_right[1].ams_id));
     }
     AddAms(single_info_right, series_name, printer_type);
@@ -667,9 +672,9 @@ void AMSControl::CreateAmsDoubleNozzle(const std::string &series_name, const std
         }
     }
     //wait add
-    single_info_left[0].nozzle_id == MAIN_EXTRUDER_ID ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[0].ams_id);
+    single_info_left[0].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[0].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[0].ams_id);
     if (single_info_left.size() == 2){
-        single_info_left[1].nozzle_id == MAIN_EXTRUDER_ID ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[1].ams_id);
+        single_info_left[1].routes_to_main_extruder() ? m_item_ids[MAIN_EXTRUDER_ID].push_back(single_info_left[1].ams_id) : m_item_ids[DEPUTY_EXTRUDER_ID].push_back(single_info_left[1].ams_id);
         pair_id.push_back(std::make_pair(single_info_left[0].ams_id, single_info_left[1].ams_id));
     }
     AddAmsPreview(single_info_left, AMSPanelPos::LEFT_PANEL);
@@ -924,6 +929,7 @@ void AMSControl::UpdateAms(const std::string   &series_name,
                            std::vector<AMSinfo> ext_info,
                            DevExtderSystem           data,
                            std::string          dev_id,
+                           MachineObject*       obj,
                            bool                 is_reset,
                            bool                 test)
 {
@@ -939,7 +945,9 @@ void AMSControl::UpdateAms(const std::string   &series_name,
                     fresh = true;
                 }
 
-                if (m_ams_info[i].nozzle_id != ams_info[i].nozzle_id) {
+                // Orca: rebuild when the panel assignment changes; inlet-aware so a Filament Track Switch
+                // re-plug (same pinned nozzle_id, different inlet) still refreshes placement.
+                if (m_ams_info[i].routes_to_main_extruder() != ams_info[i].routes_to_main_extruder()) {
                     fresh = true;
                 }
             }
@@ -988,6 +996,18 @@ void AMSControl::UpdateAms(const std::string   &series_name,
                         cans->show_sn_value(m_ams_model == AMSModel::AMS_LITE ? false : true);
                     }
                 }
+            }
+        }
+
+        // 2D mode (laser/cut) makes every spool view-only: show the read-only (eye) icon while the spool
+        // stays clickable to open the read-only filament dialog.
+        // Orca: gated on the device mode via MachineObject::is_fdm_type(); obj is null for callers that do
+        // not supply it, leaving spools editable.
+        const bool view_only = obj && !obj->is_fdm_type();
+        for (auto ams_item : m_ams_item_list) {
+            if (ams_item.second == nullptr) { continue; }
+            for (auto lib_it : ams_item.second->get_can_lib_list()) {
+                if (lib_it.second) { lib_it.second->set_view_only(view_only); }
             }
         }
 
@@ -1057,12 +1077,12 @@ void AMSControl::AddAmsPreview(AMSinfo info, AMSModel type)
 {
     AMSPreview *ams_prv = nullptr;
 
-    if (info.nozzle_id == MAIN_EXTRUDER_ID)
+    if (info.routes_to_main_extruder())
     {
         ams_prv = new AMSPreview(m_panel_prv_right, wxID_ANY, info, type);
         m_sizer_prv_right->Add(ams_prv, 0, wxALIGN_CENTER | wxLEFT, FromDIP(6));
     }
-    else if (info.nozzle_id == DEPUTY_EXTRUDER_ID)
+    else if (!info.routes_to_main_extruder())
     {
         ams_prv = new AMSPreview(m_panel_prv_left, wxID_ANY, info, type);
         m_sizer_prv_left->Add(ams_prv, 0, wxALIGN_CENTER | wxLEFT, FromDIP(6));
@@ -1180,10 +1200,10 @@ void AMSControl::createAmsPanel(wxSimplebook *parent, int &idx, std::vector<AMSi
 void AMSControl::AddAms(AMSinfo info, AMSPanelPos pos)
 {
     if (m_total_ext_count > 1){
-        if (info.nozzle_id == MAIN_EXTRUDER_ID){
+        if (info.routes_to_main_extruder()){
             createAms(m_simplebook_ams_right, m_right_page_index, info, AMSPanelPos::RIGHT_PANEL);
         }
-        else if (info.nozzle_id == DEPUTY_EXTRUDER_ID){
+        else if (!info.routes_to_main_extruder()){
             createAms(m_simplebook_ams_left, m_left_page_index, info, AMSPanelPos::LEFT_PANEL);
         }
     }
@@ -1221,10 +1241,10 @@ void AMSControl::AddAms(std::vector<AMSinfo> single_info, const std::string &ser
         return;
     }
     if (m_total_ext_count == 2) {
-        if (single_info[0].nozzle_id == MAIN_EXTRUDER_ID) {
+        if (single_info[0].routes_to_main_extruder()) {
             createAmsPanel(m_simplebook_ams_right, m_right_page_index, single_info, series_name, printer_type, AMSPanelPos::RIGHT_PANEL, m_total_ext_count);
         }
-        else if (single_info[0].nozzle_id == DEPUTY_EXTRUDER_ID) {
+        else if (!single_info[0].routes_to_main_extruder()) {
             createAmsPanel(m_simplebook_ams_left, m_left_page_index, single_info, series_name, printer_type, AMSPanelPos::LEFT_PANEL, m_total_ext_count);
         }
     }

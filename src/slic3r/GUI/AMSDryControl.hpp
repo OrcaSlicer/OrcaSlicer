@@ -6,7 +6,7 @@
 
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
-#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/I18N.hpp" // Orca: explicit _L() catalog include
 
 #include <chrono>
 #include <optional>

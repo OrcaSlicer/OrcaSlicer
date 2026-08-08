@@ -26,11 +26,19 @@ int BBLPrinterAgent::send_message(std::string dev_id, std::string json_str, int 
     auto agent = plugin.get_agent();
     auto func = plugin.get_send_message();
     if (func && agent) {
-        if (plugin.use_legacy_network()) {
+        // Only the legacy plug-in lacks `flag`; 02.03.00 already takes it, and routing that
+        // series through the legacy form would silently drop MessageFlag sign/encrypt.
+        switch (plugin.network_abi()) {
+        case NetworkAbi::Legacy: {
             auto legacy_func = reinterpret_cast<func_send_message_legacy>(func);
-            return legacy_func(agent, dev_id, json_str, qos);
+            return legacy_func(agent, std::move(dev_id), std::move(json_str), qos);
         }
-        return func(agent, dev_id, json_str, qos, flag);
+        case NetworkAbi::V0203:
+        case NetworkAbi::Current:
+            return func(agent, std::move(dev_id), std::move(json_str), qos, flag);
+        default:
+            return -1;
+        }
     }
     return -1;
 }
@@ -63,11 +71,17 @@ int BBLPrinterAgent::send_message_to_printer(std::string dev_id, std::string jso
     auto agent = plugin.get_agent();
     auto func = plugin.get_send_message_to_printer();
     if (func && agent) {
-        if (plugin.use_legacy_network()) {
+        switch (plugin.network_abi()) {
+        case NetworkAbi::Legacy: {
             auto legacy_func = reinterpret_cast<func_send_message_to_printer_legacy>(func);
-            return legacy_func(agent, dev_id, json_str, qos);
+            return legacy_func(agent, std::move(dev_id), std::move(json_str), qos);
         }
-        return func(agent, dev_id, json_str, qos, flag);
+        case NetworkAbi::V0203:
+        case NetworkAbi::Current:
+            return func(agent, std::move(dev_id), std::move(json_str), qos, flag);
+        default:
+            return -1;
+        }
     }
     return -1;
 }
@@ -138,13 +152,25 @@ int BBLPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link, detec
     return -1;
 }
 
-int BBLPrinterAgent::bind(std::string dev_ip, std::string dev_id, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn)
+int BBLPrinterAgent::bind(std::string dev_ip, std::string dev_id, std::string dev_model, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn)
 {
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_bind();
     if (func && agent) {
-        return func(agent, dev_ip, dev_id, sec_link, timezone, improved, update_fn);
+        // dev_model was added in 02.08.01. Passing it to a plug-in that takes the 7-argument
+        // form shifts every following argument, so the older generations get the older call.
+        switch (plugin.network_abi()) {
+        case NetworkAbi::Legacy:
+        case NetworkAbi::V0203: {
+            auto older_func = reinterpret_cast<func_bind_pre0208>(func);
+            return older_func(agent, dev_ip, dev_id, sec_link, timezone, improved, update_fn);
+        }
+        case NetworkAbi::Current:
+            return func(agent, dev_ip, dev_id, dev_model, sec_link, timezone, improved, update_fn);
+        default:
+            return -1;
+        }
     }
     return -1;
 }
@@ -167,6 +193,19 @@ int BBLPrinterAgent::request_bind_ticket(std::string* ticket)
     auto func = plugin.get_request_bind_ticket();
     if (func && agent) {
         return func(agent, ticket);
+    }
+    return -1;
+}
+
+int BBLPrinterAgent::get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback)
+{
+    auto& plugin = BBLNetworkPlugin::instance();
+    auto agent = plugin.get_agent();
+    auto func = plugin.get_get_hms_snapshot();
+    // dev_id/file_name are passed as lvalues to bind the plugin's std::string& params.
+    // A null func (older plugin without this symbol) falls through to -1 so callers degrade gracefully.
+    if (func && agent) {
+        return func(agent, dev_id, file_name, callback);
     }
     return -1;
 }
@@ -268,84 +307,62 @@ AgentInfo BBLPrinterAgent::get_agent_info_static()
 // Print Job Operations
 // ============================================================================
 
-int BBLPrinterAgent::start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
+namespace {
+
+// Shared dispatcher for the start_* operations, whose params layout differs per generation.
+// The per-generation typedefs are template arguments so a swapped pair fails to compile
+// (each arm's converted params must match the casted signature). Each arm converts and calls
+// in one step: as_legacy()/as_0203() move out of `params` and their prvalue result lands in
+// the by-value ABI argument without another copy; the Current arm moves `params` outright.
+template <typename LegacyFn, typename Fn0203, typename CurrentFn, typename... CallbackFns>
+int dispatch_start(CurrentFn func, PrintParams& params, const CallbackFns&... callbacks)
 {
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
-    auto func = plugin.get_start_print();
-    if (func && agent) {
-        if (plugin.use_legacy_network()) {
-            auto legacy_func = reinterpret_cast<func_start_print_legacy>(func);
-            auto legacy_params = BBLNetworkPlugin::as_legacy(params);
-            return legacy_func(agent, legacy_params, update_fn, cancel_fn, wait_fn);
-        }
-        return func(agent, params, update_fn, cancel_fn, wait_fn);
+    if (!func || !agent)
+        return -1;
+    switch (plugin.network_abi()) {
+    case NetworkAbi::Legacy:
+        return reinterpret_cast<LegacyFn>(func)(agent, BBLNetworkPlugin::as_legacy(params), callbacks...);
+    case NetworkAbi::V0203:
+        return reinterpret_cast<Fn0203>(func)(agent, BBLNetworkPlugin::as_0203(params), callbacks...);
+    case NetworkAbi::Current:
+        return func(agent, std::move(params), callbacks...);
+    default:
+        return -1;
     }
-    return -1;
+}
+
+} // namespace
+
+int BBLPrinterAgent::start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
+{
+    return dispatch_start<func_start_print_legacy, func_start_print_0203>(
+        BBLNetworkPlugin::instance().get_start_print(), params, update_fn, cancel_fn, wait_fn);
 }
 
 int BBLPrinterAgent::start_local_print_with_record(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
-    auto& plugin = BBLNetworkPlugin::instance();
-    auto agent = plugin.get_agent();
-    auto func = plugin.get_start_local_print_with_record();
-    if (func && agent) {
-        if (plugin.use_legacy_network()) {
-            auto legacy_func = reinterpret_cast<func_start_local_print_with_record_legacy>(func);
-            auto legacy_params = BBLNetworkPlugin::as_legacy(params);
-            return legacy_func(agent, legacy_params, update_fn, cancel_fn, wait_fn);
-        }
-        return func(agent, params, update_fn, cancel_fn, wait_fn);
-    }
-    return -1;
+    return dispatch_start<func_start_local_print_with_record_legacy, func_start_local_print_with_record_0203>(
+        BBLNetworkPlugin::instance().get_start_local_print_with_record(), params, update_fn, cancel_fn, wait_fn);
 }
 
 int BBLPrinterAgent::start_send_gcode_to_sdcard(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
-    auto& plugin = BBLNetworkPlugin::instance();
-    auto agent = plugin.get_agent();
-    auto func = plugin.get_start_send_gcode_to_sdcard();
-    if (func && agent) {
-        if (plugin.use_legacy_network()) {
-            auto legacy_func = reinterpret_cast<func_start_send_gcode_to_sdcard_legacy>(func);
-            auto legacy_params = BBLNetworkPlugin::as_legacy(params);
-            return legacy_func(agent, legacy_params, update_fn, cancel_fn, wait_fn);
-        }
-        return func(agent, params, update_fn, cancel_fn, wait_fn);
-    }
-    return -1;
+    return dispatch_start<func_start_send_gcode_to_sdcard_legacy, func_start_send_gcode_to_sdcard_0203>(
+        BBLNetworkPlugin::instance().get_start_send_gcode_to_sdcard(), params, update_fn, cancel_fn, wait_fn);
 }
 
 int BBLPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
 {
-    auto& plugin = BBLNetworkPlugin::instance();
-    auto agent = plugin.get_agent();
-    auto func = plugin.get_start_local_print();
-    if (func && agent) {
-        if (plugin.use_legacy_network()) {
-            auto legacy_func = reinterpret_cast<func_start_local_print_legacy>(func);
-            auto legacy_params = BBLNetworkPlugin::as_legacy(params);
-            return legacy_func(agent, legacy_params, update_fn, cancel_fn);
-        }
-        return func(agent, params, update_fn, cancel_fn);
-    }
-    return -1;
+    return dispatch_start<func_start_local_print_legacy, func_start_local_print_0203>(
+        BBLNetworkPlugin::instance().get_start_local_print(), params, update_fn, cancel_fn);
 }
 
 int BBLPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
 {
-    auto& plugin = BBLNetworkPlugin::instance();
-    auto agent = plugin.get_agent();
-    auto func = plugin.get_start_sdcard_print();
-    if (func && agent) {
-        if (plugin.use_legacy_network()) {
-            auto legacy_func = reinterpret_cast<func_start_sdcard_print_legacy>(func);
-            auto legacy_params = BBLNetworkPlugin::as_legacy(params);
-            return legacy_func(agent, legacy_params, update_fn, cancel_fn);
-        }
-        return func(agent, params, update_fn, cancel_fn);
-    }
-    return -1;
+    return dispatch_start<func_start_sdcard_print_legacy, func_start_sdcard_print_0203>(
+        BBLNetworkPlugin::instance().get_start_sdcard_print(), params, update_fn, cancel_fn);
 }
 
 // ============================================================================

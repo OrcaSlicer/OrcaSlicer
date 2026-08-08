@@ -8,5 +8,8 @@
 	"filament_max_volumetric_speed": [
 		"20"
 	],
+	"filament_multitool_ramming_flow": [
+		"20"
+	],
 	"compatible_printers": []
 }

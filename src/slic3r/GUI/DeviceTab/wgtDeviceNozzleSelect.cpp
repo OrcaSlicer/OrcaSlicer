@@ -6,14 +6,15 @@
 //**********************************************************/
 
 #include "wgtDeviceNozzleSelect.h"
-#include "wgtDeviceNozzleRackNozzleItem.h" // the nozzle-item widget lives in its own header
+#include "wgtDeviceNozzleRack.h"
 
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/DeviceTab/wgtMsgBox.h"
-#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp" // Orca: explicit Label include
 
 static wxColour s_gray_clr("#B0B0B0");
-static wxColour s_hgreen_clr("#009688");
+static wxColour s_hgreen_clr("#009688"); // Orca: accent green
 static wxColour s_red_clr("#D01B1B");
 
 static std::vector<int> a_nozzle_seq = {16, 18, 20, 17, 19, 21};
@@ -28,6 +29,7 @@ wgtDeviceNozzleRackSelect::wgtDeviceNozzleRackSelect(wxWindow *parent) : wxPanel
 static wxPanel* s_create_title(wxWindow *parent, const wxString& text)
 {
     wxPanel *panel = new wxPanel(parent, wxID_ANY);
+    panel->SetBackgroundColour(*wxWHITE);
 
     auto title  = new Label(panel, text);
     title->SetFont(::Label::Body_13);
@@ -35,7 +37,7 @@ static wxPanel* s_create_title(wxWindow *parent, const wxString& text)
     title->SetForegroundColour(0x909090);
 
     auto split_line = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-    split_line->SetBackgroundColour(0xeeeeee);
+    split_line->SetBackgroundColour(wxColour(0xEE, 0xEE, 0xEE));
     split_line->SetMinSize(wxSize(-1, 1));
     split_line->SetMaxSize(wxSize(-1, 1));
 
@@ -104,6 +106,8 @@ void wgtDeviceNozzleRackSelect::CreateGui()
     SetSizer(main_sizer);
     Layout();
     Fit();
+
+    wxGetApp().UpdateDarkUIWin(this);
 }
 
 static void s_update_nozzle_info(wgtDeviceNozzleRackNozzleItem* item,
@@ -132,7 +136,7 @@ void wgtDeviceNozzleRackSelect::UpdateNozzleInfos(std::shared_ptr<DevNozzleRack>
     }
 }
 
-static void s_enable_item_if_match(wgtDeviceNozzleRackNozzleItem* item,
+static void s_enable_item_if_match(wgtDeviceNozzleRackNozzleItem* item, 
                                    const DevNozzle& nozzle_info,
                                    const DevNozzle& selected_nozzle)
 {
@@ -214,7 +218,7 @@ void wgtDeviceNozzleRackSelect::UpdatSelectedNozzles(std::shared_ptr<DevNozzleRa
     }
 }
 
-void wgtDeviceNozzleRackSelect::ClearSelection()
+void wgtDeviceNozzleRackSelect::ClearSelection() 
 {
     m_selected_nozzle = DevNozzle();
     m_toolhead_nozzle_l->SetSelected(false);

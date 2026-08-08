@@ -231,6 +231,17 @@ bool ProgressDialog::Create(const wxString &title, const wxString &message, int 
         m_sizer_main->Add(m_gauge, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(28));
     }
 
+    // Optional elapsed/estimated/remaining time labels, created only when the
+    // caller opts in via the wxPD_*_TIME style flags (so callers that don't set
+    // them are unaffected). Update()/Pulse() already refresh these once non-null.
+    if (HasPDFlag(wxPD_ELAPSED_TIME | wxPD_ESTIMATED_TIME | wxPD_REMAINING_TIME)) {
+        wxFlexGridSizer *sizer_times = new wxFlexGridSizer(2, FromDIP(2), FromDIP(8));
+        if (HasPDFlag(wxPD_ELAPSED_TIME))   m_elapsed   = CreateLabel(GetElapsedLabel(), sizer_times);
+        if (HasPDFlag(wxPD_ESTIMATED_TIME)) m_estimated = CreateLabel(GetEstimatedLabel(), sizer_times);
+        if (HasPDFlag(wxPD_REMAINING_TIME)) m_remaining = CreateLabel(GetRemainingLabel(), sizer_times);
+        m_sizer_main->Add(sizer_times, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP | wxLEFT | wxRIGHT, FromDIP(12));
+    }
+
 #ifdef __WXMSW__
     //m_block_left = new wxWindow(m_gauge, wxID_ANY, wxPoint(0, 0), wxSize(FromDIP(2), PROGRESSDIALOG_GAUGE_SIZE.y * 2));
     //m_block_left->SetBackgroundColour(PROGRESSDIALOG_DEF_BK);
@@ -489,6 +500,14 @@ wxStaticText *ProgressDialog::CreateLabel(const wxString &text, wxSizer *sizer)
 {
     wxStaticText *label = new wxStaticText(this, wxID_ANY, text);
     wxStaticText *value = new wxStaticText(this, wxID_ANY, wxGetTranslation("unknown"));
+
+    // Match the message label's look so the times theme with the rest of the
+    // dialog: PROGRESSDIALOG_GREY_700 is a key in the dark-mode colour map, so
+    // UpdateDlgDarkUI() (called at the end of Create()) remaps it in dark mode.
+    for (wxStaticText *st : {label, value}) {
+        st->SetFont(::Label::Body_13);
+        st->SetForegroundColour(PROGRESSDIALOG_GREY_700);
+    }
 
     // select placement most native or nice on target GUI
 #if defined(__WXMSW__) || defined(__WXMAC__) || defined(__WXGTK20__)

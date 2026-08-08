@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Terminal</title>
+  <link rel="stylesheet" href="../../include/xterm/xterm.css" />
+  <link rel="stylesheet" type="text/css" href="../../include/global.css" />
+  <link rel="stylesheet" type="text/css" href="../css/common.css" />
+  <link rel="stylesheet" type="text/css" href="../css/theme.css" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script type="text/javascript" src="../js/jquery-3.6.0.min.js"></script>
+  <script type="text/javascript" src="../js/json2.js"></script>
+  <script type="text/javascript" src="../../data/text.js"></script>
+  <script type="text/javascript" src="../js/globalapi.js"></script>
+  <script type="text/javascript" src="../../include/xterm/xterm.js"></script>
+  <script type="text/javascript" src="../../include/xterm/xterm-addon-fit.js"></script>
+  <script src="./index.js"></script>
+</head>
+<body onLoad="OnInit()">
+  <div class="app">
+    <div id="terminal-container"></div>
+    <div class="input-row">
+      <input type="text" id="cmd-input" placeholder="python ... or uv ..." />
+      <button id="run-btn">Run</button>
+    </div>
+  </div>
+</body>
+</html>

@@ -2,6 +2,7 @@
 #define slic3r_Config_hpp_
 
 #include <assert.h>
+#include <algorithm>
 #include <map>
 #include <climits>
 #include <cfloat>
@@ -9,6 +10,7 @@
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -779,10 +781,14 @@ public:
                 this->values[i] = rhs_vec->values[i];
                 modified        = true;
             } else {
-                if ((i < default_index.size()) && (default_index[i] < default_value.size()))
+                // Orca: a negative slot (failed variant lookup) must not silently collapse the
+                // whole array to the first slot's value — the int-vs-size_t comparison used to
+                // promote -1 past the bounds check. Keep the slot's own value (get_at-style
+                // clamp) when no valid index is available.
+                if ((i < default_index.size()) && (default_index[i] >= 0) && (size_t(default_index[i]) < default_value.size()))
                     this->values[i] = default_value[default_index[i]];
                 else
-                    this->values[i] = default_value[0];
+                    this->values[i] = default_value[std::min(i, default_value.size() - 1)];
             }
         }
         return modified;
@@ -2105,6 +2111,11 @@ public:
             throw ConfigurationError("ConfigOptionEnumGeneric: Assigning an incompatible type");
         // rhs could be of the following type: ConfigOptionEnumGeneric or ConfigOptionEnum<T>
         this->value = rhs->getInt();
+        // Orca: options embedded in a StaticPrintConfig are constructed without a keys_map;
+        // adopt the source's so a later serialize() can emit names.
+        if (this->keys_map == nullptr)
+            if (auto rhs_generic = dynamic_cast<const ConfigOptionEnumGeneric *>(rhs))
+                this->keys_map = rhs_generic->keys_map;
     }
 
     std::string serialize() const override
@@ -2161,7 +2172,12 @@ public:
         if (rhs->type() != this->type())
             throw ConfigurationError("ConfigOptionEnumGeneric: Assigning an incompatible type");
         // rhs could be of the following type: ConfigOptionEnumsGeneric
-        this->values = dynamic_cast<const ConfigOptionEnumsGenericTempl *>(rhs)->values;
+        auto rhs_enums = dynamic_cast<const ConfigOptionEnumsGenericTempl *>(rhs);
+        this->values = rhs_enums->values;
+        // Orca: options embedded in a StaticPrintConfig are constructed without a keys_map;
+        // adopt the source's so a later serialize() emits names instead of empty tokens.
+        if (this->keys_map == nullptr)
+            this->keys_map = rhs_enums->keys_map;
     }
 
     std::string serialize() const override
@@ -2254,6 +2270,11 @@ public:
         legend,
         // Vector value, but edited as a single string.
         one_string,
+        plugin_picker,
+        // Raw JSON string value, edited through a dialog behind a button rather than in the row.
+        plugin_config,
+        // PrinterAgentChoice
+        printer_agent_select,
     };
 
 	// Identifier of this option. It is stored here so that it is accessible through the by_serialization_key_ordinal map.
@@ -2470,6 +2491,13 @@ public:
     // "serialized" - vector valued option is entered in a single edit field. Values are separated by a semicolon.
     // "show_value" - even if enum_values / enum_labels are set, still display the value, not the enum label.
     std::string                         gui_flags;
+    // Capability type of a plugin-backed option, e.g. "slicing-pipeline" / "printer-connection"
+    // (empty for ordinary options). GUIType::plugin_picker filters the plugin list by it, and it
+    // resolves the option's "plugins" manifest reference; see is_plugin_backed().
+    std::string                         plugin_type;
+    // Whether this option holds plugin capability name(s) that feed the "plugins" manifest -- true
+    // iff it declares a plugin_type. Setting plugin_type is the only step needed to add one.
+    bool is_plugin_backed() const { return !plugin_type.empty(); }
     // Label of the GUI input field.
     // In case the GUI input fields are grouped in some views, the label defines a short label of a grouped value,
     // while full_label contains a label of a stand-alone field.
@@ -2783,14 +2811,29 @@ public:
     //BBS: add json support
     void save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const;
 
+    // Rebuild the in-memory "plugins" manifest (the "name;uuid;capability" references the plugin
+    // dispatchers consume) from the plugin-backed options via the registered resolver. save_to_json()
+    // derives the same manifest, but only when a preset is written to disk; a config assembled in
+    // memory for the backend (PresetBundle::full_config -> Print::apply) must refresh it here or a
+    // picked-but-unsaved plugin never resolves at slice/export time. No-op without a resolver.
+    void update_plugin_manifest();
+
 	// Set all the nullable values to nils.
     void null_nullables();
 
     static size_t load_from_gcode_string_legacy(ConfigBase& config, const char* str, ConfigSubstitutionContext& substitutions);
-
+    static void set_resolve_capability_fn(std::function<std::string(std::string, std::string)> fn) { resolve_capability_fn = fn; }
 private:
     // Set a configuration value from a string.
     bool set_deserialize_raw(const t_config_option_key& opt_key_src, const std::string& value, ConfigSubstitutionContext& substitutions, bool append);
+    void save_plugin_collection(const std::string& opt_key, const ConfigOption* opt, std::vector<std::string>& plugin_refs) const;
+    // Collect the de-duplicated "name;uuid;capability" plugin references derived from this config's
+    // plugin-backed options via the resolver. Shared by save_to_json (serializes them into the JSON
+    // manifest) and update_plugin_manifest (writes them back into the "plugins" option). Order is
+    // preserved and empties are dropped; returns empty without a resolver (CLI/headless).
+    std::vector<std::string> collect_plugin_manifest() const;
+
+    static std::function<std::string(std::string, std::string)> resolve_capability_fn;
 };
 
 // Configuration store with dynamic number of configuration values.
@@ -3026,6 +3069,15 @@ protected:
     /// Set all statically defined config options to their defaults defined by this->def().
     void set_defaults();
 };
+
+struct PluginCapabilityRef
+{
+    std::string name;
+    std::string capability_name;
+    std::string uuid;
+};
+
+std::optional<PluginCapabilityRef> parse_capability_ref(const std::string& value);
 
 }
 

@@ -2,6 +2,9 @@
 #include "CustomGCode.hpp"
 #include "I18N.hpp"
 #include "PrintConfig.hpp"
+#include "ClipperUtils.hpp"
+#include "Geometry/ArcWelder.hpp"
+#include "Line.hpp"
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
@@ -99,9 +102,87 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
     m_max_jerk_z = LIMITS(machine_max_jerk_z);
     m_max_jerk_e = LIMITS(machine_max_jerk_e);
     m_resolution = print_config.resolution.value;
-
 #undef LIMITS
 #undef LIMITS_UINT
+    // Orca: capture the printable area(s) so a spiral lift can be skipped when its
+    // circle would leave the boundary and collide with the print limits. Full polygons
+    // are stored (not a bounding box) so the check stays correct for non-rectangular
+    // beds, and per-extruder areas are kept so printers with different boundaries per
+    // extruder use the right limit for whichever extruder is active.
+    auto to_scaled_polygon = [](const Pointfs &pts) {
+        Polygon poly;
+        poly.points.reserve(pts.size());
+        for (const Vec2d &p : pts)
+            poly.points.emplace_back(coord_t(scale_(p.x())), coord_t(scale_(p.y())));
+        poly.make_counter_clockwise();
+        return poly;
+    };
+
+    m_bed_printable_area.points.clear();
+    m_extruder_printable_areas.clear();
+
+    if (print_config.printable_area.values.size() >= 3)
+        m_bed_printable_area = to_scaled_polygon(print_config.printable_area.values);
+
+    const std::vector<Pointfs> &extruder_areas = print_config.extruder_printable_area.values;
+    if (!extruder_areas.empty()) {
+        m_extruder_printable_areas.resize(extruder_areas.size());
+        for (size_t i = 0; i < extruder_areas.size(); ++i) {
+            if (extruder_areas[i].size() < 3) {
+                // No dedicated area for this extruder: it can reach the whole bed.
+                m_extruder_printable_areas[i] = m_bed_printable_area;
+                continue;
+            }
+            Polygon extruder_poly = to_scaled_polygon(extruder_areas[i]);
+            if (m_bed_printable_area.points.size() < 3) {
+                m_extruder_printable_areas[i] = std::move(extruder_poly);
+                continue;
+            }
+            // The reachable area is the extruder area clipped to the bed. Bed shapes are
+            // convex in practice, so keep the largest resulting contour.
+            Polygons clipped = intersection(extruder_poly, m_bed_printable_area);
+            const Polygon *largest = nullptr;
+            double          best_area = 0.;
+            for (const Polygon &p : clipped) {
+                double a = std::abs(p.area());
+                if (a > best_area) { best_area = a; largest = &p; }
+            }
+            m_extruder_printable_areas[i] = largest ? *largest : std::move(extruder_poly);
+        }
+    }
+}
+
+const Polygon *GCodeWriter::active_printable_area() const
+{
+    if (const Extruder *e = this->filament()) {
+        size_t id = e->extruder_id();
+        if (id < m_extruder_printable_areas.size() && m_extruder_printable_areas[id].points.size() >= 3)
+            return &m_extruder_printable_areas[id];
+    }
+    if (m_bed_printable_area.points.size() >= 3)
+        return &m_bed_printable_area;
+    return nullptr;
+}
+
+bool GCodeWriter::spiral_lift_fits_printable_area(const Vec2d &center, double radius) const
+{
+    const Polygon *area = this->active_printable_area();
+    if (area == nullptr)
+        return true; // Boundary unknown: don't restrict (preserve previous behavior).
+
+    const Point  c        = Point::new_scale(center.x(), center.y());
+    const double r_scaled = scale_(radius);
+    const double r2       = r_scaled * r_scaled;
+
+    // The spiral traces a full circle of `radius` around `center`, so the center must lie
+    // inside the printable area and every edge must be at least `radius` away from it.
+    if (!area->contains(c))
+        return false;
+    const Points &pts = area->points;
+    for (size_t i = 0, n = pts.size(); i < n; ++i)
+        if (Line::distance_to_squared(c, pts[i], pts[(i + 1) % n]) < r2)
+            return false;
+    return true;
 }
 
 void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
@@ -731,14 +812,19 @@ std::string GCodeWriter::eager_lift(const LiftType type) {
     }
 
     // BBS: spiral lift only safe with known position
-    // TODO: check the arc will move within bed area
     if (type == LiftType::SpiralLift && this->is_current_position_clear()) {
         double radius = target_lift / (2 * PI * atan(filament()->travel_slope()));
         // static spiral alignment when no move in x,y plane.
-        // spiral centra is a radius distance to the right (y=0) 
+        // spiral centra is a radius distance to the right (y=0)
         Vec2d ij_offset = { radius, 0 };
-        if (target_lift > 0) {
+        // Orca: keep the spiral inside the active extruder's printable area, otherwise
+        // fall back to a normal lift to avoid colliding with the print boundary. m_pos
+        // includes the plate offset, so remove it to match the printable area coordinates.
+        const Vec2d spiral_center = { m_pos.x() - m_x_offset + ij_offset.x(), m_pos.y() - m_y_offset + ij_offset.y() };
+        if (target_lift > 0 && this->spiral_lift_fits_printable_area(spiral_center, radius)) {
             lift_move = this->_spiral_travel_to_z(m_pos(2) + target_lift, ij_offset, "spiral lift Z");
+        } else if (target_lift > 0) {
+            lift_move = _travel_to_z(m_pos(2) + target_lift, "normal lift Z");
         }
     }
     //BBS: if position is unknown use normal lift
@@ -793,7 +879,15 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
                 double radius = delta(2) / (2 * PI * atan(this->filament()->travel_slope()));
                 Vec2d ij_offset = radius * delta_no_z.normalized();
                 ij_offset = { -ij_offset(1), ij_offset(0) };
-                slop_move = this->_spiral_travel_to_z(target(2), ij_offset, "spiral lift Z");
+                // Orca: only perform the spiral lift if its full circle stays inside the
+                // printable area of the active extruder, otherwise fall back to a normal
+                // lift to avoid colliding with the print boundary. `source` is already in
+                // bed coordinates (plate offset removed), matching the printable area.
+                const Vec2d spiral_center = { source.x() + ij_offset.x(), source.y() + ij_offset.y() };
+                if (this->spiral_lift_fits_printable_area(spiral_center, radius))
+                    slop_move = this->_spiral_travel_to_z(target(2), ij_offset, "spiral lift Z");
+                else
+                    slop_move = _travel_to_z(target.z(), "normal lift Z");
             }
             //BBS: SlopeLift
             else if (m_to_lift_type == LiftType::SlopeLift &&
@@ -925,45 +1019,48 @@ std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, c
     }
 
     if (!this->config.enable_arc_fitting) { // Orca: if arc fitting is disabled, approximate the arc with small linear segments
-        std::ostringstream oss;
         const double z_start = m_pos(2); // starting Z height
-
-        // --------------------------------------------------------------------
-        // Determine number of segments based on Resolution
-        // --------------------------------------------------------------------
-        const double ref_resolution = 0.01; // reference resolution in mm
-        const double ref_segments  = 8.0;  // reference number of segments at reference resolution
-        
-        // number of linear segments to use for approximating the arc, clamp between 4 and 16
-        const int segments = std::clamp(int(std::round(ref_segments * (ref_resolution / m_resolution))), 4, 16);
-        // --------------------------------------------------------------------
 
         const double px = m_pos(0) - m_x_offset;        // take plate offset into consideration
         const double py = m_pos(1) - m_y_offset;        // take plate offset into consideration
         const double cx = px + ij_offset(0);            // center x
         const double cy = py + ij_offset(1);            // center y
         const double radius = ij_offset.norm();         // radius
+
+        // Number of linear segments approximating the circle, chosen so that a chord never deviates
+        // from the true arc by more than the slicing resolution. A resolution of 0 means "no
+        // simplification", which has no finite segment count, so it takes the upper bound.
+        constexpr size_t min_segments = 8;              // keep a small spiral visibly round
+        constexpr size_t max_segments = 128;            // bound the emitted G-code
+        const int segments = int(m_resolution > 0. ?
+            std::clamp(Geometry::ArcWelder::arc_discretization_steps(radius, 2. * M_PI, m_resolution), min_segments, max_segments) :
+            max_segments);
+
         const double a0 = std::atan2(py - cy, px - cx); // start angle
-        const double delta = 2.0 * M_PI;                // CCW full circle
 
-        if (full_gcode_comment)
-            oss << ";" << comment << "\n";
+        auto emit_point = [&output](const Vec3d &point) {
+            GCodeG1Formatter w;
+            w.emit_xyz(point);
+            output += w.string();
+        };
 
-        oss << "G1 F" << (speed * 60.0) << "\n";  // set feedrate
+        output.reserve(size_t(segments) * 40);          // ~40 characters per emitted G1 line
+
+        GCodeG1Formatter w;                             // set feedrate
+        w.emit_f(speed * 60.0);
+        w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+        output += w.string();
 
         // approximate the arc with small linear segments (without the last point which is added later to ensure exactness)
         for (int i = 1; i < segments; ++i) {
-            double t = double(i) / segments;            // parametric position along arc
-            double a = a0 + delta * t;                  // CCW arc param
-            double x = cx + radius * std::cos(a);       // point on circle
-            double y = cy + radius * std::sin(a);       // point on circle
-            double zz = z_start + (z - z_start) * t;    // interpolated Z height
-
-            oss << "G1 X" << x << " Y" << y << " Z" << zz << "\n";
+            const double t = double(i) / segments;      // parametric position along arc
+            const double a = a0 + 2. * M_PI * t;        // CCW arc param, full circle
+            emit_point(Vec3d(cx + radius * std::cos(a), // point on circle
+                             cy + radius * std::sin(a),
+                             z_start + (z - z_start) * t)); // interpolated Z height
         }
 
-        oss << "G1 X" << px << " Y" << py << " Z" << z << "\n";  // final point to ensure exactness
-        output = oss.str();
+        emit_point(Vec3d(px, py, z));                   // final point to ensure exactness
     } else { // Orca: if arc fitting is enabled emit a G2/G3 command for the spiral lift
         output = std::string("G17") + (full_gcode_comment ? " ; XY plane for arc\n" : "\n");
 

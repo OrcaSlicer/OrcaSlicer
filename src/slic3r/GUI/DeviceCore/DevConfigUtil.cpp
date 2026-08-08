@@ -1,15 +1,40 @@
 #include "DevConfigUtil.h"
 
-#include <algorithm>
-#include <cctype>
-
 #include <wx/dir.h>
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+#include "../I18N.hpp"
 
 using namespace nlohmann;
 
 namespace Slic3r
 {
+
+// Translation markers for xgettext extraction.
+// These strings are configured in printers/*.json (tool_head_display_names)
+// and passed to _L() at runtime. xgettext cannot scan dynamic strings,
+// so we mark them here with L() for extraction into .pot file.
+// This block is never executed at runtime.
+static void _toolhead_translation_markers()
+{
+    // Dynamic toolhead display names from JSON config — xgettext cannot scan these
+    L("Main Extruder");     L("Main extruder");     L("main extruder");
+    L("Auxiliary Extruder"); L("Auxiliary extruder"); L("auxiliary extruder");
+    L("Left Extruder");     L("Left extruder");     L("left extruder");
+    L("Right Extruder");    L("Right extruder");    L("right extruder");
+    L("Main Nozzle");       L("Main nozzle");       L("main nozzle");
+    L("Auxiliary Nozzle");   L("Auxiliary nozzle");   L("auxiliary nozzle");
+    L("Left Nozzle");       L("Left nozzle");       L("left nozzle");
+    L("Right Nozzle");      L("Right nozzle");      L("right nozzle");
+    L("Main Hotend");       L("Main hotend");       L("main hotend");
+    L("Auxiliary Hotend");   L("Auxiliary hotend");   L("auxiliary hotend");
+    L("Left Hotend");       L("Left hotend");       L("left hotend");
+    L("Right Hotend");      L("Right hotend");      L("right hotend");
+    // standalone position words (short_name=true runtime results)
+    L("main");              L("auxiliary");
+    L("Main");              L("Auxiliary");
+    L("left");              L("right");
+    L("Left");              L("Right");
+}
 
 std::string DevPrinterConfigUtil::m_resource_file_path = "";
 
@@ -91,7 +116,7 @@ std::string DevPrinterConfigUtil::get_filament_load_img(const std::string &type_
 {
     if (has_nozzle_rack)
     {
-        const auto &rack_vec = get_value_from_config<std::vector<std::string>>(type_str, "filament_load_image_nozzle_rack");
+        const auto &rack_vec = get_value_from_config<std::vector<std::string>>(type_str, "filament_load_image_nozzle_rack") ;
         if (!rack_vec.empty())
         {
             if (ext_id >= 0 && static_cast<size_t>(ext_id) < rack_vec.size())
@@ -111,7 +136,6 @@ std::string DevPrinterConfigUtil::get_filament_load_img(const std::string &type_
 
 std::string DevPrinterConfigUtil::get_fan_text(const std::string& type_str, const std::string& key)
 {
-    std::vector<std::string> filaments;
     std::string              config_file = m_resource_file_path + "/printers/" + type_str + ".json";
     boost::nowide::ifstream  json_file(config_file.c_str());
     try
@@ -132,6 +156,25 @@ std::string DevPrinterConfigUtil::get_fan_text(const std::string& type_str, cons
     }
     catch (...) {}
     return std::string();
+}
+
+std::vector<std::string> DevPrinterConfigUtil::get_fan_text_params(const std::string& type_str, const std::string& key)
+{
+    std::string              config_file = m_resource_file_path + "/printers/" + type_str + ".json";
+    boost::nowide::ifstream  json_file(config_file.c_str());
+    try {
+        json jj;
+        if (json_file.is_open()) {
+            json_file >> jj;
+            if (jj.contains("00.00.00.00")) {
+                json const& printer = jj["00.00.00.00"];
+                if (printer.contains("fan") && printer["fan"].contains(key)) {
+                    return printer["fan"][key].get<std::vector<std::string>>();
+                }
+            }
+        }
+    } catch (...) {}
+    return std::vector<std::string>();
 }
 
 std::string DevPrinterConfigUtil::get_fan_text(const std::string& type_str, int airduct_mode, int airduct_func, int submode)
@@ -178,6 +221,36 @@ std::string DevPrinterConfigUtil::get_fan_text(const std::string& type_str, int 
         }
     }
     catch (...) {}
+    return std::string();
+}
+
+std::string DevPrinterConfigUtil::get_fan_mode_text(const std::string& type_str, int airduct_mode, const std::string& key)
+{
+    std::vector<std::string> filaments;
+    std::string              config_file = m_resource_file_path + "/printers/" + type_str + ".json";
+    boost::nowide::ifstream  json_file(config_file.c_str());
+    try {
+        json jj;
+        if (json_file.is_open()) {
+            json_file >> jj;
+            if (jj.contains("00.00.00.00")) {
+                json const& printer = jj["00.00.00.00"];
+                if (!printer.contains("fan")) {
+                    return std::string();
+                }
+
+                json const& fan_item = printer["fan"];
+                const auto& airduct_mode_str = std::to_string(airduct_mode);
+                if (!fan_item.contains(airduct_mode_str)) {
+                    return std::string();
+                }
+
+                if (fan_item[airduct_mode_str].contains(key)) {
+                    return fan_item[airduct_mode_str][key].get<std::string>();
+                }
+            }
+        }
+    } catch (...) {}
     return std::string();
 }
 
@@ -284,18 +357,29 @@ std::string DevPrinterConfigUtil::get_toolhead_display_name(
         { ToolHeadComponent::Hotend,   "hotend" }
     };
 
-    const int case_index = static_cast<int>(name_case);
-    const std::string role_key = std::to_string(ext_id);
+    int case_index = static_cast<int>(name_case);  // 0, 1, 2
+
+    // Try to read from printer config json
+    auto names_json = get_value_from_config<json>(type_str, "tool_head_display_names");
+    std::string role_key = std::to_string(ext_id);  // "0" or "1"
     const std::string& comp_key = comp_keys.at(component);
 
     std::string result;
-    auto names_json = get_value_from_config<json>(type_str, "tool_head_display_names");
-    if (!names_json.is_null() && names_json.contains(role_key) && names_json[role_key].contains(comp_key)) {
+
+    if (!names_json.is_null()
+        && names_json.contains(role_key)
+        && names_json[role_key].contains(comp_key))
+    {
         auto& arr = names_json[role_key][comp_key];
-        if (arr.is_array() && case_index < static_cast<int>(arr.size()))
+        if (arr.is_array() && case_index < static_cast<int>(arr.size())) {
             result = arr[case_index].get<std::string>();
+        }
     }
 
+    // Orca: models that ship no tool_head_display_names (e.g. H2D/H2S) must still get distinct
+    // per-extruder labels, so fall back to the previous programmatic Left/Right construction.
+    // Engages only when the config lookup above yields nothing, so models that ship the key
+    // behave exactly like the reference.
     if (result.empty()) {
         const std::string side = ext_id == DEPUTY_EXTRUDER_ID ? "Left" : "Right";
         const std::string component_name = component == ToolHeadComponent::Extruder ? "Extruder" :
@@ -307,10 +391,12 @@ std::string DevPrinterConfigUtil::get_toolhead_display_name(
             std::transform(result.begin(), result.end(), result.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
     }
 
+    // short_name: return only the role prefix (e.g. "Main" from "Main Nozzle")
     if (short_name) {
         auto sp = result.find(' ');
-        if (sp != std::string::npos)
+        if (sp != std::string::npos) {
             result = result.substr(0, sp);
+        }
     }
 
     return result;

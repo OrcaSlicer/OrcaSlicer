@@ -16,10 +16,6 @@
 
 #include "slic3r/GUI/GUI_App.hpp"
 
-#include <algorithm>
-#include <unordered_set>
-
-#include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <nlohmann/json.hpp>
 using namespace nlohmann;
@@ -30,30 +26,6 @@ void MachineObject::clear_auto_nozzle_mapping()
 {
     if (m_nozzle_mapping_ptr) {
         m_nozzle_mapping_ptr->Clear();
-    }
-}
-
-static std::string  s_get_diameter_str(float diameter)
-{
-    return (boost::format("%.2f") % diameter).str();
-}
-
-static std::string s_get_diameter_str(const std::string& diameter)
-{
-    try {
-        float dia = boost::lexical_cast<float>(diameter);
-        return s_get_diameter_str(dia);
-    } catch (...) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed to boost::lexical_cast: " << diameter;
-        return diameter;
-    }
-
-    try {
-        float dia = std::stof(diameter);
-        return s_get_diameter_str(dia);
-    } catch (...) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " std::stof: " << diameter;
-        return diameter;
     }
 }
 
@@ -268,7 +240,7 @@ int DevNozzleMappingCtrl::CtrlGetAutoNozzleMappingV1(Slic3r::GUI::Plater* plater
 
 void DevNozzleMappingCtrl::ParseAutoNozzleMapping(const json& print_jj)
 {
-    if (print_jj.contains("command") && print_jj["command"].get<std::string>() == "get_auto_nozzle_mapping") {
+    if (print_jj.contains("command") && print_jj["command"].get<string>() == "get_auto_nozzle_mapping") {
         if (print_jj.contains("sequence_id") && print_jj["sequence_id"] == m_sequence_id) {
             Clear();
             DevJsonValParser::ParseVal(print_jj, "result", m_result);

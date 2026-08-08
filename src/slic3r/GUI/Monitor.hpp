@@ -158,6 +158,7 @@ public:
     void jump_to_HMS();
     void jump_to_Upgrade();
     void jump_to_LiveView();
+    void jump_to_Rack();
     void update_network_version_footer();
 };
 

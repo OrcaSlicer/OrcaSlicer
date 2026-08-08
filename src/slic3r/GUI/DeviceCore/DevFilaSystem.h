@@ -270,10 +270,10 @@ private:
     AmsType       m_ams_type = AmsType::AMS;
     std::string   m_ams_id;
     int           m_ext_id;//extruder id
-    // Orca: keeps the legacy single m_ext_id for existing consumers and carries the
-    // switch-aware binding alongside it (BambuStudio stores only the set). Without a Filament
-    // Track Switch the set is {m_ext_id}; with one installed the device binds both extruders and
-    // records which input track (A/B) feeds this AMS.
+    // Orca: pull-mode / multi-vendor agent model — keeps the legacy single m_ext_id for existing
+    // consumers and carries the switch-aware binding alongside it. Without a Filament Track Switch
+    // the set is {m_ext_id}; with one installed the device binds both extruders and records which
+    // input track (A/B) feeds this AMS.
     std::set<int> m_binded_extruder_set;
     std::optional<DevFilaSwitch::SwitchPos> m_binded_switcher_pos;
     bool          m_exist = false;
@@ -415,6 +415,8 @@ class DevFilaSystemParser
 {
 public:
     static void ParseV1_0(const json& print_json, MachineObject* obj, DevFilaSystem* system, bool key_field_only);
+
+    static void ParseAgentFilament(const json& data, MachineObject* obj, DevFilaSystem* system);
 };
 
 struct DevFilamentDryingPreset

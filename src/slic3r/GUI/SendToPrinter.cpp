@@ -1896,7 +1896,12 @@ void SendToPrinterDialog::CreateMediaAbilityJob()
              }
          });
      });
-     m_filetransfer_mediability_job->start_on(*m_filetransfer_tunnel);
+     // Guard against a null transfer tunnel before dereferencing.
+     if (m_filetransfer_tunnel) {
+        m_filetransfer_mediability_job->start_on(*m_filetransfer_tunnel);
+     } else {
+        BOOST_LOG_TRIVIAL(info) << "CreateMediaAbilityJob: file transfer tunnel is null";
+     }
 }
 
 void SendToPrinterDialog::CreateUploadFileJob(const std::string &path, const std::string &name)
@@ -1936,7 +1941,12 @@ void SendToPrinterDialog::CreateUploadFileJob(const std::string &path, const std
             }
         });
     });
-    m_filetransfer_uploadfile_job->start_on(*m_filetransfer_tunnel);
+    // Guard against a null transfer tunnel before dereferencing.
+    if (m_filetransfer_tunnel) {
+        m_filetransfer_uploadfile_job->start_on(*m_filetransfer_tunnel);
+    } else {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": file transfer tunnel is null";
+    }
 }
 
 void SendToPrinterDialog::UploadFileProgressCallback(int progress)

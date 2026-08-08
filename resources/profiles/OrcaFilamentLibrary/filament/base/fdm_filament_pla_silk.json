@@ -9,6 +9,9 @@
 	"filament_flow_ratio": [
 		"0.98"
 	],
+	"filament_multitool_ramming_flow": [
+		"10"
+	],
 	"slow_down_layer_time": [
 		"8"
 	]

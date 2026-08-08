@@ -214,6 +214,8 @@ enum class PrintOrder
 {
     Default,
     AsObjectList,
+    BestOfStrategies,    // run all custom strategies, pick the shortest total path
+    Snake,               // snake-like row traversal (back-and-forth) + 2-opt
     Count,
 };
 
@@ -1080,6 +1082,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               brim_width))
     ((ConfigOptionFloat,               brim_ears_detection_length))
     ((ConfigOptionFloat,               brim_ears_max_angle))
+    ((ConfigOptionBool,                brim_ears_outer_only))
     ((ConfigOptionFloat,               skirt_start_angle))
     ((ConfigOptionBool,                bridge_no_support))
     ((ConfigOptionFloat,               elefant_foot_compensation))
@@ -1221,6 +1224,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,  interlocking_beam_layer_count))
     ((ConfigOptionInt,  interlocking_depth))
     ((ConfigOptionInt,  interlocking_boundary_avoidance))
+
+    // Orca: internal use only
+    ((ConfigOptionBool,  calib_flowrate_topinfill_special_order)) // ORCA: special flag for flow rate calibration
 )
 
 // This object is mapped to Perl as Slic3r::Config::PrintRegion.
@@ -1259,6 +1265,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionString,               sparse_infill_rotate_template))
     ((ConfigOptionPercent,              sparse_infill_density))
     ((ConfigOptionEnum<InfillPattern>,  sparse_infill_pattern))
+    ((ConfigOptionPercent,              sparse_infill_smooth_factor))
     ((ConfigOptionFloat,                lateral_lattice_angle_1))
     ((ConfigOptionFloat,                lateral_lattice_angle_2))
     ((ConfigOptionFloat,                infill_overhang_angle))
@@ -1540,7 +1547,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                gcode_add_line_number))
     ((ConfigOptionBool,                bbl_bed_temperature_gcode))
     ((ConfigOptionEnum<GCodeFlavor>,   gcode_flavor))
-
+    ((ConfigOptionBool,                gcode_skip_config_block))
     ((ConfigOptionFloat,               time_cost)) 
     ((ConfigOptionString,              layer_change_gcode))
     ((ConfigOptionString,              time_lapse_gcode))
@@ -1653,6 +1660,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                purge_in_prime_tower))
     ((ConfigOptionBool,                enable_filament_ramming))
     ((ConfigOptionBool,                tool_change_on_wipe_tower))
+    ((ConfigOptionBool,                wait_for_temp_on_wipe_tower))
     ((ConfigOptionBool,                support_multi_bed_types))
     ((ConfigOptionBool,                use_3mf))
 
@@ -1776,6 +1784,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionBool,               ooze_prevention))
     ((ConfigOptionString,             filename_format))
     ((ConfigOptionStrings,            post_process))
+    ((ConfigOptionStrings,            slicing_pipeline_plugin))
+    ((ConfigOptionString,             print_plugin_config_overrides))
     ((ConfigOptionString,             printer_model))
     ((ConfigOptionFloat,              resolution))
     ((ConfigOptionFloats,             retraction_minimum_travel))
@@ -1837,6 +1847,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     // BBS: wipe tower is only used for priming
     ((ConfigOptionFloat,              prime_volume))
     // Nozzle-change (nc) prime volume + pre-heat delta
+    ((ConfigOptionFloats,             filament_prime_volume))
     ((ConfigOptionFloats,             filament_prime_volume_nc))
     ((ConfigOptionFloatsNullable,     filament_preheat_temperature_delta))
     ((ConfigOptionFloats,             flush_multiplier))

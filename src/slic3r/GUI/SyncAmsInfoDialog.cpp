@@ -25,6 +25,7 @@
 
 #include "DeviceCore/DevConfig.h"
 #include "DeviceCore/DevConfigUtil.h"
+#include "DeviceCore/DevFilaSwitch.h" // Orca: has_selector() reads GetFilaSwitch()->IsInstalled()/IsReady()
 #include "DeviceCore/DevFilaSystem.h"
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevMapping.h"
@@ -282,7 +283,7 @@ wxBoxSizer *SyncAmsInfoDialog::create_sizer_thumbnail(wxButton *image_button, bo
     auto sizer_thumbnail = new wxBoxSizer(wxVERTICAL);
     if (left) {
         wxBoxSizer *text_sizer = new wxBoxSizer(wxHORIZONTAL);
-        auto        sync_text  = new Label(image_button->GetParent(), _CTX(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS"));
+        auto        sync_text  = new Label(image_button->GetParent(), _L_CONTEXT(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS"));
         sync_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
         text_sizer->Add(sync_text, 0, wxALIGN_CENTER | wxALL, 0);
         sizer_thumbnail->Add(sync_text, FromDIP(0), wxALIGN_CENTER | wxALL, FromDIP(4));
@@ -371,6 +372,8 @@ void SyncAmsInfoDialog::update_map_when_change_map_mode()
         m_cur_colors_in_thumbnail = m_back_cur_colors_in_thumbnail;
     } else if (m_map_mode == MapModeEnum::Override) {
         if (m_ams_combo_info.empty()) {
+            // Orca: the reference's has_selector overload (skips ext-spool colors in Override mode) is
+            // not ported, so with an FTS installed, ext-spool colors still appear in the Override combo.
             wxGetApp().preset_bundle->get_ams_cobox_infos(m_ams_combo_info);
         }
         for (size_t i = 0; i < m_ams_combo_info.ams_filament_colors.size(); i++) {
@@ -547,7 +550,7 @@ void SyncAmsInfoDialog::add_two_image_control()
     m_choose_plate_sizer         = new wxBoxSizer(wxHORIZONTAL);
     m_choose_plate_sizer->AddStretchSpacer();
 
-    wxStaticText *chose_combox_title = new wxStaticText(m_two_thumbnail_panel, wxID_ANY, _CTX(L_CONTEXT("Plate", "Sync_AMS"), "Sync_AMS"));
+    wxStaticText *chose_combox_title = new wxStaticText(m_two_thumbnail_panel, wxID_ANY, _L_CONTEXT(L_CONTEXT("Plate", "Sync_AMS"), "Sync_AMS"));
     m_choose_plate_sizer->Add(chose_combox_title, 0, wxEXPAND | wxTOP, FromDIP(6));
     m_choose_plate_sizer->AddSpacer(FromDIP(10));
 
@@ -1221,6 +1224,19 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
     }
 }
 
+// A Filament Track Switch, once installed and ready, feeds both nozzles from one AMS set,
+// so the mapping collapses to a single dynamic panel and skips ext spools.
+bool SyncAmsInfoDialog::has_selector(MachineObject *obj_) const
+{
+    if (!obj_) {
+        DeviceManager *dev_manager = Slic3r::GUI::wxGetApp().getDeviceManager();
+        if (!dev_manager)
+            return false;
+        obj_ = dev_manager->get_selected_machine();
+    }
+    return obj_ && obj_->GetFilaSwitch()->IsInstalled() && obj_->GetFilaSwitch()->IsReady();
+}
+
 bool SyncAmsInfoDialog::do_ams_mapping(MachineObject *obj_)
 {
     if (!obj_) return false;
@@ -1237,6 +1253,10 @@ bool SyncAmsInfoDialog::do_ams_mapping(MachineObject *obj_)
     std::vector<bool> map_opt; // four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
     if (nozzle_nums > 1) {
         map_opt         = {true, true, true, true}; // four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
+        if (has_selector(obj_)) { // Orca: with a Filament Track Switch the ext spools route through the switch — don't map them
+            map_opt[2] = false;
+            map_opt[3] = false;
+        }
         filament_result = DevMappingUtil::ams_filament_mapping(obj_, m_filaments, m_ams_mapping_result, map_opt, std::vector<int>(),
                                                      wxGetApp().app_config->get_bool("ams_sync_match_full_use_color_dist") ? false : true);
     }
@@ -1444,39 +1464,6 @@ bool SyncAmsInfoDialog::build_nozzles_info(std::string &nozzles_info)
         nozzle_info_json.push_back(nozzle_item);
     }
     nozzles_info = nozzle_info_json.dump();
-    return true;
-}
-
-bool SyncAmsInfoDialog::can_hybrid_mapping(DevExtderSystem data)
-{
-    // Mixed mappings are not allowed
-    return false;
-
-    if (data.GetTotalExtderCount() <= 1 || !wxGetApp().preset_bundle) return false;
-
-    // The default two extruders are left, right, but the order of the extruders on the machine is right, left.
-    // Therefore, some adjustments need to be made.
-    std::vector<std::string> flow_type_of_machine;
-    for (auto it = data.GetExtruders().rbegin(); it != data.GetExtruders().rend(); it++) {
-        // exist field is not updated, wait add
-        // if (it->exist < 3) return false;
-        std::string type_str = it->GetNozzleFlowType() ? "High Flow" : "Standard";
-        flow_type_of_machine.push_back(type_str);
-    }
-    // get the nozzle type of preset --> flow_types
-    const Preset &      current_printer = wxGetApp().preset_bundle->printers.get_selected_preset();
-    const Preset *      base_printer    = wxGetApp().preset_bundle->printers.get_preset_base(current_printer);
-    std::string         base_name       = base_printer->name;
-    auto                flow_data       = wxGetApp().app_config->get_nozzle_volume_types_from_config(base_name);
-    std::vector<string> flow_types;
-    boost::split(flow_types, flow_data, boost::is_any_of(","));
-    if (flow_types.size() <= 1 || flow_types.size() != flow_type_of_machine.size()) return false;
-
-    // Only when all preset nozzle types and machine nozzle types are exactly the same, return true.
-    auto type = flow_types[0];
-    for (int i = 0; i < flow_types.size(); i++) {
-        if (flow_types[i] != type || flow_type_of_machine[i] != type) return false;
-    }
     return true;
 }
 
@@ -2340,7 +2327,7 @@ void SyncAmsInfoDialog::update_show_status()
          wxString error_message;
         if (!is_nozzle_type_match(*obj_->GetExtderSystem(), error_message)) {
             std::vector<wxString> params{error_message};
-            params.emplace_back(_L("Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."));
+            params.emplace_back(_L("Tips: If you changed your nozzle of your printer lately, please go to 'Device -> Printer parts' to change your nozzle setting."));
             show_status(PrintDialogStatus::PrintStatusNozzleMatchInvalid, params);
             return;
         }
@@ -2611,7 +2598,7 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
             if (is_first_row) {
                 is_first_row              = false;
                 if (!m_original_in_colormap) {
-                    m_original_in_colormap = new wxStaticText(m_filament_panel, wxID_ANY, _CTX(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS") + ":");
+                    m_original_in_colormap = new wxStaticText(m_filament_panel, wxID_ANY, _L_CONTEXT(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS") + ":");
                     m_original_in_colormap->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
                     m_original_in_colormap->SetFont(::Label::Head_12);
                 }
@@ -2671,8 +2658,14 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
             DeviceManager *dev_manager = Slic3r::GUI::wxGetApp().getDeviceManager();
             if (!dev_manager) return;
             MachineObject *obj_        = dev_manager->get_selected_machine();
+            bool is_selector = false;
             if (get_is_double_extruder()) {
-                m_mapping_popup.set_show_type(ShowType::LEFT_AND_RIGHT);//special
+                if (has_selector(obj_)) { // FTS combined view — one dynamic panel when a switch is installed+ready
+                    m_mapping_popup.set_show_type(ShowType::LEFT_AND_RIGHT_DYNAMIC);
+                    is_selector = true;
+                } else {
+                    m_mapping_popup.set_show_type(ShowType::LEFT_AND_RIGHT);//special
+                }
             }
             // m_mapping_popup.set_show_type(ShowType::RIGHT);
             if (obj_) {
@@ -2699,7 +2692,7 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
                     m_mapping_popup.set_reset_callback(reset_call_back);
                     m_mapping_popup.set_tag_texture(materials[extruder]);
                     m_mapping_popup.set_send_win(this);
-                    m_mapping_popup.update(obj_, m_ams_mapping_result);
+                    m_mapping_popup.update(obj_, m_ams_mapping_result, is_selector); // Orca: dynamic combined view when FTS installed
                     m_mapping_popup.Popup();
                 }
             }
@@ -2823,7 +2816,7 @@ void SyncAmsInfoDialog::generate_override_fix_ams_list()
             if (is_first_row) {
                 is_first_row   = false;
                 if (!m_original_in_override) {
-                    m_original_in_override = new wxStaticText(m_fix_filament_panel, wxID_ANY, _CTX(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS") + ":");
+                    m_original_in_override = new wxStaticText(m_fix_filament_panel, wxID_ANY, _L_CONTEXT(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS") + ":");
                     m_original_in_override->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
                     m_original_in_override->SetFont(::Label::Head_12);
                 }
@@ -3225,7 +3218,7 @@ SyncNozzleAndAmsDialog::SyncNozzleAndAmsDialog(InputInfo &input_info)
                                                                                             _L("Successfully synchronized nozzle and AMS number information.")
                               ) + "\n\n" + _L("Do you want to continue to sync filaments?"),
                               _L("Yes"), // ORCA use shorter text for buttons
-                              _CTX(L_CONTEXT(_L("No"), "Sync_Nozzle_AMS"), "Sync_Nozzle_AMS"),
+                              _L_CONTEXT(L_CONTEXT(_L("No"), "Sync_Nozzle_AMS"), "Sync_Nozzle_AMS"),
                               DisappearanceMode::TimedDisappearance)
     , m_input_info(input_info)
 {
@@ -3273,7 +3266,7 @@ FinishSyncAmsDialog::FinishSyncAmsDialog(InputInfo &input_info)
                               wxGetApp().app_config->get("sync_ams_filament_mode") == "1" ?
                                   _L("Successfully synchronized filament color from printer.") :
                                   _L("Successfully synchronized color and type of filament from printer."),
-                              _CTX(L_CONTEXT("OK", "FinishSyncAms"), "FinishSyncAms"),
+                              _L_CONTEXT(L_CONTEXT("OK", "FinishSyncAms"), "FinishSyncAms"),
                               "",
                               DisappearanceMode::TimedDisappearance)
     , m_input_info(input_info)

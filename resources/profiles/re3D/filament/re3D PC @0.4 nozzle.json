@@ -9,6 +9,9 @@
 	"filament_settings_id": [
 		"re3D PC @0.4 nozzle"
 	],
+	"filament_type": [
+		"PC"
+	],
 	"compatible_printers": [
 		"re3D Gigabot 4 0.4 nozzle",
 		"re3D Gigabot 4 XLT 0.4 nozzle",

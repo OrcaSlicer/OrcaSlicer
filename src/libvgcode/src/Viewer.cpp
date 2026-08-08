@@ -72,6 +72,26 @@ void Viewer::toggle_top_layer_only_view_range()
     m_impl->toggle_top_layer_only_view_range();
 }
 
+bool Viewer::is_dim_previous_layers() const
+{
+    return m_impl->is_dim_previous_layers();
+}
+
+void Viewer::set_dim_previous_layers(bool value)
+{
+    m_impl->set_dim_previous_layers(value);
+}
+
+float Viewer::get_dim_previous_layers_brightness() const
+{
+    return m_impl->get_dim_previous_layers_brightness();
+}
+
+void Viewer::set_dim_previous_layers_brightness(float value)
+{
+    m_impl->set_dim_previous_layers_brightness(value);
+}
+
 bool Viewer::is_option_visible(EOptionType type) const
 {
     return m_impl->is_option_visible(type);
