@@ -10602,9 +10602,8 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
                         wxString    region = L"en";
                         if (language.find("zh") == 0)
                         	region = L"zh";
-                        // Use the generic dual-nozzle PLA+PETG guide rather than the H2D-specific page
-                        // so the link is relevant for all dual-extrusion printers, not just Bambu H2D. (#12073)
-                        wxGetApp().open_browser_with_warning_dialog(wxString::Format(L"https://wiki.bambulab.com/%s/filament-acc/filament/pla-and-petg-dual-extrusion", region));
+                        // Although this link looks like it's only for the H2D, its guidance is generic.
+                        wxGetApp().open_browser_with_warning_dialog(wxString::Format(L"https://wiki.bambulab.com/%s/filament-acc/filament/h2d-pla-and-petg-mutual-support", region));
                         return false;
                     });
             }
