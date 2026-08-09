@@ -515,3 +515,31 @@ TEST_CASE("By-object printing limits height for objects sharing the gantry axis"
     CHECK_FALSE(ret.string.empty());
     CHECK(ret.string.find("too tall") != std::string::npos);
 }
+
+// Delta printers have no X-parallel gantry: their arms sweep over the whole plate, so the dynamic
+// height limit must not apply and instances keep the conservative clearance-to-lid limit.
+TEST_CASE("By-object printing keeps the conservative height limit for delta printers", "[Print]")
+{
+    Print print;
+    Model model;
+    std::vector<TriangleMesh> meshes;
+    meshes.emplace_back(Slic3r::make_cube(20, 20, 60));
+    meshes.back().translate(80, 80, 0);
+    meshes.emplace_back(Slic3r::make_cube(20, 20, 60));
+    meshes.back().translate(80, 140, 0);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "printer_structure",                "delta" },
+        { "extruder_clearance_height_to_lid", 25 },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "extruder_clearance_radius",        30 },
+        { "printable_height",                 100 },
+        { "skirt_loops",                      0 },
+        { "use_relative_e_distances",         0 },
+    });
+    init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+    StringObjectException ret = print.validate();
+    CHECK_FALSE(ret.string.empty());
+    CHECK(ret.string.find("too tall") != std::string::npos);
+}

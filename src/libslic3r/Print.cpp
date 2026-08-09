@@ -758,8 +758,10 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         }
     }
 
-    // Heights measured from the nozzle: hc2 is the clearance to the gantry rod, printable_height the build volume top.
+    // Heights measured from the nozzle: hc2 is the clearance to the gantry rod, hc1 to the lid/top cover,
+    // printable_height the build volume top.
     double hc2              = scale_(print.config().extruder_clearance_height_to_rod); // height to rod
+    double hc1              = scale_(print.config().extruder_clearance_height_to_lid); // height to lid
     double printable_height = scale_(print.config().printable_height);
 
 #if 0 //do not sort anymore, use the order in object list
@@ -871,9 +873,11 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         // plate at the toolhead's Y position, so an instance can only collide with the gantry while a
         // later-printed instance (already at full height) shares its Y band, i.e. the two are placed
         // side by side along the X axis. Instances in their own Y band never sit under the gantry
-        // together with another object, so they may use the full build volume height. The Y band test
-        // uses the un-inflated bounding boxes: horizontal separation is already enforced by the
-        // extruder_clearance_radius collision check above.
+        // together with another object, so they may use the full build volume height. Delta printers
+        // are excluded: their arms sweep over the whole plate, so the conservative lid-height limit
+        // keeps applying to them. The Y band test uses the un-inflated bounding boxes: horizontal
+        // separation is already enforced by the extruder_clearance_radius collision check above.
+        const bool dynamic_max_height = print_config.printer_structure.value != psDelta;
         int print_instance_count = print_instance_with_bounding_box.size();
         std::map<const PrintInstance*, std::pair<Polygon, float>> too_tall_instances;
         for (int k = 0; k < print_instance_count; k++)
@@ -883,7 +887,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
             auto iy1 = bbox.min.y();
             auto iy2 = bbox.max.y();
             (const_cast<ModelInstance*>(inst->model_instance))->arrange_order = k+1;
-            double height = printable_height;
+            double height = (dynamic_max_height || k == (print_instance_count - 1)) ? printable_height : hc1;
             for (int i = k+1; i < print_instance_count; i++)
             {
                 auto& bbox2 = print_instance_with_bounding_box[i].true_bounding_box;

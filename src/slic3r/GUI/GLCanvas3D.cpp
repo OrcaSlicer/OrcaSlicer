@@ -5736,11 +5736,14 @@ void GLCanvas3D::update_sequential_clearance()
     // Dynamic max height for "by object" printing, mirroring Print::sequential_print_vertical_clearance_valid():
     // a gantry parallel to the X axis only collides with instances sharing their Y band with a later-printed
     // instance (side by side along X); instances in their own Y band may use the full build volume height.
-    // The bounding boxes of the cached (inflated) hulls are shrunk back by shrink_factor to the un-inflated
-    // ones, which is exact for convex hulls.
+    // Delta printers are excluded (their arms sweep over the whole plate), and the last-printed instance
+    // may always use the full height. The bounding boxes of the cached (inflated) hulls are shrunk back by
+    // shrink_factor to the un-inflated ones, which is exact for convex hulls.
     int bounding_box_count = convex_and_bounding_boxes.size();
     double printable_height = fff_print()->config().printable_height;
+    double hc1 = fff_print()->config().extruder_clearance_height_to_lid;
     double hc2 = fff_print()->config().extruder_clearance_height_to_rod;
+    const bool dynamic_max_height = fff_print()->config().printer_structure.value != psDelta;
     const coord_t shrink = static_cast<coord_t>(shrink_factor);
     for (int k = 0; k < bounding_box_count; k++)
     {
@@ -5748,7 +5751,7 @@ void GLCanvas3D::update_sequential_clearance()
         BoundingBox bbox = convex_and_bounding_boxes[k].bounding_box.inflated(-shrink);
         auto iy1 = bbox.min.y();
         auto iy2 = bbox.max.y();
-        double height = printable_height;
+        double height = (dynamic_max_height || k == (bounding_box_count - 1)) ? printable_height : hc1;
         for (int i = k+1; i < bounding_box_count; i++)
         {
             BoundingBox next_bbox = convex_and_bounding_boxes[i].bounding_box.inflated(-shrink);
