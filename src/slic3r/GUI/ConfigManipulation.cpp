@@ -699,6 +699,12 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         "minimum_sparse_infill_area", "sparse_infill_filament_id", "infill_anchor", "infill_anchor_max","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
         toggle_line(el, have_infill);
 
+    // Disable infill anchor for concentric infill patterns, because they don't support it.
+    bool have_infill_anchor = have_infill && config->opt_enum<InfillPattern>("sparse_infill_pattern") != ipConcentric &&
+                              config->opt_enum<InfillPattern>("sparse_infill_pattern") != ipConcentricSpiral;
+    toggle_line("infill_anchor", have_infill_anchor);
+    toggle_line("infill_anchor_max", have_infill_anchor);
+
     bool have_combined_infill = config->opt_bool("infill_combination") && have_infill;
     toggle_line("infill_combination_max_layer_height", have_combined_infill);
 
