@@ -17249,6 +17249,11 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
                                                                  storage_paths, storage_names,
                                                                  config->get_bool("open_device_tab_post_upload"),
                                                                  upload_job.printhost.get());
+        } else if (preset_bundle->printers.get_edited_preset().config.opt_string("printer_agent") == "snapmaker") {
+            pDlg = std::make_unique<SnapmakerPrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
+                                                                  storage_paths, storage_names,
+                                                                  config->get_bool("open_device_tab_post_upload"),
+                                                                  upload_job.printhost.get());
         } else if (flashforge_local_api) {
             auto* flashforge_host = dynamic_cast<Flashforge*>(upload_job.printhost.get());
             if (flashforge_host == nullptr) {
