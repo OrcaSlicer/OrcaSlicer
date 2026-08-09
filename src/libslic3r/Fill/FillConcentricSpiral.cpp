@@ -24,8 +24,9 @@ static Polylines generate_concentric_spiral_polylines(const FillParams& params,
     Polylines output;
     Polyline spiral;
     Point current_pos(0, 0);
-    const double jump_threshold = 2.0 * double(distance);
+    const double jump_threshold = 2.0 * double(distance);//Distance to jump to a new spiral.
 
+    // Pick the sharpest corner of the first loop (only for arachne, for classic we always start at the second point of the loop).
     auto find_sharpest_corner = [](const Polygon& loop) -> int {
         size_t n = loop.points.size();
         if (n < 3)
@@ -70,6 +71,8 @@ static Polylines generate_concentric_spiral_polylines(const FillParams& params,
         if (loop_path.size() < 2)
             continue;
 
+        // Island jumping: if the distance between the last point of the current spiral and the first point of the new loop is too large, we
+        // start a new spiral.
         if (!spiral.empty()) {
             double dist_to_new_start = spiral.last_point().distance_to(loop_path.points.front());
             if (dist_to_new_start > jump_threshold) {
@@ -86,6 +89,8 @@ static Polylines generate_concentric_spiral_polylines(const FillParams& params,
             }
         }
 
+        //clipping the end of the loop to avoid overlapping with the next loop.
+        // theoric gap = distance/sin(alpha) where alpha is the angle between the last segment of the loop and the first segment of the next loop.
         const bool last_loop = (i + 1 == loops.size());
         double gap           = last_loop ? 0.5 * double(distance) : double(distance);
         loop_path.points.push_back(loop_path.points.front());
@@ -118,6 +123,7 @@ static Polylines generate_concentric_spiral_polylines(const FillParams& params,
         current_pos = spiral.last_point();
     }
 
+    //Fill order handling.
     if (!spiral.empty())
         output.emplace_back(std::move(spiral));
 
@@ -163,6 +169,7 @@ void FillConcentricSpiral::_fill_surface_single(const FillParams& params,
     Polylines spiral_result = generate_concentric_spiral_polylines(params, loops, distance, is_classic);
     append(polylines_out, spiral_result);
 
+    // Apply multiline offset if needed.
     multiline_fill(polylines_out, params, spacing);
 }
 
