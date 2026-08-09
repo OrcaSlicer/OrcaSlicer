@@ -72,6 +72,7 @@ public:
     // Pull-mode agent (on-demand filament sync)
     FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
     bool fetch_filament_info(std::string dev_id) override;
+    bool bind_device_connection(const std::string& dev_id, const std::string& address, const std::string& access_code, bool use_ssl) override;
 
 protected:
     struct MoonrakerDeviceInfo
@@ -97,14 +98,31 @@ protected:
         std::string tray_info_idx;       // Setting ID (optional)
         int         bed_temp = 0;        // Optional
         int         nozzle_temp = 0;     // Optional
+        std::string tag_uid;             // Non-empty when the slot's data came from an NFC/RFID
+                                         // tag (Bambu tag_uid convention); such slots are
+                                         // authoritative and excluded from filament pushes.
     };
 
+    // Shape of the AMS units build_ams_payload() emits:
+    //  - Toolchanger: one 1-slot TOOLCHANGER unit per lane (honest per-tool presentation).
+    //    ams_count is the tool/lane count.
+    //  - Box4: one AMS_LITE unit per up-to-4 lanes, chunked (legacy MMU-box presentation).
+    //    ams_count is the number of 4-slot boxes.
+    enum class AmsUnitShape { Toolchanger, Box4 };
+
     // Build ams JSON and call parser
-    void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays);
+    void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays,
+                            AmsUnitShape shape = AmsUnitShape::Box4);
 
     // Methods that derived classes may need to override or access
     virtual bool init_device_info(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl);
     virtual bool fetch_device_info(const std::string& base_url, const std::string& api_key, MoonrakerDeviceInfo& info, std::string& error) const;
+
+    // Fallback for a REST entry point reached with a dev_id that was never bound through
+    // bind_device_connection(): rebuilds device_info from the MachineObject's persisted state.
+    // No-op if device_info is already current. See bind_device_connection() for why the bound
+    // address is the better source, and ActivePrinterSession for who binds it.
+    bool ensure_device_info(const std::string& dev_id);
 
     // State access for derived classes
     mutable std::recursive_mutex       state_mutex;

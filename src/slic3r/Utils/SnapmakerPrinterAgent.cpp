@@ -5,6 +5,12 @@
 
 #include "nlohmann/json.hpp"
 #include <boost/log/trivial.hpp>
+#include <iomanip>
+#include <sstream>
+#include <boost/algorithm/string.hpp>
+#include <limits>
+#include <cctype>
+#include <algorithm>
 
 namespace Slic3r {
 
@@ -21,43 +27,58 @@ T safe_at(const std::vector<T>& vec, int index, const T& fallback)
 
 std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection& filaments,
                                                          const std::string&      vendor_name,
-                                                         const std::string&      filament_type,
+                                                         const std::string&      base_type,
+                                                         const std::string&      sub_type,
                                                          const std::string&      color_rgba)
 {
-    std::string best_match_id       = "";
-    int         best_color_distance = 0xffffffff;
+    auto upper = [](std::string v) {
+        boost::trim(v);
+        std::transform(v.begin(), v.end(), v.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+        return v;
+    };
+    const std::string want_type = upper(base_type);
+    const std::string want_sub  = upper(sub_type);
+
+    std::string best_match_id;
+    long long   best_score = std::numeric_limits<long long>::min();
 
     for (const auto& p : filaments.get_presets()) {
-        if (p.is_visible && p.is_compatible &&
-            // Filament profile must be detached from parent to be considered for matching
-            filaments.get_preset_base(p) == &p && p.config.opt_string("filament_vendor", 0u) == vendor_name &&
-            p.config.opt_string("filament_type", 0u) == filament_type) {
-            // The printer returns RGBA in the format RRGGBBAA, but profiles store color as #RRGGBB,
-            // so we must remove # and ignore alpha channel for distance calculation
-            unsigned int target_color_value = std::stoul(color_rgba.substr(0, color_rgba.length() - 2), nullptr, 16);
+        // System vendor presets inherit from a shared base, so a detached-from-parent
+        // requirement would exclude the very profiles we want (e.g. "Snapmaker PLA SnapSpeed").
+        if (!p.is_visible || !p.is_compatible)
+            continue;
+        if (p.config.opt_string("filament_vendor", 0u) != vendor_name)
+            continue;
+        // Match on the firmware's BASE type: a "PLA SnapSpeed" spool reports type PLA, and the
+        // matching preset's filament_type is PLA too. Allow prefixed variants ("PLA-CF") so a
+        // CF/GF sub-type can still find its dashed-type preset.
+        const std::string p_type = upper(p.config.opt_string("filament_type", 0u));
+        if (p_type != want_type && p_type.rfind(want_type, 0) != 0)
+            continue;
 
-            std::string  p_color = p.config.opt_string("default_filament_colour", 0u);
-            unsigned int p_color_value;
-            if (!p_color.empty()) {
-                size_t       hash_pos = p_color.find("#");
-                p_color_value         = std::stoul(p_color.substr(hash_pos != std::string::npos ? hash_pos + 1 : 0), nullptr, 16);
-            } else {
-                // Default to black if no color specified in profile. Assume other profiles might be a closer color match.
-                // Could be a problem if the target color is also black and there exist a specific profile for that type, vendor and color
-                // combination.
-                p_color_value = 0;
-            }
+        // The reported sub-type names the product line ("SnapSpeed", "PolyTerra", "Matte");
+        // a preset whose name carries it is a far stronger signal than any color proximity.
+        const bool sub_match = !want_sub.empty() && want_sub != "NONE" &&
+                               (upper(p.alias.empty() ? p.name : p.alias).find(want_sub) != std::string::npos);
 
-            // Calculate Euclidean color distance in RGB space
-            int dr = ((target_color_value & 0xff) - (p_color_value & 0xff));
-            int dg = (((target_color_value >> 8) & 0xff) - ((p_color_value >> 8) & 0xff));
-            int db = (((target_color_value >> 16) & 0xff) - ((p_color_value >> 16) & 0xff));
-            unsigned int distance = dr * dr + dg * dg + db * db;
+        // The printer returns RGBA as RRGGBBAA; profiles store #RRGGBB. Compare ignoring alpha;
+        // a preset without a default color scores as black (worst case: ties broken by name).
+        unsigned int target_color_value = std::stoul(color_rgba.substr(0, color_rgba.length() - 2), nullptr, 16);
+        std::string  p_color            = p.config.opt_string("default_filament_colour", 0u);
+        unsigned int p_color_value      = 0;
+        if (!p_color.empty()) {
+            size_t hash_pos = p_color.find('#');
+            p_color_value   = std::stoul(p_color.substr(hash_pos != std::string::npos ? hash_pos + 1 : 0), nullptr, 16);
+        }
+        int dr = ((target_color_value & 0xff) - (p_color_value & 0xff));
+        int dg = (((target_color_value >> 8) & 0xff) - ((p_color_value >> 8) & 0xff));
+        int db = (((target_color_value >> 16) & 0xff) - ((p_color_value >> 16) & 0xff));
+        long long distance = (long long) dr * dr + (long long) dg * dg + (long long) db * db;
 
-            if (distance < best_color_distance) {
-                best_color_distance = distance;
-                best_match_id       = p.filament_id;
-            }
+        long long score = (sub_match ? (1LL << 40) : 0) - distance;
+        if (score > best_score) {
+            best_score    = score;
+            best_match_id = p.filament_id;
         }
     }
     return best_match_id;
@@ -104,6 +125,9 @@ std::string SnapmakerPrinterAgent::combine_filament_type(const std::string& type
 
 bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
 {
+    if (!ensure_device_info(dev_id))
+        return false;
+
     std::string url = join_url(device_info.base_url, "/printer/objects/query?print_task_config&filament_detect");
 
     std::string response_body;
@@ -133,7 +157,7 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
         .perform_sync();
 
     if (!success) {
-        BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::fetch_filament_info: HTTP request failed: " << http_error;
+        BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::fetch_filament_info: HTTP request failed: " << http_error << " url=" << url << " dev_id=" << dev_id << " dev_ip=" << device_info.dev_ip;
         return false;
     }
 
@@ -193,7 +217,9 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
             // If not found, default to traditional search by type only or generic type mapping.
             if (bundle) {
                 std::string vendor      = safe_at(filament_vendor, i, empty_str);
-                std::string filament_id = find_closest_color_preset_by_vendor_and_type(bundle->filaments, vendor, tray.tray_type,
+                std::string filament_id = find_closest_color_preset_by_vendor_and_type(bundle->filaments, vendor,
+                                                                                       safe_at(filament_type, i, empty_str),
+                                                                                       safe_at(filament_sub_type, i, empty_str),
                                                                                        tray.tray_color);
 
                 if (!filament_id.empty()) {
@@ -207,13 +233,22 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
                 tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
             }
 
-            // Extract NFC temperature data if available
+            // Extract NFC data if available. A slot whose data comes from an NFC tag is
+            // authoritative: stamp its CARD_UID into tag_uid (Bambu RFID convention) so
+            // consumers can tell tag-backed slots from manually configured ones and honor
+            // the tag on any write path.
             if (nfc_info.is_array() && i < static_cast<int>(nfc_info.size()) && nfc_info[i].is_object()) {
                 auto& nfc_slot = nfc_info[i];
                 std::string vendor = nfc_slot.value("VENDOR", "NONE");
                 if (vendor != "NONE" && !vendor.empty()) {
                     tray.bed_temp    = nfc_slot.value("BED_TEMP", 0);
                     tray.nozzle_temp = nfc_slot.value("FIRST_LAYER_TEMP", 0);
+                    uint64_t card_uid = nfc_slot.value("CARD_UID", (uint64_t) 0);
+                    if (card_uid != 0) {
+                        std::ostringstream uid;
+                        uid << std::hex << std::uppercase << std::setw(16) << std::setfill('0') << card_uid;
+                        tray.tag_uid = uid.str();
+                    }
                 }
             }
         }
@@ -221,7 +256,8 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
         trays.emplace_back(std::move(tray));
     }
 
-    build_ams_payload(1, slot_count - 1, trays);
+    // U1 is a physical toolchanger: one 1-slot unit per tool, not a chunked 4-slot MMU box.
+    build_ams_payload(slot_count, slot_count - 1, trays, AmsUnitShape::Toolchanger);
     return true;
 }
 
