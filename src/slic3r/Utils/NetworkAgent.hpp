@@ -167,6 +167,9 @@ public:
     bool fetch_filament_info(std::string dev_id);
     std::string to_orca_filament_id(const std::string& printer_filament_id) const;
     std::string from_orca_filament_id(const std::string& orca_filament_id) const;
+    bool supports_filament_push() const;
+    bool push_filament_info(std::string dev_id, const IPrinterAgent::FilamentSlotInfo& info);
+    bool bind_device_connection(const std::string& dev_id, const std::string& address, const std::string& access_code, bool use_ssl);
     int request_bind_ticket(std::string* ticket);
     int get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback);
 

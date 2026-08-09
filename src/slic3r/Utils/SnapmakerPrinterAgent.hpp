@@ -17,6 +17,7 @@ public:
 
     bool fetch_filament_info(std::string dev_id) override;
 
+
 private:
     // Combine filament_type + filament_sub_type into a unified type string
     static std::string combine_filament_type(const std::string& type, const std::string& sub_type);
