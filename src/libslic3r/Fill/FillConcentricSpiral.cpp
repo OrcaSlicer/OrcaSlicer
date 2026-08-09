@@ -109,7 +109,7 @@ static Polylines generate_concentric_spiral_polylines(
             double alpha = std::atan2(std::abs(cross), dot);
 
             if (alpha > M_PI / 4 &&
-                alpha < 2 * M_PI / 3) // 45° < alpha < 120° limits to avoid too much clipping in case of very sharp angles.
+                alpha < 2 * M_PI / 3) // 45deg < alpha < 120deg limits to avoid too much clipping in case of very sharp angles.
                 clip_len = gap / std::sin(alpha);
             else
                 clip_len = gap;
