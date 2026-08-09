@@ -1051,7 +1051,6 @@ static std::vector<std::string> s_Preset_print_options{
     "bottom_surface_pattern",
     "top_surface_fill_order",
     "bottom_surface_fill_order",
-    "spiralized",
     "infill_direction",
     "solid_infill_direction",
     "top_layer_direction",

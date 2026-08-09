@@ -950,7 +950,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     params.extruder = region_config.internal_solid_filament_id;
                 // Orca: forced fill order applies only to top/bottom surfaces filled with a
                 // center-based pattern; everything else stays at Default to keep batching together.
-                if (params.pattern == ipConcentric || params.pattern == ipArchimedeanChords || params.pattern == ipOctagramSpiral) {
+                if (params.pattern == ipConcentric || params.pattern == ipConcentricSpiral || params.pattern == ipArchimedeanChords || params.pattern == ipOctagramSpiral) {
                     if (params.extrusion_role == erTopSolidInfill)
                         params.fill_order = region_config.top_surface_fill_order.value;
                     else if (params.extrusion_role == erBottomSurface)
@@ -1515,6 +1515,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
         case ipCubic:
         case ipLine:
         case ipConcentric:
+        case ipConcentricSpiral:
         case ipHoneycomb:
         case ipLateralHoneycomb:
         case ip3DHoneycomb:

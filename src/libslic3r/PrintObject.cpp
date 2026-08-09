@@ -1395,7 +1395,6 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "bottom_surface_pattern"
             || opt_key == "top_surface_fill_order"
             || opt_key == "bottom_surface_fill_order"
-            || opt_key == "spiralized"
             || opt_key == "internal_solid_infill_pattern"
             || opt_key == "external_fill_link_max_length"
             || opt_key == "infill_anchor"

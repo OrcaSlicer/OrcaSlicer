@@ -2781,7 +2781,6 @@ void TabPrint::build()
         optgroup->append_single_option_line("bottom_surface_density", "strength_settings_top_bottom_shells#surface-density");
         optgroup->append_single_option_line("bottom_surface_pattern", "strength_settings_top_bottom_shells#surface-pattern");
         optgroup->append_single_option_line("bottom_surface_fill_order", "strength_settings_top_bottom_shells#fill-order");
-        optgroup->append_single_option_line("spiralized", "strength_settings_top_bottom_shells#surface-pattern");
         optgroup->append_single_option_line("bottom_layer_direction", "strength_settings_infill#top-bottom-direction");
         optgroup->append_single_option_line("center_of_surface_pattern", "strength_settings_top_bottom_shells#center-surface-pattern-on");
         optgroup->append_single_option_line("top_bottom_infill_wall_overlap", "strength_settings_top_bottom_shells#infillwall-overlap");
