@@ -4,7 +4,7 @@
 
 namespace Slic3r {
 
-// Experimental "Dynamic Composite Objects" print sequencing.
+// Experimental "Islands" print sequencing.
 //
 // A normal (by-layer) print advances every island of every object by one layer
 // at a time. For composite objects such as a letter "H" standing upright, the
@@ -29,8 +29,8 @@ namespace Slic3r {
 // The pass is best-effort: on any unrecognized input (multi-extruder prints,
 // object exclusion markers, missing layer markers, parse or verification
 // failures) the original G-code is returned unchanged, never a corrupted file.
-std::string dynamic_composite_objects_process(const std::string& gcode,
-                                              double clearance_radius,
-                                              double clearance_height);
+std::string islands_process(const std::string& gcode,
+                            double clearance_radius,
+                            double clearance_height);
 
 } // namespace Slic3r

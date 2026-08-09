@@ -2310,7 +2310,7 @@ void ToolOrdering::assign_custom_gcodes(const Print &print)
 {
 	// Only valid for non-sequential print.
 	assert(print.config().print_sequence == PrintSequence::ByLayer
-		|| print.config().print_sequence == PrintSequence::DynamicCompositeObjects);
+		|| print.config().print_sequence == PrintSequence::Islands);
 
     custom_gcode_per_print_z = print.model().get_curr_plate_custom_gcodes();
 	if (custom_gcode_per_print_z.gcodes.empty())

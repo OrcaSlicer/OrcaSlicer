@@ -1,4 +1,4 @@
-#include "libslic3r/GCode/DynamicCompositeObjects.hpp"
+#include "libslic3r/GCode/Islands.hpp"
 
 #include <cstdlib>
 #include <set>
@@ -166,11 +166,11 @@ static std::string make_h_gcode(const GcodeParams& p)
 
 } // namespace
 
-TEST_CASE("Regroups two towers of an H layer-major to tower-major", "[DynamicCompositeObjects]")
+TEST_CASE("Regroups two towers of an H layer-major to tower-major", "[Islands]")
 {
     const std::string gcode = make_h_gcode(GcodeParams{});
     const std::string reordered =
-        dynamic_composite_objects_process(gcode, /*clearance_radius=*/20.0, /*clearance_height=*/20.0);
+        islands_process(gcode, /*clearance_radius=*/20.0, /*clearance_height=*/20.0);
     REQUIRE(reordered != gcode);
 
     // Lower phase (3 layers x 2 towers) is grouped, bridge layer stays,
@@ -190,7 +190,7 @@ TEST_CASE("Regroups two towers of an H layer-major to tower-major", "[DynamicCom
     REQUIRE_THAT(extruded_sum(reordered), Catch::Matchers::WithinRel(extruded_sum(gcode), 1e-6));
 }
 
-TEST_CASE("Keeps the G-code untouched when the towers are within the clearance radius", "[DynamicCompositeObjects]")
+TEST_CASE("Keeps the G-code untouched when the towers are within the clearance radius", "[Islands]")
 {
     // 20 mm gap splits the towers into separate chunks, but their centroids
     // are still closer than the 25 mm radius.
@@ -199,12 +199,12 @@ TEST_CASE("Keeps the G-code untouched when the towers are within the clearance r
     const std::string gcode = make_h_gcode(p);
     // Phase extent 0.6 mm exceeds the 0.5 mm clearance height, so the pair is
     // inside the clearance region and the feature is disabled.
-    REQUIRE(dynamic_composite_objects_process(gcode, 25.0, 0.5) == gcode);
+    REQUIRE(islands_process(gcode, 25.0, 0.5) == gcode);
     // With a larger clearance height the same geometry is safe to regroup.
-    REQUIRE(dynamic_composite_objects_process(gcode, 25.0, 1.0) != gcode);
+    REQUIRE(islands_process(gcode, 25.0, 1.0) != gcode);
 }
 
-TEST_CASE("Keeps the G-code untouched when the height difference exceeds the clearance height", "[DynamicCompositeObjects]")
+TEST_CASE("Keeps the G-code untouched when the height difference exceeds the clearance height", "[Islands]")
 {
     // 18 mm gap: the inter-tower travel (8.2 mm) splits the chunks, and the
     // tower centroids are 18 mm apart, closer than the 20 mm radius.
@@ -212,30 +212,30 @@ TEST_CASE("Keeps the G-code untouched when the height difference exceeds the cle
     p.tower_gap = 18.0;
     p.lower_layers = 8; // phase extent 2.1 mm
     const std::string gcode = make_h_gcode(p);
-    REQUIRE(dynamic_composite_objects_process(gcode, 20.0, 2.0) == gcode);
-    REQUIRE(dynamic_composite_objects_process(gcode, 20.0, 3.0) != gcode);
+    REQUIRE(islands_process(gcode, 20.0, 2.0) == gcode);
+    REQUIRE(islands_process(gcode, 20.0, 3.0) != gcode);
 }
 
-TEST_CASE("Handles relative extrusion without touching E values", "[DynamicCompositeObjects]")
+TEST_CASE("Handles relative extrusion without touching E values", "[Islands]")
 {
     GcodeParams p;
     p.relative_e = true;
     const std::string gcode = make_h_gcode(p);
     const std::string reordered =
-        dynamic_composite_objects_process(gcode, 20.0, 20.0);
+        islands_process(gcode, 20.0, 20.0);
     REQUIRE(reordered != gcode);
     REQUIRE(tags(reordered) == std::vector<std::string>{ "A", "A", "A", "B", "B", "B",
                                                          "BRIDGE", "A", "A", "B", "B" });
     REQUIRE_THAT(extruded_sum(reordered), Catch::Matchers::WithinRel(extruded_sum(gcode), 1e-6));
 }
 
-TEST_CASE("Rebases absolute E so extrusion continues where the previous chunk stopped", "[DynamicCompositeObjects]")
+TEST_CASE("Rebases absolute E so extrusion continues where the previous chunk stopped", "[Islands]")
 {
     GcodeParams p;
     p.lower_layers = 4; // forces rebasing across the grouped phase
     const std::string gcode = make_h_gcode(p);
     const std::string reordered =
-        dynamic_composite_objects_process(gcode, 20.0, 20.0);
+        islands_process(gcode, 20.0, 20.0);
     REQUIRE(reordered != gcode);
     REQUIRE_THAT(extruded_sum(reordered), Catch::Matchers::WithinRel(extruded_sum(gcode), 1e-6));
 
@@ -245,13 +245,13 @@ TEST_CASE("Rebases absolute E so extrusion continues where the previous chunk st
     REQUIRE(count_lines_with(reordered, "G92 E") >= 2);
 }
 
-TEST_CASE("Strips context-dependent Z moves from regrouped chunk heads", "[DynamicCompositeObjects]")
+TEST_CASE("Strips context-dependent Z moves from regrouped chunk heads", "[Islands]")
 {
     GcodeParams p;
     p.z_hop = true;
     const std::string gcode = make_h_gcode(p);
     const std::string reordered =
-        dynamic_composite_objects_process(gcode, 20.0, 20.0);
+        islands_process(gcode, 20.0, 20.0);
     REQUIRE(reordered != gcode);
     // The absolute Z-hop values (6.5 mm) refer to the original file position
     // and must not survive into the regrouped output.
@@ -260,37 +260,37 @@ TEST_CASE("Strips context-dependent Z moves from regrouped chunk heads", "[Dynam
                                                          "BRIDGE", "A", "A", "B", "B" });
 }
 
-TEST_CASE("Leaves multi-extruder G-code untouched", "[DynamicCompositeObjects]")
+TEST_CASE("Leaves multi-extruder G-code untouched", "[Islands]")
 {
     GcodeParams p;
     p.multi_tool = true;
     const std::string gcode = make_h_gcode(p);
-    REQUIRE(dynamic_composite_objects_process(gcode, 20.0, 20.0) == gcode);
+    REQUIRE(islands_process(gcode, 20.0, 20.0) == gcode);
 }
 
-TEST_CASE("Leaves G-code without layer markers untouched", "[DynamicCompositeObjects]")
+TEST_CASE("Leaves G-code without layer markers untouched", "[Islands]")
 {
     std::string gcode = make_h_gcode(GcodeParams{});
     std::string stripped;
     for (size_t pos = gcode.find(";LAYER_CHANGE"); pos != std::string::npos; pos = gcode.find(";LAYER_CHANGE"))
         gcode.erase(pos, 14);
-    REQUIRE(dynamic_composite_objects_process(gcode, 20.0, 20.0) == gcode);
+    REQUIRE(islands_process(gcode, 20.0, 20.0) == gcode);
 }
 
-TEST_CASE("Leaves a single-tower G-code untouched", "[DynamicCompositeObjects]")
+TEST_CASE("Leaves a single-tower G-code untouched", "[Islands]")
 {
     GcodeParams p;
     p.tower_gap = 0.0; // towers overlap: one island per layer
     const std::string gcode = make_h_gcode(p);
-    REQUIRE(dynamic_composite_objects_process(gcode, 20.0, 20.0) == gcode);
+    REQUIRE(islands_process(gcode, 20.0, 20.0) == gcode);
 }
 
-TEST_CASE("Leaves G-code untouched for non-positive clearance settings", "[DynamicCompositeObjects]")
+TEST_CASE("Leaves G-code untouched for non-positive clearance settings", "[Islands]")
 {
     const std::string gcode = make_h_gcode(GcodeParams{});
-    REQUIRE(dynamic_composite_objects_process(gcode, 0.0, 20.0) == gcode);
-    REQUIRE(dynamic_composite_objects_process(gcode, 20.0, 0.0) == gcode);
-    REQUIRE(dynamic_composite_objects_process(gcode, -5.0, 20.0) == gcode);
+    REQUIRE(islands_process(gcode, 0.0, 20.0) == gcode);
+    REQUIRE(islands_process(gcode, 20.0, 0.0) == gcode);
+    REQUIRE(islands_process(gcode, -5.0, 20.0) == gcode);
 }
 
 // A tower's wall ring and its infill are separate chunks (the infill travel
@@ -300,7 +300,7 @@ TEST_CASE("Leaves G-code untouched for non-positive clearance settings", "[Dynam
 // Travels inside a chunk head carry a Z belonging to the original file
 // position; they must lose it in the regrouped output so the nozzle never
 // drops mid-travel.
-TEST_CASE("Merges wall and infill chunks of one tower and strips head travel Z", "[DynamicCompositeObjects]")
+TEST_CASE("Merges wall and infill chunks of one tower and strips head travel Z", "[Islands]")
 {
     std::ostringstream out;
     out << "G90\nM82\nG1 Z5 F300\n";
@@ -328,7 +328,7 @@ TEST_CASE("Merges wall and infill chunks of one tower and strips head travel Z",
     out << "G1 X120 Y10 E" << (e += 0.1) << " F1200\n";
 
     const std::string gcode = out.str();
-    const std::string reordered = dynamic_composite_objects_process(gcode, 20.0, 20.0);
+    const std::string reordered = islands_process(gcode, 20.0, 20.0);
     REQUIRE(reordered != gcode);
 
     // Wall and infill of one tower stay together: the lower phase is
@@ -350,7 +350,7 @@ TEST_CASE("Merges wall and infill chunks of one tower and strips head travel Z",
 // tag table) instead of ";LAYER_CHANGE" + ";Z:", relative extrusion, and
 // typically contain a "T65535" sentinel (AMS filament pull-back in the machine
 // end G-code) which is not a tool change.
-TEST_CASE("Regroups a Bambu-style H with CHANGE_LAYER markers and a T65535 sentinel", "[DynamicCompositeObjects]")
+TEST_CASE("Regroups a Bambu-style H with CHANGE_LAYER markers and a T65535 sentinel", "[Islands]")
 {
     std::ostringstream out;
     out << "; config block\n";
@@ -403,7 +403,7 @@ TEST_CASE("Regroups a Bambu-style H with CHANGE_LAYER markers and a T65535 senti
 
     const std::string gcode = out.str();
     const std::string reordered =
-        dynamic_composite_objects_process(gcode, /*clearance_radius=*/20.0, /*clearance_height=*/20.0);
+        islands_process(gcode, /*clearance_radius=*/20.0, /*clearance_height=*/20.0);
     REQUIRE(reordered != gcode);
 
     // Lower phase (3 layers x 2 towers) is grouped, bridge layer stays,

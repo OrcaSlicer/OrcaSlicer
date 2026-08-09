@@ -24,7 +24,7 @@
 #include "libslic3r/format.hpp"
 #include "Time.hpp"
 #include "GCode/ExtrusionProcessor.hpp"
-#include "GCode/DynamicCompositeObjects.hpp"
+#include "GCode/Islands.hpp"
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
@@ -2507,24 +2507,24 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     }
     file.close();
 
-    // Orca: Dynamic Composite Objects [experimental]. Regroup the exported
+    // Orca: Islands [experimental]. Regroup the exported
     // G-code so that within runs of consecutive layers that share the same set
     // of islands (e.g. the two legs of a standing "H"), every layer of one
     // island is printed before the next island is started. When the islands
     // are too close together or the height difference is too large (see
-    // dynamic_composite_clearance_radius / _height), or the file cannot be
+    // islands_clearance_radius / _height), or the file cannot be
     // regrouped safely, the G-code is left untouched. When the file IS
     // regrouped, the stream-fed processor result is replaced by a fresh pass
     // over the reordered file, so the 3D preview, the layer slider and the
     // time estimates follow the actual file content.
-    if (print->config().print_sequence == PrintSequence::DynamicCompositeObjects) {
+    if (print->config().print_sequence == PrintSequence::Islands) {
         boost::nowide::ifstream ifs(path_tmp, std::ios::binary);
         if (ifs.is_open()) {
             std::string gcode((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
             ifs.close();
-            std::string reordered = dynamic_composite_objects_process(
-                gcode, print->config().dynamic_composite_clearance_radius.value,
-                print->config().dynamic_composite_clearance_height.value);
+            std::string reordered = islands_process(
+                gcode, print->config().islands_clearance_radius.value,
+                print->config().islands_clearance_height.value);
             if (reordered != gcode) {
                 boost::nowide::ofstream ofs(path_tmp, std::ios::binary | std::ios::trunc);
                 if (ofs.is_open()) {
@@ -2543,13 +2543,13 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
                         reprocessor.set_xy_offset(origin(0), origin(1));
                         reprocessor.process_file(path_tmp);
                         m_processor.result() = std::move(reprocessor.extract_result());
-                        BOOST_LOG_TRIVIAL(info) << "Dynamic Composite Objects: G-code regrouped "
+                        BOOST_LOG_TRIVIAL(info) << "Islands: G-code regrouped "
                                                 << gcode.size() << " -> " << reordered.size() << " bytes";
                     } catch (const std::exception & /* ex */) {
                         // The regrouped file is still valid for printing; only
                         // the preview result is affected, so keep the streamed
                         // one rather than failing the export.
-                        BOOST_LOG_TRIVIAL(error) << "Dynamic Composite Objects: failed to re-process the "
+                        BOOST_LOG_TRIVIAL(error) << "Islands: failed to re-process the "
                                                     "regrouped G-code, keeping the streamed preview result";
                     }
                 }

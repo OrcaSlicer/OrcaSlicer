@@ -132,10 +132,10 @@ static size_t single_tower_layer_count(const std::string& gcode, size_t nlayers 
 
 // Two towers (x 75-80 and 120-125) joined by a bridge at z 5-8: the lower
 // towers are separate islands until the bridge layer merges them.
-TEST_CASE("A bridge-shaped object prints each tower to full height before the bridge layers", "[DynamicCompositeObjects]")
+TEST_CASE("A bridge-shaped object prints each tower to full height before the bridge layers", "[Islands]")
 {
     const std::string g_on = slice({ TestMesh::bridge }, {
-        {"print_sequence", "dynamic composite objects"},
+        {"print_sequence", "islands"},
         {"skirt_loops", "0"},
         {"layer_height", "0.2"},
         {"initial_layer_print_height", "0.2"},
@@ -178,10 +178,10 @@ TEST_CASE("A bridge-shaped object prints each tower to full height before the br
 // Infill patterns split each tower layer into wall and infill chunks; those
 // must still group into the two towers, or the regrouping disappears entirely
 // once the model has infill.
-TEST_CASE("Tower regrouping survives dense infill", "[DynamicCompositeObjects]")
+TEST_CASE("Tower regrouping survives dense infill", "[Islands]")
 {
     const std::string g_on = slice({ TestMesh::bridge }, {
-        {"print_sequence", "dynamic composite objects"},
+        {"print_sequence", "islands"},
         {"skirt_loops", "0"},
         {"layer_height", "0.2"},
         {"initial_layer_print_height", "0.2"},
@@ -204,12 +204,12 @@ TEST_CASE("Tower regrouping survives dense infill", "[DynamicCompositeObjects]")
 // The DCO hook re-processes the exported file into the preview result; a plate
 // past the first one has a non-zero origin, and the result must carry that
 // offset or the preview renders the toolpath on the first plate.
-TEST_CASE("Regrouped preview result carries the plate origin offset", "[DynamicCompositeObjects]")
+TEST_CASE("Regrouped preview result carries the plate origin offset", "[Islands]")
 {
     Print   print;
     Model   model;
     init_print({ TestMesh::bridge }, print, model, {
-        {"print_sequence", "dynamic composite objects"},
+        {"print_sequence", "islands"},
         {"skirt_loops", "0"},
         {"layer_height", "0.2"},
         {"initial_layer_print_height", "0.2"},
@@ -240,18 +240,18 @@ TEST_CASE("Regrouped preview result carries the plate origin offset", "[DynamicC
 // The same geometry is left untouched when the clearance settings forbid the
 // grouping (towers closer than the radius while the height difference exceeds
 // the clearance height).
-TEST_CASE("Two towers within the clearance region keep layer-by-layer ordering", "[DynamicCompositeObjects]")
+TEST_CASE("Two towers within the clearance region keep layer-by-layer ordering", "[Islands]")
 {
     // Towers ~45 mm apart: place them closer than the 50 mm radius and cap the
     // clearance height below the 3.4 mm tower phase so the grouping is
     // forbidden.
     const std::string g_restricted = slice({ TestMesh::bridge }, {
-        {"print_sequence", "dynamic composite objects"},
+        {"print_sequence", "islands"},
         {"skirt_loops", "0"},
         {"layer_height", "0.2"},
         {"initial_layer_print_height", "0.2"},
-        {"dynamic_composite_clearance_radius", "50"},
-        {"dynamic_composite_clearance_height", "3"},
+        {"islands_clearance_radius", "50"},
+        {"islands_clearance_height", "3"},
     });
     const std::string g_off = slice({ TestMesh::bridge }, {
         {"skirt_loops", "0"},
@@ -264,12 +264,12 @@ TEST_CASE("Two towers within the clearance region keep layer-by-layer ordering",
 
     // With a taller clearance height the same geometry is regrouped again.
     const std::string g_allowed = slice({ TestMesh::bridge }, {
-        {"print_sequence", "dynamic composite objects"},
+        {"print_sequence", "islands"},
         {"skirt_loops", "0"},
         {"layer_height", "0.2"},
         {"initial_layer_print_height", "0.2"},
-        {"dynamic_composite_clearance_radius", "50"},
-        {"dynamic_composite_clearance_height", "6"},
+        {"islands_clearance_radius", "50"},
+        {"islands_clearance_height", "6"},
     });
     REQUIRE(executable_part(g_allowed) != executable_part(g_off));
 }

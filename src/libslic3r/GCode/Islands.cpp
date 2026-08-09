@@ -1,4 +1,4 @@
-#include "DynamicCompositeObjects.hpp"
+#include "Islands.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -389,9 +389,9 @@ static void emit_chunk(const std::string& gcode, const std::vector<LineInfo>& li
 
 } // namespace
 
-std::string dynamic_composite_objects_process(const std::string& gcode,
-                                              double clearance_radius,
-                                              double clearance_height)
+std::string islands_process(const std::string& gcode,
+                            double clearance_radius,
+                            double clearance_height)
 {
     if (gcode.empty() || gcode.size() > MAX_INPUT_BYTES || clearance_radius <= 0.0 ||
         clearance_height <= 0.0)

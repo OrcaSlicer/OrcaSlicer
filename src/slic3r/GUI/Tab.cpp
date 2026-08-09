@@ -3083,8 +3083,6 @@ void TabPrint::build()
         optgroup = page->new_optgroup(L("Special mode"), L"param_special");
         optgroup->append_single_option_line("slicing_mode", "others_settings_special_mode#slicing-mode");
         optgroup->append_single_option_line("print_sequence", "others_settings_special_mode#print-sequence");
-        optgroup->append_single_option_line("dynamic_composite_clearance_radius", "others_settings_special_mode#print-sequence");
-        optgroup->append_single_option_line("dynamic_composite_clearance_height", "others_settings_special_mode#print-sequence");
         optgroup->append_single_option_line("print_order", "others_settings_special_mode#intra-layer-order");
         optgroup->append_single_option_line("spiral_mode", "others_settings_special_mode#spiral-vase");
         optgroup->append_single_option_line("spiral_mode_smooth", "others_settings_special_mode#smooth-spiral");
@@ -3453,8 +3451,6 @@ void TabPrintModel::update_model_config()
             // Reset m_config manually because there's no corresponding config in m_parent_tab->m_config
             for (auto plate_item : m_object_configs) {
                 const DynamicPrintConfig& plate_config = plate_item.second->get();
-                BedType plate_bed_type = (BedType)0;
-                PrintSequence plate_print_seq = (PrintSequence)0;
                 if (!plate_config.has("curr_bed_type")) {
                     // same as global
                     DynamicConfig& global_cfg = m_preset_bundle->project_config;
@@ -3863,6 +3859,12 @@ void TabPrintPlate::update_custom_dirty(std::vector<std::string> &dirty_options,
                 if (m_config->opt_enum<BedType>("curr_bed_type") != global_bed_type) {
                     dirty_options.push_back(k);
                 }
+            }
+        }
+        if (k == "print_sequence") {
+            PrintSequence global_seq = wxGetApp().global_print_sequence();
+            if (m_config->opt_enum<PrintSequence>("print_sequence") != global_seq) {
+                dirty_options.push_back(k);
             }
         }
     }
@@ -5134,6 +5136,10 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("extruder_clearance_radius", "printer_basic_information_extruder_clearance#radius");
         optgroup->append_single_option_line("extruder_clearance_height_to_rod", "printer_basic_information_extruder_clearance#height-to-rod");
         optgroup->append_single_option_line("extruder_clearance_height_to_lid", "printer_basic_information_extruder_clearance#height-to-lid");
+
+        optgroup = page->new_optgroup(L("Islands clearance"), "param_islands_clearance");
+        optgroup->append_single_option_line("islands_clearance_radius", "printer_basic_information_islands_clearance#radius");
+        optgroup->append_single_option_line("islands_clearance_height", "printer_basic_information_islands_clearance#height");
 
         optgroup = page->new_optgroup(L("Adaptive bed mesh"), "param_adaptive_mesh");
         optgroup->append_single_option_line("bed_mesh_min", "printer_basic_information_adaptive_bed_mesh#bed-mesh");

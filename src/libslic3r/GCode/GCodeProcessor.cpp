@@ -7482,7 +7482,7 @@ void GCodeProcessor::update_slice_warnings()
         // When the processor was fed from a file (process_file) without
         // init_filament_maps_and_nozzle_type_when_import_only_gcode(), either
         // may be undersized for the ids used by the file, so bounds-check both
-        // accesses (see the reprocess path of Dynamic Composite Objects).
+        // accesses (see the reprocess path of Islands).
         int filament_extruder_id = -1;
         if (used_filaments[idx] < m_filament_maps.size())
             filament_extruder_id = m_filament_maps[used_filaments[idx]];
