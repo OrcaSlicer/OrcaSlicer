@@ -16,15 +16,16 @@ static Points loop_points_opened(Polyline loop_path)
     return std::move(loop_path.points);
 }
 
-static Polylines generate_concentric_spiral_polylines(const FillParams& params,
-                                                      const Polygons& loops,
-                                                      const coord_t distance,
-                                                      const bool is_classic)
+static Polylines generate_concentric_spiral_polylines(
+    const FillParams& params, const Polygons& loops, const coord_t distance, const bool is_classic, const ExPolygon& original_expoly)
 {
     Polylines output;
     Polyline spiral;
     Point current_pos(0, 0);
-    const double jump_threshold = 2.0 * double(distance);//Distance to jump to a new spiral.
+    const double jump_threshold = 2.0 * double(distance); // Distance to jump to a new spiral.
+
+    Point last_loop_centroid(0, 0);
+    bool add_center_point = false;
 
     // Pick the sharpest corner of the first loop (only for arachne, for classic we always start at the second point of the loop).
     auto find_sharpest_corner = [](const Polygon& loop) -> int {
@@ -89,8 +90,8 @@ static Polylines generate_concentric_spiral_polylines(const FillParams& params,
             }
         }
 
-        //clipping the end of the loop to avoid overlapping with the next loop.
-        // theoric gap = distance/sin(alpha) where alpha is the angle between the last segment of the loop and the first segment of the next loop.
+        // Clipping the end of the loop to avoid overlapping with the next loop.
+        // Theoric gap = distance/sin(alpha) where alpha is the angle between the last segment of the loop and the first segment of the next loop.
         const bool last_loop = (i + 1 == loops.size());
         double gap           = last_loop ? 0.5 * double(distance) : double(distance);
         loop_path.points.push_back(loop_path.points.front());
@@ -107,13 +108,24 @@ static Polylines generate_concentric_spiral_polylines(const FillParams& params,
             double cross = v1.x() * v2.y() - v1.y() * v2.x();
             double alpha = std::atan2(std::abs(cross), dot);
 
-            if (alpha > M_PI / 8 && alpha < M_PI / 3)
+            if (alpha > M_PI / 4 &&
+                alpha < 2 * M_PI / 3) // 45° < alpha < 120° limits to avoid too much clipping in case of very sharp angles.
                 clip_len = gap / std::sin(alpha);
             else
                 clip_len = gap;
         }
-
         loop_path.clip_end(clip_len);
+
+        // Add the centroid of the last loop.
+        if (last_loop) {
+            BoundingBox bbox = loop.bounding_box();
+            Point centroid   = loop.centroid();
+
+            if (original_expoly.contains(centroid)) {
+                last_loop_centroid = centroid;
+                add_center_point   = true;
+            }
+        }
 
         if (spiral.empty())
             spiral = std::move(loop_path);
@@ -123,10 +135,15 @@ static Polylines generate_concentric_spiral_polylines(const FillParams& params,
         current_pos = spiral.last_point();
     }
 
-    //Fill order handling.
+    // Add the center point if needed.
+    if (add_center_point && !spiral.empty() && spiral.last_point() != last_loop_centroid) {
+        spiral.points.push_back(last_loop_centroid);
+    }
+
     if (!spiral.empty())
         output.emplace_back(std::move(spiral));
 
+    // Fill order handling.
     if (params.fill_order == SurfaceFillOrder::Outward) {
         for (Polyline& path : output)
             std::reverse(path.begin(), path.end());
@@ -164,9 +181,11 @@ void FillConcentricSpiral::_fill_surface_single(const FillParams& params,
 
     loops = union_pt_chained_outside_in(loops);
 
-    const bool is_classic   = this->print_object_config == nullptr ||
-                              this->print_object_config->wall_generator.value == PerimeterGeneratorType::Classic;
-    Polylines spiral_result = generate_concentric_spiral_polylines(params, loops, distance, is_classic);
+    const bool is_classic = this->print_object_config == nullptr ||
+                            this->print_object_config->wall_generator.value == PerimeterGeneratorType::Classic;
+
+    // Generate the concentric spiral polylines.
+    Polylines spiral_result = generate_concentric_spiral_polylines(params, loops, distance, is_classic, expolygon);
     append(polylines_out, spiral_result);
 
     // Apply multiline offset if needed.
