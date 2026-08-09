@@ -261,4 +261,52 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
     return true;
 }
 
+bool SnapmakerPrinterAgent::push_filament_info(std::string dev_id, const FilamentSlotInfo& info)
+{
+    if (!ensure_device_info(dev_id))
+        return false;
+
+    // Dialect: the same command the printer's own device UI sends (see Snapmaker's device tab).
+    // ALL parameters are mandatory -- omitting one both errors AND partially applies on current
+    // firmware -- so empty values are sent as quoted-empty. Sub-type and vendor may contain
+    // spaces; type and color are plain tokens.
+    auto quoted = [](std::string v) {
+        v.erase(std::remove(v.begin(), v.end(), '"'), v.end());
+        return "\"" + v + "\"";
+    };
+    std::string color = info.color_rgba.empty() ? "FFFFFFFF" : info.color_rgba;
+    std::string script = "SET_PRINT_FILAMENT_CONFIG CONFIG_EXTRUDER=" + std::to_string(info.slot) +
+                         " FILAMENT_TYPE=" + info.type +
+                         " FILAMENT_SUBTYPE=" + quoted(info.sub_type) +
+                         " FILAMENT_COLOR_RGBA=" + color +
+                         " VENDOR=" + quoted(info.vendor) + " SAVE=1";
+
+    std::string url = join_url(device_info.base_url, "/printer/gcode/script");
+    nlohmann::json body;
+    body["script"] = script;
+
+    bool        success = false;
+    std::string http_error;
+    auto        http = Http::post(url);
+    if (!device_info.api_key.empty())
+        http.header("X-Api-Key", device_info.api_key);
+    http.header("Content-Type", "application/json")
+        .set_post_body(body.dump())
+        .timeout_connect(5)
+        .timeout_max(10)
+        .on_complete([&](std::string, unsigned status) { success = (status == 200); })
+        .on_error([&](std::string, std::string err, unsigned status) {
+            http_error = err + " (HTTP " + std::to_string(status) + ")";
+        })
+        .perform_sync();
+
+    if (!success)
+        BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::push_filament_info failed: " << http_error
+                                   << " url=" << url << " dev_id=" << dev_id << " dev_ip=" << device_info.dev_ip
+                                   << ", script: " << script;
+    else
+        BOOST_LOG_TRIVIAL(info) << "SnapmakerPrinterAgent::push_filament_info ok: " << script;
+    return success;
+}
+
 } // namespace Slic3r

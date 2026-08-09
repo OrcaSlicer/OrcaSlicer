@@ -17,6 +17,10 @@ public:
 
     bool fetch_filament_info(std::string dev_id) override;
 
+    // Write path: the printer accepts SET_PRINT_FILAMENT_CONFIG via the local Moonraker
+    // gcode-script endpoint (same command its own device UI sends over MQTT).
+    bool supports_filament_push() const override { return true; }
+    bool push_filament_info(std::string dev_id, const FilamentSlotInfo& info) override;
 
 private:
     // Combine filament_type + filament_sub_type into a unified type string
