@@ -118,10 +118,13 @@ static Polylines generate_concentric_spiral_polylines(const FillParams& params,
         current_pos = spiral.last_point();
     }
 
-    if (!spiral.empty()) {
-        if (params.fill_order == SurfaceFillOrder::Outward)
-            std::reverse(spiral.begin(), spiral.end());
+    if (!spiral.empty())
         output.emplace_back(std::move(spiral));
+
+    if (params.fill_order == SurfaceFillOrder::Outward) {
+        for (Polyline& path : output)
+            std::reverse(path.begin(), path.end());
+        std::reverse(output.begin(), output.end());
     }
 
     return output;
