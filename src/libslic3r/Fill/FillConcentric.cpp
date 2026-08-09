@@ -9,7 +9,6 @@
 
 namespace Slic3r {
 
-
 void FillConcentric::_fill_surface_single(
     const FillParams                &params, 
     unsigned int                     thickness_layers,
@@ -46,15 +45,14 @@ void FillConcentric::_fill_surface_single(
     // Orca: an outward fill order prints the innermost loops first instead.
     if (params.fill_order == SurfaceFillOrder::Outward)
         std::reverse(loops.begin(), loops.end());
-
+    
+    // split paths using a nearest neighbor search
+    size_t iPathFirst = polylines_out.size();
     Point last_pos(0, 0);
-    for (const Polygon& loop : loops) {
+    for (const Polygon &loop : loops) {
         polylines_out.emplace_back(loop.split_at_index(last_pos.nearest_point_index(loop.points)));
         last_pos = polylines_out.back().last_point();
     }
-
-    // split paths using a nearest neighbor search
-    size_t iPathFirst = polylines_out.size();
 
     // Apply multiline offset if needed
     multiline_fill(polylines_out, params, spacing);
