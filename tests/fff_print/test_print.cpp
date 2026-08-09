@@ -456,3 +456,62 @@ TEST_CASE("Sequential printing publishes the nozzle group result", "[Print][Mult
         CHECK(gcode.find("; SEQ-ND-OK") != std::string::npos);
     }
 }
+
+// The by-object height limit is dynamic: with a gantry parallel to the X axis only instances that
+// share their Y band with a later-printed instance are limited to the gantry (rod) clearance height;
+// instances in their own Y band may use the full build volume height.
+TEST_CASE("By-object printing allows full height for objects in separate Y bands", "[Print]")
+{
+    // Two 60 mm towers whose Y bands ([80,100] and [140,160]) do not overlap, so neither ever sits
+    // under the X gantry together with the other and the rod clearance (25 mm) must not apply;
+    // 60 mm < printable_height (100 mm) so validation passes. The lid clearance is set to the rod
+    // height like on open-frame machines (e.g. Ender 3), where it used to limit every by-object
+    // instance to the gantry.
+    Print print;
+    Model model;
+    std::vector<TriangleMesh> meshes;
+    meshes.emplace_back(Slic3r::make_cube(20, 20, 60));
+    meshes.back().translate(80, 80, 0);
+    meshes.emplace_back(Slic3r::make_cube(20, 20, 60));
+    meshes.back().translate(80, 140, 0);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_lid", 25 },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "extruder_clearance_radius",        30 },
+        { "printable_height",                 100 },
+        { "skirt_loops",                      0 },
+        { "use_relative_e_distances",         0 },
+    });
+    init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+    StringObjectException ret = print.validate();
+    CHECK(ret.string.empty());
+}
+
+// With the same two towers side by side along the X axis (shared Y band [80,100]) the first-printed
+// tower sits under the X gantry while the second one is printed, so the rod clearance applies.
+TEST_CASE("By-object printing limits height for objects sharing the gantry axis", "[Print]")
+{
+    Print print;
+    Model model;
+    std::vector<TriangleMesh> meshes;
+    meshes.emplace_back(Slic3r::make_cube(20, 20, 60));
+    meshes.back().translate(80, 80, 0);
+    meshes.emplace_back(Slic3r::make_cube(20, 20, 60));
+    meshes.back().translate(140, 80, 0);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_lid", 25 },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "extruder_clearance_radius",        30 },
+        { "printable_height",                 100 },
+        { "skirt_loops",                      0 },
+        { "use_relative_e_distances",         0 },
+    });
+    init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+    StringObjectException ret = print.validate();
+    CHECK_FALSE(ret.string.empty());
+    CHECK(ret.string.find("too tall") != std::string::npos);
+}

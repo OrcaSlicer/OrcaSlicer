@@ -650,6 +650,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
     {
         const PrintInstance *print_instance;
         BoundingBox    bounding_box;
+        BoundingBox    true_bounding_box;
         Polygon        hull_polygon;
         int                  object_index;
         double         arrange_score;
@@ -740,7 +741,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                         if (has_exception) break;
                     }
                 }
-                struct print_instance_info print_info {&instance, convex_hull.bounding_box(), convex_hull};
+                struct print_instance_info print_info {&instance, convex_hull.bounding_box(), convex_hull_no_offset.bounding_box(), convex_hull};
                 print_info.height = instance.print_object->height();
                 print_info.object_index = find_object_index(print.model(), print_object->model_object());
                 print_instance_with_bounding_box.push_back(std::move(print_info));
@@ -757,8 +758,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         }
     }
 
-    // calc sort order
-    double hc1              = scale_(print.config().extruder_clearance_height_to_lid); // height to lid
+    // Heights measured from the nozzle: hc2 is the clearance to the gantry rod, printable_height the build volume top.
     double hc2              = scale_(print.config().extruder_clearance_height_to_rod); // height to rod
     double printable_height = scale_(print.config().printable_height);
 
@@ -867,61 +867,26 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
 #endif
     // sequential_print_vertical_clearance_valid
     {
-        // Ignore the last instance printed.
-        //print_instance_with_bounding_box.pop_back();
-        /*bool has_interlaced_objects = false;
-        for (int k = 0; k < print_instance_count; k++)
-        {
-            auto inst = print_instance_with_bounding_box[k].print_instance;
-            auto bbox = print_instance_with_bounding_box[k].bounding_box;
-            auto iy1 = bbox.min.y();
-            auto iy2 = bbox.max.y();
-
-            for (int i = 0; i < k; i++)
-            {
-                auto& p = print_instance_with_bounding_box[i].print_instance;
-                auto bbox2 = print_instance_with_bounding_box[i].bounding_box;
-                auto py1 = bbox2.min.y();
-                auto py2 = bbox2.max.y();
-                auto inter_min = std::max(iy1, py1); // min y of intersection
-                auto inter_max = std::min(iy2, py2); // max y of intersection. length=max_y-min_y>0 means intersection exists
-                if (inter_max - inter_min > 0) {
-                    has_interlaced_objects = true;
-                    break;
-                }
-            }
-            if (has_interlaced_objects)
-                break;
-        }*/
-
-        // if objects are not overlapped on y-axis, they will not collide even if they are taller than extruder_clearance_height_to_rod
+        // Dynamic max height for "by object" printing. A gantry parallel to the X axis spans the whole
+        // plate at the toolhead's Y position, so an instance can only collide with the gantry while a
+        // later-printed instance (already at full height) shares its Y band, i.e. the two are placed
+        // side by side along the X axis. Instances in their own Y band never sit under the gantry
+        // together with another object, so they may use the full build volume height. The Y band test
+        // uses the un-inflated bounding boxes: horizontal separation is already enforced by the
+        // extruder_clearance_radius collision check above.
         int print_instance_count = print_instance_with_bounding_box.size();
         std::map<const PrintInstance*, std::pair<Polygon, float>> too_tall_instances;
         for (int k = 0; k < print_instance_count; k++)
         {
             auto inst = print_instance_with_bounding_box[k].print_instance;
-            // 只需要考虑喷嘴到滑杆的偏移量，这个比整个工具头的碰撞半径要小得多
-            // Only the offset from the nozzle to the slide bar needs to be considered, which is much smaller than the collision radius of the entire tool head.
-            auto bbox = print_instance_with_bounding_box[k].bounding_box.inflated(-scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset));
+            auto& bbox = print_instance_with_bounding_box[k].true_bounding_box;
             auto iy1 = bbox.min.y();
             auto iy2 = bbox.max.y();
             (const_cast<ModelInstance*>(inst->model_instance))->arrange_order = k+1;
-            double height = (k == (print_instance_count - 1))?printable_height:hc1;
-            /*if (has_interlaced_objects) {
-                if ((k < (print_instance_count - 1)) && (inst->print_object->height() > hc2)) {
-                    too_tall_instances[inst] = std::make_pair(print_instance_with_bounding_box[k].hull_polygon, unscaled<double>(hc2));
-                }
-            }
-            else {
-                if ((k < (print_instance_count - 1)) && (inst->print_object->height() > hc1)) {
-                    too_tall_instances[inst] = std::make_pair(print_instance_with_bounding_box[k].hull_polygon, unscaled<double>(hc1));
-                }
-            }*/
-
+            double height = printable_height;
             for (int i = k+1; i < print_instance_count; i++)
             {
-                auto& p = print_instance_with_bounding_box[i].print_instance;
-                auto bbox2 = print_instance_with_bounding_box[i].bounding_box;
+                auto& bbox2 = print_instance_with_bounding_box[i].true_bounding_box;
                 auto py1 = bbox2.min.y();
                 auto py2 = bbox2.max.y();
                 auto inter_min = std::max(iy1, py1); // min y of intersection
