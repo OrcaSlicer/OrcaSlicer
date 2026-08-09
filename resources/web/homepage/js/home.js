@@ -312,6 +312,15 @@ function OnClickModelDepot()
 	SendWXMessage( JSON.stringify(tSend) );		
 }
 
+function OnClickPlugins()
+{
+	var tSend={};
+	tSend['sequence_id']=Math.round(new Date() / 1000);
+	tSend['command']="homepage_plugins";
+
+	SendWXMessage( JSON.stringify(tSend) );
+}
+
 function OnClickNewProject()
 {
 	var tSend={};
