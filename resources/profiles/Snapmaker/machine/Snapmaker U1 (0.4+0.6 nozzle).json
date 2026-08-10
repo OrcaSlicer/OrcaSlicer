@@ -1,10 +1,10 @@
 {
 	"type": "machine",
-	"setting_id": "O6AMxX1Ptbtv4zCK",
 	"name": "Snapmaker U1 (0.4+0.6 nozzle)",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_U1",
+	"from": "system",
+	"setting_id": "O6AMxX1Ptbtv4zCK",
+	"instantiation": "true",
 	"printer_model": "Snapmaker U1",
 	"printer_variant": "0.4+0.6",
 	"default_print_profile": "0.20 Standard @Snapmaker U1 (0.4+0.6 nozzle)",

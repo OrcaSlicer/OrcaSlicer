@@ -338,6 +338,22 @@ TEST_CASE("G-code lists the resolved extrusion-width settings", "[Print]")
     CHECK(with_first_layer.find("; first layer extrusion width") != std::string::npos);
 }
 
+// gcode_skip_config_block suppresses the resolved-settings block while leaving the
+// header and executable blocks intact.
+TEST_CASE("gcode_skip_config_block omits the resolved-settings comment block", "[Print]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "gcode_skip_config_block", true },
+        { "gcode_comments",         true },
+    });
+    CHECK(gcode.find("; CONFIG_BLOCK_START")     == std::string::npos);
+    CHECK(gcode.find("; CONFIG_BLOCK_END")       == std::string::npos);
+    CHECK(gcode.find("; layer_height =")         == std::string::npos);
+    CHECK(gcode.find("; fill_density =")         == std::string::npos);
+    CHECK(gcode.find("; HEADER_BLOCK_START")     != std::string::npos);
+    CHECK(gcode.find("; EXECUTABLE_BLOCK_START") != std::string::npos);
+}
+
 // Custom G-code templates substitute placeholders during export.
 TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
 {
@@ -417,4 +433,26 @@ TEST_CASE("Sequential printing follows model order", "[Print]")
     });
 
     REQUIRE_THAT(first_object_peak_z, Catch::Matchers::WithinAbs(20.0, 0.3));
+}
+
+// A sequential (by-object) print must publish the print-level nozzle group result just
+// like a by-layer print, so custom g-code can index the per-nozzle placeholder tables
+// (e.g. nozzle_diameter_at_nozzle_id[]) instead of failing on an empty vector.
+TEST_CASE("Sequential printing publishes the nozzle group result", "[Print][MultiNozzle]")
+{
+    SECTION("process() publishes the result") {
+        Print print;
+        Model model;
+        place_two_cubes_apart(60.0, { { "print_sequence", "by object" } }, print, model);
+        print.process();
+        REQUIRE(print.get_layered_nozzle_group_result() != nullptr);
+    }
+
+    SECTION("start g-code can index the per-nozzle diameter table") {
+        const std::string gcode = slice_two_cubes_arranged({
+            { "print_sequence",      "by object" },
+            { "machine_start_gcode", "{if nozzle_diameter_at_nozzle_id[0] > 0}; SEQ-ND-OK\n{endif}" },
+        });
+        CHECK(gcode.find("; SEQ-ND-OK") != std::string::npos);
+    }
 }

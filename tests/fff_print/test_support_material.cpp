@@ -93,3 +93,14 @@ SCENARIO("Support layer Z honors contact distance", "[SupportMaterial]")
         }
     }
 }
+
+// extrude_support once held a `static` lambda capturing `this`, so a second export in the
+// same process dereferenced a returned stack frame (ASan: stack-use-after-return).
+TEST_CASE("Support G-code emission survives a second slice in the same process", "[SupportMaterial][Regression]")
+{
+    const std::string first = slice({ TestMesh::overhang }, { { "enable_support", 1 } });
+    REQUIRE(! layers_with_role(first, "support").empty());
+
+    const std::string second = slice({ TestMesh::overhang }, { { "enable_support", 1 } });
+    REQUIRE(! layers_with_role(second, "support").empty());
+}

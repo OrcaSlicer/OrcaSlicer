@@ -1213,8 +1213,8 @@ SlaGizmoHelpDialog::SlaGizmoHelpDialog()
     shortcuts.push_back(std::make_pair(_L"Del",                       _L("Remove selected points")));
     shortcuts.push_back(std::make_pair(ctrl+_L("Mouse wheel"),        _L("Move clipping plane")));
     shortcuts.push_back(std::make_pair("R",                           _L("Reset clipping plane")));
-    shortcuts.push_back(std::make_pair(_L("Enter"),                   _L("Apply changes")));
-    shortcuts.push_back(std::make_pair(_L("Esc"),                     _L("Discard changes")));
+    shortcuts.push_back(std::make_pair(_L_CONTEXT("Enter", "Keyboard Shortcut"),                   _L("Apply changes")));
+    shortcuts.push_back(std::make_pair(_L_CONTEXT("Esc", "Keyboard Shortcut"),                     _L("Discard changes")));
     shortcuts.push_back(std::make_pair("M",                           _L("Switch to editing mode")));
     shortcuts.push_back(std::make_pair("A",                           _L("Auto-generate points")));
 

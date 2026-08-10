@@ -162,7 +162,7 @@ CalibrationDialog::CalibrationDialog(Plater *plater)
     body_panel->Layout();
 
     m_sizer_main->Add(body_panel, 0, wxEXPAND | wxALL, FromDIP(25));
-    SetSizer(m_sizer_main);
+    SetSizerAndFit(m_sizer_main);
     Layout();
     Fit();
 

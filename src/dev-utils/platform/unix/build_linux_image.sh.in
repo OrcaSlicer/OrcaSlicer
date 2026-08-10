@@ -171,6 +171,33 @@ echo -n "[9/9] Generating Linux app..."
     fi
     cp -fl "${ORIGINAL_BINARY_LOCATION}" "$BIN_DIR/@SLIC3R_APP_CMD@"
 
+    # Bundle the embedded Python runtime (interpreter + stdlib) that CMake staged
+    # next to the binary. OrcaSlicer resolves PYTHONHOME at <resources_dir>/../lib/python,
+    # which is $APPDIR/lib/python (resources_dir is $APPDIR/resources). Staging it here,
+    # before the dependency-closure pass below, lets that pass also bundle the extension
+    # modules' shared libraries; libpython itself is found via rpath ($ORIGIN entries set
+    # in src/CMakeLists.txt and by the dep recipe). Without this the plugin system cannot start.
+    PYTHON_RUNTIME_SRC="$(dirname "${ORIGINAL_BINARY_LOCATION}")/python"
+    if [ -d "$PYTHON_RUNTIME_SRC" ]; then
+        echo "Bundling Python runtime from ${PYTHON_RUNTIME_SRC} ..."
+        copy_directory_if_present "$PYTHON_RUNTIME_SRC" "$LIB_DIR/python"
+    else
+        echo "Warning: bundled Python runtime not found at ${PYTHON_RUNTIME_SRC}; plugin support will be disabled in this AppImage."
+    fi
+
+    # Bundle the uv executable (CMake staged it next to the binary) so the plugin
+    # system can install Python package dependencies. bundled_uv_path() looks under
+    # <resources_dir>/tools/uv == $APPDIR/resources/tools/uv -- the same layout the
+    # install()-based packagers (Windows/Flatpak/FHS) use. Unlike the AppImage, those
+    # run `make install`; this build copies artifacts, so stage uv explicitly.
+    UV_RUNTIME_SRC="$(dirname "${ORIGINAL_BINARY_LOCATION}")/tools/uv"
+    if [ -d "$UV_RUNTIME_SRC" ]; then
+        echo "Bundling uv from ${UV_RUNTIME_SRC} ..."
+        copy_directory_if_present "$UV_RUNTIME_SRC" "$APPDIR/resources/tools/uv"
+    else
+        echo "Warning: bundled uv not found at ${UV_RUNTIME_SRC}; Python package installation will be unavailable in this AppImage."
+    fi
+
     if [ "$BUNDLE_DESKTOP_STACK" = "1" ]; then
         GSTREAMER_PLUGIN_SOURCE_DIR="$(find_pkg_config_dir pluginsdir gstreamer-1.0 || true)"
         if [ -z "$GSTREAMER_PLUGIN_SOURCE_DIR" ]; then

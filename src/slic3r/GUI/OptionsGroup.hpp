@@ -62,6 +62,7 @@ public:
     widget_t	widget {nullptr};
     std::function<wxWindow*(wxWindow*)>	near_label_widget{ nullptr };
 	wxWindow*	near_label_widget_win {nullptr};
+    wxStaticText* label_widget {nullptr};
     wxSizer*	widget_sizer {nullptr};
     wxSizer*	extra_widget_sizer {nullptr};
     //BBS: export the extra colume widget
@@ -80,6 +81,14 @@ public:
 	Line(wxString label, wxString tooltip) :
 		label(_(label)), label_tooltip(_(tooltip)) {}
 	Line() : m_is_separator(true) {}
+
+    void set_label(const wxString& new_label) {
+        label = new_label;
+        if (label_widget != nullptr) {
+            label_widget->SetLabel(label + (label.IsEmpty() ? "" : ": "));
+            label_widget->Refresh();
+        }
+    }
 
 	bool is_separator() const { return m_is_separator; }
 	bool has_only_option(const std::string& opt_key) const { return m_options.size() == 1 && m_options[0].opt_id == opt_key; }
@@ -106,6 +115,7 @@ public:
     wxWindow *     stb;
     const wxString  icon;
     const wxString  title;
+    bool            m_labels_hidden{false};
     size_t			label_width = 20 ;// {200};
     wxSizer*		sizer {nullptr};
 	OG_CustomCtrl*  custom_ctrl{ nullptr };
@@ -185,7 +195,7 @@ public:
 
     void            clear_fields_except_of(const std::vector<std::string> left_fields);
 
-    void            hide_labels() { label_width = 0; }
+    void            hide_labels() { label_width = 0; m_labels_hidden = true; }
 
 	OptionsGroup(wxWindow *_parent, const wxString &title, const wxString &icon, bool is_tab_opt = false,
                     column_t extra_clmn = nullptr);
@@ -243,6 +253,9 @@ protected:
 public:
 	static wxString		get_url(const std::string& path_end);
 	static bool			launch_browser(const std::string& path_end);
+
+protected:
+    std::string         pick_plugin(const ConfigOptionDef& opt);
 };
 
 class ConfigOptionsGroup: public OptionsGroup {

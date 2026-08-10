@@ -117,6 +117,35 @@ void SendJob::process(Ctl &ctl)
 
     ctl.call_on_main_thread([this] { prepare(); }).wait();
     ctl.update_status(0, msg);
+
+    // In check mode (InputIpAddressDialog / lan-mode send) verify the connection with a dummy
+    // "verify_job" upload and fire the caller's success/fail callback; when not continuing, stop
+    // here. Cloud sends skip this.
+    if (m_is_check_mode) {
+        PrintParams verify_params;
+        verify_params.dev_ip           = m_dev_ip;
+        verify_params.username         = "bblp";
+        verify_params.password         = m_access_code;
+        verify_params.use_ssl_for_ftp  = m_local_use_ssl_for_ftp;
+        verify_params.use_ssl_for_mqtt = m_local_use_ssl;
+        verify_params.dev_id           = m_dev_id;
+        verify_params.project_name     = "verify_job";
+        verify_params.filename         = job_data._temp_path.string();
+        verify_params.connection_type  = this->connection_type;
+
+        int verify_result = agent->start_send_gcode_to_sdcard(verify_params, nullptr, nullptr, nullptr);
+        if (verify_result != 0) {
+            BOOST_LOG_TRIVIAL(error) << "send_job: access code / ip verification failed, result = " << verify_result;
+            if (m_enter_ip_address_fun_fail) m_enter_ip_address_fun_fail(verify_result);
+            m_job_finished = true;
+            return;
+        } else if (!m_check_and_continue) {
+            if (m_enter_ip_address_fun_success) m_enter_ip_address_fun_success();
+            m_job_finished = true;
+            return;
+        }
+    }
+
     int total_plate_num = m_plater->get_partplate_list().get_plate_count();
 
     PartPlate* plate = m_plater->get_partplate_list().get_plate(job_data.plate_idx);
