@@ -56,16 +56,17 @@ static Polylines generate_concentric_spiral_polylines(
         return best_idx;
     };
 
-    int start_idx = is_classic ? 1 : find_sharpest_corner(loops.front());
-
     for (size_t i = 0; i < loops.size(); ++i) {
         const Polygon& loop = loops[i];
 
+        if (loop.points.empty()) continue;
+
         int idx;
-        if (spiral.empty())
-            idx = start_idx;
-        else
+        if (spiral.empty()) {
+            idx = is_classic ? 1 : find_sharpest_corner(loop);
+        } else {
             idx = current_pos.nearest_point_index(loop.points);
+        }
 
         Polyline loop_path(loop.split_at_index(idx));
         loop_path.points = loop_points_opened(std::move(loop_path));
