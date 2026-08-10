@@ -107,6 +107,21 @@ size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id)
     return 0;
 }
 
+// Orca: shared core for feature-gate predicates of the form "this bool option is on, the printer
+// has >= 2 tools (live nozzle_diameter), and it isn't single_extruder_multi_material". Distinct
+// gates stay separate named functions and share this so their common conditions can't drift.
+static bool mapping_option_enabled(const ConfigBase& printer_config, const char* key)
+{
+    const ConfigOption* opt = printer_config.option(key);
+    if (opt == nullptr || !opt->getBool())
+        return false;
+    const ConfigOptionFloats* nozzle_diameter = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
+    if (nozzle_diameter == nullptr || nozzle_diameter->size() < 2)
+        return false;
+    const ConfigOption* semm = printer_config.option("single_extruder_multi_material");
+    return semm == nullptr || !semm->getBool();
+}
+
 FilamentMappingProtocol filament_mapping_protocol_of(const ConfigBase& printer_config)
 {
     const ConfigOption* opt = printer_config.option("filament_mapping_protocol");
@@ -138,11 +153,51 @@ static bool protocol_keeps_slicer_mapping(FilamentMappingProtocol protocol)
     return true;
 }
 
+// Orca: how many distinct filaments ONE plate may use when the device resolves the mapping.
+// Decoupling the project's filament count from the tool count is not the same capability as
+// being able to route an arbitrary number of them on a single print: the Snapmaker U1 owns a
+// 32-entry extruder_map_table and merges several logical tools onto one head, while other
+// device-owned firmware (e.g. the WonderMaker ZR Ultra S) only permutes its N tools and has no
+// macro past T(N-1) -- a logical T4 there fails with "Unknown command". Unknown firmware gets
+// the conservative answer, so we never emit a file the printer cannot run.
+// switch with no default, as protocol_keeps_slicer_mapping: a new enumerator must state its own
+// capability under -Wswitch rather than silently inheriting another printer's.
+size_t protocol_max_plate_filaments(FilamentMappingProtocol protocol, size_t tool_count)
+{
+    switch (protocol) {
+    case FilamentMappingProtocol::fmpSnapmaker:
+        // extruder_map_table is 32 logical entries wide; merging onto the physical heads is the
+        // firmware's job and is hardware-verified (5 filaments on 4 heads).
+        return 32;
+    case FilamentMappingProtocol::fmpNone:
+        break;
+    }
+    // No protocol: this is the printer-agnostic enable_filament_mapping opt-in, where all we know
+    // is that the firmware assigns filaments to tools on its own screen. Assume the common shape
+    // -- one filament per tool, permuted -- so a plate can always be printed.
+    return tool_count;
+}
+
+bool device_resolves_filament_mapping(const ConfigBase& printer_config)
+{
+    // Two ways to say "the printer assigns filaments to tools, not the slicer":
+    //   - a native protocol (filament_mapping_protocol), which additionally gives us a wire
+    //     dialect to deliver the assignment at print time, and
+    //   - enable_filament_mapping, the printer-agnostic opt-in for firmware that resolves the
+    //     assignment on its own (its own screen/console) with nothing for us to send.
+    // Both mean the same thing to the engine: slice in pure logical tool space and pin the
+    // identity map, so the project may carry more filaments than the printer has tools.
+    FilamentMappingProtocol protocol = filament_mapping_protocol_of(printer_config);
+    if (protocol != FilamentMappingProtocol::fmpNone && !protocol_keeps_slicer_mapping(protocol))
+        return true;
+    return mapping_option_enabled(printer_config, "enable_filament_mapping");
+}
+
 bool physical_filament_features_enabled(const ConfigBase& printer_config)
 {
-    // Physical-filament UI (inventory, count decoupling) applies to device-owned
-    // protocols (more project filaments than tools is the point).
-    return device_owned_mapping_protocol(printer_config);
+    // Physical-filament UI (inventory, count decoupling) applies wherever the device resolves
+    // the mapping -- more project filaments than tools is the point.
+    return device_resolves_filament_mapping(printer_config);
 }
 
 std::vector<int> non_bbl_identity_filament_extruder_map(size_t filament_count, size_t extruder_count, int master_extruder_id_0based)
@@ -6674,6 +6729,18 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("enable_filament_mapping", coBool);
+    def->label = L("Decouple filaments from tools");
+    def->tooltip = L("Allow the project to use more filament profiles than the printer has tools. "
+                     "The G-code addresses one logical tool per filament and the printer's own "
+                     "firmware decides which physical tool prints each of them (from its screen or "
+                     "console), so a plate can be sliced, exported and uploaded without the slicer "
+                     "resolving the assignment. Only for multi-tool printers without "
+                     "single-extruder multi-material; printers with a native filament-mapping "
+                     "protocol have this behaviour already.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("filament_mapping_protocol", coEnum);
     def->label = L("Filament mapping protocol");
     def->tooltip = L("The printer's native filament-to-tool mapping protocol. When set, OrcaSlicer "
@@ -9749,13 +9816,12 @@ void DynamicPrintConfig::normalize_fdm_1()
         // Resolution will be above 1um.
         opt_gcode_resolution->value = std::max(opt_gcode_resolution->value, 0.001);
 
-    // A device-owned mapping protocol (filament_mapping_protocol != none) means the printer
-    // routes logical tools itself. Whether that also means "slice in pure logical space, no
-    // merge/physical-map knowledge kept" is protocol-specific -- see protocol_keeps_slicer_mapping.
-    // This runs on every Print::apply (GUI, CLI, gcode-load, calibration), so for protocols that
-    // don't keep the slicer's mapping it is the single choke point for all filament_map consumers.
-    FilamentMappingProtocol mapping_protocol = filament_mapping_protocol_of(*this);
-    if (mapping_protocol != FilamentMappingProtocol::fmpNone && !protocol_keeps_slicer_mapping(mapping_protocol)) {
+    // Device-resolved mapping (a native protocol, or the printer-agnostic enable_filament_mapping
+    // opt-in -- see device_resolves_filament_mapping) means the printer routes logical tools
+    // itself, so the slicer slices in pure logical space and keeps no mapping of its own. This
+    // runs on every Print::apply (GUI, CLI, gcode-load, calibration), so it is the single choke
+    // point for all filament_map consumers.
+    if (device_resolves_filament_mapping(*this)) {
         const ConfigOptionStrings* colours = this->option<ConfigOptionStrings>("filament_colour");
         const size_t filament_count = colours ? colours->size() : 0;
         // Orca: non_bbl_identity_filament_extruder_map() is the same id->extruder rule

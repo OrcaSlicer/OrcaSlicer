@@ -1627,6 +1627,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             filament_start_gcode))
     ((ConfigOptionBool,                single_extruder_multi_material))
     ((ConfigOptionBool,                manual_filament_change))
+    ((ConfigOptionBool,                enable_filament_mapping))
     ((ConfigOptionBool,                single_extruder_multi_material_priming))
     ((ConfigOptionEnum<ToolChangeOrderingType>, toolchange_ordering))
     ((ConfigOptionBool,                wipe_tower_no_sparse_layers))
@@ -2497,6 +2498,21 @@ FilamentMappingProtocol filament_mapping_protocol_of(const ConfigBase& printer_c
 // True when the printer routes logical tools itself over a native protocol instead of
 // consuming slicer-computed tool numbers (filament_mapping_protocol != fmpNone).
 bool device_owned_mapping_protocol(const ConfigBase& printer_config);
+
+// True when the PRINTER resolves filament->tool assignment rather than the slicer: either a
+// native protocol (filament_mapping_protocol) or the printer-agnostic enable_filament_mapping
+// opt-in for firmware that maps on its own with nothing for the slicer to send. The engine
+// treats both identically -- logical tool space, pinned identity map, filament count free of
+// the tool count.
+bool device_resolves_filament_mapping(const ConfigBase& printer_config);
+
+// The largest number of logical tools one plate may address on a printer that resolves the
+// mapping itself. Count decoupling (the project may hold more filaments than the printer has
+// tools) and per-plate routing capacity are separate capabilities: a printer whose firmware only
+// permutes its tools has no macro past T(tool_count-1). Only meaningful when
+// device_resolves_filament_mapping() is true -- the slicer-mapped path is bounded by its own
+// mapping machinery instead. See Print::validate().
+size_t protocol_max_plate_filaments(FilamentMappingProtocol protocol, size_t tool_count);
 
 // True when filament-count decoupling / physical-filament inventory UI should be
 // offered: the printer owns the mapping natively via filament_mapping_protocol.

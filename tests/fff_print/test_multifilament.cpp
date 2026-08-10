@@ -1070,3 +1070,82 @@ TEST_CASE("Reapplying an unchanged snapmaker-protocol config after slicing does 
     INFO("status = " << (int)status);
     CHECK((int)status == (int)PrintBase::APPLY_STATUS_UNCHANGED);
 }
+
+// The printer-agnostic half of device-resolved mapping: with enable_filament_mapping the PROJECT
+// may carry more filaments than the printer has tools, and the g-code addresses one LOGICAL tool
+// per filament for the printer's own firmware to resolve. No protocol, no send-time delivery: the
+// file stands on its own, so it can be exported or uploaded and mapped from the printer's screen.
+// A single PLATE is separately bounded by protocol_max_plate_filaments -- for the generic flag,
+// by the tool count -- so this five-filament project prints a plate that stays within four.
+TEST_CASE("More filaments than tools slice to logical tool indices when the device resolves mapping", "[MultiFilament]") {
+    DynamicPrintConfig config = multifilament_config(5, {
+        { "nozzle_diameter",                "0.4,0.4,0.4,0.4" },
+        { "single_extruder_multi_material", "0" },
+        { "enable_filament_mapping",        "1" },
+        { "wall_filament",                  "1" },
+        { "sparse_infill_filament",         "2" },
+        { "solid_infill_filament",          "4" },
+        { "enable_prime_tower",             "1" },
+        { "gcode_comments",                 "1" },
+    });
+    const std::string gcode = Slic3r::Test::slice({ TestMesh::cube_with_hole }, config);
+    // One logical tool per used filament -- the ids are the project's, not a slicer remap.
+    for (const char* tool : { "\nT0", "\nT1", "\nT3" }) {
+        INFO("expected tool command " << tool);
+        CHECK(gcode.find(tool) != std::string::npos);
+    }
+
+    // The engine keeps no mapping of its own: filament_map is pinned to the clamped identity
+    // derivation, so a reapply of the same config reports no change (no permanent config diff).
+    Model model;
+    Print print;
+    Slic3r::Test::init_print({ TestMesh::cube_with_hole }, print, model, config);
+    print.process();
+    const auto status = print.apply(model, config);
+    INFO("status = " << (int) status);
+    CHECK((int) status == (int) PrintBase::APPLY_STATUS_UNCHANGED);
+}
+
+// Count decoupling and per-plate routing capacity are different capabilities. The Snapmaker U1
+// owns a 32-entry extruder_map_table and merges surplus logical tools onto its four heads, so a
+// five-filament plate is fine there. Firmware that only permutes its tools (the WonderMaker ZR
+// Ultra S offers exactly four mappable slots and has no T4 macro) is all we may assume behind the
+// printer-agnostic enable_filament_mapping flag, so the same plate must be rejected before it
+// becomes an unprintable file. Print::validate() is the gate; protocol_max_plate_filaments() the
+// per-protocol capability.
+TEST_CASE("A plate may not use more filaments than the printer can route", "[MultiFilament]") {
+    struct Case { const char* name; const char* protocol; bool flag; int solid_infill_filament; bool valid; };
+    const Case c = GENERATE(
+        Case{ "snapmaker routes five filaments on four heads",   "snapmaker", false, 5, true  },
+        // The U1 as actually configured: a native protocol AND the generic flag on. The protocol
+        // must win. Reading it from Print's own m_config cannot see it (no member in the static
+        // PrintConfig struct), which capped this printer at four and blocked the slice.
+        Case{ "a protocol outranks the flag on the same printer", "snapmaker", true, 5, true  },
+        Case{ "the generic flag may not exceed the tool count",  "none",      true,  5, false },
+        Case{ "four filaments on four heads is fine either way", "none",      true,  4, true  });
+
+    DYNAMIC_SECTION(c.name) {
+        DynamicPrintConfig config = multifilament_config(5, {
+            { "nozzle_diameter",                "0.4,0.4,0.4,0.4" },
+            { "single_extruder_multi_material", "0" },
+            { "enable_filament_mapping",        c.flag ? "1" : "0" },
+            { "wall_filament",                  "1" },
+            { "sparse_infill_filament",         "2" },
+            { "solid_infill_filament",          c.solid_infill_filament },
+            // Unrelated to the gate under test, but validate() checks it too: the default Marlin
+            // flavour with relative E requires a per-layer reset.
+            { "layer_change_gcode",             "G92 E0" },
+        });
+        config.set_deserialize_strict({ { "filament_mapping_protocol", c.protocol } });
+
+        Model model;
+        Print print;
+        Slic3r::Test::init_print({ TestMesh::cube_with_hole }, print, model, config);
+        const std::string err = print.validate().string;
+        INFO("validate() said: " << err);
+        CHECK(err.empty() == c.valid);
+        // Named explicitly so an unrelated validation failure cannot green this case.
+        if (!c.valid)
+            CHECK(err.find("filaments on one plate") != std::string::npos);
+    }
+}

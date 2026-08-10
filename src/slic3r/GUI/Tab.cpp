@@ -5611,6 +5611,8 @@ if (is_marlin_flavor)
             });
         };
         optgroup->append_single_option_line("manual_filament_change", "printer_multimaterial_setup#manual-filament-change");
+        optgroup->append_single_option_line("enable_filament_mapping", "printer_multimaterial_setup");
+        optgroup->append_single_option_line("filament_mapping_protocol", "printer_multimaterial_setup");
         optgroup->append_single_option_line("bed_temperature_formula", "printer_basic_information_advanced#bed-temperature-type");
 
         optgroup = page->new_optgroup(L("Wipe tower"), "param_tower");
@@ -6143,6 +6145,13 @@ void TabPrinter::toggle_options()
         const size_t extruders_count = m_config->option<ConfigOptionFloats>("nozzle_diameter")->size();
         toggle_option("tool_change_on_wipe_tower", !bSEMM && supports_wipe_tower_2 && extruders_count > 1);
         toggle_option("wait_for_temp_on_wipe_tower", !bSEMM && supports_wipe_tower_2 && extruders_count > 1);
+
+        // Orca: decoupling the filament count from the tool count only makes sense for non-BBL,
+        // multi-extruder, non-SEMM printers. A printer with a native filament-mapping protocol
+        // resolves the assignment already, so the printer-agnostic opt-in is redundant there.
+        toggle_line("enable_filament_mapping", !is_BBL_printer && extruders_count > 1 && !bSEMM &&
+                                               !device_owned_mapping_protocol(*m_config));
+
     }
     wxString extruder_number;
     long val = 1;

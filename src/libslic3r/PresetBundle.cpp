@@ -4624,7 +4624,7 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     // below. Force the same clamped identity map normalize_fdm_1 derives for the engine proper,
     // via the shared helper -- a hand-rolled i+1 here would disagree once master_extruder_id != 1
     // or a filament index exceeds the physical extruder count.
-    if (device_owned_mapping_protocol(out)) {
+    if (device_resolves_filament_mapping(out)) {
         const ConfigOptionFloats* nozzle_diams   = out.option<ConfigOptionFloats>("nozzle_diameter");
         const size_t              extruder_count = nozzle_diams ? nozzle_diams->size() : 0;
         int master_extruder_id = 1;

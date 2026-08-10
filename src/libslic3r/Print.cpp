@@ -1367,6 +1367,32 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                  "enable_mixed_color_sublayer");
     }
 
+    // Orca: when the PRINTER resolves the filament->tool assignment the project may hold more
+    // filaments than the printer has tools, but a single plate is still bounded by how many
+    // logical tools that firmware can route (see protocol_max_plate_filaments). The g-code
+    // addresses one logical tool per filament, so the plate needs tool indices up to its
+    // highest-numbered used filament; anything beyond the limit would reach the printer as a
+    // tool command it has no macro for.
+    // Read both from the FULL config, never from m_config: filament_mapping_protocol is a printer
+    // option with no member in the static PrintConfig struct, so m_config.option() always returns
+    // null for it and the protocol silently reads as fmpNone. That capped a Snapmaker U1 -- which
+    // routes 32 logical filaments onto its 4 heads -- at 4, rejecting the 5-on-4 plate its
+    // firmware handles natively. enable_filament_mapping does have a member, which is why the gate
+    // itself still fired.
+    const DynamicPrintConfig& printer_config = this->full_print_config();
+    if (device_resolves_filament_mapping(printer_config)) {
+        const size_t max_plate_filaments = protocol_max_plate_filaments(filament_mapping_protocol_of(printer_config), nozzles);
+        // extruders is sorted and deduplicated, so its last entry is the highest used filament
+        // (0-based); +1 is both the count of logical tools the g-code will address and the
+        // filament's 1-based number as the user sees it.
+        const size_t highest_used_filament = size_t(extruders.back()) + 1;
+        if (highest_used_filament > max_plate_filaments)
+            return {(boost::format(L("This plate uses filament %1%, but this printer can only address %2% filaments on one plate. "
+                                     "Reduce the number of filaments used on this plate, or renumber them so they fit within the "
+                                     "first %2%."))
+                     % highest_used_filament % max_plate_filaments).str()};
+    }
+
     if (nozzles < 2 && extruders.size() > 1) {
         auto ret = check_multi_filament_valid(*this);
         if (!ret.string.empty())

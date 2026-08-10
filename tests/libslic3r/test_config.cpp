@@ -1160,3 +1160,42 @@ TEST_CASE("Preset::normalize keeps per-filament options at filament count when f
     REQUIRE(config.option<ConfigOptionStrings>("filament_type")->values.size() == 5);
 }
 
+
+TEST_CASE("enable_filament_mapping defaults to off and is a printer option", "[Config]") {
+    // Decoupling the project's filament count from the printer's tool count is an explicit
+    // opt-in: by default a multi-tool printer keeps one filament per tool.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    REQUIRE_FALSE(config.opt_bool("enable_filament_mapping"));
+    const auto& printer_opts = Preset::printer_options();
+    CHECK(std::find(printer_opts.begin(), printer_opts.end(), "enable_filament_mapping") != printer_opts.end());
+}
+
+TEST_CASE("Device-resolved mapping needs the flag, two tools and no SEMM", "[Config]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4}));
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    REQUIRE_FALSE(device_resolves_filament_mapping(config));   // flag off
+
+    config.set_deserialize_strict({{"enable_filament_mapping", "1"}});
+    REQUIRE(device_resolves_filament_mapping(config));
+    // The physical-filament UI follows the same signal.
+    REQUIRE(physical_filament_features_enabled(config));
+
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4}));
+    CHECK_FALSE(device_resolves_filament_mapping(config));     // single tool
+
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4}));
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(true));
+    CHECK_FALSE(device_resolves_filament_mapping(config));     // SEMM
+}
+
+TEST_CASE("A native mapping protocol resolves the mapping without the flag", "[Config]") {
+    // A protocol printer already routes logical tools itself, so the printer-agnostic opt-in
+    // is redundant there (the Printer Settings line is hidden for exactly this reason).
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4}));
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    config.set_deserialize_strict({{"filament_mapping_protocol", "snapmaker"}});
+    REQUIRE_FALSE(config.opt_bool("enable_filament_mapping"));
+    CHECK(device_resolves_filament_mapping(config));
+}
