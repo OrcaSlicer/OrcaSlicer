@@ -146,6 +146,20 @@ inline bool is_separable_infill_pattern(InfillPattern pattern)
     }
 }
 
+// Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
+inline bool is_smoothable_infill_pattern(InfillPattern pattern)
+{
+    switch (pattern) {
+    case ipHilbertCurve:
+    case ipOctagramSpiral:
+    case ipLightning:
+    case ipHoneycomb:
+        return true;
+    default:
+        return false;
+    }
+}
+
 enum class IroningType {
     NoIroning,
     TopSurfaces,

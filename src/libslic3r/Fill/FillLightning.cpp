@@ -2,6 +2,7 @@
 #include "../Print.hpp"
 #include "../ShortestPath.hpp"
 #include "FillBase.hpp"
+#include "FillCornerSmoothing.hpp"
 #include "FillLightning.hpp"
 #include "Lightning/Generator.hpp"
 
@@ -16,6 +17,9 @@ void Filler::_fill_surface_single(
 {
     const Layer &layer      = generator->getTreesForLayer(this->layer_id);
     Polylines    fill_lines = layer.convertToLines(to_polygons(expolygon), scaled<coord_t>(0.5 * this->spacing - this->overlap));
+
+    // Orca: round the turns of the branches. Hairpins are left sharp, as they cannot be rounded.
+    smooth_polylines_corners(fill_lines, params.smooth_factor, scaled<double>(params.resolution));
 
     // Apply multiline offset if needed
     multiline_fill(fill_lines, params, spacing);
