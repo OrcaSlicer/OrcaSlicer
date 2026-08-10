@@ -848,6 +848,11 @@ extern void update_static_print_config_from_dynamic(ConfigBase& config, const Dy
 extern void compute_filament_override_value(const std::string& opt_key, const ConfigOption *opt_old_machine, const ConfigOption *opt_new_machine, const ConfigOption *opt_new_filament, const DynamicPrintConfig& new_full_config,
     t_config_option_keys& diff_keys, DynamicPrintConfig& filament_overrides, std::vector<int>& f_map_indices);
 
+// Orca: adds the filament's first layer Z offset (filament_first_layer_z_offset) to the printer's
+// z_offset, in place (issue #4660). A no-op when the adjustment is 0 or when more than one
+// filament is loaded, since z_offset is machine-wide. Called during full config assembly.
+extern void apply_filament_z_offset(DynamicPrintConfig &config, size_t num_filaments);
+
 void handle_legacy_sla(DynamicPrintConfig &config);
 
 class StaticPrintConfig : public StaticConfig

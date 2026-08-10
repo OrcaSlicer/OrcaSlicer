@@ -540,3 +540,77 @@ TEST_CASE("A printer specific filament supersedes the generic library filament w
     CHECK(is_compatible_with_printer(generic_lib, PresetWithVendorProfile(*printer_c, nullptr)));
 }
 
+
+// Orca: the adjustment is only useful if it survives full config assembly - the unit tests for
+// apply_filament_z_offset() pass whether or not it is wired into the config the slicer consumes.
+TEST_CASE("The filament first layer Z offset reaches the assembled slicing config", "[PresetBundle][FilamentZOffset]")
+{
+    PresetBundle bundle;
+    bundle.filament_presets = { bundle.filaments.get_edited_preset().name };
+
+    bundle.printers.get_edited_preset().config.set_key_value("z_offset", new ConfigOptionFloat(-0.2));
+    DynamicPrintConfig &filament_config = bundle.filaments.get_edited_preset().config;
+
+    CHECK_THAT(bundle.full_config().opt_float("z_offset"), Catch::Matchers::WithinAbs(-0.2, 1e-9));
+
+    filament_config.set_deserialize_strict("filament_first_layer_z_offset", "0.3");
+    CHECK_THAT(bundle.full_config().opt_float("z_offset"), Catch::Matchers::WithinAbs(0.1, 1e-9));
+}
+
+// Orca: construct_full_config() is a near-duplicate of full_fff_config() serving the calibration
+// path (CalibUtils), and needs its own call - nothing else here would notice if it went missing.
+TEST_CASE("The calibration config path applies the filament first layer Z offset", "[PresetBundle][FilamentZOffset]")
+{
+    PresetBundle bundle;
+
+    Preset printer = bundle.printers.get_edited_preset();
+    Preset print   = bundle.prints.get_edited_preset();
+    printer.config.set_key_value("z_offset", new ConfigOptionFloat(-0.2));
+
+    std::vector<Preset> filaments = { bundle.filaments.get_edited_preset() };
+    filaments[0].config.set_deserialize_strict("filament_first_layer_z_offset", "0.3");
+
+    DynamicPrintConfig out = PresetBundle::construct_full_config(printer, print, bundle.project_config,
+                                                                filaments, /*apply_extruder=*/false,
+                                                                /*filament_maps_new=*/std::nullopt);
+
+    CHECK_THAT(out.opt_float("z_offset"), Catch::Matchers::WithinAbs(0.1, 1e-9));
+}
+
+// Orca: guards that the new option needs nothing special from import/export - preset json is
+// written generically from config.keys(), and this is how it reaches a user's disk.
+TEST_CASE("A filament first layer Z offset survives a profile save and reload", "[Preset][FilamentZOffset]")
+{
+    ScopedTemporaryDir temp_dir;
+    PresetBundle bundle;
+    PresetsConfigSubstitutions substitutions;
+
+    DynamicPrintConfig config(bundle.filaments.default_preset().config);
+    config.set_deserialize_strict("filament_first_layer_z_offset", "-0.05");
+    const fs::path file = temp_dir.path() / PRESET_FILAMENT_NAME / "ZOffsetPLA.json";
+    fs::create_directories(file.parent_path());
+    config.save_to_json(file.string(), "ZOffsetPLA", "User", "1.0.0");
+
+    bundle.filaments.load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions,
+                                  ForwardCompatibilitySubstitutionRule::Disable);
+
+    const Preset *loaded = bundle.filaments.find_preset("ZOffsetPLA");
+    REQUIRE(loaded != nullptr);
+    const auto *opt = loaded->config.option<ConfigOptionFloats>("filament_first_layer_z_offset");
+    REQUIRE(opt != nullptr);
+    CHECK_THAT(opt->get_at(0), Catch::Matchers::WithinAbs(-0.05, 1e-9));
+}
+
+// Orca: reproduction for a crash when a second filament is added to a project.
+TEST_CASE("A full config assembles with two filaments loaded", "[PresetBundle][FilamentZOffset]")
+{
+    PresetBundle bundle;
+    const std::string name = bundle.filaments.get_edited_preset().name;
+    bundle.filament_presets = { name, name };
+
+    DynamicPrintConfig out = bundle.full_config();
+
+    const auto *opt = out.option<ConfigOptionFloats>("filament_first_layer_z_offset");
+    REQUIRE(opt != nullptr);
+    CHECK(opt->size() == 2);
+}

@@ -1356,6 +1356,8 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     "filament_wipe",
     "filament_z_hop",
     "filament_z_hop_types",
+    // Orca: per-filament first layer Z offset (issue #4660)
+    "filament_first_layer_z_offset",
     // Profile compatibility
     "filament_vendor", "compatible_prints", "compatible_prints_condition", "compatible_printers", "compatible_printers_condition", "inherits",
     //BBS
