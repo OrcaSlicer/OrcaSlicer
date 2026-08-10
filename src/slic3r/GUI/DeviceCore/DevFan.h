@@ -11,8 +11,6 @@ class MachineObject;
 enum AirDuctType { AIR_FAN_TYPE, AIR_DOOR_TYPE };
 typedef std::function<void(const json &)> CommandCallBack;
 
-
-
 enum AIR_FUN : int {
     FAN_HEAT_BREAK_0_IDX      = 0,
     FAN_COOLING_0_AIRDOOR     = 1,
@@ -91,6 +89,13 @@ public:
 
     bool IsSupportCoolingFilter() const { return m_support_cooling_filter; }
     bool IsCoolingFilerOn() const { return m_sub_mode == 1; }
+    bool IsExaustFanExit() const
+    {
+        for (auto &p : parts) {
+            if (p.id == int(AIR_FUN::FAN_CHAMBER_0_IDX)) return true;
+        }
+        return false;
+    }
 };
 
 class DevFan

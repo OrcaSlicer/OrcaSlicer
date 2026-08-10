@@ -2,6 +2,10 @@
 
 #include "../wxExtensions.hpp"
 
+#ifdef __WXGTK__
+#include "../GUI_Utils.hpp"
+#endif
+
 namespace Slic3r {
 namespace GUI {
 RadioBox::RadioBox(wxWindow *parent)
@@ -15,6 +19,7 @@ RadioBox::RadioBox(wxWindow *parent)
     // Bind(wxEVT_TOGGLEBUTTON, [this](auto& e) { update(); e.Skip(); });
     update();
 #ifdef __WXGTK__
+    Slic3r::GUI::RemoveButtonBorder(this);
     wxSize bestSize = GetBestSize();
     bestSize.IncTo(m_on.GetBmpSize());
     SetSize(bestSize);

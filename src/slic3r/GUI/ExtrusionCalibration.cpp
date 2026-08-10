@@ -239,7 +239,7 @@ void ExtrusionCalibration::create()
     m_button_save_result->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_save_result->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_save, this);
 
-    m_button_last_step = new Button(m_step_2_panel, _L("Back")); // Back for english
+    m_button_last_step = new Button(m_step_2_panel, _L_CONTEXT("Back", "Navigation")); // Back for english
     m_button_last_step->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_last_step->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_last, this);
 
@@ -261,7 +261,7 @@ void ExtrusionCalibration::create()
     top_sizer->Add(FromDIP(24), 0);
     top_sizer->Add(sizer_main, 1, wxEXPAND);
     top_sizer->Add(FromDIP(24), 0);
-    SetSizer(top_sizer);
+    SetSizerAndFit(top_sizer);
 
     // set default nozzle
     m_comboBox_nozzle_dia->SetSelection(1);
@@ -271,7 +271,6 @@ void ExtrusionCalibration::create()
     set_step(1);
 
     Layout();
-    Fit();
 
     m_k_val->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent& e) {
         input_value_finish();

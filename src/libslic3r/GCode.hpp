@@ -60,15 +60,20 @@ class Wipe {
 public:
     bool enable;
     Polyline path;
+
+    // Orca:
     struct RetractionValues{
-        double retractLengthBeforeWipe;
-        double retractLengthDuringWipe;
+        double retraction_length_before_wipe = 0.;
+        double retraction_length_during_wipe = 0.;
+        double retraction_length_after_wipe  = 0.;
     };
 
     Wipe() : enable(false) {}
     bool has_path() const { return !this->path.points.empty(); }
     void reset_path() { this->path = Polyline(); }
     std::string wipe(GCode &gcodegen, double length, bool toolchange = false, bool is_last = false);
+
+    // Orca:
     RetractionValues calculateWipeRetractionLengths(GCode& gcodegen, bool toolchange);
 };
 
@@ -125,8 +130,11 @@ public:
 private:
     WipeTowerIntegration& operator=(const WipeTowerIntegration&);
     std::string append_tcr(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
-    Polyline generate_path_to_wipe_tower(const Point &start_pos, const Point &end_pos, const BoundingBox &avoid_polygon, const BoundingBox &printer_bbx) const;
+    Polyline generate_path_to_wipe_tower(const Point &start_pos, const Point &end_pos, const BoundingBox &avoid_polygon, const Polygons &bed_polygons) const;
     std::string append_tcr2(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
+    std::string travel_to_tower_gap(GCode &gcodegen, const Point &route_start, const Point &start_wipe_pos) const;
+    Vec2f transform_wt2_pt(const Vec2f &pt) const;
+    Polygons shared_printable_area(GCode &gcodegen) const;
 
     // Postprocesses gcode: rotates and moves G1 extrusions and returns result
     std::string post_process_wipe_tower_moves(const WipeTower::ToolChangeResult& tcr, const Vec2f& translation, float angle) const;
@@ -176,7 +184,7 @@ struct LayerResult {
     // It is used for the pressure equalizer because it needs to buffer one layer back.
     bool        nop_layer_result { false };
 
-    static LayerResult make_nop_layer_result() { return {"", std::numeric_limits<coord_t>::max(), false, false, true}; }
+    static LayerResult make_nop_layer_result() { return {"", std::numeric_limits<size_t>::max(), false, false, true}; }
 };
 
 class GCode {
@@ -252,8 +260,9 @@ public:
     std::string     travel_to(const Point& point, ExtrusionRole role, std::string comment, double z = DBL_MAX);
     bool            needs_retraction(const Polyline& travel, ExtrusionRole role, LiftType& lift_type);
     std::string     retract(bool toolchange = false, bool is_last_retraction = false, LiftType lift_type = LiftType::NormalLift, bool apply_instantly = false, ExtrusionRole role = erNone);
-    std::string     unretract() { return m_writer.unlift() + m_writer.unretract(); }
-    std::string     set_extruder(unsigned int extruder_id, double print_z, bool by_object=false, int toolchange_temp_override = -1);
+    // extra_retract forwards a PETG pre-extrusion over-extrusion; default 0 -> identical to the plain deretract.
+    std::string     unretract(float extra_retract = 0.f) { return m_writer.unlift() + m_writer.unretract(extra_retract); }
+    std::string     set_extruder(unsigned int extruder_id, double print_z, bool by_object=false, int toolchange_temp_override = -1, bool defer_temp_wait = false);
     bool is_BBL_Printer();
     WipeTowerType wipe_tower_type();
 
@@ -262,6 +271,12 @@ public:
 
     // append full config to the given string
     static void append_full_config(const Print& print, std::string& str);
+
+    // Per-filament config-slot resolvers for the current layer (m_cur_layer_idx): the filament
+    // resolver keys filament-indexed arrays, the nozzle resolver keys (extruder x volume-type)
+    // slot arrays. Both degenerate to filament_id / extruder index on single-volume printers.
+    size_t get_filament_config_index(int filament_id) const;
+    size_t get_nozzle_config_index(int filament_id) const;
 
     // Object and support extrusions of the same PrintObject at the same print_z.
     // public, so that it could be accessed by free helper functions from GCode.cpp
@@ -347,11 +362,13 @@ private:
         std::vector<coordf_t> &skirt_done);
     std::string generate_object_skirt_group(const Print &print,
         const PrintObject &object,
+        size_t instance_id,
         const LayerTools &layer_tools,
         const Layer& layer,
         unsigned int extruder_id);
     std::string generate_object_brim(const Print &print,
         const PrintObject &object,
+        size_t instance_id,
         bool first_layer);
 
     LayerResult process_layer(
@@ -394,6 +411,7 @@ private:
     void check_placeholder_parser_failed();
     size_t cur_extruder_index() const;
     size_t get_extruder_id(unsigned int filament_id) const;
+    void   update_placeholder_parser_with_variant_params();
 
     void            set_last_pos(const Point &pos) { m_last_pos = Point3(pos, 0); m_last_pos_defined = true; }
     void            set_last_pos(const Point3 &pos) { m_last_pos = pos; m_last_pos_defined = true; }
@@ -402,6 +420,11 @@ private:
     std::string     preamble();
     // BBS
     std::string     change_layer(coordf_t print_z);
+    // Bedslinger model: derive the Y-axis acceleration limit from the machine force/bed-mass config
+    // and the mass already printed. Yields the min machine Y acceleration when the A2L config keys are
+    // unset (i.e. every existing printer), so it is inert for them.
+    void            mass_load_limited_machine_acceleration(const PrintStatistics &curr_print_statistics, const Print &print,
+                                                           double &y_acceleration_limit_res, double &accumulated_mass_res);
     // Orca: pass the complete collection of region perimeters to the extrude loop to check whether the wipe before external loop
     // should be executed
     std::string extrude_entity(const ExtrusionEntity&      entity,
@@ -500,13 +523,58 @@ private:
     std::string     extrude_infill(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool ironing);
     std::string     extrude_support(const ExtrusionEntityCollection& support_fills, const ExtrusionRole support_extrusion_role);
 
+    // Farthest-point timelapse: find the extrusion point farthest from camera (0,0)
+    void compute_farthest_point(const std::vector<LayerToPrint> &layers, int most_used_extruder,
+                                const std::map<std::pair<const SupportLayer *, ExtrusionRole>, unsigned int> &support_filaments);
+    // Build the per-layer timelapse snapshot g-code (safe-position or, when skip_pos_pick,
+    // an inline photo at the current head position). Extracted from the former process_layer lambda so the
+    // per-extrusion farthest-point hook (_extrude) can call it too. Identical to the old lambda when the
+    // farthest-point subsystem is disabled (skip_pos_pick=false, m_farthest_point_timelapse.enabled=false).
+    std::string     generate_timelapse_gcode(const Print &print, coordf_t print_z, int most_used_extruder,
+                                              const std::set<size_t> *layer_object_label_ids,
+                                              const std::vector<const PrintObject*> *printed_objects,
+                                              bool skip_pos_pick = false);
+
     // BBS
     LiftType to_lift_type(ZHopType z_hop_types);
 
-    std::set<ObjectID>              m_objsWithBrim; // indicates the objs with brim
-    std::set<ObjectID>              m_objSupportsWithBrim; // indicates the objs' supports with brim
+    std::set<ObjectInstanceID>      m_objsWithBrim; // indicates the object instances with brim
     // Cache for custom seam enforcers/blockers for each layer.
     SeamPlacer                          m_seam_placer;
+
+    // One stop of the island-level tour: consecutive islands of a single instance. An instance
+    // can have several visits per layer when its islands are toured non-consecutively.
+    struct InstanceVisit
+    {
+        // Index into the per-filament InstanceToPrint vector.
+        size_t              instance_idx;
+        // Islands to print, in order (indices into ObjectByExtruder::islands). Empty: print all
+        // islands, ordered at extrusion time.
+        std::vector<size_t> islands;
+        // First visit of this instance this layer; skirt, brim and support are emitted here.
+        bool                first_visit;
+    };
+
+    // One node of the island-level tour, also used as cache key: identity plus quantized position.
+    struct IslandOrderNode
+    {
+        ObjectID object_id;
+        size_t   instance_id;
+        // Index into ObjectByExtruder::islands, or size_t(-1) for an instance without chainable
+        // islands (e.g. support only), which is toured as a single stop.
+        size_t   island_idx;
+        // Island centroid in G-code coordinates, quantized to 1 mm for cache stability.
+        Point    pos;
+        bool operator==(const IslandOrderNode &rhs) const {
+            return object_id == rhs.object_id && instance_id == rhs.instance_id &&
+                   island_idx == rhs.island_idx && pos == rhs.pos;
+        }
+    };
+
+    // Cache the per-filament island tour to avoid recomputing while the layer's island layout is
+    // unchanged. Key: filament_id. Value: {nodes the tour was computed from, resulting visits}.
+    std::map<unsigned int, std::pair<std::vector<IslandOrderNode>, std::vector<InstanceVisit>>>
+                                        m_ordering_cache;
 
     ExtrusionQualityEstimator m_extrusion_quality_estimator;
 
@@ -556,6 +624,32 @@ private:
     AvoidCrossingPerimeters             m_avoid_crossing_perimeters;
     RetractWhenCrossingPerimeters       m_retract_when_crossing_perimeters;
     TimelapsePosPicker                  m_timelapse_pos_picker;
+
+    // Farthest-point timelapse context. Corexy-only refinement layered on top of the existing
+    // timelapse_type. All fields default to the inert state; `enabled` is (re)computed each layer in
+    // process_layer and is false whenever the farthest_point_timelapse config toggle is off, the printer
+    // is i3 (psI3), or timelapse_type is not traditional — so every shipping printer that does not set the
+    // toggle is identical to the previous path.
+    struct FarthestPointTimelapseContext {
+        // Whether farthest-point timelapse is active for this layer
+        bool    enabled{false};
+        // The farthest extrusion point from camera (0,0) in global scaled coordinates (includes plate origin + inst.shift)
+        Point   farthest_point;
+        // farthest_point converted to mm (gcode coordinate space, includes plate origin)
+        Vec2d   farthest_gcode_pos{0, 0};
+        // Extruder index (0-based) that prints the farthest point
+        int     farthest_extruder_id{0};
+        // Whether the farthest point is printed by the photo head (most_used_extruder)
+        bool    farthest_is_photo_head{false};
+        // Whether inline timelapse gcode has already been inserted on this layer
+        bool    inserted_this_layer{false};
+        // The extruder used most on this layer, chosen as the photo head
+        int     most_used_extruder{0};
+        // Object labels for the current layer, used when inline timelapse is inserted from extrusion code.
+        std::set<size_t> layer_object_label_ids;
+    };
+    FarthestPointTimelapseContext m_farthest_point_timelapse;
+
     bool                                m_enable_loop_clipping;
     //resonance avoidance
     bool                                m_resonance_avoidance; 
@@ -595,6 +689,9 @@ private:
     float                               m_last_layer_z{ 0.0f };
     float                               m_max_layer_z{ 0.0f };
     float                               m_last_width{ 0.0f };
+    // Bedslinger mass model: cumulative printed mass at the previous layer, used to derive
+    // the current layer mass for the per-layer Y acceleration limit (curr_y_acceleration_limit).
+    double                              m_last_layer_accumulated_mass{ 0.0 };
 
     // Always check gcode placeholders when building in debug mode.
 #if !defined(NDEBUG)
@@ -654,11 +751,17 @@ private:
     int m_start_gcode_filament = -1;
     std::string m_filament_instances_code;
 
+    // Object layer id of the layer being generated; keys the per-filament config-slot
+    // resolvers. Distinct from m_layer_index (an export progress counter starting at -1).
+    size_t m_cur_layer_idx{0};
+
     std::set<unsigned int>                  m_initial_layer_extruders;
     std::vector<std::vector<unsigned int>>  m_sorted_layer_filaments;
     // BBS
     int get_bed_temperature(const int extruder_id, const bool is_first_layer, const BedType bed_type) const;
     int get_highest_bed_temperature(const bool is_first_layer,const Print &print) const;
+
+    void update_layer_related_config(int layer_id);
 
     double      calc_max_volumetric_speed(const double layer_height, const double line_width, const std::string co_str);
     std::string _extrude(const ExtrusionPath &path, std::string description = "", double speed = -1);

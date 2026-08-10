@@ -33,7 +33,7 @@ LayerNumberTextInput::LayerNumberTextInput(wxWindow* parent, int layer_number, w
 {
     GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_DIGITS));
     GetTextCtrl()->SetFont(::Label::Body_14);
-    Append(_L("End"));
+    Append(_L_CONTEXT("End", "Layer range"));
     Append(_L("Customize"));
     if (m_value_type == ValueType::End)
         SetSelection(0);
@@ -45,7 +45,7 @@ LayerNumberTextInput::LayerNumberTextInput(wxWindow* parent, int layer_number, w
     Bind(wxEVT_TEXT, [this](auto& evt) {
             if (m_value_type == ValueType::End) {
                 // TextCtrl->SetValue() will generate a wxEVT_TEXT event
-                GetTextCtrl()->ChangeValue(_L("End"));
+                GetTextCtrl()->ChangeValue(_L_CONTEXT("End", "Layer range"));
                 return;
             }
             evt.Skip();

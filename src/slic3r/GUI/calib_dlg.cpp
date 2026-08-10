@@ -8,7 +8,9 @@
 #include "Widgets/HyperLink.hpp"
 #include <string>
 #include <vector>
+#include <cmath>
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Flow.hpp"
 #include "libslic3r/Utils.hpp"
 
 namespace Slic3r { namespace GUI {
@@ -32,6 +34,23 @@ int GetTextMax(wxWindow* parent, const std::vector<wxString>& labels)
     for (wxString label : labels)
         text_size.IncTo(parent->GetTextExtent(label));
     return text_size.x + parent->FromDIP(10);
+}
+
+CheckBox* add_scale_checkbox(wxWindow* parent, wxSizer* settings_sizer)
+{
+    auto row  = new wxBoxSizer(wxHORIZONTAL);
+    auto cb   = new CheckBox(parent);
+    cb->SetValue(true);
+    auto text = new wxStaticText(parent, wxID_ANY, _L("Auto-scale for nozzle"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    cb->SetToolTip(_L("This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+                      "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter"
+                      " and an appropriate layer height, making the test both accurate and easy to read.\n"
+                      "Turn scaling off only if you wish to print the reference model exactly as-is."));
+    text->SetToolTip(cb->GetToolTipText());
+    row->Add(cb  , 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
+    row->Add(text, 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
+    settings_sizer->Add(row, 0, wxLEFT | wxTOP, parent->FromDIP(3));
+    return cb;
 }
 
 std::vector<std::string> get_shaper_type_values()
@@ -402,6 +421,9 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     temp_step_sizer->Add(m_tiStep      , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(temp_step_sizer, 0, wxLEFT, FromDIP(3));
 
+    // Resize the model to the nozzle diameter (recommended)
+    m_cbResize = add_scale_checkbox(this, settings_sizer);
+
     settings_sizer->AddSpacer(FromDIP(5));
 
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
@@ -475,6 +497,7 @@ void Temp_Calibration_Dlg::on_start(wxCommandEvent& event) {
     }
     m_params.start = start;
     m_params.end = end;
+    m_params.nozzle_based_resize = m_cbResize->GetValue();
     m_params.mode = CalibMode::Calib_Temp_Tower;
     m_plater->calib_temp(m_params);
     EndModal(wxID_OK);
@@ -691,6 +714,22 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     vol_step_sizer->Add(m_tiStep     , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(vol_step_sizer, 0, wxLEFT, FromDIP(3));
 
+    // Resize the model to the nozzle diameter (recommended)
+    m_cbResize = add_scale_checkbox(this, settings_sizer);
+
+    // Auto-adjust parameters to the filament's max volumetric speed
+    auto auto_adjust_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_cbAutoAdjust = new CheckBox(this);
+    m_cbAutoAdjust->SetValue(true);
+    auto auto_adjust_text = new wxStaticText(this, wxID_ANY, _L("Auto-adjust to max volumetric speed"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    m_cbAutoAdjust->SetToolTip(_L("If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer "
+                                  "height (keeping standard values and staying within the machine's limits) to reach it. If even the "
+                                  "minimum layer height is not enough, lower the end speed instead."));
+    auto_adjust_text->SetToolTip(m_cbAutoAdjust->GetToolTipText());
+    auto_adjust_sizer->Add(m_cbAutoAdjust  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    auto_adjust_sizer->Add(auto_adjust_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    settings_sizer->Add(auto_adjust_sizer, 0, wxLEFT | wxTOP, FromDIP(3));
+
     settings_sizer->AddSpacer(FromDIP(5));
 
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
@@ -730,6 +769,136 @@ void VFA_Test_Dlg::on_start(wxCommandEvent& event)
         MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nstart > 10\nstep >= 0\nend > start + step"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
+    }
+
+    // If the requested end speed would exceed the filament's maximum volumetric speed, the slicer clamps the
+    // outer wall speed, so the upper blocks of the tower would all print at the same (clamped) speed instead of
+    // the requested one. Depending on the "Auto-adjust" option, either fix it automatically or just warn.
+    m_params.vfa_layer_height    = 0.0; // 0 = auto (nozzle/2); overridden below when auto-adjusting
+    m_params.nozzle_based_resize = m_cbResize->GetValue();
+    if (const auto* preset_bundle = wxGetApp().preset_bundle) {
+        const auto& printer_config  = preset_bundle->printers.get_edited_preset().config;
+        const auto& print_config    = preset_bundle->prints.get_edited_preset().config;
+        const auto& filament_config = preset_bundle->filaments.get_edited_preset().config;
+
+        const int extruder_id = std::max(m_params.extruder_id, 0);
+        auto get_at = [extruder_id](const ConfigOptionFloats* opt, double fallback) {
+            if (opt == nullptr || opt->values.empty())
+                return fallback;
+            return opt->values[std::min(static_cast<size_t>(extruder_id), opt->values.size() - 1)];
+        };
+
+        const double nozzle_diameter = get_at(printer_config.option<ConfigOptionFloats>("nozzle_diameter"), vfa_base_nozzle_diameter);
+        double preset_lh = nozzle_diameter / 2.0;
+        if (const auto* lh_opt = print_config.option<ConfigOptionFloat>("layer_height"))
+            if (lh_opt->value > 0.0)
+                preset_lh = lh_opt->value;
+        // Layer height the tower will actually print at: nozzle/2 when resizing, else the preset value.
+        const double default_lh      = m_params.nozzle_based_resize ? nozzle_diameter / 2.0 : preset_lh;
+        const double max_vol_speed   = get_at(filament_config.option<ConfigOptionFloats>("filament_max_volumetric_speed"), 0.0);
+        const double machine_min_lh  = get_at(printer_config.option<ConfigOptionFloats>("min_layer_height"), 0.0);
+        const double machine_max_lh  = get_at(printer_config.option<ConfigOptionFloats>("max_layer_height"), 0.0);
+
+        double line_width = print_config.get_abs_value("outer_wall_line_width", nozzle_diameter);
+        if (line_width <= 0.0)
+            line_width = print_config.get_abs_value("line_width", nozzle_diameter);
+        if (line_width <= 0.0)
+            line_width = nozzle_diameter;
+
+        // Max outer-wall speed printable at a given layer height without exceeding the volumetric limit.
+        auto speed_limit_for_lh = [&](double lh) -> double {
+            const double mm3_per_mm = Flow(line_width, lh, nozzle_diameter).mm3_per_mm();
+            return mm3_per_mm > 0.0 ? max_vol_speed / mm3_per_mm : 1e9;
+        };
+
+        auto confirm_clamp = [&](const wxString& question) -> bool {
+            MessageDialog msg_dlg(nullptr,
+                wxString::Format(_L("The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed "
+                                    "(%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and "
+                                    "layer height.\n Speeds above this will be clamped, so the upper blocks of the tower "
+                                    "will not print at the requested speed.\n\n%s"),
+                                 m_params.end, max_vol_speed, speed_limit_for_lh(default_lh), question),
+                _L("VFA test"), wxICON_WARNING | wxYES_NO | wxNO_DEFAULT);
+            return msg_dlg.ShowModal() == wxID_YES;
+        };
+
+        if (max_vol_speed > 0.0 && nozzle_diameter > 0.0 && m_params.end > speed_limit_for_lh(default_lh)) {
+            // The layer-height auto-adjust only applies when resizing is enabled (it changes the layer height).
+            if (m_cbAutoAdjust->GetValue() && m_params.nozzle_based_resize) {
+                // Candidate layer heights are the ones actually used by the process profiles compatible with the
+                // current printer (clamped to the machine's layer-height limits, when set). A smaller layer height
+                // means a smaller cross-section, hence a higher printable speed under the volumetric limit; pick the
+                // largest candidate that still reaches the end speed to keep the change from the default minimal.
+                std::vector<double> candidates;
+                for (const auto& preset : preset_bundle->prints.get_presets()) {
+                    if (!preset.is_compatible || preset.is_default)
+                        continue;
+                    const auto* lh_opt = preset.config.option<ConfigOptionFloat>("layer_height");
+                    if (lh_opt == nullptr || lh_opt->value <= 0.0)
+                        continue;
+                    const double lh = lh_opt->value;
+                    if ((machine_min_lh > 0.0 && lh < machine_min_lh - 1e-6) ||
+                        (machine_max_lh > 0.0 && lh > machine_max_lh + 1e-6))
+                        continue;
+                    candidates.push_back(lh);
+                }
+                std::sort(candidates.begin(), candidates.end());
+                candidates.erase(std::unique(candidates.begin(), candidates.end(),
+                                             [](double a, double b) { return std::abs(a - b) < 1e-6; }),
+                                 candidates.end());
+
+                // Largest candidate <= the default layer height that still reaches the end speed (smallest change).
+                double chosen_lh = 0.0;
+                for (auto it = candidates.rbegin(); it != candidates.rend(); ++it) {
+                    if (*it > default_lh + 1e-6)
+                        continue; // never increase the layer height above the default
+                    if (speed_limit_for_lh(*it) >= m_params.end) { chosen_lh = *it; break; }
+                }
+
+                if (chosen_lh > 0.0) {
+                    // Reducing the layer height is enough to reach the requested end speed.
+                    m_params.vfa_layer_height = chosen_lh;
+                    MessageDialog msg_dlg(nullptr,
+                        wxString::Format(_L("The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed "
+                                            "(%.1f mm³/s) at the default layer height (%.2f mm).\n\n"
+                                            "The layer height has been reduced to %.2f mm (a value used by this printer's "
+                                            "profiles) so the tower can reach the requested speed."),
+                                         m_params.end, max_vol_speed, default_lh, chosen_lh),
+                        _L("VFA test"), wxICON_INFORMATION | wxOK);
+                    msg_dlg.ShowModal();
+                } else if (!candidates.empty()) {
+                    // Even the smallest available layer height cannot reach the end speed; propose a lower end speed
+                    // based on that layer height, the line width and the maximum volumetric speed.
+                    const double min_lh    = candidates.front();
+                    const double reachable = speed_limit_for_lh(min_lh);
+                    double new_end = std::floor(reachable / m_params.step) * m_params.step; // snap down to a step multiple
+                    if (new_end < m_params.start + m_params.step)
+                        new_end = m_params.start + m_params.step;
+                    MessageDialog msg_dlg(nullptr,
+                        wxString::Format(_L("Even at the smallest layer height used by this printer's profiles (%.2f mm) the "
+                                            "end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed "
+                                            "(%.1f mm³/s).\n\n"
+                                            "The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n\n"
+                                            "Continue?"),
+                                         min_lh, m_params.end, max_vol_speed, min_lh, new_end),
+                        _L("VFA test"), wxICON_WARNING | wxYES_NO | wxNO_DEFAULT);
+                    if (msg_dlg.ShowModal() != wxID_YES)
+                        return;
+                    m_params.end              = new_end;
+                    m_params.vfa_layer_height = min_lh;
+                } else {
+                    // No compatible process profiles to draw layer heights from: warn and let the user decide.
+                    if (!confirm_clamp(_L("Continue anyway?")))
+                        return;
+                }
+            } else {
+                // Auto-adjust off, or resizing disabled (which forbids changing the layer height): just warn.
+                if (!confirm_clamp(m_params.nozzle_based_resize
+                        ? _L("Enable \"Auto-adjust\" to fix this automatically, or continue anyway?")
+                        : _L("Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?")))
+                    return;
+            }
+        }
     }
 
     m_params.mode = CalibMode::Calib_VFA_Tower;
@@ -1471,12 +1640,24 @@ FlowRateCalibrationDialog::FlowRateCalibrationDialog(wxWindow* parent, wxWindowI
     type_box->Add(m_rbType, 0, wxALL | wxEXPAND, FromDIP(4));
     v_sizer->Add(type_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
-    // Pattern selection
-    auto labeled_box_pattern = new LabeledStaticBox(this, _L("Top Surface Pattern"));
-    auto pattern_box = new wxStaticBoxSizer(labeled_box_pattern, wxVERTICAL);
+    // Settings
+    auto stb = new LabeledStaticBox(this, _L("Settings"));
+    auto settings_sizer = new wxStaticBoxSizer(stb, wxVERTICAL);
+
+    wxString pattern_str = _L("Top Surface Pattern");
+    int text_max = GetTextMax(this, std::vector<wxString>{pattern_str});
+
+    settings_sizer->AddSpacer(FromDIP(5));
+
+    auto st_size = wxSize(text_max, -1);
+    auto ti_size = FromDIP(wxSize(120, -1));
+
+    // Top surface pattern
+    auto pattern_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto pattern_text  = new wxStaticText(this, wxID_ANY, pattern_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
 
     // ORCA: Use ComboBox with icons instead of RadioGroup
-    m_rbPattern = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
+    m_rbPattern = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, ti_size, 0, nullptr, wxCB_READONLY);
     
     boost::filesystem::path image_path(Slic3r::resources_dir());
     image_path /= "images";
@@ -1497,9 +1678,13 @@ FlowRateCalibrationDialog::FlowRateCalibrationDialog(wxWindow* parent, wxWindowI
     m_rbPattern->SetSelection(0); // Default to Archimedean Chords
     // ORCA: explicit set value to ensure display on Windows
     m_rbPattern->SetValue(m_rbPattern->GetString(0));
+    m_rbPattern->GetDropDown().SetUseContentWidth(true);
 
-    pattern_box->Add(m_rbPattern, 0, wxALL | wxEXPAND, FromDIP(4));
-    v_sizer->Add(pattern_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+    pattern_sizer->Add(pattern_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    pattern_sizer->Add(m_rbPattern , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    settings_sizer->Add(pattern_sizer, 0, wxLEFT, FromDIP(3));
+
+    v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     v_sizer->AddSpacer(FromDIP(5));
 
