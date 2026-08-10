@@ -5,7 +5,6 @@
 #include "libslic3r/Preset.hpp"
 #include "I18N.hpp"
 #include <algorithm>
-#include <iterator>
 #include <boost/log/trivial.hpp>
 #include <wx/colordlg.h>
 #include <wx/dcgraph.h>
@@ -1134,7 +1133,7 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
             const auto iter = std::find_if(priorities.begin(), priorities.end(), [&value](const wxString& priority) {
                 return priority.CmpNoCase(value) == 0;
             });
-            return std::distance(priorities.begin(), iter);
+            return iter - priorities.begin();
         };
         auto _filament_sorter = [&query_filament_vendors, &query_filament_types, &selected_filament_ranks, &priority_rank](const wxString& left, const wxString& right) -> bool
         {
