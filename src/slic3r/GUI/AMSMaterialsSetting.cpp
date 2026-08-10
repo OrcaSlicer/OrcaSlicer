@@ -1075,20 +1075,7 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
 
     // Sort the filaments
     {
-        std::unordered_map<wxString, int> sorted_names =
-        {   {"Bambu PLA Basic",        0},
-            {"Bambu PLA Matte",        1},
-            {"Bambu PETG HF",          2},
-            {"Bambu ABS",              3},
-            {"Bambu PLA Silk",         4},
-            {"Bambu PLA-CF" ,          5},
-            {"Bambu PLA Galaxy",       6},
-            {"Bambu PLA Metal",        7},
-            {"Bambu PLA Marble",       8},
-            {"Bambu PETG-CF",          9},
-            {"Bambu PETG Translucent", 10},
-            {"Bambu ABS-GF",           11}
-        };
+        std::unordered_map<wxString, int> selected_filament_ranks;
 
         // Helper lambda to find a filament Preset by name. We can call this multiple times to walk the inheritance chain and find the base filament.
         auto find_filament_by_name = [](const std::string& wanted, const PresetCollection& filaments) -> const Preset* {
@@ -1100,7 +1087,7 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
             return nullptr;
         };
 
-        // For each active filament preset, find matching Preset in bundle->filaments and add the base filament alias to sorted_names in highest rank in extruder order
+        // For each active filament preset, find its base filament alias and promote it in extruder order.
         auto        bundle       = wxGetApp().preset_bundle;
         const auto& preset_names = bundle->filament_presets;
         for (size_t i = preset_names.size(); i-- > 0; ) {
@@ -1136,22 +1123,22 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
 
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Update filament rank to " + std::to_string(sort_rank) + " for preset Name: "
                                     << match->name << " - Alias: " << match->alias;
-            sorted_names.insert_or_assign(match->alias, sort_rank);
+            selected_filament_ranks.insert_or_assign(match->alias, sort_rank);
         }
         
-        static std::vector<wxString> sorted_vendors{ "Generic", "Bambu Lab" };
+        static std::vector<wxString> sorted_vendors{ "Generic" };
         static std::vector<wxString> sorted_types { "PLA", "PETG", "ABS", "TPU" };
-        auto _filament_sorter = [&query_filament_vendors, &query_filament_types, &sorted_names](const wxString& left, const wxString& right) -> bool
+        auto _filament_sorter = [&query_filament_vendors, &query_filament_types, &selected_filament_ranks](const wxString& left, const wxString& right) -> bool
         {
-            { // Compare name order
-                const auto& iter1 = sorted_names.find(left);
-                int name_order1 = (iter1 != sorted_names.end()) ? iter1->second : INT_MAX;
+            { // Compare selected filament order
+                const auto& iter1 = selected_filament_ranks.find(left);
+                int selected_order1 = (iter1 != selected_filament_ranks.end()) ? iter1->second : INT_MAX;
 
-                const auto& iter2 = sorted_names.find(right);
-                int name_order2 = (iter2 != sorted_names.end()) ? iter2->second : INT_MAX;
-                if (name_order1 != name_order2)
+                const auto& iter2 = selected_filament_ranks.find(right);
+                int selected_order2 = (iter2 != selected_filament_ranks.end()) ? iter2->second : INT_MAX;
+                if (selected_order1 != selected_order2)
                 {
-                    return name_order1 < name_order2;
+                    return selected_order1 < selected_order2;
                 }
             }
             { // Compare vendor
