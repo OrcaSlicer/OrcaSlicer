@@ -4,6 +4,8 @@
 #include "GUI_App.hpp"
 #include "libslic3r/Preset.hpp"
 #include "I18N.hpp"
+#include <algorithm>
+#include <iterator>
 #include <boost/log/trivial.hpp>
 #include <wx/colordlg.h>
 #include <wx/dcgraph.h>
@@ -1092,7 +1094,7 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
         const auto& preset_names = bundle->filament_presets;
         for (size_t i = preset_names.size(); i-- > 0; ) {
             std::string wanted = preset_names[i];
-            const int sort_rank = -((int)preset_names.size() - i);
+            const int sort_rank = -static_cast<int>(preset_names.size() - i);
             
             const Preset* match = nullptr;
 
@@ -1126,9 +1128,15 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
             selected_filament_ranks.insert_or_assign(match->alias, sort_rank);
         }
         
-        static std::vector<wxString> sorted_vendors{ "Generic" };
-        static std::vector<wxString> sorted_types { "PLA", "PETG", "ABS", "TPU" };
-        auto _filament_sorter = [&query_filament_vendors, &query_filament_types, &selected_filament_ranks](const wxString& left, const wxString& right) -> bool
+        static const std::vector<wxString> sorted_vendors { "Generic" };
+        static const std::vector<wxString> sorted_types { "PLA", "PETG", "ABS", "TPU" };
+        auto priority_rank = [](const std::vector<wxString>& priorities, const wxString& value) {
+            const auto iter = std::find_if(priorities.begin(), priorities.end(), [&value](const wxString& priority) {
+                return priority.CmpNoCase(value) == 0;
+            });
+            return std::distance(priorities.begin(), iter);
+        };
+        auto _filament_sorter = [&query_filament_vendors, &query_filament_types, &selected_filament_ranks, &priority_rank](const wxString& left, const wxString& right) -> bool
         {
             { // Compare selected filament order
                 const auto& iter1 = selected_filament_ranks.find(left);
@@ -1142,23 +1150,32 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
                 }
             }
             { // Compare vendor
-                auto iter1 = std::find(sorted_vendors.begin(), sorted_vendors.end(), query_filament_vendors[left]);
-                auto iter2 = std::find(sorted_vendors.begin(), sorted_vendors.end(), query_filament_vendors[right]);
-                if (iter1 != iter2)
-                {
-                    return iter1 < iter2;
-                };
+                const wxString& vendor1 = query_filament_vendors.at(left);
+                const wxString& vendor2 = query_filament_vendors.at(right);
+                const auto      rank1   = priority_rank(sorted_vendors, vendor1);
+                const auto      rank2   = priority_rank(sorted_vendors, vendor2);
+                if (rank1 != rank2)
+                    return rank1 < rank2;
+
+                const int vendor_compare = vendor1.CmpNoCase(vendor2);
+                if (vendor_compare != 0)
+                    return vendor_compare < 0;
             }
             { // Compare type
-                auto iter1 = std::find(sorted_types.begin(), sorted_types.end(), query_filament_types[left]);
-                auto iter2 = std::find(sorted_types.begin(), sorted_types.end(), query_filament_types[right]);
-                if (iter1 != iter2)
-                {
-                    return iter1 < iter2;
-                }
+                const wxString& type1 = query_filament_types.at(left);
+                const wxString& type2 = query_filament_types.at(right);
+                const auto      rank1 = priority_rank(sorted_types, type1);
+                const auto      rank2 = priority_rank(sorted_types, type2);
+                if (rank1 != rank2)
+                    return rank1 < rank2;
+
+                const int type_compare = type1.CmpNoCase(type2);
+                if (type_compare != 0)
+                    return type_compare < 0;
             }
 
-            return left < right;
+            const int name_compare = left.CmpNoCase(right);
+            return name_compare != 0 ? name_compare < 0 : left < right;
         };
 
         std::sort(filament_items.begin(), filament_items.end(), _filament_sorter);
