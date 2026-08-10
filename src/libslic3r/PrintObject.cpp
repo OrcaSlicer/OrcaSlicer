@@ -3024,6 +3024,15 @@ void PrintObject::bridge_over_infill()
         //default: break;
         //}
 
+        // Orca: For patterns with non-straight infill lines (Hilbert Curve, Octagram Spiral),
+        // the anchor lines curve and turn at many angles. Sampling their orientation produces
+        // noise across all turning directions rather than a single dominant one, which leads
+        // to unstable/incorrect bridging angles. For these patterns, use the configured
+        // infill_direction as the primary anchor orientation and compute the bridging angle
+        // perpendicular to it (bridges should cross the infill lines at 90° so each bridge
+        // segment rests on top of an infill line at its endpoints).
+        const bool pattern_has_curved_anchors = (dominant_pattern == ipHilbertCurve || dominant_pattern == ipOctagramSpiral);
+
         std::map<double, int> counted_directions;
         for (const Polygon &p : bridged_area) {
             double acc_distance = 0;
@@ -3089,10 +3098,16 @@ void PrintObject::bridge_over_infill()
         if (bridging_angle == 0) {
             bridging_angle = 0.001;
         }
-        switch (dominant_pattern) {
-        case ipHilbertCurve: bridging_angle += 0.25 * PI; break;
-        case ipOctagramSpiral: bridging_angle += (1.0 / 16.0) * PI; break;
-        default: break;
+
+        // Orca: For patterns with curved/turning anchor lines (Hilbert Curve, Octagram
+        // Spiral), the sampled-anchor approach above produces unreliable angles because
+        // the anchors turn at many directions. Replace the computed angle with the
+        // configured infill direction rotated by 90° — bridges run perpendicular to the
+        // dominant infill axis, so each bridge endpoint rests on an infill line.
+        if (pattern_has_curved_anchors) {
+            // infill_direction is stored in degrees in the config (default 45°).
+            // The bridge should be perpendicular to the infill: angle = infill_direction + 90°.
+            bridging_angle = Geometry::deg2rad(infill_direction) + 0.5 * PI;
         }
 
         return bridging_angle;
@@ -3425,6 +3440,106 @@ void PrintObject::bridge_over_infill()
                             if (region_config.align_infill_direction_to_model) {
                                 auto m = po->trafo().matrix();
                                 bridging_angle += std::atan2((double)m(1, 0), (double)m(0, 0));
+                            }
+                        }
+                    }
+
+                    // Orca: For patterns with curved/turning anchor lines (Hilbert Curve,
+                    // Octagram Spiral), the actual infill polylines curve and turn at many
+                    // angles. When construct_anchored_polygon scans these curved anchors
+                    // with vertical lines, each scan line intersects the same anchor many
+                    // times at wildly different Y positions, producing chaotic polygon
+                    // sections — holes in random places, bridges over air, etc. Replace
+                    // the curved anchors with synthetic straight lines parallel to the
+                    // configured infill_direction, spaced at the real infill line spacing.
+                    // These straight lines intersect each scan line exactly once, giving
+                    // construct_anchored_polygon clean, predictable anchor points.
+                    {
+                        const InfillPattern pattern = candidate.region->region().config().sparse_infill_pattern.value;
+                        if (pattern == ipHilbertCurve || pattern == ipOctagramSpiral) {
+                            const auto &rcfg   = candidate.region->region().config();
+                            const double density = 0.01 * rcfg.sparse_infill_density.value; // fraction (0..1)
+                            if (density > 0.) {
+                                // Infill line spacing = flow_spacing / density (same as Fill.cpp).
+                                const double infill_spacing = candidate.region->flow(frInfill).spacing() / density;
+                                const coord_t scaled_spacing = coord_t(scale_(infill_spacing));
+                                const double infill_angle_rad = Geometry::deg2rad(rcfg.infill_direction.value);
+                                // Generate parallel lines across the limiting_area bbox.
+                                // limiting_area = union_(area_to_be_bridge, expansion_area),
+                                // so it covers the full extent of both the bridge and the
+                                // infill beneath it. Using this (not just expansion_area)
+                                // ensures anchors reach every edge of the bridge.
+                                BoundingBox bbox = get_extents(limiting_area);
+                                // Expand bbox by at least one infill spacing so anchor lines
+                                // extend beyond the limiting_area edges. After rotation in
+                                // construct_anchored_polygon, limiting_area becomes a diamond
+                                // and anchor lines near the tips need extra length to reach
+                                // scan lines at the edges of bridged_area.
+                                coord_t margin = std::max(coord_t(scale_(2.0)), scaled_spacing);
+                                bbox.min -= Point{margin, margin};
+                                bbox.max += Point{margin, margin};
+                                // Line direction unit vector.
+                                double dir_x = std::cos(infill_angle_rad);
+                                double dir_y = std::sin(infill_angle_rad);
+                                // Perpendicular direction (for spacing).
+                                double perp_x = -dir_y;
+                                double perp_y =  dir_x;
+                                // Center of the bbox — lines are centered here so
+                                // that after rotation they span the full bridged_area.
+                                double bbox_cx = (bbox.min.x() + bbox.max.x()) * 0.5;
+                                double bbox_cy = (bbox.min.y() + bbox.max.y()) * 0.5;
+                                // Project bbox corners onto the perpendicular axis
+                                // (relative to bbox center) to find the range of
+                                // line offsets needed.
+                                double corners[4] = {
+                                    (bbox.min.x() - bbox_cx) * perp_x + (bbox.min.y() - bbox_cy) * perp_y,
+                                    (bbox.max.x() - bbox_cx) * perp_x + (bbox.min.y() - bbox_cy) * perp_y,
+                                    (bbox.min.x() - bbox_cx) * perp_x + (bbox.max.y() - bbox_cy) * perp_y,
+                                    (bbox.max.x() - bbox_cx) * perp_x + (bbox.max.y() - bbox_cy) * perp_y
+                                };
+                                double perp_min = corners[0], perp_max = corners[0];
+                                for (int i = 1; i < 4; i++) {
+                                    perp_min = std::min(perp_min, corners[i]);
+                                    perp_max = std::max(perp_max, corners[i]);
+                                }
+                                // Line length: project onto the line direction and take the span.
+                                double proj_corners[4] = {
+                                    bbox.min.x() * dir_x + bbox.min.y() * dir_y,
+                                    bbox.max.x() * dir_x + bbox.min.y() * dir_y,
+                                    bbox.min.x() * dir_x + bbox.max.y() * dir_y,
+                                    bbox.max.x() * dir_x + bbox.max.y() * dir_y
+                                };
+                                double line_len = *std::max_element(proj_corners, proj_corners + 4) -
+                                                  *std::min_element(proj_corners, proj_corners + 4) + 2 * margin;
+                                // Generate lines at each offset.
+                                Lines synthetic_anchors;
+                                int n_lines = int((perp_max - perp_min) / scaled_spacing) + 2;
+                                for (int i = 0; i < n_lines; i++) {
+                                    double offset = perp_min + i * scaled_spacing;
+                                    // Center of the line: bbox center + offset along perpendicular.
+                                    double cx = bbox_cx + offset * perp_x;
+                                    double cy = bbox_cy + offset * perp_y;
+                                    // Extend line by line_len/2 in each direction.
+                                    Line l;
+                                    l.a = Point(coord_t(cx - dir_x * line_len * 0.5), coord_t(cy - dir_y * line_len * 0.5));
+                                    l.b = Point(coord_t(cx + dir_x * line_len * 0.5), coord_t(cy + dir_y * line_len * 0.5));
+                                    synthetic_anchors.push_back(l);
+                                }
+                                // Clip to expansion_area (same as real anchors are clipped).
+                                Polylines synthetic_polylines;
+                                for (const Line &l : synthetic_anchors) {
+                                    synthetic_polylines.emplace_back(Points{l.a, l.b});
+                                }
+                                // Do NOT clip synthetic anchors to any area — leave them
+                                // at full bbox length. construct_anchored_polygon finds
+                                // the nearest anchor intersection for each scan line
+                                // section; long anchor lines guarantee every scan line
+                                // through bridged_area finds an anchor, so bridge edges
+                                // never hang in air. Clipping to limiting_area/expand(...)
+                                // shortens lines at the diamond tips after rotation,
+                                // causing edge scan lines to miss all anchors.
+                                // Replace anchors with synthetic straight lines.
+                                anchors = synthetic_polylines;
                             }
                         }
                     }
