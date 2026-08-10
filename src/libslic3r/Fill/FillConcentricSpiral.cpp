@@ -9,13 +9,6 @@
 
 namespace Slic3r {
 
-static Points loop_points_opened(Polyline loop_path)
-{
-    if (loop_path.points.size() > 1 && loop_path.points.front() == loop_path.points.back())
-        loop_path.points.pop_back();
-    return std::move(loop_path.points);
-}
-
 static Polylines generate_concentric_spiral_polylines(
     const FillParams& params, const Polygons& loops, const coord_t distance, const bool is_classic, const ExPolygon& original_expoly)
 {
@@ -69,8 +62,7 @@ static Polylines generate_concentric_spiral_polylines(
         }
 
         Polyline loop_path(loop.split_at_index(idx));
-        loop_path.points = loop_points_opened(std::move(loop_path));
-        if (loop_path.size() < 2)
+        if (loop_path.size() < 3)
             continue;
 
         // Island jumping: if the distance between the last point of the current spiral and the first point of the new loop is too large, we
@@ -78,15 +70,12 @@ static Polylines generate_concentric_spiral_polylines(
         if (!spiral.empty()) {
             double dist_to_new_start = spiral.last_point().distance_to(loop_path.points.front());
             if (dist_to_new_start > jump_threshold) {
-                if (!spiral.empty())
-                    output.emplace_back(std::move(spiral));
-
+                output.emplace_back(std::move(spiral));
                 spiral.clear();
                 current_pos      = Point(0, 0);
                 idx              = is_classic ? 1 : find_sharpest_corner(loop);
                 loop_path        = Polyline(loop.split_at_index(idx));
-                loop_path.points = loop_points_opened(std::move(loop_path));
-                if (loop_path.size() < 2)
+                if (loop_path.size() < 3)
                     continue;
             }
         }
@@ -95,7 +84,6 @@ static Polylines generate_concentric_spiral_polylines(
         // Theoric gap = distance/sin(alpha) where alpha is the angle between the last segment of the loop and the first segment of the next loop.
         const bool last_loop = (i + 1 == loops.size());
         double gap           = last_loop ? 0.5 * double(distance) : double(distance);
-        loop_path.points.push_back(loop_path.points.front());
         const Point& p_prev = loop_path.points[loop_path.points.size() - 2];
         const Point& p_last = loop_path.points.back();
         const Point& p_next = loop_path.points[1];
@@ -119,7 +107,6 @@ static Polylines generate_concentric_spiral_polylines(
 
         // Add the centroid of the last loop.
         if (last_loop) {
-            BoundingBox bbox = loop.bounding_box();
             Point centroid   = loop.centroid();
 
             if (original_expoly.contains(centroid)) {
@@ -147,7 +134,7 @@ static Polylines generate_concentric_spiral_polylines(
     // Fill order handling.
     if (params.fill_order == SurfaceFillOrder::Outward) {
         for (Polyline& path : output)
-            std::reverse(path.begin(), path.end());
+            path.reverse();
         std::reverse(output.begin(), output.end());
     }
 
@@ -187,10 +174,10 @@ void FillConcentricSpiral::_fill_surface_single(const FillParams& params,
 
     // Generate the concentric spiral polylines.
     Polylines spiral_result = generate_concentric_spiral_polylines(params, loops, distance, is_classic, expolygon);
-    append(polylines_out, spiral_result);
 
     // Apply multiline offset if needed.
-    multiline_fill(polylines_out, params, spacing);
+    multiline_fill(spiral_result, params, spacing);
+    append(polylines_out, spiral_result);
 }
 
 } // namespace Slic3r
