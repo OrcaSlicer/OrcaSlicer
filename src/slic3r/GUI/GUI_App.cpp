@@ -96,6 +96,7 @@
 #include "../Utils/PresetUpdater.hpp"
 #include "../Utils/PrintHost.hpp"
 #include "../Utils/Process.hpp"
+#include "../Utils/wxInspectorPlugins/Registration.hpp"
 #include "../Utils/MacDarkMode.hpp"
 #include "../Utils/Http.hpp"
 #include "../Utils/InstanceID.hpp"
@@ -306,6 +307,20 @@ public:
 #endif // !__APPLE__
         )
     {
+		// Some desktop environments ignore splash screen typed window properties
+		// when running the app through Wayland,resulting in the titlebar being shown 
+		// on the splash screen. The code below creates a client-side window decoration
+		// when running on Wayland and then removes that decoration. This ensures every 
+		// environment correctly targets and removes the titlebar for this screen.
+		#if defined(__WXGTK__)
+	        if (Slic3r::GUI::is_running_on_wayland()) {
+	            GtkWidget *empty = gtk_fixed_new();
+	            gtk_widget_set_size_request(empty, 0, 0);
+	            gtk_window_set_titlebar(GTK_WINDOW(GetHandle()), empty);
+	            gtk_window_set_decorated(GTK_WINDOW(GetHandle()), false);
+	        }
+		#endif
+		
         this->SetPosition(pos);
         this->CenterOnScreen();
 
@@ -2794,16 +2809,58 @@ void GUI_App::init_plugin_gui_wiring()
         });
     };
 
+    // why: a newly loaded plugin only adds a selectable agent
+    // refresh the dropdown and leave the live agent alone
+    auto refresh_printer_agent_dropdown_after_load = [](const std::string&)
+    {
+        if (!wxTheApp)
+            return;
+
+        GUI_App* app = &GUI::wxGetApp();
+        if (app->is_closing())
+            return;
+
+        app->CallAfter([app]
+        {
+            if (!app->is_closing())
+                app->refresh_printer_agent_dropdown();
+        });
+    };
+
+    // why: the unloaded plugin may have been the provider of the live agent
+    // re-run selection, where a now-missing agent will be cleared
+    // refresh dropdown after
+    auto switch_printer_agent_after_unload = [](const std::string&)
+    {
+        if (!wxTheApp)
+            return;
+
+        GUI_App* app = &GUI::wxGetApp();
+        if (app->is_closing())
+            return;
+
+        app->CallAfter([app] {
+            if (app->is_closing())
+                return;
+
+            app->switch_printer_agent();
+            app->refresh_printer_agent_dropdown();
+        });
+    };
+
     plugin_mgr.subscribe_on_unload_callback(PluginHostUi::close_windows_for_plugin);
     plugin_mgr.subscribe_on_load_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
     plugin_mgr.subscribe_on_unload_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
     plugin_mgr.subscribe_on_load_callback(NetworkAgentFactory::register_python_plugin);
     plugin_mgr.subscribe_on_unload_callback(NetworkAgentFactory::deregister_python_plugin);
+    plugin_mgr.subscribe_on_load_callback(refresh_printer_agent_dropdown_after_load);
+    plugin_mgr.subscribe_on_unload_callback(switch_printer_agent_after_unload);
     plugin_mgr.subscribe_on_capability_load_callback(
-        [refresh_plugins_dialog](const PluginCapabilityId& capability) {
+        [refresh_plugins_dialog, refresh_printer_agent_dropdown_after_load](const PluginCapabilityId& capability) {
             if (capability.type == PluginCapabilityType::PrinterConnection)
                 NetworkAgentFactory::register_python_printer_agent(capability.plugin_key, capability.name);
             refresh_plugins_dialog();
+            refresh_printer_agent_dropdown_after_load(capability.plugin_key);
             // A newly loaded capability may satisfy a missing-plugin notification; re-validate the
             // current plate (on the UI thread) so the notification clears once its plugin is available.
             if (wxTheApp && !wxGetApp().is_closing())
@@ -2813,10 +2870,11 @@ void GUI_App::init_plugin_gui_wiring()
                 });
         });
     plugin_mgr.subscribe_on_capability_unload_callback(
-        [refresh_plugins_dialog](const PluginCapabilityId& capability) {
+        [refresh_plugins_dialog, switch_printer_agent_after_unload](const PluginCapabilityId& capability) {
             if (capability.type == PluginCapabilityType::PrinterConnection)
                 NetworkAgentFactory::deregister_python_printer_agent(capability.plugin_key, capability.name);
             refresh_plugins_dialog();
+            switch_printer_agent_after_unload(capability.plugin_key);
         });
 }
 
@@ -2834,6 +2892,9 @@ bool GUI_App::on_init_inner()
 #endif
 
     ::Label::initSysFont();
+
+    // Register wxInspector plugins for Orca custom controls
+    RegisterOrcaInspectorPlugins();
 
     // Set initialization of image handlers before any UI actions - See GH issue #7469
     wxInitAllImageHandlers();
@@ -3704,13 +3765,13 @@ bool GUI_App::on_init_network(bool try_backup)
             }
         } else {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll failed";
-            // A failed install can leave the config naming a build that never made it to
-            // disk (download_plugin() adopts the downloaded version up front so that
-            // install_plugin() can name the library after it). If the whitelisted latest
-            // is still installed, fall back to it instead of dropping the user into the
-            // re-download flow without networking.
+            // A failed install can leave the config naming a build that never made it to disk;
+            // fall back to the installed latest instead of dropping the user into the re-download
+            // flow. Only when the configured library is genuinely absent, though - a pinned series
+            // that is on disk but failed to load once must keep its pin, not be rewritten for good.
             std::string latest = get_latest_network_version();
-            if (config_version != latest && BBLNetworkPlugin::versioned_library_exists(latest)) {
+            if (config_version != latest && !BBLNetworkPlugin::versioned_library_exists(config_version)
+                && BBLNetworkPlugin::versioned_library_exists(latest)) {
                 BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": falling back to installed " << latest;
                 config_version = latest;
                 app_config->set_network_plugin_version(latest);
@@ -3814,7 +3875,14 @@ bool GUI_App::on_init_network(bool try_backup)
             m_user_manager = new Slic3r::UserManager();
     }
 
-    if (should_load_networking_plugin && m_networking_compatible && !use_legacy_network_plugin()) {
+    // A version pinned to something other than the latest series is a deliberate choice, so it
+    // is exempt from the upgrade prompt the same way the legacy pin already is - otherwise the
+    // dialog reappears on every launch for as long as the pin is held.
+    const std::string pinned_version = app_config->get_network_plugin_version();
+    const bool pinned_to_older_series = !pinned_version.empty() &&
+        network_plugin_series(pinned_version) != network_plugin_series(get_latest_network_version());
+
+    if (should_load_networking_plugin && m_networking_compatible && !pinned_to_older_series) {
         app_config->clear_remind_network_update_later();
 
         if (has_network_update_available()) {
@@ -3848,6 +3916,48 @@ unsigned GUI_App::get_colour_approx_luma(const wxColour &colour)
         ));
 }
 
+void GUI_App::refresh_printer_agent_dropdown()
+{
+    if (Tab* tab = get_tab(Preset::TYPE_PRINTER))
+    {
+        if (auto* printer_tab = dynamic_cast<TabPrinter*>(tab))
+            printer_tab->refresh_printer_agent_dropdown();
+    }
+}
+
+void GUI_App::set_live_printer_agent(std::shared_ptr<IPrinterAgent> agent)
+{
+    if (!m_agent)
+        return;
+
+    // why: tearing down the old machine selection is only ever the prefix of setting the live
+    // agent (to a new one, or to null when the selection is missing) - so it lives here, not as
+    // a standalone helper. Pass nullptr to clear the selection.
+    if (DeviceManager* dev = getDeviceManager())
+    {
+        dev->set_selected_machine(""); // why: empty id disconnects and deselects the current machine
+        m_agent->set_user_selected_machine("");
+        // note: belt-and-suspenders (precedent: DeviceManagerRefresher::on_timer)
+        dev->OnSelectedMachineLost(); // why: clear stale sidebar sync-status / AMS
+        dev->clear_other_devices(); // why: drop stale LAN discoveries; keep My Devices
+    }
+
+    m_agent->set_printer_agent(agent);
+    sidebar().update_all_preset_comboboxes();
+}
+
+std::string GUI_App::resolve_printer_agent_id(const std::string& stored_id)
+{
+    if (!stored_id.empty())
+        return stored_id;
+    return (preset_bundle && preset_bundle->is_bbl_vendor()) ? BBL_PRINTER_AGENT_ID : ORCA_PRINTER_AGENT_ID;
+}
+
+std::string GUI_App::canonical_printer_agent_id(const std::string& picked_id)
+{
+    return picked_id == resolve_printer_agent_id("") ? std::string() : picked_id;
+}
+
 void GUI_App::switch_printer_agent()
 {
     if (!m_agent) {
@@ -3855,24 +3965,17 @@ void GUI_App::switch_printer_agent()
         return;
     }
 
-    // Read printer_agent from config, falling back to default
-    std::string effective_agent_id = ORCA_PRINTER_AGENT_ID;
-    if (preset_bundle->is_bbl_vendor())
-        effective_agent_id = BBL_PRINTER_AGENT_ID;
-
     const DynamicPrintConfig& config = preset_bundle->printers.get_edited_preset().config;
-    if (config.has("printer_agent")) {
-        const std::string& value = config.option<ConfigOptionString>("printer_agent")->value;
-        if (!value.empty())
-            effective_agent_id = value;
-    }
+    const std::string effective_agent_id = resolve_printer_agent_id(config.opt_string("printer_agent"));
 
     // Check if agent is registered
     const PrinterAgentInfo* agent_info_ptr = NetworkAgentFactory::get_printer_agent_info(effective_agent_id);
     if (!agent_info_ptr) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": unregistered agent ID '" << effective_agent_id
-                                   << "', keeping current agent";
-        // Keep current agent, don't switch
+        // why: the selected agent's provider is gone (e.g. plugin unloaded); leaving the old
+        // live agent up would keep talking to a machine the user can no longer select.
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": agent ID '" << effective_agent_id
+                                << "' is unregistered; clearing live printer agent";
+        set_live_printer_agent(nullptr);
         return;
     }
     const PrinterAgentInfo agent_info = *agent_info_ptr;
@@ -3886,7 +3989,9 @@ void GUI_App::switch_printer_agent()
         NetworkAgentFactory::create_printer_agent_by_id(effective_agent_id, cloud_agent, log_dir);
 
     if (!new_printer_agent) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to create agent '" << effective_agent_id << "', keeping current agent";
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to create agent '" << effective_agent_id
+                                   << "'; clearing live printer agent";
+        set_live_printer_agent(nullptr);
         return;
     }
 
@@ -3909,9 +4014,9 @@ void GUI_App::switch_printer_agent()
         return;
     }
 
-    // Swap the agent
-    m_agent->set_printer_agent(new_printer_agent);
-    sidebar().update_all_preset_comboboxes();
+    // Swap the agent; set_live_printer_agent resets the device selection so the new
+    // agent starts clean (#124).
+    set_live_printer_agent(new_printer_agent);
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": printer agent switched to " << effective_agent_id;
 

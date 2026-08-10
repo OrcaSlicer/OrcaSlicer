@@ -5,6 +5,10 @@
 
 #include <wx/dcgraph.h>
 
+#ifdef __WXGTK__
+#include "../GUI_Utils.hpp"
+#endif
+
 BEGIN_EVENT_TABLE(SpinInput, StaticBox)
 
 EVT_KEY_DOWN(SpinInput::keyPressed)
@@ -58,6 +62,11 @@ void SpinInput::Create(wxWindow *parent,
     state_handler.attach({&label_color, &text_color});
     state_handler.update_binds();
     text_ctrl = new TextCtrl(this, wxID_ANY, text, {20, 4}, wxDefaultSize, style | wxBORDER_NONE | wxTE_PROCESS_ENTER, wxTextValidator(wxFILTER_DIGITS));
+
+#ifdef __WXGTK__
+    Slic3r::GUI::RemoveInputBorder(text_ctrl);
+#endif
+
     text_ctrl->SetFont(Label::Body_14);
     text_ctrl->SetBackgroundColour(background_color.colorForStates(state_handler.states()));
     text_ctrl->SetForegroundColour(text_color.colorForStates(state_handler.states()));
