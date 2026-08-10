@@ -147,8 +147,8 @@ set(lisbslic3r_sources
     Fill/FillBase.hpp
     Fill/FillConcentric.cpp
     Fill/FillConcentric.hpp
-    Fill/FillConcentricSpiral.cpp
-    Fill/FillConcentricSpiral.hpp
+    Fill/FillSpiralInset.cpp
+    Fill/FillSpiralInset.hpp
     Fill/FillConcentricInternal.cpp
     Fill/FillConcentricInternal.hpp
     Fill/Fill.cpp

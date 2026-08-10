@@ -4,7 +4,7 @@
 #include "../VariableWidth.hpp"
 #include "Arachne/WallToolPaths.hpp"
 
-#include "FillConcentricSpiral.hpp"
+#include "FillSpiralInset.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -184,7 +184,7 @@ static void append_path_point(ThickPolyline& path, const Point& point)
 // ordered outside in, depth first, each paired with its outline in loop_outlines; every decision here
 // is made on those outlines, so the two kinds of loop take exactly the same route.
 template<class LoopType, class PathType>
-static std::vector<PathType> generate_concentric_spirals(const FillParams&                   params,
+static std::vector<PathType> generate_spiral_insets(const FillParams&                   params,
                                                          const std::vector<const LoopType*>& loops,
                                                          const Polygons&                     loop_outlines,
                                                          const coord_t                       distance,
@@ -292,7 +292,7 @@ static std::vector<PathType> generate_concentric_spirals(const FillParams&      
     return output;
 }
 
-void FillConcentricSpiral::_fill_surface_single(const FillParams& params,
+void FillSpiralInset::_fill_surface_single(const FillParams& params,
                                                 unsigned int thickness_layers,
                                                 const std::pair<float, Point>& direction,
                                                 ExPolygon expolygon,
@@ -326,14 +326,14 @@ void FillConcentricSpiral::_fill_surface_single(const FillParams& params,
     for (const Polygon& loop : loops)
         loop_refs.emplace_back(&loop);
 
-    Polylines spiral_result = generate_concentric_spirals<Polygon, Polyline>(params, loop_refs, loops, distance, expolygon);
+    Polylines spiral_result = generate_spiral_insets<Polygon, Polyline>(params, loop_refs, loops, distance, expolygon);
 
     // Apply multiline offset if needed.
     multiline_fill(spiral_result, params, spacing);
     append(polylines_out, spiral_result);
 }
 
-void FillConcentricSpiral::_fill_surface_single(const FillParams& params,
+void FillSpiralInset::_fill_surface_single(const FillParams& params,
                                                 unsigned int thickness_layers,
                                                 const std::pair<float, Point>& direction,
                                                 ExPolygon expolygon,
@@ -421,7 +421,7 @@ void FillConcentricSpiral::_fill_surface_single(const FillParams& params,
             descend(int(i));
 
     ThickPolylines spiral_result =
-        generate_concentric_spirals<Arachne::ExtrusionLine, ThickPolyline>(params, ordered, outlines, min_spacing, expolygon);
+        generate_spiral_insets<Arachne::ExtrusionLine, ThickPolyline>(params, ordered, outlines, min_spacing, expolygon);
 
     append(thick_polylines_out, std::move(spiral_result));
     append(thick_polylines_out, std::move(open_walls));

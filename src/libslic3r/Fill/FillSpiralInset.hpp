@@ -1,18 +1,18 @@
-#ifndef slic3r_FillConcentricSpiral_hpp_
-#define slic3r_FillConcentricSpiral_hpp_
+#ifndef slic3r_FillSpiralInset_hpp_
+#define slic3r_FillSpiralInset_hpp_
 
 #include "FillBase.hpp"
 
 namespace Slic3r {
 
-class FillConcentricSpiral : public Fill
+class FillSpiralInset : public Fill
 {
 public:
-	~FillConcentricSpiral() override = default;
+	~FillSpiralInset() override = default;
 	bool is_self_crossing() override { return false; }
 
 protected:
-	Fill* clone() const override { return new FillConcentricSpiral(*this); };
+	Fill* clone() const override { return new FillSpiralInset(*this); };
 	void _fill_surface_single(
 		const FillParams              &params,
 		unsigned int                   thickness_layers,
@@ -34,4 +34,4 @@ protected:
 
 } // namespace Slic3r
 
-#endif // slic3r_FillConcentricSpiral_hpp_
+#endif // slic3r_FillSpiralInset_hpp_

@@ -274,7 +274,7 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "tpmsfk", ipTpmsFK },
     { "gyroid", ipGyroid },
     { "concentric", ipConcentric },
-    { "concentricspiral", ipConcentricSpiral },
+    { "spiralinset", ipSpiralInset },
     { "hilbertcurve", ipHilbertCurve },
     { "archimedeanchords", ipArchimedeanChords },
     { "octagramspiral", ipOctagramSpiral }
@@ -2293,7 +2293,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("rectilinear");
     def->enum_values.push_back("alignedrectilinear");
     def->enum_values.push_back("concentric");
-    def->enum_values.push_back("concentricspiral");
+    def->enum_values.push_back("spiralinset");
     def->enum_values.push_back("hilbertcurve");
     def->enum_values.push_back("archimedeanchords");
     def->enum_values.push_back("octagramspiral");
@@ -2302,7 +2302,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Rectilinear"));
     def->enum_labels.push_back(L("Aligned Rectilinear"));
     def->enum_labels.push_back(L("Concentric"));
-    def->enum_labels.push_back(L("Concentric Spiral"));
+    def->enum_labels.push_back(L("Spiral Inset"));
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));
@@ -2385,7 +2385,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Top surface fill order");
     def->category = L("Strength");
     def->tooltip = L("Direction in which top surfaces are filled when using a center-based pattern "
-                     "(Concentric, Concentric Spiral, Archimedean Chords, Octagram Spiral).\n"
+                     "(Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
                      "Outward starts at the center of the surface, so any excess material is pushed "
                      "towards the edge where it is least visible. Inward starts at the edge and ends "
                      "with the tight curves at the center.\n"
@@ -2404,7 +2404,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Bottom surface fill order");
     def->category = L("Strength");
     def->tooltip = L("Direction in which bottom surfaces are filled when using a center-based pattern "
-                     "(Concentric, Concentric Spiral, Archimedean Chords, Octagram Spiral).\n"
+                     "(Concentric, Spiral Inset, Archimedean Chords, Octagram Spiral).\n"
                      "Inward starts each surface with the wider outer curves, which improves first layer "
                      "adhesion on build plates where the tight curves at the center may not stick. "
                      "Outward starts at the center, pushing any excess material towards the edge.\n"
@@ -3438,7 +3438,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("tpmsfk");
     def->enum_values.push_back("gyroid");
     def->enum_values.push_back("concentric");
-    def->enum_values.push_back("concentricspiral");
+    def->enum_values.push_back("spiralinset");
     def->enum_values.push_back("hilbertcurve");
     def->enum_values.push_back("archimedeanchords");
     def->enum_values.push_back("octagramspiral");
@@ -3465,7 +3465,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("TPMS-FK"));
     def->enum_labels.push_back(L("Gyroid"));
     def->enum_labels.push_back(L("Concentric"));
-    def->enum_labels.push_back(L("Concentric Spiral"));
+    def->enum_labels.push_back(L("Spiral Inset"));
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));
@@ -9067,6 +9067,12 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
                 opt_key == "ironing_pattern"               ||
                 opt_key == "support_ironing_pattern") && value == "zig-zag") {
         value = "rectilinear";
+    } else if ((opt_key == "sparse_infill_pattern"         ||
+                opt_key == "top_surface_pattern"           ||
+                opt_key == "bottom_surface_pattern"        ||
+                opt_key == "internal_solid_infill_pattern") && value == "concentricspiral") {
+        // Spiral Inset went by Concentric Spiral while it was in development.
+        value = "spiralinset";
     } else if (opt_key == "filament_map_mode") {
         if (value == "Auto") value = "Auto For Flush";
     }
