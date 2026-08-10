@@ -1,4 +1,6 @@
 #include "SnapmakerPrinterAgent.hpp"
+
+#include <boost/format.hpp>
 #include "Http.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -116,6 +118,78 @@ std::string SnapmakerProtocol::build_start_script(const std::string& filename, c
     // deferred to its own change.
     return "SDCARD_PRINT_FILE_WITH_PARAMETERS FILENAME=\"" + filename + "\" MAP_TABLE=\"" +
            render_map_table(filament_map_1based) + "\" BED_LEVEL=\"1\"";
+}
+
+namespace {
+// The firmware parses these as Python literals, so lists render as "[a, b, c]" with ", " between
+// entries, and strings inside a list are single-quoted (see FILAMENT_TYPE in the screen capture).
+template<class T, class Fmt> std::string render_list(const std::vector<T>& values, Fmt fmt)
+{
+    std::string out = "[";
+    for (size_t i = 0; i < values.size(); ++i) {
+        if (i) out += ", ";
+        out += fmt(values[i]);
+    }
+    return out + "]";
+}
+
+// Trailing zeros are trimmed the way the screen renders them: "220.0", "0.42", "0.966".
+std::string render_double(double v)
+{
+    std::string out = (boost::format("%.6f") % v).str();
+    const size_t dot = out.find('.');
+    if (dot != std::string::npos) {
+        size_t last = out.find_last_not_of('0');
+        if (last == dot) ++last; // keep exactly one decimal, matching "220.0"
+        out.erase(last + 1);
+    }
+    return out;
+}
+
+std::string quoted_param(const std::string& key, const std::string& value) { return " " + key + "=\"" + value + "\""; }
+} // namespace
+
+std::string SnapmakerProtocol::build_start_script(const std::string& filename, const DevicePrintJobInfo& job)
+{
+    // Every declared option is emitted explicitly, never omitted: the firmware reads an ABSENT
+    // parameter as OFF (hardware-verified), so an unchecked box must still be stated as "0" --
+    // otherwise "off" and "not supported by this Orca build" would be indistinguishable to the
+    // firmware and to anyone reading the log.
+    std::string script = "SDCARD_PRINT_FILE_WITH_PARAMETERS";
+    script += quoted_param("FILENAME", filename);
+    script += quoted_param("MAP_TABLE", render_map_table(job.filament_map_1based));
+    script += quoted_param("BED_LEVEL", job.option_on("bed_leveling") ? "1" : "0");
+    script += quoted_param("TIME_LAPSE_CAMERA", job.option_on("time_lapse") ? "1" : "0");
+
+    // Flow calibration is one checkbox in the UI; the heads to calibrate are derived here, from
+    // the tools this plate actually uses -- an idle tool is never calibrated. With the box off the
+    // list is empty rather than absent, keeping the "always state it" rule above.
+    const bool flow = job.option_on("flow_calibrate");
+    script += quoted_param("FLOW_CALIBRATE", flow ? "1" : "0");
+    script += quoted_param("FLOW_CALIBRATE_EXTRUDERS",
+                           render_list(flow ? job.used_physical_tools : std::vector<int>{},
+                                       [](int v) { return std::to_string(v); }));
+    // Unloading at the end of a print is the printer's own setting; we never ask for it.
+    script += quoted_param("END_UNLOAD_FILAMENT",
+                           render_list(std::vector<int>(job.nozzle_diameter.size(), 0),
+                                       [](int v) { return std::to_string(v); }));
+
+    // Print geometry: the firmware reproduces the plate's conditions when it calibrates flow.
+    script += quoted_param("LINE_WIDTH", render_double(job.line_width));
+    script += quoted_param("LAYER_HEIGHT", render_double(job.layer_height));
+    script += quoted_param("OUTER_WALL_SPEED", render_double(job.outer_wall_speed));
+
+    // PHYSICAL-tool array.
+    script += quoted_param("NOZZLE_DIAMETER_LIST", render_list(job.nozzle_diameter, render_double));
+    // LOGICAL-filament arrays.
+    script += quoted_param("NOZZLE_TEMP", render_list(job.nozzle_temp, render_double));
+    script += quoted_param("FILAMENT_TYPE", render_list(job.filament_type,
+                                                        [](const std::string& v) { return "'" + v + "'"; }));
+    script += quoted_param("FILAMENT_FLOW_RATIO", render_list(job.flow_ratio, render_double));
+    script += quoted_param("FILAMENT_DIAMETER", render_list(job.filament_diameter, render_double));
+    script += quoted_param("FILAMENT_USED_G", render_list(job.used_g, render_double));
+    script += quoted_param("FILAMENT_USED_MM", render_list(job.used_mm, render_double));
+    return script;
 }
 
 SnapmakerPrinterAgent::SnapmakerPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}

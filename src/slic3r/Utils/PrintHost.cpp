@@ -40,10 +40,42 @@ namespace Slic3r {
 
 PrintHost::~PrintHost() {}
 
+DevicePrintSpec device_print_spec(FilamentMappingProtocol protocol)
+{
+    DevicePrintSpec spec;
+    switch (protocol) {
+    case FilamentMappingProtocol::fmpSnapmaker:
+        spec.supports_filament_mapping = true;
+        // Verbatim the three the printer's own screen offers (2026-08-10 capture). Bed leveling
+        // defaults on to match the screen; the other two default off so a send never silently
+        // spends time (flow calibration) or storage (time-lapse) the user didn't ask for.
+        spec.options.push_back({"bed_leveling", L("Bed leveling"),
+                                L("Probe the bed before printing, as the printer's own screen does."),
+                                DevicePrintOptionKind::Bool, "1", {}});
+        spec.options.push_back({"flow_calibrate", L("Flow calibration"),
+                                L("Calibrate flow on each tool this plate actually uses before printing."),
+                                DevicePrintOptionKind::Bool, "0", {}});
+        spec.options.push_back({"time_lapse", L("Time-lapse"),
+                                L("Record a time-lapse video with the printer's camera."),
+                                DevicePrintOptionKind::Bool, "0", {}});
+        break;
+    default: break;
+    }
+    return spec;
+}
+
 std::string build_device_map_start_script(FilamentMappingProtocol protocol, const std::string& filename, const std::vector<int>& filament_map_1based)
 {
     switch (protocol) {
     case FilamentMappingProtocol::fmpSnapmaker: return SnapmakerProtocol::build_start_script(filename, filament_map_1based);
+    default: return {};
+    }
+}
+
+std::string build_device_start_script(FilamentMappingProtocol protocol, const std::string& filename, const DevicePrintJobInfo& job)
+{
+    switch (protocol) {
+    case FilamentMappingProtocol::fmpSnapmaker: return SnapmakerProtocol::build_start_script(filename, job);
     default: return {};
     }
 }
