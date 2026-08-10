@@ -725,6 +725,37 @@ Slic3r::ExPolygon rectangle(double x, double y, double w, double h)
                               Slic3r::Point::new_scale(x + w, y + h), Slic3r::Point::new_scale(x, y + h)});
 }
 
+// Area of the surface the toolpaths fail to cover, and the largest single patch of it, in mm2. Each
+// bead is measured at its own width so the variable width walls are not sold short.
+std::pair<double, double> uncovered_area(const Slic3r::ExPolygon &surface_shape, const Slic3r::Polygons &covered)
+{
+    double total = 0, biggest = 0;
+    for (const Slic3r::ExPolygon &gap : Slic3r::diff_ex(Slic3r::ExPolygons{surface_shape}, Slic3r::union_(covered))) {
+        const double area = unscale<double>(unscale<double>(gap.area()));
+        total += area;
+        biggest = std::max(biggest, area);
+    }
+    return {total, biggest};
+}
+
+Slic3r::Polygons beads_of(const Slic3r::Polylines &paths, double width)
+{
+    return Slic3r::offset(paths, float(scale_(0.5 * width)));
+}
+
+Slic3r::Polygons beads_of(const Slic3r::ThickPolylines &paths)
+{
+    Slic3r::Polygons covered;
+    for (const Slic3r::ThickPolyline &path : paths)
+        for (size_t i = 0; i + 1 < path.points.size(); ++i) {
+            Slic3r::Polyline segment;
+            segment.points = {path.points[i], path.points[i + 1]};
+            Slic3r::append(covered, Slic3r::offset(Slic3r::Polylines{segment},
+                                                  float(0.5 * std::max(path.width[2 * i], path.width[2 * i + 1]))));
+        }
+    return covered;
+}
+
 } // namespace
 
 TEST_CASE("Concentric spiral fill drops loops shorter than the end clipping", "[Fill][Regression]")
@@ -811,4 +842,66 @@ TEST_CASE("Concentric spiral fill starts on a convex corner", "[Fill][Regression
             CAPTURE(direction, unscale<double>(segment.length()));
             CHECK(segment.length() <= scale_(1.5 * spacing));
         }
+}
+
+TEST_CASE("Concentric spiral fill closes the gaps with variable width walls", "[Fill]")
+{
+    // Fixed width loops cannot fill a region that is not a whole number of lines across and leave the
+    // remainder open, which on a ring shows up as a wedge several lines wide. Plain concentric avoids
+    // that by building solid surfaces out of Arachne's variable width walls, and so must this pattern.
+    const double spacing = 0.45;
+    Slic3r::ExPolygon ring = rectangle(0, 0, 24, 24);
+    Slic3r::Polygon   hole;
+    for (int i = 0; i < 64; ++i) {
+        const double angle = -2.0 * PI * i / 64.0; // clockwise, so it reads as a hole
+        hole.points.emplace_back(Slic3r::Point::new_scale(12 + 7.3 * std::cos(angle), 12 + 7.3 * std::sin(angle)));
+    }
+    ring.holes.emplace_back(hole);
+
+    Slic3r::PrintConfig       print_config;
+    Slic3r::PrintObjectConfig object_config;
+    auto make_filler = [&]() {
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("concentricspiral"));
+        filler->spacing             = spacing;
+        filler->overlap             = 0.5 * spacing; // cancel the contraction, so both see the same surface
+        filler->print_config        = &print_config;
+        filler->print_object_config = &object_config;
+        return filler;
+    };
+
+    Slic3r::FillParams params;
+    params.density      = 1.f;
+    params.dont_adjust  = false;
+    params.layer_height = 0.2;
+
+    const Slic3r::Surface surface(Slic3r::stTop, ring);
+
+    std::unique_ptr<Slic3r::Fill> fixed = make_filler();
+    const Slic3r::Polylines fixed_width = fixed->fill_surface(&surface, params);
+    REQUIRE(!fixed_width.empty());
+    const auto fixed_gaps = uncovered_area(ring, beads_of(fixed_width, fixed->spacing));
+
+    params.use_arachne = true;
+    std::unique_ptr<Slic3r::Fill> variable = make_filler();
+    const Slic3r::ThickPolylines variable_width = variable->fill_surface_arachne(&surface, params);
+    REQUIRE(!variable_width.empty());
+    const auto variable_gaps = uncovered_area(ring, beads_of(variable_width));
+
+    CAPTURE(fixed_gaps.first, fixed_gaps.second, variable_gaps.first, variable_gaps.second);
+    // The wedges the fixed width loops leave behind are what the variable width walls take up.
+    CHECK(variable_gaps.second < 0.5 * fixed_gaps.second);
+    CHECK(variable_gaps.first < fixed_gaps.first);
+
+    // And it is still a spiral: far fewer paths than the ring has loops.
+    // And the walls are still chained into spirals rather than printed one path per wall. The ring is
+    // at its narrowest (12 - 7.3) mm across and is filled from both sides, so it is at least this many
+    // walls thick there and thicker elsewhere. Arachne's short thin feature walls cannot join a spiral,
+    // so only the substantial paths count towards this.
+    const size_t walls_across = size_t(2.0 * (12.0 - 7.3) / spacing);
+    size_t       spirals      = 0;
+    for (const Slic3r::ThickPolyline &path : variable_width)
+        if (path.length() > scale_(10.0 * spacing))
+            ++spirals;
+    CAPTURE(spirals, walls_across, variable_width.size(), fixed_width.size());
+    CHECK(2 * spirals < walls_across);
 }
