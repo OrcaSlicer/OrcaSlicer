@@ -163,6 +163,13 @@ static void append_path(ThickPolyline& dst, ThickPolyline&& src)
     append(dst.width, std::move(src.width));
 }
 
+// The classic loops all carry the same width, so the innermost one of an island can still ring an
+// unfilled pin hole, which the spiral plugs by running into the middle. Arachne's walls widen to take
+// up whatever is left over, so there is nothing there to plug and the stub would only double back
+// over the wall that just filled it.
+static bool leaves_a_centre_hole(const Polygon&) { return true; }
+static bool leaves_a_centre_hole(const Arachne::ExtrusionLine&) { return false; }
+
 static void append_path_point(Polyline& path, const Point& point) { path.points.emplace_back(point); }
 
 static void append_path_point(ThickPolyline& path, const Point& point)
@@ -221,7 +228,7 @@ static std::vector<PathType> generate_concentric_spirals(const FillParams&      
         // left as a pin hole. Only where there is a hole to fill: the loop has to still enclose open
         // space once its own bead is accounted for, or the stub just runs back over that bead. And
         // the point has to sit inside the loop and be reachable, or it runs off across the surface.
-        if (innermost_loop >= 0) {
+        if (innermost_loop >= 0 && leaves_a_centre_hole(*loops[innermost_loop])) {
             const Polygon& innermost = loop_outlines[innermost_loop];
             const Point    centroid  = innermost.centroid();
             if (!offset(innermost, -float(0.5 * double(distance))).empty() && centroid != spiral.last_point() &&
