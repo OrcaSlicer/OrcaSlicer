@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MoonrakerPrinterAgent.hpp"
+#include "PrintHost.hpp"
 
 #include <string>
 #include <vector>
@@ -33,6 +34,15 @@ std::string render_map_table(const std::vector<int>& filament_map_1based);
 // Also pins BED_LEVEL on: the firmware reads an absent parameter as off, so it must be stated
 // explicitly on every start (see the definition for the hardware evidence).
 std::string build_start_script(const std::string& filename, const std::vector<int>& filament_map_1based);
+
+// Full-fidelity start: every parameter the printer's own touchscreen sends, byte-compatible with a
+// screen-initiated start (captured 2026-08-10 and pinned in tests/slic3rutils/
+// test_snapmaker_protocol.cpp). Carries the user's option choices plus the plate's filament
+// statistics, which the firmware uses for flow calibration under matching conditions and for its
+// own filament-usage display. Array lengths are load-bearing: NOZZLE_TEMP/FILAMENT_*/USED_* are
+// per LOGICAL filament, NOZZLE_DIAMETER_LIST/FLOW_CALIBRATE_EXTRUDERS/END_UNLOAD_FILAMENT are per
+// PHYSICAL tool -- the firmware indexes them differently.
+std::string build_start_script(const std::string& filename, const DevicePrintJobInfo& job);
 } // namespace SnapmakerProtocol
 
 class SnapmakerPrinterAgent final : public MoonrakerPrinterAgent

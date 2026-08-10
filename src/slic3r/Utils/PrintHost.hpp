@@ -43,7 +43,86 @@ constexpr const char* PRINT_HOST_UPLOADED_FILENAME_PLACEHOLDER = "{{uploaded_fil
 // Returns "" for a protocol with no start-script dialect (fmpNone, or one whose mapping is
 // delivered through IPrinterAgent::send_filament_mapping() instead); callers must not read that
 // as "nothing to send" without checking device_owned_mapping_protocol() first.
+// ----------------------------------------------------------------------------------------------
+// Send-time print options
+//
+// A printer declares, as DATA, which print-start options its firmware supports; the standard send
+// dialog (GUI/DevicePrintOptionsDialog) renders that declaration and hands the chosen values back.
+// Vendor knowledge stays here in Utils so the GUI layer never learns a printer's dialect, and both
+// send paths (print-host and agent) can read the same declaration -- the print-host path has no
+// agent instance to ask, which is why this is a free function keyed on the profile's protocol.
+// ----------------------------------------------------------------------------------------------
+
+enum class DevicePrintOptionKind {
+    Bool,   // rendered as a checkbox; value is "1" or "0"
+    Choice, // rendered as a picker over `values`; NOT rendered yet -- see DevicePrintOption::kind
+};
+
+struct DevicePrintOptionValue
+{
+    std::string value; ///< wire/persistence value
+    std::string label; ///< L()-marked msgid, translated at render time
+};
+
+struct DevicePrintOption
+{
+    std::string key;     ///< wire + persistence key, e.g. "bed_leveling"
+    std::string label;   ///< L()-marked msgid, translated at render time
+    std::string tooltip; ///< L()-marked msgid, may be empty
+    /// Bool is implemented today. Choice is declared so a vendor carrying a non-boolean option
+    /// (e.g. Elegoo's bed type) can be expressed when it migrates to the standard dialog -- the
+    /// renderer for it lands with that first consumer, so it ships tested rather than speculative.
+    DevicePrintOptionKind kind{DevicePrintOptionKind::Bool};
+    std::string default_value{"0"};              ///< used when nothing was remembered for this printer
+    std::vector<DevicePrintOptionValue> values;  ///< Choice only
+};
+
+struct DevicePrintSpec
+{
+    /// The plate's filament->tool assignment is picked in the dialog and delivered with the job.
+    bool supports_filament_mapping{false};
+    std::vector<DevicePrintOption> options;
+
+    bool empty() const { return !supports_filament_mapping && options.empty(); }
+};
+
+/// What this printer offers at print-start time. Empty spec (the default for every protocol we
+/// have no dialect for) means "use the stock send dialog", so declaring nothing changes nothing.
+DevicePrintSpec device_print_spec(FilamentMappingProtocol protocol);
+
+/// Everything a start script may need about the sliced plate. Arrays are sized by LOGICAL filament
+/// (one entry per project filament) EXCEPT nozzle_diameter and used_physical_tools, which are sized
+/// by PHYSICAL tool -- the firmware indexes them differently and mixing the two is silently wrong
+/// (see the 2026-08-10 hardware capture pinned in tests/slic3rutils/test_snapmaker_protocol.cpp).
+struct DevicePrintJobInfo
+{
+    std::vector<int>         filament_map_1based; ///< logical filament -> 1-based physical tool
+    std::vector<std::string> filament_type;       ///< logical
+    std::vector<double>      nozzle_temp;         ///< logical
+    std::vector<double>      flow_ratio;          ///< logical
+    std::vector<double>      filament_diameter;   ///< logical
+    std::vector<double>      used_g;              ///< logical
+    std::vector<double>      used_mm;             ///< logical
+    std::vector<double>      nozzle_diameter;     ///< PHYSICAL
+    std::vector<int>         used_physical_tools; ///< PHYSICAL, deduped, first-use order
+    double                   line_width{0.};
+    double                   layer_height{0.};
+    double                   outer_wall_speed{0.};
+    /// Chosen values from the dialog, keyed by DevicePrintOption::key.
+    std::map<std::string, std::string> options;
+
+    bool option_on(const std::string& key) const
+    {
+        auto it = options.find(key);
+        return it != options.end() && it->second == "1";
+    }
+};
+
 std::string build_device_map_start_script(FilamentMappingProtocol protocol, const std::string& filename, const std::vector<int>& filament_map_1based);
+
+/// Full-fidelity form: renders every parameter the printer's own screen sends, including the
+/// user's option choices and the plate's filament statistics.
+std::string build_device_start_script(FilamentMappingProtocol protocol, const std::string& filename, const DevicePrintJobInfo& job);
 
 struct PrintHostUpload
 {
