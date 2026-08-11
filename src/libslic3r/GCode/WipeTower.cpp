@@ -4281,7 +4281,7 @@ bool WipeTower::is_tower_structure_filament(int filament_id) const
         return false;
     const std::string &material = m_filpar[filament_id].material;
     const std::string &wall     = m_filpar[m_wall_filament].material;
-    return material == wall || MaterialType::compatibility(material, wall) == MaterialCompatibility::Compatible;
+    return MaterialType::bonds(material, wall); // a type always bonds with itself, so equality needs no special case
 }
 
 int WipeTower::get_filament_category(int filament_id)
@@ -4679,32 +4679,28 @@ int WipeTower::get_wall_filament_for_all_layer()
         auto usable = [&](int tool) { return ! skip_support_materials || (! m_filpar[tool].is_soluble && ! m_filpar[tool].is_support); };
         int current_tool = m_current_tool;
         for (const auto &layer : m_plan) {
-            if (layer.tool_changes.empty()){
-                if (usable(current_tool)) {
-                    filament_counts[current_tool]++;
-                    category_counts[get_filament_category(current_tool)]++;
-                }
-                continue;
-            }
+            // Each filament and each category counts once per layer, however often it is switched to.
             std::unordered_set<int> used_tools;
             std::unordered_set<int> used_category;
-            for (size_t i = 0; i < layer.tool_changes.size(); ++i) {
-                if (i == 0 && usable(layer.tool_changes[i].old_tool)) {
-                    filament_counts[layer.tool_changes[i].old_tool]++;
-                    category_counts[get_filament_category(layer.tool_changes[i].old_tool)]++;
-                    used_tools.insert(layer.tool_changes[i].old_tool);
-                    used_category.insert(get_filament_category(layer.tool_changes[i].old_tool));
-                }
-                if (! usable(layer.tool_changes[i].new_tool))
-                    continue;
-                if (!used_category.count(get_filament_category(layer.tool_changes[i].new_tool)))
-                    category_counts[get_filament_category(layer.tool_changes[i].new_tool)]++;
-                if (!used_tools.count(layer.tool_changes[i].new_tool))
-                    filament_counts[layer.tool_changes[i].new_tool]++;
-                used_tools.insert(layer.tool_changes[i].new_tool);
-                used_category.insert(get_filament_category(layer.tool_changes[i].new_tool));
+            auto count_once = [&](int tool) {
+                if (! usable(tool))
+                    return;
+                const int category = get_filament_category(tool);
+                if (used_category.insert(category).second)
+                    category_counts[category]++;
+                if (used_tools.insert(tool).second)
+                    filament_counts[tool]++;
+            };
+            if (layer.tool_changes.empty()) {
+                count_once(current_tool);
+                continue;
             }
-            current_tool = layer.tool_changes.empty()?current_tool:layer.tool_changes.back().new_tool;
+            for (size_t i = 0; i < layer.tool_changes.size(); ++i) {
+                if (i == 0)
+                    count_once(layer.tool_changes[i].old_tool);
+                count_once(layer.tool_changes[i].new_tool);
+            }
+            current_tool = layer.tool_changes.back().new_tool;
         }
     };
     count_filaments(true);

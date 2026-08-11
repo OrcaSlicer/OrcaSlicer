@@ -1,6 +1,8 @@
 #include "MaterialType.hpp"
 
 #include <algorithm>
+#include <string_view>
+#include <unordered_map>
 
 namespace Slic3r {
 namespace {
@@ -122,9 +124,16 @@ const std::vector<BaseMaterialCompatibility>& MaterialType::base_compatibilities
 
 const MaterialTypeInfo* MaterialType::find(const std::string& name)
 {
-    const auto& types = all();
-    const auto  it    = std::find_if(types.begin(), types.end(), [&name](const MaterialTypeInfo& info) { return info.name == name; });
-    return it != types.end() ? &(*it) : nullptr;
+    // Indexed once: find() sits under compatibility(), which runs per layer and per filament pair while
+    // slicing, and a linear scan of the table there costs a string compare per entry on every call.
+    static const std::unordered_map<std::string_view, const MaterialTypeInfo*> index = [] {
+        std::unordered_map<std::string_view, const MaterialTypeInfo*> map;
+        for (const MaterialTypeInfo& info : all())
+            map.emplace(info.name, &info);
+        return map;
+    }();
+    const auto it = index.find(name);
+    return it != index.end() ? it->second : nullptr;
 }
 
 bool MaterialType::get_temperature_range(const std::string& type, int& min_temp, int& max_temp)
@@ -199,6 +208,19 @@ std::vector<std::string> MaterialType::base_materials(const std::string& type)
 }
 
 namespace {
+// The families of `type` without copying them: the table's own vector when the type declares families,
+// otherwise `fallback` holding just the type itself. compatibility() runs in slicing loops, so it must not
+// allocate for the common case of a known material.
+const std::vector<std::string>& base_materials_ref(const std::string& type, std::vector<std::string>& fallback)
+{
+    if (const auto* info = MaterialType::find(type); info && !info->base_materials.empty())
+        return info->base_materials;
+    fallback.assign(1, type);
+    return fallback;
+}
+} // namespace
+
+namespace {
 // Adhesion rule (compatible/incompatible) between two base materials, looked up symmetrically.
 bool base_in_list(const std::string& base, const std::string& other, bool incompatible)
 {
@@ -221,8 +243,9 @@ bool bases_listed(const std::string& base_a, const std::string& base_b, bool inc
 
 MaterialCompatibility MaterialType::compatibility(const std::string& type_a, const std::string& type_b)
 {
-    const std::vector<std::string> bases_a = base_materials(type_a);
-    const std::vector<std::string> bases_b = base_materials(type_b);
+    std::vector<std::string>        fallback_a, fallback_b;
+    const std::vector<std::string>& bases_a = base_materials_ref(type_a, fallback_a);
+    const std::vector<std::string>& bases_b = base_materials_ref(type_b, fallback_b);
 
     // Compare every base-material pairing. A material always bonds with itself, so a shared base is
     // compatible even when a material is flagged incompatible with all ("*"). Otherwise an explicit
@@ -242,6 +265,11 @@ MaterialCompatibility MaterialType::compatibility(const std::string& type_a, con
     }
 
     return compatible ? MaterialCompatibility::Compatible : MaterialCompatibility::Unknown;
+}
+
+bool MaterialType::bonds(const std::string& type_a, const std::string& type_b)
+{
+    return compatibility(type_a, type_b) == MaterialCompatibility::Compatible;
 }
 
 } // namespace Slic3r

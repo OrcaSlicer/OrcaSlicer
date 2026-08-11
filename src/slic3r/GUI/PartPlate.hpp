@@ -343,7 +343,9 @@ public:
     arrangement::ArrangePolygon estimate_wipe_tower_polygon(const DynamicPrintConfig & config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int extruder_count = 1, int plate_extruder_size = 0, bool use_global_objects = false) const;
     bool check_objects_empty_and_gcode3mf(std::vector<int> &result) const;
     // get used filaments from config, 1 based idx
-    std::vector<int> get_extruders(bool conside_custom_gcode = false) const;
+    // full_config, when given, is used to resolve "Auto" support filaments instead of building one from the
+    // preset bundle - callers that already hold a full config should pass it, building one is not cheap.
+    std::vector<int> get_extruders(bool conside_custom_gcode = false, const DynamicPrintConfig *full_config = nullptr) const;
     std::vector<int> get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config) const;
     std::vector<int> get_extruders_without_support(bool conside_custom_gcode = false) const;
     // get used filaments from gcode result, 1 based idx

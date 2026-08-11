@@ -2369,25 +2369,24 @@ int WipeTower2::first_toolchange_to_nonsoluble_nonsupport(
             const FilamentParameters &f = m_filpar[tool];
             if (f.is_soluble) return -1;
             if (f.material == m_most_used_filament_type) return 2;
-            return MaterialType::compatibility(f.material, m_most_used_filament_type) == MaterialCompatibility::Compatible ? 1 : 0;
+            return MaterialType::bonds(f.material, m_most_used_filament_type) ? 1 : 0;
         };
-        int best_rank = 0, best_idx = -2; // -2 = nothing compatible chosen yet
+        // Orca: with nothing better on the layer, keep the first toolchange so the finish-layer saving and the
+        // minimal-purge clamp still apply to it (depth and wipe volume accounting, see save_on_last_wipe()).
+        int best_rank = 0, best_idx = 0;
         // The filament already loaded at the start of the layer can finish it before any toolchange.
-        if (!tool_changes.empty())
-            if (int r = rank(tool_changes.front().old_tool); r > best_rank) {
-                best_rank = r;
-                best_idx  = -1;
-            }
+        if (int r = rank(tool_changes.front().old_tool); r > best_rank) {
+            best_rank = r;
+            best_idx  = -1;
+        }
         for (size_t idx = 0; idx < tool_changes.size(); ++idx)
             if (int r = rank(tool_changes[idx].new_tool); r > best_rank) {
                 best_rank = r;
                 best_idx  = int(idx);
             }
-        if (best_idx != -2)
-            return best_idx;
+        return best_idx;
     }
-    // Orca: allow calculation of the required depth and wipe volume for soluble toolchanges as well.
-    return tool_changes.empty() ? -1 : 0;
+    return 0;
 }
 
 static WipeTower::ToolChangeResult merge_tcr(WipeTower::ToolChangeResult& first,

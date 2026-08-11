@@ -5876,10 +5876,10 @@ LayerResult GCode::process_layer(
                 // The object may switch filament or colour mid-print, so its filament might not be extruded on
                 // this layer at all. Prefer a compatible (bonding) filament that is already used on this layer
                 // to avoid an extra tool change; if none is, keep the object's own filament.
-                if (std::find(layer_tools.extruders.begin(), layer_tools.extruders.end(), object_extruder) == layer_tools.extruders.end()) {
+                if (! layer_tools.has_extruder(object_extruder)) {
                     const std::string &object_type = print.config().filament_type.get_at(object_extruder);
                     for (unsigned int extruder_id : layer_tools.extruders)
-                        if (MaterialType::compatibility(print.config().filament_type.get_at(extruder_id), object_type) == MaterialCompatibility::Compatible) {
+                        if (MaterialType::bonds(print.config().filament_type.get_at(extruder_id), object_type)) {
                             object_extruder = extruder_id;
                             break;
                         }
@@ -5933,19 +5933,18 @@ LayerResult GCode::process_layer(
                 // Both the support and the support interface are printed with the same extruder, therefore
                 // the interface may be interleaved with the support base.
                 bool single_extruder = ! has_support || support_extruder == interface_extruder;
-                // The extruder that actually prints the support interface (after don't-care resolution).
-                unsigned int interface_print_extruder = single_extruder ? (has_support ? support_extruder : interface_extruder) : interface_extruder;
+                // The extruder the support base group prints with; the interface group always uses interface_extruder.
+                const unsigned int base_extruder = has_support ? support_extruder : interface_extruder;
                 // Support ironing extruder. "Default" (0) follows the support interface filament.
                 unsigned int ironing_extruder = object.config().support_ironing_filament.value > 0
                     ? (unsigned int) (object.config().support_ironing_filament.value - 1)
-                    : interface_print_extruder;
+                    : interface_extruder;
                 // Does this layer actually carry ironing extrusions? (Ironing sits on the top interface.)
                 bool has_ironing = false;
                 for (const ExtrusionEntity *ee : support_layer.support_fills.entities)
                     if (ee->role() == erIroning) { has_ironing = true; break; }
-                // Route ironing to its own group only when it differs from both the base and the interface extruders;
-                // otherwise it rides along with whichever group already uses the ironing extruder.
-                bool ironing_own_group = has_ironing && ironing_extruder != interface_print_extruder && (! has_support || ironing_extruder != support_extruder);
+                // Ironing needs its own group only when neither existing group already uses its extruder.
+                bool ironing_own_group = has_ironing && ironing_extruder != base_extruder && ironing_extruder != interface_extruder;
 
                 // Farthest-point timelapse: record the extruder for each support role so
                 // compute_farthest_point can attribute farthest support points correctly.
@@ -5954,21 +5953,19 @@ LayerResult GCode::process_layer(
                     support_filaments[{ &support_layer, erSupportTransition }] = support_extruder;
                 }
                 if (has_interface) {
-                    support_filaments[{ &support_layer, erSupportMaterialInterface }] = interface_print_extruder;
+                    support_filaments[{ &support_layer, erSupportMaterialInterface }] = interface_extruder;
                 }
                 // Assign an extruder to the base.
-                ObjectByExtruder &obj = object_by_extruder(by_extruder, has_support ? support_extruder : interface_extruder, &layer_to_print - layers.data(), layers.size());
+                ObjectByExtruder &obj = object_by_extruder(by_extruder, base_extruder, &layer_to_print - layers.data(), layers.size());
                 obj.support = &support_layer.support_fills;
                 obj.support_extrusion_role = single_extruder ? erMixed : erSupportMaterial;
-                // The base group prints ironing when ironing shares its extruder (single-extruder support, or a
-                // multi-extruder base whose filament matches the ironing filament).
-                obj.prints_ironing = has_ironing && ! ironing_own_group &&
-                    (single_extruder ? ironing_extruder == interface_print_extruder : ironing_extruder == support_extruder);
+                // Each group prints the ironing pass when the ironing filament is the one it already uses.
+                obj.prints_ironing = has_ironing && ironing_extruder == base_extruder;
                 if (! single_extruder && has_interface) {
                     ObjectByExtruder &obj_interface = object_by_extruder(by_extruder, interface_extruder, &layer_to_print - layers.data(), layers.size());
                     obj_interface.support = &support_layer.support_fills;
                     obj_interface.support_extrusion_role = erSupportMaterialInterface;
-                    obj_interface.prints_ironing = has_ironing && ! ironing_own_group && ironing_extruder == interface_print_extruder;
+                    obj_interface.prints_ironing = has_ironing && ironing_extruder == interface_extruder;
                 }
                 if (ironing_own_group) {
                     ObjectByExtruder &obj_ironing = object_by_extruder(by_extruder, ironing_extruder, &layer_to_print - layers.data(), layers.size());

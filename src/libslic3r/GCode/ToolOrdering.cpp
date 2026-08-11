@@ -384,8 +384,9 @@ bool ToolOrdering::insert_wipe_tower_extruder()
     if (!m_print_config_ptr || !m_print_config_ptr->enable_prime_tower)
         return false;
 
-    const bool auto_mode = m_print_config_ptr->wipe_tower_filament == 0;
-    int        resolved_extruder;
+    const bool   auto_mode     = m_print_config_ptr->wipe_tower_filament == 0;
+    const size_t num_extruders = m_print_config_ptr->filament_type.values.size();
+    int          resolved_extruder;
     if (!auto_mode) {
         resolved_extruder = m_print_config_ptr->wipe_tower_filament - 1;
     } else {
@@ -397,59 +398,60 @@ bool ToolOrdering::insert_wipe_tower_extruder()
         // consistent material instead of mixing incompatible ones layer by layer. Filament types are
         // weighted by the number of layers they appear on, then the most used filament of the winning
         // type is chosen. Soluble and support filaments never qualify.
-        std::map<std::string, size_t>  type_counts;
-        std::map<unsigned int, size_t> extruder_counts;
+        std::vector<size_t> layers_per_extruder(num_extruders, 0);
         for (const LayerTools &lt : m_layer_tools)
-            for (unsigned int extruder_id : lt.extruders) {
-                if (m_print_config_ptr->filament_soluble.get_at(extruder_id) || m_print_config_ptr->filament_is_support.get_at(extruder_id))
-                    continue;
-                ++ type_counts[m_print_config_ptr->filament_type.get_at(extruder_id)];
-                ++ extruder_counts[extruder_id];
+            for (unsigned int extruder_id : lt.extruders)
+                if (extruder_id < num_extruders && ! m_print_config_ptr->filament_soluble.get_at(extruder_id) &&
+                    ! m_print_config_ptr->filament_is_support.get_at(extruder_id))
+                    ++ layers_per_extruder[extruder_id];
+
+        // The same material may be loaded as several filaments, so weigh the type first: each of them alone
+        // can be outweighed by a single filament of a material the print really uses less.
+        auto layers_of_type = [&](const std::string &type) {
+            size_t count = 0;
+            for (size_t e = 0; e < num_extruders; ++e)
+                if (layers_per_extruder[e] > 0 && m_print_config_ptr->filament_type.get_at(e) == type)
+                    count += layers_per_extruder[e];
+            return count;
+        };
+        resolved_extruder      = -1;
+        size_t best_type_count = 0, best_count = 0;
+        for (size_t e = 0; e < num_extruders; ++e) {
+            if (layers_per_extruder[e] == 0)
+                continue;
+            const size_t type_count = layers_of_type(m_print_config_ptr->filament_type.get_at(e));
+            if (type_count > best_type_count || (type_count == best_type_count && layers_per_extruder[e] > best_count)) {
+                best_type_count   = type_count;
+                best_count        = layers_per_extruder[e];
+                resolved_extruder = int(e);
             }
-        std::string best_type;
-        size_t      best_count = 0;
-        for (const auto &[type, count] : type_counts)
-            if (count > best_count) {
-                best_count = count;
-                best_type  = type;
-            }
-        resolved_extruder = -1;
-        best_count        = 0;
-        for (const auto &[extruder_id, count] : extruder_counts)
-            if (m_print_config_ptr->filament_type.get_at(extruder_id) == best_type && count > best_count) {
-                best_count        = count;
-                resolved_extruder = int(extruder_id);
-            }
+        }
         if (resolved_extruder < 0)
             return false;
     }
     m_wipe_tower_extruder = resolved_extruder; // expose the resolved filament (see wipe_tower_extruder())
 
     const unsigned int wipe_extruder = (unsigned int)resolved_extruder;
-    const std::string  wipe_type     = m_print_config_ptr->filament_type.get_at(wipe_extruder);
-    bool               changed       = false;
+    // Auto mode: a layer that already prints a filament bonding with the resolved one can finish the tower
+    // with that instead of changing back. Whether a filament qualifies depends only on the filament, so
+    // resolve it once here rather than per layer.
+    std::vector<char> can_finish_tower;
+    if (auto_mode) {
+        const std::string &wipe_type = m_print_config_ptr->filament_type.get_at(wipe_extruder);
+        can_finish_tower.resize(num_extruders, false);
+        for (size_t e = 0; e < can_finish_tower.size(); ++e)
+            can_finish_tower[e] = ! m_print_config_ptr->filament_soluble.get_at(e) && ! m_print_config_ptr->filament_is_support.get_at(e) &&
+                                  MaterialType::bonds(m_print_config_ptr->filament_type.get_at(e), wipe_type);
+    }
+
+    bool changed = false;
     for (LayerTools &lt : m_layer_tools) {
-        if (lt.wipe_tower_partitions <= 0)
+        if (lt.wipe_tower_partitions <= 0 || lt.has_extruder(wipe_extruder))
             continue;
-        if (std::find(lt.extruders.begin(), lt.extruders.end(), wipe_extruder) != lt.extruders.end())
+        // Only force the change when the layer prints nothing compatible.
+        if (auto_mode && std::any_of(lt.extruders.begin(), lt.extruders.end(),
+                                     [&can_finish_tower](unsigned int e) { return e < can_finish_tower.size() && can_finish_tower[e]; }))
             continue;
-        // Auto mode: if the layer already prints a filament that is the same type as, or compatible
-        // (bonds) with, the resolved one, the tower can finish with that instead of adding a filament
-        // change back to the resolved filament. Only force the change when nothing compatible is present.
-        if (auto_mode) {
-            bool has_compatible = false;
-            for (unsigned int e : lt.extruders) {
-                if (m_print_config_ptr->filament_soluble.get_at(e) || m_print_config_ptr->filament_is_support.get_at(e))
-                    continue;
-                const std::string t = m_print_config_ptr->filament_type.get_at(e);
-                if (t == wipe_type || MaterialType::compatibility(t, wipe_type) == MaterialCompatibility::Compatible) {
-                    has_compatible = true;
-                    break;
-                }
-            }
-            if (has_compatible)
-                continue;
-        }
         lt.extruders.emplace_back(wipe_extruder);
         changed = true;
     }
@@ -780,6 +782,31 @@ void ToolOrdering::initialize_layers(std::vector<coordf_t> &zs)
 }
 
 // Collect extruders reuqired to print layers.
+// Which support roles does this layer carry? Both collect_extruders() and ensure_dontcare_support_extruders()
+// classify the same entities, and GCode::process_layer() has to agree with them.
+struct SupportRoles {
+    bool base      = false; // erSupportMaterial / erSupportTransition
+    bool interface_ = false;
+    bool ironing   = false;
+};
+
+static SupportRoles support_roles_of(const SupportLayer &support_layer)
+{
+    SupportRoles roles;
+    for (const ExtrusionEntity *ee : support_layer.support_fills.entities) {
+        switch (ee->role()) {
+        case erSupportMaterial:
+        case erSupportTransition:          roles.base       = true; break;
+        case erSupportMaterialInterface:   roles.interface_ = true; break;
+        case erIroning:                    roles.ironing    = true; break;
+        default: break;
+        }
+        if (roles.base && roles.interface_ && roles.ironing)
+            break;
+    }
+    return roles;
+}
+
 void ToolOrdering::collect_extruders(const PrintObject &object, const std::vector<std::pair<double, unsigned int>> &per_layer_extruder_switches)
 {
     // Extruder overrides are ordered by print_z.
@@ -878,17 +905,11 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
     // Collect the support extruders.
     for (auto support_layer : object.support_layers()) {
         LayerTools   &layer_tools   = this->tools_for_layer(support_layer->print_z);
-        ExtrusionRole role          = support_layer->support_fills.role();
-        bool          has_support   = false;
-        bool          has_interface = false;
-        bool          has_ironing   = false;
-        for (const ExtrusionEntity *ee : support_layer->support_fills.entities) {
-            ExtrusionRole er = ee->role();
-            if (er == erSupportMaterial || er == erSupportTransition) has_support = true;
-            if (er == erSupportMaterialInterface) has_interface = true;
-            if (er == erIroning) has_ironing = true;
-            if (has_support && has_interface && has_ironing) break;
-        }
+        ExtrusionRole      role   = support_layer->support_fills.role();
+        const SupportRoles roles  = support_roles_of(*support_layer);
+        const bool  has_support   = roles.base;
+        const bool  has_interface = roles.interface_;
+        const bool  has_ironing   = roles.ironing;
         unsigned int extruder_support   = object.config().support_filament.value;
         unsigned int extruder_interface = object.config().support_interface_filament.value;
         // Support ironing extruder; "Default" (0) follows the interface filament.
@@ -960,33 +981,24 @@ void ToolOrdering::ensure_dontcare_support_extruders(const PrintObject &object)
     if (object_extruder == 0)
         return;
 
+    // Which filaments process_layer() would accept is a property of the filament, not of the layer.
     const PrintConfig &config      = object.print()->config();
     const std::string &object_type = config.filament_type.get_at(object_extruder - 1);
+    std::vector<char>  resolves_to_object(config.filament_type.values.size() + 1, false); // indexed 1-based, as layer_tools.extruders is here
+    for (size_t e = 1; e < resolves_to_object.size(); ++e)
+        resolves_to_object[e] = e == object_extruder || MaterialType::bonds(config.filament_type.get_at(e - 1), object_type);
+
     for (const SupportLayer *support_layer : object.support_layers()) {
-        bool has_support = false, has_interface = false;
-        for (const ExtrusionEntity *ee : support_layer->support_fills.entities) {
-            ExtrusionRole er = ee->role();
-            if (er == erSupportMaterial || er == erSupportTransition) has_support = true;
-            if (er == erSupportMaterialInterface) has_interface = true;
-            if (has_support && has_interface) break;
-        }
-        if (!(has_support && support_dontcare) && !(has_interface && interface_dontcare))
+        const SupportRoles roles = support_roles_of(*support_layer);
+        if (!(roles.base && support_dontcare) && !(roles.interface_ && interface_dontcare))
             continue;
         LayerTools &layer_tools = tools_for_layer(support_layer->print_z);
-        bool        resolvable  = false;
-        for (unsigned int extruder_id : layer_tools.extruders) {
-            if (extruder_id == 0)
-                continue; // "don't care" marker
-            if (extruder_id == object_extruder ||
-                MaterialType::compatibility(config.filament_type.get_at(extruder_id - 1), object_type) == MaterialCompatibility::Compatible) {
-                resolvable = true;
-                break;
-            }
-        }
-        if (!resolvable) {
-            layer_tools.extruders.push_back(object_extruder);
-            sort_remove_duplicates(layer_tools.extruders);
-        }
+        // Extruder 0 is the "don't care" marker, and is never a candidate.
+        if (std::any_of(layer_tools.extruders.begin(), layer_tools.extruders.end(),
+                        [&resolves_to_object](unsigned int e) { return e > 0 && e < resolves_to_object.size() && resolves_to_object[e]; }))
+            continue;
+        layer_tools.extruders.push_back(object_extruder);
+        sort_remove_duplicates(layer_tools.extruders);
     }
 }
 
