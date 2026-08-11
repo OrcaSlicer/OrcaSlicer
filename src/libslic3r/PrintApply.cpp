@@ -1,4 +1,5 @@
 #include "ClipperUtils.hpp"
+#include "FilamentCompaction.hpp"
 #include "Model.hpp"
 #include "Print.hpp"
 #include "FilamentMixer.hpp"
@@ -1196,11 +1197,34 @@ static PrintObjectRegions* generate_print_object_regions(
     return out.release();
 }
 
-Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_config, bool extruder_applied)
+Print::ApplyStatus Print::apply(const Model &model_in, DynamicPrintConfig new_full_config, bool extruder_applied)
 {
 #ifdef _DEBUG
-    check_model_ids_validity(model);
+    check_model_ids_validity(model_in);
 #endif /* _DEBUG */
+
+    // Orca: printers whose firmware only accepts T0..T(tool_count-1) need the plate's filaments
+    // renumbered to a dense range before anything else looks at them -- config normalization and
+    // the per-extruder variant expansion below both size themselves from the filament count, and
+    // every consumer further downstream (toolchange commands, M104's T parameter, the vendor
+    // profile's [next_extruder]-indexed templates, CoolingBuffer, GCodeProcessor) indexes
+    // filaments by this same space. Renumbering here is what makes all of them dense at once.
+    // Inert for every printer that doesn't ask: no compaction is built, and a plate already using
+    // a dense prefix produces an identity compaction that copies nothing.
+    Model        compacted_model;
+    m_filament_compaction = printer_requires_dense_tool_numbering(new_full_config)
+                                ? build_filament_compaction(model_in, new_full_config)
+                                : FilamentCompaction();
+    const bool compacting = !m_filament_compaction.slot_of_tool.empty();
+    if (compacting) {
+        // Model::operator= is assign_copy, which preserves object IDs -- apply's model diffing
+        // below keys on them, so a copy must not look like a different model.
+        compacted_model = model_in;
+        apply_filament_compaction(compacted_model, m_filament_compaction);
+        apply_filament_compaction(new_full_config, m_filament_compaction);
+    }
+    // Everything below reads `model`; it is the caller's model unless we renumbered it.
+    const Model &model = compacting ? compacted_model : model_in;
 
     //BBS: add more logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: enter")%__LINE__;
