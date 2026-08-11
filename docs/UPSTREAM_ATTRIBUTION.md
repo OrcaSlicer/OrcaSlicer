@@ -13,7 +13,9 @@ Extreme Slicer endorsements.
 - The complete license text is retained in [`LICENSE.txt`](../LICENSE.txt).
 - Extreme Slicer modifications include the CUDA/Vulkan compute dispatch,
   compute-mode preferences and diagnostics, QIDI tool mapping, and Extreme
-  Slicer branding. These changes are part of this AGPL-3.0 source repository.
+  Slicer branding. These changes are part of this AGPL-3.0 source repository;
+  this independently maintained modified version was published on August 12,
+  2026.
 
 ## Distribution obligations
 

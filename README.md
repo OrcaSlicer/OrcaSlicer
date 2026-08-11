@@ -16,6 +16,8 @@ QIDI-compatible printer workflows.
 This repository contains modifications to upstream open-source projects. It is
 distributed under the GNU Affero General Public License v3; see
 [LICENSE.txt](LICENSE.txt) and [the upstream attribution note](docs/UPSTREAM_ATTRIBUTION.md).
+This modified Extreme Slicer version is maintained independently from the
+upstream project (modifications published August 12, 2026).
 
 # Official links and community
 
