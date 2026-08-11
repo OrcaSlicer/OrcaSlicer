@@ -320,8 +320,8 @@ public:
     const MultiNozzleUtils::NozzleStatusRecorder &get_nozzle_status() const { return m_nozzle_status; }
     void set_nozzle_status(const MultiNozzleUtils::NozzleStatusRecorder &status) { m_initial_nozzle_status = status; m_nozzle_status = status; }
 
-    // Wipe tower filament resolved by insert_wipe_tower_extruder() (0-based extruder), or -1 if none.
-    // For "wipe_tower_filament == 0" (auto) this is the print's most used non-soluble, non-support filament.
+    // Filament resolved by insert_wipe_tower_extruder() (0-based), or -1. In auto mode
+    // ("wipe_tower_filament == 0") the print's most used non-soluble, non-support filament.
     int                 wipe_tower_extruder() const { return m_wipe_tower_extruder; }
     /*
     * called in single extruder mode, the value in map are all 0
