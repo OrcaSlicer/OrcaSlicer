@@ -32,8 +32,8 @@ namespace Slic3r {
 
 class DynamicPrintConfig;
 
-// Sentinel value for support_filament / support_interface_filament meaning "auto": pick, per object, a
-// filament whose material does not bond to the supported part (resolved to a concrete extruder at apply time).
+// "Auto" for the support filaments: pick, per object, a filament that does not bond to the supported part.
+// Resolved to a concrete extruder at apply time.
 static constexpr int SUPPORT_FILAMENT_AUTO = -1;
 
 enum GCodeFlavor : unsigned char {
