@@ -4935,9 +4935,8 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
     EMoveType type = move_type(delta_pos);
 
-    if (m_extrusion_role == erIroning && m_end_position[Z] == m_extruded_last_z) {
+    if (type == EMoveType::Travel && m_extrusion_role == erIroning && axes[E].has_value())
         type = EMoveType::Extrude;
-    }
 
     const float delta_xyz = std::sqrt(sqr(delta_pos[X]) + sqr(delta_pos[Y]) + sqr(delta_pos[Z]));
     m_travel_dist = delta_xyz;

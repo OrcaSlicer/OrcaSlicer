@@ -7273,8 +7273,11 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
                 const PrintRegionConfig& region_config = print.get_print_region(&region - &by_region.front()).config();
                 m_config.apply(region_config);
                 chain_and_reorder_extrusion_entities(extrusions, m_last_pos.to_point());
-                if (ironing && region_config.ironing_flow == 0)
-                    gcode += this->writer().emit_retract(-region_config.ironing_retract, " ; ironing retract");
+                const bool zero_flow_ironing = ironing && region_config.ironing_flow == 0 && region_config.ironing_retract > 0;
+                if (zero_flow_ironing) {
+                    gcode += this->writer().ironing_e_move(-region_config.ironing_retract, "ironing retract");
+                    this->writer().set_force_emit_zero_e(true);
+                }
                 for (const ExtrusionEntity *fill : extrusions) {
                     auto *eec = dynamic_cast<const ExtrusionEntityCollection*>(fill);
                     if (eec) {
@@ -7283,8 +7286,10 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
                     } else
                         gcode += this->extrude_entity(*fill, extrusion_name);
                 }
-                if (ironing && region_config.ironing_flow == 0)
-                    gcode += this->writer().emit_unretract(region_config.ironing_retract + region_config.ironing_unretract_extra, " ; ironing retract");
+                if (zero_flow_ironing) {
+                    this->writer().set_force_emit_zero_e(false);
+                    gcode += this->writer().ironing_e_move(region_config.ironing_retract + region_config.ironing_unretract_extra, "ironing unretract");
+                }
             }
         }
     return gcode;

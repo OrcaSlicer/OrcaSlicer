@@ -1099,7 +1099,7 @@ std::string GCodeWriter::extrude_to_xy(const Vec2d &point, double dE, const std:
 {
     m_pos(0) = point(0);
     m_pos(1) = point(1);
-    if(std::abs(dE) <= std::numeric_limits<double>::epsilon())
+    if(std::abs(dE) <= std::numeric_limits<double>::epsilon() && !m_force_emit_zero_e)
         force_no_extrusion = true;
 
     if (!force_no_extrusion)
@@ -1202,7 +1202,13 @@ std::string GCodeWriter::_retract(double length, double restart_extra, const std
             gcode = FLAVOR_IS(gcfMachinekit) ? "G22 ; retract\n" : "G10 ; retract\n";
         }
         else {
-            gcode = this->emit_retract(filament()->E(), comment);
+            // BBS
+            GCodeG1Formatter w;
+            w.emit_e(filament()->E());
+            w.emit_f(filament()->retract_speed() * 60.);
+            // BBS
+            w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+            gcode = w.string();
         }
     }
 
@@ -1225,39 +1231,37 @@ std::string GCodeWriter::unretract(float extra_retract)
             gcode += this->reset_e();
         }
         else {
-            gcode = this->emit_unretract(filament()->E(), " ; unretract");
+            //BBS
+            // use G1 instead of G0 because G0 will blend the restart with the previous travel move
+            GCodeG1Formatter w;
+            // extra_retract over-extrudes for the PETG pre-extrusion; 0 by
+            // default -> identical to the plain deretract E position.
+            w.emit_e(filament()->E() + extra_retract);
+            w.emit_f(filament()->deretract_speed() * 60.);
+            //BBS
+            w.emit_comment(GCodeWriter::full_gcode_comment, " ; unretract");
+            gcode += w.string();
         }
     }
-    
+
     return gcode;
 }
 
-std::string GCodeWriter::emit_retract(double E, std::string comment)
+std::string GCodeWriter::ironing_e_move(double dE, const std::string &comment)
 {
-    //BBS
-    // use G1 instead of G0 because G0 will blend the restart with the previous travel move
+    // The retract state (Extruder::m_retracted) is intentionally left alone: marking the
+    // extruder as retracted would make the arrival unretract of the very next travel
+    // restore the filament before ironing even starts.
     GCodeG1Formatter w;
-    w.emit_e(E);
-    w.emit_f(filament()->retract_speed() * 60.);
-    //BBS
+    w.emit_e(this->config.use_relative_e_distances ? dE : filament()->E() + dE);
+    w.emit_f((dE < 0. ? filament()->retract_speed() : filament()->deretract_speed()) * 60.);
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
-
-    return w.string();
-}
-
-std::string GCodeWriter::emit_unretract(double E, std::string comment)
-{
-    //BBS
-    // use G1 instead of G0 because G0 will blend the restart with the previous travel move
-    GCodeG1Formatter w;
-    // extra_retract over-extrudes for the PETG pre-extrusion; 0 by
-    // default -> identical to the plain deretract E position.
-    w.emit_e(E);
-    w.emit_f(filament()->deretract_speed() * 60.);
-    //BBS
-    w.emit_comment(GCodeWriter::full_gcode_comment, comment);
-
-    return w.string();
+    std::string gcode = w.string();
+    // In absolute E mode the move above leaves the firmware E coordinate offset by dE
+    // from the tracked position; re-anchor both at zero so subsequent moves stay in sync.
+    if (! this->config.use_relative_e_distances)
+        gcode += this->reset_e(true);
+    return gcode;
 }
 
 

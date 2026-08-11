@@ -91,8 +91,8 @@ public:
     // extra_retract adds a small over-extrusion to the deretract move (PETG pre-extrusion).
     // Default 0 -> byte-identical to the plain deretract.
     std::string unretract(float extra_retract = 0.f);
-    std::string emit_retract(double E, std::string comment);
-    std::string emit_unretract(double E, std::string comment);
+    std::string ironing_e_move(double dE, const std::string &comment);
+    void set_force_emit_zero_e(bool force) { m_force_emit_zero_e = force; }
     // do lift instantly
     std::string eager_lift(const LiftType type);
     // record a lift request, do realy lift in next travel
@@ -183,6 +183,7 @@ public:
     //BBS: x, y offset for gcode generated
     double          m_x_offset{ 0 };
     double          m_y_offset{ 0 };
+    bool            m_force_emit_zero_e = false;
 
     // Orca: slicing resolution in mm
     double          m_resolution = 0.01;
