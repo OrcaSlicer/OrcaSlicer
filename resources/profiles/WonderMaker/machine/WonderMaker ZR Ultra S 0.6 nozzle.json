@@ -5,6 +5,7 @@
 	"from": "system",
 	"setting_id": "xuJnOPTmSW1BMo6p",
 	"instantiation": "true",
+	"filament_mapping_protocol": "wondermaker",
 	"printer_model": "WonderMaker ZR Ultra S",
 	"nozzle_diameter": [
 		"0.6",
