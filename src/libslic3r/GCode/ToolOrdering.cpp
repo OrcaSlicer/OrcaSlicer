@@ -394,10 +394,8 @@ bool ToolOrdering::insert_wipe_tower_extruder()
         // adhesiveness-category blocks; only the generic tower needs a forced filament.
         if (!m_print || m_print->wipe_tower_type() != WipeTowerType::Type2)
             return false;
-        // Auto: resolve to the print's most used filament, so the tower structure is built from one
-        // consistent material instead of mixing incompatible ones layer by layer. Filament types are
-        // weighted by the number of layers they appear on, then the most used filament of the winning
-        // type is chosen. Soluble and support filaments never qualify.
+        // Auto: the print's most used filament, so the tower is built from one consistent material.
+        // Filaments are weighted by the number of layers they appear on; soluble and support never qualify.
         std::vector<size_t> layers_per_extruder(num_extruders, 0);
         for (const LayerTools &lt : m_layer_tools)
             for (unsigned int extruder_id : lt.extruders)
@@ -405,8 +403,8 @@ bool ToolOrdering::insert_wipe_tower_extruder()
                     ! m_print_config_ptr->filament_is_support.get_at(extruder_id))
                     ++ layers_per_extruder[extruder_id];
 
-        // The same material may be loaded as several filaments, so weigh the type first: each of them alone
-        // can be outweighed by a single filament of a material the print really uses less.
+        // Weigh the type first: one material split across two spools would otherwise lose to a single
+        // filament of a material the print uses less.
         auto layers_of_type = [&](const std::string &type) {
             size_t count = 0;
             for (size_t e = 0; e < num_extruders; ++e)
@@ -432,9 +430,8 @@ bool ToolOrdering::insert_wipe_tower_extruder()
     m_wipe_tower_extruder = resolved_extruder; // expose the resolved filament (see wipe_tower_extruder())
 
     const unsigned int wipe_extruder = (unsigned int)resolved_extruder;
-    // Auto mode: a layer that already prints a filament bonding with the resolved one can finish the tower
-    // with that instead of changing back. Whether a filament qualifies depends only on the filament, so
-    // resolve it once here rather than per layer.
+    // A layer already printing a filament that bonds with the resolved one can finish the tower with that
+    // instead of changing back. That only depends on the filament, so resolve it once rather than per layer.
     std::vector<char> can_finish_tower;
     if (auto_mode) {
         const std::string &wipe_type = m_print_config_ptr->filament_type.get_at(wipe_extruder);
@@ -782,8 +779,8 @@ void ToolOrdering::initialize_layers(std::vector<coordf_t> &zs)
 }
 
 // Collect extruders reuqired to print layers.
-// Which support roles does this layer carry? Both collect_extruders() and ensure_dontcare_support_extruders()
-// classify the same entities, and GCode::process_layer() has to agree with them.
+// Which support roles does this layer carry? collect_extruders() and ensure_dontcare_support_extruders()
+// classify the same entities, and GCode::process_layer() has to agree with both.
 struct SupportRoles {
     bool base      = false; // erSupportMaterial / erSupportTransition
     bool interface_ = false;
@@ -960,12 +957,10 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
     }
 }
 
-// "Don't care" (Default) support/interface is resolved in GCode::process_layer() to the supported object's
-// own filament, or to a compatible (bonding) filament already printing in the layer. On layers where neither
-// is planned (e.g. the object switched to an incompatible painted filament), the object's filament must be
-// added to the layer here, otherwise the support extrusions would be assigned to an extruder that is never
-// processed and silently dropped, leaving a gap in the support.
-// Must run after collect_extruders() finished for all objects, and before handle_dontcare_extruder().
+// "Don't care" (Default) support resolves in GCode::process_layer() to the object's own filament, or to a
+// bonding one already printing on the layer. Where neither is planned, the object's filament has to be added
+// here: support assigned to an unplanned extruder is dropped silently, leaving a gap.
+// Must run after collect_extruders() for all objects, and before handle_dontcare_extruder().
 void ToolOrdering::ensure_dontcare_support_extruders(const PrintObject &object)
 {
     const bool support_dontcare   = object.config().support_filament.value == 0;
@@ -973,8 +968,8 @@ void ToolOrdering::ensure_dontcare_support_extruders(const PrintObject &object)
     if (!support_dontcare && !interface_dontcare)
         return;
 
-    // The object's own filament, 1-based. If unknown, GCode::process_layer() falls back to the
-    // layer's first extruder, which is always planned.
+    // The object's own filament, 1-based. If unknown, process_layer() falls back to the layer's first
+    // extruder, which is always planned.
     unsigned int object_extruder = 0;
     if (const std::vector<unsigned int> obj_extruders = object.object_extruders(); !obj_extruders.empty())
         object_extruder = obj_extruders.front() + 1;

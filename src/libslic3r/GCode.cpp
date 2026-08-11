@@ -5873,9 +5873,8 @@ LayerResult GCode::process_layer(
                 if (const std::vector<unsigned int> obj_extruders = object.object_extruders(); !obj_extruders.empty())
                     object_extruder = obj_extruders.front();
 
-                // The object may switch filament or colour mid-print, so its filament might not be extruded on
-                // this layer at all. Prefer a compatible (bonding) filament that is already used on this layer
-                // to avoid an extra tool change; if none is, keep the object's own filament.
+                // The object may switch filament mid-print, so its own may not print on this layer at all.
+                // A bonding filament already on the layer avoids an extra tool change.
                 if (! layer_tools.has_extruder(object_extruder)) {
                     const std::string &object_type = print.config().filament_type.get_at(object_extruder);
                     for (unsigned int extruder_id : layer_tools.extruders)
@@ -5885,7 +5884,7 @@ LayerResult GCode::process_layer(
                         }
                 }
 
-                // The support base defaults to the object's own material, but avoids the interface filament (and soluble filaments) to keep them distinct.
+                // The base follows the object's material, but avoids the interface and soluble filaments.
                 if (support_dontcare && !interface_dontcare) {
                     unsigned int dontcare_extruder = object_extruder;
                     if (dontcare_extruder == interface_extruder || print.config().filament_soluble.get_at(dontcare_extruder)) {
@@ -5939,7 +5938,7 @@ LayerResult GCode::process_layer(
                 unsigned int ironing_extruder = object.config().support_ironing_filament.value > 0
                     ? (unsigned int) (object.config().support_ironing_filament.value - 1)
                     : interface_extruder;
-                // Does this layer actually carry ironing extrusions? (Ironing sits on the top interface.)
+                // Ironing sits on the top interface, so not every layer has it.
                 bool has_ironing = false;
                 for (const ExtrusionEntity *ee : support_layer.support_fills.entities)
                     if (ee->role() == erIroning) { has_ironing = true; break; }
@@ -6484,8 +6483,7 @@ LayerResult GCode::process_layer(
                             // erIroning (dedicated ironing group) or erMixed for all extrusion paths.
                             *instance_to_print.object_by_extruder.support, support_extrusion_role);
 
-                        // Make sure ironing is the last. It rides along with the base/interface group that shares its
-                        // extruder; a dedicated ironing group already emitted it above via its erIroning role.
+                        // Ironing goes last. A dedicated ironing group already emitted it above via its role.
                         if (instance_to_print.object_by_extruder.prints_ironing) {
                             gcode += this->extrude_support(*instance_to_print.object_by_extruder.support, erIroning);
                         }
