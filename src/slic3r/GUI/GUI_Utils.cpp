@@ -329,10 +329,11 @@ CheckboxFileDialog::ExtraPanel::ExtraPanel(wxWindow *parent)
     // which is why we have to this stuff here. Grrr!
     auto *dlg = dynamic_cast<CheckboxFileDialog*>(parent);
     const wxString checkbox_label(dlg != nullptr ? dlg->checkbox_label : wxString("String long enough to contain dlg->checkbox_label"));
+    const bool checkbox_value = dlg != nullptr ? dlg->checkbox_value : true;
 
     auto* sizer = new wxBoxSizer(wxHORIZONTAL);
     cbox = new wxCheckBox(this, wxID_ANY, checkbox_label);
-    cbox->SetValue(true);
+    cbox->SetValue(checkbox_value);
     sizer->AddSpacer(5);
     sizer->Add(this->cbox, 0, wxEXPAND | wxALL, 5);
     SetSizer(sizer);
@@ -357,6 +358,7 @@ CheckboxFileDialog::CheckboxFileDialog(wxWindow *parent,
 )
     : wxFileDialog(parent, message, default_dir, default_file, wildcard, style, pos, size, name)
     , checkbox_label(checkbox_label)
+    , checkbox_value(checkbox_value)
 {
     if (checkbox_label.IsEmpty()) {
         return;

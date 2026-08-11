@@ -611,6 +611,10 @@ public:
     void set_project_filename(const wxString& filename);
     void update_print_error_info(int code, std::string msg, std::string extra);
 
+    // Orca: whether the current project embeds a compatibility payload on save
+    bool get_compatibility_flag() const;
+    void set_compatibility_flag(bool flag);
+
     bool is_export_gcode_scheduled() const;
 
     const Selection& get_selection() const;

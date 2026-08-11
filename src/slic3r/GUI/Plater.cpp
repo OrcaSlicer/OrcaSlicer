@@ -40,6 +40,8 @@
 #include <wx/statbox.h>
 #include <wx/statbmp.h>
 #include <wx/filedlg.h>
+#include <wx/checkbox.h>
+#include <memory>
 #include <wx/dnd.h>
 #include <wx/progdlg.h>
 #include <wx/string.h>
@@ -5260,6 +5262,8 @@ struct Plater::priv
     bool m_ignore_event{false};
     bool m_slice_all{false};
     bool m_is_slicing {false};
+    // Orca: whether the current project embeds a compatibility payload on save
+    bool m_compatibility_flag{false};
     // Missing-plugin set signatures (sorted full refs joined by '\n'), one per notification. They
     // gate plugin-load re-validation and avoid needlessly recreating the notification when the set
     // is unchanged. Whether missing plugins block slicing is derived directly from PluginResolver
@@ -6885,6 +6889,10 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 DynamicPrintConfig config;
                 Semver             file_version;
                 En3mfType          en_3mf_file_type = En3mfType::From_BBS;
+                // Orca: whether the loaded 3MF carries a compatibility payload, and the
+                // deserialized payload itself (surfaced by Model::read_from_archive).
+                bool               file_compatibility = false;
+                DynamicPrintConfig file_compatibility_payload;
                 {
                     DynamicPrintConfig config_loaded;
 
@@ -6907,7 +6915,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                                                  cancel        = !cont;
                                                                  if (cancel)
                                                                      is_user_cancel = cancel;
-                                                             });
+                                                             },
+                                                             nullptr, &file_compatibility, &file_compatibility_payload);
                           BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__
                                       << boost::format(", plate_data.size %1%, project_preset.size %2%, is_bbs_or_orca_3mf %3%, file_version %4% \n") % plate_data.size() %
                                           project_presets.size() % (en_3mf_file_type == En3mfType::From_BBS || en_3mf_file_type == En3mfType::From_Orca) % file_version.to_string();
@@ -7317,7 +7326,29 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             if (wipe_tower_y_opt)
                                 file_wipe_tower_y = *wipe_tower_y_opt;
 
-                            preset_bundle->load_config_model(filename.string(), std::move(config), file_version);
+                            // Orca: compatibility mode — apply the file's process/filament
+                            // payload onto the user's config while keeping their printer.
+                            // Guard: only for FDM printers with a real printer loaded.
+                            // Reset the flag on every project load; only a compatibility
+                            // file re-sets it below, so it reflects the current project.
+                            q->set_compatibility_flag(false);
+                            preset_bundle->clear_compatibility_filament_overrides();
+                            bool apply_compatibility = false;
+                            DynamicPrintConfig user_current;
+                            // Orca: require BOTH the compatibility tag AND a non-empty payload
+                            // (defense against a malformed file where the tag is set but the
+                            // payload failed to deserialize).
+                            if (file_compatibility && load_config && !config.empty() && !file_compatibility_payload.keys().empty()) {
+                                const Preset& cur_printer = preset_bundle->printers.get_selected_preset();
+                                if (cur_printer.printer_technology() != ptSLA && !cur_printer.is_default) {
+                                    apply_compatibility = true;
+                                    // Snapshot the user's current config BEFORE the file's
+                                    // presets are loaded/selected, so filament-type gating
+                                    // compares against the user's own filament types.
+                                    user_current = preset_bundle->full_config();
+                                }
+                            }
+                            preset_bundle->load_config_model(filename.string(), std::move(config), file_version, apply_compatibility);
 
                             ConfigOption* bed_type_opt = preset_bundle->project_config.option("curr_bed_type");
                             if (bed_type_opt != nullptr) {
@@ -7386,6 +7417,32 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             // For exporting from the amf/3mf we shouldn't check printer_presets for the containing information about "Print Host upload"
                             // BBS: add preset combo box re-active logic
                             // currently found only needs re-active here
+                            // Orca: apply the compatibility payload into project_config (before
+                            // load_current_presets so the overrides are picked up), mark the
+                            // project so a later re-save carries the flag, and notify the user.
+                            if (apply_compatibility) {
+                                CompatibilityPolicy::ApplyResult res = preset_bundle->apply_compatibility(file_compatibility_payload, user_current);
+                                q->set_compatibility_flag(true);
+                                NotificationManager* notify_manager = q->get_notification_manager();
+                                std::string msg = _u8L("Compatibility settings applied:") + "\n";
+                                msg += _u8L("Applied: ") + std::to_string(res.applied.size()) + "\n";
+                                msg += _u8L("Dropped: ") + std::to_string(res.dropped.size()) + "\n";
+                                msg += _u8L("Filament settings skipped (material mismatch): ") + std::to_string(res.material_dropped.size()) + "\n";
+                                msg += _u8L("Substituted: ") + std::to_string(res.substituted.size());
+                                notify_manager->bbl_show_3mf_info_notification(msg);
+
+                                // The compatibility payload carries the file's filament colors/maps sized to
+                                // the FILE's filament count. The companion fixer preserves the user's filament
+                                // preset selection, so restore the user's own filament arrays into project_config
+                                // here (before load_current_presets) to keep the GUI consistent and to guarantee
+                                // filament_colour is never left null for update_filament_colors_in_full_config.
+                                static const std::vector<std::string> proj_filament_keys = {
+                                    "filament_colour", "filament_colour_type", "filament_multi_colour",
+                                    "filament_map", "filament_nozzle_map", "filament_volume_map"};
+                                for (const std::string& key : proj_filament_keys)
+                                    if (const ConfigOption* u = user_current.option(key))
+                                        preset_bundle->project_config.set_key_value(key, u->clone());
+                            }
                             wxGetApp().load_current_presets(false, false);
                             // Update filament colors for the MM-printer profile in the full config
                             // to avoid black (default) colors for Extruders in the ObjectList,
@@ -8236,17 +8293,29 @@ wxString Plater::priv::get_export_file(GUI::FileType file_type)
 
     std::string out_dir = (boost::filesystem::path(output_file).parent_path()).string();
 
-    wxFileDialog dlg(q, dlg_title,
-        is_shapes_dir(out_dir) ? from_u8(wxGetApp().app_config->get_last_dir()) : from_path(output_file.parent_path()), from_path(output_file.filename()),
-        wildcard, wxFD_SAVE | wxFD_OVERWRITE_PROMPT | wxPD_APP_MODAL);
+    // Orca: for 3MF project saves, offer a checkbox to embed compatibility settings
+    std::unique_ptr<CheckboxFileDialog> dlg;
+    if (file_type == FT_3MF) {
+        dlg = std::make_unique<CheckboxFileDialog>(q, _L("Embed compatibility settings"), m_compatibility_flag, dlg_title,
+            is_shapes_dir(out_dir) ? from_u8(wxGetApp().app_config->get_last_dir()) : from_path(output_file.parent_path()), from_path(output_file.filename()),
+            wildcard, wxFD_SAVE | wxFD_OVERWRITE_PROMPT | wxPD_APP_MODAL);
+    } else {
+        dlg = std::make_unique<CheckboxFileDialog>(q, wxString(), false, dlg_title,
+            is_shapes_dir(out_dir) ? from_u8(wxGetApp().app_config->get_last_dir()) : from_path(output_file.parent_path()), from_path(output_file.filename()),
+            wildcard, wxFD_SAVE | wxFD_OVERWRITE_PROMPT | wxPD_APP_MODAL);
+    }
 
-    int result = dlg.ShowModal();
+    int result = dlg->ShowModal();
     if (result == wxID_CANCEL)
         return "<cancel>";
     if (result != wxID_OK)
         return wxEmptyString;
 
-    wxString out_path = dlg.GetPath();
+    // Orca: persist the checkbox state so the project save path can honour it
+    if (file_type == FT_3MF)
+        m_compatibility_flag = dlg->get_checkbox_value();
+
+    wxString out_path = dlg->GetPath();
     fs::path path(into_path(out_path));
 #ifdef __WXMSW__
     if (boost::iequals(path.extension().string(), output_file.extension().string()) == false) {
@@ -13069,6 +13138,9 @@ int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_
 
     //reset project
     p->project.reset();
+    // Orca: a fresh project carries no compatibility payload
+    set_compatibility_flag(false);
+    wxGetApp().preset_bundle->clear_compatibility_filament_overrides();
     //set project name
     if (project_name.empty())
         p->set_project_name(_L("Untitled"));
@@ -13253,6 +13325,10 @@ int Plater::save_project(bool saveAs)
     bool full_pathnames = wxGetApp().app_config->get_bool("export_sources_full_pathnames");
     if (full_pathnames) {
         save_strategy = save_strategy | SaveStrategy::FullPathSources;
+    }
+    // Orca: embed compatibility settings when requested
+    if (p->m_compatibility_flag) {
+        save_strategy = save_strategy | SaveStrategy::Compatibility;
     }
     if (export_3mf(into_path(filename), save_strategy) < 0) {
         MessageDialog(this, _L("Failed to save the project.\nPlease check whether the folder exists online or if other programs have the project file open."),
@@ -16738,6 +16814,7 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
     store_params.id_bboxes = plate_bboxes;//BBS
     store_params.project = &p->project;
     store_params.strategy = strategy | SaveStrategy::Zip64;
+    store_params.compatibility = (strategy & SaveStrategy::Compatibility);
 
 
     // get type and color for platedata
@@ -18095,6 +18172,16 @@ wxString Plater::get_export_gcode_filename(const wxString & extension, bool only
 void Plater::set_project_filename(const wxString& filename)
 {
     p->set_project_filename(filename);
+}
+
+bool Plater::get_compatibility_flag() const
+{
+    return p->m_compatibility_flag;
+}
+
+void Plater::set_compatibility_flag(bool flag)
+{
+    p->m_compatibility_flag = flag;
 }
 
 bool Plater::is_export_gcode_scheduled() const

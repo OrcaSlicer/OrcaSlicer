@@ -2,6 +2,7 @@
 #include "../Exception.hpp"
 #include "../Model.hpp"
 #include "../Preset.hpp"
+#include "../CompatibilityPolicy.hpp"
 #include "../Utils.hpp"
 #include "../LocalesUtils.hpp"
 #include "../GCode.hpp"
@@ -208,6 +209,7 @@ const std::string _3MF_COVER_FILE = "/Auxiliaries/.thumbnails/thumbnail_3mf.png"
 //const std::string MODEL_CONFIG_FILE = "Metadata/Slic3r_PE_model.config";
 const std::string BBS_PRINT_CONFIG_FILE = "Metadata/print_profile.config";
 const std::string BBS_PROJECT_CONFIG_FILE = "Metadata/project_settings.config";
+const std::string BBS_COMPATIBILITY_CONFIG_FILE = "Metadata/compatibility.config";
 const std::string BBS_MODEL_CONFIG_FILE = "Metadata/model_settings.config";
 const std::string BBS_MODEL_CONFIG_RELS_FILE = "Metadata/_rels/model_settings.config.rels";
 const std::string SLICE_INFO_CONFIG_FILE = "Metadata/slice_info.config";
@@ -1121,6 +1123,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         boost::optional<Semver> m_bambuslicer_generator_version;
         // Semantic version from the OrcaSlicer metadata tag (if present).
         boost::optional<Semver> m_orca_slicer_version;
+        // Orca: whether the archive carries a compatibility payload (metadata tag
+        // "OrcaSlicer:Compatibility" == "1") and the deserialized payload itself.
+        bool m_compatibility { false };
+        DynamicPrintConfig m_compatibility_payload;
         unsigned int m_fdm_supports_painting_version = 0;
         unsigned int m_seam_painting_version         = 0;
         unsigned int m_mm_painting_version           = 0;
@@ -1196,6 +1202,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool get_thumbnail(const std::string &filename, std::string &data);
         bool load_gcode_3mf_from_stream(std::istream & data, Model& model, PlateDataPtrs& plate_data_list, DynamicPrintConfig& config, Semver& file_version);
         unsigned int version() const { return m_version; }
+        // Orca: accessors for the compatibility flag + payload surfaced to load_bbs_3mf.
+        bool compatibility() const { return m_compatibility; }
+        const DynamicPrintConfig& compatibility_payload() const { return m_compatibility_payload; }
 
     private:
         void _destroy_xml_parser();
@@ -1232,6 +1241,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         void _extract_print_config_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat, DynamicPrintConfig& config, ConfigSubstitutionContext& subs_context, const std::string& archive_filename);
         //BBS: add project config file logic
         void _extract_project_config_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat, DynamicPrintConfig& config, ConfigSubstitutionContext& subs_context, Model& model);
+        // Orca: extract the compatibility payload file (Metadata/compatibility.config).
+        void _extract_compatibility_config_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat);
         //BBS: extract project embedded presets
         void _extract_project_embedded_presets_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat, std::vector<Preset*>&project_presets, Model& model, Preset::Type type, bool use_json = true);
 
@@ -2029,6 +2040,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     //BBS parsing pattern config files
                     _extract_file_from_archive(archive, stat);
                 }
+                else if (boost::algorithm::iequals(name, BBS_COMPATIBILITY_CONFIG_FILE)) {
+                    // Orca: extract the compatibility payload (process + filament keys).
+                    _extract_compatibility_config_from_archive(archive, stat);
+                }
                 else {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", %1% skipped, already parsed or a directory or not supported\n")%name;
                 }
@@ -2694,6 +2709,24 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 return;
             }
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", load project config file successfully from %1%\n") %dest_file;
+        }
+    }
+
+    // Orca: read the compatibility payload file (Metadata/compatibility.config) and
+    // deserialize it into m_compatibility_payload.
+    void _BBS_3MF_Importer::_extract_compatibility_config_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat)
+    {
+        if (stat.m_uncomp_size > 0) {
+            std::string buffer((size_t)stat.m_uncomp_size, 0);
+            mz_bool res = mz_zip_reader_extract_to_mem(&archive, stat.m_file_index, (void*)buffer.data(), (size_t)stat.m_uncomp_size, 0);
+            if (res == 0) {
+                add_error("Error while reading compatibility config data to buffer");
+                return;
+            }
+            std::vector<std::string> substituted;
+            m_compatibility_payload = CompatibilityPolicy::deserialize_payload(buffer, substituted);
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", load compatibility payload from %1%, %2% keys, %3% substitutions\n")
+                % stat.m_filename % m_compatibility_payload.keys().size() % substituted.size();
         }
     }
 
@@ -4072,10 +4105,16 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             ;
         } else if (m_curr_metadata_name == BBL_MODIFICATION_TAG) {
             ;
+        } else if (m_curr_metadata_name == ORCASLICER_TAG + ":Compatibility") {
+            // Orca: mark the archive as carrying a compatibility payload. The tag is
+            // intentionally not stored into model_info.metadata_items (see below):
+            // a re-save carries the flag only via the exporter's m_compatibility bit,
+            // which is set by Plater::set_compatibility_flag().
+            m_compatibility = (m_curr_characters == "1");
         } else {
             ;
         }
-        if (!m_curr_metadata_name.empty()) {
+        if (!m_curr_metadata_name.empty() && m_curr_metadata_name != ORCASLICER_TAG + ":Compatibility") {
             BOOST_LOG_TRIVIAL(info) << "load_3mf found metadata key = " << m_curr_metadata_name << ", value = " << xml_unescape(m_curr_characters);
             model_info.metadata_items[m_curr_metadata_name] = xml_unescape(m_curr_characters);
         }
@@ -5945,6 +5984,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool m_skip_auxiliary { false };    // skip normal axuiliary files
         bool m_use_loaded_id { false };        // whether to use loaded id for identify_id
         bool m_share_mesh { false };        // whether to share mesh between objects
+        bool m_compatibility { false };     // embed a compatibility payload in the archive
         std::string m_thumbnail_middle = PRINTER_THUMBNAIL_MIDDLE_FILE;
         std::string m_thumbnail_small  = PRINTER_THUMBNAIL_SMALL_FILE;
         std::map<void const *, std::pair<ObjectData*, ModelVolume const *>> m_shared_meshes;
@@ -6003,6 +6043,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool _add_print_config_file_to_archive(mz_zip_archive& archive, const DynamicPrintConfig &config);
         //BBS: add project config file logic for json format
         bool _add_project_config_file_to_archive(mz_zip_archive& archive, const DynamicPrintConfig &config, Model& model);
+        // Orca: add compatibility payload file
+        bool _add_compatibility_config_to_archive(mz_zip_archive& archive, const DynamicPrintConfig &config, Model& model);
         //BBS: add project embedded preset files
         bool _add_project_embedded_presets_to_archive(mz_zip_archive& archive, Model& model, std::vector<Preset*> project_presets);
         bool _add_model_config_file_to_archive(mz_zip_archive& archive, const Model& model, PlateDataPtrs& plate_data_list, const ObjectToObjectDataMap &objects_data, const DynamicPrintConfig& config, int export_plate_idx = -1, bool save_gcode = true, bool use_loaded_id = false);
@@ -6044,6 +6086,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         m_from_backup_save = store_params.strategy & SaveStrategy::Backup;
 
         m_use_loaded_id = store_params.strategy & SaveStrategy::UseLoadedId;
+        m_compatibility = store_params.compatibility;
 
         if (auto info = store_params.model->model_info) {
             if (auto iter = info->metadata_items.find("Thumbnail_Small"); iter != info->metadata_items.end())
@@ -6455,6 +6498,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 // BBS: change to json format
                 // if (!_add_print_config_file_to_archive(archive, *config)) {
                 if (!_add_project_config_file_to_archive(archive, *config, model)) { return false; }
+                // Orca: embed the compatibility payload when requested
+                if (m_compatibility) {
+                    if (!_add_compatibility_config_to_archive(archive, *config, model)) { return false; }
+                }
             }
 
             // BBS progress point
@@ -6939,6 +6986,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 metadata_item_map[BBL_MODIFICATION_TAG]  = "";
                 // Orca: Write the BambuStudio compatibility version string using SLIC3R_VERSION
                 metadata_item_map[BBL_APPLICATION_TAG] = (boost::format("%1%-%2%") % "BambuStudio" % SLIC3R_VERSION).str();
+                // Orca: mark the archive as carrying a compatibility payload
+                if (m_compatibility)
+                    metadata_item_map[ORCASLICER_TAG + ":Compatibility"] = "1";
             }
             metadata_item_map[BBS_3MF_VERSION] = std::to_string(VERSION_BBS_3MF);
 
@@ -7828,6 +7878,29 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         std::string temp_file = temp_path + std::string("/") + "_temp_1.config";
         config.save_to_json(temp_file, std::string("project_settings"), std::string("project"), std::string(SLIC3R_VERSION));
         return _add_file_to_archive(archive, BBS_PROJECT_CONFIG_FILE, temp_file);
+    }
+
+    // Orca: add compatibility payload file
+    bool _BBS_3MF_Exporter::_add_compatibility_config_to_archive(mz_zip_archive& archive, const DynamicPrintConfig &config, Model& model)
+    {
+        // On save, the author's own filament types match, so all slots are carried.
+        CompatibilityPolicy::FilterResult filtered = CompatibilityPolicy::filter(config, config);
+        std::string json = CompatibilityPolicy::serialize_payload(filtered.payload);
+        if (json.empty())
+            return false;
+
+        const std::string& temp_path = model.get_backup_path();
+        std::string temp_file = temp_path + std::string("/") + "_temp_compatibility.config";
+        bool result = false;
+        try {
+            save_string_file(temp_file, json);
+            result = _add_file_to_archive(archive, BBS_COMPATIBILITY_CONFIG_FILE, temp_file);
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << e.what();
+        }
+        boost::system::error_code ec;
+        boost::filesystem::remove(temp_file, ec);
+        return result;
     }
 
     //BBS: add project embedded preset files
@@ -9107,7 +9180,8 @@ private:
 
 //BBS: add plate data list related logic
 bool load_bbs_3mf(const char* path, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, PlateDataPtrs* plate_data_list, std::vector<Preset*>* project_presets,
-                    bool* is_bbl_3mf, bool* is_orca_3mf, Semver* file_version, Import3mfProgressFn proFn, LoadStrategy strategy, BBLProject *project, int plate_id)
+                    bool* is_bbl_3mf, bool* is_orca_3mf, Semver* file_version, Import3mfProgressFn proFn, LoadStrategy strategy, BBLProject *project, int plate_id,
+                    bool* compatibility, DynamicPrintConfig* compatibility_payload)
 {
     if (path == nullptr || config == nullptr || model == nullptr)
         return false;
@@ -9117,6 +9191,11 @@ bool load_bbs_3mf(const char* path, DynamicPrintConfig* config, ConfigSubstituti
     _BBS_3MF_Importer importer;
     bool res = importer.load_model_from_file(path, *model, *plate_data_list, *project_presets, *config, *config_substitutions, strategy, is_bbl_3mf, is_orca_3mf, *file_version, proFn, project, plate_id);
     importer.log_errors();
+    // Orca: surface the compatibility flag + deserialized payload to the caller (optional).
+    if (compatibility)
+        *compatibility = importer.compatibility();
+    if (compatibility_payload)
+        *compatibility_payload = importer.compatibility_payload();
     //BBS: remove legacy project logic currently
     //handle_legacy_project_loaded(importer.version(), *config);
     return res;

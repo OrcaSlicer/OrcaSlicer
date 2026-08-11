@@ -1723,7 +1723,13 @@ void MainFrame::save_project()
 
 bool MainFrame::save_project_as(const wxString& filename)
 {
-    bool ret = (m_plater != nullptr) ? m_plater->export_3mf(into_path(filename)) : false;
+    // Orca: preserve the compatibility flag on the project save path (including the
+    // dirty-close "Save?" prompt, which routes here). gcode.3mf / calibration exports
+    // call export_3mf() directly with their own strategies and are unaffected.
+    SaveStrategy strategy = SaveStrategy::Default;
+    if (m_plater != nullptr && m_plater->get_compatibility_flag())
+        strategy = strategy | SaveStrategy::Compatibility;
+    bool ret = (m_plater != nullptr) ? m_plater->export_3mf(into_path(filename), strategy) : false;
     if (ret) {
 //        wxGetApp().update_saved_preset_from_current_preset();
         m_plater->reset_project_dirty_after_save();

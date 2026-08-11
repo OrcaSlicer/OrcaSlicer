@@ -3,6 +3,7 @@
 
 #include "PresetBundle.hpp"
 #include "PrintConfig.hpp"
+#include "CompatibilityPolicy.hpp"
 #include "libslic3r.h"
 #include "I18N.hpp"
 #include "Utils.hpp"
@@ -4252,6 +4253,11 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
         }
     }
 
+    // Orca: compatibility feature — apply the compat filament overrides on top of
+    // the merged filament presets (single and multi-filament paths both end here),
+    // so the transferred compat filament values win over the user's filament preset.
+    out.apply(this->m_compatibility_filament_overrides);
+
     //BBS: add logic for settings check between different system presets
     std::string printer_inherits = this->printers.get_edited_preset().inherits();
     // Don't store the "compatible_printers_condition" for the printer profile, there is none.
@@ -4426,7 +4432,7 @@ static void convert_filament_preset_name(std::string& machine_name, std::string&
 }
 // Load a config file from a boost property_tree. This is a private method called from load_config_file.
 // is_external == false on if called from ConfigWizard
-void PresetBundle::load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version, bool selected)
+void PresetBundle::load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version, bool selected, bool keep_current_printer)
 {
     PrinterTechnology printer_technology = Preset::printer_technology(config);
 
@@ -4602,8 +4608,16 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             printer_different_keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
         //BBS: add config related logs
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load printer preset from printer_settings_id");
-        load_preset(this->printers, num_filaments + 1, "printer_settings_id", printer_different_keys_set, std::string());
+        // Orca: in compatibility mode the file's printer preset is intentionally not
+        // loaded/selected so the user's current printer is preserved untouched.
+        if (!keep_current_printer)
+            load_preset(this->printers, num_filaments + 1, "printer_settings_id", printer_different_keys_set, std::string());
 
+        // Orca: in compatibility mode the file's filament presets are intentionally not
+        // loaded/selected so the user's current filament selection is preserved untouched.
+        // Only the compatible filament SETTINGS are applied as overrides via project_config
+        // below, symmetric with the printer guard above.
+        if (!keep_current_printer) {
         // 3) Now load the filaments. If there are multiple filament presets, split them and load them.
         auto old_filament_profile_names = config.option<ConfigOptionStrings>("filament_settings_id", true);
         old_filament_profile_names->values.resize(num_filaments, std::string());
@@ -4722,9 +4736,15 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 this->filament_presets[i] = loaded->name;
             }
         }
+        } // Orca: end compatibility-mode filament-selection guard
 
         // 4) Load the project config values (the per extruder wipe matrix etc).
-        this->project_config.apply_only(config, s_project_options);
+        // Orca: in compatibility mode the file's bed type must not override the user's
+        // preserved printer, so exclude curr_bed_type from the project options applied.
+        std::vector<std::string> project_options = s_project_options;
+        if (keep_current_printer)
+            project_options.erase(std::remove(project_options.begin(), project_options.end(), "curr_bed_type"), project_options.end());
+        this->project_config.apply_only(config, project_options);
 
         break;
     }
@@ -4758,6 +4778,48 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
     }
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": finished");
+}
+
+// Orca: apply a compatibility payload (process + filament keys) onto the current
+// project_config layer without touching the printer preset. `user_current` is the
+// opening user's config captured BEFORE the file's presets were loaded, so filament
+// gating compares against the user's own filament types / extruder count.
+CompatibilityPolicy::ApplyResult PresetBundle::apply_compatibility(const DynamicPrintConfig& payload, const DynamicPrintConfig& user_current)
+{
+    CompatibilityPolicy::ApplyResult result = CompatibilityPolicy::apply(this->project_config, payload, user_current);
+
+    // The compat filament values that transferred are written into project_config by
+    // CompatibilityPolicy::apply with the correct per-slot sizing. The selected
+    // filament preset is merged after project_config in the full-config build and
+    // would overwrite them, so capture the (non-hard-gated) transferred filament
+    // values into a dedicated overlay that is applied after the filament merge.
+    m_compatibility_filament_overrides = build_compatibility_filament_overrides(this->project_config);
+
+    return result;
+}
+
+// Build the compat filament overlay from a project_config: every filament option that
+// is present and not hard-gated (i.e. one that transferred across a type mismatch).
+// The values are already per-slot sized by CompatibilityPolicy::apply, so applying
+// this overlay on top of the user's filament preset makes the compat values win.
+DynamicPrintConfig PresetBundle::build_compatibility_filament_overrides(const DynamicPrintConfig& project_config)
+{
+    DynamicPrintConfig overrides;
+    const std::vector<std::string>& filament_opts = Preset::filament_options();
+    for (const std::string& key : project_config.keys()) {
+        // Orca: only filament options that are present in project_config may override the
+        // user's preset. Hard-gated material keys DO transfer on matched/partial-matched
+        // slots (they are per-slot gated in project_config by CompatibilityPolicy::apply's
+        // build_gated_array), and are simply absent on a full type mismatch, so they are
+        // handled naturally here.
+        const bool is_filament = std::find(filament_opts.begin(), filament_opts.end(), key) != filament_opts.end() ||
+                                 filament_options_with_variant.count(key) != 0;
+        if (!is_filament)
+            continue;
+        if (const ConfigOption* v = project_config.option(key))
+            overrides.set_key_value(key, v->clone());
+    }
+    return overrides;
 }
 
 //BBS: Load a config bundle file from json

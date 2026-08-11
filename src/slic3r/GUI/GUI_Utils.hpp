@@ -408,6 +408,7 @@ private:
     };
 
     wxString checkbox_label;
+    bool checkbox_value;
 };
 
 

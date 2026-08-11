@@ -3376,6 +3376,22 @@ void NotificationManager::bbl_show_3mf_warn_notification(const std::string &text
     push_notification_data(std::move(notification), 0);
 }
 
+void NotificationManager::bbl_show_3mf_info_notification(const std::string &text)
+{
+    NotificationData data{NotificationType::BBL3MFInfo, NotificationLevel::PrintInfoNotificationLevel, BBL_NOTICE_MAX_INTERVAL, text};
+
+    for (std::unique_ptr<PopNotification> &notification : m_pop_notifications) {
+        if (notification->get_type() == NotificationType::BBL3MFInfo) {
+            notification->reinit();
+            notification->update(data);
+            return;
+        }
+    }
+
+    auto notification = std::make_unique<NotificationManager::PopNotification>(data, m_id_provider, m_evt_handler);
+    push_notification_data(std::move(notification), 0);
+}
+
 void NotificationManager::bbl_close_plateinfo_notification()
 {
     for (std::unique_ptr<PopNotification> &notification : m_pop_notifications)

@@ -145,6 +145,7 @@ enum class SaveStrategy
     SkipAuxiliary       = 1 << 9,
     UseLoadedId         = 1 << 10,
     ShareMesh           = 1 << 11,
+    Compatibility       = 1 << 13,
 
     SplitModel = 0x1000 | ProductionExt,
     Encrypted  = SecureContentExt | SplitModel,
@@ -246,6 +247,7 @@ struct StoreParams
     std::vector<ThumbnailData*> pick_thumbnail_data;
     std::vector<ThumbnailData*> calibration_thumbnail_data;
     SaveStrategy strategy = SaveStrategy::Zip64;
+    bool compatibility = false;
     Export3mfProgressFn proFn = nullptr;
     std::vector<PlateBBoxData*> id_bboxes;
     BBLProject* project = nullptr;
@@ -258,8 +260,12 @@ struct StoreParams
 //BBS: add plate data list related logic
 // add restore logic
 // Load the content of a 3mf file into the given model and preset bundle.
+// Orca: `compatibility` and `compatibility_payload` are optional out-params that, when
+// non-null, receive whether the archive carries a compatibility payload and the
+// deserialized payload (empty config when no payload is present).
 extern bool load_bbs_3mf(const char* path, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, PlateDataPtrs* plate_data_list, std::vector<Preset*>* project_presets,
-        bool* is_bbl_3mf, bool* is_orca_3mf, Semver* file_version, Import3mfProgressFn proFn = nullptr, LoadStrategy strategy = LoadStrategy::Default, BBLProject *project = nullptr, int plate_id = 0);
+        bool* is_bbl_3mf, bool* is_orca_3mf, Semver* file_version, Import3mfProgressFn proFn = nullptr, LoadStrategy strategy = LoadStrategy::Default, BBLProject *project = nullptr, int plate_id = 0,
+        bool* compatibility = nullptr, DynamicPrintConfig* compatibility_payload = nullptr);
 
 extern std::string bbs_3mf_get_thumbnail(const char * path);
 

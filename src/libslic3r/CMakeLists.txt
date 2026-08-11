@@ -99,6 +99,8 @@ set(lisbslic3r_sources
     Color.cpp
     Color.hpp
     CommonDefs.hpp
+    CompatibilityPolicy.cpp
+    CompatibilityPolicy.hpp
     Config.cpp
     Config.hpp
     ContourZ.cpp

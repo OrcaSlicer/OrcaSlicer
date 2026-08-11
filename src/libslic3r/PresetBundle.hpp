@@ -4,6 +4,7 @@
 #include "Preset.hpp"
 #include "AppConfig.hpp"
 #include "enum_bitmask.hpp"
+#include "CompatibilityPolicy.hpp"
 
 #include <memory>
 #include <shared_mutex>
@@ -357,6 +358,16 @@ public:
     // and they are being used by slicing core.
     DynamicPrintConfig          project_config;
 
+    // Orca: compatibility feature — filament overrides that must win over the user's
+    // selected filament preset in the full-config merge. CompatibilityPolicy::apply
+    // writes gated filament values into project_config, but the filament preset is
+    // merged AFTER project_config and would overwrite them; this overlay is applied
+    // after the filament preset merge so the compat values survive. Populated by
+    // apply_compatibility() and applied in full_fff_config()/construct_full_config().
+    DynamicPrintConfig          m_compatibility_filament_overrides;
+    const DynamicPrintConfig&   compatibility_filament_overrides() const { return m_compatibility_filament_overrides; }
+    void                        clear_compatibility_filament_overrides() { m_compatibility_filament_overrides.clear(); }
+
     // There will be an entry for each system profile loaded,
     // and the system profiles will point to the VendorProfile instances owned by PresetBundle::vendors.
     VendorMap                   vendors;
@@ -414,8 +425,17 @@ public:
 
     // Load configuration that comes from a model file containing configuration, such as 3MF et al.
     // This method is called by the Plater.
-    void                        load_config_model(const std::string &name, DynamicPrintConfig config, Semver file_version = Semver())
-        { this->load_config_file_config(name, true, std::move(config), file_version); }
+    // Orca: `keep_current_printer` suppresses loading/selecting the file's printer preset
+    // (used by the compatibility feature so the user's printer is preserved).
+    void                        load_config_model(const std::string &name, DynamicPrintConfig config, Semver file_version = Semver(), bool keep_current_printer = false)
+        { this->load_config_file_config(name, true, std::move(config), file_version, false, keep_current_printer); }
+
+    // Orca: apply a compatibility payload (process + filament keys) onto the current
+    // project_config layer without touching the printer preset. `user_current` is the
+    // opening user's config (captured BEFORE the file's presets are loaded) used for
+    // filament-type gating and extruder count. Returns the applied / dropped /
+    // substituted key lists for the UI notification.
+    CompatibilityPolicy::ApplyResult apply_compatibility(const DynamicPrintConfig& payload, const DynamicPrintConfig& user_current);
 
     // Load an external config file containing the print, filament and printer presets.
     // Instead of a config file, a G-code may be loaded containing the full set of parameters.
@@ -544,12 +564,18 @@ private:
     // Load print, filament & printer presets from a config. If it is an external config, then the name is extracted from the external path.
     // and the external config is just referenced, not stored into user profile directory.
     // If it is not an external config, then the config will be stored into the user profile directory.
-    void                        load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version = Semver(), bool selected = false);
+    void                        load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version = Semver(), bool selected = false, bool keep_current_printer = false);
     /*ConfigSubstitutions         load_config_file_config_bundle(
         const std::string &path, const boost::property_tree::ptree &tree, ForwardCompatibilitySubstitutionRule compatibility_rule);*/
 
     DynamicPrintConfig          full_fff_config(bool apply_extruder, std::optional<std::vector<int>> filament_maps=std::nullopt, std::optional<std::vector<int>> filament_volume_maps=std::nullopt) const;
     DynamicPrintConfig          full_sla_config() const;
+
+    // Orca: compatibility feature — build the filament overlay (non-hard-gated compat
+    // filament values from a project_config) that must win over the user's filament
+    // preset in the full-config merge. Static so it can be used from the static
+    // construct_full_config; apply_compatibility() stores the result in the member.
+    static DynamicPrintConfig   build_compatibility_filament_overrides(const DynamicPrintConfig& project_config);
 
     // Orca: used for validation only
     bool validation_mode = false;

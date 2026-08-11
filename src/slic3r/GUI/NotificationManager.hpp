@@ -375,6 +375,7 @@ public:
 
     //BBS-- 3mf warning
     void bbl_show_3mf_warn_notification(const std::string &text);
+    void bbl_show_3mf_info_notification(const std::string &text);
     void bbl_close_3mf_warn_notification();
 
     //BBS--preview only mode
