@@ -133,3 +133,27 @@ TEST_CASE("Corner smoothing emits no zero length segments", "[FillCornerSmoothin
     for (size_t i = 1; i < zigzag.size(); ++i)
         REQUIRE((zigzag[i] - zigzag[i - 1]).cast<double>().squaredNorm() > 0.);
 }
+
+TEST_CASE("Corner smoothing rounds the seam of a closed loop", "[FillCornerSmoothing]")
+{
+    // A loop has no free ends, so none of its corners may stay sharp, not even the one it starts at.
+    Polyline square{ Point::new_scale(0., 0.), Point::new_scale(10., 0.), Point::new_scale(10., 10.),
+                     Point::new_scale(0., 10.), Point::new_scale(0., 0.) };
+    const Polyline sharp = square;
+    smooth_polyline_corners(square, 1., tolerance);
+
+    REQUIRE(square.front() == square.back());
+    REQUIRE(square.size() > sharp.size());
+    REQUIRE(max_turn_cosine(square) > 0.9);
+    // The turn from the last segment back into the first one closes the loop and must be gentle too.
+    const Vec2d incoming = (square[square.size() - 1] - square[square.size() - 2]).cast<double>().normalized();
+    const Vec2d outgoing = (square[1] - square[0]).cast<double>().normalized();
+    REQUIRE(incoming.dot(outgoing) > 0.9);
+    // None of the corners is cut by more than half of a 10mm side.
+    for (const Point &point : square.points) {
+        REQUIRE(point.x() >= 0);
+        REQUIRE(point.y() >= 0);
+        REQUIRE(point.x() <= Point::new_scale(10., 0.).x());
+        REQUIRE(point.y() <= Point::new_scale(0., 10.).y());
+    }
+}

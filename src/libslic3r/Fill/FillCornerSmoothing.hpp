@@ -2,10 +2,12 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <vector>
 
 #include "../libslic3r.h"
 #include "../Point.hpp"
+#include "../Polygon.hpp"
 #include "../Polyline.hpp"
 
 namespace Slic3r {
@@ -15,6 +17,11 @@ inline double sanitize_smooth_factor(double smooth_factor)
 {
     return std::isfinite(smooth_factor) ? std::clamp(smooth_factor, 0., 1.) : 0.;
 }
+
+// Decides whether a corner may be replaced by the curve that leaves the path at `from` and rejoins it
+// at `to`, both in the coordinate system of the pushed points. Rounding cuts toward the inside of the
+// turn, so a path that is not clipped to the fill region afterwards needs this to stay inside it.
+using CornerFilter = std::function<bool(const Vec2d &from, const Vec2d &to)>;
 
 // Orca: Replaces the sharp vertices of an infill path with curves that join the adjoining straight
 // legs with a continuous curvature, so the toolhead does not have to stop in every corner.
@@ -26,9 +33,14 @@ inline double sanitize_smooth_factor(double smooth_factor)
 class CornerSmoother
 {
 public:
-    // tolerance is the maximum chordal deviation of the flattened curves, in the units of the pushed points.
-    CornerSmoother(double smooth_factor, double tolerance)
-        : m_corner_distance_ratio(0.5 * sanitize_smooth_factor(smooth_factor)), m_tolerance(tolerance)
+    // tolerance is the maximum chordal deviation of the flattened curves, in the units of the pushed
+    // points. max_corner_distance caps how far a curve may reach along a leg, in the same units; it
+    // bounds how far a rounded corner moves away from the original path, which matters where the legs
+    // are much longer than the spacing of the pattern. Zero leaves the reach uncapped.
+    CornerSmoother(double smooth_factor, double tolerance, double max_corner_distance = 0.,
+                   CornerFilter corner_filter = {})
+        : m_corner_distance_ratio(0.5 * sanitize_smooth_factor(smooth_factor)), m_tolerance(tolerance),
+          m_max_corner_distance(max_corner_distance), m_corner_filter(std::move(corner_filter))
     {}
 
     bool enabled() const { return m_corner_distance_ratio > 0.; }
@@ -67,6 +79,8 @@ private:
     // is the maximum, otherwise the curves of two adjacent corners would overlap.
     const double       m_corner_distance_ratio;
     const double       m_tolerance;
+    const double       m_max_corner_distance;
+    const CornerFilter m_corner_filter;
     std::vector<Vec2d> m_corner_points;
     // Cached flattening of the last corner, valid for corners of the same size and turn angle.
     std::vector<Vec2d> m_cached_coefficients;
@@ -80,8 +94,15 @@ private:
     int   m_pending { 0 };
 };
 
-// Rounds the corners of already scaled paths in place. Paths of less than three points are left alone.
-void smooth_polyline_corners(Polyline &polyline, double smooth_factor, double tolerance);
-void smooth_polylines_corners(Polylines &polylines, double smooth_factor, double tolerance);
+// Rounds the corners of already scaled paths in place. Paths of less than three points are left alone;
+// a path that ends where it starts is treated as a closed loop, whose seam vertex is rounded as well.
+// See the CornerSmoother constructor for max_corner_distance.
+void smooth_polyline_corners(Polyline &polyline, double smooth_factor, double tolerance,
+                             double max_corner_distance = 0., const CornerFilter &corner_filter = {});
+void smooth_polylines_corners(Polylines &polylines, double smooth_factor, double tolerance,
+                              double max_corner_distance = 0., const CornerFilter &corner_filter = {});
+// Polygons close implicitly, so every one of their vertices is a corner.
+void smooth_polygons_corners(Polygons &polygons, double smooth_factor, double tolerance,
+                             double max_corner_distance = 0., const CornerFilter &corner_filter = {});
 
 } // namespace Slic3r

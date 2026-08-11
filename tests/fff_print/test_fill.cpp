@@ -748,7 +748,8 @@ TEST_CASE("Honeycomb infill rounds its cell corners with the smooth factor", "[F
     REQUIRE(sharpest_turn_cosine(smooth) > 0.9);
 }
 
-// Point count, number of turns sharper than 60 degrees and length of the sparse infill of a print.
+// Point count, number of turns sharper than 25 degrees and length of the sparse infill of a print.
+// A rounded corner is a run of much gentler turns, so smoothing shows up as fewer sharp ones.
 struct SparseInfillShape {
     size_t point_count { 0 };
     size_t sharp_turns { 0 };
@@ -770,7 +771,7 @@ static SparseInfillShape sparse_infill_shape(const Print &print)
             const Vec2d incoming = (pts[i] - pts[i - 1]).head<2>().cast<double>();
             const Vec2d outgoing = (pts[i + 1] - pts[i]).head<2>().cast<double>();
             if (incoming.squaredNorm() > 0. && outgoing.squaredNorm() > 0. &&
-                incoming.normalized().dot(outgoing.normalized()) < 0.5)
+                incoming.normalized().dot(outgoing.normalized()) < 0.9)
                 ++shape.sharp_turns;
         }
     };
@@ -811,4 +812,147 @@ TEST_CASE("Lightning infill rounds the turns of its branches with the smooth fac
     REQUIRE(smooth.point_count > sharp.point_count);
     REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
     REQUIRE(smooth.length < sharp.length);
+}
+
+TEST_CASE("Concentric infill rounds its loops with the smooth factor", "[Fill]")
+{
+    auto shape_for = [](const std::string &smooth_factor) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"sparse_infill_pattern", "concentric"},
+                                             {"sparse_infill_density", "20%"},
+                                             {"sparse_infill_smooth_factor", smooth_factor},
+                                             {"layer_height", 0.2}});
+        return sparse_infill_shape(print);
+    };
+
+    const SparseInfillShape sharp  = shape_for("0%");
+    const SparseInfillShape smooth = shape_for("100%");
+
+    REQUIRE(sharp.point_count > 0);
+    REQUIRE(smooth.point_count > sharp.point_count);
+    REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
+    REQUIRE(smooth.length < sharp.length);
+}
+
+TEST_CASE("Cross hatch infill rounds its transition layers with the smooth factor", "[Fill]")
+{
+    auto shape_for = [](const std::string &smooth_factor) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"sparse_infill_pattern", "crosshatch"},
+                                             {"sparse_infill_density", "20%"},
+                                             {"sparse_infill_smooth_factor", smooth_factor},
+                                             {"layer_height", 0.2}});
+        return sparse_infill_shape(print);
+    };
+
+    const SparseInfillShape sharp  = shape_for("0%");
+    const SparseInfillShape smooth = shape_for("100%");
+
+    REQUIRE(sharp.point_count > 0);
+    REQUIRE(smooth.point_count > sharp.point_count);
+    REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
+    REQUIRE(smooth.length < sharp.length);
+}
+
+TEST_CASE("Trapezoidal grid infill rounds its corners only with more than one line", "[Fill]")
+{
+    auto shape_for = [](int multiline, const std::string &smooth_factor) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"sparse_infill_pattern", "grid"},
+                                             {"sparse_infill_density", "20%"},
+                                             {"fill_multiline", multiline},
+                                             {"sparse_infill_smooth_factor", smooth_factor},
+                                             {"layer_height", 0.2}});
+        return sparse_infill_shape(print);
+    };
+
+    const SparseInfillShape sharp  = shape_for(2, "0%");
+    const SparseInfillShape smooth = shape_for(2, "100%");
+
+    REQUIRE(sharp.point_count > 0);
+    REQUIRE(smooth.point_count > sharp.point_count);
+    REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
+    REQUIRE(smooth.length < sharp.length);
+
+    // A single line per infill wall is the plain crossing line grid, which has no corner of its own.
+    const SparseInfillShape single_sharp  = shape_for(1, "0%");
+    const SparseInfillShape single_smooth = shape_for(1, "100%");
+    REQUIRE(single_sharp.point_count > 0);
+    REQUIRE(single_smooth.point_count == single_sharp.point_count);
+    REQUIRE(single_smooth.length == single_sharp.length);
+}
+
+TEST_CASE("3D honeycomb infill rounds its octahedral waves with the smooth factor", "[Fill]")
+{
+    auto shape_for = [](const std::string &smooth_factor) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"sparse_infill_pattern", "3dhoneycomb"},
+                                             {"sparse_infill_density", "20%"},
+                                             {"sparse_infill_smooth_factor", smooth_factor},
+                                             {"layer_height", 0.2}});
+        return sparse_infill_shape(print);
+    };
+
+    const SparseInfillShape sharp  = shape_for("0%");
+    const SparseInfillShape smooth = shape_for("100%");
+
+    REQUIRE(sharp.point_count > 0);
+    REQUIRE(smooth.point_count > sharp.point_count);
+    REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
+    REQUIRE(smooth.length < sharp.length);
+}
+
+TEST_CASE("Smoothed concentric infill stays inside the fill region", "[Fill][Regression]")
+{
+    // The concentric loops are offsets of the fill region and are never clipped to it, so a corner
+    // rounded across its boundary ends up in a hole or over a wall. Rounding cuts toward the inside of
+    // the turn, which leaves the region at every corner of a hole, and in a region thinner than the
+    // curve even at a corner turning inwards.
+    const bool  thin_region = GENERATE(false, true);
+    ExPolygon   region;
+    if (thin_region) {
+        // An L of two 1.2mm wide arms: cutting the corner they meet at crosses both of them.
+        region = ExPolygon{ Slic3r::Points{
+            Point::new_scale(0., 0.), Point::new_scale(20., 0.), Point::new_scale(20., 1.2),
+            Point::new_scale(1.2, 1.2), Point::new_scale(1.2, 20.), Point::new_scale(0., 20.) } };
+    } else {
+        region = ExPolygon{ Slic3r::Points{ Point::new_scale(0., 0.), Point::new_scale(50., 0.),
+                                            Point::new_scale(50., 50.), Point::new_scale(0., 50.) },
+                            Slic3r::Points{ Point::new_scale(30., 20.), Point::new_scale(30., 30.),
+                                            Point::new_scale(20., 30.), Point::new_scale(20., 20.) } };
+    }
+    CAPTURE(thin_region);
+
+    auto fill = [&region](double smooth_factor) {
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("concentric"));
+        filler->spacing = 0.45;
+
+        FillParams params;
+        params.density       = 0.1f;
+        params.dont_adjust   = true;
+        params.smooth_factor = smooth_factor;
+
+        Slic3r::Surface surface(stInternal, region);
+        return filler->fill_surface(&surface, params);
+    };
+    auto point_count = [](const Slic3r::Polylines &polylines) {
+        return std::accumulate(polylines.begin(), polylines.end(), size_t(0),
+                               [](size_t count, const Polyline &polyline) { return count + polyline.size(); });
+    };
+
+    const Slic3r::Polylines sharp  = fill(0.);
+    const Slic3r::Polylines smooth = fill(1.);
+    REQUIRE(!sharp.empty());
+
+    // Nothing leaves the fill region, which the unrounded loops already touch from the inside.
+    const ExPolygons bounds = offset_ex(region, float(SCALED_EPSILON));
+    REQUIRE(diff_pl(sharp, bounds).empty());
+    REQUIRE(diff_pl(smooth, bounds).empty());
+    // The corners that the region has room for are still rounded.
+    if (!thin_region)
+        REQUIRE(point_count(smooth) > point_count(sharp));
 }

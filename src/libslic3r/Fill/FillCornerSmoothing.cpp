@@ -131,41 +131,95 @@ void CornerSmoother::round_corner(const Vec2d &previous, const Vec2d &corner, co
     }
 
     // Consuming at most half of the shorter leg keeps the curves of two adjacent corners apart.
-    const double corner_distance = m_corner_distance_ratio * std::min(incoming_length, outgoing_length);
-    const std::vector<Vec2d> &coefficients = curve_coefficients(corner_distance, incoming, outgoing);
+    double corner_distance = m_corner_distance_ratio * std::min(incoming_length, outgoing_length);
+    if (m_max_corner_distance > 0.)
+        corner_distance = std::min(corner_distance, m_max_corner_distance);
 
+    const Vec2d curve_start = corner - corner_distance * incoming;
+    const Vec2d curve_end   = corner + corner_distance * outgoing;
+    if (m_corner_filter && !m_corner_filter(curve_start, curve_end)) {
+        m_corner_points.emplace_back(corner);
+        return;
+    }
+
+    const std::vector<Vec2d> &coefficients = curve_coefficients(corner_distance, incoming, outgoing);
     m_corner_points.reserve(coefficients.size() + 1);
-    m_corner_points.emplace_back(corner - corner_distance * incoming);
+    m_corner_points.emplace_back(curve_start);
     for (const Vec2d &coefficient : coefficients)
         m_corner_points.emplace_back(corner + coefficient.x() * incoming + coefficient.y() * outgoing);
 }
 
-void smooth_polyline_corners(Polyline &polyline, const double smooth_factor, const double tolerance)
+// Rounds the corners of a scaled point sequence. A polygon closes implicitly, a point sequence that
+// ends where it starts is a closed path keeping that closing point, anything else is an open path.
+static Points smooth_corners(const Points &points, const bool polygon, CornerSmoother &smoother)
 {
-    CornerSmoother smoother(smooth_factor, tolerance);
+    // A closed path has no free ends, so its seam vertex is a corner like any other. Rounding it takes
+    // feeding the smoother the vertex before the seam, whose own output point is then dropped again.
+    const bool closed = polygon || (points.size() > 3 && points.front() == points.back());
+    size_t     skip   = closed ? 1 : 0;
+
+    Points smoothed;
+    smoothed.reserve(2 * points.size());
+    auto emit = [&smoothed, &skip](const Vec2d &point) {
+        if (skip > 0) {
+            --skip;
+            return;
+        }
+        smoothed.emplace_back(coord_t(std::floor(point.x() + 0.5)), coord_t(std::floor(point.y() + 0.5)));
+    };
+
+    if (closed)
+        smoother.push((polygon ? points.back() : points[points.size() - 2]).cast<double>(), emit);
+    for (const Point &point : points)
+        smoother.push(point.cast<double>(), emit);
+    if (polygon)
+        // Wrap the first vertex around, so that the last one is a corner as well.
+        smoother.push(points.front().cast<double>(), emit);
+    smoother.flush(emit);
+
+    if (polygon)
+        // The flushed point is the wrapped first vertex, which a polygon does not store.
+        smoothed.pop_back();
+    else if (closed)
+        // The flushed point is the sharp seam vertex; close the path on its rounded replacement instead.
+        smoothed.back() = smoothed.front();
+    return smoothed;
+}
+
+void smooth_polyline_corners(Polyline &polyline, const double smooth_factor, const double tolerance,
+                             const double max_corner_distance, const CornerFilter &corner_filter)
+{
+    CornerSmoother smoother(smooth_factor, tolerance, max_corner_distance, corner_filter);
     if (!smoother.enabled() || polyline.size() < 3)
         return;
 
-    Points smoothed;
-    smoothed.reserve(2 * polyline.size());
-    auto emit = [&smoothed](const Vec2d &point) {
-        smoothed.emplace_back(coord_t(std::floor(point.x() + 0.5)), coord_t(std::floor(point.y() + 0.5)));
-    };
-    for (const Point &point : polyline.points)
-        smoother.push(point.cast<double>(), emit);
-    smoother.flush(emit);
-
-    polyline.points = std::move(smoothed);
+    polyline.points = smooth_corners(polyline.points, false, smoother);
     // Rounding back to the integer grid may collapse neighbouring samples of a curve.
     polyline.remove_duplicate_points();
 }
 
-void smooth_polylines_corners(Polylines &polylines, const double smooth_factor, const double tolerance)
+void smooth_polylines_corners(Polylines &polylines, const double smooth_factor, const double tolerance,
+                              const double max_corner_distance, const CornerFilter &corner_filter)
 {
     if (sanitize_smooth_factor(smooth_factor) == 0.)
         return;
     for (Polyline &polyline : polylines)
-        smooth_polyline_corners(polyline, smooth_factor, tolerance);
+        smooth_polyline_corners(polyline, smooth_factor, tolerance, max_corner_distance, corner_filter);
+}
+
+void smooth_polygons_corners(Polygons &polygons, const double smooth_factor, const double tolerance,
+                             const double max_corner_distance, const CornerFilter &corner_filter)
+{
+    CornerSmoother smoother(smooth_factor, tolerance, max_corner_distance, corner_filter);
+    if (!smoother.enabled())
+        return;
+
+    for (Polygon &polygon : polygons) {
+        if (polygon.size() < 3)
+            continue;
+        polygon.points = smooth_corners(polygon.points, true, smoother);
+        polygon.remove_duplicate_points();
+    }
 }
 
 } // namespace Slic3r

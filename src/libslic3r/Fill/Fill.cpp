@@ -972,7 +972,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 
                     // Orca: the smoothing factor only applies to the sparse infill patterns that
                     // implement it. The fills clamp and validate the value themselves.
-                    if (is_smoothable_infill_pattern(params.pattern))
+                    if (is_smoothable_infill_pattern(params.pattern, params.multiline))
                         params.smooth_factor = 0.01 * region_config.sparse_infill_smooth_factor.value;
                 } else {
                     const bool top_layer_direction_set    = surface.is_top() && region_config.top_layer_direction.value >= 0.;

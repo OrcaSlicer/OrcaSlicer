@@ -3470,8 +3470,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Sparse infill smooth factor");
     def->category = L("Strength");
     def->tooltip = L("Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, "
-                     "while 100% produces the largest possible curves between adjacent infill lines. "
-                     "Applies to the Hilbert Curve, Octagram Spiral, Lightning and Honeycomb patterns.");
+                     "while 100% produces the largest possible curves between adjacent infill lines.");
     def->sidetext = "%";
     def->min = 0;
     def->max = 100;
