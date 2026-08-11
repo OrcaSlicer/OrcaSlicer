@@ -24,6 +24,7 @@ public:
     wxAccStatus GetName(int childId, wxString* name) override;
     wxAccStatus GetRole(int childId, wxAccRole* role) override;
     wxAccStatus GetState(int childId, long* state) override;
+    wxAccStatus GetDescription(int childId, wxString* description) override;
 
     void SetRole(wxAccRole role) { m_role = role; }
     void SetExtraStateGetter(ExtraStateGetter getter) { m_extra_state = std::move(getter); }
