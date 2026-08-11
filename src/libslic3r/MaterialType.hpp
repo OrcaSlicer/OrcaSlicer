@@ -59,6 +59,10 @@ public:
     //                  with a base of the other;
     //   Unknown      - none of the above.
     static MaterialCompatibility compatibility(const std::string& type_a, const std::string& type_b);
+
+    // Do the two types adhere? Shorthand for the Compatible verdict, which is also what a type returns
+    // against itself - callers never need to special-case equal types.
+    static bool bonds(const std::string& type_a, const std::string& type_b);
 };
 
 } // namespace Slic3r
