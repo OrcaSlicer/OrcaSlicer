@@ -156,6 +156,12 @@ bool Button::Create(wxWindow* parent, wxString text, wxString icon, long style, 
     // BBS set default font
     SetFont(Label::Body_14);
     wxWindow::SetLabel(text);
+    // ORCA: derive the accessible name from the visible label by default, so
+    // any Button with real text works without a separate explicit SetName()
+    // call. A caller wanting a different accessible name can still override
+    // this with its own SetName() call afterwards.
+    if (!text.empty())
+        SetName(text);
     if (!icon.IsEmpty()) {
         // BBS set button icon default size to 20
         this->active_icon = ScalableBitmap(this, icon.ToStdString(), iconSize > 0 ? iconSize : 20);
@@ -177,6 +183,8 @@ void Button::SetLabel(const wxString& label)
 {
     if (label != wxWindow::GetLabel()) {
         wxWindow::SetLabel(label);
+        if (!label.empty())
+            SetName(label); // ORCA: keep the accessible name in sync with the visible label, see Create()
         messureSize();
         Refresh();
 #ifdef __WXOSX__
