@@ -169,6 +169,44 @@ bool WonderMakerPrinterAgent::fetch_tmt_filament_info(std::vector<AmsTrayData>& 
 }
 
 
+std::string WonderMakerProtocol::build_start_script(const std::string&      filename,
+                                                    const std::vector<int>& box_of_tool_1based,
+                                                    bool                    bed_leveling)
+{
+    std::string script;
+    // The ZR's touchscreen probes before each print; G30 is what its start sequence issues. An
+    // absent command simply means "don't probe", so the off case emits nothing rather than a
+    // disable command the firmware has no notion of.
+    if (bed_leveling)
+        script += "G30\n";
+
+    for (size_t tool = 0; tool < box_of_tool_1based.size(); ++tool) {
+        const int box_1based = box_of_tool_1based[tool];
+        // A tool this plate doesn't print carries no pick; leaving its variable alone preserves
+        // whatever the printer's own screen last set for it.
+        if (box_1based <= 0)
+            continue;
+        const std::string variable = "box_modify_t" + std::to_string(tool);
+        const std::string value    = std::to_string(box_1based - 1);
+        // Both forms, every time: the live variable is what the tool reads on first selection,
+        // and `_backup` is what survives the print -- writing only one leaves the printer
+        // describing a mapping it did not run.
+        script += "SAVE_VARIABLE VARIABLE=" + variable + " VALUE=" + value + "\n";
+        script += "SAVE_VARIABLE VARIABLE=" + variable + "_backup VALUE=" + value + "\n";
+    }
+
+    script += "SDCARD_PRINT_FILE FILENAME=\"" + filename + "\"";
+    return script;
+}
+
+std::string WonderMakerProtocol::build_start_script(const std::string& filename, const DevicePrintJobInfo& job)
+{
+    // filament_map_1based is indexed by the tool numbers the g-code actually emits, which for this
+    // protocol are dense (see protocol_requires_dense_tool_numbering), so it is already the
+    // per-tool box list this dialect wants.
+    return build_start_script(filename, job.filament_map_1based, job.option_on("bed_leveling"));
+}
+
 WonderMakerPrinterAgent::WonderMakerPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}
 
 AgentInfo WonderMakerPrinterAgent::get_agent_info_static()

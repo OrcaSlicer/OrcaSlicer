@@ -30,6 +30,7 @@
 #include "3DPrinterOS.hpp"
 #include "Moonraker.hpp"
 #include "SnapmakerPrinterAgent.hpp"
+#include "WonderMakerPrinterAgent.hpp"
 
 namespace fs = boost::filesystem;
 using boost::optional;
@@ -61,6 +62,15 @@ DevicePrintSpec device_print_spec(FilamentMappingProtocol protocol)
                                 L("Probe the bed before printing, as the printer's own screen does."),
                                 DevicePrintOptionKind::Bool, "1", {}});
         break;
+    case FilamentMappingProtocol::fmpWonderMaker:
+        spec.supports_filament_mapping = true;
+        // The ZR's start sequence probes (G30) before every print, so leveling defaults on to
+        // match it. Its firmware offers no flow-calibration or time-lapse hook, so declaring
+        // fewer options than the Snapmaker is the whole point of the per-protocol declaration.
+        spec.options.push_back({"bed_leveling", L("Auto Leveling"),
+                                L("Probe the bed before printing, as the printer's own screen does."),
+                                DevicePrintOptionKind::Bool, "1", {}});
+        break;
     default: break;
     }
     return spec;
@@ -70,6 +80,7 @@ std::string build_device_map_start_script(FilamentMappingProtocol protocol, cons
 {
     switch (protocol) {
     case FilamentMappingProtocol::fmpSnapmaker: return SnapmakerProtocol::build_start_script(filename, filament_map_1based);
+    case FilamentMappingProtocol::fmpWonderMaker: return WonderMakerProtocol::build_start_script(filename, filament_map_1based, true);
     default: return {};
     }
 }
@@ -78,6 +89,7 @@ std::string build_device_start_script(FilamentMappingProtocol protocol, const st
 {
     switch (protocol) {
     case FilamentMappingProtocol::fmpSnapmaker: return SnapmakerProtocol::build_start_script(filename, job);
+    case FilamentMappingProtocol::fmpWonderMaker: return WonderMakerProtocol::build_start_script(filename, job);
     default: return {};
     }
 }
