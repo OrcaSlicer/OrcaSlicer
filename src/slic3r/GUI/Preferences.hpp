@@ -84,8 +84,7 @@ public:
     std::vector<wxFlexGridSizer*> f_sizers;
 
     wxBoxSizer *create_item_title(wxString title);
-    // label_ctrl optionally receives the created label, so that the caller can make it clickable
-    wxBoxSizer *create_item_label(wxString label, const wxString tooltip = "", const wxString wiki_url = "", wxWindow **label_ctrl = nullptr);
+    wxBoxSizer *create_item_label(wxString label, const wxString tooltip = "", const wxString wiki_url = "");
     wxBoxSizer *create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::function<void(wxString)> onchange = {}, const wxString wiki_url = "");
     wxBoxSizer *create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::vector<std::string> config_name_index, const wxString wiki_url = "");
     wxBoxSizer *create_item_region_combobox(wxString title, wxString tooltip);

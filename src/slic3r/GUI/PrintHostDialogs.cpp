@@ -37,6 +37,7 @@
 #include "format.hpp"
 #include "../Utils/CrealityPrint.hpp"
 #include "BitmapComboBox.hpp"
+#include "Widgets/RadioGroup.hpp"
 #include "wxExtensions.hpp"
 
 #include <nlohmann/json.hpp>
@@ -1714,52 +1715,22 @@ void ElegooPrintHostSendDialog::init() {
     }
 
     {
-        auto radioBoxA = new ::RadioBox(this);
-        auto radioBoxB = new ::RadioBox(this);
-        if (m_BedType == BedType::btPC)
-            radioBoxB->SetValue(true);
-        else
-            radioBoxA->SetValue(true);
-
-        radioBoxA->Bind(wxEVT_LEFT_DOWN, [this, radioBoxA, radioBoxB](wxMouseEvent& e) {
-            radioBoxA->SetValue(true);
-            radioBoxB->SetValue(false);
-            m_BedType = BedType::btPTE;
-            refresh();
-        });
-        radioBoxB->Bind(wxEVT_LEFT_DOWN, [this, radioBoxA, radioBoxB](wxMouseEvent& e) {
-            radioBoxA->SetValue(false);
-            radioBoxB->SetValue(true);
-            m_BedType = BedType::btPC;
+        // ORCA RadioGroup, its labels are clickable
+        auto radio_group = new RadioGroup(this, {
+            _L("Textured Build Plate (Side A)"), // 0 - btPTE
+            _L("Smooth Build Plate (Side B)")    // 1 - btPC
+        }, wxVERTICAL);
+        radio_group->SetSelection(m_BedType == BedType::btPC ? 1 : 0);
+        radio_group->Bind(wxEVT_COMMAND_RADIOBOX_SELECTED, [this](wxCommandEvent& e) {
+            m_BedType = e.GetInt() == 1 ? BedType::btPC : BedType::btPTE;
             refresh();
         });
 
-        {
-            auto radio_sizer = new wxBoxSizer(wxHORIZONTAL);
-            radio_sizer->AddSpacer(16);
-            radio_sizer->Add(radioBoxA, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
-
-            auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Textured Build Plate (Side A)"), wxDefaultPosition, wxDefaultSize, 0);
-            radio_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
-            checkbox_text->SetFont(::Label::Body_13);
-            checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
-            radioBoxA->BindLabel(checkbox_text);
-            uploadandprint_sizer->Add(radio_sizer);
-            uploadandprint_sizer->AddSpacer(VERT_SPACING);
-        }
-        {
-            auto radio_sizer = new wxBoxSizer(wxHORIZONTAL);
-            radio_sizer->AddSpacer(16);
-            radio_sizer->Add(radioBoxB, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
-
-            auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Smooth Build Plate (Side B)"), wxDefaultPosition, wxDefaultSize, 0);
-            radio_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
-            checkbox_text->SetFont(::Label::Body_13);
-            checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
-            radioBoxB->BindLabel(checkbox_text);
-            uploadandprint_sizer->Add(radio_sizer);
-            uploadandprint_sizer->AddSpacer(VERT_SPACING);
-        }
+        auto radio_sizer = new wxBoxSizer(wxHORIZONTAL);
+        radio_sizer->AddSpacer(16);
+        radio_sizer->Add(radio_group, 0, wxALIGN_CENTER_VERTICAL);
+        uploadandprint_sizer->Add(radio_sizer);
+        uploadandprint_sizer->AddSpacer(VERT_SPACING);
     }
     {
         auto h_sizer = new wxBoxSizer(wxHORIZONTAL);

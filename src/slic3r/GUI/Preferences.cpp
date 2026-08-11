@@ -255,7 +255,7 @@ wxBoxSizer *PreferencesDialog::create_item_title(wxString title)
     return m_sizer_title;
 }
 
-wxBoxSizer *PreferencesDialog::create_item_label(wxString label, wxString tooltip, wxString wiki_url, wxWindow **label_ctrl_out)
+wxBoxSizer *PreferencesDialog::create_item_label(wxString label, wxString tooltip, wxString wiki_url)
 {
     wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
@@ -267,9 +267,6 @@ wxBoxSizer *PreferencesDialog::create_item_label(wxString label, wxString toolti
     auto label_ctrl = new WikiLabel(m_parent, label, url, wxDefaultPosition, DESIGN_TITLE_SIZE);
 
     label_ctrl->SetToolTip(tooltip);
-
-    if (label_ctrl_out != nullptr)
-        *label_ctrl_out = label_ctrl;
 
     sizer->Add(label_ctrl, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(3));
     sizer->AddSpacer(FromDIP(5));
@@ -839,13 +836,11 @@ wxBoxSizer *PreferencesDialog::create_item_backup(wxString title, wxString toolt
 {
     auto tip = tooltip.IsEmpty() ? title : tooltip; // auto fill tooltips with title if its empty
 
-    wxWindow *  label_ctrl = nullptr;
-    wxBoxSizer *m_sizer    = create_item_label(title, tip, wxEmptyString, &label_ctrl);
+    wxBoxSizer *m_sizer = create_item_label(title, tip);
 
     auto checkbox = new ::CheckBox(m_parent);
     checkbox->SetValue(app_config->get_bool("backup_switch"));
     checkbox->SetToolTip(tip);
-    checkbox->BindLabel(label_ctrl);
 
     checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox](wxCommandEvent &e) {
         app_config->set_bool("backup_switch", checkbox->GetValue());
@@ -904,13 +899,11 @@ wxBoxSizer *PreferencesDialog::create_item_backup(wxString title, wxString toolt
 
 wxBoxSizer *PreferencesDialog::create_item_auto_reslice(wxString title, wxString checkbox_tooltip, wxString delay_tooltip)
 {
-    wxWindow *  label_ctrl = nullptr;
-    wxBoxSizer *m_sizer    = create_item_label(title, checkbox_tooltip, wxEmptyString, &label_ctrl);
+    wxBoxSizer *m_sizer = create_item_label(title, checkbox_tooltip);
 
     auto checkbox = new ::CheckBox(m_parent);
     checkbox->SetValue(app_config->get_bool("auto_slice_after_change"));
     checkbox->SetToolTip(checkbox_tooltip);
-    checkbox->BindLabel(label_ctrl);
 
     wxString delay_value = app_config->get("auto_slice_change_delay_seconds");
     if (delay_value.empty())
@@ -967,13 +960,11 @@ wxBoxSizer* PreferencesDialog::create_item_darkmode(wxString title,wxString tool
 {
     auto tip = tooltip.IsEmpty() ? title : tooltip; // auto fill tooltips with title if its empty
 
-    wxWindow *  label_ctrl = nullptr;
-    wxBoxSizer *m_sizer    = create_item_label(title, tip, wxEmptyString, &label_ctrl);
+    wxBoxSizer *m_sizer = create_item_label(title, tip);
 
     auto checkbox = new ::CheckBox(m_parent);
     checkbox->SetValue((app_config->get(param) == "1") ? true : false);
     checkbox->SetToolTip(tip);
-    checkbox->BindLabel(label_ctrl);
     m_dark_mode_ckeckbox = checkbox;
 
     m_sizer->Add(checkbox, 0, wxALIGN_CENTER);
@@ -1016,15 +1007,11 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
 {
     auto tip = tooltip.IsEmpty() ? title : tooltip; // auto fill tooltips with title if its empty
 
-    wxWindow *  label_ctrl = nullptr;
-    wxBoxSizer *m_sizer    = create_item_label(title, tip, wiki_url, &label_ctrl);
+    wxBoxSizer *m_sizer = create_item_label(title, tip, wiki_url);
 
     auto checkbox = new ::CheckBox(m_parent);
     checkbox->SetValue(app_config->get_bool(param));
     checkbox->SetToolTip(tip);
-    // A label that links to the wiki keeps its link, everything else toggles the box
-    if (wiki_url.IsEmpty())
-        checkbox->BindLabel(label_ctrl);
 
     if (param == "sync_user_preset") { m_sync_user_preset_checkbox = checkbox; }
 
@@ -1036,6 +1023,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         sec_title->SetFont(::Label::Body_14);
         sec_title->Wrap(-1);
         sec_title->SetToolTip(tip);
+        // The secondary title sits to the right of the box, close enough to be part of it
         checkbox->BindLabel(sec_title);
         m_sizer->Add(sec_title, 0, wxALIGN_CENTER | wxLEFT, FromDIP(5));
     }
@@ -1259,14 +1247,12 @@ wxBoxSizer* PreferencesDialog::create_item_downloads(wxString title, wxString to
 
 wxBoxSizer *PreferencesDialog::create_item_bambu_cloud(wxString title, wxString tooltip)
 {
-    wxWindow *  label_ctrl = nullptr;
-    wxBoxSizer *m_sizer    = create_item_label(title, tooltip, wxEmptyString, &label_ctrl);
+    wxBoxSizer *m_sizer = create_item_label(title, tooltip);
 
     auto cb = new ::CheckBox(m_parent);
     m_bambu_cloud_checkbox = cb;
     cb->SetValue(app_config->has_cloud_provider(BBL_CLOUD_PROVIDER));
     cb->SetToolTip(tooltip);
-    cb->BindLabel(label_ctrl);
 
     cb->Bind(wxEVT_TOGGLEBUTTON, [this, cb](wxCommandEvent &e) {
         e.Skip(); // let CheckBox::update() refresh the bitmap
@@ -1431,7 +1417,6 @@ wxBoxSizer* PreferencesDialog::create_item_link_association( wxString url_prefix
     checkbox_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
     checkbox_title->SetFont(::Label::Body_14);
     checkbox_title->Wrap(-1);
-    checkbox->BindLabel(checkbox_title);
 
     h_sizer->Add(checkbox_title, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(3));
     h_sizer->Add(checkbox      , 0, wxALIGN_CENTER | wxLEFT          , FromDIP(5));
