@@ -130,3 +130,95 @@ TEST_CASE("Initial layer height is honored", "[PrintObject]")
     REQUIRE_THAT(*layer_zs.begin(),            Catch::Matchers::WithinAbs(0.3, 1e-4));
     REQUIRE_THAT(*std::next(layer_zs.begin()), Catch::Matchers::WithinAbs(0.5, 1e-4));
 }
+
+// Config carrying just the filament-scope keys PrintObject::resolve_auto_support_filament reads.
+static DynamicPrintConfig auto_support_config(std::vector<std::string>  types,
+                                              std::vector<unsigned char> soluble,
+                                              std::vector<std::string>  colours,
+                                              std::vector<unsigned char> is_support = {})
+{
+    if (is_support.empty())
+        is_support.assign(types.size(), false);
+    DynamicPrintConfig config;
+    config.set_key_value("filament_type",                  new ConfigOptionStrings(std::move(types)));
+    config.set_key_value("filament_soluble",               new ConfigOptionBools(std::move(soluble)));
+    config.set_key_value("filament_is_support",            new ConfigOptionBools(std::move(is_support)));
+    config.set_key_value("filament_colour",                new ConfigOptionStrings(std::move(colours)));
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    return config;
+}
+
+// A single-volume object printed with `extruder` (1-based).
+static ModelObject& auto_support_object(Model &model, int extruder)
+{
+    ModelObject *object = model.add_object();
+    object->add_volume(cube(20));
+    object->volumes.front()->config.set_key_value("extruder", new ConfigOptionInt(extruder));
+    return *object;
+}
+
+TEST_CASE("Auto support filament picks a filament that does not bond to the object", "[PrintObject]")
+{
+    Model              model;
+    const ModelObject &object = auto_support_object(model, 1); // printed in PLA
+
+    SECTION("a non-bonding material is preferred over the object's own") {
+        // PLA does not bond to PET, so the PETG filament is the one that detaches cleanly.
+        const DynamicPrintConfig config = auto_support_config({"PLA", "PETG"}, {false, false}, {"#FFFFFF", "#000000"});
+        REQUIRE(PrintObject::resolve_auto_support_filament(object, 2, config, true) == 2);
+    }
+    SECTION("a soluble filament wins over a merely non-bonding one") {
+        const DynamicPrintConfig config = auto_support_config({"PLA", "PETG", "PVA"}, {false, false, true}, {"#FFFFFF", "#000000", "#000000"});
+        REQUIRE(PrintObject::resolve_auto_support_filament(object, 3, config, true) == 3);
+    }
+    SECTION("a support material wins over a plain filament of the same compatibility") {
+        // Both candidates are PETG, so they are equally incompatible with the PLA object and only the support
+        // flag separates them. Filament 2 has the object's exact colour, so colour alone would pick it.
+        const bool               soluble = GENERATE(true, false); // flagged soluble, or flagged a support filament
+        const DynamicPrintConfig config  = auto_support_config({"PLA", "PETG", "PETG"},
+                                                              {false, false, soluble},
+                                                              {"#FFFFFF", "#FFFFFF", "#000000"},
+                                                              {false, false, !soluble});
+        REQUIRE(PrintObject::resolve_auto_support_filament(object, 3, config, true) == 3);
+    }
+    SECTION("the excluded filament is not picked") {
+        // "Avoid interface filament for base" keeps the base off the interface's filament.
+        const DynamicPrintConfig config = auto_support_config({"PLA", "PETG", "PVA"}, {false, false, true}, {"#FFFFFF", "#000000", "#000000"});
+        REQUIRE(PrintObject::resolve_auto_support_filament(object, 3, config, true, 3) == 2);
+    }
+    SECTION("only bonding filaments available falls back to the object's own filament") {
+        // Both filaments are PLA, so no filament would detach: reuse the object's to avoid mixing colours.
+        const DynamicPrintConfig config = auto_support_config({"PLA", "PLA"}, {false, false}, {"#FFFFFF", "#000000"});
+        REQUIRE(PrintObject::resolve_auto_support_filament(object, 2, config, true) == 1);
+    }
+    SECTION("a single filament resolves to Default") {
+        const DynamicPrintConfig config = auto_support_config({"PLA"}, {false}, {"#FFFFFF"});
+        REQUIRE(PrintObject::resolve_auto_support_filament(object, 1, config, true) == 0);
+    }
+    SECTION("support disabled resolves to Default") {
+        const DynamicPrintConfig config = auto_support_config({"PLA", "PETG"}, {false, false}, {"#FFFFFF", "#000000"});
+        REQUIRE(PrintObject::resolve_auto_support_filament(object, 2, config, false) == 0);
+    }
+}
+
+TEST_CASE("Auto support filament makes a single-material plate use two filaments", "[PrintObject]")
+{
+    // Regression guard: the auto-picked interface filament has to show up in Print::extruders(), otherwise the
+    // print looks single-filament and the prime tower gets normalized away.
+    Slic3r::Print print;
+    Slic3r::Model model;
+    Slic3r::Test::init_print({cube(20)}, print, model, {
+        { "enable_support",             true },
+        { "support_interface_filament", SUPPORT_FILAMENT_AUTO },
+        // "Auto" only applies to printers with one nozzle per filament.
+        { "single_extruder_multi_material", false },
+        { "filament_type",              "PLA;PETG" },
+        { "nozzle_diameter",            "0.4,0.4" },
+        { "filament_diameter",          "1.75,1.75" },
+        { "filament_soluble",           "0,0" },
+        { "filament_colour",            "#FFFFFF;#000000" }
+    });
+
+    REQUIRE(print.objects().front()->config().support_interface_filament.value == 2);
+    REQUIRE(print.extruders().size() == 2);
+}

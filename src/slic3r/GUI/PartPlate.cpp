@@ -1,6 +1,8 @@
 #include <cstddef>
 #include <algorithm>
+#include <functional>
 #include <numeric>
+#include <optional>
 #include <vector>
 #include <string>
 #include <sstream>
@@ -1525,6 +1527,54 @@ int PartPlate::picking_id_component(int idx) const
     return this->m_plate_index * GRABBER_COUNT + idx;
 }
 
+// Collect the support filaments an object prints with, expanding "Auto" (SUPPORT_FILAMENT_AUTO) exactly the way
+// PrintObject does, so a plate reports the filaments it will actually use. Skipping "Auto" here would make a
+// single-material object with an auto-picked support filament look like a single-filament plate, which in turn
+// suppresses the prime tower (and its arrange placement and AMS mapping).
+// The object config takes precedence, "Default" (0) falls back to the global (print preset) value.
+// full_config carries the filament-scope keys the resolver needs; it is fetched on demand because building it is
+// only worth it when some filament is actually set to "Auto".
+static void append_support_extruders(std::vector<int>                                 &plate_extruders,
+                                     const ModelObject                                &mo,
+                                     const DynamicPrintConfig                         &glb_config,
+                                     const std::function<const DynamicPrintConfig &()> &get_full_config)
+{
+    auto obj_or_global_int = [&](const char *key) {
+        const ConfigOption *opt = mo.config.option(key);
+        const int obj_value = opt != nullptr ? opt->getInt() : 0;
+        return obj_value != 0 ? obj_value : glb_config.opt_int(key);
+    };
+    auto obj_or_global_bool = [&](const char *key) {
+        const ConfigOption *opt = mo.config.option(key);
+        return opt != nullptr ? opt->getBool() : glb_config.opt_bool(key);
+    };
+
+    int interface_extruder = obj_or_global_int("support_interface_filament");
+    int base_extruder      = obj_or_global_int("support_filament");
+    // "Default" (0) irons with the interface filament, which is already accounted for.
+    int ironing_extruder   = obj_or_global_bool("support_ironing") ? obj_or_global_int("support_ironing_filament") : 0;
+
+    if (interface_extruder == SUPPORT_FILAMENT_AUTO || base_extruder == SUPPORT_FILAMENT_AUTO || ironing_extruder == SUPPORT_FILAMENT_AUTO) {
+        // Resolve in the same order as PrintObject::object_config_from_model_object: the base resolves last so
+        // that "Avoid interface filament for base" can keep it off the interface's chosen filament.
+        const DynamicPrintConfig &full_config   = get_full_config();
+        const size_t              num_extruders = full_config.option<ConfigOptionFloats>("filament_diameter")->size();
+        auto resolve = [&](int exclude_extruder) {
+            return PrintObject::resolve_auto_support_filament(mo, num_extruders, full_config, true, exclude_extruder);
+        };
+        if (interface_extruder == SUPPORT_FILAMENT_AUTO)
+            interface_extruder = resolve(0);
+        if (ironing_extruder == SUPPORT_FILAMENT_AUTO)
+            ironing_extruder = resolve(0);
+        if (base_extruder == SUPPORT_FILAMENT_AUTO)
+            base_extruder = resolve(obj_or_global_bool("support_interface_not_for_body") ? interface_extruder : 0);
+    }
+
+    for (int extruder : {interface_extruder, base_extruder, ironing_extruder})
+        if (extruder > 0)
+            plate_extruders.push_back(extruder);
+}
+
 std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 {
 	std::vector<int> plate_extruders;
@@ -1533,8 +1583,14 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
     }
 	// if 3mf file
 	const DynamicPrintConfig& glb_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-	int glb_support_intf_extr = glb_config.opt_int("support_interface_filament");
-	int glb_support_extr = glb_config.opt_int("support_filament");
+	// Only built when an object resolves an "Auto" support filament; the print preset alone does not carry the
+	// filament-scope keys (type, soluble, colour) the resolver needs.
+	std::optional<DynamicPrintConfig> auto_support_config;
+	auto get_full_config = [&auto_support_config]() -> const DynamicPrintConfig & {
+		if (!auto_support_config)
+			auto_support_config = wxGetApp().preset_bundle->full_config();
+		return *auto_support_config;
+	};
 	int glb_outer_wall_extr = glb_config.opt_int("outer_wall_filament_id");
 	int glb_inner_wall_extr = glb_config.opt_int("inner_wall_filament_id");
 	if (glb_outer_wall_extr == 0) glb_outer_wall_extr = glb_inner_wall_extr;
@@ -1578,27 +1634,8 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 		else
 			obj_support = glb_support;
 
-        if (obj_support) {
-            int                 obj_support_intf_extr = 0;
-            const ConfigOption* support_intf_extr_opt = mo->config.option("support_interface_filament");
-            if (support_intf_extr_opt != nullptr)
-                obj_support_intf_extr = support_intf_extr_opt->getInt();
-            // "Auto" (< 0) resolves to a concrete filament per object at slicing time; not known here, so skip it.
-            if (obj_support_intf_extr > 0)
-                plate_extruders.push_back(obj_support_intf_extr);
-            else if (obj_support_intf_extr == 0 && glb_support_intf_extr > 0)
-                plate_extruders.push_back(glb_support_intf_extr);
-
-            int                 obj_support_extr = 0;
-            const ConfigOption* support_extr_opt = mo->config.option("support_filament");
-            if (support_extr_opt != nullptr)
-                obj_support_extr = support_extr_opt->getInt();
-            // "Auto" (< 0) resolves to a concrete filament per object at slicing time; not known here, so skip it.
-            if (obj_support_extr > 0)
-                plate_extruders.push_back(obj_support_extr);
-            else if (obj_support_extr == 0 && glb_support_extr > 0)
-                plate_extruders.push_back(glb_support_extr);
-        }
+        if (obj_support)
+            append_support_extruders(plate_extruders, *mo, glb_config, get_full_config);
 
 		int obj_outer_wall_extr = 0;
 		if (const ConfigOption* wall_opt = mo->config.option("outer_wall_filament_id"); wall_opt != nullptr)
@@ -1705,8 +1742,6 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
     std::vector<int> plate_extruders;
 
     // if 3mf file
-    int glb_support_intf_extr = full_config.opt_int("support_interface_filament");
-    int glb_support_extr = full_config.opt_int("support_filament");
 	int glb_outer_wall_extr = full_config.opt_int("outer_wall_filament_id");
 	int glb_inner_wall_extr = full_config.opt_int("inner_wall_filament_id");
 	if (glb_outer_wall_extr == 0) glb_outer_wall_extr = glb_inner_wall_extr;
@@ -1762,25 +1797,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
             if (!obj_support)
                 continue;
 
-            int obj_support_intf_extr = 0;
-            const ConfigOption* support_intf_extr_opt = object->config.option("support_interface_filament");
-            if (support_intf_extr_opt != nullptr)
-                obj_support_intf_extr = support_intf_extr_opt->getInt();
-            // "Auto" (< 0) resolves to a concrete filament per object at slicing time; not known here, so skip it.
-            if (obj_support_intf_extr > 0)
-                plate_extruders.push_back(obj_support_intf_extr);
-            else if (obj_support_intf_extr == 0 && glb_support_intf_extr > 0)
-                plate_extruders.push_back(glb_support_intf_extr);
-
-            int obj_support_extr = 0;
-            const ConfigOption* support_extr_opt = object->config.option("support_filament");
-            if (support_extr_opt != nullptr)
-                obj_support_extr = support_extr_opt->getInt();
-            // "Auto" (< 0) resolves to a concrete filament per object at slicing time; not known here, so skip it.
-            if (obj_support_extr > 0)
-                plate_extruders.push_back(obj_support_extr);
-            else if (obj_support_extr == 0 && glb_support_extr > 0)
-                plate_extruders.push_back(glb_support_extr);
+            append_support_extruders(plate_extruders, *object, full_config, [&full_config]() -> const DynamicPrintConfig & { return full_config; });
 
 			int obj_outer_wall_extr = 0;
 			if (const ConfigOption* wall_opt = object->config.option("outer_wall_filament_id"); wall_opt != nullptr)
