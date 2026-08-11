@@ -1,7 +1,13 @@
 #include <catch2/catch_all.hpp>
 
+#include <map>
+#include <set>
+#include <sstream>
 #include <string>
 #include <vector>
+
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
@@ -180,5 +186,80 @@ TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", 
         REQUIRE_FALSE(tower.empty());
         CHECK_THAT(tower, Catch::Matchers::ContainsSubstring(expected));
         CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring(unexpected));
+    }
+}
+
+// Per layer: the tools that print anything, and the tools that build the tower structure. A wipe tower block
+// containing a toolchange is a purge block - the filament being switched away from has to go somewhere and says
+// nothing about the structure; a block without one is the tower's own wall and fill for that layer.
+static std::vector<std::pair<std::set<int>, std::set<int>>> tower_layers(const std::string &gcode)
+{
+    std::vector<std::pair<std::set<int>, std::set<int>>> layers;
+    int  tool = -1;
+    bool in_tower = false, block_has_toolchange = false;
+    int  block_tool = -1;
+    std::istringstream in(gcode);
+    for (std::string line; std::getline(in, line); ) {
+        boost::trim(line);
+        if (const size_t digits = line.size() > 1 && line[0] == 'T' ? line.find_first_not_of("0123456789", 1) : 0; digits > 1) {
+            // "T1", or "T1 ; change extruder" when gcode comments are on.
+            if (digits == std::string::npos || line[digits] == ' ' || line[digits] == ';') {
+                tool = std::stoi(line.substr(1, digits == std::string::npos ? digits : digits - 1));
+                if (in_tower)
+                    block_has_toolchange = true;
+                continue;
+            }
+        }
+        if (boost::starts_with(line, ";LAYER_CHANGE"))
+            layers.emplace_back();
+        else if (boost::starts_with(line, ";TYPE:") && tool >= 0 && ! layers.empty())
+            layers.back().first.insert(tool);
+        else if (boost::starts_with(line, "; WIPE_TOWER_START"))
+            in_tower = true, block_has_toolchange = false, block_tool = tool;
+        else if (boost::starts_with(line, "; WIPE_TOWER_END")) {
+            if (in_tower && ! block_has_toolchange && ! layers.empty())
+                layers.back().second.insert(block_tool);
+            in_tower = false;
+        }
+    }
+    return layers;
+}
+
+TEST_CASE("The wipe tower is not built from a material it cannot bond to", "[WipeTower]")
+{
+    // Filament 1 prints the tallest object, so it is the filament present on the most layers - the very thing
+    // the most-used pick goes looking for. It must still not build the tower: it bonds with neither PLA, so the
+    // tower would delaminate. Covers both reasons a filament cannot hold the tower together.
+    const bool soluble = GENERATE(true, false);
+    DYNAMIC_SECTION("the odd filament is " << (soluble ? "soluble" : "an incompatible material")) {
+        const std::string gcode = slice_with_object_overrides(
+            { cube(20), cube(14), cube(6) },
+            multifilament_config(3, {
+                { "wipe_tower_type",    "type1" },
+                { "enable_prime_tower", 1 },
+                { "filament_type",      soluble ? "PVA;PLA;PLA" : "PETG;PLA;PLA" },
+                { "filament_soluble",   soluble ? "1,0,0" : "0,0,0" },
+                { "prime_tower_width",  35 },
+                { "wipe_tower_x",       "50" },
+                { "wipe_tower_y",       "50" }
+            }),
+            { { { "extruder", "1" } }, { { "extruder", "2" } }, { { "extruder", "3" } } });
+
+        const std::vector<std::pair<std::set<int>, std::set<int>>> layers = tower_layers(gcode);
+        REQUIRE(layers.size() > 1);
+
+        int structure_layers = 0, mixed_layers = 0;
+        for (const auto &[printing, structure] : layers) {
+            if (structure.empty())
+                continue;
+            ++ structure_layers;
+            // A layer that prints PLA must not hand the tower structure to the odd filament.
+            const bool pla_available = printing.count(1) || printing.count(2);
+            if (pla_available && structure.count(0))
+                ++ mixed_layers;
+        }
+        INFO("tower structure on " << structure_layers << " layers, " << mixed_layers << " of them mixed");
+        REQUIRE(structure_layers > 0);
+        CHECK(mixed_layers == 0);
     }
 }
