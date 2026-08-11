@@ -753,6 +753,7 @@ TEST_CASE("Honeycomb infill rounds its cell corners with the smooth factor", "[F
 struct SparseInfillShape {
     size_t point_count { 0 };
     size_t sharp_turns { 0 };
+    size_t path_count { 0 };
     double length { 0. };
 };
 
@@ -764,6 +765,7 @@ static SparseInfillShape sparse_infill_shape(const Print &print)
         if (!sparse_role(path.role()))
             return;
         const Points3 &pts = path.polyline.points;
+        ++shape.path_count;
         shape.point_count += pts.size();
         for (size_t i = 1; i < pts.size(); ++i)
             shape.length += (pts[i] - pts[i - 1]).head<2>().cast<double>().norm();
@@ -955,4 +957,31 @@ TEST_CASE("Smoothed concentric infill stays inside the fill region", "[Fill][Reg
     // The corners that the region has room for are still rounded.
     if (!thin_region)
         REQUIRE(point_count(smooth) > point_count(sharp));
+}
+
+TEST_CASE("Smoothing multiline lightning infill keeps its outlines connected", "[Fill][Regression]")
+{
+    // With more than one line per infill wall, the branches are printed as outlines drawn around them,
+    // and the outlines of branches that run close to each other merge into one. Rounding the branches
+    // before those outlines are built moves them apart, which breaks the merged outlines up into
+    // separate loops - many more of them, each needing its own travel move.
+    auto shape_for = [](const std::string &smooth_factor) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"sparse_infill_pattern", "lightning"},
+                                             {"sparse_infill_density", "50%"},
+                                             {"fill_multiline", 2},
+                                             {"sparse_infill_smooth_factor", smooth_factor},
+                                             {"layer_height", 0.2}});
+        return sparse_infill_shape(print);
+    };
+
+    const SparseInfillShape sharp  = shape_for("0%");
+    const SparseInfillShape smooth = shape_for("100%");
+
+    REQUIRE(sharp.path_count > 0);
+    REQUIRE(smooth.path_count <= sharp.path_count);
+    // The outlines are still rounded.
+    REQUIRE(smooth.point_count > sharp.point_count);
+    REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
 }

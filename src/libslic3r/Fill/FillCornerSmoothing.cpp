@@ -149,14 +149,14 @@ void CornerSmoother::round_corner(const Vec2d &previous, const Vec2d &corner, co
         m_corner_points.emplace_back(corner + coefficient.x() * incoming + coefficient.y() * outgoing);
 }
 
-// Rounds the corners of a scaled point sequence. A polygon closes implicitly, a point sequence that
-// ends where it starts is a closed path keeping that closing point, anything else is an open path.
+// Rounds the corners of a scaled point sequence. A polygon closes implicitly, so all of its vertices
+// are corners; a polyline is an open path that keeps both of its ends, even where they coincide - a
+// path returning to where it started retraces its way back and is not a loop.
 static Points smooth_corners(const Points &points, const bool polygon, CornerSmoother &smoother)
 {
-    // A closed path has no free ends, so its seam vertex is a corner like any other. Rounding it takes
-    // feeding the smoother the vertex before the seam, whose own output point is then dropped again.
-    const bool closed = polygon || (points.size() > 3 && points.front() == points.back());
-    size_t     skip   = closed ? 1 : 0;
+    // A polygon has no free ends, so its first vertex is a corner like any other. Rounding it takes
+    // feeding the smoother the last vertex first, whose own output point is then dropped again.
+    size_t skip = polygon ? 1 : 0;
 
     Points smoothed;
     smoothed.reserve(2 * points.size());
@@ -168,8 +168,8 @@ static Points smooth_corners(const Points &points, const bool polygon, CornerSmo
         smoothed.emplace_back(coord_t(std::floor(point.x() + 0.5)), coord_t(std::floor(point.y() + 0.5)));
     };
 
-    if (closed)
-        smoother.push((polygon ? points.back() : points[points.size() - 2]).cast<double>(), emit);
+    if (polygon)
+        smoother.push(points.back().cast<double>(), emit);
     for (const Point &point : points)
         smoother.push(point.cast<double>(), emit);
     if (polygon)
@@ -180,9 +180,6 @@ static Points smooth_corners(const Points &points, const bool polygon, CornerSmo
     if (polygon)
         // The flushed point is the wrapped first vertex, which a polygon does not store.
         smoothed.pop_back();
-    else if (closed)
-        // The flushed point is the sharp seam vertex; close the path on its rounded replacement instead.
-        smoothed.back() = smoothed.front();
     return smoothed;
 }
 
@@ -219,6 +216,10 @@ void smooth_polygons_corners(Polygons &polygons, const double smooth_factor, con
             continue;
         polygon.points = smooth_corners(polygon.points, true, smoother);
         polygon.remove_duplicate_points();
+        // The curves of the first and of the last corner may have met on the segment they share. A
+        // polygon closes implicitly, so it must not repeat its first vertex at the end.
+        if (polygon.points.size() > 1 && polygon.points.front() == polygon.points.back())
+            polygon.points.pop_back();
     }
 }
 

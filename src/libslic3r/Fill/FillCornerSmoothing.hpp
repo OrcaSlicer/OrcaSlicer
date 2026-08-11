@@ -94,9 +94,9 @@ private:
     int   m_pending { 0 };
 };
 
-// Rounds the corners of already scaled paths in place. Paths of less than three points are left alone;
-// a path that ends where it starts is treated as a closed loop, whose seam vertex is rounded as well.
-// See the CornerSmoother constructor for max_corner_distance.
+// Rounds the corners of already scaled paths in place. Paths of less than three points are left alone.
+// Both ends of a polyline are kept where they are, even when they coincide: such a path retraces its
+// way back and joining its ends would turn it into a loop. See CornerSmoother for max_corner_distance.
 void smooth_polyline_corners(Polyline &polyline, double smooth_factor, double tolerance,
                              double max_corner_distance = 0., const CornerFilter &corner_filter = {});
 void smooth_polylines_corners(Polylines &polylines, double smooth_factor, double tolerance,

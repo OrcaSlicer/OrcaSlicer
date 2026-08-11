@@ -134,26 +134,40 @@ TEST_CASE("Corner smoothing emits no zero length segments", "[FillCornerSmoothin
         REQUIRE((zigzag[i] - zigzag[i - 1]).cast<double>().squaredNorm() > 0.);
 }
 
-TEST_CASE("Corner smoothing rounds the seam of a closed loop", "[FillCornerSmoothing]")
+TEST_CASE("Corner smoothing rounds every vertex of a polygon", "[FillCornerSmoothing]")
 {
-    // A loop has no free ends, so none of its corners may stay sharp, not even the one it starts at.
-    Polyline square{ Point::new_scale(0., 0.), Point::new_scale(10., 0.), Point::new_scale(10., 10.),
-                     Point::new_scale(0., 10.), Point::new_scale(0., 0.) };
-    const Polyline sharp = square;
-    smooth_polyline_corners(square, 1., tolerance);
+    // A polygon closes implicitly, so none of its corners may stay sharp, not even the first one.
+    const Polygon square{ Point::new_scale(0., 0.), Point::new_scale(10., 0.), Point::new_scale(10., 10.),
+                          Point::new_scale(0., 10.) };
+    Polygons smooth{ square };
+    smooth_polygons_corners(smooth, 1., tolerance);
+    const Polyline rounded = smooth.front().split_at_first_point();
 
-    REQUIRE(square.front() == square.back());
-    REQUIRE(square.size() > sharp.size());
-    REQUIRE(max_turn_cosine(square) > 0.9);
-    // The turn from the last segment back into the first one closes the loop and must be gentle too.
-    const Vec2d incoming = (square[square.size() - 1] - square[square.size() - 2]).cast<double>().normalized();
-    const Vec2d outgoing = (square[1] - square[0]).cast<double>().normalized();
+    REQUIRE(smooth.front().size() > square.size());
+    REQUIRE(max_turn_cosine(rounded) > 0.9);
+    // The turn from the closing segment back into the first one must be gentle as well.
+    const Vec2d incoming = (rounded[rounded.size() - 1] - rounded[rounded.size() - 2]).cast<double>().normalized();
+    const Vec2d outgoing = (rounded[1] - rounded[0]).cast<double>().normalized();
     REQUIRE(incoming.dot(outgoing) > 0.9);
     // None of the corners is cut by more than half of a 10mm side.
-    for (const Point &point : square.points) {
+    for (const Point &point : smooth.front().points) {
         REQUIRE(point.x() >= 0);
         REQUIRE(point.y() >= 0);
         REQUIRE(point.x() <= Point::new_scale(10., 0.).x());
         REQUIRE(point.y() <= Point::new_scale(0., 10.).y());
     }
+}
+
+TEST_CASE("Corner smoothing keeps the ends of a path that returns to its start", "[FillCornerSmoothing][Regression]")
+{
+    // A branch of a lightning tree walks out and retraces its way back, ending where it started. Its
+    // ends are two free ends that happen to coincide, and joining them would close it into a loop.
+    Polyline retrace{ Point::new_scale(0., 0.), Point::new_scale(10., 0.), Point::new_scale(10., 10.),
+                      Point::new_scale(5., 10.), Point::new_scale(0., 0.) };
+    const Polyline sharp = retrace;
+    smooth_polyline_corners(retrace, 1., tolerance);
+
+    REQUIRE(retrace.size() > sharp.size());
+    REQUIRE(retrace.front() == sharp.front());
+    REQUIRE(retrace.back() == sharp.back());
 }
