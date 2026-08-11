@@ -1393,11 +1393,21 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         // both the count of logical tools the g-code will address and the filament's 1-based number
         // as the user sees it.
         const size_t highest_used_filament = physical_extruders.empty() ? 0 : size_t(physical_extruders.back()) + 1;
-        if (highest_used_filament > max_plate_filaments)
+        if (highest_used_filament > max_plate_filaments) {
+            // On a protocol that renumbers (protocol_requires_dense_tool_numbering) the plate's
+            // filaments were already compacted to a dense range before slicing, so the highest
+            // index IS the count and there is nothing left to renumber -- telling the user to
+            // renumber would be advice that cannot work. Anywhere else the limit is on the
+            // filament NUMBER, which renumbering can fix without dropping a filament.
+            if (printer_requires_dense_tool_numbering(printer_config))
+                return {(boost::format(L("This plate uses %1% filaments, but this printer can only print %2% filaments on one "
+                                         "plate. Reduce the number of filaments used on this plate."))
+                         % highest_used_filament % max_plate_filaments).str()};
             return {(boost::format(L("This plate uses filament %1%, but this printer can only address %2% filaments on one plate. "
                                      "Reduce the number of filaments used on this plate, or renumber them so they fit within the "
                                      "first %2%."))
                      % highest_used_filament % max_plate_filaments).str()};
+        }
     }
 
     if (nozzles < 2 && extruders.size() > 1) {

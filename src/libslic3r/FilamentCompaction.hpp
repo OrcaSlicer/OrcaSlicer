@@ -1,0 +1,61 @@
+#ifndef slic3r_FilamentCompaction_hpp_
+#define slic3r_FilamentCompaction_hpp_
+
+#include <vector>
+
+namespace Slic3r {
+
+class Model;
+class DynamicPrintConfig;
+
+// Orca: dense logical tool numbering for printers whose firmware only accepts T0..T(n-1).
+//
+// A project may hold more filaments than the printer has tools (see
+// device_resolves_filament_mapping), so a plate can legitimately print with project slots 3 and
+// 6 while the machine has four heads. The Snapmaker U1 takes those slot numbers as-is -- its
+// 32-entry extruder_map_table is indexed by them -- but the WonderMaker ZR Ultra S has no macro
+// past T(tool_count-1), so slots 3 and 6 have to reach it as T0 and T1 with the mapping saying
+// which box each of the two pulls from.
+//
+// Rather than translating tool numbers at every point that emits one (the toolchange command,
+// M104's T parameter, every `[next_extruder]`-indexed template in the vendor profile,
+// CoolingBuffer's and GCodeProcessor's parsers), the whole filament index space is renumbered
+// once, at the top of Print::apply, before config normalization and variant expansion. Every
+// consumer downstream indexes filaments by that same space, so all of them become dense by
+// construction and none of them needs to know this exists.
+//
+// Gated on protocol_requires_dense_tool_numbering(): printers without a native protocol never
+// build a compaction, so nothing below runs for them.
+struct FilamentCompaction
+{
+    // The 0-based project filament slot each dense tool number prints, in ascending slot order.
+    // Empty means "no renumbering" -- either the printer doesn't ask for it or the plate already
+    // uses a dense prefix.
+    std::vector<int> slot_of_tool;
+
+    bool is_identity() const;
+    // The dense tool number that prints a project slot, or -1 when the plate doesn't use it.
+    int  tool_of_slot(int slot_0based) const;
+    size_t tool_count() const { return slot_of_tool.size(); }
+};
+
+// The 0-based filament slots the printable objects of the model's current plate actually use,
+// sorted and deduplicated. Mirrors PartPlate::get_extruders(true), which is what the mapping
+// widget lists, so the slicer's tool order and the widget's row order cannot drift.
+std::vector<int> used_filament_slots(const Model& model, const DynamicPrintConfig& config);
+
+// is_identity() unless the used slots are something other than a dense prefix (0..n-1).
+FilamentCompaction build_filament_compaction(const Model& model, const DynamicPrintConfig& config);
+
+// Renumber every filament reference in the model: object / volume / layer-range configs,
+// multi-material painting, and the plate's custom tool changes. References to slots the
+// compaction doesn't cover are left alone -- they belong to features this plate doesn't print.
+void apply_filament_compaction(Model& model, const FilamentCompaction& compaction);
+
+// Gather every per-filament config vector down to the used slots, in dense order, and renumber
+// the scalar 1-based filament references (support_filament, *_filament_id, wipe_tower_filament).
+void apply_filament_compaction(DynamicPrintConfig& config, const FilamentCompaction& compaction);
+
+} // namespace Slic3r
+
+#endif // slic3r_FilamentCompaction_hpp_

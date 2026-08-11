@@ -138,6 +138,8 @@ set(lisbslic3r_sources
     Feature/Interlocking/InterlockingGenerator.hpp
     Feature/Interlocking/VoxelUtils.cpp
     Feature/Interlocking/VoxelUtils.hpp
+    FilamentCompaction.cpp
+    FilamentCompaction.hpp
     FileParserError.hpp
     Fill/Fill3DHoneycomb.cpp
     Fill/Fill3DHoneycomb.hpp

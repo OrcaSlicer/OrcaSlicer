@@ -102,6 +102,7 @@ enum class WipeTowerType {
 enum class FilamentMappingProtocol {
     fmpNone = 0,
     fmpSnapmaker,
+    fmpWonderMaker,
 };
 
 enum PrintHostType {
@@ -2513,6 +2514,21 @@ bool device_resolves_filament_mapping(const ConfigBase& printer_config);
 // device_resolves_filament_mapping() is true -- the slicer-mapped path is bounded by its own
 // mapping machinery instead. See Print::validate().
 size_t protocol_max_plate_filaments(FilamentMappingProtocol protocol, size_t tool_count);
+
+// True when the firmware only accepts tool numbers T0..T(tool_count-1), so the g-code must
+// address the plate's filaments as a dense range instead of by their project slot number. A
+// third capability, independent of the two above: the Snapmaker U1 consumes project slot
+// numbers directly (its 32-entry table is indexed by them), while the WonderMaker ZR Ultra S
+// has no macro past T(tool_count-1) -- a plate using project slots 3 and 6 must reach it as
+// T0/T1 with the mapping saying which box each of those two tools pulls from. See
+// FilamentCompaction.hpp for the renumbering this enables.
+// switch with no default, as protocol_max_plate_filaments: a new enumerator must state its own
+// answer under -Wswitch.
+bool protocol_requires_dense_tool_numbering(FilamentMappingProtocol protocol);
+
+// protocol_requires_dense_tool_numbering() for a printer config. False for every printer
+// without a native protocol, so the compaction machinery is inert unless a protocol asks.
+bool printer_requires_dense_tool_numbering(const ConfigBase& printer_config);
 
 // True when filament-count decoupling / physical-filament inventory UI should be
 // offered: the printer owns the mapping natively via filament_mapping_protocol.

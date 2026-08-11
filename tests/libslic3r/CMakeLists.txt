@@ -46,6 +46,7 @@ add_executable(${_TEST_NAME}_tests
     test_ordering_strategies.cpp
     # test_png_io.cpp
     test_indexed_triangle_set.cpp
+    test_filament_compaction.cpp
     test_filament_inventory.cpp
     ../libnest2d/printer_parts.cpp
     )
