@@ -8193,21 +8193,21 @@ msgstr "未選擇替換的目錄"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "已從目錄替換為 3D 檔案：\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ 已跳過 %1%：相同檔案。\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ 已跳過 %s：相同檔案。\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ 已跳過 %1%：檔案不存在。\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ 已跳過 %s：檔案不存在。\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ 已跳過 %1%：無法替換。\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ 已跳過 %s：無法替換。\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ 已替換 %1%。\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ 已替換 %s。\n"
 
 msgid "Replaced volumes"
 msgstr "已替換體積"

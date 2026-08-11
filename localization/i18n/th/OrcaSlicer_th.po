@@ -8199,21 +8199,21 @@ msgstr "ไม่ได้เลือกไดเรกทอรีสำหร
 msgid "Replaced with 3D files from directory:\n"
 msgstr "แทนที่ด้วยไฟล์ 3D จากไดเรกทอรี:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ ข้าม %1%: ไฟล์เดียวกัน\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ ข้าม %s: ไฟล์เดียวกัน\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ ข้าม %1%: ไม่มีไฟล์อยู่\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ ข้าม %s: ไม่มีไฟล์อยู่\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ ข้าม %1%: ไม่สามารถแทนที่ได้\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ ข้าม %s: ไม่สามารถแทนที่ได้\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔แทนที่ %1%\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔แทนที่ %s\n"
 
 msgid "Replaced volumes"
 msgstr "ปริมาณที่ถูกแทนที่"

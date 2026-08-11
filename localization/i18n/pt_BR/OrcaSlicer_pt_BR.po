@@ -8026,21 +8026,21 @@ msgstr "Diretório para substituição não foi selecionado"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Substituído por arquivos 3D do diretório:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ %1% Ignorados: mesmo arquivo.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ %s Ignorados: mesmo arquivo.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ %1% Ignorados: arquivo não existe.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ %s Ignorados: arquivo não existe.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ %1% Ignorados: falha ao substituir.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ %s Ignorados: falha ao substituir.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ %1% Substituídos.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ %s Substituídos.\n"
 
 msgid "Replaced volumes"
 msgstr "Volumes substiruídos"
@@ -17130,15 +17130,12 @@ msgstr "Quando este valor de retração for modificado, ele será usado como a q
 msgid "Support fast purge mode"
 msgstr "Suporte ao modo de purga rápida"
 
-# AI Translated
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
 msgstr "Se esta impressora suporta o modo de purga rápida com temperatura e multiplicador otimizados."
 
-# AI Translated
 msgid "Filament change"
 msgstr "Troca de filamento"
 
-# AI Translated
 msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
 msgstr "O volume de material necessário para preparar a extrusora na torre, excluindo uma troca de hotend."
 
@@ -18323,11 +18320,9 @@ msgstr ""
 "Há vários endereços IP resolvendo para o nome do host %1%.\n"
 "Por favor, selecione um que deve ser usado."
 
-# AI Translated
 msgid "Auto-scale for nozzle"
 msgstr "Escala automática para o bico"
 
-# AI Translated
 msgid ""
 "This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
 "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
@@ -18473,11 +18468,9 @@ msgstr "Velocidade Inicial: "
 msgid "End speed: "
 msgstr "Velocidade Final: "
 
-# AI Translated
 msgid "Auto-adjust to max volumetric speed"
 msgstr "Ajuste automático à velocidade volumétrica máxima"
 
-# AI Translated
 msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
 msgstr "Se a velocidade final ultrapassar a velocidade volumétrica máxima do filamento, reduz automaticamente a altura de camada (mantendo valores padrão e respeitando os limites da máquina) para alcançá-la. Se nem mesmo a altura de camada mínima for suficiente, reduz a velocidade final."
 
@@ -18492,7 +18485,6 @@ msgstr ""
 "passo >= 0\n"
 "fim > início + passo"
 
-# AI Translated
 #, c-format, boost-format
 msgid ""
 "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
@@ -18500,12 +18492,11 @@ msgid ""
 "\n"
 "%s"
 msgstr ""
-"A velocidade final (%.0f mm/s) ultrapassa a velocidade volumétrica máxima do filamento (%.1f mm³/s), o que limita a parede externa a cerca de %.0f mm/s com esta largura de linha e altura de camada.\n"
+"A velocidade final (%.0f mm/s) excede a velocidade volumétrica máxima do filamento (%.1f mm³/s), o que limita a parede externa a cerca de %.0f mm/s com esta largura de linha e altura de camada.\n"
 " Velocidades acima disso serão limitadas, portanto os blocos superiores da torre não serão impressos na velocidade solicitada.\n"
 "\n"
 "%s"
 
-# AI Translated
 #, c-format, boost-format
 msgid ""
 "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
@@ -18516,7 +18507,6 @@ msgstr ""
 "\n"
 "A altura de camada foi reduzida para %.2f mm (um valor usado pelos perfis desta impressora) para que a torre possa atingir a velocidade solicitada."
 
-# AI Translated
 #, c-format, boost-format
 msgid ""
 "Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
@@ -18531,15 +18521,12 @@ msgstr ""
 "\n"
 "Continuar?"
 
-# AI Translated
 msgid "Continue anyway?"
 msgstr "Continuar mesmo assim?"
 
-# AI Translated
 msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
 msgstr "Ativar \"Ajuste automático\" para corrigir isso automaticamente ou continuar mesmo assim?"
 
-# AI Translated
 msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
 msgstr "Ativar \"Escala automática para o bico\" e \"Ajuste automático\" para corrigir isso automaticamente ou continuar mesmo assim?"
 
@@ -19644,9 +19631,8 @@ msgstr "Não foi possível decifrar a resposta do servidor."
 msgid "Error saving session to file"
 msgstr "Erro salvando sessão para arquivo"
 
-# AI Translated
 msgid "Error session check"
-msgstr "Verificação de sessão de erro"
+msgstr "Erro na verificação de sessão"
 
 msgid "Error during file upload"
 msgstr "Erro durante a subida do arquivo"
@@ -20079,9 +20065,8 @@ msgstr "Impressão Falhou"
 msgid "Removed"
 msgstr "Removido"
 
-# AI Translated
 msgid "Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"
-msgstr "Ativar atribuição inteligente de filamento: atribui um filamento a vários bicos para maximizar a economia"
+msgstr "Ativar atribuição inteligente de filamento: Atribui um filamento a vários bicos para maximizar a economia"
 
 msgid "Fila Saving"
 msgstr "Econo Filamento"
@@ -20119,7 +20104,6 @@ msgstr "Tutorial em vídeo"
 msgid "(Sync with printer)"
 msgstr "(Sinc. com impressora)"
 
-# AI Translated
 #, c-format, boost-format
 msgid "Error: %s extruder has no available %s nozzle, current group result is invalid."
 msgstr "Erro: a extrusora %s não tem nenhum bico %s disponível, o resultado do grupo atual é inválido."
@@ -20130,17 +20114,14 @@ msgstr "Vamos fatiar de acordo com este método de agrupamento:"
 msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr "Dica: Você pode arrastar os filamentos para reatribuí-los a diferentes bicos."
 
-# AI Translated
 msgid "Please adjust your grouping or click "
 msgstr "Por favor, ajuste seu agrupamento ou clique em "
 
-# AI Translated
 msgid " to set nozzle count"
 msgstr " para definir o número de bicos"
 
-# AI Translated
 msgid "Set the physical nozzle count..."
-msgstr "Definir o número físico de bicos..."
+msgstr "Definir o número de bicos físicos…"
 
 msgid "The filament grouping method for current plate is determined by the dropdown option at the slicing plate button."
 msgstr "O método de agrupamento de filamentos para a placa atual é determinado pela opção no botão de fatiamento da placa."
@@ -20480,99 +20461,75 @@ msgstr "Numero de facetas triangulares"
 msgid "Calculating, please wait..."
 msgstr "Calculando, por favor aguarde…"
 
-# AI Translated
 msgid "Save these settings as default"
 msgstr "Salvar estas configurações como padrão"
 
-# AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
 msgstr "Se ativado, os valores acima são armazenados como os padrões usados para futuras importações STEP (e mostrados nas Preferências)."
 
-# AI Translated
 msgid "PresetBundle"
 msgstr "PresetBundle"
 
-# AI Translated
 msgid "Bundle folder does not exist."
 msgstr "A pasta do pacote não existe."
 
-# AI Translated
 msgid "Failed to open folder."
 msgstr "Falha ao abrir a pasta."
 
-# AI Translated
 msgid "Delete selected bundle from folder and all presets loaded from it?"
 msgstr "Excluir o pacote selecionado da pasta e todas as predefinições carregadas a partir dele?"
 
-# AI Translated
 msgid "Delete Bundle"
-msgstr "Excluir pacote"
+msgstr "Excluir Pacote"
 
-# AI Translated
 msgid "Failed to remove bundle."
 msgstr "Falha ao remover o pacote."
 
-# AI Translated
 msgid "Remove Bundle"
 msgstr "Remover pacote"
 
-# AI Translated
 msgid "Unsubscribe bundle?"
 msgstr "Cancelar a inscrição do pacote?"
 
-# AI Translated
 msgid "UnsubscribeBundle"
 msgstr "UnsubscribeBundle"
 
-# AI Translated
 msgid "Failed to unsubscribe bundle."
 msgstr "Falha ao cancelar a inscrição do pacote."
 
-# AI Translated
 msgid "Unsubscribe Bundle"
-msgstr "Cancelar inscrição do pacote"
+msgstr "Cancelar inscrição do Pacote"
 
-# AI Translated
 msgid "ExportPresetBundle"
 msgstr "ExportPresetBundle"
 
-# AI Translated
 msgid "Save preset bundle"
 msgstr "Salvar pacote de predefinições"
 
-# AI Translated
 msgid "Performing desktop integration failed - boost::filesystem::canonical did not return appimage path."
 msgstr "Falha ao realizar a integração com a área de trabalho - boost::filesystem::canonical não retornou o caminho do appimage."
 
-# AI Translated
 msgid "Performing desktop integration failed - Could not find executable."
 msgstr "Falha ao realizar a integração com a área de trabalho - não foi possível encontrar o executável."
 
-# AI Translated
 msgid "Performing desktop integration failed because the application directory was not found."
 msgstr "Falha ao realizar a integração com a área de trabalho porque o diretório do aplicativo não foi encontrado."
 
-# AI Translated
 msgid "Performing desktop integration failed - could not create Gcodeviewer desktop file. OrcaSlicer desktop file was probably created successfully."
 msgstr "Falha ao realizar a integração com a área de trabalho - não foi possível criar o arquivo desktop do Gcodeviewer. O arquivo desktop do OrcaSlicer provavelmente foi criado com sucesso."
 
-# AI Translated
 msgid "Performing downloader desktop integration failed - boost::filesystem::canonical did not return appimage path."
 msgstr "Falha ao realizar a integração do downloader com a área de trabalho - boost::filesystem::canonical não retornou o caminho do appimage."
 
-# AI Translated
 msgid "Performing downloader desktop integration failed - Could not find executable."
 msgstr "Falha ao realizar a integração do downloader com a área de trabalho - não foi possível encontrar o executável."
 
-# AI Translated
 msgid "Performing downloader desktop integration failed because the application directory was not found."
 msgstr "Falha ao realizar a integração do downloader com a área de trabalho porque o diretório do aplicativo não foi encontrado."
 
-# AI Translated
 msgid "Desktop Integration"
-msgstr "Integração com a área de trabalho"
+msgstr "Integração com a Área de Trabalho"
 
-# AI Translated
 msgid ""
 "Desktop Integration sets this binary to be searchable by the system.\n"
 "\n"
@@ -20596,40 +20553,33 @@ msgstr "Arquivar pré-visualização"
 msgid "Open File"
 msgstr "Abrir Arquivo"
 
-# AI Translated
 msgid "AMS Dryness Control"
-msgstr "Controle de secura do AMS"
+msgstr "Controle de Secura do AMS"
 
-# AI Translated
 msgid "Filament Drying Settings"
-msgstr "Configurações de secagem de filamento"
+msgstr "Configurações de Secagem de Filamento"
 
 msgid "Stopping"
 msgstr "Parando"
 
-# AI Translated
 msgid "Unable to dry temporarily due to ..."
-msgstr "Não é possível secar temporariamente devido a ..."
+msgstr "Não é possível secar temporariamente devido a…"
 
 msgid "Drying Error"
 msgstr "Erro de Secagem"
 
-# AI Translated
 msgid "Please check the Assistant for troubleshooting"
 msgstr "Por favor, verifique o Assistente para solução de problemas"
 
-# AI Translated
 msgid "Please remove and store the filament (as shown)."
 msgstr "Por favor, remova e guarde o filamento (como mostrado)."
 
-# AI Translated
 msgid "The AMS can rotate the filament which is properly stored, providing better drying results."
 msgstr "O AMS pode girar o filamento que está corretamente armazenado, proporcionando melhores resultados de secagem."
 
 msgid "Rotate spool when drying"
 msgstr "Girar o carretel durante a secagem"
 
-# AI Translated
 msgctxt "amsdrying"
 msgid "Back"
 msgstr "Voltar"
@@ -20649,11 +20599,9 @@ msgstr " temperatura mínima de secagem é "
 msgid "This filament may not be completely dried."
 msgstr "Este filamento pode não estar completamente seco."
 
-# AI Translated
 msgid "This AMS is currently printing. To ensure print quality, the drying temperature cannot exceed the recommended drying temperature."
 msgstr "Este AMS está imprimindo no momento. Para garantir a qualidade da impressão, a temperatura de secagem não pode exceder a temperatura de secagem recomendada."
 
-# AI Translated
 msgid "The temperature shall not exceed the filament's heat distortion temperature"
 msgstr "A temperatura não deve exceder a temperatura de distorção térmica do filamento"
 
@@ -20666,22 +20614,18 @@ msgstr "O valor máximo de tempo não pode ser superior a 24."
 msgid "Insufficient power"
 msgstr "Potência insuficiente"
 
-# AI Translated
 msgid "  Too many AMS drying simultaneously. Please plug in the power or stop other drying processes before starting."
 msgstr "  Muitos AMS secando simultaneamente. Por favor, conecte à energia ou pare outros processos de secagem antes de iniciar."
 
 msgid "AMS is busy"
 msgstr "O AMS está ocupado"
 
-# AI Translated
 msgid "  AMS is calibrating | reading RFID | loading/unloading material, please wait."
 msgstr "  O AMS está calibrando | lendo RFID | carregando/descarregando material, por favor aguarde."
 
-# AI Translated
 msgid "Filament in AMS outlet"
 msgstr "Filamento na saída do AMS"
 
-# AI Translated
 msgid "  The high drying temperature may cause AMS blockage, please unload first."
 msgstr "  A alta temperatura de secagem pode causar bloqueio do AMS, por favor descarregue primeiro."
 
@@ -20694,18 +20638,15 @@ msgstr "Não suportado no modo 2D"
 msgid "Task in progress"
 msgstr "Tarefa em progresso"
 
-# AI Translated
 msgid "  The AMS might be in use during Task."
 msgstr "  O AMS pode estar em uso durante a Tarefa."
 
 msgid "  Firmware update in progress, please wait..."
-msgstr " Atualização de firmware em progresso, por favor aguarde..."
+msgstr " Atualização de firmware em progresso, por favor aguarde…"
 
-# AI Translated
 msgid "  Please plug in the power and then use the drying function."
-msgstr "  Por favor, conecte à energia e depois use a função de secagem."
+msgstr "  Por favor, conecte à energia e então use a função de secagem."
 
-# AI Translated
 msgid "  The high drying temperature may cause AMS blockage. Please unload the filament manually before proceeding."
 msgstr "  A alta temperatura de secagem pode causar bloqueio do AMS. Por favor, descarregue o filamento manualmente antes de prosseguir."
 
@@ -20713,7 +20654,7 @@ msgid "System is busy"
 msgstr "O sistema está ocupado"
 
 msgid "  Initiating other drying processes, please wait a few seconds..."
-msgstr " Iniciando outros processos de secagem, por favor aguarde alguns segundos..."
+msgstr " Iniciando outros processos de secagem, por favor aguarde alguns segundos…"
 
 msgid "For better drying results, remove the filament and allow it to rotate."
 msgstr "Para obter melhores resultados de secagem, remova o filamento e permita que ele gire."
@@ -21077,17 +21018,6 @@ msgstr ""
 
 #~ msgid "Rear"
 #~ msgstr "Traseira"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
-#~ "Please report to PrusaSlicer team in which scenario this issue happened.\n"
-#~ "Thank you."
-#~ msgstr ""
-#~ "Os objetos(%1%) têm conectores duplicados. Alguns conectores podem estar faltando no resultado do fatiamento.\n"
-#~ "Por favor, informe à equipe do PrusaSlicer em qual cenário esse problema ocorreu.\n"
-#~ "Obrigado."
 
 #~ msgid "Skip for Now"
 #~ msgstr "Pular por Enquanto"
