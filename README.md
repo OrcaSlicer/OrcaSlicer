@@ -1,12 +1,15 @@
 <div align="center">
 
 <picture>
-  <img alt="OrcaSlicer logo" src="resources/images/OrcaSlicer.png" width="15%" height="15%">
+  <img alt="Extreme Slicer logo" src="resources/images/ExtremeSlicer.svg" width="15%" height="15%">
 </picture>
+
+**Extreme Slicer** — an OrcaSlicer/Slic3r-respecting fork with CUDA-first
+exact compute, Vulkan fallback, and an auditable CPU reference path.
 
 <a href="https://trendshift.io/repositories/15552" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15552" alt="OrcaSlicer%2FOrcaSlicer | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-[![GitHub Repo stars](https://img.shields.io/github/stars/OrcaSlicer/OrcaSlicer)](https://github.com/OrcaSlicer/OrcaSlicer/stargazers) [![Build all](https://github.com/OrcaSlicer/OrcaSlicer/actions/workflows/build_all.yml/badge.svg?branch=main)](https://github.com/OrcaSlicer/OrcaSlicer/actions/workflows/build_all.yml)
+[![GitHub Repo stars](https://img.shields.io/github/stars/mk0000001/Extreme-Slicer)](https://github.com/mk0000001/Extreme-Slicer/stargazers)
 
 OrcaSlicer: an open source Next-Gen Slicing Software for Precision 3D Prints.  
 Optimize your prints with ultra-fast slicing, intelligent support generation, and seamless printer compatibility—engineered for perfection.
@@ -19,7 +22,7 @@ Optimize your prints with ultra-fast slicing, intelligent support generation, an
 
 #### Github Repository:
 
-<a href="https://github.com/OrcaSlicer/OrcaSlicer"><img src="https://img.shields.io/badge/OrcaSlicer-181717?style=flat&logo=github&logoColor=white" width="200" alt="GitHub Logo"/> </a>
+<a href="https://github.com/mk0000001/Extreme-Slicer"><img src="https://img.shields.io/badge/Extreme%20Slicer-181717?style=flat&logo=github&logoColor=white" width="200" alt="GitHub Logo"/> </a>
 
 #### Follow us:
 

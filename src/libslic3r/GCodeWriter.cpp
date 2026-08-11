@@ -5,6 +5,7 @@
 #include "ClipperUtils.hpp"
 #include "Line.hpp"
 #include <algorithm>
+#include <cctype>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -20,6 +21,21 @@
 
 namespace Slic3r {
 
+static bool is_qidi_model(std::string model)
+{
+    std::transform(model.begin(), model.end(), model.begin(),
+                   [](unsigned char character) { return char(std::tolower(character)); });
+    // QIDI Studio profiles use both explicit "QIDI ..." names and short Q2 /
+    // X-series model names. Keep this predicate local to tool emission so
+    // other printers retain Orca's historical T<filament-id> behaviour.
+    return model.find("qidi") != std::string::npos ||
+           model.find("q2") != std::string::npos ||
+           model.find("x-max") != std::string::npos ||
+           model.find("x-plus") != std::string::npos ||
+           model.find("x-smart") != std::string::npos ||
+           model.find("i-fast") != std::string::npos;
+}
+
 bool GCodeWriter::full_gcode_comment = true;
 
 bool GCodeWriter::supports_separate_travel_acceleration(GCodeFlavor flavor)
@@ -29,6 +45,7 @@ bool GCodeWriter::supports_separate_travel_acceleration(GCodeFlavor flavor)
 
 void GCodeWriter::apply_print_config(const PrintConfig &print_config)
 {
+    m_is_qidi_printer = is_qidi_model(print_config.printer_model.value);
     this->config.apply(print_config, true);
 
     // Some machine limits are stride-2 (normal, silent) pairs, here we extract the value that will be used,
@@ -703,8 +720,15 @@ std::string GCodeWriter::toolchange(unsigned int filament_id, int nozzle_id)
         // H-1 the stock change templates emit; an unsigned would wrap.
         if (m_is_bbl_printers && !config.manual_filament_change)
             gcode << "M1020 S" << filament_id << " H" << nozzle_id;
-        else
-            gcode << this->toolchange_prefix() << filament_id;
+        else {
+            // QIDI Studio addresses physical tool slots, while Orca's
+            // internal filament id may be a virtual material in an MMU map.
+            // Emit the mapped physical extruder for QIDI only; all other
+            // printers preserve the original T<filament-id> contract.
+            const unsigned int tool_id = m_is_qidi_printer && m_curr_extruder_id >= 0 ?
+                unsigned(m_curr_extruder_id) : filament_id;
+            gcode << this->toolchange_prefix() << tool_id;
+        }
         if (GCodeWriter::full_gcode_comment)
             gcode << " ; change extruder";
         gcode << "\n";

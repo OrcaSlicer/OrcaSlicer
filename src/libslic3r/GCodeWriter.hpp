@@ -28,7 +28,7 @@ public:
         m_lifted(0),
         m_to_lift(0),
         m_to_lift_type(LiftType::NormalLift),
-        m_current_speed(3600), m_is_first_layer(true)
+        m_is_qidi_printer(false), m_current_speed(3600), m_is_first_layer(true)
         {}
     Extruder* filament(size_t extruder_id) { assert(extruder_id < m_curr_filament_extruder.size()); return m_curr_filament_extruder[extruder_id]; }
     const Extruder* filament(size_t extruder_id) const { assert(extruder_id < m_curr_filament_extruder.size()); return m_curr_filament_extruder[extruder_id]; }
@@ -198,6 +198,7 @@ public:
 
     //SoftFever
     bool            m_is_bbl_printers = false;
+    bool            m_is_qidi_printer = false;
     double          m_current_speed;
     bool            m_is_first_layer = true;
 

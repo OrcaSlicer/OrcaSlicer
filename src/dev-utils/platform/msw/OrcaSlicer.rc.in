@@ -13,7 +13,7 @@ PRODUCTVERSION @SLIC3R_VERSION@
    VALUE "ProductVersion", "@SLIC3R_BUILD_ID@"
    VALUE "InternalName", "@SLIC3R_APP_NAME@"
    VALUE "LegalCopyright", ""
-   VALUE "OriginalFilename", "orca-slicer.exe"
+   VALUE "OriginalFilename", "extreme-slicer.exe"
   }
  }
  BLOCK "VarFileInfo"
@@ -21,5 +21,5 @@ PRODUCTVERSION @SLIC3R_VERSION@
    VALUE "Translation", 0x409, 1252
  }
 }
-2 ICON "@SLIC3R_RESOURCES_DIR@/images/OrcaSlicer.ico"
+2 ICON "@SLIC3R_RESOURCES_DIR@/images/ExtremeSlicer.ico"
 1 24 "OrcaSlicer.manifest" 

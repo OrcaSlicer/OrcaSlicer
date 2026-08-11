@@ -125,9 +125,12 @@ void AppConfig::set_defaults()
         if (get("auto_slice_change_delay_seconds").empty())
             set("auto_slice_change_delay_seconds", "1");
 
-        // CPU geometry remains the authority, but qualified Vulkan compute is
-        // enabled by default for high-cardinality infill/support workloads.
-        // Keep this as an application preference, not a printer preset.
+        // Compute backends are application preferences, never printer-preset
+        // values. CUDA is the preferred mode when a CUDA build/device exists;
+        // the backend selector falls back to Vulkan and then the exact CPU
+        // implementation without changing generated geometry.
+        if (get("cuda_slicer_compute").empty())
+            set_bool("cuda_slicer_compute", true);
         if (get("vulkan_slicer_compute").empty())
             set_bool("vulkan_slicer_compute", true);
 
@@ -136,6 +139,13 @@ void AppConfig::set_defaults()
         // and demonstrably slower devices on the exact CPU path.
         if (get("vulkan_slicer_gpu_priority").empty())
             set_bool("vulkan_slicer_gpu_priority", true);
+
+        if (get("slicer_compute_mode").empty())
+            set("slicer_compute_mode", "cuda");
+        if (get("slicer_compute_batch_size").empty())
+            set("slicer_compute_batch_size", "64");
+        if (get("slicer_compute_strict_validation").empty())
+            set_bool("slicer_compute_strict_validation", false);
 
         if (get("drop_project_action").empty())
             set_bool("drop_project_action", true);

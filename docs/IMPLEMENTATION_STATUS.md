@@ -1,14 +1,26 @@
-# OrcaVulkanSlicer implementation status
+# Extreme Slicer implementation status
 
 This is a local development fork of OrcaSlicer. Its purpose is to make two
 experiments independently reviewable:
 
 - importing QIDI Studio profile bundles without renaming their files;
-- building a deterministic Vulkan compute path for expensive geometry work.
+- building deterministic CUDA/Vulkan compute paths for expensive geometry work.
 
 It is not yet a production replacement for OrcaSlicer.
 
 ## Implemented in this fork
+
+### Compute backend selection
+
+The Preferences dialog now exposes CUDA, Vulkan, and CPU (basic) modes. CUDA
+is the default priority when it is compiled and available; Vulkan remains an
+independent fallback, and both acceleration checkboxes may be disabled for a
+pure CPU run. Batch size and strict-result-validation controls are persisted
+as application settings. See `docs/EXTREME_SLICER_COMPUTE.md`.
+
+The CUDA kernel is optional and is only compiled when the CUDA toolkit is
+present. Builds without CUDA report that fact in the diagnostics panel rather
+than pretending the GPU is active.
 
 ### QIDI Studio profile import
 
@@ -31,9 +43,9 @@ unchanged.
 
 When enabled, `VulkanSlicerBackend` enumerates devices and only marks a device
 as suitable for deterministic tiled geometry when it exposes `shaderInt64`.
-The current GPU shader is a perimeter/infill candidate-stage prototype; it is
-not wired into the print pipeline and does not replace generated wall, infill,
-support, or G-code output.
+The current GPU shader remains a perimeter/infill candidate-stage accelerator;
+topology-sensitive confirmation and the authoritative G-code writer remain on
+the CPU. Runtime diagnostics identify the active backend and every fallback.
 
 ## Accuracy policy
 
@@ -57,10 +69,12 @@ fall back to the current CPU stage.
 3. Add compiled SPIR-V and a dispatch path for the exact candidate/clip stages.
 4. Integrate differential tests for walls, sparse/solid infill, supports, and
    the ordered G-code intermediate representation.
-5. Add an opt-in UI setting with a per-stage CPU fallback report.
+5. Add differential fixtures from a QIDI Studio installation when one is
+   available; the current workspace contains no mapped QIDI installation.
 
 ## Validation status
 
-No build or runtime test has run in this workspace. CMake, a C++ compiler, and
-the Vulkan SDK are not installed or discoverable here. This status is
-intentional: no unverified GPU speed-up or print-safety claim is made.
+No local build or runtime test has run in this workspace because CMake, a C++
+compiler, CUDA, and the Vulkan SDK are not installed or discoverable here. The
+source paths are guarded so a normal CPU build remains valid; GPU performance
+claims still require a toolchain/device validation run.

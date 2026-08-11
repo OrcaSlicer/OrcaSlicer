@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="180" viewBox="0 0 500 180" role="img" aria-label="Extreme Slicer">
+  <rect width="500" height="180" rx="22" fill="#0c1115"/>
+  <g transform="translate(20 20) scale(.55)"><path d="M128 14 229 72v112l-101 58L27 184V72z" fill="#0c1115" stroke="#61e7d4" stroke-width="10" stroke-linejoin="round"/><path d="m128 43 69 40v80l-69 40-69-40V83z" fill="none" stroke="#ffffff" stroke-opacity=".9" stroke-width="6" stroke-linejoin="round"/><path d="M145 39 91 128h38l-18 89 55-108h-38z" fill="#ffc94d" stroke="#fff7cf" stroke-width="4" stroke-linejoin="round"/></g>
+  <text x="168" y="105" fill="#ffffff" font-family="Segoe UI, sans-serif" font-size="35" font-weight="700">Extreme Slicer</text>
+  <text x="171" y="132" fill="#91eee2" font-family="Segoe UI, sans-serif" font-size="14" letter-spacing="2">CUDA · VULKAN · EXACT CPU</text>
+</svg>

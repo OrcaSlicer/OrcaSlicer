@@ -1064,8 +1064,14 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         else if (param == "vulkan_slicer_compute") {
             Gpu::VulkanSlicerBackend::set_compute_enabled(checkbox->GetValue());
         }
+        else if (param == "cuda_slicer_compute") {
+            Gpu::VulkanSlicerBackend::set_cuda_enabled(checkbox->GetValue());
+        }
         else if (param == "vulkan_slicer_gpu_priority") {
             Gpu::VulkanSlicerBackend::set_gpu_priority_enabled(checkbox->GetValue());
+        }
+        else if (param == "slicer_compute_strict_validation") {
+            Gpu::VulkanSlicerBackend::set_strict_validation(checkbox->GetValue());
         }
 
 #ifdef __WXMSW__
@@ -1832,6 +1838,20 @@ void PreferencesDialog::create_items()
     //// GRAPHICS > General
     g_sizer->Add(create_item_title(_L("General")), 1, wxEXPAND);
 
+    auto item_compute_mode = create_item_combobox(
+        _L("Compute backend mode"),
+        _L("Select one authoritative compute backend for exact scan conversion. CUDA is preferred for NVIDIA cards, Vulkan remains available as a portable fallback, and CPU keeps the original path."),
+        "slicer_compute_mode",
+        { _L("CUDA"), _L("Vulkan"), _L("CPU (basic)") },
+        { "cuda", "vulkan", "cpu" });
+    g_sizer->Add(item_compute_mode);
+
+    auto item_cuda_slicer_compute = create_item_checkbox(
+        _L("Enable CUDA slicing acceleration"),
+        _L("Allows the CUDA backend to run when CUDA mode is selected. If CUDA is not compiled or no CUDA device is available, the slicer reports the reason and can fall back to Vulkan."),
+        "cuda_slicer_compute");
+    g_sizer->Add(item_cuda_slicer_compute);
+
     auto item_vulkan_slicer_compute = create_item_checkbox(
         _L("Enable Vulkan slicing acceleration"),
         _L("Uses Vulkan compute for exact high-cardinality infill and support scan conversion. "
@@ -1847,6 +1867,19 @@ void PreferencesDialog::create_items()
            "Disable this to restore the conservative CPU/GPU crossover policy."),
         "vulkan_slicer_gpu_priority");
     g_sizer->Add(item_vulkan_slicer_gpu_priority);
+
+    auto item_compute_batch_size = create_item_spinctrl(
+        _L("GPU batch size"), _L("requests"), "",
+        _L("Minimum exact-intersection workload submitted to CUDA/Vulkan. 64 is the default compromise for GTX 1060-class cards; larger values reduce dispatch overhead on faster GPUs."),
+        "slicer_compute_batch_size", 16, 4096,
+        [](int value) { Gpu::VulkanSlicerBackend::set_batch_size(uint32_t(value)); });
+    g_sizer->Add(item_compute_batch_size);
+
+    auto item_strict_gpu_validation = create_item_checkbox(
+        _L("Strict GPU result validation"),
+        _L("Recomputes every CUDA/Vulkan result with the wide-integer CPU reference. This is slower but useful for driver qualification and topology debugging; sampled validation is the default."),
+        "slicer_compute_strict_validation");
+    g_sizer->Add(item_strict_gpu_validation);
 
     auto smooth_normals = create_item_checkbox(
         _L("Smooth normals"),

@@ -1,4 +1,5 @@
 #include "VulkanSlicer.hpp"
+#include "CudaSlicer.hpp"
 
 #include "Utils.hpp"
 
@@ -35,7 +36,11 @@ constexpr size_t   kMaximumReusableStagingRequestCapacity = 256 * 1024;
 // The GUI changes this flag through VulkanSlicerBackend. Keeping it here
 // avoids coupling the slicing engine to GUI/AppConfig headers.
 std::atomic_bool g_compute_enabled { true };
+std::atomic_bool g_cuda_enabled { true };
 std::atomic_bool g_gpu_priority_enabled { true };
+std::atomic<ComputeBackendPreference> g_backend_preference { ComputeBackendPreference::Cuda };
+std::atomic<uint32_t> g_batch_size { 64 };
+std::atomic_bool g_strict_validation { false };
 
 class RuntimeStatsRegistry {
 public:
@@ -60,6 +65,17 @@ public:
         m_stats.preferred_intersection_batch = request_count;
     }
 
+    void set_compute_selection(std::string active_backend, bool cuda_available, bool vulkan_available)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_stats.active_backend = std::move(active_backend);
+        m_stats.cuda_enabled = g_cuda_enabled.load(std::memory_order_acquire);
+        m_stats.vulkan_enabled = g_compute_enabled.load(std::memory_order_acquire);
+        m_stats.cuda_available = cuda_available;
+        m_stats.vulkan_available = vulkan_available;
+        m_stats.configured_batch_size = g_batch_size.load(std::memory_order_acquire);
+    }
+
     void begin_slice()
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -79,6 +95,7 @@ public:
             "Vulkan not initialized for this slice" :
             "No GPU batch has been submitted for this slice";
         m_stats.last_diagnostic = "GPU work counters reset for a new slicing session.";
+        m_stats.configured_batch_size = g_batch_size.load(std::memory_order_acquire);
     }
 
     void record_dispatch(size_t request_count, const VulkanVerticalIntersectionBatch& batch)
@@ -92,8 +109,10 @@ public:
         if (batch.gpu_elapsed_ms >= 0.0)
             m_stats.total_gpu_ms += batch.gpu_elapsed_ms;
         m_stats.total_host_ms += batch.host_elapsed_ms;
+        const bool cuda_batch = batch.diagnostic.find("CUDA") != std::string::npos;
         m_stats.current_operation = batch.dispatched ?
-            "Exact infill/support edge intersections" : "CPU fallback after Vulkan dispatch failure";
+            (cuda_batch ? "CUDA exact infill/support intersections" : "Vulkan exact infill/support edge intersections") :
+            "CPU fallback after GPU dispatch failure";
         m_stats.last_diagnostic = batch.diagnostic;
     }
 
@@ -123,7 +142,7 @@ public:
         std::lock_guard<std::mutex> lock(m_mutex);
         ++m_stats.dispatch_calls;
         ++m_stats.queue_submissions;
-        m_stats.current_operation = "Tree support contour broad phase (CPU exact confirmation)";
+        m_stats.current_operation = "GPU tree-support broad phase (CPU exact confirmation)";
         m_stats.last_diagnostic = diagnostic + " (" + std::to_string(request_count) +
             " branches, " + std::to_string(edge_count) + " contour edges).";
     }
@@ -145,6 +164,8 @@ private:
 
 VulkanIntersectionValidationMode configured_validation_mode()
 {
+    if (g_strict_validation.load(std::memory_order_acquire))
+        return VulkanIntersectionValidationMode::Strict;
     static const VulkanIntersectionValidationMode mode = [] {
         const char* value = std::getenv("ORCA_VULKAN_SLICER_VALIDATION");
         if (value != nullptr) {
@@ -447,9 +468,9 @@ private:
     void initialize()
     {
         VkApplicationInfo application_info { VK_STRUCTURE_TYPE_APPLICATION_INFO };
-        application_info.pApplicationName = "OrcaVulkanSlicer";
+        application_info.pApplicationName = "Extreme Slicer";
         application_info.applicationVersion = 1;
-        application_info.pEngineName = "OrcaSlicer";
+        application_info.pEngineName = "Extreme Slicer";
         application_info.engineVersion = 1;
         application_info.apiVersion = VK_API_VERSION_1_2;
 
@@ -1355,9 +1376,9 @@ VulkanSlicerCapabilities VulkanSlicerBackend::query_capabilities()
     capabilities.compiled_with_vulkan = true;
 
     VkApplicationInfo application_info { VK_STRUCTURE_TYPE_APPLICATION_INFO };
-    application_info.pApplicationName = "OrcaVulkanSlicer";
+    application_info.pApplicationName = "Extreme Slicer";
     application_info.applicationVersion = 1;
-    application_info.pEngineName = "OrcaSlicer";
+    application_info.pEngineName = "Extreme Slicer";
     application_info.engineVersion = 1;
     application_info.apiVersion = VK_API_VERSION_1_2;
 
@@ -1448,21 +1469,52 @@ VulkanSlicerCapabilities VulkanSlicerBackend::query_capabilities()
 VulkanVerticalIntersectionBatch VulkanSlicerBackend::dispatch_vertical_intersections(
     const std::vector<VulkanVerticalIntersectionRequest>& requests)
 {
-#ifdef SLIC3R_ENABLE_VULKAN_SLICER
-    if (!compute_enabled()) {
-        VulkanVerticalIntersectionBatch batch;
-        batch.diagnostic = "Vulkan infill compute is disabled in Preferences.";
+    VulkanVerticalIntersectionBatch batch;
+    const ComputeBackendPreference preference = backend_preference();
+    if (preference == ComputeBackendPreference::Cpu || requests.empty()) {
+        batch.diagnostic = "CPU-only compute mode is active.";
         return batch;
     }
-    VulkanVerticalIntersectionBatch batch = vulkan_intersection_context().dispatch(requests);
-    if (!requests.empty())
-        runtime_stats_registry().record_dispatch(requests.size(), batch);
-    return batch;
-#else
-    VulkanVerticalIntersectionBatch batch;
-    batch.diagnostic = "Vulkan infill compute was not compiled; configure with -DSLIC3R_ENABLE_VULKAN_SLICER=ON.";
-    return batch;
+
+    // CUDA is the preferred path.  The CUDA backend is optional at build time;
+    // a missing toolkit/device is a normal condition and falls through to
+    // Vulkan when that backend is enabled.
+    if (preference == ComputeBackendPreference::Cuda && cuda_enabled()) {
+        const CudaSlicerCapabilities cuda = CudaSlicerBackend::query_capabilities();
+        if (cuda.runtime_available) {
+            VulkanVerticalIntersectionBatch cuda_batch =
+                CudaSlicerBackend::dispatch_vertical_intersections(requests);
+            if (cuda_batch.dispatched) {
+                runtime_stats_registry().set_compute_selection(
+                    "CUDA", true, false);
+                runtime_stats_registry().record_dispatch(requests.size(), cuda_batch);
+                return cuda_batch;
+            }
+            batch.diagnostic = cuda_batch.diagnostic;
+        } else {
+            batch.diagnostic = cuda.diagnostic;
+        }
+    }
+
+#ifdef SLIC3R_ENABLE_VULKAN_SLICER
+    if ((preference == ComputeBackendPreference::Cuda || preference == ComputeBackendPreference::Vulkan) &&
+        compute_enabled()) {
+        VulkanVerticalIntersectionBatch vulkan_batch = vulkan_intersection_context().dispatch(requests);
+        if (vulkan_batch.dispatched || batch.diagnostic.empty())
+            batch = std::move(vulkan_batch);
+        else
+            batch.diagnostic += "; Vulkan: " + vulkan_batch.diagnostic;
+        runtime_stats_registry().set_compute_selection(
+            "Vulkan", false, vulkan_batch.dispatched);
+        if (!requests.empty())
+            runtime_stats_registry().record_dispatch(requests.size(), batch);
+        return batch;
+    }
 #endif
+
+    if (batch.diagnostic.empty())
+        batch.diagnostic = "No enabled GPU backend is available; exact CPU geometry remains active.";
+    return batch;
 }
 
 VulkanTreeContourBatch VulkanSlicerBackend::dispatch_tree_contour_candidates(
@@ -1470,9 +1522,11 @@ VulkanTreeContourBatch VulkanSlicerBackend::dispatch_tree_contour_candidates(
     const std::vector<Segment>& contour_edges)
 {
 #ifdef SLIC3R_ENABLE_VULKAN_SLICER
-    if (!compute_enabled()) {
+    if (backend_preference() == ComputeBackendPreference::Cpu || !compute_enabled()) {
         VulkanTreeContourBatch batch;
-        batch.diagnostic = "Vulkan tree contour compute is disabled in Preferences.";
+        batch.diagnostic = backend_preference() == ComputeBackendPreference::Cpu ?
+            "CPU-only compute mode is active; Vulkan tree contour compute is disabled." :
+            "Vulkan tree contour compute is disabled in Preferences.";
         return batch;
     }
     return vulkan_intersection_context().dispatch_tree_contours(requests, contour_edges);
@@ -1485,31 +1539,59 @@ VulkanTreeContourBatch VulkanSlicerBackend::dispatch_tree_contour_candidates(
 
 bool VulkanSlicerBackend::should_dispatch_vertical_intersections(size_t request_count)
 {
-#ifdef SLIC3R_ENABLE_VULKAN_SLICER
-    if (!compute_enabled())
+    if (backend_preference() == ComputeBackendPreference::Cpu || request_count < batch_size())
         return false;
-    return vulkan_intersection_context().should_dispatch_vertical_intersections(request_count);
-#else
-    return false;
+
+    if (backend_preference() == ComputeBackendPreference::Cuda && cuda_enabled()) {
+        const CudaSlicerCapabilities cuda = CudaSlicerBackend::query_capabilities();
+        if (cuda.runtime_available)
+            return true;
+    }
+#ifdef SLIC3R_ENABLE_VULKAN_SLICER
+    if (compute_enabled())
+        return request_count >= batch_size() || vulkan_intersection_context().should_dispatch_vertical_intersections(request_count);
 #endif
+    return false;
 }
 
 bool VulkanSlicerBackend::prepare_for_slicing()
 {
+    const ComputeBackendPreference preference = backend_preference();
+    const CudaSlicerCapabilities cuda = CudaSlicerBackend::query_capabilities();
+    bool vulkan_available = false;
 #ifdef SLIC3R_ENABLE_VULKAN_SLICER
-    if (!compute_enabled()) {
+    vulkan_available = compute_enabled() && !query_capabilities().devices.empty();
+#endif
+    runtime_stats_registry().set_compute_selection("CPU", cuda.runtime_available, vulkan_available);
+
+    if (preference == ComputeBackendPreference::Cpu || (!cuda_enabled() && !compute_enabled())) {
         runtime_stats_registry().set_backend({}, "Disabled",
-            "Vulkan compute is disabled in Preferences; using the exact CPU geometry path.",
+            "CPU-only compute mode is active; CUDA and Vulkan are disabled.",
             0, 0, 0);
         return false;
     }
-    return vulkan_intersection_context().prepare_for_slicing();
-#else
+
+    if (preference == ComputeBackendPreference::Cuda && cuda_enabled() && cuda.runtime_available &&
+        CudaSlicerBackend::prepare_for_slicing()) {
+        runtime_stats_registry().set_compute_selection("CUDA", true, vulkan_available);
+        runtime_stats_registry().set_backend(cuda.device_name, "CUDA exact int64 kernel",
+            cuda.diagnostic, 128, cuda.max_threads_per_block, 0);
+        return true;
+    }
+
+#ifdef SLIC3R_ENABLE_VULKAN_SLICER
+    if ((preference == ComputeBackendPreference::Cuda || preference == ComputeBackendPreference::Vulkan) &&
+        compute_enabled()) {
+        const bool ready = vulkan_intersection_context().prepare_for_slicing();
+        runtime_stats_registry().set_compute_selection(ready ? "Vulkan" : "CPU",
+                                                       cuda.runtime_available, ready);
+        return ready;
+    }
+#endif
     runtime_stats_registry().set_backend({}, {},
-        "Vulkan infill compute was not compiled; configure with -DSLIC3R_ENABLE_VULKAN_SLICER=ON.",
+        cuda.diagnostic.empty() ? "No enabled GPU backend is available; using exact CPU geometry." : cuda.diagnostic,
         0, 0, 0);
     return false;
-#endif
 }
 
 void VulkanSlicerBackend::set_compute_enabled(bool enabled)
@@ -1532,6 +1614,46 @@ bool VulkanSlicerBackend::compute_enabled()
     return g_compute_enabled.load(std::memory_order_acquire);
 }
 
+void VulkanSlicerBackend::set_cuda_enabled(bool enabled)
+{
+    g_cuda_enabled.store(enabled, std::memory_order_release);
+}
+
+bool VulkanSlicerBackend::cuda_enabled()
+{
+    return g_cuda_enabled.load(std::memory_order_acquire);
+}
+
+void VulkanSlicerBackend::set_backend_preference(ComputeBackendPreference preference)
+{
+    g_backend_preference.store(preference, std::memory_order_release);
+}
+
+ComputeBackendPreference VulkanSlicerBackend::backend_preference()
+{
+    return g_backend_preference.load(std::memory_order_acquire);
+}
+
+void VulkanSlicerBackend::set_batch_size(uint32_t value)
+{
+    g_batch_size.store(std::clamp(value, 16u, 4096u), std::memory_order_release);
+}
+
+uint32_t VulkanSlicerBackend::batch_size()
+{
+    return g_batch_size.load(std::memory_order_acquire);
+}
+
+void VulkanSlicerBackend::set_strict_validation(bool enabled)
+{
+    g_strict_validation.store(enabled, std::memory_order_release);
+}
+
+bool VulkanSlicerBackend::strict_validation()
+{
+    return g_strict_validation.load(std::memory_order_acquire);
+}
+
 void VulkanSlicerBackend::set_gpu_priority_enabled(bool enabled)
 {
     g_gpu_priority_enabled.store(enabled, std::memory_order_release);
@@ -1552,6 +1674,7 @@ void VulkanSlicerBackend::release_unused_staging_memory()
 #ifdef SLIC3R_ENABLE_VULKAN_SLICER
     vulkan_intersection_context().release_unused_staging_memory();
 #endif
+    CudaSlicerBackend::release_resources();
 }
 
 VulkanIntersectionValidationMode VulkanSlicerBackend::vertical_intersection_validation_mode()
@@ -1593,7 +1716,13 @@ std::string VulkanSlicerBackend::runtime_diagnostic_report()
 {
     const VulkanSlicerRuntimeStats stats = query_runtime_stats();
     std::ostringstream report;
-    report << "Vulkan slicer runtime diagnostics\n"
+    report << "Extreme Slicer compute runtime diagnostics\n"
+           << "backend: " << (stats.active_backend.empty() ? "CPU" : stats.active_backend)
+           << " (mode " << (backend_preference() == ComputeBackendPreference::Cuda ? "CUDA" :
+                             backend_preference() == ComputeBackendPreference::Vulkan ? "Vulkan" : "CPU") << ")\n"
+           << "CUDA: " << (stats.cuda_enabled ? (stats.cuda_available ? "enabled/available" : "enabled/unavailable") : "disabled")
+           << ", Vulkan: " << (stats.vulkan_enabled ? (stats.vulkan_available ? "enabled/available" : "enabled/unavailable") : "disabled") << '\n'
+           << "configured batch size: " << stats.configured_batch_size << '\n'
            << "device: " << (stats.selected_device.empty() ? "not initialized" : stats.selected_device) << '\n'
            << "profile: " << (stats.execution_profile.empty() ? "not initialized" : stats.execution_profile) << '\n'
            << "validation: " << stats.validation_mode << '\n'

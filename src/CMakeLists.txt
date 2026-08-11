@@ -148,8 +148,8 @@ endif ()
 
 if (NOT WIN32 AND NOT APPLE)
     # Binary name on unix like systems (Linux, Unix)
-    set_target_properties(OrcaSlicer PROPERTIES OUTPUT_NAME "orca-slicer")
-    set(SLIC3R_APP_CMD "orca-slicer")
+    set_target_properties(OrcaSlicer PROPERTIES OUTPUT_NAME "extreme-slicer")
+    set(SLIC3R_APP_CMD "extreme-slicer")
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dev-utils/platform/unix/build_linux_image.sh.in ${CMAKE_CURRENT_BINARY_DIR}/build_linux_image.sh USE_SOURCE_PERMISSIONS @ONLY)
 endif ()
 
@@ -204,7 +204,7 @@ if (WIN32)
     target_compile_definitions(OrcaSlicer_app_gui PRIVATE "$<$<NOT:$<CONFIG:RelWithDebInfo>>:SLIC3R_WRAPPER_NOCONSOLE>")
     add_dependencies(OrcaSlicer_app_gui OrcaSlicer)
     set_target_properties(OrcaSlicer_app_gui PROPERTIES
-        OUTPUT_NAME "orca-slicer"
+        OUTPUT_NAME "extreme-slicer"
         WIN32_EXECUTABLE "$<NOT:$<CONFIG:RelWithDebInfo>>"
     )
     target_link_libraries(OrcaSlicer_app_gui PRIVATE boost_headeronly)
@@ -280,7 +280,7 @@ else ()
     if (APPLE AND NOT CMAKE_MACOSX_BUNDLE)
         # On OSX, the name of the binary matches the name of the Application.
         add_custom_command(TARGET OrcaSlicer POST_BUILD
-            COMMAND ln -sf OrcaSlicer orca-slicer
+            COMMAND ln -sf OrcaSlicer extreme-slicer
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:OrcaSlicer>"
             VERBATIM)
     else ()

@@ -75,17 +75,33 @@ namespace {
 
 	std::string compact_gpu_operation(const std::string& operation)
 	{
+		if (operation == "CUDA exact infill/support intersections")
+			return "CUDA infill/support intersections";
+		if (operation == "Vulkan exact infill/support edge intersections")
+			return "Vulkan infill/support intersections";
 		if (operation == "Exact infill/support edge intersections")
 			return "infill/support intersections";
 		if (operation == "CPU fallback for a small intersection batch")
 			return "CPU fallback (small batch)";
-		if (operation == "CPU fallback after Vulkan dispatch failure")
-			return "CPU fallback (dispatch failed)";
+		if (operation == "CPU fallback after GPU dispatch failure")
+			return "CPU fallback (GPU failed)";
 		if (operation == "Wall topology candidate graph")
 			return "wall topology candidates";
 		if (operation == "CPU fallback for wall topology preflight")
 			return "CPU wall topology fallback";
 		return operation.empty() ? "preparing compute" : operation;
+	}
+
+	std::string compact_stage(const std::string& stage)
+	{
+		std::string result = stage;
+		for (char& character : result)
+			if (character == '\n' || character == '\r')
+				character = ' ';
+		constexpr size_t maximum_length = 28;
+		if (result.size() > maximum_length)
+			result = result.substr(0, maximum_length - 3) + "...";
+		return result;
 	}
 
 	std::string format_memory_size(size_t bytes)
@@ -112,7 +128,7 @@ void NotificationManager::SlicingProgressNotification::init()
 		// The original notification width was sized for a one-line status. The
 		// live resource rows below need enough room for a device and a concise
 		// compute-phase label without clipping either one.
-		m_window_width = std::max(m_window_width, m_line_height * 42.0f);
+		m_window_width = std::max(m_window_width, m_line_height * 56.0f);
 		// PopNotification::init() measured status text at the legacy width.
 		// Reflow after widening so it does not retain an unnecessary wrap.
 		count_lines();
@@ -457,7 +473,8 @@ void NotificationManager::SlicingProgressNotification::update_resource_usage()
 					(elapsed * std::max<uint32_t>(1, m_logical_processor_count)));
 				cpu_text << std::fixed << std::setprecision(1)
 					<< "CPU: " << cpu_percent << "% / "
-					<< m_logical_processor_count << " logical cores";
+					<< m_logical_processor_count << " logical cores / "
+					<< compact_stage(m_text1);
 				cpu_sample_available = true;
 			}
 			m_last_process_cpu_time_100ns = process_cpu_time;
@@ -469,27 +486,33 @@ void NotificationManager::SlicingProgressNotification::update_resource_usage()
 		cpu_text << "CPU: unavailable";
 
 	const Gpu::VulkanSlicerRuntimeStats gpu = Gpu::VulkanSlicerBackend::query_runtime_stats();
+	const auto backend_mode = Gpu::VulkanSlicerBackend::backend_preference();
 	std::ostringstream gpu_text;
 	std::ostringstream gpu_activity_text;
-	if (!Gpu::VulkanSlicerBackend::compute_enabled()) {
-		gpu_text << "GPU: Vulkan compute disabled";
-		gpu_activity_text << "GPU job: CPU exact geometry path";
+	if (backend_mode == Gpu::ComputeBackendPreference::Cpu ||
+		(!Gpu::VulkanSlicerBackend::cuda_enabled() && !Gpu::VulkanSlicerBackend::compute_enabled())) {
+		gpu_text << "GPU: disabled (CPU/basic mode)";
+		gpu_activity_text << "GPU job: none / CPU exact geometry";
 	} else if (gpu.selected_device.empty()) {
-		gpu_text << "GPU: Vulkan initializing";
-		gpu_activity_text << "GPU job: preparing exact compute";
+		gpu_text << "GPU: " << (backend_mode == Gpu::ComputeBackendPreference::Cuda ? "CUDA" : "Vulkan") << " initializing";
+		gpu_activity_text << "GPU job: preparing exact compute / batch "
+			<< Gpu::VulkanSlicerBackend::batch_size();
 	} else if (gpu.dispatch_calls == 0) {
-		gpu_text << "GPU: " << compact_gpu_name(gpu.selected_device) << " / Vulkan ready, idle";
+		gpu_text << "GPU: " << compact_gpu_name(gpu.selected_device) << " / "
+			<< (gpu.active_backend.empty() ? "GPU" : gpu.active_backend) << " ready, idle";
 		if (gpu.skipped_small_workloads != 0) {
 			gpu_activity_text << "GPU job: CPU kept "
 				<< compact_count(gpu.skipped_small_workloads) << " small batches";
 		} else {
-			gpu_activity_text << "GPU job: no eligible scanline batch in this slice";
+			gpu_activity_text << "GPU job: no eligible batch / configured "
+				<< Gpu::VulkanSlicerBackend::batch_size();
 		}
 	} else {
-		gpu_text << "GPU: " << compact_gpu_name(gpu.selected_device) << " / Vulkan ready";
+		gpu_text << "GPU: " << compact_gpu_name(gpu.selected_device) << " / "
+			<< (gpu.active_backend.empty() ? "GPU" : gpu.active_backend) << " ready";
 		gpu_activity_text << "GPU last: " << compact_gpu_operation(gpu.current_operation)
-			<< " / " << compact_count(gpu.dispatch_calls)
-			<< " / " << compact_count(gpu.submitted_intersections);
+			<< " / batches " << compact_count(gpu.dispatch_calls)
+			<< " / requests " << compact_count(gpu.submitted_intersections);
 	}
 
 	m_cpu_resource_text = cpu_text.str();

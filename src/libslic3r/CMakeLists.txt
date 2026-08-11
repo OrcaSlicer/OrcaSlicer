@@ -20,6 +20,7 @@ endif()
 
 option(BUILD_SHARED_LIBS "Build shared libs" OFF)
 option(SLIC3R_ENABLE_VULKAN_SLICER "Build the experimental deterministic Vulkan slicer backend" OFF)
+option(SLIC3R_ENABLE_CUDA_SLICER "Build the optional CUDA exact geometry backend" OFF)
 
 set(lisbslic3r_sources
     AABBMesh.cpp
@@ -475,6 +476,8 @@ set(lisbslic3r_sources
     GCode/ToolOrderUtils.hpp
     GCode/ToolOrderUtils.cpp
     Gpu/GpuExactGeometry.hpp
+    Gpu/CudaSlicer.hpp
+    Gpu/CudaSlicer.cpp
     Gpu/VulkanSlicer.hpp
     Gpu/VulkanSlicer.cpp
     FlushVolPredictor.hpp
@@ -493,6 +496,16 @@ add_library(libslic3r STATIC ${lisbslic3r_sources}
     "${CMAKE_CURRENT_BINARY_DIR}/libslic3r_version.h"
     ${OpenVDBUtils_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${lisbslic3r_sources})
+
+if (SLIC3R_ENABLE_CUDA_SLICER)
+    enable_language(CUDA)
+    find_package(CUDAToolkit REQUIRED)
+    target_sources(libslic3r PRIVATE Gpu/CudaSlicer.cu)
+    set_source_files_properties(Gpu/CudaSlicer.cu PROPERTIES LANGUAGE CUDA)
+    set_target_properties(libslic3r PROPERTIES CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED ON)
+    target_compile_definitions(libslic3r PRIVATE SLIC3R_ENABLE_CUDA_SLICER=1)
+    target_link_libraries(libslic3r PRIVATE CUDA::cudart)
+endif()
 
 if (SLIC3R_ENABLE_VULKAN_SLICER)
     find_package(Vulkan 1.2 REQUIRED)

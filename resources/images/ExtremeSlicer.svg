@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Extreme Slicer</title>
+  <desc id="desc">A respectful Slic3r-inspired hexagonal slicer mark with a CUDA lightning accent.</desc>
+  <defs>
+    <linearGradient id="shell" x1="28" y1="24" x2="228" y2="232" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38d6c4"/><stop offset="1" stop-color="#087caa"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="92" y1="34" x2="177" y2="213" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffe56a"/><stop offset="1" stop-color="#ff8a16"/>
+    </linearGradient>
+  </defs>
+  <path d="M128 14 229 72v112l-101 58L27 184V72z" fill="#18242c" stroke="url(#shell)" stroke-width="10" stroke-linejoin="round"/>
+  <path d="m128 43 69 40v80l-69 40-69-40V83z" fill="none" stroke="#e6fbf8" stroke-opacity=".85" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M145 39 91 128h38l-18 89 55-108h-38z" fill="url(#bolt)" stroke="#fff2b2" stroke-width="4" stroke-linejoin="round"/>
+</svg>

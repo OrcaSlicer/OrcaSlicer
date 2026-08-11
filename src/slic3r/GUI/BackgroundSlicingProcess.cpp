@@ -247,16 +247,34 @@ void BackgroundSlicingProcess::process_fff()
         // Read the persisted preference on the worker before touching Vulkan.
         // Disabling it avoids device initialization entirely and leaves the
         // exact CPU pipeline as the only active slicing path.
+        const bool cuda_compute_enabled = wxGetApp().app_config->get_bool("cuda_slicer_compute");
         const bool vulkan_compute_enabled = wxGetApp().app_config->get_bool("vulkan_slicer_compute");
         const bool vulkan_gpu_priority = wxGetApp().app_config->get_bool("vulkan_slicer_gpu_priority");
+        const bool strict_validation = wxGetApp().app_config->get_bool("slicer_compute_strict_validation");
+        uint32_t batch_size = 64;
+        try {
+            batch_size = uint32_t(std::stoul(wxGetApp().app_config->get("slicer_compute_batch_size")));
+        } catch (...) {
+            batch_size = 64;
+        }
+        const std::string mode = wxGetApp().app_config->get("slicer_compute_mode");
+        const Gpu::ComputeBackendPreference backend_mode =
+            mode == "vulkan" ? Gpu::ComputeBackendPreference::Vulkan :
+            mode == "cpu" ? Gpu::ComputeBackendPreference::Cpu :
+            Gpu::ComputeBackendPreference::Cuda;
+        Gpu::VulkanSlicerBackend::set_cuda_enabled(cuda_compute_enabled);
         Gpu::VulkanSlicerBackend::set_compute_enabled(vulkan_compute_enabled);
         Gpu::VulkanSlicerBackend::set_gpu_priority_enabled(vulkan_gpu_priority);
+        Gpu::VulkanSlicerBackend::set_backend_preference(backend_mode);
+        Gpu::VulkanSlicerBackend::set_batch_size(batch_size);
+        Gpu::VulkanSlicerBackend::set_strict_validation(strict_validation);
 
         // Initialize on the slicing worker, not the UI thread. This makes
         // device selection, autotuning and exact qualification visible before
         // the first infill batch without delaying the progress window.
-        if (vulkan_compute_enabled && !Gpu::VulkanSlicerBackend::prepare_for_slicing()) {
-            BOOST_LOG_TRIVIAL(warning) << "[Vulkan slicer] "
+        if ((cuda_compute_enabled || vulkan_compute_enabled) && backend_mode != Gpu::ComputeBackendPreference::Cpu &&
+            !Gpu::VulkanSlicerBackend::prepare_for_slicing()) {
+            BOOST_LOG_TRIVIAL(warning) << "[GPU compute] "
                 << Gpu::VulkanSlicerBackend::query_runtime_stats().last_diagnostic;
         }
 

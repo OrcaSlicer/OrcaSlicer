@@ -100,6 +100,18 @@ struct VulkanSlicerRuntimeStats {
     std::string current_operation;
     std::string validation_mode;
     std::string last_diagnostic;
+    std::string active_backend;
+    bool        cuda_enabled { false };
+    bool        vulkan_enabled { false };
+    bool        cuda_available { false };
+    bool        vulkan_available { false };
+    uint32_t    configured_batch_size { 64 };
+};
+
+enum class ComputeBackendPreference {
+    Cuda,
+    Vulkan,
+    Cpu
 };
 
 enum class VulkanIntersectionValidationMode {
@@ -123,6 +135,17 @@ public:
     // pipeline remains fully available.
     static void set_compute_enabled(bool enabled);
     static bool compute_enabled();
+
+    // CUDA and Vulkan are independent switches. A disabled backend is never
+    // initialized, even when the other backend is unavailable.
+    static void set_cuda_enabled(bool enabled);
+    static bool cuda_enabled();
+    static void set_backend_preference(ComputeBackendPreference preference);
+    static ComputeBackendPreference backend_preference();
+    static void set_batch_size(uint32_t batch_size);
+    static uint32_t batch_size();
+    static void set_strict_validation(bool enabled);
+    static bool strict_validation();
 
     // GPU-priority mode is the default. It submits all but extremely small
     // intersection batches to a qualified Vulkan device. Disabling it restores
