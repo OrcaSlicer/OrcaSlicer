@@ -463,8 +463,10 @@ public:
     // expand_mixed_slots = false keeps mixed filament slots as slots instead of their components.
     // Callers that mirror Print::validate need that form: validate counts the mixed slot itself,
     // so an expanded list makes the two disagree.
-    std::vector<int> get_extruders(bool conside_custom_gcode = false, bool expand_mixed_slots = true) const;
-    std::vector<int> get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed_slots = true) const;
+    // full_config, when given, is used to resolve "Auto" support filaments instead of building one from the
+    // preset bundle - callers that already hold a full config should pass it, building one is not cheap.
+    std::vector<int> get_extruders(bool conside_custom_gcode = false, bool expand_mixed_slots = true, const DynamicPrintConfig *full_config = nullptr) const;
+    std::vector<int> get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed_slots = true, const DynamicPrintConfig *full_config = nullptr) const;
     std::vector<int> get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config, bool expand_mixed_slots = true) const;
     std::vector<int> get_extruders_without_support(bool conside_custom_gcode = false) const;
     // get used filaments from gcode result, 1 based idx
