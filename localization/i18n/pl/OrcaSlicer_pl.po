@@ -8444,24 +8444,24 @@ msgid "Replaced with 3D files from directory:\n"
 msgstr "Zastąpiono plikami 3D z katalogu:\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Pominięto %1%: ten sam plik.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Pominięto %s: ten sam plik.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Pominięto %1%: plik nie istnieje.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Pominięto %s: plik nie istnieje.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Pominięto %1%: nie udało się zastąpić.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Pominięto %s: nie udało się zastąpić.\n"
 
 # AI Translated
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Zastąpiono %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Zastąpiono %s.\n"
 
 # AI Translated
 msgid "Replaced volumes"

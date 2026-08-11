@@ -8721,24 +8721,24 @@ msgid "Replaced with 3D files from directory:\n"
 msgstr "Đã thay thế bằng file 3D từ thư mục:\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Đã bỏ qua %1%: cùng một file.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Đã bỏ qua %s: cùng một file.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Đã bỏ qua %1%: file không tồn tại.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Đã bỏ qua %s: file không tồn tại.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Đã bỏ qua %1%: thay thế thất bại.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Đã bỏ qua %s: thay thế thất bại.\n"
 
 # AI Translated
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Đã thay thế %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Đã thay thế %s.\n"
 
 # AI Translated
 msgid "Replaced volumes"
