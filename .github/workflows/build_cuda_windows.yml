@@ -1,0 +1,97 @@
+name: CUDA Windows installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      cuda-version:
+        description: "CUDA Toolkit version used for the build"
+        required: true
+        default: "13.2.0"
+        type: string
+      cuda-arch:
+        description: "CUDA architectures (for example 89 for RTX 4080 Laptop)"
+        required: true
+        default: "89"
+        type: string
+
+concurrency:
+  group: cuda-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: CUDA ${{ inputs.cuda-version }} / sm_${{ inputs.cuda-arch }}
+    runs-on: windows-2022
+    env:
+      ORCA_CMAKE_EXTRA_ARGS: >-
+        -DSLIC3R_ENABLE_CUDA_SLICER=ON
+        -DSLIC3R_ENABLE_VULKAN_SLICER=ON
+        -DCMAKE_CUDA_ARCHITECTURES=${{ inputs.cuda-arch }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install CMake
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~4.3.0"
+          useLocalCache: true
+          useCloudCache: true
+
+      - name: Install CUDA Toolkit
+        id: cuda-toolkit
+        uses: Jimver/cuda-toolkit@b8bf9c6c28f8a92fbb04dcfcaee872e60c57462d
+        with:
+          cuda: ${{ inputs.cuda-version }}
+          method: network
+          sub-packages: '["nvcc", "visual_studio_integration"]'
+          use-github-cache: true
+          use-local-cache: true
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Install NSIS
+        shell: pwsh
+        run: choco install nsis --no-progress --yes
+
+      - name: Verify toolchain
+        shell: pwsh
+        run: |
+          cmake --version
+          msbuild -version
+          nvcc --version
+          Write-Output "CUDA_PATH=$env:CUDA_PATH"
+
+      - name: Build dependencies
+        shell: cmd
+        run: build_release_vs.bat deps x64
+
+      - name: Build CUDA-enabled slicer
+        shell: cmd
+        run: build_release_vs.bat slicer x64 tests
+
+      - name: Run C++ tests
+        shell: pwsh
+        run: |
+          ctest --test-dir build --build-config Release --output-on-failure
+
+      - name: Create NSIS installer
+        working-directory: build
+        shell: pwsh
+        run: cpack -G NSIS -C Release
+
+      - name: Create portable archive
+        shell: pwsh
+        run: Compress-Archive -Path build\OrcaSlicer -DestinationPath ExtremeSlicer_CUDA_${{ inputs.cuda-version }}_x64_portable.zip -Force
+
+      - name: Upload CUDA installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: ExtremeSlicer-CUDA-${{ inputs.cuda-version }}-x64
+          path: |
+            build/ExtremeSlicer*.exe
+            ExtremeSlicer_CUDA_${{ inputs.cuda-version }}_x64_portable.zip
+          if-no-files-found: error
+          retention-days: 14

@@ -505,6 +505,19 @@ if (SLIC3R_ENABLE_CUDA_SLICER)
     set_target_properties(libslic3r PROPERTIES CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED ON)
     target_compile_definitions(libslic3r PRIVATE SLIC3R_ENABLE_CUDA_SLICER=1)
     target_link_libraries(libslic3r PRIVATE CUDA::cudart)
+
+    # The CUDA driver does not provide the CUDART runtime DLL. Keep the exact
+    # runtime used by this build beside the executable so a user with only a
+    # compatible NVIDIA driver can run the CUDA-enabled installer.
+    if (WIN32)
+        get_target_property(SLIC3R_CUDA_RUNTIME_DLL CUDA::cudart IMPORTED_LOCATION)
+        if (NOT SLIC3R_CUDA_RUNTIME_DLL)
+            get_target_property(SLIC3R_CUDA_RUNTIME_DLL CUDA::cudart IMPORTED_LOCATION_RELEASE)
+        endif ()
+        if (SLIC3R_CUDA_RUNTIME_DLL AND EXISTS "${SLIC3R_CUDA_RUNTIME_DLL}")
+            install(FILES "${SLIC3R_CUDA_RUNTIME_DLL}" DESTINATION ".")
+        endif ()
+    endif ()
 endif()
 
 if (SLIC3R_ENABLE_VULKAN_SLICER)

@@ -35,6 +35,16 @@ When CUDA is not compiled, the UI still shows CUDA mode and the diagnostic
 panel reports that the backend is unavailable; it never prevents the CPU or
 Vulkan paths from running.
 
+## CUDA Windows installer build
+
+The manual **CUDA Windows installer** workflow installs the selected CUDA
+Toolkit, builds with both CUDA and Vulkan enabled, runs the C++ test suite, and
+uploads an NSIS installer plus a portable archive. It defaults to CUDA 13.2.0
+and `sm_89`, matching an RTX 4080 Laptop GPU. Set `cuda-arch` to the target
+architecture when producing a device-specific build. The workflow is a
+build-only job on a GPU-less runner, so runtime acceleration must be validated
+on a machine with the matching NVIDIA driver.
+
 ## QIDI tool mapping
 
 QIDI profiles may use virtual filament ids for multi-colour jobs. Extreme
