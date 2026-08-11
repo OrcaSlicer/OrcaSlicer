@@ -462,6 +462,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
 
 #ifndef __APPLE__
     m_topbar         = new BBLTopbar(this);
+    m_topbar->SetName(_L("Toolbar")); // ORCA: accessible name announced when the pane gains keyboard focus
 #else
     auto panel_topbar = new wxPanel(this, wxID_ANY);
     panel_topbar->SetBackgroundColour(wxColour(38, 46, 48));
@@ -1570,6 +1571,10 @@ void MainFrame::init_tabpanel() {
             WebViewPanel::ensure()->load_url(url);
         });
         m_tabpanel->AddPage(TAB_ID_HOME, m_home_page, "", "tab_home_active");
+        // ORCA: the Home tab button is icon-only; give it an accessible name for screen readers
+        const int home_idx = m_tabpanel->FindPageByName(TAB_ID_HOME);
+        if (wxWindow* home_btn = home_idx == wxNOT_FOUND ? nullptr : m_tabpanel->GetBtnsListCtrl()->GetPageButton(home_idx))
+            home_btn->SetName(_L("Home"));
         m_param_panel = new ParamsPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBK_LEFT | wxTAB_TRAVERSAL);
     }
 

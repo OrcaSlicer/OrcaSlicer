@@ -54,6 +54,7 @@ public:
         static const std::string empty;
         return n < m_pageIcons.size() ? m_pageIcons[n] : empty;
     }
+    wxWindow* GetPageButton(size_t n) const; // ORCA
     wxFlexGridSizer* GetBtnsSizer(){return m_buttons_sizer;}; // ORCA
     // ORCA: a companion widget shown right after the tab buttons (before any side_tools), e.g.
     // an overflow indicator. Pass nullptr to remove it; ownership stays with the caller.
