@@ -1,8 +1,8 @@
 [Desktop Entry]
-Name=OrcaSlicer
+Name=Extreme Slicer
 GenericName=3D Printing Software
-Icon=OrcaSlicer
-Exec=orca-slicer %U
+Icon=ExtremeSlicer
+Exec=extreme-slicer %U
 Terminal=false
 Type=Application
 PrefersNonDefaultGPU=true
@@ -11,4 +11,4 @@ MimeType=model/stl;model/3mf;application/vnd.ms-3mfdocument;application/prs.wave
 Categories=Graphics;3DGraphics;Engineering;
 Keywords=3D;Printing;Slicer;slice;3D;printer;convert;gcode;stl;obj;amf;SLA
 StartupNotify=false
-StartupWMClass=orca-slicer
+StartupWMClass=extreme-slicer
