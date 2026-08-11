@@ -4776,7 +4776,7 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = "mm";
     def->min = -20;
     def->max = 20;
-    def->mode = comAdvanced;
+    def->mode = comExpert;
     def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("ironing_spacing", coFloat);
