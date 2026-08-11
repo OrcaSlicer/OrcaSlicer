@@ -8306,21 +8306,21 @@ msgstr "Каталог для заміни не вибрано"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Замінено 3D-файлами з каталогу:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Пропущено %1%: той самий файл.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Пропущено %s: той самий файл.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Пропущено %1%: файл не існує.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Пропущено %s: файл не існує.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Пропущено %1%: не вдалося замінити.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Пропущено %s: не вдалося замінити.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Замінено %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Замінено %s.\n"
 
 msgid "Replaced volumes"
 msgstr "Замінені обʼєми"

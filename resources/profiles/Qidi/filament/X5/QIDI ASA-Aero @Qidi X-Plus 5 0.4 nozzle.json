@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"setting_id": "g5F7NP83yx0Iub4c",
+	"name": "QIDI ASA-Aero @Qidi X-Plus 5 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI ASA-Aero@X-Plus 5-Series",
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

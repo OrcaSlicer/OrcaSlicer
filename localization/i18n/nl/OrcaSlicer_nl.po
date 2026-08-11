@@ -8999,24 +8999,24 @@ msgid "Replaced with 3D files from directory:\n"
 msgstr "Vervangen door 3D-bestanden uit de map:\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Overgeslagen %1%: hetzelfde bestand.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Overgeslagen %s: hetzelfde bestand.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Overgeslagen %1%: bestand bestaat niet.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Overgeslagen %s: bestand bestaat niet.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Overgeslagen %1%: vervangen is mislukt.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Overgeslagen %s: vervangen is mislukt.\n"
 
 # AI Translated
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Vervangen %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Vervangen %s.\n"
 
 # AI Translated
 msgid "Replaced volumes"

@@ -8064,21 +8064,21 @@ msgstr "Ez da ordezkatzeko direktoriorik hautatu"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Direktorio honetako 3D fitxategiekin ordeztuta:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ %1% saltatu da: fitxategi bera.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ %s saltatu da: fitxategi bera.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ %1% saltatu da: fitxategia ez da existitzen.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ %s saltatu da: fitxategia ez da existitzen.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ %1% saltatu da: ezin izan da ordeztu.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ %s saltatu da: ezin izan da ordeztu.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ %1% ordezkatu da.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ %s ordezkatu da.\n"
 
 msgid "Replaced volumes"
 msgstr "Ordeztutako bolumenak"

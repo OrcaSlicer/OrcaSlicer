@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"setting_id": "bILtWMlzBPi4Ft8a",
+	"name": "QIDI PET-CF @Qidi X-Plus 5 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI PET-CF@X-Plus 5-Series",
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

@@ -9088,24 +9088,24 @@ msgid "Replaced with 3D files from directory:\n"
 msgstr "Ersatt med 3D-filer från mappen:\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Hoppade över %1%: samma fil.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Hoppade över %s: samma fil.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Hoppade över %1%: filen finns inte.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Hoppade över %s: filen finns inte.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Hoppade över %1%: det gick inte att ersätta.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Hoppade över %s: det gick inte att ersätta.\n"
 
 # AI Translated
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Ersatte %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Ersatte %s.\n"
 
 # AI Translated
 msgid "Replaced volumes"

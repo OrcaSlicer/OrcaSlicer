@@ -7776,20 +7776,20 @@ msgstr ""
 msgid "Replaced with 3D files from directory:\n"
 msgstr ""
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
 msgstr ""
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
 msgstr ""
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
 msgstr ""
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
 msgstr ""
 
 msgid "Replaced volumes"
