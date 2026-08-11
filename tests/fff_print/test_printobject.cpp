@@ -222,3 +222,32 @@ TEST_CASE("Auto support filament makes a single-material plate use two filaments
     REQUIRE(print.objects().front()->config().support_interface_filament.value == 2);
     REQUIRE(print.extruders().size() == 2);
 }
+
+TEST_CASE("Auto support filament is re-resolved when the filament properties change", "[PrintObject]")
+{
+    // Regression guard: flagging a filament soluble makes Auto pick it, and clearing the flag again has to
+    // hand the support back to the next best material instead of keeping the stale pick.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_support",                 true },
+        { "support_interface_filament",     SUPPORT_FILAMENT_AUTO },
+        { "single_extruder_multi_material", false },
+        { "filament_type",                  "ABS;PLA;PETG" },
+        { "nozzle_diameter",                "0.4,0.4,0.4" },
+        { "filament_diameter",              "1.75,1.75,1.75" },
+        // The object prints in ABS; the PLA is much closer to its colour than the PETG.
+        { "filament_colour",                "#800080;#2F26A6;#C9C9C9" },
+        { "filament_soluble",               "0,0,1" }
+    });
+
+    Slic3r::Print print;
+    Slic3r::Model model;
+    Slic3r::Test::init_print({cube(20)}, print, model, config);
+    // Soluble beats a closer colour, so the PETG wins.
+    REQUIRE(print.objects().front()->config().support_interface_filament.value == 3);
+
+    config.set_deserialize_strict({ { "filament_soluble", "0,0,0" } });
+    print.apply(model, config);
+    // Both are now plain filaments, equally incompatible with the ABS object: the closer colour decides.
+    REQUIRE(print.objects().front()->config().support_interface_filament.value == 2);
+}
