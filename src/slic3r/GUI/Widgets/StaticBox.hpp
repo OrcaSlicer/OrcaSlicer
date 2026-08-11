@@ -3,6 +3,7 @@
 
 #include "../wxExtensions.hpp"
 #include "StateHandler.hpp"
+#include "WidgetAccessible.hpp"
 
 #include <wx/anybutton.h>
 #include <wx/checklst.h>
@@ -52,7 +53,20 @@ public:
 
     void ShowBadge(bool show);
 
+    // ORCA: give this widget a real MSAA/IAccessible role instead of the
+    // generic fallback custom-drawn windows get by default. extra_state is
+    // an optional callback for widget-specific state bits (e.g. selected,
+    // checked, expanded) on top of the focus/enabled/visible state that's
+    // always derived automatically.
+#if wxUSE_ACCESSIBILITY
+    void SetAccessibleRole(wxAccRole role, WidgetAccessible::ExtraStateGetter extra_state = nullptr);
+#endif
+
 protected:
+#if wxUSE_ACCESSIBILITY
+    wxAccessible* CreateAccessible() override;
+#endif
+
     void eraseEvent(wxEraseEvent& evt);
 
     void sizeEvent(wxSizeEvent& evt);
@@ -73,6 +87,11 @@ protected:
     StateColor   background_color;
     StateColor   background_color2;
     ScalableBitmap badge;
+
+#if wxUSE_ACCESSIBILITY
+    wxAccRole                          m_a11y_role = wxROLE_SYSTEM_CLIENT;
+    WidgetAccessible::ExtraStateGetter m_a11y_extra_state;
+#endif
 
     DECLARE_EVENT_TABLE()
 };

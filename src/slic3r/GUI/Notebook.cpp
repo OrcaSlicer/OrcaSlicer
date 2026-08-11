@@ -5,6 +5,7 @@
 #include "GUI_App.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/Button.hpp"
+#include "Widgets/WidgetAccessible.hpp"
 
 //BBS set font size
 
@@ -170,6 +171,11 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
 {
     Button * btn = new Button(this, text, bmp_name, wxNO_BORDER);
     btn->SetCornerRadius(0);
+    btn->SetName(text); // ORCA: accessible name announced by screen readers when the button is focused
+#if wxUSE_ACCESSIBILITY
+    // ORCA: this Button is a tab, not a plain pushbutton - override Button's default role
+    btn->SetAccessibleRole(wxROLE_SYSTEM_PAGETAB, [btn] { return btn->IsSelected() ? wxACC_STATE_SYSTEM_SELECTED : 0; });
+#endif
 
     if (bmp_name.empty() && bmp.IsOk())
         btn->SetIcon(bmp);
@@ -299,6 +305,13 @@ void ButtonsListCtrl::SetOverflowButton(wxWindow* button)
 
     m_sizer->Layout();
 }
+
+#if wxUSE_ACCESSIBILITY
+wxAccessible* ButtonsListCtrl::CreateAccessible()
+{
+    return new WidgetAccessible(this, wxROLE_SYSTEM_PAGETABLIST);
+}
+#endif
 
 //#endif // _WIN32
 

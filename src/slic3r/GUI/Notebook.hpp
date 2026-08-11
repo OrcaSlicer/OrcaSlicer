@@ -20,6 +20,7 @@
 #include <wx/window.h>
 #include <wx/defs.h>
 #include <wx/notebook.h>
+#include <wx/access.h>
 
 class wxObject;
 
@@ -58,6 +59,11 @@ public:
     // an overflow indicator. Pass nullptr to remove it; ownership stays with the caller.
     void SetOverflowButton(wxWindow* button);
     wxWindow* GetOverflowButton() const { return m_overflow_button; }
+
+protected:
+#if wxUSE_ACCESSIBILITY
+    wxAccessible* CreateAccessible() override;
+#endif
 
 private:
     wxFlexGridSizer*                m_buttons_sizer;

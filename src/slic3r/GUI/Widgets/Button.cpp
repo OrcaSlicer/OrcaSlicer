@@ -165,6 +165,11 @@ bool Button::Create(wxWindow* parent, wxString text, wxString icon, long style, 
     applyAccessibility();
     Bind(wxEVT_DESTROY, [this](wxWindowDestroyEvent&) { Slic3r::GUI::Accessibility::detach(this); });
 #endif
+#if wxUSE_ACCESSIBILITY
+    // ORCA: default accessible role for a plain button; ButtonsListCtrl/TabCtrl
+    // override this to wxROLE_SYSTEM_PAGETAB when a Button is used as a tab.
+    SetAccessibleRole(wxROLE_SYSTEM_PUSHBUTTON, [this] { return GetValue() ? wxACC_STATE_SYSTEM_PRESSED : 0; });
+#endif
     return true;
 }
 

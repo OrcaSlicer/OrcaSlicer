@@ -48,6 +48,24 @@ StaticBox::StaticBox(wxWindow* parent,
     Create(parent, id, pos, size, style);
 }
 
+#if wxUSE_ACCESSIBILITY
+void StaticBox::SetAccessibleRole(wxAccRole role, WidgetAccessible::ExtraStateGetter extra_state)
+{
+    m_a11y_role        = role;
+    m_a11y_extra_state = std::move(extra_state);
+    // If the OS already queried us, the cached accessible object carries the
+    // previous role - replace it. Otherwise stay lazy and let wx create one
+    // on the first WM_GETOBJECT query, as it does for every other window.
+    if (GetAccessible())
+        SetAccessible(CreateAccessible());
+}
+
+wxAccessible* StaticBox::CreateAccessible()
+{
+    return new WidgetAccessible(this, m_a11y_role, m_a11y_extra_state);
+}
+#endif // wxUSE_ACCESSIBILITY
+
 bool StaticBox::Create(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style)
 {
     if (style & wxBORDER_NONE)
