@@ -1562,10 +1562,13 @@ static void append_support_extruders(std::vector<int>                           
         auto resolve = [&](int exclude_extruder) {
             return PrintObject::resolve_auto_support_filament(mo, num_extruders, full_config, true, exclude_extruder);
         };
+        // Interface and ironing resolve unconstrained, so they share one ranking.
+        std::optional<int> unconstrained;
+        auto resolve_unconstrained = [&] { return *(unconstrained ? unconstrained : unconstrained = resolve(0)); };
         if (interface_extruder == SUPPORT_FILAMENT_AUTO)
-            interface_extruder = resolve(0);
+            interface_extruder = resolve_unconstrained();
         if (ironing_extruder == SUPPORT_FILAMENT_AUTO)
-            ironing_extruder = resolve(0);
+            ironing_extruder = resolve_unconstrained();
         if (base_extruder == SUPPORT_FILAMENT_AUTO)
             base_extruder = resolve(obj_or_global_bool("support_interface_not_for_body") ? interface_extruder : 0);
     }
@@ -1575,7 +1578,7 @@ static void append_support_extruders(std::vector<int>                           
             plate_extruders.push_back(extruder);
 }
 
-std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
+std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const DynamicPrintConfig *full_config) const
 {
 	std::vector<int> plate_extruders;
     if (check_objects_empty_and_gcode3mf(plate_extruders)) {
@@ -1583,10 +1586,12 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
     }
 	// if 3mf file
 	const DynamicPrintConfig& glb_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-	// Only built when an object resolves an "Auto" support filament; the print preset alone does not carry the
-	// filament-scope keys (type, soluble, colour) the resolver needs.
+	// The print preset alone does not carry the filament-scope keys (type, soluble, colour) the "Auto"
+	// resolver needs. Fall back to building a full config, but only once and only if an object needs it.
 	std::optional<DynamicPrintConfig> auto_support_config;
-	auto get_full_config = [&auto_support_config]() -> const DynamicPrintConfig & {
+	auto get_full_config = [&auto_support_config, full_config]() -> const DynamicPrintConfig & {
+		if (full_config)
+			return *full_config;
 		if (!auto_support_config)
 			auto_support_config = wxGetApp().preset_bundle->full_config();
 		return *auto_support_config;
@@ -2035,7 +2040,7 @@ bool PartPlate::check_filament_printable(const DynamicPrintConfig &config, wxStr
     if (mode != fmmManual)
         return true;
 
-    std::vector<int> used_filaments = get_extruders(true);  // 1 base
+    std::vector<int> used_filaments = get_extruders(true, &config);  // 1 base
     if (!used_filaments.empty()) {
         const std::vector<std::string>& filament_types      = config.option<ConfigOptionStrings>("filament_type")->values;
         const std::vector<int>&         filament_printables = config.option<ConfigOptionInts>("filament_printable")->values;
@@ -2134,7 +2139,7 @@ bool PartPlate::check_mixture_of_pla_and_petg(const DynamicPrintConfig &config)
     std::map<int, bool> nozzle_has_pla;
     std::map<int, bool> nozzle_has_petg;
 
-    std::vector<int> used_filaments = get_extruders(true); // 1-based
+    std::vector<int> used_filaments = get_extruders(true, &config); // 1-based
     if (!used_filaments.empty()) {
         const auto *filament_types = config.option<ConfigOptionStrings>("filament_type");
         for (auto filament_idx : used_filaments) {
@@ -2183,7 +2188,7 @@ bool PartPlate::check_mixture_filament_compatible(const DynamicPrintConfig &conf
 
     if (incompatible_filament_pairs.empty()) { add_incompatibility("PVA", "PETG"); }
 
-    std::vector<int>         used_filaments = get_extruders(true); // 1 based idx
+    std::vector<int>         used_filaments = get_extruders(true, &config); // 1 based idx
     std::vector<std::string> filament_types;
     auto                     filament_type_opt = config.option<ConfigOptionStrings>("filament_type");
     for (auto filament : used_filaments) {
@@ -2347,7 +2352,7 @@ Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig & config, con
     // empty plate
     if (plate_extruder_size == 0)
     {
-        std::vector<int> plate_extruders = get_extruders(true);
+        std::vector<int> plate_extruders = get_extruders(true, &config);
         plate_extruder_size = plate_extruders.size();
     }
     if (plate_extruder_size == 0)

@@ -32,6 +32,7 @@
 #include <float.h>
 #include <iterator>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/concurrent_vector.h>
@@ -3845,8 +3846,16 @@ PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObject
     // "Avoid interface filament for base" is enabled, it can be kept off the interface's chosen filament.
     // The gate matches has_support_material(): raft and enforced support also print with these filaments.
     const bool support_enabled = config.enable_support.value || config.enforce_support_layers.value > 0 || config.raft_layers.value > 0;
-    auto resolve_auto = [&](int exclude_extruder) {
-        return print_config ? resolve_auto_support_filament(object, num_extruders, *print_config, support_enabled, exclude_extruder) : 0;
+    auto resolve_auto = [&, unconstrained = std::optional<int>()](int exclude_extruder) mutable {
+        if (! print_config)
+            return 0;
+        // Interface and ironing both resolve unconstrained, so the ranking only has to run once for them.
+        if (exclude_extruder == 0) {
+            if (! unconstrained)
+                unconstrained = resolve_auto_support_filament(object, num_extruders, *print_config, support_enabled, 0);
+            return *unconstrained;
+        }
+        return resolve_auto_support_filament(object, num_extruders, *print_config, support_enabled, exclude_extruder);
     };
     if (config.support_interface_filament.value == SUPPORT_FILAMENT_AUTO)
         config.support_interface_filament.value = resolve_auto(0);
