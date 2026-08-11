@@ -84,7 +84,27 @@ const Preset* find_generic_filament_preset(const std::string& type, const Preset
     // suffix (e.g. "Generic PLA @System"), so resolve through the alias map first and fall
     // back to a literal name match for bundles that don't alias.
     const std::string wanted = "Generic " + type;
-    return filaments.find_preset(filaments.get_preset_name_by_alias(wanted), false);
+    if (const Preset* p = filaments.find_preset(filaments.get_preset_name_by_alias(wanted), false))
+        return p;
+
+    // Orca: get_preset_name_by_alias only considers INSTALLED profiles (is_visible), so a
+    // material the printer reports whose Generic profile the user never enabled resolves to
+    // nothing -- and the sync caller then keeps whatever the row said before, displaying a
+    // material the printer never reported. A ZR Ultra S reporting PLA Silk showed as PLA for
+    // exactly this reason, because only Generic PLA/ABS/PETG were enabled.
+    //
+    // An existing-but-not-enabled system profile still describes the spool correctly, so accept
+    // it. Compatibility is still required: a profile for a different printer would not.
+    const Preset* fallback = nullptr;
+    for (auto it = filaments.begin(); it != filaments.end(); ++it) {
+        if ((it->alias != wanted && it->name != wanted) || !it->is_compatible)
+            continue;
+        if (it->is_system)
+            return &*it;
+        if (fallback == nullptr)
+            fallback = &*it;
+    }
+    return fallback;
 }
 
 FilamentInventories load_filament_inventories()
