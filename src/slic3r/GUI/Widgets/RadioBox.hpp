@@ -22,6 +22,13 @@ public:
         return wxBitmapToggleButton::Disable();
     }
 
+protected:
+#if wxUSE_ACCESSIBILITY
+    // ORCA: a radio button rendered purely as bitmap swaps has no accessible
+    // role/state/name of its own by default.
+    wxAccessible* CreateAccessible() override;
+#endif
+
 private:
     void update();
 

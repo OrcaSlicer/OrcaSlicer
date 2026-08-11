@@ -71,6 +71,10 @@ bool StaticBox::Create(wxWindow* parent, wxWindowID id, const wxPoint& pos, cons
     if (style & wxBORDER_NONE)
         border_width = 0;
     wxWindow::Create(parent, id, pos, size, style);
+    // ORCA: wx defaults an unnamed window's GetName() to "panel" (wxPanelNameStr),
+    // not empty - clear it so WidgetAccessible's "no name set" check (and its
+    // tooltip fallback) works correctly for every StaticBox-derived widget.
+    SetName(wxEmptyString);
     state_handler.attach({&border_color, &background_color, &background_color2});
     state_handler.update_binds();
     SetBackgroundColour(GetParentBackgroundColor(parent));

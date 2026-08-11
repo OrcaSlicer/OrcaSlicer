@@ -1,4 +1,5 @@
 #include "RadioBox.hpp"
+#include "WidgetAccessible.hpp"
 
 #include "../wxExtensions.hpp"
 #include <wx/anybutton.h>
@@ -18,6 +19,7 @@ RadioBox::RadioBox(wxWindow *parent)
     , m_ban(this, "radio_ban", 18)
 {
     // SetBackgroundStyle(wxBG_STYLE_TRANSPARENT);
+    SetName(wxEmptyString); // ORCA: wx defaults an unnamed toggle button's GetName() to a non-empty placeholder
     if (parent) SetBackgroundColour(parent->GetBackgroundColour());
     // Bind(wxEVT_TOGGLEBUTTON, [this](auto& e) { update(); e.Skip(); });
     update();
@@ -66,6 +68,13 @@ void RadioBox::update() {
     }
 
 }
+
+#if wxUSE_ACCESSIBILITY
+wxAccessible* RadioBox::CreateAccessible()
+{
+    return new WidgetAccessible(this, wxROLE_SYSTEM_RADIOBUTTON, [this] { return GetValue() ? wxACC_STATE_SYSTEM_CHECKED : 0; });
+}
+#endif
 
 }
 }

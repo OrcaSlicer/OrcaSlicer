@@ -53,6 +53,7 @@ SwitchButton::SwitchButton(wxWindow* parent, wxWindowID id)
     , thumb_color(std::pair{0x009688, (int) StateColor::Checked}, std::pair{0xD9D9D9, (int) StateColor::Normal})
 {
 	SetBackgroundColour(StaticBox::GetParentBackgroundColor(parent));
+	SetName(wxEmptyString); // ORCA: wx defaults an unnamed toggle button's GetName() to a non-empty placeholder; update() sets the real one
 	Bind(wxEVT_TOGGLEBUTTON, [this](auto& e) { update(); e.Skip(); });
 	SetFont(Label::Body_12);
 
@@ -233,7 +234,20 @@ void SwitchButton::Rescale()
 void SwitchButton::update()
 {
 	SetBitmap((GetValue() ? m_on : m_off).bmp());
+	// ORCA: keep the accessible name in sync with which label is current -
+	// the labels are painted, not real window text, so nothing else exposes
+	// them to screen readers.
+	const wxString& current_label = labels[GetValue() ? 0 : 1];
+	if (!current_label.empty())
+	    SetName(current_label);
 }
+
+#if wxUSE_ACCESSIBILITY
+wxAccessible* SwitchButton::CreateAccessible()
+{
+    return new WidgetAccessible(this, wxROLE_SYSTEM_PUSHBUTTON, [this] { return GetValue() ? wxACC_STATE_SYSTEM_PRESSED : 0; });
+}
+#endif
 
 ModeSwitchButton::ModeSwitchButton(wxWindow* parent, wxWindowID id)
 {
@@ -277,6 +291,11 @@ ModeSwitchButton::ModeSwitchButton(wxWindow* parent, wxWindowID id)
     SetBackgroundColour(StaticBox::GetParentBackgroundColor(parent));
     SetCursor(wxCursor(wxCURSOR_HAND));
     SetFont(Label::Body_12);
+#if wxUSE_ACCESSIBILITY
+    // ORCA: name comes from the tooltip, which update_tooltip() already keeps
+    // in sync with the current selection (Simple/Advanced/Expert/Developer).
+    SetAccessibleRole(wxROLE_SYSTEM_PUSHBUTTON, [this] { return m_pressed ? wxACC_STATE_SYSTEM_PRESSED : 0; });
+#endif
 
     m_tooltips[0] = _L("Simple settings");
     m_tooltips[1] = _L("Advanced settings");

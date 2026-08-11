@@ -1,4 +1,5 @@
 #include "CheckBox.hpp"
+#include "WidgetAccessible.hpp"
 
 #include "../wxExtensions.hpp"
 #include <wx/anybutton.h>
@@ -26,6 +27,7 @@ CheckBox::CheckBox(wxWindow *parent, int id)
     , m_off_focused(this, "check_off_focused", 18)
 {
 	//SetBackgroundStyle(wxBG_STYLE_TRANSPARENT);
+	SetName(wxEmptyString); // ORCA: wx defaults an unnamed toggle button's GetName() to a non-empty placeholder
 	if (parent)
 		SetBackgroundColour(parent->GetBackgroundColour());
 	Bind(wxEVT_TOGGLEBUTTON, [this](auto& e) { m_half_checked = false; update(); e.Skip(); });
@@ -89,6 +91,15 @@ void CheckBox::update()
     updateBitmap(e);
 #endif
 }
+
+#if wxUSE_ACCESSIBILITY
+wxAccessible* CheckBox::CreateAccessible()
+{
+    return new WidgetAccessible(this, wxROLE_SYSTEM_CHECKBUTTON, [this] {
+        return IsHalfChecked() ? wxACC_STATE_SYSTEM_MIXED : GetValue() ? wxACC_STATE_SYSTEM_CHECKED : 0;
+    });
+}
+#endif
 
 #ifdef __WXMSW__
 
