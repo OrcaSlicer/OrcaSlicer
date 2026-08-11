@@ -283,7 +283,7 @@ static std::vector<PathType> generate_spiral_insets(const FillParams&           
     flush_spiral();
 
     // An outward fill order runs every spiral from its centre to its outer edge, innermost island first.
-    if (params.fill_order == SurfaceFillOrder::Outward) {
+    if (params.fill_order != SurfaceFillOrder::Inward) {
         for (PathType& path : output)
             path.reverse();
         std::reverse(output.begin(), output.end());
