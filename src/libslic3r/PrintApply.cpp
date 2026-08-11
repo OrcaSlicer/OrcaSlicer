@@ -1193,13 +1193,11 @@ static PrintObjectRegions* generate_print_object_regions(
     return out.release();
 }
 
-// True when the object leaves a support filament on "Auto". Such a pick is derived from filament-scope inputs
-// (material type, soluble / support flags, colour), from the printer's single-extruder-multi-material flag and
-// from the object's own filaments - none of which are object-scope keys, so none of them show up in the object
-// diff that normally gates re-deriving the object config. Those objects are therefore re-derived on every
-// apply, otherwise a stale pick survives the change that invalidated it: clearing the soluble flag on a
-// filament would leave the support sitting on it instead of falling back to the next best material.
-// A pick that comes out the same produces an empty diff and invalidates nothing.
+// True when the object leaves a support filament on "Auto". Such a pick depends on filament-scope inputs
+// (type, soluble / support flags, colour) and on the object's own filaments, none of which appear in the object
+// diff that normally gates re-deriving the object config - so those objects are re-derived on every apply,
+// otherwise clearing a soluble flag would leave the support sitting on that filament forever. An unchanged
+// pick produces an empty diff and invalidates nothing.
 static bool uses_auto_support_filament(const PrintObjectConfig &default_object_config, const ModelObject &model_object)
 {
     for (const char *key : {"support_filament", "support_interface_filament", "support_ironing_filament"}) {

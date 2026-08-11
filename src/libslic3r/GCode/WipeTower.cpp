@@ -4270,9 +4270,8 @@ void WipeTower::add_depth_to_block(int filament_id, int filament_adhesiveness_ca
     }
 }
 
-// Orca: a filament may only build the tower structure when it is not meant to be removed again (soluble or
-// support filament) and when it bonds with the filament the tower is built from - anything else delaminates
-// from the layers above and below it. Matches how WipeTower2 ranks the filament that finishes a layer.
+// Orca: only a filament that stays in the print (not soluble, not support) and bonds with the tower's own
+// filament can build the structure - anything else delaminates from the layers above and below it.
 bool WipeTower::is_tower_structure_filament(int filament_id) const
 {
     if (filament_id < 0 || m_wall_filament < 0 || (size_t) filament_id >= m_filpar.size())
@@ -4669,10 +4668,8 @@ int WipeTower::get_wall_filament_for_all_layer()
 {
     std::map<int, int> category_counts;
     std::map<int, int> filament_counts;
-    // Orca: the tower structure is built from the filament used on most layers. A soluble or support filament
-    // is meant to be removed again and bonds with nothing, so building the tower from it makes it delaminate;
-    // skip those while counting, as the auto wipe tower filament does in ToolOrdering::insert_wipe_tower_extruder().
-    // Only when the print has nothing else to offer are they counted after all.
+    // Orca: the tower is built from the filament used on most layers, skipping soluble and support ones -
+    // they bond with nothing and would make it delaminate. They are counted only if nothing else qualifies.
     auto count_filaments = [&](bool skip_support_materials) {
         category_counts.clear();
         filament_counts.clear();
@@ -4722,10 +4719,8 @@ int WipeTower::get_wall_filament_for_all_layer()
     //     return left.second > right.second;
     // });
 
-    // Orca: aggregate by material type before picking a filament, as the auto wipe tower filament does in
-    // ToolOrdering::insert_wipe_tower_extruder(). The same material is often loaded as several filaments (two
-    // ABS spools in different colours), and each of them on its own can be outweighed by a single filament of
-    // a material that the print really uses less.
+    // Orca: weigh the material type first. One material split across two spools would otherwise lose to a
+    // single filament of a material the print uses less.
     std::map<std::string, int> type_counts;
     for (auto iter = filament_counts.begin(); iter != filament_counts.end(); ++iter)
         if (get_filament_category(iter->first) == selected_category)
@@ -4798,9 +4793,8 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
             if (layer.tool_changes.size() == 0)
                 return -1;
 
-            // Orca: the tower filament itself is best; failing that a filament that bonds with it, which can
-            // carry the structure without delaminating. Same adhesiveness category alone says nothing about
-            // bonding, so it is only the fallback the layer gets when it prints nothing compatible at all.
+            // Orca: the tower filament first, then one that bonds with it. Same adhesiveness category says
+            // nothing about bonding, so it is only the fallback for a layer with nothing compatible on it.
             int compatible_id = -1;
             int category_id   = -1;
             auto consider = [&](int tool) {
@@ -4893,16 +4887,13 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
                 bool block_solid = block.layers_type[m_cur_layer_id] == WipeTowerLayerType::Contact || block.layers_type[m_cur_layer_id] == WipeTowerLayerType::Contact_UP ||
                                    block.layers_type[m_cur_layer_id] == WipeTowerLayerType::Solid;
                 int finish_layer_filament = -1;
-                // Orca: the block is finished by a filament that bonds with the tower whenever the layer
-                // changed into one, rather than simply by the last filament that touched the block - that one
-                // may be the soluble support, which would leave the tower structure unable to stick together.
+                // Orca: finish with a filament that bonds with the tower rather than with whichever one
+                // purged here last - that one may be the soluble support.
                 if (block.last_tower_filament_change_id != -1) {
                     finish_layer_filament = block.last_tower_filament_change_id;
                 } else if (! layer.tool_changes.empty() && layer.tool_changes.front().old_tool == wall_idx && is_tower_structure_filament(wall_idx)) {
-                    // Nothing that bonds with the tower changed into this block, but the layer started on the
-                    // tower filament and has already printed the wall with it. Fill the rest of the block with
-                    // that same filament - the fill merges into that wall - rather than leaving it to the
-                    // incompatible filament that happened to purge here last.
+                    // Nothing bonding changed into this block, but the layer started on the tower filament
+                    // and already printed its wall: fill the rest with it too, merging into that wall.
                     finish_layer_filament = wall_idx;
                 } else if (block.last_filament_change_id != -1) {
                     finish_layer_filament = block.last_filament_change_id;

@@ -2360,9 +2360,8 @@ int WipeTower2::first_toolchange_to_nonsoluble_nonsupport(
         return -1;
     }
 
-    // Auto mode: finish the layer with the print's most used filament type when present, otherwise with a
-    // filament compatible with it, so the tower structure never mixes incompatible materials. The filament
-    // already loaded at the start of the layer can finish it before any toolchange (idx == -1).
+    // Auto mode: finish with the print's most used filament type, or one that bonds with it, so the tower
+    // structure never mixes incompatible materials.
     if (!m_most_used_filament_type.empty()) {
         // Rank a filament: 2 = the most used type, 1 = a compatible (bonding) type, 0 = otherwise.
         auto rank = [&](int tool) -> int {

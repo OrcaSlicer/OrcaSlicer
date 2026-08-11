@@ -388,9 +388,8 @@ public:
         float            start_depth{0};
         float            cur_depth{0};
         int              last_filament_change_id{-1};
-        // Orca: the last filament changed into this block that can build the tower structure - not soluble or
-        // support, and bonding with the tower's filament. Preferred over last_filament_change_id when finishing
-        // the block, so the structure is never left to a material that would peel off it.
+        // Orca: the last filament changed into this block that can build the tower structure. Preferred over
+        // last_filament_change_id when finishing the block, which may be one that would peel off it.
         int              last_tower_filament_change_id{-1};
         int              last_nozzle_change_id{-1};
 	};
@@ -544,8 +543,8 @@ private:
 	// A fill-in direction (positive Y, negative Y) alternates with each layer.
 	wipe_shape   	m_current_shape = SHAPE_NORMAL;
     size_t 	m_current_tool  = 0;
-    // Orca: the filament the tower structure is built from - the most used one, resolved once per print by
-    // get_wall_filament_for_all_layer(). -1 until generate_new() resolves it.
+    // Orca: the filament the tower structure is built from, resolved once per print by
+    // get_wall_filament_for_all_layer(). -1 until generate_new() runs.
     int     m_wall_filament = -1;
 	// BBS
     //const std::vector<std::vector<float>> wipe_volumes;

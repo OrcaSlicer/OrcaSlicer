@@ -3736,19 +3736,13 @@ static void clamp_feature_filament_to_valid(ConfigOptionInt &opt, size_t num_ext
         opt.value = 1;
 }
 
-// Resolve a "support_filament / support_interface_filament / support_ironing_filament == Auto" value into a
-// concrete 1-based extruder (or 0 for "Default"). The first requisite is that the support is a DIFFERENT
-// material, i.e. it must not bond to any of the object's materials (so it detaches cleanly) - this also rules
-// out picking the same soluble material when the object itself is soluble. Among those non-bonding candidates
-// the preference order is: a support material (flagged soluble or support filament), then known-incompatible
-// with every object material over merely unknown compatibility, then the colour closest to the object.
-// If no different material is available (only same-type filaments), it uses the object's own material
-// - the exact same filament, not just the same type - to avoid color mixing. Falls back to "Default" (0) only
-// when support is disabled, on single-extruder-multi-material printers, or with a single filament.
-// exclude_extruder (1-based, 0 = none) drops a filament from the candidate set - used to keep the support base
-// off the interface filament when "Avoid interface filament for base" is enabled.
-// print_config may be any config carrying the filament-scope keys, so the GUI can resolve "Auto" the same way
-// before slicing (see PartPlate::get_extruders).
+// Resolve an "Auto" support filament into a concrete 1-based extruder (0 = "Default"). A candidate must not
+// bond to any of the object's materials, so the support detaches cleanly; among those, preference goes to a
+// support material (soluble or support flagged), then known-incompatible over unknown, then the closest colour.
+// With nothing non-bonding available it falls back to the object's own filament, to avoid mixing colours.
+// Returns "Default" when support is off, on single-extruder-multi-material printers, or with one filament.
+// exclude_extruder (1-based, 0 = none) keeps the base off the interface filament ("Avoid interface filament for
+// base"). print_config is any config carrying the filament-scope keys, so the GUI can resolve Auto the same way.
 int PrintObject::resolve_auto_support_filament(const ModelObject &object, size_t num_extruders, const ConfigBase &print_config, bool support_enabled, int exclude_extruder)
 {
     const ConfigOptionBool *semm_opt = print_config.option<ConfigOptionBool>("single_extruder_multi_material");
@@ -3766,7 +3760,7 @@ int PrintObject::resolve_auto_support_filament(const ModelObject &object, size_t
         const size_t idx = (size_t)(extruder_1based - 1);
         return opt != nullptr && idx < opt->values.size() && opt->get_at(idx);
     };
-    // A filament meant to be removed again: soluble, or a dedicated support filament (breakaway).
+    // A filament meant to be removed again: soluble, or a breakaway support filament.
     auto is_support_material = [&](int extruder_1based) {
         return flag_at(filament_soluble, extruder_1based) || flag_at(filament_is_support, extruder_1based);
     };
@@ -3785,7 +3779,7 @@ int PrintObject::resolve_auto_support_filament(const ModelObject &object, size_t
     if (object_extruders.empty())
         object_extruders.insert(1);
 
-    // Reference colour = the object's primary material colour. It only breaks ties between equally good candidates.
+    // The object's primary colour, which only breaks ties between equally good candidates.
     const ConfigOptionStrings *filament_colours = print_config.option<ConfigOptionStrings>("filament_colour");
     auto colour_at = [&](int extruder_1based, ColorRGB &out) -> bool {
         const size_t idx = (size_t)(extruder_1based - 1);
@@ -3800,9 +3794,8 @@ int PrintObject::resolve_auto_support_filament(const ModelObject &object, size_t
         const float dr = c.r() - ref_colour.r(), dg = c.g() - ref_colour.g(), db = c.b() - ref_colour.b();
         return dr * dr + dg * dg + db * db;
     };
-    // Ranking key of a candidate, compared lexicographically: a support material beats a plain one even when
-    // both are equally incompatible with the object, known incompatibility beats unknown, and the colour only
-    // separates otherwise equal candidates. A tie keeps the lowest extruder, as the comparison is strict.
+    // Lexicographic ranking key: support material, then known incompatibility, then colour. The strict
+    // comparison below leaves a full tie with the lowest extruder.
     using Rank = std::tuple<bool, bool, float>;
     int  best = 0;
     Rank best_rank;
@@ -3810,7 +3803,7 @@ int PrintObject::resolve_auto_support_filament(const ModelObject &object, size_t
         if (cand == exclude_extruder)
             continue;
         const std::string cand_type = type_of(cand);
-        // First requisite: a different material, i.e. it must not bond to any of the object's materials.
+        // First requisite: it must not bond to any of the object's materials.
         bool bonds_with_any = false;
         bool all_incompatible = true;
         for (int e : object_extruders) {
@@ -3829,7 +3822,7 @@ int PrintObject::resolve_auto_support_filament(const ModelObject &object, size_t
 
     if (best != 0)
         return best;
-    // Only same-material filaments are available: use the object's own material (the exact same filament) to avoid color mixing.
+    // Only bonding filaments left: reuse the object's own, so at least the colour does not change.
     return *object_extruders.begin();
 }
 
@@ -3841,15 +3834,13 @@ PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObject
         src_normalized.normalize_fdm();
         update_static_print_config_from_dynamic(config, src_normalized, variant_index, print_options_with_variant, 1);
     }
-    // Resolve the "Auto" support filaments to concrete extruders before anything downstream reads them.
-    // Interface and ironing resolve first and unconstrained; the base resolves last so that, when
-    // "Avoid interface filament for base" is enabled, it can be kept off the interface's chosen filament.
-    // The gate matches has_support_material(): raft and enforced support also print with these filaments.
+    // Resolve "Auto" before anything downstream reads these. The base resolves last so it can be kept off the
+    // interface's pick. The gate matches has_support_material(): raft and enforced support use them too.
     const bool support_enabled = config.enable_support.value || config.enforce_support_layers.value > 0 || config.raft_layers.value > 0;
     auto resolve_auto = [&, unconstrained = std::optional<int>()](int exclude_extruder) mutable {
         if (! print_config)
             return 0;
-        // Interface and ironing both resolve unconstrained, so the ranking only has to run once for them.
+        // Interface and ironing both resolve unconstrained, so they share one ranking.
         if (exclude_extruder == 0) {
             if (! unconstrained)
                 unconstrained = resolve_auto_support_filament(object, num_extruders, *print_config, support_enabled, 0);

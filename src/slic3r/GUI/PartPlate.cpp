@@ -1527,13 +1527,11 @@ int PartPlate::picking_id_component(int idx) const
     return this->m_plate_index * GRABBER_COUNT + idx;
 }
 
-// Collect the support filaments an object prints with, expanding "Auto" (SUPPORT_FILAMENT_AUTO) exactly the way
-// PrintObject does, so a plate reports the filaments it will actually use. Skipping "Auto" here would make a
-// single-material object with an auto-picked support filament look like a single-filament plate, which in turn
-// suppresses the prime tower (and its arrange placement and AMS mapping).
-// The object config takes precedence, "Default" (0) falls back to the global (print preset) value.
-// full_config carries the filament-scope keys the resolver needs; it is fetched on demand because building it is
-// only worth it when some filament is actually set to "Auto".
+// The support filaments an object prints with, expanding "Auto" the way PrintObject does so the plate reports
+// what it will actually use: an auto-picked filament left out here makes a single-material object look like a
+// single-filament plate, which suppresses the prime tower, its arrange placement and the AMS mapping.
+// The object config wins, "Default" (0) falls back to the global one. get_full_config() supplies the
+// filament-scope keys the resolver needs.
 static void append_support_extruders(std::vector<int>                                 &plate_extruders,
                                      const ModelObject                                &mo,
                                      const DynamicPrintConfig                         &glb_config,
@@ -1555,8 +1553,8 @@ static void append_support_extruders(std::vector<int>                           
     int ironing_extruder   = obj_or_global_bool("support_ironing") ? obj_or_global_int("support_ironing_filament") : 0;
 
     if (interface_extruder == SUPPORT_FILAMENT_AUTO || base_extruder == SUPPORT_FILAMENT_AUTO || ironing_extruder == SUPPORT_FILAMENT_AUTO) {
-        // Resolve in the same order as PrintObject::object_config_from_model_object: the base resolves last so
-        // that "Avoid interface filament for base" can keep it off the interface's chosen filament.
+        // Same order as PrintObject::object_config_from_model_object: the base resolves last so "Avoid
+        // interface filament for base" can keep it off the interface's pick.
         const DynamicPrintConfig &full_config   = get_full_config();
         const size_t              num_extruders = full_config.option<ConfigOptionFloats>("filament_diameter")->size();
         auto resolve = [&](int exclude_extruder) {
@@ -1586,8 +1584,8 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
     }
 	// if 3mf file
 	const DynamicPrintConfig& glb_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-	// The print preset alone does not carry the filament-scope keys (type, soluble, colour) the "Auto"
-	// resolver needs. Fall back to building a full config, but only once and only if an object needs it.
+	// The print preset does not carry the filament-scope keys the "Auto" resolver needs. Build a full config
+	// only if a caller did not hand us one, and only once an object actually needs it.
 	std::optional<DynamicPrintConfig> auto_support_config;
 	auto get_full_config = [&auto_support_config, full_config]() -> const DynamicPrintConfig & {
 		if (full_config)
