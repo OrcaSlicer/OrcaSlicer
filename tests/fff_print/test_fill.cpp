@@ -4,6 +4,7 @@
 #include <cmath>
 #include <map>
 #include <numeric>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -988,4 +989,71 @@ TEST_CASE("Smoothing multiline lightning infill keeps its outlines connected", "
     // The outlines are still rounded.
     REQUIRE(smooth.point_count > sharp.point_count);
     REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
+}
+
+// Lines of the first ironing block: everything between ";TYPE:Ironing" and the next
+// ";TYPE:" (or ";LAYER_CHANGE"), plus the `before` lines preceding the tag.
+static std::pair<std::vector<std::string>, std::vector<std::string>> ironing_block(const std::string &gcode, size_t before = 20)
+{
+    std::vector<std::string> lines;
+    std::istringstream stream(gcode);
+    std::string line;
+    while (std::getline(stream, line))
+        lines.emplace_back(line);
+    auto tag = std::find_if(lines.begin(), lines.end(), [](const std::string &l) { return l.rfind(";TYPE:Ironing", 0) == 0; });
+    REQUIRE(tag != lines.end());
+    auto block_end = std::find_if(tag + 1, lines.end(), [](const std::string &l) {
+        return l.rfind(";TYPE:", 0) == 0 || l.rfind(";LAYER_CHANGE", 0) == 0;
+    });
+    auto first = tag - std::min<size_t>(before, tag - lines.begin());
+    return { std::vector<std::string>(first, tag), std::vector<std::string>(tag + 1, block_end) };
+}
+
+TEST_CASE("Zero-flow ironing retracts around the ironing block and keeps E words on its strokes", "[Fill][Ironing]")
+{
+    auto sliced = [](const char *relative_e) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({
+            {"ironing_type", "topmost"},
+            {"ironing_flow", 0},
+            {"ironing_retract", 5},
+            {"ironing_unretract_extra", 0.5},
+            {"retraction_length", "1,1"},
+            {"layer_height", 0.2},
+            {"use_relative_e_distances", relative_e},
+        });
+        return Slic3r::Test::slice({Slic3r::Test::cube(20.)}, config);
+    };
+
+    SECTION("relative E distances") {
+        const std::string gcode = sliced("1");
+        const auto [before, block] = ironing_block(gcode);
+
+        // The 5mm ironing retract precedes the block; the unretract (5 + 0.5 extra) closes it.
+        const bool retract_before = std::any_of(before.begin(), before.end(),
+            [](const std::string &l) { return l.rfind("G1 E-5 ", 0) == 0; });
+        REQUIRE(retract_before);
+        const bool unretract_in_block = std::any_of(block.begin(), block.end(),
+            [](const std::string &l) { return l.rfind("G1 E5.5 ", 0) == 0; });
+        REQUIRE(unretract_in_block);
+
+        // Ironing strokes carry an explicit E word even at zero flow — the preview
+        // relies on it to tell strokes apart from travel moves.
+        const bool stroke_with_e = std::any_of(block.begin(), block.end(),
+            [](const std::string &l) { return l.rfind("G1 X", 0) == 0 && l.find(" E") != std::string::npos; });
+        REQUIRE(stroke_with_e);
+    }
+
+    SECTION("absolute E distances") {
+        const std::string gcode = sliced("0");
+        const auto [before, block] = ironing_block(gcode);
+
+        // The raw retract is re-anchored with G92 E0 so tracked and firmware E agree.
+        const bool reanchored = std::any_of(before.begin(), before.end(),
+            [](const std::string &l) { return l.rfind("G92 E0", 0) == 0; });
+        REQUIRE(reanchored);
+        const bool stroke_with_e = std::any_of(block.begin(), block.end(),
+            [](const std::string &l) { return l.rfind("G1 X", 0) == 0 && l.find(" E") != std::string::npos; });
+        REQUIRE(stroke_with_e);
+    }
 }
