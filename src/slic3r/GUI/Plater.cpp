@@ -19592,6 +19592,27 @@ void Plater::reslice_SLA_until_step(SLAPrintObjectStep step, const ModelObject &
 // config snapshot and one plate, is what keeps the two length conventions from drifting apart.
 // Filaments the plate does not use keep their preset values but weigh nothing, matching a
 // screen-initiated start of the same file.
+// Orca: the wire map is indexed by the tool numbers the g-code actually emits. On a protocol that
+// requires dense tool numbering the slicer renumbered the plate's filaments (FilamentCompaction),
+// so the dialog's per-project-slot picks have to be re-keyed onto those tool numbers. The order is
+// derived from used_filament_slots() -- the same function Print::apply compacts with -- so the two
+// cannot drift; deriving it here independently is what once let a five-filament project address a
+// tool the firmware has no macro for.
+static std::vector<int> device_wire_filament_map(const DynamicPrintConfig& printer_config,
+                                                 const Model&              model,
+                                                 const DynamicPrintConfig& full_config,
+                                                 const std::vector<int>&   map_1based)
+{
+    if (!printer_requires_dense_tool_numbering(printer_config))
+        return map_1based;
+    const std::vector<int> slots = used_filament_slots(model, full_config);
+    std::vector<int>       out(slots.size(), 0);
+    for (size_t tool = 0; tool < slots.size(); ++tool)
+        if (size_t(slots[tool]) < map_1based.size())
+            out[tool] = map_1based[slots[tool]];
+    return out;
+}
+
 static DevicePrintJobInfo build_device_print_job_info(PartPlate*                                plate,
                                                       const std::vector<int>&                   filament_map_1based,
                                                       const std::map<std::string, std::string>& options)
@@ -19900,8 +19921,13 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool up
                 // The standard dialog already collected the mapping and the option choices. Only a
                 // start actually needs a script, so a plain upload builds none.
                 if (upload_job.upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
-                    const DevicePrintJobInfo job = build_device_print_job_info(device_plate, device_dlg->filament_map(),
-                                                                               device_dlg->options());
+                    DevicePrintJobInfo job = build_device_print_job_info(device_plate, device_dlg->filament_map(),
+                                                                         device_dlg->options());
+                    // Built from the project-slot map above (used_physical_tools is keyed that
+                    // way), then re-keyed onto the emitted tool numbers for the wire.
+                    job.filament_map_1based = device_wire_filament_map(*physical_printer_config, this->model(),
+                                                                       wxGetApp().preset_bundle->full_config(),
+                                                                       device_dlg->filament_map());
                     std::string start_script = build_device_start_script(filament_mapping_protocol_of(*physical_printer_config),
                                                                           PRINT_HOST_UPLOADED_FILENAME_PLACEHOLDER, job);
                     if (!start_script.empty())
@@ -19913,8 +19939,10 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool up
                     BOOST_LOG_TRIVIAL(info) << "send_gcode_legacy: filament map dialog canceled for send";
                     return;
                 }
+                const std::vector<int> wire_map = device_wire_filament_map(*physical_printer_config, this->model(),
+                                                                           wxGetApp().preset_bundle->full_config(), *picked);
                 std::string start_script = build_device_map_start_script(filament_mapping_protocol_of(*physical_printer_config),
-                                                                          PRINT_HOST_UPLOADED_FILENAME_PLACEHOLDER, *picked);
+                                                                          PRINT_HOST_UPLOADED_FILENAME_PLACEHOLDER, wire_map);
                 if (!start_script.empty())
                     upload_job.upload_data.extended_info["start_script"] = start_script;
             }

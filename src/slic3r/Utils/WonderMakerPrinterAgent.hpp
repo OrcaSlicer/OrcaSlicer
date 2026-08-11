@@ -1,11 +1,29 @@
 #pragma once
 
 #include "MoonrakerPrinterAgent.hpp"
+#include "PrintHost.hpp"
 
 #include <string>
 #include <vector>
 
 namespace Slic3r {
+
+// The ZR Ultra's device-owned print-time mapping dialect. Unlike Snapmaker's single macro, the
+// mapping is printer STATE: `box_modify_t<n>` is a Klipper saved variable naming the box logical
+// tool n pulls from, consumed when that tool is first selected. Verified on hardware 2026-08-10:
+// starting a print with T0->box 2 and T1->box 3 left box_modify_t0/t1 changed and t2/t3 untouched,
+// with current_extruder reporting 2 while logical T0 was printing. The live variable is consumed
+// on first selection while `_backup` is the durable record, so both are written.
+//
+// This is the ONE place that renders those commands. The tool numbers are DENSE (T0..T(n-1)) --
+// the firmware has no macro past the last tool -- which is what FilamentCompaction exists to
+// guarantee; see protocol_requires_dense_tool_numbering().
+namespace WonderMakerProtocol {
+// box_of_tool_1based: one entry per DENSE tool number, 1-based box index as picked in the send
+// dialog. filename may be PRINT_HOST_UPLOADED_FILENAME_PLACEHOLDER (PrintHost.hpp).
+std::string build_start_script(const std::string& filename, const std::vector<int>& box_of_tool_1based, bool bed_leveling);
+std::string build_start_script(const std::string& filename, const DevicePrintJobInfo& job);
+} // namespace WonderMakerProtocol
 
 // Orca: the WonderMaker ZR Ultra family. It speaks Moonraker, but on stock firmware it reports no
 // MMU object of any kind: its touchscreen keeps the loaded filaments in config/tmt1.ini as palette
