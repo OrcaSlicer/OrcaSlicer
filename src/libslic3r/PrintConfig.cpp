@@ -6775,7 +6775,7 @@ void PrintConfigDef::init_fff_params()
                      "a compatible filament that is printing is used instead. If the layer is only printing incompatible materials, the object's own filament is still used. "
                      "The support base also avoids the interface filament and soluble filaments to stay distinct from the interface.\n"
                      "\"Auto\" picks, per object, a filament that does not bond to the supported material so the support detaches cleanly, "
-                     "preferring soluble filaments and, among equal candidates, the colour closest to the object. If every filament bonds to the object, the object's own filament is used.");
+                     "preferring soluble or support filaments and, among equal candidates, the colour closest to the object. If every filament bonds to the object, the object's own filament is used.");
     def->min = SUPPORT_FILAMENT_AUTO;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInt(0));
@@ -6813,7 +6813,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Filament to print support interface.\n\"Default\" uses the supported object's own filament; if that filament is not printing in the current layer, "
                      "a compatible filament that is printing is used instead. If the layer is only printing incompatible materials, the object's own filament is still used.\n"
                      "\"Auto\" picks, per object, a filament that does not bond to the supported material so the interface detaches cleanly, "
-                     "preferring soluble filaments and, among equal candidates, the colour closest to the object. If every filament bonds to the object, the object's own filament is used.");
+                     "preferring soluble or support filaments and, among equal candidates, the colour closest to the object. If every filament bonds to the object, the object's own filament is used.");
     def->min = SUPPORT_FILAMENT_AUTO;
     // BBS
     def->mode = comSimple;
@@ -7198,7 +7198,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Support");
     def->tooltip = L("Filament to iron the support interface with.\n\"Default\" uses the same filament as the support interface.\n"
                      "\"Auto\" picks, per object, a filament that does not bond to the supported material so the ironed surface detaches cleanly, "
-                     "preferring soluble filaments and, among equal candidates, the colour closest to the object. If every filament bonds to the object, the object's own filament is used.\n"
+                     "preferring soluble or support filaments and, among equal candidates, the colour closest to the object. If every filament bonds to the object, the object's own filament is used.\n"
                      "Selecting a specific filament lets the ironing pass use a different material than the interface, "
                      "for example a smoother or non-bonding filament for a cleaner support-facing surface.");
     def->min = SUPPORT_FILAMENT_AUTO;

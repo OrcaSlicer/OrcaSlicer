@@ -479,6 +479,11 @@ public:
     size_t get_id() const { return m_id; }
     void set_id(size_t id) { m_id = id; }
 
+    // Resolve a support filament set to "Auto" (SUPPORT_FILAMENT_AUTO) into the concrete 1-based filament this
+    // object will use; 0 means "Default". Public so that the GUI can enumerate the filaments a plate actually
+    // prints with (prime tower, AMS mapping, arrange) before the object config is built. See PrintObject.cpp.
+    static int              resolve_auto_support_filament(const ModelObject &object, size_t num_extruders, const ConfigBase &print_config, bool support_enabled, int exclude_extruder = 0);
+
   private:
     // to be called from Print only.
     friend class Print;
