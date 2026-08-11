@@ -671,7 +671,11 @@ void FilamentInventoryEditor::do_sync_from_printer(bool interactive)
             const Preset* target = nullptr;
             if (!tray->setting_id.empty())
                 for (auto it = filaments.begin(); it != filaments.end(); ++it)
-                    if (it->filament_id == tray->setting_id && it->is_visible && it->is_compatible) { target = &*it; break; }
+                    // Not gated on is_visible: a profile the user has not enabled still describes
+                    // the spool the printer reported, and the alternative is silently keeping the
+                    // row's previous material (see find_generic_filament_preset). Compatibility
+                    // still applies -- a profile for another printer would not describe it.
+                    if (it->filament_id == tray->setting_id && it->is_compatible) { target = &*it; break; }
             if (target == nullptr)
                 target = find_generic_filament_preset(type, filaments);
 
