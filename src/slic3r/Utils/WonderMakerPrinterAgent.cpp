@@ -15,24 +15,32 @@ namespace Slic3r {
 constexpr const char* WONDERMAKER_AGENT_VERSION = "0.0.1";
 
 namespace {
-// Orca: the ZR touchscreen's colour picker, in the picker's own grid order. These are INDICES
-// INTO SPRITE ASSETS, not colours -- writing a hex into tmt1.ini makes the slot render white --
-// so every entry here is our approximation of what a swatch looks like, chosen to be recognisable
-// next to a real spool. The upstream community table was derived the same way; matching a named
-// swatch to the obvious filament colour is a better answer for the user than no colour at all.
+// Orca: the ZR touchscreen's colour picker, in the picker's own grid order (row-major, 7 per row).
+// tmt1.ini stores INDICES INTO SPRITE ASSETS, not colours -- writing a hex there makes the slot
+// render white -- so this table is how we turn an index back into something the user recognises
+// next to a real spool.
 //
-// The exceptions are the last two. Rainbow and transparent are textures with no colour to
-// approximate, and inventing one would misrepresent the spool rather than merely approximate it,
-// so they stay empty. Gold, bronze and silver are textures too, but their conventional hexes are
-// exactly how those spools are described everywhere else.
+// Entries 0-15 are SAMPLED from a screen capture of the picker (2026-08-11): each of those swatches
+// is a flat fill, so the sampled pixel IS the picker's colour, not an approximation. They are not
+// the web-standard colours their names suggest, which is why guessing produced entries that were
+// badly wrong -- "blue" is a navy, "violet" a deep purple, "orange" nearly vermilion, and the
+// swatch we had called light blue is a saturated process blue.
+//
+// 16-18 are radial metallic gradients with a specular highlight, so no single pixel represents
+// them; those use the 65th-percentile luminance of the swatch, its metallic mid-tone. Silver lands
+// close to grey because in the picker they genuinely are close -- what separates them there is the
+// sheen, which a flat swatch cannot carry.
+//
+// 19 and 20 stay empty: rainbow and transparent are textures with no colour to stand in for, and
+// inventing one would misrepresent the spool rather than merely approximate it.
 constexpr const char* TMT_PALETTE[] = {
-    /*  0 white     */ "#FFFFFF", /*  1 cream    */ "#FFFDD0", /*  2 brown   */ "#8B4513",
-    /*  3 grey      */ "#808080", /*  4 black    */ "#000000", /*  5 teal    */ "#008080",
-    /*  6 lt. blue  */ "#87CEEB", /*  7 blue     */ "#0000FF", /*  8 green   */ "#008000",
-    /*  9 dk green  */ "#006400", /* 10 yellow   */ "#FFFF00", /* 11 orange  */ "#FFA500",
-    /* 12 pink      */ "#FFC0CB", /* 13 magenta  */ "#FF00FF", /* 14 red     */ "#FF0000",
-    /* 15 violet    */ "#EE82EE", /* 16 gold     */ "#FFD700", /* 17 bronze  */ "#CD7F32",
-    /* 18 silver    */ "#C0C0C0", /* 19 rainbow  */ nullptr,   /* 20 clear   */ nullptr,
+    /*  0 white     */ "#FFFFFF", /*  1 tan      */ "#E7CEB5", /*  2 brown   */ "#714623",
+    /*  3 grey      */ "#97999B", /*  4 black    */ "#0C0809", /*  5 mint    */ "#49C5B1",
+    /*  6 blue      */ "#009CDE", /*  7 navy     */ "#03257E", /*  8 green   */ "#00B140",
+    /*  9 dk green  */ "#265B31", /* 10 yellow   */ "#FCE300", /* 11 orange  */ "#FE5000",
+    /* 12 pink      */ "#F5B6CD", /* 13 magenta  */ "#E10098", /* 14 red     */ "#CD001A",
+    /* 15 purple    */ "#5F249F", /* 16 gold     */ "#E1CD88", /* 17 bronze  */ "#D3B7A7",
+    /* 18 silver    */ "#949393", /* 19 rainbow  */ nullptr,   /* 20 clear   */ nullptr,
 };
 
 // The screen's material list, in its own order. The screen knows only these coarse types.
