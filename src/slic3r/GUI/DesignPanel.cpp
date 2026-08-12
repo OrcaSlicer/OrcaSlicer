@@ -426,6 +426,23 @@ DesignPanel::DesignPanel(wxWindow* parent)
     };
     m_keys_feature['X'] = [this] { toggle_section_view(); };   // toggle the single section on/off
 
+    // Home: axonometric view, fitted to the model.
+    //
+    // DesignCanvas::set_view() and fit_view() were written and then never called from
+    // anywhere in the tree, so the Design viewport had NO way back to a standard view —
+    // no key, no button, nothing but orbiting by hand until the model happened to be in
+    // frame. A camera left pointing along the bed plane looks exactly like a renderer
+    // that has failed, which is how this was found.
+    //
+    // Home rather than a letter because every letter A-Z is already a Shift+letter tool
+    // shortcut, and because Home is the reset-the-view key users arrive with. set_view()
+    // already does select_view + zoom_to_volumes, so this is fit and orient in one.
+    m_keys_feature[WXK_HOME] = [this] {
+        if (!m_viewport) return;
+        m_viewport->set_view("iso");
+        set_status(_L("Isometric view, fitted"));
+    };
+
     // Shared flyout glyph tint (used by BOTH the feature and sketch toolbars). Re-tint each
     // design_* glyph to the DropDown's resolved TEXT colour so it reads on the popup in either
     // theme: text_color is 0x363636, which darkModeColorFor() maps to a light tone in dark mode

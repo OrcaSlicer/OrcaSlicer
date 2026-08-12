@@ -137,6 +137,7 @@ selected by the mode, not by whether a sketch session is running.
 
 | Key | Action |
 |---|---|
+| `Home` | Axonometric view, fitted to the model |
 | `P` | Origin planes on/off |
 | `A` | World axes on/off |
 | `X` | Section view on/off |
