@@ -2698,6 +2698,17 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
     std::vector<unsigned int> used_filaments = collect_sorted_used_filaments(layer_filaments);
 
     std::vector<std::set<int>>geometric_unprintables = m_print->get_geometric_unprintable_filaments();
+
+    // Unprintable sets are keyed by filament id, but a mixed-color slot is virtual: what actually
+    // reaches the nozzle are its components. Expand the slot to those components so a geometric
+    // restriction is applied to the filaments really being printed. No-op without mixed filaments.
+    {
+        const auto &is_mixed  = m_print->config().filament_is_mixed.values;
+        const auto &comp_strs = m_print->config().filament_mixed_components.values;
+        if (has_any_mixed_filament(is_mixed))
+            expand_mixed_slots_in_unprintables(geometric_unprintables, is_mixed, comp_strs);
+    }
+
     std::vector<std::set<int>>physical_unprintables = m_print->get_physical_unprintable_filaments(used_filaments);
     auto filament_unprintable_volumes = m_print->get_filament_unprintable_flow(used_filaments);
 
