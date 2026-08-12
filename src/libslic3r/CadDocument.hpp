@@ -425,6 +425,13 @@ public:
     std::vector<int>        display_tri_body;  // per-triangle source body index (into bodies)
     std::string             error;             // last recompute error ("" = ok)
 
+    // Mate diagnostics, refilled by every recompute(). Non-fatal by design: the
+    // document still evaluates — this only names what the user should look at.
+    // .first = index of the offending Mate feature, .second = human-readable reason.
+    // NOT "over-constraint" — this kernel has no solver, so there is no DOF analysis
+    // behind these; they are graph facts about which mate drives which body.
+    std::vector<std::pair<int, std::string>> mate_conflicts;
+
     // Modeling origin: the world point the default XY/XZ/YZ planes pass through. The GUI sets this
     // to the bed centre so sketches/datums land in the middle of the bed (not the bed corner =
     // world 0). Not serialized — the GUI re-applies it from the live bed on every tab show.
@@ -680,6 +687,7 @@ private:
     void apply_project(const std::vector<CadBody>& bodies, CadFeature& f) const;
     static DatumCoordSys datum_frame(const std::vector<CadBody>& bodies, const CadFeature& f);
     void apply_mate(std::vector<CadBody>& bodies, const CadFeature& f) const;
+    void detect_mate_conflicts();   // refills mate_conflicts from the feature list alone
 
     // Undo/redo stacks of recipe snapshots. checkpoint() pushes onto m_undo and clears
     // m_redo; undo()/redo() shuffle the current state between them. Capped so a long

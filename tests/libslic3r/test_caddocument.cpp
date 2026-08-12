@@ -5585,6 +5585,148 @@ TEST_CASE("mate error: disabled connector", "[CadDocument][mate]")
     REQUIRE_CONTAINS(doc.error, "not a valid CoordSys");
 }
 
+TEST_CASE("mate conflicts: a clean assembly reports none", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk_box = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
+    doc.add_extrude(sk_box, 5.0, false, BooleanMode::New, "BoxExt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk_cyl = doc.add_sketch(SketchShape::Circle, SketchPlane::XY(), 0, 0, 3, "Cyl");
+    doc.add_extrude(sk_cyl, 10.0, false, BooleanMode::New, "CylExt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 5), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+
+    int mi = doc.add_mate(0, cs_fixed, cs_moving, 0.0, 0.0, false, "Mate1");
+    REQUIRE(mi >= 0);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.mate_conflicts.empty());
+
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, props);
+    gp_Pnt com = props.CentreOfMass();
+    REQUIRE_THAT(double(com.X()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(com.Y()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(com.Z()), WithinAbs(5.0, 1e-4));
+}
+
+TEST_CASE("mate conflicts: two mates driving the same body", "[CadDocument][mate]")
+{
+    CadDocument doc;
+    int sk_box = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
+    doc.add_extrude(sk_box, 5.0, false, BooleanMode::New, "BoxExt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk_cyl = doc.add_sketch(SketchShape::Circle, SketchPlane::XY(), 0, 0, 3, "Cyl");
+    doc.add_extrude(sk_cyl, 10.0, false, BooleanMode::New, "CylExt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+
+    int cs_a = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 0), "CS_A");
+    doc.features[cs_a].coordsys_body = 0;
+    int cs_b = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 0), "CS_B");
+    doc.features[cs_b].coordsys_body = 1;
+    int cs_c = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(10, 10, 10), "CS_C");
+    doc.features[cs_c].coordsys_body = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int mate1 = doc.add_mate(0, cs_c, cs_b, 0, 0, false, "Mate1");
+    REQUIRE(mate1 >= 0);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int mate2 = doc.add_mate(0, cs_a, cs_b, 0, 0, false, "Mate2");
+    REQUIRE(mate2 >= 0);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    REQUIRE(doc.mate_conflicts.size() == 1);
+    REQUIRE(doc.mate_conflicts[0].first == mate2);
+    REQUIRE(doc.mate_conflicts[0].second.find("Mate1") != std::string::npos);
+    REQUIRE(doc.mate_conflicts[0].second.find("Mate2") != std::string::npos);
+}
+
+TEST_CASE("mate conflicts: a circular mate chain", "[CadDocument][mate]")
+{
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "BoxA");
+    doc.add_extrude(sk_a, 5.0, false, BooleanMode::New, "ExtA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "ExtB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+
+    int cs_a = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_A");
+    doc.features[cs_a].coordsys_body = 0;
+    int cs_b = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 5), "CS_B");
+    doc.features[cs_b].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_c = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 10), "CS_C");
+    doc.features[cs_c].coordsys_body = 0;
+    int cs_d = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 10), "CS_D");
+    doc.features[cs_d].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int mate1 = doc.add_mate(0, cs_a, cs_b, 0, 0, false, "MateAB");
+    REQUIRE(mate1 >= 0);
+    REQUIRE(doc.recompute());
+
+    int mate2 = doc.add_mate(0, cs_d, cs_c, 0, 0, false, "MateBA");
+    REQUIRE(mate2 >= 0);
+    REQUIRE(doc.recompute());
+
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.mate_conflicts.size() >= 1);
+    bool found_cycle = false;
+    for (const auto& c : doc.mate_conflicts) {
+        if (c.second.find("circular") != std::string::npos) {
+            found_cycle = true;
+            break;
+        }
+    }
+    REQUIRE(found_cycle);
+}
+
+TEST_CASE("mate conflicts: a broken mate is left to apply_mate", "[CadDocument][mate]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS");
+    doc.features[cs].coordsys_body = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(0, 999, cs, 0, 0, false, "Bad");
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_CONTAINS(doc.error, "mate_cs_a out of range");
+    REQUIRE(doc.mate_conflicts.empty());
+}
+
 TEST_CASE("ordering: fillet after mate resolves face ids", "[CadDocument][mate]")
 {
     using Catch::Matchers::WithinAbs;

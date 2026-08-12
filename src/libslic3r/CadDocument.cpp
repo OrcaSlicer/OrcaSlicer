@@ -1765,6 +1765,7 @@ void CadDocument::clear()
     display_body_meshes.clear();
     display_tri_face.clear();
     error.clear();
+    mate_conflicts.clear();
     // A cleared document is a fresh start with no history.
     m_undo.clear();
     m_redo.clear();
@@ -2979,6 +2980,112 @@ void CadDocument::apply_project(const std::vector<CadBody>& bodies, CadFeature& 
     if (f.entities.empty()) throw std::runtime_error("project: produced no entities");
 }
 
+void CadDocument::detect_mate_conflicts()
+{
+    mate_conflicts.clear();
+
+    const int n = int(features.size());
+    std::map<int, int> first_driver; // body -> feature index of first mate that drives it
+    std::map<int, std::vector<int>> graph; // dst -> list of src (body indices)
+
+    for (int fi = 0; fi < n; ++fi) {
+        const CadFeature& f = features[fi];
+        if (f.type != CadFeatureType::Mate || !f.enabled) continue;
+
+        if (f.mate_cs_a < 0 || f.mate_cs_a >= n) continue;
+        if (f.mate_cs_b < 0 || f.mate_cs_b >= n) continue;
+        const CadFeature& fa = features[f.mate_cs_a];
+        const CadFeature& fb = features[f.mate_cs_b];
+        if (fa.type != CadFeatureType::CoordSys || !fa.enabled) continue;
+        if (fb.type != CadFeatureType::CoordSys || !fb.enabled) continue;
+
+        const int src = fa.coordsys_body;
+        const int dst = fb.coordsys_body;
+        if (dst < 0) continue; // apply_mate already reports this one
+
+        // (a) duplicate target: a second mate driving the same body
+        auto it = first_driver.find(dst);
+        if (it != first_driver.end()) {
+            int first_fi = it->second;
+            std::string first_name = features[first_fi].name.empty() ? "Mate" : features[first_fi].name;
+            std::string this_name = f.name.empty() ? "Mate" : f.name;
+            mate_conflicts.push_back({fi,
+                "Body " + std::to_string(dst + 1) + " is already positioned by '" +
+                first_name + "' (feature " + std::to_string(first_fi) +
+                ") — '" + this_name + "' overrides it; suppress one"});
+        } else {
+            first_driver[dst] = fi;
+        }
+
+        // (b) self-mate or cycle detection
+        if (src >= 0 && dst >= 0) {
+            if (src == dst) {
+                mate_conflicts.push_back({fi,
+                    "this mate positions Body " + std::to_string(dst + 1) + " against itself"});
+            } else {
+                graph[dst].push_back(src);
+            }
+        }
+    }
+
+    // DFS cycle detection on the graph built above.
+    // ponytail: iterative DFS avoids recursion depth issues on long chains.
+    // Colour: 0 = unvisited, 1 = in-progress (grey), 2 = done (black).
+    std::map<int, int> colour;
+    struct Frame { int node; size_t next; };
+    std::vector<Frame> stack;
+
+    for (const auto& [start, _] : graph) {
+        if (colour[start] == 2) continue;
+        stack.clear();
+        stack.push_back({start, 0});
+        colour[start] = 1;
+        while (!stack.empty()) {
+            Frame& top = stack.back();
+            auto git = graph.find(top.node);
+            if (git == graph.end() || top.next >= git->second.size()) {
+                colour[top.node] = 2;
+                stack.pop_back();
+                continue;
+            }
+            int child = git->second[top.next++];
+            if (colour[child] == 1) {
+                // Back edge found — find the mate whose (dst==top.node, src==child).
+                for (int fi = 0; fi < n; ++fi) {
+                    const CadFeature& f = features[fi];
+                    if (f.type != CadFeatureType::Mate || !f.enabled) continue;
+                    if (f.mate_cs_a < 0 || f.mate_cs_a >= n) continue;
+                    if (f.mate_cs_b < 0 || f.mate_cs_b >= n) continue;
+                    const CadFeature& fa2 = features[f.mate_cs_a];
+                    const CadFeature& fb2 = features[f.mate_cs_b];
+                    if (fa2.type != CadFeatureType::CoordSys || !fa2.enabled) continue;
+                    if (fb2.type != CadFeatureType::CoordSys || !fb2.enabled) continue;
+                    int sd = fb2.coordsys_body;
+                    int ss = fa2.coordsys_body;
+                    if (sd == top.node && ss == child) {
+                        mate_conflicts.push_back({fi,
+                            // Worded for ANY cycle length: "leads back" is true transitively,
+                            // where "depends back on" would be a lie for a 3+ body chain.
+                            "circular mate chain: Body " + std::to_string(top.node + 1) +
+                            " depends on Body " + std::to_string(child + 1) +
+                            ", which leads back to Body " + std::to_string(top.node + 1) +
+                            " — the result depends on feature order"});
+                        break;
+                    }
+                }
+                continue;
+            }
+            if (colour[child] == 0) {
+                colour[child] = 1;
+                stack.push_back({child, 0});
+            }
+        }
+    }
+
+    // Deliberately NOT in scope: computing the numeric disagreement between two mates
+    // ("Mate3 puts it at X=10, Mate7 at X=15"). That needs speculative per-mate evaluation.
+}
+
 void CadDocument::apply_mate(std::vector<CadBody>& bodies, const CadFeature& f) const
 {
     const int nc = int(features.size());
@@ -3221,6 +3328,7 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
 bool CadDocument::recompute()
 {
     error.clear();
+    detect_mate_conflicts();
     std::vector<CadBody> built;
     try {
         // Parametric pass: evaluate document variables, then each feature's expression bindings,
