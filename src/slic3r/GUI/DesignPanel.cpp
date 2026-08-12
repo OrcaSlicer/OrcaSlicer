@@ -3501,6 +3501,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
             if (m_surf_extrude_distance) m_surf_extrude_distance->SetValue(depth);
         } else if (m_active == Tool::Thicken) {
             if (m_thicken_thickness) m_thicken_thickness->SetValue(depth);
+        } else if (m_active == Tool::Rib) {
+            if (m_rib_depth) m_rib_depth->SetValue(depth);   // depth only; thickness has no handle yet
         } else if (second) { if (m_distance2) m_distance2->SetValue(depth); }
         else               { if (m_distance)  m_distance->SetValue(depth); }
         refresh_preview();
@@ -8867,7 +8869,32 @@ void DesignPanel::update_extrude_gizmo()
 {
     if (!m_viewport) return;
     if (m_active != Tool::Extrude && m_active != Tool::SurfaceExtrude
-        && m_active != Tool::Thicken) { m_viewport->clear_extrude_gizmo(); return; }
+        && m_active != Tool::Thicken && m_active != Tool::Rib) { m_viewport->clear_extrude_gizmo(); return; }
+
+    if (m_active == Tool::Rib) {
+        // Rib's DEPTH is a distance along the sketch plane normal — the same arrow again,
+        // anchored at the midpoint of the line the rib is built on rather than at a profile
+        // centroid, because a rib's line is the whole profile.
+        //
+        // This covers only half of L2 for Rib: the THICKNESS is an in-plane offset either side
+        // of that line and has no handle, which needs an affordance that does not exist yet.
+        // Half a tool made draggable is still strictly better than none — the remaining half is
+        // filed separately rather than left implied.
+        const int ssel = m_rib_sketch ? m_rib_sketch->GetSelection() : wxNOT_FOUND;
+        const int ref  = (ssel != wxNOT_FOUND)
+                             ? int(reinterpret_cast<intptr_t>(m_rib_sketch->GetClientData(ssel))) : -1;
+        if (ref < 0 || ref >= int(m_doc.features.size())) { m_viewport->clear_extrude_gizmo(); return; }
+        const CadFeature& sk = m_doc.features[ref];
+        const int ei = m_rib_entity ? m_rib_entity->GetValue() : 0;
+        if (ei < 0 || ei >= int(sk.entities.size())) { m_viewport->clear_extrude_gizmo(); return; }
+        const SketchEntity& e = sk.entities[ei];
+        const Vec2d mid = (e.type == SketchEntity::Type::Line) ? Vec2d(0.5 * (e.p0 + e.p1))
+                                                               : Vec2d(e.center);
+        m_viewport->set_extrude_gizmo(sk.plane, mid,
+                                      m_rib_depth ? m_rib_depth->GetValue() : 0.0,
+                                      0.0, false, false);
+        return;
+    }
 
     if (m_active == Tool::SurfaceExtrude) {
         const int ref = m_surf_extrude_sketch_ref;
