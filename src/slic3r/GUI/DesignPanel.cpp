@@ -5586,6 +5586,86 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
         }
     }
 
+    // --- Mate palette section (snaporca-lukg part B) ---
+    // Fed by CadDocument::mate_options() so the offer can never disagree with the kernel about
+    // which assembly mates a connector pair admits. Shown only when the document holds at least
+    // two ENABLED CoordSys features: below that the whole section would be one permanently dead
+    // row, which is noise rather than information.
+    std::vector<int> cs_features;
+    for (int i = 0; i < int(m_doc.features.size()); ++i)
+        if (m_doc.features[i].type == CadFeatureType::CoordSys && m_doc.features[i].enabled)
+            cs_features.push_back(i);
+    if (cs_features.size() >= 2) {
+        // Which two connectors the types would apply to. The Mate card's combos when it is open —
+        // so the offer and the card can never disagree about the pair — otherwise the first two
+        // enabled CoordSys features, which is a defensible default precisely because the header row
+        // below NAMES it. An offer that acts on an unnamed pair would be worse than no offer.
+        int cs_a = -1, cs_b = -1;
+        if (m_active == Tool::Mate && m_mate_cs_a && m_mate_cs_b
+            && m_mate_cs_a->GetSelection() != wxNOT_FOUND
+            && m_mate_cs_b->GetSelection() != wxNOT_FOUND) {
+            cs_a = int(reinterpret_cast<intptr_t>(m_mate_cs_a->GetClientData(m_mate_cs_a->GetSelection())));
+            cs_b = int(reinterpret_cast<intptr_t>(m_mate_cs_b->GetClientData(m_mate_cs_b->GetSelection())));
+        }
+        if (cs_a < 0 || cs_b < 0) { cs_a = cs_features[0]; cs_b = cs_features[1]; }
+
+        // The generated verb rows own [base, base + bound.size()); kOfferVerbCount is 87, so a
+        // gap of 500 keeps this section's ids clear of that range and lets its own handler index
+        // by a distinct offset.
+        const int mate_base = base + 500;
+
+        menu.AppendSeparator();
+        // B is the connector on the body that MOVES (CadDocument.hpp:317), so B is the arrow's
+        // destination — "A first" invites the opposite guess.
+        const wxString name_a = wxString::FromUTF8(m_doc.features[cs_a].name);
+        const wxString name_b = wxString::FromUTF8(m_doc.features[cs_b].name);
+        menu.Append(mate_base, wxString::Format(_L("Mate: %s  →  %s"), name_a, name_b))->Enable(false);
+
+        // A switch of literal _L() calls, not an array indexed by kind. _L is a gettext macro:
+        // the extractor scans the SOURCE for literals, so _L(table[i]) compiles fine and then
+        // silently ships five strings that are never in the catalogue and can never be
+        // translated. These names appear nowhere else in the tree, so the array version would
+        // have been their only occurrence.
+        auto mate_kind_name = [](int kind) -> wxString {
+            switch (kind) {
+            case 0:  return _L("Fastened");
+            case 1:  return _L("Planar");
+            case 2:  return _L("Revolute");
+            case 3:  return _L("Slider");
+            default: return _L("Cylindrical");
+            }
+        };
+        // Five rows, always, in kind order. Never reordered, never filtered — a menu that changes
+        // shape between invocations destroys the motor memory experts rely on.
+        const std::vector<CadDocument::MateOption> opts = m_doc.mate_options(cs_a, cs_b);
+        for (int i = 0; i < int(opts.size()); ++i) {
+            const CadDocument::MateOption& o = opts[i];
+            wxString label = mate_kind_name(o.kind);
+            if (!o.viable)
+                label += wxString::FromUTF8("   —   ") + wxString::FromUTF8(o.reason);
+            menu.Append(mate_base + 1 + i, label)->Enable(o.viable);
+        }
+
+        menu.Bind(wxEVT_MENU, [this, cs_a, cs_b, opts, mate_base](wxCommandEvent& e) {
+            const int i = e.GetId() - (mate_base + 1);
+            if (i < 0 || i >= int(opts.size()) || !opts[i].viable) return;
+            m_doc.checkpoint();   // undo boundary: committing a mate from the offer
+            int idx = m_doc.add_mate(opts[i].kind, cs_a, cs_b, 0.0, 0.0, false,
+                                     "Mate" + std::to_string(++m_feature_counter));
+            if (idx < 0) {
+                m_status->SetForegroundColour(wxColour(235, 110, 110));
+                set_status(_L("Mate rejected"));
+                m_status->Refresh();
+                return;
+            }
+            if (!recompute_guarded(_L("Rebuilding model…")))
+                set_status(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
+            else
+                set_status_ok();
+            refresh_tree();
+        });
+    }
+
     // Hovering a row explains it. The offer is the only door to these tools now, so a bare
     // name is not enough — and the hint arrives while you are still choosing.
     menu.Bind(wxEVT_MENU_HIGHLIGHT, [this, &bound, base](wxMenuEvent& e) {
