@@ -7138,3 +7138,182 @@ TEST_CASE("recompute on a healthy box + fillet leaves no body null and no error 
         REQUIRE_FALSE(doc.bodies[i].shape.IsNull());
     }
 }
+
+// ============================================================================
+// snaporca-rgbj — does a chamfer chain degenerate from a KERNEL defect, or from
+// how the DRIVER captured its edge ids? Experiment, not a fix.
+//
+// CadFeature::dressup_edge is a GLOBAL edge id: an ordinal into
+// TopExp::MapShapes(body, TopAbs_EDGE) (GeometryEngine::edge_by_index), resolved
+// at recompute time against the body AS IT STANDS at that feature's position in
+// the recipe. Every dress-up rewrites the edge map, so an id captured against one
+// version of the shape names a DIFFERENT edge once an earlier dress-up has run.
+//
+// Test 1 = correct usage (re-read the map after each chamfer, pick by geometry).
+// Test 2 = suspected-wrong usage (capture all four ids up-front, then run four).
+// ============================================================================
+
+namespace {
+
+// A square box centred on the origin, extruded +Z by `height`. Its four top-rim
+// edges have midpoints at Z=height: (+X)(half,0,h), (+Y)(0,half,h), (-X)(-half,0,h),
+// (-Y)(0,-half,h). All four are geometrically identical (equal length), so a
+// near-uniform chamfer removes the same volume from each.
+CadDocument make_centred_box(double half, double height)
+{
+    CadDocument doc;
+    SketchProfile sp;
+    sp.points = { Vec2d(-half, -half), Vec2d(half, -half), Vec2d(half, half), Vec2d(-half, half) };
+    sp.closed = true;
+    const int sk = doc.add_sketch_profile(sp, SketchPlane::XY(), "Box");
+    doc.add_extrude(sk, height, false, BooleanMode::New, "Extrude");
+    return doc;
+}
+
+// Exact analytic volume (BRepGProp, not tessellation) of a solid.
+double solid_volume(const TopoDS_Shape& s)
+{
+    GeometryEngine::MassProps p = GeometryEngine::mass_properties(s);
+    return p.valid ? p.volume : 0.0;
+}
+
+// World-space midpoint of an edge, from its sampled polyline.
+Vec3d edge_mid(const TopoDS_Edge& e)
+{
+    const std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
+    Vec3d m = Vec3d::Zero();
+    for (const Vec3d& p : pts) m += p;
+    return m / double(pts.size());
+}
+
+// Global edge id whose midpoint is within `tol` mm of `target`. -1 if none.
+// Picks by GEOMETRY (position), never by a hardcoded index.
+int edge_near(const TopoDS_Shape& shape, const Vec3d& target, double tol)
+{
+    const std::vector<TopoDS_Edge> edges = GeometryEngine::edges_of(shape);
+    for (int i = 0; i < int(edges.size()); ++i) {
+        if (edges[i].IsNull()) continue;
+        const std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(edges[i]);
+        if (pts.size() < 2) continue;
+        if ((edge_mid(edges[i]) - target).norm() < tol) return i;
+    }
+    return -1;
+}
+
+} // namespace
+
+TEST_CASE("dressup: sequential chamfers, ids re-read after each, stay uniform", "[CadDocument][dressup]")
+{
+    const double half = 10.0, h = 10.0, d = 0.2; // tiny d: the corner-shortening of a
+                                                 // neighbour's rim edge stays negligible
+    CadDocument doc = make_centred_box(half, h);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // The four top-rim edges, addressed by world midpoint — never by index.
+    const std::vector<Vec3d> rim = {
+        Vec3d( half, 0.0, h),   // +X
+        Vec3d(0.0,  half, h),   // +Y
+        Vec3d(-half, 0.0, h),   // -X
+        Vec3d(0.0, -half, h),   // -Y
+    };
+
+    std::vector<double> removals;
+    double prev = solid_volume(doc.bodies[0].shape);
+    for (size_t k = 0; k < rim.size(); ++k) {
+        // Correct usage: re-read the CURRENT body's edge map, pick by geometry.
+        const int id = edge_near(doc.bodies[0].shape, rim[k], 1.5);
+        INFO("chamfer " << k << " -> edge id " << id);
+        REQUIRE(id >= 0);
+        doc.add_chamfer(d, id, "Chamfer" + std::to_string(k));
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+        const double now = solid_volume(doc.bodies[0].shape);
+        removals.push_back(prev - now);
+        prev = now;
+    }
+
+    std::ostringstream os;
+    for (size_t i = 0; i < removals.size(); ++i) os << (i ? ", " : "") << removals[i];
+    INFO("removals (mm^3): [" << os.str() << "]");
+
+    REQUIRE(removals.size() == 4);
+    double mn = removals[0], mx = removals[0];
+    for (double r : removals) { mn = std::min(mn, r); mx = std::max(mx, r); }
+    INFO("min=" << mn << " max=" << mx);
+    REQUIRE(mn > 0.0);
+    // All four removals equal within a few percent. Measured on this fixture:
+    // [0.4, 0.397333, 0.397333, 0.394667] mm^3. The residual spread is real geometry (each
+    // chamfer shortens the two rim edges it shares a corner with), not id drift; drift would
+    // push the later removals toward zero and blow the spread wide open.
+    REQUIRE((mx - mn) <= 0.10 * mn);
+}
+
+TEST_CASE("dressup: four chamfer ids captured up-front drift as earlier chamfers run", "[CadDocument][dressup]")
+{
+    const double half = 10.0, h = 10.0, d = 0.2;
+    CadDocument doc = make_centred_box(half, h);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    const std::vector<Vec3d> rim = {
+        Vec3d( half, 0.0, h), Vec3d(0.0, half, h), Vec3d(-half, 0.0, h), Vec3d(0.0, -half, h),
+    };
+
+    // Capture all four ids ONCE, from the shape as it stands before any chamfer.
+    std::vector<int> ids;
+    for (const Vec3d& t : rim) {
+        const int id = edge_near(doc.bodies[0].shape, t, 1.5);
+        REQUIRE(id >= 0);
+        ids.push_back(id);
+    }
+    REQUIRE(ids.size() == 4);
+    INFO("captured ids: [" << ids[0] << "," << ids[1] << "," << ids[2] << "," << ids[3] << "]");
+
+    // Recompute resolves each dressup_edge against the body as it stands at that feature's
+    // position — exactly what chaining apply_chamfer reproduces here. Measure each step, and
+    // record whether a stale id throws (invalid/out-of-range edge) or silently lands elsewhere.
+    TopoDS_Shape s = doc.bodies[0].shape;
+    std::vector<double> vols{ solid_volume(s) };
+    bool threw = false;
+    std::string why;
+    for (int id : ids) {
+        try {
+            s = GeometryEngine::apply_chamfer(s, d, id);
+            vols.push_back(solid_volume(s));
+        } catch (const std::exception& e) { threw = true; why = e.what(); break; }
+    }
+
+    std::vector<double> rmv;
+    for (size_t i = 1; i < vols.size(); ++i) rmv.push_back(vols[i - 1] - vols[i]);
+
+    std::ostringstream os;
+    for (size_t i = 0; i < rmv.size(); ++i) os << (i ? ", " : "") << rmv[i];
+    INFO("up-front-id removals (mm^3): [" << os.str() << "] threw=" << threw << " (" << why << ")");
+
+    // Documents a defect, not a desired result. Measured on this fixture: [0.4, 0.008324,
+    // 0.397333, 0.280405] mm^3 — the second chamfer's stale id landed on a nearly-consumed
+    // edge and cut ~2% of the intended volume. Ids captured once and replayed against an
+    // evolving edge map DRIFT; that is the degeneration the socket chamfers showed, and it is
+    // a driver artefact (wrong usage), not a kernel defect — Test 1 proves the kernel stays
+    // uniform when ids are re-read.
+    REQUIRE_FALSE(threw);            // currently it does NOT throw: it silently drifts
+    REQUIRE(rmv.size() == 4);
+    double mn = rmv[0], mx = rmv[0];
+    for (double r : rmv) { mn = std::min(mn, r); mx = std::max(mx, r); }
+    INFO("up-front-id min=" << mn << " max=" << mx);
+    REQUIRE(mx > 1.10 * mn);         // non-uniform: the id-drift signature
+
+    // The first captured id is still a valid top-rim edge, so the first chamfer must cut.
+    REQUIRE(vols.size() >= 2);
+    REQUIRE(vols[1] < vols[0]);
+
+    // Literal driver path: append all four and recompute once.
+    CadDocument doc2 = make_centred_box(half, h);
+    REQUIRE(doc2.recompute());
+    for (size_t i = 0; i < ids.size(); ++i)
+        doc2.add_chamfer(d, ids[i], "C" + std::to_string(i));
+    const bool ok = doc2.recompute();
+    INFO("single-recompute driver path: ok=" << ok << " error=" << (ok ? std::string() : doc2.error));
+    REQUIRE(ok);
+}
