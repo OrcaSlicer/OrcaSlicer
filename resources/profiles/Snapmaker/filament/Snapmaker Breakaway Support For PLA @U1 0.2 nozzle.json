@@ -1,0 +1,104 @@
+{
+	"type": "filament",
+	"name": "Snapmaker Breakaway Support For PLA @U1 0.2 nozzle",
+	"inherits": "Snapmaker Breakaway Support @base",
+	"from": "system",
+	"setting_id": "mJoaud6wulT4p8SA",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.2 nozzle)"
+	],
+	"filament_type": [
+		"PLA"
+	],
+	"enable_pressure_advance": [
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"70"
+	],
+	"close_fan_the_first_x_layers": [
+		"1"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"70"
+	],
+	"during_print_exhaust_fan_speed": [
+		"70"
+	],
+	"fan_max_speed": [
+		"30"
+	],
+	"fan_min_speed": [
+		"20"
+	],
+	"filament_cost": [
+		"69.98"
+	],
+	"filament_density": [
+		"1.3"
+	],
+	"filament_deretraction_speed": [
+		"nil"
+	],
+	"filament_flow_ratio": [
+		"1"
+	],
+	"filament_max_volumetric_speed": [
+		"0.5"
+	],
+	"filament_retract_length_toolchange": [
+		"10"
+	],
+	"filament_retraction_length": [
+		"nil"
+	],
+	"filament_retraction_speed": [
+		"nil"
+	],
+	"hot_plate_temp_initial_layer": [
+		"65"
+	],
+	"nozzle_temperature": [
+		"240"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	],
+	"nozzle_temperature_range_low": [
+		"190"
+	],
+	"pressure_advance": [
+		"0.2"
+	],
+	"textured_plate_temp": [
+		"65"
+	],
+	"textured_plate_temp_initial_layer": [
+		"65"
+	],
+	"filament_cooling_moves": [
+		"4"
+	],
+	"filament_loading_speed": [
+		"28"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
+	],
+	"filament_multitool_ramming": [
+		"1"
+	],
+	"filament_multitool_ramming_flow": [
+		"5"
+	],
+	"filament_multitool_ramming_volume": [
+		"5"
+	],
+	"filament_unloading_speed": [
+		"90"
+	],
+	"filament_unloading_speed_start": [
+		"100"
+	]
+}

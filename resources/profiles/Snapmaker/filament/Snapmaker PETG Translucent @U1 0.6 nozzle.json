@@ -1,0 +1,107 @@
+{
+	"type": "filament",
+	"name": "Snapmaker PETG Translucent @U1 0.6 nozzle",
+	"inherits": "Snapmaker PETG Translucent @U1 base",
+	"from": "system",
+	"setting_id": "FlcbnP3kWiJLMDMl",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.6 nozzle)"
+	],
+	"close_fan_the_first_x_layers": [
+		"3"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"70"
+	],
+	"during_print_exhaust_fan_speed": [
+		"70"
+	],
+	"fan_max_speed": [
+		"60"
+	],
+	"fan_min_speed": [
+		"20"
+	],
+	"filament_cost": [
+		"25"
+	],
+	"filament_density": [
+		"1.25"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"16"
+	],
+	"hot_plate_temp": [
+		"80"
+	],
+	"nozzle_temperature": [
+		"245"
+	],
+	"nozzle_temperature_initial_layer": [
+		"250"
+	],
+	"nozzle_temperature_range_low": [
+		"230"
+	],
+	"overhang_fan_threshold": [
+		"10%"
+	],
+	"pressure_advance": [
+		"0.02"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"textured_plate_temp": [
+		"80"
+	],
+	"textured_plate_temp_initial_layer": [
+		"80"
+	],
+	"filament_cooling_moves": [
+		"4"
+	],
+	"filament_loading_speed": [
+		"28"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
+	],
+	"filament_multitool_ramming": [
+		"1"
+	],
+	"filament_multitool_ramming_flow": [
+		"20"
+	],
+	"filament_multitool_ramming_volume": [
+		"5"
+	],
+	"filament_retract_length_toolchange": [
+		"10"
+	],
+	"filament_retraction_length": [
+		"1.2"
+	],
+	"filament_retraction_minimum_travel": [
+		"1"
+	],
+	"filament_unloading_speed": [
+		"90"
+	],
+	"filament_unloading_speed_start": [
+		"100"
+	],
+	"filament_wipe_distance": [
+		"2"
+	],
+	"filament_z_hop_types": [
+		"Slope Lift"
+	],
+	"enable_pressure_advance": [
+		"0"
+	]
+}

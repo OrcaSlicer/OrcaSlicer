@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -3839,6 +3839,10 @@ msgstr "Išdėstoma..."
 
 msgid "Arranging"
 msgstr "Išdėstymas"
+
+# AI Translated
+msgid "Arranging "
+msgstr "Išdėstoma "
 
 msgid "Arranging canceled."
 msgstr "Išdėstymas atšauktas."
@@ -8235,21 +8239,21 @@ msgstr ""
 "Pakeista 3D failais iš katalogo:\n"
 "\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Praleistas %1%: tas pats failas.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Praleistas %s: tas pats failas.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Praleistas %1%: failas neegzistuoja.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Praleistas %s: failas neegzistuoja.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Praleistas %1%: nepavyko pakeisti.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Praleistas %s: nepavyko pakeisti.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Pakeistas %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Pakeistas %s.\n"
 
 msgid "Replaced volumes"
 msgstr "Pakeisti tūriai"
@@ -9185,6 +9189,21 @@ msgstr "Pritemdyti apatinius sluoksnius"
 # AI Translated
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "Slenkant sluoksnių slankiklį pjaustytoje peržiūroje, atvaizduoti žemiau esančius sluoksnius pritemdytus, kad visu ryškumu būtų rodomas tik peržiūrimas sluoksnis."
+
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Pritemdytų sluoksnių ryškumas"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"Kaip ryškiai atvaizduojami pritemdyti sluoksniai, kai įjungta parinktis „Pritemdyti apatinius sluoksnius“.\n"
+"99 % – pritemdymas vos pastebimas, 0 % – sluoksniai atvaizduojami juodai. Riba yra 99 %, nes 100 % prilygtų parinkties išjungimui."
 
 msgid "Login region"
 msgstr "Prisijungimo regionas"
@@ -13222,11 +13241,36 @@ msgstr "Objektas po objekto"
 msgid "Intra-layer order"
 msgstr "Eiliškumas sluoksnio viduje"
 
-msgid "Print order within a single layer."
-msgstr "Elementų spausdinimo eiliškumas vieno sluoksnio ribose."
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"Tvarka, kuria objektų kopijos aplankomos viename sluoksnyje; ji lemia, kiek tuščiosios eigos sugaištama pereinant tarp jų.\n"
+"\n"
+"Numatytasis: grandinės sudarymas artimiausio kaimyno metodu, patobulintas 2-opt algoritmu ir sankirtų šalinimu. Geras bendras pasirinkimas.\n"
+"Kaip objektų sąrašas: kopijos spausdinamos tokia pačia tvarka kaip objektų sąraše, be jokio kelio optimizavimo. Naudokite, kai reikia nuspėjamos, rankiniu būdu valdomos tvarkos.\n"
+"Geriausias iš visų (trumpiausias kelias): įvertinamos visos strategijos ir naudojama trumpiausia. Objektų kopijų tvarka nustatoma vieną kartą visam spausdinimui, o atskirų salelių tvarka – kiekvienam sluoksniui atskirai, todėl skirtinguose sluoksniuose gali būti naudojamos skirtingos strategijos. Sluoksniuojama šiek tiek lėčiau.\n"
+"Gyvatėle: vingiuotas ėjimas eilutė po eilutės, patobulintas 2-opt algoritmu. Gerai tinka taisyklingiems daugelio mažų detalių tinkleliams.\n"
+"\n"
+"Kai tame pačiame sluoksnyje naudojamos kelios gijos ar keli įrankiai, pirmenybė teikiama įrankio keitimų mažinimui: objektai pirmiausia grupuojami pagal giją, o ši nuostata rikiuoja tik kopijas kiekvienoje grupėje, todėl bendra seka gali neatrodyti kaip trumpiausias kelias per plokštę."
 
 msgid "As object list"
 msgstr "Kaip objektų sąrašas"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "Geriausias iš visų (trumpiausias kelias)"
+
+# AI Translated
+msgid "Snake"
+msgstr "Gyvatėle"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "Sulėtinti spausdinimą geresniam sluoksnių aušinimui"
@@ -18537,6 +18581,20 @@ msgstr ""
 "Yra keli IP adresai, susieti su mazgo pavadinimu %1%.\n"
 "Pasirinkite tą, kurį norite naudoti."
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "Automatinis mastelis pagal purkštuką"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"Šis modelis suprojektuotas 0,4 mm purkštukui ir 0,2 mm sluoksnio aukščiui. \n"
+"Kai mastelio keitimo parinktis įjungta (rekomenduojama), modelio dydis dinamiškai pritaikomas prie jūsų dabartinio purkštuko skersmens ir tinkamo sluoksnio aukščio, todėl testas yra ir tikslus, ir lengvai įskaitomas.\n"
+"Mastelio keitimą išjunkite tik tuo atveju, jei norite spausdinti etaloninį modelį tiksliai tokį, koks jis yra."
+
 msgid "PA Calibration"
 msgstr "PA kalibravimas (Pressure Advance)"
 
@@ -18673,6 +18731,14 @@ msgstr "Pradinis greitis: "
 msgid "End speed: "
 msgstr "Galinis greitis: "
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "Automatiškai pritaikyti prie maksimalaus tūrinio greičio"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "Jei galutinis greitis viršytų maksimalų gijos tūrinį greitį, automatiškai sumažinti sluoksnio aukštį (išlaikant standartines reikšmes ir neperžengiant įrenginio apribojimų), kad jį pasiektų. Jei net mažiausio sluoksnio aukščio nepakanka, vietoj to sumažinamas galutinis greitis."
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -18683,6 +18749,57 @@ msgstr ""
 "pradinis > 10\n"
 "žingsnis >= 0\n"
 "galinis > pradinis + žingsnis"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"Galutinis greitis (%.0f mm/s) viršija maksimalų gijos tūrinį greitį (%.1f mm³/s), kuris esant tokiam linijos pločiui ir sluoksnio aukščiui riboja išorinę sienelę iki maždaug %.0f mm/s.\n"
+" Didesni greičiai bus apriboti, todėl viršutiniai bokšto blokai nebus spausdinami pageidaujamu greičiu.\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"Galutinis greitis (%.0f mm/s) viršija maksimalų gijos tūrinį greitį (%.1f mm³/s) esant numatytajam sluoksnio aukščiui (%.2f mm).\n"
+"\n"
+"Sluoksnio aukštis sumažintas iki %.2f mm (reikšmė, naudojama šio spausdintuvo profiliuose), kad bokštas galėtų pasiekti pageidaujamą greitį."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"Net ir esant mažiausiam sluoksnio aukščiui, naudojamam šio spausdintuvo profiliuose (%.2f mm), galutinis greitis (%.0f mm/s) viršija maksimalų gijos tūrinį greitį (%.1f mm³/s).\n"
+"\n"
+"Sluoksnio aukštis bus nustatytas į %.2f mm, o galutinis greitis sumažintas iki %.0f mm/s.\n"
+"\n"
+"Tęsti?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "Vis tiek tęsti?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Įjungti „Automatiškai pritaikyti“, kad tai būtų ištaisyta automatiškai, ar vis tiek tęsti?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Įjungti „Automatinis mastelis pagal purkštuką“ ir „Automatiškai pritaikyti“, kad tai būtų ištaisyta automatiškai, ar vis tiek tęsti?"
 
 msgid "Start retraction length: "
 msgstr "Pradinis įtraukimo ilgis: "
@@ -21219,6 +21336,9 @@ msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "Elementų spausdinimo eiliškumas vieno sluoksnio ribose."
+
 #~ msgid "Bottom"
 #~ msgstr "Apačia"
 
@@ -21305,9 +21425,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "°C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgid "Renders cast shadows on the plate in realistic view."
 #~ msgstr "Realistiniame vaizde atvaizduoja krentančius šešėlius ant spausdinimo pagrindo."

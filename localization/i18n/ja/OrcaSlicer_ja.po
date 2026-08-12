@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3859,6 +3859,10 @@ msgstr "レイアウト中"
 
 msgid "Arranging"
 msgstr "レイアウト中"
+
+# AI Translated
+msgid "Arranging "
+msgstr "レイアウト中 "
 
 msgid "Arranging canceled."
 msgstr "レイアウトを取り消しました"
@@ -8258,21 +8262,21 @@ msgstr "置換用のディレクトリが選択されていません"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "ディレクトリの3Dファイルで置換しました:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ スキップ %1%: 同一ファイル。\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ スキップ %s: 同一ファイル。\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ スキップ %1%: ファイルが存在しません。\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ スキップ %s: ファイルが存在しません。\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ スキップ %1%: 置換に失敗しました。\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ スキップ %s: 置換に失敗しました。\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ 置換しました %1%。\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ 置換しました %s。\n"
 
 msgid "Replaced volumes"
 msgstr "置換されたボリューム"
@@ -9248,6 +9252,21 @@ msgstr "下の積層を暗くする"
 # AI Translated
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "スライスプレビューで積層スライダーを操作する際、現在の層より下の積層を暗く描画し、表示中の積層のみを明るく表示します。"
+
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "暗くした積層の明るさ"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"「下の積層を暗くする」を有効にしたときに、暗くした積層をどの程度の明るさで表示するかを指定します。\n"
+"99%ではほとんど暗くならず、0%では真っ黒になります。100%はオプションを無効にした場合と同じになるため、上限は99%です。"
 
 msgid "Login region"
 msgstr "地域"
@@ -13416,11 +13435,36 @@ msgstr "オブジェクト順"
 msgid "Intra-layer order"
 msgstr "レイヤー内の順序"
 
-msgid "Print order within a single layer."
-msgstr "単一レイヤー内の印刷順序。"
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"1つの積層内でオブジェクトインスタンスを巡回する順序です。インスタンス間の移動距離に影響します。\n"
+"\n"
+"デフォルト：最近傍法でつなぎ、2-optと交差の除去で改善します。一般的な用途に適した選択です。\n"
+"オブジェクトリスト順：パスの最適化を行わず、オブジェクトリストと同じ順序でインスタンスを造形します。手動で管理できる予測しやすい順序が必要な場合に使用します。\n"
+"すべてを比較（最短経路）：すべての方式を評価し、最も短いものを使用します。オブジェクトインスタンスの順序は造形全体で1回だけ決定され、個々のアイランドの順序は積層ごとに決定されるため、積層によって異なる方式が使われる場合があります。スライスがやや遅くなります。\n"
+"蛇行：行ごとに折り返しながら蛇行して巡回し、2-optで改善します。小さなパーツが規則的に並んだ配置に適しています。\n"
+"\n"
+"同じ積層内で複数のフィラメントやツールを使用する場合は、ツール交換の削減が優先されます。オブジェクトはまずフィラメントごとにグループ化され、この設定は各フィラメントグループ内のインスタンスの順序のみを決めるため、全体の順序はプレート全体での最短経路には見えないことがあります。"
 
 msgid "As object list"
 msgstr "オブジェクトリスト順"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "すべてを比較（最短経路）"
+
+# AI Translated
+msgid "Snake"
+msgstr "蛇行"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "冷却の為減速"
@@ -19167,6 +19211,20 @@ msgstr ""
 "ホスト名%1%には、いくつかのIPアドレスがあります。\n"
 "使用するIPアドレスを1つ選んでください。"
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "ノズルに合わせて自動スケール"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"このモデルは、0.4 mmノズルと0.2 mmの積層ピッチを基準に設計されています。 \n"
+"スケールオプションを有効にすると（推奨）、現在のノズル径と適切な積層ピッチに合わせてサイズが動的に調整され、テストの精度と読み取りやすさが向上します。\n"
+"参照モデルをそのままの状態で造形したい場合のみ、スケールを無効にしてください。"
+
 msgid "PA Calibration"
 msgstr "PAキャリブレーション"
 
@@ -19307,6 +19365,14 @@ msgid "End speed: "
 msgstr "終了速度: "
 
 # AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "最大体積速度に合わせて自動調整"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "終了速度がフィラメントの最大体積速度を超える場合、その速度に到達できるよう積層ピッチを自動的に下げます（標準的な値を使用し、プリンタの制限内に収めます）。最小の積層ピッチでも足りない場合は、代わりに終了速度を下げます。"
+
+# AI Translated
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -19317,6 +19383,57 @@ msgstr ""
 "開始 > 10\n"
 "ステップ >= 0\n"
 "終了 > 開始 + ステップ"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"終了速度（%.0f mm/s）がフィラメントの最大体積速度（%.1f mm³/s）を超えています。この押出線幅と積層ピッチでは、外壁は約 %.0f mm/s に制限されます。\n"
+" これを超える速度は制限されるため、タワーの上部ブロックは指定した速度で造形されません。\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"終了速度（%.0f mm/s）がフィラメントの最大体積速度（%.1f mm³/s）を超えています（デフォルトの積層ピッチ %.2f mm の場合）。\n"
+"\n"
+"タワーが指定した速度に到達できるよう、積層ピッチを %.2f mm（このプリンタのプロファイルで使用されている値）に下げました。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"このプリンタのプロファイルで使用されている最小の積層ピッチ（%.2f mm）でも、終了速度（%.0f mm/s）がフィラメントの最大体積速度（%.1f mm³/s）を超えています。\n"
+"\n"
+"積層ピッチを %.2f mm に設定し、終了速度を %.0f mm/s に下げます。\n"
+"\n"
+"続行しますか？"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "このまま続行しますか？"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "「自動調整」を有効にすると自動的に修正されます。このまま続行しますか？"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "「ノズルに合わせて自動スケール」と「自動調整」を有効にすると自動的に修正されます。このまま続行しますか？"
 
 msgid "Start retraction length: "
 msgstr "開始リトラクション長さ: "
@@ -22077,6 +22194,9 @@ msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "単一レイヤー内の印刷順序。"
+
 #~ msgid "Bottom"
 #~ msgstr "底面"
 
@@ -22156,9 +22276,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "°C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgid "Continue to sync filaments"
 #~ msgstr "フィラメントの同期を続行"

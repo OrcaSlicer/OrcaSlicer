@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -3795,6 +3795,10 @@ msgstr "Організація..."
 
 msgid "Arranging"
 msgstr "Організація"
+
+# AI Translated
+msgid "Arranging "
+msgstr "Впорядкування "
 
 msgid "Arranging canceled."
 msgstr "Організацію скасовано."
@@ -8302,21 +8306,21 @@ msgstr "Каталог для заміни не вибрано"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Замінено 3D-файлами з каталогу:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Пропущено %1%: той самий файл.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Пропущено %s: той самий файл.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Пропущено %1%: файл не існує.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Пропущено %s: файл не існує.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Пропущено %1%: не вдалося замінити.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Пропущено %s: не вдалося замінити.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Замінено %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Замінено %s.\n"
 
 msgid "Replaced volumes"
 msgstr "Замінені обʼєми"
@@ -9296,6 +9300,21 @@ msgstr "Затемнювати нижні шари"
 # AI Translated
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "Під час прокручування повзунка шарів у попередньому перегляді нарізки відображати шари нижче поточного затемненими, щоб лише переглядуваний шар показувався з повною яскравістю."
+
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Яскравість затемнених шарів"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"Наскільки яскраво відображаються затемнені шари, коли увімкнено параметр «Затемнювати нижні шари».\n"
+"99% — затемнення майже непомітне, 0% — шари стають чорними. Максимум обмежено 99%, оскільки 100% дорівнювало б вимкненню параметра."
 
 msgid "Login region"
 msgstr "Регіон входу"
@@ -13531,11 +13550,36 @@ msgstr "По обʼєктах"
 msgid "Intra-layer order"
 msgstr "Внутрішній порядок шарів"
 
-msgid "Print order within a single layer."
-msgstr "Друк замовлення в один шар"
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"Порядок, у якому обходяться екземпляри обʼєктів у межах одного шару; він визначає, скільки переміщень витрачається на переходи між ними.\n"
+"\n"
+"Типово: побудова ланцюга методом найближчого сусіда з подальшим удосконаленням алгоритмом 2-opt та усуненням перетинів. Хороший універсальний вибір.\n"
+"За порядком у списку: екземпляри друкуються в тому самому порядку, що й у списку обʼєктів, без жодної оптимізації шляху. Використовуйте, коли потрібен передбачуваний порядок, заданий вручну.\n"
+"Найкращий з усіх (найкоротший шлях): оцінюються всі стратегії й застосовується та, що дає найкоротший шлях. Порядок екземплярів обʼєктів визначається один раз для всього друку, а порядок окремих острівців — для кожного шару окремо, тож різні шари можуть використовувати різні стратегії. Нарізка триває трохи довше.\n"
+"Змійкою: змієподібний обхід ряд за рядом з удосконаленням алгоритмом 2-opt. Добре підходить для регулярних сіток із багатьох дрібних деталей.\n"
+"\n"
+"Якщо в одному шарі використовується кілька філаментів або інструментів, пріоритет має мінімізація змін інструмента: обʼєкти спочатку групуються за філаментом, і цей параметр упорядковує лише екземпляри в межах кожної групи, тож загальна послідовність може не виглядати як найкоротший шлях по пластині."
 
 msgid "As object list"
 msgstr "За порядком у списку"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "Найкращий з усіх (найкоротший шлях)"
+
+# AI Translated
+msgid "Snake"
+msgstr "Змійкою"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "Сповільнювати друк для кращого охолодження шару"
@@ -19089,6 +19133,20 @@ msgstr ""
 "Є кілька IP-адрес, які перетворюються на ім’я хоста %1%.\n"
 "Будь ласка, виберіть той, який слід використовувати."
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "Автомасштабування під сопло"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"Ця модель розрахована на сопло 0,4 мм і висоту шару 0,2 мм. \n"
+"Коли увімкнено масштабування (рекомендовано), розмір моделі динамічно підлаштовується під діаметр вашого поточного сопла та відповідну висоту шару, завдяки чому тест є точним і легко читається.\n"
+"Вимикайте масштабування, лише якщо хочете надрукувати еталонну модель точно в первісному вигляді."
+
 msgid "PA Calibration"
 msgstr "Калібрування ВТ (РА)"
 
@@ -19230,6 +19288,14 @@ msgstr "Початкова швидкість: "
 msgid "End speed: "
 msgstr "Кінцева швидкість: "
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "Автопідлаштування під максимальну обʼємну швидкість"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "Якщо кінцева швидкість перевищить максимальну обʼємну швидкість філаменту, автоматично зменшувати висоту шару (зберігаючи стандартні значення та не виходячи за обмеження машини), щоб її досягти. Якщо навіть мінімальної висоти шару не досить, натомість буде знижено кінцеву швидкість."
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -19240,6 +19306,57 @@ msgstr ""
 "початок > 10\n"
 "крок >= 0\n"
 "кінець > початок + крок)"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"Кінцева швидкість (%.0f мм/с) перевищує максимальну обʼємну швидкість філаменту (%.1f мм³/с), яка за такої ширини лінії та висоти шару обмежує зовнішню стінку приблизно до %.0f мм/с.\n"
+" Вищі швидкості будуть обмежені, тож верхні блоки вежі не надрукуються із заданою швидкістю.\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"Кінцева швидкість (%.0f мм/с) перевищує максимальну обʼємну швидкість філаменту (%.1f мм³/с) за типової висоти шару (%.2f мм).\n"
+"\n"
+"Висоту шару зменшено до %.2f мм (значення, яке використовують профілі цього принтера), щоб вежа могла досягти заданої швидкості."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"Навіть за найменшої висоти шару, яку використовують профілі цього принтера (%.2f мм), кінцева швидкість (%.0f мм/с) перевищує максимальну обʼємну швидкість філаменту (%.1f мм³/с).\n"
+"\n"
+"Висоту шару буде встановлено на %.2f мм, а кінцеву швидкість знижено до %.0f мм/с.\n"
+"\n"
+"Продовжити?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "Усе одно продовжити?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Увімкнути «Автопідлаштування», щоб виправити це автоматично, чи все одно продовжити?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Увімкнути «Автомасштабування під сопло» та «Автопідлаштування», щоб виправити це автоматично, чи все одно продовжити?"
 
 msgid "Start retraction length: "
 msgstr "Початкова довжина ретракту: "
@@ -21862,6 +21979,9 @@ msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури столу може зменшити ймовірність деформації?"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "Друк замовлення в один шар"
+
 #~ msgid "Bottom"
 #~ msgstr "Низ"
 
@@ -21939,9 +22059,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "℃"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgctxt "Sync_Nozzle_AMS"
 #~ msgid "Cancel"

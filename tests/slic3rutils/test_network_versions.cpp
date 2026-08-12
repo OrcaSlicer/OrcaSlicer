@@ -6,6 +6,8 @@
 #include "libslic3r/Utils.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 
+#include "plugin_test_utils.hpp"
+
 using namespace Slic3r;
 namespace fs = boost::filesystem;
 
@@ -25,27 +27,16 @@ static const char* PLUGIN_EXT    = ".so";
 
 struct PluginFolderFixture
 {
-    fs::path    root;
-    std::string previous_data_dir;
+    ScopedDataDir data{"netver"};
 
     PluginFolderFixture()
     {
-        previous_data_dir = data_dir();
-        root = fs::temp_directory_path() / fs::unique_path("orca-netver-%%%%%%%%");
-        fs::create_directories(root / "plugins");
-        set_data_dir(root.string());
-    }
-
-    ~PluginFolderFixture()
-    {
-        set_data_dir(previous_data_dir);
-        boost::system::error_code ec;
-        fs::remove_all(root, ec);
+        fs::create_directories(data.dir / "plugins");
     }
 
     void add_plugin(const std::string& version)
     {
-        boost::nowide::ofstream f((root / "plugins" / (PLUGIN_PREFIX + version + PLUGIN_EXT)).string());
+        boost::nowide::ofstream f((data.dir / "plugins" / (PLUGIN_PREFIX + version + PLUGIN_EXT)).string());
         f << "stub";
     }
 };

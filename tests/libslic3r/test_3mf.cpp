@@ -155,10 +155,8 @@ SCENARIO("H2C multi-nozzle .3mf round-trip", "[3mf][MultiNozzle]") {
 
         // store_bbs_3mf stages Metadata/project_settings.config through the model's backup path;
         // point it at a writable temp dir (the default lives under a read-only root in CI).
-        std::string backup_dir =
-            (boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("orca_mn_%%%%%%%%")).string();
-        boost::filesystem::create_directories(backup_dir);
-        model.set_backup_path(backup_dir);
+        ScopedTemporaryDir backup_dir("orca_mn");
+        model.set_backup_path(backup_dir.string());
 
         // Global (printer) config: give nozzle_volume_type a non-default value so the slice_info
         // read-back is a meaningful assertion (High Flow == 1).
@@ -180,7 +178,8 @@ SCENARIO("H2C multi-nozzle .3mf round-trip", "[3mf][MultiNozzle]") {
         plate->config.set_key_value("enable_filament_dynamic_map", new ConfigOptionBool(true));
 
         WHEN("stored to and reloaded from a .3mf") {
-            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/mn_roundtrip.3mf";
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
 
             StoreParams store_params;
             store_params.path    = test_file.c_str();
@@ -202,8 +201,6 @@ SCENARIO("H2C multi-nozzle .3mf round-trip", "[3mf][MultiNozzle]") {
             bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
                                        &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
                                        LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
-            boost::filesystem::remove(test_file);
-
             THEN("every multi-nozzle key round-trips as expected") {
                 REQUIRE(loaded);
                 REQUIRE(dst_plates.size() >= 1);
@@ -233,7 +230,6 @@ SCENARIO("H2C multi-nozzle .3mf round-trip", "[3mf][MultiNozzle]") {
             release_PlateData_list(dst_plates);
         }
         delete plate; // store_bbs_3mf does not take ownership of the source plate
-        boost::filesystem::remove_all(backup_dir);
     }
 }
 
@@ -250,10 +246,8 @@ SCENARIO("Non-standard nozzle diameter survives .3mf save on a single-nozzle pri
         REQUIRE(load_stl(src_file.c_str(), &model));
         model.add_default_instances();
 
-        std::string backup_dir =
-            (boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("orca_nd_%%%%%%%%")).string();
-        boost::filesystem::create_directories(backup_dir);
-        model.set_backup_path(backup_dir);
+        ScopedTemporaryDir backup_dir("orca_nd");
+        model.set_backup_path(backup_dir.string());
 
         // Single extruder with a non-standard 0.5 mm nozzle; extruder_max_nozzle_count stays at its
         // default (no nozzle cluster), so the writer must emit the exact config diameter.
@@ -276,7 +270,8 @@ SCENARIO("Non-standard nozzle diameter survives .3mf save on a single-nozzle pri
         plate->slice_filaments_info.push_back(fi);
 
         WHEN("stored to and reloaded from a .3mf") {
-            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/nd_roundtrip.3mf";
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
 
             StoreParams store_params;
             store_params.path    = test_file.c_str();
@@ -296,8 +291,6 @@ SCENARIO("Non-standard nozzle diameter survives .3mf save on a single-nozzle pri
             bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
                                        &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
                                        LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
-            boost::filesystem::remove(test_file);
-
             THEN("the saved nozzle diameter is the exact 0.5, not the rounded 0.4") {
                 REQUIRE(loaded);
                 REQUIRE(dst_plates.size() >= 1);
@@ -315,7 +308,6 @@ SCENARIO("Non-standard nozzle diameter survives .3mf save on a single-nozzle pri
             release_PlateData_list(dst_plates);
         }
         delete plate; // store_bbs_3mf does not take ownership of the source plate
-        boost::filesystem::remove_all(backup_dir);
     }
 }
 
@@ -436,10 +428,8 @@ SCENARIO("Nozzle-group metadata .3mf round-trip", "[3mf][MultiNozzle]") {
         REQUIRE(load_stl(src_file.c_str(), &model));
         model.add_default_instances();
 
-        std::string backup_dir =
-            (boost::filesystem::temp_directory_path() / boost::filesystem::unique_path("orca_ng_%%%%%%%%")).string();
-        boost::filesystem::create_directories(backup_dir);
-        model.set_backup_path(backup_dir);
+        ScopedTemporaryDir backup_dir("orca_ng");
+        model.set_backup_path(backup_dir.string());
 
         DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
 
@@ -459,7 +449,8 @@ SCENARIO("Nozzle-group metadata .3mf round-trip", "[3mf][MultiNozzle]") {
         plate->config.set_key_value("filament_map", new ConfigOptionInts({ 1, 2, 1 }));
 
         WHEN("stored to and reloaded from a .3mf") {
-            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/ng_roundtrip.3mf";
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
 
             StoreParams store_params;
             store_params.path    = test_file.c_str();
@@ -479,8 +470,6 @@ SCENARIO("Nozzle-group metadata .3mf round-trip", "[3mf][MultiNozzle]") {
             bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
                                        &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
                                        LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
-            boost::filesystem::remove(test_file);
-
             THEN("the <nozzle> tags round-trip into the loaded plate's nozzles_info") {
                 REQUIRE(loaded);
                 REQUIRE(dst_plates.size() >= 1);
@@ -506,67 +495,5 @@ SCENARIO("Nozzle-group metadata .3mf round-trip", "[3mf][MultiNozzle]") {
             release_PlateData_list(dst_plates);
         }
         delete plate;
-        boost::filesystem::remove_all(backup_dir);
-    }
-}
-
-SCENARIO("2D convex hull of sinking object", "[3mf][.]") {
-    GIVEN("model") {
-        // load a model
-        Model model;
-        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
-        REQUIRE(load_stl(src_file.c_str(), &model));
-        model.add_default_instances();
-
-        WHEN("model is rotated, scaled and set as sinking") {
-            ModelObject* object = model.objects[0];
-            object->center_around_origin(false);
-
-	    // This outputs the same exact data as the Prusaslicer test
-	    write_debug_stl("3mf/orca.ascii", object->volumes[0]->mesh());
-
-            // set instance's attitude so that it is rotated, scaled (and sinking? how is it sinking? the rotation? does it matter if it's sinking?)
-            ModelInstance* instance = object->instances[0];
-            instance->set_rotation(X, -M_PI / 4.0);
-            instance->set_offset(Vec3d::Zero());
-            instance->set_scaling_factor({ 2.0, 2.0, 2.0 });
-
-            // calculate 2D convex hull
-	    auto trafo = instance->get_transformation().get_matrix();
-
-	    // This matrix is the same exact matrix as the Prusaslicer test
-	    CAPTURE(trafo);
-            Polygon hull_2d = object->convex_hull_2d(trafo);
-
-	    // But we get different hull_2d.points here (and somehow decimal numbers despite being int64_t values, but that's probabaly printing configuration somewhere -- Prusaslicer's prints out with newlines between the X&Y and not one between coordinates, which is about the worse possible output).
-	    // I think it's something to do with PrusaSlicer ignoring everything under the Z plane, which makes sense from the results.
-	    // See the comments added to ModelObject::convex_hull_2d for more information.
-
-            // verify result
-            Points result = {
-                { -91501496, -15914144 },
-                { 91501496, -15914144 },
-                { 91501496, 4243 },
-                { 78229680, 4246883 },
-                { 56898100, 4246883 },
-                { -85501496, 4242641 },
-                { -91501496, 4243 }
-            };
-
-            THEN("2D convex hull should match with reference") {
-                // Allow 1um error due to floating point rounding.
-                bool res = hull_2d.points.size() == result.size();
-                if (res) {
-                    for (size_t i = 0; i < result.size(); ++ i) {
-                        const Point &p1 = result[i];
-                        const Point &p2 = hull_2d.points[i];
-                        CHECK((std::abs(p1.x() - p2.x()) > 1 || std::abs(p1.y() - p2.y()) > 1));
-                    }
-                }
-
-                CAPTURE(hull_2d.points);
-                REQUIRE(res);
-            }
-        }
     }
 }

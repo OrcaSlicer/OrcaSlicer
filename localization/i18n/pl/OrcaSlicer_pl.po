@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -3925,6 +3925,10 @@ msgstr "Układanie..."
 
 msgid "Arranging"
 msgstr "Układanie"
+
+# AI Translated
+msgid "Arranging "
+msgstr "Rozmieszczanie "
 
 msgid "Arranging canceled."
 msgstr "Układanie anulowane."
@@ -8440,24 +8444,24 @@ msgid "Replaced with 3D files from directory:\n"
 msgstr "Zastąpiono plikami 3D z katalogu:\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Pominięto %1%: ten sam plik.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Pominięto %s: ten sam plik.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Pominięto %1%: plik nie istnieje.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Pominięto %s: plik nie istnieje.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Pominięto %1%: nie udało się zastąpić.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Pominięto %s: nie udało się zastąpić.\n"
 
 # AI Translated
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Zastąpiono %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Zastąpiono %s.\n"
 
 # AI Translated
 msgid "Replaced volumes"
@@ -9478,6 +9482,21 @@ msgstr "Przyciemnij niższe warstwy"
 # AI Translated
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "Podczas przewijania suwaka warstw w podglądzie po cięciu renderuj warstwy poniżej bieżącej w przyciemnieniu, tak aby tylko oglądana warstwa była w pełnej jasności."
+
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Jasność przyciemnionych warstw"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"Jak jasno renderowane są przyciemnione warstwy, gdy włączona jest opcja „Przyciemnij niższe warstwy”.\n"
+"99% oznacza ledwo zauważalne przyciemnienie, 0% renderuje je na czarno. Wartość jest ograniczona do 99%, ponieważ 100% oznaczałoby to samo co wyłączenie opcji."
 
 msgid "Login region"
 msgstr "Region logowania"
@@ -13709,11 +13728,36 @@ msgstr "Wg obiektu"
 msgid "Intra-layer order"
 msgstr "Kolejność warstw"
 
-msgid "Print order within a single layer."
-msgstr "Kolejność druku obiektów w obrębie jednej warstwy. Domyślnie lub według listy obiektów"
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"Kolejność, w jakiej instancje obiektów są odwiedzane w obrębie jednej warstwy; decyduje o tym, ile przemieszczeń zajmuje przechodzenie między nimi.\n"
+"\n"
+"Domyślny: łączenie metodą najbliższego sąsiada, dopracowane algorytmem 2-opt i usuwaniem przecięć. Dobry wybór ogólny.\n"
+"Wg listy obiektów: instancje są drukowane w tej samej kolejności co na liście obiektów, bez optymalizacji ścieżki. Użyj, gdy potrzebujesz przewidywalnej, ręcznie ustalonej kolejności.\n"
+"Najlepsza ze wszystkich (najkrótsza ścieżka): oceniane są wszystkie strategie i wybierana jest najkrótsza. Kolejność instancji obiektów ustalana jest raz dla całego wydruku, natomiast kolejność poszczególnych wysp jest ustalana dla każdej warstwy, więc różne warstwy mogą ostatecznie korzystać z różnych strategii. Cięcie trwa nieco dłużej.\n"
+"Wężykiem: serpentynowe przechodzenie rząd po rzędzie, dopracowane algorytmem 2-opt. Dobrze sprawdza się przy regularnych siatkach wielu małych elementów.\n"
+"\n"
+"Gdy w tej samej warstwie używanych jest wiele filamentów lub narzędzi, priorytetem jest minimalizacja zmian narzędzia: obiekty są najpierw grupowane według filamentu, a to ustawienie porządkuje jedynie instancje w obrębie każdej grupy, więc ogólna sekwencja może nie wyglądać jak najkrótsza ścieżka po płycie."
 
 msgid "As object list"
 msgstr "Wg listy obiektów"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "Najlepsza ze wszystkich (najkrótsza ścieżka)"
+
+# AI Translated
+msgid "Snake"
+msgstr "Wężykiem"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "Zwolnienie druku dla lepszego chłodzenia warstw"
@@ -19211,6 +19255,20 @@ msgstr ""
 "Jest kilka adresów IP przypisanych do nazwy hosta %1%.\n"
 "Proszę wybrać jeden, który ma być używany."
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "Automatyczne skalowanie do dyszy"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"Ten model zaprojektowano dla dyszy 0,4 mm i wysokości warstwy 0,2 mm. \n"
+"Gdy opcja skalowania jest włączona (zalecane), model dynamicznie dopasowuje rozmiar do średnicy Twojej obecnej dyszy i odpowiedniej wysokości warstwy, dzięki czemu test jest dokładny i łatwy do odczytania.\n"
+"Wyłącz skalowanie tylko wtedy, gdy chcesz wydrukować model referencyjny dokładnie w oryginalnej postaci."
+
 msgid "PA Calibration"
 msgstr "Kalibracja PA"
 
@@ -19349,6 +19407,14 @@ msgstr "Rozpocznij z prędkością: "
 msgid "End speed: "
 msgstr "Zakończ z prędkością: "
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "Automatyczne dopasowanie do maksymalnej prędkości przepływu"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "Jeśli prędkość końcowa przekroczyłaby maksymalną prędkość przepływu filamentu, automatycznie obniż wysokość warstwy (zachowując standardowe wartości i pozostając w limitach maszyny), aby ją osiągnąć. Jeśli nawet minimalna wysokość warstwy nie wystarczy, obniżona zostanie prędkość końcowa."
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -19359,6 +19425,57 @@ msgstr ""
 "start > 10\n"
 "krok >= 0\n"
 "koniec > start + krok)"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"Prędkość końcowa (%.0f mm/s) przekracza maksymalną prędkość przepływu filamentu (%.1f mm³/s), która przy tej szerokości linii i wysokości warstwy ogranicza zewnętrzną ścianę do około %.0f mm/s.\n"
+" Wyższe prędkości zostaną ograniczone, więc górne bloki wieży nie zostaną wydrukowane z żądaną prędkością.\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"Prędkość końcowa (%.0f mm/s) przekracza maksymalną prędkość przepływu filamentu (%.1f mm³/s) przy domyślnej wysokości warstwy (%.2f mm).\n"
+"\n"
+"Wysokość warstwy została zmniejszona do %.2f mm (wartość stosowana w profilach tej drukarki), aby wieża mogła osiągnąć żądaną prędkość."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"Nawet przy najmniejszej wysokości warstwy stosowanej w profilach tej drukarki (%.2f mm) prędkość końcowa (%.0f mm/s) przekracza maksymalną prędkość przepływu filamentu (%.1f mm³/s).\n"
+"\n"
+"Wysokość warstwy zostanie ustawiona na %.2f mm, a prędkość końcowa obniżona do %.0f mm/s.\n"
+"\n"
+"Kontynuować?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "Kontynuować mimo to?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Włączyć „Automatyczne dopasowanie”, aby naprawić to automatycznie, czy kontynuować mimo to?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Włączyć „Automatyczne skalowanie do dyszy” i „Automatyczne dopasowanie”, aby naprawić to automatycznie, czy kontynuować mimo to?"
 
 msgid "Start retraction length: "
 msgstr "Długość retrakcji na początku: "
@@ -22117,6 +22234,9 @@ msgstr ""
 "Unikaj odkształceń\n"
 "Czy wiesz, że podczas drukowania filamentami podatnymi na odkształcenia, takimi jak ABS, odpowiednie zwiększenie temperatury podgrzewanej płyty może zmniejszyć prawdopodobieństwo odkształceń?"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "Kolejność druku obiektów w obrębie jednej warstwy. Domyślnie lub według listy obiektów"
+
 #~ msgid "Bottom"
 #~ msgstr "Dół"
 
@@ -22190,9 +22310,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "°C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgid "Continue to sync filaments"
 #~ msgstr "Kontynuuj aby zsynchronizować filamenty"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -4030,6 +4030,10 @@ msgstr "Đang sắp xếp..."
 
 msgid "Arranging"
 msgstr "Đang sắp xếp"
+
+# AI Translated
+msgid "Arranging "
+msgstr "Đang sắp xếp "
 
 msgid "Arranging canceled."
 msgstr "Hủy sắp xếp."
@@ -8717,24 +8721,24 @@ msgid "Replaced with 3D files from directory:\n"
 msgstr "Đã thay thế bằng file 3D từ thư mục:\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Đã bỏ qua %1%: cùng một file.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Đã bỏ qua %s: cùng một file.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Đã bỏ qua %1%: file không tồn tại.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Đã bỏ qua %s: file không tồn tại.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Đã bỏ qua %1%: thay thế thất bại.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Đã bỏ qua %s: thay thế thất bại.\n"
 
 # AI Translated
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Đã thay thế %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Đã thay thế %s.\n"
 
 # AI Translated
 msgid "Replaced volumes"
@@ -9778,6 +9782,21 @@ msgstr "Làm mờ các lớp bên dưới"
 # AI Translated
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "Khi kéo thanh trượt lớp trong bản xem trước đã slice, kết xuất các lớp bên dưới lớp hiện tại ở dạng tối đi để chỉ lớp đang xem hiển thị với độ sáng đầy đủ."
+
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Độ sáng của lớp bị làm mờ"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"Mức độ sáng khi hiển thị các lớp bị làm mờ nếu bật \"Làm mờ các lớp bên dưới\".\n"
+"99% gần như không tối đi, 0% khiến chúng đen hoàn toàn. Giới hạn ở 99% vì 100% sẽ giống hệt như tắt tùy chọn này."
 
 # AI Translated
 msgid "Login region"
@@ -14093,11 +14112,36 @@ msgstr "Theo đối tượng"
 msgid "Intra-layer order"
 msgstr "Thứ tự trong lớp"
 
-msgid "Print order within a single layer."
-msgstr "Thứ tự in trong một lớp đơn."
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"Thứ tự các instance của đối tượng được đi qua trong cùng một lớp, quyết định lượng di chuyển tiêu tốn khi đi giữa chúng.\n"
+"\n"
+"Mặc định: nối chuỗi theo láng giềng gần nhất, tinh chỉnh bằng 2-opt và loại bỏ các đoạn cắt nhau. Lựa chọn chung tốt.\n"
+"Như danh sách đối tượng: các instance được in theo đúng thứ tự trong danh sách đối tượng, không tối ưu hóa đường đi. Dùng khi bạn cần một thứ tự dễ đoán và tự kiểm soát.\n"
+"Tốt nhất trong tất cả (đường đi ngắn nhất): mọi chiến lược đều được đánh giá và chiến lược ngắn nhất được sử dụng. Thứ tự các instance của đối tượng được quyết định một lần cho toàn bộ bản in, còn thứ tự của từng đảo được quyết định theo từng lớp, nên các lớp khác nhau có thể dùng chiến lược khác nhau. Slice hơi chậm hơn một chút.\n"
+"Ngoằn ngoèo: duyệt lần lượt từng hàng theo kiểu ngoằn ngoèo, tinh chỉnh bằng 2-opt. Rất phù hợp với các lưới đều gồm nhiều chi tiết nhỏ.\n"
+"\n"
+"Khi có nhiều filament hoặc đầu công cụ trong cùng một lớp, việc giảm thiểu số lần đổi đầu công cụ được ưu tiên: các đối tượng được nhóm theo filament trước, và thiết lập này chỉ sắp xếp các instance trong từng nhóm filament, nên trình tự tổng thể có thể không giống đường đi ngắn nhất trên bàn in."
 
 msgid "As object list"
 msgstr "Như danh sách đối tượng"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "Tốt nhất trong tất cả (đường đi ngắn nhất)"
+
+# AI Translated
+msgid "Snake"
+msgstr "Ngoằn ngoèo"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "Giảm tốc độ in để làm mát lớp tốt hơn"
@@ -19626,6 +19670,20 @@ msgstr ""
 "Có nhiều địa chỉ IP phân giải thành tên máy chủ %1%.\n"
 "Vui lòng chọn một địa chỉ nên được sử dụng."
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "Tự động chia tỷ lệ theo đầu phun"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"Mô hình này được thiết kế cho đầu phun 0.4 mm với chiều cao lớp 0.2 mm. \n"
+"Khi bật tùy chọn chia tỷ lệ (khuyến nghị), mô hình sẽ tự động thay đổi kích thước cho khớp với đường kính đầu phun hiện tại và một chiều cao lớp phù hợp, giúp bài kiểm tra vừa chính xác vừa dễ đọc.\n"
+"Chỉ tắt chia tỷ lệ nếu bạn muốn in mô hình tham chiếu đúng nguyên trạng."
+
 msgid "PA Calibration"
 msgstr "Hiệu chỉnh PA"
 
@@ -19764,6 +19822,14 @@ msgstr "Tốc độ bắt đầu: "
 msgid "End speed: "
 msgstr "Tốc độ kết thúc: "
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "Tự động điều chỉnh theo tốc độ thể tích tối đa"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "Nếu tốc độ kết thúc vượt quá tốc độ thể tích tối đa của filament, tự động giảm chiều cao lớp (giữ các giá trị tiêu chuẩn và nằm trong giới hạn của máy) để đạt được tốc độ đó. Nếu ngay cả chiều cao lớp nhỏ nhất vẫn chưa đủ, thì giảm tốc độ kết thúc thay vào đó."
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -19774,6 +19840,57 @@ msgstr ""
 "bắt đầu > 10\n"
 "bước >= 0\n"
 "kết thúc > bắt đầu + bước"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"Tốc độ kết thúc (%.0f mm/s) vượt quá tốc độ thể tích tối đa của filament (%.1f mm³/s), khiến thành ngoài bị giới hạn ở khoảng %.0f mm/s với độ rộng đường và chiều cao lớp hiện tại.\n"
+" Các tốc độ cao hơn mức này sẽ bị cắt bớt, nên những khối phía trên của tháp sẽ không in ở tốc độ yêu cầu.\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"Tốc độ kết thúc (%.0f mm/s) vượt quá tốc độ thể tích tối đa của filament (%.1f mm³/s) ở chiều cao lớp mặc định (%.2f mm).\n"
+"\n"
+"Chiều cao lớp đã được giảm xuống %.2f mm (một giá trị được dùng trong các cài đặt sẵn của máy in này) để tháp có thể đạt tốc độ yêu cầu."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"Ngay cả ở chiều cao lớp nhỏ nhất được dùng trong các cài đặt sẵn của máy in này (%.2f mm), tốc độ kết thúc (%.0f mm/s) vẫn vượt quá tốc độ thể tích tối đa của filament (%.1f mm³/s).\n"
+"\n"
+"Chiều cao lớp sẽ được đặt thành %.2f mm và tốc độ kết thúc giảm xuống %.0f mm/s.\n"
+"\n"
+"Tiếp tục?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "Vẫn tiếp tục?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Bật \"Tự động điều chỉnh\" để khắc phục việc này tự động, hoặc vẫn tiếp tục?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Bật \"Tự động chia tỷ lệ theo đầu phun\" và \"Tự động điều chỉnh\" để khắc phục việc này tự động, hoặc vẫn tiếp tục?"
 
 msgid "Start retraction length: "
 msgstr "Độ dài rút bắt đầu: "
@@ -22585,6 +22702,9 @@ msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "Thứ tự in trong một lớp đơn."
+
 #~ msgid "Bottom"
 #~ msgstr "Dưới"
 
@@ -22626,9 +22746,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "°C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgctxt "Sync_Nozzle_AMS"
 #~ msgid "Cancel"

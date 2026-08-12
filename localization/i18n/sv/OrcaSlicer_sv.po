@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -4244,6 +4244,10 @@ msgstr "Placerar..."
 
 msgid "Arranging"
 msgstr "Placerar"
+
+# AI Translated
+msgid "Arranging "
+msgstr "Placerar "
 
 msgid "Arranging canceled."
 msgstr "Placering avbruten."
@@ -9084,24 +9088,24 @@ msgid "Replaced with 3D files from directory:\n"
 msgstr "Ersatt med 3D-filer från mappen:\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Hoppade över %1%: samma fil.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Hoppade över %s: samma fil.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Hoppade över %1%: filen finns inte.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Hoppade över %s: filen finns inte.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Hoppade över %1%: det gick inte att ersätta.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Hoppade över %s: det gick inte att ersätta.\n"
 
 # AI Translated
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Ersatte %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Ersatte %s.\n"
 
 # AI Translated
 msgid "Replaced volumes"
@@ -10186,6 +10190,21 @@ msgstr "Dämpa underliggande lager"
 # AI Translated
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "När du drar i lagerreglaget i den beredda förhandsgranskningen renderas lagren under det aktuella mörkare, så att endast det lager du tittar på visas med full ljusstyrka."
+
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Ljusstyrka för dämpade lager"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"Hur ljust de dämpade lagren återges när \"Dämpa underliggande lager\" är aktiverat.\n"
+"99% är knappt mörkare, 0% gör dem helt svarta. Begränsat till 99% eftersom 100% skulle vara detsamma som att stänga av alternativet."
 
 msgid "Login region"
 msgstr "Logga in region"
@@ -14716,12 +14735,36 @@ msgid "Intra-layer order"
 msgstr "Ordning inom lager"
 
 # AI Translated
-msgid "Print order within a single layer."
-msgstr "Utskriftsordning inom ett enskilt lager."
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"Ordningen som objektinstanserna besöks i inom ett och samma lager, vilket avgör hur mycket förflyttning som går åt mellan dem.\n"
+"\n"
+"Standard: kedjning efter närmaste granne, förfinad med 2-opt och borttagning av korsningar. Ett bra generellt val.\n"
+"Som objektlistan: instanserna skrivs ut i samma ordning som i objektlistan, utan någon vägoptimering. Använd det när du behöver en förutsägbar ordning som du styr manuellt.\n"
+"Bäst av alla (kortaste vägen): varje strategi utvärderas och den kortaste används. Ordningen för objektinstanserna bestäms en gång för hela utskriften, medan ordningen för enskilda öar bestäms per lager, så olika lager kan sluta med att använda olika strategier. Beredningen blir något långsammare.\n"
+"Slingrande: slingrande färdväg rad för rad, förfinad med 2-opt. Passar bra för regelbundna rutnät med många små detaljer.\n"
+"\n"
+"Med flera filament eller verktyg i samma lager prioriteras att minimera antalet verktygsbyten: objekten grupperas först efter filament och den här inställningen ordnar bara instanserna inom varje filamentgrupp, så den totala sekvensen kanske inte ser ut som den kortaste vägen över plattan."
 
 # AI Translated
 msgid "As object list"
 msgstr "Som objektlistan"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "Bäst av alla (kortaste vägen)"
+
+# AI Translated
+msgid "Snake"
+msgstr "Slingrande"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "Sakta ner utskrift för bättre kylning av lager"
@@ -20823,6 +20866,20 @@ msgstr ""
 "Det finns flera IP-adresser som pekar på värdnamnet %1%.\n"
 "Välj vilken som ska användas."
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "Autoskala efter nozzel"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"Den här modellen är utformad för en nozzel på 0,4 mm med en lagerhöjd på 0,2 mm. \n"
+"När skalningsalternativet är aktiverat (rekommenderas) ändras storleken dynamiskt så att den matchar din aktuella nozzeldiameter och en lämplig lagerhöjd, vilket gör testet både noggrant och lättläst.\n"
+"Stäng bara av skalningen om du vill skriva ut referensmodellen exakt som den är."
+
 msgid "PA Calibration"
 msgstr "PA kalibrering"
 
@@ -20970,6 +21027,14 @@ msgid "End speed: "
 msgstr "Sluthastighet: "
 
 # AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "Autojustera till max volymetrisk hastighet"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "Om sluthastigheten skulle överskrida filamentets maximala volymetriska hastighet sänks lagerhöjden automatiskt (med bibehållna standardvärden och inom maskinens gränser) för att nå den. Om inte ens den minsta lagerhöjden räcker sänks sluthastigheten i stället."
+
+# AI Translated
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -20980,6 +21045,57 @@ msgstr ""
 "start > 10\n"
 "steg >= 0\n"
 "slut > start + steg"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"Sluthastigheten (%.0f mm/s) överskrider filamentets maximala volymetriska hastighet (%.1f mm³/s), vilket begränsar den yttre väggen till omkring %.0f mm/s vid den här linjebredden och lagerhöjden.\n"
+" Högre hastigheter kapas, så tornets övre block skrivs inte ut med den begärda hastigheten.\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"Sluthastigheten (%.0f mm/s) överskrider filamentets maximala volymetriska hastighet (%.1f mm³/s) vid standardlagerhöjden (%.2f mm).\n"
+"\n"
+"Lagerhöjden har sänkts till %.2f mm (ett värde som används av den här skrivarens profiler) så att tornet kan nå den begärda hastigheten."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"Även vid den minsta lagerhöjd som används av den här skrivarens profiler (%.2f mm) överskrider sluthastigheten (%.0f mm/s) filamentets maximala volymetriska hastighet (%.1f mm³/s).\n"
+"\n"
+"Lagerhöjden ställs in på %.2f mm och sluthastigheten sänks till %.0f mm/s.\n"
+"\n"
+"Vill du fortsätta?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "Vill du fortsätta ändå?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Vill du aktivera \"Autojustera\" för att åtgärda detta automatiskt, eller fortsätta ändå?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Vill du aktivera \"Autoskala efter nozzel\" och \"Autojustera\" för att åtgärda detta automatiskt, eller fortsätta ändå?"
 
 msgid "Start retraction length: "
 msgstr "Starta retraktion längd: "
@@ -23955,6 +24071,10 @@ msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
 
+# AI Translated
+#~ msgid "Print order within a single layer."
+#~ msgstr "Utskriftsordning inom ett enskilt lager."
+
 #~ msgid "Bottom"
 #~ msgstr "Botten"
 
@@ -23999,9 +24119,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "° C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgctxt "Sync_Nozzle_AMS"
 #~ msgid "Cancel"

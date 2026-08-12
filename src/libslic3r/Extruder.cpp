@@ -220,12 +220,12 @@ double Extruder::retract_restart_extra() const
 
 double Extruder::retract_length_toolchange() const
 {
-    return m_config->retract_length_toolchange.get_at(extruder_id());
+    return m_config->retract_length_toolchange.get_at(m_config_index);
 }
 
 double Extruder::retract_restart_extra_toolchange() const
 {
-    return m_config->retract_restart_extra_toolchange.get_at(extruder_id());
+    return m_config->retract_restart_extra_toolchange.get_at(m_config_index);
 }
 
 double Extruder::travel_slope() const
