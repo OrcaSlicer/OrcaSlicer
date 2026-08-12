@@ -91,22 +91,30 @@ bool check_filament_printable_after_group(const std::vector<unsigned int> &used_
 }
 
 // Return a zero based extruder from the region, or extruder_override if overriden.
+// The region accessors below resolve mixed-color slots to the physical filament chosen for
+// this layer. Without sub-layer splitting a mixed slot is realized by alternating whole layers
+// (deficit round-robin, see resolve_mixed_filaments), so a region asking "which filament?" must
+// get the resolved physical one, not the virtual slot id. resolve_mixed() is identity when the
+// slot is not mixed, so this is a no-op for every non-mixed setup.
 unsigned int LayerTools::wall_extruder_id(const PrintRegion &region) const
 {
 	assert(region.config().outer_wall_filament_id.value > 0);
-	return ((this->extruder_override == 0) ? region.config().outer_wall_filament_id.value : this->extruder_override) - 1;
+	unsigned int result = ((this->extruder_override == 0) ? region.config().outer_wall_filament_id.value : this->extruder_override) - 1;
+	return resolve_mixed(result);
 }
 
 unsigned int LayerTools::sparse_infill_filament_id(const PrintRegion &region) const
 {
 	assert(region.config().sparse_infill_filament_id.value > 0);
-	return ((this->extruder_override == 0) ? region.config().sparse_infill_filament_id.value : this->extruder_override) - 1;
+	unsigned int result = ((this->extruder_override == 0) ? region.config().sparse_infill_filament_id.value : this->extruder_override) - 1;
+	return resolve_mixed(result);
 }
 
 unsigned int LayerTools::internal_solid_filament_id(const PrintRegion &region) const
 {
 	assert(region.config().internal_solid_filament_id.value > 0);
-	return ((this->extruder_override == 0) ? region.config().internal_solid_filament_id.value : this->extruder_override) - 1;
+	unsigned int result = ((this->extruder_override == 0) ? region.config().internal_solid_filament_id.value : this->extruder_override) - 1;
+	return resolve_mixed(result);
 }
 
 // Returns a zero based extruder this eec should be printed with, according to PrintRegion config or extruder_override if overriden.
@@ -142,7 +150,8 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
     } else
         extruder = this->extruder_override;
 
-    return (extruder == 0) ? 0 : extruder - 1;
+    unsigned int result = (extruder == 0) ? 0 : extruder - 1;
+    return resolve_mixed(result);
 }
 
 static double calc_max_layer_height(const PrintConfig &config, double max_object_layer_height)
