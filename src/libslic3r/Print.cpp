@@ -2719,6 +2719,19 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
 
         auto objectExtruderMap = getObjectExtruderMap(*this);
+        // Resolve mixed filament virtual slots to physical components so brim
+        // extruder matching works correctly (mixed slot IDs are not present
+        // in printExtruders after ToolOrdering::resolve_mixed_filaments).
+        if (m_config.print_sequence != PrintSequence::ByObject && !tool_ordering.layer_tools().empty()) {
+            const LayerTools &first_lt = tool_ordering.layer_tools().front();
+            for (auto &[obj_id, ext_1based] : objectExtruderMap) {
+                if (ext_1based == 0)
+                    continue;
+                auto it = first_lt.mixed_filament_resolution.find(ext_1based - 1);
+                if (it != first_lt.mixed_filament_resolution.end())
+                    ext_1based = it->second + 1;
+            }
+        }
         std::vector<std::pair<ObjectID, unsigned int>> objPrintVec;
         for (const PrintInstance* instance : print_object_instances_ordering) {
             const ObjectID& print_object_ID = instance->print_object->id();
@@ -3776,6 +3789,14 @@ bool Print::is_dynamic_group_reorder() const
     const bool  enabled = opt && opt->value;
     if (!enabled || m_config.filament_map_mode != FilamentMapMode::fmmAutoForFlush || m_config.nozzle_diameter.size() <= 1)
         return false;
+
+    // Dynamic regrouping and mixed-color slots are incompatible: a mixed slot is resolved to
+    // different physical components per layer, so a group assignment made up-front would be wrong.
+    const auto &is_mixed = m_config.filament_is_mixed.values;
+    for (unsigned int filament_id : extruders()) {
+        if (filament_id < is_mixed.size() && is_mixed[filament_id])
+            return false;
+    }
     return true;
 }
 

@@ -2330,6 +2330,11 @@ bool MainFrame::get_enable_slice_status()
         }
     }
 
+    // A mixed filament whose components were deleted, or whose components disagree in type,
+    // cannot be resolved at slicing time. Block the slice until the user fixes it.
+    if (enable && m_plater->sidebar().has_broken_mixed_filament())
+        enable = false;
+
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": m_slice_select %1%, enable= %2% ")%m_slice_select %enable;
     return enable;
 }

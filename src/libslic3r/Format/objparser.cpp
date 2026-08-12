@@ -394,6 +394,7 @@ static bool        mtl_parseline(const char *line, MtlData &data)
 			ObjNewMtl new_mtl;
             cur_mtl_name = line;
             data.new_mtl_unmap[cur_mtl_name] = std::make_shared<ObjNewMtl>();
+            data.mtl_orders.emplace_back(cur_mtl_name);
 			break;
 		}
         case 'm': {

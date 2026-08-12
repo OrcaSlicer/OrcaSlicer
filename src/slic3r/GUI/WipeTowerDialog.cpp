@@ -256,6 +256,41 @@ static std::vector<float> MatrixFlatten(const WipingDialog::VolumeMatrix& matrix
     return vec;
 }
 
+// Mixed-color slots are virtual: they are never loaded into a tray and so have no flushing
+// volumes of their own. The dialog therefore shows only the physical filaments, which means
+// converting between the full config matrix (indexed by config slot) and a dense physical
+// sub-matrix (indexed by row/column in the table).
+static std::vector<double> extract_physical_sub_matrix(
+    const std::vector<double>& full_matrix, size_t full_n,
+    const std::vector<size_t>& indices)
+{
+    size_t p = indices.size();
+    std::vector<double> sub(p * p, 0.0);
+    if (full_matrix.size() < full_n * full_n)
+        return sub;
+    for (size_t pi = 0; pi < p; ++pi)
+        for (size_t pj = 0; pj < p; ++pj)
+            sub[pi * p + pj] = full_matrix[indices[pi] * full_n + indices[pj]];
+    return sub;
+}
+
+// Write the edited physical sub-matrix back into a copy of the full matrix, leaving the
+// entries that belong to mixed slots untouched.
+static std::vector<double> expand_physical_to_full_matrix(
+    const std::vector<double>& sub_matrix,
+    const std::vector<size_t>& indices, size_t full_n,
+    const std::vector<double>& original_matrix)
+{
+    std::vector<double> full = original_matrix;
+    if (full.size() < full_n * full_n)
+        return full;
+    size_t p = indices.size();
+    for (size_t pi = 0; pi < p; ++pi)
+        for (size_t pj = 0; pj < p; ++pj)
+            full[indices[pi] * full_n + indices[pj]] = sub_matrix[pi * p + pj];
+    return full;
+}
+
 wxString WipingDialog::BuildTableObjStr()
 {
     auto full_config = wxGetApp().preset_bundle->full_config();
@@ -265,9 +300,22 @@ wxString WipingDialog::BuildTableObjStr()
     auto raw_matrix_data = full_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
     auto nozzle_flush_dataset = full_config.option<ConfigOptionIntsNullable>("nozzle_flush_dataset")->values;
 
+    // Restrict the table to physical filaments; mixed slots have no flushing volumes.
+    m_physical_indices = wxGetApp().preset_bundle->physical_filament_config_indices();
+    const size_t full_n = filament_colors.size();
+    {
+        std::vector<std::string> physical_colors;
+        physical_colors.reserve(m_physical_indices.size());
+        for (size_t i : m_physical_indices)
+            if (i < filament_colors.size())
+                physical_colors.push_back(filament_colors[i]);
+        filament_colors = std::move(physical_colors);
+    }
+
     std::vector<std::vector<double>> flush_matrixs;
     for (int idx = 0; idx < nozzle_num; ++idx) {
-        flush_matrixs.emplace_back(get_flush_volumes_matrix(raw_matrix_data, idx, nozzle_num));
+        auto fm = get_flush_volumes_matrix(raw_matrix_data, idx, nozzle_num);
+        flush_matrixs.emplace_back(extract_physical_sub_matrix(fm, full_n, m_physical_indices));
     }
     flush_multiplier.resize(nozzle_num, 1);
 
@@ -372,7 +420,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
     this->SetSizer(main_sizer);
     this->SetBackgroundColour(*wxWHITE);
-    auto filament_count = wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
+    auto filament_count = wxGetApp().preset_bundle->physical_filament_config_indices().size();
 
     // Estimate table scroll area size based on filament count
     // Each table cell is ~60x25 DIP, plus headers and borders
@@ -592,11 +640,29 @@ void WipingDialog::StoreFlushData(int extruder_num, const std::vector<std::vecto
     m_raw_matrixs = flush_volume_vecs;
 }
 
+// The table edits a physical-only sub-matrix; GetFlattenMatrix has to hand back a full-size
+// matrix so the config layout stays indexed by config slot. Mixed-slot entries keep whatever
+// the config already held.
+std::vector<double> WipingDialog::ExpandToFullMatrix(const std::vector<double>& sub_matrix, int nozzle_idx) const
+{
+    const auto& project_config = wxGetApp().preset_bundle->project_config;
+    const size_t full_n = project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
+    if (m_physical_indices.size() == full_n)
+        return sub_matrix;   // no mixed slots: sub-matrix already is the full matrix
+
+    auto raw = project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
+    int nozzle_num = (int)wxGetApp().preset_bundle->project_config.option<ConfigOptionFloats>("flush_multiplier")->values.size();
+    if (nozzle_num < 1) nozzle_num = 1;
+    auto original = get_flush_volumes_matrix(raw, nozzle_idx, nozzle_num);
+    return expand_physical_to_full_matrix(sub_matrix, m_physical_indices, full_n, original);
+}
+
 std::vector<double> WipingDialog::GetFlattenMatrix()const
 {
     std::vector<double> ret;
-    for (auto& matrix : m_raw_matrixs) {
-        ret.insert(ret.end(), matrix.begin(), matrix.end());
+    for (size_t idx = 0; idx < m_raw_matrixs.size(); ++idx) {
+        auto full = ExpandToFullMatrix(m_raw_matrixs[idx], (int)idx);
+        ret.insert(ret.end(), full.begin(), full.end());
     }
     return ret;
 }
