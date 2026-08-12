@@ -79,6 +79,14 @@ public:
     // will be also extended to support additional states, requiring at least one state to remain free out of 19 states.
     static const constexpr size_t EXTRUDERS_LIMIT = 16;
 
+    // Endpoint colours for gradient mixed filaments, mirrored from Plater so the extruder
+    // swatches below can be drawn as a two-tone fade instead of a single blended colour.
+    struct GradientInfo {
+        bool is_gradient = false;
+        std::array<float, 4> color_from = {0.5f, 0.5f, 0.5f, 1.0f};
+        std::array<float, 4> color_to   = {0.5f, 0.5f, 0.5f, 1.0f};
+    };
+
     const float get_cursor_radius_min() const override { return CursorRadiusMin; }
 
     // BBS
@@ -116,6 +124,7 @@ protected:
     
     // Filament remap feature
     std::vector<size_t>               m_extruder_remap;      // index → target extruder index
+    std::vector<GradientInfo>         m_gradient_info;       // per-slot gradient endpoints, empty entries for plain filaments
     // ORCA: Cache used filaments to filter UI
     std::set<size_t>                  m_used_filaments;      // Set of used filament indices (cached)
 

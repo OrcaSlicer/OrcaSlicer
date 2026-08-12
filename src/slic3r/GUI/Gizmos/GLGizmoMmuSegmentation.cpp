@@ -78,6 +78,14 @@ void GLGizmoMmuSegmentation::init_extruders_data()
     m_extruders_colors      = wxGetApp().plater()->get_extruders_colors();
     m_selected_extruder_idx = 0;
 
+    auto plater_grad = wxGetApp().plater()->get_filament_gradient_info();
+    m_gradient_info.resize(m_extruders_colors.size());
+    for (size_t i = 0; i < m_gradient_info.size() && i < plater_grad.size(); ++i) {
+        m_gradient_info[i].is_gradient = plater_grad[i].is_gradient;
+        m_gradient_info[i].color_from  = plater_grad[i].color_from;
+        m_gradient_info[i].color_to    = plater_grad[i].color_to;
+    }
+
     // keep remap table consistent with current extruder count
     m_extruder_remap.resize(m_extruders_colors.size());
     for (size_t i = 0; i < m_extruder_remap.size(); ++i)
@@ -431,6 +439,19 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             scale
         )){
             m_selected_extruder_idx = extruder_idx;
+        }
+
+        // Overlay a two-tone fade for gradient mixed filaments; a single flat colour would
+        // misrepresent a slot that fades between two filaments over Z.
+        if (extruder_idx < (int) m_gradient_info.size() && m_gradient_info[extruder_idx].is_gradient) {
+            auto to_imu32 = [](const std::array<float, 4> &c) -> ImU32 {
+                return IM_COL32(uint8_t(c[0]*255.f), uint8_t(c[1]*255.f), uint8_t(c[2]*255.f), uint8_t(c[3]*255.f));
+            };
+            ImVec2 r_min = ImGui::GetItemRectMin();
+            ImVec2 r_max = ImGui::GetItemRectMax();
+            ImU32 col_from = to_imu32(m_gradient_info[extruder_idx].color_from);
+            ImU32 col_to   = to_imu32(m_gradient_info[extruder_idx].color_to);
+            ImGui::GetWindowDrawList()->AddRectFilledMultiColor(r_min, r_max, col_from, col_to, col_to, col_from);
         }
 
         if (extruder_idx < 16 && ImGui::IsItemHovered()) m_imgui->tooltip(_L("Shortcut Key ") + std::to_string(extruder_idx + 1), max_tooltip_width);
