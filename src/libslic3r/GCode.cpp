@@ -6101,7 +6101,17 @@ LayerResult GCode::process_layer(
         const bool island_level_ordering = print.config().print_sequence != PrintSequence::ByObject &&
             single_object_instance_idx == size_t(-1) &&
             print.config().print_order != PrintOrder::AsObjectList;
-        for (unsigned int filament_id : layer_tools.extruders) {
+        // A mixed-color slot is absent from layer_tools.extruders by design: resolve_mixed_filaments()
+        // replaced it with its physical components. Its geometry is still keyed under the slot in
+        // by_extruder though, and the sublayer emitter looks the plan up by slot id, so append the
+        // slots here. Appended (not merged) so the existing order is untouched, and empty for every
+        // configuration without sublayer splitting.
+        std::vector<unsigned int> plan_filaments = layer_tools.extruders;
+        for (const auto &grp : layer_tools.mixed_sub_layer_groups)
+            if (std::find(plan_filaments.begin(), plan_filaments.end(), grp.mixed_slot_0based) == plan_filaments.end())
+                plan_filaments.push_back(grp.mixed_slot_0based);
+
+        for (unsigned int filament_id : plan_filaments) {
             auto objects_by_extruder_it = by_extruder.find(filament_id);
             if (objects_by_extruder_it == by_extruder.end()) continue;
 
@@ -6282,8 +6292,22 @@ LayerResult GCode::process_layer(
         }
 
         if (print.config().print_sequence == PrintSequence::ByLayer && m_enable_exclude_object && print.config().support_object_skip_flush.value) {
-            std::vector<size_t> filament_instances_id;
-            for (InstanceToPrint &instance : filament_to_print_instances[extruder_id].first) filament_instances_id.emplace_back(instance.label_object_id);
+            std::set<size_t> all_label_ids;
+            for (InstanceToPrint &instance : filament_to_print_instances[extruder_id].first)
+                all_label_ids.insert(instance.label_object_id);
+            // This extruder may also be printing sub-layers on behalf of a mixed slot, whose
+            // instances live under the slot id. Their labels belong in the same skip set, or
+            // exclude-object would not skip that geometry.
+            for (const auto &grp : layer_tools.mixed_sub_layer_groups)
+                for (unsigned int comp : grp.components_0based)
+                    if (comp == extruder_id) {
+                        auto mit = filament_to_print_instances.find(grp.mixed_slot_0based);
+                        if (mit != filament_to_print_instances.end())
+                            for (const InstanceToPrint &inst : mit->second.first)
+                                all_label_ids.insert(inst.label_object_id);
+                        break;
+                    }
+            std::vector<size_t> filament_instances_id(all_label_ids.begin(), all_label_ids.end());
             m_filament_instances_code = _encode_label_ids_to_base64(filament_instances_id);
         }
 
