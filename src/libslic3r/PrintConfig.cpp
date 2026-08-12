@@ -4853,8 +4853,11 @@ void PrintConfigDef::init_fff_params()
     def = this->add("mixed_filament_definitions", coString);
     def->label = L("Mixed filament definitions");
     def->tooltip = L("Serialized virtual mixed filaments (pair-mix). Rows ';' separated: "
-                     "A,B,enabled,ratio_a,ratio_b (1-based physical IDs). Example: 1,2,1,1,1");
-    def->mode = comAdvanced;
+                     "A,B,enabled,ratio_a,ratio_b[,pattern] (1-based physical IDs). "
+                     "Empty pattern uses ratio cadence (e.g. 1,2,1,2,1 for 2:1). "
+                     "Optional pattern tokens: '1'→component A, '2'→component B, '3'..'9'→direct physical. "
+                     "Example pattern 112 with A=1,B=2 → T0,T0,T1. Prefer Edit → Mixed Filaments… dialog.");
+    def->mode = comSimple;
     def->set_default_value(new ConfigOptionString(""));
 
     def = this->add("host_type", coEnum);
@@ -6870,6 +6873,8 @@ void PrintConfigDef::init_fff_params()
     //def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comDevelop;
     // BBS: change data type to floats to add partplate logic
+    // Default keeps a corner placement that fits beds down to ~250 mm deep
+    // (ZR Ultra S is 300×270; clearance radius 134 may still require manual nudge).
     def->set_default_value(new ConfigOptionFloats{ 15. });
 
     def = this->add("wipe_tower_y", coFloats);
@@ -6878,7 +6883,9 @@ void PrintConfigDef::init_fff_params()
     //def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comDevelop;
     // BBS: change data type to floats to add partplate logic
-    def->set_default_value(new ConfigOptionFloats{ 220. });
+    // Was 220; lower default so tower stays in-bounds on 270 mm-deep beds with
+    // typical prime_tower_width (~60) when object is central.
+    def->set_default_value(new ConfigOptionFloats{ 200. });
 
     def = this->add("prime_tower_width", coFloat);
     def->label = L("Width");

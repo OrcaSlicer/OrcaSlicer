@@ -38,6 +38,7 @@
 
 #include "slic3r/Utils/FixModelByCgal.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/MixedFilament.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #ifdef __WXMSW__
@@ -736,6 +737,19 @@ ModelConfig& ObjectList::get_item_config(const wxDataViewItem& item) const
 
 void ObjectList::update_filament_values_for_items(const size_t filaments_count)
 {
+    // Virtual mix IDs are physical_count+1 … . Do not clamp them back to T1 on open.
+    size_t max_filament_id = filaments_count;
+    if (PresetBundle *bundle = wxGetApp().preset_bundle) {
+        std::string mixed_defs;
+        if (const ConfigOptionString *opt = bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+            mixed_defs = opt->value;
+        if (mixed_defs.empty()) {
+            if (const ConfigOptionString *opt = bundle->prints.get_edited_preset().config.option<ConfigOptionString>("mixed_filament_definitions"))
+                mixed_defs = opt->value;
+        }
+        max_filament_id = MixedFilamentManager::max_filament_id(mixed_defs, filaments_count);
+    }
+
     for (size_t i = 0; i < m_objects->size(); ++i)
     {
         wxDataViewItem item = m_objects_model->GetItemById(i);
@@ -743,7 +757,7 @@ void ObjectList::update_filament_values_for_items(const size_t filaments_count)
 
         auto object = (*m_objects)[i];
         wxString extruder;
-        if (!object->config.has("extruder") || size_t(object->config.extruder()) > filaments_count) {
+        if (!object->config.has("extruder") || size_t(object->config.extruder()) > max_filament_id) {
             extruder = "1";
             object->config.set_key_value("extruder", new ConfigOptionInt(1));
         }
@@ -754,7 +768,7 @@ void ObjectList::update_filament_values_for_items(const size_t filaments_count)
 
         static const char *keys[] = {"support_filament", "support_interface_filament"};
         for (auto key : keys)
-            if (object->config.has(key) && object->config.opt_int(key) > filaments_count)
+            if (object->config.has(key) && object->config.opt_int(key) > max_filament_id)
                 object->config.erase(key);
 
         if (object->volumes.size() > 1) {
@@ -762,7 +776,7 @@ void ObjectList::update_filament_values_for_items(const size_t filaments_count)
                 item = m_objects_model->GetItemByVolumeId(i, id);
                 if (!item) continue;
                 if (!object->volumes[id]->config.has("extruder") ||
-                    size_t(object->volumes[id]->config.extruder()) > filaments_count) {
+                    size_t(object->volumes[id]->config.extruder()) > max_filament_id) {
                     extruder = wxString::Format("%d", object->config.extruder());
                     // Clear the stale per-volume assignment so it falls back to the object's
                     // extruder; otherwise the out-of-range index survives. Ported from

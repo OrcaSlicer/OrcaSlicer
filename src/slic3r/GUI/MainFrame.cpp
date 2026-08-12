@@ -64,6 +64,7 @@
 #include "Widgets/WebView.hpp"
 #include "DailyTips.hpp"
 #include "FilamentMapDialog.hpp"
+#include "MixedFilamentDialog.hpp"
 
 #include "DeviceCore/DevManager.h"
 
@@ -2885,6 +2886,14 @@ void MainFrame::init_menubar_as_editor()
             },
             "menu_remove", nullptr, [this](){return can_clone(); }, this);
         editMenu->AppendSeparator();
+        append_menu_item(editMenu, wxID_ANY, _L("Mixed Filaments") + dots,
+            _L("Configure virtual mixed filaments (ratio / pattern)"),
+            [this](wxCommandEvent &) {
+                MixedFilamentDialog dlg(this);
+                dlg.ShowModal();
+            },
+            "", nullptr, [this]() { return m_plater != nullptr; }, this);
+        editMenu->AppendSeparator();
         append_menu_item(editMenu, wxID_ANY, _L("Duplicate Current Plate"),
             _L("Duplicate the current plate"),[this](wxCommandEvent&) {
                 m_plater->duplicate_plate();
@@ -2987,6 +2996,14 @@ void MainFrame::init_menubar_as_editor()
                 m_plater->clone_selection();
             },
             "", nullptr, [this](){return can_clone(); }, this);
+        editMenu->AppendSeparator();
+        append_menu_item(editMenu, wxID_ANY, _L("Mixed Filaments") + dots,
+            _L("Configure virtual mixed filaments (ratio / pattern)"),
+            [this](wxCommandEvent &) {
+                MixedFilamentDialog dlg(this);
+                dlg.ShowModal();
+            },
+            "", nullptr, [this]() { return m_plater != nullptr; }, this);
         editMenu->AppendSeparator();
         append_menu_item(editMenu, wxID_ANY, _L("Duplicate Current Plate"),
             _L("Duplicate the current plate"),[this, handle_key_event](wxCommandEvent&) {

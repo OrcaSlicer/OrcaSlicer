@@ -58,7 +58,70 @@ unsigned int clamp_component(unsigned int id, size_t num_physical)
     return id;
 }
 
+bool is_pattern_separator(char c)
+{
+    return std::isspace(static_cast<unsigned char>(c)) || c == '/' || c == '-' || c == '_' || c == '|' ||
+           c == ':' || c == ';' || c == ',';
+}
+
+// Map pattern token to physical filament ID (1-based).
+// '1' → component_a, '2' → component_b, '3'..'9' → direct physical (clamped).
+unsigned int physical_from_pattern_token(char token, const MixedFilament &mf, size_t num_physical)
+{
+    if (token == '1')
+        return clamp_component(mf.component_a, num_physical);
+    if (token == '2')
+        return clamp_component(mf.component_b, num_physical);
+    if (token >= '3' && token <= '9') {
+        const unsigned int direct = unsigned(token - '0');
+        return clamp_component(direct, num_physical);
+    }
+    return clamp_component(mf.component_a, num_physical);
+}
+
+int safe_mod(int value, int modulus)
+{
+    if (modulus <= 0)
+        return 0;
+    int r = value % modulus;
+    if (r < 0)
+        r += modulus;
+    return r;
+}
+
 } // namespace
+
+std::string MixedFilamentManager::normalize_manual_pattern(const std::string &pattern)
+{
+    // M4: simple whole-layer pattern. Drop separators; keep '1'..'9' only.
+    // For comma-grouped patterns like "12,21", keep first group only (whole-layer resolve).
+    std::string first_group;
+    first_group.reserve(pattern.size());
+    for (char c : pattern) {
+        if (c == ',')
+            break;
+        if (is_pattern_separator(c))
+            continue;
+        if (c >= '1' && c <= '9')
+            first_group.push_back(c);
+        else if (c == 'a' || c == 'A')
+            first_group.push_back('1');
+        else if (c == 'b' || c == 'B')
+            first_group.push_back('2');
+    }
+    return first_group;
+}
+
+size_t MixedFilamentManager::max_filament_id(const std::string &serialized, size_t num_physical)
+{
+    if (num_physical == 0)
+        return 0;
+    if (serialized.empty())
+        return num_physical;
+    MixedFilamentManager mgr;
+    mgr.load_definitions(serialized);
+    return mgr.total_filaments(num_physical);
+}
 
 void MixedFilamentManager::clear()
 {
@@ -86,6 +149,8 @@ void MixedFilamentManager::load_definitions(const std::string &serialized)
         mf.enabled     = fields.size() > 2 ? (parse_int_default(trim_copy(fields[2]), 1) != 0) : true;
         mf.ratio_a     = fields.size() > 3 ? parse_int_default(trim_copy(fields[3]), 1) : 1;
         mf.ratio_b     = fields.size() > 4 ? parse_int_default(trim_copy(fields[4]), 1) : 1;
+        if (fields.size() > 5)
+            mf.manual_pattern = normalize_manual_pattern(trim_copy(fields[5]));
 
         if (mf.component_a == 0)
             mf.component_a = 1;
@@ -96,7 +161,7 @@ void MixedFilamentManager::load_definitions(const std::string &serialized)
         if (mf.ratio_b < 0)
             mf.ratio_b = 0;
 
-        // M3: keep enabled rows only.
+        // Keep enabled rows only.
         if (mf.enabled)
             m_mixed.emplace_back(mf);
     }
@@ -111,6 +176,9 @@ std::string MixedFilamentManager::serialize_definitions() const
             oss << ';';
         oss << mf.component_a << ',' << mf.component_b << ','
             << (mf.enabled ? 1 : 0) << ',' << mf.ratio_a << ',' << mf.ratio_b;
+        const std::string pattern = normalize_manual_pattern(mf.manual_pattern);
+        if (!pattern.empty())
+            oss << ',' << pattern;
     }
     return oss.str();
 }
@@ -144,6 +212,14 @@ unsigned int MixedFilamentManager::resolve(unsigned int filament_id_1based, size
     if (mf == nullptr)
         return filament_id_1based;
 
+    // Pattern takes precedence when non-empty after normalize.
+    // Adapted from FullSpectrum_integration MixedFilamentManager::resolve (pattern branch).
+    const std::string pattern = normalize_manual_pattern(mf->manual_pattern);
+    if (!pattern.empty()) {
+        const int pos = safe_mod(layer_index, int(pattern.size()));
+        return physical_from_pattern_token(pattern[size_t(pos)], *mf, num_physical);
+    }
+
     int ratio_a = std::max(0, mf->ratio_a);
     int ratio_b = std::max(0, mf->ratio_b);
     if (ratio_a == 0 && ratio_b == 0) {
@@ -151,9 +227,7 @@ unsigned int MixedFilamentManager::resolve(unsigned int filament_id_1based, size
     }
 
     const int cycle = std::max(1, ratio_a + ratio_b);
-    int       pos   = layer_index % cycle;
-    if (pos < 0)
-        pos += cycle;
+    const int pos   = safe_mod(layer_index, cycle);
 
     const unsigned int chosen = (pos < ratio_a) ? mf->component_a : mf->component_b;
     return clamp_component(chosen, num_physical);

@@ -11,6 +11,7 @@
 #include "../Time.hpp"
 
 #include "../I18N.hpp"
+#include "../MixedFilament.hpp"
 
 #include "bbs_3mf.hpp"
 
@@ -2223,8 +2224,22 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             ++object_idx;
         }
 
+        // Physical filaments only by default. When mixed_filament_definitions is present,
+        // allow virtual mix IDs (num_physical+1 …) so object/volume assignment survives open.
+        // Adapted from FullSpectrum_integration bbs_3mf virtual-max fix.
         const ConfigOptionStrings* filament_ids_opt = config.option<ConfigOptionStrings>("filament_settings_id");
-        int max_filament_id = filament_ids_opt ? filament_ids_opt->size() : std::numeric_limits<int>::max();
+        size_t max_filament_id_sz = filament_ids_opt ? filament_ids_opt->size() : size_t(std::numeric_limits<int>::max());
+        if (filament_ids_opt != nullptr) {
+            const ConfigOptionString *mixed_opt = config.option<ConfigOptionString>("mixed_filament_definitions");
+            if (mixed_opt != nullptr && !mixed_opt->value.empty()) {
+                MixedFilamentManager mixed_mgr;
+                mixed_mgr.load_definitions(mixed_opt->value);
+                max_filament_id_sz = mixed_mgr.total_filaments(filament_ids_opt->size());
+            }
+        }
+        const int max_filament_id = max_filament_id_sz >= size_t(std::numeric_limits<int>::max())
+            ? std::numeric_limits<int>::max()
+            : int(max_filament_id_sz);
         for (ModelObject* mo : m_model->objects) {
             const ConfigOptionInt* extruder_opt = dynamic_cast<const ConfigOptionInt*>(mo->config.option("extruder"));
             int extruder_id = 0;

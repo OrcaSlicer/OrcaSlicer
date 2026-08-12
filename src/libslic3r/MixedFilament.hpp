@@ -1,8 +1,10 @@
-// Minimal Milestone-3 pair-mix: Virtual Mixed Filament → whole-layer A/B cadence.
+// Milestone-3/4 pair-mix: virtual mixed filament → whole-layer A/B cadence or pattern.
 // Serialization grammar (rows separated by ';'):
-//   "A,B,enabled,ratio_a,ratio_b"
+//   "A,B,enabled,ratio_a,ratio_b[,pattern]"
 // Example 1:1 mix of physical 1 and 2: "1,2,1,1,1"
+// Example pattern: "1,2,1,1,1,112" → layers T0,T0,T1 when A=1,B=2
 // Empty string = no mixes. Virtual IDs start at num_physical+1 for enabled rows in order.
+// Token map (1-based): '1'→component_a, '2'→component_b, '3'..'9'→direct physical ID.
 
 #pragma once
 
@@ -19,6 +21,8 @@ struct MixedFilament
     int          ratio_a     = 1;
     int          ratio_b     = 1;
     bool         enabled     = true;
+    // Optional whole-layer cycle pattern. Empty → ratio cadence.
+    std::string  manual_pattern;
 };
 
 class MixedFilamentManager
@@ -37,9 +41,9 @@ public:
     const MixedFilament *mixed_filament_from_id(unsigned int filament_id_1based, size_t num_physical) const;
 
     // Resolve virtual → physical for a layer. Non-mixed IDs returned unchanged.
-    // cycle = max(1, ratio_a + ratio_b); ratios clamped to >=0; both 0 → A
-    // pos = ((layer_index % cycle) + cycle) % cycle
-    // return (pos < ratio_a) ? component_a : component_b
+    // If manual_pattern non-empty after normalize: pos = layer_index % len; token map.
+    // Else ratio: cycle = max(1, ratio_a + ratio_b); pos = layer_index % cycle;
+    //   return (pos < ratio_a) ? component_a : component_b
     // Components clamped into [1, num_physical] when resolving if out of range.
     unsigned int resolve(unsigned int filament_id_1based, size_t num_physical, int layer_index) const;
 
@@ -49,10 +53,16 @@ public:
 
     const std::vector<MixedFilament> &mixed_filaments() const { return m_mixed; }
 
+    // Flatten separators (/,-_|:; , space) from a pattern into compact digit tokens.
+    static std::string normalize_manual_pattern(const std::string &pattern);
+
+    // Physical + enabled mixes. Used by 3mf/GUI clamps so virtual IDs survive open.
+    static size_t max_filament_id(const std::string &serialized, size_t num_physical);
+
 private:
     int mixed_index_from_filament_id(unsigned int filament_id_1based, size_t num_physical) const;
 
-    std::vector<MixedFilament> m_mixed; // enabled rows only for M3
+    std::vector<MixedFilament> m_mixed; // enabled rows only
 };
 
 } // namespace Slic3r
