@@ -162,6 +162,8 @@ enum class NotificationType
 	//BBL: plugin install hint
 	BBLPluginInstallHint,
     BBLFlushingVolumeZero,
+    // A mixed-color filament references a deleted component, or its components disagree in type.
+    BBLMixedFilamentBroken,
 	BBLPluginUpdateAvailable,
 	BBLPreviewOnlyMode,
     BBLPrinterConfigUpdateAvailable,

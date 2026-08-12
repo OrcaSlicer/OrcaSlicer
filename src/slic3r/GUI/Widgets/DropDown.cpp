@@ -360,6 +360,9 @@ void DropDown::render(wxDC &dc)
     for (int i = 0; i < items.size(); ++i) {
         auto &item = items[i];
         int states2 = states;
+        // Dimmed items stay selectable but render greyed out (used by the mixed-filament
+        // dialog to show components that are already consumed by another mix).
+        bool is_dimmed = (item.style & DD_ITEM_STYLE_DIMMED) != 0;
         if ((item.style & DD_ITEM_STYLE_DISABLED) != 0)
             states2 &= ~StateColor::Enabled;
         // Skip by group
@@ -427,7 +430,7 @@ void DropDown::render(wxDC &dc)
             }
             pt.y += (rcContent.height - textSize.y) / 2;
             dc.SetFont(GetFont());
-            dc.SetTextForeground(text_color.colorForStates(states2));
+            dc.SetTextForeground(is_dimmed ? wxColour(0xCE, 0xCE, 0xCE) : text_color.colorForStates(states2));
             dc.DrawText(text, pt);
             if (group.IsEmpty() && !item.group_key.IsEmpty()) {
                 auto szBmp = arrow_bitmap.GetBmpSize();

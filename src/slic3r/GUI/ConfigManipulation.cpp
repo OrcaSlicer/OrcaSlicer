@@ -577,22 +577,66 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     }
 
     // BBS
-    static const char* keys[] = { "support_filament", "support_interface_filament"};
+    // A per-role filament override must name a real, physical filament. Out-of-range values are
+    // stale; a mixed-color slot is virtual and cannot be driven directly by a role override, so
+    // both are reset to 0 ("inherit the object's filament"). The object's own extruder assignment
+    // is what legitimately carries a mixed slot. Orca splits BBS's wall/solid_infill roles into
+    // six keys, so all of them are checked here.
+    static const char* keys[] = { "support_filament", "support_interface_filament",
+                                  "outer_wall_filament_id", "inner_wall_filament_id",
+                                  "sparse_infill_filament_id", "internal_solid_filament_id",
+                                  "top_surface_filament_id", "bottom_surface_filament_id" };
     for (int i = 0; i < sizeof(keys) / sizeof(keys[0]); i++) {
         std::string key = std::string(keys[i]);
         auto* opt = dynamic_cast<ConfigOptionInt*>(config->option(key, false));
         if (opt != nullptr) {
-            if (opt->getInt() > filament_cnt) {
+            int  val          = opt->getInt();
+            bool out_of_range = val > filament_cnt;
+            bool is_mixed     = (val > 0 && val <= filament_cnt &&
+                                 wxGetApp().preset_bundle->is_mixed_filament(val - 1));
+            if (out_of_range || is_mixed) {
                 DynamicPrintConfig new_conf = *config;
-                const DynamicPrintConfig *conf_temp = wxGetApp().plater()->config();
                 int new_value = 0;
-                if (conf_temp != nullptr && conf_temp->has(key)) {
-                    new_value = conf_temp->opt_int(key);
+                if (out_of_range) {
+                    const DynamicPrintConfig *conf_temp = wxGetApp().plater()->config();
+                    if (conf_temp != nullptr && conf_temp->has(key))
+                        new_value = conf_temp->opt_int(key);
                 }
                 new_conf.set_key_value(key, new ConfigOptionInt(new_value));
                 apply(config, &new_conf);
             }
         }
+    }
+
+    // Sub-layer splitting divides each layer by the mix ratio; an adaptive layer profile makes
+    // those sub-layer heights vary per layer, which degrades the blend. Warn once per enable.
+    {
+        static bool s_mixed_sublayer_warned = false;
+        bool sublayer_on = config->opt_bool("enable_mixed_color_sublayer");
+        if (sublayer_on && !s_mixed_sublayer_warned &&
+            wxGetApp().app_config->get("no_warn_mixed_sublayer_variable_layer") != "1") {
+            bool has_variable_layer = false;
+            for (const auto* obj : wxGetApp().model().objects) {
+                if (obj->layer_height_profile.get().size() > 4) {
+                    has_variable_layer = true;
+                    break;
+                }
+            }
+            if (has_variable_layer) {
+                MessageDialog dialog(m_msg_dlg_parent,
+                    _L("Using variable layer height together with mixed color sublayer may result in poor color mixing quality."),
+                    "", wxICON_WARNING | wxOK);
+                dialog.show_dsa_button();
+                is_msg_dlg_already_exist = true;
+                dialog.ShowModal();
+                is_msg_dlg_already_exist = false;
+                if (dialog.get_checkbox_state())
+                    wxGetApp().app_config->set("no_warn_mixed_sublayer_variable_layer", "1");
+                s_mixed_sublayer_warned = true;
+            }
+        }
+        if (!sublayer_on)
+            s_mixed_sublayer_warned = false;
     }
 
     if (config->opt_enum<SeamScarfType>("seam_slope_type") != SeamScarfType::None &&

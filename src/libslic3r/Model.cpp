@@ -1,6 +1,7 @@
 #include "Model.hpp"
 #include "libslic3r.h"
 #include "BuildVolume.hpp"
+#include "TexturePainting.hpp"
 #include "ClipperUtils.hpp"
 #include "Exception.hpp"
 #include "Model.hpp"
@@ -104,6 +105,7 @@ Model& Model::assign_copy(const Model &rhs)
     this->mk_version = rhs.mk_version;
     this->md_name = rhs.md_name;
     this->md_value = rhs.md_value;
+    this->texture_mesh = rhs.texture_mesh;
 
     return *this;
 }
@@ -139,6 +141,7 @@ Model& Model::assign_copy(Model &&rhs)
     this->mk_version = rhs.mk_version;
     this->md_name = rhs.md_name;
     this->md_value = rhs.md_value;
+    this->texture_mesh = std::move(rhs.texture_mesh);
     this->backup_path = std::move(rhs.backup_path);
     this->object_backup_id_map = std::move(rhs.object_backup_id_map);
     this->next_object_backup_id = rhs.next_object_backup_id;
@@ -281,8 +284,21 @@ Model Model::read_from_file(const std::string&                                  
         result = load_stl(input_file.c_str(), &model, nullptr, stlFn,256);
     else if (boost::algorithm::iends_with(input_file, ".obj")) {
         ObjInfo                 obj_info;
-        result = load_obj(input_file.c_str(), &model, obj_info, message);
-        if (result){
+        ObjParser::MtlData      mtl_data;
+        result = load_obj(input_file.c_str(), &model, obj_info, message, nullptr, &mtl_data);
+        if (result && obj_info.has_uv_png && !obj_info.uvs.empty() && !model.objects.empty()) {
+            // Textured OBJ: hand the mesh + materials to the texture-to-color importer instead
+            // of the flat per-face colour dialog. Replaces Orca's previous "not implemented"
+            // placeholder for this branch.
+            auto tex_mesh = std::make_shared<TexturedMesh>();
+            std::string obj_dir = boost::filesystem::path(input_file).parent_path().string();
+            if (obj_to_textured_mesh(obj_info,
+                    model.objects.back()->volumes[0]->mesh().its,
+                    mtl_data, obj_dir, *tex_mesh)) {
+                model.texture_mesh = tex_mesh;
+            }
+        }
+        else if (result){
             ObjDialogInOut in_out;
             in_out.model = &model;
             in_out.lost_material_name = obj_info.lost_material_name;
@@ -578,6 +594,7 @@ void Model::clear_objects()
     this->objects.clear();
     object_backup_id_map.clear();
     next_object_backup_id = 1;
+    texture_mesh.reset();
 }
 
 // BBS: backup, reuse objects
@@ -2576,7 +2593,8 @@ void ModelVolume::update_extruder_count(size_t extruder_count)
     }
 }
 
-void ModelVolume::update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id)
+void ModelVolume::update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id,
+                                                             const std::vector<unsigned char> &filament_is_mixed)
 {
     std::vector<int> used_extruders = get_extruders();
     for (int extruder_id : used_extruders) {
@@ -2587,8 +2605,13 @@ void ModelVolume::update_extruder_count_when_delete_filament(size_t extruder_cou
     }
     // Same stale-assignment cleanup as update_extruder_count, for the filament-delete path.
     // Ported from BambuStudio (STUDIO-15763).
-    if (extruder_id() > extruder_count) {
-        this->config.erase("extruder");
+    size_t eid = extruder_id();
+    if (eid > extruder_count) {
+        // A mixed-color slot is virtual and legitimately sits past the physical filament count,
+        // so an assignment to one is not stale and must survive the delete.
+        bool is_mixed = !filament_is_mixed.empty() && eid >= 1 && (eid - 1) < filament_is_mixed.size() && filament_is_mixed[eid - 1];
+        if (!is_mixed)
+            this->config.erase("extruder");
     }
 }
 
@@ -3493,6 +3516,15 @@ void FacetsAnnotation::get_facets(const ModelVolume& mv, std::vector<indexed_tri
     TriangleSelector selector(mv.mesh());
     selector.deserialize(m_data, false);
     selector.get_facets(facets_per_type);
+}
+
+void FacetsAnnotation::shift_states_above(const ModelVolume &mv, EnforcerBlockerType threshold, int delta)
+{
+    if (empty()) return;
+    TriangleSelector selector(mv.mesh());
+    selector.deserialize(m_data, false);
+    selector.shift_states_above(threshold, delta);
+    this->set(selector);
 }
 
 void FacetsAnnotation::set_enforcer_block_type_limit(const ModelVolume  &mv,

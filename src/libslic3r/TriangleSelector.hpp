@@ -369,6 +369,9 @@ public:
     // For all triangles, remove the flag indicating that the triangle was selected by seed fill.
     void seed_fill_unselect_all_triangles();
 
+    // Shift all triangle states >= threshold by delta (used when inserting filaments)
+    void shift_states_above(EnforcerBlockerType threshold, int delta);
+
     // For all triangles selected by seed fill, set new EnforcerBlockerType and remove flag indicating that triangle was selected by seed fill.
     // The operation may merge split triangles if they are being assigned the same color.
     void seed_fill_apply_on_triangles(EnforcerBlockerType new_state);

@@ -466,6 +466,9 @@ public:
     // Read out the number of extruders from an active printer preset,
     // update size and content of filament_presets.
     void                        update_multi_material_filament_presets(size_t to_delete_filament_id = size_t(-1));
+    // Mixed-color filament slots: virtual slots realized from 2-3 physical filaments.
+    bool                        is_mixed_filament(size_t idx) const;
+    std::vector<size_t>         physical_filament_config_indices() const;
 
     void                        on_extruders_count_changed(int extruder_count);
 
