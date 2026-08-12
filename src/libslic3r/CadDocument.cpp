@@ -1315,6 +1315,62 @@ int CadDocument::add_mate(int kind, int cs_a, int cs_b, double offset, double an
     return int(features.size()) - 1;
 }
 
+std::vector<CadDocument::MateOption> CadDocument::mate_options(int cs_a, int cs_b) const
+{
+    std::vector<MateOption> out(5);
+    for (int k = 0; k < 5; ++k) out[k].kind = k;
+
+    auto is_connector = [&](int idx) -> bool {
+        return idx >= 0 && idx < int(features.size()) &&
+               features[idx].type == CadFeatureType::CoordSys &&
+               features[idx].enabled;
+    };
+    if (!is_connector(cs_a) || !is_connector(cs_b)) {
+        const char side = is_connector(cs_a) ? 'B' : 'A';
+        for (auto& o : out) { o.viable = false; o.reason = std::string("connector ") + side + " is not a coordinate system"; }
+        return out;
+    }
+    if (cs_a == cs_b) {
+        for (auto& o : out) { o.viable = false; o.reason = "a mate needs two different connectors"; }
+        return out;
+    }
+
+    const int ka = features[cs_a].coordsys_face_kind;
+    const int kb = features[cs_b].coordsys_face_kind;
+    auto face_desc = [](int kind) -> std::string { return kind == GeomAbs_Plane ? "a flat face" : "a curved face"; };
+
+    // Planar: needs a flat face at both ends.
+    const bool plan_bad_a = ka >= 0 && ka != GeomAbs_Plane;
+    const bool plan_bad_b = kb >= 0 && kb != GeomAbs_Plane;
+    if (plan_bad_a || plan_bad_b) {
+        out[1].viable = false;
+        if (plan_bad_a && plan_bad_b)
+            out[1].reason = "needs a flat face at both ends — both connectors are on curved faces";
+        else if (plan_bad_a)
+            out[1].reason = "needs a flat face at both ends — connector A is on " + face_desc(ka);
+        else
+            out[1].reason = "needs a flat face at both ends — connector B is on " + face_desc(kb);
+    }
+
+    // Revolute and Cylindrical: need a cylindrical face at both ends.
+    for (int k : {2, 4}) {
+        const bool ax_bad_a = ka >= 0 && ka != GeomAbs_Cylinder;
+        const bool ax_bad_b = kb >= 0 && kb != GeomAbs_Cylinder;
+        if (!ax_bad_a && !ax_bad_b) continue;
+        out[k].viable = false;
+        if (ax_bad_a && ax_bad_b)
+            out[k].reason = (ka == GeomAbs_Plane && kb == GeomAbs_Plane)
+                ? "needs a cylindrical face at both ends — both connectors are on flat faces"
+                : "needs a cylindrical face at both ends — both connectors are on non-cylindrical faces";
+        else if (ax_bad_a)
+            out[k].reason = "needs a cylindrical face at both ends — connector A is on " + face_desc(ka);
+        else
+            out[k].reason = "needs a cylindrical face at both ends — connector B is on " + face_desc(kb);
+    }
+
+    return out;
+}
+
 int CadDocument::add_helix(const SketchPlane& plane, double radius, double pitch, double height,
                            bool left_handed, double taper_deg, const std::string& name)
 {

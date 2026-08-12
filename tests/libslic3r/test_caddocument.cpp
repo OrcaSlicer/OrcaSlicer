@@ -7429,3 +7429,100 @@ TEST_CASE("a resized body does not report drift", "[CadDocument][mate]")
     REQUIRE(doc.error.empty());
     REQUIRE(doc.mate_conflicts.empty());
 }
+
+TEST_CASE("mate_options always returns five entries in kind order", "[CadDocument][mate]")
+{
+    CadDocument doc;
+    // Completely invalid pair: the stability contract (always five, always in order) must hold.
+    auto opts = doc.mate_options(-1, -1);
+    REQUIRE(opts.size() == 5);
+    for (int i = 0; i < 5; ++i) REQUIRE(opts[i].kind == i);
+
+    // A valid, distinct pair must return the same shape.
+    int a = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 0), "A");
+    int b = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(1, 0, 0), "B");
+    auto opts2 = doc.mate_options(a, b);
+    REQUIRE(opts2.size() == 5);
+    for (int i = 0; i < 5; ++i) REQUIRE(opts2[i].kind == i);
+}
+
+TEST_CASE("a flat-face pair offers Fastened, Planar and Slider but not the axial types", "[CadDocument][mate]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int top  = find_face_by_normal(doc, 0, Vec3d(0, 0, 1));
+    int side = find_face_by_normal(doc, 0, Vec3d(1, 0, 0));
+    REQUIRE(top  >= 0);
+    REQUIRE(side >= 0);
+
+    int a = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0, 0, 0), "A");
+    doc.features[a].coordsys_body = 0;
+    doc.features[a].coordsys_face = top;
+    int b = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0, 0, 0), "B");
+    doc.features[b].coordsys_body = 0;
+    doc.features[b].coordsys_face = side;
+
+    // Recompute so the face fingerprints record (both planar => GeomAbs_Plane).
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.features[a].coordsys_face_kind >= 0);
+    REQUIRE(doc.features[b].coordsys_face_kind >= 0);
+
+    auto opts = doc.mate_options(a, b);
+    REQUIRE(opts.size() == 5);
+    REQUIRE(opts[0].viable);   // Fastened: frame-only, always viable
+    REQUIRE(opts[1].viable);   // Planar: both faces planar
+    REQUIRE_FALSE(opts[2].viable); // Revolute: needs a cylindrical face
+    REQUIRE(opts[3].viable);   // Slider: frame-only, always viable
+    REQUIRE_FALSE(opts[4].viable); // Cylindrical: needs a cylindrical face
+
+    REQUIRE(opts[0].reason.empty());
+    REQUIRE(opts[1].reason.empty());
+    REQUIRE(opts[3].reason.empty());
+    REQUIRE_FALSE(opts[2].reason.empty());
+    REQUIRE_FALSE(opts[4].reason.empty());
+    REQUIRE_CONTAINS(opts[2].reason, "connector");
+    REQUIRE_CONTAINS(opts[4].reason, "connector");
+}
+
+TEST_CASE("an unrecorded fingerprint does not make a type non-viable", "[CadDocument][mate]")
+{
+    CadDocument doc;
+    int a = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 0), "A");
+    int b = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(1, 0, 0), "B");
+    // PointWorld connectors never record a face fingerprint: face_kind stays -1.
+    REQUIRE(doc.features[a].coordsys_face_kind == -1);
+    REQUIRE(doc.features[b].coordsys_face_kind == -1);
+
+    auto opts = doc.mate_options(a, b);
+    REQUIRE(opts.size() == 5);
+    for (const auto& o : opts) {
+        REQUIRE(o.viable);
+        REQUIRE(o.reason.empty());
+    }
+}
+
+TEST_CASE("an invalid pair names which side is wrong", "[CadDocument][mate]")
+{
+    CadDocument doc;
+    int a = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 0), "A");
+    int sketch = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "S");
+
+    // cs_b points at a Sketch feature, not a CoordSys: all five non-viable, reason names B.
+    auto opts = doc.mate_options(a, sketch);
+    REQUIRE(opts.size() == 5);
+    for (const auto& o : opts) {
+        REQUIRE_FALSE(o.viable);
+        REQUIRE_CONTAINS(o.reason, "connector B");
+        REQUIRE(o.reason.find("connector A") == std::string::npos);
+    }
+
+    // Out of range on B names B; out of range on A names A.
+    for (const auto& o : doc.mate_options(a, 9999))
+        REQUIRE_CONTAINS(o.reason, "connector B");
+    for (const auto& o : doc.mate_options(-5, a))
+        REQUIRE_CONTAINS(o.reason, "connector A");
+}

@@ -578,6 +578,18 @@ public:
     int  add_coordsys(CoordSysType type, const Vec3d& point, const std::string& name);
     int  add_mate(int kind, int cs_a, int cs_b, double offset, double angle_deg, bool flip,
                   const std::string& name);
+
+    // Which mate types apply to a connector pair, as reported to the viewport palette.
+    struct MateOption {
+        int         kind{0};        // 0..4, the five mate types in CadDocument.hpp:308-314
+        bool        viable{true};
+        std::string reason;         // empty when viable; why not, when not
+    };
+    // ALWAYS all five entries, ALWAYS in kind order. Never filtered: the caller dims what is
+    // not viable rather than hiding it, so the list must be stable in length and order between
+    // calls. Pure query over existing data — records nothing, mutates nothing.
+    std::vector<MateOption> mate_options(int cs_a, int cs_b) const;
+
     int  add_helix(const SketchPlane& plane, double radius, double pitch, double height,
                    bool left_handed, double taper_deg, const std::string& name);
     // Build the helix wire from a Helix feature's params (exposed for tests).
