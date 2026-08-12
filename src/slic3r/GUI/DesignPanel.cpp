@@ -2934,6 +2934,15 @@ DesignPanel::DesignPanel(wxWindow* parent)
                            m_doc.features[sel].type != CadFeatureType::Sketch &&
                            !m_doc.body.IsNull());
         m_viewport->set_body_highlight(body);
+        // A conflicting mate says WHY on selection, and names the one action that resolves it.
+        // Suppress is the generic per-feature enable toggle (the eye), so the answer is already
+        // one click away on a row the user has just selected — the message points at it instead
+        // of describing a problem with no way out.
+        if (const std::string* why = (sel >= 0) ? mate_conflict_reason(sel) : nullptr) {
+            m_status->SetForegroundColour(wxColour(235, 110, 110));
+            set_status(wxString::FromUTF8(*why) + _L(" — the eye suppresses this mate"));
+            m_status->Refresh();
+        }
     });
 
     // Feature-tree edit actions: act on the selected feature (delete / reorder). These sit in the
@@ -5852,6 +5861,16 @@ int DesignPanel::tree_icon_for(CadFeatureType t)
     return 0;
 }
 
+// The reason detect_mate_conflicts() recorded for this feature, or nullptr. A linear scan: an
+// assembly has a handful of mates and at most that many conflicts, so a map would cost more to
+// build than the scans it saves.
+const std::string* DesignPanel::mate_conflict_reason(int feature) const
+{
+    for (const auto& c : m_doc.mate_conflicts)
+        if (c.first == feature) return &c.second;
+    return nullptr;
+}
+
 // What to say when nothing is selected and no tool is open. Lives in one place because it is
 // needed from two: after an edit empties the document, and at startup — where after_tree_edit()
 // has never run, which is exactly why a fresh tab used to show a blank line.
@@ -5946,12 +5965,23 @@ void DesignPanel::refresh_tree()
     // translucent rectangles (otherwise a Plane feature is invisible in the canvas).
     refresh_datum_planes();
     update_reference_planes();   // body added/removed -> show/hide the XY/XZ/YZ origin planes
-    for (const auto& f : m_doc.features) {
+    for (size_t fi = 0; fi < m_doc.features.size(); ++fi) {
+        const CadFeature& f = m_doc.features[fi];
         const int img = tree_icon_for(f.type);
         wxTreeItemId id = m_tree->AppendItem(root, wxString::FromUTF8(f.name), img, img);
-        // Hidden (disabled) features are greyed so the show/hide state reads at a glance.
-        m_tree->SetItemTextColour(id, f.enabled ? dp_item_text()
-                                                : dp_item_dim());
+        // Three states, in this order of precedence:
+        //   disabled  -> dim. A SUPPRESSED mate is the user's answer to a conflict, so it must
+        //                read as suppressed rather than keep shouting about the conflict.
+        //   conflict  -> warn. detect_mate_conflicts() refills m_doc.mate_conflicts on every
+        //                recompute; the mark goes on the row that carries it, because the tree
+        //                is where the user is already looking for which feature to change.
+        //   otherwise -> normal.
+        // A conflict is NOT a document error — the document still evaluates — so the row is
+        // marked and never hidden, and the reason goes to the status line on selection rather
+        // than into a modal that interrupts without offering an action.
+        m_tree->SetItemTextColour(id, !f.enabled                            ? dp_item_dim()
+                                    : mate_conflict_reason(int(fi)) != nullptr ? wxColour(235, 110, 110)
+                                                                               : dp_item_text());
         m_tree_items.push_back(id);
     }
     refresh_parts();   // bodies live in their own list below the tree, never clipped by history

@@ -644,6 +644,9 @@ private:
     // Every status write goes through here so long hints wrap instead of clipping.
     void        set_status(const wxString& text);
     wxString    idle_hint() const;   // what to say when nothing is selected
+    // Reason detect_mate_conflicts() recorded for a feature, or nullptr. Marks the tree row and
+    // feeds the status line; a conflict is a diagnostic, not a document error.
+    const std::string* mate_conflict_reason(int feature) const;
 
     wxMenuItem* append_offer_item(wxMenu* menu, int id, const wxString& text,
                                   const struct OfferVerb& v);
