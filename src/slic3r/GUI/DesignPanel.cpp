@@ -2614,6 +2614,19 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_box_coordsys->Add(new wxStaticText(m_cards, wxID_ANY, _L("Type")), 0, wxLEFT | wxRIGHT | wxTOP, 12);
         m_box_coordsys->Add(m_coordsys_type, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
 
+        m_cs_body = make_combo(m_cards);
+        m_cs_body->Append(_L("(all)"));
+        m_cs_body->SetSelection(0);
+        m_cs_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) {
+            if (m_viewport) m_viewport->set_xray_focus(m_cs_body->GetSelection() - 1);
+        });
+        m_box_coordsys->Add(new wxStaticText(m_cards, wxID_ANY, _L("Body")), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_coordsys->Add(m_cs_body, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        auto* body_hint = new wxStaticText(m_cards, wxID_ANY,
+            _L("Restrict picking to one body — the others go see-through and stop catching clicks"));
+        body_hint->SetForegroundColour(dp_sec_text());
+        m_box_coordsys->Add(body_hint, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+
         auto* csform = two_col_form();
 
         m_cs_x = make_spin(m_cards, 0.0, -100000.0, 100000.0);
@@ -5589,12 +5602,26 @@ void DesignPanel::refresh_coordsys_labels()
     if (m_cs_edge_lbl) m_cs_edge_lbl->SetLabel(txt(m_cs_edge));
 }
 
+void DesignPanel::refresh_cs_body_choice()
+{
+    if (!m_cs_body) return;
+    const int keep = m_cs_body->GetSelection();
+    m_cs_body->Clear();
+    m_cs_body->Append(_L("(all)"));
+    for (size_t b = 0; b < m_doc.bodies.size(); ++b)
+        m_cs_body->Append(wxString::Format(_L("Body %d"), int(b) + 1));
+    m_cs_body->SetSelection(keep > 0 && keep < int(m_cs_body->GetCount()) ? keep : 0);
+}
+
 void DesignPanel::reset_coordsys_refs()
 {
     m_cs_face_body = m_cs_face = -1;
     m_cs_edge = -1;
     m_coordsys_pick = CoordSysPick::None;
     refresh_coordsys_labels();
+    if (m_cs_body) m_cs_body->SetSelection(0);
+    if (m_viewport) m_viewport->set_xray_focus(-1);
+    refresh_cs_body_choice();
 }
 
 void DesignPanel::arm_coordsys_pick(CoordSysPick target)
@@ -7749,6 +7776,11 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         m_cs_hz->SetValue(f.coordsys_x_hint.z());
         m_coordsys_pick = CoordSysPick::None;
         refresh_coordsys_labels();
+        refresh_cs_body_choice();
+        if (m_cs_body && f.coordsys_body >= 0) {
+            m_cs_body->SetSelection(f.coordsys_body + 1);
+            if (m_viewport) m_viewport->set_xray_focus(f.coordsys_body);
+        }
         break;
     case CadFeatureType::Boolean:
         // List the bodies available to the boolean (as-of its timeline slot), so the consumed
@@ -9142,7 +9174,12 @@ void DesignPanel::open_tool(Tool t)
     // Fillet/Chamfer/Draft no longer fade the body see-through; instead, once a valid target
     // is picked, refresh_preview hides the base bodies entirely (preview-only). Keep it opaque
     // here so the body is fully visible for picking the edge/face.
-    if (m_viewport) { m_viewport->set_body_translucent(false); m_viewport->set_body_hidden(false); }
+    // Body focus follows the CoordSys card: entering any other tool drops it. Read it back
+    // from the combo rather than clearing outright — editing a CoordSys feature loads the
+    // card (and its body) BEFORE open_tool runs, and a blind clear would strand the viewport
+    // showing "Body N" while picking stayed unrestricted.
+    if (m_viewport) { m_viewport->set_body_translucent(false); m_viewport->set_body_hidden(false);
+                      m_viewport->set_xray_focus(t == Tool::CoordSys && m_cs_body ? m_cs_body->GetSelection() - 1 : -1); }
     wxSizer* s = m_cards->GetSizer();
     s->Show(m_box_sketch,  t == Tool::Sketch,  true);
     s->Show(m_box_extrude, t == Tool::Extrude, true);
@@ -9405,7 +9442,7 @@ void DesignPanel::close_tool()
 {
     m_active = Tool::None;
     set_active_tool_btn(nullptr);   // clear the active-tool teal highlight
-    if (m_viewport) { m_viewport->set_body_translucent(false); m_viewport->set_body_hidden(false); }   // restore the opaque solid
+    if (m_viewport) { m_viewport->set_body_translucent(false); m_viewport->set_body_hidden(false); m_viewport->set_xray_focus(-1); }   // restore the opaque solid
     wxSizer* s = m_cards->GetSizer();
     s->Show(m_box_sketch,  false, true);
     s->Show(m_box_extrude, false, true);

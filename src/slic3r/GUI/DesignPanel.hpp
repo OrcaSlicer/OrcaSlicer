@@ -112,6 +112,7 @@ private:
     void arm_coordsys_pick(CoordSysPick target);
     void apply_coordsys_refs(CadFeature& f) const;
     void refresh_coordsys_labels();
+    void refresh_cs_body_choice();   // fill the CoordSys body chooser from current document
     void reset_coordsys_refs();
     void on_add_surface_extrude();
     void on_add_surface_revolve();
@@ -721,6 +722,7 @@ private:
 
     // CoordSys controls (datum coordinate system: point + orthonormal frame).
     ComboBox*         m_coordsys_type{nullptr};      // CoordSysType: PointWorld/FaceAndDirection
+    ComboBox*         m_cs_body{nullptr};             // body-focus chooser: restrict picking to one body
     wxSpinCtrlDouble* m_cs_x{nullptr};               wxSpinCtrlDouble* m_cs_y{nullptr};               wxSpinCtrlDouble* m_cs_z{nullptr};
     wxButton*         m_cs_pick_face{nullptr};       wxStaticText* m_cs_face_lbl{nullptr};
     wxButton*         m_cs_pick_edge{nullptr};       wxStaticText* m_cs_edge_lbl{nullptr};

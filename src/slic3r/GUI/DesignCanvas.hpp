@@ -194,6 +194,7 @@ public:
     void show_status_hud(bool on);
     void set_operand_bodies(int target_body, int tool_body);  // -1,-1 clears
     void set_body_translucent(bool on); // render the solid see-through (fillet/chamfer preview)
+    void set_xray_focus(int body);      // >=0: fade+lock out every other body (CoordSys picking)
     void set_body_hidden(bool on);      // preview-only: hide base bodies, show only the result ghost
     void set_on_move_exit(std::function<void()> cb);   // right-click finished the move-body gizmo
     // Right-click (or its platform equivalent) on the viewport with no tool running: open the
@@ -292,6 +293,7 @@ private:
     int         m_hl_body_target{-1};
     int         m_hl_body_tool{-1};
     bool        m_body_translucent{false};// fillet/chamfer preview → render the body see-through
+    int         m_xray_focus{-1};          // >=0: only this body is opaque+clickable (CoordSys picking)
     bool        m_body_hidden{false};     // preview-only mode → hide base bodies, ghost = the result
     std::vector<bool> m_body_visible;     // per-body visibility (empty => all visible)
     // Live pointer to the document's bodies (stable address: m_doc.bodies), stashed by

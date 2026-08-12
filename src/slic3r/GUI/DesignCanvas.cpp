@@ -296,6 +296,7 @@ void DesignCanvas::reload(bool keep_view)
                 if (b == m_hl_body_target)    c = ColorRGBA(0.30f, 0.90f, 0.70f, 1.0f); // target = teal-green
                 else if (b == m_hl_body_tool) c = ColorRGBA(1.00f, 0.55f, 0.15f, 1.0f); // tool = orange
                 if (m_body_translucent) c.a(0.30f);
+                else if (m_xray_focus >= 0 && b != m_xray_focus) c.a(0.25f);
                 v->set_color(c);
             }
         } else if (obj_idx == 1) {
@@ -1048,6 +1049,14 @@ void DesignCanvas::set_body_translucent(bool on)
     if (m_body_translucent == on) return;
     m_body_translucent = on;
     reload(true);   // re-applies object-0 alpha so the solid fades for the fillet preview
+}
+
+void DesignCanvas::set_xray_focus(int body)
+{
+    if (m_xray_focus == body) return;
+    m_xray_focus = body;
+    m_sketch_tool.set_pick_only_body(body);
+    reload(true);   // re-applies per-body alpha so the non-focused bodies fade
 }
 
 void DesignCanvas::set_body_hidden(bool on)

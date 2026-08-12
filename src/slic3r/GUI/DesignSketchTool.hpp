@@ -141,6 +141,10 @@ public:
                         const std::vector<int>* tri_face, const std::vector<int>* tri_body,
                         const std::vector<bool>* visible = nullptr,
                         const std::vector<Transform3d>* xform = nullptr);
+    // Body-focus picking: >=0 restricts every pick to that one body, so a face behind
+    // another solid is reachable without hiding anything. -1 = no restriction.
+    // Survives set_solid_pick() — it is owned by the panel, not by the mesh feed.
+    void set_pick_only_body(int b) { m_pick_only_body = b; }
     void clear_solid_selection();
     // Select a whole body by index (from the Parts list) — Whole-level highlight, no face/edge.
     // body < 0 or out of range clears the selection.
@@ -941,6 +945,7 @@ private:
     const std::vector<int>* m_solid_tri_face{nullptr};
     const std::vector<int>* m_solid_tri_body{nullptr};
     const std::vector<bool>* m_solid_visible{nullptr};  // per-body visibility; hidden bodies aren't pickable
+    int m_pick_only_body{-1};        // >=0: only this body catches clicks (body-focus x-ray for CoordSys picking)
     const std::vector<Transform3d>* m_solid_xform{nullptr};  // per-body display transform (for edge sampling)
     Vec3d body_xform_pt(int body, const Vec3d& p) const;     // map an OCCT-shape point through the body xform
     bool body_pickable(int b) const;                    // false when the body is explicitly hidden

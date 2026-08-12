@@ -2847,6 +2847,7 @@ Vec3d DesignSketchTool::body_xform_pt(int body, const Vec3d& p) const
 bool DesignSketchTool::body_pickable(int b) const
 {
     if (b < 0) return false;
+    if (m_pick_only_body >= 0 && b != m_pick_only_body) return false;   // body-focus mode
     if (m_solid_visible == nullptr || b >= int(m_solid_visible->size())) return true;
     return (*m_solid_visible)[b];
 }
