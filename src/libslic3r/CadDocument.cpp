@@ -1856,18 +1856,31 @@ bool CadDocument::remove_feature(int index)
     for (auto it = remove.rbegin(); it != remove.rend(); ++it)
         features.erase(features.begin() + *it);
 
-    // Remap surviving sketch_ref through the deletions: subtract the count of
+    // Remap surviving feature references through the deletions: subtract the count of
     // removed indices that sat before it; orphaned refs (target removed) -> -1.
-    for (auto& f : features) {
-        if (f.type != CadFeatureType::Extrude || f.sketch_ref < 0)
-            continue;
-        if (std::binary_search(remove.begin(), remove.end(), f.sketch_ref)) {
-            f.sketch_ref = -1;
+    //
+    // This must cover EVERY field holding a feature index, not just sketch_ref. A mate's two
+    // connectors are such indices, and leaving them behind slid them onto whatever features
+    // landed on those slots — silently, because recompute() only rejects out-of-range and
+    // non-CoordSys targets, and a shifted index usually lands on the assembly's other CoordSys.
+    auto remap = [&remove](int& ref) {
+        if (ref < 0)
+            return;
+        if (std::binary_search(remove.begin(), remove.end(), ref)) {
+            ref = -1;
         } else {
             int shift = 0;
             for (int r : remove)
-                if (r < f.sketch_ref) ++shift;
-            f.sketch_ref -= shift;
+                if (r < ref) ++shift;
+            ref -= shift;
+        }
+    };
+    for (auto& f : features) {
+        if (f.type == CadFeatureType::Extrude) {
+            remap(f.sketch_ref);
+        } else if (f.type == CadFeatureType::Mate) {
+            remap(f.mate_cs_a);
+            remap(f.mate_cs_b);
         }
     }
 
@@ -1885,11 +1898,19 @@ bool CadDocument::move_feature(int index, int delta)
     std::vector<CadFeature> snapshot = features;
     std::swap(features[index], features[target]);
 
-    // The two slots traded places: fix any sketch_ref that pointed at either.
+    // The two slots traded places: fix every feature reference that pointed at either —
+    // a mate's connectors as well as sketch_ref, for the reason given in remove_feature().
+    auto swap_ref = [index, target](int& ref) {
+        if (ref == index)       ref = target;
+        else if (ref == target) ref = index;
+    };
     for (auto& f : features) {
-        if (f.type != CadFeatureType::Extrude) continue;
-        if (f.sketch_ref == index)       f.sketch_ref = target;
-        else if (f.sketch_ref == target) f.sketch_ref = index;
+        if (f.type == CadFeatureType::Extrude) {
+            swap_ref(f.sketch_ref);
+        } else if (f.type == CadFeatureType::Mate) {
+            swap_ref(f.mate_cs_a);
+            swap_ref(f.mate_cs_b);
+        }
     }
 
     return commit_or_rollback(*this, snapshot);

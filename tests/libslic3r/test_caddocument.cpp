@@ -5433,6 +5433,112 @@ TEST_CASE("mate error: out of range connectors", "[CadDocument][mate]")
     doc.features.pop_back(); doc.error.clear();
 }
 
+// A mate stores its two connectors as FEATURE INDICES. remove_feature() erases a slot and remaps
+// every surviving sketch_ref through the deletion, but it did not remap mate_cs_a / mate_cs_b —
+// so deleting anything ahead of a connector slid both references down onto whatever features
+// happened to occupy those indices. The validation in recompute() only catches out-of-range and
+// non-CoordSys targets; when the landing slots are themselves CoordSys features — the normal
+// case, since an assembly carries at least two — nothing reports anything. The mate silently
+// resolves against the wrong frames and moves the wrong body.
+//
+// The third connector below (CS_Spare) is what makes the corruption silent rather than loud:
+// without it the one-slot shift would push mate_cs_b onto the Mate feature itself and trip the
+// "not a valid CoordSys" guard, hiding the real defect behind an error that looks handled.
+TEST_CASE("mate connectors survive deletion of an earlier feature", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk_box = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
+    doc.add_extrude(sk_box, 5.0, false, BooleanMode::New, "BoxExt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // The victim: an unrelated connector sitting AHEAD of the pair the mate will use.
+    int cs_decoy = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(1, 1, 1), "CS_Decoy");
+    doc.features[cs_decoy].coordsys_body = 0;
+    REQUIRE(doc.recompute());
+
+    int sk_cyl = doc.add_sketch(SketchShape::Circle, SketchPlane::XY(), 0, 0, 3, "Cyl");
+    doc.add_extrude(sk_cyl, 10.0, false, BooleanMode::New, "CylExt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 5), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    int cs_spare = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(9, 9, 9), "CS_Spare");
+    doc.features[cs_spare].coordsys_body = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(0, cs_fixed, cs_moving, 0.0, 0.0, false, "Mate");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, props);
+    REQUIRE_THAT(double(props.CentreOfMass().X()), WithinAbs(5.0, 1e-4));
+
+    REQUIRE(doc.remove_feature(cs_decoy));
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // The mate must still name the same two connectors it was built with.
+    const CadFeature& mate = doc.features.back();
+    REQUIRE(mate.type == CadFeatureType::Mate);
+    REQUIRE(mate.mate_cs_a >= 0);
+    REQUIRE(mate.mate_cs_b >= 0);
+    REQUIRE(doc.features[mate.mate_cs_a].name == "CS_Fixed");
+    REQUIRE(doc.features[mate.mate_cs_b].name == "CS_Moving");
+
+    // ...and therefore still assemble the same way: the cylinder on the fixed connector.
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, props);
+    REQUIRE_THAT(double(props.CentreOfMass().X()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(props.CentreOfMass().Y()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(props.CentreOfMass().Z()), WithinAbs(5.0, 1e-4));
+}
+
+// move_feature() has the same blind spot from the other direction: it swaps two slots and
+// rewrites sketch_ref for both, but leaves mate_cs_a / mate_cs_b pointing at the old positions.
+TEST_CASE("mate connectors survive reordering of an earlier feature", "[CadDocument][mate]")
+{
+    CadDocument doc;
+    int sk_box = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
+    doc.add_extrude(sk_box, 5.0, false, BooleanMode::New, "BoxExt");
+    REQUIRE(doc.recompute());
+
+    int sk_cyl = doc.add_sketch(SketchShape::Circle, SketchPlane::XY(), 0, 0, 3, "Cyl");
+    doc.add_extrude(sk_cyl, 10.0, false, BooleanMode::New, "CylExt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 5), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(0, cs_fixed, cs_moving, 0.0, 0.0, false, "Mate");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Swap the two connectors' slots. The mate's references must follow the features,
+    // not stay behind on the indices.
+    REQUIRE(doc.move_feature(cs_fixed, 1));
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    const CadFeature& mate = doc.features.back();
+    REQUIRE(mate.type == CadFeatureType::Mate);
+    REQUIRE(mate.mate_cs_a >= 0);
+    REQUIRE(mate.mate_cs_b >= 0);
+    REQUIRE(doc.features[mate.mate_cs_a].name == "CS_Fixed");
+    REQUIRE(doc.features[mate.mate_cs_b].name == "CS_Moving");
+}
+
 TEST_CASE("mate error: no associated body", "[CadDocument][mate]")
 {
 
