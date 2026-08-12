@@ -520,7 +520,7 @@ void MediaPlayCtrl::ToggleStream()
         }
     }
     if (!url.empty() && wxGetApp().app_config->get("not_show_vcamera_stop_prev") != "1") {
-        MessageDialog dlg(this->GetParent(), _L("Another virtual camera is running.\nOrca Slicer supports only a single virtual camera.\nDo you want to stop this virtual camera?"), _L("Warning"),
+                        MessageDialog dlg(this->GetParent(), _L("Another virtual camera is running.\nExtreme Slicer supports only a single virtual camera.\nDo you want to stop this virtual camera?"), _L("Warning"),
                                  wxYES | wxCANCEL | wxICON_INFORMATION);
         dlg.show_dsa_button();
         auto          res = dlg.ShowModal();

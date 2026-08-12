@@ -127,7 +127,7 @@ TroubleshootDialog::TroubleshootDialog()
     // LEFT SIZER //////////////////////
 
     // HEADER
-    m_logo            = ScalableBitmap(this, is_dark ? "OrcaSlicer_horizontal_dark" : "OrcaSlicer_horizontal_light", 64);
+    m_logo            = ScalableBitmap(this, is_dark ? "ExtremeSlicer_about_dark" : "ExtremeSlicer_about", 64);
     m_header_logo     = new wxStaticBitmap(this, wxID_ANY, m_logo.bmp());
     auto logo_line    = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, FromDIP(2)));
     logo_line->SetBackgroundColour(StateColor::darkModeColorFor(wxColour("#009687")));

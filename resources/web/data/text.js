@@ -1747,6 +1747,28 @@ var LangText = {
   },
 };
 
+// Extreme Slicer keeps the upstream localization table and cloud protocol keys
+// intact, but presents the fork's own product name in every translated UI.
+// Applying this at runtime avoids editing hundreds of generated translations.
+(function applyExtremeSlicerBranding() {
+  const replacements = [
+    [/Orca Cloud Account/g, "Cloud Account"],
+    [/Orca Cloud/g, "Cloud"],
+    [/OrcaCloud/g, "Cloud"],
+    [/Orca Slicer/g, "Extreme Slicer"],
+    [/OrcaSlicer/g, "Extreme Slicer"],
+  ];
+  Object.keys(LangText).forEach((language) => {
+    const strings = LangText[language];
+    Object.keys(strings).forEach((key) => {
+      if (typeof strings[key] !== "string") return;
+      replacements.forEach(([pattern, value]) => {
+        strings[key] = strings[key].replace(pattern, value);
+      });
+    });
+  });
+})();
+
 var LANG_COOKIE_NAME = "BambuWebLang";
 var LANG_COOKIE_EXPIRESECOND = 365 * 86400;
 

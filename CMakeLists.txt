@@ -623,10 +623,9 @@ if (APPLE)
 endif ()
 
 if(MSVC)
-    # NVCC 13.x rejects a standalone /EHsc in CUDA AdditionalOptions, while
-    # the rest of the solution (and its third-party projects) requires the
-    # normal MSVC exception mode. Keep the global option for C++ targets.
-    add_compile_options("$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/EHsc>")
+    # Keep exception semantics on C++ translation units, but never place the
+    # flag in CUDA AdditionalOptions (NVCC 13.x rejects a standalone /EHsc).
+    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/EHsc>")
 # Ignore truncating casts in initializers & constructors
 # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-1-c4305
 add_compile_options("$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/wd4305>")

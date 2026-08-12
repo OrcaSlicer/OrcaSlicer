@@ -952,6 +952,10 @@ if (ORCA_BUILD_PYTHON_STUBGEN_MODULE)
         libslic3r_gui
         pybind11::embed
     )
+    if (MSVC)
+        # The static GUI library's Boost.Log dependency uses WaitOnAddress.
+        target_link_libraries(orca_stubgen PRIVATE synchronization.lib)
+    endif()
 
     set_target_properties(orca_stubgen PROPERTIES
         OUTPUT_NAME orca

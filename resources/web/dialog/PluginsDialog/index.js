@@ -1258,7 +1258,7 @@ function RenderDescription(plugin) {
   node.replaceChildren();
 
   // Descriptions come from the plugin's Python header; a cloud plugin that is not installed yet has
-  // no header, so link to OrcaCloud instead.
+  // no header, so link to the compatible cloud service instead.
   const description = String(plugin?.description || "").trim();
   if (description && description !== "No description.") {
     node.textContent = description;
@@ -1267,7 +1267,7 @@ function RenderDescription(plugin) {
 
   const isCloud = plugin && (plugin.source === "mine" || plugin.source === "subscribed");
   if (isCloud && String(plugin?.sharing_token || "")) {
-    node.appendChild(document.createTextNode("View on OrcaCloud "));
+    node.appendChild(document.createTextNode("View on Cloud "));
     const link = document.createElement("a");
     link.href = "#";
     link.className = "plugin-cloud-link";

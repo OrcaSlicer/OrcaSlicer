@@ -110,6 +110,10 @@ if(ORCA_TOOLS)
         add_executable(OrcaSlicer_profile_validator dev-utils/OrcaSlicer_profile_validator.cpp)
     endif()
     target_link_libraries(OrcaSlicer_profile_validator libslic3r boost_headeronly libcurl OpenSSL::SSL OpenSSL::Crypto)
+    if (MSVC)
+        # Boost.Log's Win32 event backend uses the Windows wait-on-address API.
+        target_link_libraries(OrcaSlicer_profile_validator synchronization.lib)
+    endif()
     target_compile_definitions(OrcaSlicer_profile_validator PRIVATE -DBOOST_ALL_NO_LIB -DBOOST_USE_WINAPI_VERSION=0x602 -DBOOST_SYSTEM_USE_UTF8)
 endif()
 

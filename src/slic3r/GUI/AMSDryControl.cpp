@@ -977,7 +977,7 @@ void AMSDryCtrWin::create()
     // set title icon
     SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     this->SetDoubleBuffered(true);
-    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % resources_dir()).str(); // Orca: app title icon
+    std::string icon_path = (boost::format("%1%/images/ExtremeSlicer.ico") % resources_dir()).str(); // Extreme Slicer app title icon
     SetIcon(wxIcon(encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
 
     SetSize(wxSize(FromDIP(700), FromDIP(500)));
