@@ -3494,8 +3494,15 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // Visual Extrude gizmo (C5b): dragging/editing the in-canvas depth arrow writes the
     // matching spin field and re-previews (which re-feeds the gizmo with the new depth).
     m_viewport->set_on_extrude_depth_changed([this](double depth, bool second) {
-        if (second) { if (m_distance2) m_distance2->SetValue(depth); }
-        else        { if (m_distance)  m_distance->SetValue(depth); }
+        // One arrow, three tools: Extrude owns the two-sided pair, the other two have a single
+        // distance each. Routing here rather than arming three near-identical gizmos is the whole
+        // reason these two tools got a handle at all — the arrow was already written.
+        if (m_active == Tool::SurfaceExtrude) {
+            if (m_surf_extrude_distance) m_surf_extrude_distance->SetValue(depth);
+        } else if (m_active == Tool::Thicken) {
+            if (m_thicken_thickness) m_thicken_thickness->SetValue(depth);
+        } else if (second) { if (m_distance2) m_distance2->SetValue(depth); }
+        else               { if (m_distance)  m_distance->SetValue(depth); }
         refresh_preview();
     });
 
@@ -8859,7 +8866,45 @@ void DesignPanel::update_pattern_gizmo()
 void DesignPanel::update_extrude_gizmo()
 {
     if (!m_viewport) return;
-    if (m_active != Tool::Extrude) { m_viewport->clear_extrude_gizmo(); return; }
+    if (m_active != Tool::Extrude && m_active != Tool::SurfaceExtrude
+        && m_active != Tool::Thicken) { m_viewport->clear_extrude_gizmo(); return; }
+
+    if (m_active == Tool::SurfaceExtrude) {
+        const int ref = m_surf_extrude_sketch_ref;
+        if (ref < 0 || ref >= int(m_doc.features.size())) { m_viewport->clear_extrude_gizmo(); return; }
+        const CadFeature& sk = m_doc.features[ref];
+        Vec2d c(0, 0);
+        if (!sk.profile.points.empty()) {
+            for (const Vec2d& p : sk.profile.points) c += p;
+            c /= double(sk.profile.points.size());
+        }
+        m_viewport->set_extrude_gizmo(sk.plane, c,
+                                      m_surf_extrude_distance ? m_surf_extrude_distance->GetValue() : 0.0,
+                                      0.0, false, false);
+        return;
+    }
+
+    if (m_active == Tool::Thicken) {
+        const int b = m_sel_solid_body;
+        if (b < 0 || b >= int(m_doc.bodies.size()) || m_sel_solid_face < 0) {
+            m_viewport->clear_extrude_gizmo(); return;
+        }
+        TopoDS_Face f = GeometryEngine::face_by_index(m_doc.bodies[b].shape, m_sel_solid_face);
+        if (f.IsNull()) { m_viewport->clear_extrude_gizmo(); return; }
+        SketchPlane plane = SketchPlane::from_face(f);
+        Vec3d c = GeometryEngine::face_centroid_world(f);
+        Vec3d n = GeometryEngine::face_normal_world(f);
+        if (f.Orientation() == TopAbs_REVERSED) n = -n;   // outward
+        sync_body_xform();
+        if (b < int(m_body_xform.size())) { c = m_body_xform[b] * c; n = m_body_xform[b].linear() * n; }
+        plane.origin = c;
+        if (n.norm() > 1e-9) plane.normal = n.normalized();
+        m_viewport->set_extrude_gizmo(plane, Vec2d(0, 0),
+                                      m_thicken_thickness ? m_thicken_thickness->GetValue() : 0.0,
+                                      0.0, false,
+                                      m_thicken_flip && m_thicken_flip->GetValue());
+        return;
+    }
 
     SketchPlane plane;
     std::vector<SketchEntity> ents;
