@@ -607,6 +607,16 @@ public:
     // - bump this whenever CadFeature::save/load gains or loses a field
     // - v1 blobs are deliberately not loadable; there is no migration path by design
     // - append fields ONLY at the end of save/load, never reorder (golden fixture enforces this)
+    // Bumped every time the bodies are rebuilt, i.e. every time the face and edge MAPS change.
+    // Global face/edge ids are indices into TopExp::MapShapes and mean nothing across a rebuild,
+    // so any caller holding an id from an earlier state is holding a wrong one. This is the
+    // handle that lets it find out instead of silently addressing the wrong edge.
+    //
+    // Session-scoped and deliberately NOT serialized: an id is only meaningful within the run
+    // that produced it, so persisting the counter would imply a promise across loads that the
+    // ids themselves cannot keep.
+    uint64_t topo_generation{1};
+
     // v4: coordsys_face_kind + coordsys_face_edges appended (connector face-drift fingerprint).
     // The bump is not optional. deserialize_recipe() gates on v == VERSION and then reads a FLAT
     // symmetric field list, so a v3 blob under a v3 build that has grown two fields passes the

@@ -3404,6 +3404,11 @@ bool CadDocument::recompute()
         }
     }
     bodies = std::move(built);
+    // The face and edge maps have just been rebuilt, so every global id handed out before this
+    // point now means something else. Bump here rather than in each mutator: this is the single
+    // line where the topology is actually replaced, so it cannot be forgotten by a new feature
+    // type the way a per-mutator bump would be.
+    ++topo_generation;
 
     // Face-drift fingerprint for FaceAndDirection CoordSys connectors. This runs AFTER the
     // bodies are final and APPENDS to mate_conflicts (detect_mate_conflicts() cleared it at

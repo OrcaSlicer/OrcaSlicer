@@ -112,6 +112,14 @@ json describe_tools()
         {"app", "SnapOrca CAD"},
         {"protocol", "jsonrpc-2.0"},
         {"slice", 5},
+        // Read this before using any face or edge id.
+        {"id_lifetime",
+         "Global face and edge ids are indices into the CURRENT topology and expire the moment "
+         "a feature rebuilds the model. Reading the scene once and then issuing several "
+         "operations addresses the wrong edge on every call after the first, and does NOT "
+         "error, because a stale id still names a real edge. Either re-read query_topology "
+         "before each id-taking call, or pass the 'generation' you were given back with the "
+         "call and have it refused if the model has moved on."},
         {"tools", json::array({
             json{{"name", "describe_tools"}, {"summary", "List callable tools and their parameters."},
                  {"params", json::array()}},
@@ -414,6 +422,9 @@ json describe_scene(DesignPanel* panel)
         {"features", std::move(features)},
         {"bodies", std::move(bodies)},
         {"error", doc.error},
+        // Pass this back as "generation" on any call that takes a face or edge id and the call
+        // is refused if the topology has moved on. See the note on the dispatcher.
+        {"generation", doc.topo_generation},
     };
 }
 
@@ -494,7 +505,10 @@ json query_topology(DesignPanel* panel, const json& params)
         edges.push_back(std::move(je));
     }
     return json{{"body", params.value("body", 0)}, {"face_count", nf}, {"edge_count", ne},
-                {"faces", std::move(faces)}, {"edges", std::move(edges)}};
+                {"faces", std::move(faces)}, {"edges", std::move(edges)},
+                // The ids above are indices into this exact topology and expire with it. Echo
+                // this back as "generation" on the calls that consume them.
+                {"generation", panel->mcp_doc().topo_generation}};
 }
 
 // One measurement reference -> a representative point and (optionally) a direction.
@@ -1408,6 +1422,33 @@ std::string handle_on_main(const std::string& method, const json& params, const 
     if (!mf || !mf->m_design_panel)
         return rpc_error(id, -32001, "Design panel not ready");
     DesignPanel* panel = mf->m_design_panel;
+
+    // Stale-id guard, checked here rather than in each handler.
+    //
+    // Global face and edge ids are indices into TopExp::MapShapes, valid only against the
+    // topology that produced them. Every dress-up rewrites those maps, so the natural way to
+    // drive this socket — read the scene once, then issue several operations — silently
+    // addresses the WRONG edge on every call after the first. Measured on a box: four chamfers
+    // with ids re-read each time remove 0.400/0.397/0.397/0.395 mm3; the same four with ids
+    // captured up front remove 0.400/0.008/0.397/0.280. Neither run errors, because a stale id
+    // still resolves to a real edge — just not the one that was asked for.
+    //
+    // So a caller may pass back the "generation" it got from describe_scene or query_topology,
+    // and a mismatch is refused instead of silently obeyed. Optional by design: omitting it
+    // keeps every existing script working exactly as before, and supplying it is what buys the
+    // guarantee. One check at the dispatcher rather than one per handler, so a method added
+    // later cannot forget it.
+    if (params.is_object() && params.contains("generation")) {
+        const uint64_t want = params["generation"].get<uint64_t>();
+        const uint64_t have = panel->mcp_doc().topo_generation;
+        if (want != have)
+            return rpc_error(id, -32010,
+                "stale face/edge ids: they were read at generation " + std::to_string(want)
+                + " but the model is now at " + std::to_string(have)
+                + ". Re-read query_topology and use the new ids — the old ones still name real "
+                  "edges, just not the ones you measured.");
+    }
+
     try {
         if (method == "describe_tools") return rpc_result(id, describe_tools());
         if (method == "describe_scene") return rpc_result(id, describe_scene(panel));
