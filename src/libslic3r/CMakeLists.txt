@@ -506,6 +506,11 @@ if (SLIC3R_ENABLE_CUDA_SLICER)
     if (NOT CudaToolkitDir OR NOT EXISTS "${CudaToolkitDir}")
         set(CudaToolkitDir "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.2" CACHE PATH "CUDA toolkit directory for Visual Studio CUDA rules" FORCE)
     endif ()
+    # CUDA 13.x's MSBuild targets read this property at build time rather
+    # than from CMake's cache. Export it as a global project property so GUI
+    # targets built later in the solution see the same toolkit directory.
+    set(CMAKE_MSVC_CUDA_TOOLKIT_DIR "${CudaToolkitDir}" CACHE PATH "CUDA toolkit directory exported to MSBuild" FORCE)
+    set(CMAKE_VS_GLOBALS "CudaToolkitCustomDir=${CudaToolkitDir};CUDA_PATH_V13_2=${CudaToolkitDir}" CACHE STRING "CUDA MSBuild globals" FORCE)
     if (MSVC)
         foreach (_cuda_config "" "_DEBUG" "_MINSIZEREL" "_RELEASE" "_RELWITHDEBINFO")
             set(CMAKE_CUDA_FLAGS${_cuda_config} "" CACHE STRING "" FORCE)
