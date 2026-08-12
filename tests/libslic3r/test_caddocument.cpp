@@ -7101,3 +7101,40 @@ TEST_CASE("plane_of_face gives a sketchable plane for a planar face only", "[Cad
         CHECK(refused > 0);
     }
 }
+
+// snaporca-5425 — POSITIVE-CONTRACT variant. A feature that left a body with a null
+// TopoDS_Shape used to be tolerated: recompute() returned true and the document kept
+// advertising the body. The new guard makes that a hard failure. This test asserts the
+// contract the guard preserves on the healthy side: a normal box + fillet document
+// recomputes true, reports an empty error, and NO resulting body has a null shape.
+//
+// Why not assert the negative branch (a dress-up chain nulling a body -> recompute false)?
+// Reproducing the original silent-null degeneracy (prism -> 6 vertical fillets -> chamfer on
+// the already-filleted rim -> hole) is a separate open question. Driving that order headlessly
+// makes the dress-up step THROW (OCCT "fillet radius too large" — an already-loud, already-
+// caught path) rather than silently null a body, so no public-API sequence reliably reaches
+// the guard's null branch in a headless test. Faking one (writing a null into `bodies` after
+// recompute) would not exercise the guard — it runs on the freshly-built vector — and a test
+// that asserts a state the code cannot reach is exactly what the contract forbids.
+TEST_CASE("recompute on a healthy box + fillet leaves no body null and no error (positive contract)", "[CadDocument]")
+{
+    using namespace Slic3r;
+    CadDocument doc;
+    SketchProfile sp;
+    sp.points.push_back(Vec2d(0,  0));
+    sp.points.push_back(Vec2d(20, 0));
+    sp.points.push_back(Vec2d(20, 20));
+    sp.points.push_back(Vec2d(0,  20));
+    sp.closed = true;
+    const int sk = doc.add_sketch_profile(sp, SketchPlane::XY(), "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    doc.add_fillet(2.0, FaceGroup::All, "Fillet");
+
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE_FALSE(doc.bodies.empty());
+    for (size_t i = 0; i < doc.bodies.size(); ++i) {
+        INFO("body " << i << " has a null shape");
+        REQUIRE_FALSE(doc.bodies[i].shape.IsNull());
+    }
+}

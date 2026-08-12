@@ -3373,6 +3373,26 @@ bool CadDocument::recompute()
     }
     if (built.empty()) { error = "no solid-producing features"; return false; }
 
+    // A feature that leaves a body with a null shape must fail loudly. Until this existed,
+    // recompute() returned true and the document kept advertising the body: describe_scene
+    // counted it, error was empty, and only mass_properties on that specific body revealed
+    // anything was wrong. Returning false hands the caller its normal rollback path, so the
+    // operation that destroyed the body is undone rather than committed.
+    for (size_t i = 0; i < built.size(); ++i) {
+        if (!built[i].shape.IsNull()) continue;
+        const int src = built[i].source_feature;
+        // source_feature is -1 for a body no feature claims. "feature 0" would be a lie, and
+        // this message exists precisely to be trusted about which feature to look at.
+        const std::string fname =
+            (src < 0 || src >= int(features.size()))
+                ? std::string("an unidentified feature")
+                : (features[src].name.empty() ? ("feature " + std::to_string(src + 1))
+                                              : features[src].name);
+        error = "body " + std::to_string(i + 1) + " was destroyed by " + fname
+              + " (the operation produced an empty shape)";
+        return false;
+    }
+
     // recompute() replaces the bodies vector wholesale, which would drop any per-body
     // colour override (Color tool). Body indices are stable across a rebuild (bodies are
     // appended in feature order), so carry the override forward by index — same indexing
