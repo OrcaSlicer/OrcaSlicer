@@ -3365,7 +3365,10 @@ void DesignSketchTool::render_mate_connectors()
     const ColorRGBA gold (0.93f, 0.66f, 0.09f, 1.0f);
     const ColorRGBA blue (0.18f, 0.44f, 0.93f, 1.0f);
     const ColorRGBA grey (0.42f, 0.46f, 0.52f, 1.0f);
-    const ColorRGBA warn (0.76f, 0.26f, 0.05f, 1.0f);
+    // F5: roll-undefined was a loud red — the strongest colour in the viewport spent on the LEAST
+    // important connector, which pulled the eye away from the mate being made. It is a "this one
+    // could not be derived" mark, not an error: muted amber says look-here without shouting.
+    const ColorRGBA warn (0.72f, 0.55f, 0.22f, 1.0f);
 
     const SketchPlane saved = m_plane;
 
@@ -3414,11 +3417,26 @@ void DesignSketchTool::render_mate_connectors()
             }
             q.emplace_back(Vec2d(0, 0), Vec2d(qr, 0));
             q.emplace_back(Vec2d(0, 0), Vec2d(0, qr));
-            if (!g.roll_undefined)
+            if (!g.roll_undefined) {
                 for (int i = 1; i < 5; ++i) {          // fan lines read as "filled" at any angle
                     const double a = (M_PI_2 * i) / 5.0;
                     q.emplace_back(Vec2d(0, 0), Vec2d(qr * std::cos(a), qr * std::sin(a)));
                 }
+                // F4: the quadrant collapses to a blob at grazing angles — exactly when the roll
+                // is hardest to read. A radial tick along +X, extending PAST the disc rim, is what
+                // survives that: as the disc flattens to a line the sector loses all area, but a
+                // radial spoke keeps its length and its direction along the one axis that still
+                // projects.
+                //
+                // The alternative on the issue was billboarding the quadrant. Rejected, and not
+                // on taste: at true grazing the view direction lies IN the connector's plane, so
+                // every in-plane direction projects onto the same screen line and the roll is
+                // geometrically unrecoverable. A billboarded quadrant would not recover it — it
+                // would face the camera and read as a definite orientation that is not the frame's.
+                // Better to degrade to a direction you can still trust than to draw a confident
+                // lie. Judge the tick on the rig at a true grazing view before calling F4 closed.
+                q.emplace_back(Vec2d(R, 0), Vec2d(R * 1.28, 0));
+            }
             draw_strokes(m_mc_stroke_model, q, lw, g.roll_undefined ? warn : gold);
         }
 
