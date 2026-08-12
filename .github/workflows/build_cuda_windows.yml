@@ -1,4 +1,4 @@
-name: CUDA Windows installer
+﻿name: CUDA Windows installer
 
 on:
   workflow_dispatch:
@@ -95,3 +95,4 @@ jobs:
             ExtremeSlicer_CUDA_${{ inputs.cuda-version }}_x64_portable.zip
           if-no-files-found: error
           retention-days: 14
+
