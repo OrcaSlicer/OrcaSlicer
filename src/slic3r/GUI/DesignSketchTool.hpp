@@ -119,7 +119,7 @@ public:
                                       || m_show_planes || m_show_axes
                                       || m_ex_active || m_mv_active || m_fl_active
                                       || m_hl_active || m_th_active || m_sh_active
-                                      || m_dr_active || m_ct_active || m_dz_active || m_dbp_active; }
+                                      || m_dr_active || m_ct_active || m_dz_active || m_dbp_active || m_hx_active; }
 
     // View helpers: the 3 world origin planes (XY/XZ/YZ) and the world axis triad, each
     // shown/hidden by a toggle (keys P / A). Off by default so the idle scene stays clean.
@@ -203,6 +203,16 @@ public:
     void clear_datum_gizmo();
     std::function<void(double usize, double vsize)> on_datum_size_changed;
     std::function<void(double offset)>              on_datum_offset_changed;
+
+    // Visual Helix gizmo. The Helix tool is a DesignPanel docked card (sketch tool NOT active),
+    // so the panel resolves the axis plane and feeds the live parameters here; the tool draws
+    // the helix curve itself plus three handles — radius on the base circle, height at the top
+    // of the axis, pitch at the end of the first turn. Taper and handedness stay on the card:
+    // one is a shape modifier and the other is a flag, and L2 governs numbers you can point at.
+    void set_helix_gizmo(const SketchPlane& plane, double radius, double pitch, double height,
+                         double taper, bool left_handed);
+    void clear_helix_gizmo();
+    std::function<void(double radius, double pitch, double height)> on_helix_changed;
 
     // Graphical base/origin pick: while the Plane card is open, the candidate base planes
     // (XY/XZ/YZ origin planes + existing datums) draw as translucent clickable ghosts. A click
@@ -1013,6 +1023,22 @@ private:
     void  render_datum_gizmo();
     bool  hit_test_datum_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int& which) const;
     void  drag_datum_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int which);
+    // Helix gizmo state (plane-anchored curve + 3 drag handles). Fed by the panel while the
+    // Helix card is open (sketch tool NOT active); the tool draws the live helix plus a handle
+    // on each length parameter (radius/height/pitch). Taper and handedness stay on the card.
+    bool        m_hx_active{false};
+    SketchPlane m_hx_plane;                  // axis = plane normal, base circle in the plane
+    double      m_hx_radius{10.0};
+    double      m_hx_pitch{2.0};
+    double      m_hx_height{20.0};
+    double      m_hx_taper{0.0};             // DEGREES (cone half-angle), as the kernel reads it
+    bool        m_hx_left{false};
+    int         m_hx_drag{-1};               // 0=radius, 1=height, 2=pitch, -1 none
+    int         m_hx_press_x{0}, m_hx_press_y{0};
+    Vec3d helix_point(double t) const;       // curve point at parameter t (shared render/hit/drag)
+    void  render_helix_gizmo();
+    bool  hit_test_helix_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int& which) const;
+    void  drag_helix_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int which);
     // Datum base picker (translucent clickable origin/datum planes)
     bool        m_dbp_active{false};
     std::vector<SketchPlane>  m_dbp_planes;

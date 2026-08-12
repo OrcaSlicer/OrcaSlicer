@@ -170,6 +170,10 @@ public:
     void clear_datum_gizmo();
     void set_on_datum_size_changed(std::function<void(double, double)> cb);
     void set_on_datum_offset_changed(std::function<void(double)> cb);
+    void set_helix_gizmo(const SketchPlane& plane, double radius, double pitch, double height,
+                         double taper, bool left_handed);          // helix curve + 3 drag handles
+    void clear_helix_gizmo();
+    void set_on_helix_changed(std::function<void(double, double, double)> cb);
     void set_base_pick(std::vector<SketchPlane> planes, std::vector<int> bases,
                        std::vector<std::string> labels = {});   // clickable labelled reference planes
     void clear_base_pick();

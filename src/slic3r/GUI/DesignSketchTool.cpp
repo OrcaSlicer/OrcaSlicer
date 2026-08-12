@@ -3738,6 +3738,182 @@ void DesignSketchTool::drag_datum_handle(GLCanvas3D& canvas, const wxMouseEvent&
     if (on_datum_size_changed) on_datum_size_changed(m_dz_usize, m_dz_vsize);
 }
 
+// ---- Helix gizmo (plane-anchored curve + 3 drag handles) --------------------------------
+void DesignSketchTool::set_helix_gizmo(const SketchPlane& plane, double radius, double pitch,
+                                       double height, double taper, bool left_handed)
+{
+    m_hx_active = true;
+    m_hx_plane  = plane;
+    m_hx_radius = radius;
+    m_hx_pitch  = pitch;
+    m_hx_height = height;
+    m_hx_taper  = taper;
+    m_hx_left   = left_handed;
+}
+
+void DesignSketchTool::clear_helix_gizmo()
+{
+    m_hx_active = false;
+    m_hx_drag   = -1;
+}
+
+// Curve point at parameter t (t in turns): angle 2*pi*t, negated when left-handed, rising one
+// pitch per turn along the plane normal.
+//
+// Taper is an ANGLE IN DEGREES and must be read the way the kernel reads it. CadDocument's
+// helix_spine() builds a Geom_ConicalSurface of half-angle taper and computes the top radius as
+// R + H*tan(taper), so the radius grows with the HEIGHT RISEN, not as a fraction of R consumed
+// over the turn count. Getting that wrong draws a preview that collapses to a point for any
+// non-zero taper while the committed feature is fine — a preview that lies is worse than none.
+Vec3d DesignSketchTool::helix_point(double t) const
+{
+    const Vec3d O = m_hx_plane.origin;
+    const Vec3d n = m_hx_plane.normal.normalized();
+    const Vec3d u = m_hx_plane.x_axis.normalized();
+    const Vec3d v = m_hx_plane.y_axis.normalized();
+    const double a = (m_hx_left ? -1.0 : 1.0) * 2.0 * M_PI * t;
+    const double z = m_hx_pitch * t;                      // height risen at this parameter
+    double rt = m_hx_radius + z * std::tan(m_hx_taper * M_PI / 180.0);
+    // The kernel REFUSES a taper that drives the radius negative before the full height; the
+    // preview shows it collapsing instead, so the user can see which value did it.
+    if (rt < 0.0) rt = 0.0;
+    return O + u * (rt * std::cos(a)) + v * (rt * std::sin(a)) + n * z;
+}
+
+// Draw the live helix as a connected camera-facing ribbon, a dim axis line, and three square
+// handles (radius on the base circle, height on the axis top, pitch at the end of the first turn).
+void DesignSketchTool::render_helix_gizmo()
+{
+    if (!m_hx_active) return;
+    using EPT = GLModel::Geometry::EPrimitiveType;
+    using EVL = GLModel::Geometry::EVertexLayout;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const Vec3d right = cam.get_dir_right().normalized();
+    const Vec3d up    = cam.get_dir_up().normalized();
+    const Vec3d vd    = cam.get_dir_forward();
+    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double hs   = 6.0 * upp;                       // handle half-size (~6 px)
+    const double hw   = 1.5 * upp;                       // ribbon half-width
+    const Vec3d O     = m_hx_plane.origin;
+    const Vec3d n     = m_hx_plane.normal.normalized();
+    const double turns = m_hx_pitch > 1e-9 ? m_hx_height / m_hx_pitch : 0.0;
+
+    // Curve ribbon: connected thin camera-facing quads over t in [0, turns].
+    const int segs = std::min(2048, std::max(48, int(turns * 32.0)));
+    GLModel::Geometry curve; curve.format = { EPT::Triangles, EVL::P3 };
+    unsigned int cb = 0;
+    auto add_seg = [&](const Vec3d& a, const Vec3d& b) {
+        Vec3d dir = b - a; if (dir.norm() < 1e-9) return; dir.normalize();
+        Vec3d off = dir.cross(vd);
+        if (off.norm() < 1e-9) off = dir.cross(up);
+        if (off.norm() < 1e-9) return;
+        off.normalize(); off *= hw;
+        curve.add_vertex((Vec3f)(a + off).cast<float>()); curve.add_vertex((Vec3f)(b + off).cast<float>());
+        curve.add_vertex((Vec3f)(b - off).cast<float>()); curve.add_vertex((Vec3f)(a - off).cast<float>());
+        curve.add_triangle(cb, cb + 1, cb + 2); curve.add_triangle(cb, cb + 2, cb + 3); cb += 4;
+    };
+    for (int i = 0; i < segs; ++i)
+        add_seg(helix_point(turns * i / segs), helix_point(turns * (i + 1) / segs));
+
+    // Axis: a dim line from the plane origin to the top of the helix.
+    const Vec3d top = O + n * m_hx_height;
+    GLModel::Geometry axis; axis.format = { EPT::Triangles, EVL::P3 };
+    {
+        Vec3d dir = top - O;
+        if (dir.norm() > 1e-9) {
+            dir.normalize();
+            Vec3d off = dir.cross(vd);
+            if (off.norm() < 1e-9) off = dir.cross(up);
+            if (off.norm() > 1e-9) {
+                off.normalize(); off *= hw * 0.6;
+                axis.add_vertex((Vec3f)(O + off).cast<float>()); axis.add_vertex((Vec3f)(top + off).cast<float>());
+                axis.add_vertex((Vec3f)(top - off).cast<float>()); axis.add_vertex((Vec3f)(O - off).cast<float>());
+                axis.add_triangle(0, 1, 2); axis.add_triangle(0, 2, 3);
+            }
+        }
+    }
+
+    // Three handles: 0=radius (t=0), 1=height (axis top), 2=pitch (end of first turn, or the
+    // whole curve if shorter than one turn so the handle never floats off a missing curve).
+    const Vec3d hpts[3] = { helix_point(0.0), top,
+                            helix_point(m_hx_height < m_hx_pitch ? turns : 1.0) };
+    const ColorRGBA hcol[3] = { ColorRGBA(1.0f, 0.72f, 0.28f, 1.0f),   // radius — amber
+                                ColorRGBA(0.45f, 0.86f, 1.0f, 1.0f),   // height — cyan
+                                ColorRGBA(0.30f, 0.80f, 0.34f, 1.0f) }; // pitch — green
+    const ColorRGBA hot(1.0f, 0.85f, 0.2f, 1.0f);
+
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    if (cb > 0) {
+        GLModel m; m.init_from(std::move(curve));
+        m.set_color(ColorRGBA(1.0f, 0.62f, 0.16f, 0.9f));   // CAD amber helix curve
+        m.render();
+    }
+    if (!axis.vertices.empty()) {
+        GLModel m; m.init_from(std::move(axis));
+        m.set_color(ColorRGBA(0.42f, 0.46f, 0.52f, 0.55f));   // dim grey axis
+        m.render();
+    }
+    for (int i = 0; i < 3; ++i) {
+        const Vec3d ctr = hpts[i];
+        const Vec3d q0 = ctr - right * hs - up * hs, q1 = ctr + right * hs - up * hs,
+                    q2 = ctr + right * hs + up * hs, q3 = ctr - right * hs + up * hs;
+        GLModel::Geometry sq; sq.format = { EPT::Triangles, EVL::P3 };
+        sq.add_vertex((Vec3f)q0.cast<float>()); sq.add_vertex((Vec3f)q1.cast<float>());
+        sq.add_vertex((Vec3f)q2.cast<float>()); sq.add_vertex((Vec3f)q3.cast<float>());
+        sq.add_triangle(0, 1, 2); sq.add_triangle(0, 2, 3);
+        GLModel m; m.init_from(std::move(sq));
+        m.set_color(m_hx_drag == i ? hot : hcol[i]);
+        m.render();
+    }
+}
+
+bool DesignSketchTool::hit_test_helix_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int& which) const
+{
+    if (!m_hx_active) return false;
+    const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
+    const Vec3d ro = r.a, rd = r.b - r.a;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const double tol = 9.0 / std::max(cam.get_zoom(), 1e-6);   // ~9 px in world units
+    const Vec3d O = m_hx_plane.origin;
+    const Vec3d n = m_hx_plane.normal.normalized();
+    const double turns = m_hx_pitch > 1e-9 ? m_hx_height / m_hx_pitch : 0.0;
+    const Vec3d hpts[3] = { helix_point(0.0), O + n * m_hx_height,
+                            helix_point(m_hx_height < m_hx_pitch ? turns : 1.0) };
+    double best = tol; which = -1;
+    for (int i = 0; i < 3; ++i) {
+        const Vec3d w  = hpts[i] - ro;
+        const double t = w.dot(rd) / std::max(rd.dot(rd), 1e-12);
+        const double d = (w - rd * t).norm();
+        if (d < best) { best = d; which = i; }
+    }
+    return which >= 0;
+}
+
+// Drag a handle: radius = cursor's in-plane distance from the origin, height/pitch = the signed
+// distance of the cursor's closest axis point. All fire the full (radius, pitch, height) triple.
+void DesignSketchTool::drag_helix_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int which)
+{
+    const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
+    const Vec3d ro = r.a, rd = r.b - r.a;
+    const SketchPlane& p = m_hx_plane;
+    const Vec3d O = p.origin, n = p.normal.normalized();
+
+    if (which == 0) {                                          // radius: in-plane distance from O
+        const Vec2d lp = p.project(ro, rd);
+        m_hx_radius = std::max(0.01, lp.norm());
+    } else {                                                   // height/pitch: signed distance along n
+        const Vec3d e   = n;
+        const Vec3d w0  = O - ro;
+        const double a  = e.dot(e), b = e.dot(rd), c = rd.dot(rd), dd = e.dot(w0), ee = rd.dot(w0);
+        const double denom = a * c - b * b;
+        if (std::abs(denom) < 1e-7) return;                    // camera ∥ axis: leave value as-is
+        const double s = (b * ee - c * dd) / denom;            // signed distance along the axis
+        if (which == 1) m_hx_height = std::max(0.0, s);
+        else            m_hx_pitch  = std::max(0.01, s);       // zero/negative pitch divides by zero
+    }
+    if (on_helix_changed) on_helix_changed(m_hx_radius, m_hx_pitch, m_hx_height);
+}
+
 // ---- Reference/base planes (Onshape-style default planes) -----------------------------
 void DesignSketchTool::set_base_pick(std::vector<SketchPlane> planes, std::vector<int> bases,
                                      std::vector<std::string> labels)
@@ -7159,6 +7335,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         render_solid_highlight();
         if (m_dbp_active) render_base_pick();
         if (m_dz_active) render_datum_gizmo();
+        if (m_hx_active) render_helix_gizmo();
         if (m_ex_active) render_extrude_gizmo();
         if (m_mv_active) render_move_gizmo();
         if (m_fl_active) render_fillet_gizmo();
@@ -7962,6 +8139,21 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 int which = -1;
                 if (hit_test_datum_handle(canvas, evt, which)) {
                     m_dz_drag = which; m_dz_press_x = evt.GetX(); m_dz_press_y = evt.GetY();
+                    return true;
+                }
+            }
+        }
+        // Helix gizmo: radius/height/pitch handles on the live curve, while the Helix card is open.
+        if (m_hx_active) {
+            if (m_hx_drag >= 0 && evt.Dragging() && evt.LeftIsDown()) {
+                drag_helix_handle(canvas, evt, m_hx_drag);
+                return true;
+            }
+            if (evt.LeftUp() && m_hx_drag >= 0) { m_hx_drag = -1; return true; }
+            if (evt.LeftDown()) {
+                int which = -1;
+                if (hit_test_helix_handle(canvas, evt, which)) {
+                    m_hx_drag = which; m_hx_press_x = evt.GetX(); m_hx_press_y = evt.GetY();
                     return true;
                 }
             }

@@ -843,6 +843,24 @@ void DesignCanvas::set_on_datum_offset_changed(std::function<void(double)> cb)
     m_sketch_tool.on_datum_offset_changed = std::move(cb);
 }
 
+void DesignCanvas::set_helix_gizmo(const SketchPlane& plane, double radius, double pitch,
+                                   double height, double taper, bool left_handed)
+{
+    m_sketch_tool.set_helix_gizmo(plane, radius, pitch, height, taper, left_handed);
+    request_repaint();
+}
+
+void DesignCanvas::clear_helix_gizmo()
+{
+    m_sketch_tool.clear_helix_gizmo();
+    request_repaint();
+}
+
+void DesignCanvas::set_on_helix_changed(std::function<void(double, double, double)> cb)
+{
+    m_sketch_tool.on_helix_changed = std::move(cb);
+}
+
 void DesignCanvas::set_base_pick(std::vector<SketchPlane> planes, std::vector<int> bases,
                                 std::vector<std::string> labels)
 {

@@ -3534,6 +3534,16 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_viewport->request_repaint();
     });
 
+    // Helix handles: a drag reports the whole triple, since pitch and height are coupled
+    // through the turn count and reading one without the others would show a stale curve.
+    m_viewport->set_on_helix_changed([this](double radius, double pitch, double height) {
+        if (m_helix_radius) m_helix_radius->SetValue(radius);
+        if (m_helix_pitch)  m_helix_pitch->SetValue(pitch);
+        if (m_helix_height) m_helix_height->SetValue(height);
+        update_helix_gizmo();      // re-feed so the curve follows the drag
+        m_viewport->request_repaint();
+    });
+
     // Clicking a ghost base plane sets the base graphically (replaces the dropdown). A base pick
     // drops any offset-from-face choice so the picked base plane wins, then re-resolves the preview.
     m_viewport->set_on_datum_base_picked([this](int base) {
@@ -9100,6 +9110,18 @@ void DesignPanel::update_datum_gizmo()
     update_reference_planes();   // base ghosts (origins + datums) follow the tool/model state
 }
 
+void DesignPanel::update_helix_gizmo()
+{
+    if (!m_viewport) return;
+    if (m_active != Tool::Helix) { m_viewport->clear_helix_gizmo(); return; }
+    m_viewport->set_helix_gizmo(plane_from_choice(m_helix_plane->GetSelection()),
+                                m_helix_radius ? m_helix_radius->GetValue() : 0.0,
+                                m_helix_pitch  ? m_helix_pitch->GetValue()  : 1.0,
+                                m_helix_height ? m_helix_height->GetValue() : 0.0,
+                                m_helix_taper  ? m_helix_taper->GetValue()  : 0.0,
+                                m_helix_left_handed && m_helix_left_handed->GetValue());
+}
+
 // Onshape default planes: the XY/XZ/YZ reference planes are persistent, transparent, labelled, and
 // larger than the bed — shown as the FALLBACK when there is no object yet. When the Plane tool is
 // open they additionally surface existing datums so a base can be picked. Single authority for the
@@ -9166,6 +9188,7 @@ void DesignPanel::refresh_preview()
         for (wxButton* b : m_confirm_btns) if (b) b->Enable(true);
         m_status->Refresh();
         update_datum_gizmo();   // Plane card: show/refresh the in-canvas resize handles
+        update_helix_gizmo();   // Helix card: draw the live curve + drag handles (no solid ghost)
         return;
     }
 
@@ -9272,6 +9295,8 @@ void DesignPanel::refresh_preview()
     update_pattern_gizmo();
     // Datum-plane resize handles (self-gates: only while the Plane card is open).
     update_datum_gizmo();
+    // Helix curve + handles (self-gates: only while the Helix card is open).
+    update_helix_gizmo();
     update_operand_highlight();
 }
 
