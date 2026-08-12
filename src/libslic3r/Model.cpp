@@ -2,6 +2,7 @@
 #include "libslic3r.h"
 #include "BuildVolume.hpp"
 #include "TexturePainting.hpp"
+#include "Format/AssimpImport.hpp"
 #include "ClipperUtils.hpp"
 #include "Exception.hpp"
 #include "Model.hpp"
@@ -242,6 +243,27 @@ _finished:
 // BBS: add part plate related logic
 // BBS: backup & restore
 // Loading model from a file, it may be a simple geometry file as STL or OBJ, however it may be a project file as well.
+// Build a plain geometry ModelObject from a textured mesh. The texture itself is carried
+// separately on Model::texture_mesh and consumed by the texture import dialog.
+static void add_textured_mesh_to_model(Model& model, const TexturedMesh& tex_mesh, const std::string& input_file)
+{
+    std::string object_name = boost::filesystem::path(input_file).filename().string();
+
+    indexed_triangle_set its;
+    its.vertices.resize(tex_mesh.vertices.size());
+    for (size_t i = 0; i < tex_mesh.vertices.size(); ++i)
+        its.vertices[i] = Vec3f(tex_mesh.vertices[i][0], tex_mesh.vertices[i][1], tex_mesh.vertices[i][2]);
+    its.indices.resize(tex_mesh.indices.size());
+    for (size_t i = 0; i < tex_mesh.indices.size(); ++i)
+        its.indices[i] = Vec3i32(tex_mesh.indices[i][0], tex_mesh.indices[i][1], tex_mesh.indices[i][2]);
+
+    its_merge_vertices(its);
+    its_remove_degenerate_faces(its);
+    its_compactify_vertices(its);
+
+    model.add_object(object_name.c_str(), input_file.c_str(), std::move(TriangleMesh(std::move(its))));
+}
+
 Model Model::read_from_file(const std::string&                                  input_file,
                             DynamicPrintConfig*                                 config,
                             ConfigSubstitutionContext*                          config_substitutions,
@@ -323,6 +345,23 @@ Model Model::read_from_file(const std::string&                                  
                 result = false;
                 message = _L("Importing obj with png function is developing.");
             }*/
+        }
+    }
+    else if (boost::algorithm::iends_with(input_file, ".glb") ||
+             boost::algorithm::iends_with(input_file, ".gltf") ||
+             boost::algorithm::iends_with(input_file, ".fbx")) {
+        // These formats always carry material/texture data, so they go through the textured
+        // import path: the geometry becomes a normal object and the texture is handed to the
+        // texture-to-color dialog via Model::texture_mesh.
+        auto tex_mesh = std::make_shared<TexturedMesh>();
+        result = load_assimp_textured_model(input_file, *tex_mesh, &message);
+        if (result) {
+            model.texture_mesh = tex_mesh;
+            add_textured_mesh_to_model(model, *tex_mesh, input_file);
+        } else if (!message.empty()) {
+            BOOST_LOG_TRIVIAL(error) << "Assimp: failed to load model: " << message
+                                     << ", path=" << input_file;
+            message = _L("The file format is incompatible and cannot be parsed.");
         }
     }
     else if (boost::algorithm::iends_with(input_file, ".svg"))

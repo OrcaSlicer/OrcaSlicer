@@ -205,6 +205,8 @@ set(lisbslic3r_sources
     format.hpp
     Format/OBJ.cpp
     Format/OBJ.hpp
+    Format/AssimpImport.hpp
+    Format/AssimpImport.cpp
     Format/ResourcePathUtils.hpp
     Format/objparser.cpp
     Format/objparser.hpp
@@ -519,6 +521,7 @@ cmake_policy(SET CMP0011 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0167 NEW)
 find_package(CGAL REQUIRED)
 find_package(OpenCV REQUIRED core)
+find_package(assimp REQUIRED)
 unset(CMAKE_POLICY_DEFAULT_CMP0167)
 cmake_policy(POP)
 
@@ -607,6 +610,7 @@ target_link_libraries(libslic3r
         libnest2d
         miniz
         opencv_world
+        assimp::assimp
     PRIVATE
         ${CMAKE_DL_LIBS}
         ${EXPAT_LIBRARIES}
