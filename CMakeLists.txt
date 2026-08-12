@@ -340,24 +340,31 @@ endif ()
 
 if (MSVC)
     if (SLIC3R_MSVC_COMPILE_PARALLEL AND NOT IS_CLANG_CL)
-           add_compile_options(/MP)
+           add_compile_options("$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/MP>")
     endif ()
     # /bigobj (Increase Number of Sections in .Obj file)
     # error C3859: virtual memory range for PCH exceeded; please recompile with a command line option of '-Zm90' or greater
     # Generate symbols at every build target, even for the release.
 	# -Zm520 fixes error C3859 but forces the compiler to pre-allocate that memory for every translation unit regardless
 	# combining /Zi with /FS frees up a significant amount of memory pressure across all parallel compile jobs and makes /MP faster overall.
-    add_compile_options(-bigobj /Zi /FS)
+    add_compile_options(
+        "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/bigobj>"
+        "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/Zi>"
+        "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/FS>"
+    )
     # Disable STL4007: Many result_type typedefs and all argument_type, first_argument_type, and second_argument_type typedefs are deprecated in C++17.
     #FIXME Remove this line after eigen library adapts to the new C++17 adaptor rules.
     add_compile_options(-D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
     # Disable warnings on conversion from unsigned to signed (possible loss of data)
     # C4244: 'conversion' conversion from 'type1' to 'type2', possible loss of data. An integer type is converted to a smaller integer type.
     # C4267: The compiler detected a conversion from size_t to a smaller type.
-    add_compile_options(/wd4244 /wd4267)
+    add_compile_options(
+        "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/wd4244>"
+        "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/wd4267>"
+    )
     # Disable warnings on comparison of unsigned and signed
     # C4018: signed/unsigned mismatch
-    add_compile_options(/wd4018)
+    add_compile_options("$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/wd4018>")
     # Prevent linker restart when TBB (or other deps) built with /GL are linked
 	# Make your full (clean) build slower because it enables link-time code generation across all translation units.
 	# helps incremental builds by preventing the double-link restart from TBB
@@ -618,7 +625,7 @@ endif ()
 if(MSVC)
 # Ignore truncating casts in initializers & constructors
 # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-1-c4305
-add_compile_options(/wd4305)
+add_compile_options("$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/wd4305>")
 endif()
 
 # Where all the bundled libraries reside?
@@ -640,8 +647,8 @@ if(WIN32)
         # BOOST_ALL_NO_LIB: Avoid the automatic linking of Boost libraries on Windows. Rather rely on explicit linking.
         add_definitions(-DBOOST_ALL_NO_LIB -DBOOST_USE_WINAPI_VERSION=0x602 -DBOOST_SYSTEM_USE_UTF8 )
         # Force the source code encoding to UTF-8. See OrcaSlicer GH pull request #5583
-        add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
-        add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+        add_compile_options("$<$<AND:$<C_COMPILER_ID:MSVC>,$<NOT:$<COMPILE_LANGUAGE:CUDA>>>:/utf-8>")
+        add_compile_options("$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<NOT:$<COMPILE_LANGUAGE:CUDA>>>:/utf-8>")
     endif(MSVC)
 endif(WIN32)
 

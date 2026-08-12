@@ -498,11 +498,36 @@ add_library(libslic3r STATIC ${lisbslic3r_sources}
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${lisbslic3r_sources})
 
 if (SLIC3R_ENABLE_CUDA_SLICER)
+    # Visual Studio's CUDA rule supplies host options through -Xcompiler.
+    # Keep CMake's CUDA flag cache empty so MSVC switches are not emitted as
+    # standalone NVCC options (CUDA 13.x rejects that form).
+    set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+    set(CudaToolkitDir "$ENV{CUDA_PATH}" CACHE PATH "CUDA toolkit directory for Visual Studio CUDA rules")
+    if (NOT CudaToolkitDir OR NOT EXISTS "${CudaToolkitDir}")
+        set(CudaToolkitDir "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.2" CACHE PATH "CUDA toolkit directory for Visual Studio CUDA rules" FORCE)
+    endif ()
+    if (MSVC)
+        foreach (_cuda_config "" "_DEBUG" "_MINSIZEREL" "_RELEASE" "_RELWITHDEBINFO")
+            set(CMAKE_CUDA_FLAGS${_cuda_config} "" CACHE STRING "" FORCE)
+        endforeach ()
+        set(CMAKE_CUDA_HOST_COMPILER "${CMAKE_CXX_COMPILER}" CACHE FILEPATH "MSVC host compiler for CUDA" FORCE)
+        # CMake's VS generator copies the global CXX exception switch into
+        # CUDA AdditionalOptions. Remove it before enabling CUDA and restore
+        # the switch only for C++ sources on this target.
+        string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    endif ()
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
     target_sources(libslic3r PRIVATE Gpu/CudaSlicer.cu)
     set_source_files_properties(Gpu/CudaSlicer.cu PROPERTIES LANGUAGE CUDA)
     set_target_properties(libslic3r PROPERTIES CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED ON)
+    if (MSVC)
+        target_compile_options(libslic3r PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:/EHsc>")
+        # `/EHsc` is a host-only switch; the VS CUDA rule already adds it via
+        # -Xcompiler.  Keeping it out of AdditionalOptions avoids NVCC 13.x's
+        # multi-input diagnostic when the project is built from MSBuild.
+        set_property(TARGET libslic3r PROPERTY CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}")
+    endif ()
     target_compile_definitions(libslic3r PRIVATE SLIC3R_ENABLE_CUDA_SLICER=1)
     target_link_libraries(libslic3r PRIVATE CUDA::cudart)
 

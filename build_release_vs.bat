@@ -36,22 +36,18 @@ if "%USE_NINJA%"=="1" (
 @REM Detect Visual Studio version using msbuild
 echo Detecting Visual Studio version using msbuild...
 
-@REM Try to get MSBuild version - the output format varies by VS version
+@REM MSBuild 17.14+ prints a four-component version (for example
+@REM 17.14.51.32402).  The old findstr expression only accepted three
+@REM components and silently left VS_MAJOR empty on current Build Tools.
 set VS_MAJOR=
-for /f "tokens=*" %%i in ('msbuild -version 2^>^&1 ^| findstr /r "^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*"') do (
-    for /f "tokens=1 delims=." %%a in ("%%i") do set VS_MAJOR=%%a
-    set MSBUILD_OUTPUT=%%i
-    goto :version_found
-)
-
-@REM Alternative method for newer MSBuild versions
-if "%VS_MAJOR%"=="" (
-    for /f "tokens=*" %%i in ('msbuild -version 2^>^&1 ^| findstr /r "[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*"') do (
-        for /f "tokens=1 delims=." %%a in ("%%i") do set VS_MAJOR=%%a
-        set MSBUILD_OUTPUT=%%i
-        goto :version_found
-    )
-)
+set MSBUILD_OUTPUT=
+for /f "tokens=1 delims=." %%a in ('msbuild -version -nologo 2^>nul') do if not defined VS_MAJOR set VS_MAJOR=%%a
+for /f "tokens=*" %%i in ('msbuild -version -nologo 2^>nul') do if not defined MSBUILD_OUTPUT set MSBUILD_OUTPUT=%%i
+@REM Some localized Developer Prompts route the version line away from
+@REM FOR /F.  vcvarsall already identifies the installed toolset, so use the
+@REM VSINSTALLDIR marker as a safe fallback instead of aborting.
+if "%VS_MAJOR%"=="" if defined VSINSTALLDIR set VS_MAJOR=17
+if "%MSBUILD_OUTPUT%"=="" if "%VS_MAJOR%"=="17" set MSBUILD_OUTPUT=17.x (VS 2022)
 
 :version_found
 echo MSBuild version detected: %MSBUILD_OUTPUT%
