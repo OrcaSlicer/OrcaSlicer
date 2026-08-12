@@ -38,7 +38,13 @@ add_executable(${_TEST_NAME}_tests
     )
 
 if (SLIC3R_CAD)
-    target_sources(${_TEST_NAME}_tests PRIVATE test_caddocument.cpp)
+    target_sources(${_TEST_NAME}_tests PRIVATE
+        test_caddocument.cpp
+        test_sketchconstraints.cpp
+        test_sketchedit.cpp
+        test_sketchimport.cpp
+        test_sketchinference.cpp
+        test_slvs_constraints.cpp)
 endif ()
 
 if (TARGET OpenVDB::openvdb)
