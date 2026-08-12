@@ -120,34 +120,92 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
         points.push_back(next_point);
     }
 
-    // ORCA: Midpoint sampling
-    // Segmentation below only interpolates from endpoint distances, so nearby geometry can hide or
-    // misrepresent the support under a long span. Probe its midpoint to classify the interior itself,
-    // at one extra query per segment.
+    // ORCA: Interior sampling
+    // The passes below infer the support under a span from its endpoints alone, so an interior that is supported
+    // differently from both ends is invisible to them: the outer perimeter of an overhang whose ends are caged by
+    // full height walls reads as supported along its whole length. Probe the interior, keep the samples the
+    // endpoint interpolation fails to predict, and bisect either side of each one, so a span that is only partly
+    // unsupported gets points where its support actually changes instead of one reading spread across all of it.
     if (PREV_LAYER_BOUNDARY_OFFSET && ADD_INTERSECTIONS && min_distance > 0) {
-        std::vector<ExtendedPoint<L::Dim>> sampled_points; // Populated lazily, on the first insertion
-        for (size_t point_idx = 0; point_idx + 1 < points.size(); ++point_idx) {
-            const ExtendedPoint<L::Dim>& curr = points[point_idx];
-            const ExtendedPoint<L::Dim>& next = points[point_idx + 1];
-            const double line_len = (next.position - curr.position).norm();
+        // Bisecting below this buys nothing: the segmentation pass below only splits lines of 2mm or more, and
+        // every pass here drops points closer together than min_spacing.
+        const double min_bisected_length = std::max(2., 4. * min_spacing);
+        // A backstop for that length test, which on a non-finite length would never be met.
+        constexpr int max_bisection_depth = 10;
+        // Whether a reading is far enough out for the speed sections to slow the extrusion down at all.
+        auto slows_down = [min_distance](float distance) { return distance > min_distance; };
 
-            if (line_len >= 2.f) {
-                const Vec midpoint = 0.5 * (curr.position + next.position);
-                auto [midpoint_dist, midpoint_near_l, midpoint_x] =
-                    unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(midpoint.template cast<AABBScalar>());
-                // ORCA: only a positive distance lowers the speed, an unsigned test would just split the segment
-                if (midpoint_dist + boundary_offset > min_distance &&
-                    (midpoint - curr.position).norm() > min_spacing &&
-                    (next.position - midpoint).norm() > min_spacing) {
-                    if (sampled_points.empty()) {
-                        sampled_points.reserve(points.size() + 8);
-                        sampled_points.assign(points.begin(), points.begin() + point_idx + 1);
-                    }
-                    sampled_points.push_back({midpoint, float(midpoint_dist + boundary_offset)});
-                }
+        // Part of a segment still to bisect: positions along it, the distances there, and bisections left.
+        struct Subspan { double t0, t1; float distance0, distance1; int depth; };
+
+        std::vector<ExtendedPoint<L::Dim>>    sampled_points; // Populated lazily, on the first insertion
+        std::vector<std::pair<double, float>> interior;       // Samples of one segment, keyed by position along it
+        std::vector<Subspan>                  pending;
+
+        for (size_t point_idx = 0; point_idx + 1 < points.size(); ++point_idx) {
+            const ExtendedPoint<L::Dim>& curr     = points[point_idx];
+            const ExtendedPoint<L::Dim>& next     = points[point_idx + 1];
+            const Vec                    step     = next.position - curr.position;
+            const double                 line_len = step.norm();
+
+            interior.clear();
+            if (line_len >= min_bisected_length)
+                pending.push_back({0., 1., curr.distance, next.distance, max_bisection_depth});
+
+            while (!pending.empty()) {
+                const Subspan subspan = pending.back();
+                pending.pop_back();
+                if (subspan.depth <= 0 || (subspan.t1 - subspan.t0) * line_len < min_bisected_length)
+                    continue;
+
+                const double t = 0.5 * (subspan.t0 + subspan.t1);
+                auto [distance, nearest_line, x] = unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(
+                    (curr.position + t * step).template cast<AABBScalar>());
+                const float sampled  = float(distance + boundary_offset);
+                const float expected = 0.5f * (subspan.distance0 + subspan.distance1);
+
+                // Nothing new for the passes below: they already infer this reading, and the same speed from it.
+                if (std::abs(sampled - expected) <= min_distance && slows_down(sampled) == slows_down(expected))
+                    continue;
+                // Neither this reading nor the ones bracketing it slows the extrusion down, so nor could any point
+                // placed between them, however the support is distributed.
+                if (!slows_down(sampled) && !slows_down(subspan.distance0) && !slows_down(subspan.distance1))
+                    continue;
+
+                interior.emplace_back(t, sampled);
+                pending.push_back({subspan.t0, t, subspan.distance0, sampled, subspan.depth - 1});
+                pending.push_back({t, subspan.t1, sampled, subspan.distance1, subspan.depth - 1});
             }
-            if (!sampled_points.empty())
+
+            if (!interior.empty()) {
+                std::sort(interior.begin(), interior.end(),
+                          [](const std::pair<double, float>& l, const std::pair<double, float>& r) { return l.first < r.first; });
+                // Bisecting keeps every sample it took, including the ones that only confirm their neighbours.
+                size_t kept = 0;
+                for (size_t i = 0; i < interior.size(); ++i) {
+                    const float sample = interior[i].second;
+                    const float before = kept > 0 ? interior[kept - 1].second : curr.distance;
+                    const float after  = i + 1 < interior.size() ? interior[i + 1].second : next.distance;
+                    // A sample is worth a point in the path where it reads differently from the readings either
+                    // side of it, or where it is what separates a slowed run of them from a full speed one.
+                    if (std::abs(sample - before) > min_distance || std::abs(sample - after) > min_distance ||
+                        slows_down(sample) != slows_down(before) || slows_down(sample) != slows_down(after))
+                        interior[kept++] = interior[i];
+                }
+                interior.resize(kept);
+            }
+
+            if (!interior.empty() && sampled_points.empty()) {
+                sampled_points.reserve(points.size() + 8);
+                sampled_points.assign(points.begin(), points.begin() + point_idx + 1);
+            }
+            if (!sampled_points.empty()) {
+                // Only a sub-span of min_bisected_length or more is ever bisected, so these sit at least
+                // 2 * min_spacing apart, and need none of the filtering the passes either side of this one do.
+                for (const auto& [t, distance] : interior)
+                    sampled_points.push_back({curr.position + t * step, distance});
                 sampled_points.push_back(next);
+            }
         }
         if (!sampled_points.empty())
             points = std::move(sampled_points);

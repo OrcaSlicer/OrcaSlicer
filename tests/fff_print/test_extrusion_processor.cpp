@@ -65,6 +65,8 @@ constexpr double caged_span_z_min = caged_slope_z_min + caged_layer_height;
 constexpr double caged_slope_wall_sum = caged_slope_face_sum + 0.5 * caged_layer_height + 0.5 * caged_wall_width;
 // Same inset on the fully supported y = 20 face, vertical over the whole height.
 constexpr double caged_back_wall_y = caged_box_depth - 0.5 * caged_wall_width;
+// And on the y = 0 face, which runs full height only outside the slope's x range.
+constexpr double caged_front_wall_y = 0.5 * caged_wall_width;
 // Arachne varies the wall width along a face, and the centreline inset is half that width, so a
 // wall sits within about half a line width of where the nominal inset alone would put it. The
 // faces being selected are millimetres apart, so this stays far from ambiguous.
@@ -115,6 +117,24 @@ std::vector<double> back_wall_feed_rates(const std::string& gcode)
         return line.new_Z(self) > 1.5 * caged_layer_height &&
                std::abs(self.y() - caged_back_wall_y) < caged_wall_tolerance &&
                std::abs(line.new_Y(self) - caged_back_wall_y) < caged_wall_tolerance;
+    });
+}
+
+// The first layer printed entirely above the slope. Its y = 0 wall runs the full width of the box.
+const double caged_layer_above_slope_z = std::ceil(caged_slope_z_max / caged_layer_height) * caged_layer_height;
+
+// The parts of that wall standing on the cage rather than the slope, so on a contour identical to their own.
+// Where the support changes is found by bisection, which stops at spans of 2mm, so the move spanning each end of
+// the slope reaches a little way into the cage. Taking only the moves lying wholly outside the slope's x range
+// leaves the wall that is unambiguously supported, without asserting how closely the bisection converged.
+std::vector<double> cage_shoulder_feed_rates(const std::string& gcode)
+{
+    return outer_wall_feed_rates(gcode, [](const GCodeReader& self, const GCodeReader::GCodeLine& line) {
+        return std::abs(line.new_Z(self) - caged_layer_above_slope_z) < 0.5 * caged_layer_height &&
+               std::abs(self.y() - caged_front_wall_y) < caged_wall_tolerance &&
+               std::abs(line.new_Y(self) - caged_front_wall_y) < caged_wall_tolerance &&
+               (std::max(self.x(), line.new_X(self)) <= caged_slope_x_min ||
+                std::min(self.x(), line.new_X(self)) >= caged_slope_x_max);
     });
 }
 
@@ -211,7 +231,26 @@ TEST_CASE("Supported vertical walls keep their normal speed", "[ExtrusionProcess
     REQUIRE(slowest >= caged_slow_speed * MM_PER_MIN);
 }
 
-TEST_CASE("Benchmark caged overhang midpoint sampling", "[ExtrusionProcessor][!benchmark]")
+// The slope's top edge falls mid layer, so the first layer above it still stands 0.179mm proud of the layer
+// below wherever that layer was still on the slope. That is a real overhang and is slowed, but it ends with the
+// slope: outside the slope's x range the box runs full height, so the same wall stands on a contour identical to
+// its own. Sampling the interior of that wall at a single point reported one support reading for all of it and
+// slowed these fully supported ends along with the rest.
+TEST_CASE("Wall sections beside a caged overhang keep their normal speed", "[ExtrusionProcessor][Regression]")
+{
+    const char* wall_generator = GENERATE("classic", "arachne");
+    INFO("wall generator: " << wall_generator);
+
+    const std::vector<double> feed_rates = cage_shoulder_feed_rates(caged_overhang_gcode(wall_generator));
+    info_feed_rates("cage shoulder", feed_rates);
+
+    REQUIRE_FALSE(feed_rates.empty());
+
+    const double slowest = *std::min_element(feed_rates.begin(), feed_rates.end());
+    REQUIRE_THAT(slowest / MM_PER_MIN, Catch::Matchers::WithinRel(caged_outer_wall_speed, 0.01));
+}
+
+TEST_CASE("Benchmark caged overhang interior sampling", "[ExtrusionProcessor][!benchmark]")
 {
     const char* wall_generator = GENERATE("classic", "arachne");
 
