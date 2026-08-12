@@ -6451,7 +6451,24 @@ LayerResult GCode::process_layer(
 
                         // Make sure ironing is the last
                         if (support_extrusion_role == erMixed || support_extrusion_role == erSupportMaterialInterface) {
-                            gcode += this->extrude_support(*instance_to_print.object_by_extruder.support, erIroning);
+                            const ExtrusionEntityCollection &support_fills   = *instance_to_print.object_by_extruder.support;
+                            const PrintObjectConfig         &object_config   = instance_to_print.print_object.config();
+                            // ORCA: a zero flow ironing pass only polishes the interface, so retract first to keep the
+                            // nozzle from oozing onto it. Only worth doing if this layer has ironing paths at all.
+                            const bool zero_flow_ironing = object_config.support_ironing_flow.value == 0 &&
+                                object_config.support_ironing_retract.value > 0 &&
+                                std::any_of(support_fills.entities.begin(), support_fills.entities.end(),
+                                            [](const ExtrusionEntity *ee) { return ee->role() == erIroning; });
+                            if (zero_flow_ironing) {
+                                gcode += this->writer().ironing_e_move(-object_config.support_ironing_retract.value, "support ironing retract");
+                                this->writer().set_force_emit_zero_e(true);
+                            }
+                            gcode += this->extrude_support(support_fills, erIroning);
+                            if (zero_flow_ironing) {
+                                this->writer().set_force_emit_zero_e(false);
+                                gcode += this->writer().ironing_e_move(object_config.support_ironing_retract.value + object_config.support_ironing_unretract_extra.value,
+                                                                       "support ironing unretract");
+                            }
                         }
                     }
 

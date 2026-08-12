@@ -1,5 +1,10 @@
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
+#include <sstream>
+#include <string>
+#include <vector>
+
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Layer.hpp"
 
@@ -103,4 +108,69 @@ TEST_CASE("Support G-code emission survives a second slice in the same process",
 
     const std::string second = slice({ TestMesh::overhang }, { { "enable_support", 1 } });
     REQUIRE(! layers_with_role(second, "support").empty());
+}
+
+// Lines of the first ironing block: everything between ";TYPE:Ironing" and the next ";TYPE:"
+// (or ";LAYER_CHANGE"), plus the `before` lines preceding the tag.
+static std::pair<std::vector<std::string>, std::vector<std::string>> ironing_block(const std::string &gcode, size_t before = 20)
+{
+    std::vector<std::string> lines;
+    std::istringstream stream(gcode);
+    std::string line;
+    while (std::getline(stream, line))
+        lines.emplace_back(line);
+    auto tag = std::find_if(lines.begin(), lines.end(), [](const std::string &l) { return l.rfind(";TYPE:Ironing", 0) == 0; });
+    REQUIRE(tag != lines.end());
+    auto block_end = std::find_if(tag + 1, lines.end(), [](const std::string &l) {
+        return l.rfind(";TYPE:", 0) == 0 || l.rfind(";LAYER_CHANGE", 0) == 0;
+    });
+    auto first = tag - std::min<size_t>(before, tag - lines.begin());
+    return { std::vector<std::string>(first, tag), std::vector<std::string>(tag + 1, block_end) };
+}
+
+// A zero flow support ironing pass extrudes nothing, so the interface flow has no cross section
+// at all — which used to abort slicing — and the pass retracts to stop the nozzle oozing onto
+// the surface it just smoothed.
+TEST_CASE("Zero flow support ironing retracts around the ironing block", "[SupportMaterial][Ironing]")
+{
+    auto sliced = [](int ironing_flow) {
+        return slice({ TestMesh::overhang }, {
+            { "enable_support",                  1 },
+            { "support_interface_top_layers",    2 },
+            { "support_ironing",                 1 },
+            { "support_ironing_flow",            ironing_flow },
+            { "support_ironing_retract",         5 },
+            { "support_ironing_unretract_extra", 0.5 },
+            { "use_relative_e_distances",        1 },
+        });
+    };
+
+    SECTION("zero flow") {
+        const auto [before, block] = ironing_block(sliced(0));
+
+        // The 5mm ironing retract precedes the block; the unretract (5 + 0.5 extra) closes it.
+        const bool retract_before = std::any_of(before.begin(), before.end(),
+            [](const std::string &l) { return l.rfind("G1 E-5 ", 0) == 0; });
+        REQUIRE(retract_before);
+        const bool unretract_in_block = std::any_of(block.begin(), block.end(),
+            [](const std::string &l) { return l.rfind("G1 E5.5 ", 0) == 0; });
+        REQUIRE(unretract_in_block);
+
+        // Ironing strokes carry an explicit E word even at zero flow — the preview
+        // relies on it to tell strokes apart from travel moves.
+        const bool stroke_with_e = std::any_of(block.begin(), block.end(),
+            [](const std::string &l) { return l.rfind("G1 X", 0) == 0 && l.find(" E") != std::string::npos; });
+        REQUIRE(stroke_with_e);
+    }
+
+    SECTION("non-zero flow leaves the pass untouched") {
+        const auto [before, block] = ironing_block(sliced(10));
+
+        const bool retract_before = std::any_of(before.begin(), before.end(),
+            [](const std::string &l) { return l.rfind("G1 E-5 ", 0) == 0; });
+        REQUIRE_FALSE(retract_before);
+        const bool unretract_in_block = std::any_of(block.begin(), block.end(),
+            [](const std::string &l) { return l.rfind("G1 E5.5 ", 0) == 0; });
+        REQUIRE_FALSE(unretract_in_block);
+    }
 }
