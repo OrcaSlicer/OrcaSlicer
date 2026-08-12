@@ -3559,6 +3559,7 @@ static void clamp_exturder_to_default(ConfigOptionInt &opt, size_t num_extruders
         opt.value = 1;
 }
 
+// num_extruders may include virtual mixed filaments (physical + enabled mixes).
 static void clamp_feature_filament_to_valid(ConfigOptionInt &opt, size_t num_extruders)
 {
     if (opt.value <= 0 || opt.value > (int)num_extruders)

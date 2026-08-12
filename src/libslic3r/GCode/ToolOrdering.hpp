@@ -11,6 +11,7 @@
 #include "../FilamentGroup.hpp"
 #include "../ExtrusionEntity.hpp"
 #include "../PrintConfig.hpp"
+#include "../MixedFilament.hpp"
 
 namespace Slic3r {
 
@@ -167,12 +168,20 @@ public:
     // Custom G-code (color change, extruder switch, pause) to be performed before this layer starts to print.
     const CustomGCode::Item    *custom_gcode = nullptr;
 
+    // Mixed-filament resolution context (set by ToolOrdering during collect_extruders).
+    const MixedFilamentManager *mixed_mgr    = nullptr;
+    size_t                      num_physical = 0;
+    int                         layer_index  = 0;
+
     WipingExtrusions& wiping_extrusions() {
         m_wiping_extrusions.set_layer_tools_ptr(this);
         return m_wiping_extrusions;
     }
 
 private:
+    // Resolve a 1-based filament ID through the mixed-filament manager for this layer.
+    unsigned int resolve_mixed_1based(unsigned int filament_id) const;
+
     // This object holds list of extrusion that will be used for extruder wiping
     WipingExtrusions m_wiping_extrusions;
 };
@@ -267,6 +276,9 @@ private:
     std::vector<unsigned int> generate_first_layer_tool_order(const Print& print);
     std::vector<unsigned int> generate_first_layer_tool_order(const PrintObject& object);
 
+    // Resolve a 1-based filament ID through the mixed-filament manager.
+    unsigned int resolve_mixed(unsigned int filament_id_1based, int layer_index) const;
+
     std::vector<LayerTools>    m_layer_tools;
     // First printing extruder, including the multi-material priming sequence.
     unsigned int               m_first_printing_extruder = (unsigned int)-1;
@@ -279,6 +291,10 @@ private:
     const PrintObject*         m_print_object_ptr = nullptr;
     Print*                     m_print;
     bool                       m_sorted = false;
+
+    // Mixed filament support: pointer to manager (owned by Print) and number of physical extruders.
+    const MixedFilamentManager *m_mixed_mgr   = nullptr;
+    size_t                      m_num_physical = 0;
 
     FilamentChangeStats        m_stats_by_single_extruder;
     FilamentChangeStats        m_stats_by_multi_extruder_curr;

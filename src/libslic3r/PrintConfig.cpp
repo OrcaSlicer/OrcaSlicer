@@ -4850,6 +4850,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionString());
 
+    def = this->add("mixed_filament_definitions", coString);
+    def->label = L("Mixed filament definitions");
+    def->tooltip = L("Serialized virtual mixed filaments (pair-mix). Rows ';' separated: "
+                     "A,B,enabled,ratio_a,ratio_b (1-based physical IDs). Example: 1,2,1,1,1");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString(""));
+
     def = this->add("host_type", coEnum);
     def->label = L("Host Type");
     def->tooltip = L("Orca Slicer can upload G-code files to a printer host. This field must contain "
@@ -8594,7 +8601,11 @@ void DynamicPrintConfig::normalize_fdm(int used_filaments)
 
         ConfigOptionEnum<TimelapseType>* timelapse_opt = this->option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
         bool is_smooth_timelapse = timelapse_opt != nullptr && timelapse_opt->value == TimelapseType::tlSmooth;
-        if (!is_smooth_timelapse && (used_filaments == 1 || ps_opt->value == PrintSequence::ByObject)) {
+        // Pair-mix (virtual mixed filaments) is multi-tool even when used_filaments still
+        // reports 1 before expand — do not strip the prime tower in that case.
+        const ConfigOptionString *mixed_defs = this->option<ConfigOptionString>("mixed_filament_definitions");
+        const bool has_pair_mix = mixed_defs != nullptr && !mixed_defs->value.empty();
+        if (!is_smooth_timelapse && ((used_filaments == 1 && !has_pair_mix) || ps_opt->value == PrintSequence::ByObject)) {
             ept_opt->value = false;
         }
 
@@ -8700,7 +8711,12 @@ t_config_option_keys DynamicPrintConfig::normalize_fdm_2(int num_objects, int us
         ConfigOptionBool *enable_wrapping_opt = this->option<ConfigOptionBool>("enable_wrapping_detection");
         bool enable_wrapping = enable_wrapping_opt != nullptr && enable_wrapping_opt->value;
 
-        if (!is_smooth_timelapse && !enable_wrapping && (used_filaments == 1 || (ps_opt->value == PrintSequence::ByObject && num_objects > 1))) {
+        // Pair-mix definitions imply multi-physical tools at slice time.
+        const ConfigOptionString *mixed_defs = this->option<ConfigOptionString>("mixed_filament_definitions");
+        const bool has_pair_mix = mixed_defs != nullptr && !mixed_defs->value.empty();
+
+        if (!is_smooth_timelapse && !enable_wrapping &&
+            ((used_filaments == 1 && !has_pair_mix) || (ps_opt->value == PrintSequence::ByObject && num_objects > 1))) {
             if (ept_opt->value) {
                 ept_opt->value = false;
                 changed_keys.push_back("enable_prime_tower");

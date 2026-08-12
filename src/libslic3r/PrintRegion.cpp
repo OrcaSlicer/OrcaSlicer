@@ -94,17 +94,19 @@ void PrintRegion::collect_object_printing_extruders(const PrintConfig &print_con
 
 void PrintRegion::collect_object_printing_extruders(const Print &print, std::vector<unsigned int> &object_extruders) const
 {
-    // PrintRegion, if used by some PrintObject, shall have all the extruders set to an existing printer extruder.
+    // PrintRegion, if used by some PrintObject, shall have all the extruders set to an existing printer extruder
+    // or to a virtual mixed filament ID (num_physical+1 ... total_filaments).
     // If not, then there must be something wrong with the Print::apply() function.
 #ifndef NDEBUG
     // BBS
-    auto num_extruders = int(print.config().filament_diameter.size());
-    assert(this->config().outer_wall_filament_id    <= num_extruders);
-    assert(this->config().inner_wall_filament_id    <= num_extruders);
-    assert(this->config().sparse_infill_filament_id       <= num_extruders);
-    assert(this->config().internal_solid_filament_id <= num_extruders);
-    assert(this->config().top_surface_filament_id <= num_extruders);
-    assert(this->config().bottom_surface_filament_id <= num_extruders);
+    auto num_physical = size_t(print.config().filament_diameter.size());
+    auto num_total    = int(print.mixed_filament_manager().total_filaments(num_physical));
+    assert(this->config().outer_wall_filament_id    <= num_total);
+    assert(this->config().inner_wall_filament_id    <= num_total);
+    assert(this->config().sparse_infill_filament_id       <= num_total);
+    assert(this->config().internal_solid_filament_id <= num_total);
+    assert(this->config().top_surface_filament_id <= num_total);
+    assert(this->config().bottom_surface_filament_id <= num_total);
 #endif
     collect_object_printing_extruders(print.config(), this->config(), print.has_brim(), object_extruders);
 }

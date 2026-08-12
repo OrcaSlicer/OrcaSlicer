@@ -700,12 +700,22 @@ public:
 		if (e != 0.f)
 			m_gcode += set_format_E(e);
 
-		if (f != 0.f && f != m_current_feedrate) {
-            if (limit_volumetric_flow) {
+        // Pure travel with f==0 used to omit F entirely. After Tn / M109 the printer often has no
+        // valid feedrate (or inherits a slow extrusion F), so dock→tower and tower approaches crawl.
+        // Always emit F on pure travels (even if it matches m_current_feedrate) so post-Tn G-code
+        // re-states feedrate after the toolchange command. Default 500 mm/s (30000 mm/min).
+        if (e == 0.f) {
+            if (f == 0.f)
+                f = (m_current_feedrate > 1.f) ? m_current_feedrate : 30000.f;
+            m_gcode += set_format_F(f);
+            m_current_feedrate = f;
+        } else if (f != 0.f && f != m_current_feedrate) {
+            if (limit_volumetric_flow && len + std::abs(e) > 0.f) {
                 float e_speed = e / (((len == 0.f) ? std::abs(e) : len) / f * 60.f);
                 f /= std::max(1.f, e_speed / m_filpar[m_current_tool].max_e_speed);
             }
 			m_gcode += set_format_F(f);
+            m_current_feedrate = f;
         }
 
         // Append newline if at least one of X,Y,E,F was changed.
@@ -719,7 +729,8 @@ public:
         m_current_pos.y() = y;
 
 		// Update the elapsed time with a rough estimate.
-        m_elapsed_time += ((len == 0.f) ? std::abs(e) : len) / m_current_feedrate * 60.f;
+        const float fr = std::max(m_current_feedrate, 1.f);
+        m_elapsed_time += ((len == 0.f) ? std::abs(e) : len) / fr * 60.f;
 		return *this;
 	}
 

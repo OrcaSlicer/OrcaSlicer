@@ -1204,6 +1204,12 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 toolchange_temp_override = interface_temp;
             }
             toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override); // TODO: toolchange_z vs print_z
+            // Re-state travel feedrate after Tn. Wipe-tower approach moves often omit F and would
+            // otherwise inherit a slow extrusion F (or firmware default) after toolchange.
+            {
+                const double travel_mm_s = std::max(1., gcodegen.config().travel_speed.value);
+                toolchange_gcode_str += "G1 F" + std::to_string(int(std::floor(travel_mm_s * 60. + 0.5))) + "\n";
+            }
             if (gcodegen.config().enable_prime_tower) {
                 deretraction_str += gcodegen.writer().travel_to_z(z, "Force restore layer Z", true);
                 Vec3d position{gcodegen.writer().get_position()};
@@ -1453,6 +1459,15 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     oss << " ";
                     line.replace(line.find(cur_gcode_start), 3, oss.str());
                     old_pos = transformed_pos;
+                }
+                // After Tn the printer may have no valid F. Wipe-tower pure travels often omit
+                // feedrate; force travel_speed so dock→tower approaches are not crawl-slow.
+                const bool has_xy = line.find('X') != std::string::npos || line.find('Y') != std::string::npos;
+                const bool has_e  = line.find('E') != std::string::npos;
+                const bool has_f  = line.find('F') != std::string::npos;
+                if (has_xy && !has_e && !has_f) {
+                    const double travel_mm_s = std::max(1., m_print_config->travel_speed.value);
+                    line += " F" + std::to_string(int(std::floor(travel_mm_s * 60. + 0.5)));
                 }
             }
 

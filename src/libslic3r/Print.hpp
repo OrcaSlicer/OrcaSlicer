@@ -17,6 +17,7 @@
 #include "GCode/ThumbnailData.hpp"
 #include "GCode/GCodeProcessor.hpp"
 #include "MultiMaterialSegmentation.hpp"
+#include "MixedFilament.hpp"
 #include "libslic3r.h"
 
 #include <Eigen/Geometry>
@@ -940,6 +941,9 @@ public:
     std::vector<unsigned int> object_extruders() const;
     std::vector<unsigned int> support_material_extruders() const;
     std::vector<unsigned int> extruders(bool conside_custom_gcode = false) const;
+
+    const MixedFilamentManager &mixed_filament_manager() const { return m_mixed_filament_mgr; }
+    MixedFilamentManager       &mixed_filament_manager() { return m_mixed_filament_mgr; }
     double              max_allowed_layer_height() const;
     bool                has_support_material() const;
     // Make sure the background processing has no access to this model_object during this call!
@@ -1152,6 +1156,9 @@ private:
     PrintRegionConfig                       m_default_region_config;
     PrintObjectPtrs                         m_objects;
     PrintRegionPtrs                         m_print_regions;
+
+    // M3 pair-mix: virtual mixed filaments resolved at tool-ordering time.
+    MixedFilamentManager                    m_mixed_filament_mgr;
     
     //SoftFever
     bool m_isBBLPrinter;

@@ -1287,6 +1287,18 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         }
     }
 
+    // M3 pair-mix: always reload manager from print config (including empty = clear).
+    {
+        std::string mixed_defs;
+        if (new_full_config.has("mixed_filament_definitions"))
+            mixed_defs = new_full_config.opt_string("mixed_filament_definitions");
+        else if (m_config.option("mixed_filament_definitions"))
+            mixed_defs = m_config.mixed_filament_definitions.value;
+        m_mixed_filament_mgr.load_definitions(mixed_defs);
+    }
+    // Allow virtual mix IDs (num_physical+1..) when clamping region/object extruder fields.
+    const size_t num_total_filaments = m_mixed_filament_mgr.total_filaments(num_extruders);
+
     ModelObjectStatusDB model_object_status_db;
 
     // 1) Synchronize model objects.
@@ -1474,7 +1486,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 			if (object_config_changed)
 				model_object.config.assign_config(model_object_new.config);
             if (! object_diff.empty() || object_config_changed || num_extruders_changed ) {
-                PrintObjectConfig new_config = PrintObject::object_config_from_model_object(m_default_object_config, model_object, num_extruders );
+                PrintObjectConfig new_config = PrintObject::object_config_from_model_object(m_default_object_config, model_object, num_total_filaments );
                 for (const PrintObjectStatus &print_object_status : print_object_status_db.get_range(model_object)) {
                     t_config_option_keys diff = print_object_status.print_object->config().diff(new_config);
                     if (! diff.empty()) {
@@ -1540,10 +1552,10 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             // Generate a list of trafos and XY offsets for instances of a ModelObject
             // Producing the config for PrintObject on demand, caching it at print_object_last.
             const PrintObject *print_object_last = nullptr;
-            auto print_object_apply_config = [this, &print_object_last, model_object, num_extruders ](PrintObject *print_object) {
+            auto print_object_apply_config = [this, &print_object_last, model_object, num_total_filaments ](PrintObject *print_object) {
                 print_object->config_apply(print_object_last ?
                     print_object_last->config() :
-                    PrintObject::object_config_from_model_object(m_default_object_config, *model_object, num_extruders ));
+                    PrintObject::object_config_from_model_object(m_default_object_config, *model_object, num_total_filaments ));
                 print_object_last = print_object;
             };
             if (old.empty()) {
@@ -1708,7 +1720,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 verify_update_print_object_regions(
                     print_object.model_object()->volumes,
                     m_default_region_config,
-                    num_extruders,
+                    num_total_filaments,
                     *print_object_regions,
                     [it_print_object, it_print_object_end, &update_apply_status](const PrintRegionConfig &old_config, const PrintRegionConfig &new_config, const t_config_option_keys &diff_keys) {
                         for (auto it = it_print_object; it != it_print_object_end; ++it)
@@ -1733,7 +1745,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 LayerRanges(print_object.model_object()->layer_config_ranges),
                 m_default_region_config,
                 model_object_status.print_instances.front().trafo,
-                num_extruders ,
+                num_total_filaments,
                 print_object.is_mm_painted() ? 0.f : float(print_object.config().xy_contour_compensation.value),
                 painting_extruders,
                 print_object.is_fuzzy_skin_painted());

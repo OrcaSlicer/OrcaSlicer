@@ -1656,6 +1656,9 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionPoint,               bed_mesh_probe_distance))
     ((ConfigOptionFloat,               adaptive_bed_mesh_margin))
 
+    // M3 pair-mix: serialized virtual mixed filaments (see MixedFilament.hpp).
+    ((ConfigOptionString,              mixed_filament_definitions))
+
 
 )
 

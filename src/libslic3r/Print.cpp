@@ -240,7 +240,9 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "filament_notes",
         "process_notes",
         "printer_notes",
-        "use_3mf"
+        "use_3mf",
+        // M3 pair-mix definitions only affect tool ordering / G-code export.
+        "mixed_filament_definitions"
     };
 
     static std::unordered_set<std::string> steps_ignore;
@@ -452,11 +454,33 @@ std::vector<unsigned int> Print::object_extruders() const
 {
     std::vector<unsigned int> extruders;
     extruders.reserve(m_print_regions.size() * m_objects.size() * 3);
+    const size_t num_physical = m_config.filament_diameter.size();
 
     //Orca: Collect extruders from all regions.
+    // collect_object_printing_extruders clamps unknown virtual IDs; re-expand
+    // from region config so mixed components appear as physical tools.
     for (const PrintObject *object : m_objects)
-		for (const PrintRegion &region : object->all_regions())
+		for (const PrintRegion &region : object->all_regions()) {
         	region.collect_object_printing_extruders(*this, extruders);
+            const PrintRegionConfig &rc = region.config();
+            auto expand = [&](int filament_id_1based) {
+                if (filament_id_1based > 0)
+                    m_mixed_filament_mgr.append_physical_0based(unsigned(filament_id_1based), num_physical, extruders);
+            };
+            if (rc.wall_loops.value > 0 || this->has_brim()) {
+                expand(rc.outer_wall_filament_id.value);
+                if (rc.wall_loops.value > 1)
+                    expand(rc.inner_wall_filament_id.value);
+            }
+            if (rc.sparse_infill_density.value > 0)
+                expand(rc.sparse_infill_filament_id.value);
+            if (rc.sparse_infill_density.value > 0 || rc.top_shell_layers.value > 0 || rc.bottom_shell_layers.value > 0)
+                expand(rc.internal_solid_filament_id.value);
+            if (rc.top_shell_layers.value > 0)
+                expand(rc.top_surface_filament_id.value);
+            if (rc.bottom_shell_layers.value > 0)
+                expand(rc.bottom_surface_filament_id.value);
+        }
 
     for (const PrintObject* object : m_objects) {
         const ModelObject* mo = object->model_object();
@@ -464,7 +488,7 @@ std::vector<unsigned int> Print::object_extruders() const
             std::vector<int> volume_extruders = mv->get_extruders();
             for (int extruder : volume_extruders) {
                 assert(extruder > 0);
-                extruders.push_back(extruder - 1);
+                m_mixed_filament_mgr.append_physical_0based(unsigned(extruder), num_physical, extruders);
             }
         }
 
@@ -476,7 +500,7 @@ std::vector<unsigned int> Print::object_extruders() const
                 //Add protection here to avoid overflow
                 auto value = layer_range.second.option("extruder")->getInt();
                 if (value > 0)
-                    extruders.push_back(value - 1);
+                    m_mixed_filament_mgr.append_physical_0based(unsigned(value), num_physical, extruders);
             }
         }
     }

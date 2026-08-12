@@ -357,6 +357,8 @@ set(lisbslic3r_sources
     PrintConfig.hpp
     Print.cpp
     Print.hpp
+    MixedFilament.cpp
+    MixedFilament.hpp
     PrintObject.cpp
     PrintObjectSlice.cpp
     PrintRegion.cpp
