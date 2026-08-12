@@ -3,7 +3,7 @@
     "name": "CR-TPU @SPARKX i7-all",
     "inherits": "fdm_filament_tpu",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "mCfhjDYJc8oh3k2X",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

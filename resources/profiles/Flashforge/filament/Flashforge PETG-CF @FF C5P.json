@@ -3,6 +3,7 @@
 	"name": "Flashforge PETG-CF @FF C5P",
 	"inherits": "Generic PETG-CF @System",
 	"from": "system",
+	"setting_id": "8Ns75F5n2fdQ8sDk",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Creator 5 Pro 0.4 nozzle",

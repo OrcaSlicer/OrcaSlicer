@@ -3,7 +3,7 @@
 	"name": "Prusament PA-CF @CORE One 0.6",
 	"inherits": "Prusament PA-CF @CORE One",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "sEDEmqR4k65IhJ4D",
 	"filament_id": "Prusament PA-CF @CORE One 0.6",
 	"instantiation": "true",
 	"compatible_printers": [

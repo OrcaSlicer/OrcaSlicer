@@ -3,7 +3,7 @@
 	"name": "Elegoo PET-CF @System",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "OEPETCFS00",
+	"setting_id": "oloKoC4Bs8dXatMU",
 	"instantiation": "true",
 	"renamed_from": "Elegoo PET-CF",
 	"pressure_advance": [

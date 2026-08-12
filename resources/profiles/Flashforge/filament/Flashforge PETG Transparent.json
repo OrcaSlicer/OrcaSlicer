@@ -3,7 +3,7 @@
 	"name": "Flashforge PETG Transparent",
 	"inherits": "Flashforge Generic PETG",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "3Gv6MJ3RRja5pbOM",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"60"

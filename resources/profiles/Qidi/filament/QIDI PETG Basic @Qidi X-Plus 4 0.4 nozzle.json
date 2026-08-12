@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Basic @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "QIDI PETG Basic",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "33Anr90IUQGC3jJZ",
 	"filament_id": "QD_0_1_39",
 	"instantiation": "true",
 	"fan_max_speed": [

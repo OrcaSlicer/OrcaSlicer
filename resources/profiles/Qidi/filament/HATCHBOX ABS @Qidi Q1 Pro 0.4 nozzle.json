@@ -3,7 +3,7 @@
 	"name": "HATCHBOX ABS @Qidi Q1 Pro 0.4 nozzle",
 	"inherits": "HATCHBOX ABS @Qidi",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "0NVX3dTScYTIebm3",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

@@ -3,7 +3,7 @@
 	"name": "Elegoo TPU 95A @EN3 Series",
 	"inherits": "Elegoo TPU @base",
 	"from": "system",
-	"setting_id": "ETPU95AEN3",
+	"setting_id": "4W6ZheJxNPUPxe1s",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3.2"

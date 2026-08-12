@@ -3,7 +3,7 @@
 	"name": "TwoTrees Generic 95A TPU @SK1",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "GFSU99",
+	"setting_id": "YqQSUrG195dCz67L",
 	"filament_id": "GFU99",
 	"instantiation": "true",
 	"compatible_printers": [

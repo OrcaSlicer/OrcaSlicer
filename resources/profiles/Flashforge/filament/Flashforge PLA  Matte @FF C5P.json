@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA  Matte @FF C5P",
 	"inherits": "Generic PLA @System",
 	"from": "system",
+	"setting_id": "FpLoe6QrPXnrH019",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

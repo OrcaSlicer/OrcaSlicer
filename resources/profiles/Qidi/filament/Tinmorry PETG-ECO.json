@@ -3,7 +3,7 @@
 	"name": "Tinmorry PETG-ECO",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "uVa250OrqClMz41k",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [

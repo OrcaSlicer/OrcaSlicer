@@ -3,7 +3,7 @@
 	"name": "QIDI TPU-Aero",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "GFSR99",
+	"setting_id": "BARooxJKaDXbGd9B",
 	"filament_id": "GFU99",
 	"instantiation": "true",
 	"filament_type": [
@@ -52,8 +52,6 @@
 		"Qidi X-Smart 3 0.4 nozzle",
 		"Qidi X-Plus 3 0.4 nozzle",
 		"Qidi X-Max 3 0.4 nozzle",
-		"Qidi X-Max 0.6 nozzle",
-		"Qidi X-CF Pro 0.6 nozzle",
 		"Qidi X-Smart 3 0.6 nozzle",
 		"Qidi X-Plus 3 0.6 nozzle",
 		"Qidi X-Max 3 0.6 nozzle"

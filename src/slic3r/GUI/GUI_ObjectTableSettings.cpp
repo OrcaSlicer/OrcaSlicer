@@ -223,7 +223,7 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
         std::weak_ptr<ConfigOptionsGroup> weak_optgroup(optgroup);
         optgroup->m_on_change = [this, is_object, object, config, group_category](const t_config_option_key &opt_id, const boost::any &value) {
                                     this->m_parent->Freeze();
-                                    this->update_config_values(is_object, object, config, group_category);
+                                    this->update_config_values(is_object, object, config, group_category, opt_id);
                                     wxGetApp().obj_list()->changed_object();
                                     this->m_parent->Thaw();
                                     //update_extra_column_visible_status(optgroup.get(), cat.second, config);
@@ -300,7 +300,7 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
         bool is_BBL_printer = wxGetApp().preset_bundle->is_bbl_vendor();
         config_manipulation.set_is_BBL_Printer(is_BBL_printer);
 
-        printer_technology == ptFFF  ?  config_manipulation.toggle_print_fff_options(&m_current_config) :
+        printer_technology == ptFFF  ?  config_manipulation.toggle_print_fff_options(&m_current_config, 0) :
                                         config_manipulation.toggle_print_sla_options(&m_current_config) ;
         optgroup->update_visibility(wxGetApp().get_mode());
     }
@@ -369,7 +369,7 @@ int ObjectTableSettings::update_extra_column_visible_status(ConfigOptionsGroup* 
     return count;
 }
 
-void ObjectTableSettings::update_config_values(bool is_object, ModelObject* object, ModelConfig* config, const std::string& category)
+void ObjectTableSettings::update_config_values(bool is_object, ModelObject* object, ModelConfig* config, const std::string& category, const std::string& changed_opt_key)
 {
     int different_count = 0;
     const auto printer_technology   = wxGetApp().plater()->printer_technology();
@@ -403,10 +403,13 @@ void ObjectTableSettings::update_config_values(bool is_object, ModelObject* obje
 
     config_manipulation.set_is_BBL_Printer(wxGetApp().preset_bundle->is_bbl_vendor());
 
+    if (printer_technology == ptFFF && changed_opt_key == "layer_height")
+        config_manipulation.check_layer_height(&main_config);
+
     printer_technology == ptFFF  ?  config_manipulation.update_print_fff_config(&main_config) :
                                     config_manipulation.update_print_sla_config(&main_config) ;
 
-    printer_technology == ptFFF  ?  config_manipulation.toggle_print_fff_options(&main_config) :
+    printer_technology == ptFFF  ?  config_manipulation.toggle_print_fff_options(&main_config, 0) :
                                     config_manipulation.toggle_print_sla_options(&main_config) ;
     for (auto og : m_og_settings) {
         og->update_visibility(wxGetApp().get_mode());

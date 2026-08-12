@@ -3,6 +3,7 @@
     "name": "FilAr PETG Gris Ceniza",
     "inherits": "FilAr PETG @base",
     "from": "system",
+    "setting_id": "oYjDczRs4U1JdteC",
     "filament_id": "FILAR0056",
     "instantiation": "true",
     "filament_vendor": [

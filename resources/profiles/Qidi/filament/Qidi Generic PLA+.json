@@ -3,7 +3,7 @@
 	"name": "Qidi Generic PLA+",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "LNjBixpjLg5i8P1d",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_type": [
@@ -34,20 +34,11 @@
 		"220"
 	],
 	"compatible_printers": [
-		"Qidi X-Plus 0.2 nozzle",
-		"Qidi X-Max 0.2 nozzle",
-		"Qidi X-CF Pro 0.2 nozzle",
 		"Qidi X-Plus 0.4 nozzle",
 		"Qidi X-Max 0.4 nozzle",
 		"Qidi X-CF Pro 0.4 nozzle",
 		"Qidi X-Smart 3 0.4 nozzle",
 		"Qidi X-Plus 3 0.4 nozzle",
-		"Qidi X-Max 3 0.4 nozzle",
-		"Qidi X-Plus 0.6 nozzle",
-		"Qidi X-Max 0.6 nozzle",
-		"Qidi X-CF Pro 0.6 nozzle",
-		"Qidi X-Plus 0.8 nozzle",
-		"Qidi X-Max 0.8 nozzle",
-		"Qidi X-CF Pro 0.8 nozzle"
+		"Qidi X-Max 3 0.4 nozzle"
 	]
 }

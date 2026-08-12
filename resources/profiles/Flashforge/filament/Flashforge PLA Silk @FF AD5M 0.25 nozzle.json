@@ -3,7 +3,7 @@
 	"name": "Flashforge PLA Silk @FF AD5M 0.25 nozzle",
 	"inherits": "Flashforge PLA-SILK @FF AD5M 0.25 Nozzle",
 	"from": "system",
-	"setting_id": "GFSA04_25",
+	"setting_id": "gxl3i7jTwkzrKxF4",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PLA Silk @FF AD5M 0.25 nozzle"

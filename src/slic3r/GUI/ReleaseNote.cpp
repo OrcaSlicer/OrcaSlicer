@@ -137,7 +137,7 @@ UpdatePluginDialog::UpdatePluginDialog(wxWindow* parent /*= nullptr*/)
     m_text_up_info->SetForegroundColour(wxColour(0x26, 0x2E, 0x30));
 
 
-    operation_tips = new ::Label(this, Label::Body_12, _L("Click OK to update the Network plug-in the next time Orca Slicer launches."), LB_AUTO_WRAP);
+    operation_tips = new ::Label(this, Label::Body_12, _L("Click OK to update the Network plug-in now. If a file is in use, the update will be applied the next time Orca Slicer launches."), LB_AUTO_WRAP);
     operation_tips->SetMinSize(wxSize(FromDIP(260), -1));
     operation_tips->SetMaxSize(wxSize(FromDIP(260), -1));
 
@@ -202,34 +202,45 @@ void UpdatePluginDialog::update_info(std::string json_path)
     wxString version;
     wxString description;
 
+    // Parse defensively: a missing or malformed changelog must never leave the
+    // dialog blank, so fall back to a generic prompt instead of returning early.
     try {
         boost::nowide::ifstream ifs(json_path);
         json j;
         ifs >> j;
 
-        version_str = j["version"];
-        description_str = j["description"];
+        if (j.contains("version"))
+            version_str = j["version"];
+        if (j.contains("description"))
+            description_str = j["description"];
     }
-    catch (nlohmann::detail::parse_error& err) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << json_path << " got a nlohmann::detail::parse_error, reason = " << err.what();
-        return;
+    catch (std::exception& err) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << json_path << " failed, reason = " << err.what();
     }
 
     version = from_u8(version_str);
     description = from_u8(description_str);
 
-    m_text_up_info->SetLabel(wxString::Format(_L("A new Network plug-in (%s) is available. Do you want to install it?"), version));
+    if (version.IsEmpty())
+        m_text_up_info->SetLabel(_L("A new Network plug-in is available. Do you want to install it?"));
+    else
+        m_text_up_info->SetLabel(wxString::Format(_L("A new Network plug-in (%s) is available. Do you want to install it?"), version));
     m_text_up_info->SetMinSize(wxSize(FromDIP(260), -1));
     m_text_up_info->SetMaxSize(wxSize(FromDIP(260), -1));
-    wxBoxSizer* sizer_text_release_note = new wxBoxSizer(wxVERTICAL);
-    auto        m_text_label            = new ::Label(m_vebview_release_note, Label::Body_13, description, LB_AUTO_WRAP);
-    m_text_label->SetMinSize(wxSize(FromDIP(235), -1));
-    m_text_label->SetMaxSize(wxSize(FromDIP(235), -1));
 
-    sizer_text_release_note->Add(m_text_label, 0, wxALL, 5);
-    m_vebview_release_note->SetSizer(sizer_text_release_note);
-    m_vebview_release_note->Layout();
-    m_vebview_release_note->Fit();
+    if (description.IsEmpty()) {
+        m_vebview_release_note->Hide();
+    } else {
+        wxBoxSizer* sizer_text_release_note = new wxBoxSizer(wxVERTICAL);
+        auto        m_text_label            = new ::Label(m_vebview_release_note, Label::Body_13, description, LB_AUTO_WRAP);
+        m_text_label->SetMinSize(wxSize(FromDIP(235), -1));
+        m_text_label->SetMaxSize(wxSize(FromDIP(235), -1));
+
+        sizer_text_release_note->Add(m_text_label, 0, wxALL, 5);
+        m_vebview_release_note->SetSizer(sizer_text_release_note);
+        m_vebview_release_note->Layout();
+        m_vebview_release_note->Fit();
+    }
     wxGetApp().UpdateDlgDarkUI(this);
     Layout();
     Fit();
@@ -1524,7 +1535,7 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
     m_tip4->SetMaxSize(wxSize(FromDIP(355), -1));
 
     // ORCA standardized HyperLink
-    m_trouble_shoot = new HyperLink(this, "How to trouble shooting");
+    m_trouble_shoot = new HyperLink(this, _L("How to trouble shooting"));
 
     m_img_help = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("input_access_code_x1_en", this, 198), wxDefaultPosition, wxSize(FromDIP(355), -1), 0);
 
@@ -1980,7 +1991,7 @@ void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_
         if (w.expired()) return;
 
         if (m_obj) {
-            m_obj->set_user_access_code(str_access_code);
+            m_obj->set_access_code(str_access_code);
             wxGetApp().getDeviceManager()->set_selected_machine(m_obj->get_dev_id());
         }
 
@@ -2044,6 +2055,11 @@ void InputIpAddressDialog::on_text(wxCommandEvent &evt)
 {
     auto str_ip              = m_input_ip->GetTextCtrl()->GetValue();
     auto str_access_code     = m_input_access_code->GetTextCtrl()->GetValue();
+
+    if (str_access_code.empty()) {
+        str_access_code = "88888888";
+    }
+
     auto str_name            = m_input_printer_name->GetTextCtrl()->GetValue().Strip(wxString::both);
     auto str_sn              = m_input_sn->GetTextCtrl()->GetValue().Strip(wxString::both);
     bool invalid_access_code = true;
@@ -2051,7 +2067,7 @@ void InputIpAddressDialog::on_text(wxCommandEvent &evt)
     for (char c : str_access_code) {
         if (!(('0' <= c && c <= '9') || ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z'))) {
             invalid_access_code = false;
-            return;
+            break;
         }
     }
 

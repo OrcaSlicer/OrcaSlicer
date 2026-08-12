@@ -3,6 +3,7 @@
     "name": "FilAr PLA-mate Bordo",
     "inherits": "FilAr PLA-mate @base",
     "from": "system",
+    "setting_id": "zV2dKrknk0ThDv36",
     "filament_id": "FILAR0034",
     "instantiation": "true",
     "filament_vendor": [

@@ -3,7 +3,7 @@
 	"name": "Flashforge TPU 95A @FF AD5X",
 	"inherits": "Flashforge Generic TPU",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "ThakVhjfpgnAlEVH",
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"40"

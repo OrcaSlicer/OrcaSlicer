@@ -3,7 +3,7 @@
 	"name": "Qidi Generic TPU 95A @Qidi X-Plus 4 0.8 nozzle",
 	"inherits": "Qidi Generic TPU 95A",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "5fkE2aGkghsMdZ1W",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [

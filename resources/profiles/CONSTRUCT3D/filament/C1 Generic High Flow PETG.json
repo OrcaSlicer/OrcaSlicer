@@ -3,7 +3,7 @@
 	"name": "C1 Generic High Flow PETG",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "3IxBZSWFfFGmKAQ7",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [

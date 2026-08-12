@@ -3,7 +3,7 @@
     "name": "CR-PLA @K2 SE-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "j8Iaz6y4iiOw2I5n",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

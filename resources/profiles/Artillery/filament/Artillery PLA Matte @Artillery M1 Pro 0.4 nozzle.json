@@ -3,6 +3,7 @@
 	"name": "Artillery PLA Matte @Artillery M1 Pro 0.4 nozzle",
 	"inherits": "Artillery Generic PLA",
 	"from": "system",
+	"setting_id": "9zqAIfywiv9zm77X",
 	"instantiation": "true",
 	"complete_print_exhaust_fan_speed": [
 		"0"

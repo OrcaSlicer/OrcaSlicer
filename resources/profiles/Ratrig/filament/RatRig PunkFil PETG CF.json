@@ -3,7 +3,7 @@
 	"name": "RatRig PunkFil PETG CF",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "o2dP6EwooarikQ8R",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

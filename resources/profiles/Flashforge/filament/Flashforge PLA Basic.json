@@ -3,7 +3,7 @@
 	"name": "Flashforge PLA Basic",
 	"inherits": "Flashforge Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "5XKGaHUjxHECbnHO",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PLA Basic"

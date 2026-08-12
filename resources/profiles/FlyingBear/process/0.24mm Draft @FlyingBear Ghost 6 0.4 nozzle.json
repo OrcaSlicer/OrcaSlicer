@@ -3,7 +3,7 @@
 	"name": "0.24mm Draft @FlyingBear Ghost 6 0.4 nozzle",
 	"inherits": "fdm_process_ghost_6",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "FWGFDXzBWjGXOtlO",
 	"instantiation": "true",
 	"compatible_printers": [
 		"FlyingBear Ghost 6 0.4 nozzle"

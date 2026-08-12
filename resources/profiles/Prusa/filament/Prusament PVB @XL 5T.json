@@ -3,7 +3,7 @@
 	"name": "Prusament PVB @XL 5T",
 	"inherits": "fdm_filament_pvb",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "DIrPylH6rmu6YA43",
 	"instantiation": "true",
 	"nozzle_temperature_intial_layer": "215",
 	"nozzle_temperature": "215",

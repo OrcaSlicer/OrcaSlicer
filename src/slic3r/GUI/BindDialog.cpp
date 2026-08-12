@@ -192,7 +192,7 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
 
 
 
-    SetSizer(sizer_main);
+    SetSizerAndFit(sizer_main);
     Layout();
     Fit();
 
@@ -590,7 +590,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      sizer_error_code->Add(m_st_txt_error_code, 0, wxALL, 0);
 
 
-     auto st_title_error_desc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, wxT("Error desc"));
+     auto st_title_error_desc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, _L("Error desc"));
      auto st_title_error_desc_doc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, ": ");
      m_st_txt_error_desc = new Label(m_sw_bind_failed_info, wxEmptyString);
      st_title_error_desc->SetForegroundColour(0x909090);
@@ -607,7 +607,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      sizer_error_desc->Add(st_title_error_desc_doc, 0, wxALL, 0);
      sizer_error_desc->Add(m_st_txt_error_desc, 0, wxALL, 0);
 
-     auto st_title_extra_info = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, wxT("Extra info"));
+     auto st_title_extra_info = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, _L("Extra info"));
      auto st_title_extra_info_doc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, ": ");
      m_st_txt_extra_info = new Label(m_sw_bind_failed_info, wxEmptyString);
      st_title_extra_info->SetForegroundColour(0x909090);
@@ -670,7 +670,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      m_sizer_main->Add(m_sw_bind_failed_info, 0, wxALIGN_CENTER, 0);
      m_sizer_main->Add(m_simplebook, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, ButtonProps::ChoiceButtonGap());
 
-     SetSizer(m_sizer_main);
+     SetSizerAndFit(m_sizer_main);
      Layout();
      Fit();
      Centre(wxBOTH);
@@ -813,7 +813,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
 
      m_simplebook->SetSelection(0);
      auto m_bind_job = std::make_unique<BindJob>(
-        m_machine_info->get_dev_id(), m_machine_info->get_dev_ip(), m_machine_info->bind_sec_link, m_machine_info->bind_ssdp_version);
+        m_machine_info->get_dev_id(), m_machine_info->get_dev_ip(), m_machine_info->get_show_printer_type(), m_machine_info->bind_sec_link, m_machine_info->bind_ssdp_version);
 
      if (m_machine_info && (m_machine_info->get_printer_series() == PrinterSeries::SERIES_X1)) {
          m_bind_job->set_improved(false);
@@ -992,7 +992,7 @@ UnBindMachineDialog::UnBindMachineDialog(Plater *plater /*= nullptr*/)
      m_sizer_main->Add(m_sizer_button, 0, wxALIGN_RIGHT | wxRIGHT, ButtonProps::ChoiceButtonGap());
      m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(20));
 
-     SetSizer(m_sizer_main);
+     SetSizerAndFit(m_sizer_main);
      Layout();
      Fit();
      Centre(wxBOTH);

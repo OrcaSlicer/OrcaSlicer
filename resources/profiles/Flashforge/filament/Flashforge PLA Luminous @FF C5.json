@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Luminous @FF C5",
 	"inherits": "Generic PLA @System",
 	"from": "system",
+	"setting_id": "4sE1LTVVuRglRbpD",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

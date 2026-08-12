@@ -3,7 +3,7 @@
     "name": "Generic TPU @SPARKX i7-all",
     "inherits": "fdm_filament_tpu",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "v6uEvu5qbKX9kE7T",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

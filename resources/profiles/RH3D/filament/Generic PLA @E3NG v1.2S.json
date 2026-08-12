@@ -3,7 +3,7 @@
 	"name": "Generic PLA @E3NG v1.2S",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "",
+	"setting_id": "b1tuMVA0Hh27wYQH",
 	"filament_id": "Generic PLA @E3NG v1.2S",
 	"instantiation": "true",
 	"compatible_printers": [

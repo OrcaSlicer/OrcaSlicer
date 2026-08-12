@@ -4,7 +4,7 @@
 	"renamed_from": "0.08mm High Quality @Z-Bolt S300;0.08mm High Quality @Z-Bolt S400",
 	"inherits": "fdm_process_zbolt_0.08",
 	"from": "system",
-	"setting_id": "GP003",
+	"setting_id": "MP6HTVlWkZ8xa9QD",
 	"instantiation": "true",
 	"description": "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. So, it results in almost negligible layer lines and much higher printing quality, but much longer printing time.",
 	"default_acceleration": "4000",

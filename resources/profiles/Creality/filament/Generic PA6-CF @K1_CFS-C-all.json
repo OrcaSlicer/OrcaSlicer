@@ -3,7 +3,7 @@
     "name": "Generic PA6-CF @K1_CFS-C-all",
     "inherits": "fdm_filament_pa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "dOmhoYus5mupLjle",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

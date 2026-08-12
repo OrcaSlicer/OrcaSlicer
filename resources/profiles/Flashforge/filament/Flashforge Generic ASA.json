@@ -3,7 +3,7 @@
 	"name": "Flashforge Generic ASA",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "jMCunppmYOH5QIra",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [

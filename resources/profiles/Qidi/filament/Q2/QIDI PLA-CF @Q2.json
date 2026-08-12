@@ -3,7 +3,6 @@
 	"name": "QIDI PLA-CF@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"setting_id": "GFSL98",
 	"filament_id": "QD_1_1_5",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [

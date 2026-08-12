@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Artillery ASA @Artillery M1 Pro 0.6 nozzle",
 	"from": "User",
+	"setting_id": "znMfTFfxvJC7a732",
 	"filament_id": "P87436f6",
 	"instantiation": "true",
 	"activate_air_filtration": [

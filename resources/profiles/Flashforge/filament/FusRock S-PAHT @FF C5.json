@@ -3,6 +3,7 @@
 	"name": "FusRock S-PAHT @FF C5",
 	"inherits": "Generic PA-CF @System",
 	"from": "system",
+	"setting_id": "pV5QERvRuROIZTOa",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Creator 5 0.4 nozzle",

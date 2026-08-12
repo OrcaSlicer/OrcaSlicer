@@ -3,7 +3,7 @@
 	"name": "Anker Generic PLA+",
 	"inherits": "Anker Generic PLA+ @base",
 	"from": "system",
-	"setting_id": "GFSL95",
+	"setting_id": "0yQN44WNvLVjQu2b",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Anker M5 0.4 nozzle",

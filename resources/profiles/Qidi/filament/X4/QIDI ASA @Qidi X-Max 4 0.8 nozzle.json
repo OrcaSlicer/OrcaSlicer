@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSA04",
 	"name": "QIDI ASA @Qidi X-Max 4 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ASA@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "1OZ3ubOH5ohBw93u",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"13"
 	],

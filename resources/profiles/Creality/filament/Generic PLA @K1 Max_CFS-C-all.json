@@ -3,7 +3,7 @@
     "name": "Generic PLA @K1 Max_CFS-C-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "ARsPmEmVZlsfqy4L",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

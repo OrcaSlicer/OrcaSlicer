@@ -3,7 +3,6 @@
 	"name": "DREMC PA12-CF @System",
 	"inherits": "DREMC PA12-CF @base",
 	"from": "system",
-	"setting_id": "DREMC007",
 	"instantiation": "false",
 	"compatible_printers": []
 }

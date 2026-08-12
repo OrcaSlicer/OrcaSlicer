@@ -3,7 +3,7 @@
 	"name": "Blocks Generic PLA",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "BSSI001",
+	"setting_id": "N3wDUqmBETfelOoG",
 	"filament_id": "BSFI001",
 	"instantiation": "true",
 	"filament_flow_ratio": [
@@ -45,14 +45,11 @@
 		"BLOCKS Pro S100 0.8 nozzle",
 		"BLOCKS Pro S100 1.0 nozzle",
 		"BLOCKS Pro S100 1.2 nozzle",
-		"BLOCKS Pro S100",
 		"BLOCKS RD50 V2 0.4 nozzle",
 		"BLOCKS RD50 V2 0.6 nozzle",
 		"BLOCKS RD50 V2 0.8 nozzle",
-		"BLOCKS RD50 V2",
 		"BLOCKS RF50 0.4 nozzle",
 		"BLOCKS RF50 0.6 nozzle",
-		"BLOCKS RF50 0.8 nozzle",
-		"BLOCKS RF50"
+		"BLOCKS RF50 0.8 nozzle"
 	]
 }

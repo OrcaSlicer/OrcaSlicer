@@ -3,7 +3,7 @@
 	"name": "Anycubic PETG-CF @Anycubic Kobra S1 Max 0.4 nozzle",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "ajFzrQq9AvGtZCui",
 	"filament_id": "GFPETG-CF",
 	"instantiation": "true",
 	"filament_settings_id": [

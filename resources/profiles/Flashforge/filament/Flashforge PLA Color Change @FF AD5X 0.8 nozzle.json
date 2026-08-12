@@ -3,7 +3,7 @@
 	"name": "Flashforge PLA Color Change @FF AD5X 0.8 nozzle",
 	"inherits": "Flashforge Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "nkYeEBo8NdkJulAP",
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"45"

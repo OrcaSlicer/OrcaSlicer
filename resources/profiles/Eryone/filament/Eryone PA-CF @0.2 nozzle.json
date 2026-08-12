@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Eryone PA-CF @0.2 nozzle",
 	"from": "system",
+	"setting_id": "wbnmjqeccJS209GO",
 	"instantiation": "true",
 	"inherits": "Eryone PA-CF",
 	"compatible_printers": [

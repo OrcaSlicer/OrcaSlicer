@@ -3,7 +3,7 @@
     "name": "Generic ASA @K1 SE-all",
     "inherits": "fdm_filament_asa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "XK0E9L6nEGz9410w",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

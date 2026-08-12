@@ -2,7 +2,7 @@
 	"name": "LHS TPU Foamy 78A",
 	"type": "filament",
 	"filament_id": "LHF_ftpuf",
-	"setting_id": "LHF_S_ftpuf",
+	"setting_id": "FWyg21qHmAKeihMn",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_tpu",

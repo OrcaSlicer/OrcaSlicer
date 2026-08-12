@@ -3,6 +3,7 @@
     "name": "FilAr PLA Oro",
     "inherits": "FilAr PLA @base",
     "from": "system",
+    "setting_id": "hCv43F2tNJagwzC7",
     "filament_id": "FILAR0028",
     "instantiation": "true",
     "filament_vendor": [

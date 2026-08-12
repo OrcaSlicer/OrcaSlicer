@@ -3,7 +3,7 @@
 	"name": "Bambu PA6-GF @System",
 	"inherits": "Bambu PA6-GF @base",
 	"from": "system",
-	"setting_id": "OGFSN08_00",
+	"setting_id": "tH7iGIF05H81n9Ap",
 	"instantiation": "true",
 	"chamber_temperatures": [
 		"60"

@@ -3,7 +3,7 @@
 	"name": "CoPrint Generic PETG",
 	"inherits": "CoPrint Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "k4m484S1samBGEVb",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"fan_max_speed": [

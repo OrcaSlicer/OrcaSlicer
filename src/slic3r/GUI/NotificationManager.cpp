@@ -2299,9 +2299,17 @@ void NotificationManager::push_import_finished_notification(const std::string& p
 void NotificationManager::SharedProfilesNotification::init()
 {
 	PopNotification::init();
-	// Add two extra lines for the hyperlink row ("Browse shared profiles" + "Don't show again")
-	// and 1 more additional line for adding spacing between them to make it easier to click
-	m_lines_count = m_lines_count + 2; // ORCA
+
+    // PopNotification::count_lines() may append a duplicate "hypertext doesn't fit inline" placeholder endline (same value as the previous entry)
+    // for the generic renderer's benefit. This class always renders its hyperlink on its own dedicated line regardless, 
+    // so that placeholder is meaningless here and would otherwise be drawn as a spurious blank text row.
+    if (!m_hypertext.empty() && m_endlines.size() >= 2 && m_endlines.back() == m_endlines[m_endlines.size() - 2]) {
+        m_endlines.pop_back();
+        m_lines_count--;
+    }
+
+    // Reserve rows for: "Browse shared profiles" hyperlink, spacing, "Don't show again"
+    m_lines_count += 3; 
 }
 
 void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& imgui,
@@ -2327,15 +2335,18 @@ void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& 
 		}
 	}
 
-	// Render "Browse shared profiles" hyperlink on the next line
-	float hyper_y = starting_y + m_endlines.size() * shift_y - m_line_height / 2.f;
-	render_hypertext(imgui, x_offset, hyper_y, m_hypertext);
-
-	// Render "Don't show again" hyperlink after the browse link
 	{
-		float dont_show_y = hyper_y + ImGui::CalcTextSize((m_hypertext + "  ").c_str()).y + m_line_height / 2.f;
+        float hyper_y     = starting_y + m_endlines.size() * shift_y + m_line_height * .5f;
+		float dont_show_y = hyper_y    + ImGui::CalcTextSize((m_hypertext + "  ").c_str()).y + m_line_height * .5f;
 		std::string dont_show_text = _u8L("Don't show again");
 		ImVec2 part_size = ImGui::CalcTextSize(dont_show_text.c_str());
+
+        if (!m_multiline && m_lines_count > 2) {
+		    render_hypertext(imgui, x_offset + (m_endlines.size() == 1 ? 0 : ImGui::CalcTextSize((line + " ").c_str()).x) , starting_y + shift_y, _u8L("More"), true);
+	    } 
+        else {
+	    // Render "Browse shared profiles" hyperlink on the next line	
+	    render_hypertext(imgui, x_offset, hyper_y, m_hypertext);
 
 		// Invisible button
 		ImGui::SetCursorPosX(x_offset); // ORCA render on new line to prevent long translations from being cut off
@@ -2343,6 +2354,7 @@ void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& 
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
+        // Render "Don't show again" hyperlink after the browse link
 		if (imgui.button("##dont_show_btn", part_size.x + 6, part_size.y + 10)) {
 			wxGetApp().app_config->set_bool("show_shared_profiles_notification", false);
 			wxGetApp().app_config->save();
@@ -2370,6 +2382,7 @@ void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& 
 		ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd,
 			IM_COL32((int)(color.x * 255), (int)(color.y * 255), (int)(color.z * 255),
 				(int)(color.w * 255.f * (m_state == EState::FadingOut ? m_current_fade_opacity : 1.f))));
+        }
 	}
 }
 
@@ -2382,8 +2395,10 @@ bool NotificationManager::SharedProfilesNotification::on_text_click()
 void NotificationManager::SharedProfilesNotification::render_hypertext(ImGuiWrapper& imgui,
 	const float text_x, const float text_y, const std::string text, bool more)
 {
-	render_hyperlink_action(imgui, text_x, text_y, text, "##browse_btn",
-		[this] { if (on_text_click()) close(); });
+    if (more)
+        PopNotification::render_hypertext(imgui, text_x, text_y, text, true);
+    else
+	    render_hyperlink_action(imgui, text_x, text_y, text, "##browse_btn", [this] { if (on_text_click()) close(); });
 }
 
 void NotificationManager::OrcaSyncConflictNotification::init()
@@ -2445,6 +2460,93 @@ void NotificationManager::push_orca_sync_conflict_notification(const std::string
 	NotificationData data{ NotificationType::OrcaSyncConflict, NotificationLevel::WarningNotificationLevel, 0, text };
 	push_notification_data(std::make_unique<NotificationManager::OrcaSyncConflictNotification>(
 		data, m_id_provider, m_evt_handler, std::move(pull_callback), std::move(force_push_callback), conflict_code), 0);
+}
+
+void NotificationManager::PluginMissingNotification::init()
+{
+	PopNotification::init();
+	// Reserve body rows, an optional spacer, and a dedicated action row for the two links.
+	m_lines_count = m_lines_count + m_body.size() + (m_body.empty() ? 0 : 1) + 1;
+}
+
+void NotificationManager::PluginMissingNotification::render_text(ImGuiWrapper& imgui,
+	const float win_size_x, const float win_size_y,
+	const float win_pos_x, const float win_pos_y)
+{
+	float x_offset   = m_left_indentation;
+	float shift_y    = m_line_height;
+	float starting_y = m_line_height / 2;
+
+	int last_end = 0;
+	std::string line;
+	for (size_t i = 0; i < m_endlines.size(); i++) {
+		if (m_text1.size() >= m_endlines[i]) {
+			line = m_text1.substr(last_end, m_endlines[i] - last_end);
+			last_end = m_endlines[i];
+			if (m_text1.size() > m_endlines[i])
+				last_end += (m_text1[m_endlines[i]] == '\n' || m_text1[m_endlines[i]] == ' ' ? 1 : 0);
+			ImGui::SetCursorPosX(x_offset);
+			ImGui::SetCursorPosY(starting_y + i * shift_y);
+			imgui.text(line.c_str());
+		}
+	}
+
+    const size_t body_start_row = m_endlines.size();
+    const std::string jump_text = _u8L("Jump to");
+    for (size_t i = 0; i < m_body.size(); ++i) {
+        const JumpTo& item          = m_body[i];
+        const std::string item_text = item.text.empty() ? item.opt : item.text;
+        const std::string prefix    = "- " + item_text + " ";
+        const float row_y           = starting_y + (body_start_row + i) * shift_y;
+
+        ImGui::SetCursorPosX(x_offset);
+        ImGui::SetCursorPosY(row_y);
+        imgui.text(prefix.c_str());
+
+        std::string button_id = "##plugin_missing_jump_" + std::to_string(i);
+        const float jump_x    = x_offset + ImGui::CalcTextSize(prefix.c_str()).x;
+        render_hyperlink_action(imgui, jump_x, row_y, jump_text, button_id.c_str(), [item] {
+            // Defer the jump: jump_to_option switches the settings tab/page, which must not run
+            // inside this notification's ImGui render pass. item is captured by value.
+            if (!item.opt.empty())
+                wxGetApp().CallAfter([item]() { wxGetApp().sidebar().jump_to_option(item.opt, item.opt_type, L""); });
+        });
+    }
+
+    const size_t action_row = body_start_row + m_body.size() + (m_body.empty() ? 0 : 1);
+	const float action_y = starting_y + action_row * shift_y;
+	render_hyperlink_action(imgui, x_offset, action_y, m_resolve_label, "##plugin_missing_resolve",
+		[this] { if (m_resolve_callback && m_resolve_callback(m_evt_handler)) close(); });
+}
+
+void NotificationManager::PluginMissingNotification::bbl_render_block_notif_text(ImGuiWrapper& imgui,
+	const float win_size_x, const float win_size_y,
+	const float win_pos_x, const float win_pos_y)
+{
+	const ImVec4 hyper_text_color       = m_HyperTextColor;
+	const ImVec4 hyper_text_color_hover = m_HyperTextColorHover;
+	m_HyperTextColor                    = ImVec4(1.f, 1.f, 1.f, 1.f);
+	m_HyperTextColorHover               = ImVec4(1.f, 1.f, 1.f, 0.75f);
+
+	render_text(imgui, win_size_x, win_size_y, win_pos_x, win_pos_y);
+
+	m_HyperTextColor      = hyper_text_color;
+	m_HyperTextColorHover = hyper_text_color_hover;
+}
+
+void NotificationManager::push_plugin_missing_notification(NotificationType type,
+                                                           const std::string& text,
+                                                           const std::string& resolve_label,
+                                                           std::vector<JumpTo> body,
+                                                           std::function<bool(wxEvtHandler*)> resolve_callback)
+{
+	m_pop_notifications.erase(std::remove_if(m_pop_notifications.begin(), m_pop_notifications.end(),
+		[type](const std::unique_ptr<PopNotification>& notification) {
+			return notification && notification->get_type() == type;
+		}), m_pop_notifications.end());
+	NotificationData data{ type, NotificationLevel::ErrorNotificationLevel, 0, text };
+	push_notification_data(std::make_unique<NotificationManager::PluginMissingNotification>(
+		data, m_id_provider, m_evt_handler, resolve_label, std::move(body), std::move(resolve_callback)), 0);
 }
 
 void NotificationManager::push_download_URL_progress_notification(size_t id, const std::string& text, std::function<bool(DownloaderUserAction, int)> user_action_callback)

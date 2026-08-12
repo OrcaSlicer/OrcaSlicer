@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Color Change @FF C5",
 	"inherits": "Generic PLA @System",
 	"from": "system",
+	"setting_id": "xZmQdh487UMtvBRu",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

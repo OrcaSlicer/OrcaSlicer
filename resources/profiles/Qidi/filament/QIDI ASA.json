@@ -3,7 +3,7 @@
 	"name": "QIDI ASA",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "v2LrEujF68PPbrux",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_type": [
@@ -49,24 +49,15 @@
 		"40"
 	],
 	"compatible_printers": [
-		"Qidi X-Plus 0.2 nozzle",
-		"Qidi X-Max 0.2 nozzle",
-		"Qidi X-CF Pro 0.2 nozzle",
 		"Qidi X-Plus 0.4 nozzle",
 		"Qidi X-Max 0.4 nozzle",
 		"Qidi X-CF Pro 0.4 nozzle",
 		"Qidi X-Smart 3 0.4 nozzle",
 		"Qidi X-Plus 3 0.4 nozzle",
 		"Qidi X-Max 3 0.4 nozzle",
-		"Qidi X-Plus 0.6 nozzle",
-		"Qidi X-Max 0.6 nozzle",
-		"Qidi X-CF Pro 0.6 nozzle",
 		"Qidi X-Smart 3 0.6 nozzle",
 		"Qidi X-Plus 3 0.6 nozzle",
 		"Qidi X-Max 3 0.6 nozzle",
-		"Qidi X-Plus 0.8 nozzle",
-		"Qidi X-Max 0.8 nozzle",
-		"Qidi X-CF Pro 0.8 nozzle",
 		"Qidi X-Smart 3 0.8 nozzle",
 		"Qidi X-Plus 3 0.8 nozzle",
 		"Qidi X-Max 3 0.8 nozzle"

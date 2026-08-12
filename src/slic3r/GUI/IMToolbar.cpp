@@ -61,8 +61,6 @@ void IMToolbar::del_stats_item()
 void IMToolbar::set_enabled(bool enable)
 {
     m_enabled = enable;
-    if (!m_enabled)
-        is_render_finish = false;
 }
 
 bool IMReturnToolbar::init()

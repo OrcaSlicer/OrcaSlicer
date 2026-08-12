@@ -3,17 +3,21 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Layer.hpp"
+#include "libslic3r/GCodeReader.hpp"
 
-#include "test_data.hpp"
+#include "test_helpers.hpp"
+
+#include <iterator>
+#include <set>
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
 
-SCENARIO("PrintObject: object layer heights", "[PrintObject]") {
+SCENARIO("Object layer heights", "[PrintObject]") {
     GIVEN("A 20mm cube") {
         WHEN("sliced with a 2mm layer height and a 3mm nozzle") {
             Slic3r::Print print;
-            Slic3r::Test::init_and_process_print({TestMesh::cube_20x20x20}, print, {
+            Slic3r::Test::init_and_process_print({cube(20)}, print, {
                 { "initial_layer_print_height", 2 },
                 { "layer_height",               2 },
                 { "nozzle_diameter",            3 }
@@ -32,7 +36,7 @@ SCENARIO("PrintObject: object layer heights", "[PrintObject]") {
         }
         WHEN("sliced with a 10mm layer height and an 11mm nozzle") {
             Slic3r::Print print;
-            Slic3r::Test::init_and_process_print({TestMesh::cube_20x20x20}, print, {
+            Slic3r::Test::init_and_process_print({cube(20)}, print, {
                 { "initial_layer_print_height", 2 },
                 { "layer_height",               10 },
                 { "nozzle_diameter",            11 }
@@ -50,7 +54,7 @@ SCENARIO("PrintObject: object layer heights", "[PrintObject]") {
         }
         WHEN("sliced with a 15mm layer height and a 16mm nozzle") {
             Slic3r::Print print;
-            Slic3r::Test::init_and_process_print({TestMesh::cube_20x20x20}, print, {
+            Slic3r::Test::init_and_process_print({cube(20)}, print, {
                 { "initial_layer_print_height", 2 },
                 { "layer_height",               15 },
                 { "nozzle_diameter",            16 }
@@ -71,7 +75,7 @@ SCENARIO("PrintObject: object layer heights", "[PrintObject]") {
             // rejects the slice during flow computation. Pin that behavior.
             THEN("Slicing is rejected") {
                 Slic3r::Print print;
-                REQUIRE_THROWS(Slic3r::Test::init_and_process_print({TestMesh::cube_20x20x20}, print, {
+                REQUIRE_THROWS(Slic3r::Test::init_and_process_print({cube(20)}, print, {
                     { "initial_layer_print_height", 0.3 },
                     { "layer_height",               0.5 },
                     { "nozzle_diameter",            0.4 }
@@ -81,11 +85,11 @@ SCENARIO("PrintObject: object layer heights", "[PrintObject]") {
     }
 }
 
-SCENARIO("PrintObject: Perimeter generation", "[PrintObject]") {
+SCENARIO("Perimeter generation", "[PrintObject]") {
     GIVEN("20mm cube and default config") {
         WHEN("make_perimeters() is called")  {
             Slic3r::Print print;
-            Slic3r::Test::init_and_process_print({TestMesh::cube_20x20x20}, print, { { "sparse_infill_density", 0 } });
+            Slic3r::Test::init_and_process_print({cube(20)}, print, { { "sparse_infill_density", 0 } });
 			const PrintObject &object = *print.objects().front();
             THEN("Every layer in region 0 has 1 island of perimeters") {
                 for (const Layer *layer : object.layers())
@@ -94,7 +98,7 @@ SCENARIO("PrintObject: Perimeter generation", "[PrintObject]") {
         }
         WHEN("wall_loops is set to 3")  {
             Slic3r::Print print;
-            Slic3r::Test::init_and_process_print({TestMesh::cube_20x20x20}, print, {
+            Slic3r::Test::init_and_process_print({cube(20)}, print, {
                 { "sparse_infill_density", 0 },
                 { "wall_loops",            3 }
             });
@@ -105,4 +109,24 @@ SCENARIO("PrintObject: Perimeter generation", "[PrintObject]") {
             }
         }
     }
+}
+
+TEST_CASE("Initial layer height is honored", "[PrintObject]")
+{
+    const std::string gcode = Slic3r::Test::slice({cube(20)}, {
+        { "initial_layer_print_height", 0.3 },
+        { "layer_height",               0.2 },
+        { "z_hop",                      0 } // keep recorded Z equal to the printed layer height
+    });
+
+    std::set<double> layer_zs;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&layer_zs] (GCodeReader& self, const GCodeReader::GCodeLine& line) {
+        if (line.extruding(self) && line.dist_XY(self) > 0)
+            layer_zs.insert(self.z());
+    });
+
+    REQUIRE(layer_zs.size() > 1);
+    REQUIRE_THAT(*layer_zs.begin(),            Catch::Matchers::WithinAbs(0.3, 1e-4));
+    REQUIRE_THAT(*std::next(layer_zs.begin()), Catch::Matchers::WithinAbs(0.5, 1e-4));
 }

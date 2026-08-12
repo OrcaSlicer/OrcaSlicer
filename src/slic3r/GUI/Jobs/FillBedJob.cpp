@@ -348,6 +348,8 @@ void FillBedJob::finalize(bool canceled, std::exception_ptr &eptr)
         }
         m_plater->update();
     }
+
+    m_plater->mark_plate_toolbar_image_dirty();
 }
 
 }} // namespace Slic3r::GUI

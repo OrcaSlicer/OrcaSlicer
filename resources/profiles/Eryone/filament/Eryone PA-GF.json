@@ -3,7 +3,7 @@
 	"name": "Eryone PA-GF",
 	"inherits": "Eryone Standard PLA",
 	"from": "system",
-	"setting_id": "EFSA73",
+	"setting_id": "4srMOoPcAlQygIY8",
 	"filament_id": "EFL73",
 	"instantiation": "true",
 	"compatible_printers": [

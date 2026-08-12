@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Eryone PA-GF @0.2 nozzle",
 	"from": "system",
+	"setting_id": "J7Oy1mm1szLspwBb",
 	"instantiation": "true",
 	"inherits": "Eryone PA-GF",
 	"compatible_printers": [
