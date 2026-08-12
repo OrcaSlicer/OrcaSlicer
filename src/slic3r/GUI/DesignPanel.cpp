@@ -2966,7 +2966,15 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto* vis = edit_btn("design_eye", _L("Show / hide"));
         vis->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_toggle_visibility(); });
         auto* del  = edit_btn("design_delete", _L("Delete"));
-        del->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_delete_feature(); });
+        del->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+            // A body row deletes the feature that made it. on_delete_body() already resolves
+            // CadBody::source_feature and asks for confirmation by name; it was reachable only
+            // from the right-click offer, so this button answered a selected body row with
+            // "select the FEATURE that created this body" — an instruction the user cannot act
+            // on, since the tree does not say which feature that is. It does now.
+            if (tree_body_selection() >= 0) on_delete_body();
+            else                            on_delete_feature();
+        });
         auto* up   = edit_btn("design_moveup", _L("Move up"));
         up->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_move_feature(-1); });
         auto* down = edit_btn("design_movedown", _L("Move down"));
@@ -6302,8 +6310,12 @@ void DesignPanel::on_toggle_visibility()
                                            &m_body_visible, &m_body_xform);
             }
             refresh_tree();
-            if (bsel < int(m_tree_body_items.size()))   // keep the row selected for repeat toggles
-                m_tree->SelectItem(m_tree_body_items[bsel]);
+            // Keep the row selected for repeat toggles. m_parts, NOT m_tree: these ids belong
+            // to the Bodies list, and handing a foreign item to the feature tree left the row
+            // unselected — so the second press of the eye found tree_body_selection() == -1 and
+            // fell through to the FEATURE-level branch below instead of un-hiding the body.
+            if (m_parts != nullptr && bsel < int(m_tree_body_items.size()))
+                m_parts->SelectItem(m_tree_body_items[bsel]);
             m_status->SetForegroundColour(wxNullColour);
             set_status(wxString::Format(now_visible ? _L("Body %d shown")
                                                             : _L("Body %d hidden"), bsel + 1));

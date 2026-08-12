@@ -290,9 +290,17 @@ void DesignCanvas::reload(bool keep_view)
             if (m_body_hidden) hidden = true;
             v->is_active = !hidden;   // per-body visibility toggle
             if (!hidden) {
-                // Selection tint wins; otherwise the per-body override (Color tool) or the
-                // auto palette via body_color().
-                ColorRGBA c = m_body_selected ? sel_gold : body_color(b);
+                // An EXPLICIT colour outranks the selection tint. m_body_selected is a
+                // document-wide flag raised whenever a non-Sketch feature row is selected —
+                // the normal resting state after any modelling operation — so painting every
+                // body gold on it made the Color tool look broken: the override was written,
+                // carried across recompute and read back correctly, and then overpainted here
+                // every single frame. A body the user deliberately coloured keeps its colour;
+                // the rest still tint, which is all the tint was ever for.
+                const bool overridden = m_color_bodies != nullptr && b >= 0
+                                        && b < int(m_color_bodies->size())
+                                        && (*m_color_bodies)[b].has_color;
+                ColorRGBA c = (m_body_selected && !overridden) ? sel_gold : body_color(b);
                 if (b == m_hl_body_target)    c = ColorRGBA(0.30f, 0.90f, 0.70f, 1.0f); // target = teal-green
                 else if (b == m_hl_body_tool) c = ColorRGBA(1.00f, 0.55f, 0.15f, 1.0f); // tool = orange
                 if (m_body_translucent) c.a(0.30f);
