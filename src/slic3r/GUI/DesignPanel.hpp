@@ -336,6 +336,10 @@ private:
     // Cancel reverts to the pose captured when the move started.
     int         m_move_body{-1};
     Transform3d m_move_prev{Transform3d::Identity()};
+    // Set while the move gizmo is serving the Transform CARD rather than the Move button.
+    // Both use the same gizmo; only this says which card owns the numbers it reports.
+    int         m_xf_gizmo_body{-1};
+    Transform3d m_xf_gizmo_base{Transform3d::Identity()};   // pose when Transform armed it
 
     // Onshape-style dialog-card title rows (icon + bold feature name), retitled
     // per tool in open_tool() (edit-mode shows the feature's actual name).
@@ -783,6 +787,7 @@ private:
     void rebuild_disp_meshes();           // recompute m_disp_* from m_doc + m_body_xform
     void feed_bodies();                   // push m_disp_* + visibility/xform to the viewport
     void on_move_body();                  // start the move gizmo on the selected body
+    void arm_transform_gizmo();           // arm the move gizmo on the Transform card's body (add mode only)
     void on_set_body_color();             // Color tool: pick a per-body display colour override
     int  tree_selection() const;          // selected feature row, or wxNOT_FOUND
     int  tree_body_selection() const;     // selected Parts-list body index, or -1

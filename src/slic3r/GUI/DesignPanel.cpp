@@ -3568,6 +3568,26 @@ DesignPanel::DesignPanel(wxWindow* parent)
         if (body < 0 || body >= int(m_body_xform.size())) return;
         m_body_xform[body] = xform;   // full move+rotate transform, baked into the mesh at Commit
         feed_bodies();   // rebuilds the transformed meshes in place + refreshes display + pick
+        // When the move gizmo is serving the Transform card, mirror the drag into the card's
+        // numeric fields (the card is the typed half, the gizmo the geometry-first half).
+        if (body == m_xf_gizmo_body && m_active == Tool::Transform) {
+            const Transform3d d = xform * m_xf_gizmo_base.inverse();
+            const Vec3d       t = d.translation();
+            if (m_xf_dx) m_xf_dx->SetValue(t.x());
+            if (m_xf_dy) m_xf_dy->SetValue(t.y());
+            if (m_xf_dz) m_xf_dz->SetValue(t.z());
+            const Eigen::AngleAxisd aa(Eigen::Quaterniond(d.linear()).normalized());
+            // The gizmo's rings are per-world-axis, so a ring drag yields an exactly axial
+            // rotation and this is lossless for the normal interaction. A composed multi-ring
+            // pose is not axial; the card can only express one axis, so report the dominant one
+            // rather than refusing to answer.
+            int ax = 0; double best = std::abs(aa.axis().x());
+            if (std::abs(aa.axis().y()) > best) { ax = 1; best = std::abs(aa.axis().y()); }
+            if (std::abs(aa.axis().z()) > best) { ax = 2; best = std::abs(aa.axis().z()); }
+            const double sign = (aa.axis()[ax] < 0.0) ? -1.0 : 1.0;
+            if (m_xf_axis)  m_xf_axis->SetSelection(ax);
+            if (m_xf_angle) m_xf_angle->SetValue(sign * aa.angle() * 180.0 / M_PI);
+        }
         const int nb = int(m_doc.bodies.size());
         const wxString tag = (nb > 1) ? wxString::Format(_L("Body %d "), body + 1) : wxString();
         const Vec3d t = xform.translation();
@@ -4796,6 +4816,20 @@ void DesignPanel::on_add_thicken_surface()
 
 void DesignPanel::on_add_transform()
 {
+    // The gizmo baked its drag into the display transform so the body followed the cursor.
+    // The feature about to be created performs that same motion parametrically, so hand the
+    // body back to its pre-drag pose first or it moves twice.
+    if (m_xf_gizmo_body >= 0) {
+        sync_body_xform();
+        if (m_xf_gizmo_body < int(m_body_xform.size()))
+            m_body_xform[m_xf_gizmo_body] = m_xf_gizmo_base;
+        if (m_viewport) m_viewport->clear_move_gizmo();
+        feed_bodies();   // set_status_ok() re-feeds on success, but the recompute-ERROR path
+                         // below does not — without this the body would keep showing the
+                         // dragged pose after a Transform that failed to build.
+        m_xf_gizmo_body = -1;
+        m_move_body     = -1;
+    }
     if (m_doc.bodies.empty()) {
         set_status(_L("Transform needs a body — add or import one first"));
         return;
@@ -6076,6 +6110,40 @@ void DesignPanel::on_move_body()
     update_action_bar();      // surface the unified ✓/✗ while moving
     m_status->SetForegroundColour(wxNullColour);
     set_status(_L("Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"));
+    m_status->Refresh();
+}
+
+// Transform card (add mode): arm the same move gizmo on the card's body so the geometry-first
+// control is what the user drags, while the card's numeric fields mirror the result. The card
+// stays visible as the typed half — the gizmo owns the drag, the fields own the numbers.
+void DesignPanel::arm_transform_gizmo()
+{
+    int b = tree_body_selection();
+    if (b < 0) b = m_sel_solid_body;
+    if (b < 0 && m_xf_body) b = m_xf_body->GetSelection();
+    if (b < 0 || b >= int(m_doc.display_body_meshes.size())) return;   // card alone still works
+    if (m_xf_body && b < int(m_xf_body->GetCount())) m_xf_body->SetSelection(b);   // feature must be created against the gizmo's body
+    sync_body_xform();
+    const Transform3d base = m_body_xform[b];
+    const BoundingBoxf3 bb = m_doc.display_body_meshes[b].bounding_box();
+    const Vec3d pivot = base * bb.center();
+    const double radius = (base.linear() * (bb.size() * 0.5)).norm();
+    if (m_viewport) m_viewport->begin_move_body(b, pivot, base, radius);
+    m_xf_gizmo_body = b;
+    m_xf_gizmo_base = base;
+    m_move_body = b;          // the existing revert paths key off these two
+    m_move_prev = base;
+    // Write the pivot into the card so the parametric feature reproduces what was dragged;
+    // dx/dy/dz and angle start at zero (the gizmo reports deltas from this pose).
+    if (m_xf_pivot_x) m_xf_pivot_x->SetValue(pivot.x());
+    if (m_xf_pivot_y) m_xf_pivot_y->SetValue(pivot.y());
+    if (m_xf_pivot_z) m_xf_pivot_z->SetValue(pivot.z());
+    if (m_xf_dx) m_xf_dx->SetValue(0.0);
+    if (m_xf_dy) m_xf_dy->SetValue(0.0);
+    if (m_xf_dz) m_xf_dz->SetValue(0.0);
+    if (m_xf_angle) m_xf_angle->SetValue(0.0);
+    m_status->SetForegroundColour(wxNullColour);
+    set_status(_L("Drag the arrows to move, the rings to rotate — the numbers follow"));
     m_status->Refresh();
 }
 
@@ -9465,12 +9533,28 @@ void DesignPanel::open_tool(Tool t)
     m_form->FitInside();
     update_action_bar();   // a tool is now active -> show the unified ✓/✗
     refresh_preview();
+
+    // Add-mode Transform arms the move gizmo on the card's body so the prominent verb is the
+    // geometry-first control; the card mirrors the drag. Edit mode keeps today's card-only path.
+    if (t == Tool::Transform && m_edit_index < 0)
+        arm_transform_gizmo();
 }
 
 void DesignPanel::close_tool()
 {
     m_active = Tool::None;
     set_active_tool_btn(nullptr);   // clear the active-tool teal highlight
+    // Single revert point for the Transform gizmo: Esc, switching tools, and Cancel all pass
+    // through here, so the body is never left displaced by a Transform that wasn't committed.
+    if (m_xf_gizmo_body >= 0) {
+        sync_body_xform();
+        if (m_xf_gizmo_body < int(m_body_xform.size()))
+            m_body_xform[m_xf_gizmo_body] = m_xf_gizmo_base;
+        if (m_viewport) m_viewport->clear_move_gizmo();
+        feed_bodies();
+        m_xf_gizmo_body = -1;
+        m_move_body     = -1;
+    }
     if (m_viewport) { m_viewport->set_body_translucent(false); m_viewport->set_body_hidden(false); m_viewport->set_xray_focus(-1); }   // restore the opaque solid
     wxSizer* s = m_cards->GetSizer();
     s->Show(m_box_sketch,  false, true);
@@ -9594,7 +9678,7 @@ void DesignPanel::cancel_tool()
 void DesignPanel::tool_confirm()
 {
     if (m_value_cont) { confirm_value(); return; }   // value card owns ribbon ✓ while a value is pending
-    if (m_viewport && m_viewport->moving_body()) {   // keep the placement, drop the gizmo
+    if (m_active == Tool::None && m_viewport && m_viewport->moving_body()) {   // keep the placement, drop the gizmo
         m_viewport->clear_move_gizmo();
         m_move_body = -1;
         show_move_card(false);
@@ -9625,7 +9709,7 @@ void DesignPanel::tool_confirm()
 void DesignPanel::tool_cancel()
 {
     if (m_value_cont) { cancel_value(); return; }     // value card owns ribbon ✗ while a value is pending
-    if (m_viewport && m_viewport->moving_body()) {   // revert to the pose at move-start
+    if (m_active == Tool::None && m_viewport && m_viewport->moving_body()) {   // revert to the pose at move-start
         sync_body_xform();
         if (m_move_body >= 0 && m_move_body < int(m_body_xform.size()))
             m_body_xform[m_move_body] = m_move_prev;
