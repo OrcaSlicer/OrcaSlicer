@@ -5694,7 +5694,20 @@ void DesignPanel::refresh_cs_body_choice()
     m_cs_body->Append(_L("(all)"));
     for (size_t b = 0; b < m_doc.bodies.size(); ++b)
         m_cs_body->Append(wxString::Format(_L("Body %d"), int(b) + 1));
-    m_cs_body->SetSelection(keep > 0 && keep < int(m_cs_body->GetCount()) ? keep : 0);
+    const int sel = (keep > 0 && keep < int(m_cs_body->GetCount())) ? keep : 0;
+    m_cs_body->SetSelection(sel);
+    // The combo and the viewport focus are ONE state, so they must not be written separately.
+    // When the body list shrinks, `keep` falls out of range and the selection silently drops to
+    // "(all)" — while the viewport stayed focused on the old index, leaving every other body at
+    // 25% alpha and picking locked to a body that may no longer exist. That is the exact mirror
+    // of the open_tool ordering bug (combo says Body N, viewport opaque); this one says "(all)"
+    // and stays dimmed.
+    //
+    // Guarded on the CoordSys card being the ACTIVE tool because it is the only card that owns
+    // this focus. In the edit path this function runs BEFORE open_tool, with the previous tool
+    // still active, so the guard is false and the caller's explicit set_xray_focus still wins.
+    if (m_viewport != nullptr && m_active == Tool::CoordSys)
+        m_viewport->set_xray_focus(sel - 1);
 }
 
 void DesignPanel::reset_coordsys_refs()

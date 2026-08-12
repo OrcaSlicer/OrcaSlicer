@@ -2847,7 +2847,15 @@ Vec3d DesignSketchTool::body_xform_pt(int body, const Vec3d& p) const
 bool DesignSketchTool::body_pickable(int b) const
 {
     if (b < 0) return false;
-    if (m_pick_only_body >= 0 && b != m_pick_only_body) return false;   // body-focus mode
+    // Body-focus mode. The focus is an INDEX held by the panel across recomputes, so it can
+    // outlive the body it names — delete a body and the stored index may point past the end.
+    // A restriction to a body that no longer exists rejects EVERY body, which is a viewport
+    // that silently accepts no clicks at all: the worst possible failure for a picking mode,
+    // because nothing on screen says why. Out of range therefore means NO restriction — fail
+    // open, never dead.
+    const bool focus_live = m_pick_only_body >= 0 && m_solid_bodies != nullptr
+                            && m_pick_only_body < int(m_solid_bodies->size());
+    if (focus_live && b != m_pick_only_body) return false;
     if (m_solid_visible == nullptr || b >= int(m_solid_visible->size())) return true;
     return (*m_solid_visible)[b];
 }
