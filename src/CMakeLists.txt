@@ -175,7 +175,9 @@ target_link_libraries(OrcaSlicer libslic3r_gui)
     if (MSVC)
         # Generate debug symbols even in release mode.
         target_link_options(OrcaSlicer PUBLIC "$<$<CONFIG:RELEASE>:/DEBUG>")
-        target_link_libraries(OrcaSlicer ws2_32.lib user32.lib Setupapi.lib)
+        # Boost.Log uses the Windows wait-on-address primitives on modern
+        # MSVC builds.  They are exported by synchronization.lib.
+        target_link_libraries(OrcaSlicer ws2_32.lib user32.lib Setupapi.lib synchronization.lib)
     elseif (MINGW)
         target_link_libraries(OrcaSlicer ws2_32 uxtheme setupapi)
     elseif (APPLE)
