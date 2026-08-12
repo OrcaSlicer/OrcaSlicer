@@ -3767,12 +3767,36 @@ TEST_CASE("regenerate golden recipe fixture", "[.regen]")
     auto blob = doc.serialize_recipe();
     REQUIRE_FALSE(blob.empty());
 
-    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v3.bin";
+    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v4.bin";
     std::ofstream ofs(path, std::ios::binary);
     REQUIRE(ofs.is_open());
     ofs.write(blob.data(), static_cast<std::streamsize>(blob.size()));
     ofs.close();
     SUCCEED("Fixture written to " << path);
+}
+
+// The previous format's real blob, kept on disk deliberately. It is the only thing that can
+// prove the version gate does its job: a v3 recipe carries FEWER fields per feature than this
+// build reads, so without the bump to v4 it would have passed the gate and had two ints read
+// past the end of every connector — into the next feature's bytes. Silent corruption of a saved
+// project, which is far worse than a refusal. This asserts the refusal is clean and says why.
+//
+// Do NOT regenerate cad_recipe_v3.bin. Its value is entirely that it was written by an older
+// build; rewriting it with today's code destroys the only evidence this test rests on.
+TEST_CASE("a previous-format recipe is refused, not silently misread", "[CadDocument]")
+{
+    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v3.bin";
+    std::ifstream ifs(path, std::ios::binary);
+    REQUIRE(ifs.is_open());
+    std::string blob((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    ifs.close();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument doc;
+    REQUIRE_FALSE(doc.deserialize_recipe(blob));
+    REQUIRE_FALSE(doc.error.empty());
+    REQUIRE(doc.error.find("older version") != std::string::npos);
+    REQUIRE(doc.features.empty());   // nothing half-read was left behind
 }
 
 TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
@@ -3781,7 +3805,7 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
     using Catch::Matchers::WithinAbs;
 
     // Read the golden blob from disk
-    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v3.bin";
+    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v4.bin";
     std::ifstream ifs(path, std::ios::binary);
     REQUIRE(ifs.is_open());
     std::string blob((std::istreambuf_iterator<char>(ifs)),
@@ -7316,4 +7340,92 @@ TEST_CASE("dressup: four chamfer ids captured up-front drift as earlier chamfers
     const bool ok = doc2.recompute();
     INFO("single-recompute driver path: ok=" << ok << " error=" << (ok ? std::string() : doc2.error));
     REQUIRE(ok);
+}
+
+// --- Face-drift fingerprint: a FaceAndDirection connector warns when its face index slides ---
+
+TEST_CASE("a connector records its face fingerprint on first recompute", "[CadDocument][mate]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+
+    int top_face = find_face_by_normal(doc, 0, Vec3d(0, 0, 1));
+    REQUIRE(top_face >= 0);
+
+    int cs = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0, 0, 0), "CS");
+    doc.features[cs].coordsys_body = 0;
+    doc.features[cs].coordsys_face = top_face;
+    REQUIRE(doc.recompute());
+
+    REQUIRE(doc.features[cs].coordsys_face_kind >= 0);
+    REQUIRE(doc.features[cs].coordsys_face_edges >= 0);
+    REQUIRE(doc.mate_conflicts.empty());
+}
+
+TEST_CASE("a connector whose face index slides onto a different KIND of face is reported", "[CadDocument][mate]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+
+    int top_face = find_face_by_normal(doc, 0, Vec3d(0, 0, 1));
+    REQUIRE(top_face >= 0);
+
+    int cs = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0, 0, 0), "CS");
+    doc.features[cs].coordsys_body = 0;
+    doc.features[cs].coordsys_face = top_face;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.mate_conflicts.empty());
+    REQUIRE(doc.features[cs].coordsys_face_kind >= 0);
+
+    // Insert a fillet: the box gains cylindrical faces and the face map is renumbered.
+    doc.add_fillet(2.0, FaceGroup::All, "Fillet");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Find the cylindrical face the fillet introduced (a different KIND than the recorded
+    // planar fingerprint), then force the drift by pointing coordsys_face at it.
+    int cyl_face = -1;
+    auto faces = GeometryEngine::faces_of(doc.bodies[0].shape);
+    for (int i = 0; i < int(faces.size()); ++i) {
+        if (GeometryEngine::cylinder_of_face(faces[i]).ok) { cyl_face = i; break; }
+    }
+    REQUIRE(cyl_face >= 0);
+
+    doc.features[cs].coordsys_face = cyl_face;
+    const bool ok = doc.recompute();
+    REQUIRE(ok);   // non-fatality is the contract under test
+
+    bool reported = false;
+    for (const auto& c : doc.mate_conflicts)
+        if (c.first == cs) { reported = true; break; }
+    REQUIRE(reported);
+}
+
+TEST_CASE("a resized body does not report drift", "[CadDocument][mate]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+
+    int top_face = find_face_by_normal(doc, 0, Vec3d(0, 0, 1));
+    REQUIRE(top_face >= 0);
+
+    int cs = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0, 0, 0), "CS");
+    doc.features[cs].coordsys_body = 0;
+    doc.features[cs].coordsys_face = top_face;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.mate_conflicts.empty());
+
+    // Resize upstream: same face, same kind, same edge count — only its dimensions changed.
+    // This is a legitimate parametric edit and must not raise the drift warning.
+    for (CadFeature& f : doc.features)
+        if (f.type == CadFeatureType::Extrude) f.distance = 25.0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.mate_conflicts.empty());
 }

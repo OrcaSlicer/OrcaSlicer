@@ -3404,6 +3404,37 @@ bool CadDocument::recompute()
         }
     }
     bodies = std::move(built);
+
+    // Face-drift fingerprint for FaceAndDirection CoordSys connectors. This runs AFTER the
+    // bodies are final and APPENDS to mate_conflicts (detect_mate_conflicts() cleared it at
+    // the top of recompute() and must not run again here). A mismatch is a WARNING, not an
+    // error: a legitimate Draft on a mated face renumbers nothing but a real renumber after a
+    // dress-up silently points the connector at a different face, and that must not abort.
+    for (int fi = 0; fi < int(features.size()); ++fi) {
+        CadFeature& f = features[fi];
+        if (!f.enabled) continue;
+        if (f.type != CadFeatureType::CoordSys) continue;
+        if (f.coordsys_type != CoordSysType::FaceAndDirection) continue;
+        if (f.coordsys_body < 0 || f.coordsys_body >= int(bodies.size())) continue;
+        TopoDS_Face face = GeometryEngine::face_by_index(bodies[f.coordsys_body].shape, f.coordsys_face);
+        if (face.IsNull()) continue; // "face not found" is already reported by datum_frame()
+        const int kind  = int(BRepAdaptor_Surface(face).GetType());
+        const int edges = int(GeometryEngine::edges_of_face(face).size());
+        if (f.coordsys_face_kind < 0) {
+            // No fingerprint yet (old recipe, or a connector never resolved): adopt the state
+            // the user last saw. Self-heals old recipes on first load, and gives both existing
+            // writers the fingerprint for free.
+            f.coordsys_face_kind  = kind;
+            f.coordsys_face_edges = edges;
+            continue;
+        }
+        if (f.coordsys_face_kind != kind || f.coordsys_face_edges != edges) {
+            mate_conflicts.emplace_back(int(fi),
+                "connector \"" + f.name + "\" may have moved to a different face "
+                "(an upstream edit renumbered this body's faces)");
+        }
+    }
+
     body = compound_of(bodies);
     display_mesh = tessellate_bodies(bodies, display_tri_face, display_tri_body,
                                      display_body_meshes,

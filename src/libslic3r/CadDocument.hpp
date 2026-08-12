@@ -251,6 +251,17 @@ struct CadFeature {
     int          coordsys_edge{-1};
     Vec3d        coordsys_x_hint{1, 0, 0};
 
+    // Fingerprint of the face this connector was bound to, for drift detection. -1 = not yet
+    // recorded (an old recipe, or a connector that has never resolved).
+    //
+    // Surface TYPE and EDGE COUNT specifically, because they survive every legitimate edit:
+    // Transform moves the body, Draft tilts the face, a dimension change resizes it, and none
+    // of those change either value. Centroid, area and normal all fail that test — see the
+    // issue. The cost is that a slide from one planar 4-edge face to another planar 4-edge face
+    // is invisible; a detector that never cries wolf is worth more here than a total one.
+    int coordsys_face_kind{-1};    // GeomAbs_SurfaceType as int
+    int coordsys_face_edges{-1};   // number of edges bounding the face
+
     // Helix curve params (consumed as a sweep path to build springs/coils/augers).
     // Axis = plane normal through plane origin. pitch = axial rise per full turn.
     // left_handed flips the winding direction. taper_deg != 0 gives a conical helix.
@@ -345,7 +356,8 @@ struct CadFeature {
               rib_sketch_ref, rib_entity, rib_thickness, rib_depth,
                pattern_curve_sketch, pattern_curve_entity,
                expr,
-               mate_kind, mate_cs_a, mate_cs_b, mate_offset, mate_angle, mate_flip);
+               mate_kind, mate_cs_a, mate_cs_b, mate_offset, mate_angle, mate_flip,
+               coordsys_face_kind, coordsys_face_edges);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -383,7 +395,8 @@ struct CadFeature {
                rib_sketch_ref, rib_entity, rib_thickness, rib_depth,
                 pattern_curve_sketch, pattern_curve_entity,
                expr,
-               mate_kind, mate_cs_a, mate_cs_b, mate_offset, mate_angle, mate_flip);
+               mate_kind, mate_cs_a, mate_cs_b, mate_offset, mate_angle, mate_flip,
+               coordsys_face_kind, coordsys_face_edges);
         imported_solid = brep_from_string(brep);
     }
 };
@@ -594,7 +607,12 @@ public:
     // - bump this whenever CadFeature::save/load gains or loses a field
     // - v1 blobs are deliberately not loadable; there is no migration path by design
     // - append fields ONLY at the end of save/load, never reorder (golden fixture enforces this)
-    static constexpr uint32_t SNAPORCA_CAD_RECIPE_VERSION = 3;
+    // v4: coordsys_face_kind + coordsys_face_edges appended (connector face-drift fingerprint).
+    // The bump is not optional. deserialize_recipe() gates on v == VERSION and then reads a FLAT
+    // symmetric field list, so a v3 blob under a v3 build that has grown two fields passes the
+    // gate and then reads two ints past the end of every connector — straight into the next
+    // feature's bytes. That is silent corruption of a saved project, not a load error.
+    static constexpr uint32_t SNAPORCA_CAD_RECIPE_VERSION = 4;
     std::string serialize_recipe() const;
     bool deserialize_recipe(const std::string& blob);
 
