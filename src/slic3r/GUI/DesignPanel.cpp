@@ -3511,7 +3511,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
         } else if (m_active == Tool::Thicken) {
             if (m_thicken_thickness) m_thicken_thickness->SetValue(depth);
         } else if (m_active == Tool::Rib) {
-            if (m_rib_depth) m_rib_depth->SetValue(depth);   // depth only; thickness has no handle yet
+            if (m_rib_depth) m_rib_depth->SetValue(depth);   // depth; thickness has its own in-plane pair
+        } else if (m_active == Tool::SurfaceOffset) {
+            if (m_surf_offset_distance) m_surf_offset_distance->SetValue(depth);
+        } else if (m_active == Tool::ThickenSurface) {
+            if (m_surf_thicken_thickness) m_surf_thicken_thickness->SetValue(depth);
         } else if (second) { if (m_distance2) m_distance2->SetValue(depth); }
         else               { if (m_distance)  m_distance->SetValue(depth); }
         refresh_preview();
@@ -8928,7 +8932,48 @@ void DesignPanel::update_extrude_gizmo()
 {
     if (!m_viewport) return;
     if (m_active != Tool::Extrude && m_active != Tool::SurfaceExtrude
-        && m_active != Tool::Thicken && m_active != Tool::Rib) { m_viewport->clear_extrude_gizmo(); return; }
+        && m_active != Tool::Thicken && m_active != Tool::Rib
+        && m_active != Tool::SurfaceOffset && m_active != Tool::ThickenSurface) {
+        m_viewport->clear_extrude_gizmo(); return;
+    }
+
+    // SurfaceOffset and ThickenSurface: one distance each, applied to a whole SHEET body chosen
+    // from a combo. A sheet has no single normal, so there is no frame to anchor an arrow on —
+    // which is why these were the two tools left with no handle at all.
+    //
+    // The way out is not to change what the tool operates on. Both still offset or thicken the
+    // ENTIRE sheet named in the combo; the picked face only says WHERE TO STAND THE ARROW. So
+    // the arrow appears whenever the user has a face of that sheet under selection, and its
+    // absence costs nothing — the card alone still works exactly as before. Purely additive, so
+    // no existing flow changes and there is no new precondition to learn.
+    if (m_active == Tool::SurfaceOffset || m_active == Tool::ThickenSurface) {
+        const bool off = (m_active == Tool::SurfaceOffset);
+        const int sheet = sheet_choice_body(off ? m_surf_offset_body : m_surf_thicken_body);
+        // Only when the picked face belongs to the sheet the tool will actually act on:
+        // an arrow standing on a different body would name the wrong thing.
+        if (sheet < 0 || sheet >= int(m_doc.bodies.size())
+            || m_sel_solid_body != sheet || m_sel_solid_face < 0) {
+            m_viewport->clear_extrude_gizmo(); return;
+        }
+        TopoDS_Face f = GeometryEngine::face_by_index(m_doc.bodies[sheet].shape, m_sel_solid_face);
+        if (f.IsNull()) { m_viewport->clear_extrude_gizmo(); return; }
+        SketchPlane plane = SketchPlane::from_face(f);
+        Vec3d c = GeometryEngine::face_centroid_world(f);
+        Vec3d n = GeometryEngine::face_normal_world(f);
+        if (f.Orientation() == TopAbs_REVERSED) n = -n;
+        sync_body_xform();
+        if (sheet < int(m_body_xform.size())) {
+            c = m_body_xform[sheet] * c;
+            n = m_body_xform[sheet].linear() * n;
+        }
+        plane.origin = c;
+        if (n.norm() > 1e-9) plane.normal = n.normalized();
+        wxSpinCtrlDouble* spin = off ? m_surf_offset_distance : m_surf_thicken_thickness;
+        m_viewport->set_extrude_gizmo(plane, Vec2d(0, 0), spin ? spin->GetValue() : 0.0,
+                                      0.0, false,
+                                      !off && m_surf_thicken_flip && m_surf_thicken_flip->GetValue());
+        return;
+    }
 
     if (m_active == Tool::Rib) {
         // Rib's DEPTH is a distance along the sketch plane normal — the same arrow again,
