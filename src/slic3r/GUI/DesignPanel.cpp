@@ -3544,6 +3544,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_viewport->request_repaint();
     });
 
+    // Rib thickness handle: writes the spin and re-feeds the ghost, same as the depth arrow.
+    m_viewport->set_on_rib_thickness_changed([this](double thickness) {
+        if (m_rib_thickness) m_rib_thickness->SetValue(thickness);
+        refresh_preview();   // Rib HAS a solid ghost, so the full preview path is correct here
+    });
+
     // Clicking a ghost base plane sets the base graphically (replaces the dropdown). A base pick
     // drops any offset-from-face choice so the picked base plane wins, then re-resolves the preview.
     m_viewport->set_on_datum_base_picked([this](int base) {
@@ -9122,6 +9128,25 @@ void DesignPanel::update_helix_gizmo()
                                 m_helix_left_handed && m_helix_left_handed->GetValue());
 }
 
+void DesignPanel::update_rib_gizmo()
+{
+    if (!m_viewport) return;
+    if (m_active != Tool::Rib) { m_viewport->clear_rib_gizmo(); return; }
+    // Same resolution the Tool::Rib branch of update_extrude_gizmo() uses — the depth arrow and
+    // this share one sketch and one entity, and must never disagree about which line that is.
+    const int ssel = m_rib_sketch ? m_rib_sketch->GetSelection() : wxNOT_FOUND;
+    const int ref  = (ssel != wxNOT_FOUND)
+                         ? int(reinterpret_cast<intptr_t>(m_rib_sketch->GetClientData(ssel))) : -1;
+    if (ref < 0 || ref >= int(m_doc.features.size())) { m_viewport->clear_rib_gizmo(); return; }
+    const CadFeature& sk = m_doc.features[ref];
+    const int ei = m_rib_entity ? m_rib_entity->GetValue() : 0;
+    if (ei < 0 || ei >= int(sk.entities.size())) { m_viewport->clear_rib_gizmo(); return; }
+    const SketchEntity& e = sk.entities[ei];
+    if (e.type != SketchEntity::Type::Line) { m_viewport->clear_rib_gizmo(); return; }   // rib is line-only
+    m_viewport->set_rib_gizmo(sk.plane, e.p0, e.p1,
+                              m_rib_thickness ? m_rib_thickness->GetValue() : 0.0);
+}
+
 // Onshape default planes: the XY/XZ/YZ reference planes are persistent, transparent, labelled, and
 // larger than the bed — shown as the FALLBACK when there is no object yet. When the Plane tool is
 // open they additionally surface existing datums so a base can be picked. Single authority for the
@@ -9297,6 +9322,8 @@ void DesignPanel::refresh_preview()
     update_datum_gizmo();
     // Helix curve + handles (self-gates: only while the Helix card is open).
     update_helix_gizmo();
+    // Rib slab footprint + thickness handles (self-gates: only while the Rib card is open).
+    update_rib_gizmo();
     update_operand_highlight();
 }
 

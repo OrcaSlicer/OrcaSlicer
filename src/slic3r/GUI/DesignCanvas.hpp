@@ -174,6 +174,9 @@ public:
                          double taper, bool left_handed);          // helix curve + 3 drag handles
     void clear_helix_gizmo();
     void set_on_helix_changed(std::function<void(double, double, double)> cb);
+    void set_rib_gizmo(const SketchPlane& plane, const Vec2d& p0, const Vec2d& p1, double thickness);  // rib slab footprint + 2 thickness handles
+    void clear_rib_gizmo();
+    void set_on_rib_thickness_changed(std::function<void(double)> cb);
     void set_base_pick(std::vector<SketchPlane> planes, std::vector<int> bases,
                        std::vector<std::string> labels = {});   // clickable labelled reference planes
     void clear_base_pick();

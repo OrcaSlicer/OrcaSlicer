@@ -119,7 +119,7 @@ public:
                                       || m_show_planes || m_show_axes
                                       || m_ex_active || m_mv_active || m_fl_active
                                       || m_hl_active || m_th_active || m_sh_active
-                                      || m_dr_active || m_ct_active || m_dz_active || m_dbp_active || m_hx_active; }
+                                      || m_dr_active || m_ct_active || m_dz_active || m_dbp_active || m_hx_active || m_rb_active; }
 
     // View helpers: the 3 world origin planes (XY/XZ/YZ) and the world axis triad, each
     // shown/hidden by a toggle (keys P / A). Off by default so the idle scene stays clean.
@@ -213,6 +213,15 @@ public:
                          double taper, bool left_handed);
     void clear_helix_gizmo();
     std::function<void(double radius, double pitch, double height)> on_helix_changed;
+
+    // Visual Rib thickness gizmo. The rib is a thin slab grown either side of an open sketch
+    // line, so its thickness is an IN-PLANE offset perpendicular to that line — the depth arrow
+    // (which points along the plane normal) cannot express it. Two handles, one per side,
+    // dragged symmetrically: the slab is centred on the line, so a drag on either side sets the
+    // full thickness rather than one half.
+    void set_rib_gizmo(const SketchPlane& plane, const Vec2d& p0, const Vec2d& p1, double thickness);
+    void clear_rib_gizmo();
+    std::function<void(double thickness)> on_rib_thickness_changed;
 
     // Graphical base/origin pick: while the Plane card is open, the candidate base planes
     // (XY/XZ/YZ origin planes + existing datums) draw as translucent clickable ghosts. A click
@@ -1039,6 +1048,19 @@ private:
     void  render_helix_gizmo();
     bool  hit_test_helix_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int& which) const;
     void  drag_helix_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int which);
+    // Rib thickness gizmo state (plane-anchored slab footprint + 2 drag handles). Fed by the
+    // panel while the Rib card is open (sketch tool NOT active); the tool draws the rib's
+    // footprint outline and a handle on each side of the line at half-thickness. Dragging either
+    // handle sets the full thickness (the slab is centred on the line).
+    bool        m_rb_active{false};
+    SketchPlane m_rb_plane;
+    Vec2d       m_rb_p0{Vec2d::Zero()};      // rib line endpoints, in plane coords
+    Vec2d       m_rb_p1{Vec2d::Zero()};
+    double      m_rb_thickness{2.0};
+    int         m_rb_drag{-1};               // 0 = +perp handle, 1 = -perp handle, -1 none
+    void  render_rib_gizmo();
+    bool  hit_test_rib_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int& which) const;
+    void  drag_rib_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int which);
     // Datum base picker (translucent clickable origin/datum planes)
     bool        m_dbp_active{false};
     std::vector<SketchPlane>  m_dbp_planes;

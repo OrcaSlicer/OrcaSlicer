@@ -3914,6 +3914,139 @@ void DesignSketchTool::drag_helix_handle(GLCanvas3D& canvas, const wxMouseEvent&
     if (on_helix_changed) on_helix_changed(m_hx_radius, m_hx_pitch, m_hx_height);
 }
 
+// ---- Rib thickness gizmo (in-plane slab footprint + 2 symmetric handles) -----------------
+void DesignSketchTool::set_rib_gizmo(const SketchPlane& plane, const Vec2d& p0, const Vec2d& p1,
+                                     double thickness)
+{
+    m_rb_active    = true;
+    m_rb_plane     = plane;
+    m_rb_p0        = p0;
+    m_rb_p1        = p1;
+    m_rb_thickness = thickness;
+}
+
+void DesignSketchTool::clear_rib_gizmo()
+{
+    m_rb_active = false;
+    m_rb_drag   = -1;
+}
+
+// Resolve the rib line's in-plane frame: unit direction d, perpendicular perp, midpoint, and
+// half-thickness. A degenerate line (zero length) has no direction to grow a slab perpendicular
+// to — return false so the caller draws nothing and never divides by zero.
+static bool rib_frame(const Vec2d& p0, const Vec2d& p1, double thickness,
+                      Vec2d& d, Vec2d& perp, Vec2d& mid, double& half)
+{
+    const Vec2d seg = p1 - p0;
+    const double len = seg.norm();
+    if (len < 1e-9) return false;
+    d    = seg / len;
+    perp = Vec2d(-d.y(), d.x());
+    mid  = 0.5 * (p0 + p1);
+    half = thickness * 0.5;
+    return true;
+}
+
+// Draw the rib slab's actual footprint (the rectangle p0±perp·half, p1±perp·half) as a thin
+// closed ribbon plus two square handles at mid ± perp·half. Both handles sit at half-thickness,
+// so a drag on either expresses the full thickness symmetrically.
+void DesignSketchTool::render_rib_gizmo()
+{
+    if (!m_rb_active) return;
+    Vec2d d, perp, mid; double half;
+    if (!rib_frame(m_rb_p0, m_rb_p1, m_rb_thickness, d, perp, mid, half)) return;
+    using EPT = GLModel::Geometry::EPrimitiveType;
+    using EVL = GLModel::Geometry::EVertexLayout;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const Vec3d right = cam.get_dir_right().normalized();
+    const Vec3d up    = cam.get_dir_up().normalized();
+    const Vec3d vd    = cam.get_dir_forward();
+    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double hs   = 6.0 * upp;                       // handle half-size (~6 px)
+    const double hw   = 1.5 * upp;                       // ribbon half-width
+
+    // Slab footprint outline (4 thin camera-facing ribbons).
+    const Vec3d c[4] = { m_rb_plane.to_world(m_rb_p0 + perp * half),
+                         m_rb_plane.to_world(m_rb_p1 + perp * half),
+                         m_rb_plane.to_world(m_rb_p1 - perp * half),
+                         m_rb_plane.to_world(m_rb_p0 - perp * half) };
+    GLModel::Geometry border; border.format = { EPT::Triangles, EVL::P3 };
+    unsigned int bb = 0;
+    for (int s = 0; s < 4; ++s) {
+        const Vec3d a = c[s], b = c[(s + 1) & 3];
+        Vec3d dir = b - a; if (dir.norm() < 1e-9) continue; dir.normalize();
+        Vec3d off = dir.cross(vd);
+        if (off.norm() < 1e-9) off = dir.cross(up);
+        if (off.norm() < 1e-9) continue;
+        off.normalize(); off *= hw;
+        border.add_vertex((Vec3f)(a + off).cast<float>()); border.add_vertex((Vec3f)(b + off).cast<float>());
+        border.add_vertex((Vec3f)(b - off).cast<float>()); border.add_vertex((Vec3f)(a - off).cast<float>());
+        border.add_triangle(bb, bb + 1, bb + 2); border.add_triangle(bb, bb + 2, bb + 3); bb += 4;
+    }
+
+    // Two handles: 0 = +perp side, 1 = -perp side (both at half-thickness).
+    const Vec3d hpts[2] = { m_rb_plane.to_world(mid + perp * half),
+                            m_rb_plane.to_world(mid - perp * half) };
+    const ColorRGBA hot(1.0f, 0.85f, 0.2f, 1.0f);
+
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    if (bb > 0) {
+        GLModel m; m.init_from(std::move(border));
+        m.set_color(ColorRGBA(1.0f, 0.62f, 0.16f, 0.9f));   // CAD amber slab footprint
+        m.render();
+    }
+    for (int i = 0; i < 2; ++i) {
+        const Vec3d ctr = hpts[i];
+        const Vec3d q0 = ctr - right * hs - up * hs, q1 = ctr + right * hs - up * hs,
+                    q2 = ctr + right * hs + up * hs, q3 = ctr - right * hs + up * hs;
+        GLModel::Geometry sq; sq.format = { EPT::Triangles, EVL::P3 };
+        sq.add_vertex((Vec3f)q0.cast<float>()); sq.add_vertex((Vec3f)q1.cast<float>());
+        sq.add_vertex((Vec3f)q2.cast<float>()); sq.add_vertex((Vec3f)q3.cast<float>());
+        sq.add_triangle(0, 1, 2); sq.add_triangle(0, 2, 3);
+        GLModel m; m.init_from(std::move(sq));
+        m.set_color(m_rb_drag == i ? hot : ColorRGBA(0.30f, 0.80f, 0.34f, 1.0f));   // green
+        m.render();
+    }
+}
+
+bool DesignSketchTool::hit_test_rib_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int& which) const
+{
+    if (!m_rb_active) return false;
+    Vec2d d, perp, mid; double half;
+    if (!rib_frame(m_rb_p0, m_rb_p1, m_rb_thickness, d, perp, mid, half)) return false;
+    const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
+    const Vec3d ro = r.a, rd = r.b - r.a;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const double tol = 9.0 / std::max(cam.get_zoom(), 1e-6);   // ~9 px in world units
+    const Vec3d hpts[2] = { m_rb_plane.to_world(mid + perp * half),
+                            m_rb_plane.to_world(mid - perp * half) };
+    double best = tol; which = -1;
+    for (int i = 0; i < 2; ++i) {
+        const Vec3d w  = hpts[i] - ro;
+        const double t = w.dot(rd) / std::max(rd.dot(rd), 1e-12);
+        const double dd = (w - rd * t).norm();
+        if (dd < best) { best = dd; which = i; }
+    }
+    return which >= 0;
+}
+
+// Drag a handle: project the cursor ray onto the rib plane (the same call the helix radius drag
+// uses), take the perpendicular distance from the rib LINE to that point, and set the thickness
+// to twice that distance — the slab is centred on the line and the handle sits at half-thickness.
+void DesignSketchTool::drag_rib_handle(GLCanvas3D& canvas, const wxMouseEvent& evt, int which)
+{
+    (void)which;   // both handles behave identically: a drag on either sets the full thickness
+    const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
+    const Vec3d ro = r.a, rd = r.b - r.a;
+    Vec2d d, perp, mid; double half;
+    if (!rib_frame(m_rb_p0, m_rb_p1, m_rb_thickness, d, perp, mid, half)) return;
+    const Vec2d lp = m_rb_plane.project(ro, rd);
+    const Vec2d w  = lp - m_rb_p0;
+    const double dist = std::abs(w.x() * d.y() - w.y() * d.x());   // |cross(w, d)| = perp distance
+    m_rb_thickness = std::max(0.01, 2.0 * dist);                   // ×2: centred slab, handle at half
+    if (on_rib_thickness_changed) on_rib_thickness_changed(m_rb_thickness);
+}
+
 // ---- Reference/base planes (Onshape-style default planes) -----------------------------
 void DesignSketchTool::set_base_pick(std::vector<SketchPlane> planes, std::vector<int> bases,
                                      std::vector<std::string> labels)
@@ -7336,6 +7469,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         if (m_dbp_active) render_base_pick();
         if (m_dz_active) render_datum_gizmo();
         if (m_hx_active) render_helix_gizmo();
+        if (m_rb_active) render_rib_gizmo();
         if (m_ex_active) render_extrude_gizmo();
         if (m_mv_active) render_move_gizmo();
         if (m_fl_active) render_fillet_gizmo();
@@ -8154,6 +8288,21 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 int which = -1;
                 if (hit_test_helix_handle(canvas, evt, which)) {
                     m_hx_drag = which; m_hx_press_x = evt.GetX(); m_hx_press_y = evt.GetY();
+                    return true;
+                }
+            }
+        }
+        // Rib thickness gizmo: two in-plane handles on the slab footprint, while the Rib card is open.
+        if (m_rb_active) {
+            if (m_rb_drag >= 0 && evt.Dragging() && evt.LeftIsDown()) {
+                drag_rib_handle(canvas, evt, m_rb_drag);
+                return true;
+            }
+            if (evt.LeftUp() && m_rb_drag >= 0) { m_rb_drag = -1; return true; }
+            if (evt.LeftDown()) {
+                int which = -1;
+                if (hit_test_rib_handle(canvas, evt, which)) {
+                    m_rb_drag = which;
                     return true;
                 }
             }

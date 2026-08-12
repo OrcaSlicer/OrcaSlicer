@@ -861,6 +861,24 @@ void DesignCanvas::set_on_helix_changed(std::function<void(double, double, doubl
     m_sketch_tool.on_helix_changed = std::move(cb);
 }
 
+void DesignCanvas::set_rib_gizmo(const SketchPlane& plane, const Vec2d& p0, const Vec2d& p1,
+                                 double thickness)
+{
+    m_sketch_tool.set_rib_gizmo(plane, p0, p1, thickness);
+    request_repaint();
+}
+
+void DesignCanvas::clear_rib_gizmo()
+{
+    m_sketch_tool.clear_rib_gizmo();
+    request_repaint();
+}
+
+void DesignCanvas::set_on_rib_thickness_changed(std::function<void(double)> cb)
+{
+    m_sketch_tool.on_rib_thickness_changed = std::move(cb);
+}
+
 void DesignCanvas::set_base_pick(std::vector<SketchPlane> planes, std::vector<int> bases,
                                 std::vector<std::string> labels)
 {

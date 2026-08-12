@@ -273,6 +273,7 @@ private:
     void       update_pattern_gizmo();    // linear spacing arrow / circular angle-arc (Pattern card)
     void       update_datum_gizmo();      // resize handles on the datum plane being created/edited (C3)
     void       update_helix_gizmo();      // live helix curve + radius/height/pitch handles (Helix card)
+    void       update_rib_gizmo();        // in-plane slab footprint + thickness handles (Rib card)
     void       refresh_datum_planes();    // push resolved datum frames + per-plane u/v extents to viewport
     void       refresh_mate_connectors(); // push connector frames so verse + polarity are visible
     void       update_reference_planes(); // persistent XY/XZ/YZ reference planes (fallback when no object)
