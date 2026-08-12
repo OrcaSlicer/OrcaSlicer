@@ -540,3 +540,46 @@ TEST_CASE("A printer specific filament supersedes the generic library filament w
     CHECK(is_compatible_with_printer(generic_lib, PresetWithVendorProfile(*printer_c, nullptr)));
 }
 
+
+// Mixed-color filament metadata lives in project_config as parallel per-filament arrays.
+// set_num_filaments() is the single place that grows them alongside filament_colour; if it
+// misses them, creating a mixed slot writes past the end of the short arrays.
+TEST_CASE("set_num_filaments keeps mixed-color arrays in step with the filament count", "[Preset][Bundle][FilamentMixer]")
+{
+    static const char *kMixedKeys[] = {
+        "filament_is_mixed",
+        "filament_mixed_components",
+        "filament_mixed_sublayer_ratios",
+        "filament_mixed_gradient",
+        "filament_mixed_gradient_range",
+        "filament_mixed_gradient_curve",
+        "filament_mixed_gradient_per_part",
+    };
+
+    auto mixed_array_size = [](const DynamicPrintConfig &cfg, const std::string &key) -> size_t {
+        if (const auto *b = cfg.option<ConfigOptionBools>(key))
+            return b->values.size();
+        if (const auto *s = cfg.option<ConfigOptionStrings>(key))
+            return s->values.size();
+        return size_t(-1);   // key missing entirely
+    };
+
+    PresetBundle bundle;
+
+    const unsigned int n = GENERATE(2u, 4u, 8u);
+    bundle.set_num_filaments(n, std::string("#FF0000"));
+
+    REQUIRE(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == n);
+    for (const char *key : kMixedKeys) {
+        DYNAMIC_SECTION("grown: " << key) {
+            CHECK(mixed_array_size(bundle.project_config, key) == n);
+        }
+    }
+
+    SECTION("shrinking keeps them in step too") {
+        bundle.set_num_filaments(1, std::string("#00FF00"));
+        REQUIRE(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 1);
+        for (const char *key : kMixedKeys)
+            CHECK(mixed_array_size(bundle.project_config, key) == 1);
+    }
+}

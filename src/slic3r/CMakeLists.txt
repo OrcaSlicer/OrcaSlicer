@@ -353,6 +353,16 @@ set(SLIC3R_GUI_SOURCES
     GUI/Monitor.hpp
     GUI/MonitorPage.cpp
     GUI/MonitorPage.hpp
+    GUI/MixedFilamentDialog.cpp
+    GUI/MixedFilamentDialog.hpp
+    GUI/GradientCurveEditor.cpp
+    GUI/GradientCurveEditor.hpp
+    GUI/ColorDecomposeDialog.cpp
+    GUI/ColorDecomposeDialog.hpp
+    GUI/ColorDecomposeSupport.cpp
+    GUI/ColorDecomposeSupport.hpp
+    GUI/TextureImportDialog.cpp
+    GUI/TextureImportDialog.hpp
     GUI/Mouse3DController.cpp
     GUI/Mouse3DController.hpp
     GUI/MsgDialog.cpp

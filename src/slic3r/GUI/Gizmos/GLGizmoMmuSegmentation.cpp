@@ -731,6 +731,10 @@ void GLGizmoMmuSegmentation::init_model_triangle_selectors()
             continue;
 
         int extruder_idx = (mv->extruder_id() > 0) ? mv->extruder_id() - 1 : 0;
+        // A volume may be assigned to a mixed-color slot, whose index can sit past the
+        // physical colour list; fall back to the first colour rather than reading OOB.
+        if (extruder_idx >= (int)m_extruders_colors.size())
+            extruder_idx = 0;
         std::vector<ColorRGBA> ebt_colors;
         ebt_colors.push_back(m_extruders_colors[size_t(extruder_idx)]);
         ebt_colors.insert(ebt_colors.end(), m_extruders_colors.begin(), m_extruders_colors.end());
@@ -753,6 +757,9 @@ void GLGizmoMmuSegmentation::update_triangle_selectors_colors()
         TriangleSelectorPatch* selector = dynamic_cast<TriangleSelectorPatch*>(m_triangle_selectors[i].get());
         int extruder_idx = m_volumes_extruder_idxs[i];
         int extruder_color_idx = std::max(0, extruder_idx - 1);
+        // As above: a mixed-color slot can index past the physical colour list.
+        if (extruder_color_idx >= (int)m_extruders_colors.size())
+            extruder_color_idx = 0;
         std::vector<ColorRGBA> ebt_colors;
         ebt_colors.push_back(m_extruders_colors[extruder_color_idx]);
         ebt_colors.insert(ebt_colors.end(), m_extruders_colors.begin(), m_extruders_colors.end());

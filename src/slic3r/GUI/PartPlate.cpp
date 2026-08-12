@@ -6,6 +6,7 @@
 #include <sstream>
 #include <regex>
 #include "libslic3r/MultiNozzleUtils.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 #include <future>
 #include <glad/gl.h>
 #include <boost/algorithm/string.hpp>
@@ -1675,6 +1676,25 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 	std::sort(plate_extruders.begin(), plate_extruders.end());
 	auto it_end = std::unique(plate_extruders.begin(), plate_extruders.end());
 	plate_extruders.resize(std::distance(plate_extruders.begin(), it_end));
+
+	// Expand mixed filament slots to their physical components. A mixed slot is virtual and
+	// is never loaded into a tray, so callers (AMS mapping, filament checks) must see the
+	// physical filaments it resolves to instead.
+	{
+		auto& project_config = wxGetApp().preset_bundle->project_config;
+		auto* is_mixed_opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
+		auto* comp_strs_opt = project_config.option<ConfigOptionStrings>("filament_mixed_components");
+		if (is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {
+			std::vector<unsigned int> ext_0based;
+			for (int e : plate_extruders)
+				if (e >= 1) ext_0based.push_back((unsigned int)(e - 1));
+			auto expanded = expand_mixed_filaments(ext_0based, is_mixed_opt->values, comp_strs_opt->values);
+			plate_extruders.clear();
+			for (unsigned int e : expanded)
+				plate_extruders.push_back((int)(e + 1));
+		}
+	}
+
 	return plate_extruders;
 }
 
@@ -1836,6 +1856,24 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
     std::sort(plate_extruders.begin(), plate_extruders.end());
     auto it_end = std::unique(plate_extruders.begin(), plate_extruders.end());
     plate_extruders.resize(std::distance(plate_extruders.begin(), it_end));
+
+    // Expand mixed filament slots to their physical components. A mixed slot is virtual and
+    // is never loaded into a tray, so callers (AMS mapping, filament checks) must see the
+    // physical filaments it resolves to instead.
+    {
+        auto* is_mixed_opt = full_config.option<ConfigOptionBools>("filament_is_mixed");
+        auto* comp_strs_opt = full_config.option<ConfigOptionStrings>("filament_mixed_components");
+        if (is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {
+            std::vector<unsigned int> ext_0based;
+            for (int e : plate_extruders)
+                if (e >= 1) ext_0based.push_back((unsigned int)(e - 1));
+            auto expanded = expand_mixed_filaments(ext_0based, is_mixed_opt->values, comp_strs_opt->values);
+            plate_extruders.clear();
+            for (unsigned int e : expanded)
+                plate_extruders.push_back((int)(e + 1));
+        }
+    }
+
     return plate_extruders;
 }
 
@@ -1889,6 +1927,25 @@ std::vector<int> PartPlate::get_extruders_without_support(bool conside_custom_gc
 	std::sort(plate_extruders.begin(), plate_extruders.end());
 	auto it_end = std::unique(plate_extruders.begin(), plate_extruders.end());
 	plate_extruders.resize(std::distance(plate_extruders.begin(), it_end));
+
+	// Expand mixed filament slots to their physical components. A mixed slot is virtual and
+	// is never loaded into a tray, so callers (AMS mapping, filament checks) must see the
+	// physical filaments it resolves to instead.
+	{
+		auto& project_config = wxGetApp().preset_bundle->project_config;
+		auto* is_mixed_opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
+		auto* comp_strs_opt = project_config.option<ConfigOptionStrings>("filament_mixed_components");
+		if (is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {
+			std::vector<unsigned int> ext_0based;
+			for (int e : plate_extruders)
+				if (e >= 1) ext_0based.push_back((unsigned int)(e - 1));
+			auto expanded = expand_mixed_filaments(ext_0based, is_mixed_opt->values, comp_strs_opt->values);
+			plate_extruders.clear();
+			for (unsigned int e : expanded)
+				plate_extruders.push_back((int)(e + 1));
+		}
+	}
+
 	return plate_extruders;
 }
 
@@ -1988,6 +2045,55 @@ bool PartPlate::check_tpu_printable_status(const DynamicPrintConfig & config, co
 {
 	// do not limit the num of tpu filament in slicing
 	return true;
+}
+
+// A mixed-color filament alternates between its components constantly. On a single-nozzle
+// printer every one of those switches is a full filament change plus a purge, so warn the
+// user before they commit to it. Printers with more than one nozzle can keep the components
+// loaded simultaneously and are not affected.
+//
+// BBS additionally excludes its H2C/H2D/X2D models by name; those are multi-nozzle machines
+// already ruled out by the nozzle_diameter test above, so the name check is dropped here
+// rather than carried over as a Bambu-specific special case.
+bool PartPlate::check_single_extruder_mixed_filament_risk(const DynamicPrintConfig &config, std::string &warning_text) const
+{
+    warning_text.clear();
+
+    auto *nozzle_diameter_opt = config.option<ConfigOptionFloatsNullable>("nozzle_diameter");
+    if (!nozzle_diameter_opt || nozzle_diameter_opt->values.size() > 1)
+        return false;
+
+    auto *is_mixed_opt = wxGetApp().preset_bundle->project_config.option<ConfigOptionBools>("filament_is_mixed");
+    if (!is_mixed_opt || !has_any_mixed_filament(is_mixed_opt->values))
+        return false;
+
+    auto is_mixed_slot = [&](int extruder_1based) {
+        size_t idx = (size_t)(extruder_1based - 1);
+        return idx < is_mixed_opt->values.size() && is_mixed_opt->values[idx];
+    };
+
+    const std::string mixed_warn_msg = _u8L("Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, "
+                                            "which may significantly increase waste and the risk of nozzle / waste-chute clogging.");
+
+    for (int obj_idx = 0; obj_idx < (int)m_model->objects.size(); ++obj_idx) {
+        if (!contain_instance_totally(obj_idx, 0))
+            continue;
+        ModelObject *mo = m_model->objects[obj_idx];
+        int obj_ext = mo->config.has("extruder") ? mo->config.extruder() : 1;
+        if (is_mixed_slot(obj_ext)) {
+            warning_text = mixed_warn_msg;
+            return true;
+        }
+        for (ModelVolume *mv : mo->volumes) {
+            int vol_ext = mv->config.has("extruder") ? mv->config.extruder() : obj_ext;
+            if (is_mixed_slot(vol_ext)) {
+                warning_text = mixed_warn_msg;
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 bool PartPlate::check_mixture_of_pla_and_petg(const DynamicPrintConfig &config)

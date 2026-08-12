@@ -86,6 +86,10 @@ using t_optgroups = std::vector <std::shared_ptr<ConfigOptionsGroup>>;
 class Plater;
 enum class ActionButtonType : int;
 
+// Sentinel filament id meaning "use the slot the sidebar context menu was opened on"
+// (Sidebar::priv::m_menu_filament_id) rather than an explicit index.
+inline constexpr int kSidebarContextMenuFilamentId = -2;
+
 #define EVT_PUBLISHING_START        1
 #define EVT_PUBLISHING_STOP         2
 
@@ -188,7 +192,7 @@ public:
     void delete_filament(size_t filament_id = size_t(-1), int replace_filament_id = -1);  // 0 base, -1 means default
     void change_filament(size_t from_id, size_t to_id);  // 0 base
     void edit_filament();
-    void add_custom_filament(wxColour new_col);
+    void add_custom_filament(wxColour new_col, const std::string& preset_name = std::string(), bool skip_preset_validation = false);
     bool is_new_project_in_gcode3mf();
     // BBS
     void on_bed_type_change(BedType bed_type);
@@ -262,6 +266,20 @@ public:
     std::vector<PlaterPresetComboBox*>&   combos_filament();
     void                                 clear_combos_filament_badge();
     void                                 udpate_combos_filament_badge();
+
+    // Mixed-color filament sidebar section
+    void add_mixed_filament();
+    void edit_mixed_filament(size_t idx);
+    void delete_mixed_filament_at(size_t idx);
+    void decompose_filament_color(int filament_idx);
+    void recalc_filament_scroll_sizes();
+    void update_mixed_filament_list();
+    bool has_broken_mixed_filament() const;
+    bool has_broken_mixed_filament(const PartPlate* plate) const;
+    void collect_physical_filament_info(std::vector<std::string>& color_strs,
+                                        std::vector<std::string>& names,
+                                        std::vector<std::string>& types,
+                                        std::vector<size_t>* config_indices = nullptr);
     Search::OptionsSearcher&        get_searcher();
     std::string&                    get_search_line();
     void                            update_printer_thumbnail();
@@ -312,6 +330,11 @@ public:
     Print& fff_print();
     const SLAPrint& sla_print() const;
     SLAPrint& sla_print();
+
+    // Helper: returns config indices where filament_is_mixed == true
+    std::vector<size_t> mixed_filament_config_indices() const;
+    // Helper: returns config indices where filament_is_mixed == false
+    std::vector<size_t> physical_filament_config_indices() const;
 
     int new_project(bool skip_confirm = false, bool silent = false, const wxString& project_name = wxString());
     // BBS: save & backup

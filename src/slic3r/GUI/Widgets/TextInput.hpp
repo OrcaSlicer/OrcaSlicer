@@ -54,6 +54,7 @@ public:
     void SetIcon(const wxString & icon);
 
     void SetIcon_1(const wxString &icon);
+    void SetIcon_1(const wxBitmap &icon);
 
     void SetLabelColor(StateColor const &color);
 

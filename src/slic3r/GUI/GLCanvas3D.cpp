@@ -155,6 +155,11 @@ std::string& get_filament_mixture_warning_text(){
     return filament_mixture_warning_text;
 }
 
+std::string& get_single_extruder_mixed_filament_warning_text(){
+    static std::string single_extruder_mixed_filament_warning_text;
+    return single_extruder_mixed_filament_warning_text;
+}
+
 
 static std::string format_number(float value)
 {
@@ -2984,6 +2989,9 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
             bool mix_pla_and_petg = cur_plate->check_mixture_of_pla_and_petg(full_config_temp);
             _set_warning_notification(EWarning::MixUsePLAAndPETG, !mix_pla_and_petg);
 
+            bool single_extruder_mixed_risk = cur_plate->check_single_extruder_mixed_filament_risk(full_config_temp, get_single_extruder_mixed_filament_warning_text());
+            _set_warning_notification(EWarning::SingleExtruderMixedFilament, single_extruder_mixed_risk);
+
             bool filament_nozzle_compatible = cur_plate->check_compatible_of_nozzle_and_filament(full_config_temp, wxGetApp().preset_bundle->filament_presets, get_nozzle_filament_incompatible_text());
             _set_warning_notification(EWarning::NozzleFilamentIncompatible, !filament_nozzle_compatible);
 
@@ -3010,6 +3018,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
            _set_warning_notification(EWarning::TPUPrintableError, false);
            _set_warning_notification(EWarning::FilamentPrintableError, false);
            _set_warning_notification(EWarning::MixUsePLAAndPETG, false);
+           _set_warning_notification(EWarning::SingleExtruderMixedFilament, false);
            _set_warning_notification(EWarning::PrimeTowerOutside, false);
            _set_warning_notification(EWarning::MultiExtruderPrintableError,false);
            _set_warning_notification(EWarning::MultiExtruderHeightOutside,false);
@@ -10569,6 +10578,9 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
     }
     case EWarning::MixUsePLAAndPETG:
         text = _u8L("PLA and PETG filaments detected in the mixture. Adjust parameters according to the Wiki to ensure print quality.");
+        break;
+    case EWarning::SingleExtruderMixedFilament:
+        text = get_single_extruder_mixed_filament_warning_text();
         break;
     case EWarning::PrimeTowerOutside:
         text  = _u8L("The prime tower extends beyond the plate boundary.");
