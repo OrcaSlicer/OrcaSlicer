@@ -128,7 +128,7 @@ done
 # --- main window ----------------------------------------------------------------------------
 main="$(xdotool search --name "Untitled" 2>/dev/null | head -1 || true)"
 if [ -n "$main" ]; then
-    xdotool windowmove "$main" 0 0 windowsize "$main" ${GEOM/x/ } 2>/dev/null || true
+    xdotool windowmove "$main" 0 0 windowsize "$main" "$screen_w" "$screen_h" 2>/dev/null || true
     xdotool windowactivate "$main" 2>/dev/null || true
     sleep 2
 fi
