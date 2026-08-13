@@ -118,7 +118,9 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
         if (extrusions.has_infill()) {
             if (extrusions.has_solid_infill()) {
                 ExtrusionRole role = extrusions.role();
-                if (role == erTopSolidInfill || role == erIroning)
+                if (role == erIroning && region.config().ironing_filament > 0)
+                    extruder = region.config().ironing_filament;
+                else if (role == erTopSolidInfill || role == erIroning)
                     extruder = region.config().top_surface_filament_id;
                 else if (role == erBottomSurface)
                     extruder = region.config().bottom_surface_filament_id;
@@ -857,12 +859,15 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             bool has_internal_solid     = false;
             bool has_top_solid_surface  = false;
             bool has_bottom_surface     = false;
+            bool has_ironing            = false;
             bool something_nonoverriddable = false;
             for (const ExtrusionEntity *ee : layerm->fills.entities) {
                 // fill represents infill extrusions of a single island.
                 const auto *fill = dynamic_cast<const ExtrusionEntityCollection*>(ee);
                 ExtrusionRole role = fill->entities.empty() ? erNone : fill->entities.front()->role();
-                if (role == erTopSolidInfill || role == erIroning)
+                if (role == erIroning)
+                    has_ironing = true;
+                else if (role == erTopSolidInfill)
                     has_top_solid_surface = true;
                 else if (role == erBottomSurface)
                     has_bottom_surface = true;
@@ -883,14 +888,18 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
                         layer_tools.extruders.emplace_back(region.config().internal_solid_filament_id);
                     if (has_top_solid_surface)
                         layer_tools.extruders.emplace_back(region.config().top_surface_filament_id);
+                    // "Default" (0) irons with the top surface filament.
+                    if (has_ironing)
+                        layer_tools.extruders.emplace_back(region.config().ironing_filament > 0 ? region.config().ironing_filament.value :
+                                                                                                  region.config().top_surface_filament_id.value);
                     if (has_bottom_surface)
                         layer_tools.extruders.emplace_back(region.config().bottom_surface_filament_id);
 	                if (has_infill)
 	                    layer_tools.extruders.emplace_back(region.config().sparse_infill_filament_id);
-                } else if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill)
+                } else if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill || has_ironing)
             		layer_tools.extruders.emplace_back(extruder_override);
             }
-            if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill)
+            if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill || has_ironing)
                 layer_tools.has_object = true;
         }
         layerCount++;

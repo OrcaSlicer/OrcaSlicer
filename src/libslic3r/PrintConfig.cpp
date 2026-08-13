@@ -4748,6 +4748,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipRectilinear));
     
+    def = this->add("ironing_filament", coInt);
+    def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
+    def->label    = L("Ironing filament");
+    def->category = L("Quality");
+    def->tooltip  = L("Filament to iron the surfaces with.\n\"Default\" uses the filament of the surface being ironed.\n"
+                      "Selecting a specific filament lets the ironing pass use another material than the surface below it, "
+                      "for example a smoother one for a cleaner finish.");
+    def->min      = 0;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
     def = this->add("ironing_flow", coPercent);
     def->label = L("Ironing flow");
     def->category = L("Quality");
