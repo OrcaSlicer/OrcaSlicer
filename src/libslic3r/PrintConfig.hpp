@@ -842,6 +842,9 @@ extern std::set<std::string> printer_options_with_variant_1;
 extern std::set<std::string> printer_options_with_variant_2;
 extern std::set<std::string> empty_options;
 
+void set_variant_override(ConfigOptionVectorBase &target, const ConfigOptionVectorBase &source,
+                          const std::vector<int> &variant_index, int stride = 1);
+
 extern std::set<std::string> filament_dev_options;
 
 extern void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPrintConfig& dest_config, std::vector<int> variant_index, std::set<std::string>& key_set1, int stride = 1);
