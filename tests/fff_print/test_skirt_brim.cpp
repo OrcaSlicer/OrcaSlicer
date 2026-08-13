@@ -137,6 +137,17 @@ static TriangleMesh frame_with_adjacent_nested_rings()
     return frame;
 }
 
+// A separate object below the frame whose automatic ears reach across the
+// frame wall and into its hole. The wall clips the connecting part of the ear,
+// leaving a detached remnant in the other object's hole unless outer-only
+// exclusion is applied across object boundaries.
+static TriangleMesh separate_part_below_frame()
+{
+    TriangleMesh part = make_cube(4, 4, 10);
+    part.translate(8, -6, 0);
+    return part;
+}
+
 // The span is skirt_height layers, or every layer when a draft shield is on (forced even at
 // height 0); per-object skirts are rejected in By object printing (no room between objects).
 TEST_CASE("Skirt is emitted once per layer it spans", "[SkirtBrim]")
@@ -365,6 +376,37 @@ TEST_CASE("Outer-only brim ears stay out of holes around nested islands", "[Skir
             { "initial_layer_line_width",   0.5 },
         });
 
+        REQUIRE(brim_loop_count(print) > 0);
+        CHECK(brim_enters_first_layer_hole(print) != outer_only);
+    }
+}
+
+TEST_CASE("Outer-only brim ears stay out of holes in other objects", "[SkirtBrim]")
+{
+    const bool outer_only = GENERATE(false, true);
+    DYNAMIC_SECTION("brim_ears_outer_only=" << outer_only) {
+        Print print;
+        Model model;
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({
+            { "skirt_loops",                0 },
+            { "brim_type",                  "brim_ears" },
+            { "brim_width",                 13 },
+            { "brim_object_gap",            0.1 },
+            { "brim_ears_max_angle",        125 },
+            { "brim_ears_detection_length", 1 },
+            { "brim_ears_outer_only",       outer_only },
+            { "initial_layer_line_width",   0.6 },
+        });
+
+        std::vector<TriangleMesh> objects {
+            mesh(TestMesh::cube_with_hole),
+            separate_part_below_frame(),
+        };
+        init_print(std::move(objects), print, model, config, nullptr, false);
+        print.process();
+
+        REQUIRE(print.objects().size() == 2);
         REQUIRE(brim_loop_count(print) > 0);
         CHECK(brim_enters_first_layer_hole(print) != outer_only);
     }
