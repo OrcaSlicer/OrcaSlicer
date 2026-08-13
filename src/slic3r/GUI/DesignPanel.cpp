@@ -6094,7 +6094,17 @@ void DesignPanel::load_recipe(const std::string& blob)
 {
     if (blob.empty()) return;
     if (!m_doc.deserialize_recipe(blob)) {
-        set_status(_L("Could not restore the CAD model from this project"));
+        // Carry the kernel's reason. deserialize_recipe distinguishes three cases that matter
+        // very differently to the person reading this — saved by a NEWER build, saved by an
+        // OLDER one, or genuinely unreadable — and replacing all three with one sentence left
+        // the user unable to tell "update SnapOrca" from "your file is damaged". Same
+        // error-loss class as the 31 McpControl sites (1de72de9ed): the message exists, it was
+        // simply not passed on.
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        set_status(m_doc.error.empty()
+                   ? _L("Could not restore the CAD model from this project")
+                   : _L("Could not restore the CAD model: ") + wxString::FromUTF8(m_doc.error));
+        m_status->Refresh();
         return;
     }
     m_feature_counter = int(m_doc.features.size());
