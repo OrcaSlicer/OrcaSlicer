@@ -52,8 +52,15 @@ public:
 	// to be used before building begins. The entries must be added ordered in z.
     void plan_toolchange(float z_par, float layer_height_par, unsigned int old_tool, unsigned int new_tool, float wipe_volume = 0.f);
 
+    // Local-Z extra toolchange at an intermediate (or rematerialized) Z.
+    // Adapted from FullSpectrum_integration WipeTower2::plan_local_z_toolchange.
+    void plan_local_z_toolchange(float z_par, float layer_height_par, unsigned int old_tool, unsigned int new_tool, float wipe_volume = 0.f);
+    void plan_local_z_reserve(float z_par, float layer_height_par, size_t reserve_slot_count, float wipe_volume);
+
 	// Iterates through prepared m_plan, generates ToolChangeResults and appends them to "result"
 	void generate(std::vector<std::vector<WipeTower::ToolChangeResult>> &result);
+    void generate(std::vector<std::vector<WipeTower::ToolChangeResult>> &result,
+                  std::vector<std::vector<WipeTower::ToolChangeResult>> &local_z_result);
 
     float get_depth() const { return m_wipe_tower_depth; }
 	std::vector<std::pair<float, float>> get_z_and_depth_pairs() const;

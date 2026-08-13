@@ -7,8 +7,10 @@
 #include "Exception.hpp"
 #include "I18N.hpp"
 #include "Layer.hpp"
+#include "Surface.hpp"
 #include "MultiMaterialSegmentation.hpp"
 #include "Print.hpp"
+#include "LocalZPlanner.hpp"
 //BBS
 #include "ShortestPath.hpp"
 #include "libslic3r/Feature/Interlocking/InterlockingGenerator.hpp"
@@ -1146,6 +1148,348 @@ void apply_fuzzy_skin_segmentation(PrintObject &print_object, ThrowOnCancel thro
 // Resulting expolygons of layer regions are marked as Internal.
 //
 // this should be idempotent
+static double machine_min_layer_height(const PrintConfig &cfg)
+{
+    double min_h = 0.0;
+    for (double v : cfg.min_layer_height.values) {
+        if (v > 0.0 && (min_h <= 0.0 || v < min_h))
+            min_h = v;
+    }
+    return min_h > 0.0 ? min_h : 0.08;
+}
+
+static const MixedFilament *first_mixed_filament_for_object(const PrintObject &print_object, unsigned int *virtual_id_out)
+{
+    const Print *print = print_object.print();
+    if (print == nullptr)
+        return nullptr;
+
+    const MixedFilamentManager &mgr = print->mixed_filament_manager();
+    const size_t                np  = print->config().filament_diameter.size();
+    auto check = [&](int id) -> const MixedFilament * {
+        if (id <= 0)
+            return nullptr;
+        if (!mgr.is_mixed(unsigned(id), np))
+            return nullptr;
+        if (virtual_id_out)
+            *virtual_id_out = unsigned(id);
+        return mgr.mixed_filament_from_id(unsigned(id), np);
+    };
+
+    const ModelObject *mo = print_object.model_object();
+    if (mo != nullptr) {
+        if (mo->config.has("extruder"))
+            if (const MixedFilament *mf = check(mo->config.extruder()))
+                return mf;
+        for (const ModelVolume *mv : mo->volumes) {
+            if (mv == nullptr)
+                continue;
+            if (mv->config.has("extruder"))
+                if (const MixedFilament *mf = check(mv->config.extruder()))
+                    return mf;
+            for (int extruder : mv->get_extruders())
+                if (const MixedFilament *mf = check(extruder))
+                    return mf;
+        }
+    }
+
+    for (const PrintRegion &region : print_object.all_regions()) {
+        const PrintRegionConfig &rc = region.config();
+        if (const MixedFilament *mf = check(rc.outer_wall_filament_id.value))
+            return mf;
+        if (const MixedFilament *mf = check(rc.inner_wall_filament_id.value))
+            return mf;
+        if (const MixedFilament *mf = check(rc.sparse_infill_filament_id.value))
+            return mf;
+        if (const MixedFilament *mf = check(rc.internal_solid_filament_id.value))
+            return mf;
+    }
+    return nullptr;
+}
+
+static void copy_layer_region_slices(Layer *dst, const Layer *src)
+{
+    if (dst == nullptr || src == nullptr)
+        return;
+    const size_t n = std::min(dst->region_count(), src->region_count());
+    for (size_t i = 0; i < n; ++i) {
+        dst->get_region(int(i))->slices.set(src->get_region(int(i))->slices);
+        dst->get_region(int(i))->raw_slices = src->get_region(int(i))->raw_slices;
+    }
+}
+
+// Region-level mixed-component surface bias (FS apply_mixed_region_surface_offsets).
+// Disabled when Local-Z owns the layer. Cube/unpainted path for DoD-4.
+static bool apply_mixed_component_surface_offsets(PrintObject &print_object)
+{
+    const Print *print = print_object.print();
+    if (print == nullptr || print_object.layer_count() == 0)
+        return false;
+
+    const PrintConfig &print_cfg = print->config();
+    if (print_cfg.dithering_local_z_mode.value)
+        return false;
+
+    const size_t num_physical = print_cfg.filament_diameter.size();
+    if (num_physical == 0)
+        return false;
+
+    const MixedFilamentManager &mixed_mgr = print->mixed_filament_manager();
+    bool has_component_offsets = false;
+    for (const MixedFilament &mf : mixed_mgr.mixed_filaments()) {
+        if (!mf.enabled)
+            continue;
+        if (std::abs(mf.component_a_surface_offset) > EPSILON || std::abs(mf.component_b_surface_offset) > EPSILON) {
+            has_component_offsets = true;
+            break;
+        }
+    }
+    if (!has_component_offsets)
+        return false;
+
+    size_t changed_regions = 0;
+    for (size_t layer_id = 0; layer_id < print_object.layer_count(); ++layer_id) {
+        Layer &layer = *print_object.get_layer(int(layer_id));
+        for (int region_id = 0; region_id < int(layer.region_count()); ++region_id) {
+            LayerRegion *layerm = layer.get_region(region_id);
+            if (layerm == nullptr || layerm->slices.empty())
+                continue;
+
+            unsigned int filament_id = unsigned(std::max(0, layerm->region().config().outer_wall_filament_id.value));
+            // Object/volume Change Filament is the primary mix assignment. Region
+            // outer_wall_filament_id is 0 when the process preset leaves features Default;
+            // the object extruder (virtual mix) still owns the slice.
+            if (!mixed_mgr.is_mixed(filament_id, num_physical)) {
+                unsigned int virtual_id = 0;
+                if (first_mixed_filament_for_object(print_object, &virtual_id) != nullptr)
+                    filament_id = virtual_id;
+            }
+            if (!mixed_mgr.is_mixed(filament_id, num_physical))
+                continue;
+
+            const coordf_t offset_mm = mixed_mgr.component_surface_offset(filament_id, num_physical, int(layer_id));
+            if (std::abs(offset_mm) <= EPSILON)
+                continue;
+
+            ExPolygons src = to_expolygons(layerm->slices.surfaces);
+            if (src.empty())
+                continue;
+            ExPolygons adjusted = apply_surface_offset(src, float(offset_mm));
+
+            if (offset_mm < 0 && !adjusted.empty()) {
+                ExPolygons occupied_other;
+                for (int other_id = 0; other_id < int(layer.region_count()); ++other_id) {
+                    if (other_id == region_id)
+                        continue;
+                    LayerRegion *other = layer.get_region(other_id);
+                    if (other == nullptr || other->slices.empty())
+                        continue;
+                    append(occupied_other, to_expolygons(other->slices.surfaces));
+                }
+                if (occupied_other.size() > 1)
+                    occupied_other = union_ex(occupied_other);
+                if (!occupied_other.empty()) {
+                    adjusted = diff_ex(adjusted, occupied_other, ApplySafetyOffset::Yes);
+                    if (!adjusted.empty() && adjusted.size() > 1)
+                        adjusted = union_ex(adjusted);
+                }
+            }
+
+            layerm->slices.set(std::move(adjusted), stInternal);
+            ++changed_regions;
+        }
+    }
+
+    if (changed_regions == 0)
+        return false;
+
+    BOOST_LOG_TRIVIAL(info) << "Mixed component surface offsets applied"
+                            << " object=" << (print_object.model_object() ? print_object.model_object()->name : std::string("<unknown>"))
+                            << " changed_regions=" << changed_regions;
+    return true;
+}
+
+// Pair-mix Full-domain Local-Z planner. Adapted from FS build_local_z_plan
+// (skip pointillism + 3+ direct-multicolor). Rematerializes Layer objects so
+// G-code and WipeTower2 consume sub-layer Z via the standard layer loop.
+static void build_local_z_plan(PrintObject &print_object)
+{
+    print_object.clear_local_z_plan();
+
+    const Print *print = print_object.print();
+    if (print == nullptr || print_object.layer_count() == 0)
+        return;
+
+    const PrintConfig &print_cfg = print->config();
+    if (!print_cfg.dithering_local_z_mode.value)
+        return;
+    if (!print_cfg.dithering_local_z_whole_objects.value)
+        return;
+
+    unsigned int         virtual_id = 0;
+    const MixedFilament *mf         = first_mixed_filament_for_object(print_object, &virtual_id);
+    if (mf == nullptr)
+        return;
+
+    const auto ratio = local_z_pair_ratio(*mf);
+    if (ratio.first == 0 && ratio.second == 0)
+        return;
+
+    const double     min_h        = machine_min_layer_height(print_cfg);
+    const bool       gradient     = print_cfg.mixed_filament_gradient_mode.value;
+    const size_t     num_physical = print_cfg.filament_diameter.size();
+    const MixedFilamentManager &mixed_mgr = print->mixed_filament_manager();
+
+    const coordf_t z_lo_obj = print_object.get_layer(0)->print_z;
+    const coordf_t z_hi_obj = print_object.get_layer(int(print_object.layer_count()) - 1)->print_z;
+    const coordf_t z_span   = std::max<coordf_t>(EPSILON, z_hi_obj - z_lo_obj);
+
+    std::vector<LocalZInterval> intervals;
+    std::vector<SubLayerPlan>   plans;
+    intervals.reserve(print_object.layer_count());
+    plans.reserve(print_object.layer_count() * 2);
+
+    for (size_t layer_idx = 0; layer_idx < print_object.layer_count(); ++layer_idx) {
+        const Layer &layer = *print_object.get_layer(int(layer_idx));
+        LocalZInterval interval;
+        interval.layer_id        = layer_idx;
+        interval.z_lo            = layer.print_z - layer.height;
+        interval.z_hi            = layer.print_z;
+        interval.base_height     = layer.height;
+        interval.has_mixed_paint = true;
+        interval.first_sublayer_idx = plans.size();
+
+        int ra = ratio.first;
+        int rb = ratio.second;
+        if (gradient) {
+            const double z_frac = (layer.print_z - z_lo_obj) / z_span;
+            const auto   g      = interpolate_pair_ratio_by_z(z_frac);
+            ra = g.first;
+            rb = g.second;
+        }
+
+        // Hold first layer whole: elephant-foot / first-layer flow stay on layer 0.
+        // Remaining layers: Full-domain cube rematerialize (same XY, real heights).
+        const bool hold_first = (layer_idx == 0);
+        const LocalZPassHeights heights = hold_first
+            ? LocalZPassHeights{}
+            : plan_local_z_pair_heights(layer.height, ra, rb, min_h);
+        if (!heights.split) {
+            interval.sublayer_count  = 1;
+            interval.sublayer_height = layer.height;
+            SubLayerPlan pass;
+            pass.layer_id        = layer_idx;
+            pass.pass_index      = 0;
+            pass.split_interval  = false;
+            pass.z_lo            = interval.z_lo;
+            pass.z_hi            = interval.z_hi;
+            pass.print_z         = layer.print_z;
+            pass.flow_height     = layer.height;
+            pass.extruder_1based = gradient
+                ? gradient_fallback_extruder_1based(*mf, ra, rb, num_physical)
+                : mixed_mgr.resolve(virtual_id, num_physical, int(layer_idx));
+            plans.emplace_back(pass);
+            intervals.emplace_back(interval);
+            continue;
+        }
+
+        interval.sublayer_count  = 2;
+        interval.sublayer_height = std::min(heights.height_a, heights.height_b);
+
+        SubLayerPlan pass_a;
+        pass_a.layer_id        = layer_idx;
+        pass_a.pass_index      = 0;
+        pass_a.split_interval  = true;
+        pass_a.z_lo            = interval.z_lo;
+        pass_a.z_hi            = interval.z_lo + heights.height_a;
+        pass_a.print_z         = pass_a.z_hi;
+        pass_a.flow_height     = heights.height_a;
+        pass_a.extruder_1based = unsigned(std::max(1, int(mf->component_a)));
+        if (pass_a.extruder_1based > num_physical && num_physical > 0)
+            pass_a.extruder_1based = unsigned(num_physical);
+
+        SubLayerPlan pass_b;
+        pass_b.layer_id        = layer_idx;
+        pass_b.pass_index      = 1;
+        pass_b.split_interval  = true;
+        pass_b.z_lo            = pass_a.z_hi;
+        pass_b.z_hi            = interval.z_hi;
+        pass_b.print_z         = interval.z_hi;
+        pass_b.flow_height     = heights.height_b;
+        pass_b.extruder_1based = unsigned(std::max(1, int(mf->component_b)));
+        if (pass_b.extruder_1based > num_physical && num_physical > 0)
+            pass_b.extruder_1based = unsigned(num_physical);
+
+        plans.emplace_back(pass_a);
+        plans.emplace_back(pass_b);
+        intervals.emplace_back(interval);
+    }
+
+    print_object.set_local_z_plan(std::move(intervals), std::move(plans));
+}
+
+static LayerPtrs rematerialize_layers_from_local_z_plan(PrintObject &print_object)
+{
+    LayerPtrs doomed;
+    const std::vector<SubLayerPlan> plans = print_object.local_z_sublayer_plan();
+    if (plans.empty())
+        return doomed;
+
+    bool any_split = false;
+    for (const SubLayerPlan &p : plans) {
+        if (p.split_interval) {
+            any_split = true;
+            break;
+        }
+    }
+    if (!any_split)
+        return doomed;
+
+    LayerPtrs &layers = print_object.layers();
+    LayerPtrs  old    = layers;
+    layers.clear();
+
+    const int first_id = old.empty() ? 0 : int(old.front()->id());
+    int       next_id  = first_id;
+
+    for (size_t layer_idx = 0; layer_idx < old.size(); ++layer_idx) {
+        Layer *src = old[layer_idx];
+        std::vector<const SubLayerPlan *> passes;
+        for (const SubLayerPlan &p : plans)
+            if (p.layer_id == layer_idx)
+                passes.push_back(&p);
+
+        if (passes.size() < 2 || !passes.front()->split_interval) {
+            src->set_id(size_t(next_id++));
+            layers.emplace_back(src);
+            continue;
+        }
+
+        // Full-domain cube approximation: copy parent XY (same vertical walls).
+        // Pass slice_z is the new layer center so later Z queries stay consistent.
+        // Not FS clip-replay / re-slice of sloped geometry.
+        for (const SubLayerPlan *pass : passes) {
+            const coordf_t pass_slice_z = pass->print_z - 0.5 * pass->flow_height;
+            Layer *nl = print_object.add_layer(next_id++, pass->flow_height, pass->print_z, pass_slice_z);
+            for (const LayerRegion *layerm : src->regions())
+                nl->add_region(&layerm->region());
+            copy_layer_region_slices(nl, src);
+        }
+        doomed.emplace_back(src);
+    }
+
+    for (size_t i = 0; i < layers.size(); ++i) {
+        layers[i]->lower_layer = (i == 0) ? nullptr : layers[i - 1];
+        layers[i]->upper_layer = (i + 1 == layers.size()) ? nullptr : layers[i + 1];
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "Local-Z rematerialized layers"
+                            << " object=" << (print_object.model_object() ? print_object.model_object()->name : std::string("<unknown>"))
+                            << " layers=" << layers.size()
+                            << " plans=" << plans.size();
+    return doomed;
+}
+
 void PrintObject::slice_volumes()
 {
     BOOST_LOG_TRIVIAL(info) << "Slicing volumes..." << log_memory_info();
@@ -1241,6 +1585,28 @@ void PrintObject::slice_volumes()
     }
 
     InterlockingGenerator::generate_interlocking_structure(this, [print]() { print->throw_if_canceled(); });
+    m_print->throw_if_canceled();
+
+    // M5: bias when Local-Z is off (FS disables bias when Local-Z owns the layer).
+    apply_mixed_component_surface_offsets(*this);
+    // Pair-mix Full domain Local-Z: plan + rematerialize before make_slices so
+    // perimeters/infill/G-code/WipeTower2 see real sub-layer heights.
+    if (print->config().dithering_local_z_mode.value && this->layer_count() > 2) {
+        const double h0 = this->get_layer(1)->height;
+        for (size_t i = 2; i < this->layer_count(); ++i) {
+            if (std::abs(this->get_layer(int(i))->height - h0) > 1e-4) {
+                this->active_step_add_warning(
+                    PrintStateBase::WarningLevel::NON_CRITICAL,
+                    L("Variable Layer Height and Subdivide Mix Layer are both enabled. "
+                      "Sub-layer heights follow the edited profile only approximately."));
+                break;
+            }
+        }
+    }
+    build_local_z_plan(*this);
+    LayerPtrs doomed_local_z = rematerialize_layers_from_local_z_plan(*this);
+    for (Layer *layer : doomed_local_z)
+        delete layer;
     m_print->throw_if_canceled();
 
     BOOST_LOG_TRIVIAL(debug) << "Slicing volumes - make_slices in parallel - begin";

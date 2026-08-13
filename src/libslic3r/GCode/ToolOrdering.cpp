@@ -81,6 +81,8 @@ bool check_filament_printable_after_group(const std::vector<unsigned int> &used_
 
 unsigned int LayerTools::resolve_mixed_1based(unsigned int filament_id) const
 {
+    if (local_z_physical_1based > 0)
+        return local_z_physical_1based;
     if (mixed_mgr == nullptr || num_physical == 0)
         return filament_id;
     return mixed_mgr->resolve(filament_id, num_physical, layer_index);
@@ -741,6 +743,11 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         layer_tools.layer_index  = layerCount;
         layer_tools.mixed_mgr    = m_mixed_mgr;
         layer_tools.num_physical = m_num_physical;
+        const PrintObject *plan_obj = &object;
+        if (object.local_z_sublayer_plan().empty() && layer->object() != nullptr)
+            plan_obj = layer->object();
+        if (const SubLayerPlan *pass = plan_obj->local_z_pass_at_print_z(layer->print_z))
+            layer_tools.local_z_physical_1based = pass->extruder_1based;
 
         // Override extruder with the next
     	for (; it_per_layer_extruder_override != per_layer_extruder_switches.end() && it_per_layer_extruder_override->first < layer->print_z + EPSILON; ++ it_per_layer_extruder_override)
@@ -826,6 +833,11 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             }
             if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill)
                 layer_tools.has_object = true;
+        }
+        if (layer_tools.local_z_physical_1based > 0) {
+            layer_tools.extruders.clear();
+            layer_tools.extruders.push_back(layer_tools.local_z_physical_1based);
+            layer_tools.has_object = true;
         }
         layerCount++;
     }

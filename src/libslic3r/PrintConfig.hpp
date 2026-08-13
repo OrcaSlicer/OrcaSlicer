@@ -1658,6 +1658,10 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
 
     // M3 pair-mix: serialized virtual mixed filaments (see MixedFilament.hpp).
     ((ConfigOptionString,              mixed_filament_definitions))
+    // M5 Local-Z (Snapmaker: Subdivide Mix Layer / Full domain).
+    ((ConfigOptionBool,                dithering_local_z_mode))
+    ((ConfigOptionBool,                dithering_local_z_whole_objects))
+    ((ConfigOptionBool,                mixed_filament_gradient_mode))
 
 
 )

@@ -4630,6 +4630,16 @@ LayerResult GCode::process_layer(
     std::string gcode;
     assert(is_decimal_separator_point()); // for the sprintfs
 
+    if (object_layer != nullptr) {
+        if (const SubLayerPlan *pass = object_layer->object()->local_z_pass_at_print_z(print_z)) {
+            gcode += "; LOCAL_Z pass=" + std::to_string(pass->pass_index)
+                  + " height=" + Slic3r::float_to_string_decimal_point(pass->flow_height)
+                  + " print_z=" + Slic3r::float_to_string_decimal_point(pass->print_z)
+                  + " tool=T" + std::to_string(std::max(0, int(pass->extruder_1based) - 1))
+                  + " split=" + (pass->split_interval ? "1" : "0") + "\n";
+        }
+    }
+
     // add tag for processor
     gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
     // export layer z

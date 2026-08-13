@@ -1,12 +1,15 @@
-// Milestone-3/4 pair-mix: virtual mixed filament → whole-layer A/B cadence or pattern.
+// Milestone-3/4/5 pair-mix: virtual mixed filament → whole-layer A/B cadence or pattern.
 // Serialization grammar (rows separated by ';'):
-//   "A,B,enabled,ratio_a,ratio_b[,pattern]"
+//   "A,B,enabled,ratio_a,ratio_b[,pattern][,xaN][,xbN]"
 // Example 1:1 mix of physical 1 and 2: "1,2,1,1,1"
 // Example pattern: "1,2,1,1,1,112" → layers T0,T0,T1 when A=1,B=2
+// Optional trailing xa/xb tokens persist component surface offsets (mm).
 // Empty string = no mixes. Virtual IDs start at num_physical+1 for enabled rows in order.
 // Token map (1-based): '1'→component_a, '2'→component_b, '3'..'9'→direct physical ID.
 
 #pragma once
+
+#include "ExPolygon.hpp"
 
 #include <cstddef>
 #include <string>
@@ -23,6 +26,10 @@ struct MixedFilament
     bool         enabled     = true;
     // Optional whole-layer cycle pattern. Empty → ratio cadence.
     std::string  manual_pattern;
+    // XY surface offsets (mm). Positive contracts inward; negative expands.
+    // Applied only when Local-Z does not own the layer (FS truth).
+    float        component_a_surface_offset = 0.f;
+    float        component_b_surface_offset = 0.f;
 };
 
 class MixedFilamentManager
@@ -39,6 +46,10 @@ public:
     bool is_mixed(unsigned int filament_id_1based, size_t num_physical) const;
     // Virtual IDs: num_physical+1, num_physical+2, ... enumerate enabled rows in order.
     const MixedFilament *mixed_filament_from_id(unsigned int filament_id_1based, size_t num_physical) const;
+
+    // Surface offset (mm) for the component that owns this mixed ID on layer_index.
+    // 0 if not mixed. Uses M4 whole-layer resolve to pick A vs B.
+    float component_surface_offset(unsigned int filament_id_1based, size_t num_physical, int layer_index) const;
 
     // Resolve virtual → physical for a layer. Non-mixed IDs returned unchanged.
     // If manual_pattern non-empty after normalize: pos = layer_index % len; token map.
@@ -64,5 +75,9 @@ private:
 
     std::vector<MixedFilament> m_mixed; // enabled rows only
 };
+
+// Offset mixed-region slices by a component surface bias (mm).
+// Positive contracts inward; negative expands. Empty in / failed offset → {}.
+ExPolygons apply_surface_offset(const ExPolygons &src, float offset_mm);
 
 } // namespace Slic3r

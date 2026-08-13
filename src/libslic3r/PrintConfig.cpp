@@ -4853,12 +4853,36 @@ void PrintConfigDef::init_fff_params()
     def = this->add("mixed_filament_definitions", coString);
     def->label = L("Mixed filament definitions");
     def->tooltip = L("Serialized virtual mixed filaments (pair-mix). Rows ';' separated: "
-                     "A,B,enabled,ratio_a,ratio_b[,pattern] (1-based physical IDs). "
+                     "A,B,enabled,ratio_a,ratio_b[,pattern][,xaN][,xbN] (1-based physical IDs). "
                      "Empty pattern uses ratio cadence (e.g. 1,2,1,2,1 for 2:1). "
                      "Optional pattern tokens: '1'→component A, '2'→component B, '3'..'9'→direct physical. "
+                     "Optional xa/xb persist component surface offsets in mm. "
                      "Example pattern 112 with A=1,B=2 → T0,T0,T1. Prefer Edit → Mixed Filaments… dialog.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("dithering_local_z_mode", coBool);
+    def->label = L("Subdivide Mix Layer");
+    def->tooltip = L("Split a mixed layer into ratio-proportional sub-layers "
+                     "(e.g. 0.24 mm at 2:1 → 0.16 + 0.08 mm) instead of whole-layer T0/T1 cadence. "
+                     "Sub-passes below the machine min layer height are refused. "
+                     "Enable Full domain for object-level mixes without paint.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("dithering_local_z_whole_objects", coBool);
+    def->label = L("Full domain");
+    def->tooltip = L("Apply Subdivide Mix Layer to the whole object/volume when its extruder is a "
+                     "virtual mix, even if the model is not color-painted. Required for height-gradient mixes.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("mixed_filament_gradient_mode", coBool);
+    def->label = L("Height gradient mix");
+    def->tooltip = L("Interpolate the pair-mix ratio from 100:0 at the bottom to 0:100 at the top. "
+                     "Requires Subdivide Mix Layer and Full domain. Passes below min layer height stay whole-layer.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("host_type", coEnum);
     def->label = L("Host Type");

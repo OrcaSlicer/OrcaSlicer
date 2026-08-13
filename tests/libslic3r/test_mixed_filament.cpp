@@ -1,6 +1,9 @@
 #include <catch2/catch_all.hpp>
 
+#include "libslic3r/LocalZOrderOptimizer.hpp"
+#include "libslic3r/LocalZPlanner.hpp"
 #include "libslic3r/MixedFilament.hpp"
+#include "libslic3r/Print.hpp"
 
 using namespace Slic3r;
 
@@ -94,4 +97,173 @@ TEST_CASE("MixedFilament append_physical_0based", "[MixedFilament]")
     REQUIRE(out.size() == 2);
     REQUIRE(out[0] == 0);
     REQUIRE(out[1] == 1);
+}
+
+TEST_CASE("MixedFilament xa/xb offsets serialize without breaking M4 rows", "[MixedFilament]")
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions("1,2,1,2,1,xa0.2,xb-0.1");
+    REQUIRE(mgr.enabled_count() == 1);
+    REQUIRE(mgr.mixed_filaments().front().ratio_a == 2);
+    REQUIRE(mgr.mixed_filaments().front().ratio_b == 1);
+    REQUIRE(mgr.mixed_filaments().front().component_a_surface_offset == Catch::Approx(0.2f));
+    REQUIRE(mgr.mixed_filaments().front().component_b_surface_offset == Catch::Approx(-0.1f));
+
+    const std::string ser = mgr.serialize_definitions();
+    REQUIRE(ser.find("xa") != std::string::npos);
+    REQUIRE(ser.find("xb") != std::string::npos);
+
+    MixedFilamentManager m4;
+    m4.load_definitions("1,2,1,2,1");
+    REQUIRE(m4.serialize_definitions() == "1,2,1,2,1");
+    REQUIRE(m4.resolve(3, 2, 0) == 1);
+    REQUIRE(m4.resolve(3, 2, 2) == 2);
+
+    REQUIRE(mgr.component_surface_offset(3, 2, 0) == Catch::Approx(0.2f));
+    REQUIRE(mgr.component_surface_offset(3, 2, 2) == Catch::Approx(-0.1f));
+}
+
+TEST_CASE("LocalZ rematerialize stack holds first layer then 0.16+0.08", "[LocalZ][MixedFilament]")
+{
+    const std::vector<double> heights = rematerialize_layer_heights({0.20, 0.24, 0.24}, 2, 1, 0.08);
+    REQUIRE(heights.size() == 5);
+    REQUIRE(heights[0] == Catch::Approx(0.20));
+    REQUIRE(heights[1] == Catch::Approx(0.16));
+    REQUIRE(heights[2] == Catch::Approx(0.08));
+    REQUIRE(heights[3] == Catch::Approx(0.16));
+    REQUIRE(heights[4] == Catch::Approx(0.08));
+}
+
+TEST_CASE("Bias apply_surface_offset contracts a square", "[MixedFilament][Bias]")
+{
+    ExPolygon sq;
+    sq.contour = {
+        Point::new_scale(0, 0),
+        Point::new_scale(10, 0),
+        Point::new_scale(10, 10),
+        Point::new_scale(0, 10),
+    };
+    const ExPolygons src = { sq };
+    const ExPolygons contracted = apply_surface_offset(src, 0.2f);
+    const ExPolygons expanded   = apply_surface_offset(src, -0.2f);
+    REQUIRE_FALSE(contracted.empty());
+    REQUIRE_FALSE(expanded.empty());
+    REQUIRE(area(contracted) < area(src));
+    REQUIRE(area(expanded) > area(src));
+    REQUIRE(apply_surface_offset(src, 0.f).size() == src.size());
+}
+
+TEST_CASE("LocalZ pair height 0.24 at 2:1 splits to 0.16+0.08", "[LocalZ][MixedFilament]")
+{
+    const LocalZPassHeights h = plan_local_z_pair_heights(0.24, 2, 1, 0.08);
+    REQUIRE(h.split);
+    REQUIRE(h.height_a == Catch::Approx(0.16));
+    REQUIRE(h.height_b == Catch::Approx(0.08));
+}
+
+TEST_CASE("LocalZ pair height 0.20 at 2:1 refuses below min 0.08", "[LocalZ][MixedFilament]")
+{
+    const LocalZPassHeights h = plan_local_z_pair_heights(0.20, 2, 1, 0.08);
+    REQUIRE_FALSE(h.split);
+    REQUIRE(h.height_a == Catch::Approx(0.20));
+}
+
+TEST_CASE("LocalZ pair height 0.20 at 1:1 splits to 0.10+0.10", "[LocalZ][MixedFilament]")
+{
+    const LocalZPassHeights h = plan_local_z_pair_heights(0.20, 1, 1, 0.08);
+    REQUIRE(h.split);
+    REQUIRE(h.height_a == Catch::Approx(0.10));
+    REQUIRE(h.height_b == Catch::Approx(0.10));
+}
+
+TEST_CASE("LocalZ pattern rows do not split", "[LocalZ][MixedFilament]")
+{
+    MixedFilament mf;
+    mf.ratio_a = 2;
+    mf.ratio_b = 1;
+    mf.manual_pattern = "112";
+    const LocalZPassHeights h = plan_local_z_pair_heights(0.24, mf, 0.08);
+    REQUIRE_FALSE(h.split);
+}
+
+TEST_CASE("LocalZ height-gradient interpolates 100:0 to 0:100", "[LocalZ][MixedFilament]")
+{
+    const auto bottom = interpolate_pair_ratio_by_z(0.0);
+    const auto mid    = interpolate_pair_ratio_by_z(0.5);
+    const auto top    = interpolate_pair_ratio_by_z(1.0);
+    REQUIRE(bottom.first == 100);
+    REQUIRE(bottom.second == 0);
+    REQUIRE(mid.first == 50);
+    REQUIRE(mid.second == 50);
+    REQUIRE(top.first == 0);
+    REQUIRE(top.second == 100);
+
+    const LocalZPassHeights mid_h = plan_local_z_pair_heights(0.24, mid.first, mid.second, 0.08);
+    REQUIRE(mid_h.split);
+    REQUIRE(mid_h.height_a == Catch::Approx(0.12));
+    REQUIRE(mid_h.height_b == Catch::Approx(0.12));
+
+    MixedFilament mf;
+    mf.component_a = 1;
+    mf.component_b = 2;
+    REQUIRE(gradient_fallback_extruder_1based(mf, 100, 0, 4) == 1u);
+    REQUIRE(gradient_fallback_extruder_1based(mf, 0, 100, 4) == 2u);
+    // Unsplittable 3:1 at 0.20 mm (0.05 < 0.08) → dominant A, not M4 layer cadence.
+    REQUIRE_FALSE(plan_local_z_pair_heights(0.20, 3, 1, 0.08).split);
+    REQUIRE(gradient_fallback_extruder_1based(mf, 3, 1, 4) == 1u);
+    REQUIRE(gradient_fallback_extruder_1based(mf, 1, 3, 4) == 2u);
+}
+
+TEST_CASE("LocalZInterval and SubLayerPlan defaults", "[LocalZ]")
+{
+    LocalZInterval interval;
+    REQUIRE(interval.layer_id == 0);
+    REQUIRE(interval.sublayer_count == 0);
+    REQUIRE_FALSE(interval.has_mixed_paint);
+
+    SubLayerPlan plan;
+    REQUIRE(plan.layer_id == 0);
+    REQUIRE(plan.pass_index == 0);
+    REQUIRE_FALSE(plan.split_interval);
+    REQUIRE(plan.extruder_1based == 0);
+}
+
+TEST_CASE("LocalZOrderOptimizer: bucket_contains_extruder finds present IDs", "[LocalZOrderOptimizer]")
+{
+    using namespace Slic3r::LocalZOrderOptimizer;
+    const std::vector<unsigned int> bucket = {1, 3, 5};
+    CHECK(bucket_contains_extruder(bucket, 1));
+    CHECK(bucket_contains_extruder(bucket, 3));
+    CHECK_FALSE(bucket_contains_extruder(bucket, 2));
+    CHECK_FALSE(bucket_contains_extruder(bucket, -1));
+}
+
+TEST_CASE("LocalZOrderOptimizer: order_bucket_extruders rotates current extruder to front", "[LocalZOrderOptimizer]")
+{
+    using namespace Slic3r::LocalZOrderOptimizer;
+    const std::vector<unsigned int> result = order_bucket_extruders({1, 2, 3}, 2);
+    REQUIRE(result.size() == 3);
+    CHECK(result.front() == 2u);
+}
+
+TEST_CASE("LocalZOrderOptimizer: order_bucket_extruders moves preferred_last to back", "[LocalZOrderOptimizer]")
+{
+    using namespace Slic3r::LocalZOrderOptimizer;
+    const std::vector<unsigned int> result = order_bucket_extruders({1, 2, 3}, 1, 2);
+    REQUIRE(result.size() == 3);
+    CHECK(result.front() == 1u);
+    CHECK(result.back() == 2u);
+}
+
+TEST_CASE("LocalZOrderOptimizer: order_pass_group prefers bucket containing active extruder", "[LocalZOrderOptimizer]")
+{
+    using namespace Slic3r::LocalZOrderOptimizer;
+    const std::vector<std::vector<unsigned int>> group = {
+        {1, 2},
+        {3, 4},
+        {5, 6},
+    };
+    const std::vector<size_t> order = order_pass_group(group, 3);
+    REQUIRE(order.size() == 3);
+    CHECK(order[0] == 1u);
 }

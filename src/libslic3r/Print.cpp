@@ -241,8 +241,6 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "process_notes",
         "printer_notes",
         "use_3mf",
-        // M3 pair-mix definitions only affect tool ordering / G-code export.
-        "mixed_filament_definitions"
     };
 
     static std::unordered_set<std::string> steps_ignore;
@@ -403,6 +401,13 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         }
         else if (opt_key == "z_hop_types") {
             osteps.emplace_back(posDetectOverhangsForLift);
+        } else if (
+               opt_key == "mixed_filament_definitions"
+            || opt_key == "dithering_local_z_mode"
+            || opt_key == "dithering_local_z_whole_objects"
+            || opt_key == "mixed_filament_gradient_mode") {
+            // Local-Z rematerializes layers; mix grammar also drives pass heights.
+            osteps.emplace_back(posSlice);
         } else {
             // for legacy, if we can't handle this option let's invalidate all steps
             //FIXME invalidate all steps of all objects as well?
@@ -2129,6 +2134,10 @@ void  PrintObject::copy_layers_from_shared_object()
 
         firstLayerObjSliceByVolume = m_shared_object->firstLayerObjSlice();
         firstLayerObjSliceByGroups = m_shared_object->firstLayerObjGroups();
+        // Rematerialized Local-Z layers keep 0.16/0.08 heights; ToolOrdering
+        // looks up pass tools on *this*, so the plan must travel with the copy.
+        this->set_local_z_plan(m_shared_object->local_z_intervals(),
+                               m_shared_object->local_z_sublayer_plan());
     }
 }
 
@@ -3667,7 +3676,10 @@ void Print::_make_wipe_tower()
 
         // Generate the wipe tower layers.
         m_wipe_tower_data.tool_changes.reserve(m_wipe_tower_data.tool_ordering.layer_tools().size());
-        wipe_tower.generate(m_wipe_tower_data.tool_changes);
+        // Local-Z Z-sync: rematerialized sub-layers appear as real LayerTools at
+        // intermediate print_z, so standard plan_toolchange already matches part Z.
+        // generate(..., local_z_tool_changes) keeps the FS slot for same-layer extra Tx.
+        wipe_tower.generate(m_wipe_tower_data.tool_changes, m_wipe_tower_data.local_z_tool_changes);
         m_wipe_tower_data.depth             = wipe_tower.get_depth();
         m_wipe_tower_data.z_and_depth_pairs = wipe_tower.get_z_and_depth_pairs();
         m_wipe_tower_data.brim_width        = wipe_tower.get_brim_width();

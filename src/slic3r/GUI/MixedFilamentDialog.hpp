@@ -33,6 +33,11 @@ private:
     wxCheckBox *m_enabled{nullptr};
     wxCheckBox *m_apply_object{nullptr};
     wxCheckBox *m_enable_tower{nullptr};
+    wxCheckBox *m_local_z{nullptr};
+    wxCheckBox *m_full_domain{nullptr};
+    wxCheckBox *m_gradient{nullptr};
+    wxTextCtrl *m_offset_a{nullptr};
+    wxTextCtrl *m_offset_b{nullptr};
 };
 
 } // namespace GUI

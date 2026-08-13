@@ -25,6 +25,7 @@
 #include "format.hpp"
 #include "AABBTreeLines.hpp"
 
+#include <cmath>
 #include <cstddef>
 #include <float.h>
 #include <iterator>
@@ -1026,6 +1027,17 @@ void PrintObject::clear_layers()
             delete l;
         m_layers.clear();
     }
+    this->clear_local_z_plan();
+}
+
+const SubLayerPlan* PrintObject::local_z_pass_at_print_z(coordf_t print_z) const
+{
+    constexpr coordf_t eps = 1e-4;
+    for (const SubLayerPlan &plan : m_local_z_sublayer_plan) {
+        if (std::abs(plan.print_z - print_z) <= eps)
+            return &plan;
+    }
+    return nullptr;
 }
 
 Layer* PrintObject::add_layer(int id, coordf_t height, coordf_t print_z, coordf_t slice_z)
@@ -1484,6 +1496,7 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
 		invalidated |= this->invalidate_steps({ posPerimeters, posPrepareInfill, posInfill, posIroning, posContouring, posSupportMaterial, posSimplifyPath, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
         m_slicing_params.valid = false;
+        this->clear_local_z_plan();
     } else if (step == posSupportMaterial) {
         invalidated |= this->invalidate_steps({ posSimplifySupportPath });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });

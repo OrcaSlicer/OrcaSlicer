@@ -311,6 +311,31 @@ private:
     size_t                                      m_ref_cnt{ 0 };
 };
 
+// Local-Z planner cache (adapted from FullSpectrum_integration Print.hpp).
+struct LocalZInterval
+{
+    size_t layer_id { 0 };
+    double z_lo { 0.0 };
+    double z_hi { 0.0 };
+    double base_height { 0.0 };
+    double sublayer_height { 0.0 };
+    bool   has_mixed_paint { false };
+    size_t first_sublayer_idx { 0 };
+    size_t sublayer_count { 0 };
+};
+
+struct SubLayerPlan
+{
+    size_t       layer_id { 0 };
+    size_t       pass_index { 0 };
+    bool         split_interval { false };
+    double       z_lo { 0.0 };
+    double       z_hi { 0.0 };
+    double       print_z { 0.0 };
+    double       flow_height { 0.0 };
+    unsigned int extruder_1based { 0 };
+};
+
 class PrintObject : public PrintObjectBaseWithState<Print, PrintObjectStep, posCount>
 {
 private: // Prevents erroneous use by other classes.
@@ -400,6 +425,20 @@ public:
     SupportLayer* add_tree_support_layer(int id, coordf_t height, coordf_t print_z, coordf_t slice_z);
     std::shared_ptr<TreeSupportData> alloc_tree_support_preview_cache();
     void clear_tree_support_preview_cache() { m_tree_support_preview_cache.reset(); }
+
+    const std::vector<LocalZInterval>& local_z_intervals() const { return m_local_z_intervals; }
+    const std::vector<SubLayerPlan>&   local_z_sublayer_plan() const { return m_local_z_sublayer_plan; }
+    void set_local_z_plan(std::vector<LocalZInterval> intervals, std::vector<SubLayerPlan> sublayers)
+    {
+        m_local_z_intervals     = std::move(intervals);
+        m_local_z_sublayer_plan = std::move(sublayers);
+    }
+    void clear_local_z_plan()
+    {
+        m_local_z_intervals.clear();
+        m_local_z_sublayer_plan.clear();
+    }
+    const SubLayerPlan* local_z_pass_at_print_z(coordf_t print_z) const;
 
     size_t          support_layer_count() const { return m_support_layers.size(); }
     void            clear_support_layers();
@@ -558,6 +597,8 @@ private:
     SlicingParameters                       m_slicing_params;
     LayerPtrs                               m_layers;
     SupportLayerPtrs                        m_support_layers;
+    std::vector<LocalZInterval>             m_local_z_intervals;
+    std::vector<SubLayerPlan>               m_local_z_sublayer_plan;
     // BBS
     std::shared_ptr<TreeSupportData>        m_tree_support_preview_cache;
 
@@ -753,6 +794,7 @@ struct WipeTowerData
     // Cache of tool changes per print layer.
     std::unique_ptr<std::vector<WipeTower::ToolChangeResult>> priming;
     std::vector<std::vector<WipeTower::ToolChangeResult>> tool_changes;
+    std::vector<std::vector<WipeTower::ToolChangeResult>> local_z_tool_changes;
     std::unique_ptr<WipeTower::ToolChangeResult>          final_purge;
     std::vector<float>                                    used_filament;
     int                                                   number_of_toolchanges;
@@ -765,9 +807,12 @@ struct WipeTowerData
     BoundingBoxf                                          bbx;//including brim
     Vec2f                                                 rib_offset;
     std::optional<WipeTowerMeshData>                      wipe_tower_mesh_data;//added rib_offset
+    // Per-layer boxes reserved for Local-Z unplanned toolchanges (FS WipeTower2).
+    std::vector<std::vector<WipeTower::box_coordinates>>  local_z_reserve_boxes;
     void clear() {
         priming.reset(nullptr);
         tool_changes.clear();
+        local_z_tool_changes.clear();
         final_purge.reset(nullptr);
         used_filament.clear();
         number_of_toolchanges = -1;
@@ -775,6 +820,7 @@ struct WipeTowerData
         brim_width = 0.f;
         rib_offset = Vec2f::Zero();
         wipe_tower_mesh_data  = std::nullopt;
+        local_z_reserve_boxes.clear();
     }
     void construct_mesh(float width, float depth, float height, float brim_width, bool is_rib_wipe_tower, float rib_width, float rib_length, bool fillet_wall);
 

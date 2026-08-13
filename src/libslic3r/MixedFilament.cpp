@@ -1,7 +1,9 @@
 #include "MixedFilament.hpp"
+#include "ClipperUtils.hpp"
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <cstdlib>
 #include <sstream>
 
@@ -45,6 +47,40 @@ int parse_int_default(const std::string &s, int def)
     if (end == s.c_str())
         return def;
     return int(v);
+}
+
+float parse_float_default(const std::string &s, float def)
+{
+    if (s.empty())
+        return def;
+    char  *end = nullptr;
+    float  v   = std::strtof(s.c_str(), &end);
+    if (end == s.c_str())
+        return def;
+    return v;
+}
+
+bool parse_offset_token(const std::string &field, MixedFilament &mf)
+{
+    if (field.size() >= 2 && (field[0] == 'x' || field[0] == 'X') &&
+        (field[1] == 'a' || field[1] == 'A')) {
+        mf.component_a_surface_offset = parse_float_default(field.substr(2), 0.f);
+        return true;
+    }
+    if (field.size() >= 2 && (field[0] == 'x' || field[0] == 'X') &&
+        (field[1] == 'b' || field[1] == 'B')) {
+        mf.component_b_surface_offset = parse_float_default(field.substr(2), 0.f);
+        return true;
+    }
+    return false;
+}
+
+std::string format_offset_token(char which, float value)
+{
+    std::ostringstream oss;
+    oss.setf(std::ios::fmtflags(0), std::ios::floatfield);
+    oss << 'x' << which << value;
+    return oss.str();
 }
 
 unsigned int clamp_component(unsigned int id, size_t num_physical)
@@ -149,8 +185,15 @@ void MixedFilamentManager::load_definitions(const std::string &serialized)
         mf.enabled     = fields.size() > 2 ? (parse_int_default(trim_copy(fields[2]), 1) != 0) : true;
         mf.ratio_a     = fields.size() > 3 ? parse_int_default(trim_copy(fields[3]), 1) : 1;
         mf.ratio_b     = fields.size() > 4 ? parse_int_default(trim_copy(fields[4]), 1) : 1;
-        if (fields.size() > 5)
-            mf.manual_pattern = normalize_manual_pattern(trim_copy(fields[5]));
+        for (size_t i = 5; i < fields.size(); ++i) {
+            const std::string token = trim_copy(fields[i]);
+            if (token.empty())
+                continue;
+            if (parse_offset_token(token, mf))
+                continue;
+            if (mf.manual_pattern.empty())
+                mf.manual_pattern = normalize_manual_pattern(token);
+        }
 
         if (mf.component_a == 0)
             mf.component_a = 1;
@@ -179,6 +222,10 @@ std::string MixedFilamentManager::serialize_definitions() const
         const std::string pattern = normalize_manual_pattern(mf.manual_pattern);
         if (!pattern.empty())
             oss << ',' << pattern;
+        if (std::abs(mf.component_a_surface_offset) > 1e-6f)
+            oss << ',' << format_offset_token('a', mf.component_a_surface_offset);
+        if (std::abs(mf.component_b_surface_offset) > 1e-6f)
+            oss << ',' << format_offset_token('b', mf.component_b_surface_offset);
     }
     return oss.str();
 }
@@ -204,6 +251,17 @@ const MixedFilament *MixedFilamentManager::mixed_filament_from_id(unsigned int f
     if (idx < 0)
         return nullptr;
     return &m_mixed[size_t(idx)];
+}
+
+float MixedFilamentManager::component_surface_offset(unsigned int filament_id_1based, size_t num_physical, int layer_index) const
+{
+    const MixedFilament *mf = mixed_filament_from_id(filament_id_1based, num_physical);
+    if (mf == nullptr)
+        return 0.f;
+    const unsigned int physical = resolve(filament_id_1based, num_physical, layer_index);
+    if (physical == clamp_component(mf->component_a, num_physical))
+        return mf->component_a_surface_offset;
+    return mf->component_b_surface_offset;
 }
 
 unsigned int MixedFilamentManager::resolve(unsigned int filament_id_1based, size_t num_physical, int layer_index) const
@@ -251,6 +309,19 @@ void MixedFilamentManager::append_physical_0based(unsigned int filament_id_1base
         out.emplace_back(filament_id_1based - 1);
     else if (filament_id_1based > num_physical)
         out.emplace_back(0); // unknown virtual → first physical (safe fallback)
+}
+
+ExPolygons apply_surface_offset(const ExPolygons &src, float offset_mm)
+{
+    if (src.empty() || std::abs(offset_mm) <= 1e-6f)
+        return src;
+    const float delta_scaled = float(scale_(std::abs(double(offset_mm))));
+    if (delta_scaled <= float(EPSILON))
+        return src;
+    ExPolygons adjusted = offset_mm > 0.f ? offset_ex(src, -delta_scaled) : offset_ex(src, delta_scaled);
+    if (!adjusted.empty() && adjusted.size() > 1)
+        adjusted = union_ex(adjusted);
+    return adjusted;
 }
 
 } // namespace Slic3r

@@ -1287,7 +1287,9 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         }
     }
 
-    // M3 pair-mix: always reload manager from print config (including empty = clear).
+    // M3/M5 pair-mix: always reload manager from print config (including empty = clear).
+    // dithering_local_z_mode / dithering_local_z_whole_objects / mixed_filament_gradient_mode
+    // persist via PrintConfig apply_only(print_diff) above.
     {
         std::string mixed_defs;
         if (new_full_config.has("mixed_filament_definitions"))

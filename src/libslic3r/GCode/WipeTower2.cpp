@@ -2260,6 +2260,29 @@ void WipeTower2::plan_toolchange(float z_par, float layer_height_par, unsigned i
 	m_plan.back().tool_changes.push_back(WipeTowerInfo::ToolChange(old_tool, new_tool, ramming_depth + wiping_depth, ramming_depth, first_wipe_line, wipe_volume));
 }
 
+void WipeTower2::plan_local_z_toolchange(float z_par, float layer_height_par, unsigned int old_tool,
+                                         unsigned int new_tool, float wipe_volume)
+{
+    // Rematerialized Local-Z layers already feed plan_toolchange at sub-layer Z.
+    // This entry point remains for same-layer extra Tx (paint path) and matches FS.
+    this->plan_toolchange(z_par, layer_height_par, old_tool, new_tool, wipe_volume);
+}
+
+void WipeTower2::plan_local_z_reserve(float z_par, float layer_height_par, size_t /*reserve_slot_count*/, float /*wipe_volume*/)
+{
+    // Reserve slots are unused on the rematerialized pair-mix path. Keep a layer
+    // marker so generate(local_z_result) can stay aligned with nominal layers.
+    if (m_plan.empty() || m_plan.back().z + WT_EPSILON < z_par)
+        m_plan.push_back(WipeTowerInfo(z_par, layer_height_par));
+}
+
+void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> &result,
+                          std::vector<std::vector<WipeTower::ToolChangeResult>> &local_z_result)
+{
+    this->generate(result);
+    local_z_result.assign(result.size(), {});
+}
+
 
 
 void WipeTower2::plan_tower()

@@ -172,6 +172,8 @@ public:
     const MixedFilamentManager *mixed_mgr    = nullptr;
     size_t                      num_physical = 0;
     int                         layer_index  = 0;
+    // 1-based physical tool for a rematerialized Local-Z pass. 0 = unused (M4 resolve).
+    unsigned int                local_z_physical_1based = 0;
 
     WipingExtrusions& wiping_extrusions() {
         m_wiping_extrusions.set_layer_tools_ptr(this);
