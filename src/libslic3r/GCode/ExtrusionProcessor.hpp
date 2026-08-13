@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <functional>
 #include <limits>
 #include <numeric>
 #include <unordered_map>
@@ -39,7 +40,11 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
                                                               const AABBTreeLines::LinesDistancer<L>& unscaled_prev_layer,
                                                               float                                   flow_width,
                                                               float                                   max_line_length = -1.0f,
-                                                              float                                   min_distance    = -1.0f)
+                                                              float                                   min_distance    = -1.0f,
+                                                              // Maps an overhang distance onto the speed it will be printed at. Interior sampling
+                                                              // needs it to tell which of the points it could add would change the G-code, and is
+                                                              // skipped without it.
+                                                              const std::function<float(float)>&      distance_to_speed = {})
 {
     bool   looped     = input_points.front() == input_points.back();
     std::function<size_t(size_t,size_t)> get_prev_index = [](size_t idx, size_t count) {
@@ -126,14 +131,23 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
     // full height walls reads as supported along its whole length. Probe the interior, keep the samples the
     // endpoint interpolation fails to predict, and bisect either side of each one, so a span that is only partly
     // unsupported gets points where its support actually changes instead of one reading spread across all of it.
-    if (PREV_LAYER_BOUNDARY_OFFSET && ADD_INTERSECTIONS && min_distance > 0) {
+    if (PREV_LAYER_BOUNDARY_OFFSET && ADD_INTERSECTIONS && min_distance > 0 && distance_to_speed) {
         // Bisecting below this buys nothing: the segmentation pass below only splits lines of 2mm or more, and
         // every pass here drops points closer together than min_spacing.
         const double min_bisected_length = std::max(2., 4. * min_spacing);
         // A backstop for that length test, which on a non-finite length would never be met.
         constexpr int max_bisection_depth = 10;
-        // Whether a reading is far enough out for the speed sections to slow the extrusion down at all.
-        auto slows_down = [min_distance](float distance) { return distance > min_distance; };
+        // Whether two readings are interchangeable. A segment is printed at the lower of the speeds its ends
+        // read, so a sample that agrees on speed with what is already known cannot change the G-code, whatever
+        // its distance says. The distances themselves are far too coarse a stand-in for this: the speed sections
+        // interpolate, so readings a small fraction of min_distance apart can still be tens of mm/s apart.
+        // The tolerance matches the one GCode.cpp applies when it decides a path has a variable speed at all.
+        auto same_speed = [&distance_to_speed](float a, float b) {
+            return std::abs(distance_to_speed(a) - distance_to_speed(b)) <= 1.f;
+        };
+        // Whether a reading is far enough out to be printed any slower than a fully supported one. The section
+        // the slowdown starts in is no help here either, for the same reason: the speeds interpolate into it.
+        auto slows_down = [&same_speed](float distance) { return !same_speed(distance, 0.f); };
 
         // Part of a segment still to bisect: positions along it, the distances there, and bisections left.
         struct Subspan { double t0, t1; float distance0, distance1; int depth; };
@@ -165,7 +179,7 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
                 const float expected = 0.5f * (subspan.distance0 + subspan.distance1);
 
                 // Nothing new for the passes below: they already infer this reading, and the same speed from it.
-                if (std::abs(sampled - expected) <= min_distance && slows_down(sampled) == slows_down(expected))
+                if (same_speed(sampled, expected))
                     continue;
                 // Neither this reading nor the ones bracketing it slows the extrusion down, so nor could any point
                 // placed between them, however the support is distributed.
@@ -186,10 +200,9 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
                     const float sample = interior[i].second;
                     const float before = kept > 0 ? interior[kept - 1].second : curr.distance;
                     const float after  = i + 1 < interior.size() ? interior[i + 1].second : next.distance;
-                    // A sample is worth a point in the path where it reads differently from the readings either
-                    // side of it, or where it is what separates a slowed run of them from a full speed one.
-                    if (std::abs(sample - before) > min_distance || std::abs(sample - after) > min_distance ||
-                        slows_down(sample) != slows_down(before) || slows_down(sample) != slows_down(after))
+                    // A sample is worth a point in the path only where it prints at a different speed from the
+                    // readings either side of it.
+                    if (!same_speed(sample, before) || !same_speed(sample, after))
                         interior[kept++] = interior[i];
                 }
                 interior.resize(kept);
@@ -453,9 +466,28 @@ public:
             smallest_distance_with_lower_speed=-1.f;
 
         // Orca: Pass to the point properties estimator the smallest ovehang distance that triggers a slowdown (smallest_distance_with_lower_speed)
+        auto calculate_speed = [&speed_sections, &original_speed](float distance) {
+            float final_speed;
+            if (distance <= speed_sections.front().first) {
+                final_speed = original_speed;
+            } else if (distance >= speed_sections.back().first) {
+                final_speed = speed_sections.back().second;
+            } else {
+                size_t section_idx = 0;
+                while (distance > speed_sections[section_idx + 1].first) {
+                    section_idx++;
+                }
+                float t = (distance - speed_sections[section_idx].first) /
+                          (speed_sections[section_idx + 1].first - speed_sections[section_idx].first);
+                t           = std::clamp(t, 0.0f, 1.0f);
+                final_speed = (1.0f - t) * speed_sections[section_idx].second + t * speed_sections[section_idx + 1].second;
+            }
+            return round(final_speed);
+        };
+
         std::vector<ExtendedPoint<3>> extended_points =
             estimate_points_properties<true, true, true, true>(path.polyline.points, prev_layer_boundaries[current_object], path.width, -1,
-                                                               smallest_distance_with_lower_speed);
+                                                               smallest_distance_with_lower_speed, calculate_speed);
         const auto width_inv = 1.0f / path.width;
         std::vector<ProcessedPoint> processed_points;
         processed_points.reserve(extended_points.size());
@@ -514,25 +546,6 @@ public:
                 }
             }	
 
-            auto calculate_speed = [&speed_sections, &original_speed](float distance) {
-                float final_speed;
-                if (distance <= speed_sections.front().first) {
-                    final_speed = original_speed;
-                } else if (distance >= speed_sections.back().first) {
-                    final_speed = speed_sections.back().second;
-                } else {
-                    size_t section_idx = 0;
-                    while (distance > speed_sections[section_idx + 1].first) {
-                        section_idx++;
-                    }
-                    float t = (distance - speed_sections[section_idx].first) /
-                              (speed_sections[section_idx + 1].first - speed_sections[section_idx].first);
-                    t           = std::clamp(t, 0.0f, 1.0f);
-                    final_speed = (1.0f - t) * speed_sections[section_idx].second + t * speed_sections[section_idx + 1].second;
-                }
-                return round(final_speed);
-            };
-            
             float extrusion_speed = std::min(calculate_speed(curr.distance), calculate_speed(next.distance));
             // ORCA: Clamp resulting speed to lowest of calculated speed based on the overhang values and the current speed
             // Fixes bug where resulting overhang speed is higher than the current speed due to (for example) volumetric flow limits.

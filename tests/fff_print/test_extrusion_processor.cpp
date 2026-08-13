@@ -1,5 +1,7 @@
 #include <catch2/catch_all.hpp>
 
+#include "libslic3r/AABBTreeLines.hpp"
+#include "libslic3r/GCode/ExtrusionProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
@@ -20,6 +22,19 @@ constexpr double caged_layer_height     = 0.2;  // mm
 constexpr double caged_wall_width       = 0.42; // mm, outer wall line width
 constexpr double caged_outer_wall_speed = 200.; // mm/s
 constexpr double caged_slow_speed       = 100.; // mm/s, between every configured overhang speed (<= 50) and the wall speed
+
+// A wall running 0.2mm out over a previous layer whose edge dishes 0.03mm away from it in the middle,
+// standing in for the endpoint readings a caged overhang perimeter takes: enough of a difference to
+// print at another speed, but only a fraction of the distance at which slowdown begins.
+constexpr double dished_wall_gap     = 0.2;   // mm, how far the wall runs out past the previous layer's edge
+constexpr double dished_layer_depth  = 0.03;  // mm, how much further out the middle of it reads
+constexpr double dished_min_distance = 0.042; // mm, the reading at which the configured speeds begin to slow down
+// Every reading here is past that, so the whole wall is slowed and only the amount is in question.
+constexpr float  dished_end_reading  = float(dished_wall_gap + 0.5 * caged_wall_width);
+constexpr float  dished_mid_reading  = float(dished_end_reading + dished_layer_depth);
+// The two readings are dished_layer_depth apart, so half of that tells them apart while still allowing
+// for the points the passes after sampling add, which read a little further out than the ends do.
+constexpr double dished_reading_tolerance = 0.5 * dished_layer_depth;
 
 // A 40 x 20 x 20 mm box with a 45 degree overhang cut into the y = 0 side. The sloped face spans
 // x = 5.086 .. 34.914 only, so the full-height walls of the box cage both ends of every overhang
@@ -138,8 +153,32 @@ std::vector<double> cage_shoulder_feed_rates(const std::string& gcode)
     });
 }
 
-DynamicPrintConfig caged_overhang_config(const char* wall_generator)
+// The readings a 40mm wall takes over a previous layer whose edge falls away by 0.03mm towards the
+// middle: both ends read the same, and the middle reads slightly further out over air. Whether that
+// middle reading survives is what decides the speed the wall is printed at.
+std::vector<ExtendedPoint<2>> sampled_wall_over_dished_layer(const std::function<float(float)>& distance_to_speed)
 {
+    const AABBTreeLines::LinesDistancer<Linef> prev_layer(std::vector<Linef>{
+        {{0., 0.}, {20., -dished_layer_depth}},
+        {{20., -dished_layer_depth}, {40., 0.}},
+        {{40., 0.}, {40., -10.}},
+        {{40., -10.}, {0., -10.}},
+        {{0., -10.}, {0., 0.}},
+    });
+    const Points wall{Point::new_scale(0., dished_wall_gap), Point::new_scale(40., dished_wall_gap)};
+
+    return estimate_points_properties<true, true, true, true>(wall, prev_layer, caged_wall_width, -1.f,
+                                                              dished_min_distance, distance_to_speed);
+}
+
+float furthest_reading(const std::vector<ExtendedPoint<2>>& points)
+{
+    return std::max_element(points.begin(), points.end(), [](const ExtendedPoint<2>& l, const ExtendedPoint<2>& r) {
+               return l.distance < r.distance;
+           })->distance;
+}
+
+DynamicPrintConfig caged_overhang_config(const char* wall_generator){
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
         {"nozzle_diameter", "0.4"},
@@ -250,8 +289,33 @@ TEST_CASE("Wall sections beside a caged overhang keep their normal speed", "[Ext
     REQUIRE_THAT(slowest / MM_PER_MIN, Catch::Matchers::WithinRel(caged_outer_wall_speed, 0.01));
 }
 
-TEST_CASE("Benchmark caged overhang interior sampling", "[ExtrusionProcessor][!benchmark]")
+// A wall is printed at the lower of the speeds its ends read, so a reading only earns a point in the
+// path where it prints at a different speed from the readings around it. Judging that on the readings
+// themselves rather than the speeds they produce was too coarse: the configured speeds interpolate
+// between their sections, so readings a fraction of the slowdown threshold apart still print more than
+// 10% apart, and a real 45 degree overhang had its true reading dropped as if it agreed with its ends.
+// The ends then chose the speed on their own, and being next to the walls either side of the overhang
+// they read differently from layer to layer, banding an overhang that should have been uniform.
+TEST_CASE("An overhang reading is kept whenever it changes the speed", "[ExtrusionProcessor][Regression]")
 {
+    // A steep speed curve, of the kind the configured overhang speeds interpolate across.
+    const std::vector<ExtendedPoint<2>> points =
+        sampled_wall_over_dished_layer([](float distance) { return std::round(200.f - 400.f * distance); });
+
+    REQUIRE_THAT(furthest_reading(points), Catch::Matchers::WithinAbs(dished_mid_reading, dished_reading_tolerance));
+}
+
+// The complement, and why the readings alone were tempting: a reading that prints at the same speed as
+// its neighbours cannot change the G-code, so sampling must leave the path alone however far out it is.
+TEST_CASE("An overhang reading is dropped when the speed is unchanged", "[ExtrusionProcessor]")
+{
+    // A flat speed curve, of the kind a single configured overhang speed produces.
+    const std::vector<ExtendedPoint<2>> points = sampled_wall_over_dished_layer([](float) { return 50.f; });
+
+    REQUIRE_THAT(furthest_reading(points), Catch::Matchers::WithinAbs(dished_end_reading, dished_reading_tolerance));
+}
+
+TEST_CASE("Benchmark caged overhang interior sampling", "[ExtrusionProcessor][!benchmark]"){
     const char* wall_generator = GENERATE("classic", "arachne");
 
     BENCHMARK(wall_generator)
