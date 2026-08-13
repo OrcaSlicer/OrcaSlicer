@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 08:32+0200\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -829,7 +829,7 @@ msgid "Multiple"
 msgstr "Multiplo"
 
 msgid "Count"
-msgstr "Quantità"
+msgstr ""
 
 msgid "Gap"
 msgstr ""
@@ -6023,9 +6023,6 @@ msgstr "Chiusura dell'applicazione durante la modifica di alcuni profili."
 msgid "Logging"
 msgstr "Accesso"
 
-msgid "Design"
-msgstr ""
-
 msgid "Prepare"
 msgstr "Prepara"
 
@@ -7875,15 +7872,6 @@ msgstr "Riduci barra laterale"
 
 msgid "Tab"
 msgstr ""
-
-msgid ""
-"Fusion 360 .f3d files can't be opened directly — they use Autodesk's closed file format, which no offline tool can read.\n"
-"\n"
-"In Fusion 360, use File ▸ Export and choose STEP (.step), then open that file here."
-msgstr ""
-
-msgid "Unsupported format: .f3d"
-msgstr "Formato non supportato: .f3d"
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -19643,7 +19631,7 @@ msgid "Connection to Moonraker is working correctly."
 msgstr ""
 
 msgid "Could not connect to Moonraker"
-msgstr "Impossibile connettersi a Moonraker"
+msgstr ""
 
 msgid "The host responded but it doesn't look like Moonraker (missing result.klippy_state)."
 msgstr ""
@@ -20662,2007 +20650,318 @@ msgstr "Il filamento potrebbe non essere compatibile con le impostazioni corrent
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr "Il modello di filamento è sconosciuto. Verrà utilizzato un profilo filamento casuale."
 
-msgid "Construction"
-msgstr "Costruzione"
-
-msgid "Line — click start, then end"
-msgstr "Linea — clicca l'inizio, poi la fine"
-
-msgid "Rectangle — click two opposite corners"
-msgstr "Rettangolo — clicca due angoli opposti"
-
-msgid "Circle — click center, then radius"
-msgstr "Cerchio — clicca il centro, poi il raggio"
-
-msgid "Arc — click start, end, then a point"
-msgstr "Arco — clicca inizio, fine, poi un punto"
-
-msgid "Slot — two centerline ends, then width"
-msgstr "Asola — i due estremi dell'asse, poi la larghezza"
-
-msgid "Ellipse — center, major end, minor point"
-msgstr "Ellisse — centro, estremo maggiore, punto minore"
-
-msgid "Spline — click control points"
-msgstr "Spline — clicca i punti di controllo"
-
-msgid "Point — click to place"
-msgstr "Punto — clicca per posizionare"
-
-msgid "Dimension — click 2 points or an entity"
-msgstr "Quota — clicca 2 punti o un'entità"
-
-msgid "Trim — click a segment to trim it"
-msgstr "Taglia — clicca un segmento per tagliarlo"
-
-msgid "Extend — click a line/arc to extend it"
-msgstr "Estendi — clicca una linea/arco da estendere"
-
-msgid "Offset — pick an entity, drag the distance"
-msgstr "Offset — seleziona un'entità, trascina la distanza"
-
-msgid "Mirror — pick axis, then entities"
-msgstr "Simmetria — seleziona l'asse, poi le entità"
-
-msgid "Fillet — pick two lines, set the radius"
-msgstr "Raccordo — seleziona due linee, imposta il raggio"
-
-msgid "Chamfer — pick two lines, set the distance"
-msgstr "Smusso — seleziona due linee, imposta la distanza"
-
-msgid "Polygon — click center, then a vertex"
-msgstr "Poligono — clicca il centro, poi un vertice"
-
-msgid "Origin planes shown"
-msgstr "Piani di origine mostrati"
-
-msgid "Origin planes hidden"
-msgstr "Piani di origine nascosti"
-
-msgid "World axes shown"
-msgstr "Assi globali mostrati"
-
-msgid "World axes hidden"
-msgstr "Assi globali nascosti"
-
-msgid "FEATURES"
-msgstr "FEATURE"
-
-msgid "Sketch"
-msgstr "Schizzo"
-
-msgid "Pick a plane and a sketch tool, then draw"
-msgstr "Seleziona un piano e uno strumento di schizzo, poi disegna"
-
-msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
-msgstr "Aggiungi materiale (estrusione / rivoluzione / sweep / loft / ispessimento / nervatura)"
-
-msgid "Extrude a sketch profile, or push/pull a picked face"
-msgstr "Estrudi uno schizzo profilo, oppure spingi/tira una faccia selezionata"
-
-msgid "Create a sketch, or pick a solid face, first"
-msgstr "Crea prima uno schizzo, oppure seleziona una faccia solida"
-
-msgid "Revolve"
-msgstr "Rivoluzione"
-
-msgid "Revolve a profile about an axis"
-msgstr "Fai ruotare un profilo attorno a un asse"
-
-msgid "Create a sketch profile to revolve first"
-msgstr "Crea prima uno schizzo profilo da far ruotare"
-
-msgid "Sweep"
-msgstr ""
-
-msgid "Sweep a profile along a path"
-msgstr "Estrudi un profilo lungo un percorso"
-
-msgid "Create a profile sketch to sweep first"
-msgstr "Crea prima uno schizzo profilo per lo sweep"
-
-msgid "Loft"
-msgstr ""
-
-msgid "Loft (skin) between two or more profiles"
-msgstr "Loft (rivestimento) tra due o più profili"
-
-msgid "Create at least two profile sketches to loft"
-msgstr "Crea almeno due schizzi profilo per il loft"
-
-msgid "Thicken"
-msgstr "Ispessimento"
-
-msgid "Offset a solid face into a thin plate (new body)"
-msgstr "Offset di una faccia solida in una lastra sottile (nuovo corpo)"
-
-msgid "Thicken needs a solid body — add or import one first"
-msgstr "L'ispessimento richiede un corpo solido — creane o importane uno"
-
-#, c-format
-msgid "Body %zu"
-msgstr "Corpo %zu"
-
-msgid "(pick a solid face)"
-msgstr "(seleziona una faccia solida)"
-
-msgid "Grow a thin wall from an open sketch line, fused to a body"
-msgstr "Genera una parete sottile da una linea di schizzo aperta, fusa a un corpo"
-
-msgid "Rib needs a solid body — add or import one first"
-msgstr "La nervatura richiede un corpo solido — creane o importane uno"
-
-msgid "Create a sketch with an open line first"
-msgstr "Crea prima uno schizzo con una linea aperta"
-
-msgid "Create a solid body to pattern first"
-msgstr "Crea prima un corpo solido da replicare"
-
-msgid "Surface (extrude / revolve / loft / fill / offset / thicken)"
-msgstr "Superficie (estrusione / rivoluzione / loft / riempimento / offset / ispessimento)"
-
-msgid "Surface Extrude"
-msgstr "Estrusione superficie"
-
-msgid "Extrude a sketch into a sheet body (no end caps)"
-msgstr "Estrudi uno schizzo in un corpo superficie (senza chiusure)"
-
-msgid "Create a sketch first"
-msgstr "Crea prima uno schizzo"
-
-msgid "Surface Revolve"
-msgstr "Rivoluzione superficie"
-
-msgid "Revolve a sketch profile into a sheet body"
-msgstr "Fai ruotare uno schizzo profilo in un corpo superficie"
-
-msgid "Surface Loft"
-msgstr "Loft di superficie"
-
-msgid "Loft (skin) between 2+ profiles, open (no end caps)"
-msgstr "Loft (rivestimento) tra 2+ profili, aperto (senza chiusure)"
-
-msgid "Surface Fill"
-msgstr "Riempimento superficie"
-
-msgid "Fill a sketch boundary with a smooth face"
-msgstr "Riempi il contorno di uno schizzo con una faccia liscia"
-
-msgid "Create a sketch profile to fill first"
-msgstr "Crea prima uno schizzo profilo da riempire"
-
-msgid "Surface Offset"
-msgstr "Offset di superficie"
-
-msgid "Offset a sheet body's shell by a signed distance"
-msgstr "Offset del guscio di un corpo superficie di una distanza con segno"
-
-msgid "No sheet body to offset — create a surface feature first"
-msgstr "Nessun corpo superficie da offsettare — crea prima una feature di superficie"
-
-msgid "Thicken Surface"
-msgstr "Ispessisci superficie"
-
-msgid "Thicken a sheet body into a solid"
-msgstr "Ispessisci un corpo superficie in un solido"
-
-msgid "No sheet body to thicken — create a surface feature first"
-msgstr "Nessun corpo superficie da ispessire — crea prima una feature di superficie"
-
-msgid "Datum / Curve (plane / axis / coord sys / helix / project)"
-msgstr "Riferimento / curva (piano / asse / sist. coord. / elica / proiezione)"
-
-msgid "Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"
-msgstr "Piano di riferimento (offset / inclinazione / piano medio / tangente / due spigoli / coincidente)"
-
-msgid "Axis"
-msgstr "Asse"
-
-msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
-msgstr "Asse di riferimento (due punti, normale alla faccia, asse del cilindro, due piani, lungo uno spigolo)"
-
-msgid "Coord Sys"
-msgstr "Sist. coord."
-
-msgid "Datum coordinate system (world point, or face + direction edge)"
-msgstr "Sistema di coordinate di riferimento (punto nel mondo, o faccia + spigolo di direzione)"
-
-msgid "Helix"
-msgstr "Elica"
-
-msgid "Helical curve (spring path) — use as a sweep path for coils / springs / augers"
-msgstr "Curva elicoidale (percorso a molla) — usala come percorso di sweep per bobine / molle / coclee"
-
-msgid "Project body edges onto a plane as sketch entities"
-msgstr "Proietta gli spigoli di un corpo su un piano come entità di schizzo"
-
-msgid "Project needs a body — add or import one first"
-msgstr "La proiezione richiede un corpo — creane o importane uno"
-
-msgid "(all edges)"
-msgstr "(tutti gli spigoli)"
-
-msgid "Placement (transform / mirror / mate)"
-msgstr "Posizionamento (trasforma / simmetria / accoppia)"
-
-msgid "Transform"
-msgstr "Trasforma"
-
-msgid "Move and/or rotate an existing body"
-msgstr "Sposta e/o ruota un corpo esistente"
-
-msgid "Transform needs a body — add or import one first"
-msgstr "La trasformazione richiede un corpo — creane o importane uno"
-
-msgid "Reflect a body about a plane"
-msgstr "Riflette un corpo rispetto a un piano"
-
-msgid "Mirror needs a body — add or import one first"
-msgstr "La simmetria richiede un corpo — creane o importane uno"
-
-msgid "Mate"
-msgstr "Accoppiamento"
-
-msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
-msgstr "Assieme: allinea due feature Sist. coord. (fisso, planare, rotoidale, slitta, cilindrico)"
-
-msgid "Boolean (combine bodies)"
-msgstr "Booleana (combina corpi)"
-
-msgid "Boolean needs two bodies — create or import a second solid"
-msgstr "La booleana richiede due corpi — crea o importa un secondo solido"
-
-msgid "Cut (split a body with a plane)"
-msgstr "Taglia (divide un corpo con un piano)"
-
-msgid "Create a solid body to cut first"
-msgstr "Crea prima un corpo solido da tagliare"
-
-msgid "Color — set the selected body's display colour"
-msgstr "Colore — imposta il colore di visualizzazione del corpo selezionato"
-
-msgid "Dress-up (fillet / chamfer / draft / shell / delete face)"
-msgstr "Finitura (raccordo / smusso / sformo / svuotamento / elimina faccia)"
-
-msgid "Fillet / Chamfer"
-msgstr "Raccordo / smusso"
-
-msgid "Round or bevel a picked edge"
-msgstr "Arrotonda o smussa uno spigolo selezionato"
-
-msgid "Draft (taper a face)"
-msgstr "Sformo (rastrema una faccia)"
-
-msgid "Tilt a picked face by a draft angle"
-msgstr "Inclina una faccia selezionata di un angolo di sformo"
-
-msgid "Hollow the body to a wall thickness, opening a picked face"
-msgstr "Svuota il corpo a uno spessore di parete, aprendo una faccia selezionata"
-
-msgid "Delete Face"
-msgstr "Elimina faccia"
-
-msgid "Remove faces from a body and heal the solid"
-msgstr "Rimuove facce da un corpo e ripara il solido"
-
-msgid "Delete Face needs a body — add or import one first"
-msgstr "Elimina faccia richiede un corpo — creane o importane uno"
-
-msgid "(none)"
-msgstr "(nessuno)"
-
-msgid "Hole / thread"
-msgstr "Foro / filettatura"
-
-msgid "Drill a hole, centred on a picked face or placed on a plane"
-msgstr "Esegui un foro, centrato su una faccia selezionata o posizionato su un piano"
-
-msgid "Thread"
-msgstr "Filettatura"
-
-msgid "Thread a cylindrical surface (inner bore / outer) or a circular edge"
-msgstr "Filetta una superficie cilindrica (foro interno / esterno) o uno spigolo circolare"
-
-msgid "Pick a cylindrical surface (bore / outer) or a circular edge for a thread"
-msgstr "Seleziona una superficie cilindrica (foro / esterno) o uno spigolo circolare da filettare"
-
-msgid "Import STEP (editable B-rep solid)"
-msgstr "Importa STEP (solido B-rep modificabile)"
-
-msgid "Import mesh (STL/OBJ) as an editable B-rep solid"
-msgstr "Importa una mesh (STL/OBJ) come solido B-rep modificabile"
-
-msgid "Constrain selected sketch"
-msgstr "Vincola lo schizzo selezionato"
-
-msgid "SKETCH"
-msgstr "SCHIZZO"
-
-msgid "Click to select; Shift to add; double-click for a whole loop"
-msgstr "Clicca per selezionare; Maiusc per aggiungere; doppio clic per un intero anello"
-
-msgid "Dimension"
-msgstr "Quota"
-
-msgid "Click 2 points or a line / circle / arc to place a dimension"
-msgstr "Clicca 2 punti o una linea / cerchio / arco per inserire una quota"
-
-msgid "Line / polyline"
-msgstr "Linea / polilinea"
-
-msgid "Click start, then end — then set the exact length"
-msgstr "Clicca inizio, poi fine — quindi imposta la lunghezza esatta"
-
-msgid "Polyline"
-msgstr "Polilinea"
-
-msgid "Click points; click first / right-click to close the loop"
-msgstr "Clicca i punti; clicca il primo / tasto destro per chiudere l'anello"
-
-msgid "Corner rectangle"
-msgstr "Rettangolo per angoli"
-
-msgid "Click two opposite corners"
-msgstr "Clicca due angoli opposti"
-
-msgid "Center rectangle"
-msgstr "Rettangolo dal centro"
-
-msgid "Click center, then a corner"
-msgstr "Clicca il centro, poi un angolo"
-
-msgid "Oblique rectangle"
-msgstr "Rettangolo obliquo"
-
-msgid "Click two corners of one edge, then a point for the width"
-msgstr "Clicca due angoli di un lato, poi un punto per la larghezza"
-
-msgid "Rounded rectangle"
-msgstr "Rettangolo arrotondato"
-
-msgid "Click two opposite corners, then a point for the corner radius"
-msgstr "Clicca due angoli opposti, poi un punto per il raggio di raccordo"
-
-msgid "Center circle"
-msgstr "Cerchio dal centro"
-
-msgid "Click center, then radius"
-msgstr "Clicca il centro, poi il raggio"
-
-msgid "2-point circle"
-msgstr "Cerchio per 2 punti"
-
-msgid "Click two ends of the diameter"
-msgstr "Clicca i due estremi del diametro"
-
-msgid "3-point circle"
-msgstr "Cerchio per 3 punti"
-
-msgid "Click three points on the circle"
-msgstr "Clicca tre punti sulla circonferenza"
-
-msgid "Arc"
-msgstr "Arco"
-
-msgid "3-point arc"
-msgstr "Arco per 3 punti"
-
-msgid "Click start, end, then a point on the arc"
-msgstr "Clicca inizio, fine, poi un punto sull'arco"
-
-msgid "Tangent arc"
-msgstr "Arco tangente"
-
-msgid "Click start (on the last entity) then end"
-msgstr "Clicca l'inizio (sull'ultima entità), poi la fine"
-
-msgid "Center-point arc"
-msgstr "Arco dal centro"
-
-msgid "Click center, then start, then a point for the end angle"
-msgstr "Clicca il centro, poi l'inizio, poi un punto per l'angolo finale"
-
-msgid "Slot"
-msgstr "Asola"
-
-msgid "Click two centerline ends, then a point for width"
-msgstr "Clicca i due estremi dell'asse, poi un punto per la larghezza"
-
-msgid "Arc slot"
-msgstr "Asola ad arco"
-
-msgid "Click center, start, end, then a point for the width"
-msgstr "Clicca centro, inizio, fine, poi un punto per la larghezza"
-
-msgid "Ellipse"
-msgstr "Ellisse"
-
-msgid "Click center, a major-axis end, then a point for the minor axis"
-msgstr "Clicca il centro, un estremo dell'asse maggiore, poi un punto per l'asse minore"
-
-msgid "Elliptical arc"
-msgstr "Arco ellittico"
-
-msgid "Click center, major-axis end, minor point, then arc start and end"
-msgstr "Clicca il centro, l'estremo dell'asse maggiore, il punto minore, poi inizio e fine dell'arco"
-
-msgid "Spline"
-msgstr ""
-
-msgid "Click control points; double-click or right-click to finish"
-msgstr "Clicca i punti di controllo; doppio clic o tasto destro per terminare"
-
-msgid "Click to place a point"
-msgstr "Clicca per posizionare un punto"
-
-msgid "Text — emboss text as a profile"
-msgstr "Testo — genera un profilo dal testo"
-
-msgid "SVG — import an outline as a profile"
-msgstr "SVG — importa un contorno come profilo"
-
-msgid "Fillet / chamfer"
-msgstr "Raccordo / smusso"
-
-msgid "Fillet"
-msgstr "Raccordo"
-
-msgid "Pick two lines, then drag the arrow or click the radius to set it"
-msgstr "Seleziona due linee, poi trascina la freccia o clicca il raggio per impostarlo"
-
-msgid "Chamfer"
-msgstr "Smusso"
-
-msgid "Pick two lines, then drag the arrow or click the distance to set it"
-msgstr "Seleziona due linee, poi trascina la freccia o clicca la distanza per impostarla"
-
-msgid "Offset"
-msgstr ""
-
-msgid "Pick an entity, then drag the arrow or click the distance; click empty to apply"
-msgstr "Seleziona un'entità, poi trascina la freccia o clicca la distanza; clicca a vuoto per applicare"
-
-msgid "Pick a mirror-axis line, then the entities to mirror; click empty to apply"
-msgstr "Seleziona una linea come asse di simmetria, poi le entità da specchiare; clicca a vuoto per applicare"
-
-msgid "Trim"
-msgstr "Taglia"
-
-msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
-msgstr "Clicca un segmento per tagliarlo fino all'intersezione più vicina; il tasto destro esce"
-
-msgid "Extend"
-msgstr "Estendi"
-
-msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
-msgstr "Clicca una linea o un arco per estenderlo all'entità più vicina; il tasto destro esce"
-
-msgid "Constrain — add geometric/dimensional relations"
-msgstr "Vincola — aggiungi relazioni geometriche/dimensionali"
-
-msgid "Move / rotate / scale"
-msgstr "Sposta / ruota / scala"
-
-msgid "Move (translate)"
-msgstr "Sposta (trasla)"
-
-msgid "Pick entities, then drag the handle or click the distance; click empty to apply"
-msgstr "Seleziona le entità, poi trascina la maniglia o clicca la distanza; clicca a vuoto per applicare"
-
-msgid "Rotate (about centroid)"
-msgstr "Ruota (rispetto al baricentro)"
-
-msgid "Pick entities, then drag around the pivot or click the angle; click empty to apply"
-msgstr "Seleziona le entità, poi trascina attorno al pivot o clicca l'angolo; clicca a vuoto per applicare"
-
-msgid "Scale (about centroid)"
-msgstr "Scala (rispetto al baricentro)"
-
-msgid "Pick entities, then drag the handle or click the factor; click empty to apply"
-msgstr "Seleziona le entità, poi trascina la maniglia o clicca il fattore; clicca a vuoto per applicare"
-
-msgid "Linear / polar array"
-msgstr "Serie lineare / polare"
-
-msgid "Linear array"
-msgstr "Serie lineare"
-
-msgid "Pick entities, drag the spacing handle, click the count; click empty to apply"
-msgstr "Seleziona le entità, trascina la maniglia di spaziatura, clicca la quantità; clicca a vuoto per applicare"
-
-msgid "Polar array (about centroid)"
-msgstr "Serie polare (rispetto al baricentro)"
-
-msgid "Pick entities, drag the sweep handle, click the count; click empty to apply"
-msgstr "Seleziona le entità, trascina la maniglia di rotazione, clicca la quantità; clicca a vuoto per applicare"
-
-msgid "Polygon"
-msgstr "Poligono"
-
-msgid "Click center then a vertex"
-msgstr "Clicca il centro, poi un vertice"
-
-msgid "CONSTRAIN"
-msgstr "VINCOLA"
-
-msgid "Perpendicular"
-msgstr "Perpendicolare"
-
-msgid "Coincident"
-msgstr "Coincidente"
-
-msgid "Equal length"
-msgstr "Lunghezza uguale"
-
-msgid "Tangent"
-msgstr "Tangente"
-
-msgid "Midpoint"
-msgstr "Punto medio"
-
-msgid "Symmetric"
-msgstr "Simmetrico"
-
-msgid "Fix point (anchor in place)"
-msgstr "Fissa il punto (ancora in posizione)"
-
-msgid "✓ Confirm"
-msgstr "✓ Conferma"
-
-msgid "✗ Cancel"
-msgstr "✗ Annulla"
-
-msgid "Undo (Ctrl+Z)"
-msgstr "Annulla (Ctrl+Z)"
-
-msgid "Redo (Ctrl+Shift+Z)"
-msgstr "Ripristina (Ctrl+Shift+Z)"
-
-msgid "New Design — clear the feature tree"
-msgstr "Nuovo design — svuota l'albero delle feature"
-
-msgid "Export STEP…"
-msgstr "Esporta STEP…"
-
-msgid "Show the printer bed and its plate grid"
-msgstr "Mostra il piano di stampa e la sua griglia"
-
-msgid "Place on Face (F) — lay the picked face on the bed"
-msgstr "Posiziona sulla faccia (F) — appoggia la faccia selezionata sul piano"
-
-msgid "Section View — hide part of the model to see inside. PageUp/PageDown move the plane; Delete removes it."
-msgstr "Vista in sezione — nasconde parte del modello per vederne l'interno. PagSu/PagGiù spostano il piano; Canc lo rimuove."
-
-msgid "Flip Section — show the opposite half"
-msgstr "Inverti sezione — mostra la metà opposta"
-
-msgid "Commit to Plate — send the solid to Prepare"
-msgstr "Applica al piano — invia il solido a Prepara"
-
-msgid "XY"
-msgstr ""
-
-msgid "XZ"
-msgstr ""
-
-msgid "YZ"
-msgstr ""
-
-msgid "Width / X"
-msgstr "Larghezza / X"
-
-msgid "Height / Y"
-msgstr "Altezza / Y"
-
-msgid "Distance X"
-msgstr "Distanza X"
-
-msgid "Distance Y"
-msgstr "Distanza Y"
-
-msgid "Distance Z"
-msgstr "Distanza Z"
-
-msgid "Z"
-msgstr ""
-
-msgid "Rotation axis"
-msgstr "Asse di rotazione"
-
-msgid "Angle °"
-msgstr "Angolo °"
-
-msgid "Move / Rotate"
-msgstr "Sposta / ruota"
-
-msgid "Sides"
-msgstr "Lati"
-
-msgid "Circumscribed"
-msgstr "Circoscritto"
-
-msgid "Sketch: —"
-msgstr "Schizzo: —"
-
-msgid "Extrude dist"
-msgstr "Dist. estrusione"
-
-msgid "End"
-msgstr "Fine"
-
-msgid "2nd dist"
-msgstr "2ª dist."
-
-msgid "Taper °"
-msgstr "Rastrem. °"
-
-msgid "New body"
-msgstr "Nuovo corpo"
-
-msgid "Intersect"
-msgstr "Interseca"
-
-msgid "Result"
-msgstr "Risultato"
-
-msgid "Flip direction"
-msgstr "Inverti direzione"
-
-msgid "Dress-up"
-msgstr "Finitura"
-
-msgid "Lateral"
-msgstr "Laterale"
-
-msgid "Edges"
-msgstr "Spigoli"
-
-msgid "Size (r/dist)"
-msgstr "Dimensione (r/dist)"
-
-msgid "Hole plane"
-msgstr "Piano del foro"
-
-msgid "Depth (blind)"
-msgstr "Profondità (cieco)"
-
-msgid "Pos X"
-msgstr "Pos. X"
-
-msgid "Pos Y"
-msgstr "Pos. Y"
-
-msgid "Through"
-msgstr "Passante"
-
-msgid "Thread plane"
-msgstr "Piano filettatura"
-
-msgid "Pitch"
-msgstr "Passo"
-
-msgid "Thread depth"
-msgstr "Profondità filettatura"
-
-msgid "Plane X"
-msgstr "Piano X"
-
-msgid "Plane Y"
-msgstr "Piano Y"
-
-msgid "Profile: —"
-msgstr "Profilo: —"
-
-msgid "Path"
-msgstr "Percorso"
-
-msgid "Linear"
-msgstr "Lineare"
-
-msgid "Direction"
-msgstr "Direzione"
-
-msgid "Total angle°"
-msgstr "Angolo totale°"
-
-msgid "Boolean"
-msgstr "Booleana"
-
-msgid "Union (join)"
-msgstr "Unione (fondi)"
-
-msgid "Subtract (cut)"
-msgstr "Sottrai (taglia)"
-
-msgid "Target (kept)"
-msgstr "Destinazione (mantenuto)"
-
-msgid "Keep tool body"
-msgstr "Mantieni corpo utensile"
-
-msgid "Body"
-msgstr "Corpo"
-
-msgid "Insert"
-msgstr "Inserisci"
-
+#: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
-"Drag a corner to size, the centre to move.\n"
-"Confirm or Cancel in the toolbar above."
-msgstr "Trascina un angolo per dimensionare, il centro per spostare.\nConferma o Annulla nella barra qui sopra."
-
-msgid "Midplane"
-msgstr "Piano medio"
-
-msgid "Two edges"
-msgstr "Due spigoli"
-
-msgid "Plane type"
-msgstr "Tipo di piano"
-
-msgid "Base"
-msgstr "Base"
-
-msgid "Angle°"
-msgstr "Angolo°"
-
-msgid "Base X"
-msgstr "Base X"
-
-msgid "Base Y"
-msgstr "Base Y"
-
-msgid "Tilt axis"
-msgstr "Asse di inclinazione"
-
-msgid "Pick Face A"
-msgstr "Seleziona faccia A"
-
-msgid "Pick Face B"
-msgstr "Seleziona faccia B"
-
-msgid "Pick Edge A"
-msgstr "Seleziona spigolo A"
-
-msgid "Pick Edge B"
-msgstr "Seleziona spigolo B"
-
-msgid "Size U"
-msgstr "Dimensione U"
-
-msgid "Size V"
-msgstr "Dimensione V"
-
-msgid "Profiles (check 2+, in order):"
-msgstr "Profili (seleziona 2+, in ordine):"
-
-msgid "Ruled (straight) sections"
-msgstr "Sezioni rigate (rettilinee)"
-
-msgid "Fills the sketch's closed boundary with a smooth face."
-msgstr "Riempie il contorno chiuso dello schizzo con una faccia liscia."
-
-msgid "Sheet body"
-msgstr "Corpo superficie"
-
-msgid "Offsets a sheet body's shell. Positive = outward, negative = inward."
-msgstr "Esegue l'offset del guscio di un corpo superficie. Positivo = verso l'esterno, negativo = verso l'interno."
-
-msgid "Thickens a sheet body into a solid. Flip reverses the direction."
-msgstr "Ispessisce un corpo superficie in un solido. Inverti cambia la direzione."
-
-msgid "(all faces — closed hollow)"
-msgstr "(tutte le facce — cavità chiusa)"
-
-msgid "Open face"
-msgstr "Faccia aperta"
-
-msgid "Pick a solid face to open it, then set the wall thickness."
-msgstr "Seleziona una faccia solida da aprire, poi imposta lo spessore di parete."
-
-msgid "Angle (°)"
-msgstr "Angolo (°)"
-
-msgid "(pick a side face)"
-msgstr "(seleziona una faccia laterale)"
-
-msgid "Draft"
-msgstr "Sformo"
-
-msgid "Pick a side face, then set the draft angle. The face pivots about the body base."
-msgstr "Seleziona una faccia laterale, poi imposta l'angolo di sformo. La faccia ruota attorno alla base del corpo."
-
-msgid "Translate X"
-msgstr "Traslazione X"
-
-msgid "Translate Y"
-msgstr "Traslazione Y"
-
-msgid "Translate Z"
-msgstr "Traslazione Z"
-
-msgid "Rotate axis"
-msgstr "Asse di rotazione"
-
-msgid "Pivot X"
+"Precise wall\n"
+"Did you know that turning on precise wall can improve precision and layer consistency?"
 msgstr ""
+"Parete precisa\n"
+"Sapevi che abilitare parete precisa può migliorare la precisione e l'uniformità degli strati?"
 
-msgid "Pivot Y"
-msgstr ""
-
-msgid "Pivot Z"
-msgstr ""
-
-msgid "Keep original (make a copy)"
-msgstr "Mantieni l'originale (crea una copia)"
-
-msgid "Translate and/or rotate the selected body. Rotation is applied about the pivot, then translation follows."
-msgstr "Trasla e/o ruota il corpo selezionato. La rotazione è applicata attorno al pivot, poi segue la traslazione."
-
-msgid "Mirror plane"
-msgstr "Piano di simmetria"
-
-msgid "Keep original"
-msgstr "Mantieni originale"
-
-msgid "Reflect the selected body about a plane. The mirror is always a new body; keeping the original gives you both."
-msgstr "Riflette il corpo selezionato rispetto a un piano. La simmetria crea sempre un nuovo corpo; mantenendo l'originale li avrai entrambi."
-
-msgid "Pick a solid face and offset it into a new thin body. Not for sheet bodies — use Thicken Surface for those."
-msgstr "Seleziona una faccia solida e offsettala in un nuovo corpo sottile. Non per i corpi superficie — per quelli usa Ispessisci superficie."
-
-msgid "Target body"
-msgstr "Corpo di destinazione"
-
-msgid "Entity index"
-msgstr "Indice entità"
-
-msgid "Grow a thin wall from an open sketch Line entity, fused to the target body. Entity index is the position of the open Line in the sketch."
-msgstr "Genera una parete sottile da un'entità Linea aperta dello schizzo, fusa al corpo di destinazione. L'indice entità è la posizione della linea aperta nello schizzo."
-
-msgid "Source body"
-msgstr "Corpo di origine"
-
-msgid "Target plane"
-msgstr "Piano di destinazione"
-
-msgid "Project the edges of a body onto a plane as sketch entities. Pick a face to project only its edges, or leave the face empty to project the whole body."
-msgstr "Proietta gli spigoli di un corpo su un piano come entità di schizzo. Seleziona una faccia per proiettarne solo gli spigoli, oppure lasciala vuota per proiettare l'intero corpo."
-
-msgid "Add picked face"
-msgstr "Aggiungi faccia selezionata"
-
-msgid "Click a face on the body first, then Add picked face"
-msgstr "Clicca prima una faccia del corpo, poi Aggiungi faccia selezionata"
-
-#, c-format, boost-format
-msgid "Face %d is already in the list"
-msgstr "La faccia %d è già nell'elenco"
-
-msgid "Faces to delete"
-msgstr "Facce da eliminare"
-
-msgid "Pick a solid face, then click 'Add picked face' to accumulate faces. Confirm to remove all listed faces and heal the solid."
-msgstr "Seleziona una faccia solida, poi clicca 'Aggiungi faccia selezionata' per accumulare le facce. Conferma per rimuovere tutte le facce elencate e riparare il solido."
-
-msgid "Left-handed"
-msgstr "Sinistrorsa"
-
-msgid "Taper (°)"
-msgstr "Rastremazione (°)"
-
-msgid "A helical curve (spring path). Use as a sweep path to build springs, coils, or augers."
-msgstr "Una curva elicoidale (percorso a molla). Usala come percorso di sweep per creare molle, bobine o coclee."
-
-msgid "Two points"
-msgstr "Due punti"
-
-msgid "Face normal"
-msgstr "Normale alla faccia"
-
-msgid "Cylinder centerline"
-msgstr "Asse del cilindro"
-
-msgid "Plane intersection"
-msgstr "Intersezione di piani"
-
-msgid "Along edge"
-msgstr "Lungo lo spigolo"
-
-msgid "Axis type"
-msgstr "Tipo di asse"
-
-msgid "Pick Face"
-msgstr "Seleziona faccia"
-
-msgid "Pick Edge"
-msgstr "Seleziona spigolo"
-
-msgid "Plane A"
-msgstr "Piano A"
-
-msgid "Plane B"
-msgstr "Piano B"
-
-msgid "Point 1 X"
-msgstr "Punto 1 X"
-
-msgid "Point 1 Y"
-msgstr "Punto 1 Y"
-
-msgid "Point 1 Z"
-msgstr "Punto 1 Z"
-
-msgid "Point 2 X"
-msgstr "Punto 2 X"
-
-msgid "Point 2 Y"
-msgstr "Punto 2 Y"
-
-msgid "Point 2 Z"
-msgstr "Punto 2 Z"
-
-msgid "Point (world)"
-msgstr "Punto (mondo)"
-
-msgid "Face + direction"
-msgstr "Faccia + direzione"
-
-msgid "Edge (sets in-plane direction)"
-msgstr "Spigolo (definisce la direzione nel piano)"
-
-msgid "Without an edge the frame takes X from the face's first edge — pick one to choose it yourself"
-msgstr "Senza uno spigolo il sistema prende X dal primo spigolo della faccia — selezionane uno per sceglierlo tu"
-
-msgid "X hint X"
-msgstr "Dir. X — X"
-
-msgid "X hint Y"
-msgstr "Dir. X — Y"
-
-msgid "X hint Z"
-msgstr "Dir. X — Z"
-
-msgid "Fastened — 6 DOF locked, B driven onto A exactly"
-msgstr "Fisso — 6 gradi di libertà bloccati, B portato esattamente su A"
-
-msgid "Planar — z aligned, offset distance; free in-plane slide"
-msgstr "Planare — z allineati, distanza di offset; scorrimento libero nel piano"
-
-msgid "Revolute — axes collinear; free rotation about z"
-msgstr "Rotoidale — assi collineari; rotazione libera attorno a z"
-
-msgid "Slider — orientation locked; free axial slide"
-msgstr "Slitta — orientamento bloccato; scorrimento assiale libero"
-
-msgid "Cylindrical — axes collinear; free spin + axial slide"
-msgstr "Cilindrico — assi collineari; rotazione libera + scorrimento assiale"
-
-msgid "Kind"
-msgstr "Tipo"
-
-msgid "CS A (fixed)"
-msgstr "SC A (fisso)"
-
-msgid "CS B (moves)"
-msgstr "SC B (mobile)"
-
-msgid "Flip (oppose z axes)"
-msgstr "Inverti (assi z opposti)"
-
-msgid "Plane distance"
-msgstr "Distanza dal piano"
-
-msgid "Axial position"
-msgstr "Posizione assiale"
-
-msgid "Expression"
-msgstr "Espressione"
-
-msgid "Field"
-msgstr "Campo"
-
-msgid "Expr"
-msgstr "Espr."
-
-msgid "(no bindings)"
-msgstr "(nessuna associazione)"
-
-msgid "Value"
-msgstr "Valore"
-
-msgid "Pick a plane, then draw. Finish (✓) when done."
-msgstr "Seleziona un piano, poi disegna. Completa (✓) quando hai finito."
-
-msgid "Constraints"
-msgstr "Vincoli"
-
-msgid "Feature tree"
-msgstr "Albero delle feature"
-
-msgid "Move body / Scale imported Text-SVG"
-msgstr "Sposta il corpo / scala il testo-SVG importato"
-
-msgid "Select a body to move it, or an imported Text/SVG to scale"
-msgstr "Seleziona un corpo da spostare, o un testo/SVG importato da scalare"
-
-msgid "Show / hide"
-msgstr "Mostra / nascondi"
-
-msgid "Move up"
-msgstr "Sposta su"
-
-msgid "Move down"
-msgstr "Sposta giù"
-
-msgid "Check interference — find overlapping bodies"
-msgstr "Verifica interferenze — trova i corpi sovrapposti"
-
-msgid "Bodies"
-msgstr "Corpi"
-
-#, c-format, boost-format
-msgid "Body %d selected — next Extrude / Fillet acts on it"
-msgstr "Corpo %d selezionato — la prossima estrusione/raccordo agirà su di esso"
-
-msgid "Variables"
-msgstr "Variabili"
-
-msgid "+"
-msgstr ""
-
-msgid "Del"
-msgstr "Elimina"
-
-msgid "Sketch created — select it and Extrude"
-msgstr "Schizzo creato — selezionalo ed estrudi"
-
-msgid "Sketch empty — nothing committed"
-msgstr "Schizzo vuoto — nessuna modifica applicata"
-
-msgid "Sketch updated"
-msgstr "Schizzo aggiornato"
-
-#, c-format
-msgid "Sketch created (%zu driving dims) — select it and Extrude"
-msgstr "Schizzo creato (%zu quote guida) — selezionalo ed estrudi"
-
-msgid "✗ Conflicting constraints"
-msgstr "✗ Vincoli in conflitto"
-
-msgid "✓ Fully constrained"
-msgstr "✓ Completamente vincolato"
-
-#, c-format, boost-format
-msgid "%d degrees of freedom"
-msgstr "%d gradi di libertà"
-
-#, c-format, boost-format
-msgid "%d selected — Delete removes them"
-msgstr "%d selezionati — Canc li elimina"
-
-msgid "Click to select; click a filled face to extrude; Shift to add"
-msgstr "Clicca per selezionare; clicca una faccia piena per estrudere; Maiusc per aggiungere"
-
-msgid "Could not resolve the sketch to extrude"
-msgstr "Impossibile risolvere lo schizzo da estrudere"
-
-msgid "Face selected — set the depth and Confirm"
-msgstr "Faccia selezionata — imposta la profondità e Conferma"
-
-msgid "Loop selected — Extrude it, or Edit / Delete the sketch"
-msgstr "Anello selezionato — estrudilo, oppure modifica/elimina lo schizzo"
-
-msgid "Sketch selected — Extrude it, or Edit / Delete from the tree"
-msgstr "Schizzo selezionato — estrudilo, oppure modifica/elimina dall'albero"
-
-msgid "Selection cleared"
-msgstr "Selezione azzerata"
-
-#, c-format, boost-format
-msgid "Body %d selected — click again for a face"
-msgstr "Corpo %d selezionato — clicca di nuovo per una faccia"
-
-#, c-format, boost-format
-msgid "Body %d, face %d — click again for an edge"
-msgstr "Corpo %d, faccia %d — clicca di nuovo per uno spigolo"
-
-#, c-format, boost-format
-msgid "Body %d, edge %d selected"
-msgstr "Corpo %d, spigolo %d selezionato"
-
-#, c-format, boost-format
-msgid "Face %d"
-msgstr "Faccia %d"
-
-#, c-format, boost-format
-msgid "Body %d "
-msgstr "Corpo %d "
-
-msgid "selected (whole) — click again for a face"
-msgstr "selezionato (intero) — clicca di nuovo per una faccia"
-
-#, c-format, boost-format
-msgid "face %d selected — Extrude to push/pull it, or click again for an edge"
-msgstr "faccia %d selezionata — estrudi per spingerla/tirarla, o clicca di nuovo per uno spigolo"
-
-#, c-format, boost-format
-msgid "edge %d selected — open Fillet/Chamfer to dress it, or click again to reset"
-msgstr "spigolo %d selezionato — apri Raccordo/Smusso per rifinirlo, o clicca di nuovo per azzerare"
-
-#, c-format, boost-format
-msgid "%s plane selected — press Sketch to draw on it"
-msgstr "Piano %s selezionato — premi Schizzo per disegnarci sopra"
-
-#, c-format, boost-format
-msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
-msgstr "posizionato a (%.1f, %.1f, %.1f) mm — trascina le frecce per spostare, gli anelli per ruotare"
-
-msgid "Tool exited"
-msgstr "Strumento chiuso"
-
-#, c-format, boost-format
-msgid "Sketch %d"
-msgstr "Schizzo %d"
-
-#, c-format
-msgid "OK — %zu triangles"
-msgstr "OK — %zu triangoli"
-
-msgid "Text to insert:"
-msgstr "Testo da inserire:"
-
-msgid "Import SVG"
-msgstr "Importa SVG"
-
-msgid "SnapOrca"
-msgstr ""
-
-msgid "Import STEP"
-msgstr "Importa STEP"
-
-msgid "Reading STEP…"
-msgstr "Lettura STEP…"
-
-msgid "No solids found in STEP"
-msgstr "Nessun solido trovato nello STEP"
-
-msgid "STEP import failed: "
-msgstr "Importazione STEP non riuscita: "
-
-msgid "Rebuilding model…"
-msgstr "Ricostruzione modello…"
-
-#, c-format, boost-format
-msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr "Importati %d solidi — seleziona una faccia o uno spigolo, poi Raccordo / Taglia / Svuota per modificare"
-
-msgid "Import mesh"
-msgstr "Importa mesh"
-
-msgid "Could not read the STL file"
-msgstr "Impossibile leggere il file STL"
-
-msgid "Could not read the OBJ file: "
-msgstr "Impossibile leggere il file OBJ: "
-
-msgid "Unsupported mesh format (STL and OBJ are supported)"
-msgstr "Formato mesh non supportato (sono supportati STL e OBJ)"
-
-msgid "The mesh contains no triangles"
-msgstr "La mesh non contiene triangoli"
-
-#, c-format, boost-format
+#: resources/data/hints.ini: [hint:Sandwich mode]
 msgid ""
-"This mesh has %d triangles. Every triangle becomes a B-rep face before coplanar merging, so importing it may take a long time and leave a body that is slow to edit. Decimating the mesh first is usually better.\n"
-"\n"
-"Import anyway?"
+"Sandwich mode\n"
+"Did you know that you can use sandwich mode (inner-outer-inner) to improve precision and layer consistency if your model doesn't have very steep overhangs?"
 msgstr ""
+"Modalità panino\n"
+"Sapevi che puoi utilizzare la modalità panino (interno-esterno-interno) per migliorare la precisione e l'uniformità degli strati se il tuo modello non presenta sporgenze molto ripide?"
 
-msgid "Large mesh"
-msgstr "Mesh grande"
-
-msgid "Mesh conversion failed: "
-msgstr "Conversione mesh non riuscita: "
-
-msgid "Mesh conversion produced no geometry"
-msgstr "La conversione della mesh non ha prodotto geometria"
-
-msgid "Mesh import failed: "
-msgstr "Importazione mesh non riuscita: "
-
-#, c-format, boost-format
-msgid "Imported solid — %d triangles → %d faces, volume %.2f mm³. Pick a face or edge, then Fillet / Cut / Shell to modify"
-msgstr "Solido importato — %d triangoli → %d facce, volume %.2f mm³. Seleziona una faccia o uno spigolo, poi Raccordo / Taglia / Svuota per modificare"
-
-#, c-format, boost-format
-msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
-msgstr ""
-
-msgid "No importable geometry found"
-msgstr "Nessuna geometria importabile trovata"
-
-msgid " — drag to place/size, then Confirm"
-msgstr " — trascina per posizionare/dimensionare, poi Conferma"
-
-msgid "Insert cancelled"
-msgstr "Inserimento annullato"
-
-msgid "Drag a corner to scale, the centre to move — right-click when done"
-msgstr "Trascina un angolo per scalare, il centro per spostare — tasto destro al termine"
-
-msgid "Sketch added — select it and Extrude"
-msgstr "Schizzo aggiunto — selezionalo ed estrudi"
-
-msgid "Recompute error: "
-msgstr "Errore di ricalcolo: "
-
-msgid "Add a solid (sketch + extrude) first"
-msgstr "Aggiungi prima un solido (schizzo + estrusione)"
-
-#, c-format, boost-format
-msgid "Thread standard: %s  (pitch %.3g mm)"
-msgstr "Standard filettatura: %s  (passo %.3g mm)"
-
-msgid "Thread needs a solid body — add or import one first"
-msgstr "La filettatura richiede un corpo solido — creane o importane uno"
-
-msgid "Pick a sketch profile to revolve first"
-msgstr "Seleziona prima uno schizzo profilo da far ruotare"
-
-msgid "Revolve needs a solid body — add or import one first"
-msgstr "La rivoluzione richiede un corpo solido — creane o importane uno"
-
-msgid "Pick a profile sketch to sweep first"
-msgstr "Seleziona prima uno schizzo profilo per lo sweep"
-
-msgid "Pick a path sketch for the sweep"
-msgstr "Seleziona uno schizzo percorso per lo sweep"
-
-msgid "Sweep needs a solid body — add or import one first"
-msgstr "Lo sweep richiede un corpo solido — creane o importane uno"
-
-msgid "Check at least two profile sketches to loft"
-msgstr "Seleziona almeno due schizzi profilo per il loft"
-
-msgid "Loft needs a solid body — add or import one first"
-msgstr "Il loft richiede un corpo solido — creane o importane uno"
-
-msgid "Pick a sketch profile to extrude first"
-msgstr "Seleziona prima uno schizzo profilo da estrudere"
-
-msgid "Pick a sketch to fill first"
-msgstr "Seleziona prima uno schizzo da riempire"
-
-msgid "Select a sheet body first"
-msgstr "Seleziona prima un corpo superficie"
-
-msgid "Pick a solid face to thicken first"
-msgstr "Seleziona prima una faccia solida da ispessire"
-
-msgid "Pick a sketch with an open line first"
-msgstr "Seleziona prima uno schizzo con una linea aperta"
-
-msgid "Add at least one face to delete first"
-msgstr "Aggiungi prima almeno una faccia da eliminare"
-
-msgid "Mate needs two CoordSys features — create them first"
-msgstr "L'accoppiamento richiede due feature Sist. coord. — creale prima"
-
-msgid "Mate: CS A and CS B must be different CoordSys features"
-msgstr "Accoppiamento: SC A e SC B devono essere feature Sist. coord. diverse"
-
-msgid "Mate rejected"
-msgstr "Accoppiamento rifiutato"
-
-msgid "No interference — need at least two solid bodies to check"
-msgstr "Nessuna interferenza — servono almeno due corpi solidi per la verifica"
-
-msgid "No interference found"
-msgstr "Nessuna interferenza rilevata"
-
-#, c-format
-msgid "%zu interference pairs, worst %.2f mm³"
-msgstr "%zu coppie in interferenza, peggiore %.2f mm³"
-
+#: resources/data/hints.ini: [hint:Chamber temperature]
 msgid ""
-"Interference pairs:\n"
-"\n"
-msgstr "Coppie in interferenza:\n\n"
-
-#, c-format, boost-format
-msgid "Body %d"
-msgstr "Corpo %d"
-
-msgid "Interference"
-msgstr "Interferenza"
-
-msgid "Pattern needs a solid body — add or import one first"
-msgstr "La serie richiede un corpo solido — creane o importane uno"
-
-msgid "Boolean needs two solid bodies — add or import a second one"
-msgstr "La booleana richiede due corpi solidi — creane o importane un secondo"
-
-msgid "Cut needs a solid body — add or import one first"
-msgstr "Il taglio richiede un corpo solido — creane o importane uno"
-
-msgid "Click a solid FACE in the viewport"
-msgstr "Clicca una FACCIA solida nella vista"
-
-msgid "Click a solid EDGE in the viewport"
-msgstr "Clicca uno SPIGOLO solido nella vista"
-
-msgid "Plane added — pick it as a sketch plane"
-msgstr "Piano aggiunto — selezionalo come piano di schizzo"
-
-msgid "Axis added"
-msgstr "Asse aggiunto"
-
-msgid "Coord Sys added"
-msgstr "Sist. coord. aggiunto"
-
-msgid "Shell needs a solid body — add or import one first"
-msgstr "Lo svuotamento richiede un corpo solido — creane o importane uno"
-
-msgid "Draft needs a solid body — add or import one first"
-msgstr "Lo sformo richiede un corpo solido — creane o importane uno"
-
-msgid "Draft needs a picked face — click a side face first"
-msgstr "Lo sformo richiede una faccia selezionata — clicca prima una faccia laterale"
-
-msgid "Could not restore the CAD model from this project"
-msgstr "Impossibile ripristinare il modello CAD da questo progetto"
-
-msgid "Section view on — hides half the model to see inside; PageUp / PageDown move the plane, Flip shows the other half"
-msgstr "Vista in sezione attiva — nasconde metà del modello per vederne l'interno; PagSu / PagGiù spostano il piano, Inverti mostra l'altra metà"
-
-msgid "Section view off"
-msgstr "Vista in sezione disattivata"
-
-#, c-format, boost-format
-msgid "Section view — showing the %s half"
-msgstr "Vista in sezione — mostra la metà %s"
-
-msgid "upper"
-msgstr "superiore"
-
-msgid "lower"
-msgstr "inferiore"
-
-msgid "Select a body first — click it in the viewport or the Bodies list"
-msgstr "Seleziona prima un corpo — cliccalo nella vista o nell'elenco Corpi"
-
-msgid "That body has no display mesh yet — recompute first"
-msgstr "Quel corpo non ha ancora una mesh di visualizzazione — ricalcola prima"
-
-msgid "Drag the arrows to move, the rings to rotate — then Confirm (Esc cancels)"
-msgstr "Trascina le frecce per spostare, gli anelli per ruotare — poi Conferma (Esc annulla)"
-
-msgid "Select a body first"
-msgstr "Seleziona prima un corpo"
-
-#, c-format, boost-format
-msgid "Body %d colour set"
-msgstr "Colore corpo %d impostato"
-
-msgid "Pick a body face first (click a solid, then click again to a face), then press F"
-msgstr "Seleziona prima una faccia del corpo (clicca un solido, poi clicca di nuovo su una faccia), quindi premi F"
-
-msgid "Placed on face — body laid flat on the bed"
-msgstr "Posizionato sulla faccia — corpo appoggiato sul piano"
-
-msgid "Edit rejected: "
-msgstr "Modifica rifiutata: "
-
-msgid "Erase all features and bodies and start a new design? This cannot be undone."
-msgstr "Eliminare tutte le feature e i corpi e iniziare un nuovo design? L'operazione non è annullabile."
-
-msgid "New Design"
-msgstr "Nuovo design"
-
-msgid "Select the FEATURE that created this body (or use New Design)"
-msgstr "Seleziona la FEATURE che ha creato questo corpo (oppure usa Nuovo design)"
-
-msgid "Select a feature in the tree first"
-msgstr "Seleziona prima una feature nell'albero"
-
-#, c-format, boost-format
-msgid "Body %d shown"
-msgstr "Corpo %d mostrato"
-
-#, c-format, boost-format
-msgid "Body %d hidden"
-msgstr "Corpo %d nascosto"
-
-msgid "Feature shown"
-msgstr "Feature mostrata"
-
-msgid "Feature hidden"
-msgstr "Feature nascosta"
-
-msgid "Draw a sketch first, then Constrain"
-msgstr "Disegna prima uno schizzo, poi Vincola"
-
-msgid "Select a sketch in the tree first"
-msgstr "Seleziona prima uno schizzo nell'albero"
-
-msgid "Selected feature is not a sketch"
-msgstr "La feature selezionata non è uno schizzo"
-
-msgid "Pick 1-2 lines, then a constraint; right-click exits"
-msgstr "Seleziona 1-2 linee, poi un vincolo; il tasto destro esce"
-
-msgid "Pick 1-2 entities, then a constraint or dimension; right-click exits"
-msgstr "Seleziona 1-2 entità, poi un vincolo o una quota; il tasto destro esce"
-
-msgid "Pick two entities first"
-msgstr "Seleziona prima due entità"
-
-msgid "Pick an entity first"
-msgstr "Seleziona prima un'entità"
-
-msgid "Concentric needs two circles or arcs"
-msgstr "La concentricità richiede due cerchi o archi"
-
-msgid "Tangent needs a line and a circle/arc, or two circles/arcs"
-msgstr "La tangenza richiede una linea e un cerchio/arco, o due cerchi/archi"
-
-msgid "Midpoint needs a point and a line"
-msgstr "Il punto medio richiede un punto e una linea"
-
-msgid "Symmetric: pick two entities, then an axis line"
-msgstr "Simmetria: seleziona due entità, poi una linea come asse"
-
-msgid "Symmetric needs two points or two lines + an axis"
-msgstr "La simmetria richiede due punti o due linee + un asse"
-
-msgid "Radius/Diameter needs a circle or arc"
-msgstr "Raggio/diametro richiede un cerchio o un arco"
-
-msgid "Unsupported constraint"
-msgstr "Vincolo non supportato"
-
-msgid "Constraint rejected (over-constrained)"
-msgstr "Vincolo rifiutato (sovravincolato)"
-
-msgid "Applied constraint"
-msgstr "Vincolo applicato"
-
-#, c-format, boost-format
-msgid "Fix %s"
-msgstr "Fissa %s"
-
-#, c-format, boost-format
-msgid "Lock X %s"
-msgstr "Blocca X %s"
-
-#, c-format, boost-format
-msgid "Lock Y %s"
-msgstr "Blocca Y %s"
-
-msgid "Equal"
-msgstr "Uguale"
-
-#, c-format, boost-format
-msgid "Symmetric %s — %s / %s"
-msgstr "Simmetrico %s — %s / %s"
-
-msgid "On line"
-msgstr "Su linea"
-
-msgid "On edge"
-msgstr "Su spigolo"
-
-msgid "Constraint"
-msgstr "Vincolo"
-
-#, c-format, boost-format
-msgid "Constraints (%d)"
-msgstr "Vincoli (%d)"
-
-msgid "No constraints yet"
-msgstr "Nessun vincolo"
-
-msgid "Delete constraint"
-msgstr "Elimina vincolo"
-
-msgid "Constraint deleted"
-msgstr "Vincolo eliminato"
-
-msgid "Press Constrain on a sketch first"
-msgstr "Premi prima Vincola su uno schizzo"
-
-msgid "Pick the entity, then a mirror-axis line"
-msgstr "Seleziona l'entità, poi una linea come asse di simmetria"
-
-msgid "Mirror axis must be a line"
-msgstr "L'asse di simmetria deve essere una linea"
-
-msgid "Mirror produced nothing"
-msgstr "La simmetria non ha prodotto nulla"
-
-msgid "Offset distance (+left / -right of direction)"
-msgstr "Distanza di offset (+sinistra / -destra rispetto alla direzione)"
-
-msgid "Offset collapsed the entity"
-msgstr "L'offset ha fatto collassare l'entità"
-
-msgid "Pick two lines to fillet"
-msgstr "Seleziona due linee da raccordare"
-
-msgid "Fillet needs two lines"
-msgstr "Il raccordo richiede due linee"
-
-msgid "Fillet radius"
-msgstr "Raggio di raccordo"
-
-msgid "Fillet failed (parallel lines or radius too large)"
-msgstr "Raccordo non riuscito (linee parallele o raggio troppo grande)"
-
-msgid "Pick two lines to chamfer"
-msgstr "Seleziona due linee da smussare"
-
-msgid "Chamfer needs two lines"
-msgstr "Lo smusso richiede due linee"
-
-msgid "Chamfer distance"
-msgstr "Distanza smusso"
-
-msgid "Chamfer failed (parallel lines or distance too large)"
-msgstr "Smusso non riuscito (linee parallele o distanza troppo grande)"
-
-msgid "Trim works on lines, arcs and circles"
-msgstr "Il taglio funziona su linee, archi e cerchi"
-
-msgid "Extend works on lines and arcs"
-msgstr "L'estensione funziona su linee e archi"
-
-msgid "Pick the edge to trim/extend"
-msgstr "Seleziona lo spigolo da tagliare/estendere"
-
-msgid "Nothing to trim at the pick"
-msgstr "Niente da tagliare nel punto selezionato"
-
-msgid "No edge to extend to"
-msgstr "Nessuno spigolo a cui estendere"
-
-msgid "Array count (incl. original)"
-msgstr "Numero di copie (incl. originale)"
-
-msgid "Spacing (mm)"
-msgstr "Spaziatura (mm)"
-
-msgid "Array produced nothing"
-msgstr "La serie non ha prodotto nulla"
-
-msgid "Move dX (mm)"
-msgstr "Spost. dX (mm)"
-
-msgid "Move dY (mm)"
-msgstr "Spost. dY (mm)"
-
-msgid "Move produced nothing"
-msgstr "Lo spostamento non ha prodotto nulla"
-
-msgid "Rotate angle (deg)"
-msgstr "Angolo di rotazione (gradi)"
-
-msgid "Rotate produced nothing"
-msgstr "La rotazione non ha prodotto nulla"
-
-msgid "Scale factor"
-msgstr "Fattore di scala"
-
-msgid "Scale produced nothing"
-msgstr "La scala non ha prodotto nulla"
-
-msgid "Polar count (incl. original)"
-msgstr "Numero polare (incl. originale)"
-
-msgid "Total sweep (deg)"
-msgstr "Rotazione totale (gradi)"
-
-msgid "Polar array produced nothing"
-msgstr "La serie polare non ha prodotto nulla"
-
-msgid "Applied edit"
-msgstr "Modifica applicata"
-
-msgid " — type a value, press Enter (or Confirm)"
-msgstr " — digita un valore, premi Invio (o Conferma)"
-
-msgid "Pick a segment in the viewport first"
-msgstr "Seleziona prima un segmento nella vista"
-
-msgid "Applied Horizontal"
-msgstr "Applicato orizzontale"
-
-msgid "Applied Vertical"
-msgstr "Applicato verticale"
-
-msgid "Sketch: "
-msgstr "Schizzo: "
-
-msgid "Editing sketch — drag a handle or click a quote to edit"
-msgstr "Modifica schizzo — trascina una maniglia o clicca una quota per modificarla"
-
-msgid "This feature type can't be edited yet"
-msgstr "Questo tipo di feature non è ancora modificabile"
-
-msgid "Nothing to export — add a feature first"
-msgstr "Niente da esportare — aggiungi prima una feature"
-
-msgid "Export STEP"
-msgstr "Esporta STEP"
-
-msgid "Exported STEP"
-msgstr "STEP esportato"
-
-msgid "STEP export failed: "
-msgstr "Esportazione STEP non riuscita: "
-
-msgid "Nothing to commit — add a feature first"
-msgstr "Niente da applicare — aggiungi prima una feature"
-
-msgid "All bodies hidden — show one before committing"
-msgstr "Tutti i corpi sono nascosti — mostrane uno prima di applicare"
-
-msgid "Plane ready"
-msgstr "Piano pronto"
-
-msgid "Axis ready"
-msgstr "Asse pronto"
-
-msgid "Coord Sys ready"
-msgstr "Sist. coord. pronto"
-
-msgid "Helix ready"
-msgstr "Elica pronta"
-
-msgid "Project ready"
-msgstr "Proiezione pronta"
-
-msgid "Sketch ready"
-msgstr "Schizzo pronto"
-
-msgid "Mate needs at least two CoordSys features"
-msgstr "L'accoppiamento richiede almeno due feature Sist. coord."
-
-msgid "Mate: CS A and CS B must be different"
-msgstr "Accoppiamento: SC A e SC B devono essere diversi"
-
-msgid "Mate ready"
-msgstr "Accoppiamento pronto"
-
-#, c-format
-msgid "Preview — %zu triangles"
-msgstr "Anteprima — %zu triangoli"
-
-msgid "Invalid: "
-msgstr "Non valido: "
-
-#, c-format, boost-format
-msgid "Body %d — moved (%.1f, %.1f, %.1f) mm, rotated %.1f°"
-msgstr "Corpo %d — spostato di (%.1f, %.1f, %.1f) mm, ruotato di %.1f°"
-
-msgid "Profile: "
-msgstr "Profilo: "
-
-#, c-format, boost-format
-msgid "Face %d (push/pull)"
-msgstr "Faccia %d (push/pull)"
-
-msgid "Move cancelled"
-msgstr "Spostamento annullato"
-
-msgid "Finish or cancel the current tool first (Esc)"
-msgstr "Completa o annulla prima lo strumento attivo (Esc)"
-
-msgid "Nothing to redo"
-msgstr "Niente da ripristinare"
-
-msgid "Nothing to undo"
-msgstr "Niente da annullare"
-
-#, c-format
-msgid "Redo  (%zu more)"
-msgstr "Ripristina  (altri %zu)"
-
-#, c-format
-msgid "Undo  (%zu more)"
-msgstr "Annulla  (altri %zu)"
-
-msgid "Variable name:"
-msgstr "Nome variabile:"
-
-msgid "Add Variable"
-msgstr "Aggiungi variabile"
-
-msgid "Variable name must not contain spaces"
-msgstr "Il nome della variabile non può contenere spazi"
-
-#, c-format, boost-format
-msgid "Expression for '%s':"
-msgstr "Espressione per '%s':"
-
-msgid "Select a variable first"
-msgstr "Seleziona prima una variabile"
-
-msgid "Edit Variable"
-msgstr "Modifica variabile"
-
-#, c-format, boost-format
-msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
-msgstr "Impossibile rimuovere la variabile '%s' (probabilmente ancora referenziata da un'espressione di feature): %s"
-
-msgid "No binding for that field"
-msgstr "Nessuna associazione per quel campo"
-
-#~ msgid ""
-#~ "Precise wall\n"
-#~ "Did you know that turning on precise wall can improve precision and layer consistency?"
-#~ msgstr ""
-#~ "Parete precisa\n"
-#~ "Sapevi che abilitare parete precisa può migliorare la precisione e l'uniformità degli strati?"
-
-#~ msgid ""
-#~ "Sandwich mode\n"
-#~ "Did you know that you can use sandwich mode (inner-outer-inner) to improve precision and layer consistency if your model doesn't have very steep overhangs?"
-#~ msgstr ""
-#~ "Modalità panino\n"
-#~ "Sapevi che puoi utilizzare la modalità panino (interno-esterno-interno) per migliorare la precisione e l'uniformità degli strati se il tuo modello non presenta sporgenze molto ripide?"
-
-#~ msgid ""
-#~ "Chamber temperature\n"
-#~ "Did you know that OrcaSlicer supports chamber temperature?"
-#~ msgstr ""
-#~ "Temperatura della camera\n"
-#~ "Sapevi che OrcaSlicer supporta la funzione di controllo della temperatura della camera?"
-
-#~ msgid ""
-#~ "Calibration\n"
-#~ "Did you know that calibrating your printer can do wonders? Check out our beloved calibration solution in OrcaSlicer."
-#~ msgstr ""
-#~ "Calibrazione\n"
-#~ "Sapevi che calibrare la tua stampante può fare miracoli? Dai un'occhiata alla nostra amata soluzione di calibrazione in OrcaSlicer."
-
-#~ msgid ""
-#~ "Auxiliary fan\n"
-#~ "Did you know that OrcaSlicer supports Auxiliary part cooling fan?"
-#~ msgstr ""
-#~ "Ventola ausiliaria\n"
-#~ "Sapevi che OrcaSlicer supporta la ventola di raffreddamento ausiliaria?"
-
-#~ msgid ""
-#~ "Air filtration/Exhaust Fan\n"
-#~ "Did you know that OrcaSlicer can support Air filtration/Exhaust Fan?"
-#~ msgstr ""
-#~ "Filtrazione dell'aria/Ventola di estrazione\n"
-#~ "Sapevi che OrcaSlicer può supportare la filtrazione dell'aria/ventola di estrazione?"
-
-#~ msgid ""
-#~ "G-code window\n"
-#~ "You can turn on/off the G-code window by pressing the <b>C</b> key."
-#~ msgstr ""
-#~ "Finestra G-code\n"
-#~ "È possibile attivare/disattivare la finestra del G-code premendo il tasto <b>C</b> ."
-
-#~ msgid ""
-#~ "Switch workspaces\n"
-#~ "You can switch between <b>Prepare</b> and <b>Preview</b> workspaces by pressing the <b>Tab</b> key."
-#~ msgstr ""
-#~ "Cambia spazio di lavoro\n"
-#~ "È possibile passare dall'area di lavoro <b>Prepara</b> ad <b>Anteprima</b> e viceversa premendo il tasto <b>TAB</b> ."
-
-#~ msgid ""
-#~ "How to use keyboard shortcuts\n"
-#~ "Did you know that Orca Slicer offers a wide range of keyboard shortcuts and 3D scene operations?"
-#~ msgstr ""
-#~ "Come utilizzare le scorciatoie da tastiera\n"
-#~ "Sapevi che OrcaSlicer offre un'ampia gamma di scorciatoie da tastiera e operazioni di scena 3D?"
-
-#~ msgid ""
-#~ "Cut Tool\n"
-#~ "Did you know that you can cut a model at any angle and position with the cutting tool?"
-#~ msgstr ""
-#~ "Strumento Taglia\n"
-#~ "Sapevi che è possibile tagliare un modello in qualsiasi angolazione e posizione con lo Strumento Taglia?"
-
-#~ msgid ""
-#~ "Fix Model\n"
-#~ "Did you know that you can fix a corrupted 3D model to avoid a lot of slicing problems on the Windows system?"
-#~ msgstr ""
-#~ "Correggi modello\n"
-#~ "Sapevi che puoi riparare un modello 3D danneggiato per evitare molti problemi di elaborazione su Windows?"
-
-#~ msgid ""
-#~ "Timelapse\n"
-#~ "Did you know that you can generate a timelapse video during each print?"
-#~ msgstr ""
-#~ "Timelapse\n"
-#~ "Sapevi che puoi generare un video timelapse durante ogni stampa?"
+"Chamber temperature\n"
+"Did you know that OrcaSlicer supports chamber temperature?"
+msgstr ""
+"Temperatura della camera\n"
+"Sapevi che OrcaSlicer supporta la funzione di controllo della temperatura della camera?"
+
+#: resources/data/hints.ini: [hint:Calibration]
+msgid ""
+"Calibration\n"
+"Did you know that calibrating your printer can do wonders? Check out our beloved calibration solution in OrcaSlicer."
+msgstr ""
+"Calibrazione\n"
+"Sapevi che calibrare la tua stampante può fare miracoli? Dai un'occhiata alla nostra amata soluzione di calibrazione in OrcaSlicer."
+
+#: resources/data/hints.ini: [hint:Auxiliary fan]
+msgid ""
+"Auxiliary fan\n"
+"Did you know that OrcaSlicer supports Auxiliary part cooling fan?"
+msgstr ""
+"Ventola ausiliaria\n"
+"Sapevi che OrcaSlicer supporta la ventola di raffreddamento ausiliaria?"
+
+#: resources/data/hints.ini: [hint:Air filtration]
+msgid ""
+"Air filtration/Exhaust Fan\n"
+"Did you know that OrcaSlicer can support Air filtration/Exhaust Fan?"
+msgstr ""
+"Filtrazione dell'aria/Ventola di estrazione\n"
+"Sapevi che OrcaSlicer può supportare la filtrazione dell'aria/ventola di estrazione?"
+
+#: resources/data/hints.ini: [hint:G-code window]
+msgid ""
+"G-code window\n"
+"You can turn on/off the G-code window by pressing the <b>C</b> key."
+msgstr ""
+"Finestra G-code\n"
+"È possibile attivare/disattivare la finestra del G-code premendo il tasto <b>C</b> ."
+
+#: resources/data/hints.ini: [hint:Switch workspaces]
+msgid ""
+"Switch workspaces\n"
+"You can switch between <b>Prepare</b> and <b>Preview</b> workspaces by pressing the <b>Tab</b> key."
+msgstr ""
+"Cambia spazio di lavoro\n"
+"È possibile passare dall'area di lavoro <b>Prepara</b> ad <b>Anteprima</b> e viceversa premendo il tasto <b>TAB</b> ."
+
+#: resources/data/hints.ini: [hint:How to use keyboard shortcuts]
+msgid ""
+"How to use keyboard shortcuts\n"
+"Did you know that Orca Slicer offers a wide range of keyboard shortcuts and 3D scene operations?"
+msgstr ""
+"Come utilizzare le scorciatoie da tastiera\n"
+"Sapevi che OrcaSlicer offre un'ampia gamma di scorciatoie da tastiera e operazioni di scena 3D?"
+
+#: resources/data/hints.ini: [hint:Reverse on even]
+msgid ""
+"Reverse on even\n"
+"Did you know that <b>Reverse on even</b> feature can significantly improve the surface quality of your overhangs? However, it can cause wall inconsistencies so use carefully!"
+msgstr ""
+
+#: resources/data/hints.ini: [hint:Cut Tool]
+msgid ""
+"Cut Tool\n"
+"Did you know that you can cut a model at any angle and position with the cutting tool?"
+msgstr ""
+"Strumento Taglia\n"
+"Sapevi che è possibile tagliare un modello in qualsiasi angolazione e posizione con lo Strumento Taglia?"
+
+#: resources/data/hints.ini: [hint:Fix Model]
+msgid ""
+"Fix Model\n"
+"Did you know that you can fix a corrupted 3D model to avoid a lot of slicing problems on the Windows system?"
+msgstr ""
+"Correggi modello\n"
+"Sapevi che puoi riparare un modello 3D danneggiato per evitare molti problemi di elaborazione su Windows?"
+
+#: resources/data/hints.ini: [hint:Timelapse]
+msgid ""
+"Timelapse\n"
+"Did you know that you can generate a timelapse video during each print?"
+msgstr ""
+"Timelapse\n"
+"Sapevi che puoi generare un video timelapse durante ogni stampa?"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#~ msgid ""
-#~ "Auto-Arrange\n"
-#~ "Did you know that you can auto-arrange all the objects in your project?"
-#~ msgstr ""
-#~ "Disposizione automatica\n"
-#~ "Sapevi che puoi disporre automaticamente tutti gli oggetti del tuo progetto?"
+#: resources/data/hints.ini: [hint:Auto-Arrange]
+msgid ""
+"Auto-Arrange\n"
+"Did you know that you can auto-arrange all the objects in your project?"
+msgstr ""
+"Disposizione automatica\n"
+"Sapevi che puoi disporre automaticamente tutti gli oggetti del tuo progetto?"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#~ msgid ""
-#~ "Auto-Orient\n"
-#~ "Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
-#~ msgstr ""
-#~ "Orientamento automatico\n"
-#~ "Sapevi che puoi orientare gli oggetti in modo ottimale per la stampa con un semplice clic?"
+#: resources/data/hints.ini: [hint:Auto-Orient]
+msgid ""
+"Auto-Orient\n"
+"Did you know that you can rotate objects to an optimal orientation for printing with a simple click?"
+msgstr ""
+"Orientamento automatico\n"
+"Sapevi che puoi orientare gli oggetti in modo ottimale per la stampa con un semplice clic?"
 
-#~ msgid ""
-#~ "Lay on Face\n"
-#~ "Did you know that you can quickly orient a model so that one of its faces sits on the print bed? Select the \"Place on face\" function or press the <b>F</b> key."
-#~ msgstr ""
-#~ "Posiziona su faccia\n"
-#~ "Sapevi che è possibile orientare rapidamente un modello in modo che una delle sue facce si trovi sul piano di stampa? Selezionare la funzione \"Posiziona su faccia\" o premere il tasto <b>F</b> ."
+#: resources/data/hints.ini: [hint:Lay on Face]
+msgid ""
+"Lay on Face\n"
+"Did you know that you can quickly orient a model so that one of its faces sits on the print bed? Select the \"Place on face\" function or press the <b>F</b> key."
+msgstr ""
+"Posiziona su faccia\n"
+"Sapevi che è possibile orientare rapidamente un modello in modo che una delle sue facce si trovi sul piano di stampa? Selezionare la funzione \"Posiziona su faccia\" o premere il tasto <b>F</b> ."
 
-#~ msgid ""
-#~ "Object List\n"
-#~ "Did you know that you can view all objects/parts in a list and change settings for each object/part?"
-#~ msgstr ""
-#~ "Elenco oggetti\n"
-#~ "Sapevi che è possibile visualizzare tutti gli oggetti/parti in un elenco e modificare le impostazioni per ciascun oggetto/parte?"
+#: resources/data/hints.ini: [hint:Object List]
+msgid ""
+"Object List\n"
+"Did you know that you can view all objects/parts in a list and change settings for each object/part?"
+msgstr ""
+"Elenco oggetti\n"
+"Sapevi che è possibile visualizzare tutti gli oggetti/parti in un elenco e modificare le impostazioni per ciascun oggetto/parte?"
 
-#~ msgid ""
-#~ "Search Functionality\n"
-#~ "Did you know that you use the Search tool to quickly find a specific Orca Slicer setting?"
-#~ msgstr ""
-#~ "Funzionalità di ricerca\n"
-#~ "Sapevi che puoi usare lo strumento di ricerca per trovare rapidamente un'impostazione specifica di OrcaSlicer?"
+#: resources/data/hints.ini: [hint:Search Functionality]
+msgid ""
+"Search Functionality\n"
+"Did you know that you use the Search tool to quickly find a specific Orca Slicer setting?"
+msgstr ""
+"Funzionalità di ricerca\n"
+"Sapevi che puoi usare lo strumento di ricerca per trovare rapidamente un'impostazione specifica di OrcaSlicer?"
 
-#~ msgid ""
-#~ "Simplify Model\n"
-#~ "Did you know that you can reduce the number of triangles in a mesh using the Simplify mesh feature? Right-click the model and select Simplify model."
-#~ msgstr ""
-#~ "Semplifica modello\n"
-#~ "Sapevi che puoi ridurre il numero di triangoli in una maglia utilizzando la funzione Semplifica maglia? Fare clic con il pulsante destro del mouse sul modello e selezionare Semplifica modello."
+#: resources/data/hints.ini: [hint:Simplify Model]
+msgid ""
+"Simplify Model\n"
+"Did you know that you can reduce the number of triangles in a mesh using the Simplify mesh feature? Right-click the model and select Simplify model."
+msgstr ""
+"Semplifica modello\n"
+"Sapevi che puoi ridurre il numero di triangoli in una maglia utilizzando la funzione Semplifica maglia? Fare clic con il pulsante destro del mouse sul modello e selezionare Semplifica modello."
 
-#~ msgid ""
-#~ "Slicing Parameter Table\n"
-#~ "Did you know that you can view all objects/parts on a table and change settings for each object/part?"
-#~ msgstr ""
-#~ "Tabella parametri di elaborazione\n"
-#~ "Sapevi che è possibile visualizzare tutti gli oggetti/parti di una tabella e modificare le impostazioni di ciascun oggetto/parte?"
+#: resources/data/hints.ini: [hint:Slicing Parameter Table]
+msgid ""
+"Slicing Parameter Table\n"
+"Did you know that you can view all objects/parts on a table and change settings for each object/part?"
+msgstr ""
+"Tabella parametri di elaborazione\n"
+"Sapevi che è possibile visualizzare tutti gli oggetti/parti di una tabella e modificare le impostazioni di ciascun oggetto/parte?"
 
-#~ msgid ""
-#~ "Split to Objects/Parts\n"
-#~ "Did you know that you can split a big object into small ones for easy colorizing or printing?"
-#~ msgstr ""
-#~ "Dividi in oggetti/parti\n"
-#~ "Sapevi che è possibile dividere un oggetto grande in piccoli oggetti per facilitare la colorazione o la stampa?"
+#: resources/data/hints.ini: [hint:Split to Objects/Parts]
+msgid ""
+"Split to Objects/Parts\n"
+"Did you know that you can split a big object into small ones for easy colorizing or printing?"
+msgstr ""
+"Dividi in oggetti/parti\n"
+"Sapevi che è possibile dividere un oggetto grande in piccoli oggetti per facilitare la colorazione o la stampa?"
 
-#~ msgid ""
-#~ "Subtract a Part\n"
-#~ "Did you know that you can subtract one mesh from another using the Negative part modifier? That way you can, for example, create easily resizable holes directly in Orca Slicer."
-#~ msgstr ""
-#~ "Sottrai una parte\n"
-#~ "Sapevi che puoi sottrarre una maglia da un'altra usando il modificatore Parte negativa? In questo modo è possibile, ad esempio, creare fori facilmente ridimensionabili direttamente in OrcaSlicer."
+#: resources/data/hints.ini: [hint:Subtract a Part]
+msgid ""
+"Subtract a Part\n"
+"Did you know that you can subtract one mesh from another using the Negative part modifier? That way you can, for example, create easily resizable holes directly in Orca Slicer."
+msgstr ""
+"Sottrai una parte\n"
+"Sapevi che puoi sottrarre una maglia da un'altra usando il modificatore Parte negativa? In questo modo è possibile, ad esempio, creare fori facilmente ridimensionabili direttamente in OrcaSlicer."
 
-#~ msgid ""
-#~ "STEP\n"
-#~ "Did you know that you can improve your print quality by slicing a STEP file instead of an STL?\n"
-#~ "Orca Slicer supports slicing STEP files, providing smoother results than a lower resolution STL. Give it a try!"
-#~ msgstr ""
-#~ "STEP\n"
-#~ "Sapevi che puoi migliorare la tua qualità di stampa elaborando un file STEP invece di un STL?\n"
-#~ "OrcaSlicer supporta l'elaborazione dei file STEP, fornendo risultati più uniformi rispetto a un STL a risoluzione inferiore. Provateci!"
+#: resources/data/hints.ini: [hint:STEP]
+msgid ""
+"STEP\n"
+"Did you know that you can improve your print quality by slicing a STEP file instead of an STL?\n"
+"Orca Slicer supports slicing STEP files, providing smoother results than a lower resolution STL. Give it a try!"
+msgstr ""
+"STEP\n"
+"Sapevi che puoi migliorare la tua qualità di stampa elaborando un file STEP invece di un STL?\n"
+"OrcaSlicer supporta l'elaborazione dei file STEP, fornendo risultati più uniformi rispetto a un STL a risoluzione inferiore. Provateci!"
 
-#~ msgid ""
-#~ "Z seam location\n"
-#~ "Did you know that you can customize the location of the Z seam, and even paint it on your print, to have it in a less visible location? This improves the overall look of your model. Check it out!"
-#~ msgstr ""
-#~ "Posizione cucitura Z\n"
-#~ "Sapevi che puoi personalizzare la posizione della cucitura Z e persino dipingerla sulla stampa, per averla in una posizione meno visibile? Ciò migliora l'aspetto generale del modello. Dai un'occhiata!"
+#: resources/data/hints.ini: [hint:Z seam location]
+msgid ""
+"Z seam location\n"
+"Did you know that you can customize the location of the Z seam, and even paint it on your print, to have it in a less visible location? This improves the overall look of your model. Check it out!"
+msgstr ""
+"Posizione cucitura Z\n"
+"Sapevi che puoi personalizzare la posizione della cucitura Z e persino dipingerla sulla stampa, per averla in una posizione meno visibile? Ciò migliora l'aspetto generale del modello. Dai un'occhiata!"
 
-#~ msgid ""
-#~ "Fine-tuning for flow rate\n"
-#~ "Did you know that flow rate can be fine-tuned for even better-looking prints? Depending on the material, you can improve the overall finish of the printed model by doing some fine-tuning."
-#~ msgstr ""
-#~ "Regolazione precisa del flusso di stampa\n"
-#~ "Sapevi che la portata può essere regolata con precisione per stampe ancora più belle? A seconda del materiale, è possibile migliorare la finitura complessiva del modello stampato effettuando regolazioni precise."
+#: resources/data/hints.ini: [hint:Fine-tuning for flow rate]
+msgid ""
+"Fine-tuning for flow rate\n"
+"Did you know that flow rate can be fine-tuned for even better-looking prints? Depending on the material, you can improve the overall finish of the printed model by doing some fine-tuning."
+msgstr ""
+"Regolazione precisa del flusso di stampa\n"
+"Sapevi che la portata può essere regolata con precisione per stampe ancora più belle? A seconda del materiale, è possibile migliorare la finitura complessiva del modello stampato effettuando regolazioni precise."
 
-#~ msgid ""
-#~ "Split your prints into plates\n"
-#~ "Did you know that you can split a model that has a lot of parts into individual plates ready to print? This will simplify the process of keeping track of all the parts."
-#~ msgstr ""
-#~ "Dividi le stampe in piatti\n"
-#~ "Sapevi che puoi dividere un modello con molte parti in singoli piatti pronti per la stampa? Ciò semplificherà il processo di monitoraggio di tutte le parti."
-
-# TODO: Review, changed by lang refactor. PR 14254
-#~ msgid ""
-#~ "Speed up your print with Adaptive Layer Height\n"
-#~ "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
-#~ msgstr ""
-#~ "Accelera la stampa con Altezza strato adattiva\n"
-#~ "Sapevi che puoi stampare un modello ancora più velocemente utilizzando l'opzione Altezza strato adattiva? Scoprilo!"
-
-#~ msgid ""
-#~ "Support painting\n"
-#~ "Did you know that you can paint the location of your supports? This feature makes it easy to place the support material only on the sections of the model that actually need it."
-#~ msgstr ""
-#~ "Dipingi i supporti\n"
-#~ "Sapevi che è possibile dipingere la posizione dei supporti? Questa funzione consente di posizionare facilmente il materiale di supporto solo sulle sezioni del modello che ne hanno effettivamente bisogno."
+#: resources/data/hints.ini: [hint:Split your prints into plates]
+msgid ""
+"Split your prints into plates\n"
+"Did you know that you can split a model that has a lot of parts into individual plates ready to print? This will simplify the process of keeping track of all the parts."
+msgstr ""
+"Dividi le stampe in piatti\n"
+"Sapevi che puoi dividere un modello con molte parti in singoli piatti pronti per la stampa? Ciò semplificherà il processo di monitoraggio di tutte le parti."
 
 # TODO: Review, changed by lang refactor. PR 14254
-#~ msgid ""
-#~ "Different types of supports\n"
-#~ "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
-#~ msgstr ""
-#~ "Diversi tipi di supporti\n"
-#~ "Sapevi che è possibile scegliere tra diversi tipi di supporti? I supporti ad albero funzionano benissimo per i modelli organici, risparmiando filamento e migliorando la velocità di stampa. Scopriteli!"
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
+#: Height]
+msgid ""
+"Speed up your print with Adaptive Layer Height\n"
+"Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
+msgstr ""
+"Accelera la stampa con Altezza strato adattiva\n"
+"Sapevi che puoi stampare un modello ancora più velocemente utilizzando l'opzione Altezza strato adattiva? Scoprilo!"
+
+#: resources/data/hints.ini: [hint:Support painting]
+msgid ""
+"Support painting\n"
+"Did you know that you can paint the location of your supports? This feature makes it easy to place the support material only on the sections of the model that actually need it."
+msgstr ""
+"Dipingi i supporti\n"
+"Sapevi che è possibile dipingere la posizione dei supporti? Questa funzione consente di posizionare facilmente il materiale di supporto solo sulle sezioni del modello che ne hanno effettivamente bisogno."
 
 # TODO: Review, changed by lang refactor. PR 14254
-#~ msgid ""
-#~ "Printing Silk Filament\n"
-#~ "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
-#~ msgstr ""
-#~ "Stampa con filamento effetto seta \n"
-#~ "Sapevi che il filamento con effetto seta richiede particolari accorgimenti per essere stampato con successo? Una temperatura più alta e una velocità inferiore sono sempre consigliate per ottenere i migliori risultati."
-
-#~ msgid ""
-#~ "Brim for better adhesion\n"
-#~ "Did you know that when printed models have a small contact interface with the printing surface, it's recommended to use a brim?"
-#~ msgstr ""
-#~ "Tesa per una migliore adesione\n"
-#~ "Sapevi che quando i modelli stampati hanno una piccola interfaccia di contatto con il piano di stampa, si consiglia di utilizzare una tesa?"
+#: resources/data/hints.ini: [hint:Different types of supports]
+msgid ""
+"Different types of supports\n"
+"Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
+msgstr ""
+"Diversi tipi di supporti\n"
+"Sapevi che è possibile scegliere tra diversi tipi di supporti? I supporti ad albero funzionano benissimo per i modelli organici, risparmiando filamento e migliorando la velocità di stampa. Scopriteli!"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#~ msgid ""
-#~ "Set parameters for multiple objects\n"
-#~ "Did you know that you can set slicing parameters for all selected objects at once?"
-#~ msgstr ""
-#~ "Imposta i parametri per più oggetti\n"
-#~ "Sapevi che puoi impostare i parametri di elaborazione per tutti gli oggetti selezionati contemporaneamente?"
+#: resources/data/hints.ini: [hint:Printing Silk Filament]
+msgid ""
+"Printing Silk Filament\n"
+"Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
+msgstr ""
+"Stampa con filamento effetto seta \n"
+"Sapevi che il filamento con effetto seta richiede particolari accorgimenti per essere stampato con successo? Una temperatura più alta e una velocità inferiore sono sempre consigliate per ottenere i migliori risultati."
 
-#~ msgid ""
-#~ "Stack objects\n"
-#~ "Did you know that you can stack objects as a whole one?"
-#~ msgstr ""
-#~ "Impila oggetti\n"
-#~ "Sapevi che è possibile impilare gli oggetti come se fossero un tutt'uno?"
-
-# TODO: Review, changed by lang refactor. PR 14254
-#~ msgid ""
-#~ "Flush into support/objects/infill\n"
-#~ "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
-#~ msgstr ""
-#~ "Spurga nei supporti/oggetti/riempimenti\n"
-#~ "Sapevi che puoi ridurre lo spreco di filamento spurgandolo nei supporti/oggetti/riempimenti durante la sostituzione del filamento?"
-
-#~ msgid ""
-#~ "Improve strength\n"
-#~ "Did you know that you can use more wall loops and higher sparse infill density to improve the strength of the model?"
-#~ msgstr ""
-#~ "Migliorare la resistenza\n"
-#~ "Sapevi che è possibile utilizzare un maggior numero di perimetri di stampa e una maggiore densità di riempimento sparso per migliorare la resistenza del modello?"
+#: resources/data/hints.ini: [hint:Brim for better adhesion]
+msgid ""
+"Brim for better adhesion\n"
+"Did you know that when printed models have a small contact interface with the printing surface, it's recommended to use a brim?"
+msgstr ""
+"Tesa per una migliore adesione\n"
+"Sapevi che quando i modelli stampati hanno una piccola interfaccia di contatto con il piano di stampa, si consiglia di utilizzare una tesa?"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#~ msgid ""
-#~ "When do you need to print with the printer door opened?\n"
-#~ "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
-#~ msgstr ""
-#~ "Quando è necessario stampare con lo sportello della stampante aperto?\n"
-#~ "Sapevi che aprendo lo sportello della stampante puoi ridurre la probabilità di intasamento dell'estrusore/camera di estrusione quando si stampa un filamento a bassa temperatura con una temperatura dell'involucro più elevata?Maggiori informazioni su questo nel Wiki."
+#: resources/data/hints.ini: [hint:Set parameters for multiple objects]
+msgid ""
+"Set parameters for multiple objects\n"
+"Did you know that you can set slicing parameters for all selected objects at once?"
+msgstr ""
+"Imposta i parametri per più oggetti\n"
+"Sapevi che puoi impostare i parametri di elaborazione per tutti gli oggetti selezionati contemporaneamente?"
+
+#: resources/data/hints.ini: [hint:Stack objects]
+msgid ""
+"Stack objects\n"
+"Did you know that you can stack objects as a whole one?"
+msgstr ""
+"Impila oggetti\n"
+"Sapevi che è possibile impilare gli oggetti come se fossero un tutt'uno?"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#~ msgid ""
-#~ "Avoid warping\n"
-#~ "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
-#~ msgstr ""
-#~ "Evita le deformazioni\n"
-#~ "Sapevi che quando si stampano materiali soggetti a deformazioni come l'ABS, aumentare in modo appropriato la temperatura del piano riscaldato può ridurre la probabilità di deformazione?"
+#: resources/data/hints.ini: [hint:Flush into support/objects/infill]
+msgid ""
+"Flush into support/objects/infill\n"
+"Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
+msgstr ""
+"Spurga nei supporti/oggetti/riempimenti\n"
+"Sapevi che puoi ridurre lo spreco di filamento spurgandolo nei supporti/oggetti/riempimenti durante la sostituzione del filamento?"
+
+#: resources/data/hints.ini: [hint:Improve strength]
+msgid ""
+"Improve strength\n"
+"Did you know that you can use more wall loops and higher sparse infill density to improve the strength of the model?"
+msgstr ""
+"Migliorare la resistenza\n"
+"Sapevi che è possibile utilizzare un maggior numero di perimetri di stampa e una maggiore densità di riempimento sparso per migliorare la resistenza del modello?"
+
+# TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:When do you need to print with the printer
+#: door opened]
+msgid ""
+"When do you need to print with the printer door opened?\n"
+"Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
+msgstr ""
+"Quando è necessario stampare con lo sportello della stampante aperto?\n"
+"Sapevi che aprendo lo sportello della stampante puoi ridurre la probabilità di intasamento dell'estrusore/camera di estrusione quando si stampa un filamento a bassa temperatura con una temperatura dell'involucro più elevata?Maggiori informazioni su questo nel Wiki."
+
+# TODO: Review, changed by lang refactor. PR 14254
+#: resources/data/hints.ini: [hint:Avoid warping]
+msgid ""
+"Avoid warping\n"
+"Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
+msgstr ""
+"Evita le deformazioni\n"
+"Sapevi che quando si stampano materiali soggetti a deformazioni come l'ABS, aumentare in modo appropriato la temperatura del piano riscaldato può ridurre la probabilità di deformazione?"
 
 #~ msgid "Enter"
 #~ msgstr "Invio"
+
+#~ msgid "Del"
+#~ msgstr "Elimina"
 
 #~ msgid "Arrow Up"
 #~ msgstr "Freccia Su"
@@ -22675,6 +20974,9 @@ msgstr "Nessuna associazione per quel campo"
 
 #~ msgid "Arrow Right"
 #~ msgstr "Freccia Destra"
+
+#~ msgid "End"
+#~ msgstr "Fine"
 
 #~ msgid "Hotend"
 #~ msgstr "Hotend"
