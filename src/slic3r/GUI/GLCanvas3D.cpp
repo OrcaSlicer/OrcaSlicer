@@ -10738,24 +10738,14 @@ bool GLCanvas3D::is_flushing_matrix_error() {
     if (!Sidebar::should_show_SEMM_buttons())
         return false;
 
+    std::vector<int> plate_extruders = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_extruders(true);
+    if (plate_extruders.size() < 2)
+        return false;
+
     const auto                &project_config = wxGetApp().preset_bundle->project_config;
     const std::vector<double> &config_matrix  = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
     const std::vector<double> &config_multiplier = (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values;
-
-    for (auto multiplier : config_multiplier) {
-        if (multiplier == 0) return true;
-    }
-
-    int  matrix_len = config_matrix.size() / config_multiplier.size();
-    int  row_len    = std::sqrt(matrix_len);
-    for (int i = 0; i < config_matrix.size(); i++)
-    {
-        int relative_id = i % matrix_len;
-        int row_id      = relative_id / row_len;
-        int col_id      = relative_id % row_len;
-        if (row_id != col_id && config_matrix[i] == 0) return true;
-    }
-    return false;
+    return has_zero_flush_volume_for_used_filaments(config_matrix, config_multiplier, plate_extruders);
 }
 
 bool GLCanvas3D::_is_any_volume_outside() const
