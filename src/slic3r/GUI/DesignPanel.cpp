@@ -3918,6 +3918,15 @@ void DesignPanel::set_ui_mode(UiMode m)
 {
     m_ui_mode = m;
     if (m != UiMode::Sketch) m_sketch_on.clear();   // no stale "on the picked face" on the next hint
+    // The DoF readout describes a SKETCH's constraint state, so it means nothing back in Feature
+    // mode — where it nonetheless stayed on screen after every Confirm, Cancel and Escape
+    // (snaporca-752). Cleared here rather than at those three exits because this is the one place
+    // all of them pass through, and a fourth exit added later would otherwise reintroduce it.
+    // Constrain mode keeps it: that is where the number is the whole point.
+    if (m == UiMode::Feature && m_dof_status != nullptr) {
+        m_dof_status->SetLabel(wxString());
+        m_dof_status->Show(false);
+    }
     wxSizer* s = m_toolbar->GetSizer();
     s->Show(m_tb_feature,   m == UiMode::Feature,   true);
     s->Show(m_tb_sketch,    m == UiMode::Sketch,    true);

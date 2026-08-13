@@ -1027,6 +1027,11 @@ void DesignCanvas::set_readout(const std::string& text)
     m_hud->Raise();
 }
 
+// Clear of the view cube and the two round view buttons, which own the bottom-left corner.
+// Shared by the placement and by the wrap width, which have to agree or the chip wraps to a
+// width it is then not given.
+static constexpr int kStatusHudLeftInsetDip = 190;
+
 void DesignCanvas::set_status_text(const wxString& text, const wxColour& colour)
 {
     if (!m_status_hud || !m_status_hud_label || !m_canvas_widget) return;
@@ -1035,9 +1040,27 @@ void DesignCanvas::set_status_text(const wxString& text, const wxColour& colour)
     m_status_hud_colour = colour;
     if (text.IsEmpty()) { m_status_hud->Hide(); return; }
     m_status_hud_label->SetForegroundColour(colour);
-    m_status_hud_label->SetLabel(text);
-    m_status_hud->Fit();
+    apply_status_label();
     place_status_hud();
+}
+
+// SetLabel + Wrap + Fit, in that order and always together. Moving the status out of the panel
+// removed the clipping of snaporca-8cc but not the underlying problem: the chip is a top-level
+// popup that Fit()s to its text, so a long sentence simply grew past the right edge of the canvas
+// and hung over the window. Wrapping to the room actually available is what makes the earlier
+// promise — "a sentence can be a sentence" — true at every window width, including the charter's
+// 1366 reach. Wrap() rewrites the label it is given, so it must follow a fresh SetLabel every
+// time; that is the whole reason this is one function instead of three call sites.
+void DesignCanvas::apply_status_label()
+{
+    if (!m_status_hud || !m_status_hud_label || !m_canvas_widget) return;
+    m_status_hud_label->SetLabel(m_status_hud_last);
+    const int avail = m_canvas_widget->GetClientSize().GetWidth()
+                      - m_canvas_widget->FromDIP(kStatusHudLeftInsetDip)
+                      - m_canvas_widget->FromDIP(24);
+    if (avail > m_canvas_widget->FromDIP(120))   // a uselessly narrow canvas: leave it unwrapped
+        m_status_hud_label->Wrap(avail);
+    m_status_hud->Fit();
 }
 
 void DesignCanvas::place_status_hud()
@@ -1048,9 +1071,11 @@ void DesignCanvas::place_status_hud()
     // then stayed until the next status change moved it. Nothing to anchor to: stay down.
     if (!m_canvas_widget->IsShownOnScreen()) { m_status_hud->Hide(); return; }
     const wxSize cs = m_canvas_widget->GetClientSize();
+    // Re-wrap first: this also runs on resize, and a chip wrapped for the old width either
+    // overhangs a narrowed canvas or wastes a widened one.
+    apply_status_label();
     const wxSize hs = m_status_hud->GetSize();
-    // Clear of the view cube and the two round view buttons, which own the bottom-left corner.
-    const int kLeftInset = m_canvas_widget->FromDIP(190);
+    const int kLeftInset = m_canvas_widget->FromDIP(kStatusHudLeftInsetDip);
     const wxPoint bl = m_canvas_widget->ClientToScreen(
         wxPoint(kLeftInset, cs.GetHeight() - hs.GetHeight() - 12));
     // No Raise() and no focus juggling: a popup neither takes focus nor falls behind. This was

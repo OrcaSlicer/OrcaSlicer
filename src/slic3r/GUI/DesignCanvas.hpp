@@ -330,6 +330,7 @@ private:
     wxString      m_status_hud_last;
     wxColour      m_status_hud_colour;
     void place_status_hud();          // re-anchors to the canvas corner (also on resize)
+    void apply_status_label();        // SetLabel + Wrap to the canvas width + Fit, always together
     std::function<void(const SketchProfile&, const SketchPlane&)> m_on_sketch_commit;
     std::function<void(const std::vector<SketchEntity>&,
                        const std::vector<SketchEntityConstraintDef>&,
