@@ -3,10 +3,7 @@
 	"name": "re3D rPP",
 	"from": "system",
 	"instantiation": "true",
-	"inherits": "fdm_filament_pet",
-	"filament_type": [
-		"PP"
-	],
+	"inherits": "fdm_filament_pp",
 	"filament_id": "GFG02",
 	"setting_id": "8PB62qm5Cd3SHLf4",
 	"filament_settings_id": [

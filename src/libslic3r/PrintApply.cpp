@@ -559,9 +559,11 @@ static inline bool model_volume_solid_or_modifier(const ModelVolume &mv)
 
 static inline Transform3f trafo_for_bbox(const Transform3d &object_trafo, const Transform3d &volume_trafo)
 {
-    Transform3d m = object_trafo * volume_trafo;
-    m.translation().x() = 0.;
-    m.translation().y() = 0.;
+    // Orca: Keep the volume's local XY offset for multipart overlap checks, but remove the object's bed placement.
+    Transform3d object_trafo_local = object_trafo;
+    object_trafo_local.translation().x() = 0.;
+    object_trafo_local.translation().y() = 0.;
+    Transform3d m = object_trafo_local * volume_trafo;
     return m.cast<float>();
 }
 
@@ -1355,7 +1357,11 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         if ((extruder_volume_type_count > extruder_count) && opt_filament_volume_maps
             && opt_filament_volume_maps->values.size() == filament_maps.size())
             nozzle_volume_type = (NozzleVolumeType)(opt_filament_volume_maps->values[index]);
-        m_config.filament_map_2.values[index] = new_full_config.get_index_for_extruder(filament_maps[index], "print_extruder_id", extruder_type, nozzle_volume_type, "print_extruder_variant");
+        // Orca: when the process variant columns cannot be matched (degenerate
+        // print_extruder_id), key the override by plain extruder index like the seeding
+        // above instead of poisoning the map with -1.
+        int slot_index = new_full_config.get_index_for_extruder(filament_maps[index], "print_extruder_id", extruder_type, nozzle_volume_type, "print_extruder_variant");
+        m_config.filament_map_2.values[index] = slot_index >= 0 ? slot_index : filament_maps[index] - 1;
     }
 
     // Do not use the ApplyStatus as we will use the max function when updating apply_status.
@@ -1410,6 +1416,16 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             num_extruders  = m_config.filament_diameter.size();
             num_extruders_changed  = true;
         }
+    }
+    else if (! print_diff.empty()) {
+        // Orca: m_config can diverge from an unchanged full config (e.g. the in-slice retract
+        // override recompute writing different values than the apply-time computation). The
+        // invalidation above already fired for print_diff, so repair m_config here as well;
+        // otherwise the divergence is never corrected and every subsequent apply of the same
+        // config invalidates the result again, forever.
+        m_placeholder_parser.apply_config(filament_overrides);
+        m_config.apply_only(new_full_config, print_diff, true);
+        m_config.apply(filament_overrides);
     }
 
     ModelObjectStatusDB model_object_status_db;

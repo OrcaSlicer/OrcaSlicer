@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"setting_id": "gIumq0YfeZrNDTZt",
+	"name": "QIDI WOOD Rapido @Qidi X-Plus 5 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI WOOD Rapido@X-Plus 5-Series",
+	"pressure_advance": [
+		"0.044"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

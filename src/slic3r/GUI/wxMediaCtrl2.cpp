@@ -602,6 +602,12 @@ WXLRESULT wxMediaCtrl2::MSWWindowProc(WXUINT   nMsg,
                                    WXWPARAM wParam,
                                    WXLPARAM lParam)
 {
+    // The stream source sends WM_USER+1000 with a synchronous SendMessage from its own threads,
+    // so this runs re-entrantly on the UI thread at whatever message-retrieval point the player
+    // happens to be in - often nested inside an Orca log statement. Never BOOST_LOG_TRIVIAL here:
+    // boost::log is not re-entrant on one thread, and doing so corrupted its per-thread record
+    // state, crashing later in unrelated places (the player, the log filter, a plug-in heap free).
+    // Post the string out (as the stat branch does) and log it on a clean stack instead.
     if (nMsg == WM_USER + 1000) {
         wxString msg((wchar_t const *) lParam);
         if (wParam == 1) {
@@ -619,7 +625,6 @@ WXLRESULT wxMediaCtrl2::MSWWindowProc(WXUINT   nMsg,
                 wxPostEvent(this, evt);
             }
         }
-        BOOST_LOG_TRIVIAL(trace) << msg.ToUTF8().data();
         return 0;
     }
     return wxMediaCtrl::MSWWindowProc(nMsg, wParam, lParam);

@@ -103,6 +103,7 @@ struct PluginDialogItem
     bool loading   = false;
 
     bool is_cloud_plugin       = false;
+    bool orphaned              = false;
     bool has_local_package     = false;
     bool unauthorized          = false;
     bool has_script_capability = false;
@@ -246,6 +247,7 @@ nlohmann::json build_plugin_payload_item(const PluginDialogItem& dialog_item)
     payload_item["sharing_token"]         = dialog_item.sharing_token;
     payload_item["thumbnail_url"]         = dialog_item.thumbnail_url;
     payload_item["installed"]             = dialog_item.has_local_package;
+    payload_item["orphaned"]              = dialog_item.orphaned;
     payload_item["installed_version"]     = dialog_item.installed_version;
     payload_item["latest_version"]        = dialog_item.latest_version;
     return payload_item;
@@ -268,7 +270,8 @@ PluginSource derive_plugin_source(const PluginDescriptor& descriptor)
     const bool is_cloud       = descriptor.is_cloud_plugin();
     const bool is_mine        = is_cloud && has_cloud_meta && descriptor.cloud->is_mine;
 
-    // Source is ownership/locality only; issue states never replace this badge.
+    if (is_cloud && has_cloud_meta && descriptor.cloud->orphaned)
+        return PluginSource::Orphaned;
     if (is_mine)
         return PluginSource::Mine;
     if (is_cloud)
@@ -281,11 +284,12 @@ PluginAvailableActions evaluate_action_policy(const PluginDialogItem& item)
     PluginAvailableActions available_actions;
     const bool is_loading             = item.status == PluginStatus::Loading;
     const bool is_cloud               = item.is_cloud_plugin;
+    const bool is_orphaned            = item.orphaned;
     const bool is_mine                = item.source == PluginSource::Mine;
     const bool has_local              = item.has_local_package;
     const bool authorized_for_install = !item.unauthorized;
 
-    available_actions.toggle_installs_cloud_plugin = is_cloud && !has_local && authorized_for_install;
+    available_actions.toggle_installs_cloud_plugin = is_cloud && !is_orphaned && !has_local && authorized_for_install;
     available_actions.can_toggle                   = !is_loading && (has_local || available_actions.toggle_installs_cloud_plugin);
 
     auto add_action = [&available_actions](const char* id, const char* label, bool enabled = true, bool danger = false) {
@@ -294,7 +298,7 @@ PluginAvailableActions evaluate_action_policy(const PluginDialogItem& item)
 
     // Owned cloud plugins fall through to the local delete: it removes the installed package only.
     // Deleting a plugin from the cloud is a plugin hub operation and is never offered here.
-    if (is_cloud && !is_mine) {
+    if (is_cloud && !is_orphaned && !is_mine) {
         add_action("unsubscribe_plugin", "Unsubscribe", true, true);
     } else if (has_local) {
         add_action("delete_plugin", "Delete", true, true);
@@ -302,11 +306,13 @@ PluginAvailableActions evaluate_action_policy(const PluginDialogItem& item)
 
     add_action("open_folder", "Show in folder", has_local);
 
-    if (is_cloud) {
-        add_action("reinstall_plugin", "Reinstall");
-    } else {
-        add_action("reload_plugin", "Reload");
-        add_action("clear_cache_reload_plugin", "Delete cache and reload");
+    if (!is_orphaned) {
+        if (is_cloud) {
+            add_action("reinstall_plugin", "Reinstall");
+        } else {
+            add_action("reload_plugin", "Reload");
+            add_action("clear_cache_reload_plugin", "Delete cache and reload");
+        }
     }
 
     return available_actions;
@@ -360,6 +366,7 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
     item.error_text            = descriptor.normalized_error();
     item.has_error             = descriptor.has_error();
     item.is_cloud_plugin       = descriptor.is_cloud_plugin();
+    item.orphaned              = descriptor.cloud.has_value() && descriptor.cloud->orphaned;
     item.has_local_package     = descriptor.has_local_package();
     item.unauthorized          = descriptor.is_unauthorized();
     item.is_loaded             = manager.is_plugin_loaded(descriptor.plugin_key);
@@ -592,7 +599,35 @@ bool PluginsDialog::get_descriptor(const std::string& plugin_key, PluginDescript
 
 void PluginsDialog::refresh_plugin_metadata_async(const wxString& title, const wxString& message, bool fetch_cloud)
 {
-    run_with_dialog([fetch_cloud]() { refresh_plugin_metadata_blocking(fetch_cloud); }, [this]() { send_plugins(); }, title, message);
+    run_with_dialog([fetch_cloud]() { refresh_plugin_metadata_blocking(fetch_cloud); }, [this]() {
+        prompt_for_missing_plugins();
+        send_plugins();
+    }, title, message);
+}
+
+void PluginsDialog::prompt_for_missing_plugins()
+{
+    PluginManager& manager = PluginManager::instance();
+    const std::vector<PluginDescriptor> missing = manager.get_missing_plugin_descriptors();
+    if (missing.empty())
+        return;
+
+    wxString names;
+    std::vector<std::string> keys;
+    keys.reserve(missing.size());
+    for (const PluginDescriptor& plugin : missing) {
+        keys.push_back(plugin.plugin_key);
+        names += "\n- ";
+        names += plugin_display_name(plugin.plugin_key);
+    }
+
+    const int result = wxMessageBox(
+        wxString::Format(_L("The following installed plugins were not found on disk:\n%s\n\nRemove them from OrcaSlicer?"), names),
+        _L("Missing Plugins"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING, this);
+    restore_z_order();
+
+    if (result == wxYES)
+        manager.remove_missing_plugins(keys);
 }
 
 void PluginsDialog::refresh_plugins()

@@ -14,6 +14,9 @@
 		"re3D Gigabot 4 XLT 0.8 nozzle",
 		"re3D Terabot 4 0.8 nozzle"
 	],
+	"filament_type": [
+		"PETG"
+	],
 	"filament_vendor": [
 		"re3D"
 	],

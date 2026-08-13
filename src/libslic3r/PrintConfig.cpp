@@ -72,6 +72,8 @@ const std::vector<std::string> filament_extruder_override_keys = {
     "filament_deretraction_speed",
     "filament_retract_restart_extra",  //not in filament_options_with_variant, added on 20250816
     "filament_retraction_minimum_travel",
+    "filament_retract_length_toolchange",
+    "filament_retract_restart_extra_toolchange",
     // BBS: floats
     "filament_wipe_distance",
     // bools
@@ -331,6 +333,8 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintSequence)
 static t_config_enum_values s_keys_map_PrintOrder{
     { "default",     int(PrintOrder::Default) },
     { "as_obj_list", int(PrintOrder::AsObjectList)},
+    { "best_of",       int(PrintOrder::BestOfStrategies)},
+    { "snake", int(PrintOrder::Snake)},
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintOrder)
 
@@ -1935,6 +1939,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(1));
 
+    def = this->add("brim_ears_outer_only", coBool);
+    def->label = L("Brim ears outer only");
+    def->category = L("Support");
+    def->tooltip = L("Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("compatible_printers", coStrings);
     def->label = L("Select printers");
     def->mode = comAdvanced;
@@ -1999,12 +2010,30 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("print_order", coEnum);
     def->label = L("Intra-layer order");
-    def->tooltip = L("Print order within a single layer.");
+    def->tooltip = L("Order in which object instances are visited within a single layer, which controls how much "
+                     "travel is spent moving between them.\n\n"
+                     "Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general "
+                     "choice.\n"
+                     "As object list: instances are printed in the same order as the object list, without any path "
+                     "optimization. Use it when you need a predictable, manually controlled order.\n"
+                     "Best of all (shortest path): every strategy is evaluated and the shortest one is used. The "
+                     "object instance order is decided once for the whole print, while the ordering of individual "
+                     "islands is decided per layer, so different layers may end up using different strategies. "
+                     "Slightly slower to slice.\n"
+                     "Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of "
+                     "many small parts.\n\n"
+                     "With multiple filaments or tools in the same layer, minimizing tool changes takes priority: "
+                     "objects are grouped by filament first and this setting only orders the instances within each "
+                     "filament group, so the overall sequence may not look like the shortest path across the plate.");
     def->enum_keys_map = &ConfigOptionEnum<PrintOrder>::get_enum_values();
     def->enum_values.push_back("default");
     def->enum_values.push_back("as_obj_list");
+    def->enum_values.push_back("best_of");
+    def->enum_values.push_back("snake");
     def->enum_labels.push_back(L("Default"));
     def->enum_labels.push_back(L("As object list"));
+    def->enum_labels.push_back(L("Best of all (shortest path)"));
+    def->enum_labels.push_back(L("Snake"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<PrintOrder>(PrintOrder::Default));
 
@@ -3437,6 +3466,18 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Octagram Spiral"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipCrossHatch));
 
+    def = this->add("sparse_infill_smooth_factor", coPercent);
+    def->label = L("Sparse infill smooth factor");
+    def->category = L("Strength");
+    def->tooltip = L("Controls how strongly sparse infill corners are rounded. 0% keeps the original right-angle path, "
+                     "while 100% produces the largest possible curves between adjacent infill lines. "
+                     "Currently applies only to the Hilbert Curve.");
+    def->sidetext = "%";
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(0));
+
     def = this->add("top_surface_acceleration", coFloats);
     def->label = L("Top surface");
     def->category = L("Speed");
@@ -4220,6 +4261,15 @@ void PrintConfigDef::init_fff_params()
     def->readonly = false;
     def->set_default_value(new ConfigOptionEnum<GCodeFlavor>(gcfMarlinLegacy));
 
+    def = this->add("gcode_skip_config_block", coBool);
+    def->label = L("Skip G-code config block");
+    def->tooltip = L("Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. "
+                   "This can help with printers whose firmware crashes when parsing these comment lines "
+                   "(e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, "
+                   "so importing it back into OrcaSlicer will not restore the configuration.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def          = this->add("pellet_modded_printer", coBool);
     def->label   = L("Pellet Modded Printer");
     def->tooltip = L("Enable this option if your printer uses pellets instead of filaments.");
@@ -4253,7 +4303,7 @@ void PrintConfigDef::init_fff_params()
                    "slow down.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(0));
-    
+
     //BBS
     def = this->add("infill_combination", coBool);
     def->label = L("Infill combination");
@@ -5629,6 +5679,7 @@ void PrintConfigDef::init_fff_params()
     // Orca:
     def = this->add("retract_after_wipe", coPercents);
     def->label = L("Retract amount after wipe");
+    // xgettext:no-c-format, no-boost-format
     def->tooltip = L("The length of fast retraction after wipe, relative to retraction length.\n"
                      "The value will be clamped by 100% minus the retract amount before the wipe value.");
     def->sidetext = "%";
@@ -5685,12 +5736,10 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloatsNullable{10});
 
     def = this->add("retract_length_toolchange", coFloats);
-    def->label = L("Length");
-    //def->full_label = L("Retraction Length (Toolchange)");
-    def->full_label = "Retraction Length (Toolchange)";
-    //def->tooltip = L("When retraction is triggered before changing tool, filament is pulled back "
-    //               "by the specified amount (the length is measured on raw filament, before it enters "
-    //               "the extruder).");
+    def->label = L("Retraction Length (Toolchange)");
+    def->tooltip = L("When retraction is triggered before changing tool, filament is pulled back "
+                  "by the specified amount (the length is measured on raw filament, before it enters "
+                  "the extruder).");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 10. });
@@ -5944,7 +5993,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloats { 0. });
 
     def = this->add("retract_restart_extra_toolchange", coFloats);
-    def->label = L("Extra length on restart");
+    def->label = L("Extra length on restart (Toolchange)");
     def->tooltip = L("When the retraction is compensated after changing tool, the extruder will push "
                   "this additional amount of filament.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
@@ -6518,6 +6567,17 @@ void PrintConfigDef::init_fff_params()
                      "By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, "
                      "which can result in the Tx command being issued above the printed part. "
                      "Enable this option if you want the tool change to always be issued above the wipe tower instead.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("wait_for_temp_on_wipe_tower", coBool);
+    def->label = L("Wait for temperature on wipe tower");
+    def->tooltip = L("Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe "
+                     "tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on "
+                     "the tower instead of the model, and the travel overlaps with the heating. "
+                     "Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. "
+                     "The firmware or tool change macro must not wait for the temperature itself. "
+                     "When disabled, the temperature wait is issued right after the tool change command.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -8114,10 +8174,12 @@ void PrintConfigDef::init_extruder_option_keys()
         "long_retractions_when_cut",
         "retract_after_wipe",
         "retract_before_wipe",
+        "retract_length_toolchange",
         "retract_lift_above",
         "retract_lift_below",
         "retract_lift_enforce",
         "retract_restart_extra",
+        "retract_restart_extra_toolchange",
         "retract_when_changing_layer",
         "retraction_distances_when_cut",
         "retraction_length",
@@ -9205,6 +9267,8 @@ std::set<std::string> filament_options_with_variant = {
     "filament_retract_lift_below",
     "filament_retract_lift_enforce",
     "filament_retract_restart_extra",
+    "filament_retract_length_toolchange",
+    "filament_retract_restart_extra_toolchange",
     "filament_retraction_speed",
     "filament_deretraction_speed",
     "filament_retraction_minimum_travel",
@@ -10495,6 +10559,44 @@ int DynamicPrintConfig::get_extruder_nozzle_volume_count(int extruder_count, std
     return count;
 }
 
+// Orca: BBL system profiles ship full-width print_extruder_id/print_extruder_variant columns, but
+// custom multi-extruder printers only ever get the machine-scope columns synthesized for them (see
+// extend_extruder_variant); the process scope keeps the length-1 defaults, both in presets and in
+// 3mf project configs. Expanding with that degenerate map makes every per-extruder lookup fail, and
+// because both keys are themselves in print_options_with_variant, the expansion then latches a
+// full-width-but-wrong [1,1,...] map that also defeats the generated_extruder_id fallback in
+// get_index_for_extruder. Synthesize the process columns from the printer's extruder_variant_list
+// (same token walk as extend_extruder_variant) before expanding.
+static void ensure_process_variant_columns(DynamicPrintConfig &config, const DynamicPrintConfig &printer_config)
+{
+    auto id_opt      = dynamic_cast<ConfigOptionInts *>(config.option("print_extruder_id"));
+    auto variant_opt = dynamic_cast<ConfigOptionStrings *>(config.option("print_extruder_variant"));
+    auto list_opt    = dynamic_cast<const ConfigOptionStrings *>(printer_config.option("extruder_variant_list"));
+    if (!id_opt || !variant_opt || !list_opt)
+        return;
+    if (id_opt->values.size() != 1 || variant_opt->values.size() != 1)
+        return;
+
+    std::vector<int>         ids;
+    std::vector<std::string> variants;
+    for (int i = 0; i < int(list_opt->values.size()); ++i) {
+        std::vector<std::string> tokens;
+        boost::split(tokens, list_opt->get_at(i), boost::is_any_of(","), boost::token_compress_on);
+        for (std::string &token : tokens) {
+            boost::trim(token);
+            if (token.empty())
+                continue;
+            ids.push_back(i + 1);
+            variants.push_back(token);
+        }
+    }
+    // A single column is the legitimate single-extruder layout, not a degenerate one.
+    if (ids.size() <= 1)
+        return;
+    id_opt->values      = std::move(ids);
+    variant_opt->values = std::move(variants);
+}
+
 std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& printer_config, int extruder_count, int extruder_nozzle_volume_count, std::vector<std::vector<NozzleVolumeType>>& nv_types,
     std::set<std::string>& key_set, std::string id_name, std::string variant_name, unsigned int stride, unsigned int extruder_id, NozzleVolumeType filament_nvt)
 {
@@ -10536,6 +10638,8 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
         variant_count = 1;
     }
     else {
+        if (id_name == "print_extruder_id")
+            ensure_process_variant_columns(*this, printer_config);
         // Orca: emit the slots first, then size variant_count from what was actually
         // emitted. extruder_nozzle_volume_count only equals the emitted total when every
         // extruder carries per-type stats; an extruder with an empty stats entry combined
