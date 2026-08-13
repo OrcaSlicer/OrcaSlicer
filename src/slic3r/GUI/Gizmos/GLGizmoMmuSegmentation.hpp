@@ -73,11 +73,10 @@ public:
 
     void data_changed(bool is_serializing) override;
 
-    // TriangleSelector::serialization/deserialization has a limit to store 19 different states.
-    // EXTRUDER_LIMIT + 1 states are used to storing the painting because also uncolored triangles are stored.
-    // When increasing EXTRUDER_LIMIT, it needs to ensure that TriangleSelector::serialization/deserialization
-    // will be also extended to support additional states, requiring at least one state to remain free out of 19 states.
-    static const constexpr size_t EXTRUDERS_LIMIT = 16;
+    // The paint material limit follows EnforcerBlockerType::ExtruderMax: TriangleSelector
+    // serialization covers the extended (17..32) range through an escape nibble. Mixed-color
+    // filaments occupy ordinary slots, so they draw from the same budget as physical ones.
+    static const constexpr size_t EXTRUDERS_LIMIT = static_cast<size_t>(EnforcerBlockerType::ExtruderMax);
 
     // Endpoint colours for gradient mixed filaments, mirrored from Plater so the extruder
     // swatches below can be drawn as a two-tone fade instead of a single blended colour.

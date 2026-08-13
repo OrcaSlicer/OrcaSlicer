@@ -577,36 +577,40 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     }
 
     // BBS
-    // A per-role filament override must name a real, physical filament. Out-of-range values are
-    // stale; a mixed-color slot is virtual and cannot be driven directly by a role override, so
-    // both are reset to 0 ("inherit the object's filament"). The object's own extruder assignment
-    // is what legitimately carries a mixed slot. Orca splits BBS's wall/solid_infill roles into
-    // six keys, so all of them are checked here.
-    static const char* keys[] = { "support_filament", "support_interface_filament",
-                                  "outer_wall_filament_id", "inner_wall_filament_id",
-                                  "sparse_infill_filament_id", "internal_solid_filament_id",
-                                  "top_surface_filament_id", "bottom_surface_filament_id" };
-    for (int i = 0; i < sizeof(keys) / sizeof(keys[0]); i++) {
-        std::string key = std::string(keys[i]);
+    // A filament override naming a slot that no longer exists is stale and falls back to the
+    // plater's value. Support is additionally restricted to physical filaments: the support paths
+    // (ToolOrdering::collect_extruders, Print::validate) consume support_filament directly, with
+    // no per-layer mixed resolution, so a virtual slot there would reach the G-code unresolved.
+    // The per-feature keys have no such restriction — LayerTools::extruder() and its siblings
+    // resolve a mixed slot to the physical filament chosen for each layer.
+    static const char* support_keys[] = { "support_filament", "support_interface_filament" };
+    static const char* feature_keys[] = { "outer_wall_filament_id", "inner_wall_filament_id",
+                                          "sparse_infill_filament_id", "internal_solid_filament_id",
+                                          "top_surface_filament_id", "bottom_surface_filament_id" };
+    auto reset_invalid_filament = [this, config, filament_cnt](const char* key, bool allow_mixed) {
         auto* opt = dynamic_cast<ConfigOptionInt*>(config->option(key, false));
-        if (opt != nullptr) {
-            int  val          = opt->getInt();
-            bool out_of_range = val > filament_cnt;
-            bool is_mixed     = (val > 0 && val <= filament_cnt &&
-                                 wxGetApp().preset_bundle->is_mixed_filament(val - 1));
-            if (out_of_range || is_mixed) {
-                DynamicPrintConfig new_conf = *config;
-                int new_value = 0;
-                if (out_of_range) {
-                    const DynamicPrintConfig *conf_temp = wxGetApp().plater()->config();
-                    if (conf_temp != nullptr && conf_temp->has(key))
-                        new_value = conf_temp->opt_int(key);
-                }
-                new_conf.set_key_value(key, new ConfigOptionInt(new_value));
-                apply(config, &new_conf);
-            }
+        if (opt == nullptr)
+            return;
+        const int  val          = opt->getInt();
+        const bool out_of_range = val > filament_cnt;
+        const bool is_mixed     = !allow_mixed && val > 0 && val <= filament_cnt &&
+                                  wxGetApp().preset_bundle->is_mixed_filament(val - 1);
+        if (!out_of_range && !is_mixed)
+            return;
+        DynamicPrintConfig new_conf = *config;
+        int new_value = 0;
+        if (out_of_range) {
+            const DynamicPrintConfig *conf_temp = wxGetApp().plater()->config();
+            if (conf_temp != nullptr && conf_temp->has(key))
+                new_value = conf_temp->opt_int(key);
         }
-    }
+        new_conf.set_key_value(key, new ConfigOptionInt(new_value));
+        apply(config, &new_conf);
+    };
+    for (const char* key : support_keys)
+        reset_invalid_filament(key, false);
+    for (const char* key : feature_keys)
+        reset_invalid_filament(key, true);
 
     // Sub-layer splitting divides each layer by the mix ratio; an adaptive layer profile makes
     // those sub-layer heights vary per layer, which degrades the blend. Warn once per enable.

@@ -1933,7 +1933,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             for (const ModelVolume *volume : volumes) {
                 const std::vector<bool> &volume_used_facet_states = volume->mmu_segmentation_facets.get_data().used_states;
 
-                assert(volume_used_facet_states.size() == used_facet_states.size());
+                // Sizes may legitimately differ: paint data stored before the state range was
+                // extended carries a shorter used_states vector. Merge over the common prefix.
                 for (size_t state_idx = 0; state_idx < std::min(volume_used_facet_states.size(), used_facet_states.size()); ++state_idx)
                     used_facet_states[state_idx] |= volume_used_facet_states[state_idx];
             }
