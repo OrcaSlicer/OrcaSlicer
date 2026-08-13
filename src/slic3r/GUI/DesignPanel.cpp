@@ -216,6 +216,24 @@ static int index_from_plane(const SketchPlane& p)
     return 0;                                   // XY
 }
 
+// Does this plane survive a round trip through the Hole/Thread plane dropdown? The dropdown holds
+// only XY/XZ/YZ and index_from_plane SNAPS anything else to the nearest of the three, so a plane
+// that is not one of them cannot be restored from the row and has to be carried explicitly.
+// Origin is compared too, not just the axes: a face plane parallel to XY but 12 mm up snaps to
+// row 0 and would otherwise come back at z=0. Vector norms rather than isApprox, which compares
+// relative to magnitude and so is useless against the zero origin.
+// modeling_origin is not optional: hole_plane()/thread_plane() ADD it to the dropdown plane before
+// the feature stores it, so on a document with a shifted origin every dropdown hole would fail a
+// bare XY/XZ/YZ comparison and be mistaken for a face pick.
+static bool is_base_plane(const SketchPlane& p, const Vec3d& modeling_origin)
+{
+    SketchPlane  b = plane_from_index(index_from_plane(p));
+    b.origin += modeling_origin;
+    const double e = 1e-6;
+    return (p.origin - b.origin).norm() < e && (p.normal - b.normal).norm() < e
+        && (p.x_axis - b.x_axis).norm() < e && (p.y_axis - b.y_axis).norm() < e;
+}
+
 // #2: a sketch plane on `face` with origin at the face centroid and normal pointing INTO the
 // solid, so a positioned hole drills inward and its (x,y) read as the offset from the face
 // centre. A hole is rotationally symmetric, so the arbitrary in-plane basis is harmless.
@@ -7967,6 +7985,26 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         m_hole_through->SetValue(f.hole_through);
         m_hole_x->SetValue(f.hole_x);
         m_hole_y->SetValue(f.hole_y);
+        // Re-latch the on-face state FROM THE STORED FEATURE (snaporca-uif9). m_hole_on_face is
+        // only ever cleared by the Hole flyout and by the plane combo, so after any on-face hole
+        // it stays true — and a re-edit then drilled on whatever face was latched last, which may
+        // be a different face, a different body, or a body since rebuilt. f is the only source
+        // guaranteed to describe THIS hole. Not the dropdown row just set above: index_from_plane
+        // snaps an arbitrary face plane to the nearest XY/XZ/YZ, so driving the re-edit from the
+        // row would MOVE a hole drilled on a slanted or offset face.
+        m_hole_on_face    = !is_base_plane(f.plane, m_doc.modeling_origin);
+        m_hole_face_plane = f.plane;
+        m_hole_face_body  = m_hole_on_face ? f.target_body : -1;
+        // The face's (u,v) extent is not serialized, so the gizmo's footprint clamp has nothing
+        // to stand on. Unbounded is the honest state; the stale bounds of another face are not.
+        m_hole_has_bounds = false;
+        if (m_hole_target_label)
+            m_hole_target_label->SetLabel(m_hole_on_face
+                // No face index survives in the feature, and inventing one would be worse than
+                // saying so. "(none — uses Hole plane)" is the one thing that is definitely false.
+                ? (f.target_body >= 0 ? wxString::Format(_L("On a face of Body %d"), f.target_body + 1)
+                                      : _L("On a stored face"))
+                : _L("(none — uses Hole plane)"));
         break;
     case CadFeatureType::Thread:
         m_thread_plane->SetSelection(index_from_plane(f.plane));
@@ -7978,6 +8016,15 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         m_thread_x->SetValue(f.thread_x);
         m_thread_y->SetValue(f.thread_y);
         if (m_thread_std) m_thread_std->SetSelection(0);   // Custom: spins reflect the stored feature
+        // Same latch, same failure, same fix as Hole above (snaporca-uif9).
+        m_thread_on_face    = !is_base_plane(f.plane, m_doc.modeling_origin);
+        m_thread_face_plane = f.plane;
+        m_thread_face_body  = m_thread_on_face ? f.target_body : -1;
+        if (m_thread_target_label)
+            m_thread_target_label->SetLabel(m_thread_on_face
+                ? (f.target_body >= 0 ? wxString::Format(_L("On a face of Body %d"), f.target_body + 1)
+                                      : _L("On a stored face"))
+                : _L("(none — uses Thread plane)"));
         break;
     case CadFeatureType::Shell:
         m_shell_thickness->SetValue(f.shell_thickness);
