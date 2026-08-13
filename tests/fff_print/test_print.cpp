@@ -457,40 +457,73 @@ TEST_CASE("Sequential printing publishes the nozzle group result", "[Print][Mult
     }
 }
 
-// Ironing fuses onto the surface below it, so its filament has to bond with that surface - the opposite of the
-// support filaments, which are picked for NOT bonding. The check runs on every printer (a second nozzle does
-// not keep the two materials apart here) and never blocks: a peeling ironed skin is cosmetic.
-TEST_CASE("Ironing with a filament that does not bond to the surface warns", "[Print]")
+// Everything inside one object is fused together, so its materials have to bond - the opposite of the support
+// filaments, which are picked for NOT bonding. Covers both a per-feature pick (ironing here) and a modifier
+// volume on its own filament, runs on every printer (a second nozzle does not keep the two apart inside one
+// part) and never blocks: the pairing may be deliberate.
+TEST_CASE("An object printed with materials that do not bond warns", "[Print]")
 {
-    auto ironing_config = [](const char *filament_types) {
-        // One nozzle per filament, so the general filament-mixing check does not fire first: the two
-        // materials never share a hotend, and only the ironing contact is left to object to.
-        return Slic3r::Test::multifilament_config(2, {
+    // One nozzle per filament, so the general filament-mixing check does not fire first: the materials never
+    // share a hotend, and only the contact inside the object is left to object to.
+    auto object_config = [](const char *filament_types) {
+        DynamicPrintConfig config = Slic3r::Test::multifilament_config(2, {
             { "nozzle_diameter",                "0.4,0.4" },
             { "single_extruder_multi_material", 0 },
-            { "ironing_type",                   "top" },
-            { "ironing_filament",               2 },
-            { "top_surface_filament_id",        1 },
             { "filament_type",                  filament_types },
         });
+        config.set_key_value("layer_change_gcode", new ConfigOptionString("G92 E0\n")); // validate() relative-E reset
+        return config;
+    };
+    auto ironing_config = [&object_config](const char *filament_types) {
+        DynamicPrintConfig config = object_config(filament_types);
+        config.set_deserialize_strict({ { "ironing_type", "top" }, { "ironing_filament", 2 }, { "top_surface_filament_id", 1 } });
+        return config;
+    };
+    // The config also trips unrelated warnings, so count only the material ones. The messages are the shared
+    // filament-compatibility vocabulary: "materials are incompatible" for a known bad pair, "may not bond" for
+    // an unknown one.
+    auto bonding_warnings = [](const std::vector<StringObjectException> &warnings, const std::string &phrase) {
+        return std::count_if(warnings.begin(), warnings.end(),
+            [&phrase](const StringObjectException &w) { return w.string.find(phrase) != std::string::npos; });
     };
 
     SECTION("bonding materials pass") {
         std::vector<StringObjectException> warnings;
         const StringObjectException error = validate_cubes(ironing_config("PLA;PLA-CF"), warnings);
         CHECK(error.string.empty());
-        CHECK(count_opt_key(warnings, "ironing_filament") == 0);
+        CHECK(bonding_warnings(warnings, "delaminate") == 0);
     }
-    SECTION("unknown bonding warns but still slices") {
-        std::vector<StringObjectException> warnings;
-        const StringObjectException error = validate_cubes(ironing_config("PET;TPU"), warnings);
-        CHECK(error.string.empty());
-        CHECK(count_opt_key(warnings, "ironing_filament") == 1);
-    }
-    SECTION("known-incompatible materials warn without blocking the slice") {
+    SECTION("an ironing filament that does not bond to the surface warns") {
         std::vector<StringObjectException> warnings;
         const StringObjectException error = validate_cubes(ironing_config("PLA;PETG"), warnings);
         CHECK(error.string.empty());
-        CHECK(count_opt_key(warnings, "ironing_filament") == 1);
+        CHECK(bonding_warnings(warnings, "materials are incompatible") == 1);
+    }
+    SECTION("unknown bonding warns too") {
+        std::vector<StringObjectException> warnings;
+        const StringObjectException error = validate_cubes(ironing_config("PET;TPU"), warnings);
+        CHECK(error.string.empty());
+        CHECK(bonding_warnings(warnings, "may not bond") == 1);
+    }
+    SECTION("a modifier volume on an incompatible filament warns") {
+        // A modifier carving into the part, printed with the second filament: no feature filament is set, the
+        // two materials meet only because the modifier region sits inside the object.
+        Slic3r::Model model;
+        Slic3r::Print print;
+        ModelObject *object = model.add_object();
+        object->name = "modified cube";
+        object->add_volume(cube(20));
+        ModelVolume *modifier = object->add_volume(cube(10), ModelVolumeType::PARAMETER_MODIFIER);
+        modifier->config.set_key_value("extruder", new ConfigOptionInt(2));
+        object->add_instance();
+        object->ensure_on_bed();
+        print.auto_assign_extruders(object);
+        print.apply(model, object_config("PLA;ABS"));
+
+        std::vector<StringObjectException> warnings;
+        const StringObjectException error = print.validate(&warnings);
+        CHECK(error.string.empty());
+        REQUIRE(bonding_warnings(warnings, "materials are incompatible") == 1);
+        CHECK(warnings.front().object == print.model().objects.front());
     }
 }
