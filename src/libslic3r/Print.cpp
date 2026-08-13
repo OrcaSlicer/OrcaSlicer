@@ -1210,13 +1210,12 @@ int Print::get_compatible_filament_type(const std::set<int>& filament_types)
 //BBS: this function is used to check whether multi filament can be printed
 // Ironing melts a pass onto the surface right below it, so - unlike support, which wants to come off - the
 // ironing filament has to BOND with that surface or the ironed skin peels away. Checked on every printer: a
-// second nozzle does not help here, the two materials still touch. Honours the same "Remove incompatible
-// material type restriction" bypass as the filament mixing check.
+// second nozzle does not help here, the two materials still touch. Only ever a warning: the ironed skin is
+// cosmetic, so a bad pairing is worth flagging but not worth refusing to slice over.
 StringObjectException Print::check_ironing_filament_valid(const Print &print)
 {
     const std::string incompatible_msg = L("The ironing filament does not bond with the surface it irons, so the ironed skin may peel off.");
     const std::string possible_incompatible_msg = L("The ironing filament may not bond with the surface it irons. Their compatibility is unknown, so the ironed skin may peel off.");
-    const std::string preferences_enable_msg = L("If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove incompatible material type restriction.");
 
     const ConfigOptionStrings &filament_types = print.config().filament_type;
     auto type_of = [&filament_types](int filament_1based) {
@@ -1246,16 +1245,9 @@ StringObjectException Print::check_ironing_filament_valid(const Print &print)
     if (worst == MaterialCompatibility::Compatible)
         return ret;
 
-    ret.opt_key = "ironing_filament";
-    if (worst == MaterialCompatibility::Unknown) {
-        ret.string     = possible_incompatible_msg;
-        ret.is_warning = true;
-    } else if (! print.need_check_multi_filaments_material_compatibility()) {
-        ret.string     = incompatible_msg;
-        ret.is_warning = true;
-    } else {
-        ret.string = incompatible_msg + " " + preferences_enable_msg;
-    }
+    ret.opt_key    = "ironing_filament";
+    ret.string     = worst == MaterialCompatibility::Unknown ? possible_incompatible_msg : incompatible_msg;
+    ret.is_warning = true;
     return ret;
 }
 
@@ -1435,15 +1427,8 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         }
     }
 
-    {
-        auto ret = check_ironing_filament_valid(*this);
-        if (!ret.string.empty()) {
-            if (ret.is_warning)
-                add_warning(ret);
-            else
-                return ret;
-        }
-    }
+    if (auto ret = check_ironing_filament_valid(*this); !ret.string.empty())
+        add_warning(ret);
 
     if (m_config.print_sequence == PrintSequence::ByObject && (m_objects.size() > 1 || m_objects[0]->instances().size() > 1)) {
         if (m_config.timelapse_type == TimelapseType::tlSmooth)
