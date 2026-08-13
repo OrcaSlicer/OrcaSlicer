@@ -3086,6 +3086,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 	int glb_internal_solid_extr = glb_config.opt_int("internal_solid_filament_id");
 	int glb_top_surface_extr = glb_config.opt_int("top_surface_filament_id");
 	int glb_bottom_surface_extr = glb_config.opt_int("bottom_surface_filament_id");
+	int glb_ironing_extr = glb_config.opt_int("ironing_filament");
 	bool glb_support = glb_config.opt_bool("enable_support");
     glb_support |= glb_config.opt_int("raft_layers") > 0;
 
@@ -3179,6 +3180,15 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		else if (glb_bottom_surface_extr != 0)
 			plate_extruders.push_back(glb_bottom_surface_extr);
 
+		// "Default" (0) irons with the filament of the surface below, which is already counted above.
+		int obj_ironing_extr = 0;
+		if (const ConfigOption* ironing_opt = mo->config.option("ironing_filament"); ironing_opt != nullptr)
+			obj_ironing_extr = ironing_opt->getInt();
+		if (obj_ironing_extr == 0)
+			obj_ironing_extr = glb_ironing_extr;
+		if (obj_ironing_extr > 0)
+			plate_extruders.push_back(obj_ironing_extr);
+
 	}
 
 	if (conside_custom_gcode) {
@@ -3232,6 +3242,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 	int glb_internal_solid_extr = full_config.opt_int("internal_solid_filament_id");
 	int glb_top_surface_extr = full_config.opt_int("top_surface_filament_id");
 	int glb_bottom_surface_extr = full_config.opt_int("bottom_surface_filament_id");
+	int glb_ironing_extr = full_config.opt_int("ironing_filament");
 
     bool glb_support = full_config.opt_bool("enable_support");
     glb_support |= full_config.opt_int("raft_layers") > 0;
@@ -3331,6 +3342,15 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 				plate_extruders.push_back(obj_bottom_surface_extr);
 			else if (glb_bottom_surface_extr != 0)
 				plate_extruders.push_back(glb_bottom_surface_extr);
+
+			// "Default" (0) irons with the filament of the surface below, which is already counted above.
+			int obj_ironing_extr = 0;
+			if (const ConfigOption* ironing_opt = object->config.option("ironing_filament"); ironing_opt != nullptr)
+				obj_ironing_extr = ironing_opt->getInt();
+			if (obj_ironing_extr == 0)
+				obj_ironing_extr = glb_ironing_extr;
+			if (obj_ironing_extr > 0)
+				plate_extruders.push_back(obj_ironing_extr);
         }
     }
 
