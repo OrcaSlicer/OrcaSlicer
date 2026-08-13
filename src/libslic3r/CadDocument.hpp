@@ -616,7 +616,6 @@ public:
     bool recompute();   // replay features -> body + display_mesh; false on error
 
     // CadRecipe serialization contract:
-    // - bump this whenever CadFeature::save/load gains or loses a field
     // - v1 blobs are deliberately not loadable; there is no migration path by design
     // - append fields ONLY at the end of save/load, never reorder (golden fixture enforces this)
     // Bumped every time the bodies are rebuilt, i.e. every time the face and edge MAPS change.
@@ -629,12 +628,11 @@ public:
     // ids themselves cannot keep.
     uint64_t topo_generation{1};
 
-    // v4: coordsys_face_kind + coordsys_face_edges appended (connector face-drift fingerprint).
-    // The bump is not optional. deserialize_recipe() gates on v == VERSION and then reads a FLAT
-    // symmetric field list, so a v3 blob under a v3 build that has grown two fields passes the
-    // gate and then reads two ints past the end of every connector — straight into the next
-    // feature's bytes. That is silent corruption of a saved project, not a load error.
-    static constexpr uint32_t SNAPORCA_CAD_RECIPE_VERSION = 4;
+    // v5: every feature is length-framed, so a reader can stop early on an older file and skip
+    // the tail of a newer one. This is the LAST version that has to break anything — from here a
+    // new field only needs appending to save/load, with no bump and no orphaned projects.
+    // v4 is still read, by the pre-framing flat path, so existing projects keep opening.
+    static constexpr uint32_t SNAPORCA_CAD_RECIPE_VERSION = 5;
     std::string serialize_recipe() const;
     bool deserialize_recipe(const std::string& blob);
 

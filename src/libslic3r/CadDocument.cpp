@@ -3595,8 +3595,28 @@ std::string CadDocument::serialize_recipe() const
         cereal::BinaryOutputArchive ar(oss);
         uint32_t v = SNAPORCA_CAD_RECIPE_VERSION;
         ar(v);
-        ar(features);
-        ar(variables);
+        uint32_t n = static_cast<uint32_t>(features.size());
+        ar(n);
+        for (const CadFeature& f : features) {
+            std::ostringstream fos;
+            {
+                cereal::BinaryOutputArchive fa(fos);
+                fa(f);
+            }
+            std::string fb = fos.str();
+            uint32_t len = static_cast<uint32_t>(fb.size());
+            ar(len);
+            ar(cereal::binary_data(fb.data(), fb.size()));
+        }
+        std::ostringstream vos;
+        {
+            cereal::BinaryOutputArchive va(vos);
+            va(variables);
+        }
+        std::string vb = vos.str();
+        uint32_t vlen = static_cast<uint32_t>(vb.size());
+        ar(vlen);
+        ar(cereal::binary_data(vb.data(), vb.size()));
     }
     return oss.str();
 }
@@ -3615,14 +3635,61 @@ bool CadDocument::deserialize_recipe(const std::string& blob)
                   + std::to_string(SNAPORCA_CAD_RECIPE_VERSION) + ")";
             return false;
         }
-        if (v < SNAPORCA_CAD_RECIPE_VERSION) {
-            error = "saved with an older version of SnapOrca CAD (format v"
-                  + std::to_string(v) + "); this project cannot be opened by this build";
-            return false;
+        if (v == 5) {
+            // Framed path: every feature is a length-prefixed self-contained cereal stream, so
+            // the same four lines handle BOTH directions of mismatch. Older file, newer build:
+            // the sub-stream ends early, fa(f) throws, and the fields already assigned are kept
+            // (cereal assigns sequentially, so a mid-list throw leaves the earlier fields set)
+            // while the rest default. Newer file, older build: the sub-stream has MORE bytes
+            // than this build knows how to read; it reads what it knows and simply stops, and
+            // the outer stream is unaffected because the length prefix was consumed in full.
+            features.clear();
+            uint32_t count;
+            ar(count);
+            for (uint32_t i = 0; i < count; ++i) {
+                uint32_t len;
+                ar(len);
+                std::string buf(len, '\0');
+                if (len > 0)
+                    ar(cereal::binary_data(&buf[0], len));   // consume EXACTLY len bytes from the outer stream
+                CadFeature f;
+                try {
+                    std::istringstream fs(buf);
+                    cereal::BinaryInputArchive fa(fs);
+                    fa(f);
+                } catch (...) {
+                    // An OLDER file: the blob ran out before this build's field list did. Everything read
+                    // so far is kept and the remaining fields stay at their defaults. Deliberately NOT an
+                    // error — a field a project predates is not a corrupt project.
+                }
+                features.push_back(f);
+            }
+            variables.clear();
+            uint32_t vlen;
+            ar(vlen);
+            std::string vbuf(vlen, '\0');
+            if (vlen > 0)
+                ar(cereal::binary_data(&vbuf[0], vlen));
+            try {
+                std::istringstream vs(vbuf);
+                cereal::BinaryInputArchive va(vs);
+                va(variables);
+            } catch (...) {
+                // Variables blob predates this build: keep what was read, default the rest.
+            }
+            return recompute();
         }
-        ar(features);
-        ar(variables);
-        return recompute();
+        if (v == 4) {
+            // Pre-framing flat path, unchanged: v4 projects keep opening exactly as before.
+            ar(features);
+            ar(variables);
+            return recompute();
+        }
+        // v < 4: the field lists for v2/v3 no longer exist in this code, so those files
+        // cannot be recovered here. This fix is for the future, not the past.
+        error = "saved with an older version of SnapOrca CAD (format v"
+              + std::to_string(v) + "); this project cannot be opened by this build";
+        return false;
     } catch (const Standard_Failure& e) {
         const char* what = e.GetMessageString();
         error = std::string("CAD data could not be read")

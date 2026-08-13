@@ -20,6 +20,7 @@
 #include "libslic3r/Utils.hpp"
 
 #include <cmath>
+#include <cstring>
 #include <fstream>
 #include <memory>
 #include <set>
@@ -2118,6 +2119,173 @@ TEST_CASE("deserialize_recipe error is non-empty on every failure path", "[CadDo
     }
 }
 
+TEST_CASE("a v4 project still opens", "[CadDocument][recipe]")
+{
+    // The regression guard for everyone who already has projects: a pre-framing v4
+    // recipe must keep opening on this build, through the unchanged flat path — not be
+    // refused at the version gate after the bump to v5.
+    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v4.bin";
+    std::ifstream ifs(path, std::ios::binary);
+    REQUIRE(ifs.is_open());
+    std::string blob((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    ifs.close();
+    REQUIRE_FALSE(blob.empty());
+
+    // Trusted reference read of the flat v4 layout (what the golden test's Layer 1 does).
+    std::vector<CadFeature> flat;
+    {
+        std::istringstream iss(blob);
+        cereal::BinaryInputArchive ar(iss);
+        uint32_t v;
+        ar(v);
+        REQUIRE(v == 4);
+        ar(flat);
+    }
+    REQUIRE_FALSE(flat.empty());
+
+    CadDocument doc;
+    doc.deserialize_recipe(blob);
+    // Not refused at the gate: the only failure allowed is the fixture's own geometry
+    // (the golden doc is a serialization-coverage tree whose fillet radius is too large),
+    // which is orthogonal to the v5 framing change and unchanged by it.
+    REQUIRE(doc.error.find("older version") == std::string::npos);
+    REQUIRE(doc.error.find("newer version") == std::string::npos);
+    // The v4 flat path read the same feature tree as the trusted reference.
+    REQUIRE(doc.features.size() == flat.size());
+}
+
+TEST_CASE("a v5 round trip is exact", "[CadDocument][recipe]")
+{
+    using Catch::Matchers::WithinRel;
+    CadDocument doc;
+
+    // Body 1: rectangle sketch + extrude + fillet
+    int sk1 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(),
+                             20, 20, 10, "Rect1");
+    REQUIRE(sk1 >= 0);
+    doc.add_extrude(sk1, 10.0, false, BooleanMode::New, "Extrude1");
+    doc.add_fillet(2.0, FaceGroup::All, "Fillet1");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Body 2: circle sketch + extrude (separate New body)
+    SketchEntity circ;
+    circ.type   = SketchEntity::Type::Circle;
+    circ.center = Vec2d(0, 0);
+    circ.radius = 8.0;
+    int sk2 = doc.add_sketch_entities({circ}, SketchPlane::XZ(), "Circle2");
+    doc.add_extrude(sk2, 6.0, false, BooleanMode::New, "Extrude2");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    REQUIRE(doc.bodies.size() >= 2);
+    std::vector<double> orig_vols;
+    for (const auto& b : doc.bodies)
+        orig_vols.push_back(double(SketchEngine::tessellate(b.shape).volume()));
+
+    auto blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument doc2;
+    REQUIRE(doc2.deserialize_recipe(blob));
+    REQUIRE(doc2.error.empty());
+    REQUIRE(doc2.features.size() == doc.features.size());
+    for (size_t i = 0; i < doc.features.size(); ++i)
+        REQUIRE(doc2.features[i].type == doc.features[i].type);
+    REQUIRE(doc2.bodies.size() == doc.bodies.size());
+    for (size_t i = 0; i < doc.bodies.size(); ++i) {
+        double v2 = double(SketchEngine::tessellate(doc2.bodies[i].shape).volume());
+        REQUIRE_THAT(v2, WithinRel(orig_vols[i], 1e-6));
+    }
+}
+
+TEST_CASE("a truncated feature keeps what it could read", "[CadDocument][recipe]")
+{
+    // The forward-compat proof: a v5 reader that meets a feature blob shorter than its own
+    // field list must keep what it read and default the rest, not error. Simulate an older
+    // file by hand-shortening ONE feature's frame: rewrite its length prefix and drop the
+    // tail bytes, then confirm the load still succeeds and the fields before the cut survive.
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 10, 0, "Sk1");
+    REQUIRE(sk >= 0);
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Ex1");
+    int sk2 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 12, 12, 0, "Sk2");
+    doc.add_extrude(sk2, 3.0, false, BooleanMode::New, "Ex2");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Two trailing connector-fingerprint fields, made distinctive so the cut is observable:
+    // coordsys_face_kind sits right before the LAST serialized field (coordsys_face_edges),
+    // which is the one we drop. They are ignored by an Extrude's recompute, so the truncated
+    // document still replays cleanly.
+    doc.features[1].coordsys_face_kind  = 777;
+    doc.features[1].coordsys_face_edges = 888;
+
+    auto blob = doc.serialize_recipe();
+    REQUIRE(blob.size() > 8);
+
+    auto rd32 = [](const std::string& s, size_t off) -> uint32_t {
+        uint32_t u;
+        std::memcpy(&u, s.data() + off, sizeof(u));
+        return u;
+    };
+    auto wr32 = [](std::string& s, size_t off, uint32_t u) {
+        std::memcpy(&s[off], &u, sizeof(u));
+    };
+
+    REQUIRE(rd32(blob, 0) == 5);
+    uint32_t count = rd32(blob, 4);
+    REQUIRE(count == doc.features.size());
+
+    // Walk the outer framing: version + count, then [len][bytes] per feature.
+    std::vector<size_t> f_off, f_len;
+    size_t off = 8;
+    for (uint32_t i = 0; i < count; ++i) {
+        f_off.push_back(off);
+        f_len.push_back(rd32(blob, off));
+        off += 4 + f_len.back();
+    }
+
+    // Shorten feature 1 by dropping its final field (4 bytes): rewrite its length prefix
+    // and erase the tail bytes. The reader then runs out inside fa(f), throws, and keeps
+    // everything it had already assigned — that is the whole point of the try/catch.
+    const size_t drop = sizeof(uint32_t);
+    REQUIRE(f_len[1] > drop);
+    std::string shortened = blob;
+    shortened.erase(f_off[1] + 4 + f_len[1] - drop, drop);
+    wr32(shortened, f_off[1], static_cast<uint32_t>(f_len[1] - drop));
+
+    CadDocument loaded;
+    REQUIRE(loaded.deserialize_recipe(shortened));
+    REQUIRE(loaded.error.empty());
+    REQUIRE(loaded.features.size() == count);
+
+    // Fields before the cut survived; the cut field defaulted; the neighbours on both sides
+    // are intact, proving the outer framing held.
+    REQUIRE(loaded.features[1].name == doc.features[1].name);
+    REQUIRE(loaded.features[1].coordsys_face_kind  == 777);   // right before the cut
+    REQUIRE(loaded.features[1].coordsys_face_edges == -1);    // defaulted by the cut
+    REQUIRE(loaded.features[0].name == doc.features[0].name);
+    REQUIRE(loaded.features[2].name == doc.features[2].name);
+}
+
+TEST_CASE("a v3 recipe is refused with a message naming the version", "[CadDocument][recipe]")
+{
+    // Honesty guard: the framing fixes the future, not the past. A v3 field list no longer
+    // exists in this code, so a v3 blob must be refused cleanly and must say which version.
+    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v3.bin";
+    std::ifstream ifs(path, std::ios::binary);
+    REQUIRE(ifs.is_open());
+    std::string blob((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    ifs.close();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument doc;
+    REQUIRE_FALSE(doc.deserialize_recipe(blob));
+    REQUIRE_FALSE(doc.error.empty());
+    REQUIRE(doc.error.find("v3") != std::string::npos);
+}
+
 TEST_CASE("re-edit: editing a mid-timeline feature rebuilds downstream", "[CadDocument]")
 {
     using Catch::Matchers::WithinRel;
@@ -2895,19 +3063,13 @@ TEST_CASE("helix serialization round-trip with distinctive values", "[CadDocumen
     auto blob = doc.serialize_recipe();
     REQUIRE_FALSE(blob.empty());
 
-    // Deserialize into a feature list directly — recompute fails because a lone
+    // Deserialize through the real entry point — recompute fails because a lone
     // helix doesn't produce a solid, but the serialized field values must survive.
-    std::vector<CadFeature> features2;
-    {
-        std::istringstream iss(blob);
-        cereal::BinaryInputArchive ar(iss);
-        uint32_t v;
-        ar(v);
-        ar(features2);
-    }
-    REQUIRE(features2.size() == 1);
+    CadDocument doc2;
+    doc2.deserialize_recipe(blob);
+    REQUIRE(doc2.features.size() == 1);
 
-    const auto& f = features2[0];
+    const auto& f = doc2.features[0];
     REQUIRE(f.type == CadFeatureType::Helix);
     REQUIRE(f.name == "Helix_RT");
     REQUIRE_THAT(f.helix_radius,      WithinAbs(7.5, 1e-9));
@@ -3767,7 +3929,7 @@ TEST_CASE("regenerate golden recipe fixture", "[.regen]")
     auto blob = doc.serialize_recipe();
     REQUIRE_FALSE(blob.empty());
 
-    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v4.bin";
+    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v5.bin";
     std::ofstream ofs(path, std::ios::binary);
     REQUIRE(ofs.is_open());
     ofs.write(blob.data(), static_cast<std::streamsize>(blob.size()));
