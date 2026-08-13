@@ -2865,6 +2865,10 @@ void DesignSketchTool::clear_solid_selection()
     m_solid_sel = SolidSel::None;
     m_sel_body = m_sel_face = m_sel_edge = -1;
     m_sel_edge_pts.clear();
+    // The pre-highlight names a face/edge/vertex by index into a shape that a recompute has just
+    // rebuilt, so it expires with the selection it was a promise about. Left behind it would keep
+    // glowing on whatever now sits at those indices — a real entity, but not the one meant.
+    m_pre = SolidPick{};
 }
 
 void DesignSketchTool::select_body(int body)
@@ -2948,17 +2952,17 @@ void DesignSketchTool::pick_bodies_in_rectangle()
         on_solid_selection_changed(int(m_solid_sel), m_sel_body, m_sel_face, m_sel_edge);
 }
 
-// A click on the solid takes the smallest thing under the cursor (vertex/edge/face). Returns
-// true if the click hit the solid (consumed); false otherwise so the caller can try
-// committed-sketch loop picking. Whole bodies are taken by the rubber band, not by clicking.
-bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent& evt)
+// Resolve what a pick at (mx,my) would take. CONST, and it writes only into `out`: the hover
+// path calls this many times a second and must not disturb the committed selection by doing so.
+bool DesignSketchTool::resolve_solid_pick(GLCanvas3D& canvas, int mx, int my, SolidPick& out) const
 {
+    out = SolidPick{};
     if (m_solid_bodies == nullptr || m_solid_mesh == nullptr) {
         dp_pick_trace("no solid data (bodies=%p mesh=%p)",
                       (const void*) m_solid_bodies, (const void*) m_solid_mesh);
         return false;
     }
-    const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
+    const Linef3 r = canvas.mouse_ray(Point(mx, my));
     const Vec3d ro = r.a, rd = r.b - r.a;
 
     // 1) nearest solid face under the cursor (ray vs display-mesh triangles). Resolve WHICH
@@ -3000,7 +3004,7 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
     // distance in millimetres, so the same gesture meant different things at different zooms —
     // the pointer is a screen object and its tolerance has to be one too.
     const Camera& cam = wxGetApp().plater()->get_camera();
-    const wxPoint cursor(evt.GetX(), evt.GetY());
+    const wxPoint cursor(mx, my);
     // Vertex beats edge beats face, and the vertex tolerance is the larger of the two: a corner
     // sits ON its edges, so an equal radius would make vertices unreachable — every click near
     // one would resolve to the edge it lies on.
@@ -3016,26 +3020,18 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
         return std::hypot(wx - t * vx, wy - t * vy);
     };
 
-    // What was selected BEFORE this pick — the escalation below is the only thing that reads
-    // it, and everything from here on overwrites it.
-    const SolidSel prev_kind = m_solid_sel;
-    const int      prev_body = m_sel_body, prev_face = m_sel_face, prev_edge = m_sel_edge;
-    const Vec3d    prev_vtx  = m_sel_vertex_pt;
-
-    m_sel_body = best_body;
-    m_sel_face = best_face;
-    m_sel_edge = -1;
-    m_sel_edge_pts.clear();
+    out.body = best_body;
+    out.face = best_face;
 
     {
-        const TopoDS_Shape& bshape = (*m_solid_bodies)[m_sel_body].shape;
-        const TopoDS_Face  face    = GeometryEngine::face_by_index(bshape, m_sel_face);
+        const TopoDS_Shape& bshape = (*m_solid_bodies)[out.body].shape;
+        const TopoDS_Face  face    = GeometryEngine::face_by_index(bshape, out.face);
         double best_ed = 1e30; std::vector<Vec3d> ed_pts; TopoDS_Edge ed_edge; bool have_edge = false;
         double best_vd = 1e30; Vec3d vtx = Vec3d::Zero(); bool have_vtx = false;
         if (!face.IsNull()) {
             for (const TopoDS_Edge& e : GeometryEngine::edges_of_face(face)) {
                 std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
-                for (Vec3d& q : pts) q = body_xform_pt(m_sel_body, q);   // follow a moved body
+                for (Vec3d& q : pts) q = body_xform_pt(out.body, q);   // follow a moved body
                 if (pts.size() < 2) continue;
                 // The polyline ends ARE the edge's vertices; every corner of the face is the
                 // end of one of its edges, so this covers them without a separate topology walk.
@@ -3056,18 +3052,43 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
             }
         }
         if (have_vtx && best_vd <= kVertexTolPx) {
-            m_sel_vertex_pt = vtx;
-            m_solid_sel     = SolidSel::Vertex;
+            out.vertex_pt = vtx;
+            out.kind      = SolidSel::Vertex;
         } else if (have_edge && best_ed <= kEdgeTolPx) {
             // Promote the face-relative pick to a STABLE GLOBAL edge id so dress-up ops
             // (fillet/chamfer) can target this exact edge across recomputes.
-            m_sel_edge     = GeometryEngine::edge_index_of(bshape, ed_edge);
-            m_sel_edge_pts = std::move(ed_pts);
-            m_solid_sel    = SolidSel::Edge;
+            out.edge     = GeometryEngine::edge_index_of(bshape, ed_edge);
+            out.edge_pts = std::move(ed_pts);
+            out.kind     = SolidSel::Edge;
         } else {
-            m_solid_sel = SolidSel::Face;
+            out.kind = SolidSel::Face;
         }
     }
+    return true;
+}
+
+// A click on the solid takes the smallest thing under the cursor (vertex/edge/face). Returns
+// true if the click hit the solid (consumed); false otherwise so the caller can try
+// committed-sketch loop picking. Whole bodies are taken by the rubber band, not by clicking.
+bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent& evt)
+{
+    SolidPick p;
+    if (!resolve_solid_pick(canvas, evt.GetX(), evt.GetY(), p))
+        return false;   // missed the solid, or no solid data — same two exits as before
+
+    // What was selected BEFORE this pick — the escalation below is the only thing that reads
+    // it, and everything from here on overwrites it.
+    const SolidSel prev_kind = m_solid_sel;
+    const int      prev_body = m_sel_body, prev_face = m_sel_face, prev_edge = m_sel_edge;
+    const Vec3d    prev_vtx  = m_sel_vertex_pt;
+
+    m_sel_body      = p.body;
+    m_sel_face      = p.face;
+    m_sel_edge      = p.edge;
+    m_sel_edge_pts  = std::move(p.edge_pts);
+    m_sel_vertex_pt = p.vertex_pt;
+    m_solid_sel     = p.kind;
+
     // CLICK AGAIN ON THE SAME THING -> THE WHOLE BODY (snaporca-gem). Pointing at a face and
     // pointing at its body are different intents, and until now only the rubber band could
     // express the second one — so the status line said "face 0 selected" while the user
@@ -3107,27 +3128,53 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
     return true;
 }
 
-// Cyan overlay for the picked face (translucent, depth-tested + offset) or edge (opaque
-// ribbon billboarded to the camera, depth off so it reads on top). Whole-solid tint is the
-// panel's job (set_body_highlight). Called from render() while no sketch session is active.
-void DesignSketchTool::render_solid_highlight()
+// Recompute what the pointer is over. Returns true only when the answer CHANGED — this runs on
+// every motion event, and a repaint per event would cost far more than the pick itself.
+bool DesignSketchTool::update_solid_hover(GLCanvas3D& canvas, const wxMouseEvent& evt)
+{
+    SolidPick p;
+    if (!resolve_solid_pick(canvas, evt.GetX(), evt.GetY(), p))
+        p = SolidPick{};   // off the solid: no promise to make
+    // Compared AT THE LEVEL THAT WAS PICKED, for the same reason the click's escalation is
+    // (see same_pick above): an edge pick carries whichever face the ray happened to cross, and
+    // that face changes as the pointer slides along the edge without the answer changing at all.
+    const bool same = p.kind == m_pre.kind && p.body == m_pre.body
+        && (p.kind == SolidSel::Vertex ? (p.vertex_pt - m_pre.vertex_pt).norm() < 1e-9
+          : p.kind == SolidSel::Edge   ? p.edge == m_pre.edge
+          : p.kind == SolidSel::Face   ? p.face == m_pre.face
+                                       : true);
+    if (same) return false;
+    m_pre = std::move(p);
+    return true;
+}
+
+// One highlight, drawn from explicit arguments rather than from the selection members, so the
+// committed selection and the hover pre-highlight cannot drift apart in how they look. alpha_mul
+// scales every layer at once: the pre-highlight is the same shape in the same place, quieter.
+void DesignSketchTool::render_solid_sel(SolidSel kind, int body, int face,
+                                        const std::vector<Vec3d>& edge_pts,
+                                        const Vec3d& vertex_pt,
+                                        const ColorRGBA& rgb, float alpha_mul)
 {
     using EPT = GLModel::Geometry::EPrimitiveType;
     using EVL = GLModel::Geometry::EVertexLayout;
-    const ColorRGBA cyan(0.20f, 0.85f, 1.0f, 1.0f);
+    // Opaque: the edge ribbon and the vertex square render with GL_BLEND OFF, so an alpha below 1
+    // here would be silently ignored. Those two are quietened by a MUTED rgb from the caller
+    // instead; alpha_mul only reaches the face fill, which is the one layer that is blended.
+    const ColorRGBA cyan(rgb.r(), rgb.g(), rgb.b(), 1.0f);
 
     // Whole tints the picked BODY (all its triangles, lighter alpha); Face tints just the
-    // picked face on that body. Both filter by m_sel_body so other bodies stay untinted.
-    if ((m_solid_sel == SolidSel::Face || m_solid_sel == SolidSel::Whole)
-        && m_solid_mesh != nullptr && m_solid_tri_body != nullptr && m_sel_body >= 0) {
-        const bool face_only = (m_solid_sel == SolidSel::Face);
+    // picked face on that body. Both filter by `body` so other bodies stay untinted.
+    if ((kind == SolidSel::Face || kind == SolidSel::Whole)
+        && m_solid_mesh != nullptr && m_solid_tri_body != nullptr && body >= 0) {
+        const bool face_only = (kind == SolidSel::Face);
         const indexed_triangle_set& its = m_solid_mesh->its;
         GLModel::Geometry g; g.format = { EPT::Triangles, EVL::P3 };
         unsigned int base = 0;
         for (size_t i = 0; i < its.indices.size(); ++i) {
-            if (i >= m_solid_tri_body->size() || (*m_solid_tri_body)[i] != m_sel_body) continue;
+            if (i >= m_solid_tri_body->size() || (*m_solid_tri_body)[i] != body) continue;
             if (face_only && (m_solid_tri_face == nullptr || i >= m_solid_tri_face->size()
-                              || (*m_solid_tri_face)[i] != m_sel_face)) continue;
+                              || (*m_solid_tri_face)[i] != face)) continue;
             const auto& idx = its.indices[i];
             for (int j = 0; j < 3; ++j) g.add_vertex(its.vertices[idx(j)]);
             g.add_triangle(base, base + 1, base + 2); base += 3;
@@ -3140,20 +3187,21 @@ void DesignSketchTool::render_solid_highlight()
             glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
             m_solid_face_model.reset();
             m_solid_face_model.init_from(std::move(g));
-            m_solid_face_model.set_color(ColorRGBA(0.20f, 0.85f, 1.0f, face_only ? 0.40f : 0.22f));
+            m_solid_face_model.set_color(ColorRGBA(rgb.r(), rgb.g(), rgb.b(),
+                                                  (face_only ? 0.40f : 0.22f) * alpha_mul));
             m_solid_face_model.render();
             glsafe(::glDisable(GL_BLEND));
             glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
             glsafe(::glDisable(GL_DEPTH_TEST));
         }
-    } else if (m_solid_sel == SolidSel::Edge && m_sel_edge_pts.size() >= 2) {
+    } else if (kind == SolidSel::Edge && edge_pts.size() >= 2) {
         const Camera& cam = wxGetApp().plater()->get_camera();
         const Vec3d vd = cam.get_dir_forward();
         const double hw = 2.0 / std::max(cam.get_zoom(), 1e-6);   // ~2 px ribbon half-width
         GLModel::Geometry g; g.format = { EPT::Triangles, EVL::P3 };
         unsigned int base = 0;
-        for (size_t s = 1; s < m_sel_edge_pts.size(); ++s) {
-            const Vec3d a = m_sel_edge_pts[s - 1], b = m_sel_edge_pts[s];
+        for (size_t s = 1; s < edge_pts.size(); ++s) {
+            const Vec3d a = edge_pts[s - 1], b = edge_pts[s];
             Vec3d dir = b - a; if (dir.norm() < 1e-9) continue; dir.normalize();
             Vec3d off = dir.cross(vd);
             if (off.norm() < 1e-9) off = dir.cross(cam.get_dir_up());
@@ -3173,7 +3221,7 @@ void DesignSketchTool::render_solid_highlight()
             m_solid_edge_model.set_color(cyan);
             m_solid_edge_model.render();
         }
-    } else if (m_solid_sel == SolidSel::Vertex) {
+    } else if (kind == SolidSel::Vertex) {
         // A camera-facing square at the picked corner, sized in screen terms (the same
         // 1/zoom trick the edge ribbon uses) so it stays a constant dot at every zoom. A
         // selection you cannot see is not a selection (L5), which is why vertex picking waited
@@ -3182,7 +3230,7 @@ void DesignSketchTool::render_solid_highlight()
         Vec3d right = cam.get_dir_right(), up = cam.get_dir_up();
         const double h = 4.5 / std::max(cam.get_zoom(), 1e-6);   // ~4.5 px half-size
         right *= h; up *= h;
-        const Vec3d c = m_sel_vertex_pt;
+        const Vec3d c = vertex_pt;
         GLModel::Geometry g; g.format = { EPT::Triangles, EVL::P3 };
         g.add_vertex((Vec3f)(c - right - up).cast<float>());
         g.add_vertex((Vec3f)(c + right - up).cast<float>());
@@ -3196,6 +3244,32 @@ void DesignSketchTool::render_solid_highlight()
         m_solid_vertex_model.set_color(cyan);
         m_solid_vertex_model.render();
     }
+}
+
+// Cyan overlay for the picked face / edge / vertex, plus the quieter pre-highlight of whatever
+// the pointer is currently over. Whole-solid tint is the panel's job (set_body_highlight).
+// Called from render() while no sketch session is active.
+void DesignSketchTool::render_solid_highlight()
+{
+    const ColorRGBA sel_cyan(0.20f, 0.85f, 1.0f, 1.0f);
+
+    // The pre-highlight goes FIRST so the committed selection paints over it where the two
+    // overlap — what you HAVE outranks what you would get. Suppressed entirely when they are the
+    // same thing: two coats of the same colour on the same face reads as a rendering fault, and
+    // a promise about a click that would change nothing is not worth making.
+    const bool pre_is_sel = m_pre.kind == m_solid_sel && m_pre.body == m_sel_body
+        && (m_pre.kind == SolidSel::Vertex ? (m_pre.vertex_pt - m_sel_vertex_pt).norm() < 1e-9
+          : m_pre.kind == SolidSel::Edge   ? m_pre.edge == m_sel_edge
+          : m_pre.kind == SolidSel::Face   ? m_pre.face == m_sel_face
+                                           : true);
+    if (m_pre.kind != SolidSel::None && !pre_is_sel)
+        // Desaturated toward white rather than a second hue: a distinct colour would read as a
+        // distinct KIND of selection, when it is the same selection one moment earlier.
+        render_solid_sel(m_pre.kind, m_pre.body, m_pre.face, m_pre.edge_pts, m_pre.vertex_pt,
+                         ColorRGBA(0.62f, 0.84f, 0.92f, 1.0f), 0.45f);
+
+    render_solid_sel(m_solid_sel, m_sel_body, m_sel_face, m_sel_edge_pts, m_sel_vertex_pt,
+                     sel_cyan, 1.0f);
 }
 
 // Datum/reference planes (Plane feature) have no solid; draw each as a translucent indigo
@@ -8514,6 +8588,15 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         // consumed from here on. Left-drag no longer orbits in this canvas — DesignCanvas puts
         // orbit on middle-drag and pan on right-drag, the CAD convention — so nothing downstream
         // is being starved of a gesture it used to own.
+        // HOVER PRE-HIGHLIGHT (snaporca-9xw part 3): say what a click would take, before it is
+        // taken. Plain motion only — no button down, no band running — because during a drag the
+        // pointer is doing something else and a promise about clicking would be a lie. Returns
+        // false so the event still reaches the camera; this only asks for a repaint, it does not
+        // consume the gesture, which is the difference between a hint and a handler.
+        if (evt.Moving() && !evt.LeftIsDown() && !m_rubber.is_dragging()) {
+            if (update_solid_hover(canvas, evt)) canvas.set_as_dirty();
+            return false;
+        }
         if (evt.Dragging() && evt.LeftIsDown() && m_pick_pending) {
             if (!m_rubber.is_dragging()) {
                 if (std::max(std::abs(evt.GetX() - m_pick_press_x),

@@ -975,6 +975,22 @@ private:
     std::vector<Vec3d>      m_sel_edge_pts;
     Vec3d                   m_sel_vertex_pt{Vec3d::Zero()};   // world point of a picked vertex
     bool handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent& evt);  // pick + notify
+    // What a click at (mx,my) WOULD take, resolved without touching the selection. One
+    // implementation, two callers: the click, and the hover pre-highlight that promises what the
+    // click is about to do. Split so the promise cannot drift from the act.
+    struct SolidPick {
+        SolidSel           kind{SolidSel::None};
+        int                body{-1}, face{-1}, edge{-1};
+        std::vector<Vec3d> edge_pts;
+        Vec3d              vertex_pt{Vec3d::Zero()};
+    };
+    bool resolve_solid_pick(GLCanvas3D& canvas, int mx, int my, SolidPick& out) const;
+    // HOVER PRE-HIGHLIGHT (snaporca-9xw part 3). Vertex-beats-edge-beats-face is a rule the user
+    // cannot see until after they commit to a click; showing the outcome under the pointer is
+    // what makes the precedence learnable at all, and is the charter's L5 (one click, one visible
+    // change) read honestly — the change has to be predictable before the click, not only after.
+    SolidPick m_pre;                       // what the pointer is currently over (kind None = nothing)
+    bool update_solid_hover(GLCanvas3D& canvas, const wxMouseEvent& evt);  // true when it changed
     // Left-drag rubber band: sweep a rectangle over the plate to take a whole body. Orbit
     // moves to middle-drag in this canvas (DesignCanvas::set_cad_navigation) so the left
     // button is free for it, which is the CAD convention (Onshape/SolidWorks).
@@ -988,6 +1004,10 @@ private:
                             double& edge_d, int& face_feat, int& face_reg) const;
     bool m_right_consumed{false};          // last RightDown was a gesture terminator, not a menu
     void render_solid_highlight();
+    // The shared body of the above: one highlight from explicit arguments, so the committed
+    // selection and the hover pre-highlight cannot drift apart in how they look.
+    void render_solid_sel(SolidSel kind, int body, int face, const std::vector<Vec3d>& edge_pts,
+                          const Vec3d& vertex_pt, const ColorRGBA& rgb, float alpha_mul);
     void render_datum_planes();           // translucent rectangles for datum/reference planes
     void render_view_helpers();           // world origin planes + axis triad (P / A toggles)
     bool m_show_planes{false};
