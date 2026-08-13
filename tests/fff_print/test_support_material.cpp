@@ -149,18 +149,31 @@ TEST_CASE("Zero flow support ironing retracts around the ironing block", "[Suppo
         const auto [before, block] = ironing_block(sliced(0));
 
         // The 5mm ironing retract precedes the block; the unretract (5 + 0.5 extra) closes it.
-        const bool retract_before = std::any_of(before.begin(), before.end(),
+        auto ironing_retract = std::find_if(before.begin(), before.end(),
             [](const std::string &l) { return l.rfind("G1 E-5 ", 0) == 0; });
-        REQUIRE(retract_before);
-        const bool unretract_in_block = std::any_of(block.begin(), block.end(),
+        REQUIRE(ironing_retract != before.end());
+        auto ironing_unretract = std::find_if(block.begin(), block.end(),
             [](const std::string &l) { return l.rfind("G1 E5.5 ", 0) == 0; });
-        REQUIRE(unretract_in_block);
+        REQUIRE(ironing_unretract != block.end());
 
         // Ironing strokes carry an explicit E word even at zero flow — the preview
         // relies on it to tell strokes apart from travel moves.
-        const bool stroke_with_e = std::any_of(block.begin(), block.end(),
+        const bool stroke_with_e = std::any_of(block.begin(), ironing_unretract,
             [](const std::string &l) { return l.rfind("G1 X", 0) == 0 && l.find(" E") != std::string::npos; });
         REQUIRE(stroke_with_e);
+
+        // Between those two the filament stays parked, on the way in and between ironing islands.
+        // An ordinary travel retract there would wipe back over the surface just ironed, then
+        // unretract onto it.
+        const bool retracts_on_approach = std::any_of(ironing_retract + 1, before.end(),
+            [](const std::string &l) { return l.find(" E-") != std::string::npos; });
+        REQUIRE_FALSE(retracts_on_approach);
+        const bool retracts_inside = std::any_of(block.begin(), ironing_unretract,
+            [](const std::string &l) { return l.find(" E-") != std::string::npos; });
+        REQUIRE_FALSE(retracts_inside);
+        const bool unretracts_inside = std::any_of(block.begin(), ironing_unretract,
+            [](const std::string &l) { return l.find("; unretract") != std::string::npos; });
+        REQUIRE_FALSE(unretracts_inside);
     }
 
     SECTION("non-zero flow leaves the pass untouched") {

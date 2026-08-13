@@ -892,10 +892,10 @@ TEST_CASE("Ironing E moves keep the firmware and tracked E position in sync in b
         writer.config.use_relative_e_distances.value = true;
         std::string plain = writer.extrude_to_xy(Vec2d(10., 10.), 0., "");
         REQUIRE(plain.find(" E") == std::string::npos);
-        writer.set_force_emit_zero_e(true);
+        writer.set_zero_flow_ironing(true);
         std::string forced = writer.extrude_to_xy(Vec2d(20., 10.), 0., "");
         REQUIRE(forced.find(" E0") != std::string::npos);
-        writer.set_force_emit_zero_e(false);
+        writer.set_zero_flow_ironing(false);
         std::string after = writer.extrude_to_xy(Vec2d(30., 10.), 0., "");
         REQUIRE(after.find(" E") == std::string::npos);
     }
