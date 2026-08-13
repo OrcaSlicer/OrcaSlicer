@@ -28,7 +28,7 @@ PrintOptionsDialog::PrintOptionsDialog(wxWindow* parent)
 {
     this->SetDoubleBuffered(true);
     SetBackgroundColour(*wxWHITE);
-    SetSize(FromDIP(480),FromDIP(520));
+    // SetMinSize(FromDIP(wxSize{wxDefaultCoord,520}));
 
 
     m_scrollwindow = new wxScrolledWindow(this, wxID_ANY);
@@ -50,7 +50,8 @@ PrintOptionsDialog::PrintOptionsDialog(wxWindow* parent)
     m_scrollwindow->FitInside();
 
     this->Layout();
-    // mainSizer->Fit(this);
+    mainSizer->SetMinSize(wxDefaultCoord, FromDIP(520));
+    mainSizer->Fit(this);
     //this->Fit();
 
      m_cb_ai_monitoring->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &evt) {
@@ -1670,12 +1671,9 @@ PrinterPartsDialog::PrinterPartsDialog(wxWindow* parent)
     /*inset data*/
     sizer->Add(single_panel, 0, wxEXPAND, 0);
     sizer->Add(multiple_panel, 0, wxEXPAND, 0);
-    SetSizer(sizer);
-    Layout();
-    Fit();
-
     single_panel->Hide();
-
+    SetSizerAndFit(sizer);
+    Layout();
     wxGetApp().UpdateDlgDarkUI(this);
 }
 
@@ -1752,6 +1750,7 @@ bool PrinterPartsDialog::Show(bool show)
             }
         }
 
+        GetSizer()->SetSizeHints(this);
         Layout();
         Fit();
     }

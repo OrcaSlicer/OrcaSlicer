@@ -80,8 +80,12 @@ endif()
 
 if (DEFINED BBL_RELEASE_TO_PUBLIC)
     add_compile_definitions("BBL_RELEASE_TO_PUBLIC=${BBL_RELEASE_TO_PUBLIC}")
+    if (BBL_RELEASE_TO_PUBLIC)
+        add_compile_definitions(WXINSPECTOR_DISABLE)
+    endif ()
 else ()
     add_compile_definitions("BBL_RELEASE_TO_PUBLIC=$<CONFIG:Release>")
+    add_compile_definitions("$<$<CONFIG:Release>:WXINSPECTOR_DISABLE>")
 endif ()
 
 find_package(Git)

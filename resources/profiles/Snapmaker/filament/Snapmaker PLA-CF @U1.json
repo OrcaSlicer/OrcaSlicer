@@ -7,5 +7,8 @@
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"
+	],
+	"filament_retract_length_toolchange": [
+		"5"
 	]
 }

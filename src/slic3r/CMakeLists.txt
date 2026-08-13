@@ -752,6 +752,11 @@ set(SLIC3R_GUI_SOURCES
     Utils/WxFontUtils.hpp
     Utils/FileTransferUtils.cpp
     Utils/FileTransferUtils.hpp
+    Utils/wxInspectorPlugins/DPIAwarePlugin.hpp
+    Utils/wxInspectorPlugins/DPIAwarePlugin.cpp
+    Utils/wxInspectorPlugins/CustomWidgetsPlugin.hpp
+    Utils/wxInspectorPlugins/CustomWidgetsPlugin.cpp
+    Utils/wxInspectorPlugins/Registration.hpp
 )
 
 # Design/CAD tab: parametric sketch UI, its gizmo, and the MCP control socket.

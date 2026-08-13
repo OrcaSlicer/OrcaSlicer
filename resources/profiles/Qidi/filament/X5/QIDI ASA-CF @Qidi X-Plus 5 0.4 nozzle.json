@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"setting_id": "Aqh00EJ8ZaiPCU6F",
+	"name": "QIDI ASA-CF @Qidi X-Plus 5 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI ASA-CF@X-Plus 5-Series",
+	"pressure_advance": [
+		"0.03"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

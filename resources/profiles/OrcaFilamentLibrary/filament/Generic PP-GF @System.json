@@ -15,6 +15,9 @@
 	"filament_max_volumetric_speed": [
 		"6"
 	],
+	"filament_multitool_ramming_flow": [
+		"6"
+	],
 	"filament_type": [
 		"PP-GF"
 	],
