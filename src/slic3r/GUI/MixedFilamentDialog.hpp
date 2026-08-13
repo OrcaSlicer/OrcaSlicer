@@ -1,17 +1,23 @@
 #pragma once
 
 #include "GUI_Utils.hpp"
+#include "libslic3r/MixedFilament.hpp"
 
 #include <wx/checkbox.h>
 #include <wx/dialog.h>
 #include <wx/spinctrl.h>
 #include <wx/textctrl.h>
 
+#include <vector>
+
+class wxButton;
+class wxListBox;
+
 namespace Slic3r {
 namespace GUI {
 
-// Minimal Color Mixing dialog (M4). Does not port MixedFilamentConfigPanel.
-// Sets mixed_filament_definitions + optional object extruder + enable_prime_tower.
+// Compact multi-row Color Mixing dialog (M6). Does not port MixedFilamentConfigPanel.
+// Sets mixed_filament_definitions + optional volume/object extruder + enable_prime_tower.
 class MixedFilamentDialog : public DPIDialog
 {
 public:
@@ -25,6 +31,25 @@ private:
     void load_from_config();
     void apply_to_project();
 
+    void refresh_list();
+    void refresh_list_labels();
+    void load_selected_row_into_editors();
+    void store_editors_into_selected_row();
+    void on_list_select(wxCommandEvent &evt);
+    void on_add_row(wxCommandEvent &evt);
+    void on_remove_row(wxCommandEvent &evt);
+
+    wxString row_label(size_t idx, size_t num_physical) const;
+    int      virtual_id_for_row(size_t idx, size_t num_physical) const;
+    size_t   physical_filament_count() const;
+
+    std::vector<MixedFilament> m_rows;
+    int                        m_selected_row{-1};
+    bool                       m_suppress_events{false};
+
+    wxListBox  *m_list{nullptr};
+    wxButton   *m_btn_add{nullptr};
+    wxButton   *m_btn_remove{nullptr};
     wxSpinCtrl *m_spin_a{nullptr};
     wxSpinCtrl *m_spin_b{nullptr};
     wxSpinCtrl *m_spin_ratio_a{nullptr};

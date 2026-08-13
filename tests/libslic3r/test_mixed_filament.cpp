@@ -80,6 +80,40 @@ TEST_CASE("MixedFilament total_filaments and is_mixed", "[MixedFilament]")
     REQUIRE_FALSE(mgr.is_mixed(7, 4));
 }
 
+TEST_CASE("MixedFilament three pair-mixes on four physicals", "[MixedFilament]")
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions("1,2,1,1,1;1,3,1,1,1;2,3,1,1,1");
+    REQUIRE(mgr.enabled_count() == 3);
+    REQUIRE(mgr.total_filaments(4) == 7);
+    REQUIRE(mgr.is_mixed(5, 4));
+    REQUIRE(mgr.is_mixed(6, 4));
+    REQUIRE(mgr.is_mixed(7, 4));
+    REQUIRE_FALSE(mgr.is_mixed(4, 4));
+    REQUIRE_FALSE(mgr.is_mixed(8, 4));
+
+    // Independent cadences: ID5 1/2, ID6 1/3, ID7 2/3
+    REQUIRE(mgr.resolve(5, 4, 0) == 1);
+    REQUIRE(mgr.resolve(5, 4, 1) == 2);
+    REQUIRE(mgr.resolve(6, 4, 0) == 1);
+    REQUIRE(mgr.resolve(6, 4, 1) == 3);
+    REQUIRE(mgr.resolve(7, 4, 0) == 2);
+    REQUIRE(mgr.resolve(7, 4, 1) == 3);
+
+    const std::string ser = mgr.serialize_definitions();
+    MixedFilamentManager round;
+    round.load_definitions(ser);
+    REQUIRE(round.enabled_count() == 3);
+    REQUIRE(round.total_filaments(4) == 7);
+    REQUIRE(round.resolve(5, 4, 0) == 1);
+    REQUIRE(round.resolve(5, 4, 1) == 2);
+    REQUIRE(round.resolve(6, 4, 0) == 1);
+    REQUIRE(round.resolve(6, 4, 1) == 3);
+    REQUIRE(round.resolve(7, 4, 0) == 2);
+    REQUIRE(round.resolve(7, 4, 1) == 3);
+    REQUIRE(MixedFilamentManager::max_filament_id(ser, 4) == 7);
+}
+
 TEST_CASE("MixedFilament pattern separators normalize", "[MixedFilament]")
 {
     REQUIRE(MixedFilamentManager::normalize_manual_pattern("1-1-2") == "112");

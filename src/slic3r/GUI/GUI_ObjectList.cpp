@@ -6588,9 +6588,20 @@ void ObjectList::OnEditingDone(wxDataViewEvent &event)
 // BBS: remove "const" qualifier
 void ObjectList::set_extruder_for_selected_items(const int extruder)
 {
-    // BBS: check extruder id
-    std::vector<std::string> colors = wxGetApp().plater()->get_extruder_colors_from_plater_config();
-    if (extruder > colors.size())
+    // Virtual mix IDs are physical_count+1 … . Do not reject them for lacking a physical color.
+    const size_t physical_count = wxGetApp().plater()->get_extruder_colors_from_plater_config().size();
+    size_t       max_filament_id = physical_count;
+    if (PresetBundle *bundle = wxGetApp().preset_bundle) {
+        std::string mixed_defs;
+        if (const ConfigOptionString *opt = bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+            mixed_defs = opt->value;
+        if (mixed_defs.empty()) {
+            if (const ConfigOptionString *opt = bundle->prints.get_edited_preset().config.option<ConfigOptionString>("mixed_filament_definitions"))
+                mixed_defs = opt->value;
+        }
+        max_filament_id = MixedFilamentManager::max_filament_id(mixed_defs, physical_count);
+    }
+    if (extruder > int(max_filament_id))
         return;
 
     wxDataViewItemArray sels;

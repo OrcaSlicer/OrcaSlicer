@@ -2,6 +2,7 @@
 
 #include "GUI_App.hpp"
 #include "GUI.hpp"
+#include "GUI_ObjectList.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "Selection.hpp"
@@ -14,6 +15,7 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/button.h>
+#include <wx/listbox.h>
 
 #include <algorithm>
 #include <cmath>
@@ -21,6 +23,48 @@
 
 namespace Slic3r {
 namespace GUI {
+
+namespace {
+
+std::string serialize_mix_row(const MixedFilament &mf)
+{
+    std::string row = std::to_string(mf.component_a) + "," + std::to_string(mf.component_b) + "," +
+                      (mf.enabled ? "1" : "0") + "," + std::to_string(mf.ratio_a) + "," +
+                      std::to_string(mf.ratio_b);
+    const std::string pattern = MixedFilamentManager::normalize_manual_pattern(mf.manual_pattern);
+    if (!pattern.empty())
+        row += "," + pattern;
+    if (std::abs(mf.component_a_surface_offset) > 1e-6)
+        row += ",xa" + std::to_string(mf.component_a_surface_offset);
+    if (std::abs(mf.component_b_surface_offset) > 1e-6)
+        row += ",xb" + std::to_string(mf.component_b_surface_offset);
+    return row;
+}
+
+std::string serialize_enabled_rows(const std::vector<MixedFilament> &rows)
+{
+    std::string joined;
+    for (const MixedFilament &mf : rows) {
+        if (!mf.enabled)
+            continue;
+        if (!joined.empty())
+            joined += ';';
+        joined += serialize_mix_row(mf);
+    }
+    MixedFilamentManager parsed;
+    parsed.load_definitions(joined);
+    return parsed.serialize_definitions();
+}
+
+void assign_extruder(ModelConfig &config, int virtual_id)
+{
+    if (config.has("extruder"))
+        config.set("extruder", virtual_id);
+    else
+        config.set_key_value("extruder", new ConfigOptionInt(virtual_id));
+}
+
+} // namespace
 
 MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     : DPIDialog(parent ? parent : static_cast<wxWindow *>(wxGetApp().mainframe),
@@ -34,6 +78,18 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     SetFont(Label::Body_14);
 
     auto *root = new wxBoxSizer(wxVERTICAL);
+
+    auto *list_row = new wxBoxSizer(wxHORIZONTAL);
+    m_list = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(260), FromDIP(88)));
+    auto *list_btns = new wxBoxSizer(wxVERTICAL);
+    m_btn_add    = new wxButton(this, wxID_ANY, _L("Add"));
+    m_btn_remove = new wxButton(this, wxID_ANY, _L("Remove"));
+    list_btns->Add(m_btn_add, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
+    list_btns->Add(m_btn_remove, 0, wxEXPAND);
+    list_row->Add(m_list, 1, wxEXPAND);
+    list_row->Add(list_btns, 0, wxLEFT, FromDIP(8));
+    root->Add(list_row, 0, wxEXPAND | wxALL, FromDIP(12));
+
     auto *grid = new wxFlexGridSizer(2, FromDIP(6), FromDIP(12));
     grid->AddGrowableCol(1, 1);
 
@@ -61,7 +117,7 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     m_offset_b->SetToolTip(_L("Component B surface offset (mm). Positive contracts. Applied only when Subdivide Mix Layer is off."));
 
     m_enabled      = new wxCheckBox(this, wxID_ANY, _L("Enabled"));
-    m_apply_object = new wxCheckBox(this, wxID_ANY, _L("Apply to selected object"));
+    m_apply_object = new wxCheckBox(this, wxID_ANY, _L("Apply to selected volume"));
     m_enable_tower = new wxCheckBox(this, wxID_ANY, _L("Enable prime tower"));
     m_local_z      = new wxCheckBox(this, wxID_ANY, _L("Subdivide Mix Layer"));
     m_full_domain  = new wxCheckBox(this, wxID_ANY, _L("Full domain"));
@@ -83,7 +139,7 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     add_row(_L("Bias A (mm)"), m_offset_a);
     add_row(_L("Bias B (mm)"), m_offset_b);
 
-    root->Add(grid, 0, wxEXPAND | wxALL, FromDIP(12));
+    root->Add(grid, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
     root->Add(m_enabled, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
     root->Add(m_apply_object, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
     root->Add(m_enable_tower, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
@@ -92,7 +148,9 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     root->Add(m_gradient, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
 
     auto *hint = new wxStaticText(this, wxID_ANY,
-        _L("Creates one virtual mix (physical count + 1). Assign that filament ID to the object. "
+        _L("Creates virtual mixes (physical count + 1, +2, …) for each enabled row. "
+           "Select a mix and apply it to the selected volume; sibling volumes are left unchanged. "
+           "If only an object is selected, the object extruder is set and child volume extruders are kept. "
            "Subdivide Mix Layer + Full domain splits a 0.24 mm 2:1 mix into 0.16 + 0.08 mm. "
            "Save project and reopen to verify persistence."));
     hint->Wrap(FromDIP(360));
@@ -101,9 +159,16 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     auto *btns = CreateStdDialogButtonSizer(wxOK | wxCANCEL);
     root->Add(btns, 0, wxEXPAND | wxALL, FromDIP(8));
 
-    SetSizer(root);
-    root->Fit(this);
+    SetSizerAndFit(root);
     CentreOnParent();
+
+    m_list->Bind(wxEVT_LISTBOX, &MixedFilamentDialog::on_list_select, this);
+    m_btn_add->Bind(wxEVT_BUTTON, &MixedFilamentDialog::on_add_row, this);
+    m_btn_remove->Bind(wxEVT_BUTTON, &MixedFilamentDialog::on_remove_row, this);
+    m_enabled->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &) {
+        store_editors_into_selected_row();
+        refresh_list_labels();
+    });
 
     load_from_config();
 
@@ -117,6 +182,138 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     });
 
     wxGetApp().UpdateDlgDarkUI(this);
+}
+
+size_t MixedFilamentDialog::physical_filament_count() const
+{
+    if (PresetBundle *bundle = wxGetApp().preset_bundle)
+        return bundle->filament_presets.size();
+    return 0;
+}
+
+wxString MixedFilamentDialog::row_label(size_t idx, size_t num_physical) const
+{
+    if (idx >= m_rows.size())
+        return {};
+    const MixedFilament &mf  = m_rows[idx];
+    const wxString       pair = wxString::Format("%u+%u  %d:%d", mf.component_a, mf.component_b, mf.ratio_a, mf.ratio_b);
+    const int            vid  = virtual_id_for_row(idx, num_physical);
+    if (vid > 0)
+        return wxString::Format(_L("Mix %d  %s"), vid, pair);
+    return wxString::Format(_L("(off)  %s"), pair);
+}
+
+int MixedFilamentDialog::virtual_id_for_row(size_t idx, size_t num_physical) const
+{
+    if (idx >= m_rows.size() || !m_rows[idx].enabled || num_physical == 0)
+        return -1;
+    int enabled_index = 0;
+    for (size_t i = 0; i < idx; ++i) {
+        if (m_rows[i].enabled)
+            ++enabled_index;
+    }
+    return int(num_physical) + enabled_index + 1;
+}
+
+void MixedFilamentDialog::refresh_list()
+{
+    m_suppress_events = true;
+    const int keep    = m_selected_row;
+    m_list->Clear();
+    const size_t num_physical = physical_filament_count();
+    for (size_t i = 0; i < m_rows.size(); ++i)
+        m_list->Append(row_label(i, num_physical));
+    if (m_rows.empty()) {
+        m_selected_row = -1;
+    } else if (keep < 0) {
+        m_selected_row = 0;
+        m_list->SetSelection(m_selected_row);
+    } else if (size_t(keep) >= m_rows.size()) {
+        m_selected_row = int(m_rows.size()) - 1;
+        m_list->SetSelection(m_selected_row);
+    } else {
+        m_selected_row = keep;
+        m_list->SetSelection(m_selected_row);
+    }
+    m_suppress_events = false;
+}
+
+void MixedFilamentDialog::refresh_list_labels()
+{
+    const size_t     num_physical = physical_filament_count();
+    const unsigned n              = m_list->GetCount();
+    for (unsigned i = 0; i < n && size_t(i) < m_rows.size(); ++i)
+        m_list->SetString(i, row_label(i, num_physical));
+}
+
+void MixedFilamentDialog::load_selected_row_into_editors()
+{
+    MixedFilament mf;
+    if (m_selected_row >= 0 && size_t(m_selected_row) < m_rows.size())
+        mf = m_rows[size_t(m_selected_row)];
+
+    m_spin_a->SetValue(int(mf.component_a));
+    m_spin_b->SetValue(int(mf.component_b));
+    m_spin_ratio_a->SetValue(mf.ratio_a);
+    m_spin_ratio_b->SetValue(mf.ratio_b);
+    m_enabled->SetValue(mf.enabled);
+    m_pattern->SetValue(wxString::FromUTF8(mf.manual_pattern.c_str()));
+    m_offset_a->SetValue(wxString::FromDouble(double(mf.component_a_surface_offset)));
+    m_offset_b->SetValue(wxString::FromDouble(double(mf.component_b_surface_offset)));
+}
+
+void MixedFilamentDialog::store_editors_into_selected_row()
+{
+    if (m_selected_row < 0 || size_t(m_selected_row) >= m_rows.size())
+        return;
+
+    MixedFilament &mf = m_rows[size_t(m_selected_row)];
+    mf.component_a    = unsigned(std::max(1, m_spin_a->GetValue()));
+    mf.component_b    = unsigned(std::max(1, m_spin_b->GetValue()));
+    mf.ratio_a        = std::max(0, m_spin_ratio_a->GetValue());
+    mf.ratio_b        = std::max(0, m_spin_ratio_b->GetValue());
+    mf.enabled        = m_enabled->GetValue();
+    mf.manual_pattern = MixedFilamentManager::normalize_manual_pattern(into_u8(m_pattern->GetValue()));
+    double offset_a   = 0.0;
+    double offset_b   = 0.0;
+    m_offset_a->GetValue().ToDouble(&offset_a);
+    m_offset_b->GetValue().ToDouble(&offset_b);
+    mf.component_a_surface_offset = float(offset_a);
+    mf.component_b_surface_offset = float(offset_b);
+}
+
+void MixedFilamentDialog::on_list_select(wxCommandEvent &)
+{
+    if (m_suppress_events)
+        return;
+    store_editors_into_selected_row();
+    m_selected_row = m_list->GetSelection();
+    load_selected_row_into_editors();
+    // Labels may change if the previous row's A/B/enabled was edited.
+    refresh_list_labels();
+}
+
+void MixedFilamentDialog::on_add_row(wxCommandEvent &)
+{
+    store_editors_into_selected_row();
+    m_rows.emplace_back();
+    m_selected_row = int(m_rows.size()) - 1;
+    refresh_list();
+    load_selected_row_into_editors();
+}
+
+void MixedFilamentDialog::on_remove_row(wxCommandEvent &)
+{
+    if (m_selected_row < 0 || size_t(m_selected_row) >= m_rows.size())
+        return;
+    m_rows.erase(m_rows.begin() + m_selected_row);
+    if (m_rows.empty()) {
+        m_selected_row = -1;
+    } else if (size_t(m_selected_row) >= m_rows.size()) {
+        m_selected_row = int(m_rows.size()) - 1;
+    }
+    refresh_list();
+    load_selected_row_into_editors();
 }
 
 void MixedFilamentDialog::load_from_config()
@@ -136,18 +333,12 @@ void MixedFilamentDialog::load_from_config()
 
     MixedFilamentManager mgr;
     mgr.load_definitions(serialized);
-    if (mgr.enabled_count() > 0) {
-        const MixedFilament &mf = mgr.mixed_filaments().front();
-        m_spin_a->SetValue(int(mf.component_a));
-        m_spin_b->SetValue(int(mf.component_b));
-        m_spin_ratio_a->SetValue(mf.ratio_a);
-        m_spin_ratio_b->SetValue(mf.ratio_b);
-        m_enabled->SetValue(mf.enabled);
-        if (!mf.manual_pattern.empty())
-            m_pattern->SetValue(wxString::FromUTF8(mf.manual_pattern.c_str()));
-        m_offset_a->SetValue(wxString::FromDouble(double(mf.component_a_surface_offset)));
-        m_offset_b->SetValue(wxString::FromDouble(double(mf.component_b_surface_offset)));
-    }
+    m_rows = mgr.mixed_filaments();
+    if (m_rows.empty())
+        m_rows.emplace_back();
+    m_selected_row = 0;
+    refresh_list();
+    load_selected_row_into_editors();
 
     const DynamicPrintConfig &print_cfg = bundle->prints.get_edited_preset().config;
     if (const ConfigOptionBool *ept = print_cfg.option<ConfigOptionBool>("enable_prime_tower"))
@@ -167,31 +358,8 @@ void MixedFilamentDialog::apply_to_project()
     if (bundle == nullptr || plater == nullptr)
         return;
 
-    const unsigned int component_a = unsigned(std::max(1, m_spin_a->GetValue()));
-    const unsigned int component_b = unsigned(std::max(1, m_spin_b->GetValue()));
-    const int          ratio_a     = std::max(0, m_spin_ratio_a->GetValue());
-    const int          ratio_b     = std::max(0, m_spin_ratio_b->GetValue());
-    const bool         enabled     = m_enabled->GetValue();
-    const std::string  pattern     = MixedFilamentManager::normalize_manual_pattern(into_u8(m_pattern->GetValue()));
-    double             offset_a    = 0.0;
-    double             offset_b    = 0.0;
-    m_offset_a->GetValue().ToDouble(&offset_a);
-    m_offset_b->GetValue().ToDouble(&offset_b);
-
-    std::string serialized;
-    if (enabled) {
-        std::string row = std::to_string(component_a) + "," + std::to_string(component_b) + ",1," +
-                          std::to_string(ratio_a) + "," + std::to_string(ratio_b);
-        if (!pattern.empty())
-            row += "," + pattern;
-        if (std::abs(offset_a) > 1e-6)
-            row += ",xa" + std::to_string(offset_a);
-        if (std::abs(offset_b) > 1e-6)
-            row += ",xb" + std::to_string(offset_b);
-        MixedFilamentManager parsed;
-        parsed.load_definitions(row);
-        serialized = parsed.serialize_definitions();
-    }
+    store_editors_into_selected_row();
+    const std::string serialized = serialize_enabled_rows(m_rows);
 
     // Persist on both print preset and project_config (belt and suspenders).
     DynamicPrintConfig &print_cfg = bundle->prints.get_edited_preset().config;
@@ -204,25 +372,32 @@ void MixedFilamentDialog::apply_to_project()
     print_cfg.set_key_value("dithering_local_z_whole_objects", new ConfigOptionBool(m_full_domain->GetValue()));
     print_cfg.set_key_value("mixed_filament_gradient_mode", new ConfigOptionBool(m_gradient->GetValue()));
 
-    // Virtual ID = physical filament count + 1 for the first enabled mix.
     const size_t num_physical = bundle->filament_presets.size();
-    const int    virtual_id   = int(num_physical) + 1;
+    const int    virtual_id   = (m_selected_row >= 0) ? virtual_id_for_row(size_t(m_selected_row), num_physical) : -1;
 
-    if (m_apply_object->GetValue() && enabled && !plater->model().objects.empty()) {
-        ModelObject *target = nullptr;
+    if (m_apply_object->GetValue() && virtual_id > 0 && !plater->model().objects.empty()) {
+        ModelVolume *volume = nullptr;
+        if (ObjectList *list = wxGetApp().obj_list())
+            volume = list->get_selected_model_volume();
         const Selection &sel = plater->get_selection();
-        const int obj_idx = sel.get_object_idx();
-        if (obj_idx >= 0 && size_t(obj_idx) < plater->model().objects.size())
-            target = plater->model().objects[size_t(obj_idx)];
-        if (target == nullptr)
-            target = plater->model().objects.front();
+        if (volume == nullptr) {
+            int obj_idx = -1;
+            int vol_idx = -1;
+            volume = sel.get_selected_single_volume(obj_idx, vol_idx);
+        }
 
         plater->take_snapshot(std::string("Mixed filament assign"));
-        target->config.set_key_value("extruder", new ConfigOptionInt(virtual_id));
-        // Clear per-volume extruder so object-level mix applies whole-object.
-        for (ModelVolume *mv : target->volumes) {
-            if (mv)
-                mv->config.erase("extruder");
+        if (volume != nullptr) {
+            // Palette path: assign only the selected volume. Do not touch siblings.
+            assign_extruder(volume->config, virtual_id);
+        } else {
+            ModelObject *target = nullptr;
+            const int    obj_idx = sel.get_object_idx();
+            if (obj_idx >= 0 && size_t(obj_idx) < plater->model().objects.size())
+                target = plater->model().objects[size_t(obj_idx)];
+            // Persist mix rows even when nothing is selected. Do not assign objects.front().
+            if (target != nullptr)
+                assign_extruder(target->config, virtual_id);
         }
     }
 
