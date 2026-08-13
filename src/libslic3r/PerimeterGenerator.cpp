@@ -1977,7 +1977,7 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
             ExPolygons unsupported = diff_ex(last, *this->lower_slices, ApplySafetyOffset::Yes);
             if (!unsupported.empty()) {
                 //remove small overhangs
-                ExPolygons unsupported_filtered = offset2_ex(unsupported, double(-perimeter_spacing), double(perimeter_spacing));
+                ExPolygons unsupported_filtered = opening_ex(unsupported, perimeter_spacing);
 
                 if (!unsupported_filtered.empty()) {
                     //to_draw.insert(to_draw.end(), last.begin(), last.end());
@@ -2090,35 +2090,40 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                 //TODO: add other polys as holes inside this one (-margin)
                             } else { // if(this->config->counterbore_hole_bridging.value == chbBridges)
                                 // Orca: Partial counterbore bridging is mask-based. Preserve the supported
-                                // remainder (`last`) and use simplified BridgeDetector coverage to derive the
+                                // remainder and use simplified BridgeDetector coverage to derive the
                                 // bridgeable counterbore span. The span is grown from supported material,
-                                // shrunk back, stripped from `last`, and expanded back. It is then prevented
-                                // from intruding deeper into `last` than the explicit anchor overlap.
-                                // Finally, add the allowed anchor band from `last` then remove the
+                                // shrunk back, stripped from the remaining normal surface, and expanded back.
+                                // It is then prevented from intruding deeper into it than the explicit anchor overlap.
+                                // Finally, add the allowed anchor band from it then remove the
                                 // narrow hole-side wall contact, which must remain unbridgeable.
 
-                                last = diff_ex(last, unsupported_filtered, ApplySafetyOffset::Yes);
+                                const ExPolygons remaining = diff_ex(last, unsupported_filtered, ApplySafetyOffset::Yes);
 
                                 ExPolygons bridgeable_filtered;
+
                                 for (ExPolygon& poly : bridgeable) {
                                     poly.simplify(perimeter_spacing, &bridgeable_filtered);
                                 }
                                 bridgeable_filtered = opening_ex(bridgeable_filtered, ext_perimeter_width);
 
                                 // Get rid of coarseness of the resulted bridgeable area by using the original supported area as reference.
-                                // This is to avoid keeping tiny bridgeable areas that are far from the supported area, or protrude into it. 
-                                bridgeable_filtered = union_ex(offset_ex(last, perimeter_spacing), bridgeable_filtered);
+                                // This is to avoid keeping tiny bridgeable areas that are far from the supported area, or protrude into it.
+                                bridgeable_filtered = union_ex(offset_ex(remaining, perimeter_spacing), bridgeable_filtered);
                                 bridgeable_filtered = offset_ex(bridgeable_filtered, -perimeter_spacing);
-                                bridgeable_filtered = diff_ex(bridgeable_filtered, last, ApplySafetyOffset::Yes);
+                                bridgeable_filtered = diff_ex(bridgeable_filtered, remaining, ApplySafetyOffset::Yes);
                                 bridgeable_filtered = opening_ex(bridgeable_filtered, perimeter_spacing); // filter noise from the diff_ex
                                 bridgeable_filtered = offset_ex(bridgeable_filtered, perimeter_spacing);  // restore the size to the original bridgeable area
                                 // Safety measure: Keep the bridge mask from intruding deeper into the
-                                // supported anchor region (`last`) than the explicit anchor overlap.
-                                bridgeable_filtered = diff_ex(bridgeable_filtered, offset_ex(last, -bridge_anchor_offset));
+                                // supported anchor region than the explicit anchor overlap.
+                                bridgeable_filtered = diff_ex(bridgeable_filtered, offset_ex(remaining, -bridge_anchor_offset));
 
-                                ExPolygons bridge_anchor_areas = intersection_ex(last, offset_ex(unsupported_filtered, bridge_anchor_offset));
+                                ExPolygons bridge_anchor_areas = intersection_ex(remaining, offset_ex(unsupported_filtered, bridge_anchor_offset));
                                 unsupported_filtered = union_ex(bridgeable_filtered, bridge_anchor_areas); // add bridge anchor
                                 unsupported_filtered = opening_ex(unsupported_filtered, bridge_anchor_offset); // remove anchor area from hole-side walls, it must remain unbridgeable
+
+                                // update 'last' only if we have a valid bridgeable area, otherwise we will lose the original unsupported area
+                                if (!unsupported_filtered.empty())
+                                    last = remaining;
                                 // TODO: Fix the case with thin outer walls around the bridge (1~2 walls) where classic wall
                                 // might generate two walls in a tiny space or non at all if "Detect thin walls" is not activated
                             }

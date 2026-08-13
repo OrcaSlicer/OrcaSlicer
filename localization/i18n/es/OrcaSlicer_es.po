@@ -7997,21 +7997,21 @@ msgstr "No se seleccionó el directorio para el reemplazo"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Reemplazado con archivos 3D desde el directorio:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Omitido %1%: mismo archivo.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Omitido %s: mismo archivo.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Omitido %1%: el archivo no existe.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Omitido %s: el archivo no existe.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Omitido %1%: fallo al reemplazar.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Omitido %s: fallo al reemplazar.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Reemplazado %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Reemplazado %s.\n"
 
 msgid "Replaced volumes"
 msgstr "Volúmenes reemplazados"

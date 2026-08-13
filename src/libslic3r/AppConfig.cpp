@@ -626,6 +626,12 @@ void AppConfig::set_defaults()
         set_bool("window_buttons_on_left", false);
 #endif
 
+    if (get("use_printer_agents").empty())
+    {
+        // false = legacy behavior using print hosts
+        set_bool("use_printer_agents", false);
+    }
+
     // Remove legacy window positions/sizes
     erase("app", "main_frame_maximized");
     erase("app", "main_frame_pos");
@@ -877,7 +883,7 @@ std::string AppConfig::load()
                 }
             }
         }
-    } catch(std::exception err) {
+    } catch(const std::exception &err) {
         BOOST_LOG_TRIVIAL(info) << format("parse app config \"%1%\", error: %2%", AppConfig::loading_path(), err.what());
 
         return err.what();

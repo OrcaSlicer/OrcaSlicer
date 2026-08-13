@@ -68,6 +68,7 @@ private:
     bool get_descriptor(const std::string& plugin_key, Slic3r::PluginDescriptor& descriptor) const;
 
     void refresh_plugin_metadata_async(const wxString& title, const wxString& message, bool fetch_cloud);
+    void prompt_for_missing_plugins();
     void refresh_plugins();
     void toggle_plugin(const std::string& plugin_key, bool enabled);
     void toggle_plugin_capability(const std::string& plugin_key, PluginCapabilityType type, const std::string& capability_name, bool enabled);

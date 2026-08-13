@@ -23,14 +23,14 @@ inline coord_t    meshfix_maximum_extrusion_area_deviation() { return scaled<coo
 class WallToolPathsParams
 {
 public:
-    float   min_bead_width;
-    float   min_feature_size;
-    float   min_length_factor;
-    float   wall_transition_length;
-    float   wall_transition_angle;
-    float   wall_transition_filter_deviation;
-    int     wall_distribution_count;
-    bool    is_top_or_bottom_layer;
+    float   min_bead_width                   = 0.f;
+    float   min_feature_size                 = 0.f;
+    float   min_length_factor                = 0.5f;
+    float   wall_transition_length           = 0.f;
+    float   wall_transition_angle            = 10.f;
+    float   wall_transition_filter_deviation = 0.f;
+    int     wall_distribution_count          = 1;
+    bool    is_top_or_bottom_layer           = false;
 
     coord_t wall_maximum_resolution = meshfix_maximum_resolution();
     coord_t wall_maximum_deviation  = meshfix_maximum_deviation();

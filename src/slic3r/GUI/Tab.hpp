@@ -402,6 +402,7 @@ public:
     Field*          get_field(const t_config_option_key &opt_key, Page** selected_page, int opt_index = -1);
     void            toggle_option(const std::string &opt_key, bool toggle, int opt_index = -1);
     void            toggle_line(const std::string &opt_key, bool toggle, int opt_index = -1); // BBS: hide some line
+    void            set_option_label(const std::string &opt_key, const wxString &label, int opt_index = -1);
 	wxSizer*		description_line_widget(wxWindow* parent, ogStaticText** StaticText, wxString text = wxEmptyString);
 	bool			current_preset_is_dirty() const;
 	bool			saved_preset_is_dirty() const;
@@ -674,6 +675,7 @@ public:
 	wxSizer*	create_bed_shape_widget(wxWindow* parent);
 	void		cache_extruder_cnt(const DynamicPrintConfig* config = nullptr);
 	bool		apply_extruder_cnt_from_cache();
+	void		refresh_printer_agent_dropdown() const;
 };
 
 class TabSLAMaterial : public Tab

@@ -12,6 +12,9 @@
 	"filament_max_volumetric_speed": [
 		"18"
 	],
+	"filament_multitool_ramming_flow": [
+		"25"
+	],
 	"slow_down_layer_time": [
 		"4"
 	],

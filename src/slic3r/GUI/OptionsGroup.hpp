@@ -62,6 +62,7 @@ public:
     widget_t	widget {nullptr};
     std::function<wxWindow*(wxWindow*)>	near_label_widget{ nullptr };
 	wxWindow*	near_label_widget_win {nullptr};
+    wxStaticText* label_widget {nullptr};
     wxSizer*	widget_sizer {nullptr};
     wxSizer*	extra_widget_sizer {nullptr};
     //BBS: export the extra colume widget
@@ -80,6 +81,14 @@ public:
 	Line(wxString label, wxString tooltip) :
 		label(_(label)), label_tooltip(_(tooltip)) {}
 	Line() : m_is_separator(true) {}
+
+    void set_label(const wxString& new_label) {
+        label = new_label;
+        if (label_widget != nullptr) {
+            label_widget->SetLabel(label + (label.IsEmpty() ? "" : ": "));
+            label_widget->Refresh();
+        }
+    }
 
 	bool is_separator() const { return m_is_separator; }
 	bool has_only_option(const std::string& opt_key) const { return m_options.size() == 1 && m_options[0].opt_id == opt_key; }
