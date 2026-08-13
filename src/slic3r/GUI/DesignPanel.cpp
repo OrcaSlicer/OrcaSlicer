@@ -3964,6 +3964,10 @@ void DesignPanel::set_ui_mode(UiMode m)
         m_form->FitInside();
     }
     update_action_bar();   // Sketch/Constrain modes show the unified ✓/✗; Feature idle hides it
+    // The origin planes follow the mode: entering Sketch offers them even when a body exists,
+    // leaving it takes them back. Without this they would only refresh on the next tree
+    // rebuild, which is not an event that happens when you merely press Sketch.
+    update_reference_planes();
 }
 
 void DesignPanel::on_shape_changed()
@@ -9510,7 +9514,17 @@ void DesignPanel::update_reference_planes()
     // yet — so they persist through the 2D-sketch phase and reappear after a sketch is confirmed
     // (a sketch creates no body). They no longer block selection: clicking existing geometry wins,
     // a base-plane pick only fires on a click that hit nothing else (see on_mouse fall-through).
-    if (m_doc.bodies.empty())
+    // Available while there is no solid yet OR while the user is actually choosing a sketch
+    // plane. The second half fixes a dead end: delete a sketch on a document that still has a
+    // body, press Sketch, and act_sketch says "click a face or a reference plane" — with the
+    // reference planes already taken away, because a body existed. The instruction was
+    // impossible to follow and there was no way to start a sketch at all short of finding a
+    // face to click.
+    //
+    // Not simply always-on: m_dbp_active both RENDERS and picks, so three translucent planes
+    // would otherwise float over every finished model. Tying them to Sketch mode shows them
+    // exactly when they are the thing being chosen, and hides them again on Finish.
+    if (m_doc.bodies.empty() || m_ui_mode == UiMode::Sketch)
         m_viewport->set_base_pick(std::move(bp), std::move(bi), std::move(bl));
     else
         m_viewport->clear_base_pick();
