@@ -241,6 +241,14 @@ private:
     void        set_hole_target_label(int face);
     void        set_thread_target_label(int face, int edge);
     CadFeature build_candidate(Tool t) const;
+    // Merge per-body ghost meshes with the per-body display transforms applied. The kernel builds
+    // a ghost from the untransformed bodies, so without this it floats back at the origin once a
+    // body has been moved.
+    TriangleMesh ghost_from_bodies(const std::vector<TriangleMesh>& per_body) const;
+    // A mate makes no new geometry but it MOVES a body, and the moved assembly is the ghost worth
+    // showing. Used both by the Mate card and by hovering a row of the offer's mate palette.
+    bool       show_mate_ghost(int kind, int cs_a, int cs_b,
+                               double offset, double angle_deg, bool flip, std::string& err);
     int        resolve_extrude_sketch() const;
     // Plane pickers: fill a choice with XY/XZ/YZ + the document's datum planes, and
     // map a choice row back to the actual SketchPlane (rows 0-2 base, 3+ datum).

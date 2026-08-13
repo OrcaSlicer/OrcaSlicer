@@ -5591,6 +5591,9 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     // which assembly mates a connector pair admits. Shown only when the document holds at least
     // two ENABLED CoordSys features: below that the whole section would be one permanently dead
     // row, which is noise rather than information.
+    // Set while a hovered mate row is showing its ghost, so the cleanup after PopupMenu can tell
+    // "I put that there" from "some other tool's preview was already on screen".
+    bool             mate_ghost = false;
     std::vector<int> cs_features;
     for (int i = 0; i < int(m_doc.features.size()); ++i)
         if (m_doc.features[i].type == CadFeatureType::CoordSys && m_doc.features[i].enabled)
@@ -5646,9 +5649,31 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
             menu.Append(mate_base + 1 + i, label)->Enable(o.viable);
         }
 
-        menu.Bind(wxEVT_MENU, [this, cs_a, cs_b, opts, mate_base](wxCommandEvent& e) {
+        // Hovering a row shows the RESULT, not a description of it (epic gap G3). preview() moves
+        // the body on a throwaway copy of the document, so nothing is written until the click —
+        // the "commit nothing until you choose" behaviour the palette was asked for.
+        auto drop_ghost = [this, &mate_ghost]() {
+            if (!mate_ghost) return;
+            m_viewport->clear_preview();
+            m_viewport->set_body_hidden(false);
+            m_viewport->request_repaint();
+            mate_ghost = false;
+        };
+        menu.Bind(wxEVT_MENU_HIGHLIGHT,
+                  [this, cs_a, cs_b, opts, mate_base, &mate_ghost, drop_ghost](wxMenuEvent& e) {
+            const int i = e.GetMenuId() - (mate_base + 1);
+            // Off the palette (a verb row, the header, or nothing) — a stale ghost from the row
+            // you just left is worse than none, so it goes as soon as the cursor does.
+            if (i < 0 || i >= int(opts.size()) || !opts[i].viable) { drop_ghost(); return; }
+            std::string err;
+            mate_ghost = show_mate_ghost(opts[i].kind, cs_a, cs_b, 0.0, 0.0, false, err);
+            m_viewport->request_repaint();
+        });
+
+        menu.Bind(wxEVT_MENU, [this, cs_a, cs_b, opts, mate_base, drop_ghost](wxCommandEvent& e) {
             const int i = e.GetId() - (mate_base + 1);
             if (i < 0 || i >= int(opts.size()) || !opts[i].viable) return;
+            drop_ghost();         // the real bodies are about to become the ghost's pose
             m_doc.checkpoint();   // undo boundary: committing a mate from the offer
             int idx = m_doc.add_mate(opts[i].kind, cs_a, cs_b, 0.0, 0.0, false,
                                      "Mate" + std::to_string(++m_feature_counter));
@@ -5682,6 +5707,14 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
             run_offer_action(bound[i]->action);
     });
     PopupMenu(&menu, ScreenToClient(screen_pos));
+    // PopupMenu is modal, so by here the menu is gone and any command it raised has already run.
+    // A hover ghost that outlived the menu it belonged to would leave the committed bodies hidden
+    // behind a preview nothing can dismiss — bind nothing to the close event, just clean up here.
+    if (mate_ghost) {
+        m_viewport->clear_preview();
+        m_viewport->set_body_hidden(false);
+        m_viewport->request_repaint();
+    }
 }
 
 void DesignPanel::apply_plane_refs(CadFeature& f) const
@@ -9355,6 +9388,44 @@ void DesignPanel::update_reference_planes()
         m_viewport->clear_base_pick();
 }
 
+TriangleMesh DesignPanel::ghost_from_bodies(const std::vector<TriangleMesh>& per_body) const
+{
+    TriangleMesh out;
+    for (size_t b = 0; b < per_body.size(); ++b) {
+        TriangleMesh m = per_body[b];
+        if (b < m_body_xform.size()) m.transform(m_body_xform[b]);
+        out.merge(m);
+    }
+    return out;
+}
+
+bool DesignPanel::show_mate_ghost(int kind, int cs_a, int cs_b,
+                                  double offset, double angle_deg, bool flip, std::string& err)
+{
+    CadFeature cand;
+    cand.type        = CadFeatureType::Mate;
+    cand.mate_kind   = kind;
+    cand.mate_cs_a   = cs_a;
+    cand.mate_cs_b   = cs_b;
+    cand.mate_offset = offset;
+    cand.mate_angle  = angle_deg;
+    cand.mate_flip   = flip;
+
+    TriangleMesh              mesh;
+    std::vector<TriangleMesh> pbm;
+    if (!m_doc.preview(cand, mesh, pbm, err)) {
+        m_viewport->clear_preview();
+        m_viewport->set_body_hidden(false);
+        return false;
+    }
+    m_viewport->set_preview_mesh(ghost_from_bodies(pbm));
+    // The ghost is the WHOLE assembly in its post-mate pose, not an added lump, so the committed
+    // bodies have to go: left visible they would draw the mated body in both places at once and
+    // z-fight everything else against its own copy. Same reason Dressup and Draft hide them.
+    m_viewport->set_body_hidden(true);
+    return true;
+}
+
 void DesignPanel::refresh_preview()
 {
     if (m_active == Tool::None) { m_viewport->clear_preview(); return; }
@@ -9386,23 +9457,44 @@ void DesignPanel::refresh_preview()
     }
 
     if (m_active == Tool::Mate) {
-        // Mate has no 3D ghost — it is an assembly constraint driven by CoordSys features.
-        // Confirm must be disabled when <2 CoordSys exist or when A == B.
-        m_viewport->clear_preview();
+        // A mate produces no NEW geometry, but it MOVES a body — and the moved assembly is
+        // exactly the ghost worth showing. This branch used to clear the preview outright,
+        // saying a mate has no 3D ghost; the kernel had no such opinion (preview() routes a
+        // Mate candidate through apply_mate on a throwaway copy), so that one line was the
+        // whole of gap G3. The card's own gate stays: Confirm is disabled when <2 CoordSys
+        // exist or when A == B, because neither of those is a kernel error, only an unfinished
+        // form, and the kernel's message for them would be worse than these.
         const bool has_two = m_mate_cs_a && m_mate_cs_a->GetCount() >= 2;
         const int sel_a = has_two ? m_mate_cs_a->GetSelection() : wxNOT_FOUND;
         const int sel_b = has_two ? m_mate_cs_b->GetSelection() : wxNOT_FOUND;
         const bool same = has_two && sel_a != wxNOT_FOUND && sel_b != wxNOT_FOUND && sel_a == sel_b;
         bool ok = has_two && !same;
         if (!has_two) {
+            m_viewport->clear_preview();
+            m_viewport->set_body_hidden(false);   // the ghost replaced them; give them back
             m_status->SetForegroundColour(wxColour(235, 110, 110));
             set_status(_L("Mate needs at least two CoordSys features"));
         } else if (same) {
+            m_viewport->clear_preview();
+            m_viewport->set_body_hidden(false);
             m_status->SetForegroundColour(wxColour(235, 110, 110));
             set_status(_L("Mate: CS A and CS B must be different"));
         } else {
-            m_status->SetForegroundColour(wxColour(120, 210, 120));
-            set_status(_L("Mate ready"));
+            sync_body_xform();   // same reason as the solid path below: drop stale per-body poses
+            const int cs_a = int(reinterpret_cast<intptr_t>(m_mate_cs_a->GetClientData(sel_a)));
+            const int cs_b = int(reinterpret_cast<intptr_t>(m_mate_cs_b->GetClientData(sel_b)));
+            std::string err;
+            ok = show_mate_ghost(m_mate_kind ? m_mate_kind->GetSelection() : 0, cs_a, cs_b,
+                                 m_mate_offset ? m_mate_offset->GetValue() : 0.0,
+                                 m_mate_angle  ? m_mate_angle->GetValue()  : 0.0,
+                                 m_mate_flip   && m_mate_flip->GetValue(), err);
+            if (ok) {
+                m_status->SetForegroundColour(wxColour(120, 210, 120));
+                set_status(_L("Mate ready"));
+            } else {
+                m_status->SetForegroundColour(wxColour(235, 110, 110));
+                set_status(_L("Invalid: ") + wxString::FromUTF8(err));
+            }
         }
         for (wxButton* b : m_confirm_btns) if (b) b->Enable(ok);
         m_status->Refresh();
@@ -9424,15 +9516,7 @@ void DesignPanel::refresh_preview()
     // The body is displayed through its per-body Move transform (m_body_xform); the ghost is
     // built from the untransformed kernel, so without this it floats back at the origin once a
     // body has been moved. Re-merge the per-body ghost meshes with the same transforms applied.
-    auto ghost_from = [this](const std::vector<TriangleMesh>& pbm) -> TriangleMesh {
-        TriangleMesh out;
-        for (size_t b = 0; b < pbm.size(); ++b) {
-            TriangleMesh m = pbm[b];
-            if (b < m_body_xform.size()) m.transform(m_body_xform[b]);
-            out.merge(m);
-        }
-        return out;
-    };
+    auto ghost_from = [this](const std::vector<TriangleMesh>& pbm) { return ghost_from_bodies(pbm); };
 
     const bool editing_single = (m_edit_index >= 0);
     if (editing_single) {
