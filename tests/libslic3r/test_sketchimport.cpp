@@ -2,25 +2,31 @@
 
 #include "libslic3r/SketchImport.hpp"
 #include "libslic3r/Utils.hpp"   // resources_dir
+#include "test_utils.hpp"        // ScopedTemporaryFile
 
 #include <fstream>
 #include <string>
 
 using namespace Slic3r;
 
+// A 10x10 mm filled square, on disk because nanosvg reads from a file. The path
+// must come from the system temp dir: a hardcoded /tmp is not writable on
+// Windows, where the stream fails silently and the parse then sees no file.
+static void write_square_svg(const std::string& path)
+{
+    std::ofstream f(path);
+    f << "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10mm\" height=\"10mm\" "
+         "viewBox=\"0 0 10 10\">"
+         "<path d=\"M0,0 L10,0 L10,10 L0,10 Z\" fill=\"#000000\"/></svg>";
+    REQUIRE(f.good());
+}
+
 TEST_CASE("svg_to_regions parses a filled path into a region", "[SketchImport]")
 {
-    // A 10x10 mm filled square. Written to a temp file because nanosvg reads
-    // from disk.
-    const std::string path = "/tmp/snaporca_test_square.svg";
-    {
-        std::ofstream f(path);
-        f << "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10mm\" height=\"10mm\" "
-             "viewBox=\"0 0 10 10\">"
-             "<path d=\"M0,0 L10,0 L10,10 L0,10 Z\" fill=\"#000000\"/></svg>";
-    }
+    ScopedTemporaryFile square(".svg");
+    write_square_svg(square.string());
 
-    ImportRegions regs = svg_to_regions(path, 1.0);
+    ImportRegions regs = svg_to_regions(square.string(), 1.0);
     REQUIRE(regs.size() >= 1);
     // Outer contour present with at least a few vertices.
     REQUIRE(regs[0].size() >= 1);
@@ -38,9 +44,13 @@ TEST_CASE("svg_to_regions parses a filled path into a region", "[SketchImport]")
 
 TEST_CASE("svg_to_regions rejects bad input gracefully", "[SketchImport]")
 {
+    ScopedTemporaryFile square(".svg");
+    write_square_svg(square.string());
+    ScopedTemporaryFile missing(".svg");   // name reserved, never written
+
     REQUIRE(svg_to_regions("", 1.0).empty());
-    REQUIRE(svg_to_regions("/tmp/snaporca_does_not_exist.svg", 1.0).empty());
-    REQUIRE(svg_to_regions("/tmp/snaporca_test_square.svg", 0.0).empty()); // scale<=0
+    REQUIRE(svg_to_regions(missing.string(), 1.0).empty());
+    REQUIRE(svg_to_regions(square.string(), 0.0).empty()); // scale<=0
 }
 
 TEST_CASE("transform_regions moves and scales independently", "[SketchImport]")
