@@ -8,6 +8,8 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
+#include "test_utils.hpp"
+
 #include <algorithm>
 #include <map>
 #include <set>
@@ -708,10 +710,9 @@ TEST_CASE("Sequential selector prints publish a stitched result and cache the pl
     REQUIRE(print.config().filament_self_index.values.size() >= print.config().filament_map.values.size());
 
     // Export must consume the cached plans and produce g-code without throwing.
-    boost::filesystem::path gcode_path = boost::filesystem::temp_directory_path() / "orca_seq_dynamic_publish_test.gcode";
-    REQUIRE_NOTHROW(print.export_gcode(gcode_path.string(), nullptr, nullptr));
-    REQUIRE(boost::filesystem::exists(gcode_path));
-    boost::filesystem::remove(gcode_path);
+    ScopedTemporaryFile gcode(".gcode");
+    REQUIRE_NOTHROW(print.export_gcode(gcode.string(), nullptr, nullptr));
+    REQUIRE(boost::filesystem::exists(gcode.path()));
 }
 
 TEST_CASE("Per-variant expansion gives migrating filaments one slot per variant", "[PrintConfig][H2C][Dynamic]")

@@ -8028,21 +8028,21 @@ msgstr "未选择替换目录"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "替换为目录中的 3D 文件：\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ 跳过 %1%：同一文件。\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ 跳过 %s：同一文件。\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ 跳过%1%：文件不存在。\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ 跳过%s：文件不存在。\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ 跳过%1%：替换失败。\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ 跳过%s：替换失败。\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ 替换了 %1%。\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ 替换了 %s。\n"
 
 msgid "Replaced volumes"
 msgstr "替换的卷"

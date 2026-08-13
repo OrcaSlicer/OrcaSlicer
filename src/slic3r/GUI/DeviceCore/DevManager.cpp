@@ -15,6 +15,18 @@
 
 using namespace nlohmann;
 
+namespace {
+    // Orca: access_code and user_access_code used to be separate AppConfig keys before the two
+    // fields were merged; fall back to the legacy key so existing users' saved codes aren't lost.
+    std::string get_access_code_with_legacy_fallback(Slic3r::AppConfig* config, const std::string& dev_id)
+    {
+        std::string code = config->get("access_code", dev_id);
+        if (code.empty())
+            code = config->get("user_access_code", dev_id);
+        return code;
+    }
+}
+
 namespace Slic3r
 {
     DeviceManager::DeviceManager(NetworkAgent* agent)
@@ -48,8 +60,7 @@ namespace Slic3r
             obj->bind_sec_link       = "secure";
             obj->m_is_online         = true;
             obj->last_alive          = Slic3r::Utils::get_current_time_utc();
-            obj->set_access_code(config->get("access_code", m.dev_id), false);
-            obj->set_user_access_code(config->get("user_access_code", m.dev_id), false);
+            obj->set_access_code(get_access_code_with_legacy_fallback(config, m.dev_id), false);
             if (obj->has_access_right()) {
                 localMachineList.insert(std::make_pair(m.dev_id, obj));
             } else {
@@ -339,8 +350,7 @@ namespace Slic3r
                 //load access code
                 AppConfig* config = Slic3r::GUI::wxGetApp().app_config;
                 if (config) {
-                    obj->set_access_code(Slic3r::GUI::wxGetApp().app_config->get("access_code", dev_id), false);
-                    obj->set_user_access_code(Slic3r::GUI::wxGetApp().app_config->get("user_access_code", dev_id), false);
+                    obj->set_access_code(get_access_code_with_legacy_fallback(config, dev_id), false);
                 }
                 localMachineList.insert(std::make_pair(dev_id, obj));
 
@@ -382,7 +392,6 @@ namespace Slic3r
         obj->m_is_online = true;
         obj->last_alive = Slic3r::Utils::get_current_time_utc();
         obj->set_access_code(access_code, false);
-        obj->set_user_access_code(access_code, false);
 
         update_local_machine(*obj);
 
@@ -496,6 +505,26 @@ namespace Slic3r
         OnSelectedMachineChanged(previous_selected_machine, selected_machine);
     }
 
+    void DeviceManager::clear_other_devices()
+    {
+        // why: on agent swap, keep "My Devices" but drop the transient "Other Devices"
+        // Those belong to the previous agent's network scan; the new agent's start_discovery re-populates its own.
+        const auto my = get_my_machine_list();
+        for (auto it = localMachineList.begin(); it != localMachineList.end();)
+        {
+            if (my.find(it->first) == my.end())
+            {
+                // not a "My Device" -> an "Other Device"
+                delete it->second;
+                it = localMachineList.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+
     bool DeviceManager::set_selected_machine(std::string dev_id)
     {
         BOOST_LOG_TRIVIAL(info) << "set_selected_machine=" << dev_id
@@ -558,7 +587,6 @@ namespace Slic3r
             }
             else
             {
-                Slic3r::GUI::wxGetApp().reset_unsigned_plugin_warning();
                 if (m_agent)
                 {
                     if (it->second->connection_type() != "lan" || it->second->connection_type().empty())
@@ -851,7 +879,9 @@ namespace Slic3r
         int result = m_agent->get_user_print_info(&http_code, &body, provider);
         if (result == 0)
         {
-            parse_user_print_info(body);
+            // parse_user_print_info and on_machine_alive (SSDP for discovery) both mutate the same userMachineList map.
+            // on_machine_alive mutates the map on the UI thread, do the same for parse_user_print_info.
+            Slic3r::GUI::wxGetApp().CallAfter([this, body]() { parse_user_print_info(body); });
         }
     }
 
@@ -878,17 +908,15 @@ namespace Slic3r
 
     void DeviceManager::load_last_machine()
     {
-        if (userMachineList.empty()) return;
-        else if (userMachineList.size() == 1) {
-            this->set_selected_machine(userMachineList.begin()->second->get_dev_id());
-        } else {
-            const auto& last_monitor_machine = get_user_last_machine();
-            if (userMachineList.find(last_monitor_machine) != userMachineList.end()) {
-                set_selected_machine(last_monitor_machine);
-            } else {
-                this->set_selected_machine(userMachineList.begin()->second->get_dev_id());
-            }
-        }
+        // Only reconnect the remembered cloud machine. Do not select an arbitrary
+        // first machine: agent swaps intentionally leave the selection empty until
+        // the new agent explicitly selects its configured printer.
+        if (userMachineList.empty())
+            return;
+
+        const auto& last_monitor_machine = get_user_last_machine();
+        if (userMachineList.find(last_monitor_machine) != userMachineList.end())
+            set_selected_machine(last_monitor_machine);
     }
 
     void DeviceManager::OnMachineBindStateChanged(MachineObject* obj, const std::string& new_state)

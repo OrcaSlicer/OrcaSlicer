@@ -5926,8 +5926,11 @@ void GCodeProcessor::process_G10(const GCodeReader::GCodeLine& line)
     GCodeReader::GCodeLine g10;
     g10.set(Axis::E, -this->m_parser.config().retraction_length.get_at(m_extruder_id));
     g10.set(Axis::F,  this->m_parser.config().retraction_speed.get_at(m_extruder_id) * 60);
+    //Orca: Firmware retract emulation must not change the modal G1 feedrate.
+    const float feedrate = m_feedrate;
     --m_g1_line_id;
     process_G1(g10);
+    m_feedrate = feedrate;
 }
 
 void GCodeProcessor::process_G11(const GCodeReader::GCodeLine& line)
@@ -5936,8 +5939,11 @@ void GCodeProcessor::process_G11(const GCodeReader::GCodeLine& line)
     GCodeReader::GCodeLine g11;
     g11.set(Axis::E, this->m_parser.config().retraction_length.get_at(m_extruder_id) + this->m_parser.config().retract_restart_extra.get_at(m_extruder_id));
     g11.set(Axis::F, this->m_parser.config().deretraction_speed.get_at(m_extruder_id) * 60);
+    // Orca: Firmware unretract emulation must not change the modal G1 feedrate.
+    const float feedrate = m_feedrate;
     --m_g1_line_id;
     process_G1(g11);
+    m_feedrate = feedrate;
 }
 
 void GCodeProcessor::process_G20(const GCodeReader::GCodeLine& line)

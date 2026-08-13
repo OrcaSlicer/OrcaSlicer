@@ -113,14 +113,7 @@ public:
         update_dark_ui(this);
 #endif
 
-        // Linux specific issue : get_dpi_for_window(this) still doesn't responce to the Display's scale in new wxWidgets(3.1.3).
-        // So, calculate the m_em_unit value from the font size, as before
-#if !defined(__WXGTK__)
-        m_em_unit = std::max<size_t>(10, 10.0f * m_scale_factor);
-#else
-        // initialize default width_unit according to the width of the one symbol ("m") of the currently active font of this window.
-        m_em_unit = std::max<size_t>(10, this->GetTextExtent("m").x - 1);
-#endif // __WXGTK__
+        update_em_unit();
 
 //        recalc_font();
 
@@ -235,6 +228,19 @@ private:
 //         m_em_unit = metrics.averageWidth;
 //    }
 
+    // update em_unit value for new window font
+    void update_em_unit()
+    {
+        // Linux specific issue : get_dpi_for_window(this) still doesn't responce to the Display's scale in new wxWidgets(3.1.3).
+        // So, calculate the m_em_unit value from the font size, as before
+#if !defined(__WXGTK__)
+        m_em_unit = std::max<size_t>(10, 10.0f * m_scale_factor);
+#else
+        // initialize default width_unit according to the width of the one symbol ("m") of the currently active font of this window.
+        m_em_unit = std::max<size_t>(10, this->GetTextExtent("m").x - 1);
+#endif // __WXGTK__
+    }
+
     // check if new scale is differ from previous
     bool    is_new_scale_factor() const { return fabs(m_scale_factor - m_prev_scale_factor) > 0.001; }
 
@@ -247,8 +253,7 @@ private:
         // set normal application font as a current window font
         m_normal_font = this->GetFont();
 
-        // update em_unit value for new window font
-        m_em_unit = std::max<int>(10, 10.0f * m_scale_factor);
+        update_em_unit();
 
         // rescale missed controls sizes and images
         on_dpi_changed(suggested_rect);
