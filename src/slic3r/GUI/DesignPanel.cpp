@@ -4135,6 +4135,27 @@ static void run_off_ui_thread(wxWindow* parent, const wxString& message, const s
 // goes through recompute(), and on a heavy imported solid that is seconds of OCCT work — inline
 // it freezes the window. OCCT throws Standard_Failure, which is not a std::exception and would
 // terminate the process if it escaped the worker, so both are caught here.
+// Keep the Model's copy of the recipe in step with the document.
+//
+// This used to be written in exactly ONE place — on_commit(), as a side effect of Commit to
+// Plate — so a user who modelled for an hour and pressed Ctrl+S saved a project containing no
+// feature history at all, and the app reported success (snaporca-vjk5). The 3MF exporter was
+// never at fault: nothing had handed it a recipe.
+//
+// Every save path (Ctrl+S, Save As, autosave, crash recovery) reads model.cad_recipe, so
+// keeping it current after each document change is what makes all of them correct at once,
+// rather than teaching each one to ask the Design tab. Commit to Plate means "send this to the
+// slicer"; making saving depend on it was the bug, not the cure.
+//
+// Cost is a serialization per recompute — tens of KB against an OCCT rebuild that just ran.
+void DesignPanel::sync_recipe_to_model()
+{
+    Plater* plater = wxGetApp().plater();
+    if (plater == nullptr) return;
+    // An empty document CLEARS it, so a non-CAD project never carries a stale recipe.
+    plater->model().cad_recipe = m_doc.features.empty() ? std::string() : m_doc.serialize_recipe();
+}
+
 bool DesignPanel::recompute_guarded(const wxString& message)
 {
     bool ok = false;
@@ -4150,6 +4171,9 @@ bool DesignPanel::recompute_guarded(const wxString& message)
             ok = false;
         }
     });
+    // Only on success: a failed recompute leaves the document mid-edit, and persisting that
+    // would save a model the user never had.
+    if (ok) sync_recipe_to_model();
     return ok;
 }
 
@@ -6482,6 +6506,7 @@ void DesignPanel::after_tree_edit(bool ok)
         m_status->Refresh();
         return;
     }
+    sync_recipe_to_model();   // deletes, reorders and suppressions change the document too
     m_status->SetForegroundColour(wxNullColour);
     if (m_doc.display_mesh.its.indices.empty()) {
         if (m_viewport != nullptr) m_viewport->clear_mesh();
@@ -8593,9 +8618,7 @@ void DesignPanel::on_commit()
     // Persist the editable parametric recipe alongside the committed meshes so the
     // saved 3MF reopens with the full feature tree, not just the baked solid. An empty
     // doc clears it, keeping non-CAD projects clean.
-    if (Plater* plater = wxGetApp().plater())
-        plater->model().cad_recipe =
-            m_doc.features.empty() ? std::string() : m_doc.serialize_recipe();
+    sync_recipe_to_model();
 
     if (wxGetApp().mainframe != nullptr)
         wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
