@@ -5378,7 +5378,7 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
         f_multiplier.resize(nozzle_nums, 1.f);
     }
 
-    if ( (num_filaments * num_filaments) != size_t(old_matrix.size() / old_nozzle_nums) ) {
+    if (old_matrix.size() != num_filaments * num_filaments * nozzle_nums) {
         // First verify if purging volumes presets for each extruder matches number of extruders
         std::vector<double>& filaments = this->project_config.option<ConfigOptionFloats>("flush_volumes_vector")->values;
         while (filaments.size() < 2* num_filaments) {

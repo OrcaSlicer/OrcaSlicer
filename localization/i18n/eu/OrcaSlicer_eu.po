@@ -12013,11 +12013,11 @@ msgstr "Purgatze-dorreak euskarriak objektuaren geruza-altuera bera izatea eskat
 
 # AI Translated
 msgid "For Organic supports, two walls are supported only with the Hollow/Default base pattern."
-msgstr "Euskarri organikoetan, bi horma Hollow/Default oinarri-patroiarekin soilik onartzen dira."
+msgstr "Euskarri organikoetan, bi horma Hutsa/Lehenetsia oinarri-patroiarekin soilik onartzen dira."
 
 # AI Translated
 msgid "The Lightning base pattern is not supported by this support type; Rectilinear will be used instead."
-msgstr "Lightning oinarri-patroia ez du euskarri mota honek onartzen; Rectilinear erabiliko da horren ordez."
+msgstr "Tximista oinarri-patroia ez du euskarri mota honek onartzen; Lerrozuzena erabiliko da horren ordez."
 
 msgid "Organic support tree tip diameter must not be smaller than support material extrusion width."
 msgstr "Euskarri organikoaren zuhaitz-muturraren diametroak ezin du izan euskarri-materialaren estrusio-zabalera baino txikiagoa."
@@ -12030,7 +12030,7 @@ msgstr "Euskarri organikoaren adar-diametroak ezin du izan euskarri-zuhaitzaren 
 
 # AI Translated
 msgid "The Hollow base pattern is not supported by this support type; Rectilinear will be used instead."
-msgstr "Hollow oinarri-patroia ez du euskarri mota honek onartzen; Rectilinear erabiliko da horren ordez."
+msgstr "Hutsa oinarri-patroia ez du euskarri mota honek onartzen; Lerrozuzena erabiliko da horren ordez."
 
 msgid "Support enforcers are used but support is not enabled. Please enable support."
 msgstr "Euskarri-behartzaileak erabiltzen dira, baina euskarria ez dago gaituta. Gaitu euskarriak."
@@ -13252,7 +13252,7 @@ msgstr "Moderatua"
 
 # AI Translated
 msgid "Top surface pattern"
-msgstr "Goiko gainazalaren patroia"
+msgstr "Goiko gainazaleko patroia"
 
 # AI Translated
 msgid "This is the line pattern for top surface infill."
@@ -13265,13 +13265,13 @@ msgid "Monotonic line"
 msgstr "Lerro monotonikoa"
 
 msgid "Rectilinear"
-msgstr "Rectilinear"
+msgstr "Lerrozuzena"
 
 msgid "Aligned Rectilinear"
 msgstr "Lerrozuzen lerrokatua"
 
 msgid "Concentric"
-msgstr "Concentric"
+msgstr "Kontzentrikoa"
 
 msgid "Hilbert Curve"
 msgstr "Hilbert kurba"
@@ -13337,7 +13337,7 @@ msgstr "Kanporantz"
 
 # AI Translated
 msgid "Bottom surface pattern"
-msgstr "Beheko gainazalaren patroia"
+msgstr "Beheko gainazaleko patroia"
 
 # AI Translated
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
@@ -13362,7 +13362,7 @@ msgid ""
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Gaineko gainazalak betetzen diren noranzkoa zentroan oinarritutako patroia erabiltzen denean (Konzentrikoa, Arkimedeen Akordeak, Oktograma Espirala).\n"
+"Goiko gainazalak betetzen diren noranzkoa zentroan oinarritutako patroia erabiltzen denean (Kontzentrikoa, Arkimedesen kordak, Oktagrama-kiribila).\n"
 "Kanporanzkoa erdialdean hasten da, beraz, gehiegizko materiala gutxien ikusten den ertzera bultzatzen da. Barruranzkoa ertzean hasten da eta erdian kurba estuekin amaitzen da.\n"
 "Lehenetsiak bide laburreneko ordena erabiltzen du, zeina norabide batean zein bestean ibil daitekeen."
 
@@ -13375,7 +13375,7 @@ msgid ""
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Beheko gainazalak betetzen diren noranzkoa zentroan oinarritutako patroia erabiltzen denean (Konzentrikoa, Arkimedeen Akordeak, Oktograma Espirala).\n"
+"Beheko gainazalak betetzen diren noranzkoa zentroan oinarritutako patroia erabiltzen denean (Kontzentrikoa, Arkimedesen kordak, Oktagrama-kiribila).\n"
 "Barruranzkoa hasten da gainazal bakoitza kanpoko kurba zabalagoekin, eta horrek lehen geruzaren atxikimendua hobetzen du erdiko kurba estuak itsatsi ez daitezkeen inprimatze-plaketan. Kanporanzkoa erdialdean hasten da, gehiegizko materiala ertzera bultzatuz.\n"
 "Lehenetsiak bide laburreneko ordena erabiltzen du, zeina norabide batean zein bestean ibil daitekeen."
 
@@ -16431,9 +16431,9 @@ msgid ""
 msgstr ""
 "Euskarriaren lerro-patroia.\n"
 "\n"
-"Zuhaitz-euskarrien aukera lehenetsia Hutsa da, hau da, ez dago oinarri-patroirik. Beste euskarri motetarako, aukera lehenetsia patroi zuzenekoa da.\n"
+"Zuhaitz-euskarrien aukera lehenetsia Hutsa da, hau da, ez dago oinarri-patroirik. Beste euskarri motetarako, aukera lehenetsia patroi lerrozuzena da.\n"
 "\n"
-"OHARRA: Euskarri organikoetan, bi hormak Hutsa/Lehenetsia oinarri-patroiarekin bakarrik onartzen dira. Tximistetan oinarritutako patroia Zuhaitz mehea/Indartsua/Hibridoa euskarriek bakarrik onartzen dute. Beste euskarri motetarako, Zuzenekoa erabiliko da Tximistenaren ordez."
+"OHARRA: Euskarri organikoetan, bi hormak Hutsa/Lehenetsia oinarri-patroiarekin bakarrik onartzen dira. Tximista oinarri-patroia Zuhaitz mehea/Indartsua/Hibridoa euskarriek bakarrik onartzen dute. Beste euskarri motetarako, Lerrozuzena erabiliko da Tximistaren ordez."
 
 msgid "Rectilinear grid"
 msgstr "Sare lerrozuzena"
@@ -16713,7 +16713,7 @@ msgid ""
 " - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
 " - Each Assembly: uses a single shared center for the whole object or assembly."
 msgstr ""
-"Goiko eta beheko gainazaleko patroi zentratuen (Arkimedesen kordak, Oktagrama-espirala) zentroa non kokatzen den aukeratzen du.\n"
+"Goiko eta beheko gainazaleko patroi zentratuen (Arkimedesen kordak, Oktagrama-kiribila) zentroa non kokatzen den aukeratzen du.\n"
 " - Gainazal bakoitza: patroia gainazal-eskualde bakoitzean zentratzen du, uharte bakoitza bere kabuz simetrikoa izan dadin.\n"
 " - Modelo bakoitza: patroia konektatutako gorputz bakoitzean zentratzen du. Elkar ukitzen edo gainjartzen diren piezek zentro bera partekatzen dute; gainerakoetatik bereizitako piezek beren zentroa dute.\n"
 " - Muntaketa bakoitza: zentro partekatu bakarra erabiltzen du objektu edo muntaketa osorako."
@@ -17144,7 +17144,7 @@ msgid "Detect narrow internal solid infills"
 msgstr "Detektatu barruko betegarri solido estua"
 
 msgid "This option will auto-detect narrow internal solid infill areas. If enabled, the concentric pattern will be used for the area to speed up printing. Otherwise, the rectilinear pattern will be used by default."
-msgstr "Aukera honek barruko betegarri solido estuko eremuak automatikoki detektatuko ditu. Gaituta badago, eremu horretan patroi zentrokidea erabiliko da inprimaketa azkartzeko. Bestela, patroi lerrozuzena erabiliko da lehenespenez."
+msgstr "Aukera honek barruko betegarri solido estuko eremuak automatikoki detektatuko ditu. Gaituta badago, eremu horretan patroi kontzentrikoa erabiliko da inprimaketa azkartzeko. Bestela, patroi lerrozuzena erabiliko da lehenespenez."
 
 msgid "invalid value "
 msgstr "balio baliogabea "
@@ -18703,7 +18703,7 @@ msgstr "YOLO (perfekzionista)"
 
 # AI Translated
 msgid "Top Surface Pattern"
-msgstr "Goiko gainazalaren patroia"
+msgstr "Goiko gainazaleko patroia"
 
 msgid "Choose a slot for the selected color"
 msgstr "Aukeratu zirrikitu bat hautatutako kolorearentzat"
