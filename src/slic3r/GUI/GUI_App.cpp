@@ -2166,7 +2166,6 @@ void GUI_App::init_networking_callbacks()
                     obj->is_tunnel_mqtt = tunnel;
                     obj->command_request_push_all(true);
                     obj->command_get_version();
-                    obj->erase_user_access_code();
                     obj->command_get_access_code();
                     if (m_agent)
                         m_agent->install_device_cert(obj->get_dev_id(), obj->is_lan_mode_printer());
@@ -2216,7 +2215,6 @@ void GUI_App::init_networking_callbacks()
                                 wxString text;
                                 if (msg == "5") {
                                     obj->set_access_code("");
-                                    obj->erase_user_access_code();
                                     text = wxString::Format(_L("Incorrect password"));
                                     wxGetApp().show_dialog(text);
                                 } else {
@@ -8286,7 +8284,7 @@ bool GUI_App::show_modal_ip_address_enter_dialog(bool input_sn, wxString title)
                 wxGetApp().app_config->save();
 
                 obj->set_dev_ip(ip_address.ToStdString());
-                obj->set_user_access_code(access_code.ToStdString());
+                obj->set_access_code(access_code.ToStdString());
             }
         }
     });

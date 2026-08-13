@@ -2809,10 +2809,24 @@ void ImGuiWrapper::init_font(bool compress)
         }
     }
 
+    if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
+        ImFontConfig fallback_cfg = cfg;
+        fallback_cfg.MergeMode = true;
+        static constexpr ImWchar celsius_range[] = { 0x2103, 0x2103, 0 };
+        io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Regular.ttf").c_str(), m_font_size, &fallback_cfg, celsius_range);
+    }
+
     bold_font        = io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/" + font_name_bold).c_str(), m_font_size, &cfg, ranges.Data);
     if (bold_font == nullptr) {
         bold_font = io.Fonts->AddFontDefault();
         if (bold_font == nullptr) { throw Slic3r::RuntimeError("ImGui: Could not load deafult font"); }
+    }
+
+    if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
+        ImFontConfig fallback_cfg = cfg;
+        fallback_cfg.MergeMode = true;
+        static constexpr ImWchar celsius_range[] = { 0x2103, 0x2103, 0 };
+        io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Bold.ttf").c_str(), m_font_size, &fallback_cfg, celsius_range);
     }
 
     if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
