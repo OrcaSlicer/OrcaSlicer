@@ -6461,11 +6461,11 @@ LayerResult GCode::process_layer(
                                             [](const ExtrusionEntity *ee) { return ee->role() == erIroning; });
                             if (zero_flow_ironing) {
                                 gcode += this->writer().ironing_e_move(-object_config.support_ironing_retract.value, "support ironing retract");
-                                this->writer().set_force_emit_zero_e(true);
+                                this->writer().set_zero_flow_ironing(true);
                             }
                             gcode += this->extrude_support(support_fills, erIroning);
                             if (zero_flow_ironing) {
-                                this->writer().set_force_emit_zero_e(false);
+                                this->writer().set_zero_flow_ironing(false);
                                 gcode += this->writer().ironing_e_move(object_config.support_ironing_retract.value + object_config.support_ironing_unretract_extra.value,
                                                                        "support ironing unretract");
                             }
@@ -7293,7 +7293,7 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
                 const bool zero_flow_ironing = ironing && region_config.ironing_flow == 0 && region_config.ironing_retract > 0;
                 if (zero_flow_ironing) {
                     gcode += this->writer().ironing_e_move(-region_config.ironing_retract, "ironing retract");
-                    this->writer().set_force_emit_zero_e(true);
+                    this->writer().set_zero_flow_ironing(true);
                 }
                 for (const ExtrusionEntity *fill : extrusions) {
                     auto *eec = dynamic_cast<const ExtrusionEntityCollection*>(fill);
@@ -7304,7 +7304,7 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
                         gcode += this->extrude_entity(*fill, extrusion_name);
                 }
                 if (zero_flow_ironing) {
-                    this->writer().set_force_emit_zero_e(false);
+                    this->writer().set_zero_flow_ironing(false);
                     gcode += this->writer().ironing_e_move(region_config.ironing_retract + region_config.ironing_unretract_extra, "ironing unretract");
                 }
             }
@@ -8847,26 +8847,31 @@ std::string GCode::retract(bool toolchange, bool is_last_retraction, LiftType li
     if (m_writer.filament() == nullptr)
         return gcode;
 
-    // wipe (if it's enabled for this extruder and we have a stored wipe path and no-zero wipe distance)
-    if (FILAMENT_CONFIG(wipe) && m_wipe.has_path() && scale_(FILAMENT_CONFIG(wipe_distance)) > SCALED_EPSILON) {
-        Wipe::RetractionValues wipeRetractions = m_wipe.calculateWipeRetractionLengths(*this, toolchange);
-        gcode += toolchange ? m_writer.retract_for_toolchange(true, wipeRetractions.retraction_length_before_wipe) :
-                              m_writer.retract(true, wipeRetractions.retraction_length_before_wipe);
-        gcode += m_wipe.wipe(*this, wipeRetractions.retraction_length_during_wipe, toolchange, is_last_retraction);
+    // ORCA: while a zero flow ironing pass is running the filament is already parked by the ironing
+    // retract, so retracting again would only wipe back over the surface just ironed and push the
+    // filament out again on arrival. Skip the filament motion; the travel and its lift still happen.
+    if (! m_writer.zero_flow_ironing()) {
+        // wipe (if it's enabled for this extruder and we have a stored wipe path and no-zero wipe distance)
+        if (FILAMENT_CONFIG(wipe) && m_wipe.has_path() && scale_(FILAMENT_CONFIG(wipe_distance)) > SCALED_EPSILON) {
+            Wipe::RetractionValues wipeRetractions = m_wipe.calculateWipeRetractionLengths(*this, toolchange);
+            gcode += toolchange ? m_writer.retract_for_toolchange(true, wipeRetractions.retraction_length_before_wipe) :
+                                  m_writer.retract(true, wipeRetractions.retraction_length_before_wipe);
+            gcode += m_wipe.wipe(*this, wipeRetractions.retraction_length_during_wipe, toolchange, is_last_retraction);
 
-        // Orca: wipeRetractions.retraction_length_after_wipe is not being used explicitly,
-        // the remaining retraction after wipe is handled by the subsequent m_writer.retract() call
+            // Orca: wipeRetractions.retraction_length_after_wipe is not being used explicitly,
+            // the remaining retraction after wipe is handled by the subsequent m_writer.retract() call
+        }
+
+        /*  The parent class will decide whether we need to perform an actual retraction
+            (the extruder might be already retracted fully or partially). We call these
+            methods even if we performed wipe, since this will ensure the entire retraction
+            length is honored in case wipe path was too short.  */
+        if ((!this->on_first_layer()  || this->config().bottom_surface_pattern != InfillPattern::ipHilbertCurve) &&
+	        (role != erTopSolidInfill || this->config().top_surface_pattern    != InfillPattern::ipHilbertCurve))
+            gcode += toolchange ? m_writer.retract_for_toolchange() : m_writer.retract();
+
+        gcode += m_writer.reset_e();
     }
-
-    /*  The parent class will decide whether we need to perform an actual retraction
-        (the extruder might be already retracted fully or partially). We call these
-        methods even if we performed wipe, since this will ensure the entire retraction
-        length is honored in case wipe path was too short.  */
-    if ((!this->on_first_layer()  || this->config().bottom_surface_pattern != InfillPattern::ipHilbertCurve) &&
-	    (role != erTopSolidInfill || this->config().top_surface_pattern    != InfillPattern::ipHilbertCurve))
-        gcode += toolchange ? m_writer.retract_for_toolchange() : m_writer.retract();
-
-    gcode += m_writer.reset_e();
     // Orca: check if should + can lift (roughly from SuperSlicer)
     RetractLiftEnforceType retract_lift_type = RetractLiftEnforceType(EXTRUDER_CONFIG(retract_lift_enforce));
 
