@@ -2064,6 +2064,17 @@ TopoDS_Wire CadDocument::build_sketch_wire(const CadFeature& sketch) const
     return prof.to_occt_wire(sketch.plane);
 }
 
+TopoDS_Face CadDocument::build_sketch_face(const CadFeature& sketch) const
+{
+    if (!sketch.entities.empty()) {
+        const std::vector<TopoDS_Wire> loops = SketchEngine::entities_to_wires(sketch.entities, sketch.plane);
+        if (loops.empty())
+            throw std::runtime_error("sketch entities do not form a closed loop");
+        return SketchEngine::wires_to_face(loops, sketch.plane);
+    }
+    return BRepBuilderAPI_MakeFace(build_sketch_wire(sketch)).Face();
+}
+
 void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                                 const TopoDS_Shape& context, const CadFeature& f) const
 {
@@ -2109,8 +2120,8 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                                         || features[f.sketch_ref].type == CadFeatureType::Project))
                                    ? features[f.sketch_ref] : f;
             // Imported rigid art (Text/SVG) extrudes via the faces-with-holes path
-            // (with its placement transform applied); otherwise build a single wire
-            // from entities/profile/shape.
+            // (with its placement transform applied); otherwise build the sketch's planar
+            // region (outer loop + holes) from entities/profile/shape.
             tool = !sk.imported_regions.empty()
                 ? SketchEngine::make_extrude_regions(
                       transform_regions(sk.imported_regions, sk.import_offset,
@@ -2119,17 +2130,30 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                       f.extrude_end == ExtrudeEnd::ThroughAll ? 1e5 : signed_d,
                       f.extrude_end == ExtrudeEnd::ThroughAll ? true : (sym || f.extrude_end == ExtrudeEnd::TwoSided))
                 : [&]() {
-                      TopoDS_Wire wire = build_sketch_wire(sk);
+                      const TopoDS_Face profile = build_sketch_face(sk);
+                      // A tapered extrude offsets the profile; a holed profile would have to
+                      // offset its inner loops the opposite way, which is not implemented yet.
+                      auto taper = [&](double L) -> TopoDS_Shape {
+                          // Count the loops off the face we ALREADY built, rather than rebuilding
+                          // every wire from the entities a second time to ask how many there are.
+                          // It is also the more honest test: what matters is whether the profile
+                          // being extruded has holes, not what the entity list could produce.
+                          int nloops = 0;
+                          for (TopExp_Explorer ex(profile, TopAbs_WIRE); ex.More(); ex.Next()) ++nloops;
+                          if (nloops > 1)
+                              throw std::runtime_error("tapered extrude of a sketch with holes is not supported yet");
+                          return SketchEngine::make_extrude_taper(build_sketch_wire(sk), sk.plane, L, f.taper_deg);
+                      };
                       TopoDS_Shape t;
                       switch (f.extrude_end) {
                           case ExtrudeEnd::Blind:
                               t = (std::abs(f.taper_deg) > 1e-6)
-                                  ? SketchEngine::make_extrude_taper(wire, sk.plane, signed_d, f.taper_deg)
-                                  : SketchEngine::make_extrude(wire, sk.plane, signed_d, false);
+                                  ? taper(signed_d)
+                                  : SketchEngine::make_extrude(profile, sk.plane, signed_d, false);
                               break;
-                          case ExtrudeEnd::Symmetric:  t = SketchEngine::make_extrude(wire, sk.plane, f.distance, true); break;
-                          case ExtrudeEnd::TwoSided:   t = SketchEngine::make_extrude_two_sided(wire, sk.plane, f.distance, f.distance2); break;
-                          case ExtrudeEnd::ThroughAll: t = SketchEngine::make_extrude(wire, sk.plane, 1.0e5, true); break;
+                          case ExtrudeEnd::Symmetric:  t = SketchEngine::make_extrude(profile, sk.plane, f.distance, true); break;
+                          case ExtrudeEnd::TwoSided:   t = SketchEngine::make_extrude_two_sided(profile, sk.plane, f.distance, f.distance2); break;
+                          case ExtrudeEnd::ThroughAll: t = SketchEngine::make_extrude(profile, sk.plane, 1.0e5, true); break;
                           case ExtrudeEnd::UpToFace: {
                               const TopoDS_Face tgt = GeometryEngine::face_by_index(context, f.up_to_face);
                               double L = signed_d;
@@ -2138,16 +2162,16 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                                   L = (c - sk.plane.origin).dot(sk.plane.normal);
                               }
                               t = (std::abs(f.taper_deg) > 1e-6)
-                                  ? SketchEngine::make_extrude_taper(wire, sk.plane, L, f.taper_deg)
-                                  : SketchEngine::make_extrude(wire, sk.plane, L, false);
+                                  ? taper(L)
+                                  : SketchEngine::make_extrude(profile, sk.plane, L, false);
                               break;
                           }
                           case ExtrudeEnd::UpToVertex: {
                               const double L = (f.up_to_point - sk.plane.origin).dot(sk.plane.normal);
-                              t = SketchEngine::make_extrude(wire, sk.plane, L, false);
+                              t = SketchEngine::make_extrude(profile, sk.plane, L, false);
                               break;
                           }
-                          default: t = SketchEngine::make_extrude(wire, sk.plane, signed_d, false); break;
+                          default: t = SketchEngine::make_extrude(profile, sk.plane, signed_d, false); break;
                       }
                       return t;
                   }();

@@ -703,6 +703,10 @@ public:
 
 private:
     TopoDS_Wire build_sketch_wire(const CadFeature& sketch) const;
+    // The planar region an Extrude sweeps: the sketch's outer loop with its inner loops as
+    // holes. Falls back to a face over build_sketch_wire() for the legacy profile/shape paths,
+    // which have no concept of a second loop.
+    TopoDS_Face build_sketch_face(const CadFeature& sketch) const;
     // Apply a single feature to (result, have_body), throwing std::runtime_error on
     // failure. `context` is the body whose faces/edges the feature reads (face-extrude
     // source, up-to-face target, dress-up, hole) — it differs from `result` only when the

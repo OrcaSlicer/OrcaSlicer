@@ -7,6 +7,10 @@
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
+#include <BRepGProp.hxx>
+#include <GProp_GProps.hxx>
+#include <BRepClass_FaceClassifier.hxx>
+#include <TopoDS_Vertex.hxx>
 #include <GC_MakeArcOfCircle.hxx>
 #include <GC_MakeArcOfEllipse.hxx>
 #include <Geom_TrimmedCurve.hxx>
@@ -168,12 +172,18 @@ static TopoDS_Shape extrude_face_internal(const TopoDS_Face& face, const gp_Dir&
 }
 
 TopoDS_Shape SketchEngine::make_extrude(const TopoDS_Wire& wire, const SketchPlane& plane,
-                                        double length, bool symmetric, double /*taper_deg*/)
+                                        double length, bool symmetric, double taper_deg)
 {
     BRepBuilderAPI_MakeFace fm(wire);
     if (!fm.IsDone()) throw std::runtime_error("Failed to make face from wire");
+    return make_extrude(fm.Face(), plane, length, symmetric, taper_deg);
+}
+
+TopoDS_Shape SketchEngine::make_extrude(const TopoDS_Face& face, const SketchPlane& plane,
+                                        double length, bool symmetric, double /*taper_deg*/)
+{
     gp_Dir dir(plane.normal.x(), plane.normal.y(), plane.normal.z());
-    return extrude_face_internal(fm.Face(), dir, length, symmetric);
+    return extrude_face_internal(face, dir, length, symmetric);
 }
 
 TopoDS_Shape SketchEngine::make_extrude_two_sided(const TopoDS_Wire& wire, const SketchPlane& plane,
@@ -181,13 +191,19 @@ TopoDS_Shape SketchEngine::make_extrude_two_sided(const TopoDS_Wire& wire, const
 {
     BRepBuilderAPI_MakeFace fm(wire);
     if (!fm.IsDone()) throw std::runtime_error("Failed to make face from wire");
+    return make_extrude_two_sided(fm.Face(), plane, up, down);
+}
+
+TopoDS_Shape SketchEngine::make_extrude_two_sided(const TopoDS_Face& face, const SketchPlane& plane,
+                                                  double up, double down)
+{
     gp_Dir dir(plane.normal.x(), plane.normal.y(), plane.normal.z());
     const double u = std::abs(up), d = std::abs(down);
     if (u < 1e-9 && d < 1e-9) return TopoDS_Shape();
-    if (d < 1e-9) { BRepPrimAPI_MakePrism p(fm.Face(), gp_Vec(dir) *  u); return p.Shape(); }
-    if (u < 1e-9) { BRepPrimAPI_MakePrism p(fm.Face(), gp_Vec(dir) * -d); return p.Shape(); }
-    BRepPrimAPI_MakePrism pos(fm.Face(), gp_Vec(dir) *  u);
-    BRepPrimAPI_MakePrism neg(fm.Face(), gp_Vec(dir) * -d);
+    if (d < 1e-9) { BRepPrimAPI_MakePrism p(face, gp_Vec(dir) *  u); return p.Shape(); }
+    if (u < 1e-9) { BRepPrimAPI_MakePrism p(face, gp_Vec(dir) * -d); return p.Shape(); }
+    BRepPrimAPI_MakePrism pos(face, gp_Vec(dir) *  u);
+    BRepPrimAPI_MakePrism neg(face, gp_Vec(dir) * -d);
     BRepAlgoAPI_Fuse fuse(pos.Shape(), neg.Shape());
     if (!fuse.IsDone()) throw std::runtime_error("two-sided extrude fuse failed");
     return fuse.Shape();
@@ -514,16 +530,19 @@ TriangleMesh SketchEngine::tessellate(const TopoDS_Shape& shape,
     return TriangleMesh(std::move(its));
 }
 
-TopoDS_Wire SketchEngine::entities_to_wire(const std::vector<SketchEntity>& entities,
-                                            const SketchPlane& plane)
+std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<SketchEntity>& entities,
+                                                         const SketchPlane& plane)
 {
-    std::vector<const SketchEntity*> valid;
-    for (const auto& e : entities) {
+    struct Item { const SketchEntity* e; size_t idx; };
+    std::vector<Item> valid;
+    valid.reserve(entities.size());
+    for (size_t i = 0; i < entities.size(); ++i) {
+        const SketchEntity& e = entities[i];
         if (e.construction) continue;
         if (e.type == SketchEntity::Type::Point) continue;
-        valid.push_back(&e);
+        valid.push_back({&e, i});
     }
-    if (valid.empty()) return TopoDS_Wire{};
+    if (valid.empty()) return {};
 
     // Build an OCCT ellipse (gp_Elips) in the sketch plane from an Ellipse(Arc)
     // entity. Major-axis direction = plane-rotated (cos phi, sin phi). Enforces
@@ -562,75 +581,205 @@ TopoDS_Wire SketchEngine::entities_to_wire(const std::vector<SketchEntity>& enti
         return new Geom_BSplineCurve(poles, knots, mults, p);
     };
 
-    bool has_closed_single = false;   // Circle or full Ellipse (stand-alone closed)
-    bool has_chain         = false;   // Line / Arc / EllipseArc
-    for (const auto* e : valid) {
-        if (e->type == SketchEntity::Type::Circle || e->type == SketchEntity::Type::Ellipse)
-            has_closed_single = true;
-        else
-            has_chain = true;
-    }
+    auto is_chain = [](const SketchEntity& e) {
+        return e.type == SketchEntity::Type::Line || e.type == SketchEntity::Type::Arc ||
+               e.type == SketchEntity::Type::EllipseArc || e.type == SketchEntity::Type::BSpline;
+    };
 
-    // Case 1: exactly one closed entity (Circle or Ellipse) and nothing else
-    if (has_closed_single && !has_chain && valid.size() == 1) {
-        const SketchEntity& c = *valid[0];
-        TopoDS_Edge e;
-        if (c.type == SketchEntity::Type::Ellipse) {
-            if (c.radius <= 1e-9 || c.rminor <= 1e-9) return TopoDS_Wire{};
-            e = BRepBuilderAPI_MakeEdge(make_elips(c)).Edge();
-        } else {
-            Vec3d  c3 = plane.to_world(c.center);
-            gp_Pnt center(c3.x(), c3.y(), c3.z());
-            gp_Dir n(plane.normal.x(), plane.normal.y(), plane.normal.z());
-            gp_Circ circ(gp_Ax2(center, n), c.radius);
-            e = BRepBuilderAPI_MakeEdge(circ).Edge();
+    // Endpoints of a chain entity in SKETCH coordinates (before to_world). False on a
+    // degenerate (fewer than two control points) BSpline, which can never close a loop.
+    auto endpoints = [&](const SketchEntity& e, Vec2d& a, Vec2d& b) -> bool {
+        if (e.type == SketchEntity::Type::BSpline) {
+            if (e.ctrl.size() < 2) return false;
+            a = e.ctrl.front(); b = e.ctrl.back();
+            return true;
         }
-        BRepBuilderAPI_MakeWire wm(e);
-        if (!wm.IsDone()) return TopoDS_Wire{};
-        return wm.Wire();
+        a = e.p0; b = e.p1;
+        return true;
+    };
+
+    const double EPS = 1e-6;
+    auto same = [&](const Vec2d& p, const Vec2d& q) { return (p - q).norm() < EPS; };
+
+    // Union-find over the valid index list: chain entities sharing an endpoint belong to one loop.
+    std::vector<int> parent(valid.size());
+    for (size_t i = 0; i < valid.size(); ++i) parent[i] = int(i);
+    auto find = [&](int x) {
+        while (parent[x] != x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+        return x;
+    };
+    auto unite = [&](int x, int y) {
+        int rx = find(x), ry = find(y);
+        if (rx != ry) parent[rx] = ry;
+    };
+
+    std::vector<size_t> chain_idx;
+    chain_idx.reserve(valid.size());
+    for (size_t i = 0; i < valid.size(); ++i)
+        if (is_chain(*valid[i].e)) chain_idx.push_back(i);
+
+    for (size_t a = 0; a < chain_idx.size(); ++a) {
+        const size_t i = chain_idx[a];
+        Vec2d i0, i1;
+        if (!endpoints(*valid[i].e, i0, i1)) continue;
+        for (size_t b = a + 1; b < chain_idx.size(); ++b) {
+            const size_t j = chain_idx[b];
+            Vec2d j0, j1;
+            if (!endpoints(*valid[j].e, j0, j1)) continue;
+            if (same(i0, j0) || same(i0, j1) || same(i1, j0) || same(i1, j1))
+                unite(int(i), int(j));
+        }
     }
 
-    // Case 2: closed chain of Line/Arc/EllipseArc entities (no closed-single)
-    if (!has_closed_single && has_chain) {
-        BRepBuilderAPI_MakeWire builder;
-        for (const SketchEntity* e : valid) {
-            if (e->type == SketchEntity::Type::Line) {
-                Vec3d  p0 = plane.to_world(e->p0);
-                Vec3d  p1 = plane.to_world(e->p1);
-                gp_Pnt pa(p0.x(), p0.y(), p0.z());
-                gp_Pnt pb(p1.x(), p1.y(), p1.z());
-                builder.Add(BRepBuilderAPI_MakeEdge(pa, pb).Edge());
-            } else if (e->type == SketchEntity::Type::EllipseArc) {
-                if (e->radius <= 1e-9 || e->rminor <= 1e-9) return TopoDS_Wire{};
-                GC_MakeArcOfEllipse arc_maker(make_elips(*e), e->start_angle, e->end_angle, Standard_True);
-                if (!arc_maker.IsDone()) return TopoDS_Wire{};
-                builder.Add(BRepBuilderAPI_MakeEdge(arc_maker.Value()).Edge());
-            } else if (e->type == SketchEntity::Type::Arc) {
-                Vec3d  p0 = plane.to_world(e->p0);
-                Vec3d  p1 = plane.to_world(e->p1);
-                double mid_angle = (e->start_angle + e->end_angle) * 0.5;
-                Vec2d  mid_2d(e->center.x() + e->radius * std::cos(mid_angle),
-                              e->center.y() + e->radius * std::sin(mid_angle));
-                Vec3d  mid_3d = plane.to_world(mid_2d);
-                gp_Pnt pa(p0.x(), p0.y(), p0.z());
-                gp_Pnt pm(mid_3d.x(), mid_3d.y(), mid_3d.z());
-                gp_Pnt pb(p1.x(), p1.y(), p1.z());
-                GC_MakeArcOfCircle arc_maker(pa, pm, pb);
-                if (!arc_maker.IsDone()) return TopoDS_Wire{};
-                Handle(Geom_TrimmedCurve) curve = arc_maker.Value();
-                builder.Add(BRepBuilderAPI_MakeEdge(curve).Edge());
-            } else if (e->type == SketchEntity::Type::BSpline) {
-                Handle(Geom_BSplineCurve) crv = make_bspline(*e);
-                if (crv.IsNull()) return TopoDS_Wire{};
-                builder.Add(BRepBuilderAPI_MakeEdge(crv).Edge());
+    // Group chain entities by connected-component root.
+    std::map<int, std::vector<size_t>> comps;
+    for (size_t i = 0; i < valid.size(); ++i) {
+        if (!is_chain(*valid[i].e)) continue;
+        comps[find(int(i))].push_back(i);
+    }
+
+    // Loop descriptors: each Circle/Ellipse is its own loop; each chain component is a loop.
+    struct Loop { size_t min_idx{0}; bool closed_single{false}; size_t member{0}; std::vector<size_t> members; };
+    std::vector<Loop> loops;
+    for (size_t i = 0; i < valid.size(); ++i) {
+        const SketchEntity& e = *valid[i].e;
+        if (e.type == SketchEntity::Type::Circle || e.type == SketchEntity::Type::Ellipse) {
+            Loop l; l.min_idx = valid[i].idx; l.closed_single = true; l.member = i;
+            loops.push_back(l);
+        }
+    }
+    for (const auto& kv : comps) {
+        Loop l; l.closed_single = false; l.members = kv.second;
+        size_t mn = std::numeric_limits<size_t>::max();
+        for (size_t m : kv.second) mn = std::min(mn, valid[m].idx);
+        l.min_idx = mn;
+        loops.push_back(l);
+    }
+    // Deterministic order: by the index of each loop's first entity.
+    std::sort(loops.begin(), loops.end(), [](const Loop& x, const Loop& y) { return x.min_idx < y.min_idx; });
+
+    // Build each loop. All-or-nothing: one failed loop poisons the whole result.
+    std::vector<TopoDS_Wire> out;
+    out.reserve(loops.size());
+    for (const Loop& loop : loops) {
+        BRepBuilderAPI_MakeWire wm;
+        if (loop.closed_single) {
+            const SketchEntity& c = *valid[loop.member].e;
+            TopoDS_Edge e;
+            if (c.type == SketchEntity::Type::Ellipse) {
+                if (c.radius <= 1e-9 || c.rminor <= 1e-9) return {};
+                e = BRepBuilderAPI_MakeEdge(make_elips(c)).Edge();
+            } else {
+                Vec3d  c3 = plane.to_world(c.center);
+                gp_Pnt center(c3.x(), c3.y(), c3.z());
+                gp_Dir n(plane.normal.x(), plane.normal.y(), plane.normal.z());
+                gp_Circ circ(gp_Ax2(center, n), c.radius);
+                e = BRepBuilderAPI_MakeEdge(circ).Edge();
+            }
+            wm.Add(e);
+        } else {
+            for (size_t m : loop.members) {
+                const SketchEntity* e = valid[m].e;
+                if (e->type == SketchEntity::Type::Line) {
+                    Vec3d  p0 = plane.to_world(e->p0);
+                    Vec3d  p1 = plane.to_world(e->p1);
+                    gp_Pnt pa(p0.x(), p0.y(), p0.z());
+                    gp_Pnt pb(p1.x(), p1.y(), p1.z());
+                    wm.Add(BRepBuilderAPI_MakeEdge(pa, pb).Edge());
+                } else if (e->type == SketchEntity::Type::EllipseArc) {
+                    if (e->radius <= 1e-9 || e->rminor <= 1e-9) return {};
+                    GC_MakeArcOfEllipse arc_maker(make_elips(*e), e->start_angle, e->end_angle, Standard_True);
+                    if (!arc_maker.IsDone()) return {};
+                    wm.Add(BRepBuilderAPI_MakeEdge(arc_maker.Value()).Edge());
+                } else if (e->type == SketchEntity::Type::Arc) {
+                    Vec3d  p0 = plane.to_world(e->p0);
+                    Vec3d  p1 = plane.to_world(e->p1);
+                    double mid_angle = (e->start_angle + e->end_angle) * 0.5;
+                    Vec2d  mid_2d(e->center.x() + e->radius * std::cos(mid_angle),
+                                  e->center.y() + e->radius * std::sin(mid_angle));
+                    Vec3d  mid_3d = plane.to_world(mid_2d);
+                    gp_Pnt pa(p0.x(), p0.y(), p0.z());
+                    gp_Pnt pm(mid_3d.x(), mid_3d.y(), mid_3d.z());
+                    gp_Pnt pb(p1.x(), p1.y(), p1.z());
+                    GC_MakeArcOfCircle arc_maker(pa, pm, pb);
+                    if (!arc_maker.IsDone()) return {};
+                    Handle(Geom_TrimmedCurve) curve = arc_maker.Value();
+                    wm.Add(BRepBuilderAPI_MakeEdge(curve).Edge());
+                } else if (e->type == SketchEntity::Type::BSpline) {
+                    Handle(Geom_BSplineCurve) crv = make_bspline(*e);
+                    if (crv.IsNull()) return {};
+                    wm.Add(BRepBuilderAPI_MakeEdge(crv).Edge());
+                }
             }
         }
-        builder.Build();
-        if (!builder.IsDone()) return TopoDS_Wire{};
-        return builder.Wire();
+        wm.Build();
+        if (!wm.IsDone()) return {};
+        out.push_back(wm.Wire());
+    }
+    return out;
+}
+
+TopoDS_Wire SketchEngine::entities_to_wire(const std::vector<SketchEntity>& entities,
+                                           const SketchPlane& plane)
+{
+    const std::vector<TopoDS_Wire> w = entities_to_wires(entities, plane);
+    return w.size() == 1 ? w[0] : TopoDS_Wire{};
+}
+
+TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
+                                        const SketchPlane& /*plane*/)
+{
+    if (wires.empty()) throw std::runtime_error("sketch has no closed loop");
+
+    if (wires.size() == 1) {
+        BRepBuilderAPI_MakeFace fm(wires[0]);
+        if (!fm.IsDone()) throw std::runtime_error("sketch loop does not bound a face");
+        return fm.Face();
     }
 
-    return TopoDS_Wire{};
+    // Two or more loops: build a face per wire and let the largest area be the outer
+    // boundary; every other loop is a candidate hole inside it.
+    std::vector<TopoDS_Face> faces;
+    faces.reserve(wires.size());
+    std::vector<double> areas;
+    areas.reserve(wires.size());
+    for (const TopoDS_Wire& w : wires) {
+        BRepBuilderAPI_MakeFace fm(w);
+        if (!fm.IsDone()) throw std::runtime_error("sketch loop does not bound a face");
+        faces.push_back(fm.Face());
+        GProp_GProps props;
+        BRepGProp::SurfaceProperties(faces.back(), props);
+        areas.push_back(props.Mass());
+    }
+
+    size_t outer = 0;
+    for (size_t i = 1; i < areas.size(); ++i)
+        if (areas[i] > areas[outer]) outer = i;
+
+    // Note: NOT MakeFace(faces[outer], wires[outer]) — that constructor copies the outer face
+    // (including its existing boundary wire) and then adds the wire again, doubling the outer
+    // boundary. The wire-only constructor starts clean and the reversed holes follow.
+    BRepBuilderAPI_MakeFace fm(wires[outer]);
+    for (size_t i = 0; i < wires.size(); ++i) {
+        if (i == outer) continue;
+        // Containment is checked, not assumed: a vertex of the inner wire must lie strictly
+        // inside the outer face. A loop outside the largest one is a second island, not a hole.
+        gp_Pnt p;
+        bool got = false;
+        for (TopExp_Explorer ex(wires[i], TopAbs_VERTEX); ex.More(); ex.Next()) {
+            p = BRep_Tool::Pnt(TopoDS::Vertex(ex.Current()));
+            got = true;
+            break;
+        }
+        if (!got) throw std::runtime_error("sketch loop does not bound a face");
+        BRepClass_FaceClassifier fc(faces[outer], p, 1e-7);
+        if (fc.State() != TopAbs_IN)
+            throw std::runtime_error("sketch has two disjoint regions; put each in its own sketch");
+        // A reversed wire tells OCCT this loop is a hole, not a second boundary.
+        fm.Add(TopoDS::Wire(wires[i].Reversed()));
+    }
+    if (!fm.IsDone()) throw std::runtime_error("sketch loop does not bound a face");
+    return fm.Face();
 }
 
 std::vector<SketchEntity> SketchEngine::mirror_entities(

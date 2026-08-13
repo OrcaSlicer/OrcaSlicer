@@ -155,6 +155,8 @@ class SketchEngine
 public:
     static TopoDS_Shape make_extrude(const TopoDS_Wire& wire, const SketchPlane& plane,
                                      double length, bool symmetric = false, double taper_deg = 0.0);
+    static TopoDS_Shape make_extrude(const TopoDS_Face& face, const SketchPlane& plane,
+                                     double length, bool symmetric = false, double taper_deg = 0.0);
     // Asymmetric two-sided prism: extrude the wire's face by `up` along +normal and `down`
     // along -normal, fused into one solid. up/down are non-negative magnitudes.
     // Tapered (draft) extrude of a planar wire: the top profile is the base wire offset in its
@@ -163,6 +165,8 @@ public:
     static TopoDS_Shape make_extrude_taper(const TopoDS_Wire& wire, const SketchPlane& plane,
                                            double length, double taper_deg);
     static TopoDS_Shape make_extrude_two_sided(const TopoDS_Wire& wire, const SketchPlane& plane,
+                                               double up, double down);
+    static TopoDS_Shape make_extrude_two_sided(const TopoDS_Face& face, const SketchPlane& plane,
                                                double up, double down);
     static TopoDS_Shape make_extrude_face(const TopoDS_Face& face, const SketchPlane& plane,
                                           double length, bool symmetric = false, double taper_deg = 0.0);
@@ -211,6 +215,20 @@ public:
 
     static TopoDS_Wire entities_to_wire(const std::vector<SketchEntity>& entities,
                                         const SketchPlane& plane);
+
+    // Every closed loop the sketch holds, in the order each loop's FIRST entity appears in
+    // `entities`. A Circle or Ellipse is a loop on its own; Line/Arc/EllipseArc/BSpline
+    // entities are grouped into loops by shared endpoints. An OPEN chain is returned too —
+    // a sweep path is legitimately open, so open-ness is not an error here.
+    // Empty vector = nothing usable; the caller decides whether that is an error.
+    static std::vector<TopoDS_Wire> entities_to_wires(const std::vector<SketchEntity>& entities,
+                                                      const SketchPlane& plane);
+
+    // A planar face from a set of coplanar loops: the largest-area loop is the outer boundary
+    // and every other loop is a hole in it. Throws std::runtime_error with a message naming the
+    // problem when the loops do not describe one such region.
+    static TopoDS_Face wires_to_face(const std::vector<TopoDS_Wire>& wires,
+                                     const SketchPlane& plane);
 
     static std::vector<SketchEntity> mirror_entities(
         const std::vector<SketchEntity>& src, const Vec2d& a, const Vec2d& b);

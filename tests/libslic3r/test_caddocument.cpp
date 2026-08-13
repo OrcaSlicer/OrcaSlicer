@@ -7057,18 +7057,132 @@ TEST_CASE("An entity sketch that forms no wire fails instead of extruding a defa
                                         SketchPlane::XY(), "Sketch");
         doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude");
         CHECK_FALSE(doc.recompute());
-        CHECK(doc.error.find("do not form a single closed wire") != std::string::npos);
+        CHECK(doc.error.find("does not bound a face") != std::string::npos);
         CHECK(doc.bodies.empty());
     }
 
-    SECTION("two circles are rejected too") {
+    SECTION("two disjoint circles are rejected too") {
         CadDocument doc;
         int sk = doc.add_sketch_entities({ circle({-20, 0}, 8.0), circle({20, 0}, 8.0) },
                                         SketchPlane::XY(), "Sketch");
         doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude");
         CHECK_FALSE(doc.recompute());
-        CHECK(doc.error.find("do not form a single closed wire") != std::string::npos);
+        CHECK(doc.error.find("disjoint") != std::string::npos);
     }
+}
+
+namespace {
+
+std::vector<SketchEntity> rect_entities(double w, double h)
+{
+    const double hw = w * 0.5, hh = h * 0.5;
+    return {
+        {SketchEntity::Type::Line, Vec2d(-hw, -hh), Vec2d( hw, -hh)},
+        {SketchEntity::Type::Line, Vec2d( hw, -hh), Vec2d( hw,  hh)},
+        {SketchEntity::Type::Line, Vec2d( hw,  hh), Vec2d(-hw,  hh)},
+        {SketchEntity::Type::Line, Vec2d(-hw,  hh), Vec2d(-hw, -hh)},
+    };
+}
+
+SketchEntity circle_entity(const Vec2d& c, double r)
+{
+    SketchEntity e;
+    e.type = SketchEntity::Type::Circle;
+    e.center = c; e.p0 = c; e.radius = r;
+    return e;
+}
+
+CadDocument plate_doc(const std::vector<SketchEntity>& entities, double distance)
+{
+    CadDocument doc;
+    CadFeature sk;
+    sk.type     = CadFeatureType::Sketch;
+    sk.name     = "sketch";
+    sk.plane    = SketchPlane::XY();
+    sk.entities = entities;
+    doc.features.push_back(sk);
+    CadFeature ex;
+    ex.type       = CadFeatureType::Extrude;
+    ex.name       = "extrude";
+    ex.sketch_ref = 0;
+    ex.distance   = distance;
+    ex.mode       = BooleanMode::New;
+    doc.features.push_back(ex);
+    return doc;
+}
+
+} // namespace
+
+// snaporca-88v: a sketch may hold more than one closed loop. The Extrude path builds the
+// sketch's planar region via SketchEngine::entities_to_wires + wires_to_face: the largest loop
+// is the outer boundary, every other loop a hole. Volumes are the proof — a plate with a hole
+// must subtract the hole, not merely "not throw".
+TEST_CASE("a circle inside a rectangle extrudes to a plate with a hole", "[CadDocument][sketchwire]")
+{
+    std::vector<SketchEntity> ents = rect_entities(40, 30);
+    ents.push_back(circle_entity({0, 0}, 5.0));
+    CadDocument doc = plate_doc(ents, 10.0);
+
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    const double expected = 40.0 * 30.0 * 10.0 - M_PI * 25.0 * 10.0;
+    REQUIRE_THAT(double(doc.display_mesh.volume()), Catch::Matchers::WithinRel(expected, 0.01));
+}
+
+TEST_CASE("two holes are both subtracted", "[CadDocument][sketchwire]")
+{
+    std::vector<SketchEntity> ents = rect_entities(40, 30);
+    ents.push_back(circle_entity({ 5, 0}, 3.0));
+    ents.push_back(circle_entity({-5, 0}, 3.0));
+    CadDocument doc = plate_doc(ents, 10.0);
+
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    const double expected = 40.0 * 30.0 * 10.0 - 2.0 * M_PI * 9.0 * 10.0;
+    REQUIRE_THAT(double(doc.display_mesh.volume()), Catch::Matchers::WithinRel(expected, 0.01));
+}
+
+TEST_CASE("a lone circle still extrudes exactly as before", "[CadDocument][sketchwire]")
+{
+    std::vector<SketchEntity> ents = { circle_entity({0, 0}, 8.0) };
+    CadDocument doc = plate_doc(ents, 5.0);
+
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    const double expected = M_PI * 64.0 * 5.0;
+    REQUIRE_THAT(double(doc.display_mesh.volume()), Catch::Matchers::WithinRel(expected, 0.01));
+}
+
+TEST_CASE("a closed polygon still extrudes exactly as before", "[CadDocument][sketchwire]")
+{
+    std::vector<SketchEntity> ents = rect_entities(20, 20);
+    CadDocument doc = plate_doc(ents, 10.0);
+
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    const double expected = 20.0 * 20.0 * 10.0;
+    REQUIRE_THAT(double(doc.display_mesh.volume()), Catch::Matchers::WithinRel(expected, 0.01));
+}
+
+TEST_CASE("two disjoint regions are refused, not guessed", "[CadDocument][sketchwire]")
+{
+    std::vector<SketchEntity> ents = { circle_entity({-10, 0}, 5.0), circle_entity({10, 0}, 5.0) };
+    CadDocument doc = plate_doc(ents, 10.0);
+
+    CHECK_FALSE(doc.recompute());
+    CHECK(doc.error.find("disjoint") != std::string::npos);
+    CHECK(doc.bodies.empty());
+}
+
+TEST_CASE("entities_to_wires returns one wire per loop", "[CadDocument][sketchwire]")
+{
+    std::vector<SketchEntity> ents = rect_entities(40, 30);
+    ents.push_back(circle_entity({0, 0}, 5.0));
+
+    const std::vector<TopoDS_Wire> wires = SketchEngine::entities_to_wires(ents, SketchPlane::XY());
+    REQUIRE(wires.size() == 2);
+    REQUIRE_FALSE(wires[0].IsNull());
+    REQUIRE_FALSE(wires[1].IsNull());
 }
 
 // Sketching on a picked face is the most common gesture in solid modelling, and it was impossible:
