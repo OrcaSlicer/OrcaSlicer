@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -51,6 +53,65 @@ TEST_CASE("Other flavors wait in the wipe tower with a seconds dwell", "[WipeTow
     const GCodeFlavor flavor = GENERATE(from_range(non_klipper_flavors()));
     INFO("gcode flavor: " << flavor_name(flavor));
     CHECK(wait_command(flavor, 1.5f) == "G4 S1.500\n");
+}
+
+// The prime tower is validated against the real printable outline, so the placement clamps have to
+// agree with it wherever that outline is not a rectangle. A regular hexagon inscribed in a 200mm
+// circle stands in for the shipped delta beds.
+TEST_CASE("The wipe tower placement clamp follows a non-rectangular bed outline", "[WipeTower]")
+{
+    const coord_t margin = scaled<coord_t>(1.);
+    auto square_at = [](double x, double y, double side) {
+        return BoundingBox(Point::new_scale(x, y), Point::new_scale(x + side, y + side));
+    };
+    // Does the footprint, padded by pad, sit inside the outline once the returned move is applied?
+    auto lands_inside = [](BoundingBox box, const Polygons &bed, const Vec2f &move, coord_t pad) {
+        box.translate(Point::new_scale(move.x(), move.y()));
+        return diff(Polygons{box.inflated(pad).polygon()}, bed).empty();
+    };
+
+    const Polygons hex_bed{make_circle_num_segments(scaled<double>(100.), 6)};
+    const Polygons square_bed{Polygon::new_scale(Pointfs{{0., 0.}, {200., 0.}, {200., 200.}, {0., 200.}})};
+
+    SECTION("a rectangular bed is left to the bounding box clamp") {
+        const Vec2f move = WipeTower::move_box_inside_polygon(square_at(50., 50., 30.), square_bed, margin);
+        CHECK_THAT(move.x(), Catch::Matchers::WithinAbs(0., 1e-6));
+        CHECK_THAT(move.y(), Catch::Matchers::WithinAbs(0., 1e-6));
+    }
+
+    // Dragging the tower off one edge may not pull it away from the other, or it would jump out from
+    // under the cursor instead of sliding along the edge.
+    SECTION("only the violated axis is clamped") {
+        const Vec2f move = WipeTower::move_box_inside_polygon(square_at(185., 50., 30.), square_bed, margin);
+        CHECK_THAT(move.x(), Catch::Matchers::WithinAbs(-16., 1e-6));
+        CHECK_THAT(move.y(), Catch::Matchers::WithinAbs(0., 1e-6));
+    }
+
+    SECTION("a footprint already inside the outline is left alone") {
+        const Vec2f move = WipeTower::move_box_inside_polygon(square_at(-15., -15., 30.), hex_bed, margin);
+        CHECK_THAT(move.x(), Catch::Matchers::WithinAbs(0., 1e-6));
+        CHECK_THAT(move.y(), Catch::Matchers::WithinAbs(0., 1e-6));
+    }
+
+    SECTION("a footprint in the bounding box corner is pulled onto the bed") {
+        const BoundingBox box = square_at(55., 50., 30.);
+        REQUIRE_FALSE(lands_inside(box, hex_bed, Vec2f::Zero(), margin)); // in the bbox, off the hexagon
+        CHECK(lands_inside(box, hex_bed, WipeTower::move_box_inside_polygon(box, hex_bed, margin), margin));
+    }
+
+    // An unresolved auto brim width reaches the drag clamp as a negative margin. Padding by it would
+    // shrink the footprint and hand back a position the slice validation still rejects.
+    SECTION("a negative margin still lands the footprint inside the outline") {
+        const BoundingBox box = square_at(55., 50., 30.);
+        const coord_t     brim = scaled<coord_t>(-0.5);
+        CHECK(lands_inside(box, hex_bed, WipeTower::move_box_inside_polygon(box, hex_bed, brim), 0));
+    }
+
+    SECTION("a footprint too large for the bed is left alone") {
+        const Vec2f move = WipeTower::move_box_inside_polygon(square_at(-200., -200., 400.), hex_bed, margin);
+        CHECK_THAT(move.x(), Catch::Matchers::WithinAbs(0., 1e-6));
+        CHECK_THAT(move.y(), Catch::Matchers::WithinAbs(0., 1e-6));
+    }
 }
 
 // The cases above only exercise the helpers in isolation. The one below slices a real

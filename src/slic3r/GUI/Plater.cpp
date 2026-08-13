@@ -3287,7 +3287,9 @@ void Sidebar::update_all_preset_comboboxes()
                                  : MainFrame::PrintSelectType::eSendGcode;
         }
 
-        if (!use_native_device_tab || use_printer_agents)
+        if (use_printer_agents)
+            p_mainframe->load_printer_url();
+        else if (!use_native_device_tab)
             p_mainframe->load_printer_url(url, apikey);
 
 
@@ -9501,7 +9503,7 @@ void Plater::priv::replace_all_with_stl()
         return;
     }
 
-    std::string status = _L("Replaced with 3D files from directory:\n").ToStdString() + out_path.string() + "\n\n";
+    wxString status = _L("Replaced with 3D files from directory:\n") + from_u8(out_path.string()) + "\n\n";
 
     for (unsigned int idx : volume_idxs) {
         const GLVolume* v = selection.get_volume(idx);
@@ -9521,13 +9523,13 @@ void Plater::priv::replace_all_with_stl()
         std::string volume_name = volume->name;
 
         if (new_path == input_path) {
-            status += boost::str(boost::format(_L("✖ Skipped %1%: same file.\n").ToStdString()) % volume_name);
+            status += wxString::Format(_L("✖ Skipped %s: same file.\n"), from_u8(volume_name));
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " skipping replace volume : same filename " << new_path;
             continue;
         }
 
         if (!fs::exists(new_path)) {
-            status += boost::str(boost::format(_L("✖ Skipped %1%: file does not exist.\n").ToStdString()) % volume_name);
+            status += wxString::Format(_L("✖ Skipped %s: file does not exist.\n"), from_u8(volume_name));
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cannot replace volume : filen does not exist " << new_path;
             continue;
         }
@@ -9535,12 +9537,12 @@ void Plater::priv::replace_all_with_stl()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " replacing volume : " << input_path << " with " << new_path;
 
         if (!replace_volume_with_stl(object_idx, volume_idx, new_path, _u8L("Replace with 3D file"))) {
-            status += boost::str(boost::format(_L("✖ Skipped %1%: failed to replace.\n").ToStdString()) % volume_name);
+            status += wxString::Format(_L("✖ Skipped %s: failed to replace.\n"), from_u8(volume_name));
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cannot replace volume : failed to replace with " << new_path;
             continue;
         }
 
-        status += boost::str(boost::format(_L("✔ Replaced %1%.\n").ToStdString()) % volume_name);
+        status += wxString::Format(_L("✔ Replaced %s.\n"), from_u8(volume_name));
     }
 
     // update 3D scene
@@ -11236,9 +11238,14 @@ void Plater::priv::on_tab_selection_changing(wxBookCtrlEvent& e)
             }
         }
     } else {
-        if (new_sel == MainFrame::tpMonitor && wxGetApp().preset_bundle != nullptr) {
+        const bool selecting_web_device_tab = main_frame->m_printer_view &&
+            main_frame->m_tabpanel->GetPage(new_sel) == main_frame->m_printer_view;
+        if (selecting_web_device_tab) {
+            // Use the selected discovered machine when the preset has no host.
+            main_frame->load_printer_url();
+        } else if (new_sel == MainFrame::tpMonitor && wxGetApp().preset_bundle != nullptr) {
             auto     cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-            wxString url = cfg.opt_string("print_host_webui").empty() ? cfg.opt_string("print_host") : cfg.opt_string("print_host_webui");
+            wxString url = from_u8(PrintHost::get_print_host_webui(&cfg));
             if (main_frame->m_printer_view && url.empty()) {
                 // It's missing_connection page, reload so that we can replay the gif image
                 main_frame->m_printer_view->reload();

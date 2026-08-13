@@ -8120,21 +8120,21 @@ msgstr "Le répertoire pour le remplacement n'a pas été sélectionné"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Remplacé par des fichiers 3D depuis le répertoire :\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Ignoré %1% : même fichier.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Ignoré %s : même fichier.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Ignoré %1% : le fichier n'existe pas.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Ignoré %s : le fichier n'existe pas.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Ignoré %1% : échec du remplacement.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Ignoré %s : échec du remplacement.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Remplacé %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Remplacé %s.\n"
 
 msgid "Replaced volumes"
 msgstr "Volumes remplacés"
@@ -9283,22 +9283,22 @@ msgid "DEV host: api-dev.bambu-lab.com/v1"
 msgstr "Hôte DEV : api-dev.bambu-lab.com/v1"
 
 msgid "QA  host: api-qa.bambu-lab.com/v1"
-msgstr "Hôte AQ : api-qa.bambu-lab.com/v1"
+msgstr "Hôte QA : api-qa.bambu-lab.com/v1"
 
 msgid "PRE host: api-pre.bambu-lab.com/v1"
-msgstr "Hébergeur PRE : api-pre.bambu-lab.com/v1"
+msgstr "Hôte PRE : api-pre.bambu-lab.com/v1"
 
 msgid "Product host"
 msgstr "Hôte du produit"
 
 msgid "Debug save button"
-msgstr "bouton d'enregistrement de débogage"
+msgstr "Bouton d'enregistrement de debugage"
 
 msgid "Save debug settings"
-msgstr "enregistrer les paramètres de débogage"
+msgstr "Enregistrer les paramètres de debugage"
 
 msgid "Debug settings have been saved successfully!"
-msgstr "Les paramètres DEBUG ont été enregistrés avec succès !"
+msgstr "Les paramètres de debug ont été enregistrés avec succès !"
 
 msgid "Cloud environment switched; please login again!"
 msgstr "L'environnement Cloud a changé, veuillez vous reconnecter !"

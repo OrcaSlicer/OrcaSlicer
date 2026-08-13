@@ -6570,6 +6570,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("wait_for_temp_on_wipe_tower", coBool);
+    def->label = L("Wait for temperature on wipe tower");
+    def->tooltip = L("Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe "
+                     "tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on "
+                     "the tower instead of the model, and the travel overlaps with the heating. "
+                     "Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. "
+                     "The firmware or tool change macro must not wait for the temperature itself. "
+                     "When disabled, the temperature wait is issued right after the tool change command.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
 
     def = this->add("wipe_tower_no_sparse_layers", coBool);
     def->label = L("No sparse layers (beta)");
@@ -10415,6 +10426,16 @@ int DynamicPrintConfig::update_values_from_multi_to_multi_2(const std::vector<st
 
 }
 
+void set_variant_override(ConfigOptionVectorBase &target, const ConfigOptionVectorBase &source,
+                          const std::vector<int> &variant_index, int stride)
+{
+    // A single-value object or region override applies to every nozzle variant.
+    std::vector<int> indices = variant_index;
+    if (source.size() == 1 && !source.is_nil(0))
+        std::fill(indices.begin(), indices.end(), 0);
+    target.set_to_index(&source, indices, stride);
+}
+
 
 //used for object/region config
 //use the smallest of multiple to single
@@ -11492,7 +11513,7 @@ void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPr
                 else {
                     ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(opt_src);
                     const ConfigOptionVectorBase* opt_vec_dest = static_cast<const ConfigOptionVectorBase*>(opt_dest);
-                    opt_vec_src->set_to_index(opt_vec_dest, variant_index, stride);
+                    set_variant_override(*opt_vec_src, *opt_vec_dest, variant_index, stride);
                 }
             }
         }

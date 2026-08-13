@@ -282,6 +282,14 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wipe_tower_x"
             || opt_key == "wipe_tower_y"
             || opt_key == "wipe_tower_rotation_angle") {
+            // The tower gcode itself is position-independent (position and rotation are applied
+            // at export), except that the wait_for_temp_on_wipe_tower park bakes a bed-relative
+            // side choice into it (WipeTower2::toolchange_Change) — regenerate it when the tower
+            // moves. Gating on the old config is safe: both inputs of wait_for_temp_enabled
+            // invalidate psWipeTower themselves when they are part of the same diff.
+            if ((opt_key == "wipe_tower_x" || opt_key == "wipe_tower_y" || opt_key == "wipe_tower_rotation_angle")
+                && WipeTower2::wait_for_temp_enabled(m_config))
+                steps.emplace_back(psWipeTower);
             steps.emplace_back(psSkirtBrim);
         } else if (
                opt_key == "slicing_pipeline_plugin"
@@ -382,6 +390,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wiping_volumes_extruders"
             || opt_key == "enable_filament_ramming"
             || opt_key == "tool_change_on_wipe_tower"
+            || opt_key == "wait_for_temp_on_wipe_tower"
             || opt_key == "purge_in_prime_tower"
             || opt_key == "z_offset"
             || opt_key == "support_multi_bed_types"
@@ -1039,13 +1048,14 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
             wipe_tower_convex_hull.points.emplace_back(scale_(x + width), scale_(y));
             wipe_tower_convex_hull.points.emplace_back(scale_(x + width), scale_(y + depth));
             wipe_tower_convex_hull.points.emplace_back(scale_(x), scale_(y + depth));
-            wipe_tower_convex_hull.rotate(a);
+            wipe_tower_convex_hull.rotate(Geometry::deg2rad(a), Point(scale_(x), scale_(y)));
             convex_hulls_temp.push_back(wipe_tower_convex_hull);
         } else {
             //here, wipe_tower_polygon is not always convex.
             Polygon wipe_tower_polygon;
             if (print.wipe_tower_data().wipe_tower_mesh_data)
                 wipe_tower_polygon = print.wipe_tower_data().wipe_tower_mesh_data->bottom;
+            wipe_tower_polygon.rotate(Geometry::deg2rad(a));
             wipe_tower_polygon.translate(Point(scale_(x), scale_(y)));
             convex_hulls_temp.push_back(wipe_tower_polygon);
         }
@@ -1063,6 +1073,22 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     }
     if (print_config.enable_wrapping_detection.value && !intersection({wrapping_poly}, convex_hulls_temp).empty()) {
         return {L("Prime Tower") + L(" is too close to clumping detection area, and collisions will be caused.\n")};
+    }
+    // Skip the containment check for towers that will never be printed (single-filament
+    // prints without smooth timelapse keep the config's tower position but emit nothing).
+    // Pre-generation only the body square is tested — the auto-brim estimate can overshoot
+    // the generated brim by several mm and must not hard-fail a print that physically fits.
+    // Post-generation the mesh bottom already includes the real brim, so the exact
+    // footprint is tested.
+    if (filaments_count > 1 || print.enable_timelapse_print()) {
+        // The shared printable polygon is plate-local, while the tower polygons above are
+        // already shifted by the plate origin.
+        Polygons    printable_polys = print.get_extruder_shared_printable_polygon();
+        const Point plate_shift(scale_(plate_origin.x()), scale_(plate_origin.y()));
+        for (Polygon &p : printable_polys)
+            p.translate(plate_shift);
+        if (!diff(convex_hulls_temp, printable_polys).empty())
+            return {L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n")};
     }
     return {};
 }
@@ -3918,6 +3944,12 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
         double volume = wipe_volume * filament_depth_count;
         if (m_config.nozzle_diameter.values.size() == 2) volume += filament_change_volume * (int) (filaments_cnt / 2);
 
+        // Sizing should take into account currently set wiping volumes.
+        // For a long time, the initial preview would just use 900/width per toolchange (15mm on a 60mm wide tower)
+        // and it worked well enough. Let's try to do slightly better by accounting for the purging volumes.
+        const bool semm_flush = m_config.purge_in_prime_tower && m_config.single_extruder_multi_material;
+        if (semm_flush) volume = WipeTower2::estimate_semm_flush_volume(m_config, filaments_cnt);
+
         if (m_config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib) {
             double depth = std::sqrt(volume / layer_height * extra_spacing);
             if (need_wipe_tower || filaments_cnt > 1) {
@@ -3929,30 +3961,16 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
             }
         }
         else {
-        double width        = m_config.prime_tower_width;
-        if (m_config.purge_in_prime_tower && m_config.single_extruder_multi_material) {
-            // Calculating depth should take into account currently set wiping volumes.
-            // For a long time, the initial preview would just use 900/width per toolchange (15mm on a 60mm wide tower)
-            // and it worked well enough. Let's try to do slightly better by accounting for the purging volumes.
-            std::vector<std::vector<float>> wipe_volumes = WipeTower2::extract_wipe_volumes(m_config);
-            std::vector<float>              max_wipe_volumes;
-            for (const std::vector<float> &v : wipe_volumes)
-                max_wipe_volumes.emplace_back(*std::max_element(v.begin(), v.end()));
-            float maximum = std::accumulate(max_wipe_volumes.begin(), max_wipe_volumes.end(), 0.f);
-            maximum       = maximum * filaments_cnt / max_wipe_volumes.size();
-            
-            // Orca: it's overshooting a bit, so let's reduce it a bit
-            maximum *= 0.6; 
-            const_cast<Print *>(this)->m_wipe_tower_data.depth = maximum / (layer_height * width);
-        } else {
-            double depth = volume / (layer_height * width) * extra_spacing;
-            if (need_wipe_tower || m_wipe_tower_data.depth > EPSILON) {
+            double width = m_config.prime_tower_width;
+            double depth = volume / (layer_height * width);
+            // The flush volumes already hold the spacing between wipes.
+            if (!semm_flush) depth *= extra_spacing;
+            if (need_wipe_tower || depth > EPSILON) {
                 float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
                 depth = std::max((double) min_wipe_tower_depth, depth);
             }
             const_cast<Print *>(this)->m_wipe_tower_data.depth = depth;
-        }
-        const_cast<Print *>(this)->m_wipe_tower_data.brim_width = m_config.prime_tower_brim_width;
+            const_cast<Print *>(this)->m_wipe_tower_data.brim_width = m_config.prime_tower_brim_width;
         }
         if (m_config.prime_tower_brim_width < 0) const_cast<Print *>(this)->m_wipe_tower_data.brim_width = WipeTower::get_auto_brim_by_height(max_height);
     }

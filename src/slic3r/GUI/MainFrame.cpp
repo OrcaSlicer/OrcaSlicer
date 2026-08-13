@@ -1373,8 +1373,8 @@ void MainFrame::show_device(bool should_use_native) {
 
     const bool use_printer_agents = wxGetApp().app_config->get_bool("use_printer_agents");
 
-    // The legacy page is appended when printer agents are enabled. Remove that
-    // extra page before switching back to the normal native/legacy layout.
+    // The web page is appended when printer agents are enabled. Remove that
+    // extra page before switching back to the normal native/Web layout.
     if (!use_printer_agents) {
         if ((idx = m_tabpanel->FindPage(m_printer_view)) != wxNOT_FOUND && idx != tpMonitor) {
             m_printer_view->Show(false);
@@ -1434,10 +1434,10 @@ void MainFrame::show_device(bool should_use_native) {
 
         if ((idx = m_tabpanel->FindPage(m_printer_view)) == wxNOT_FOUND) {
             m_printer_view->Show(false);
-            m_tabpanel->AddPage(m_printer_view, _L("Device (legacy)"), std::string("tab_monitor_active"),
+            m_tabpanel->AddPage(m_printer_view, _L("Device (Web)"), std::string("tab_monitor_active"),
                                 std::string("tab_monitor_active"), false);
         } else {
-            m_tabpanel->SetPageText(idx, _L("Device (legacy)"));
+            m_tabpanel->SetPageText(idx, _L("Device (Web)"));
         }
 
 #ifdef _MSW_DARK_MODE
@@ -4333,14 +4333,26 @@ void MainFrame::load_printer_url(wxString url, wxString apikey)
 void MainFrame::load_printer_url()
 {
     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
-    if (preset_bundle.use_bbl_device_tab() || wxGetApp().app_config->get_bool("use_printer_agents"))
+    if (preset_bundle.use_bbl_device_tab() && !wxGetApp().app_config->get_bool("use_printer_agents"))
         return;
 
     auto     cfg = preset_bundle.printers.get_edited_preset().config;
+    if (cfg.opt_string("print_host").empty()) {
+        if (auto *device_manager = wxGetApp().getDeviceManager()) {
+            auto *machine = device_manager->get_selected_machine();
+            if (!machine) {
+                auto machines = device_manager->get_my_machine_list();
+                if (machines.size() == 1)
+                    machine = machines.begin()->second;
+            }
+            if (machine && !machine->get_dev_ip().empty())
+                cfg.opt_string("print_host") = machine->get_dev_ip();
+        }
+    }
     wxString url = from_u8(PrintHost::get_print_host_webui(&cfg));
     wxString apikey;
     const auto host_type = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type")->value;
-    if (cfg.has("printhost_apikey") && (host_type == htPrusaLink || host_type == htPrusaConnect))
+    if (cfg.has("printhost_apikey") && host_type != htSimplyPrint)
         apikey = cfg.opt_string("printhost_apikey");
     if (!url.empty()) {
         load_printer_url(url, apikey);

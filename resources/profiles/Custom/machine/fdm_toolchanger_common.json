@@ -6,6 +6,7 @@
 	"instantiation": "false",
 	"gcode_flavor": "klipper",
 	"single_extruder_multi_material": "0",
+	"wait_for_temp_on_wipe_tower": "1",
 	"default_filament_profile": [
 		"Generic PLA @MyToolChanger"
 	],
