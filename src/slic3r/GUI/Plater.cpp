@@ -7975,7 +7975,12 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     //    q->model().stl_design_country = "";
     //}
 
-    if (tolal_model_count <= 0 && !q->m_exported_file) {
+    // A CAD project legitimately carries no mesh: the model lives in the feature tree
+    // (Metadata/SnapOrca_cad.bin) until it is committed to the plate. Warning "no geometry data"
+    // for one is false, and it is the LAST thing a user sees after opening a design they spent an
+    // hour on — it reads as "your work is gone" when the recipe has in fact just been loaded and
+    // the Design tab will rehydrate it. Count the recipe as geometry.
+    if (tolal_model_count <= 0 && q->model().cad_recipe.empty() && !q->m_exported_file) {
         dlg.Hide();
         if (!is_user_cancel) {
             MessageDialog msg(wxGetApp().mainframe, _L("The file does not contain any geometry data."), _L("Warning"), wxYES | wxICON_WARNING);
