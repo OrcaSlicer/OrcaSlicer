@@ -842,6 +842,9 @@ extern std::set<std::string> printer_options_with_variant_1;
 extern std::set<std::string> printer_options_with_variant_2;
 extern std::set<std::string> empty_options;
 
+void set_variant_override(ConfigOptionVectorBase &target, const ConfigOptionVectorBase &source,
+                          const std::vector<int> &variant_index, int stride = 1);
+
 extern std::set<std::string> filament_dev_options;
 
 extern void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPrintConfig& dest_config, std::vector<int> variant_index, std::set<std::string>& key_set1, int stride = 1);
@@ -2392,6 +2395,55 @@ static void set_flush_volumes_matrix(std::vector<T> &out_matrix, const std::vect
     else {
         out_matrix = std::vector<T>(fv_matrix.begin(), fv_matrix.end());
     }
+}
+
+template<class T>
+static bool has_zero_flush_volume_for_used_filaments(const std::vector<T> &fv_matrix,
+                                                      const std::vector<T> &flush_multipliers,
+                                                      const std::vector<int> &used_filaments)
+{
+    if (used_filaments.size() < 2 || flush_multipliers.empty())
+        return false;
+
+    if (fv_matrix.size() % flush_multipliers.size() != 0)
+        return false;
+
+    const size_t matrix_len = fv_matrix.size() / flush_multipliers.size();
+    const size_t row_len    = size_t(std::sqrt(double(matrix_len)));
+    if (row_len < 2 || row_len * row_len != matrix_len)
+        return false;
+
+    std::vector<int> filtered_filaments;
+    filtered_filaments.reserve(used_filaments.size());
+    for (int filament_id : used_filaments) {
+        if (filament_id <= 0 || filament_id > int(row_len))
+            continue;
+        if (std::find(filtered_filaments.begin(), filtered_filaments.end(), filament_id) == filtered_filaments.end())
+            filtered_filaments.push_back(filament_id);
+    }
+    if (filtered_filaments.size() < 2)
+        return false;
+
+    for (T multiplier : flush_multipliers) {
+        if (multiplier == 0)
+            return true;
+    }
+
+    for (size_t nozzle_idx = 0; nozzle_idx < flush_multipliers.size(); nozzle_idx++) {
+        const size_t block_offset = nozzle_idx * matrix_len;
+        for (int from_id : filtered_filaments) {
+            for (int to_id : filtered_filaments) {
+                if (from_id == to_id)
+                    continue;
+
+                const size_t matrix_idx = block_offset + size_t(from_id - 1) * row_len + size_t(to_id - 1);
+                if (matrix_idx < fv_matrix.size() && fv_matrix[matrix_idx] == 0)
+                    return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
