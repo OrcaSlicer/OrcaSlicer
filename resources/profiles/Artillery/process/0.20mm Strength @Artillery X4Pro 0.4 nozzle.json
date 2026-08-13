@@ -3,6 +3,7 @@
 	"name": "0.20mm Strength @Artillery X4Pro 0.4 nozzle",
 	"inherits": "0.20mm Standard @Artillery X4Pro 0.4 nozzle",
 	"from": "system",
+	"setting_id": "yKWFscwmMJUXqfZx",
 	"instantiation": "true",
 	"outer_wall_speed": "60",
 	"print_settings_id": "0.20mm Strength @Artillery X4Pro 0.4 nozzle",

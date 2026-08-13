@@ -9,24 +9,24 @@
 #include "is_edge_manifold.h"
 #include <algorithm>
 
-template<typename DerivedV, typename DerivedF>
+template<typename DerivedV, typename DerivedF, typename DerivedE>
 IGL_INLINE void igl::edge_topology(
-  const Eigen::PlainObjectBase<DerivedV>& V,
-  const Eigen::PlainObjectBase<DerivedF>& F,
-  Eigen::MatrixXi& EV,
-  Eigen::MatrixXi& FE,
-  Eigen::MatrixXi& EF)
+  const Eigen::MatrixBase<DerivedV>& V,
+  const Eigen::MatrixBase<DerivedF>& F,
+  Eigen::PlainObjectBase<DerivedE>& EV,
+  Eigen::PlainObjectBase<DerivedE>& FE,
+  Eigen::PlainObjectBase<DerivedE>& EF)
 {
   // Only needs to be edge-manifold
   if (V.rows() ==0 || F.rows()==0)
   {
-    EV = Eigen::MatrixXi::Constant(0,2,-1);
-    FE = Eigen::MatrixXi::Constant(0,3,-1);
-    EF = Eigen::MatrixXi::Constant(0,2,-1);
+    EV = Eigen::PlainObjectBase<DerivedE>::Constant(0,2,-1);
+    FE = Eigen::PlainObjectBase<DerivedE>::Constant(0,3,-1);
+    EF = Eigen::PlainObjectBase<DerivedE>::Constant(0,2,-1);
     return;
   }
   assert(igl::is_edge_manifold(F));
-  std::vector<std::vector<int> > ETT;
+  std::vector<std::vector<typename DerivedE::Scalar> > ETT;
   for(int f=0;f<F.rows();++f)
     for (int i=0;i<3;++i)
     {
@@ -34,7 +34,7 @@ IGL_INLINE void igl::edge_topology(
       int v1 = F(f,i);
       int v2 = F(f,(i+1)%3);
       if (v1 > v2) std::swap(v1,v2);
-      std::vector<int> r(4);
+      std::vector<typename DerivedE::Scalar> r(4);
       r[0] = v1; r[1] = v2;
       r[2] = f;  r[3] = i;
       ETT.push_back(r);
@@ -47,9 +47,9 @@ IGL_INLINE void igl::edge_topology(
     if (!((ETT[i][0] == ETT[i+1][0]) && (ETT[i][1] == ETT[i+1][1])))
       ++En;
 
-  EV = Eigen::MatrixXi::Constant((int)(En),2,-1);
-  FE = Eigen::MatrixXi::Constant((int)(F.rows()),3,-1);
-  EF = Eigen::MatrixXi::Constant((int)(En),2,-1);
+  EV = DerivedE::Constant((int)(En),2,-1);
+  FE = DerivedE::Constant((int)(F.rows()),3,-1);
+  EF = DerivedE::Constant((int)(En),2,-1);
   En = 0;
 
   for(unsigned i=0;i<ETT.size();++i)
@@ -59,7 +59,7 @@ IGL_INLINE void igl::edge_topology(
         )
     {
       // Border edge
-      std::vector<int>& r1 = ETT[i];
+      std::vector<typename DerivedE::Scalar>& r1 = ETT[i];
       EV(En,0)     = r1[0];
       EV(En,1)     = r1[1];
       EF(En,0)    = r1[2];
@@ -67,8 +67,8 @@ IGL_INLINE void igl::edge_topology(
     }
     else
     {
-      std::vector<int>& r1 = ETT[i];
-      std::vector<int>& r2 = ETT[i+1];
+      std::vector<typename DerivedE::Scalar>& r1 = ETT[i];
+      std::vector<typename DerivedE::Scalar>& r2 = ETT[i+1];
       EV(En,0)     = r1[0];
       EV(En,1)     = r1[1];
       EF(En,0)    = r1[2];
@@ -84,7 +84,7 @@ IGL_INLINE void igl::edge_topology(
   // the first one is the face on the left of the edge
   for(unsigned i=0; i<EF.rows(); ++i)
   {
-    int fid = EF(i,0);
+    typename DerivedE::Scalar fid = EF(i,0);
     bool flip = true;
     // search for edge EV.row(i)
     for (unsigned j=0; j<3; ++j)
@@ -105,6 +105,6 @@ IGL_INLINE void igl::edge_topology(
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template void igl::edge_topology<Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 3, 0, -1, 3> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&, Eigen::Matrix<int, -1, -1, 0, -1, -1>&, Eigen::Matrix<int, -1, -1, 0, -1, -1>&, Eigen::Matrix<int, -1, -1, 0, -1, -1>&);
-template void igl::edge_topology<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::Matrix<int, -1, -1, 0, -1, -1>&, Eigen::Matrix<int, -1, -1, 0, -1, -1>&, Eigen::Matrix<int, -1, -1, 0, -1, -1>&);
+template void igl::edge_topology<Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>>&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>>&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>>&);
+template void igl::edge_topology<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>>&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>>&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>>&);
 #endif

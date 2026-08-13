@@ -3,7 +3,7 @@
 	"name": "Creality Generic ASA @K1-all",
 	"inherits": "Creality Generic ASA",
 	"from": "system",
-	"setting_id": "GFSA04_00",
+	"setting_id": "nq4sPDBNWLOnU5pD",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"12"

@@ -3,6 +3,7 @@
 	"name": "Flashforge Guider4 0.8 HF nozzle",
 	"inherits": "Flashforge Guider 3 Ultra 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "Q84FWmcyIdze15DX",
 	"instantiation": "true",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "1",
@@ -49,6 +50,7 @@
 	"head_wrap_detect_zone": [],
 	"high_current_on_filament_swap": "0",
 	"host_type": "octoprint",
+	"use_3mf": "1",
 	"layer_change_gcode": "",
 	"long_retractions_when_cut": [
 		"0"
@@ -156,7 +158,7 @@
 	"printer_settings_id": "Flashforge Guider4 0.8 HF nozzle",
 	"printer_structure": "undefine",
 	"printer_technology": "FFF",
-	"printer_variant": "0.6",
+	"printer_variant": "0.8HF",
 	"printhost_authorization_type": "key",
 	"printhost_ssl_ignore_revoke": "0",
 	"printing_by_object_gcode": "",

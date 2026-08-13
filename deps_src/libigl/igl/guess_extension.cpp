@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "is_stl.h"
-#include "ply.h"
 
 IGL_INLINE void igl::guess_extension(FILE * fp, std::string & guess)
 {
@@ -20,18 +19,13 @@ IGL_INLINE void igl::guess_extension(FILE * fp, std::string & guess)
     rewind(fp);
     return f;
   };
-  const auto is_ply = [](FILE * ply_file) -> bool
+  const auto is_ply = [](FILE * fp) -> bool
   {
-    int nelems;
-    char ** elem_names;
-    igl::ply::PlyFile * in_ply = igl::ply::ply_read(ply_file,&nelems,&elem_names);
-    if(in_ply==NULL)
-    {
-      return false;
-    }
-    free(in_ply);
-    rewind(ply_file);
-    return true;
+    char header[1000];
+    const std::string PLY("ply");
+    bool f = (fscanf(fp,"%s\n",header)==1 && (std::string(header).compare(0, PLY.length(), PLY)==0 ));
+    rewind(fp);
+    return f;
   };
   const auto is_wrl = [](FILE * wrl_file)->bool
   {

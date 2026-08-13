@@ -1,0 +1,107 @@
+{
+	"type": "filament",
+	"name": "Polymaker PLA @U1 base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OGFL99",
+	"instantiation": "false",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 nozzle)"
+	],
+	"activate_air_filtration": [
+		"0"
+	],
+	"chamber_temperatures": [
+		"0"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"70"
+	],
+	"cool_plate_temp": [
+		"35"
+	],
+	"cool_plate_temp_initial_layer": [
+		"35"
+	],
+	"during_print_exhaust_fan_speed": [
+		"70"
+	],
+	"filament_cost": [
+		"20"
+	],
+	"filament_long_retractions_when_cut": [
+		"nil"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
+	],
+	"filament_retraction_distances_when_cut": [
+		"nil"
+	],
+	"filament_retraction_length": [
+		"nil"
+	],
+	"filament_retraction_speed": [
+		"nil"
+	],
+	"filament_vendor": [
+		"Generic"
+	],
+	"filament_scarf_seam_type": [
+		"none"
+	],
+	"filament_scarf_height": [
+		"10%"
+	],
+	"filament_scarf_gap": [
+		"15%"
+	],
+	"filament_scarf_length": [
+		"10"
+	],
+	"filament_shrink": [
+		"100%"
+	],
+	"hot_plate_temp": [
+		"55"
+	],
+	"hot_plate_temp_initial_layer": [
+		"55"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"overhang_fan_threshold": [
+		"50%"
+	],
+	"supertack_plate_temp": [
+		"45"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"45"
+	],
+	"slow_down_layer_time": [
+		"4"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"temperature_vitrification": [
+		"45"
+	],
+	"textured_plate_temp": [
+		"55"
+	],
+	"textured_plate_temp_initial_layer": [
+		"55"
+	],
+	"filament_start_gcode": [
+		"; Filament gcode\n"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode\n"
+	]
+}

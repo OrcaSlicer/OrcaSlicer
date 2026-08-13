@@ -11,7 +11,7 @@
 	"printer_variant": "0.4",
 	"auxiliary_fan": "0",
 	"default_filament_profile": [
-		"Generic PLA @Z-Bolt"
+		"Generic PLA @Z-Bolt 0.4 nozzle"
 	],
 	"default_print_profile": "0.20mm Standard @Z-Bolt S300",
 	"machine_max_acceleration_e": [

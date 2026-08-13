@@ -103,10 +103,19 @@ function HandleStudio( pVal )
 
     GotoMenu(strName);
   } else if (strCmd == "cloud_providers_info") {
-    if (pVal["data"]["providers"] && pVal["data"]["providers"].indexOf("bbl") >= 0) {
+    var providers = (pVal["data"] && pVal["data"]["providers"]) || [];
+
+    if (providers.indexOf("bbl") >= 0) {
       $("#BambuCloudSection").show();
     } else {
+      SetBambuUserOffline();
       $("#BambuCloudSection").hide();
+    }
+
+    if (providers.indexOf("orca") >= 0) {
+      $("#LeftBoard").show();
+    } else {
+      $("#LeftBoard").hide();
     }
   } else if (strCmd == "network_plugin_installtip") {
     let nShow = pVal["show"] * 1;
@@ -164,6 +173,7 @@ function GotoMenu( strMenu )
 function SetOrcaLoginInfo( strAvatar, strName )
 {
 	$("#OrcaLogin1").hide();
+	$("#OrcaStatusText").hide();
 
 	$("#UserName").text(strName);
 
@@ -187,6 +197,7 @@ function SetOrcaUserOffline()
 
 	$("#OrcaLogin1").show();
 	$("#OrcaLogin1").css("display","flex");
+	$("#OrcaStatusText").show();
 }
 
 function SetMallUrl( strUrl )
@@ -428,6 +439,8 @@ function SetBambuLoginInfo(strAvatar, strName) {
   $("#BambuLogin2").show();
   $("#BambuLogin2").css("display", "flex");
   $(".bambu-status-dot").addClass("online");
+  $("#BambuStatusText").text("Connected");
+  $("#BambuStatusText").attr("tid", "orca11");
 }
 
 function SetBambuUserOffline() {
@@ -439,6 +452,8 @@ function SetBambuUserOffline() {
     $("#BambuLogin1").css("display", "flex");
   }
   $(".bambu-status-dot").removeClass("online");
+  $("#BambuStatusText").text("Not connected");
+  $("#BambuStatusText").attr("tid", "orca10");
 }
 
 function OnBambuLoginOrRegister() { SendSimpleCommand("homepage_bambu_login_or_register"); }

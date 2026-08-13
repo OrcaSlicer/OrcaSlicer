@@ -10,6 +10,7 @@
 #include "barycenter.h"
 #include "ray_mesh_intersect.h"
 #include "per_vertex_normals.h"
+#include "PlainMatrix.h"
 #include "per_face_normals.h"
 #include "EPS.h"
 #include "Hit.h"
@@ -24,31 +25,33 @@ template <
   typename DerivedS >
 IGL_INLINE void igl::shape_diameter_function(
   const std::function<
-    double(
-      const Eigen::Vector3f&,
-      const Eigen::Vector3f&)
+    typename DerivedP::Scalar(
+      const Eigen::Matrix<typename DerivedP::Scalar,3,1> &,
+      const Eigen::Matrix<typename DerivedP::Scalar,3,1> &)
       > & shoot_ray,
-  const Eigen::PlainObjectBase<DerivedP> & P,
-  const Eigen::PlainObjectBase<DerivedN> & N,
+  const Eigen::MatrixBase<DerivedP> & P,
+  const Eigen::MatrixBase<DerivedN> & N,
   const int num_samples,
   Eigen::PlainObjectBase<DerivedS> & S)
 {
   using namespace Eigen;
+  using Scalar = typename DerivedP::Scalar;
+  using Vector3S = Eigen::Matrix<typename DerivedP::Scalar,3,1>;
   const int n = P.rows();
   // Resize output
   S.resize(n,1);
   // Embree seems to be parallel when constructing but not when tracing rays
-  const MatrixXf D = random_dir_stratified(num_samples).cast<float>();
+  const Matrix<Scalar,Eigen::Dynamic,3> D = random_dir_stratified(num_samples).cast<Scalar>();
 
   const auto & inner = [&P,&N,&num_samples,&D,&S,&shoot_ray](const int p)
   {
-    const Vector3f origin = P.row(p).template cast<float>();
-    const Vector3f normal = N.row(p).template cast<float>();
+    const Vector3S origin = P.row(p);
+    const Vector3S normal = N.row(p);
     int num_hits = 0;
     double total_distance = 0;
     for(int s = 0;s<num_samples;s++)
     {
-      Vector3f d = D.row(s);
+      Vector3S d = D.row(s);
       // Shoot _inward_
       if(d.dot(normal) > 0)
       {
@@ -76,24 +79,26 @@ template <
   typename DerivedS >
 IGL_INLINE void igl::shape_diameter_function(
   const igl::AABB<DerivedV,DIM> & aabb,
-  const Eigen::PlainObjectBase<DerivedV> & V,
-  const Eigen::PlainObjectBase<DerivedF> & F,
-  const Eigen::PlainObjectBase<DerivedP> & P,
-  const Eigen::PlainObjectBase<DerivedN> & N,
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedP> & P,
+  const Eigen::MatrixBase<DerivedN> & N,
   const int num_samples,
   Eigen::PlainObjectBase<DerivedS> & S)
 {
+  using Scalar = typename DerivedP::Scalar;
+  using Vector3S = Eigen::Matrix<typename DerivedP::Scalar,3,1>;
   const auto & shoot_ray = [&aabb,&V,&F](
-    const Eigen::Vector3f& _s,
-    const Eigen::Vector3f& dir)->double
+    const Vector3S& _s,
+    const Vector3S& dir)->double
   {
-    Eigen::Vector3f s = _s+1e-4*dir;
-    igl::Hit hit;
+    Vector3S s = _s+1e-4*dir;
+    igl::Hit<Scalar> hit;
     if(aabb.intersect_ray(
       V,
       F,
-      s  .cast<typename DerivedV::Scalar>().eval(),
-      dir.cast<typename DerivedV::Scalar>().eval(),
+      s  ,
+      dir,
       hit))
     {
       return hit.t;
@@ -113,22 +118,24 @@ template <
   typename DerivedN,
   typename DerivedS >
 IGL_INLINE void igl::shape_diameter_function(
-  const Eigen::PlainObjectBase<DerivedV> & V,
-  const Eigen::PlainObjectBase<DerivedF> & F,
-  const Eigen::PlainObjectBase<DerivedP> & P,
-  const Eigen::PlainObjectBase<DerivedN> & N,
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedP> & P,
+  const Eigen::MatrixBase<DerivedN> & N,
   const int num_samples,
   Eigen::PlainObjectBase<DerivedS> & S)
 {
+  using Scalar = typename DerivedP::Scalar;
+  using Vector3S = Eigen::Matrix<typename DerivedP::Scalar,3,1>;
   if(F.rows() < 100)
   {
     // Super naive
     const auto & shoot_ray = [&V,&F](
-      const Eigen::Vector3f& _s,
-      const Eigen::Vector3f& dir)->double
+      const Vector3S& _s,
+      const Vector3S& dir)->double
     {
-      Eigen::Vector3f s = _s+1e-4*dir;
-      igl::Hit hit;
+      Vector3S s = _s+1e-4*dir;
+      igl::Hit<Scalar> hit;
       if(ray_mesh_intersect(s,dir,V,F,hit))
       {
         return hit.t;
@@ -149,23 +156,23 @@ template <
   typename DerivedF,
   typename DerivedS>
 IGL_INLINE void igl::shape_diameter_function(
-  const Eigen::PlainObjectBase<DerivedV> & V,
-  const Eigen::PlainObjectBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedF> & F,
   const bool per_face,
   const int num_samples,
   Eigen::PlainObjectBase<DerivedS> & S)
 {
   if (per_face)
   {
-    DerivedV N;
+    PlainMatrix<DerivedV> N;
     igl::per_face_normals(V, F, N);
-    DerivedV P;
+    PlainMatrix<DerivedV> P;
     igl::barycenter(V, F, P);
     return igl::shape_diameter_function(V, F, P, N, num_samples, S);
   }
   else
   {
-    DerivedV N;
+    PlainMatrix<DerivedV> N;
     igl::per_vertex_normals(V, F, N);
     return igl::shape_diameter_function(V, F, V, N, num_samples, S);
   }
@@ -173,10 +180,10 @@ IGL_INLINE void igl::shape_diameter_function(
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template void igl::shape_diameter_function<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1> >(std::function<double (Eigen::Matrix<float, 3, 1, 0, 3, 1> const&, Eigen::Matrix<float, 3, 1, 0, 3, 1> const&)> const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, int, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&);
-template void igl::shape_diameter_function<Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<double, -1, 1, 0, -1, 1> >(std::function<double (Eigen::Matrix<float, 3, 1, 0, 3, 1> const&, Eigen::Matrix<float, 3, 1, 0, 3, 1> const&)> const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, int, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&);
-template void igl::shape_diameter_function<Eigen::Matrix<double, 1, 3, 1, 1, 3>, Eigen::Matrix<double, 1, 3, 1, 1, 3>, Eigen::Matrix<double, -1, 1, 0, -1, 1> >(std::function<double (Eigen::Matrix<float, 3, 1, 0, 3, 1> const&, Eigen::Matrix<float, 3, 1, 0, 3, 1> const&)> const&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, 3, 1, 1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, 3, 1, 1, 3> > const&, int, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&);
-template void igl::shape_diameter_function<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(std::function<double (Eigen::Matrix<float, 3, 1, 0, 3, 1> const&, Eigen::Matrix<float, 3, 1, 0, 3, 1> const&)> const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, int, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
-template void igl::shape_diameter_function<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, bool, int, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
+template void igl::shape_diameter_function<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1> >(std::function<double (Eigen::Matrix<double, 3, 1, 0, 3, 1> const&, Eigen::Matrix<double, 3, 1, 0, 3, 1> const&)> const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, int, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&);
+template void igl::shape_diameter_function<Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<double, -1, 1, 0, -1, 1> >(std::function<double (Eigen::Matrix<double, 3, 1, 0, 3, 1> const&, Eigen::Matrix<double, 3, 1, 0, 3, 1> const&)> const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, int, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&);
+template void igl::shape_diameter_function<Eigen::Matrix<double, 1, 3, 1, 1, 3>, Eigen::Matrix<double, 1, 3, 1, 1, 3>, Eigen::Matrix<double, -1, 1, 0, -1, 1> >(std::function<double (Eigen::Matrix<double, 3, 1, 0, 3, 1> const&, Eigen::Matrix<double, 3, 1, 0, 3, 1> const&)> const&, Eigen::MatrixBase<Eigen::Matrix<double, 1, 3, 1, 1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<double, 1, 3, 1, 1, 3> > const&, int, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&);
+template void igl::shape_diameter_function<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(std::function<double (Eigen::Matrix<double, 3, 1, 0, 3, 1> const&, Eigen::Matrix<double, 3, 1, 0, 3, 1> const&)> const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, int, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
+template void igl::shape_diameter_function<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, bool, int, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
 #endif
 

@@ -1,11 +1,12 @@
 // This file is part of libigl, a simple c++ geometry processing library.
-// 
+//
 // Copyright (C) 2014 Alec Jacobson <alecjacobson@gmail.com>
-// 
-// This Source Code Form is subject to the terms of the Mozilla Public License 
-// v. 2.0. If a copy of the MPL was not distributed with this file, You can 
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License
+// v. 2.0. If a copy of the MPL was not distributed with this file, You can
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "dqs.h"
+#include "parallel_for.h"
 #include <Eigen/Geometry>
 template <
   typename DerivedV,
@@ -15,8 +16,8 @@ template <
   typename T,
   typename DerivedU>
 IGL_INLINE void igl::dqs(
-  const Eigen::PlainObjectBase<DerivedV> & V,
-  const Eigen::PlainObjectBase<DerivedW> & W,
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedW> & W,
   const std::vector<Q,QAlloc> & vQ,
   const std::vector<T> & vT,
   Eigen::PlainObjectBase<DerivedU> & U)
@@ -41,16 +42,18 @@ IGL_INLINE void igl::dqs(
 
   // Loop over vertices
   const int nv = V.rows();
-#pragma omp parallel for if (nv>10000)
-  for(int i = 0;i<nv;i++)
+  parallel_for(nv,[&](const int i)
   {
     Q b0(0,0,0,0);
     Q be(0,0,0,0);
     // Loop over handles
     for(int c = 0;c<W.cols();c++)
     {
-      b0.coeffs() += W(i,c) * vQ[c].coeffs();
-      be.coeffs() += W(i,c) * vD[c].coeffs();
+      auto w = W(i,c);
+      if (b0.coeffs().dot(vQ[c].coeffs()) < 0)
+        w = -w;
+      b0.coeffs() += w * vQ[c].coeffs();
+      be.coeffs() += w * vD[c].coeffs();
     }
     Q ce = be;
     ce.coeffs() /= b0.norm();
@@ -64,11 +67,11 @@ IGL_INLINE void igl::dqs(
     typename Q::Scalar a0 = c0.w();
     typename Q::Scalar ae = ce.w();
     U.row(i) =  v + 2*d0.cross(d0.cross(v) + a0*v) + 2*(a0*de - ae*d0 + d0.cross(de));
-  }
+  },1000);
 
 }
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template void igl::dqs<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Quaternion<double, 0>, Eigen::aligned_allocator<Eigen::Quaternion<double, 0> >, Eigen::Matrix<double, 3, 1, 0, 3, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, std::vector<Eigen::Quaternion<double, 0>, Eigen::aligned_allocator<Eigen::Quaternion<double, 0> > > const&, std::vector<Eigen::Matrix<double, 3, 1, 0, 3, 1>, std::allocator<Eigen::Matrix<double, 3, 1, 0, 3, 1> > > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
+template void igl::dqs<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Quaternion<double, 0>, Eigen::aligned_allocator<Eigen::Quaternion<double, 0> >, Eigen::Matrix<double, 3, 1, 0, 3, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, std::vector<Eigen::Quaternion<double, 0>, Eigen::aligned_allocator<Eigen::Quaternion<double, 0> > > const&, std::vector<Eigen::Matrix<double, 3, 1, 0, 3, 1>, std::allocator<Eigen::Matrix<double, 3, 1, 0, 3, 1> > > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
 #endif

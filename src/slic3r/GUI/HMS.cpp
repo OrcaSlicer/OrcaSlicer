@@ -4,6 +4,7 @@
 #include "DeviceManager.hpp"
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevUtil.h"
+#include "libslic3r/AppConfig.hpp"
 
 #include <boost/log/trivial.hpp>
 
@@ -11,7 +12,16 @@ static const char* HMS_PATH = "hms";
 static const char* HMS_LOCAL_IMG_PATH = "hms/local_image";
 
 // the local HMS info
+// Orca: dev-id-type set trimmed to the devices Orca ships local HMS images for
 static unordered_set<string> package_dev_id_types {"094", "239", "093", "22E"};
+
+// Orca: HMS should be disabled when stealth mode is on or networking is not installed
+static bool should_disable_hms()
+{
+    Slic3r::AppConfig* config = Slic3r::GUI::wxGetApp().app_config;
+    if (!config) return true;
+    return config->get_stealth_mode() || !config->get_bool("installed_networking");
+}
 
 namespace Slic3r {
 namespace GUI {
@@ -21,7 +31,7 @@ int get_hms_info_version(std::string& version)
     AppConfig* config = wxGetApp().app_config;
     if (!config)
         return -1;
-    if (config->get_stealth_mode())
+    if (should_disable_hms())
         return -1;
     std::string hms_host = config->get_hms_host();
     if(hms_host.empty()) {
@@ -61,7 +71,7 @@ int HMSQuery::download_hms_related(const std::string& hms_type, const std::strin
 
     AppConfig* config = wxGetApp().app_config;
     if (!config) return -1;
-    if (config->get_stealth_mode()) return -1;
+    if (should_disable_hms()) return -1;
 
     std::string hms_host = wxGetApp().app_config->get_hms_host();
     std::string lang;
@@ -242,7 +252,7 @@ int HMSQuery::save_to_local(std::string lang, std::string hms_type, std::string 
     std::string dir_str = (hms_folder / filename).make_preferred().string();
     std::ofstream json_file(encode_path(dir_str.c_str()));
     if (json_file.is_open()) {
-        json_file << save_json.dump(1, '\t') << std::endl;
+        json_file << save_json.dump(1, '\t') << std::endl; // Orca: tab-indented dump
         json_file.close();
         return 0;
     }
@@ -257,9 +267,15 @@ std::string HMSQuery::hms_language_code()
         // set language code to en by default
         return "en";
     std::string lang_code = wxGetApp().app_config->get_language_code();
+    // Orca: the HMS host ships no catalog for these locales, so fall back to english to avoid empty texts + retries
     if (lang_code.compare("uk") == 0
         || lang_code.compare("cs") == 0
-        || lang_code.compare("ru") == 0) {
+        || lang_code.compare("ru") == 0
+        || lang_code.compare("tr") == 0
+        || lang_code.compare("pt") == 0
+        || lang_code.compare("ko") == 0
+        )
+    {
         BOOST_LOG_TRIVIAL(info) << "HMS: using english for lang_code = " << lang_code;
         return "en";
     }
@@ -546,7 +562,7 @@ wxString HMSQuery::query_print_image_action(const MachineObject* obj, int print_
     ::sprintf(buf, "%08X", print_error);
     //The first three digits of SN number
     const auto result = _query_error_image_action(get_dev_id_type(obj),std::string(buf), button_action);
-    if (wxGetApp().app_config->get_stealth_mode() && result.Contains("http")) {
+    if (should_disable_hms() && result.Contains("http")) {
         return wxEmptyString;
     }
     return result;
@@ -568,6 +584,7 @@ wxImage HMSQuery::query_image_from_local(const wxString& image_name)
             {
                 const fs::path& image_path = entry.path();
                 const fs::path& image_name = fs::relative(image_path, local_img_dir);
+                // Orca: from_path() for correct UTF-8 path encoding
                 m_hms_local_images[from_path(image_name)] = wxImage(from_path(image_path));
             }
         }
@@ -637,7 +654,7 @@ std::string get_hms_wiki_url(std::string error_code)
 {
     AppConfig* config = wxGetApp().app_config;
     if (!config) return "";
-    if (config->get_stealth_mode()) return "";
+    if (should_disable_hms()) return "";
 
     std::string hms_host = wxGetApp().app_config->get_hms_host();
     std::string lang_code = HMSQuery::hms_language_code();
@@ -663,7 +680,7 @@ std::string get_hms_wiki_url(std::string error_code)
 
 std::string get_error_message(int error_code)
 {
-    if (wxGetApp().app_config->get_stealth_mode()) return "";
+    if (should_disable_hms()) return "";
 
 	char buf[64];
     std::string result_str = "";

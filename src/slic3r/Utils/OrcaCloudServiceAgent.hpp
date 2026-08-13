@@ -2,14 +2,17 @@
 #define __ORCA_CLOUD_SERVICE_AGENT_HPP__
 
 #include "ICloudServiceAgent.hpp"
+#include <cstdlib>
 #include <string>
 #include <map>
 #include <mutex>
-#include <memory>
 #include <atomic>
 #include <chrono>
 #include <functional>
+#include <memory>
 #include <thread>
+#include <unordered_map>
+#include <vector>
 #include <nlohmann/json.hpp>
 
 class wxSecretStore;
@@ -19,6 +22,30 @@ namespace Slic3r {
 // Forward declarations
 class AppConfig;
 struct BundleMetadata;
+struct PluginDescriptor;
+struct PluginChangelog;
+
+struct PluginDownloadData
+{
+    std::string plugin_id;
+    std::string download_link;
+    std::string requested_os;
+    std::string returned_os;
+};
+
+struct PluginDownloadNotFound
+{
+    std::string id;
+    std::string reason;
+};
+
+// Outcome of a token-refresh attempt: decides whether a 401 should log the user
+// out (AuthRejected) or be treated as a recoverable condition (Transient).
+enum class RefreshResult {
+    Success,       // new tokens obtained
+    AuthRejected,  // server definitively rejected the refresh token -> logout is correct
+    Transient      // network/server problem -> keep the session and retry later
+};
 
 // Constants for OAuth loopback server
 namespace auth_constants {
@@ -27,6 +54,15 @@ namespace auth_constants {
     constexpr const char* TOKEN_PATH = "/auth/v1/token";
     constexpr const char* LOGOUT_PATH = "/auth/v1/logout";
 } // namespace auth_constants
+
+// Names of the on-disk credential files inside the config dir.
+namespace secret_constants {
+    // Encrypted refresh-token fallback file, written when wxSecretStore is unavailable.
+    // Also seeded into PluginAuditManager's denied-filename registry (install_hook), which
+    // additionally covers the ".tmp" staging file the token is written to before its atomic
+    // rename, so plugins can read neither.
+    constexpr const char* USER_SECRET_FILENAME = "orca_refresh_token.sec";
+} // namespace secret_constants
 
 // ============================================================================
 // Sync Protocol Data Structures (per Orca Cloud Sync Protocol Specification)
@@ -88,8 +124,8 @@ public:
         std::string access_token;
         std::string refresh_token;
         std::string user_id;
-        // Orca auth semantics: user_name is unique orca cloud username(orca_xxxxx), user_nickname is
-        // the display name shown in the UI when available.
+        // Orca auth semantics: user_name is the unique Orca Cloud username (orca_xxxxx),
+        // user_nickname is the display name shown in the UI when available.
         std::string user_name;
         std::string user_nickname;
         std::string user_avatar;
@@ -176,7 +212,12 @@ public:
     // ========================================================================
     int get_user_presets(std::map<std::string, std::map<std::string, std::string>>* user_presets) override;
     std::string request_setting_id(std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code) override;
-    int put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code) override;
+    int put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code, bool force = false) override;
+    SyncPushResult sync_push(const std::string& profile_id,
+                             const std::string& name,
+                             const nlohmann::json& content,
+                             const std::string& original_updated_time = "",
+                             bool force                               = false);
     int get_setting_list(std::string bundle_version, ProgressFn pro_fn = nullptr, WasCancelledFn cancel_fn = nullptr) override;
     int get_setting_list2(std::string bundle_version, CheckFn chk_fn, ProgressFn pro_fn = nullptr, WasCancelledFn cancel_fn = nullptr) override;
     int delete_setting(std::string setting_id) override;
@@ -258,6 +299,21 @@ public:
     int get_shared_bundle(const std::string& bundle_id, std::map<std::string, std::map<std::string, std::string>>* presets, BundleMetadata* bundle_metadata);
 
     // ========================================================================
+    // Plugins API
+    // ========================================================================
+    int fetch_subscribed_manifests_into_descriptors(std::vector<PluginDescriptor>& descriptors, std::vector<std::string>& not_found, std::vector<std::string>& unauthorized);
+    int fetch_mine_manifests_into_descriptors(std::vector<PluginDescriptor>& descriptors);
+    int get_plugin_download_url(const std::string& uuid,
+                                const std::string& requested_version,
+                                std::vector<PluginDownloadData>& data,
+                                std::vector<PluginDownloadNotFound>& not_found,
+                                std::vector<std::string>& unauthorized);
+    std::string get_plugin_url(const std::string& sharing_token) const;
+    int subscribe_plugin(const std::string& plugin_uuid);
+    int unsubscribe_plugins(const std::vector<std::string>& plugin_uuids);
+    int fetch_plugin_changelogs(const std::vector<std::string>& uuids, std::unordered_map<std::string, std::vector<PluginChangelog>>& changelog);
+
+    // ========================================================================
     // Additional Public Methods - Auth
     // ========================================================================
     void set_session_handler(SessionHandler handler);
@@ -266,25 +322,29 @@ public:
     const PkceBundle& pkce();
     void regenerate_pkce();
 
-    void persist_refresh_token(const std::string& token);
-    bool load_refresh_token(std::string& out_token);
-    void clear_refresh_token();
+    void persist_user_secret(const std::string& secret);
+    bool load_user_secret(std::string& out_secret);
+    void clear_user_secret();
 
     // Token refresh helpers
-    bool refresh_if_expiring(std::chrono::seconds skew, const std::string& reason);
-    bool refresh_from_storage(const std::string& reason, bool async = false);
-    bool refresh_now(const std::string& refresh_token, const std::string& reason, bool async = false);
-    bool refresh_session_with_token(const std::string& refresh_token);
+    bool          refresh_if_expiring(std::chrono::seconds skew, const std::string& reason);
+    RefreshResult refresh_from_storage(const std::string& reason, bool async = false);
+    RefreshResult refresh_now(const std::string& refresh_token, const std::string& reason, bool async = false);
+    RefreshResult refresh_session_with_token(const std::string& refresh_token, const std::string& reason = "");
 
-    // Session state helpers
+    // Session state helpers. nickname is the human-facing UI label after provider fallback resolution.
     bool set_user_session(const std::string& token,
                           const std::string& user_id,
                           const std::string& username,
                           const std::string& nickname,
                           const std::string& avatar,
-                          const std::string& refresh_token = "");
+                          const std::string& refresh_token = "",
+                          bool persist = true);
+    // Accepts either nested Orca cloud / GoTrue session JSON or flat WebView token JSON.
     bool set_user_session(const nlohmann::json& session_json, bool notify_login = true);
     void clear_session();
+
+    static std::string generate_uuid_for_setting_id(const std::string& name, const std::string& user_id = "");
 
 private:
     // Sync protocol helpers
@@ -293,12 +353,20 @@ private:
         std::function<void(int http_code, const std::string& error)> on_error
     );
 
-    SyncPushResult sync_push(
-        const std::string& profile_id,
-        const std::string& name,
-        const nlohmann::json& content,
-        const std::string& original_updated_time = ""
-    );
+    // Shared result of one HTTP attempt by the data methods (get/post/put/delete).
+    struct HttpResult {
+        bool         success{false};
+        unsigned int status{0};
+        std::string  body;
+    };
+
+    // Applies the "retry once on 401" policy for the data HTTP methods.
+    // `res` holds the first response; `perform` re-issues the request after a
+    // successful refresh. Returns true if the auth error should be SUPPRESSED
+    // (i.e. the session must be kept rather than logged out).
+    bool resolve_unauthorized(HttpResult& res,
+                              const std::function<HttpResult()>& perform,
+                              const std::string& reason);
 
     // HTTP request helpers
     int http_get(const std::string& path, std::string* response_body, unsigned int* http_code);
@@ -306,7 +374,7 @@ private:
     int http_put(const std::string& path, const std::string& body, std::string* response_body, unsigned int* http_code);
     int http_delete(const std::string& path, std::string* response_body, unsigned int* http_code);
     std::map<std::string, std::string> data_headers();
-    bool attempt_refresh_after_unauthorized(const std::string& reason);
+    RefreshResult attempt_refresh_after_unauthorized(const std::string& reason);
 
     // Auth HTTP helpers
     bool http_post_token(const std::string& body, std::string* response_body, unsigned int* http_code, const std::string& url = "");
@@ -325,6 +393,9 @@ private:
     std::string map_to_json(const std::map<std::string, std::string>& map);
     void json_to_map(const std::string& json, std::map<std::string, std::string>& map);
 
+    // Refresh token lock
+    std::string token_lock_path() const;
+
     // Member variables - configuration
     std::string log_dir;
     std::string config_dir;
@@ -339,11 +410,17 @@ private:
 
     // Member variables - auth state
     PkceBundle pkce_bundle;
-    std::string refresh_fallback_path;
+    std::string secret_fallback_path;
     SessionHandler session_handler;
     OnLoginCompleteHandler on_login_complete_handler;
     SessionInfo session;
     mutable std::mutex session_mutex;
+
+    // Refresh diagnostics (see docs/analysis/refresh_token_already_used.md). Epoch seconds so the
+    // refresh-failure log can report token staleness without holding a lock or logging any token.
+    std::atomic<long long> last_refresh_success_epoch{0};                 // 0 = no success yet this process
+    const long long        agent_start_epoch{std::chrono::duration_cast<std::chrono::seconds>(
+                               std::chrono::system_clock::now().time_since_epoch()).count()};
 
     // Member variables - connection state
     bool is_connected{false};

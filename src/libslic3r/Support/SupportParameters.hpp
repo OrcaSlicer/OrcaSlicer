@@ -6,6 +6,14 @@
 #include "../Flow.hpp"
 
 namespace Slic3r {
+
+inline int number_of_support_interface_bottom_layers(const PrintObjectConfig& object_config)
+{
+    return object_config.support_interface_bottom_layers.value < 0 ?
+        object_config.support_interface_top_layers.value :
+        object_config.support_interface_bottom_layers.value;
+}
+
 struct SupportParameters {
     SupportParameters() = delete;
     SupportParameters(const PrintObject& object)
@@ -14,34 +22,40 @@ struct SupportParameters {
         const PrintObjectConfig& object_config = object.config();
         const SlicingParameters& slicing_params = object.slicing_parameters();
 
-	    this->soluble_interface = slicing_params.soluble_interface;
-	    this->soluble_interface_non_soluble_base =
-	        // Zero z-gap between the overhangs and the support interface.
-	        slicing_params.soluble_interface &&
-	        // Interface extruder soluble.
-	        object_config.support_interface_filament.value > 0 && print_config.filament_soluble.get_at(object_config.support_interface_filament.value - 1) &&
-	        // Base extruder: Either "print with active extruder" not soluble.
-	        (object_config.support_filament.value == 0 || ! print_config.filament_soluble.get_at(object_config.support_filament.value - 1));
+        this->zero_gap_interface_top = slicing_params.zero_gap_interface_top;
+        this->zero_gap_interface_bottom = slicing_params.zero_gap_interface_bottom;
+        const bool soluble_interface_non_soluble_base =
+            // Interface extruder soluble.
+            object_config.support_interface_filament.value > 0 && print_config.filament_soluble.get_at(object_config.support_interface_filament.value - 1) &&
+            // Base extruder: Either "print with active extruder" not soluble.
+            (object_config.support_filament.value == 0 || ! print_config.filament_soluble.get_at(object_config.support_filament.value - 1));
+        const bool non_soluble_base_top = this->zero_gap_interface_top && soluble_interface_non_soluble_base;
+        const bool non_soluble_base_bottom = this->zero_gap_interface_bottom && soluble_interface_non_soluble_base;
 
 	    {
 	        this->num_top_interface_layers    = std::max(0, object_config.support_interface_top_layers.value);
-	        this->num_bottom_interface_layers = object_config.support_interface_bottom_layers < 0 ? 
-	            num_top_interface_layers : object_config.support_interface_bottom_layers;
+	        this->num_bottom_interface_layers = std::max(0, number_of_support_interface_bottom_layers(object_config));
 	        this->has_top_contacts              = num_top_interface_layers    > 0;
 	        this->has_bottom_contacts           = num_bottom_interface_layers > 0;
-	        if (this->soluble_interface_non_soluble_base) {
-	            // Try to support soluble dense interfaces with non-soluble dense interfaces.
-	            this->num_top_base_interface_layers    = size_t(std::min(int(num_top_interface_layers) / 2, 2));
-	            this->num_bottom_base_interface_layers = size_t(std::min(int(num_bottom_interface_layers) / 2, 2));
-	        } else {
-                // BBS: if support interface and support base do not use the same filament, add a base layer to improve their adhesion
-                // Note: support materials (such as Supp.W) can't be used as support base now, so support interface and base are still using different filaments even if
-                // support_filament==0
-                bool differnt_support_interface_filament = object_config.support_interface_filament != 0 &&
-                                                           object_config.support_interface_filament != object_config.support_filament;
-                this->num_top_base_interface_layers    = differnt_support_interface_filament ? 1 : 0;
-                this->num_bottom_base_interface_layers       = differnt_support_interface_filament ? 1 : 0;
-	        }
+            // BBS: if support interface and support base do not use the same filament, add a base layer to improve their adhesion
+            // Note: support materials (such as Supp.W) can't be used as support base now, so support interface and base are still using different filaments even if
+            // support_filament==0
+            bool different_support_interface_filament = object_config.support_interface_filament != 0 &&
+                                                       object_config.support_interface_filament != object_config.support_filament;
+ 
+            if (non_soluble_base_top) { // ORCA: Try to support soluble dense interfaces with non-soluble dense interfaces.
+                this->num_top_base_interface_layers = size_t(std::min(int(num_top_interface_layers) / 2, 2));
+            } else {
+                // Keep at least one configured layer on the interface filament.
+                this->num_top_base_interface_layers = different_support_interface_filament && num_top_interface_layers > 1 ? 1 : 0;
+            }
+
+            if (non_soluble_base_bottom) { // ORCA: Try to support soluble dense interfaces with non-soluble dense interfaces.
+                this->num_bottom_base_interface_layers = size_t(std::min(int(num_bottom_interface_layers) / 2, 2));
+            } else {
+                // Keep at least one configured layer on the interface filament.
+                this->num_bottom_base_interface_layers = different_support_interface_filament && num_bottom_interface_layers > 1 ? 1 : 0;
+            }
 	    }
         this->first_layer_flow = Slic3r::support_material_1st_layer_flow(&object, float(slicing_params.first_print_layer_height));
         this->support_material_flow = Slic3r::support_material_flow(&object, float(slicing_params.layer_height));
@@ -60,7 +74,7 @@ struct SupportParameters {
         for (auto layer : object.layers())
             this->support_layer_height_min = std::min(this->support_layer_height_min, std::max(0.01, layer->height));
         
-        if (object_config.support_interface_top_layers.value == 0) {
+        if (this->num_top_interface_layers == 0 && this->num_bottom_interface_layers == 0) {
             // No interface layers allowed, print everything with the base support pattern.
             this->support_material_interface_flow = this->support_material_flow;
         }
@@ -78,7 +92,7 @@ struct SupportParameters {
         this->gap_xy_first_layer = object_config.support_object_first_layer_gap.value;
         bridge_flow_ratio /= object.num_printing_regions();
 
-        this->support_material_bottom_interface_flow = slicing_params.soluble_interface || !object_config.thick_bridges ?
+        this->support_material_bottom_interface_flow = this->zero_gap_interface_bottom || !object_config.thick_bridges ?
             this->support_material_interface_flow.with_flow_ratio(bridge_flow_ratio) :
             Flow::bridging_flow(bridge_flow_ratio * this->support_material_interface_flow.nozzle_diameter(), this->support_material_interface_flow.nozzle_diameter());
         
@@ -95,18 +109,21 @@ struct SupportParameters {
 
         this->base_angle = Geometry::deg2rad(float(object_config.support_angle.value));
         this->interface_angle = Geometry::deg2rad(float(object_config.support_angle.value + 90.));
-        // Orca: Force solid support interface when using support ironing
-        this->interface_spacing = (this->ironing ? 0 : object_config.support_interface_spacing.value) + this->support_material_interface_flow.spacing();
-        this->interface_density = std::min(1., this->support_material_interface_flow.spacing() / this->interface_spacing);
-        // Orca: Force solid support interface when using support ironing
+        // ORCA: split top/bottom interface spacing and density, and force solid top when ironing.
+        this->top_interface_spacing = (this->ironing ? 0 : object_config.support_interface_spacing.value) + this->support_material_interface_flow.spacing();
+        this->top_interface_density = std::min(1., this->support_material_interface_flow.spacing() / this->top_interface_spacing);
+        // ORCA: bottom interface spacing/density separated from top settings.
+        this->bottom_interface_spacing = object_config.support_bottom_interface_spacing.value + this->support_material_interface_flow.spacing();
+        this->bottom_interface_density = std::min(1., this->support_material_interface_flow.spacing() / this->bottom_interface_spacing);
+        // ORCA: force solid raft interface when ironing (top spacing).
         double raft_interface_spacing = (this->ironing ? 0 : object_config.support_interface_spacing.value) + this->raft_interface_flow.spacing();
         this->raft_interface_density = std::min(1., this->raft_interface_flow.spacing() / raft_interface_spacing);
         this->support_spacing = object_config.support_base_pattern_spacing.value + this->support_material_flow.spacing();
         this->support_density = std::min(1., this->support_material_flow.spacing() / this->support_spacing);
-        if (object_config.support_interface_top_layers.value == 0) {
-            // No interface layers allowed, print everything with the base support pattern.
-            this->interface_spacing = this->support_spacing;
-            this->interface_density = this->support_density;
+        if (this->num_top_interface_layers == 0) {
+            // No top interface layers allowed; keep unused top interface parameters aligned with base support.
+            this->top_interface_spacing = this->support_spacing;
+            this->top_interface_density = this->support_density;
         }
 
         SupportMaterialPattern  support_pattern = object_config.support_base_pattern;
@@ -114,18 +131,22 @@ struct SupportParameters {
         this->base_fill_pattern =
             support_pattern == smpHoneycomb ? ipHoneycomb :
             this->support_density > 0.95 || this->with_sheath ? ipRectilinear : ipSupportBase;
-        this->interface_fill_pattern = (this->interface_density > 0.95 ? ipRectilinear : ipSupportBase);
+        this->interface_fill_pattern = (this->top_interface_density > 0.95 ? ipRectilinear : ipSupportBase);
         this->raft_interface_fill_pattern = this->raft_interface_density > 0.95 ? ipRectilinear : ipSupportBase;
+        const coordf_t contact_interface_density = this->num_top_interface_layers > 0 ?
+            this->top_interface_density : this->bottom_interface_density;
+        const bool zero_gap_contact_interface = this->num_top_interface_layers > 0 ?
+            this->zero_gap_interface_top : this->zero_gap_interface_bottom;
         if (object_config.support_interface_pattern == smipGrid)
             this->contact_fill_pattern = ipGrid;
         else if (object_config.support_interface_pattern == smipRectilinearInterlaced)
             this->contact_fill_pattern = ipRectilinear;
         else
             this->contact_fill_pattern =
-            (object_config.support_interface_pattern == smipAuto && slicing_params.soluble_interface) ||
+            (object_config.support_interface_pattern == smipAuto && zero_gap_contact_interface) ||
             object_config.support_interface_pattern == smipConcentric ?
             ipConcentric :
-            (this->interface_density > 0.95 ? ipRectilinear : ipSupportBase);
+            (contact_interface_density > 0.95 ? ipRectilinear : ipSupportBase);
 
         this->raft_angle_1st_layer  = 0.f;
         this->raft_angle_base       = 0.f;
@@ -171,6 +192,7 @@ struct SupportParameters {
                                                                                                           std::numeric_limits<double>::max();
 
         support_style = object_config.support_style;
+        support_interface_pattern = object_config.support_interface_pattern;
         if (support_style != smsDefault) {
             if ((support_style == smsSnug || support_style == smsGrid) && is_tree(object_config.support_type)) support_style = smsDefault;
             if ((support_style == smsTreeSlim || support_style == smsTreeStrong || support_style == smsTreeHybrid || support_style == smsTreeOrganic) &&
@@ -186,22 +208,21 @@ struct SupportParameters {
             }
         }
     }
-	// Both top / bottom contacts and interfaces are soluble.
-    bool                    soluble_interface;
-    // Support contact & interface are soluble, but support base is non-soluble.
-    bool                    soluble_interface_non_soluble_base;
+    // Zero-gap interface flags for top / bottom contact.
+    bool                    zero_gap_interface_top;
+    bool                    zero_gap_interface_bottom;
 
     // Is there at least a top contact layer extruded above support base?
     bool                    has_top_contacts;
     // Is there at least a bottom contact layer extruded below support base?
     bool                    has_bottom_contacts;
-    // Number of top interface layers without counting the contact layer.
+    // User-configured number of top interface layers, including the contact layer.
     size_t                  num_top_interface_layers;
-    // Number of bottom interface layers without counting the contact layer.
+    // User-configured number of bottom interface layers, including the contact layer.
     size_t                  num_bottom_interface_layers;
-    // Number of top base interface layers. Zero if not soluble_interface_non_soluble_base.
+    // Number of top base interface layers.
     size_t                  num_top_base_interface_layers;
-    // Number of bottom base interface layers. Zero if not soluble_interface_non_soluble_base.
+    // Number of bottom base interface layers.
     size_t                  num_bottom_base_interface_layers;
 
     bool                    has_contacts() const { return this->has_top_contacts || this->has_bottom_contacts; }
@@ -219,7 +240,7 @@ struct SupportParameters {
 	Flow 					support_material_interface_flow;
 	// Flow at the bottom interfaces and contacts.
 	Flow 					support_material_bottom_interface_flow;
-	// Flow at raft inteface & contact layers.
+	// Flow at raft interface & contact layers.
 	Flow    				raft_interface_flow;
     coordf_t support_extrusion_width;
 	// Is merging of regions allowed? Could the interface & base support regions be printed with the same extruder?
@@ -233,16 +254,20 @@ struct SupportParameters {
 
     float    				base_angle;
     float    				interface_angle;
-    coordf_t 				interface_spacing;
+    coordf_t 				top_interface_spacing;
+    coordf_t 				bottom_interface_spacing;
     coordf_t				support_expansion=0;
-    // Density of the top / bottom interface and contact layers.
-    coordf_t 				interface_density;
+    // Density of the top interface and contact layers.
+    coordf_t 				top_interface_density;
+    // Density of the bottom interface and contact layers.
+    coordf_t 				bottom_interface_density;
     // Density of the raft interface and contact layers.
     coordf_t 				raft_interface_density;
     coordf_t 				support_spacing;
     // Density of the base support layers.
     coordf_t 				support_density;
     SupportMaterialStyle    support_style = smsDefault;
+    SupportMaterialInterfacePattern support_interface_pattern = smipAuto;
 
     // Pattern of the sparse infill including sparse raft layers.
     InfillPattern           base_fill_pattern;
@@ -261,9 +286,33 @@ struct SupportParameters {
     float 					raft_angle_base;
     float 					raft_angle_interface;
 
-    // Produce a raft interface angle for a given SupportLayer::interface_id()
+    // Produce a +/-45deg alternating raft interface angle for a given SupportLayer::interface_id().
     float 					raft_interface_angle(size_t interface_id) const 
-    	{ return this->raft_angle_interface + ((interface_id & 1) ? float(- M_PI / 4.) : float(+ M_PI / 4.)); }
+    	{ return this->raft_angle_interface + ((interface_id & 1) ? float(- M_PI_4) : float(+ M_PI_4)); }
+
+    // Produce support interface angle for a given SupportLayer::interface_id().
+    // Angle will be shifted/rotated based on interface pattern.
+    float 					support_interface_angle(size_t interface_id) const 
+    	{ 
+            float angle;
+            
+            switch (this->support_interface_pattern) {
+                case SupportMaterialInterfacePattern::smipRectilinear:
+                    angle = support_style == SupportMaterialStyle::smsSnug ? this->interface_angle - float(M_PI_4) : this->interface_angle;
+                    break;
+                case SupportMaterialInterfacePattern::smipRectilinearInterlaced:
+                    angle = this->interface_angle + ((interface_id & 1) ? float(M_PI_4) : float(-M_PI_4));
+                    break;
+                case SupportMaterialInterfacePattern::smipGrid:
+                    angle = this->base_angle;
+                    break;
+                default:
+                    angle = this->interface_angle;
+                    break;
+            }
+
+            return angle;
+        }
 		
     bool independent_layer_height = false;
     const double thresh_big_overhang = Slic3r::sqr(scale_(10));

@@ -10,12 +10,19 @@ on:
 
 permissions:
   pull-requests: write
+  # Needed to delete outdated bot comments via the issues/comments endpoint.
+  issues: write
+
+# Serialize handlers per source branch so parallel runs don't race delete-and-post.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
 
 jobs:
   post_comment:
     name: Post PR comment
     runs-on: ubuntu-24.04
-    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'failure' }}
+    if: ${{ github.event.workflow_run.event == 'pull_request' && (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure') }}
     steps:
       - name: Download artifact
         id: download
@@ -26,14 +33,14 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
 
-      - name: Post comment on PR
+      - name: Update PR comment
         if: ${{ steps.download.outcome == 'success' }}
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          if [ ! -f pr_number.txt ] || [ ! -f pr_comment.md ]; then
-            echo "No comment artifact found, skipping."
+          if [ ! -f pr_number.txt ]; then
+            echo "No pr_number.txt in artifact, skipping."
             exit 0
           fi
 
@@ -43,4 +50,17 @@ jobs:
             exit 1
           fi
 
-          gh pr comment "$PR_NUMBER" --body-file pr_comment.md
+          # Delete prior comments matching the marker (from check_profiles.yml) or the legacy heading.
+          OLD_IDS=$(gh api --paginate "repos/${GH_REPO}/issues/${PR_NUMBER}/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]") | select((.body | startswith("<!-- profile-validation-comment -->")) or (.body | startswith("## :x: Profile Validation Errors"))) | .id')
+          for comment_id in $OLD_IDS; do
+            echo "Deleting outdated profile-validation comment ${comment_id}"
+            gh api -X DELETE "repos/${GH_REPO}/issues/comments/${comment_id}" || true
+          done
+
+          # Post a new comment only when validation failed (pr_comment.md present).
+          if [ -f pr_comment.md ]; then
+            gh pr comment "$PR_NUMBER" --body-file pr_comment.md
+          else
+            echo "Validation succeeded; cleaned up prior comments without posting."
+          fi

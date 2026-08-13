@@ -1,0 +1,9 @@
+{
+	"type": "process",
+	"name": "0.42mm Extra Draft @Elegoo N3Plus 0.6 nozzle",
+	"from": "system",
+	"inherits": "0.30mm Standard @Elegoo N3Plus 0.6 nozzle",
+	"layer_height": "0.42",
+	"setting_id": "S3XpelIawW7YF0tp",
+	"instantiation": "true"
+}

@@ -3,7 +3,7 @@
 	"name": "Creality Ender-3 V3 KE 0.2 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "9UssfDU6iVd2SVhf",
 	"instantiation": "true",
 	"printer_variant": "0.2",
 	"printer_settings_id": "Creality",

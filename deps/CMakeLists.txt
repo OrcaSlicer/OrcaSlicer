@@ -134,7 +134,7 @@ if (APPLE)
 endif ()
 
 
-# On developer machines, it can be enabled to speed up compilation and suppress warnings coming from IGL. 
+# On developer machines, it can be enabled to speed up compilation and suppress warnings coming from IGL.
 # FIXME:
 # Enabling this option is not safe. IGL will compile itself with its own version of Eigen while
 # Slic3r compiles with a different version which will cause runtime errors.
@@ -146,7 +146,7 @@ message(STATUS "OrcaSlicer deps debug build: ${DEP_DEBUG}")
 
 find_package(Git REQUIRED)
 
-# The default command line for patching. Only works for newer 
+# The default command line for patching. Only works for newer
 set(PATCH_CMD ${GIT_EXECUTABLE} apply --verbose --ignore-space-change --whitespace=fix)
 
 if (NOT _is_multi AND NOT CMAKE_BUILD_TYPE)
@@ -155,16 +155,24 @@ if (NOT _is_multi AND NOT CMAKE_BUILD_TYPE)
 endif ()
 
 function(orcaslicer_add_cmake_project projectname)
-    cmake_parse_arguments(P_ARGS "" "INSTALL_DIR;BUILD_COMMAND;INSTALL_COMMAND" "CMAKE_ARGS" ${ARGN})
+    cmake_parse_arguments(P_ARGS "FORWARD_CONFIG" "INSTALL_DIR;BUILD_COMMAND;INSTALL_COMMAND" "CMAKE_ARGS" ${ARGN})
 
     set(_configs_line -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE})
     if (_is_multi OR MSVC)
-        if (ORCA_INCLUDE_DEBUG_INFO AND NOT DEP_DEBUG)
+        if (P_ARGS_FORWARD_CONFIG)
+            set(_configs_line -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE})
+        elseif (ORCA_INCLUDE_DEBUG_INFO AND NOT DEP_DEBUG)
             set(_configs_line "-DCMAKE_C_FLAGS_RELEASE:STRING=${CMAKE_C_FLAGS_RELWITHDEBINFO} -DCMAKE_CXX_FLAGS_RELEASE:STRING=${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
         else ()
             set(_configs_line "")
         endif ()
     endif ()
+
+    if (P_ARGS_FORWARD_CONFIG)
+        set(_target_config "$<CONFIG>")
+    else()
+        set(_target_config "Release")
+    endif()
 
     if (MSVC)
       set(_gen CMAKE_GENERATOR "${DEP_MSVC_GEN}" CMAKE_GENERATOR_PLATFORM "${DEP_PLATFORM}")
@@ -196,6 +204,8 @@ if (NOT IS_CROSS_COMPILE OR NOT APPLE)
             -DCMAKE_DEBUG_POSTFIX:STRING=d
             -DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}
             -DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}
+            -DCMAKE_C_COMPILER_LAUNCHER:STRING=${CMAKE_C_COMPILER_LAUNCHER}
+            -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=${CMAKE_CXX_COMPILER_LAUNCHER}
             -DCMAKE_TOOLCHAIN_FILE:STRING=${CMAKE_TOOLCHAIN_FILE}
             -DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS}
             -DCMAKE_SHARED_LINKER_FLAGS:STRING=${CMAKE_SHARED_LINKER_FLAGS}
@@ -206,8 +216,8 @@ if (NOT IS_CROSS_COMPILE OR NOT APPLE)
             ${DEP_CMAKE_OPTS}
             ${P_ARGS_CMAKE_ARGS}
        ${P_ARGS_UNPARSED_ARGUMENTS}
-       BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release -- ${_build_j}
-       INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config Release
+       BUILD_COMMAND ${CMAKE_COMMAND} --build . --config ${_target_config} -- ${_build_j}
+       INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config ${_target_config}
     )
 
     if (FLATPAK)
@@ -241,14 +251,16 @@ else()
             -DCMAKE_INSTALL_PREFIX:STRING=${DESTDIR}
             -DCMAKE_PREFIX_PATH:STRING=${DESTDIR}
             -DCMAKE_IGNORE_PREFIX_PATH:STRING=${CMAKE_IGNORE_PREFIX_PATH}
+            -DCMAKE_C_COMPILER_LAUNCHER:STRING=${CMAKE_C_COMPILER_LAUNCHER}
+            -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=${CMAKE_CXX_COMPILER_LAUNCHER}
             -DBUILD_SHARED_LIBS:BOOL=OFF
             ${_cmake_osx_arch}
             "${_configs_line}"
             ${DEP_CMAKE_OPTS}
             ${P_ARGS_CMAKE_ARGS}
        ${P_ARGS_UNPARSED_ARGUMENTS}
-       BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release -- ${_build_j}
-       INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config Release 
+       BUILD_COMMAND ${CMAKE_COMMAND} --build . --config ${_target_config} -- ${_build_j}
+       INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config ${_target_config}
     )
 
 endif()
@@ -312,26 +324,26 @@ if(FLATPAK)
 endif()
 
 set(ZLIB_PKG "")
-if (NOT ZLIB_FOUND) 
+if (NOT ZLIB_FOUND)
     include(ZLIB/ZLIB.cmake)
     set(ZLIB_PKG dep_ZLIB)
 endif ()
 set(PNG_PKG "")
-if (NOT PNG_FOUND) 
+if (NOT PNG_FOUND)
     include(PNG/PNG.cmake)
     set(PNG_PKG dep_PNG)
 endif ()
 set(EXPAT_PKG "")
 find_package(EXPAT)
-if (NOT EXPAT_FOUND) 
+if (NOT EXPAT_FOUND)
     include(EXPAT/EXPAT.cmake)
     set(EXPAT_PKG dep_EXPAT)
 endif ()
 
+# The order of includes respects the dependencies between libraries
 set(DEP_Boost_COMPONENTS system iostreams filesystem thread log locale regex date_time)
 include(Boost/Boost.cmake)
 
-# The order of includes respects the dependencies between libraries
 include(Cereal/Cereal.cmake)
 include(Qhull/Qhull.cmake)
 include(GLEW/GLEW.cmake)
@@ -347,6 +359,7 @@ include(OpenVDB/OpenVDB.cmake)
 
 include(GMP/GMP.cmake)
 include(MPFR/MPFR.cmake)
+include(Eigen/Eigen.cmake)
 include(CGAL/CGAL.cmake)
 
 include(NLopt/NLopt.cmake)
@@ -358,7 +371,7 @@ include(Draco/Draco.cmake)
 # I *think* 1.1 is used for *just* md5 hashing?
 # 3.1 has everything in the right place, but the md5 funcs used are deprecated
 # a grep across the repo shows it is used for other things
-# TODO: update openssl and everything that uses <openssl/md5.h> 
+# TODO: update openssl and everything that uses <openssl/md5.h>
 set(OPENSSL_PKG "")
 if(NOT OPENSSL_FOUND)
     include(OpenSSL/OpenSSL.cmake)
@@ -366,7 +379,7 @@ if(NOT OPENSSL_FOUND)
 endif()
 
 # we don't want to load a "wrong" openssl when loading curl
-# so, just don't even bother 
+# so, just don't even bother
 # ...i think this is how it works? change if wrong
 set(CURL_PKG "")
 if (NOT OPENSSL_FOUND OR NOT CURL_FOUND)
@@ -390,7 +403,7 @@ endif()
 set(FREETYPE_PKG "")
 if(NOT FREETYPE_FOUND)
     include(FREETYPE/FREETYPE.cmake)
-    set(FREETYPE_PKG "dep_FREETYPE") 
+    set(FREETYPE_PKG "dep_FREETYPE")
 endif()
 
 execute_process(
@@ -409,6 +422,8 @@ endif ()
 
 include(OCCT/OCCT.cmake)
 include(OpenCV/OpenCV.cmake)
+include(python3/python3.cmake)
+include(wxInspector/wxInspector.cmake)
 
 set(_dep_list
     dep_Boost
@@ -422,6 +437,7 @@ set(_dep_list
     dep_OpenVDB
     dep_OpenCSG
     dep_OpenCV
+    dep_Eigen
     dep_CGAL
     dep_GLFW
     dep_OCCT
@@ -430,6 +446,8 @@ set(_dep_list
     ${ZLIB_PKG}
     ${EXPAT_PKG}
     dep_libnoise
+    dep_python3
+    dep_wxInspector
     )
 
 if (MSVC)

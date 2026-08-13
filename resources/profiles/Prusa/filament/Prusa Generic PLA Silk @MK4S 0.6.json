@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PLA Silk @MK4S 0.6",
 	"inherits": "Prusa Generic PLA Silk @MK4S",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "e1pUu3Y5pDr7LzNu",
 	"filament_id": "Generic PLA Silk @MK4S 0.6",
 	"instantiation": "true",
 	"compatible_printers": [

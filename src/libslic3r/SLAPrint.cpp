@@ -184,7 +184,7 @@ std::vector<ObjectID> SLAPrint::print_object_ids() const
     return out;
 }
 
-SLAPrint::ApplyStatus SLAPrint::apply(const Model &model, DynamicPrintConfig config)
+SLAPrint::ApplyStatus SLAPrint::apply(const Model &model, DynamicPrintConfig config, bool extruder_applied)
 {
 #ifdef _DEBUG
     check_model_ids_validity(model);
@@ -613,7 +613,7 @@ std::string SLAPrint::output_filename(const std::string &filename_base) const
     return this->PrintBase::output_filename(m_print_config.filename_format.value, ".sl1", filename_base, &config);
 }
 
-StringObjectException SLAPrint::validate(StringObjectException *exception, Polygons *collison_polygons, std::vector<std::pair<Polygon, float>> *height_polygons) const
+StringObjectException SLAPrint::validate(std::vector<StringObjectException> *warnings, Polygons *collison_polygons, std::vector<std::pair<Polygon, float>> *height_polygons) const
 {
     for(SLAPrintObject * po : m_objects) {
 

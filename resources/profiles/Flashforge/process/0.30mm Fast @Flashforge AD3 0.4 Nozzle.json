@@ -3,7 +3,7 @@
 	"name": "0.30mm Fast @Flashforge AD3 0.4 Nozzle",
 	"inherits": "fdm_process_flashforge_common",
 	"from": "system",
-	"setting_id": "GP001",
+	"setting_id": "s29waRwj2c73VB27",
 	"instantiation": "true",
 	"layer_height": "0.3",
 	"initial_layer_print_height": "0.3",

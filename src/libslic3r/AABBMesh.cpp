@@ -34,7 +34,7 @@ public:
     void intersect_ray(const indexed_triangle_set &its,
                        const Vec3d &               s,
                        const Vec3d &               dir,
-                       igl::Hit &                  hit)
+                       igl::Hit<float> &                  hit)
     {
         AABBTreeIndirect::intersect_ray_first_hit(its.vertices, its.indices,
                                                   m_tree, s, dir, hit, m_triangle_ray_epsilon);
@@ -43,7 +43,7 @@ public:
     void intersect_ray(const indexed_triangle_set &its,
                        const Vec3d &               s,
                        const Vec3d &               dir,
-                       std::vector<igl::Hit> &     hits)
+                       std::vector<igl::Hit<float>> &     hits)
     {
         AABBTreeIndirect::intersect_ray_all_hits(its.vertices, its.indices,
                                                  m_tree, s, dir, hits, m_triangle_ray_epsilon);
@@ -54,12 +54,12 @@ public:
                             int &                        i,
                             Eigen::Matrix<double, 1, 3> &closest)
     {
-        size_t idx_unsigned = 0;
-        Vec3d  closest_vec3d(closest);
-        double dist =
+        size_t idx_unsigned { 0 };
+        Vec3d  closest_vec3d { Vec3d::Zero() };
+        const double dist {
             AABBTreeIndirect::squared_distance_to_indexed_triangle_set(
                 its.vertices, its.indices, m_tree, point, idx_unsigned,
-                closest_vec3d);
+                closest_vec3d) };
         i       = int(idx_unsigned);
         closest = closest_vec3d;
         return dist;
@@ -152,7 +152,7 @@ AABBMesh::hit_result
 AABBMesh::query_ray_hit(const Vec3d &s, const Vec3d &dir) const
 {
     assert(is_approx(dir.norm(), 1.));
-    igl::Hit hit{-1, -1, 0.f, 0.f, 0.f};
+    igl::Hit<float> hit{-1, -1, 0.f, 0.f, 0.f};
     hit.t = std::numeric_limits<float>::infinity();
 
 #ifdef SLIC3R_HOLE_RAYCASTER
@@ -181,23 +181,23 @@ std::vector<AABBMesh::hit_result>
 AABBMesh::query_ray_hits(const Vec3d &s, const Vec3d &dir) const
 {
     std::vector<AABBMesh::hit_result> outs;
-    std::vector<igl::Hit> hits;
+    std::vector<igl::Hit<float>> hits;
     m_aabb->intersect_ray(*m_tm, s, dir, hits);
 
     // The sort is necessary, the hits are not always sorted.
     std::sort(hits.begin(), hits.end(),
-              [](const igl::Hit& a, const igl::Hit& b) { return a.t < b.t; });
+              [](const igl::Hit<float>& a, const igl::Hit<float>& b) { return a.t < b.t; });
 
     // Remove duplicates. They sometimes appear, for example when the ray is cast
     // along an axis of a cube due to floating-point approximations in igl (?)
     hits.erase(std::unique(hits.begin(), hits.end(),
-                           [](const igl::Hit& a, const igl::Hit& b)
+                           [](const igl::Hit<float>& a, const igl::Hit<float>& b)
                            { return a.t == b.t; }),
                hits.end());
 
-    //  Convert the igl::Hit into hit_result
+    //  Convert the igl::Hit<float> into hit_result
     outs.reserve(hits.size());
-    for (const igl::Hit& hit : hits) {
+    for (const igl::Hit<float>& hit : hits) {
         outs.emplace_back(AABBMesh::hit_result(*this));
         outs.back().m_t = double(hit.t);
         outs.back().m_dir = dir;
@@ -311,10 +311,9 @@ AABBMesh::hit_result IndexedMesh::filter_hits(
 
 
 double AABBMesh::squared_distance(const Vec3d &p, int& i, Vec3d& c) const {
-    double sqdst = 0;
-    Eigen::Matrix<double, 1, 3> pp = p;
-    Eigen::Matrix<double, 1, 3> cc;
-    sqdst = m_aabb->squared_distance(*m_tm, pp, i, cc);
+    const Eigen::Matrix<double, 1, 3> pp { p };
+    Eigen::Matrix<double, 1, 3> cc { Vec3d::Zero() };
+    const double sqdst { m_aabb->squared_distance(*m_tm, pp, i, cc) };
     c = cc;
     return sqdst;
 }

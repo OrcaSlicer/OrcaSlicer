@@ -3,7 +3,7 @@
 	"name": "Anycubic Generic ASA",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "qKcef8t7nj8nBjPu",
 	"filament_id": "GFB98",
 	"instantiation": "true",
 	"filament_flow_ratio": [
@@ -17,6 +17,7 @@
 		"Anycubic Chiron 0.4 nozzle",
 		"Anycubic Vyper 0.4 nozzle",
 		"Anycubic Kobra 0.4 nozzle",
+		"Anycubic Kobra 3 Max 0.4 nozzle",
 		"Anycubic Kobra Max 0.4 nozzle",
 		"Anycubic Kobra Plus 0.4 nozzle",
 		"Anycubic 4Max Pro 0.4 nozzle",

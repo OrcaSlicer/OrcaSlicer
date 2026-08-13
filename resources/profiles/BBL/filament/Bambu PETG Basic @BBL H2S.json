@@ -124,9 +124,7 @@
 		"0 0 0 0 0 0"
 	],
 	"compatible_printers": [
-		"Bambu Lab H2S 0.4 nozzle",
-		"Bambu Lab H2S 0.6 nozzle",
-		"Bambu Lab H2S 0.8 nozzle"
+		"Bambu Lab H2S 0.4 nozzle"
 	],
 	"filament_start_gcode": [
 		"; filament start gcode\n"

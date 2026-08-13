@@ -3,7 +3,7 @@
 	"name": "Arena PLA Marble @Arena X1C",
 	"inherits": "Arena PLA Marble @base",
 	"from": "system",
-	"setting_id": "GFSA07_00",
+	"setting_id": "NLvXFDqqD8fkl2DQ",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Orca Arena X1 Carbon 0.4 nozzle",

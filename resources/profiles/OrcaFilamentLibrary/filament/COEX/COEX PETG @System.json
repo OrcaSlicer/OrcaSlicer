@@ -3,7 +3,7 @@
 	"name": "COEX PETG @System",
 	"inherits": "COEX PETG @base",
 	"from": "system",
-	"setting_id": "CXPETG13",
+	"setting_id": "lbxaL0svepWiafit",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"16"

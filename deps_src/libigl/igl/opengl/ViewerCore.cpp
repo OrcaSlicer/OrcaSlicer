@@ -7,8 +7,10 @@
 // obtain one at http://mozilla.org/MPL/2.0/.
 
 #include "ViewerCore.h"
+#include "ViewerData.h"
 #include "gl.h"
 #include "../quat_to_mat.h"
+#include "../null.h"
 #include "../snap_to_fixed_up.h"
 #include "../look_at.h"
 #include "../frustum.h"
@@ -16,6 +18,8 @@
 #include "../massmatrix.h"
 #include "../barycenter.h"
 #include "../PI.h"
+#include "report_gl_error.h"
+#include "read_pixels.h"
 #include <Eigen/Geometry>
 #include <iostream>
 
@@ -87,11 +91,16 @@ IGL_INLINE void igl::opengl::ViewerCore::get_scale_and_shift_to_fit_mesh(
 
 IGL_INLINE void igl::opengl::ViewerCore::clear_framebuffers()
 {
+  // The glScissor call ensures we only clear this core's buffers,
+  // (in case the user wants different background colors in each viewport.)
+  glScissor(viewport(0), viewport(1), viewport(2), viewport(3));
+  glEnable(GL_SCISSOR_TEST);
   glClearColor(background_color[0],
                background_color[1],
                background_color[2],
                background_color[3]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glDisable(GL_SCISSOR_TEST);
 }
 
 IGL_INLINE void igl::opengl::ViewerCore::draw(
@@ -112,7 +121,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
   /* Bind and potentially refresh mesh/line/point data */
   if (data.dirty)
   {
-    data.updateGL(data, data.invert_normals,data.meshgl);
+    data.updateGL(data, data.invert_normals, data.meshgl);
     data.dirty = MeshGL::DIRTY_NONE;
   }
   data.meshgl.bind_mesh();
@@ -166,39 +175,67 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
   GLint lighting_factori      = glGetUniformLocation(data.meshgl.shader_mesh,"lighting_factor");
   GLint fixed_colori          = glGetUniformLocation(data.meshgl.shader_mesh,"fixed_color");
   GLint texture_factori       = glGetUniformLocation(data.meshgl.shader_mesh,"texture_factor");
+  GLint matcap_factori        = glGetUniformLocation(data.meshgl.shader_mesh,"matcap_factor");
+  GLint double_sidedi         = glGetUniformLocation(data.meshgl.shader_mesh,"double_sided");
 
+  const bool eff_is_directional_light = is_directional_light || is_shadow_mapping;
   glUniform1f(specular_exponenti, data.shininess);
-  glUniform3fv(light_position_eyei, 1, light_position.data());
+  if(eff_is_directional_light)
+  {
+    Eigen::Vector3f light_direction  = light_position.normalized();
+    glUniform3fv(light_position_eyei, 1, light_direction.data());
+  }else
+  {
+    glUniform3fv(light_position_eyei, 1, light_position.data());
+  }
+  if(is_shadow_mapping)
+  {
+    glUniformMatrix4fv(glGetUniformLocation(data.meshgl.shader_mesh,"shadow_view"), 1, GL_FALSE, shadow_view.data());
+    glUniformMatrix4fv(glGetUniformLocation(data.meshgl.shader_mesh,"shadow_proj"), 1, GL_FALSE, shadow_proj.data());
+    glActiveTexture(GL_TEXTURE0+1);
+    glBindTexture(GL_TEXTURE_2D, shadow_depth_tex);
+    {
+      glUniform1i(glGetUniformLocation(data.meshgl.shader_mesh,"shadow_tex"), 1);
+    }
+  }
   glUniform1f(lighting_factori, lighting_factor); // enables lighting
   glUniform4f(fixed_colori, 0.0, 0.0, 0.0, 0.0);
+
+  glUniform1i(glGetUniformLocation(data.meshgl.shader_mesh,"is_directional_light"),eff_is_directional_light);
+  glUniform1i(glGetUniformLocation(data.meshgl.shader_mesh,"is_shadow_mapping"),is_shadow_mapping);
+  glUniform1i(glGetUniformLocation(data.meshgl.shader_mesh,"shadow_pass"),false);
 
   if (data.V.rows()>0)
   {
     // Render fill
-    if (data.show_faces)
+    if (is_set(data.show_faces))
     {
       // Texture
-      glUniform1f(texture_factori, data.show_texture ? 1.0f : 0.0f);
+      glUniform1f(texture_factori, is_set(data.show_texture) ? 1.0f : 0.0f);
+      glUniform1f(matcap_factori, is_set(data.use_matcap) ? 1.0f : 0.0f);
+      glUniform1f(double_sidedi, data.double_sided ? 1.0f : 0.0f);
       data.meshgl.draw_mesh(true);
+      glUniform1f(matcap_factori, 0.0f);
       glUniform1f(texture_factori, 0.0f);
     }
 
     // Render wireframe
-    if (data.show_lines)
+    if (is_set(data.show_lines))
     {
       glLineWidth(data.line_width);
       glUniform4f(fixed_colori,
         data.line_color[0],
         data.line_color[1],
-        data.line_color[2], 1.0f);
+        data.line_color[2],
+        data.line_color[3]);
       data.meshgl.draw_mesh(false);
       glUniform4f(fixed_colori, 0.0f, 0.0f, 0.0f, 0.0f);
     }
   }
 
-  if (data.show_overlay)
+  if (is_set(data.show_overlay))
   {
-    if (data.show_overlay_depth)
+    if (is_set(data.show_overlay_depth))
       glEnable(GL_DEPTH_TEST);
     else
       glDisable(GL_DEPTH_TEST);
@@ -227,16 +264,89 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
       glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
       glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
       glPointSize(data.point_size);
-
       data.meshgl.draw_overlay_points();
     }
-
     glEnable(GL_DEPTH_TEST);
   }
 
+  if(is_set(data.show_vertex_labels)&&data.vertex_labels_positions.rows()>0) 
+    draw_labels(data, data.meshgl.vertex_labels);
+  if(is_set(data.show_face_labels)&&data.face_labels_positions.rows()>0) 
+    draw_labels(data, data.meshgl.face_labels);
+  if(is_set(data.show_custom_labels)&&data.labels_positions.rows()>0) 
+    draw_labels(data, data.meshgl.custom_labels);
 }
 
-IGL_INLINE void igl::opengl::ViewerCore::draw_buffer(ViewerData& data,
+IGL_INLINE void igl::opengl::ViewerCore::initialize_shadow_pass()
+{
+  // attach buffers
+  glBindFramebuffer(GL_FRAMEBUFFER,   shadow_depth_fbo);
+  glBindRenderbuffer(GL_RENDERBUFFER, shadow_color_rbo);
+  // clear buffer 
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  // In the libigl viewer setup, each mesh has its own shader program. This is
+  // kind of funny because they should all be the same, just different uniform
+  // values.
+  glViewport(0,0,shadow_width,shadow_height);
+  // Assumes light is directional
+  assert(is_directional_light);
+  Eigen::Vector3f camera_eye = light_position.normalized()*5;
+  Eigen::Vector3f camera_up = [&camera_eye]()
+    {
+      Eigen::Matrix<float,3,2> T;
+      igl::null(camera_eye.transpose().eval(),T);
+      return T.col(0);
+    }();
+  Eigen::Vector3f camera_center = this->camera_center;
+  // Same camera parameters except 2× field of view and reduced far plane
+  float camera_view_angle =               2*this->camera_view_angle;
+  float camera_dnear =                      this->camera_dnear;
+  float camera_dfar =                       this->camera_dfar;
+  Eigen::Quaternionf trackball_angle =      this->trackball_angle;
+  float camera_zoom =                       this->camera_zoom;
+  float camera_base_zoom =                  this->camera_base_zoom;
+  Eigen::Vector3f camera_translation =      this->camera_translation;
+  Eigen::Vector3f camera_base_translation = this->camera_base_translation;
+  camera_dfar = exp2( 0.5 * ( log2(camera_dnear) + log2(camera_dfar)));
+  igl::look_at( camera_eye, camera_center, camera_up, shadow_view);
+  shadow_view = shadow_view
+    * (trackball_angle * Eigen::Scaling(camera_zoom * camera_base_zoom)
+    * Eigen::Translation3f(camera_translation + camera_base_translation)).matrix();
+
+  float length = (camera_eye - camera_center).norm();
+  float h = tan(camera_view_angle/360.0 * igl::PI) * (length);
+  igl::ortho(-h*shadow_width/shadow_height, h*shadow_width/shadow_height, -h, h, camera_dnear, camera_dfar,shadow_proj);
+}
+
+IGL_INLINE void igl::opengl::ViewerCore::deinitialize_shadow_pass()
+{
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+}
+
+IGL_INLINE void igl::opengl::ViewerCore::draw_shadow_pass(
+  ViewerData& data,
+  bool /*update_matrices*/)
+{
+  if (data.dirty)
+  {
+    data.updateGL(data, data.invert_normals, data.meshgl);
+    data.dirty = igl::opengl::MeshGL::DIRTY_NONE;
+  }
+  data.meshgl.bind_mesh();
+  // Send transformations to the GPU as if rendering from shadow point of view
+  GLint viewi  = glGetUniformLocation(data.meshgl.shader_mesh,"view");
+  GLint proji  = glGetUniformLocation(data.meshgl.shader_mesh,"proj");
+  glUniformMatrix4fv(viewi, 1, GL_FALSE, shadow_view.data());
+  glUniformMatrix4fv(proji, 1, GL_FALSE, shadow_proj.data());
+  glUniform1i(glGetUniformLocation(data.meshgl.shader_mesh,"shadow_pass"),true);
+  data.meshgl.draw_mesh(true);
+  glUniform1i(glGetUniformLocation(data.meshgl.shader_mesh,"shadow_pass"),false);
+
+}
+
+IGL_INLINE void igl::opengl::ViewerCore::draw_buffer(
+  ViewerData& data,
   bool update_matrices,
   Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& R,
   Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& G,
@@ -248,8 +358,28 @@ IGL_INLINE void igl::opengl::ViewerCore::draw_buffer(ViewerData& data,
 
   unsigned width = R.rows();
   unsigned height = R.cols();
+  if(width == 0 && height == 0)
+  {
+    width = viewport(2);
+    height = viewport(3);
+  }
+  R.resize(width,height);
+  G.resize(width,height);
+  B.resize(width,height);
+  A.resize(width,height);
 
+  ////////////////////////////////////////////////////////////////////////
+  // PREPARE width×height BUFFERS does *not* depend on `data`
+  //   framebuffer
+  //   textureColorBufferMultiSampled
+  //   rbo
+  //   intermediateFBO
+  //   screenTexture
+  //
+  ////////////////////////////////////////////////////////////////////////
   // https://learnopengl.com/Advanced-OpenGL/Anti-Aliasing
+
+  // Create an initial multisampled framebuffer
   unsigned int framebuffer;
   glGenFramebuffers(1, &framebuffer);
   glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -333,6 +463,34 @@ IGL_INLINE void igl::opengl::ViewerCore::draw_buffer(ViewerData& data,
   free(pixels);
 }
 
+// Define uniforms for text labels
+IGL_INLINE void igl::opengl::ViewerCore::draw_labels(
+  ViewerData& data,
+  const igl::opengl::MeshGL::TextGL& labels
+){
+  glDisable(GL_LINE_SMOOTH); // Clear settings if overlay is activated
+  data.meshgl.bind_labels(labels);
+  GLint viewi = glGetUniformLocation(data.meshgl.shader_text,"view");
+  GLint proji = glGetUniformLocation(data.meshgl.shader_text,"proj");
+  glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
+  glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
+  // Parameters for mapping characters from font atlass
+  float width  = viewport(2);
+  float height = viewport(3);
+  float text_shift_scale_factor = orthographic ? 0.01 : 0.03;
+  float render_scale = (orthographic ? 0.6 : 1.7) * data.label_size;
+  glUniform1f(glGetUniformLocation(data.meshgl.shader_text, "TextShiftFactor"), text_shift_scale_factor);
+  glUniform3f(glGetUniformLocation(data.meshgl.shader_text, "TextColor"), data.label_color(0), data.label_color(1), data.label_color(2));
+  glUniform2f(glGetUniformLocation(data.meshgl.shader_text, "CellSize"), 1.0f / 16, (300.0f / 384) / 6);
+  glUniform2f(glGetUniformLocation(data.meshgl.shader_text, "CellOffset"), 0.5 / 256.0, 0.5 / 256.0);
+  glUniform2f(glGetUniformLocation(data.meshgl.shader_text, "RenderSize"), 
+                                    render_scale * 0.75 * 16 / (width), 
+                                    render_scale * 0.75 * 33.33 / (height));
+  glUniform2f(glGetUniformLocation(data.meshgl.shader_text, "RenderOrigin"), -2, 2);
+  data.meshgl.draw_labels(labels);
+  glEnable(GL_DEPTH_TEST);
+}
+
 IGL_INLINE void igl::opengl::ViewerCore::set_rotation_type(
   const igl::opengl::ViewerCore::RotationType & value)
 {
@@ -347,6 +505,28 @@ IGL_INLINE void igl::opengl::ViewerCore::set_rotation_type(
   }
 }
 
+IGL_INLINE void igl::opengl::ViewerCore::set(unsigned int &property_mask, bool value) const
+{
+  if (!value)
+    unset(property_mask);
+  else
+    property_mask |= id;
+}
+
+IGL_INLINE void igl::opengl::ViewerCore::unset(unsigned int &property_mask) const
+{
+  property_mask &= ~id;
+}
+
+IGL_INLINE void igl::opengl::ViewerCore::toggle(unsigned int &property_mask) const
+{
+  property_mask ^= id;
+}
+
+IGL_INLINE bool igl::opengl::ViewerCore::is_set(unsigned int property_mask) const
+{
+  return (property_mask & id);
+}
 
 IGL_INLINE igl::opengl::ViewerCore::ViewerCore()
 {
@@ -355,10 +535,16 @@ IGL_INLINE igl::opengl::ViewerCore::ViewerCore()
 
   // Default lights settings
   light_position << 0.0f, 0.3f, 0.0f;
+  is_directional_light = false;
+  is_shadow_mapping = false;
+  shadow_width =  2056;
+  shadow_height = 2056;
+
   lighting_factor = 1.0f; //on
 
   // Default trackball
   trackball_angle = Eigen::Quaternionf::Identity();
+  rotation_type = ViewerCore::ROTATION_TYPE_TRACKBALL;
   set_rotation_type(ViewerCore::ROTATION_TYPE_TWO_AXIS_VALUATOR_FIXED_UP);
 
   // Camera parameters
@@ -384,8 +570,71 @@ IGL_INLINE igl::opengl::ViewerCore::ViewerCore()
 
 IGL_INLINE void igl::opengl::ViewerCore::init()
 {
+  delete_shadow_buffers();
+  generate_shadow_buffers();
 }
 
 IGL_INLINE void igl::opengl::ViewerCore::shut()
 {
+  delete_shadow_buffers();
 }
+
+IGL_INLINE void igl::opengl::ViewerCore::delete_shadow_buffers()
+{
+  glDeleteTextures(1,&shadow_depth_tex);
+  glDeleteFramebuffers(1,&shadow_depth_fbo);
+  glDeleteRenderbuffers(1,&shadow_color_rbo);
+}
+
+IGL_INLINE void igl::opengl::ViewerCore::generate_shadow_buffers()
+{
+  // Create a texture for writing the shadow map depth values into
+  {
+    glDeleteTextures(1,&shadow_depth_tex);
+    glGenTextures(1, &shadow_depth_tex);
+    glBindTexture(GL_TEXTURE_2D, shadow_depth_tex);
+    // Should this be using double/float precision?
+    glTexImage2D(
+      GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+      shadow_width,
+      shadow_height,
+      0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, Eigen::Vector4f(1,1,1,1).data() );
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+  // Generate a framebuffer with depth attached to this texture and color
+  // attached to a render buffer object
+  glGenFramebuffers(1, &shadow_depth_fbo);
+  glBindFramebuffer(GL_FRAMEBUFFER, shadow_depth_fbo);
+  // Attach depth texture
+  glFramebufferTexture2D(
+      GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+      shadow_depth_tex,0);
+  // Generate a render buffer to write colors into. Low precision we don't
+  // care about them. Is there a way to not write/compute them at? Probably
+  // just need to change fragment shader.
+  glGenRenderbuffers(1,&shadow_color_rbo);
+  glBindRenderbuffer(GL_RENDERBUFFER,shadow_color_rbo);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, shadow_width, shadow_height);
+  // Attach color buffer
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+      GL_RENDERBUFFER, shadow_color_rbo);
+  //Does the GPU support current FBO configuration?
+  GLenum status;
+  status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+  switch(status)
+  {
+    case GL_FRAMEBUFFER_COMPLETE:
+      break;
+    default:
+      printf("[ViewerCore] Error: We failed to set up a good FBO: %d\n",status);
+      assert(false);
+  }
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+

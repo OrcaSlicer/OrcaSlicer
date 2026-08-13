@@ -3,7 +3,7 @@
 	"name": "FLSun S1 PLA Generic",
 	"inherits": "FLSun Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "z0Y9rQVZairHqwbi",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"activate_air_filtration": [

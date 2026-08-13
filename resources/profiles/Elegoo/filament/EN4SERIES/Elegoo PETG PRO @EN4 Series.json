@@ -1,0 +1,26 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG PRO @EN4 Series",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"setting_id": "9vWaWFD7kELXCz9k",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Elegoo Neptune 4 0.4 nozzle",
+		"Elegoo Neptune 4 0.6 nozzle",
+		"Elegoo Neptune 4 0.8 nozzle",
+		"Elegoo Neptune 4 1.0 nozzle",
+		"Elegoo Neptune 4 Pro 0.4 nozzle",
+		"Elegoo Neptune 4 Pro 0.6 nozzle",
+		"Elegoo Neptune 4 Pro 0.8 nozzle",
+		"Elegoo Neptune 4 Pro 1.0 nozzle",
+		"Elegoo Neptune 4 Plus 0.4 nozzle",
+		"Elegoo Neptune 4 Plus 0.6 nozzle",
+		"Elegoo Neptune 4 Plus 0.8 nozzle",
+		"Elegoo Neptune 4 Plus 1.0 nozzle",
+		"Elegoo Neptune 4 Max 0.4 nozzle",
+		"Elegoo Neptune 4 Max 0.6 nozzle",
+		"Elegoo Neptune 4 Max 0.8 nozzle",
+		"Elegoo Neptune 4 Max 1.0 nozzle"
+	]
+}

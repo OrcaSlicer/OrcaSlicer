@@ -10,11 +10,10 @@
 #include "igl_inline.h"
 namespace igl
 {
-  // Computes out = dot(a,b)
-  // Inputs:
-  //   a  left 3d vector
-  //   b  right 3d vector
-  // Returns scalar dot product
+  /// Computes out = dot(a,b)
+  /// @param[in] a  left 3d vector
+  /// @param[in] b  right 3d vector
+  /// @return scalar dot product
   IGL_INLINE double dot(
     const double *a, 
     const double *b);

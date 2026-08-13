@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Basic @0.6 nozzle",
 	"inherits": "QIDI PLA Basic",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "LMfV673NzArmzY44",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [
@@ -22,9 +22,6 @@
 		"20"
 	],
 	"compatible_printers": [
-		"Qidi X-Plus 0.6 nozzle",
-		"Qidi X-Max 0.6 nozzle",
-		"Qidi X-CF Pro 0.6 nozzle",
 		"Qidi X-Smart 3 0.6 nozzle",
 		"Qidi X-Plus 3 0.6 nozzle",
 		"Qidi X-Max 3 0.6 nozzle"

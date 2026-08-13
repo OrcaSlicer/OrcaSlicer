@@ -11,18 +11,16 @@ namespace igl
   {
     namespace cgal
     {
-      // Convert a MeshBooleanType enum to a pair of winding number conversion
-      // function and "keep" function used by mesh_boolean
-      //
-      // Inputs:
-      //   type  MeshBooleanType enum value
-      // Outputs:
-      //    wind_num_op  function handle for filtering winding numbers from
-      //      tuples of integer values to [0,1] outside/inside values
-      //    keep  function handle for determining if a patch should be "kept"
-      //      in the output based on the winding number on either side
-      //
-      // See also: string_to_mesh_boolean_type
+      /// Convert a MeshBooleanType enum to a pair of winding number conversion
+      /// function and "keep" function used by mesh_boolean
+      ///
+      /// @param[in] type  MeshBooleanType enum value
+      /// @param[out] wind_num_op  function handle for filtering winding numbers from
+      ///      tuples of integer values to [0,1] outside/inside values
+      /// @param[out] keep  function handle for determining if a patch should be "kept"
+      ///      in the output based on the winding number on either side
+      ///
+      /// \see string_to_mesh_boolean_type
       IGL_INLINE void mesh_boolean_type_to_funcs(
         const MeshBooleanType & type,
         std::function<int(const Eigen::Matrix<int,1,Eigen::Dynamic>) >& 

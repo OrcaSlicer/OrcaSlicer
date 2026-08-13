@@ -93,6 +93,11 @@ bool AppConfig::get_stealth_mode()
     return get_bool("stealth_mode");
 }
 
+bool AppConfig::get_hide_login_side_panel()
+{
+    return get_bool("hide_login_side_panel");
+}
+
 void AppConfig::reset()
 {
     m_storage.clear();
@@ -197,6 +202,25 @@ void AppConfig::set_defaults()
     if (get("seq_top_layer_only").empty())
         set("seq_top_layer_only", "1");
 
+    // ORCA: darken the layers the preview layer slider is not scrubbed to
+    if (get("preview_dim_previous_layers").empty())
+        set_bool("preview_dim_previous_layers", false);
+
+    // ORCA: brightness of those dimmed layers, in percent. 0 = black, capped at 99 because
+    // 100 would render them unchanged, which is what disabling the option already does
+    if (get("preview_dim_previous_layers_brightness").empty())
+        set("preview_dim_previous_layers_brightness", "40");
+    else {
+        int brightness = 40;
+        try {
+            brightness = std::stoi(get("preview_dim_previous_layers_brightness"));
+        }
+        catch (...) {
+            brightness = 40;
+        }
+        set("preview_dim_previous_layers_brightness", std::to_string(std::max(0, std::min(brightness, 99))));
+    }
+
     if (get("filaments_area_preferred_count").empty())
         set("filaments_area_preferred_count", "10");
 
@@ -212,8 +236,14 @@ void AppConfig::set_defaults()
     if (get("camera_navigation_style").empty())
         set("camera_navigation_style", "0");
 
-    if (get("swap_mouse_buttons").empty())
-        set_bool("swap_mouse_buttons", false);
+    if (get("left_mouse_drag_action").empty())
+        set("left_mouse_drag_action", "2");
+
+    if (get("middle_mouse_drag_action").empty())
+        set("middle_mouse_drag_action", "1");
+
+    if (get("right_mouse_drag_action").empty())
+        set("right_mouse_drag_action", "1");
 
     if (get("reverse_mouse_wheel_zoom").empty())
         set_bool("reverse_mouse_wheel_zoom", false);
@@ -229,6 +259,47 @@ void AppConfig::set_defaults()
 
     if (get("camera_orbit_mult").empty())
         set("camera_orbit_mult", "1.0");
+
+    if (get(SETTING_OPENGL_AA_SAMPLES).empty())
+        set(SETTING_OPENGL_AA_SAMPLES, "4");
+
+    if (get(SETTING_OPENGL_FXAA_ENABLED).empty())
+        set_bool(SETTING_OPENGL_FXAA_ENABLED, false);
+
+    if (get(SETTING_OPENGL_FPS_CAP).empty())
+        set(SETTING_OPENGL_FPS_CAP, "0");
+    else {
+        int fps_cap = 0;
+        try {
+            fps_cap = std::stoi(get(SETTING_OPENGL_FPS_CAP));
+        }
+        catch (...) {
+            fps_cap = 0;
+        }
+        fps_cap = std::max(0, std::min(fps_cap, 240));
+        set(SETTING_OPENGL_FPS_CAP, std::to_string(fps_cap));
+    }
+
+    if (get(SETTING_OPENGL_SHOW_FPS_OVERLAY).empty())
+        set_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY, false);
+
+    if (get(SETTING_OPENGL_REALISTIC_MODE).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_MODE, false);
+
+    if (get(SETTING_OPENGL_REALISTIC_PHONG).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_PHONG, true);
+
+    if (get(SETTING_OPENGL_SHADING_MODEL).empty())
+        set(SETTING_OPENGL_SHADING_MODEL, "gouraud");
+
+    if (get(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS).empty())
+        set_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS, false);
+
+    if (get(SETTING_OPENGL_PHONG_SMOOTH_NORMALS).empty())
+        set_bool(SETTING_OPENGL_PHONG_SMOOTH_NORMALS, false);
+
+    if (get(SETTING_OPENGL_PHONG_SSAO).empty())
+        set_bool(SETTING_OPENGL_PHONG_SSAO, false);
 
     if (get("export_sources_full_pathnames").empty())
         set_bool("export_sources_full_pathnames", false);
@@ -251,6 +322,10 @@ void AppConfig::set_defaults()
 
     if (get("show_3d_navigator").empty())
         set_bool("show_3d_navigator", true);
+
+    // Show the one-time "Filament Track Switch is ready" tip until it has been seen once.
+    if (get("show_fila_switch_tips").empty())
+        set_bool("show_fila_switch_tips", true);
 
     if (get("show_plate_gridlines").empty())
         set_bool("show_plate_gridlines", true);
@@ -292,6 +367,9 @@ void AppConfig::set_defaults()
     if (get("developer_mode").empty())
         set_bool("developer_mode", false);
 
+    if (get("show_unsupported_presets").empty())
+        set_bool("show_unsupported_presets", false);
+
     if (get("enable_ssl_for_mqtt").empty())
         set_bool("enable_ssl_for_mqtt", true);
 
@@ -299,7 +377,7 @@ void AppConfig::set_defaults()
         set_bool("enable_ssl_for_ftp", true);
 
     if (get("log_severity_level").empty())
-        set("log_severity_level", "warning");
+        set("log_severity_level", "info");
 
     if (get("internal_developer_mode").empty())
         set_bool("internal_developer_mode", false);
@@ -317,6 +395,9 @@ void AppConfig::set_defaults()
     // Orca
     if (get("stealth_mode").empty()) {
         set_bool("stealth_mode", false);
+    }
+    if (get("hide_login_side_panel").empty()) {
+        set_bool("hide_login_side_panel", false);
     }
     if (get("allow_abnormal_storage").empty()) {
         set_bool("allow_abnormal_storage", false);
@@ -521,9 +602,16 @@ void AppConfig::set_defaults()
     if (get("enable_step_mesh_setting").empty()) {
         set_bool("enable_step_mesh_setting", true);
     }
-    if (get("linear_defletion", "angle_defletion").empty()) {
-        set("linear_defletion", "0.003");
-        set("angle_defletion", "0.5");
+    // Migrate legacy misspelled keys (linear_defletion/angle_defletion) to the corrected spelling.
+    if (get("linear_deflection").empty() && !get("linear_defletion").empty())
+        set("linear_deflection", get("linear_defletion"));
+    if (get("angle_deflection").empty() && !get("angle_defletion").empty())
+        set("angle_deflection", get("angle_defletion"));
+    if (get("linear_deflection").empty()) {
+        set("linear_deflection", "0.003");
+    }
+    if (get("angle_deflection").empty()) {
+        set("angle_deflection", "0.5");
     }
     if (get("is_split_compound").empty()) {
         set_bool("is_split_compound", false);
@@ -537,6 +625,12 @@ void AppConfig::set_defaults()
     if (get("window_buttons_on_left").empty())
         set_bool("window_buttons_on_left", false);
 #endif
+
+    if (get("use_printer_agents").empty())
+    {
+        // false = legacy behavior using print hosts
+        set_bool("use_printer_agents", false);
+    }
 
     // Remove legacy window positions/sizes
     erase("app", "main_frame_maximized");
@@ -735,6 +829,10 @@ std::string AppConfig::load()
                                 preset_info.nozzle_volume_type  = NozzleVolumeType(cali_it.value()["nozzle_volume_type"].get<int>());
                             if (cali_it.value().contains("bed_type"))
                                 preset_info.bed_type = BedType(cali_it.value()["bed_type"].get<int>());
+                            if (cali_it.value().contains("nozzle_pos_id"))
+                                preset_info.nozzle_pos_id = cali_it.value()["nozzle_pos_id"].get<int>();
+                            if (cali_it.value().contains("nozzle_sn"))
+                                preset_info.nozzle_sn = cali_it.value()["nozzle_sn"].get<std::string>();
                             cali_info.selected_presets.push_back(preset_info);
                         }
                     }
@@ -785,7 +883,7 @@ std::string AppConfig::load()
                 }
             }
         }
-    } catch(std::exception err) {
+    } catch(const std::exception &err) {
         BOOST_LOG_TRIVIAL(info) << format("parse app config \"%1%\", error: %2%", AppConfig::loading_path(), err.what());
 
         return err.what();
@@ -834,8 +932,10 @@ std::string AppConfig::load()
 
 void AppConfig::save()
 {
-    if (! is_main_thread_active())
+    if (!is_main_thread_active()) {
+        BOOST_LOG_TRIVIAL(fatal) << "Calling AppConfig::save() from a worker thread!";
         throw CriticalException("Calling AppConfig::save() from a worker thread!");
+    }
 
     // The config is first written to a file with a PID suffix and then moved
     // to avoid race conditions with multiple instances of Slic3r
@@ -890,6 +990,8 @@ void AppConfig::save()
             preset_json["extruder_id"]      = filament_preset.extruder_id;
             preset_json["nozzle_volume_type"]  = int(filament_preset.nozzle_volume_type);
             preset_json["bed_type"] = int(filament_preset.bed_type);
+            preset_json["nozzle_pos_id"]    = filament_preset.nozzle_pos_id;
+            preset_json["nozzle_sn"]        = filament_preset.nozzle_sn;
             preset_json["nozzle_diameter"]  = filament_preset.nozzle_diameter;
             preset_json["filament_id"]      = filament_preset.filament_id;
             preset_json["setting_id"]       = filament_preset.setting_id;

@@ -5,6 +5,7 @@
 	"elefant_foot_compensation": "0",
 	"from": "system",
 	"inherits": "fdm_process_ER20_Klipper_0.42_nozzle_0.6",
+	"setting_id": "8XAFm1qhJ5VbrcDt",
 	"instantiation": "true",
 	"name": "0.42mm Extra Draft @Eryone ER20 Klipper 0.6 nozzle",
 	"type": "process"

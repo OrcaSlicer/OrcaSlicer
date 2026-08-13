@@ -11,6 +11,8 @@
 #include "slice_into.h"
 #include "cat.h"
 //#include "matlab_format.h"
+#include "placeholders.h"
+#include "PlainMatrix.h"
 
 #include <iostream>
 #include <limits>
@@ -31,19 +33,20 @@ template <
   >
 IGL_INLINE igl::SolverStatus igl::active_set(
   const Eigen::SparseMatrix<AT>& A,
-  const Eigen::PlainObjectBase<DerivedB> & B,
-  const Eigen::PlainObjectBase<Derivedknown> & known,
-  const Eigen::PlainObjectBase<DerivedY> & Y,
+  const Eigen::MatrixBase<DerivedB> & B,
+  const Eigen::MatrixBase<Derivedknown> & known,
+  const Eigen::MatrixBase<DerivedY> & Y,
   const Eigen::SparseMatrix<AeqT>& Aeq,
-  const Eigen::PlainObjectBase<DerivedBeq> & Beq,
+  const Eigen::MatrixBase<DerivedBeq> & Beq,
   const Eigen::SparseMatrix<AieqT>& Aieq,
-  const Eigen::PlainObjectBase<DerivedBieq> & Bieq,
-  const Eigen::PlainObjectBase<Derivedlx> & p_lx,
-  const Eigen::PlainObjectBase<Derivedux> & p_ux,
+  const Eigen::MatrixBase<DerivedBieq> & Bieq,
+  const Eigen::MatrixBase<Derivedlx> & p_lx,
+  const Eigen::MatrixBase<Derivedux> & p_ux,
   const igl::active_set_params & params,
   Eigen::PlainObjectBase<DerivedZ> & Z
   )
 {
+
 //#define ACTIVE_SET_CPP_DEBUG
 #if defined(ACTIVE_SET_CPP_DEBUG) && !defined(_MSC_VER)
 #  warning "ACTIVE_SET_CPP_DEBUG"
@@ -109,9 +112,7 @@ IGL_INLINE igl::SolverStatus igl::active_set(
   Matrix<BOOL,Dynamic,1> as_ieq = Matrix<BOOL,Dynamic,1>::Constant(Aieq.rows(),1,FALSE);
 
   // Keep track of previous Z for comparison
-  DerivedZ old_Z;
-  old_Z = DerivedZ::Constant(
-      n,1,numeric_limits<typename DerivedZ::Scalar>::max());
+  PlainMatrix<DerivedZ> old_Z;
 
   int iter = 0;
   while(true)
@@ -121,35 +122,43 @@ IGL_INLINE igl::SolverStatus igl::active_set(
     cout<<"  pre"<<endl;
 #endif
     // FIND BREACHES OF CONSTRAINTS
+#ifdef ACTIVE_SET_CPP_DEBUG
     int new_as_lx = 0;
     int new_as_ux = 0;
     int new_as_ieq = 0;
+#endif
     if(Z.size() > 0)
     {
       for(int z = 0;z < n;z++)
       {
         if(Z(z) < lx(z))
         {
+#ifdef ACTIVE_SET_CPP_DEBUG
           new_as_lx += (as_lx(z)?0:1);
+#endif
           //new_as_lx++;
           as_lx(z) = TRUE;
         }
         if(Z(z) > ux(z))
         {
+#ifdef ACTIVE_SET_CPP_DEBUG
           new_as_ux += (as_ux(z)?0:1);
+#endif
           //new_as_ux++;
           as_ux(z) = TRUE;
         }
       }
       if(Aieq.rows() > 0)
       {
-        DerivedZ AieqZ;
+        PlainMatrix<DerivedZ,Eigen::Dynamic> AieqZ;
         AieqZ = Aieq*Z;
         for(int a = 0;a<Aieq.rows();a++)
         {
           if(AieqZ(a) > Bieq(a))
           {
+#ifdef ACTIVE_SET_CPP_DEBUG
             new_as_ieq += (as_ieq(a)?0:1);
+#endif
             as_ieq(a) = TRUE;
           }
         }
@@ -158,14 +167,17 @@ IGL_INLINE igl::SolverStatus igl::active_set(
       cout<<"  new_as_lx: "<<new_as_lx<<endl;
       cout<<"  new_as_ux: "<<new_as_ux<<endl;
 #endif
-      const double diff = (Z-old_Z).squaredNorm();
-#ifdef ACTIVE_SET_CPP_DEBUG
-      cout<<"diff: "<<diff<<endl;
-#endif
-      if(diff < params.solution_diff_threshold)
+      if(iter > 0)
       {
-        ret = SOLVER_STATUS_CONVERGED;
-        break;
+        const double diff = (Z-old_Z).squaredNorm();
+#ifdef ACTIVE_SET_CPP_DEBUG
+        cout<<"diff: "<<diff<<endl;
+#endif
+        if(diff < params.solution_diff_threshold)
+        {
+          ret = SOLVER_STATUS_CONVERGED;
+          break;
+        }
       }
       old_Z = Z;
     }
@@ -190,9 +202,9 @@ IGL_INLINE igl::SolverStatus igl::active_set(
 #endif
 
     // PREPARE FIXED VALUES
-    Derivedknown known_i;
+    Eigen::Matrix<typename Derivedknown::Scalar,Eigen::Dynamic,1> known_i;
     known_i.resize(nk + as_lx_count + as_ux_count,1);
-    DerivedY Y_i;
+    PlainMatrix<DerivedY,Eigen::Dynamic,1> Y_i;
     Y_i.resize(nk + as_lx_count + as_ux_count,1);
     {
       known_i.block(0,0,known.rows(),known.cols()) = known;
@@ -223,9 +235,9 @@ IGL_INLINE igl::SolverStatus igl::active_set(
     }
     //cout<<matlab_format((known_i.array()+1).eval(),"known_i")<<endl;
     // PREPARE EQUALITY CONSTRAINTS
-    VectorXi as_ieq_list(as_ieq_count,1);
+    Eigen::Matrix<typename DerivedY::Scalar, Eigen::Dynamic, 1> as_ieq_list(as_ieq_count,1);
     // Gather active constraints and resp. rhss
-    DerivedBeq Beq_i;
+    PlainMatrix<DerivedBeq,Eigen::Dynamic,1> Beq_i;
     Beq_i.resize(Beq.rows()+as_ieq_count,1);
     Beq_i.head(Beq.rows()) = Beq;
     {
@@ -262,7 +274,7 @@ IGL_INLINE igl::SolverStatus igl::active_set(
     }
 #endif
 
-    DerivedZ sol;
+    PlainMatrix<DerivedZ,Eigen::Dynamic,Eigen::Dynamic> sol;
     if(known_i.size() == A.rows())
     {
       // Everything's fixed?
@@ -270,7 +282,7 @@ IGL_INLINE igl::SolverStatus igl::active_set(
       cout<<"  everything's fixed."<<endl;
 #endif
       Z.resize(A.rows(),Y_i.cols());
-      slice_into(Y_i,known_i,1,Z);
+      Z(known_i,igl::placeholders::all) = Y_i;
       sol.resize(0,Y_i.cols());
       assert(Aeq_i.rows() == 0 && "All fixed but linearly constrained");
     }else
@@ -280,11 +292,15 @@ IGL_INLINE igl::SolverStatus igl::active_set(
 #endif
       if(!min_quad_with_fixed_precompute(A,known_i,Aeq_i,params.Auu_pd,data))
       {
+#ifdef ACTIVE_SET_CPP_DEBUG
         cerr<<"Error: min_quad_with_fixed precomputation failed."<<endl;
+#endif
         if(iter > 0 && Aeq_i.rows() > Aeq.rows())
         {
+#ifdef ACTIVE_SET_CPP_DEBUG
           cerr<<"  *Are you sure rows of [Aeq;Aieq] are linearly independent?*"<<
             endl;
+#endif
         }
         ret = SOLVER_STATUS_ERROR;
         break;
@@ -294,7 +310,9 @@ IGL_INLINE igl::SolverStatus igl::active_set(
 #endif
       if(!min_quad_with_fixed_solve(data,B,Y_i,Beq_i,Z,sol))
       {
+#ifdef ACTIVE_SET_CPP_DEBUG
         cerr<<"Error: min_quad_with_fixed solve failed."<<endl;
+#endif
         ret = SOLVER_STATUS_ERROR;
         break;
       }
@@ -311,8 +329,8 @@ IGL_INLINE igl::SolverStatus igl::active_set(
     SparseMatrix<AT> Ak;
     // Slow
     slice(A,known_i,1,Ak);
-    DerivedB Bk;
-    slice(B,known_i,Bk);
+    //slice(B,known_i,Bk);
+    PlainMatrix<DerivedB,Eigen::Dynamic> Bk = B(known_i,igl::placeholders::all);
     MatrixXd Lambda_known_i = -(0.5*Ak*Z + 0.5*Bk);
     // reverse the lambda values for lx
     Lambda_known_i.block(nk,0,as_lx_count,1) =
@@ -345,7 +363,7 @@ IGL_INLINE igl::SolverStatus igl::active_set(
     {
       if(Lambda_Aieq_i(a) < params.inactive_threshold)
       {
-        as_ieq(as_ieq_list(a)) = FALSE;
+        as_ieq(int(as_ieq_list(a))) = FALSE;
       }
     }
 
@@ -365,6 +383,6 @@ IGL_INLINE igl::SolverStatus igl::active_set(
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template igl::SolverStatus igl::active_set<double, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, double, Eigen::Matrix<double, -1, 1, 0, -1, 1>, double, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::SparseMatrix<double, 0, int> const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::SparseMatrix<double, 0, int> const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::SparseMatrix<double, 0, int> const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, igl::active_set_params const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&);
-template igl::SolverStatus igl::active_set<double, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, double, Eigen::Matrix<double, -1, 1, 0, -1, 1>, double, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::SparseMatrix<double, 0, int> const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::SparseMatrix<double, 0, int> const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::SparseMatrix<double, 0, int> const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, igl::active_set_params const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
+template igl::SolverStatus igl::active_set<double, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, double, Eigen::Matrix<double, -1, 1, 0, -1, 1>, double, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::SparseMatrix<double, 0, int> const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::SparseMatrix<double, 0, int> const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::SparseMatrix<double, 0, int> const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, igl::active_set_params const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&);
+template igl::SolverStatus igl::active_set<double, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, double, Eigen::Matrix<double, -1, 1, 0, -1, 1>, double, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::SparseMatrix<double, 0, int> const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::SparseMatrix<double, 0, int> const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, Eigen::SparseMatrix<double, 0, int> const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, igl::active_set_params const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
 #endif

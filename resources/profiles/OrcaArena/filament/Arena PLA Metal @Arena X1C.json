@@ -3,7 +3,7 @@
 	"name": "Arena PLA Metal @Arena X1C",
 	"inherits": "Arena PLA Metal @base",
 	"from": "system",
-	"setting_id": "GFSA02",
+	"setting_id": "OOesW9LPen32issX",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"21"

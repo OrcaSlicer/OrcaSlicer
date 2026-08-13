@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"setting_id": "mPLqTb7smgIDOZTg",
+	"name": "Bambu PETG @Qidi X-Plus 5 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "Bambu PETG@X-Plus 5-Series",
+	"pressure_advance": [
+		"0.056"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

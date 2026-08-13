@@ -3,7 +3,7 @@
 	"name": "RatRig BigNozzle PCTG",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "uCKZhFAPvEa2wKnA",
 	"filament_id": "GFC99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [

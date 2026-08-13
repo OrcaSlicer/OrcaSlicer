@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSL99",
 	"name": "PolyLite PLA @Qidi Q2C 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "PolyLite PLA@Q2C-Series",
+	"from": "system",
+	"setting_id": "70CH88wjjjp10p1v",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"
 	],

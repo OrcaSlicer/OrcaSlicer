@@ -3,7 +3,7 @@
 	"name": "Flashforge Generic ASA @G3U 0.6 Nozzle",
 	"inherits": "Flashforge Generic ASA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "gVLGkoCoyrWL4DQr",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"compatible_printers": [

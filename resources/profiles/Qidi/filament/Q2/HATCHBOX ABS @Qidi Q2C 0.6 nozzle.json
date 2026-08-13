@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSA04",
 	"name": "HATCHBOX ABS @Qidi Q2C 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "HATCHBOX ABS@Q2C-Series",
+	"from": "system",
+	"setting_id": "khy95fONrq7reiSC",
+	"instantiation": "true",
 	"nozzle_temperature": [
 		"250"
 	],

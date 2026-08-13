@@ -3,7 +3,7 @@
 	"name": "Sovol SV07 Plus 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "RBpom11PPlgYlQl2",
 	"instantiation": "true",
 	"printer_model": "Sovol SV07 Plus",
 	"default_print_profile": "0.20mm Standard @Sovol SV07 Plus",

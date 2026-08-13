@@ -3,7 +3,7 @@
 	"name": "Prusa Generic ABS @MK3.5",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "etTLu2Uk95XriBxT",
 	"filament_id": "GFB99_2",
 	"instantiation": "true",
 	"filament_flow_ratio": [

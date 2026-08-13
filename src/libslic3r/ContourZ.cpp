@@ -37,7 +37,7 @@ static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &
 	}
 	
 	Layer *layer = region->layer();
-	coordf_t mesh_z = layer->print_z + mesh.ground_level();
+	coordf_t mesh_slice_z = layer->slice_z + mesh.ground_level();
 	coordf_t min_z = region->region().config().zaa_min_z;
 
 	const Points3 &points = path.polyline.points;
@@ -50,7 +50,12 @@ static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &
 	Pointf3s contoured_points;
 	bool was_contoured = false;
 
-	for (Points3::const_iterator it = points.begin(); it != points.end()-1; ++it) {
+    if (points.size() < 2) {
+        // Safety check. The loop below does not handle paths with less than two points correctly.
+        return false;
+    }
+
+    for (Points3::const_iterator it = points.begin(); it != points.end()-1; ++it) {
 		Vec2d p1d(unscale_(it->x()), unscale_(it->y()));
 		Vec2d p2d(unscale_((it+1)->x()), unscale_((it+1)->y()));
 		Linef line(p1d, p2d);
@@ -69,14 +74,10 @@ static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &
             coordf_t x = p.x();
 			coordf_t y = p.y();
 
-			sla::IndexedMesh::hit_result hit_up = mesh.query_ray_hit({x, y, mesh_z}, {0.0, 0.0, 1.0});
-			sla::IndexedMesh::hit_result hit_down = mesh.query_ray_hit({x, y, mesh_z}, {0.0, 0.0, -1.0});
+			sla::IndexedMesh::hit_result hit_up = mesh.query_ray_hit({x, y, mesh_slice_z}, {0.0, 0.0, 1.0});
 
-			double up = hit_up.distance();
-			double down = hit_down.distance();
-			double d = up < down ? up : -down;
-			const Vec3d &normal = (up < down ? hit_up : hit_down).normal();
-			
+			double d = hit_up.distance() - (layer->print_z - layer->slice_z);
+
 			double max_up = min_z;
 			double min_down = -(height - min_z);
 			double half_width = path.width / 2.0;
@@ -85,7 +86,8 @@ static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &
 				min_down = -(height + 0.1);
 			}
 
-            if (is_perimeter(path.role())) {
+            if (is_perimeter(path.role()) && hit_up.is_hit()) {
+				const Vec3d &normal = hit_up.normal();
                 double slope_rad     = slope_from_normal(normal);
                 double slope_degrees = slope_rad * 180.0 / M_PI;
 
@@ -123,7 +125,14 @@ static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &
 
             Vec3d new_point = {p.x(), p.y(), d};
 
-            if (contoured_points.size() >= 2) {
+            if (contoured_points.size() >= 2 && i != 0) {
+                // Normally, if the new point is collinear with the last two points, we do not add
+                // it to the list of contoured points. Instead we update the last point to be the
+                // new point. This is to avoid creating a large number of very short segments.
+                //
+                // However, if the new point corresponds to a point in the original path (i == 0),
+                // even if it is collinear, we add it anyway. This is to avoid creating a degenerate
+                // polygon with only two points, which may cause issues in downstream code.
                 double dist = Linef3::distance_to_infinite_squared(new_point, contoured_points[contoured_points.size() - 2],
                                                                    contoured_points[contoured_points.size() - 1]);
                 if (dist < EPSILON * EPSILON) {

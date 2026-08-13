@@ -1,0 +1,81 @@
+{
+	"type": "filament",
+	"name": "Fiberon PA6-CF20 @Anycubic Kobra S1",
+	"inherits": "fdm_filament_pa",
+	"from": "system",
+	"setting_id": "DmRzQzlSf2KdWwKu",
+	"filament_id": "GFL57",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Anycubic Kobra S1 0.4 nozzle"
+	],
+	"filament_vendor": [
+		"Polymaker"
+	],
+	"filament_type": [
+		"PA6-CF"
+	],
+	"eng_plate_temp": [
+		"40"
+	],
+	"hot_plate_temp": [
+		"40"
+	],
+	"textured_plate_temp": [
+		"40"
+	],
+	"eng_plate_temp_initial_layer": [
+		"40"
+	],
+	"hot_plate_temp_initial_layer": [
+		"40"
+	],
+	"textured_plate_temp_initial_layer": [
+		"40"
+	],
+	"overhang_fan_speed": [
+		"100"
+	],
+	"filament_flow_ratio": [
+		"1.03"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"fan_cooling_layer_time": [
+		"30"
+	],
+	"filament_cost": [
+		"79.98"
+	],
+	"filament_density": [
+		"1.17"
+	],
+	"filament_max_volumetric_speed": [
+		"7.5"
+	],
+	"filament_retraction_length": [
+		"1.0"
+	],
+	"filament_z_hop": [
+		"0.0"
+	],
+	"nozzle_temperature_initial_layer": [
+		"300"
+	],
+	"fan_max_speed": [
+		"30"
+	],
+	"slow_down_layer_time": [
+		"6"
+	],
+	"nozzle_temperature": [
+		"300"
+	],
+	"temperature_vitrification": [
+		"74.2"
+	],
+	"nozzle_temperature_range_low": [
+		"280"
+	]
+}

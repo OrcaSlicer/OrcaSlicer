@@ -47,7 +47,7 @@ WebViewPanel::WebViewPanel(wxWindow *parent)
     // Create the button
     bSizer_toolbar = new wxBoxSizer(wxHORIZONTAL);
 
-    m_button_back = new wxButton(this, wxID_ANY, _L("Back"), wxDefaultPosition, wxDefaultSize, 0);
+    m_button_back = new wxButton(this, wxID_ANY, _L_CONTEXT("Back", "Navigation"), wxDefaultPosition, wxDefaultSize, 0);
     m_button_back->Enable(false);
     bSizer_toolbar->Add(m_button_back, 0, wxALL, 5);
 
@@ -418,8 +418,9 @@ void WebViewPanel::OnFreshLoginStatus(wxTimerEvent &event)
 {
     auto mainframe = Slic3r::GUI::wxGetApp().mainframe;
     if (mainframe && mainframe->m_webview == this) {
-        Slic3r::GUI::wxGetApp().get_login_info(ORCA_CLOUD_PROVIDER);
         auto* app_config = Slic3r::GUI::wxGetApp().app_config;
+        if (app_config && app_config->get_stealth_mode()) return;
+        Slic3r::GUI::wxGetApp().get_login_info(ORCA_CLOUD_PROVIDER);
         if (app_config && app_config->has_cloud_provider(BBL_CLOUD_PROVIDER)) {
             Slic3r::GUI::wxGetApp().get_login_info(BBL_CLOUD_PROVIDER);
         }
@@ -520,14 +521,18 @@ void WebViewPanel::SendCloudProvidersInfo()
     if (!app_config)
         return;
 
-    auto providers = app_config->get_cloud_providers();
     json j;
     j["command"] = "cloud_providers_info";
     json data;
     json provider_array = json::array();
-    for (const auto& p : providers) {
-        provider_array.push_back(p);
+
+    if (!app_config->get_hide_login_side_panel()) {
+        auto providers = app_config->get_cloud_providers();
+        for (const auto& p : providers) {
+            provider_array.push_back(p);
+        }
     }
+
     data["providers"] = provider_array;
     j["data"] = data;
 

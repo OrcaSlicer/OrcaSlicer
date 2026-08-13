@@ -1,224 +1,647 @@
-// This file is part of libigl, a simple c++ geometry processing library.
-//
-// Copyright (C) 2014 Alec Jacobson <alecjacobson@gmail.com>
-//
-// This Source Code Form is subject to the terms of the Mozilla Public License
-// v. 2.0. If a copy of the MPL was not distributed with this file, You can
-// obtain one at http://mozilla.org/MPL/2.0/.
 #include "readPLY.h"
-#include "list_to_matrix.h"
-#include "ply.h"
+#include <string>
+#include <set>
+#include <fstream>
 #include <iostream>
+#include <cstdint>
+#include <Eigen/Core>
 
-template <
-  typename Vtype,
-  typename Ftype,
-  typename Ntype,
-  typename UVtype>
-IGL_INLINE bool igl::readPLY(
-  const std::string filename,
-  std::vector<std::vector<Vtype> > & V,
-  std::vector<std::vector<Ftype> > & F,
-  std::vector<std::vector<Ntype> > & N,
-  std::vector<std::vector<UVtype> >  & UV)
+#include "tinyply.h"
+#include "read_file_binary.h"
+#include "FileMemoryStream.h"
+
+
+namespace igl
 {
-  using namespace std;
-  // Largely follows ply2iv.c
-  FILE * ply_file = fopen(filename.c_str(),"r");
-  if(ply_file == NULL)
+
+template <typename T, typename Derived>
+IGL_INLINE bool _tinyply_buffer_to_matrix(
+  tinyply::PlyData & D,
+  Eigen::PlainObjectBase<Derived> & M,
+  size_t rows,
+  size_t cols )
+{
+  Eigen::Map< Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> >
+    _map( reinterpret_cast<T *>( D.buffer.get()), rows, cols );
+
+  M = _map.template cast<typename Derived::Scalar>();
+  return true;
+}
+
+
+
+template <typename Derived>
+IGL_INLINE bool tinyply_buffer_to_matrix(
+  tinyply::PlyData & D,
+  Eigen::PlainObjectBase<Derived> & M,
+  size_t rows,
+  size_t cols )
+{
+  switch(D.t)
   {
-    return false;
+    case tinyply::Type::INT8 :
+      return   _tinyply_buffer_to_matrix<std::int8_t,Derived>(D, M,rows,cols);
+    case tinyply::Type::UINT8 :
+      return   _tinyply_buffer_to_matrix<std::uint8_t,Derived>(D, M,rows,cols);
+    case tinyply::Type::INT16 :
+      return   _tinyply_buffer_to_matrix<std::int16_t,Derived>(D, M,rows,cols);
+    case tinyply::Type::UINT16 :
+      return   _tinyply_buffer_to_matrix<std::uint16_t,Derived>(D, M,rows,cols);
+    case tinyply::Type::INT32 :
+      return   _tinyply_buffer_to_matrix<std::int32_t,Derived>(D, M,rows,cols);
+    case tinyply::Type::UINT32 :
+      return   _tinyply_buffer_to_matrix<std::uint32_t,Derived>(D, M,rows,cols);
+    case tinyply::Type::FLOAT32 :
+      return   _tinyply_buffer_to_matrix<float,Derived>(D, M,rows,cols);
+    case tinyply::Type::FLOAT64 :
+      return   _tinyply_buffer_to_matrix<double,Derived>(D, M,rows,cols);
+    default:
+      return false;
   }
-  return readPLY(ply_file,V,F,N,UV);
+}
+
+
+template <typename T, typename Derived>
+IGL_INLINE bool _tinyply_tristrips_to_trifaces(
+  tinyply::PlyData & D,
+  Eigen::PlainObjectBase<Derived> & M,
+  size_t el,
+  size_t el_len )
+{
+
+  Eigen::Map< Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> >
+     _map( reinterpret_cast<T *>( D.buffer.get()), el, el_len );
+
+  // to make it more interesting, triangles in triangle strip can be separated by negative index elements
+  // 1. count all triangles
+  size_t triangles=0;
+
+  // TODO: it's possible to optimize this , i suppose
+  for(size_t i=0; i<el; i++)
+    for(size_t j=0; j<(el_len-2); j++)
+    {
+      if(_map(i,j)>=0 && _map(i,j+1)>=0 && _map(i,j+2)>=0)
+        triangles++;
+    }
+
+  // 2. convert triangles to faces, skipping over the negative indeces, indicating separate strips
+  M.resize(triangles, 3);
+  size_t k=0;
+  for(size_t i=0; i<el; i++)
+  {
+    int flip=0;
+    for(size_t j=0; j<(el_len-2); j++)
+    {
+      if(_map(i,j)>=0 && _map(i,j+1)>=0 && _map(i,j+2)>=0)
+      {
+        // consequtive faces on the same strip have to be flip-flopped, to preserve orientation
+        M( k,0 ) = static_cast<typename Derived::Scalar>( _map(i, j ) );
+        M( k,1 ) = static_cast<typename Derived::Scalar>( _map(i, j+1+flip ) );
+        M( k,2 ) = static_cast<typename Derived::Scalar>( _map(i, j+1+(flip^1) ) );
+        k++;
+        flip ^= 1;
+      } else {
+        // reset flip on new strip start
+        flip = 0;
+      }
+    }
+  }
+  assert(k==triangles);
+  return true;
+}
+
+template <typename Derived>
+IGL_INLINE bool tinyply_tristrips_to_faces(
+  tinyply::PlyData & D,
+  Eigen::PlainObjectBase<Derived> & M,
+  size_t el,
+  size_t el_len )
+{
+  switch(D.t)
+  {
+    case tinyply::Type::INT8 :
+      return   _tinyply_tristrips_to_trifaces<std::int8_t,Derived>(D, M,el,el_len);
+    case tinyply::Type::UINT8 :
+      return   _tinyply_tristrips_to_trifaces<std::uint8_t,Derived>(D, M,el,el_len);
+    case tinyply::Type::INT16 :
+      return   _tinyply_tristrips_to_trifaces<std::int16_t,Derived>(D, M,el,el_len);
+    case tinyply::Type::UINT16 :
+      return   _tinyply_tristrips_to_trifaces<std::uint16_t,Derived>(D, M,el,el_len);
+    case tinyply::Type::INT32 :
+      return   _tinyply_tristrips_to_trifaces<std::int32_t,Derived>(D, M,el,el_len);
+    case tinyply::Type::UINT32 :
+      return   _tinyply_tristrips_to_trifaces<std::uint32_t,Derived>(D, M,el,el_len);
+    case tinyply::Type::FLOAT32 :
+      return   _tinyply_tristrips_to_trifaces<float,Derived>(D, M,el,el_len);
+    case tinyply::Type::FLOAT64 :
+      return   _tinyply_tristrips_to_trifaces<double,Derived>(D, M,el,el_len);
+    default:
+      return false;
+  }
 }
 
 template <
-  typename Vtype,
-  typename Ftype,
-  typename Ntype,
-  typename UVtype>
-IGL_INLINE bool igl::readPLY(
-  FILE * ply_file,
-  std::vector<std::vector<Vtype> > & V,
-  std::vector<std::vector<Ftype> > & F,
-  std::vector<std::vector<Ntype> > & N,
-  std::vector<std::vector<UVtype> >  & UV)
+  typename DerivedV,
+  typename DerivedF,
+  typename DerivedE,
+  typename DerivedN,
+  typename DerivedUV,
+  typename DerivedVD,
+  typename DerivedFD,
+  typename DerivedED
+  >
+IGL_INLINE bool readPLY(
+  FILE *fp,
+  Eigen::PlainObjectBase<DerivedV> & V,
+  Eigen::PlainObjectBase<DerivedF> & F,
+  Eigen::PlainObjectBase<DerivedE> & E,
+  Eigen::PlainObjectBase<DerivedN> & N,
+  Eigen::PlainObjectBase<DerivedUV> & UV,
+
+  Eigen::PlainObjectBase<DerivedVD> & VD,
+  std::vector<std::string> & Vheader,
+  Eigen::PlainObjectBase<DerivedFD> & FD,
+  std::vector<std::string> & Fheader,
+  Eigen::PlainObjectBase<DerivedED> & ED,
+  std::vector<std::string> & Eheader,
+  std::vector<std::string> & comments
+  )
 {
-  using namespace std;
-   typedef struct Vertex {
-     double x,y,z;          /* position */
-     double nx,ny,nz;         /* surface normal */
-     double s,t;              /* texture coordinates */
-     void *other_props;       /* other properties */
-   } Vertex;
-
-   typedef struct Face {
-     unsigned char nverts;    /* number of vertex indices in list */
-     int *verts;              /* vertex index list */
-     void *other_props;       /* other properties */
-   } Face;
-
-  igl::ply::PlyProperty vert_props[] = { /* list of property information for a vertex */
-    {"x", PLY_DOUBLE, PLY_DOUBLE, offsetof(Vertex,x), 0, 0, 0, 0},
-    {"y", PLY_DOUBLE, PLY_DOUBLE, offsetof(Vertex,y), 0, 0, 0, 0},
-    {"z", PLY_DOUBLE, PLY_DOUBLE, offsetof(Vertex,z), 0, 0, 0, 0},
-    {"nx", PLY_DOUBLE, PLY_DOUBLE, offsetof(Vertex,nx), 0, 0, 0, 0},
-    {"ny", PLY_DOUBLE, PLY_DOUBLE, offsetof(Vertex,ny), 0, 0, 0, 0},
-    {"nz", PLY_DOUBLE, PLY_DOUBLE, offsetof(Vertex,nz), 0, 0, 0, 0},
-    {"s", PLY_DOUBLE, PLY_DOUBLE, offsetof(Vertex,s), 0, 0, 0, 0},
-    {"t", PLY_DOUBLE, PLY_DOUBLE, offsetof(Vertex,t), 0, 0, 0, 0},
-  };
-
-  igl::ply::PlyProperty face_props[] = { /* list of property information for a face */
-    {"vertex_indices", PLY_INT, PLY_INT, offsetof(Face,verts),
-      1, PLY_UCHAR, PLY_UCHAR, offsetof(Face,nverts)},
-  };
-
-  int nelems;
-  char ** elem_names;
-  igl::ply::PlyFile * in_ply = igl::ply::ply_read(ply_file,&nelems,&elem_names);
-  if(in_ply==NULL)
+  // buffer the whole file in memory
+  // then read from memory buffer
+  try
   {
-    return false;
+    std::vector<std::uint8_t> fileBufferBytes;
+    // read_file_binary will call fclose
+    read_file_binary(fp,fileBufferBytes);
+    FileMemoryStream stream((char*)fileBufferBytes.data(), fileBufferBytes.size());
+    return readPLY(stream,V,F,E,N,UV,VD,Vheader,FD,Fheader,ED,Eheader,comments);
+  }
+  catch(const std::exception& e)
+  {
+    std::cerr << "ReadPLY error: " << e.what() << std::endl;
+  }
+  fclose(fp);
+  return false;
+}
+
+
+
+template <
+  typename DerivedV,
+  typename DerivedF
+  >
+IGL_INLINE bool readPLY(
+  FILE *fp,
+  Eigen::PlainObjectBase<DerivedV> & V,
+  Eigen::PlainObjectBase<DerivedF> & F
+  )
+{
+  Eigen::MatrixXd N,UV,VD,FD,ED;
+  Eigen::MatrixXi E;
+  std::vector<std::string> Vheader,Eheader,Fheader,comments;
+  return readPLY(fp,V,F,E,N,UV,VD,Vheader,FD,Fheader,ED,Eheader,comments);
+}
+
+template <
+  typename DerivedV,
+  typename DerivedF,
+  typename DerivedE
+  >
+IGL_INLINE bool readPLY(
+  FILE *fp,
+  Eigen::PlainObjectBase<DerivedV> & V,
+  Eigen::PlainObjectBase<DerivedF> & F,
+  Eigen::PlainObjectBase<DerivedE> & E
+  )
+{
+  Eigen::MatrixXd N,UV,VD,FD,ED;
+  std::vector<std::string> Vheader,Eheader,Fheader,comments;
+  return readPLY(fp,V,F,E,N,UV,VD,Vheader,FD,Fheader,ED,Eheader,comments);
+}
+
+
+template <
+  typename DerivedV,
+  typename DerivedF,
+  typename DerivedE,
+  typename DerivedN,
+  typename DerivedUV,
+  typename DerivedVD,
+  typename DerivedFD,
+  typename DerivedED
+  >
+IGL_INLINE bool readPLY(
+  std::istream & ply_stream,
+  Eigen::PlainObjectBase<DerivedV> & V,
+  Eigen::PlainObjectBase<DerivedF> & F,
+  Eigen::PlainObjectBase<DerivedE> & E,
+  Eigen::PlainObjectBase<DerivedN> & N,
+  Eigen::PlainObjectBase<DerivedUV> & UV,
+
+  Eigen::PlainObjectBase<DerivedVD> & VD,
+  std::vector<std::string> & Vheader,
+  Eigen::PlainObjectBase<DerivedFD> & FD,
+  std::vector<std::string> & Fheader,
+  Eigen::PlainObjectBase<DerivedED> & ED,
+  std::vector<std::string> & Eheader,
+  std::vector<std::string> & comments
+  )
+{
+  tinyply::PlyFile file;
+  file.parse_header(ply_stream);
+
+  std::set<std::string> vertex_std{ "x","y","z", "nx","ny","nz",  "u","v",  "texture_u", "texture_v", "s", "t"};
+  std::set<std::string> face_std  { "vertex_index", "vertex_indices"};
+  std::set<std::string> edge_std  { "vertex1", "vertex2"}; //non-standard edge indexes
+
+  // Tinyply treats parsed data as untyped byte buffers.
+  std::shared_ptr<tinyply::PlyData> vertices, normals, faces, texcoords, edges;
+
+  // Some ply files contain tristrips instead of faces
+  std::shared_ptr<tinyply::PlyData> tristrips;
+
+  std::shared_ptr<tinyply::PlyData> _vertex_data;
+  std::vector<std::string> _vertex_header;
+
+  std::shared_ptr<tinyply::PlyData> _face_data;
+  std::vector<std::string> _face_header;
+
+  std::shared_ptr<tinyply::PlyData> _edge_data;
+  std::vector<std::string> _edge_header;
+
+  for (auto c : file.get_comments())
+      comments.push_back(c);
+
+  for (auto e : file.get_elements())
+  {
+      if(e.name == "vertex" ) // found a vertex
+      {
+        for (auto p : e.properties)
+        {
+          if(vertex_std.find(p.name) == vertex_std.end())
+          {
+              _vertex_header.push_back(p.name);
+          }
+        }
+      }
+      else if(e.name == "face" ) // found face
+      {
+        for (auto p : e.properties)
+        {
+          if(face_std.find(p.name) == face_std.end())
+          {
+              _face_header.push_back(p.name);
+          }
+        }
+      }
+      else if(e.name == "edge" ) // found edge
+      {
+        for (auto p : e.properties)
+        {
+          if(edge_std.find(p.name) == edge_std.end())
+          {
+              _edge_header.push_back(p.name);
+          }
+        }
+      }
+      // skip the unknown entries
   }
 
-  bool has_normals = false;
-  bool has_texture_coords = false;
-  igl::ply::PlyProperty **plist;
-  int nprops;
-  int elem_count;
-  plist = ply_get_element_description (in_ply,"vertex", &elem_count, &nprops);
-  int native_binary_type = igl::ply::get_native_binary_type2();
-  if (plist != NULL)
+  // The header information can be used to programmatically extract properties on elements
+  // known to exist in the header prior to reading the data. For brevity of this sample, properties
+  // like vertex position are hard-coded:
+  try {
+    vertices = file.request_properties_from_element("vertex", { "x", "y", "z" });
+  }
+  catch (const std::exception & ) { }
+
+  try {
+    normals = file.request_properties_from_element("vertex", { "nx", "ny", "nz" });
+  }
+  catch (const std::exception & ) { }
+
+  //Try texture coordinates with several names
+  try {
+    //texture_u texture_v are the names used by meshlab to store textures
+    texcoords = file.request_properties_from_element("vertex", { "texture_u", "texture_v" });
+  }
+  catch (const std::exception & ) { }
+  if (!texcoords)
   {
-    /* set up for getting vertex elements */
-    ply_get_property (in_ply,"vertex",&vert_props[0]);
-    ply_get_property (in_ply,"vertex",&vert_props[1]);
-    ply_get_property (in_ply,"vertex",&vert_props[2]);
-    for (int j = 0; j < nprops; j++)
-    {
-      igl::ply::PlyProperty * prop = plist[j];
-      if (igl::ply::equal_strings ("nx", prop->name) 
-        || igl::ply::equal_strings ("ny", prop->name)
-        || igl::ply::equal_strings ("nz", prop->name))
-      {
-        ply_get_property (in_ply,"vertex",&vert_props[3]);
-        ply_get_property (in_ply,"vertex",&vert_props[4]);
-        ply_get_property (in_ply,"vertex",&vert_props[5]);
-        has_normals = true;
+      try {
+        //u v are the naive names
+        texcoords = file.request_properties_from_element("vertex", { "u", "v" });
       }
-      if (igl::ply::equal_strings ("s", prop->name) ||
-        igl::ply::equal_strings ("t", prop->name))
-      {
-        ply_get_property(in_ply,"vertex",&vert_props[6]);
-        ply_get_property(in_ply,"vertex",&vert_props[7]);
-        has_texture_coords = true;
+      catch (const std::exception & ) { }
+
+  }
+  if (!texcoords)
+  {
+      try {
+        //s t were the names used by blender and the previous libigl PLY reader.
+        texcoords = file.request_properties_from_element("vertex", { "s", "t" });
       }
-    }
-    // Is this call necessary?
-    ply_get_other_properties(in_ply,"vertex",
-				     offsetof(Vertex,other_props));
-    V.resize(elem_count,std::vector<Vtype>(3));
-    if(has_normals)
-    {
-      N.resize(elem_count,std::vector<Ntype>(3));
-    }else
-    {
-      N.resize(0);
-    }
-    if(has_texture_coords)
-    {
-      UV.resize(elem_count,std::vector<UVtype>(2));
-    }else
-    {
-      UV.resize(0);
-    }
-   	
-	for(int j = 0;j<elem_count;j++)
-    {
-      Vertex v;
-      ply_get_element_setup(in_ply,"vertex",3,vert_props);
-      ply_get_element(in_ply,(void*)&v, &native_binary_type);
-      V[j][0] = v.x;
-      V[j][1] = v.y;
-      V[j][2] = v.z;
-      if(has_normals)
-      {
-        N[j][0] = v.nx;
-        N[j][1] = v.ny;
-        N[j][2] = v.nz;
+      catch (const std::exception & ) { }
+
+  }
+
+  // Providing a list size hint (the last argument) is a 2x performance improvement. If you have
+  // arbitrary ply files, it is best to leave this 0.
+  try {
+    faces = file.request_properties_from_element( "face", { "vertex_indices" }, 0);
+  }
+  catch (const std::exception & ) { }
+
+  if (!faces)
+  {
+      try {
+        // alternative name of the elements
+        faces = file.request_properties_from_element( "face", { "vertex_index" },0);
       }
-      if(has_texture_coords)
-      {
-        UV[j][0] = v.s;
-        UV[j][1] = v.t;
+      catch (const std::exception & ) { }
+  }
+
+  if (!faces)
+  {
+      try {
+        // try using tristrips
+        tristrips = file.request_properties_from_element( "tristrips", { "vertex_indices" }, 0);
       }
+      catch (const std::exception & ) { }
+
+      if (!tristrips)
+      {
+          try {
+            // alternative name of the elements
+            tristrips = file.request_properties_from_element( "tristrips", { "vertex_index" }, 0);
+          }
+          catch (const std::exception & ) { }
+      }
+  }
+
+
+  try {
+    edges = file.request_properties_from_element("edge", { "vertex1", "vertex2" });
+  }
+  catch (const std::exception & ) { }
+
+  if(! _vertex_header.empty())
+    _vertex_data = file.request_properties_from_element( "vertex", _vertex_header);
+  if(! _face_header.empty())
+    _face_data = file.request_properties_from_element( "face", _face_header);
+  if(! _edge_header.empty())
+    _edge_data = file.request_properties_from_element( "edge", _edge_header);
+
+  // Parse the geometry data
+  file.read(ply_stream);
+
+  if (!vertices || !tinyply_buffer_to_matrix(*vertices,V,vertices->count,3) ) {
+    // Don't do this because V might have non-trivial compile-time size V.resize(0,0);
+  }
+
+  if (!normals || !tinyply_buffer_to_matrix(*normals,N,normals->count,3) ) {
+    // Don't do this (see above) N.resize(0,0);
+  }
+
+  if (!texcoords || !tinyply_buffer_to_matrix(*texcoords,UV,texcoords->count,2) ) {
+    // Don't do this (see above) UV.resize(0,0);
+  }
+
+  //HACK: Unfortunately, tinyply doesn't store list size as a separate variable
+  if (!faces || !tinyply_buffer_to_matrix(*faces, F, faces->count, faces->count==0?0:faces->buffer.size_bytes()/(tinyply::PropertyTable[faces->t].stride*faces->count) )) {
+
+    if(tristrips) { // need to convert to faces
+      // code based on blender importer for ply
+      // converting triangle strips into triangles
+      // tinyply supports tristrips of the same length only
+      size_t el_count = tristrips->buffer.size_bytes()/(tinyply::PropertyTable[tristrips->t].stride*tristrips->count);
+
+      // all strips should have tristrips->count elements
+      if(!tinyply_tristrips_to_faces(*tristrips, F , tristrips->count, el_count))
+      {
+        // Don't do this (see above) F.resize(0,0);
+      }
+
+    } else {
+      // Don't do this (see above) F.resize(0,0);
     }
   }
-  plist = ply_get_element_description (in_ply,"face", &elem_count, &nprops);
-  if (plist != NULL)
-  {
-    F.resize(elem_count);
-    ply_get_property(in_ply,"face",&face_props[0]);
-    for (int j = 0; j < elem_count; j++) 
-    {
-      Face f;
-      ply_get_element(in_ply, (void *) &f, &native_binary_type);
-      for(size_t c = 0;c<f.nverts;c++)
-      {
-        F[j].push_back(f.verts[c]);
-      }
-    }
+
+  if(!edges || !tinyply_buffer_to_matrix(*edges,E, edges->count,2)) {
+    // Don't do this (see above) E.resize(0,0);
   }
-  ply_close(in_ply);
+
+  /// convert vertex data:
+  Vheader=_vertex_header;
+  if(_vertex_header.empty())
+  {
+    // Don't do this (see above) VD.resize(0,0);
+  }
+  else
+  {
+    VD.resize(vertices->count,_vertex_header.size());
+    tinyply_buffer_to_matrix(*_vertex_data, VD, vertices->count, _vertex_header.size());
+  }
+
+  /// convert face data:
+  Fheader=_face_header;
+  if(_face_header.empty())
+  {
+    // Don't do this (see above) FD.resize(0,0);
+  }
+  else
+  {
+    FD.resize(faces->count, _face_header.size());
+    tinyply_buffer_to_matrix(*_face_data, FD, faces->count, _face_header.size());
+  }
+
+  /// convert edge data:
+  Eheader=_edge_header;
+  if(_edge_header.empty())
+  {
+    // Don't do this (see above) ED.resize(0,0);
+  }
+  else
+  {
+    ED.resize(_edge_data->count, _edge_header.size());
+    tinyply_buffer_to_matrix(*_edge_data, ED, _edge_data->count, _edge_header.size());
+  }
   return true;
+}
+
+
+template <
+  typename DerivedV,
+  typename DerivedF,
+  typename DerivedE,
+  typename DerivedN,
+  typename DerivedUV,
+  typename DerivedVD,
+  typename DerivedFD,
+  typename DerivedED
+  >
+IGL_INLINE bool readPLY(
+  const std::string& ply_file,
+  Eigen::PlainObjectBase<DerivedV> & V,
+  Eigen::PlainObjectBase<DerivedF> & F,
+  Eigen::PlainObjectBase<DerivedE> & E,
+  Eigen::PlainObjectBase<DerivedN> & N,
+  Eigen::PlainObjectBase<DerivedUV> & UV,
+
+  Eigen::PlainObjectBase<DerivedVD> & VD,
+  std::vector<std::string> & VDheader,
+
+  Eigen::PlainObjectBase<DerivedFD> & FD,
+  std::vector<std::string> & FDheader,
+
+  Eigen::PlainObjectBase<DerivedED> & ED,
+  std::vector<std::string> & EDheader,
+  std::vector<std::string> & comments
+  )
+{
+
+  std::ifstream ply_stream(ply_file, std::ios::binary);
+  if (ply_stream.fail())
+  {
+      std::cerr << "ReadPLY: Error opening file " << ply_file << std::endl;
+      return false;
+  }
+  try
+  {
+    return readPLY(ply_stream, V, F, E, N, UV, VD, VDheader, FD,FDheader, ED, EDheader, comments );
+  } catch (const std::exception& e) {
+    std::cerr << "ReadPLY error: " << ply_file << e.what() << std::endl;
+  }
+  return false;
+}
+
+
+template <
+  typename DerivedV,
+  typename DerivedF,
+  typename DerivedE,
+  typename DerivedN,
+  typename DerivedUV,
+  typename DerivedD
+  >
+IGL_INLINE bool readPLY(
+  const std::string & filename,
+  Eigen::PlainObjectBase<DerivedV> & V,
+  Eigen::PlainObjectBase<DerivedF> & F,
+  Eigen::PlainObjectBase<DerivedE> & E,
+  Eigen::PlainObjectBase<DerivedN> & N,
+  Eigen::PlainObjectBase<DerivedUV> & UV,
+  Eigen::PlainObjectBase<DerivedD> & VD,
+  std::vector<std::string> & Vheader
+  )
+{
+  Eigen::MatrixXd FD,ED;
+  std::vector<std::string> Fheader,Eheader;
+  std::vector<std::string> comments;
+  return readPLY(filename,V,F,E,N,UV,VD,Vheader,FD,Fheader,ED,Eheader,comments);
+}
+
+template <
+  typename DerivedV,
+  typename DerivedF,
+  typename DerivedE,
+  typename DerivedN,
+  typename DerivedUV
+  >
+IGL_INLINE bool readPLY(
+  const std::string & filename,
+  Eigen::PlainObjectBase<DerivedV> & V,
+  Eigen::PlainObjectBase<DerivedF> & F,
+  Eigen::PlainObjectBase<DerivedE> & E,
+  Eigen::PlainObjectBase<DerivedN> & N,
+  Eigen::PlainObjectBase<DerivedUV> & UV
+  )
+{
+  Eigen::MatrixXd VD,FD,ED;
+  std::vector<std::string> Vheader,Fheader,Eheader;
+  std::vector<std::string> comments;
+  return readPLY(filename,V,F,E, N,UV,VD,Vheader,FD,Fheader,ED,Eheader,comments);
 }
 
 template <
   typename DerivedV,
   typename DerivedF,
   typename DerivedN,
-  typename DerivedUV>
-IGL_INLINE bool igl::readPLY(
-  const std::string filename,
+  typename DerivedUV
+  >
+IGL_INLINE bool readPLY(
+  const std::string & filename,
   Eigen::PlainObjectBase<DerivedV> & V,
   Eigen::PlainObjectBase<DerivedF> & F,
   Eigen::PlainObjectBase<DerivedN> & N,
-  Eigen::PlainObjectBase<DerivedUV> & UV)
+  Eigen::PlainObjectBase<DerivedUV> & UV
+  )
 {
-  std::vector<std::vector<typename DerivedV::Scalar> > vV;
-  std::vector<std::vector<typename DerivedF::Scalar> > vF;
-  std::vector<std::vector<typename DerivedN::Scalar> > vN;
-  std::vector<std::vector<typename DerivedUV::Scalar> > vUV;
-  if(!readPLY(filename,vV,vF,vN,vUV))
-  {
-    return false;
-  }
-  return 
-    list_to_matrix(vV,V) &&
-    list_to_matrix(vF,F) &&
-    list_to_matrix(vN,N) &&
-    list_to_matrix(vUV,UV);
+  Eigen::MatrixXd VD,FD,ED;
+  Eigen::MatrixXi E;
+  std::vector<std::string> Vheader,Fheader,Eheader;
+  std::vector<std::string> comments;
+  return readPLY(filename,V,F,E, N,UV,VD,Vheader,FD,Fheader,ED,Eheader,comments);
 }
 
 template <
   typename DerivedV,
-  typename DerivedF>
-IGL_INLINE bool igl::readPLY(
-  const std::string filename,
+  typename DerivedF
+  >
+IGL_INLINE bool readPLY(
+  const std::string & filename,
   Eigen::PlainObjectBase<DerivedV> & V,
-  Eigen::PlainObjectBase<DerivedF> & F)
+  Eigen::PlainObjectBase<DerivedF> & F
+  )
 {
   Eigen::MatrixXd N,UV;
-  return readPLY(filename,V,F,N,UV);
+  Eigen::MatrixXd VD,FD,ED;
+  Eigen::MatrixXi E;
+
+  std::vector<std::string> Vheader,Fheader,Eheader;
+  std::vector<std::string> comments;
+  return readPLY(filename,V,F,E,N,UV,VD,Vheader,FD,Fheader,ED,Eheader,comments);
 }
+
+template <
+  typename DerivedV,
+  typename DerivedF,
+  typename DerivedE
+  >
+IGL_INLINE bool readPLY(
+  const std::string & filename,
+  Eigen::PlainObjectBase<DerivedV> & V,
+  Eigen::PlainObjectBase<DerivedF> & F,
+  Eigen::PlainObjectBase<DerivedE> & E
+  )
+{
+  Eigen::MatrixXd N,UV;
+  Eigen::MatrixXd VD,FD,ED;
+
+  std::vector<std::string> Vheader,Fheader,Eheader;
+  std::vector<std::string> comments;
+  return readPLY(filename,V,F,E,N,UV,VD,Vheader,FD,Fheader,ED,Eheader,comments);
+}
+
+
+} //igl namespace
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template bool igl::readPLY<double, int, double, double>(std::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::vector<std::vector<double, std::allocator<double> >, std::allocator<std::vector<double, std::allocator<double> > > >&, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >&, std::vector<std::vector<double, std::allocator<double> >, std::allocator<std::vector<double, std::allocator<double> > > >&, std::vector<std::vector<double, std::allocator<double> >, std::allocator<std::vector<double, std::allocator<double> > > >&);
+// generated by autoexplicit.sh
+template bool igl::readPLY<Eigen::Matrix<double, -1, 3, 1, -1, 3>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(FILE*, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&);
+template bool igl::readPLY<Eigen::Matrix<float, -1, 3, 1, -1, 3>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(FILE*, Eigen::PlainObjectBase<Eigen::Matrix<float, -1, 3, 1, -1, 3> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&);
+template bool igl::readPLY<Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 3, 0, -1, 3> >(FILE*, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> >&);
+template bool igl::readPLY<Eigen::Matrix<double, -1, 3, 1, -1, 3>, Eigen::Matrix<int, -1, 3, 1, -1, 3> >(FILE*, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> >&);
+template bool igl::readPLY<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(FILE*, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&);
+template bool igl::readPLY<Eigen::Matrix<double, -1, -1, 1, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(FILE*, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 1, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&);
+template bool igl::readPLY<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(std::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&);
+template bool igl::readPLY<Eigen::Matrix<float, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 3, 0, -1, 3> >(FILE*, Eigen::PlainObjectBase<Eigen::Matrix<float, -1, 3, 0, -1, 3> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> >&);
+template bool igl::readPLY<Eigen::Matrix<float, -1, 3, 1, -1, 3>, Eigen::Matrix<unsigned int, -1, 3, 1, -1, 3> >(FILE*, Eigen::PlainObjectBase<Eigen::Matrix<float, -1, 3, 1, -1, 3> >&, Eigen::PlainObjectBase<Eigen::Matrix<unsigned int, -1, 3, 1, -1, 3> >&);
+template bool igl::readPLY<Eigen::Matrix<float, -1, 3, 1, -1, 3>, Eigen::Matrix<int, -1, 3, 1, -1, 3> >(FILE*, Eigen::PlainObjectBase<Eigen::Matrix<float, -1, 3, 1, -1, 3> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> >&);
+template bool igl::readPLY<Eigen::Matrix<float, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(FILE*, Eigen::PlainObjectBase<Eigen::Matrix<float, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&);
 
-template bool igl::readPLY<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>, Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic>, Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>, Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> >(std::basic_string<char, std::char_traits<char>, std::allocator<char> > const, Eigen::PlainObjectBase<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> > &, Eigen::PlainObjectBase<Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> > &, Eigen::PlainObjectBase<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> > &, Eigen::PlainObjectBase<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> > &);
-
-template bool igl::readPLY<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>, Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> >(std::basic_string<char, std::char_traits<char>, std::allocator<char> > const, Eigen::PlainObjectBase<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> > &, Eigen::PlainObjectBase<Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> > &);
-template bool igl::readPLY<Eigen::Matrix<float, -1, 3, 1, -1, 3>, Eigen::Matrix<int, -1, 3, 1, -1, 3> >(std::string, Eigen::PlainObjectBase<Eigen::Matrix<float, -1, 3, 1, -1, 3> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> >&);
+template bool igl::readPLY<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(std::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, std::vector<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, std::vector<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, std::vector<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >&, std::vector<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >&);
+template bool igl::readPLY<Eigen::Matrix<float, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<float, -1, -1, 0, -1, -1>, Eigen::Matrix<float, -1, -1, 0, -1, -1>, Eigen::Matrix<float, -1, -1, 0, -1, -1>, Eigen::Matrix<float, -1, -1, 0, -1, -1>, Eigen::Matrix<float, -1, -1, 0, -1, -1> >(std::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, Eigen::PlainObjectBase<Eigen::Matrix<float, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<float, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<float, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<float, -1, -1, 0, -1, -1> >&, std::vector<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >&, Eigen::PlainObjectBase<Eigen::Matrix<float, -1, -1, 0, -1, -1> >&, std::vector<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >&, Eigen::PlainObjectBase<Eigen::Matrix<float, -1, -1, 0, -1, -1> >&, std::vector<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >&, std::vector<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >&);
 #endif

@@ -3,7 +3,7 @@
 	"name": "Creality Ender-5 Pro (2019) 0.25 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "eGUm178CPAaKbo2l",
 	"instantiation": "true",
 	"printer_model": "Creality Ender-5 Pro (2019)",
 	"default_filament_profile": [

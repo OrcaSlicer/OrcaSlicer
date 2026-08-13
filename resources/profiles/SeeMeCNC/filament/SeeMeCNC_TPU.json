@@ -1,0 +1,186 @@
+{
+	"type": "filament",
+	"name": "SeeMeCNC TPU",
+	"inherits": "SeeMeCNC filament base",
+	"from": "System",
+	"setting_id": "vsEH0aZOKiLat0hH",
+	"filament_id": "SMCFU001",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"SeeMeCNC TPU"
+	],
+	"compatible_printers": [
+		"SeeMeCNC Artemis 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 500 0505 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 500 0510 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 500 0521 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 300 0.7 nozzle",
+		"SeeMeCNC RostockMAX v3.2 0.7 nozzle",
+		"SeeMeCNC RostockMAX v4 0.7 nozzle"
+	],
+	"compatible_printers_condition": "",
+	"compatible_prints": [
+		"0.30mm TPU Solid @SeeMeCNC Artemis 0.7",
+		"0.30mm TPU Solid @SeeMeCNC BOSSdelta 300 0.7",
+		"0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0505 0.7",
+		"0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0510 0.7",
+		"0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0521 0.7",
+		"0.30mm TPU Solid @SeeMeCNC RostockMAX v3.2 0.7",
+		"0.30mm TPU Solid @SeeMeCNC RostockMAX v4 0.7",
+		"0.35mm TPU Vase @SeeMeCNC Artemis 0.7",
+		"0.35mm TPU Vase @SeeMeCNC BOSSdelta 300 0.7",
+		"0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0505 0.7",
+		"0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0510 0.7",
+		"0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0521 0.7",
+		"0.35mm TPU Vase @SeeMeCNC RostockMAX v3.2 0.7",
+		"0.35mm TPU Vase @SeeMeCNC RostockMAX v4 0.7"
+	],
+	"compatible_prints_condition": "",
+	"close_fan_the_first_x_layers": [
+		"999"
+	],
+	"cool_plate_temp": [
+		"60"
+	],
+	"cool_plate_temp_initial_layer": [
+		"60"
+	],
+	"enable_overhang_bridge_fan": [
+		"0"
+	],
+	"eng_plate_temp": [
+		"60"
+	],
+	"eng_plate_temp_initial_layer": [
+		"60"
+	],
+	"fan_cooling_layer_time": [
+		"35"
+	],
+	"fan_max_speed": [
+		"60"
+	],
+	"fan_min_speed": [
+		"35"
+	],
+	"filament_cost": [
+		"35"
+	],
+	"filament_density": [
+		"1.22"
+	],
+	"filament_max_volumetric_speed": [
+		"4"
+	],
+	"filament_notes": [
+		"Pressure Advance starting values by machine and nozzle size:\nArtemis / BOSSdelta 300:\n  0.7mm nozzle: 0.4571\n\nRostockMAX v3.2 / v4:\n  0.7mm nozzle: 0.5473\n\nBOSSdelta 0505:\n  0.7mm nozzle: 0.6117\n  -  Expect significant tuning required\n\nBOSSdelta 0510:\n  Not recommended for TPU.\n\nBOSSdelta 0521:\n  Not recommended for TPU.\n\nRun OrcaSlicer PA calibration to fine-tune for your setup.\n\nNote: TPU profiles are designed for 0.7mm nozzles only."
+	],
+	"filament_type": [
+		"TPU"
+	],
+	"full_fan_speed_layer": [
+		"999"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"internal_bridge_fan_speed": [
+		"-1"
+	],
+	"nozzle_temperature": [
+		"200"
+	],
+	"nozzle_temperature_initial_layer": [
+		"200"
+	],
+	"nozzle_temperature_range_high": [
+		"230"
+	],
+	"nozzle_temperature_range_low": [
+		"190"
+	],
+	"overhang_fan_threshold": [
+		"50%"
+	],
+	"pressure_advance": [
+		"0.8"
+	],
+	"reduce_fan_stop_start_freq": [
+		"0"
+	],
+	"slow_down_for_layer_cooling": [
+		"0"
+	],
+	"slow_down_layer_time": [
+		"25"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"supertack_plate_temp": [
+		"35"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"35"
+	],
+	"temperature_vitrification": [
+		"60"
+	],
+	"textured_cool_plate_temp": [
+		"60"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"60"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"60"
+	],
+	"filament_retraction_length": [
+		"6"
+	],
+	"filament_retraction_speed": [
+		"30"
+	],
+	"filament_deretraction_speed": [
+		"25"
+	],
+	"filament_retraction_minimum_travel": [
+		"15"
+	],
+	"filament_retract_restart_extra": [
+		"0.5"
+	],
+	"filament_retract_before_wipe": [
+		"0%"
+	],
+	"filament_retract_when_changing_layer": [
+		"0"
+	],
+	"filament_z_hop": [
+		"0.3"
+	],
+	"filament_z_hop_types": [
+		"Normal Lift"
+	],
+	"filament_retract_lift_above": [
+		"0"
+	],
+	"filament_retract_lift_below": [
+		"0"
+	],
+	"filament_retract_lift_enforce": [
+		"All Surfaces"
+	],
+	"overhang_fan_speed": [
+		"30"
+	],
+	"keep_fan_always_on": [
+		"0"
+	]
+}

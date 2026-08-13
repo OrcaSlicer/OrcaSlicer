@@ -3,7 +3,7 @@
 	"name": "0.14mm Detail @LH Stinger",
 	"inherits": "fdm_process_lh_common",
 	"from": "system",
-	"setting_id": "LHS_P_detail",
+	"setting_id": "UDQOskW5wNQrbT7G",
 	"instantiation": "true",
 	"compatible_printers": [
 		"LH Stinger 0.4 nozzle",

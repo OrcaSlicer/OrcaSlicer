@@ -3,7 +3,7 @@
 	"name": "Orca Arena X1 Carbon 0.8 nozzle",
 	"inherits": "Orca Arena X1 Carbon 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM004",
+	"setting_id": "cU6agIrtxdHgoA0X",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.8"

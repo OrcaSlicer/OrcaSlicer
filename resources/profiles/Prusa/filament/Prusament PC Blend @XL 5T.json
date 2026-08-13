@@ -3,7 +3,7 @@
 	"name": "Prusament PC Blend @XL 5T",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "FOgpd4BtawBtmjPB",
 	"instantiation": "true",
 	"nozzle_temperature_intial_layer": "275",
 	"nozzle_temperature": "275",

@@ -12,22 +12,36 @@
 #include <Eigen/Geometry>
 namespace igl
 {
-  // Construct the cell center positions of a regular voxel grid (lattice) made
-  // of perfectly square voxels.
-  // 
-  // Inputs:
-  //   box  bounding box to enclose by grid
-  //   s  number of cell centers on largest side (including 2*pad_count)
-  //   pad_count  number of cells beyond box
-  // Outputs:
-  //   GV  side(0)*side(1)*side(2) by 3 list of cell center positions
-  //   side  3-long list of dimension of voxel grid
+  /// Construct the cell center positions of a regular voxel grid (lattice) made
+  /// of perfectly square voxels.
+  /// 
+  /// @param[in] box  bounding box to enclose by grid
+  /// @param[in] s  number of cell centers on largest side (including 2*pad_count)
+  /// @param[in] pad_count  number of cells beyond box
+  /// @param[out] GV  side(0)*side(1)*side(2) by 3 list of cell center positions
+  /// @param[out] side  1 by 3 list of dimension of voxel grid
   template <
     typename Scalar,
     typename DerivedGV,
     typename Derivedside>
   IGL_INLINE void voxel_grid(
     const Eigen::AlignedBox<Scalar,3> & box, 
+    const int s,
+    const int pad_count,
+    Eigen::PlainObjectBase<DerivedGV> & GV,
+    Eigen::PlainObjectBase<Derivedside> & side);
+  /// \overload
+  /// Constructs the voxel grid to fit around a given set of points.
+  ///
+  /// @param[in] V  points that must lie within the grid
+  /// @param[in] offset  distance to pad each side of V's bounding box when determining the extents of the voxel grid.
+  template <
+    typename DerivedV,
+    typename DerivedGV,
+    typename Derivedside>
+  IGL_INLINE void voxel_grid(
+    const Eigen::MatrixBase<DerivedV> & V, 
+    const typename DerivedV::Scalar offset,
     const int s,
     const int pad_count,
     Eigen::PlainObjectBase<DerivedGV> & GV,

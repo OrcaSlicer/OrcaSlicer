@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PPA-CF@300HS",
 	"inherits": "fdm_filament_ppa",
 	"from": "system",
+	"setting_id": "wLH8aGr4ZNiHazwA",
 	"filament_id": "GFN97_01",
 	"instantiation": "true",
 	"filament_type": [

@@ -3,10 +3,13 @@
 	"name": "Elegoo PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFE04",
+	"filament_id": "OEPLAB00",
 	"instantiation": "false",
-	"filament_cost": [
-		"0"
+	"fan_cooling_layer_time": [
+		"80"
+	],
+	"fan_min_speed": [
+		"50"
 	],
 	"filament_density": [
 		"1.25"
@@ -17,7 +20,31 @@
 	"filament_vendor": [
 		"Elegoo"
 	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"60"
+	],
 	"filament_start_gcode": [
 		"; filament start gcode\n"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
 	]
 }

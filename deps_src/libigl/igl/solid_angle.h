@@ -4,14 +4,13 @@
 #include <Eigen/Dense>
 namespace igl
 {
-  // Compute the signed solid angle subtended by the oriented 3d triangle (A,B,C) at some point P
-  // 
-  // Inputs:
-  //   A  3D position of corner 
-  //   B  3D position of corner 
-  //   C  3D position of corner 
-  //   P  3D position of query point
-  // Returns signed solid angle
+  /// Compute the signed solid angle subtended by the oriented 3d triangle (A,B,C) at some point P
+  /// 
+  /// @param[in] A  3D position of corner 
+  /// @param[in] B  3D position of corner 
+  /// @param[in] C  3D position of corner 
+  /// @param[in] P  3D position of query point
+  /// @return signed solid angle
   template <
     typename DerivedA,
     typename DerivedB,

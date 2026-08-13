@@ -3,7 +3,7 @@
 	"name": "Generic PETG @Qidi Q2 0.2 nozzle",
 	"inherits": "Generic PETG@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "MZFU0ZIPjWpgS435",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"1"

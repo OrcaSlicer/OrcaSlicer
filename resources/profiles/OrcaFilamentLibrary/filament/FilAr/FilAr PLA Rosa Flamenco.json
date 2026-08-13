@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA Rosa Flamenco",
+    "inherits": "FilAr PLA @base",
+    "from": "system",
+    "setting_id": "FhROwdLMSz3cyRZo",
+    "filament_id": "FILAR0011",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#FFC7C2"
+    ]
+}

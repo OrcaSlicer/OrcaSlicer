@@ -17,7 +17,7 @@
 		"20"
 	],
 	"filament_cost": [
-		"0"
+		"30"
 	],
 	"filament_density": [
 		"1.27"
@@ -26,7 +26,7 @@
 		"12"
 	],
 	"filament_type": [
-		"PETG"
+		"PET"
 	],
 	"hot_plate_temp": [
 		"80"
@@ -63,5 +63,8 @@
 	],
 	"filament_end_gcode": [
 		"; filament end gcode \n"
+	],
+	"filament_vendor": [
+		"Generic"
 	]
 }
