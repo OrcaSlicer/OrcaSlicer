@@ -1139,6 +1139,7 @@ static std::vector<std::string> s_Preset_print_options{
     "sparse_infill_filament_id",
     "internal_solid_filament_id",
     "top_surface_filament_id",
+    "ironing_filament",
     "bottom_surface_filament_id",
     "support_filament",
     "support_interface_filament",

@@ -1670,31 +1670,23 @@ void Layer::make_ironing()
 				    ((config.top_shell_layers > 0 || (this->object()->print()->config().spiral_mode && config.bottom_shell_layers > 1)) &&
 					    (config.ironing_type == IroningType::TopSurfaces ||
 					        (config.ironing_type == IroningType::TopmostOnly && layerm->layer()->upper_layer == nullptr))))) {
-				if (config.outer_wall_filament_id == config.top_surface_filament_id || config.wall_loops == 0) {
-					// Iron the whole face.
-					ironing_params.extruder = config.top_surface_filament_id;
-				} else {
-					// Iron just the infill.
-					ironing_params.extruder = config.top_surface_filament_id;
-				}
+				// "Default" (0) irons with the filament of the surface below.
+				ironing_params.extruder = config.ironing_filament > 0 ? config.ironing_filament : config.top_surface_filament_id;
 			}
 			if (ironing_params.extruder != -1) {
 				//TODO just_infill is currently not used.
 				ironing_params.just_infill 	= false;
-				// ORCA: Get filament-specific overrides if configured, otherwise use process values
-				size_t extruder_idx = ironing_params.extruder - 1;
-				ironing_params.line_spacing = (!config.filament_ironing_spacing.is_nil(extruder_idx)
-					? config.filament_ironing_spacing.get_at(extruder_idx)
-					: config.ironing_spacing);
-                ironing_params.inset = (!config.filament_ironing_inset.is_nil(extruder_idx)
-					? config.filament_ironing_inset.get_at(extruder_idx)
-					: config.ironing_inset);
-				ironing_params.height = default_layer_height * 0.01 * (!config.filament_ironing_flow.is_nil(extruder_idx)
-					? config.filament_ironing_flow.get_at(extruder_idx)
-					: config.ironing_flow);
-                ironing_params.speed = (!config.filament_ironing_speed.is_nil(extruder_idx)
-                    ? config.filament_ironing_speed.get_at(extruder_idx)
-                    : config.ironing_speed);
+				// ORCA: Get filament-specific overrides if configured, otherwise use process values.
+				// is_nil() indexes unchecked while get_at() clamps to the first value, so an index past the
+				// override vector has to be treated as "not set" - otherwise it reads filament 1's nil.
+				const size_t extruder_idx = ironing_params.extruder - 1;
+				auto filament_override = [extruder_idx](const auto &opt, double process_value) {
+					return extruder_idx < opt.values.size() && ! opt.is_nil(extruder_idx) ? opt.get_at(extruder_idx) : process_value;
+				};
+				ironing_params.line_spacing = filament_override(config.filament_ironing_spacing, config.ironing_spacing);
+				ironing_params.inset        = filament_override(config.filament_ironing_inset, config.ironing_inset);
+				ironing_params.height       = default_layer_height * 0.01 * filament_override(config.filament_ironing_flow, config.ironing_flow);
+				ironing_params.speed        = filament_override(config.filament_ironing_speed, config.ironing_speed);
                 const bool top_layer_direction_set = config.top_layer_direction.value >= 0.;
                 const double top_layer_base_angle  = top_layer_direction_set ?
                     Geometry::deg2rad(config.top_layer_direction.value) :

@@ -1376,6 +1376,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "internal_solid_filament_id"
             || opt_key == "top_surface_filament_id"
             || opt_key == "bottom_surface_filament_id"
+            || opt_key == "ironing_filament"
             || opt_key == "sparse_infill_line_width"
             || opt_key == "skin_infill_line_width"
             || opt_key == "skeleton_infill_line_width"
@@ -3990,6 +3991,9 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
     clamp_feature_filament_to_valid(config.internal_solid_filament_id, num_extruders);
     clamp_feature_filament_to_valid(config.top_surface_filament_id, num_extruders);
     clamp_feature_filament_to_valid(config.bottom_surface_filament_id, num_extruders);
+    // Ironing keeps "Default" (0) as a real choice, so it only resets when out of range.
+    if (config.ironing_filament.value < 0 || config.ironing_filament.value > int(num_extruders))
+        config.ironing_filament.value = 0;
     if (config.sparse_infill_density.value < 0.00011f)
         // Switch of infill for very low infill rates, also avoid division by zero in infill generator for these very low rates.
         // See GH issue #5910.

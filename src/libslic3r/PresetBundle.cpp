@@ -4594,13 +4594,13 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     //BBS: add logic for settings check between different system presets
     out.erase("different_settings_to_system");
 
-    static const char* keys[] = {"support_filament", "support_interface_filament", "support_ironing_filament", "wipe_tower_filament"};
+    static const char* keys[] = {"support_filament", "support_interface_filament", "support_ironing_filament",
+                                 "wipe_tower_filament", "ironing_filament"};
     for (const char *key : keys) {
         auto *opt = dynamic_cast<ConfigOptionInt*>(out.option(key, false));
         assert(opt != nullptr);
-        // The support filaments additionally accept the "Auto" sentinel (negative), resolved per object at
-        // slicing time; wipe_tower_filament has no such mode.
-        const int lower = std::string_view(key) == "wipe_tower_filament" ? 0 : SUPPORT_FILAMENT_AUTO;
+        // Only the support filaments accept the "Auto" sentinel (negative), resolved per object at slicing time.
+        const int lower = boost::starts_with(key, "support_") ? SUPPORT_FILAMENT_AUTO : 0;
         opt->value = boost::algorithm::clamp<int>(opt->value, lower, int(num_filaments));
     }
 
