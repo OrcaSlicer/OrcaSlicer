@@ -1281,6 +1281,7 @@ protected:
 private:
     //BBS
     static StringObjectException check_multi_filament_valid(const Print &print);
+    // The ironing filament has to bond with the surface it irons; see Print.cpp.
     static StringObjectException check_ironing_filament_valid(const Print &print);
 
     bool                has_tpu_filament() const;

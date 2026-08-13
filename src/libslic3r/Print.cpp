@@ -1209,6 +1209,10 @@ int Print::get_compatible_filament_type(const std::set<int>& filament_types)
 }
 
 //BBS: this function is used to check whether multi filament can be printed
+// Ironing melts a pass onto the surface right below it, so - unlike support, which wants to come off - the
+// ironing filament has to BOND with that surface or the ironed skin peels away. Checked on every printer: a
+// second nozzle does not help here, the two materials still touch. Honours the same "Remove incompatible
+// material type restriction" bypass as the filament mixing check.
 StringObjectException Print::check_ironing_filament_valid(const Print &print)
 {
     const std::string incompatible_msg = L("The ironing filament does not bond with the surface it irons, so the ironed skin may peel off.");

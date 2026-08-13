@@ -456,3 +456,51 @@ TEST_CASE("Sequential printing publishes the nozzle group result", "[Print][Mult
         CHECK(gcode.find("; SEQ-ND-OK") != std::string::npos);
     }
 }
+
+// Ironing fuses onto the surface below it, so its filament has to bond with that surface - the opposite of the
+// support filaments, which are picked for NOT bonding. The check runs on every printer (a second nozzle does
+// not keep the two materials apart here) and honours the incompatible-material bypass.
+TEST_CASE("Ironing with a filament that does not bond to the surface is rejected", "[Print]")
+{
+    auto ironing_config = [](const char *filament_types) {
+        // One nozzle per filament, so the general filament-mixing check does not fire first: the two
+        // materials never share a hotend, and only the ironing contact is left to object to.
+        return Slic3r::Test::multifilament_config(2, {
+            { "nozzle_diameter",                "0.4,0.4" },
+            { "single_extruder_multi_material", 0 },
+            { "ironing_type",                   "top" },
+            { "ironing_filament",               2 },
+            { "top_surface_filament_id",        1 },
+            { "filament_type",                  filament_types },
+        });
+    };
+
+    SECTION("bonding materials pass") {
+        std::vector<StringObjectException> warnings;
+        const StringObjectException error = validate_cubes(ironing_config("PLA;PLA-CF"), warnings);
+        CHECK(error.string.empty());
+        CHECK(count_opt_key(warnings, "ironing_filament") == 0);
+    }
+    SECTION("unknown bonding warns but still slices") {
+        std::vector<StringObjectException> warnings;
+        const StringObjectException error = validate_cubes(ironing_config("PET;TPU"), warnings);
+        CHECK(error.string.empty());
+        CHECK(count_opt_key(warnings, "ironing_filament") == 1);
+    }
+    SECTION("known-incompatible materials block") {
+        std::vector<StringObjectException> warnings;
+        const StringObjectException error = validate_cubes(ironing_config("PLA;PETG"), warnings);
+        CHECK_FALSE(error.string.empty());
+        CHECK(error.opt_key == "ironing_filament");
+    }
+    SECTION("the incompatible-material bypass downgrades it to a warning") {
+        Slic3r::Model model;
+        Slic3r::Print print;
+        build_cubes(model, print, ironing_config("PLA;PETG"), 1, false);
+        print.set_check_multi_filaments_material_compatibility(false); // Preferences: remove the restriction
+        std::vector<StringObjectException> warnings;
+        const StringObjectException error = print.validate(&warnings);
+        CHECK(error.string.empty());
+        CHECK(count_opt_key(warnings, "ironing_filament") == 1);
+    }
+}
