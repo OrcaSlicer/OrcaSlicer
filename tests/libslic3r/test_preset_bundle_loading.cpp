@@ -5,27 +5,13 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/AppConfig.hpp"
 
+#include "test_utils.hpp"
+
 using namespace Slic3r;
 
 namespace {
 
 namespace fs = boost::filesystem;
-
-struct TempPresetDir {
-    fs::path path;
-
-    TempPresetDir()
-    {
-        path = fs::temp_directory_path() / fs::unique_path("orcaslicer-preset-%%%%-%%%%-%%%%");
-        fs::create_directories(path);
-    }
-
-    ~TempPresetDir()
-    {
-        boost::system::error_code ec;
-        fs::remove_all(path, ec);
-    }
-};
 
 void write_print_preset(const DynamicPrintConfig &default_config, const fs::path &file, const std::string &name, const std::string &inherits = {})
 {
@@ -82,17 +68,17 @@ struct RenameTestCollection : public PresetCollection
 
 TEST_CASE("Preset identity is canonicalized from load path", "[Preset][Identity]")
 {
-    TempPresetDir              temp_dir;
+    ScopedTemporaryDir         temp_dir;
     PresetBundle               bundle;
     PresetsConfigSubstitutions substitutions;
 
-    write_print_preset(bundle.prints.default_preset().config, temp_dir.path / PRESET_PRINT_NAME / "User.json", "User");
-    write_print_preset(bundle.prints.default_preset().config, temp_dir.path / PRESET_LOCAL_DIR / "bundle-1" / PRESET_PRINT_NAME / "LocalBundle.json", "LocalBundle");
-    write_print_preset(bundle.prints.default_preset().config, temp_dir.path / PRESET_SUBSCRIBED_DIR / "remote-1" / PRESET_PRINT_NAME / "Subscribed.json", "Subscribed");
+    write_print_preset(bundle.prints.default_preset().config, temp_dir.path() / PRESET_PRINT_NAME / "User.json", "User");
+    write_print_preset(bundle.prints.default_preset().config, temp_dir.path() / PRESET_LOCAL_DIR / "bundle-1" / PRESET_PRINT_NAME / "LocalBundle.json", "LocalBundle");
+    write_print_preset(bundle.prints.default_preset().config, temp_dir.path() / PRESET_SUBSCRIBED_DIR / "remote-1" / PRESET_PRINT_NAME / "Subscribed.json", "Subscribed");
 
-    bundle.prints.load_presets(temp_dir.path.string(), PRESET_PRINT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
-    bundle.prints.load_presets((temp_dir.path / PRESET_LOCAL_DIR / "bundle-1").string(), PRESET_PRINT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
-    bundle.prints.load_presets((temp_dir.path / PRESET_SUBSCRIBED_DIR / "remote-1").string(), PRESET_PRINT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+    bundle.prints.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+    bundle.prints.load_presets((temp_dir.path() / PRESET_LOCAL_DIR / "bundle-1").string(), PRESET_PRINT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+    bundle.prints.load_presets((temp_dir.path() / PRESET_SUBSCRIBED_DIR / "remote-1").string(), PRESET_PRINT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
 
     const Preset *root_user = bundle.prints.find_preset("User");
     REQUIRE(root_user != nullptr);
@@ -112,14 +98,14 @@ TEST_CASE("Preset identity is canonicalized from load path", "[Preset][Identity]
 
 TEST_CASE("Legacy bundle import without bundle metadata stays in the user preset directory", "[Preset][Identity]")
 {
-    TempPresetDir temp_dir;
+    ScopedTemporaryDir temp_dir;
     PresetBundle  bundle;
 
     PresetsConfigSubstitutions substitutions;
     std::vector<std::string>   result;
     int                        overwrite = 0;
-    std::string                file      = (temp_dir.path / "legacy-bundle" / "Imported.json").string();
-    const fs::path             user_root = temp_dir.path / "user";
+    std::string                file      = (temp_dir.path() / "legacy-bundle" / "Imported.json").string();
+    const fs::path             user_root = temp_dir.path() / "user";
 
     write_print_preset(bundle.prints.default_preset().config, file, "Imported");
     fs::create_directories(user_root);
@@ -252,7 +238,7 @@ TEST_CASE("find_preset2 auto-matches removed Generic vendor profiles to the libr
 
 TEST_CASE("Renamed parent is normalized into a loaded preset's inherits", "[Preset][Rename]")
 {
-    TempPresetDir        temp_dir;
+    ScopedTemporaryDir   temp_dir;
     RenameTestCollection coll;
 
     // Current parent, renamed from "Old Process".
@@ -262,10 +248,10 @@ TEST_CASE("Renamed parent is normalized into a loaded preset's inherits", "[Pres
 
     // A user preset on disk that still inherits the OLD name.
     write_preset_with_inherits(coll.default_preset().config,
-                               temp_dir.path / PRESET_PRINT_NAME / "Child.json", "Child", "Old Process");
+                               temp_dir.path() / PRESET_PRINT_NAME / "Child.json", "Child", "Old Process");
 
     PresetsConfigSubstitutions substitutions;
-    coll.load_presets(temp_dir.path.string(), PRESET_PRINT_NAME, substitutions,
+    coll.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
                       ForwardCompatibilitySubstitutionRule::Disable);
 
     const Preset *child = coll.find_preset("Child");
@@ -279,17 +265,17 @@ TEST_CASE("Renamed parent is normalized into a loaded preset's inherits", "[Pres
 
 TEST_CASE("Removed Generic parent is normalized into a loaded filament's inherits", "[Preset][Rename]")
 {
-    TempPresetDir temp_dir;
+    ScopedTemporaryDir temp_dir;
     PresetBundle  bundle;
 
     add_inmemory_preset(bundle.filaments, "Generic PLA @System");
 
     // A user filament that still inherits a removed "<vendor> Generic PLA" profile.
     write_preset_with_inherits(bundle.filaments.default_preset().config,
-                               temp_dir.path / PRESET_FILAMENT_NAME / "MyPLA.json", "MyPLA", "Voron Generic PLA");
+                               temp_dir.path() / PRESET_FILAMENT_NAME / "MyPLA.json", "MyPLA", "Voron Generic PLA");
 
     PresetsConfigSubstitutions substitutions;
-    bundle.filaments.load_presets(temp_dir.path.string(), PRESET_FILAMENT_NAME, substitutions,
+    bundle.filaments.load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions,
                                   ForwardCompatibilitySubstitutionRule::Disable);
 
     const Preset *child = bundle.filaments.find_preset("MyPLA");

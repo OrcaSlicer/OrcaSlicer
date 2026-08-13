@@ -7781,19 +7781,19 @@ msgid "Replaced with 3D files from directory:\n"
 msgstr ""
 
 #, possible-boost-format
-msgid "✖ Skipped %1%: same file.\n"
+msgid "✖ Skipped %s: same file.\n"
 msgstr ""
 
 #, possible-boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
+msgid "✖ Skipped %s: file does not exist.\n"
 msgstr ""
 
 #, possible-boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
+msgid "✖ Skipped %s: failed to replace.\n"
 msgstr ""
 
 #, possible-boost-format
-msgid "✔ Replaced %1%.\n"
+msgid "✔ Replaced %s.\n"
 msgstr ""
 
 msgid "Replaced volumes"

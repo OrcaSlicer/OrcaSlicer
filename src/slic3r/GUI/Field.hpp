@@ -469,6 +469,44 @@ public:
     void            suppress_scroll();
 };
 
+// printer_agent is a coString whose choices come from the live agent registry.
+// PrinterAgentChoice uses a ComboBox directly because Choice expects static config enums.
+// Real rows carry the stored agent id in the row alias (SetItemAlias/GetItemAlias).
+class PrinterAgentChoice : public Field
+{
+	using Field::Field;
+
+public:
+	PrinterAgentChoice(const ConfigOptionDef& opt, const t_config_option_key& id) : Field(opt, id)
+	{
+	}
+
+	PrinterAgentChoice(wxWindow* parent, const ConfigOptionDef& opt, const t_config_option_key& id) : Field(
+		parent, opt, id)
+	{
+	}
+
+	~PrinterAgentChoice()
+	{
+	}
+
+	wxWindow* window{nullptr};
+
+	void BUILD() override;
+	// Clear and repopulate rows from the live registry (grouped System agents / Plugins).
+	// Does not change selection; the caller follows with set_value(stored id).
+	void reload_rows();
+
+	void set_value(const std::string& value, bool change_event = false);
+	void set_value(const boost::any& value, bool change_event = false) override;
+	boost::any& get_value() override;
+
+	void enable() override;
+	void disable() override;
+	void msw_rescale() override;
+	wxWindow* getWindow() override { return window; }
+};
+
 class PluginField : public Field {
     using Field::Field;
 public:

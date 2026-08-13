@@ -2273,6 +2273,8 @@ public:
         plugin_picker,
         // Raw JSON string value, edited through a dialog behind a button rather than in the row.
         plugin_config,
+        // PrinterAgentChoice
+        printer_agent_select,
     };
 
 	// Identifier of this option. It is stored here so that it is accessible through the by_serialization_key_ordinal map.

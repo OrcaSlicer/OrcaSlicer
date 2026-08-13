@@ -16,6 +16,8 @@ TEST_CASE("SlicingPipeline capability-type string maps round-trip", "[slicing_pi
 #include "libslic3r/Point.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Surface.hpp"
+
+#include "test_utils.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
@@ -142,7 +144,7 @@ TEST_CASE("orca.slicing psGCodePostProcess context: file edit in place + config 
     import_orca_module();
     py::gil_scoped_acquire gil;
 
-    const fs::path gpath = fs::temp_directory_path() / fs::unique_path("orca_pp_%%%%-%%%%.gcode");
+    ScopedTemporaryFile gpath(".gcode");
     {
         boost::nowide::ofstream ofs(gpath.string());
         ofs << "; header\nG1 X0 Y0\n";
@@ -196,9 +198,7 @@ _pp_result = Stamp().execute(_pp_ctx)
         boost::nowide::ifstream ifs(gpath.string());
         std::stringstream ss; ss << ifs.rdbuf(); contents = ss.str();
     }
-    CHECK(contents.find("; stamped by File") != std::string::npos);
-    fs::remove(gpath);
-}
+    CHECK(contents.find("; stamped by File") != std::string::npos);}
 
 // ---------------------------------------------------------------------------
 // Toolpath helpers for the raw-graph tests.

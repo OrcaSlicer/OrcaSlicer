@@ -768,30 +768,31 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return changes;
     }
 
+    // Clearance the tower-approach router keeps around the tower: the avoid box is
+    // inflated by this much before routing, and the inflated corners must stay on the
+    // bed for a route to be generated at all.
+    static constexpr float wipe_tower_routing_clearance = 2.f;
+
     // BBS
     // start_pos refers to the last position before the wipe_tower.
     // end_pos refers to the wipe tower's start_pos.
     // using the print coordinate system
-    Polyline WipeTowerIntegration::generate_path_to_wipe_tower(const Point& start_pos,const Point &end_pos , const BoundingBox& avoid_polygon , const BoundingBox& printer_bbx) const
+    Polyline WipeTowerIntegration::generate_path_to_wipe_tower(const Point& start_pos,const Point &end_pos , const BoundingBox& avoid_polygon , const Polygons& bed_polygons) const
     {
         Polyline    res;
-        coord_t         alpha = scaled(2.f); // offset distance
+        coord_t         alpha = scaled(wipe_tower_routing_clearance); // offset distance
         BoundingBox avoid_polygon_inner = avoid_polygon;
         avoid_polygon_inner.offset(alpha);
         coord_t width = avoid_polygon_inner.max[0] - avoid_polygon_inner.min[0];
-        Polygon bed_polygon = printer_bbx.polygon();
         Vec2f v(1, 0);                                                      // the first print direction of end_pos.
         if (abs(end_pos[0] - avoid_polygon_inner.min[0]) < width / 2) v = -v; // judge whether the wipe tower's infill goes to the left or right.
-        // Judge whether the avoid_polygon_inner is outside the printer_bbx.
+        // Judge whether the avoid_polygon_inner is outside the bed. The real printable
+        // outline is tested (not its bounding box), so on circular/custom beds corners
+        // hanging off the bed are rejected.
         // If so, do nothing and just go directly to the end_pos.
-        bool is_bbx_in_bed = true;
         Points avoid_points  = avoid_polygon_inner.polygon().points;
-        for (auto &wipe_tower_bbx_p : avoid_points) {
-            if (ClipperLib::PointInPolygon(wipe_tower_bbx_p, bed_polygon.points) != 1) {
-                is_bbx_in_bed = false;
-                break;
-            }
-        }
+        const bool is_bbx_in_bed = std::all_of(avoid_points.begin(), avoid_points.end(),
+            [&bed_polygons](const Point &pt) { return contains(bed_polygons, pt, /*border_result=*/false); });
         if (!is_bbx_in_bed) {
             res.points.push_back(end_pos);
             return res;
@@ -898,27 +899,17 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return Eigen::Rotation2Df(alpha) * (pt + m_rib_offset) + m_wipe_tower_pos;
     }
 
-    // Printable-area bounds for tower-approach routing, in object coordinates (shared by
-    // the BBL avoid-perimeter path in append_tcr and the Type2 skip-points router).
-    // Multi-nozzle: clamp the travel bounds to the region every extruder can reach
-    // (get_extruder_shared_printable_polygon) instead of the full bed. Gated on the
-    // multi-nozzle predicate so every existing single/dual printer keeps the historic
-    // full-printable_area routing byte-identical.
-    BoundingBox WipeTowerIntegration::printer_travel_bounds(GCode &gcodegen) const
+    // Bed outline the tower-approach router plans against, in object coordinates. The real
+    // outline is returned, not its bounding box, so the router's containment tests fail off
+    // the bed on circular/custom shapes; the multi-nozzle narrowing lives in the accessor.
+    Polygons WipeTowerIntegration::shared_printable_area(GCode &gcodegen) const
     {
-        const Vec2f plate_origin_2d(m_plate_origin(0), m_plate_origin(1));
-        BoundingBox printer_bbx;
-        if (is_multi_nozzle_printer(gcodegen.m_config)) {
-            printer_bbx     = get_extents(gcodegen.m_print->get_extruder_shared_printable_polygon());
-            printer_bbx.min = wipe_tower_point_to_object_point(gcodegen, unscaled<float>(printer_bbx.min) + plate_origin_2d);
-            printer_bbx.max = wipe_tower_point_to_object_point(gcodegen, unscaled<float>(printer_bbx.max) + plate_origin_2d);
-        } else {
-            Points bed_points;
-            for (const auto& p : gcodegen.m_config.printable_area.values)
-                bed_points.push_back(wipe_tower_point_to_object_point(gcodegen, p.cast<float>() + plate_origin_2d));
-            printer_bbx = BoundingBox(bed_points);
-        }
-        return printer_bbx;
+        // The frame change is a pure translation, so transform the origin once.
+        const Point offset = wipe_tower_point_to_object_point(gcodegen, Vec2f(m_plate_origin(0), m_plate_origin(1)));
+        Polygons    bed_polygons = gcodegen.m_print->get_extruder_shared_printable_polygon();
+        for (Polygon &poly : bed_polygons)
+            poly.translate(offset);
+        return bed_polygons;
     }
 
     // With skip points enabled the Type2 tower wall has an opening at each toolchange's
@@ -933,15 +924,37 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (!WipeTower2::use_gap_wall(gcodegen.m_config))
             return {};
         const Vec2f plate_origin_2d(m_plate_origin(0), m_plate_origin(1));
-        // Transform the tower-local bbx corners exactly like the tcr points; a rotated
-        // tower gets a conservative axis-aligned envelope.
-        Polygon avoid_points = scaled(m_wipe_tower_bbx).polygon();
-        for (auto& p : avoid_points.points)
-            p = wipe_tower_point_to_object_point(gcodegen, transform_wt2_pt(unscale(p).cast<float>()) + plate_origin_2d);
-        BoundingBox avoid_bbx(avoid_points.points);
-        if (avoid_bbx.contains(route_start))
+        // Transform tower-local corners exactly like the tcr points; a rotated tower gets a
+        // conservative axis-aligned envelope from the result.
+        auto tower_polygon = [&](const BoundingBoxf &bbx) {
+            Polygon poly = scaled(bbx).polygon();
+            for (Point &p : poly.points)
+                p = wipe_tower_point_to_object_point(gcodegen, transform_wt2_pt(unscale(p).cast<float>()) + plate_origin_2d);
+            return poly;
+        };
+        // The avoid envelope covers the first-layer brim (and rib flare), which a travel may
+        // cross freely: early-out only when the approach already starts over the tower body
+        // itself, so a start between the wall and the brim edge still gets routed in through
+        // the wall opening. Test the rotated polygon, not its bounding box — at angles off the
+        // axes the box's corner triangles cover most of the brim ring.
+        const float body_width = gcodegen.m_config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib ? m_wipe_tower_depth : m_right;
+        if (tower_polygon(BoundingBoxf(Vec2d(0., 0.), Vec2d(body_width, m_wipe_tower_depth))).contains(route_start))
             return {};
-        Polyline    travel_polyline = generate_path_to_wipe_tower(route_start, start_wipe_pos, avoid_bbx, printer_travel_bounds(gcodegen));
+
+        const Polygons bed       = shared_printable_area(gcodegen);
+        BoundingBox    avoid_bbx = get_extents(tower_polygon(m_wipe_tower_bbx));
+        // The inflated corners must stay on the bed for the router to generate a route at all:
+        // clamp the box against the bed shrunk by the clearance the router adds, so a tower
+        // parked near the bed edge is still routed along the clamped side instead of always
+        // travelling straight across the tower.
+        BoundingBox clamp_bbx = get_extents(bed);
+        clamp_bbx.offset(-(scaled(wipe_tower_routing_clearance) + SCALED_EPSILON));
+        avoid_bbx.min = avoid_bbx.min.cwiseMax(clamp_bbx.min);
+        avoid_bbx.max = avoid_bbx.max.cwiseMin(clamp_bbx.max);
+        if (avoid_bbx.min.x() >= avoid_bbx.max.x() || avoid_bbx.min.y() >= avoid_bbx.max.y())
+            return {};
+
+        Polyline    travel_polyline = generate_path_to_wipe_tower(route_start, start_wipe_pos, avoid_bbx, bed);
         std::string gcode;
         // The polyline's last point is start_wipe_pos itself — emitted by the caller.
         for (size_t i = 0; i + 1 < travel_polyline.points.size(); ++i)
@@ -1137,8 +1150,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
                 float old_retract_length = (old_filament_id != -1) ? full_config.retraction_length.get_at(old_fi) : 0;
                 float new_retract_length = full_config.retraction_length.get_at(new_fi);
-                float old_retract_length_toolchange = (old_filament_id != -1) ? full_config.retract_length_toolchange.get_at(old_filament_id) : 0;
-                float new_retract_length_toolchange = full_config.retract_length_toolchange.get_at(new_filament_id);
+                float old_retract_length_toolchange = (old_filament_id != -1) ? full_config.retract_length_toolchange.get_at(old_fi) : 0;
+                float new_retract_length_toolchange = full_config.retract_length_toolchange.get_at(new_fi);
                 int old_filament_temp = (old_filament_id != -1) ? (gcodegen.on_first_layer()? full_config.nozzle_temperature_initial_layer.get_at(old_fi) : full_config.nozzle_temperature.get_at(old_fi)) : 210;
                 int new_filament_temp = gcodegen.on_first_layer() ? full_config.nozzle_temperature_initial_layer.get_at(new_fi) : full_config.nozzle_temperature.get_at(new_fi);
                 Vec3d nozzle_pos = gcode_writer.get_position();
@@ -1322,7 +1335,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 Vec2f       gcode_last_pos2d{gcode_last_pos[0], gcode_last_pos[1]};
                 Point       gcode_last_pos2d_object = gcodegen.gcode_to_point(gcode_last_pos2d.cast<double>() + plate_origin_2d.cast<double>());
                 Point       start_wipe_pos          = wipe_tower_point_to_object_point(gcodegen, tool_change_start_pos + plate_origin_2d);
-                BoundingBox avoid_bbx, printer_bbx = printer_travel_bounds(gcodegen);
+                BoundingBox avoid_bbx;
                 {
                     // set avoid_bbx
                     avoid_bbx            = scaled(m_wipe_tower_bbx);
@@ -1334,7 +1347,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     avoid_bbx = BoundingBox(avoid_points.points);
                 }
                 std::string travel_to_wipe_tower_gcode;
-                Polyline    travel_polyline = generate_path_to_wipe_tower(gcode_last_pos2d_object, start_wipe_pos, avoid_bbx, printer_bbx);
+                Polyline    travel_polyline = generate_path_to_wipe_tower(gcode_last_pos2d_object, start_wipe_pos, avoid_bbx, shared_printable_area(gcodegen));
 
                 for (size_t i = 0; i < travel_polyline.points.size(); ++i) {
                     const auto &p = travel_polyline.points[i];
@@ -1554,7 +1567,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     interface_temp = gcodegen.config().nozzle_temperature_range_high.get_at(new_extruder_id);
                 toolchange_temp_override = interface_temp;
             }
-            toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override); // TODO: toolchange_z vs print_z
+            toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override,
+                                                         WipeTower2::wait_for_temp_enabled(gcodegen.m_config)); // TODO: toolchange_z vs print_z
             if (!travel_to_tower_now && !tcr.priming && WipeTower2::use_gap_wall(gcodegen.m_config)) {
                 // The tool changed in place (multi-tool printer without ramming), so the
                 // tower entry is the tcr's own positioning move — a straight line across
@@ -1705,7 +1719,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 std::string trimmed = line;
                 trimmed.erase(0, trimmed.find_first_not_of(" \t"));
                 bool skip_line = false;
-                if (boost::starts_with(trimmed, "M109")) {
+                if (boost::starts_with(trimmed, "M109") && trimmed.find(WipeTower2::wait_for_temp_tag()) == std::string::npos) {
                     bool matches_extruder = true;
                     if (trimmed.find('T') != std::string::npos)
                         matches_extruder = trimmed.find(t_token) != std::string::npos;
@@ -5511,7 +5525,7 @@ LayerResult GCode::process_layer(
     // add tag for processor
     gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
     // export layer z
-    char buf[64];
+    char buf[80];
     sprintf(buf, print.is_BBL_printer() ? "; Z_HEIGHT: %g\n" : ";Z:%g\n", print_z);
     gcode += buf;
     // export layer height
@@ -7636,8 +7650,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             if (sloped) {
                 speed = std::min(speed, m_config.scarf_joint_speed.get_abs_value(speed));
             }
-        } 
-        else if(path.role() == erInternalBridgeInfill) {
+        } else if(path.role() == erInternalBridgeInfill) {
             speed = m_config.get_abs_value_at("internal_bridge_speed", get_nozzle_config_index(m_writer.filament()->id()));
         } else if (path.role() == erOverhangPerimeter || path.role() == erSupportTransition || path.role() == erBridgeInfill) {
             speed = NOZZLE_CONFIG(bridge_speed);
@@ -7648,7 +7661,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         } else if (path.role() == erTopSolidInfill) {
             speed = NOZZLE_CONFIG(top_surface_speed);
         } else if (path.role() == erIroning) {
-            speed = m_config.get_abs_value("ironing_speed");
+            const size_t filament_idx = get_filament_config_index(m_writer.filament()->id());
+            speed = m_config.filament_ironing_speed.is_nil(filament_idx)
+                ? m_config.get_abs_value("ironing_speed")
+                : m_config.filament_ironing_speed.get_at(filament_idx);
         } else if (path.role() == erBottomSurface) {
             speed = NOZZLE_CONFIG(initial_layer_infill_speed);
         } else if (path.role() == erGapFill) {
@@ -8939,7 +8955,7 @@ void GCode::update_placeholder_parser_with_variant_params()
     }
 }
 
-std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bool by_object, int toolchange_temp_override)
+std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bool by_object, int toolchange_temp_override, bool defer_temp_wait)
 {
     int new_extruder_id = get_extruder_id(new_filament_id);
     if (!m_writer.need_toolchange(new_filament_id))
@@ -9038,13 +9054,31 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     // per-layer nozzle grouping; resolve the column instead of indexing by the filament id.
     size_t new_fi = get_filament_config_index((int)new_filament_id);
     float new_retract_length = m_config.retraction_length.get_at(new_fi);
-    float new_retract_length_toolchange = m_config.retract_length_toolchange.get_at(new_filament_id);
+    float new_retract_length_toolchange = m_config.retract_length_toolchange.get_at(new_fi);
     int new_filament_temp = this->on_first_layer() ? m_config.nozzle_temperature_initial_layer.get_at(new_fi) : m_config.nozzle_temperature.get_at(new_fi);
     // BBS: if print_z == 0 use first layer temperature
     if (abs(print_z) < EPSILON)
         new_filament_temp = m_config.nozzle_temperature_initial_layer.get_at(new_fi);
     if (toolchange_temp_override > 0)
         new_filament_temp = toolchange_temp_override;
+
+    // With wait_for_temp_on_wipe_tower the blocking M109 is deferred to the wipe tower, so raise
+    // the incoming filament's target here — ahead of the tool change rather than after it — and
+    // let the heat-up overlap the change itself as well as the travel to the tower. The command
+    // always carries an explicit tool index (the option is off for single extruder MM, so the
+    // writer emits one), leaving the outgoing filament that pre_toolchange just dropped to its
+    // standby temperature alone. nozzle_temperature == 0 means "use the first layer temperature".
+    if (defer_temp_wait) {
+        // Target what the tower will wait on. It waits on the first layer temperature not only on
+        // the first layer but also while priming, which runs before any layer is set: there
+        // on_first_layer() is false and print_z is the initial layer height, so neither test above
+        // catches it. nozzle_temperature == 0 means "use the first layer temperature" as well.
+        int preheat_temp = new_filament_temp;
+        if (toolchange_temp_override <= 0 && (m_layer == nullptr || preheat_temp <= 0))
+            preheat_temp = m_config.nozzle_temperature_initial_layer.get_at(new_fi);
+        if (preheat_temp > 0)
+            gcode += m_writer.set_temperature(preheat_temp, false, new_filament_id);
+    }
 
     Vec3d nozzle_pos = m_writer.get_position();
     float old_retract_length, old_retract_length_toolchange, wipe_volume;
@@ -9069,7 +9103,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         // gap-filled carry-forward, so its current-layer column matches the nozzle it occupies.
         size_t old_fi = get_filament_config_index(old_filament_id);
         old_retract_length = m_config.retraction_length.get_at(old_fi);
-        old_retract_length_toolchange = m_config.retract_length_toolchange.get_at(old_filament_id);
+        old_retract_length_toolchange = m_config.retract_length_toolchange.get_at(old_fi);
         old_filament_temp = this->on_first_layer()? m_config.nozzle_temperature_initial_layer.get_at(old_fi) : m_config.nozzle_temperature.get_at(old_fi);
 
         //During the filament change, the extruder will extrude an extra length of grab_length for the corresponding detection, so the purge can reduce this length.
@@ -9349,8 +9383,10 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         }
         check_add_eol(gcode);
     }
-    // Set the new extruder to the operating temperature.
-    if (m_ooze_prevention.enable)
+    // Set the new extruder to the operating temperature. With defer_temp_wait the target was
+    // already raised before the tool change and the blocking wait belongs to the wipe tower
+    // generator, so there is nothing left to restore here.
+    if (m_ooze_prevention.enable && !defer_temp_wait)
         gcode += m_ooze_prevention.post_toolchange(*this);
 
     if (m_config.enable_pressure_advance.get_at(new_filament_id)) {

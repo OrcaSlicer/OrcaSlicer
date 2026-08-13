@@ -704,7 +704,6 @@ void SelectMachinePopup::update_user_devices()
                     }
 
                     mobj->set_access_code("");
-                    mobj->erase_user_access_code();
                 }
 
                 if (GUI::wxGetApp().plater())
