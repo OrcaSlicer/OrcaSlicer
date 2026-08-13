@@ -152,6 +152,8 @@ static unsigned int region_filament(const ExtrusionEntityCollection &extrusions,
         for (const ExtrusionEntity *ee : extrusions.entities)
             if (const ExtrusionRole er = ee->role(); er != erGapFill)
                 role = (role == erNone || role == er) ? er : erMixed;
+        if (role == erIroning && config.ironing_filament.value > 0)
+            return config.ironing_filament.value;
         if (role == erTopSolidInfill || role == erIroning)
             return config.top_surface_filament_id.value;
         if (role == erBottomSurface)

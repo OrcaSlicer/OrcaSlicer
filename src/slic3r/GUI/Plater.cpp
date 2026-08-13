@@ -2818,6 +2818,7 @@ Sidebar::Sidebar(Plater *parent)
     Choice::register_dynamic_list("internal_solid_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("top_surface_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("bottom_surface_filament_id", &dynamic_filament_list);
+    Choice::register_dynamic_list("ironing_filament", &dynamic_filament_list); // per-region key, resolved per layer
     Choice::register_dynamic_list("wipe_tower_filament", &dynamic_physical_filament_list);
 
     p->scrolled = new wxPanel(this);
@@ -21726,6 +21727,7 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
                  opt_key == "outer_wall_filament_id" || opt_key == "inner_wall_filament_id" ||
                  opt_key == "sparse_infill_filament_id" || opt_key == "internal_solid_filament_id" ||
                  opt_key == "top_surface_filament_id" || opt_key == "bottom_surface_filament_id" ||
+                 opt_key == "ironing_filament" ||
                  opt_key == "enable_support" || opt_key == "raft_layers" || opt_key == "wall_loops" ||
                  opt_key == "sparse_infill_density" || opt_key == "top_shell_layers" ||
                  opt_key == "bottom_shell_layers" || opt_key == "brim_type" || opt_key == "brim_width") {
