@@ -21,6 +21,7 @@
 #include <gp_Circ.hxx>
 #include <gp_Elips.hxx>
 #include <gp_Ax2.hxx>
+#include <gp_Pln.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepOffsetAPI_MakeOffset.hxx>
 #include <BRepOffsetAPI_ThruSections.hxx>
@@ -727,9 +728,20 @@ TopoDS_Wire SketchEngine::entities_to_wire(const std::vector<SketchEntity>& enti
 }
 
 TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
-                                        const SketchPlane& /*plane*/)
+                                        const SketchPlane& plane)
 {
     if (wires.empty()) throw std::runtime_error("sketch has no closed loop");
+
+    // The ASSEMBLED face below is built on the SKETCH's own plane rather than on a surface OCCT
+    // infers from the outer wire. The inferred plane has no reason to share the sketch's normal,
+    // and when they disagree the hole classification produces no hole: a plate sketched on a
+    // plane whose normal points -Z came out as the full box PLUS a disc (measured 220274 mm3
+    // where 163726 was due — 192000 box + 28274 disc). `plane` was a parameter this function
+    // never used. Only the assembly is named: the single-wire and per-wire-area builds keep the
+    // inferred surface, because naming a plane also makes MakeFace accept a wire that does not
+    // bound a face, and that failure is the check an open stray line is caught by.
+    const gp_Pln pln(gp_Pnt(plane.origin.x(), plane.origin.y(), plane.origin.z()),
+                     gp_Dir(plane.normal.x(), plane.normal.y(), plane.normal.z()));
 
     if (wires.size() == 1) {
         BRepBuilderAPI_MakeFace fm(wires[0]);
@@ -759,7 +771,7 @@ TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
     // Note: NOT MakeFace(faces[outer], wires[outer]) — that constructor copies the outer face
     // (including its existing boundary wire) and then adds the wire again, doubling the outer
     // boundary. The wire-only constructor starts clean and the reversed holes follow.
-    BRepBuilderAPI_MakeFace fm(wires[outer]);
+    BRepBuilderAPI_MakeFace fm(pln, wires[outer]);
     for (size_t i = 0; i < wires.size(); ++i) {
         if (i == outer) continue;
         // Containment is checked, not assumed: a vertex of the inner wire must lie strictly
@@ -775,11 +787,22 @@ TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
         BRepClass_FaceClassifier fc(faces[outer], p, 1e-7);
         if (fc.State() != TopAbs_IN)
             throw std::runtime_error("sketch has two disjoint regions; put each in its own sketch");
-        // A reversed wire tells OCCT this loop is a hole, not a second boundary.
-        fm.Add(TopoDS::Wire(wires[i].Reversed()));
+        // Add the hole loop AS-IS and let ShapeFix_Face sort the orientations out below.
+        // Reversing it here only works when the sketch happened to wind both loops the same
+        // way: a circle drawn clockwise inside a counter-clockwise rectangle comes out matching
+        // the outer boundary, OCCT sweeps it as a second contour, and the prism is the plate
+        // with the bore FILLED and the disc's volume counted twice. Measured on the rig:
+        // bbox 67.17 x 219.67 x 10 (the whole plate) with volume 152088 mm3 against a solid-box
+        // 147520 — a body larger than its own bounding box, which is the signature of it.
+        fm.Add(wires[i]);
     }
     if (!fm.IsDone()) throw std::runtime_error("sketch loop does not bound a face");
-    return fm.Face();
+    // Winding-independent classification of outer vs holes — the same idiom make_extrude_regions
+    // already uses for imported glyphs, which is why holed TEXT extruded correctly all along
+    // while a holed SKETCH did not.
+    ShapeFix_Face sff(fm.Face());
+    sff.FixOrientation();
+    return sff.Face();
 }
 
 std::vector<SketchEntity> SketchEngine::mirror_entities(

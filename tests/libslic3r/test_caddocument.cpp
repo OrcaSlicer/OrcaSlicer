@@ -7802,3 +7802,109 @@ TEST_CASE("an invalid pair names which side is wrong", "[CadDocument][mate]")
     for (const auto& o : doc.mate_options(-5, a))
         REQUIRE_CONTAINS(o.reason, "connector A");
 }
+
+// A rectangular plate 120 x 160 x 10 centred on the origin with a radius-30 bore through
+// the middle: one solid whose volume is the box minus the cylinder, and whose topology is a
+// plate-with-a-bore (1 solid, 7 faces) rather than a plate plus a plug.
+TEST_CASE("add_extrude_entities builds a plate with a bore", "[CadDocument][holes]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+
+    const Vec2d A(-60, -80), B(60, -80), C(60, 80), D(-60, 80);
+    std::vector<SketchEntity> entities = {
+        {SketchEntity::Type::Line, A, B},
+        {SketchEntity::Type::Line, B, C},
+        {SketchEntity::Type::Line, C, D},
+        {SketchEntity::Type::Line, D, A},
+    };
+    SketchEntity bore;
+    bore.type   = SketchEntity::Type::Circle;
+    bore.center = Vec2d(0, 0);
+    bore.radius = 30.0;
+    entities.push_back(bore);
+
+    doc.add_extrude_entities(entities, SketchPlane::XY(), 10.0, false, BooleanMode::New, "Extrude1");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.display_mesh.facets_count() > 0);
+
+    auto mp = doc.body_mass_properties(0);
+    REQUIRE(mp.valid);
+    const double expected_vol = 120.0 * 160.0 * 10.0 - M_PI * 30.0 * 30.0 * 10.0;
+    REQUIRE_THAT(mp.volume, WithinAbs(expected_vol, 1.0));
+
+    // One solid, seven faces: top + bottom (each a planar face with a hole), four side
+    // walls, and the single cylindrical bore wall.
+    int face_count = 0, solid_count = 0;
+    for (TopExp_Explorer fe(doc.bodies.back().shape, TopAbs_FACE);  fe.More(); fe.Next()) ++face_count;
+    for (TopExp_Explorer se(doc.bodies.back().shape, TopAbs_SOLID); se.More(); se.Next()) ++solid_count;
+    INFO("volume mm^3 = " << mp.volume << ", faces = " << face_count << ", solids = " << solid_count);
+    REQUIRE(solid_count == 1);
+    REQUIRE(face_count == 7);
+}
+
+TEST_CASE("two disjoint circles are refused by name", "[CadDocument][holes]")
+{
+    CadDocument doc;
+
+    SketchEntity a;
+    a.type = SketchEntity::Type::Circle; a.center = Vec2d(-50, 0); a.radius = 20.0;
+    SketchEntity b;
+    b.type = SketchEntity::Type::Circle; b.center = Vec2d( 50, 0); b.radius = 20.0;
+
+    doc.add_extrude_entities({a, b}, SketchPlane::XY(), 10.0, false, BooleanMode::New, "Extrude1");
+
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_CONTAINS(doc.error, "disjoint");
+}
+
+// Same plate-with-a-bore, but the bore circle is wound CLOCKWISE (geometric winding opposite
+// the CCW rectangle). The old wires_to_face reversed every hole wire unconditionally
+// (wires[i].Reversed()), which only produced a correct hole when the circle was wound the same
+// way as the outer loop; a clockwise circle got reversed into matching the outer boundary and
+// the prism swept it solid — measured 220274 mm^3 = box (192000) + disc (28274), the filled-bore
+// signature. The current ShapeFix_Face::FixOrientation path is winding-independent. Flipping the
+// plane normal reverses gp_Circ's parametrisation (gp_Ax2(center, -Z) sweeps clockwise seen from
+// +Z) while the rectangle's 2D coordinates stay CCW.
+TEST_CASE("add_extrude_entities builds a plate with a bore (clockwise circle)", "[CadDocument][holes]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+
+    SketchPlane cw_plane = SketchPlane::XY();
+    cw_plane.normal = Vec3d(0, 0, -1);
+
+    const Vec2d A(-60, -80), B(60, -80), C(60, 80), D(-60, 80);
+    std::vector<SketchEntity> entities = {
+        {SketchEntity::Type::Line, A, B},
+        {SketchEntity::Type::Line, B, C},
+        {SketchEntity::Type::Line, C, D},
+        {SketchEntity::Type::Line, D, A},
+    };
+    SketchEntity bore;
+    bore.type   = SketchEntity::Type::Circle;
+    bore.center = Vec2d(0, 0);
+    bore.radius = 30.0;
+    entities.push_back(bore);
+
+    doc.add_extrude_entities(entities, cw_plane, 10.0, false, BooleanMode::New, "Extrude1");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.display_mesh.facets_count() > 0);
+
+    auto mp = doc.body_mass_properties(0);
+    REQUIRE(mp.valid);
+    const double expected_vol = 120.0 * 160.0 * 10.0 - M_PI * 30.0 * 30.0 * 10.0;
+    REQUIRE_THAT(mp.volume, WithinAbs(expected_vol, 1.0));
+
+    int face_count = 0, solid_count = 0;
+    for (TopExp_Explorer fe(doc.bodies.back().shape, TopAbs_FACE);  fe.More(); fe.Next()) ++face_count;
+    for (TopExp_Explorer se(doc.bodies.back().shape, TopAbs_SOLID); se.More(); se.Next()) ++solid_count;
+    INFO("volume mm^3 = " << mp.volume << ", faces = " << face_count << ", solids = " << solid_count);
+    REQUIRE(solid_count == 1);
+    REQUIRE(face_count == 7);
+}
+

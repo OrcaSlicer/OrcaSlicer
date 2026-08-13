@@ -112,6 +112,9 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     m_sketch_tool.on_inline_dismiss = [this]() {
         if (m_inline_editor) m_inline_editor->cancel();
     };
+    m_sketch_tool.on_inline_commit = [this]() {
+        if (m_inline_editor) m_inline_editor->commit();
+    };
 
     // Bottom-right viewport HUD: a borderless, non-focusable float label showing the active
     // tool's current values. Top-level (a child widget is hidden by the GL surface, same as
@@ -236,6 +239,18 @@ void DesignCanvas::request_repaint()
         return;
     m_canvas->set_as_dirty();
 
+    // NOTHING may touch GL before the canvas has initialised it. The backend probe below calls
+    // OpenGLManager::get_gl_info().get_renderer(), which runs GLInfo::detect() -> glGetString
+    // with no context current and, before init_opengl(), no loaded function pointers — a
+    // segfault at startup with no window and nothing in the log. Anything that asks for a
+    // repaint while the panel is still being built lands here, so the guard belongs at the top
+    // rather than around the render() call: the crash was in the PROBE, not in the paint.
+    if (!m_canvas->is_initialized()) {
+        if (m_canvas_widget)
+            m_canvas_widget->Refresh();   // the first real paint draws the current state anyway
+        return;
+    }
+
     if (m_sw_gl < 0) {
         // Cache the backend once it's known; the renderer string is empty until
         // GL is initialised, so stay "unknown" and take the safe direct path till then.
@@ -274,7 +289,7 @@ void DesignCanvas::reload(bool keep_view)
     for (int i = 0; i < (int)m_model.objects.size(); ++i)
         m_canvas->load_object(m_model, i);
 
-    const ColorRGBA sel_gold(0.40f, 0.82f, 1.0f, 1.0f);   // cyan tint = solid selected
+    const ColorRGBA sel_gold = design_selection_color();   // same colour as every other selection
     const ColorRGBA ghost(0.26f, 0.66f, 1.0f, 0.45f);
 
     const auto& volumes = m_canvas->get_volumes().volumes;
@@ -553,7 +568,7 @@ void DesignCanvas::set_on_sketch_selection_changed(std::function<void(int)> cb)
     m_sketch_tool.on_selection_changed = std::move(cb);
 }
 
-void DesignCanvas::set_on_sketch_face_selected(std::function<void()> cb)
+void DesignCanvas::set_on_sketch_face_selected(std::function<void(int)> cb)
 {
     m_sketch_tool.on_face_selected = std::move(cb);
 }
@@ -581,6 +596,12 @@ std::vector<std::vector<int>> DesignCanvas::region_entity_indices(const std::vec
 void DesignCanvas::clear_loop_pick()
 {
     m_sketch_tool.clear_display_pick();
+}
+
+void DesignCanvas::set_loop_pick(int feature, int region)
+{
+    m_sketch_tool.set_display_pick(feature, region);
+    request_repaint();
 }
 
 void DesignCanvas::set_solid_pick(const std::vector<CadBody>* bodies, const TriangleMesh* mesh,
@@ -1144,6 +1165,11 @@ void DesignCanvas::delete_selected_sketch_entities()
 bool DesignCanvas::inline_busy() const
 {
     return m_sketch_tool.inline_busy();
+}
+
+bool DesignCanvas::live_sketch_has_work() const
+{
+    return m_sketch_tool.live_sketch_has_work();
 }
 
 bool DesignCanvas::undo_last_sketch_entity()

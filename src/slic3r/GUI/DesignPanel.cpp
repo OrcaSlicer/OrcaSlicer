@@ -3321,7 +3321,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // Onshape flow: clicking inside a closed-loop face commits the sketch and opens
     // the Extrude dialog (with a ghost preview) targeting that sketch.
-    m_viewport->set_on_sketch_face_selected([this]() {
+    m_viewport->set_on_sketch_face_selected([this](int region) {
         if (!m_viewport) return;
         m_viewport->finish_sketch();                 // commit live sketch (synchronous)
         m_extrude_sketch_ref = resolve_extrude_sketch();
@@ -3333,6 +3333,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
         }
         set_ui_mode(UiMode::Feature);
         open_tool(Tool::Extrude);
+        // AFTER open_tool, not before: opening the tool re-derives the selection state, so a
+        // region recorded ahead of it is wiped before Extrude ever reads it.
+        m_sel_sketch_feat   = m_extrude_sketch_ref;
+        m_sel_sketch_region = region;
+        m_sel_solid_face = m_sel_solid_edge = -1;
+        m_pick_face = m_pick_face_body = -1;
+        m_viewport->set_loop_pick(m_extrude_sketch_ref, region);
         m_status->SetForegroundColour(wxNullColour);
         set_status(_L("Face selected — set the depth and Confirm"));
         m_status->Refresh();
@@ -3820,6 +3827,22 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // Tool shortcuts (Onshape-style). While a sketch is open, single letters drive sketch
         // tools; otherwise Shift+letter drives feature tools and single letters drive view
         // toggles / section. Ctrl-combos and focused text fields are never intercepted.
+        // A SKETCH SHORTCUT MAY LEAVE AN OPEN VALUE FIELD. in_text is true while an inline
+        // dimension editor is up, and drawing a rectangle opens one automatically for its
+        // Width/Height — so after a rectangle every single-letter tool key was swallowed and the
+        // sketch could not be continued at all. A value field holds a NUMBER; a letter is never
+        // meant for it, so a letter that names a sketch tool is unambiguously a tool switch.
+        // set_tool() commits the field on the way through, so the typed value is kept.
+        // Deliberately narrow: sketch mode only, only keys that are actually bound, and only the
+        // in-canvas field — a focused wxTextCtrl elsewhere (the variables table, a card spin)
+        // still keeps every key.
+        const bool inline_field_only = (dynamic_cast<wxTextCtrl*>(wxWindow::FindFocus()) == nullptr)
+                                       && m_viewport && m_viewport->inline_busy();
+        if (in_text && inline_field_only && sketch_mode && !ctrl) {
+            const int up2 = (key >= 'a' && key <= 'z') ? key - 'a' + 'A' : key;
+            auto it2 = m_keys_sketch.find(up2);
+            if (it2 != m_keys_sketch.end()) { it2->second(); return; }
+        }
         if (!in_text && !ctrl) {
             const int up = (key >= 'a' && key <= 'z') ? key - 'a' + 'A' : key;   // normalise case
             if (sketch_mode) {
@@ -4525,6 +4548,10 @@ void DesignPanel::on_add_extrude()
     } else if (extrude_uses_loop()) {
         // Extrude just the selected loop (its entity subset), leaving the source sketch's
         // other loops intact and still selectable.
+        if (::getenv("SNAPORCA_PICK_TRACE"))
+            std::fprintf(stderr, "[pick] on_add_extrude: feat=%d reg=%d ents=%zu\n",
+                         m_extrude_sketch_ref, m_sel_sketch_region,
+                         m_viewport->selected_loop_entities().size());
         idx = m_doc.add_extrude_entities(m_viewport->selected_loop_entities(),
                                          m_doc.features[m_extrude_sketch_ref].plane,
                                          m_distance->GetValue(), false, mode, name);
@@ -10244,6 +10271,18 @@ void DesignPanel::tool_cancel()
     if (m_active == Tool::Insert) { cancel_insert(); return; }
     if (m_active != Tool::None)   { cancel_tool();   return; }
     if (m_ui_mode == UiMode::Sketch) {
+        // Escape is how anyone dismisses the inline dimension field, and it used to cascade
+        // straight through to here: first press disarmed the tool, second press dropped the
+        // whole live session — a drawn rectangle gone, silently, with no undo prompt. That is
+        // the "I cannot add the circle after the rectangle" report: the sketch was already
+        // destroyed. Discarding real work needs the explicit Cancel button, not a key people
+        // press to close a text field.
+        if (m_viewport && m_viewport->live_sketch_has_work()) {
+            m_status->SetForegroundColour(wxNullColour);
+            set_status(_L("Sketch kept — use Confirm to keep it, Cancel to discard"));
+            m_status->Refresh();
+            return;
+        }
         if (m_viewport) m_viewport->cancel_sketch();   // drop the live session (committed art stays)
         m_edit_index = -1;
         set_ui_mode(UiMode::Feature);

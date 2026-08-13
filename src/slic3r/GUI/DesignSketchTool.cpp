@@ -16,6 +16,7 @@
 #include <GL/glew.h>
 #include <wx/gdicmn.h>
 #include <algorithm>
+#include <limits>
 #include <array>
 #include <cmath>
 #include <cstdio>
@@ -215,6 +216,15 @@ void DesignSketchTool::set_tool(Mode mode)
     // m_mode, so after the assignment they would test the tool being switched TO. That read
     // op_ready()==0 with a=0 b=3 val=28.205 sitting right there — picked, valued, and dropped.
     if (op_ready()) confirm_op();
+
+    // An OPEN inline value field freezes the canvas (on_mouse_impl returns early while
+    // m_awaiting_length) and blocks every keyboard shortcut (in_text includes inline_busy()).
+    // Drawing a rectangle opens one automatically for its Width/Height, so after a rectangle the
+    // sketch was STUCK: pressing C did nothing because the key never reached this function, and
+    // clicking on the canvas did nothing because the canvas was frozen. Committing here accepts
+    // the typed value and closes the field, which is the same rule the ready-edit-op above
+    // follows — leaving a tool must not silently discard what the user entered.
+    if (on_inline_commit) on_inline_commit();
 
     // Switch the active drawing tool without dropping accumulated entities.
     m_mode = mode;
@@ -2779,11 +2789,22 @@ DesignSketchTool::region_entity_indices(const std::vector<SketchEntity>& ents) c
 // so there was no way to select it and therefore none to edit or delete it. Whether a stroke
 // bounds a region has nothing to do with whether the user can point at it. Region membership
 // decides what a hit REPORTS, not whether the hit can happen.
+static void dp_pick_trace(const char* fmt, ...);   // defined below; used by the diagnostics here
 void DesignSketchTool::hit_display_sketch(const DisplaySketch& d, const Vec2d& p, double tol,
                                           int& edge_feat, int& edge_reg, int& edge_ent,
                                           double& edge_d, int& face_feat, int& face_reg) const
 {
     const std::vector<RegionLoop> loops = region_loops(d.entities);
+    {   // TEMPORARY DIAGNOSTIC: what did the sketch decompose into, and what is under the click?
+        std::string h;
+        for (size_t r = 0; r < loops.size(); ++r) {
+            h += " loop" + std::to_string(r) + "(ents=" + std::to_string(loops[r].ents.size())
+               + ",poly=" + std::to_string(loops[r].poly.size())
+               + ",holes=" + std::to_string(loops[r].holes.size()) + ")";
+        }
+        dp_pick_trace("sketch feat=%d entities=%zu loops=%zu:%s", d.feature, d.entities.size(),
+                      loops.size(), h.c_str());
+    }
     std::vector<int> ent_region(d.entities.size(), -1);
     for (int r = 0; r < int(loops.size()); ++r)
         for (int ei : loops[r].ents)
@@ -2808,6 +2829,8 @@ void DesignSketchTool::hit_display_sketch(const DisplaySketch& d, const Vec2d& p
             if (h >= 0 && h < int(loops.size()) && point_in_poly(p, loops[h].poly)) { in_hole = true; break; }
         if (!in_hole) { face_feat = d.feature; face_reg = r; }
     }
+    dp_pick_trace("region hit -> feat=%d reg=%d (edge_feat=%d edge_reg=%d)",
+                  face_feat, face_reg, edge_feat, edge_reg);
 }
 
 std::vector<SketchEntity> DesignSketchTool::selected_loop_entities() const
@@ -3270,7 +3293,7 @@ void DesignSketchTool::render_solid_sel(SolidSel kind, int body, int face,
 // Called from render() while no sketch session is active.
 void DesignSketchTool::render_solid_highlight()
 {
-    const ColorRGBA sel_cyan(0.20f, 0.85f, 1.0f, 1.0f);
+    const ColorRGBA sel_cyan = design_selection_color();
 
     // The pre-highlight goes FIRST so the committed selection paints over it where the two
     // overlap — what you HAVE outranks what you would get. Suppressed entirely when they are the
@@ -3285,7 +3308,7 @@ void DesignSketchTool::render_solid_highlight()
         // Desaturated toward white rather than a second hue: a distinct colour would read as a
         // distinct KIND of selection, when it is the same selection one moment earlier.
         render_solid_sel(m_pre.kind, m_pre.body, m_pre.face, m_pre.edge_pts, m_pre.vertex_pt,
-                         ColorRGBA(0.62f, 0.84f, 0.92f, 1.0f), 0.45f);
+                         design_selection_color(), 0.45f);   // hover = the same colour, quieter
 
     render_solid_sel(m_solid_sel, m_sel_body, m_sel_face, m_sel_edge_pts, m_sel_vertex_pt,
                      sel_cyan, 1.0f);
@@ -5837,7 +5860,10 @@ DesignSketchTool::region_loops(const std::vector<SketchEntity>& ents) const
 
 int DesignSketchTool::region_at(const Vec2d& p) const
 {
-    const std::vector<std::vector<Vec2d>> regions = closed_regions();
+    // Walk region_loops (which already knows about holes) rather than the raw polygons: the
+    // returned index must stay meaningful after the sketch is committed, so it has to use the
+    // SAME numbering selected_loop_entities() and hit_display_sketch consume.
+    const std::vector<RegionLoop> regions = region_loops(m_entities);
     auto inside = [](const Vec2d& q, const std::vector<Vec2d>& poly) {
         bool in = false;
         for (size_t i = 0, j = poly.size() - 1; i < poly.size(); j = i++) {
@@ -5849,9 +5875,30 @@ int DesignSketchTool::region_at(const Vec2d& p) const
         }
         return in;
     };
-    for (size_t i = 0; i < regions.size(); ++i)
-        if (inside(p, regions[i])) return int(i);
-    return -1;
+    // Shoelace area (absolute): the SMALLEST loop containing p is the innermost one, which is
+    // the region that actually owns the point — a bore inside a plate resolves to the disc, and
+    // a click on the plate material resolves to the plate even though the disc is also inside it.
+    auto poly_area = [](const std::vector<Vec2d>& q) {
+        double a2 = 0.0;
+        for (size_t i = 0, j = q.size() - 1; i < q.size(); j = i++)
+            a2 += (q[j].x() + q[i].x()) * (q[j].y() - q[i].y());
+        return std::abs(a2) * 0.5;
+    };
+    int    best = -1;
+    double best_area = 0.0;
+    for (size_t i = 0; i < regions.size(); ++i) {
+        if (regions[i].poly.size() < 3) continue;
+        if (!inside(p, regions[i].poly)) continue;
+        bool in_hole = false;   // p inside one of this region's holes → that hole owns it, not us
+        for (int h : regions[i].holes) {
+            if (h < 0 || h >= int(regions.size()) || regions[h].poly.size() < 3) continue;
+            if (inside(p, regions[h].poly)) { in_hole = true; break; }
+        }
+        if (in_hole) continue;
+        const double a = poly_area(regions[i].poly);
+        if (best < 0 || a < best_area) { best = int(i); best_area = a; }
+    }
+    return best;
 }
 
 // ---- rendering --------------------------------------------------------------
@@ -5953,7 +6000,78 @@ std::vector<std::array<unsigned, 3>> ear_clip(const std::vector<Vec2d>& poly)
 }
 } // namespace
 
-// Triangulate a closed boundary polygon and render it as a (blended) filled face.
+// Fill a region that has holes with an EVEN-ODD SCANLINE fill: each horizontal band is scanned
+// across every contour, the crossings sorted, and the spans between alternate crossings emitted
+// as quads. A hole is just two more crossings, so any number of holes and any concavity fall out
+// of the parity rule — no bridge and no triangulation to fail.
+void DesignSketchTool::draw_fill_holed(GLModel& model, const std::vector<Vec2d>& outer,
+                                       const std::vector<std::vector<Vec2d>>& holes,
+                                       const ColorRGBA& color)
+{
+    if (outer.size() < 3) return;
+    if (holes.empty()) { draw_fill(model, outer, color); return; }
+
+    // EVEN-ODD SCANLINE, not a triangulation. The previous version spliced each hole into the
+    // outer contour through a keyhole corridor and ear-clipped the result; the corridor did not
+    // collapse to zero width and was drawn as a visible triangle running from the bore to the
+    // nearest rectangle corner. Rather than tune a bridge that can always find a new shape to
+    // fail on, this fills the region the way a rasteriser would: for each horizontal band, cross
+    // EVERY contour, sort the crossings, and fill between alternate pairs. A hole is simply two
+    // more crossings, so any number of holes and any concavity fall out of the same rule and no
+    // corridor exists to leak.
+    std::vector<const std::vector<Vec2d>*> contours;
+    contours.push_back(&outer);
+    for (const auto& h : holes) if (h.size() >= 3) contours.push_back(&h);
+
+    double ymin = outer[0].y(), ymax = ymin, xmin = outer[0].x(), xmax = xmin;
+    for (const auto* c : contours)
+        for (const Vec2d& v : *c) {
+            ymin = std::min(ymin, v.y()); ymax = std::max(ymax, v.y());
+            xmin = std::min(xmin, v.x()); xmax = std::max(xmax, v.x());
+        }
+    if (ymax - ymin < 1e-9) return;
+
+    // Enough bands that the step is far below a pixel at any sane zoom, cheap enough to rebuild
+    // every frame: this is a translucent highlight, not geometry.
+    const int    ROWS = 256;
+    const double dy   = (ymax - ymin) / ROWS;
+
+    GLModel::Geometry g;
+    g.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
+    unsigned base = 0;
+    std::vector<double> xs;
+    for (int row = 0; row < ROWS; ++row) {
+        const double y0 = ymin + dy * row, y1 = y0 + dy, ym = 0.5 * (y0 + y1);
+        xs.clear();
+        for (const auto* c : contours) {
+            const std::vector<Vec2d>& q = *c;
+            for (size_t i = 0, j = q.size() - 1; i < q.size(); j = i++) {
+                const Vec2d& A = q[i]; const Vec2d& B = q[j];
+                if ((A.y() > ym) == (B.y() > ym)) continue;          // edge does not cross this row
+                xs.push_back(A.x() + (ym - A.y()) * (B.x() - A.x()) / (B.y() - A.y()));
+            }
+        }
+        if (xs.size() < 2) continue;
+        std::sort(xs.begin(), xs.end());
+        for (size_t k = 0; k + 1 < xs.size(); k += 2) {              // even-odd: fill alternate spans
+            const double xa = xs[k], xb = xs[k + 1];
+            if (xb - xa < 1e-9) continue;
+            g.add_vertex((Vec3f)m_plane.to_world(Vec2d(xa, y0)).cast<float>());
+            g.add_vertex((Vec3f)m_plane.to_world(Vec2d(xb, y0)).cast<float>());
+            g.add_vertex((Vec3f)m_plane.to_world(Vec2d(xb, y1)).cast<float>());
+            g.add_vertex((Vec3f)m_plane.to_world(Vec2d(xa, y1)).cast<float>());
+            g.add_triangle(base, base + 1, base + 2);
+            g.add_triangle(base, base + 2, base + 3);
+            base += 4;
+        }
+    }
+    if (base == 0) return;
+    model.reset();
+    model.init_from(std::move(g));
+    model.set_color(color);
+    model.render();
+}
+
 void DesignSketchTool::draw_fill(GLModel& model, const std::vector<Vec2d>& poly, const ColorRGBA& color)
 {
     if (poly.size() < 3) return;
@@ -7576,10 +7694,16 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     // extrude is removed): faces translucent, outlines orange. Each uses its own plane.
     if (!m_display_sketches.empty()) {
         const SketchPlane saved_plane = m_plane;
-        const ColorRGBA dface(0.30f, 0.60f, 1.0f, 0.16f);   // normal translucent face
-        const ColorRGBA sface(0.30f, 0.80f, 1.0f, 0.34f);   // click-selected loop: brighter cyan
+        // CYAN/BLUE MEANS SELECTED — nothing else may wear it. The unselected fill used to be
+        // (0.30,0.60,1.0), one shade off the selected (0.30,0.80,1.0), so an ordinary region
+        // read as picked and a picked one added nothing. The outlines already got this right:
+        // orange for a sketch, cyan for the selection. The fill now follows the same logic, so
+        // an unselected region is faint amber — the sketch's own colour — and every blue thing
+        // on screen is something you selected.
+        const ColorRGBA dface = design_idle_face_color();   // unselected: neutral grey, never the selection colour
+        const ColorRGBA sface = design_selection_color(0.34f);   // selected region
         const ColorRGBA dwire(1.0f, 0.55f, 0.1f, 1.0f);     // normal orange outline
-        const ColorRGBA swire(0.30f, 0.85f, 1.0f, 1.0f);    // click-selected loop: cyan outline
+        const ColorRGBA swire = design_selection_color();        // selected outline
         glsafe(::glEnable(GL_BLEND));
         glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
         for (const DisplaySketch& ds : m_display_sketches) {
@@ -7590,7 +7714,10 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
                 const ColorRGBA* hlc = sketch_hl_color(ds.feature);
                 ColorRGBA fc = sel ? sface : dface;
                 if (hlc && !sel) { fc = *hlc; fc.a(0.20f); }
-                draw_fill(m_fill_model, loops[r].poly, fc);
+                std::vector<std::vector<Vec2d>> hp;
+                for (int h : loops[r].holes)
+                    if (h >= 0 && h < int(loops.size())) hp.push_back(loops[h].poly);
+                draw_fill_holed(m_fill_model, loops[r].poly, hp, fc);
             }
         }
         glsafe(::glDisable(GL_BLEND));
@@ -7718,13 +7845,28 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     // Closed loops fill as translucent faces (the "closed loop = selectable face"
     // affordance). Drawn first so the entity outlines paint over the fill.
     {
-        const std::vector<std::vector<Vec2d>> regions = closed_regions();
-        if (!regions.empty()) {
+        // region_loops(), NOT closed_regions(): the latter returns raw polygons with no notion
+        // of nesting, so a circle drawn inside a rectangle was filled as its own solid disc on
+        // top of a solid rectangle. That is why a live sketch still showed a filled blue circle
+        // however often the COMMITTED renderer below was corrected — these are two separate
+        // renderers and only one of them had been taught about holes.
+        const std::vector<RegionLoop> loops = region_loops(m_entities);
+        if (!loops.empty()) {
             glsafe(::glEnable(GL_BLEND));
             glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-            const ColorRGBA face(0.30f, 0.60f, 1.0f, 0.22f);
-            for (const std::vector<Vec2d>& r : regions)
-                draw_fill(m_fill_model, r, face);
+            // A bore is not a face. Skip loops that are somebody's hole, and cut those holes out
+            // of the region that owns them, so a plate with a hole LOOKS like one while drawing.
+            std::vector<char> is_hole(loops.size(), 0);
+            for (const RegionLoop& L : loops)
+                for (int h : L.holes)
+                    if (h >= 0 && h < int(is_hole.size())) is_hole[h] = 1;
+            for (size_t r = 0; r < loops.size(); ++r) {
+                if (is_hole[r]) continue;
+                std::vector<std::vector<Vec2d>> hp;
+                for (int h : loops[r].holes)
+                    if (h >= 0 && h < int(loops.size())) hp.push_back(loops[h].poly);
+                draw_fill_holed(m_fill_model, loops[r].poly, hp, design_idle_face_color());
+            }
             glsafe(::glDisable(GL_BLEND));
         }
     }
@@ -8723,6 +8865,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         const Linef3 ray8 = canvas.mouse_ray(Point(evt.GetX() + 8, evt.GetY()));
         int    edge_feat = -1, edge_reg = -1, edge_ent = -1; double edge_d = 1e30;  // nearest stroke
         int    face_feat = -1, face_reg = -1;                        // interior (fallback)
+        dp_pick_trace("display sketches available: %zu", m_display_sketches.size());
         for (const DisplaySketch& d : m_display_sketches) {
             const Vec2d p   = d.plane.project(ray.a,  ray.vector());
             const Vec2d p8  = d.plane.project(ray8.a, ray8.vector());
@@ -9239,11 +9382,14 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             } else if (!extend) {
                 // Inside a closed loop (not on an edge/point) → select it as a face
                 // and hand off to the panel, which commits the sketch and extrudes.
-                if (evt.LeftDown() && on_face_selected && region_at(p) >= 0) {
-                    m_selection.clear();
-                    m_point_sel.clear();
-                    on_face_selected();
-                    return true;
+                if (evt.LeftDown() && on_face_selected) {
+                    const int reg = region_at(p);
+                    if (reg >= 0) {
+                        m_selection.clear();
+                        m_point_sel.clear();
+                        on_face_selected(reg);
+                        return true;
+                    }
                 }
                 m_selection.clear();                // clicked empty space
                 m_point_sel.clear();
@@ -9253,8 +9399,12 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             return true;
         }
         if (evt.RightDown()) {
+            // Merely dropping a selection is not a gesture terminator: the m_right_consumed flag
+            // this return value feeds means "the tool USED this right-click", and suppressing the
+            // offer menu on a plain deselection would leave no way to reach the right-click menu
+            // again once any geometry exists. So clear, but hand the click back.
             clear_selection();
-            return true;
+            return false;
         }
         return false;                               // let drag orbit the camera
     }

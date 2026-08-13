@@ -78,12 +78,13 @@ public:
 
     // Sketch selection (Mode::Select).
     void set_on_sketch_selection_changed(std::function<void(int)> cb);
-    void set_on_sketch_face_selected(std::function<void()> cb);  // closed loop clicked
+    void set_on_sketch_face_selected(std::function<void(int)> cb);  // closed loop clicked: region index passed
     void set_on_display_sketch_selected(std::function<void(int, int)> cb);  // committed loop clicked: (feature, region)
     void set_on_display_sketch_activated(std::function<void(int)> cb);      // committed sketch DOUBLE-clicked: edit it
     std::vector<SketchEntity> selected_loop_entities() const;  // entities of the click-selected loop
     std::vector<std::vector<int>> region_entity_indices(const std::vector<SketchEntity>& ents) const;
     void clear_loop_pick();  // drop the click-selected loop highlight (e.g. after extrude)
+    void set_loop_pick(int feature, int region);  // adopt a loop pick made before the commit
     // Solid whole/face/edge selection: point the tool at the bodies + concatenated
     // tessellation (with per-triangle face & body ids), and a callback fired on each
     // whole->face->edge cycle (level, body index, face id, edge id).
@@ -211,6 +212,7 @@ public:
     void set_on_context_menu(std::function<void(const wxPoint&)> cb);
     void delete_selected_sketch_entities();
     bool inline_busy() const;                         // a sketch value field is open (guard keys)
+    bool live_sketch_has_work() const;                // the live sketch holds entities a cancel would destroy
     bool undo_last_sketch_entity();                   // Ctrl+Z in a sketch: drop the last entity
     bool delete_selected_or_last_sketch_entity();     // Delete in a sketch: selected, else last
     void clear_sketch_selection();

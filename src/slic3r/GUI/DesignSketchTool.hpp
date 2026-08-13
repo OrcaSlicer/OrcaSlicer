@@ -30,6 +30,23 @@ class Camera;     // fwd — move_gizmo_arm() sizes the gizmo from the current z
 // accumulate. `finish` commits the whole entity list as one sketch feature;
 // `cancel` aborts. Constrain is a separate legacy mode that operates on a
 // committed profile's points (entity constraints land in a later chunk).
+
+
+// ONE colour means SELECTED — a face, an edge, a vertex, a whole body, a 2D sketch region.
+// Nothing else on screen may wear it. Before this there were four near-identical cyans plus a
+// constant still named sel_gold that had long since become cyan, and the UNSELECTED region fill
+// was blue (0.30,0.60,1.0) — one shade from the selected one — so an ordinary region read as
+// picked. Selection is a state, not a decoration: it gets its own colour and keeps it.
+inline ColorRGBA design_selection_color(float alpha = 1.0f)
+{
+    return ColorRGBA(0.20f, 0.85f, 1.00f, alpha);
+}
+// Unselected geometry — 2D regions and faces — is neutral translucent grey, so the only
+// coloured thing in the viewport is the thing you picked.
+inline ColorRGBA design_idle_face_color()
+{
+    return ColorRGBA(0.72f, 0.76f, 0.80f, 0.14f);
+}
 class DesignSketchTool {
 public:
     enum class Mode { Select, Dimension, Polyline, Line, CornerRect, CenterRect, ObliqueRect,
@@ -70,6 +87,9 @@ public:
     // (Line's existing freeze flag) as the single "inline editor open" gate.
     void set_inline_busy(bool b) { m_awaiting_length = b; }
     bool inline_busy() const { return m_awaiting_length; }   // true while a value field is open
+    // Does the live session hold anything a cancel would throw away? Escape must not silently
+    // destroy drawn geometry; the panel asks this before treating Escape as "discard sketch".
+    bool live_sketch_has_work() const { return !m_entities.empty(); }
     bool constrain_value_anchor(wxPoint& out) const; // screen anchor over the picked constrain geometry
 
     void begin(const SketchPlane& plane, Mode mode = Mode::Polyline);
@@ -179,6 +199,11 @@ public:
     // loops from the committed-sketch overlay).
     std::vector<std::vector<int>> region_entity_indices(const std::vector<SketchEntity>& ents) const;
     void clear_display_pick() { m_display_pick = -1; m_display_pick_region = -1; }
+    // Adopt a loop pick the tool did not make itself. The live-sketch path resolves the region
+    // BEFORE the sketch is committed, so once finish_sketch() has turned it into a display
+    // sketch there is nothing left that would set this — and selected_loop_entities(), which is
+    // what Extrude consumes, reads exactly these two fields.
+    void set_display_pick(int feature, int region) { m_display_pick = feature; m_display_pick_region = region; }
 
     // Visual Extrude gizmo (C5b). The Extrude tool is a DesignPanel docked card, so the
     // sketch tool is NOT active during it; the panel feeds the profile plane + a 2D centroid
@@ -465,6 +490,9 @@ public:
     // Force-close any open inline field (runs its cancel = keep-as-drawn). Used by the polyline
     // terminators (right-click / double-click) to end the chain even mid per-segment edit.
     std::function<void()> on_inline_dismiss;
+    // Accept and close an open inline value field. dismiss() CANCELS; this one keeps the value,
+    // which is what leaving a tool should do — see set_tool().
+    std::function<void()> on_inline_commit;
 
     // Bottom-right viewport readout: emitted each frame with the active tool's current
     // values (live segment length/angle while drawing a line, or the selected entity's
@@ -485,7 +513,7 @@ public:
     std::function<void(const SketchProfile&, const SketchPlane&)> on_commit;
     // Emitted when a closed-loop face is clicked in Select mode (Onshape: a region
     // becomes a selectable face → extrude). The panel commits the sketch + extrudes.
-    std::function<void()> on_face_selected;
+    std::function<void(int)> on_face_selected;   // region index into region_loops(m_entities)
     // Esc pressed while the tool is active: exit/cancel the session (the panel restores
     // Feature mode). Layered: an in-progress entity or a non-Select draw tool is dropped
     // first; a second Esc exits the session.
@@ -797,6 +825,10 @@ private:
     void draw_vertices(GLModel& model, const std::vector<Vec2d>& pts, const ColorRGBA& color,
                        double half_size = 1.3);
     void draw_fill(GLModel& model, const std::vector<Vec2d>& poly, const ColorRGBA& color);
+    // Same, with the region's holes cut out, so a selected plate-with-a-hole is drawn as an
+    // ANNULUS instead of a filled rectangle painted straight across its own bore.
+    void draw_fill_holed(GLModel& model, const std::vector<Vec2d>& outer,
+                         const std::vector<std::vector<Vec2d>>& holes, const ColorRGBA& color);
     const ColorRGBA* sketch_hl_color(int feature) const;
 
     bool                m_active{false};

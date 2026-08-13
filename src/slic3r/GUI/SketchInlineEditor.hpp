@@ -31,6 +31,7 @@ public:
               std::function<void()> on_cancel);
     void close();
     void cancel();                       // if open, run the registered cancel (keep-as-drawn)
+    void commit();                       // if open, run the registered commit (accept the typed value)
     bool is_open() const { return m_open; }
 
 private:

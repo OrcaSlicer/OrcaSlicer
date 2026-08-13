@@ -137,6 +137,13 @@ void SketchInlineEditor::cancel()
     if (m_open) do_cancel();
 }
 
+// Accept what is typed and close. Leaving a tool must not silently discard the value the user
+// just entered — the same rule set_tool already follows for a ready edit-op.
+void SketchInlineEditor::commit()
+{
+    if (m_open) do_commit();
+}
+
 void SketchInlineEditor::do_cancel()
 {
     if (!m_open) return;
