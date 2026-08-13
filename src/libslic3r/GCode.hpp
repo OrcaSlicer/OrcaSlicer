@@ -129,12 +129,18 @@ public:
 
 private:
     WipeTowerIntegration& operator=(const WipeTowerIntegration&);
-    std::string append_tcr(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
+    std::string append_tcr(
+        GCode& gcodegen, const WipeTower::ToolChangeResult& tcr, int new_filament_id, size_t tool_change_idx, double z = -1.) const;
     Polyline generate_path_to_wipe_tower(const Point &start_pos, const Point &end_pos, const BoundingBox &avoid_polygon, const Polygons &bed_polygons) const;
     std::string append_tcr2(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
     std::string travel_to_tower_gap(GCode &gcodegen, const Point &route_start, const Point &start_wipe_pos) const;
     Vec2f transform_wt2_pt(const Vec2f &pt) const;
     Polygons shared_printable_area(GCode &gcodegen) const;
+    bool physical_extruder_used_after_toolchange(const FullPrintConfig& config,
+                                                 int old_physical_extruder_id,
+                                                 int new_physical_extruder_id,
+                                                 size_t layer_idx,
+                                                 size_t tool_change_idx) const;
 
     // Postprocesses gcode: rotates and moves G1 extrusions and returns result
     std::string post_process_wipe_tower_moves(const WipeTower::ToolChangeResult& tcr, const Vec2f& translation, float angle) const;

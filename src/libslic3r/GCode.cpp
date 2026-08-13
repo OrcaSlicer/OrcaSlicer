@@ -226,6 +226,128 @@ static std::vector<std::string> get_nozzle_volume_types_by_nozzle_id(const Multi
     return volume_types;
 }
 
+static int hotend_id_for_temperature_gcode(const FullPrintConfig& config, int hotend_id)
+{
+    if (hotend_id >= 0 && hotend_id < static_cast<int>(config.physical_extruder_map.values.size()))
+        return config.physical_extruder_map.get_at(hotend_id);
+    return hotend_id;
+}
+
+static bool temperature_gcode_needs_physical_extruder_id(const FullPrintConfig& config)
+{
+    return config.single_extruder_multi_material.value && has_multiple_physical_extruders(config);
+}
+
+static int physical_extruder_id_for_filament(const FullPrintConfig& config, int filament_id)
+{
+    if (filament_id < 0)
+        return -1;
+
+    return hotend_id_for_temperature_gcode(config, static_cast<int>(get_extruder_index(config, static_cast<unsigned int>(filament_id))));
+}
+
+static std::string post_start_physical_extruder_idle_gcode(const FullPrintConfig& config,
+                                                           Print& print,
+                                                           const ToolOrdering& tool_ordering,
+                                                           unsigned int initial_filament_id)
+{
+    if (!config.ooze_prevention.value || !temperature_gcode_needs_physical_extruder_id(config) || tool_ordering.empty())
+        return std::string();
+
+    const int initial_physical_extruder_id = physical_extruder_id_for_filament(config, initial_filament_id);
+    if (initial_physical_extruder_id < 0)
+        return std::string();
+
+    struct FirstUse
+    {
+        unsigned int filament_id = 0;
+        size_t layer_idx         = size_t(-1);
+    };
+
+    std::map<int, FirstUse> first_use_by_physical_extruder;
+    size_t first_print_layer_idx = size_t(-1);
+    size_t layer_idx             = 0;
+    for (auto layer_it = tool_ordering.begin(); layer_it != tool_ordering.end(); ++layer_it, ++layer_idx) {
+        if (layer_it->extruders.empty())
+            continue;
+
+        if (first_print_layer_idx == size_t(-1))
+            first_print_layer_idx = layer_idx;
+
+        for (unsigned int filament_id : layer_it->extruders) {
+            const int physical_extruder_id = physical_extruder_id_for_filament(config, filament_id);
+            if (physical_extruder_id >= 0 &&
+                first_use_by_physical_extruder.find(physical_extruder_id) == first_use_by_physical_extruder.end())
+                first_use_by_physical_extruder.emplace(physical_extruder_id, FirstUse{filament_id, layer_idx});
+        }
+    }
+
+    if (first_print_layer_idx == size_t(-1))
+        return std::string();
+
+    std::vector<int> physical_extruder_ids;
+    for (int physical_extruder_id : config.physical_extruder_map.values) {
+        if (physical_extruder_id >= 0 &&
+            std::find(physical_extruder_ids.begin(), physical_extruder_ids.end(), physical_extruder_id) == physical_extruder_ids.end())
+            physical_extruder_ids.push_back(physical_extruder_id);
+    }
+
+    std::string gcode;
+    for (int physical_extruder_id : physical_extruder_ids) {
+        if (physical_extruder_id == initial_physical_extruder_id)
+            continue;
+
+        const auto first_use = first_use_by_physical_extruder.find(physical_extruder_id);
+        if (first_use == first_use_by_physical_extruder.end()) {
+            gcode += GCodeWriter::set_temperature(0, config.gcode_flavor, false, physical_extruder_id, "turn off unused hotend");
+            continue;
+        }
+
+        if (first_use->second.layer_idx == first_print_layer_idx)
+            continue;
+
+        const int idle_temp = config.idle_temperature.get_at(first_use->second.filament_id);
+        if (idle_temp > 0)
+            gcode += GCodeWriter::set_temperature(idle_temp, config.gcode_flavor, false, physical_extruder_id, "cooldown before first use");
+        else if (config.standby_temperature_delta.value != 0) {
+            const int filament_config_index = print.get_filament_config_indx(static_cast<int>(first_use->second.filament_id),
+                                                                             static_cast<int>(first_use->second.layer_idx));
+            const int target_temp = config.nozzle_temperature.get_at(filament_config_index) + config.standby_temperature_delta.value;
+            gcode += GCodeWriter::set_temperature(std::max(0, target_temp), config.gcode_flavor, false, physical_extruder_id,
+                                                  "cooldown before first use");
+        }
+    }
+
+    return gcode;
+}
+
+static std::string physical_extruder_standby_gcode(const FullPrintConfig& config,
+                                                   int old_filament_id,
+                                                   int old_physical_extruder_id,
+                                                   int new_physical_extruder_id,
+                                                   int old_filament_temp,
+                                                   bool old_physical_extruder_used_later)
+{
+    if (!config.ooze_prevention.value || !temperature_gcode_needs_physical_extruder_id(config) || old_filament_id < 0 ||
+        old_physical_extruder_id < 0 || new_physical_extruder_id < 0)
+        return std::string();
+
+    if (old_physical_extruder_id == new_physical_extruder_id)
+        return std::string();
+
+    if (!old_physical_extruder_used_later)
+        return GCodeWriter::set_temperature(0, config.gcode_flavor, false, old_physical_extruder_id, "turn off unused hotend");
+
+    int temp = config.idle_temperature.get_at(static_cast<unsigned int>(old_filament_id));
+    if (temp == 0) {
+        if (config.standby_temperature_delta.value == 0)
+            return std::string();
+        temp = old_filament_temp + config.standby_temperature_delta.value;
+    }
+
+    return GCodeWriter::set_temperature(temp, config.gcode_flavor, false, old_physical_extruder_id, "cooldown");
+}
+
 Vec2d travel_point_1;
 Vec2d travel_point_2;
 Vec2d travel_point_3;
@@ -390,21 +512,28 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     {
         std::string gcode;
 
-        unsigned int extruder_id = gcodegen.writer().filament()->id();
+        unsigned int filament_id            = gcodegen.writer().filament()->id();
+        const bool use_physical_extruder_id = temperature_gcode_needs_physical_extruder_id(gcodegen.config());
+        int tool_id                         = use_physical_extruder_id ?
+                                                  hotend_id_for_temperature_gcode(gcodegen.config(), static_cast<int>(gcodegen.writer().filament()->extruder_id())) :
+                                                  static_cast<int>(filament_id);
         const auto& filament_idle_temp = gcodegen.config().idle_temperature;
-        if (filament_idle_temp.get_at(extruder_id) == 0) {
+        if (filament_idle_temp.get_at(filament_id) == 0) {
             // There is no idle temperature defined in filament settings.
             // Use the delta value from print config.
             if (gcodegen.config().standby_temperature_delta.value != 0) {
                 // we assume that heating is always slower than cooling, so no need to block
-                gcode += gcodegen.writer().set_temperature
-                (this->_get_temp(gcodegen) + gcodegen.config().standby_temperature_delta.value, false, extruder_id);
+                int temp = this->_get_temp(gcodegen) + gcodegen.config().standby_temperature_delta.value;
+                gcode += use_physical_extruder_id ? GCodeWriter::set_temperature(temp, gcodegen.config().gcode_flavor, false, tool_id) :
+                                                    gcodegen.writer().set_temperature(temp, false, tool_id);
                 gcode.pop_back();
                 gcode += " ;cooldown\n"; // this is a marker for GCodeProcessor, so it can supress the commands when needed
             }
         } else {
             // Use the value from filament settings. That one is absolute, not delta.
-            gcode += gcodegen.writer().set_temperature(filament_idle_temp.get_at(extruder_id), false, extruder_id);
+            gcode += use_physical_extruder_id ? GCodeWriter::set_temperature(filament_idle_temp.get_at(filament_id),
+                                                                             gcodegen.config().gcode_flavor, false, tool_id) :
+                                                gcodegen.writer().set_temperature(filament_idle_temp.get_at(filament_id), false, tool_id);
             gcode.pop_back();
             gcode += " ;cooldown\n"; // this is a marker for GCodeProcessor, so it can supress the commands when needed
         }
@@ -414,9 +543,17 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
     std::string OozePrevention::post_toolchange(GCode& gcodegen)
     {
-        return (gcodegen.config().standby_temperature_delta.value != 0) ?
-            gcodegen.writer().set_temperature(this->_get_temp(gcodegen), true, gcodegen.writer().filament()->id()) :
-            std::string();
+        if (gcodegen.config().standby_temperature_delta.value == 0)
+            return std::string();
+
+        unsigned int filament_id            = gcodegen.writer().filament()->id();
+        const bool use_physical_extruder_id = temperature_gcode_needs_physical_extruder_id(gcodegen.config());
+        int tool_id                         = use_physical_extruder_id ?
+                                                  hotend_id_for_temperature_gcode(gcodegen.config(), static_cast<int>(gcodegen.writer().filament()->extruder_id())) :
+                                                  static_cast<int>(filament_id);
+        return use_physical_extruder_id ?
+                   GCodeWriter::set_temperature(this->_get_temp(gcodegen), gcodegen.config().gcode_flavor, true, tool_id) :
+                   gcodegen.writer().set_temperature(this->_get_temp(gcodegen), true, tool_id);
     }
 
     int OozePrevention::_get_temp(const GCode &gcodegen) const
@@ -962,12 +1099,38 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return gcode;
     }
 
-    std::string WipeTowerIntegration::append_tcr(GCode& gcodegen, const WipeTower::ToolChangeResult& tcr, int new_filament_id, double z) const
+    bool WipeTowerIntegration::physical_extruder_used_after_toolchange(const FullPrintConfig& config,
+                                                                       int old_physical_extruder_id,
+                                                                       int new_physical_extruder_id,
+                                                                       size_t layer_idx,
+                                                                       size_t tool_change_idx) const
+    {
+        if (!temperature_gcode_needs_physical_extruder_id(config))
+            return true;
+
+        if (old_physical_extruder_id < 0 || new_physical_extruder_id < 0 || old_physical_extruder_id == new_physical_extruder_id)
+            return true;
+
+        for (size_t future_layer_idx = layer_idx; future_layer_idx < m_tool_changes.size(); ++future_layer_idx) {
+            const std::vector<WipeTower::ToolChangeResult>& layer_tool_changes = m_tool_changes[future_layer_idx];
+            const size_t first_tool_change_idx                                 = future_layer_idx == layer_idx ? tool_change_idx + 1 : 0;
+            for (size_t future_tool_change_idx = first_tool_change_idx; future_tool_change_idx < layer_tool_changes.size();
+                 ++future_tool_change_idx)
+                if (physical_extruder_id_for_filament(config, layer_tool_changes[future_tool_change_idx].new_tool) ==
+                    old_physical_extruder_id)
+                    return true;
+        }
+
+        return false;
+    }
+
+    std::string WipeTowerIntegration::append_tcr(
+        GCode& gcodegen, const WipeTower::ToolChangeResult& tcr, int new_filament_id, size_t tool_change_idx, double z) const
     {
         if (new_filament_id != -1 && new_filament_id != tcr.new_tool)
             throw Slic3r::InvalidArgument("Error: WipeTowerIntegration::append_tcr was asked to do a toolchange it didn't expect.");
 
-        int new_extruder_id = get_extruder_index(*m_print_config, new_filament_id);
+        int new_extruder_id = new_filament_id >= 0 ? static_cast<int>(get_extruder_index(*m_print_config, new_filament_id)) : -1;
 
         // Logical nozzle grouping for this print (null on paths that don't populate it).
         auto group_result = gcodegen.m_print->get_layered_nozzle_group_result();
@@ -1096,11 +1259,27 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         end_filament_gcode_str = toolchange_retract_str + object_end_label_temp + end_filament_gcode_str;
 
         std::string wipe_next_start_point_str;
-        bool        need_travel_after_change_filament_gcode = false; // travel need be after the filament changed to get the correct "m_curr_extruder_id"
+        // Travel must happen after changing filament to get the correct m_curr_extruder_id.
+        bool need_travel_after_change_filament_gcode = false;
+
+        const bool has_old_filament = gcodegen.writer().filament() != nullptr;
+        int old_filament_id         = has_old_filament ? static_cast<int>(gcodegen.writer().filament()->id()) : -1;
+        int old_extruder_id         = has_old_filament ? static_cast<int>(gcodegen.writer().filament()->extruder_id()) : -1;
+        int old_filament_temp       = 210;
+        if (old_filament_id != -1) {
+            const size_t old_filament_config_index = gcodegen.get_filament_config_index(old_filament_id);
+            old_filament_temp                      = gcodegen.on_first_layer() ?
+                                                         gcodegen.config().nozzle_temperature_initial_layer.get_at(old_filament_config_index) :
+                                                         gcodegen.config().nozzle_temperature.get_at(old_filament_config_index);
+        }
+        const int old_physical_extruder_id          = hotend_id_for_temperature_gcode(gcodegen.config(), old_extruder_id);
+        const int new_physical_extruder_id          = hotend_id_for_temperature_gcode(gcodegen.config(), new_extruder_id);
+        const bool old_physical_extruder_used_later = physical_extruder_used_after_toolchange(gcodegen.config(), old_physical_extruder_id,
+                                                                                              new_physical_extruder_id,
+                                                                                              static_cast<size_t>(m_layer_idx),
+                                                                                              tool_change_idx);
         if (! change_filament_gcode.empty()) {
             DynamicConfig config;
-            int old_filament_id = gcodegen.writer().filament() ? (int)gcodegen.writer().filament()->id() : -1;
-            int old_extruder_id = gcodegen.writer().filament() ? (int)gcodegen.writer().filament()->extruder_id() : -1;
             // Logical nozzle ids for old/new filament (null-safe -> extruder id).
             int old_nozzle_id  = nozzle_id_for_gcode_placeholder(group_result, old_filament_id, old_extruder_id, m_layer_idx);
             int next_nozzle_id = nozzle_id_for_gcode_placeholder(group_result, new_filament_id, new_extruder_id, m_layer_idx);
@@ -1152,7 +1331,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 float new_retract_length = full_config.retraction_length.get_at(new_fi);
                 float old_retract_length_toolchange = (old_filament_id != -1) ? full_config.retract_length_toolchange.get_at(old_fi) : 0;
                 float new_retract_length_toolchange = full_config.retract_length_toolchange.get_at(new_fi);
-                int old_filament_temp = (old_filament_id != -1) ? (gcodegen.on_first_layer()? full_config.nozzle_temperature_initial_layer.get_at(old_fi) : full_config.nozzle_temperature.get_at(old_fi)) : 210;
                 int new_filament_temp = gcodegen.on_first_layer() ? full_config.nozzle_temperature_initial_layer.get_at(new_fi) : full_config.nozzle_temperature.get_at(new_fi);
                 Vec3d nozzle_pos = gcode_writer.get_position();
 
@@ -1321,6 +1499,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         else {
             // We have informed the m_writer about the current extruder_id, we can ignore the generated G-code.
         }
+        toolchange_gcode_str += physical_extruder_standby_gcode(gcodegen.config(), old_filament_id, old_physical_extruder_id,
+                                                                new_physical_extruder_id, old_filament_temp,
+                                                                old_physical_extruder_used_later);
 
         if (need_travel_after_change_filament_gcode) {
             // move to start_pos for wiping after toolchange
@@ -1936,8 +2117,11 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height;
             }
 
+            // Last-use physical hotend shutdown is handled in this Type1 path; Type2 is currently disabled for BBL printers.
             if ((m_enable_timelapse_print || m_enable_wrapping_detection) && m_is_first_print) {
-                gcode += append_tcr(gcodegen, m_tool_changes[m_layer_idx][0], m_tool_changes[m_layer_idx][0].new_tool, wipe_tower_z);
+                const size_t tool_change_idx           = 0;
+                const WipeTower::ToolChangeResult& tcr = m_tool_changes[m_layer_idx][tool_change_idx];
+                gcode += append_tcr(gcodegen, tcr, tcr.new_tool, tool_change_idx, wipe_tower_z);
                 m_tool_change_idx++;
                 m_is_first_print = false;
             }
@@ -1947,7 +2131,10 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     throw Slic3r::RuntimeError("Wipe tower generation failed, possibly due to empty first layer.");
 
                 if (!ignore_sparse) {
-                    gcode += append_tcr(gcodegen, m_tool_changes[m_layer_idx][m_tool_change_idx++], extruder_id, wipe_tower_z);
+                    const size_t tool_change_idx           = static_cast<size_t>(m_tool_change_idx);
+                    const WipeTower::ToolChangeResult& tcr = m_tool_changes[m_layer_idx][tool_change_idx];
+                    gcode += append_tcr(gcodegen, tcr, extruder_id, tool_change_idx, wipe_tower_z);
+                    ++m_tool_change_idx;
                     m_last_wipe_tower_print_z = wipe_tower_z;
                 }
             }
@@ -2705,9 +2892,10 @@ namespace DoExport {
 #endif
 
     static void init_ooze_prevention(const Print &print, OozePrevention &ooze_prevention)
-	{
-	    ooze_prevention.enable = print.config().ooze_prevention.value && ! print.config().single_extruder_multi_material;
-	}
+    {
+        ooze_prevention.enable = print.config().ooze_prevention.value &&
+                                 (!print.config().single_extruder_multi_material.value || has_multiple_physical_extruders(print.config()));
+    }
 
     // Count tool/filament changes across the print from the tool ordering. Used as a fallback when no
     // wipe tower populated WipeTowerData::number_of_toolchanges (left at -1). Covers non-sequential
@@ -3709,6 +3897,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     if (is_bbl_printers) {
         this->_print_first_layer_extruder_temperatures(file, print, machine_start_gcode, initial_extruder_id, true);
     }
+
+    // Start G-code may leave unused physical hotends at a preparation temperature. Once the start sequence is done,
+    // apply ooze-prevention idle policy to physical hotends that are not needed on the first printed layer.
+    file.write(post_start_physical_extruder_idle_gcode(m_config, print, tool_ordering, initial_extruder_id));
 
     // Orca: when air filtration is supported, check if it needs to be activated during printing and set the exhaust fan speed accordingly
     if (m_config.support_air_filtration.value) {
