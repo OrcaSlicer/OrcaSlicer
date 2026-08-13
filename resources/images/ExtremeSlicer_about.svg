@@ -1,6 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="500" height="180" viewBox="0 0 500 180" role="img" aria-label="Extreme Slicer">
   <rect width="500" height="180" rx="22" fill="#18242c"/>
-  <g transform="translate(20 20) scale(.55)"><path d="M128 14 229 72v112l-101 58L27 184V72z" fill="#18242c" stroke="#38d6c4" stroke-width="10" stroke-linejoin="round"/><path d="m128 43 69 40v80l-69 40-69-40V83z" fill="none" stroke="#e6fbf8" stroke-opacity=".85" stroke-width="6" stroke-linejoin="round"/><path d="M145 39 91 128h38l-18 89 55-108h-38z" fill="#ffb52e" stroke="#fff2b2" stroke-width="4" stroke-linejoin="round"/></g>
-  <text x="168" y="105" fill="#f4fffd" font-family="Segoe UI, sans-serif" font-size="35" font-weight="700">Extreme Slicer</text>
-  <text x="171" y="132" fill="#8edbd2" font-family="Segoe UI, sans-serif" font-size="14" letter-spacing="2">CUDA · VULKAN · EXACT CPU</text>
+  <g transform="translate(20 20) scale(.55)">
+    <rect x="8" y="8" width="240" height="240" rx="52" fill="#0d171c" stroke="#43d8c7" stroke-width="6"/>
+    <g transform="translate(38 38) scale(2.82)">
+      <path d="M13.84 50.354a19.7 19.7 0 0 0 13.883 5.79A19.944 19.944 0 0 0 41.858 22.182Z" fill="#292826"/>
+      <path d="m41.858 22.181-28.018 28.173.061.059a220.548 220.548 0 0 0 32.477-21.136 19.964 19.964 0 0 0-4.52-7.096" fill="#00aa9b"/>
+      <path d="M36.381 7.856A19.943 19.943 0 0 0 22.327 41.818L50.345 13.646A19.693 19.693 0 0 0 36.381 7.856" fill="#292826"/>
+      <path d="M36.381 7.856a19.636 19.636 0 0 0-10.341 2.926 22.742 22.742 0 0 0-5.91-.745 23.084 23.084 0 0 0-9.477 2.124.632.632 0 0 0 .129 1.191 13.52 13.52 0 0 1 8.069 5.137 20.06 20.06 0 0 0 .396 15.045 19.873 19.873 0 0 1 2-3.488c1.819-2.5 3.743-3.8 6.585-5.723 2.093-1.416 5-3.077 13.359-6.512a28.421 28.421 0 0 0 6.12-2.821c1.4-.831 2.461-1.615 2.8-2.842.024-.086.045-.172.065-.256A19.655 19.655 0 0 0 36.381 7.856" fill="#262523"/>
+      <path d="M39.69 14.551c.727 1.285-.728 3.495-3.249 4.937s-5.154 1.569-5.88.284.727-3.495 3.248-4.937 5.154-1.569 5.881-.284" fill="#fff"/>
+    </g>
+    <path d="m205 159-27 43h20l-10 33 38-51h-22l14-25z" fill="#ffb52e" stroke="#fff2ad" stroke-width="3" stroke-linejoin="round"/>
+  </g>
+  <text x="168" y="103" fill="#f4fffd" font-family="Segoe UI, sans-serif" font-size="35" font-weight="700">Extreme Slicer</text>
+  <text x="171" y="131" fill="#8edbd2" font-family="Segoe UI, sans-serif" font-size="14" letter-spacing="2">CUDA &#x2022; VULKAN &#x2022; EXACT CPU</text>
 </svg>
