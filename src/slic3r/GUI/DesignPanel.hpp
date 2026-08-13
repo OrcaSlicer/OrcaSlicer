@@ -272,6 +272,11 @@ private:
     void       update_fillet_gizmo();     // edge-anchored radius arrow (Dressup card)
     void       sync_dressup_target();     // Dressup card: show picked edge vs group, gate the combo
     void       update_hole_gizmo();       // footprint circle + diameter/depth arrows (Hole card)
+    // A FEATURE button whose tool needs bodies it may not have yet. Greyed with an explanatory
+    // tooltip below min_bodies, rather than accepting the click and refusing afterwards.
+    struct BodyGate { wxWindow* btn{nullptr}; int min_bodies{1}; wxString tip_live, tip_gated; };
+    std::vector<BodyGate> m_body_gates;
+    void       update_body_gates();       // re-evaluate them against the current body count
     void       update_thread_gizmo();     // footprint circle + radius/length arrows (Thread card)
     void       update_shell_gizmo();      // inward thickness arrow on the picked face (Shell card)
     void       update_revolve_gizmo();    // angle-arc around the axis (Revolve card)

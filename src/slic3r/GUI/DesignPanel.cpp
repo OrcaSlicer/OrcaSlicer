@@ -751,6 +751,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         b_pattern->Bind(wxEVT_BUTTON, [act_pattern](wxCommandEvent&) { act_pattern(); });
         m_keys_feature[SHIFT('N')] = act_pattern;
         fadd("pattern", b_pattern);
+        m_body_gates.push_back({b_pattern, 1, b_pattern->GetToolTipText(),
+                                _L("Pattern — needs a solid body to replicate")});
 
         // Surface: sheet-body tools (extrude / revolve / loft / fill / offset / thicken)
         // The drawer BUTTON is design_surface, not design_extrude: sharing a face with the
@@ -949,6 +951,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         b_boolean->Bind(wxEVT_BUTTON, [act_boolean](wxCommandEvent&) { act_boolean(); });
         m_keys_feature[SHIFT('B')] = act_boolean;
         fadd("boolean", b_boolean);
+        m_body_gates.push_back({b_boolean, 2, b_boolean->GetToolTipText(),
+                                _L("Boolean — needs two solid bodies to combine")});
 
         auto* b_cut = icon_btn("design_cut", _L("Cut (split a body with a plane)"));
         std::function<void()> act_cut = [this] {
@@ -966,6 +970,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         b_cut->Bind(wxEVT_BUTTON, [act_cut](wxCommandEvent&) { act_cut(); });
         m_keys_feature[SHIFT('X')] = act_cut;
         fadd("cut", b_cut);
+        m_body_gates.push_back({b_cut, 1, b_cut->GetToolTipText(),
+                                _L("Cut — needs a solid body to slice")});
 
         // Color — override the selected body's display colour (per-body, survives recompute).
         auto* b_color = icon_btn("color_palette", _L("Color — set the selected body's display colour"));
@@ -1559,6 +1565,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
     tbrow->Add(m_tb_action,    0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, 5);
     tbrow->AddSpacer(8);
     m_toolbar->SetSizer(tbrow);
+    // Apply the body gates once now: an empty document is exactly the state the bug was reported
+    // in, and feed_bodies() has not run yet on a fresh tab.
+    update_body_gates();
 
     // Onshape-style dialog-card header: feature icon + bold title. out receives
     // the title control so open_tool() can retitle it per feature.
@@ -6278,6 +6287,9 @@ void DesignPanel::rebuild_disp_meshes()
 
 void DesignPanel::feed_bodies()
 {
+    // The body count just changed, so the tools that consume a body may have become reachable or
+    // unreachable. Before the early return below: the gating is about the toolbar, not the canvas.
+    update_body_gates();
     // Rebuild the transformed meshes first so every display-refresh path (recompute, tint,
     // visibility, live move) shows the bodies at their current Move offsets. The solid-pick
     // keeps a STABLE pointer to m_disp_pick_mesh / m_body_visible / m_body_xform (rebuilt in
@@ -8930,6 +8942,31 @@ void DesignPanel::update_fillet_gizmo()
 }
 
 // Push the active Hole card's plane + position + diameter/depth to the viewport gizmo.
+// Grey the FEATURE buttons whose tool cannot run yet, and say why in the tooltip (snaporca-o9j).
+// Tommaso reported the array controls as MISSING; they were not, but Pattern with no body
+// accepted the click, opened nothing, and wrote its refusal somewhere other than where the click
+// happened — from the user's seat that is indistinguishable from a dead button. A control that
+// cannot act should look like it cannot act, before it is pressed.
+//
+// Only the three top-level buttons that carry a body-count guard are gated. The same guard also
+// appears on rows INSIDE the flyouts, and those stay live: a drawer holds sketch-only entries too,
+// so disabling the drawer would hide tools that are perfectly usable. Their refusal message is
+// still written, and now next to the geometry.
+//
+// The keyboard shortcuts (Shift+N / Shift+X / Shift+B) deliberately keep running the guarded
+// action rather than being gated: a key press has no greyed-out state to see, so the sentence is
+// the only feedback there is.
+void DesignPanel::update_body_gates()
+{
+    const int n = int(m_doc.bodies.size());
+    for (const BodyGate& g : m_body_gates) {
+        if (g.btn == nullptr) continue;
+        const bool live = n >= g.min_bodies;
+        g.btn->Enable(live);
+        g.btn->SetToolTip(live ? g.tip_live : g.tip_gated);
+    }
+}
+
 // Self-gates: clears the gizmo unless the Hole card is open.
 void DesignPanel::update_hole_gizmo()
 {
