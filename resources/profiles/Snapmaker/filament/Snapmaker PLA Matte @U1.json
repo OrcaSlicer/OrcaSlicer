@@ -27,7 +27,7 @@
 		"0"
 	],
 	"additional_cooling_fan_speed": [
-		"70"
+		"80"
 	],
 	"chamber_temperature": [
 		"0"
@@ -47,9 +47,6 @@
 	"cool_plate_temp_initial_layer": [
 		"60"
 	],
-	"default_filament_colour": [
-		""
-	],
 	"dont_slow_down_outer_wall": [
 		"0"
 	],
@@ -60,7 +57,7 @@
 		"1"
 	],
 	"enable_pressure_advance": [
-		"1"
+		"0"
 	],
 	"eng_plate_temp": [
 		"60"
@@ -102,7 +99,7 @@
 		"; filament end gcode \n"
 	],
 	"filament_flow_ratio": [
-		"1.01"
+		"1"
 	],
 	"filament_is_support": [
 		"0"
@@ -117,7 +114,7 @@
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"20"
+		"22"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
@@ -139,6 +136,9 @@
 	],
 	"filament_retract_before_wipe": [
 		"nil"
+	],
+	"filament_retract_length_toolchange": [
+		"5"
 	],
 	"filament_retract_lift_above": [
 		"nil"
@@ -216,19 +216,19 @@
 		"0"
 	],
 	"hot_plate_temp": [
-		"55"
+		"65"
 	],
 	"hot_plate_temp_initial_layer": [
-		"55"
+		"65"
 	],
 	"idle_temperature": [
 		"0"
 	],
 	"nozzle_temperature": [
-		"220"
+		"215"
 	],
 	"nozzle_temperature_initial_layer": [
-		"220"
+		"215"
 	],
 	"nozzle_temperature_range_high": [
 		"240"
@@ -276,9 +276,9 @@
 		"40"
 	],
 	"textured_plate_temp": [
-		"60"
+		"65"
 	],
 	"textured_plate_temp_initial_layer": [
-		"60"
+		"65"
 	]
 }

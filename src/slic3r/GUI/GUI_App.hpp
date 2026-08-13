@@ -365,8 +365,13 @@ public:
     HMSQuery* get_hms_query() { return hms_query; }
     NetworkAgent* getAgent() { return m_agent; }
 
-    // Dynamic printer agent switching
+    // Reconcile the live printer agent with the stored preset selection.
     void switch_printer_agent();
+
+    std::string resolve_printer_agent_id(const std::string& stored_id);
+    // ORCA TODO: in the future, bbl presets should specify "bbl" printer agent id
+    // then, all resolve and canonical would just be ORCA<->""
+    std::string canonical_printer_agent_id(const std::string& picked_id);
 
     FilamentColorCodeQuery* get_filament_color_code_query();
     bool is_editor() const { return m_app_mode == EAppMode::Editor; }
@@ -797,6 +802,11 @@ private:
     void            window_pos_sanitize(wxTopLevelWindow* window);
     void            window_pos_center(wxTopLevelWindow *window);
     bool            select_language();
+
+    // Dynamic printer agent selection - internal helpers for switch_printer_agent
+    // and the plugin load/unload callbacks (init_plugin_gui_wiring).
+    void refresh_printer_agent_dropdown();
+    void set_live_printer_agent(std::shared_ptr<IPrinterAgent> agent); // null clears the selection
 
     bool            config_wizard_startup();
 	void            check_updates(const bool verbose);

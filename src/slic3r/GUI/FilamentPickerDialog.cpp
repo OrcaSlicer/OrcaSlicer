@@ -105,9 +105,8 @@ FilamentPickerDialog::FilamentPickerDialog(wxWindow *parent, const wxString& fil
     container_sizer->Add(main_sizer, 1, wxEXPAND | wxALL, FromDIP(10));
     container_sizer->Add(dlg_btns, 0, wxEXPAND);
 
-    SetSizer(container_sizer);
+    SetSizerAndFit(container_sizer);
     Layout();
-    container_sizer->Fit(this);
 
     // Position the dialog relative to the parent window
     if (GetParent()) {

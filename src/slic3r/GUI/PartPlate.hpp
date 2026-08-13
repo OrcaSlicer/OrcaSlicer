@@ -425,6 +425,9 @@ public:
     const BoundingBox get_bounding_box_crd();
     BoundingBoxf3 get_plate_box() {return get_build_volume();}
     BoundingBoxf3 get_build_volume(bool use_share = false);
+    // Polygon counterpart of get_build_volume(true), in scaled world coordinates. The bounding box
+    // that one returns hides the corners a non-rectangular bed does not have.
+    Polygon get_shared_printable_polygon() const;
 
     const std::vector<BoundingBoxf3>& get_exclude_areas() { return m_exclude_bounding_box; }
 

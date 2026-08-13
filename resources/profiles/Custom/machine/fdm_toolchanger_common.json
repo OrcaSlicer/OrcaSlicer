@@ -6,6 +6,7 @@
 	"instantiation": "false",
 	"gcode_flavor": "klipper",
 	"single_extruder_multi_material": "0",
+	"wait_for_temp_on_wipe_tower": "1",
 	"default_filament_profile": [
 		"Generic PLA @MyToolChanger"
 	],
@@ -172,11 +173,11 @@
 		"0.4"
 	],
 	"z_hop_types": [
-		"Normal Lift",
-		"Normal Lift",
-		"Normal Lift",
-		"Normal Lift",
-		"Normal Lift"
+		"Slope Lift",
+		"Slope Lift",
+		"Slope Lift",
+		"Slope Lift",
+		"Slope Lift"
 	],
 	"purge_in_prime_tower": "0",
 	"machine_pause_gcode": "M601",

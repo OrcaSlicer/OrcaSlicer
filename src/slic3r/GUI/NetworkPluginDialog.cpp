@@ -47,6 +47,7 @@ NetworkPluginDownloadDialog::NetworkPluginDownloadDialog(wxWindow* parent, Mode 
     } else {
         create_missing_plugin_ui();
     }
+    main_sizer->SetSizeHints(this);
     Layout();
     Fit();
     CentreOnParent();

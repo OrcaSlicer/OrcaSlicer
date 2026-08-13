@@ -1,0 +1,41 @@
+{
+	"type": "filament",
+	"name": "Snapmaker PLA SnapSpeed @U1 0.6 nozzle",
+	"inherits": "Snapmaker PLA SnapSpeed @U1 base2",
+	"from": "system",
+	"setting_id": "aKudBpQBj3MZZZav",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.6 nozzle)"
+	],
+	"filament_deretraction_speed": [
+		"30"
+	],
+	"filament_flow_ratio": [
+		"0.97"
+	],
+	"filament_multitool_ramming_flow": [
+		"30"
+	],
+	"filament_retract_length_toolchange": [
+		"5"
+	],
+	"filament_retraction_length": [
+		"1.6"
+	],
+	"filament_retraction_speed": [
+		"30"
+	],
+	"filament_z_hop_types": [
+		"Slope Lift"
+	],
+	"textured_plate_temp": [
+		"65"
+	],
+	"textured_plate_temp_initial_layer": [
+		"65"
+	],
+	"enable_pressure_advance": [
+		"0"
+	]
+}
