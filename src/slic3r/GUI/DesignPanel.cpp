@@ -3352,7 +3352,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         set_tree_selection(feat);
         m_status->SetForegroundColour(wxNullColour);
         set_status(region >= 0
-            ? _L("Loop selected — right-click to Extrude, or double-click to edit")
+            // "Region", not "Loop": what is selected — and what Extrude will consume — is the
+            // bounded area including any holes in it, not a single closed curve.
+            ? _L("Region selected — right-click to Extrude, or double-click to edit")
             : _L("Sketch selected — right-click to Extrude, or double-click to edit"));
         m_status->Refresh();
     });

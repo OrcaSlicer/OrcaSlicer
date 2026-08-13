@@ -2796,8 +2796,18 @@ void DesignSketchTool::hit_display_sketch(const DisplaySketch& d, const Vec2d& p
             edge_d = ed; edge_feat = d.feature; edge_reg = ent_region[ei]; edge_ent = ei;
         }
     }
-    for (int r = 0; r < int(loops.size()); ++r)
-        if (face_feat < 0 && point_in_poly(p, loops[r].poly)) { face_feat = d.feature; face_reg = r; }
+    // Pick the region the point is REALLY in: inside its boundary and not inside any of its
+    // holes. Clicking the middle of a plate-with-hole must select the plate; clicking inside
+    // the hole must select the disc, not the plate. Previously the first containing polygon
+    // won, so a click inside the circle selected the rectangle.
+    for (int r = 0; r < int(loops.size()); ++r) {
+        if (face_feat >= 0) break;
+        if (!point_in_poly(p, loops[r].poly)) continue;
+        bool in_hole = false;
+        for (int h : loops[r].holes)
+            if (h >= 0 && h < int(loops.size()) && point_in_poly(p, loops[h].poly)) { in_hole = true; break; }
+        if (!in_hole) { face_feat = d.feature; face_reg = r; }
+    }
 }
 
 std::vector<SketchEntity> DesignSketchTool::selected_loop_entities() const
@@ -2807,9 +2817,18 @@ std::vector<SketchEntity> DesignSketchTool::selected_loop_entities() const
         if (d.feature != m_display_pick) continue;
         const std::vector<RegionLoop> loops = region_loops(d.entities);
         if (m_display_pick_region >= int(loops.size())) return {};
+        // The region's OWN boundary plus every loop nested in it. Handing over only the outer
+        // loop is what made a rectangle-with-a-circle extrude to a plain box: the circle was
+        // never passed to the kernel, so build_sketch_face had one loop to work with and the
+        // multi-loop path never ran.
         std::vector<SketchEntity> out;
-        for (int ei : loops[m_display_pick_region].ents)
-            if (ei >= 0 && ei < int(d.entities.size())) out.push_back(d.entities[ei]);
+        auto take = [&](int region) {
+            if (region < 0 || region >= int(loops.size())) return;
+            for (int ei : loops[region].ents)
+                if (ei >= 0 && ei < int(d.entities.size())) out.push_back(d.entities[ei]);
+        };
+        take(m_display_pick_region);
+        for (int h : loops[m_display_pick_region].holes) take(h);
         return out;
     }
     return {};
@@ -5772,8 +5791,46 @@ DesignSketchTool::region_loops(const std::vector<SketchEntity>& ents) const
         }
         if (is_near(cur, start) && loop.size() >= 4) {
             loop.pop_back();          // drop the duplicate closing vertex
-            regions.push_back({ std::move(loop), std::move(loop_ents) });
+            regions.push_back({ std::move(loop), std::move(loop_ents), {} });
         }
+    }
+
+    // NESTING. A loop drawn inside another one is that one's HOLE. Without this a sketch is
+    // just N disjoint filled polygons, so "the plate with the hole" is not expressible and the
+    // multi-loop kernel path (snaporca-88v) is unreachable from the viewport — which is exactly
+    // what Tommaso hit: a rectangle with a circle inside extruded to a plain box, because only
+    // the rectangle loop could be picked and only its entities were passed on.
+    //
+    // Loops in a well-formed sketch do not cross, so testing ONE vertex decides containment.
+    // Each loop is assigned to the SMALLEST loop that contains it, which is what makes a hole
+    // belong to the region that actually bounds it rather than to every enclosing loop.
+    auto poly_area = [](const std::vector<Vec2d>& q) {
+        double a2 = 0.0;
+        for (size_t i = 0, j = q.size() - 1; i < q.size(); j = i++)
+            a2 += (q[j].x() + q[i].x()) * (q[j].y() - q[i].y());
+        return std::abs(a2) * 0.5;
+    };
+    auto point_in = [](const Vec2d& pt, const std::vector<Vec2d>& q) {
+        bool in = false;
+        for (size_t i = 0, j = q.size() - 1; i < q.size(); j = i++) {
+            const Vec2d& A = q[i]; const Vec2d& B = q[j];
+            if (((A.y() > pt.y()) != (B.y() > pt.y())) &&
+                (pt.x() < (B.x() - A.x()) * (pt.y() - A.y()) / (B.y() - A.y()) + A.x()))
+                in = !in;
+        }
+        return in;
+    };
+    for (size_t i = 0; i < regions.size(); ++i) {
+        if (regions[i].poly.empty()) continue;
+        int    best = -1;
+        double best_area = 0.0;
+        for (size_t j = 0; j < regions.size(); ++j) {
+            if (i == j || regions[j].poly.size() < 3) continue;
+            if (!point_in(regions[i].poly.front(), regions[j].poly)) continue;
+            const double a2 = poly_area(regions[j].poly);
+            if (best < 0 || a2 < best_area) { best = int(j); best_area = a2; }
+        }
+        if (best >= 0) regions[best].holes.push_back(int(i));
     }
     return regions;
 }
@@ -7543,9 +7600,19 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
             std::vector<char> sel_ent(ds.entities.size(), 0);
             if (ds.feature == m_display_pick && m_display_pick_region >= 0) {
                 const std::vector<RegionLoop> loops = region_loops(ds.entities);
-                if (m_display_pick_region < int(loops.size()))
-                    for (int ei : loops[m_display_pick_region].ents)
-                        if (ei >= 0 && ei < int(sel_ent.size())) sel_ent[ei] = 1;
+                if (m_display_pick_region < int(loops.size())) {
+                    // The holes light up with their region. The highlight has to show what will
+                    // be EXTRUDED, and a hole is part of that — a plate whose bore stays orange
+                    // while its outline turns cyan would say the circle is not coming along,
+                    // which is precisely the thing that used to be true and is now not.
+                    auto mark = [&](int region) {
+                        if (region < 0 || region >= int(loops.size())) return;
+                        for (int ei : loops[region].ents)
+                            if (ei >= 0 && ei < int(sel_ent.size())) sel_ent[ei] = 1;
+                    };
+                    mark(m_display_pick_region);
+                    for (int h : loops[m_display_pick_region].holes) mark(h);
+                }
             }
             for (int i = 0; i < int(ds.entities.size()); ++i) {
                 const SketchEntity& e = ds.entities[i];

@@ -777,7 +777,15 @@ private:
     std::vector<std::vector<Vec2d>> closed_regions(const std::vector<SketchEntity>& ents) const;
     // Same loops, but each carries the indices of the entities that form it — so a single
     // loop can be highlighted / extruded on its own (per-region selection on the plate).
-    struct RegionLoop { std::vector<Vec2d> poly; std::vector<int> ents; };
+    // A selectable sketch region: its own boundary, plus the loops nested INSIDE it, which
+    // are its holes. Modelling holes is what makes "the plate with the hole in it" a thing the
+    // user can point at — without it a sketch is N disjoint filled polygons and the only
+    // selectable things are the rectangle alone or the circle alone (snaporca-txp8).
+    struct RegionLoop {
+        std::vector<Vec2d> poly;
+        std::vector<int>   ents;
+        std::vector<int>   holes;   // indices into the same vector; one nesting level
+    };
     std::vector<RegionLoop> region_loops(const std::vector<SketchEntity>& ents) const;
     // Index of the closed region containing plane-point p (point-in-polygon), or -1.
     int region_at(const Vec2d& p) const;
