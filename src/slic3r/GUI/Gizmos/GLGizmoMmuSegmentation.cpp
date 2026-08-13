@@ -454,7 +454,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             ImGui::GetWindowDrawList()->AddRectFilledMultiColor(r_min, r_max, col_from, col_to, col_to, col_from);
         }
 
-        if (extruder_idx < 16 && ImGui::IsItemHovered()) m_imgui->tooltip(_L("Shortcut Key ") + std::to_string(extruder_idx + 1), max_tooltip_width);
+        if (extruder_idx < int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT) && ImGui::IsItemHovered()) m_imgui->tooltip(_L("Shortcut Key ") + std::to_string(extruder_idx + 1), max_tooltip_width);
     }
     // ORCA: Remap filaments section (Border only, Title in border). 
     // Styled as a panel for visual grouping.
