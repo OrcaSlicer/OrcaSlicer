@@ -1853,6 +1853,8 @@ void GLCanvas3D::enable_collapse_toolbar(bool enable)
 void GLCanvas3D::enable_plate_chrome(bool enable)
 {
     m_plate_chrome_enabled = enable;
+}
+
 bool GLCanvas3D::has_mouse_capture() const {
     return m_canvas != nullptr && m_canvas->HasCapture();
 }
