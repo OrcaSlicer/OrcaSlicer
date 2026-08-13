@@ -1208,6 +1208,53 @@ int Print::get_compatible_filament_type(const std::set<int>& filament_types)
 }
 
 //BBS: this function is used to check whether multi filament can be printed
+StringObjectException Print::check_ironing_filament_valid(const Print &print)
+{
+    const std::string incompatible_msg = L("The ironing filament does not bond with the surface it irons, so the ironed skin may peel off.");
+    const std::string possible_incompatible_msg = L("The ironing filament may not bond with the surface it irons. Their compatibility is unknown, so the ironed skin may peel off.");
+    const std::string preferences_enable_msg = L("If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove incompatible material type restriction.");
+
+    const ConfigOptionStrings &filament_types = print.config().filament_type;
+    auto type_of = [&filament_types](int filament_1based) {
+        const size_t idx = (size_t) (filament_1based - 1);
+        return idx < filament_types.values.size() ? filament_types.values[idx] : std::string();
+    };
+
+    MaterialCompatibility worst = MaterialCompatibility::Compatible;
+    for (const PrintObject *object : print.objects())
+        for (const PrintRegion &region : object->all_regions()) {
+            const PrintRegionConfig &config = region.config();
+            if (config.ironing_type == IroningType::NoIroning || config.ironing_filament.value <= 0)
+                continue;
+            // The surfaces this region irons over: top ones always, plus the solid ones with "All solid layers".
+            std::vector<int> ironed_filaments { config.top_surface_filament_id.value };
+            if (config.ironing_type == IroningType::AllSolid) {
+                ironed_filaments.emplace_back(config.internal_solid_filament_id.value);
+                ironed_filaments.emplace_back(config.bottom_surface_filament_id.value);
+            }
+            const std::string ironing_type = type_of(config.ironing_filament.value);
+            for (int ironed : ironed_filaments)
+                if (const MaterialCompatibility c = MaterialType::compatibility(ironing_type, type_of(ironed)); c < worst)
+                    worst = c;
+        }
+
+    StringObjectException ret;
+    if (worst == MaterialCompatibility::Compatible)
+        return ret;
+
+    ret.opt_key = "ironing_filament";
+    if (worst == MaterialCompatibility::Unknown) {
+        ret.string     = possible_incompatible_msg;
+        ret.is_warning = true;
+    } else if (! print.need_check_multi_filaments_material_compatibility()) {
+        ret.string     = incompatible_msg;
+        ret.is_warning = true;
+    } else {
+        ret.string = incompatible_msg + " " + preferences_enable_msg;
+    }
+    return ret;
+}
+
 StringObjectException Print::check_multi_filament_valid(const Print& print)
 {
     auto print_config = print.config();
@@ -1380,6 +1427,16 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             if (ret.is_warning) {
                 add_warning(ret);
             }else
+                return ret;
+        }
+    }
+
+    {
+        auto ret = check_ironing_filament_valid(*this);
+        if (!ret.string.empty()) {
+            if (ret.is_warning)
+                add_warning(ret);
+            else
                 return ret;
         }
     }
