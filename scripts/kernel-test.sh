@@ -111,7 +111,15 @@ docker run --rm \
     cmake -S . -B build -G 'Ninja Multi-Config' \
       -DCMAKE_PREFIX_PATH=\$DESTDIR \
       -DwxWidgets_CONFIG_EXECUTABLE=\$DESTDIR/bin/wx-config \
-      -DSLIC3R_GTK=3 -DBUILD_TESTS=ON \
+      -DSLIC3R_GTK=3 -DBUILD_TESTS=ON -DSLIC3R_GUI=OFF \
       -DSLIC3R_CAD=ON -DSLIC3R_STATIC=1 -DORCA_TOOLS=ON -DCMAKE_BUILD_TYPE=Release
+    # SLIC3R_GUI=OFF: this script builds ONLY libslic3r_tests, which links libslic3r and no GUI
+    # code, but cmake still PROCESSES the if SLIC3R_GUI block of src/CMakeLists.txt (lines 16-98)
+    # and every find_package inside it. That made the kernel suite depend on the GUI dependency
+    # set for no benefit, and it broke the moment upstream added wxInspector as a REQUIRED
+    # find_package at line 92: the orcacad-deps image predates it, so configure died pointing at
+    # src/CMakeLists.txt:92 while nothing about the kernel had changed. Turning the block off is
+    # not a workaround for that one dependency; it is the kernel suite finally declaring what it
+    # actually needs, so the next GUI-side dependency upstream adds cannot break it either.
     cmake --build build --config Release --target libslic3r_tests
     ./build/tests/libslic3r/Release/libslic3r_tests '$TAGS' --order decl"
