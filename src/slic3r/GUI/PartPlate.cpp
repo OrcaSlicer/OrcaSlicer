@@ -1004,12 +1004,24 @@ std::string PartPlate::build_imex_cache_key() const
     auto* cw_opt    = printer_cfg.option<ConfigOptionFloat>("imex_nozzle_clearance_x");
     auto* ch_opt    = printer_cfg.option<ConfigOptionFloat>("imex_nozzle_clearance_y");
     auto* mgn_opt   = printer_cfg.option<ConfigOptionFloat>("imex_carriage_margin");
+    // Mode NAME alone is not printer identity: two presets can define the same mode
+    // name with different tool rosters/primary, and imex_firmware_managed_zones
+    // suppresses ghost generation entirely. Both shape the baked zone/ghost set, so
+    // key them directly (previously caught only incidentally, via the ghost key's
+    // since-removed pem entry).
+    std::string active_tools;
+    int         primary_phys = -1;
+    resolve_active_mode_tools(active_tools, primary_phys); // empty on failure — keyed as such
+    auto* fw_opt = printer_cfg.option<ConfigOptionBool>("imex_firmware_managed_zones");
     return active_mode
          + "|" + std::to_string(n_col_opt ? n_col_opt->value : 2)
          + "x" + std::to_string(n_row_opt ? n_row_opt->value : 1)
          + "|cw" + std::to_string(cw_opt ? (int)(cw_opt->value * 10) : 0)
          + "|ch" + std::to_string(ch_opt ? (int)(ch_opt->value * 10) : 0)
-         + "|mg" + std::to_string(mgn_opt ? (int)(mgn_opt->value * 10) : 0);
+         + "|mg" + std::to_string(mgn_opt ? (int)(mgn_opt->value * 10) : 0)
+         + "|t" + active_tools
+         + "|p" + std::to_string(primary_phys)
+         + "|fw" + ((fw_opt && fw_opt->value) ? "1" : "0");
 }
 
 // Reposition the IMEX mode icon without requiring a full set_shape() rebuild.
@@ -1099,8 +1111,8 @@ bool PartPlate::resolve_active_mode_tools(std::string& out_tools_str, int& out_p
     return true;
 }
 
-// Ghost opacity. RGB is owned by update_imex_ghost_colors (restamped per frame);
-// calc_imex_ghosts only bakes this alpha into the volume.
+// Ghost opacity, stamped together with RGB by update_imex_ghost_colors every
+// frame — the sole author of ghost color.
 static constexpr float IMEX_GHOST_ALPHA = 0.55f;
 
 void PartPlate::calc_imex_ghosts()
@@ -1192,7 +1204,6 @@ void PartPlate::calc_imex_ghosts()
         return {aggregated_primary, aggregated_target - aggregated_primary};
     };
 
-
     // Mesh is object-local and identical across all instances and heads of a given object.
     // Build the merged TriangleMesh once per obj_idx and reuse across the inner head loop.
     // (Per-ghost GLModel::init_from still runs once each, since GLVolume owns its GLModel by value;
@@ -1238,11 +1249,9 @@ void PartPlate::calc_imex_ghosts()
                 primary_phys, phys, role, gantry, pri_center, mirror_axis_for(phys));
             const Transform3d ghost_xf = head_xf * inst_world;
 
-            // RGB here is a placeholder — update_imex_ghost_colors restamps every
-            // ghost from the live filament palette each frame; only alpha matters.
-            const ColorRGBA color = {0.5f, 0.5f, 0.5f, IMEX_GHOST_ALPHA};
-
-            auto ghost = std::make_unique<GLVolume>(color);
+            // No color at bake time: update_imex_ghost_colors is the sole author of
+            // ghost color, restamping RGB + alpha from the live palette every frame.
+            auto ghost = std::make_unique<GLVolume>();
             ghost->set_instance_transformation(ghost_xf);
             ghost->force_transparent    = 1;
             ghost->force_native_color   = 1;
@@ -1361,6 +1370,8 @@ void PartPlate::update_imex_ghost_transforms(
 // over the effective pem + per-plate override map), so the two cannot disagree.
 void PartPlate::update_imex_ghost_colors()
 {
+    // !m_plater is the headless sentinel: without a GUI_App, calling wxGetApp()
+    // below is unsafe — same guard pattern as ensure_imex_zones.
     if (m_imex_ghost_volumes.empty() || !m_plater) return;
     auto* pb = wxGetApp().preset_bundle;
     if (!pb) return;

@@ -20293,7 +20293,9 @@ Plater::ImexGhostTooltip Plater::format_imex_ghost_tooltip(int physical_head) co
         return t;
     }
     t.filament_slot_1based = logical + 1;
-    t.swatch = plate->get_imex_head_filament_color(physical_head);
+    // Reuse the pem/map already hoisted above so label and swatch are derived
+    // from one resolution, not two.
+    t.swatch = plate->get_imex_head_filament_color(physical_head, pem, map);
     t.swatch.a(1.0f);  // tooltip swatch opaque
     t.label  = "T" + std::to_string(physical_head) +
                " -> filament " + std::to_string(t.filament_slot_1based);
