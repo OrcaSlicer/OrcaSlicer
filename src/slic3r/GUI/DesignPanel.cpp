@@ -5893,6 +5893,12 @@ void DesignPanel::reset_plane_refs()
 void DesignPanel::arm_plane_pick(PlanePick target)
 {
     m_plane_pick = target;
+    // While a pick is armed, a click must CAPTURE the face under the cursor, never escalate to
+    // the whole body. Without this, clicking a face that already happens to be selected reads as
+    // a repeat pick, selects the body, and the capture is silently lost — the label stays
+    // "(none)" and the user has no idea why. The capture path below already restores the flag,
+    // and reset_plane_refs() restores it when the pick is abandoned; only the arm side was missing.
+    if (m_viewport) m_viewport->set_escalate_on_repick(false);
     const bool face = (target == PlanePick::FaceA || target == PlanePick::FaceB);
     m_status->SetForegroundColour(wxNullColour);
     set_status(face ? _L("Click a solid FACE in the viewport")
@@ -5933,6 +5939,7 @@ void DesignPanel::reset_axis_refs()
 void DesignPanel::arm_axis_pick(AxisPick target)
 {
     m_axis_pick = target;
+    if (m_viewport) m_viewport->set_escalate_on_repick(false);   // same as arm_plane_pick
     m_status->SetForegroundColour(wxNullColour);
     set_status(target == AxisPick::Face ? _L("Click a solid FACE in the viewport")
                                                 : _L("Click a solid EDGE in the viewport"));
