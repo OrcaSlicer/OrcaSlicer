@@ -39,7 +39,6 @@
 #include "Plater.hpp"
 #include "WebViewDialog.hpp"
 #include "../Utils/Process.hpp"
-#include "format.hpp"
 // BBS
 #include "PartPlate.hpp"
 #include "Preferences.hpp"
@@ -48,9 +47,6 @@
 #include "../Utils/MacDarkMode.hpp"
 #include "../Utils/NetworkAgentFactory.hpp"
 #include "../Utils/PrintHost.hpp"
-
-#include <fstream>
-#include <string_view>
 
 #include "GUI_App.hpp"
 #include "UnsavedChangesDialog.hpp"
@@ -2822,7 +2818,7 @@ void MainFrame::init_menubar_as_editor()
             [this](){return m_plater != nullptr && can_save_as(); }, this);
 #endif
 
-        // BBS: publish settings
+        // BBS: publish
         fileMenu->AppendSeparator();
         auto publish_handler = [this](wxCommandEvent&) {
             if (!m_plater) return;
@@ -2832,11 +2828,11 @@ void MainFrame::init_menubar_as_editor()
         };
 
 #ifndef __APPLE__
-        append_menu_item(fileMenu, wxID_ANY, _L("Publish Settings") + dots, _L("Export a 3MF file with the selected settings embedded"),
+        append_menu_item(fileMenu, wxID_ANY, _L("Publish") + dots, _L("Export a 3MF file with the selected settings embedded"),
             publish_handler, "menu_publish", nullptr,
             [this](){return can_export_model(); }, this);
 #else
-        append_menu_item(fileMenu, wxID_ANY, _L("Publish Settings") + dots, _L("Export a 3MF file with the selected settings embedded"),
+        append_menu_item(fileMenu, wxID_ANY, _L("Publish") + dots, _L("Export a 3MF file with the selected settings embedded"),
             publish_handler, "", nullptr,
             [this](){return can_export_model(); }, this);
 #endif

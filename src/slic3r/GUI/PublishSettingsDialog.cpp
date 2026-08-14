@@ -98,7 +98,7 @@ struct MaterialIdentity
 // Menu ids for show_menu(). Dedicated range above the standard ids so the popup cannot
 // collide with application-level bindings (e.g. MainFrame's recent-files wxID_FILE1.. range).
 enum {
-    kPublishSelectAll        = wxID_HIGHEST + 1,
+    kPublishSelectAll = wxID_HIGHEST + 1,
     kPublishDeselectAll,
     kPublishSelectVisible,
     kPublishDeselectVisible,
@@ -154,7 +154,7 @@ wxString material_title(size_t slot, const PresetBundle* bundle, const DynamicPr
 PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
     : DPIDialog(parent ? parent : static_cast<wxWindow*>(wxGetApp().mainframe),
                 wxID_ANY,
-                _L("Publish Settings"),
+                _L("Publish"),
                 wxDefaultPosition,
                 wxDefaultSize,
                 wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER)
@@ -233,8 +233,7 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
                 EndModal(wxID_OK);
                 return;
             }
-        MessageDialog(this, _L("No settings selected. Please select at least one setting to publish."), _L("Publish Settings"),
-                      wxOK | wxICON_WARNING)
+        MessageDialog(this, _L("No settings selected. Please select at least one setting to publish."), _L("Publish"), wxOK | wxICON_WARNING)
             .ShowModal();
     });
     dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
@@ -322,7 +321,7 @@ void PublishSettingsDialog::build_option_model()
         cat.filament_slot   = slot;
         if (!icon_name.empty()) {
             cat.icon_bmp = ScalableBitmap(m_scroll, icon_name, 18);
-            cat.icon = new wxStaticBitmap(m_scroll, wxID_ANY, cat.icon_bmp.bmp());
+            cat.icon     = new wxStaticBitmap(m_scroll, wxID_ANY, cat.icon_bmp.bmp());
         }
         if (section == Section::Material) {
             // Material header: [master (title)][slim tri-state select-all].
@@ -668,7 +667,7 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
 
     if (!section.icon_name.empty()) {
         section.icon_bmp = ScalableBitmap(m_scroll, section.icon_name, 18);
-        section.icon = new wxStaticBitmap(m_scroll, wxID_ANY, section.icon_bmp.bmp());
+        section.icon     = new wxStaticBitmap(m_scroll, wxID_ANY, section.icon_bmp.bmp());
     }
 
     section.chevron = create_chevron(m_scroll, wxEVT_LEFT_DOWN, [this, new_index] { toggle_section(new_index); });

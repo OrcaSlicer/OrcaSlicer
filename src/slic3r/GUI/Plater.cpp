@@ -16240,7 +16240,7 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
 
     if (ret < 0) {
         MessageDialog(this, _L("Failed to export the published 3MF file.\nPlease check whether the folder exists online or if other programs have the file open."),
-            _L("Publish Settings"), wxOK | wxICON_WARNING).ShowModal();
+            _L("Publish"), wxOK | wxICON_WARNING).ShowModal();
         return wxID_CANCEL;
     }
     return wxID_YES;
