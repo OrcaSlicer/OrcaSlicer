@@ -1335,6 +1335,27 @@ std::vector<CadDocument::MateOption> CadDocument::mate_options(int cs_a, int cs_
         return out;
     }
 
+    // B is the connector on the body that MOVES, so B must belong to one; A is the fixed
+    // reference and needs no body. Without this every kind was offered on a Point(world)
+    // connector and the mate only failed at RECOMPUTE, with "mate_cs_b has no associated body" —
+    // one step too late, after the feature already existed in the tree. The same two conditions
+    // the apply path throws on are checked here, so the offer and the kernel cannot disagree.
+    const int body_b = features[cs_b].coordsys_body;
+    if (body_b < 0) {
+        for (auto& o : out) {
+            o.viable = false;
+            o.reason = "connector B is not attached to a body — a mate moves B's body";
+        }
+        return out;
+    }
+    if (body_b >= int(bodies.size()) || bodies[body_b].shape.IsNull()) {
+        for (auto& o : out) {
+            o.viable = false;
+            o.reason = "connector B's body no longer exists";
+        }
+        return out;
+    }
+
     const int ka = features[cs_a].coordsys_face_kind;
     const int kb = features[cs_b].coordsys_face_kind;
     auto face_desc = [](int kind) -> std::string { return kind == GeomAbs_Plane ? "a flat face" : "a curved face"; };

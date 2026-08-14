@@ -7722,6 +7722,43 @@ TEST_CASE("mate_options always returns five entries in kind order", "[CadDocumen
     for (int i = 0; i < 5; ++i) REQUIRE(opts2[i].kind == i);
 }
 
+TEST_CASE("a connector with no body dims every mate kind, with a reason", "[CadDocument][mate]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+
+    // Point(world) connectors belong to no body, which is the default the GUI hands you.
+    int a = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 0), "A");
+    int b = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(30, 0, 0), "B");
+    REQUIRE(doc.features[b].coordsys_body < 0);
+
+    // B is the connector whose body MOVES, so without one no kind can apply. The offer used to
+    // call all five viable and the mate only failed at recompute, after the feature existed.
+    auto opts = doc.mate_options(a, b);
+    REQUIRE(opts.size() == 5);
+    for (int i = 0; i < 5; ++i) {
+        REQUIRE(opts[i].kind == i);
+        REQUIRE_FALSE(opts[i].viable);
+        REQUIRE(opts[i].reason.find("not attached to a body") != std::string::npos);
+    }
+
+    // A needs no body — it is the fixed reference. Giving B one is enough to revive the offer.
+    doc.features[b].coordsys_body = 0;
+    auto opts2 = doc.mate_options(a, b);
+    REQUIRE(opts2[0].viable);          // Fastened is frame-only
+    REQUIRE(opts2[0].reason.empty());
+
+    // A body index that no longer resolves is refused too, and says so differently.
+    doc.features[b].coordsys_body = 7;
+    auto opts3 = doc.mate_options(a, b);
+    for (const auto& o : opts3) {
+        REQUIRE_FALSE(o.viable);
+        REQUIRE(o.reason.find("no longer exists") != std::string::npos);
+    }
+}
+
 TEST_CASE("a flat-face pair offers Fastened, Planar and Slider but not the axial types", "[CadDocument][mate]")
 {
     CadDocument doc;
@@ -7767,8 +7804,17 @@ TEST_CASE("a flat-face pair offers Fastened, Planar and Slider but not the axial
 TEST_CASE("an unrecorded fingerprint does not make a type non-viable", "[CadDocument][mate]")
 {
     CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+
     int a = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 0), "A");
     int b = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(1, 0, 0), "B");
+    // The MISSING FINGERPRINT is the whole subject here, so nothing else may be missing: B is
+    // given a body, because a connector without one is refused for that reason instead and the
+    // case would no longer isolate what this test is named for.
+    doc.features[a].coordsys_body = 0;
+    doc.features[b].coordsys_body = 0;
     // PointWorld connectors never record a face fingerprint: face_kind stays -1.
     REQUIRE(doc.features[a].coordsys_face_kind == -1);
     REQUIRE(doc.features[b].coordsys_face_kind == -1);
