@@ -85,6 +85,7 @@
 // For stl export
 #include "libslic3r/CSGMesh/ModelToCSGMesh.hpp"
 #include "libslic3r/CSGMesh/PerformCSGMeshBooleans.hpp"
+#include "libslic3r/MeshBoolean.hpp"
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
@@ -14269,7 +14270,7 @@ bool compute_temp_label_region(const ModelVolume &block, const ModelVolume &labe
     return out.width > EPSILON && out.height > EPSILON && out.depth > EPSILON;
 }
 
-TriangleMesh make_temp_label_text_mesh(const std::string &text, const TempLabelRegion &region, const Vec3d &z_offset)
+TriangleMesh make_temp_label_text_mesh(const std::string &text, const TempLabelRegion &region)
 {
     TriangleMesh empty;
     if (text.empty() || region.depth <= EPSILON)
@@ -14307,9 +14308,54 @@ TriangleMesh make_temp_label_text_mesh(const std::string &text, const TempLabelR
         mesh.rotate(phi, axis);
     }
 
-    const Vec3d origin = region.surface + z_offset - 0.5 * region.depth * region.outward;
+    const Vec3d origin = region.surface - 0.5 * region.depth * region.outward;
     mesh.translate(float(origin.x()), float(origin.y()), float(origin.z()));
     return mesh;
+}
+
+bool mesh_geometry_changed(const TriangleMesh &a, const TriangleMesh &b)
+{
+    return a.facets_count() != b.facets_count() || a.its.vertices.size() != b.its.vertices.size();
+}
+
+// mcut splits both meshes and ignores do_boolean_single failures, so A_NOT_B on
+// OCCT glyph tessellations often returns the original block. CGAL/igl actually
+// fail or rewrite A.
+bool subtract_temp_label_mesh(const TriangleMesh &blank, const TriangleMesh &text, TriangleMesh &out)
+{
+    try {
+        TriangleMesh a = blank;
+        MeshBoolean::cgal::minus(a, text);
+        if (!a.empty() && mesh_geometry_changed(a, blank)) {
+            out = std::move(a);
+            return true;
+        }
+    } catch (const std::exception &) {}
+
+    try {
+        TriangleMesh a = blank;
+        MeshBoolean::minus(a, text);
+        if (!a.empty() && mesh_geometry_changed(a, blank)) {
+            out = std::move(a);
+            return true;
+        }
+    } catch (const std::exception &) {}
+
+    return false;
+}
+
+// text_mesh is in object space; map it into the original block's local frame before the boolean.
+bool engrave_temp_label(const TriangleMesh &blank, TriangleMesh text_mesh,
+                        const Transform3d &to_local, TriangleMesh &out)
+{
+    if (text_mesh.facets_count() == 0)
+        return false;
+
+    text_mesh.transform(to_local);
+    if (text_mesh.volume() < 0.f)
+        text_mesh.flip_triangles();
+
+    return subtract_temp_label_mesh(blank, text_mesh, out);
 }
 
 } // namespace
@@ -14358,16 +14404,6 @@ void Plater::calib_temp(const Calib_Params& params) {
         show_error(this, _L("Failed to read the temperature label region from the model."));
         return;
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": temp_label depth=" << label_region.depth
-                           << " mm, size=" << label_region.width << "x" << label_region.height << " mm";
-
-    // Instance scale keeps the reserved region glued to the block. Volume-only
-    // scale would shrink each part around its own center and break placement.
-    if (params.nozzle_based_resize && std::abs(nozzle_scale - 1.0) > EPSILON) {
-        for (ModelInstance *inst : obj->instances)
-            inst->set_scaling_factor(inst->get_scaling_factor() * nozzle_scale);
-        obj->invalidate_bounding_box();
-    }
 
     const double temp_step    = params.step > EPSILON ? params.step : 5.0;
     const long   block_count  = std::max(1L, lround((params.start - params.end) / temp_step) + 1);
@@ -14377,42 +14413,65 @@ void Plater::calib_temp(const Calib_Params& params) {
         return std::to_string(lround(params.start - i * temp_step));
     };
 
-    block->name = temp_name(0);
+    const Geometry::Transformation block_trafo     = block->get_transformation();
+    const Vec3d                    block_offset    = block->get_offset();
+    const Transform3d              to_block_local  = block->get_matrix().inverse();
+    const TriangleMesh             blank_mesh      = block->mesh();
+    const long                     emit_count      = (block_count > 1 && block_height > EPSILON) ? block_count : 1;
 
-    if (block_count > 1 && block_height > EPSILON) {
-        const Geometry::Transformation block_trafo = block->get_transformation();
-        const Vec3d block_offset = block->get_offset();
-        for (long i = 1; i < block_count; ++i) {
-            ModelVolume *vol = obj->add_volume_with_shared_mesh(*block, ModelVolumeType::MODEL_PART);
-            vol->set_transformation(block_trafo);
-            vol->set_offset(block_offset + Vec3d(0., 0., i * block_height));
-            vol->name = temp_name(i);
-            vol->calculate_convex_hull();
-        }
-        obj->invalidate_bounding_box();
-    }
-
-    // The marker box does not intersect the block; replace it with engraved text
-    // that is projected onto the block face along the marker's thin axis.
+    // Clone each block and boolean-subtract its temperature label in one pass.
     bool engraved = false;
-    for (long i = 0; i < block_count; ++i) {
-        const Vec3d       dz   = Vec3d(0., 0., i * block_height);
+    bool had_text = false;
+    for (long i = 0; i < emit_count; ++i) {
         const std::string name = temp_name(i);
-        TriangleMesh text_mesh = make_temp_label_text_mesh(name, label_region, dz);
-        if (text_mesh.facets_count() == 0)
+        TriangleMesh      text_mesh = make_temp_label_text_mesh(name, label_region);
+        if (text_mesh.facets_count() > 0)
+            had_text = true;
+
+        TriangleMesh engraved_mesh;
+        const bool   this_engraved = engrave_temp_label(blank_mesh, std::move(text_mesh), to_block_local, engraved_mesh);
+        if (this_engraved)
+            engraved = true;
+        else
+            engraved_mesh = blank_mesh;
+
+        if (i == 0) {
+            if (this_engraved) {
+                block->set_mesh(std::move(engraved_mesh));
+                block->calculate_convex_hull();
+                block->invalidate_convex_hull_2d();
+                block->set_new_unique_id();
+            }
+            block->name = name;
             continue;
-        ModelVolume *text_vol = obj->add_volume(std::move(text_mesh), ModelVolumeType::NEGATIVE_VOLUME, true);
-        text_vol->name = name + "_temp_label";
-        engraved = true;
+        }
+
+        ModelVolume *vol = obj->add_volume(std::move(engraved_mesh), ModelVolumeType::MODEL_PART, false);
+        vol->set_transformation(block_trafo);
+        vol->set_offset(block_offset + Vec3d(0., 0., i * block_height));
+        vol->name = name;
+        vol->calculate_convex_hull();
     }
+    obj->invalidate_bounding_box();
+
     if (!engraved) {
-        show_error(this, _L("Failed to generate temperature labels. Check that a system font such as Arial is installed."));
+        show_error(this, had_text
+            ? _L("Failed to engrave temperature labels onto the tower blocks.")
+            : _L("Failed to generate temperature labels. Check that a system font such as Arial is installed."));
         return;
     }
 
     auto label_it = std::find(obj->volumes.begin(), obj->volumes.end(), temp_label);
     if (label_it != obj->volumes.end())
         obj->delete_volume(size_t(label_it - obj->volumes.begin()));
+
+    // Instance scale keeps cloned block offsets proportional. ModelObject::scale
+    // would leave those Z offsets unscaled and open gaps or overlaps between blocks.
+    if (params.nozzle_based_resize && std::abs(nozzle_scale - 1.0) > EPSILON) {
+        for (ModelInstance *inst : obj->instances)
+            inst->set_scaling_factor(inst->get_scaling_factor() * nozzle_scale);
+        obj->invalidate_bounding_box();
+    }
 
     wxGetApp().obj_list()->add_volumes_to_object_in_list(0);
     obj->ensure_on_bed();
