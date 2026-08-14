@@ -5667,7 +5667,18 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     };
     // Names and reasons live in the generated table as plain literals; they are the same strings
     // the toolbar already ships, so the catalogue already carries their translations.
-    auto tr = [](const char* s) { return wxGetTranslation(wxString::FromUTF8(s)); };
+    // Scope the lookup to the APPLICATION catalog. A bare wxGetTranslation() searches every
+    // loaded catalog, wxWidgets' own wxstd included — so on a non-English system the two row
+    // names that happen to be wx standard strings came back translated while the other six,
+    // which wx does not know, stayed English. On an Italian desktop the offer read
+    // "Create / Add material / Rimuovi / Fillet / chamfer / draft / Repeat / Transform /
+    // Reference / Modify": one menu, two languages, and not because anything was mistranslated.
+    // The same trap is waiting for any locale — Supprimer, Löschen, Eliminar. Naming the domain
+    // means these strings are translated by OUR catalogue or not at all, which is consistent
+    // either way.
+    auto tr = [](const char* s) {
+        return wxGetTranslation(wxString::FromUTF8(s), SLIC3R_APP_KEY);
+    };
     auto label = [&](const OfferVerb& v) {
         wxString s = tr(v.name);
         if (v.key && *v.key) s += "\t" + wxString::FromUTF8(v.key);
