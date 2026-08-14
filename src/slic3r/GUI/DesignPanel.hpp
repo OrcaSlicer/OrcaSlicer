@@ -604,6 +604,10 @@ private:
     ComboBox*         m_bool_op{nullptr};            // 0 = Union, 1 = Subtract, 2 = Intersect
     ComboBox*         m_bool_target{nullptr};        // body that survives (selection == body index)
     ComboBox*         m_bool_tool{nullptr};          // body consumed (selection == body index)
+    // Which operand the NEXT viewport body pick fills: 0 = target, 1 = tool. Reset when the
+    // card opens, so the first two clicks in the viewport always mean "keep this, cut with
+    // that" in that order. The combos remain the typed half and mirror whatever is picked.
+    int               m_bool_next_slot{0};
     CheckBox*         m_bool_keep{nullptr};          // keep the tool body after the op
     wxSpinCtrlDouble* m_bool_tol{nullptr};           // OCCT fuzzy tolerance (mm); robust cut on near-coincident faces
 

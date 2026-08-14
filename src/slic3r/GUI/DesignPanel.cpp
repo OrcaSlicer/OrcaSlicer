@@ -3422,6 +3422,32 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // If the Fillet/Chamfer card is open, re-anchor (or drop) the radius arrow on the new pick
         // and rebuild the ghost — once an edge is picked the preview-only mode hides the base body.
         if (m_active == Tool::Dressup) { sync_dressup_target(); update_fillet_gizmo(); refresh_preview(); }
+        // Boolean card open: the VIEWPORT is how you choose the two operands. Until now they
+        // could only come from two combos — the one control the charter names for this tool
+        // (e1p item 4), and the same pair snaporca-7xx caught silently resolving every row to
+        // index 0. The highlight already flowed card -> viewport; this closes the loop the
+        // other way. First pick is the target (kept), second is the tool (consumed); the
+        // combos mirror both, so the typed half of L2 still works and still round-trips.
+        // A body cannot be both operands — that boolean is a no-op — but the resolution is to
+        // SWAP, never to refuse: the pick is the user pointing at a body, and it has to win.
+        // Refusing it was measurably wrong. Both combos are pre-filled when the card opens
+        // (target = body 0, tool = a different one), so the very first viewport pick usually
+        // names a body the other slot already holds; ignoring it left the defaults in place and
+        // the commit produced body0 - body1 (75000 mm3) when the picks asked for body1 - body0
+        // (43000 mm3). Swapping keeps the pair distinct AND honours the click.
+        if (m_active == Tool::Boolean && m_sel_solid_body >= 0) {
+            ComboBox* dst   = (m_bool_next_slot == 0) ? m_bool_target : m_bool_tool;
+            ComboBox* other = (m_bool_next_slot == 0) ? m_bool_tool   : m_bool_target;
+            const int row   = m_sel_solid_body;          // selection index == body index
+            if (dst != nullptr && row < int(dst->GetCount())) {
+                const int prev = dst->GetSelection();
+                dst->SetSelection(row);
+                if (other != nullptr && other->GetSelection() == row && prev >= 0 && prev != row)
+                    other->SetSelection(prev);            // displaced operand takes the old slot
+                m_bool_next_slot ^= 1;
+                refresh_preview();                        // re-tints the operands + rebuilds the ghost
+            }
+        }
         // If the Shell card is open, a face pick chooses the open face: update the label + gizmo
         // + ghost so the hollow updates live.
         if (m_active == Tool::Shell) {
@@ -10252,6 +10278,10 @@ void DesignPanel::open_tool(Tool t)
     // geometry-first control; the card mirrors the drag. Edit mode keeps today's card-only path.
     if (t == Tool::Transform && m_edit_index < 0)
         arm_transform_gizmo();
+    // Opening Boolean re-aims the viewport picks at the target slot, so the first click after
+    // the card appears always means "keep this one" regardless of what the last session did.
+    if (t == Tool::Boolean)
+        m_bool_next_slot = 0;
 }
 
 void DesignPanel::close_tool()
