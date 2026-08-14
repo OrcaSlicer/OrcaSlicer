@@ -1,12 +1,10 @@
 #include "Plater.hpp"
 #include "../Utils/NetworkAgent.hpp"
-#include "../Utils/NetworkAgentFactory.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r_version.h"
 
 #include <cstddef>
 #include <algorithm>
-#include <chrono>
 #include <numeric>
 #include <limits>
 #include <optional>
@@ -16,8 +14,6 @@
 #include <vector>
 #include <string>
 #include <regex>
-#include <future>
-#include <thread>
 #include <atomic>
 #include <mutex>
 #include <boost/algorithm/string.hpp>
@@ -69,7 +65,6 @@
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/SLA/Hollowing.hpp"
 #include "libslic3r/SLA/SupportPoint.hpp"
 #include "libslic3r/SLA/ReprojectPointsOnMesh.hpp"
 #include "libslic3r/Polygon.hpp"
@@ -78,16 +73,15 @@
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PublishSettings.hpp"
 #include "slic3r/Utils/CrealityPrint.hpp"
 #include "libslic3r/ClipperUtils.hpp"
-#include "libslic3r/ObjColorUtils.hpp"
 // For stl export
 #include "libslic3r/CSGMesh/ModelToCSGMesh.hpp"
 #include "libslic3r/CSGMesh/PerformCSGMeshBooleans.hpp"
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
-#include "GuiColor.hpp"
 #include "GUI_ObjectList.hpp"
 #ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
@@ -123,7 +117,6 @@
 #include "SendMultiMachinePage.hpp"
 #include "SendToPrinter.hpp"
 #include "PublishDialog.hpp"
-#include "ModelMall.hpp"
 #include "ConfigWizard.hpp"
 #include "SyncAmsInfoDialog.hpp"
 #include "../Utils/ASCIIFolding.hpp"
@@ -149,7 +142,6 @@
 #include "ParamsDialog.hpp"
 #include "ImageDPIFrame.hpp"
 #include "Widgets/Label.hpp"
-#include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/RadioGroup.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/Button.hpp"
@@ -5459,7 +5451,7 @@ struct Plater::priv
     std::vector<size_t> load_model_objects(const ModelObjectPtrs& model_objects, bool allow_negative_z = false, bool split_object = false, bool auto_drop = true);
 
     fs::path get_export_file_path(GUI::FileType file_type);
-    wxString get_export_file(GUI::FileType file_type);
+    wxString get_export_file(GUI::FileType file_type, const wxString& title = {});
 
     // BBS
     void load_auxiliary_files();
@@ -7214,6 +7206,64 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     }
                 }
 
+                // BBS: a "published" 3MF project carries a flag plus a list of author-selected
+                // setting keys. When present, keep the user's currently-selected presets and
+                // overlay only the published keys onto the edited presets on load.
+                PublishedConfig published_config;
+                if (model.model_info != nullptr) {
+                    auto published_it = model.model_info->metadata_items.find("published");
+                    if (published_it != model.model_info->metadata_items.end() &&
+                        (published_it->second == "true" || published_it->second == "1")) {
+                        published_config.published = true;
+                        auto keys_it = model.model_info->metadata_items.find("published_keys");
+                        if (keys_it != model.model_info->metadata_items.end()) {
+                            try {
+                                auto j = nlohmann::json::parse(keys_it->second);
+                                if (j.is_array())
+                                    for (const auto &k : j)
+                                        if (k.is_string())
+                                            published_config.published_keys.emplace_back(k.get<std::string>());
+                            } catch (...) {
+                                // Ignore malformed published_keys; the project still loads normally.
+                            }
+                        }
+
+                        auto material_keys_it = model.model_info->metadata_items.find("published_material_keys");
+                        if (material_keys_it != model.model_info->metadata_items.end()) {
+                            try {
+                                auto jm = nlohmann::json::parse(material_keys_it->second);
+                                if (jm.is_array())
+                                    for (const auto &m : jm) {
+                                        // Malformed entries are skipped individually.
+                                        if (!m.is_object())
+                                            continue;
+                                        PublishedMaterialEntry entry;
+                                        const auto mat_it = m.find("material");
+                                        if (mat_it != m.end() && mat_it->is_object()) {
+                                            const auto &mat = *mat_it;
+                                            if (mat.contains("filament_type") && mat["filament_type"].is_string())
+                                                entry.filament_type = mat["filament_type"].get<std::string>();
+                                            if (mat.contains("filament_vendor") && mat["filament_vendor"].is_string())
+                                                entry.filament_vendor = mat["filament_vendor"].get<std::string>();
+                                            if (mat.contains("filament_id") && mat["filament_id"].is_string())
+                                                entry.filament_id = mat["filament_id"].get<std::string>();
+                                        }
+                                        if (m.contains("slot") && m["slot"].is_number_integer())
+                                            entry.slot = m["slot"].get<int>();
+                                        const auto entry_keys_it = m.find("keys");
+                                        if (entry_keys_it != m.end() && entry_keys_it->is_array())
+                                            for (const auto &k : *entry_keys_it)
+                                                if (k.is_string())
+                                                    entry.keys.emplace_back(k.get<std::string>());
+                                        published_config.material_keys.emplace_back(std::move(entry));
+                                    }
+                            } catch (...) {
+                                // Ignore malformed published_material_keys; the project still loads normally.
+                            }
+                        }
+                    }
+                }
+
                 if (load_config) {
                     if (!config.empty()) {
                         Preset::normalize(config);
@@ -7317,7 +7367,16 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             if (wipe_tower_y_opt)
                                 file_wipe_tower_y = *wipe_tower_y_opt;
 
-                            preset_bundle->load_config_model(filename.string(), std::move(config), file_version);
+                            preset_bundle->load_config_model(filename.string(), std::move(config), file_version, &published_config);
+
+                            // BBS: notify the user about published settings that could not be applied.
+                            if (!published_config.skipped_keys.empty()) {
+                                NotificationManager *notify_manager = q->get_notification_manager();
+                                std::string message = _u8L("Some published settings could not be applied:");
+                                for (const std::string &key : published_config.skipped_keys)
+                                    message += "\n-" + key;
+                                notify_manager->bbl_show_3mf_warn_notification(message);
+                            }
 
                             ConfigOption* bed_type_opt = preset_bundle->project_config.option("curr_bed_type");
                             if (bed_type_opt != nullptr) {
@@ -8179,7 +8238,7 @@ fs::path Plater::priv::get_export_file_path(GUI::FileType file_type)
     return output_file;
 }
 
-wxString Plater::priv::get_export_file(GUI::FileType file_type)
+wxString Plater::priv::get_export_file(GUI::FileType file_type, const wxString& title)
 {
     wxString wildcard;
     switch (file_type) {
@@ -8222,7 +8281,7 @@ wxString Plater::priv::get_export_file(GUI::FileType file_type)
         case FT_3MF:
         {
             output_file.replace_extension("3mf");
-            dlg_title = _L("Save file as");
+            dlg_title = title.empty() ? _L("Save file as") : title;
             break;
         }
         case FT_OBJ:
@@ -16103,6 +16162,76 @@ void Plater::export_core_3mf()
     if (path.empty()) { return; }
     const std::string path_u8 = into_u8(path);
     export_3mf(path_u8, SaveStrategy::Silence);
+}
+
+// Export the current project as a "published" 3MF. This is a pure export: unlike save_project(),
+// it never touches the project's file name, dirty state, backup path or title, and the
+// published metadata is attached to the model only for the duration of the export so the
+// in-memory project stays exactly as it was (a later Save Project produces a normal 3MF).
+int Plater::export_published_3mf(const std::vector<std::string>& published_keys, const std::vector<Slic3r::PublishedMaterialEntry>& material_keys)
+{
+    wxString path = p->get_export_file(FT_3MF, _L("Publish 3MF file as:"));
+    if (path.empty() || path == "<cancel>")
+        return wxID_CANCEL;
+
+    nlohmann::json j = nlohmann::json::array();
+    for (const std::string& key : published_keys)
+        j.push_back(key);
+    nlohmann::json jm = nlohmann::json::array();
+    for (const Slic3r::PublishedMaterialEntry& e : material_keys)
+        jm.push_back({ {"material", {{"filament_type", e.filament_type}, {"filament_vendor", e.filament_vendor}, {"filament_id", e.filament_id}}}, {"slot", e.slot}, {"keys", e.keys} });
+
+    Model& model = this->model();
+    // Remember the previous metadata state so it can be restored after the export, keeping the
+    // in-memory project pristine (the published flag lives only in the exported file).
+    const bool had_model_info       = (model.model_info != nullptr);
+    const bool had_published        = had_model_info && (model.model_info->metadata_items.find("published") != model.model_info->metadata_items.end());
+    const bool had_published_keys   = had_model_info && (model.model_info->metadata_items.find("published_keys") != model.model_info->metadata_items.end());
+    const bool had_material_keys    = had_model_info && (model.model_info->metadata_items.find("published_material_keys") != model.model_info->metadata_items.end());
+    const std::string prev_published      = had_published ? model.model_info->metadata_items.at("published") : std::string();
+    const std::string prev_published_keys = had_published_keys ? model.model_info->metadata_items.at("published_keys") : std::string();
+    const std::string prev_material_keys  = had_material_keys ? model.model_info->metadata_items.at("published_material_keys") : std::string();
+    if (model.model_info == nullptr)
+        model.model_info = std::make_shared<ModelInfo>();
+    model.model_info->metadata_items["published"] = "1";
+    model.model_info->metadata_items["published_keys"] = j.dump();
+    model.model_info->metadata_items["published_material_keys"] = jm.dump();
+
+    // Same file layout save_project() uses for its project files, plus SaveStrategy::Silence:
+    // without it export_3mf() calls set_project_filename() on success, which would make this
+    // pure export the current project file. Silence keeps the project state untouched, exactly
+    // like export_core_3mf().
+    auto save_strategy = SaveStrategy::SplitModel | SaveStrategy::ShareMesh | SaveStrategy::Silence;
+    bool full_pathnames = wxGetApp().app_config->get_bool("export_sources_full_pathnames");
+    if (full_pathnames)
+        save_strategy = save_strategy | SaveStrategy::FullPathSources;
+
+    const int ret = export_3mf(into_path(path), save_strategy);
+
+    // Restore the previous metadata state (both on success and on failure).
+    if (!had_model_info) {
+        model.model_info = nullptr;
+    } else {
+        if (had_published)
+            model.model_info->metadata_items["published"] = prev_published;
+        else
+            model.model_info->metadata_items.erase("published");
+        if (had_published_keys)
+            model.model_info->metadata_items["published_keys"] = prev_published_keys;
+        else
+            model.model_info->metadata_items.erase("published_keys");
+        if (had_material_keys)
+            model.model_info->metadata_items["published_material_keys"] = prev_material_keys;
+        else
+            model.model_info->metadata_items.erase("published_material_keys");
+    }
+
+    if (ret < 0) {
+        MessageDialog(this, _L("Failed to export the published 3MF file.\nPlease check whether the folder exists online or if other programs have the file open."),
+            _L("Publish Settings"), wxOK | wxICON_WARNING).ShowModal();
+        return wxID_CANCEL;
+    }
+    return wxID_YES;
 }
 
 Preset *get_printer_preset(const MachineObject *obj)

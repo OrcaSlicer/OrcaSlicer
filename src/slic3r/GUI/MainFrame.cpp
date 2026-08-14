@@ -54,6 +54,7 @@
 
 #include "GUI_App.hpp"
 #include "UnsavedChangesDialog.hpp"
+#include "PublishSettingsDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Notebook.hpp"
 #include "GUI_Factories.hpp"
@@ -2819,6 +2820,25 @@ void MainFrame::init_menubar_as_editor()
         append_menu_item(fileMenu, wxID_ANY, _L("Save Project as") + dots + "\t" + ctrl + shift + "S", _L("Save current project as"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->save_project(true); }, "", nullptr,
             [this](){return m_plater != nullptr && can_save_as(); }, this);
+#endif
+
+        // BBS: publish settings
+        fileMenu->AppendSeparator();
+        auto publish_handler = [this](wxCommandEvent&) {
+            if (!m_plater) return;
+            PublishSettingsDialog dlg(this);
+            if (dlg.ShowModal() != wxID_OK) return;
+            m_plater->export_published_3mf(dlg.GetPublishedKeys(), dlg.GetPublishedMaterialKeys());
+        };
+
+#ifndef __APPLE__
+        append_menu_item(fileMenu, wxID_ANY, _L("Publish Settings") + dots, _L("Export a 3MF file with the selected settings embedded"),
+            publish_handler, "menu_publish", nullptr,
+            [this](){return can_export_model(); }, this);
+#else
+        append_menu_item(fileMenu, wxID_ANY, _L("Publish Settings") + dots, _L("Export a 3MF file with the selected settings embedded"),
+            publish_handler, "", nullptr,
+            [this](){return can_export_model(); }, this);
 #endif
 
 

@@ -5675,6 +5675,9 @@ if (is_marlin_flavor)
             optgroup->append_single_option_line("extruder_offset", "printer_extruder_basic_information#extruder-offset-position", extruder_idx);
 
             //BBS: don't show retract related config menu in machine page
+            // Keep this optgroup's options in sync with publishable_printer_retraction_options()
+            // in libslic3r/PublishSettings.hpp: the published-3MF printer allowlist is its union
+            // with the Z-Hop optgroup below.
             optgroup = page->new_optgroup(L("Retraction"), L"param_retraction");
             optgroup->append_single_option_line("retraction_length", "printer_extruder_retraction#length", extruder_idx);
             optgroup->append_single_option_line("retract_restart_extra", "printer_extruder_retraction#extra-length-on-restart", extruder_idx);
@@ -5688,6 +5691,9 @@ if (is_marlin_flavor)
             // Orca
             optgroup->append_single_option_line("retract_after_wipe", "printer_extruder_retraction#retract-amount-after-wipe", extruder_idx);
 
+            // Keep this optgroup's options in sync with publishable_printer_z_hop_options()
+            // in libslic3r/PublishSettings.hpp: the published-3MF printer allowlist is its union
+            // with the Retraction optgroup above.
             optgroup = page->new_optgroup(L("Z-Hop"), L"param_extruder_lift_enforcement");
             optgroup->append_single_option_line("retract_lift_enforce", "printer_extruder_z_hop#on-surfaces", extruder_idx);
             optgroup->append_single_option_line("z_hop_types", "printer_extruder_z_hop#z-hop-type", extruder_idx);

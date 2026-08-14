@@ -3,6 +3,7 @@
 
 #include "PresetBundle.hpp"
 #include "PrintConfig.hpp"
+#include "PublishSettings.hpp"
 #include "libslic3r.h"
 #include "I18N.hpp"
 #include "Utils.hpp"
@@ -11,7 +12,7 @@
 #include "libslic3r_version.h"
 
 #include <algorithm>
-#include <mutex>
+#include <cstdlib>
 #include <set>
 #include <fstream>
 #include <unordered_set>
@@ -40,6 +41,8 @@
 
 namespace Slic3r {
 
+// Project-level options imported from a loaded 3MF into project_config. s_project_options_published
+// below is the reduced subset that crosses over in "published" 3MF mode; keep both in sync.
 static std::vector<std::string> s_project_options {
     "flush_volumes_vector",
     "flush_volumes_matrix",
@@ -69,6 +72,24 @@ static std::vector<std::string> s_project_options {
     // restored from a saved 3mf; reset to false on load and set true only by live device sync.
     "has_filament_switcher",
     "enable_filament_dynamic_map"
+};
+
+// Project options applied when loading a "published" 3MF project: the full s_project_options
+// minus the filament/purge keys. A published file must not port the author's filament data
+// (colors, colour types, filament/map/AMS slot state, purge/prime/flush volumes, nozzle
+// volume types, filament switcher state) to the receiver's project_config, which feeds the
+// scene colors, AMS slot colors and purge data. Only the plate/bed geometry keys cross over;
+// normal (non-published) 3MF loads keep importing the author's flush data via s_project_options.
+//
+// KEEP IN SYNC with s_project_options above: when a new project option is added there, decide
+// here whether it is plate/bed geometry (add it to this list) or filament/purge/mapping/device
+// state (it must NOT be added). curr_bed_type is deliberately NOT in this list: the receiver
+// keeps its own bed type when loading a published project. The published-mode project_config
+// assertions in tests/libslic3r/test_preset_bundle_loading.cpp guard both directions.
+static std::vector<std::string> s_project_options_published {
+    "wipe_tower_x",
+    "wipe_tower_y",
+    "wipe_tower_rotation_angle"
 };
 
 //Orca: add custom as default
@@ -4426,9 +4447,13 @@ static void convert_filament_preset_name(std::string& machine_name, std::string&
 }
 // Load a config file from a boost property_tree. This is a private method called from load_config_file.
 // is_external == false on if called from ConfigWizard
-void PresetBundle::load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version, bool selected)
+void PresetBundle::load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version, bool selected, PublishedConfig *published_config)
 {
     PrinterTechnology printer_technology = Preset::printer_technology(config);
+
+    // A "published" 3MF project keeps the user's currently-selected presets and overlays only
+    // the author-selected published keys onto the edited presets.
+    const bool is_published = published_config != nullptr && published_config->published;
 
     auto clear_compatible_printers = [](DynamicPrintConfig& config){
         ConfigOption *opt_compatible = config.optptr("compatible_printers");
@@ -4570,6 +4595,10 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
     switch (Preset::printer_technology(config)) {
     case ptFFF:
     {
+        // A "published" 3MF project keeps the user's currently-selected presets, so the
+        // print / printer / filament presets are NOT loaded from the file. Only the
+        // project config values and the published keys are applied below.
+        if (!is_published) {
         //BBS: add different settings logic
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load print preset from print_settings_id");
         std::vector<std::string> print_different_keys_vector;
@@ -4722,9 +4751,12 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 this->filament_presets[i] = loaded->name;
             }
         }
+        } // !is_published
 
         // 4) Load the project config values (the per extruder wipe matrix etc).
-        this->project_config.apply_only(config, s_project_options);
+        // In published mode the receiver must not inherit the author's filament/purge data,
+        // so only the plate/bed geometry project keys are applied.
+        this->project_config.apply_only(config, is_published ? s_project_options_published : s_project_options);
 
         break;
     }
@@ -4743,9 +4775,258 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
 	this->update_compatible(PresetSelectCompatibleType::Never);
     this->update_multi_material_filament_presets();
 
+    // A "published" 3MF project overlays only the author-selected published keys onto the
+    // user's currently-selected (edited) process preset. Scalar keys are applied directly;
+    // vector (multi-extruder) keys are applied only when the edited preset has a matching
+    // vector size. Keys that cannot be applied are collected for notification; legacy
+    // filament/printer keys in a published file fall through into skipped_keys.
+    if (is_published) {
+        std::vector<std::string> skipped_keys;
+        std::set<std::string>    applied_keys;
+        // Structural keys must never be applied to the user's presets: doing so would
+        // rewrite their preset inheritance/structure. This is the single source of truth
+        // shared with PublishSettingsDialog.cpp (publish_structural_keys in
+        // PublishSettings.hpp). Defense-in-depth: a hand-crafted 3MF could set
+        // published_keys to these regardless of the dialog, so skip them here too.
+        const std::set<std::string> &structural_keys  = publish_structural_keys();
+        // The printer overlay is restricted to the publishable retraction/z-hop allowlist.
+        // Printer-class keys outside it are contract-excluded: never applied and never
+        // reported as skipped (a hand-crafted 3MF listing machine_start_gcode or
+        // nozzle_diameter must not apply them and must not spam the warning).
+        const std::set<std::string> &printer_allowlist = publishable_printer_keys();
+        const std::vector<std::string> &printer_options = Preset::printer_options();
+        const std::set<std::string>  printer_option_set(printer_options.begin(), printer_options.end());
+        std::set<std::string>        contract_excluded_keys;
+        auto apply_published = [&](DynamicPrintConfig &target, const std::set<std::string> *allowlist) {
+            for (const std::string &key : published_config->published_keys) {
+                if (applied_keys.count(key) != 0)
+                    continue; // already applied
+                // A '#' suffix denotes a variant (per-extruder/per-filament) key; resolve the base key.
+                const std::string    base_key = key.substr(0, key.find('#'));
+                // Structural keys are intentionally never applied (not "skipped due to
+                // mismatch"), so bail out before the applied/skipped bookkeeping.
+                if (structural_keys.count(base_key) != 0)
+                    continue;
+                if (allowlist != nullptr &&
+                    printer_option_set.count(base_key) != 0 &&
+                    allowlist->count(base_key) == 0) {
+                    // Printer-class key outside the publishable allowlist: contract-excluded.
+                    contract_excluded_keys.insert(base_key);
+                    continue;
+                }
+                const ConfigOption  *src_opt  = config.option(base_key);
+                if (src_opt == nullptr)
+                    continue; // key not present in the loaded config; record later
+                if (src_opt->is_vector()) {
+                    // Vector key: apply only when the edited preset has a matching vector size.
+                    const ConfigOption *dst_opt = target.option(base_key);
+                    if (dst_opt == nullptr || !dst_opt->is_vector() ||
+                        static_cast<const ConfigOptionVectorBase*>(src_opt)->size() != static_cast<const ConfigOptionVectorBase*>(dst_opt)->size())
+                        continue; // cannot apply; will be reported as skipped
+                    // A '#' variant index must be in range: ConfigOptionVector::set_at would
+                    // otherwise resize the destination vector, corrupting the receiver's preset.
+                    if (key.size() > base_key.size()) {
+                        const size_t idx = static_cast<size_t>(std::atoi(key.c_str() + base_key.size() + 1));
+                        if (idx >= static_cast<const ConfigOptionVectorBase*>(src_opt)->size())
+                            continue; // out-of-range variant: cannot apply; reported as skipped
+                    }
+                    target.apply_only(config, {key}, true);
+                    applied_keys.insert(key);
+                } else {
+                    // A scalar key cannot carry a '#N' variant suffix; a hand-crafted file
+                    // listing one is reported as skipped instead of being silently marked applied.
+                    if (key.find('#') != std::string::npos)
+                        continue;
+                    // Scalar key: apply only if present on the user's machine.
+                    if (target.option(base_key) == nullptr)
+                        continue; // not present on the edited preset; will be reported as skipped
+                    target.apply_only(config, {key}, true);
+                    applied_keys.insert(key);
+                }
+            }
+        };
+        apply_published(this->prints.get_edited_preset().config, nullptr);
+        apply_published(this->printers.get_edited_preset().config, &printer_allowlist);
+
+        // Material pass: apply the author's material-qualified keys onto the receiver's
+        // matching filament presets. The file config carries the author's per-slot identity
+        // (filament_type / filament_vendor remain in config; filament_ids was moved into a
+        // local earlier) and the per-slot material retraction values.
+        if (!published_config->material_keys.empty()) {
+            const ConfigOptionStrings *file_types   = config.option<ConfigOptionStrings>("filament_type");
+            const ConfigOptionStrings *file_vendors = config.option<ConfigOptionStrings>("filament_vendor");
+            auto identity_matches = [](const std::string &id, const std::string &type, const std::string &vendor,
+                                       const std::string &slot_id, const std::string &slot_type, const std::string &slot_vendor) {
+                // When both sides carry a filament_id, equality is required; otherwise fall
+                // back to filament_type, with filament_vendor as an additional qualifier only
+                // when both sides have a non-empty vendor.
+                if (!id.empty() && !slot_id.empty())
+                    return id == slot_id;
+                if (type.empty() || type != slot_type)
+                    return false;
+                if (!vendor.empty() && !slot_vendor.empty())
+                    return vendor == slot_vendor;
+                return true;
+            };
+            for (const PublishedMaterialEntry &entry : published_config->material_keys) {
+                // Resolve the author's source slot and its ordinal among the author slots
+                // carrying this entry's identity. A slotted entry (slot >= 0) names the exact
+                // author slot and targets the receiver's Nth matching preset (N = ordinal);
+                // a legacy entry (slot -1) uses the first matching author slot and applies to
+                // every matching receiver preset.
+                auto slot_identity = [&filament_ids, file_types, file_vendors](size_t slot, std::string &id, std::string &type, std::string &vendor) {
+                    id     = (slot < filament_ids.size()) ? filament_ids[slot] : std::string();
+                    type   = (file_types && slot < file_types->size()) ? file_types->get_at(slot) : std::string();
+                    vendor = (file_vendors && slot < file_vendors->size()) ? file_vendors->get_at(slot) : std::string();
+                };
+                bool   author_found   = false;
+                size_t author_slot    = 0;
+                size_t author_ordinal = 0;
+                if (entry.slot >= 0) {
+                    // Collect every author slot carrying this identity, in slot order; the
+                    // entry's slot must be among them, and its position is the ordinal used
+                    // to pick the receiver's matching preset.
+                    std::vector<size_t> matching_author_slots;
+                    for (size_t slot = 0; slot < filament_ids.size(); ++slot) {
+                        std::string slot_id, slot_type, slot_vendor;
+                        slot_identity(slot, slot_id, slot_type, slot_vendor);
+                        if (identity_matches(entry.filament_id, entry.filament_type, entry.filament_vendor,
+                                             slot_id, slot_type, slot_vendor))
+                            matching_author_slots.emplace_back(slot);
+                    }
+                    const auto ordinal_it = std::find(matching_author_slots.begin(), matching_author_slots.end(), size_t(entry.slot));
+                    if (ordinal_it != matching_author_slots.end()) {
+                        author_slot    = size_t(entry.slot);
+                        author_ordinal = size_t(ordinal_it - matching_author_slots.begin());
+                        author_found   = true;
+                    }
+                    // Out of range, or the slot does not carry this identity: silent skip below.
+                } else {
+                    // Legacy: the first author slot whose identity matches.
+                    for (size_t slot = 0; slot < filament_ids.size(); ++slot) {
+                        std::string slot_id, slot_type, slot_vendor;
+                        slot_identity(slot, slot_id, slot_type, slot_vendor);
+                        if (identity_matches(entry.filament_id, entry.filament_type, entry.filament_vendor,
+                                             slot_id, slot_type, slot_vendor)) {
+                            author_slot  = slot;
+                            author_found = true;
+                            break;
+                        }
+                    }
+                }
+                if (!author_found)
+                    // No author slot carries this material: nothing to apply, nothing to report.
+                    continue;
+
+                const std::string material_label = entry.filament_id.empty() ? entry.filament_type : entry.filament_id;
+                auto report_skipped = [&skipped_keys, &material_label](const std::string &key, const std::string &slot_qualifier = std::string()) {
+                    skipped_keys.emplace_back("material:" + material_label +
+                                              (slot_qualifier.empty() ? std::string() : " " + slot_qualifier) +
+                                              " (" + key + ")");
+                };
+
+                // Collect the receiver's matching filament presets (distinct by preset name).
+                std::vector<std::string> matched_preset_names;
+                std::set<std::string>    fallback_matched_names;
+                for (const std::string &preset_name : this->filament_presets) {
+                    Preset *preset = this->filaments.find_preset(preset_name);
+                    if (preset == nullptr)
+                        continue;
+                    const std::string slot_id = preset->filament_id;
+                    // Null-guard the identity reads: a malformed user preset may lack
+                    // filament_type / filament_vendor entirely (hand-edited preset file).
+                    const ConfigOptionStrings *slot_types   = preset->config.option<ConfigOptionStrings>("filament_type");
+                    const ConfigOptionStrings *slot_vendors = preset->config.option<ConfigOptionStrings>("filament_vendor");
+                    const std::string slot_type   = (slot_types   && !slot_types->values.empty())   ? slot_types->get_at(0)   : std::string();
+                    const std::string slot_vendor = (slot_vendors && !slot_vendors->values.empty()) ? slot_vendors->get_at(0) : std::string();
+                    if (!identity_matches(entry.filament_id, entry.filament_type, entry.filament_vendor,
+                                          slot_id, slot_type, slot_vendor))
+                        continue;
+                    if (std::find(matched_preset_names.begin(), matched_preset_names.end(), preset_name) == matched_preset_names.end())
+                        matched_preset_names.emplace_back(preset_name);
+                    if (entry.filament_id.empty() || slot_id.empty())
+                        fallback_matched_names.insert(preset_name);
+                }
+                if (matched_preset_names.empty()) {
+                    // No receiver material matches this entry: report each key as skipped.
+                    for (const std::string &key : entry.keys)
+                        report_skipped(key);
+                    continue;
+                }
+                if (fallback_matched_names.size() > 1) {
+                    // The type fallback matched more than one distinct receiver preset: never
+                    // guess which one the author meant.
+                    for (const std::string &key : entry.keys)
+                        report_skipped(key);
+                    continue;
+                }
+
+                // Slotted entries target the receiver's matching preset at the author's
+                // ordinal; legacy entries apply to every matching receiver preset.
+                std::vector<std::string> apply_to_preset_names;
+                if (entry.slot >= 0) {
+                    if (author_ordinal >= matched_preset_names.size()) {
+                        // The receiver has fewer matching presets than the author's ordinal:
+                        // this slot's values cannot be placed, report each key.
+                        const std::string slot_qualifier = "slot " + std::to_string(entry.slot);
+                        for (const std::string &key : entry.keys)
+                            report_skipped(key, slot_qualifier);
+                        continue;
+                    }
+                    apply_to_preset_names.emplace_back(matched_preset_names[author_ordinal]);
+                } else {
+                    apply_to_preset_names = matched_preset_names;
+                }
+
+                for (const std::string &key : entry.keys) {
+                    const std::string base_key = key.substr(0, key.find('#'));
+                    if (structural_keys.count(base_key) != 0)
+                        continue; // structural: silent
+                    const ConfigOption *src_opt = config.option(base_key);
+                    if (src_opt == nullptr || !src_opt->is_vector() ||
+                        author_slot >= static_cast<const ConfigOptionVectorBase*>(src_opt)->size()) {
+                        report_skipped(key);
+                        continue;
+                    }
+                    for (const std::string &preset_name : apply_to_preset_names) {
+                        Preset *preset = this->filaments.find_preset(preset_name);
+                        if (preset == nullptr)
+                            continue;
+                        ConfigOption *dst_opt = preset->config.option(base_key);
+                        // Per-slot scalar copy: the receiver's filament preset holds a single
+                        // value per key (vector of size 1), the file holds the per-slot vector.
+                        if (dst_opt == nullptr || !dst_opt->is_vector() ||
+                            static_cast<const ConfigOptionVectorBase*>(dst_opt)->empty() ||
+                            dst_opt->type() != src_opt->type()) {
+                            report_skipped(key);
+                            continue;
+                        }
+                        static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, 0, author_slot);
+                    }
+                }
+            }
+        }
+
+        for (const std::string &key : published_config->published_keys) {
+            if (applied_keys.count(key) != 0)
+                continue;
+            const std::string base_key = key.substr(0, key.find('#'));
+            // Structural keys are silently ignored, never reported as skipped: a hand-crafted
+            // 3MF must not trigger the "could not be applied" warning for them.
+            if (structural_keys.count(base_key) != 0)
+                continue;
+            // Printer-class keys outside the publishable allowlist are contract-excluded too.
+            if (contract_excluded_keys.count(base_key) != 0)
+                continue;
+            skipped_keys.emplace_back(key);
+        }
+        published_config->skipped_keys = std::move(skipped_keys);
+    }
+
     //BBS
     //const std::string &physical_printer = config.option<ConfigOptionString>("physical_printer_settings_id", true)->value;
     const std::string physical_printer;
+    if (!is_published) {
     if (this->printers.get_edited_preset().is_external || physical_printer.empty()) {
         this->physical_printers.unselect_printer();
     } else {
@@ -4755,6 +5036,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             this->physical_printers.select_printer(pp->name, this->printers.get_edited_preset().name);
         else
             this->physical_printers.unselect_printer();
+    }
     }
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": finished");
