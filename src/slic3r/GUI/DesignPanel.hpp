@@ -79,6 +79,7 @@ private:
     // Constrain = constraints + edit ops). Replaces the old always-visible wall.
     enum class UiMode { Feature, Sketch, Constrain };
     void set_ui_mode(UiMode m);
+    void apply_dof_status(int dof, bool ok, bool has_constraints);
     // Unified action-bar dispatch: one Confirm / one Cancel for every tool and mode.
     void tool_confirm();        // ✓ : commit the active feature / sketch / constrain session
     void tool_cancel();         // ✗ / Esc : cancel the active feature / discard / exit
@@ -822,6 +823,10 @@ private:
     // reliable way to tell a chosen colour (the error red) from the default. See set_status().
     wxColour          m_status_default_fg;
     wxStaticText*     m_dof_status{nullptr};   // DoF / constraint-state readout (P3)
+    // Last live-solve result, so entering Constrain can restore the readout without a solve.
+    int               m_dof_last{-1};
+    bool              m_dof_last_ok{true};
+    bool              m_dof_last_has{false};
     int               m_feature_counter{0};
 
     std::vector<wxButton*> m_confirm_btns;

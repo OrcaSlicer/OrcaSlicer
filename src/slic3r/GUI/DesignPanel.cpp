@@ -3291,23 +3291,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // DoF feedback (P3): after each live solve, report constraint state on its own
     // line. Green = fully constrained, red = conflicting, neutral = N remaining DoF.
     m_viewport->set_on_solve_state([this](int dof, bool ok, bool has_constraints) {
-        if (!m_dof_status) return;
-        if (!has_constraints) {
-            m_dof_status->SetLabel(wxString()); m_dof_status->Show(!m_dof_status->GetLabel().IsEmpty());
-        } else if (!ok) {
-            m_dof_status->SetForegroundColour(wxColour(235, 80, 80));
-            m_dof_status->SetLabel(_L("✗ Conflicting constraints")); m_dof_status->Show(!m_dof_status->GetLabel().IsEmpty());
-        } else if (dof == 0) {
-            m_dof_status->SetForegroundColour(wxColour(80, 200, 110));
-            m_dof_status->SetLabel(_L("✓ Fully constrained")); m_dof_status->Show(!m_dof_status->GetLabel().IsEmpty());
-        } else if (dof > 0) {
-            m_dof_status->SetForegroundColour(dp_ctl_text());
-            m_dof_status->SetLabel(wxString::Format(_L("%d degrees of freedom"), dof)); m_dof_status->Show(!m_dof_status->GetLabel().IsEmpty());
-        } else {
-            m_dof_status->SetLabel(wxString()); m_dof_status->Show(!m_dof_status->GetLabel().IsEmpty());
-        }
-        m_dof_status->Refresh();
-        update_cards_frame(); m_form->Layout();
+        // Remembered as well as shown: the readout is fed ONLY by a live solve, and entering
+        // Constrain mode triggers none — so without a cache the very line the user goes to
+        // Constrain to read stays blank until they happen to change something.
+        m_dof_last = dof; m_dof_last_ok = ok; m_dof_last_has = has_constraints;
+        apply_dof_status(dof, ok, has_constraints);
     });
 
     // Selection (Select tool): reflect the count in the status line.
@@ -3951,6 +3939,30 @@ void DesignPanel::set_active_tool_btn(ScalableButton* b)
     }
 }
 
+// Paint the DoF line. Split out of the solve callback so entering Constrain can re-apply the
+// last known state — see m_dof_last.
+void DesignPanel::apply_dof_status(int dof, bool ok, bool has_constraints)
+{
+    if (!m_dof_status) return;
+    if (!has_constraints) {
+        m_dof_status->SetLabel(wxString());
+    } else if (!ok) {
+        m_dof_status->SetForegroundColour(wxColour(235, 80, 80));
+        m_dof_status->SetLabel(_L("✗ Conflicting constraints"));
+    } else if (dof == 0) {
+        m_dof_status->SetForegroundColour(wxColour(80, 200, 110));
+        m_dof_status->SetLabel(_L("✓ Fully constrained"));
+    } else if (dof > 0) {
+        m_dof_status->SetForegroundColour(dp_ctl_text());
+        m_dof_status->SetLabel(wxString::Format(_L("%d degrees of freedom"), dof));
+    } else {
+        m_dof_status->SetLabel(wxString());
+    }
+    m_dof_status->Show(!m_dof_status->GetLabel().IsEmpty());
+    m_dof_status->Refresh();
+    update_cards_frame(); m_form->Layout();
+}
+
 void DesignPanel::set_ui_mode(UiMode m)
 {
     m_ui_mode = m;
@@ -3964,6 +3976,10 @@ void DesignPanel::set_ui_mode(UiMode m)
         m_dof_status->SetLabel(wxString());
         m_dof_status->Show(false);
     }
+    // Constrain is where the number is the whole point, and clearing it on the way out of
+    // Sketch left it blank on the way in — no solve fires merely because the mode changed.
+    if (m == UiMode::Constrain)
+        apply_dof_status(m_dof_last, m_dof_last_ok, m_dof_last_has);
     wxSizer* s = m_toolbar->GetSizer();
     s->Show(m_tb_feature,   m == UiMode::Feature,   true);
     s->Show(m_tb_sketch,    m == UiMode::Sketch,    true);
