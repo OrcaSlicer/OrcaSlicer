@@ -8893,7 +8893,11 @@ void GUI_App::load_current_presets(bool active_preset_combox/*= false*/, bool ch
     if (printer_technology == ptFFF && !edited_printer_preset.config.opt_bool("single_extruder_multi_material")) {
         auto* nozzle_diameter = edited_printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
         if (nozzle_diameter) {
-            preset_bundle->set_num_filaments(nozzle_diameter->values.size());
+            // Mixed-color slots are virtual filaments kept at the tail of the list, so they have no
+            // nozzle of their own. Sizing to the nozzle count alone truncates them away — and this
+            // runs right after a project is loaded, so it would silently drop the project's mixes
+            // and then let update_extruder_count() strip every painted facet above the new count.
+            preset_bundle->set_num_filaments(nozzle_diameter->values.size() + preset_bundle->num_mixed_filaments());
         }
     }
 	this->plater()->set_printer_technology(printer_technology);

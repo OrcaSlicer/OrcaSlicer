@@ -541,21 +541,25 @@ TEST_CASE("A printer specific filament supersedes the generic library filament w
 }
 
 
+namespace {
+
+const char *kMixedKeys[] = {
+    "filament_is_mixed",
+    "filament_mixed_components",
+    "filament_mixed_sublayer_ratios",
+    "filament_mixed_gradient",
+    "filament_mixed_gradient_range",
+    "filament_mixed_gradient_curve",
+    "filament_mixed_gradient_per_part",
+};
+
+} // namespace
+
 // Mixed-color filament metadata lives in project_config as parallel per-filament arrays.
 // set_num_filaments() is the single place that grows them alongside filament_colour; if it
 // misses them, creating a mixed slot writes past the end of the short arrays.
 TEST_CASE("set_num_filaments keeps mixed-color arrays in step with the filament count", "[Preset][Bundle][FilamentMixer]")
 {
-    static const char *kMixedKeys[] = {
-        "filament_is_mixed",
-        "filament_mixed_components",
-        "filament_mixed_sublayer_ratios",
-        "filament_mixed_gradient",
-        "filament_mixed_gradient_range",
-        "filament_mixed_gradient_curve",
-        "filament_mixed_gradient_per_part",
-    };
-
     auto mixed_array_size = [](const DynamicPrintConfig &cfg, const std::string &key) -> size_t {
         if (const auto *b = cfg.option<ConfigOptionBools>(key))
             return b->values.size();
@@ -581,5 +585,98 @@ TEST_CASE("set_num_filaments keeps mixed-color arrays in step with the filament 
         REQUIRE(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 1);
         for (const char *key : kMixedKeys)
             CHECK(mixed_array_size(bundle.project_config, key) == 1);
+    }
+}
+
+// A mix is described by 1-based indices into the project's filament list, so it is only meaningful
+// alongside that list. As in BambuStudio the app-config snapshot is global — one "last session"
+// copy under the shared "presets" section, restored at startup only. A PER-PRINTER copy would be
+// re-applied on every printer change and would replace a loaded project's mixes with whatever
+// snapshot that printer last held, which also shrinks the filament count and makes reload_scene
+// strip painted facets above it.
+TEST_CASE("Mixed-color filament metadata is snapshotted globally, never per printer", "[Preset][Bundle][FilamentMixer]")
+{
+    PresetBundle bundle;
+    // export_selections skips the built-in "Default Printer" placeholder entirely.
+    add_inmemory_preset(bundle.printers, "Test Printer");
+    bundle.printers.select_preset_by_name("Test Printer", true);
+    bundle.set_num_filaments(2u, std::string("#FF0000"));
+    bundle.project_config.option<ConfigOptionBools>("filament_is_mixed")->values          = { false, true };
+    bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components")->values = { "", "1,2" };
+    bundle.project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values = { "", "0.5,0.5" };
+
+    AppConfig app_config;
+    bundle.export_selections(app_config);
+
+    const std::string printer_name = bundle.printers.get_selected_preset_name();
+    for (const char *key : kMixedKeys) {
+        DYNAMIC_SECTION("global, not per printer: " << key) {
+            CHECK(app_config.has("presets", key));
+            CHECK_FALSE(app_config.has_printer_setting(printer_name, key));
+        }
+    }
+
+    SECTION("with the encoding load_selections reads back") {
+        CHECK(app_config.get("presets", "filament_is_mixed") == "0,1");
+        CHECK(app_config.get("presets", "filament_mixed_components") == "|1,2");
+        CHECK(app_config.get("presets", "filament_mixed_sublayer_ratios") == "|0.5,0.5");
+    }
+}
+
+// The gradient curve is the one mixed array whose values contain '|' themselves — it separates the
+// control points — so it cannot be '|'-joined into the app config like its siblings without a
+// multi-point curve being split across filament slots on the way back in.
+TEST_CASE("A multi-point gradient curve survives the app-config snapshot", "[Preset][Bundle][FilamentMixer]")
+{
+    const std::vector<std::string> curves = { "", "", "0,0|0.5,0.3|1,1" };
+
+    PresetBundle bundle;
+    add_inmemory_preset(bundle.printers, "Test Printer");
+    bundle.printers.select_preset_by_name("Test Printer", true);
+    bundle.set_num_filaments(3u, std::string("#FF0000"));
+    bundle.project_config.option<ConfigOptionStrings>("filament_mixed_gradient_curve")->values = curves;
+
+    AppConfig app_config;
+    bundle.export_selections(app_config);
+
+    // Decoding the stored form returns the three slots intact, curve delimiters and all. A plain
+    // '|' join would decode as five slots here instead of three.
+    std::vector<std::string> decoded;
+    REQUIRE(unescape_strings_cstyle(app_config.get("presets", "filament_mixed_gradient_curve"), decoded));
+    CHECK(decoded == curves);
+}
+
+// A multi-tool printer sizes the filament list from its nozzle count. Mixed-color slots are extra
+// virtual filaments at the tail of that list with no nozzle of their own, so the sync has to add
+// them on top. Sizing to the nozzle count alone truncates them — and because that sync runs right
+// after a project is loaded, it silently drops the project's mixes and then lets the filament-count
+// change strip every painted facet above the new count.
+TEST_CASE("Sizing the filament list to a multi-tool nozzle count keeps mixed slots", "[Preset][Bundle][FilamentMixer]")
+{
+    // The 5-slot layout of a 4-tool project carrying one mix of filaments 2 and 3.
+    const size_t nozzle_count = 4;
+    PresetBundle bundle;
+    bundle.set_num_filaments(5u, std::string("#FF0000"));
+    bundle.project_config.option<ConfigOptionBools>("filament_is_mixed")->values =
+        { false, false, false, false, true };
+    bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components")->values =
+        { "", "", "", "", "2,3" };
+
+    REQUIRE(bundle.num_mixed_filaments() == 1);
+
+    SECTION("nozzle count plus the mixed slots preserves the mix") {
+        bundle.set_num_filaments(nozzle_count + bundle.num_mixed_filaments(), std::string("#00FF00"));
+
+        CHECK(bundle.filament_presets.size() == 5);
+        CHECK(bundle.num_mixed_filaments() == 1);
+        CHECK(bundle.is_mixed_filament(4));
+        CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components")->values[4] == "2,3");
+    }
+
+    SECTION("the nozzle count alone is what truncated it away") {
+        bundle.set_num_filaments(nozzle_count, std::string("#00FF00"));
+
+        CHECK(bundle.filament_presets.size() == nozzle_count);
+        CHECK(bundle.num_mixed_filaments() == 0);
     }
 }
