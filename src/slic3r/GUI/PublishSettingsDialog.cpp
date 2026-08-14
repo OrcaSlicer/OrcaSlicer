@@ -16,84 +16,12 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PublishSettings.hpp"
 
-#include <wx/graphics.h>
 #include <boost/algorithm/string/trim.hpp>
 #include <set>
 #include <algorithm>
-#include <functional>
-
-// Custom-painted collapse chevron: a vector path (down when expanded, right
-// when collapsed) drawn in the dialog's secondary-text grey. Vector drawing
-// keeps it crisp at any DPI (the earlier 16px bitmap chevron looked
-// blurry/wide).
-class CollapseChevron : public wxWindow
-{
-public:
-    explicit CollapseChevron(wxWindow* parent) : wxWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE)
-    {
-        SetBackgroundColour(parent->GetBackgroundColour());
-        DisableFocusFromKeyboard();
-        SetMinSize(FromDIP(wxSize(10, 10)));
-        Bind(wxEVT_PAINT, &CollapseChevron::on_paint, this);
-    }
-
-    void SetCollapsed(bool collapsed)
-    {
-        if (m_collapsed == collapsed)
-            return;
-        m_collapsed = collapsed;
-        Refresh();
-    }
-
-private:
-    void on_paint(wxPaintEvent&)
-    {
-        wxPaintDC dc(this);
-        wxGraphicsContext* ctx = wxGraphicsContext::Create(dc);
-        if (ctx == nullptr)
-            return;
-        ctx->SetAntialiasMode(wxANTIALIAS_DEFAULT);
-        // Same grey as the row value labels, dark-mode aware.
-        wxPen pen(StateColor::darkModeColorFor(wxColour("#6B6B6B")), FromDIP(1.5), wxPENSTYLE_SOLID);
-        pen.SetCap(wxCAP_ROUND);
-        pen.SetJoin(wxJOIN_ROUND);
-        ctx->SetPen(pen);
-
-        const wxSize sz = GetClientSize();
-        const double cx = sz.x / 2.0;
-        const double cy = sz.y / 2.0;
-        const double r  = std::min(sz.x, sz.y) * 0.32;
-
-        wxGraphicsPath path = ctx->CreatePath();
-        if (m_collapsed) {
-            // Right-pointing chevron ">".
-            path.MoveToPoint(cx - r, cy - r);
-            path.AddLineToPoint(cx + r, cy);
-            path.AddLineToPoint(cx - r, cy + r);
-        } else {
-            // Down-pointing chevron "v".
-            path.MoveToPoint(cx - r, cy - r);
-            path.AddLineToPoint(cx, cy + r);
-            path.AddLineToPoint(cx + r, cy - r);
-        }
-        ctx->StrokePath(path);
-        delete ctx;
-    }
-
-    bool m_collapsed{false};
-};
 
 namespace Slic3r { namespace GUI {
 namespace {
-
-// Identity of a filament slot: the stable material id when present, else the
-// type+vendor pair. Used to emit the PublishedMaterialEntry identity fields.
-struct MaterialIdentity
-{
-    std::string type;
-    std::string vendor;
-    std::string id;
-};
 
 // Menu ids for show_menu(). Dedicated range above the standard ids so the popup cannot
 // collide with application-level bindings (e.g. MainFrame's recent-files wxID_FILE1.. range).
@@ -106,9 +34,9 @@ enum {
     kPublishFilterNonSelected
 };
 
-MaterialIdentity material_identity(size_t slot, const DynamicPrintConfig& full)
+PublishMaterialIdentity material_identity(size_t slot, const DynamicPrintConfig& full)
 {
-    MaterialIdentity identity;
+    PublishMaterialIdentity identity;
     if (const auto* types = full.opt<ConfigOptionStrings>("filament_type"))
         if (slot < types->size())
             identity.type = types->get_at(slot);
@@ -143,7 +71,7 @@ wxString material_title(size_t slot, const PresetBundle* bundle, const DynamicPr
         if (preset != nullptr && !preset->name.empty())
             return from_u8(material_display_name(preset->name));
     }
-    const MaterialIdentity identity = material_identity(slot, full);
+    const PublishMaterialIdentity identity = material_identity(slot, full);
     if (!identity.type.empty())
         return from_u8(identity.type);
     return _L("Material");
@@ -162,8 +90,6 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
     , m_menu(this, "filter", 16)
 {
     SetBackgroundColour(*wxWHITE);
-
-    build_option_model();
 
     // --- filter bar: search box, All/None, menu button ---
     wxPanel* f_bar = new wxPanel(this, wxID_ANY);
@@ -212,6 +138,17 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
 
     f_bar->SetSizerAndFit(f_sizer);
 
+    constexpr long tab_style = wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS |
+                               wxTR_FULL_ROW_HIGHLIGHT;
+    m_outer_tabs             = new TabCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, tab_style);
+    m_outer_tabs->SetFont(Label::Body_14);
+    m_outer_tabs->SetBackgroundColour(GetBackgroundColour());
+
+    m_outer_host = new wxPanel(this, wxID_ANY);
+    m_outer_host->SetBackgroundColour(GetBackgroundColour());
+    m_outer_host_sizer = new wxBoxSizer(wxVERTICAL);
+    m_outer_host->SetSizer(m_outer_host_sizer);
+
     wxBoxSizer* w_sizer = new wxBoxSizer(wxVERTICAL);
 
     wxStaticText* msg = new wxStaticText(this, wxID_ANY, _L("Select which settings to embed in the 3MF file"));
@@ -220,7 +157,10 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
     w_sizer->Add(msg, 0, wxRIGHT | wxLEFT | wxTOP, FromDIP(10));
 
     w_sizer->Add(f_bar, 0, wxRIGHT | wxLEFT | wxTOP | wxEXPAND, FromDIP(10));
-    w_sizer->Add(m_scroll, 1, wxRIGHT | wxLEFT | wxTOP | wxEXPAND, FromDIP(10));
+    w_sizer->Add(m_outer_tabs, 0, wxRIGHT | wxLEFT | wxTOP | wxEXPAND, FromDIP(10));
+    w_sizer->Add(m_outer_host, 1, wxRIGHT | wxLEFT | wxTOP | wxEXPAND, FromDIP(10));
+
+    build_option_model();
 
     auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
 
@@ -261,22 +201,17 @@ void PublishSettingsDialog::build_option_model()
     PresetBundle* bundle    = wxGetApp().preset_bundle;
     DynamicPrintConfig full = bundle->full_config();
 
-    m_scroll = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    m_scroll->SetScrollRate(0, 10);
-    m_scroll->SetBackgroundColour(GetBackgroundColour());
-    m_list_sizer = new wxBoxSizer(wxVERTICAL);
-    m_scroll->SetSizer(m_list_sizer);
-    m_scroll->DisableFocusFromKeyboard();
-    m_scroll->Bind(wxEVT_RIGHT_DOWN, &PublishSettingsDialog::show_menu, this);
-
-    // "no matching rows" info label, shown by apply_filter().
-    m_info = new wxStaticText(m_scroll, wxID_ANY, "");
-    m_info->SetFont(Label::Body_13);
-    m_list_sizer->Add(m_info, 1, wxALIGN_CENTER_HORIZONTAL | wxALL, FromDIP(10));
-    m_info->Hide();
     m_info_nonsel = _L("No selected items...");
     m_info_allsel = _L("All items selected...");
     m_info_empty  = _L("No matching items...");
+
+    // Keep the tab order explicit: Section's enum order is Print, Printer,
+    // Material, while the dialog presents Printer, Filament, Process.
+    m_sections.reserve(3);
+    const Section tab_order[] = {Section::Printer, Section::Material, Section::Print};
+    for (Section kind : tab_order)
+        section_group_for(kind);
+    bind_tab_events();
 
     // Shared per-option label/value computation; returns false when the option
     // must be skipped (denylisted / unknown / empty label). value is the pure
@@ -296,165 +231,12 @@ void PublishSettingsDialog::build_option_model()
         return true;
     };
 
-    // Find-or-create a main category; builds its header row UI on first use.
-    // Material sections are additionally matched by identity and slot so two
-    // identities (or slots) that happen to share a title stay separate.
-    auto category_index_for = [this, &full](const wxString& title, Section section, const std::string& icon_name, size_t group,
-                                            const MaterialIdentity& identity = MaterialIdentity(), size_t slot = 0) -> size_t {
-        for (size_t i = 0; i < m_categories.size(); ++i) {
-            if (m_categories[i].title != title || m_categories[i].section != section)
-                continue;
-            if (section == Section::Material &&
-                (m_categories[i].filament_id != identity.id || m_categories[i].filament_type != identity.type ||
-                 m_categories[i].filament_vendor != identity.vendor || m_categories[i].filament_slot != slot))
-                continue;
-            return i;
-        }
-        Category cat;
-        cat.title           = title;
-        cat.section         = section;
-        cat.group           = group;
-        cat.icon_name       = icon_name;
-        cat.filament_type   = identity.type;
-        cat.filament_vendor = identity.vendor;
-        cat.filament_id     = identity.id;
-        cat.filament_slot   = slot;
-        if (!icon_name.empty()) {
-            cat.icon_bmp = ScalableBitmap(m_scroll, icon_name, 18);
-            cat.icon     = new wxStaticBitmap(m_scroll, wxID_ANY, cat.icon_bmp.bmp());
-        }
-        if (section == Section::Material) {
-            // Material header: [master (title)][slim tri-state select-all].
-            // The master is a 2-state opt-in that carries the material title;
-            // the tri-state is label-less and gates on the master.
-            cat.master_check = new wxCheckBox(m_scroll, wxID_ANY, title);
-            cat.master_check->SetFont(Label::Head_14);
-            cat.master_check->SetToolTip(_L("Export this material"));
-            cat.header = new wxCheckBox(m_scroll, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxCHK_3STATE);
-            cat.header->SetFont(Label::Head_14);
-            cat.header->SetToolTip(_L("Select/deselect all settings in this material"));
-        } else {
-            cat.header = new wxCheckBox(m_scroll, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, wxCHK_3STATE);
-            cat.header->SetFont(Label::Head_14.Bold());
-        }
-        const size_t new_index = m_categories.size();
-        cat.chevron            = create_chevron(m_scroll, wxEVT_LEFT_DOWN, [this, new_index] { toggle_category(new_index); });
-        // [icon][chevron][(chip)(master)(tri-state) | checkbox]: the chevron
-        // collapses/expands the category, the checkbox is the select-all.
-        auto header_sizer = new wxBoxSizer(wxHORIZONTAL);
-        if (cat.icon != nullptr)
-            header_sizer->Add(cat.icon, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(2));
-        header_sizer->Add(cat.chevron, 0, wxALIGN_CENTER_VERTICAL);
-        if (section == Section::Material) {
-            // Per-slot colour chip, before the master title.
-            std::string hex;
-            if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour"))
-                if (slot < colours->size())
-                    hex = colours->get_at(slot);
-            wxBitmap* chip_bmp = get_extruder_color_icon(hex, "", FromDIP(12), FromDIP(12));
-            // chip_bmp points into get_extruder_color_icon's static BitmapCache
-            // and must NOT be deleted; the wxStaticBitmap takes its own copy.
-            header_sizer->Add(new wxStaticBitmap(m_scroll, wxID_ANY, *chip_bmp), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
-            header_sizer->Add(cat.master_check, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
-            header_sizer->Add(cat.header, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
-        } else {
-            header_sizer->Add(cat.header, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(4));
-        }
-        // A wrapper sizer splits the vertical separation (TOP 10) from the
-        // horizontal indent (LEFT|RIGHT 22), so the top gap collapses with the
-        // header when it is hidden.
-        auto wrap = new wxBoxSizer(wxVERTICAL);
-        wrap->Add(header_sizer, 0, wxTOP, FromDIP(10));
-        cat.item = m_list_sizer->Add(wrap, 0, wxLEFT | wxRIGHT, FromDIP(22));
-        // Register the new category with its section group: the group's visibility
-        // and select-all logic iterates section.categories.
-        m_sections[group].categories.push_back(new_index);
-        m_categories.push_back(std::move(cat));
-        return new_index;
-    };
-
-    // Find-or-create a subcategory (optgroup) heading within a category.
-    auto subcategory_index_for = [this](size_t cat_index, const wxString& title, const wxString& icon) -> size_t {
-        Category& cat = m_categories[cat_index];
-        for (size_t i = 0; i < cat.subs.size(); ++i)
-            if (cat.subs[i].title == title)
-                return i;
-        Subcategory sub;
-        sub.title = title;
-        if (!title.IsEmpty()) {
-            // Same look as the Tab's optgroup headers (incl. its icon), plus a
-            // collapse chevron. A click on the chevron bitmap does not reach the
-            // StaticLine, so both are bound to the same toggle (LEFT_UP so the
-            // StaticLine's label acts as the click target too).
-            sub.header = new ::StaticLine(m_scroll, false, title, icon);
-            sub.header->SetFont(Label::Head_14);
-            sub.header->SetForegroundColour("#363636");
-            sub.header->SetCursor(wxCURSOR_HAND);
-            const size_t new_index = cat.subs.size();
-            auto toggle            = [this, cat_index, new_index] { toggle_subcategory(cat_index, new_index); };
-            sub.header->Bind(wxEVT_LEFT_UP, [toggle](wxMouseEvent&) { toggle(); });
-            sub.chevron       = create_chevron(m_scroll, wxEVT_LEFT_UP, toggle);
-            auto header_sizer = new wxBoxSizer(wxHORIZONTAL);
-            header_sizer->Add(sub.chevron, 0, wxALIGN_CENTER_VERTICAL);
-            header_sizer->Add(sub.header, 1, wxEXPAND | wxLEFT, FromDIP(4));
-            // A wrapper sizer splits the vertical separation (TOP|BOTTOM 6) from
-            // the horizontal indent (LEFT|RIGHT 38), so the gaps collapse with
-            // the header when it is hidden.
-            auto wrap = new wxBoxSizer(wxVERTICAL);
-            wrap->Add(header_sizer, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(6));
-            sub.item = m_list_sizer->Add(wrap, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(38));
-        }
-        cat.subs.push_back(std::move(sub));
-        return cat.subs.size() - 1;
-    };
-
-    // Creates the row UI (checkbox + white ellipsized value + grey unit) and
-    // registers the row into the given category/subcategory.
-    auto add_row_ui = [this](const std::string& key, const wxString& label, const wxString& value, const wxString& unit, size_t cat_index,
-                             size_t sub_index) {
-        Row row;
-        row.key                = key;
-        row.label              = label;
-        row.value              = value;
-        row.unit               = unit;
-        row.category           = m_categories[cat_index].title;
-        row.subcategory        = m_categories[cat_index].subs[sub_index].title;
-        row.section            = m_categories[cat_index].section;
-        row.section_title      = m_sections[m_categories[cat_index].group].title;
-        const size_t row_index = m_rows.size();
-        m_rows.push_back(std::move(row));
-
-        Row& r  = m_rows[row_index];
-        r.check = new wxCheckBox(m_scroll, wxID_ANY, label, wxDefaultPosition, wxDefaultSize);
-        r.check->SetFont(Label::Body_13);
-        // Value in the Tab's text color (near-black light / #EFEFF0 dark); the
-        // unit is the grey secondary text.
-        r.value_label = new wxStaticText(m_scroll, wxID_ANY, value, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-        r.value_label->SetFont(Label::Body_13);
-        r.value_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
-        r.value_label->SetToolTip(unit.IsEmpty() ? value : value + " " + unit);
-        if (!unit.IsEmpty()) {
-            r.unit_label = new wxStaticText(m_scroll, wxID_ANY, unit);
-            r.unit_label->SetFont(Label::Body_13);
-            r.unit_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
-        }
-
-        auto row_sizer = new wxBoxSizer(wxHORIZONTAL);
-        row_sizer->Add(r.check, 0, wxALIGN_CENTER_VERTICAL);
-        row_sizer->Add(r.value_label, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
-        if (r.unit_label != nullptr)
-            row_sizer->Add(r.unit_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
-        r.item = m_list_sizer->Add(row_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(54));
-
-        m_categories[cat_index].rows.push_back(row_index);
-        m_categories[cat_index].subs[sub_index].rows.push_back(row_index);
-    };
-
     // --- Phase 1: printer per-extruder retraction settings (displayed first,
     // mirroring the sidebar's Printer group). The printer tab's
     // "Extruder"/"Extruder N" pages carry the per-extruder retraction options.
     {
         size_t g = section_group_for(Section::Printer);
+        category_index_for(_L("Extruder"), Section::Printer, "custom-gcode_extruder", g, 0);
         for (Tab* tab : wxGetApp().tabs_list) {
             if (tab->m_type != Preset::TYPE_PRINTER)
                 continue;
@@ -467,7 +249,7 @@ void PublishSettingsDialog::build_option_model()
                     // when switching material" group is intentionally skipped.
                     if (optgroup->title != "Retraction" && optgroup->title != "Z-Hop")
                         continue;
-                    const wxString subcategory = page_title + L" \u00B7 " + _(optgroup->title);
+                    const wxString subcategory = _(optgroup->title);
                     for (const auto& opt : optgroup->opt_map()) {
                         const std::string& opt_id   = opt.first;
                         const std::string& pure_key = opt.second.first;
@@ -480,7 +262,7 @@ void PublishSettingsDialog::build_option_model()
                         wxString label, value, unit;
                         if (!option_text(opt_id, pure_key, label, value, unit))
                             continue;
-                        size_t cat_index = category_index_for(_L("Retraction & Z-hop"), Section::Printer, "custom-gcode_extruder", g);
+                        size_t cat_index = category_index_for(_L("Extruder"), Section::Printer, "custom-gcode_extruder", g, 0);
                         size_t sub_index = subcategory_index_for(cat_index, subcategory, optgroup->icon);
                         add_row_ui(pure_key, label, value, unit, cat_index, sub_index);
                     }
@@ -509,13 +291,12 @@ void PublishSettingsDialog::build_option_model()
 
             if (overrides_page != nullptr) {
                 // One section per filament slot: a 4-slot printer (e.g. 1 PLA +
-                // 3 PETG) shows 4 sections, each disambiguated by its colour chip
-                // and slot number. The "· Slot N" title suffix keeps the category
-                // titles unique across slots.
+                // 3 PETG) shows 4 separate pages, each disambiguated internally by
+                // its colour chip and slot identity while displaying the bare name.
                 for (size_t slot = 0; slot < bundle->filament_presets.size(); ++slot) {
-                    const MaterialIdentity identity = material_identity(slot, full);
-                    const wxString title            = material_title(slot, bundle, full) + L" \u00B7 " +
-                                                      wxString::Format(_L("Slot %d"), static_cast<int>(slot) + 1);
+                    const PublishMaterialIdentity identity = material_identity(slot, full);
+                    const wxString title                   = material_title(slot, bundle, full);
+                    const size_t category_index = category_index_for(title, Section::Material, "custom-gcode_filament", g, slot, identity);
                     // A material section must not repeat a key; the same key may
                     // appear in other material sections - that is intended.
                     std::set<std::string> material_added;
@@ -541,9 +322,8 @@ void PublishSettingsDialog::build_option_model()
                             wxString label, value, unit;
                             if (!option_text(value_opt_id, base, label, value, unit))
                                 continue;
-                            size_t cat_index = category_index_for(title, Section::Material, "custom-gcode_filament", g, identity, slot);
-                            size_t sub_index = subcategory_index_for(cat_index, _(optgroup->title), optgroup->icon);
-                            add_row_ui(base, label, value, unit, cat_index, sub_index);
+                            size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon);
+                            add_row_ui(base, label, value, unit, category_index, sub_index);
                         }
                     }
                 }
@@ -558,6 +338,7 @@ void PublishSettingsDialog::build_option_model()
             if (tab->m_type != Preset::TYPE_PRINT)
                 continue;
             const auto& icon_map = tab->get_category_icon_map();
+            size_t page_index    = 0;
             for (const PageShp& page : tab->m_pages) {
                 wxString category = Tab::translate_category(page->title(), tab->m_type);
                 // Page icon, keyed by the untranslated page title (per-Tab map).
@@ -565,6 +346,7 @@ void PublishSettingsDialog::build_option_model()
                 auto icon_it = icon_map.find(page->title());
                 if (icon_it != icon_map.end())
                     icon_name = icon_it->second;
+                const size_t category_index = category_index_for(category, Section::Print, icon_name, g, page_index);
 
                 for (const ConfigOptionsGroupShp& optgroup : page->m_optgroups) {
                     for (const auto& opt : optgroup->opt_map()) {
@@ -578,11 +360,11 @@ void PublishSettingsDialog::build_option_model()
                         wxString label, value, unit;
                         if (!option_text(opt_id, pure_key, label, value, unit))
                             continue;
-                        size_t cat_index = category_index_for(category, Section::Print, icon_name, g);
-                        size_t sub_index = subcategory_index_for(cat_index, _(optgroup->title), optgroup->icon);
-                        add_row_ui(opt_id, label, value, unit, cat_index, sub_index);
+                        size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon);
+                        add_row_ui(opt_id, label, value, unit, category_index, sub_index);
                     }
                 }
+                ++page_index;
             }
         }
     }
@@ -604,28 +386,20 @@ void PublishSettingsDialog::build_option_model()
         }
     }
 
-    // Wire the section group tri-state headers (chevrons/StaticLine toggles were
-    // bound at creation in section_group_for).
-    for (size_t s = 0; s < m_sections.size(); ++s) {
-        if (m_sections[s].header != nullptr) {
-            m_sections[s].header->Bind(wxEVT_CHECKBOX, [this, s](wxCommandEvent&) { on_section_toggle(s); });
-            update_section_header(m_sections[s]);
-        }
-    }
-
-    // Wire the tri-state headers: clicking a header toggles all its children;
+    // Wire the inner-page tri-state headers: clicking a header toggles all its children;
     // toggling any child re-syncs its header. Bind by index so the lambdas stay
     // valid even if the vectors are reallocated later.
     for (size_t c = 0; c < m_categories.size(); ++c) {
         if (m_categories[c].master_check != nullptr)
             m_categories[c].master_check->Bind(wxEVT_CHECKBOX, [this, c](wxCommandEvent&) { on_master_toggle(c); });
-        m_categories[c].header->Bind(wxEVT_CHECKBOX, [this, c](wxCommandEvent&) { on_category_toggle(c); });
+        if (m_categories[c].header != nullptr)
+            m_categories[c].header->Bind(wxEVT_CHECKBOX, [this, c](wxCommandEvent&) { on_category_toggle(c); });
         for (size_t r : m_categories[c].rows)
-            m_rows[r].check->Bind(wxEVT_CHECKBOX, [this, c](wxCommandEvent&) { update_category_header(m_categories[c]); });
+            m_rows[r].check->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { update_all_headers(); });
         update_category_header(m_categories[c]);
     }
 
-    // Material sections start gated (master OFF): their rows and tri-state are
+    // Material pages start gated (master OFF): their rows and tri-state are
     // disabled until the author opts the material in.
     for (size_t c = 0; c < m_categories.size(); ++c)
         if (m_categories[c].section == Section::Material)
@@ -636,8 +410,17 @@ void PublishSettingsDialog::build_option_model()
         row.matches_filter = true;
     apply_visibility();
 
-    m_scroll->FitInside();
-    m_list_sizer->Layout();
+    for (Category& category : m_categories) {
+        category.scroll->FitInside();
+        category.list_sizer->Layout();
+    }
+    for (SectionGroup& section : m_sections)
+        if (!section.categories.empty())
+            section.tabs->SelectItem(0);
+    if (!m_sections.empty()) {
+        m_outer_tabs->SelectItem(0);
+        show_outer_page(0);
+    }
 }
 
 size_t PublishSettingsDialog::section_group_for(Section kind)
@@ -649,7 +432,6 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
     SectionGroup section;
     section.kind           = kind;
     const size_t new_index = m_sections.size();
-
     switch (kind) {
     case Section::Printer:
         section.title     = _L("Printer");
@@ -665,45 +447,164 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
         break;
     }
 
-    if (!section.icon_name.empty()) {
-        section.icon_bmp = ScalableBitmap(m_scroll, section.icon_name, 18);
-        section.icon     = new wxStaticBitmap(m_scroll, wxID_ANY, section.icon_bmp.bmp());
-    }
+    constexpr long tab_style = wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS |
+                               wxTR_FULL_ROW_HIGHLIGHT;
+    section.page             = new wxPanel(m_outer_host, wxID_ANY);
+    section.page->SetBackgroundColour(GetBackgroundColour());
+    auto* page_sizer = new wxBoxSizer(wxVERTICAL);
+    section.tabs     = new TabCtrl(section.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, tab_style);
+    section.tabs->SetFont(Label::Body_14);
+    section.tabs->SetBackgroundColour(GetBackgroundColour());
+    page_sizer->Add(section.tabs, 0, wxEXPAND);
+    section.page_host = new wxPanel(section.page, wxID_ANY);
+    section.page_host->SetBackgroundColour(GetBackgroundColour());
+    section.page_host_sizer = new wxBoxSizer(wxVERTICAL);
+    section.page_host->SetSizer(section.page_host_sizer);
+    page_sizer->Add(section.page_host, 1, wxEXPAND | wxTOP, FromDIP(4));
+    section.page->SetSizer(page_sizer);
 
-    section.chevron = create_chevron(m_scroll, wxEVT_LEFT_DOWN, [this, new_index] { toggle_section(new_index); });
-
-    auto header_sizer = new wxBoxSizer(wxHORIZONTAL);
-    if (section.icon != nullptr)
-        header_sizer->Add(section.icon, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(2));
-    header_sizer->Add(section.chevron, 0, wxALIGN_CENTER_VERTICAL);
-
-    if (kind == Section::Material) {
-        // Filament group: clickable StaticLine title, no tri-state (each
-        // material below opts in individually).
-        section.header_line = new ::StaticLine(m_scroll, false, section.title);
-        section.header_line->SetFont(Label::Head_14.Bold());
-        section.header_line->SetForegroundColour("#363636");
-        section.header_line->SetCursor(wxCURSOR_HAND);
-        section.header_line->SetToolTip(_L("Enable each material below to export its settings"));
-        auto toggle = [this, new_index] { toggle_section(new_index); };
-        section.header_line->Bind(wxEVT_LEFT_UP, [toggle](wxMouseEvent&) { toggle(); });
-        header_sizer->Add(section.header_line, 1, wxEXPAND | wxLEFT, FromDIP(4));
-    } else {
-        // Printer/Process: tri-state select-all carries the title.
-        section.header = new wxCheckBox(m_scroll, wxID_ANY, section.title, wxDefaultPosition, wxDefaultSize, wxCHK_3STATE);
-        section.header->SetFont(Label::Head_14.Bold());
-        header_sizer->Add(section.header, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(4));
-    }
-
-    // A wrapper sizer splits the larger vertical separation (TOP 14) from the
-    // shallow horizontal indent (LEFT|RIGHT 6), so the top gap collapses with
-    // the header when it is hidden. wxEXPAND lets the Filament StaticLine's
-    // separator span the width like the subcategory headers.
-    auto wrap = new wxBoxSizer(wxVERTICAL);
-    wrap->Add(header_sizer, 0, wxEXPAND | wxTOP, FromDIP(14));
-    section.item = m_list_sizer->Add(wrap, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(6));
+    m_outer_tabs->AppendItem(section.title);
+    m_outer_host_sizer->Add(section.page, 1, wxEXPAND);
+    section.page->Hide();
     m_sections.push_back(std::move(section));
     return new_index;
+}
+
+size_t PublishSettingsDialog::category_index_for(const wxString& title,
+                                                 Section section,
+                                                 const std::string& icon_name,
+                                                 size_t group,
+                                                 size_t source_index,
+                                                 const PublishMaterialIdentity& identity)
+{
+    for (size_t i : m_sections[group].categories) {
+        Category& existing = m_categories[i];
+        if (existing.title == title && existing.section == section && existing.source_index == source_index &&
+            existing.filament_id == identity.id && existing.filament_type == identity.type && existing.filament_vendor == identity.vendor)
+            return i;
+    }
+
+    Category category;
+    category.title           = title;
+    category.section         = section;
+    category.group           = group;
+    category.source_index    = source_index;
+    category.icon_name       = icon_name;
+    category.filament_type   = identity.type;
+    category.filament_vendor = identity.vendor;
+    category.filament_id     = identity.id;
+    category.filament_slot   = source_index;
+    category.page            = new wxPanel(m_sections[group].page_host, wxID_ANY);
+    category.page->SetBackgroundColour(GetBackgroundColour());
+    auto* page_sizer = new wxBoxSizer(wxVERTICAL);
+
+    if (section == Section::Material) {
+        auto* header_sizer = new wxBoxSizer(wxHORIZONTAL);
+        std::string hex;
+        const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
+        if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour"))
+            if (source_index < colours->size())
+                hex = colours->get_at(source_index);
+        if (wxBitmap* chip = get_extruder_color_icon(hex, "", FromDIP(12), FromDIP(12)))
+            header_sizer->Add(new wxStaticBitmap(category.page, wxID_ANY, *chip), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+        category.master_check = new wxCheckBox(category.page, wxID_ANY, title);
+        category.master_check->SetFont(Label::Head_14);
+        category.master_check->SetToolTip(_L("Export this material"));
+        header_sizer->Add(category.master_check, 0, wxALIGN_CENTER_VERTICAL);
+        category.header = new wxCheckBox(category.page, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxCHK_3STATE);
+        category.header->SetToolTip(_L("Select/deselect all settings in this material"));
+        header_sizer->Add(category.header, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
+        page_sizer->Add(header_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
+    }
+
+    category.scroll = new wxScrolledWindow(category.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
+    category.scroll->SetScrollRate(0, 10);
+    category.scroll->SetBackgroundColour(GetBackgroundColour());
+    category.list_sizer = new wxBoxSizer(wxVERTICAL);
+    category.scroll->SetSizer(category.list_sizer);
+    category.scroll->DisableFocusFromKeyboard();
+    category.scroll->Bind(wxEVT_RIGHT_DOWN, &PublishSettingsDialog::show_menu, this);
+    category.info = new wxStaticText(category.scroll, wxID_ANY, m_info_empty);
+    category.info->SetFont(Label::Body_13);
+    category.list_sizer->Add(category.info, 1, wxALIGN_CENTER_HORIZONTAL | wxALL, FromDIP(10));
+    category.info->Hide();
+    page_sizer->Add(category.scroll, 1, wxEXPAND | wxALL, FromDIP(4));
+    category.page->SetSizer(page_sizer);
+    category.page->Hide();
+
+    const size_t category_index = m_categories.size();
+    m_categories.push_back(std::move(category));
+    m_sections[group].categories.push_back(category_index);
+    m_sections[group].tabs->AppendItem(title);
+    m_sections[group].page_host_sizer->Add(m_categories[category_index].page, 1, wxEXPAND);
+    if (m_sections[group].selected_inner < 0)
+        m_sections[group].selected_inner = 0;
+    return category_index;
+}
+
+size_t PublishSettingsDialog::subcategory_index_for(size_t category_index, const wxString& title, const wxString& icon)
+{
+    Category& category = m_categories[category_index];
+    for (size_t i = 0; i < category.subs.size(); ++i)
+        if (category.subs[i].title == title)
+            return i;
+
+    Subcategory sub;
+    sub.title = title;
+    if (!title.IsEmpty()) {
+        sub.header = new ::StaticLine(category.scroll, false, title, icon);
+        sub.header->SetFont(Label::Head_14);
+        sub.header->SetForegroundColour("#363636");
+        auto* wrap = new wxBoxSizer(wxVERTICAL);
+        wrap->Add(sub.header, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(6));
+        sub.item = category.list_sizer->Add(wrap, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(22));
+    }
+    category.subs.push_back(std::move(sub));
+    return category.subs.size() - 1;
+}
+
+void PublishSettingsDialog::add_row_ui(const std::string& key,
+                                       const wxString& label,
+                                       const wxString& value,
+                                       const wxString& unit,
+                                       size_t category_index,
+                                       size_t subcategory_index)
+{
+    Category& category = m_categories[category_index];
+    Row row;
+    row.key                = key;
+    row.label              = label;
+    row.value              = value;
+    row.unit               = unit;
+    row.category           = category.title;
+    row.subcategory        = category.subs[subcategory_index].title;
+    row.section            = category.section;
+    row.section_title      = m_sections[category.group].title;
+    row.outer_index        = category.group;
+    row.inner_index        = category_index;
+    row.subcategory_index  = subcategory_index;
+    const size_t row_index = m_rows.size();
+    m_rows.push_back(std::move(row));
+    Row& current  = m_rows[row_index];
+    current.check = new wxCheckBox(category.scroll, wxID_ANY, label);
+    current.check->SetFont(Label::Body_13);
+    current.value_label = new wxStaticText(category.scroll, wxID_ANY, value, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+    current.value_label->SetFont(Label::Body_13);
+    current.value_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+    current.value_label->SetToolTip(unit.IsEmpty() ? value : value + " " + unit);
+    if (!unit.IsEmpty()) {
+        current.unit_label = new wxStaticText(category.scroll, wxID_ANY, unit);
+        current.unit_label->SetFont(Label::Body_13);
+        current.unit_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
+    }
+    auto* row_sizer = new wxBoxSizer(wxHORIZONTAL);
+    row_sizer->Add(current.check, 0, wxALIGN_CENTER_VERTICAL);
+    row_sizer->Add(current.value_label, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+    if (current.unit_label != nullptr)
+        row_sizer->Add(current.unit_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
+    current.item = category.list_sizer->Add(row_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(38));
+    category.rows.push_back(row_index);
+    category.subs[subcategory_index].rows.push_back(row_index);
 }
 
 void PublishSettingsDialog::on_category_toggle(size_t category_index)
@@ -723,7 +624,7 @@ void PublishSettingsDialog::on_category_toggle(size_t category_index)
     bool value = !all_checked;
     for (size_t r : cat.rows)
         m_rows[r].check->SetValue(value);
-    update_category_header(cat);
+    update_all_headers();
 }
 
 void PublishSettingsDialog::on_master_toggle(size_t category_index)
@@ -733,60 +634,19 @@ void PublishSettingsDialog::on_master_toggle(size_t category_index)
     for (size_t r : cat.rows)
         m_rows[r].check->Enable(cat.master);
     cat.header->Enable(cat.master);
-    update_category_header(cat);
+    update_all_headers();
 }
 
-void PublishSettingsDialog::on_section_toggle(size_t section_index)
+void PublishSettingsDialog::update_all_headers()
 {
-    SectionGroup& section = m_sections[section_index];
-    if (section.header == nullptr)
-        return; // defensive: the Filament group has no select-all
-    // All-or-none over every enabled row in the group's categories.
-    bool all_checked = true;
-    for (size_t c : section.categories) {
-        for (size_t r : m_categories[c].rows)
-            if (m_rows[r].check->IsEnabled() && !m_rows[r].check->GetValue()) {
-                all_checked = false;
-                break;
-            }
-        if (!all_checked)
-            break;
-    }
-    const bool value = !all_checked;
-    for (size_t c : section.categories)
-        for (size_t r : m_categories[c].rows)
-            if (m_rows[r].check->IsEnabled())
-                m_rows[r].check->SetValue(value);
-    for (size_t c : section.categories)
-        update_category_header(m_categories[c]);
-    update_section_header(section);
-}
-
-void PublishSettingsDialog::update_section_header(SectionGroup& section)
-{
-    if (section.header == nullptr)
-        return; // Filament group has no tri-state.
-    int checked = 0;
-    int total   = 0;
-    for (size_t c : section.categories) {
-        for (size_t r : m_categories[c].rows) {
-            if (!m_rows[r].check->IsEnabled())
-                continue; // gated material rows don't count (defensive)
-            ++total;
-            if (m_rows[r].check->GetValue())
-                ++checked;
-        }
-    }
-    if (total == 0 || checked == 0)
-        section.header->Set3StateValue(wxCHK_UNCHECKED);
-    else if (checked == total)
-        section.header->Set3StateValue(wxCHK_CHECKED);
-    else
-        section.header->Set3StateValue(wxCHK_UNDETERMINED);
+    for (Category& category : m_categories)
+        update_category_header(category);
 }
 
 void PublishSettingsDialog::update_category_header(Category& category)
 {
+    if (category.header == nullptr)
+        return;
     // A gated material section's tri-state must not reflect the preserved
     // (greyed-out) row values.
     if (category.section == Section::Material && !category.master) {
@@ -813,6 +673,71 @@ void PublishSettingsDialog::set_row_bold(Row& row, bool bold)
     row.check->SetFont(bold ? Label::Body_13.Bold() : Label::Body_13);
 }
 
+void PublishSettingsDialog::save_scroll_position(Category& category)
+{
+    if (category.scroll != nullptr)
+        category.scroll->GetViewStart(&category.scroll_pos.x, &category.scroll_pos.y);
+}
+
+void PublishSettingsDialog::show_outer_page(size_t section_index)
+{
+    if (section_index >= m_sections.size())
+        return;
+    if (m_selected_outer >= 0 && m_selected_outer < static_cast<int>(m_sections.size())) {
+        SectionGroup& old_section = m_sections[m_selected_outer];
+        if (old_section.selected_inner >= 0 && old_section.selected_inner < static_cast<int>(old_section.categories.size()))
+            save_scroll_position(m_categories[old_section.categories[old_section.selected_inner]]);
+        m_sections[m_selected_outer].page->Hide();
+    }
+    m_selected_outer      = static_cast<int>(section_index);
+    SectionGroup& section = m_sections[section_index];
+    section.page->Show();
+    if (section.selected_inner >= 0)
+        show_inner_page(section_index, section.selected_inner);
+    m_outer_host_sizer->Layout();
+}
+
+void PublishSettingsDialog::show_inner_page(size_t section_index, int inner_index)
+{
+    if (section_index >= m_sections.size())
+        return;
+    SectionGroup& section = m_sections[section_index];
+    if (inner_index < 0 || inner_index >= static_cast<int>(section.categories.size()))
+        return;
+    if (section.selected_inner >= 0 && section.selected_inner < static_cast<int>(section.categories.size())) {
+        save_scroll_position(m_categories[section.categories[section.selected_inner]]);
+        m_categories[section.categories[section.selected_inner]].page->Hide();
+    }
+    section.selected_inner = inner_index;
+    Category& category     = m_categories[section.categories[inner_index]];
+    category.page->Show();
+    category.scroll->FitInside();
+    category.scroll->Scroll(category.scroll_pos.x, category.scroll_pos.y);
+    section.page_host_sizer->Layout();
+}
+
+void PublishSettingsDialog::on_outer_tab_changed(wxCommandEvent& event)
+{
+    const int selection = event.GetInt();
+    if (selection >= 0 && selection < static_cast<int>(m_sections.size()))
+        show_outer_page(static_cast<size_t>(selection));
+}
+
+void PublishSettingsDialog::on_inner_tab_changed(size_t section_index, wxCommandEvent& event)
+{
+    const int selection = event.GetInt();
+    if (section_index < m_sections.size() && selection >= 0 && selection < static_cast<int>(m_sections[section_index].categories.size()))
+        show_inner_page(section_index, selection);
+}
+
+void PublishSettingsDialog::bind_tab_events()
+{
+    m_outer_tabs->Bind(wxEVT_TAB_SEL_CHANGED, &PublishSettingsDialog::on_outer_tab_changed, this);
+    for (size_t section_index = 0; section_index < m_sections.size(); ++section_index)
+        m_sections[section_index].tabs->Bind(wxEVT_TAB_SEL_CHANGED,
+                                             [this, section_index](wxCommandEvent& event) { on_inner_tab_changed(section_index, event); });
+}
+
 void PublishSettingsDialog::apply_filter(const wxString& filter_text)
 {
     Freeze();
@@ -823,11 +748,10 @@ void PublishSettingsDialog::apply_filter(const wxString& filter_text)
     const bool pseudo = (filter == "::sel" || filter == "::nonsel");
     m_fb_sizer->Show(!pseudo);
 
-    // Update the per-row match flags only; actual visibility is computed by
-    // apply_visibility() (which also respects the collapse state).
+    // Update row matches first; page and optgroup visibility is applied below.
     if (pseudo) {
         if (m_filter_ctrl->GetValue().Lower() != filter) {
-            m_filter_ctrl->SetValue(filter);
+            m_filter_ctrl->ChangeValue(filter);
             m_filter_ctrl->SetSelection(0, -1);
         }
         const bool want_checked = (filter == "::sel");
@@ -843,20 +767,43 @@ void PublishSettingsDialog::apply_filter(const wxString& filter_text)
         }
     }
 
-    // The info label reflects the filter result only; a collapsed section
-    // hiding its matches is a user choice, not "no match".
-    m_info->Show();
-    for (const Row& row : m_rows) {
-        if (row.matches_filter) {
-            m_info->Hide();
-            break;
+    size_t first_outer    = 0;
+    int first_inner       = -1;
+    bool active_has_match = false;
+    for (size_t s = 0; s < m_sections.size(); ++s) {
+        for (size_t inner = 0; inner < m_sections[s].categories.size(); ++inner) {
+            Category& category = m_categories[m_sections[s].categories[inner]];
+            bool has_match     = false;
+            for (size_t r : category.rows)
+                has_match = has_match || m_rows[r].matches_filter;
+            category.info->Show(!has_match);
+            if (!has_match)
+                category.info->SetLabel(pseudo ? (filter == "::sel" ? m_info_nonsel : m_info_allsel) : m_info_empty);
+            if (has_match && first_inner < 0) {
+                first_outer = s;
+                first_inner = static_cast<int>(inner);
+            }
+            if (static_cast<int>(s) == m_selected_outer && static_cast<int>(inner) == m_sections[s].selected_inner)
+                active_has_match = has_match;
         }
     }
-    if (m_info->IsShown())
-        m_info->SetLabel(pseudo ? (filter == "::sel" ? m_info_nonsel : m_info_allsel) : m_info_empty);
+    if (!active_has_match && first_inner >= 0 &&
+        (m_selected_outer != static_cast<int>(first_outer) || m_sections[first_outer].selected_inner != first_inner)) {
+        if (m_selected_outer != static_cast<int>(first_outer)) {
+            m_outer_tabs->SelectItem(static_cast<int>(first_outer));
+            show_outer_page(first_outer);
+        }
+        m_sections[first_outer].tabs->SelectItem(first_inner);
+        show_inner_page(first_outer, first_inner);
+    }
 
     apply_visibility();
-    m_scroll->FitInside();
+    for (Category& category : m_categories) {
+        save_scroll_position(category);
+        category.scroll->FitInside();
+        category.list_sizer->Layout();
+        category.scroll->Scroll(category.scroll_pos.x, category.scroll_pos.y);
+    }
     Layout();
     Thaw();
 }
@@ -864,93 +811,24 @@ void PublishSettingsDialog::apply_filter(const wxString& filter_text)
 void PublishSettingsDialog::apply_visibility()
 {
     Freeze();
-    for (SectionGroup& section : m_sections) {
-        // The section header stays visible whenever any row in the group matches
-        // (a section header never depends on its own collapsed state).
-        bool section_any = false;
-        for (size_t c : section.categories) {
-            for (size_t r : m_categories[c].rows)
-                if (m_rows[r].matches_filter) {
-                    section_any = true;
-                    break;
-                }
-            if (section_any)
-                break;
+    for (Category& category : m_categories) {
+        bool category_any = false;
+        for (size_t r : category.rows)
+            category_any = category_any || m_rows[r].matches_filter;
+        category.info->Show(!category_any);
+        for (Subcategory& sub : category.subs) {
+            bool sub_any = false;
+            for (size_t r : sub.rows)
+                sub_any = sub_any || m_rows[r].matches_filter;
+            if (sub.header != nullptr)
+                sub.item->Show(sub_any);
+            for (size_t r : sub.rows)
+                m_rows[r].item->Show(m_rows[r].matches_filter);
         }
-        section.item->Show(section_any);
-        section.chevron->SetCollapsed(section.collapsed);
-
-        for (size_t c : section.categories) {
-            Category& cat = m_categories[c];
-
-            // The category header stays visible whenever it has any match and
-            // the section is not collapsed, so it can always be re-expanded.
-            bool cat_any = false;
-            for (size_t r : cat.rows)
-                if (m_rows[r].matches_filter) {
-                    cat_any = true;
-                    break;
-                }
-            cat.item->Show(cat_any && !section.collapsed);
-            cat.chevron->SetCollapsed(cat.collapsed);
-
-            for (Subcategory& sub : cat.subs) {
-                if (sub.header != nullptr) {
-                    // The subcategory header visibility depends on its rows' matches
-                    // and on its ancestors, but NOT on its own collapsed state.
-                    bool sub_any = false;
-                    for (size_t r : sub.rows)
-                        if (m_rows[r].matches_filter) {
-                            sub_any = true;
-                            break;
-                        }
-                    sub.item->Show(sub_any && !section.collapsed && !cat.collapsed);
-                    sub.chevron->SetCollapsed(sub.collapsed);
-                }
-                // Rows are hidden by the filter and by any collapsed ancestor.
-                for (size_t r : sub.rows)
-                    m_rows[r].item->Show(m_rows[r].matches_filter && !section.collapsed && !cat.collapsed && !sub.collapsed);
-            }
-        }
+        category.list_sizer->Layout();
+        category.scroll->FitInside();
     }
     Thaw();
-}
-
-void PublishSettingsDialog::toggle_section(size_t section_index)
-{
-    m_sections[section_index].collapsed = !m_sections[section_index].collapsed;
-    apply_visibility();
-    m_scroll->FitInside();
-    m_list_sizer->Layout();
-}
-
-void PublishSettingsDialog::toggle_category(size_t category_index)
-{
-    m_categories[category_index].collapsed = !m_categories[category_index].collapsed;
-    apply_visibility();
-    m_scroll->FitInside();
-    m_list_sizer->Layout();
-}
-
-void PublishSettingsDialog::toggle_subcategory(size_t category_index, size_t subcategory_index)
-{
-    m_categories[category_index].subs[subcategory_index].collapsed = !m_categories[category_index].subs[subcategory_index].collapsed;
-    apply_visibility();
-    m_scroll->FitInside();
-    m_list_sizer->Layout();
-}
-
-CollapseChevron* PublishSettingsDialog::create_chevron(wxWindow* parent,
-                                                       const wxEventTypeTag<wxMouseEvent>& event_type,
-                                                       std::function<void()> toggle)
-{
-    CollapseChevron* chevron = new CollapseChevron(parent);
-    chevron->SetCursor(wxCURSOR_HAND);
-    // The tag type (not wxEventType) keeps Bind's EventTag template deduced as
-    // wxEventTypeTag<wxMouseEvent>; wxEvent& is used so the helper works with
-    // any mouse event tag, and the toggle itself does not inspect the event.
-    chevron->Bind(event_type, [toggle](wxEvent&) { toggle(); });
-    return chevron;
 }
 
 void PublishSettingsDialog::select_all(bool value)
@@ -960,8 +838,18 @@ void PublishSettingsDialog::select_all(bool value)
     for (Row& row : m_rows)
         if (row.check->IsEnabled())
             row.check->SetValue(value);
-    for (Category& cat : m_categories)
-        update_category_header(cat);
+    update_all_headers();
+}
+
+bool PublishSettingsDialog::row_is_visible(const Row& row) const
+{
+    if (m_selected_outer < 0 || m_selected_outer >= static_cast<int>(m_sections.size()) ||
+        row.outer_index != static_cast<size_t>(m_selected_outer) || m_sections[m_selected_outer].selected_inner < 0 ||
+        m_sections[m_selected_outer].selected_inner >= static_cast<int>(m_sections[m_selected_outer].categories.size()) ||
+        row.inner_index != m_sections[m_selected_outer].categories[m_sections[m_selected_outer].selected_inner] || !row.matches_filter ||
+        !row.check->IsEnabled())
+        return false;
+    return row.item->IsShown();
 }
 
 void PublishSettingsDialog::select_visible(bool value)
@@ -973,24 +861,30 @@ void PublishSettingsDialog::select_visible(bool value)
 
     // Toggle the rows that are visible under the *current* filter.
     for (Row& row : m_rows)
-        if (row.check->IsShown() && row.check->IsEnabled())
+        if (row_is_visible(row))
             row.check->SetValue(value);
 
     if (clear_pseudo) {
         // Note: SetValue() may fire wxEVT_TEXT on some platforms, which
         // re-enters apply_filter() - that is fine, the rows above were already
         // toggled and the trailing call below is idempotent.
-        m_filter_ctrl->SetValue("");
+        m_filter_ctrl->ChangeValue("");
         apply_filter(""); // resync visibility, headers and the All/None bar
     }
-    for (Category& cat : m_categories)
-        update_category_header(cat);
+    update_all_headers();
 }
 
 void PublishSettingsDialog::show_menu(wxMouseEvent& evt)
 {
     bool filtering  = !m_filter_ctrl->GetValue().IsEmpty();
-    bool list_empty = m_info->IsShown();
+    bool list_empty = true;
+    if (m_selected_outer >= 0) {
+        for (const Row& row : m_rows)
+            if (row_is_visible(row)) {
+                list_empty = false;
+                break;
+            }
+    }
 
     wxMenu m;
     m.Append(kPublishSelectAll, _L("Select All"))->Enable(!filtering);
@@ -1066,30 +960,25 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
     m_menu.msw_rescale();
     m_filter_box->SetIcon(m_search.bmp());
     m_menu_button->SetBitmap(m_menu.bmp());
-
-    for (SectionGroup& section : m_sections) {
-        if (section.icon != nullptr && section.icon_bmp.bmp().IsOk()) {
-            section.icon_bmp.msw_rescale();
-            section.icon->SetBitmap(section.icon_bmp.bmp());
-        }
-        if (section.header_line != nullptr)
-            section.header_line->Rescale();
-    }
+    m_outer_tabs->Rescale();
 
     for (Category& cat : m_categories) {
         if (cat.icon != nullptr && cat.icon_bmp.bmp().IsOk()) {
             cat.icon_bmp.msw_rescale();
             cat.icon->SetBitmap(cat.icon_bmp.bmp());
         }
-        for (Subcategory& sub : cat.subs) {
-            if (sub.header != nullptr)
-                sub.header->Rescale();
-        }
+        if (cat.header != nullptr)
+            cat.header->Refresh();
+        if (cat.master_check != nullptr)
+            cat.master_check->Refresh();
+        cat.scroll->FitInside();
+        cat.list_sizer->Layout();
     }
 
+    for (SectionGroup& section : m_sections)
+        section.tabs->Rescale();
+
     SetMinSize(FromDIP(wxSize(600, 500)));
-    m_scroll->FitInside();
-    m_list_sizer->Layout();
     Refresh();
 }
 

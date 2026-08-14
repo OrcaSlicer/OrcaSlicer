@@ -3,6 +3,7 @@
 
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
+#include "Widgets/TabCtrl.hpp"
 
 #include "libslic3r/PublishSettings.hpp"
 
@@ -13,21 +14,24 @@
 #include <string>
 #include <functional>
 
-// Forward declarations (all are global classes, see Widgets/TextInput.hpp,
-// Widgets/StaticLine.hpp and the CollapseChevron definition in the .cpp).
+// Forward declarations (all are global classes, see Widgets/TextInput.hpp and
+// Widgets/StaticLine.hpp).
 class TextInput;
 class StaticLine;
-class CollapseChevron;
 
 namespace Slic3r { namespace GUI {
 
+struct PublishMaterialIdentity
+{
+    std::string type;
+    std::string vendor;
+    std::string id;
+};
+
 // Dialog that lets a model author select which settings get embedded in a 3MF.
-// Settings are grouped the way the tabs show them: the process (print) pages,
-// the printer's per-extruder retraction settings, and one section per material
-// used in the project (filament overrides). Each main category has a select-all
-// tri-state header, subcategory (optgroup) headings, one row per setting
-// (checkbox + grey value label), and both header levels are collapsible (chevron
-// toggle). A search filter and an All/None / select-visible menu are provided.
+// Settings are grouped into the same nested custom tab layout used by the
+// Process settings: Printer, Filament, and Process outer tabs, with category or
+// material tabs inside each section. Optgroups are ordinary grouped headers.
 // Modified (dirty) settings are pre-checked and shown bold. On OK, the print
 // rows become the "published_keys" list and the material rows become the
 // per-material "published_material_keys".
@@ -63,44 +67,49 @@ private:
         wxString label;
         wxString value;
         wxString unit;
-        wxString section_title;      // top-level group title, for filter matching
+        wxString section_title; // outer tab title, for filter matching
         Section section{Section::Print};
+        size_t outer_index{0};
+        size_t inner_index{0};
+        size_t subcategory_index{0};
         bool dirty{false};          // matches a dirty base key: pre-checked + bold
         bool matches_filter{false}; // survives the active filter (computed by apply_filter)
         wxCheckBox* check{nullptr};
         wxStaticText* value_label{nullptr};
         wxStaticText* unit_label{nullptr};
-        wxSizerItem* item{nullptr}; // sizer item of this row's h-sizer in m_list_sizer
+        wxSizerItem* item{nullptr}; // sizer item of this row's h-sizer in its tab list sizer
     };
 
-    // A subcategory (optgroup) heading. Rows store indices into m_rows.
+    // An optgroup heading. Rows store indices into m_rows.
     struct Subcategory
     {
         wxString title;
         ::StaticLine* header{nullptr}; // null when the title is empty
-        bool collapsed{false};
-        CollapseChevron* chevron{nullptr};
-        wxSizerItem* item{nullptr}; // sizer item of the header h-sizer in m_list_sizer
+        wxSizerItem* item{nullptr};
         std::vector<size_t> rows;
     };
 
-    // A main category with its select-all tri-state header.
+    // An inner TabCtrl page with its select-all/material controls and content.
     struct Category
     {
         wxString title;
         Section section{Section::Print};
-        size_t group{0};               // index into m_sections
-        std::string icon_name;         // bitmap name; empty = no icon
+        size_t group{0};               // index into m_sections / outer page
+        size_t source_index{0};        // stable source page or material slot index
+        std::string source_title;
+        std::string icon_name;
+        wxPanel* page{nullptr};
+        wxScrolledWindow* scroll{nullptr};
+        wxBoxSizer* list_sizer{nullptr};
+        wxStaticText* info{nullptr};
+        wxPoint scroll_pos{0, 0};
         ScalableBitmap icon_bmp;       // scalable bitmap for DPI changes
-        wxStaticBitmap* icon{nullptr}; // 18px category icon (null when icon_name empty)
-        wxCheckBox* header{nullptr};   // select-all tri-state
+        wxStaticBitmap* icon{nullptr};
+        wxCheckBox* header{nullptr};   // material select-all tri-state; null for Printer/Process
         // Material opt-in: the master checkbox carries the material title and
         // gates whether this material's keys may be exported.
         bool master{false};
         wxCheckBox* master_check{nullptr};
-        bool collapsed{false};
-        CollapseChevron* chevron{nullptr};
-        wxSizerItem* item{nullptr}; // sizer item of the header h-sizer in m_list_sizer
         // Material identity, only for Section::Material categories.
         std::string filament_type;
         std::string filament_vendor;
@@ -111,20 +120,17 @@ private:
         std::vector<size_t> rows; // flattened rows, for the tri-state math
     };
 
-    // A top-level section group mirroring the editor sidebar. Categories are
-    // nested inside.
+    // One outer TabCtrl page. Category entries are its inner tabs.
     struct SectionGroup
     {
-        wxString title;                     // _L("Printer") / _L("Filament") / _L("Process")
-        Section kind{Section::Print};       // maps 1:1 to the display group
-        std::string icon_name;              // "printer" / "filament" / "process"
-        ScalableBitmap icon_bmp;            // scalable bitmap for DPI changes
-        wxStaticBitmap* icon{nullptr};      // 18px, like Category::icon
-        wxCheckBox* header{nullptr};        // tri-state select-all; nullptr for the Filament group
-        ::StaticLine* header_line{nullptr}; // Filament group's clickable title
-        CollapseChevron* chevron{nullptr};
-        wxSizerItem* item{nullptr};
-        bool collapsed{false};
+        wxString title;               // _L("Printer") / _L("Filament") / _L("Process")
+        Section kind{Section::Print}; // maps 1:1 to the display group
+        std::string icon_name;        // "printer" / "filament" / "process"
+        wxPanel* page{nullptr};
+        TabCtrl* tabs{nullptr};
+        wxPanel* page_host{nullptr};
+        wxBoxSizer* page_host_sizer{nullptr};
+        int selected_inner{-1};
         std::vector<size_t> categories; // indices into m_categories
     };
 
@@ -139,33 +145,31 @@ private:
     // Material opt-in toggled: enables/disables the material's rows + tri-state
     // and resyncs the header.
     void on_master_toggle(size_t category_index);
-    // Collapse/expand a category or subcategory; resyncs visibility + chevrons.
-    void toggle_category(size_t category_index);
-    void toggle_subcategory(size_t category_index, size_t subcategory_index);
-    // Find-or-create the top-level section group for a Section kind (builds its
-    // header row on first use).
+    // Return/create the fixed outer page for a Section kind.
     size_t section_group_for(Section kind);
-    // Top-level section group: select-all tri-state toggled / collapse/expand /
-    // header resync.
-    void on_section_toggle(size_t section_index);
-    void toggle_section(size_t section_index);
-    void update_section_header(SectionGroup& section);
-    // Single pass over categories/subs/rows: shows an item iff it is not hidden
-    // by the filter and (for subs/rows) by a collapsed ancestor. Flips the
-    // header chevrons. Only reads matches_filter; never re-runs filter matching.
+    size_t category_index_for(const wxString& title, Section section, const std::string& icon_name, size_t group,
+                              size_t source_index, const PublishMaterialIdentity& identity = PublishMaterialIdentity());
+    size_t subcategory_index_for(size_t category_index, const wxString& title, const wxString& icon);
+    void add_row_ui(const std::string& key, const wxString& label, const wxString& value, const wxString& unit,
+                    size_t category_index, size_t subcategory_index);
+    void save_scroll_position(Category& category);
+    void show_outer_page(size_t section_index);
+    void show_inner_page(size_t section_index, int inner_index);
+    void on_outer_tab_changed(wxCommandEvent& event);
+    void on_inner_tab_changed(size_t section_index, wxCommandEvent& event);
+    void update_all_headers();
+    bool row_is_visible(const Row& row) const;
     void apply_visibility();
-    // Creates a collapse chevron with a hand cursor; clicking it (with the given
-    // mouse event, LEFT_DOWN for categories / LEFT_UP for subcategories,
-    // matching the header's own binding) invokes the toggle.
-    CollapseChevron* create_chevron(wxWindow* parent, const wxEventTypeTag<wxMouseEvent>& event_type, std::function<void()> toggle);
+    void bind_tab_events();
 
-    wxScrolledWindow* m_scroll{nullptr};
-    wxBoxSizer* m_list_sizer{nullptr}; // vertical sizer of the scrolled window
-    wxBoxSizer* m_fb_sizer{nullptr};   // "All"/"None" buttons sizer
+    TabCtrl* m_outer_tabs{nullptr};
+    wxPanel* m_outer_host{nullptr};
+    wxBoxSizer* m_outer_host_sizer{nullptr};
+    int m_selected_outer{-1};
+    wxBoxSizer* m_fb_sizer{nullptr}; // "All"/"None" buttons sizer
     TextInput* m_filter_box{nullptr};
     wxTextCtrl* m_filter_ctrl{nullptr};
     wxStaticBitmap* m_menu_button{nullptr};
-    wxStaticText* m_info{nullptr};
     wxString m_info_nonsel;
     wxString m_info_allsel;
     wxString m_info_empty;
@@ -175,8 +179,6 @@ private:
 
     std::vector<Row> m_rows;
     std::vector<Category> m_categories;
-    // Fixed display order enforced by phase order in build_option_model():
-    // Printer, then Filament, then Process.
     std::vector<SectionGroup> m_sections;
 };
 
