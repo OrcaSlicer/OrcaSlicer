@@ -705,7 +705,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // Infill patterns that support multiline infill.
     InfillPattern pattern = config->opt_enum<InfillPattern>("sparse_infill_pattern");
     bool          have_multiline_infill_pattern = pattern == ipGyroid || pattern == ipGrid || pattern == ipRectilinear || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipCrossHatch || pattern == ipHoneycomb || pattern == ipLateralLattice || pattern == ipLateralHoneycomb || pattern == ipConcentric ||
-                                                  pattern == ipCubic || pattern == ipStars || pattern == ipAlignedRectilinear || pattern == ipLightning || pattern == ip3DHoneycomb || pattern == ipAdaptiveCubic || pattern == ipSupportCubic|| pattern == ipTriangles || pattern == ipQuarterCubic|| pattern == ipArchimedeanChords || pattern == ipHilbertCurve || pattern == ipOctagramSpiral;
+                                                  pattern == ipCubic || pattern == ipStars || pattern == ipAlignedRectilinear || pattern == ipLightning || pattern == ip3DHoneycomb || pattern == ipAdaptiveCubic || pattern == ipSupportCubic|| pattern == ipTriangles || pattern == ipQuarterCubic|| pattern == ipArchimedeanChords || pattern == ipHilbertCurve || pattern == ipOctagramSpiral || pattern == ipGosperCurve;
 
     // gyroid_optimized only applies when the sparse infill pattern is gyroid;
     // hide the whole line otherwise.
@@ -767,10 +767,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("top_surface_expansion_direction", has_top_shell);
     toggle_field("top_surface_expansion_direction", has_top_surface_expansion);
 
-    // Orca: Archimedean Chords and Octagram Spiral are the centered surface patterns that the
-    // pattern-centering feature acts on.
+    // Orca: Archimedean Chords, Octagram Spiral and Gosper Curve are the centered surface patterns
+    // that the pattern-centering feature acts on.
     auto is_centered_pattern = [](InfillPattern p) {
-        return p == InfillPattern::ipArchimedeanChords || p == InfillPattern::ipOctagramSpiral;
+        return p == InfillPattern::ipArchimedeanChords || p == InfillPattern::ipOctagramSpiral ||
+               p == InfillPattern::ipGosperCurve;
     };
     bool is_top_centered    = is_centered_pattern(config->option<ConfigOptionEnum<InfillPattern>>("top_surface_pattern")->value);
     bool is_bottom_centered = is_centered_pattern(config->option<ConfigOptionEnum<InfillPattern>>("bottom_surface_pattern")->value);
@@ -786,6 +787,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("separated_infills", is_internal_infill_separable);
 
     // Fill order is only meaningful for the center-based surface fill patterns; hide it otherwise.
+    // Orca: the Gosper Curve is centered on the surface but is traversed corner to corner rather
+    // than radially, so an inward/outward fill order would not mean anything for it.
     auto is_centered_fill = [](InfillPattern p) { return p == ipConcentric || p == ipArchimedeanChords || p == ipOctagramSpiral; };
     toggle_line("top_surface_fill_order", has_top_shell && is_centered_fill(config->opt_enum<InfillPattern>("top_surface_pattern")));
     toggle_line("bottom_surface_fill_order", has_bottom_shell && is_centered_fill(config->opt_enum<InfillPattern>("bottom_surface_pattern")));

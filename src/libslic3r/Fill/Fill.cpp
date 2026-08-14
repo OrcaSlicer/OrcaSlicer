@@ -1352,7 +1352,8 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
 
         // Orca: Checking the filling of a centered surface by drawing for each model parts
         bool is_top_or_bottom = params.extrusion_role == erTopSolidInfill || params.extrusion_role == erBottomSurface;
-        bool is_centered_infill = surface_fill.params.pattern == ipArchimedeanChords || surface_fill.params.pattern == ipOctagramSpiral;
+        bool is_centered_infill = surface_fill.params.pattern == ipArchimedeanChords || surface_fill.params.pattern == ipOctagramSpiral ||
+                                  surface_fill.params.pattern == ipGosperCurve;
         if (is_top_or_bottom) {
             params.center_of_surface_pattern = surface_fill.params.center_of_surface_pattern; // Orca: center of surface pattern
         }
@@ -1524,6 +1525,10 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
         case ipHilbertCurve:
         case ipArchimedeanChords:
         case ipOctagramSpiral:
+        case ipGosperCurve:
+        case ipScales4:
+        case ipScales6:
+        case ipScales8:
         case ipZigZag:
         case ipCrossZag:
 		case ipLockedZag: break;

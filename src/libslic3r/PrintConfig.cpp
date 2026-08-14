@@ -276,7 +276,11 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "concentric", ipConcentric },
     { "hilbertcurve", ipHilbertCurve },
     { "archimedeanchords", ipArchimedeanChords },
-    { "octagramspiral", ipOctagramSpiral }
+    { "octagramspiral", ipOctagramSpiral },
+    { "gospercurve", ipGosperCurve },
+    { "scales4", ipScales4 },
+    { "scales6", ipScales6 },
+    { "scales8", ipScales8 }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InfillPattern)
 
@@ -2295,6 +2299,10 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("hilbertcurve");
     def->enum_values.push_back("archimedeanchords");
     def->enum_values.push_back("octagramspiral");
+    def->enum_values.push_back("gospercurve");
+    def->enum_values.push_back("scales4");
+    def->enum_values.push_back("scales6");
+    def->enum_values.push_back("scales8");
     def->enum_labels.push_back(L("Monotonic"));
     def->enum_labels.push_back(L("Monotonic line"));
     def->enum_labels.push_back(L("Rectilinear"));
@@ -2303,6 +2311,10 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));
+    def->enum_labels.push_back(L("Gosper Curve"));
+    def->enum_labels.push_back(L("Scales (4 arcs)"));
+    def->enum_labels.push_back(L("Scales (6 arcs)"));
+    def->enum_labels.push_back(L("Scales (8 arcs)"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMonotonicLine));
 
     def = this->add("top_surface_density", coPercent);
@@ -3438,6 +3450,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("hilbertcurve");
     def->enum_values.push_back("archimedeanchords");
     def->enum_values.push_back("octagramspiral");
+    def->enum_values.push_back("gospercurve");
     def->enum_labels.push_back(L("Rectilinear"));
     def->enum_labels.push_back(L("Aligned Rectilinear"));
     def->enum_labels.push_back(L("Zig Zag"));
@@ -3464,6 +3477,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));
+    def->enum_labels.push_back(L("Gosper Curve"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipCrossHatch));
 
     def = this->add("sparse_infill_smooth_factor", coPercent);
@@ -7351,7 +7365,7 @@ void PrintConfigDef::init_fff_params()
     def->label         = L("Center surface pattern on");
     def->category      = L("Strength");
     def->tooltip       = L("Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, "
-                                 "Octagram Spiral) is placed.\n"
+                                 "Octagram Spiral, Gosper Curve) is placed.\n"
                                  " - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
                                  " - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; "
                                  "parts detached from the rest each get their own.\n"
@@ -10426,16 +10440,6 @@ int DynamicPrintConfig::update_values_from_multi_to_multi_2(const std::vector<st
 
 }
 
-void set_variant_override(ConfigOptionVectorBase &target, const ConfigOptionVectorBase &source,
-                          const std::vector<int> &variant_index, int stride)
-{
-    // A single-value object or region override applies to every nozzle variant.
-    std::vector<int> indices = variant_index;
-    if (source.size() == 1 && !source.is_nil(0))
-        std::fill(indices.begin(), indices.end(), 0);
-    target.set_to_index(&source, indices, stride);
-}
-
 
 //used for object/region config
 //use the smallest of multiple to single
@@ -11513,7 +11517,7 @@ void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPr
                 else {
                     ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(opt_src);
                     const ConfigOptionVectorBase* opt_vec_dest = static_cast<const ConfigOptionVectorBase*>(opt_dest);
-                    set_variant_override(*opt_vec_src, *opt_vec_dest, variant_index, stride);
+                    opt_vec_src->set_to_index(opt_vec_dest, variant_index, stride);
                 }
             }
         }

@@ -1,3 +1,6 @@
+#include <cmath>
+#include <vector>
+
 #include "../ClipperUtils.hpp"
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
@@ -493,6 +496,105 @@ void FillOctagramSpiral::generate(coord_t min_x, coord_t min_y, coord_t max_x, c
         generate_octagram_spiral(min_x, min_y, max_x, max_y, static_cast<InfillPolylineClipper&>(output));
     else
         generate_octagram_spiral(min_x, min_y, max_x, max_y, output);
+}
+
+// Gosper (Peano-Gosper) curve, a rep-7 space filling curve on a triangular lattice.
+// L-system with a 60 degree turn angle, where both A and B move forward,
+// + turns left and - turns right:
+//     A -> A-B--B+A++AA+B-
+//     B -> +A-BB--B-A++A+B
+// The rules are applied by recursion rather than by expanding the 7^order symbol string.
+
+// Unit steps of the triangular lattice indexed by the heading in multiples of 60 degrees.
+// Tabulating them keeps the walk free of accumulated rotation error.
+static const Vec2d gosper_directions[6] {
+    { 1., 0. }, { 0.5, 0.86602540378443865 }, { -0.5, 0.86602540378443865 },
+    { -1., 0. }, { -0.5, -0.86602540378443865 }, { 0.5, -0.86602540378443865 }
+};
+
+struct GosperTurtle
+{
+    GosperTurtle(const double step, std::vector<Vec2d> &out) : m_step(step), m_out(out) {}
+
+    void forward() { m_position += m_step * gosper_directions[m_heading]; m_out.emplace_back(m_position); }
+    // Positive is counterclockwise, in multiples of 60 degrees.
+    void turn(const int sixths) { m_heading = (m_heading + sixths + 6) % 6; }
+
+    void A(const int order) {
+        if (order == 0) { this->forward(); return; }
+        A(order - 1); turn(-1); B(order - 1); turn(-2); B(order - 1); turn(1); A(order - 1);
+        turn(2); A(order - 1); A(order - 1); turn(1); B(order - 1); turn(-1);
+    }
+    void B(const int order) {
+        if (order == 0) { this->forward(); return; }
+        turn(1); A(order - 1); turn(-1); B(order - 1); B(order - 1); turn(-2); B(order - 1);
+        turn(-1); A(order - 1); turn(2); A(order - 1); turn(1); B(order - 1);
+    }
+
+    Vec2d               m_position { 0., 0. };
+    int                 m_heading { 0 };
+    const double        m_step;
+    std::vector<Vec2d> &m_out;
+};
+
+template<typename Output>
+static void generate_gosper_curve(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, Output &output)
+{
+    // Radius to achieve, in units of the distance between neighbouring lines: the corner of the
+    // bounding box farthest from its center. The pattern is centered, so the box straddles the
+    // origin, but rounding of its center may leave the two sides differing by one unit.
+    const coordf_t reach_x = std::max(std::abs(coordf_t(min_x)), std::abs(coordf_t(max_x)));
+    const coordf_t reach_y = std::max(std::abs(coordf_t(min_y)), std::abs(coordf_t(max_y)));
+    const coordf_t rmax    = std::sqrt(reach_x*reach_x + reach_y*reach_y) + 1.5;
+
+    // Every segment of the curve owns one hexagonal lattice cell of area (sqrt(3)/2)*step^2, so the
+    // filled area divided by the path length - that is, the distance between neighbouring passes -
+    // is (sqrt(3)/2)*step. The caller scales the generated coordinates by the requested line
+    // distance, therefore the step that reproduces exactly that distance is 2/sqrt(3).
+    static constexpr coordf_t step = 1.15470053837925153;
+    // Every order multiplies the segment count by seven, so cap it. The highest order still covers
+    // any plausible sparse infill; only a solid fill spanning a whole large plate could reach the
+    // cap, and there the outermost part of the surface would be left unfilled.
+    static constexpr int max_order = 8;
+
+    // The order n curve spans (sqrt(7))^n * step from end to end. Measured across orders, the
+    // largest disk inscribed in the resulting island is a stable 0.42 of that span; 0.4 leaves a
+    // margin. A disk is the right measure rather than the island's bounding box, because every
+    // order also turns the island by atan(sqrt(3)/5), so its orientation here is not fixed.
+    int      order = 0;
+    coordf_t span  = step;
+    while (0.4 * span < rmax && order < max_order) {
+        span *= std::sqrt(7.);
+        ++ order;
+    }
+
+    std::vector<Vec2d> points;
+    points.reserve(size_t(std::lround(std::pow(7., order))) + 1);
+    GosperTurtle turtle(step, points);
+    points.emplace_back(turtle.m_position);
+    turtle.A(order);
+
+    // The curve is not symmetric about its starting point, so recenter its extents on the origin,
+    // where the caller placed the center of the bounding box to fill.
+    Vec2d bbox_min = points.front();
+    Vec2d bbox_max = points.front();
+    for (const Vec2d &p : points) {
+        bbox_min = bbox_min.cwiseMin(p);
+        bbox_max = bbox_max.cwiseMax(p);
+    }
+    const Vec2d center = 0.5 * (bbox_min + bbox_max);
+
+    output.reserve(points.size());
+    for (const Vec2d &p : points)
+        output.add_point(p - center);
+}
+
+void FillGosperCurve::generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double /* resolution */, InfillPolylineOutput &output)
+{
+    if (output.clips())
+        generate_gosper_curve(min_x, min_y, max_x, max_y, static_cast<InfillPolylineClipper&>(output));
+    else
+        generate_gosper_curve(min_x, min_y, max_x, max_y, output);
 }
 
 } // namespace Slic3r

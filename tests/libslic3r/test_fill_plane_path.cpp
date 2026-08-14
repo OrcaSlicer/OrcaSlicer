@@ -5,6 +5,7 @@
 #include <limits>
 #include <utility>
 
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Fill/FillPlanePath.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
@@ -13,6 +14,17 @@ using namespace Slic3r;
 namespace {
 
 constexpr double output_scale = 1'000'000.;
+
+class TestableGosperCurve : public FillGosperCurve
+{
+public:
+    Points generate_points(coord_t max_coordinate = 7)
+    {
+        InfillPolylineOutput output(output_scale);
+        FillGosperCurve::generate(-max_coordinate, -max_coordinate, max_coordinate, max_coordinate, 0., output);
+        return std::move(output.result());
+    }
+};
 
 class TestableHilbertCurve : public FillHilbertCurve
 {
@@ -161,4 +173,63 @@ TEST_CASE("Hilbert curve smooth factor controls corner curvature", "[FillPlanePa
 
     for (size_t i = 1; i < full_smooth.size(); ++i)
         REQUIRE((full_smooth[i] - full_smooth[i - 1]).squaredNorm() > 0);
+}
+
+TEST_CASE("Gosper curve walks a rep-7 triangular lattice", "[FillPlanePath]")
+{
+    const Points points = TestableGosperCurve().generate_points();
+
+    // One point per segment plus the starting point. Any deviation from the L-system rules changes
+    // the segment count away from a power of seven.
+    REQUIRE(points.size() > 1);
+    size_t segment_count = points.size() - 1;
+    while (segment_count % 7 == 0)
+        segment_count /= 7;
+    REQUIRE(segment_count == 1);
+
+    // Every segment of the curve is one lattice step, and consecutive segments meet at a multiple of
+    // 60 degrees, never doubling back on themselves.
+    const double first_length = (points[1] - points[0]).cast<double>().norm();
+    for (size_t i = 1; i < points.size(); ++i) {
+        const Vec2d segment = (points[i] - points[i - 1]).cast<double>();
+        // The tolerance absorbs the rounding of the generated points to integer coordinates.
+        REQUIRE_THAT(segment.norm(), Catch::Matchers::WithinRel(first_length, 1e-5));
+    }
+    for (size_t i = 1; i + 1 < points.size(); ++i) {
+        const Vec2d incoming = (points[i] - points[i - 1]).cast<double>().normalized();
+        const Vec2d outgoing = (points[i + 1] - points[i]).cast<double>().normalized();
+        REQUIRE(incoming.dot(outgoing) > -0.9);
+    }
+}
+
+TEST_CASE("Gosper curve segment length yields the requested line distance", "[FillPlanePath]")
+{
+    const Points points = TestableGosperCurve().generate_points();
+
+    // The caller scales the generated coordinates by the distance between neighbouring lines, so one
+    // unit of output must be exactly that distance. Each segment owns a hexagonal lattice cell of
+    // area (sqrt(3)/2)*length^2, hence filled area over path length - the distance between
+    // neighbouring passes - is (sqrt(3)/2)*length and has to come out as one unit. Getting this
+    // constant wrong leaves the infill denser or sparser than the requested density.
+    const double segment_length = (points[1] - points[0]).cast<double>().norm();
+    const double line_distance  = 0.5 * std::sqrt(3.) * segment_length;
+    REQUIRE_THAT(line_distance, Catch::Matchers::WithinRel(output_scale, 1e-5));
+}
+
+TEST_CASE("Gosper curve covers the requested bounding box", "[FillPlanePath]")
+{
+    const coord_t max_coordinate = 7;
+    const Points  points         = TestableGosperCurve().generate_points(max_coordinate);
+    const coord_t reach          = coord_t(max_coordinate * output_scale);
+
+    // The curve order has to grow until the island spans the box the caller centered on the origin,
+    // otherwise the fill leaves the corners of larger surfaces empty.
+    BoundingBox bbox(points);
+    REQUIRE(bbox.min.x() <= -reach);
+    REQUIRE(bbox.min.y() <= -reach);
+    REQUIRE(bbox.max.x() >= reach);
+    REQUIRE(bbox.max.y() >= reach);
+
+    // A larger box must not be answered with the same curve.
+    REQUIRE(TestableGosperCurve().generate_points(max_coordinate * 10).size() > points.size());
 }
