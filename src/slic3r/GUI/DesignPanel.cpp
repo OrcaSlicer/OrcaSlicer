@@ -5534,8 +5534,29 @@ bool DesignPanel::sketch_map_applies() const
 // sketch_plane_from_selection, which deliberately uses m_pick_face. snaporca-3a2.)
 int DesignPanel::offer_selection_kind() const
 {
-    if (sketch_map_applies())
+    if (sketch_map_applies()) {
+        // Classify WHAT is selected in the sketch, rather than collapsing every sketch state to
+        // SkNone. The offer table has always described verbs for a selected line, arc, point or
+        // pair — Trim, Extend, Fillet, Chamfer, Offset, Mirror, the arrays, Move/Rotate/Scale,
+        // Constrain, Delete — but nothing ever RETURNED those kinds, so all thirteen were
+        // unreachable from the menu and the sketch-editing vocabulary did not exist in the one
+        // place this app tells users to look. A user comparing against Onshape reported exactly
+        // that about constraints (OrcaSlicer PR #15238).
+        const int n = m_viewport ? m_viewport->sketch_selection_count() : 0;
+        if (n >= 2) return int(OfferSel::Sk2Ent);
+        if (n == 1) {
+            SketchEntity::Type t = SketchEntity::Type::Line;
+            if (m_viewport && m_viewport->sketch_first_selected_type(t)) {
+                switch (t) {
+                case SketchEntity::Type::Line:  return int(OfferSel::SkLine);
+                case SketchEntity::Type::Point: return int(OfferSel::SkPoint);
+                // Arc, Circle, Ellipse, EllipseArc, BSpline all take the curve vocabulary.
+                default:                        return int(OfferSel::SkArc);
+                }
+            }
+        }
         return int(OfferSel::SkNone);
+    }
 
     const int nb = int(m_doc.bodies.size());
     if (m_sel_solid_vertex && m_sel_solid_body >= 0 && m_sel_solid_body < nb)

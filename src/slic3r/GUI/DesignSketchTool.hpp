@@ -425,6 +425,15 @@ public:
     // Selection (Mode::Select): pick points/lines/arcs/circles of the in-session
     // sketch; Shift/Ctrl extends, double-click grabs the whole connected loop.
     const std::vector<int>& selection() const { return m_selection; }
+    // Type of the first selected entity. False when nothing is selected, so the offer menu can
+    // tell a line from an arc from a point and stop collapsing every sketch selection to "none".
+    bool first_selected_type(SketchEntity::Type& out) const {
+        if (m_selection.empty()) return false;
+        const int i = m_selection.front();
+        if (i < 0 || i >= int(m_entities.size())) return false;
+        out = m_entities[i].type;
+        return true;
+    }
     void clear_selection();
     void delete_selected();                         // erase selected entities
     // Abort any pending/queued draw-then-edit value-field sequence. Removing an entity that

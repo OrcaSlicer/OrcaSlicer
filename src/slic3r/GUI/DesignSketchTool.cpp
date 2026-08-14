@@ -9432,11 +9432,17 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             return true;
         }
         if (evt.RightDown()) {
-            // Merely dropping a selection is not a gesture terminator: the m_right_consumed flag
-            // this return value feeds means "the tool USED this right-click", and suppressing the
-            // offer menu on a plain deselection would leave no way to reach the right-click menu
-            // again once any geometry exists. So clear, but hand the click back.
-            clear_selection();
+            // Hand the click back (return false) so the offer opens: the m_right_consumed flag
+            // this return value feeds means "the tool USED this right-click", and a plain
+            // right-click in Select mode is not a gesture terminator.
+            //
+            // But do NOT drop the selection on the way out. The offer menu describes WHAT IS
+            // SELECTED, so clearing first guaranteed it could only ever describe nothing: select
+            // a line, right-click, and the sketch verbs — Trim, Extend, Fillet, Chamfer, Offset,
+            // Mirror, the arrays, Constrain — were all greyed, because by the time the menu was
+            // built the line was no longer selected. Reported from the machine as "selected a
+            // line, right-click exit from selection: only create and reference are usable".
+            // Deselecting still has a gesture: left-click on empty space, a few lines above.
             return false;
         }
         return false;                               // let drag orbit the camera

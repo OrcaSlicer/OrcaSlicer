@@ -1338,6 +1338,16 @@ bool DesignCanvas::is_constraining_entities() const
     return m_sketch_tool.is_constraining_entities();
 }
 
+int DesignCanvas::sketch_selection_count() const
+{
+    return int(m_sketch_tool.selection().size());
+}
+
+bool DesignCanvas::sketch_first_selected_type(SketchEntity::Type& out) const
+{
+    return m_sketch_tool.first_selected_type(out);
+}
+
 bool DesignCanvas::selected_constrain_entities(int& e0, int& e1) const
 {
     return m_sketch_tool.selected_constrain_entities(e0, e1);

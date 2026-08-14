@@ -261,6 +261,10 @@ public:
     // Entity-aware Constrain (Fase 4.2): pick Line entities of a committed sketch.
     void begin_constrain_entities(const std::vector<SketchEntity>& ents, const SketchPlane& plane);
     bool is_constraining_entities() const;
+    // Sketch selection, for the offer menu: how many entities are selected and what the first
+    // one is. Returns 0 when nothing is selected.
+    int  sketch_selection_count() const;
+    bool sketch_first_selected_type(SketchEntity::Type& out) const;
 
     // In-canvas bbox transform of imported Text/SVG art (replaces the Move/Scale dialog).
     void begin_imported_transform(int feat,
