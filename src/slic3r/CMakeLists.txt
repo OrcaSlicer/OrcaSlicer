@@ -930,15 +930,23 @@ set_source_files_properties(
 # the compiler treats them as Objective-C++. These files only exist on Apple
 # platforms, so the exclusion is applied conditionally.
 if (APPLE)
+    # Apple framework headers used by these C++ sources expose legacy global
+    # names such as Point, Rect, and Size. Keep the framework-heavy sources in
+    # separate translation units so they cannot collide with Slic3r geometry
+    # and GUI types in a unity batch.
     set_source_files_properties(
         Utils/RetinaHelperImpl.mm
         Utils/MacDarkMode.mm
+        Utils/Serial.cpp
         GUI/RemovableDriveManagerMM.mm
         GUI/Mouse3DHandlerMac.mm
         GUI/InstanceCheckMac.mm
         GUI/DeepLinkHandlerMac.mm
         GUI/GUI_UtilsMac.mm
         GUI/wxMediaCtrl2.mm
+        GUI/GUI.cpp
+        GUI/SendSystemInfoDialog.cpp
+        GUI/TroubleshootDialog.cpp
         PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
 endif ()
 
