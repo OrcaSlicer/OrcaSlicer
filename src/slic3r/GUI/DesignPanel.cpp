@@ -3366,6 +3366,32 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // any stale solid face/edge pick so Extrude treats this loop as the profile.
         m_sel_solid_face = m_sel_solid_edge = -1;
         m_pick_face = m_pick_face_body = -1;
+        // Sweep card open: the sketch you point at becomes the PATH. The profile is already
+        // settled selection-first — you pick a sketch and then invoke Sweep, which is the design
+        // law's own canonical example — so the path is the input that was still trapped in a
+        // combo. The picker excludes the profile, so pointing at the profile correctly does
+        // nothing. e1p item 6; same shape as the Boolean and Mirror fixes.
+        if (m_active == Tool::Sweep && m_sweep_path != nullptr) {
+            for (unsigned i = 0; i < m_sweep_path->GetCount(); ++i) {
+                if (int(reinterpret_cast<intptr_t>(m_sweep_path->GetClientData(i))) != feat) continue;
+                m_sweep_path->SetSelection(i);
+                m_sweep_path_ref = feat;
+                refresh_preview();
+                break;
+            }
+        }
+        // Loft card open: pointing at a sketch TOGGLES its membership, so a loft is built by
+        // clicking the profiles in the viewport instead of hunting rows in a check-list. The
+        // list stays visible as the typed half and still shows the order, which matters here —
+        // loft order is not commutative.
+        if (m_active == Tool::Loft && m_loft_list != nullptr) {
+            for (size_t i = 0; i < m_loft_sketch_idx.size() && i < m_loft_list->GetCount(); ++i) {
+                if (m_loft_sketch_idx[i] != feat) continue;
+                m_loft_list->Check(unsigned(i), !m_loft_list->IsChecked(unsigned(i)));
+                refresh_preview();
+                break;
+            }
+        }
         set_tree_selection(feat);
         m_status->SetForegroundColour(wxNullColour);
         set_status(region >= 0
