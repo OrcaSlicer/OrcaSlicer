@@ -2394,10 +2394,14 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Top surface fill order");
     def->category = L("Strength");
     def->tooltip = L("Direction in which top surfaces are filled when using a center-based pattern "
-                     "(Concentric, Archimedean Chords, Octagram Spiral).\n"
+                     "(Concentric, Archimedean Chords, Octagram Spiral, Scales).\n"
                      "Outward starts at the center of the surface, so any excess material is pushed "
                      "towards the edge where it is least visible. Inward starts at the edge and ends "
                      "with the tight curves at the center.\n"
+                     "For Scales, the surface is swept once per arc instead: Inward prints the outermost "
+                     "arc of every scale before moving to the next arc in, so uneven flow shows up as a "
+                     "gradual change across the surface rather than as a difference between neighbouring "
+                     "scales. This adds travel moves.\n"
                      "Default uses shortest-path ordering, which may run in either direction.");
     def->enum_keys_map = &ConfigOptionEnum<SurfaceFillOrder>::get_enum_values();
     def->enum_values.push_back("default");
@@ -2413,10 +2417,14 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Bottom surface fill order");
     def->category = L("Strength");
     def->tooltip = L("Direction in which bottom surfaces are filled when using a center-based pattern "
-                     "(Concentric, Archimedean Chords, Octagram Spiral).\n"
+                     "(Concentric, Archimedean Chords, Octagram Spiral, Scales).\n"
                      "Inward starts each surface with the wider outer curves, which improves first layer "
                      "adhesion on build plates where the tight curves at the center may not stick. "
                      "Outward starts at the center, pushing any excess material towards the edge.\n"
+                     "For Scales, the surface is swept once per arc instead: Inward prints the outermost "
+                     "arc of every scale before moving to the next arc in, so uneven flow shows up as a "
+                     "gradual change across the surface rather than as a difference between neighbouring "
+                     "scales. This adds travel moves.\n"
                      "Default uses shortest-path ordering, which may run in either direction.");
     def->enum_keys_map = &ConfigOptionEnum<SurfaceFillOrder>::get_enum_values();
     def->enum_values = def_top_fill_order->enum_values;
@@ -10440,6 +10448,15 @@ int DynamicPrintConfig::update_values_from_multi_to_multi_2(const std::vector<st
 
 }
 
+void set_variant_override(ConfigOptionVectorBase &target, const ConfigOptionVectorBase &source,
+                          const std::vector<int> &variant_index, int stride)
+{
+    // A single-value object or region override applies to every nozzle variant.
+    std::vector<int> indices = variant_index;
+    if (source.size() == 1 && !source.is_nil(0))
+        std::fill(indices.begin(), indices.end(), 0);
+    target.set_to_index(&source, indices, stride);
+}
 
 //used for object/region config
 //use the smallest of multiple to single
@@ -11517,7 +11534,8 @@ void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPr
                 else {
                     ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(opt_src);
                     const ConfigOptionVectorBase* opt_vec_dest = static_cast<const ConfigOptionVectorBase*>(opt_dest);
-                    opt_vec_src->set_to_index(opt_vec_dest, variant_index, stride);
+                    //opt_vec_src->set_to_index(opt_vec_dest, variant_index, stride);
+                    set_variant_override(*opt_vec_src, *opt_vec_dest, variant_index, stride);
                 }
             }
         }

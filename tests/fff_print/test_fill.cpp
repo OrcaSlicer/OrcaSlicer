@@ -698,3 +698,121 @@ TEST_CASE("Solid infill direction offsets every layer when no template is set", 
         CHECK(delta == 30);
     }
 }
+
+TEST_CASE("Scales surface pattern fills the requested line density", "[Fill]")
+{
+    // The visible parts of the scale discs tile the plane, so the concentric arcs one line
+    // distance apart cover exactly one cell area per unit of length: filled area / path length
+    // has to come out as the distance between neighbouring lines. 1.0 is a solid surface, the
+    // lower values are the textured surfaces that top/bottom_surface_density allows.
+    const std::string pattern = GENERATE("scales4", "scales6", "scales8");
+    const double      density = GENERATE(0.5, 0.75, 1.0);
+
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(pattern));
+    filler->spacing = 0.5;
+    filler->angle   = 0.f;
+
+    FillParams fill_params;
+    fill_params.density           = float(density);
+    fill_params.dont_adjust       = true;
+    fill_params.anchor_length_max = 0.f; // chain the arcs, do not add connectors along the boundary
+
+    // Wide next to the largest scale radius here (arcs * spacing / density, at most 8 mm), so the
+    // arcs cut off at the boundary stay a small share of the total.
+    const Slic3r::ExPolygon square(Slic3r::Polygon::new_scale({Vec2d(0, 0), Vec2d(300, 0), Vec2d(300, 300), Vec2d(0, 300)}));
+    Slic3r::Surface         surface(stInternal, square);
+    const Slic3r::Polylines paths = filler->fill_surface(&surface, fill_params);
+
+    double length = 0.;
+    for (const Slic3r::Polyline &pl : paths)
+        length += unscale<double>(pl.length());
+    const double area = unscale<double>(unscale<double>(square.area()));
+
+    CAPTURE(pattern, density);
+    REQUIRE(length > 0.);
+    CHECK_THAT(area / length, Catch::Matchers::WithinRel(filler->spacing / density, 0.05));
+}
+
+TEST_CASE("Scales surface pattern never exposes a closed ring", "[Fill]")
+{
+    // The two discs in front of a disc meet exactly at its centre, so every arc stays open. A
+    // closed ring means the lattice proportions drifted off sqrt(3) * R by R / 2.
+    const std::string pattern = GENERATE("scales4", "scales6", "scales8");
+
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(pattern));
+    filler->spacing = 0.5;
+    filler->angle   = 0.f;
+
+    FillParams fill_params;
+    fill_params.density           = 1.f;
+    fill_params.dont_adjust       = true;
+    fill_params.anchor_length_max = 0.f;
+
+    // One scale radius is arcs * 0.5 mm; a 200 mm square holds many whole scales.
+    const Slic3r::ExPolygon square(Slic3r::Polygon::new_scale({Vec2d(0, 0), Vec2d(200, 0), Vec2d(200, 200), Vec2d(0, 200)}));
+    Slic3r::Surface         surface(stInternal, square);
+    const Slic3r::Polylines paths = filler->fill_surface(&surface, fill_params);
+
+    CAPTURE(pattern);
+    REQUIRE(! paths.empty());
+    for (const Slic3r::Polyline &pl : paths)
+        REQUIRE(! pl.is_closed());
+}
+
+TEST_CASE("Scales surface pattern with a forced fill order sweeps one arc at a time", "[Fill]")
+{
+    // Inward has to emit every scale's outermost arc across the whole surface before moving to the
+    // next arc in, so the arc radii come out in non-increasing runs rather than interleaved.
+    const auto [pattern, arcs] = GENERATE(table<std::string, int>({{"scales4", 4}, {"scales6", 6}, {"scales8", 8}}));
+
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(pattern));
+    filler->spacing = 0.5;
+    filler->angle   = 0.f;
+
+    FillParams fill_params;
+    fill_params.density           = 1.f;
+    fill_params.dont_adjust       = true;
+    fill_params.anchor_length_max = 0.f;
+    fill_params.fill_order        = SurfaceFillOrder::Inward;
+
+    const Slic3r::ExPolygon square(Slic3r::Polygon::new_scale({Vec2d(0, 0), Vec2d(100, 0), Vec2d(100, 100), Vec2d(0, 100)}));
+    Slic3r::Surface         surface(stTop, square);
+    const Slic3r::Polylines paths = filler->fill_surface(&surface, fill_params);
+    REQUIRE(paths.size() > size_t(arcs));
+
+    // Radius of the circle through three points of an arc, in mm. Every point of an arc lies on its
+    // ring, so this recovers the ring from any fragment long enough to be well conditioned.
+    const double         distance = filler->spacing / fill_params.density;
+    std::vector<int>     rings;
+    int                  ccw = 0, cw = 0;
+    for (const Slic3r::Polyline &pl : paths) {
+        if (pl.points.size() < 3)
+            continue;
+        const Vec2d a = unscale(pl.points.front());
+        const Vec2d b = unscale(pl.points[pl.points.size() / 2]);
+        const Vec2d c = unscale(pl.points.back());
+        const double area2 = (b.x() - a.x()) * (c.y() - a.y()) - (b.y() - a.y()) * (c.x() - a.x());
+        if (std::abs(area2) < EPSILON)
+            continue; // collinear fragment, no radius or direction to read
+        ++ (area2 > 0. ? ccw : cw);
+        const double radius = (b - a).norm() * (c - b).norm() * (c - a).norm() / (2. * std::abs(area2));
+        const int    ring   = int(std::lround(radius / distance - 0.5));
+        // Drop fragments too short to measure rather than letting their noise decide the assertion.
+        if (ring < 0 || ring >= arcs || std::abs(radius - (double(ring) + 0.5) * distance) > 0.25 * distance)
+            continue;
+        rings.push_back(ring);
+    }
+
+    CAPTURE(pattern, arcs, rings.size());
+    // Every ring is represented, so the filter above cannot have quietly emptied out the check.
+    std::vector<int> distinct = rings;
+    std::sort(distinct.begin(), distinct.end());
+    distinct.erase(std::unique(distinct.begin(), distinct.end()), distinct.end());
+    REQUIRE(distinct.size() == size_t(arcs));
+    // ... and the radii only ever step inwards, never back out.
+    CHECK(std::is_sorted(rings.rbegin(), rings.rend()));
+    // Every scale is drawn the same way round, so the start-of-extrusion blob always lands on the
+    // same end of the arc. One direction has to account for every measurable fragment.
+    CAPTURE(ccw, cw);
+    CHECK(std::min(ccw, cw) == 0);
+}

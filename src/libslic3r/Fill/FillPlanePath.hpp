@@ -95,6 +95,17 @@ protected:
     void generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution, InfillPolylineOutput &output) override;
 };
 
+class FillGosperCurve : public FillPlanePath
+{
+public:
+    Fill* clone() const override { return new FillGosperCurve(*this); };
+    ~FillGosperCurve() override = default;
+
+protected:
+    bool centered() const override { return true; }
+    void generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution, InfillPolylineOutput &output) override;
+};
+
 } // namespace Slic3r
 
 #endif // slic3r_FillPlanePath_hpp_

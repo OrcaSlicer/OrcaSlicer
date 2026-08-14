@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "../ClipperUtils.hpp"
-#include "../ShortestPath.hpp"
 #include "../Surface.hpp"
 
 #include "FillScales.hpp"
@@ -38,7 +37,7 @@ bool hidden_span(double r, const Vec2d &c, double disc_r, double &begin, double 
     return true;
 }
 
-// The arcs of one scale, in units of the distance between neighbouring lines.
+// The arcs of one scale, in units of the distance between neighbouring lines, in ascending radius.
 //
 // Density falls out of the construction rather than needing a constant: the visible parts of the
 // discs tile the plane, so the visible angular extent phi(r) satisfies integral of phi(r) * r dr
@@ -100,6 +99,18 @@ std::vector<MotifArc> build_motif(size_t arcs)
     return motif;
 }
 
+// True if the arc turns counter-clockwise about its own centre. A fragment clipped down to a
+// straight line has no direction to speak of and reports false.
+bool sweeps_ccw(const Polyline &pl)
+{
+    if (pl.points.size() < 3)
+        return false;
+    const Vec2d a = pl.points.front().cast<double>();
+    const Vec2d b = pl.points[pl.points.size() / 2].cast<double>();
+    const Vec2d c = pl.points.back().cast<double>();
+    return (b.x() - a.x()) * (c.y() - a.y()) - (b.y() - a.y()) * (c.x() - a.x()) > 0.;
+}
+
 // Discretize one arc, keeping the chord deviation below tolerance.
 Polyline arc_polyline(const Point &center, double radius, double begin, double end, double tolerance)
 {
@@ -149,20 +160,57 @@ void FillScales::_fill_surface_single(
     // Keep a floor under the tolerance: a resolution of zero would discretize the arcs to death.
     const double                tolerance = std::max(scaled<double>(params.resolution), scaled<double>(0.001));
 
-    Polylines all_polylines;
-    for (coord_t y = origin.y(); y <= bounding_box.max.y(); y += pitch_y) {
-        const bool    odd_row = ((y - origin.y()) / pitch_y) & 1;
-        const coord_t first_x = origin.x() + (odd_row ? pitch_x / 2 : 0);
-        for (coord_t x = first_x; x <= bounding_box.max.x(); x += pitch_x)
-            for (const MotifArc &arc : motif)
-                all_polylines.emplace_back(arc_polyline(Point(x, y), arc.radius * distance, arc.begin, arc.end, tolerance));
+    // One arc of the motif, repeated across the whole lattice.
+    auto append_pass = [&](const MotifArc &arc, Polylines &out) {
+        for (coord_t y = origin.y(); y <= bounding_box.max.y(); y += pitch_y) {
+            const bool    odd_row = ((y - origin.y()) / pitch_y) & 1;
+            const coord_t first_x = origin.x() + (odd_row ? pitch_x / 2 : 0);
+            for (coord_t x = first_x; x <= bounding_box.max.x(); x += pitch_x)
+                out.emplace_back(arc_polyline(Point(x, y), arc.radius * distance, arc.begin, arc.end, tolerance));
+        }
+    };
+
+    if (params.fill_order == SurfaceFillOrder::Default) {
+        Polylines all_polylines;
+        for (const MotifArc &arc : motif)
+            append_pass(arc, all_polylines);
+        for (Polyline &pl : all_polylines)
+            pl.rotate(-direction.first);
+        all_polylines = intersection_pl(std::move(all_polylines), expolygon);
+        chain_or_connect_infill(std::move(all_polylines), expolygon, polylines_out, this->spacing, params);
+        return;
     }
 
-    for (Polyline &pl : all_polylines)
-        pl.rotate(-direction.first);
-
-    all_polylines = intersection_pl(std::move(all_polylines), expolygon);
-    chain_or_connect_infill(std::move(all_polylines), expolygon, polylines_out, this->spacing, params);
+    // A forced fill order sweeps the whole surface once per arc, so every scale is at the same
+    // depth at any moment and flow variation shows up as a change across the surface rather than as
+    // a difference between neighbouring scales. Inward starts on the outermost arcs. This costs a
+    // travel move between scales for every arc, which is why it is not the default.
+    //
+    // The clip has to happen per pass: intersection_pl returns a Clipper PolyTree, whose order does
+    // not track the input, so sorting a single clipped batch by radius afterwards is not possible.
+    const bool outermost_first = params.fill_order == SurfaceFillOrder::Inward;
+    for (size_t i = 0; i < motif.size(); ++ i) {
+        // build_motif() emits in ascending radius.
+        const MotifArc &arc = motif[outermost_first ? motif.size() - 1 - i : i];
+        Polylines pass;
+        append_pass(arc, pass);
+        // The motif arc sweeps counter-clockwise, so it runs right to left - against the order the
+        // lattice is walked in, which would put a travel the length of an arc between every pair of
+        // neighbouring scales. Flip it to match.
+        for (Polyline &pl : pass) {
+            pl.reverse();
+            pl.rotate(-direction.first);
+        }
+        pass = intersection_pl(std::move(pass), expolygon);
+        // Deliberately not chained: chain_polylines() reverses paths to shorten travel, and Clipper
+        // is free to hand an open path back either way round. Every scale has to be drawn in the
+        // same direction, otherwise the start-of-extrusion blob lands at the left of one scale and
+        // the right of its neighbour, which is the artefact a forced order exists to prevent.
+        for (Polyline &pl : pass)
+            if (sweeps_ccw(pl))
+                pl.reverse();
+        append(polylines_out, std::move(pass));
+    }
 }
 
 } // namespace Slic3r

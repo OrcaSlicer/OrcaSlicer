@@ -39,6 +39,7 @@ ctest --test-dir ./tests/fff_print
 - All print/printer/material settings: `src/libslic3r/PrintConfig.cpp`
 - GUI: `src/slic3r/GUI/`
 - Core algorithms: `src/libslic3r/` (GCode/, Fill/, Support/, Geometry/, Format/, Arachne/)
+- Infill patterns: `src/libslic3r/Fill/`; see [src/libslic3r/Fill/AGENTS.md](src/libslic3r/Fill/AGENTS.md) to add one
 - Printer profiles: `resources/profiles/[manufacturer].json`
 
 ## Critical Constraints

@@ -789,7 +789,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // Fill order is only meaningful for the center-based surface fill patterns; hide it otherwise.
     // Orca: the Gosper Curve is centered on the surface but is traversed corner to corner rather
     // than radially, so an inward/outward fill order would not mean anything for it.
-    auto is_centered_fill = [](InfillPattern p) { return p == ipConcentric || p == ipArchimedeanChords || p == ipOctagramSpiral; };
+    auto is_centered_fill = [](InfillPattern p) { return p == ipConcentric || p == ipArchimedeanChords || p == ipOctagramSpiral ||
+                                                        p == ipScales4 || p == ipScales6 || p == ipScales8; };
     toggle_line("top_surface_fill_order", has_top_shell && is_centered_fill(config->opt_enum<InfillPattern>("top_surface_pattern")));
     toggle_line("bottom_surface_fill_order", has_bottom_shell && is_centered_fill(config->opt_enum<InfillPattern>("bottom_surface_pattern")));
 
