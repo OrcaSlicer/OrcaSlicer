@@ -8,6 +8,7 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/ProjectTask.hpp"
+#include "libslic3r/PublishSettings.hpp"
 
 #include "test_utils.hpp"
 
@@ -674,3 +675,79 @@ SCENARIO("Published 3MF round-trips the published_material_keys metadata", "[3mf
         }
     }
 }
+
+SCENARIO("Minimal published 3MF serialization filters config and omits embedded presets", "[3mf]") {
+    GIVEN("a full print configuration and published keys") {
+        Model model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+
+        DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
+        full_cfg.set_key_value("layer_height", new ConfigOptionFloat(0.24));
+        full_cfg.set_key_value("retraction_length", new ConfigOptionFloats({ 1.2 }));
+
+        const std::vector<std::string> published_keys = { "layer_height", "retraction_length" };
+        const std::vector<PublishedMaterialEntry> material_keys = {
+            { "PLA", "Generic", "GFL99", 0, { "filament_retraction_length" } }
+        };
+
+        DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_keys);
+
+        // Filtered config must contain the published keys and identity keys
+        REQUIRE(filtered_cfg.option("layer_height") != nullptr);
+        REQUIRE(filtered_cfg.option("retraction_length") != nullptr);
+        REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
+        REQUIRE(filtered_cfg.option("filament_type") != nullptr);
+        REQUIRE(filtered_cfg.option("wipe_tower_x") != nullptr);
+
+        // Non-published settings should NOT be in filtered_cfg
+        REQUIRE(filtered_cfg.option("sparse_infill_density") == nullptr);
+        REQUIRE(filtered_cfg.option("machine_start_gcode") == nullptr);
+
+        model.model_info = std::make_shared<ModelInfo>();
+        model.model_info->metadata_items["published"]      = "1";
+        model.model_info->metadata_items["published_keys"] = R"(["layer_height","retraction_length"])";
+
+        ScopedTemporaryDir backup_dir("orca_min_pub");
+        model.set_backup_path(backup_dir.string());
+
+        WHEN("stored using SaveStrategy::MinimalPublished") {
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+
+            // Create a fake project preset to verify it gets omitted with MinimalPublished
+            Preset preset(Preset::TYPE_PRINT, "TestPrintPreset");
+            preset.config = full_cfg;
+            std::vector<Preset*> project_presets = { &preset };
+
+            StoreParams store_params;
+            store_params.path    = test_file.c_str();
+            store_params.model   = &model;
+            store_params.config  = &filtered_cfg;
+            store_params.project_presets = project_presets;
+            store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence | SaveStrategy::MinimalPublished;
+            REQUIRE(store_bbs_3mf(store_params));
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs        dst_plates;
+            std::vector<Preset*> loaded_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                       &loaded_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                       LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+            THEN("the 3MF loads successfully without project embedded presets") {
+                REQUIRE(loaded);
+                REQUIRE(loaded_presets.empty());
+                REQUIRE(dst_config.option("layer_height") != nullptr);
+                REQUIRE(dst_config.opt_float("layer_height") == 0.24);
+                REQUIRE(dst_config.option("sparse_infill_density") == nullptr);
+            }
+            release_PlateData_list(dst_plates);
+        }
+    }
+}
+

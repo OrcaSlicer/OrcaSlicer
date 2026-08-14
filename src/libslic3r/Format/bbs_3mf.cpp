@@ -5943,6 +5943,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool m_save_gcode { false };        // whether to save gcode for normal save
         bool m_skip_model { false };        // skip model when exporting .gcode.3mf
         bool m_skip_auxiliary { false };    // skip normal axuiliary files
+        bool m_minimal_published { false }; // published 3MF: omit embedded preset files
         bool m_use_loaded_id { false };        // whether to use loaded id for identify_id
         bool m_share_mesh { false };        // whether to share mesh between objects
         std::string m_thumbnail_middle = PRINTER_THUMBNAIL_MIDDLE_FILE;
@@ -6042,6 +6043,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         m_skip_auxiliary = store_params.strategy & SaveStrategy::SkipAuxiliary;
         m_share_mesh       = store_params.strategy & SaveStrategy::ShareMesh;
         m_from_backup_save = store_params.strategy & SaveStrategy::Backup;
+        m_minimal_published = store_params.strategy & SaveStrategy::MinimalPublished;
 
         m_use_loaded_id = store_params.strategy & SaveStrategy::UseLoadedId;
 
@@ -6464,8 +6466,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 if (cb_cancel) return false;
             }
 
-            // BBS: add project config
-            if (project_presets.size() > 0) {
+            // BBS: add project config (omitted for minimal published 3MF)
+            if (!m_minimal_published && project_presets.size() > 0) {
                 // BBS: add project embedded preset files
                 _add_project_embedded_presets_to_archive(archive, model, project_presets);
 

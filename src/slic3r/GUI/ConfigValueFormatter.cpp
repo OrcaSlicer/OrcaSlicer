@@ -73,7 +73,7 @@ wxString get_string_value(const std::string& opt_key, const DynamicPrintConfig& 
     std::string temp_str = opt_key;
     if (pos > 0) {
         boost::erase_head(temp_str, pos + 1);
-        orig_opt_idx = static_cast<size_t>(atoi(temp_str.c_str()));
+        orig_opt_idx = std::atoi(temp_str.c_str());
     }
     opt_idx = orig_opt_idx >= 0 ? orig_opt_idx : 0;
     const std::string pure_key = get_pure_opt_key(opt_key);
@@ -83,8 +83,8 @@ wxString get_string_value(const std::string& opt_key, const DynamicPrintConfig& 
     }
     auto opt_vector = dynamic_cast<const ConfigOptionVectorBase *>(option);
 
-    if (option->is_scalar() && config.option(pure_key)->is_nil() ||
-        option->is_vector() && opt_vector && opt_idx >= 0 && opt_idx < opt_vector->size() && opt_vector->is_nil(opt_idx))
+    if ((option->is_scalar() && option->is_nil()) ||
+        (option->is_vector() && opt_vector && opt_idx >= 0 && opt_idx < opt_vector->size() && opt_vector->is_nil(opt_idx)))
         return _L("N/A");
 
     wxString out;

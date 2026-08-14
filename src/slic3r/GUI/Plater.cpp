@@ -7324,7 +7324,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         }
 
                         auto choise = wxGetApp().app_config->get("no_warn_when_modified_gcodes");
-                        if (choise.empty() || choise != "true") {
+                        if (!published_config.published && (choise.empty() || choise != "true")) {
                             // BBS: first validate the printer
                             // validate the system profiles
                             std::set<std::string> modified_gcodes;
@@ -16204,16 +16204,21 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
     model.model_info->metadata_items["published_keys"] = j.dump();
     model.model_info->metadata_items["published_material_keys"] = jm.dump();
 
-    // Same file layout save_project() uses for its project files, plus SaveStrategy::Silence:
+    // Minimal published export: filter full_config to only the published keys, material keys,
+    // identity fields, and plate geometry keys, and omit project-embedded preset dumps.
+    DynamicPrintConfig full_cfg = wxGetApp().preset_bundle->full_config_secure();
+    DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_keys);
+
+    // Same file layout save_project() uses for its project files, plus SaveStrategy::Silence and SaveStrategy::MinimalPublished:
     // without it export_3mf() calls set_project_filename() on success, which would make this
     // pure export the current project file. Silence keeps the project state untouched, exactly
     // like export_core_3mf().
-    auto save_strategy = SaveStrategy::SplitModel | SaveStrategy::ShareMesh | SaveStrategy::Silence;
+    auto save_strategy = SaveStrategy::SplitModel | SaveStrategy::ShareMesh | SaveStrategy::Silence | SaveStrategy::MinimalPublished;
     bool full_pathnames = wxGetApp().app_config->get_bool("export_sources_full_pathnames");
     if (full_pathnames)
         save_strategy = save_strategy | SaveStrategy::FullPathSources;
 
-    const int ret = export_3mf(into_path(path), save_strategy);
+    const int ret = export_3mf(into_path(path), save_strategy, -1, nullptr, &filtered_cfg);
 
     // Restore the previous metadata state (both on success and on failure).
     if (!had_model_info) {
@@ -16737,7 +16742,7 @@ void publish(Model &model, SaveStrategy strategy) {
 }
 
 // BBS: backup
-int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy strategy, int export_plate_idx, Export3mfProgressFn proFn)
+int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy strategy, int export_plate_idx, Export3mfProgressFn proFn, const DynamicPrintConfig* override_config)
 {
     int ret = 0;
     //if (p->model.objects.empty()) {
@@ -16759,7 +16764,7 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
     // modify model
     publish(p->model, strategy);
 
-    DynamicPrintConfig cfg = wxGetApp().preset_bundle->full_config_secure();
+    DynamicPrintConfig cfg = override_config ? *override_config : wxGetApp().preset_bundle->full_config_secure();
     const std::string path_u8 = into_u8(path);
     wxBusyCursor wait;
 

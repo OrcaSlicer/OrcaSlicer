@@ -53,4 +53,12 @@ struct PublishedMaterialEntry {
     int         slot{-1};
     std::vector<std::string> keys;
 };
+
+// Constructs a minimal DynamicPrintConfig for a published 3MF export containing only the
+// author-selected published keys, material keys, material identity fields, and plate geometry keys.
+class DynamicPrintConfig;
+DynamicPrintConfig filter_published_config(
+    const DynamicPrintConfig &full_config,
+    const std::vector<std::string> &published_keys,
+    const std::vector<PublishedMaterialEntry> &material_keys);
 }

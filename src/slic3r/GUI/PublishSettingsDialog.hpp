@@ -91,6 +91,7 @@ private:
         Section section{Section::Print};
         size_t group{0};               // index into m_sections
         std::string icon_name;         // bitmap name; empty = no icon
+        ScalableBitmap icon_bmp;       // scalable bitmap for DPI changes
         wxStaticBitmap* icon{nullptr}; // 18px category icon (null when icon_name empty)
         wxCheckBox* header{nullptr};   // select-all tri-state
         // Material opt-in: the master checkbox carries the material title and
@@ -117,6 +118,7 @@ private:
         wxString title;                     // _L("Printer") / _L("Filament") / _L("Process")
         Section kind{Section::Print};       // maps 1:1 to the display group
         std::string icon_name;              // "printer" / "filament" / "process"
+        ScalableBitmap icon_bmp;            // scalable bitmap for DPI changes
         wxStaticBitmap* icon{nullptr};      // 18px, like Category::icon
         wxCheckBox* header{nullptr};        // tri-state select-all; nullptr for the Filament group
         ::StaticLine* header_line{nullptr}; // Filament group's clickable title

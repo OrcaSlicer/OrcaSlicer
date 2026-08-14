@@ -2,6 +2,7 @@
 
 #include "PresetBundle.hpp"
 #include "Preset.hpp"
+#include "PrintConfig.hpp"
 
 #include <algorithm>
 
@@ -100,6 +101,62 @@ std::vector<std::string> collect_dirty_settings_keys(const PresetBundle& bundle)
     append_dirty(bundle.filaments.current_dirty_options(true));
 
     return keys;
+}
+
+DynamicPrintConfig filter_published_config(
+    const DynamicPrintConfig &full_config,
+    const std::vector<std::string> &published_keys,
+    const std::vector<PublishedMaterialEntry> &material_keys)
+{
+    DynamicPrintConfig filtered;
+
+    std::set<std::string> base_keys_to_include;
+
+    // 1. Mandatory material identity & slot count keys for 3MF validation/normalization
+    static const std::vector<std::string> s_material_identity_keys = {
+        "filament_colour",
+        "filament_type",
+        "filament_vendor",
+        "filament_ids",
+        "filament_diameter",
+        "filament_self_index",
+        "filament_extruder_variant"
+    };
+    for (const std::string &key : s_material_identity_keys)
+        base_keys_to_include.insert(key);
+
+    // 2. Published plate / bed geometry keys (wipe tower positioning)
+    static const std::vector<std::string> s_plate_geometry_keys = {
+        "wipe_tower_x",
+        "wipe_tower_y",
+        "wipe_tower_rotation_angle"
+    };
+    for (const std::string &key : s_plate_geometry_keys)
+        base_keys_to_include.insert(key);
+
+    // 3. Process and printer published keys
+    for (const std::string &key : published_keys) {
+        const std::string base_key = key.substr(0, key.find('#'));
+        if (!base_key.empty())
+            base_keys_to_include.insert(base_key);
+    }
+
+    // 4. Material-specific published keys
+    for (const PublishedMaterialEntry &entry : material_keys) {
+        for (const std::string &key : entry.keys) {
+            const std::string base_key = key.substr(0, key.find('#'));
+            if (!base_key.empty())
+                base_keys_to_include.insert(base_key);
+        }
+    }
+
+    // Copy selected options from full_config into filtered config
+    for (const std::string &key : base_keys_to_include) {
+        if (const ConfigOption *opt = full_config.option(key))
+            filtered.set_key_value(key, opt->clone());
+    }
+
+    return filtered;
 }
 
 } // namespace Slic3r

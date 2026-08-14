@@ -321,8 +321,8 @@ void PublishSettingsDialog::build_option_model()
         cat.filament_id     = identity.id;
         cat.filament_slot   = slot;
         if (!icon_name.empty()) {
-            ScalableBitmap icon_bmp(m_scroll, icon_name, 18);
-            cat.icon = new wxStaticBitmap(m_scroll, wxID_ANY, icon_bmp.bmp());
+            cat.icon_bmp = ScalableBitmap(m_scroll, icon_name, 18);
+            cat.icon = new wxStaticBitmap(m_scroll, wxID_ANY, cat.icon_bmp.bmp());
         }
         if (section == Section::Material) {
             // Material header: [master (title)][slim tri-state select-all].
@@ -667,8 +667,8 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
     }
 
     if (!section.icon_name.empty()) {
-        ScalableBitmap icon_bmp(m_scroll, section.icon_name, 18);
-        section.icon = new wxStaticBitmap(m_scroll, wxID_ANY, icon_bmp.bmp());
+        section.icon_bmp = ScalableBitmap(m_scroll, section.icon_name, 18);
+        section.icon = new wxStaticBitmap(m_scroll, wxID_ANY, section.icon_bmp.bmp());
     }
 
     section.chevron = create_chevron(m_scroll, wxEVT_LEFT_DOWN, [this, new_index] { toggle_section(new_index); });
@@ -1062,12 +1062,32 @@ std::vector<Slic3r::PublishedMaterialEntry> PublishSettingsDialog::GetPublishedM
 
 void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
 {
-    // The remaining bitmap icons are rescaled; the collapse chevrons are
-    // vector-drawn and repaint themselves.
+    // Rescale toolbar bitmaps and icons; collapse chevrons are vector-drawn and repaint themselves.
     m_search.msw_rescale();
     m_menu.msw_rescale();
     m_filter_box->SetIcon(m_search.bmp());
     m_menu_button->SetBitmap(m_menu.bmp());
+
+    for (SectionGroup& section : m_sections) {
+        if (section.icon != nullptr && section.icon_bmp.bmp().IsOk()) {
+            section.icon_bmp.msw_rescale();
+            section.icon->SetBitmap(section.icon_bmp.bmp());
+        }
+        if (section.header_line != nullptr)
+            section.header_line->Rescale();
+    }
+
+    for (Category& cat : m_categories) {
+        if (cat.icon != nullptr && cat.icon_bmp.bmp().IsOk()) {
+            cat.icon_bmp.msw_rescale();
+            cat.icon->SetBitmap(cat.icon_bmp.bmp());
+        }
+        for (Subcategory& sub : cat.subs) {
+            if (sub.header != nullptr)
+                sub.header->Rescale();
+        }
+    }
+
     SetMinSize(FromDIP(wxSize(600, 500)));
     m_scroll->FitInside();
     m_list_sizer->Layout();
