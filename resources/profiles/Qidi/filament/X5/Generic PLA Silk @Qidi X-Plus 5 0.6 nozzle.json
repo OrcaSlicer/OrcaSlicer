@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"setting_id": "uyCmwBkoRNNRbG5R",
+	"name": "Generic PLA Silk @Qidi X-Plus 5 0.6 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "Generic PLA Silk@X-Plus 5-Series",
+	"pressure_advance": [
+		"0.014"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.6 nozzle"
+	]
+}

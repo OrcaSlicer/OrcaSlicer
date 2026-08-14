@@ -1,0 +1,24 @@
+{
+	"type": "filament",
+	"name": "re3D rPETG",
+	"from": "system",
+	"renamed_from": "re3D Greengate rPETG",
+	"instantiation": "true",
+	"inherits": "fdm_filament_pet",
+	"filament_id": "GFG01",
+	"setting_id": "6aESuJ2S2Kogd4Lq",
+	"filament_settings_id": [
+		"re3D rPETG"
+	],
+	"compatible_printers": [
+		"re3D GigabotX 2 0.8 nozzle",
+		"re3D GigabotX 2 XLT 0.8 nozzle",
+		"re3D TerabotX 2 0.8 nozzle",
+		"re3D GigabotX 2 1.75 nozzle",
+		"re3D GigabotX 2 XLT 1.75 nozzle",
+		"re3D TerabotX 2 1.75 nozzle"
+	],
+	"filament_vendor": [
+		"re3D"
+	]
+}

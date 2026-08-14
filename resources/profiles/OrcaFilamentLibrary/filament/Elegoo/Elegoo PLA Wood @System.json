@@ -12,6 +12,9 @@
 	"filament_max_volumetric_speed": [
 		"10"
 	],
+	"filament_multitool_ramming_flow": [
+		"10"
+	],
 	"nozzle_temperature": [
 		"220"
 	],

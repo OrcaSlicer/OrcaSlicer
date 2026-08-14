@@ -3629,7 +3629,7 @@ void SelectMachineDialog::on_send_print()
         BOOST_LOG_TRIVIAL(error) << "build_nozzle_info errors";
     }
 
-    m_print_job->sdcard_state = obj_->GetStorage()->get_sdcard_state();    
+    m_print_job->sdcard_state = obj_->GetStorage()->get_sdcard_state();
     m_print_job->has_sdcard =  wxGetApp().app_config->get("allow_abnormal_storage") == "true"
             ? (m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL
                || m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_ABNORMAL)
@@ -3868,12 +3868,11 @@ _compare_obj_names(MachineObject* obj1, MachineObject* obj2)
 }
 
 /*******************************************************************
-*@note   _collect_machine_list
-*@param  dev_manager -- the device manager
-*@param  sorted_machine_objs -- return the sorted machine objects
-*@param  best_one -- return the best one
-*/
-/*******************************************************************/
+* @note   _collect_machine_list
+* @param  dev_manager -- the device manager
+* @param  sorted_machine_objs -- return the sorted machine objects
+* @param  best_one -- return the best one
+*******************************************************************/
 static void
 _collect_sorted_machines(Slic3r::DeviceManager* dev_manager,
                          std::vector<MachineObject*>& sorted_machine_objs)

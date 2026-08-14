@@ -449,9 +449,7 @@ bool MachineObject::HasRecentLanMessage()
 
 std::string MachineObject::get_access_code() const
 {
-    if (get_user_access_code().empty())
-        return access_code;
-    return get_user_access_code();
+    return access_code;
 }
 
 void MachineObject::set_access_code(std::string code, bool only_refresh)
@@ -468,37 +466,6 @@ void MachineObject::set_access_code(std::string code, bool only_refresh)
             }
         }
     }
-}
-
-void MachineObject::erase_user_access_code()
-{
-    this->user_access_code = "";
-    AppConfig* config = GUI::wxGetApp().app_config;
-    if (config) {
-        GUI::wxGetApp().app_config->erase("user_access_code", get_dev_id());
-        //GUI::wxGetApp().app_config->save();
-    }
-}
-
-void MachineObject::set_user_access_code(std::string code, bool only_refresh)
-{
-    this->user_access_code = code;
-    if (only_refresh && !code.empty()) {
-        AppConfig* config = GUI::wxGetApp().app_config;
-        if (config && !code.empty()) {
-            GUI::wxGetApp().app_config->set_str("user_access_code", get_dev_id(), code);
-            DeviceManager::update_local_machine(*this);
-        }
-    }
-}
-
-std::string MachineObject::get_user_access_code() const
-{
-    AppConfig* config = GUI::wxGetApp().app_config;
-    if (config) {
-        return GUI::wxGetApp().app_config->get("user_access_code", get_dev_id());
-    }
-    return "";
 }
 
 std::string MachineObject::get_show_printer_type() const
@@ -2907,7 +2874,6 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         std::string access_code = j_pre["system"]["access_code"].get<std::string>();
                         if (!access_code.empty()) {
                             set_access_code(access_code);
-                            set_user_access_code(access_code);
                         }
                     }
                 }
@@ -4645,6 +4611,40 @@ void MachineObject::set_ctt_dlg( wxString text){
         print_error_dlg->on_show();
 
     }
+}
+
+void MachineObject::show_unsupported_dlg(int code)
+{
+    // why: a dead control invites repeat clicks, and the frame is modeless - without the guard
+    // every click stacks another one. Same shape as set_ctt_dlg above, including the reset on
+    // both hide and close so a dismissed dialog can reappear on the next attempt.
+    if (m_unsupported_dlg_shown) {
+        return;
+    }
+    m_unsupported_dlg_shown = true;
+
+    // why: two codes so the user learns which kind of dead end this is - the slicer having no
+    // translation for the command, or the printer's own config lacking the hardware to run it.
+    const wxString text = (code == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE) ?
+                              _L("This printer is not configured with the hardware this control needs.") :
+                              _L("This control is not supported on this printer.");
+
+    // note: constructed directly rather than through CallAfter because every publish_json caller
+    // is on the UI thread - clicks come from wx handlers, and the agent marshals its own push
+    // callbacks back to main before parse_json runs. set_ctt_dlg relies on the same property.
+    auto unsupported_dlg = new GUI::SecondaryCheckDialog(nullptr, wxID_ANY, _L("Warning"),
+                                                         GUI::SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM);
+    unsupported_dlg->update_text(text);
+    unsupported_dlg->Bind(wxEVT_SHOW, [this](auto& e) {
+        if (!e.IsShown()) {
+            m_unsupported_dlg_shown = false;
+        }
+        });
+    unsupported_dlg->Bind(wxEVT_CLOSE_WINDOW, [this](auto& e) {
+        e.Skip();
+        m_unsupported_dlg_shown = false;
+        });
+    unsupported_dlg->on_show();
 }
 
 int MachineObject::publish_gcode(std::string gcode_str)

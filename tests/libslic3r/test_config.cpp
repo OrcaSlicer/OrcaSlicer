@@ -4,6 +4,8 @@
 #include "libslic3r/PrintConfigConstants.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 
+#include "test_utils.hpp"
+
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
@@ -233,6 +235,56 @@ SCENARIO("Config ini load/save interface", "[Config]") {
     }
 }
 
+TEST_CASE("Flush-volume warning predicate respects used filament transitions", "[Config][Regression]")
+{
+    const std::vector<double> multipliers = {1.0};
+
+    SECTION("Single used filament does not trigger warning with zero transition entries")
+    {
+        const std::vector<double> matrix = {
+            0.0, 0.0,
+            0.0, 0.0
+        };
+        const std::vector<int> used_filaments = {1};
+
+        REQUIRE_FALSE(has_zero_flush_volume_for_used_filaments(matrix, multipliers, used_filaments));
+    }
+
+    SECTION("Two used filaments trigger warning when transition flush entry is zero")
+    {
+        const std::vector<double> matrix = {
+            0.0, 0.0,
+            0.0, 0.0
+        };
+        const std::vector<int> used_filaments = {1, 2};
+
+        REQUIRE(has_zero_flush_volume_for_used_filaments(matrix, multipliers, used_filaments));
+    }
+
+    SECTION("Two used filaments do not trigger warning when transitions are non-zero")
+    {
+        const std::vector<double> matrix = {
+            0.0, 280.0,
+            280.0, 0.0
+        };
+        const std::vector<int> used_filaments = {1, 2};
+
+        REQUIRE_FALSE(has_zero_flush_volume_for_used_filaments(matrix, multipliers, used_filaments));
+    }
+
+    SECTION("Zero multiplier still triggers warning when multiple filaments are used")
+    {
+        const std::vector<double> matrix = {
+            0.0, 280.0,
+            280.0, 0.0
+        };
+        const std::vector<double> zero_multiplier = {0.0};
+        const std::vector<int> used_filaments = {1, 2};
+
+        REQUIRE(has_zero_flush_volume_for_used_filaments(matrix, zero_multiplier, used_filaments));
+    }
+}
+
 // TODO: https://github.com/SoftFever/OrcaSlicer/issues/11269 - Is this test still relevant? Delete if not.
 // It was failing so at least "nozzle_type" and "extruder_printable_area" could not be serialized
 // and an exception was thrown, but "nozzle_type" has been around for at least 3 months now.
@@ -407,8 +459,7 @@ SCENARIO("update_diff_values_to_child_config tolerates legacy machine-limit vect
 // }
 
 TEST_CASE("save_to_json round-trips plugin capability references as strings", "[Config][plugins]") {
-    namespace fs = boost::filesystem;
-    const fs::path tmp = fs::temp_directory_path() / fs::unique_path("orca_plugins_%%%%-%%%%.json");
+    ScopedTemporaryFile tmp(".json");
     const std::vector<std::string> refs = {
         "local_plugin;;inset",
         "cloud_plugin;550e8400-e29b-41d4-a716-446655440000;inset"
@@ -435,8 +486,6 @@ TEST_CASE("save_to_json round-trips plugin capability references as strings", "[
     REQUIRE(reloaded.load_from_json(tmp.string(), substitutions, true, key_values, reason) == 0);
     CHECK(reason.empty());
     CHECK(reloaded.option<ConfigOptionStrings>("slicing_pipeline_plugin")->values == refs);
-
-    fs::remove(tmp);
 }
 
 TEST_CASE("plugin capability references survive string-map serialization", "[Config][plugins]") {

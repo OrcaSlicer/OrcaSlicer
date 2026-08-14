@@ -2262,6 +2262,12 @@ Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig & config, con
     }
     double volume = wipe_volume * (extruder_count == 2 ? plate_extruder_size : (plate_extruder_size - 1));
     if (extruder_count == 2) volume += filament_change_volume * (int) (plate_extruder_size / 2);
+    // Read from the passed plate config — m_print may not have been applied yet
+    // (fresh plates, CLI), in which case its PrintConfig still holds defaults.
+    const auto *purge_opt  = config.option<ConfigOptionBool>("purge_in_prime_tower");
+    const auto *semm_opt   = config.option<ConfigOptionBool>("single_extruder_multi_material");
+    const bool  semm_flush = purge_opt && purge_opt->value && semm_opt && semm_opt->value;
+    if (semm_flush) volume = WipeTower2::estimate_semm_flush_volume(config, plate_extruder_size);
     if (use_rib_wall) {
         depth = std::sqrt(volume / layer_height * extra_spacing);
         if (need_wipe_tower || plate_extruder_size > 1) {
@@ -2274,7 +2280,9 @@ Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig & config, con
         }
     }
     else {
-        depth  =  volume/ (layer_height * w) *extra_spacing;
+        depth = volume / (layer_height * w);
+        // The flush volumes already hold the spacing between wipes.
+        if (!semm_flush) depth *= extra_spacing;
         if (need_wipe_tower || depth > EPSILON) {
             float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
             depth = std::max((double)min_wipe_tower_depth, depth);
@@ -3337,6 +3345,11 @@ BoundingBoxf3 PartPlate::get_build_volume(bool use_share)
     return plate_box;
 }
 
+Polygon PartPlate::get_shared_printable_polygon() const
+{
+	return m_extruder_areas.empty() ? Polygon::new_scale(m_shape) : get_shared_poly(m_extruder_areas);
+}
+
 bool PartPlate::contains(const Vec3d& point) const
 {
 	return m_bounding_box.contains(point);
@@ -4375,22 +4388,21 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
         f_volume_maps = wxGetApp().preset_bundle->get_default_nozzle_volume_types_for_filaments(filament_maps);
     }
     DynamicPrintConfig full_config = wxGetApp().preset_bundle->full_config(false, filament_maps, f_volume_maps);
-    const DynamicPrintConfig &print_cfg = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-    float w = dynamic_cast<const ConfigOptionFloat *>(print_cfg.option("prime_tower_width"))->value;
+    float w = dynamic_cast<const ConfigOptionFloat *>(full_config.option("prime_tower_width"))->value;
     float v = dynamic_cast<const ConfigOptionFloat *>(full_config.option("prime_volume"))->value;
     bool enable_wrapping = false;
     const ConfigOptionBool *wrapping_opt = dynamic_cast<const ConfigOptionBool *>(full_config.option("enable_wrapping_detection"));
     if (wrapping_opt) enable_wrapping = wrapping_opt->value;
     int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
-    Vec3d wipe_tower_size = part_plate->estimate_wipe_tower_size(print_cfg, w, v, nozzle_nums, init_pos ? 2 : 0, false, enable_wrapping);
+    Vec3d wipe_tower_size = part_plate->estimate_wipe_tower_size(full_config, w, v, nozzle_nums, init_pos ? 2 : 0, false, enable_wrapping);
 
     if (!init_pos && (is_approx(wipe_tower_size(0), 0.0) || is_approx(wipe_tower_size(1), 0.0))) {
-        wipe_tower_size = part_plate->estimate_wipe_tower_size(print_cfg, w, v, nozzle_nums, 2, false, enable_wrapping);
+        wipe_tower_size = part_plate->estimate_wipe_tower_size(full_config, w, v, nozzle_nums, 2, false, enable_wrapping);
     }
 
     // Compute brim-aware margin: brim extends outward from tower position
     float brim_width = 0.f;
-    const ConfigOptionFloat *brim_opt = print_cfg.option<ConfigOptionFloat>("prime_tower_brim_width");
+    const ConfigOptionFloat *brim_opt = full_config.option<ConfigOptionFloat>("prime_tower_brim_width");
     if (brim_opt) {
         brim_width = brim_opt->value;
         if (brim_width < 0) brim_width = WipeTower::get_auto_brim_by_height((float) wipe_tower_size.z());
@@ -4410,6 +4422,18 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
         } else if (y < margin) {
             y = margin;
         }
+    }
+
+    // The bounding box above still allows a corner a delta or hexagonal bed does not have, and the
+    // prime tower is validated against the real outline — pull it onto the bed before storing.
+    {
+        Polygons bed{part_plate->get_shared_printable_polygon()};
+        bed.front().translate(Point(-scaled(plate_origin.x()), -scaled(plate_origin.y()))); // into the frame x/y live in
+        const BoundingBox tower(Point::new_scale(x, y),
+                                Point::new_scale(x + wipe_tower_size(0), y + wipe_tower_size(1)));
+        const Vec2f move = WipeTower::move_box_inside_polygon(tower, bed, scaled<coord_t>(margin));
+        x += move.x();
+        y += move.y();
     }
 
     ConfigOptionFloat wt_x_opt(x);
