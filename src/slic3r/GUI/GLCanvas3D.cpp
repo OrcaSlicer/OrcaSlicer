@@ -10602,9 +10602,8 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
                         wxString    region = L"en";
                         if (language.find("zh") == 0)
                         	region = L"zh";
-                        // Use the generic dual-nozzle PLA+PETG guide rather than the H2D-specific page
-                        // so the link is relevant for all dual-extrusion printers, not just Bambu H2D. (#12073)
-                        wxGetApp().open_browser_with_warning_dialog(wxString::Format(L"https://wiki.bambulab.com/%s/filament-acc/filament/pla-and-petg-dual-extrusion", region));
+                        // Although this link looks like it's only for the H2D, its guidance is generic.
+                        wxGetApp().open_browser_with_warning_dialog(wxString::Format(L"https://wiki.bambulab.com/%s/filament-acc/filament/h2d-pla-and-petg-mutual-support", region));
                         return false;
                     });
             }
@@ -10738,24 +10737,14 @@ bool GLCanvas3D::is_flushing_matrix_error() {
     if (!Sidebar::should_show_SEMM_buttons())
         return false;
 
+    std::vector<int> plate_extruders = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_extruders(true);
+    if (plate_extruders.size() < 2)
+        return false;
+
     const auto                &project_config = wxGetApp().preset_bundle->project_config;
     const std::vector<double> &config_matrix  = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
     const std::vector<double> &config_multiplier = (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values;
-
-    for (auto multiplier : config_multiplier) {
-        if (multiplier == 0) return true;
-    }
-
-    int  matrix_len = config_matrix.size() / config_multiplier.size();
-    int  row_len    = std::sqrt(matrix_len);
-    for (int i = 0; i < config_matrix.size(); i++)
-    {
-        int relative_id = i % matrix_len;
-        int row_id      = relative_id / row_len;
-        int col_id      = relative_id % row_len;
-        if (row_id != col_id && config_matrix[i] == 0) return true;
-    }
-    return false;
+    return has_zero_flush_volume_for_used_filaments(config_matrix, config_multiplier, plate_extruders);
 }
 
 bool GLCanvas3D::_is_any_volume_outside() const
