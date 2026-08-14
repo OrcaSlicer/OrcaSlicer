@@ -746,7 +746,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
                     }
                 }
                 open_tool(Tool::Rib);
-             }, 0},
+             }, 'R'},   // plain R, not SHIFT+R (that is Revolve): every SHIFT letter A-Z
+                       // was already taken, and the feature map already carries unshifted
+                       // keys (P, A, X). Rib was the only verb in this dropdown with no
+                       // shortcut at all, which also made its card unreachable to the rig.
         });
 
         auto* b_pattern = icon_btn("design_pattern", _L("Pattern"));
