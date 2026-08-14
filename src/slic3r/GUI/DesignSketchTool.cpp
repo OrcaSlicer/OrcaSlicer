@@ -4319,6 +4319,34 @@ int DesignSketchTool::hit_test_base_pick(GLCanvas3D& canvas, const wxMouseEvent&
 {
     if (!m_dbp_active) return -1;
     const double H = dbp_half_extent();
+
+    // THE LABEL WINS, and it has to. Each plane's name is a screen-space chip centred on its
+    // own in-plane anchor, and it is the one part of a base plane a user aims at deliberately —
+    // the quads are near-transparent and overlap everywhere. Ray-casting the quads alone made
+    // the labels pure decoration: on a fresh document at 1920x1060, clicking "XY" reported
+    // "XZ plane selected", because the XZ quad happens to sit in front at that pixel. Nothing
+    // about the click was ambiguous to the user; they clicked the word XY.
+    // Anchor and text height must track render_base_pick's, which is where they are drawn.
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const double  th  = H * 0.10;
+    const Vec2d   anchor(-H + th * 2.0, H - th * 1.6);
+    int lbest = -1; double lbest_d = 1e30;
+    for (size_t i = 0; i < m_dbp_planes.size(); ++i) {
+        if (i >= m_dbp_labels.size() || m_dbp_labels[i].empty()) continue;
+        const wxPoint sp = world_to_screen_px(cam, m_dbp_planes[i].to_world(anchor));
+        if (sp.x < 0 && sp.y < 0) continue;                    // behind the camera
+        const double dx = std::abs(double(evt.GetX() - sp.x));
+        const double dy = std::abs(double(evt.GetY() - sp.y));
+        // Chip half-extents in px, scaled like the label itself. Generous rather than tight:
+        // missing the text and silently selecting a different plane is the failure being fixed.
+        const double hw = (9.0 + 5.0 * double(m_dbp_labels[i].size())) * double(m_render_scale);
+        const double hh = 11.0 * double(m_render_scale);
+        if (dx > hw || dy > hh) continue;
+        const double d = dx * dx + dy * dy;                    // nearest label if chips overlap
+        if (d < lbest_d) { lbest_d = d; lbest = int(i); }
+    }
+    if (lbest >= 0) return lbest;
+
     const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = r.a, rd = r.b - r.a;
     int best = -1; double best_t = 1e30;
