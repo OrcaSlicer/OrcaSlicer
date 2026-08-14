@@ -126,7 +126,6 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
         auto detach_label    = new wxStaticText(parent, wxID_ANY, _L("Detach from parent"));
         detach_label->SetFont(::Label::Body_14);
         detach_label->SetToolTip(detach_tooltip);
-        detach_checkbox->BindLabel(detach_label);
 
         detach_sizer->Add(detach_checkbox, 0, wxALIGN_LEFT | wxLEFT, BORDER_W);
         detach_sizer->Add(detach_label   , 0, wxALIGN_CENTRE_VERTICAL | wxLEFT, FromDIP(5));
@@ -151,6 +150,7 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
             detach_checkbox->SetValue(m_detach);
             // Bind the checkbox event to update the detach state for this item
             detach_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, detach_checkbox](wxCommandEvent&) { m_detach = detach_checkbox->GetValue(); });
+            detach_checkbox->BindLabel(detach_label);
 
             detach_label->SetForegroundColour(wxColour("#363636"));
         }
