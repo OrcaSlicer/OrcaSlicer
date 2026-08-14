@@ -994,6 +994,16 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_verb_actions["btn:delete_body"] = [this] { on_delete_body(); };
         m_verb_actions["btn:edit"]   = [this] { on_edit_feature(); };
         m_verb_actions["btn:mass"]   = [this] { on_mass_properties(); };
+        // Reachable from the offer menu on a SELECTED SKETCH, not only from the toolbar icon.
+        // A user evaluating against Onshape reported that "adding constraints seems to be
+        // missing" — with nineteen constraint types and a solver shipped. The only paths in
+        // were an icon-only button and a sketch-mode-only offer row filed under "Reference",
+        // so after finishing a sketch there was no affordance where users actually look.
+        m_verb_actions["btn:constrain"] = [this] {
+            on_begin_constrain();
+            if (m_viewport && (m_viewport->is_constraining() || m_viewport->is_constraining_entities()))
+                set_ui_mode(UiMode::Constrain);
+        };
 
         // Dress-up: finishing operations on the faces and edges of an existing solid — nothing
         // that moves a body (see the Placement drawer) and nothing that creates geometry.
@@ -6872,6 +6882,15 @@ bool DesignPanel::enter_constrain_inline()
 void DesignPanel::on_begin_constrain(int sel_override)
 {
     int sel = (sel_override >= 0) ? sel_override : tree_selection();
+    // Fall back to the sketch owning the region picked in the viewport. The offer menu reaches
+    // this verb from a SkLoop selection (a region clicked on screen), which carries no tree
+    // selection — without this, choosing "Constrain sketch" from the offer would answer
+    // "Select a sketch in the tree first" about a sketch the user has visibly selected.
+    if ((sel == wxNOT_FOUND || sel >= int(m_doc.features.size())) && m_sel_sketch_feat >= 0
+        && m_sel_sketch_feat < int(m_doc.features.size())) {
+        sel = m_sel_sketch_feat;
+        set_tree_selection(sel);       // keep the tree in step with what the viewport says
+    }
     if (sel == wxNOT_FOUND || sel >= int(m_doc.features.size())) {
         m_status->SetForegroundColour(wxColour(235, 110, 110));
         set_status(_L("Select a sketch in the tree first"));

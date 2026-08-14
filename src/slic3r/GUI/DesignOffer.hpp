@@ -165,6 +165,10 @@ static const OfferVerb kOfferVerbs[] = {
     {"sk_scale", "Scale", 5, nullptr, "fly:design_move#2", nullptr, 0x000f0000u, 0, 0, false, true, "Move", "design_scale", "Pick entities, then drag the handle or click the factor; click empty to apply"},
     {"sk_dimension", "Dimension", 6, "D", "key:D", nullptr, 0x000f8000u, 0, 0, false, true, nullptr, "design_dimension", "Dimension — click 2 points or an entity"},
     {"sk_constrain", "Constrain", 6, "K", "key:K", nullptr, 0x000f0000u, 0, 0, false, true, nullptr, "design_constrain", "Constrain the selected sketch entities to each other"},
+    // Same verb, model-mode vocabulary: offered when a SKETCH is selected (bit 14, SkLoop), the
+    // state a user is in right after finishing one. Without this row the only way in was the
+    // toolbar icon, and constraints read as absent — see the Onshape-comparison report.
+    {"constrain", "Constrain sketch", 7, nullptr, "btn:constrain", "Select a sketch to constrain it", 0x00004000u, 0, 1, false, false, nullptr, "design_constrain", "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"},
     {"sk_construct", "Construction", 6, "Q", "key:Q", nullptr, 0x000b8000u, 0, 0, false, true, nullptr, nullptr, "Toggle construction: geometry that guides but is never built"},
     {"sk_extend", "Extend", 7, "X", "key:X", nullptr, 0x000b0000u, 0, 0, false, true, nullptr, "design_extend", "Extend — click a line/arc to extend it"},
     {"sk_delete", "Delete", 7, "Del", "btn:delete", nullptr, 0x000f0000u, 0, 0, false, true, nullptr, "design_delete", "Delete the selected sketch entities"},
