@@ -5786,6 +5786,14 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
 
     // Hovering a row explains it. The offer is the only door to these tools now, so a bare
     // name is not enough — and the hint arrives while you are still choosing.
+    // BOUND TO THE VERB ID RANGE, NOT THE WHOLE MENU. These two used to be unfiltered, and
+    // wxWidgets pushes dynamic entries to the FRONT of the handler list, so being bound LAST made
+    // them run FIRST for every id — including the mate rows at mate_base+1 (base+501) above. Both
+    // fall out of `bound`'s range there and return WITHOUT e.Skip(), which wx reads as "handled",
+    // so the mate handlers never ran: hovering a mate kind showed no ghost and left the previous
+    // status message on screen, and clicking one created nothing at all. The whole mate palette
+    // enumerated perfectly and fired nothing. Restricting the range keeps each half to its own ids
+    // regardless of bind order.
     menu.Bind(wxEVT_MENU_HIGHLIGHT, [this, &bound, base](wxMenuEvent& e) {
         const int i = e.GetMenuId() - base;
         if (i < 0 || i >= int(bound.size()) || bound[i] == nullptr || bound[i]->hint == nullptr)
@@ -5793,12 +5801,12 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
         m_status->SetForegroundColour(wxNullColour);
         set_status(wxGetTranslation(wxString::FromUTF8(bound[i]->hint)));
         m_status->Update();   // the popup owns the loop; without this the line repaints late
-    });
+    }, base, base + 499);   // 499: the mate section starts at base + 500 (see mate_base)
     menu.Bind(wxEVT_MENU, [this, &bound, base](wxCommandEvent& e) {
         const int i = e.GetId() - base;
         if (i >= 0 && i < int(bound.size()) && bound[i])
             run_offer_action(bound[i]->action);
-    });
+    }, base, base + 499);   // 499: the mate section starts at base + 500 (see mate_base)
     PopupMenu(&menu, ScreenToClient(screen_pos));
     // PopupMenu is modal, so by here the menu is gone and any command it raised has already run.
     // A hover ghost that outlived the menu it belonged to would leave the committed bodies hidden
