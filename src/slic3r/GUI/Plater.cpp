@@ -11312,12 +11312,12 @@ void Plater::priv::on_tab_selection_changing(wxBookCtrlEvent& e)
         }
     } else {
         const bool selecting_web_device_tab = main_frame->m_printer_view &&
-                                              main_frame->m_tabpanel->GetPage(new_sel) == main_frame->m_printer_view;
+            main_frame->m_tabpanel->GetPage(new_sel) == main_frame->m_printer_view;
         if (selecting_web_device_tab) {
             // Use the selected discovered machine when the preset has no host.
             main_frame->load_printer_url();
         } else if (new_sel == MainFrame::tpMonitor && wxGetApp().preset_bundle != nullptr) {
-            auto cfg     = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+            auto     cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
             wxString url = from_u8(PrintHost::get_print_host_webui(&cfg));
             if (main_frame->m_printer_view && url.empty()) {
                 // It's missing_connection page, reload so that we can replay the gif image
