@@ -145,7 +145,9 @@ enum class SaveStrategy
     SkipAuxiliary       = 1 << 9,
     UseLoadedId         = 1 << 10,
     ShareMesh           = 1 << 11,
-    MinimalPublished    = 1 << 12,
+    // Keep this separate from SplitModel, which uses the 0x1000 bit as part of its
+    // production-extension value.
+    MinimalPublished    = 1 << 13,
 
     SplitModel = 0x1000 | ProductionExt,
     Encrypted  = SecureContentExt | SplitModel,

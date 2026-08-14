@@ -730,6 +730,8 @@ SCENARIO("Minimal published 3MF serialization filters config and omits embedded 
             REQUIRE(store_bbs_3mf(store_params));
 
             Model dst_model;
+            ScopedTemporaryDir loaded_backup_dir("orca_min_pub_loaded");
+            dst_model.set_backup_path(loaded_backup_dir.string());
             DynamicPrintConfig dst_config;
             ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
             PlateDataPtrs        dst_plates;
@@ -743,11 +745,10 @@ SCENARIO("Minimal published 3MF serialization filters config and omits embedded 
                 REQUIRE(loaded);
                 REQUIRE(loaded_presets.empty());
                 REQUIRE(dst_config.option("layer_height") != nullptr);
-                REQUIRE(dst_config.opt_float("layer_height") == 0.24);
+                REQUIRE_THAT(dst_config.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.24, 1e-6));
                 REQUIRE(dst_config.option("sparse_infill_density") == nullptr);
             }
             release_PlateData_list(dst_plates);
         }
     }
 }
-
