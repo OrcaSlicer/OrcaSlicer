@@ -3,7 +3,7 @@
 	"name": "Orca Arena X1 Carbon 0.4 nozzle",
 	"inherits": "fdm_bbl_3dp_001_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "EXhiG8uJ1EHskisx",
 	"instantiation": "true",
 	"printer_model": "Orca Arena X1 Carbon",
 	"default_filament_profile": [

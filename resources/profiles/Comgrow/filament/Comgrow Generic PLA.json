@@ -3,7 +3,7 @@
 	"name": "Comgrow Generic PLA",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "sGAn6RP69saYSqcY",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

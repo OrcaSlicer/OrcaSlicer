@@ -5,8 +5,13 @@
 #include <locale>
 #include <ctime>
 #include <cstdarg>
+#include <iostream>
 #include <stdio.h>
 #include <filesystem>
+#include <sstream>
+#include <iomanip>
+#include <algorithm>
+#include <cmath>
 
 #include "format.hpp"
 #include "Platform.hpp"
@@ -46,14 +51,19 @@
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
+#include <boost/log/sinks/async_frontend.hpp>
 #include <boost/log/sinks/text_file_backend.hpp>
+#include <boost/log/sinks/text_ostream_backend.hpp>
 #include <boost/log/utility/setup/file.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/sources/record_ostream.hpp>
 #include <boost/log/support/date_time.hpp>
 
+#include <boost/core/null_deleter.hpp>
 #include <boost/locale.hpp>
+#include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
@@ -114,10 +124,24 @@ void set_logging_level(unsigned int level)
 {
     logSeverity = level_to_boost(level);
 
+    // Orca: force at info or lower level logging for pre-release builds.
+    // Note: not setting to debug or trace as they might affect long time usage especially with BBL printers.
+    const std::string version = SoftFever_VERSION;
+    if (level < (unsigned int) boost::log::trivial::info &&
+        (boost::algorithm::icontains(version, "dev") || boost::algorithm::icontains(version, "alpha") ||
+         boost::algorithm::icontains(version, "beta"))) {
+        logSeverity = boost::log::trivial::info;
+    }
+
     boost::log::core::get()->set_filter
     (
         boost::log::trivial::severity >= logSeverity
     );
+}
+
+void set_logging_file(const std::string &file)
+{
+	boost::log::add_file_log(file);
 }
 
 unsigned int level_string_to_boost(std::string level)
@@ -160,6 +184,7 @@ unsigned get_logging_level()
 }
 
 boost::shared_ptr<boost::log::sinks::synchronous_sink<boost::log::sinks::text_file_backend>> g_log_sink;
+boost::shared_ptr<boost::log::sinks::asynchronous_sink<boost::log::sinks::text_ostream_backend>> g_console_log_sink;
 
 // Force set_logging_level(<=error) after loading of the DLL.
 // This is currently only needed if libslic3r is loaded as a shared library into Perl interpreter
@@ -332,6 +357,19 @@ namespace src = boost::log::sources;
 namespace expr = boost::log::expressions;
 namespace keywords = boost::log::keywords;
 namespace attrs = boost::log::attributes;
+namespace sinks = boost::log::sinks;
+
+void shutdown_console_logging()
+{
+	if (!g_console_log_sink)
+		return;
+
+	auto console_sink = g_console_log_sink;
+	boost::log::core::get()->remove_sink(console_sink);
+	console_sink->stop();
+	g_console_log_sink.reset();
+}
+
 void set_log_path_and_level(const std::string& file, unsigned int level)
 {
 #ifdef __APPLE__
@@ -363,6 +401,24 @@ void set_log_path_and_level(const std::string& file, unsigned int level)
 		keywords::auto_flush = true
 	);
 
+	shutdown_console_logging();
+
+#ifdef SLIC3R_CONSOLE_LOG
+	auto console_backend = boost::make_shared<sinks::text_ostream_backend>();
+	console_backend->add_stream(boost::shared_ptr<std::ostream>(&std::cout, boost::null_deleter()));
+	console_backend->auto_flush(true);
+
+	g_console_log_sink = boost::make_shared<sinks::asynchronous_sink<sinks::text_ostream_backend>>(console_backend);
+	g_console_log_sink->set_formatter(
+		expr::stream
+		<< "[" << expr::attr< logging::trivial::severity_level >("Severity") << "]\t"
+		<< expr::format_date_time< boost::posix_time::ptime >("TimeStamp", "%Y-%m-%d %H:%M:%S.%f") << " "
+		<<"[Thread " << expr::attr<attrs::current_thread_id::value_type>("ThreadID") << "]"
+		<< ": " << expr::smessage
+	);
+	boost::log::core::get()->add_sink(g_console_log_sink);
+#endif
+
 	logging::add_common_attributes();
 
 	set_logging_level(level);
@@ -376,6 +432,14 @@ void flush_logs()
 		g_log_sink->flush();
 
 	return;
+}
+
+// ORCA
+boost::filesystem::path get_log_file_name()
+{
+    if (g_log_sink)
+        return g_log_sink->locked_backend()->get_current_file_name();
+    return {};
 }
 
 #ifdef _WIN32
@@ -1225,6 +1289,24 @@ unsigned get_current_pid()
 #endif
 }
 
+std::string per_user_temp_id()
+{
+#ifdef WIN32
+    return {};
+#else
+    return std::to_string(static_cast<unsigned long>(::getuid()));
+#endif
+}
+
+std::string per_user_temp_dir(const std::string &base, const std::string &user_id)
+{
+    if (user_id.empty())
+        return base;
+    // Keep the id at the top level so each user's dir sits directly in the world-writable temp
+    // root; a shared parent dir would be owned by whichever user created it first.
+    return base + "/orcaslicer_" + user_id;
+}
+
 // BBS: backup & restore
 std::string get_process_name(int pid)
 {
@@ -1419,6 +1501,15 @@ std::string format_memsize(size_t bytes, unsigned int decimals)
 		}
 }
 
+std::string format_diameter_to_str(double diameter, int precision)
+{
+    double candidates[] = {0.2, 0.4, 0.6, 0.8};
+    double best = *std::min_element(std::begin(candidates), std::end(candidates), [diameter](double a, double b) { return std::abs(a - diameter) < std::abs(b - diameter); });
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(precision) << best;
+    return oss.str();
+}
+
 // Returns platform-specific string to be used as log output or parsed in SysInfoDialog.
 // The latter parses the string with (semi)colons as separators, it should look about as
 // "desc1: value1; desc2: value2" or similar (spaces should not matter).
@@ -1597,12 +1688,15 @@ bool bbl_calc_md5(std::string &filename, std::string &md5_out)
 }
 
 // SoftFever: copy directory recursively
-void copy_directory_recursively(const boost::filesystem::path &source, const boost::filesystem::path &target, std::function<bool(const std::string)> filter)
+void copy_directory_recursively(const boost::filesystem::path& source,
+                                const boost::filesystem::path& target,
+                                std::function<bool(const std::string)> filter,
+                                bool merge_mode)
 {
     BOOST_LOG_TRIVIAL(info) << Slic3r::format("copy_directory_recursively %1% -> %2%", source, target);
     std::string error_message;
 
-    if (boost::filesystem::exists(target))
+    if (!merge_mode && boost::filesystem::exists(target))
         boost::filesystem::remove_all(target);
     boost::filesystem::create_directories(target);
     for (auto &dir_entry : boost::filesystem::directory_iterator(source))
@@ -1613,7 +1707,7 @@ void copy_directory_recursively(const boost::filesystem::path &source, const boo
 
         if (boost::filesystem::is_directory(dir_entry)) {
             const auto target_path = target / name;
-            copy_directory_recursively(dir_entry, target_path);
+            copy_directory_recursively(dir_entry, target_path, filter, merge_mode);
         }
         else {
 			if(filter && filter(name))
@@ -1628,6 +1722,76 @@ void copy_directory_recursively(const boost::filesystem::path &source, const boo
         }
     }
     return;
+}
+
+bool install_vendor_bundles_from_resources(
+    const std::vector<std::string>& bundle_names,
+    const std::string& resource_subdir,
+    const std::string& data_subdir)
+{
+    namespace fs = boost::filesystem;
+
+    fs::path rsrc_path = fs::path(Slic3r::resources_dir()) / resource_subdir;
+    fs::path vendor_path = fs::path(Slic3r::data_dir()) / data_subdir;
+
+    BOOST_LOG_TRIVIAL(info) << "Installing " << bundle_names.size() << " bundles from resources...";
+
+    for (const auto &bundle : bundle_names) {
+        try {
+            // Install the JSON file
+            auto path_in_rsrc = (rsrc_path / bundle).replace_extension(".json");
+            auto path_in_vendors = (vendor_path / bundle).replace_extension(".json");
+
+            if (!fs::exists(path_in_rsrc)) {
+                BOOST_LOG_TRIVIAL(warning) << "Bundle not found in resources: " << bundle;
+                return false;
+            }
+
+            // Create target directory if needed
+            if (!fs::exists(vendor_path))
+                fs::create_directories(vendor_path);
+
+            // Copy JSON file
+            std::string error_message;
+            CopyFileResult cfr = copy_file(path_in_rsrc.string(), path_in_vendors.string(), error_message, false);
+            if (cfr != CopyFileResult::SUCCESS) {
+                BOOST_LOG_TRIVIAL(error) << "Failed to copy " << bundle << ".json: " << error_message;
+                return false;
+            }
+
+            // Copy the vendor directory (if it exists)
+            auto dir_in_rsrc = rsrc_path / bundle;
+            auto dir_in_vendors = vendor_path / bundle;
+
+            if (fs::exists(dir_in_rsrc) && fs::is_directory(dir_in_rsrc)) {
+                // Remove existing directory
+                if (fs::exists(dir_in_vendors))
+                    fs::remove_all(dir_in_vendors);
+                fs::create_directories(dir_in_vendors);
+
+                // Copy with file filter (same as PresetUpdater::install_bundles_rsrc)
+                // Filter out certain file types: .stl, .png, .svg, .jpeg, .jpg, .3mf
+                auto file_filter = [](const std::string name) -> bool {
+                    return boost::iends_with(name, ".stl") ||
+                           boost::iends_with(name, ".png") ||
+                           boost::iends_with(name, ".svg") ||
+                           boost::iends_with(name, ".jpeg") ||
+                           boost::iends_with(name, ".jpg") ||
+                           boost::iends_with(name, ".3mf");
+                };
+
+                copy_directory_recursively(dir_in_rsrc, dir_in_vendors, file_filter);
+            }
+
+            BOOST_LOG_TRIVIAL(info) << "Successfully installed bundle: " << bundle;
+
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << "Exception installing bundle " << bundle << ": " << e.what();
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void save_string_file(const boost::filesystem::path& p, const std::string& str)

@@ -35,10 +35,10 @@ wxString get_fail_reason(int code)
         return _L("Failed to publish login request");
 
     else if (code == BAMBU_NETWORK_ERR_BIND_GET_PRINTER_TICKET_TIMEOUT)
-        return _L("Get ticket from device timeout");
+        return _L("Timeout getting ticket from device");
 
     else if (code == BAMBU_NETWORK_ERR_BIND_GET_CLOUD_TICKET_TIMEOUT)
-        return _L("Get ticket from server timeout");
+        return _L("Timeout getting ticket from server");
 
     else if (code == BAMBU_NETWORK_ERR_BIND_POST_TICKET_TO_CLOUD_FAILED)
         return _L("Failed to post ticket to server");
@@ -151,6 +151,7 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
     sizer_request->Add(0, 0, 0, wxTOP, FromDIP(5));
     sizer_request->Add(ping_code_input, 0, wxLEFT, FromDIP(10));
     sizer_request->Add(0, 0, 0, wxTOP, FromDIP(10));
+    sizer_request->AddStretchSpacer();
     sizer_request->Add(m_sizer_button, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, ButtonProps::ChoiceButtonGap());
     request_bind_panel->SetSizer(sizer_request);
     request_bind_panel->Layout();
@@ -191,7 +192,7 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
 
 
 
-    SetSizer(sizer_main);
+    SetSizerAndFit(sizer_main);
     Layout();
     Fit();
 
@@ -285,7 +286,7 @@ void PingCodeBindDialog::on_bind_printer(wxCommandEvent& event)
     }
 
     NetworkAgent* agent = wxGetApp().getAgent();
-    if (agent && agent->is_user_login() && ping_code.length() == PING_CODE_LENGTH) {
+    if (agent && agent->is_user_login(wxGetApp().get_printer_cloud_provider()) && ping_code.length() == PING_CODE_LENGTH) {
         auto result = agent->ping_bind(ping_code.ToStdString());
 
         if(result < 0){
@@ -589,7 +590,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      sizer_error_code->Add(m_st_txt_error_code, 0, wxALL, 0);
 
 
-     auto st_title_error_desc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, wxT("Error desc"));
+     auto st_title_error_desc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, _L("Error desc"));
      auto st_title_error_desc_doc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, ": ");
      m_st_txt_error_desc = new Label(m_sw_bind_failed_info, wxEmptyString);
      st_title_error_desc->SetForegroundColour(0x909090);
@@ -606,7 +607,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      sizer_error_desc->Add(st_title_error_desc_doc, 0, wxALL, 0);
      sizer_error_desc->Add(m_st_txt_error_desc, 0, wxALL, 0);
 
-     auto st_title_extra_info = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, wxT("Extra info"));
+     auto st_title_extra_info = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, _L("Extra info"));
      auto st_title_extra_info_doc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, ": ");
      m_st_txt_extra_info = new Label(m_sw_bind_failed_info, wxEmptyString);
      st_title_extra_info->SetForegroundColour(0x909090);
@@ -669,7 +670,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      m_sizer_main->Add(m_sw_bind_failed_info, 0, wxALIGN_CENTER, 0);
      m_sizer_main->Add(m_simplebook, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, ButtonProps::ChoiceButtonGap());
 
-     SetSizer(m_sizer_main);
+     SetSizerAndFit(m_sizer_main);
      Layout();
      Fit();
      Centre(wxBOTH);
@@ -812,7 +813,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
 
      m_simplebook->SetSelection(0);
      auto m_bind_job = std::make_unique<BindJob>(
-        m_machine_info->get_dev_id(), m_machine_info->get_dev_ip(), m_machine_info->bind_sec_link, m_machine_info->bind_ssdp_version);
+        m_machine_info->get_dev_id(), m_machine_info->get_dev_ip(), m_machine_info->get_show_printer_type(), m_machine_info->bind_sec_link, m_machine_info->bind_ssdp_version);
 
      if (m_machine_info && (m_machine_info->get_printer_series() == PrinterSeries::SERIES_X1)) {
          m_bind_job->set_improved(false);
@@ -868,11 +869,12 @@ void BindMachineDialog::on_show(wxShowEvent &event)
 
         m_printer_name->SetLabelText(from_u8(m_machine_info->get_dev_name()));
 
-        if (wxGetApp().is_user_login()) {
-            wxString username_text = from_u8(wxGetApp().getAgent()->get_user_nickname());
+        const std::string provider = wxGetApp().get_printer_cloud_provider();
+        if (wxGetApp().is_user_login(provider)) {
+            wxString username_text = from_u8(wxGetApp().getAgent()->get_user_nickname(provider));
             m_user_name->SetLabelText(username_text);
 
-            std::string avatar_url = wxGetApp().getAgent()->get_user_avatar();
+            std::string avatar_url = wxGetApp().getAgent()->get_user_avatar(provider);
             Slic3r::Http http = Slic3r::Http::get(avatar_url);
             std::string  suffix = avatar_url.substr(avatar_url.find_last_of(".") + 1);
             http.header("accept", "image/" + suffix)
@@ -990,7 +992,7 @@ UnBindMachineDialog::UnBindMachineDialog(Plater *plater /*= nullptr*/)
      m_sizer_main->Add(m_sizer_button, 0, wxALIGN_RIGHT | wxRIGHT, ButtonProps::ChoiceButtonGap());
      m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(20));
 
-     SetSizer(m_sizer_main);
+     SetSizerAndFit(m_sizer_main);
      Layout();
      Fit();
      Centre(wxBOTH);
@@ -1017,7 +1019,7 @@ void UnBindMachineDialog::on_cancel(wxCommandEvent &event)
 
 void UnBindMachineDialog::on_unbind_printer(wxCommandEvent &event)
 {
-    if (!wxGetApp().is_user_login()) {
+    if (!wxGetApp().is_user_login(wxGetApp().get_printer_cloud_provider())) {
         m_status_text->SetLabelText(_L("Please log in first."));
         return;
     }
@@ -1073,11 +1075,12 @@ void UnBindMachineDialog::on_show(wxShowEvent &event)
         m_printer_name->SetLabelText(from_u8(m_machine_info->get_dev_name()));
 
 
-        if (wxGetApp().is_user_login()) {
-            wxString username_text = from_u8(wxGetApp().getAgent()->get_user_name());
+        const std::string provider = wxGetApp().get_printer_cloud_provider();
+        if (wxGetApp().is_user_login(provider)) {
+            wxString username_text = from_u8(wxGetApp().getAgent()->get_user_name(provider));
             m_user_name->SetLabelText(username_text);
 
-            std::string avatar_url = wxGetApp().getAgent()->get_user_avatar();
+            std::string avatar_url = wxGetApp().getAgent()->get_user_avatar(provider);
             Slic3r::Http http = Slic3r::Http::get(avatar_url);
             std::string  suffix = avatar_url.substr(avatar_url.find_last_of(".") + 1);
             http.header("accept", "image/" + suffix)

@@ -1,13 +1,13 @@
 {
 	"type": "filament",
+	"name": "QIDI PPS-GF @Qidi Q1 Pro 0.4 nozzle",
+	"inherits": "QIDI PPS-GF",
+	"setting_id": "VgQiY3csDj6bBWSk",
 	"filament_id": "GFB99",
-	"setting_id": "GFSA04",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"QIDI PPS-GF @Qidi Q1 Pro 0.4 nozzle"
 	],
-	"inherits": "QIDI PPS-GF",
-	"name": "QIDI PPS-GF @Qidi Q1 Pro 0.4 nozzle",
 	"pressure_advance": [
 		"0.03"
 	],

@@ -3,7 +3,7 @@
 	"name": "Bambu PLA",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "lweaPojzNVU2FJnO",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_type": [

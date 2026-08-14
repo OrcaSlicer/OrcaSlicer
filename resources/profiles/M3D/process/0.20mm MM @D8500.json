@@ -3,6 +3,7 @@
 	"name": "0.20mm MM @D8500",
 	"inherits": "fdm_process_common",
 	"from": "system",
+	"setting_id": "sW4h3MpFpgMeE1pl",
 	"instantiation": "true",
 	"compatible_printers": [
 		"M3D Enabler D8500 MM"
@@ -41,6 +42,5 @@
 	"top_surface_speed": "40",
 	"travel_speed": "100",
 	"wall_loops": "2",
-	"wipe_tower_extra_spacing": "200%",
-	"wipe_tower_filament": "2"
+	"wipe_tower_extra_spacing": "200%"
 }

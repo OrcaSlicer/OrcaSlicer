@@ -3,7 +3,7 @@
 	"name": "PolyLite ABS @Qidi Q2 0.2 nozzle",
 	"inherits": "PolyLite ABS@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "qcxxzS9OxRkygztL",
 	"instantiation": "true",
 	"chamber_temperatures": [
 		"0"

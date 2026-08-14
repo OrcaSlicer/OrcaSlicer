@@ -1,9 +1,9 @@
 {
 	"type": "process",
-	"setting_id": "GP004",
 	"name": "0.24mm Standard @X-Max 4",
-	"from": "system",
 	"inherits": "fdm_process_n_common",
+	"from": "system",
+	"setting_id": "fJge4LaVkm7mmi3g",
 	"instantiation": "true",
 	"bridge_flow": "1",
 	"default_acceleration": [

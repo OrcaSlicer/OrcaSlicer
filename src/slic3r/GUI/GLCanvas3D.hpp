@@ -166,6 +166,7 @@ wxDECLARE_EVENT(EVT_GLCANVAS_ORIENT_PARTPLATE, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_SELECT_CURR_PLATE_ALL, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_SELECT_ALL, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_QUESTION_MARK, SimpleEvent);
+wxDECLARE_EVENT(EVT_GLCANVAS_OPEN_SPEED_DIAL, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_INCREASE_INSTANCES, Event<int>); // data: +1 => increase, -1 => decrease
 wxDECLARE_EVENT(EVT_GLCANVAS_INSTANCE_MOVED, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_FORCE_UPDATE, SimpleEvent);
@@ -195,6 +196,7 @@ wxDECLARE_EVENT(EVT_CUSTOMEVT_TICKSCHANGED, wxCommandEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_RESET_LAYER_HEIGHT_PROFILE, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_ADAPTIVE_LAYER_HEIGHT_PROFILE, Event<float>);
 wxDECLARE_EVENT(EVT_GLCANVAS_SMOOTH_LAYER_HEIGHT_PROFILE, HeightProfileSmoothEvent);
+wxDECLARE_EVENT(EVT_GLCANVAS_PRINTABLE, SimpleEvent);
 
 class GLCanvas3D
 {
@@ -289,8 +291,8 @@ class GLCanvas3D
         bool is_enabled() const { return m_enabled; }
         void set_enabled(bool enabled) { m_enabled = is_allowed() && enabled; }
 
-        void render_variable_layer_height_dialog(const GLCanvas3D& canvas);
-        void render_overlay(const GLCanvas3D& canvas);
+        void render_variable_layer_height_dialog(GLCanvas3D& canvas);
+        void render_overlay(GLCanvas3D& canvas);
         void render_volumes(const GLCanvas3D& canvas, const GLVolumeCollection& volumes);
 
         void adjust_layer_height_profile();
@@ -587,6 +589,7 @@ private:
     bool m_toolpath_outside{ false };
     ECursorType m_cursor_type;
     GLSelectionRectangle m_rectangle_selection;
+    bool m_navigator_dragging{ false };
 
     //BBS:add plate related logic
     mutable std::vector<int> m_hover_volume_idxs;
@@ -606,6 +609,7 @@ private:
     bool m_reload_delayed;
 
     RenderStats m_render_stats;
+    std::chrono::time_point<std::chrono::steady_clock> m_last_frame_start_time{ std::chrono::steady_clock::now() };
 
     int m_imgui_undo_redo_hovered_pos{ -1 };
     int m_mouse_wheel{ 0 };
@@ -723,6 +727,19 @@ public:
     CameraTarget m_camera_target;
 #endif // ENABLE_SHOW_CAMERA_TARGET
     GLModel m_background;
+    unsigned int m_fxaa_texture_id{ 0 };
+    std::array<unsigned int, 2> m_fxaa_texture_size{ 0, 0 };
+    unsigned int m_ssao_color_texture_id{ 0 };
+    unsigned int m_ssao_depth_texture_id{ 0 };
+    std::array<unsigned int, 2> m_ssao_texture_size{ { 0, 0 } };
+    GLModel m_plate_shadow_mask;
+    std::string m_plate_shadow_mask_key;
+    // Depth-based shadow map used to cast object shadows onto other objects and themselves.
+    unsigned int m_shadow_map_fbo{ 0 };
+    unsigned int m_shadow_map_texture_id{ 0 };
+    unsigned int m_shadow_map_size{ 0 };
+    Transform3d  m_shadow_light_vp{ Transform3d::Identity() };
+    bool         m_shadow_map_valid{ false };
 public:
     explicit GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed);
     ~GLCanvas3D();
@@ -900,6 +917,7 @@ public:
     void update_volumes_colors_by_extruder();
 
     bool is_dragging() const { return m_gizmos.is_dragging() || m_moving; }
+    bool has_mouse_capture() const;
 
     void render(bool only_init = false);
     bool is_rendering_enabled()
@@ -982,7 +1000,6 @@ public:
     void select_curr_plate_all();
     void select_object_from_idx(std::vector<int>& object_idxs);
     void remove_curr_plate_all();
-    void update_plate_thumbnails();
 
     void select_all();
     void deselect_all();
@@ -1034,8 +1051,11 @@ public:
     void on_set_focus(wxFocusEvent& evt);
     void force_set_focus();
 
-    bool is_camera_rotate(const wxMouseEvent& evt, const bool buttonsSwapped) const;
-    bool is_camera_pan(const wxMouseEvent& evt, const bool buttonsSwapped) const;
+    enum class MouseButton { None, Left, Middle, Right };
+    enum class MouseAction { None, Pan, Rotation };
+    bool clicked_button_matches_action(const wxMouseEvent& evt, MouseAction action, const std::map<MouseButton, MouseAction>& mappings) const;
+    bool is_camera_rotate(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
+    bool is_camera_pan(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
 
     Size get_canvas_size() const;
     Vec2d get_local_mouse_position() const;
@@ -1099,6 +1119,10 @@ public:
 
     void set_mouse_as_dragging() { m_mouse.dragging = true; }
     bool is_mouse_dragging() const { return m_mouse.dragging; }
+    // True when the current left up event comes from an ImGui window and was not processed by it
+    // (e.g. a drag that started on a gizmo floating window and was released over the 3D scene).
+    // Such a release is the end of an ImGui interaction, not a click on the scene.
+    bool is_mouse_left_up_ignored() const { return m_mouse.ignore_left_up; }
 
     double get_size_proportional_to_max_bed_size(double factor) const;
 
@@ -1230,12 +1254,23 @@ private:
 
     void _picking_pass();
     void _rectangular_selection_picking_pass();
+    bool _is_fxaa_enabled() const;
+    bool _is_ssao_enabled() const;
+    int _get_effective_fps_cap() const;
+    bool _is_fps_overlay_enabled() const;
+    void _render_fps_overlay(int fps) const;
+    void _render_fxaa_pass(unsigned int width, unsigned int height);
+    void _render_ssao_pass(unsigned int width, unsigned int height);
     void _render_background();
     void _render_bed(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool show_axes);
+    // Build the light-space depth shadow map (consumed by gouraud/phong for object & self shadows)
+    // and cast it onto the build plate. Realistic view only.
+    void _render_shadows(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add part plate related logic
     void _render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
     //BBS: add outline drawing logic
     void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true);
+    void _render_wireframe_overlay();
     //BBS: GUI refactor: add canvas size as parameters
     void _render_gcode(int canvas_width, int canvas_height);
     //BBS: render a plane for assemble

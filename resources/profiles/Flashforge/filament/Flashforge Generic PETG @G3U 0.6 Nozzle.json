@@ -3,7 +3,7 @@
 	"name": "Flashforge Generic PETG @G3U 0.6 Nozzle",
 	"inherits": "Flashforge Generic PETG",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "W7pWKQ2EWAB5viV1",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"compatible_printers": [

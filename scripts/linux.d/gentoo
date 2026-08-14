@@ -21,6 +21,7 @@ REQUIRED_DEV_PACKAGES=(
     media-libs/glew
     media-libs/gst-plugins-base:1.0
     media-libs/gstreamer:1.0
+    media-plugins/gst-plugins-gtk:1.0
     net-misc/curl
     net-misc/wget
     sys-apps/dbus

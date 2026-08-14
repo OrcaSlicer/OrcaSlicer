@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido Metal @Qidi Q1 Pro 0.6 nozzle",
 	"inherits": "QIDI PLA Rapido Metal",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "BoVtyU2REc0Ayzc4",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [
@@ -26,12 +26,6 @@
 	],
 	"full_fan_speed_layer": [
 		"3"
-	],
-	"hot_plate_temp": [
-		"60"
-	],
-	"hot_plate_temp_initial_layer": [
-		"60"
 	],
 	"nozzle_temperature": [
 		"210"

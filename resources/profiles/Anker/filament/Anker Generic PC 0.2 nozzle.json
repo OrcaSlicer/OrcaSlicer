@@ -3,7 +3,7 @@
 	"name": "Anker Generic PC 0.2 nozzle",
 	"inherits": "Anker Generic PC @base",
 	"from": "system",
-	"setting_id": "GFSC99_20",
+	"setting_id": "GhIOAidtgDkzh9Aj",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"

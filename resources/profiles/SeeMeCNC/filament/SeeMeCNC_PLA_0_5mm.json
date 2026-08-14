@@ -1,0 +1,65 @@
+{
+	"type": "filament",
+	"name": "SeeMeCNC PLA 0.5 nozzle",
+	"inherits": "SeeMeCNC PLA",
+	"from": "System",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"SeeMeCNC PLA 0.5 nozzle"
+	],
+	"compatible_printers": [
+		"SeeMeCNC Artemis 0.5 nozzle",
+		"SeeMeCNC BOSSdelta 500 0505 0.5 nozzle",
+		"SeeMeCNC BOSSdelta 500 0510 0.5 nozzle",
+		"SeeMeCNC BOSSdelta 500 0521 0.5 nozzle",
+		"SeeMeCNC BOSSdelta 300 0.5 nozzle",
+		"SeeMeCNC RostockMAX v3.2 0.5 nozzle",
+		"SeeMeCNC RostockMAX v4 0.5 nozzle"
+	],
+	"compatible_printers_condition": "",
+	"compatible_prints": [
+		"0.20mm Fine @SeeMeCNC Artemis 0.5",
+		"0.20mm Fine @SeeMeCNC BOSSdelta 300 0.5",
+		"0.20mm Fine @SeeMeCNC BOSSdelta 500 0505 0.5",
+		"0.20mm Fine @SeeMeCNC BOSSdelta 500 0510 0.5",
+		"0.20mm Fine @SeeMeCNC BOSSdelta 500 0521 0.5",
+		"0.20mm Fine @SeeMeCNC RostockMAX v3.2 0.5",
+		"0.20mm Fine @SeeMeCNC RostockMAX v4 0.5",
+		"0.25mm Standard @SeeMeCNC Artemis 0.5",
+		"0.25mm Standard @SeeMeCNC BOSSdelta 300 0.5",
+		"0.25mm Standard @SeeMeCNC BOSSdelta 500 0505 0.5",
+		"0.25mm Standard @SeeMeCNC BOSSdelta 500 0510 0.5",
+		"0.25mm Standard @SeeMeCNC BOSSdelta 500 0521 0.5",
+		"0.25mm Standard @SeeMeCNC RostockMAX v3.2 0.5",
+		"0.25mm Standard @SeeMeCNC RostockMAX v4 0.5",
+		"0.30mm Draft @SeeMeCNC Artemis 0.5",
+		"0.30mm Draft @SeeMeCNC BOSSdelta 300 0.5",
+		"0.30mm Draft @SeeMeCNC BOSSdelta 500 0505 0.5",
+		"0.30mm Draft @SeeMeCNC BOSSdelta 500 0510 0.5",
+		"0.30mm Draft @SeeMeCNC BOSSdelta 500 0521 0.5",
+		"0.30mm Draft @SeeMeCNC RostockMAX v3.2 0.5",
+		"0.30mm Draft @SeeMeCNC RostockMAX v4 0.5",
+		"0.35mm Extra Draft @SeeMeCNC Artemis 0.5",
+		"0.35mm Extra Draft @SeeMeCNC BOSSdelta 300 0.5",
+		"0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0505 0.5",
+		"0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0510 0.5",
+		"0.35mm Extra Draft @SeeMeCNC BOSSdelta 500 0521 0.5",
+		"0.35mm Extra Draft @SeeMeCNC RostockMAX v3.2 0.5",
+		"0.35mm Extra Draft @SeeMeCNC RostockMAX v4 0.5"
+	],
+	"compatible_prints_condition": "",
+	"filament_retraction_length": [
+		"5"
+	],
+	"filament_z_hop": [
+		"0.3"
+	],
+	"filament_retraction_speed": [
+		"45"
+	],
+	"filament_deretraction_speed": [
+		"35"
+	],
+	"setting_id": "CcINW4WttiNsKvjf",
+	"filament_id": "SMCFL00105"
+}

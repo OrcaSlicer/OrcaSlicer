@@ -36,7 +36,7 @@ IGL_INLINE void igl::hessian_energy(
     //Kill non-interior DOFs
     VecXd Mint = M.diagonal();
     std::vector<std::vector<int> > bdryLoop;
-    igl::boundary_loop(DerivedF(F),bdryLoop);
+    igl::boundary_loop(F,bdryLoop);
     for(const std::vector<int>& loop : bdryLoop)
         for(const int& bdryVert : loop)
             Mint(bdryVert) = 0.;

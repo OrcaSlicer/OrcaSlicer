@@ -36,7 +36,7 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     m_presets = tab->get_presets();
 
     const Preset &sel_preset  = m_presets->get_selected_preset();
-    std::string   preset_name = sel_preset.is_default ? "Untitled" : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.name;
+    std::string   preset_name = sel_preset.is_default ? "Untitled" : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.is_from_bundle() && !sel_preset.alias.empty() ? sel_preset.alias : sel_preset.name;
 
     // if name contains extension
     if (boost::iends_with(preset_name, ".ini")) {
@@ -112,12 +112,56 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     sizer->Add(m_radio_group, 0, wxEXPAND | wxTOP | wxLEFT, BORDER_W);
 
     if (parent->m_mode == comDevelop) {
-        m_detach_checkbox = new wxCheckBox(parent, wxID_ANY, _L("Detach from parent"));
-        sizer->Add(m_detach_checkbox, 0, wxALIGN_LEFT | wxALL, BORDER_W);
-        // Set initial state (unchecked by default)
-        m_detach_checkbox->SetValue(m_detach);
-        // Bind the checkbox event to update the detach state for this item
-        m_detach_checkbox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { m_detach = m_detach_checkbox->GetValue(); });
+        // A new user copy of a system preset inherits from the selected system preset.
+        const std::string parent_name = sel_preset.is_system ? sel_preset.name : sel_preset.inherits();
+        const bool        can_detach  = !parent_name.empty();
+
+        wxBoxSizer *detach_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+        auto detach_tooltip  = _L("Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported.");
+
+        auto detach_checkbox = new ::CheckBox(parent);
+        detach_checkbox->SetToolTip(detach_tooltip);
+
+        auto detach_label    = new wxStaticText(parent, wxID_ANY, _L("Detach from parent"));
+        detach_label->SetFont(::Label::Body_14);
+        detach_label->SetToolTip(detach_tooltip);
+
+        detach_sizer->Add(detach_checkbox, 0, wxALIGN_LEFT | wxLEFT, BORDER_W);
+        detach_sizer->Add(detach_label   , 0, wxALIGN_CENTRE_VERTICAL | wxLEFT, FromDIP(5));
+        sizer->Add(detach_sizer, 0, wxEXPAND | wxTOP, BORDER_W);
+        sizer->AddSpacer(FromDIP(5));
+
+        const wxString parent_text = can_detach ? from_u8(parent_name) : _L("Unique preset");
+        auto parent_label          = new wxStaticText(parent, wxID_ANY, parent_text);
+        parent_label->SetFont(::Label::Body_12);
+        parent_label->SetForegroundColour(wxColour("#6B6B6B"));
+        parent_label->SetToolTip(can_detach ? _L("Parent preset") : _L("This preset does not inherit from another preset."));
+        sizer->Add(parent_label, 0, wxEXPAND | wxLEFT, BORDER_W + FromDIP(24));
+
+        sizer->AddSpacer(FromDIP(5));
+
+        if (!can_detach) {
+            detach_checkbox->Disable();
+            detach_label->SetForegroundColour(wxColour("#6B6B6B"));
+        } 
+        else {
+            // Set initial state (unchecked by default)
+            detach_checkbox->SetValue(m_detach);
+            // Bind the checkbox event to update the detach state for this item
+            detach_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, detach_checkbox](wxCommandEvent&) { m_detach = detach_checkbox->GetValue(); });
+
+            detach_label->SetForegroundColour(wxColour("#363636"));
+
+            auto on_toggle = [this, detach_checkbox]() {
+                detach_checkbox->SetValue(!detach_checkbox->GetValue());
+                wxCommandEvent ev(wxEVT_TOGGLEBUTTON, detach_checkbox->GetId());
+                ev.SetEventObject(detach_checkbox);
+                detach_checkbox->GetEventHandler()->ProcessEvent(ev);
+            };
+            detach_label->Bind(wxEVT_LEFT_DOWN,   [on_toggle](wxMouseEvent& e) {if(!e.LeftDClick()) on_toggle();});
+            detach_label->Bind(wxEVT_LEFT_DCLICK, [on_toggle](wxMouseEvent& e) {on_toggle();});
+        }
     }
     
     m_radio_group->Bind(wxEVT_COMMAND_RADIOBOX_SELECTED, [this](wxCommandEvent &e) {
@@ -156,13 +200,13 @@ void SavePresetDialog::Item::update()
     }
 
     if (m_valid_type == Valid &&
-        (m_preset_name == "Default Setting" || m_preset_name == "Default Filament" || m_preset_name == "Default Printer")) {
+        (m_preset_name == "Default Setting" || m_preset_name == PresetBundle::ORCA_DEFAULT_FILAMENT_PLACEHOLDER || m_preset_name == "Default Printer")) {
         info_line    = _L("Name is unavailable.");
         m_valid_type = NoValid;
     }
 
     const Preset *existing = m_presets->find_preset(m_preset_name, false);
-    if (m_valid_type == Valid && existing && (existing->is_default || existing->is_system)) {
+    if (m_valid_type == Valid && existing && !existing->can_overwrite()) {
         info_line = _L("Overwriting a system profile is not allowed.");
         m_valid_type = NoValid;
     }
@@ -172,22 +216,22 @@ void SavePresetDialog::Item::update()
             info_line = from_u8((boost::format(_u8L("Preset \"%1%\" already exists.")) % m_preset_name).str());
         else
             info_line = from_u8((boost::format(_u8L("Preset \"%1%\" already exists and is incompatible with the current printer.")) % m_preset_name).str());
-        info_line += "\n" + _L("Please note that saving will overwrite this preset.");
+        info_line += "\n" + _L("Please note that saving will overwrite the current preset.");
         m_valid_type = Warning;
     }
 
     if (m_valid_type == Valid && m_preset_name.empty()) {
-        info_line    = _L("The name is not allowed to be empty.");
+        info_line    = _L("The name field is not allowed to be empty.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && m_preset_name.find_first_of(' ') == 0) {
-        info_line    = _L("The name is not allowed to start with space character.");
+        info_line    = _L("The name is not allowed to start with a space.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && m_preset_name.find_last_of(' ') == m_preset_name.length() - 1) {
-        info_line    = _L("The name is not allowed to end with space character.");
+        info_line    = _L("The name is not allowed to end with a space.");
         m_valid_type = NoValid;
     }
 
@@ -230,13 +274,11 @@ void SavePresetDialog::Item::update_valid_bmp()
 void SavePresetDialog::Item::accept()
 {
     if (m_valid_type == Warning) {
-        // BBS add sync info
         auto    it               = m_presets->find_preset(m_preset_name, false);
         Preset &current_preset   = *it;
-        current_preset.sync_info = "delete";
         if (!current_preset.setting_id.empty()) {
             BOOST_LOG_TRIVIAL(info) << "delete preset = " << current_preset.name << ", setting_id = " << current_preset.setting_id;
-            wxGetApp().delete_preset_from_cloud(current_preset.setting_id);
+            wxGetApp().delete_preset_from_cloud(current_preset.setting_id, current_preset.file);
         }
         m_presets->delete_preset(m_preset_name);
     }
@@ -276,7 +318,7 @@ void SavePresetDialog::build(std::vector<Preset::Type> types, std::string suffix
     SetBackgroundColour(SAVE_PRESET_DIALOG_DEF_COLOUR);
     SetFont(wxGetApp().normal_font());
 
-    if (suffix.empty()) suffix = _CTX_utf8(L_CONTEXT("Copy", "PresetName"), "PresetName");
+    if (suffix.empty()) suffix = _u8L_CONTEXT(L_CONTEXT("Copy", "PresetName"), "PresetName");
 
     wxBoxSizer *m_Sizer_main = new wxBoxSizer(wxVERTICAL);
 

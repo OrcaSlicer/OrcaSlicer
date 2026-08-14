@@ -6,7 +6,7 @@
 	"machine_tech": "FFF",
 	"family": "Chuanying",
 	"bed_model": "chuanying_x1_buildplate_model.STL",
-	"bed_texture": "chuanying_x1_buildplate_texture.png",
+	"bed_texture": "chuanying_x1_buildplate_texture.svg",
 	"hotend_model": "chuanying_x1_hotend.STL",
 	"default_materials": "Chuanying Generic PETG;Chuanying Generic PLA"
 }

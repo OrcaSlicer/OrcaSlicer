@@ -6,7 +6,7 @@
 	"machine_tech": "FFF",
 	"family": "WEMAKE3D",
 	"bed_model": "WEMAKE3D TinyBotV1_buildplate_model.stl",
-	"bed_texture": "WEMAKE3D TinyBotV1_buildplate_texture.png",
+	"bed_texture": "WEMAKE3D TinyBotV1_buildplate_texture.svg",
 	"hotend_model": "",
 	"default_materials": "Generic PETG @System;Generic PLA @System"
 }

@@ -3,6 +3,7 @@
 	"name": "0.30mm STRUCTURAL @MK4S HF0.8",
 	"inherits": "0.30mm DETAIL @MK4S 0.8",
 	"from": "system",
+	"setting_id": "hfqkdmwibTRyrfXY",
 	"instantiation": "true",
 	"compatible_printers_condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.8 and printer_notes=~/.*HF_NOZZLE.*/",
 	"gap_infill_speed": "60",

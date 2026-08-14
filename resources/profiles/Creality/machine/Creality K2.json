@@ -7,7 +7,7 @@
 	"family": "Creality",
 	"bed_model": "creality_k2_buildplate_model.stl",
 	"default_bed_type": "Textured PEI Plate",
-	"bed_texture": "creality_k2_buildplate_texture.png",
+	"bed_texture": "creality_k2_buildplate_texture.svg",
 	"hotend_model": "",
 	"default_materials": "Creality Generic ABS @K2-all;Creality Generic ASA @K2-all;Creality Generic PETG @K2-all;Creality Generic PLA @K2-all;Creality Generic PLA High Speed @K2-all;Creality Generic PLA Matte @K2-all;Creality Generic PLA Silk @K2-all"
 }

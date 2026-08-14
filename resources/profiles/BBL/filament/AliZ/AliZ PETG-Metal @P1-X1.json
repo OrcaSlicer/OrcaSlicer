@@ -3,7 +3,7 @@
 	"name": "AliZ PETG-Metal @P1-X1",
 	"inherits": "AliZ PETG-Metal @base",
 	"from": "system",
-	"setting_id": "AliZPX1FSG50",
+	"setting_id": "AZ01-2_00",
 	"instantiation": "true",
 	"enable_pressure_advance": [
 		"1"

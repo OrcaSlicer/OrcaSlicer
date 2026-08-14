@@ -164,34 +164,27 @@ IGL_INLINE bool igl::mosek::mosek_quadprog(
     // Set constant bounds on variable j
     if(lx[j] == ux[j])
     {
+#if MSK_VERSION_MAJOR <=8
       mosek_guarded(MSK_putbound(task,MSK_ACC_VAR,j,MSK_BK_FX,lx[j],ux[j]));
+#else
+      mosek_guarded(MSK_putvarbound(task,j,MSK_BK_FX,lx[j],ux[j]));
+#endif
     }else
     {
+#if MSK_VERSION_MAJOR <=8
       mosek_guarded(MSK_putbound(task,MSK_ACC_VAR,j,MSK_BK_RA,lx[j],ux[j]));
+#else
+      mosek_guarded(MSK_putvarbound(task,j,MSK_BK_RA,lx[j],ux[j]));
+#endif
     }
 
     if(m>0)
     {
       // Input column j of A
 #if MSK_VERSION_MAJOR >= 7
-      mosek_guarded(
-        MSK_putacol(
-          task,
-          j,
-          Acp[j+1]-Acp[j],
-          &Ari[Acp[j]],
-          &Av[Acp[j]])
-        );
+      mosek_guarded( MSK_putacol( task, j, Acp[j+1]-Acp[j], &Ari[Acp[j]], &Av[Acp[j]]));
 #elif MSK_VERSION_MAJOR == 6
-      mosek_guarded(
-        MSK_putavec(
-          task,
-          MSK_ACC_VAR,
-          j,
-          Acp[j+1]-Acp[j],
-          &Ari[Acp[j]],
-          &Av[Acp[j]])
-        );
+      mosek_guarded( MSK_putavec( task, MSK_ACC_VAR, j, Acp[j+1]-Acp[j], &Ari[Acp[j]], &Av[Acp[j]]));
 #endif
     }
   }
@@ -200,7 +193,11 @@ IGL_INLINE bool igl::mosek::mosek_quadprog(
   for(int i = 0;i<m;i++)
   {
     // put bounds  on constraints
+#if MSK_VERSION_MAJOR <=8
     mosek_guarded(MSK_putbound(task,MSK_ACC_CON,i,MSK_BK_RA,lc[i],uc[i]));
+#else
+    mosek_guarded(MSK_putconbound(task,i,MSK_BK_RA,lc[i],uc[i]));
+#endif
   }
 
   // Input Q for the objective (REMEMBER Q SHOULD ONLY BE LOWER TRIANGLE)
@@ -243,7 +240,9 @@ IGL_INLINE bool igl::mosek::mosek_quadprog(
   switch(solsta)
   {
     case MSK_SOL_STA_OPTIMAL:   
+#if MSK_VERSION_MAJOR <= 8
     case MSK_SOL_STA_NEAR_OPTIMAL:
+#endif
       MSK_getsolutionslice(task,MSK_SOL_ITR,MSK_SOL_ITEM_XX,0,n,&x[0]);
       //printf("Optimal primal solution\n");
       //for(size_t j=0; j<n; ++j)
@@ -254,8 +253,10 @@ IGL_INLINE bool igl::mosek::mosek_quadprog(
       break;
     case MSK_SOL_STA_DUAL_INFEAS_CER:
     case MSK_SOL_STA_PRIM_INFEAS_CER:
+#if MSK_VERSION_MAJOR <= 8
     case MSK_SOL_STA_NEAR_DUAL_INFEAS_CER:
     case MSK_SOL_STA_NEAR_PRIM_INFEAS_CER:  
+#endif
       //printf("Primal or dual infeasibility certificate found.\n");
       break;
     case MSK_SOL_STA_UNKNOWN:

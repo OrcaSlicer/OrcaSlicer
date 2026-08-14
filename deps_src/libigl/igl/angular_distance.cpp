@@ -6,8 +6,8 @@
 // v. 2.0. If a copy of the MPL was not distributed with this file, You can 
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "angular_distance.h"
-#include <igl/EPS.h>
-#include <igl/PI.h>
+#include "EPS.h"
+#include "PI.h"
 IGL_INLINE double igl::angular_distance(
   const Eigen::Quaterniond & A,
   const Eigen::Quaterniond & B)

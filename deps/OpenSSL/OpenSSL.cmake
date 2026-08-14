@@ -6,7 +6,11 @@ if(DEFINED OPENSSL_ARCH)
     set(_cross_arch ${OPENSSL_ARCH})
 else()
     if(WIN32)
-        set(_cross_arch "VC-WIN64A")
+        if("${CMAKE_GENERATOR_PLATFORM}" STREQUAL "ARM64")
+            set(_cross_arch "VC-WIN64-ARM")
+        else()
+            set(_cross_arch "VC-WIN64A")
+        endif()
     elseif(APPLE)
         set(_cross_arch "darwin64-${CMAKE_OSX_ARCHITECTURES}-cc")
 	endif()
@@ -48,6 +52,14 @@ ExternalProject_Add(dep_OpenSSL
 	CONFIGURE_COMMAND ${_conf_cmd} ${_cross_arch}
         "--openssldir=${DESTDIR}"
         "--prefix=${DESTDIR}"
+        # OpenSSL's linux-x86_64 target sets multilib=64, so it installs to
+        # <prefix>/lib64 while every other dep uses <prefix>/lib. CPython's
+        # --with-openssl only ever emits -L<dir>/lib, so it misses the bundled
+        # static libs and silently links the system OpenSSL instead -- which,
+        # against 1.1.1w headers, leaves _ssl.so with an undefined
+        # SSL_get_peer_certificate (removed in OpenSSL 3.x). Pin libdir so the
+        # prefix stays single-layout.
+        "--libdir=lib"
         ${_cross_comp_prefix_line}
         no-shared
         no-asm

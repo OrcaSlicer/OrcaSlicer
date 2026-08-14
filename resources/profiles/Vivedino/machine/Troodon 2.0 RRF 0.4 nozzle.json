@@ -3,7 +3,7 @@
 	"name": "Troodon 2.0 RRF 0.4 nozzle",
 	"inherits": "fdm_rrf_common",
 	"from": "system",
-	"setting_id": "GM002",
+	"setting_id": "VxgWxIfWfPwBX4R6",
 	"instantiation": "true",
 	"printer_model": "Troodon 2.0 - RRF",
 	"nozzle_diameter": [

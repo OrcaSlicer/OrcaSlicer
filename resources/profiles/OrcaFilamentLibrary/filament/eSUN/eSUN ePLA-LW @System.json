@@ -3,7 +3,7 @@
 	"name": "eSUN ePLA-LW @System",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "LWSL02_00",
+	"setting_id": "pYoZnuVPPIlMbdT1",
 	"filament_id": "ESN02",
 	"instantiation": "true",
 	"filament_type": [
@@ -19,6 +19,9 @@
 		"0.48"
 	],
 	"filament_max_volumetric_speed": [
+		"6"
+	],
+	"filament_multitool_ramming_flow": [
 		"6"
 	],
 	"filament_vendor": [

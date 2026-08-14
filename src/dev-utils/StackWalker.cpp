@@ -457,6 +457,15 @@ LPSTACKINFO CStackWalker::StackWalker(HANDLE hThread, const CONTEXT* context)
 	sf.AddrBStore.Mode = AddrModeFlat;
 	sf.AddrStack.Offset = c.IntSp;
 	sf.AddrStack.Mode = AddrModeFlat;
+	// ARM64
+#elif defined(_M_ARM64)
+	imageType = IMAGE_FILE_MACHINE_ARM64;
+	sf.AddrPC.Offset = c.Pc;
+	sf.AddrPC.Mode = AddrModeFlat;
+	sf.AddrFrame.Offset = c.Fp;
+	sf.AddrFrame.Mode = AddrModeFlat;
+	sf.AddrStack.Offset = c.Sp;
+	sf.AddrStack.Mode = AddrModeFlat;
 #else
 #error "Platform not supported!"
 #endif

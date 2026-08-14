@@ -3,7 +3,7 @@
 	"name": "Lulzbot Taz 4 or 5 0.5 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "LZ004",
+	"setting_id": "vX6cl42xwlXUf05S",
 	"instantiation": "true",
 	"printer_model": "Lulzbot Taz 4 or 5",
 	"default_print_profile": "0.25mm Standard @Lulzbot Taz 4 or 5",

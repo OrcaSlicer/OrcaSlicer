@@ -1,0 +1,13 @@
+{
+	"type": "machine_model",
+	"name": "Creality K1 SE_CFS-C",
+	"nozzle_diameter": "0.4",
+	"bed_model": "creality_k1se_buildplate_model.stl",
+	"default_bed_type": "Textured PEI Plate",
+	"bed_texture": "creality_k1se_buildplate_texture.svg",
+	"family": "Creality",
+	"hotend_model": "",
+	"machine_tech": "FFF",
+	"model_id": "Creality_K1_SE_CFS_C",
+	"default_materials": "Creality Generic ABS @K1-all;Creality Generic ASA @K1-all;Creality Generic PA-CF @K1-all;Creality Generic PC @K1-all;Creality Generic PETG @K1-all;Creality Generic PLA @K1-all;Creality Generic PLA High Speed @K1-all;Creality Generic PLA Matte @K1-all;Creality Generic PLA Silk @K1-all;Creality Generic PLA-CF @K1-all;Creality Generic TPU @K1-all"
+}

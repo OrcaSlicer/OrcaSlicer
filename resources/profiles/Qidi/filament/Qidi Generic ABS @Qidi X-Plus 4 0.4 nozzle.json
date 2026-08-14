@@ -3,7 +3,7 @@
 	"name": "Qidi Generic ABS @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "Qidi Generic ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "N3Ca9PN8nDnvhmak",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"fan_max_speed": [
@@ -17,12 +17,6 @@
 	],
 	"pressure_advance": [
 		"0.03"
-	],
-	"hot_plate_temp": [
-		"90"
-	],
-	"hot_plate_temp_initial_layer": [
-		"90"
 	],
 	"nozzle_temperature": [
 		"250"

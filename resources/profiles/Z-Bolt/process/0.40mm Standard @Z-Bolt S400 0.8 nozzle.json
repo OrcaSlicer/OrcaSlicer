@@ -3,7 +3,7 @@
 	"name": "0.40mm Standard @Z-Bolt S400 0.8 nozzle",
 	"inherits": "fdm_process_zbolt_0.40_nozzle_0.8",
 	"from": "system",
-	"setting_id": "GP121",
+	"setting_id": "iyKInbHHk3UFFlOH",
 	"instantiation": "true",
 	"description": "It has a very big layer height, and results in very apparent layer lines, low printing quality and general printing time.",
 	"elefant_foot_compensation": "0.15",

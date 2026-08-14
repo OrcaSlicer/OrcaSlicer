@@ -3,7 +3,7 @@
 	"name": "Prusa Generic ASA @MK4",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "ubNQKQ8Ex6khEWaI",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.93"

@@ -3,6 +3,7 @@
 	"name": "WonderMaker PLA Marble",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
+	"setting_id": "eudiDwK2EVLlGnha",
 	"filament_id": "GFA07",
 	"instantiation": "true",
 	"filament_cost": [

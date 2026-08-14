@@ -3,7 +3,7 @@
 	"name": "SUNLU Wood PLA @System",
 	"inherits": "SUNLU Wood PLA @base",
 	"from": "system",
-	"setting_id": "OSNLS07",
+	"setting_id": "9pQqWo655Q5DL8c0",
 	"instantiation": "true",
 	"compatible_printers": []
 }

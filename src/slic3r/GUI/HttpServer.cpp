@@ -3,6 +3,7 @@
 #include "GUI_App.hpp"
 #include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/BBLNetworkPlugin.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -60,7 +61,7 @@ void session::read_body()
     int                                nbuffer = 1000;
     std::shared_ptr<std::vector<char>> bufptr  = std::make_shared<std::vector<char>>(nbuffer);
     async_read(socket, boost::asio::buffer(*bufptr, nbuffer),
-               [this, self](const boost::beast::error_code& e, std::size_t s) { server.stop(self); });
+               [this, self, bufptr](const boost::beast::error_code& e, std::size_t s) { server.stop(self); });
 }
 
 void session::read_next_line()
@@ -145,18 +146,27 @@ void HttpServer::IOServer::stop_all()
 
 HttpServer::HttpServer(boost::asio::ip::port_type port) : port(port) {}
 
+HttpServer::~HttpServer()
+{
+    stop();
+}
+
 void HttpServer::start()
 {
+    if (start_http_server)
+        return;
+
     BOOST_LOG_TRIVIAL(info) << "start_http_service...";
-    start_http_server    = true;
-    m_http_server_thread = create_thread([this] {
+    server_             = std::make_unique<IOServer>(*this);
+    IOServer* io_server = server_.get();
+    start_http_server   = true;
+    m_http_server_thread = create_thread([io_server] {
         set_current_thread_name("http_server");
-        server_ = std::make_unique<IOServer>(*this);
-        server_->acceptor.listen();
+        io_server->acceptor.listen();
 
-        server_->do_accept();
+        io_server->do_accept();
 
-        server_->io_service.run();
+        io_server->io_service.run();
     });
 }
 
@@ -164,9 +174,14 @@ void HttpServer::stop()
 {
     start_http_server = false;
     if (server_) {
-        server_->acceptor.close();
-        server_->stop_all();
-        server_->io_service.stop();
+        IOServer* io_server = server_.get();
+        boost::asio::post(io_server->io_service, [io_server] {
+            boost::system::error_code ec;
+            io_server->acceptor.cancel(ec);
+            io_server->acceptor.close(ec);
+            io_server->stop_all();
+            io_server->io_service.stop();
+        });
     }
     if (m_http_server_thread.joinable())
         m_http_server_thread.join();
@@ -180,11 +195,19 @@ void HttpServer::set_request_handler(const std::function<std::shared_ptr<Respons
 
 std::shared_ptr<HttpServer::Response> HttpServer::bbl_auth_handle_request(const std::string& url)
 {
+    return auth_handle_request(url, BBL_CLOUD_PROVIDER);
+}
+
+std::shared_ptr<HttpServer::Response> HttpServer::auth_handle_request(const std::string& url, const std::string& provider)
+{
     BOOST_LOG_TRIVIAL(info) << "thirdparty_login: get_response";
 
     const std::string auth_code = url_get_param(url, "code");
     if (!auth_code.empty()) {
-        std::string state = url_get_param(url, "state");
+        std::string state = url_get_param(url, "orca_state");
+        if (state.empty()) {
+            state = url_get_param(url, "state");  // fallback
+        }
         NetworkAgent* agent = wxGetApp().getAgent();
         if (!agent) {
             return std::make_shared<ResponseNotFound>();
@@ -195,10 +218,10 @@ std::shared_ptr<HttpServer::Response> HttpServer::bbl_auth_handle_request(const 
         payload["data"]["code"] = auth_code;
         payload["data"]["state"] = state;
 
-        agent->change_user(payload.dump());
-        const bool login_ok = agent->is_user_login();
+        agent->change_user(payload.dump(), provider);
+        const bool login_ok = agent->is_user_login(provider);
         if (login_ok) {
-            wxGetApp().request_user_login(1);
+            wxGetApp().request_user_login(1, provider);
             GUI::wxGetApp().CallAfter([] { wxGetApp().ShowUserLogin(false); });
         }
 
@@ -228,7 +251,7 @@ std::shared_ptr<HttpServer::Response> HttpServer::bbl_auth_handle_request(const 
 
         unsigned int http_code;
         std::string  http_body;
-        int          result = agent->get_my_profile(access_token, &http_code, &http_body);
+        int          result = agent->get_my_profile(access_token, &http_code, &http_body, provider);
         if (result == 0) {
             std::string user_id;
             std::string user_name;
@@ -256,9 +279,9 @@ std::shared_ptr<HttpServer::Response> HttpServer::bbl_auth_handle_request(const 
             j["data"]["user"]["name"]       = user_name;
             j["data"]["user"]["account"]    = user_account;
             j["data"]["user"]["avatar"]     = user_avatar;
-            agent->change_user(j.dump());
-            if (agent->is_user_login()) {
-                wxGetApp().request_user_login(1);
+            agent->change_user(j.dump(), provider);
+            if (agent->is_user_login(provider)) {
+                wxGetApp().request_user_login(1, provider);
             }
             GUI::wxGetApp().CallAfter([] { wxGetApp().ShowUserLogin(false); });
             std::string location_str = (boost::format("%1%?result=success") % redirect_url).str();
@@ -268,9 +291,106 @@ std::shared_ptr<HttpServer::Response> HttpServer::bbl_auth_handle_request(const 
             std::string location_str = (boost::format("%1%?result=fail&error=%2%") % redirect_url % error_str).str();
             return std::make_shared<ResponseRedirect>(location_str);
         }
-    } else {
-        return std::make_shared<ResponseNotFound>();
     }
+
+    // Ticket-based redirect: Bambu Lab's auth server redirects here after a
+    // third-party (Google) OAuth so that the access token never travels through
+    // the URL. We exchange the ticket via the network plugin's get_my_token,
+    // then run the same get_my_profile + change_user flow as access_token.
+    // Skip entirely on legacy plugins missing bambu_network_get_my_token —
+    // those clients pin X-BBL-Client-Version so the server stays on the legacy
+    // ?access_token= redirect path and never sends ?ticket= here.
+    const std::string ticket = url_get_param(url, "ticket");
+    const std::string ticket_redirect_url = url_get_param(url, "redirect_url");
+    if (!ticket.empty() && !ticket_redirect_url.empty() &&
+        BBLNetworkPlugin::instance().get_get_my_token() != nullptr) {
+        BOOST_LOG_TRIVIAL(info) << "thirdparty_login: ticket flow";
+        NetworkAgent* agent = wxGetApp().getAgent();
+        if (!agent) {
+            std::string location_str = (boost::format("%1%?result=fail&error=no_agent") % ticket_redirect_url).str();
+            return std::make_shared<ResponseRedirect>(location_str);
+        }
+
+        auto fail_redirect = [&ticket_redirect_url](const std::string& reason) {
+            std::string location_str = (boost::format("%1%?result=fail&error=%2%") % ticket_redirect_url % reason).str();
+            return std::make_shared<ResponseRedirect>(location_str);
+        };
+
+        unsigned int token_http_code = 0;
+        std::string  token_body;
+        int          token_result = agent->get_my_token(ticket, &token_http_code, &token_body, provider);
+        if (token_result != 0) {
+            BOOST_LOG_TRIVIAL(warning) << "thirdparty_login: get_my_token failed, http_code=" << token_http_code;
+            return fail_redirect("get_my_token_error_" + std::to_string(token_result));
+        }
+
+        std::string access_token;
+        std::string refresh_token;
+        std::string expires_in_str;
+        std::string refresh_expires_in_str;
+        try {
+            json token_j = json::parse(token_body);
+            if (token_j.contains("accessToken"))
+                access_token = token_j["accessToken"].get<std::string>();
+            if (token_j.contains("refreshToken"))
+                refresh_token = token_j["refreshToken"].get<std::string>();
+            if (token_j.contains("expiresIn"))
+                expires_in_str = std::to_string(token_j["expiresIn"].get<double>());
+            if (token_j.contains("refreshExpiresIn"))
+                refresh_expires_in_str = std::to_string(token_j["refreshExpiresIn"].get<double>());
+        } catch (...) {
+            return fail_redirect("token_parse_error");
+        }
+
+        if (access_token.empty()) {
+            return fail_redirect("token_missing");
+        }
+
+        unsigned int profile_http_code = 0;
+        std::string  profile_body;
+        int          profile_result = agent->get_my_profile(access_token, &profile_http_code, &profile_body, provider);
+        if (profile_result != 0) {
+            BOOST_LOG_TRIVIAL(warning) << "thirdparty_login: get_my_profile failed, http_code=" << profile_http_code;
+            return fail_redirect("get_user_profile_error_" + std::to_string(profile_result));
+        }
+
+        std::string user_id;
+        std::string user_name;
+        std::string user_account;
+        std::string user_avatar;
+        try {
+            json user_j = json::parse(profile_body);
+            if (user_j.contains("uidStr"))
+                user_id = user_j["uidStr"].get<std::string>();
+            if (user_j.contains("name"))
+                user_name = user_j["name"].get<std::string>();
+            if (user_j.contains("avatar"))
+                user_avatar = user_j["avatar"].get<std::string>();
+            if (user_j.contains("account"))
+                user_account = user_j["account"].get<std::string>();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(warning) << "thirdparty_login: profile JSON parse failed";
+        }
+
+        json j;
+        j["data"]["refresh_token"]      = refresh_token;
+        j["data"]["token"]              = access_token;
+        j["data"]["expires_in"]         = expires_in_str;
+        j["data"]["refresh_expires_in"] = refresh_expires_in_str;
+        j["data"]["user"]["uid"]        = user_id;
+        j["data"]["user"]["name"]       = user_name;
+        j["data"]["user"]["account"]    = user_account;
+        j["data"]["user"]["avatar"]     = user_avatar;
+        agent->change_user(j.dump(), provider);
+        if (agent->is_user_login(provider)) {
+            wxGetApp().request_user_login(1, provider);
+        }
+        GUI::wxGetApp().CallAfter([] { wxGetApp().ShowUserLogin(false); });
+        std::string location_str = (boost::format("%1%?result=success") % ticket_redirect_url).str();
+        return std::make_shared<ResponseRedirect>(location_str);
+    }
+
+    return std::make_shared<ResponseNotFound>();
 }
 
 void HttpServer::ResponseNotFound::write_response(std::stringstream& ssOut)

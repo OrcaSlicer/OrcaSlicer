@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PA @MK3.5 0.8",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "7Qe2dHRqSOhsuoPn",
 	"filament_id": "GFN99_3",
 	"instantiation": "true",
 	"filament_flow_ratio": [

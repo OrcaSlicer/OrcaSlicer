@@ -3,7 +3,7 @@
 	"name": "Anycubic Chiron 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "l7eK78cq6VEaMYfb",
 	"instantiation": "true",
 	"printer_model": "Anycubic Chiron",
 	"default_print_profile": "0.20mm Standard @Anycubic Chiron",

@@ -19,6 +19,10 @@ arrangement::ArrangePolygons get_arrange_polys(const Model &model, ModelInstance
     for (ModelObject *mo : model.objects)
         for (ModelInstance *minst : mo->instances) {
             minst->get_arrange_polygon(&ap);
+            // ModelInstance::get_arrange_polygon leaves bed_idx at its UNARRANGED
+            // default; seed it to bed 0 (as get_instance_arrange_poly does) so the
+            // nester treats the item as placeable instead of returning it unplaced.
+            ap.bed_idx = 0;
             input.emplace_back(ap);
             instances.emplace_back(minst);
         }

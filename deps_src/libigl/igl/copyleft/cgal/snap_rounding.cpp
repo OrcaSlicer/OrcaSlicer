@@ -23,8 +23,8 @@ template <
   typename DerivedEI,
   typename DerivedJ>
 IGL_INLINE void igl::copyleft::cgal::snap_rounding(
-  const Eigen::PlainObjectBase<DerivedV> & V,
-  const Eigen::PlainObjectBase<DerivedE> & E,
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedE> & E,
   Eigen::PlainObjectBase<DerivedVI> & VI,
   Eigen::PlainObjectBase<DerivedEI> & EI,
   Eigen::PlainObjectBase<DerivedJ> & J)
@@ -204,3 +204,8 @@ IGL_INLINE void igl::copyleft::cgal::snap_rounding(
     }
   }
 }
+
+#ifdef IGL_STATIC_LIBRARY
+// Explicit template instantiation
+template void igl::copyleft::cgal::snap_rounding<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&);
+#endif 

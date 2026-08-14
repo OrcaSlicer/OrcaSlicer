@@ -13,15 +13,13 @@
 
 namespace igl
 {
-  // This function fits a plane to a point cloud.
-  //
-  // Input:
-  //   V #Vx3 matrix. The 3D point cloud, one row for each vertex.
-  // Output: 
-  //   N 1x3 Vector. The normal of the fitted plane.
-  //   C 1x3 Vector. A point that lies in the fitted plane.
-  // From http://missingbytes.blogspot.com/2012/06/fitting-plane-to-point-cloud.html
-
+  /// Fit a plane to a point cloud.
+  ///
+  /// @param[in] V #Vx3 matrix. The 3D point cloud, one row for each vertex.
+  /// @param[out] N 1x3 Vector. The normal of the fitted plane.
+  /// @param[out] C 1x3 Vector. A point that lies in the fitted plane.
+  ///
+  /// From http://missingbytes.blogspot.com/2012/06/fitting-plane-to-point-cloud.html
   IGL_INLINE void fit_plane(
     const Eigen::MatrixXd & V,
     Eigen::RowVector3d & N,

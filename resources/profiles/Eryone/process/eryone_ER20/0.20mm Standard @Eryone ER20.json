@@ -4,6 +4,7 @@
 	],
 	"from": "system",
 	"inherits": "fdm_process_ER20_0.20",
+	"setting_id": "TMsKM3bODapym77c",
 	"instantiation": "true",
 	"layer_height": "0.20",
 	"name": "0.20mm Standard @Eryone ER20",

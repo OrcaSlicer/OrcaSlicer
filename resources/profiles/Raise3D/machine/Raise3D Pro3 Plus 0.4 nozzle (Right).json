@@ -3,7 +3,7 @@
 	"name": "Raise3D Pro3 Plus 0.4 nozzle (Right)",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "jYxNL8Vdara9s74e",
 	"instantiation": "true",
 	"printer_model": "Raise3D Pro3 Plus",
 	"default_print_profile": "0.20mm Standard @Raise3D Pro3Plus",

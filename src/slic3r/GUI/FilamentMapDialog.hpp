@@ -15,6 +15,7 @@ namespace GUI {
 class DragDropPanel;
 class Plater;
 class PartPlate;
+class SmartFilamentPanel;
 
 /**
  * @brief Try to pop up the filament map dialog before slicing.
@@ -42,6 +43,7 @@ public:
         const std::vector<std::string>& filament_color,
         const std::vector<std::string>& filament_type,
         const std::vector<int> &filament_map,
+        const std::vector<int> &filament_volume_map,
         const std::vector<int> &filaments,
         const FilamentMapMode mode,
         bool machine_synced,
@@ -56,11 +58,17 @@ public:
         return {};
     }
 
+    std::vector<int> get_filament_volume_maps() const {
+        if (m_page_type == PageType::ptManual)
+            return m_filament_volume_map;
+        return {};
+    }
+
     int ShowModal();
     void set_modal_btn_labels(const wxString& left_label, const wxString& right_label);
 private:
     void on_ok(wxCommandEvent &event);
-    void on_cancle(wxCommandEvent &event);
+    void on_cancel(wxCommandEvent &event);
     void on_switch_mode(wxCommandEvent &event);
     void on_checkbox(wxCommandEvent &event);
 
@@ -78,11 +86,15 @@ private:
     Button* m_ok_btn;
     Button* m_cancel_btn;
     CheckBox* m_checkbox;
+    SmartFilamentPanel* m_smart_filament{nullptr};
+
+    bool m_fila_switch_ready{false};
 
     PageType m_page_type;
 
 private:
     std::vector<int> m_filament_map;
+    std::vector<int> m_filament_volume_map;
     std::vector<std::string> m_filament_color;
     std::vector<std::string> m_filament_type;
 };

@@ -1,0 +1,53 @@
+{
+    "type": "filament",
+    "name": "FilAr PETG @base",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "filament_id": "FILARB03",
+    "instantiation": "false",
+    "filament_type": [
+        "PETG"
+    ],
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "filament_diameter": [
+        "1.75"
+    ],
+    "filament_density": [
+        "1.27"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "245"
+    ],
+    "nozzle_temperature_range_low": [
+        "230"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "hot_plate_temp": [
+        "78"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "78"
+    ],
+    "textured_plate_temp": [
+        "78"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "78"
+    ],
+    "fan_min_speed": [
+        "40"
+    ],
+    "fan_max_speed": [
+        "60"
+    ]
+}

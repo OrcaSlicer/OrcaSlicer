@@ -344,8 +344,8 @@ public:
         ConfigOptionBool            ori_enable_support;
         ConfigOptionEnum<BrimType>  brim_type;
         ConfigOptionEnum<BrimType>  ori_brim_type;
-        ConfigOptionFloat           speed_perimeter;
-        ConfigOptionFloat           ori_speed_perimeter;
+        ConfigOptionFloatsNullable  speed_perimeter;
+        ConfigOptionFloatsNullable  ori_speed_perimeter;
 
         ModelConfig*                config;
         ModelVolumeType             model_volume_type;

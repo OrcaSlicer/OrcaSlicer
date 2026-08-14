@@ -3,7 +3,7 @@
 	"name": "Qidi X-Max 3 0.4 nozzle",
 	"inherits": "fdm_qidi_x3_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "6e68LcMl17yl7Ii8",
 	"instantiation": "true",
 	"printer_model": "Qidi X-Max 3",
 	"gcode_flavor": "klipper",

@@ -3,7 +3,7 @@
 	"name": "InfiMech TPU Basic @EX",
 	"inherits": "fdm_filament_tpu @EX",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "vAMeXNwHNVMKYWz3",
 	"filament_id": "GFU99",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

@@ -30,7 +30,6 @@ typedef int (*func_set_cert_file)(void *agent, std::string folder, std::string f
 typedef int (*func_set_country_code)(void *agent, std::string country_code);
 typedef int (*func_start)(void *agent);
 typedef int (*func_set_on_ssdp_msg_fn)(void *agent, OnMsgArrivedFn fn);
-typedef int (*func_set_on_user_login_fn)(void *agent, OnUserLoginFn fn);
 typedef int (*func_set_on_printer_connected_fn)(void *agent, OnPrinterConnectedFn fn);
 typedef int (*func_set_on_server_connected_fn)(void *agent, OnServerConnectedFn fn);
 typedef int (*func_set_on_http_error_fn)(void *agent, OnHttpErrorFn fn);
@@ -69,7 +68,7 @@ typedef std::string (*func_build_login_info)(void *agent);
 typedef int (*func_ping_bind)(void *agent, std::string ping_code);
 typedef int (*func_bind_detect)(void *agent, std::string dev_ip, std::string sec_link, detectResult& detect);
 typedef int (*func_set_server_callback)(void *agent, OnServerErrFn fn);
-typedef int (*func_bind)(void *agent, std::string dev_ip, std::string dev_id, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn);
+typedef int (*func_bind)(void *agent, std::string dev_ip, std::string dev_id, std::string dev_model, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn);
 typedef int (*func_unbind)(void *agent, std::string dev_id);
 typedef std::string (*func_get_bambulab_host)(void *agent);
 typedef std::string (*func_get_user_selected_machine)(void *agent);
@@ -85,7 +84,6 @@ typedef int (*func_put_setting)(void *agent, std::string setting_id, std::string
 typedef int (*func_get_setting_list)(void *agent, std::string bundle_version, ProgressFn pro_fn, WasCancelledFn cancel_fn);
 typedef int (*func_get_setting_list2)(void *agent, std::string bundle_version, CheckFn chk_fn, ProgressFn pro_fn, WasCancelledFn cancel_fn);
 typedef int (*func_delete_setting)(void *agent, std::string setting_id);
-typedef std::string (*func_get_studio_info_url)(void *agent);
 typedef int (*func_set_extra_http_header)(void *agent, std::map<std::string, std::string> extra_headers);
 typedef int (*func_get_my_message)(void *agent, int type, int after, int limit, unsigned int* http_code, std::string* http_body);
 typedef int (*func_check_user_task_report)(void *agent, int* task_id, bool* printable);
@@ -107,6 +105,7 @@ typedef int (*func_get_subtask)(void *agent, BBLModelTask* task, OnGetSubTaskFn 
 typedef int (*func_get_model_mall_home_url)(void *agent, std::string* url);
 typedef int (*func_get_model_mall_detail_url)(void *agent, std::string* url, std::string id);
 typedef int (*func_get_my_profile)(void *agent, std::string token, unsigned int *http_code, std::string *http_body);
+typedef int (*func_get_my_token)(void *agent, std::string ticket, unsigned int *http_code, std::string *http_body);
 typedef int (*func_track_enable)(void *agent, bool enable);
 typedef int (*func_track_remove_files)(void *agent);
 typedef int (*func_track_event)(void *agent, std::string evt_key, std::string content);
@@ -120,7 +119,7 @@ typedef int (*func_get_model_mall_rating_result)(void *agent, int job_id, std::s
 typedef int (*func_get_mw_user_preference)(void *agent, std::function<void(std::string)> callback);
 typedef int (*func_get_mw_user_4ulist)(void *agent, int seed, int limit, std::function<void(std::string)> callback);
 
-// Legacy function pointer types (for older DLL versions)
+// Legacy function pointer types (for the 01.10.01 DLL)
 typedef int (*func_start_print_legacy)(void *agent, PrintParams_Legacy params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn);
 typedef int (*func_start_local_print_with_record_legacy)(void *agent, PrintParams_Legacy params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn);
 typedef int (*func_start_send_gcode_to_sdcard_legacy)(void *agent, PrintParams_Legacy params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn);
@@ -128,6 +127,34 @@ typedef int (*func_start_local_print_legacy)(void *agent, PrintParams_Legacy par
 typedef int (*func_start_sdcard_print_legacy)(void* agent, PrintParams_Legacy params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
 typedef int (*func_send_message_legacy)(void* agent, std::string dev_id, std::string json_str, int qos);
 typedef int (*func_send_message_to_printer_legacy)(void* agent, std::string dev_id, std::string json_str, int qos);
+
+// 02.03.00 function pointer types. Only PrintParams differs from the current ABI; send_message
+// and send_message_to_printer already take the flag argument in this series.
+typedef int (*func_start_print_0203)(void *agent, PrintParams_0203 params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn);
+typedef int (*func_start_local_print_with_record_0203)(void *agent, PrintParams_0203 params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn);
+typedef int (*func_start_send_gcode_to_sdcard_0203)(void *agent, PrintParams_0203 params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn);
+typedef int (*func_start_local_print_0203)(void *agent, PrintParams_0203 params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
+typedef int (*func_start_sdcard_print_0203)(void* agent, PrintParams_0203 params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
+
+// bind() gained dev_model in 02.08.01; the legacy and 02.03.00 series share the older form.
+typedef int (*func_bind_pre0208)(void *agent, std::string dev_ip, std::string dev_id, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn);
+
+// Exported by every supported generation, but only bound here.
+typedef int (*func_set_on_user_login_fn)(void *agent, OnUserLoginFn fn);
+typedef std::string (*func_get_studio_info_url)(void *agent);
+
+// Present since 02.03.00, null on the legacy plugin.
+typedef int (*func_report_consent)(void *agent, std::string expand);
+
+// Added by the 02.08.01.52 plugin ABI (null on older plugins).
+typedef int (*func_get_camera_url_for_golive)(void *agent, std::string dev_id, std::string sdev_id, std::function<void(std::string)> callback);
+typedef int (*func_get_hms_snapshot)(void *agent, std::string& dev_id, std::string& file_name, std::function<void(std::string, int)> callback);
+typedef int (*func_get_filament_spools)(void *agent, FilamentQueryParams params, std::string* http_body);
+typedef int (*func_create_filament_spool)(void *agent, std::string request_body, std::string* http_body);
+typedef int (*func_update_filament_spool)(void *agent, std::string spool_id, std::string request_body, std::string* http_body);
+typedef int (*func_delete_filament_spools)(void *agent, FilamentDeleteParams params, std::string* http_body);
+typedef int (*func_get_filament_config)(void *agent, std::string* http_body);
+typedef int (*func_sync_ams_filaments)(void *agent, AmsSyncParams params, std::string* http_body);
 
 /**
  * BBLNetworkPlugin - Singleton managing the Bambu Lab network DLL.
@@ -248,6 +275,9 @@ public:
 
     static std::string get_libpath_in_current_directory(const std::string& library_name);
     static std::string get_versioned_library_path(const std::string& version);
+    // Path to load for a stored version: the exact file if present, else - for a bare series
+    // whose file the startup rename did not produce - the newest same-series build on disk.
+    static std::string resolve_library_path(const std::string& version);
     static bool versioned_library_exists(const std::string& version);
     static bool legacy_library_exists();
     static void remove_legacy_library();
@@ -264,11 +294,13 @@ public:
                         const std::string& attempted_path);
 
     // ========================================================================
-    // Legacy Network Flag
+    // Plug-in ABI Generation
     // ========================================================================
 
-    bool use_legacy_network() const { return m_use_legacy_network; }
-    void set_use_legacy_network(bool legacy) { m_use_legacy_network = legacy; }
+    static bool is_legacy_version(const std::string& version) { return version == BAMBU_NETWORK_AGENT_VERSION_LEGACY; }
+    // The generation the loaded library speaks - what every call must dispatch on.
+    NetworkAbi network_abi() const { return m_network_abi; }
+    bool use_legacy_network() const { return m_network_abi == NetworkAbi::Legacy; }
 
     // ========================================================================
     // Function Pointer Accessors
@@ -284,7 +316,6 @@ public:
     func_set_country_code get_set_country_code() const { return m_set_country_code; }
     func_start get_start() const { return m_start; }
     func_set_on_ssdp_msg_fn get_set_on_ssdp_msg_fn() const { return m_set_on_ssdp_msg_fn; }
-    func_set_on_user_login_fn get_set_on_user_login_fn() const { return m_set_on_user_login_fn; }
     func_set_on_printer_connected_fn get_set_on_printer_connected_fn() const { return m_set_on_printer_connected_fn; }
     func_set_on_server_connected_fn get_set_on_server_connected_fn() const { return m_set_on_server_connected_fn; }
     func_set_on_http_error_fn get_set_on_http_error_fn() const { return m_set_on_http_error_fn; }
@@ -339,7 +370,6 @@ public:
     func_get_setting_list get_get_setting_list() const { return m_get_setting_list; }
     func_get_setting_list2 get_get_setting_list2() const { return m_get_setting_list2; }
     func_delete_setting get_delete_setting() const { return m_delete_setting; }
-    func_get_studio_info_url get_get_studio_info_url() const { return m_get_studio_info_url; }
     func_set_extra_http_header get_set_extra_http_header() const { return m_set_extra_http_header; }
     func_get_my_message get_get_my_message() const { return m_get_my_message; }
     func_check_user_task_report get_check_user_task_report() const { return m_check_user_task_report; }
@@ -361,6 +391,7 @@ public:
     func_get_model_mall_home_url get_get_model_mall_home_url() const { return m_get_model_mall_home_url; }
     func_get_model_mall_detail_url get_get_model_mall_detail_url() const { return m_get_model_mall_detail_url; }
     func_get_my_profile get_get_my_profile() const { return m_get_my_profile; }
+    func_get_my_token get_get_my_token() const { return m_get_my_token; }
     func_track_enable get_track_enable() const { return m_track_enable; }
     func_track_remove_files get_track_remove_files() const { return m_track_remove_files; }
     func_track_event get_track_event() const { return m_track_event; }
@@ -373,12 +404,25 @@ public:
     func_get_model_mall_rating_result get_get_model_mall_rating_result() const { return m_get_model_mall_rating_result; }
     func_get_mw_user_preference get_get_mw_user_preference() const { return m_get_mw_user_preference; }
     func_get_mw_user_4ulist get_get_mw_user_4ulist() const { return m_get_mw_user_4ulist; }
+    func_set_on_user_login_fn get_set_on_user_login_fn() const { return m_set_on_user_login_fn; }
+    func_get_studio_info_url get_get_studio_info_url() const { return m_get_studio_info_url; }
+    func_report_consent get_report_consent() const { return m_report_consent; }
+    func_get_camera_url_for_golive get_get_camera_url_for_golive() const { return m_get_camera_url_for_golive; }
+    func_get_hms_snapshot get_get_hms_snapshot() const { return m_get_hms_snapshot; }
+    func_get_filament_spools get_get_filament_spools() const { return m_get_filament_spools; }
+    func_create_filament_spool get_create_filament_spool() const { return m_create_filament_spool; }
+    func_update_filament_spool get_update_filament_spool() const { return m_update_filament_spool; }
+    func_delete_filament_spools get_delete_filament_spools() const { return m_delete_filament_spools; }
+    func_get_filament_config get_get_filament_config() const { return m_get_filament_config; }
+    func_sync_ams_filaments get_sync_ams_filaments() const { return m_sync_ams_filaments; }
 
     // ========================================================================
-    // Legacy Helper
+    // ABI Conversion Helpers
     // ========================================================================
 
+    // Both move out of `param`, so convert only inside the branch that will actually run.
     static PrintParams_Legacy as_legacy(PrintParams& param);
+    static PrintParams_0203 as_0203(PrintParams& param);
 
 private:
     // Singleton instance pointer (heap-allocated for explicit lifetime control)
@@ -405,8 +449,8 @@ private:
     // Load error state
     NetworkLibraryLoadError m_load_error;
 
-    // Legacy network compatibility flag
-    bool m_use_legacy_network{true};
+    // ABI generation of the currently loaded library
+    NetworkAbi m_network_abi{NetworkAbi::Unsupported};
 
     // Function pointers
     func_check_debug_consistent m_check_debug_consistent{nullptr};
@@ -419,7 +463,6 @@ private:
     func_set_country_code m_set_country_code{nullptr};
     func_start m_start{nullptr};
     func_set_on_ssdp_msg_fn m_set_on_ssdp_msg_fn{nullptr};
-    func_set_on_user_login_fn m_set_on_user_login_fn{nullptr};
     func_set_on_printer_connected_fn m_set_on_printer_connected_fn{nullptr};
     func_set_on_server_connected_fn m_set_on_server_connected_fn{nullptr};
     func_set_on_http_error_fn m_set_on_http_error_fn{nullptr};
@@ -474,7 +517,6 @@ private:
     func_get_setting_list m_get_setting_list{nullptr};
     func_get_setting_list2 m_get_setting_list2{nullptr};
     func_delete_setting m_delete_setting{nullptr};
-    func_get_studio_info_url m_get_studio_info_url{nullptr};
     func_set_extra_http_header m_set_extra_http_header{nullptr};
     func_get_my_message m_get_my_message{nullptr};
     func_check_user_task_report m_check_user_task_report{nullptr};
@@ -496,6 +538,7 @@ private:
     func_get_model_mall_home_url m_get_model_mall_home_url{nullptr};
     func_get_model_mall_detail_url m_get_model_mall_detail_url{nullptr};
     func_get_my_profile m_get_my_profile{nullptr};
+    func_get_my_token m_get_my_token{nullptr};
     func_track_enable m_track_enable{nullptr};
     func_track_remove_files m_track_remove_files{nullptr};
     func_track_event m_track_event{nullptr};
@@ -508,6 +551,17 @@ private:
     func_get_model_mall_rating_result m_get_model_mall_rating_result{nullptr};
     func_get_mw_user_preference m_get_mw_user_preference{nullptr};
     func_get_mw_user_4ulist m_get_mw_user_4ulist{nullptr};
+    func_set_on_user_login_fn m_set_on_user_login_fn{nullptr};
+    func_get_studio_info_url m_get_studio_info_url{nullptr};
+    func_report_consent m_report_consent{nullptr};
+    func_get_camera_url_for_golive m_get_camera_url_for_golive{nullptr};
+    func_get_hms_snapshot m_get_hms_snapshot{nullptr};
+    func_get_filament_spools m_get_filament_spools{nullptr};
+    func_create_filament_spool m_create_filament_spool{nullptr};
+    func_update_filament_spool m_update_filament_spool{nullptr};
+    func_delete_filament_spools m_delete_filament_spools{nullptr};
+    func_get_filament_config m_get_filament_config{nullptr};
+    func_sync_ams_filaments m_sync_ams_filaments{nullptr};
 };
 
 } // namespace Slic3r

@@ -9,7 +9,9 @@
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevFilaBlackList.h"
 #include "DeviceCore/DevFilaSystem.h"
+#include "DeviceCore/DevFilaSwitch.h"
 #include "DeviceCore/DevManager.h"
+#include "DeviceCore/DevNozzleSystem.h"
 #include "DeviceCore/DevStorage.h"
 
 #define CALIBRATION_LABEL_SIZE wxSize(FromDIP(150), FromDIP(24))
@@ -1457,31 +1459,40 @@ bool CalibrationPresetPage::is_filament_in_blacklist(int tray_id, Preset* preset
     get_tray_ams_and_slot_id(curr_obj, tray_id, ams_id, slot_id, out_tray_id);
 
     if (wxGetApp().app_config->get("skip_ams_blacklist_check") != "true") {
-        bool in_blacklist = false;
-        std::string action;
-        wxString info;
-        std::string filamnt_type;
-        preset->get_filament_type(filamnt_type);
+        DevFilaBlacklist::CheckFilamentInfo check_info;
+        check_info.dev_id   = curr_obj->get_dev_id();
+        check_info.model_id = curr_obj->printer_type;
+        check_info.fila_id  = preset->filament_id;
+        preset->get_filament_type(check_info.fila_type);
+        check_info.ams_id   = ams_id;
+        check_info.slot_id  = slot_id;
+        check_info.has_filament_switch = curr_obj->GetFilaSwitch()->IsInstalled();
+        // fila_name intentionally left empty: the engine recovers it from the selected AMS slot,
+        // preserving the name-match behavior.
 
         auto vendor = dynamic_cast<ConfigOptionStrings*> (preset->config.option("filament_vendor"));
         if (vendor && (vendor->values.size() > 0)) {
-            std::string vendor_name = vendor->values[0];
-            DevFilaBlacklist::check_filaments_in_blacklist(curr_obj->printer_type, vendor_name, filamnt_type, preset->filament_id, ams_id, slot_id, "", in_blacklist, action, info);
+            check_info.fila_vendor = vendor->values[0];
         }
 
-        if (in_blacklist) {
-            error_tips = info.ToUTF8().data();
-            if (action == "prohibition") {
-                return false;
-            }
-            else if (action == "warning") {
-                return true;
-            }
+        const auto &result = DevFilaBlacklist::check_filaments_in_blacklist(check_info);
+
+        if (const auto &prohibition_items = result.get_items_by_action("prohibition"); !prohibition_items.empty()) {
+            wxString combined_msg;
+            for (const auto &item : prohibition_items) { combined_msg += item.info_msg + "\n"; }
+            error_tips = combined_msg.ToUTF8().data();
+            return false;
         }
-        else {
-            error_tips = "";
+
+        if (const auto &warning_items = result.get_items_by_action("warning"); !warning_items.empty()) {
+            wxString combined_msg;
+            for (const auto &item : warning_items) { combined_msg += item.info_msg + "\n"; }
+            error_tips = combined_msg.ToUTF8().data();
             return true;
         }
+
+        error_tips = "";
+        return true;
     }
     if (devPrinterUtil::IsVirtualSlot(ams_id)) {
         if (m_cali_mode == CalibMode::Calib_PA_Line && (m_cali_method == CalibrationMethod::CALI_METHOD_AUTO || m_cali_method == CalibrationMethod::CALI_METHOD_NEW_AUTO)) {
@@ -1505,6 +1516,9 @@ bool CalibrationPresetPage::is_filaments_compatiable(const std::map<int, Preset*
 
     bed_temp = 0;
     std::vector<std::string> filament_types;
+    std::vector<int> nozzle_temperatures;
+    std::vector<int> nozzle_temperature_range_lows;
+    std::vector<int> nozzle_temperature_range_highs;
     for (auto &item : prests) {
         const auto& item_preset = item.second;
         if (!item_preset)
@@ -1533,13 +1547,38 @@ bool CalibrationPresetPage::is_filaments_compatiable(const std::map<int, Preset*
         std::string display_filament_type;
         filament_types.push_back(item_preset->config.get_filament_type(display_filament_type, 0));
 
+        int nozzle_temperature = 0;
+        int nozzle_temperature_range_low = 0;
+        int nozzle_temperature_range_high = 0;
+        if (const auto* opt_nozzle_temp = item_preset->config.option<ConfigOptionInts>("nozzle_temperature"))
+            nozzle_temperature = opt_nozzle_temp->get_at(0);
+        if (const auto* opt_nozzle_temp_low = item_preset->config.option<ConfigOptionInts>("nozzle_temperature_range_low"))
+            nozzle_temperature_range_low = opt_nozzle_temp_low->get_at(0);
+        if (const auto* opt_nozzle_temp_high = item_preset->config.option<ConfigOptionInts>("nozzle_temperature_range_high"))
+            nozzle_temperature_range_high = opt_nozzle_temp_high->get_at(0);
+
+        nozzle_temperatures.push_back(nozzle_temperature);
+        nozzle_temperature_range_lows.push_back(nozzle_temperature_range_low);
+        nozzle_temperature_range_highs.push_back(nozzle_temperature_range_high);
+
         // check is it in the filament blacklist
         if (!is_filament_in_blacklist(item.first, item_preset, error_tips))
             return false;
     }
 
-    if (Print::check_multi_filaments_compatibility(filament_types) == FilamentCompatibilityType::HighLowMixed) {
-        error_tips = _u8L("Cannot print multiple filaments which have large difference of temperature together. Otherwise, the extruder and nozzle may be blocked or damaged during printing");
+    auto compatibility = Print::check_multi_filaments_compatibility(
+            filament_types,
+            nozzle_temperatures,
+            nozzle_temperature_range_lows,
+            nozzle_temperature_range_highs);
+
+    if (compatibility == FilamentCompatibilityType::InvalidTemperatureRange) {
+        error_tips = _u8L("Invalid recommended nozzle temperature range. The lower bound must be lower than the upper bound.");
+        return false;
+    }
+
+    if (compatibility == FilamentCompatibilityType::HighLowMixed) {
+        error_tips = _u8L("Selected nozzle temperatures are incompatible. For multi-material printing, each filament's nozzle temperature must be within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur.");
         return false;
     }
 
@@ -1620,6 +1659,31 @@ bool CalibrationPresetPage::is_blocking_printing()
     return false;
 }
 
+bool CalibrationPresetPage::is_nozzle_info_synced() const
+{
+    if (!curr_obj || !curr_obj->is_info_ready())
+        return false;
+
+
+    for (const DevExtder& extruder : curr_obj->GetExtderSystem()->GetExtruders()) {
+        const int extruder_id = extruder.GetExtId();
+
+        if (!curr_obj->GetExtderSystem()->NozzleDiameterMatchesOrUnknown(extruder_id, get_nozzle_diameter(extruder_id)))
+            return false;
+
+        if (curr_obj->is_nozzle_flow_type_supported()) {
+            if (extruder.GetNozzleFlowType() == NozzleFlowType::NONE_FLOWTYPE)
+                return false;
+            // Map device flow -> volume type via DevNozzle::ToNozzleVolumeType so U_FLOW resolves to
+            // nvtTPUHighFlow(3); the naive flow-1 would yield nvtHybrid(2). Identical to flow-1 for S/H flow.
+            if (int(DevNozzle::ToNozzleVolumeType(extruder.GetNozzleFlowType())) != int(get_nozzle_volume_type(extruder_id)))
+                return false;
+        }
+    }
+
+    return true;
+}
+
 void CalibrationPresetPage::update_sync_button_status()
 {
     auto set_status = [this](bool synced) {
@@ -1636,53 +1700,7 @@ void CalibrationPresetPage::update_sync_button_status()
         }
     };
 
-    if (!curr_obj || !curr_obj->is_info_ready()) {
-        set_status(false);
-        return;
-    }
-
-    struct CaliNozzleInfo
-    {
-        float nozzle_diameter{0.4f};
-        int   nozzle_volume_type{0};
-
-        bool operator==(const CaliNozzleInfo &other) const
-        {
-            return abs(nozzle_diameter - other.nozzle_diameter) < EPSILON
-                && nozzle_volume_type == other.nozzle_volume_type;
-        }
-    };
-
-    if (curr_obj->is_multi_extruders()) {
-        std::vector<CaliNozzleInfo> machine_obj_nozzle_infos;
-        machine_obj_nozzle_infos.resize(2);
-        for (const DevExtder& extruder : curr_obj->GetExtderSystem()->GetExtruders()) {
-            machine_obj_nozzle_infos[extruder.GetExtId()].nozzle_diameter = extruder.GetNozzleDiameter();
-            machine_obj_nozzle_infos[extruder.GetExtId()].nozzle_volume_type = int(extruder.GetNozzleFlowType()) - 1;
-        }
-
-        std::vector<CaliNozzleInfo> cali_nozzle_infos;
-        cali_nozzle_infos.resize(2);
-        for (size_t extruder_id = 0; extruder_id < 2; ++extruder_id) {
-            cali_nozzle_infos[extruder_id].nozzle_diameter = get_nozzle_diameter(extruder_id);
-            cali_nozzle_infos[extruder_id].nozzle_volume_type = int(get_nozzle_volume_type(extruder_id));
-        }
-
-        if (machine_obj_nozzle_infos == cali_nozzle_infos) {
-            set_status(true);
-        }
-        else {
-            set_status(false);
-        }
-    }
-    else {
-        if (abs(curr_obj->GetExtderSystem()->GetNozzleDiameter(0) - get_nozzle_diameter(0)) < EPSILON) {
-            set_status(true);
-        }
-        else {
-            set_status(false);
-        }
-    }
+    set_status(is_nozzle_info_synced());
 }
 
 void CalibrationPresetPage::update_show_status()
@@ -1694,7 +1712,7 @@ void CalibrationPresetPage::update_show_status()
 
     MachineObject* obj_ = dev->get_selected_machine();
     if (!obj_) {
-        if (agent->is_user_login()) {
+        if (agent->is_user_login(wxGetApp().get_printer_cloud_provider())) {
             show_status(CaliPresetPageStatus::CaliPresetStatusInvalidPrinter);
         }
         else {
@@ -1704,7 +1722,7 @@ void CalibrationPresetPage::update_show_status()
     }
 
     if (!obj_->is_lan_mode_printer()) {
-        if (!agent->is_server_connected()) {
+        if (!agent->is_server_connected(wxGetApp().get_printer_cloud_provider())) {
             show_status(CaliPresetPageStatus::CaliPresetStatusConnectingServer);
             return;
         }
@@ -1877,12 +1895,12 @@ void CalibrationPresetPage::show_status(CaliPresetPageStatus status)
         Enable_Send_Button(false);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusNeedForceUpgrading) {
-        wxString msg_text = _L("Cannot send the print job to a printer whose firmware is required to get updated.");
+        wxString msg_text = _L("Cannot send the print job to a printer whose firmware must be updated.");
         update_print_status_msg(msg_text, true);
         Enable_Send_Button(false);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusNeedConsistencyUpgrading) {
-        wxString msg_text = _L("Cannot send the print job to a printer whose firmware is required to get updated.");
+        wxString msg_text = _L("Cannot send the print job to a printer whose firmware must be updated.");
         update_print_status_msg(msg_text, true);
         Enable_Send_Button(false);
     }
@@ -2119,7 +2137,7 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
                 }
 
                 if (obj->GetExtderSystem()->GetNozzleFlowType(i) != NozzleFlowType::NONE_FLOWTYPE) {
-                    m_left_comboBox_nozzle_volume->SetSelection(obj->GetExtderSystem()->GetNozzleFlowType(i) - 1);
+                    m_left_comboBox_nozzle_volume->SetSelection(int(DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(i))));
                 } else {
                     m_left_comboBox_nozzle_volume->SetSelection(0);
                 }
@@ -2139,7 +2157,7 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
                 }
 
                 if (obj->GetExtderSystem()->GetNozzleFlowType(i) != NozzleFlowType::NONE_FLOWTYPE) {
-                    m_right_comboBox_nozzle_volume->SetSelection(obj->GetExtderSystem()->GetNozzleFlowType(i) - 1);
+                    m_right_comboBox_nozzle_volume->SetSelection(int(DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(i))));
                 } else {
                     m_right_comboBox_nozzle_volume->SetSelection(0);
                 }
@@ -2177,7 +2195,7 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
     else {
         if ((obj->GetExtderSystem()->GetTotalExtderCount() > 0) && (obj->GetExtderSystem()->GetNozzleFlowType(0) != NozzleFlowType::NONE_FLOWTYPE))
         {
-            m_comboBox_nozzle_volume->SetSelection(obj->GetExtderSystem()->GetNozzleFlowType(0) - 1);
+            m_comboBox_nozzle_volume->SetSelection(int(DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(0))));
         } else {
             m_comboBox_nozzle_volume->SetSelection(0);
         }

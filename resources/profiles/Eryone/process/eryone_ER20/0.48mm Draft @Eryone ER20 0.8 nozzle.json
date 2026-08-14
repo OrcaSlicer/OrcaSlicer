@@ -5,6 +5,7 @@
 	"elefant_foot_compensation": "0",
 	"from": "system",
 	"inherits": "fdm_process_ER20_0.48_nozzle_0.8",
+	"setting_id": "O3BhYAmUROrYm64x",
 	"instantiation": "true",
 	"name": "0.48mm Draft @Eryone ER20 0.8 nozzle",
 	"type": "process"

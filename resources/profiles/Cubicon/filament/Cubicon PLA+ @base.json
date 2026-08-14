@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Cubicon PLA+ @base",
 	"inherits": "Cubicon PLA @base",
+	"setting_id": "ETnuhiOZRh1jxrVk",
 	"filament_id": "P510cfa1",
 	"instantiation": "true",
 	"compatible_printers": [

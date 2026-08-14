@@ -28,6 +28,7 @@
 	"extruder_variant_list": [
 		"Direct Drive Standard,Direct Drive High Flow"
 	],
+	"fan_direction": "left",
 	"long_retractions_when_cut": [
 		"0",
 		"0"
@@ -190,6 +191,7 @@
 		"18",
 		"18"
 	],
+	"support_air_filtration": "1",
 	"wipe_distance": [
 		"2",
 		"2"

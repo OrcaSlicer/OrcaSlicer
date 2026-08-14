@@ -79,6 +79,7 @@ namespace boost { namespace filesystem { class directory_entry; }}
 namespace Slic3r {
 
 extern void set_logging_level(unsigned int level);
+extern void set_logging_file(const std::string &file);
 extern unsigned int level_string_to_boost(std::string level);
 extern std::string  get_string_logging_level(unsigned level);
 extern unsigned get_logging_level();
@@ -100,6 +101,9 @@ void set_var_dir(const std::string &path);
 const std::string& var_dir();
 // Return a full resource path for a file_name.
 std::string var(const std::string &file_name);
+
+// Snap a nozzle diameter to the closest supported value and format it as a string (e.g. 0.4 -> "0.4").
+std::string format_diameter_to_str(double diameter, int precision = 1);
 
 // Set a path with various static definition data (for example the initial config bundles).
 void set_resources_dir(const std::string &path);
@@ -193,6 +197,8 @@ std::string debug_out_path(const char *name, ...);
 // smaller level means less log. level=5 means saving all logs.
 void set_log_path_and_level(const std::string& file, unsigned int level);
 void flush_logs();
+void shutdown_console_logging();
+boost::filesystem::path get_log_file_name();
 
 // A special type for strings encoded in the local Windows 8-bit code page.
 // This type is only needed for Perl bindings to relay to Perl that the string is raw, not UTF-8 encoded.
@@ -297,6 +303,10 @@ std::string header_gcodeviewer_generated();
 
 // getpid platform wrapper
 extern unsigned get_current_pid();
+// Per-user id for isolating temp dirs; empty on Windows (its temp dir is already per-user).
+std::string per_user_temp_id();
+// Per-user temp root under `base`; an empty `user_id` returns `base` unchanged.
+std::string per_user_temp_dir(const std::string &base, const std::string &user_id);
 // BBS: backup & restore
 std::string get_process_name(int pid);
 
@@ -707,7 +717,19 @@ inline std::string filter_characters(const std::string& str, const std::string& 
     return filteredStr;
 }
 
-void copy_directory_recursively(const boost::filesystem::path &source, const boost::filesystem::path &target, std::function<bool(const std::string)> filter = nullptr);
+void copy_directory_recursively(const boost::filesystem::path& source,
+                                const boost::filesystem::path& target,
+                                std::function<bool(const std::string)> filter = nullptr,
+                                bool merge_mode                               = false);
+
+// Install vendor bundles from resources directory to data directory
+// bundle_names: vector of vendor bundle names (without .json extension)
+// resource_subdir: subdirectory under resources_dir() (default: "profiles")
+// data_subdir: subdirectory under data_dir() (default: "system")
+// Returns: true if all bundles installed successfully, false otherwise
+bool install_vendor_bundles_from_resources(const std::vector<std::string>& bundle_names,
+                                           const std::string& resource_subdir = "profiles",
+                                           const std::string& data_subdir     = "system");
 
 // Orca: Since 1.7.9 Boost deprecated save_string_file and load_string_file, copy and modified from boost 1.7.8
 void save_string_file(const boost::filesystem::path& p, const std::string& str);

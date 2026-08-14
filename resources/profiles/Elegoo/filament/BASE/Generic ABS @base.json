@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @base",
+	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"filament_id": "GABSB00",
+	"instantiation": "false",
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"filament_vendor": [
+		"Generic"
+	],
+	"filament_type": [
+		"ABS"
+	]
+}

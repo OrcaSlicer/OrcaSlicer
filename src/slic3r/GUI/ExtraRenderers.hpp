@@ -28,6 +28,15 @@ public:
         m_bmp(other.m_bmp)
     { }
 
+    DataViewBitmapText& operator=(const DataViewBitmapText &other)
+    {
+        if (this != &other) {
+            m_text = other.m_text;
+            m_bmp = other.m_bmp;
+        }
+        return *this;
+    }
+
     void SetText(const wxString &text)      { m_text = text; }
     wxString GetText() const                { return m_text; }
     void SetBitmap(const wxBitmap &bmp)     { m_bmp = bmp; }

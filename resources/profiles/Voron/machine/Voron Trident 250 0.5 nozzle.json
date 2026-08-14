@@ -3,7 +3,7 @@
 	"name": "Voron Trident 250 0.5 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "opNpG2tiXcDqfAgo",
 	"instantiation": "true",
 	"printer_model": "Voron Trident 250",
 	"default_print_profile": "0.25mm Standard 0.5 nozzle @Voron",
