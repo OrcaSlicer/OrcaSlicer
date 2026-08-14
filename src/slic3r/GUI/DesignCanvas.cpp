@@ -604,6 +604,11 @@ void DesignCanvas::set_loop_pick(int feature, int region)
     request_repaint();
 }
 
+void DesignCanvas::set_escalate_on_repick(bool on)
+{
+    m_sketch_tool.set_escalate_on_repick(on);
+}
+
 void DesignCanvas::set_solid_pick(const std::vector<CadBody>* bodies, const TriangleMesh* mesh,
                                   const std::vector<int>* tri_face, const std::vector<int>* tri_body,
                                   const std::vector<bool>* visible,

@@ -90,6 +90,13 @@ public:
     // Does the live session hold anything a cancel would throw away? Escape must not silently
     // destroy drawn geometry; the panel asks this before treating Escape as "discard sketch".
     bool live_sketch_has_work() const { return !m_entities.empty(); }
+
+    // Clicking the same sub-element again escalates to the whole body. That is right for free
+    // picking and WRONG while a card has armed a face/edge pick: the card says "click a FACE",
+    // the user clicks the face it is already showing, and the escalation turns it into a
+    // whole-body pick that the armed capture then rejects. The host turns this off for as long
+    // as a pick is armed.
+    void set_escalate_on_repick(bool on) { m_escalate_repick = on; }
     bool constrain_value_anchor(wxPoint& out) const; // screen anchor over the picked constrain geometry
 
     void begin(const SketchPlane& plane, Mode mode = Mode::Polyline);
@@ -1043,6 +1050,7 @@ private:
                             int& edge_feat, int& edge_reg, int& edge_ent,
                             double& edge_d, int& face_feat, int& face_reg) const;
     bool m_right_consumed{false};          // last RightDown was a gesture terminator, not a menu
+    bool m_escalate_repick{true};          // re-picking the same sub-element takes the whole body
     void render_solid_highlight();
     // The shared body of the above: one highlight from explicit arguments, so the committed
     // selection and the hover pre-highlight cannot drift apart in how they look.

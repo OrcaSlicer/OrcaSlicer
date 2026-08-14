@@ -85,6 +85,7 @@ public:
     std::vector<std::vector<int>> region_entity_indices(const std::vector<SketchEntity>& ents) const;
     void clear_loop_pick();  // drop the click-selected loop highlight (e.g. after extrude)
     void set_loop_pick(int feature, int region);  // adopt a loop pick made before the commit
+    void set_escalate_on_repick(bool on);         // off while a card has armed a face/edge pick
     // Solid whole/face/edge selection: point the tool at the bodies + concatenated
     // tessellation (with per-triangle face & body ids), and a callback fired on each
     // whole->face->edge cycle (level, body index, face id, edge id).

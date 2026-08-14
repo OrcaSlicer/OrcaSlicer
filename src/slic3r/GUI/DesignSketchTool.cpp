@@ -3159,7 +3159,7 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
           : m_solid_sel == SolidSel::Edge   ? m_sel_edge == prev_edge
           : m_solid_sel == SolidSel::Face   ? m_sel_face == prev_face
                                             : true);
-    if (same_pick) {
+    if (same_pick && m_escalate_repick) {
         select_body(m_sel_body);   // clears face/edge/vertex, tints the whole body
         dp_pick_trace("re-pick -> escalated to whole body %d", m_sel_body);
     }
