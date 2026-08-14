@@ -3796,6 +3796,18 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // Delete/Ctrl+Z there must edit the text, not the model.
         const bool in_text = (dynamic_cast<wxTextCtrl*>(wxWindow::FindFocus()) != nullptr)
                              || (m_viewport && m_viewport->inline_busy());
+        // The in-canvas value field cannot take the keyboard focus on a Wayland session (mutter
+        // refuses a self-focus request without an activation token), so typing went nowhere and
+        // the value had to be clicked into first. Feed it from here instead: the canvas keeps
+        // focus, we hand it the keys, and the behaviour is identical on every compositor. Does
+        // nothing when the field genuinely does hold focus, so X11 keeps its normal routing.
+        // Gate on the EDITOR being open, not on inline_busy(). inline_busy is a freeze flag for
+        // the sketch tool: it is cleared on commit and only re-set when the next queued field
+        // opens, so across a rectangle's Width -> Height handover there is a window where the
+        // field is on screen and the flag is false. Typing worked for the first dimension and
+        // not the second, which is exactly that gap. feed_inline_key() already checks is_open().
+        if (m_viewport && m_viewport->feed_inline_key(e))
+            return;
 
         if (getenv("SNAPORCA_KEYTRACE")) {
             wxWindow* fw = wxWindow::FindFocus();

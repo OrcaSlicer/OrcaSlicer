@@ -1185,6 +1185,11 @@ bool DesignCanvas::inline_busy() const
     return m_sketch_tool.inline_busy();
 }
 
+bool DesignCanvas::feed_inline_key(wxKeyEvent& evt)
+{
+    return m_inline_editor && m_inline_editor->is_open() && m_inline_editor->feed_key(evt);
+}
+
 bool DesignCanvas::live_sketch_has_work() const
 {
     return m_sketch_tool.live_sketch_has_work();

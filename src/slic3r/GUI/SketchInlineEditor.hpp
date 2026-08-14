@@ -9,6 +9,7 @@ class wxFrame;
 class wxTextCtrl;
 class wxStaticText;
 class wxPoint;
+class wxKeyEvent;
 
 namespace Slic3r {
 namespace GUI {
@@ -33,6 +34,13 @@ public:
     void cancel();                       // if open, run the registered cancel (keep-as-drawn)
     void commit();                       // if open, run the registered commit (accept the typed value)
     bool is_open() const { return m_open; }
+    // Type into the field WITHOUT owning the keyboard focus. Under Wayland a client cannot
+    // focus itself: mutter ignores gtk_window_present() without an activation token, so the
+    // Show/Raise/SetFocus dance in open() is refused and the first keystrokes went nowhere —
+    // "keyboard focus does not go on the labels and some clicks are wasted to focus them".
+    // The canvas keeps focus and feeds us instead, which behaves the same on every compositor.
+    // Returns true if the key was consumed.
+    bool feed_key(wxKeyEvent& evt);
 
 private:
     void do_commit();
@@ -43,6 +51,7 @@ private:
     wxStaticText*               m_title{nullptr};
     std::function<void(double)> m_commit;
     std::function<void()>       m_cancel;
+    bool                        m_fresh{true};   // next printable key replaces the prefill
     bool                        m_open{false};
     bool                        m_closing{false};
 };
