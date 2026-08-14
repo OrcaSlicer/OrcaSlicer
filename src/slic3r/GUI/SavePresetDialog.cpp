@@ -111,18 +111,20 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
 
     sizer->Add(m_radio_group, 0, wxEXPAND | wxTOP | wxLEFT, BORDER_W);
 
-    std::string inherits_str = sel_preset.inherits();
-    if (parent->m_mode == comDevelop && !inherits_str.empty()) {
+    if (parent->m_mode == comDevelop) {
+        // A new user copy of a system preset inherits from the selected system preset.
+        const std::string parent_name = sel_preset.is_system ? sel_preset.name : sel_preset.inherits();
+        const bool        can_detach  = !parent_name.empty();
+
         wxBoxSizer *detach_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-        auto detach_tooltip  = _L("Copies all inherited values from the parent preset into this preset and removes the connection with the parent preset.");
+        auto detach_tooltip  = _L("Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported.");
 
         auto detach_checkbox = new ::CheckBox(parent);
         detach_checkbox->SetToolTip(detach_tooltip);
 
         auto detach_label    = new wxStaticText(parent, wxID_ANY, _L("Detach from parent"));
         detach_label->SetFont(::Label::Body_14);
-        detach_label->SetForegroundColour(wxColour("#363636"));
         detach_label->SetToolTip(detach_tooltip);
 
         detach_sizer->Add(detach_checkbox, 0, wxALIGN_LEFT | wxLEFT, BORDER_W);
@@ -130,27 +132,36 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
         sizer->Add(detach_sizer, 0, wxEXPAND | wxTOP, BORDER_W);
         sizer->AddSpacer(FromDIP(5));
 
-        auto parent_label    = new wxStaticText(parent, wxID_ANY, inherits_str);
+        const wxString parent_text = can_detach ? from_u8(parent_name) : _L("Unique preset");
+        auto parent_label          = new wxStaticText(parent, wxID_ANY, parent_text);
         parent_label->SetFont(::Label::Body_12);
         parent_label->SetForegroundColour(wxColour("#6B6B6B"));
-        parent_label->SetToolTip(_L("Parent preset"));
+        parent_label->SetToolTip(can_detach ? _L("Parent preset") : _L("This preset does not inherit from another preset."));
         sizer->Add(parent_label, 0, wxEXPAND | wxLEFT, BORDER_W + FromDIP(24));
 
         sizer->AddSpacer(FromDIP(5));
 
-        // Set initial state (unchecked by default)
-        detach_checkbox->SetValue(m_detach);
-        // Bind the checkbox event to update the detach state for this item
-        detach_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, detach_checkbox](wxCommandEvent&) { m_detach = detach_checkbox->GetValue(); });
+        if (!can_detach) {
+            detach_checkbox->Disable();
+            detach_label->SetForegroundColour(wxColour("#6B6B6B"));
+        } 
+        else {
+            // Set initial state (unchecked by default)
+            detach_checkbox->SetValue(m_detach);
+            // Bind the checkbox event to update the detach state for this item
+            detach_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, detach_checkbox](wxCommandEvent&) { m_detach = detach_checkbox->GetValue(); });
 
-        auto on_toggle = [this, detach_checkbox]() {
-            detach_checkbox->SetValue(!detach_checkbox->GetValue());
-            wxCommandEvent ev(wxEVT_TOGGLEBUTTON, detach_checkbox->GetId());
-            ev.SetEventObject(detach_checkbox);
-            detach_checkbox->GetEventHandler()->ProcessEvent(ev);
-        };
-        detach_label->Bind(wxEVT_LEFT_DOWN,   [on_toggle](wxMouseEvent& e) {if(!e.LeftDClick()) on_toggle();});
-        detach_label->Bind(wxEVT_LEFT_DCLICK, [on_toggle](wxMouseEvent& e) {on_toggle();});
+            detach_label->SetForegroundColour(wxColour("#363636"));
+
+            auto on_toggle = [this, detach_checkbox]() {
+                detach_checkbox->SetValue(!detach_checkbox->GetValue());
+                wxCommandEvent ev(wxEVT_TOGGLEBUTTON, detach_checkbox->GetId());
+                ev.SetEventObject(detach_checkbox);
+                detach_checkbox->GetEventHandler()->ProcessEvent(ev);
+            };
+            detach_label->Bind(wxEVT_LEFT_DOWN,   [on_toggle](wxMouseEvent& e) {if(!e.LeftDClick()) on_toggle();});
+            detach_label->Bind(wxEVT_LEFT_DCLICK, [on_toggle](wxMouseEvent& e) {on_toggle();});
+        }
     }
     
     m_radio_group->Bind(wxEVT_COMMAND_RADIOBOX_SELECTED, [this](wxCommandEvent &e) {
