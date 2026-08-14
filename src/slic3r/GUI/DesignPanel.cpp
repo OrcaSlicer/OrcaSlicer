@@ -3448,6 +3448,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 refresh_preview();                        // re-tints the operands + rebuilds the ghost
             }
         }
+        // Mirror card open: the body you point at is the body that gets mirrored. Same one-way
+        // flow Boolean had (snaporca-310o) and the same fix — the combo stays as the typed half.
+        // Only one operand here, so there is no slot to alternate and no swap to do.
+        if (m_active == Tool::Mirror && m_sel_solid_body >= 0 && m_mirror_body != nullptr &&
+            m_sel_solid_body < int(m_mirror_body->GetCount())) {
+            m_mirror_body->SetSelection(m_sel_solid_body);   // selection index == body index
+            refresh_preview();
+        }
         // If the Shell card is open, a face pick chooses the open face: update the label + gizmo
         // + ghost so the hollow updates live.
         if (m_active == Tool::Shell) {
