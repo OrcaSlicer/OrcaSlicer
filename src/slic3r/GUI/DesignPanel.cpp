@@ -3502,7 +3502,19 @@ DesignPanel::DesignPanel(wxWindow* parent)
             case CoordSysPick::Edge: if (m_sel_solid_edge >= 0) { m_cs_face_body = m_sel_solid_body; m_cs_edge = m_sel_solid_edge; got = true; } break;
             default: break;
             }
-            if (got) { m_coordsys_pick = CoordSysPick::None; refresh_coordsys_labels(); }
+            if (got) {
+                // A picked face or edge is only meaningful to FaceAndDirection. Left on the
+                // default Point (world), datum_frame ignores the pick entirely and resolves the
+                // connector to coordsys_point — which is (0,0,0) unless the user typed
+                // otherwise. Two such connectors then share one frame, so a mate between them
+                // computes an IDENTITY transform: the feature commits, the recompute succeeds,
+                // and nothing moves. Picking a face IS the choice of a face-based frame, so make
+                // the type follow the pick rather than asking for it twice.
+                if (m_coordsys_type && m_coordsys_type->GetSelection() != (int)CoordSysType::FaceAndDirection)
+                    m_coordsys_type->SetSelection((int)CoordSysType::FaceAndDirection);
+                m_coordsys_pick = CoordSysPick::None;
+                refresh_coordsys_labels();
+            }
             if (got && m_viewport) m_viewport->set_escalate_on_repick(true);
         }
         m_status->SetForegroundColour(wxNullColour);
