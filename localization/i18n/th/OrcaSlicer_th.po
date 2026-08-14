@@ -843,7 +843,7 @@ msgid "Hexagon"
 msgstr "หกเหลี่ยม"
 
 msgid "Keep orientation"
-msgstr "รักษาปฐมนิเทศ"
+msgstr "คงการวางแนว"
 
 msgid "Place on cut"
 msgstr "วางบนการตัด"
@@ -891,7 +891,7 @@ msgid "Cut position"
 msgstr "ตำแหน่งตัด"
 
 msgid "Build Volume"
-msgstr "ปริมาตรพื้นที่พิมพ์"
+msgstr "ปริมาตรการพิมพ์ (Build Volume)"
 
 msgid "Multiple"
 msgstr "หลายรายการ"
@@ -1200,7 +1200,7 @@ msgid "Horizontal text"
 msgstr "ข้อความแนวนอน"
 
 msgid "Shift+"
-msgstr "กะ+"
+msgstr "Shift+"
 
 msgid "Mouse move up or down"
 msgstr "เมาส์เลื่อนขึ้นหรือลง"
@@ -2592,7 +2592,7 @@ msgid "Ironing"
 msgstr "รีดผิว"
 
 msgid "Fuzzy skin"
-msgstr "ผิวฟัซซี"
+msgstr "ผิวฟัซซี (Fuzzy Skin)"
 
 msgid "Extruders"
 msgstr "ชุดดันเส้น"
@@ -2817,10 +2817,10 @@ msgid "current"
 msgstr "ปัจจุบัน"
 
 msgid "Scale to build volume"
-msgstr "ปรับขนาดเพื่อสร้างปริมาณ"
+msgstr "ปรับขนาดให้พอดีกับปริมาตรการพิมพ์"
 
 msgid "Scale an object to fit the build volume"
-msgstr "ปรับขนาดวัตถุให้พอดีกับปริมาณงานสร้าง"
+msgstr "ปรับขนาดวัตถุให้พอดีกับปริมาตรการพิมพ์"
 
 msgid "Flush Options"
 msgstr "ตัวเลือกการไล่เส้น"
@@ -2898,10 +2898,10 @@ msgid "Change SVG source file, projection, size, ..."
 msgstr "เปลี่ยนไฟล์ต้นฉบับ SVG, การฉายภาพ, ขนาด, ..."
 
 msgid "Invalidate cut info"
-msgstr "ข้อมูลการตัดไม่ถูกต้อง"
+msgstr "ยกเลิกข้อมูลการตัด"
 
 msgid "Add Primitive"
-msgstr "เพิ่มดั้งเดิม"
+msgstr "เพิ่มรูปทรงพื้นฐาน"
 
 msgid "Add Handy models"
 msgstr "เพิ่มรุ่นแฮนดี้"
@@ -3027,7 +3027,7 @@ msgid "Center"
 msgstr "กึ่งกลาง"
 
 msgid "Drop"
-msgstr "หยด"
+msgstr "วางลงฐานพิมพ์"
 
 msgid "Edit Process Settings"
 msgstr "แก้ไขการตั้งค่ากระบวนการ"
@@ -3182,7 +3182,7 @@ msgid "Switch to per-object setting mode to edit process settings of selected ob
 msgstr "สลับไปที่โหมดการตั้งค่าต่ออ็อบเจ็กต์เพื่อแก้ไขการตั้งค่ากระบวนการของอ็อบเจ็กต์ที่เลือก"
 
 msgid "Remove paint-on fuzzy skin"
-msgstr "ลบสีบนผิวที่คลุมเครือ"
+msgstr "ลบการระบายสีผิวฟัซซี"
 
 # AI Translated
 msgid "Delete Settings"
@@ -3242,7 +3242,7 @@ msgid "Add layers"
 msgstr "เพิ่มเลเยอร์"
 
 msgid "Cut Connectors information"
-msgstr "ตัดข้อมูลตัวเชื่อมต่อ"
+msgstr "ข้อมูลตัวเชื่อมสำหรับการตัด"
 
 msgid "Object manipulation"
 msgstr "การจัดการวัตถุ"
@@ -3279,7 +3279,7 @@ msgid "Layer"
 msgstr "เลเยอร์"
 
 msgid "Selection conflicts"
-msgstr "ข้อขัดแย้งในการคัดเลือก"
+msgstr "การเลือกขัดแย้งกัน"
 
 msgid "If the first selected item is an object, the second should also be an object."
 msgstr "หากรายการแรกที่เลือกเป็นวัตถุ รายการที่สองก็ควรเป็นวัตถุด้วย"
@@ -3390,7 +3390,7 @@ msgid "Plate"
 msgstr "ฐานพิมพ์"
 
 msgid "Brim"
-msgstr "ขอบยึดชิ้นงาน"
+msgstr "ขอบยึดชิ้นงาน (Brim)"
 
 msgid "Object/Part Settings"
 msgstr "การตั้งค่าวัตถุ/ชิ้นส่วน"
@@ -4786,7 +4786,7 @@ msgid ""
 "YES - Keep Prime Tower\n"
 "NO  - Keep Adaptive Layer Height and Independent Support Layer Height"
 msgstr ""
-"ไพรม์ทาวเวอร์ไม่ทำงานเมื่อเปิดใช้งาน Adaptive Layer Height หรือ Independent ส่วนรองรับ Layer Height\n"
+"Prime Tower ไม่ทำงานเมื่อเปิดใช้งาน Adaptive Layer Height หรือ Independent ส่วนรองรับ Layer Height\n"
 "คุณต้องการเก็บอันไหน?\n"
 "ใช่ - เก็บ Prime Tower ไว้\n"
 "ไม่ - คงความสูงของเลเยอร์แบบปรับได้และความสูงของเลเยอร์รองรับที่เป็นอิสระ"
@@ -4797,7 +4797,7 @@ msgid ""
 "YES - Keep Prime Tower\n"
 "NO  - Keep Adaptive Layer Height"
 msgstr ""
-"ไพรม์ทาวเวอร์ไม่ทำงานเมื่อเปิด Adaptive Layer Height\n"
+"Prime Tower ไม่ทำงานเมื่อเปิด Adaptive Layer Height\n"
 "คุณต้องการเก็บอันไหน?\n"
 "ใช่ - เก็บ Prime Tower ไว้\n"
 "ไม่ - คงความสูงของเลเยอร์แบบปรับได้"
@@ -4808,7 +4808,7 @@ msgid ""
 "YES - Keep Prime Tower\n"
 "NO  - Keep Independent Support Layer Height"
 msgstr ""
-"ไพร์มทาวเวอร์ไม่ทำงานเมื่อเปิดความสูงของเลเยอร์รองรับอิสระ\n"
+"Prime Tower ไม่ทำงานเมื่อเปิดความสูงของเลเยอร์รองรับอิสระ\n"
 "คุณต้องการเก็บอันไหน?\n"
 "ใช่ - เก็บ Prime Tower ไว้\n"
 "ไม่ - รักษาความสูงของชั้นรองรับที่เป็นอิสระ"
@@ -5381,7 +5381,7 @@ msgid "Pressure Advance"
 msgstr "แรงดันล่วงหน้า (Pressure Advance)"
 
 msgid "Noop"
-msgstr "นะ"
+msgstr "ไม่มีการดำเนินการ"
 
 msgid "Retract"
 msgstr "ดึงกลับ"
@@ -5405,7 +5405,7 @@ msgid "Travel"
 msgstr "เดินหัวเปล่า"
 
 msgid "Wipe"
-msgstr "เช็ดหัวฉีด"
+msgstr "เช็ดหัวฉีด (Wipe)"
 
 msgid "Extrude"
 msgstr "ฉีดเส้น"
@@ -5441,7 +5441,7 @@ msgid "Support interface"
 msgstr "ผิวสัมผัสส่วนรองรับ"
 
 msgid "Prime tower"
-msgstr "ทาวเวอร์ไล่เส้น"
+msgstr "Prime Tower"
 
 msgid "Bottom surface"
 msgstr "ผิวด้านล่าง"
@@ -5486,7 +5486,7 @@ msgid "Jerk: "
 msgstr "เจิร์ก: "
 
 msgid "PA: "
-msgstr "พ่อ:"
+msgstr "PA: "
 
 msgid "mm/s"
 msgstr "มม./วินาที"
@@ -5552,7 +5552,7 @@ msgid "Tips:"
 msgstr "เคล็ดลับ:"
 
 msgid "Current grouping of slice result is not optimal."
-msgstr "การจัดกลุ่มผลลัพธ์การแบ่งส่วนในปัจจุบันไม่เหมาะสมที่สุด"
+msgstr "การจัดกลุ่มผลการสไลซ์ปัจจุบันยังไม่เหมาะสม"
 
 #, boost-format
 msgid "Increase %1%g filament and %2% changes compared to optimal grouping."
@@ -5585,7 +5585,7 @@ msgid "Regroup filament"
 msgstr "จัดกลุ่มเส้นพลาสติกใหม่"
 
 msgid "up to"
-msgstr "ขึ้นไป"
+msgstr "สูงสุด"
 
 msgid "above"
 msgstr "ข้างบน"
@@ -5642,7 +5642,7 @@ msgid "Filament change times"
 msgstr "จำนวนครั้งที่เปลี่ยนเส้น"
 
 msgid "Tool changes"
-msgstr "การเปลี่ยนแปลงเครื่องมือ"
+msgstr "การเปลี่ยนเครื่องมือ"
 
 msgid "Color change"
 msgstr "เปลี่ยนสี"
@@ -5673,7 +5673,7 @@ msgid "Model printing time"
 msgstr "ระยะเวลาในการพิมพ์โมเดล"
 
 msgid "Show stealth mode"
-msgstr "แสดงโหมดซ่อนตัว"
+msgstr "แสดงโหมดเงียบ"
 
 msgid "Show normal mode"
 msgstr "แสดงโหมดปกติ"
@@ -5690,10 +5690,10 @@ msgid ""
 "Please solve the problem by moving it totally on or off the plate, and confirming that the height is within the build volume."
 msgstr ""
 "วัตถุวางอยู่เหนือขอบเขตของแผ่นหรือสูงเกินขีดจำกัดความสูง\n"
-"โปรดแก้ไขปัญหาด้วยการเลื่อนเข้าหรือออกจากเพลตโดยสิ้นเชิง และยืนยันว่าความสูงอยู่ภายในปริมาตรงานประกอบ"
+"โปรดแก้ไขปัญหาด้วยการเลื่อนเข้าหรือออกจากเพลตโดยสิ้นเชิง และยืนยันว่าความสูงอยู่ภายในปริมาตรการพิมพ์"
 
 msgid "Variable layer height"
-msgstr "ความสูงของชั้นตัวแปร"
+msgstr "ความสูงเลเยอร์แบบแปรผัน"
 
 msgid "Adaptive"
 msgstr "ปรับตัวได้"
@@ -5743,7 +5743,7 @@ msgid "Following objects are laid over the boundary of plate or exceeds the heig
 msgstr "วัตถุต่อไปนี้วางอยู่เหนือขอบเขตของแผ่นหรือสูงเกินขีดจำกัดความสูง:\n"
 
 msgid "Please solve the problem by moving it totally on or off the plate, and confirming that the height is within the build volume.\n"
-msgstr "โปรดแก้ไขปัญหาด้วยการเลื่อนเข้าหรือออกจากเพลตโดยสิ้นเชิง และยืนยันว่าความสูงอยู่ภายในปริมาตรงานประกอบ\n"
+msgstr "โปรดแก้ไขปัญหาด้วยการเลื่อนเข้าหรือออกจากเพลตโดยสิ้นเชิง และยืนยันว่าความสูงอยู่ภายในปริมาตรการพิมพ์\n"
 
 #, c-format, boost-format
 msgid "The position or size of some models exceeds the %s's printable range."
@@ -5783,7 +5783,7 @@ msgid "Optimize support interface area"
 msgstr "ปรับพื้นที่อินเทอร์เฟซส่วนรองรับให้เหมาะสม"
 
 msgid "Orient"
-msgstr "ตะวันออก"
+msgstr "จัดวางแนว"
 
 msgid "Arrange options"
 msgstr "ตัวเลือกจัดเรียง"
@@ -5929,7 +5929,7 @@ msgid "Paint Toolbar"
 msgstr "แถบเครื่องมือสี"
 
 msgid "Explosion Ratio"
-msgstr "อัตราส่วนการระเบิด"
+msgstr "ระดับการแยกชิ้นส่วน"
 
 msgid "Section View"
 msgstr "มุมมองส่วน"
@@ -6002,7 +6002,7 @@ msgid "PLA and PETG filaments detected in the mixture. Adjust parameters accordi
 msgstr "ตรวจพบเส้นพลาสติก PLA และ PETG ในส่วนผสม ปรับพารามิเตอร์ตาม Wiki เพื่อรับรองคุณภาพการพิมพ์"
 
 msgid "The prime tower extends beyond the plate boundary."
-msgstr "หอคอยหลักขยายออกไปเกินขอบเขตแผ่นเปลือกโลก"
+msgstr "Prime Tower ยื่นออกนอกขอบเขตของเพลตพิมพ์"
 
 msgid "Partial flushing volume set to 0. Multi-color printing may cause color mixing in models. Please readjust flushing settings."
 msgstr "ตั้งค่าปริมาณการไล่เส้นบางส่วนเป็น 0 การพิมพ์หลายสีอาจทำให้เกิดการผสมสีในรุ่นต่างๆ โปรดปรับการตั้งค่าการไล่เส้นใหม่"
@@ -7953,7 +7953,7 @@ msgid "Enabling traditional timelapse photography may cause surface imperfection
 msgstr "การเปิดใช้งานการถ่ายภาพไทม์แลปส์แบบดั้งเดิมอาจทำให้เกิดความไม่สมบูรณ์ของพื้นผิวได้ ขอแนะนำให้เปลี่ยนเป็นโหมดราบรื่น"
 
 msgid "Smooth mode for timelapse is enabled, but the prime tower is off, which may cause print defects. Please enable the prime tower, re-slice and print again."
-msgstr "เปิดใช้งานโหมด Smooth สำหรับไทม์แลปส์แล้ว แต่ไพรม์ทาวเวอร์ปิดอยู่ ซึ่งอาจทำให้เกิดข้อบกพร่องในการพิมพ์ โปรดเปิดใช้งานไพร์มทาวเวอร์ สไลซ์ใหม่และพิมพ์อีกครั้ง"
+msgstr "เปิดใช้งานโหมด Smooth สำหรับไทม์แลปส์แล้ว แต่ Prime Tower ปิดอยู่ ซึ่งอาจทำให้เกิดข้อบกพร่องในการพิมพ์ โปรดเปิดใช้งาน Prime Tower สไลซ์ใหม่และพิมพ์อีกครั้ง"
 
 msgid "Expand sidebar"
 msgstr "ขยายแถบด้านข้าง"
@@ -9311,7 +9311,7 @@ msgid ""
 "Attempt to keep painted features (color/seam/support/fuzzy etc.) after changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
 "Highly experimental! Slow and may create artifact."
 msgstr ""
-"พยายามคงคุณสมบัติการทาสีไว้ (สี/รอยตะเข็บ/ส่วนรองรับ/คลุมเครือ ฯลฯ) หลังจากเปลี่ยนตาข่ายวัตถุ (เช่น ตัด/โหลดซ้ำจากดิสก์/ลดความซับซ้อน/แก้ไข ฯลฯ)\n"
+"พยายามคงคุณสมบัติการทาสีไว้ (สี/รอยตะเข็บ/ส่วนรองรับ/ผิวฟัซซี ฯลฯ) หลังจากเปลี่ยนตาข่ายวัตถุ (เช่น ตัด/โหลดซ้ำจากดิสก์/ลดความซับซ้อน/แก้ไข ฯลฯ)\n"
 "น่าทดลองมาก! ช้าและอาจสร้างสิ่งประดิษฐ์"
 
 msgid "Allow Abnormal Storage"
@@ -10241,25 +10241,25 @@ msgstr "คลิกเพื่อรีเซ็ตการตั้งค่
 
 # AI Translated
 msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
-msgstr "จำเป็นต้องใช้ทาวเวอร์ไล่เส้นสำหรับการเปลี่ยนหัวฉีด อาจเกิดข้อบกพร่องบนโมเดลหากไม่มีทาวเวอร์ไล่เส้น คุณแน่ใจหรือไม่ว่าต้องการปิดทาวเวอร์ไล่เส้น?"
+msgstr "จำเป็นต้องใช้ Prime Tower สำหรับการเปลี่ยนหัวฉีด อาจเกิดข้อบกพร่องบนโมเดลหากไม่มี Prime Tower คุณแน่ใจหรือไม่ว่าต้องการปิด Prime Tower?"
 
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
-msgstr "โหมดไทม์แลปส์แบบราบรื่นต้องใช้ไพรม์ทาวเวอร์ หากไม่มีไพรม์ทาวเวอร์อาจเกิดตำหนิบนโมเดลได้ คุณแน่ใจหรือไม่ว่าต้องการปิดไพรม์ทาวเวอร์?"
+msgstr "จำเป็นต้องใช้ Prime Tower สำหรับโหมดไทม์แลปส์แบบราบรื่น หากไม่มี Prime Tower อาจเกิดตำหนิบนโมเดลได้ คุณแน่ใจหรือไม่ว่าต้องการปิด Prime Tower?"
 
 msgid "A prime tower is required for clumping detection. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
-msgstr "ต้องใช้ไพรม์ทาวเวอร์ในการตรวจจับการจับกันเป็นก้อน อาจมีตำหนิตรงรุ่นที่ไม่มีไพร์มทาวเวอร์ คุณแน่ใจหรือไม่ว่าต้องการปิดการใช้งานไพร์มทาวเวอร์?"
+msgstr "จำเป็นต้องใช้ Prime Tower ในการตรวจจับการจับกันเป็นก้อน อาจมีตำหนิบนโมเดลที่ไม่มี Prime Tower คุณแน่ใจหรือไม่ว่าต้องการปิด Prime Tower?"
 
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable?"
-msgstr "การเปิดใช้งานทั้งความสูง Z ที่แม่นยำและหอคอยหลักอาจทำให้เกิดข้อผิดพลาดในการแบ่งส่วน คุณยังต้องการเปิดใช้งานหรือไม่?"
+msgstr "การเปิดใช้งานทั้งความสูง Z ที่แม่นยำและ Prime Tower อาจทำให้เกิดข้อผิดพลาดในการแบ่งส่วน คุณยังต้องการเปิดใช้งานหรือไม่?"
 
 msgid "A prime tower is required for clumping detection. There may be flaws on the model without prime tower. Do you still want to enable clumping detection?"
-msgstr "ต้องใช้ไพรม์ทาวเวอร์ในการตรวจจับการจับกันเป็นก้อน อาจมีตำหนิตรงรุ่นที่ไม่มีไพร์มทาวเวอร์ คุณยังต้องการเปิดใช้งานการตรวจจับการจับกันเป็นก้อนหรือไม่"
+msgstr "จำเป็นต้องใช้ Prime Tower ในการตรวจจับการจับกันเป็นก้อน อาจมีตำหนิบนโมเดลที่ไม่มี Prime Tower คุณยังต้องการเปิดใช้งานการตรวจจับการจับกันเป็นก้อนหรือไม่"
 
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
-msgstr "การเปิดใช้งานทั้งความสูง Z ที่แม่นยำและหอคอยหลักอาจทำให้เกิดข้อผิดพลาดในการแบ่งส่วน คุณยังต้องการเปิดใช้งานความสูง Z ที่แม่นยำหรือไม่"
+msgstr "การเปิดใช้งานทั้งความสูง Z ที่แม่นยำและ Prime Tower อาจทำให้เกิดข้อผิดพลาดในการแบ่งส่วน คุณยังต้องการเปิดใช้งานความสูง Z ที่แม่นยำหรือไม่"
 
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
-msgstr "โหมดไทม์แลปส์แบบราบรื่นต้องใช้ไพรม์ทาวเวอร์ หากไม่มีไพรม์ทาวเวอร์อาจเกิดตำหนิบนโมเดลได้ ต้องการเปิดใช้ไพรม์ทาวเวอร์หรือไม่?"
+msgstr "จำเป็นต้องใช้ Prime Tower สำหรับโหมดไทม์แลปส์แบบราบรื่น หากไม่มี Prime Tower อาจเกิดตำหนิบนโมเดลได้ ต้องการเปิดใช้ Prime Tower หรือไม่?"
 
 msgid "Still print by object?"
 msgstr "ยังคงพิมพ์ตามวัตถุใช่ไหม"
@@ -10411,7 +10411,7 @@ msgid "Z contouring"
 msgstr "รูปร่าง Z"
 
 msgid "Wall generator"
-msgstr "เครื่องกำเนิดไฟฟ้าติดผนัง"
+msgstr "ตัวสร้างผนัง"
 
 msgid "Walls and surfaces"
 msgstr "ผนังและพื้นผิว"
@@ -10477,7 +10477,7 @@ msgid "G-code output"
 msgstr "เอาต์พุตรหัส G"
 
 msgid "Change extrusion role G-code"
-msgstr "เปลี่ยนบทบาทการอัดขึ้นรูป G-code"
+msgstr "เปลี่ยนประเภทการพิมพ์ G-code"
 
 msgid "Post-processing Scripts"
 msgstr "สคริปต์หลังการประมวลผล"
@@ -10616,7 +10616,7 @@ msgid "Filament end G-code"
 msgstr "G-code สิ้นสุดของเส้นพลาสติก"
 
 msgid "Wipe tower parameters"
-msgstr "พารามิเตอร์ทาวเวอร์เช็ดหัวฉีด"
+msgstr "พารามิเตอร์ Wipe Tower"
 
 msgid "Multi Filament"
 msgstr "เส้นพลาสติกแบบหลากหลาย"
@@ -10753,7 +10753,7 @@ msgid "Nozzle diameter"
 msgstr "เส้นผ่านศูนย์กลางหัวฉีด"
 
 msgid "Wipe tower"
-msgstr "ทาวเวอร์เช็ดหัวฉีด"
+msgstr "Wipe Tower"
 
 msgid "Single extruder multi-material parameters"
 msgstr "พารามิเตอร์วัสดุหลายชุดดันเส้นเดี่ยว"
@@ -10780,7 +10780,7 @@ msgstr ""
 "ต้องการตั้งค่าเป็น 100% เพื่อเปิดใช้งาน Firmware Retraction หรือไม่?"
 
 msgid "Firmware Retraction"
-msgstr "การเพิกถอนเฟิร์มแวร์"
+msgstr "การดึงกลับด้วยเฟิร์มแวร์ (Firmware Retraction)"
 
 msgid "Switching to a printer with different extruder types or numbers will discard or reset changes to extruder or multi-nozzle-related parameters."
 msgstr "การเปลี่ยนไปใช้เครื่องพิมพ์ที่มีประเภทหรือหมายเลขชุดดันเส้นที่แตกต่างกันจะยกเลิกหรือรีเซ็ตการเปลี่ยนแปลงในชุดดันเส้นหรือพารามิเตอร์ที่เกี่ยวข้องกับหัวฉีดหลายตัว"
@@ -11596,7 +11596,7 @@ msgid "Gizmo mesh boolean"
 msgstr "Gizmo mesh บูลีน"
 
 msgid "Gizmo FDM paint-on fuzzy skin"
-msgstr "Gizmo FDM เพ้นท์บนผิวที่คลุมเครือ"
+msgstr "Gizmo FDM เพ้นท์ผิวฟัซซี"
 
 msgid "Gizmo SLA support points"
 msgstr "จุดส่วนรองรับ Gizmo SLA"
@@ -11614,7 +11614,7 @@ msgid "Gizmo assemble"
 msgstr "กิสโมประกอบ"
 
 msgid "Gizmo brim ears"
-msgstr "กิสโม่ขอบหู"
+msgstr "Gizmo หูขอบยึดชิ้นงาน (Brim Ears)"
 
 msgid "Zoom in"
 msgstr "ซูมเข้า"
@@ -11936,10 +11936,10 @@ msgid "Parts of the object at these heights may be too thin or the object may ha
 msgstr "บางส่วนของวัตถุที่ความสูงเหล่านี้อาจบางเกินไป หรือวัตถุอาจมี mesh ผิดปกติ"
 
 msgid "Process change extrusion role G-code"
-msgstr "กระบวนการเปลี่ยนบทบาทการอัดขึ้นรูป G-code"
+msgstr "กระบวนการเปลี่ยนประเภทการพิมพ์ G-code"
 
 msgid "Filament change extrusion role G-code"
-msgstr "เส้นพลาสติกเปลี่ยนบทบาทการอัดขึ้นรูป G-code"
+msgstr "เส้นพลาสติกเปลี่ยนประเภทการพิมพ์ G-code"
 
 msgid "No object can be printed. It may be too small."
 msgstr "ไม่สามารถพิมพ์วัตถุได้ อาจจะเล็กเกินไป"
@@ -12100,7 +12100,7 @@ msgid " is too close to clumping detection area, there may be collisions when pr
 msgstr "อยู่ใกล้พื้นที่การตรวจจับการจับตัวกันมากเกินไป อาจเกิดการชนกันเมื่อพิมพ์"
 
 msgid "Prime Tower"
-msgstr "ทาวเวอร์ไล่เส้น"
+msgstr "Prime Tower"
 
 msgid " is too close to others, and collisions may be caused.\n"
 msgstr "อยู่ใกล้ผู้อื่นมากเกินไปและอาจเกิดการชนได้\n"
@@ -12130,10 +12130,10 @@ msgid "Clumping detection is not supported when \"by object\" sequence is enable
 msgstr "ไม่รองรับการตรวจจับการจับกันเป็นก้อนเมื่อเปิดใช้งานลำดับ \"ตามวัตถุ\""
 
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors."
-msgstr "การเปิดใช้งานทั้งความสูง Z ที่แม่นยำและหอคอยหลักอาจทำให้เกิดข้อผิดพลาดในการแบ่งส่วน"
+msgstr "การเปิดใช้งานทั้งความสูง Z ที่แม่นยำและ Prime Tower อาจทำให้เกิดข้อผิดพลาดในการแบ่งส่วน"
 
 msgid "A prime tower is required for clumping detection; otherwise, there may be flaws on the model."
-msgstr "จำเป็นต้องใช้หอคอยหลักในการตรวจจับการจับกันเป็นก้อน มิฉะนั้นอาจมีข้อบกพร่องในแบบจำลอง"
+msgstr "จำเป็นต้องใช้ Prime Tower ในการตรวจจับการจับกันเป็นก้อน มิฉะนั้นอาจมีข้อบกพร่องในแบบจำลอง"
 
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "โปรดเลือกลำดับการพิมพ์ \"ตามวัตถุ\" เพื่อพิมพ์วัตถุหลายชิ้นในโหมดแจกันเกลียว"
@@ -12143,15 +12143,15 @@ msgstr "โหมดแจกันเกลียวจะไม่ทำงา
 
 #, boost-format
 msgid "While the object %1% itself fits the build volume, it exceeds the maximum build volume height because of material shrinkage compensation."
-msgstr "แม้ว่าวัตถุ %1% จะพอดีกับปริมาตรการสร้าง แต่วัตถุนั้นเกินความสูงของปริมาตรการสร้างสูงสุดเนื่องจากการชดเชยการหดตัวของวัสดุ"
+msgstr "แม้ว่าวัตถุ %1% จะพอดีกับปริมาตรการพิมพ์ แต่วัตถุนั้นเกินความสูงของปริมาตรการพิมพ์สูงสุดเนื่องจากการชดเชยการหดตัวของวัสดุ"
 
 #, boost-format
 msgid "The object %1% exceeds the maximum build volume height."
-msgstr "วัตถุ %1% เกินความสูงของปริมาตรบิลด์สูงสุด"
+msgstr "วัตถุ %1% เกินความสูงของปริมาตรการพิมพ์สูงสุด"
 
 #, boost-format
 msgid "While the object %1% itself fits the build volume, its last layer exceeds the maximum build volume height."
-msgstr "แม้ว่าออบเจ็กต์ %1% จะพอดีกับปริมาณการสร้าง แต่เลเยอร์สุดท้ายก็เกินความสูงของปริมาตรการสร้างสูงสุด"
+msgstr "แม้ว่าวัตถุ %1% จะพอดีกับปริมาตรการพิมพ์ แต่วัตถุนั้นเกินความสูงของปริมาตรการพิมพ์สูงสุด"
 
 msgid "You might want to reduce the size of your model or change current print settings and retry."
 msgstr "คุณอาจต้องการลดขนาดแบบจำลองของคุณหรือเปลี่ยนการตั้งค่าการพิมพ์ปัจจุบันแล้วลองอีกครั้ง"
@@ -12160,40 +12160,40 @@ msgid "Variable layer height is not supported with Organic supports."
 msgstr "ไม่รองรับความสูงของเลเยอร์ที่แปรผันได้ด้วยการรองรับแบบออร์แกนิก"
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
-msgstr "เส้นผ่านศูนย์กลางของหัวฉีดที่แตกต่างกันและเส้นผ่านศูนย์กลางของเส้นพลาสติกที่แตกต่างกันอาจทำงานได้ไม่ดีนักเมื่อเปิดใช้งานไพรม์ทาวเวอร์ ยังเป็นการทดลองอยู่มาก ดังนั้นโปรดดำเนินการด้วยความระมัดระวัง"
+msgstr "เส้นผ่านศูนย์กลางของหัวฉีดที่แตกต่างกันและเส้นผ่านศูนย์กลางของเส้นพลาสติกที่แตกต่างกันอาจทำงานได้ไม่ดีนักเมื่อเปิดใช้งาน Prime Tower ยังเป็นการทดลองอยู่มาก ดังนั้นโปรดดำเนินการด้วยความระมัดระวัง"
 
 msgid "The Wipe Tower is currently only supported with the relative extruder addressing (use_relative_e_distances=1)."
 msgstr "ขณะนี้ Wipe Tower รองรับการกำหนดที่อยู่ของชุดดันเส้นแบบสัมพันธ์เท่านั้น (use_relative_e_distances=1)"
 
 msgid "Ooze prevention is only supported with the wipe tower when 'single_extruder_multi_material' is off."
-msgstr "รองรับการป้องกันน้ำซึมด้วยหอเช็ดเมื่อปิด 'single_extruder_multi_material' เท่านั้น"
+msgstr "รองรับการป้องกันน้ำซึมด้วย Wipe Tower เมื่อปิด 'single_extruder_multi_material' เท่านั้น"
 
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
-msgstr "ขณะนี้ไพรม์ทาวเวอร์รองรับเฉพาะรสชาติ Marlin, RepRap/Sprinter, RepRapFirmware และ Repetier G-code เท่านั้น"
+msgstr "ขณะนี้ Prime Tower รองรับเฉพาะรสชาติ Marlin, RepRap/Sprinter, RepRapFirmware และ Repetier G-code เท่านั้น"
 
 msgid "A prime tower is not supported in “By object” print."
-msgstr "ไม่รองรับไพรม์ทาวเวอร์ในการพิมพ์ \"ตามวัตถุ\""
+msgstr "ไม่รองรับ Prime Tower ในการพิมพ์ \"ตามวัตถุ\""
 
 msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
-msgstr "ไม่รองรับไพรม์ทาวเวอร์เมื่อเปิดความสูงของเลเยอร์แบบปรับได้ กำหนดให้วัตถุทั้งหมดมีความสูงของชั้นเท่ากัน"
+msgstr "ไม่รองรับ Prime Tower เมื่อเปิดความสูงของเลเยอร์แบบปรับได้ กำหนดให้วัตถุทั้งหมดมีความสูงของชั้นเท่ากัน"
 
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
-msgstr "ไพรม์ทาวเวอร์ต้องการให้ “support gap” เป็นจำนวนเท่าของความสูงชั้น"
+msgstr "Prime Tower ต้องการให้ “support gap” เป็นจำนวนเท่าของความสูงชั้น"
 
 msgid "A prime tower requires that all objects have the same layer height."
-msgstr "ไพรม์ทาวเวอร์ต้องการให้วัตถุทั้งหมดมีความสูงชั้นเท่ากัน"
+msgstr "Prime Tower ต้องการให้วัตถุทั้งหมดมีความสูงชั้นเท่ากัน"
 
 msgid "A prime tower requires that all objects are printed over the same number of raft layers."
-msgstr "ไพรม์ทาวเวอร์ต้องการให้วัตถุทั้งหมดพิมพ์บนจำนวนชั้น raft เท่ากัน"
+msgstr "Prime Tower ต้องการให้วัตถุทั้งหมดพิมพ์บนจำนวนชั้น raft เท่ากัน"
 
 msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
-msgstr "ไพรม์ทาวเวอร์รองรับวัตถุหลายชิ้นเท่านั้นหากพิมพ์ด้วย support_top_z_distance เท่ากัน"
+msgstr "Prime Tower รองรับวัตถุหลายชิ้นเท่านั้นหากพิมพ์ด้วย support_top_z_distance เท่ากัน"
 
 msgid "A prime tower requires that all objects are sliced with the same layer height."
-msgstr "ไพรม์ทาวเวอร์ต้องการให้วัตถุทั้งหมดถูกสไลซ์ด้วยความสูงชั้นเท่ากัน"
+msgstr "Prime Tower ต้องการให้วัตถุทั้งหมดถูกสไลซ์ด้วยความสูงชั้นเท่ากัน"
 
 msgid "The prime tower is only supported if all objects have the same variable layer height."
-msgstr "ไพรม์ทาวเวอร์ได้รับส่วนรองรับก็ต่อเมื่อวัตถุทั้งหมดมีความสูงของเลเยอร์ที่แปรผันเท่ากัน"
+msgstr "Prime Tower ได้รับส่วนรองรับก็ต่อเมื่อวัตถุทั้งหมดมีความสูงของเลเยอร์ที่แปรผันเท่ากัน"
 
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "วัตถุอย่างน้อยหนึ่งชิ้นถูกกำหนดให้เป็นชุดดันเส้นที่เครื่องพิมพ์ไม่มี"
@@ -12208,7 +12208,7 @@ msgid "Printing with multiple extruders of differing nozzle diameters. If suppor
 msgstr "การพิมพ์ด้วยชุดดันเส้นหลายเครื่องที่มีเส้นผ่านศูนย์กลางหัวฉีดต่างกัน หากจะพิมพ์ส่วนรองรับด้วยฟิลาเมนต์ปัจจุบัน (support_filament == 0 หรือ support_interface_filament == 0) หัวฉีดทั้งหมดจะต้องมีเส้นผ่านศูนย์กลางเท่ากัน"
 
 msgid "A prime tower requires that support has the same layer height as the object."
-msgstr "ไพรม์ทาวเวอร์ต้องการให้ส่วนรองรับมีความสูงชั้นเท่ากับวัตถุ"
+msgstr "Prime Tower ต้องการให้ส่วนรองรับมีความสูงชั้นเท่ากับวัตถุ"
 
 msgid "For Organic supports, two walls are supported only with the Hollow/Default base pattern."
 msgstr "สำหรับการรองรับแบบออร์แกนิก ผนังทั้งสองได้รับการรองรับด้วยรูปแบบฐานกลวง/ค่าเริ่มต้นเท่านั้น"
@@ -12845,9 +12845,9 @@ msgid ""
 "\n"
 "For the first layer, the actual flow ratio for each path role (does not affect brims and skirts) will be multiplied by this value."
 msgstr ""
-"ปัจจัยนี้ส่งผลต่อปริมาณวัสดุในชั้นแรกสำหรับบทบาทเส้นทางการอัดขึ้นรูปที่แสดงอยู่ในส่วนนี้\n"
+"ปัจจัยนี้ส่งผลต่อปริมาณวัสดุในชั้นแรกสำหรับประเภทการพิมพ์ที่แสดงอยู่ในส่วนนี้\n"
 "\n"
-"สำหรับชั้นแรก อัตราการไหลตามจริงสำหรับแต่ละบทบาทของเส้นทาง (ไม่ส่งผลต่อขอบยึดชิ้นงานและเส้นล้อมชิ้นงาน) จะถูกคูณด้วยค่านี้"
+"สำหรับชั้นแรก อัตราการไหลตามจริงสำหรับแต่ละประเภทการพิมพ์ (ไม่ส่งผลต่อขอบยึดชิ้นงานและเส้นล้อมชิ้นงาน) จะถูกคูณด้วยค่านี้"
 
 msgid "Outer wall flow ratio"
 msgstr "อัตราส่วนการไหลของผนังด้านนอก"
@@ -13138,7 +13138,7 @@ msgstr ""
 "หมายเหตุ: ค่าผลลัพธ์จะไม่ได้รับผลกระทบจากอัตราส่วนการไหลของชั้นแรก"
 
 msgid "Brim follows compensated outline"
-msgstr "ขอบยึดชิ้นงาน ปฏิบัติตามโครงร่างที่ได้รับการชดเชย"
+msgstr "Brim ตามแนวที่ชดเชยแล้ว"
 
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
@@ -13161,10 +13161,10 @@ msgid "Brim ears"
 msgstr "หู ขอบยึดชิ้นงาน"
 
 msgid "Only draw brim over the sharp edges of the model."
-msgstr "วาดขอบยึดชิ้นงานไว้เหนือขอบคมของนางแบบเท่านั้น"
+msgstr "วาดขอบยึดชิ้นงานไว้เหนือขอบคมของชิ้นงานเท่านั้น"
 
 msgid "Brim ear max angle"
-msgstr "มุมสูงสุดของหูขอบยึดชิ้นงานนก"
+msgstr "มุมสูงสุดของหูขอบยึดชิ้นงาน (Brim Ears)"
 
 msgid ""
 "Maximum angle to let a brim ear appear.\n"
@@ -13753,7 +13753,7 @@ msgstr ""
 "อัตราการไหลของวัตถุขั้นสุดท้ายคือค่านี้คูณด้วยอัตราการไหลของเส้นพลาสติก"
 
 msgid "Enable pressure advance"
-msgstr "เปิดใช้งานPressure Advance"
+msgstr "เปิดใช้ Pressure Advance"
 
 msgid "Enable pressure advance, auto calibration result will be overwritten once enabled."
 msgstr "เปิดใช้งานการเลื่อนแรงดัน ผลลัพธ์การสอบเทียบอัตโนมัติจะถูกเขียนทับเมื่อเปิดใช้งาน"
@@ -13762,7 +13762,7 @@ msgid "Pressure advance (Klipper) AKA Linear advance factor (Marlin)."
 msgstr "แรงดันล่วงหน้า (Pressure Advance) (Klipper) AKA Linear Advance Factor (Marlin)"
 
 msgid "Enable adaptive pressure advance (beta)"
-msgstr "เปิดใช้งานการปรับPressure Advance (เบต้า)"
+msgstr "เปิดใช้ Adaptive Pressure Advance (เบต้า)"
 
 #, no-c-format, no-boost-format
 msgid ""
@@ -13780,7 +13780,7 @@ msgstr ""
 "เมื่อเปิดใช้งาน ค่าล่วงหน้าของแรงดันด้านบนจะถูกแทนที่ อย่างไรก็ตาม แนะนำให้ใช้ค่าเริ่มต้นที่สมเหตุสมผลด้านบนเพื่อเป็นทางเลือกและเมื่อมีการเปลี่ยนเครื่องมือ\n"
 
 msgid "Adaptive pressure advance measurements (beta)"
-msgstr "การวัดล่วงหน้าด้วยแรงดันแบบปรับได้ (เบต้า)"
+msgstr "ข้อมูลวัด Adaptive Pressure Advance (เบต้า)"
 
 #, no-c-format, no-boost-format
 msgid ""
@@ -14021,7 +14021,7 @@ msgid "Loading speed"
 msgstr "ความเร็วกำลังโหลด"
 
 msgid "Speed used for loading the filament on the wipe tower."
-msgstr "ความเร็วที่ใช้ในการโหลดเส้นพลาสติกบนไวด์ทาวเวอร์"
+msgstr "ความเร็วที่ใช้ในการโหลดเส้นพลาสติกบน Wipe Tower"
 
 msgid "Loading speed at the start"
 msgstr "ความเร็วในการโหลดเมื่อเริ่มต้น"
@@ -14033,7 +14033,7 @@ msgid "Unloading speed"
 msgstr "ความเร็วในการขนถ่าย"
 
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
-msgstr "ความเร็วที่ใช้ในการขนถ่ายเส้นพลาสติกบนไวด์ทาวเวอร์ (ไม่ส่งผลต่อส่วนเริ่มแรกของการขนถ่ายหลังจากการชน)"
+msgstr "ความเร็วที่ใช้ในการขนถ่ายเส้นพลาสติกบน Wipe Tower (ไม่ส่งผลต่อส่วนเริ่มแรกของการขนถ่ายหลังจากการชน)"
 
 msgid "Unloading speed at the start"
 msgstr "ขนถ่ายความเร็วที่จุดเริ่มต้น"
@@ -14075,10 +14075,10 @@ msgid "Minimal purge on wipe tower"
 msgstr "การล้างข้อมูลบน Wipe Tower น้อยที่สุด"
 
 msgid "After a tool change, the exact position of the newly loaded filament inside the nozzle may not be known, and the filament pressure is likely not yet stable. Before purging the print head into an infill or a sacrificial object, Orca Slicer will always prime this amount of material into the wipe tower to produce successive infill or sacrificial object extrusions reliably."
-msgstr "หลังจากเปลี่ยนเครื่องมือ อาจไม่ทราบตำแหน่งที่แน่นอนของเส้นพลาสติกที่เพิ่งโหลดใหม่ภายในหัวฉีด และความดันเส้นพลาสติกก็มีแนวโน้มว่ายังไม่เสถียร ก่อนที่จะล้างหัวพิมพ์ลงในวัสดุไส้ในหรือวัตถุบูชายัญ Orca Slicer จะเตรียมวัสดุจำนวนนี้ลงในหอเช็ดเสมอเพื่อสร้างการอัดขึ้นรูปวัตถุแบบไส้ในหรือบูชายัญต่อเนื่องกันอย่างน่าเชื่อถือ"
+msgstr "หลังจากเปลี่ยนเครื่องมือ อาจไม่ทราบตำแหน่งที่แน่นอนของเส้นพลาสติกที่เพิ่งโหลดใหม่ภายในหัวฉีด และความดันเส้นพลาสติกก็มีแนวโน้มว่ายังไม่เสถียร ก่อนที่จะล้างหัวพิมพ์ลงในวัสดุไส้ในหรือวัตถุบูชายัญ Orca Slicer จะเตรียมวัสดุจำนวนนี้ลงใน Wipe Tower เสมอเพื่อสร้างการอัดขึ้นรูปวัตถุแบบไส้ในหรือบูชายัญต่อเนื่องกันอย่างน่าเชื่อถือ"
 
 msgid "Wipe tower cooling"
-msgstr "เช็ดทาวเวอร์คูลลิ่ง"
+msgstr "Wipe Tower คูลลิ่ง"
 
 msgid "Temperature drop before entering filament tower"
 msgstr "อุณหภูมิลดลงก่อนเข้าหอใย"
@@ -14087,19 +14087,19 @@ msgid "Interface layer pre-extrusion distance"
 msgstr "ระยะการอัดรีดชั้นอินเตอร์เฟซ"
 
 msgid "Pre-extrusion distance for prime tower interface layer (where different materials meet)."
-msgstr "ระยะก่อนการอัดขึ้นรูปสำหรับชั้นอินเทอร์เฟซของไพรม์ทาวเวอร์ (ที่วัสดุที่แตกต่างกันมาบรรจบกัน)"
+msgstr "ระยะก่อนการอัดขึ้นรูปสำหรับชั้นอินเทอร์เฟซของ Prime Tower (ที่วัสดุที่แตกต่างกันมาบรรจบกัน)"
 
 msgid "Interface layer pre-extrusion length"
 msgstr "ความยาวชั้นอินเตอร์เฟซก่อนการอัดขึ้นรูป"
 
 msgid "Pre-extrusion length for prime tower interface layer (where different materials meet)."
-msgstr "ความยาวก่อนการอัดขึ้นรูปสำหรับชั้นอินเทอร์เฟซของไพรม์ทาวเวอร์ (ที่วัสดุที่แตกต่างกันมาบรรจบกัน)"
+msgstr "ความยาวก่อนการอัดขึ้นรูปสำหรับชั้นอินเทอร์เฟซของ Prime Tower (ที่วัสดุที่แตกต่างกันมาบรรจบกัน)"
 
 msgid "Tower ironing area"
 msgstr "พื้นที่รีดผิวแบบทาวเวอร์"
 
 msgid "Ironing area for prime tower interface layer (where different materials meet)."
-msgstr "พื้นที่รีดผิวสำหรับชั้นอินเทอร์เฟซของไพร์มทาวเวอร์ (บริเวณที่วัสดุต่างกันมาบรรจบกัน)"
+msgstr "พื้นที่รีดผิวสำหรับชั้นอินเทอร์เฟซของ Prime Tower (บริเวณที่วัสดุต่างกันมาบรรจบกัน)"
 
 msgid "mm²"
 msgstr "มม.²"
@@ -14108,13 +14108,13 @@ msgid "Interface layer purge length"
 msgstr "ความยาวการล้างเลเยอร์อินเทอร์เฟซ"
 
 msgid "Purge length for prime tower interface layer (where different materials meet)."
-msgstr "ความยาวในการไล่ล้างสำหรับชั้นอินเทอร์เฟซของไพรม์ทาวเวอร์ (เมื่อวัสดุต่างกันมาบรรจบกัน)"
+msgstr "ความยาวในการไล่ล้างสำหรับชั้นอินเทอร์เฟซของ Prime Tower (เมื่อวัสดุต่างกันมาบรรจบกัน)"
 
 msgid "Interface layer print temperature"
 msgstr "อุณหภูมิการพิมพ์เลเยอร์อินเทอร์เฟซ"
 
 msgid "Print temperature for prime tower interface layer (where different materials meet). If set to -1, use max recommended nozzle temperature."
-msgstr "อุณหภูมิการพิมพ์สำหรับชั้นอินเทอร์เฟซของไพรม์ทาวเวอร์ (เมื่อวัสดุต่างกันมาบรรจบกัน) หากตั้งค่าเป็น -1 ให้ใช้อุณหภูมิหัวฉีดสูงสุดที่แนะนำ"
+msgstr "อุณหภูมิการพิมพ์สำหรับชั้นอินเทอร์เฟซของ Prime Tower (เมื่อวัสดุต่างกันมาบรรจบกัน) หากตั้งค่าเป็น -1 ให้ใช้อุณหภูมิหัวฉีดสูงสุดที่แนะนำ"
 
 msgid "Speed of the last cooling move"
 msgstr "ความเร็วของการทำความเย็นครั้งล่าสุด"
@@ -14132,7 +14132,7 @@ msgid "Enable ramming for multi-tool setups"
 msgstr "เปิดใช้งานการกระแทกสำหรับการตั้งค่าหลายเครื่องมือ"
 
 msgid "Perform ramming when using multi-tool printer (i.e. when the 'Single Extruder Multimaterial' in Printer Settings is unchecked). When checked, a small amount of filament is rapidly extruded on the wipe tower just before the tool change. This option is only used when the wipe tower is enabled."
-msgstr "ทำการกระแทกเมื่อใช้เครื่องพิมพ์แบบหลายเครื่องมือ (เช่น เมื่อไม่ได้เลือก 'Single ชุดดันเส้น Multimaterial' ในการตั้งค่าเครื่องพิมพ์) เมื่อตรวจสอบแล้ว เส้นพลาสติกจำนวนเล็กน้อยจะถูกอัดรีดอย่างรวดเร็วบนไวด์ทาวเวอร์ก่อนที่จะเปลี่ยนเครื่องมือ ตัวเลือกนี้ใช้เฉพาะเมื่อเปิดใช้งาน Wipe Tower เท่านั้น"
+msgstr "ทำการกระแทกเมื่อใช้เครื่องพิมพ์แบบหลายเครื่องมือ (เช่น เมื่อไม่ได้เลือก 'Single ชุดดันเส้น Multimaterial' ในการตั้งค่าเครื่องพิมพ์) เมื่อตรวจสอบแล้ว เส้นพลาสติกจำนวนเล็กน้อยจะถูกอัดรีดอย่างรวดเร็วบน Wipe Tower ก่อนที่จะเปลี่ยนเครื่องมือ ตัวเลือกนี้ใช้เฉพาะเมื่อเปิดใช้งาน Wipe Tower เท่านั้น"
 
 msgid "Multi-tool ramming volume"
 msgstr "ปริมาณการกระแทกหลายเครื่องมือ"
@@ -14517,13 +14517,13 @@ msgid "Filament-specific override for ironing flow. This allows you to customize
 msgstr "การแทนที่เส้นพลาสติกเฉพาะสำหรับกระแสการรีดผิว ซึ่งช่วยให้คุณปรับแต่งกระแสการรีดผิวสำหรับเส้นพลาสติกแต่ละประเภทได้ ค่าที่สูงเกินไปส่งผลให้เกิดการอัดขึ้นรูปมากเกินไปบนพื้นผิว"
 
 msgid "Ironing line spacing"
-msgstr "ระยะห่างระหว่างสายรีดผิว"
+msgstr "ระยะห่างระหว่างเส้นรีดผิว"
 
 msgid "Filament-specific override for ironing line spacing. This allows you to customize the spacing between ironing lines for each filament type."
 msgstr "การแทนที่เส้นพลาสติกเฉพาะสำหรับระยะห่างระหว่างรีดผิว ซึ่งช่วยให้คุณปรับแต่งระยะห่างระหว่างเส้นรีดผิวสำหรับเส้นพลาสติกแต่ละประเภทได้"
 
 msgid "Ironing inset"
-msgstr "อุปกรณ์รีดผิว"
+msgstr "ระยะเว้นขอบการรีดผิว"
 
 msgid "Filament-specific override for ironing inset. This allows you to customize the distance to keep from the edges when ironing for each filament type."
 msgstr "การแทนที่เส้นพลาสติกเฉพาะสำหรับส่วนเสริมการรีดผิว ซึ่งช่วยให้คุณปรับแต่งระยะห่างจากขอบเมื่อรีดผิวสำหรับเส้นพลาสติกแต่ละประเภทได้"
@@ -14565,10 +14565,10 @@ msgid "The average distance between the random points introduced on each line se
 msgstr "ระยะห่างเฉลี่ยระหว่างจุดสุ่มที่แนะนำในแต่ละส่วนของเส้น"
 
 msgid "Apply fuzzy skin to first layer"
-msgstr "ทาผิวที่คลุมเครือเป็นชั้นแรก"
+msgstr "ใช้ Fuzzy Skin กับชั้นแรก"
 
 msgid "Whether to apply fuzzy skin on the first layer."
-msgstr "ไม่ว่าจะทาผิวฟุ้งๆในชั้นแรกหรือไม่"
+msgstr "กำหนดว่าจะใช้ Fuzzy Skin กับชั้นแรกหรือไม่"
 
 msgid "Fuzzy skin generator mode"
 msgstr "โหมดสร้างผิวฟัซซี"
@@ -14599,7 +14599,7 @@ msgid "Combined"
 msgstr "รวม"
 
 msgid "Fuzzy skin noise type"
-msgstr "ประเภทเสียงผิวเลือน"
+msgstr "ประเภท Noise ของ Fuzzy Skin"
 
 msgid ""
 "Noise type to use for fuzzy skin generation:\n"
@@ -14610,12 +14610,12 @@ msgid ""
 "Voronoi: Divides the surface into voronoi cells, and displaces each one by a random amount. Creates a patchwork texture.\n"
 "Ripple: Uniform ripple pattern that ripples left and right of the original path. Repeating pattern, woven appearance."
 msgstr ""
-"ประเภทเสียงรบกวนที่ใช้สำหรับการสร้างผิวที่คลุมเครือ:\n"
+"ประเภท Noise ที่ใช้สำหรับการสร้างผิวฟัซซี:\n"
 "คลาสสิก: เสียงสุ่มเครื่องแบบคลาสสิก\n"
 "Perlin: เสียง Perlin ซึ่งให้เนื้อสัมผัสที่สม่ำเสมอยิ่งขึ้น\n"
 "Billow: คล้ายกับเสียงเพอร์ลิน แต่เป็นกลุ่มมากกว่า\n"
 "Ridged Multifractal: สัญญาณรบกวนที่คมชัดพร้อมคุณสมบัติหยัก สร้างพื้นผิวเหมือนหินอ่อน\n"
-"โวโรนอย: แบ่งพื้นผิวออกเป็นเซลล์โวโรนอย และแทนที่แต่ละเซลล์ด้วยจำนวนสุ่ม สร้างพื้นผิวแบบเย็บปะติดปะต่อกัน\n"
+"Voronoi: แบ่งพื้นผิวออกเป็นเซลล์ Voronoi และแทนที่แต่ละเซลล์ด้วยจำนวนสุ่ม สร้างพื้นผิวแบบเย็บปะติดปะต่อกัน\n"
 "ระลอกคลื่น: รูปแบบระลอกคลื่นสม่ำเสมอที่กระเพื่อมไปทางซ้ายและขวาของเส้นทางเดิม ลายซ้ำ ลักษณะการทอ."
 
 msgid "Classic"
@@ -14631,7 +14631,7 @@ msgid "Ridged Multifractal"
 msgstr "Multifractal แบบสัน"
 
 msgid "Voronoi"
-msgstr "โวโรน้อย"
+msgstr "Voronoi"
 
 msgid "Ripple"
 msgstr "ระลอกคลื่น"
@@ -14643,13 +14643,13 @@ msgid "The base size of the coherent noise features, in mm. Higher values will r
 msgstr "ขนาดฐานของคุณสมบัติเสียงที่สอดคล้องกัน หน่วยเป็น มม. ค่าที่สูงกว่าจะส่งผลให้มีคุณลักษณะที่ใหญ่ขึ้น"
 
 msgid "Fuzzy Skin Noise Octaves"
-msgstr "อ็อกเทฟเสียงผิวฟัซซี"
+msgstr "จำนวน Octave ของ Noise ใน Fuzzy Skin"
 
 msgid "The number of octaves of coherent noise to use. Higher values increase the detail of the noise, but also increase computation time."
 msgstr "จำนวนอ็อกเทฟของสัญญาณรบกวนที่สอดคล้องกันที่จะใช้ ค่าที่สูงกว่าจะเพิ่มรายละเอียดของสัญญาณรบกวน แต่ยังเพิ่มเวลาในการคำนวณด้วย"
 
 msgid "Fuzzy skin noise persistence"
-msgstr "ความคงอยู่ของเสียงผิวเลือน"
+msgstr "ค่า Persistence ของ Noise ใน Fuzzy Skin"
 
 msgid "The decay rate for higher octaves of the coherent noise. Lower values will result in smoother noise."
 msgstr "อัตราการสลายตัวของอ็อกเทฟที่สูงขึ้นของสัญญาณรบกวนที่สอดคล้องกัน ค่าที่ต่ำกว่าจะส่งผลให้มีสัญญาณรบกวนที่นุ่มนวลขึ้น"
@@ -15737,7 +15737,7 @@ msgid "The start and end points which are from the cutter area to the excess chu
 msgstr "จุดเริ่มต้นและจุดสิ้นสุดตั้งแต่บริเวณเครื่องตัดถึงถังขยะ"
 
 msgid "Reduce infill retraction"
-msgstr "ลดการหดตัวของ ไส้ใน"
+msgstr "ลดการดึงกลับในไส้ใน"
 
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr "อย่าถอยกลับเมื่อการเดินทางอยู่ภายในพื้นที่ที่ไส้ในเข้าไปทั้งหมด นั่นหมายความว่าไม่สามารถมองเห็นการรั่วไหลได้ วิธีนี้จะช่วยลดเวลาในการดึงกลับสำหรับโมเดลที่ซับซ้อนและประหยัดเวลาในการพิมพ์ แต่จะทำให้การแบ่งส่วนและการสร้าง G-code ช้าลง โปรดทราบว่า z-hop จะไม่ดำเนินการในพื้นที่ที่มีการข้ามการถอนกลับ"
@@ -15825,10 +15825,10 @@ msgid "If you want to process the output G-code through custom scripts, just lis
 msgstr "หากคุณต้องการประมวลผลเอาต์พุต G-code ผ่านสคริปต์ที่กำหนดเอง เพียงระบุเส้นทางสัมบูรณ์ของสคริปต์ไว้ที่นี่ แยกสคริปต์หลายรายการด้วยเครื่องหมายอัฒภาค สคริปต์จะถูกส่งผ่านเส้นทางสัมบูรณ์ไปยังไฟล์ G-code เป็นอาร์กิวเมนต์แรก และสคริปต์เหล่านี้สามารถเข้าถึงการตั้งค่าการกำหนดค่า Orca Slicer ได้โดยการอ่านตัวแปรสภาพแวดล้อม"
 
 msgid "Change extrusion role G-code (process)"
-msgstr "เปลี่ยนบทบาทการอัดขึ้นรูป G-code (กระบวนการ)"
+msgstr "เปลี่ยนประเภทการพิมพ์ G-code (กระบวนการ)"
 
 msgid "This G-code is inserted when the extrusion role is changed. It runs after the machine and filament extrusion role G-code."
-msgstr "G-code นี้จะถูกแทรกเมื่อบทบาทการอัดขึ้นรูปมีการเปลี่ยนแปลง มันทำงานหลังจากบทบาทการอัดขึ้นรูปของเครื่องจักรและการอัดขึ้นรูปเส้นพลาสติก G-code"
+msgstr "G-code นี้จะถูกแทรกเมื่อประเภทการพิมพ์มีการเปลี่ยนแปลง มันทำงานหลังจากประเภทการพิมพ์ของเครื่องจักรและเส้นพลาสติก G-code"
 
 # AI Translated
 msgid "Plugins Used"
@@ -15897,7 +15897,7 @@ msgid "Only trigger retraction when the travel distance is longer than this thre
 msgstr "ทริกเกอร์การถอนกลับเมื่อระยะการเดินทางยาวกว่าเกณฑ์นี้เท่านั้น"
 
 msgid "Retract amount before wipe"
-msgstr "ถอนจำนวนก่อนเช็ด"
+msgstr "สัดส่วนการดึงกลับก่อน Wipe"
 
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "ความยาวของการดึงกลับอย่างรวดเร็วก่อนเช็ด สัมพันธ์กับความยาวการดึงกลับ"
@@ -15916,7 +15916,7 @@ msgstr ""
 "ค่าจะถูกจำกัดด้วย 100% ลบด้วยปริมาณการดึงกลับก่อนค่าเช็ดหัว"
 
 msgid "Retract on layer change"
-msgstr "ถอนออกเมื่อเปลี่ยนเลเยอร์"
+msgstr "ดึงเส้นกลับเมื่อเปลี่ยนเลเยอร์"
 
 msgid "This forces a retraction on layer changes."
 msgstr "บังคับให้ถอนกลับเมื่อเปลี่ยนเลเยอร์"
@@ -15925,7 +15925,7 @@ msgid "Retraction Length"
 msgstr "ระยะดึงกลับ"
 
 msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction."
-msgstr "วัสดุบางส่วนในชุดดันเส้นถูกดึงกลับเพื่อหลีกเลี่ยงไม่ให้ซึ่มในระหว่างการเดินทางระยะไกล ตั้งค่าเป็นศูนย์เพื่อปิดใช้งานการเพิกถอน"
+msgstr "วัสดุบางส่วนในชุดดันเส้นถูกดึงกลับเพื่อหลีกเลี่ยงไม่ให้ซึ่มในระหว่างการเดินทางระยะไกล ตั้งเป็น 0 เพื่อปิดการดึงกลับ"
 
 msgid "Long retraction when cut (beta)"
 msgstr "การถอยกลับยาวเมื่อตัด (เบต้า)"
@@ -16049,7 +16049,7 @@ msgid "Speed for retracting filament from the nozzle."
 msgstr "ความเร็วในการดึงเส้นพลาสติกออกจากหัวฉีด"
 
 msgid "Deretraction speed"
-msgstr "ความเร็วในการถอนกลับ"
+msgstr "ความเร็วคืนเส้นหลังดึงกลับ"
 
 msgid "Speed for reloading filament into the nozzle. Zero means same speed of retraction."
 msgstr "ความเร็วในการบรรจุเส้นพลาสติกลงในหัวฉีด ศูนย์หมายถึงความเร็วการถอยกลับเท่ากัน"
@@ -16063,7 +16063,7 @@ msgid "Speed for reloading filament into the nozzle when switching extruder."
 msgstr "ความเร็วในการโหลดเส้นพลาสติกกลับเข้าหัวฉีดเมื่อเปลี่ยนชุดดันเส้น"
 
 msgid "Use firmware retraction"
-msgstr "ใช้การเพิกถอนเฟิร์มแวร์"
+msgstr "ใช้การดึงกลับด้วยเฟิร์มแวร์"
 
 msgid "This experimental setting uses G10 and G11 commands to have the firmware handle the retraction. This is only supported in recent Marlin."
 msgstr "การตั้งค่าทดลองนี้ใช้คำสั่ง G10 และ G11 เพื่อให้เฟิร์มแวร์จัดการกับการเพิกถอน สิ่งนี้รองรับใน Marlin ล่าสุดเท่านั้น"
@@ -16115,16 +16115,16 @@ msgstr ""
 "ปริมาณนี้สามารถระบุได้ในหน่วยมิลลิเมตรหรือเป็นเปอร์เซ็นต์ของเส้นผ่านศูนย์กลางของชุดดันเส้นในปัจจุบัน ค่าเริ่มต้นสำหรับพารามิเตอร์นี้คือ 10%"
 
 msgid "Scarf joint seam (beta)"
-msgstr "รอยต่อเฉียง (เบต้า)"
+msgstr "รอยต่อ Scarf (เบต้า)"
 
 msgid "Use scarf joint to minimize seam visibility and increase seam strength."
-msgstr "ใช้ข้อต่อเฉียงเพื่อลดการมองเห็นรอยตะเข็บและเพิ่มความแข็งแรงของรอยตะเข็บ"
+msgstr "ใช้รอยต่อ Scarf เพื่อลดการมองเห็นรอยตะเข็บและเพิ่มความแข็งแรง"
 
 msgid "Conditional scarf joint"
-msgstr "ข้อต่อเฉียงแบบมีเงื่อนไข"
+msgstr "รอยต่อ Scarf แบบมีเงื่อนไข"
 
 msgid "Apply scarf joints only to smooth perimeters where traditional seams do not conceal the seams at sharp corners effectively."
-msgstr "ใช้ข้อต่อเฉียงกับขอบเรียบเท่านั้น โดยที่รอยตะเข็บแบบเดิมไม่สามารถปกปิดรอยตะเข็บที่มุมแหลมคมได้อย่างมีประสิทธิภาพ"
+msgstr "ใช้รอยต่อ Scarf กับขอบเรียบเท่านั้น โดยที่รอยตะเข็บแบบเดิมไม่สามารถปกปิดรอยตะเข็บที่มุมแหลมคมได้อย่างมีประสิทธิภาพ"
 
 msgid "Conditional angle threshold"
 msgstr "เกณฑ์มุมแบบมีเงื่อนไข"
@@ -16133,67 +16133,67 @@ msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
 "If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
 msgstr ""
-"ตัวเลือกนี้จะกำหนดมุมเกณฑ์สำหรับการใช้รอยตะเข็บข้อต่อเฉียงแบบมีเงื่อนไข\n"
-"หากมุมสูงสุดภายในวงรอบปริมณฑลเกินค่านี้ (แสดงว่าไม่มีมุมแหลมคม) จะใช้รอยตะเข็บข้อต่อเฉียง ค่าเริ่มต้นคือ 155°"
+"ตัวเลือกนี้จะกำหนดมุมเกณฑ์สำหรับการใช้รอยต่อ Scarf แบบมีเงื่อนไข\n"
+"หากมุมสูงสุดภายในวงรอบปริมณฑลเกินค่านี้ (แสดงว่าไม่มีมุมแหลมคม) จะใช้รอยต่อ Scarf ค่าเริ่มต้นคือ 155°"
 
 msgid "Conditional overhang threshold"
 msgstr "เกณฑ์ระยะยื่นแบบมีเงื่อนไข"
 
 #, no-c-format, no-boost-format
 msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "ตัวเลือกนี้จะกำหนดเกณฑ์ส่วนยื่นสำหรับการใช้รอยตะเข็บข้อต่อเฉียง หากส่วนที่ไม่ได้รับส่วนรองรับของเส้นรอบวงน้อยกว่าเกณฑ์นี้ จะมีการเย็บรอยตะเข็บเฉียง เกณฑ์เริ่มต้นตั้งไว้ที่ 40% ของความกว้างของผนังภายนอก เมื่อพิจารณาถึงประสิทธิภาพแล้ว ระดับของระยะยื่นจึงถูกประมาณไว้"
+msgstr "ตัวเลือกนี้จะกำหนดเกณฑ์ส่วนยื่นสำหรับการใช้รอยต่อ Scarf หากส่วนที่ไม่ได้รับส่วนรองรับของเส้นรอบวงน้อยกว่าเกณฑ์นี้ จะใช้รอยต่อ Scarf เกณฑ์เริ่มต้นตั้งไว้ที่ 40% ของความกว้างของผนังภายนอก เมื่อพิจารณาถึงประสิทธิภาพแล้ว ระดับของระยะยื่นจึงถูกประมาณไว้"
 
 msgid "Scarf joint speed"
-msgstr "ความเร็วของข้อต่อเฉียง"
+msgstr "ความเร็วรอยต่อ Scarf"
 
 msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "ตัวเลือกนี้จะตั้งค่าความเร็วในการพิมพ์สำหรับข้อต่อเฉียง ขอแนะนำให้พิมพ์ข้อต่อเฉียงด้วยความเร็วต่ำ (น้อยกว่า 100 มม./วินาที) ขอแนะนำให้เปิดใช้งาน 'การปรับอัตราการอัดรีดให้เรียบ' หากความเร็วที่ตั้งไว้แตกต่างอย่างมากจากความเร็วของผนังด้านนอกหรือด้านใน หากความเร็วที่ระบุที่นี่สูงกว่าความเร็วของผนังด้านนอกหรือด้านใน เครื่องพิมพ์จะตั้งค่าเริ่มต้นไว้ที่ความเร็วที่ช้ากว่าทั้งสอง เมื่อระบุเป็นเปอร์เซ็นต์ (เช่น 80%) ความเร็วจะคำนวณตามความเร็วผนังด้านนอกหรือด้านในตามลำดับ ค่าเริ่มต้นตั้งไว้ที่ 100%"
+msgstr "ตัวเลือกนี้จะตั้งค่าความเร็วในการพิมพ์สำหรับรอยต่อ Scarf ขอแนะนำให้พิมพ์รอยต่อ Scarfด้วยความเร็วต่ำ (น้อยกว่า 100 มม./วินาที) ขอแนะนำให้เปิดใช้งาน 'การปรับอัตราการอัดรีดให้เรียบ' หากความเร็วที่ตั้งไว้แตกต่างอย่างมากจากความเร็วของผนังด้านนอกหรือด้านใน หากความเร็วที่ระบุที่นี่สูงกว่าความเร็วของผนังด้านนอกหรือด้านใน เครื่องพิมพ์จะตั้งค่าเริ่มต้นไว้ที่ความเร็วที่ช้ากว่าทั้งสอง เมื่อระบุเป็นเปอร์เซ็นต์ (เช่น 80%) ความเร็วจะคำนวณตามความเร็วผนังด้านนอกหรือด้านในตามลำดับ ค่าเริ่มต้นตั้งไว้ที่ 100%"
 
 msgid "Scarf joint flow ratio"
-msgstr "อัตราการไหลของข้อต่อเฉียง"
+msgstr "อัตราส่วนการไหลของรอยต่อ Scarf"
 
 msgid "This factor affects the amount of material for scarf joints."
-msgstr "ปัจจัยนี้ส่งผลต่อปริมาณวัสดุสำหรับข้อต่อเฉียง"
+msgstr "ปัจจัยนี้ส่งผลต่อปริมาณวัสดุสำหรับรอยต่อ Scarf"
 
 msgid "Scarf start height"
-msgstr "ความสูงเริ่มต้นของเฉียง"
+msgstr "ความสูงเริ่มต้นของรอยต่อ Scarf"
 
 msgid ""
 "Start height of the scarf.\n"
 "This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
 msgstr ""
-"เริ่มต้นความสูงของเฉียง\n"
+"ความสูงเริ่มต้นของรอยต่อ Scarf\n"
 "จำนวนนี้สามารถระบุได้ในหน่วยมิลลิเมตรหรือเป็นเปอร์เซ็นต์ของความสูงของเลเยอร์ปัจจุบัน ค่าเริ่มต้นสำหรับพารามิเตอร์นี้คือ 0"
 
 msgid "Scarf around entire wall"
-msgstr "เฉียงพันรอบผนังทั้งหมด"
+msgstr "ใช้รอยต่อ Scarf ตลอดทั้งผนัง"
 
 msgid "The scarf extends to the entire length of the wall."
-msgstr "เฉียงยาวตลอดความยาวของผนัง"
+msgstr "รอยต่อ Scarf ครอบคลุมตลอดความยาวผนัง"
 
 msgid "Scarf length"
-msgstr "ความยาวเฉียง"
+msgstr "ความยาวรอยต่อ Scarf"
 
 msgid "Length of the scarf. Setting this parameter to zero effectively disables the scarf."
-msgstr "ความยาวของเฉียง. การตั้งค่าพารามิเตอร์นี้เป็นศูนย์จะปิดใช้เฉียงอย่างมีประสิทธิภาพ"
+msgstr "ความยาวของรอยต่อ Scarf ตั้งเป็น 0 เพื่อปิดการใช้ Scarf"
 
 msgid "Scarf steps"
-msgstr "ขั้นตอนเฉียง"
+msgstr "จำนวนขั้นของรอยต่อ Scarf"
 
 msgid "Minimum number of segments of each scarf."
-msgstr "จำนวนขั้นต่ำของส่วนเฉียงแต่ละอัน"
+msgstr "จำนวนเซกเมนต์ขั้นต่ำของรอยต่อ Scarf"
 
 msgid "Scarf joint for inner walls"
-msgstr "ข้อต่อเฉียงสำหรับผนังด้านใน"
+msgstr "รอยต่อ Scarf สำหรับผนังด้านใน"
 
 msgid "Use scarf joint for inner walls as well."
-msgstr "ใช้ข้อต่อเฉียงสำหรับผนังด้านในด้วย"
+msgstr "ใช้รอยต่อ Scarf กับผนังด้านในด้วย"
 
 msgid "Role base wipe speed"
-msgstr "ความเร็วในการล้างฐานบทบาท"
+msgstr "ความเร็ว Wipe ตามประเภทการพิมพ์"
 
 msgid "The wipe speed is determined by the speed of the current extrusion role. e.g. if a wipe action is executed immediately following an outer wall extrusion, the speed of the outer wall extrusion will be utilized for the wipe action."
-msgstr "ความเร็วในการเช็ดถูกกำหนดโดยความเร็วของบทบาทการอัดขึ้นรูปในปัจจุบัน เช่น หากการดำเนินการเช็ดถูกดำเนินการทันทีหลังจากการอัดขึ้นรูปผนังด้านนอก ความเร็วของการอัดขึ้นรูปผนังด้านนอกจะถูกใช้สำหรับการดำเนินการเช็ด"
+msgstr "ความเร็ว Wipe จะอิงจากความเร็วของประเภทการพิมพ์ปัจจุบัน เช่น หากการ Wipe เกิดขึ้นทันทีหลังจากพิมพ์ผนังด้านนอก ความเร็วของผนังด้านนอกจะถูกใช้สำหรับการ Wipe"
 
 msgid "Wipe on loops"
 msgstr "เช็ดบนลูป"
@@ -16241,10 +16241,10 @@ msgid "Single loop after first layer"
 msgstr "วนรอบเดียวหลังจากชั้นแรก"
 
 msgid "Limits the skirt/draft shield loops to one wall after the first layer. This is useful, on occasion, to conserve filament but may cause the draft shield/skirt to warp / crack."
-msgstr "จำกัดห่วงสเกิร์ต/โล่ครอบไว้ที่ผนังด้านหนึ่งหลังจากชั้นแรก สิ่งนี้มีประโยชน์ในบางครั้งเพื่ออนุรักษ์เส้นพลาสติก แต่อาจทำให้โครง/เส้นล้อมชิ้นงานบิดเบี้ยว/แตกร้าวได้"
+msgstr "จำกัดห่วงสเกิร์ต/แนวป้องกันลม (Draft Shield) ไว้ที่ผนังเดียวหลังจากชั้นแรก สิ่งนี้มีประโยชน์ในบางครั้งเพื่อประหยัดเส้นพลาสติก แต่อาจทำให้แนวป้องกันลม/เส้นล้อมชิ้นงานบิดเบี้ยว/แตกร้าวได้"
 
 msgid "Draft shield"
-msgstr "โล่ร่าง"
+msgstr "แนวป้องกันลม (Draft Shield)"
 
 msgid ""
 "A draft shield is useful to protect an ABS or ASA print from warping and detaching from print bed due to wind draft. It is usually needed only with open frame printers, i.e. without an enclosure.\n"
@@ -16252,10 +16252,10 @@ msgid ""
 "Enabled = skirt is as tall as the highest printed object. Otherwise 'Skirt height' is used.\n"
 "Note: With the draft shield active, the skirt will be printed at skirt distance from the object. Therefore, if brims are active it may intersect with them. To avoid this, increase the skirt distance value.\n"
 msgstr ""
-"แผงครอบมีประโยชน์ในการปกป้องงานพิมพ์ ABS หรือ ASA จากการบิดงอและการหลุดออกจากฐานพิมพ์เนื่องจากกระแสลม โดยทั่วไปจำเป็นต้องใช้กับเครื่องพิมพ์แบบเปิดเฟรมเท่านั้น กล่าวคือ ไม่มีกล่องหุ้ม\n"
+"แนวป้องกันลม (Draft Shield) มีประโยชน์ในการปกป้องงานพิมพ์ ABS หรือ ASA จากการบิดงอและการหลุดออกจากฐานพิมพ์เนื่องจากกระแสลม โดยทั่วไปจำเป็นต้องใช้กับเครื่องพิมพ์แบบเปิดเฟรมเท่านั้น กล่าวคือ ไม่มีกล่องหุ้ม\n"
 "\n"
 "Enabled = เส้นล้อมชิ้นงานสูงเท่ากับวัตถุที่พิมพ์สูงสุด มิฉะนั้น จะใช้ 'ความสูงของเส้นล้อมชิ้นงาน'\n"
-"หมายเหตุ: เมื่อใช้งานดราฟชีลด์ เส้นล้อมชิ้นงานจะถูกพิมพ์ที่ระยะห่างจากเส้นล้อมชิ้นงานจากวัตถุ ดังนั้นหากขอบยึดชิ้นงานยังทำงานอยู่ ขอบยึดชิ้นงานอาจตัดกัน เพื่อหลีกเลี่ยงปัญหานี้ ให้เพิ่มค่าระยะห่างของเส้นล้อมชิ้นงาน\n"
+"หมายเหตุ: เมื่อใช้งานแนวป้องกันลม (Draft Shield) เส้นล้อมชิ้นงานจะถูกพิมพ์ที่ระยะห่างจากวัตถุ ดังนั้นหากขอบยึดชิ้นงานยังทำงานอยู่ ขอบยึดชิ้นงานอาจตัดกัน เพื่อหลีกเลี่ยงปัญหานี้ ให้เพิ่มค่าระยะห่างของเส้นล้อมชิ้นงาน\n"
 
 msgid "Enabled"
 msgstr "เปิดใช้"
@@ -16362,7 +16362,7 @@ msgid "Sets the finishing flow ratio while ending the spiral. Normally the spira
 msgstr "ตั้งค่าอัตราส่วนการไหลขั้นสุดท้ายขณะสิ้นสุดเกลียว โดยปกติการเปลี่ยนผ่านของเกลียวจะปรับขนาดอัตราส่วนการไหลจาก 100% เป็น 0% ในระหว่างลูปสุดท้าย ซึ่งในบางกรณีอาจนำไปสู่การรีดขึ้นรูปที่ปลายเกลียว"
 
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
-msgstr "หากเลือกโหมดเรียบหรือโหมดดั้งเดิม วิดีโอไทม์แลปส์จะถูกสร้างขึ้นสำหรับการพิมพ์แต่ละครั้ง หลังจากพิมพ์แต่ละชั้นแล้ว กล้องจะถ่ายภาพสแนปช็อตด้วยกล้องแชมเบอร์ สแน็ปช็อตทั้งหมดนี้จะถูกประกอบเป็นวิดีโอไทม์แลปส์เมื่อการพิมพ์เสร็จสิ้น หากเลือกโหมดเรียบ หัวเครื่องมือจะย้ายไปยังรางส่วนเกินหลังจากพิมพ์แต่ละเลเยอร์แล้วจึงถ่ายภาพสแน็ปช็อต เนื่องจากเส้นพลาสติกที่หลอมละลายอาจรั่วไหลออกจากหัวฉีดในระหว่างขั้นตอนการถ่ายภาพ จึงจำเป็นต้องมีไพรม์ทาวเวอร์เพื่อให้โหมดราบรื่นในการเช็ดหัวฉีด"
+msgstr "หากเลือกโหมดเรียบหรือโหมดดั้งเดิม วิดีโอไทม์แลปส์จะถูกสร้างขึ้นสำหรับการพิมพ์แต่ละครั้ง หลังจากพิมพ์แต่ละชั้นแล้ว กล้องจะถ่ายภาพสแนปช็อตด้วยกล้องแชมเบอร์ สแน็ปช็อตทั้งหมดนี้จะถูกประกอบเป็นวิดีโอไทม์แลปส์เมื่อการพิมพ์เสร็จสิ้น หากเลือกโหมดเรียบ หัวเครื่องมือจะย้ายไปยังรางส่วนเกินหลังจากพิมพ์แต่ละเลเยอร์แล้วจึงถ่ายภาพสแน็ปช็อต เนื่องจากเส้นพลาสติกที่หลอมละลายอาจรั่วไหลออกจากหัวฉีดในระหว่างขั้นตอนการถ่ายภาพ จึงจำเป็นต้องมี Prime Tower เพื่อให้โหมดราบรื่นในการเช็ดหัวฉีด"
 
 msgid "Traditional"
 msgstr "แบบดั้งเดิม"
@@ -16376,7 +16376,7 @@ msgstr "ไทม์แลปส์จุดไกลสุด"
 
 # AI Translated
 msgid "When enabled, the timelapse snapshot is taken at the farthest point from camera instead of traveling to the wipe tower or excess chute. Only effective in traditional timelapse mode on non-I3 printers."
-msgstr "เมื่อเปิดใช้งาน ภาพไทม์แลปส์จะถูกถ่ายที่จุดไกลสุดจากกล้องแทนที่จะเดินหัวไปยังทาวเวอร์เช็ดหัวฉีดหรือช่องทิ้งส่วนเกิน มีผลเฉพาะในโหมดไทม์แลปส์แบบดั้งเดิมบนเครื่องพิมพ์ที่ไม่ใช่ I3"
+msgstr "เมื่อเปิดใช้งาน ภาพไทม์แลปส์จะถูกถ่ายที่จุดไกลสุดจากกล้องแทนที่จะเดินหัวไปยัง Wipe Tower หรือช่องทิ้งส่วนเกิน มีผลเฉพาะในโหมดไทม์แลปส์แบบดั้งเดิมบนเครื่องพิมพ์ที่ไม่ใช่ I3"
 
 msgid "Temperature variation"
 msgstr "การเปลี่ยนแปลงของอุณหภูมิ"
@@ -16425,10 +16425,10 @@ msgid "Enable this option to omit the custom Change filament G-code only at the 
 msgstr "เปิดใช้งานตัวเลือกนี้เพื่อละเว้น G-code เปลี่ยนฟิลาเมนต์แบบกำหนดเองเฉพาะตอนเริ่มต้นการพิมพ์เท่านั้น คำสั่งเปลี่ยนเครื่องมือ (เช่น T0) จะถูกข้ามไปตลอดการพิมพ์ทั้งหมด สิ่งนี้มีประโยชน์สำหรับการพิมพ์หลายวัสดุด้วยตนเอง โดยที่เราใช้ M600/PAUSE เพื่อกระตุ้นการดำเนินการเปลี่ยนเส้นพลาสติกด้วยตนเอง"
 
 msgid "Wipe tower type"
-msgstr "ชนิดทาวเวอร์เช็ด"
+msgstr "ชนิด Wipe Tower"
 
 msgid "Choose the wipe tower implementation for multi-material prints. Type 1 is recommended for Bambu and Qidi printers with a filament cutter. Type 2 offers better compatibility with multi-tool and MMU printers and provide overall better compatibility."
-msgstr "เลือกการใช้งานไวด์ทาวเวอร์สำหรับการพิมพ์แบบหลายวัสดุ แนะนำให้ใช้ประเภท 1 สำหรับเครื่องพิมพ์ Bambu และ Qidi ที่มีเครื่องตัดเส้นพลาสติก Type 2 ให้ความเข้ากันได้ที่ดีกว่ากับเครื่องพิมพ์หลายเครื่องมือและ MMU และให้ความเข้ากันได้โดยรวมดีขึ้น"
+msgstr "เลือกการใช้งาน Wipe Tower สำหรับการพิมพ์แบบหลายวัสดุ แนะนำให้ใช้ประเภท 1 สำหรับเครื่องพิมพ์ Bambu และ Qidi ที่มีเครื่องตัดเส้นพลาสติก Type 2 ให้ความเข้ากันได้ที่ดีกว่ากับเครื่องพิมพ์หลายเครื่องมือและ MMU และให้ความเข้ากันได้โดยรวมดีขึ้น"
 
 msgid "Type 1"
 msgstr "ประเภทที่ 1"
@@ -16437,25 +16437,25 @@ msgid "Type 2"
 msgstr "ประเภทที่ 2"
 
 msgid "Purge in prime tower"
-msgstr "ระยะเว้นในไพร์มทาวเวอร์"
+msgstr "ระยะเว้นใน Prime Tower"
 
 msgid "Purge remaining filament into prime tower."
-msgstr "ล้างเส้นพลาสติกที่เหลือลงในไพร์มทาวเวอร์"
+msgstr "ล้างเส้นพลาสติกที่เหลือลงใน Prime Tower"
 
 msgid "Enable filament ramming"
 msgstr "เปิดใช้งานการอัดกระแทกเส้นเส้นพลาสติก"
 
 msgid "Tool change on wipe tower"
-msgstr "การเปลี่ยนเครื่องมือบนไวด์ทาวเวอร์"
+msgstr "การเปลี่ยนเครื่องมือบน Wipe Tower"
 
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
-msgstr "บังคับให้หัวเครื่องมือเคลื่อนที่ไปที่หอเช็ดก่อนที่จะออกคำสั่งเปลี่ยนเครื่องมือ (Tx) เกี่ยวข้องเฉพาะกับเครื่องพิมพ์ที่มีชุดดันเส้นหลายเครื่อง (หลายหัวเครื่องมือ) ที่ใช้แผ่นเช็ดแบบ Type 2 ตามค่าเริ่มต้น Orca จะข้ามการเดินทางบนเครื่องที่มีหัวเครื่องมือหลายหัวเนื่องจากเฟิร์มแวร์จัดการการสลับหัว ซึ่งอาจส่งผลให้มีการออกคำสั่ง Tx เหนือส่วนที่พิมพ์ เปิดใช้งานตัวเลือกนี้หากคุณต้องการให้ทำการเปลี่ยนแปลงเครื่องมือเหนือหอเช็ดแทนเสมอ"
+msgstr "บังคับให้หัวเครื่องมือเคลื่อนที่ไปที่ Wipe Tower ก่อนที่จะออกคำสั่งเปลี่ยนเครื่องมือ (Tx) เกี่ยวข้องเฉพาะกับเครื่องพิมพ์ที่มีชุดดันเส้นหลายเครื่อง (หลายหัวเครื่องมือ) ที่ใช้แผ่นเช็ดแบบ Type 2 ตามค่าเริ่มต้น Orca จะข้ามการเดินทางบนเครื่องที่มีหัวเครื่องมือหลายหัวเนื่องจากเฟิร์มแวร์จัดการการสลับหัว ซึ่งอาจส่งผลให้มีการออกคำสั่ง Tx เหนือส่วนที่พิมพ์ เปิดใช้งานตัวเลือกนี้หากคุณต้องการให้ทำการเปลี่ยนแปลงเครื่องมือเหนือ Wipe Tower แทนเสมอ"
 
 msgid "No sparse layers (beta)"
 msgstr "ไม่มีชั้นกระจัดกระจาย (เบต้า)"
 
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
-msgstr "หากเปิดใช้งาน หอเช็ดจะไม่ถูกพิมพ์บนเลเยอร์โดยไม่มีการเปลี่ยนแปลงเครื่องมือ บนเลเยอร์ที่มีการเปลี่ยนเครื่องมือ ชุดดันเส้นจะเคลื่อนลงด้านล่างเพื่อพิมพ์ไวด์ทาวเวอร์ ผู้ใช้มีหน้าที่รับผิดชอบในการตรวจสอบให้แน่ใจว่าไม่มีการชนกันกับงานพิมพ์"
+msgstr "หากเปิดใช้งาน Wipe Tower จะไม่ถูกพิมพ์บนเลเยอร์โดยไม่มีการเปลี่ยนแปลงเครื่องมือ บนเลเยอร์ที่มีการเปลี่ยนเครื่องมือ ชุดดันเส้นจะเคลื่อนลงด้านล่างเพื่อพิมพ์ Wipe Tower ผู้ใช้มีหน้าที่รับผิดชอบในการตรวจสอบให้แน่ใจว่าไม่มีการชนกันกับงานพิมพ์"
 
 msgid "Prime all printing extruders"
 msgstr "ใช้ชุดดันเส้นการพิมพ์ทั้งหมด"
@@ -16720,7 +16720,7 @@ msgid "Independent support layer height"
 msgstr "ความสูงของชั้นรองรับอิสระ"
 
 msgid "Support layer uses layer height independent with object layer. This is to support customizing Z-gap and save print time. This option will be invalid when the prime tower is enabled."
-msgstr "เลเยอร์ส่วนรองรับใช้ความสูงของเลเยอร์ที่เป็นอิสระจากเลเยอร์วัตถุ เพื่อรองรับการปรับแต่ง Z-gap และประหยัดเวลาในการพิมพ์ ตัวเลือกนี้จะไม่ถูกต้องเมื่อเปิดใช้งานไพรม์ทาวเวอร์"
+msgstr "เลเยอร์ส่วนรองรับใช้ความสูงของเลเยอร์ที่เป็นอิสระจากเลเยอร์วัตถุ เพื่อรองรับการปรับแต่ง Z-gap และประหยัดเวลาในการพิมพ์ ตัวเลือกนี้จะไม่ถูกต้องเมื่อเปิดใช้งาน Prime Tower"
 
 msgid "Threshold angle"
 msgstr "มุมเกณฑ์"
@@ -16885,13 +16885,13 @@ msgid "This G-code is inserted when filament is changed, including T commands to
 msgstr "รหัส G นี้จะถูกแทรกเมื่อมีการเปลี่ยนเส้นพลาสติก รวมถึงคำสั่ง T เพื่อกระตุ้นการเปลี่ยนเครื่องมือ"
 
 msgid "This G-code is inserted when the extrusion role is changed."
-msgstr "G-code นี้จะถูกแทรกเมื่อบทบาทการอัดขึ้นรูปมีการเปลี่ยนแปลง"
+msgstr "G-code นี้จะถูกแทรกเมื่อประเภทการพิมพ์มีการเปลี่ยนแปลง"
 
 msgid "Change extrusion role G-code (filament)"
-msgstr "เปลี่ยนบทบาทการอัดขึ้นรูป G-code (เส้นพลาสติก)"
+msgstr "เปลี่ยนประเภทการพิมพ์ G-code (เส้นพลาสติก)"
 
 msgid "This G-code is inserted when the extrusion role is changed for the active filament."
-msgstr "รหัส G นี้จะถูกแทรกเมื่อมีการเปลี่ยนบทบาทการอัดขึ้นรูปสำหรับเส้นพลาสติกที่ใช้งานอยู่"
+msgstr "รหัส G นี้จะถูกแทรกเมื่อมีการเปลี่ยนประเภทการพิมพ์สำหรับเส้นพลาสติกที่ใช้งานอยู่"
 
 msgid "Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "ความกว้างของเส้นสำหรับพื้นผิวด้านบน หากแสดงเป็น % จะคำนวณตามเส้นผ่านศูนย์กลางของหัวฉีด"
@@ -16981,13 +16981,13 @@ msgstr ""
 "การตั้งค่าในจำนวนการถอนก่อนการล้างการตั้งค่าด้านล่างจะทำการถอนส่วนที่เกินก่อนการล้าง มิฉะนั้นจะดำเนินการหลังจากนั้น"
 
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
-msgstr "หอเช็ดสามารถใช้เพื่อทำความสะอาดสิ่งตกค้างบนหัวฉีด และทำให้แรงดันในห้องภายในหัวฉีดคงที่ เพื่อหลีกเลี่ยงข้อบกพร่องในลักษณะที่ปรากฏเมื่อพิมพ์วัตถุ"
+msgstr "Wipe Tower สามารถใช้เพื่อทำความสะอาดสิ่งตกค้างบนหัวฉีด และทำให้แรงดันในห้องภายในหัวฉีดคงที่ เพื่อหลีกเลี่ยงข้อบกพร่องในลักษณะที่ปรากฏเมื่อพิมพ์วัตถุ"
 
 msgid "Internal ribs"
-msgstr "ซี่โครงภายใน"
+msgstr "ครีบเสริมภายใน"
 
 msgid "Enable internal ribs to increase the stability of the prime tower."
-msgstr "เปิดใช้งานซี่โครงภายในเพื่อเพิ่มความมั่นคงของหอคอยหลัก"
+msgstr "เปิดใช้ครีบเสริมภายในเพื่อเพิ่มความมั่นคงของ Prime Tower"
 
 msgid "Purging volumes"
 msgstr "ปริมาตรการไล่เส้น"
@@ -17007,10 +17007,10 @@ msgid "The flush multiplier used in fast purge mode."
 msgstr "ตัวคูณการไล่เส้นที่ใช้ในโหมดไล่เส้นเร็ว"
 
 msgid "Prime volume"
-msgstr "ปริมาณเฉพาะ"
+msgstr "ปริมาตร Prime"
 
 msgid "This is the volume of material to prime the extruder with on the tower."
-msgstr "ปริมาตรวัสดุสำหรับเตรียมหัวฉีดบนไพรม์ทาวเวอร์"
+msgstr "ปริมาตรวัสดุสำหรับเตรียมหัวฉีดบน Prime Tower"
 
 # AI Translated
 msgid "Prime volume mode"
@@ -17018,7 +17018,7 @@ msgstr "โหมดปริมาณการไพรม์"
 
 # AI Translated
 msgid "Selects how the wipe-tower prime and flush volumes are computed on multi-extruder printers."
-msgstr "เลือกวิธีการคำนวณปริมาณการไพรม์และการไล่เส้นของทาวเวอร์เช็ดหัวฉีดบนเครื่องพิมพ์แบบหลายชุดดันเส้น"
+msgstr "เลือกวิธีการคำนวณปริมาณการไพรม์และการไล่เส้นของ Wipe Tower บนเครื่องพิมพ์แบบหลายชุดดันเส้น"
 
 # AI Translated
 msgid "Saving"
@@ -17029,25 +17029,25 @@ msgid "Fast"
 msgstr "เร็ว"
 
 msgid "This is the width of prime towers."
-msgstr "ความกว้างของไพรม์ทาวเวอร์"
+msgstr "ความกว้างของ Prime Tower"
 
 msgid "Wipe tower rotation angle"
-msgstr "เช็ดมุมการหมุนของทาวเวอร์"
+msgstr "มุมหมุนของ Wipe Tower"
 
 msgid "Wipe tower rotation angle with respect to X axis."
-msgstr "เช็ดมุมการหมุนของทาวเวอร์ตามแกน X"
+msgstr "มุมหมุนของ Wipe Tower เทียบกับแกน X"
 
 msgid "Brim width of prime tower, negative number means auto calculated width based on the height of prime tower."
-msgstr "ความกว้างขอบของหอคอยหลัก ตัวเลขติดลบหมายถึงความกว้างที่คำนวณโดยอัตโนมัติตามความสูงของหอคอยหลัก"
+msgstr "ความกว้างขอบของ Prime Tower ตัวเลขติดลบหมายถึงความกว้างที่คำนวณโดยอัตโนมัติตามความสูงของ Prime Tower"
 
 msgid "Stabilization cone apex angle"
 msgstr "มุมเอเพ็กซ์ของกรวยป้องกันการสั่นไหว"
 
 msgid "Angle at the apex of the cone that is used to stabilize the wipe tower. Larger angle means wider base."
-msgstr "มุมที่ปลายกรวยที่ใช้เพื่อรักษาเสถียรภาพของหอเช็ด มุมที่ใหญ่ขึ้นหมายถึงฐานที่กว้างขึ้น"
+msgstr "มุมที่ปลายกรวยที่ใช้เพื่อรักษาเสถียรภาพของ Wipe Tower มุมที่ใหญ่ขึ้นหมายถึงฐานที่กว้างขึ้น"
 
 msgid "Maximum wipe tower print speed"
-msgstr "ความเร็วการพิมพ์ไวต์ทาวเวอร์สูงสุด"
+msgstr "ความเร็วการพิมพ์ Wipe Tower สูงสุด"
 
 msgid ""
 "The maximum print speed when purging in the wipe tower and printing the wipe tower sparse layers. When purging, if the sparse infill speed or calculated speed from the filament max volumetric speed is lower, the lowest will be used instead.\n"
@@ -17064,11 +17064,11 @@ msgstr ""
 "\n"
 "เมื่อพิมพ์ชั้นเบาบาง หากความเร็วเส้นรอบวงภายในหรือความเร็วที่คำนวณจากความเร็วปริมาตรสูงสุดของเส้นพลาสติกต่ำกว่า ความเร็วต่ำสุดจะถูกนำมาใช้แทน\n"
 "\n"
-"การเพิ่มความเร็วนี้อาจส่งผลต่อเสถียรภาพของทาวเวอร์ รวมทั้งเพิ่มแรงที่หัวฉีดชนกับหยดใดๆ ที่อาจก่อตัวบนทาวเวอร์เช็ด\n"
+"การเพิ่มความเร็วนี้อาจส่งผลต่อเสถียรภาพของทาวเวอร์ รวมทั้งเพิ่มแรงที่หัวฉีดชนกับหยดใดๆ ที่อาจก่อตัวบน Wipe Tower\n"
 "\n"
 "ก่อนที่จะเพิ่มพารามิเตอร์นี้เกินกว่าค่าเริ่มต้นที่ 90 มม./วินาที ตรวจสอบให้แน่ใจว่าเครื่องพิมพ์ของคุณสามารถเชื่อมต่อที่ความเร็วที่เพิ่มขึ้นได้อย่างน่าเชื่อถือ และจะมีการควบคุมอย่างดีเมื่อเปลี่ยนเครื่องมือ\n"
 "\n"
-"สำหรับปริมณฑลภายนอกของไวต์ทาวเวอร์ ความเร็วของปริมณฑลภายในจะถูกใช้โดยไม่คำนึงถึงการตั้งค่านี้"
+"สำหรับปริมณฑลภายนอกของ Wipe Tower ความเร็วของปริมณฑลภายในจะถูกใช้โดยไม่คำนึงถึงการตั้งค่านี้"
 
 msgid "Wall type"
 msgstr "ชนิดติดผนัง"
@@ -17079,10 +17079,10 @@ msgid ""
 "2. Cone: A cone with a fillet at the bottom to help stabilize the wipe tower.\n"
 "3. Rib: Adds four ribs to the tower wall for enhanced stability."
 msgstr ""
-"เช็ดทาวเวอร์ชนิดผนังด้านนอก\n"
+"Wipe Tower ชนิดผนังด้านนอก\n"
 "1. สี่เหลี่ยมผืนผ้า: ประเภทผนังเริ่มต้น ซึ่งเป็นสี่เหลี่ยมผืนผ้าที่มีความกว้างและความสูงคงที่\n"
-"2. กรวย: กรวยที่มีเนื้ออยู่ด้านล่างเพื่อช่วยรักษาเสถียรภาพของหอเช็ด\n"
-"3. ซี่โครง: เพิ่มสี่ซี่โครงเข้ากับผนังหอคอยเพื่อเพิ่มความมั่นคง"
+"2. กรวย: กรวยที่มีเนื้ออยู่ด้านล่างเพื่อช่วยรักษาเสถียรภาพของ Wipe Tower\n"
+"3. ซี่โครง: เพิ่มสี่ซี่โครงเข้ากับผนัง Wipe Tower เพื่อเพิ่มความมั่นคง"
 
 msgid "Rectangle"
 msgstr "สี่เหลี่ยมผืนผ้า"
@@ -17100,40 +17100,40 @@ msgid "Rib width"
 msgstr "ความกว้างของซี่โครง"
 
 msgid "Rib width is always less than half the prime tower side length."
-msgstr "ความกว้างของซี่โครงจะน้อยกว่าครึ่งหนึ่งของความยาวด้านของไพรม์ทาวเวอร์เสมอ"
+msgstr "ความกว้างของซี่โครงจะน้อยกว่าครึ่งหนึ่งของความยาวด้านของ Prime Tower เสมอ"
 
 msgid "Fillet wall"
 msgstr "ผนังเนื้อ"
 
 msgid "The wall of prime tower will fillet."
-msgstr "ผนังของไพร์มทาวเวอร์จะแล่เป็นเนื้อเดียวกัน"
+msgstr "ผนังของ Prime Tower จะแล่เป็นเนื้อเดียวกัน"
 
 msgid "The extruder to use when printing perimeter of the wipe tower. Set to 0 to use the one that is available (non-soluble would be preferred)."
-msgstr "ชุดดันเส้นที่จะใช้ในการพิมพ์ปริมณฑลของหอเช็ด ตั้งค่าเป็น 0 เพื่อใช้อันที่มีอยู่ (แนะนำให้ใช้แบบไม่ละลายน้ำ)"
+msgstr "ชุดดันเส้นที่จะใช้ในการพิมพ์ปริมณฑลของ Wipe Tower ตั้งค่าเป็น 0 เพื่อใช้อันที่มีอยู่ (แนะนำให้ใช้แบบไม่ละลายน้ำ)"
 
 msgid "Purging volumes - load/unload volumes"
 msgstr "การล้างไดรฟ์ข้อมูล - โหลด/ยกเลิกการโหลดไดรฟ์ข้อมูล"
 
 msgid "This vector saves required volumes to change from/to each tool used on the wipe tower. These values are used to simplify creation of the full purging volumes below."
-msgstr "เวกเตอร์นี้จะบันทึกปริมาณที่ต้องการเพื่อเปลี่ยนจาก/ไปยังแต่ละเครื่องมือที่ใช้บนไวด์ทาวเวอร์ ค่าเหล่านี้ใช้เพื่อทำให้การสร้างวอลุ่มการล้างข้อมูลทั้งหมดด้านล่างง่ายขึ้น"
+msgstr "เวกเตอร์นี้จะบันทึกปริมาณที่ต้องการเพื่อเปลี่ยนจาก/ไปยังแต่ละเครื่องมือที่ใช้บน Wipe Tower ค่าเหล่านี้ใช้เพื่อทำให้การสร้างวอลุ่มการล้างข้อมูลทั้งหมดด้านล่างง่ายขึ้น"
 
 msgid "Skip points"
 msgstr "ข้ามจุด"
 
 msgid "The wall of prime tower will skip the start points of wipe path."
-msgstr "ผนังของไพร์มทาวเวอร์จะข้ามจุดเริ่มต้นของเส้นทางการเช็ด"
+msgstr "ผนังของ Prime Tower จะข้ามจุดเริ่มต้นของเส้นทางการเช็ด"
 
 msgid "Enable tower interface features"
 msgstr "เปิดใช้งานคุณสมบัติอินเทอร์เฟซแบบทาวเวอร์"
 
 msgid "Enable optimized prime tower interface behavior when different materials meet."
-msgstr "เปิดใช้งานพฤติกรรมอินเทอร์เฟซของไพรม์ทาวเวอร์ที่ได้รับการปรับให้เหมาะสมเมื่อวัสดุที่แตกต่างกันมาบรรจบกัน"
+msgstr "เปิดใช้งานพฤติกรรมอินเทอร์เฟซของ Prime Tower ที่ได้รับการปรับให้เหมาะสมเมื่อวัสดุที่แตกต่างกันมาบรรจบกัน"
 
 msgid "Cool down from interface boost during prime tower"
-msgstr "เย็นลงจากการเพิ่มอินเทอร์เฟซระหว่างหอคอยหลัก"
+msgstr "การระบายความร้อนที่เลเยอร์อินเทอร์เฟซของ Prime Tower"
 
 msgid "When interface-layer temperature boost is active, set the nozzle back to print temperature at the start of the prime tower so it cools down during the tower."
-msgstr "เมื่อเปิดใช้งานการเพิ่มอุณหภูมิของชั้นอินเทอร์เฟซ ให้ตั้งค่าหัวฉีดกลับไปเป็นอุณหภูมิการพิมพ์ที่จุดเริ่มต้นของไพรม์ทาวเวอร์ เพื่อให้เย็นลงระหว่างทาวเวอร์"
+msgstr "เมื่อเปิดใช้งานการเพิ่มอุณหภูมิของชั้นอินเทอร์เฟซ ให้ตั้งค่าหัวฉีดกลับไปเป็นอุณหภูมิการพิมพ์ที่จุดเริ่มต้นของ Prime Tower เพื่อให้เย็นลงระหว่าง Prime Tower"
 
 msgid "Infill gap"
 msgstr "การเติมช่องว่าง"
@@ -17142,13 +17142,13 @@ msgid "Infill gap."
 msgstr "การเติมช่องว่าง."
 
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
-msgstr "การล้างหลังจากเปลี่ยนเส้นพลาสติกจะดำเนินการภายในส่วนไส้ในของวัตถุ สิ่งนี้อาจลดปริมาณขยะและลดเวลาในการพิมพ์ หากผนังพิมพ์ด้วยเส้นพลาสติกโปร่งใส จะเห็นไส้ในสีผสมไว้ด้านนอก มันจะไม่มีผลเว้นแต่จะเปิดใช้งานไพรม์ทาวเวอร์"
+msgstr "การล้างหลังจากเปลี่ยนเส้นพลาสติกจะดำเนินการภายในส่วนไส้ในของวัตถุ สิ่งนี้อาจลดปริมาณขยะและลดเวลาในการพิมพ์ หากผนังพิมพ์ด้วยเส้นพลาสติกโปร่งใส จะเห็นไส้ในสีผสมไว้ด้านนอก มันจะไม่มีผลเว้นแต่จะเปิดใช้งาน Prime Tower"
 
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
-msgstr "การล้างข้อมูลหลังจากเปลี่ยนเส้นพลาสติกจะดำเนินการภายในส่วนรองรับของวัตถุ สิ่งนี้อาจลดปริมาณขยะและลดเวลาในการพิมพ์ มันจะไม่มีผลเว้นแต่จะเปิดใช้งานไพรม์ทาวเวอร์"
+msgstr "การล้างข้อมูลหลังจากเปลี่ยนเส้นพลาสติกจะดำเนินการภายในส่วนรองรับของวัตถุ สิ่งนี้อาจลดปริมาณขยะและลดเวลาในการพิมพ์ มันจะไม่มีผลเว้นแต่จะเปิดใช้งาน Prime Tower"
 
 msgid "This object will be used to purge the nozzle after a filament change to save filament and decrease the print time. Colors of the objects will be mixed as a result. It will not take effect unless the prime tower is enabled."
-msgstr "วัตถุนี้จะใช้ในการล้างหัวฉีดหลังจากเปลี่ยนเส้นพลาสติกเพื่อประหยัดเส้นพลาสติกและลดเวลาในการพิมพ์ สีของวัตถุจะผสมกัน มันจะไม่มีผลเว้นแต่จะเปิดใช้งานไพรม์ทาวเวอร์"
+msgstr "วัตถุนี้จะใช้ในการล้างหัวฉีดหลังจากเปลี่ยนเส้นพลาสติกเพื่อประหยัดเส้นพลาสติกและลดเวลาในการพิมพ์ สีของวัตถุจะผสมกัน มันจะไม่มีผลเว้นแต่จะเปิดใช้งาน Prime Tower"
 
 msgid "Maximal bridging distance"
 msgstr "ระยะเชื่อมต่อสูงสุด"
@@ -17157,16 +17157,16 @@ msgid "Maximal distance between supports on sparse infill sections."
 msgstr "ระยะห่างสูงสุดระหว่างส่วนรองรับในส่วน ไส้ใน แบบกระจัดกระจาย"
 
 msgid "Wipe tower purge lines spacing"
-msgstr "เช็ดระยะห่างบรรทัดล้างทาวเวอร์"
+msgstr "ระยะห่างเส้นไล่พลาสติกของ Wipe Tower"
 
 msgid "Spacing of purge lines on the wipe tower."
-msgstr "ระยะห่างของเส้นไล่ล้างบนหอเช็ด"
+msgstr "ระยะห่างของเส้นไล่ล้างบน Wipe Tower"
 
 msgid "Extra flow for purging"
 msgstr "กระแสพิเศษสำหรับการล้าง"
 
 msgid "Extra flow used for the purging lines on the wipe tower. This makes the purging lines thicker or narrower than they normally would be. The spacing is adjusted automatically."
-msgstr "การไหลพิเศษที่ใช้สำหรับท่อไล่ล้างบนหอเช็ด ซึ่งจะทำให้เส้นการล้างหนาหรือแคบกว่าปกติ ระยะห่างจะถูกปรับโดยอัตโนมัติ"
+msgstr "การไหลพิเศษที่ใช้สำหรับท่อไล่ล้างบน Wipe Tower ซึ่งจะทำให้เส้นการล้างหนาหรือแคบกว่าปกติ ระยะห่างจะถูกปรับโดยอัตโนมัติ"
 
 msgid "Idle temperature"
 msgstr "อุณหภูมิว่าง"
@@ -17748,10 +17748,10 @@ msgid "Specific for sequential printing. Zero-based index of currently printed o
 msgstr "เฉพาะสำหรับการพิมพ์ตามลำดับ ดัชนีแบบศูนย์ของวัตถุที่พิมพ์ในปัจจุบัน"
 
 msgid "Has wipe tower"
-msgstr "มีหอเช็ด"
+msgstr "มี Wipe Tower"
 
 msgid "Whether or not wipe tower is being generated in the print."
-msgstr "มีการสร้างเช็ดทาวเวอร์ในการพิมพ์หรือไม่"
+msgstr "มีการสร้าง Wipe Tower ในการพิมพ์หรือไม่"
 
 msgid "Initial extruder"
 msgstr "ชุดดันเส้นเริ่มต้น"
@@ -17838,16 +17838,16 @@ msgid "Total cost of all material used in the print. Calculated from filament_co
 msgstr "ต้นทุนรวมของวัสดุทั้งหมดที่ใช้ในการพิมพ์ คำนวณจากค่า fil_cost ในการตั้งค่า เส้นพลาสติก"
 
 msgid "Total wipe tower cost"
-msgstr "ต้นทุนเช็ดทาวเวอร์ทั้งหมด"
+msgstr "ต้นทุน Wipe Tower ทั้งหมด"
 
 msgid "Total cost of the material wasted on the wipe tower. Calculated from filament_cost value in Filament Settings."
-msgstr "ต้นทุนรวมของวัสดุที่เสียไปบนไวด์ทาวเวอร์ คำนวณจากค่า fil_cost ในการตั้งค่า เส้นพลาสติก"
+msgstr "ต้นทุนรวมของวัสดุที่เสียไปบน Wipe Tower คำนวณจากค่า fil_cost ในการตั้งค่า เส้นพลาสติก"
 
 msgid "Wipe tower volume"
 msgstr "เช็ดปริมาตรทาวเวอร์"
 
 msgid "Total filament volume extruded on the wipe tower."
-msgstr "ปริมาตรเส้นพลาสติกทั้งหมดที่อัดบนไวด์ทาวเวอร์"
+msgstr "ปริมาตรเส้นพลาสติกทั้งหมดที่อัดบน Wipe Tower"
 
 msgid "Used filament"
 msgstr "เส้นพลาสติกที่ใช้แล้ว"
@@ -18045,8 +18045,8 @@ msgid ""
 "An object has enabled XY Size compensation which will not be used because it is also fuzzy skin painted.\n"
 "XY Size compensation cannot be combined with fuzzy skin painting."
 msgstr ""
-"วัตถุได้เปิดใช้งานการชดเชยขนาด XY ซึ่งจะไม่ถูกใช้เนื่องจากเป็นสีที่ไม่ชัดเจนเช่นกัน\n"
-"การชดเชยขนาด XY ไม่สามารถใช้ร่วมกับการลงสีผิวแบบคลุมเครือได้"
+"วัตถุได้เปิดใช้งานการชดเชยขนาด XY ซึ่งจะไม่ถูกใช้เนื่องจากถูกระบายสีผิวฟัซซีไว้เช่นกัน\n"
+"การชดเชยขนาด XY ไม่สามารถใช้ร่วมกับการระบายสีผิวฟัซซีได้"
 
 msgid "Object name"
 msgstr "ชื่อออบเจ็กต์"
@@ -20591,7 +20591,7 @@ msgid "Auto-generate"
 msgstr "สร้างอัตโนมัติ"
 
 msgid "Generate brim ears using Max angle and Detection radius"
-msgstr "สร้างหูขอบยึดชิ้นงานนกโดยใช้มุมสูงสุดและรัศมีการตรวจจับ"
+msgstr "สร้างหูขอบยึดชิ้นงาน (Brim Ears) โดยใช้มุมสูงสุดและรัศมีการตรวจจับ"
 
 msgid "Add or Select"
 msgstr "เพิ่มหรือเลือก"
@@ -20606,7 +20606,7 @@ msgid "invalid brim ears"
 msgstr "หูขอบยึดชิ้นงานไม่ถูกต้อง"
 
 msgid "Brim Ears"
-msgstr "หูขอบยึดชิ้นงาน"
+msgstr "หูขอบยึดชิ้นงาน (Brim Ears)"
 
 msgid "Please select single object."
 msgstr "กรุณาเลือกวัตถุเดียว"
@@ -21572,7 +21572,7 @@ msgstr ""
 #~ msgstr "เนื้อหาที่ตั้งไว้ล่วงหน้ามีขนาดใหญ่เกินกว่าจะซิงค์กับระบบคลาวด์ (เกิน 1MB) โปรดลดขนาดที่กำหนดไว้ล่วงหน้าโดยการลบการกำหนดค่าที่กำหนดเองออกหรือใช้เฉพาะในเครื่องเท่านั้น"
 
 #~ msgid "Enable adaptive pressure advance for overhangs (beta)"
-#~ msgstr "เปิดใช้งานการปรับPressure Advanceสำหรับระยะยื่น (เบต้า)"
+#~ msgstr "เปิดใช้ Adaptive Pressure Advance สำหรับส่วนยื่น (เบต้า)"
 
 #~ msgid ""
 #~ "Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
@@ -21582,7 +21582,7 @@ msgstr ""
 #~ "ไม่รองรับเครื่องพิมพ์ Prusa เพราะจะหยุดชั่วคราวเพื่อประมวลผลการเปลี่ยน PA ทำให้เกิดความล่าช้าและข้อบกพร่อง"
 
 #~ msgid "Pressure advance for bridges"
-#~ msgstr "แรงดันล่วงหน้า (Pressure Advance)สำหรับสะพาน"
+#~ msgstr "Pressure Advance สำหรับสะพาน"
 
 #~ msgid ""
 #~ "Pressure advance value for bridges. Set to 0 to disable.\n"

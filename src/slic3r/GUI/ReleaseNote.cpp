@@ -1991,7 +1991,7 @@ void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_
         if (w.expired()) return;
 
         if (m_obj) {
-            m_obj->set_user_access_code(str_access_code);
+            m_obj->set_access_code(str_access_code);
             wxGetApp().getDeviceManager()->set_selected_machine(m_obj->get_dev_id());
         }
 
@@ -2055,6 +2055,11 @@ void InputIpAddressDialog::on_text(wxCommandEvent &evt)
 {
     auto str_ip              = m_input_ip->GetTextCtrl()->GetValue();
     auto str_access_code     = m_input_access_code->GetTextCtrl()->GetValue();
+
+    if (str_access_code.empty()) {
+        str_access_code = "88888888";
+    }
+
     auto str_name            = m_input_printer_name->GetTextCtrl()->GetValue().Strip(wxString::both);
     auto str_sn              = m_input_sn->GetTextCtrl()->GetValue().Strip(wxString::both);
     bool invalid_access_code = true;
@@ -2062,7 +2067,7 @@ void InputIpAddressDialog::on_text(wxCommandEvent &evt)
     for (char c : str_access_code) {
         if (!(('0' <= c && c <= '9') || ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z'))) {
             invalid_access_code = false;
-            return;
+            break;
         }
     }
 
