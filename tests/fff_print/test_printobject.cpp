@@ -135,11 +135,19 @@ TEST_CASE("Initial layer height is honored", "[PrintObject]")
 static DynamicPrintConfig auto_support_config(std::vector<std::string>  types,
                                               std::vector<unsigned char> soluble,
                                               std::vector<std::string>  colours,
-                                              std::vector<unsigned char> is_support = {})
+                                              std::vector<unsigned char> is_support = {},
+                                              std::vector<unsigned char> is_mixed   = {},
+                                              std::vector<std::string>  mixed_components = {})
 {
     if (is_support.empty())
         is_support.assign(types.size(), false);
+    if (is_mixed.empty())
+        is_mixed.assign(types.size(), false);
+    if (mixed_components.empty())
+        mixed_components.assign(types.size(), std::string{});
     DynamicPrintConfig config;
+    config.set_key_value("filament_is_mixed",              new ConfigOptionBools(std::move(is_mixed)));
+    config.set_key_value("filament_mixed_components",      new ConfigOptionStrings(std::move(mixed_components)));
     config.set_key_value("filament_type",                  new ConfigOptionStrings(std::move(types)));
     config.set_key_value("filament_soluble",               new ConfigOptionBools(std::move(soluble)));
     config.set_key_value("filament_is_support",            new ConfigOptionBools(std::move(is_support)));
@@ -201,6 +209,47 @@ TEST_CASE("Auto support filament picks a filament that does not bond to the obje
     }
 }
 
+// A mixed-color slot is virtual: it prints as its component filaments and can never be loaded as a
+// support filament itself. Its own filament_type describes no real spool, so reading it here picks
+// the wrong support material - or none at all, leaving "Auto" resolving to Default.
+TEST_CASE("Auto support filament resolves a mixed slot to its components", "[PrintObject][FilamentMixer]")
+{
+    Model model;
+
+    SECTION("the object's material comes from the components, not the mixed slot's own type") {
+        // Slot 4 is a mix of the two PLA filaments, but carries a stale PETG type of its own.
+        // The object is painted with it, so the material it really prints is PLA.
+        const ModelObject &object = auto_support_object(model, 4);
+        const DynamicPrintConfig config = auto_support_config(
+            {"PETG", "PLA", "PLA", "PETG"},
+            {false, false, false, false},
+            {"#FFFFFF", "#000000", "#00FF00", "#0000FF"},
+            {},
+            {false, false, false, true},
+            {"", "", "", "2,3"});
+
+        // Filament 1 is the only real PETG, and PETG does not bond to the PLA the mix prints.
+        // Reading the mixed slot's own PETG type instead would rule filament 1 out as "bonding"
+        // and settle on a PLA filament, which is exactly what support must not be made of.
+        REQUIRE(PrintObject::resolve_auto_support_filament(object, 4, config, true) == 1);
+    }
+
+    SECTION("a mixed slot is never chosen as the support filament") {
+        const ModelObject &object = auto_support_object(model, 1); // printed in PLA
+        // Slot 3 is a mix of the two PLA filaments and looks attractive on type alone (PETG does
+        // not bond to PLA), but it cannot be loaded, so the fallback to the object's own applies.
+        const DynamicPrintConfig config = auto_support_config(
+            {"PLA", "PLA", "PETG"},
+            {false, false, false},
+            {"#FFFFFF", "#000000", "#0000FF"},
+            {},
+            {false, false, true},
+            {"", "", "1,2"});
+
+        REQUIRE(PrintObject::resolve_auto_support_filament(object, 3, config, true) == 1);
+    }
+}
+
 TEST_CASE("Auto support filament makes a single-material plate use two filaments", "[PrintObject]")
 {
     // Regression guard: the auto-picked interface filament has to show up in Print::extruders(), otherwise the
@@ -251,3 +300,81 @@ TEST_CASE("Auto support filament is re-resolved when the filament properties cha
     // Both are now plain filaments, equally incompatible with the ABS object: the closer colour decides.
     REQUIRE(print.objects().front()->config().support_interface_filament.value == 2);
 }
+
+// "Auto" support filament deliberately picks a material that does NOT bond to the object — that is
+// how the support detaches. Applying the material-bonding rule to it therefore rejects exactly the
+// prints the feature was made for, so a filament used only for support is exempt from that rule.
+// It stays subject to the temperature rules, which are about printing the two together at all.
+TEST_CASE("A support-only filament is exempt from the material bonding rule", "[Print][SupportFilament]")
+{
+    // PLA object, PETG support: known-incompatible, which is the property support wants.
+    const std::vector<std::string> types        = { "PLA", "PETG" };
+    const std::vector<int>         temps        = { 220, 240 };
+    const std::vector<int>         range_lows   = { 190, 220 };
+    const std::vector<int>         range_highs  = { 250, 260 };
+
+    SECTION("both printing object geometry is still rejected") {
+        REQUIRE(Print::check_multi_filaments_compatibility(types, temps, range_lows, range_highs) ==
+                FilamentCompatibilityType::IncompatibleMaterials);
+    }
+
+    SECTION("the second used only for support is accepted") {
+        REQUIRE(Print::check_multi_filaments_compatibility(types, temps, range_lows, range_highs, { 0, 1 }) ==
+                FilamentCompatibilityType::Compatible);
+    }
+
+    SECTION("a support-only filament outside the object's temperature range is still flagged") {
+        // The exemption covers bonding only. Printing the support filament at 300 puts it above
+        // the object filament's 250 max, which the temperature rule must still catch.
+        const std::vector<int> hot_temps       = { 220, 300 };
+        const std::vector<int> hot_range_highs = { 250, 320 };
+        REQUIRE(Print::check_multi_filaments_compatibility(types, hot_temps, range_lows, hot_range_highs, { 0, 1 }) ==
+                FilamentCompatibilityType::HighLowMixed);
+    }
+}
+
+// A mixed-color slot is virtual: it is realized as its component filaments, so its own
+// filament_type belongs to no spool. Checking that phantom type against the object's real
+// materials reported a PLA-only object as printing incompatible materials.
+TEST_CASE("The object material check resolves mixed slots to their components", "[Print][FilamentMixer]")
+{
+    // Slot 3 is a mix of the two PLA filaments but carries a stale PETG type of its own, and the
+    // object is printed with it. PETG and PLA are known not to bond, so reading the slot's own type
+    // makes the object look self-incompatible.
+    auto make_config = [](bool declare_mix) {
+        // Three nozzles: a multi-tool printer, where check_object_materials_valid is the check that
+        // runs (the single-nozzle one is gated behind nozzles < 2).
+        DynamicPrintConfig config = multifilament_config(3, {
+            { "filament_type",   "PLA;PLA;PETG" },
+            { "nozzle_diameter", "0.4,0.4,0.4"  },
+        });
+        if (declare_mix)
+            config.set_deserialize_strict({
+                { "filament_is_mixed",         "0,0,1" },
+                { "filament_mixed_components", ";;1,2" },
+            });
+        return config;
+    };
+    // The object prints its body in filament 1 (PLA) and its top surfaces with the mixed slot, so
+    // the two meet inside one object and the material rule has a pair to compare.
+    const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> printed_with_slot_3 = {
+        { { "extruder", "1" }, { "top_surface_filament_id", "3" } }
+    };
+    auto warns_about_materials = [&](bool declare_mix) {
+        Print print;
+        Model model;
+        init_print({ cube(20) }, print, model, make_config(declare_mix), &printed_with_slot_3);
+        std::vector<StringObjectException> warnings;
+        warnings.push_back(print.validate(&warnings)); // the check may report either way
+        for (const StringObjectException &warning : warnings)
+            if (warning.string.find("materials are incompatible") != std::string::npos)
+                return true;
+        return false;
+    };
+
+    // Without the mixed metadata the phantom PETG is taken at face value, which is the bug.
+    CHECK(warns_about_materials(false));
+    // Declared as a mix, the slot is checked as its PLA components and the object is fine.
+    CHECK_FALSE(warns_about_materials(true));
+}
+

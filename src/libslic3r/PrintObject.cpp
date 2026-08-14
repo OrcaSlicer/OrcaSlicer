@@ -9,6 +9,7 @@
 #include "Geometry.hpp"
 #include "I18N.hpp"
 #include "Color.hpp"
+#include "FilamentMixer.hpp"
 #include "Layer.hpp"
 #include "MaterialType.hpp"
 #include "MutablePolygon.hpp"
@@ -3766,16 +3767,37 @@ int PrintObject::resolve_auto_support_filament(const ModelObject &object, size_t
         return flag_at(filament_soluble, extruder_1based) || flag_at(filament_is_support, extruder_1based);
     };
 
+    // A mixed-color slot is virtual: it prints as its component filaments, and it can never itself
+    // be loaded as a support filament. So it contributes its components' materials to the object,
+    // and is skipped as a candidate below. Its own filament_type describes no real spool.
+    const ConfigOptionBools   *filament_is_mixed = print_config.option<ConfigOptionBools>("filament_is_mixed");
+    const ConfigOptionStrings *mixed_components  = print_config.option<ConfigOptionStrings>("filament_mixed_components");
+    auto is_mixed_slot = [&](int extruder_1based) {
+        const size_t idx = (size_t)(extruder_1based - 1);
+        return filament_is_mixed != nullptr && idx < filament_is_mixed->values.size() && filament_is_mixed->get_at(idx);
+    };
+
     // Materials the object is actually printed with (1-based extruder ids).
     std::set<int> object_extruders;
+    auto add_object_extruder = [&](int e) {
+        if (e <= 0)
+            return;
+        if (!is_mixed_slot(e)) {
+            object_extruders.insert(e);
+            return;
+        }
+        const size_t idx = (size_t)(e - 1);
+        if (mixed_components != nullptr && idx < mixed_components->values.size())
+            for (unsigned int c : parse_mixed_components(mixed_components->values[idx]))
+                if (c > 0 && !is_mixed_slot(int(c)))
+                    object_extruders.insert(int(c));
+    };
     for (const ModelVolume *volume : object.volumes) {
         if (!volume->is_model_part())
             continue;
-        if (int e = volume->extruder_id(); e > 0)
-            object_extruders.insert(e);
+        add_object_extruder(volume->extruder_id());
         for (int e : volume->get_extruders()) // per-face (MMU) painted extruders
-            if (e > 0)
-                object_extruders.insert(e);
+            add_object_extruder(e);
     }
     if (object_extruders.empty())
         object_extruders.insert(1);
@@ -3801,7 +3823,7 @@ int PrintObject::resolve_auto_support_filament(const ModelObject &object, size_t
     int  best = 0;
     Rank best_rank;
     for (int cand = 1; cand <= (int)num_extruders; ++cand) {
-        if (cand == exclude_extruder)
+        if (cand == exclude_extruder || is_mixed_slot(cand))
             continue;
         const std::string cand_type = type_of(cand);
         // First requisite: it must not bond to any of the object's materials.

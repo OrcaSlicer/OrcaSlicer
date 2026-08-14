@@ -5,6 +5,7 @@
 #include "Brim.hpp"
 #include "ClipperUtils.hpp"
 #include "Extruder.hpp"
+#include "FilamentMixer.hpp"
 #include "Flow.hpp"
 #include "Geometry/ConvexHull.hpp"
 #include "I18N.hpp"
@@ -1103,7 +1104,8 @@ FilamentCompatibilityType Print::check_multi_filaments_compatibility(
     const std::vector<std::string>& filament_types,
     const std::vector<int>& nozzle_temperatures,
     const std::vector<int>& nozzle_temperature_range_lows,
-    const std::vector<int>& nozzle_temperature_range_highs)
+    const std::vector<int>& nozzle_temperature_range_highs,
+    const std::vector<unsigned char>& support_only)
 {
     const size_t filament_count = filament_types.size();
     if (filament_count < 2)
@@ -1136,17 +1138,26 @@ FilamentCompatibilityType Print::check_multi_filaments_compatibility(
         resolved_range_highs[i] = range_high;
     }
 
+    // A filament used solely for support is meant NOT to bond — that is how the support detaches,
+    // and it is exactly what "Auto" support filament selects for. Applying the bonding rule to it
+    // would reject every print whose support filament does its job.
+    auto is_support_only = [&support_only](size_t i) {
+        return i < support_only.size() && support_only[i] != 0;
+    };
+
     bool any_temperature_mismatch = false;
     bool any_unknown_material     = false;
     for (size_t i = 0; i < filament_count; ++i) {
         for (size_t j = i + 1; j < filament_count; ++j) {
             // Material rule: known-incompatible materials never bond (e.g. PLA + PETG) and take
             // precedence over everything else, so bail out immediately.
-            const MaterialCompatibility material = MaterialType::compatibility(filament_types[i], filament_types[j]);
-            if (material == MaterialCompatibility::Incompatible)
-                return FilamentCompatibilityType::IncompatibleMaterials;
-            if (material == MaterialCompatibility::Unknown)
-                any_unknown_material = true;
+            if (!is_support_only(i) && !is_support_only(j)) {
+                const MaterialCompatibility material = MaterialType::compatibility(filament_types[i], filament_types[j]);
+                if (material == MaterialCompatibility::Incompatible)
+                    return FilamentCompatibilityType::IncompatibleMaterials;
+                if (material == MaterialCompatibility::Unknown)
+                    any_unknown_material = true;
+            }
 
             // Range rule: both filaments must sit within each other's recommended nozzle range.
             const bool i_temp_is_compatible_with_j =
@@ -1249,6 +1260,75 @@ static void fill_filament_compatibility_exception(FilamentCompatibilityType type
 }
 
 // Collect the filament properties check_multi_filaments_compatibility() compares, for the given 0-based filaments.
+// Replace mixed-color slots by the physical filaments they are made of. A mixed slot is virtual:
+// it is realized as its components, so it never loads a spool of its own and its filament_type
+// describes no real material. Checking that phantom type against the object's other filaments is
+// what made a PLA-only mix look like an incompatible material.
+static std::set<unsigned int> expand_mixed_filaments(const PrintConfig &config, const std::set<unsigned int> &filaments)
+{
+    const auto &is_mixed  = config.filament_is_mixed.values;
+    const auto &comp_strs = config.filament_mixed_components.values;
+    auto is_mixed_slot = [&is_mixed](unsigned int filament_0based) {
+        return filament_0based < is_mixed.size() && is_mixed[filament_0based];
+    };
+
+    std::set<unsigned int> out;
+    for (unsigned int filament : filaments) {
+        if (!is_mixed_slot(filament)) {
+            out.insert(filament);
+            continue;
+        }
+        if (filament < comp_strs.size())
+            for (unsigned int c : parse_mixed_components(comp_strs[filament]))
+                if (c >= 1 && !is_mixed_slot(c - 1))
+                    out.insert(c - 1);
+    }
+    return out;
+}
+
+// 0-based ids of the filaments a plate uses only for support (base / interface / ironing). Their
+// job is to not bond to the object, so the material-bonding rule must skip them; any filament that
+// also prints object geometry is excluded here and stays fully checked.
+static std::set<unsigned int> collect_support_only_filaments(const Print &print)
+{
+    const auto  &print_config  = print.config();
+    const size_t num_filaments = print_config.filament_diameter.size();
+    std::set<unsigned int> support_used, object_used;
+    for (const PrintObject *object : print.objects()) {
+        // Bind to a local: object_extruders() returns by value, so iterators taken from two separate
+        // calls would point into different temporaries.
+        const std::vector<unsigned int> obj_extruders = object->object_extruders();
+        for (unsigned int e : expand_mixed_filaments(print_config, { obj_extruders.begin(), obj_extruders.end() }))
+            object_used.insert(e);
+        if (!object->has_support_material())
+            continue;
+        auto add_support = [&](int filament_1based) {
+            if (filament_1based >= 1 && size_t(filament_1based) <= num_filaments)
+                support_used.insert(unsigned(filament_1based - 1));
+        };
+        add_support(object->config().support_filament);
+        add_support(object->config().support_interface_filament);
+        if (object->config().support_ironing)
+            add_support(object->config().support_ironing_filament);
+    }
+    std::set<unsigned int> support_only;
+    for (unsigned int e : support_used)
+        if (object_used.find(e) == object_used.end())
+            support_only.insert(e);
+    return support_only;
+}
+
+// Mark the entries of `filaments` (0-based ids, parallel to the collected property vectors) that
+// appear in `support_only`.
+static std::vector<unsigned char> mark_support_only(const std::vector<unsigned int> &filaments,
+                                                    const std::set<unsigned int>    &support_only)
+{
+    std::vector<unsigned char> flags(filaments.size(), 0);
+    for (size_t i = 0; i < filaments.size(); ++i)
+        flags[i] = support_only.find(filaments[i]) != support_only.end();
+    return flags;
+}
+
 static void collect_filament_properties(const PrintConfig &print_config, const std::vector<unsigned int> &filaments,
                                         std::vector<std::string> &types, std::vector<int> &temperatures,
                                         std::vector<int> &range_lows, std::vector<int> &range_highs)
@@ -1268,6 +1348,7 @@ static void collect_filament_properties(const PrintConfig &print_config, const s
 StringObjectException Print::check_multi_filament_valid(const Print& print)
 {
     auto print_config = print.config();
+    const std::set<unsigned int> support_only_filaments = collect_support_only_filaments(print);
     auto fill_exception = [](FilamentCompatibilityType type, bool enable_mix_printing, bool enable_mix_incompatible_material, StringObjectException& ret) {
         fill_filament_compatibility_exception(type, enable_mix_printing, enable_mix_incompatible_material, ret);
     };
@@ -1298,18 +1379,22 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
                 if (print_object->config().support_ironing && print_object->config().support_ironing_filament >= 1 && (unsigned int)print_object->config().support_ironing_filament < num_extruders + 1)
                     obj_used_extruder_ids.insert((unsigned int) print_object->config().support_ironing_filament - 1);
             }
+            const std::set<unsigned int> obj_expanded =
+                expand_mixed_filaments(print_config, { obj_used_extruder_ids.begin(), obj_used_extruder_ids.end() });
+            const std::vector<unsigned int> obj_filaments(obj_expanded.begin(), obj_expanded.end());
             std::vector<std::string> filament_types;
             std::vector<int> nozzle_temperatures;
             std::vector<int> nozzle_temperature_range_lows;
             std::vector<int> nozzle_temperature_range_highs;
-            collect_filament_properties(print_config, { obj_used_extruder_ids.begin(), obj_used_extruder_ids.end() },
+            collect_filament_properties(print_config, obj_filaments,
                                         filament_types, nozzle_temperatures, nozzle_temperature_range_lows, nozzle_temperature_range_highs);
 
             auto compatibility = check_multi_filaments_compatibility(
                 filament_types,
                 nozzle_temperatures,
                 nozzle_temperature_range_lows,
-                nozzle_temperature_range_highs); // check for each object
+                nozzle_temperature_range_highs,
+                mark_support_only(obj_filaments, support_only_filaments)); // check for each object
             if (compatibility == FilamentCompatibilityType::InvalidTemperatureRange) {
                 fill_exception(compatibility, enable_mix_printing, enable_mix_incompatible_material, ret);
                 return ret;
@@ -1322,7 +1407,10 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
         fill_exception(incompatible_type, enable_mix_printing, enable_mix_incompatible_material, ret);
         return ret;
     }
-    std::vector<unsigned int> extruders = print.extruders();
+    const std::vector<unsigned int> plate_extruders = print.extruders();
+    const std::set<unsigned int> plate_filaments =
+        expand_mixed_filaments(print_config, { plate_extruders.begin(), plate_extruders.end() });
+    std::vector<unsigned int> extruders(plate_filaments.begin(), plate_filaments.end());
     std::vector<std::string> filament_types;
     std::vector<int> nozzle_temperatures;
     std::vector<int> nozzle_temperature_range_lows;
@@ -1334,7 +1422,8 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
         filament_types,
         nozzle_temperatures,
         nozzle_temperature_range_lows,
-        nozzle_temperature_range_highs);
+        nozzle_temperature_range_highs,
+        mark_support_only(extruders, support_only_filaments));
     bool enable_mix_printing = !print.need_check_multi_filaments_compatibility();
     bool enable_mix_incompatible_material = !print.need_check_multi_filaments_material_compatibility();
 
@@ -1358,11 +1447,16 @@ StringObjectException Print::check_object_materials_valid(const Print &print)
     for (const PrintObject *object : print.objects()) {
         // Every filament the object prints with: its parts and modifiers, the painted regions, and the
         // per-feature picks (walls, surfaces, ironing). Support is left out on purpose - it is meant to peel.
+        // A mixed-color slot is replaced by its components: it is virtual, so its own filament_type
+        // belongs to no spool and comparing it against the object's real materials is meaningless.
+        const std::vector<unsigned int> obj_extruders = object->object_extruders();
+        const std::set<unsigned int>    obj_expanded =
+            expand_mixed_filaments(print.config(), { obj_extruders.begin(), obj_extruders.end() });
         std::vector<std::string> filament_types;
         std::vector<int> nozzle_temperatures;
         std::vector<int> nozzle_temperature_range_lows;
         std::vector<int> nozzle_temperature_range_highs;
-        collect_filament_properties(print.config(), object->object_extruders(),
+        collect_filament_properties(print.config(), { obj_expanded.begin(), obj_expanded.end() },
                                     filament_types, nozzle_temperatures, nozzle_temperature_range_lows, nozzle_temperature_range_highs);
 
         const FilamentCompatibilityType compatibility = check_multi_filaments_compatibility(
