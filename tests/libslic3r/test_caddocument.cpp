@@ -5117,6 +5117,48 @@ TEST_CASE("thicken-surface makes a solid from a sheet", "[CadDocument][surface]"
     REQUIRE_THAT(double(tx1), WithinAbs(double(sx1), 2.1));
 }
 
+// Regression for snaporca-lu27, with the rig's own numbers. A 60x60x40 four-walled open box
+// used to report volume 96000 and an inertia diagonal of [-4.2e7, -4.2e7, -6.9e7] — negative
+// principal moments, which no real body can have. VolumeProperties was being integrated over
+// an open shell as though it were closed, and std::abs() on the mass hid the only obvious tell.
+// The area was always right, so that stays reported and valid; the volume and inertia must not.
+TEST_CASE("mass properties of a sheet body report area only, never a volume",
+          "[CadDocument][surface]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 60, 60, 0, "Rect");
+    REQUIRE(sk >= 0);
+    doc.add_surface_extrude(sk, 40.0, "Skin");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 1);
+
+    auto sheet = doc.body_mass_properties(0);
+    REQUIRE_FALSE(sheet.is_solid);
+    REQUIRE(sheet.valid);                       // the area IS trustworthy
+    REQUIRE_THAT(sheet.surface_area, WithinRel(9600.0, 1e-6));   // 4 walls x 60 x 40
+    REQUIRE(sheet.volume == 0.0);
+    for (double v : sheet.inertia)
+        REQUIRE(v == 0.0);
+
+    // The solid thickened from that same sheet is the contrast case: it does have a volume,
+    // and its principal moments are positive, as any real body's must be.
+    REQUIRE(doc.add_thicken_surface(0, 2.0, false, "Wall") >= 0);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 2);
+
+    auto solid = doc.body_mass_properties(1);
+    REQUIRE(solid.is_solid);
+    REQUIRE(solid.valid);
+    REQUIRE(solid.volume > 0.0);
+    REQUIRE(solid.inertia[0] > 0.0);
+    REQUIRE(solid.inertia[4] > 0.0);
+    REQUIRE(solid.inertia[8] > 0.0);
+}
+
 TEST_CASE("surface-offset creates another sheet shifted outward", "[CadDocument][surface]")
 {
     using Catch::Matchers::WithinAbs;
