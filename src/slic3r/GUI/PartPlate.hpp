@@ -343,6 +343,11 @@ public:
     // respecting any imex_head_filament_map override. Falls back to GLVolume::UNPRINTABLE_COLOR
     // when no filament routes to the head.
     ColorRGBA get_imex_head_filament_color(int physical_head) const;
+    // Same resolution against caller-hoisted plate-level inputs (hot paths that
+    // resolve several heads should hoist pem/plate_map once and use this form).
+    ColorRGBA get_imex_head_filament_color(int physical_head,
+                                           const ConfigOptionInts& pem,
+                                           const std::map<int, int>& plate_map) const;
 
     // Visual ghosts of every object on this plate, one per active secondary head.
     // Non-selectable, non-draggable. See IMEX ghost renderer spec.
@@ -356,6 +361,10 @@ public:
     // or no lookup is passed, the committed ModelInstance matrix is used.
     void update_imex_ghost_transforms(
         const std::function<std::optional<Transform3d>(int, int)>& primary_live_xf = {});
+
+    // Restamp ghost RGB from the live filament palette (per frame, from the render
+    // loop). Color is deliberately not part of the ghost cache key — see the .cpp.
+    void update_imex_ghost_colors();
 
     // Invalidate the ghost cache so the next render_imex_zones() call rebuilds fully.
     void invalidate_imex_ghosts() { m_imex_ghost_cache_key = "\x01"; }

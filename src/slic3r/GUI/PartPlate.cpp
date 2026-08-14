@@ -438,14 +438,14 @@ void PartPlate::set_imex_head_filament_map(const std::map<int,int>& m)
         m_config.set_key_value("imex_head_filament_map", new ConfigOptionString(os.str()));
     }
     update_slice_result_valid_state(false);
-    m_imex_ghost_cache_key = "\x01"; // force ghost rebuild
+    // No ghost rebuild: routing only affects color, which update_imex_ghost_colors
+    // restamps live every frame.
 }
 
 void PartPlate::reset_imex_head_filament_map()
 {
     m_config.erase("imex_head_filament_map");
     update_slice_result_valid_state(false);
-    m_imex_ghost_cache_key = "\x01";
 }
 
 ColorRGBA PartPlate::get_imex_head_filament_color(int physical_head) const
@@ -454,8 +454,19 @@ ColorRGBA PartPlate::get_imex_head_filament_color(int physical_head) const
     if (!pb)
         return GLVolume::UNPRINTABLE_COLOR;
 
-    const ConfigOptionInts pem = effective_physical_extruder_map(*pb);
-    const auto plate_map = get_imex_head_filament_map();
+    return get_imex_head_filament_color(physical_head,
+                                        effective_physical_extruder_map(*pb),
+                                        get_imex_head_filament_map());
+}
+
+ColorRGBA PartPlate::get_imex_head_filament_color(int physical_head,
+                                                  const ConfigOptionInts& pem,
+                                                  const std::map<int, int>& plate_map) const
+{
+    auto* pb = wxGetApp().preset_bundle;
+    if (!pb)
+        return GLVolume::UNPRINTABLE_COLOR;
+
     const int logical = resolve_filament_for_head(plate_map, pem, physical_head);
     if (logical < 0)
         return GLVolume::UNPRINTABLE_COLOR;
@@ -1035,23 +1046,16 @@ void PartPlate::ensure_imex_zones()
 
 std::string PartPlate::build_imex_ghost_cache_key() const
 {
-    // Ghost shape depends on: mode topology (same inputs as zone key) + pem +
-    // set of objects on plate + each primary instance's transform.
+    // Ghost shape depends on: mode topology (same inputs as zone key) + set of
+    // objects on plate + each primary instance's transform. Filament routing and
+    // colors are deliberately NOT keyed: ghost RGB is restamped live every frame
+    // by update_imex_ghost_colors, so color-only changes never need a mesh rebuild.
     std::string k = build_imex_cache_key();
     if (k.empty()) return "";  // ghost-off when zones-off
 
-    if (auto* pb = wxGetApp().preset_bundle) {
-        // Keyed on the effective pem (project → printer → pei-derived) so a printer
-        // swap that only changes printer_extruder_id still invalidates the ghost cache.
-        const ConfigOptionInts pem = effective_physical_extruder_map(*pb);
-        k += "|pem";
-        for (int v : pem.values) { k += ':'; k += std::to_string(v); }
-    }
     k += "|obj";
     for (const auto& oi : obj_to_instance_set)
         k += std::to_string(oi.first) + "." + std::to_string(oi.second) + ",";
-    for (const auto& kv : get_imex_head_filament_map())
-        k += "|m" + std::to_string(kv.first) + "=" + std::to_string(kv.second);
     return k;
 }
 
@@ -1094,6 +1098,10 @@ bool PartPlate::resolve_active_mode_tools(std::string& out_tools_str, int& out_p
     out_primary_phys = primary_phys;
     return true;
 }
+
+// Ghost opacity. RGB is owned by update_imex_ghost_colors (restamped per frame);
+// calc_imex_ghosts only bakes this alpha into the volume.
+static constexpr float IMEX_GHOST_ALPHA = 0.55f;
 
 void PartPlate::calc_imex_ghosts()
 {
@@ -1184,7 +1192,6 @@ void PartPlate::calc_imex_ghosts()
         return {aggregated_primary, aggregated_target - aggregated_primary};
     };
 
-    constexpr float GHOST_ALPHA = 0.55f;
 
     // Mesh is object-local and identical across all instances and heads of a given object.
     // Build the merged TriangleMesh once per obj_idx and reuse across the inner head loop.
@@ -1231,8 +1238,9 @@ void PartPlate::calc_imex_ghosts()
                 primary_phys, phys, role, gantry, pri_center, mirror_axis_for(phys));
             const Transform3d ghost_xf = head_xf * inst_world;
 
-            ColorRGBA color = get_imex_head_filament_color(phys);
-            color.a(GHOST_ALPHA);
+            // RGB here is a placeholder — update_imex_ghost_colors restamps every
+            // ghost from the live filament palette each frame; only alpha matters.
+            const ColorRGBA color = {0.5f, 0.5f, 0.5f, IMEX_GHOST_ALPHA};
 
             auto ghost = std::make_unique<GLVolume>(color);
             ghost->set_instance_transformation(ghost_xf);
@@ -1343,6 +1351,34 @@ void PartPlate::update_imex_ghost_transforms(
             primary_phys, head, role, gantry, pri_center, mirror_axis_for(head));
         const Transform3d ghost_xf = head_xf * primary_xf;
         ghost->set_instance_transformation(ghost_xf);
+    }
+}
+
+// Restamp every ghost's RGB from the current filament palette. Called per frame
+// from the render loop, so ghosts can never go stale against filament preset or
+// color changes — the ghost cache key deliberately ignores color-only inputs.
+// This is the same resolution the hover tooltip runs (resolve_filament_for_head
+// over the effective pem + per-plate override map), so the two cannot disagree.
+void PartPlate::update_imex_ghost_colors()
+{
+    if (m_imex_ghost_volumes.empty() || !m_plater) return;
+    auto* pb = wxGetApp().preset_bundle;
+    if (!pb) return;
+
+    // Plate-level inputs hoisted once; per-head results memoized across instances.
+    const ConfigOptionInts pem = effective_physical_extruder_map(*pb);
+    const auto plate_map = get_imex_head_filament_map();
+
+    std::map<int, ColorRGBA> head_colors;
+    for (auto& ghost : m_imex_ghost_volumes) {
+        if (!ghost) continue;
+        const int head = imex_ghost_head_from_composite_id(ghost->composite_id.object_id);
+        auto hc = head_colors.find(head);
+        if (hc == head_colors.end())
+            hc = head_colors.emplace(head, get_imex_head_filament_color(head, pem, plate_map)).first;
+        ColorRGBA color = hc->second;
+        color.a(IMEX_GHOST_ALPHA);
+        ghost->color = color;
     }
 }
 

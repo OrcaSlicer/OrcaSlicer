@@ -7556,24 +7556,14 @@ void GLCanvas3D::_render_imex_ghosts()
     PartPlateList& ppl = wxGetApp().plater()->get_partplate_list();
     PartPlate* active_plate = ppl.get_curr_plate();
     if (active_plate) {
-        // Refresh per-frame so ghost positions reflect the primary's live drag state.
+        // Refresh per-frame so ghost positions reflect the primary's live drag state,
+        // and restamp ghost RGB from the live filament palette so color-only changes
+        // (palette edits, late-loading project colors) never leave stale ghosts.
         active_plate->update_imex_ghost_transforms(primary_live_xf);
+        active_plate->update_imex_ghost_colors();
         const auto& ghosts = active_plate->get_imex_ghost_volumes();
-        // Re-resolve ghost colors live instead of trusting the bake: the ghost cache key
-        // covers mesh-shaping inputs (mode, pem, object set) but not filament_colour, so
-        // a palette edit or a late-loading project color would leave stale — or
-        // UNPRINTABLE-black — ghosts until an unrelated rebuild. This is the same
-        // resolution the hover tooltip runs, so the two can never disagree.
-        std::map<int, ColorRGBA> head_colors;
         for (const auto& g : ghosts) {
             if (!g || !g->is_active) continue;
-            const int head = PartPlate::imex_ghost_head_from_composite_id(g->composite_id.object_id);
-            auto hc = head_colors.find(head);
-            if (hc == head_colors.end())
-                hc = head_colors.emplace(head, active_plate->get_imex_head_filament_color(head)).first;
-            ColorRGBA color = hc->second;
-            color.a(g->color.a()); // keep the ghost alpha baked by calc_imex_ghosts
-            g->color = color;
             const Transform3d model_matrix = g->world_matrix();
             shader->set_uniform("volume_world_matrix", model_matrix);
             shader->set_uniform("slope.volume_world_normal_matrix",
