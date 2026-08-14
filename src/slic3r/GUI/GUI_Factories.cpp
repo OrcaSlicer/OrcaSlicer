@@ -102,6 +102,7 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
     {{L("Quality"),
       {{"ironing_type", "", 8},
        {"ironing_flow", "", 9},
+       {"ironing_filament", "", 9},
        {"ironing_spacing", "", 10},
        {"ironing_inset", "", 11},
        {"bridge_flow", "", 11},
