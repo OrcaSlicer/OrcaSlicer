@@ -5290,8 +5290,11 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
     if (num_physical == choices.size()) {
         // The ctor pre-creates one combo, so a single-filament project hits this guard before
         // any layout pass has sized the scroll areas; refresh them here as well.
+        // Adding or removing a mixed slot also lands here, since only the virtual count changed,
+        // so the per-feature/support filament lists have to be refreshed on this path too.
         recalc_filament_scroll_sizes();
         update_mixed_filament_list();
+        update_dynamic_filament_list();
         return;
     }
 
@@ -5333,8 +5336,13 @@ void Sidebar::on_filaments_delete(size_t filament_id)
 {
     auto &choices = combos_filament();
 
-    if (filament_id >= choices.size())
+    if (filament_id >= choices.size()) {
+        // A mixed slot sits past the physical combos, so there is no combo to remove — but the
+        // mixed list and the per-feature/support filament lists still have to drop the entry.
+        update_mixed_filament_list();
+        update_dynamic_filament_list();
         return;
+    }
 
     if (choices.size() == 1)
         choices[0]->GetDropDown().Invalidate();
