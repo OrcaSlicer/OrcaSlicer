@@ -205,6 +205,10 @@ public:
     // Per closed loop, the indices into `ents` that form it (for hiding already-extruded
     // loops from the committed-sketch overlay).
     std::vector<std::vector<int>> region_entity_indices(const std::vector<SketchEntity>& ents) const;
+    // Same, but each region's entry is its OWN entities followed by the entities of each of its
+    // holes, in that order — the exact list a per-loop extrude of a region WITH holes stores
+    // (see selected_loop_entities()). Needed to match a consumed loop against its source sketch.
+    std::vector<std::vector<int>> region_entity_indices_with_holes(const std::vector<SketchEntity>& ents) const;
     void clear_display_pick() { m_display_pick = -1; m_display_pick_region = -1; }
     // Adopt a loop pick the tool did not make itself. The live-sketch path resolves the region
     // BEFORE the sketch is committed, so once finish_sketch() has turned it into a display

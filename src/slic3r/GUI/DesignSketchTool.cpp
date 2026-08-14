@@ -2780,6 +2780,22 @@ DesignSketchTool::region_entity_indices(const std::vector<SketchEntity>& ents) c
     return out;
 }
 
+std::vector<std::vector<int>>
+DesignSketchTool::region_entity_indices_with_holes(const std::vector<SketchEntity>& ents) const
+{
+    const std::vector<RegionLoop> loops = region_loops(ents);
+    std::vector<std::vector<int>> out;
+    out.reserve(loops.size());
+    for (const RegionLoop& r : loops) {
+        std::vector<int> ids = r.ents;
+        for (int h : r.holes)
+            if (h >= 0 && h < int(loops.size()))
+                ids.insert(ids.end(), loops[h].ents.begin(), loops[h].ents.end());
+        out.push_back(std::move(ids));
+    }
+    return out;
+}
+
 // Nearest stroke, and the enclosing region if the cursor is inside one, for ONE committed
 // sketch. Factored out so the single-click and double-click paths cannot drift apart: they must
 // agree about what is under the pointer or one of them will act on something else.

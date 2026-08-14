@@ -4079,7 +4079,7 @@ void DesignPanel::sync_sketch_display()
                 // Drop the entities of any loop already extruded; keep the rest (other
                 // loops + non-loop entities) so they stay visible and selectable.
                 std::vector<char> drop(f.entities.size(), 0);
-                for (const std::vector<int>& loop : m_viewport->region_entity_indices(f.entities)) {
+                for (const std::vector<int>& loop : m_viewport->region_entity_indices_with_holes(f.entities)) {
                     std::vector<SketchEntity> es;
                     for (int ei : loop)
                         if (ei >= 0 && ei < int(f.entities.size())) es.push_back(f.entities[ei]);
@@ -5768,7 +5768,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
             if (!mate_ghost) return;
             m_viewport->clear_preview();
             m_viewport->set_body_hidden(false);
-            m_viewport->request_repaint();
+            m_viewport->repaint_now();
             mate_ghost = false;
         };
         menu.Bind(wxEVT_MENU_HIGHLIGHT,
@@ -5779,7 +5779,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
             if (i < 0 || i >= int(opts.size()) || !opts[i].viable) { drop_ghost(); return; }
             std::string err;
             mate_ghost = show_mate_ghost(opts[i].kind, cs_a, cs_b, 0.0, 0.0, false, err);
-            m_viewport->request_repaint();
+            m_viewport->repaint_now();   // synchronous: the popup owns the loop, a queued repaint is never serviced
         });
 
         menu.Bind(wxEVT_MENU, [this, cs_a, cs_b, opts, mate_base, drop_ghost](wxCommandEvent& e) {
@@ -7137,7 +7137,7 @@ void DesignPanel::rebuild_constraint_list()
         m_hdr_constraints->SetLabel(wxString::Format(_L("Constraints (%d)"), int(cons.size())));
 
     if (cons.empty()) {
-        auto* none = new wxStaticText(m_form, wxID_ANY, _L("No constraints yet"));
+        auto* none = new wxStaticText(m_cards, wxID_ANY, _L("No constraints yet"));
         none->SetForegroundColour(dp_sec_text());
         m_constraint_rows->Add(none, 0, wxTOP, 4);
     }
@@ -7145,12 +7145,12 @@ void DesignPanel::rebuild_constraint_list()
         auto* row = new wxBoxSizer(wxHORIZONTAL);
         // Delete button first (fixed left position, always visible — long labels can
         // horizontally scroll but ✗ stays put and clickable). BMP-safe ✗ glyph.
-        auto* del = new wxButton(m_form, wxID_ANY, wxString::FromUTF8("✗"),
+        auto* del = new wxButton(m_cards, wxID_ANY, wxString::FromUTF8("✗"),
                                  wxDefaultPosition, wxSize(26, -1));
         del->SetToolTip(_L("Delete constraint"));
         del->Bind(wxEVT_BUTTON, [this, i](wxCommandEvent&) { delete_constraint(i); });
         // Clickable label: selecting it highlights the referenced entities.
-        auto* lbl = new wxButton(m_form, wxID_ANY, constraint_label(cons[i]),
+        auto* lbl = new wxButton(m_cards, wxID_ANY, constraint_label(cons[i]),
                                  wxDefaultPosition, wxDefaultSize, wxBU_LEFT | wxBORDER_NONE);
         lbl->Bind(wxEVT_BUTTON, [this, i](wxCommandEvent&) { highlight_constraint_entities(i); });
         row->Add(del, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);

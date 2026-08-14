@@ -83,6 +83,11 @@ public:
     void set_on_display_sketch_activated(std::function<void(int)> cb);      // committed sketch DOUBLE-clicked: edit it
     std::vector<SketchEntity> selected_loop_entities() const;  // entities of the click-selected loop
     std::vector<std::vector<int>> region_entity_indices(const std::vector<SketchEntity>& ents) const;
+    // Like region_entity_indices, but each region's entry is its OWN entities followed by the
+    // entities of each of its holes — the same order selected_loop_entities() hands the kernel.
+    // A per-loop extrude of a region WITH holes stores exactly this, so this is the shape a
+    // consumed loop must be compared against.
+    std::vector<std::vector<int>> region_entity_indices_with_holes(const std::vector<SketchEntity>& ents) const;
     void clear_loop_pick();  // drop the click-selected loop highlight (e.g. after extrude)
     void set_loop_pick(int feature, int region);  // adopt a loop pick made before the commit
     void set_escalate_on_repick(bool on);         // off while a card has armed a face/edge pick
@@ -284,6 +289,10 @@ public:
     // being shown is dropped on hardware GL and no wxEVT_PAINT ever follows, leaving the
     // canvas blank until another tab switch forces an expose.
     void force_repaint();
+    // Repaint synchronously, for use while a modal popup (the offer menu) owns the event loop:
+    // a queued Refresh() is not serviced until the popup closes, so a hover ghost drawn behind it
+    // would never appear. Mirrors DesignPanel's m_status->Update() flush.
+    void repaint_now();
 
 private:
     void reload(bool keep_view);

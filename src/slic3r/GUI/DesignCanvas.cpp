@@ -282,6 +282,14 @@ void DesignCanvas::force_repaint()
     });
 }
 
+void DesignCanvas::repaint_now()
+{
+    if (m_canvas == nullptr || m_canvas_widget == nullptr)
+        return;
+    request_repaint();            // mark dirty + Refresh (hardware GL) or render (software GL)
+    m_canvas_widget->Update();    // service the pending paint immediately (a modal popup owns the loop)
+}
+
 void DesignCanvas::reload(bool keep_view)
 {
     m_canvas->reset_volumes();
@@ -591,6 +599,11 @@ std::vector<SketchEntity> DesignCanvas::selected_loop_entities() const
 std::vector<std::vector<int>> DesignCanvas::region_entity_indices(const std::vector<SketchEntity>& ents) const
 {
     return m_sketch_tool.region_entity_indices(ents);
+}
+
+std::vector<std::vector<int>> DesignCanvas::region_entity_indices_with_holes(const std::vector<SketchEntity>& ents) const
+{
+    return m_sketch_tool.region_entity_indices_with_holes(ents);
 }
 
 void DesignCanvas::clear_loop_pick()
