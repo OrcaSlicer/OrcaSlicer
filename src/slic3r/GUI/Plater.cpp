@@ -5408,22 +5408,36 @@ void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
     if (is_new_project_in_gcode3mf()) { return; }
     if (p->combos_filament.size() <= 1) return;
 
-    size_t filament_count = p->combos_filament.size() - 1;
+    // Mixed-color slots are filaments too, but they have no combo of their own, so the bounds here
+    // must come from the whole filament list. Deriving them from combos_filament (physical only)
+    // put every mixed slot out of range and made deleting one a silent no-op.
+    const size_t total_filaments = wxGetApp().preset_bundle->filament_presets.size();
+    const size_t last_physical   = p->combos_filament.size() - 1;
     if (filament_id == size_t(-2)) {
         filament_id = p->m_menu_filament_id;
     }
     if (filament_id == size_t(-1)) {
-        filament_id = filament_count;
+        // "Remove last filament" targets the last physical one; mixed slots are removed from the
+        // Color Mixing list instead.
+        filament_id = last_physical;
     }
 
-    if (filament_id > filament_count)
+    if (filament_id >= total_filaments)
         return;
+
+    // Filament count after this delete. Counts mixed slots, so the paint cleanup downstream
+    // (update_extruder_count_when_delete_filament) doesn't clamp painted mixed states away.
+    const size_t filament_count = total_filaments - 1;
 
     if (wxGetApp().preset_bundle->is_the_only_edited_filament(filament_id) || (filament_id == 0)) {
         wxGetApp().get_tab(Preset::TYPE_FILAMENT)->select_preset(wxGetApp().preset_bundle->filament_presets[0], false, "", true);
     }
 
-    if (p->editing_filament == filament_id || p->editing_filament >= filament_count) {
+    // Deleting a mixed slot leaves the physical combos untouched, so only a physical delete can
+    // invalidate the combo being edited.
+    const size_t new_physical_count = wxGetApp().preset_bundle->is_mixed_filament(filament_id)
+        ? p->combos_filament.size() : last_physical;
+    if (p->editing_filament == int(filament_id) || p->editing_filament >= int(new_physical_count)) {
         p->editing_filament = -1;
     }
 
