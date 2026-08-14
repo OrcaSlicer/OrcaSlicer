@@ -12,6 +12,14 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
+
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#ifdef GDK_WINDOWING_X11
+#include <gdk/gdkx.h>
+#endif
+#endif
 
 namespace Slic3r {
 namespace GUI {
@@ -33,6 +41,56 @@ bool en_parse(const wxString& text, double& out)
     wxString t(text);
     t.Replace(wxT(","), wxT("."));
     return t.ToCDouble(&out);
+}
+
+// Present the toplevel with a real X11 server timestamp: wxFrame::Raise() maps to
+// gtk_window_present() with gtk_get_current_event_time(), which inside a CallAfter is
+// GDK_CURRENT_TIME (0) and is ignored by mutter's focus-stealing prevention. A server
+// timestamp lets the compositor grant focus to the re-mapped window.
+#ifdef __WXGTK__
+void present_toplevel(wxFrame* frame)
+{
+#ifdef GDK_WINDOWING_X11
+    if (frame) {
+        GtkWidget* widget = static_cast<GtkWidget*>(frame->GetHandle());
+        if (widget && GTK_IS_WIDGET(widget)) {
+            GdkWindow* gdkwin = gtk_widget_get_window(widget);
+            if (gdkwin) {
+                gtk_window_present_with_time(GTK_WINDOW(widget),
+                                             gdk_x11_get_server_time(gdkwin));
+                return;
+            }
+        }
+    }
+#endif
+    if (frame) frame->Raise();
+}
+#else
+void present_toplevel(wxFrame* frame)
+{
+    if (frame) frame->Raise();
+}
+#endif
+
+void trace_inline_focus(wxFrame* frame, const std::string& title)
+{
+    if (!std::getenv("SNAPORCA_KEYTRACE")) return;
+#ifdef __WXGTK__
+    GtkWindow* win = nullptr;
+    if (frame) {
+        GtkWidget* widget = static_cast<GtkWidget*>(frame->GetHandle());
+        if (widget && GTK_IS_WIDGET(widget)) win = GTK_WINDOW(widget);
+    }
+    fprintf(stderr, "[INLINE_FOCUS] title=%s active=%d toplevel_focus=%d shown=%d\n",
+            title.c_str(),
+            win ? (int) gtk_window_is_active(win) : -1,
+            win ? (int) gtk_window_has_toplevel_focus(win) : -1,
+            frame ? (int) frame->IsShown() : -1);
+#else
+    fprintf(stderr, "[INLINE_FOCUS] title=%s shown=%d\n",
+            title.c_str(), frame ? (int) frame->IsShown() : -1);
+#endif
+    fflush(stderr);
 }
 } // namespace
 
@@ -78,7 +136,9 @@ void SketchInlineEditor::open(const wxPoint& screen_px, double value,
                               std::function<void()> on_cancel)
 {
     if (m_frame == nullptr || m_ctrl == nullptr) { if (on_cancel) on_cancel(); return; }
-    if (m_open) close();
+    // Never close/unmap on the way in: the previous queued dimension left this frame mapped
+    // (see do_commit), and re-mapping a hidden toplevel is exactly what mutter refuses to
+    // focus. Reuse the still-mapped frame and just re-title/re-position it.
     m_commit = std::move(on_commit);
     m_cancel = std::move(on_cancel);
     m_ctrl->ChangeValue(en_format(value));
@@ -104,17 +164,24 @@ void SketchInlineEditor::open(const wxPoint& screen_px, double value,
     pos.y = std::max(area.GetTop(),  std::min(pos.y, area.GetBottom() - sz.GetHeight()));
     // Show() BEFORE Move(): GTK ignores a Move() issued before the window is mapped (the
     // WM places it at its default, i.e. the top-left corner). Move after Show sticks.
-    m_frame->Show();
+    if (!m_frame->IsShown())
+        m_frame->Show();
     m_frame->Move(pos);
-    m_frame->Raise();             // gtk_window_present -> activate the top-level so SetFocus routes
+    present_toplevel(m_frame);    // activate the top-level so SetFocus routes
     m_frame->SetFocus();
     m_ctrl->SetFocus();
     m_ctrl->SelectAll();
     m_open = true;
+    trace_inline_focus(m_frame, title);
     // Re-assert on the next tick too: the GL canvas can reclaim focus while it finishes
     // handling the click/render that opened us, so a single immediate SetFocus may be stolen.
-    m_ctrl->CallAfter([this] {
-        if (m_open && m_ctrl) { m_frame->Raise(); m_ctrl->SetFocus(); m_ctrl->SelectAll(); }
+    m_ctrl->CallAfter([this, title] {
+        if (m_open && m_ctrl) {
+            present_toplevel(m_frame);
+            m_ctrl->SetFocus();
+            m_ctrl->SelectAll();
+            trace_inline_focus(m_frame, title);
+        }
     });
 }
 
@@ -127,9 +194,16 @@ void SketchInlineEditor::do_commit()
         m_ctrl->SelectAll();
         return;
     }
-    auto cb = m_commit;   // copy-then-close: the callback re-enters (re-solve + render)
-    close();
+    auto cb = m_commit;
+    m_open   = false;          // logically closed: the frame stays MAPPED
+    m_commit = nullptr;
+    m_cancel = nullptr;
     if (cb) cb(v);
+    // The callback either re-opens us for the next queued dimension (via its own CallAfter,
+    // queued during cb(v), therefore BEFORE the one below) or it does not. Hiding here would
+    // unmap the window and mutter would refuse to focus the re-map; so hide only after the
+    // reopen has had its turn.
+    m_frame->CallAfter([this] { if (!m_open && m_frame) m_frame->Hide(); });
 }
 
 void SketchInlineEditor::cancel()
