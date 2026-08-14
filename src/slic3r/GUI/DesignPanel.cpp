@@ -10533,6 +10533,23 @@ void DesignPanel::update_action_bar()
                      || m_ui_mode == UiMode::Constrain
                      || (m_viewport && m_viewport->moving_body());
     s->Show(m_tb_action, active, true);
+    // HIDING THE BAR ORPHANS THE KEYBOARD, and that is the "app does not consent to sketch"
+    // report. The ✓/✗ live in this bar, so the click that confirms a feature leaves focus on a
+    // button that this very call then hides. wx does not hand that focus anywhere useful, and
+    // wxEVT_CHAR_HOOK is bound on THIS PANEL — it is delivered to the focused window and
+    // propagates up the parent chain, so with focus outside the panel every Design shortcut
+    // stops arriving. Measured on the rig: after Confirm, shift+S produced ZERO CHAR_HOOK lines
+    // (not even the modifier), while X kept focus on the main window throughout — so it was
+    // never a window-manager problem. One bare canvas click restored it, which is exactly the
+    // workaround users found and reported as "shift+s works but it is not intuitive".
+    // The canvas is the right owner of the keyboard in this tab, so give it back explicitly.
+    if (!active && m_viewport != nullptr) {
+        wxWindow* f = wxWindow::FindFocus();
+        bool in_bar = (f == nullptr);
+        for (wxWindow* w = f; w != nullptr && !in_bar; w = w->GetParent())
+            if (w == m_toolbar) in_bar = true;   // the bar is a sizer; its buttons parent to m_toolbar
+        if (in_bar) m_viewport->SetFocus();
+    }
     m_toolbar->Layout();
     m_toolbar->FitInside();   // refresh scroll range when the action bar shows/hides
 }
