@@ -189,6 +189,18 @@ static wxSpinCtrlDouble* make_spin(wxWindow* parent, double val,
     s->SetRange(mn, mx);
     s->SetDigits(2);
     s->SetValue(val);
+    // THE WHEEL SCROLLS THE PANEL, IT DOES NOT EDIT THE VALUE. wxSpinCtrlDouble takes the wheel
+    // whenever the pointer is over it, so a card taller than the panel could not be scrolled past
+    // without silently incrementing whatever field happened to be under the cursor — measured:
+    // eight notches turned an X hint from 1,00 into 6,00, and the same gesture over an Extrude
+    // distance or a mate Offset is a silent model change made by someone who thought they were
+    // navigating. Skipping the event lets it reach the scrolled cards panel. A spin the user has
+    // deliberately focused still takes the wheel, which is the one case where editing is meant.
+    s->Bind(wxEVT_MOUSEWHEEL, [s](wxMouseEvent& e) {
+        if (wxWindow::FindFocus() == s) e.Skip();          // focused: wheel edits, as expected
+        else if (wxWindow* p = s->GetParent())             // otherwise hand it to the panel
+            wxPostEvent(p, e);
+    });
     auto* sz = new wxBoxSizer(wxHORIZONTAL);
     sz->Add(s, 1, wxEXPAND | wxALL, parent->FromDIP(2));
     box->SetSizer(sz);
