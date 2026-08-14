@@ -84,6 +84,7 @@ void TabCtrl::Rescale()
 {
     for (auto & b : btns)
         b->Rescale();
+    relayout();
 }
 
 bool TabCtrl::SetFont(wxFont const& font)
@@ -115,6 +116,13 @@ int TabCtrl::AppendItem(const wxString &item,
     sizer->AddStretchSpacer(1);
     relayout();
     return btns.size() - 1;
+}
+
+int TabCtrl::AppendItem(const wxString& item, const wxBitmap& bitmap, void* clientData)
+{
+    const int index = AppendItem(item, -1, -1, clientData);
+    SetItemBitmap(index, bitmap);
+    return index;
 }
 
 bool TabCtrl::DeleteItem(int item)
@@ -168,6 +176,14 @@ void TabCtrl::SetItemText(unsigned int item, wxString const &value)
 {
     if (item >= btns.size()) return;
     btns[item]->SetLabel(value);
+}
+
+void TabCtrl::SetItemBitmap(unsigned int item, const wxBitmap& bitmap)
+{
+    if (item >= btns.size())
+        return;
+    btns[item]->SetBitmap(bitmap);
+    relayout();
 }
 
 bool TabCtrl::GetItemBold(unsigned int item) const

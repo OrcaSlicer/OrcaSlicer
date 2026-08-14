@@ -29,6 +29,7 @@ public:
 
 public:
     int AppendItem(const wxString &item, int image = -1, int selImage = -1, void *clientData = nullptr);
+    int AppendItem(const wxString &item, const wxBitmap& bitmap, void *clientData = nullptr);
 
     bool DeleteItem(int item);
 
@@ -46,6 +47,7 @@ public:
 
     wxString GetItemText(unsigned int item) const;
     void     SetItemText(unsigned int item, wxString const &value);
+    void     SetItemBitmap(unsigned int item, const wxBitmap& bitmap);
 
     bool     GetItemBold(unsigned int item) const;
     void     SetItemBold(unsigned int item, bool bold);

@@ -505,8 +505,10 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour"))
             if (source_index < colours->size())
                 hex = colours->get_at(source_index);
-        if (wxBitmap* chip = get_extruder_color_icon(hex, "", FromDIP(12), FromDIP(12)))
-            header_sizer->Add(new wxStaticBitmap(category.page, wxID_ANY, *chip), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+        if (wxBitmap* chip = get_extruder_color_icon(hex, "", FromDIP(12), FromDIP(12))) {
+            category.filament_color_chip = new wxStaticBitmap(category.page, wxID_ANY, *chip);
+            header_sizer->Add(category.filament_color_chip, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+        }
         category.master_check = new wxCheckBox(category.page, wxID_ANY, title);
         category.master_check->SetFont(Label::Head_14);
         category.master_check->SetToolTip(_L("Export this material"));
@@ -535,7 +537,19 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     const size_t category_index = m_categories.size();
     m_categories.push_back(std::move(category));
     m_sections[group].categories.push_back(category_index);
-    m_sections[group].tabs->AppendItem(title);
+    if (section == Section::Material) {
+        std::string hex;
+        const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
+        if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour"))
+            if (source_index < colours->size())
+                hex = colours->get_at(source_index);
+        if (wxBitmap* chip = get_extruder_color_icon(hex, "", FromDIP(12), FromDIP(12)))
+            m_sections[group].tabs->AppendItem(title, *chip);
+        else
+            m_sections[group].tabs->AppendItem(title);
+    } else {
+        m_sections[group].tabs->AppendItem(title);
+    }
     m_sections[group].page_host_sizer->Add(m_categories[category_index].page, 1, wxEXPAND);
     if (m_sections[group].selected_inner < 0)
         m_sections[group].selected_inner = 0;
@@ -971,12 +985,38 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
             cat.header->Refresh();
         if (cat.master_check != nullptr)
             cat.master_check->Refresh();
+        if (cat.filament_color_chip != nullptr) {
+            std::string hex;
+            const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
+            if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour"))
+                if (cat.filament_slot < colours->size())
+                    hex = colours->get_at(cat.filament_slot);
+            if (wxBitmap* chip = get_extruder_color_icon(hex, "", FromDIP(12), FromDIP(12)))
+                cat.filament_color_chip->SetBitmap(*chip);
+        }
         cat.scroll->FitInside();
         cat.list_sizer->Layout();
     }
 
     for (SectionGroup& section : m_sections)
         section.tabs->Rescale();
+
+    const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
+    for (size_t category_index = 0; category_index < m_categories.size(); ++category_index) {
+        const Category& category = m_categories[category_index];
+        if (category.section != Section::Material)
+            continue;
+        std::string hex;
+        if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour"))
+            if (category.filament_slot < colours->size())
+                hex = colours->get_at(category.filament_slot);
+        if (wxBitmap* chip = get_extruder_color_icon(hex, "", FromDIP(12), FromDIP(12))) {
+            const SectionGroup& section = m_sections[category.group];
+            const auto iter = std::find(section.categories.begin(), section.categories.end(), category_index);
+            if (iter != section.categories.end())
+                m_sections[category.group].tabs->SetItemBitmap(static_cast<unsigned int>(iter - section.categories.begin()), *chip);
+        }
+    }
 
     SetMinSize(FromDIP(wxSize(600, 500)));
     Refresh();

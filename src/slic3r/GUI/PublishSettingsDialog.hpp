@@ -105,6 +105,7 @@ private:
         wxPoint scroll_pos{0, 0};
         ScalableBitmap icon_bmp;       // scalable bitmap for DPI changes
         wxStaticBitmap* icon{nullptr};
+        wxStaticBitmap* filament_color_chip{nullptr};
         wxCheckBox* header{nullptr};   // material select-all tri-state; null for Printer/Process
         // Material opt-in: the master checkbox carries the material title and
         // gates whether this material's keys may be exported.

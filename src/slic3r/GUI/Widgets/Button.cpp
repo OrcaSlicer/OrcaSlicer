@@ -80,6 +80,7 @@ bool Button::SetFont(const wxFont& font)
 
 void Button::SetIcon(const wxString& icon)
 {
+    custom_icon = wxNullBitmap;
     auto tmpBitmap = ScalableBitmap(this, icon.ToStdString(), this->active_icon.px_cnt());
     if (!icon.IsEmpty()) {
         //BBS set button icon default size to 20
@@ -93,6 +94,13 @@ void Button::SetIcon(const wxString& icon)
         this->active_icon = ScalableBitmap();
         Refresh();
     }
+}
+
+void Button::SetBitmap(const wxBitmap& bitmap)
+{
+    custom_icon = bitmap;
+    messureSize();
+    Refresh();
 }
 
 void Button::SetInactiveIcon(const wxString &icon)
@@ -311,7 +319,8 @@ void Button::render(wxDC& dc)
         }
     }
     auto szContent = textSize;
-    if (icon.bmp().IsOk()) {
+    const bool has_custom_icon = custom_icon.IsOk();
+    if (has_custom_icon || icon.bmp().IsOk()) {
         if (szContent.y > 0) {
             //BBS norrow size between text and icon
             if (vertical)
@@ -319,7 +328,7 @@ void Button::render(wxDC& dc)
             else
                 szContent.x += spacing;
         }
-        szIcon = icon.GetBmpSize();
+        szIcon = has_custom_icon ? custom_icon.GetSize() : icon.GetBmpSize();
         if (vertical) {
             szContent.y += szIcon.y;
             if (szIcon.x > szContent.x) szContent.x = szIcon.x;
@@ -342,12 +351,12 @@ void Button::render(wxDC& dc)
     }
     // start draw
     wxPoint pt = rcContent.GetLeftTop();
-    if (icon.bmp().IsOk()) {
+    if (has_custom_icon || icon.bmp().IsOk()) {
         if (vertical)
             pt.x += (rcContent.width - szIcon.x) / 2;
         else
             pt.y += (rcContent.height - szIcon.y) / 2;
-        dc.DrawBitmap(icon.bmp(), pt);
+        dc.DrawBitmap(has_custom_icon ? custom_icon : icon.bmp(), pt);
         //BBS norrow size between text and icon
         if (vertical) {
             pt.y += szIcon.y + spacing;
@@ -380,7 +389,7 @@ void Button::messureSize()
     wxClientDC dc(this);
     dc.GetTextExtent(GetLabel(), &textSize.width, &textSize.height, &textSize.x, &textSize.y);
     wxSize szContent = textSize.GetSize();
-    if (this->active_icon.bmp().IsOk()) {
+    if (custom_icon.IsOk() || this->active_icon.bmp().IsOk()) {
         if (szContent.y > 0) {
             //BBS norrow size between text and icon
             if (vertical)
@@ -388,7 +397,7 @@ void Button::messureSize()
             else
                 szContent.x += 5;
         }
-        wxSize szIcon = this->active_icon.GetBmpSize();
+        wxSize szIcon = custom_icon.IsOk() ? custom_icon.GetSize() : this->active_icon.GetBmpSize();
         if (vertical) {
             szContent.y += szIcon.y;
             if (szIcon.x > szContent.x) szContent.x = szIcon.x;
