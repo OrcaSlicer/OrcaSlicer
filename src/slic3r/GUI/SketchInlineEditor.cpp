@@ -111,7 +111,6 @@ void SketchInlineEditor::open(const wxPoint& screen_px, double value,
     m_ctrl->SetFocus();
     m_ctrl->SelectAll();
     m_open = true;
-    m_fresh = true;   // the field opens with its value selected: the first digit replaces it
     // Re-assert on the next tick too: the GL canvas can reclaim focus while it finishes
     // handling the click/render that opened us, so a single immediate SetFocus may be stolen.
     m_ctrl->CallAfter([this] {
@@ -162,38 +161,6 @@ void SketchInlineEditor::close()
     m_commit = nullptr;
     m_cancel = nullptr;
     m_closing = false;
-}
-
-
-bool SketchInlineEditor::feed_key(wxKeyEvent& evt)
-{
-    if (!m_open || m_ctrl == nullptr) return false;
-    // If the field really does hold the focus (X11 sessions, where Raise+SetFocus works), let
-    // wx route the key normally — forwarding it here as well would type every character twice.
-    if (wxWindow::FindFocus() == m_ctrl) return false;
-
-    const int key = evt.GetKeyCode();
-    if (key == WXK_RETURN || key == WXK_NUMPAD_ENTER) { do_commit(); return true; }
-    if (key == WXK_ESCAPE)                            { do_cancel(); return true; }
-
-    wxString v = m_ctrl->GetValue();
-    if (key == WXK_BACK) {
-        if (m_fresh) { v.clear(); m_fresh = false; }
-        else if (!v.empty()) v.RemoveLast();
-    } else if (key == WXK_DELETE) {
-        v.clear(); m_fresh = false;
-    } else {
-        const wxChar c = wxChar(evt.GetUnicodeKey());
-        // A numeric field: digits, a sign, and either decimal separator. Everything else is
-        // left for the canvas — a stray letter must not silently vanish into the field.
-        const bool numeric = (c >= '0' && c <= '9') || c == '-' || c == '.' || c == ',';
-        if (!numeric) return false;
-        if (m_fresh) { v.clear(); m_fresh = false; }
-        v += c;
-    }
-    m_ctrl->ChangeValue(v);                 // ChangeValue: no EVT_TEXT feedback loop
-    m_ctrl->SetInsertionPointEnd();
-    return true;
 }
 
 }} // namespace Slic3r::GUI

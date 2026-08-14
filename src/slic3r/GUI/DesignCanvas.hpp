@@ -217,8 +217,7 @@ public:
     // taking those over would break two working interactions in order to add a third.
     void set_on_context_menu(std::function<void(const wxPoint&)> cb);
     void delete_selected_sketch_entities();
-    bool inline_busy() const;
-    bool feed_inline_key(wxKeyEvent& evt);   // type into the in-canvas value field without focus                         // a sketch value field is open (guard keys)
+    bool inline_busy() const;                         // a sketch value field is open (guard keys)
     bool live_sketch_has_work() const;                // the live sketch holds entities a cancel would destroy
     bool undo_last_sketch_entity();                   // Ctrl+Z in a sketch: drop the last entity
     bool delete_selected_or_last_sketch_entity();     // Delete in a sketch: selected, else last
