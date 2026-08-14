@@ -3358,7 +3358,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // Clicking a committed sketch loop on the plate (no live session) selects THAT loop:
     // the viewport highlights only it (cyan) and its Sketch feature's tree row is selected.
     // The (feature, region) pair is remembered so Extrude builds just that one loop.
-    m_viewport->set_on_display_sketch_selected([this](int feat, int region) {
+    m_viewport->set_on_display_sketch_selected([this](int feat, int region, int entity) {
         if (feat < 0 || feat >= int(m_doc.features.size())) return;
         m_sel_sketch_feat   = feat;
         m_sel_sketch_region = region;
@@ -3366,6 +3366,23 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // any stale solid face/edge pick so Extrude treats this loop as the profile.
         m_sel_solid_face = m_sel_solid_edge = -1;
         m_pick_face = m_pick_face_body = -1;
+        // Rib card open: point at the LINE, do not type its index. 'Entity index' was a bare
+        // wxSpinCtrl ranged 0-999 standing in for a line sitting visible on screen, with nothing
+        // anywhere telling you which integer was which — the purest case of the thing this epic
+        // exists to remove. Only a stroke hit carries an entity (an interior click is a region,
+        // not a line), so a click inside a loop deliberately leaves the field alone rather than
+        // resetting it to something arbitrary. The sketch picker follows the same pick, so
+        // pointing at a line in a different sketch retargets both together. snaporca-3648.
+        if (m_active == Tool::Rib && entity >= 0) {
+            if (m_rib_sketch != nullptr)
+                for (unsigned i = 0; i < m_rib_sketch->GetCount(); ++i)
+                    if (int(reinterpret_cast<intptr_t>(m_rib_sketch->GetClientData(i))) == feat) {
+                        m_rib_sketch->SetSelection(i);
+                        break;
+                    }
+            if (m_rib_entity != nullptr) m_rib_entity->SetValue(entity);
+            refresh_preview();
+        }
         // Sweep card open: the sketch you point at becomes the PATH. The profile is already
         // settled selection-first — you pick a sketch and then invoke Sweep, which is the design
         // law's own canonical example — so the path is the input that was still trapped in a

@@ -195,7 +195,10 @@ public:
     std::function<void(int level, int body, int face, int edge)> on_solid_selection_changed;
     // Click a committed sketch overlay (no live session) -> select that loop: the Sketch
     // feature index + the clicked closed-region index within it (-1 = no specific loop).
-    std::function<void(int feature, int region)> on_display_sketch_selected;
+    // entity = the sketch entity index under the cursor when the click landed on a loop
+    // STROKE, else -1 for an interior/region hit. Carried because a tool can legitimately
+    // want the LINE you pointed at, not just the loop it belongs to (Rib, snaporca-3648).
+    std::function<void(int feature, int region, int entity)> on_display_sketch_selected;
     // Double-click on a committed sketch stroke: open THAT feature for editing. Selecting a line
     // and then hunting for an Edit button in a panel is the dependency this tab exists to remove.
     std::function<void(int feature)> on_display_sketch_activated;

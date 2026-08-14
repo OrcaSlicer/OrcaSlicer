@@ -2852,8 +2852,11 @@ void DesignSketchTool::hit_display_sketch(const DisplaySketch& d, const Vec2d& p
             if (h >= 0 && h < int(loops.size()) && point_in_poly(p, loops[h].poly)) { in_hole = true; break; }
         if (!in_hole) { face_feat = d.feature; face_reg = r; }
     }
-    dp_pick_trace("region hit -> feat=%d reg=%d (edge_feat=%d edge_reg=%d)",
-                  face_feat, face_reg, edge_feat, edge_reg);
+    // edge_ent is printed because it is now DELIVERED (snaporca-3648) — a tool can ask for the
+    // line you pointed at, not just its loop, and "which entity did that click resolve to" is
+    // otherwise unanswerable from outside.
+    dp_pick_trace("region hit -> feat=%d reg=%d (edge_feat=%d edge_reg=%d edge_ent=%d)",
+                  face_feat, face_reg, edge_feat, edge_reg, edge_ent);
 }
 
 std::vector<SketchEntity> DesignSketchTool::selected_loop_entities() const
@@ -8947,7 +8950,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         // A precise hit on a loop outline wins over the solid face beneath it.
         if (edge_feat >= 0) {
             m_display_pick = edge_feat; m_display_pick_region = edge_reg;
-            if (on_display_sketch_selected) on_display_sketch_selected(edge_feat, edge_reg);
+            if (on_display_sketch_selected) on_display_sketch_selected(edge_feat, edge_reg, edge_ent);
             return true;
         }
         // No loop stroke under the cursor: the solid is the foreground (whole/face/edge cycle).
@@ -8955,7 +8958,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         // Interior of a committed loop with no solid behind it.
         if (face_feat >= 0) {
             m_display_pick = face_feat; m_display_pick_region = face_reg;
-            if (on_display_sketch_selected) on_display_sketch_selected(face_feat, face_reg);
+            if (on_display_sketch_selected) on_display_sketch_selected(face_feat, face_reg, -1);
             return true;
         }
         m_display_pick = -1; m_display_pick_region = -1;  // clicked bare plate -> drop highlight

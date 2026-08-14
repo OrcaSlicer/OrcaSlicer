@@ -79,7 +79,7 @@ public:
     // Sketch selection (Mode::Select).
     void set_on_sketch_selection_changed(std::function<void(int)> cb);
     void set_on_sketch_face_selected(std::function<void(int)> cb);  // closed loop clicked: region index passed
-    void set_on_display_sketch_selected(std::function<void(int, int)> cb);  // committed loop clicked: (feature, region)
+    void set_on_display_sketch_selected(std::function<void(int, int, int)> cb);  // committed loop clicked: (feature, region, entity)
     void set_on_display_sketch_activated(std::function<void(int)> cb);      // committed sketch DOUBLE-clicked: edit it
     std::vector<SketchEntity> selected_loop_entities() const;  // entities of the click-selected loop
     std::vector<std::vector<int>> region_entity_indices(const std::vector<SketchEntity>& ents) const;
