@@ -11,6 +11,7 @@
 #include "Widgets/Label.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "GUI_Utils.hpp"
 #include "MainFrame.hpp"
 #include "Tab.hpp"
 #include "format.hpp"
@@ -3356,9 +3357,7 @@ ObjectTableDialog::ObjectTableDialog(wxWindow* parent, Plater* platerObj, Model 
     wxSize panel_size = m_obj_panel->get_init_size();
     g_max_size_from_parent = maxSize;
     if ((maxSize.GetWidth() == -1) || (maxSize.GetHeight() == -1)) {
-        wxDisplay display(this);
-        //auto drect = display.GetGeometry();
-        wxRect 	client_area = display.GetClientArea ();
+        wxRect 	client_area = safe_display_client_area(this);
         g_max_size_from_parent.SetWidth(client_area.GetWidth());
         g_max_size_from_parent.SetHeight(client_area.GetHeight());
     }

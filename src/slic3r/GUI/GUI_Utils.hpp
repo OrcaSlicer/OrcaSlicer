@@ -489,6 +489,15 @@ bool is_debugger_present();
 /// <summary>
 /// Make sure the given window fits inside current display
 /// </summary>
+namespace detail {
+int safe_display_index(int window_display_idx, unsigned display_count);
+bool should_force_x11_backend_for_wayland_kvm(const char* gdk_backend, const char* display, const char* wayland_display, bool preference_enabled);
+}
+
+int safe_display_index(wxWindow* window);
+wxRect safe_display_client_area(wxWindow* window);
+wxRect safe_display_geometry(wxWindow* window);
+double safe_display_scale_factor(wxWindow* window);
 void fit_in_display(wxTopLevelWindow& window, wxSize desired_size);
 
 

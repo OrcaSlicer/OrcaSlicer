@@ -8,6 +8,7 @@
 
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"
+#include "GUI_Utils.hpp"
 #include "MainFrame.hpp"
 
 #include "MsgDialog.hpp"
@@ -4512,7 +4513,7 @@ void StatusPanel::on_filament_edit(wxCommandEvent &event)
 
     int current_position_x = m_ams_control->GetScreenPosition().x;
     int current_position_y = m_ams_control->GetScreenPosition().y - FromDIP(40);
-    auto drect = wxDisplay(GetParent()).GetGeometry().GetHeight() - FromDIP(50);
+    auto drect = safe_display_geometry(GetParent()).GetHeight() - FromDIP(50);
     current_position_y = current_position_y + m_filament_setting_dlg->GetSize().GetHeight() > drect ? drect - m_filament_setting_dlg->GetSize().GetHeight() : current_position_y;
 
     if (obj) {
@@ -4582,7 +4583,7 @@ void StatusPanel::on_ext_spool_edit(wxCommandEvent &event)
 
     int current_position_x = m_ams_control->GetScreenPosition().x;
     int current_position_y = m_ams_control->GetScreenPosition().y - FromDIP(40);
-    auto drect = wxDisplay(GetParent()).GetGeometry().GetHeight() - FromDIP(50);
+    auto drect = safe_display_geometry(GetParent()).GetHeight() - FromDIP(50);
     current_position_y = current_position_y + m_filament_setting_dlg->GetSize().GetHeight() > drect ? drect - m_filament_setting_dlg->GetSize().GetHeight() : current_position_y;
 
     if (obj) {
@@ -4890,9 +4891,7 @@ void StatusPanel::on_nozzle_fan_switch(wxCommandEvent &event)
     auto pos = m_switch_fan->GetScreenPosition();
     pos.y = pos.y + m_switch_fan->GetSize().y;
 
-    int display_idx = wxDisplay::GetFromWindow(this);
-    auto display = wxDisplay(display_idx).GetClientArea();
-
+    auto display = safe_display_client_area(this);
 
     wxSize screenSize = wxSize(display.GetWidth(), display.GetHeight());
     wxSize fan_popup_size = m_fan_control_popup->GetSize();

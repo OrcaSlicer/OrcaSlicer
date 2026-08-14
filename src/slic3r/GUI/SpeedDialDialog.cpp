@@ -3,6 +3,7 @@
 #include "ActionRegistry.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "GUI_Utils.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
 #include "NotificationManager.hpp"
@@ -117,10 +118,7 @@ void SpeedDialWebDialog::resize_to_content(int height)
     if (height <= 0)
         return;
 
-    int display_index = wxDisplay::GetFromWindow(this);
-    if (display_index == wxNOT_FOUND)
-        display_index = 0;
-    const int screen_dip = ToDIP(wxDisplay(display_index).GetClientArea().GetHeight());
+    const int screen_dip = ToDIP(safe_display_client_area(this).GetHeight());
     const int max_dip    = std::max(kPopupMinHeight, screen_dip * 85 / 100);
     const int height_dip = std::max(kPopupMinHeight, std::min(height, max_dip));
     SetClientSize(FromDIP(wxSize(kPopupWidth, height_dip)));

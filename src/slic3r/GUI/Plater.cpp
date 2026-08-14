@@ -4786,7 +4786,7 @@ template<typename T> void setup_dialog_position(T& info)
     } else {
         // If sidebar is too close to screen right edge, then move the dialog to the left side instead
 
-        auto screen_width = wxDisplay(&sidebar).GetClientArea().GetSize().x;
+        auto screen_width = safe_display_client_area(&sidebar).GetSize().x;
         auto right_space  = screen_width - sidebar.get_sidebar_pos_right_x();
         if (right_space < sidebar.FromDIP(400)) {
             on_right = false;

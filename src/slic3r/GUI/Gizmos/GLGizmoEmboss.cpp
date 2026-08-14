@@ -1,6 +1,7 @@
 #include "GLGizmoEmboss.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/GUI/MainFrame.hpp" // to update title when add text
@@ -858,7 +859,7 @@ void GLGizmoEmboss::on_render_input_window(float x, float y, float bottom_limit)
     else if (!m_is_unknown_font && !m_style_manager.get_wx_font().IsOk())
         create_notification_not_valid_font("WxFont is not loaded properly.");
 
-    double screen_scale = wxDisplay(wxGetApp().plater()).GetScaleFactor();
+    double screen_scale = safe_display_scale_factor(wxGetApp().plater());
 
     // Orca
     ImGuiWrapper::push_toolbar_style(m_parent.get_scale());
@@ -1550,7 +1551,7 @@ void GLGizmoEmboss::draw_text_input()
     ImFont *imgui_font = m_style_manager.get_imgui_font();
     if (imgui_font == nullptr) {
         // try create new imgui font
-        double screen_scale = wxDisplay(wxGetApp().plater()).GetScaleFactor();
+        double screen_scale = safe_display_scale_factor(wxGetApp().plater());
         double imgui_scale = scale * screen_scale;
         m_style_manager.create_imgui_font(create_range_text_prep(), imgui_scale);
         imgui_font = m_style_manager.get_imgui_font();

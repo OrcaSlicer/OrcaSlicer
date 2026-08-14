@@ -1,6 +1,7 @@
 #include "MarkdownTip.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
+#include "GUI_Utils.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/WebView.hpp"
 
@@ -143,7 +144,7 @@ bool MarkdownTip::ShowTip(wxPoint pos, std::string const &tip, std::string const
             this->Hide();
     }
     if (_tipView->GetParent() == this) {
-        wxSize size = wxDisplay(this).GetClientArea().GetSize();
+        wxSize size = safe_display_client_area(this).GetSize();
         _requestPos = pos;
         if (pos.y + this->GetSize().y > size.y)
             pos.y = size.y - this->GetSize().y;
@@ -256,7 +257,7 @@ void MarkdownTip::OnTitleChanged(wxWebViewEvent& event)
             return;
         _lastHeight = height;
         height *= 1.25; height += 50;
-        wxSize size = wxDisplay(this).GetClientArea().GetSize();
+        wxSize size = safe_display_client_area(this).GetSize();
         if (height > size.y)
             height = size.y;
         wxPoint pos = _requestPos;

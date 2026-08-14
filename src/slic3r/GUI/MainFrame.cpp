@@ -30,6 +30,7 @@
 #include "ParamsDialog.hpp"
 #include "PrintHostDialogs.hpp"
 #include "wxExtensions.hpp"
+#include "GUI_Utils.hpp"
 #include "GUI_ObjectList.hpp"
 #include "Mouse3DController.hpp"
 //#include "RemovableDriveManager.hpp"
@@ -542,9 +543,9 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     // https://forums.wxwidgets.org/viewtopic.php?t=50634
     // Fix it here
     this->Bind(wxEVT_MAXIMIZE, [this](auto &e) {
-        wxDisplay display(this);
-        auto      size = display.GetClientArea().GetSize();
-        auto      pos  = display.GetClientArea().GetPosition();
+        auto client_area = safe_display_client_area(this);
+        auto size = client_area.GetSize();
+        auto pos  = client_area.GetPosition();
         HWND      hWnd = GetHandle();
         RECT      borderThickness;
         SetRectEmpty(&borderThickness);
