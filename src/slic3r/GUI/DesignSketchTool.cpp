@@ -2807,12 +2807,18 @@ DesignSketchTool::region_entity_indices_with_holes(const std::vector<SketchEntit
 // bounds a region has nothing to do with whether the user can point at it. Region membership
 // decides what a hit REPORTS, not whether the hit can happen.
 static void dp_pick_trace(const char* fmt, ...);   // defined below; used by the diagnostics here
+static bool dp_pick_trace_on();                    // ditto — lets callers skip building a message
 void DesignSketchTool::hit_display_sketch(const DisplaySketch& d, const Vec2d& p, double tol,
                                           int& edge_feat, int& edge_reg, int& edge_ent,
                                           double& edge_d, int& face_feat, int& face_reg) const
 {
     const std::vector<RegionLoop> loops = region_loops(d.entities);
-    {   // TEMPORARY DIAGNOSTIC: what did the sketch decompose into, and what is under the click?
+    // What did the sketch decompose into, and what is under the click? This is the trace that
+    // settled snaporca-txp8 — it prints the loop table with each loop's hole count, so
+    // "containment is wrong" and "the click landed elsewhere" stop being indistinguishable.
+    // Guarded rather than merely silent: hit_display_sketch runs on every pick, and the message
+    // costs a string build and a heap allocation per loop even when nothing consumes it.
+    if (dp_pick_trace_on()) {
         std::string h;
         for (size_t r = 0; r < loops.size(); ++r) {
             h += " loop" + std::to_string(r) + "(ents=" + std::to_string(loops[r].ents.size())
@@ -2949,10 +2955,15 @@ void DesignSketchTool::select_body(int body)
 // event that never arrived rather than a ray that missed, and the two look identical from
 // the UI. Set SNAPORCA_PICK_TRACE=1 and the whole press->release->ray path narrates itself
 // on stderr. Off by default: no cost, no noise.
-static void dp_pick_trace(const char* fmt, ...)
+static bool dp_pick_trace_on()
 {
     static const bool on = ::getenv("SNAPORCA_PICK_TRACE") != nullptr;
-    if (!on) return;
+    return on;
+}
+
+static void dp_pick_trace(const char* fmt, ...)
+{
+    if (!dp_pick_trace_on()) return;
     va_list ap; va_start(ap, fmt);
     std::fputs("[pick] ", stderr);
     std::vfprintf(stderr, fmt, ap);
