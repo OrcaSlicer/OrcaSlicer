@@ -6007,8 +6007,41 @@ void DesignPanel::arm_coordsys_pick(CoordSysPick target)
     m_status->Refresh();
 }
 
-void DesignPanel::on_add_plane()
+bool DesignPanel::on_add_plane()
 {
+    // Refuse here rather than let the kernel substitute. Every method in CadDocument's plane
+    // dispatch falls back to offset_angle_plane() when its references are missing, so picking
+    // Tangent and confirming with nothing selected used to produce an offset plane reported as
+    // a success — the user asks for one construction and silently receives another. The kernel
+    // keeps its fallback (it must return SOMETHING), but no user gesture should reach it.
+    auto refuse = [this](const wxString& why) {
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        set_status(why);
+        m_status->Refresh();
+    };
+    switch ((PlaneType)m_plane_type->GetSelection()) {
+    case PlaneType::Angle:
+        if (m_pl_edgeA < 0) { refuse(_L("An angled plane needs an edge to tilt about — pick Edge A")); return false; }
+        break;
+    case PlaneType::Midplane:
+        if (m_pl_faceA < 0 || m_pl_faceB < 0) { refuse(_L("A midplane needs two faces — pick Face A and Face B")); return false; }
+        if (m_pl_faceA == m_pl_faceB && m_pl_faceA_body == m_pl_faceB_body) {
+            // Well-defined but useless: the midplane of a face with itself is that same face.
+            refuse(_L("Face A and Face B are the same face — a midplane needs two different faces"));
+            return false;
+        }
+        break;
+    case PlaneType::Tangent:
+        // The face must also be cylindrical; that check stays in the kernel, which has the geometry.
+        if (m_pl_faceA < 0) { refuse(_L("A tangent plane needs a cylindrical face — pick Face A")); return false; }
+        break;
+    case PlaneType::TwoEdges:
+        if (m_pl_edgeA < 0 || m_pl_edgeB < 0) { refuse(_L("This plane needs two edges — pick Edge A and Edge B")); return false; }
+        break;
+    default:
+        break;   // Offset and Coincident are meaningful with no reference: they use the base plane
+    }
+
     m_feature_counter++;
     int idx = m_doc.add_plane(m_plane_base->GetSelection(), m_plane_offset->GetValue(),
                     m_plane_tilt->GetValue(), m_plane_tilt_axis->GetSelection(),
@@ -6018,6 +6051,7 @@ void DesignPanel::on_add_plane()
     m_status->SetForegroundColour(wxNullColour);
     set_status(_L("Plane added — pick it as a sketch plane"));
     refresh_tree();
+    return true;
 }
 
 void DesignPanel::on_add_axis()
@@ -10244,7 +10278,7 @@ void DesignPanel::confirm_tool()
     case Tool::Revolve: on_add_revolve(); break;
     case Tool::Sweep:   on_add_sweep();   break;
     case Tool::Pattern: on_add_pattern(); break;
-    case Tool::Plane:   on_add_plane();   break;
+    case Tool::Plane:   if (!on_add_plane()) return;   break;   // refused: keep the card and its picks
     case Tool::Loft:    on_add_loft();    break;
     case Tool::Draft:   on_add_draft();   break;
     case Tool::Boolean: on_add_boolean(); break;

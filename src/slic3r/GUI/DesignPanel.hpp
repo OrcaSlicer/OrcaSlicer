@@ -97,7 +97,7 @@ private:
     void on_add_sweep();
     void on_add_loft();
     void on_add_pattern();
-    void on_add_plane();
+    bool on_add_plane();   // false = refused, card stays open
     void arm_plane_pick(PlanePick target);   // Plane tool: next solid pick fills this reference
     void apply_plane_refs(CadFeature& f) const; // copy type + face/edge refs + sizes from the card
     void refresh_plane_labels();             // update the 4 pick labels from the captured refs
