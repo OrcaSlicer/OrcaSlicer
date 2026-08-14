@@ -16,6 +16,7 @@
 #include <GL/glew.h>
 #include <wx/gdicmn.h>
 #include <algorithm>
+#include <climits>
 #include <limits>
 #include <array>
 #include <cmath>
@@ -3070,6 +3071,12 @@ bool DesignSketchTool::resolve_solid_pick(GLCanvas3D& canvas, int mx, int my, So
         const TopoDS_Face  face    = GeometryEngine::face_by_index(bshape, out.face);
         double best_ed = 1e30; std::vector<Vec3d> ed_pts; TopoDS_Edge ed_edge; bool have_edge = false;
         double best_vd = 1e30; Vec3d vtx = Vec3d::Zero(); bool have_vtx = false;
+        // Screen extent of the face, accumulated from the same edge samples the loop already
+        // takes. A FIXED edge tolerance makes a narrow face unreachable: a 3 mm-wide plate is
+        // barely wider on screen than the 8 px budget, so every point on it is "on an edge" and
+        // the face level can never be picked — which also blocks the face-based Coord Sys that a
+        // mate needs. The tolerances below shrink with the face so its middle stays its own.
+        int fx0 = INT_MAX, fy0 = INT_MAX, fx1 = INT_MIN, fy1 = INT_MIN;
         if (!face.IsNull()) {
             for (const TopoDS_Edge& e : GeometryEngine::edges_of_face(face)) {
                 std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
@@ -3088,15 +3095,25 @@ bool DesignSketchTool::resolve_solid_pick(GLCanvas3D& canvas, int mx, int my, So
                     const wxPoint a = world_to_screen_px(cam, pts[s - 1]);
                     const wxPoint b = world_to_screen_px(cam, pts[s]);
                     if (a.x < 0 || b.x < 0) continue;                    // behind the camera
+                    fx0 = std::min({fx0, a.x, b.x}); fx1 = std::max({fx1, a.x, b.x});
+                    fy0 = std::min({fy0, a.y, b.y}); fy1 = std::max({fy1, a.y, b.y});
                     d = std::min(d, seg_px(cursor, a, b));
                 }
                 if (d < best_ed) { best_ed = d; ed_pts = pts; ed_edge = e; have_edge = true; }
             }
         }
-        if (have_vtx && best_vd <= kVertexTolPx) {
+        // A third of the face's SHORTER on-screen side, so the two tolerances can never meet in
+        // the middle. Only ever shrinks: a face big enough keeps the full budget.
+        double vtol = kVertexTolPx, etol = kEdgeTolPx;
+        if (fx1 > fx0 && fy1 > fy0) {
+            const double narrow = double(std::min(fx1 - fx0, fy1 - fy0)) / 3.0;
+            vtol = std::min(vtol, narrow);
+            etol = std::min(etol, narrow);
+        }
+        if (have_vtx && best_vd <= vtol) {
             out.vertex_pt = vtx;
             out.kind      = SolidSel::Vertex;
-        } else if (have_edge && best_ed <= kEdgeTolPx) {
+        } else if (have_edge && best_ed <= etol) {
             // Promote the face-relative pick to a STABLE GLOBAL edge id so dress-up ops
             // (fillet/chamfer) can target this exact edge across recomputes.
             out.edge     = GeometryEngine::edge_index_of(bshape, ed_edge);
