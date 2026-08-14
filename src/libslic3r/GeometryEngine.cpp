@@ -470,6 +470,21 @@ GeometryEngine::MassProps GeometryEngine::mass_properties(const TopoDS_Shape& sh
     MassProps p;
     if (shape.IsNull()) return p;
     try {
+        // A sheet body (open shell, no solid) encloses nothing, and BRepGProp::VolumeProperties
+        // integrates the divergence theorem over whatever faces exist — on an open shell that is
+        // not a volume at all. It came back as 96000 with an inertia diagonal of
+        // [-4.2e7, -4.2e7, -6.9e7] for a 60x60x40 four-walled box: negative principal moments,
+        // which no real body can have. The old code then hid the only obvious tell by taking
+        // std::abs() of the mass. Report the honest answer instead — surface area is still
+        // meaningful, so this is not a failure, just not a solid.
+        p.is_solid = TopExp_Explorer(shape, TopAbs_SOLID).More();
+        if (!p.is_solid) {
+            GProp_GProps sonly;
+            BRepGProp::SurfaceProperties(shape, sonly);
+            p.surface_area = sonly.Mass();
+            p.valid = true;          // the area IS trustworthy; volume/inertia stay zero
+            return p;
+        }
         GProp_GProps vprops;
         BRepGProp::VolumeProperties(shape, vprops);
         double mass = vprops.Mass();

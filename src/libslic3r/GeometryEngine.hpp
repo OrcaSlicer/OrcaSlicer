@@ -100,6 +100,9 @@ public:
         Vec3d  center_of_mass{Vec3d::Zero()};
         std::array<double, 9> inertia{};
         bool   valid{false};
+        // False for a sheet body (an open shell with no solid). Volume and inertia are then
+        // meaningless and are reported as zero; surface_area stays meaningful. See the .cpp.
+        bool   is_solid{false};
     };
     static MassProps mass_properties(const TopoDS_Shape& shape);
 

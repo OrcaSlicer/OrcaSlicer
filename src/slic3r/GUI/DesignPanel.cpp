@@ -5239,6 +5239,19 @@ void DesignPanel::on_mass_properties()
     wxString name = wxString::Format(_L("Body %d"), m_sel_solid_body + 1);
     if (!m_doc.bodies[m_sel_solid_body].name.empty())
         name = wxString::FromUTF8(m_doc.bodies[m_sel_solid_body].name);
+    if (!mp.is_solid) {
+        // Sheet body: quoting a volume here would be inventing material that is not there.
+        m_status->SetForegroundColour(wxNullColour);
+        set_status(wxString::Format(_L("%s: sheet body — %.2f cm² of surface, no volume"),
+                                    name, mp.surface_area / 100.0));
+        m_status->Refresh();
+        wxMessageBox(wxString::Format(_L("%s\n\nSheet body (open shell)\nSurface area: %.2f cm²\n\n"
+                                         "A sheet encloses no material, so it has no volume. "
+                                         "Thicken it into a solid to get one."),
+                                      name, mp.surface_area / 100.0),
+                     _L("Mass properties"), wxOK, this);
+        return;
+    }
     m_status->SetForegroundColour(wxNullColour);
     set_status(wxString::Format(_L("%s: %.3f cm³, %.2f cm²"),
                                         name, mp.volume / 1000.0, mp.surface_area / 100.0));

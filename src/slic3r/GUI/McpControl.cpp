@@ -556,11 +556,23 @@ json mass_properties(DesignPanel* panel, const json& params)
     const TopoDS_Shape& shape = body_shape(panel, params);
     auto mp = GeometryEngine::mass_properties(shape);
     if (!mp.valid) throw std::runtime_error("mass properties could not be computed (null/empty shape)");
+    // A sheet body has no volume and no inertia. Report the area and say so, rather than
+    // returning numbers a caller would reasonably treat as a material check.
+    if (!mp.is_solid)
+        return json{
+            {"surface_area", mp.surface_area},
+            {"volume", 0.0},
+            {"is_solid", false},
+            {"valid", mp.valid},
+            {"note", "sheet body (open shell): it encloses no material, so volume and inertia "
+                     "are not defined; surface_area is exact"},
+        };
     return json{
         {"volume", mp.volume},
         {"surface_area", mp.surface_area},
         {"center_of_mass", json::array({mp.center_of_mass.x(), mp.center_of_mass.y(), mp.center_of_mass.z()})},
         {"inertia", mp.inertia},
+        {"is_solid", true},
         {"valid", mp.valid},
     };
 }
