@@ -2182,8 +2182,11 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
             std::string new_color = new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
             new_colors.push_back(new_color);
         }
-        wxGetApp().preset_bundle->set_num_filaments(num_extruder, new_colors);
-        wxGetApp().plater()->on_filament_count_change(num_extruder);
+        // Mixed-color slots are virtual filaments at the tail of the list with no nozzle of their
+        // own, so they are carried on top of the new extruder count instead of being truncated.
+        const size_t total_filaments = num_extruder + wxGetApp().preset_bundle->num_mixed_filaments();
+        wxGetApp().preset_bundle->set_num_filaments(total_filaments, new_colors);
+        wxGetApp().plater()->on_filament_count_change(total_filaments);
         wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
         wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
     }
