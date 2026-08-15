@@ -257,22 +257,38 @@ void apply_filament_compaction(DynamicPrintConfig& config, const FilamentCompact
         vec->resize(new_count);
     }
 
-    // flush_volumes_matrix is filament x filament (row = source, column = target), so it gathers
-    // on both axes; flush_volumes_vector is one entry per filament.
+    // flush_volumes_matrix is one filament x filament block (row = source, column = target) PER
+    // HEAD on a multi-head printer -- g-code export validates size == heads * f^2, with heads =
+    // flush_multiplier.size() (see GCode::append_full_config) -- and a single block on
+    // single-head machines. Gather every block on both axes. An earlier version handled only the
+    // single-block layout, so on a four-head printer the matrix kept its old size while
+    // filament_colour shrank, and export died with "Flush volumes matrix do not match to the
+    // correct size!".
     if (auto* matrix = config.option<ConfigOptionFloats>("flush_volumes_matrix");
-        matrix != nullptr && matrix->size() == old_count * old_count) {
-        std::vector<double> gathered(new_count * new_count, 0.);
-        for (size_t row = 0; row < new_count; ++row)
-            for (size_t col = 0; col < new_count; ++col)
-                gathered[row * new_count + col] =
-                    matrix->values[size_t(compaction.slot_of_tool[row]) * old_count + size_t(compaction.slot_of_tool[col])];
+        matrix != nullptr && matrix->size() > 0 && matrix->size() % (old_count * old_count) == 0) {
+        const size_t        heads = matrix->size() / (old_count * old_count);
+        std::vector<double> gathered(heads * new_count * new_count, 0.);
+        for (size_t head = 0; head < heads; ++head) {
+            const size_t src_base = head * old_count * old_count;
+            const size_t dst_base = head * new_count * new_count;
+            for (size_t row = 0; row < new_count; ++row)
+                for (size_t col = 0; col < new_count; ++col)
+                    gathered[dst_base + row * new_count + col] =
+                        matrix->values[src_base + size_t(compaction.slot_of_tool[row]) * old_count +
+                                       size_t(compaction.slot_of_tool[col])];
+        }
         matrix->values = std::move(gathered);
     }
+    // flush_volumes_vector carries a fixed group of entries per filament (2 today, the
+    // load/unload pair -- its default is 8 values for 4 filaments). Gather whole groups.
     if (auto* vector = config.option<ConfigOptionFloats>("flush_volumes_vector");
-        vector != nullptr && vector->size() == old_count) {
-        std::vector<double> gathered(new_count, 0.);
+        vector != nullptr && vector->size() > 0 && vector->size() % old_count == 0) {
+        const size_t        per_filament = vector->size() / old_count;
+        std::vector<double> gathered(per_filament * new_count, 0.);
         for (size_t tool = 0; tool < new_count; ++tool)
-            gathered[tool] = vector->values[size_t(compaction.slot_of_tool[tool])];
+            for (size_t entry = 0; entry < per_filament; ++entry)
+                gathered[tool * per_filament + entry] =
+                    vector->values[size_t(compaction.slot_of_tool[tool]) * per_filament + entry];
         vector->values = std::move(gathered);
     }
 

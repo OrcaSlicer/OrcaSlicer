@@ -126,6 +126,31 @@ TEST_CASE("Compaction gathers the flush volume matrix on both axes", "[FilamentC
     CHECK(config.option<ConfigOptionFloats>("flush_volumes_vector")->values == std::vector<double>{100, 300});
 }
 
+TEST_CASE("Compaction gathers every per-head flush block on a multi-head printer", "[FilamentCompaction]")
+{
+    // On a multi-head printer the flush matrix is one filament x filament block PER HEAD
+    // (g-code export validates size == flush_multiplier.size() * f^2), and flush_volumes_vector
+    // carries the load/unload PAIR per filament. Leaving either at the project size while
+    // filament_colour shrinks fails that validation and aborts export -- hit on a real
+    // four-head ZR Ultra S the first time a plate used a sparse filament subset.
+    DynamicPrintConfig config = plain_config(3);
+    // Two heads, 3x3 each. Entry = 100*head + 10*source + target.
+    config.set_key_value("flush_volumes_matrix",
+                         new ConfigOptionFloats({  0,   1,   2,  10,  11,  12,  20,  21,  22,
+                                                 100, 101, 102, 110, 111, 112, 120, 121, 122}));
+    // Load/unload pair per filament: {f0_load, f0_unload, f1_load, ...}.
+    config.set_key_value("flush_volumes_vector", new ConfigOptionFloats({10, 11, 20, 21, 30, 31}));
+
+    FilamentCompaction compaction;
+    compaction.slot_of_tool = {0, 2};
+    apply_filament_compaction(config, compaction);
+
+    CHECK(config.option<ConfigOptionFloats>("flush_volumes_matrix")->values ==
+          std::vector<double>{0, 2, 20, 22, 100, 102, 120, 122});
+    CHECK(config.option<ConfigOptionFloats>("flush_volumes_vector")->values ==
+          std::vector<double>{10, 11, 30, 31});
+}
+
 TEST_CASE("A filament the plate does not print keeps its number", "[FilamentCompaction]")
 {
     // support_filament here points at a filament the plate never prints (support is off). Giving
