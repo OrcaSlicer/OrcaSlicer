@@ -2343,6 +2343,13 @@ public:
     // state is considered changed from perspective of the undo/redo stack.
     void         reset() { m_data.clear(); touch(); }
 
+    // Orca: the filament-compaction transform (FilamentCompaction.hpp) rebuilds a DERIVED copy
+    // of a model config deterministically from a source on every Print::apply. Mirroring the
+    // source's timestamp onto the derived copy keys change detection to the source's edit
+    // history; without it every rebuild stamps a fresh timestamp and re-flags the copy as
+    // changed, silently invalidating a finished slice on the very next apply.
+    void         mirror_timestamp_of(const ModelConfig &rhs) { m_timestamp = rhs.m_timestamp; }
+
     void         assign_config(const ModelConfig &rhs) {
         if (m_timestamp != rhs.m_timestamp) {
             m_data      = rhs.m_data;

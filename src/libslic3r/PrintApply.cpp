@@ -1220,7 +1220,7 @@ Print::ApplyStatus Print::apply(const Model &model_in, DynamicPrintConfig new_fu
         // Model::operator= is assign_copy, which preserves object IDs -- apply's model diffing
         // below keys on them, so a copy must not look like a different model.
         compacted_model = model_in;
-        apply_filament_compaction(compacted_model, m_filament_compaction);
+        apply_filament_compaction(compacted_model, model_in, m_filament_compaction);
         apply_filament_compaction(new_full_config, m_filament_compaction);
     }
     // Everything below reads `model`; it is the caller's model unless we renumbered it.

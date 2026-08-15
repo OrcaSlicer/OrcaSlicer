@@ -82,7 +82,7 @@ TEST_CASE("Compaction renumbers the model's filament references", "[FilamentComp
     model.objects[1]->config.set("support_filament", 7);
 
     const FilamentCompaction compaction = build_filament_compaction(model, plain_config(8));
-    apply_filament_compaction(model, compaction);
+    apply_filament_compaction(model, model, compaction);
 
     CHECK(model.objects[0]->config.option("extruder")->getInt() == 1);
     CHECK(model.objects[0]->volumes[0]->config.option("extruder")->getInt() == 1);
@@ -151,6 +151,30 @@ TEST_CASE("Compaction gathers every per-head flush block on a multi-head printer
           std::vector<double>{10, 11, 30, 31});
 }
 
+TEST_CASE("Recompacting an unchanged source leaves every timestamp unchanged", "[FilamentCompaction]")
+{
+    // The compacted model is rebuilt from the source on EVERY Print::apply. Its config and
+    // painting timestamps must mirror the source's: a fresh stamp on identical derived content
+    // reads as a user edit, invalidates the slice that just finished, and the GUI loops
+    // slice/discard forever with no visible error.
+    Model model = model_using({4, 7});
+    const DynamicPrintConfig config = plain_config(8);
+
+    Model first  = model;
+    Model second = model;
+    apply_filament_compaction(first, model, build_filament_compaction(model, config));
+    apply_filament_compaction(second, model, build_filament_compaction(model, config));
+
+    // ModelConfigObject hides timestamp() at its own level; the ModelConfig base exposes it.
+    auto config_stamp = [](const ModelObject* object) {
+        return static_cast<const ModelConfig&>(object->config).timestamp();
+    };
+    for (size_t i = 0; i < model.objects.size(); ++i) {
+        CHECK(config_stamp(first.objects[i]) == config_stamp(model.objects[i]));
+        CHECK(config_stamp(second.objects[i]) == config_stamp(model.objects[i]));
+    }
+}
+
 TEST_CASE("A filament the plate does not print keeps its number", "[FilamentCompaction]")
 {
     // support_filament here points at a filament the plate never prints (support is off). Giving
@@ -158,6 +182,6 @@ TEST_CASE("A filament the plate does not print keeps its number", "[FilamentComp
     Model model = model_using({4, 7});
     model.objects[0]->config.set("support_filament", 2);
     const FilamentCompaction compaction = build_filament_compaction(model, plain_config(8));
-    apply_filament_compaction(model, compaction);
+    apply_filament_compaction(model, model, compaction);
     CHECK(model.objects[0]->config.option("support_filament")->getInt() == 2);
 }
