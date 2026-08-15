@@ -5084,7 +5084,12 @@ std::string GUI_App::handle_web_request(std::string cmd)
                 });
                 return "";
             }
-            if (app_config->get_stealth_mode() && stealth_blocked_login_commands.count(command_str)) {
+            // The user's own setting only. Blocking sign-in because the setup wizard is unfinished
+            // is backwards — signing in is how you leave that state — and it told a user who had
+            // never touched the toggle "You are currently in Stealth Mode", then offered a Quit
+            // button that writes stealth_mode=false when it was already false and leaves the
+            // pre-wizard default exactly where it was.
+            if (app_config->get_stealth_mode_setting() && stealth_blocked_login_commands.count(command_str)) {
                 CallAfter([this, command_str] {
                     MessageDialog dlg(mainframe,
                         _L("You are currently in Stealth Mode. To log into the Cloud, you need to disable Stealth Mode first."),
