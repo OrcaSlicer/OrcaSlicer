@@ -148,6 +148,8 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
         // Whether a reading is far enough out to be printed any slower than a fully supported one. The section
         // the slowdown starts in is no help here either, for the same reason: the speeds interpolate into it.
         auto slows_down = [&same_speed](float distance) { return !same_speed(distance, 0.f); };
+        // Whether the first reading is printed slower than the second, once they are known to differ.
+        auto prints_slower = [&distance_to_speed](float a, float b) { return distance_to_speed(a) < distance_to_speed(b); };
 
         // Part of a segment still to bisect: positions along it, the distances there, and bisections left.
         struct Subspan { double t0, t1; float distance0, distance1; int depth; };
@@ -197,12 +199,21 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
                 // Bisecting keeps every sample it took, including the ones that only confirm their neighbours.
                 size_t kept = 0;
                 for (size_t i = 0; i < interior.size(); ++i) {
-                    const float sample = interior[i].second;
-                    const float before = kept > 0 ? interior[kept - 1].second : curr.distance;
-                    const float after  = i + 1 < interior.size() ? interior[i + 1].second : next.distance;
+                    const float sample    = interior[i].second;
+                    const bool  at_start  = kept == 0;                     // Nothing kept yet, so the segment's own start precedes it
+                    const bool  at_end    = i + 1 == interior.size();      // And nothing follows the last sample but the segment's end
+                    const float before    = at_start ? curr.distance : interior[kept - 1].second;
+                    const float after     = at_end ? next.distance : interior[i + 1].second;
                     // A sample is worth a point in the path only where it prints at a different speed from the
-                    // readings either side of it.
-                    if (!same_speed(sample, before) || !same_speed(sample, after))
+                    // readings either side of it. Differing from one of the segment's own ends is not enough on
+                    // its own where the sample is the faster of the two: the segmentation pass below already
+                    // ends the slowdown an end reads, at a distance taken from how far out that end is rather
+                    // than from wherever bisection happened to stop, and a point here would leave the span
+                    // beside the end too short for that pass to run at all. Support an end cannot account for,
+                    // where the interior is the slower reading, is exactly what this pass is here to find.
+                    const bool worth_before = !same_speed(sample, before) && (!at_start || prints_slower(sample, before));
+                    const bool worth_after  = !same_speed(sample, after) && (!at_end || prints_slower(sample, after));
+                    if (worth_before || worth_after)
                         interior[kept++] = interior[i];
                 }
                 interior.resize(kept);

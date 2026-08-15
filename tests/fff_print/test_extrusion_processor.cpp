@@ -171,6 +171,42 @@ std::vector<ExtendedPoint<2>> sampled_wall_over_dished_layer(const std::function
                                                               dished_min_distance, distance_to_speed);
 }
 
+// A cross section that grows a layer's worth on the two faces meeting at either end of a wall, as any
+// 45 degree overhang does. The wall itself stands on a contour identical to its own, but its ends sit
+// where the growing faces cut the corners off, and the previous layer's edge there is nearer than the
+// half line width the centreline is inset by. Both ends therefore read an overhang while everything
+// between them reads supported: the reverse of the caged span, and the case the sampling above must
+// leave to the passes after it.
+constexpr double stepped_wall_inset = 0.5 * caged_wall_width;                       // mm, centreline inset from the contour
+constexpr double stepped_end_gap    = stepped_wall_inset - caged_layer_height;      // mm, how far inside the corner ends up
+constexpr double stepped_wall_span  = 30.;                                          // mm, the length of the wall
+
+std::vector<ExtendedPoint<2>> sampled_wall_between_growing_corners(const std::function<float(float)>& distance_to_speed)
+{
+    const AABBTreeLines::LinesDistancer<Linef> prev_layer(std::vector<Linef>{
+        {{0., 0.}, {32., 0.}},
+        {{32., 0.}, {32., -stepped_wall_span}},
+        {{32., -stepped_wall_span}, {0., -stepped_wall_span}},
+        {{0., -stepped_wall_span}, {0., 0.}},
+    });
+    const Points wall{Point::new_scale(stepped_wall_inset, -stepped_end_gap),
+                      Point::new_scale(stepped_wall_inset, stepped_end_gap - stepped_wall_span)};
+
+    return estimate_points_properties<true, true, true, true>(wall, prev_layer, caged_wall_width, -1.f,
+                                                              dished_min_distance, distance_to_speed);
+}
+
+// How much of a path is printed below the speed a fully supported reading gives. A segment is printed
+// at the lower of the speeds its ends read.
+double slowed_length(const std::vector<ExtendedPoint<2>>& points, const std::function<float(float)>& distance_to_speed)
+{
+    double length = 0.;
+    for (size_t i = 0; i + 1 < points.size(); ++i)
+        if (std::min(distance_to_speed(points[i].distance), distance_to_speed(points[i + 1].distance)) < distance_to_speed(0.f))
+            length += (points[i + 1].position - points[i].position).norm();
+    return length;
+}
+
 float furthest_reading(const std::vector<ExtendedPoint<2>>& points)
 {
     return std::max_element(points.begin(), points.end(), [](const ExtendedPoint<2>& l, const ExtendedPoint<2>& r) {
@@ -313,6 +349,30 @@ TEST_CASE("An overhang reading is dropped when the speed is unchanged", "[Extrus
     const std::vector<ExtendedPoint<2>> points = sampled_wall_over_dished_layer([](float) { return 50.f; });
 
     REQUIRE_THAT(furthest_reading(points), Catch::Matchers::WithinAbs(dished_end_reading, dished_reading_tolerance));
+}
+
+// Sampling probes the interior, so it must not answer for the ends. On a supported wall between two
+// corners that read an overhang, the reading that differs is the end's own, and the pass that ends a
+// slowdown an end reads places its point from how far out that end is. Sampling took the difference as
+// its own to report and put a point at the nearest position bisection had reached instead, which both
+// sits further along the wall and leaves too little of it for that pass to run on, so the corner
+// slowdown ran millimetres up an otherwise supported wall. Its length grows with the wall, so on a
+// model whose cross section keeps growing it reads as a stair stepped band up the corner.
+TEST_CASE("A supported wall between overhanging corners is slowed no further than its ends require",
+          "[ExtrusionProcessor][Regression]")
+{
+    // A steep speed curve, so the ends and the interior between them print at clearly different speeds.
+    const std::function<float(float)> distance_to_speed = [](float distance) {
+        return std::round(float(caged_outer_wall_speed) - 400.f * distance);
+    };
+
+    const double sampled   = slowed_length(sampled_wall_between_growing_corners(distance_to_speed), distance_to_speed);
+    // The same wall with sampling switched off: what the endpoint driven passes alone make of the corners.
+    const double unsampled = slowed_length(sampled_wall_between_growing_corners({}), distance_to_speed);
+
+    // The corners do read an overhang, so there is a slowdown for sampling to have lengthened.
+    REQUIRE(unsampled > 0.);
+    REQUIRE(sampled <= unsampled);
 }
 
 TEST_CASE("Benchmark caged overhang interior sampling", "[ExtrusionProcessor][!benchmark]"){
