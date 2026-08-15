@@ -50,7 +50,16 @@ FilamentCompaction build_filament_compaction(const Model& model, const DynamicPr
 // Renumber every filament reference in the model: object / volume / layer-range configs,
 // multi-material painting, and the plate's custom tool changes. References to slots the
 // compaction doesn't cover are left alone -- they belong to features this plate doesn't print.
-void apply_filament_compaction(Model& model, const FilamentCompaction& compaction);
+//
+// `source` is the model `model` was copied from (same objects, same order -- Model's assign_copy
+// preserves both). Every mutated config and painting annotation gets its timestamp MIRRORED from
+// the source: the copy is a deterministic derivation, so change detection must key on the
+// source's edit history. Without the mirror, each Print::apply rebuilds the copy with fresh
+// timestamps, apply's timestamp-compared state (painting especially) reads as "changed", and the
+// slice that just finished is silently invalidated -- an endless slice/discard loop in the GUI.
+// Passing the same object as both arguments is allowed (in-place, used by tests); the mirror is
+// then a no-op.
+void apply_filament_compaction(Model& model, const Model& source, const FilamentCompaction& compaction);
 
 // Gather every per-filament config vector down to the used slots, in dense order, and renumber
 // the scalar 1-based filament references (support_filament, *_filament_id, wipe_tower_filament).

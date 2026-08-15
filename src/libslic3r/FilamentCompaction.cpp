@@ -133,7 +133,7 @@ static int compacted_1based(const FilamentCompaction& compaction, int filament_1
     return tool < 0 ? filament_1based : tool + 1;
 }
 
-static void compact_model_config(ModelConfig& model_config, const FilamentCompaction& compaction)
+static void compact_model_config(ModelConfig& model_config, const ModelConfig& source_config, const FilamentCompaction& compaction)
 {
     auto compact_key = [&](const char* key) {
         if (const ConfigOption* opt = model_config.option(key)) {
@@ -147,13 +147,16 @@ static void compact_model_config(ModelConfig& model_config, const FilamentCompac
         compact_key(key);
     for (const char* key : s_support_filament_keys)
         compact_key(key);
+    // The copy is a deterministic derivation of the source; its timestamp must say so, or every
+    // rebuild reads as a fresh user edit (see apply_filament_compaction's doc).
+    model_config.mirror_timestamp_of(source_config);
 }
 
 // Renumber multi-material painting. The painted states are filament ids, and the compaction is a
 // permutation of them, so it has to be applied to every triangle at once -- which is exactly what
 // TriangleSelector::remap_triangle_state does. Rebuilding the selector from the mesh is the only
 // way in: the stored form is a bitstream whose state width is not addressable in place.
-static void compact_mm_painting(ModelVolume& volume, const FilamentCompaction& compaction)
+static void compact_mm_painting(ModelVolume& volume, const ModelVolume& source_volume, const FilamentCompaction& compaction)
 {
     if (!volume.is_mm_painted())
         return;
@@ -180,23 +183,38 @@ static void compact_mm_painting(ModelVolume& volume, const FilamentCompaction& c
     selector.deserialize(volume.mmu_segmentation_facets.get_data(), true);
     selector.remap_triangle_state(state_map);
     volume.mmu_segmentation_facets.set_data(selector.serialize());
+    // Painting is compared by TIMESTAMP during Print::apply; identical re-derived data with a
+    // fresh stamp invalidates the finished slice on the next apply.
+    volume.mmu_segmentation_facets.mirror_timestamp_of(source_volume.mmu_segmentation_facets);
 }
 
-void apply_filament_compaction(Model& model, const FilamentCompaction& compaction)
+void apply_filament_compaction(Model& model, const Model& source, const FilamentCompaction& compaction)
 {
     if (compaction.slot_of_tool.empty())
         return;
 
+    assert(model.objects.size() == source.objects.size());
+
     // Support references are renumbered unconditionally here. The collector must not claim a tool
     // for a feature that is switched off, but rewriting a reference this plate never reads is
     // harmless, and leaving it pointing at a project slot would be a latent inconsistency.
-    for (ModelObject* object : model.objects) {
-        compact_model_config(object->config, compaction);
-        for (auto& layer_range : object->layer_config_ranges)
-            compact_model_config(layer_range.second, compaction);
-        for (ModelVolume* volume : object->volumes) {
-            compact_model_config(volume->config, compaction);
-            compact_mm_painting(*volume, compaction);
+    for (size_t obj_i = 0; obj_i < model.objects.size(); ++obj_i) {
+        ModelObject*       object        = model.objects[obj_i];
+        const ModelObject* source_object = source.objects[obj_i];
+        assert(object->id() == source_object->id());
+        compact_model_config(object->config, source_object->config, compaction);
+        for (auto& layer_range : object->layer_config_ranges) {
+            const auto source_range = source_object->layer_config_ranges.find(layer_range.first);
+            compact_model_config(layer_range.second,
+                                 source_range != source_object->layer_config_ranges.end() ? source_range->second : layer_range.second,
+                                 compaction);
+        }
+        assert(object->volumes.size() == source_object->volumes.size());
+        for (size_t vol_i = 0; vol_i < object->volumes.size(); ++vol_i) {
+            ModelVolume*       volume        = object->volumes[vol_i];
+            const ModelVolume* source_volume = vol_i < source_object->volumes.size() ? source_object->volumes[vol_i] : volume;
+            compact_model_config(volume->config, source_volume->config, compaction);
+            compact_mm_painting(*volume, *source_volume, compaction);
         }
     }
 
