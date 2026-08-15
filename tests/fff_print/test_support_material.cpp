@@ -1,9 +1,12 @@
 #include <catch2/catch_all.hpp>
 
+#include <tuple>
+
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Layer.hpp"
 
 #include "test_helpers.hpp" // get access to init_print, etc
+#include "libslic3r/Support/SupportParameters.hpp"
 
 using namespace Slic3r::Test;
 using namespace Slic3r;
@@ -77,6 +80,7 @@ TEST_CASE("Conical support narrows and subdivides wide areas toward the build pl
     init_and_process_print({ pedestal }, conical, conical_config);
     REQUIRE(straight.objects().front()->config().support_style.value == smsGrid);
     REQUIRE(conical.objects().front()->config().support_style.value == smsConical);
+    REQUIRE(SupportParameters(*conical.objects().front()).support_style == smsSnug);
 
     DynamicPrintConfig subdivided_config = conical_config;
     // Each original support region is wider than this limit and should become
@@ -149,18 +153,119 @@ TEST_CASE("Conical support narrows and subdivides wide areas toward the build pl
     }
 }
 
-TEST_CASE("Conical build plate support reaches around lower geometry", "[SupportMaterial]")
+TEST_CASE("Zero-angle conical support matches snug support", "[SupportMaterial]")
 {
-    // A roof is connected to the build plate by a post at its left edge. A
-    // shorter block below the middle of the roof leaves enough height for a
-    // conical support to move sideways and reach the build plate around it.
-    TriangleMesh model = make_cube(5., 20., 25.);
-    TriangleMesh lower_block = make_cube(20., 20., 10.);
-    lower_block.translate(10.f, 0.f, 0.f);
-    model.merge(lower_block);
-    TriangleMesh roof = make_cube(40., 20., 5.);
-    roof.translate(0.f, 0.f, 25.f);
+    TriangleMesh model = make_cube(4., 20., 20.);
+    TriangleMesh roof = make_cube(20., 20., 4.);
+    roof.translate(0.f, 0.f, 20.f);
     model.merge(roof);
+
+    auto support_signature = [](const Print &print) {
+        std::vector<std::tuple<double, size_t, double>> signature;
+        for (const SupportLayer *layer : print.objects().front()->support_layers()) {
+            if (! layer->support_islands.empty())
+                signature.emplace_back(layer->print_z, layer->support_islands.size(), area(layer->support_islands));
+        }
+        return signature;
+    };
+
+    DynamicPrintConfig snug_config = DynamicPrintConfig::full_print_config();
+    snug_config.set_deserialize_strict({
+        { "enable_support",                     1 },
+        { "layer_height",                       0.2 },
+        { "support_on_build_plate_only",        1 },
+        { "support_remove_small_overhang",      0 },
+        { "support_threshold_angle",            45 },
+        { "support_interface_top_layers",       3 },
+        { "support_style",                      "snug" },
+        { "support_conical_angle",              0 },
+        { "support_conical_min_width",          5 },
+        { "support_conical_max_column_width",   0 }
+    });
+    Print snug;
+    init_and_process_print({ model }, snug, snug_config);
+
+    DynamicPrintConfig conical_config = snug_config;
+    conical_config.set_key_value("support_style", new ConfigOptionEnum<SupportMaterialStyle>(smsConical));
+    Print conical;
+    init_and_process_print({ model }, conical, conical_config);
+
+    const auto snug_signature = support_signature(snug);
+    const auto conical_signature = support_signature(conical);
+    REQUIRE(conical_signature.size() == snug_signature.size());
+    for (size_t i = 0; i < snug_signature.size(); ++ i) {
+        REQUIRE_THAT(std::get<0>(conical_signature[i]), Catch::Matchers::WithinAbs(std::get<0>(snug_signature[i]), EPSILON));
+        REQUIRE(std::get<1>(conical_signature[i]) == std::get<1>(snug_signature[i]));
+        REQUIRE_THAT(std::get<2>(conical_signature[i]), Catch::Matchers::WithinRel(std::get<2>(snug_signature[i]), 0.001));
+    }
+}
+
+TEST_CASE("Conical support preserves its minimum width across a large layer offset", "[SupportMaterial]")
+{
+    TriangleMesh model = make_cube(2., 10., 10.);
+    TriangleMesh roof = make_cube(12., 10., 2.);
+    roof.translate(0.f, 0.f, 10.f);
+    model.merge(roof);
+
+    Print print;
+    init_and_process_print({ model }, print, {
+        { "enable_support",                     1 },
+        { "layer_height",                       0.2 },
+        { "support_on_build_plate_only",        1 },
+        { "support_remove_small_overhang",      0 },
+        { "support_threshold_angle",            45 },
+        { "support_style",                      "conical" },
+        { "support_conical_angle",              89 },
+        { "support_conical_min_width",          5 },
+        { "support_conical_max_column_width",   0 }
+    });
+
+    const SupportLayer *middle = nullptr;
+    for (const SupportLayer *layer : print.objects().front()->support_layers())
+        if (! layer->support_islands.empty() &&
+            (middle == nullptr || std::abs(layer->print_z - 5.) < std::abs(middle->print_z - 5.)))
+            middle = layer;
+    REQUIRE(middle != nullptr);
+    REQUIRE(unscaled(unscaled(area(middle->support_islands))) >= 25.);
+}
+
+TEST_CASE("Conical column subdivision is bounded for tiny configured widths", "[SupportMaterial]")
+{
+    TriangleMesh model = make_cube(2., 10., 10.);
+    TriangleMesh roof = make_cube(12., 10., 2.);
+    roof.translate(0.f, 0.f, 10.f);
+    model.merge(roof);
+
+    Print print;
+    init_and_process_print({ model }, print, {
+        { "enable_support",                     1 },
+        { "layer_height",                       0.2 },
+        { "support_on_build_plate_only",        1 },
+        { "support_remove_small_overhang",      0 },
+        { "support_threshold_angle",            45 },
+        { "support_style",                      "conical" },
+        { "support_conical_angle",              30 },
+        { "support_conical_min_width",          0 },
+        { "support_conical_max_column_width",   0.01 }
+    });
+
+    bool generated_support = false;
+    for (const SupportLayer *layer : print.objects().front()->support_layers()) {
+        generated_support |= ! layer->support_islands.empty();
+        REQUIRE(layer->support_islands.size() <= 4096);
+    }
+    REQUIRE(generated_support);
+}
+
+TEST_CASE("Conical build plate support does not start above blocking geometry", "[SupportMaterial]")
+{
+    // The upper slab is entirely inside the vertical shadow of the lower slab.
+    // Conical tapering must not reinterpret the enclosed gap as a path to the
+    // build plate and leave disconnected support fragments above the lower slab.
+    TriangleMesh model = make_cube(40., 30., 5.);
+    TriangleMesh upper_slab = make_cube(20., 10., 5.);
+    upper_slab.translate(10.f, 10.f, 35.f);
+    model.merge(upper_slab);
 
     auto support_area_near_z = [](const Print &print, double print_z) {
         const SupportLayer *nearest = nullptr;
@@ -191,11 +296,8 @@ TEST_CASE("Conical build plate support reaches around lower geometry", "[Support
     Print buildplate;
     init_and_process_print({ model }, buildplate, buildplate_config);
 
-    const double everywhere_area = support_area_near_z(everywhere, 20.);
-    const double buildplate_area = support_area_near_z(buildplate, 20.);
-    REQUIRE(everywhere_area > 0.);
-    REQUIRE(buildplate_area > 0.);
-    REQUIRE(buildplate_area > 0.75 * everywhere_area);
+    REQUIRE(support_area_near_z(everywhere, 20.) > 0.);
+    REQUIRE(support_area_near_z(buildplate, 20.) == 0.);
 }
 
 SCENARIO("Support layer Z honors contact distance", "[SupportMaterial]")

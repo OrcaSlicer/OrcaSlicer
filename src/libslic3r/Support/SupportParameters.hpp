@@ -200,6 +200,10 @@ struct SupportParameters {
                 !is_tree(object_config.support_type))
                 support_style = smsDefault;
         }
+        // Conical support uses snug contours internally. Keep the user-facing
+        // style in object_config so the projection code can still apply tapering.
+        if (support_style == smsConical)
+            support_style = smsSnug;
         if (support_style == smsDefault) {
             if (is_tree(object_config.support_type)) {
                 // Orca: use organic as default

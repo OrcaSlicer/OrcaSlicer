@@ -1302,12 +1302,6 @@ std::vector<Polygons> PrintObjectSupportMaterial::buildplate_covered(const Print
     // Build support on a build plate only? If so, then collect and union all the surfaces below the current layer.
     // Unfortunately this is an inherently serial process.
     const bool            buildplate_only = this->build_plate_only();
-    const bool            conical_support = m_object_config->support_style.value == smsConical &&
-                                            m_object_config->support_conical_angle.value != 0.;
-    const coordf_t         conical_slope = conical_support ?
-        std::abs(std::tan(Geometry::deg2rad(std::clamp(
-            m_object_config->support_conical_angle.value, -89., 89.)))) :
-        0.;
     std::vector<Polygons> buildplate_covered;
     if (buildplate_only) {
         BOOST_LOG_TRIVIAL(debug) << "PrintObjectSupportMaterial::buildplate_covered() - start";
@@ -1321,20 +1315,7 @@ std::vector<Polygons> PrintObjectSupportMaterial::buildplate_covered(const Print
             // but don't apply the safety offset during the union operation as it would
             // inflate the polygons over and over.
             Polygons &covered = buildplate_covered[layer_id];
-            if (conical_support && ! buildplate_covered[layer_id - 1].empty()) {
-                // A conical support may move sideways while remaining connected
-                // to the build plate. Reduce the shadow cast by older slices by
-                // that permitted movement instead of extending it vertically
-                // forever. Vertical walls remain covered because their current
-                // slice is added again below.
-                const coordf_t layer_delta_z =
-                    object.layers()[layer_id]->print_z - lower_layer.print_z;
-                covered = offset(
-                    buildplate_covered[layer_id - 1],
-                    float(scale_(-conical_slope * layer_delta_z)));
-            } else {
-                covered = buildplate_covered[layer_id - 1];
-            }
+            covered = buildplate_covered[layer_id - 1];
             polygons_append(covered, offset(lower_layer.lslices, scale_(0.01)));
             covered = union_(covered);
         }
@@ -1863,10 +1844,9 @@ static inline void fill_contact_layer(
     )
 {
     SupportGridParams grid_params(object_config, support_material_flow);
-    const bool conical_support = object_config.enable_support.value &&
-                                 object_config.support_style.value == smsConical &&
-                                 object_config.support_conical_angle.value != 0.;
-    if (conical_support)
+    const bool conical_style = object_config.enable_support.value &&
+                               object_config.support_style.value == smsConical;
+    if (conical_style)
         grid_params.style = smsSnug;
 
     Polygons lower_layer_polygons_for_dense_interface_cache;
@@ -2638,7 +2618,8 @@ static Polygons apply_conical_support_offset(
     coordf_t        layer_delta_z,
     coordf_t        angle_degrees,
     coordf_t        minimum_width,
-    coordf_t        maximum_column_width)
+    coordf_t        maximum_column_width,
+    coord_t         support_extrusion_width)
 {
     if (polygons.empty() || layer_delta_z <= 0. || angle_degrees == 0.)
         return polygons;
@@ -2651,10 +2632,14 @@ static Polygons apply_conical_support_offset(
             return tapered;
 
         const float half_minimum_width = float(scale_(0.5 * minimum_width));
-        Polygons inset = offset(input, -half_minimum_width);
+        // A feature must have room for both this layer's erosion and the
+        // requested minimum width. Otherwise preserve it unchanged instead of
+        // allowing a large per-layer offset to erase or undershoot it.
+        const float preservation_radius = half_minimum_width - offset_scaled;
+        Polygons inset = offset(input, -preservation_radius);
         // The tiny extra expansion avoids retaining boundary slivers produced
         // by the two inverse offsets.
-        Polygons small_parts = diff(input, offset(inset, half_minimum_width + 20.f));
+        Polygons small_parts = diff(input, offset(inset, preservation_radius + 20.f));
         polygons_append(tapered, std::move(small_parts));
         return union_(tapered);
     };
@@ -2662,16 +2647,28 @@ static Polygons apply_conical_support_offset(
     if (offset_scaled >= 0.f || maximum_column_width <= minimum_width)
         return taper(polygons);
 
-    const coord_t maximum_width_scaled = scale_(maximum_column_width);
+    // Never subdivide below one printable support extrusion. Also cap the
+    // number of clipping cells per component so malformed or hand-edited
+    // profiles cannot make slicing time grow without bound.
+    const coord_t maximum_width_scaled = std::max(coord_t(scale_(maximum_column_width)), support_extrusion_width);
     if (maximum_width_scaled <= 0)
         return taper(polygons);
+
+    static constexpr size_t max_column_cells = 4096;
 
     Polygons tapered;
     for (const ExPolygon &component : union_ex(polygons)) {
         const BoundingBox bbox = get_extents(component);
         const Point       size = bbox.size();
-        const size_t columns_x = std::max<size_t>(1, (size.x() + maximum_width_scaled - 1) / maximum_width_scaled);
-        const size_t columns_y = std::max<size_t>(1, (size.y() + maximum_width_scaled - 1) / maximum_width_scaled);
+        size_t columns_x = std::max<size_t>(1, (size.x() + maximum_width_scaled - 1) / maximum_width_scaled);
+        size_t columns_y = std::max<size_t>(1, (size.y() + maximum_width_scaled - 1) / maximum_width_scaled);
+        if (columns_x > max_column_cells / columns_y) {
+            const double ratio = double(columns_x) / double(columns_y);
+            const size_t capped_x = std::clamp<size_t>(
+                size_t(std::sqrt(double(max_column_cells) * ratio)), 1, max_column_cells);
+            columns_x = std::min(columns_x, capped_x);
+            columns_y = std::min(columns_y, std::max<size_t>(1, max_column_cells / columns_x));
+        }
         const Polygons component_polygons = to_polygons(component);
 
         if (columns_x == 1 && columns_y == 1) {
@@ -2747,13 +2744,15 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::bottom_contact_layers_and_
                     overhangs_projection, layer_delta_z,
                     m_object_config->support_conical_angle.value,
                     m_object_config->support_conical_min_width.value,
-                    m_object_config->support_conical_max_column_width.value);
+                    m_object_config->support_conical_max_column_width.value,
+                    m_support_params.support_material_flow.scaled_width());
             if (! enforcers_projection.empty())
                 enforcers_projection = apply_conical_support_offset(
                     enforcers_projection, layer_delta_z,
                     m_object_config->support_conical_angle.value,
                     m_object_config->support_conical_min_width.value,
-                    m_object_config->support_conical_max_column_width.value);
+                    m_object_config->support_conical_max_column_width.value,
+                    m_support_params.support_material_flow.scaled_width());
         }
         // Collect projections of all contact areas above or at the same level as this top surface.
 #ifdef SLIC3R_DEBUG
