@@ -7,6 +7,7 @@
 #include "libslic3r/Preset.hpp"
 
 namespace Slic3r {
+class DevAmsTray;
 namespace GUI {
 
 // Persistence layer for the per-machine physical filament inventories, stored in a
@@ -34,6 +35,31 @@ size_t addressable_tool_count_of(const Preset& printer_preset);
 // The installed "Generic <type>" preset for a material type, resolved alias-aware (canonical
 // system names carry a suffix, e.g. "Generic PLA @System"). nullptr when absent or type empty.
 const Preset* find_generic_filament_preset(const std::string& type, const PresetCollection& filaments);
+
+// Orca: what one reported tray means in Orca terms. The ONE conversion from the device-side
+// tray (DevAmsTray, the common denominator across pull-mode agents and push-mode agents like
+// BBL's that never go through fetch_filament_info) to the physical-filament vocabulary the
+// inventory, the material editor and the mapping dialog all speak. Vendor knowledge stays in
+// the agents, which normalize INTO DevAmsTray; resolution semantics live here, once, so the
+// dialogs cannot drift apart on what a reported spool means.
+struct DeviceSlotResolution
+{
+    bool        present    = false; ///< a spool is physically in the slot
+    bool        tag_locked = false; ///< data came from an NFC tag; the tag is authoritative
+    std::string color;              ///< "#RRGGBB", empty when the tray reported none
+    std::string preset;             ///< resolved preset name; empty when nothing resolves
+    std::string type;               ///< the type string as the printer reported it
+};
+
+// tray may be null ("slot exists but nothing loaded" -- same meaning as !is_exists). Preset
+// resolution: the agent's exact match first (setting_id carries the filament_id it matched),
+// then the material's Generic preset, both alias-aware and NOT gated on the profile being
+// enabled -- a profile the user never enabled still describes the spool. When nothing resolves
+// at all, `preset` stays empty while `type` still reports what the printer said: the caller
+// must show the bare type rather than silently keeping whatever material it showed before.
+// Non-const tray: DevAmsTray::get_filament_type() canonicalizes a legacy "Support" type in
+// place, so reading a tray is not const on the device side.
+DeviceSlotResolution resolve_device_tray(DevAmsTray* tray, const PresetCollection& filaments);
 
 std::string resolve_slot_preset(const PhysicalFilament& pf, const PresetCollection& filaments);
 

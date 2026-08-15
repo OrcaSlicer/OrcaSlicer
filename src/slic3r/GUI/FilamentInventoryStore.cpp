@@ -1,6 +1,7 @@
 #include "FilamentInventoryStore.hpp"
 
 #include "ActivePrinterSession.hpp"
+#include "DeviceCore/DevFilaSystem.h"
 #include "GUI_App.hpp"
 
 namespace Slic3r { namespace GUI {
@@ -105,6 +106,40 @@ const Preset* find_generic_filament_preset(const std::string& type, const Preset
             fallback = &*it;
     }
     return fallback;
+}
+
+DeviceSlotResolution resolve_device_tray(DevAmsTray* tray, const PresetCollection& filaments)
+{
+    DeviceSlotResolution res;
+    // Null and "exists but nothing loaded" mean the same thing to every consumer.
+    if (tray == nullptr || !tray->is_exists)
+        return res;
+    res.present = true;
+
+    if (!tray->color.empty())
+        res.color = DevAmsTray::decode_color(tray->color).GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
+
+    res.type = tray->get_filament_type();
+
+    // Best target first: the agent may have resolved an exact profile for this spool
+    // (DevAmsTray::setting_id carries the filament_id it matched -- see e.g.
+    // SnapmakerPrinterAgent::fetch_filament_info's vendor/type/color lookup). Fall back to the
+    // material's Generic preset. Neither is gated on is_visible: a profile the user has not
+    // enabled still describes the spool the printer reported. Compatibility still applies -- a
+    // profile for another printer would not describe it.
+    const Preset* target = nullptr;
+    if (!tray->setting_id.empty())
+        for (auto it = filaments.begin(); it != filaments.end(); ++it)
+            if (it->filament_id == tray->setting_id && it->is_compatible) { target = &*it; break; }
+    if (target == nullptr)
+        target = find_generic_filament_preset(res.type, filaments);
+    if (target != nullptr)
+        res.preset = target->name;
+
+    // Non-zero tag_uid = the slot's data came from an NFC tag; the tag is authoritative, so
+    // consumers must not offer to overwrite what it reported.
+    res.tag_locked = !tray->tag_uid.empty() && tray->tag_uid.find_first_not_of('0') != std::string::npos;
+    return res;
 }
 
 FilamentInventories load_filament_inventories()
