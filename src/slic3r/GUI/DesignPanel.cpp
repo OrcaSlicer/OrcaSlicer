@@ -2997,6 +2997,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
         }
     });
 
+    // Double-click a row = Edit, the same gesture that re-opens a committed sketch on the canvas.
+    // Without it the row only highlights and the feature looks dead until the user finds the
+    // Edit button in the section header.
+    m_tree->Bind(wxEVT_TREE_ITEM_ACTIVATED, [this](wxTreeEvent&) { on_edit_feature(); });
+
     // Feature-tree edit actions: act on the selected feature (delete / reorder). These sit in the
     // card header (Prepare puts its section actions there too) rather than on a loose row below.
     {
@@ -5078,8 +5083,68 @@ void DesignPanel::on_add_thicken_surface()
     refresh_tree();
 }
 
+// Compose the same matrix apply_transform() builds in the kernel: rotate about the pivot first,
+// then translate. Kept here so the preview and the committed feature can never disagree.
+static Transform3d xf_compose(const Vec3d& t, const Vec3d& axis, const Vec3d& pivot, double deg)
+{
+    Transform3d r = Transform3d::Identity();
+    if (std::abs(deg) > 1e-12 && axis.norm() > 1e-9)
+        r = Transform3d(Eigen::Translation3d(pivot))
+          * Transform3d(Eigen::AngleAxisd(deg * M_PI / 180.0, axis.normalized()))
+          * Transform3d(Eigen::Translation3d(-pivot));
+    return Transform3d(Eigen::Translation3d(t)) * r;
+}
+
+// Live preview for the Transform card. The gizmo already writes its drag into the body's display
+// transform; the typed fields must use the SAME channel or the numbers and the geometry disagree
+// until Confirm — which is what makes typing a distance look like it did nothing. In edit mode the
+// committed transform is already baked into the kernel geometry, so undo it first: without that,
+// typing 80 over a committed 34 would show the body at 114.
+void DesignPanel::xf_live_preview()
+{
+    if (m_active != Tool::Transform || m_xf_dx == nullptr) return;
+    if (m_xf_copy && m_xf_copy->GetValue()) return;   // a copy leaves the original where it is
+    sync_body_xform();
+    const int sel = m_xf_body ? m_xf_body->GetSelection() : wxNOT_FOUND;
+    const int b   = (sel != wxNOT_FOUND) ? sel : int(m_body_xform.size()) - 1;
+    if (b < 0 || b >= int(m_body_xform.size())) return;
+
+    if (m_xf_prev_body != b) {
+        xf_clear_preview();                 // the card retargeted: hand the old body back first
+        m_xf_prev_body = b;
+        m_xf_prev_base = (b == m_xf_gizmo_body) ? m_xf_gizmo_base : m_body_xform[b];
+    }
+    const int   ax   = m_xf_axis->GetSelection();
+    const Vec3d axis = (ax == 0) ? Vec3d::UnitX() : (ax == 1) ? Vec3d::UnitY() : Vec3d::UnitZ();
+    const Vec3d pivot(m_xf_pivot_x->GetValue(), m_xf_pivot_y->GetValue(), m_xf_pivot_z->GetValue());
+    const Transform3d want = xf_compose(Vec3d(m_xf_dx->GetValue(), m_xf_dy->GetValue(),
+                                              m_xf_dz->GetValue()),
+                                        axis, pivot, m_xf_angle->GetValue());
+    Transform3d undo = Transform3d::Identity();
+    if (m_edit_index >= 0 && m_edit_index < int(m_doc.features.size())) {
+        const CadFeature& f = m_doc.features[m_edit_index];
+        if (f.type == CadFeatureType::Transform && !f.xf_copy)
+            undo = xf_compose(f.xf_translate, f.xf_axis, f.xf_pivot, f.xf_angle_deg).inverse();
+    }
+    m_body_xform[b] = want * undo * m_xf_prev_base;
+    feed_bodies();
+}
+
+// Hand a previewed body back to the pose it had before the card touched it. Every exit from the
+// Transform card passes through here, so a preview can never survive into the committed document.
+void DesignPanel::xf_clear_preview()
+{
+    if (m_xf_prev_body < 0) return;
+    sync_body_xform();
+    if (m_xf_prev_body < int(m_body_xform.size()))
+        m_body_xform[m_xf_prev_body] = m_xf_prev_base;
+    m_xf_prev_body = -1;
+    feed_bodies();
+}
+
 void DesignPanel::on_add_transform()
 {
+    xf_clear_preview();   // the feature performs this motion parametrically; the preview must go
     // The gizmo baked its drag into the display transform so the body followed the cursor.
     // The feature about to be created performs that same motion parametrically, so hand the
     // body back to its pre-drag pose first or it moves twice.
@@ -9848,6 +9913,10 @@ void DesignPanel::refresh_preview()
 {
     if (m_active == Tool::None) { m_viewport->clear_preview(); return; }
 
+    // Transform has no ghost: it moves an existing body rather than building a new one, so its
+    // preview IS the body, shown through the display transform the gizmo already drives.
+    if (m_active == Tool::Transform) { xf_live_preview(); return; }
+
     // Features that produce NO solid: a sketch, the three datums, a helix curve, and Project
     // (which emits sketch entities). They have no ghost to build, so they must not go through
     // the solid-preview path below — it finds nothing and reports "invalid: preview produced
@@ -10344,6 +10413,7 @@ void DesignPanel::close_tool()
     set_active_tool_btn(nullptr);   // clear the active-tool teal highlight
     // Single revert point for the Transform gizmo: Esc, switching tools, and Cancel all pass
     // through here, so the body is never left displaced by a Transform that wasn't committed.
+    xf_clear_preview();
     if (m_xf_gizmo_body >= 0) {
         sync_body_xform();
         if (m_xf_gizmo_body < int(m_body_xform.size()))

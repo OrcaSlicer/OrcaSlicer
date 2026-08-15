@@ -124,6 +124,8 @@ private:
     void on_add_surface_offset();
     void on_add_thicken_surface();
     void on_add_transform();
+    void xf_live_preview();    // typed Transform fields -> body display transform (live)
+    void xf_clear_preview();   // hand a previewed body back to its pre-card pose
     void on_add_mirror();
     void on_add_thicken();
     void on_add_rib();
@@ -358,6 +360,10 @@ private:
     // Both use the same gizmo; only this says which card owns the numbers it reports.
     int         m_xf_gizmo_body{-1};
     Transform3d m_xf_gizmo_base{Transform3d::Identity()};   // pose when Transform armed it
+    // Which body the Transform card's typed fields are currently previewing on, and the pose to
+    // hand it back to. Separate from the gizmo pair because the card can retarget its Body combo.
+    int         m_xf_prev_body{-1};
+    Transform3d m_xf_prev_base{Transform3d::Identity()};
 
     // Onshape-style dialog-card title rows (icon + bold feature name), retitled
     // per tool in open_tool() (edit-mode shows the feature's actual name).
