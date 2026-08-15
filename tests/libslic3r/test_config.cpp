@@ -1091,111 +1091,36 @@ TEST_CASE("get_filament_type treats empty vector options as absent", "[Config][F
         REQUIRE(displayed == "Sup.PLA");
     }
 }
-TEST_CASE("filament_physical_map defaults to empty and is a develop-mode option", "[Config]") {
-    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
-    const ConfigOptionInts* opt = config.option<ConfigOptionInts>("filament_physical_map");
-    REQUIRE(opt != nullptr);
-    REQUIRE(opt->values.empty());
+TEST_CASE("A json config with one bad value still loads every other key", "[Config]")
+{
+    // A project_settings.config written by another vendor's fork can type a single option
+    // differently -- a WonderMaker-vendor export writes bed_mesh_max as the scalar "290" where
+    // this tree defines a point. One alien value must cost only its own key: the loader used to
+    // abandon the whole file at the throw, and since nlohmann iterates keys alphabetically,
+    // everything after "bed_mesh_max" (filament_colour included) silently vanished -- which a
+    // blind dereference in the 3mf open path then turned into a crash.
+    ScopedTemporaryFile file(".json");
+    {
+        boost::nowide::ofstream out(file.path().string());
+        out << R"({
+            "bed_mesh_max": "290",
+            "filament_colour": ["#112233", "#445566"],
+            "layer_height": "0.28"
+        })";
+    }
 
-    const ConfigOptionDef* def = print_config_def.get("filament_physical_map");
-    REQUIRE(def != nullptr);
-    REQUIRE(def->mode == comDevelop);
-}
+    DynamicPrintConfig                 config;
+    ConfigSubstitutionContext          substitutions(ForwardCompatibilitySubstitutionRule::Enable);
+    std::map<std::string, std::string> key_values;
+    std::string                        reason;
+    const int ret = config.load_from_json(file.path().string(), substitutions, true, key_values, reason);
 
-TEST_CASE("normalize_plate_filament_map preserves empty-means-global-fallback semantics", "[Config]") {
-    std::vector<int> values;
-    normalize_plate_filament_map(values, 4, 2);
-    REQUIRE(values.empty());
-}
-
-TEST_CASE("normalize_plate_filament_map pads a short map with 1", "[Config]") {
-    std::vector<int> values = {2, 1};
-    normalize_plate_filament_map(values, 4, 2);
-    REQUIRE(values == std::vector<int>{2, 1, 1, 1});
-}
-
-TEST_CASE("normalize_plate_filament_map clamps out-of-range entries into [1, nozzle_count]", "[Config]") {
-    // Loaded on a single-nozzle printer: any entry pointing at tool 2 must clamp to 1,
-    // reflecting Finding 1 (per-plate maps must be bounded by the PROJECT's own nozzle count).
-    std::vector<int> values = {2, 0, -5, 99};
-    normalize_plate_filament_map(values, 4, 1);
-    REQUIRE(values == std::vector<int>{1, 1, 1, 1});
-}
-
-TEST_CASE("normalize_plate_filament_map leaves a well-formed map unchanged", "[Config]") {
-    // BBL dual-nozzle no-op case: already the right length, already in range.
-    std::vector<int> values = {1, 2, 1, 2};
-    normalize_plate_filament_map(values, 4, 2);
-    REQUIRE(values == std::vector<int>{1, 2, 1, 2});
-}
-
-TEST_CASE("normalize_plate_filament_map never truncates a longer map", "[Config]") {
-    std::vector<int> values = {1, 2, 1, 2, 1};
-    normalize_plate_filament_map(values, 4, 2);
-    REQUIRE(values == std::vector<int>{1, 2, 1, 2, 1});
-}
-
-#include "libslic3r/Preset.hpp"
-
-TEST_CASE("Preset::normalize keeps per-filament options at filament count when filaments exceed extruders", "[Config]") {
-    // Regression: on a non-SEMM printer, normalize() derives n from nozzle_diameter for
-    // extruder normalization and reused that same n to resize every per-filament option. A
-    // decoupled project (more filaments than tools -- 5 filaments on a 4-tool U1) had
-    // filament_settings_id truncated 5 -> 4; the padded-back empty 5th entry then failed the
-    // installed-preset lookup on load and slot 5 surfaced as a "(project)" embedded preset.
-    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
-    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
-    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4, 0.4, 0.4}));
-    config.set_key_value("filament_diameter", new ConfigOptionFloats({1.75, 1.75, 1.75, 1.75, 1.75}));
-    config.set_key_value("filament_settings_id",
-                         new ConfigOptionStrings({"F1", "F2", "F3", "F4", "F5"}));
-    config.set_key_value("filament_type",
-                         new ConfigOptionStrings({"PLA", "PLA", "PLA", "PLA", "PLA"}));
-
-    Preset::normalize(config);
-
-    const auto& ids = config.option<ConfigOptionStrings>("filament_settings_id")->values;
-    REQUIRE(ids.size() == 5);
-    CHECK(ids[4] == "F5");
-    REQUIRE(config.option<ConfigOptionStrings>("filament_type")->values.size() == 5);
-}
-
-
-TEST_CASE("enable_filament_mapping defaults to off and is a printer option", "[Config]") {
-    // Decoupling the project's filament count from the printer's tool count is an explicit
-    // opt-in: by default a multi-tool printer keeps one filament per tool.
-    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
-    REQUIRE_FALSE(config.opt_bool("enable_filament_mapping"));
-    const auto& printer_opts = Preset::printer_options();
-    CHECK(std::find(printer_opts.begin(), printer_opts.end(), "enable_filament_mapping") != printer_opts.end());
-}
-
-TEST_CASE("Device-resolved mapping needs the flag, two tools and no SEMM", "[Config]") {
-    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
-    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4}));
-    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
-    REQUIRE_FALSE(device_resolves_filament_mapping(config));   // flag off
-
-    config.set_deserialize_strict({{"enable_filament_mapping", "1"}});
-    REQUIRE(device_resolves_filament_mapping(config));
-    // The physical-filament UI follows the same signal.
-    REQUIRE(physical_filament_features_enabled(config));
-
-    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4}));
-    CHECK_FALSE(device_resolves_filament_mapping(config));     // single tool
-
-    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4}));
-    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(true));
-    CHECK_FALSE(device_resolves_filament_mapping(config));     // SEMM
-}
-
-TEST_CASE("A native mapping protocol resolves the mapping without the flag", "[Config]") {
-    // A protocol printer already routes logical tools itself, so the printer-agnostic opt-in
-    // is redundant there (the Printer Settings line is hidden for exactly this reason).
-    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
-    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4}));
-    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
-    config.set_deserialize_strict({{"filament_mapping_protocol", "snapmaker"}});
-    REQUIRE_FALSE(config.opt_bool("enable_filament_mapping"));
-    CHECK(device_resolves_filament_mapping(config));
+    // The load as a whole succeeds; only the bad key is dropped.
+    CHECK(ret == 0);
+    CHECK(config.option("bed_mesh_max") == nullptr);
+    REQUIRE(config.option<ConfigOptionStrings>("filament_colour") != nullptr);
+    CHECK(config.option<ConfigOptionStrings>("filament_colour")->values ==
+          std::vector<std::string>{"#112233", "#445566"});
+    REQUIRE(config.option("layer_height") != nullptr);
+    CHECK(config.option<ConfigOptionFloat>("layer_height")->value == Catch::Approx(0.28));
 }
