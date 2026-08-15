@@ -634,7 +634,11 @@ void FilamentInventoryEditor::do_sync_from_printer(bool interactive)
         tools_to_refresh.insert(this_tool);
 
         DevAmsTray* tray = fila_system->GetAmsTray(std::to_string(slot_id.first), std::to_string(slot_id.second));
-        if (!tray || !tray->is_exists) {
+        // The ONE tray->Orca conversion (resolve_device_tray): resolution semantics live in the
+        // store so every consumer of a reported spool agrees on what it means; this loop only
+        // moves the result into row state.
+        const DeviceSlotResolution res = resolve_device_tray(tray, wxGetApp().preset_bundle->filaments);
+        if (!res.present) {
             // The printer reported this slot with no filament loaded. Sync mirrors the machine:
             // clear the row rather than leaving stale data (an unreported slot never reaches
             // here -- tray_map only carries what the agent published). Also block editing this
@@ -655,44 +659,31 @@ void FilamentInventoryEditor::do_sync_from_printer(bool interactive)
         }
 
         bool applied = false;
-        if (!tray->color.empty()) {
-            row.last_color     = tray->get_color();
+        if (!res.color.empty()) {
+            row.last_color    = wxColour(wxString(res.color));
             row.color_touched = true;
-            applied = true;
+            applied           = true;
         }
-        const std::string type = tray->get_filament_type();
-        {
-            // Best target first: the agent may have resolved an exact profile for this spool
-            // (DevAmsTray::setting_id carries the filament_id it matched -- see e.g.
-            // SnapmakerPrinterAgent::fetch_filament_info's vendor/type/color lookup). Fall back
-            // to the material's Generic preset (alias-aware); if neither is installed, remember
-            // the type for save (loaded_type) without changing the visible selection.
-            const PresetCollection& filaments = wxGetApp().preset_bundle->filaments;
-            const Preset* target = nullptr;
-            if (!tray->setting_id.empty())
-                for (auto it = filaments.begin(); it != filaments.end(); ++it)
-                    // Not gated on is_visible: a profile the user has not enabled still describes
-                    // the spool the printer reported, and the alternative is silently keeping the
-                    // row's previous material (see find_generic_filament_preset). Compatibility
-                    // still applies -- a profile for another printer would not describe it.
-                    if (it->filament_id == tray->setting_id && it->is_compatible) { target = &*it; break; }
-            if (target == nullptr)
-                target = find_generic_filament_preset(type, filaments);
-
-            if (target != nullptr) {
-                row.picked_preset = target->name;
-                row.type_touched  = true;
-                applied = true;
-            }
-            if (!type.empty())
-                row.loaded_type = type;
+        if (!res.preset.empty()) {
+            row.picked_preset = res.preset;
+            row.type_touched  = true;
+            applied           = true;
+        } else if (!res.type.empty() && !row.picked_preset.empty()) {
+            // The printer reported a material no profile describes at all. Keeping the
+            // previously shown preset would present a material the printer never reported as if
+            // it had just been synced -- a ZR reporting PLA Silk once showed as plain PLA this
+            // way. Drop to the bare reported type instead.
+            row.picked_preset.clear();
+            row.type_touched = false;
+            applied          = true;
         }
+        if (!res.type.empty())
+            row.loaded_type = res.type;
         if (applied)
             ++rows_applied;
         m_synced_baseline[this_tool] = snapshot_of(row);
-        // Non-zero tag_uid = the slot's data came from an NFC tag (see SnapmakerPrinterAgent's
-        // fetch); the tag is authoritative, so this tool is excluded from push_changes_to_printer.
-        if (!tray->tag_uid.empty() && tray->tag_uid.find_first_not_of('0') != std::string::npos)
+        // The tag is authoritative, so this tool is excluded from push_changes_to_printer.
+        if (res.tag_locked)
             m_tag_locked_tools.insert(this_tool);
     }
 
