@@ -8837,7 +8837,13 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 //set the size back
                                 partplate_list.reset_size(current_width + Bed3D::Axes::DefaultTipRadius, current_depth + Bed3D::Axes::DefaultTipRadius, current_height, false);
                             }
-                            project_filament_count = config_loaded.option<ConfigOptionStrings>("filament_colour")->size();
+                            // Null-safe: config_loaded is whatever survived the archive's config
+                            // parse, and a partially-loaded config (e.g. one bad value aborted the
+                            // json load in older builds) may lack filament_colour entirely.
+                            // Dereferencing blind turned that into a crash on File->Open. The
+                            // nozzle_diameter read below already uses the checked pattern.
+                            if (const auto* project_filament_colour = config_loaded.option<ConfigOptionStrings>("filament_colour"))
+                                project_filament_count = project_filament_colour->size();
                             // Use the LOADED project's own nozzle_diameter count, not the currently active
                             // printer preset's: the project's printer preset is only applied later (see
                             // config.apply()/config += config_loaded below), so using the active preset here
