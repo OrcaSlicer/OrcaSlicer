@@ -1267,7 +1267,11 @@ int CLI::run(int argc, char **argv)
             #if !defined(wxHAS_EGL) || !wxHAS_EGL
             {
                 const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
-                if (wayland_env && *wayland_env) {
+                const char* gdk_backend = ::getenv("GDK_BACKEND");
+                // Only when the user did NOT choose a backend: an explicit GDK_BACKEND is a
+                // deliberate override (e.g. re-testing native Wayland after a WSLg update) and
+                // must win, exactly as the comment above promises.
+                if (wayland_env && *wayland_env && (gdk_backend == nullptr || *gdk_backend == '\0')) {
                     BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
                     ::setenv("GDK_BACKEND", "x11", true);
                 }
@@ -1285,7 +1289,11 @@ int CLI::run(int argc, char **argv)
             // GDK_BACKEND set by the user still wins: this runs only when it was unset.
             {
                 const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
-                if (wayland_env && *wayland_env) {
+                const char* gdk_backend = ::getenv("GDK_BACKEND");
+                // Only when the user did NOT choose a backend: an explicit GDK_BACKEND is a
+                // deliberate override (e.g. re-testing native Wayland after a WSLg update) and
+                // must win, exactly as the comment above promises.
+                if (wayland_env && *wayland_env && (gdk_backend == nullptr || *gdk_backend == '\0')) {
                     bool is_wsl = false;
                     if (boost::nowide::ifstream osrelease("/proc/sys/kernel/osrelease"); osrelease) {
                         std::string kernel_release;
