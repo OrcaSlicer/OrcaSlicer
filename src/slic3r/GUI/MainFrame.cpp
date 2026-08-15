@@ -3402,14 +3402,22 @@ void MainFrame::init_menubar_as_editor()
                 info_dlg.ShowModal();
                 return;
             }
+            if (wxGetApp().app_config->get_stealth_mode()) {
+                MessageDialog info_dlg(this,
+                    _L("Stealth mode is on, so Orca Cloud syncing is switched off. "
+                       "Turn Stealth mode off in Preferences to sync your presets."),
+                    _L("Sync Presets"), wxOK | wxICON_INFORMATION);
+                info_dlg.ShowModal();
+                return;
+            }
             if (m_plater)
                 m_plater->get_notification_manager()->push_notification(
                     into_u8(_L("Syncing presets from cloud\u2026")));
             wxGetApp().restart_sync_user_preset();
         }, "", nullptr,
-        [this]() {
-            return wxGetApp().is_user_login() && !wxGetApp().app_config->get_stealth_mode();
-        }, this);
+        // Stays ENABLED whatever the cloud state: both refusals above name their reason, and a
+        // greyed-out item names none. A user who could not sync had no way to find out why.
+        []() { return true; }, this);
 
     top_menu->AppendSeparator();
     append_menu_item(
@@ -3539,14 +3547,22 @@ void MainFrame::init_menubar_as_editor()
                 info_dlg.ShowModal();
                 return;
             }
+            if (wxGetApp().app_config->get_stealth_mode()) {
+                MessageDialog info_dlg(this,
+                    _L("Stealth mode is on, so Orca Cloud syncing is switched off. "
+                       "Turn Stealth mode off in Preferences to sync your presets."),
+                    _L("Sync Presets"), wxOK | wxICON_INFORMATION);
+                info_dlg.ShowModal();
+                return;
+            }
             if (m_plater)
                 m_plater->get_notification_manager()->push_notification(
                     into_u8(_L("Syncing presets from cloud\u2026")));
             wxGetApp().restart_sync_user_preset();
         }, "", nullptr,
-        [this]() {
-            return wxGetApp().is_user_login() && !wxGetApp().app_config->get_stealth_mode();
-        }, this);
+        // Stays ENABLED whatever the cloud state: both refusals above name their reason, and a
+        // greyed-out item names none. A user who could not sync had no way to find out why.
+        []() { return true; }, this);
 
     fileMenu->AppendSeparator();
     append_menu_item(

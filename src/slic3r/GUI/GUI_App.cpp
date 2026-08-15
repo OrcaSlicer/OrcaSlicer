@@ -3834,6 +3834,10 @@ bool GUI_App::on_init_network(bool try_backup)
         std::string country_code = app_config->get_country_code();
         m_agent->set_country_code(country_code);
         m_agent->start();
+        // A session restored from a saved token fires no login event, so seed the flag here too —
+        // otherwise the pre-wizard stealth default would come back on the next launch for a user
+        // who is already signed in.
+        app_config->set_cloud_logged_in(m_agent->is_user_login(ORCA_CLOUD_PROVIDER));
         // Orca: disable Bambu telemetry up-front (before any login) so it never starts.
         check_track_enable();
     }
@@ -5003,6 +5007,7 @@ void GUI_App::request_user_logout(const std::string& provider/* = ORCA_CLOUD_PRO
 {
     if (m_agent && m_agent->is_user_login(provider)) {
         m_agent->user_logout(true, provider);
+        app_config->set_cloud_logged_in(m_agent->is_user_login(ORCA_CLOUD_PROVIDER));
 
         if (provider == get_printer_cloud_provider()) {
             m_agent->set_user_selected_machine("");
@@ -5588,6 +5593,12 @@ void GUI_App::on_update_machine_list(wxCommandEvent &evt)
 void GUI_App::on_user_login_handle(wxCommandEvent &evt)
 {
     if (!m_agent) { return; }
+    // Tell AppConfig a cloud account is signed in BEFORE asking about stealth: an unfinished setup
+    // wizard makes get_stealth_mode() report stealth by default, and without this the early return
+    // below would swallow the whole post-login flow — presets, plugins and the sync prompt — for
+    // anyone who closed the wizard and signed in afterwards. An explicit Stealth mode setting is
+    // unaffected and still returns here.
+    app_config->set_cloud_logged_in(m_agent->is_user_login(ORCA_CLOUD_PROVIDER));
     if (app_config->get_stealth_mode()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": stealth mode enabled, skipping cloud connection";
         return;
