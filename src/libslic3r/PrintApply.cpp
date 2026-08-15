@@ -1339,6 +1339,18 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     // for any multi-extruder printer and permanently invalidate fresh slice results.
     print_diff.erase(std::remove(print_diff.begin(), print_diff.end(), "filament_map_2"), print_diff.end());
     t_config_option_keys full_config_diff = full_print_config_diffs(m_full_print_config, new_full_config, this->m_plate_index);
+    // Orca: when an apply invalidates a finished slice, the differing keys ARE the diagnosis --
+    // a key that post-slice write-back and the next apply disagree on diffs forever, silently
+    // discarding every completed slice (seen with plate filament maps vs. compaction). Name them.
+    if (!print_diff.empty() || !full_config_diff.empty()) {
+        std::string keys;
+        for (const auto& k : print_diff) keys += k + " ";
+        if (!full_config_diff.empty()) {
+            keys += "| full: ";
+            for (const auto& k : full_config_diff) keys += k + " ";
+        }
+        BOOST_LOG_TRIVIAL(info) << "Print::apply: config diff keys: " << keys;
+    }
     // Collect changes to object and region configs.
     t_config_option_keys object_diff      = m_default_object_config.diff(new_full_config);
     t_config_option_keys region_diff      = m_default_region_config.diff(new_full_config);
