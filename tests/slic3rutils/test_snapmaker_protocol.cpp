@@ -2,6 +2,7 @@
 
 #include <boost/algorithm/string/replace.hpp>
 
+#include "slic3r/Utils/DeviceJson.hpp"
 #include "slic3r/Utils/PrintHost.hpp"
 #include "slic3r/Utils/SnapmakerPrinterAgent.hpp"
 
@@ -153,4 +154,57 @@ TEST_CASE("Flow calibration covers only the tools the plate uses", "[SnapmakerPr
     job.used_physical_tools = { 0, 2 };
     const std::string script = Slic3r::SnapmakerProtocol::build_start_script("f.gcode", job);
     CHECK(script.find("FLOW_CALIBRATE_EXTRUDERS=\"[0, 2]\"") != std::string::npos);
+}
+
+// Orca: the printer's filament_detect reply is external input, and its shape depends on what is
+// physically loaded. A U1 lane holding an NFC-tagged spool reports CARD_UID as an ARRAY of tag
+// bytes; a lane without one reports the NUMBER 0. Reading it as a number only threw
+// type_error.302 out of the agent and aborted the slicer as soon as a tagged spool was present.
+// Payloads below are the capture from the report:
+// https://github.com/OrcaSlicer/OrcaSlicer/pull/15145#issuecomment-5292008500
+
+TEST_CASE("Reads a CARD_UID reported as an array of tag bytes", "[SnapmakerProtocol]")
+{
+    const auto slot = nlohmann::json::parse(R"({
+        "VERSION": 1, "VENDOR": "ELEGOO", "MANUFACTURER": "ELEGOO", "MAIN_TYPE": "PLA",
+        "SUB_TYPE": "Translucent", "BED_TEMP": 60, "FIRST_LAYER_TEMP": 210,
+        "OTHER_LAYER_TEMP": 210, "HOTEND_MAX_TEMP": 220, "HOTEND_MIN_TEMP": 210,
+        "ARGB_COLOR": 4293519847, "DIAMETER": 175, "OFFICIAL": true,
+        "CARD_UID": [4, 214, 239, 50, 197, 42, 129], "SPOOL_ID": "132"})");
+
+    // Each byte becomes two hex digits, left-padded to the 16-digit tag-id convention.
+    CHECK(Slic3r::SnapmakerProtocol::card_uid_hex(slot) == "0004D6EF32C52A81");
+    CHECK(Slic3r::json_number_or(slot, "BED_TEMP", 0) == 60);
+    CHECK(Slic3r::json_number_or(slot, "FIRST_LAYER_TEMP", 0) == 210);
+    CHECK(Slic3r::json_string_or(slot, "VENDOR", "NONE") == "ELEGOO");
+}
+
+TEST_CASE("A lane with no tag reports no tag id", "[SnapmakerProtocol]")
+{
+    // CARD_UID 0 is "no tag": the empty string is what consumers test to tell a tag-backed slot
+    // from a manually configured one, so an all-zero id must not read as a real tag.
+    CHECK(Slic3r::SnapmakerProtocol::card_uid_hex(nlohmann::json::parse(R"({"VENDOR":"NONE","CARD_UID":0})")).empty());
+    CHECK(Slic3r::SnapmakerProtocol::card_uid_hex(nlohmann::json::parse(R"({"CARD_UID":[0,0,0]})")).empty());
+    // Absent, or a shape we have never seen, is also "no tag" rather than a crash.
+    CHECK(Slic3r::SnapmakerProtocol::card_uid_hex(nlohmann::json::parse(R"({"VENDOR":"NONE"})")).empty());
+    CHECK(Slic3r::SnapmakerProtocol::card_uid_hex(nlohmann::json::parse(R"({"CARD_UID":"04D6EF"})")).empty());
+    CHECK(Slic3r::SnapmakerProtocol::card_uid_hex(nlohmann::json::parse(R"({"CARD_UID":[4,"x"]})")).empty());
+}
+
+TEST_CASE("A numeric CARD_UID still renders as a 16-digit tag id", "[SnapmakerProtocol]")
+{
+    // The shape the agent originally assumed; firmware that reports it must keep working.
+    CHECK(Slic3r::SnapmakerProtocol::card_uid_hex(nlohmann::json::parse(R"({"CARD_UID":81985529216486895})")) ==
+          "0123456789ABCDEF");
+}
+
+TEST_CASE("A field of the wrong type falls back instead of throwing", "[SnapmakerProtocol]")
+{
+    // value(key, fallback) falls back only when the key is ABSENT -- present-but-wrong-type
+    // converts, and throws. Every read of printer JSON has to check the type first.
+    const auto slot = nlohmann::json::parse(R"({"BED_TEMP":"60","FIRST_LAYER_TEMP":null,"VENDOR":7})");
+    CHECK(Slic3r::json_number_or(slot, "BED_TEMP", 0) == 0);
+    CHECK(Slic3r::json_number_or(slot, "FIRST_LAYER_TEMP", 7) == 7);
+    CHECK(Slic3r::json_number_or(slot, "MISSING", 42) == 42);
+    CHECK(Slic3r::json_string_or(slot, "VENDOR", "NONE") == "NONE");
 }

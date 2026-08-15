@@ -43,6 +43,13 @@ std::string build_start_script(const std::string& filename, const std::vector<in
 // per LOGICAL filament, NOZZLE_DIAMETER_LIST/FLOW_CALIBRATE_EXTRUDERS/END_UNLOAD_FILAMENT are per
 // PHYSICAL tool -- the firmware indexes them differently.
 std::string build_start_script(const std::string& filename, const DevicePrintJobInfo& job);
+
+// CARD_UID rendered as the 16-hex-digit tag id the rest of Orca uses (Bambu RFID convention).
+// The U1 reports it as an ARRAY of tag bytes on a lane holding an NFC-tagged spool and as the
+// NUMBER 0 on a lane without one, so both shapes are accepted. Returns "" when there is no tag
+// (or the field has a shape we have never seen), which is what consumers test for to tell a
+// tag-backed slot from a manually configured one.
+std::string card_uid_hex(const nlohmann::json& nfc_slot);
 } // namespace SnapmakerProtocol
 
 class SnapmakerPrinterAgent final : public MoonrakerPrinterAgent
@@ -55,6 +62,12 @@ public:
     AgentInfo        get_agent_info() override { return get_agent_info_static(); }
 
     bool fetch_filament_info(std::string dev_id) override;
+
+private:
+    // The parse half of fetch_filament_info; see its definition for why the two are split.
+    bool parse_filament_info(const std::string& response_body, const std::string& dev_id);
+
+public:
 
     // Write path: the printer accepts SET_PRINT_FILAMENT_CONFIG via the local Moonraker
     // gcode-script endpoint (same command its own device UI sends over MQTT).

@@ -924,7 +924,20 @@ FilamentSyncMode NetworkAgent::get_filament_sync_mode() const
 bool NetworkAgent::fetch_filament_info(std::string dev_id)
 {
     if (m_printer_agent) {
-        return m_printer_agent->fetch_filament_info(dev_id);
+        // Orca: a printer's reply is external input whose shape varies by firmware and by what
+        // is physically loaded. Agents type-check the fields they read (DeviceJson.hpp), but a
+        // check only covers a field somebody anticipated -- so the one funnel every pull-mode
+        // fetch passes through also catches, and an unreadable reply degrades to "no filament
+        // info" instead of terminating the process. A U1 lane holding an NFC-tagged spool
+        // reported CARD_UID as an array where the agent expected a number; the resulting
+        // type_error escaped through the material dialog's CallAfter and aborted the slicer.
+        try {
+            return m_printer_agent->fetch_filament_info(dev_id);
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << "NetworkAgent::fetch_filament_info: could not read the filament info the "
+                                        "printer sent (dev_id=" << dev_id << "): " << e.what();
+            return false;
+        }
     }
     return false;
 }

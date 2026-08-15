@@ -1,4 +1,5 @@
 #include "SnapmakerPrinterAgent.hpp"
+#include "DeviceJson.hpp"
 
 #include <boost/format.hpp>
 #include "Http.hpp"
@@ -229,6 +230,33 @@ std::string SnapmakerPrinterAgent::combine_filament_type(const std::string& type
     return base;
 }
 
+std::string SnapmakerProtocol::card_uid_hex(const nlohmann::json& nfc_slot)
+{
+    const auto it = nfc_slot.find("CARD_UID");
+    if (it == nfc_slot.end() || (!it->is_array() && !it->is_number_integer()))
+        return std::string();
+
+    std::ostringstream uid;
+    uid << std::hex << std::uppercase << std::setfill('0');
+    if (it->is_array()) {
+        // A lane holding a tagged spool reports the tag's raw bytes.
+        for (const auto& byte : *it) {
+            if (!byte.is_number_integer())
+                return std::string();
+            uid << std::setw(2) << (byte.get<uint64_t>() & 0xFF);
+        }
+    } else {
+        uid << std::setw(16) << it->get<uint64_t>();
+    }
+
+    // Left-pad to the 16 digits the tag-id convention uses. An all-zero id means "no tag",
+    // which callers tell apart from a real one by the string being empty.
+    std::string text = uid.str();
+    if (text.size() < 16)
+        text.insert(0, 16 - text.size(), '0');
+    return text.find_first_not_of('0') == std::string::npos ? std::string() : text;
+}
+
 bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
 {
     if (!ensure_device_info(dev_id))
@@ -267,9 +295,19 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
         return false;
     }
 
+    return parse_filament_info(response_body, dev_id);
+}
+
+// Orca: split from the transport half of fetch_filament_info so the two have separate failure
+// paths -- the transport reports its own errors and cannot throw, while the parse can throw on
+// any field shape nobody anticipated. NetworkAgent::fetch_filament_info catches whatever
+// escapes here, so an unreadable reply degrades to "no filament info" for every caller instead
+// of terminating the process. Returns false for a reply it cannot use.
+bool SnapmakerPrinterAgent::parse_filament_info(const std::string& response_body, const std::string& dev_id)
+{
     auto json = nlohmann::json::parse(response_body, nullptr, false, true);
     if (json.is_discarded()) {
-        BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::fetch_filament_info: Invalid JSON response";
+        BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::fetch_filament_info: Invalid JSON response dev_id=" << dev_id;
         return false;
     }
 
@@ -345,16 +383,16 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
             // the tag on any write path.
             if (nfc_info.is_array() && i < static_cast<int>(nfc_info.size()) && nfc_info[i].is_object()) {
                 auto& nfc_slot = nfc_info[i];
-                std::string vendor = nfc_slot.value("VENDOR", "NONE");
+                // Checked reads throughout (DeviceJson.hpp): a lane holding an NFC-tagged spool
+                // reports CARD_UID as an ARRAY of tag bytes where an untagged lane reports the
+                // number 0, and reading it with value() threw type_error.302 through the material
+                // dialog's sync and aborted the slicer. BED_TEMP / FIRST_LAYER_TEMP are numbers
+                // on the firmware seen so far but were read the same unchecked way.
+                std::string vendor = json_string_or(nfc_slot, "VENDOR", "NONE");
                 if (vendor != "NONE" && !vendor.empty()) {
-                    tray.bed_temp    = nfc_slot.value("BED_TEMP", 0);
-                    tray.nozzle_temp = nfc_slot.value("FIRST_LAYER_TEMP", 0);
-                    uint64_t card_uid = nfc_slot.value("CARD_UID", (uint64_t) 0);
-                    if (card_uid != 0) {
-                        std::ostringstream uid;
-                        uid << std::hex << std::uppercase << std::setw(16) << std::setfill('0') << card_uid;
-                        tray.tag_uid = uid.str();
-                    }
+                    tray.bed_temp    = json_number_or(nfc_slot, "BED_TEMP", 0);
+                    tray.nozzle_temp = json_number_or(nfc_slot, "FIRST_LAYER_TEMP", 0);
+                    tray.tag_uid     = SnapmakerProtocol::card_uid_hex(nfc_slot);
                 }
             }
         }
