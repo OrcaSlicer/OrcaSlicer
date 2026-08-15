@@ -18,6 +18,9 @@
 #include <BRepOffsetAPI_MakePipe.hxx>
 #include <BRepOffsetAPI_MakePipeShell.hxx>
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
+#include <BRepBuilderAPI_Sewing.hxx>
+#include <BRepBuilderAPI_MakeSolid.hxx>
+#include <ShapeAnalysis_FreeBounds.hxx>
 #include <BRepOffsetAPI_MakeOffsetShape.hxx>
 #include <BRepOffsetAPI_MakeFilling.hxx>
 #include <BRepOffsetAPI_DraftAngle.hxx>
@@ -2954,12 +2957,88 @@ void CadDocument::apply_thicken_surface(std::vector<CadBody>& bodies, const CadF
 
     const double off = f.thicken_flip ? -std::abs(f.thicken_thickness)
                                       :  std::abs(f.thicken_thickness);
-    BRepOffsetAPI_MakeThickSolid mts;
-    mts.MakeThickSolidBySimple(bodies[tgt].shape, off);
-    mts.Build();
-    if (!mts.IsDone()) throw std::runtime_error("thicken-surface: failed");
-    TopoDS_Shape solid = mts.Shape();
+    const TopoDS_Shape& sheet = bodies[tgt].shape;
+
+    // MakeThickSolidBySimple offsets each face along its own normal and sews the result; it never
+    // extends neighbours to meet, so at every edge where two faces join at an angle the corner
+    // material is simply absent. A flat sheet is therefore exact while a 4-walled box is not
+    // (measured: 29648 against the 44000 that (60^2-50^2)*40 requires).
+    //
+    // ByJoin is the call that mitres those corners, and it is what the Shell feature already uses
+    // successfully a few hundred lines up — but it CANNOT be handed an open sheet. In OCCT,
+    // BRepOffset_MakeOffset::MakeThickSolid builds the solid only inside `if (!myFaces.IsEmpty())`
+    // (BRepOffset_MakeOffset.cxx:1115): with no closing faces it stops after the offset shell and
+    // returns that. So it reports IsDone() and a non-null shape containing no TopAbs_SOLID at all
+    // — which is exactly how two earlier attempts failed, and why no parameter could have fixed it.
+    //
+    // So close the sheet first, then use the working call: cap the free rims, sew into a closed
+    // shell, make a solid, and hollow it inward passing the caps as the faces to remove. The caps
+    // come back off, leaving the wall.
+    // A SINGLE face has no edge shared with a neighbour, so there is no corner to mitre and
+    // BySimple is already exact on it (flat 60x60 by 5 -> 18000.000). It also has a free
+    // boundary, so "does it have free wires" is NOT the question to ask here — capping a lone
+    // face with its own rim sews a zero-thickness shell and the offset then measures 6000.
+    int n_faces = 0;
+    for (TopExp_Explorer fe(sheet, TopAbs_FACE); fe.More(); fe.Next()) ++n_faces;
+
+    TopTools_ListOfShape caps;
+    if (n_faces > 1) {
+        ShapeAnalysis_FreeBounds fb(sheet);
+        for (TopExp_Explorer we(fb.GetClosedWires(), TopAbs_WIRE); we.More(); we.Next()) {
+            BRepBuilderAPI_MakeFace mk(TopoDS::Wire(we.Current()));
+            if (!mk.IsDone())
+                throw std::runtime_error("thicken-surface: cannot cap the sheet rim "
+                                         "(is it planar?)");
+            caps.Append(mk.Face());
+        }
+    }
+
+    TopoDS_Shape solid;
+    if (caps.IsEmpty()) {
+        BRepOffsetAPI_MakeThickSolid mts;
+        mts.MakeThickSolidBySimple(sheet, off);
+        mts.Build();
+        if (!mts.IsDone()) throw std::runtime_error("thicken-surface: failed");
+        solid = mts.Shape();
+    } else {
+        BRepBuilderAPI_Sewing sewer(1.0e-3);
+        sewer.Add(sheet);
+        for (TopTools_ListIteratorOfListOfShape it(caps); it.More(); it.Next())
+            sewer.Add(it.Value());
+        sewer.Perform();
+
+        TopoDS_Shell closed_shell;
+        for (TopExp_Explorer se(sewer.SewedShape(), TopAbs_SHELL); se.More(); se.Next()) {
+            if (!closed_shell.IsNull())
+                throw std::runtime_error("thicken-surface: the capped sheet split into "
+                                         "more than one shell");
+            closed_shell = TopoDS::Shell(se.Current());
+        }
+        if (closed_shell.IsNull() || !BRep_Tool::IsClosed(closed_shell))
+            throw std::runtime_error("thicken-surface: the capped sheet is not closed");
+
+        // A shell sewn from an extruded sheet carries no guarantee that its faces point outward,
+        // and BRepBuilderAPI_MakeSolid does not fix that. Offsetting an inside-out solid sends the
+        // wall the wrong way: measured bbox 70x70x40 for an inward offset on a 60x60 box, with a
+        // volume larger than its own bounding box because the result then overlaps itself. A
+        // negative mass IS the inverted orientation, so use it as the test.
+        TopoDS_Solid capped = BRepBuilderAPI_MakeSolid(closed_shell).Solid();
+        {
+            GProp_GProps vp;
+            BRepGProp::VolumeProperties(capped, vp);
+            if (vp.Mass() < 0.0) capped.Reverse();
+        }
+
+        BRepOffsetAPI_MakeThickSolid mts;
+        mts.MakeThickSolidByJoin(capped, caps, -std::abs(off), 1.0e-3);
+        mts.Build();
+        if (!mts.IsDone()) throw std::runtime_error("thicken-surface: failed");
+        solid = mts.Shape();
+    }
     if (solid.IsNull()) throw std::runtime_error("thicken-surface: produced no geometry");
+    // IsDone() is NOT a success test here — the failed attempts had IsDone() true and no solid.
+    if (!TopExp_Explorer(solid, TopAbs_SOLID).More())
+        throw std::runtime_error("thicken-surface: produced a shell, not a solid");
 
     {
         GProp_GProps props;

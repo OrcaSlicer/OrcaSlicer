@@ -5159,6 +5159,51 @@ TEST_CASE("mass properties of a sheet body report area only, never a volume",
     REQUIRE(solid.inertia[8] > 0.0);
 }
 
+// snaporca-wm4s. The wall of a thickened open box must contain the corner material. Thickening
+// each face along its own normal and sewing (MakeThickSolidBySimple) leaves the four vertical
+// corners empty and measured 29648.15 where the geometry requires 44000; the two controls below
+// were exact before and must stay exact, since they are what a corner-only fix must not disturb.
+TEST_CASE("thicken surface fills the corners of a closed-loop wall", "[CadDocument][surface]")
+{
+    using Catch::Matchers::WithinRel;
+
+    SECTION("open box: (60^2 - 50^2) * 40") {
+        CadDocument doc;
+        int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 60, 60, 0, "Rect");
+        REQUIRE(sk >= 0);
+        doc.add_surface_extrude(sk, 40.0, "Skin");          // 4 walls, no caps
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.body_mass_properties(0).surface_area == Approx(9600.0)); // the sheet is what we think
+
+        REQUIRE(doc.add_thicken_surface(0, 5.0, false, "Wall") >= 0);
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+
+        auto w = doc.body_mass_properties(1);
+        REQUIRE(w.is_solid);                                 // NOT a shell: the old ByJoin attempts
+        REQUIRE_THAT(w.volume, WithinRel(44000.0, 1e-6));    //   returned volume 0.0 / is_solid false
+        // The wall must sit ON the sheet, not around it: an inverted capped solid offsets the
+        // wrong way and lands at 70x70 with a volume larger than its own bounding box.
+        const auto bb = doc.display_body_meshes[1].bounding_box();
+        REQUIRE_THAT(bb.max.x() - bb.min.x(), WithinRel(60.0, 1e-3));
+        REQUIRE_THAT(bb.max.z() - bb.min.z(), WithinRel(40.0, 1e-3));
+    }
+
+    SECTION("control, flat sheet stays exact: 3600 * 5") {
+        CadDocument doc;
+        int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 60, 60, 0, "Rect");
+        REQUIRE(doc.add_surface_fill(sk, "Face") >= 0);      // one flat face, no rim to mitre
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.add_thicken_surface(0, 5.0, false, "Plate") >= 0);
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+
+        auto p = doc.body_mass_properties(1);
+        REQUIRE(p.is_solid);
+        REQUIRE_THAT(p.volume, WithinRel(18000.0, 1e-6));
+    }
+}
+
 TEST_CASE("surface-offset creates another sheet shifted outward", "[CadDocument][surface]")
 {
     using Catch::Matchers::WithinAbs;
