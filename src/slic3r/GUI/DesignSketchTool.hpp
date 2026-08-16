@@ -1079,8 +1079,14 @@ private:
     std::vector<SketchPlane> m_datum_planes;
     std::vector<Vec2d>       m_datum_sizes;   // per-plane (u,v) full extent; empty -> default
     void render_mate_connectors();            // disc + roll quadrant + one-sided Z arrow
+    // The face treatment of the same connector: a shaded low-poly relief of a bear's head in the
+    // connector's own frame. Draws the plate, the snout tent and the marks; the caller still draws
+    // the Z arrow, which is shared with the disc treatment.
+    void render_mate_face(const Vec3d& origin, const Vec3d& X, const Vec3d& Y, const Vec3d& Z,
+                          double R, const ColorRGBA& body);
     std::vector<MateConnectorGlyph> m_mate_connectors;
     GLModel m_mc_stroke_model;
+    GLModel m_mc_fill_model;      // the face treatment's shaded facets
     GLModel m_solid_face_model;
     GLModel m_solid_edge_model;
     GLModel m_solid_vertex_model;

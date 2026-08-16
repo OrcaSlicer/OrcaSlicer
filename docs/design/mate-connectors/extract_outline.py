@@ -28,9 +28,17 @@ y, face = best
 print(f"back plate at Y={y:.3f}   wires={len(face.Wires)}   area={face.Area:.1f} mm2")
 
 def wire_pts(w, tol=0.05):
+    # ORDER MATTERS and w.Edges does not carry it: OCC hands the edges back in whatever order the
+    # face stored them, so concatenating their discretisations gives a scrambled ring. The first
+    # version of this script did exactly that and emitted an outline with 7 duplicated points and
+    # twice the perimeter it should have. OrderedEdges walks the wire, and each edge is reversed
+    # when its own orientation runs against the walk.
     pts = []
-    for e in w.Edges:
-        for p in e.discretize(Deflection=tol):
+    for e in w.OrderedEdges:
+        d = e.discretize(Deflection=tol)
+        if e.Orientation == "Reversed":
+            d = list(reversed(d))
+        for p in d:
             pts.append((round(p.x, 3), round(p.z, 3)))
     # drop consecutive duplicates
     out = [pts[0]]

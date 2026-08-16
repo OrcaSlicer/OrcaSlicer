@@ -3525,6 +3525,14 @@ void DesignSketchTool::render_mate_connectors()
         const char* s = ::getenv("SNAPORCA_GLYPH");
         return s && (*s == 'A' || *s == 'a');
     }();
+    // The face treatment, on by default. Read every frame rather than latched in a static, so
+    // toggling the preference takes effect on the next repaint instead of at the next launch —
+    // it is a look, and a look you cannot A/B without restarting will not get compared.
+    // SNAPORCA_GLYPH=D forces the disc regardless, which is how the rig drives the other branch.
+    const bool face_style = !style_A
+                         && wxGetApp().app_config->get_bool("design_connector_face_glyph")
+                         && [] { const char* s = ::getenv("SNAPORCA_GLYPH");
+                                 return !(s && (*s == 'D' || *s == 'd')); }();
 
     const Camera& cam = wxGetApp().plater()->get_camera();
     const Vec3d right = cam.get_dir_right().normalized();
@@ -3557,6 +3565,14 @@ void DesignSketchTool::render_mate_connectors()
         // dotted arc that flickered with the camera. Depth off floats it through solids, depth on and
         // coplanar tears it — the lift is what buys both. Scaled by upp so it stays sub-pixel at any
         // zoom instead of becoming a visible gap when you zoom in.
+        // A face asserts a definite roll. When the roll could NOT be derived, drawing one would be
+        // a confident lie about the very thing that is unknown — the same objection that rejected
+        // billboarding the quadrant — so an underived connector keeps the disc treatment and its
+        // hatched quadrant, whatever the preference says.
+        if (face_style && !g.roll_undefined) {
+            render_mate_face(g.origin, X, Y, Z, R, body);
+        } else {
+
         SketchPlane cp; cp.origin = g.origin + Z * (0.7 * upp);
         cp.x_axis = X; cp.y_axis = Y; cp.normal = Z;
         m_plane = cp;
@@ -3610,6 +3626,7 @@ void DesignSketchTool::render_mate_connectors()
             }
             draw_strokes(m_mc_stroke_model, q, lw, g.roll_undefined ? warn : gold);
         }
+        }   // end of the disc treatment
 
         // ---- the axes. Billboarded at the origin: a 3D direction is projected onto the screen
         // frame, which is the only way an arrow keeps a readable head at any viewing angle.
@@ -3662,6 +3679,191 @@ void DesignSketchTool::render_mate_connectors()
         } else {
             arrow(Z, R * 2.10, body, g.role == 2);   // +Z only. Nothing is ever drawn on -Z.
         }
+    }
+    m_plane = saved;
+}
+
+// ---------------------------------------------------------------------------------------------
+// THE FACE TREATMENT of the mate connector (snaporca-x0kd). The disc + roll quadrant answers
+// "where is X" with a shape that has to be learned; a face does not. Face orientation is
+// hardwired perception -- a toddler reads a face's roll and verse with no instruction at all --
+// and that is the whole reason this exists. Default ON, switchable in Preferences for users who
+// expect the conventional CAD representation.
+//
+// WHY A RELIEF AND NOT A FLAT DRAWING, which is the non-obvious half. A flat face drawn in the
+// connector's plane foreshortens by sin(elevation) and collapses at a grazing view exactly like
+// the quadrant it replaces -- measured on the rig, the quadrant falls from 89 lit pixels at 47
+// degrees to 3 at 10 and 0 edge-on. A relief does not: at a grazing angle its SILHOUETTE carries
+// the information. The same bear rendered flat vs in relief gives 164 vs 210 lit pixels at 16
+// degrees and 66 vs 120 at 6. So the glyph is a small shaded solid, not an outline.
+//
+// The geometry is EMITTED from the real part by doc/design/mate-connectors/emit_glyph_table.py,
+// not hand-drawn, so the glyph and the printed connector cannot drift apart. Two vertices stand
+// above the 3 mm plate in the actual B-rep, which is why the snout here is a tent with one crest
+// edge and four flanks drafted at 20 degrees rather than anything more elaborate.
+//
+// The cheek dot is the handedness mark. Without it the glyph differs from its own mirror by only
+// 5-9 % of its lit pixels, which is not enough to read; the dot roughly doubles that and, unlike
+// making the eyes uneven, identifies the side from that cheek alone instead of by comparison.
+// Emitted by doc/design/mate-connectors/emit_glyph_table.py from bear.step — do not hand-edit.
+// Normalised to the part's bounding span and centred: the renderer scales by one radius.
+static const Vec2d kBearOutline[] = {        // 12 verts, RDP eps 0.030, CCW
+    {+0.3842, +0.3294}, {+0.3156, +0.4002}, {+0.2424, +0.3294},
+    {-0.2524, +0.3294}, {-0.3377, +0.3877}, {-0.3693, +0.3298},
+    {-0.3256, +0.2631}, {-0.4893, -0.3337}, {-0.3960, -0.4002},
+    {+0.4151, -0.4002}, {+0.5000, -0.3154}, {+0.3156, +0.2631},
+};
+static const Vec2d kBearChin[] = {            // the CHIN BAR, flat. The muzzle is relief — see kBearCrest.
+    {-0.2682, -0.3578}, {+0.2628, -0.3578}, {+0.2237, -0.1786},
+};
+// {cx, cy, r}: two eyes, then the cheek dot that carries handedness (snaporca-wi3z).
+static const Vec3d kBearMarks[] = {
+    {-0.1997, +0.1760, +0.0590},
+    {+0.1947, +0.1760, +0.0590},
+    {+0.2797, +0.0760, +0.0380},
+};
+// THE MUZZLE, lifted off the mesh: a tapered wedge, base quad + crest edge, 6 facets.
+// This is the only feature standing along +Z and the only one still legible edge-on.
+static const double kBearPlateZ = +0.0360;
+static const Vec2d kBearSnoutBase[] = {   // CCW from the nose end
+    {-0.0727, -0.2417},
+    {+0.0630, -0.2417},
+    {+0.0259, +0.1939},
+    {-0.0356, +0.1939},
+};
+static const Vec3d kBearCrest[] = {       // nose (tall) -> tail (short)
+    {-0.0048, -0.1793, +0.2073},
+    {-0.0048, +0.1605, +0.1279},
+};
+
+void DesignSketchTool::render_mate_face(const Vec3d& origin, const Vec3d& X, const Vec3d& Y,
+                                        const Vec3d& Z, double R, const ColorRGBA& body)
+{
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const Vec3d right = cam.get_dir_right().normalized();
+    const Vec3d up    = cam.get_dir_up().normalized();
+    const Vec3d fwd   = cam.get_dir_forward().normalized();
+    const double S    = 2.0 * R;              // the table spans 1.0, the disc spans 2R
+
+    // Light fixed in CAMERA space, so orbiting the model does not swing the shading around and
+    // turn a stable symbol into a flickering one.
+    const Vec3d light = (-0.35 * right + 0.55 * up - 0.76 * fwd).normalized();
+
+    auto to_world = [&](const Vec3d& p) {
+        return origin + X * (p.x() * S) + Y * (p.y() * S) + Z * (p.z() * S);
+    };
+
+    struct Facet { std::vector<Vec3d> w; ColorRGBA c; double depth; };
+    std::vector<Facet> facets;
+    auto emit = [&](std::vector<Vec3d> pts, const ColorRGBA& base, bool shade) {
+        if (pts.size() < 3) return;
+        Facet f; f.w.reserve(pts.size());
+        for (const Vec3d& p : pts) f.w.push_back(to_world(p));
+        const Vec3d n0 = (f.w[1] - f.w[0]).cross(f.w[2] - f.w[0]);
+        Vec3d n = Z;
+        if (n0.norm() > 1e-12) n = n0.normalized();
+        if (n.dot(fwd) > 0.0) n = -n;                       // always take the camera-facing side
+        double k = 1.0;
+        if (shade) {
+            // Ambient floor so a facet turned away still reads as part of the same object rather
+            // than as a hole punched in it.
+            k = 0.42 + 0.58 * std::max(0.0, n.dot(light));
+        }
+        f.c = ColorRGBA(float(base.r() * k), float(base.g() * k), float(base.b() * k), base.a());
+        double d = 0.0;
+        for (const Vec3d& p : f.w) d += p.dot(fwd);
+        f.depth = d / double(f.w.size());
+        facets.push_back(std::move(f));
+    };
+
+    const int NO = int(sizeof(kBearOutline) / sizeof(kBearOutline[0]));
+    const double zp = kBearPlateZ;
+
+    // The plate: sides first so the silhouette exists at a grazing view, then the top.
+    for (int i = 0; i < NO; ++i) {
+        const Vec2d& a = kBearOutline[i];
+        const Vec2d& b = kBearOutline[(i + 1) % NO];
+        emit({ Vec3d(a.x(), a.y(), 0.0), Vec3d(b.x(), b.y(), 0.0),
+               Vec3d(b.x(), b.y(), zp),  Vec3d(a.x(), a.y(), zp) }, body, true);
+    }
+    {
+        std::vector<Vec3d> top;
+        top.reserve(NO);
+        for (int i = 0; i < NO; ++i) top.emplace_back(kBearOutline[i].x(), kBearOutline[i].y(), zp);
+        emit(std::move(top), body, true);
+    }
+
+    // The marks, a hair above the plate so they cannot z-fight it: two eyes then the cheek dot.
+    const ColorRGBA mark(body.r() * 0.30f, body.g() * 0.30f, body.b() * 0.30f, 1.0f);
+    const double zm = zp + 0.004;
+    for (const Vec3d& m : kBearMarks) {
+        std::vector<Vec3d> disc;
+        const int N = 12;
+        for (int i = 0; i < N; ++i) {
+            const double a = (2.0 * M_PI * i) / N;
+            disc.emplace_back(m.x() + m.z() * std::cos(a), m.y() + m.z() * std::sin(a), zm);
+        }
+        emit(std::move(disc), mark, false);
+    }
+    {
+        std::vector<Vec3d> chin;
+        for (const Vec2d& p : kBearChin) chin.emplace_back(p.x(), p.y(), zm);
+        emit(std::move(chin), mark, false);
+    }
+
+    // THE MUZZLE, and the two decisions that make it legible rather than merely present.
+    //
+    // It is the one feature standing along +Z, so it says which way the connector points, and it
+    // is all that survives edge-on where a drawing in the plane has nothing left. Its geometry is
+    // the part's own ridge: crest 29.0 mm, 6.58 mm drop, 13.1 deg, against the 28.3 / 6.61 / 13.1
+    // the review measured on the B-rep. Base taken from the mesh, NOT recomputed from
+    // height*tan(draft) -- that produced a needle, because the real base overhangs the crest at
+    // both ends and it is the overhang that makes this a wedge rather than a blade.
+    //
+    // BUT FIDELITY ALONE FAILS. Scaled honestly the ridge is 11.3 mm on an 83.3 mm face, 13.6 %
+    // of the width, and at 22-48 px that reads as a scratch -- Tommaso looked at the faithful
+    // version and could not find the muzzle at all, which is the only test that counts. A glyph
+    // is a symbol, not a scale model, so it gets two deliberate exaggerations:
+    //
+    //   COLOUR does the work. In the body tone the muzzle is a grey sliver whichever way it is
+    //   lit; in the accent it is the first thing the eye lands on at every elevation, and at 6
+    //   degrees it is the ONLY structured thing above the flat line. Measured share of lit
+    //   pixels at 90/16/6 deg: body 14.8/11.3/17.5 %, accent 18.3/19.2/23.9 %.
+    //   WIDTH 1.8x on top of that: 23.5/25.2/31.2 %, and it stops reading as a needle.
+    //
+    // The accent is the same gold the disc treatment spends on its roll quadrant, which is
+    // consistent -- it is this tab's "here is the direction that matters" colour. Polarity is
+    // still carried by the Z arrow's head, so nothing collides.
+    {
+        const ColorRGBA gold(0.93f, 0.66f, 0.09f, 1.0f);
+        const double widen = 1.8;
+        const Vec3d& A = kBearCrest[0];
+        const Vec3d& B = kBearCrest[1];
+        auto base = [&](int i) {
+            return Vec3d(kBearSnoutBase[i].x() * widen, kBearSnoutBase[i].y(), zp);
+        };
+        const Vec3d nl = base(0), nr = base(1), tr = base(2), tl = base(3);
+        emit({ nl, tl, B, A }, gold, true);          // left flank
+        emit({ nr, A, B, tr }, gold, true);          // right flank
+        emit({ nl, A, nr }, gold, true);             // nose cap, sloped by the base overhang
+        emit({ tr, B, tl }, gold, true);             // tail cap
+    }
+
+    // Painter's algorithm: depth testing is off for this overlay, so draw order IS the depth.
+    std::sort(facets.begin(), facets.end(),
+              [](const Facet& a, const Facet& b) { return a.depth > b.depth; });
+
+    // draw_fill works in m_plane, so project into a screen-aligned frame at the connector origin
+    // and hand it flat polygons. The relief survives because the PROJECTION is 3D, not the plane.
+    const SketchPlane saved = m_plane;
+    SketchPlane bb; bb.origin = origin; bb.x_axis = right; bb.y_axis = up; bb.normal = fwd;
+    m_plane = bb;
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    for (const Facet& f : facets) {
+        std::vector<Vec2d> poly;
+        poly.reserve(f.w.size());
+        for (const Vec3d& p : f.w) poly.emplace_back((p - origin).dot(right), (p - origin).dot(up));
+        draw_fill(m_mc_fill_model, poly, f.c);
     }
     m_plane = saved;
 }
