@@ -3268,17 +3268,29 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
 
     const int fps_cap = _get_effective_fps_cap();
-    if (fps_cap > 0) {
+    double min_frame_seconds = fps_cap > 0 ? 1.0 / static_cast<double>(fps_cap) : 0.0;
+    // Orca: cost-based pacing for slow renderers, applied to EVERY dirty-driven idle render.
+    // The fps cap alone cannot throttle a renderer slower than its budget, and gating only the
+    // RequestMore tail cannot stop the loop either: each PAINT generates a fresh idle event, a
+    // perpetual animation (fading notification, pulsing hint) re-marks dirty at the top of every
+    // idle, and _refresh_if_shown_on_screen() below queues the next paint -- a self-sustaining
+    // paint->idle->paint cycle at full rate, ~0.4 s of software-GL per frame, five cores pegged
+    // and close clicks starved. A frame slower than 50 ms therefore buys a gap of twice its own
+    // cost before the next one, whatever set the dirty flag; input flows in the gap.
+    // Imperceptible on hardware GL, where frames cost single-digit milliseconds.
+    if (m_last_render_duration_ms > 50)
+        min_frame_seconds = std::max(min_frame_seconds, 2.0 * (double) m_last_render_duration_ms / 1000.0);
+    if (min_frame_seconds > 0.0) {
         const auto now = std::chrono::steady_clock::now();
-        const auto min_frame_time = std::chrono::duration<double>(1.0 / static_cast<double>(fps_cap));
+        const auto min_frame_time = std::chrono::duration<double>(min_frame_seconds);
         const auto elapsed = now - m_last_frame_start_time;
         if (elapsed < min_frame_time) {
             const int wait_ms = std::max(1, static_cast<int>(std::ceil(std::chrono::duration<double, std::milli>(min_frame_time - elapsed).count())));
+            // The scheduled timer guarantees the wake-up; RequestMore here would re-enter idle
+            // immediately and re-run the whole top-of-idle work once per event-loop pass.
             schedule_extra_frame(wait_ms);
-            evt.RequestMore();
             return;
         }
-
     }
 
     // Frame start is tracked unconditionally: the animation pacing below needs the frame's cost
@@ -3302,13 +3314,9 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
         // 105% busy in short bursts from the idle loop, llvmpipe fleet saturated). Giving the
         // loop a gap equal to the frame's own cost bounds animation rendering at a ~50% duty
         // cycle and keeps input flowing; on hardware GL the gap is a few ms and imperceptible.
-        // Measured inside render() itself: on_idle only QUEUES the paint, so timing this
-        // function reads ~0 (the first version of this pacing did exactly that and never
-        // engaged -- field-verified at a still-pegged 450%).
-        if (m_last_render_duration_ms > 50)
-            schedule_extra_frame(m_last_render_duration_ms);
-        else
-            evt.RequestMore();
+        // Extra-frame demand flows back through on_idle, where the cost-based pacing at the
+        // top is the single choke point for slow renderers.
+        evt.RequestMore();
     }
     else
         m_dirty = false;
