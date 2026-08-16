@@ -3147,7 +3147,6 @@ void Print::_make_skirt()
                     brim_parent[b] = a;
             };
 
-            const coord_t brim_contact_distance = coord_t(brim_flow().scaled_spacing() * 2.);
             for (size_t i = 0; i < brim_instances.size(); ++i) {
                 const auto area_i = m_objectBrimAreasByInstance.find(brim_instances[i]);
                 if (area_i == m_objectBrimAreasByInstance.end())
@@ -3155,7 +3154,7 @@ void Print::_make_skirt()
                 for (size_t j = i + 1; j < brim_instances.size(); ++j) {
                     const auto area_j = m_objectBrimAreasByInstance.find(brim_instances[j]);
                     if (area_j != m_objectBrimAreasByInstance.end() &&
-                        !intersection_ex(offset_ex(area_i->second, brim_contact_distance, jtRound, SCALED_RESOLUTION), area_j->second).empty())
+                        brim_areas_within_contact_distance(*this, area_i->second, area_j->second))
                         unite_brims(i, j);
                 }
             }
@@ -3174,10 +3173,7 @@ void Print::_make_skirt()
                 ExPolygons combined_area;
                 for (const ObjectInstanceID& instance : instances)
                     expolygons_append(combined_area, m_objectBrimAreasByInstance.at(instance));
-                combined_area = union_ex(combined_area);
-                const float scaled_resolution  = float(scaled(m_config.resolution.value));
-                const float brim_cleanup_delta = std::max(scaled_resolution, float(SCALED_EPSILON));
-                combined_area = offset2_ex(combined_area, brim_cleanup_delta, -brim_cleanup_delta, jtRound, scaled_resolution);
+                combined_area = merge_brim_areas(*this, combined_area);
 
                 Polygons islands_area;
                 brims.push_back({ makeBrimInfillFromPlateCoordinates(combined_area, *this, islands_area), instances });

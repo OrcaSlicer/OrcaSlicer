@@ -303,6 +303,41 @@ double configBrimWidthByVolumeGroups(double adhesion, double maxSpeed, const std
     return brim_width;
 }
 
+// Quantize a brim width (mm) to an even multiple of the brim line spacing, scaled.
+static float quantize_brim_width(double width, double flow_width)
+{
+    return scale_(floor(width / flow_width / 2) * flow_width * 2);
+}
+
+// Auto brim width (btAutoBrim) derived from adhesion and print speed, as on
+// layer 0. Upper brim layers use a single width, so take the maximum over the
+// first-layer volume groups. Returns 0 if no volume group provides a width.
+static float auto_brim_width(const PrintObject &object, double flow_width)
+{
+    double adhesion = getadhesionCoeff(&object);
+    double maxSpeed = Model::findMaxSpeed(object.model_object());
+    float brim_width = 0.f;
+    for (const auto &volumeGroup : object.firstLayerObjGroups()) {
+        const PrintObject *shared_object = object.get_shared_object();
+        if (!shared_object)
+            shared_object = &object;
+        std::vector<ModelVolume*> groupVolumePtrs;
+        for (auto& volumeID : volumeGroup.volume_ids) {
+            for (auto volumePtr : shared_object->model_object()->volumes) {
+                if (volumePtr->id() == volumeID) {
+                    groupVolumePtrs.push_back(volumePtr);
+                    break;
+                }
+            }
+        }
+        if (groupVolumePtrs.empty()) continue;
+        double groupHeight = 0.;
+        double brimWidthRaw = configBrimWidthByVolumeGroups(adhesion, maxSpeed, groupVolumePtrs, volumeGroup.slices, groupHeight);
+        brim_width = std::max(brim_width, quantize_brim_width(brimWidthRaw, flow_width));
+    }
+    return brim_width;
+}
+
 // Create an 8-sided circular ear shape of the given radius.
 static Polygon make_ear_polygon(coord_t size_ear)
 {
@@ -356,80 +391,14 @@ static ExPolygons make_brim_ears_auto(const ExPolygons& obj_expoly, coord_t size
     return mouse_ears_ex;
 }
 
-static ExPolygons make_brim_ears(const PrintObject* object)
-{
-    ExPolygons mouse_ears_ex;
-    BrimPoints brim_ear_points = object->model_object()->brim_points;
-    if (brim_ear_points.size() <= 0) {
-        return mouse_ears_ex;
-    }
-    //ORCA: Painted ears follow the EFC-adjusted outline when enabled, while
-    // preserving their position along the selected outline segment.
-    const bool use_efc_outline = use_brim_efc_outline(*object);
-    const ExPolygons &raw_outline = object->layers().front()->lslices;
-    //ORCA: Lazily computed EFC-adjusted bottom outline.
-    //Stored separately so we can avoid recomputation unless EFC projection is used.
-    ExPolygons efc_outline_storage;
-    const ExPolygons* efc_outline = nullptr;
-
-    const Geometry::Transformation& trsf = object->model_object()->instances[0]->get_transformation();
-    Transform3d model_trsf = trsf.get_matrix_no_offset();
-    const Point &center_offset = object->center_offset();
-    model_trsf = model_trsf.pretranslate(Vec3d(- unscale<double>(center_offset.x()), - unscale<double>(center_offset.y()), 0));
-    for (auto &pt : brim_ear_points) {
-        Vec3f world_pos = pt.transform(trsf.get_matrix());
-        if ( world_pos.z() > 0) continue;
-        const coord_t size_ear = scale_(pt.head_front_radius);
-        mouse_ears_ex.emplace_back();
-        mouse_ears_ex.back().contour = make_ear_polygon(size_ear);
-        Vec3f pos = pt.transform(model_trsf);
-        int32_t pt_x = scale_(pos.x());
-        int32_t pt_y = scale_(pos.y());
-
-        //ORCA: Project painted ears to the object outline so position is
-        // consistent with upper layers (which project to the layer outline).
-        if (use_efc_outline) {
-            if (efc_outline == nullptr) {
-                //ORCA: Compute the EFC-adjusted outline lazily for painted ear projection.
-                efc_outline_storage = get_print_object_bottom_layer_expolygons(*object);
-                efc_outline = &efc_outline_storage;
-            }
-
-            if (!efc_outline->empty()) {
-                Point closest_point;
-                //ORCA: Project within the matching island to avoid drifting to another island.
-                if (closest_point_on_matching_island(
-                        raw_outline,
-                        *efc_outline,
-                        Point(pt_x, pt_y),
-                        closest_point)) {
-                    pt_x = closest_point.x();
-                    pt_y = closest_point.y();
-                }
-            }
-        } else {
-            // Project to the raw layer-0 outline so ear centers sit ON the contour.
-            if (!raw_outline.empty()) {
-                Point closest_point;
-                if (closest_point_on_expolygons(raw_outline, Point(pt_x, pt_y), closest_point)) {
-                    pt_x = closest_point.x();
-                    pt_y = closest_point.y();
-                }
-            }
-        }
-
-        mouse_ears_ex.back().contour.translate(Point(pt_x, pt_y));
-    }
-    return mouse_ears_ex;
-}
-
-// Painted ears for a specific layer.
-// When project_to_outline is true, user-placed points are projected to the current
-// layer's outline (layer 0 behavior). When false, ear circles are placed at the
-// transformed brim point positions and diff_ex handles clipping (upper layer behavior).
-static ExPolygons make_brim_ears_for_layer(const PrintObject *object,
-    const ExPolygons &layer_outline,
-    const Point &instance_shift, bool project_to_outline = true)
+// Painted ears at a specific layer.
+// Ear centers are projected onto `layer_outline` (already shifted by
+// `instance_shift`) so the brim width stays consistent across layers.
+// When `efc_outline` is non-null (layer 0 with EFC enabled), the projection
+// is constrained to the matching island of the EFC-adjusted outline.
+static ExPolygons make_brim_ears_for_layer(const PrintObject *object, size_t instance_id,
+    const ExPolygons &layer_outline, const Point &instance_shift,
+    const ExPolygons *efc_outline = nullptr)
 {
     ExPolygons mouse_ears_ex;
     BrimPoints brim_ear_points = object->model_object()->brim_points;
@@ -437,7 +406,8 @@ static ExPolygons make_brim_ears_for_layer(const PrintObject *object,
         return mouse_ears_ex;
     }
 
-    const Geometry::Transformation &trsf = object->model_object()->instances[0]->get_transformation();
+    const PrintInstance &instance = object->instances()[instance_id];
+    const Geometry::Transformation &trsf = instance.model_instance->get_transformation();
     Transform3d model_trsf = trsf.get_matrix_no_offset();
     const Point &center_offset = object->center_offset();
     model_trsf = model_trsf.pretranslate(Vec3d(- unscale<double>(center_offset.x()), - unscale<double>(center_offset.y()), 0));
@@ -451,12 +421,12 @@ static ExPolygons make_brim_ears_for_layer(const PrintObject *object,
         int32_t pt_x = scale_(pos.x()) + instance_shift.x();
         int32_t pt_y = scale_(pos.y()) + instance_shift.y();
 
-        // Project to the target layer's outline (already shifted by instance_shift).
-        // For upper layers, skip projection — place ears at the original position
-        // and let diff_ex clip any that overlap with the object.
-        if (project_to_outline && !layer_outline.empty()) {
+        if (!layer_outline.empty()) {
             Point closest_point;
-            if (closest_point_on_expolygons(layer_outline, Point(pt_x, pt_y), closest_point)) {
+            bool projected = efc_outline != nullptr
+                ? closest_point_on_matching_island(layer_outline, *efc_outline, Point(pt_x, pt_y), closest_point)
+                : closest_point_on_expolygons(layer_outline, Point(pt_x, pt_y), closest_point);
+            if (projected) {
                 pt_x = closest_point.x();
                 pt_y = closest_point.y();
             }
@@ -465,6 +435,21 @@ static ExPolygons make_brim_ears_for_layer(const PrintObject *object,
         mouse_ears_ex.back().contour.translate(Point(pt_x, pt_y));
     }
     return mouse_ears_ex;
+}
+
+// Painted ears on the bottom layer.
+//ORCA: Painted ears follow the EFC-adjusted outline when enabled, while
+// preserving their position along the selected outline segment.
+static ExPolygons make_brim_ears(const PrintObject* object)
+{
+    //ORCA: Compute the EFC-adjusted bottom outline only when EFC projection is used.
+    ExPolygons efc_outline_storage;
+    const ExPolygons* efc_outline = nullptr;
+    if (use_brim_efc_outline(*object)) {
+        efc_outline_storage = get_print_object_bottom_layer_expolygons(*object);
+        efc_outline = &efc_outline_storage;
+    }
+    return make_brim_ears_for_layer(object, 0, object->layers().front()->lslices, Point(0, 0), efc_outline);
 }
 
 //BBS: create all brims
@@ -498,9 +483,9 @@ static ExPolygons outer_inner_brim_area(const Print& print,
             const BrimType     brim_type = object->config().brim_type.value;
             float              brim_offset = scale_(object->config().brim_object_gap.value);
             double             flowWidth = print.brim_flow().scaled_spacing() * SCALING_FACTOR;
-            float              brim_width = scale_(floor(object->config().brim_width.value / flowWidth / 2) * flowWidth * 2);
+            float              brim_width = quantize_brim_width(object->config().brim_width.value, flowWidth);
             const float        scaled_flow_width = print.brim_flow().scaled_spacing();
-            const float        scaled_additional_brim_width = scale_(floor(5 / flowWidth / 2) * flowWidth * 2);
+            const float        scaled_additional_brim_width = quantize_brim_width(5., flowWidth);
             const float        scaled_half_min_adh_length = scale_(1.1);
             bool               has_brim_auto = object->config().brim_type == btAutoBrim;
             const bool         use_auto_brim_ears = object->config().brim_type == btEar;
@@ -552,7 +537,7 @@ static ExPolygons outer_inner_brim_area(const Print& print,
                     // config brim width in auto-brim mode
                     if (has_brim_auto) {
                         double brimWidthRaw = configBrimWidthByVolumeGroups(adhesion, maxSpeed, groupVolumePtrs, volumeGroup.slices, groupHeight);
-                        brim_width = scale_(floor(brimWidthRaw / flowWidth / 2) * flowWidth * 2);
+                        brim_width = quantize_brim_width(brimWidthRaw, flowWidth);
                     }
                     ExPolygons volume_group_slices_efc;
                     const ExPolygons* volume_group_slices = &volumeGroup.slices;
@@ -631,13 +616,14 @@ static ExPolygons outer_inner_brim_area(const Print& print,
                     if (use_auto_brim_ears) {
                         Point shift = instance.shift_without_plate_offset();
                         const ObjectInstanceID oid{ object->id(), instance_idx };
-                        auto cache_centroids = [&](Points &src,
+                        auto cache_centroids = [&](const Points &src,
                             std::map<ObjectInstanceID, Points> &dst) {
                             if (src.empty()) return;
-                            auto& centroids = dst[oid];
-                            centroids.clear();
-                            for (Point pt : src)
-                                centroids.push_back(pt + shift);
+                            Points shifted;
+                            shifted.reserve(src.size());
+                            for (const Point &pt : src)
+                                shifted.push_back(pt + shift);
+                            dst.insert_or_assign(oid, std::move(shifted));
                         };
                         cache_centroids(object_ear_centroids_outer, ear_centroids_outer);
                         cache_centroids(object_ear_centroids_inner, ear_centroids_inner);
@@ -879,9 +865,9 @@ Polygons tryExPolygonOffset(const ExPolygons& islandAreaEx, const Print& print)
     return loops;
 }
 
-// Create ear patch ExPolygons from cached centroids at layer 0.
+// Create ear patch ExPolygons from cached layer-0 centroids.
 static ExPolygons make_ear_patches_from_centroids(
-    const Print &print, const PrintObject &object, size_t instance_id,
+    const PrintObject &object, size_t instance_id,
     const std::map<ObjectInstanceID, Points> &centroids_map, coord_t size_ear)
 {
     const ObjectInstanceID oid{ object.id(), instance_id };
@@ -926,11 +912,19 @@ ExPolygons make_brim_area_for_layer(const Print &print, const PrintObject &objec
 
     // For btEar: create ear circles at cached layer-0 centroid positions.
     // diff_ex clips any ear overlapping with the object, same as on layer 0.
-    const BrimType  brim_type = object.config().brim_type.value;
-    float           brim_offset = scale_(object.config().brim_object_gap.value);
-    double          flow_width = print.brim_flow().scaled_spacing() * SCALING_FACTOR;
-    float           brim_width = scale_(floor(object.config().brim_width.value / flow_width / 2) * flow_width * 2);
-    Flow            flow = print.brim_flow();
+    const BrimType brim_type = object.config().brim_type.value;
+    const float    brim_offset = scale_(object.config().brim_object_gap.value);
+    const double   flow_width = print.brim_flow().scaled_spacing() * SCALING_FACTOR;
+    const Flow     flow = print.brim_flow();
+
+    // Auto brim (btAutoBrim): layer 0 derives the width per volume group from
+    // adhesion and print speed; upper layers approximate it with the maximum.
+    float brim_width = quantize_brim_width(object.config().brim_width.value, flow_width);
+    if (brim_type == btAutoBrim) {
+        const float auto_width = auto_brim_width(object, flow_width);
+        if (auto_width > 0.f)
+            brim_width = auto_width;
+    }
 
     const bool use_auto_brim_ears = object.config().brim_type == btEar;
     const bool use_brim_ears      = object.config().brim_type == btPainted;
@@ -953,13 +947,13 @@ ExPolygons make_brim_area_for_layer(const Print &print, const PrintObject &objec
         if (use_brim_ears) {
             // Painted ears: project to the current layer outline so the brim
             // width stays consistent across layers, matching layer 0 behavior.
-            outer = make_brim_ears_for_layer(&object, islands, instance_shift, true);
+            outer = make_brim_ears_for_layer(&object, instance_id, islands, instance_shift);
         } else if (use_auto_brim_ears) {
             coord_t size_ear = (brim_width - brim_offset - flow.scaled_spacing());
             // Create ear circles at the cached layer-0 centroid positions.
             // These are in plate coordinates. diff_ex(outer, inner) will clip any ear
             // that overlaps with the object, same as on layer 0.
-            outer = make_ear_patches_from_centroids(print, object, instance_id,
+            outer = make_ear_patches_from_centroids(object, instance_id,
                 print.ear_brim_centroids_outer(), size_ear);
         } else {
             outer = offset_ex(inner, brim_width, jtRound, SCALED_RESOLUTION);
@@ -974,19 +968,19 @@ ExPolygons make_brim_area_for_layer(const Print &print, const PrintObject &objec
                 holes_reversed.push_back(h);
         if (!holes_reversed.empty()) {
             polygons_reverse(holes_reversed);
-            ExPolygons inner = offset_ex(holes_reversed, -brim_width - brim_offset, jtRound, SCALED_RESOLUTION);
+            ExPolygons inner = offset_ex(holes_reversed, -brim_width - brim_offset);
             ExPolygons outer;
             if (use_brim_ears) {
                 // Painted inner ears: project to the current layer outline.
-                outer = make_brim_ears_for_layer(&object, islands, instance_shift, true);
+                outer = make_brim_ears_for_layer(&object, instance_id, islands, instance_shift);
             } else if (use_auto_brim_ears) {
                 // Create ear circles at cached layer-0 inner centroid positions.
                 // diff_ex + intersection_ex will clip overlapping ones.
                 coord_t size_ear = (brim_width - brim_offset - flow.scaled_spacing());
-                outer = make_ear_patches_from_centroids(print, object, instance_id,
+                outer = make_ear_patches_from_centroids(object, instance_id,
                     print.ear_brim_centroids_inner(), size_ear);
             } else {
-                outer = offset_ex(holes_reversed, -brim_offset, jtRound, SCALED_RESOLUTION);
+                outer = offset_ex(holes_reversed, -brim_offset);
             }
             expolygons_append(brim_area, intersection_ex(diff_ex(outer, inner), holes_reversed));
         }
@@ -995,7 +989,21 @@ ExPolygons make_brim_area_for_layer(const Print &print, const PrintObject &objec
     return brim_area;
 }
 
-static ExtrusionEntityCollection makeBrimInfillImpl(const ExPolygons& singleBrimArea, const Print& print, const Polygons& islands_area, bool apply_plate_offset) {
+bool brim_areas_within_contact_distance(const Print &print, const ExPolygons &area_a, const ExPolygons &area_b)
+{
+    const coord_t brim_contact_distance = coord_t(print.brim_flow().scaled_spacing() * 2.f);
+    return !intersection_ex(offset_ex(area_a, brim_contact_distance, jtRound, SCALED_RESOLUTION), area_b).empty();
+}
+
+ExPolygons merge_brim_areas(const Print &print, const ExPolygons &areas)
+{
+    ExPolygons combined = union_ex(areas);
+    const float scaled_resolution = float(scaled(print.config().resolution.value));
+    const float brim_cleanup_delta = std::max(scaled_resolution, float(SCALED_EPSILON));
+    return offset2_ex(combined, brim_cleanup_delta, -brim_cleanup_delta, jtRound, scaled_resolution);
+}
+
+ExtrusionEntityCollection makeBrimInfillImpl(const ExPolygons& singleBrimArea, const Print& print, const Polygons& islands_area, bool apply_plate_offset) {
     Polygons        loops = tryExPolygonOffset(singleBrimArea, print);
     Flow  flow = print.brim_flow();
     loops = union_pt_chained_outside_in(loops);
@@ -1081,7 +1089,7 @@ void make_brim(Print& print, PrintTryCancel try_cancel, Polygons& islands_area,
     // BBS: Find boundingbox of the first layer
     for (const ObjectID printObjID : print.print_object_ids()) {
         BoundingBox bbx;
-        const PrintObject* object = print.get_object(printObjID);
+        PrintObject* object = print.get_object(printObjID);
         //ORCA: Use EFC-compensated outline for brim bounding box when enabled.
         const ExPolygons brim_slices = use_brim_efc_outline(*object) ?
             get_print_object_bottom_layer_expolygons(*object) : object->layers().front()->lslices;
@@ -1102,7 +1110,7 @@ void make_brim(Print& print, PrintTryCancel try_cancel, Polygons& islands_area,
             if (key.object_id == printObjID)
                 for (const ExPolygon& ex_poly : areas)
                     bbx.merge(get_extents(ex_poly.contour));
-        const_cast<PrintObject*>(object)->firstLayerObjectBrimBoundingBox = bbx;
+        object->firstLayerObjectBrimBoundingBox = bbx;
     }
 
     islands_area = to_polygons(islands_area_ex);

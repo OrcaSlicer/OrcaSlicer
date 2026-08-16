@@ -970,6 +970,11 @@ public:
     const PrintObject*          get_object(size_t idx) const { return m_objects[idx]; }
     // PrintObject by its ObjectID, to be used to uniquely bind slicing warnings to their source PrintObjects
     // in the notification center.
+    PrintObject*                get_object(ObjectID object_id) {
+        auto it = std::find_if(m_objects.begin(), m_objects.end(),
+            [object_id](const PrintObject *obj) { return obj->id() == object_id; });
+        return (it == m_objects.end()) ? nullptr : *it;
+    }
     const PrintObject*          get_object(ObjectID object_id) const {
         auto it = std::find_if(m_objects.begin(), m_objects.end(),
             [object_id](const PrintObject *obj) { return obj->id() == object_id; });

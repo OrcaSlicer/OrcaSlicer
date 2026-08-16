@@ -903,14 +903,14 @@ TEST_CASE("Brim with tree support enabled on upper brim layers", "[SkirtBrim]") 
 // Verify that brim is not emitted when the object has no geometry on a given layer
 // (e.g., the object ends before all brim layers are consumed).
 TEST_CASE("Brim stops when object ends before all brim layers", "[SkirtBrim]") {
-    // Object is 1mm tall (5 layers at 0.2mm), but brim_layers=10 wants 10.
+    // Object is 1mm tall (5 layers at 0.2mm), but brim_layers=7 wants 7.
     // Brim should only be emitted on the 5 layers the object actually occupies.
     auto short_cube = cube(1);
 
     const std::string gcode = slice({ short_cube }, {
         { "brim_type",                "outer_only" },
         { "brim_width",               5 },
-        { "brim_layers",              10 },
+        { "brim_layers",              7 },
         { "brim_object_gap",          0.4 },
         { "skirt_loops",              0 },
         { "layer_height",             0.2 },
@@ -919,7 +919,7 @@ TEST_CASE("Brim stops when object ends before all brim layers", "[SkirtBrim]") {
     });
 
     auto lengths = brim_length_per_layer(gcode);
-    // Brim should appear on exactly 5 layers (the object height), not all 10 requested.
+    // Brim should appear on exactly 5 layers (the object height), not all 7 requested.
     REQUIRE(lengths.size() == 5u);
 
     for (const auto &[z, len] : lengths) {

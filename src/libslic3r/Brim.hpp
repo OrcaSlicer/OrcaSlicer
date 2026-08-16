@@ -35,6 +35,11 @@ ExtrusionEntityCollection makeBrimInfillFromPlateCoordinates(const ExPolygons& s
 ExPolygons make_brim_area_for_layer(const Print &print, const PrintObject &object,
     size_t instance_id, size_t layer_idx);
 
+// Whether two brim areas overlap or are within ~2 brim line widths of each other.
+bool brim_areas_within_contact_distance(const Print &print, const ExPolygons &area_a, const ExPolygons &area_b);
+// Union brim areas and clean up the result (dilate/erode by one resolution step).
+ExPolygons merge_brim_areas(const Print &print, const ExPolygons &areas);
+
 // BBS: automatically make brim
 ExtrusionEntityCollection make_brim_auto(const Print &print, PrintTryCancel try_cancel, Polygons &islands_area);
 
