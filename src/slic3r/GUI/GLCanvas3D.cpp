@@ -3170,7 +3170,14 @@ void GLCanvas3D::bind_event_handlers()
         m_canvas->Bind(wxEVT_SET_FOCUS, &GLCanvas3D::on_set_focus, this);
         m_canvas->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& evt) {
                 ImGui::SetWindowFocus(nullptr);
-                render();
+                // Orca: schedule the repaint instead of rendering synchronously. Focus flaps in
+                // and out of the canvas on every popup and window switch (near-continuously
+                // under WSLg), and a synchronous render() here costs a FULL frame per event with
+                // no coalescing -- ~0.5 s of llvmpipe CPU per flap on a 1.7M-segment preview,
+                // observed as a pegged, unresponsive slicer (stack: wxFocusEvent lambda ->
+                // GLCanvas3D::render -> SegmentTemplate::render(count=1763507)). A queued paint
+                // draws the same frame once per event-loop pass instead of once per event.
+                m_canvas->Refresh();
                 evt.Skip();
             });
         m_event_handlers_bound = true;
@@ -4912,7 +4919,10 @@ void GLCanvas3D::force_set_focus() {
 void GLCanvas3D::on_set_focus(wxFocusEvent& evt)
 {
     m_tooltip_enabled = false;
-    _refresh_if_shown_on_screen();
+    // Orca: queued repaint, not a synchronous render -- see the wxEVT_KILL_FOCUS binding for
+    // why (focus flap storms x software GL = a full frame per event).
+    if (m_canvas != nullptr && _is_shown_on_screen())
+        m_canvas->Refresh();
     m_tooltip_enabled = true;
     m_is_touchpad_navigation = wxGetApp().app_config->get_bool("camera_navigation_style");
 }
