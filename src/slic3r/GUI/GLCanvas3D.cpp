@@ -1955,7 +1955,12 @@ void GLCanvas3D::render(bool only_init)
     }
 
     m_in_render = true;
-    Slic3r::ScopeGuard in_render_guard([this]() { m_in_render = false; });
+    const auto render_start = std::chrono::steady_clock::now();
+    Slic3r::ScopeGuard in_render_guard([this, render_start]() {
+        m_in_render = false;
+        m_last_render_duration_ms = (int) std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - render_start).count();
+    });
     (void)in_render_guard;
 
     if (m_canvas == nullptr)
@@ -3297,10 +3302,11 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
         // 105% busy in short bursts from the idle loop, llvmpipe fleet saturated). Giving the
         // loop a gap equal to the frame's own cost bounds animation rendering at a ~50% duty
         // cycle and keeps input flowing; on hardware GL the gap is a few ms and imperceptible.
-        const int frame_cost_ms = (int) std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - m_last_frame_start_time).count();
-        if (frame_cost_ms > 50)
-            schedule_extra_frame(frame_cost_ms);
+        // Measured inside render() itself: on_idle only QUEUES the paint, so timing this
+        // function reads ~0 (the first version of this pacing did exactly that and never
+        // engaged -- field-verified at a still-pegged 450%).
+        if (m_last_render_duration_ms > 50)
+            schedule_extra_frame(m_last_render_duration_ms);
         else
             evt.RequestMore();
     }

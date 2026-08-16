@@ -611,6 +611,10 @@ private:
 
     RenderStats m_render_stats;
     std::chrono::time_point<std::chrono::steady_clock> m_last_frame_start_time{ std::chrono::steady_clock::now() };
+    // Duration of the last completed render(), measured where the work actually happens -- the
+    // idle-loop animation pacing keys on it (paints are QUEUED from on_idle, so measuring there
+    // reads ~0 and the pacing never engages).
+    int m_last_render_duration_ms{ 0 };
 
     int m_imgui_undo_redo_hovered_pos{ -1 };
     int m_mouse_wheel{ 0 };
