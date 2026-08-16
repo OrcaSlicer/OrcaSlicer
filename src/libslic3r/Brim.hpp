@@ -30,8 +30,9 @@ ExtrusionEntityCollection makeBrimInfillFromPlateCoordinates(const ExPolygons& s
 
 // Compute the brim area (outer and/or inner, respecting brim_type) for one
 // instance at the given layer. Returns ExPolygons in plate coordinates.
-// Does not handle EFC, volume groups, painted ears, auto-brim width, or
-// support exclusion — those are layer-0 only special cases handled by make_brim().
+// Handles btEar, btPainted and btAutoBrim. Does not use the EFC outline or
+// per-volume-group slices (the full layer outline is used instead); support
+// exclusion is applied by the caller.
 ExPolygons make_brim_area_for_layer(const Print &print, const PrintObject &object,
     size_t instance_id, size_t layer_idx);
 

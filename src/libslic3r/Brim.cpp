@@ -886,10 +886,11 @@ static ExPolygons make_ear_patches_from_centroids(
 
 // Compute the brim area (outer and/or inner, respecting brim_type) for one
 // instance at the given layer. Returns ExPolygons in plate coordinates.
-// Handles btEar (auto ears at convex corners) and btPainted (user-placed ears
-// projected to the current layer outline). Does not handle EFC, volume groups,
-// auto-brim width, or support exclusion — those are layer-0 only special cases
-// handled by make_brim().
+// Handles btEar (auto ears at cached layer-0 centroids), btPainted (user-placed
+// ears projected to the current layer outline) and btAutoBrim (width derived
+// from the first-layer volume groups). Does not use the EFC outline or
+// per-volume-group slices (the full layer outline is used instead); support
+// exclusion is applied by the caller.
 ExPolygons make_brim_area_for_layer(const Print &print, const PrintObject &object,
     size_t instance_id, size_t layer_idx)
 {
