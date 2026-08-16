@@ -248,9 +248,15 @@ Preview::Preview(
 // through the print's compaction, or T1 renders with project filament 2's colour. Identity (and
 // a no-op) for every printer without compaction. Prepare-view consumers keep the project-indexed
 // list -- their indices ARE project slots.
-static std::vector<std::string> filament_colors_for_gcode_tools(std::vector<std::string> project_colors)
+static std::vector<std::string> filament_colors_for_gcode_tools(const Slic3r::Print* print, std::vector<std::string> project_colors)
 {
-    const Slic3r::FilamentCompaction& compaction = wxGetApp().plater()->fff_print().filament_compaction();
+    // The print that PRODUCED the result being previewed. Plater::fff_print() is a different
+    // Print object from the per-plate one the background process actually sliced (each plate
+    // owns a Print; update_slice_context_to_current_plate points the process at it), so reading
+    // the compaction there found an empty one and the permutation silently no-opped -- a
+    // compacted two-tool slice previewed with project colors 1/2 in the field.
+    static const Slic3r::FilamentCompaction empty_compaction;
+    const Slic3r::FilamentCompaction& compaction = print != nullptr ? print->filament_compaction() : empty_compaction;
     {
         std::string slots;
         for (int v : compaction.slot_of_tool) slots += std::to_string(v) + " ";
@@ -582,7 +588,7 @@ void Preview::update_layers_slider(const std::vector<double>& layers_z, bool kee
     check_layers_slider_values(ticks_info_from_curr_plate.gcodes, layers_z);
 
     // first of all update extruder colors to avoid crash, when we are switching printer preset from MM to SM
-    m_layers_slider->SetExtruderColors(filament_colors_for_gcode_tools(plater->get_extruder_colors_from_plater_config(wxGetApp().is_editor() ? nullptr : m_gcode_result)));
+    m_layers_slider->SetExtruderColors(filament_colors_for_gcode_tools(m_process->fff_print(), plater->get_extruder_colors_from_plater_config(wxGetApp().is_editor() ? nullptr : m_gcode_result)));
     m_layers_slider->SetSliderValues(layers_z);
     assert(m_layers_slider->GetMinValue() == 0);
     m_layers_slider->SetMaxValue(layers_z.empty() ? 0 : layers_z.size() - 1);
@@ -702,11 +708,12 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
     const bool gcode_preview_data_valid = !m_gcode_result->moves.empty();
     const bool is_pregcode_preview = !gcode_preview_data_valid && wxGetApp().is_editor();
 
-    const std::vector<std::string> tool_colors = filament_colors_for_gcode_tools(wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
+    const std::vector<std::string> tool_colors = filament_colors_for_gcode_tools(m_process->fff_print(), wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
     // Labels next to those colors speak the user's project numbering too.
     {
-        const Slic3r::FilamentCompaction& compaction = wxGetApp().plater()->fff_print().filament_compaction();
-        m_canvas->get_gcode_viewer().set_filament_display_ids(compaction.slot_of_tool);
+        const Slic3r::Print* sliced_print = m_process->fff_print();
+        m_canvas->get_gcode_viewer().set_filament_display_ids(sliced_print != nullptr ? sliced_print->filament_compaction().slot_of_tool
+                                                                                      : std::vector<int>());
     }
     const std::vector<CustomGCode::Item>& color_print_values = wxGetApp().is_editor() ?
         wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes : m_gcode_result->custom_gcode_per_print_z;
