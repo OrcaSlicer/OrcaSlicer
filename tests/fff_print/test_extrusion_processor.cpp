@@ -171,6 +171,36 @@ std::vector<ExtendedPoint<2>> sampled_wall_over_dished_layer(const std::function
                                                               dished_min_distance, distance_to_speed);
 }
 
+// A straight, otherwise supported wall over a previous-layer boundary with a 2mm-wide pocket. Moving the
+// pocket between x = 10 and x = 20 covers both discovery away from the wall's midpoint and refinement around
+// a midpoint that has already been discovered. The current wall is inset half its width from the flat boundary,
+// so its supported readings are zero after the estimator applies its boundary offset.
+constexpr double narrow_pocket_wall_length = 40.;
+constexpr double narrow_pocket_width       = 2.;
+constexpr double narrow_pocket_depth       = 0.3;
+
+std::vector<ExtendedPoint<2>> sampled_wall_over_narrow_pocket(
+    double pocket_center, const std::function<float(float)>& distance_to_speed)
+{
+    const double pocket_left  = pocket_center - 0.5 * narrow_pocket_width;
+    const double pocket_right = pocket_center + 0.5 * narrow_pocket_width;
+    const AABBTreeLines::LinesDistancer<Linef> prev_layer(std::vector<Linef>{
+        {{0., 0.}, {pocket_left, 0.}},
+        {{pocket_left, 0.}, {pocket_left, -narrow_pocket_depth}},
+        {{pocket_left, -narrow_pocket_depth}, {pocket_right, -narrow_pocket_depth}},
+        {{pocket_right, -narrow_pocket_depth}, {pocket_right, 0.}},
+        {{pocket_right, 0.}, {narrow_pocket_wall_length, 0.}},
+        {{narrow_pocket_wall_length, 0.}, {narrow_pocket_wall_length, -10.}},
+        {{narrow_pocket_wall_length, -10.}, {0., -10.}},
+        {{0., -10.}, {0., 0.}},
+    });
+    const double wall_y = -0.5 * caged_wall_width;
+    const Points wall{Point::new_scale(0., wall_y), Point::new_scale(narrow_pocket_wall_length, wall_y)};
+
+    return estimate_points_properties<true, true, true, true>(wall, prev_layer, caged_wall_width, -1.f,
+                                                               dished_min_distance, distance_to_speed);
+}
+
 // A cross section that grows a layer's worth on the two faces meeting at either end of a wall, as any
 // 45 degree overhang does. The wall itself stands on a contour identical to its own, but its ends sit
 // where the growing faces cut the corners off, and the previous layer's edge there is nearer than the
@@ -349,6 +379,32 @@ TEST_CASE("An overhang reading is dropped when the speed is unchanged", "[Extrus
     const std::vector<ExtendedPoint<2>> points = sampled_wall_over_dished_layer([](float) { return 50.f; });
 
     REQUIRE_THAT(furthest_reading(points), Catch::Matchers::WithinAbs(dished_end_reading, dished_reading_tolerance));
+}
+
+TEST_CASE("Coarse probing detects an unsupported pocket away from the wall midpoint",
+          "[ExtrusionProcessor][Regression]")
+{
+    const std::function<float(float)> distance_to_speed = [](float distance) { return distance <= 0.2f ? 100.f : 50.f; };
+    const std::vector<ExtendedPoint<2>> points =
+        sampled_wall_over_narrow_pocket(0.25 * narrow_pocket_wall_length, distance_to_speed);
+    const double slowed = slowed_length(points, distance_to_speed);
+
+    REQUIRE(slowed > 0.);
+    REQUIRE(slowed < 5.);
+}
+
+TEST_CASE("Coarse probing brackets a narrow slowdown at the wall midpoint",
+          "[ExtrusionProcessor][Regression]")
+{
+    // Half of the pocket reading still maps to full speed. A matching probe in either half therefore must not
+    // prune that half before a supported point has been found close enough to bracket the slow midpoint.
+    const std::function<float(float)> distance_to_speed = [](float distance) { return distance <= 0.2f ? 100.f : 50.f; };
+    const std::vector<ExtendedPoint<2>> points =
+        sampled_wall_over_narrow_pocket(0.5 * narrow_pocket_wall_length, distance_to_speed);
+    const double slowed = slowed_length(points, distance_to_speed);
+
+    REQUIRE(slowed > 0.);
+    REQUIRE(slowed < 5.);
 }
 
 // Sampling probes the interior, so it must not answer for the ends. On a supported wall between two

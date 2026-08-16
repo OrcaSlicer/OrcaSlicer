@@ -132,9 +132,10 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
     // endpoint interpolation fails to predict, and bisect either side of each one, so a span that is only partly
     // unsupported gets points where its support actually changes instead of one reading spread across all of it.
     if (PREV_LAYER_BOUNDARY_OFFSET && ADD_INTERSECTIONS && min_distance > 0 && distance_to_speed) {
-        // Bisecting below this buys nothing: the segmentation pass below only splits lines of 2mm or more, and
-        // every pass here drops points closer together than min_spacing.
-        const double min_bisected_length = std::max(2., 4. * min_spacing);
+        // Probe at least this densely before treating matching samples as evidence that a span is uniform. The
+        // segmentation pass below only splits lines of 2mm or more, and every pass here drops points closer
+        // together than min_spacing, so finer discovery would not produce a more precise speed transition.
+        const double max_probe_spacing = std::max(2., 4. * min_spacing);
         // A backstop for that length test, which on a non-finite length would never be met.
         constexpr int max_bisection_depth = 10;
         // Whether two readings are interchangeable. A segment is printed at the lower of the speeds its ends
@@ -145,14 +146,11 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
         auto same_speed = [&distance_to_speed](float a, float b) {
             return std::abs(distance_to_speed(a) - distance_to_speed(b)) <= 1.f;
         };
-        // Whether a reading is far enough out to be printed any slower than a fully supported one. The section
-        // the slowdown starts in is no help here either, for the same reason: the speeds interpolate into it.
-        auto slows_down = [&same_speed](float distance) { return !same_speed(distance, 0.f); };
         // Whether the first reading is printed slower than the second, once they are known to differ.
         auto prints_slower = [&distance_to_speed](float a, float b) { return distance_to_speed(a) < distance_to_speed(b); };
 
-        // Part of a segment still to bisect: positions along it, the distances there, and bisections left.
-        struct Subspan { double t0, t1; float distance0, distance1; int depth; };
+        // Part of a segment still to bisect: its positions along the segment and bisections left.
+        struct Subspan { double t0, t1; int depth; };
 
         std::vector<ExtendedPoint<L::Dim>>    sampled_points; // Populated lazily, on the first insertion
         std::vector<std::pair<double, float>> interior;       // Samples of one segment, keyed by position along it
@@ -165,38 +163,31 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
             const double                 line_len = step.norm();
 
             interior.clear();
-            if (line_len >= min_bisected_length)
-                pending.push_back({0., 1., curr.distance, next.distance, max_bisection_depth});
+            if (line_len >= max_probe_spacing)
+                pending.push_back({0., 1., max_bisection_depth});
 
             while (!pending.empty()) {
                 const Subspan subspan = pending.back();
                 pending.pop_back();
-                if (subspan.depth <= 0 || (subspan.t1 - subspan.t0) * line_len < min_bisected_length)
+                if (subspan.depth <= 0 || (subspan.t1 - subspan.t0) * line_len < max_probe_spacing)
                     continue;
 
                 const double t = 0.5 * (subspan.t0 + subspan.t1);
                 auto [distance, nearest_line, x] = unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(
                     (curr.position + t * step).template cast<AABBScalar>());
-                const float sampled  = float(distance + boundary_offset);
-                const float expected = 0.5f * (subspan.distance0 + subspan.distance1);
-
-                // Nothing new for the passes below: they already infer this reading, and the same speed from it.
-                if (same_speed(sampled, expected))
-                    continue;
-                // Neither this reading nor the ones bracketing it slows the extrusion down, so nor could any point
-                // placed between them, however the support is distributed.
-                if (!slows_down(sampled) && !slows_down(subspan.distance0) && !slows_down(subspan.distance1))
-                    continue;
+                const float sampled = float(distance + boundary_offset);
 
                 interior.emplace_back(t, sampled);
-                pending.push_back({subspan.t0, t, subspan.distance0, sampled, subspan.depth - 1});
-                pending.push_back({t, subspan.t1, sampled, subspan.distance1, subspan.depth - 1});
+                pending.push_back({subspan.t0, t, subspan.depth - 1});
+                pending.push_back({t, subspan.t1, subspan.depth - 1});
             }
 
             if (!interior.empty()) {
                 std::sort(interior.begin(), interior.end(),
                           [](const std::pair<double, float>& l, const std::pair<double, float>& r) { return l.first < r.first; });
-                // Bisecting keeps every sample it took, including the ones that only confirm their neighbours.
+                // Coarse probing keeps every sample it took until this pass can see which ones bracket a speed
+                // transition. Matching samples cannot be discarded during discovery: one may be the last
+                // supported point before a narrow unsupported pocket found by a later probe.
                 size_t kept = 0;
                 for (size_t i = 0; i < interior.size(); ++i) {
                     const float sample    = interior[i].second;
@@ -224,7 +215,7 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
                 sampled_points.assign(points.begin(), points.begin() + point_idx + 1);
             }
             if (!sampled_points.empty()) {
-                // Only a sub-span of min_bisected_length or more is ever bisected, so these sit at least
+                // Only a sub-span of max_probe_spacing or more is ever bisected, so these sit at least
                 // 2 * min_spacing apart, and need none of the filtering the passes either side of this one do.
                 for (const auto& [t, distance] : interior)
                     sampled_points.push_back({curr.position + t * step, distance});
