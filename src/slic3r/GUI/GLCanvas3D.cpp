@@ -3090,7 +3090,12 @@ void GLCanvas3D::load_shells(const Print& print, bool force_previewing)
     if (m_initialized)
     {
         m_gcode_viewer.load_shells(print, m_initialized, force_previewing);
-        m_gcode_viewer.update_shells_color_by_extruder(m_config);
+        // Orca: the shells were just built from the PRINT's model, whose extruder ids are the
+        // print's own -- compacted to dense tool numbers under a dense-numbering protocol. Their
+        // colours must come from the print's own config too: the GUI-side m_config is
+        // project-indexed, so on a compacted two-tool print it painted shell id 2 with project
+        // filament 2's colour instead of the project slot that tool actually prints.
+        m_gcode_viewer.update_shells_color_by_extruder(&print.full_print_config());
     }
 }
 
@@ -3269,9 +3274,11 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
             return;
         }
 
-        // Pace by frame-start interval so rendering time is part of the target budget.
-        m_last_frame_start_time = now;
     }
+
+    // Frame start is tracked unconditionally: the animation pacing below needs the frame's cost
+    // even when no fps cap is configured.
+    m_last_frame_start_time = std::chrono::steady_clock::now();
 
     _refresh_if_shown_on_screen();
 
@@ -3282,7 +3289,20 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
         m_dirty = true;
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
         m_extra_frame_requested = false;
-        evt.RequestMore();
+        // Orca: pace animation-driven frames by what the frame just cost. The fps cap above can
+        // only throttle a renderer FASTER than its budget; a software-GL frame slower than the
+        // budget always proceeds immediately, so a perpetual animation (a fading notification, a
+        // pulsing hint) rendered back-to-back at ~0.4 s/frame on llvmpipe -- five cores pegged
+        // and the event loop too starved to service a close click (captured live: main thread
+        // 105% busy in short bursts from the idle loop, llvmpipe fleet saturated). Giving the
+        // loop a gap equal to the frame's own cost bounds animation rendering at a ~50% duty
+        // cycle and keeps input flowing; on hardware GL the gap is a few ms and imperceptible.
+        const int frame_cost_ms = (int) std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - m_last_frame_start_time).count();
+        if (frame_cost_ms > 50)
+            schedule_extra_frame(frame_cost_ms);
+        else
+            evt.RequestMore();
     }
     else
         m_dirty = false;
