@@ -251,6 +251,11 @@ Preview::Preview(
 static std::vector<std::string> filament_colors_for_gcode_tools(std::vector<std::string> project_colors)
 {
     const Slic3r::FilamentCompaction& compaction = wxGetApp().plater()->fff_print().filament_compaction();
+    {
+        std::string slots;
+        for (int v : compaction.slot_of_tool) slots += std::to_string(v) + " ";
+        BOOST_LOG_TRIVIAL(info) << "preview tool colors: compaction slots=[" << slots << "] project colors=" << project_colors.size();
+    }
     if (compaction.slot_of_tool.empty())
         return project_colors;
     std::vector<std::string> tool_colors;
