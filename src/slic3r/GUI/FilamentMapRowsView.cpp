@@ -217,6 +217,14 @@ void FilamentMapRowsView::seed_status()
     // that did not yet include the preview, which is how the send dialog ended up clipped.
     if (m_on_state_changed)
         m_on_state_changed(all_assigned);
+
+    // The relayout above MOVES children (record row appearing shifts everything below it). On
+    // Windows the dialog does not erase the pixels a moved child used to cover, so its old
+    // rendering survives as a ghost next to the new one -- field report: the preview thumbnail
+    // drawn twice, diagonally offset, after the last row was mapped. Repaint the whole top-level
+    // window so no stale pixels outlive the layout they belonged to.
+    if (wxWindow* top = wxGetTopLevelParent(this))
+        top->Refresh();
 }
 
 std::map<int, std::string> FilamentMapRowsView::build_slot_preset_names() const

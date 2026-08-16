@@ -19731,6 +19731,22 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool up
         const int  device_plate_idx  = plate_idx == PLATE_ALL_IDX ? get_partplate_list().get_curr_plate_index() : resolved_plate_idx;
         PartPlate* device_plate      = get_partplate_list().get_plate(device_plate_idx);
         const std::vector<int> device_plate_filaments = device_plate ? device_plate->get_extruders(true) : std::vector<int>();
+        // Orca: diagnostic for the send dialog listing fewer filaments than the plate prints
+        // (field report: a four-object, four-filament cube offering only tools 3 and 4). Logs the
+        // per-object reality next to what get_extruders() concluded, so a user log names the
+        // filtered-out object instead of needing a debugger.
+        if (device_plate != nullptr) {
+            std::string detail;
+            for (int f : device_plate_filaments) detail += std::to_string(f) + " ";
+            detail += "| objects:";
+            for (size_t oi = 0; oi < this->model().objects.size(); ++oi) {
+                const ModelObject* mo = this->model().objects[oi];
+                const ConfigOption* oe = mo->config.option("extruder");
+                detail += " [" + std::to_string(oi) + " extr=" + std::to_string(oe ? oe->getInt() : -1) +
+                          " contained=" + (device_plate->contain_instance_totally((int) oi, 0) ? "1" : "0") + "]";
+            }
+            BOOST_LOG_TRIVIAL(info) << "send dialog plate filaments: " << detail;
+        }
 
         std::unique_ptr<PrintHostSendDialog> pDlg;
         DevicePrintOptionsDialog*            device_dlg = nullptr;
