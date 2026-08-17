@@ -29,6 +29,7 @@
 #include <wx/statbox.h>
 #include <wx/statbmp.h>
 #include <wx/filedlg.h>
+#include <wx/textdlg.h>
 #include <wx/dnd.h>
 #include <wx/progdlg.h>
 #include <wx/string.h>
@@ -357,6 +358,69 @@ void SlicedInfo::SetTextAndShow(SlicedInfoIdx idx, const wxString& text, const w
 static wxString temp_dir;
 
 namespace {
+
+#ifdef __WXMSW__
+bool select_export_path_without_shell(wxWindow *parent, const wxString &title,
+                                      const fs::path &initial_path, fs::path &output_path)
+{
+    wxString value = from_path(initial_path);
+
+    for (;;) {
+        wxTextEntryDialog dialog(parent,
+            _L("Enter the full output file path:") + "\n" +
+            _L("The internal dialog is used while a debugger is attached to avoid Windows Explorer shell extensions."),
+            title, value, wxOK | wxCANCEL);
+        wxGetApp().UpdateDlgDarkUI(&dialog);
+        if (dialog.ShowModal() != wxID_OK)
+            return false;
+
+        value = dialog.GetValue();
+        value.Trim(true).Trim(false);
+        if (value.empty()) {
+            show_error(parent, _L("The provided file name is not valid."));
+            continue;
+        }
+
+        fs::path candidate = into_path(value);
+        if (candidate.is_relative())
+            candidate = initial_path.parent_path() / candidate;
+
+        const std::string filename = candidate.filename().string();
+        if (filename.empty() || filename.find_first_of("<>:/\\|?*\"") != std::string::npos) {
+            show_error(parent, _L("The provided file name is not valid.") + "\n" +
+                _L("The following characters are not allowed by a FAT file system:") + " <>:/\\|?*\"");
+            value = from_path(candidate);
+            continue;
+        }
+
+        try {
+            const fs::path directory = candidate.parent_path();
+            if (directory.empty() || !fs::exists(directory) || !fs::is_directory(directory)) {
+                show_error(parent, _L("The selected output directory does not exist."));
+                value = from_path(candidate);
+                continue;
+            }
+
+            if (fs::exists(candidate)) {
+                MessageDialog confirm(parent,
+                    format_wxstr(_L("The file %1% already exists. Do you want to replace it?"), from_path(candidate.filename())),
+                    title, wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+                if (confirm.ShowModal() != wxID_YES) {
+                    value = from_path(candidate);
+                    continue;
+                }
+            }
+        } catch (const fs::filesystem_error &error) {
+            show_error(parent, from_u8(error.what()));
+            value = from_path(candidate);
+            continue;
+        }
+
+        output_path = std::move(candidate);
+        return true;
+    }
+}
+#endif
 
 #ifdef __WXGTK__
 wxString sanitize_window_layout_for_wayland(const wxString& layout, bool* removed_floating_state = nullptr)
@@ -14900,6 +14964,15 @@ void Plater::export_gcode(bool prefer_removable)
     fs::path output_path;
     {
         std::string ext = default_output_file.extension().string();
+#ifdef __WXMSW__
+        if (wxIsDebuggerRunning()) {
+            BOOST_LOG_TRIVIAL(info) << "Export G-code: using the debugger-safe internal path dialog";
+            select_export_path_without_shell(this,
+                (printer_technology() == ptFFF) ? _L("Save G-code file as:") : _L("Save SLA file as:"),
+                fs::path(start_dir) / default_output_file.filename(), output_path);
+        } else
+#endif
+        {
         wxFileDialog dlg(this, (printer_technology() == ptFFF) ? _L("Save G-code file as:") : _L("Save SLA file as:"),
             start_dir,
             from_path(default_output_file.filename()),
@@ -14919,6 +14992,7 @@ void Plater::export_gcode(bool prefer_removable)
                     break;
                 }
             }
+        }
         }
     }
 
@@ -14999,6 +15073,19 @@ void Plater::export_gcode_3mf(bool export_all)
     fs::path output_path;
     {
         std::string ext = default_output_file.extension().string();
+#ifdef __WXMSW__
+        if (wxIsDebuggerRunning()) {
+            BOOST_LOG_TRIVIAL(info) << "Export G-code 3MF: using the debugger-safe internal path dialog";
+            select_export_path_without_shell(this, _L("Save Sliced file as:"),
+                fs::path(start_dir) / default_output_file.filename(), output_path);
+            if (!output_path.empty()) {
+                ext = output_path.extension().string();
+                if (ext != ".3mf")
+                    output_path = output_path.string() + ".3mf";
+            }
+        } else
+#endif
+        {
         wxFileDialog dlg(this, _L("Save Sliced file as:"),
             start_dir,
             from_path(default_output_file.filename()),
@@ -15010,6 +15097,7 @@ void Plater::export_gcode_3mf(bool export_all)
             ext = output_path.extension().string();
             if (ext != ".3mf")
                 output_path = output_path.string() + ".3mf";
+        }
         }
     }
 
