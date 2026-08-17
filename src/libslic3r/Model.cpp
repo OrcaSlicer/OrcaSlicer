@@ -292,6 +292,7 @@ Model Model::read_from_file(const std::string&                                  
                     in_out.is_single_color   = false;
                     in_out.deal_vertex_color = true;
                     objFn(in_out);
+                    is_cb_cancel = in_out.is_canceled;
                 }
             } else if (obj_info.face_colors.size() > 0 && obj_info.has_uv_png == false) { // mtl file
                 if (objFn) { // 1.result is ok and pop up a dialog
@@ -299,6 +300,7 @@ Model Model::read_from_file(const std::string&                                  
                     in_out.is_single_color   = obj_info.is_single_mtl;
                     in_out.deal_vertex_color = false;
                     objFn(in_out);
+                    is_cb_cancel = in_out.is_canceled;
                 }
             } /*else if (obj_info.has_uv_png && obj_info.uvs.size() > 0) {
                 boost::filesystem::path full_path(input_file);

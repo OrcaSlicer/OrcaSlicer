@@ -29,6 +29,7 @@ struct ObjDialogInOut
     unsigned char              first_extruder_id;
     bool                       deal_vertex_color;
     Model *                    model{nullptr};
+    bool                       is_canceled{false};
     std::string lost_material_name{""};
 };
 typedef std::function<void(ObjDialogInOut &in_out)> ObjImportColorFn;

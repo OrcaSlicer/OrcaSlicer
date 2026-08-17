@@ -6778,6 +6778,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     if (input_files.empty())
         return std::vector<size_t>();
 
+    BackupSuspendGuard backup_suspend_guard;
+
     if (!input_files.empty())
        q->m_3mf_path = input_files[0].string();
     
