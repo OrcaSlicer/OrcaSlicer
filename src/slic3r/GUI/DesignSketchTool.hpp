@@ -337,7 +337,11 @@ public:
         bool  roll_undefined{false};
     };
     void set_mate_connectors(std::vector<MateConnectorGlyph> g) { m_mate_connectors = std::move(g); }
-    void clear_mate_connectors() { m_mate_connectors.clear(); }
+    // The pair line: the two origins of every mate — committed ones, plus the live pick of an open
+    // Mate card. Two connectors a mate binds are ONE object with a gap still in it; drawn as two
+    // separate frames they read as unrelated.
+    void set_mate_links(std::vector<std::pair<Vec3d, Vec3d>> l) { m_mate_links = std::move(l); }
+    void clear_mate_connectors() { m_mate_connectors.clear(); m_mate_links.clear(); }
 
     // Visual Revolve gizmo. The panel feeds the sketch plane + profile centroid + axis (0=plane X,
     // 1=plane Y) + angle + flip while its Revolve card is open; an angle-arc is drawn in the
@@ -1085,6 +1089,7 @@ private:
     void render_mate_face(const Vec3d& origin, const Vec3d& X, const Vec3d& Y, const Vec3d& Z,
                           double R, const ColorRGBA& body);
     std::vector<MateConnectorGlyph> m_mate_connectors;
+    std::vector<std::pair<Vec3d, Vec3d>> m_mate_links;
     GLModel m_mc_stroke_model;
     GLModel m_mc_fill_model;      // the face treatment's shaded facets
     GLModel m_solid_face_model;

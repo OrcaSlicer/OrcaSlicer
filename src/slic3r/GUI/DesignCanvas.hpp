@@ -197,6 +197,7 @@ public:
                            std::vector<Vec2d> sizes = {});     // draw datum/reference planes (u/v extents)
     // Mate connectors, drawn as frames so their verse and polarity are visible (snaporca-wgsc).
     void set_mate_connectors(std::vector<DesignSketchTool::MateConnectorGlyph> g);
+    void set_mate_links(std::vector<std::pair<Vec3d, Vec3d>> l);
     void set_body_highlight(bool on);   // tint the solid when its feature is tree-selected
     // The status line, shown along the BASE OF THE VIEWPORT rather than in the side panel:
     // the panel clips it at ~73 characters with no warning (snaporca-8cc), the viewport's

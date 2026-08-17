@@ -9728,6 +9728,10 @@ void DesignPanel::refresh_mate_connectors()
     const int cs_b = (m_active == Tool::Mate && m_mate_cs_b) ? m_mate_cs_b->GetSelection() : -1;
 
     std::vector<DesignSketchTool::MateConnectorGlyph> out;
+    // Origins, keyed both ways: a committed mate names its connectors by FEATURE index, the open
+    // card's combos by ordinal. Only resolved frames land here, so an unresolved end simply draws
+    // no pair line rather than a line to the origin of the world.
+    std::map<int, Vec3d> origin_by_feature, origin_by_ordinal;
     const auto frames = m_doc.resolve_datum_coordsys();
     size_t k = 0;
     for (size_t i = 0; i < m_doc.features.size() && k < frames.size(); ++i) {
@@ -9748,9 +9752,24 @@ void DesignPanel::refresh_mate_connectors()
         // is the case the glyph has to confess rather than absorb.
         g.roll_undefined = (f.coordsys_type == CoordSysType::FaceAndDirection
                             && f.coordsys_edge < 0);
+        origin_by_feature[int(i)] = g.origin;
+        origin_by_ordinal[ordinal] = g.origin;
         out.push_back(g);
     }
+
+    std::vector<std::pair<Vec3d, Vec3d>> links;
+    auto add_link = [&links](const std::map<int, Vec3d>& m, int a, int b) {
+        const auto ia = m.find(a), ib = m.find(b);
+        if (ia != m.end() && ib != m.end()) links.emplace_back(ia->second, ib->second);
+    };
+    for (const CadFeature& mf : m_doc.features)
+        if (mf.type == CadFeatureType::Mate && mf.enabled)
+            add_link(origin_by_feature, mf.mate_cs_a, mf.mate_cs_b);
+    if (cs_a >= 0 && cs_b >= 0 && cs_a != cs_b)
+        add_link(origin_by_ordinal, cs_a, cs_b);           // the live pick, not yet committed
+
     m_viewport->set_mate_connectors(std::move(out));
+    m_viewport->set_mate_links(std::move(links));
 }
 
 void DesignPanel::update_datum_gizmo()

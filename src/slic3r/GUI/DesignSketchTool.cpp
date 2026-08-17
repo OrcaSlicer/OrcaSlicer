@@ -3680,6 +3680,35 @@ void DesignSketchTool::render_mate_connectors()
             arrow(Z, R * 2.10, body, g.role == 2);   // +Z only. Nothing is ever drawn on -Z.
         }
     }
+
+    // ---- the pair line. Dashed, drawn IN WORLD along the segment joining the two origins, so it
+    // foreshortens with the model and its length is the gap the mate has still to close. Screen-
+    // constant dashes like everything else here; the dash pitch opens up on a long span so a mate
+    // across a large assembly cannot emit thousands of segments.
+    for (const auto& lnk : m_mate_links) {
+        const Vec3d d = lnk.second - lnk.first;
+        const double L = d.norm();
+        if (L < 1e-9) continue;
+        SketchPlane lp;
+        lp.origin = lnk.first;
+        lp.x_axis = d / L;
+        lp.y_axis = lp.x_axis.cross(cam.get_dir_forward().normalized());
+        if (lp.y_axis.norm() < 1e-6) lp.y_axis = lp.x_axis.cross(up);   // link along the view axis
+        lp.y_axis.normalize();
+        lp.normal = lp.x_axis.cross(lp.y_axis);
+        m_plane = lp;
+
+        std::vector<std::pair<Vec2d, Vec2d>> segs;
+        const double dash = 6.0 * upp;
+        const double step = std::max(dash + 4.0 * upp, L / 400.0);
+        for (double t = 0.0; t < L; t += step)
+            segs.emplace_back(Vec2d(t, 0.0), Vec2d(std::min(t + dash, L), 0.0));
+        // Depth off: the line's job is to say "these two belong together", and it has to say it
+        // even when the parts it spans are between the camera and one of the ends.
+        glsafe(::glDisable(GL_DEPTH_TEST));
+        draw_strokes(m_mc_stroke_model, segs, lw, grey);
+    }
+
     m_plane = saved;
 }
 
