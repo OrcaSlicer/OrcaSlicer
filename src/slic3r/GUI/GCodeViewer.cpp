@@ -3309,7 +3309,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         };
 
         std::vector<float> values = range.get_values();
-        if (values.size() == 1)
+        if (values.size() == 0)
+            return;
+        else if (values.size() == 1)
             // single item use case
             append_range_item(0, values.front(), decimals);
         else if (values.size() == 2) {

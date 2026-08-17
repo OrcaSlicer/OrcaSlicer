@@ -58,7 +58,12 @@ Color ColorRange::get_color_at(float value) const
 {
     // Input value scaled to the colors range
     float global_t = 0.0f;
+
+    if (m_count == 0) {
+        return DEFAULT_RANGES_COLORS[0];
+    }
     value = std::clamp(value, m_range[0], m_range[1]);
+
     const float step = get_step_size(*this);
     if (step > 0.0f) {
         if (m_type == EColorRangeType::Logarithmic) {
@@ -88,7 +93,10 @@ std::vector<float> ColorRange::get_values() const
 {
     std::vector<float> ret;
 
-    if (m_count == 1) {
+    if (m_count == 0) {
+        return ret;
+    }
+    else if (m_count == 1) {
         // single item use case
         ret.emplace_back(m_range[0]);
     }
