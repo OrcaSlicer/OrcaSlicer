@@ -81,7 +81,7 @@ MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &he
 
 void MsgDialog::show_dsa_button(wxString const &title)
 {
-    m_checkbox_dsa = new CheckBox(this);
+m_checkbox_dsa = new ::CheckBox(this);
     m_dsa_sizer->Add(m_checkbox_dsa, 0, wxALIGN_CENTER);
     m_checkbox_dsa->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
         auto event = wxCommandEvent(EVT_CHECKBOX_CHANGE);

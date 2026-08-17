@@ -109,7 +109,7 @@ private:
 
     AmsRadioSelectorList                m_radio_group;
     MaterialHash                        m_material_list;
-    std::map<std::string, CheckBox*>    m_checkbox_map;
+    std::map<std::string, ::CheckBox*>  m_checkbox_map;
     std::map<std::string, TextInput*>   m_input_map;
     std::vector<FilamentInfo>           m_filaments;
     std::vector<FilamentInfo>           m_ams_mapping_result;
@@ -120,7 +120,7 @@ private:
     // table head
     wxPanel*                            m_table_head_panel{ nullptr };
     wxBoxSizer*                         m_table_head_sizer{ nullptr };
-    CheckBox*                           m_select_checkbox{ nullptr };
+    ::CheckBox*                         m_select_checkbox{ nullptr };
     Button*                             m_printer_name{ nullptr };
     Button*                             m_device_status{ nullptr };
     //Button*                             m_task_status{ nullptr };

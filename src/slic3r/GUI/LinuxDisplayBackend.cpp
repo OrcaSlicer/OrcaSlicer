@@ -8,6 +8,34 @@
 #include <gdk/gdkx.h>
 #endif
 
+// gdkx.h pulls in Xlib.h, which leaks these macros into the rest of the
+// translation unit. Undefine them so sibling files in a unity build are not
+// corrupted. This file only uses GDK macros, never the Xlib ones.
+#ifdef None
+#undef None
+#endif
+#ifdef Success
+#undef Success
+#endif
+#ifdef Always
+#undef Always
+#endif
+#ifdef Bool
+#undef Bool
+#endif
+#ifdef Status
+#undef Status
+#endif
+#ifdef True
+#undef True
+#endif
+#ifdef False
+#undef False
+#endif
+#ifdef Convex
+#undef Convex
+#endif
+
 #ifdef wxHAVE_GDK_WAYLAND
 #include <gdk/gdkwayland.h>
 #endif

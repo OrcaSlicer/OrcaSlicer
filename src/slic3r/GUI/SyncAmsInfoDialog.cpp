@@ -30,6 +30,7 @@
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevMapping.h"
 #include "DeviceCore/DevStorage.h"
+#include "SendToPrinter.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -43,9 +44,6 @@ using namespace Slic3r::GUI;
 #define SyncLabelWidth FromDIP(640)
 #define SyncAttentionTipWidth FromDIP(550)
 namespace Slic3r { namespace GUI {
-wxDEFINE_EVENT(EVT_CLEAR_IPADDRESS, wxCommandEvent);
-wxDEFINE_EVENT(EVT_UPDATE_USER_MACHINE_LIST, wxCommandEvent);
-wxDEFINE_EVENT(EVT_PRINT_JOB_CANCEL, wxCommandEvent);
 #define SYNC_FLEX_GRID_COL 7
 bool SyncAmsInfoDialog::Show(bool show)
 {

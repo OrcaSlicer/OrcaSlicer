@@ -332,7 +332,7 @@ void AMSSetting::update_firmware_switching_status()
         }
 
         if (dynamic_cast<wxStaticText*>(win) != nullptr ||
-            dynamic_cast<CheckBox*>(win) != nullptr) {
+            dynamic_cast<::CheckBox*>(win) != nullptr) {
             win->Enable(!m_switching);
         }
 

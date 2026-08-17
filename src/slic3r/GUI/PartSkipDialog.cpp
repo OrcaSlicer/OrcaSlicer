@@ -14,6 +14,7 @@
 #include <wx/zstream.h>
 #include <wx/window.h>
 #include <wx/dcgraph.h>
+#include <glad/gl.h>
 #include <wx/glcanvas.h>
 #include <wx/utils.h>
 #include <boost/format.hpp>
@@ -127,7 +128,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_list_sizer->SetMinSize(wxSize(FromDIP(267), FromDIP(422)));
 
     auto all_checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_all_checkbox          = new CheckBox(m_book_third_panel, wxID_ANY);
+    m_all_checkbox          = new ::CheckBox(m_book_third_panel, wxID_ANY);
     m_all_checkbox->SetValue(false);
     m_all_checkbox->SetMinSize(wxSize(FromDIP(18), FromDIP(18)));
     m_all_checkbox->SetBackgroundColour(*wxWHITE);
@@ -333,7 +334,7 @@ void PartSkipDialog::on_dpi_changed(const wxRect &suggested_rect)
             auto     check_item = sizer->GetItem((size_t) 0);
             if (check_item && check_item->IsWindow()) {
                 wxWindow *window   = check_item->GetWindow();
-                CheckBox *checkbox = dynamic_cast<CheckBox *>(window);
+                ::CheckBox *checkbox = dynamic_cast<::CheckBox *>(window);
                 checkbox->SetMinSize(wxSize(FromDIP(18), FromDIP(18)));
                 checkbox->Rescale();
             }
@@ -700,7 +701,7 @@ void PartSkipDialog::InitDialogUI()
 
         for (const auto &[part_id, part_state] : m_parts_state) {
             auto line_sizer = new wxBoxSizer(wxHORIZONTAL);
-            auto checkbox   = new CheckBox(m_list_view);
+            auto checkbox   = new ::CheckBox(m_list_view);
             auto label      = new Label(m_list_view, wxEmptyString);
 
             checkbox->Bind(
@@ -796,7 +797,7 @@ void PartSkipDialog::UpdateDialogUI()
 
             if (check_item && check_item->IsWindow()) {
                 wxWindow *window   = check_item->GetWindow();
-                CheckBox *checkbox = dynamic_cast<CheckBox *>(window);
+                ::CheckBox *checkbox = dynamic_cast<::CheckBox *>(window);
                 if (part_state == PartState::psChecked) {
                     checkbox->SetValue(true);
                 } else if (part_state == PartState::psUnCheck) {

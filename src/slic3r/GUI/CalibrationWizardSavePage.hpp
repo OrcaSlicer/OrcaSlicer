@@ -276,7 +276,7 @@ protected:
     TextInput*         m_save_name_input;
 
     Label* m_coarse_calc_result_text;
-    CheckBox* m_checkBox_skip_calibration;
+    ::CheckBox* m_checkBox_skip_calibration;
 
     bool m_skip_fine_calibration = false;
     float m_curr_flow_ratio;

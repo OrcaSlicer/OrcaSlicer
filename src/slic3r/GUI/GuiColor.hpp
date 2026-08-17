@@ -2,7 +2,7 @@
 #define slic3r_GUI_Color_hpp_
 #include <wx/colour.h>
 #include "libslic3r/Color.hpp"
-#include "slic3r/Utils/ColorSpaceConvert.hpp"
+#include "libslic3r/ColorSpaceConvert.hpp"
 
 struct ColorDistValue
 {

@@ -233,6 +233,8 @@ private:
 };
 
 
+wxDECLARE_EVENT(EVT_UPDATE_USER_MACHINE_LIST, wxCommandEvent);
+wxDECLARE_EVENT(EVT_PRINT_JOB_CANCEL, wxCommandEvent);
 wxDECLARE_EVENT(EVT_CLEAR_IPADDRESS, wxCommandEvent);
 }
 }

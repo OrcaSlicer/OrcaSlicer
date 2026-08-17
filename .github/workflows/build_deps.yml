@@ -22,11 +22,21 @@ on:
       force-build:
         required: false
         type: boolean
+      unity-build:
+        required: false
+        type: boolean
+        default: false
+      unity-batch-size:
+        required: false
+        type: string
 
 jobs:
   build_deps:
     name: Build Deps
     if: ${{ !cancelled() && (inputs.build-deps-only || inputs.force-build || inputs.valid-cache != true) }}
+    # Unity builds are informational: tolerate a deps failure too (see the
+    # continue-on-error on the build_orca job in build_orca.yml).
+    continue-on-error: ${{ inputs.unity-build }}
     runs-on: ${{ inputs.os }}
     env:
       date:
@@ -204,4 +214,6 @@ jobs:
       cache-path: ${{ inputs.cache-path }}
       os: ${{ inputs.os }}
       arch: ${{ inputs.arch }}
+      unity-build: ${{ inputs.unity-build }}
+      unity-batch-size: ${{ inputs.unity-batch-size }}
     secrets: inherit

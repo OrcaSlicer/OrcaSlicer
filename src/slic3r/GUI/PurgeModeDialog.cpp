@@ -1,30 +1,32 @@
 #include "PurgeModeDialog.hpp"
 
+#include "GUI_App.hpp"
+
+#include "I18N.hpp"
+#include "wxExtensions.hpp"
+#include "Widgets/Button.hpp"
+#include "libslic3r/Utils.hpp"
+
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/statbmp.h>
 #include <wx/dcbuffer.h>
 #include <wx/graphics.h>
 
-#include "I18N.hpp"
-#include "GUI_App.hpp"
-#include "wxExtensions.hpp"
-#include "Widgets/Button.hpp"
-#include "libslic3r/Utils.hpp"
-
 namespace Slic3r { namespace GUI {
 
-static const wxColour BgNormalColor = wxColour("#FFFFFF");
-static const wxColour BgSelectColor = wxColour("#EBF9F0");
+static const wxColour purge_BgNormalColor = wxColour("#FFFFFF");
+static const wxColour purge_BgSelectColor = wxColour("#EBF9F0");
 
-static const wxColour BorderNormalColor   = wxColour("#CECECE");
-static const wxColour BorderSelectedColor = wxColour("#00AE42");
+static const wxColour purge_BorderNormalColor   = wxColour("#CECECE");
+static const wxColour purge_BorderSelectedColor = wxColour("#00AE42");
 
-static const wxColour TextNormalBlackColor = wxColour("#262E30");
-static const wxColour TextNormalGreyColor  = wxColour("#6B6B6B");
+static const wxColour purge_TextNormalBlackColor = wxColour("#262E30");
+static const wxColour purge_TextNormalGreyColor  = wxColour("#6B6B6B");
 
-PurgeModeDialog::PurgeModeDialog(wxWindow *parent, PurgeModeDialogType dialog_type)
-    : DPIDialog(parent, wxID_ANY, _L("Purge Mode Settings"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_dialog_type(dialog_type)
+PurgeModeDialog::PurgeModeDialog(wxWindow* parent, PurgeModeDialogType dialog_type)
+    : DPIDialog(parent, wxID_ANY, _L("Purge Mode Settings"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE)
+    , m_dialog_type(dialog_type)
 {
     SetBackgroundColour(*wxWHITE);
     SetMinSize(wxSize(FromDIP(520), FromDIP(320)));
@@ -38,31 +40,36 @@ PurgeModeDialog::PurgeModeDialog(wxWindow *parent, PurgeModeDialogType dialog_ty
     auto options_sizer = new wxBoxSizer(wxVERTICAL);
     auto panels_sizer  = new wxBoxSizer(wxHORIZONTAL);
 
-    auto           &preset_bundle = *wxGetApp().preset_bundle;
-    auto            current_mode  = preset_bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode");
-    PrimeVolumeMode mode          = current_mode ? current_mode->value : pvmDefault;
-    m_selected_mode               = mode;
+    auto& preset_bundle  = *wxGetApp().preset_bundle;
+    auto current_mode    = preset_bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode");
+    PrimeVolumeMode mode = current_mode ? current_mode->value : pvmDefault;
+    m_selected_mode      = mode;
 
     bool is_fast_mode = (m_dialog_type == PurgeModeDialogType::FastMode);
 
-    m_standard_panel = new PurgeModeBtnPanel(options_panel, _L("Standard"), _L("Perform full purging with speed and temperature transition for the best print quality."),
+    m_standard_panel = new PurgeModeBtnPanel(options_panel, _L("Standard"),
+                                             _L("Perform full purging with speed and temperature transition for the best print quality."),
                                              "shield");
     m_standard_panel->SetMinSize(wxSize(FromDIP(200), FromDIP(150)));
     m_standard_panel->Select(mode == pvmDefault);
-    m_standard_panel->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &) { select_option(pvmDefault); });
+    m_standard_panel->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent&) { select_option(pvmDefault); });
     panels_sizer->Add(m_standard_panel, 1, wxEXPAND | wxRIGHT, FromDIP(12));
     if (is_fast_mode) {
         m_saving_panel = new PurgeModeBtnPanel(options_panel, _L("Fast"),
-                                               _L("Uses optimized purge temperature, multiplier and stronger extrusion for faster purging. May cause slight color mixing in some extreme cases."), "leaf");
+                                               _L("Uses optimized purge temperature, multiplier and stronger extrusion for faster purging. "
+                                                  "May cause slight color mixing in some extreme cases."),
+                                               "leaf");
         m_saving_panel->SetMinSize(wxSize(FromDIP(200), FromDIP(150)));
         m_saving_panel->Select(mode == pvmFast);
-        m_saving_panel->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &) { select_option(pvmFast); });
+        m_saving_panel->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent&) { select_option(pvmFast); });
     } else {
-        m_saving_panel = new PurgeModeBtnPanel(options_panel, _L("Prime Saving"),
-                                               _L("Reduces prime waste and prints faster. May cause slight color mixing or small surface defects."), "leaf");
+        m_saving_panel =
+            new PurgeModeBtnPanel(options_panel, _L("Prime Saving"),
+                                  _L("Reduces prime waste and prints faster. May cause slight color mixing or small surface defects."),
+                                  "leaf");
         m_saving_panel->SetMinSize(wxSize(FromDIP(200), FromDIP(150)));
         m_saving_panel->Select(mode == pvmSaving);
-        m_saving_panel->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &) { select_option(pvmSaving); });
+        m_saving_panel->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent&) { select_option(pvmSaving); });
     }
 
     panels_sizer->Add(m_saving_panel, 1, wxEXPAND | wxLEFT, FromDIP(12));
@@ -112,20 +119,21 @@ void PurgeModeDialog::update_panel_selection()
     }
 }
 
-void PurgeModeDialog::on_dpi_changed(const wxRect &suggested_rect)
+void PurgeModeDialog::on_dpi_changed(const wxRect& suggested_rect)
 {
-    const int &em = em_unit();
+    const int& em = em_unit();
 
     msw_buttons_rescale(this, em, {wxID_OK, wxID_CANCEL});
 
-    const wxSize &size = wxSize(70 * em, 32 * em);
+    const wxSize& size = wxSize(70 * em, 32 * em);
     SetMinSize(size);
 
     Fit();
     Refresh();
 }
 
-PurgeModeBtnPanel::PurgeModeBtnPanel(wxWindow *parent, const wxString &label, const wxString &detail, const std::string &icon_path) : wxPanel(parent)
+PurgeModeBtnPanel::PurgeModeBtnPanel(wxWindow* parent, const wxString& label, const wxString& detail, const std::string& icon_path)
+    : wxPanel(parent)
 {
     SetBackgroundColour(*wxWHITE);
     SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -148,7 +156,7 @@ PurgeModeBtnPanel::PurgeModeBtnPanel(wxWindow *parent, const wxString &label, co
 
     m_label = new wxStaticText(this, wxID_ANY, label);
     m_label->SetFont(Label::Head_14);
-    m_label->SetForegroundColour(TextNormalBlackColor);
+    m_label->SetForegroundColour(purge_TextNormalBlackColor);
 
     auto label_sizer = new wxBoxSizer(wxHORIZONTAL);
     label_sizer->Add(m_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, horizontal_margin);
@@ -156,7 +164,7 @@ PurgeModeBtnPanel::PurgeModeBtnPanel(wxWindow *parent, const wxString &label, co
     auto detail_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_detail          = new Label(this, detail);
     m_detail->SetFont(Label::Body_12);
-    m_detail->SetForegroundColour(TextNormalGreyColor);
+    m_detail->SetForegroundColour(purge_TextNormalGreyColor);
     m_detail->Wrap(FromDIP(200));
     detail_sizer->Add(m_detail, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, horizontal_margin);
 
@@ -175,7 +183,7 @@ PurgeModeBtnPanel::PurgeModeBtnPanel(wxWindow *parent, const wxString &label, co
     wxGetApp().UpdateDarkUIWin(this);
 
     // Clicks on child widgets must select the whole card, so re-dispatch them on the panel.
-    auto forward_click_to_parent = [this](wxMouseEvent &) {
+    auto forward_click_to_parent = [this](wxMouseEvent&) {
         wxCommandEvent click_event(wxEVT_LEFT_DOWN, GetId());
         click_event.SetEventObject(this);
         this->ProcessEvent(click_event);
@@ -190,19 +198,19 @@ PurgeModeBtnPanel::PurgeModeBtnPanel(wxWindow *parent, const wxString &label, co
     Bind(wxEVT_LEAVE_WINDOW, &PurgeModeBtnPanel::OnLeaveWindow, this);
 }
 
-void PurgeModeBtnPanel::OnPaint(wxPaintEvent &event)
+void PurgeModeBtnPanel::OnPaint(wxPaintEvent& event)
 {
     wxAutoBufferedPaintDC dc(this);
-    wxGraphicsContext    *gc = wxGraphicsContext::Create(dc);
+    wxGraphicsContext* gc = wxGraphicsContext::Create(dc);
 
     if (gc) {
         dc.Clear();
         wxRect rect = GetClientRect();
         gc->SetBrush(wxTransparentColour);
         gc->DrawRoundedRectangle(0, 0, rect.width, rect.height, 0);
-        wxColour bg_color = m_selected ? BgSelectColor : BgNormalColor;
+        wxColour bg_color = m_selected ? purge_BgSelectColor : purge_BgNormalColor;
 
-        wxColour border_color = m_hover || m_selected ? BorderSelectedColor : BorderNormalColor;
+        wxColour border_color = m_hover || m_selected ? purge_BorderSelectedColor : purge_BorderNormalColor;
 
         bg_color     = StateColor::darkModeColorFor(bg_color);
         border_color = StateColor::darkModeColorFor(border_color);
@@ -216,19 +224,19 @@ void PurgeModeBtnPanel::OnPaint(wxPaintEvent &event)
 void PurgeModeBtnPanel::UpdateStatus()
 {
     if (m_selected) {
-        m_btn->SetBackgroundColour(BgSelectColor);
-        m_label->SetBackgroundColour(BgSelectColor);
-        m_detail->SetBackgroundColour(BgSelectColor);
+        m_btn->SetBackgroundColour(purge_BgSelectColor);
+        m_label->SetBackgroundColour(purge_BgSelectColor);
+        m_detail->SetBackgroundColour(purge_BgSelectColor);
         if (m_check_btn) {
-            m_check_btn->SetBackgroundColour(BgSelectColor);
+            m_check_btn->SetBackgroundColour(purge_BgSelectColor);
             m_check_btn->Show();
         }
     } else {
-        m_btn->SetBackgroundColour(BgNormalColor);
-        m_label->SetBackgroundColour(BgNormalColor);
-        m_detail->SetBackgroundColour(BgNormalColor);
+        m_btn->SetBackgroundColour(purge_BgNormalColor);
+        m_label->SetBackgroundColour(purge_BgNormalColor);
+        m_detail->SetBackgroundColour(purge_BgNormalColor);
         if (m_check_btn) {
-            m_check_btn->SetBackgroundColour(BgNormalColor);
+            m_check_btn->SetBackgroundColour(purge_BgNormalColor);
             m_check_btn->Hide();
         }
     }
@@ -237,7 +245,7 @@ void PurgeModeBtnPanel::UpdateStatus()
     wxGetApp().UpdateDarkUIWin(this);
 }
 
-void PurgeModeBtnPanel::OnEnterWindow(wxMouseEvent &event)
+void PurgeModeBtnPanel::OnEnterWindow(wxMouseEvent& event)
 {
     if (!m_hover) {
         m_hover = true;
@@ -247,11 +255,12 @@ void PurgeModeBtnPanel::OnEnterWindow(wxMouseEvent &event)
     }
 }
 
-void PurgeModeBtnPanel::OnLeaveWindow(wxMouseEvent &event)
+void PurgeModeBtnPanel::OnLeaveWindow(wxMouseEvent& event)
 {
     if (m_hover) {
         wxPoint pos = this->ScreenToClient(wxGetMousePosition());
-        if (this->GetClientRect().Contains(pos)) return;
+        if (this->GetClientRect().Contains(pos))
+            return;
         m_hover = false;
         UpdateStatus();
         Refresh();

@@ -14,7 +14,6 @@
 #include <boost/bind/bind.hpp>
 
 using boost::optional;
-using boost::system::error_code;
 namespace endian = boost::endian;
 namespace asio = boost::asio;
 using boost::asio::ip::udp;
@@ -45,7 +44,7 @@ struct DnsName: public std::string
 		MAX_RECURSION = 10,     // Keep this low
 	};
 
-	static optional<DnsName> decode(const std::vector<char> &buffer, size_t &offset, unsigned depth = 0)
+	static boost::optional<DnsName> decode(const std::vector<char> &buffer, size_t &offset, unsigned depth = 0)
 	{
 		// Check offset sanity:
 		if (offset + 1 >= buffer.size()) {
@@ -163,7 +162,7 @@ struct DnsQuestion
 		, qclass(0)
 	{}
 
-	static optional<DnsQuestion> decode(const std::vector<char> &buffer, size_t &offset)
+	static boost::optional<DnsQuestion> decode(const std::vector<char> &buffer, size_t &offset)
 	{
 		auto qname = DnsName::decode(buffer, offset);
 		if (!qname) {
@@ -195,7 +194,7 @@ struct DnsResource
 		, ttl(0)
 	{}
 
-	static optional<DnsResource> decode(const std::vector<char> &buffer, size_t &offset, size_t &dataoffset)
+	static boost::optional<DnsResource> decode(const std::vector<char> &buffer, size_t &offset, size_t &dataoffset)
 	{
 		const size_t bsize = buffer.size();
 		if (offset + 1 >= bsize) {
@@ -239,7 +238,7 @@ struct DnsRR_A
 	asio::ip::address_v4 ip;
 	std::string name;
 
-	static void decode(optional<DnsRR_A> &result, const DnsResource &rr)
+	static void decode(boost::optional<DnsRR_A> &result, const DnsResource &rr)
 	{
 		if (rr.data.size() == 4) {
 			DnsRR_A res;
@@ -257,7 +256,7 @@ struct DnsRR_AAAA
 	asio::ip::address_v6 ip;
 	std::string name;
 
-	static void decode(optional<DnsRR_AAAA> &result, const DnsResource &rr)
+	static void decode(boost::optional<DnsRR_AAAA> &result, const DnsResource &rr)
 	{
 		if (rr.data.size() == 16) {
 			DnsRR_AAAA res;
@@ -282,7 +281,7 @@ struct DnsRR_SRV
 	uint16_t port;
 	DnsName hostname;
 
-	static optional<DnsRR_SRV> decode(const std::vector<char> &buffer, const DnsResource &rr, size_t dataoffset)
+	static boost::optional<DnsRR_SRV> decode(const std::vector<char> &buffer, const DnsResource &rr, size_t dataoffset)
 	{
 		if (rr.data.size() < MIN_SIZE) {
 			return boost::none;
@@ -316,7 +315,7 @@ struct DnsRR_TXT
 
 	BonjourReply::TxtData data;
 
-	static optional<DnsRR_TXT> decode(const DnsResource &rr, const Bonjour::TxtKeys &txt_keys)
+	static boost::optional<DnsRR_TXT> decode(const DnsResource &rr, const Bonjour::TxtKeys &txt_keys)
 	{
 		const size_t size = rr.data.size();
 		if (size < 2) {
@@ -355,8 +354,8 @@ struct DnsRR_TXT
 
 struct DnsSDPair
 {
-	optional<DnsRR_SRV> srv;
-	optional<DnsRR_TXT> txt;
+	boost::optional<DnsRR_SRV> srv;
+	boost::optional<DnsRR_TXT> txt;
 };
 
 struct DnsSDMap : public std::map<std::string, DnsSDPair>
@@ -395,15 +394,15 @@ struct DnsMessage
 	};
 
 	DnsHeader header;
-	optional<DnsQuestion> question;
+	boost::optional<DnsQuestion> question;
 
-	optional<DnsRR_A> rr_a;
-	optional<DnsRR_AAAA> rr_aaaa;
+	boost::optional<DnsRR_A> rr_a;
+	boost::optional<DnsRR_AAAA> rr_aaaa;
 	std::vector<DnsRR_SRV> rr_srv;
 
 	DnsSDMap sdmap;
 
-	static optional<DnsMessage> decode(const std::vector<char>& buffer, const Bonjour::TxtKeys& txt_keys)
+	static boost::optional<DnsMessage> decode(const std::vector<char>& buffer, const Bonjour::TxtKeys& txt_keys)
 	{
 		const auto size = buffer.size();
 		if (size < DnsHeader::SIZE + DnsQuestion::MIN_SIZE || size > MAX_SIZE) {
@@ -491,7 +490,7 @@ const asio::ip::address_v4 BonjourRequest::MCAST_IP4{ 0xe00000fb };
 const asio::ip::address_v6 BonjourRequest::MCAST_IP6 = asio::ip::make_address_v6("ff02::fb");
 const uint16_t BonjourRequest::MCAST_PORT = 5353;
 
-optional<BonjourRequest> BonjourRequest::make_PTR(const std::string &service, const std::string &protocol)
+boost::optional<BonjourRequest> BonjourRequest::make_PTR(const std::string &service, const std::string &protocol)
 {
 	if (service.size() > 15 || protocol.size() > 15) {
 		return boost::none;
@@ -529,7 +528,7 @@ optional<BonjourRequest> BonjourRequest::make_PTR(const std::string &service, co
 	return BonjourRequest(std::move(data));
 }
 
-optional<BonjourRequest> BonjourRequest::make_A(const std::string& hostname)
+boost::optional<BonjourRequest> BonjourRequest::make_A(const std::string& hostname)
 {
 	// todo: why is this and what is real max
 	if (hostname.size() > 30) {
@@ -564,7 +563,7 @@ optional<BonjourRequest> BonjourRequest::make_A(const std::string& hostname)
 	return BonjourRequest(std::move(data));
 }
 
-optional<BonjourRequest> BonjourRequest::make_AAAA(const std::string& hostname)
+boost::optional<BonjourRequest> BonjourRequest::make_AAAA(const std::string& hostname)
 {
 	// todo: why is this and what is real max
 	if (hostname.size() > 30) {
@@ -721,7 +720,7 @@ SharedSession LookupSocket::create_session() const
 }
 
 
-void LookupSession::handle_receive(const error_code& error, size_t bytes)
+void LookupSession::handle_receive(const boost::system::error_code& error, size_t bytes)
 {
 	assert(socket);
 
@@ -771,7 +770,7 @@ SharedSession ResolveSocket::create_session() const
 }
 
 
-void ResolveSession::handle_receive(const error_code& error, size_t bytes)
+void ResolveSession::handle_receive(const boost::system::error_code& error, size_t bytes)
 {
 	assert(socket);
 	if (error) {
@@ -921,7 +920,7 @@ void Bonjour::priv::lookup_perform()
 		// timer settings
 		asio::deadline_timer timer(*io_service);
 		retries--;
-		std::function<void(const error_code&)> timer_handler = [&](const error_code& error) {
+		std::function<void(const boost::system::error_code&)> timer_handler = [&](const boost::system::error_code& error) {
 			// end 
 			if (retries == 0 || error) {
 				// is this correct ending?
@@ -1014,7 +1013,7 @@ void Bonjour::priv::resolve_perform()
 		// timer settings
 		asio::deadline_timer timer(*io_service);
 		retries--;
-		std::function<void(const error_code&)> timer_handler = [&](const error_code& error) {
+		std::function<void(const boost::system::error_code&)> timer_handler = [&](const boost::system::error_code& error) {
 			int replies_count = replies.size();
 			// end 
 			if (retries == 0 || error || replies_count > 0) {

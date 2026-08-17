@@ -22,7 +22,7 @@ public:
 private:
     SpinInput*   m_count_spin;
     int          m_count;
-    CheckBox*    m_arrange_cb;
+    ::CheckBox*    m_arrange_cb;
     Plater*      m_plater;
     ProgressBar* m_progress;
     AppConfig*   m_config;

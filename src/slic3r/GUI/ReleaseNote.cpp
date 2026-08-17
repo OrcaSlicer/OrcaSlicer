@@ -331,7 +331,7 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
         EndModal(wxID_NO);
     });
 
-    m_cb_stable_only = new CheckBox(this);
+    m_cb_stable_only = new ::CheckBox(this);
     m_cb_stable_only->SetValue(wxGetApp().app_config->get_bool("check_stable_update_only"));
     m_cb_stable_only->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
         wxGetApp().app_config->set_bool("check_stable_update_only", m_cb_stable_only->GetValue());

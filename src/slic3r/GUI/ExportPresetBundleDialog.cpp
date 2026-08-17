@@ -67,6 +67,8 @@ void ExportPresetBundleDialog::on_script_message(const nlohmann::json& j)
     }
 }
 
+namespace {
+
 static std::string get_machine_name(const std::string& preset_name)
 {
     size_t index_at = preset_name.find_last_of("@");
@@ -114,6 +116,8 @@ static std::string get_curr_time(const char* format = "%Y_%m_%d_%H_%M_%S")
     std::string current_time = time_stream.str();
     return current_time;
 }
+
+} // namespace
 
 static mz_bool initial_zip_archive(mz_zip_archive& zip_archive, const std::string& file_path)
 {

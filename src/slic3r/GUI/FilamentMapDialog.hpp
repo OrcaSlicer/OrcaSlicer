@@ -85,7 +85,7 @@ private:
 
     Button* m_ok_btn;
     Button* m_cancel_btn;
-    CheckBox* m_checkbox;
+    ::CheckBox* m_checkbox;
     SmartFilamentPanel* m_smart_filament{nullptr};
 
     bool m_fila_switch_ready{false};

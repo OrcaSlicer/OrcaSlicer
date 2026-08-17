@@ -70,26 +70,26 @@ protected:
 
     wxPanel *     m_panel_body;
     wxPanel*      m_panel_Insert_material;
-    CheckBox *    m_checkbox_Insert_material_auto_read;
+    ::CheckBox *    m_checkbox_Insert_material_auto_read;
     wxStaticText *m_title_Insert_material_auto_read;
     Label* m_tip_Insert_material_line1;
     Label* m_tip_Insert_material_line2;
     Label* m_tip_Insert_material_line3;
 
-    CheckBox *    m_checkbox_starting_auto_read;
+    ::CheckBox *    m_checkbox_starting_auto_read;
     wxStaticText *m_title_starting_auto_read;
     Label* m_tip_starting_line1;
     Label* m_tip_starting_line2;
 
-    CheckBox *    m_checkbox_remain;
+    ::CheckBox *    m_checkbox_remain;
     wxStaticText *m_title_remain;
     Label* m_tip_remain_line1;
 
-    CheckBox* m_checkbox_switch_filament;
+    ::CheckBox* m_checkbox_switch_filament;
     wxStaticText* m_title_switch_filament;
     Label* m_tip_switch_filament_line1;
 
-    CheckBox* m_checkbox_air_print;
+    ::CheckBox* m_checkbox_air_print;
     wxStaticText* m_title_air_print;
     Label* m_tip_air_print_line;
 

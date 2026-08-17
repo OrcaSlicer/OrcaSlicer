@@ -20,6 +20,7 @@
 using namespace Slic3r;
 using namespace Slic3r::GUI;
 
+namespace {
 int objcolor_scale(const int val) { return val * Slic3r::GUI::wxGetApp().em_unit() / 10; }
 int OBJCOLOR_ITEM_WIDTH() { return objcolor_scale(30); }
 static const wxColour g_text_color = wxColour(107, 107, 107, 255);
@@ -29,6 +30,7 @@ const int CONTENT_BORDER = 3;
 const int PANEL_WIDTH = 400;
 const int COLOR_LABEL_WIDTH = 180;
 const int  IMAGE_SIZE_WIDTH = 300;
+} // namespace
 #define MIN_OBJCOLOR_DIALOG_WIDTH FromDIP(400)
 #define FIX_SCROLL_HEIGTH         FromDIP(400)
 #define BTN_SIZE                wxSize(FromDIP(58), FromDIP(24))
@@ -941,3 +943,9 @@ wxBoxSizer *ObjColorPanel::create_color_icon_map_rgba_sizer(wxWindow *parent, in
     icon_sizer->Add(m_result_icon_list[id]->bitmap_combox, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 0);
     return icon_sizer;
 }
+
+#undef MIN_OBJCOLOR_DIALOG_WIDTH
+#undef FIX_SCROLL_HEIGTH
+#undef BTN_SIZE
+#undef BTN_GAP
+#undef FIX_SCROLL_IMAGE_WIDTH

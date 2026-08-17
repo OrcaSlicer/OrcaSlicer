@@ -657,8 +657,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/Bonjour.hpp
     Utils/CalibUtils.cpp
     Utils/CalibUtils.hpp
-    Utils/ColorSpaceConvert.cpp
-    Utils/ColorSpaceConvert.hpp
+    Utils/ColorConvert.cpp
+    Utils/ColorConvert.hpp
     Utils/CrealityPrint.cpp
     Utils/CrealityPrint.hpp
     Utils/CrealityPrintAgent.cpp
@@ -898,6 +898,58 @@ if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
     add_precompiled_header(libslic3r_gui pchheader.hpp FORCEINCLUDE)
 endif ()
 
+if (SLIC3R_UNITY_BUILD)
+    if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.16)
+        set_target_properties(libslic3r_gui PROPERTIES
+            UNITY_BUILD ON
+            UNITY_BUILD_BATCH_SIZE ${SLIC3R_UNITY_BUILD_BATCH_SIZE})
+    else ()
+        message(WARNING "SLIC3R_UNITY_BUILD requires CMake >= 3.16; ignoring.")
+    endif ()
+endif ()
+
+# These files were previously excluded from UNITY_BUILD due to collisions when
+# merged into a unity translation unit. The collisions have been fixed in the
+# sources themselves (file-scope symbols renamed to unique names, leaked macros
+# undefined, GL headers ordered glad-before-wx, duplicate wxDEFINE_EVENT removed,
+# imgui math operators provided target-wide, X11 macros undefined, etc.), so
+# they are now compiled as part of the unity build.
+
+# GUI_App.cpp is excluded from the unity build due to a pre-existing ambiguity:
+# when merged into a unity TU, the `class CheckBox*` forward declaration in
+# Utils/wxInspectorPlugins/CustomWidgetsPlugin.hpp becomes ambiguous because two
+# `CheckBox` types are visible in the global namespace via `using namespace
+# Slic3r::GUI` from sibling files.
+set_source_files_properties(
+    GUI/GUI_App.cpp
+    PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+
+# The Objective-C++ sources (.mm) are also excluded from UNITY_BUILD: a unity
+# batch is compiled as C++ (.cxx), so merging an .mm file into it breaks the
+# Objective-C syntax (@class/@interface). They must be compiled standalone so
+# the compiler treats them as Objective-C++. These files only exist on Apple
+# platforms, so the exclusion is applied conditionally.
+if (APPLE)
+    # Apple framework headers used by these C++ sources expose legacy global
+    # names such as Point, Rect, and Size. Keep the framework-heavy sources in
+    # separate translation units so they cannot collide with Slic3r geometry
+    # and GUI types in a unity batch.
+    set_source_files_properties(
+        Utils/RetinaHelperImpl.mm
+        Utils/MacDarkMode.mm
+        Utils/Serial.cpp
+        GUI/RemovableDriveManagerMM.mm
+        GUI/Mouse3DHandlerMac.mm
+        GUI/InstanceCheckMac.mm
+        GUI/DeepLinkHandlerMac.mm
+        GUI/GUI_UtilsMac.mm
+        GUI/wxMediaCtrl2.mm
+        GUI/GUI.cpp
+        GUI/SendSystemInfoDialog.cpp
+        GUI/TroubleshootDialog.cpp
+        PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+endif ()
+
 # We need to implement some hacks for wxWidgets and touch the underlying GTK
 # layer and sub-libraries. This forces us to use the include locations and
 # link these libraries.
@@ -934,11 +986,17 @@ endif ()
 # Add a definition so that we can tell we are compiling slic3r.
 target_compile_definitions(libslic3r_gui PRIVATE SLIC3R_CURRENTLY_COMPILING_GUI_MODULE)
 
+# Define the ImGui math operators globally so that imgui_internal.h always
+# provides ImVec2 operator+/-/* regardless of which file includes it first in a
+# unity translation unit. Files that define IMGUI_DEFINE_MATH_OPERATORS locally
+# are unaffected (their #ifndef guard makes the define a no-op).
+target_compile_definitions(libslic3r_gui PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
+
 if(ORCA_BUNDLED_UV_EXECUTABLE_CONFIG)
     target_compile_definitions(libslic3r_gui PRIVATE "ORCA_BUNDLED_UV_EXECUTABLE=\"${ORCA_BUNDLED_UV_EXECUTABLE_CONFIG}\"")
 endif()
 
-if (ORCA_BUILD_PYTHON_STUBGEN_MODULE)
+if (ORCA_TOOLS)
     add_library(orca_stubgen MODULE
         plugin/PythonPluginBridge.cpp
     )

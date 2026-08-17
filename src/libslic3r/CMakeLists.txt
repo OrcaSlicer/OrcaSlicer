@@ -98,6 +98,8 @@ set(lisbslic3r_sources
     ClipperZUtils.hpp
     Color.cpp
     Color.hpp
+    ColorSpaceConvert.cpp
+    ColorSpaceConvert.hpp
     CommonDefs.hpp
     Config.cpp
     Config.hpp
@@ -313,6 +315,7 @@ set(lisbslic3r_sources
     MutablePriorityQueue.hpp
     NormalUtils.cpp
     NormalUtils.hpp
+    NSVGImpl.cpp
     NSVGUtils.cpp
     NSVGUtils.hpp
     ObjColorUtils.cpp
@@ -646,3 +649,48 @@ endif()
 if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
     add_precompiled_header(libslic3r pchheader.hpp FORCEINCLUDE)
 endif ()
+
+if (SLIC3R_UNITY_BUILD)
+    if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.16)
+        set_target_properties(libslic3r PROPERTIES
+            UNITY_BUILD ON
+            UNITY_BUILD_BATCH_SIZE ${SLIC3R_UNITY_BUILD_BATCH_SIZE})
+    else ()
+        message(WARNING "SLIC3R_UNITY_BUILD requires CMake >= 3.16; ignoring.")
+    endif ()
+endif ()
+
+# These files are excluded from UNITY_BUILD due to pre-existing unity-build
+# issues that are not worth fixing:
+#   - MinAreaBoundingBox.cpp pulls in libnest2d's geometries.hpp, whose
+#     operator+(const Point&, const Point&) conflicts with Eigen's operator+
+#     for Point + Eigen::CwiseUnaryOp in sibling files (MultiMaterialSegmentation.cpp,
+#     MutablePolygon.cpp).
+#   - Format/svg.cpp, in namespace Slic3r, its unqualified nsvgParseFromFile(path,
+#     "mm", 96.0f) call resolves to the Slic3r NSVGUtils wrapper (returns
+#     NSVGimage_ptr) instead of the global nanosvg raw function when NSVGUtils.hpp
+#     is visible in the same unity TU.
+#   - NSVGImpl.cpp emits the single-header nanosvg implementation. The nanosvg
+#     public functions are external symbols, so they must be emitted in exactly
+#     one TU. Excluding this file keeps it as its own TU so the implementation
+#     is emitted exactly once (a unity sibling could otherwise include nanosvg.h
+#     first and suppress it via the include guard).
+# Compile them standalone instead.
+set_source_files_properties(
+    MinAreaBoundingBox.cpp
+    Format/svg.cpp
+    NSVGImpl.cpp
+    PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+
+# The Objective-C++ sources (.mm) are also excluded from UNITY_BUILD: a unity
+# batch is compiled as C++ (.cxx), so merging an .mm file into it breaks the
+# Objective-C syntax (@class/@interface). They must be compiled standalone so
+# the compiler treats them as Objective-C++. These files only exist on Apple
+# platforms, so the exclusion is applied conditionally.
+if (APPLE)
+    set_source_files_properties(
+        MacUtils.mm
+        Format/ModelIO.mm
+        PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+endif ()
+

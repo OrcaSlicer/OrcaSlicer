@@ -104,7 +104,7 @@ private:
     // table head
     wxPanel* m_table_head_panel{ nullptr };
     wxBoxSizer* m_table_head_sizer{ nullptr };
-    CheckBox* m_select_checkbox{ nullptr };
+    ::CheckBox* m_select_checkbox{ nullptr };
     Button* m_task_name{ nullptr };
     Button* m_printer_name{ nullptr };
     Button* m_status{ nullptr };
@@ -182,7 +182,7 @@ private:
     // table head
     wxPanel*                    m_table_head_panel{ nullptr };
     wxBoxSizer*                 m_table_head_sizer{ nullptr };
-    CheckBox*                   m_select_checkbox{ nullptr };
+    ::CheckBox*                   m_select_checkbox{ nullptr };
     Button*                     m_task_name{ nullptr };
     Button*                     m_printer_name{ nullptr };
     Button*                     m_status{ nullptr };

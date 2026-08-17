@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.13)
 project(OrcaSlicer-native)
 
+# Unity/jumbo build for the core libraries. Opt-in; requires CMake >= 3.16.
+# UNITY_BUILD_BATCH_SIZE 0 means a single unity translation unit.
+option(SLIC3R_UNITY_BUILD "Compile OrcaSlicer libraries with CMake UNITY_BUILD (unity/jumbo build)" OFF)
+set(SLIC3R_UNITY_BUILD_BATCH_SIZE 8 CACHE STRING "Number of source files per unity build batch (default 8)")
+if (NOT SLIC3R_UNITY_BUILD_BATCH_SIZE MATCHES "^[0-9]+$")
+    message(FATAL_ERROR "SLIC3R_UNITY_BUILD_BATCH_SIZE must be a non-negative integer")
+endif ()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

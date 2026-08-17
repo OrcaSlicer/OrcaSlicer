@@ -15,6 +15,13 @@ on:
       force-build:
         required: false
         type: boolean
+      unity-build:
+        required: false
+        type: boolean
+        default: false
+      unity-batch-size:
+        required: false
+        type: string
   
 jobs:
   check_cache: # determines if there is a cache and outputs variables used in caching process
@@ -64,4 +71,6 @@ jobs:
       arch: ${{ inputs.arch }}
       build-deps-only: ${{ inputs.build-deps-only }}
       force-build: ${{ inputs.force-build }}
+      unity-build: ${{ inputs.unity-build }}
+      unity-batch-size: ${{ inputs.unity-batch-size }}
     secrets: inherit

@@ -4,6 +4,11 @@
 #include "wxExtensions.hpp"
 #include "Widgets/StaticBox.hpp"
 
+// Shared by TabButton and Tabbook; defined here so both files can use them
+// without colliding when merged into a unity translation unit.
+static const wxColour TAB_BUTTON_BG  = wxColour("#FEFFFF");
+static const wxColour TAB_BUTTON_SEL = wxColour("#BFE1DE"); // ORCA
+
 class TabButton : public StaticBox
 {
     wxSize   textSize;

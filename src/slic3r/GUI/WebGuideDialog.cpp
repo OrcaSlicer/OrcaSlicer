@@ -627,6 +627,7 @@ void GuideFrame::OnError(wxWebViewEvent &evt)
         WX_ERROR_CASE(wxWEBVIEW_NAV_ERR_USER_CANCELLED);
         WX_ERROR_CASE(wxWEBVIEW_NAV_ERR_OTHER);
     }
+#undef WX_ERROR_CASE
 
     // wxLogMessage("%s", "Error; url='" + evt.GetURL() + "', error='" +
     // category + " (" + evt.GetString() + ")'");
@@ -1304,6 +1305,8 @@ int GuideFrame::SaveProfileData()
     return 0;
 }
 
+namespace {
+
 void StringReplace(string &strBase, string strSrc, string strDes)
 {
     string::size_type pos    = 0;
@@ -1315,6 +1318,8 @@ void StringReplace(string &strBase, string strSrc, string strDes)
         pos = strBase.find(strSrc, (pos + desLen));
     }
 }
+
+} // namespace
 
 
 int GuideFrame::LoadProfileFamily(std::string strVendor, std::string strFilePath)

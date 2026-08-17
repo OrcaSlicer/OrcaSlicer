@@ -552,7 +552,7 @@ LocalTaskManagerPage::LocalTaskManagerPage(wxWindow* parent)
     m_table_head_panel->SetBackgroundColour(TABLE_HEAR_NORMAL_COLOUR);
     m_table_head_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_select_checkbox = new CheckBox(m_table_head_panel, wxID_ANY);
+    m_select_checkbox = new ::CheckBox(m_table_head_panel, wxID_ANY);
     m_select_checkbox->SetMinSize(wxSize(FromDIP(TASK_LEFT_PRINTABLE), FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
     m_select_checkbox->SetMaxSize(wxSize(FromDIP(TASK_LEFT_PRINTABLE), FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
     m_table_head_sizer->Add(m_select_checkbox, 0, wxALIGN_CENTER_VERTICAL, 0);
@@ -922,7 +922,7 @@ CloudTaskManagerPage::CloudTaskManagerPage(wxWindow* parent)
     m_table_head_panel->SetBackgroundColour(TABLE_HEAR_NORMAL_COLOUR);
     m_table_head_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_select_checkbox = new CheckBox(m_table_head_panel, wxID_ANY);
+    m_select_checkbox = new ::CheckBox(m_table_head_panel, wxID_ANY);
     m_select_checkbox->SetMinSize(wxSize(FromDIP(TASK_LEFT_PRINTABLE), FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
     m_select_checkbox->SetMaxSize(wxSize(FromDIP(TASK_LEFT_PRINTABLE), FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
     //m_table_head_sizer->AddSpacer(FromDIP(TASK_LEFT_PADDING_LEFT));

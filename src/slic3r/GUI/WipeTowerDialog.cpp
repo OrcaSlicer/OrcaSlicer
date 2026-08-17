@@ -58,14 +58,6 @@ RammingDialog::RammingDialog(wxWindow* parent,const std::string& parameters)
 }
 
 
-#ifdef _WIN32
-#define style wxSP_ARROW_KEYS | wxBORDER_SIMPLE
-#else 
-#define style wxSP_ARROW_KEYS
-#endif
-
-
-
 RammingPanel::RammingPanel(wxWindow* parent, const std::string& parameters)
 : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize/*,wxPoint(50,50), wxSize(800,350),wxBORDER_RAISED*/)
 {

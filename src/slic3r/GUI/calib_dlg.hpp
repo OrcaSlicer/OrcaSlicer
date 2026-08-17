@@ -41,7 +41,7 @@ protected:
 	TextInput* m_tiStartPA;
 	TextInput* m_tiEndPA;
 	TextInput* m_tiPAStep;
-	CheckBox* m_cbPrintNum;
+	::CheckBox* m_cbPrintNum;
 	TextInput* m_tiBMAccels;
 	TextInput* m_tiBMSpeeds;
 
@@ -65,7 +65,7 @@ protected:
     TextInput* m_tiStart;
     TextInput* m_tiEnd;
     TextInput* m_tiStep;
-    CheckBox*  m_cbResize;
+    ::CheckBox*  m_cbResize;
     Plater* m_plater;
 };
 
@@ -100,8 +100,8 @@ protected:
     TextInput* m_tiStart;
     TextInput* m_tiEnd;
     TextInput* m_tiStep;
-    CheckBox*  m_cbAutoAdjust;
-    CheckBox*  m_cbResize;
+    ::CheckBox*  m_cbAutoAdjust;
+    ::CheckBox*  m_cbResize;
     Plater* m_plater;
 };
 

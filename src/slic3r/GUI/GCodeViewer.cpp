@@ -28,8 +28,9 @@
 #include "Widgets/ProgressDialog.hpp"
 #include "MsgDialog.hpp"
 
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
-
+#endif
 #include <imgui/imgui_internal.h>
 
 #include <glad/gl.h>

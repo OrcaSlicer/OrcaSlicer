@@ -8,6 +8,7 @@
 #include "Plater.hpp"
 #include "NotificationManager.hpp"
 
+#include <glad/gl.h>
 #include <wx/glcanvas.h>
 
 #include <boost/nowide/convert.hpp>

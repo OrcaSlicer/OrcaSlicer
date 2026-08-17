@@ -4,7 +4,7 @@ set -e
 set -o pipefail
 SECONDS=0
 
-while getopts ":dpa:snt:xbc:i:1Tuh" opt; do
+while getopts ":dpa:snt:xbc:i:1TuhUB:" opt; do
   case "${opt}" in
     d )
         export BUILD_TARGET="deps"
@@ -47,6 +47,13 @@ while getopts ":dpa:snt:xbc:i:1Tuh" opt; do
     u )
         export BUILD_TARGET="universal"
         ;;
+    U )
+        export UNITY_BUILD="1"
+        ;;
+    B )
+        export UNITY_BUILD="1"
+        export UNITY_BATCH_SIZE="$OPTARG"
+        ;;
     h ) echo "Usage: ./build_release_macos.sh [-d]"
         echo "   -d: Build deps only"
         echo "   -a: Set ARCHITECTURE (arm64 or x86_64 or universal)"
@@ -60,6 +67,8 @@ while getopts ":dpa:snt:xbc:i:1Tuh" opt; do
         echo "   -i: Add a prefix to ignore during CMake dependency discovery (repeatable), defaults to /opt/local:/usr/local:/opt/homebrew"
         echo "   -1: Use single job for building"
         echo "   -T: Build and run tests (set ORCA_TESTS_BUILD_ONLY=1 to build without running)"
+        echo "   -U: enable CMake UNITY_BUILD (unity/jumbo build) for libslic3r and libslic3r_gui"
+        echo "   -B: set UNITY_BUILD batch size (implies -U; default 8)"
         exit 0
         ;;
     * )
@@ -260,6 +269,9 @@ function build_slicer() {
                     -DORCA_TOOLS=ON \
                     ${ORCA_UPDATER_SIG_KEY:+-DORCA_UPDATER_SIG_KEY="$ORCA_UPDATER_SIG_KEY"} \
                     ${BUILD_TESTS:+-DBUILD_TESTS=ON} \
+                    ${UNITY_BUILD:+-DSLIC3R_UNITY_BUILD=ON} \
+                    ${UNITY_BATCH_SIZE:+-DSLIC3R_UNITY_BUILD_BATCH_SIZE="$UNITY_BATCH_SIZE"} \
+                    ${ORCA_UNITY_BUILD_BATCH_SIZE:+-DSLIC3R_UNITY_BUILD_BATCH_SIZE="$ORCA_UNITY_BUILD_BATCH_SIZE"} \
                     -DCMAKE_BUILD_TYPE="$BUILD_CONFIG" \
                     -DCMAKE_OSX_ARCHITECTURES="${_ARCH}" \
                     -DCMAKE_OSX_DEPLOYMENT_TARGET="${OSX_DEPLOYMENT_TARGET}" \

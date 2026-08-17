@@ -1,6 +1,6 @@
 #include <cmath>
 #include <assert.h>
-#include "slic3r/Utils/ColorSpaceConvert.hpp"
+#include "ColorSpaceConvert.hpp"
 #include "Utils.hpp"
 #include "FlushVolCalc.hpp"
 

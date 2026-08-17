@@ -1,42 +1,47 @@
 #include "PrivacyUpdateDialog.hpp"
 #include "GUI_App.hpp"
-#include "BitmapCache.hpp"
 #include <wx/dcgraph.h>
 #include <slic3r/GUI/I18N.hpp>
-
 
 namespace Slic3r { namespace GUI {
 
 wxDEFINE_EVENT(EVT_PRIVACY_UPDATE_CONFIRM, wxCommandEvent);
 wxDEFINE_EVENT(EVT_PRIVACY_UPDATE_CANCEL, wxCommandEvent);
 
-static std::string url_encode(const std::string& value) {
-	std::ostringstream escaped;
-	escaped.fill('0');
-	escaped << std::hex;
-	for (std::string::const_iterator i = value.begin(), n = value.end(); i != n; ++i) {
-		std::string::value_type c = (*i);
+static std::string url_encode_privacy(const std::string& value)
+{
+    std::ostringstream escaped;
+    escaped.fill('0');
+    escaped << std::hex;
+    for (std::string::const_iterator i = value.begin(), n = value.end(); i != n; ++i) {
+        std::string::value_type c = (*i);
 
-		// Keep alphanumeric and other accepted characters intact
-		if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
-			escaped << c;
-			continue;
-		}
+        // Keep alphanumeric and other accepted characters intact
+        if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+            escaped << c;
+            continue;
+        }
 
-		// Any other characters are percent-encoded
-		escaped << std::uppercase;
-		escaped << '%' << std::setw(2) << int((unsigned char)c);
-		escaped << std::nouppercase;
-	}
-	return escaped.str();
+        // Any other characters are percent-encoded
+        escaped << std::uppercase;
+        escaped << '%' << std::setw(2) << int((unsigned char) c);
+        escaped << std::nouppercase;
+    }
+    return escaped.str();
 }
 
-PrivacyUpdateDialog::PrivacyUpdateDialog(wxWindow* parent, wxWindowID id, const wxString& title, enum VisibleButtons btn_style, const wxPoint& pos, const wxSize& size, long style) // ORCA VisibleButtons instead ButtonStyle 
-    :DPIDialog(parent, id, title, pos, size, style)
+PrivacyUpdateDialog::PrivacyUpdateDialog(wxWindow* parent,
+                                         wxWindowID id,
+                                         const wxString& title,
+                                         enum VisibleButtons btn_style,
+                                         const wxPoint& pos,
+                                         const wxSize& size,
+                                         long style) // ORCA VisibleButtons instead ButtonStyle
+    : DPIDialog(parent, id, title, pos, size, style)
 {
     SetBackgroundColour(*wxWHITE);
-    m_sizer_main = new wxBoxSizer(wxVERTICAL);
-    auto        m_line_top = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(540), 1));
+    m_sizer_main    = new wxBoxSizer(wxVERTICAL);
+    auto m_line_top = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(540), 1));
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
     m_sizer_main->Add(m_line_top, 0, wxEXPAND, 0);
     m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(5));
@@ -44,7 +49,7 @@ PrivacyUpdateDialog::PrivacyUpdateDialog(wxWindow* parent, wxWindowID id, const 
     wxBoxSizer* m_sizer_right = new wxBoxSizer(wxVERTICAL);
 
     m_sizer_right->Add(0, 0, 1, wxTOP, FromDIP(15));
-    //webview
+    // webview
     m_vebview_release_note = CreateTipView(this);
     if (m_vebview_release_note == nullptr) {
         wxLogError("Could not init m_browser");
@@ -69,13 +74,13 @@ PrivacyUpdateDialog::PrivacyUpdateDialog(wxWindow* parent, wxWindowID id, const 
 #else
     m_vebview_release_note->Bind(wxEVT_WEBVIEW_NAVIGATED, [this](auto& e) {
 #endif
-         if (!m_mkdown_text.empty()) {
-             ShowReleaseNote(m_mkdown_text);
-         }
-         e.Skip();
+        if (!m_mkdown_text.empty()) {
+            ShowReleaseNote(m_mkdown_text);
+        }
+        e.Skip();
     });
 
-    //m_vebview_release_note->Bind(wxEVT_WEBVIEW_NAVIGATING , &PrivacyUpdateDialog::OnNavigating, this);
+    // m_vebview_release_note->Bind(wxEVT_WEBVIEW_NAVIGATING , &PrivacyUpdateDialog::OnNavigating, this);
 
     m_button_ok = new Button(this, _L("Accept"));
     m_button_ok->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
@@ -95,9 +100,9 @@ PrivacyUpdateDialog::PrivacyUpdateDialog(wxWindow* parent, wxWindowID id, const 
         e.SetEventObject(this);
         GetEventHandler()->ProcessEvent(evt);
         this->on_hide();
-        });
+    });
 
-    Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& e) {e.Veto(); });
+    Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& e) { e.Veto(); });
 
     if (btn_style != CONFIRM_AND_CANCEL)
         m_button_cancel->Hide();
@@ -122,8 +127,8 @@ PrivacyUpdateDialog::PrivacyUpdateDialog(wxWindow* parent, wxWindowID id, const 
 
 wxWebView* PrivacyUpdateDialog::CreateTipView(wxWindow* parent)
 {
-	wxWebView* tipView = WebView::CreateWebView(parent, "");
-	return tipView;
+    wxWebView* tipView = WebView::CreateWebView(parent, "");
+    return tipView;
 }
 
 void PrivacyUpdateDialog::OnNavigating(wxWebViewEvent& event)
@@ -132,15 +137,14 @@ void PrivacyUpdateDialog::OnNavigating(wxWebViewEvent& event)
     if (jump_url != m_host_url) {
         event.Veto();
         wxLaunchDefaultBrowser(jump_url);
-    }
-    else {
+    } else {
         event.Skip();
     }
 }
 
 bool PrivacyUpdateDialog::ShowReleaseNote(std::string content)
 {
-	auto script = "window.showMarkdown('" + url_encode(content) + "', true);";
+    auto script = "window.showMarkdown('" + url_encode_privacy(content) + "', true);";
     RunScript(script);
     return true;
 }
@@ -161,10 +165,7 @@ void PrivacyUpdateDialog::on_show()
     this->ShowModal();
 }
 
-void PrivacyUpdateDialog::on_hide()
-{
-    EndModal(wxID_OK);
-}
+void PrivacyUpdateDialog::on_hide() { EndModal(wxID_OK); }
 
 void PrivacyUpdateDialog::update_btn_label(wxString ok_btn_text, wxString cancel_btn_text)
 {
@@ -173,15 +174,9 @@ void PrivacyUpdateDialog::update_btn_label(wxString ok_btn_text, wxString cancel
     rescale();
 }
 
-PrivacyUpdateDialog::~PrivacyUpdateDialog()
-{
+PrivacyUpdateDialog::~PrivacyUpdateDialog() {}
 
-}
-
-void PrivacyUpdateDialog::on_dpi_changed(const wxRect& suggested_rect)
-{
-    rescale();
-}
+void PrivacyUpdateDialog::on_dpi_changed(const wxRect& suggested_rect) { rescale(); }
 
 void PrivacyUpdateDialog::rescale()
 {

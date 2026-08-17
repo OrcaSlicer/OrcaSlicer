@@ -77,25 +77,25 @@ class PrintOptionsDialog : public DPIDialog
 protected:
     // settings
     wxScrolledWindow* m_scrollwindow;
-    CheckBox* m_cb_first_layer;
-    CheckBox *        m_cb_ai_monitoring;
-    CheckBox* m_cb_spaghetti_detection;
-    CheckBox* m_cb_purgechutepileup_detection;
-    CheckBox* m_cb_nozzleclumping_detection;
-    CheckBox* m_cb_airprinting_detection;
-    CheckBox* m_cb_plate_mark;
-    CheckBox* m_cb_auto_recovery;
-    CheckBox* m_cb_save_remote_print_file_to_storage;
-    CheckBox* m_cb_sup_sound;
-    CheckBox* m_cb_filament_tangle;
-    CheckBox* m_cb_nozzle_blob;
-    CheckBox* m_cb_open_door;
+    ::CheckBox* m_cb_first_layer;
+    ::CheckBox *        m_cb_ai_monitoring;
+    ::CheckBox* m_cb_spaghetti_detection;
+    ::CheckBox* m_cb_purgechutepileup_detection;
+    ::CheckBox* m_cb_nozzleclumping_detection;
+    ::CheckBox* m_cb_airprinting_detection;
+    ::CheckBox* m_cb_plate_mark;
+    ::CheckBox* m_cb_auto_recovery;
+    ::CheckBox* m_cb_save_remote_print_file_to_storage;
+    ::CheckBox* m_cb_sup_sound;
+    ::CheckBox* m_cb_filament_tangle;
+    ::CheckBox* m_cb_nozzle_blob;
+    ::CheckBox* m_cb_open_door;
     // Firmware print-option toggles (each gated on a fun2 capability bit).
-    CheckBox* m_cb_plate_align{nullptr};
-    CheckBox* m_cb_fod_check{nullptr};
-    CheckBox* m_cb_displacement_detection{nullptr};
-    CheckBox* m_cb_purify_air_at_print_end{nullptr};
-    CheckBox* m_cb_snapshot_enable{nullptr};
+    ::CheckBox* m_cb_plate_align{nullptr};
+    ::CheckBox* m_cb_fod_check{nullptr};
+    ::CheckBox* m_cb_displacement_detection{nullptr};
+    ::CheckBox* m_cb_purify_air_at_print_end{nullptr};
+    ::CheckBox* m_cb_snapshot_enable{nullptr};
     Label* text_first_layer;
     Label* text_ai_detections;
     Label* text_ai_detections_caption;

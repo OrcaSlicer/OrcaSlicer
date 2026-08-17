@@ -80,6 +80,7 @@ static bool load_hfont(void *hfont, DWORD &dwTable, DWORD &dwOffset, size_t &siz
 }
 #endif // _WIN32
 
+namespace {
 bool can_load(const wxFont &font)
 {
 #ifdef _WIN32
@@ -238,6 +239,8 @@ bool get_utf8_sub_strings(char *data, int len, std::vector<std::string> &out_str
     }
     return true;
 }
+
+} // namespace
 
 ///////////////////////
 /// GLGizmoText start

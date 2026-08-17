@@ -103,7 +103,7 @@ public:
     Label *           m_staticText_release_note{nullptr};
     wxStaticBitmap*   m_bitmap_open_in_browser;
     Button*           m_button_skip_version;
-    CheckBox*         m_cb_stable_only;
+    ::CheckBox*       m_cb_stable_only;
     Button*           m_button_download;
     Button*           m_button_cancel;
     std::string       url_line;

@@ -15,7 +15,8 @@ namespace Slic3r { namespace GUI {
 
 // CMGUO
 
-static std::string url_encode(const std::string& value) {
+static std::string url_encode_markdown(const std::string& value)
+{
     std::ostringstream escaped;
     escaped.fill('0');
     escaped << std::hex;
@@ -30,14 +31,14 @@ static std::string url_encode(const std::string& value) {
 
         // Any other characters are percent-encoded
         escaped << std::uppercase;
-        escaped << '%' << std::setw(2) << int((unsigned char)c);
+        escaped << '%' << std::setw(2) << int((unsigned char) c);
         escaped << std::nouppercase;
     }
     return escaped.str();
 }
 /*
  * Edge browser not support WebViewHandler
- * 
+ *
 class MyWebViewHandler : public wxWebViewArchiveHandler
 {
 public:
@@ -56,7 +57,7 @@ public:
         std::replace(url.begin(), url.end(), '\\', '/');
         auto uri2 = "file:///" + wxString(url) + ";protocol=zip" + uri.substr(n + 17);
         return wxWebViewArchiveHandler::GetFile(uri2);
-    } 
+    }
 };
 */
 
@@ -68,8 +69,7 @@ TODO:
 4. Use scheme handler to support zip archive & make code tidy
 */
 
-MarkdownTip::MarkdownTip()
-    : wxPopupTransientWindow(wxGetApp().mainframe, wxBORDER_NONE)
+MarkdownTip::MarkdownTip() : wxPopupTransientWindow(wxGetApp().mainframe, wxBORDER_NONE)
 {
     wxBoxSizer* topsizer = new wxBoxSizer(wxVERTICAL);
 
@@ -105,7 +105,7 @@ void MarkdownTip::LoadStyle()
     _lastTip.clear();
 }
 
-bool MarkdownTip::ShowTip(wxPoint pos, std::string const &tip, std::string const &tooltip)
+bool MarkdownTip::ShowTip(wxPoint pos, std::string const& tip, std::string const& tooltip)
 {
     if (tip.empty()) {
         if (_tipView->GetParent() != this)
@@ -114,8 +114,7 @@ bool MarkdownTip::ShowTip(wxPoint pos, std::string const &tip, std::string const
             _hide = true;
             BOOST_LOG_TRIVIAL(info) << "MarkdownTip::ShowTip: hide soon on empty tip.";
             this->Hide();
-        }
-        else if (!_hide) {
+        } else if (!_hide) {
             _hide = true;
             BOOST_LOG_TRIVIAL(info) << "MarkdownTip::ShowTip: start hide timer (300)...";
             _timer->StartOnce(300);
@@ -131,11 +130,10 @@ bool MarkdownTip::ShowTip(wxPoint pos, std::string const &tip, std::string const
             BOOST_LOG_TRIVIAL(info) << "MarkdownTip::ShowTip: hide soon on empty content.";
             return false;
         }
-        auto script = "window.showMarkdown('" + url_encode(content) + "', true);";
+        auto script = "window.showMarkdown('" + url_encode_markdown(content) + "', true);";
         if (!_pendingScript.empty()) {
             _pendingScript = script;
-        }
-        else {
+        } else {
             RunScript(script);
         }
         _lastTip = tip;
@@ -157,15 +155,15 @@ bool MarkdownTip::ShowTip(wxPoint pos, std::string const &tip, std::string const
     return true;
 }
 
-std::string MarkdownTip::LoadTip(std::string const &tip, std::string const &tooltip)
+std::string MarkdownTip::LoadTip(std::string const& tip, std::string const& tooltip)
 {
     fs::path ph;
     wxString file;
-    wxFile   f;
+    wxFile f;
     if (_data_dir) {
         if (!_language.empty()) {
             ph = data_dir();
-            ph /= "resources/tooltip/" + _language +  "/" + tip + ".md";
+            ph /= "resources/tooltip/" + _language + "/" + tip + ".md";
             file = from_u8(ph.string());
             if (wxFile::Exists(file) && f.Open(file)) {
                 std::string content(f.Length(), 0);
@@ -216,27 +214,23 @@ std::string MarkdownTip::LoadTip(std::string const &tip, std::string const &tool
         f.Read(&content[0], content.size());
         return content;
     }
-    if (!tooltip.empty()) return "#### " + _utf8(tip) + "\n" + tooltip;
+    if (!tooltip.empty())
+        return "#### " + _utf8(tip) + "\n" + tooltip;
     return (_tipView->GetParent() == this && tip.empty()) ? "" : LoadTip("", "");
 }
 
-void MarkdownTip::RunScript(std::string const& script)
-{
-    WebView::RunScript(_tipView, script);
-}
+void MarkdownTip::RunScript(std::string const& script) { WebView::RunScript(_tipView, script); }
 
 wxWebView* MarkdownTip::CreateTipView(wxWindow* parent)
 {
-    wxWebView *tipView = WebView::CreateWebView(parent, "");
+    wxWebView* tipView = WebView::CreateWebView(parent, "");
     Bind(wxEVT_WEBVIEW_LOADED, &MarkdownTip::OnLoaded, this);
     Bind(wxEVT_WEBVIEW_TITLE_CHANGED, &MarkdownTip::OnTitleChanged, this);
     Bind(wxEVT_WEBVIEW_ERROR, &MarkdownTip::OnError, this);
     return tipView;
 }
 
-void MarkdownTip::OnLoaded(wxWebViewEvent& event)
-{
-}
+void MarkdownTip::OnLoaded(wxWebViewEvent& event) {}
 
 void MarkdownTip::OnTitleChanged(wxWebViewEvent& event)
 {
@@ -255,20 +249,19 @@ void MarkdownTip::OnTitleChanged(wxWebViewEvent& event)
         if (height > _lastHeight - 10 && height < _lastHeight + 10)
             return;
         _lastHeight = height;
-        height *= 1.25; height += 50;
+        height *= 1.25;
+        height += 50;
         wxSize size = wxDisplay(this).GetClientArea().GetSize();
         if (height > size.y)
             height = size.y;
         wxPoint pos = _requestPos;
         if (pos.y + height > size.y)
             pos.y = size.y - height;
-        this->SetSize({ 400, (int)height });
+        this->SetSize({400, (int) height});
         this->SetPosition(pos);
     }
 }
-void MarkdownTip::OnError(wxWebViewEvent& event)
-{
-}
+void MarkdownTip::OnError(wxWebViewEvent& event) {}
 
 void MarkdownTip::OnTimer(wxTimerEvent& event)
 {
@@ -289,13 +282,13 @@ void MarkdownTip::OnTimer(wxTimerEvent& event)
 
 MarkdownTip* MarkdownTip::markdownTip(bool create)
 {
-    static MarkdownTip * markdownTip = nullptr;
+    static MarkdownTip* markdownTip = nullptr;
     if (markdownTip == nullptr && create)
         markdownTip = new MarkdownTip;
     return markdownTip;
 }
 
-bool MarkdownTip::ShowTip(std::string const& tip, std::string const & tooltip, wxPoint pos)
+bool MarkdownTip::ShowTip(std::string const& tip, std::string const& tooltip, wxPoint pos)
 {
 #ifdef NDEBUG
     return false;
@@ -305,17 +298,17 @@ bool MarkdownTip::ShowTip(std::string const& tip, std::string const & tooltip, w
 
 void MarkdownTip::ExitTip()
 {
-    //if (auto tip = markdownTip(false))
-    //    tip->Destroy();
+    // if (auto tip = markdownTip(false))
+    //     tip->Destroy();
 }
 
 void MarkdownTip::Reload()
 {
-    if (auto tip = markdownTip(false)) 
+    if (auto tip = markdownTip(false))
         tip->LoadStyle();
 }
 
-void MarkdownTip::Recreate(wxWindow *parent)
+void MarkdownTip::Recreate(wxWindow* parent)
 {
     if (auto tip = markdownTip(false)) {
         tip->Reparent(parent);
@@ -325,8 +318,8 @@ void MarkdownTip::Recreate(wxWindow *parent)
 
 wxWindow* MarkdownTip::AttachTo(wxWindow* parent)
 {
-    MarkdownTip& tip = *markdownTip();
-    tip._tipView = tip.CreateTipView(parent);
+    MarkdownTip& tip   = *markdownTip();
+    tip._tipView       = tip.CreateTipView(parent);
     tip._pendingScript = " ";
     return tip._tipView;
 }
@@ -340,5 +333,4 @@ wxWindow* MarkdownTip::DetachFrom(wxWindow* parent)
     return NULL;
 }
 
-}
-}
+}} // namespace Slic3r::GUI

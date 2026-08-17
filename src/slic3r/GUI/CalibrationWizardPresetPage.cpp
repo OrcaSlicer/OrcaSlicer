@@ -914,7 +914,7 @@ void CalibrationPresetPage::create_filament_list_panel(wxWindow* parent)
     for (int i = 0; i < 4; i++) {
         auto filament_comboBox_sizer = new wxBoxSizer(wxHORIZONTAL);
         wxRadioButton* radio_btn = new wxRadioButton(m_filament_list_panel, wxID_ANY, "");
-        CheckBox* check_box = new CheckBox(m_filament_list_panel);
+        ::CheckBox* check_box = new ::CheckBox(m_filament_list_panel);
         check_box->SetBackgroundColour(*wxWHITE);
         FilamentComboBox* fcb = new FilamentComboBox(m_filament_list_panel, i);
         fcb->SetRadioBox(radio_btn);
@@ -1057,7 +1057,7 @@ void CalibrationPresetPage::create_multi_extruder_filament_list_panel(wxWindow *
         for (int i = 0; i < 4; i++) { // 4 slots
             auto           filament_comboBox_sizer = new wxBoxSizer(wxHORIZONTAL);
             wxRadioButton *radio_btn               = new wxRadioButton(m_multi_exutrder_filament_list_panel, wxID_ANY, "");
-            CheckBox *     check_box               = new CheckBox(m_multi_exutrder_filament_list_panel);
+            ::CheckBox *     check_box               = new ::CheckBox(m_multi_exutrder_filament_list_panel);
             check_box->SetBackgroundColour(*wxWHITE);
             FilamentComboBox *fcb = new FilamentComboBox(m_multi_exutrder_filament_list_panel, i + 4);
             fcb->SetRadioBox(radio_btn);
@@ -1101,7 +1101,7 @@ void CalibrationPresetPage::create_multi_extruder_filament_list_panel(wxWindow *
         for (int i = 0; i < 4; ++i) {  // 4 slots
             auto           filament_comboBox_sizer = new wxBoxSizer(wxHORIZONTAL);
             wxRadioButton *radio_btn               = new wxRadioButton(m_multi_exutrder_filament_list_panel, wxID_ANY, "");
-            CheckBox *     check_box               = new CheckBox(m_multi_exutrder_filament_list_panel);
+            ::CheckBox *     check_box               = new ::CheckBox(m_multi_exutrder_filament_list_panel);
             check_box->SetBackgroundColour(*wxWHITE);
             FilamentComboBox *fcb = new FilamentComboBox(m_multi_exutrder_filament_list_panel, i);
             fcb->SetRadioBox(radio_btn);
