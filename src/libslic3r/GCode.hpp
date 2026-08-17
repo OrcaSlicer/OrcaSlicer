@@ -10,6 +10,7 @@
 #include "PrintConfig.hpp"
 #include "GCode/AvoidCrossingPerimeters.hpp"
 #include "GCode/CoolingBuffer.hpp"
+#include "GCode/CoExtrusionC.hpp"
 #include "GCode/FanMover.hpp"
 #include "GCode/RetractWhenCrossingPerimeters.hpp"
 #include "GCode/SpiralVase.hpp"
@@ -519,6 +520,10 @@ private:
     // scaled G-code resolution
     double                              m_scaled_resolution;
     GCodeWriter                         m_writer;
+    CoExtrusionCController              m_coextrusion_c;
+    std::vector<size_t>                 m_coextrusion_filament_to_sector;
+    bool                                m_coextrusion_external_loop_active{false};
+    bool                                m_coextrusion_outward_normal_on_right{false};
 
     struct PlaceholderParserIntegration {
         void reset();
@@ -661,6 +666,7 @@ private:
 
     double      calc_max_volumetric_speed(const double layer_height, const double line_width, const std::string co_str);
     std::string _extrude(const ExtrusionPath &path, std::string description = "", double speed = -1);
+    std::optional<double> coextrusion_c_for_segment(const Vec2d &from, const Vec2d &to, const ExtrusionPath &path);
     bool _needSAFC(const ExtrusionPath &path);
     void print_machine_envelope(GCodeOutputStream& file, Print& print);
     void _print_first_layer_bed_temperature(GCodeOutputStream &file, Print &print, const std::string &gcode, unsigned int first_printing_extruder_id, bool wait);

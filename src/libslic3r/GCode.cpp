@@ -2539,7 +2539,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     if (print.config().spiral_mode.value)
         m_spiral_vase = make_unique<SpiralVase>(print.config());
 
-    if (print.config().max_volumetric_extrusion_rate_slope.value > 0){
+    // PressureEqualizer may split and reconstruct G1 lines. Keep it disabled in
+    // rotary co-extrusion mode until it models and interpolates the C axis too.
+    if (print.config().max_volumetric_extrusion_rate_slope.value > 0 && !print.config().coextrusion_c_axis_enable.value){
     		m_pressure_equalizer = make_unique<PressureEqualizer>(print.config());
     		m_enable_extrusion_role_markers = (bool)m_pressure_equalizer;
     } else
@@ -3729,7 +3731,9 @@ void GCode::process_layers(
 
         CNumericLocalesSetter locales_setter;
 
-        if (config.fan_speedup_time.value != 0 || config.fan_kickstart.value > 0) {
+        // FanMover may split G1 moves and currently only interpolates XYZ/E.
+        // Bypass it so a coordinated C word is never duplicated at a split.
+        if (!config.coextrusion_c_axis_enable.value && (config.fan_speedup_time.value != 0 || config.fan_kickstart.value > 0)) {
             if (fan_mover.get() == nullptr)
                 fan_mover.reset(new Slic3r::FanMover(
                     writer,
@@ -3827,7 +3831,7 @@ void GCode::process_layers(
     const auto fan_mover = tbb::make_filter<std::string, std::string>(slic3r_tbb_filtermode::serial_in_order,
         [&fan_mover = this->m_fan_mover, &config = this->config(), &writer = this->m_writer](std::string in)->std::string {
 
-        if (config.fan_speedup_time.value != 0 || config.fan_kickstart.value > 0) {
+        if (!config.coextrusion_c_axis_enable.value && (config.fan_speedup_time.value != 0 || config.fan_kickstart.value > 0)) {
             if (fan_mover.get() == nullptr)
                 fan_mover.reset(new Slic3r::FanMover(
                     writer,
@@ -5555,6 +5559,8 @@ void GCode::apply_print_config(const PrintConfig &print_config)
 {
     m_writer.apply_print_config(print_config);
     m_config.apply(print_config);
+    m_coextrusion_filament_to_sector = map_coextrusion_filament_colors_to_sectors(
+        m_config.filament_colour.values, m_config.coextrusion_c_axis_colors.values);
     m_scaled_resolution = scaled<double>(print_config.resolution.value);
     m_enable_exclude_object = m_config.exclude_object;
 
@@ -5685,6 +5691,7 @@ std::string GCode::preamble()
 std::string GCode::change_layer(coordf_t print_z)
 {
     std::string gcode;
+    m_coextrusion_c.reset();
     if (m_layer_count > 0)
         // Increment a progress bar indicator.
         gcode += m_writer.update_progress(++ m_layer_index, m_layer_count);
@@ -5914,6 +5921,12 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
         m_multi_flow_segment_path_average_mm3_per_mm = weighted_sum_mm3_per_mm / total_multipath_length;
     // Orca: end of multipath average mm3_per_mm value calculation
     
+    m_coextrusion_external_loop_active = true;
+    // For a contour the material is inside the polygon; for a hole it is
+    // outside. Combining that fact with the final print winding tells us which
+    // side of every tangent is the model's outward normal.
+    m_coextrusion_outward_normal_on_right = is_hole == loop.is_clockwise();
+
     if (!enable_seam_slope) {
         for (ExtrusionPaths::iterator path = paths.begin(); path != paths.end(); ++path) {
             gcode += this->_extrude(*path, description, speed_for_path(*path));
@@ -5969,6 +5982,8 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
             paths.insert(paths.end(), new_loop.ends.begin(), new_loop.ends.end());
         }
     }
+
+    m_coextrusion_external_loop_active = false;
 
     if (description == "perimeter") {
         m_processor.result().print_statistics.total_seam_gap_distance += static_cast<float>(seam_gap_distance_mm);
@@ -6340,6 +6355,27 @@ double GCode::calc_max_volumetric_speed(const double layer_height, const double 
 
     double res = cs[0] * x * x + cs[1] * y * y + cs[2] * x * y + cs[3] * x + cs[4] * y + cs[5];
     return res;
+}
+
+std::optional<double> GCode::coextrusion_c_for_segment(const Vec2d &from, const Vec2d &to, const ExtrusionPath &path)
+{
+    if (!m_config.coextrusion_c_axis_enable.value || !m_coextrusion_external_loop_active ||
+        path.role() != erExternalPerimeter || path.is_force_no_extrusion() || m_writer.filament() == nullptr)
+        return std::nullopt;
+
+    const size_t filament_slot = m_writer.filament()->id();
+    const auto  &angles        = m_config.coextrusion_c_axis_color_angles.values;
+    if (filament_slot >= m_coextrusion_filament_to_sector.size())
+        return std::nullopt;
+    const size_t sector = m_coextrusion_filament_to_sector[filament_slot];
+    if (sector >= angles.size())
+        return std::nullopt;
+
+    const Vec2d delta = to - from;
+    return m_coextrusion_c.update_for_segment(delta.x(), delta.y(), m_coextrusion_outward_normal_on_right,
+                                               angles[sector], m_config.coextrusion_c_axis_offset.value,
+                                               m_config.coextrusion_c_axis_reverse.value,
+                                               m_config.coextrusion_c_axis_filter_distance.value);
 }
 
 std::string GCode::_extrude(const ExtrusionPath &path, std::string description, double speed)
@@ -6989,60 +7025,86 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             }
             // BBS: use G1 if not enable arc fitting or has no arc fitting result or in spiral_mode mode or we are doing sloped extrusion
             // Attention: G2 and G3 is not supported in spiral_mode mode
-            if (!m_config.enable_arc_fitting || path.polyline.fitting_result.empty() || m_config.spiral_mode || sloped != nullptr || path.z_contoured) {
+            if (!m_config.enable_arc_fitting || path.polyline.fitting_result.empty() || m_config.spiral_mode || sloped != nullptr || path.z_contoured ||
+                (m_config.coextrusion_c_axis_enable.value && m_coextrusion_external_loop_active && path.role() == erExternalPerimeter)) {
                 double path_length = 0.;
                 double total_length = sloped == nullptr ? 0. : path.polyline.length() * SCALING_FACTOR;
                 double saved_z      = m_writer.get_position().z();
 
-                for (const Line3& line : path.polyline.lines()) {
-                    std::string tempDescription = description;
-                    const double line_length = line.length() * SCALING_FACTOR;
-                    if (line_length < EPSILON)
-                        continue;
-                    path_length += line_length;
-                    auto dE = e_per_mm * line_length;
-                    if (_needSAFC(path)) {
-                        auto oldE = dE;
-                        dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
+                const bool segment_for_c = m_config.coextrusion_c_axis_enable.value && m_coextrusion_external_loop_active &&
+                                           path.role() == erExternalPerimeter;
+                // A long source edge would otherwise contain just one C target,
+                // turning a distance-domain low-pass into a long linear sweep.
+                // Sample at least four times per filter distance, with practical
+                // bounds on G-code size and angular tracking resolution.
+                const double c_segment_length = m_config.coextrusion_c_axis_filter_distance.value > EPSILON ?
+                    std::clamp(0.25 * m_config.coextrusion_c_axis_filter_distance.value, 0.05, 0.5) : 0.1;
 
-                        if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
-                            tempDescription += Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
+                for (const Line3 &source_line : path.polyline.lines()) {
+                    const double source_length = source_line.length() * SCALING_FACTOR;
+                    const size_t segment_count = segment_for_c ?
+                        std::max<size_t>(1, size_t(std::ceil(source_length / c_segment_length))) : 1;
+                    Point3 segment_start = source_line.a;
+
+                    for (size_t segment_idx = 1; segment_idx <= segment_count; ++segment_idx) {
+                        Point3 segment_end;
+                        if (segment_idx == segment_count)
+                            segment_end = source_line.b;
+                        else
+                            segment_end = (source_line.a.cast<double>() + (source_line.b - source_line.a).cast<double>() *
+                                           (double(segment_idx) / double(segment_count))).cast<coord_t>();
+                        const Line3 line(segment_start, segment_end);
+                        segment_start = segment_end;
+                        std::string tempDescription = description;
+                        const double line_length = line.length() * SCALING_FACTOR;
+                        if (line_length < EPSILON)
+                            continue;
+                        const auto c_axis = coextrusion_c_for_segment(this->point_to_gcode(line.a.to_point()),
+                                                                      this->point_to_gcode(line.b.to_point()), path);
+                        path_length += line_length;
+                        auto dE = e_per_mm * line_length;
+                        if (_needSAFC(path)) {
+                            auto oldE = dE;
+                            dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
+
+                            if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
+                                tempDescription += Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
+                            }
                         }
-                    }
-                    if (path.z_contoured) {
-                        // ZAA: Z anti-aliased extrusion with variable Z per point
-                        Vec2d dest2d = this->point_to_gcode(line.b.to_point());
-                        coordf_t z_diff = unscale_(line.b.z());
+                        if (path.z_contoured) {
+                            // ZAA: Z anti-aliased extrusion with variable Z per point
+                            Vec2d dest2d = this->point_to_gcode(line.b.to_point());
+                            coordf_t z_diff = unscale_(line.b.z());
 
-                        double extrusion_ratio = 1;
-                        if (path.role() != erIroning) {
-                            extrusion_ratio = (path.height + z_diff) / path.height;
+                            double extrusion_ratio = 1;
+                            if (path.role() != erIroning) {
+                                extrusion_ratio = (path.height + z_diff) / path.height;
+                            }
+
+                            double e = dE * extrusion_ratio;
+
+                            double z = m_nominal_z + z_diff;
+                            if (z < 0.1) {
+                                throw RuntimeError("GCode: very low z");
+                            }
+                            gcode += m_writer.extrude_to_xyz(Vec3d(dest2d.x(), dest2d.y(), z), e,
+                                                             GCodeWriter::full_gcode_comment ? tempDescription : "", false, c_axis);
+
+                        } else if (sloped == nullptr) {
+                            // Normal extrusion
+                            gcode += m_writer.extrude_to_xy(
+                                this->point_to_gcode(line.b.to_point()),
+                                dE,
+                                GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion(), c_axis);
+                        } else {
+                            // Sloped extrusion
+                            const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
+                            Vec2d dest2d = this->point_to_gcode(line.b.to_point());
+                            Vec3d dest3d(dest2d(0), dest2d(1), get_sloped_z(z_ratio));
+                            gcode += m_writer.extrude_to_xyz(
+                                dest3d,
+                                dE * e_ratio, GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion(), c_axis);
                         }
-
-                        double e = dE * extrusion_ratio;
-
-                        double z = m_nominal_z + z_diff;
-                        if (z < 0.1) {
-                            throw RuntimeError("GCode: very low z");
-                        }
-                        gcode += m_writer.extrude_to_xyz(Vec3d(dest2d.x(), dest2d.y(), z), e,
-                                                         GCodeWriter::full_gcode_comment ? tempDescription : "");
-
-                    } else if (sloped == nullptr) {
-                        // Normal extrusion
-                        gcode += m_writer.extrude_to_xy(
-                            this->point_to_gcode(line.b.to_point()),
-                            dE,
-                            GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
-                    } else {
-                        // Sloped extrusion
-                        const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
-                        Vec2d dest2d = this->point_to_gcode(line.b.to_point());
-                        Vec3d dest3d(dest2d(0), dest2d(1), get_sloped_z(z_ratio));
-                        gcode += m_writer.extrude_to_xyz(
-                            dest3d,
-                            dE * e_ratio,
-                            GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
                     }
                 }
             } else {
@@ -7152,6 +7214,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             const double line_length = (p - prev).norm();
             if(line_length < EPSILON)
                 continue;
+            const auto c_axis = coextrusion_c_for_segment(prev.head<2>(), p.head<2>(), path);
             path_length += line_length;
             double new_speed = pre_processed_point.speed * 60.0;
             
@@ -7233,15 +7296,15 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                     throw RuntimeError("GCode: very low z");
                 }
                 gcode += m_writer.extrude_to_xyz(Vec3d(dest2d.x(), dest2d.y(), z), e,
-                                                 GCodeWriter::full_gcode_comment ? tempDescription : "");
+                                                 GCodeWriter::full_gcode_comment ? tempDescription : "", false, c_axis);
             } else if (sloped == nullptr) {
                 // Normal extrusion
-                gcode += m_writer.extrude_to_xy(p.head<2>(), dE, GCodeWriter::full_gcode_comment ? tempDescription : "");
+                gcode += m_writer.extrude_to_xy(p.head<2>(), dE, GCodeWriter::full_gcode_comment ? tempDescription : "", false, c_axis);
             } else {
                 // Sloped extrusion
                 const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
                 Vec3d dest3d(p(0), p(1), get_sloped_z(z_ratio));
-                gcode += m_writer.extrude_to_xyz(dest3d, dE * e_ratio, GCodeWriter::full_gcode_comment ? tempDescription : "");
+                gcode += m_writer.extrude_to_xyz(dest3d, dE * e_ratio, GCodeWriter::full_gcode_comment ? tempDescription : "", false, c_axis);
             }
 
             prev = p;
@@ -7712,6 +7775,16 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     int new_extruder_id = get_extruder_id(new_filament_id);
     if (!m_writer.need_toolchange(new_filament_id))
         return "";
+
+    if (m_config.coextrusion_c_axis_enable.value) {
+        // Logical filaments are color sectors of one physical co-extruded
+        // strand. Preserve the logical ID for path/color lookup without any
+        // retract, purge, temperature change, or physical T command.
+        m_writer.select_filament(new_filament_id);
+        this->placeholder_parser().set("current_extruder", new_filament_id);
+        this->placeholder_parser().set("current_hotend", hotend_id_for_gcode_placeholder(m_config, new_extruder_id));
+        return "";
+    }
 
     // if we are running a single-extruder setup, just set the extruder and return nothing
     if (!m_writer.multiple_extruders) {

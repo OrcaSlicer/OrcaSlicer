@@ -2,6 +2,7 @@
 #include "PrintConfigConstants.hpp"
 #include "ClipperUtils.hpp"
 #include "Config.hpp"
+#include "Color.hpp"
 #include "MaterialType.hpp"
 #include "I18N.hpp"
 #include "format.hpp"
@@ -5961,6 +5962,51 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
+    def = this->add("coextrusion_c_axis_enable", coBool);
+    def->label = L("Co-extrusion C-axis control");
+    def->tooltip = L("Use painted 3MF material regions as co-extrusion color sectors and align the selected sector with the external wall normal using the C axis. Logical material changes do not emit tool changes or purge moves.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("coextrusion_c_axis_colors", coStrings);
+    def->label = L("Physical color sector");
+    def->tooltip = L("Color of each physical sector in the co-extruded filament. Painted 3MF filament colors are matched to these sectors automatically.");
+    def->gui_type = ConfigOptionDef::GUIType::color;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionStrings{"#FF0000", "#00FF00", "#0000FF"});
+
+    def = this->add("coextrusion_c_axis_color_angles", coFloats);
+    def->label = L("Physical sector center angle");
+    def->tooltip = L("Center angle of each physical color sector when C is zero. Each value corresponds to the physical sector color on the same row.");
+    def->sidetext = L("deg");
+    def->min = 0;
+    def->max = 360;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionFloats({0.0, 120.0, 240.0}));
+
+    def = this->add("coextrusion_c_axis_offset", coFloat);
+    def->label = L("C-axis calibration offset");
+    def->tooltip = L("Angular offset between the configured material sector coordinate system and the printer C-axis zero position.");
+    def->sidetext = L("deg");
+    def->min = -360;
+    def->max = 360;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("coextrusion_c_axis_filter_distance", coFloat);
+    def->label = L("C-axis filter distance");
+    def->tooltip = L("Distance constant of the circular low-pass filter used for external-wall normal and color changes. Zero disables filtering.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(1.0));
+
+    def = this->add("coextrusion_c_axis_reverse", coBool);
+    def->label = L("Reverse C-axis direction");
+    def->tooltip = L("Reverse the relationship between positive C-axis motion and the material sector rotation.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("manual_filament_change", coBool);
     def->label = L("Manual Filament Change");
     def->tooltip = L("Enable this option to omit the custom Change filament G-code only at the beginning of the print. "
@@ -10356,6 +10402,25 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
             error_message.emplace("filament_diameter", L("invalid value ") + cfg.filament_diameter.serialize());
             break;
         }
+
+    if (cfg.coextrusion_c_axis_enable.value) {
+        if (!cfg.single_extruder_multi_material.value) {
+            error_message.emplace("coextrusion_c_axis_enable",
+                                  L("Co-extrusion C-axis control requires Single Extruder Multi Material mode."));
+        } else if (cfg.coextrusion_c_axis_colors.values.size() != cfg.coextrusion_c_axis_color_angles.values.size()) {
+            error_message.emplace("coextrusion_c_axis_colors",
+                                  L("Every physical co-extrusion color sector must have one center angle."));
+        } else if (cfg.coextrusion_c_axis_color_angles.values.size() < cfg.filament_colour.values.size()) {
+            error_message.emplace("coextrusion_c_axis_color_angles",
+                                  L("The physical co-extrusion filament has fewer color sectors than the painted 3MF uses."));
+        } else if (std::any_of(cfg.coextrusion_c_axis_colors.values.begin(), cfg.coextrusion_c_axis_colors.values.end(),
+                               [](const std::string &color) { return !can_decode_color(color); })) {
+            error_message.emplace("coextrusion_c_axis_colors", L("Every physical co-extrusion color sector must have a valid color."));
+        } else if (std::any_of(cfg.coextrusion_c_axis_color_angles.values.begin(), cfg.coextrusion_c_axis_color_angles.values.end(),
+                               [](double angle) { return angle < 0.0 || angle >= 360.0; })) {
+            error_message.emplace("coextrusion_c_axis_color_angles", L("C-axis color sector center angles must be in [0, 360)."));
+        }
+    }
 
     // --nozzle-diameter
     for (double nd : cfg.nozzle_diameter.values)

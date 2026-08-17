@@ -564,11 +564,7 @@ std::string GCodeWriter::toolchange_prefix() const
 
 std::string GCodeWriter::toolchange(unsigned int filament_id)
 {
-    // set the new extruder
-    auto filament_extruder_iter = Slic3r::lower_bound_by_predicate(m_filament_extruders.begin(), m_filament_extruders.end(), [filament_id](const Extruder &e) { return e.id() < filament_id; });
-    assert(filament_extruder_iter != m_filament_extruders.end() && filament_extruder_iter->id() == filament_id);
-    m_curr_extruder_id = filament_extruder_iter->extruder_id();
-    m_curr_filament_extruder[m_curr_extruder_id] = &*filament_extruder_iter;
+    this->select_filament(filament_id);
 
     // return the toolchange command
     // if we are running a single-extruder setup, just set the extruder and return nothing
@@ -582,6 +578,16 @@ std::string GCodeWriter::toolchange(unsigned int filament_id)
         gcode << this->reset_e(true);
     }
     return gcode.str();
+}
+
+void GCodeWriter::select_filament(unsigned int filament_id)
+{
+    auto filament_extruder_iter = Slic3r::lower_bound_by_predicate(
+        m_filament_extruders.begin(), m_filament_extruders.end(),
+        [filament_id](const Extruder &e) { return e.id() < filament_id; });
+    assert(filament_extruder_iter != m_filament_extruders.end() && filament_extruder_iter->id() == filament_id);
+    m_curr_extruder_id = filament_extruder_iter->extruder_id();
+    m_curr_filament_extruder[m_curr_extruder_id] = &*filament_extruder_iter;
 }
 
 std::string GCodeWriter::set_speed(double F, const std::string &comment, const std::string &cooling_marker)
@@ -930,7 +936,8 @@ bool GCodeWriter::will_move_z(double z) const
     return true;
 }
 
-std::string GCodeWriter::extrude_to_xy(const Vec2d &point, double dE, const std::string &comment, bool force_no_extrusion)
+std::string GCodeWriter::extrude_to_xy(const Vec2d &point, double dE, const std::string &comment, bool force_no_extrusion,
+                                       std::optional<double> c_axis)
 {
     m_pos(0) = point(0);
     m_pos(1) = point(1);
@@ -947,6 +954,8 @@ std::string GCodeWriter::extrude_to_xy(const Vec2d &point, double dE, const std:
     w.emit_xy(point_on_plate);
     if (!force_no_extrusion)
         w.emit_e(filament()->E());
+    if (c_axis)
+        w.emit_c(*c_axis);
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     return w.string();
@@ -974,7 +983,8 @@ std::string GCodeWriter::extrude_arc_to_xy(const Vec2d& point, const Vec2d& cent
     return w.string();
 }
 
-std::string GCodeWriter::extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment, bool force_no_extrusion)
+std::string GCodeWriter::extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment, bool force_no_extrusion,
+                                        std::optional<double> c_axis)
 {
     // Check if Z actually changes (at export precision) before emitting it.
     // ZAA sloped extrusions call this for every segment, but many consecutive
@@ -996,6 +1006,8 @@ std::string GCodeWriter::extrude_to_xyz(const Vec3d &point, double dE, const std
         w.emit_xy(Vec2d(point_on_plate.x(), point_on_plate.y()));
     if (!force_no_extrusion)
         w.emit_e(filament()->E());
+    if (c_axis)
+        w.emit_c(*c_axis);
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     return w.string();
