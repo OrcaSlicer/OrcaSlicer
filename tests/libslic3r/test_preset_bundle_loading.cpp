@@ -158,7 +158,7 @@ TEST_CASE("Printer extruder count tolerates missing nozzle diameter", "[Preset][
     CHECK(bundle.get_printer_extruder_count() == 2);
 }
 
-TEST_CASE("New printer uses its symbolic default bed type", "[Preset][Bundle]")
+TEST_CASE("Preferred printer uses its default or saved bed type", "[Preset][Bundle]")
 {
     PresetBundle bundle;
     Preset& printer = add_inmemory_preset(bundle.printers, "New Printer");
@@ -169,12 +169,22 @@ TEST_CASE("New printer uses its symbolic default bed type", "[Preset][Bundle]")
 
     AppConfig app_config;
     app_config.set("curr_bed_type", std::to_string(static_cast<int>(btPTE)));
+    BedType expected_bed_type;
+
+    SECTION("New printer uses its symbolic default") {
+        expected_bed_type = btEP;
+    }
+    SECTION("Re-enabled printer uses its saved selection") {
+        expected_bed_type = btPC;
+        app_config.set_printer_setting("New Printer", "curr_bed_type",
+                                       std::to_string(static_cast<int>(expected_bed_type)));
+    }
 
     bundle.load_selections(app_config, {"TEST-MODEL", "0.4"});
     bundle.export_selections(app_config);
 
-    CHECK(bundle.project_config.opt_enum<BedType>("curr_bed_type") == btEP);
-    CHECK(app_config.get_printer_setting("New Printer", "curr_bed_type") == std::to_string(static_cast<int>(btEP)));
+    CHECK(bundle.project_config.opt_enum<BedType>("curr_bed_type") == expected_bed_type);
+    CHECK(app_config.get_printer_setting("New Printer", "curr_bed_type") == std::to_string(static_cast<int>(expected_bed_type)));
 }
 
 TEST_CASE("find_preset resolves a system preset's renamed_from", "[Preset][Rename]")
