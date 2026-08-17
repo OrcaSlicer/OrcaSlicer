@@ -79,6 +79,7 @@ Fill* Fill::new_from_type(const InfillPattern type)
     case ipMagmaTriangle:       return new FillMagmaTriangle();
     case ipMagmaRectilinear:    return new FillMagmaRectilinear();
     case ipMagmaTriHex:         return new FillMagmaTriHex();
+    case ipMagmaHoneycomb:        return new FillMagmaHoneycomb();
     default: throw Slic3r::InvalidArgument("unknown type");
     }
 }

@@ -173,6 +173,9 @@ std::string generate_injection_gcode(
     if (config.magma_injection_z_slam_auto.value) {
         slam_depth = auto_slam_depth(tube_map.tube_opening_diameter(), seal_flat,
                                      config.magma_nozzle_cone_half_angle.value);
+        // User trim on the auto depth (+ deeper / - shallower), clamped to [0, max slam].
+        slam_depth = std::min(MAGMA_SLAM_CLAMP,
+                              std::max(0.0, slam_depth + config.magma_injection_z_slam_offset.value));
     } else {
         slam_depth = std::min(config.magma_injection_z_slam.value, MAGMA_SLAM_CLAMP);
     }
@@ -228,6 +231,8 @@ std::string generate_injection_gcode(
             const auto& slam_pair = tube_map.u_tube_pairs()[pt.pair_index];
             slam_depth = auto_slam_depth(tube_map.cap_opening_diameter(slam_pair), seal_flat,
                                          config.magma_nozzle_cone_half_angle.value);
+            slam_depth = std::min(MAGMA_SLAM_CLAMP,
+                                  std::max(0.0, slam_depth + config.magma_injection_z_slam_offset.value));
             plunge_depth = config.magma_injection_plunge.value
                                ? clamp_plunge_depth(slam_depth, config.magma_injection_plunge_depth.value)
                                : 0.0;
@@ -333,35 +338,44 @@ std::string generate_injection_gcode(
         if (!lines[0].pts.empty())
             gcode += format_tube_viz_comment(lines);
 
-        // Split the injection into a few G1 segments so the plunge Z ramps smoothly (and
-        // the slider gets a handful of steps). No longer tied to any per-vertex viz tick.
         double filament_length = volume * e_per_mm3;
-        gcode += gcodegen.writer().set_speed(feedrate_mmmin);
         Vec2d xy(gcodegen.writer().get_position().x(),
                  gcodegen.writer().get_position().y());
 
-        std::vector<double> seg_e;
-        const int N = (plunge_depth > 0.0) ? 8 : 1;
-        for (int i = 0; i < N; ++i)
-            seg_e.push_back(filament_length / double(N));
-
-        // Emit the segments, optionally sinking Z a little each so the nozzle plunges
-        // from slam_depth to slam_depth + plunge_depth by the end. The plunge Z is FOLDED
-        // INTO the extrude move (one continuous G1 X Y Z E), never a separate G1 Z. A
-        // separate Z move is a Travel that lands BETWEEN the viz vertices in the preview
-        // buffer, shattering the tube polyline into disconnected pieces with degenerate
-        // 180° miters. Folding keeps every viz tick a single contiguous Extrude — and it's
-        // physically truer to slam-melt (the nozzle plunges WHILE extruding).
-        const int K = (int) seg_e.size();
-        for (int k = 0; k < K; ++k) {
-            const char* seg_comment = K > 1 ? "injection segment" : "Magma injection";
-            if (plunge_depth > 0.0) {
-                double z = layer_z - (slam_depth + plunge_depth * double(k + 1) / double(K));
+        // Inject WHILE plunging: fold the Z descent into the extrude moves so the nozzle sinks
+        // as the channel fills, compensating for the rim melting where it touches the nozzle.
+        //
+        // The catch is pacing. G-code F is the CARTESIAN speed, and here the cartesian distance
+        // is only the small plunge depth while E carries mm of filament. Setting F to the
+        // extruder's volumetric feedrate (the old code) makes the firmware finish the tiny
+        // cartesian move almost instantly and cram the E to the extruder's max velocity — a
+        // hard, fast burst that oozes around the nozzle (under-fill) with Z/extruder stutter
+        // (the "bounce"). Instead set F so the cartesian move LASTS the extrusion time:
+        //   F = vol_feedrate * (plunge_depth / filament_length)
+        // Then E flows at the user's chosen volumetric rate while Z sinks plunge_depth over the
+        // same time — a continuous inject-while-plunge.
+        //
+        // A folded move with this E:cartesian ratio trips Klipper's max_extrude_cross_section
+        // guard, which is a printer.cfg setting (NOT runtime-settable from G-code) and must be
+        // raised for injection. Without plunge we inject in place as pure-E moves, which the
+        // firmware paces by the extruder directly (split only to stay under the extrude-only
+        // move distance).
+        const int N = (plunge_depth > 0.0)
+            ? 8 : std::max(1, std::min(8, (int) std::ceil(filament_length / 40.0)));
+        if (plunge_depth > 0.0) {
+            const double f_inject = feedrate_mmmin * plunge_depth / std::max(1e-4, filament_length);
+            gcode += gcodegen.writer().set_speed(f_inject);
+            for (int k = 0; k < N; ++k) {
+                double z = layer_z - (slam_depth + plunge_depth * double(k + 1) / double(N));
                 gcode += gcodegen.writer().extrude_to_xyz(
-                    Vec3d(xy.x(), xy.y(), z), seg_e[k], seg_comment);
-            } else {
-                gcode += gcodegen.writer().extrude_to_xy(xy, seg_e[k], seg_comment);
+                    Vec3d(xy.x(), xy.y(), z), filament_length / double(N),
+                    N > 1 ? "injection segment" : "Magma injection");
             }
+        } else {
+            gcode += gcodegen.writer().set_speed(feedrate_mmmin);
+            for (int k = 0; k < N; ++k)
+                gcode += gcodegen.writer().extrude_to_xy(
+                    xy, filament_length / double(N), N > 1 ? "injection segment" : "Magma injection");
         }
 
         // Dwell: hold nozzle sealed while plastic spreads through tube

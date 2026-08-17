@@ -87,12 +87,14 @@ enum InfillPattern : int {
     ipMagmaTriangle,
     ipMagmaRectilinear,
     ipMagmaTriHex,
+    ipMagmaHoneycomb,
     ipCount,
 };
 
 // Returns true for all Magma infill patterns (solid after injection during printing).
 inline bool is_magma_pattern(InfillPattern p) {
-    return p == ipMagmaTriangle || p == ipMagmaRectilinear || p == ipMagmaTriHex;
+    return p == ipMagmaTriangle || p == ipMagmaRectilinear || p == ipMagmaTriHex ||
+           p == ipMagmaHoneycomb;
 }
 
 enum class MagmaTubeWidthMode : int {
@@ -1088,6 +1090,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                magma_injection_park_retract)) // Extra retract during temp wait (mm)
     ((ConfigOptionFloat,                magma_injection_z_slam))       // Z-slam depth in mm (0 = disabled)
     ((ConfigOptionBool,                 magma_injection_z_slam_auto))  // Auto-derive z-slam from nozzle cone geometry
+    ((ConfigOptionFloat,                magma_injection_z_slam_offset))// mm added to auto z-slam (+ deeper / - shallower)
     ((ConfigOptionBool,                 magma_injection_plunge))       // Ramp nozzle deeper during injection (slam-melt)
     ((ConfigOptionFloat,                magma_injection_plunge_depth)) // Extra depth rammed by end of injection (mm)
     ((ConfigOptionInt,                  magma_injection_dwell))        // Dwell after injection, before z-slam release (ms, 0 = disabled)

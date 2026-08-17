@@ -2473,6 +2473,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("magma_injection_speed");
         optgroup->append_single_option_line("magma_injection_ordering");
         optgroup->append_single_option_line("magma_injection_z_slam_auto");
+        optgroup->append_single_option_line("magma_injection_z_slam_offset");
         optgroup->append_single_option_line("magma_injection_z_slam");
         optgroup->append_single_option_line("magma_injection_plunge");
         optgroup->append_single_option_line("magma_injection_plunge_depth");

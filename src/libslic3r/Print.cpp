@@ -1513,7 +1513,9 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 double cone_deg   = rcfg.magma_nozzle_cone_half_angle.value;
 
                 double slam = obj_cfg.magma_injection_z_slam_auto.value
-                    ? magma::auto_slam_depth(opening, flat, cone_deg)
+                    ? std::min(magma::MAGMA_SLAM_CLAMP,
+                               std::max(0.0, magma::auto_slam_depth(opening, flat, cone_deg)
+                                             + obj_cfg.magma_injection_z_slam_offset.value))
                     : std::min(obj_cfg.magma_injection_z_slam.value, magma::MAGMA_SLAM_CLAMP);
                 double plunge = obj_cfg.magma_injection_plunge.value
                     ? magma::clamp_plunge_depth(slam, obj_cfg.magma_injection_plunge_depth.value) : 0.0;

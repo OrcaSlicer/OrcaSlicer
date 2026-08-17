@@ -60,8 +60,8 @@ struct SquareGeometry final : public MagmaGeometry
 
     double interlock_radius(double spacing) const override { return spacing * 0.5; }
 
-    // 2 line families crossing at 90deg: each crossing double-deposits an
-    // line_width x line_width square, ~1 crossing per cell -> lw^2.
+    // 2 line families crossing at 90deg: each crossing double-deposits an lw x lw square,
+    // ~1 crossing per cell -> lw^2. (Only subtracted when the overlap flow correction is off.)
     double vertex_overlap_excess_area(double line_width) const override {
         return line_width * line_width;
     }
@@ -70,12 +70,6 @@ struct SquareGeometry final : public MagmaGeometry
     // crossing -> excess fraction = lw / (2*spacing).
     double line_overlap_excess_fraction(double spacing, double line_width) const override {
         return spacing > 0.0 ? line_width / (2.0 * spacing) : 0.0;
-    }
-
-    // Window gap along the shared wall: open length (spacing - lw) x line width x height.
-    double window_volume(double spacing, double line_width, double window_height) const override {
-        double s = spacing - line_width;
-        return (s > 0.0 ? s : 0.0) * line_width * window_height;
     }
 
     // Geometric window height: window flow cross-section = tube open cross-section.

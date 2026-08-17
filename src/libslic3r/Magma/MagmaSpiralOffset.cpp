@@ -61,10 +61,11 @@ Vec2d compute_spiral_offset(const SpiralParams &params, int layer_id)
 }
 
 std::shared_ptr<MagmaLattice> lattice_for_layer(
-    InfillPattern pattern, double cell_spacing, const SpiralParams &params, int layer_id)
+    InfillPattern pattern, double cell_spacing, const SpiralParams &params, int layer_id,
+    double line_width)
 {
     Vec2d offset = compute_spiral_offset(params, layer_id);
-    return make_magma_lattice(pattern, cell_spacing, offset.x(), offset.y());
+    return make_magma_lattice(pattern, cell_spacing, offset.x(), offset.y(), line_width);
 }
 
 } // namespace magma

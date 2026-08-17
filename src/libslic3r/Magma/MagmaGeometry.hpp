@@ -51,15 +51,13 @@ struct MagmaGeometry
     // touching a neighbor.
     virtual double interlock_radius(double spacing) const = 0;
 
-    // Excess area (mm^2) deposited per cell where infill lines cross at vertices
-    // (material laid twice) -- subtracted from injection volume.
+    // Excess area (mm^2) deposited per cell where infill lines cross at vertices. Subtracted
+    // from injection volume ONLY when the overlap flow correction is OFF — when it's on, the
+    // reduced flow already removed this material, so subtracting again would double-count.
     virtual double vertex_overlap_excess_area(double line_width) const = 0;
 
     // Fraction of deposited line material doubled at line crossings.
     virtual double line_overlap_excess_fraction(double spacing, double line_width) const = 0;
-
-    // Volume of the window gap between two paired cells along their shared edge (mm^3).
-    virtual double window_volume(double spacing, double line_width, double window_height) const = 0;
 
     // Geometric window height so the window's flow cross-section equals the tube's
     // open cross-section area (mm). Both args in mm; spacing is derived internally.

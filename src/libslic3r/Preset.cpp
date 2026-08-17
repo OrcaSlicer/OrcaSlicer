@@ -1071,6 +1071,7 @@ static std::vector<std::string> s_Preset_print_options{
     "magma_injection_park_retract",
     "magma_injection_z_slam",
     "magma_injection_z_slam_auto",
+    "magma_injection_z_slam_offset",
     "magma_injection_plunge",
     "magma_injection_plunge_depth",
     "magma_injection_dwell",

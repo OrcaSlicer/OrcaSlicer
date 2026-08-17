@@ -682,4 +682,116 @@ void FillMagmaTriHex::_fill_surface_single(
     }
 }
 
+// ============================================================================
+// FillMagmaHoneycomb — pure honeycomb (verification: deduped hex outlines)
+// ============================================================================
+
+std::pair<float, Point> FillMagmaHoneycomb::_infill_direction(const Surface *surface) const
+{
+    float out_angle = 0.f;
+    if (surface->bridge_angle >= 0)
+        out_angle = float(surface->bridge_angle);
+    return std::make_pair(out_angle, Point(0, 0));
+}
+
+void FillMagmaHoneycomb::_fill_surface_single(
+    const FillParams &params,
+    unsigned int /*thickness_layers*/,
+    const std::pair<float, Point> & /*direction*/,
+    ExPolygon          expolygon,
+    Polylines         &polylines_out)
+{
+    if (!this->tube_map) {
+        BOOST_LOG_TRIVIAL(error) << "FillMagmaHoneycomb: null tube_map on layer " << this->layer_id;
+        return;
+    }
+
+    FillParams no_anchor_params = params;
+    no_anchor_params.anchor_length     = 0.f;
+    no_anchor_params.anchor_length_max = 0.f;
+
+    const int    layer = static_cast<int>(this->layer_id);
+    const double s     = this->tube_map->cell_spacing();
+    const double iw    = std::max(0.0, double(this->tube_map->interior_width()));  // open f2f (user spec)
+    const double lw    = std::max(0.0, s - iw);          // line width = cell_spacing - interior
+    // Build the toolpath from the OPEN hexagon (edge e = interior/√3) so the printed tube is the
+    // requested interior width; the doubled vertical walls + single slants are added on top,
+    // matching the lattice (MagmaHexCell.hpp) so windows/injection land on the drawn walls.
+    const double e     = iw * magma::INV_SQRT3;          // OPEN hex edge = interior/√3
+    const double x_off = std::min(lw * 0.5, s * 0.2);    // half-gap of the doubled vertical walls
+    const magma::MagmaLattice &lattice = this->tube_map->lattice_at(layer);
+    const double ox = lattice.offset_x(), oy = lattice.offset_y();
+
+    BoundingBox bbox = expolygon.contour.bounding_box();
+    const double x0 = unscale<double>(bbox.min.x()) - s, x1 = unscale<double>(bbox.max.x()) + s;
+    const double y0 = unscale<double>(bbox.min.y()) - s, y1 = unscale<double>(bbox.max.y()) + s;
+
+    // Fast continuous honeycomb sweep (Orca-style), matching the lattice. The vertical edges
+    // fall on lanes x = ox + k*(m_sx/2), m_sx = interior + 2*lw; the vertices and rows are
+    // extended in Y by lw/sqrt3 so the open hexagon is regular (see MagmaHexCell.hpp). One
+    // continuous zigzag per lane PAIR oscillates between lanes k and k+1: a vertical (length e),
+    // a slant up to the next lane's vertical (whose bottom == the hexagon vertex), its vertical,
+    // a slant back — period 2*row in y, phased at oy + row*(k-1). Each lane's verticals are swept
+    // by both neighbouring pairs (doubled vertical walls); slants stay single. Fast, low-travel.
+    const double row   = 1.5 * e + lw * magma::INV_SQRT3;   // lattice row spacing (Y)
+    const double half  = (iw + 2.0 * lw) * 0.5;             // lane pitch = m_sx/2 = (interior + 2lw)/2
+    const int    k_min = int(std::floor((x0 - ox) / half)) - 1;
+    const int    k_max = int(std::ceil ((x1 - ox) / half)) + 1;
+    Polylines raw;
+    for (int k = k_min; k <= k_max; ++k) {
+        const double xL  = ox + double(k)     * half + x_off;
+        const double xR  = ox + double(k + 1) * half - x_off;
+        const double phi = oy + row * double(k - 1);
+        const int j_min = int(std::floor((y0 - phi) / (2.0 * row))) - 1;
+        const int j_max = int(std::ceil ((y1 - phi) / (2.0 * row))) + 1;
+        Polyline pl;
+        for (int j = j_min; j <= j_max; ++j) {
+            const double b = phi + 2.0 * row * double(j);
+            pl.points.push_back(Point(scale_(xL), scale_(b - e * 0.5)));
+            pl.points.push_back(Point(scale_(xL), scale_(b + e * 0.5)));
+            pl.points.push_back(Point(scale_(xR), scale_(b + row - e * 0.5)));
+            pl.points.push_back(Point(scale_(xR), scale_(b + row + e * 0.5)));
+        }
+        if (pl.points.size() >= 2) raw.push_back(std::move(pl));
+    }
+
+    // Windows: subtract each open pair's shared wall (a rectangle over the shared edge,
+    // wide enough to span both doubled verticals, shortened by a bead so the corners stay).
+    Polygons window_cuts;
+    for (const magma::UTubePair &pr : this->tube_map->u_tube_pairs()) {
+        if (!this->tube_map->window_open_at(pr, layer)) continue;
+        std::vector<Vec2d> ca = lattice.cell_corners(pr.cell_a);
+        std::vector<Vec2d> cb = lattice.cell_corners(pr.cell_b);
+        Vec2d shared[2]; int ns = 0;
+        for (const Vec2d &p : ca) {
+            for (const Vec2d &q : cb)
+                if ((p - q).squaredNorm() < 1e-6) { if (ns < 2) shared[ns++] = p; break; }
+            if (ns == 2) break;
+        }
+        if (ns < 2) continue;
+        Vec2d d = shared[1] - shared[0];
+        double len = d.norm();
+        if (len < 1e-9) continue;
+        d /= len;
+        const Vec2d  n(-d.y(), d.x());
+        const Vec2d  M  = 0.5 * (shared[0] + shared[1]);
+        const double hl = len * 0.5;                       // span the full flat edge of the hex side
+        const double hw = x_off + lw;                      // half cut width (covers both walls)
+        const Vec2d  r0 = M - d * hl - n * hw, r1 = M + d * hl - n * hw;
+        const Vec2d  r2 = M + d * hl + n * hw, r3 = M - d * hl + n * hw;
+        Polygon rect;
+        rect.points = { Point(scale_(r0.x()), scale_(r0.y())), Point(scale_(r1.x()), scale_(r1.y())),
+                        Point(scale_(r2.x()), scale_(r2.y())), Point(scale_(r3.x()), scale_(r3.y())) };
+        window_cuts.push_back(std::move(rect));
+    }
+    if (!window_cuts.empty())
+        raw = diff_pl(raw, window_cuts);
+
+    Polylines clipped;
+    for (Polyline &pl : raw)
+        append(clipped, intersection_pl(Polylines{ std::move(pl) }, expolygon));
+    if (!clipped.empty())
+        chain_or_connect_infill(std::move(clipped), expolygon, polylines_out, this->spacing, no_anchor_params);
+}
+
 } // namespace Slic3r

@@ -75,9 +75,15 @@ struct UTubePair {
     double window_end_z;          // Z coordinate (mm) where the window ends — pure mm, no rounding
     double volume_mm3;            // injection volume (hub + all legs combined)
 
-    // Pre-computed during build (avoids lattice + binary search at G-code time)
-    Vec2d  injection_center;      // XY center for injection (cell_a centroid at cap layer)
+    // Pre-computed during build (avoids lattice + binary search at G-code time).
+    // injection_center starts as the cell_inset centroid and is REFINED by measure_volumes
+    // (post-fill) to the real deposited cap-cavity centroid; measured_cap_opening_dia is the
+    // real opening the seal must cover (farthest extent of that cavity from the center). Both
+    // come from one cap-layer measurement so center + seal stay consistent across all patterns.
+    Vec2d  injection_center;      // XY center for injection (refined to real cap-cavity centroid)
     int    window_center_layer;   // center layer of window gap
+    double measured_cap_opening_dia = 0.0;  // real cap opening (0 → cap_opening_diameter falls
+                                            // back to the cell_inset model)
 };
 
 // Per-layer data: Z heights and pre-built lattice with spiral offset.
@@ -152,6 +158,12 @@ public:
 
     // For injection G-code and visualization
     const std::vector<UTubePair>& u_tube_pairs() const { return m_pairs; }
+
+    // Measure injected volumes from the REAL deposited toolpath. Call AFTER
+    // PrintObject::infill() (when layer fills exist). Overwrites pair.volume_mm3 and
+    // rebuilds the injection cap-layer list.
+    void measure_volumes(const std::vector<Layer*> &layers);
+
     float layer_height() const { return m_layer_height; }
     double window_height_mm() const { return m_window_spec.window_height_mm; }
 

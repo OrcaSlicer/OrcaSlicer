@@ -89,17 +89,11 @@ struct HexGeometry final : public MagmaGeometry
 
     double interlock_radius(double spacing) const override { return spacing * 0.5; }
 
-    // Line-crossing overlap correction, from the trihexagonal (Kagome) line topology.
-    // The edges form 3 straight families at 60deg, but — unlike the triangle lattice,
-    // where all 3 cross at one degree-6 vertex — the trihex has degree-4 vertices
-    // (vertex config 3.6.3.6) where only TWO families cross, at 60deg. Two width-w strips
-    // crossing at 60deg double-deposit a rhombus of area w^2 / sin60 = 2 w^2 / sqrt3, and
-    // this method returns that per-VERTEX rhombus. Each vertex splits its rhombus 1/4 into
-    // each of its 4 incident cells, so compute_volumes charges a cell (corner count / 4)
-    // rhombi: a hexagon hub (6 corners) -> 1.5, a triangle vent (3 corners) -> 0.75. (The
-    // single-cell-type patterns return their per-cell value directly instead.)
+    // Trihex (Kagome) degree-4 vertices: TWO families cross at 60deg, double-depositing a
+    // rhombus 2 w^2/sqrt3 per vertex; compute charges it by corner count (hub 6 -> 1.5,
+    // vent 3 -> 0.75). Only subtracted when the overlap flow correction is off.
     double vertex_overlap_excess_area(double line_width) const override {
-        return 2.0 * INV_SQRT3 * line_width * line_width;   // per-vertex rhombus, 2 w^2 / sqrt3
+        return 2.0 * INV_SQRT3 * line_width * line_width;
     }
 
     // Wall deposited per cell = 2 edges x e = 2*spacing/sqrt3; the doubled rhombus is
@@ -107,12 +101,6 @@ struct HexGeometry final : public MagmaGeometry
     //   = (2 w^2 / sqrt3) / ((2 spacing / sqrt3) * w) = w / spacing.
     double line_overlap_excess_fraction(double spacing, double line_width) const override {
         return spacing > 0.0 ? line_width / spacing : 0.0;
-    }
-
-    // Window gap along a shared hub<->vent wall (length e): open length (e - lw) x lw x height.
-    double window_volume(double spacing, double line_width, double window_height) const override {
-        double open = trihex_edge_length(spacing) - line_width;
-        return (open > 0.0 ? open : 0.0) * line_width * window_height;
     }
 
     // Geometric window height. A window is a gap in ONE hub<->vent shared wall, and it

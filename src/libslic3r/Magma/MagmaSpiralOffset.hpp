@@ -30,7 +30,8 @@ Vec2d compute_spiral_offset(const SpiralParams &params, int layer_id);
 // Build the pattern's lattice for a specific layer with spiral offset applied.
 // Returns through the MagmaLattice interface so callers stay pattern-agnostic.
 std::shared_ptr<MagmaLattice> lattice_for_layer(
-    InfillPattern pattern, double cell_spacing, const SpiralParams &params, int layer_id);
+    InfillPattern pattern, double cell_spacing, const SpiralParams &params, int layer_id,
+    double line_width = 0.0);
 
 } // namespace magma
 } // namespace Slic3r

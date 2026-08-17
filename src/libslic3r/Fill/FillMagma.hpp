@@ -112,6 +112,34 @@ protected:
         Polylines &polylines_out) override;
 };
 
+// Magma Honeycomb (pure honeycomb) infill pattern.
+//
+// A regular pointy-top hexagonal tiling (MagmaHexCell.hpp / HexLattice). Every cell
+// is a hexagon paired into a 2-cell U-tube like triangle/rectilinear — no vents.
+// Toolpath: a fast continuous honeycomb sweep (Orca-style) — one vertical zigzag per
+// lane pair, phased to the lattice, so the vertical walls come out doubled and the
+// slants single (minimal travel, fast print). Open pairs' shared walls are cut out by
+// subtracting window rectangles. The lattice is pre-expanded (MagmaHexCell.hpp) to undo
+// the doubled-wall skew, so the OPEN tube is a regular hexagon. The injection volume is
+// measured from the real deposited toolpath (MagmaTubeMap::measure_volumes), so the doubled
+// vertical walls are captured exactly — no orientation-aware correction needed.
+class FillMagmaHoneycomb : public FillMagmaBase
+{
+public:
+    Fill* clone() const override { return new FillMagmaHoneycomb(*this); }
+    ~FillMagmaHoneycomb() override = default;
+
+protected:
+    float _layer_angle(size_t idx) const override { return 0.f; }
+    std::pair<float, Point> _infill_direction(const Surface *surface) const override;
+    void _fill_surface_single(
+        const FillParams &params,
+        unsigned int thickness_layers,
+        const std::pair<float, Point> &direction,
+        ExPolygon expolygon,
+        Polylines &polylines_out) override;
+};
+
 } // namespace Slic3r
 
 #endif // slic3r_FillMagma_hpp_

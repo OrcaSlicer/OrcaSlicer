@@ -300,6 +300,7 @@ set(lisbslic3r_sources
     Magma/MagmaTriangleCell.hpp
     Magma/MagmaRectilinearCell.hpp
     Magma/MagmaTriHexCell.hpp
+    Magma/MagmaHexCell.hpp
     Magma/MagmaSpiralOffset.cpp
     Magma/MagmaSpiralOffset.hpp
     Magma/MagmaTubeMap.cpp

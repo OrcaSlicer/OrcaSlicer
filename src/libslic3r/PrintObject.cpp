@@ -747,6 +747,12 @@ void PrintObject::infill()
         );
         m_print->throw_if_canceled();
         BOOST_LOG_TRIVIAL(debug) << "Filling layers in parallel - end";
+
+        // Magma: the real toolpath now exists in each layer's fills, so measure the injected
+        // volumes from it (overwrites the geometric estimate computed during prepare_infill).
+        if (m_magma_tube_map)
+            m_magma_tube_map->measure_volumes(m_layers);
+
         /*  we could free memory now, but this would make this step not idempotent
         ### $_->fill_surfaces->clear for map @{$_->regions}, @{$object->layers};
         */
@@ -1525,6 +1531,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "magma_injection_park_retract"
             || opt_key == "magma_injection_z_slam"
             || opt_key == "magma_injection_z_slam_auto"
+            || opt_key == "magma_injection_z_slam_offset"
             || opt_key == "magma_injection_plunge"
             || opt_key == "magma_injection_plunge_depth"
             || opt_key == "magma_nozzle_cone_half_angle"

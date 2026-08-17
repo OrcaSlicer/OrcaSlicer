@@ -80,11 +80,21 @@ WindowSpec WindowSpec::from_config(
     // Window height: auto-calculate if 0, otherwise use the config value as-is.
     // Auto adds one layer height above the geometric value so the window
     // reliably spans a full printed layer despite layer-registration accuracy.
-    if (config_window_height_mm <= 0)
-        spec.window_height_mm = geom.auto_window_height(interior_width, line_width)
-                                + std::max(0.0f, layer_height);
-    else
+    if (config_window_height_mm <= 0) {
+        // AUTO height = the smaller of the flow-area sizing (geom.auto_window_height)
+        // and the window's own WIDTH (open shared edge). A window taller than it is
+        // wide lets injected plastic loop straight across it near the top instead of
+        // being forced down to the tube bottom and up the partner — so cap at width.
+        // Applies to every Magma pattern, since this is the one AUTO dispatch site.
+        const double spacing      = double(interior_width) + double(line_width);
+        const double window_width = geom.edge_length(spacing) - double(line_width);
+        double       h            = geom.auto_window_height(interior_width, line_width);
+        if (window_width > 0.0)
+            h = std::min(h, window_width);
+        spec.window_height_mm = float(h) + std::max(0.0f, layer_height);
+    } else {
         spec.window_height_mm = config_window_height_mm;
+    }
 
     return spec;
 }

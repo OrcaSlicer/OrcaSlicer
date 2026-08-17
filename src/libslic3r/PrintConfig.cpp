@@ -234,7 +234,8 @@ static t_config_enum_values s_keys_map_InfillPattern {
     // Magma infill patterns for vertical reinforcement
     { "magmatriangle", ipMagmaTriangle },
     { "magmarectilinear", ipMagmaRectilinear },
-    { "magmatrihex", ipMagmaTriHex }
+    { "magmatrihex", ipMagmaTriHex },
+    { "magmahoneycomb", ipMagmaHoneycomb }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InfillPattern)
 
@@ -2917,8 +2918,9 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("archimedeanchords");
     def->enum_values.push_back("octagramspiral");
     // Magma infill pattern
-    def->enum_values.push_back("magmatriangle");
+    def->enum_values.push_back("magmahoneycomb");
     def->enum_values.push_back("magmarectilinear");
+    def->enum_values.push_back("magmatriangle");
     def->enum_values.push_back("magmatrihex");
     def->enum_labels.push_back(L("Rectilinear"));
     def->enum_labels.push_back(L("Aligned Rectilinear"));
@@ -2947,8 +2949,9 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));
     // Magma infill pattern
-    def->enum_labels.push_back(L("Magma Triangle"));
+    def->enum_labels.push_back(L("Magma Honeycomb"));
     def->enum_labels.push_back(L("Magma Rectilinear"));
+    def->enum_labels.push_back(L("Magma Triangle"));
     def->enum_labels.push_back(L("Magma Tri-hex"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipCrossHatch));
 
@@ -5418,11 +5421,13 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Which Magma infill pattern the outer (reinforcement) zone uses for injection channels.");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
-    def->enum_values.push_back("magmatriangle");
+    def->enum_values.push_back("magmahoneycomb");
     def->enum_values.push_back("magmarectilinear");
+    def->enum_values.push_back("magmatriangle");
     def->enum_values.push_back("magmatrihex");
-    def->enum_labels.push_back(L("Magma Triangle"));
+    def->enum_labels.push_back(L("Magma Honeycomb"));
     def->enum_labels.push_back(L("Magma Rectilinear"));
+    def->enum_labels.push_back(L("Magma Triangle"));
     def->enum_labels.push_back(L("Magma Tri-hex"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMagmaTriangle));
@@ -5603,9 +5608,17 @@ void PrintConfigDef::init_fff_params()
     def = this->add("magma_window_height_mm", coFloat);
     def->label = L("Window height");
     def->category = L("Strength");
-    def->tooltip = L("Height of window gaps in mm. 0 = auto-calculate from tube geometry "
-                     "(recommended). Auto sizes the window cross-section to match the tube "
-                     "interior plus one layer height, so it reliably spans a full printed layer.");
+    def->tooltip = L("Height of the window gaps (the openings in the shared wall that connect "
+                     "a U-tube pair) in mm. 0 = auto-calculate from tube geometry (recommended).\n\n"
+                     "Auto sizes the window to the SMALLER of two limits, plus one layer height "
+                     "so it reliably spans a full printed layer:\n"
+                     "  - flow sizing: tall enough that the window's cross-section matches the "
+                     "tube interior, so it never throttles injection flow; and\n"
+                     "  - as tall as it is wide: capped at the window's own width (the open shared "
+                     "edge). A window taller than it is wide lets injected plastic loop straight "
+                     "across the gap near the top instead of being driven down to the bottom of the "
+                     "tube and up the partner — leaving the tube bottoms unfilled.\n\n"
+                     "Set a value above 0 to override with a fixed height.");
     def->sidetext = L("mm");
     def->min = 0;  // 0 = auto
     def->max = 10.0;
@@ -5890,6 +5903,22 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
+    def = this->add("magma_injection_z_slam_offset", coFloat);
+    def->label = L("Auto Z-slam offset");
+    def->category = L("Strength");
+    def->tooltip = L("Fine-tune the auto-calculated Z-slam depth by adding this amount (mm) to it. "
+                     "The geometric estimate can press a little short of a reliable seal — especially "
+                     "on hexagon tubes — so a small positive value firms it up.\n\n"
+                     "POSITIVE = deeper slam: presses farther into the tube top for a firmer seal "
+                     "(crushes a bit more of the tube).\n"
+                     "NEGATIVE = shallower slam: gentler press (use if the auto depth is over-sealing).\n\n"
+                     "Applied on top of each tube's auto depth, then clamped to the slam limit. Only "
+                     "used when Auto Z-slam depth is enabled; when it is off, set the depth directly "
+                     "with Injection Z-slam depth instead.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
     def = this->add("magma_injection_plunge", coBool);
     def->label = L("Plunge while injecting");
     def->category = L("Strength");
@@ -5898,7 +5927,13 @@ void PrintConfigDef::init_fff_params()
                      "surface and keeps the seal pressed shut while the channel fills, so plastic is "
                      "driven down the tube rather than mushrooming out around the nozzle.\n\n"
                      "The nozzle ramps from the sealing depth (manual or auto Z-slam) down to that "
-                     "depth plus the plunge depth below, spread across the injection.");
+                     "depth plus the plunge depth below, spread across the injection.\n\n"
+                     "KLIPPER: a plunge injection is a combined Z+extrude move that deposits a lot of "
+                     "filament over a tiny amount of nozzle movement, so it trips Klipper's "
+                     "max_extrude_cross_section guard and ABORTS the print at the first injection. "
+                     "Raise max_extrude_cross_section (e.g. 5000) in your [extruder] printer.cfg "
+                     "(also max_extrude_only_distance for large tubes). These cannot be set from "
+                     "G-code. Marlin/RRF have no equivalent guard.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 

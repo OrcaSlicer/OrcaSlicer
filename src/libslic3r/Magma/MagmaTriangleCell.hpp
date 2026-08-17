@@ -146,18 +146,14 @@ struct TriangleGeometry final : public MagmaGeometry
 
     double interlock_radius(double spacing) const override { return spacing * 0.5; }
 
-    // 3 line families crossing at 60deg per vertex: (3*sqrt3/4) * w^2.
+    // 3 line families crossing at 60deg per vertex: (3*sqrt3/4) * w^2. (Only subtracted from
+    // injection volume when the overlap flow correction is off — see MagmaGeometry.hpp.)
     double vertex_overlap_excess_area(double line_width) const override {
         return (3.0 * SQRT3 / 4.0) * line_width * line_width;
     }
 
     double line_overlap_excess_fraction(double spacing, double line_width) const override {
         return spacing > 0.0 ? 3.0 * line_width / (4.0 * spacing) : 0.0;
-    }
-
-    double window_volume(double spacing, double line_width, double window_height) const override {
-        double inset_side = triangle_side_length(spacing) - line_width * SQRT3;
-        return inset_side * line_width * window_height;
     }
 
     // Geometric window height: window cross-section (inset_side x height) equals

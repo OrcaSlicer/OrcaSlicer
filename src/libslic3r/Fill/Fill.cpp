@@ -1448,7 +1448,8 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
         // layer and returns nothing.
         case ipMagmaTriangle:
         case ipMagmaRectilinear:
-        case ipMagmaTriHex: continue; break;
+        case ipMagmaTriHex:
+        case ipMagmaHoneycomb: continue; break;
         case ipLightning:
 		case ipAdaptiveCubic:
         case ipSupportCubic:

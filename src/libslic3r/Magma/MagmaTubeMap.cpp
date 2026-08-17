@@ -9,6 +9,7 @@
 #include "../Polygon.hpp"
 #include "../ExPolygon.hpp"
 #include "../Surface.hpp"
+#include "../ExtrusionEntityCollection.hpp"   // polygons_covered_by_width (measured volume)
 #include "../I18N.hpp"
 #include "../format.hpp"
 
@@ -352,7 +353,7 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     // construction). Built via the pattern factory so each layer's lattice
     // matches the selected pattern (triangle today).
     for (int i = 0; i < map->m_num_layers; ++i)
-        map->m_layer_data[i].lattice = lattice_for_layer(map->m_pattern, map->m_cell_spacing, map->m_spiral_params, i);
+        map->m_layer_data[i].lattice = lattice_for_layer(map->m_pattern, map->m_cell_spacing, map->m_spiral_params, i, map->m_line_width);
 
     // Read injection edge preference
     map->m_injection_edge_pref = obj_config.magma_injection_edge_pref.value;
@@ -434,19 +435,11 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     map->assign_tubes(progress_fn, throw_if_canceled);
     map->assign_extra_vents();   // tri-hex: add manifold legs (no-op for other patterns)
     map->precompute_window_end_z();
-
-    map->compute_volumes(layers);
     map->precompute_injection_data();
 
-    // Build sorted list of injection cap layer IDs (for ToolOrdering)
-    {
-        std::vector<int> &ids = map->m_injection_layer_ids;
-        ids.reserve(map->m_pairs.size());
-        for (const UTubePair &pair : map->m_pairs)
-            if (pair.volume_mm3 > 0)
-                ids.push_back(pair.pair_end_layer);
-        sort_remove_duplicates(ids);
-    }
+    // Injection volumes (pair.volume_mm3) and the injection cap-layer list are NOT computed
+    // here — they're measured from the REAL toolpath in measure_volumes(), called after
+    // PrintObject::infill(). Until then volumes are 0; nothing before injection G-code reads them.
 
     // Catch-all: Magma is enabled but produced no reinforcement tubes. Surfaces the
     // actual OUTCOME (not just a bad-setting guess) with the most likely reason, so an
@@ -493,6 +486,23 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
         map->m_warning_message = "Magma produced no reinforcement tubes: " + reason;
     }
 
+    // Tri-hex: warn when the triangle vents are too small to stay open. The vent is an
+    // equilateral triangle of side e = cell_spacing/sqrt3; inset by the (overlap-compensated)
+    // wall it shrinks to open inscribed diameter = cell_spacing/3 - effective_line_width.
+    // Below ~1mm, the line-overlap plastic plus ordinary print imperfections seal the vent
+    // and block injection — tri-hex only works for large tubes. Only set when no harder
+    // failure above already claimed the warning.
+    if (map->m_pattern == ipMagmaTriHex && map->m_warning_message.empty()) {
+        const double vent_dia = map->m_cell_spacing / 3.0 - double(map->m_effective_line_width);
+        if (vent_dia < 1.0) {
+            map->m_warning_message = Slic3r::format(
+                "Magma Tri-hex vents are only %.2f mm across after line overlap — they may seal "
+                "off and block injection. Tri-hex needs large tubes: use an interior width of "
+                "about 4 mm or more (or switch to Magma Honeycomb / Rectilinear) for reliable vents.",
+                vent_dia);
+        }
+    }
+
     auto t_end = std::chrono::high_resolution_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
 
@@ -520,10 +530,11 @@ double MagmaTubeMap::tube_opening_diameter() const
 
 double MagmaTubeMap::cap_opening_diameter(const UTubePair &pair) const
 {
-    // Per-tube seal opening: the injection cell's ACTUAL clipped opening at the cap
-    // layer (measured during scan_layers), so the auto z-slam spreads exactly to
-    // this tube's opening instead of the global ideal. Boundary-cap tubes have
-    // smaller openings and would otherwise be over-slammed.
+    // Per-tube seal opening. Preferred: the REAL deposited cap cavity measured post-fill
+    // (measure_volumes) — generic across patterns and free of the cell_inset model's hex
+    // doubled-wall over-read. Fallbacks: the scan_layers cell_inset opening, then the global ideal.
+    if (pair.measured_cap_opening_dia > 0.0)
+        return pair.measured_cap_opening_dia;
     auto it = m_cells.find(pair.cell_a);
     if (it != m_cells.end()) {
         double r = it->second.opening_radius(pair.pair_end_layer);
@@ -573,7 +584,7 @@ double MagmaTubeMap::cell_bore_at(const TriangleCell &cell, int layer) const
 const MagmaLattice& MagmaTubeMap::topology_lattice() const
 {
     if (!m_topology_lattice)
-        m_topology_lattice = make_magma_lattice(m_pattern, m_cell_spacing, 0.0, 0.0);
+        m_topology_lattice = make_magma_lattice(m_pattern, m_cell_spacing, 0.0, 0.0, m_line_width);
     return *m_topology_lattice;
 }
 
@@ -1017,128 +1028,146 @@ void MagmaTubeMap::precompute_injection_data()
 }
 
 // ============================================================================
-// MagmaTubeMap — compute_volumes
+// MagmaTubeMap — measure_volumes (from the actual deposited toolpath, post-fill)
 // ============================================================================
-
-void MagmaTubeMap::compute_volumes(const std::vector<Layer*> &layers)
+//
+// For each pair, the injected cavity at a layer is  (cell_a ∪ cell_b ∪ vents) ∩ zone  minus
+// the deposited magma walls. Summed over the run × layer height, that single measurement nets
+// out doubled walls, line-crossing overlaps, the window gap, and part-edge clipping — no
+// per-pattern correction. Runs after PrintObject::infill(), when layer->regions()->fills hold
+// the real paths.
+void MagmaTubeMap::measure_volumes(const std::vector<Layer*> &layers)
 {
-    // Build layer_id → height map for per-layer volume calculation.
-    // Handles initial layer height, adaptive/dynamic layer heights, and raft offsets.
-    std::unordered_map<int, double> layer_heights;
-    for (const Layer *layer : layers)
-        layer_heights[static_cast<int>(layer->id())] = layer->height;
+    std::unordered_map<int, const Layer*> by_id;
+    for (const Layer *L : layers) by_id[int(L->id())] = L;
 
-    // Window-gap geometry (inset side x line width x window height) is computed
-    // via m_geometry->window_volume() below.
+    // Layer ids touched by any pair.
+    std::set<int> used;
+    for (const UTubePair &p : m_pairs)
+        for (int L = p.pair_start_layer; L <= p.pair_end_layer; ++L) used.insert(L);
 
-    // Vertex overlap excess area per triangle cell (mm²).
-    //
-    // At each triangle vertex, 3 line families cross at 60° creating overlap
-    // regions where material is deposited twice. This excess material physically
-    // occupies tube interior space, so injection volume must be reduced.
-    //
-    // Per full triangle cell, the overlap excess area is:
-    //   (3√3/4) × w_eff²  ≈  1.299 × w_eff²
-    //
-    // where w_eff is the effective deposited line width (after flow correction
-    // if enabled, or nominal line width if disabled).
-    //
-    // Computed per-layer to handle adaptive/variable layer heights correctly.
-    // Each UTubePair spans 2 triangle cells, so we multiply by 2.
-    double excess_area_per_cell_mm2 = m_geometry->vertex_overlap_excess_area(m_effective_line_width);
+    // Per-layer cache (shared by all pairs on a layer): the magma zone + deposited walls.
+    std::unordered_map<int, ExPolygons> zone_by_layer, walls_by_layer;
+    std::unordered_map<int, double> h_by_layer;
+    for (int lid : used) {
+        auto it = by_id.find(lid);
+        if (it == by_id.end()) continue;
+        const Layer *layer = it->second;
+        h_by_layer[lid] = double(layer->height);
+        ExPolygons zone; Polygons walls;
+        for (const LayerRegion *lr : layer->regions()) {
+            const PrintRegionConfig &rc = lr->region().config();
+            if (!(rc.dual_infill_enabled || is_magma_pattern(rc.sparse_infill_pattern.value)))
+                continue;
+            for (const Surface &s : lr->fill_surfaces.surfaces)
+                if (s.surface_type == stInternal) zone.push_back(s.expolygon);
+            append(walls, lr->fills.polygons_covered_by_width(0.f));
+        }
+        zone_by_layer[lid]  = union_ex(zone);
+        walls_by_layer[lid] = union_ex(walls);
+    }
 
-    // Track volume reduction across all pairs for user warning
-    double total_orig_volume      = 0.0;
-    double total_overlap_excess   = 0.0;
-    int    zero_volume_pairs      = 0;
+    // The injection volume is ALWAYS corrected for vertex overlap, evaluated at the ACTUAL
+    // deposited width m_effective_line_width. That width is the flow-reduced value when the
+    // overlap flow correction is on — so only the small RESIDUAL overlap of the thinned lines
+    // remains (the reduction is floored at magma_overlap_min_width, ~90% of nozzle, so the
+    // crossings still over-extrude a little) — and the nominal width when off (full overlap).
+    // One self-scaling term, matching the magma_overlap_line_correction tooltip ("the injection
+    // volume is always corrected for any remaining vertex overlap regardless of this setting").
+    // It is NOT double-counting the footprint: polygons_covered_by_width merges crossing lines
+    // into a single union, so the second line's deposit (which bulges into the void) is never
+    // captured there and must be subtracted here.
+    const double excess_unit = m_geometry->vertex_overlap_excess_area(m_effective_line_width);
 
+    m_injection_layer_ids.clear();
+    int    zero   = 0;
+    double t_meas = 0.0;
     for (UTubePair &pair : m_pairs) {
-        double tube_volume_scaled2_mm = 0.0;  // accumulated (area_scaled2 * height_mm)
-        double window_height_mm = 0.0;
-        double overlap_excess_volume = 0.0;
-
-        // Manifold members: hub (cell_a) + primary leg (cell_b) + extra legs. For
-        // triangle/square this is exactly {cell_a, cell_b} (extra_vents empty).
-        const int num_legs  = 1 + int(pair.extra_vents.size());   // primary + extras
-        const int num_cells = 1 + num_legs;                       // hub + legs
-
-        // Overlap excess per unit tube height (mm² of doubled-deposit plastic occupying
-        // cavity). Tri-hex attributes by corner count: each Kagome vertex (degree 4)
-        // splits its rhombus (excess_area_per_cell_mm2 = 2w²/√3) ¼ into each incident
-        // cell, so a hub (hexagon, 6 corners) takes 1.5 rhombi and each vent (triangle,
-        // 3 corners) 0.75 — accurate per-cell attribution, no clamp (a tiny vent may net
-        // negative, which the per-pair max(0) below floors). The cells differ in kind, so
-        // this is robust to whether cell_a/cell_b is the hub (precompute runs later).
-        // Single-cell-type patterns (triangle/square) charge their per-cell value across
-        // every cell uniformly.
-        double excess_rate_mm2;
+        // Per-pair overlap excess area (mm^2 per unit height), apportioned per cell. Tri-hex
+        // charges by corner count (hub 6, vent 3, /4 into each incident cell); the single-cell
+        // patterns return their per-cell value directly (hex returns 0 — no crossings).
+        double excess_rate;
         if (m_pattern == ipMagmaTriHex) {
-            auto corner_charge = [&](const TriangleCell &c) {
-                return 0.25 * ((c.kind == THK_HEX) ? 6.0 : 3.0) * excess_area_per_cell_mm2;
+            auto charge = [&](const TriangleCell &c) {
+                return 0.25 * ((c.kind == THK_HEX) ? 6.0 : 3.0) * excess_unit;
             };
-            excess_rate_mm2 = corner_charge(pair.cell_a) + corner_charge(pair.cell_b);
-            for (const TriangleCell &ev : pair.extra_vents)
-                excess_rate_mm2 += corner_charge(ev);
+            excess_rate = charge(pair.cell_a) + charge(pair.cell_b);
+            for (const TriangleCell &ev : pair.extra_vents) excess_rate += charge(ev);
         } else {
-            excess_rate_mm2 = excess_area_per_cell_mm2 * double(num_cells);
+            excess_rate = excess_unit * double(2 + int(pair.extra_vents.size()));
         }
+        double vol = 0.0;
+        for (int lid = pair.pair_start_layer; lid <= pair.pair_end_layer; ++lid) {
+            auto zit = zone_by_layer.find(lid);
+            if (zit == zone_by_layer.end() || zit->second.empty()) continue;
+            const MagmaLattice &lat   = lattice_at(lid);
+            const ExPolygons   &walls = walls_by_layer[lid];
+            // Open cross-section of a set of cells at this layer: their corner polygons clipped
+            // to the magma zone, minus the deposited walls. Shared by the per-layer volume sum
+            // (all cells) and the cap injection-center / seal-opening measurement (cell_a only).
+            auto cell_cavity = [&](const std::vector<TriangleCell> &cs) -> ExPolygons {
+                Polygons polys;
+                for (const TriangleCell &c : cs) {
+                    std::vector<Vec2d> cor = lat.cell_corners(c);
+                    if (cor.size() < 3) continue;
+                    Polygon poly;
+                    for (const Vec2d &v : cor) poly.points.push_back(Point(scale_(v.x()), scale_(v.y())));
+                    polys.push_back(std::move(poly));
+                }
+                ExPolygons z = intersection_ex(union_ex(polys), zit->second);
+                return (walls.empty() || z.empty()) ? z : diff_ex(z, walls);
+            };
 
-        for (int layer_id = pair.pair_start_layer; layer_id <= pair.pair_end_layer; ++layer_id) {
-            auto it_a = m_cells.find(pair.cell_a);
-            auto it_b = m_cells.find(pair.cell_b);
+            std::vector<TriangleCell> all_cells{ pair.cell_a, pair.cell_b };
+            for (const TriangleCell &ev : pair.extra_vents) all_cells.push_back(ev);
+            ExPolygons cavity = cell_cavity(all_cells);
+            if (cavity.empty()) continue;
+            double a2 = 0.0;
+            for (const ExPolygon &ep : cavity) a2 += std::abs(ep.area());
+            vol += unscale<double>(unscale<double>(a2)) * h_by_layer[lid];
+            // Subtract the over-extruded crossing material that squeezes into the void on this
+            // layer. excess_rate scales with the deposited width: residual when the flow
+            // correction is on, full when off. Zero for honeycomb (no crossings).
+            vol -= excess_rate * h_by_layer[lid];
 
-            double area_a = (it_a != m_cells.end()) ? it_a->second.area(layer_id) : 0.0;
-            double area_legs = (it_b != m_cells.end()) ? it_b->second.area(layer_id) : 0.0;
-            for (const TriangleCell &ev : pair.extra_vents) {
-                auto it_e = m_cells.find(ev);
-                if (it_e != m_cells.end())
-                    area_legs += it_e->second.area(layer_id);
+            // At the cap (top) layer, measure the injection cell's REAL open cross-section (same
+            // helper, cell_a only) and derive BOTH the injection center (its centroid) and the
+            // seal opening. One source → center + seal stay consistent; generic across patterns.
+            if (lid == pair.pair_end_layer) {
+                ExPolygons cap = cell_cavity({ pair.cell_a });
+                if (!cap.empty()) {
+                    const ExPolygon *big = &cap.front();
+                    for (const ExPolygon &ep : cap)
+                        if (std::abs(ep.area()) > std::abs(big->area())) big = &ep;
+                    Point c = big->contour.centroid();
+                    if (!big->contains(c)) {                       // concave clip → cell center
+                        Vec2d cc = lat.cell_center(pair.cell_a);
+                        c = Point(scale_(cc.x()), scale_(cc.y()));
+                    }
+                    pair.injection_center = Vec2d(unscale<double>(c.x()), unscale<double>(c.y()));
+                    // Seal opening = CIRCUMSCRIBED diameter: 2× the FARTHEST point of the real cap
+                    // cavity from the injection center. The cone must press deep enough to reach
+                    // the furthest open point — including the small wall-gap slivers the real
+                    // cavity captures, which are real opening. As the hot nozzle descends it covers
+                    // everything inside that radius and deforms the nearer material outward to
+                    // close it, so reaching the farthest extent seals the whole opening.
+                    double r = 0.0;
+                    for (const Point &p : big->contour.points)
+                        r = std::max(r, (c - p).cast<double>().norm());
+                    pair.measured_cap_opening_dia = 2.0 * unscale<double>(r);
+                }
             }
-
-            auto h_it = layer_heights.find(layer_id);
-            double lh = (h_it != layer_heights.end()) ? h_it->second : double(m_layer_height);
-
-            tube_volume_scaled2_mm += (area_a + area_legs) * lh;
-
-            // Accumulate window height for window layers (pure Z check)
-            if (m_layer_data[layer_id].bottom_z() < pair.window_end_z)
-                window_height_mm += lh;
-
-            // Per-layer overlap excess (per-cell attribution computed above).
-            overlap_excess_volume += excess_rate_mm2 * lh;
         }
-
-        // Convert: area in scaled^2 → mm^2 via SCALING_FACTOR^2 (1e-12)
-        double tube_volume = tube_volume_scaled2_mm * SCALING_FACTOR * SCALING_FACTOR;
-
-        // Window gap volume: opening between the hub interior and each leg interior along
-        // their shared edge. One window per leg (all the same height, pinned to the bottom).
-        double window_volume = m_geometry->window_volume(m_cell_spacing, m_line_width, window_height_mm)
-                             * double(num_legs);
-
-        double orig_volume = tube_volume + window_volume;
-        pair.volume_mm3 = std::max(0.0, orig_volume - overlap_excess_volume);
-
-        // Accumulate totals for average reduction warning
-        total_orig_volume    += orig_volume;
-        total_overlap_excess += std::min(overlap_excess_volume, orig_volume);
-        if (pair.volume_mm3 <= 0.0)
-            ++zero_volume_pairs;
+        if (vol < 0.0) vol = 0.0;   // overlap can exceed a tiny cell's cavity → not injectable
+        t_meas += vol;
+        pair.volume_mm3 = vol;
+        if (vol > 0.0) m_injection_layer_ids.push_back(pair.pair_end_layer);
+        else ++zero;
     }
-
-    // Warn when average overlap correction is aggressive — may indicate cells
-    // too small for reliable injection. Threshold: 33% average volume loss.
-    double avg_reduction_frac = (total_orig_volume > 0.0)
-        ? total_overlap_excess / total_orig_volume : 0.0;
-    if (avg_reduction_frac > 0.33) {
-        m_warning_message = Slic3r::format(
-            L("Magma line-overlap correction reduced average injection "
-              "volume by %1%%%. %2% tube(s) have zero injection volume. "
-              "Consider increasing the interior width to create larger cells "
-              "with less wall overlap."),
-            int(std::round(avg_reduction_frac * 100)),
-            zero_volume_pairs);
-    }
+    sort_remove_duplicates(m_injection_layer_ids);
+    BOOST_LOG_TRIVIAL(info) << "Magma measured volumes: " << m_pairs.size() << " pairs, "
+        << zero << " zero-volume | total=" << t_meas << "mm3 (overlap@lw="
+        << m_effective_line_width << "mm, flow_corr=" << (m_overlap_line_correction ? "on" : "off") << ")";
 }
 
 // ============================================================================

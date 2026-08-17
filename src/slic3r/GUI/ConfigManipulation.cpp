@@ -650,8 +650,12 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     // Magma density is fixed by cell geometry (magma_interior_width + line_width),
     // lattice is orientation-fixed, no rotation/multiline/combination.
     bool is_magma = is_magma_pattern(pattern);
+    // sparse_infill_density is NOT in the have_infill toggle list above, so the Magma hide
+    // was its ONLY toggle — leaving it stuck hidden after switching away from a Magma
+    // pattern. Toggle it bidirectionally so it reappears for normal infills. (The other
+    // settings below are already restored by the have_infill loop for non-magma patterns.)
+    toggle_line("sparse_infill_density", !is_magma);
     if (have_infill && is_magma) {
-        toggle_line("sparse_infill_density", false);
         toggle_line("infill_direction", false);
         toggle_line("sparse_infill_rotate_template", false);
         toggle_line("fill_multiline", false);
@@ -984,8 +988,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     for (auto el : { "magma_injection_temp", "magma_injection_speed", "magma_injection_ordering",
         "magma_injection_park", "magma_injection_dwell", "magma_injection_retract" })
         toggle_line(el, have_magma_pattern);
-    // Z-slam: auto toggle shown when Magma; manual depth only when auto is off
+    // Z-slam: auto toggle shown when Magma. Swap fields by mode — the auto TRIM when auto is on,
+    // the manual DEPTH when auto is off (only one is ever relevant/used at a time).
     toggle_line("magma_injection_z_slam_auto", have_magma_pattern);
+    toggle_line("magma_injection_z_slam_offset", have_magma_pattern && z_slam_auto);
     toggle_line("magma_injection_z_slam", have_magma_pattern && !z_slam_auto);
     // Plunge ("slam-melt"): depth field only when the plunge toggle is on
     auto* plunge_opt = config->option<ConfigOptionBool>("magma_injection_plunge");
