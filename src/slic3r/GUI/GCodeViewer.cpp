@@ -3285,6 +3285,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         {
             if(callback && !checkbox && !visible)
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(172 / 255.0f, 172 / 255.0f, 172 / 255.0f, 1.00f));
+            if (!visible)
+                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
             float dummy_size = type == EItemType::None ? window_padding * 3 : ImGui::GetStyle().ItemSpacing.x + icon_size;
             ImGui::SameLine(dummy_size);
             imgui.text(columns_offsets[0].first);
@@ -3293,6 +3295,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 ImGui::SameLine(columns_offsets[i].second);
                 imgui.text(columns_offsets[i].first);
             }
+            if (!visible)
+                ImGui::PopStyleColor();
             if (callback && !checkbox && !visible)
                 ImGui::PopStyleColor(1);
         }
