@@ -1167,6 +1167,7 @@ class Print;
         bool m_detect_layer_based_on_tag {false};
         int m_seams_count;
         bool m_measure_g29_time {false};
+        bool m_g29_time_added {false};
         bool m_single_extruder_multi_material;
         float m_preheat_time;
         int m_preheat_steps;
