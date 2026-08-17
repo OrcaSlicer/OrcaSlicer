@@ -503,8 +503,7 @@ void Button::OnParentMotion(wxMouseEvent& event)
     {
         if (!tipWindow)
         {
-            tipWindow = new wxTipWindow(this, tip);
-            tipWindow->Bind(wxEVT_DESTROY, [this](wxEvent& event) { this->tipWindow = nullptr;});
+            tipWindow = wxTipWindow::New(this, tip);
             tipWindow->Enable(false);
         }
 
@@ -522,7 +521,7 @@ void Button::OnParentMotion(wxMouseEvent& event)
     {
         if (tipWindow)
         {
-            delete tipWindow;
+            delete tipWindow.operator->();
             tipWindow = nullptr;
         }
     }
@@ -543,7 +542,7 @@ void Button::OnParentLeave(wxMouseEvent& event)
         if (!screen_rect.Contains(pos))
         {
             tipWindow->Dismiss();
-            delete tipWindow;
+            delete tipWindow.operator->();
             tipWindow = nullptr;
         }
     }
