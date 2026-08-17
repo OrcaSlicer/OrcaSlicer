@@ -217,7 +217,6 @@ msgstr "Os filamentos %s são duros e quebradiços, podendo se romper no AMS. E 
 msgid "%s has a risk of nozzle clogging when using 0.4, 0.6, 0.8mm high-flow nozzles. Use with caution."
 msgstr "%s apresenta risco de entupimento do bico ao utilizar bicos de alto fluxo de 0,4, 0,6 ou 0,8 mm. Use com cautela."
 
-# AI Translated
 #, c-format, boost-format
 msgid "%s may fail to load or unload due to the Filament Track Switch. If you wish to continue."
 msgstr "%s pode falhar ao carregar ou descarregar devido ao Filament Track Switch. Se você deseja continuar."
@@ -347,7 +346,6 @@ msgstr "Leitura "
 msgid "Please wait"
 msgstr "Por favor, aguarde"
 
-# AI Translated
 msgid "Reading"
 msgstr "Lendo"
 
@@ -700,7 +698,6 @@ msgstr "Redefinir posição"
 msgid "Reset rotation"
 msgstr "Redefinir rotação"
 
-# AI Translated
 msgid "World"
 msgstr "Mundo"
 
@@ -988,7 +985,6 @@ msgstr "Plano de corte com cavidade é inválido"
 msgid "Connector"
 msgstr "Conector"
 
-# AI Translated
 #, boost-format
 msgid ""
 "Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
@@ -2032,7 +2028,6 @@ msgstr ""
 "\n"
 "Se você não usava o Bambu Cloud para sincronizar perfis, esta mudança não afeta você e você pode ignorar esta mensagem com segurança."
 
-# AI Translated
 msgid "Profile syncing change"
 msgstr "Alteração de sincronização de perfil"
 
@@ -3429,7 +3424,7 @@ msgid "AMS has not been initialized. Please initialize it before use."
 msgstr "O AMS não foi inicializado. Por favor, inicialize-o antes de usar."
 
 msgid "Changing fan speed during printing may affect print quality, please choose carefully."
-msgstr "Mudar a velocidade do ventilador durante a impressão pode afetar a qualidade da impressão. Escolha com cuidado."
+msgstr "Mudar a velocidade da ventoinha durante a impressão pode afetar a qualidade da impressão. Escolha com cuidado."
 
 msgid "Change Anyway"
 msgstr "Mudar Mesmo Assim"
@@ -3441,7 +3436,7 @@ msgid "Filter"
 msgstr "Filtrar"
 
 msgid "Enabling filtration redirects the right fan to filter gas, which may reduce cooling performance."
-msgstr "Ativar a filtragem redireciona o ventilador direito para filtrar o gás, o que pode reduzir o desempenho de resfriamento."
+msgstr "Ativar a filtragem redireciona a ventoinha direito para filtrar o gás, o que pode reduzir o desempenho de resfriamento."
 
 msgid "Enabling filtration during printing may reduce cooling and affect print quality. Please choose carefully."
 msgstr "Habilitar a filtragem durante a impressão pode reduzir o resfriamento e afetar a qualidade da impressão. Escolha com cuidado."
@@ -3474,7 +3469,7 @@ msgid "Top"
 msgstr "Topo"
 
 msgid "The fan controls the temperature during printing to improve print quality. The system automatically adjusts the fan's switch and speed according to different printing materials."
-msgstr "O ventilador controla a temperatura durante a impressão para melhorar a qualidade da impressão. O sistema ajusta automaticamente a ativação e a velocidade do ventilador de acordo com os diferentes materiais de impressão."
+msgstr "A ventoinha controla a temperatura durante a impressão para melhorar a qualidade da impressão. O sistema ajusta automaticamente a ativação e a velocidade da ventoinha de acordo com os diferentes materiais de impressão."
 
 msgid "Cooling mode is suitable for printing PLA/PETG/TPU materials and filters the chamber air."
 msgstr "O modo de resfriamento é adequado para impressão com materiais PLA/PETG/TPU e filtra o ar da câmara."
@@ -4798,7 +4793,7 @@ msgid "Pause (AMS offline)"
 msgstr "Pausa (AMS offline)"
 
 msgid "Pause (low speed of the heatbreak fan)"
-msgstr "Pausa (baixa velocidade do ventilador do heatbreak)"
+msgstr "Pausa (baixa velocidade da ventoinha do heatbreak)"
 
 msgid "Pause (chamber temperature control problem)"
 msgstr "Pausa (problema no controle de temperatura da câmara)"
@@ -4922,7 +4917,7 @@ msgstr "Para garantir sua segurança, certas tarefas de processamento (como o la
 
 #, c-format, boost-format
 msgid "The chamber temperature is too high, which may cause the filament to soften. Please wait until the chamber temperature drops below %d℃. You may open the front door or enable fans to cool down."
-msgstr "A temperatura da câmara está muito alta, o que pode causar o amolecimento do filamento. Aguarde até que a temperatura da câmara caia abaixo de %d℃. Você pode abrir a porta frontal ou ligar os ventiladores para resfriar."
+msgstr "A temperatura da câmara está muito alta, o que pode causar o amolecimento do filamento. Aguarde até que a temperatura da câmara caia abaixo de %d℃. Você pode abrir a porta frontal ou ligar as ventoinhas para resfriar."
 
 #, c-format, boost-format
 msgid "AMS temperature is too high, which may cause the filament to soften. Please wait until the AMS temperature drops below %d℃."
@@ -5208,7 +5203,7 @@ msgid "Jerk"
 msgstr "Jerk"
 
 msgid "Fan Speed"
-msgstr "Velocidade do Ventilador"
+msgstr "Velocidade da Ventoinha"
 
 msgid "Flow"
 msgstr "Fluxo"
@@ -5314,7 +5309,7 @@ msgid "Flow: "
 msgstr "Fluxo: "
 
 msgid "Fan: "
-msgstr "Ventilador: "
+msgstr "Ventoinha: "
 
 msgid "Temperature: "
 msgstr "Temperatura: "
@@ -5350,7 +5345,7 @@ msgid "Flow rate"
 msgstr "Taxa de fluxo"
 
 msgid "Fan speed"
-msgstr "Velocidade do ventilador"
+msgstr "Velocidade da ventoinha"
 
 msgid "Time"
 msgstr "Tempo"
@@ -5464,7 +5459,7 @@ msgid "Jerk (mm/s)"
 msgstr "Jerk (mm/s)"
 
 msgid "Fan speed (%)"
-msgstr "Velocidade do ventilador (%)"
+msgstr "Velocidade da ventoinha (%)"
 
 msgid "Temperature (℃)"
 msgstr "Temperatura (℃)"
@@ -7368,12 +7363,11 @@ msgstr "Inferior"
 msgid "Plugin Selection"
 msgstr "Seleção de plugins"
 
-# AI Translated
 msgid ""
 "No plugins capabilities available for this type.\n"
 "Enable or install some to use."
 msgstr ""
-"Nenhum recurso de plugins disponível para este tipo.\n"
+"Nenhuma capacidade de plugin disponível para este tipo.\n"
 "Ative ou instale algum para usar."
 
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
@@ -9758,7 +9752,7 @@ msgid "Unable to automatically match to suitable filament. Please click to manua
 msgstr "Não foi possível encontrar automaticamente um filamento adequado. Clique para selecionar manualmente."
 
 msgid "Install toolhead enhanced cooling fan to prevent filament softening."
-msgstr "Instale um ventilador de resfriamento aprimorado no cabeçote de impressão para evitar o amolecimento do filamento."
+msgstr "Instale uma ventoinha de resfriamento aprimorado no cabeçote de impressão para evitar o amolecimento do filamento."
 
 msgid "Smooth Cool Plate"
 msgstr "Placa Fria Lisa"
@@ -10382,25 +10376,25 @@ msgid "Cooling for specific layer"
 msgstr "Resfriamento para camada específica"
 
 msgid "Part cooling fan"
-msgstr "Ventilador de resfriamento de peças"
+msgstr "Ventoinha de resfriamento de peças"
 
 msgid "Min fan speed threshold"
-msgstr "Limiar de velocidade mínima do ventilador"
+msgstr "Limiar de velocidade mínima da ventoinha"
 
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
-msgstr "O ventilador de resfriamento de peças irá girar na velocidade mínima quando o tempo estimado da camada for mais longo do que o valor de limiar. Quando o tempo da camada for mais curto que o limiar, a velocidade do ventilador é interpolada entre a velocidade mínima e máxima de acordo com o tempo de impressão da camada."
+msgstr "A ventoinha de resfriamento de peças irá girar na velocidade mínima quando o tempo estimado da camada for mais longo do que o valor de limiar. Quando o tempo da camada for mais curto que o limiar, a velocidade da ventoinha é interpolada entre a velocidade mínima e máxima de acordo com o tempo de impressão da camada."
 
 msgid "Max fan speed threshold"
-msgstr "Limiar de velocidade máxima do ventilador"
+msgstr "Limiar de velocidade máxima da ventoinha"
 
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
-msgstr "O ventilador de resfriamento de peças irá girar na velocidade máxima quando o tempo estimado da camada for mais curto que o limiar."
+msgstr "A ventoinha de resfriamento de peças irá girar na velocidade máxima quando o tempo estimado da camada for mais curto que o limiar."
 
 msgid "Auxiliary part cooling fan"
-msgstr "Ventilador auxiliar de resfriamento de peças"
+msgstr "Ventoinha auxiliar de resfriamento de peças"
 
 msgid "Exhaust fan"
-msgstr "Ventilador de exaustão"
+msgstr "Ventoinha de exaustão"
 
 msgid "During print"
 msgstr "Durante a impressão"
@@ -10450,10 +10444,10 @@ msgid "G-code flavor is switched"
 msgstr "Tipo de G-code está trocado"
 
 msgid "Cooling Fan"
-msgstr "Ventilador de resfriamento"
+msgstr "Ventoinha de resfriamento"
 
 msgid "Fan speed-up time"
-msgstr "Tempo de aceleração do ventilador"
+msgstr "Tempo de aceleração da ventoinha"
 
 msgid "Extruder Clearance"
 msgstr "Folga da extrusora"
@@ -11770,7 +11764,6 @@ msgstr "Erro de agrupamento: "
 msgid " can not be placed in the "
 msgstr " não pode ser colocado na "
 
-# AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "Erro de agrupamento no modo manual. Por favor, verifique o número de bicos ou reagrupe."
 
@@ -12096,7 +12089,6 @@ msgstr "A contração de filamento não será usada porque a contração dos fil
 msgid "Generating skirt & brim"
 msgstr "Gerando saia e borda"
 
-# AI Translated
 msgid ""
 "Per-object skirts cannot fit between the objects in By object print sequence.\n"
 "\n"
@@ -12277,9 +12269,8 @@ msgstr "API Key"
 msgid "HTTP digest"
 msgstr "Digest HTTP"
 
-# AI Translated
 msgid "Configuration for the plugin capabilities this preset uses, overriding the global Capabilities configuration. Stored as a raw JSON array and edited through the dialog behind the button, never typed in directly."
-msgstr "Configuração dos recursos de plugin que esta predefinição usa, substituindo a configuração global de Recursos. Armazenada como um array JSON bruto e editada por meio da caixa de diálogo atrás do botão, nunca digitada diretamente."
+msgstr "Configuração das capacidades de plugin que esta predefinição usa, substituindo a configuração global de Capacidades. Armazenada como um array JSON bruto e editada por meio da caixa de diálogo atrás do botão, nunca digitada diretamente."
 
 msgid "Avoid crossing walls"
 msgstr "Evitar atravessar paredes"
@@ -12420,26 +12411,26 @@ msgid "Force cooling for overhangs and bridges"
 msgstr "Resfriamento forçado para saliências e pontes"
 
 msgid "Enable this option to allow adjustment of the part cooling fan speed for specifically for overhangs, internal and external bridges. Setting the fan speed specifically for these features can improve overall print quality and reduce warping."
-msgstr "Habilite esta opção para permitir o ajuste da velocidade do ventilador de resfriamento de peças especificamente para saliências, pontes internas e externas. Definir a velocidade do ventilador especificamente para esses recursos pode melhorar a qualidade geral da impressão e reduzir a deformação."
+msgstr "Habilite esta opção para permitir o ajuste da velocidade da ventoinha de resfriamento de peças especificamente para saliências, pontes internas e externas. Definir a velocidade da ventoinha especificamente para esses recursos pode melhorar a qualidade geral da impressão e reduzir a deformação."
 
 msgid "Overhangs and external bridges fan speed"
-msgstr "Velocidade do ventilador para saliências e pontes externas"
+msgstr "Velocidade da ventoinha para saliências e pontes externas"
 
 msgid ""
 "Use this part cooling fan speed when printing bridges or overhang walls with an overhang threshold that exceeds the value set in the 'Overhangs cooling threshold' parameter above. Increasing the cooling specifically for overhangs and bridges can improve the overall print quality of these features.\n"
 "\n"
 "Please note, this fan speed is clamped on the lower end by the minimum fan speed threshold set above. It is also adjusted upwards up to the maximum fan speed threshold when the minimum layer time threshold is not met."
 msgstr ""
-"Use esta parte da velocidade do ventilador de resfriamento ao imprimir pontes ou paredes salientes com um limite de saliência que exceda o valor definido no parâmetro 'Limiar de resfriamento de saliências' acima. Aumentar o resfriamento especificamente para saliências e pontes pode melhorar a qualidade geral de impressão desses recursos.\n"
+"Use esta parte da velocidade da ventoinha de resfriamento ao imprimir pontes ou paredes salientes com um limite de saliência que exceda o valor definido no parâmetro 'Limiar de resfriamento de saliências' acima. Aumentar o resfriamento especificamente para saliências e pontes pode melhorar a qualidade geral de impressão desses recursos.\n"
 "\n"
-"Observe que esta velocidade do ventilador é fixada na extremidade inferior pelo limiar mínimo de velocidade do ventilador definido acima. Ela também é ajustada para cima até o limiar máximo de velocidade do ventilador quando o limiar mínimo de tempo da camada não é atingido."
+"Observe que esta velocidade da ventoinha é fixada na extremidade inferior pelo limiar mínimo de velocidade da ventoinha definido acima. Ela também é ajustada para cima até o limiar máximo de velocidade da ventoinha quando o limiar mínimo de tempo da camada não é atingido."
 
 msgid "Overhang cooling activation threshold"
 msgstr "Limiar de ativação de resfriamento de saliência"
 
 #, no-c-format, no-boost-format
 msgid "When the overhang exceeds this specified threshold, force the cooling fan to run at the 'Overhang Fan Speed' set below. This threshold is expressed as a percentage, indicating the portion of each line's width that is unsupported by the layer beneath it. Setting this value to 0% forces the cooling fan to run for all outer walls, regardless of the overhang degree."
-msgstr "Quando a saliência excede esse limiar especificado, força o ventilador de resfriamento a funcionar na 'Velocidade da ventoinha de saliência' definida abaixo. Esse limiar é expresso como uma porcentagem, indicando a parte da largura de cada linha que não é suportada pela camada abaixo dela. Definir esse valor como 0% força o ventilador de resfriamento a funcionar para todas as paredes externas, independentemente do grau de saliência."
+msgstr "Quando a saliência excede esse limiar especificado, força a ventoinha de resfriamento a funcionar na 'Velocidade da ventoinha de saliência' definida abaixo. Esse limiar é expresso como uma porcentagem, indicando a parte da largura de cada linha que não é suportada pela camada abaixo dela. Definir esse valor como 0% força a ventoinha de resfriamento a funcionar para todas as paredes externas, independentemente do grau de saliência."
 
 msgid "External bridge infill direction"
 msgstr "Direção de preenchimento de ponte externa"
@@ -13026,11 +13017,9 @@ msgstr ""
 msgid "As object list"
 msgstr "Como lista de objetos"
 
-# AI Translated
 msgid "Best of all (shortest path)"
 msgstr "Melhor de todas (caminho mais curto)"
 
-# AI Translated
 msgid "Snake"
 msgstr "Serpentina"
 
@@ -13038,7 +13027,7 @@ msgid "Slow printing down for better layer cooling"
 msgstr "Diminuir a velocidade de impressão para melhor resfriamento de camada"
 
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
-msgstr "Ative esta opção para diminuir a velocidade de impressão para que o tempo da camada final não seja menor do que o limiar de tempo da camada em \"Limiar de velocidade máxima do ventilador\", para que a camada possa ser resfriada um tempo mais longo. Isso pode melhorar a qualidade para detalhes pequenos."
+msgstr "Ative esta opção para diminuir a velocidade de impressão para que o tempo da camada final não seja menor do que o limiar de tempo da camada em \"Limiar de velocidade máxima da ventoinha\", para que a camada possa ser resfriada um tempo mais longo. Isso pode melhorar a qualidade para detalhes pequenos."
 
 msgid "Normal printing"
 msgstr "Impressão normal"
@@ -13093,16 +13082,16 @@ msgid "Enable this to override the fan speed set in custom G-code after print co
 msgstr "Habilite para substituir a velocidade da ventoinha definida no G-code personalizado após a conclusão da impressão."
 
 msgid "Speed of exhaust fan during printing. This speed will override the speed in filament custom G-code."
-msgstr "Velocidade do ventilador de exaustão durante a impressão. Esta velocidade substituirá a velocidade no G-code personalizado do filamento."
+msgstr "Velocidade da ventoinha de exaustão durante a impressão. Esta velocidade substituirá a velocidade no G-code personalizado do filamento."
 
 msgid "Speed of exhaust fan after printing completes."
-msgstr "Velocidade do ventilador de exaustão após a conclusão da impressão."
+msgstr "Velocidade da ventoinha de exaustão após a conclusão da impressão."
 
 msgid "No cooling for the first"
 msgstr "Sem resfriamento para as primeiras"
 
 msgid "Turn off all cooling fans for the first few layers. This can be used to improve build plate adhesion."
-msgstr "Desligar todos os ventiladores de resfriamento para as primeiras camadas. Isso pode ser usado para obter uma melhor adesão à placa de impressão."
+msgstr "Desligar todos as ventoinhas de resfriamento para as primeiras camadas. Isso pode ser usado para obter uma melhor adesão à placa de impressão."
 
 msgid "Don't support bridges"
 msgstr "Não suportar pontes"
@@ -13278,11 +13267,9 @@ msgstr "Densidade da superfície superior"
 msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
 msgstr "Densidade da camada superior. Um valor de 100% cria uma camada superior totalmente sólida e lisa. Reduzir esse valor resulta em uma superfície superior texturizada, de acordo com o padrão de superfície superior escolhido. Um valor de 0% resultará na criação apenas das paredes da camada superior. Destinado a fins estéticos ou funcionais, não para corrigir problemas como extrusão excessiva."
 
-# AI Translated
 msgid "Top surface expansion"
 msgstr "Expansão da superfície superior"
 
-# AI Translated
 msgid ""
 "Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
 "Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane. Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top. The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
@@ -13290,11 +13277,9 @@ msgstr ""
 "Expande as superfícies superiores por esta distância para conectar superfícies superiores distintas e preencher lacunas.\n"
 "Útil para casos em que a superfície superior é interrompida por um recurso elevado, como um texto sobre um plano. Expandi-la remove os buracos sob esses recursos e cria um caminho contínuo com melhor acabamento para imprimir por cima. A expansão é aplicada à superfície superior original, antes de qualquer outro processamento, como detecção de ponte ou de saliência."
 
-# AI Translated
 msgid "Top expansion wall margin"
 msgstr "Margem de parede da expansão superior"
 
-# AI Translated
 msgid ""
 "Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
 "This can cause contraction marks (such as the hull line) on the outer walls.\n"
@@ -13304,11 +13289,9 @@ msgstr ""
 "Isso pode causar marcas de contração (como a linha do casco) nas paredes externas.\n"
 "Ao adicionar uma pequena margem, essa contração não ocorrerá diretamente nas paredes, evitando assim uma marca visível."
 
-# AI Translated
 msgid "Top expansion direction"
 msgstr "Direção da expansão superior"
 
-# AI Translated
 msgid ""
 "Direction in which the top surface expansion grows.\n"
 " - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
@@ -13335,11 +13318,9 @@ msgstr "Padrão de superfície inferior"
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Este é o padrão de linha do preenchimento da superfície inferior, não incluindo o preenchimento de ponte."
 
-# AI Translated
 msgid "Bottom surface density"
 msgstr "Densidade da superfície inferior"
 
-# AI Translated
 msgid ""
 "Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
 "WARNING: Lowering this value may negatively affect bed adhesion."
@@ -13347,31 +13328,27 @@ msgstr ""
 "Densidade da camada da superfície inferior. Destinada a fins estéticos ou funcionais, não a corrigir problemas como sobre-extrusão.\n"
 "AVISO: reduzir este valor pode afetar negativamente a aderência à mesa."
 
-# AI Translated
 msgid "Top surface fill order"
 msgstr "Ordem de preenchimento da superfície superior"
 
-# AI Translated
 msgid ""
 "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Direção em que as superfícies superiores são preenchidas ao usar um padrão baseado no centro (Concêntrico, Cordas de Arquimedes, Espiral Octograma).\n"
+"Direção em que as superfícies superiores são preenchidas ao usar um padrão baseado no centro (Concêntrico, Cordas de Arquimedes, Espiral de Octograma).\n"
 "Para fora começa no centro da superfície, de modo que qualquer excesso de material seja empurrado em direção à borda, onde é menos visível. Para dentro começa na borda e termina com as curvas fechadas no centro.\n"
 "O padrão usa a ordenação de caminho mais curto, que pode seguir em qualquer direção."
 
-# AI Translated
 msgid "Bottom surface fill order"
 msgstr "Ordem de preenchimento da superfície inferior"
 
-# AI Translated
 msgid ""
 "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
-"Direção em que as superfícies inferiores são preenchidas ao usar um padrão baseado no centro (Concêntrico, Cordas de Arquimedes, Espiral Octograma).\n"
+"Direção em que as superfícies inferiores são preenchidas ao usar um padrão baseado no centro (Concêntrico, Cordas de Arquimedes, Espiral de Octograma).\n"
 "Para dentro começa cada superfície com as curvas externas mais largas, o que melhora a aderência da primeira camada em mesas onde as curvas fechadas no centro podem não aderir. Para fora começa no centro, empurrando qualquer excesso de material em direção à borda.\n"
 "O padrão usa a ordenação de caminho mais curto, que pode seguir em qualquer direção."
 
@@ -13399,19 +13376,15 @@ msgstr "Limiar de pequenos perímetros"
 msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
 msgstr "Isso define o limiar para o comprimento do perímetro pequeno. O limiar padrão é 0 mm."
 
-# AI Translated
 msgid "Small support perimeters"
 msgstr "Pequenos perímetros de suporte"
 
-# AI Translated
 msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
 msgstr "Igual a \"Pequenos perímetros\", mas para suportes. Esta configuração separada afetará a velocidade do suporte para áreas <= `small_support_perimeter_threshold`. Se expressa como uma porcentagem (por exemplo: 80%), será calculada com base na configuração de velocidade de suporte ou de interface de suporte acima. Defina como zero para automático."
 
-# AI Translated
 msgid "Small support perimeters threshold"
-msgstr "Limite de pequenos perímetros de suporte"
+msgstr "Limiar de pequenos perímetros de suporte"
 
-# AI Translated
 msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
 msgstr "Isto define o limite para o comprimento de pequenos perímetros de suporte. O limite padrão é 0mm."
 
@@ -13603,7 +13576,6 @@ msgstr ""
 msgid "Enable adaptive pressure advance within features (beta)"
 msgstr "Habilitar pressure advance adaptativo nos recursos (beta)"
 
-# AI Translated
 msgid ""
 "Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
 "\n"
@@ -13635,10 +13607,10 @@ msgid "Default line width if other line widths are set to 0. If expressed as a %
 msgstr "Largura de linha padrão se outras larguras de linha estiverem definidas como 0. Se expresso como %, será calculado sobre o diâmetro do bico."
 
 msgid "Keep fan always on"
-msgstr "Manter o ventilador sempre ligado"
+msgstr "Manter a ventoinha sempre ligado"
 
 msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
-msgstr "Habilitar esta configuração significa que o ventilador de resfriamento da peça nunca será desligado completamente e funcionará pelo menos na velocidade mínima para reduzir a frequência de inícios e paradas."
+msgstr "Habilitar esta configuração significa que a ventoinha de resfriamento da peça nunca será desligado completamente e funcionará pelo menos na velocidade mínima para reduzir a frequência de inícios e paradas."
 
 msgid "Don't slow down outer walls"
 msgstr "Não desacelerar as paredes externas"
@@ -13658,7 +13630,7 @@ msgid "Layer time"
 msgstr "Tempo da camada"
 
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
-msgstr "O ventilador de resfriamento de peças será ativado para camadas cujo tempo estimado seja mais curto que esse valor. A velocidade do ventilador é interpolada entre as velocidades mínima e máxima do ventilador de acordo com o tempo de impressão da camada."
+msgstr "A ventoinha de resfriamento de peças será ativado para camadas cujo tempo estimado seja mais curto que esse valor. A velocidade da ventoinha é interpolada entre as velocidades mínima e máxima da ventoinha de acordo com o tempo de impressão da camada."
 
 msgid "s"
 msgstr "s"
@@ -13706,7 +13678,6 @@ msgstr "Temperatura de purga"
 msgid "Temperature when flushing filament. 0 indicates the upper bound of the recommended nozzle temperature range."
 msgstr "Temperatura ao purgar filamento. 0 indica o limite superior da faixa de temperatura recomendada para o bico."
 
-# AI Translated
 msgid "Flush temperature used in fast purge mode."
 msgstr "Temperatura de purga usada no modo de purga rápida."
 
@@ -13972,11 +13943,9 @@ msgstr "Filamento imprimível"
 msgid "The filament is printable in extruder."
 msgstr "O filamento é imprimível na extrusora."
 
-# AI Translated
 msgid "Filament-extruder compatibility"
 msgstr "Compatibilidade filamento-extrusora"
 
-# AI Translated
 msgid "A single 32-bit int encoding the compatibility level of a filament across all extruders (up to 10). Every 3 bits represent one extruder (bits [3*i, 3*i+2] for extruder i). 0: printable, 1: error, 2: critical warning, 3: warning, 4-7: reserved."
 msgstr "Um único inteiro de 32 bits que codifica o nível de compatibilidade de um filamento em todas as extrusoras (até 10). Cada 3 bits representam uma extrusora (bits [3*i, 3*i+2] para a extrusora i). 0: imprimível, 1: erro, 2: aviso crítico, 3: aviso, 4-7: reservado."
 
@@ -14016,11 +13985,9 @@ msgstr "Direção do preenchimento sólido"
 msgid "Angle for solid infill pattern, which controls the start or main direction of line."
 msgstr "Ângulo para padrão de preenchimento sólido, que controla a direção inicial ou principal da linha."
 
-# AI Translated
 msgid "Top layer direction"
 msgstr "Direção da camada superior"
 
-# AI Translated
 msgid ""
 "Fixed angle for the top solid infill and ironing lines.\n"
 "Set to -1 to follow the default solid infill direction."
@@ -14028,11 +13995,9 @@ msgstr ""
 "Ângulo fixo para o preenchimento sólido superior e as linhas de alisamento.\n"
 "Defina como -1 para seguir a direção padrão do preenchimento sólido."
 
-# AI Translated
 msgid "Bottom layer direction"
 msgstr "Direção da camada inferior"
 
-# AI Translated
 msgid ""
 "Fixed angle for the bottom solid infill lines.\n"
 "Set to -1 to follow the default solid infill direction."
@@ -14047,11 +14012,9 @@ msgstr "Densidade do preenchimento esparso"
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
 msgstr "Densidade do preenchimento esparso interno, 100% transforma todo o preenchimento esparso em preenchimento sólido e será usado o padrão de preenchimento sólido interno."
 
-# AI Translated
 msgid "Align directions to model"
 msgstr "Alinhar direções ao modelo"
 
-# AI Translated
 msgid ""
 "Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
 "When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
@@ -14071,11 +14034,9 @@ msgstr "Multilinhas de Preenchimento"
 msgid "Using multiple lines for the infill pattern, if supported by infill pattern."
 msgstr "Usar múltiplas linhas para o padrão de preenchimento, se suportado pelo padrão de preenchimento."
 
-# AI Translated
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "Otimização de tendência à flambagem em Z (experimental)"
 
-# AI Translated
 #, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "Aperta a onda giroide ao longo do eixo Z (vertical) em baixa densidade de preenchimento para encurtar o comprimento efetivo da coluna vertical e melhorar a resistência à flambagem por compressão no eixo Z. O uso de filamento é preservado. Sem efeito em densidade de preenchimento esparso de ~30% ou mais. Aplica-se apenas quando o padrão de Preenchimento esparso está definido como Giroide."
@@ -14198,13 +14159,12 @@ msgstr "Jerk para primeira camada."
 msgid "Jerk for travel."
 msgstr "Jerk para deslocamento."
 
-# AI Translated
 msgid ""
 "Travel jerk of first layer.\n"
 "The percentage value is relative to Travel Jerk."
 msgstr ""
 "Jerk de deslocamento da primeira camada.\n"
-"O valor percentual é relativo ao Jerk de deslocamento."
+"O valor percentual é relativo ao Jerk de Deslocamento."
 
 msgid "Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Largura da linha da primeira camada. Se expresso como uma %, será calculado sobre o diâmetro do bico."
@@ -14243,10 +14203,10 @@ msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "Temperatura do bico para imprimir a primeira camada com este filamento"
 
 msgid "Full fan speed at layer"
-msgstr "Velocidade total do ventilador na camada"
+msgstr "Velocidade total da ventoinha na camada"
 
 msgid "Fan speed will be ramped up linearly from zero at layer \"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower than \"close_fan_the_first_x_layers\", in which case the fan will be running at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
-msgstr "A velocidade do ventilador aumentará linearmente de zero na camada \"close_fan_the_first_x_layers\" para o máximo na camada \"full_fan_speed_layer\". \"full_fan_speed_layer\" será ignorado se for menor que \"close_fan_the_first_x_layers\", caso em que o ventilador funcionará na velocidade máxima permitida na camada \"close_fan_the_first_x_layers\" + 1."
+msgstr "A velocidade da ventoinha aumentará linearmente de zero na camada \"close_fan_the_first_x_layers\" para o máximo na camada \"full_fan_speed_layer\". \"full_fan_speed_layer\" será ignorado se for menor que \"close_fan_the_first_x_layers\", caso em que a ventoinha funcionará na velocidade máxima permitida na camada \"close_fan_the_first_x_layers\" + 1."
 
 msgid "layer"
 msgstr "camada"
@@ -14254,7 +14214,6 @@ msgstr "camada"
 msgid "First layer fan speed"
 msgstr "Velocidade da ventoinha na primeira camada"
 
-# AI Translated
 msgid ""
 "Sets an exact fan speed for the first layer, overriding all other cooling settings. Useful for protecting 3D-printed toolhead parts (e.g. Voron-style ABS/ASA ducts) from a hot bed. A small amount of airflow cools the ducts down, without using full cooling that may in certain conditions hurt first-layer adhesion.\n"
 "From the second layer onwards, normal cooling resumes.\n"
@@ -14262,44 +14221,44 @@ msgid ""
 "Only available when \"No cooling for the first\" is 0.\n"
 "Set to -1 to disable it."
 msgstr ""
-"Define uma velocidade exata do ventilador para a primeira camada, substituindo todas as outras configurações de resfriamento. Útil para proteger peças impressas em 3D da cabeça da ferramenta (por exemplo, dutos ABS/ASA no estilo Voron) de uma mesa quente. Uma pequena quantidade de fluxo de ar resfria os dutos, sem usar o resfriamento total que pode, em certas condições, prejudicar a aderência da primeira camada.\n"
+"Define uma velocidade exata da ventoinha para a primeira camada, substituindo todas as outras configurações de resfriamento. Útil para proteger peças impressas em 3D da cabeça da ferramenta (por exemplo, dutos ABS/ASA no estilo Voron) de uma mesa aquecida. Uma pequena quantidade de fluxo de ar resfria os dutos, sem usar o resfriamento total que pode, em certas condições, prejudicar a aderência da primeira camada.\n"
 "A partir da segunda camada, o resfriamento normal é retomado.\n"
-"Se \"Velocidade total do ventilador na camada\" também estiver definida, o ventilador aumenta suavemente deste valor na primeira camada até o seu alvo na camada escolhida.\n"
+"Se \"Velocidade total da ventoinha na camada\" também estiver definida, a ventoinha aumenta suavemente deste valor na primeira camada até o seu alvo na camada escolhida.\n"
 "Disponível apenas quando \"Sem resfriamento nas primeiras\" é 0.\n"
 "Defina como -1 para desativá-la."
 
 msgid "Support interface fan speed"
-msgstr "Velocidade do ventilador para interface de suporte"
+msgstr "Velocidade da ventoinha para interface de suporte"
 
 msgid ""
 "This part cooling fan speed is applied when printing support interfaces. Setting this parameter to a higher than regular speed reduces the layer binding strength between supports and the supported part, making them easier to separate.\n"
 "Set to -1 to disable it.\n"
 "This setting is overridden by disable_fan_first_layers."
 msgstr ""
-"Esta velocidade do ventilador de resfriamento de peças é aplicada ao imprimir interfaces de suporte. Definir este parâmetro para uma velocidade maior que a normal reduz a força de adesão de camada entre os suportes e a peça suportada, tornando-os mais fáceis de separar.\n"
+"Esta velocidade da ventoinha de resfriamento de peças é aplicada ao imprimir interfaces de suporte. Definir este parâmetro para uma velocidade maior que a normal reduz a força de adesão de camada entre os suportes e a peça suportada, tornando-os mais fáceis de separar.\n"
 "Defina como -1 para desabilitá-lo.\n"
 "Esta configuração é substituída por disable_fan_first_layers."
 
 msgid "Internal bridges fan speed"
-msgstr "Velocidade do ventilador para pontes internas"
+msgstr "Velocidade da ventoinha para pontes internas"
 
 msgid ""
 "The part cooling fan speed used for all internal bridges. Set to -1 to use the overhang fan speed settings instead.\n"
 "\n"
 "Reducing the internal bridges fan speed, compared to your regular fan speed, can help reduce part warping due to excessive cooling applied over a large surface for a prolonged period of time."
 msgstr ""
-"A velocidade do ventilador de resfriamento de peças usada para todas as pontes internas. Defina como -1 para usar as configurações de velocidade do ventilador de sobreposição.\n"
+"A velocidade da ventoinha de resfriamento de peças usada para todas as pontes internas. Defina como -1 para usar as configurações de velocidade da ventoinha de sobreposição.\n"
 "\n"
-"Reduzir a velocidade do ventilador das pontes internas, em comparação com a velocidade normal do ventilador, pode ajudar a reduzir a deformação das peças devido ao resfriamento excessivo aplicado sobre uma grande superfície por um período prolongado de tempo."
+"Reduzir a velocidade da ventoinha das pontes internas, em comparação com a velocidade normal da ventoinha, pode ajudar a reduzir a deformação das peças devido ao resfriamento excessivo aplicado sobre uma grande superfície por um período prolongado de tempo."
 
 msgid "Ironing fan speed"
-msgstr "Velocidade do ventilador para alisamento"
+msgstr "Velocidade da ventoinha para alisamento"
 
 msgid ""
 "This part cooling fan speed is applied when ironing. Setting this parameter to a lower than regular speed reduces possible nozzle clogging due to the low volumetric flow rate, making the interface smoother.\n"
 "Set to -1 to disable it."
 msgstr ""
-"Esta velocidade do ventilador de resfriamento de peças é aplicada durante o alisamento. Definir este parâmetro para uma velocidade menor que a normal reduz a possibilidade de entupimento do bico devido ao baixa taxa de fluxo volumétrico, tornando a interface mais suave.\n"
+"Esta velocidade da ventoinha de resfriamento de peças é aplicada durante o alisamento. Definir este parâmetro para uma velocidade menor que a normal reduz a possibilidade de entupimento do bico devido ao baixa taxa de fluxo volumétrico, tornando a interface mais suave.\n"
 "Defina como -1 para desabilitá-lo."
 
 msgid "Ironing flow"
@@ -14584,7 +14543,7 @@ msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "Melhor posição de arranjo automático na faixa [0,1] em relação ao formato da mesa."
 
 msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "Habilitar esta opção se a máquina tiver ventilador auxiliar de resfriamento de peças. Comando G-code: M106 P2 S(0-255)."
+msgstr "Habilitar esta opção se a máquina tiver ventoinha auxiliar de resfriamento de peças. Comando G-code: M106 P2 S(0-255)."
 
 msgid "Fan direction"
 msgstr "Direção da ventoinha"
@@ -14592,7 +14551,6 @@ msgstr "Direção da ventoinha"
 msgid "Cooling fan direction of the printer"
 msgstr "Direção da ventoinha de resfriamento da impressora"
 
-# AI Translated
 msgid "Both"
 msgstr "Ambos"
 
@@ -14602,9 +14560,9 @@ msgid ""
 "It won't move fan commands into the start G-code if the 'only custom start G-code' is activated.\n"
 "Use 0 to deactivate."
 msgstr ""
-"Ativar o ventilador este número de segundos antes do seu tempo de início alvo (você pode usar frações de segundos). Ele assume aceleração infinita para esta estimativa de tempo e levará em conta apenas os movimentos G1 e G0 (o ajuste de arco não é suportado).\n"
-"Não moverá G-code de comandos do ventilador personalizados (eles funcionam como uma espécie de 'barreira').\n"
-"Não moverá comandos do ventilador para o início do G-code se 'apenas G-code de início personalizado' estiver ativo.\n"
+"Ativar a ventoinha este número de segundos antes do seu tempo de início alvo (você pode usar frações de segundos). Ele assume aceleração infinita para esta estimativa de tempo e levará em conta apenas os movimentos G1 e G0 (o ajuste de arco não é suportado).\n"
+"Não moverá G-code de comandos da ventoinha personalizados (eles funcionam como uma espécie de 'barreira').\n"
+"Não moverá comandos da ventoinha para o início do G-code se 'apenas G-code de início personalizado' estiver ativo.\n"
 "Use 0 para desativar."
 
 msgid "Only overhangs"
@@ -14614,15 +14572,15 @@ msgid "Will only take into account the delay for the cooling of overhangs."
 msgstr "Levará em conta apenas o atraso para o resfriamento das saliências."
 
 msgid "Fan kick-start time"
-msgstr "Tempo de inicialização do ventilador"
+msgstr "Tempo de inicialização da ventoinha"
 
 msgid ""
 "Emit a max fan speed command for this amount of seconds before reducing to target speed to kick-start the cooling fan.\n"
 "This is useful for fans where a low PWM/power may be insufficient to get the fan started spinning from a stop, or to get the fan up to speed faster.\n"
 "Set to 0 to deactivate."
 msgstr ""
-"Emita um comando de velocidade máxima do ventilador por esta quantidade de segundos antes de reduzir para a velocidade alvo para iniciar o ventilador de resfriamento.\n"
-"Isto é útil para ventiladores onde um baixo PWM/potência pode ser insuficiente para fazer o ventilador começar a girar a partir de uma parada, ou para fazer o ventilador alcançar a velocidade mais rapidamente.\n"
+"Emita um comando de velocidade máxima da ventoinha por esta quantidade de segundos antes de reduzir para a velocidade alvo para iniciar a ventoinha de resfriamento.\n"
+"Isto é útil para ventoinhas onde um baixo PWM/potência pode ser insuficiente para fazer a ventoinha começar a girar a partir de uma parada, ou para fazer a ventoinha alcançar a velocidade mais rapidamente.\n"
 "Defina como 0 para desativar."
 
 msgid "Minimum non-zero part cooling fan speed"
@@ -14830,19 +14788,15 @@ msgstr "Ângulo de saliência do preenchimento"
 msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
 msgstr "O ângulo das linhas de preenchimento. 60° resultará em um favo de mel puro."
 
-# AI Translated
 msgid "Lightning overhang angle"
-msgstr "Ângulo de saliência Relâmpago"
+msgstr "Ângulo de saliência de Relâmpago"
 
-# AI Translated
 msgid "Maximum overhang angle for Lightning infill support propagation."
 msgstr "Ângulo máximo de saliência para a propagação de suporte do preenchimento Relâmpago."
 
-# AI Translated
 msgid "Prune angle"
 msgstr "Ângulo de poda"
 
-# AI Translated
 msgid ""
 "Controls how aggressively short or unsupported Lightning branches are pruned.\n"
 "This angle is converted internally to a per-layer distance."
@@ -14850,11 +14804,9 @@ msgstr ""
 "Controla a agressividade com que os ramos Relâmpago curtos ou sem suporte são podados.\n"
 "Este ângulo é convertido internamente em uma distância por camada."
 
-# AI Translated
 msgid "Straightening angle"
 msgstr "Ângulo de retificação"
 
-# AI Translated
 msgid "Maximum straightening angle used to simplify Lightning branches."
 msgstr "Ângulo máximo de retificação usado para simplificar os ramos Relâmpago."
 
@@ -15205,7 +15157,7 @@ msgstr "Força máxima do eixo Y"
 msgid "The allowed maximum output force of Y axis"
 msgstr "A força máxima de saída permitida do eixo Y"
 
-# AI Translated
+#, fuzzy
 msgid "N"
 msgstr "N"
 
@@ -15215,6 +15167,7 @@ msgstr "Massa da mesa do eixo Y"
 msgid "The machine bed mass load of Y axis"
 msgstr "A carga de massa da mesa do equipamento no eixo Y"
 
+#, fuzzy
 msgid "g"
 msgstr "G"
 
@@ -15369,7 +15322,7 @@ msgstr ""
 "Para desativar o modelador de entrada, use o tipo Desativar."
 
 msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
-msgstr "A velocidade do ventilador de resfriamento de peças pode ser aumentada quando o resfriamento automático está habilitado. Este é o limite máximo de velocidade do ventilador de resfriamento de peças."
+msgstr "A velocidade da ventoinha de resfriamento de peças pode ser aumentada quando o resfriamento automático está habilitado. Este é o limite máximo de velocidade da ventoinha de resfriamento de peças."
 
 msgid "The highest printable layer height for the extruder. Used to limit the maximum layer height when enable adaptive layer height."
 msgstr "A maior altura de camada imprimível para a extrusora. Usada para limitar a altura máxima da camada quando a altura da camada adaptativa está ativada."
@@ -15432,31 +15385,31 @@ msgid "Applies extrusion rate smoothing only on external perimeters and overhang
 msgstr "Aplica suavização de taxa de extrusão somente em perímetros externos e saliências. Isso pode ajudar a reduzir artefatos devido a transições de velocidade bruscas em saliências visíveis externamente sem impactar a velocidade de impressão de recursos que não serão visíveis ao usuário."
 
 msgid "Minimum speed for part cooling fan."
-msgstr "Velocidade mínima para o ventilador de resfriamento de peças."
+msgstr "Velocidade mínima para a ventoinha de resfriamento de peças."
 
 msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
 "Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
 msgstr ""
-"Velocidade do ventilador auxiliar de resfriamento de peças. O ventilador auxiliar funcionará nesta velocidade durante a impressão, exceto nas primeiras camadas, que são definidas por camadas sem resfriamento.\n"
+"Velocidade da ventoinha auxiliar de resfriamento de peças. A ventoinha auxiliar funcionará nesta velocidade durante a impressão, exceto nas primeiras camadas, que são definidas por camadas sem resfriamento.\n"
 "\n"
-"Por favor, habilite o ventilador auxiliar nas configurações da impressora para usar esta função. Comando G-code: M106 P2 S(0-255)"
+"Por favor, habilite a ventoinha auxiliar nas configurações da impressora para usar esta função. Comando G-code: M106 P2 S(0-255)"
 
 msgid "For the first"
 msgstr "Para as primeiras"
 
 msgid "Set special auxiliary cooling fan for the first certain layers."
-msgstr "Definir um ventilador auxiliar de resfriamento específico para as primeiras camadas."
+msgstr "Definir uma ventoinha auxiliar de resfriamento específico para as primeiras camadas."
 
 msgid ""
 "Auxiliary fan speed will be ramped up linearly from layer \"For the first\" to maximum at layer \"Full fan speed at layer\".\n"
 "\"Full fan speed at layer\" will be ignored if lower than \"For the first\", in which case the fan will run at maximum allowed speed at layer \"For the first\" + 1."
 msgstr ""
-"A velocidade do ventilador auxiliar aumentará linearmente da camada \"Para as primeiras\" até o máximo na camada \"Velocidade total do ventilador na camada\".\n"
-"A \"Velocidade total do ventilador na camada\" será ignorada se for menor que \"Para as primeiras\", caso em que o ventilador funcionará na velocidade máxima permitida na camada \"Para as primeiras\" + 1."
+"A velocidade da ventoinha auxiliar aumentará linearmente da camada \"Para as primeiras\" até o máximo na camada \"Velocidade total da ventoinha na camada\".\n"
+"A \"Velocidade total da ventoinha na camada\" será ignorada se for menor que \"Para as primeiras\", caso em que a ventoinha funcionará na velocidade máxima permitida na camada \"Para as primeiras\" + 1."
 
 msgid "Special auxiliary cooling fan speed, effective only for the first x layers."
-msgstr "Velocidade especial do ventilador de resfriamento auxiliar, efetiva apenas para as primeiras x camadas."
+msgstr "Velocidade especial da ventoinha de resfriamento auxiliar, efetiva apenas para as primeiras x camadas."
 
 msgid "The lowest printable layer height for the extruder. Used to limit the minimum layer height when enable adaptive layer height."
 msgstr "A menor altura de camada imprimível para a extrusora. Usada para limitar a altura mínima da camada ao habilitar a altura de camada adaptativa."
@@ -15621,11 +15574,9 @@ msgstr "Este G-code é inserido quando a função de extrusão é trocada. Ele �
 msgid "Plugins Used"
 msgstr "Plugins Utilizados"
 
-# AI Translated
 msgid "Plugin capabilities referenced by this preset, stored as name;uuid;capability."
-msgstr "Recursos de plugin referenciados por esta predefinição, armazenados como name;uuid;capability."
+msgstr "Capacidades de plugin referenciados por esta predefinição, armazenados como name;uuid;capability."
 
-# AI Translated
 msgid "Python plugin(s) invoked at each slicing pipeline step to read and modify intermediate slicing data, including a final G-code post-processing step. Research/experimental."
 msgstr "Plugin(s) Python invocado(s) em cada etapa do pipeline de fatiamento para ler e modificar dados intermediários de fatiamento, incluindo uma etapa final de pós-processamento do G-code. Pesquisa/experimental."
 
@@ -16243,11 +16194,9 @@ msgstr "Preparar todas as extrusoras de impressão"
 msgid "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
 msgstr "Se ativado, todos as extrusoras de impressão serão preparados na borda frontal da mesa de impressão no início da impressão."
 
-# AI Translated
 msgid "Toolchange ordering"
 msgstr "Ordenação de troca de ferramenta"
 
-# AI Translated
 msgid ""
 "Determines the order of tool changes on each layer.\n"
 "- Default: Starts with the last used extruder to minimize tool changes.\n"
@@ -16257,7 +16206,6 @@ msgstr ""
 "- Padrão: começa com a última extrusora usada para minimizar as trocas de ferramenta.\n"
 "- Cíclico: usa uma sequência fixa de ferramentas em cada camada. Isso sacrifica a velocidade em prol de uma melhor qualidade de superfície, pois as trocas de ferramenta extras dão mais tempo para as camadas resfriarem."
 
-# AI Translated
 msgid "Cyclic"
 msgstr "Cíclico"
 
@@ -16638,7 +16586,6 @@ msgstr ""
 "\n"
 "Se habilitado, este parâmetro também define uma variável G-code chamada chamber_temperature, que pode ser usada para passar a temperatura desejada da câmara para sua macro de início de impressão ou uma macro de absorção de calor como esta: PRINT_START (outras variáveis) CHAMBER_TEMP=[chamber_temperature]. Isso pode ser útil se sua impressora não suportar comandos M141/M191 ou se você desejar lidar com a absorção de calor na macro de início de impressão se nenhum aquecedor de câmara ativo estiver instalado."
 
-# AI Translated
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
@@ -16646,11 +16593,11 @@ msgid ""
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
-"Esta é a temperatura da câmara na qual a impressão deve começar, enquanto a câmara continua aquecendo em direção à temperatura da câmara \"Alvo\". Por exemplo, defina o Alvo como 60 e o Mínimo como 50 para começar a imprimir assim que a câmara atingir 50℃, sem esperar pelos 60℃ completos.\n"
+"Esta é a temperatura da câmara na qual a impressão deve começar, enquanto a câmara continua aquecendo em direção à temperatura \"Alvo\" da câmara. Por exemplo, defina o Alvo como 60 e o Mínimo como 50 para começar a imprimir assim que a câmara atingir 50℃, sem esperar pelos 60℃ completos.\n"
 "\n"
 "Isso define uma variável de G-code chamada chamber_minimal_temperature, que pode ser passada para a sua macro de início de impressão ou uma macro de aquecimento prolongado, assim: PRINT_START (outras variáveis) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
 "\n"
-"Ao contrário da temperatura da câmara \"Alvo\", esta opção não emite nenhum comando M141/M191; ela apenas expõe o valor ao seu G-code personalizado. Não deve exceder a temperatura da câmara \"Alvo\"."
+"Ao contrário da temperatura \"Alvo\" da câmara, esta opção não emite nenhum comando M141/M191; ela apenas expõe o valor ao seu G-code personalizado. Não deve exceder a temperatura \"Alvo\" da câmara."
 
 msgid "Chamber minimal temperature"
 msgstr "Temperatura mínima da câmara"
@@ -16694,20 +16641,18 @@ msgstr "Espessura da casca do topo"
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "O número de camadas sólidas superiores é aumentado ao fatiar se a espessura calculada pelas camadas da casca do topo for menor do que este valor. Isso pode evitar que a casca seja muito fina quando a altura da camada é pequena. 0 significa que esta configuração está desativada e a espessura da casca do topo é determinada apenas pelo número de camadas da casca do topo."
 
-# AI Translated
 msgid "Separated infills"
 msgstr "Preenchimentos separados"
 
-# AI Translated
 msgid ""
 "Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
 "Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
 "Affects line and grid patterns and rotation-template infills.\n"
 "Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
 msgstr ""
-"Centraliza o preenchimento interno de cada peça em si mesma, como se fosse fatiada isoladamente, em vez de no conjunto inteiro. Peças que se tocam ou se sobrepõem são tratadas como um único corpo e compartilham um centro; peças separadas (ou objetos 3D distintos) recebem cada uma o seu próprio.\n"
+"Centraliza o preenchimento interno de cada peça em si mesmo, como se fosse fatiada isoladamente, em vez de no conjunto inteiro. Peças que se tocam ou se sobrepõem são tratadas como um único corpo e compartilham um centro; peças separadas (ou objetos 3D distintos) recebem cada uma o seu próprio.\n"
 "Útil quando um conjunto agrupa vários objetos que devem manter, cada um, um preenchimento consistente e autocentrado.\n"
-"Afeta os padrões de linha e grade e os preenchimentos com modelo de rotação.\n"
+"Afeta os padrões de linha e grade e os preenchimentos com gabarito de rotação.\n"
 "Os padrões fixados em coordenadas globais (Giroide, Favo de mel, TPMS, ...) não são afetados."
 
 msgid "Center surface pattern on"
@@ -16776,11 +16721,9 @@ msgstr "Multiplicador de purga"
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "Os volumes de purga reais são iguais ao multiplicador de purga multiplicado pelos volumes de purga na tabela."
 
-# AI Translated
 msgid "Flush multiplier (Fast mode)"
 msgstr "Multiplicador de purga (Modo rápido)"
 
-# AI Translated
 msgid "The flush multiplier used in fast purge mode."
 msgstr "O multiplicador de purga usado no modo de purga rápida."
 
@@ -16790,13 +16733,12 @@ msgstr "Volume de preparo"
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Este é o volume de material para preparar a extrusora na torre."
 
-# AI Translated
+#,fuzzy
 msgid "Prime volume mode"
 msgstr "Modo de volume de preparação"
 
-# AI Translated
 msgid "Selects how the wipe-tower prime and flush volumes are computed on multi-extruder printers."
-msgstr "Seleciona como os volumes de preparação e de purga da torre de purga são calculados em impressoras com várias extrusoras."
+msgstr "Seleciona como os volumes de preparação e de purga da torre de purga são computados em impressoras com múltiplas extrusoras."
 
 msgid "Saving"
 msgstr "Salvando"
@@ -17116,7 +17058,7 @@ msgid "The maximum volumetric speed for ramming before extruder change, where -1
 msgstr "A velocidade volumétrica máxima para compactação antes da troca de extrusor, onde -1 significa usar a velocidade volumétrica máxima."
 
 msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
-msgstr "Para evitar o gotejamento, a temperatura do bico será reduzida durante a compactação. Nota: somente um comando de resfriamento e ativação do ventilador são acionados, não sendo garantido o alcance da temperatura alvo. 0 significa desativado."
+msgstr "Para evitar o gotejamento, a temperatura do bico será reduzida durante a compactação. Nota: somente um comando de resfriamento e ativação da ventoinha são acionados, não sendo garantido o alcance da temperatura alvo. 0 significa desativado."
 
 msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
 msgstr "A velocidade volumétrica máxima para compactação antes de uma troca de hotend, em que -1 significa usar a velocidade volumétrica máxima."
@@ -20744,8 +20686,8 @@ msgid ""
 "Auxiliary fan\n"
 "Did you know that OrcaSlicer supports Auxiliary part cooling fan?"
 msgstr ""
-"Ventilador auxiliar\n"
-"Você sabia que o OrcaSlicer suporta ventilador auxiliar de resfriamento de peças?"
+"Ventoinha auxiliar\n"
+"Você sabia que o OrcaSlicer suporta ventoinha auxiliar de resfriamento de peças?"
 
 #: resources/data/hints.ini: [hint:Air filtration]
 msgid ""
@@ -21939,7 +21881,7 @@ msgstr ""
 #~ msgstr "Pausado devido à perda do AMS"
 
 #~ msgid "Paused due to low speed of the heat break fan"
-#~ msgstr "Pausado devido a baixa velocidade do ventilador do bloco de aquecimento"
+#~ msgstr "Pausado devido a baixa velocidade da ventoinha do bloco de aquecimento"
 
 #~ msgid "Paused due to chamber temperature control error"
 #~ msgstr "Pausado devido a erro no controle de temperatura da câmara"
@@ -22468,20 +22410,20 @@ msgstr ""
 #~ msgstr "Forçar resfriamento para saliências e pontes"
 
 #~ msgid "Enable this option to optimize part cooling fan speed for overhang and bridge to get better cooling"
-#~ msgstr "Ative esta opção para otimizar a velocidade do ventilador de resfriamento de peças para saliência e ponte para obter melhor resfriamento"
+#~ msgstr "Ative esta opção para otimizar a velocidade da ventoinha de resfriamento de peças para saliência e ponte para obter melhor resfriamento"
 
 #~ msgid "Fan speed for overhang"
-#~ msgstr "Velocidade do ventilador para saliência"
+#~ msgstr "Velocidade da ventoinha para saliência"
 
 #~ msgid "Force part cooling fan to be this speed when printing bridge or overhang wall which has large overhang degree. Forcing cooling for overhang and bridge can get better quality for these part"
-#~ msgstr "Forçar o ventilador de resfriamento de peças a ser nesta velocidade ao imprimir ponte ou parede saliente que tenha um grande grau de saliência. Forçar o resfriamento para saliência e ponte pode obter melhor qualidade para estas partes"
+#~ msgstr "Forçar a ventoinha de resfriamento de peças a ser nesta velocidade ao imprimir ponte ou parede saliente que tenha um grande grau de saliência. Forçar o resfriamento para saliência e ponte pode obter melhor qualidade para estas partes"
 
 #~ msgid "Cooling overhang threshold"
 #~ msgstr "Limiar de resfriamento de saliência"
 
 #, c-format
 #~ msgid "Force cooling fan to be specific speed when overhang degree of printed part exceeds this value. Expressed as percentage which indicates how much width of the line without support from lower layer. 0% means forcing cooling for all outer wall no matter how much overhang degree"
-#~ msgstr "Forçar o ventilador de resfriamento a ser uma velocidade específica quando o grau de saliência das peças impressa excede este valor. Expresso como porcentagem, que indica quanto da largura da linha sem suporte da camada inferior. Zero significa forçar o resfriamento para toda a parede externa, não importa quanto seja o grau de saliência"
+#~ msgstr "Forçar a ventoinha de resfriamento a ser uma velocidade específica quando o grau de saliência das peças impressa excede este valor. Expresso como porcentagem, que indica quanto da largura da linha sem suporte da camada inferior. Zero significa forçar o resfriamento para toda a parede externa, não importa quanto seja o grau de saliência"
 
 #~ msgid "Density of external bridges. 100% means solid bridge. Default is 100%."
 #~ msgstr "Densidade de pontes externas. 100% significa ponte sólida. O padrão é 100%."
