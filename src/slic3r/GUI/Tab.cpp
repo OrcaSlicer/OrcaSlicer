@@ -448,7 +448,7 @@ void Tab::create_preset_tab()
 
     m_top_sizer->AddSpacer(FromDIP(SidebarProps::ContentMargin()));
 
-    m_top_sizer->SetMinSize(-1, 3 * m_em_unit);
+    m_top_sizer->SetMinSize(-1, FromDIP(30));
     m_top_panel->SetSizer(m_top_sizer);
     if (m_presets_choice)
         m_main_sizer->Add(m_top_panel, 0, wxEXPAND | wxUP | wxDOWN, FromDIP(SidebarProps::ContentMarginV()));
@@ -456,7 +456,7 @@ void Tab::create_preset_tab()
         m_top_panel->Hide();
 
     // tree
-    m_tabctrl = new TabCtrl(panel, wxID_ANY, wxDefaultPosition, wxSize(20 * m_em_unit, -1),
+    m_tabctrl = new TabCtrl(panel, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(200), -1),
         wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS | wxTR_FULL_ROW_HIGHLIGHT);
     m_tabctrl->Bind(wxEVT_RIGHT_DOWN, [this](auto &e) {}); // disable right select
     m_tabctrl->SetFont(Label::Body_14);
@@ -503,7 +503,7 @@ void Tab::create_preset_tab()
 
     if (dynamic_cast<TabPrinter *>(this) || dynamic_cast<TabPrint *>(this)) {
         m_extruder_switch = new MultiSwitchButton(panel);
-        m_extruder_switch->SetMaxSize({em_unit(this) * 40, -1});
+        m_extruder_switch->SetMaxSize({FromDIP(390), -1});
         m_extruder_switch->Bind(wxCUSTOMEVT_MULTISWITCH_SELECTION, [this](auto &evt) {
             evt.Skip();
             int selection = evt.GetInt();
@@ -539,9 +539,9 @@ void Tab::create_preset_tab()
         m_variant_sizer->Add(m_extruder_switch, 0, wxALIGN_CENTER, 0);
         m_variant_sizer->Add(right_sizer, 1, wxALIGN_CENTER);
         right_sizer->AddStretchSpacer(1);
-        right_sizer->Add(m_extruder_sync_box, 0, wxALIGN_CENTER | wxRIGHT, m_em_unit);
+        right_sizer->Add(m_extruder_sync_box, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(10));
 
-        m_main_sizer->Add(m_variant_sizer, 0, wxEXPAND | wxTOP, m_em_unit);
+        m_main_sizer->Add(m_variant_sizer, 0, wxEXPAND | wxTOP, FromDIP(10));
     } else if (dynamic_cast<TabFilament *>(this)) {
         m_variant_combo = new MultiSwitchButton(panel);
         m_variant_combo->Bind(wxCUSTOMEVT_MULTISWITCH_SELECTION, [this](auto &evt) {
@@ -559,10 +559,10 @@ void Tab::create_preset_tab()
         wxBoxSizer *combo_sizer = new wxBoxSizer(wxHORIZONTAL);
         combo_sizer->Add(m_variant_combo, 1, wxEXPAND);
         wxBoxSizer *top_sizer = new wxBoxSizer(wxHORIZONTAL);
-        top_sizer->Add(combo_sizer, 1, wxEXPAND | wxLEFT, m_em_unit);
+        top_sizer->Add(combo_sizer, 1, wxEXPAND | wxLEFT, FromDIP(10));
         m_variant_sizer  = new wxBoxSizer(wxVERTICAL);
-        m_variant_sizer->Add(top_sizer, 0, wxLEFT, m_em_unit);
-        m_main_sizer->Add(m_variant_sizer, 0, wxEXPAND | wxTOP, m_em_unit);
+        m_variant_sizer->Add(top_sizer, 0, wxLEFT, FromDIP(10));
+        m_main_sizer->Add(m_variant_sizer, 0, wxEXPAND | wxTOP, FromDIP(10));
     }
 
     this->SetSizer(m_main_sizer);
@@ -1588,7 +1588,7 @@ void Tab::msw_rescale()
 {
     m_em_unit = em_unit(m_parent);
 
-    m_top_sizer->SetMinSize(-1, 3 * m_em_unit);
+    m_top_sizer->SetMinSize(-1, FromDIP(30));
 
     //BBS: GUI refactor
     //if (m_mode_sizer)
@@ -1596,7 +1596,7 @@ void Tab::msw_rescale()
     if (m_presets_choice)
         m_presets_choice->msw_rescale();
 
-    m_tabctrl->SetMinSize(wxSize(20 * m_em_unit, -1));
+    m_tabctrl->SetMinSize(wxSize(FromDIP(200), -1));
 
     // rescale buttons and cached bitmaps
     for (const auto btn : m_scaled_buttons)

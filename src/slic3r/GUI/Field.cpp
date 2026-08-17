@@ -299,7 +299,7 @@ void Field::PostInitialize()
 	}
 
     // initialize m_unit_value
-    m_em_unit = em_unit(m_parent);
+    m_em_unit = m_parent->FromDIP(10);
     parent_is_custom_ctrl = dynamic_cast<OG_CustomCtrl*>(m_parent) != nullptr;
 
 	BUILD();
@@ -728,7 +728,7 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
 void Field::msw_rescale()
 {
 	// update em_unit value
-	m_em_unit = em_unit(m_parent);
+	m_em_unit = m_parent->FromDIP(10);
 }
 
 void Field::sys_color_changed()

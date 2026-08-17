@@ -825,7 +825,7 @@ bool PresetComboBox::selection_is_changed_according_to_physical_printers()
 // ---------------------------------
 
 PlaterPresetComboBox::PlaterPresetComboBox(wxWindow *parent, Preset::Type preset_type) :
-    PresetComboBox(parent, preset_type, wxSize(25 * wxGetApp().em_unit(), 30 * wxGetApp().em_unit() / 10))
+    PresetComboBox(parent, preset_type, wxSize(-1, parent->FromDIP(30)))
 {
     GetDropDown().SetUseContentWidth(true,true);
 
@@ -861,7 +861,6 @@ PlaterPresetComboBox::PlaterPresetComboBox(wxWindow *parent, Preset::Type preset
 
     // BBS
     if (m_type == Preset::TYPE_FILAMENT) {
-        int em = wxGetApp().em_unit();
         clr_picker = new wxBitmapButton(parent, wxID_ANY, {}, wxDefaultPosition, wxSize(FromDIP(20), FromDIP(20)), wxBU_EXACTFIT | wxBU_AUTODRAW | wxBORDER_NONE);
         clr_picker->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
         clr_picker->SetToolTip(_L("Click to select filament color"));
@@ -1528,10 +1527,10 @@ void PlaterPresetComboBox::update()
 void PlaterPresetComboBox::msw_rescale()
 {
     PresetComboBox::msw_rescale();
-    SetMinSize({-1, 30 * m_em_unit / 10});
+    SetMinSize({-1, FromDIP(30)});
 
     if (clr_picker)
-        clr_picker->SetSize(20 * m_em_unit / 10, 20 * m_em_unit / 10);
+        clr_picker->SetSize(FromDIP(20), FromDIP(20));
     // BBS
     if (edit_btn != nullptr)
         edit_btn->msw_rescale();
@@ -1629,7 +1628,7 @@ void PlaterPresetComboBox::sync_colour_config(const std::vector<std::string> &cl
 
 TabPresetComboBox::TabPresetComboBox(wxWindow* parent, Preset::Type preset_type) :
     // BBS: new layout
-    PresetComboBox(parent, preset_type, wxSize(20 * wxGetApp().em_unit(), 30 * wxGetApp().em_unit() / 10))
+    PresetComboBox(parent, preset_type, wxSize(-1, parent->FromDIP(30)))
 {
     GetDropDown().SetUseContentWidth(true,true);
 }
@@ -1896,7 +1895,7 @@ void TabPresetComboBox::msw_rescale()
 {
     PresetComboBox::msw_rescale();
     // BBS: new layout
-    wxSize sz = wxSize(20 * m_em_unit, 30 * m_em_unit / 10);
+    wxSize sz = wxSize(-1, FromDIP(30));
     SetMinSize(sz);
     SetSize(sz);
 }

@@ -53,7 +53,7 @@ OG_CustomCtrl::OG_CustomCtrl(   wxWindow*            parent,
     // BBS: new font
     m_font = Label::Body_14;
     SetFont(m_font);
-    m_em_unit = em_unit(m_parent);
+    m_em_unit = m_parent->FromDIP(10);
     m_v_gap   = lround(1.2 * m_em_unit);
     m_v_gap2  = lround(0.8 * m_em_unit);
     m_h_gap   = lround(0.2 * m_em_unit);
@@ -595,7 +595,7 @@ void OG_CustomCtrl::msw_rescale()
     // BBS: new font
     m_font = Label::Body_14;
     SetFont(m_font);
-    m_em_unit   = em_unit(m_parent);
+    m_em_unit   = m_parent->FromDIP(10);
     m_v_gap     = lround(1.2 * m_em_unit);
     m_v_gap2    = lround(0.8 * m_em_unit);
     m_h_gap     = lround(0.2 * m_em_unit);

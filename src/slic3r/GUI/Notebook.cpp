@@ -31,7 +31,7 @@ ButtonsListCtrl::ButtonsListCtrl(wxWindow *parent, wxBoxSizer* side_tools) :
    
     SetBackgroundColour(default_btn_bg);
 
-    int em = em_unit(this);// Slic3r::GUI::wxGetApp().em_unit();
+    int em = FromDIP(10);
     // BBS: no gap
     m_btn_margin = 0; // std::lround(0.3 * em);
     m_line_margin = std::lround(0.1 * em);
@@ -102,7 +102,7 @@ void ButtonsListCtrl::UpdateMode()
 void ButtonsListCtrl::Rescale()
 {
     //m_mode_sizer->msw_rescale();
-    int em = em_unit(this);
+    int em = FromDIP(10);
     for (Button* btn : m_pageButtons) {
         //BBS
         btn->SetMinSize({(btn->GetLabel().empty() ? 40 : 132) * em / 10, 36 * em / 10});
@@ -156,7 +156,7 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
     Button * btn = new Button(this, text.empty() ? text : " " + text, bmp_name, wxNO_BORDER);
     btn->SetCornerRadius(0);
 
-    int em = em_unit(this);
+    int em = FromDIP(10);
     //BBS set size for button
     btn->SetMinSize({(text.empty() ? 40 : 136) * em / 10, 36 * em / 10});
 
@@ -228,7 +228,7 @@ void ButtonsListCtrl::SetPageText(size_t n, const wxString& strText)
 // ORCA
 void ButtonsListCtrl::SetCompact(size_t n, bool compact)
 {
-    int em = em_unit(this);
+    int em = FromDIP(10);
     Button* btn = m_pageButtons[n];
     btn->SetMinSize({(compact ? 40 : 136) * em / 10, 36 * em / 10});
     btn->SetLabel(compact ? "" : (" " +  m_pageLabels[n]));
