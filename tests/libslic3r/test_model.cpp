@@ -9,23 +9,13 @@ using namespace Slic3r;
 
 TEST_CASE("Canceling OBJ color mapping returns an empty model", "[Model][OBJ]")
 {
-    ScopedTemporaryDir import_dir;
-    const auto obj_file = import_dir.path() / "colored.obj";
-    const auto mtl_file = import_dir.path() / "colored.mtl";
-
+    ScopedTemporaryFile obj_file(".obj");
     std::ofstream obj_output(obj_file.string());
-    obj_output << "mtllib colored.mtl\n"
-                  "v 0 0 0\n"
-                  "v 1 0 0\n"
-                  "v 0 1 0\n"
-                  "usemtl red\n"
+    obj_output << "v 0 0 0 1 0 0\n"
+                  "v 1 0 0 0 1 0\n"
+                  "v 0 1 0 0 0 1\n"
                   "f 1 2 3\n";
     obj_output.close();
-
-    std::ofstream mtl_output(mtl_file.string());
-    mtl_output << "newmtl red\n"
-                  "Kd 1 0 0\n";
-    mtl_output.close();
 
     bool callback_invoked = false;
     Model model = Model::read_from_file(obj_file.string(), nullptr, nullptr, LoadStrategy::AddDefaultInstances, nullptr, nullptr,
