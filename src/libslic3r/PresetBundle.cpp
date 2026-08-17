@@ -2796,6 +2796,11 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     // If executed due to a Config Wizard update, preferred_printer contains the first newly installed printer, otherwise nullptr.
     const Preset *preferred_printer = printers.find_system_preset_by_model_and_variant(preferred_selection.printer_model_id, preferred_selection.printer_variant);
     printers.select_preset_by_name(preferred_printer ? preferred_printer->name : initial_printer_profile_name, true);
+    if (preferred_printer && preferred_printer->printer_technology() == ptFFF) {
+        const BedType default_bed_type = printers.get_edited_preset().get_default_bed_type(this);
+        project_config.set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(default_bed_type));
+        config.set("curr_bed_type", std::to_string(static_cast<int>(default_bed_type)));
+    }
     CNumericLocalesSetter locales_setter;
 
     // Orca: load from orca_presets

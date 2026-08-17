@@ -158,6 +158,25 @@ TEST_CASE("Printer extruder count tolerates missing nozzle diameter", "[Preset][
     CHECK(bundle.get_printer_extruder_count() == 2);
 }
 
+TEST_CASE("New printer uses its symbolic default bed type", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    Preset& printer = add_inmemory_preset(bundle.printers, "New Printer");
+    printer.is_system = true;
+    printer.config.option<ConfigOptionString>("printer_model")->value = "TEST-MODEL";
+    printer.config.option<ConfigOptionString>("printer_variant")->value = "0.4";
+    printer.config.option<ConfigOptionString>("default_bed_type")->value = "Engineering Plate";
+
+    AppConfig app_config;
+    app_config.set("curr_bed_type", std::to_string(static_cast<int>(btPTE)));
+
+    bundle.load_selections(app_config, {"TEST-MODEL", "0.4"});
+    bundle.export_selections(app_config);
+
+    CHECK(bundle.project_config.opt_enum<BedType>("curr_bed_type") == btEP);
+    CHECK(app_config.get_printer_setting("New Printer", "curr_bed_type") == std::to_string(static_cast<int>(btEP)));
+}
+
 TEST_CASE("find_preset resolves a system preset's renamed_from", "[Preset][Rename]")
 {
     RenameTestCollection coll;
