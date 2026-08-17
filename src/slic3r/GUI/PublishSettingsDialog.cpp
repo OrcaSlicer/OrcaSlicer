@@ -165,16 +165,9 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
     auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-        // At least one checked, enabled (publishable) key is required. A gated
-        // material row is disabled even if its value is pre-checked, so it must
-        // not count.
-        for (const Row& row : m_rows)
-            if (row.check->GetValue() && row.check->IsEnabled()) {
-                EndModal(wxID_OK);
-                return;
-            }
-        MessageDialog(this, _L("No settings selected. Please select at least one setting to publish."), _L("Publish"), wxOK | wxICON_WARNING)
-            .ShowModal();
+        // Publish is always allowed: no settings selected means a publish with
+        // no settings override.
+        EndModal(wxID_OK);
     });
     dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
 
@@ -1012,7 +1005,7 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
                 hex = colours->get_at(category.filament_slot);
         if (wxBitmap* chip = get_extruder_color_icon(hex, "", FromDIP(12), FromDIP(12))) {
             const SectionGroup& section = m_sections[category.group];
-            const auto iter = std::find(section.categories.begin(), section.categories.end(), category_index);
+            const auto iter             = std::find(section.categories.begin(), section.categories.end(), category_index);
             if (iter != section.categories.end())
                 m_sections[category.group].tabs->SetItemBitmap(static_cast<unsigned int>(iter - section.categories.begin()), *chip);
         }
