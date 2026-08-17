@@ -19,6 +19,8 @@ namespace Slic3r {
 
 class Print;
 
+static constexpr unsigned char COEXTRUSION_COLOR_ID_NONE = static_cast<unsigned char>(-1);
+
 // slice warnings enum strings
 #define NOZZLE_HRC_CHECKER                                          "the_actual_nozzle_hrc_smaller_than_the_required_nozzle_hrc"
 #define BED_TEMP_TOO_HIGH_THAN_FILAMENT                             "bed_temperature_too_high_than_filament"
@@ -212,6 +214,8 @@ class Print;
             //BBS
             int  object_label_id{-1};
             float print_z{0.0f};
+            // Physical co-extrusion sector selected by the generated C-axis moves.
+            unsigned char coextrusion_color_id{ COEXTRUSION_COLOR_ID_NONE };
 
             float volumetric_rate() const { return feedrate * mm3_per_mm; }
             float actual_volumetric_rate() const { return actual_feedrate * mm3_per_mm; }
@@ -249,6 +253,7 @@ class Print;
         size_t filaments_count;
         bool backtrace_enabled;
         std::vector<std::string> extruder_colors;
+        std::vector<std::string> coextrusion_colors;
         std::vector<float> filament_diameters;
         std::vector<int>   required_nozzle_HRC;
         std::vector<float> filament_densities;
@@ -293,6 +298,7 @@ class Print;
             settings_ids = other.settings_ids;
             filaments_count = other.filaments_count;
             extruder_colors = other.extruder_colors;
+            coextrusion_colors = other.coextrusion_colors;
             filament_diameters = other.filament_diameters;
             filament_densities = other.filament_densities;
             filament_costs = other.filament_costs;
@@ -370,6 +376,7 @@ class Print;
             PA_Change,
             Print_Time_Sec_Placeholder,
             Used_Filament_Length_Placeholder,
+            CoExtrusion_Color,
         };
 
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
@@ -821,6 +828,7 @@ class Print;
 // ORCA: Add Pressure Advance visualization support
         float m_pressure_advance;
         ExtrusionRole m_extrusion_role;
+        unsigned char m_coextrusion_color_id{ COEXTRUSION_COLOR_ID_NONE };
         std::vector<int> m_filament_maps;
         std::vector<unsigned char> m_last_filament_id;
         std::vector<unsigned char> m_filament_id;
@@ -1153,5 +1161,4 @@ class Print;
 } /* namespace Slic3r */
 
 #endif /* slic3r_GCodeProcessor_hpp_ */
-
 

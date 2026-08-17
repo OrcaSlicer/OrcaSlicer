@@ -99,8 +99,11 @@ enum class EViewType : uint8_t
     // ORCA: Add Jerk visualization support
     Jerk,
     Tool,
+    CoExtrusion,
     COUNT
 };
+
+static constexpr uint8_t COEXTRUSION_COLOR_ID_NONE = static_cast<uint8_t>(-1);
 
 static constexpr std::size_t VIEW_TYPES_COUNT = static_cast<std::size_t>(EViewType::COUNT);
 

@@ -995,6 +995,7 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
     m_vertices = std::move(gcode_data.vertices);
     m_tool_colors = std::move(gcode_data.tools_colors);
     m_color_print_colors = std::move(gcode_data.color_print_colors);
+    m_coextrusion_colors = std::move(gcode_data.coextrusion_colors);
     m_vertices_colors.resize(m_vertices.size());
 
     m_settings.spiral_vase_mode = gcode_data.spiral_vase_mode;
@@ -1540,6 +1541,16 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
         assert(static_cast<size_t>(v.extruder_id) < m_tool_colors.size());
         return m_tool_colors[v.extruder_id];
     }
+    case EViewType::CoExtrusion:
+    {
+        if (v.is_travel())
+            return get_option_color(move_type_to_option(v.type));
+        if (v.role == EGCodeExtrusionRole::ExternalPerimeter &&
+            v.coextrusion_color_id != COEXTRUSION_COLOR_ID_NONE &&
+            static_cast<size_t>(v.coextrusion_color_id) < m_coextrusion_colors.size())
+            return m_coextrusion_colors[static_cast<size_t>(v.coextrusion_color_id)];
+        return DUMMY_COLOR;
+    }
     case EViewType::Summary: // ORCA
     case EViewType::ColorPrint:
     {
@@ -1561,6 +1572,12 @@ void ViewerImpl::set_tool_colors(const Palette& colors)
 void ViewerImpl::set_color_print_colors(const Palette& colors)
 {
     m_color_print_colors = colors;
+    m_settings.update_colors = true;
+}
+
+void ViewerImpl::set_coextrusion_colors(const Palette& colors)
+{
+    m_coextrusion_colors = colors;
     m_settings.update_colors = true;
 }
 
@@ -1686,6 +1703,7 @@ size_t ViewerImpl::get_used_cpu_memory() const
     }
     ret += STDVEC_MEMSIZE(m_tool_colors, Color);
     ret += STDVEC_MEMSIZE(m_color_print_colors, Color);
+    ret += STDVEC_MEMSIZE(m_coextrusion_colors, Color);
     return ret;
 }
 

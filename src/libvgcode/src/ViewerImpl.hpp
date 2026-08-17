@@ -155,6 +155,10 @@ public:
     const Palette& get_color_print_colors() const { return m_color_print_colors; }
     void set_color_print_colors(const Palette& colors);
 
+    size_t get_coextrusion_colors_count() const { return m_coextrusion_colors.size(); }
+    const Palette& get_coextrusion_colors() const { return m_coextrusion_colors; }
+    void set_coextrusion_colors(const Palette& colors);
+
     const Color& get_extrusion_role_color(EGCodeExtrusionRole role) const;
     void set_extrusion_role_color(EGCodeExtrusionRole role, const Color& color);
     void reset_default_extrusion_roles_colors();
@@ -302,6 +306,7 @@ private:
     };
     Palette m_tool_colors;
     Palette m_color_print_colors;
+    Palette m_coextrusion_colors;
     //
     // OpenGL shaders ids
     //

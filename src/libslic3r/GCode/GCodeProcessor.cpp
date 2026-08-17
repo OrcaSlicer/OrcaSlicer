@@ -75,7 +75,8 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags = {
     " WIPE_TOWER_END",
     " PA_CHANGE:",
     "@PRINT_TIME_SEC@",
-    "@USED_FILAMENT_LENGTH@"
+    "@USED_FILAMENT_LENGTH@",
+    " COEXTRUSION_COLOR:"
 };
 
 const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
@@ -98,7 +99,8 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
     " WIPE_TOWER_END",
     " PA_CHANGE:",
     "@PRINT_TIME_SEC@",
-    "@USED_FILAMENT_LENGTH@"
+    "@USED_FILAMENT_LENGTH@",
+    "COEXTRUSION_COLOR:"
 };
 
 
@@ -1669,6 +1671,7 @@ void GCodeProcessorResult::reset() {
     filaments_count = 0;
     backtrace_enabled = false;
     extruder_colors = std::vector<std::string>();
+    coextrusion_colors.clear();
     filament_diameters = std::vector<float>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_DIAMETER);
     required_nozzle_HRC = std::vector<int>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_HRC);
     filament_densities = std::vector<float>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_DENSITY);
@@ -2029,6 +2032,8 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_flavor = config.gcode_flavor;
 
     m_single_extruder_multi_material = config.single_extruder_multi_material;
+    m_result.coextrusion_colors = config.coextrusion_c_axis_enable.value ?
+        config.coextrusion_c_axis_colors.values : std::vector<std::string>{};
 
     size_t filament_count = config.filament_diameter.values.size();
     m_result.filaments_count = filament_count;
@@ -2159,6 +2164,13 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
 void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
 {
     m_parser.apply_config(config);
+
+    const ConfigOptionBool *coextrusion_enabled = config.option<ConfigOptionBool>("coextrusion_c_axis_enable");
+    const ConfigOptionStrings *coextrusion_colors = config.option<ConfigOptionStrings>("coextrusion_c_axis_colors");
+    if (coextrusion_enabled != nullptr && coextrusion_enabled->value && coextrusion_colors != nullptr)
+        m_result.coextrusion_colors = coextrusion_colors->values;
+    else
+        m_result.coextrusion_colors.clear();
 
     //BBS
     const ConfigOptionFloatsNullable* nozzle_volume = config.option<ConfigOptionFloatsNullable>("nozzle_volume");
@@ -2523,6 +2535,7 @@ void GCodeProcessor::reset()
     m_z_offset = 0.0f;
 
     m_extrusion_role = erNone;
+    m_coextrusion_color_id = COEXTRUSION_COLOR_ID_NONE;
 
     m_filament_id = std::vector<unsigned char>(MAXIMUM_EXTRUDER_NUMBER, static_cast<unsigned char>(-1));
     m_last_filament_id = std::vector<unsigned char>(MAXIMUM_EXTRUDER_NUMBER, static_cast<unsigned char>(-1));
@@ -3122,6 +3135,16 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         if (m_extrusion_role == erExternalPerimeter)
             m_seams_detector.activate(true);
         m_processing_start_custom_gcode = (m_extrusion_role == erCustom && m_g1_line_id == 0);
+        return;
+    }
+
+    if (boost::starts_with(comment, reserved_tag(ETags::CoExtrusion_Color))) {
+        int color_id = -1;
+        if (parse_number(comment.substr(reserved_tag(ETags::CoExtrusion_Color).length()), color_id) &&
+            color_id >= 0 && color_id < COEXTRUSION_COLOR_ID_NONE)
+            m_coextrusion_color_id = static_cast<unsigned char>(color_id);
+        else
+            BOOST_LOG_TRIVIAL(error) << "GCodeProcessor encountered an invalid co-extrusion color sector (" << comment << ").";
         return;
     }
 
@@ -5698,7 +5721,8 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         std::max<unsigned int>(1, m_layer_id) - 1,
         internal_only,
         m_object_label_id,
-        m_print_z
+        m_print_z,
+        m_coextrusion_color_id
     });
 
     if (type == EMoveType::Seam) {

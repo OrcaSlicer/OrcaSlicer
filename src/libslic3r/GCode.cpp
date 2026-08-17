@@ -7783,6 +7783,9 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         m_writer.select_filament(new_filament_id);
         this->placeholder_parser().set("current_extruder", new_filament_id);
         this->placeholder_parser().set("current_hotend", hotend_id_for_gcode_placeholder(m_config, new_extruder_id));
+        if (new_filament_id < m_coextrusion_filament_to_sector.size())
+            return ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::CoExtrusion_Color) +
+                   std::to_string(m_coextrusion_filament_to_sector[new_filament_id]) + "\n";
         return "";
     }
 

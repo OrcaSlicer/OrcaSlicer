@@ -101,6 +101,10 @@ struct PathVertex
     // Jerk value
     //
     float jerk{ 0.0f };
+    //
+    // Physical co-extrusion sector selected by the C axis.
+    //
+    uint8_t coextrusion_color_id{ COEXTRUSION_COLOR_ID_NONE };
 
     //
     // Return true if the segment is an extrusion move

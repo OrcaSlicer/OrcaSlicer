@@ -1,8 +1,10 @@
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/GCode/CoExtrusionC.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeWriter.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 using namespace Slic3r;
@@ -78,4 +80,32 @@ TEST_CASE("Color mapping uses a one-to-one nearest match", "[CoExtrusionC]")
         {"#FF0000", "#00FF00", "#0000FF"});
 
     REQUIRE(mapping == std::vector<size_t>{0, 1, 2});
+}
+
+TEST_CASE("G-code preview preserves the physical co-extrusion color sector", "[CoExtrusionC]")
+{
+    FullPrintConfig config;
+    config.coextrusion_c_axis_enable.value = true;
+    config.coextrusion_c_axis_colors.values = {"#FF0000", "#00FF00", "#0000FF"};
+
+    GCodeProcessor processor;
+    processor.initialize_result_moves();
+    processor.apply_config(config);
+
+    const std::string gcode =
+        "M83\n"
+        "G1 X0 Y0 Z0.2 F600\n;" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) + "Outer wall\n;" +
+        GCodeProcessor::reserved_tag(GCodeProcessor::ETags::CoExtrusion_Color) + "2\n"
+        "G1 X10 Y0 E1 F1200\n";
+    processor.process_buffer(gcode);
+
+    const GCodeProcessorResult &result = processor.get_result();
+    REQUIRE(result.coextrusion_colors == config.coextrusion_c_axis_colors.values);
+
+    const auto move = std::find_if(result.moves.rbegin(), result.moves.rend(), [](const GCodeProcessorResult::MoveVertex &vertex) {
+        return vertex.type == EMoveType::Extrude;
+    });
+    REQUIRE(move != result.moves.rend());
+    REQUIRE(move->extrusion_role == erExternalPerimeter);
+    REQUIRE(move->coextrusion_color_id == 2);
 }

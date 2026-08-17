@@ -29,6 +29,10 @@ struct GCodeInputData
     // Palette for color print colors
     //
     Palette color_print_colors;
+    //
+    // Palette for physical co-extrusion filament sectors
+    //
+    Palette coextrusion_colors;
 };
 
 } // namespace libvgcode

@@ -226,7 +226,8 @@ private:
     std::vector<libvgcode::EViewType> view_type_items;
     std::vector<std::string> view_type_items_str;
     int       m_view_type_sel = 0;
-    int       m_last_extruder_count_default_applied{0};  // 0=unset, 1=single, 2+=multi
+    int       m_last_extruder_count_default_applied{0};  // 0=unset, 1=single, 2=multi, 3=co-extrusion
+    bool      m_coextrusion_preview_available{ false };
     std::vector<EMoveType> options_items;
 
     bool m_legend_visible{ true };
@@ -369,4 +370,3 @@ private:
 } // namespace Slic3r
 
 #endif // slic3r_GCodeViewer_hpp_
-

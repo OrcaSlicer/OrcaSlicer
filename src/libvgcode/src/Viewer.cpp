@@ -152,6 +152,21 @@ void Viewer::set_color_print_colors(const Palette& colors)
     m_impl->set_color_print_colors(colors);
 }
 
+size_t Viewer::get_coextrusion_colors_count() const
+{
+    return m_impl->get_coextrusion_colors_count();
+}
+
+const Palette& Viewer::get_coextrusion_colors() const
+{
+    return m_impl->get_coextrusion_colors();
+}
+
+void Viewer::set_coextrusion_colors(const Palette& colors)
+{
+    m_impl->set_coextrusion_colors(colors);
+}
+
 const ColorRange& Viewer::get_color_range(EViewType type) const
 {
     return m_impl->get_color_range(type);
