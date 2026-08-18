@@ -642,10 +642,29 @@ void PrintObject::prepare_infill()
     } // for each region
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
-    // Build the Magma tube map. It must precede fill generation (which consumes it) and
-    // measure_volumes(); bridge_over_infill() below no longer depends on it. A Magma region
-    // is classified solid for bridging exactly like 100%-density infill, uniformly, with no
-    // per-cell exception -- see is_effectively_solid in bridge_over_infill().
+    // the following step needs to be done before combination because it may need
+    // to remove only half of the combined infill
+    // NOTE: This will detect our zone stInternalSolid surfaces that need bridging
+    this->bridge_over_infill();
+    m_print->throw_if_canceled();
+
+    // combine fill surfaces to honor the "infill every N layers" option
+    this->combine_infill();
+    m_print->throw_if_canceled();
+
+    // Build the Magma tube map. This runs AFTER bridge_over_infill() and combine_infill()
+    // deliberately. Both mutate fill surfaces -- bridging reclassifies solid surfaces, and
+    // combination replaces skipped layers with stInternalVoid -- and the tube map both scans
+    // the zone for cell presence and later measures each tube's cavity from it. Built before
+    // them, the scan saw one set of surfaces and measure_volumes() a strictly smaller one, so
+    // every tube was under-measured and under-injected; worse, a layer that became a bridge
+    // mid-tube blocks the channel while the volume below it is still summed, overflowing at
+    // the crater. Building here means the scan and the measurement see identical geometry.
+    //
+    // What made this possible: the old carve-out that fed unfilled cell interiors into bridge
+    // detection is gone, so nothing before this point needs the map any more. A Magma region
+    // is classified solid for bridging exactly like 100%-density infill -- uniformly, with no
+    // per-cell exception (see is_effectively_solid in bridge_over_infill()).
     {
         // The lattice geometry itself is object config now; the region is still needed for the
         // genuinely per-region inputs the tube map reads (sparse infill pattern, filament and
@@ -701,16 +720,6 @@ void PrintObject::prepare_infill()
             m_magma_tube_map.reset();
         }
     }
-    m_print->throw_if_canceled();
-
-    // the following step needs to be done before combination because it may need
-    // to remove only half of the combined infill
-    // NOTE: This will detect our zone stInternalSolid surfaces that need bridging
-    this->bridge_over_infill();
-    m_print->throw_if_canceled();
-
-    // combine fill surfaces to honor the "infill every N layers" option
-    this->combine_infill();
     m_print->throw_if_canceled();
 
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
@@ -4326,6 +4335,14 @@ void PrintObject::combine_infill()
         //BBS
         const bool enable_combine_infill = region.config().infill_combination.value;
         if (enable_combine_infill == false || region.config().sparse_infill_density == 0.)
+            continue;
+        // Never combine a Magma lattice. Combination keeps the infill of one layer in N and
+        // replaces the rest with stInternalVoid -- which for a vertical U-tube means the
+        // channel walls simply stop existing on the skipped layers. The tube would be sliced
+        // into disconnected pockets and the injection would have nowhere to go, while the
+        // measured cavity still spans the full run. There is nothing to gain either: the
+        // lattice's whole purpose is continuity in Z.
+        if (is_magma_pattern(magma::magma_effective_pattern(region.config())))
             continue;
 
         // Support internal solid infill when sparse_infill_density is 100%
