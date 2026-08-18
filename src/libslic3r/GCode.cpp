@@ -4264,6 +4264,29 @@ inline std::string get_instance_name(const PrintObject *object, const PrintInsta
     return get_instance_name(object, inst.id);
 }
 
+GCode::ObjectExcludeLabels GCode::object_exclude_labels(const Print &print, const PrintObject &object,
+                                                        size_t instance_id, size_t label_object_id)
+{
+    ObjectExcludeLabels l;
+    if (is_BBL_Printer()) {
+        l.start = std::string("; start printing object, unique label id: ") + std::to_string(label_object_id) +
+                  "\n" + "M624 " + _encode_label_ids_to_base64({label_object_id}) + "\n";
+        l.end   = std::string("; stop printing object, unique label id: ") + std::to_string(label_object_id) +
+                  "\n" + "M625\n";
+        return l;
+    }
+    const auto gflavor = print.config().gcode_flavor.value;
+    if (gflavor == gcfKlipper) {
+        const std::string name = get_instance_name(&object, instance_id);
+        l.start = std::string("EXCLUDE_OBJECT_START NAME=") + name + "\n";
+        l.end   = std::string("EXCLUDE_OBJECT_END NAME=") + name + "\n";
+    } else if (gflavor == gcfMarlinLegacy || gflavor == gcfMarlinFirmware || gflavor == gcfRepRapFirmware) {
+        l.start = std::string("M486 S") + std::to_string(object.instances()[instance_id].unique_id) + "\n";
+        l.end   = std::string("M486 S-1\n");
+    }
+    return l;
+}
+
 std::string GCode::generate_skirt(const Print &print,
         const ExtrusionEntityCollection &skirt,
         const Point& offset,
@@ -5212,22 +5235,9 @@ LayerResult GCode::process_layer(
                 }
                 // exclude objects
                 if (m_enable_exclude_object) {
-                    if (is_BBL_Printer()) {
-                        m_writer.set_object_start_str(
-                            std::string("; start printing object, unique label id: ") +
-                            std::to_string(instance_to_print.label_object_id) + "\n" + "M624 " +
-                            _encode_label_ids_to_base64({instance_to_print.label_object_id}) + "\n");
-                    } else {
-                        const auto gflavor = print.config().gcode_flavor.value;
-                        if (gflavor == gcfKlipper) {
-                            m_writer.set_object_start_str(std::string("EXCLUDE_OBJECT_START NAME=") +
-                                                          get_instance_name(&instance_to_print.print_object, inst.id) + "\n");
-                        }
-                        else if (gflavor == gcfMarlinLegacy || gflavor == gcfMarlinFirmware || gflavor == gcfRepRapFirmware) {
-                            std::string str = std::string("M486 S") + std::to_string(inst.unique_id) + "\n";
-                            m_writer.set_object_start_str(str);
-                        }
-                    }
+                    m_writer.set_object_start_str(
+                        object_exclude_labels(print, instance_to_print.print_object, inst.id,
+                                              instance_to_print.label_object_id).start);
                 }
 
                 // Orca(#7946): set current obj regardless of the `enable_overhang_speed` value, because
@@ -5353,19 +5363,9 @@ LayerResult GCode::process_layer(
                 if (!m_writer.is_object_start_str_empty()) {
                     m_writer.set_object_start_str("");
                 } else if (m_enable_exclude_object) {
-                    if (is_BBL_Printer()) {
-                        m_writer.set_object_end_str(std::string("; stop printing object, unique label id: ") +
-                                                    std::to_string(instance_to_print.label_object_id) + "\n" +
-                                                    "M625\n");
-                    } else {
-                        const auto gflavor = print.config().gcode_flavor.value;
-                        if (gflavor == gcfKlipper) {
-                            m_writer.set_object_end_str(std::string("EXCLUDE_OBJECT_END NAME=") +
-                                                        get_instance_name(&instance_to_print.print_object, inst.id) + "\n");
-                        } else if (gflavor == gcfMarlinLegacy || gflavor == gcfMarlinFirmware || gflavor == gcfRepRapFirmware) {
-                            m_writer.set_object_end_str(std::string("M486 S-1\n"));
-                        }
-                    }
+                    m_writer.set_object_end_str(
+                        object_exclude_labels(print, instance_to_print.print_object, inst.id,
+                                              instance_to_print.label_object_id).end);
                 }
             }
         }
@@ -5389,6 +5389,10 @@ LayerResult GCode::process_layer(
                 int    pair_index;
                 double actual_h;
                 int    injection_temp;
+                // -1 when this instance could not be matched to an InstanceToPrint, in which
+                // case the injection is emitted unwrapped rather than attributed to the wrong
+                // object. See the object-exclusion wrapping below.
+                long   label_object_id;
             };
             std::vector<InjTarget> targets;
 
@@ -5425,12 +5429,31 @@ LayerResult GCode::process_layer(
                         if (max_temp > 0)
                             inj_temp = std::min(inj_temp, max_temp);
                     }
+                    // Object-exclusion labels need this instance's label id, which only the
+                    // per-instance print list carries. It is keyed by extruder, and the object
+                    // may well have printed in a different extruder pass than the injecting
+                    // one, so search them all.
+                    long label_id = -1;
+                    for (const auto &kv : filament_to_print_instances) {
+                        for (const InstanceToPrint &ins : kv.second)
+                            if (&ins.print_object == obj && int(ins.instance_id) == mt.instance_idx) {
+                                label_id = long(ins.label_object_id);
+                                break;
+                            }
+                        if (label_id >= 0) break;
+                    }
                     targets.push_back({ obj, tube_map, mt.instance_idx, mt.pair_index,
-                                        tube_map->layer_height_at(pr.pair_end_layer), inj_temp });
+                                        tube_map->layer_height_at(pr.pair_end_layer), inj_temp,
+                                        label_id });
                 }
             }
 
             if (!targets.empty()) {
+                // Close the last printed object's exclusion block before injections begin.
+                // GCodeWriter defers it to the next move it emits, which would otherwise land
+                // it inside an injection's raw G-code and leave the blocks interleaved.
+                m_writer.add_object_end_labels(gcode);
+
                 // --- Phase 2: Group by injection temp (ascending); global order
                 // preserved within each temp group. ---
                 std::map<int, std::vector<InjTarget*>> temp_groups;
@@ -5473,8 +5496,28 @@ LayerResult GCode::process_layer(
                         std::vector<magma::InjectionPoint> one = {{
                             pr.injection_center, pr.volume_mm3, t->pair_index,
                             pr.pair_start_layer, pr.window_center_layer }};
+
+                        // Attribute the injection to its object. Without this the moves sit
+                        // outside every EXCLUDE_OBJECT / M486 block, so cancelling an object
+                        // mid-print cancels its perimeters and infill but NOT its injections:
+                        // the nozzle still travels to the cancelled part, plunges, and extrudes
+                        // a full tube's volume onto it. Emitted directly rather than through
+                        // GCodeWriter's deferred setters because the injection body is a raw
+                        // string that never goes through the writer's move path.
+                        ObjectExcludeLabels labels;
+                        if (m_enable_exclude_object && t->label_object_id >= 0)
+                            labels = object_exclude_labels(print, *t->obj, size_t(t->instance_idx),
+                                                           size_t(t->label_object_id));
+                        else if (m_enable_exclude_object)
+                            BOOST_LOG_TRIVIAL(warning)
+                                << "Magma: could not match an injection to a print instance; its "
+                                   "moves will not be inside an object-exclusion block and will "
+                                   "still run if that object is cancelled.";
+
+                        gcode += labels.start;
                         gcode += magma::generate_injection_gcode(
                             *this, *t->tube_map, one, print_z, t->actual_h);
+                        gcode += labels.end;
                     }
 
                     gcode += ";_MAGMA_INJECTION_FAN_END\n";

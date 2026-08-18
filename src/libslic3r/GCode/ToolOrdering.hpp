@@ -260,6 +260,9 @@ private:
     void 				collect_extruders(const PrintObject &object, const std::vector<std::pair<double, unsigned int>> &per_layer_extruder_switches);
     void 				fill_wipe_tower_partitions(const PrintConfig &config, coordf_t object_bottom_z, coordf_t max_layer_height);
     bool                insert_wipe_tower_extruder();
+    // Force the object's dedicated injection filament to be the LAST tool on every layer it
+    // injects on. Must run after every reorder, since the flush-volume optimiser reorders freely.
+    void                enforce_magma_injection_last(const PrintObject &object);
     void                mark_skirt_layers(const PrintConfig &config, coordf_t max_layer_height);
     void 				collect_extruder_statistics(bool prime_multi_material);
     void                reorder_extruders_for_minimum_flush_volume(bool reorder_first_layer);

@@ -339,6 +339,36 @@ bool ToolOrdering::insert_wipe_tower_extruder()
     return changed;
 }
 
+void ToolOrdering::enforce_magma_injection_last(const PrintObject &object)
+{
+    // Injections are emitted after the layer's own extrusions, so the injecting tool has to be
+    // the LAST pass of that layer -- otherwise the tube is filled a layer before its own cap is
+    // printed, and the nozzle descends onto a channel that is still open at the top.
+    //
+    // With magma_injection_filament = 0 there is nothing to do: GCode.cpp targets
+    // layer_tools.extruders.back() directly, which is last by definition. With a dedicated
+    // injection filament the tool is just another entry in the layer's extruder list, ordered by
+    // reorder_extruders_for_minimum_flush_volume -- which minimises purge and will happily put it
+    // first. So this runs after that optimiser and moves it back to the end. It costs flush
+    // volume; the alternative is injecting into an unfinished tube.
+    const int inj = object.config().magma_injection_filament.value;
+    if (inj <= 0)
+        return;
+    const auto *tube_map = object.magma_tube_map();
+    if (tube_map == nullptr)
+        return;
+
+    const unsigned int inj_ext = (unsigned int)(inj - 1);  // extruders are 0-based by this point
+    for (int lid : tube_map->injection_layer_ids()) {
+        if (lid < 0 || lid >= (int)object.layers().size())
+            continue;
+        LayerTools &lt = this->tools_for_layer(object.layers()[lid]->print_z);
+        auto it = std::find(lt.extruders.begin(), lt.extruders.end(), inj_ext);
+        if (it != lt.extruders.end() && std::next(it) != lt.extruders.end())
+            std::rotate(it, std::next(it), lt.extruders.end());
+    }
+}
+
 void ToolOrdering::sort_and_build_data(const Print& print, unsigned int first_extruder, bool prime_multi_material)
 {
     // if first extruder is -1, we can decide the first layer tool order before doing reorder function
@@ -367,6 +397,9 @@ void ToolOrdering::sort_and_build_data(const Print& print, unsigned int first_ex
         this->fill_wipe_tower_partitions(print.config(), object_bottom_z, max_layer_height);
     }
 
+    for (const PrintObject *object : print.objects())
+        this->enforce_magma_injection_last(*object);
+
     this->collect_extruder_statistics(prime_multi_material);
 }
 
@@ -385,6 +418,8 @@ void ToolOrdering::sort_and_build_data(const PrintObject& object , unsigned int 
         reorder_extruders_for_minimum_flush_volume(reorder_first_layer);
         this->fill_wipe_tower_partitions(object.print()->config(), object.layers().front()->print_z - object.layers().front()->height, max_layer_height);
     }
+
+    this->enforce_magma_injection_last(object);
 
     this->collect_extruder_statistics(prime_multi_material);
 }

@@ -930,8 +930,13 @@ void ViewerImpl::reset()
 // The 4th float of positions is unused (padding only).
 using Vec4 = std::array<float, 4>;
 
+// sink_extrusions: extruded beads are recorded at the TOP of the bead, so rendering them
+// centred means dropping them half a height. Magma tube columns are the exception -- they are
+// vertical channels whose recorded Z is already the centre-line, and whose "height" is the
+// bore diameter, so sinking them buries every tube half a bore below its own channel.
 static void extract_pos_and_or_hwa(const std::vector<PathVertex>& vertices, float travels_radius, float wipes_radius, BitSet<>& valid_lines_bitset,
-    std::vector<Vec4>* positions = nullptr, std::vector<Vec4>* heights_widths_angles = nullptr, bool update_bitset = false) {
+    std::vector<Vec4>* positions = nullptr, std::vector<Vec4>* heights_widths_angles = nullptr, bool update_bitset = false,
+    bool sink_extrusions = true) {
   static constexpr const Vec3 ZERO = { 0.0f, 0.0f, 0.0f };
     if (positions == nullptr && heights_widths_angles == nullptr)
         return;
@@ -976,7 +981,7 @@ static void extract_pos_and_or_hwa(const std::vector<PathVertex>& vertices, floa
         if (positions != nullptr) {
             // the last component is a dummy float to comply with GL_RGBA32F format
             Vec4 position = { v.position[0], v.position[1], v.position[2], 0.0f };
-            if (move_type == EMoveType::Extrude)
+            if (move_type == EMoveType::Extrude && sink_extrusions)
                 // push down extrusion vertices by half height to render them at the right z
                 position[2] -= 0.5f * v.height;
             positions->emplace_back(position);
@@ -1242,7 +1247,8 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
         std::vector<Vec4> mpos, mhwa;
         mpos.reserve(m_magma_vertices.size());
         mhwa.reserve(m_magma_vertices.size());
-        extract_pos_and_or_hwa(m_magma_vertices, m_travels_radius, m_wipes_radius, m_magma_valid, &mpos, &mhwa, true);
+        extract_pos_and_or_hwa(m_magma_vertices, m_travels_radius, m_wipes_radius, m_magma_valid, &mpos, &mhwa, true,
+                               /* sink_extrusions */ false);
 
         const float magma_color = static_cast<float>((255 << 16) | (25 << 8) | 0); // MagmaInjection colour
         std::vector<float> mcol(m_magma_vertices.size(), magma_color);

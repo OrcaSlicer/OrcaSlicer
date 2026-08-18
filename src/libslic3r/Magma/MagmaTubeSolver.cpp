@@ -300,9 +300,17 @@ void MagmaTubeSolver::build_blocks(int off_a, int off_b, int off_z,
         int by = floor_div(sb, stride);
         // Primary block
         xy_groups[{bx, by}].push_back(cell);
-        // Overlap: if within R_OVERLAP of the next block boundary, also add to neighbor blocks
-        bool overlap_a = (sa - bx * stride) < R_OVERLAP && bx > floor_div(sa - 1, stride);
-        bool overlap_b = (sb - by * stride) < R_OVERLAP && by > floor_div(sb - 1, stride);
+        // Overlap: block bx-1 spans [(bx-1)*stride, (bx-1)*stride + R), and stride = R -
+        // R_OVERLAP, so its far edge reaches bx*stride + R_OVERLAP. A cell therefore belongs
+        // to bx-1 exactly when its residual is below R_OVERLAP.
+        //
+        // There used to be a second clause, `bx > floor_div(sa - 1, stride)`, which is true
+        // ONLY at residual 0 -- so the two conditions together admitted a single column and
+        // the overlap was 1 cell wide, not R_OVERLAP. Blocks then shared one column and no
+        // boundary tube was ever re-optimised by both neighbours, which is the whole point
+        // of overlapping them.
+        bool overlap_a = (sa - bx * stride) < R_OVERLAP;
+        bool overlap_b = (sb - by * stride) < R_OVERLAP;
         if (overlap_a)              xy_groups[{bx - 1, by}].push_back(cell);
         if (overlap_b)              xy_groups[{bx, by - 1}].push_back(cell);
         if (overlap_a && overlap_b) xy_groups[{bx - 1, by - 1}].push_back(cell);

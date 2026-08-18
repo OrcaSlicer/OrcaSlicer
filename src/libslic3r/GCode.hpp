@@ -561,6 +561,14 @@ private:
     bool m_enable_exclude_object;
     std::vector<size_t> m_label_objects_ids;
     std::string _encode_label_ids_to_base64(std::vector<size_t> ids);
+
+    // Object-exclusion (EXCLUDE_OBJECT / M486 / M624-M625) labels for one instance, built in
+    // ONE place. The per-instance printing path applies them through GCodeWriter's deferred
+    // setters; the Magma injection phase runs outside that loop and emits them directly, so
+    // both must derive the strings identically or a cancelled object keeps getting injected.
+    struct ObjectExcludeLabels { std::string start; std::string end; };
+    ObjectExcludeLabels object_exclude_labels(const Print &print, const PrintObject &object,
+                                              size_t instance_id, size_t label_object_id);
     // ORCA: Add support for role based fan speed control
     std::array<bool, ExtrusionRole::erCount> m_is_role_based_fan_on;
     std::array<int, ExtrusionRole::erCount>  m_role_based_fan_marker_layer;

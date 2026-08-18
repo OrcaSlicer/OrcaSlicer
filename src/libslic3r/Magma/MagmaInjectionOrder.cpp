@@ -46,8 +46,17 @@ std::vector<size_t> order_injection_points(
 
     // Travel-optimal baseline (also the greedy's starting node anchor).
     std::vector<size_t> tsp = chain_points(pts);
-    if ((int) tsp.size() != n)   // contract insurance: never proceed on a partial tour
-        return tsp;
+    if ((int) tsp.size() != n) {
+        // A short tour means chain_points dropped points. Returning it -- which this used to
+        // do, directly under a comment saying it would not -- drops those injections entirely:
+        // the caller emits one target per returned index, so the missing tubes print as
+        // lattice and are never filled, with no diagnostic. Fall back to the identity order,
+        // which is worse routing but injects every tube.
+        BOOST_LOG_TRIVIAL(error)
+            << "Magma: injection point ordering returned " << tsp.size() << " of " << n
+            << " points; using unordered injection order so no tube is skipped.";
+        return identity;
+    }
     if (!spread_heat)
         return tsp;
 
