@@ -1425,8 +1425,16 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             // Overlap correction via the shared geometry, so this warning uses the
             // exact same formula as MagmaTubeMap::build (was an inline approximation
             // that used a different cell spacing and could disagree with the map).
-            double iw = rcfg.magma_interior_width.value;
-            if (iw <= 0) iw = magma::calculate_auto_interior_width(nozzle_d);
+            // Resolve exactly as MagmaTubeMap::build does. This used to read
+            // magma_interior_width directly and fall back to a bore multiple, ignoring the
+            // tube width mode entirely -- so in Auto sizing it measured overlap against a
+            // tube that was never printed.
+            double iw = magma::effective_interior_width(
+                magma::magma_geometry_for(eff_pattern), rcfg.magma_tube_width_mode.value,
+                rcfg.magma_interior_width.value,
+                magma::resolve_nozzle_flat(rcfg.magma_nozzle_outer_diameter.value, nozzle_d),
+                line_w, rcfg.magma_nozzle_cone_half_angle.value,
+                obj_cfg.magma_max_immersion.value);
             double cell_sp = magma::cell_spacing_from_geometry(iw, line_w);
             double excess_frac = magma::magma_geometry_for(eff_pattern)
                                      .line_overlap_excess_fraction(cell_sp, line_w);
@@ -1580,7 +1588,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                           "value.\n\n"
                           "Start at %.1f mm for your %.1f mm nozzle. Reference: classic E3D 0.6 mm "
                           "= 1.7 mm."),
-                        2.0 * bore, bore), object };
+                        magma::MAGMA_FLAT_BORE_MULTIPLE * bore, bore), object };
                 }
 
                 // magma_effective_pattern() substitutes Magma Triangle when dual infill is on

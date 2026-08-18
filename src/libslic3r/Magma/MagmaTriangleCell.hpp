@@ -75,14 +75,16 @@ constexpr double MAGMA_IRON_SPEED_FALLBACK = 40.0;  // mm/s
 // is also the width of the bevel doing the plowing, so the step must scale with it.
 constexpr double MAGMA_IRON_STEP_FRACTION = 0.5;
 
-// Single resolver for the nozzle tip flat (magma_nozzle_outer_diameter). The user
-// should measure it (field tooltip says so); when left at 0 ("auto") we estimate
-// it from the bore. A typical brass nozzle's flat shoulder is roughly 3x the bore,
-// and using the same multiple here and in calculate_auto_interior_width keeps
-// full-auto mode self-consistent (opening and flat track each other, so it still
-// seals). This is the ONE place the fallback lives, so injection G-code and
-// Print::validate always agree; the seal check warns if the estimate can't seal.
-constexpr double MAGMA_FLAT_BORE_MULTIPLE = 3.0;
+// Conservative flat-from-bore estimate, used ONLY as the "start here" value in the
+// unmeasured-flat error -- Print::validate() blocks slicing before an unset flat can reach
+// any real geometry, so nothing is ever sized from this.
+//
+// Calibrated from the one flat actually measured: a classic E3D 0.6mm nozzle is 1.7mm, i.e.
+// 2.83x bore. Biased BELOW that on purpose. The error direction is not symmetric -- an
+// estimate that reads high sizes tubes the nozzle cannot seal, which leaks injected plastic
+// across the part, while one that reads low just gives smaller tubes. So the user starts
+// under the real value and walks up.
+constexpr double MAGMA_FLAT_BORE_MULTIPLE = 2.5;
 inline double resolve_nozzle_flat(double configured_flat, double nozzle_diameter) {
     return configured_flat > 0.0 ? configured_flat
                                  : MAGMA_FLAT_BORE_MULTIPLE * nozzle_diameter;
@@ -141,10 +143,6 @@ inline double auto_slam_depth(double opening_dia, double flat, double cone_half_
 inline double clamp_plunge_depth(double slam_depth, double plunge_depth) {
     return std::min(std::max(0.0, plunge_depth), std::max(0.0, MAGMA_SLAM_PLUNGE_CLAMP - slam_depth));
 }
-
-// Auto-calculate interior width from nozzle diameter (fallback: 3× bore).
-// Used only when no nozzle flat has been measured; see resolve_nozzle_flat().
-double calculate_auto_interior_width(double nozzle_diameter);
 
 // ============================================================================
 // TriangleGeometry — MagmaGeometry impl for the equilateral triangle lattice

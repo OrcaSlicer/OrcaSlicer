@@ -26,13 +26,6 @@ namespace magma {
 // Geometry Helper Implementations
 // ============================================================================
 
-double calculate_auto_interior_width(double nozzle_diameter)
-{
-    // Fallback when nozzle outer diameter is not specified: a conservative
-    // bore-relative default. Same multiple as resolve_nozzle_flat() so full-auto
-    // mode (no measured flat) keeps the tube opening and the flat in step.
-    return nozzle_diameter * MAGMA_FLAT_BORE_MULTIPLE;
-}
 
 // The triangle-specific inverse of opening_diameter() now lives on TriangleGeometry as
 // interior_for_opening(). It used to live here as a free function called directly by
