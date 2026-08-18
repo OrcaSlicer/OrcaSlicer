@@ -1347,6 +1347,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<FilamentMapMode>, filament_map_mode))
     ((ConfigOptionInts,                filament_map))
     ((ConfigOptionInts,                coextrusion_color_mapping))
+    ((ConfigOptionStrings,             coextrusion_source_colors))
     //((ConfigOptionInts,                filament_extruder_id))
     ((ConfigOptionStrings,             filament_extruder_variant))
     ((ConfigOptionBool,                support_object_skip_flush))

@@ -2244,13 +2244,20 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
 std::vector<std::vector<ExPolygons>> multi_material_segmentation_by_painting(const PrintObject &print_object,
                                                                              const std::function<void()> &throw_on_cancel_callback,
                                                                              std::vector<std::vector<ColoredLines>> *surface_color_lines) {
-    const size_t num_facets_states  = print_object.print()->config().filament_colour.size() + 1;
+    const PrintConfig &print_config = print_object.print()->config();
+    const bool coextrusion_surface_mode = print_config.coextrusion_c_axis_enable.value &&
+                                          print_config.filament_coextrusion_enable.value &&
+                                          !print_config.coextrusion_source_colors.values.empty();
+    const size_t num_facets_states = (coextrusion_surface_mode ? print_config.coextrusion_source_colors.size() :
+                                                                  print_config.filament_colour.size()) + 1;
     const float  max_width          = float(print_object.config().mmu_segmented_region_max_width.value);
     const float  interlocking_depth = float(print_object.config().mmu_segmented_region_interlocking_depth.value);
     const bool   interlocking_beam  = print_object.config().interlocking_beam.value;
 
-    const auto extract_facets_info = [](const ModelVolume &mv) -> ModelVolumeFacetsInfo {
-        return {mv.mmu_segmentation_facets, mv.is_mm_painted(), false};
+    const auto extract_facets_info = [coextrusion_surface_mode](const ModelVolume &mv) -> ModelVolumeFacetsInfo {
+        return coextrusion_surface_mode ?
+            ModelVolumeFacetsInfo{mv.coextrusion_segmentation_facets, mv.is_coextrusion_painted(), false} :
+            ModelVolumeFacetsInfo{mv.mmu_segmentation_facets, mv.is_mm_painted(), false};
     };
 
     return segmentation_by_painting(print_object, extract_facets_info, num_facets_states, max_width, interlocking_depth, interlocking_beam,

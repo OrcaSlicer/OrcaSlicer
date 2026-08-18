@@ -2529,6 +2529,12 @@ void PrintConfigDef::init_fff_params()
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionInts{});
 
+    def = this->add("coextrusion_source_colors", coStrings);
+    def->label = L("3MF source colors for co-extrusion");
+    def->tooltip = L("Stable color palette referenced by co-extrusion surface painting. It is kept independent of the active filament slots.");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionStrings{});
+
     def = this->add("physical_extruder_map",coInts);
     // internal use only, don't need translation
     def->label = "Map the logical extruder to physical extruder";

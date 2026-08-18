@@ -697,7 +697,10 @@ void GLGizmoMmuSegmentation::update_model_object()
         if (! mv->is_model_part())
             continue;
         ++idx;
-        updated |= mv->mmu_segmentation_facets.set(*m_triangle_selectors[idx].get());
+        const bool volume_updated = mv->mmu_segmentation_facets.set(*m_triangle_selectors[idx].get());
+        if (volume_updated)
+            mv->coextrusion_segmentation_facets.assign(mv->mmu_segmentation_facets);
+        updated |= volume_updated;
     }
 
     if (updated) {

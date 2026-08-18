@@ -6546,13 +6546,20 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             // BBS: add preset combo box re-active logic
                             // currently found only needs re-active here
                             wxGetApp().load_current_presets(false, false);
+                            // Preserve the palette referenced by 3MF face-paint states before
+                            // the user removes logical filament slots. Physical co-extrusion
+                            // sectors are mapped to this stable palette, not to the live slots.
+                            DynamicConfig &proj_cfg = preset_bundle->project_config;
+                            auto *source_colors = proj_cfg.opt<ConfigOptionStrings>("coextrusion_source_colors", true);
+                            const auto *filament_colors = proj_cfg.opt<ConfigOptionStrings>("filament_colour");
+                            if (source_colors->values.empty() && filament_colors != nullptr && filament_colors->values.size() > 1)
+                                source_colors->values = filament_colors->values;
                             // Update filament colors for the MM-printer profile in the full config
                             // to avoid black (default) colors for Extruders in the ObjectList,
                             // when for extruder colors are used filament colors
                             q->on_filament_count_change(preset_bundle->filament_presets.size());
                             is_project_file = true;
 
-                            DynamicConfig& proj_cfg = preset_bundle->project_config;
                             // do some post process after loading config
                             {
                                 //BBS: rewrite wipe tower pos stored in 3mf file , the code above should be seriously reconsidered
@@ -17231,10 +17238,12 @@ void Plater::clear_before_change_mesh(int obj_idx)
     // may be different and they would make no sense.
     bool paint_removed = false;
     for (ModelVolume* mv : mo->volumes) {
-        paint_removed |= ! mv->supported_facets.empty() || ! mv->seam_facets.empty() || ! mv->mmu_segmentation_facets.empty() || !mv->fuzzy_skin_facets.empty();
+        paint_removed |= ! mv->supported_facets.empty() || ! mv->seam_facets.empty() || ! mv->mmu_segmentation_facets.empty() ||
+                         ! mv->coextrusion_segmentation_facets.empty() || !mv->fuzzy_skin_facets.empty();
         mv->supported_facets.reset();
         mv->seam_facets.reset();
         mv->mmu_segmentation_facets.reset();
+        mv->coextrusion_segmentation_facets.reset();
         mv->fuzzy_skin_facets.reset();
     }
     if (paint_removed) {

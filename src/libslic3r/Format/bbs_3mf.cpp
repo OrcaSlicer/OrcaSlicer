@@ -330,6 +330,7 @@ static constexpr const char* CUSTOM_SUPPORTS_ATTR = "paint_supports";
 static constexpr const char* CUSTOM_FUZZY_SKIN_ATTR  = "paint_fuzzy_skin";
 static constexpr const char* CUSTOM_SEAM_ATTR = "paint_seam";
 static constexpr const char* MMU_SEGMENTATION_ATTR = "paint_color";
+static constexpr const char* COEXTRUSION_SEGMENTATION_ATTR = "coextrusion_paint_color";
 // BBS
 static constexpr const char* FACE_PROPERTY_ATTR = "face_property";
 
@@ -770,6 +771,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::vector<std::string> custom_supports;
             std::vector<std::string> custom_seam;
             std::vector<std::string> mmu_segmentation;
+            std::vector<std::string> coextrusion_segmentation;
             std::vector<std::string> fuzzy_skin;
             // BBS
             std::vector<std::string> face_properties;
@@ -790,6 +792,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 custom_supports.clear();
                 custom_seam.clear();
                 mmu_segmentation.clear();
+                coextrusion_segmentation.clear();
                 fuzzy_skin.clear();
             }
         };
@@ -3821,6 +3824,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             m_curr_object->geometry.custom_supports.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_SUPPORTS_ATTR));
             m_curr_object->geometry.custom_seam.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_SEAM_ATTR));
             m_curr_object->geometry.mmu_segmentation.push_back(bbs_get_attribute_value_string(attributes, num_attributes, MMU_SEGMENTATION_ATTR));
+            m_curr_object->geometry.coextrusion_segmentation.push_back(bbs_get_attribute_value_string(attributes, num_attributes, COEXTRUSION_SEGMENTATION_ATTR));
             m_curr_object->geometry.fuzzy_skin.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_FUZZY_SKIN_ATTR));
             // BBS
             m_curr_object->geometry.face_properties.push_back(bbs_get_attribute_value_string(attributes, num_attributes, FACE_PROPERTY_ATTR));
@@ -5055,11 +5059,13 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 volume->supported_facets.reserve(triangles_count);
                 volume->seam_facets.reserve(triangles_count);
                 volume->mmu_segmentation_facets.reserve(triangles_count);
+                volume->coextrusion_segmentation_facets.reserve(triangles_count);
                 volume->fuzzy_skin_facets.reserve(triangles_count);
                 for (size_t i=0; i<triangles_count; ++i) {
                     assert(i < sub_object->geometry.custom_supports.size());
                     assert(i < sub_object->geometry.custom_seam.size());
                     assert(i < sub_object->geometry.mmu_segmentation.size());
+                    assert(i < sub_object->geometry.coextrusion_segmentation.size());
                     assert(i < sub_object->geometry.fuzzy_skin.size());
                     if (! sub_object->geometry.custom_supports[i].empty())
                         volume->supported_facets.set_triangle_from_string(i, sub_object->geometry.custom_supports[i]);
@@ -5067,12 +5073,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         volume->seam_facets.set_triangle_from_string(i, sub_object->geometry.custom_seam[i]);
                     if (! sub_object->geometry.mmu_segmentation[i].empty())
                         volume->mmu_segmentation_facets.set_triangle_from_string(i, sub_object->geometry.mmu_segmentation[i]);
+                    const std::string &coextrusion = sub_object->geometry.coextrusion_segmentation[i];
+                    const std::string &source = coextrusion.empty() ? sub_object->geometry.mmu_segmentation[i] : coextrusion;
+                    if (!source.empty())
+                        volume->coextrusion_segmentation_facets.set_triangle_from_string(i, source);
                     if (!sub_object->geometry.fuzzy_skin[i].empty())
                         volume->fuzzy_skin_facets.set_triangle_from_string(i, sub_object->geometry.fuzzy_skin[i]);
                 }
                 volume->supported_facets.shrink_to_fit();
                 volume->seam_facets.shrink_to_fit();
                 volume->mmu_segmentation_facets.shrink_to_fit();
+                volume->coextrusion_segmentation_facets.shrink_to_fit();
+                volume->coextrusion_segmentation_facets.touch();
                 volume->mmu_segmentation_facets.touch();
                 volume->fuzzy_skin_facets.shrink_to_fit();
                 volume->fuzzy_skin_facets.touch();
@@ -5217,21 +5229,28 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             volume->supported_facets.reserve(triangles_count);
             volume->seam_facets.reserve(triangles_count);
             volume->mmu_segmentation_facets.reserve(triangles_count);
+            volume->coextrusion_segmentation_facets.reserve(triangles_count);
             for (size_t i=0; i<triangles_count; ++i) {
                 size_t index = volume_data.first_triangle_id + i;
                 assert(index < geometry.custom_supports.size());
                 assert(index < geometry.custom_seam.size());
                 assert(index < geometry.mmu_segmentation.size());
+                assert(index < geometry.coextrusion_segmentation.size());
                 if (! geometry.custom_supports[index].empty())
                     volume->supported_facets.set_triangle_from_string(i, geometry.custom_supports[index]);
                 if (! geometry.custom_seam[index].empty())
                     volume->seam_facets.set_triangle_from_string(i, geometry.custom_seam[index]);
                 if (! geometry.mmu_segmentation[index].empty())
                     volume->mmu_segmentation_facets.set_triangle_from_string(i, geometry.mmu_segmentation[index]);
+                const std::string &coextrusion = geometry.coextrusion_segmentation[index];
+                const std::string &source = coextrusion.empty() ? geometry.mmu_segmentation[index] : coextrusion;
+                if (!source.empty())
+                    volume->coextrusion_segmentation_facets.set_triangle_from_string(i, source);
             }
             volume->supported_facets.shrink_to_fit();
             volume->seam_facets.shrink_to_fit();
             volume->mmu_segmentation_facets.shrink_to_fit();
+            volume->coextrusion_segmentation_facets.shrink_to_fit();
 
             volume->set_type(volume_data.part_type);
 
@@ -5534,6 +5553,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             current_object->geometry.custom_supports.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_SUPPORTS_ATTR));
             current_object->geometry.custom_seam.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_SEAM_ATTR));
             current_object->geometry.mmu_segmentation.push_back(bbs_get_attribute_value_string(attributes, num_attributes, MMU_SEGMENTATION_ATTR));
+            current_object->geometry.coextrusion_segmentation.push_back(bbs_get_attribute_value_string(attributes, num_attributes, COEXTRUSION_SEGMENTATION_ATTR));
             current_object->geometry.fuzzy_skin.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_FUZZY_SKIN_ATTR));
             // BBS
             current_object->geometry.face_properties.push_back(bbs_get_attribute_value_string(attributes, num_attributes, FACE_PROPERTY_ATTR));
@@ -6929,6 +6949,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                                 if ((shared_volume->supported_facets.equals(volume->supported_facets))
                                     && (shared_volume->seam_facets.equals(volume->seam_facets))
                                     && (shared_volume->mmu_segmentation_facets.equals(volume->mmu_segmentation_facets))
+                                    && (shared_volume->coextrusion_segmentation_facets.equals(volume->coextrusion_segmentation_facets))
                                     && (shared_volume->fuzzy_skin_facets.equals(volume->fuzzy_skin_facets)))
                                 {
                                     auto data = iter->second.first;
@@ -7333,6 +7354,15 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     output_buffer += MMU_SEGMENTATION_ATTR;
                     output_buffer += "=\"";
                     output_buffer += mmu_painting_data_string;
+                    output_buffer += "\"";
+                }
+
+                std::string coextrusion_painting_data_string = volume->coextrusion_segmentation_facets.get_triangle_as_string(i);
+                if (!coextrusion_painting_data_string.empty()) {
+                    output_buffer += " ";
+                    output_buffer += COEXTRUSION_SEGMENTATION_ATTR;
+                    output_buffer += "=\"";
+                    output_buffer += coextrusion_painting_data_string;
                     output_buffer += "\"";
                 }
 

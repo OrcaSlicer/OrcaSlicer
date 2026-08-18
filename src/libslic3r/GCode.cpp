@@ -5567,8 +5567,10 @@ void GCode::apply_print_config(const PrintConfig &print_config)
         m_config.coextrusion_c_axis_color_angles.values = m_config.filament_coextrusion_color_angles.values;
         m_config.coextrusion_c_axis_filter_distance.value = m_config.filament_coextrusion_filter_distance.value;
     }
+    const std::vector<std::string> &coextrusion_source_colors = m_config.coextrusion_source_colors.values.empty() ?
+        m_config.filament_colour.values : m_config.coextrusion_source_colors.values;
     m_coextrusion_filament_to_sector = map_coextrusion_filament_colors_to_sectors(
-        m_config.filament_colour.values, m_config.coextrusion_c_axis_colors.values,
+        coextrusion_source_colors, m_config.coextrusion_c_axis_colors.values,
         m_config.coextrusion_color_mapping.values);
     m_coextrusion_last_color_tag = size_t(-1);
     m_coextrusion_cached_layer = nullptr;
@@ -6383,17 +6385,15 @@ size_t GCode::coextrusion_filament_for_surface_segment(const Vec2d &from, const 
 
         const auto &by_layer = m_layer->object()->mmu_surface_color_lines();
         std::vector<Line> lines;
-        if (m_layer->object()->is_mm_painted()) {
-            if (size_t(m_layer->id()) < by_layer.size()) {
-                for (const ColoredLines &contour : by_layer[m_layer->id()]) {
-                    for (const ColoredLine &colored_line : contour) {
-                        lines.emplace_back(colored_line.line);
-                        // Painted facet states and resolved defaults are
-                        // 1-based filament IDs. Zero remains a safe fallback
-                        // only if the source volume could not be identified.
-                        m_coextrusion_surface_filament_slots.emplace_back(
-                            colored_line.color > 0 ? size_t(colored_line.color - 1) : fallback);
-                    }
+        if (size_t(m_layer->id()) < by_layer.size() && !by_layer[m_layer->id()].empty()) {
+            for (const ColoredLines &contour : by_layer[m_layer->id()]) {
+                for (const ColoredLine &colored_line : contour) {
+                    lines.emplace_back(colored_line.line);
+                    // Painted facet states and resolved defaults are
+                    // 1-based source color IDs. Zero remains a safe fallback
+                    // only if the source volume could not be identified.
+                    m_coextrusion_surface_filament_slots.emplace_back(
+                        colored_line.color > 0 ? size_t(colored_line.color - 1) : fallback);
                 }
             }
         } else {

@@ -146,7 +146,9 @@ bool edit_coextrusion_color_mapping(wxWindow *parent, bool force)
         return true;
     const auto *sector_colors = full_config.option<ConfigOptionStrings>(
         use_filament_config ? "filament_coextrusion_colors" : "coextrusion_c_axis_colors");
-    const auto *logical_colors = full_config.option<ConfigOptionStrings>("filament_colour");
+    const auto *source_colors = full_config.option<ConfigOptionStrings>("coextrusion_source_colors");
+    const auto *filament_colors = full_config.option<ConfigOptionStrings>("filament_colour");
+    const ConfigOptionStrings *logical_colors = source_colors != nullptr && !source_colors->values.empty() ? source_colors : filament_colors;
     auto *mapping_option = preset_bundle->project_config.option<ConfigOptionInts>("coextrusion_color_mapping", true);
     if (sector_colors == nullptr || sector_colors->values.empty() || logical_colors == nullptr)
         return true;

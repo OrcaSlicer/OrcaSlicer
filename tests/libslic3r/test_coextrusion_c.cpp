@@ -3,6 +3,11 @@
 #include "libslic3r/GCode/CoExtrusionC.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeWriter.hpp"
+#include "libslic3r/Format/3mf.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+
+#include <boost/filesystem.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -116,6 +121,49 @@ TEST_CASE("Invalid explicit co-extrusion sectors remain safely unmapped", "[CoEx
         {"#FF0000"}, {"#FF0000", "#00FF00"}, {4});
 
     REQUIRE(mapping == std::vector<size_t>{std::numeric_limits<size_t>::max()});
+}
+
+TEST_CASE("Co-extrusion face colors survive logical filament deletion", "[CoExtrusionC]")
+{
+    Model model;
+    ModelObject *object = model.add_object();
+    ModelVolume *volume = object->add_volume(make_cube(10., 10., 10.));
+
+    volume->mmu_segmentation_facets.reserve(volume->mesh().facets_count());
+    // This is the existing 3MF encoding of a whole face painted with logical filament 3.
+    volume->mmu_segmentation_facets.set_triangle_from_string(0, "0C");
+    volume->coextrusion_segmentation_facets.assign(volume->mmu_segmentation_facets);
+    const std::string source_paint = volume->coextrusion_segmentation_facets.get_triangle_as_string(0);
+
+    volume->update_extruder_count_when_delete_filament(2, 3, 1);
+
+    REQUIRE(volume->mmu_segmentation_facets.get_triangle_as_string(0) != source_paint);
+    REQUIRE(volume->coextrusion_segmentation_facets.get_triangle_as_string(0) == source_paint);
+}
+
+TEST_CASE("Co-extrusion source face colors survive a 3MF round trip", "[CoExtrusionC]")
+{
+    Model source_model;
+    ModelObject *object = source_model.add_object();
+    ModelVolume *volume = object->add_volume(make_cube(10., 10., 10.));
+    object->add_instance();
+    volume->coextrusion_segmentation_facets.reserve(volume->mesh().facets_count());
+    volume->coextrusion_segmentation_facets.set_triangle_from_string(0, "0C");
+
+    const boost::filesystem::path path = boost::filesystem::temp_directory_path() /
+                                         boost::filesystem::unique_path("orca-coextrusion-%%%%-%%%%.3mf");
+    REQUIRE(store_3mf(path.string().c_str(), &source_model, nullptr, false));
+
+    Model loaded_model;
+    DynamicPrintConfig loaded_config;
+    ConfigSubstitutionContext substitutions{ForwardCompatibilitySubstitutionRule::Disable};
+    const bool loaded = load_3mf(path.string().c_str(), loaded_config, substitutions, &loaded_model, false);
+    boost::filesystem::remove(path);
+
+    REQUIRE(loaded);
+    REQUIRE(loaded_model.objects.size() == 1);
+    REQUIRE(loaded_model.objects.front()->volumes.size() == 1);
+    REQUIRE(loaded_model.objects.front()->volumes.front()->coextrusion_segmentation_facets.get_triangle_as_string(0) == "0C");
 }
 
 TEST_CASE("G-code preview preserves the physical co-extrusion color sector", "[CoExtrusionC]")

@@ -55,7 +55,8 @@ static std::vector<std::string> s_project_options {
     "nozzle_volume_type",
     "filament_map_mode",
     "filament_map",
-    "coextrusion_color_mapping"
+    "coextrusion_color_mapping",
+    "coextrusion_source_colors"
 };
 
 //Orca: add custom as default

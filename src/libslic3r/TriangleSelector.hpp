@@ -379,6 +379,7 @@ public:
         TriangleSplittingData supported;
         TriangleSplittingData seam;
         TriangleSplittingData mmu;
+        TriangleSplittingData coextrusion;
         TriangleSplittingData fuzzy;
     };
 
