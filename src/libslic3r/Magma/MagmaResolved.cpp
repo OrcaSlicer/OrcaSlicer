@@ -53,11 +53,17 @@ bool resolve_magma(const PrintRegionConfig &region,
     r.max_immersion       = object.magma_max_immersion.value;
     r.slam_press          = object.magma_auto_slam_press.value;
 
+    // Auto sizing must leave room for the plunge, or the seal consumes the whole budget and
+    // the plunge clamps to zero (see effective_interior_width).
+    const double plunge_reserve = object.magma_injection_plunge.value
+                                      ? std::max(0.0, object.magma_injection_plunge_depth.value)
+                                      : 0.0;
     r.interior_width   = effective_interior_width(*r.geometry,
                                                   object.magma_tube_width_mode.value,
                                                   object.magma_interior_width.value,
                                                   r.nozzle_flat, r.line_width,
-                                                  r.cone_half_angle_deg, r.max_immersion);
+                                                  r.cone_half_angle_deg, r.max_immersion,
+                                                  plunge_reserve);
     r.cell_spacing     = cell_spacing_from_geometry(r.interior_width, r.line_width);
     r.opening_diameter = r.geometry->opening_diameter(r.cell_spacing, r.line_width);
     r.bore_diameter    = 2.0 * r.geometry->inscribed_radius(r.interior_width, r.line_width);

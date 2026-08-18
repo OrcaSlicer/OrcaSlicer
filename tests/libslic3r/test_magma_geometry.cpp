@@ -161,14 +161,14 @@ TEST_CASE("Magma: effective_interior_width honours the tube width mode", "[Magma
 
         // Manual: the user's value, verbatim, whatever the nozzle says.
         CHECK(effective_interior_width(geom, MagmaTubeWidthMode::Manual, 2.2,
-                                       flat, lw, cone, immersion)
+                                       flat, lw, cone, immersion, 0.0)
               == Catch::Approx(2.2).epsilon(1e-12));
 
         // Auto: resolved through THIS pattern's geometry, ignoring the manual value.
         const double expect = geom.interior_for_opening(
             max_opening_for_immersion(flat, cone, immersion), lw);
         CHECK(effective_interior_width(geom, MagmaTubeWidthMode::Auto, 2.2,
-                                       flat, lw, cone, immersion)
+                                       flat, lw, cone, immersion, 0.0)
               == Catch::Approx(expect).epsilon(1e-12));
 
         // ...and Auto must differ per pattern, or the geometry is not being consulted.
@@ -206,6 +206,30 @@ TEST_CASE("Magma: geometry and lattice agree on edge length", "[Magma][geometry]
             const double edge = geom.edge_length(spacing);
             CHECK(edge > 0.0);
             CHECK(edge > lw * 0.5);
+        }
+    }
+}
+
+TEST_CASE("Magma: auto sizing leaves room for the plunge", "[Magma][seal]")
+{
+    // Regression: auto sizing spent the ENTIRE immersion budget on the seal depth, so
+    // clamp_plunge_depth found zero headroom and the plunge was always exactly 0 in Auto mode
+    // -- the default. The slam-melt never ran, with the setting switched on in the UI.
+    const double flat = 1.75, cone = 30.0, lw = 0.60, immersion = 0.6, press = 0.1;
+    for (const PatternCase &pc : all_patterns()) {
+        const MagmaGeometry &geom = magma_geometry_for(pc.pattern);
+        for (double plunge_cfg : { 0.05, 0.2 }) {
+            const double interior = effective_interior_width(
+                geom, MagmaTubeWidthMode::Auto, 2.2, flat, lw, cone, immersion, plunge_cfg);
+            const double spacing  = cell_spacing_from_geometry(interior, lw);
+            const double opening  = geom.opening_diameter(spacing, lw);
+            const double budget   = immersion_budget_for(press, immersion);
+            const double slam     = std::min(budget, std::max(0.0,
+                auto_slam_depth(opening, flat, cone, immersion, press)));
+            const double plunge   = clamp_plunge_depth(slam, plunge_cfg, budget);
+            INFO(pc.name << " plunge_cfg=" << plunge_cfg << " slam=" << slam);
+            CHECK(plunge == Catch::Approx(plunge_cfg).epsilon(1e-6));
+            CHECK(slam + plunge <= budget + 1e-9);
         }
     }
 }

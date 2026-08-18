@@ -346,6 +346,18 @@ static bool magma_resolve(const PresetBundle &preset_bundle, magma::MagmaResolve
     return magma::resolve_magma(region, object, printer, out);
 }
 
+// Both readouts are "Label: value  (aside)" lines rather than prose. These are reference
+// numbers the user scans while adjusting a neighbouring field, not something anyone reads as a
+// paragraph, and a fixed left column makes a changed value obvious between edits.
+static std::string magma_row(const std::string &label, const std::string &value,
+                             const std::string &aside = std::string())
+{
+    std::string row = label + ":  " + value;
+    if (! aside.empty())
+        row += "   (" + aside + ")";
+    return row + "\n";
+}
+
 std::string PresetHints::magma_geometry_description(const PresetBundle &preset_bundle)
 {
     magma::MagmaResolved m;
@@ -356,22 +368,27 @@ std::string PresetHints::magma_geometry_description(const PresetBundle &preset_b
     const double open_pct  = m.cell_spacing > 0.0
                                  ? 100.0 * open_area / (m.cell_spacing * m.cell_spacing) : 0.0;
 
-    std::string out = (boost::format(_utf8(L(
-        "Tube interior %1$.3f mm, cell spacing %2$.3f mm, line width %3$.2f mm.\n"
-        "Bore %4$.3f mm (the usable channel) — seal opening %5$.3f mm (what the nozzle must cover).\n"
-        "Open cross-section %6$.3f mm2.")))
-        % m.interior_width % m.cell_spacing % m.line_width % m.bore_diameter
-        % m.opening_diameter % open_area).str();
+    auto mm  = [](double v) { return (boost::format("%1$.3f mm") % v).str(); };
 
-    if (open_pct > 0.0)
-        out += (boost::format(_utf8(L(" Roughly %1$.0f%% of the lattice footprint is open tube.")))
-                % open_pct).str();
-
-    // The nozzle flat is what the bore is measured against; make the ratio explicit since
-    // it is the whole reason one pattern seals better than another.
-    if (m.nozzle_flat > 0.0)
-        out += (boost::format(_utf8(L("\nBore is %1$.0f%% of the %2$.2f mm nozzle flat.")))
-                % (100.0 * m.bore_diameter / m.nozzle_flat) % m.nozzle_flat).str();
+    std::string out;
+    out += magma_row(_utf8(L("Tube interior")),  mm(m.interior_width),
+                     m.interior_width > 0.0 && m.opening_diameter > 0.0
+                         ? (boost::format(_utf8(L("cell spacing %1$.3f mm, line width %2$.2f mm")))
+                            % m.cell_spacing % m.line_width).str()
+                         : std::string());
+    out += magma_row(_utf8(L("Usable bore")),    mm(m.bore_diameter),
+                     m.nozzle_flat > 0.0
+                         ? (boost::format(_utf8(L("%1$.0f%% of the %2$.2f mm nozzle flat")))
+                            % (100.0 * m.bore_diameter / m.nozzle_flat) % m.nozzle_flat).str()
+                         : std::string());
+    out += magma_row(_utf8(L("Seal opening")),   mm(m.opening_diameter),
+                     _utf8(L("what the nozzle must cover")));
+    out += magma_row(_utf8(L("Open cross-section")),
+                     (boost::format("%1$.3f mm\u00b2") % open_area).str(),
+                     open_pct > 0.0 ? (boost::format(_utf8(L("%1$.0f%% of the lattice footprint")))
+                                       % open_pct).str() : std::string());
+    if (! out.empty() && out.back() == '\n')
+        out.pop_back();
     return out;
 }
 
@@ -382,32 +399,47 @@ std::string PresetHints::magma_injection_description(const PresetBundle &preset_
         return std::string();
 
     const DynamicPrintConfig &print_config = preset_bundle.prints.get_edited_preset().config;
+    auto mm = [](double v) { return (boost::format("%1$.3f mm") % v).str(); };
 
-    std::string out = (boost::format(_utf8(L(
-        "Z-slam %1$.3f mm + plunge %2$.3f mm = %3$.3f mm total nozzle intrusion.")))
-        % m.slam_depth % m.plunge_depth % m.total_depth()).str();
+    // Every number here comes from the one shared resolver (magma::resolve_magma), the same one
+    // MagmaTubeMap::build and Print::validate use, so this cannot describe a tube the slicer
+    // does not print.
+    std::string out;
 
-    // Immersion is the only thing that grows a tube past the nozzle flat, and the only
-    // thing that deforms one, so say where this sits against the budget.
-    if (m.opening_diameter > m.nozzle_flat) {
-        out += (boost::format(_utf8(L("\nThe opening is wider than the nozzle flat, so the nozzle "
-                                      "enters the tube: %1$.3f mm of the %2$.3f mm immersion budget.")))
-                % m.slam_depth % m.immersion_budget).str();
-    } else {
-        out += _utf8(L("\nThe nozzle flat covers the opening outright — it seats on the rim rather "
-                       "than entering the tube."));
-    }
+    // The seal depth, and WHY it is what it is -- the two cases behave completely differently.
+    out += magma_row(_utf8(L("Seal depth")), mm(m.slam_depth),
+                     m.opening_diameter > m.nozzle_flat
+                         ? _utf8(L("opening is wider than the flat, so the nozzle enters the tube"))
+                         : _utf8(L("flat covers the opening; the nozzle seats on the rim")));
+
+    // Shown unconditionally: it is the depth applied when no descent is needed, and its absence
+    // from this readout is why it looked like it was not being applied at all.
+    out += magma_row(_utf8(L("Seal contact press")), mm(m.slam_press),
+                     _utf8(L("used when the flat already covers the opening")));
+
+    out += magma_row(_utf8(L("Plunge")), mm(m.plunge_depth),
+                     print_config.opt_bool("magma_injection_plunge")
+                         ? _utf8(L("ramped deeper while injecting"))
+                         : _utf8(L("disabled")));
+
+    out += magma_row(_utf8(L("Total immersion")), mm(m.total_depth()),
+                     (boost::format(_utf8(L("of the %1$.3f mm budget"))) % m.immersion_budget).str());
 
     const double open_area   = m.geometry->inset_open_area(m.cell_spacing, m.line_width);
     const double tube_height = print_config.opt_float("magma_tube_height");
     const double fill_factor = print_config.opt_float("magma_tube_fill_factor");
     if (open_area > 0.0 && tube_height > 0.0)
-        // A U-tube is a PAIR of cells sharing a window -- one injection fills both. Reporting
-        // a single cell's volume understated this by ~2x. Still approximate: it ignores the
-        // window cavity and any clipping at the part edge.
-        out += (boost::format(_utf8(L("\nApproximately %1$.2f mm3 injected per full-height U-tube "
-                                      "(2 cells x %2$.3f mm2 x %3$.1f mm x %4$.2f fill factor).")))
-                % (2.0 * open_area * tube_height * fill_factor) % open_area % tube_height % fill_factor).str();
+        // A U-tube is a PAIR of cells sharing a window -- one injection fills both. Approximate:
+        // ignores the window cavity and any clipping at the part edge. The slicer itself measures
+        // the real cavity from the deposited toolpath.
+        out += magma_row(_utf8(L("Injected per U-tube")),
+                         (boost::format("%1$.2f mm\u00b3")
+                          % (2.0 * open_area * tube_height * fill_factor)).str(),
+                         (boost::format(_utf8(L("2 cells x %1$.3f mm\u00b2 x %2$.1f mm x %3$.2f fill, estimated")))
+                          % open_area % tube_height % fill_factor).str());
+
+    if (! out.empty() && out.back() == '\n')
+        out.pop_back();
     return out;
 }
 

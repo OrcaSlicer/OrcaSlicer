@@ -41,6 +41,14 @@ namespace magma {
 //         flat -- a tube the flat covers is sealed by seating on the rim with no descent,
 //         so a bigger budget buys a bigger tube and nothing else.
 //
+// `plunge_reserve` is the plunge depth that must still fit INSIDE the budget after the seal.
+// Without it, auto sizing spent the whole budget on the seal depth and clamp_plunge_depth()
+// then found zero headroom -- so the plunge was mathematically always 0 in Auto mode, i.e. on
+// the default configuration. The seal held by a single fixed press with no slam-melt at all,
+// silently, with the setting switched on in the UI. Reserving it here keeps
+// `magma_max_immersion` meaning what it says: the TOTAL depth the nozzle reaches, seal plus
+// plunge, rather than the seal alone.
+//
 // Lives here, not inside MagmaTubeMap.cpp, because Print::validate() must predict the
 // same geometry the injection G-code will actually use. Resolving it twice is how the
 // two silently drift apart.
@@ -50,12 +58,14 @@ inline double effective_interior_width(const MagmaGeometry &geometry,
                                        double nozzle_flat,
                                        double line_width,
                                        double cone_half_angle_deg,
-                                       double max_immersion)
+                                       double max_immersion,
+                                       double plunge_reserve)
 {
     if (mode == MagmaTubeWidthMode::Manual)
         return manual_width;
+    const double seal_budget = std::max(0.0, max_immersion - std::max(0.0, plunge_reserve));
     return geometry.interior_for_opening(
-        max_opening_for_immersion(nozzle_flat, cone_half_angle_deg, max_immersion), line_width);
+        max_opening_for_immersion(nozzle_flat, cone_half_angle_deg, seal_budget), line_width);
 }
 
 // Scalar overload so the GUI (which holds a DynamicPrintConfig, not a PrintRegionConfig)
