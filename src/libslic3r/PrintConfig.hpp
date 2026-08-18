@@ -146,6 +146,29 @@ inline bool is_separable_infill_pattern(InfillPattern pattern)
     }
 }
 
+// Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
+// Grid, Triangles and Tri-hexagon only do so in their trapezoidal form, which is generated with more
+// than one line per infill wall; a single line makes them plain crossing lines with nothing to round.
+inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 1)
+{
+    switch (pattern) {
+    case ipHilbertCurve:
+    case ipOctagramSpiral:
+    case ipLightning:
+    case ipHoneycomb:
+    case ip3DHoneycomb:
+    case ipConcentric:
+    case ipCrossHatch:
+        return true;
+    case ipGrid:
+    case ipTriangles:
+    case ipStars:
+        return multiline > 1;
+    default:
+        return false;
+    }
+}
+
 enum class IroningType {
     NoIroning,
     TopSurfaces,
