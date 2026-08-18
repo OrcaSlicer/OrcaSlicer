@@ -96,22 +96,16 @@ TEST_CASE("G-code preview preserves the physical co-extrusion color sector", "[C
         "M83\n"
         "G1 X0 Y0 Z0.2 F600\n;" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) + "Outer wall\n;" +
         GCodeProcessor::reserved_tag(GCodeProcessor::ETags::CoExtrusion_Color) + "2\n"
-        "G1 X10 Y0 E1 F1200\n;" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) + "Top surface\n"
+        "G1 X10 Y0 E1 F1200\n;" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::CoExtrusion_Color) + "0\n"
         "G1 X10 Y10 E1 F1200\n";
     processor.process_buffer(gcode);
 
     const GCodeProcessorResult &result = processor.get_result();
     REQUIRE(result.coextrusion_colors == config.coextrusion_c_axis_colors.values);
 
-    const auto external_wall_move = std::find_if(result.moves.begin(), result.moves.end(), [](const GCodeProcessorResult::MoveVertex &vertex) {
-        return vertex.type == EMoveType::Extrude && vertex.extrusion_role == erExternalPerimeter;
-    });
-    REQUIRE(external_wall_move != result.moves.end());
-    REQUIRE(external_wall_move->coextrusion_color_id == 2);
-
-    const auto top_surface_move = std::find_if(result.moves.rbegin(), result.moves.rend(), [](const GCodeProcessorResult::MoveVertex &vertex) {
-        return vertex.type == EMoveType::Extrude && vertex.extrusion_role == erTopSolidInfill;
-    });
-    REQUIRE(top_surface_move != result.moves.rend());
-    REQUIRE(top_surface_move->coextrusion_color_id == 2);
+    std::vector<unsigned char> external_wall_colors;
+    for (const GCodeProcessorResult::MoveVertex &move : result.moves)
+        if (move.type == EMoveType::Extrude && move.extrusion_role == erExternalPerimeter)
+            external_wall_colors.emplace_back(move.coextrusion_color_id);
+    REQUIRE(external_wall_colors == std::vector<unsigned char>{2, 0});
 }

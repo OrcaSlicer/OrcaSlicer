@@ -1545,12 +1545,8 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     {
         if (v.is_travel())
             return get_option_color(move_type_to_option(v.type));
-        // Color the whole deposited path with its selected physical sector. Although
-        // C-axis orientation is only emitted for external walls, coloring top/bottom
-        // surfaces and the paths below them is necessary for an opaque final-surface
-        // preview; rendering those paths as DUMMY_COLOR makes them show through as
-        // black bands on horizontally oriented models.
-        if (v.is_extrusion() && v.coextrusion_color_id != COEXTRUSION_COLOR_ID_NONE &&
+        if (v.role == EGCodeExtrusionRole::ExternalPerimeter &&
+            v.coextrusion_color_id != COEXTRUSION_COLOR_ID_NONE &&
             static_cast<size_t>(v.coextrusion_color_id) < m_coextrusion_colors.size())
             return m_coextrusion_colors[static_cast<size_t>(v.coextrusion_color_id)];
         return DUMMY_COLOR;

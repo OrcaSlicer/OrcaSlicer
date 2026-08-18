@@ -5561,6 +5561,9 @@ void GCode::apply_print_config(const PrintConfig &print_config)
     m_config.apply(print_config);
     m_coextrusion_filament_to_sector = map_coextrusion_filament_colors_to_sectors(
         m_config.filament_colour.values, m_config.coextrusion_c_axis_colors.values);
+    m_coextrusion_last_color_tag = size_t(-1);
+    m_coextrusion_cached_layer = nullptr;
+    m_coextrusion_surface_regions.clear();
     m_scaled_resolution = scaled<double>(print_config.resolution.value);
     m_enable_exclude_object = m_config.exclude_object;
 
@@ -6357,19 +6360,69 @@ double GCode::calc_max_volumetric_speed(const double layer_height, const double 
     return res;
 }
 
-std::optional<double> GCode::coextrusion_c_for_segment(const Vec2d &from, const Vec2d &to, const ExtrusionPath &path)
+size_t GCode::coextrusion_filament_for_surface_segment(const Vec2d &from, const Vec2d &to, const ExtrusionPath &path)
+{
+    const size_t fallback = m_writer.filament() == nullptr ? size_t(-1) : m_writer.filament()->id();
+    if (m_layer == nullptr || m_layer->object() == nullptr)
+        return fallback;
+
+    if (m_coextrusion_cached_layer != m_layer) {
+        m_coextrusion_cached_layer = m_layer;
+        m_coextrusion_surface_regions.clear();
+        for (const LayerRegion *region : m_layer->regions()) {
+            const int filament_id = region->region().config().outer_wall_filament_id.value;
+            if (filament_id <= 0)
+                continue;
+            for (const Surface &surface : region->slices)
+                m_coextrusion_surface_regions.push_back({get_extents(surface.expolygon), &surface.expolygon, size_t(filament_id - 1)});
+        }
+    }
+
+    const Vec2d delta = to - from;
+    const double length = delta.norm();
+    if (length <= EPSILON)
+        return fallback;
+
+    // External perimeter centerlines are already inside the sliced object. Move a
+    // tiny amount farther inward so a point exactly on a painted-region boundary
+    // is classified by the region that owns the visible surface segment.
+    const Vec2d right_normal(delta.y() / length, -delta.x() / length);
+    const Vec2d outward_normal = m_coextrusion_outward_normal_on_right ? right_normal : -right_normal;
+    const double inward_probe_distance = std::min(0.05, std::max(0.01, 0.1 * double(path.width)));
+    const Point probe = gcode_to_point(0.5 * (from + to) - inward_probe_distance * outward_normal);
+
+    for (const CoExtrusionSurfaceRegion &region : m_coextrusion_surface_regions)
+        if (region.bbox.contains(probe) && region.expolygon->contains(probe))
+            return region.filament_slot;
+
+    return fallback;
+}
+
+std::string GCode::coextrusion_color_tag(size_t sector)
+{
+    if (sector == m_coextrusion_last_color_tag)
+        return {};
+
+    m_coextrusion_last_color_tag = sector;
+    return ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::CoExtrusion_Color) +
+           std::to_string(sector) + "\n";
+}
+
+std::optional<double> GCode::coextrusion_c_for_segment(const Vec2d &from, const Vec2d &to, const ExtrusionPath &path, size_t *sector_out)
 {
     if (!m_config.coextrusion_c_axis_enable.value || !m_coextrusion_external_loop_active ||
         path.role() != erExternalPerimeter || path.is_force_no_extrusion() || m_writer.filament() == nullptr)
         return std::nullopt;
 
-    const size_t filament_slot = m_writer.filament()->id();
+    const size_t filament_slot = coextrusion_filament_for_surface_segment(from, to, path);
     const auto  &angles        = m_config.coextrusion_c_axis_color_angles.values;
     if (filament_slot >= m_coextrusion_filament_to_sector.size())
         return std::nullopt;
     const size_t sector = m_coextrusion_filament_to_sector[filament_slot];
     if (sector >= angles.size())
         return std::nullopt;
+    if (sector_out != nullptr)
+        *sector_out = sector;
 
     const Vec2d delta = to - from;
     return m_coextrusion_c.update_for_segment(delta.x(), delta.y(), m_coextrusion_outward_normal_on_right,
@@ -6751,6 +6804,36 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                                          [speed](const ProcessedPoint &p) { return fabs(double(p.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
     }
 
+    const double coextrusion_segment_length = m_config.coextrusion_c_axis_filter_distance.value > EPSILON ?
+        std::clamp(0.25 * m_config.coextrusion_c_axis_filter_distance.value, 0.05, 0.5) : 0.1;
+    if (variable_speed && m_config.coextrusion_c_axis_enable.value && m_coextrusion_external_loop_active &&
+        path.role() == erExternalPerimeter && new_points.size() > 1) {
+        std::vector<ProcessedPoint> sampled_points;
+        sampled_points.reserve(new_points.size());
+        sampled_points.emplace_back(new_points.front());
+        for (size_t point_idx = 1; point_idx < new_points.size(); ++point_idx) {
+            const ProcessedPoint &from = new_points[point_idx - 1];
+            const ProcessedPoint &to   = new_points[point_idx];
+            const double length = (to.p - from.p).cast<double>().norm() * SCALING_FACTOR;
+            const size_t count = std::max<size_t>(1, size_t(std::ceil(length / coextrusion_segment_length)));
+            for (size_t sample_idx = 1; sample_idx <= count; ++sample_idx) {
+                if (sample_idx == count) {
+                    sampled_points.emplace_back(to);
+                } else {
+                    const float ratio = float(sample_idx) / float(count);
+                    const Point3 sampled_point((from.p.cast<double>() +
+                        (to.p - from.p).cast<double>() * double(ratio)).cast<coord_t>());
+                    sampled_points.push_back(ProcessedPoint{
+                        sampled_point,
+                        from.speed + (to.speed - from.speed) * ratio,
+                        from.overlap + (to.overlap - from.overlap) * ratio
+                    });
+                }
+            }
+        }
+        new_points = std::move(sampled_points);
+    }
+
     double F = speed * 60;  // convert mm/sec to mm/min
     
     // Orca: Dynamic PA
@@ -7037,13 +7120,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 // turning a distance-domain low-pass into a long linear sweep.
                 // Sample at least four times per filter distance, with practical
                 // bounds on G-code size and angular tracking resolution.
-                const double c_segment_length = m_config.coextrusion_c_axis_filter_distance.value > EPSILON ?
-                    std::clamp(0.25 * m_config.coextrusion_c_axis_filter_distance.value, 0.05, 0.5) : 0.1;
-
                 for (const Line3 &source_line : path.polyline.lines()) {
                     const double source_length = source_line.length() * SCALING_FACTOR;
                     const size_t segment_count = segment_for_c ?
-                        std::max<size_t>(1, size_t(std::ceil(source_length / c_segment_length))) : 1;
+                        std::max<size_t>(1, size_t(std::ceil(source_length / coextrusion_segment_length))) : 1;
                     Point3 segment_start = source_line.a;
 
                     for (size_t segment_idx = 1; segment_idx <= segment_count; ++segment_idx) {
@@ -7059,8 +7139,12 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                         const double line_length = line.length() * SCALING_FACTOR;
                         if (line_length < EPSILON)
                             continue;
+                        size_t color_sector = size_t(-1);
                         const auto c_axis = coextrusion_c_for_segment(this->point_to_gcode(line.a.to_point()),
-                                                                      this->point_to_gcode(line.b.to_point()), path);
+                                                                      this->point_to_gcode(line.b.to_point()), path,
+                                                                      &color_sector);
+                        if (c_axis.has_value())
+                            gcode += coextrusion_color_tag(color_sector);
                         path_length += line_length;
                         auto dE = e_per_mm * line_length;
                         if (_needSAFC(path)) {
@@ -7214,7 +7298,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             const double line_length = (p - prev).norm();
             if(line_length < EPSILON)
                 continue;
-            const auto c_axis = coextrusion_c_for_segment(prev.head<2>(), p.head<2>(), path);
+            size_t color_sector = size_t(-1);
+            const auto c_axis = coextrusion_c_for_segment(prev.head<2>(), p.head<2>(), path, &color_sector);
+            if (c_axis.has_value())
+                gcode += coextrusion_color_tag(color_sector);
             path_length += line_length;
             double new_speed = pre_processed_point.speed * 60.0;
             
@@ -7784,8 +7871,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         this->placeholder_parser().set("current_extruder", new_filament_id);
         this->placeholder_parser().set("current_hotend", hotend_id_for_gcode_placeholder(m_config, new_extruder_id));
         if (new_filament_id < m_coextrusion_filament_to_sector.size())
-            return ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::CoExtrusion_Color) +
-                   std::to_string(m_coextrusion_filament_to_sector[new_filament_id]) + "\n";
+            return coextrusion_color_tag(m_coextrusion_filament_to_sector[new_filament_id]);
         return "";
     }
 

@@ -524,6 +524,14 @@ private:
     std::vector<size_t>                 m_coextrusion_filament_to_sector;
     bool                                m_coextrusion_external_loop_active{false};
     bool                                m_coextrusion_outward_normal_on_right{false};
+    size_t                              m_coextrusion_last_color_tag{std::numeric_limits<size_t>::max()};
+    struct CoExtrusionSurfaceRegion {
+        BoundingBox      bbox;
+        const ExPolygon *expolygon{nullptr};
+        size_t           filament_slot{size_t(-1)};
+    };
+    const Layer                        *m_coextrusion_cached_layer{nullptr};
+    std::vector<CoExtrusionSurfaceRegion> m_coextrusion_surface_regions;
 
     struct PlaceholderParserIntegration {
         void reset();
@@ -666,7 +674,9 @@ private:
 
     double      calc_max_volumetric_speed(const double layer_height, const double line_width, const std::string co_str);
     std::string _extrude(const ExtrusionPath &path, std::string description = "", double speed = -1);
-    std::optional<double> coextrusion_c_for_segment(const Vec2d &from, const Vec2d &to, const ExtrusionPath &path);
+    std::optional<double> coextrusion_c_for_segment(const Vec2d &from, const Vec2d &to, const ExtrusionPath &path, size_t *sector_out);
+    size_t coextrusion_filament_for_surface_segment(const Vec2d &from, const Vec2d &to, const ExtrusionPath &path);
+    std::string coextrusion_color_tag(size_t sector);
     bool _needSAFC(const ExtrusionPath &path);
     void print_machine_envelope(GCodeOutputStream& file, Print& print);
     void _print_first_layer_bed_temperature(GCodeOutputStream &file, Print &print, const std::string &gcode, unsigned int first_printing_extruder_id, bool wait);
