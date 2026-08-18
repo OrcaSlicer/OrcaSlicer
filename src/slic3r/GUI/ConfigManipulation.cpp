@@ -992,6 +992,12 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     // the manual DEPTH when auto is off (only one is ever relevant/used at a time).
     toggle_line("magma_injection_z_slam_auto", have_magma_pattern);
     toggle_line("magma_injection_z_slam_offset", have_magma_pattern && z_slam_auto);
+    // Immersion budget is what auto sizing solves against and what caps the auto slam,
+    // so it only means anything while auto z-slam is on.
+    toggle_line("magma_max_immersion", have_magma_pattern && z_slam_auto);
+    // Contact press is only reached when the flat already covers the opening, which in
+    // auto tube mode happens exactly when the immersion budget is zero.
+    toggle_line("magma_auto_slam_press", have_magma_pattern && z_slam_auto);
     toggle_line("magma_injection_z_slam", have_magma_pattern && !z_slam_auto);
     // Plunge ("slam-melt"): depth field only when the plunge toggle is on
     auto* plunge_opt = config->option<ConfigOptionBool>("magma_injection_plunge");

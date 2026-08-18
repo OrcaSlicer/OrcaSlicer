@@ -7,7 +7,7 @@
 #include "MagmaGeometry.hpp"
 #include "MagmaLattice.hpp"
 #include "MagmaCell.hpp"
-#include "MagmaTriangleCell.hpp"   // SQRT3, INV_SQRT3, calculate_auto_interior_width_from_od
+#include "MagmaTriangleCell.hpp"   // SQRT3, INV_SQRT3
 
 #include <vector>
 #include <array>
@@ -120,10 +120,9 @@ struct HexGeometry final : public MagmaGeometry
         return std::max(MAGMA_TRIHEX_MIN_WINDOW_MM, vent_matched);
     }
 
-    // Largest interior whose hex opening fits the nozzle flat:
-    // opening = 2*interior/sqrt3 <= od  ->  interior = od * sqrt3 / 2.
-    double auto_interior_width_from_od(double nozzle_od, double /*line_width*/) const override {
-        return nozzle_od > 0.0 ? std::max(0.1, nozzle_od * SQRT3 * 0.5) : 0.1;
+    // Inverse of opening_diameter(): opening = 2*interior/sqrt3  ->  interior = opening * sqrt3 / 2.
+    double interior_for_opening(double opening, double /*line_width*/) const override {
+        return opening > 0.0 ? std::max(0.1, opening * SQRT3 * 0.5) : 0.1;
     }
 
     int max_neighbors() const override { return 6; }   // hub has 6 (vent has 3); report the max

@@ -63,8 +63,12 @@ struct MagmaGeometry
     // open cross-section area (mm). Both args in mm; spacing is derived internally.
     virtual double auto_window_height(double interior_width, double line_width) const = 0;
 
-    // Largest tube interior width whose opening still fits within the nozzle flat.
-    virtual double auto_interior_width_from_od(double nozzle_od, double line_width) const = 0;
+    // Inverse of opening_diameter(): the interior width whose seal opening is exactly
+    // `opening`. Auto tube sizing feeds this the largest opening the injection immersion
+    // budget allows, so the tube comes out as big as the deformation budget permits.
+    // NOTE: this MUST be reached through the geometry, not a shape-specific free function --
+    // sizing every pattern with the triangle formula silently mis-sizes rect and hex.
+    virtual double interior_for_opening(double opening, double line_width) const = 0;
 
     // Topology constants.
     virtual int max_neighbors() const = 0;   // edge-sharing neighbor count (3/4/6)

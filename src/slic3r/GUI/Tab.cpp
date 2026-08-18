@@ -2459,6 +2459,15 @@ void TabPrint::build()
         optgroup->append_single_option_line("magma_spiral_interlock");
         optgroup->append_single_option_line("magma_overlap_line_correction");
         optgroup->append_single_option_line("magma_overlap_min_width");
+        // Auto sizing derives the interior width and cell spacing and displays neither.
+        {
+            Line line = { "", "" };
+            line.full_width = 1;
+            line.widget = [this](wxWindow* parent) {
+                return description_line_widget(parent, &m_magma_geometry_description_line);
+            };
+            optgroup->append_line(line);
+        }
 
         optgroup = page->new_optgroup(L("Magma Tubes"), L"param_magmatubes");
         optgroup->append_single_option_line("magma_window_height_mm");
@@ -2474,6 +2483,8 @@ void TabPrint::build()
         optgroup->append_single_option_line("magma_injection_ordering");
         optgroup->append_single_option_line("magma_injection_z_slam_auto");
         optgroup->append_single_option_line("magma_injection_z_slam_offset");
+        optgroup->append_single_option_line("magma_max_immersion");
+        optgroup->append_single_option_line("magma_auto_slam_press");
         optgroup->append_single_option_line("magma_injection_z_slam");
         optgroup->append_single_option_line("magma_injection_plunge");
         optgroup->append_single_option_line("magma_injection_plunge_depth");
@@ -2487,6 +2498,16 @@ void TabPrint::build()
         optgroup->append_single_option_line("magma_injection_iron_speed");
         optgroup->append_single_option_line("magma_injection_iron_hover");
         optgroup->append_single_option_line("magma_injection_iron_margin");
+        // Auto Z-slam makes the manual depth and cone angle inert, so the depth that
+        // actually reaches the printer is otherwise invisible.
+        {
+            Line line = { "", "" };
+            line.full_width = 1;
+            line.widget = [this](wxWindow* parent) {
+                return description_line_widget(parent, &m_magma_injection_description_line);
+            };
+            optgroup->append_line(line);
+        }
 
         optgroup = page->new_optgroup(L("Advanced"), L"param_advanced");
         optgroup->append_single_option_line("align_infill_direction_to_model", "strength_settings_advanced#align-infill-direction-to-model");
@@ -2822,6 +2843,14 @@ void TabPrint::update_description_lines()
             from_u8(PresetHints::top_bottom_shell_thickness_explanation(*m_preset_bundle)));
     }
 
+    if (m_active_page && m_active_page->title() == "Strength") {
+        if (m_magma_geometry_description_line)
+            m_magma_geometry_description_line->SetText(
+                from_u8(PresetHints::magma_geometry_description(*m_preset_bundle)));
+        if (m_magma_injection_description_line)
+            m_magma_injection_description_line->SetText(
+                from_u8(PresetHints::magma_injection_description(*m_preset_bundle)));
+    }
 }
 
 void TabPrint::toggle_options()
@@ -2925,6 +2954,8 @@ void TabPrint::clear_pages()
 
     m_recommended_thin_wall_thickness_description_line = nullptr;
     m_top_bottom_shell_thickness_explanation = nullptr;
+    m_magma_geometry_description_line = nullptr;
+    m_magma_injection_description_line = nullptr;
 }
 
 //BBS: GUI refactor

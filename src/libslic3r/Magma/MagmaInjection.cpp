@@ -154,8 +154,10 @@ std::string generate_injection_gcode(
     // travel speed as a last resort.
     double wipe_speed_mms    = config.magma_injection_iron_speed.value > 0.0
         ? config.magma_injection_iron_speed.value
-        : (config.ironing_speed.value > 0.0 ? config.ironing_speed.value : config.travel_speed.value);
-    if (wipe_speed_mms < 1.0) wipe_speed_mms = 30.0;
+        // Deliberately NOT travel_speed: plowing molten rim material at a travel feedrate
+        // (150-300 mm/s) tears it away instead of shearing it back into the crater.
+        : (config.ironing_speed.value > 0.0 ? config.ironing_speed.value : MAGMA_IRON_SPEED_FALLBACK);
+    if (wipe_speed_mms < 1.0) wipe_speed_mms = MAGMA_IRON_SPEED_FALLBACK;
     double wipe_hover        = std::max(0.0, config.magma_injection_iron_hover.value);
     double wipe_margin       = std::max(0.0, config.magma_injection_iron_margin.value);
 
@@ -170,11 +172,20 @@ std::string generate_injection_gcode(
     // stay in lockstep.
     double seal_flat = resolve_nozzle_flat(config.magma_nozzle_outer_diameter.value,
                                            config.nozzle_diameter.get_at(extruder_id));
+    const double max_immersion = config.magma_max_immersion.value;
+    const double slam_press    = config.magma_auto_slam_press.value;
+    // How deep the hot nozzle may travel inside a tube, from any path. Slam, the user
+    // offset and the plunge all spend from this one budget.
+    const double immersion_budget = std::min(MAGMA_SLAM_CLAMP,
+                                             std::max(std::max(0.0, slam_press), std::max(0.0, max_immersion)));
     if (config.magma_injection_z_slam_auto.value) {
         slam_depth = auto_slam_depth(tube_map.tube_opening_diameter(), seal_flat,
-                                     config.magma_nozzle_cone_half_angle.value);
-        // User trim on the auto depth (+ deeper / - shallower), clamped to [0, max slam].
-        slam_depth = std::min(MAGMA_SLAM_CLAMP,
+                                     config.magma_nozzle_cone_half_angle.value,
+                                     max_immersion, slam_press);
+        // User trim on the auto depth (+ deeper / - shallower), re-clamped to the same
+        // budget so it stays the single limit on immersion. Raise Max nozzle immersion
+        // if you need more than it allows.
+        slam_depth = std::min(immersion_budget,
                               std::max(0.0, slam_depth + config.magma_injection_z_slam_offset.value));
     } else {
         slam_depth = std::min(config.magma_injection_z_slam.value, MAGMA_SLAM_CLAMP);
@@ -193,11 +204,18 @@ std::string generate_injection_gcode(
     // flow ratio would double-correct (fill_factor already controls fill amount).
     double e_per_mm3 = 1.0 / filament_area;
 
-    // Injection volumetric speed, capped at hotend melt rate.
-    double vol_speed = std::max(1.0, injection_speed_vol);
+    // Injection volumetric speed. 0 = run at the filament's max volumetric speed: the tube
+    // is a narrow cross-section and the melt is cooling the whole way down, so filling at
+    // the material's melt limit fills more reliably than a fixed rate -- and that limit is
+    // a filament property, so it adapts across materials on its own. A nonzero value is
+    // taken as-is, still capped at the melt rate.
     double max_vol = config.filament_max_volumetric_speed.get_at(extruder_id);
-    if (max_vol > 0)
-        vol_speed = std::min(vol_speed, max_vol);
+    double vol_speed;
+    if (injection_speed_vol <= 0.0)
+        vol_speed = max_vol > 0.0 ? max_vol : 10.0;   // no melt rate configured: prior default
+    else
+        vol_speed = max_vol > 0.0 ? std::min(injection_speed_vol, max_vol) : injection_speed_vol;
+    vol_speed = std::max(1.0, vol_speed);
 
     // Convert volumetric speed to filament feedrate
     double feedrate_mms = vol_speed / filament_area;
@@ -230,8 +248,9 @@ std::string generate_injection_gcode(
         if (config.magma_injection_z_slam_auto.value) {
             const auto& slam_pair = tube_map.u_tube_pairs()[pt.pair_index];
             slam_depth = auto_slam_depth(tube_map.cap_opening_diameter(slam_pair), seal_flat,
-                                         config.magma_nozzle_cone_half_angle.value);
-            slam_depth = std::min(MAGMA_SLAM_CLAMP,
+                                         config.magma_nozzle_cone_half_angle.value,
+                                         max_immersion, slam_press);
+            slam_depth = std::min(immersion_budget,
                                   std::max(0.0, slam_depth + config.magma_injection_z_slam_offset.value));
             plunge_depth = config.magma_injection_plunge.value
                                ? clamp_plunge_depth(slam_depth, config.magma_injection_plunge_depth.value)
@@ -447,7 +466,13 @@ std::string generate_injection_gcode(
             // start_R  = begin the spiral this far out, so it catches the whole
             //            displaced rim (margin beyond the footprint).
             double crater_r = r_flat + (slam_depth + plunge_depth) * std::tan(cone_rad);
-            double start_R  = crater_r + wipe_margin;
+            // Margin 0 = auto. Any Z below the print surface displaces wall material out AND
+            // up: it rides the nozzle bevel and piles into a rim just outside the mouth, like
+            // an impact crater. The spiral plows that back in with the BEVEL, not the flat, so
+            // the flat has to begin entirely outside the rim -- start_R - r_flat >= crater_r,
+            // i.e. margin >= r_flat -- plus a little clearance for the piled material itself.
+            double margin   = wipe_margin > 0.0 ? wipe_margin : r_flat + MAGMA_IRON_RIM_CLEARANCE;
+            double start_R  = crater_r + margin;
 
             double hover_z  = layer_z + wipe_hover;                   // height while hovering
             int    wf       = std::max(60, (int)(wipe_speed_mms * 60.0));  // mm/s -> mm/min

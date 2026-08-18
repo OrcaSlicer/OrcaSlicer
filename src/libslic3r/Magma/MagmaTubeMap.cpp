@@ -195,20 +195,10 @@ int MagmaTubeMap::layer_at_height_from(int start_layer, double target_mm) const
 // MagmaTubeMap — Build
 // ============================================================================
 
-// Get effective interior width based on tube width mode.
-// Auto: derive from nozzle OD (or fallback to 3× bore).
-// Manual: use user-specified value directly.
-static float get_effective_interior_width(MagmaTubeWidthMode mode,
-                                          float manual_width, float nozzle_diameter,
-                                          float nozzle_od, float line_width)
-{
-    if (mode == MagmaTubeWidthMode::Manual)
-        return manual_width;
-    // Auto mode
-    if (nozzle_od > 0)
-        return static_cast<float>(calculate_auto_interior_width_from_od(nozzle_od, line_width));
-    return static_cast<float>(calculate_auto_interior_width(nozzle_diameter));
-}
+// Tube interior width sizing lives in MagmaTubeMap.hpp as effective_interior_width() so
+// Print::validate() predicts the same geometry this build() produces. It used to be a
+// static here that called the triangle-specific free function directly, which meant
+// rectilinear and hex tubes were silently sized with the triangle formula.
 
 std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     const std::vector<Layer*> &layers,
@@ -229,20 +219,20 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     map->m_line_width = static_cast<float>(config.sparse_infill_line_width.get_abs_value(nozzle_diameter));
     if (map->m_line_width <= 0.f)
         map->m_line_width = nozzle_diameter;
-    const float nozzle_od = static_cast<float>(config.magma_nozzle_outer_diameter.value);
-    const auto tube_mode = config.magma_tube_width_mode.value;
-    map->m_interior_width = get_effective_interior_width(
-        tube_mode, config.magma_interior_width.value, nozzle_diameter,
-        nozzle_od, map->m_line_width);
-    map->m_cell_spacing = cell_spacing_from_geometry(map->m_interior_width, map->m_line_width);
-
-    // Select the pattern's shape strategy (geometry formulas + lattice factory).
-    // For ipMagmaTriangle these resolve to TriangleGeometry / TriangleLattice so
-    // output stays byte-identical; a new pattern drops in via MagmaPatterns.hpp.
+    // Select the pattern's shape strategy (geometry formulas + lattice factory) FIRST --
+    // auto tube sizing below resolves through it, so it must exist before we size.
     // In dual-infill mode sparse_infill_pattern is the inner yolk pattern, so the tube
     // map must use the outer (reinforcement) pattern's geometry/lattice instead.
     map->m_pattern  = magma_effective_pattern(config);
     map->m_geometry = &magma_geometry_for(map->m_pattern);
+
+    const double seal_flat = resolve_nozzle_flat(config.magma_nozzle_outer_diameter.value,
+                                                 nozzle_diameter);
+    map->m_interior_width = static_cast<float>(effective_interior_width(
+        *map->m_geometry, config.magma_tube_width_mode.value,
+        config.magma_interior_width.value, seal_flat, map->m_line_width,
+        config.magma_nozzle_cone_half_angle.value, obj_config.magma_max_immersion.value));
+    map->m_cell_spacing = cell_spacing_from_geometry(map->m_interior_width, map->m_line_width);
 
     // Nominal config layer height (fallback for missing layers in lookup tables)
     map->m_layer_height = static_cast<float>(obj_config.layer_height.value);

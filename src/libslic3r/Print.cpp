@@ -1505,33 +1505,92 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 double flat = magma::resolve_nozzle_flat(rcfg.magma_nozzle_outer_diameter.value, nozzle_d);
                 double line_w = rcfg.sparse_infill_line_width.get_abs_value(nozzle_d);
                 if (line_w <= 0) line_w = nozzle_d;
-                double iw = rcfg.magma_interior_width.value;
-                if (iw <= 0) iw = magma::calculate_auto_interior_width(nozzle_d);
-                double cell_sp    = magma::cell_spacing_from_geometry(iw, line_w);
-                double opening    = magma::magma_geometry_for(eff_pattern)
-                                        .opening_diameter(cell_sp, line_w);
-                double cone_deg   = rcfg.magma_nozzle_cone_half_angle.value;
+                double cone_deg      = rcfg.magma_nozzle_cone_half_angle.value;
+                double max_immersion = obj_cfg.magma_max_immersion.value;
+                double slam_press    = obj_cfg.magma_auto_slam_press.value;
+                const magma::MagmaGeometry &geom = magma::magma_geometry_for(eff_pattern);
 
+                // Resolve the tube exactly as MagmaTubeMap::build() will. Predicting it a
+                // second way here is how this warning used to drift from the g-code: it
+                // ignored the width mode entirely and read magma_interior_width even in
+                // auto mode.
+                double iw = magma::effective_interior_width(
+                    geom, rcfg.magma_tube_width_mode.value, rcfg.magma_interior_width.value,
+                    flat, line_w, cone_deg, max_immersion);
+                double cell_sp = magma::cell_spacing_from_geometry(iw, line_w);
+                double opening = geom.opening_diameter(cell_sp, line_w);
+
+                double immersion_budget = std::min(magma::MAGMA_SLAM_CLAMP,
+                                                   std::max(std::max(0.0, slam_press),
+                                                            std::max(0.0, max_immersion)));
                 double slam = obj_cfg.magma_injection_z_slam_auto.value
-                    ? std::min(magma::MAGMA_SLAM_CLAMP,
-                               std::max(0.0, magma::auto_slam_depth(opening, flat, cone_deg)
+                    ? std::min(immersion_budget,
+                               std::max(0.0, magma::auto_slam_depth(opening, flat, cone_deg,
+                                                                    max_immersion, slam_press)
                                              + obj_cfg.magma_injection_z_slam_offset.value))
                     : std::min(obj_cfg.magma_injection_z_slam.value, magma::MAGMA_SLAM_CLAMP);
                 double plunge = obj_cfg.magma_injection_plunge.value
                     ? magma::clamp_plunge_depth(slam, obj_cfg.magma_injection_plunge_depth.value) : 0.0;
                 double covered = magma::cone_coverage_at_depth(slam + plunge, flat, cone_deg);
 
-                if (opening > 0.0 && covered + 1e-9 < opening + magma::MAGMA_SEAL_MARGIN) {
-                    if (warning) {
+                // Immersion the cone genuinely needs to reach this opening.
+                double needed = magma::seal_depth_for_opening(opening + magma::MAGMA_SEAL_MARGIN,
+                                                              flat, cone_deg);
+
+                if (warning && opening > 0.0 && covered + 1e-9 < opening + magma::MAGMA_SEAL_MARGIN) {
+                    if (needed > immersion_budget + 1e-9) {
+                        // The tube is wider than the immersion budget can seal. Distinct from a
+                        // too-shallow manual slam: here the budget is deliberately holding the
+                        // nozzle back, which is what it is for.
+                        warning->string = Slic3r::format(
+                            L("Magma tube is too wide to seal within the immersion budget: covering a "
+                              "%.2f mm opening with a %.2f mm nozzle flat needs the nozzle to enter the "
+                              "tube %.2f mm, but Max nozzle immersion is %.2f mm.\n\n"
+                              "Reduce the tube width, use a nozzle with a larger flat tip, or raise Max "
+                              "nozzle immersion — bearing in mind that deeper immersion is what deforms "
+                              "tube walls (around 1.1 mm was measured as visibly deforming)."),
+                            opening, flat, needed, immersion_budget);
+                    } else {
                         warning->string = Slic3r::format(
                             L("Magma injection may not seal: at its deepest the nozzle covers only "
                               "%.2f mm (Z-slam %.2f + plunge %.2f mm) but the tube opening is %.2f mm. "
                               "Increase the Z-slam or plunge depth, reduce the injection tube width, or "
                               "use a nozzle with a larger flat."),
                             covered, slam, plunge, opening);
-                        warning->object = object;
-                        warning->is_warning = true;
                     }
+                    warning->object = object;
+                    warning->is_warning = true;
+                }
+
+                // magma_effective_pattern() substitutes Magma Triangle when dual infill is on
+                // but the outer pattern is not a Magma pattern. Announce it: the part would
+                // otherwise be printed with a lattice nobody selected.
+                if (warning && warning->string.empty() && rcfg.dual_infill_enabled.value &&
+                    ! is_magma_pattern(rcfg.dual_infill_outer_pattern.value)) {
+                    warning->string =
+                        L("The dual-infill outer zone pattern is not a Magma pattern, so Magma "
+                          "Triangle is being substituted for the reinforcement lattice. Select a "
+                          "Magma pattern for the outer zone to control which lattice is used.");
+                    warning->object = object;
+                    warning->is_warning = true;
+                }
+
+                // Triangle cells seal poorly: the nozzle must cover the circumscribed circle
+                // of the opening while only the inscribed circle is usable tube, and for a
+                // triangle that ratio is 1:2 (vs 1:1.41 rectilinear, 1:1.15 hex). Same nozzle,
+                // half the bore -- and a much larger opening, hence more immersion, for any
+                // given tube size. Lowest priority: only if nothing worse was found.
+                if (warning && warning->string.empty() && eff_pattern == ipMagmaTriangle) {
+                    warning->string =
+                        L("Magma Triangle has the least efficient seal geometry of the Magma patterns. "
+                          "The nozzle has to cover a triangle's circumscribed circle, but only its "
+                          "inscribed circle is usable tube — so the bore is just 50% of the nozzle flat "
+                          "(Rectilinear gives 71%, Hex 87%). For the same usable tube it needs a much "
+                          "larger opening, and therefore deeper nozzle immersion, which is what deforms "
+                          "tube walls. Consider Magma Rectilinear or Magma Hex unless you specifically "
+                          "want the triangular lattice.");
+                    warning->object = object;
+                    warning->is_warning = true;
                 }
             }
 

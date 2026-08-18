@@ -1091,6 +1091,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                magma_injection_z_slam))       // Z-slam depth in mm (0 = disabled)
     ((ConfigOptionBool,                 magma_injection_z_slam_auto))  // Auto-derive z-slam from nozzle cone geometry
     ((ConfigOptionFloat,                magma_injection_z_slam_offset))// mm added to auto z-slam (+ deeper / - shallower)
+    ((ConfigOptionFloat,                magma_max_immersion))          // Max depth the nozzle may enter a tube (mm) — also sizes auto tubes
+    ((ConfigOptionFloat,                magma_auto_slam_press))        // Contact press when the flat already covers the opening (mm)
     ((ConfigOptionBool,                 magma_injection_plunge))       // Ramp nozzle deeper during injection (slam-melt)
     ((ConfigOptionFloat,                magma_injection_plunge_depth)) // Extra depth rammed by end of injection (mm)
     ((ConfigOptionInt,                  magma_injection_dwell))        // Dwell after injection, before z-slam release (ms, 0 = disabled)

@@ -469,6 +469,9 @@ public:
 private:
 	ogStaticText*	m_recommended_thin_wall_thickness_description_line = nullptr;
 	ogStaticText*	m_top_bottom_shell_thickness_explanation = nullptr;
+	// Magma auto sizing / auto Z-slam derive most of what matters and show none of it.
+	ogStaticText*	m_magma_geometry_description_line = nullptr;
+	ogStaticText*	m_magma_injection_description_line = nullptr;
 };
 
 class TabPrintModel : public TabPrint

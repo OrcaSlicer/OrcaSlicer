@@ -1,8 +1,13 @@
 #include <cassert>
 
+#include <algorithm>
+
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Slicing.hpp"
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/Magma/MagmaTriangleCell.hpp"
+#include "libslic3r/Magma/MagmaTubeMap.hpp"
+#include "libslic3r/Magma/MagmaPatterns.hpp"
 
 #include "PresetHints.hpp"
 
@@ -307,9 +312,142 @@ std::string PresetHints::top_bottom_shell_thickness_explanation(const PresetBund
         	out += " ";
 	        out += (boost::format(_utf8(L("Minimum bottom shell thickness is %1% mm."))) % bottom_shell_thickness_minimum).str();        	
         }
-    } else 
+    } else
         out += _utf8(L("Bottom is open."));
     */
+    return out;
+}
+
+// ============================================================================
+// Magma live readouts
+// ============================================================================
+//
+// Auto tube sizing derives the interior width and cell spacing and shows neither, and
+// auto Z-slam makes the manual slam, the cone angle and (at a nonzero immersion budget)
+// the contact press all inert. That combination once cost a full debugging session to
+// discover, so the resolved numbers are printed here. Everything below resolves through
+// the same magma:: helpers the slicer uses -- do not reimplement a formula in this file.
+
+// Shared resolution of the tube geometry from the edited presets. Returns false when the
+// active pattern is not a Magma pattern (nothing to report).
+static bool magma_resolve(const PresetBundle &preset_bundle,
+                          InfillPattern &pattern, const magma::MagmaGeometry *&geom,
+                          double &flat, double &line_w, double &interior,
+                          double &spacing, double &opening, double &max_immersion,
+                          double &slam_press, double &cone_deg)
+{
+    const DynamicPrintConfig &print_config   = preset_bundle.prints  .get_edited_preset().config;
+    const DynamicPrintConfig &printer_config = preset_bundle.printers.get_edited_preset().config;
+
+    const auto *nozzles = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
+    if (nozzles == nullptr || nozzles->values.empty())
+        return false;
+    const double nozzle_d = nozzles->values.front();
+
+    pattern = magma::magma_effective_pattern(
+        print_config.opt_bool("dual_infill_enabled"),
+        print_config.opt_enum<InfillPattern>("dual_infill_outer_pattern"),
+        print_config.opt_enum<InfillPattern>("sparse_infill_pattern"));
+    if (! is_magma_pattern(pattern))
+        return false;
+
+    geom     = &magma::magma_geometry_for(pattern);
+    cone_deg = print_config.opt_float("magma_nozzle_cone_half_angle");
+    flat     = magma::resolve_nozzle_flat(print_config.opt_float("magma_nozzle_outer_diameter"), nozzle_d);
+    line_w   = print_config.get_abs_value("sparse_infill_line_width", nozzle_d);
+    if (line_w <= 0.0)
+        line_w = nozzle_d;
+
+    max_immersion = print_config.opt_float("magma_max_immersion");
+    slam_press    = print_config.opt_float("magma_auto_slam_press");
+
+    interior = magma::effective_interior_width(
+        *geom, print_config.opt_enum<MagmaTubeWidthMode>("magma_tube_width_mode"),
+        print_config.opt_float("magma_interior_width"),
+        flat, line_w, cone_deg, max_immersion);
+    spacing  = magma::cell_spacing_from_geometry(interior, line_w);
+    opening  = geom->opening_diameter(spacing, line_w);
+    return true;
+}
+
+std::string PresetHints::magma_geometry_description(const PresetBundle &preset_bundle)
+{
+    InfillPattern pattern; const magma::MagmaGeometry *geom = nullptr;
+    double flat, line_w, interior, spacing, opening, max_immersion, slam_press, cone_deg;
+    if (! magma_resolve(preset_bundle, pattern, geom, flat, line_w, interior, spacing,
+                        opening, max_immersion, slam_press, cone_deg))
+        return std::string();
+
+    const double bore      = 2.0 * geom->inscribed_radius(interior);
+    const double open_area = geom->inset_open_area(spacing, line_w);
+    const double open_pct  = spacing > 0.0 ? 100.0 * open_area / (spacing * spacing) : 0.0;
+
+    std::string out = (boost::format(_utf8(L(
+        "Tube interior %1$.3f mm, cell spacing %2$.3f mm, line width %3$.2f mm.\n"
+        "Bore %4$.3f mm (the usable channel) — seal opening %5$.3f mm (what the nozzle must cover).\n"
+        "Open cross-section %6$.3f mm2.")))
+        % interior % spacing % line_w % bore % opening % open_area).str();
+
+    if (open_pct > 0.0)
+        out += (boost::format(_utf8(L(" Roughly %1$.0f%% of the lattice footprint is open tube.")))
+                % open_pct).str();
+
+    // The nozzle flat is what the bore is measured against; make the ratio explicit since
+    // it is the whole reason one pattern seals better than another.
+    if (flat > 0.0)
+        out += (boost::format(_utf8(L("\nBore is %1$.0f%% of the %2$.2f mm nozzle flat.")))
+                % (100.0 * bore / flat) % flat).str();
+    return out;
+}
+
+std::string PresetHints::magma_injection_description(const PresetBundle &preset_bundle)
+{
+    InfillPattern pattern; const magma::MagmaGeometry *geom = nullptr;
+    double flat, line_w, interior, spacing, opening, max_immersion, slam_press, cone_deg;
+    if (! magma_resolve(preset_bundle, pattern, geom, flat, line_w, interior, spacing,
+                        opening, max_immersion, slam_press, cone_deg))
+        return std::string();
+
+    const DynamicPrintConfig &print_config = preset_bundle.prints.get_edited_preset().config;
+
+    const double budget = std::min(magma::MAGMA_SLAM_CLAMP,
+                                   std::max(std::max(0.0, slam_press), std::max(0.0, max_immersion)));
+    double slam;
+    std::string mode;
+    if (print_config.opt_bool("magma_injection_z_slam_auto")) {
+        slam = std::min(budget, std::max(0.0,
+                   magma::auto_slam_depth(opening, flat, cone_deg, max_immersion, slam_press)
+                   + print_config.opt_float("magma_injection_z_slam_offset")));
+        mode = _utf8(L("auto"));
+    } else {
+        slam = std::min(print_config.opt_float("magma_injection_z_slam"), magma::MAGMA_SLAM_CLAMP);
+        mode = _utf8(L("manual"));
+    }
+    const double plunge = print_config.opt_bool("magma_injection_plunge")
+        ? magma::clamp_plunge_depth(slam, print_config.opt_float("magma_injection_plunge_depth")) : 0.0;
+
+    std::string out = (boost::format(_utf8(L(
+        "Z-slam %1$.3f mm (%2$s) + plunge %3$.3f mm = %4$.3f mm total nozzle intrusion.")))
+        % slam % mode % plunge % (slam + plunge)).str();
+
+    // Immersion is the only thing that grows a tube past the nozzle flat, and the only
+    // thing that deforms one, so say where this sits against the budget.
+    if (opening > flat) {
+        out += (boost::format(_utf8(L("\nThe opening is wider than the nozzle flat, so the nozzle "
+                                      "enters the tube: %1$.3f mm of the %2$.3f mm immersion budget.")))
+                % slam % budget).str();
+    } else {
+        out += _utf8(L("\nThe nozzle flat covers the opening outright — it seats on the rim rather "
+                       "than entering the tube."));
+    }
+
+    const double open_area   = geom->inset_open_area(spacing, line_w);
+    const double tube_height = print_config.opt_float("magma_tube_height");
+    const double fill_factor = print_config.opt_float("magma_tube_fill_factor");
+    if (open_area > 0.0 && tube_height > 0.0)
+        out += (boost::format(_utf8(L("\nApproximately %1$.2f mm3 injected per full-height tube "
+                                      "(%2$.3f mm2 x %3$.1f mm x %4$.2f fill factor).")))
+                % (open_area * tube_height * fill_factor) % open_area % tube_height % fill_factor).str();
     return out;
 }
 

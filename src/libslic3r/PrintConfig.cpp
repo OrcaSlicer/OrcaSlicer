@@ -5419,24 +5419,35 @@ void PrintConfigDef::init_fff_params()
     def = this->add("dual_infill_outer_pattern", coEnum);
     def->label = L("Outer zone pattern");
     def->category = L("Strength");
-    def->tooltip = L("Which Magma infill pattern the outer (reinforcement) zone uses for injection channels.");
+    def->tooltip = L("Which Magma infill pattern the outer (reinforcement) zone uses for injection "
+                     "channels.\n\n"
+                     "The nozzle has to cover a cell's circumscribed circle to seal it, but only the "
+                     "inscribed circle is usable tube — so the rounder the cell, the more tube you get "
+                     "per nozzle, and the less the nozzle has to sink in to seal it. Bore as a "
+                     "fraction of the nozzle flat: Triangle 50%, Rectilinear 71%, Hex/Tri-hex 87%.\n\n"
+                     "Rectilinear is the default: its grid traces as two families of straight lines "
+                     "with no doubled walls, so it prints fastest and uses the least material. Hex has "
+                     "the best seal geometry but its honeycomb toolpath doubles the vertical walls "
+                     "(~33% more extrusion). Triangle has the poorest seal geometry — half the bore "
+                     "for the same nozzle, needing a much larger opening and therefore deeper nozzle "
+                     "immersion, which is what deforms tube walls.");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
-    def->enum_values.push_back("magmahoneycomb");
     def->enum_values.push_back("magmarectilinear");
-    def->enum_values.push_back("magmatriangle");
+    def->enum_values.push_back("magmahoneycomb");
     def->enum_values.push_back("magmatrihex");
-    def->enum_labels.push_back(L("Magma Honeycomb"));
+    def->enum_values.push_back("magmatriangle");
     def->enum_labels.push_back(L("Magma Rectilinear"));
-    def->enum_labels.push_back(L("Magma Triangle"));
+    def->enum_labels.push_back(L("Magma Honeycomb"));
     def->enum_labels.push_back(L("Magma Tri-hex"));
+    def->enum_labels.push_back(L("Magma Triangle"));
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMagmaTriangle));
+    def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMagmaRectilinear));
 
     def = this->add("dual_infill_outer_width", coFloat);
     def->label = L("Outer zone width");
     def->category = L("Strength");
-    def->tooltip = L("Width of the outer infill zone (Magma Triangle) in mm. Larger values create a thicker "
-                     "reinforced region around the perimeter.");
+    def->tooltip = L("Width of the outer (reinforcement) infill zone in mm. Larger values create a "
+                     "thicker reinforced region around the perimeter.");
     def->sidetext = L("mm");
     def->min = 0;
     def->max = 50;
@@ -5630,12 +5641,17 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Maximum height of U-tube segments in mm. Shorter tubes are created "
                      "near object boundaries when needed. Longer tubes provide stronger Z-axis "
-                     "interlocking but risk cooling during injection.");
+                     "interlocking but risk cooling during injection.\n\n"
+                     "3-4mm is the practical sweet spot. Past that the injected plastic freezes "
+                     "before it reaches the bottom of the tube — the channel is a narrow "
+                     "cross-section with a lot of cold wall around it. Longer tubes CAN work, but "
+                     "they need a wider channel to stay molten, which means a nozzle with a larger "
+                     "flat tip. 6mm is about the ceiling.");
     def->sidetext = L("mm");
     def->min = 1;
     def->max = 100;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(4.5));
+    def->set_default_value(new ConfigOptionFloat(4.0));
 
     def = this->add("magma_boundary_dodge", coFloat);
     def->label = L("Weak plane avoidance");
@@ -5656,13 +5672,16 @@ void PrintConfigDef::init_fff_params()
     def = this->add("magma_tube_fill_factor", coFloat);
     def->label = L("Tube fill factor");
     def->category = L("Strength");
-    def->tooltip = L("Flow ratio for injection fill. 1.0 uses calculated tube volume. "
+    def->tooltip = L("Flow ratio for injection fill. 1.0 uses the full calculated tube volume. "
                      "Increase if tubes are underfilled, decrease if overfilled. "
-                     "Similar to flow ratio settings for extrusion.");
-    def->min = 0.5;
+                     "Similar to flow ratio settings for extrusion.\n\n"
+                     "0.9 is a better starting point than 1.0 at sane tube heights — the calculated "
+                     "volume assumes a perfect prism, and slightly underfilling avoids mushrooming "
+                     "plastic back out around the nozzle.");
+    def->min = 0.1;
     def->max = 2.0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(1.0));
+    def->set_default_value(new ConfigOptionFloat(0.9));
 
     def = this->add("magma_spiral_interlock", coBool);
     def->label = L("Spiral interlock");
@@ -5690,14 +5709,19 @@ void PrintConfigDef::init_fff_params()
     def = this->add("magma_injection_speed", coFloat);
     def->label = L("Injection speed");
     def->category = L("Strength");
-    def->tooltip = L("Volumetric flow rate for stationary injection into tubes (mm\u00b3/s). "
-                     "Capped at the filament's max volumetric speed if set. "
-                     "If injection seems to skip or click, reduce this value.");
+    def->tooltip = L("Volumetric flow rate for stationary injection into tubes (mm\u00b3/s).\n\n"
+                     "0 = use the filament's max volumetric speed. Injection wants to be fast: the "
+                     "tube is a narrow cross-section and the plastic is cooling the whole way down, "
+                     "so filling at the material's melt limit fills more reliably than a fixed rate. "
+                     "Because that limit is a property of the filament, letting it track the filament "
+                     "adapts across materials by itself.\n\n"
+                     "A nonzero value is used as-is, still capped at the filament's max volumetric "
+                     "speed. If injection seems to skip or click, set an explicit lower value.");
     def->sidetext = L("mm\u00b3/s");
-    def->min = 1;
+    def->min = 0;
     def->max = 50;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(10));
+    def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("magma_injection_iron", coBool);
     def->label = L("Crater ironing");
@@ -5712,26 +5736,32 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
+    // 3 turns rather than 2: the extra pass is cheap and plows the rim back more completely.
     def = this->add("magma_injection_iron_turns", coInt);
     def->label = L("Crater iron turns");
     def->category = L("Strength");
     def->tooltip = L("Number of inward-spiral turns in the crater ironing pass. More turns take "
-                     "shallower cuts (cleaner result) but add time per injection.");
+                     "shallower cuts (cleaner result) but add time per injection. 3 is the safer "
+                     "choice — the extra pass costs little and plows the displaced rim back more "
+                     "completely.");
     def->min = 1;
     def->max = 6;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionInt(2));
+    def->set_default_value(new ConfigOptionInt(3));
 
     def = this->add("magma_injection_iron_speed", coFloat);
     def->label = L("Crater iron speed");
     def->category = L("Strength");
-    def->tooltip = L("Speed of the crater ironing moves. Set to 0 to use your regular ironing speed "
-                     "(this is the same kind of slow surface-finishing move).");
+    def->tooltip = L("Speed of the crater ironing moves.\n\n"
+                     "Set to 0 to borrow your regular ironing speed instead. Note that surface "
+                     "ironing and crater plowing are not the same operation — ironing smooths a "
+                     "flat top surface, plowing shears a displaced rim back into a hole with the "
+                     "nozzle bevel — so the ironing speed is not necessarily the right one here.");
     def->sidetext = L("mm/s");
     def->min = 0;
     def->max = 200;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0));
+    def->set_default_value(new ConfigOptionFloat(40));
 
     def = this->add("magma_injection_iron_hover", coFloat);
     def->label = L("Crater iron hover");
@@ -5743,18 +5773,25 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->max = 1.0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0.1));
+    def->set_default_value(new ConfigOptionFloat(0.2));
 
     def = this->add("magma_injection_iron_margin", coFloat);
     def->label = L("Crater iron start margin");
     def->category = L("Strength");
     def->tooltip = L("How far outside the crater footprint the inward spiral starts, so it catches "
-                     "the full displaced rim. Larger starts further out.");
+                     "the full displaced rim.\n\n"
+                     "0 = auto (recommended): derived as half the nozzle flat plus a little "
+                     "clearance. Pressing the nozzle below the print surface displaces wall material "
+                     "outward AND upward — it rides up the nozzle bevel and piles into a rim just "
+                     "outside the crater mouth, like an impact crater. The spiral plows that rim back "
+                     "in using the bevel, not the flat, so the flat has to begin entirely outside the "
+                     "rim. That requires a margin of at least half the flat diameter, which is what "
+                     "auto computes.");
     def->sidetext = L("mm");
     def->min = 0;
     def->max = 5.0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0.5));
+    def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("magma_tube_solver_mode", coEnum);
     def->label = L("Tube solver quality");
@@ -5790,7 +5827,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Minimize travel"));
     def->enum_labels.push_back(L("Spread heat"));
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionEnum<MagmaInjectionOrdering>(MagmaInjectionOrdering::TSP));
+    def->set_default_value(new ConfigOptionEnum<MagmaInjectionOrdering>(MagmaInjectionOrdering::SpreadHeat));
 
     def = this->add("magma_solver_timeout", coFloat);
     def->label = L("Solver timeout");
@@ -5894,10 +5931,11 @@ void PrintConfigDef::init_fff_params()
                      "individually for each tube, instead of setting one value by hand. For every "
                      "U-tube it uses that tube's actual opening at the injection (cap) layer along "
                      "with the nozzle tip flat and cone half-angle: "
-                     "z_slam = max(0.1, (opening - flat) / (2 * tan(angle))). Edge and corner cells "
+                     "z_slam = (opening + margin - flat) / (2 * tan(angle)). Edge and corner cells "
                      "have smaller openings, so they get a shallower slam — each injection seals to "
-                     "its own opening instead of being over-pressed for the largest one. When the "
-                     "flat already covers the opening it presses a minimal 0.1mm for a clean seal.\n\n"
+                     "its own opening instead of being over-pressed for the largest one.\n\n"
+                     "The result is capped by Max nozzle immersion, and when the flat already covers "
+                     "the opening it presses Seal contact press instead of descending.\n\n"
                      "Recommended: leave this enabled. When enabled, the manual Z-slam depth field "
                      "is ignored.");
     def->mode = comAdvanced;
@@ -5918,6 +5956,43 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L("mm");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("magma_max_immersion", coFloat);
+    def->label = L("Max nozzle immersion");
+    def->category = L("Strength");
+    def->tooltip = L("How deep the nozzle is allowed to descend INTO a tube while sealing it.\n\n"
+                     "The ONLY reason to allow immersion is to fit a tube wider than your nozzle's "
+                     "flat tip. A tube no wider than the flat is sealed by the flat seating on its "
+                     "rim, with no descent at all. Anything wider is sealed by the cone above the "
+                     "flat, which has to travel down into the tube before it is wide enough — so "
+                     "immersion is the price of a bigger tube, not a sealing aid.\n\n"
+                     "It is also what deforms tubes. Past first contact the nozzle interferes by a "
+                     "fixed sliver regardless of tube size; what varies is how far the hot tip "
+                     "travels inside the tube, remelting the wall it passes. In testing 0.5mm "
+                     "printed cleanly and 1.1mm visibly deformed the cells.\n\n"
+                     "With Tube width sizing set to Auto this SIZES the tubes: they are made as "
+                     "large as this budget allows. 0 = tubes the flat covers outright.\n\n"
+                     "With manual tube width, a tube too large to seal within this budget is "
+                     "reported as a slicing warning instead of being pressed arbitrarily deep.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 3.5;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.6));
+
+    def = this->add("magma_auto_slam_press", coFloat);
+    def->label = L("Seal contact press");
+    def->category = L("Strength");
+    def->tooltip = L("How hard the nozzle presses when its flat already covers the tube opening and "
+                     "no descent is needed to seal — the nozzle seats on the rim rather than entering "
+                     "the tube, and this is the squish that guarantees positive contact.\n\n"
+                     "Only reached when the opening is no wider than the nozzle flat, i.e. at low Max "
+                     "nozzle immersion. Larger tubes seal by descending instead.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 1.0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.1));
 
     def = this->add("magma_injection_plunge", coBool);
     def->label = L("Plunge while injecting");
@@ -5943,12 +6018,14 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("How much deeper the nozzle ramps during a plunge injection, on top of the "
                      "sealing Z-slam depth, by the time the injection finishes. Larger values press "
                      "the hot nozzle harder into the tube top (better seal and surface melting) but "
-                     "risk digging into the part. Start around 0.4mm and tune.");
+                     "risk digging into the part.\n\n"
+                     "This ADDS to the immersion the Z-slam already spent, so it is subject to the "
+                     "same deformation limit — keep slam + plunge inside Max nozzle immersion.");
     def->sidetext = L("mm");
     def->min = 0;
     def->max = 2.0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0.4));
+    def->set_default_value(new ConfigOptionFloat(0.05));
 
     def = this->add("magma_injection_dwell", coInt);
     def->label = L("Injection dwell time");

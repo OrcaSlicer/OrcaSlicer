@@ -83,10 +83,9 @@ struct SquareGeometry final : public MagmaGeometry
         return inset > 0.0 ? (inset * inset) / inset : 0.1;
     }
 
-    // Largest interior whose circumscribed opening fits the nozzle flat:
-    // interior * sqrt(2) <= od  ->  interior = od / sqrt(2).
-    double auto_interior_width_from_od(double nozzle_od, double /*line_width*/) const override {
-        return nozzle_od > 0.0 ? std::max(0.1, nozzle_od / SQRT2) : 0.1;
+    // Inverse of opening_diameter(): opening = interior * sqrt(2)  ->  interior = opening / sqrt(2).
+    double interior_for_opening(double opening, double /*line_width*/) const override {
+        return opening > 0.0 ? std::max(0.1, opening / SQRT2) : 0.1;
     }
 
     int max_neighbors() const override { return 4; }

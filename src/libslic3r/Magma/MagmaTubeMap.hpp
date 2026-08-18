@@ -33,6 +33,46 @@ namespace magma {
 // infill with no U-tube channels while injection still runs into nothing — so clamp a stray
 // non-Magma outer pattern to Triangle. The non-dual case returns the sparse pattern verbatim
 // (callers use is_magma_pattern() on the result to decide whether the region is Magma at all).
+// Resolve the tube interior width exactly as MagmaTubeMap::build() does.
+//
+// Manual: the user's value verbatim.
+// Auto:   the largest tube the injection immersion budget allows, resolved through THIS
+//         pattern's geometry. Immersion exists only to fit a tube wider than the nozzle
+//         flat -- a tube the flat covers is sealed by seating on the rim with no descent,
+//         so a bigger budget buys a bigger tube and nothing else.
+//
+// Lives here, not inside MagmaTubeMap.cpp, because Print::validate() must predict the
+// same geometry the injection G-code will actually use. Resolving it twice is how the
+// two silently drift apart.
+inline double effective_interior_width(const MagmaGeometry &geometry,
+                                       MagmaTubeWidthMode mode,
+                                       double manual_width,
+                                       double nozzle_flat,
+                                       double line_width,
+                                       double cone_half_angle_deg,
+                                       double max_immersion)
+{
+    if (mode == MagmaTubeWidthMode::Manual)
+        return manual_width;
+    return geometry.interior_for_opening(
+        max_opening_for_immersion(nozzle_flat, cone_half_angle_deg, max_immersion), line_width);
+}
+
+// Scalar overload so the GUI (which holds a DynamicPrintConfig, not a PrintRegionConfig)
+// can resolve the pattern through the same rule instead of reimplementing it.
+inline InfillPattern magma_effective_pattern(bool dual_infill_enabled,
+                                             InfillPattern outer,
+                                             InfillPattern sparse) {
+    if (dual_infill_enabled) {
+        // Substituting a default here would silently print a different lattice than the
+        // one that was asked for, so Print::validate() reports the substitution. The UI
+        // enum only offers Magma patterns; this is reachable from a hand-edited or
+        // foreign 3MF. Keep the two in step if this ever changes.
+        return is_magma_pattern(outer) ? outer : ipMagmaTriangle;
+    }
+    return sparse;
+}
+
 inline InfillPattern magma_effective_pattern(const PrintRegionConfig &config) {
     if (config.dual_infill_enabled.value) {
         InfillPattern outer = config.dual_infill_outer_pattern.value;

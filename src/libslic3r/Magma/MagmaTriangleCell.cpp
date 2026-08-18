@@ -34,33 +34,10 @@ double calculate_auto_interior_width(double nozzle_diameter)
     return nozzle_diameter * MAGMA_FLAT_BORE_MULTIPLE;
 }
 
-double calculate_auto_interior_width_from_od(double nozzle_od, double line_width)
-{
-    // Compute the largest tube interior width whose inset triangle fits
-    // entirely within the nozzle shoulder circle.
-    //
-    // The inset triangle (tube opening after accounting for line width) must
-    // have its circumscribed circle ≤ nozzle_od - buffer, so all 3 vertices
-    // are covered by the nozzle flat during z-slam injection.
-    //
-    // For equilateral triangle with side s:
-    //   circumscribed diameter = 2s / √3
-    //
-    // Setting  2 * inset_side / √3 = nozzle_od - buffer  and solving for IW:
-    //   inset_side = (nozzle_od - buffer) * √3 / 2
-    //   inset_side = side - line_width * √3
-    //              = (IW + lw) * 2/√3 - lw * √3
-    //   → IW = (inset_side + lw * √3) * √3 / 2 - lw
-
-    constexpr double buffer = 0.0;  // size to the reported nozzle flat directly (report a slightly conservative flat for sealing margin)
-    double effective_od = nozzle_od - buffer;
-    if (effective_od <= 0)
-        return 0.1;
-
-    double max_inset_side = effective_od * SQRT3 / 2.0;
-    double IW = (max_inset_side + line_width * SQRT3) * SQRT3 / 2.0 - line_width;
-    return std::max(0.1, IW);
-}
+// The triangle-specific inverse of opening_diameter() now lives on TriangleGeometry as
+// interior_for_opening(). It used to live here as a free function called directly by
+// MagmaTubeMap, which meant every pattern -- rectilinear and hex included -- was sized
+// with the triangle formula. Sizing must go through the geometry.
 
 // Auto window height now lives on each MagmaGeometry impl
 // (TriangleGeometry::auto_window_height / SquareGeometry::auto_window_height),

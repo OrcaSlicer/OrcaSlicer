@@ -27,7 +27,17 @@ public:
     // Produce a textual explanation of the combined effects of the top/bottom_shell_layers
     // versus top/bottom_min_shell_thickness. Which of the two values wins depends
     // on the active layer height.
-    static std::string top_bottom_shell_thickness_explanation(const PresetBundle &preset_bundle);    
+    static std::string top_bottom_shell_thickness_explanation(const PresetBundle &preset_bundle);
+
+    // Magma: resolved tube geometry (interior width, cell spacing, bore, seal opening,
+    // open area). In auto tube sizing every one of these is derived and none is shown
+    // in any field, so without this the user is guessing.
+    static std::string magma_geometry_description(const PresetBundle &preset_bundle);
+
+    // Magma: resolved injection depths (Z-slam, immersion vs budget, plunge, total
+    // intrusion). Auto Z-slam makes three of its input fields inert, so the depth that
+    // actually reaches the printer is otherwise invisible.
+    static std::string magma_injection_description(const PresetBundle &preset_bundle);
 };
 
 } // namespace Slic3r

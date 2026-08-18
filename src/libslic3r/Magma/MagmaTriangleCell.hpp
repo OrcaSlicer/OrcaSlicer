@@ -63,8 +63,14 @@ inline double inset_triangle_area(double cell_spacing, double line_width) {
 constexpr double MAGMA_DEG2RAD           = 0.017453292519943295;
 constexpr double MAGMA_SLAM_CLAMP        = 3.5;  // max single z-slam depth (mm)
 constexpr double MAGMA_SLAM_PLUNGE_CLAMP = 4.0;  // max slam + plunge depth (mm)
-constexpr double MAGMA_SLAM_FLOOR        = 0.1;  // min auto-slam press for contact (mm)
 constexpr double MAGMA_SEAL_MARGIN       = 0.1;  // min opening coverage to predict a seal (mm)
+// Clearance added to the auto crater-iron start margin, beyond the r_flat needed to put the
+// nozzle flat outside the crater mouth. Covers the displaced material that rode up the bevel
+// and piled into a rim just outside the mouth.
+constexpr double MAGMA_IRON_RIM_CLEARANCE = 0.3;
+// Crater-iron speed used when neither an explicit value nor an ironing speed is configured.
+// Must NOT fall back to travel speed -- see MagmaInjection.cpp.
+constexpr double MAGMA_IRON_SPEED_FALLBACK = 40.0;  // mm/s
 
 // Single resolver for the nozzle tip flat (magma_nozzle_outer_diameter). The user
 // should measure it (field tooltip says so); when left at 0 ("auto") we estimate
@@ -91,17 +97,41 @@ inline double cone_coverage_at_depth(double depth, double flat, double cone_half
     return flat + 2.0 * depth * std::tan(cone_half_angle_deg * MAGMA_DEG2RAD);
 }
 
-// Auto Z-slam depth: press far enough that the cone covers the opening *plus the
-// seal margin*, floored for clean contact and clamped to the maximum slam. We
-// solve for opening + MAGMA_SEAL_MARGIN (not the bare opening) so the auto depth
-// alone satisfies the same seal check Print::validate() runs -- otherwise auto
-// mode would warn against its own result whenever the plunge is thinner than the
-// margin. When the opening is so large the required depth exceeds MAGMA_SLAM_CLAMP,
-// the clamp caps it and the seal warning then fires legitimately.
-inline double auto_slam_depth(double opening_dia, double flat, double cone_half_angle_deg) {
-    return std::min(MAGMA_SLAM_CLAMP,
-                    std::max(MAGMA_SLAM_FLOOR,
-                             seal_depth_for_opening(opening_dia + MAGMA_SEAL_MARGIN, flat, cone_half_angle_deg)));
+// Largest tube opening an immersion budget allows: how wide the cone has grown by the
+// time it has descended `max_immersion` into the tube, less the seal margin. Auto tube
+// sizing feeds this to MagmaGeometry::interior_for_opening(), so the tube comes out as
+// large as the budget permits instead of as large as some fixed formula happens to give.
+// max_immersion == 0 yields opening = flat - margin, i.e. the nozzle seats on the rim
+// and never enters the tube at all.
+inline double max_opening_for_immersion(double flat, double cone_half_angle_deg, double max_immersion) {
+    double tan_t = std::tan(cone_half_angle_deg * MAGMA_DEG2RAD);
+    return std::max(0.1, flat + 2.0 * std::max(0.0, max_immersion) * tan_t - MAGMA_SEAL_MARGIN);
+}
+
+// Auto Z-slam depth.
+//
+// The nozzle first touches the opening rim at seal_depth_for_opening(opening, flat);
+// everything shallower than that is free descent *inside* the tube, touching nothing.
+// Because this solves for opening + MAGMA_SEAL_MARGIN, the mechanical interference past
+// first contact is always MAGMA_SEAL_MARGIN / (2*tan θ) -- the opening and the flat
+// cancel, so it is identical for every tube size and every nozzle (0.0866mm at 30°).
+//
+// So interference is NOT what varies between a clean tube and a deformed one. What
+// varies is how deep the hot nozzle travels inside the tube before it seals: two test
+// prints differing only in that (0.54mm clean, 1.08mm deformed) had byte-identical
+// interference. `max_immersion` is therefore the budget that matters, and it caps the
+// depth here. In auto tube mode the opening was sized against the same budget so the cap
+// never binds; in manual mode it binds and Print::validate() reports the shortfall
+// rather than letting the nozzle drive arbitrarily deep.
+//
+// `press` is the positive-contact press applied when the flat already covers the opening
+// and no descent is needed (magma_auto_slam_press).
+inline double auto_slam_depth(double opening_dia, double flat, double cone_half_angle_deg,
+                              double max_immersion, double press) {
+    press = std::max(0.0, press);
+    double needed = seal_depth_for_opening(opening_dia + MAGMA_SEAL_MARGIN, flat, cone_half_angle_deg);
+    double budget = std::max(press, std::max(0.0, max_immersion));
+    return std::min(std::min(std::max(press, needed), budget), MAGMA_SLAM_CLAMP);
 }
 
 // Plunge depth clamped so slam + plunge stays within the total intrusion clamp.
@@ -110,12 +140,8 @@ inline double clamp_plunge_depth(double slam_depth, double plunge_depth) {
 }
 
 // Auto-calculate interior width from nozzle diameter (fallback: 3× bore).
+// Used only when no nozzle flat has been measured; see resolve_nozzle_flat().
 double calculate_auto_interior_width(double nozzle_diameter);
-
-// Auto-calculate interior width from nozzle outer diameter measurement.
-// Finds the largest inset triangle that fits within the nozzle shoulder circle
-// with 0.2mm safety buffer. Accounts for line_width eating into the triangle.
-double calculate_auto_interior_width_from_od(double nozzle_od, double line_width);
 
 // ============================================================================
 // TriangleGeometry — MagmaGeometry impl for the equilateral triangle lattice
@@ -166,8 +192,11 @@ struct TriangleGeometry final : public MagmaGeometry
         return inset_side > 0.0 ? inset_triangle_area(spacing, line_width) / inset_side : 0.1;
     }
 
-    double auto_interior_width_from_od(double nozzle_od, double line_width) const override {
-        return calculate_auto_interior_width_from_od(nozzle_od, line_width);
+    // Inverse of opening_diameter(). Substituting side = (interior+lw)*2/sqrt3 into
+    // opening = 2*(side - lw*sqrt3)/sqrt3 reduces to  opening = (4*interior - 2*lw)/3,
+    // hence interior = (3*opening + 2*lw)/4.
+    double interior_for_opening(double opening, double line_width) const override {
+        return opening > 0.0 ? std::max(0.1, 0.75 * opening + 0.5 * line_width) : 0.1;
     }
 
     int max_neighbors() const override { return 3; }
