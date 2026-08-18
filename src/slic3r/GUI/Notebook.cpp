@@ -12,6 +12,8 @@
 #include <wx/button.h>
 #include <wx/sizer.h>
 
+#include <algorithm>
+
 wxDEFINE_EVENT(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED, wxCommandEvent);
 
 ButtonsListCtrl::ButtonsListCtrl(wxWindow *parent, wxBoxSizer* side_tools) :
@@ -193,6 +195,25 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
             evt.SetId(sel);
             wxPostEvent(this->GetParent(), evt);
         }
+    });
+    // ORCA: Left/Right moves keyboard focus between tabs without activating
+    // them (WAI-ARIA "manual activation" pattern) - Enter/Space, already
+    // handled by Button::keyDownUp as a click, is what actually switches the
+    // page. This keeps arrowing past several tabs to reach a fourth one from
+    // paying for whatever the ones in between would trigger (Prepare/Preview
+    // both refresh the object list on show, for example).
+    btn->Bind(wxEVT_KEY_DOWN, [this, btn](wxKeyEvent& evt) {
+        int key = evt.GetKeyCode();
+        auto it = std::find(m_pageButtons.begin(), m_pageButtons.end(), btn);
+        if ((key != WXK_LEFT && key != WXK_RIGHT) || it == m_pageButtons.end()) {
+            evt.Skip();
+            return;
+        }
+        int cur   = int(it - m_pageButtons.begin());
+        int dir   = key == WXK_RIGHT ? 1 : -1;
+        int count = int(m_pageButtons.size());
+        int next  = ((cur + dir) % count + count) % count;
+        m_pageButtons[next]->SetFocus();
     });
     Slic3r::GUI::wxGetApp().UpdateDarkUI(btn);
     m_pageButtons.insert(m_pageButtons.begin() + n, btn);
