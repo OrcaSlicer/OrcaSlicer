@@ -24,6 +24,11 @@ set(CATCH_EXTRA_ARGS "" CACHE STRING "Extra arguments for catch2 test suites.") 
 
 add_library(test_common INTERFACE)
 target_compile_definitions(test_common INTERFACE TEST_DATA_DIR=R"\(${TEST_DATA_DIR}\)" PROFILES_DIR=R"\(${PROFILES_DIR}\)" CATCH_CONFIG_FAST_COMPILE)
+
+# Test binaries never call set_resources_dir(), so point them at the tree.
+get_filename_component(USD_PLUGIN_PARENT "${ORCA_USD_PLUGIN_DIR}" DIRECTORY)
+file(TO_NATIVE_PATH "${USD_PLUGIN_PARENT}" USD_PLUGIN_PARENT)
+target_compile_definitions(test_common INTERFACE USD_PLUGIN_PARENT_DIR=R"\(${USD_PLUGIN_PARENT}\)")
 target_include_directories(test_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if (APPLE)

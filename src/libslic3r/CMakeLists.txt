@@ -557,6 +557,53 @@ target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 
 find_package(JPEG REQUIRED)
 find_package(Draco REQUIRED)
+find_package(pxr REQUIRED)
+if (NOT TARGET usd_m)
+    message(FATAL_ERROR
+        "OpenUSD was found but does not provide the monolithic usd_m target. This "
+        "expects the build from deps/OpenUSD/OpenUSD.cmake (PXR_BUILD_MONOLITHIC=ON, "
+        "BUILD_SHARED_LIBS=OFF); a system or distro pxr will not match.")
+endif ()
+set_target_properties(usd_m PROPERTIES IMPORTED_GLOBAL TRUE)
+target_sources(libslic3r PRIVATE Format/USD.cpp Format/USD.hpp)
+
+target_link_libraries(libslic3r PRIVATE usd_m)
+
+add_library(usd_whole_archive INTERFACE)
+target_link_libraries(usd_whole_archive INTERFACE usd_m)
+if (APPLE)
+    target_link_options(usd_whole_archive INTERFACE
+        "LINKER:-force_load,$<TARGET_FILE:usd_m>")
+elseif (MSVC)
+    target_link_options(usd_whole_archive INTERFACE
+        "/WHOLEARCHIVE:$<TARGET_FILE:usd_m>")
+else ()
+    target_link_options(usd_whole_archive INTERFACE
+        "LINKER:--whole-archive" "$<TARGET_FILE:usd_m>" "LINKER:--no-whole-archive")
+endif ()
+
+get_property(_usd_configs TARGET usd_m PROPERTY IMPORTED_CONFIGURATIONS)
+set(_usd_lib "")
+if (CMAKE_BUILD_TYPE)
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" _usd_cfg)
+    get_property(_usd_lib TARGET usd_m PROPERTY IMPORTED_LOCATION_${_usd_cfg})
+endif ()
+if (NOT _usd_lib AND _usd_configs)
+    list(GET _usd_configs 0 _usd_cfg)
+    get_property(_usd_lib TARGET usd_m PROPERTY IMPORTED_LOCATION_${_usd_cfg})
+endif ()
+if (NOT _usd_lib)
+    message(FATAL_ERROR
+        "OpenUSD was found, but the usd_m target carries no "
+        "imported library location (configurations: '${_usd_configs}'). The "
+        "dependency tree looks incomplete; rebuild the deps.")
+endif ()
+get_filename_component(_usd_libdir "${_usd_lib}" DIRECTORY)
+if (NOT EXISTS "${_usd_libdir}/usd")
+    message(FATAL_ERROR "OpenUSD's plugin tree is missing at ${_usd_libdir}/usd "
+                        "-- rebuild the deps.")
+endif ()
+set(ORCA_USD_PLUGIN_DIR "${_usd_libdir}/usd" CACHE INTERNAL "OpenUSD plugInfo tree")
 
 set(OCCT_LIBS
     TKXDESTEP

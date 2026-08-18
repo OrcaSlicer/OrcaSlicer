@@ -198,6 +198,17 @@ echo -n "[9/9] Generating Linux app..."
         echo "Warning: bundled uv not found at ${UV_RUNTIME_SRC}; Python package installation will be unavailable in this AppImage."
     fi
 
+    # Same reason as uv above: this packager copies artifacts rather than
+    # running `make install`, so the install() rule does not fire here.
+    USD_PLUGIN_SRC="$(dirname "${ORIGINAL_BINARY_LOCATION}")/usd"
+    if [ -d "$USD_PLUGIN_SRC" ]; then
+        echo "Bundling the OpenUSD plugin tree from ${USD_PLUGIN_SRC} ..."
+        copy_directory_if_present "$USD_PLUGIN_SRC" "$APPDIR/resources/usd"
+    else
+        echo "Error: ${USD_PLUGIN_SRC} is missing; this package could not open a .usd file"
+        exit 1
+    fi
+
     if [ "$BUNDLE_DESKTOP_STACK" = "1" ]; then
         GSTREAMER_PLUGIN_SOURCE_DIR="$(find_pkg_config_dir pluginsdir gstreamer-1.0 || true)"
         if [ -z "$GSTREAMER_PLUGIN_SOURCE_DIR" ]; then
