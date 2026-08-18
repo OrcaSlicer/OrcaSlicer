@@ -231,9 +231,7 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     map->m_interior_width = static_cast<float>(effective_interior_width(
         *map->m_geometry, config.magma_tube_width_mode.value,
         config.magma_interior_width.value, seal_flat, map->m_line_width,
-        config.magma_nozzle_cone_half_angle.value,
-        effective_max_immersion(config.magma_nozzle_outer_diameter.value,
-                                obj_config.magma_max_immersion.value)));
+        config.magma_nozzle_cone_half_angle.value, obj_config.magma_max_immersion.value));
     map->m_cell_spacing = cell_spacing_from_geometry(map->m_interior_width, map->m_line_width);
 
     // Nominal config layer height (fallback for missing layers in lookup tables)

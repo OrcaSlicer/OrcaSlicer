@@ -358,9 +358,7 @@ static bool magma_resolve(const PresetBundle &preset_bundle,
     if (line_w <= 0.0)
         line_w = nozzle_d;
 
-    max_immersion = magma::effective_max_immersion(
-        print_config.opt_float("magma_nozzle_outer_diameter"),
-        print_config.opt_float("magma_max_immersion"));
+    max_immersion = print_config.opt_float("magma_max_immersion");
     slam_press    = print_config.opt_float("magma_auto_slam_press");
 
     interior = magma::effective_interior_width(
@@ -430,10 +428,6 @@ std::string PresetHints::magma_injection_description(const PresetBundle &preset_
         out += (boost::format(_utf8(L("\nThe opening is wider than the nozzle flat, so the nozzle "
                                       "enters the tube: %1$.3f mm of the %2$.3f mm immersion budget.")))
                 % slam % budget).str();
-    } else if (! magma::magma_flat_measured(print_config.opt_float("magma_nozzle_outer_diameter"))) {
-        out += _utf8(L("\nConservative mode: the nozzle flat is estimated, not measured, so tubes are "
-                       "sized to seat on the rim and immersion is held at 0. Measure the flat to "
-                       "unlock larger tubes."));
     } else {
         out += _utf8(L("\nThe nozzle flat covers the opening outright — it seats on the rim rather "
                        "than entering the tube."));

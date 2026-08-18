@@ -171,8 +171,7 @@ std::string generate_injection_gcode(
     // here and Print::validate() stay in lockstep.
     double seal_flat = resolve_nozzle_flat(config.magma_nozzle_outer_diameter.value,
                                            config.nozzle_diameter.get_at(extruder_id));
-    const double max_immersion = effective_max_immersion(config.magma_nozzle_outer_diameter.value,
-                                                        config.magma_max_immersion.value);
+    const double max_immersion = config.magma_max_immersion.value;
     const double slam_press    = config.magma_auto_slam_press.value;
     // How deep the hot nozzle may travel inside a tube, from any path. Slam, the user
     // offset and the plunge all spend from this one budget.

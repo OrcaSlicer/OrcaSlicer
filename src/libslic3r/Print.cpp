@@ -1506,8 +1506,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 double line_w = rcfg.sparse_infill_line_width.get_abs_value(nozzle_d);
                 if (line_w <= 0) line_w = nozzle_d;
                 double cone_deg      = rcfg.magma_nozzle_cone_half_angle.value;
-                double max_immersion = magma::effective_max_immersion(
-                    rcfg.magma_nozzle_outer_diameter.value, obj_cfg.magma_max_immersion.value);
+                double max_immersion = obj_cfg.magma_max_immersion.value;
                 double slam_press    = obj_cfg.magma_auto_slam_press.value;
                 const magma::MagmaGeometry &geom = magma::magma_geometry_for(eff_pattern);
 
@@ -1561,23 +1560,27 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                     warning->is_warning = true;
                 }
 
-                // The nozzle flat drives tube SIZING in auto mode, so an unmeasured one is not a
-                // harmless default -- it silently decides how big every tube is. New users have no
-                // reason to know the setting exists, so say so rather than estimating quietly.
-                if (warning && warning->string.empty() &&
-                    rcfg.magma_nozzle_outer_diameter.value <= 0.0) {
-                    warning->string = Slic3r::format(
-                        L("Magma is running conservatively: your nozzle tip flat has not been "
-                          "measured, so it is estimated at %.2f mm and tubes are kept small enough "
-                          "for that estimate to cover outright (nozzle immersion is held at 0). "
-                          "Injection will seal, but the tubes are smaller than your nozzle can "
-                          "actually handle.\n\n"
-                          "Measure the flat ring around your nozzle bore with calipers and set "
-                          "\"Nozzle tip flat\" under Magma Pattern to unlock larger tubes and more "
-                          "reinforcement."),
-                        flat);
-                    warning->object = object;
-                    warning->is_warning = true;
+                // HARD ERROR, not a warning. The flat is not a tuning preference -- it is a
+                // hardware fact every tube size and every seal depends on, and unlike nozzle
+                // bore there is no de-facto standard value to default to (a pointed MK8 and a
+                // flat-shouldered V6 differ a lot). Guessing it silently either leaks injected
+                // plastic (guess too high) or quietly halves the reinforcement while looking
+                // like the feature is just mediocre (guess too low). Blocking also blocks the
+                // preview, so the message has to actually get the user unstuck.
+                if (rcfg.magma_nozzle_outer_diameter.value <= 0.0) {
+                    const double bore = nozzle_d > 0.0 ? nozzle_d : 0.4;
+                    return { Slic3r::format(
+                        L("Magma needs your nozzle's tip flat — the ring around the bore that "
+                          "presses on the print, not the full tip width.\n\n"
+                          "Set it in: Print Settings > Strength > Magma Pattern > \"Nozzle tip flat\"\n\n"
+                          "With calipers: measure the flat contact ring only.\n\n"
+                          "Without: set Tube fill factor to 0.1 and Max nozzle immersion to 0, then "
+                          "raise the flat by 0.2 mm per print until injections smear across the "
+                          "surface instead of sitting inside the tube openings. Use the last clean "
+                          "value.\n\n"
+                          "Start at %.1f mm for your %.1f mm nozzle. Reference: classic E3D 0.6 mm "
+                          "= 1.7 mm."),
+                        2.0 * bore, bore), object };
                 }
 
                 // magma_effective_pattern() substitutes Magma Triangle when dual infill is on

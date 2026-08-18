@@ -88,19 +88,6 @@ inline double resolve_nozzle_flat(double configured_flat, double nozzle_diameter
                                  : MAGMA_FLAT_BORE_MULTIPLE * nozzle_diameter;
 }
 
-// Has the user actually measured the nozzle flat, or are we estimating it?
-inline bool magma_flat_measured(double configured_flat) { return configured_flat > 0.0; }
-
-// Immersion budget actually permitted. Letting the nozzle enter a tube requires knowing the
-// flat: immersion sizes the tube to be WIDER than the flat, so if the flat is an estimate
-// that runs high, the tube comes out wider than the nozzle can seal and the injection leaks
-// out around it. An unmeasured flat therefore forces seating mode -- the tube is sized to
-// fit under the estimated flat and the nozzle never descends into it. The failure then
-// degrades to "tubes smaller than they could be" instead of "injection leaks".
-inline double effective_max_immersion(double configured_flat, double max_immersion) {
-    return magma_flat_measured(configured_flat) ? std::max(0.0, max_immersion) : 0.0;
-}
-
 // Depth the cone must descend so it widens from `flat` to cover `opening_dia`.
 inline double seal_depth_for_opening(double opening_dia, double flat, double cone_half_angle_deg) {
     double tan_t = std::tan(cone_half_angle_deg * MAGMA_DEG2RAD);
