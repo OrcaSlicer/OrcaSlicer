@@ -1137,8 +1137,8 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
 
     const bool coextrusion_preview_available = !gcode_result.coextrusion_colors.empty() &&
         std::any_of(gcode_result.moves.begin(), gcode_result.moves.end(), [&gcode_result](const GCodeProcessorResult::MoveVertex &move) {
-            return move.type == EMoveType::Extrude && move.extrusion_role == erExternalPerimeter &&
-                   move.coextrusion_color_id < gcode_result.coextrusion_colors.size();
+            return move.type == EMoveType::Extrude &&
+                move.coextrusion_color_id < gcode_result.coextrusion_colors.size();
         });
     if (m_coextrusion_preview_available != coextrusion_preview_available) {
         libvgcode::EViewType current_view_type = m_viewer.get_view_type();
