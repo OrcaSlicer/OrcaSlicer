@@ -1021,6 +1021,7 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
 
 void PrintObject::clear_layers()
 {
+    m_mmu_surface_color_lines.clear();
     if (!m_shared_object) {
         for (Layer *l : m_layers)
             delete l;

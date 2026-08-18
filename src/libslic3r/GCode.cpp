@@ -5563,7 +5563,8 @@ void GCode::apply_print_config(const PrintConfig &print_config)
         m_config.filament_colour.values, m_config.coextrusion_c_axis_colors.values);
     m_coextrusion_last_color_tag = size_t(-1);
     m_coextrusion_cached_layer = nullptr;
-    m_coextrusion_surface_regions.clear();
+    m_coextrusion_surface_distancer.reset();
+    m_coextrusion_surface_filament_slots.clear();
     m_scaled_resolution = scaled<double>(print_config.resolution.value);
     m_enable_exclude_object = m_config.exclude_object;
 
@@ -6368,32 +6369,62 @@ size_t GCode::coextrusion_filament_for_surface_segment(const Vec2d &from, const 
 
     if (m_coextrusion_cached_layer != m_layer) {
         m_coextrusion_cached_layer = m_layer;
-        m_coextrusion_surface_regions.clear();
-        for (const LayerRegion *region : m_layer->regions()) {
-            const int filament_id = region->region().config().outer_wall_filament_id.value;
-            if (filament_id <= 0)
-                continue;
-            for (const Surface &surface : region->slices)
-                m_coextrusion_surface_regions.push_back({get_extents(surface.expolygon), &surface.expolygon, size_t(filament_id - 1)});
+        m_coextrusion_surface_distancer.reset();
+        m_coextrusion_surface_filament_slots.clear();
+
+        const auto &by_layer = m_layer->object()->mmu_surface_color_lines();
+        std::vector<Line> lines;
+        if (m_layer->object()->is_mm_painted()) {
+            if (size_t(m_layer->id()) < by_layer.size()) {
+                for (const ColoredLines &contour : by_layer[m_layer->id()]) {
+                    for (const ColoredLine &colored_line : contour) {
+                        lines.emplace_back(colored_line.line);
+                        // Painted facet states are 1-based filament IDs. State
+                        // zero is the unpainted/default material for the volume.
+                        m_coextrusion_surface_filament_slots.emplace_back(
+                            colored_line.color > 0 ? size_t(colored_line.color - 1) : fallback);
+                    }
+                }
+            }
+        } else {
+            // A multi-part 3MF may encode colors as separate model volumes
+            // instead of painted facets. In that case each LayerRegion owns
+            // the exact boundary lines of its material at this slice height.
+            for (const LayerRegion *region : m_layer->regions()) {
+                const int filament_id = region->region().config().outer_wall_filament_id.value;
+                if (filament_id <= 0)
+                    continue;
+                for (const Surface &surface : region->slices) {
+                    Lines surface_lines = to_lines(surface.expolygon);
+                    lines.insert(lines.end(), surface_lines.begin(), surface_lines.end());
+                    m_coextrusion_surface_filament_slots.insert(
+                        m_coextrusion_surface_filament_slots.end(), surface_lines.size(), size_t(filament_id - 1));
+                }
+            }
         }
+        if (!lines.empty())
+            m_coextrusion_surface_distancer = std::make_unique<AABBTreeLines::LinesDistancer<Line>>(std::move(lines));
     }
+
+    if (m_coextrusion_surface_distancer == nullptr)
+        return fallback;
 
     const Vec2d delta = to - from;
     const double length = delta.norm();
     if (length <= EPSILON)
         return fallback;
 
-    // External perimeter centerlines are already inside the sliced object. Move a
-    // tiny amount farther inward so a point exactly on a painted-region boundary
-    // is classified by the region that owns the visible surface segment.
+    // Query at the bead's outside edge, where the extrusion touches the sliced
+    // model contour. This avoids picking a nearby contour across a thin feature.
     const Vec2d right_normal(delta.y() / length, -delta.x() / length);
     const Vec2d outward_normal = m_coextrusion_outward_normal_on_right ? right_normal : -right_normal;
-    const double inward_probe_distance = std::min(0.05, std::max(0.01, 0.1 * double(path.width)));
-    const Point probe = gcode_to_point(0.5 * (from + to) - inward_probe_distance * outward_normal);
-
-    for (const CoExtrusionSurfaceRegion &region : m_coextrusion_surface_regions)
-        if (region.bbox.contains(probe) && region.expolygon->contains(probe))
-            return region.filament_slot;
+    const Point probe = gcode_to_point(0.5 * (from + to) + 0.5 * double(path.width) * outward_normal);
+    const auto   nearest  = m_coextrusion_surface_distancer->distance_from_lines_extra<false>(probe);
+    const double distance = std::get<0>(nearest);
+    const size_t line_idx = std::get<1>(nearest);
+    if (line_idx < m_coextrusion_surface_filament_slots.size() &&
+        distance <= scale_(std::max(0.25, double(path.width))))
+        return m_coextrusion_surface_filament_slots[line_idx];
 
     return fallback;
 }

@@ -22,6 +22,7 @@
 #include "GCode/ThumbnailData.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "GCode/ExtrusionProcessor.hpp"
+#include "AABBTreeLines.hpp"
 
 #include "GCode/PressureEqualizer.hpp"
 #include "GCode/SmallAreaInfillFlowCompensator.hpp"
@@ -525,13 +526,9 @@ private:
     bool                                m_coextrusion_external_loop_active{false};
     bool                                m_coextrusion_outward_normal_on_right{false};
     size_t                              m_coextrusion_last_color_tag{std::numeric_limits<size_t>::max()};
-    struct CoExtrusionSurfaceRegion {
-        BoundingBox      bbox;
-        const ExPolygon *expolygon{nullptr};
-        size_t           filament_slot{size_t(-1)};
-    };
-    const Layer                        *m_coextrusion_cached_layer{nullptr};
-    std::vector<CoExtrusionSurfaceRegion> m_coextrusion_surface_regions;
+    const Layer                                             *m_coextrusion_cached_layer{nullptr};
+    std::unique_ptr<AABBTreeLines::LinesDistancer<Line>> m_coextrusion_surface_distancer;
+    std::vector<size_t>                                    m_coextrusion_surface_filament_slots;
 
     struct PlaceholderParserIntegration {
         void reset();
