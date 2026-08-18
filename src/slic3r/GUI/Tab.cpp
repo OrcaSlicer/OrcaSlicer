@@ -2843,12 +2843,22 @@ void TabPrint::update_description_lines()
     }
 
     if (m_active_page && m_active_page->title() == "Strength") {
-        if (m_magma_geometry_description_line)
-            m_magma_geometry_description_line->SetText(
-                from_u8(PresetHints::magma_geometry_description(*m_preset_bundle)));
-        if (m_magma_injection_description_line)
-            m_magma_injection_description_line->SetText(
-                from_u8(PresetHints::magma_injection_description(*m_preset_bundle)));
+        // Terse rows inline, the reasoning on hover. SetText only lays out the immediate
+        // parent, which leaves the static text clipped to whatever height it had when the page
+        // was built -- so a readout that grew by a row silently lost its last lines. Lay the
+        // page out after both are set.
+        auto set_readout = [](ogStaticText *line, const PresetHints::MagmaReadout &readout) {
+            if (line == nullptr)
+                return;
+            line->SetText(from_u8(readout.text));
+            line->SetToolTip(from_u8(readout.tooltip));
+        };
+        set_readout(m_magma_geometry_description_line,
+                    PresetHints::magma_geometry_readout(*m_preset_bundle));
+        set_readout(m_magma_injection_description_line,
+                    PresetHints::magma_injection_readout(*m_preset_bundle));
+        if (m_active_page->parent() != nullptr)
+            m_active_page->parent()->Layout();
     }
 }
 

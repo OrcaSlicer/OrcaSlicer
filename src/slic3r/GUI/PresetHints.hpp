@@ -29,15 +29,24 @@ public:
     // on the active layer height.
     static std::string top_bottom_shell_thickness_explanation(const PresetBundle &preset_bundle);
 
+    // A Magma readout: `text` is the terse "Label:  value" block shown inline, `tooltip`
+    // carries the same rows with the explanation of each. Split because these sit inside a
+    // settings page -- several lines of prose between two fields pushes everything down and
+    // reads like documentation, while the numbers themselves are what the user is scanning.
+    struct MagmaReadout {
+        std::string text;
+        std::string tooltip;
+    };
+
     // Magma: resolved tube geometry (interior width, cell spacing, bore, seal opening,
     // open area). In auto tube sizing every one of these is derived and none is shown
     // in any field, so without this the user is guessing.
-    static std::string magma_geometry_description(const PresetBundle &preset_bundle);
+    static MagmaReadout magma_geometry_readout(const PresetBundle &preset_bundle);
 
-    // Magma: resolved injection depths (Z-slam, immersion vs budget, plunge, total
-    // intrusion). Auto Z-slam makes three of its input fields inert, so the depth that
-    // actually reaches the printer is otherwise invisible.
-    static std::string magma_injection_description(const PresetBundle &preset_bundle);
+    // Magma: resolved injection depths (seal depth, contact press, plunge, total immersion
+    // against the budget) and the estimated dose. The seal depth is derived, never entered,
+    // so the depth that actually reaches the printer is otherwise invisible.
+    static MagmaReadout magma_injection_readout(const PresetBundle &preset_bundle);
 };
 
 } // namespace Slic3r
