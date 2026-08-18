@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <functional>
 #include <limits>
 #include <numeric>
 #include <unordered_map>
@@ -39,7 +40,11 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
                                                               const AABBTreeLines::LinesDistancer<L>& unscaled_prev_layer,
                                                               float                                   flow_width,
                                                               float                                   max_line_length = -1.0f,
-                                                              float                                   min_distance    = -1.0f)
+                                                              float                                   min_distance    = -1.0f,
+                                                              // Maps an overhang distance onto the speed it will be printed at. Interior sampling
+                                                              // needs it to tell which of the points it could add would change the G-code, and is
+                                                              // skipped without it.
+                                                              const std::function<float(float)>&      distance_to_speed = {})
 {
     bool   looped     = input_points.front() == input_points.back();
     std::function<size_t(size_t,size_t)> get_prev_index = [](size_t idx, size_t count) {
@@ -118,6 +123,107 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
             }
         }
         points.push_back(next_point);
+    }
+
+    // ORCA: Interior sampling
+    // The passes below infer the support under a span from its endpoints alone, so an interior that is supported
+    // differently from both ends is invisible to them: the outer perimeter of an overhang whose ends are caged by
+    // full height walls reads as supported along its whole length. Probe the interior, keep the samples the
+    // endpoint interpolation fails to predict, and bisect either side of each one, so a span that is only partly
+    // unsupported gets points where its support actually changes instead of one reading spread across all of it.
+    if (PREV_LAYER_BOUNDARY_OFFSET && ADD_INTERSECTIONS && min_distance > 0 && distance_to_speed) {
+        // Probe at least this densely before treating matching samples as evidence that a span is uniform. The
+        // segmentation pass below only splits lines of 2mm or more, and every pass here drops points closer
+        // together than min_spacing, so finer discovery would not produce a more precise speed transition.
+        const double max_probe_spacing = std::max(2., 4. * min_spacing);
+        // A backstop for that length test, which on a non-finite length would never be met.
+        constexpr int max_bisection_depth = 10;
+        // Whether two readings are interchangeable. A segment is printed at the lower of the speeds its ends
+        // read, so a sample that agrees on speed with what is already known cannot change the G-code, whatever
+        // its distance says. The distances themselves are far too coarse a stand-in for this: the speed sections
+        // interpolate, so readings a small fraction of min_distance apart can still be tens of mm/s apart.
+        // The tolerance matches the one GCode.cpp applies when it decides a path has a variable speed at all.
+        auto same_speed = [&distance_to_speed](float a, float b) {
+            return std::abs(distance_to_speed(a) - distance_to_speed(b)) <= 1.f;
+        };
+        // Whether the first reading is printed slower than the second, once they are known to differ.
+        auto prints_slower = [&distance_to_speed](float a, float b) { return distance_to_speed(a) < distance_to_speed(b); };
+
+        // Part of a segment still to bisect: its positions along the segment and bisections left.
+        struct Subspan { double t0, t1; int depth; };
+
+        std::vector<ExtendedPoint<L::Dim>>    sampled_points; // Populated lazily, on the first insertion
+        std::vector<std::pair<double, float>> interior;       // Samples of one segment, keyed by position along it
+        std::vector<Subspan>                  pending;
+
+        for (size_t point_idx = 0; point_idx + 1 < points.size(); ++point_idx) {
+            const ExtendedPoint<L::Dim>& curr     = points[point_idx];
+            const ExtendedPoint<L::Dim>& next     = points[point_idx + 1];
+            const Vec                    step     = next.position - curr.position;
+            const double                 line_len = step.norm();
+
+            interior.clear();
+            if (line_len >= max_probe_spacing)
+                pending.push_back({0., 1., max_bisection_depth});
+
+            while (!pending.empty()) {
+                const Subspan subspan = pending.back();
+                pending.pop_back();
+                if (subspan.depth <= 0 || (subspan.t1 - subspan.t0) * line_len < max_probe_spacing)
+                    continue;
+
+                const double t = 0.5 * (subspan.t0 + subspan.t1);
+                auto [distance, nearest_line, x] = unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(
+                    (curr.position + t * step).template cast<AABBScalar>());
+                const float sampled = float(distance + boundary_offset);
+
+                interior.emplace_back(t, sampled);
+                pending.push_back({subspan.t0, t, subspan.depth - 1});
+                pending.push_back({t, subspan.t1, subspan.depth - 1});
+            }
+
+            if (!interior.empty()) {
+                std::sort(interior.begin(), interior.end(),
+                          [](const std::pair<double, float>& l, const std::pair<double, float>& r) { return l.first < r.first; });
+                // Coarse probing keeps every sample it took until this pass can see which ones bracket a speed
+                // transition. Matching samples cannot be discarded during discovery: one may be the last
+                // supported point before a narrow unsupported pocket found by a later probe.
+                size_t kept = 0;
+                for (size_t i = 0; i < interior.size(); ++i) {
+                    const float sample    = interior[i].second;
+                    const bool  at_start  = kept == 0;                     // Nothing kept yet, so the segment's own start precedes it
+                    const bool  at_end    = i + 1 == interior.size();      // And nothing follows the last sample but the segment's end
+                    const float before    = at_start ? curr.distance : interior[kept - 1].second;
+                    const float after     = at_end ? next.distance : interior[i + 1].second;
+                    // A sample is worth a point in the path only where it prints at a different speed from the
+                    // readings either side of it. Differing from one of the segment's own ends is not enough on
+                    // its own where the sample is the faster of the two: the segmentation pass below already
+                    // ends the slowdown an end reads, at a distance taken from how far out that end is rather
+                    // than from wherever bisection happened to stop, and a point here would leave the span
+                    // beside the end too short for that pass to run at all. Support an end cannot account for,
+                    // where the interior is the slower reading, is exactly what this pass is here to find.
+                    const bool worth_before = !same_speed(sample, before) && (!at_start || prints_slower(sample, before));
+                    const bool worth_after  = !same_speed(sample, after) && (!at_end || prints_slower(sample, after));
+                    if (worth_before || worth_after)
+                        interior[kept++] = interior[i];
+                }
+                interior.resize(kept);
+            }
+
+            if (!interior.empty() && sampled_points.empty()) {
+                sampled_points.reserve(points.size() + 8);
+                sampled_points.assign(points.begin(), points.begin() + point_idx + 1);
+            }
+            if (!sampled_points.empty()) {
+                // Only a sub-span of max_probe_spacing or more is ever bisected, so these sit at least
+                // 2 * min_spacing apart, and need none of the filtering the passes either side of this one do.
+                for (const auto& [t, distance] : interior)
+                    sampled_points.push_back({curr.position + t * step, distance});
+                sampled_points.push_back(next);
+            }
+        }
+        if (!sampled_points.empty())
+            points = std::move(sampled_points);
     }
 
     // Segmentation handling
@@ -362,9 +468,28 @@ public:
             smallest_distance_with_lower_speed=-1.f;
 
         // Orca: Pass to the point properties estimator the smallest ovehang distance that triggers a slowdown (smallest_distance_with_lower_speed)
+        auto calculate_speed = [&speed_sections, &original_speed](float distance) {
+            float final_speed;
+            if (distance <= speed_sections.front().first) {
+                final_speed = original_speed;
+            } else if (distance >= speed_sections.back().first) {
+                final_speed = speed_sections.back().second;
+            } else {
+                size_t section_idx = 0;
+                while (distance > speed_sections[section_idx + 1].first) {
+                    section_idx++;
+                }
+                float t = (distance - speed_sections[section_idx].first) /
+                          (speed_sections[section_idx + 1].first - speed_sections[section_idx].first);
+                t           = std::clamp(t, 0.0f, 1.0f);
+                final_speed = (1.0f - t) * speed_sections[section_idx].second + t * speed_sections[section_idx + 1].second;
+            }
+            return round(final_speed);
+        };
+
         std::vector<ExtendedPoint<3>> extended_points =
             estimate_points_properties<true, true, true, true>(path.polyline.points, prev_layer_boundaries[current_object], path.width, -1,
-                                                               smallest_distance_with_lower_speed);
+                                                               smallest_distance_with_lower_speed, calculate_speed);
         const auto width_inv = 1.0f / path.width;
         std::vector<ProcessedPoint> processed_points;
         processed_points.reserve(extended_points.size());
@@ -423,25 +548,6 @@ public:
                 }
             }	
 
-            auto calculate_speed = [&speed_sections, &original_speed](float distance) {
-                float final_speed;
-                if (distance <= speed_sections.front().first) {
-                    final_speed = original_speed;
-                } else if (distance >= speed_sections.back().first) {
-                    final_speed = speed_sections.back().second;
-                } else {
-                    size_t section_idx = 0;
-                    while (distance > speed_sections[section_idx + 1].first) {
-                        section_idx++;
-                    }
-                    float t = (distance - speed_sections[section_idx].first) /
-                              (speed_sections[section_idx + 1].first - speed_sections[section_idx].first);
-                    t           = std::clamp(t, 0.0f, 1.0f);
-                    final_speed = (1.0f - t) * speed_sections[section_idx].second + t * speed_sections[section_idx + 1].second;
-                }
-                return round(final_speed);
-            };
-            
             float extrusion_speed = std::min(calculate_speed(curr.distance), calculate_speed(next.distance));
             // ORCA: Clamp resulting speed to lowest of calculated speed based on the overhang values and the current speed
             // Fixes bug where resulting overhang speed is higher than the current speed due to (for example) volumetric flow limits.

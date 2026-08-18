@@ -3287,7 +3287,9 @@ void Sidebar::update_all_preset_comboboxes()
                                  : MainFrame::PrintSelectType::eSendGcode;
         }
 
-        if (!use_native_device_tab || use_printer_agents)
+        if (use_printer_agents)
+            p_mainframe->load_printer_url();
+        else if (!use_native_device_tab)
             p_mainframe->load_printer_url(url, apikey);
 
 
@@ -11236,9 +11238,14 @@ void Plater::priv::on_tab_selection_changing(wxBookCtrlEvent& e)
             }
         }
     } else {
-        if (new_sel == MainFrame::tpMonitor && wxGetApp().preset_bundle != nullptr) {
+        const bool selecting_web_device_tab = main_frame->m_printer_view &&
+            main_frame->m_tabpanel->GetPage(new_sel) == main_frame->m_printer_view;
+        if (selecting_web_device_tab) {
+            // Use the selected discovered machine when the preset has no host.
+            main_frame->load_printer_url();
+        } else if (new_sel == MainFrame::tpMonitor && wxGetApp().preset_bundle != nullptr) {
             auto     cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-            wxString url = cfg.opt_string("print_host_webui").empty() ? cfg.opt_string("print_host") : cfg.opt_string("print_host_webui");
+            wxString url = from_u8(PrintHost::get_print_host_webui(&cfg));
             if (main_frame->m_printer_view && url.empty()) {
                 // It's missing_connection page, reload so that we can replay the gif image
                 main_frame->m_printer_view->reload();
@@ -12667,7 +12674,7 @@ void Plater::priv::take_snapshot(const std::string& snapshot_name, const UndoRed
             ModelWipeTower& tower = model.wipe_tower;
 
             tower.positions[plate_idx] = Vec2d(tower_x_opt->get_at(plate_idx), tower_y_opt->get_at(plate_idx));
-            tower.rotation = proj_cfg.opt_float("wipe_tower_rotation_angle");
+            tower.rotation = config.opt_float("wipe_tower_rotation_angle");
         }
     }
     const GLGizmosManager& gizmos = get_current_canvas3D()->get_canvas_type() == GLCanvas3D::CanvasAssembleView ? assemble_view->get_canvas3d()->get_gizmos_manager() : view3D->get_canvas3d()->get_gizmos_manager();
@@ -12777,7 +12784,7 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
             ModelWipeTower& tower = model.wipe_tower;
 
             tower.positions[plate_idx] = Vec2d(tower_x_opt->get_at(plate_idx), tower_y_opt->get_at(plate_idx));
-            tower.rotation = proj_cfg.opt_float("wipe_tower_rotation_angle");
+            tower.rotation = config.opt_float("wipe_tower_rotation_angle");
         }
     }
     const int layer_range_idx = it_snapshot->snapshot_data.layer_range_idx;

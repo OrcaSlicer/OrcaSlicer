@@ -15,6 +15,18 @@
 
 using namespace nlohmann;
 
+namespace {
+    // Orca: access_code and user_access_code used to be separate AppConfig keys before the two
+    // fields were merged; fall back to the legacy key so existing users' saved codes aren't lost.
+    std::string get_access_code_with_legacy_fallback(Slic3r::AppConfig* config, const std::string& dev_id)
+    {
+        std::string code = config->get("access_code", dev_id);
+        if (code.empty())
+            code = config->get("user_access_code", dev_id);
+        return code;
+    }
+}
+
 namespace Slic3r
 {
     DeviceManager::DeviceManager(NetworkAgent* agent)
@@ -48,8 +60,7 @@ namespace Slic3r
             obj->bind_sec_link       = "secure";
             obj->m_is_online         = true;
             obj->last_alive          = Slic3r::Utils::get_current_time_utc();
-            obj->set_access_code(config->get("access_code", m.dev_id), false);
-            obj->set_user_access_code(config->get("user_access_code", m.dev_id), false);
+            obj->set_access_code(get_access_code_with_legacy_fallback(config, m.dev_id), false);
             if (obj->has_access_right()) {
                 localMachineList.insert(std::make_pair(m.dev_id, obj));
             } else {
@@ -339,8 +350,7 @@ namespace Slic3r
                 //load access code
                 AppConfig* config = Slic3r::GUI::wxGetApp().app_config;
                 if (config) {
-                    obj->set_access_code(Slic3r::GUI::wxGetApp().app_config->get("access_code", dev_id), false);
-                    obj->set_user_access_code(Slic3r::GUI::wxGetApp().app_config->get("user_access_code", dev_id), false);
+                    obj->set_access_code(get_access_code_with_legacy_fallback(config, dev_id), false);
                 }
                 localMachineList.insert(std::make_pair(dev_id, obj));
 
@@ -382,7 +392,6 @@ namespace Slic3r
         obj->m_is_online = true;
         obj->last_alive = Slic3r::Utils::get_current_time_utc();
         obj->set_access_code(access_code, false);
-        obj->set_user_access_code(access_code, false);
 
         update_local_machine(*obj);
 
