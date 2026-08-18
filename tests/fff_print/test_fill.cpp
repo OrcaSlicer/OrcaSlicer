@@ -904,6 +904,8 @@ TEST_CASE("Spiral inset fill closes the gaps with variable width walls", "[Fill]
             ++spirals;
     CAPTURE(spirals, walls_across, variable_width.size(), fixed_width.size());
     CHECK(2 * spirals < walls_across);
+}
+
 TEST_CASE("Honeycomb infill rounds its cell corners with the smooth factor", "[Fill]")
 {
     // A cell whose sides are several times the line width, so that the corners have room to be rounded.
