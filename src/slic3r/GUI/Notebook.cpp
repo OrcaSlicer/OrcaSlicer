@@ -156,6 +156,13 @@ void ButtonsListCtrl::SetSelection(int sel)
     Refresh();
 }
 
+wxWindow* ButtonsListCtrl::GetSelectedButton() const
+{
+    if (m_selection >= 0 && m_selection < int(m_pageButtons.size()))
+        return m_pageButtons[m_selection];
+    return nullptr;
+}
+
 bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /* = false*/, const std::string &bmp_name /* = ""*/, const wxBitmap &bmp /* = wxNullBitmap */)
 {
     Button * btn = new Button(this, text.empty() ? text : " " + text, bmp_name, wxNO_BORDER);
