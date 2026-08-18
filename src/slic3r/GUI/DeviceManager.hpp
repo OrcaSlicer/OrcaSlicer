@@ -113,7 +113,6 @@ private:
     std::string dev_name;
     std::string dev_ip;
     std::string access_code;
-    std::string user_access_code;
 
     // type, time stamp, delay
     std::vector<std::tuple<std::string, uint64_t, uint64_t>> message_delay;
@@ -228,11 +227,6 @@ public:
     std::string get_access_code() const;
     void set_access_code(std::string code, bool only_refresh = true);
 
-    /*user access code*/
-    void set_user_access_code(std::string code, bool only_refresh = true);
-    void erase_user_access_code();
-    std::string get_user_access_code() const;
-
     //PRINTER_TYPE printer_type = PRINTER_3DPrinter_UKNOWN;
     std::string printer_type;       /* model_id */
     std::string   get_show_printer_type() const;
@@ -272,9 +266,11 @@ public:
     bool m_is_online;
     bool m_lan_mode_connection_state{false};
     bool m_set_ctt_dlg{ false };
+    bool m_unsupported_dlg_shown{ false };
     void set_lan_mode_connection_state(bool state) {m_lan_mode_connection_state = state;};
     bool get_lan_mode_connection_state() {return m_lan_mode_connection_state;};
     void set_ctt_dlg( wxString text);
+    void show_unsupported_dlg(int code);
     int  parse_msg_count = 0;
     int  keep_alive_count = 0;
     std::chrono::system_clock::time_point   last_update_time;   /* last received print data from machine */

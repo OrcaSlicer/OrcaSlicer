@@ -123,6 +123,7 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"sparse_infill_density", "", 1},
        {"fill_multiline", "", 1},
        {"sparse_infill_pattern", "", 1},
+       {"sparse_infill_smooth_factor", "", 1},
        {"lateral_lattice_angle_1", "", 1},
        {"lateral_lattice_angle_2", "", 1},
        {"infill_overhang_angle", "", 1},
@@ -533,11 +534,11 @@ void MenuFactory::append_menu_item_set_visible(wxMenu* menu)
 void MenuFactory::append_menu_item_delete(wxMenu* menu)
 {
 #ifdef __WINDOWS__
-    append_menu_item(menu, wxID_ANY, _L("Delete") + "\t" + _L("Del"), _L("Delete the selected object"),
+    append_menu_item(menu, wxID_ANY, _L("Delete") + "\t" + _L_CONTEXT("Del", "Keyboard Shortcut"), _L("Delete the selected object"),
         [](wxCommandEvent&) { plater()->remove_selected(); }, "menu_delete", nullptr,
         []() { return plater()->can_delete(); }, m_parent);
 #else
-    append_menu_item(menu, wxID_ANY, _L("Delete") + "\t" + _L("Backspace"), _L("Delete the selected object"),
+    append_menu_item(menu, wxID_ANY, _L("Delete") + "\t" + _L_CONTEXT("Backspace", "Keyboard Shortcut"), _L("Delete the selected object"),
         [](wxCommandEvent&) { plater()->remove_selected(); }, "", nullptr,
         []() { return plater()->can_delete(); }, m_parent);
 #endif

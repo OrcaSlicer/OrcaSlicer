@@ -48,13 +48,14 @@ std::string plugin_defaults_user_script()
     return WebViewHostDialog::document_start_injector(css, "orca-plugin-defaults", "beforeend");
 }
 
-// Injected into every page at document start (before the plugin's own scripts).
-// Defines window.orca as the only host surface the page may use. It references
-// window.wx lazily (at call time) so it never races the backend's deferred
-// registration of the "wx" message handler. Guarded against double-injection so
-// it is harmless if also prepended.
+// Injected into the top-level page at document start (before the plugin's own
+// scripts). Defines window.orca as the only host surface the page may use. It
+// references window.wx lazily (at call time) so it never races the backend's
+// deferred registration of the "wx" message handler. Guarded against
+// double-injection so it is harmless if also prepended.
 constexpr char ORCA_BRIDGE_JS[] = R"JS(
 (function () {
+  if (window.top !== window.self) return;
   if (window.orca) return;
   var handlers = [];
   function send(kind, data) {

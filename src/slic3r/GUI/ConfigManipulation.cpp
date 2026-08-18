@@ -12,6 +12,7 @@
 #include "libslic3r/GCode/AdaptivePAProcessor.hpp"
 #include "Plater.hpp"
 
+#include <algorithm>
 #include <sstream>
 #include <wx/msgdlg.h>
 
@@ -68,6 +69,12 @@ void ConfigManipulation::toggle_line(const std::string& opt_key, const bool togg
     }
     if (cb_toggle_line)
         cb_toggle_line(opt_key, toggle, opt_index);
+}
+
+void ConfigManipulation::set_option_label(const std::string& opt_key, const wxString& label, int opt_index)
+{
+    if (cb_set_option_label)
+        cb_set_option_label(opt_key, label, opt_index);
 }
 
 void ConfigManipulation::check_nozzle_recommended_temperature_range(DynamicPrintConfig *config) {
@@ -244,6 +251,59 @@ void ConfigManipulation::check_chamber_minimal_temperature(DynamicPrintConfig* c
     }
 }
 
+void ConfigManipulation::layer_height_limits(double& min_layer_height, double& max_layer_height) const
+{
+    const DynamicPrintConfig& printer_config = GUI::wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    const std::vector<double>& min_limits = printer_config.option<ConfigOptionFloats>("min_layer_height")->values;
+    const std::vector<double>& max_limits = printer_config.option<ConfigOptionFloats>("max_layer_height")->values;
+    min_layer_height = *std::min_element(min_limits.begin(), min_limits.end());
+    max_layer_height = *std::max_element(max_limits.begin(), max_limits.end());
+}
+
+bool ConfigManipulation::check_layer_height(DynamicPrintConfig* config)
+{
+    double min_layer_height = 0., max_layer_height = 0.;
+    layer_height_limits(min_layer_height, max_layer_height);
+    const double layer_height = config->opt_float("layer_height");
+
+    if (min_layer_height > EPSILON && layer_height < EPSILON) {
+        const wxString msg_text = wxString::Format(_L("Layer height is too small. It will be set to the minimum (%g mm)."), min_layer_height);
+        MessageDialog dialog(wxGetApp().plater(), msg_text, "", wxICON_WARNING | wxOK);
+        dialog.SetButtonLabel(wxID_OK, _L("OK"));
+        is_msg_dlg_already_exist = true;
+        dialog.ShowModal();
+        is_msg_dlg_already_exist = false;
+        DynamicPrintConfig new_conf = *config;
+        new_conf.set_key_value("layer_height", new ConfigOptionFloat(min_layer_height));
+        apply(config, &new_conf);
+        return true;
+    }
+    if (max_layer_height > EPSILON && layer_height > max_layer_height + EPSILON)
+        return layer_height_out_of_range_dialog(config, max_layer_height);
+    if (min_layer_height > EPSILON && layer_height < min_layer_height - EPSILON)
+        return layer_height_out_of_range_dialog(config, min_layer_height);
+    return false;
+}
+
+bool ConfigManipulation::layer_height_out_of_range_dialog(DynamicPrintConfig* config, double clamp_to)
+{
+    wxString msg_text = _(L("Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, "
+                            "this may cause printing quality issues."));
+    msg_text += "\n\n" + wxString::Format(_L("Adjust it to the limit (%g mm) automatically?"), clamp_to);
+    MessageDialog dialog(wxGetApp().plater(), msg_text, "", wxICON_WARNING | wxYES | wxNO);
+    dialog.SetButtonLabel(wxID_YES, _L("Adjust"));
+    dialog.SetButtonLabel(wxID_NO, _L("Ignore"));
+    is_msg_dlg_already_exist = true;
+    const bool adjust = dialog.ShowModal() == wxID_YES;
+    if (adjust) {
+        DynamicPrintConfig new_conf = *config;
+        new_conf.set_key_value("layer_height", new ConfigOptionFloat(clamp_to));
+        apply(config, &new_conf);
+    }
+    is_msg_dlg_already_exist = false;
+    return adjust;
+}
+
 void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, const bool is_global_config, const bool is_plate_config)
 {
     // #ys_FIXME_to_delete
@@ -258,7 +318,6 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 
     // layer_height shouldn't be equal to zero
     auto layer_height = config->opt_float("layer_height");
-    auto gpreset = GUI::wxGetApp().preset_bundle->printers.get_edited_preset();
     if (layer_height < EPSILON)
     {
         const wxString msg_text = _(L("Layer height too small\nIt has been reset to 0.2"));
@@ -267,20 +326,6 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         is_msg_dlg_already_exist = true;
         dialog.ShowModal();
         new_conf.set_key_value("layer_height", new ConfigOptionFloat(0.2));
-        apply(config, &new_conf);
-        is_msg_dlg_already_exist = false;
-    }
-
-    //BBS: limite the max layer_herght
-    auto max_lh = gpreset.config.opt_float("max_layer_height",0);
-    if (max_lh > 0.2 && layer_height > max_lh+ EPSILON)
-    {
-        const wxString msg_text = wxString::Format(L"Too large layer height.\nReset to %0.3f.", max_lh);
-        MessageDialog dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
-        DynamicPrintConfig new_conf = *config;
-        is_msg_dlg_already_exist = true;
-        dialog.ShowModal();
-        new_conf.set_key_value("layer_height", new ConfigOptionFloat(max_lh));
         apply(config, &new_conf);
         is_msg_dlg_already_exist = false;
     }
@@ -703,12 +748,14 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("spiral_mode_max_xy_smoothing", has_spiral_vase && config->opt_bool("spiral_mode_smooth"));
     toggle_line("spiral_starting_flow_ratio", has_spiral_vase);
     toggle_line("spiral_finishing_flow_ratio", has_spiral_vase);
-    bool has_top_shell    = config->opt_int("top_shell_layers") > 0 || (has_spiral_vase && config->opt_int("bottom_shell_layers") > 1);
+    bool has_top_shell_layers = config->opt_int("top_shell_layers") > 0 || (has_spiral_vase && config->opt_int("bottom_shell_layers") > 1);
+    bool has_top_shell    = has_top_shell_layers && config->option<ConfigOptionPercent>("top_surface_density")->value > 0;
     bool has_bottom_shell = config->opt_int("bottom_shell_layers") > 0;
-    bool has_solid_infill = has_top_shell || has_bottom_shell;
+    bool has_solid_infill = has_top_shell_layers || has_bottom_shell;
+    toggle_line("sparse_infill_smooth_factor", is_smoothable_infill_pattern(pattern, config->opt_int("fill_multiline")));
     toggle_field("top_surface_pattern", has_top_shell);
     toggle_field("bottom_surface_pattern", has_bottom_shell);
-    toggle_field("top_surface_density", has_top_shell);
+    toggle_field("top_surface_density", has_top_shell_layers);
     toggle_field("bottom_surface_density", has_bottom_shell);
     toggle_field("top_layer_direction", has_top_shell);
     toggle_field("bottom_layer_direction", has_bottom_shell);
@@ -751,7 +798,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : { "sparse_infill_speed", "bridge_speed", "internal_bridge_speed"})
         toggle_field(el, have_infill || has_solid_infill, variant_index);
 
-    toggle_field("top_shell_thickness", ! has_spiral_vase && has_top_shell);
+    toggle_field("top_shell_thickness", ! has_spiral_vase && has_top_shell_layers);
     toggle_field("bottom_shell_thickness", ! has_spiral_vase && has_bottom_shell);
 
     // Gap fill is newly allowed in between perimeter lines even for empty infill (see GH #1476).
@@ -806,14 +853,19 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_field("outer_wall_filament_id", have_perimeters || have_brim);
     toggle_field("inner_wall_filament_id", have_perimeters || have_brim);
 
-    bool have_brim_ear = (config->opt_enum<BrimType>("brim_type") == btEar);
+    const BrimType brim_type = config->opt_enum<BrimType>("brim_type");
+    const bool have_auto_brim_ear = brim_type == btEar;
+    const bool have_painted_brim_ear = brim_type == btPainted;
+    set_option_label("brim_width", have_auto_brim_ear ? _L("Brim ear radius") : _L("Brim width"));
     const auto brim_width = config->opt_float("brim_width");
-    // disable brim_ears_max_angle and brim_ears_detection_length if brim_width is 0
+    // Automatic brim ear settings require a non-zero brim width.
     toggle_field("brim_ears_max_angle", brim_width > 0.0f);
     toggle_field("brim_ears_detection_length", brim_width > 0.0f);
-    // hide brim_ears_max_angle and brim_ears_detection_length if brim_ear is not selected
-    toggle_line("brim_ears_max_angle", have_brim_ear);
-    toggle_line("brim_ears_detection_length", have_brim_ear);
+    // Painted ears carry their own radius and do not depend on brim_width.
+    toggle_field("brim_ears_outer_only", have_painted_brim_ear || brim_width > 0.0f);
+    toggle_line("brim_ears_max_angle", have_auto_brim_ear);
+    toggle_line("brim_ears_detection_length", have_auto_brim_ear);
+    toggle_line("brim_ears_outer_only", have_auto_brim_ear || have_painted_brim_ear);
 
     // Hide Elephant foot compensation layers if elefant_foot_compensation is not enabled
     toggle_line("elefant_foot_compensation_layers", config->opt_float("elefant_foot_compensation") > 0 || config->option<ConfigOptionPercent>("elefant_foot_layers_density")->get_abs_value(1.0f) < 1.0f);
@@ -1008,7 +1060,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("make_overhang_printable_angle", have_make_overhang_printable);
     toggle_line("make_overhang_printable_hole_size", have_make_overhang_printable);
 
-    toggle_line("min_width_top_surface", config->opt_bool("only_one_wall_top") || ((config->opt_float("min_length_factor") > 0.5f) && have_arachne)); // 0.5 is default value
+    // Orca: the one-wall options act on top/bottom surfaces, which exist only with a shell. An unfilled surface
+    // (0% surface density) is still a surface, so these are gated on the layer counts alone.
+    toggle_line("only_one_wall_first_layer", has_bottom_shell);
+    toggle_line("only_one_wall_top", has_top_shell_layers);
+    toggle_line("min_width_top_surface", (has_top_shell_layers && config->opt_bool("only_one_wall_top")) || ((config->opt_float("min_length_factor") > 0.5f) && have_arachne)); // 0.5 is default value
 
     for (auto el : { "hole_to_polyhole_threshold", "hole_to_polyhole_twisted", "hole_to_polyhole_max_edges" })
         toggle_line(el, config->opt_bool("hole_to_polyhole"));

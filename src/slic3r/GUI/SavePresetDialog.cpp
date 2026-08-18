@@ -112,12 +112,56 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     sizer->Add(m_radio_group, 0, wxEXPAND | wxTOP | wxLEFT, BORDER_W);
 
     if (parent->m_mode == comDevelop) {
-        m_detach_checkbox = new wxCheckBox(parent, wxID_ANY, _L("Detach from parent"));
-        sizer->Add(m_detach_checkbox, 0, wxALIGN_LEFT | wxALL, BORDER_W);
-        // Set initial state (unchecked by default)
-        m_detach_checkbox->SetValue(m_detach);
-        // Bind the checkbox event to update the detach state for this item
-        m_detach_checkbox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { m_detach = m_detach_checkbox->GetValue(); });
+        // A new user copy of a system preset inherits from the selected system preset.
+        const std::string parent_name = sel_preset.is_system ? sel_preset.name : sel_preset.inherits();
+        const bool        can_detach  = !parent_name.empty();
+
+        wxBoxSizer *detach_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+        auto detach_tooltip  = _L("Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported.");
+
+        auto detach_checkbox = new ::CheckBox(parent);
+        detach_checkbox->SetToolTip(detach_tooltip);
+
+        auto detach_label    = new wxStaticText(parent, wxID_ANY, _L("Detach from parent"));
+        detach_label->SetFont(::Label::Body_14);
+        detach_label->SetToolTip(detach_tooltip);
+
+        detach_sizer->Add(detach_checkbox, 0, wxALIGN_LEFT | wxLEFT, BORDER_W);
+        detach_sizer->Add(detach_label   , 0, wxALIGN_CENTRE_VERTICAL | wxLEFT, FromDIP(5));
+        sizer->Add(detach_sizer, 0, wxEXPAND | wxTOP, BORDER_W);
+        sizer->AddSpacer(FromDIP(5));
+
+        const wxString parent_text = can_detach ? from_u8(parent_name) : _L("Unique preset");
+        auto parent_label          = new wxStaticText(parent, wxID_ANY, parent_text);
+        parent_label->SetFont(::Label::Body_12);
+        parent_label->SetForegroundColour(wxColour("#6B6B6B"));
+        parent_label->SetToolTip(can_detach ? _L("Parent preset") : _L("This preset does not inherit from another preset."));
+        sizer->Add(parent_label, 0, wxEXPAND | wxLEFT, BORDER_W + FromDIP(24));
+
+        sizer->AddSpacer(FromDIP(5));
+
+        if (!can_detach) {
+            detach_checkbox->Disable();
+            detach_label->SetForegroundColour(wxColour("#6B6B6B"));
+        } 
+        else {
+            // Set initial state (unchecked by default)
+            detach_checkbox->SetValue(m_detach);
+            // Bind the checkbox event to update the detach state for this item
+            detach_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, detach_checkbox](wxCommandEvent&) { m_detach = detach_checkbox->GetValue(); });
+
+            detach_label->SetForegroundColour(wxColour("#363636"));
+
+            auto on_toggle = [this, detach_checkbox]() {
+                detach_checkbox->SetValue(!detach_checkbox->GetValue());
+                wxCommandEvent ev(wxEVT_TOGGLEBUTTON, detach_checkbox->GetId());
+                ev.SetEventObject(detach_checkbox);
+                detach_checkbox->GetEventHandler()->ProcessEvent(ev);
+            };
+            detach_label->Bind(wxEVT_LEFT_DOWN,   [on_toggle](wxMouseEvent& e) {if(!e.LeftDClick()) on_toggle();});
+            detach_label->Bind(wxEVT_LEFT_DCLICK, [on_toggle](wxMouseEvent& e) {on_toggle();});
+        }
     }
     
     m_radio_group->Bind(wxEVT_COMMAND_RADIOBOX_SELECTED, [this](wxCommandEvent &e) {
@@ -274,7 +318,7 @@ void SavePresetDialog::build(std::vector<Preset::Type> types, std::string suffix
     SetBackgroundColour(SAVE_PRESET_DIALOG_DEF_COLOUR);
     SetFont(wxGetApp().normal_font());
 
-    if (suffix.empty()) suffix = _CTX_utf8(L_CONTEXT("Copy", "PresetName"), "PresetName");
+    if (suffix.empty()) suffix = _u8L_CONTEXT(L_CONTEXT("Copy", "PresetName"), "PresetName");
 
     wxBoxSizer *m_Sizer_main = new wxBoxSizer(wxVERTICAL);
 

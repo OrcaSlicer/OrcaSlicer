@@ -1175,6 +1175,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "brim_type"
             || opt_key == "brim_ears_max_angle"
             || opt_key == "brim_ears_detection_length"
+            || opt_key == "brim_ears_outer_only"
             // BBS: brim generation depends on printing speed
             || opt_key == "outer_wall_speed"
             || opt_key == "small_perimeter_speed"
@@ -1364,7 +1365,6 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_combination_max_layer_height"
             || opt_key == "bottom_shell_thickness"
             || opt_key == "top_shell_thickness"
-            || opt_key == "top_surface_expansion"
             || opt_key == "top_surface_expansion_margin"
             || opt_key == "top_surface_expansion_direction"
             || opt_key == "minimum_sparse_infill_area"
@@ -1400,7 +1400,6 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_anchor"
             || opt_key == "infill_anchor_max"
             || opt_key == "top_surface_line_width"
-            || opt_key == "top_surface_density"
             || opt_key == "bottom_surface_density"
             || opt_key == "center_of_surface_pattern"
             || opt_key == "separated_infills" 
@@ -1411,6 +1410,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_overhang_angle") {
             steps.emplace_back(posInfill);
         } else if (opt_key == "sparse_infill_pattern"
+                   || opt_key == "sparse_infill_smooth_factor"
                    || opt_key == "symmetric_infill_y_axis"
                    || opt_key == "infill_shift_step"
                    || opt_key == "sparse_infill_rotate_template"
@@ -1432,6 +1432,24 @@ bool PrintObject::invalidate_state_by_config_options(
             //FIXME Vojtech is not quite sure about the 100% here, maybe it is not needed.
             if (is_approx(old_density->value, 0.) || is_approx(old_density->value, 100.) ||
                 is_approx(new_density->value, 0.) || is_approx(new_density->value, 100.))
+                steps.emplace_back(posPerimeters);
+            steps.emplace_back(posPrepareInfill);
+        } else if (opt_key == "top_surface_density") {
+            // ORCA: 0% means no top solid fill, which switches off both the top surface expansion and the wall
+            // removal over top surfaces. Only crossing zero matters; posPerimeters cascades to posPrepareInfill.
+            const auto *old_density = old_config.option<ConfigOptionPercent>(opt_key);
+            const auto *new_density = new_config.option<ConfigOptionPercent>(opt_key);
+            assert(old_density && new_density);
+            if (is_approx(old_density->value, 0.) || is_approx(new_density->value, 0.))
+                steps.emplace_back(posPerimeters);
+            steps.emplace_back(posInfill);
+        } else if (opt_key == "top_surface_expansion") {
+            // ORCA: without the expansion the top fill never reaches the space freed by only_one_wall_top, so the
+            // walls over top surfaces are kept. Only crossing zero matters; posPerimeters cascades to posPrepareInfill.
+            const auto *old_expansion = old_config.option<ConfigOptionFloat>(opt_key);
+            const auto *new_expansion = new_config.option<ConfigOptionFloat>(opt_key);
+            assert(old_expansion && new_expansion);
+            if (old_expansion->value <= 0. || new_expansion->value <= 0.)
                 steps.emplace_back(posPerimeters);
             steps.emplace_back(posPrepareInfill);
         } else if (opt_key == "internal_solid_infill_line_width") {
@@ -1760,51 +1778,50 @@ void PrintObject::detect_surfaces_type()
                         }
                     }
 
-                    // ORCA: Expand the top surfaces outward by top_surface_expansion in every direction. This
-                    // enlarges the top solid infill and, in particular, grows it over the covered material left
-                    // by features rising from the middle of a top surface (filling holes and joining tops so the
-                    // features rest on it). The expansion stays inside the section it belongs to: each connected
-                    // solid island has its own outer wall, so the top is grown within each island separately and
-                    // clipped to it - growing one island's top across the gap into another island (which may have
-                    // no top surface, leaving a partially filled layer) is never allowed. The top infill sits
-                    // inside the perimeters, so the margin is measured from the walls: the island is inset by the
-                    // band the walls consume (outer wall + inner walls) plus the configured margin, making that
-                    // value the real clearance between the expanded top and the walls (avoiding a hull line). The
-                    // original top is unioned back in, so where it already sits within that band it is kept as-is.
-                    // Never claims a bottom surface.
-                    const double top_expansion = layerm->region().config().top_surface_expansion.value;
-                    if (top_expansion > 0. && ! top.empty()) {
-                        const double     d        = scale_(top_expansion);
-                        const auto       jt       = Clipper2Lib::JoinType::Miter;
-                        const ExPolygons T        = union_ex(to_expolygons(top));
-                        const int    wall_loops = layerm->region().config().wall_loops.value;
+                    // ORCA: Grow the top surfaces by top_surface_expansion, so the top solid infill also covers the
+                    // material left by features rising from the middle of a top surface (filling the holes and
+                    // joining the tops, so the features rest on solid infill). Each connected island is grown and
+                    // clipped separately: growing one island's top across a gap into another - which may have no top
+                    // surface at all, leaving a partially filled layer - is never allowed. The original top is
+                    // unioned back in and bottom surfaces are never claimed, so this can only add area.
+                    const PrintRegionConfig &region_config  = layerm->region().config();
+                    const double             top_expansion  = region_config.top_surface_expansion.value;
+                    // Nothing to expand without a top fill: a 0% top surface density leaves the top layer with
+                    // walls only, and zero top shell layers retypes it as internal in prepare_fill_surfaces().
+                    if (top_expansion > 0. && region_config.top_shell_layers.value > 0 &&
+                        region_config.top_surface_density.value > 0. && ! top.empty()) {
+                        const double     d = scale_(top_expansion);
+                        const ExPolygons T = union_ex(to_expolygons(top));
+                        // Walls are laid out on spacing, not width; and only_one_wall_top leaves a single wall over
+                        // a top surface, which is exactly the situation handled here.
+                        const int    wall_loops = region_config.only_one_wall_top.value ? std::min(region_config.wall_loops.value, 1)
+                                                                                        : region_config.wall_loops.value;
                         const double wall_band  = wall_loops <= 0 ? 0. :
                             double(layerm->flow(frExternalPerimeter).scaled_width()) +
-                            double(layerm->flow(frPerimeter).scaled_width()) * double(wall_loops - 1);
-                        const double margin     = scale_(layerm->region().config().top_surface_expansion_margin.value);
+                            double(layerm->flow(frPerimeter).scaled_spacing()) * double(wall_loops - 1);
+                        const double margin     = scale_(region_config.top_surface_expansion_margin.value);
                         // minimum real top to act on: ignore anything thinner than ~2 top-infill lines
                         const float  min_top    = float(layerm->flow(frTopSolidInfill).scaled_width());
-                        const auto   direction  = layerm->region().config().top_surface_expansion_direction.value;
+                        const auto   direction  = region_config.top_surface_expansion_direction.value;
 
                         ExPolygons grown;
                         for (const ExPolygon &island : union_ex(layerm_slices_surfaces)) {
                             // The top infill only exists inside the perimeters, so seed and measure from the infill
-                            // region (the island minus the wall band), not the raw slice. A section whose only
-                            // exposed top lies in the wall band - i.e. a layer where the top is just the walls
-                            // themselves - has no infill here and is skipped, instead of being flooded inward by
-                            // the expansion. Thin slivers inside the infill region are dropped by the opening too.
+                            // region (the island minus the wall band), not the raw slice: a section whose exposed top
+                            // is just the walls themselves is then skipped instead of being flooded inward. Clip the
+                            // layer's tops to the island first, to keep the boolean ops proportional to the island.
                             const ExPolygons infill_region = wall_band > 0. ? offset_ex(island, -float(wall_band)) : ExPolygons{ island };
-                            const ExPolygons island_top    = intersection_ex(T, infill_region);
+                            const ExPolygons island_top    = intersection_ex(
+                                ClipperUtils::clip_clipper_polygons_with_subject_bbox(T, get_extents(island).inflated(SCALED_EPSILON)),
+                                infill_region);
                             if (opening_ex(island_top, min_top).empty())
                                 continue; // no real top infill in this section - never expand into it
 
-                            // grow by d, then keep only the part allowed by the configured direction: inward fills
-                            // the holes/gaps left by features (clip the growth back to the top's own filled outline,
-                            // which leaves the outer edge fixed), outward grows the outer edge toward the walls (drop
-                            // the growth that fell into the original holes), and inward+outward keeps both.
-                            ExPolygons expanded = offset_ex_2(island_top, d, jt);
+                            // Grow, then keep only what the configured direction allows, using the top's own filled
+                            // outline (same outer edge, holes closed) to tell the two apart.
+                            ExPolygons expanded = offset_ex_2(island_top, d, Clipper2Lib::JoinType::Miter);
                             if (direction != TopSurfaceExpansionDirection::InwardAndOutward) {
-                                ExPolygons outline; // the top with its holes filled (same outer edge)
+                                ExPolygons outline;
                                 outline.reserve(island_top.size());
                                 for (const ExPolygon &ex : island_top)
                                     outline.emplace_back(ex.contour);
@@ -3795,7 +3812,7 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
                         else {
                             ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(my_opt);
                             const ConfigOptionVectorBase* opt_vec_dest = static_cast<const ConfigOptionVectorBase*>(it->second.get());
-                            opt_vec_src->set_to_index(opt_vec_dest, variant_index, 1);
+                            set_variant_override(*opt_vec_src, *opt_vec_dest, variant_index);
                         }
                     }
                 }

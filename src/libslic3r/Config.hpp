@@ -2,6 +2,7 @@
 #define slic3r_Config_hpp_
 
 #include <assert.h>
+#include <algorithm>
 #include <map>
 #include <climits>
 #include <cfloat>
@@ -780,10 +781,14 @@ public:
                 this->values[i] = rhs_vec->values[i];
                 modified        = true;
             } else {
-                if ((i < default_index.size()) && (default_index[i] < default_value.size()))
+                // Orca: a negative slot (failed variant lookup) must not silently collapse the
+                // whole array to the first slot's value — the int-vs-size_t comparison used to
+                // promote -1 past the bounds check. Keep the slot's own value (get_at-style
+                // clamp) when no valid index is available.
+                if ((i < default_index.size()) && (default_index[i] >= 0) && (size_t(default_index[i]) < default_value.size()))
                     this->values[i] = default_value[default_index[i]];
                 else
-                    this->values[i] = default_value[0];
+                    this->values[i] = default_value[std::min(i, default_value.size() - 1)];
             }
         }
         return modified;
@@ -2106,6 +2111,11 @@ public:
             throw ConfigurationError("ConfigOptionEnumGeneric: Assigning an incompatible type");
         // rhs could be of the following type: ConfigOptionEnumGeneric or ConfigOptionEnum<T>
         this->value = rhs->getInt();
+        // Orca: options embedded in a StaticPrintConfig are constructed without a keys_map;
+        // adopt the source's so a later serialize() can emit names.
+        if (this->keys_map == nullptr)
+            if (auto rhs_generic = dynamic_cast<const ConfigOptionEnumGeneric *>(rhs))
+                this->keys_map = rhs_generic->keys_map;
     }
 
     std::string serialize() const override
@@ -2162,7 +2172,12 @@ public:
         if (rhs->type() != this->type())
             throw ConfigurationError("ConfigOptionEnumGeneric: Assigning an incompatible type");
         // rhs could be of the following type: ConfigOptionEnumsGeneric
-        this->values = dynamic_cast<const ConfigOptionEnumsGenericTempl *>(rhs)->values;
+        auto rhs_enums = dynamic_cast<const ConfigOptionEnumsGenericTempl *>(rhs);
+        this->values = rhs_enums->values;
+        // Orca: options embedded in a StaticPrintConfig are constructed without a keys_map;
+        // adopt the source's so a later serialize() emits names instead of empty tokens.
+        if (this->keys_map == nullptr)
+            this->keys_map = rhs_enums->keys_map;
     }
 
     std::string serialize() const override
@@ -2258,6 +2273,8 @@ public:
         plugin_picker,
         // Raw JSON string value, edited through a dialog behind a button rather than in the row.
         plugin_config,
+        // PrinterAgentChoice
+        printer_agent_select,
     };
 
 	// Identifier of this option. It is stored here so that it is accessible through the by_serialization_key_ordinal map.
@@ -2965,6 +2982,8 @@ public:
     const double &      opt_float(const t_config_option_key &opt_key, unsigned int idx) const;
     double &            opt_float_nullable(const t_config_option_key &opt_key, unsigned int idx) { return this->option<ConfigOptionFloatsNullable>(opt_key)->get_at(idx); }
     const double &      opt_float_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionFloatsNullable *>(this->option(opt_key))->get_at(idx); }
+    FloatOrPercent &    opt_float_or_percent_nullable(const t_config_option_key &opt_key, unsigned int idx) { return this->option<ConfigOptionFloatsOrPercentsNullable>(opt_key)->get_at(idx); }
+    const FloatOrPercent & opt_float_or_percent_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionFloatsOrPercentsNullable *>(this->option(opt_key))->get_at(idx); }
 
     int&                opt_int(const t_config_option_key &opt_key)                             { return this->option<ConfigOptionInt>(opt_key)->value; }
     int                 opt_int(const t_config_option_key &opt_key) const                       { return dynamic_cast<const ConfigOptionInt*>(this->option(opt_key))->value; }
