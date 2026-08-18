@@ -5478,7 +5478,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Minimum inner zone width");
     def->category = L("Strength");
     def->tooltip = L("Minimum width for the inner infill zone. Areas smaller than this will be filled entirely "
-                     "with Magma Triangle infill.");
+                     "with the Magma reinforcement pattern.");
     def->sidetext = L("mm");
     def->min = 0;
     def->max = 50;
@@ -5510,7 +5510,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("dual_infill_outer_speed", coFloat);
     def->label = L("Outer zone speed");
     def->category = L("Speed");
-    def->tooltip = L("Speed for outer zone infill (Magma Triangle channels). "
+    def->tooltip = L("Speed for outer zone infill (the Magma reinforcement channels). "
                      "Set to 0 to use sparse infill speed.");
     def->sidetext = L("mm/s");
     def->min = 0;
@@ -5555,10 +5555,10 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Tube width sizing");
     def->category = L("Strength");
     def->tooltip = L("How to determine the injection tube width.\n\n"
-                     "Auto (from nozzle): Measures your nozzle's outer diameter (the flat "
-                     "'shoulder' around the bore) and calculates the largest triangular tube "
-                     "opening the nozzle can fully seal during injection. This removes "
-                     "guesswork and ensures reliable injection.\n\n"
+                     "Auto (from nozzle): sizes the tube to the largest opening the injection "
+                     "immersion budget allows, using the selected pattern's own cell geometry. "
+                     "Raise Max nozzle immersion for bigger tubes, lower it for a gentler press. "
+                     "This removes the guesswork and keeps sizing in step with the seal.\n\n"
                      "Manual: Specify the tube interior width directly.\n\n"
                      "WARNING: If tubes are too small for your nozzle, the nozzle shoulder "
                      "will cover BOTH ends of the U-tube simultaneously, blocking airflow "
@@ -5577,11 +5577,12 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Measured diameter of the flat at your nozzle tip (the 'shoulder' — the flat "
                      "ring around the bore that presses on the print). Measure it with calipers.\n\n"
-                     "This is the seal size: during injection the flat (plus the cone above it when "
-                     "z-slamming) must cover the tube opening. In Auto tube sizing the tube is sized "
-                     "to fit this flat. To make tubes LARGER than the flat, switch tube width sizing "
-                     "to Manual and raise the injection tube width — Auto Z-slam then presses deep "
-                     "enough for the nozzle cone to seal the larger opening.\n\n"
+                     "This is the seal size: during injection the flat — plus the cone above it, "
+                     "once pressed down — must cover the tube opening.\n\n"
+                     "To make tubes LARGER than the flat, raise Max nozzle immersion. The cone then "
+                     "descends far enough to seal the wider opening, and in Auto tube sizing the tube "
+                     "grows to match. Immersion is the price of a bigger tube, and also what deforms "
+                     "tube walls, so that setting is the trade-off to tune.\n\n"
                      "Set to 0 to fall back to 3x nozzle bore diameter (conservative estimate).");
     def->sidetext = L("mm");
     def->min = 0;  // 0 = use fallback
@@ -5594,7 +5595,8 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Half-angle of the cone above the nozzle tip flat, in degrees. Auto Z-slam uses "
                      "it to work out how far to press so the widening cone seals a tube opening larger "
-                     "than the flat: z_slam = (opening - flat) / (2 * tan(angle)).\n\n"
+                     "than the flat: z_slam = (opening + margin - flat) / (2 * tan(angle)), capped by "
+                     "Max nozzle immersion.\n\n"
                      "Most nozzles are around 30 degrees — measure from the nozzle profile or its "
                      "datasheet. A smaller (pointier) cone needs a deeper slam for the same opening.");
     def->sidetext = L("°");
@@ -5606,7 +5608,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("magma_interior_width", coFloat);
     def->label = L("Injection tube width");
     def->category = L("Strength");
-    def->tooltip = L("Width of the triangular tube interior (injection channel).\n\n"
+    def->tooltip = L("Width of the tube interior (injection channel), measured across the cell.\n\n"
+                     "Only used when Tube width sizing is Manual — in Auto the tube is sized from the "
+                     "nozzle flat and the immersion budget, and this field is ignored.\n\n"
                      "WARNING: If this value is too small, the nozzle shoulder may cover "
                      "both ends of the U-tube simultaneously, blocking airflow and preventing "
                      "injection fill. Ensure the tube spacing is wider than your nozzle shoulder.");
@@ -5686,7 +5690,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("magma_spiral_interlock", coBool);
     def->label = L("Spiral interlock");
     def->category = L("Strength");
-    def->tooltip = L("Shift the Magma Triangle pattern each layer so tubes follow helical paths. "
+    def->tooltip = L("Shift the Magma lattice each layer so tubes follow helical paths. "
                      "Adds some pullout resistance beyond what tube wall roughness already provides, "
                      "but increases injection flow resistance, uses more horizontal space per tube "
                      "(harder to fit in thin sections), and reduces vertical reinforcement effectiveness. "
@@ -5882,7 +5886,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("magma_overlap_line_correction", coBool);
     def->label = L("Adjust line width for vertex overlap");
     def->category = L("Strength");
-    def->tooltip = L("Magma triangle infill has 3 families of lines crossing at 60-degree angles. "
+    def->tooltip = L("Magma lattices deposit material twice wherever infill lines cross: three "
+                     "line families at 60 degrees for Triangle, two at 90 degrees for Rectilinear. "
                      "At each vertex, lines overlap and deposit material twice. The excess is "
                      "about 3w/(4S) of total material, where w is line width and S is cell spacing "
                      "(typically 15-30%% depending on interior width).\n\n"
@@ -5918,6 +5923,8 @@ void PrintConfigDef::init_fff_params()
                      "Small values (0.05mm) work with nozzles that have a wide flat tip. "
                      "Nozzles with a narrow flat and tapered tip may need deeper values "
                      "(0.5-1.0mm) so the taper widens enough to seal the tube opening.\n\n"
+                     "Bear in mind that depth is nozzle immersion into the tube, which is what "
+                     "deforms tube walls — around 1.1mm was measured as visibly deforming.\n\n"
                      "Set to 0 to disable. Ignored when Auto Z-slam depth is enabled.");
     def->sidetext = L("mm");
     def->min = 0;
@@ -5945,12 +5952,12 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Auto Z-slam offset");
     def->category = L("Strength");
     def->tooltip = L("Fine-tune the auto-calculated Z-slam depth by adding this amount (mm) to it. "
-                     "The geometric estimate can press a little short of a reliable seal — especially "
-                     "on hexagon tubes — so a small positive value firms it up.\n\n"
+                     "The geometric estimate can press a little short of a reliable seal, so a small "
+                     "positive value firms it up.\n\n"
                      "POSITIVE = deeper slam: presses farther into the tube top for a firmer seal "
                      "(crushes a bit more of the tube).\n"
                      "NEGATIVE = shallower slam: gentler press (use if the auto depth is over-sealing).\n\n"
-                     "Applied on top of each tube's auto depth, then clamped to the slam limit. Only "
+                     "Applied on top of each tube's auto depth, then clamped to Max nozzle immersion. Only "
                      "used when Auto Z-slam depth is enabled; when it is off, set the depth directly "
                      "with Injection Z-slam depth instead.");
     def->sidetext = L("mm");
@@ -6259,7 +6266,7 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Outer zone infill");
     def->category = L("Extruders");
-    def->tooltip = L("Filament for the outer infill zone pattern (Magma Triangle). Zone shell walls "
+    def->tooltip = L("Filament for the outer (reinforcement) infill zone pattern. Zone shell walls "
                       "use the wall filament; zone floor/ceiling use the solid infill filament.");
     def->min = 1;
     def->mode = comAdvanced;
