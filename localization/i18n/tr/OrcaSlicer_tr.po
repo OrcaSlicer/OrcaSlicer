@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-29 17:40-0300\n"
-"PO-Revision-Date: 2026-08-01 20:32+0300\n"
+"PO-Revision-Date: 2026-08-04 19:36+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
 "Language: tr\n"
@@ -738,9 +738,8 @@ msgstr "Sabit adım sürükleme"
 msgid "Context Menu"
 msgstr "Bağlam Menüsü"
 
-# AI Translated
 msgid "Toggle Auto-Drop"
-msgstr "Otomatik Bırakmayı Aç/Kapat"
+msgstr "Otomatik düşürmeyi aç / kapat"
 
 msgid "Single sided scaling"
 msgstr "Tek taraflı ölçekleme"
@@ -791,9 +790,8 @@ msgstr "Nesne"
 msgid "Part"
 msgstr "Parça"
 
-# AI Translated
 msgid "Relative"
-msgstr "Göreli"
+msgstr "Göreceli"
 
 # AI Translated
 msgid "Coordinate system used for transform actions."
@@ -2306,7 +2304,7 @@ msgid "new or open project file is not allowed during the slicing process!"
 msgstr "dilimleme işlemi sırasında yeni veya açık proje dosyasına izin verilmez!"
 
 msgid "Open Project"
-msgstr "Projeyi Aç"
+msgstr "Projeyi aç"
 
 msgid "The version of Orca Slicer is too low and needs to be updated to the latest version before it can be used normally."
 msgstr "Orca Slicer'ın sürümü çok düşük ve normal şekilde kullanılabilmesi için en son sürüme güncellenmesi gerekiyor."
@@ -2734,16 +2732,15 @@ msgstr "Simit"
 msgid "Orca Cube"
 msgstr "Orca Küpü"
 
-# AI Translated
 msgid "OrcaSliced Combo"
-msgstr "OrcaSliced Combo"
+msgstr "Orca Dilimleme Paketi"
 
 # AI Translated
 msgid "Orca Badge"
 msgstr "Orca Rozeti"
 
 msgid "Orca Tolerance Test"
-msgstr "Orca tolerans testi"
+msgstr "Orca Tolerans Testi"
 
 msgid "3DBenchy"
 msgstr "3DBenchy"
@@ -2807,7 +2804,7 @@ msgid "Set as Individual Objects"
 msgstr "Bireysel nesneler olarak ayarla"
 
 msgid "Fill bed with copies"
-msgstr "Yatağı kopyalarla doldurun"
+msgstr "Tablayı kopyalarla doldur"
 
 msgid "Fill the remaining area of bed with copies of the selected object"
 msgstr "Yatağın kalan alanını seçilen nesnenin kopyalarıyla doldurun"
@@ -2815,9 +2812,8 @@ msgstr "Yatağın kalan alanını seçilen nesnenin kopyalarıyla doldurun"
 msgid "Printable"
 msgstr "Yazdırılabilir"
 
-# AI Translated
 msgid "Auto Drop"
-msgstr "Otomatik Bırakma"
+msgstr "Otomatik düşür"
 
 # AI Translated
 msgid "Automatically drops the selected object to the build plate."
@@ -2967,7 +2963,7 @@ msgid "Add Models"
 msgstr "Model ekle"
 
 msgid "Show Labels"
-msgstr "Etiketleri Göster"
+msgstr "Etiketleri göster"
 
 msgid "To Objects"
 msgstr "Nesnelere"
@@ -3009,7 +3005,7 @@ msgid "Select all objects on the current plate"
 msgstr "Mevcut plakadaki tüm nesneleri seç"
 
 msgid "Select All Plates"
-msgstr "Tüm Plakaları Seç"
+msgstr "Tüm plakaları seç"
 
 msgid "Select all objects on all plates"
 msgstr "Tüm plakalardaki tüm nesneleri seç"
@@ -3045,13 +3041,13 @@ msgid "Remove the selected plate"
 msgstr "Seçilen plakayı kaldır"
 
 msgid "Add instance"
-msgstr "Örnek ekle"
+msgstr "Kopya ekle"
 
 msgid "Add one more instance of the selected object"
 msgstr "Seçilen nesnenin bir örneğini daha ekle"
 
 msgid "Remove instance"
-msgstr "Örneği kaldır"
+msgstr "Kopyayı kaldır"
 
 msgid "Remove one instance of the selected object"
 msgstr "Seçilen nesnenin bir örneğini kaldır"
@@ -3060,10 +3056,10 @@ msgid "Set number of instances"
 msgstr "Örnek sayısını ayarlayın"
 
 msgid "Change the number of instances of the selected object"
-msgstr "Seçilen nesnenin örnek sayısını değiştirme"
+msgstr "Seçilen nesnenin kopya sayısını değiştirme"
 
 msgid "Fill bed with instances"
-msgstr "Yatağı örneklerle doldurun"
+msgstr "Tablayı kopyalarla doldur"
 
 msgid "Fill the remaining area of bed with instances of the selected object"
 msgstr "Yatağın kalan alanını seçilen nesnenin örnekleriyle doldurun"
@@ -3075,7 +3071,7 @@ msgid "Simplify Model"
 msgstr "Modeli basitleştir"
 
 msgid "Subdivision mesh"
-msgstr "Alt bölüm ağı"
+msgstr "Poligon artırma"
 
 msgid "(Lost color)"
 msgstr "(Renk kaybı)"
@@ -3090,10 +3086,10 @@ msgid "Edit Process Settings"
 msgstr "İşlem ayarlarını düzenle"
 
 msgid "Copy Process Settings"
-msgstr "İşlem Ayarlarını Kopyala"
+msgstr "İşlem ayarlarını kopyala"
 
 msgid "Paste Process Settings"
-msgstr "İşlem Ayarlarını Yapıştır"
+msgstr "İşlem ayarlarını yapıştır"
 
 msgid "Edit print parameters for a single object"
 msgstr "Tek bir nesne için yazdırma parametrelerini düzenleme"
@@ -3478,7 +3474,7 @@ msgid "More"
 msgstr "Daha"
 
 msgid "Open Preferences"
-msgstr "Tercihleri Aç"
+msgstr "Tercihleri aç"
 
 msgid "Open next tip"
 msgstr "Sonraki ipucunu aç"
@@ -5450,10 +5446,10 @@ msgid "Acceleration"
 msgstr "Hızlanma"
 
 msgid "Jerk"
-msgstr "Jerk"
+msgstr "Sarsıntı"
 
 msgid "Fan Speed"
-msgstr "Fan hızı"
+msgstr "Fan Hızı"
 
 msgid "Flow"
 msgstr "Akış"
@@ -5468,7 +5464,7 @@ msgid "Layer Time"
 msgstr "Katman Süresi"
 
 msgid "Layer Time (log)"
-msgstr "Katman Süresi (günlük)"
+msgstr "Katman Süresi (log)"
 
 msgid "Pressure Advance"
 msgstr "Basınç İlerlemesi"
@@ -5477,10 +5473,10 @@ msgid "Noop"
 msgstr "Hayır"
 
 msgid "Retract"
-msgstr "Geri Çekme"
+msgstr "Geri çekme"
 
 msgid "Unretract"
-msgstr "İleri İtme"
+msgstr "İleri itme"
 
 msgid "Seam"
 msgstr "Dikiş"
@@ -5578,7 +5574,7 @@ msgid "Acceleration: "
 msgstr "İvme: "
 
 msgid "Jerk: "
-msgstr "Jerk: "
+msgstr "Sarsıntı: "
 
 msgid "PA: "
 msgstr "PA: "
@@ -5608,7 +5604,7 @@ msgid "Actual speed profile"
 msgstr "Gerçek hız profili"
 
 msgid "Statistics of All Plates"
-msgstr "Tüm Plakaların İstatistikleri"
+msgstr "Tüm plakaların istatistikleri"
 
 msgid "Display"
 msgstr "Ekran"
@@ -5708,7 +5704,7 @@ msgid "Acceleration (mm/s²)"
 msgstr "İvme (mm/s²)"
 
 msgid "Jerk (mm/s)"
-msgstr "Jerk (mm/s)"
+msgstr "Sarsıntı (mm/s)"
 
 msgid "Fan speed (%)"
 msgstr "Fan hızı (%)"
@@ -5759,9 +5755,8 @@ msgstr "Normal mod"
 msgid "Total Filament"
 msgstr "Toplam filament"
 
-# AI Translated
 msgid "Model Filament"
-msgstr "Model Filamenti"
+msgstr "Model filamenti"
 
 msgid "Prepare time"
 msgstr "Hazırlık süresi"
@@ -6282,20 +6277,19 @@ msgid "Setup Wizard"
 msgstr "Kurulum sihirbazı"
 
 msgid "Show Configuration Folder"
-msgstr "Yapılandırma Klasörünü Göster"
+msgstr "Yapılandırma klasörünü göster"
 
-# AI Translated
 msgid "Troubleshoot Center"
-msgstr "Sorun Giderme Merkezi"
+msgstr "Sorun giderme merkezi"
 
 msgid "Open Network Test"
-msgstr "Ağ Testini Aç"
+msgstr "Ağ testini aç"
 
 msgid "Show Tip of the Day"
-msgstr "Günün İpucunu Göster"
+msgstr "Günün ipucunu göster"
 
 msgid "Check for Updates"
-msgstr "Güncellemeleri Kontrol Et"
+msgstr "Güncellemeleri kontrol et"
 
 #, c-format, boost-format
 msgid "&About %s"
@@ -6349,7 +6343,7 @@ msgid "Recent files"
 msgstr "Son dosyalar"
 
 msgid "Save Project"
-msgstr "Projeyi Kaydet"
+msgstr "Projeyi kaydet"
 
 msgid "Save current project to file"
 msgstr "Mevcut projeyi dosyaya kaydet"
@@ -6415,13 +6409,13 @@ msgid "Export toolpaths as OBJ"
 msgstr "Takımyollarını OBJ olarak dışa aktar"
 
 msgid "Export Preset Bundle"
-msgstr "Ön Ayar Paketini Dışa Aktar"
+msgstr "Ön ayar paketini dışa aktar"
 
 msgid "Export current configuration to files"
 msgstr "Geçerli yapılandırmayı dosyalara aktar"
 
 msgid "Export"
-msgstr "Dışa Aktar"
+msgstr "Dışa aktar"
 
 msgid "Quit"
 msgstr "Çıkış"
@@ -6478,13 +6472,13 @@ msgid "Deselects all objects"
 msgstr "Tüm nesnelerin seçimini kaldırır"
 
 msgid "Use Perspective View"
-msgstr "Perspektif Görünüm"
+msgstr "Perspektif görünüm"
 
 msgid "Use Orthogonal View"
-msgstr "Ortogonal Görünüm"
+msgstr "Ortogonal görünüm"
 
 msgid "Auto Perspective"
-msgstr "Otomatik Perspektif"
+msgstr "Otomatik perspektif"
 
 msgid "Automatically switch between orthographic and perspective when changing from top/bottom/side views."
 msgstr "Üst/Alt/Yan görünümler arasında geçiş yaparken ortografik ve perspektif arasında otomatik olarak geçiş yapın."
@@ -6496,37 +6490,37 @@ msgid "Show G-code window in Preview scene."
 msgstr "Previce sahnesinde G-kodu penceresini göster."
 
 msgid "Show 3D Navigator"
-msgstr "3D Gezgini Göster"
+msgstr "3D gezgini göster"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "Hazırlama ve Önizleme sahnesinde 3D gezgini göster."
 
 msgid "Show Gridlines"
-msgstr "Kılavuz Çizgilerini Göster"
+msgstr "Kılavuz çizgilerini göster"
 
 msgid "Show Gridlines on plate"
 msgstr "Kılavuz Çizgilerini plaka üzerinde göster"
 
 msgid "Reset Window Layout"
-msgstr "Pencere Düzenini Sıfırla"
+msgstr "Pencere düzenini sıfırla"
 
 msgid "Reset to default window layout"
 msgstr "Varsayılan pencere düzenine sıfırla"
 
 msgid "Show &Labels"
-msgstr "Etiketleri Göster"
+msgstr "Etiketleri göster"
 
 msgid "Show object labels in 3D scene."
 msgstr "3B sahnede nesne etiketlerini göster."
 
 msgid "Show &Overhang"
-msgstr "Çıkıntıyı Göster"
+msgstr "Çıkıntıyı göster"
 
 msgid "Show object overhang highlight in 3D scene."
 msgstr "3B sahnede nesne çıkıntısı vurgusunu göster."
 
 msgid "Show Selected Outline (beta)"
-msgstr "Seçilen Taslağı Göster (Deneysel)"
+msgstr "Seçilen taslağı göster (deneysel)"
 
 msgid "Show outline around selected object in 3D scene."
 msgstr "3D sahnede seçilen nesnenin etrafındaki ana hatları göster."
@@ -6542,13 +6536,11 @@ msgstr "Düzen"
 msgid "View"
 msgstr "Görünüm"
 
-# AI Translated
 msgid "Preset Bundle"
-msgstr "Ön Ayar Paketi"
+msgstr "Ön ayar paketi"
 
-# AI Translated
 msgid "Sync Presets"
-msgstr "Ön Ayarları Eşitle"
+msgstr "Ön ayarları eşitle"
 
 # AI Translated
 msgid "Pull and apply the latest presets from OrcaCloud"
@@ -6590,10 +6582,10 @@ msgid "Cornering calibration"
 msgstr "Viraj kalibrasyonu"
 
 msgid "Input Shaping Frequency"
-msgstr "Input shaping Frekansı"
+msgstr "Input shaping frekansı"
 
 msgid "Input Shaping Damping/zeta factor"
-msgstr "Input shaping Sönümleme/zeta faktörü"
+msgstr "Input shaping sönümleme/zeta faktörü"
 
 msgid "Input Shaping"
 msgstr "Input shaping"
@@ -6601,9 +6593,8 @@ msgstr "Input shaping"
 msgid "VFA"
 msgstr "VFA"
 
-# AI Translated
 msgid "Calibration Guide"
-msgstr "Kalibrasyon Kılavuzu"
+msgstr "Kalibrasyon kılavuzu"
 
 msgid "&Open G-code"
 msgstr "&G kodunu aç"
@@ -8219,9 +8210,8 @@ msgstr "Bu dosyalar birden fazla parçadan oluşan tek bir nesne olarak mı yük
 msgid "An object with multiple parts was detected"
 msgstr "Birden fazla parçaya sahip nesne algılandı"
 
-# AI Translated
 msgid "Auto-Drop"
-msgstr "Otomatik Bırakma"
+msgstr "Otomatik düşür"
 
 #, c-format, boost-format
 msgid "Connected printer is %s. It must match the project preset for printing.\n"
@@ -8296,9 +8286,8 @@ msgstr "Seçilen nesne bölünemedi."
 msgid "Split to Objects"
 msgstr "Nesnelere Ayır"
 
-# AI Translated
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
-msgstr "Z konumunu korumak için Otomatik Bırakma devre dışı bırakılsın mı?\n"
+msgstr "Z konumunu korumak için Otomatik düşürme devre dışı bırakılsın mı?\n"
 
 # AI Translated
 msgid "Object with floating parts was detected"
@@ -8433,7 +8422,7 @@ msgid "Creating a new project"
 msgstr "Yeni bir proje oluşturma"
 
 msgid "Load project"
-msgstr "Projeyi Aç"
+msgstr "Projeyi aç"
 
 msgid ""
 "Failed to save the project.\n"
@@ -8869,10 +8858,10 @@ msgid "Current Association: "
 msgstr "Mevcut Bağlantı: "
 
 msgid "Current Instance"
-msgstr "Mevcut Örnek"
+msgstr "Mevcut Kopya"
 
 msgid "Current Instance Path: "
-msgstr "Mevcut Örnek Yolu: "
+msgstr "Mevcut Kopya Yolu: "
 
 msgid "General"
 msgstr "Genel"
@@ -10708,7 +10697,7 @@ msgid "Reserved keywords found"
 msgstr "Ayrılmış anahtar kelimeler bulundu"
 
 msgid "Setting Overrides"
-msgstr "Ayarların Üzerine Yazma"
+msgstr "Ayarların Üzerine Yaz"
 
 msgid "Basic information"
 msgstr "Temel Bilgiler"
@@ -12227,7 +12216,7 @@ msgid "Group error in manual mode. Please check nozzle count or regroup."
 msgstr "Elle modda gruplama hatası. Lütfen nozul sayısını denetleyin veya yeniden gruplayın."
 
 msgid "Internal Bridge"
-msgstr "İç Köprü"
+msgstr "İç köprü"
 
 msgid "undefined error"
 msgstr "bilinmeyen hata"
@@ -12920,7 +12909,6 @@ msgstr "Çıkıntı bu belirtilen eşiği aştığında, soğutma fanını aşa�
 msgid "External bridge infill direction"
 msgstr "Dış köprü dolgu yönü"
 
-# AI Translated
 #, no-c-format, no-boost-format
 msgid ""
 "External Bridging angle override.\n"
@@ -12937,14 +12925,13 @@ msgstr ""
 "Aksi hâlde verilen açı şuna göre kullanılır:\n"
 " - Mutlak koordinatlar\n"
 " - Mutlak koordinatlar + Model dönüşü: Yönleri modele hizala etkinse\n"
-" - En uygun otomatik açı + bu değer: 'Göreli Köprü Açısı' etkinse\n"
+" - En uygun otomatik açı + bu değer: ‘Göreceli Köprü Açısı' etkinse\n"
 "\n"
 "Sıfır mutlak açı için 180° kullanın."
 
 msgid "Internal bridge infill direction"
 msgstr "İç köprü dolgu yönü"
 
-# AI Translated
 msgid ""
 "Internal Bridging angle override.\n"
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
@@ -12960,13 +12947,12 @@ msgstr ""
 "Aksi hâlde verilen açı şuna göre kullanılır:\n"
 " - Mutlak koordinatlar\n"
 " - Mutlak koordinatlar + Model dönüşü: Yönleri modele hizala etkinse\n"
-" - En uygun otomatik açı + bu değer: 'Göreli Köprü Açısı' etkinse\n"
+" - En uygun otomatik açı + bu değer: 'Göreceli Köprü Açısı' etkinse\n"
 "\n"
 "Sıfır mutlak açı için 180° kullanın."
 
-# AI Translated
 msgid "Relative bridge angle"
-msgstr "Göreli köprü açısı"
+msgstr "Göreceli köprü açısı"
 
 # AI Translated
 msgid "When enabled, the bridge angle values are added to the automatically calculated bridge direction instead of overriding it."
@@ -13413,7 +13399,7 @@ msgstr ""
 "Not: Elde edilen değer ilk katman akış oranından etkilenmez."
 
 msgid "Brim follows compensated outline"
-msgstr "Kenar telafi edilen taslağı takip ediyor"
+msgstr "Kenar toleranslı dış sınırı takip etsin"
 
 # AI Translated
 msgid ""
@@ -13724,13 +13710,13 @@ msgid ""
 msgstr ""
 "Dikey kabuk kalınlığını garanti etmek için eğimli yüzeylerin yakınına katı dolgu ekleyin (üst + alt katı katmanlar)\n"
 "Yok: Hiçbir yere katı dolgu eklenmez. Dikkat: Modelinizin eğimli yüzeyleri varsa bu seçeneği dikkatli kullanın.\n"
-"Yalnızca kritik: Duvarlar için katı dolgu eklemekten kaçının\n"
+"Kritik: Duvarlar için katı dolgu eklemekten kaçının\n"
 "Orta: Yalnızca çok eğimli yüzeyler için katı dolgu ekleyin\n"
 "Hepsi: Tüm uygun eğimli yüzeyler için katı dolgu ekleyin\n"
 "Varsayılan değer Tümü'dür."
 
 msgid "Critical Only"
-msgstr "Yalnızca kritik"
+msgstr "Kritik"
 
 msgid "Moderate"
 msgstr "Orta"
@@ -14247,7 +14233,7 @@ msgid "By First filament"
 msgstr "İlk filamente göre"
 
 msgid "By Highest Temp"
-msgstr "En Yüksek Sıcaklığa Göre"
+msgstr "En yüksek sıcaklığa göre"
 
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "Filament çapı, gcode'da ekstrüzyonu hesaplamak için kullanılır; bu nedenle önemlidir ve doğru olmalıdır."
@@ -14685,10 +14671,10 @@ msgid "Marlin Firmware Junction Deviation (replaces the traditional XY Jerk sett
 msgstr "Marlin Firmware Köşe Sapması (geleneksel XY Sarsıntı ayarının yerini alır)"
 
 msgid "Jerk of outer walls."
-msgstr "Dış duvar JERK değeri."
+msgstr "Dış duvar sarsıntı değeri."
 
 msgid "Jerk of inner walls."
-msgstr "İç duvarlar JERK değeri."
+msgstr "İç duvarlar sarsıntı değeri."
 
 msgid "Jerk for top surface."
 msgstr "Üst yüzey için JERK değeri."
@@ -15721,7 +15707,7 @@ msgid ""
 "If your Marlin 2 printer uses Classic Jerk set this value to 0.)"
 msgstr ""
 "Maksimum bağlantı sapması (M205 J, yalnızca Marlin Aygıt Yazılımı için JD > 0 ise geçerlidir)\n"
-"Marlin 2 yazıcınız Classic Jerk kullanıyorsa bu değeri 0 olarak ayarlayın.)"
+"Marlin 2 yazıcınız Classic sarsıntı kullanıyorsa bu değeri 0 olarak ayarlayın.)"
 
 msgid "Minimum speed for extruding"
 msgstr "Ekstrüzyon için minimum hız"
@@ -16914,7 +16900,7 @@ msgid "This setting only generates supports that begin on the build plate."
 msgstr "Model yüzeyinde destek oluşturmayın, yalnızca baskı plakasında."
 
 msgid "Support critical regions only"
-msgstr "Yalnızca kritik bölgeleri destekleyin"
+msgstr "Kritik bölgeleri destekleyin"
 
 msgid "Only create support for critical regions including sharp tail, cantilever, etc."
 msgstr "Yalnızca keskin kuyruk, konsol vb. gibi kritik bölgeler için destek oluşturun."
@@ -19288,13 +19274,13 @@ msgid ""
 "To test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to 0."
 msgstr ""
 "Marlin 2 Kavşak Sapması tespit edildi:\n"
-"Classic Jerk'i test etmek için Hareket yeteneğinde 'Maksimum Kavşak Sapması'nı 0'a ayarlayın."
+"Classic sarsıntıyı test etmek için Hareket yeteneğinde 'Maksimum Kavşak Sapması'nı 0'a ayarlayın."
 
 msgid ""
 "Marlin 2 Classic Jerk detected:\n"
 "To test Junction Deviation, set 'Maximum Junction Deviation' in Motion ability to a value > 0."
 msgstr ""
-"Marlin 2 Classic Jerk tespit edildi:\n"
+"Marlin 2 Classic sarsıntı tespit edildi:\n"
 "Kavşak Sapmasını test etmek için Hareket yeteneğinde 'Maksimum Kavşak Sapması'nı > 0 değerine ayarlayın."
 
 msgid ""
@@ -19538,7 +19524,7 @@ msgid "Start Test Single-Thread"
 msgstr "Tek İş Parçacığı Testini Başlat"
 
 msgid "Export Log"
-msgstr "Logu Dışa Aktar"
+msgstr "Logu dışa aktar"
 
 msgid "OrcaSlicer Version:"
 msgstr "OrcaSlicer Sürümü:"
@@ -20281,9 +20267,8 @@ msgstr "Sistem klasörü silinemedi..."
 msgid "Failed to determine executable path."
 msgstr "Yürütülebilir dosya yolu belirlenemedi."
 
-# AI Translated
 msgid "Failed to launch a new instance."
-msgstr "Yeni bir örnek başlatılamadı."
+msgstr "Yeni bir kopya başlatılamadı."
 
 # AI Translated
 msgid "log(s)"
