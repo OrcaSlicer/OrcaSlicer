@@ -54,7 +54,8 @@ static std::vector<std::string> s_project_options {
     "flush_multiplier",
     "nozzle_volume_type",
     "filament_map_mode",
-    "filament_map"
+    "filament_map",
+    "coextrusion_color_mapping"
 };
 
 //Orca: add custom as default
@@ -149,12 +150,30 @@ DynamicPrintConfig PresetBundle::construct_full_config(
                 filament_temp_configs[i].update_values_to_printer_extruders(out, filament_options_with_variant, "", "filament_extruder_variant", 1, filament_maps[i]);
         }
 
+        size_t coextrusion_filament_idx = 0;
+        for (size_t i = 0; i < filament_temp_configs.size(); ++i) {
+            const auto *enabled = filament_temp_configs[i].option<ConfigOptionBool>("filament_coextrusion_enable");
+            if (enabled != nullptr && enabled->value) {
+                coextrusion_filament_idx = i;
+                break;
+            }
+        }
+
         // loop through options and apply them to the resulting config.
         std::vector<int> filament_variant_count(num_filaments, 1);
         for (const t_config_option_key &key : in_filament_presets[0].config.keys()) {
             if (key == "compatible_prints" || key == "compatible_printers") continue;
             // Get a destination option.
             ConfigOption *opt_dst = out.option(key, false);
+            // These settings describe one physical co-extruded strand, not
+            // one value per logical 3MF filament. Use the first selected
+            // material profile that explicitly enables co-extrusion.
+            if (key == "filament_coextrusion_enable" || key == "filament_coextrusion_colors" ||
+                key == "filament_coextrusion_color_angles" || key == "filament_coextrusion_filter_distance") {
+                if (const ConfigOption *opt_src = filament_temp_configs[coextrusion_filament_idx].option(key); opt_src != nullptr)
+                    opt_dst->set(opt_src);
+                continue;
+            }
             if (opt_dst->is_scalar()) {
                 // Get an option, do not create if it does not exist.
                 const ConfigOption *opt_src = filament_temp_configs.front().option(key);
@@ -4040,6 +4059,14 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
             if (apply_extruder)
                 filament_temp_configs[i].update_values_to_printer_extruders(out, filament_options_with_variant, "", "filament_extruder_variant", 1, filament_maps[i]);
         }
+        size_t coextrusion_filament_idx = 0;
+        for (size_t i = 0; i < filament_temp_configs.size(); ++i) {
+            const auto *enabled = filament_temp_configs[i].option<ConfigOptionBool>("filament_coextrusion_enable");
+            if (enabled != nullptr && enabled->value) {
+                coextrusion_filament_idx = i;
+                break;
+            }
+        }
 
         // loop through options and apply them to the resulting config.
         std::vector<int> filament_variant_count(num_filaments, 1);
@@ -4048,6 +4075,15 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
 				continue;
             // Get a destination option.
             ConfigOption *opt_dst = out.option(key, false);
+            // Co-extrusion settings belong to one physical strand. Select the
+            // first enabled co-extrusion material even when it is not assigned
+            // to logical color slot one.
+            if (key == "filament_coextrusion_enable" || key == "filament_coextrusion_colors" ||
+                key == "filament_coextrusion_color_angles" || key == "filament_coextrusion_filter_distance") {
+                if (const ConfigOption *opt_src = filament_temp_configs[coextrusion_filament_idx].option(key); opt_src != nullptr)
+                    opt_dst->set(opt_src);
+                continue;
+            }
             if (opt_dst->is_scalar()) {
                 // Get an option, do not create if it does not exist.
                 const ConfigOption *opt_src = filament_temp_configs.front().option(key);

@@ -2033,7 +2033,9 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
 
     m_single_extruder_multi_material = config.single_extruder_multi_material;
     m_result.coextrusion_colors = config.coextrusion_c_axis_enable.value ?
-        config.coextrusion_c_axis_colors.values : std::vector<std::string>{};
+        (config.filament_coextrusion_enable.value ? config.filament_coextrusion_colors.values :
+                                                    config.coextrusion_c_axis_colors.values) :
+        std::vector<std::string>{};
 
     size_t filament_count = config.filament_diameter.values.size();
     m_result.filaments_count = filament_count;
@@ -2166,7 +2168,10 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     m_parser.apply_config(config);
 
     const ConfigOptionBool *coextrusion_enabled = config.option<ConfigOptionBool>("coextrusion_c_axis_enable");
-    const ConfigOptionStrings *coextrusion_colors = config.option<ConfigOptionStrings>("coextrusion_c_axis_colors");
+    const ConfigOptionBool *filament_coextrusion_enabled = config.option<ConfigOptionBool>("filament_coextrusion_enable");
+    const bool use_filament_colors = filament_coextrusion_enabled != nullptr && filament_coextrusion_enabled->value;
+    const ConfigOptionStrings *coextrusion_colors = config.option<ConfigOptionStrings>(
+        use_filament_colors ? "filament_coextrusion_colors" : "coextrusion_c_axis_colors");
     if (coextrusion_enabled != nullptr && coextrusion_enabled->value && coextrusion_colors != nullptr)
         m_result.coextrusion_colors = coextrusion_colors->values;
     else

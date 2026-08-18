@@ -29,6 +29,11 @@ class PartPlate;
 */
 bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* partplate_ref, bool force_pop_up = false);
 
+// Opens the project-level mapping from painted 3MF logical colors to physical
+// co-extrusion sectors. When force is false an already complete mapping is
+// accepted without showing the dialog.
+bool edit_coextrusion_color_mapping(wxWindow *parent, bool force = true);
+
 
 class FilamentMapDialog : public wxDialog
 {

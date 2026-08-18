@@ -5559,8 +5559,17 @@ void GCode::apply_print_config(const PrintConfig &print_config)
 {
     m_writer.apply_print_config(print_config);
     m_config.apply(print_config);
+    // New profiles keep physical sector data with the filament. Retain the
+    // legacy printer-owned fields as a compatibility fallback for projects
+    // created before filament-level co-extrusion profiles existed.
+    if (m_config.filament_coextrusion_enable.value) {
+        m_config.coextrusion_c_axis_colors.values = m_config.filament_coextrusion_colors.values;
+        m_config.coextrusion_c_axis_color_angles.values = m_config.filament_coextrusion_color_angles.values;
+        m_config.coextrusion_c_axis_filter_distance.value = m_config.filament_coextrusion_filter_distance.value;
+    }
     m_coextrusion_filament_to_sector = map_coextrusion_filament_colors_to_sectors(
-        m_config.filament_colour.values, m_config.coextrusion_c_axis_colors.values);
+        m_config.filament_colour.values, m_config.coextrusion_c_axis_colors.values,
+        m_config.coextrusion_color_mapping.values);
     m_coextrusion_last_color_tag = size_t(-1);
     m_coextrusion_cached_layer = nullptr;
     m_coextrusion_surface_distancer.reset();

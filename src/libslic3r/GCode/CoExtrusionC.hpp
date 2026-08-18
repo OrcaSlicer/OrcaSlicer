@@ -36,10 +36,11 @@ private:
 };
 
 // Matches logical filament colors from a painted 3MF to physical color
-// sectors. The result is one-to-one and independent of slot ordering.
-// Unmappable entries contain size_t(-1).
+// sectors. Explicit entries are one-based sector numbers; zero or missing
+// entries use nearest-color matching. Unmappable entries contain size_t(-1).
 std::vector<std::size_t> map_coextrusion_filament_colors_to_sectors(
     const std::vector<std::string> &filament_colors,
-    const std::vector<std::string> &sector_colors);
+    const std::vector<std::string> &sector_colors,
+    const std::vector<int>         &explicit_mapping = {});
 
 } // namespace Slic3r

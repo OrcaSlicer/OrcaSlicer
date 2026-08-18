@@ -77,7 +77,8 @@ std::optional<double> CoExtrusionCController::update_for_segment(double dx,
 
 std::vector<std::size_t> map_coextrusion_filament_colors_to_sectors(
     const std::vector<std::string> &filament_colors,
-    const std::vector<std::string> &sector_colors)
+    const std::vector<std::string> &sector_colors,
+    const std::vector<int>         &explicit_mapping)
 {
     constexpr size_t unmapped = std::numeric_limits<size_t>::max();
     std::vector<size_t> result(filament_colors.size(), unmapped);
@@ -111,10 +112,17 @@ std::vector<std::size_t> map_coextrusion_filament_colors_to_sectors(
     // sector; multiple logical colors may intentionally share one sector.
     std::vector<float> best_distance(filament_colors.size(), std::numeric_limits<float>::infinity());
     for (const Candidate &candidate : candidates) {
+        if (candidate.filament < explicit_mapping.size() && explicit_mapping[candidate.filament] > 0)
+            continue;
         if (candidate.distance_squared < best_distance[candidate.filament]) {
             result[candidate.filament] = candidate.sector;
             best_distance[candidate.filament] = candidate.distance_squared;
         }
+    }
+    for (size_t filament = 0; filament < std::min(filament_colors.size(), explicit_mapping.size()); ++filament) {
+        const int sector = explicit_mapping[filament];
+        if (sector > 0 && size_t(sector) <= sector_colors.size())
+            result[filament] = size_t(sector - 1);
     }
     return result;
 }

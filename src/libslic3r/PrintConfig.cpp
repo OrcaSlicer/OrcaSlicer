@@ -2478,6 +2478,36 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_colour_type", coStrings);
     def->set_default_value(new ConfigOptionStrings{"1"}); // Init as default color
 
+    def = this->add("filament_coextrusion_enable", coBool);
+    def->label = L("Multi-color co-extrusion filament");
+    def->tooltip = L("This filament contains multiple fixed color sectors in its cross-section. A printer with C-axis control can rotate these sectors to reproduce painted 3MF surface colors.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("filament_coextrusion_colors", coStrings);
+    def->label = L("Physical color sector");
+    def->tooltip = L("Color of each physical sector in this co-extruded filament.");
+    def->gui_type = ConfigOptionDef::GUIType::color;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionStrings{"#FF0000", "#00FF00", "#0000FF"});
+
+    def = this->add("filament_coextrusion_color_angles", coFloats);
+    def->label = L("Physical sector center angle");
+    def->tooltip = L("Center angle of each physical color sector when C is zero. Each value corresponds to the physical sector color on the same row.");
+    def->sidetext = L("deg");
+    def->min = 0;
+    def->max = 360;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionFloats({0.0, 120.0, 240.0}));
+
+    def = this->add("filament_coextrusion_filter_distance", coFloat);
+    def->label = L("C-axis filter distance");
+    def->tooltip = L("Distance constant of the circular low-pass filter used for surface-normal and color changes with this filament. Zero disables filtering.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(1.0));
+
     //bbs
     def          = this->add("required_nozzle_HRC", coInts);
     def->label   = L("Required nozzle HRC");
@@ -2492,6 +2522,12 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Filament map to extruder.");
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionInts{1});
+
+    def = this->add("coextrusion_color_mapping", coInts);
+    def->label = L("Co-extrusion color mapping");
+    def->tooltip = L("Maps each logical 3MF color to a physical co-extrusion sector. Zero selects the closest sector color automatically; positive values are one-based sector numbers.");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionInts{});
 
     def = this->add("physical_extruder_map",coInts);
     // internal use only, don't need translation
@@ -10404,21 +10440,27 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
         }
 
     if (cfg.coextrusion_c_axis_enable.value) {
+        const std::vector<std::string> &sector_colors = cfg.filament_coextrusion_enable.value ?
+            cfg.filament_coextrusion_colors.values : cfg.coextrusion_c_axis_colors.values;
+        const std::vector<double> &sector_angles = cfg.filament_coextrusion_enable.value ?
+            cfg.filament_coextrusion_color_angles.values : cfg.coextrusion_c_axis_color_angles.values;
         if (!cfg.single_extruder_multi_material.value) {
             error_message.emplace("coextrusion_c_axis_enable",
                                   L("Co-extrusion C-axis control requires Single Extruder Multi Material mode."));
-        } else if (cfg.coextrusion_c_axis_colors.values.empty()) {
-            error_message.emplace("coextrusion_c_axis_colors",
+        } else if (sector_colors.empty()) {
+            error_message.emplace(cfg.filament_coextrusion_enable.value ? "filament_coextrusion_colors" : "coextrusion_c_axis_colors",
                                   L("Co-extrusion C-axis control requires at least one physical color sector."));
-        } else if (cfg.coextrusion_c_axis_colors.values.size() != cfg.coextrusion_c_axis_color_angles.values.size()) {
-            error_message.emplace("coextrusion_c_axis_colors",
+        } else if (sector_colors.size() != sector_angles.size()) {
+            error_message.emplace(cfg.filament_coextrusion_enable.value ? "filament_coextrusion_colors" : "coextrusion_c_axis_colors",
                                   L("Every physical co-extrusion color sector must have one center angle."));
-        } else if (std::any_of(cfg.coextrusion_c_axis_colors.values.begin(), cfg.coextrusion_c_axis_colors.values.end(),
+        } else if (std::any_of(sector_colors.begin(), sector_colors.end(),
                                [](const std::string &color) { return !can_decode_color(color); })) {
-            error_message.emplace("coextrusion_c_axis_colors", L("Every physical co-extrusion color sector must have a valid color."));
-        } else if (std::any_of(cfg.coextrusion_c_axis_color_angles.values.begin(), cfg.coextrusion_c_axis_color_angles.values.end(),
+            error_message.emplace(cfg.filament_coextrusion_enable.value ? "filament_coextrusion_colors" : "coextrusion_c_axis_colors",
+                                  L("Every physical co-extrusion color sector must have a valid color."));
+        } else if (std::any_of(sector_angles.begin(), sector_angles.end(),
                                [](double angle) { return angle < 0.0 || angle >= 360.0; })) {
-            error_message.emplace("coextrusion_c_axis_color_angles", L("C-axis color sector center angles must be in [0, 360)."));
+            error_message.emplace(cfg.filament_coextrusion_enable.value ? "filament_coextrusion_color_angles" : "coextrusion_c_axis_color_angles",
+                                  L("C-axis color sector center angles must be in [0, 360)."));
         }
     }
 

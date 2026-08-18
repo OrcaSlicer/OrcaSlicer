@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 using namespace Slic3r;
 
@@ -99,6 +100,24 @@ TEST_CASE("More logical colors than physical sectors map many-to-one", "[CoExtru
     REQUIRE(validate(config).count("coextrusion_c_axis_color_angles") == 0);
 }
 
+TEST_CASE("Explicit co-extrusion mapping overrides nearest color and keeps auto entries", "[CoExtrusionC]")
+{
+    const std::vector<size_t> mapping = map_coextrusion_filament_colors_to_sectors(
+        {"#FF0000", "#00FF00", "#0000FF"},
+        {"#FF0000", "#00FF00", "#0000FF"},
+        {3, 0, 1});
+
+    REQUIRE(mapping == std::vector<size_t>{2, 1, 0});
+}
+
+TEST_CASE("Invalid explicit co-extrusion sectors remain safely unmapped", "[CoExtrusionC]")
+{
+    const std::vector<size_t> mapping = map_coextrusion_filament_colors_to_sectors(
+        {"#FF0000"}, {"#FF0000", "#00FF00"}, {4});
+
+    REQUIRE(mapping == std::vector<size_t>{std::numeric_limits<size_t>::max()});
+}
+
 TEST_CASE("G-code preview preserves the physical co-extrusion color sector", "[CoExtrusionC]")
 {
     FullPrintConfig config;
@@ -125,6 +144,21 @@ TEST_CASE("G-code preview preserves the physical co-extrusion color sector", "[C
         if (move.type == EMoveType::Extrude && move.extrusion_role == erExternalPerimeter)
             external_wall_colors.emplace_back(move.coextrusion_color_id);
     REQUIRE(external_wall_colors == std::vector<unsigned char>{2, 0});
+}
+
+TEST_CASE("G-code preview uses filament-owned co-extrusion colors", "[CoExtrusionC]")
+{
+    FullPrintConfig config;
+    config.coextrusion_c_axis_enable.value = true;
+    config.filament_coextrusion_enable.value = true;
+    config.filament_coextrusion_colors.values = {"#FFFFFF", "#00FF00", "#0000FF"};
+    config.coextrusion_c_axis_colors.values = {"#FF0000"};
+
+    GCodeProcessor processor;
+    processor.initialize_result_moves();
+    processor.apply_config(config);
+
+    REQUIRE(processor.get_result().coextrusion_colors == config.filament_coextrusion_colors.values);
 }
 
 TEST_CASE("G-code preview clears an invalid co-extrusion color sector", "[CoExtrusionC]")

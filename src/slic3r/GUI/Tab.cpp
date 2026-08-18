@@ -54,6 +54,7 @@
 #include "BedShapeDialog.hpp"
 #include "libslic3r/GCode/Thumbnails.hpp"
 #include "WipeTowerDialog.hpp"
+#include "FilamentMapDialog.hpp"
 
 #include "DeviceCore/DevManager.h"
 
@@ -3932,6 +3933,46 @@ void TabFilament::build()
             on_value_change(opt_key, value);
         };
 
+        for (const char *key : {"filament_coextrusion_enable", "filament_coextrusion_colors",
+                                "filament_coextrusion_color_angles", "filament_coextrusion_filter_distance"}) {
+            if (!m_config->has(key)) {
+                if (const ConfigOptionDef *option_def = m_config->def()->get(key); option_def != nullptr)
+                    m_config->set_key_value(key, option_def->create_default_option());
+            }
+        }
+
+        optgroup = page->new_optgroup(L("Multi-color co-extrusion"), "param_multi_material");
+        optgroup->append_single_option_line("filament_coextrusion_enable");
+        auto *sector_colors = m_config->option<ConfigOptionStrings>("filament_coextrusion_colors");
+        auto *sector_angles = m_config->option<ConfigOptionFloats>("filament_coextrusion_color_angles");
+        const auto *default_colors = m_config->def()->get("filament_coextrusion_colors")->get_default_value<ConfigOptionStrings>();
+        const auto *default_angles = m_config->def()->get("filament_coextrusion_color_angles")->get_default_value<ConfigOptionFloats>();
+        while (sector_colors->values.size() < default_colors->values.size())
+            sector_colors->values.push_back(default_colors->values[sector_colors->values.size()]);
+        while (sector_angles->values.size() < default_angles->values.size())
+            sector_angles->values.push_back(default_angles->values[sector_angles->values.size()]);
+        const size_t sector_count = std::min(sector_colors->values.size(), sector_angles->values.size());
+        for (size_t sector = 0; sector < sector_count; ++sector) {
+            Option color = optgroup->get_option("filament_coextrusion_colors", int(sector));
+            color.opt.label = format(_u8L("Sector %1% color"), sector + 1);
+            optgroup->append_single_option_line(color);
+
+            Option angle = optgroup->get_option("filament_coextrusion_color_angles", int(sector));
+            angle.opt.label = format(_u8L("Sector %1% center angle"), sector + 1);
+            optgroup->append_single_option_line(angle);
+        }
+        optgroup->append_single_option_line("filament_coextrusion_filter_distance");
+
+        Line mapping_line{L("3MF color mapping"), L("Assign logical colors in the current 3MF project to physical sectors in this filament.")};
+        mapping_line.widget = [](wxWindow *parent) {
+            auto *sizer = new wxBoxSizer(wxHORIZONTAL);
+            auto *button = new wxButton(parent, wxID_ANY, _L("Configure mapping..."));
+            button->Bind(wxEVT_BUTTON, [parent](wxCommandEvent &) { edit_coextrusion_color_mapping(parent, true); });
+            sizer->Add(button, 0, wxALIGN_CENTER_VERTICAL);
+            return sizer;
+        };
+        optgroup->append_line(mapping_line);
+
         // Orca: New section to focus on flow rate and PA to declutter general section
         optgroup = page->new_optgroup(L("Flow ratio and Pressure Advance"), L"param_flow_ratio_and_pressure_advance");
         optgroup->append_single_option_line("pellet_flow_coefficient", "printer_basic_information_advanced#pellet-modded-printer");
@@ -4582,9 +4623,8 @@ void TabPrinter::build_fff()
         // keys yet. Materialize their defaults before constructing indexed
         // fields; otherwise ConfigOptionsGroup would dereference a null option
         // while opening Printer Settings.
-        for (const char *key : {"coextrusion_c_axis_enable", "coextrusion_c_axis_colors",
-                                "coextrusion_c_axis_color_angles", "coextrusion_c_axis_offset",
-                                "coextrusion_c_axis_filter_distance", "coextrusion_c_axis_reverse"}) {
+        for (const char *key : {"coextrusion_c_axis_enable", "coextrusion_c_axis_offset",
+                                "coextrusion_c_axis_reverse"}) {
             if (!m_config->has(key)) {
                 if (const ConfigOptionDef *option_def = m_config->def()->get(key); option_def != nullptr)
                     m_config->set_key_value(key, option_def->create_default_option());
@@ -4593,26 +4633,7 @@ void TabPrinter::build_fff()
 
         optgroup = page->new_optgroup(L("Co-extrusion C-axis"), "param_multi_material");
         optgroup->append_single_option_line("coextrusion_c_axis_enable");
-        auto *sector_colors = m_config->option<ConfigOptionStrings>("coextrusion_c_axis_colors");
-        auto *sector_angles = m_config->option<ConfigOptionFloats>("coextrusion_c_axis_color_angles");
-        const auto *default_colors = m_config->def()->get("coextrusion_c_axis_colors")->get_default_value<ConfigOptionStrings>();
-        const auto *default_angles = m_config->def()->get("coextrusion_c_axis_color_angles")->get_default_value<ConfigOptionFloats>();
-        while (sector_colors->values.size() < default_colors->values.size())
-            sector_colors->values.push_back(default_colors->values[sector_colors->values.size()]);
-        while (sector_angles->values.size() < default_angles->values.size())
-            sector_angles->values.push_back(default_angles->values[sector_angles->values.size()]);
-        const size_t sector_count = std::min(sector_colors->values.size(), sector_angles->values.size());
-        for (size_t sector = 0; sector < sector_count; ++sector) {
-            Option color = optgroup->get_option("coextrusion_c_axis_colors", int(sector));
-            color.opt.label = format(_u8L("Sector %1% color"), sector + 1);
-            optgroup->append_single_option_line(color);
-
-            Option angle = optgroup->get_option("coextrusion_c_axis_color_angles", int(sector));
-            angle.opt.label = format(_u8L("Sector %1% center angle"), sector + 1);
-            optgroup->append_single_option_line(angle);
-        }
         optgroup->append_single_option_line("coextrusion_c_axis_offset");
-        optgroup->append_single_option_line("coextrusion_c_axis_filter_distance");
         optgroup->append_single_option_line("coextrusion_c_axis_reverse");
 
         auto edit_custom_gcode_fn = [this](const t_config_option_key& opt_key) { edit_custom_gcode(opt_key); };
