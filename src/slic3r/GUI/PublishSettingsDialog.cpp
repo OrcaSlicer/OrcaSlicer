@@ -82,7 +82,7 @@ wxString material_title(size_t slot, const PresetBundle* bundle, const DynamicPr
 PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
     : DPIDialog(parent ? parent : static_cast<wxWindow*>(wxGetApp().mainframe),
                 wxID_ANY,
-                _L("Publish"),
+                _L("Publish 3MF..."),
                 wxDefaultPosition,
                 wxDefaultSize,
                 wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER)

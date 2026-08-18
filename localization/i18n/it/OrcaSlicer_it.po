@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-08-18 16:25+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4741,6 +4741,20 @@ msgstr "L'attuale temperatura della camera è superiore alla temperatura di sicu
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "La temperatura minima della camera (%d℃) è superiore alla temperatura target della camera (%d℃). Il valore minimo è la soglia alla quale inizia la stampa mentre la camera continua a riscaldarsi verso il target, quindi non dovrebbe superarlo. Verrà limitato al valore target."
 
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr ""
+
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr ""
+
+msgid "Adjust"
+msgstr "Regola"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4860,6 +4874,12 @@ msgstr ""
 "Sì - Abilita generatore di pareti Arachne\n"
 "No - Disabilita generatore di pareti Arachne e imposta la modalità [Spostamento] della Superficie ruvida"
 
+msgid "Brim ear radius"
+msgstr ""
+
+msgid "Brim width"
+msgstr "Larghezza tesa"
+
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "La modalità spirale funziona solo quando i perimetri sono 1, il supporto è disabilitato, il rilevamento degli ammassi tramite sondaggio è disabilitato, gli strati superiori della shell sono 0, la densità del riempimento sparso è 0 e il tipo di timelapse è tradizionale."
 
@@ -4874,6 +4894,9 @@ msgstr ""
 "Modificare queste impostazioni automaticamente?\n"
 "Sì - Modifica queste impostazioni ed abilita la modalità spirale automaticamente\n"
 "No - Annulla l'attivazione della modalità a spirale"
+
+msgid "N/A"
+msgstr "N/D"
 
 msgid "Printing"
 msgstr "Stampa"
@@ -5114,6 +5137,12 @@ msgstr "Impossibile generare G-code di calibrazione"
 msgid "Calibration error"
 msgstr "Errore di calibrazione"
 
+msgid "This printer is not configured with the hardware this control needs."
+msgstr ""
+
+msgid "This control is not supported on this printer."
+msgstr ""
+
 # AI Translated
 msgid "Network unavailable"
 msgstr "Rete non disponibile"
@@ -5325,9 +5354,6 @@ msgstr "Schema non valido. Utilizzare N, N#K o un elenco separato da virgole con
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Formato non valido. Formato vettoriale previsto: \"%1%\""
-
-msgid "N/A"
-msgstr "N/D"
 
 # AI Translated
 msgid "System agents"
@@ -5973,7 +5999,7 @@ msgstr "Volume:"
 msgid "Size:"
 msgstr "Dimensione:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Sono stati trovati conflitti di percorsi nel G-code sullo strato %d, Z = %.2lfmm. Si prega di separare gli oggetti in conflitto (%s <-> %s)."
 
@@ -6154,6 +6180,9 @@ msgstr "Multi-dispositivo"
 msgid "Project"
 msgstr "Progetto"
 
+msgid "Device (Web)"
+msgstr ""
+
 msgid "Yes"
 msgstr "Sì"
 
@@ -6282,6 +6311,12 @@ msgstr "Salva progetto con nome"
 
 msgid "Save current project as"
 msgstr "Salva progetto corrente con nome"
+
+msgid "Publish"
+msgstr "Pubblica"
+
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Importa 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -8083,6 +8118,12 @@ msgstr "Si prega di confermare che i G-code all'interno di questi profili sono s
 msgid "Customized Preset"
 msgstr "Profilo personalizzato"
 
+msgid "Some published settings could not be applied:"
+msgstr ""
+
+msgid "Some filament slots were changed to match the published materials:"
+msgstr ""
+
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "Il nome dei componenti all'interno del file STEP non è in formato UTF8!"
 
@@ -8244,19 +8285,19 @@ msgstr "La directory per la sostituzione non è stata selezionata"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Sostituito con file 3D dalla directory:\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ Saltato %s: stesso file.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ Saltato %s: il file non esiste.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ Saltato %s: sostituzione fallita.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔ Sostituito %s.\n"
 
@@ -8465,6 +8506,14 @@ msgstr "Salva file elaborato con nome:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "Il file %s è stato inviato alla memoria della stampante e può essere visualizzato da lì."
+
+msgid "Publish 3MF file as:"
+msgstr ""
+
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "Il tipo di ugello non è impostato. Impostare l'ugello e riprovare."
@@ -9381,6 +9430,14 @@ msgstr "Mostra i profili non supportati"
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "Mostra i profili incompatibili/non supportati negli elenchi a discesa di stampante e filamento. Questi profili non possono essere selezionati."
 
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr ""
+
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+
 # AI Translated
 msgid "Experimental Features"
 msgstr "Funzionalità sperimentali"
@@ -9622,9 +9679,6 @@ msgstr "Vai alla pagina web di pubblicazione del modello"
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "Nota: la preparazione può richiedere alcuni minuti. Si prega di avere pazienza."
 
-msgid "Publish"
-msgstr "Pubblica"
-
 msgid "Publish was canceled"
 msgstr "La pubblicazione è stata annullata"
 
@@ -9640,6 +9694,21 @@ msgstr "Caricamento dati"
 msgid "Jump to webpage"
 msgstr "Vai alla pagina web"
 
+msgid "Material"
+msgstr ""
+
+msgid "Publish 3MF..."
+msgstr ""
+
+msgid "Select which settings to embed in the 3MF file"
+msgstr ""
+
+msgid "Full Publish"
+msgstr ""
+
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
 #, c-format, boost-format
 msgid "Save %s as"
 msgstr "Salva %s con nome"
@@ -9650,8 +9719,20 @@ msgstr "Profilo utente"
 msgid "Preset Inside Project"
 msgstr "Profilo interno al progetto"
 
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr ""
+
 msgid "Detach from parent"
 msgstr "Scollega dal genitore"
+
+msgid "Unique preset"
+msgstr ""
+
+msgid "Parent preset"
+msgstr ""
+
+msgid "This preset does not inherit from another preset."
+msgstr ""
 
 msgid "Name is unavailable."
 msgstr "Nome non disponibile."
@@ -10392,22 +10473,6 @@ msgstr "Sei sicuro di voler abilitare questa opzione?"
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "I pattern di riempimento sono generalmente progettati per gestire automaticamente la rotazione per garantire una stampa corretta e ottenere gli effetti desiderati (ad es. Gyroid, Cubico). La rotazione del pattern di riempimento sparso corrente potrebbe portare a un supporto insufficiente. Procedere con cautela e verificare accuratamente eventuali problemi di stampa. Sei sicuro di voler abilitare questa opzione?"
 
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"L'altezza dello strato è troppo piccola.\n"
-"Sarà impostato su min_layer_height\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "L'altezza dello strato supera il limite in Impostazioni stampante -> Estrusore -> Limiti Altezza Strato. Ciò potrebbe causare problemi di qualità di stampa."
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "Regolare automaticamente l'intervallo impostato?\n"
-
-msgid "Adjust"
-msgstr "Regola"
-
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "Funzionalità sperimentale: ritrazione e taglio del filamento a una distanza maggiore durante i cambi di filamento per ridurre al minimo lo spurgo. Sebbene possa ridurre notevolmente lo spurgo, può anche aumentare il rischio di intasamento degli ugelli o di altre complicazioni di stampa."
 
@@ -10603,6 +10668,9 @@ msgstr "Parole chiave riservate trovate"
 msgid "Setting Overrides"
 msgstr "Sovrascrivi impostazioni"
 
+msgid "Retraction when switching material"
+msgstr "Retrazione quando si cambia materiale"
+
 msgid "Basic information"
 msgstr "Informazioni di base"
 
@@ -10734,6 +10802,12 @@ msgstr "Profili di processo compatibili"
 msgid "Printable space"
 msgstr "Spazio di stampa"
 
+msgid "Printer Agent"
+msgstr "Agente stampante"
+
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "Selezionare l'implementazione dell'agente di rete per la comunicazione con la stampante. Gli agenti disponibili vengono registrati all'avvio."
+
 #. TRN: The first argument is the parameter's name; the second argument is its value.
 #, boost-format
 msgid "Invalid value provided for parameter %1%: %2%"
@@ -10858,9 +10932,6 @@ msgstr "Limiti altezza strati"
 
 msgid "Z-Hop"
 msgstr "Sollevamento Z"
-
-msgid "Retraction when switching material"
-msgstr "Retrazione quando si cambia materiale"
 
 # AI Translated
 msgid ""
@@ -12221,6 +12292,9 @@ msgstr " è troppo vicino all'area di esclusione e si verificheranno collisioni.
 msgid " is too close to clumping detection area, and collisions will be caused.\n"
 msgstr " è troppo vicino all'area di rilevamento ammassi e verranno causate collisioni.\n"
 
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr ""
+
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "Le temperature degli ugelli selezionate sono incompatibili. La temperatura dell'ugello per ciascun filamento deve rientrare nell'intervallo di temperatura consigliato per gli altri filamenti. In caso contrario, potrebbero verificarsi ostruzioni degli ugelli o danni alla stampante."
 
@@ -12549,9 +12623,6 @@ msgstr "Usa 3MF invece di G-code"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Abilita questa opzione se la stampante accetta un file 3MF come processo di stampa. Quando è abilitata, Orca Slicer invia il file elaborato come .gcode.3mf, invece di un semplice file .gcode."
-
-msgid "Printer Agent"
-msgstr "Agente stampante"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "Selezionare l'implementazione dell'agente di rete per la comunicazione con la stampante."
@@ -13239,9 +13310,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "Velocità dei ponti interni. Se il valore è espresso in percentuale, verrà calcolato in base a bridge_speed. Il valore predefinito è 150%."
 
-msgid "Brim width"
-msgstr "Larghezza tesa"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Questa è la distanza tra il modello e la linea più esterna della tesa."
 
@@ -13320,6 +13388,12 @@ msgid ""
 msgstr ""
 "La geometria verrà decimata prima di rilevare gli spigoli vivi. Questo parametro indica la lunghezza minima dello scostamento per la decimazione.\n"
 "0 per disattivare."
+
+msgid "Brim ears outer only"
+msgstr ""
+
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr ""
 
 msgid "upward compatible machine"
 msgstr "macchina compatibile con versioni successive"
@@ -14495,6 +14569,12 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Giroide"
 
+msgid "Sparse infill smooth factor"
+msgstr ""
+
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original right-angle path, while 100% produces the largest possible curves between adjacent infill lines. Currently applies only to the Hilbert Curve."
+msgstr ""
+
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Accelerazione del riempimento della superficie superiore. L'utilizzo di un valore inferiore può migliorare la qualità della superficie superiore."
 
@@ -15038,6 +15118,12 @@ msgstr "Con quale tipo di G-code la stampante è compatibile."
 
 msgid "Klipper"
 msgstr "Klipper"
+
+msgid "Skip G-code config block"
+msgstr ""
+
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr ""
 
 msgid "Pellet Modded Printer"
 msgstr "Stampante modificata per granuli"
@@ -16098,6 +16184,12 @@ msgstr "Retrazione lunga al cambio estrusore"
 msgid "Retraction distance when extruder change"
 msgstr "Distanza di retrazione al cambio estrusore"
 
+msgid "Retraction Length (Toolchange)"
+msgstr ""
+
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr ""
+
 msgid "Z-hop height"
 msgstr "Altezza sollevamento Z"
 
@@ -16194,6 +16286,9 @@ msgstr "Lunghezza aggiuntiva in ripresa"
 
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "Quando la retrazione è compensata dopo uno spostamento, l'estrusore espelle questa quantità aggiuntiva di filamento. Questa impostazione è raramente necessaria."
+
+msgid "Extra length on restart (Toolchange)"
+msgstr ""
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Quando la retrazione è compensata dopo un cambio di testina, l'estrusore espelle questa quantità aggiuntiva di filamento."
@@ -16611,6 +16706,12 @@ msgstr "Cambio utensile sulla torre di spurgo"
 # AI Translated
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "Forza la testa di stampa a spostarsi sulla torre di spurgo prima di emettere il comando di cambio utensile (Tx). Rilevante solo per le stampanti multi-estrusore (multi-testa) che utilizzano una torre di spurgo di Tipo 2. Per impostazione predefinita Orca salta lo spostamento sulle macchine multi-testa perché il firmware gestisce il cambio della testa, il che può far sì che il comando Tx venga emesso sopra la parte stampata. Abilita questa opzione se desideri che il cambio utensile venga sempre emesso sopra la torre di spurgo."
+
+msgid "Wait for temperature on wipe tower"
+msgstr ""
+
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr ""
 
 msgid "No sparse layers (beta)"
 msgstr "Nessuno strato sparso (beta)"
@@ -19865,9 +19966,6 @@ msgstr "Stampante fisica"
 msgid "Print Host upload"
 msgstr "Caricamento host di stampa"
 
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "Selezionare l'implementazione dell'agente di rete per la comunicazione con la stampante. Gli agenti disponibili vengono registrati all'avvio."
-
 # AI Translated
 msgid "Select a Flashforge printer"
 msgstr "Seleziona una stampante Flashforge"
@@ -20810,9 +20908,6 @@ msgstr "Si è verificato un problema imprevisto durante il tentativo di accesso.
 msgid "User canceled."
 msgstr "Utente rimosso."
 
-msgid "Head diameter"
-msgstr "Diametro testa"
-
 msgid "Max angle"
 msgstr "Angolo massimo"
 
@@ -21630,6 +21725,22 @@ msgid ""
 msgstr ""
 "Evita le deformazioni\n"
 "Sapevi che quando si stampano materiali soggetti a deformazioni come l'ABS, aumentare in modo appropriato la temperatura del piano riscaldato può ridurre la probabilità di deformazione?"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "L'altezza dello strato è troppo piccola.\n"
+#~ "Sarà impostato su min_layer_height\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "L'altezza dello strato supera il limite in Impostazioni stampante -> Estrusore -> Limiti Altezza Strato. Ciò potrebbe causare problemi di qualità di stampa."
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "Regolare automaticamente l'intervallo impostato?\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "Diametro testa"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "Ordine di stampa all'interno di un singolo strato."

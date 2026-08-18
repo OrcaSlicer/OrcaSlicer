@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-08-18 16:25+0800\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -4720,6 +4720,20 @@ msgstr "อุณหภูมิห้องพิมพ์ปัจจุบั
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "อุณหภูมิห้องพิมพ์ต่ำสุด (%d℃) สูงกว่าอุณหภูมิห้องพิมพ์เป้าหมาย (%d℃) ค่าต่ำสุดคือเกณฑ์ที่การพิมพ์จะเริ่มต้นในขณะที่ห้องพิมพ์ยังคงร้อนขึ้นไปสู่เป้าหมาย จึงไม่ควรเกินค่าเป้าหมาย ระบบจะจำกัดค่าให้เท่ากับเป้าหมาย"
 
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr ""
+
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr ""
+
+msgid "Adjust"
+msgstr "ปรับ"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4840,6 +4854,12 @@ msgstr ""
 "ใช่ - เปิดใช้งาน Arachne Wall Generator\n"
 "ไม่ - ปิดการใช้งาน Arachne Wall Generator และตั้งค่าโหมด [Displacement] ของ Fuzzy Skin"
 
+msgid "Brim ear radius"
+msgstr ""
+
+msgid "Brim width"
+msgstr "ความกว้าง ขอบยึดชิ้นงาน"
+
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "โหมดเกลียวจะทำงานเฉพาะเมื่อลูปติดผนังเป็น 1, ปิดใช้งานส่วนรองรับ, การตรวจจับการจับตัวเป็นก้อนโดยการตรวจวัดถูกปิดใช้งาน, ชั้นเปลือกด้านบนเป็น 0, ความหนาแน่นของไส้ในแบบกระจายเป็น 0 และประเภทไทม์แลปส์เป็นแบบดั้งเดิม"
 
@@ -4854,6 +4874,9 @@ msgstr ""
 "เปลี่ยนการตั้งค่าเหล่านี้โดยอัตโนมัติหรือไม่\n"
 "ใช่ - เปลี่ยนการตั้งค่าเหล่านี้และเปิดใช้งานโหมดเกลียวโดยอัตโนมัติ\n"
 "ไม่ - เลิกใช้โหมดเกลียวในครั้งนี้"
+
+msgid "N/A"
+msgstr "ไม่มี"
 
 msgid "Printing"
 msgstr "กำลังพิมพ์"
@@ -5094,6 +5117,12 @@ msgstr "ไม่สามารถสร้าง cali G-code"
 msgid "Calibration error"
 msgstr "ข้อผิดพลาดในการสอบเทียบ"
 
+msgid "This printer is not configured with the hardware this control needs."
+msgstr ""
+
+msgid "This control is not supported on this printer."
+msgstr ""
+
 # AI Translated
 msgid "Network unavailable"
 msgstr "เครือข่ายไม่พร้อมใช้งาน"
@@ -5305,9 +5334,6 @@ msgstr "รูปแบบไม่ถูกต้อง ใช้ N, N#K หร
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "รูปแบบไม่ถูกต้อง รูปแบบเวกเตอร์ที่ต้องการ: \"%1%\""
-
-msgid "N/A"
-msgstr "ไม่มี"
 
 # AI Translated
 msgid "System agents"
@@ -5952,7 +5978,7 @@ msgstr "ปริมาณ:"
 msgid "Size:"
 msgstr "ขนาด:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "พบความขัดแย้งของเส้นทางรหัส G ที่เลเยอร์ %d, Z = %.2lfmm โปรดแยกวัตถุที่ขัดแย้งกันให้ไกลออกไป (%s <-> %s)"
 
@@ -6133,6 +6159,9 @@ msgstr "หลายอุปกรณ์"
 msgid "Project"
 msgstr "โปรเจกต์"
 
+msgid "Device (Web)"
+msgstr ""
+
 msgid "Yes"
 msgstr "ใช่"
 
@@ -6259,6 +6288,12 @@ msgstr "บันทึกโปรเจกต์เป็น"
 
 msgid "Save current project as"
 msgstr "บันทึกโครงการปัจจุบันเป็น"
+
+msgid "Publish"
+msgstr "เผยแพร่"
+
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "นำเข้า 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -8038,6 +8073,12 @@ msgstr "โปรดยืนยันว่ารหัส G ภายในค
 msgid "Customized Preset"
 msgstr "ค่าที่ตั้งไว้ล่วงหน้าที่กำหนดเอง"
 
+msgid "Some published settings could not be applied:"
+msgstr ""
+
+msgid "Some filament slots were changed to match the published materials:"
+msgstr ""
+
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "ชื่อของส่วนประกอบภายในไฟล์ STEP ไม่ใช่รูปแบบ UTF8!"
 
@@ -8199,19 +8240,19 @@ msgstr "ไม่ได้เลือกไดเรกทอรีสำหร
 msgid "Replaced with 3D files from directory:\n"
 msgstr "แทนที่ด้วยไฟล์ 3D จากไดเรกทอรี:\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ ข้าม %s: ไฟล์เดียวกัน\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ ข้าม %s: ไม่มีไฟล์อยู่\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ ข้าม %s: ไม่สามารถแทนที่ได้\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔แทนที่ %s\n"
 
@@ -8420,6 +8461,14 @@ msgstr "บันทึกไฟล์ที่สไลซ์เป็น:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "ไฟล์ %s ถูกส่งไปยังพื้นที่เก็บข้อมูลของเครื่องพิมพ์แล้ว และสามารถดูได้บนเครื่องพิมพ์"
+
+msgid "Publish 3MF file as:"
+msgstr ""
+
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "ไม่ได้ตั้งค่าประเภทหัวฉีด โปรดตั้งหัวฉีดแล้วลองอีกครั้ง"
@@ -9299,6 +9348,14 @@ msgstr "แสดงค่าที่ตั้งไว้ล่วงหน้
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "แสดงค่าที่ตั้งไว้ล่วงหน้าที่ไม่เข้ากันหรือไม่รองรับในรายการเลือกเครื่องพิมพ์และเส้นพลาสติก ไม่สามารถเลือกค่าที่ตั้งไว้ล่วงหน้าเหล่านี้ได้"
 
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr ""
+
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+
 # AI Translated
 msgid "Experimental Features"
 msgstr "ฟีเจอร์ทดลอง"
@@ -9535,9 +9592,6 @@ msgstr "ข้ามไปที่โมเดลเผยแพร่หน้
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "หมายเหตุ: การเตรียมการอาจใช้เวลาหลายนาที กรุณาอดทน."
 
-msgid "Publish"
-msgstr "เผยแพร่"
-
 msgid "Publish was canceled"
 msgstr "การเผยแพร่ถูกยกเลิก"
 
@@ -9553,6 +9607,21 @@ msgstr "กำลังอัพโหลดข้อมูล"
 msgid "Jump to webpage"
 msgstr "ข้ามไปที่หน้าเว็บ"
 
+msgid "Material"
+msgstr ""
+
+msgid "Publish 3MF..."
+msgstr ""
+
+msgid "Select which settings to embed in the 3MF file"
+msgstr ""
+
+msgid "Full Publish"
+msgstr ""
+
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
 #, c-format, boost-format
 msgid "Save %s as"
 msgstr "บันทึก %s เป็น"
@@ -9563,8 +9632,20 @@ msgstr "พรีเซ็ตผู้ใช้"
 msgid "Preset Inside Project"
 msgstr "พรีเซ็ตภายในโปรเจ็กต์"
 
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr ""
+
 msgid "Detach from parent"
 msgstr "แยกออกจากพรีเซ็ตแม่"
+
+msgid "Unique preset"
+msgstr ""
+
+msgid "Parent preset"
+msgstr ""
+
+msgid "This preset does not inherit from another preset."
+msgstr ""
 
 msgid "Name is unavailable."
 msgstr "ชื่อไม่พร้อมใช้งาน"
@@ -10305,22 +10386,6 @@ msgstr "คุณแน่ใจหรือไม่ว่าต้องกา
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "โดยทั่วไปรูปแบบไส้ในได้รับการออกแบบให้รองรับการหมุนโดยอัตโนมัติเพื่อให้แน่ใจว่าการพิมพ์ถูกต้องและบรรลุผลตามที่ต้องการ (เช่น Gyroid, ลูกบาศก์) การหมุนรูปแบบ ไส้ใน แบบกระจัดกระจายในปัจจุบันอาจทำให้ส่วนรองรับไม่เพียงพอ โปรดดำเนินการด้วยความระมัดระวังและตรวจสอบปัญหาการพิมพ์ที่อาจเกิดขึ้นอย่างละเอียด คุณแน่ใจหรือไม่ว่าต้องการเปิดใช้งานตัวเลือกนี้"
 
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"ความสูงของเลเยอร์น้อยเกินไป\n"
-"มันจะตั้งค่าเป็น min_layer_height\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "ความสูงของเลเยอร์เกินขีดจำกัดในการตั้งค่าเครื่องพิมพ์ -> ชุดดันเส้น -> ขีดจำกัดความสูงของเลเยอร์ ซึ่งอาจทำให้เกิดปัญหาคุณภาพการพิมพ์"
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "ปรับเป็นช่วงที่ตั้งไว้อัตโนมัติ?\n"
-
-msgid "Adjust"
-msgstr "ปรับ"
-
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "คุณลักษณะการทดลอง: การดึงกลับและตัดเส้นพลาสติกออกในระยะห่างที่มากขึ้นระหว่างการเปลี่ยนเส้นพลาสติกเพื่อลดการไล่เส้น แม้ว่าจะสามารถลดการไล่เส้นได้อย่างเห็นได้ชัด แต่ก็อาจเพิ่มความเสี่ยงของการอุดตันของหัวฉีดหรือภาวะแทรกซ้อนในการพิมพ์อื่นๆ อีกด้วย"
 
@@ -10513,6 +10578,9 @@ msgstr "พบคีย์เวิร์ดที่สงวนไว้"
 msgid "Setting Overrides"
 msgstr "การตั้งค่าการแทนที่"
 
+msgid "Retraction when switching material"
+msgstr "การร่นกลับเมื่อเปลี่ยนวัสดุ"
+
 msgid "Basic information"
 msgstr "ข้อมูลพื้นฐาน"
 
@@ -10642,6 +10710,12 @@ msgstr "โปรไฟล์กระบวนการที่เข้าก
 msgid "Printable space"
 msgstr "พื้นที่ที่สามารถพิมพ์ได้"
 
+msgid "Printer Agent"
+msgstr "ตัวแทนเครื่องพิมพ์"
+
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "เลือกการใช้งานตัวแทนเครือข่ายสำหรับการสื่อสารของเครื่องพิมพ์ ตัวแทนที่มีอยู่จะได้รับการลงทะเบียนเมื่อเริ่มต้น"
+
 #. TRN: The first argument is the parameter's name; the second argument is its value.
 #, boost-format
 msgid "Invalid value provided for parameter %1%: %2%"
@@ -10766,9 +10840,6 @@ msgstr "การจำกัดความสูงของเลเยอร
 
 msgid "Z-Hop"
 msgstr "ยกแกน Z"
-
-msgid "Retraction when switching material"
-msgstr "การร่นกลับเมื่อเปลี่ยนวัสดุ"
 
 msgid ""
 "The Retract before wipe option could be only 100% when using the Firmware Retraction mode.\n"
@@ -12111,6 +12182,9 @@ msgstr "อยู่ใกล้เขตหวงห้ามมากเกิ
 msgid " is too close to clumping detection area, and collisions will be caused.\n"
 msgstr "อยู่ใกล้พื้นที่การตรวจจับการจับตัวกันมากเกินไป และจะเกิดการชนกัน\n"
 
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr ""
+
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "อุณหภูมิหัวฉีดที่เลือกเข้ากันไม่ได้ อุณหภูมิหัวฉีดของเส้นพลาสติกแต่ละเส้นต้องอยู่ในช่วงอุณหภูมิหัวฉีดที่แนะนำของเส้นพลาสติกอื่นๆ มิฉะนั้นอาจเกิดการอุดตันของหัวฉีดหรือเครื่องพิมพ์เสียหายได้"
 
@@ -12425,9 +12499,6 @@ msgstr "ใช้ 3MF แทน G-code"
 
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "เปิดใช้งานหากเครื่องพิมพ์รับไฟล์ 3MF เป็นงานพิมพ์ เมื่อเปิดใช้งาน OrcaSlicer จะส่งไฟล์ที่สไลซ์แล้วเป็น .gcode.3mf แทนไฟล์ .gcode ธรรมดา"
-
-msgid "Printer Agent"
-msgstr "ตัวแทนเครื่องพิมพ์"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "เลือกการใช้งานตัวแทนเครือข่ายสำหรับการสื่อสารของเครื่องพิมพ์"
@@ -13103,9 +13174,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "ความเร็วของสะพานภายใน หากค่าแสดงเป็นเปอร์เซ็นต์ ค่าดังกล่าวจะถูกคำนวณตาม bridge_speed ค่าเริ่มต้นคือ 150%"
 
-msgid "Brim width"
-msgstr "ความกว้าง ขอบยึดชิ้นงาน"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "ระยะห่างจากแบบจำลองถึงเส้นขอบยึดชิ้นงานด้านนอกสุด"
 
@@ -13184,6 +13252,12 @@ msgid ""
 msgstr ""
 "รูปทรงจะถูกทำลายก่อนที่จะตรวจจับมุมแหลม พารามิเตอร์นี้ระบุความยาวขั้นต่ำของการเบี่ยงเบนสำหรับการทำลาย\n"
 "0 เพื่อปิดการใช้งาน"
+
+msgid "Brim ears outer only"
+msgstr ""
+
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr ""
 
 msgid "upward compatible machine"
 msgstr "เครื่องที่รองรับขึ้นไป"
@@ -14351,6 +14425,12 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "ไจรอยด์"
 
+msgid "Sparse infill smooth factor"
+msgstr ""
+
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original right-angle path, while 100% produces the largest possible curves between adjacent infill lines. Currently applies only to the Hilbert Curve."
+msgstr ""
+
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "ความเร่งของไส้ในพื้นผิวด้านบน การใช้ค่าที่ต่ำกว่าอาจปรับปรุงคุณภาพพื้นผิวด้านบนได้"
 
@@ -14892,6 +14972,12 @@ msgstr "เครื่องพิมพ์ G-code ชนิดใดที่�
 
 msgid "Klipper"
 msgstr "คลิปเปอร์"
+
+msgid "Skip G-code config block"
+msgstr ""
+
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr ""
 
 msgid "Pellet Modded Printer"
 msgstr "เครื่องพิมพ์ Modded เม็ด"
@@ -15945,6 +16031,12 @@ msgstr "การถอยกลับนานเมื่อเปลี่ย
 msgid "Retraction distance when extruder change"
 msgstr "ระยะการดึงกลับเมื่อชุดดันเส้นเปลี่ยน"
 
+msgid "Retraction Length (Toolchange)"
+msgstr ""
+
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr ""
+
 msgid "Z-hop height"
 msgstr "ความสูงยกแกน Z"
 
@@ -16038,6 +16130,9 @@ msgstr "ความยาวพิเศษเมื่อรีสตาร์
 
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "เมื่อชดเชยการดึงกลับหลังการเคลื่อนที่เดินทาง ชุดดันเส้นจะดันเส้นพลาสติกเพิ่มเติมในปริมาณนี้ การตั้งค่านี้ไม่ค่อยจำเป็น"
+
+msgid "Extra length on restart (Toolchange)"
+msgstr ""
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "เมื่อชดเชยการดึงกลับหลังเปลี่ยนเครื่องมือ ชุดดันเส้นจะดันเส้นพลาสติกเพิ่มเติมในปริมาณนี้"
@@ -16450,6 +16545,12 @@ msgstr "การเปลี่ยนเครื่องมือบน Wipe 
 
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "บังคับให้หัวเครื่องมือเคลื่อนที่ไปที่ Wipe Tower ก่อนที่จะออกคำสั่งเปลี่ยนเครื่องมือ (Tx) เกี่ยวข้องเฉพาะกับเครื่องพิมพ์ที่มีชุดดันเส้นหลายเครื่อง (หลายหัวเครื่องมือ) ที่ใช้แผ่นเช็ดแบบ Type 2 ตามค่าเริ่มต้น Orca จะข้ามการเดินทางบนเครื่องที่มีหัวเครื่องมือหลายหัวเนื่องจากเฟิร์มแวร์จัดการการสลับหัว ซึ่งอาจส่งผลให้มีการออกคำสั่ง Tx เหนือส่วนที่พิมพ์ เปิดใช้งานตัวเลือกนี้หากคุณต้องการให้ทำการเปลี่ยนแปลงเครื่องมือเหนือ Wipe Tower แทนเสมอ"
+
+msgid "Wait for temperature on wipe tower"
+msgstr ""
+
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr ""
 
 msgid "No sparse layers (beta)"
 msgstr "ไม่มีชั้นกระจัดกระจาย (เบต้า)"
@@ -19681,9 +19782,6 @@ msgstr "เครื่องพิมพ์ทางกายภาพ"
 msgid "Print Host upload"
 msgstr "อัพโหลดโฮสต์การพิมพ์"
 
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "เลือกการใช้งานตัวแทนเครือข่ายสำหรับการสื่อสารของเครื่องพิมพ์ ตัวแทนที่มีอยู่จะได้รับการลงทะเบียนเมื่อเริ่มต้น"
-
 msgid "Select a Flashforge printer"
 msgstr "เลือกเครื่องพิมพ์ Flashforge"
 
@@ -20575,9 +20673,6 @@ msgstr "เกิดสิ่งที่ไม่คาดคิดขณะพ
 msgid "User canceled."
 msgstr "ผู้ใช้ยกเลิก"
 
-msgid "Head diameter"
-msgstr "เส้นผ่านศูนย์กลางหัว"
-
 msgid "Max angle"
 msgstr "มุมสูงสุด"
 
@@ -21360,6 +21455,22 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "ความสูงของเลเยอร์น้อยเกินไป\n"
+#~ "มันจะตั้งค่าเป็น min_layer_height\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "ความสูงของเลเยอร์เกินขีดจำกัดในการตั้งค่าเครื่องพิมพ์ -> ชุดดันเส้น -> ขีดจำกัดความสูงของเลเยอร์ ซึ่งอาจทำให้เกิดปัญหาคุณภาพการพิมพ์"
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "ปรับเป็นช่วงที่ตั้งไว้อัตโนมัติ?\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "เส้นผ่านศูนย์กลางหัว"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "สั่งพิมพ์ภายในชั้นเดียว"

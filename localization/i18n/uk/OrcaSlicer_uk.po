@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-08-18 16:25+0800\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -4716,6 +4716,20 @@ msgstr "Поточна температура камери вища, ніж бе
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "Мінімальна температура камери (%d℃) вища за цільову температуру камери (%d℃). Мінімальне значення — це поріг, за якого починається друк, поки камера продовжує нагріватися до цільової температури, тому воно не повинно її перевищувати. Значення буде обмежено цільовим."
 
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr ""
+
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr ""
+
+msgid "Adjust"
+msgstr "Налаштувати"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4839,6 +4853,12 @@ msgstr ""
 "Так - Увімкнути генератор стінок Arachne\n"
 "Ні  - Вимкнути генератор стінок Arachne і встановити режим [Зміщення] для шорсткої поверхні"
 
+msgid "Brim ear radius"
+msgstr ""
+
+msgid "Brim width"
+msgstr "Ширина кайми"
+
 # AI Translated
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "Спіральний режим працює лише тоді, коли кількість стінок дорівнює 1, підтримки вимкнено, виявлення налипання зондуванням вимкнено, кількість верхніх шарів оболонки дорівнює 0, щільність часткового заповнення дорівнює 0, а тип таймлапсу — традиційний."
@@ -4854,6 +4874,9 @@ msgstr ""
 "Змінити ці налаштування автоматично?\n"
 "Так – змінити ці налаштування та автоматично включити режим спіральна ваза\n"
 "Ні - цього разу відмовитися від використання режиму спіральна ваза"
+
+msgid "N/A"
+msgstr "Н/Д"
 
 msgid "Printing"
 msgstr "Друк"
@@ -5104,6 +5127,12 @@ msgstr "Не вдалося згенерувати калібрувальний 
 msgid "Calibration error"
 msgstr "Помилка калібрування"
 
+msgid "This printer is not configured with the hardware this control needs."
+msgstr ""
+
+msgid "This control is not supported on this printer."
+msgstr ""
+
 # AI Translated
 msgid "Network unavailable"
 msgstr "Мережа недоступна"
@@ -5317,9 +5346,6 @@ msgstr "Некоректний шаблон. Використовуйте N, N#K
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Невірний формат. Очікуваний векторний формат: \"%1%\""
-
-msgid "N/A"
-msgstr "Н/Д"
 
 # AI Translated
 msgid "System agents"
@@ -5978,7 +6004,7 @@ msgid "Size:"
 msgstr "Розмір:"
 
 # AI Translated
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Виявлено конфлікти шляхів G-коду на шарі %d, Z = %.2lf мм. Будь ласка, рознесіть конфліктуючі обʼєкти далі один від одного (%s <-> %s)."
 
@@ -6170,6 +6196,9 @@ msgstr "Багато пристроїв"
 msgid "Project"
 msgstr "Проєкт"
 
+msgid "Device (Web)"
+msgstr ""
+
 msgid "Yes"
 msgstr "Так"
 
@@ -6296,6 +6325,12 @@ msgstr "Зберегти проєкт як"
 
 msgid "Save current project as"
 msgstr "Зберегти поточний проєкт як"
+
+msgid "Publish"
+msgstr "Публікувати"
+
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Імпорт 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -8143,6 +8178,12 @@ msgstr "Будь ласка, підтвердьте, що G-коди в цих �
 msgid "Customized Preset"
 msgstr "Пристосований пресет"
 
+msgid "Some published settings could not be applied:"
+msgstr ""
+
+msgid "Some filament slots were changed to match the published materials:"
+msgstr ""
+
 # AI Translated
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "Назви компонентів усередині файлу STEP не у форматі UTF8!"
@@ -8306,19 +8347,19 @@ msgstr "Каталог для заміни не вибрано"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Замінено 3D-файлами з каталогу:\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ Пропущено %s: той самий файл.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ Пропущено %s: файл не існує.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ Пропущено %s: не вдалося замінити.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔ Замінено %s.\n"
 
@@ -8530,6 +8571,14 @@ msgstr "Зберегти нарізаний файл як:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "Файл %s надіслано до памʼяті принтера та доступний для перегляду на принтері."
+
+msgid "Publish 3MF file as:"
+msgstr ""
+
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "Тип сопла не встановлений. Будь ласка, оберіть сопло та спробуйте ще раз."
@@ -9446,6 +9495,14 @@ msgstr "Показати непідтримувані пресети"
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "Показати несумісні/непідтримувані пресети у випадаючому списку принтера і філаменту. Ці пресети не можна вибрати."
 
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr ""
+
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+
 msgid "Experimental Features"
 msgstr "Експериментальні функції"
 
@@ -9682,9 +9739,6 @@ msgstr "Перейти на веб-сторінку публікації мод�
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "Примітка. Підготовка може тривати кілька хвилин. Будь ласка, будьте терплячі."
 
-msgid "Publish"
-msgstr "Публікувати"
-
 msgid "Publish was canceled"
 msgstr "Публікація скасована"
 
@@ -9700,6 +9754,21 @@ msgstr "Відвантаження даних"
 msgid "Jump to webpage"
 msgstr "Перейти на вебсторінку"
 
+msgid "Material"
+msgstr ""
+
+msgid "Publish 3MF..."
+msgstr ""
+
+msgid "Select which settings to embed in the 3MF file"
+msgstr ""
+
+msgid "Full Publish"
+msgstr ""
+
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
 #, c-format, boost-format
 msgid "Save %s as"
 msgstr "Зберегти %s як"
@@ -9710,9 +9779,21 @@ msgstr "Пресети користувача"
 msgid "Preset Inside Project"
 msgstr "Налаштування проекту всередині"
 
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr ""
+
 # AI Translated
 msgid "Detach from parent"
 msgstr "Відʼєднати від батьківського"
+
+msgid "Unique preset"
+msgstr ""
+
+msgid "Parent preset"
+msgstr ""
+
+msgid "This preset does not inherit from another preset."
+msgstr ""
 
 msgid "Name is unavailable."
 msgstr "Назва недоступна."
@@ -10492,22 +10573,6 @@ msgstr "Ви впевнені, що хочете ввімкнути цю опц�
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "Шаблони заповнення зазвичай розроблені так, щоб автоматично враховувати обертання, забезпечувати належний друк і досягати задуманого ефекту (наприклад, Гіроїд, Кубічний). Обертання поточного шаблону часткового заповнення може призвести до недостатньої підтримки. Дійте обережно та ретельно перевіряйте можливі проблеми друку. Ви впевнені, що хочете увімкнути цю опцію?"
 
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"Висота шару занадто мала.\n"
-"Буде встановлено значення min_layer_height\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "Висота шару перевищує ліміт у Налаштуваннях принтера -> Екструдер -> Ліміти висоти шару, це може призвести до проблем з якістю друку."
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "Автоматично налаштувати на встановлений діапазон?\n"
-
-msgid "Adjust"
-msgstr "Налаштувати"
-
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "Експериментальна функція: Втягування та відрізання філаменту на більшій відстані під час зміни філаменту для мінімізації промивання. Хоча це може помітно зменшити промивання, це також може підвищити ризик засмічення сопла або інших ускладнень друку."
 
@@ -10711,6 +10776,9 @@ msgstr "Знайдено зарезервовані ключові слова"
 msgid "Setting Overrides"
 msgstr "Налаштування перевизначень"
 
+msgid "Retraction when switching material"
+msgstr "Втягування під час зміни матеріалу"
+
 msgid "Basic information"
 msgstr "Базова інформація"
 
@@ -10848,6 +10916,13 @@ msgstr "Сумісні профілі процесів"
 msgid "Printable space"
 msgstr "Місце для друку"
 
+msgid "Printer Agent"
+msgstr "Агент принтера"
+
+# AI Translated
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "Виберіть реалізацію мережевого агента для звʼязку з принтером. Доступні агенти реєструються під час запуску."
+
 #. TRN: The first argument is the parameter's name; the second argument is its value.
 #, boost-format
 msgid "Invalid value provided for parameter %1%: %2%"
@@ -10977,9 +11052,6 @@ msgstr "Обмеження висоти шару"
 
 msgid "Z-Hop"
 msgstr "Стрибок-Z"
-
-msgid "Retraction when switching material"
-msgstr "Втягування під час зміни матеріалу"
 
 # AI Translated
 msgid ""
@@ -12376,6 +12448,9 @@ msgstr " знаходиться надто близько до зони відч
 msgid " is too close to clumping detection area, and collisions will be caused.\n"
 msgstr " розташовано занадто близько до зони виявлення налипання, і це спричинить зіткнення.\n"
 
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr ""
+
 # AI Translated
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "Вибрані температури сопла несумісні. Температура сопла кожного філаменту має входити в рекомендований діапазон температур сопла інших філаментів. Інакше можливе засмічення сопла або пошкодження принтера."
@@ -12721,9 +12796,6 @@ msgstr "Використовувати 3MF замість G-коду"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Увімкніть, якщо принтер приймає файл 3MF як завдання друку. Якщо увімкнено, Orca Slicer надсилає нарізаний файл як .gcode.3mf замість звичайного файлу .gcode."
-
-msgid "Printer Agent"
-msgstr "Агент принтера"
 
 # AI Translated
 msgid "Select the network agent implementation for printer communication."
@@ -13438,9 +13510,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "Швидкість внутрішніх мостів. Якщо значення вказано у відсотках, воно буде розраховане на основі bridge_speed. Значення за замовчуванням: 150%."
 
-msgid "Brim width"
-msgstr "Ширина кайми"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Відстань від моделі до останньої зовнішньої лінії кайми"
 
@@ -13524,6 +13593,12 @@ msgid ""
 msgstr ""
 "Геометрія буде оброблена перед детектуванням гострих кутів. Цей параметр вказує мінімальну довжину відхилення для обробки.\n"
 "0 для вимкнення"
+
+msgid "Brim ears outer only"
+msgstr ""
+
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr ""
 
 msgid "upward compatible machine"
 msgstr "висхідна сумісна машина"
@@ -14734,6 +14809,12 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Гіроїд"
 
+msgid "Sparse infill smooth factor"
+msgstr ""
+
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original right-angle path, while 100% produces the largest possible curves between adjacent infill lines. Currently applies only to the Hilbert Curve."
+msgstr ""
+
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Прискорення заповнення верхньої поверхні. Використання меншого значенняможе покращити якість верхньої поверхні"
 
@@ -15299,6 +15380,12 @@ msgstr "З яким gcode сумісний принтер"
 
 msgid "Klipper"
 msgstr "Klipper"
+
+msgid "Skip G-code config block"
+msgstr ""
+
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr ""
 
 msgid "Pellet Modded Printer"
 msgstr "Принтер модифікований гранулами"
@@ -16438,6 +16525,12 @@ msgstr "Довге втягування при зміні екструдера"
 msgid "Retraction distance when extruder change"
 msgstr "Відстань втягування при зміні екструдера"
 
+msgid "Retraction Length (Toolchange)"
+msgstr ""
+
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr ""
+
 msgid "Z-hop height"
 msgstr "Висота Z-підйому"
 
@@ -16533,6 +16626,9 @@ msgstr "Додаткова довжина під час перезавантаж
 
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "Коли втягування компенсується після переміщення, екструдер проштовхуєЦе додаткова кількість нитки. Ця установка рідко потрібна."
+
+msgid "Extra length on restart (Toolchange)"
+msgstr ""
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Коли втягування компенсується після заміни інструменту, екструдерпроштовхує цю додаткову кількість нитки."
@@ -16959,6 +17055,12 @@ msgstr "Зміна інструмента на вежі протирання"
 # AI Translated
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "Примусово переміщати головку до вежі протирання перед видачею команди зміни інструмента (Tx). Стосується лише багатоекструдерних (багатоінструментальних) принтерів з вежею протирання типу 2. Типово Orca пропускає це переміщення на багатоінструментальних машинах, оскільки заміну головки виконує прошивка, через що команда Tx може бути видана над надрукованою деталлю. Увімкніть цю опцію, якщо хочете, щоб зміна інструмента завжди відбувалася над вежею протирання."
+
+msgid "Wait for temperature on wipe tower"
+msgstr ""
+
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr ""
 
 msgid "No sparse layers (beta)"
 msgstr "Без розріджених шарів (бета)"
@@ -20304,10 +20406,6 @@ msgstr "Фізичний принтер"
 msgid "Print Host upload"
 msgstr "Завантаження хоста друку"
 
-# AI Translated
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "Виберіть реалізацію мережевого агента для звʼязку з принтером. Доступні агенти реєструються під час запуску."
-
 msgid "Select a Flashforge printer"
 msgstr "Вибрати принтер Flashforge"
 
@@ -21181,9 +21279,6 @@ msgstr "Під час спроби входу трапилося щось нес
 msgid "User canceled."
 msgstr "Користувача скасовано."
 
-msgid "Head diameter"
-msgstr "Діаметр голови"
-
 msgid "Max angle"
 msgstr "Максимальний кут"
 
@@ -21978,6 +22073,22 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури столу може зменшити ймовірність деформації?"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "Висота шару занадто мала.\n"
+#~ "Буде встановлено значення min_layer_height\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "Висота шару перевищує ліміт у Налаштуваннях принтера -> Екструдер -> Ліміти висоти шару, це може призвести до проблем з якістю друку."
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "Автоматично налаштувати на встановлений діапазон?\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "Діаметр голови"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "Друк замовлення в один шар"
