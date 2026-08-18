@@ -449,9 +449,7 @@ bool MachineObject::HasRecentLanMessage()
 
 std::string MachineObject::get_access_code() const
 {
-    if (get_user_access_code().empty())
-        return access_code;
-    return get_user_access_code();
+    return access_code;
 }
 
 void MachineObject::set_access_code(std::string code, bool only_refresh)
@@ -468,37 +466,6 @@ void MachineObject::set_access_code(std::string code, bool only_refresh)
             }
         }
     }
-}
-
-void MachineObject::erase_user_access_code()
-{
-    this->user_access_code = "";
-    AppConfig* config = GUI::wxGetApp().app_config;
-    if (config) {
-        GUI::wxGetApp().app_config->erase("user_access_code", get_dev_id());
-        //GUI::wxGetApp().app_config->save();
-    }
-}
-
-void MachineObject::set_user_access_code(std::string code, bool only_refresh)
-{
-    this->user_access_code = code;
-    if (only_refresh && !code.empty()) {
-        AppConfig* config = GUI::wxGetApp().app_config;
-        if (config && !code.empty()) {
-            GUI::wxGetApp().app_config->set_str("user_access_code", get_dev_id(), code);
-            DeviceManager::update_local_machine(*this);
-        }
-    }
-}
-
-std::string MachineObject::get_user_access_code() const
-{
-    AppConfig* config = GUI::wxGetApp().app_config;
-    if (config) {
-        return GUI::wxGetApp().app_config->get("user_access_code", get_dev_id());
-    }
-    return "";
 }
 
 std::string MachineObject::get_show_printer_type() const
@@ -2907,7 +2874,6 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         std::string access_code = j_pre["system"]["access_code"].get<std::string>();
                         if (!access_code.empty()) {
                             set_access_code(access_code);
-                            set_user_access_code(access_code);
                         }
                     }
                 }

@@ -113,7 +113,6 @@ private:
     std::string dev_name;
     std::string dev_ip;
     std::string access_code;
-    std::string user_access_code;
 
     // type, time stamp, delay
     std::vector<std::tuple<std::string, uint64_t, uint64_t>> message_delay;
@@ -227,11 +226,6 @@ public:
     bool has_access_right() const { return !get_access_code().empty(); }
     std::string get_access_code() const;
     void set_access_code(std::string code, bool only_refresh = true);
-
-    /*user access code*/
-    void set_user_access_code(std::string code, bool only_refresh = true);
-    void erase_user_access_code();
-    std::string get_user_access_code() const;
 
     //PRINTER_TYPE printer_type = PRINTER_3DPrinter_UKNOWN;
     std::string printer_type;       /* model_id */

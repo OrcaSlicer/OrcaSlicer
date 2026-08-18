@@ -2166,7 +2166,6 @@ void GUI_App::init_networking_callbacks()
                     obj->is_tunnel_mqtt = tunnel;
                     obj->command_request_push_all(true);
                     obj->command_get_version();
-                    obj->erase_user_access_code();
                     obj->command_get_access_code();
                     if (m_agent)
                         m_agent->install_device_cert(obj->get_dev_id(), obj->is_lan_mode_printer());
@@ -2216,7 +2215,6 @@ void GUI_App::init_networking_callbacks()
                                 wxString text;
                                 if (msg == "5") {
                                     obj->set_access_code("");
-                                    obj->erase_user_access_code();
                                     text = wxString::Format(_L("Incorrect password"));
                                     wxGetApp().show_dialog(text);
                                 } else {
@@ -3275,14 +3273,11 @@ bool GUI_App::on_init_inner()
         }
     } */
 
-    copy_network_if_available();
 
     if (scrn) {
         scrn->SetText(_L("Loading Plugins") + dots, 20);
         wxYield();
     }
-
-    on_init_network();
 
     // Initialize plugins after network then register on_load callbacks so once the plugin loads finish, it gets registered automatically.
     // initialize() also installs the libslic3r hooks (capability resolver,
@@ -3311,6 +3306,9 @@ bool GUI_App::on_init_inner()
             BOOST_LOG_TRIVIAL(info) << "Auto-loading plugin on startup: " << plugin_key;
         }
     }
+
+    copy_network_if_available();
+    on_init_network();
 
     if (m_agent)
         plugin_mgr.set_cloud_agent(std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent()));
@@ -8286,7 +8284,7 @@ bool GUI_App::show_modal_ip_address_enter_dialog(bool input_sn, wxString title)
                 wxGetApp().app_config->save();
 
                 obj->set_dev_ip(ip_address.ToStdString());
-                obj->set_user_access_code(access_code.ToStdString());
+                obj->set_access_code(access_code.ToStdString());
             }
         }
     });
