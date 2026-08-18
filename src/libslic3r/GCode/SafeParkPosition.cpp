@@ -1,5 +1,7 @@
 #include "SafeParkPosition.hpp"
 
+#include <algorithm>
+
 #include "../GCode.hpp"
 #include "../Layer.hpp"
 #include "../ClipperUtils.hpp"
@@ -149,6 +151,16 @@ std::string SafeParkPosition::park_and_set_temp(
     std::string gcode;
     char buf[256];
 
+    // E mode and the current E position, captured before the normal retract so the absolute
+    // restore below targets the position the writer will expect afterwards.
+    const bool   relative_e = gcodegen.config().use_relative_e_distances.value;
+    const double e_before_park = (gcodegen.writer().filament() != nullptr)
+                                     ? gcodegen.writer().filament()->E() : 0.0;
+    // Retraction feedrate: the filament's configured speed rather than a hardcoded 1800.
+    const int park_e_feedrate = (gcodegen.writer().filament() != nullptr)
+                                    ? std::max(60, gcodegen.writer().filament()->retract_speed() * 60)
+                                    : 1800;
+
     gcode += gcodegen.retract(false, false);
 
     if (park.position) {
@@ -162,10 +174,26 @@ std::string SafeParkPosition::park_and_set_temp(
             gcodegen.point_to_gcode(*park.position), xy_comment);
 
         // Extra retraction beyond the normal retract (already performed above).
-        // Uses raw G1 E because writer().retract() would no-op (already retracted).
-        // The symmetric unretract below restores E to the position the state machine expects.
+        //
+        // Emitted raw because GCodeWriter::retract() no-ops here: Extruder::retract() computes
+        // max(0, length - m_retracted) and we are already retracted by the full length. But the
+        // writer is also the thing that knows the E mode -- Extruder::retract() zeroes m_E first
+        // under use_relative_e_distances -- so emitting a raw delta is only correct in relative
+        // mode. In ABSOLUTE mode "G1 E-2" means "move the E axis to absolute position -2", i.e.
+        // an ~850mm retraction that ejects the filament. 14 shipped machine profiles run
+        // absolute E, and this path is shared with ooze prevention (GCode.cpp), so it is not
+        // gated behind Magma. Branch explicitly and command the absolute target instead.
+        //
+        // Either way E ends where it started (the symmetric restore below), so the writer's
+        // tracked position stays correct without touching it.
         if (extra_retract > 0) {
-            snprintf(buf, sizeof(buf), "G1 E-%.4f F1800 ; park extra retract\n", extra_retract);
+            if (relative_e) {
+                snprintf(buf, sizeof(buf), "G1 E-%.4f F%d ; park extra retract\n",
+                         extra_retract, park_e_feedrate);
+            } else {
+                snprintf(buf, sizeof(buf), "G1 E%.4f F%d ; park extra retract\n",
+                         e_before_park - extra_retract, park_e_feedrate);
+            }
             gcode += buf;
         }
     } else {
@@ -177,7 +205,13 @@ std::string SafeParkPosition::park_and_set_temp(
     gcode += gcodegen.writer().set_temperature(target_temp, true);
 
     if (park.position && extra_retract > 0) {
-        snprintf(buf, sizeof(buf), "G1 E%.4f F1800 ; park extra unretract\n", extra_retract);
+        if (relative_e) {
+            snprintf(buf, sizeof(buf), "G1 E%.4f F%d ; park extra unretract\n",
+                     extra_retract, park_e_feedrate);
+        } else {
+            snprintf(buf, sizeof(buf), "G1 E%.4f F%d ; park extra unretract\n",
+                     e_before_park, park_e_feedrate);
+        }
         gcode += buf;
     }
 
