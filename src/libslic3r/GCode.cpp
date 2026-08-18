@@ -9115,12 +9115,14 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             if (old_filament_id_in_new_extruder == -1)
                 wipe_volume = 0;
             else {
-                wipe_volume = flush_matrix[old_filament_id_in_new_extruder * number_of_extruders + new_filament_id];
+                size_t flush_idx = size_t(old_filament_id_in_new_extruder) * number_of_extruders + new_filament_id;
+                wipe_volume = flush_idx < flush_matrix.size() ? flush_matrix[flush_idx] : 0.f;
                 wipe_volume *= m_config.flush_multiplier.get_at(new_extruder_id);
             }
         }
         else {
-            wipe_volume = flush_matrix[old_filament_id * number_of_extruders + new_filament_id];
+            size_t flush_idx = size_t(old_filament_id) * number_of_extruders + new_filament_id;
+            wipe_volume = flush_idx < flush_matrix.size() ? flush_matrix[flush_idx] : 0.f;
             wipe_volume *= m_config.flush_multiplier.get_at(new_extruder_id);  // if is multi_extruder only use the fist extruder matrix
         }
         wipe_volume = std::max(0.f, wipe_volume-grab_purge_volume);
