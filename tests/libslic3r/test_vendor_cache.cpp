@@ -147,21 +147,30 @@ void corrupt_blob_byte(const std::string& path, std::streamoff at = 30)
     f.write(&b, 1);
 }
 
-// Patch cache_version (blob[0..3], i.e. file offset 20) and recompute CRC so the
-// file passes the CRC check but fails the cache_version check in load_vendor_cache.
-void patch_cache_version(const std::string& path, uint32_t wrong_version)
+// Overwrite `n` bytes at `payload_off` into the cache's payload (which starts at
+// file offset 20, behind the header) and recompute the header CRC, so the file
+// stays authentic and only the deserializer can object to its contents.
+void patch_payload_bytes(const std::string& path, size_t payload_off, const void* bytes, size_t n)
 {
+    constexpr size_t header_size = 20; // magic(4) + version(4) + data_size(8) + crc32(4)
     std::ifstream in(path, std::ios::binary);
     std::vector<char> data(std::istreambuf_iterator<char>(in), {});
     in.close();
-    if (data.size() < 24) return;
-    std::memcpy(&data[20], &wrong_version, 4);
+    REQUIRE(data.size() >= header_size + payload_off + n);
+    std::memcpy(&data[header_size + payload_off], bytes, n);
     boost::crc_32_type crc;
-    crc.process_bytes(&data[20], data.size() - 20);
+    crc.process_bytes(&data[header_size], data.size() - header_size);
     const uint32_t new_crc = crc.checksum();
     std::memcpy(&data[16], &new_crc, 4);
     std::ofstream out(path, std::ios::binary | std::ios::trunc);
     out.write(data.data(), static_cast<std::streamsize>(data.size()));
+}
+
+// Patch cache_version (the payload's first word) so the file passes the CRC
+// check but fails the cache_version check in load_vendor_cache.
+void patch_cache_version(const std::string& path, uint32_t wrong_version)
+{
+    patch_payload_bytes(path, 0, &wrong_version, sizeof(wrong_version));
 }
 
 // Truncates the cache's PAYLOAD (everything after the 20-byte header) by
@@ -1581,3 +1590,27 @@ TEST_CASE("a dictionary index past the end of the table is refused", "[VendorCac
     DynamicPrintConfig out;
     REQUIRE_THROWS(load_config(ar, out, rdict));
 }
+
+TEST_CASE("a stamp string with an absurd length is rejected, not allocated", "[VendorCache]")
+{
+    // The stamps are read from whatever <vendor>.opc a directory holds, and a
+    // string resize to a garbage 64-bit length does not fail as a catchable
+    // bad_alloc — it takes the app down through the out-of-memory handler. A
+    // CRC-valid body opening with the right cache version but foreign framing
+    // where the name's length word sits must be refused before anything is
+    // allocated.
+    TempDir tmp;
+    const std::string cache = (tmp.path / "Evil.opc").string();
+    REQUIRE(save_one_vendor(cache, one_vendor("Evil"), "Evil", "1.0.0"));
+
+    // The vendor name's length word sits right behind the payload's version
+    // word; make it claim a ~9-exabyte name.
+    const uint64_t huge = 0x7FFFFFFFFFFFFFFFull;
+    patch_payload_bytes(cache, sizeof(uint32_t), &huge, sizeof(huge));
+
+    PresetBundle out;
+    REQUIRE(! out.load_vendor_cache(cache, "Evil", Semver::inf()));
+    CHECK(out.vendors.empty());
+    CHECK(PresetBundle::peek_vendor_cache_version(cache, "Evil").empty());
+}
+

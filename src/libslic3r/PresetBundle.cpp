@@ -6276,6 +6276,25 @@ constexpr uint32_t CACHE_MAGIC   = 0x4F52435A; // "ORCZ"
 // dictionary handles it, which is why this no longer moves every release.
 constexpr uint32_t CACHE_VERSION = 6;
 
+// A stamp-string read that refuses an absurd length before allocating anything.
+// The stamps are read from files named from the outside (peek_vendor_cache_version
+// is pointed at whatever <vendor>.opc a directory holds), so the length word may
+// be arbitrary bytes — and a resize to a garbage 64-bit length does not fail as
+// a catchable bad_alloc here, it takes the app down through the out-of-memory
+// handler. A vendor name or profile version is a short token; anything longer
+// is not a cache this build wrote.
+static std::string read_bounded_string(cereal::BinaryInputArchive& ar)
+{
+    constexpr uint64_t MAX_STAMP_LEN = 1024;
+    cereal::size_type len = 0;
+    ar(cereal::make_size_tag(len));
+    if (uint64_t(len) > MAX_STAMP_LEN)
+        throw std::runtime_error("preset cache: string length out of bounds");
+    std::string s(size_t(len), '\0');
+    ar(cereal::binary_data(s.data(), size_t(len)));
+    return s;
+}
+
 // A cache stays usable as long as it was built from a vendor profile at least
 // as new as the one now on disk. Profiles whose version is invalid cannot be
 // judged this way and are never served from cache; where no profile sits
@@ -6288,11 +6307,16 @@ constexpr uint32_t CACHE_VERSION = 6;
 // read, empty on anything else — which is the same answer as "not this vendor".
 static std::string read_cache_stamps(cereal::BinaryInputArchive& ar, const std::string& expected_vendor_name)
 {
+    // The version is judged before anything variable-length is read: on a body
+    // that is not a per-vendor cache of this version, the bytes where a string
+    // length would sit may be arbitrary framing.
     uint32_t cache_version = 0;
     ar(cache_version);
-    std::string vendor_name, vendor_version;
-    ar(vendor_name, vendor_version);
-    if (cache_version != CACHE_VERSION || vendor_name != expected_vendor_name)
+    if (cache_version != CACHE_VERSION)
+        return {};
+    const std::string vendor_name    = read_bounded_string(ar);
+    const std::string vendor_version = read_bounded_string(ar);
+    if (vendor_name != expected_vendor_name)
         return {};
     return vendor_version;
 }
