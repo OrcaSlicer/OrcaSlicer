@@ -435,8 +435,11 @@ class DiffPresetDialog : public DPIDialog
 {
     DiffViewCtrl*           m_tree              { nullptr };
     wxBoxSizer*             m_presets_sizer     { nullptr };
+    wxBoxSizer*             m_transfer_details_sizer { nullptr };
     wxStaticText*           m_top_info_line     { nullptr };
     wxStaticText*           m_bottom_info_line  { nullptr };
+    wxStaticText*           m_transfer_project_file { nullptr };
+    wxStaticText*           m_transfer_unsaved_legend { nullptr };
     wxCheckBox*             m_show_all_presets  { nullptr };
     wxCheckBox*             m_use_for_transfer  { nullptr };
     wxBoxSizer*             m_buttons           { nullptr };
@@ -453,6 +456,7 @@ class DiffPresetDialog : public DPIDialog
     bool                    m_has_transfer_parent_config { false };
     std::string             m_transfer_source_profile_name;
     std::string             m_transfer_initial_target_profile_name;
+    wxString                m_transfer_project_file_name;
 
     struct DiffPresets;
 
@@ -460,6 +464,7 @@ class DiffPresetDialog : public DPIDialog
     void create_edit_sizer();
     void complete_dialog_creation();
     void create_presets_sizer();
+    void create_transfer_details_sizer();
     void create_info_lines();
     void create_tree();
     void create_show_all_presets_chb();
@@ -467,6 +472,7 @@ class DiffPresetDialog : public DPIDialog
     void update_bottom_info(wxString bottom_info = "");
     void update_tree();
     void update_transfer_tree();
+    void update_transfer_details();
     void update_bundles_from_app();
     void update_controls_visibility(Preset::Type type = Preset::TYPE_INVALID);
     void update_compatibility(const std::string& preset_name, Preset::Type type, PresetBundle* preset_bundle);
@@ -482,7 +488,16 @@ class DiffPresetDialog : public DPIDialog
         PresetComboBox* presets_right   { nullptr };
     };
 
+    struct TransferIdentityControls
+    {
+        Preset::Type  type { Preset::TYPE_INVALID };
+        wxStaticText* source { nullptr };
+        wxStaticText* relation { nullptr };
+        wxStaticText* target { nullptr };
+    };
+
     std::vector<DiffPresets> m_preset_combos;
+    std::vector<TransferIdentityControls> m_transfer_identity_controls;
 
 public:
     DiffPresetDialog(MainFrame*mainframe);
@@ -494,7 +509,8 @@ public:
                                const std::string& initial_target_profile,
                                const DynamicPrintConfig& saved_config,
                                const DynamicPrintConfig& edited_config,
-                               const DynamicPrintConfig* parent_config);
+                               const DynamicPrintConfig* parent_config,
+                               const wxString& project_file_name);
     void update_presets(Preset::Type type = Preset::TYPE_INVALID);
 
     Preset::Type        view_type() const           { return m_view_type; }

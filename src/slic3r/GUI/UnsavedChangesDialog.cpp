@@ -23,6 +23,7 @@
 #include "MsgDialog.hpp"
 
 #include "PresetComboBoxes.hpp"
+#include "PresetSwitchLogic.hpp"
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
@@ -1993,12 +1994,12 @@ static std::string get_selection(PresetComboBox* preset_combo)
     return into_u8(preset_combo->GetString(preset_combo->GetSelection()));
 }
 
-static void select_or_append_readonly_preset_label(PresetComboBox *preset_combo, const std::string &preset_name)
+static void select_or_append_readonly_preset_label(PresetComboBox *preset_combo, const std::string &preset_name, bool modified)
 {
     if (preset_combo == nullptr || preset_name.empty())
         return;
 
-    const wxString label = from_u8(preset_name);
+    const wxString label = from_u8(modified ? Preset::suffix_modified() + preset_name : preset_name);
     int selection = wxNOT_FOUND;
     for (unsigned int idx = 0; idx < preset_combo->GetCount(); ++idx) {
         if (Preset::remove_suffix_modified(into_u8(preset_combo->GetString(idx))) == preset_name) {
@@ -2009,6 +2010,8 @@ static void select_or_append_readonly_preset_label(PresetComboBox *preset_combo,
 
     if (selection == wxNOT_FOUND)
         selection = preset_combo->Append(label);
+    else
+        preset_combo->SetString(selection, label);
 
     preset_combo->SetSelection(selection);
     preset_combo->SetToolTip(label);
@@ -2027,6 +2030,62 @@ static const std::string transfer_group_unsaved{"unsaved"};
 static const std::string transfer_group_system_defaults{"system_defaults"};
 static constexpr int compare_preset_combo_width_em = 35;
 static constexpr int transfer_preset_combo_width_em = 42;
+
+struct TransferPresetIdentity
+{
+    std::string          name;
+    std::string          canonical_name;
+    TransferPresetOrigin origin { TransferPresetOrigin::Unknown };
+    bool                 unsaved { false };
+};
+
+static std::string preset_identity_from_config(Preset::Type type, const DynamicPrintConfig &config)
+{
+    if (type == Preset::TYPE_PRINTER) {
+        if (const auto *option = config.option<ConfigOptionString>("printer_settings_id"); option != nullptr)
+            return option->value;
+    } else if (type == Preset::TYPE_PRINT) {
+        if (const auto *option = config.option<ConfigOptionString>("print_settings_id"); option != nullptr)
+            return option->value;
+    } else if (type == Preset::TYPE_FILAMENT) {
+        if (const auto *option = config.option<ConfigOptionStrings>("filament_settings_id"); option != nullptr && !option->values.empty())
+            return option->values.front();
+    }
+
+    return {};
+}
+
+static wxString transfer_preset_origin_label(TransferPresetOrigin origin)
+{
+    switch (origin) {
+    case TransferPresetOrigin::Default:     return _L("Default");
+    case TransferPresetOrigin::System:      return _L("System");
+    case TransferPresetOrigin::User:        return _L("User");
+    case TransferPresetOrigin::Bundle:      return _L("Bundle");
+    case TransferPresetOrigin::ProjectFile: return _L("Project File");
+    case TransferPresetOrigin::Unknown:     return _L("Unknown");
+    }
+
+    return _L("Unknown");
+}
+
+static wxString transfer_preset_identity_label(const TransferPresetIdentity &identity)
+{
+    wxString label = identity.name.empty() ? _L("Unknown") : from_u8(identity.name);
+    label += " (";
+    label += transfer_preset_origin_label(identity.origin);
+    label += ")";
+    if (identity.unsaved) {
+        label += "  * ";
+        label += _L("Unsaved");
+    }
+    return label;
+}
+
+static bool configs_differ(const DynamicPrintConfig &left, const DynamicPrintConfig &right)
+{
+    return !left.diff(right).empty() || !right.diff(left).empty();
+}
 
 struct TransferTreeCategory
 {
@@ -2110,6 +2169,51 @@ void DiffPresetDialog::create_presets_sizer()
             update_tree();
         });
     }
+}
+
+void DiffPresetDialog::create_transfer_details_sizer()
+{
+    m_transfer_details_sizer = new wxBoxSizer(wxVERTICAL);
+
+    auto *identity_grid = new wxFlexGridSizer(0, 4, 4, 8);
+    identity_grid->AddGrowableCol(1, 1);
+    identity_grid->AddGrowableCol(3, 1);
+
+    auto add_identity_row = [this, identity_grid](Preset::Type type, const wxString &type_label) {
+        auto *label = new wxStaticText(this, wxID_ANY, type_label);
+        auto *source = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                                        wxSize(em_unit() * transfer_preset_combo_width_em, -1),
+                                        wxST_ELLIPSIZE_END | wxBORDER_SIMPLE);
+        auto *relation = new wxStaticText(this, wxID_ANY, L"=");
+        auto *target = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                                        wxSize(em_unit() * transfer_preset_combo_width_em, -1),
+                                        wxST_ELLIPSIZE_END | wxBORDER_SIMPLE);
+        relation->SetFont(wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT).Bold());
+
+        identity_grid->Add(label, 0, wxALIGN_CENTER_VERTICAL);
+        identity_grid->Add(source, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+        identity_grid->Add(relation, 0, wxALIGN_CENTER);
+        identity_grid->Add(target, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+        m_transfer_identity_controls.push_back({type, source, relation, target});
+    };
+
+    add_identity_row(Preset::TYPE_PRINTER, _L("Printer preset"));
+    add_identity_row(Preset::TYPE_FILAMENT, _L("Filament preset"));
+    add_identity_row(Preset::TYPE_PRINT, _L("Process preset"));
+
+    m_transfer_project_file = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                                                wxSize(em_unit() * transfer_preset_combo_width_em, -1),
+                                                wxST_ELLIPSIZE_END | wxBORDER_SIMPLE);
+    identity_grid->Add(new wxStaticText(this, wxID_ANY, _L("Project file")), 0, wxALIGN_CENTER_VERTICAL);
+    identity_grid->Add(m_transfer_project_file, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+    identity_grid->AddSpacer(1);
+    identity_grid->AddSpacer(1);
+
+    m_transfer_details_sizer->Add(identity_grid, 0, wxEXPAND);
+
+    m_transfer_unsaved_legend = new wxStaticText(this, wxID_ANY, _L("* Unsaved changes in the current application"));
+    m_transfer_details_sizer->Add(m_transfer_unsaved_legend, 0, wxTOP, 6);
+    m_transfer_details_sizer->ShowItems(false);
 }
 
 void DiffPresetDialog::create_show_all_presets_chb()
@@ -2256,6 +2360,7 @@ void DiffPresetDialog::complete_dialog_creation()
     int border = 10;
     topSizer->Add(m_top_info_line,      0, wxEXPAND | wxLEFT | wxTOP | wxRIGHT, 2 * border);
     topSizer->Add(m_presets_sizer,      0, wxEXPAND | wxLEFT | wxTOP | wxRIGHT, border);
+    topSizer->Add(m_transfer_details_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, border);
     topSizer->Add(m_show_all_presets,   0, wxEXPAND | wxALL, border);
     topSizer->Add(m_tree,               1, wxEXPAND | wxALL, border);
     topSizer->Add(m_bottom_info_line,   0, wxEXPAND | wxALL, 2 * border);
@@ -2292,6 +2397,8 @@ DiffPresetDialog::DiffPresetDialog(MainFrame* mainframe)
     create_info_lines();
 
     create_presets_sizer();
+
+    create_transfer_details_sizer();
 
     create_show_all_presets_chb();
 
@@ -2335,6 +2442,7 @@ void DiffPresetDialog::update_bundles_from_app()
 void DiffPresetDialog::show(Preset::Type type /* = Preset::TYPE_INVALID*/)
 {
     m_process_transfer_mode = false;
+    m_transfer_details_sizer->ShowItems(false);
     this->SetTitle(_L("Compare presets"));
     m_top_info_line->SetLabel(_L("Select presets to compare"));
     m_tree->GetColumn(DiffModel::colOldValue)->SetTitle(_L("Left Preset Value"));
@@ -2369,12 +2477,14 @@ int DiffPresetDialog::show_process_transfer(const PresetBundle& target_bundle,
                                             const std::string& initial_target_profile,
                                             const DynamicPrintConfig& saved_config,
                                             const DynamicPrintConfig& edited_config,
-                                            const DynamicPrintConfig* parent_config)
+                                            const DynamicPrintConfig* parent_config,
+                                            const wxString& project_file_name)
 {
     m_process_transfer_mode = true;
     m_view_type = Preset::TYPE_PRINT;
     m_transfer_source_profile_name = source_profile_name;
     m_transfer_initial_target_profile_name = initial_target_profile;
+    m_transfer_project_file_name = project_file_name;
     m_transfer_saved_config = saved_config;
     m_transfer_edited_config = edited_config;
     m_has_transfer_parent_config = parent_config != nullptr;
@@ -2397,6 +2507,7 @@ int DiffPresetDialog::show_process_transfer(const PresetBundle& target_bundle,
 
     update_controls_visibility(Preset::TYPE_PRINT);
     m_show_all_presets->Show(false);
+    m_transfer_details_sizer->ShowItems(true);
 
     for (DiffPresets& preset_combos : m_preset_combos) {
         const bool show = preset_combos.presets_left->get_type() == Preset::TYPE_PRINT;
@@ -2408,7 +2519,10 @@ int DiffPresetDialog::show_process_transfer(const PresetBundle& target_bundle,
             preset_combos.presets_left->SetMinSize(wxSize(em_unit() * transfer_preset_combo_width_em, -1));
             preset_combos.presets_right->SetMinSize(wxSize(em_unit() * transfer_preset_combo_width_em, -1));
             preset_combos.presets_left->update(source_profile_name);
-            select_or_append_readonly_preset_label(preset_combos.presets_left, source_profile_name);
+            select_or_append_readonly_preset_label(
+                preset_combos.presets_left,
+                source_profile_name,
+                configs_differ(saved_config, edited_config));
             preset_combos.presets_left->Enable(true);
             preset_combos.presets_right->Enable(true);
             preset_combos.presets_right->update(initial_target_profile);
@@ -2455,6 +2569,101 @@ void DiffPresetDialog::update_bottom_info(wxString bottom_info)
     m_bottom_info_line->Show(show_bottom_info);
 }
 
+void DiffPresetDialog::update_transfer_details()
+{
+    if (!m_process_transfer_mode)
+        return;
+
+    const std::string selected_source_name = selected_transfer_source_profile_name();
+    const std::string selected_target_name = selected_transfer_target_profile_name();
+    const bool using_initial_source = selected_source_name == m_transfer_source_profile_name;
+    const bool initial_source_unsaved = using_initial_source &&
+                                        configs_differ(m_transfer_saved_config, m_transfer_edited_config);
+    const bool has_project_file = !m_transfer_project_file_name.empty();
+
+    auto identity_for = [this,
+                         &selected_source_name,
+                         &selected_target_name,
+                         using_initial_source,
+                         initial_source_unsaved,
+                         has_project_file](Preset::Type type, bool source) {
+        PresetBundle *bundle = source ? m_preset_bundle_left.get() : m_preset_bundle_right.get();
+        PresetCollection *collection = get_preset_collection(type, bundle);
+        TransferPresetIdentity identity;
+        if (collection == nullptr)
+            return identity;
+
+        const DynamicPrintConfig *snapshot = nullptr;
+        const Preset *preset = nullptr;
+        bool project_snapshot = false;
+
+        if (source && type == Preset::TYPE_PRINT) {
+            identity.name = selected_source_name;
+            if (using_initial_source) {
+                snapshot = &m_transfer_saved_config;
+                project_snapshot = has_project_file;
+                identity.unsaved = initial_source_unsaved;
+            } else {
+                preset = find_preset_by_name(*collection, selected_source_name);
+                if (preset != nullptr)
+                    snapshot = &preset->config;
+            }
+        } else if (!source && type == Preset::TYPE_PRINT) {
+            identity.name = selected_target_name;
+            preset = find_preset_by_name(*collection, selected_target_name);
+            if (preset != nullptr)
+                snapshot = &preset->config;
+        } else if (source) {
+            const Preset &saved_preset = collection->get_saved_preset();
+            const Preset &edited_preset = collection->get_edited_preset();
+            snapshot = &saved_preset.config;
+            identity.name = preset_identity_from_config(type, edited_preset.config);
+            if (identity.name.empty())
+                identity.name = edited_preset.name;
+            identity.unsaved = configs_differ(saved_preset.config, edited_preset.config);
+            project_snapshot = has_project_file;
+        } else {
+            const Preset &selected_preset = collection->get_selected_preset();
+            snapshot = &selected_preset.config;
+            identity.name = preset_identity_from_config(type, *snapshot);
+            if (identity.name.empty())
+                identity.name = selected_preset.name;
+            preset = find_preset_by_name(*collection, identity.name);
+            if (preset == nullptr)
+                preset = &selected_preset;
+        }
+
+        if (preset == nullptr && !identity.name.empty())
+            preset = find_preset_by_name(*collection, identity.name);
+
+        const bool snapshot_differs = snapshot != nullptr && preset != nullptr && configs_differ(*snapshot, preset->config);
+        identity.canonical_name = preset != nullptr ? preset->name : identity.name;
+        identity.origin = transfer_preset_origin(preset, project_snapshot, snapshot_differs);
+        return identity;
+    };
+
+    bool has_unsaved_identity = initial_source_unsaved;
+    for (TransferIdentityControls &controls : m_transfer_identity_controls) {
+        const TransferPresetIdentity source = identity_for(controls.type, true);
+        const TransferPresetIdentity target = identity_for(controls.type, false);
+        const wxString source_label = transfer_preset_identity_label(source);
+        const wxString target_label = transfer_preset_identity_label(target);
+
+        controls.source->SetLabelText(source_label);
+        controls.source->SetToolTip(source_label);
+        controls.target->SetLabelText(target_label);
+        controls.target->SetToolTip(target_label);
+        controls.relation->SetLabel(
+            transfer_preset_identities_equal(source.canonical_name, target.canonical_name) ? L"=" : L"\u2260");
+        has_unsaved_identity |= source.unsaved;
+    }
+
+    const wxString project_file_label = has_project_file ? m_transfer_project_file_name : _L("Not saved");
+    m_transfer_project_file->SetLabelText(project_file_label);
+    m_transfer_project_file->SetToolTip(project_file_label);
+    m_transfer_unsaved_legend->Show(has_unsaved_identity);
+}
+
 void DiffPresetDialog::update_transfer_tree()
 {
     Search::OptionsSearcher& searcher = wxGetApp().sidebar().get_searcher();
@@ -2479,9 +2688,12 @@ void DiffPresetDialog::update_transfer_tree()
         const DynamicPrintConfig *edited_config = &m_transfer_edited_config;
         const DynamicPrintConfig *parent_config = m_has_transfer_parent_config ? &m_transfer_parent_config : nullptr;
 
-        if (source_preset != nullptr) {
+        if (source_name == m_transfer_source_profile_name) {
+            saved_config = &m_transfer_saved_config;
+            edited_config = &m_transfer_edited_config;
+        } else if (source_preset != nullptr) {
             saved_config = &source_preset->config;
-            edited_config = source_preset->name == m_transfer_source_profile_name ? &m_transfer_edited_config : saved_config;
+            edited_config = saved_config;
             if (const Preset *source_parent = m_preset_bundle_left->prints.get_preset_parent(*source_preset); source_parent != nullptr)
                 parent_config = &source_parent->config;
         }
@@ -2524,7 +2736,8 @@ void DiffPresetDialog::update_transfer_tree()
 
             for (const std::string& opt_key : option_keys) {
                 const std::string lookup_key = get_pure_opt_key(opt_key);
-                Search::Option option = searcher.get_option(lookup_key, Preset::TYPE_PRINT);
+                int            variant_index = 0;
+                Search::Option option        = searcher.get_option(lookup_key, Preset::TYPE_PRINT, variant_index);
                 if (get_pure_opt_key(option.opt_key()) != lookup_key)
                     option = searcher.get_option(opt_key, get_full_label(opt_key, source_config), Preset::TYPE_PRINT);
                 const bool found_option = get_pure_opt_key(option.opt_key()) == lookup_key;
@@ -2614,6 +2827,7 @@ void DiffPresetDialog::update_transfer_tree()
 void DiffPresetDialog::update_tree()
 {
     if (m_process_transfer_mode) {
+        update_transfer_details();
         update_transfer_tree();
         return;
     }
@@ -2750,6 +2964,13 @@ void DiffPresetDialog::on_dpi_changed(const wxRect&)
         preset_combos.presets_right->msw_rescale();
         preset_combos.transfer_arrow->SetFont(wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT).Bold());
     }
+
+    for (TransferIdentityControls &controls : m_transfer_identity_controls) {
+        controls.source->SetMinSize(wxSize(em * transfer_preset_combo_width_em, -1));
+        controls.target->SetMinSize(wxSize(em * transfer_preset_combo_width_em, -1));
+        controls.relation->SetFont(wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT).Bold());
+    }
+    m_transfer_project_file->SetMinSize(wxSize(em * transfer_preset_combo_width_em, -1));
 
     m_tree->Rescale(em);
 

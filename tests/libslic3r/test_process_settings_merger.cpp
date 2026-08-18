@@ -147,6 +147,14 @@ TEST_CASE("Process settings transfer source can represent an imported model prof
     REQUIRE_FALSE(contains_key(transferable.system_default_options, "layer_height"));
     REQUIRE(contains_key(selection.unsaved_options, "layer_height"));
     REQUIRE_FALSE(contains_key(selection.system_default_options, "retraction_length"));
+
+    const DynamicPrintConfig merged = ProcessSettingsMerger::merge_settings(
+        source.saved_settings,
+        source.edited_settings,
+        selected_settings,
+        selection);
+    REQUIRE_THAT(merged.option<ConfigOptionFloat>("layer_height")->value, Catch::Matchers::WithinAbs(0.28, 1e-9));
+    REQUIRE_THAT(merged.option<ConfigOptionFloats>("retraction_length")->values[0], Catch::Matchers::WithinAbs(0.7, 1e-9));
 }
 
 TEST_CASE("Process settings transfer merges selected keys from their source configs", "[ProcessSettingsMerger]")

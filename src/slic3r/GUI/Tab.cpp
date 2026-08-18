@@ -154,31 +154,31 @@ static ProcessTransferSource resolve_process_transfer_source(const PresetCollect
 {
     const Preset &selected_preset = prints.get_selected_preset();
     const Preset &edited_preset   = prints.get_edited_preset();
+    const Preset &saved_preset    = prints.get_saved_preset();
 
     const std::string edited_profile_id = print_profile_name_from_config(edited_preset.config);
-    std::string source_profile_name = !requested_profile_name.empty() ? requested_profile_name :
-                                      !edited_profile_id.empty()     ? edited_profile_id :
-                                                                       edited_preset.name;
+    const std::string saved_profile_id = print_profile_name_from_config(saved_preset.config);
+    const std::string initial_profile_name = !saved_profile_id.empty()  ? saved_profile_id :
+                                             !edited_profile_id.empty() ? edited_profile_id :
+                                                                          edited_preset.name;
+    const bool use_initial_source = requested_profile_name.empty() || requested_profile_name == initial_profile_name;
+    std::string source_profile_name = use_initial_source ? initial_profile_name : requested_profile_name;
     if (source_profile_name.empty())
         source_profile_name = selected_preset.name;
 
     const Preset *source_preset = source_profile_name.empty() ? nullptr : find_preset_by_name(prints, source_profile_name);
-    const DynamicPrintConfig *saved_config  = &selected_preset.config;
+    const DynamicPrintConfig *saved_config = use_initial_source && !saved_preset.config.empty() ?
+                                                 &saved_preset.config :
+                                                 &selected_preset.config;
     const DynamicPrintConfig *edited_config = &edited_preset.config;
     const Preset *parent_preset = nullptr;
 
-    if (source_preset != nullptr && source_preset->name == source_profile_name) {
+    if (!use_initial_source && source_preset != nullptr && source_preset->name == source_profile_name) {
         saved_config = &source_preset->config;
+        edited_config = &source_preset->config;
         parent_preset = prints.get_preset_parent(*source_preset);
-
-        const bool initial_source = edited_preset.name == source_preset->name || edited_profile_id == source_preset->name;
-        if (!initial_source)
-            edited_config = &source_preset->config;
-    } else if (!edited_profile_id.empty() && edited_profile_id != selected_preset.name) {
-        // The project config names a model profile that is not selectable in the collection.
-        // Treat the current edited process config as that profile, not as unsaved edits over the selected system profile.
-        saved_config = &edited_preset.config;
-        edited_config = &edited_preset.config;
+    } else if (source_preset != nullptr) {
+        parent_preset = prints.get_preset_parent(*source_preset);
     }
 
     if (parent_preset == nullptr)
@@ -6945,13 +6945,18 @@ bool Tab::select_preset(
                             const bool has_transferable_settings = has_transferable_process_settings(m_preset_bundle->prints, transfer_source, simulated_bundle.prints);
                             if (!compatible_target_profiles.empty() && (has_transferable_settings || compatible_target_profiles.size() > 1)) {
                                 DiffPresetDialog transfer_dialog(wxGetApp().mainframe);
+                                const wxString project_path = wxGetApp().plater()->get_project_filename(".3mf");
+                                const wxString project_file_name = project_path.empty() ?
+                                                                       wxString() :
+                                                                       from_path(into_path(project_path).filename());
                                 if (transfer_dialog.show_process_transfer(
                                         simulated_bundle,
                                         transfer_source.profile_name,
                                         predicted_target_profile_name,
                                         transfer_source.settings.saved_settings,
                                         transfer_source.settings.edited_settings,
-                                        transfer_source.settings.parent_settings()) != wxID_OK) {
+                                        transfer_source.settings.parent_settings(),
+                                        project_file_name) != wxID_OK) {
                                     canceled = true;
                                 } else {
                                     process_transfer_handled = true;
