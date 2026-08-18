@@ -3143,8 +3143,10 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         if (parse_number(comment.substr(reserved_tag(ETags::CoExtrusion_Color).length()), color_id) &&
             color_id >= 0 && color_id < COEXTRUSION_COLOR_ID_NONE)
             m_coextrusion_color_id = static_cast<unsigned char>(color_id);
-        else
+        else {
+            m_coextrusion_color_id = COEXTRUSION_COLOR_ID_NONE;
             BOOST_LOG_TRIVIAL(error) << "GCodeProcessor encountered an invalid co-extrusion color sector (" << comment << ").";
+        }
         return;
     }
 

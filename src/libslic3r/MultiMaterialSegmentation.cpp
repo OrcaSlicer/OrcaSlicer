@@ -1952,6 +1952,35 @@ static bool has_layer_only_one_color(const std::vector<ColoredLines> &colored_po
     return true;
 }
 
+// Colored contour state zero means "use the model volume's default filament".
+// Resolve that state before MMU segmentation propagates surface colors inward,
+// while LayerRegions still describe the original model volumes.
+static int resolve_default_surface_filament(const Layer &layer, const Line &line)
+{
+    const Vec2d direction = (line.b - line.a).cast<double>();
+    const double length = direction.norm();
+    if (length <= EPSILON)
+        return 0;
+
+    const Vec2d midpoint = 0.5 * (line.a.cast<double>() + line.b.cast<double>());
+    const Vec2d normal(-direction.y() / length, direction.x() / length);
+    for (const double distance_mm : {0.01, 0.03, 0.08, 0.2}) {
+        const double distance = scale_(distance_mm);
+        for (const double side : {-1., 1.}) {
+            const Point probe = (midpoint + side * distance * normal).cast<coord_t>();
+            for (const LayerRegion *region : layer.regions()) {
+                const int filament_id = region->region().config().outer_wall_filament_id.value;
+                if (filament_id <= 0)
+                    continue;
+                for (const Surface &surface : region->slices)
+                    if (surface.expolygon.contains(probe))
+                        return filament_id;
+            }
+        }
+    }
+    return 0;
+}
+
 std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject                                               &print_object,
                                                               const std::function<ModelVolumeFacetsInfo(const ModelVolume &)> &extract_facets_info,
                                                               const size_t                                                     num_facets_states,
@@ -2127,7 +2156,7 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
                              << std::count_if(painted_lines.begin(), painted_lines.end(), [](const std::vector<PaintedLine> &pl) { return !pl.empty(); });
 
     BOOST_LOG_TRIVIAL(debug) << "Print object segmentation - layers segmentation in parallel - begin";
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers), [&edge_grids, &input_expolygons, &painted_lines, &segmented_regions, &num_facets_states, &throw_on_cancel_callback, surface_color_lines](const tbb::blocked_range<size_t> &range) {
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers), [&layers, &edge_grids, &input_expolygons, &painted_lines, &segmented_regions, &num_facets_states, &throw_on_cancel_callback, surface_color_lines](const tbb::blocked_range<size_t> &range) {
         for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
             throw_on_cancel_callback();
             if (!painted_lines[layer_idx].empty()) {
@@ -2148,8 +2177,15 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
                 // into the model volume; that propagation is useful for tool
                 // changes, but is not the surface color needed by a rotating
                 // co-extrusion nozzle.
-                if (surface_color_lines != nullptr)
+                if (surface_color_lines != nullptr) {
                     (*surface_color_lines)[layer_idx] = color_poly;
+                    for (ColoredLines &contour : (*surface_color_lines)[layer_idx]) {
+                        for (ColoredLine &line : contour) {
+                            if (line.color == 0)
+                                line.color = resolve_default_surface_filament(*layers[layer_idx], line.line);
+                        }
+                    }
+                }
 
 #ifdef MM_SEGMENTATION_DEBUG_COLORIZED_POLYGONS
                 export_colorized_polygons_to_svg(debug_out_path("2-mm-colorized_polygons-%d-%d.svg", layer_idx, iRun), color_poly, input_expolygons[layer_idx]);

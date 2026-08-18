@@ -6379,8 +6379,9 @@ size_t GCode::coextrusion_filament_for_surface_segment(const Vec2d &from, const 
                 for (const ColoredLines &contour : by_layer[m_layer->id()]) {
                     for (const ColoredLine &colored_line : contour) {
                         lines.emplace_back(colored_line.line);
-                        // Painted facet states are 1-based filament IDs. State
-                        // zero is the unpainted/default material for the volume.
+                        // Painted facet states and resolved defaults are
+                        // 1-based filament IDs. Zero remains a safe fallback
+                        // only if the source volume could not be identified.
                         m_coextrusion_surface_filament_slots.emplace_back(
                             colored_line.color > 0 ? size_t(colored_line.color - 1) : fallback);
                     }
@@ -6431,6 +6432,9 @@ size_t GCode::coextrusion_filament_for_surface_segment(const Vec2d &from, const 
 
 std::string GCode::coextrusion_color_tag(size_t sector)
 {
+    if (sector >= m_config.coextrusion_c_axis_colors.values.size() ||
+        sector >= m_config.coextrusion_c_axis_color_angles.values.size())
+        return {};
     if (sector == m_coextrusion_last_color_tag)
         return {};
 

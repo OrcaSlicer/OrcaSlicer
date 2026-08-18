@@ -106,14 +106,14 @@ std::vector<std::size_t> map_coextrusion_filament_colors_to_sectors(
         }
     }
 
-    std::sort(candidates.begin(), candidates.end(), [](const Candidate &lhs, const Candidate &rhs) {
-        return lhs.distance_squared < rhs.distance_squared;
-    });
-    std::vector<bool> sector_used(sector_colors.size(), false);
+    // A 3MF may contain more logical colors than the physical co-extruded
+    // strand. Map every logical color independently to its nearest available
+    // sector; multiple logical colors may intentionally share one sector.
+    std::vector<float> best_distance(filament_colors.size(), std::numeric_limits<float>::infinity());
     for (const Candidate &candidate : candidates) {
-        if (result[candidate.filament] == unmapped && !sector_used[candidate.sector]) {
+        if (candidate.distance_squared < best_distance[candidate.filament]) {
             result[candidate.filament] = candidate.sector;
-            sector_used[candidate.sector] = true;
+            best_distance[candidate.filament] = candidate.distance_squared;
         }
     }
     return result;

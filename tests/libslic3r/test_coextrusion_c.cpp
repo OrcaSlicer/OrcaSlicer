@@ -73,13 +73,22 @@ TEST_CASE("Painted 3MF colors map to physical sectors independently of slot orde
     REQUIRE(mapping == std::vector<size_t>{2, 0, 1});
 }
 
-TEST_CASE("Color mapping uses a one-to-one nearest match", "[CoExtrusionC]")
+TEST_CASE("Color mapping uses an independent nearest match", "[CoExtrusionC]")
 {
     const std::vector<size_t> mapping = map_coextrusion_filament_colors_to_sectors(
         {"#F01010", "#10F010", "#1010F0"},
         {"#FF0000", "#00FF00", "#0000FF"});
 
     REQUIRE(mapping == std::vector<size_t>{0, 1, 2});
+}
+
+TEST_CASE("More logical colors than physical sectors map many-to-one", "[CoExtrusionC]")
+{
+    const std::vector<size_t> mapping = map_coextrusion_filament_colors_to_sectors(
+        {"#FFFFFF", "#00C1AE", "#F4E2C1", "#0000FF"},
+        {"#FFFFFF", "#00FF00", "#0000FF"});
+
+    REQUIRE(mapping == std::vector<size_t>{0, 1, 0, 2});
 }
 
 TEST_CASE("G-code preview preserves the physical co-extrusion color sector", "[CoExtrusionC]")
@@ -108,4 +117,29 @@ TEST_CASE("G-code preview preserves the physical co-extrusion color sector", "[C
         if (move.type == EMoveType::Extrude && move.extrusion_role == erExternalPerimeter)
             external_wall_colors.emplace_back(move.coextrusion_color_id);
     REQUIRE(external_wall_colors == std::vector<unsigned char>{2, 0});
+}
+
+TEST_CASE("G-code preview clears an invalid co-extrusion color sector", "[CoExtrusionC]")
+{
+    FullPrintConfig config;
+    config.coextrusion_c_axis_enable.value = true;
+    config.coextrusion_c_axis_colors.values = {"#FFFFFF", "#00FF00", "#0000FF"};
+
+    GCodeProcessor processor;
+    processor.initialize_result_moves();
+    processor.apply_config(config);
+
+    const std::string gcode =
+        "M83\n"
+        "G1 X0 Y0 Z0.2 F600\n;" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) + "Outer wall\n;" +
+        GCodeProcessor::reserved_tag(GCodeProcessor::ETags::CoExtrusion_Color) + "2\n"
+        "G1 X10 Y0 E1 F1200\n;" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::CoExtrusion_Color) + "999\n"
+        "G1 X10 Y10 E1 F1200\n";
+    processor.process_buffer(gcode);
+
+    std::vector<unsigned char> external_wall_colors;
+    for (const GCodeProcessorResult::MoveVertex &move : processor.get_result().moves)
+        if (move.type == EMoveType::Extrude && move.extrusion_role == erExternalPerimeter)
+            external_wall_colors.emplace_back(move.coextrusion_color_id);
+    REQUIRE(external_wall_colors == std::vector<unsigned char>{2, COEXTRUSION_COLOR_ID_NONE});
 }
