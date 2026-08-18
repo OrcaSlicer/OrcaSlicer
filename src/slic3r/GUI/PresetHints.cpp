@@ -342,7 +342,12 @@ static bool magma_resolve(const PresetBundle &preset_bundle,
     const auto *nozzles = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
     if (nozzles == nullptr || nozzles->values.empty())
         return false;
-    const double nozzle_d = nozzles->values.front();
+    // The slicer sizes tubes from the SPARSE INFILL extruder's nozzle (MagmaTubeMap::build),
+    // so the readout has to use the same one. Taking values.front() showed geometry for a
+    // nozzle that would not print the lattice on any mixed-nozzle machine.
+    const int sparse_ext = std::max(0, print_config.opt_int("sparse_infill_filament") - 1);
+    const double nozzle_d = nozzles->values[std::min<size_t>(size_t(sparse_ext),
+                                                            nozzles->values.size() - 1)];
 
     pattern = magma::magma_effective_pattern(
         print_config.opt_bool("dual_infill_enabled"),
@@ -378,7 +383,7 @@ std::string PresetHints::magma_geometry_description(const PresetBundle &preset_b
                         opening, max_immersion, slam_press, cone_deg))
         return std::string();
 
-    const double bore      = 2.0 * geom->inscribed_radius(interior);
+    const double bore      = 2.0 * geom->inscribed_radius(interior, line_w);
     const double open_area = geom->inset_open_area(spacing, line_w);
     const double open_pct  = spacing > 0.0 ? 100.0 * open_area / (spacing * spacing) : 0.0;
 
@@ -416,7 +421,8 @@ std::string PresetHints::magma_injection_description(const PresetBundle &preset_
         magma::auto_slam_depth(opening, flat, cone_deg, max_immersion, slam_press)
         + print_config.opt_float("magma_injection_z_slam_offset")));
     const double plunge = print_config.opt_bool("magma_injection_plunge")
-        ? magma::clamp_plunge_depth(slam, print_config.opt_float("magma_injection_plunge_depth")) : 0.0;
+        ? magma::clamp_plunge_depth(slam, print_config.opt_float("magma_injection_plunge_depth"),
+                                    budget) : 0.0;
 
     std::string out = (boost::format(_utf8(L(
         "Z-slam %1$.3f mm + plunge %2$.3f mm = %3$.3f mm total nozzle intrusion.")))
@@ -437,9 +443,12 @@ std::string PresetHints::magma_injection_description(const PresetBundle &preset_
     const double tube_height = print_config.opt_float("magma_tube_height");
     const double fill_factor = print_config.opt_float("magma_tube_fill_factor");
     if (open_area > 0.0 && tube_height > 0.0)
-        out += (boost::format(_utf8(L("\nApproximately %1$.2f mm3 injected per full-height tube "
-                                      "(%2$.3f mm2 x %3$.1f mm x %4$.2f fill factor).")))
-                % (open_area * tube_height * fill_factor) % open_area % tube_height % fill_factor).str();
+        // A U-tube is a PAIR of cells sharing a window -- one injection fills both. Reporting
+        // a single cell's volume understated this by ~2x. Still approximate: it ignores the
+        // window cavity and any clipping at the part edge.
+        out += (boost::format(_utf8(L("\nApproximately %1$.2f mm3 injected per full-height U-tube "
+                                      "(2 cells x %2$.3f mm2 x %3$.1f mm x %4$.2f fill factor).")))
+                % (2.0 * open_area * tube_height * fill_factor) % open_area % tube_height % fill_factor).str();
     return out;
 }
 

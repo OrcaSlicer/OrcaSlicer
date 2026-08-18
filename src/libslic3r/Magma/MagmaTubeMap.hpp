@@ -189,6 +189,16 @@ public:
     // Pre-built lattice with spiral offset for a given layer.
     // Eliminates repeated sin/cos + lattice construction. Returned through the
     // MagmaLattice interface so consumers stay pattern-agnostic.
+    // Only layers at or above first_layer_id() carry real data -- see the note in build().
+    bool   valid_layer(int layer_id) const {
+        return layer_id >= m_first_layer_id && layer_id < int(m_layer_data.size());
+    }
+    int    first_layer_id() const { return m_first_layer_id; }
+    // The pattern this map's lattice, spacing and U-tube pairs were built for. The fill path
+    // attaches one object-wide map to whichever FillMagma subclass a region produced, so the
+    // two can disagree when regions select different Magma patterns -- windows then land on
+    // unrelated lines with no diagnostic.
+    InfillPattern pattern() const { return m_pattern; }
     const MagmaLattice& lattice_at(int layer_id) const { return *m_layer_data[layer_id].lattice; }
 
     // Window center layer for a U-tube pair: the layer at or above
@@ -213,7 +223,6 @@ public:
 
     // Triangle vertex overlap correction: flow multiplier for infill lines (≤1.0).
     // Applied in Fill.cpp via Flow::with_flow_ratio() to reduce deposited line width.
-    double overlap_flow_correction() const { return m_overlap_flow_correction; }
 
     // Non-empty if slicing should display a warning to the user
     // (e.g. overlap correction reduced injection volume by >33%).
@@ -244,15 +253,12 @@ private:
     void assign_extra_vents();
     void precompute_window_end_z();
     void precompute_injection_data();
-    void compute_volumes(const std::vector<Layer*> &layers);
-
     // Zero-offset lattice for cell IDENTITY (a,b,c,kind) + topology (neighbors/is_up).
     // Both are offset-independent, so one cached instance serves scan_layers, the solver,
     // and the extra-vent sweep instead of each constructing its own. Lazily built.
     const MagmaLattice& topology_lattice() const;
 
     // Adaptive layer height helpers
-    int    layer_at_height_from(int start_layer, double target_mm) const;
     double span_height_mm(int start_layer, int end_layer) const;
 
     // Data
@@ -285,20 +291,20 @@ private:
     double m_min_cap_clearance = 0.0; // min centre→boundary clearance for a sealable
                                       // injection (≈ nozzle flat radius + margin)
     float  m_layer_height;            // nominal config layer height (fallback)
-    float  m_min_layer_height;        // smallest layer height in the object
+    float  m_min_layer_height;        // smallest layer height actually printed in this object
     double m_dodge_distance;          // boundary dodge distance in mm (stagger target)
     double m_max_tube_height_mm;      // max tube height in mm (drives boundary placement)
     double m_min_tube_height_mm;      // min tube height in mm
     int    m_num_layers;
+    // First index in m_layer_data that corresponds to a real object layer. Non-zero when a
+    // raft is present, because Layer::id() is absolute and includes the raft offset.
+    int    m_first_layer_id = 0;
     bool   m_dual_infill_enabled;
     MagmaTubeSolverMode m_solver_mode = MagmaTubeSolverMode::Refined;
     double m_solver_timeout = 20.0;
     MagmaInjectionEdgePref m_injection_edge_pref = MagmaInjectionEdgePref::Interior;
 
     // Triangle vertex overlap correction
-    double m_overlap_flow_correction = 1.0;  // infill flow multiplier (≤1.0)
-    double m_effective_line_width = 0.0;     // deposited line width after flow correction (mm)
-    bool   m_overlap_line_correction = true; // config: whether to reduce line width for overlap
     std::string m_warning_message;           // non-empty if slicing warning should be shown
     std::vector<int> m_injection_layer_ids;  // sorted, deduplicated cap layer IDs
 };

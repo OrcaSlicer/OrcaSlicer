@@ -42,8 +42,14 @@ static Polyline make_horiz_segment(double x0_mm, double x1_mm, coord_t y_scaled)
 // Subtract sorted, merged gap intervals from a range [lo, hi].
 // Emits kept segments to `out` via the callback.
 template<typename EmitFn>
+// `eps` is the shortest run worth emitting, IN THE CALLER'S UNITS. It used to be a
+// hardcoded 0.01, which is 0.01mm for the world-space callers but 1% of the whole line for
+// the parametric one below -- so on a part more than ~100 rows tall the wall stub between two
+// windows on the same line was silently deleted and the two windows merged into a single
+// opening, cross-connecting two U-tubes. Pass it explicitly so the unit is never in doubt.
 static void subtract_gaps(double lo, double hi,
                           const std::vector<std::pair<double, double>> &gaps,
+                          double eps,
                           EmitFn emit)
 {
     double cursor = lo;
@@ -52,11 +58,11 @@ static void subtract_gaps(double lo, double hi,
         double gr = std::min(gap.second, hi);
         if (gr <= gl)
             continue;
-        if (gl > cursor + 0.01)
+        if (gl > cursor + eps)
             emit(cursor, gl);
         cursor = std::max(cursor, gr);
     }
-    if (hi > cursor + 0.01)
+    if (hi > cursor + eps)
         emit(cursor, hi);
 }
 
@@ -112,7 +118,10 @@ static void split_line_by_y_gaps(
 
     std::sort(t_gaps.begin(), t_gaps.end());
 
-    subtract_gaps(0.0, 1.0, t_gaps, [&](double t_lo, double t_hi) {
+    // t is normalised over the whole line, so express the 0.01mm world threshold in t.
+    const double seg_len_mm = (p1 - p0).norm();
+    const double t_eps      = seg_len_mm > 1e-9 ? (0.01 / seg_len_mm) : 0.0;
+    subtract_gaps(0.0, 1.0, t_gaps, t_eps, [&](double t_lo, double t_hi) {
         Vec2d a = t_to_point(t_lo);
         Vec2d b = t_to_point(t_hi);
         Polyline pl;
@@ -344,7 +353,7 @@ void FillMagmaTriangle::_fill_surface_single(
             if (it == gaps.horiz.end()) {
                 raw.push_back(make_horiz_segment(x_min, x_max, y_s));
             } else {
-                subtract_gaps(x_min, x_max, it->second, [&](double lo, double hi) {
+                subtract_gaps(x_min, x_max, it->second, 0.01, [&](double lo, double hi) {
                     raw.push_back(make_horiz_segment(lo, hi, y_s));
                 });
             }
@@ -466,7 +475,7 @@ void FillMagmaRectilinear::_fill_surface_single(
             if (it == gaps.horiz.end()) {
                 raw.push_back(make_horiz_segment(x_min, x_max, y_s));
             } else {
-                subtract_gaps(x_min, x_max, it->second, [&](double lo, double hi) {
+                subtract_gaps(x_min, x_max, it->second, 0.01, [&](double lo, double hi) {
                     raw.push_back(make_horiz_segment(lo, hi, y_s));
                 });
             }
@@ -488,7 +497,7 @@ void FillMagmaRectilinear::_fill_surface_single(
                 pl.points.push_back(Point(x_s, coord_t(scale_(y_max))));
                 raw.push_back(std::move(pl));
             } else {
-                subtract_gaps(y_min, y_max, it->second, [&](double lo, double hi) {
+                subtract_gaps(y_min, y_max, it->second, 0.01, [&](double lo, double hi) {
                     Polyline pl;
                     pl.points.push_back(Point(x_s, coord_t(scale_(lo))));
                     pl.points.push_back(Point(x_s, coord_t(scale_(hi))));
@@ -630,7 +639,7 @@ void FillMagmaTriHex::_fill_surface_single(
             if (it == gaps.horiz.end())
                 raw.push_back(make_horiz_segment(x_min, x_max, y_s));
             else
-                subtract_gaps(x_min, x_max, it->second, [&](double lo, double hi) {
+                subtract_gaps(x_min, x_max, it->second, 0.01, [&](double lo, double hi) {
                     raw.push_back(make_horiz_segment(lo, hi, y_s));
                 });
         }

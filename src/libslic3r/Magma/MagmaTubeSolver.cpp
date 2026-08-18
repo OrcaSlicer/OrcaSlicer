@@ -26,6 +26,7 @@ MagmaTubeSolver::MagmaTubeSolver(
     const MagmaLattice &lattice,
     const std::unordered_map<TriangleCell, CellPresence, TriangleCellHash> &cells,
     const std::vector<LayerData> &layer_data,
+    int    first_layer,
     double min_tube_height_mm,
     double max_tube_height_mm,
     int    num_layers,
@@ -35,6 +36,7 @@ MagmaTubeSolver::MagmaTubeSolver(
     : m_lattice(lattice)
     , m_cells(cells)
     , m_layer_data(layer_data)
+    , m_first_layer(std::max(0, first_layer))
     , m_min_h_mm(min_tube_height_mm)
     , m_max_h_mm(max_tube_height_mm)
     , m_num_layers(num_layers)
@@ -81,10 +83,23 @@ void MagmaTubeSolver::solve(
     // Uses smallest layer height for conservative layer count.
     int z_stride;
     {
-        double min_lh = m_layer_data.empty() ? 0.2 : m_layer_data[0].height;
-        for (const auto &ld : m_layer_data)
-            if (ld.height > 0 && ld.height < min_lh)
-                min_lh = ld.height;
+        // Seed from the first REAL layer. Seeding from index 0 meant seeding with a raft
+        // placeholder's 0.0, which the `> 0` guard can never displace -- so min_lh stayed 0,
+        // m_max_h_mm / 0.0 was +inf, and the cast to int was undefined behaviour that
+        // collapsed max_h_layers to 1 and disabled CP-SAT on every raft print.
+        double min_lh = 0.0;
+        for (int L = m_first_layer; L < int(m_layer_data.size()); ++L)
+            if (m_layer_data[L].height > 0 && (min_lh <= 0.0 || m_layer_data[L].height < min_lh))
+                min_lh = m_layer_data[L].height;
+        // Every layer from m_first_layer up is a real Layer with a real height, so this can
+        // only fire if the map was built with no layers at all -- in which case there is
+        // nothing to solve. Bail rather than invent a height and produce a plausible answer
+        // from data we do not have.
+        if (min_lh <= 0.0) {
+            BOOST_LOG_TRIVIAL(error) << "Magma solver: no layer with a positive height; "
+                                        "skipping tube assignment.";
+            return;
+        }
         int max_h_layers = std::max(1, static_cast<int>(std::ceil(m_max_h_mm / min_lh)));
         m_z_window = 4 * max_h_layers;
         z_stride   = std::max(1, 2 * max_h_layers);
@@ -162,16 +177,21 @@ void MagmaTubeSolver::build_micron_tables()
     m_um.top_um.resize(n);
     m_um.bottom_um.resize(n);
 
-    for (int L = 0; L < n; ++L)
+    // Only rows from m_first_layer up are backed by a real layer. Filling the rest would
+    // give several layers an identical Z of 0, collapsing the reverse maps below to
+    // last-writer-wins.
+    for (int L = m_first_layer; L < n; ++L)
         m_um.top_um[L] = llround(m_layer_data[L].print_z * 1000.0);
 
-    // Layer 0 bottom from actual bottom_z; subsequent layers contiguous by construction
-    m_um.bottom_um[0] = llround(m_layer_data[0].bottom_z() * 1000.0);
-    for (int L = 1; L < n; ++L)
+    // The first real layer's bottom comes from its own bottom_z -- the raft top, when there
+    // is a raft. Everything above is contiguous by construction.
+    if (m_first_layer < n)
+        m_um.bottom_um[m_first_layer] = llround(m_layer_data[m_first_layer].bottom_z() * 1000.0);
+    for (int L = m_first_layer + 1; L < n; ++L)
         m_um.bottom_um[L] = m_um.top_um[L - 1];
 
     // Reverse maps (same integers — guaranteed to match)
-    for (int L = 0; L < n; ++L) {
+    for (int L = m_first_layer; L < n; ++L) {
         m_um.bottom_to_layer[m_um.bottom_um[L]] = L;
         m_um.top_to_layer[m_um.top_um[L]] = L;
     }
@@ -290,7 +310,7 @@ void MagmaTubeSolver::build_blocks(int off_a, int off_b, int off_z,
 
     // Single Z slice: off_z to off_z + z_window - 1
     // (Z levels are iterated by the caller in solve())
-    int z_start = std::max(0, off_z);
+    int z_start = std::max(m_first_layer, off_z);   // never descend into placeholder rows
     int z_end   = std::min(off_z + m_z_window - 1, m_num_layers - 1);
     if (z_start >= m_num_layers || z_start > z_end) return;
 

@@ -800,7 +800,10 @@ std::string CoolingBuffer::apply_layer_cooldown(
             ironing_fan_control = ironing_fan_speed >= 0;
 
             magma_injection_fan_speed   = EXTRUDER_CONFIG(magma_injection_fan_speed);
-            magma_injection_fan_control = true;  // always active (no -1 disable)
+            // -1 = leave the fan alone, matching ironing_fan_speed and its siblings. Without
+            // it there was no way to stop full part cooling blasting molten material being
+            // pushed down a narrow channel -- and the default is 100%.
+            magma_injection_fan_control = magma_injection_fan_speed >= 0;
 #undef EXTRUDER_CONFIG
             
         } else {

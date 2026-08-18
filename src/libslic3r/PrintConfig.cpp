@@ -3342,10 +3342,13 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("magma_injection_fan_speed", coInts);
     def->label = L("Magma injection fan speed");
-    def->tooltip = L("Part cooling fan speed during Magma injection. Higher speeds help "
-                     "solidify injected material quickly before the next layer is printed.");
+    def->tooltip = L("Part cooling fan speed during Magma injection. Higher speeds help solidify injected "
+                     "material quickly before the next layer is printed.\n\n"
+                     "-1 leaves the fan at whatever the print is already using. Consider it: the "
+                     "melt is being pushed down a narrow channel and full cooling can freeze it "
+                     "before it reaches the bottom.");
     def->sidetext = "%";
-    def->min = 0;
+    def->min = -1;
     def->max = 100;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInts{ 100 });
@@ -5466,7 +5469,11 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
-    def->max = 2;
+    // Matches every other line-width option. Without max_literal (which defaults to 1) the
+    // "did you mean mm or %?" dialog in Field.cpp fires on any shell width above 1mm -- i.e.
+    // on any sane value for a 0.6 or 0.8 nozzle.
+    def->max = 1000;
+    def->max_literal = 10;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatOrPercent(0, false));
 
@@ -5746,9 +5753,11 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("How far above layer height the nozzle hovers while it is over neighbouring "
                      "cells during the ironing pass, so it doesn't smear material into a neighbour's "
-                     "air hole. It descends to layer height once it is safely over its own crater.");
+                     "air hole. It descends to layer height once it is safely over its own crater.\n\n"
+                     "Cannot be 0: at 0 the hover and press heights are identical, which silently "
+                     "disables the neighbour clearance entirely and irons adjacent tubes shut.");
     def->sidetext = L("mm");
-    def->min = 0;
+    def->min = 0.01;
     def->max = 1.0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.2));
@@ -5853,31 +5862,7 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(2.0));
 
-    def = this->add("magma_overlap_line_correction", coBool);
-    def->label = L("Adjust line width for vertex overlap");
-    def->category = L("Strength");
-    def->tooltip = L("Magma lattices deposit material twice wherever infill lines cross — roughly 15-30% "
-                     "excess, worse on Triangle (three families at 60 degrees) than Rectilinear (two "
-                     "at 90). Enabling this thins the infill lines to compensate.\n\n"
-                     "OFF by default on purpose: it works by changing your line width, a common "
-                     "source of print-quality problems. Turn it on only if you see over-extrusion at "
-                     "the lattice vertices. Injection volume is corrected either way.");
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
 
-    def = this->add("magma_overlap_min_width", coPercent);
-    def->label = L("Minimum corrected line width");
-    def->category = L("Strength");
-    def->tooltip = L("Floor for the overlap-corrected line width, as a percentage of nozzle diameter. "
-                     "The overlap correction will not reduce lines below this width. "
-                     "Set to 0 for auto (90% of nozzle diameter).\n\n"
-                     "If other flow settings (sparse infill flow ratio, print flow ratio) further "
-                     "reduce the effective width below this threshold, a warning will be shown.");
-    def->sidetext = L("%");
-    def->min = 0;
-    def->max = 100;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionPercent(0));
 
 
 
@@ -5889,6 +5874,10 @@ void PrintConfigDef::init_fff_params()
                      "exactly on the immersion budget and this is clamped to it — use Max nozzle "
                      "immersion there instead.");
     def->sidetext = L("mm");
+    // The only numeric Magma option that had no bounds at all, so the field accepted
+    // +/-FLT_MAX and silently absorbed anything past the immersion budget.
+    def->min = -1.0;
+    def->max = 1.0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.0));
 

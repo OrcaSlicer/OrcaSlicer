@@ -1507,8 +1507,6 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "magma_tube_solver_mode"
             || opt_key == "magma_solver_timeout"
             || opt_key == "magma_spiral_interlock"
-            || opt_key == "magma_overlap_line_correction"
-            || opt_key == "magma_overlap_min_width"
             || opt_key == "magma_injection_edge_pref") {
             // Surface classification (discover_vertical_shells) and
             // tube map geometry (MagmaTubeMap::build in prepare_infill)

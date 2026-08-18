@@ -139,9 +139,15 @@ inline double auto_slam_depth(double opening_dia, double flat, double cone_half_
     return std::min(std::min(std::max(press, needed), budget), MAGMA_SLAM_CLAMP);
 }
 
-// Plunge depth clamped so slam + plunge stays within the total intrusion clamp.
-inline double clamp_plunge_depth(double slam_depth, double plunge_depth) {
-    return std::min(std::max(0.0, plunge_depth), std::max(0.0, MAGMA_SLAM_PLUNGE_CLAMP - slam_depth));
+// Plunge depth clamped so slam + plunge stays inside the immersion budget.
+//
+// The plunge drives the nozzle further INTO the tube, so it spends from exactly the same
+// budget as the slam -- same hot metal, same direction. This used to clamp only against
+// MAGMA_SLAM_PLUNGE_CLAMP (4.0mm), so a 0.6mm budget plus a 2.0mm plunge gave 2.6mm of
+// intrusion against a setting whose own tooltip says 1.1mm visibly deformed cells.
+inline double clamp_plunge_depth(double slam_depth, double plunge_depth, double immersion_budget) {
+    const double ceiling = std::min(MAGMA_SLAM_PLUNGE_CLAMP, std::max(0.0, immersion_budget));
+    return std::min(std::max(0.0, plunge_depth), std::max(0.0, ceiling - slam_depth));
 }
 
 // ============================================================================
@@ -164,23 +170,22 @@ struct TriangleGeometry final : public MagmaGeometry
         return inset_side > 0.0 ? 2.0 * inset_side / SQRT3 : 0.0;
     }
 
-    double inscribed_radius(double interior_width) const override { return interior_width * 0.5; }
+    // Equilateral triangle. With spacing = interior + lw as the altitude, the inset side is
+    // (2*interior - lw)/sqrt3, so the inradius is inset_side/(2*sqrt3) = (2*interior - lw)/6.
+    // Returning interior/2 is the answer for a SQUARE; here it reported a bore ~59% too large,
+    // contradicting the 50%-of-flat figure the validator quotes for triangle.
+    double inscribed_radius(double interior_width, double line_width) const override {
+        return std::max(0.0, (2.0 * interior_width - line_width) / 3.0) * 0.5;
+    }
 
     // Centroid-to-neighbor-centroid distance = circumradius = side/sqrt3.
     double neighbor_centroid_distance(double spacing) const override {
         return triangle_side_length(spacing) / SQRT3;
     }
 
-    double interlock_radius(double spacing) const override { return spacing * 0.5; }
-
-    // 3 line families crossing at 60deg per vertex: (3*sqrt3/4) * w^2. (Only subtracted from
-    // injection volume when the overlap flow correction is off — see MagmaGeometry.hpp.)
+    // 3 line families crossing at 60deg per vertex: (3*sqrt3/4) * w^2.
     double vertex_overlap_excess_area(double line_width) const override {
         return (3.0 * SQRT3 / 4.0) * line_width * line_width;
-    }
-
-    double line_overlap_excess_fraction(double spacing, double line_width) const override {
-        return spacing > 0.0 ? 3.0 * line_width / (4.0 * spacing) : 0.0;
     }
 
     // Geometric window height: window cross-section (inset_side x height) equals
@@ -201,7 +206,6 @@ struct TriangleGeometry final : public MagmaGeometry
     }
 
     int max_neighbors() const override { return 3; }
-    int cells_per_pair() const override { return 2; }
 };
 
 // Shared triangle-geometry instance (stateless).

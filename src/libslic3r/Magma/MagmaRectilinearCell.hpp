@@ -53,23 +53,16 @@ struct SquareGeometry final : public MagmaGeometry
     }
 
     // Largest circle that fits inside the open tube.
-    double inscribed_radius(double interior_width) const override { return interior_width * 0.5; }
+    // Inset square of side `interior`: inscribed circle diameter == the side.
+    double inscribed_radius(double interior_width, double) const override { return interior_width * 0.5; }
 
     // Edge-sharing neighbor centers are one full spacing apart.
     double neighbor_centroid_distance(double spacing) const override { return spacing; }
 
-    double interlock_radius(double spacing) const override { return spacing * 0.5; }
-
     // 2 line families crossing at 90deg: each crossing double-deposits an lw x lw square,
-    // ~1 crossing per cell -> lw^2. (Only subtracted when the overlap flow correction is off.)
+    // ~1 crossing per cell -> lw^2.
     double vertex_overlap_excess_area(double line_width) const override {
         return line_width * line_width;
-    }
-
-    // Per cell ~2*spacing*lw of wall is deposited and lw^2 is doubled at the
-    // crossing -> excess fraction = lw / (2*spacing).
-    double line_overlap_excess_fraction(double spacing, double line_width) const override {
-        return spacing > 0.0 ? line_width / (2.0 * spacing) : 0.0;
     }
 
     // Geometric window height: window flow cross-section = tube open cross-section.
@@ -89,7 +82,6 @@ struct SquareGeometry final : public MagmaGeometry
     }
 
     int max_neighbors() const override { return 4; }
-    int cells_per_pair() const override { return 2; }
 };
 
 // Shared square-geometry instance (stateless).

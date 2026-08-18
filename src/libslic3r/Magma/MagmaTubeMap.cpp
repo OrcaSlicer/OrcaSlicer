@@ -3,6 +3,7 @@
 #include "MagmaPatterns.hpp"
 
 #include "../Layer.hpp"
+#include "../Flow.hpp"
 #include "../Print.hpp"
 #include "../Slicing.hpp"
 #include "../ClipperUtils.hpp"
@@ -140,14 +141,14 @@ int MagmaTubeMap::num_solid_cells() const
 
 double MagmaTubeMap::print_z(int layer_id) const
 {
-    if (layer_id >= 0 && layer_id < int(m_layer_data.size()))
+    if (valid_layer(layer_id))
         return m_layer_data[layer_id].print_z;
     return 0.0;
 }
 
 double MagmaTubeMap::layer_height_at(int layer_id) const
 {
-    if (layer_id >= 0 && layer_id < int(m_layer_data.size()))
+    if (valid_layer(layer_id))
         return m_layer_data[layer_id].height;
     return double(m_layer_height);
 }
@@ -166,29 +167,11 @@ int MagmaTubeMap::window_center_layer(const UTubePair& pair) const
 
 double MagmaTubeMap::span_height_mm(int start_layer, int end_layer) const
 {
-    if (start_layer < 0 || end_layer < start_layer)
-        return 0.0;
-    int sz = int(m_layer_data.size());
-    if (start_layer >= sz || end_layer >= sz)
+    if (end_layer < start_layer || ! valid_layer(start_layer) || ! valid_layer(end_layer))
         return 0.0;
     // print_z is cumulative (top of layer), so span height =
     // top of end_layer minus bottom of start_layer.
     return m_layer_data[end_layer].print_z - m_layer_data[start_layer].bottom_z();
-}
-
-int MagmaTubeMap::layer_at_height_from(int start_layer, double target_mm) const
-{
-    if (start_layer < 0 || start_layer >= int(m_layer_data.size()))
-        return m_num_layers - 1;
-    // Target z = bottom of start_layer + target_mm
-    double target_z = m_layer_data[start_layer].bottom_z() + target_mm;
-    // Binary search: find first layer with print_z >= target_z
-    auto it = Slic3r::lower_bound_by_predicate(
-        m_layer_data.begin(), m_layer_data.end(),
-        [target_z](const LayerData &ld) { return ld.print_z < target_z; });
-    if (it == m_layer_data.end())
-        return m_num_layers - 1;
-    return static_cast<int>(it - m_layer_data.begin());
 }
 
 // ============================================================================
@@ -218,7 +201,9 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     const float nozzle_diameter = static_cast<float>(print_config.nozzle_diameter.get_at(sparse_extruder_idx));
     map->m_line_width = static_cast<float>(config.sparse_infill_line_width.get_abs_value(nozzle_diameter));
     if (map->m_line_width <= 0.f)
-        map->m_line_width = nozzle_diameter;
+        // 0 means "auto" in OrcaSlicer. Resolve it the way the slicer does rather than
+        // standing in the nozzle diameter, which is a different (and larger) number.
+        map->m_line_width = Flow::auto_extrusion_width(frInfill, nozzle_diameter);
     // Select the pattern's shape strategy (geometry formulas + lattice factory) FIRST --
     // auto tube sizing below resolves through it, so it must exist before we size.
     // In dual-infill mode sparse_infill_pattern is the inner yolk pattern, so the tube
@@ -243,9 +228,19 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     // Build per-layer height/z tables for adaptive layer height support.
     // Must happen before WindowSpec and spiral params since they use m_min_layer_height.
     {
+        // m_layer_data is indexed by ABSOLUTE Layer::id(), and object layer ids start at
+        // slicing_parameters().raft_layers() (PrintObjectSlice.cpp) -- so with a raft the
+        // rows below the first object layer belong to no layer we know anything about.
+        // Record where the valid range begins rather than leaving zero-filled rows that
+        // read as legitimate 0mm-tall layers at Z=0: that seeded the solver's minimum layer
+        // height with 0.0, divided by it, and disabled CP-SAT refinement on every raft print.
         int max_layer_id = 0;
-        for (const Layer *l : layers)
+        int min_layer_id = INT_MAX;
+        for (const Layer *l : layers) {
             max_layer_id = std::max(max_layer_id, static_cast<int>(l->id()));
+            min_layer_id = std::min(min_layer_id, static_cast<int>(l->id()));
+        }
+        map->m_first_layer_id = (min_layer_id == INT_MAX) ? 0 : min_layer_id;
         map->m_num_layers = max_layer_id + 1;
         map->m_layer_data.resize(map->m_num_layers);
         for (const Layer *l : layers) {
@@ -253,12 +248,20 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
             map->m_layer_data[lid].print_z = l->print_z;
             map->m_layer_data[lid].height  = l->height;
         }
-        // Use min_layer_height from SlicingParameters (already computed across
-        // all extruders by OrcaSlicer). Clamp to nominal if something is off.
-        map->m_min_layer_height = static_cast<float>(
-            slicing_params.min_layer_height > 0
-                ? std::min(slicing_params.min_layer_height, double(map->m_layer_height))
-                : map->m_layer_height);
+        // The smallest layer height this object actually PRINTS, taken from the layers we
+        // just walked. This used to be slicing_params.min_layer_height, which is the machine
+        // floor (min_layer_height_from_nozzle, ~0.07mm) and has nothing to do with the object
+        // -- so m_min_tube_height_mm's "+ 2 layers" of seal-wall padding came out at 0.14mm
+        // instead of 0.4mm on a 0.2mm print, admitting tubes whose sealing wall the nozzle
+        // punches straight through. The real per-layer heights were already in hand.
+        {
+            double min_h = 0.0;
+            for (int L = map->m_first_layer_id; L < map->m_num_layers; ++L)
+                if (map->m_layer_data[L].height > 0.0 &&
+                    (min_h <= 0.0 || map->m_layer_data[L].height < min_h))
+                    min_h = map->m_layer_data[L].height;
+            map->m_min_layer_height = static_cast<float>(min_h > 0.0 ? min_h : map->m_layer_height);
+        }
     }
 
     // Spiral params — use min_layer_height to cap helix angle at thinnest layer
@@ -342,7 +345,7 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     // Build per-layer lattice cache (eliminates repeated sin/cos + lattice
     // construction). Built via the pattern factory so each layer's lattice
     // matches the selected pattern (triangle today).
-    for (int i = 0; i < map->m_num_layers; ++i)
+    for (int i = map->m_first_layer_id; i < map->m_num_layers; ++i)
         map->m_layer_data[i].lattice = lattice_for_layer(map->m_pattern, map->m_cell_spacing, map->m_spiral_params, i, map->m_line_width);
 
     // Read injection edge preference
@@ -358,48 +361,13 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     // fraction of total deposited material is:
     //
     //   excess_frac = 3w / (4S)
-    //
-    // Two correction levers:
-    //   1. Line width: reduce infill flow so deposited width shrinks from w to w_eff.
-    //      Clamped at OrcaSlicer's min_bead_width (default 85% of nozzle).
-    //   2. Injection volume: subtract per-layer excess from tube fill volume.
-    //      Always applied, regardless of line width correction setting.
-    {
-        map->m_overlap_line_correction = config.magma_overlap_line_correction.value;
-        map->m_effective_line_width = map->m_line_width;
-
-        double S = map->m_cell_spacing;
-        double w = map->m_line_width;
-        double excess_frac = map->m_geometry->line_overlap_excess_fraction(S, w);
-
-        if (map->m_overlap_line_correction && excess_frac > 0.0) {
-            // Minimum corrected line width: use magma_overlap_min_width if set,
-            // otherwise default to 90% of nozzle diameter.
-            double min_nozzle = *std::min_element(
-                print_config.nozzle_diameter.values.begin(),
-                print_config.nozzle_diameter.values.end());
-            double min_pct = config.magma_overlap_min_width.value;
-            if (min_pct <= 0)
-                min_pct = 90.0;  // auto: 90% of nozzle
-            double min_width = min_pct * 0.01 * min_nozzle;
-
-            // Reduce line width by the excess fraction, but don't go below min_width
-            double w_corrected = w * (1.0 - excess_frac);
-            if (w_corrected < min_width)
-                w_corrected = min_width;
-
-            map->m_overlap_flow_correction = w_corrected / w;
-            map->m_effective_line_width = w_corrected;
-        } else {
-            map->m_overlap_flow_correction = 1.0;
-            map->m_effective_line_width = w;
-        }
-
-        BOOST_LOG_TRIVIAL(info) << "Magma overlap correction: excess_frac=" << excess_frac
-            << " flow_correction=" << map->m_overlap_flow_correction
-            << " w_eff=" << map->m_effective_line_width << "mm"
-            << " (line_correction=" << (map->m_overlap_line_correction ? "on" : "off") << ")";
-    }
+    // Vertex-overlap correction is now VOLUME-ONLY: measure_volumes subtracts the doubled
+    // material at line crossings from the injected volume. The old second lever -- thinning
+    // every deposited bead to average out a local excess -- was removed. It shipped off by
+    // default (changing line width causes its own print problems), and it was the sole reason
+    // this class carried two line widths, which had already produced several sites that
+    // disagreed about which one to use. Vertex overlap is a geometry problem; the right fix is
+    // shortening the crossing lines, not thinning all of them. See git history.
 
     // Cap-seal clearance gate (used by scan_layers' geometry-sanity check): the
     // injection nozzle flat seats at the cell centre, so a tube layer needs ≥ flat/2
@@ -418,7 +386,7 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
         map->m_min_cap_clearance = 0.5 * seal_flat;  // nozzle flat radius
     }
 
-    // Build phases (scan_layers uses m_effective_line_width for area threshold).
+    // Build phases (scan_layers uses m_line_width for area threshold).
     // scan_layers' 70%-of-ideal area gate already excludes pinched/under-area
     // layers from a cell's presence, so no separate constriction pass is needed.
     map->scan_layers(layers);
@@ -477,13 +445,13 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     }
 
     // Tri-hex: warn when the triangle vents are too small to stay open. The vent is an
-    // equilateral triangle of side e = cell_spacing/sqrt3; inset by the (overlap-compensated)
-    // wall it shrinks to open inscribed diameter = cell_spacing/3 - effective_line_width.
+    // equilateral triangle of side e = cell_spacing/sqrt3; inset by the wall it shrinks to an
+    // open inscribed diameter = cell_spacing/3 - line_width.
     // Below ~1mm, the line-overlap plastic plus ordinary print imperfections seal the vent
     // and block injection — tri-hex only works for large tubes. Only set when no harder
     // failure above already claimed the warning.
     if (map->m_pattern == ipMagmaTriHex && map->m_warning_message.empty()) {
-        const double vent_dia = map->m_cell_spacing / 3.0 - double(map->m_effective_line_width);
+        const double vent_dia = map->m_cell_spacing / 3.0 - double(map->m_line_width);
         if (vent_dia < 1.0) {
             map->m_warning_message = Slic3r::format(
                 "Magma Tri-hex vents are only %.2f mm across after line overlap — they may seal "
@@ -515,7 +483,7 @@ double MagmaTubeMap::tube_opening_diameter() const
     // Opening = circumscribed circle of the inset (hollow) cell, via the shared
     // per-shape geometry so the injection seal math and Print::validate()'s seal
     // warning use one source of truth.
-    return m_geometry->opening_diameter(m_cell_spacing, m_effective_line_width);
+    return m_geometry->opening_diameter(m_cell_spacing, m_line_width);
 }
 
 double MagmaTubeMap::cap_opening_diameter(const UTubePair &pair) const
@@ -550,8 +518,11 @@ double MagmaTubeMap::cell_bore_at(const TriangleCell &cell, int layer) const
     if (cell.kind == 0) {
         ideal_bore = m_interior_width;
     } else {
+        // The tri-hex vent bore. Must stay the same quantity (spacing/3 - lw) the
+        // vent-width warning at the top of build() computes -- these were once two
+        // spellings of one formula evaluated on two different line widths.
         double e     = m_cell_spacing * INV_SQRT3;
-        double inset = e - m_line_width * SQRT3;
+        double inset = e - double(m_line_width) * SQRT3;
         ideal_bore = inset > 0.0 ? inset * INV_SQRT3 : m_interior_width;
     }
     // Narrow on clipped layers: the bead area scales with bore², so the per-layer bore is
@@ -606,13 +577,13 @@ static ExPolygons cell_inset_polygons(const MagmaLattice &lattice,
 void MagmaTubeMap::scan_layers(const std::vector<Layer*> &layers)
 {
     // Half the deposited bead width: the inset between a cell's wall outline
-    // (cell_corners) and its hollow open cross-section. Uses m_effective_line_width
+    // (cell_corners) and its hollow open cross-section. Uses m_line_width
     // (post overlap correction) so the inset matches the actual bead, not nominal.
-    const double half_line_width = m_effective_line_width * 0.5;
+    const double half_line_width = m_line_width * 0.5;
 
     // Per-layer presence gate: a cell counts as present on a layer if its clipped
     // tube area is ≥70% of ideal. Deliberately loose — injection volume scales with
-    // each layer's ACTUAL clipped area (see compute_volumes), so an admitted partial
+    // each layer's ACTUAL clipped area (see measure_volumes), so an admitted partial
     // cell is injected proportionally, never over-injected. A little mid-tube clipping
     // is harmless; what actually governs a reliable injection is the SEAL at the cap
     // layer (the nozzle must press against solid wall around the opening), not uniform
@@ -826,7 +797,7 @@ void MagmaTubeMap::assign_tubes(ProgressFn progress_fn, ThrowIfCanceled throw_if
 {
     // Cell topology (neighbors/is_up) — offset-independent, so the cached zero-offset
     // lattice serves every layer's connectivity queries.
-    MagmaTubeSolver solver(topology_lattice(), m_cells, m_layer_data,
+    MagmaTubeSolver solver(topology_lattice(), m_cells, m_layer_data, m_first_layer_id,
                            m_min_tube_height_mm, m_max_tube_height_mm,
                            m_num_layers, m_dodge_distance,
                            m_solver_mode, m_solver_timeout);
@@ -1057,17 +1028,11 @@ void MagmaTubeMap::measure_volumes(const std::vector<Layer*> &layers)
         walls_by_layer[lid] = union_ex(walls);
     }
 
-    // The injection volume is ALWAYS corrected for vertex overlap, evaluated at the ACTUAL
-    // deposited width m_effective_line_width. That width is the flow-reduced value when the
-    // overlap flow correction is on — so only the small RESIDUAL overlap of the thinned lines
-    // remains (the reduction is floored at magma_overlap_min_width, ~90% of nozzle, so the
-    // crossings still over-extrude a little) — and the nominal width when off (full overlap).
-    // One self-scaling term, matching the magma_overlap_line_correction tooltip ("the injection
-    // volume is always corrected for any remaining vertex overlap regardless of this setting").
-    // It is NOT double-counting the footprint: polygons_covered_by_width merges crossing lines
-    // into a single union, so the second line's deposit (which bulges into the void) is never
-    // captured there and must be subtracted here.
-    const double excess_unit = m_geometry->vertex_overlap_excess_area(m_effective_line_width);
+    // The injection volume is corrected for vertex overlap: where infill lines cross, the
+    // second bead's material bulges into the void and polygons_covered_by_width -- which
+    // unions the crossing lines -- never captures it, so it has to be subtracted here. This is
+    // the only overlap correction that remains; the flow-thinning lever was removed.
+    const double excess_unit = m_geometry->vertex_overlap_excess_area(m_line_width);
 
     m_injection_layer_ids.clear();
     int    zero   = 0;
@@ -1157,7 +1122,7 @@ void MagmaTubeMap::measure_volumes(const std::vector<Layer*> &layers)
     sort_remove_duplicates(m_injection_layer_ids);
     BOOST_LOG_TRIVIAL(info) << "Magma measured volumes: " << m_pairs.size() << " pairs, "
         << zero << " zero-volume | total=" << t_meas << "mm3 (overlap@lw="
-        << m_effective_line_width << "mm, flow_corr=" << (m_overlap_line_correction ? "on" : "off") << ")";
+        << m_line_width << "mm)";
 }
 
 // ============================================================================
@@ -1181,6 +1146,11 @@ bool MagmaTubeMap::is_paired(const TriangleCell &cell) const
 ExPolygons MagmaTubeMap::get_unfilled_cell_interiors(int layer_id) const
 {
     ExPolygons result;
+    // Effective, not nominal: cell_inset_polygons documents itself as "the single source of
+    // truth ... so every path measures a cell the same way", and the presence scan and volume
+    // integration both pass m_line_width. Passing the nominal width here inset every
+    // unfilled cell slightly too far, so a thin ring around each was reported to bridge
+    // detection as solid material when it is actually open.
     const double half_lw = m_line_width * 0.5;
 
     const MagmaLattice &lattice = *m_layer_data[layer_id].lattice;

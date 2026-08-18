@@ -1281,8 +1281,22 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
             // Cast to the shared Magma base so any pattern (triangle today,
             // square/rectilinear later) gets its tube_map attached.
             auto* fill_magma = dynamic_cast<FillMagmaBase*>(f.get());
-            if (fill_magma)
+            if (fill_magma) {
+                // One tube map is built per OBJECT, from the first Magma region's config, but
+                // the filler is chosen per REGION. If a second region selects a different
+                // Magma pattern its toolpath generator would run against another pattern's
+                // lattice -- e.g. square window cuts against triangle cell ids. Refuse rather
+                // than emit a lattice nobody asked for.
+                if (tube_map != nullptr && tube_map->pattern() != surface_fill.params.pattern) {
+                    BOOST_LOG_TRIVIAL(error)
+                        << "Magma: region uses pattern " << int(surface_fill.params.pattern)
+                        << " but the object's tube map was built for pattern "
+                        << int(tube_map->pattern())
+                        << "; skipping Magma infill for this region to avoid a mismatched lattice.";
+                    continue;
+                }
                 fill_magma->tube_map = tube_map;
+            }
         }
         // calculate flow spacing for infill pattern generation
         bool using_internal_flow = ! surface_fill.surface.is_solid() && ! surface_fill.params.bridge;
@@ -1320,14 +1334,6 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
 
 		// BBS
 		params.flow = surface_fill.params.flow;
-		// Magma triangle vertex overlap correction: reduce extrusion flow so that
-		// thinner deposited lines produce less overlap material at vertices where
-		// 3 line families cross at 60°. Applied once here
-		if (tube_map && is_magma_pattern(surface_fill.params.pattern)) {
-			double corr = tube_map->overlap_flow_correction();
-			if (corr < 1.0)
-				params.flow = params.flow.with_flow_ratio(corr);
-		}
 		params.extrusion_role = surface_fill.params.extrusion_role;
 		params.using_internal_flow = using_internal_flow;
 		params.no_extrusion_overlap = surface_fill.params.overlap;

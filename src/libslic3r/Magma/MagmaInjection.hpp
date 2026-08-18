@@ -23,10 +23,6 @@ struct InjectionPoint {
 };
 
 // Collect injection points for tubes whose cap layer == layer_id.
-std::vector<InjectionPoint> collect_injection_points(
-    const MagmaTubeMap& tube_map,
-    int layer_id);
-
 // Generate injection + ironing G-code for one object's points.
 // Temperature management and fan markers are handled by the caller
 // (GCode.cpp injection phase) — this function is the per-object core.

@@ -1396,87 +1396,6 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             }
         }
 
-        // Warn if effective Magma infill line width drops below reliable nozzle minimum.
-        // This catches interactions between overlap correction, flow ratios, and line width.
-        for (const auto& region : object->all_regions()) {
-            const auto& rcfg = region.get().config();
-            const auto& obj_cfg = object->config();
-            // In dual-infill mode the reinforcement (and thus the seal geometry) is the OUTER
-            // pattern, not sparse_infill_pattern (the inner yolk) — match MagmaTubeMap::build.
-            const InfillPattern eff_pattern = magma::magma_effective_pattern(rcfg);
-            if (!is_magma_pattern(eff_pattern))
-                continue;
-            if (!rcfg.magma_overlap_line_correction.value)
-                continue;
-
-            // Get nozzle diameter for the sparse infill extruder
-            int sparse_ext = std::max(0, rcfg.sparse_infill_filament.value - 1);
-            double nozzle_d = m_config.nozzle_diameter.get_at(sparse_ext);
-
-            // Compute the overlap correction floor
-            double min_pct = rcfg.magma_overlap_min_width.value;
-            if (min_pct <= 0) min_pct = 90.0;
-            double min_width = min_pct * 0.01 * nozzle_d;
-
-            // Start with sparse infill line width (resolve % of nozzle)
-            double line_w = rcfg.sparse_infill_line_width.get_abs_value(nozzle_d);
-            if (line_w <= 0) line_w = nozzle_d;  // default = nozzle diameter
-
-            // Overlap correction via the shared geometry, so this warning uses the
-            // exact same formula as MagmaTubeMap::build (was an inline approximation
-            // that used a different cell spacing and could disagree with the map).
-            // Resolve exactly as MagmaTubeMap::build does. This used to read
-            // magma_interior_width directly and fall back to a bore multiple, ignoring the
-            // tube width mode entirely -- so in Auto sizing it measured overlap against a
-            // tube that was never printed.
-            double iw = magma::effective_interior_width(
-                magma::magma_geometry_for(eff_pattern), rcfg.magma_tube_width_mode.value,
-                rcfg.magma_interior_width.value,
-                magma::resolve_nozzle_flat(rcfg.magma_nozzle_outer_diameter.value, nozzle_d),
-                line_w, rcfg.magma_nozzle_cone_half_angle.value,
-                obj_cfg.magma_max_immersion.value);
-            double cell_sp = magma::cell_spacing_from_geometry(iw, line_w);
-            double excess_frac = magma::magma_geometry_for(eff_pattern)
-                                     .line_overlap_excess_fraction(cell_sp, line_w);
-            double corrected_w = line_w * (1.0 - excess_frac);
-            if (corrected_w < min_width)
-                corrected_w = min_width;
-
-            // Apply flow ratios that GCode.cpp will multiply
-            double effective_w = corrected_w;
-            effective_w *= rcfg.print_flow_ratio.value;
-            double filament_flow = m_config.filament_flow_ratio.get_at(sparse_ext);
-            effective_w *= filament_flow;
-            if (obj_cfg.set_other_flow_ratios.value)
-                effective_w *= rcfg.sparse_infill_flow_ratio.value;
-
-            if (effective_w < min_width) {
-                // Build a helpful message listing which settings are reducing flow
-                std::string reasons;
-                if (rcfg.print_flow_ratio.value < 1.0)
-                    reasons += Slic3r::format("\n - Print flow ratio: %.0f%%",
-                        rcfg.print_flow_ratio.value * 100);
-                if (filament_flow < 1.0)
-                    reasons += Slic3r::format("\n - Filament flow ratio: %.0f%%",
-                        filament_flow * 100);
-                if (obj_cfg.set_other_flow_ratios.value &&
-                    rcfg.sparse_infill_flow_ratio.value < 1.0)
-                    reasons += Slic3r::format("\n - Sparse infill flow ratio: %.0f%%",
-                        rcfg.sparse_infill_flow_ratio.value * 100);
-
-                if (warning) {
-                    warning->string = Slic3r::format(
-                        L("Magma infill effective line width (%.2f mm) is below the minimum "
-                          "(%.2f mm = %.0f%% of %.1f mm nozzle). Lines may be unreliable.%s\n\n"
-                          "Consider setting flow ratios closer to 100%% or increasing "
-                          "sparse infill line width."),
-                        effective_w, min_width, min_pct, nozzle_d, reasons);
-                    warning->object = object;
-                    warning->is_warning = true;
-                }
-            }
-            break;  // only check first Magma region per object
-        }
 
         // Warn on a manual tube interior narrower than the nozzle bore (not
         // injectable), or so wide that auto Z-slam would crush the print.
@@ -1492,7 +1411,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             if (rcfg.magma_tube_width_mode.value == MagmaTubeWidthMode::Manual
                 && rcfg.magma_interior_width.value > 0
                 && rcfg.magma_interior_width.value < nozzle_d) {
-                if (warning) {
+                if (warning && warning->string.empty()) {
                     warning->string = Slic3r::format(
                         L("Magma injection tube width (%.2f mm) is smaller than the nozzle bore "
                           "(%.2f mm), so plastic cannot be injected into the tube. Increase the "
@@ -1536,14 +1455,16 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                                                                     max_immersion, slam_press)
                                              + obj_cfg.magma_injection_z_slam_offset.value));
                 double plunge = obj_cfg.magma_injection_plunge.value
-                    ? magma::clamp_plunge_depth(slam, obj_cfg.magma_injection_plunge_depth.value) : 0.0;
+                    ? magma::clamp_plunge_depth(slam, obj_cfg.magma_injection_plunge_depth.value,
+                                                immersion_budget) : 0.0;
                 double covered = magma::cone_coverage_at_depth(slam + plunge, flat, cone_deg);
 
                 // Immersion the cone genuinely needs to reach this opening.
                 double needed = magma::seal_depth_for_opening(opening + magma::MAGMA_SEAL_MARGIN,
                                                               flat, cone_deg);
 
-                if (warning && opening > 0.0 && covered + 1e-9 < opening + magma::MAGMA_SEAL_MARGIN) {
+                if (warning && warning->string.empty() && opening > 0.0 &&
+                    covered + 1e-9 < opening + magma::MAGMA_SEAL_MARGIN) {
                     if (needed > immersion_budget + 1e-9) {
                         // The tube is wider than the immersion budget can seal. Distinct from a
                         // too-shallow manual slam: here the budget is deliberately holding the
@@ -1564,6 +1485,91 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                               "use a nozzle with a larger flat."),
                             covered, slam, plunge, opening);
                     }
+                    warning->object = object;
+                    warning->is_warning = true;
+                }
+
+                // Filament indices are rejected, not clamped. The neighbouring options
+                // (support_filament etc.) clamp out-of-range values to extruder 1, which is
+                // fine for supports -- you still get working supports. Here it would inject
+                // the reinforcement in a material the user never chose, and the current
+                // behaviour is worse still: GCode.cpp's `extruder_id != eff_ext` filter never
+                // matches an out-of-range index, so every injection is silently dropped while
+                // the tube lattice still prints. The part comes out full of hollow channels
+                // with no reinforcement and no diagnostic. The GUI cannot produce this state
+                // (the dropdown is populated from the real extruder list); it arrives by
+                // loading a preset or 3MF saved on a machine with more extruders, which is
+                // exactly when a silent substitution would go unnoticed.
+                const int num_filaments = int(m_config.filament_diameter.size());
+                if (obj_cfg.magma_injection_filament.value > num_filaments) {
+                    return { Slic3r::format(
+                        L("Magma injection filament is set to %1%, but this printer has %2% "
+                          "filament(s). Injections would be silently skipped, leaving hollow "
+                          "channels with no reinforcement.\n\n"
+                          "Set \"Injection filament\" under Magma Injection to a filament that "
+                          "exists, or to 0 to inject with whichever filament is already printing."),
+                        obj_cfg.magma_injection_filament.value, num_filaments), object };
+                }
+                if (rcfg.dual_infill_enabled.value &&
+                    rcfg.dual_infill_outer_filament.value > num_filaments) {
+                    return { Slic3r::format(
+                        L("Dual infill outer zone filament is set to %1%, but this printer has "
+                          "%2% filament(s)."),
+                        rcfg.dual_infill_outer_filament.value, num_filaments), object };
+                }
+
+                // Injection temperature is emitted as M104 + wait. Any positive value is
+                // accepted today, so a typo like 5 emits M104 S5 and the print stalls forever
+                // waiting for a 5C nozzle. Only the filament knows its usable range.
+                if (obj_cfg.magma_injection_temp.value > 0) {
+                    const int inj_f   = obj_cfg.magma_injection_filament.value;
+                    const int inj_ext = inj_f > 0 ? (inj_f - 1) : sparse_ext;
+                    const int lo = m_config.nozzle_temperature_range_low.get_at(inj_ext);
+                    const int hi = m_config.nozzle_temperature_range_high.get_at(inj_ext);
+                    const int t  = obj_cfg.magma_injection_temp.value;
+                    if ((lo > 0 && t < lo) || (hi > 0 && t > hi)) {
+                        return { Slic3r::format(
+                            L("Magma injection temperature (%1% C) is outside the injection "
+                              "filament's usable range (%2%-%3% C). The printer would wait "
+                              "indefinitely for a temperature it cannot reach, or overheat the "
+                              "filament."),
+                            t, lo, hi), object };
+                    }
+                }
+
+                // "0 = use the filament's max volumetric speed" needs the filament to define
+                // one. Substituting a number here would be inventing the melt rate of a
+                // material we know nothing about, and injection rate is the difference between
+                // filling a tube and freezing halfway down it.
+                {
+                    const int inj_f = obj_cfg.magma_injection_filament.value;
+                    const int inj_ext = inj_f > 0 ? (inj_f - 1) : sparse_ext;
+                    if (obj_cfg.magma_injection_speed.value <= 0.0 &&
+                        m_config.filament_max_volumetric_speed.get_at(inj_ext) <= 0.0) {
+                        return { L("Magma injection speed is set to 0 (use the filament's max "
+                                   "volumetric speed), but that filament does not define one.\n\n"
+                                   "Set the filament's \"Max volumetric speed\", or enter an "
+                                   "explicit injection speed under Magma Injection."), object };
+                    }
+                }
+
+                // Klipper aborts a plunge injection. The move folds a large extrusion into a
+                // tiny Z travel, which is precisely what max_extrude_cross_section guards
+                // against -- so it is the RATIO that trips it and a smaller plunge depth does
+                // not help. Only the user can raise that limit; it is not settable from
+                // G-code. Warn rather than error: the setting is legitimate once printer.cfg
+                // allows it, and plenty of Klipper users have already raised it.
+                if (warning && warning->string.empty() &&
+                    m_config.gcode_flavor.value == gcfKlipper &&
+                    obj_cfg.magma_injection_plunge.value) {
+                    warning->string =
+                        L("Magma plunge injection will abort on stock Klipper: it folds a large "
+                          "extrusion into a very short Z move, tripping "
+                          "max_extrude_cross_section at the first injection.\n\n"
+                          "Raise max_extrude_cross_section in your printer.cfg [extruder] "
+                          "section (e.g. 5000), and max_extrude_only_distance for large tubes. "
+                          "Neither can be set from G-code. Alternatively turn off \"Plunge while "
+                          "injecting\".");
                     warning->object = object;
                     warning->is_warning = true;
                 }
@@ -2774,14 +2780,37 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             // Rough per-injection finishing time (dwell + crater wipe) so the heat
             // decay clock is realistic; the wipe term is a coarse estimate (turns x
             // pi x ~2mm representative radius / speed) -- exactness isn't needed.
+            // These must resolve the way MagmaInjection.cpp does, or the heat-decay clock
+            // models a print that never happens. Each of the three sentinels below used to be
+            // resolved differently here than in the g-code.
             double wipe_s = 0.0;
             if (oc.magma_injection_iron.value) {
-                double ws = oc.magma_injection_iron_speed.value > 1.0 ? oc.magma_injection_iron_speed.value : 30.0;
-                wipe_s = std::max(1, oc.magma_injection_iron_turns.value) * 3.14159265 * 2.0 / ws;
+                // 0 = use ironing speed, else the shared fallback -- same chain as the g-code.
+                double ws = oc.magma_injection_iron_speed.value > 0.0
+                                ? oc.magma_injection_iron_speed.value
+                                : (m_default_region_config.ironing_speed.value > 0.0
+                                       ? m_default_region_config.ironing_speed.value
+                                       : magma::MAGMA_IRON_SPEED_FALLBACK);
+                // 0 = auto turns. The g-code derives ceil(start_R / (0.5*flat)); std::max(1, 0)
+                // modelled ONE turn where the real pass runs several, badly under-counting the
+                // dominant per-injection cost.
+                int turns = oc.magma_injection_iron_turns.value > 0
+                                ? oc.magma_injection_iron_turns.value
+                                : 3;   // representative auto value; exactness is not needed here
+                wipe_s = turns * 3.14159265 * 2.0 / ws;
             }
             timing.per_injection_fixed_s = dwell_s + wipe_s;
-            double vol_speed = oc.magma_injection_speed.value;
-            timing.vol_speed_mm3_s = vol_speed > 0.01 ? vol_speed : 10.0;
+            // 0 = the filament's max volumetric speed (validate rejects the case where the
+            // filament defines none), and an explicit value is still capped by it.
+            {
+                const int inj_f   = oc.magma_injection_filament.value;
+                const int inj_ext = inj_f > 0 ? (inj_f - 1) : 0;
+                const double max_vol = m_config.filament_max_volumetric_speed.get_at(inj_ext);
+                const double vs = oc.magma_injection_speed.value;
+                double resolved = vs > 0.0 ? (max_vol > 0.0 ? std::min(vs, max_vol) : vs)
+                                           : max_vol;
+                timing.vol_speed_mm3_s = resolved > 0.01 ? resolved : 1.0;
+            }
         }
 
         if (any_magma && !items.empty()) {

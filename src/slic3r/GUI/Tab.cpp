@@ -2460,8 +2460,6 @@ void TabPrint::build()
         optgroup->append_single_option_line("magma_nozzle_cone_half_angle");
         optgroup->append_single_option_line("magma_interior_width");
         optgroup->append_single_option_line("magma_spiral_interlock");
-        optgroup->append_single_option_line("magma_overlap_line_correction");
-        optgroup->append_single_option_line("magma_overlap_min_width");
         // Auto sizing derives the interior width and cell spacing and displays neither.
         if (supports_description_lines()) {
             Line line = { "", "" };
@@ -2484,6 +2482,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("magma_injection_temp");
         optgroup->append_single_option_line("magma_injection_speed");
         optgroup->append_single_option_line("magma_injection_ordering");
+        optgroup->append_single_option_line("magma_injection_edge_pref");
         optgroup->append_single_option_line("magma_injection_z_slam_offset");
         optgroup->append_single_option_line("magma_auto_slam_press");
         optgroup->append_single_option_line("magma_injection_plunge");

@@ -9,44 +9,11 @@
 #include <cmath>
 #include <sstream>
 
+#include <boost/log/trivial.hpp>
 #include <igl/ramer_douglas_peucker.h>
 
 namespace Slic3r {
 namespace magma {
-
-std::vector<InjectionPoint> collect_injection_points(
-    const MagmaTubeMap& tube_map,
-    int layer_id)
-{
-    std::vector<InjectionPoint> points;
-
-    const auto& pairs = tube_map.u_tube_pairs();
-    for (int i = 0; i < static_cast<int>(pairs.size()); ++i) {
-        const auto& pair = pairs[i];
-        if (pair.pair_end_layer != layer_id || pair.volume_mm3 <= 0)
-            continue;
-        points.push_back({pair.injection_center, pair.volume_mm3,
-                          i, pair.pair_start_layer, pair.window_center_layer});
-    }
-
-    // Order injection points for minimal travel using OrcaSlicer's greedy
-    // TSP solver (KD-tree backed).  Much better than a raster sweep for
-    // irregular point distributions near model boundaries.
-    if (points.size() > 1) {
-        Points scaled_pts;
-        scaled_pts.reserve(points.size());
-        for (const auto& pt : points)
-            scaled_pts.push_back(Point(scale_(pt.position.x()), scale_(pt.position.y())));
-        std::vector<size_t> order = chain_points(scaled_pts);
-        std::vector<InjectionPoint> ordered;
-        ordered.reserve(points.size());
-        for (size_t idx : order)
-            ordered.push_back(std::move(points[idx]));
-        points = std::move(ordered);
-    }
-
-    return points;
-}
 
 // One renderable column of an injection manifold: a centerline with a per-point render
 // width (parallel vectors), so the column can taper layer-by-layer where the part clips it.
@@ -139,8 +106,14 @@ std::string generate_injection_gcode(
     // --- Config values ---
     double injection_speed_vol = config.magma_injection_speed.value;
     double fill_factor       = config.magma_tube_fill_factor.value;
-    if (fill_factor <= 0)
+    if (fill_factor <= 0) {
+        // Unreachable from the GUI (min 0.1) but reachable from a hand-edited or foreign 3MF.
+        // Dropping every injection on this layer without saying so would leave the lattice
+        // printed and unfilled, which looks like the feature simply not working.
+        BOOST_LOG_TRIVIAL(error) << "Magma: tube fill factor is " << fill_factor
+                                 << " (must be > 0); skipping all injections on this layer.";
         return {};
+    }
 
     double slam_depth        = 0.0;  // resolved below (auto mode needs extruder/nozzle info)
     int    dwell_ms          = config.magma_injection_dwell.value;
@@ -192,7 +165,7 @@ std::string generate_injection_gcode(
     // channel fills. Ramps from slam_depth to slam_depth + plunge_depth, clamped so
     // the total intrusion stays bounded.
     double plunge_depth = config.magma_injection_plunge.value
-                              ? clamp_plunge_depth(slam_depth, config.magma_injection_plunge_depth.value)
+                              ? clamp_plunge_depth(slam_depth, config.magma_injection_plunge_depth.value, immersion_budget)
                               : 0.0;
 
     // Raw volume→E conversion: 1/cross_section, without filament_flow_ratio.
@@ -207,9 +180,18 @@ std::string generate_injection_gcode(
     // taken as-is, still capped at the melt rate.
     double max_vol = config.filament_max_volumetric_speed.get_at(extruder_id);
     double vol_speed;
-    if (injection_speed_vol <= 0.0)
-        vol_speed = max_vol > 0.0 ? max_vol : 10.0;   // no melt rate configured: prior default
-    else
+    if (injection_speed_vol <= 0.0) {
+        // 0 = "use the filament's max volumetric speed". Print::validate rejects the case
+        // where the filament does not define one, so max_vol is always real here. If it is
+        // not, the config reached us past validation (hand-edited or foreign 3MF): say so
+        // rather than silently injecting at an invented rate that nobody chose.
+        if (max_vol <= 0.0)
+            BOOST_LOG_TRIVIAL(error)
+                << "Magma: injection speed is 0 (use filament max volumetric speed) but filament "
+                << extruder_id << " declares no max volumetric speed; falling back to 1 mm3/s. "
+                << "Set either Magma injection speed or the filament's max volumetric speed.";
+        vol_speed = max_vol > 0.0 ? max_vol : 1.0;
+    } else
         vol_speed = max_vol > 0.0 ? std::min(injection_speed_vol, max_vol) : injection_speed_vol;
     vol_speed = std::max(1.0, vol_speed);
 
@@ -234,8 +216,12 @@ std::string generate_injection_gcode(
 
     for (const auto& pt : points) {
         double volume = pt.volume_mm3 * fill_factor;
-        if (volume <= 0)
+        if (volume <= 0) {
+            BOOST_LOG_TRIVIAL(warning)
+                << "Magma: tube pair " << pt.pair_index << " has no measured cavity volume ("
+                << pt.volume_mm3 << " mm3); skipping its injection.";
             continue;
+        }
 
         // Per-tube auto z-slam: seal to THIS tube's actual cap opening (measured in
         // scan_layers) instead of the global ideal — boundary-cap tubes have smaller
@@ -249,7 +235,7 @@ std::string generate_injection_gcode(
             slam_depth = std::min(immersion_budget,
                                   std::max(0.0, slam_depth + config.magma_injection_z_slam_offset.value));
             plunge_depth = config.magma_injection_plunge.value
-                               ? clamp_plunge_depth(slam_depth, config.magma_injection_plunge_depth.value)
+                               ? clamp_plunge_depth(slam_depth, config.magma_injection_plunge_depth.value, immersion_budget)
                                : 0.0;
         }
 
@@ -302,7 +288,15 @@ std::string generate_injection_gcode(
         // Per-point width = the hub's per-layer bore (narrows where the part clips it).
         TubeVizLine hub;
         for (int L = cap; L >= wc; --L) {
-            hub.pts.push_back({ pair.injection_center.x(), pair.injection_center.y(),
+            // Per-layer cell centre, not the fixed injection XY. injection_center is pinned to
+            // the CAP layer, so using it drew the hub as a straight rod while the real channel
+            // helixes -- on a tall tube with spiral interlock that put the rendered hub up to
+            // a full cell outside its own tube, and fanned the hub/leg junction from the wrong
+            // point. The leg loop below already does this correctly. The cap layer keeps the
+            // injection XY, since that is literally where the nozzle sits.
+            const Vec2d hub_xy = (L == cap) ? pair.injection_center
+                                            : tube_map.lattice_at(L).cell_center(pair.cell_a);
+            hub.pts.push_back({ hub_xy.x(), hub_xy.y(),
                                 (L == cap) ? layer_z : z_at(L) });
             hub.widths.push_back(tube_map.cell_bore_at(pair.cell_a, L));
         }
@@ -482,6 +476,15 @@ std::string generate_injection_gcode(
             int    wf       = std::max(60, (int)(wipe_speed_mms * 60.0));  // mm/s -> mm/min
             const int seg_per_rev = 16;                              // circle smoothness
 
+            // Raw G1 below bypasses GCodeWriter, which is the thing that subtracts the plate
+            // offset (see GCodeWriter::travel_to_xy: point - m_x_offset). Without this the
+            // crater-iron pass writes scene coordinates where bed coordinates are expected,
+            // so on any plate other than the first it moves ~a plate width away from the
+            // injection point -- off the bed, or across the print. Invisible in single-plate
+            // testing. Z carries no offset, and set_position() below uses the same pre-offset
+            // convention, so only the emitted XY needs correcting.
+            const Vec2f plate_off = gcodegen.writer().get_xy_offset();
+
             // Z is a STEP, not a ramp: press flat ON the surface (layer height)
             // everywhere it is safe (inside the neighbour-clear cap), and only
             // hover above the surface where the flat would otherwise reach a
@@ -522,20 +525,24 @@ std::string generate_injection_gcode(
                 iron_pts = std::move(simplified);
             }
             for (const Vec3d& p : iron_pts) {
-                sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; crater iron\n", p.x(), p.y(), p.z(), wf);
+                sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; crater iron\n",
+                        p.x() - plate_off.x(), p.y() - plate_off.y(), p.z(), wf);
                 gcode += buf;
             }
             // One short stroke across the centre to flatten the gathered mound,
             // only where we can actually press (cap > 0, i.e. there is room).
             if (cap > 0.0) {
                 double fl = std::min(cap, r_flat);
-                sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; crater iron flatten\n", c.x() - fl, c.y(), layer_z, wf); gcode += buf;
-                sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; crater iron flatten\n", c.x() + fl, c.y(), layer_z, wf); gcode += buf;
+                sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; crater iron flatten\n",
+                        c.x() - fl - plate_off.x(), c.y() - plate_off.y(), layer_z, wf); gcode += buf;
+                sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; crater iron flatten\n",
+                        c.x() + fl - plate_off.x(), c.y() - plate_off.y(), layer_z, wf); gcode += buf;
             }
             // Return to centre at layer height and resync the writer position (the
             // raw moves above bypassed its tracking) so the next travel_to plans
             // its path/avoid-crossing from the right spot.
-            sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; crater iron end\n", c.x(), c.y(), layer_z, wf);
+            sprintf(buf, "G1 X%.3f Y%.3f Z%.3f F%d ; crater iron end\n",
+                     c.x() - plate_off.x(), c.y() - plate_off.y(), layer_z, wf);
             gcode += buf;
             gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_End) + "\n";
             gcodegen.writer().set_position(Vec3d(c.x(), c.y(), layer_z));

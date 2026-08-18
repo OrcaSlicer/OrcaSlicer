@@ -37,10 +37,11 @@ namespace magma {
 //
 // NOTE: the toolpath (FillMagmaHoneycomb, reusing the honeycomb zigzag) draws the
 // vertical edges DOUBLED — each is traced by both horizontally-adjacent columns —
-// so on the vertical plane the wall is two beads thick. The geometry here is the
-// single-bead regular hexagon; the anisotropic (thicker-vertical) inset and the
-// ×2 window volume on a vertical shared edge are applied where the toolpath/volume
-// know the edge orientation. (TODO: fold the anisotropy in once the zigzag lands.)
+// so on the vertical plane the wall is two beads thick. HexLattice's constructor DOES
+// fold that anisotropy in (see m_sx / m_edge / m_vtop / m_row below), so the printed
+// open hexagon is regular at flat-to-flat = interior. Injection volume is measured from
+// the real deposited cavity, so no ×2 window correction exists or is needed.
+// (The earlier TODO here claimed the opposite and predated the lattice work.)
 
 // hex edge length e from cell spacing s (center-to-center = flat-to-flat = e*sqrt3):
 //   s = e*sqrt3  ->  e = s/sqrt3 = s*INV_SQRT3.   Same relation as the tri-hex hub.
@@ -68,12 +69,11 @@ struct HexagonGeometry final : public MagmaGeometry
     }
 
     // Largest circle inside the open hex = inscribed circle = open apothem = interior/2.
-    double inscribed_radius(double interior_width) const override { return interior_width * 0.5; }
+    // Regular hexagon: inscribed circle radius == apothem == interior/2.
+    double inscribed_radius(double interior_width, double) const override { return interior_width * 0.5; }
 
     // Hex <-> hex centres are one full spacing apart (flat-to-flat = center-to-center).
     double neighbor_centroid_distance(double spacing) const override { return spacing; }
-
-    double interlock_radius(double spacing) const override { return spacing * 0.5; }
 
     // Honeycomb has degree-3 vertices (line ENDS meet at 120deg, not crossings) -> no
     // line-crossing overlap. Return 0. (The doubled VERTICAL walls are a separate effect,
@@ -82,18 +82,18 @@ struct HexagonGeometry final : public MagmaGeometry
         return 0.0;
     }
 
-    // Per cell ~ 6 edges share into 3 each -> 2 edges x e of wall = 2*spacing/sqrt3, and
-    // the doubled rhombus 2 w^2/sqrt3 -> excess fraction = w / spacing. (Same as tri-hex.)
-    double line_overlap_excess_fraction(double spacing, double line_width) const override {
-        return spacing > 0.0 ? line_width / spacing : 0.0;
-    }
-
     // Geometric window height: window flow cross-section = the paired hex's open tube
     // cross-section (a U-tube feeds the partner hex, same size). height = hex open area /
     // open shared-edge length. Written area/edge to parallel triangle/square.
     double auto_window_height(double interior_width, double line_width) const override {
-        double spacing   = interior_width + line_width;
-        double open_edge = hex_edge_length(spacing) - line_width;
+        double spacing = interior_width + line_width;
+        // Insetting a regular hexagon by lw/2 shortens each EDGE by lw/sqrt3, not by lw:
+        // apothem a' = a - lw/2 and e = 2a/sqrt3, so e' = e - lw/sqrt3. Subtracting the full
+        // line width made the open edge 0.42*lw too short, and since the flow-area term is
+        // large for hex this cap always binds -- so every honeycomb auto window was ~8%
+        // undersized. Written as hex_edge_length(spacing - lw) because that is literally
+        // HexLattice's own m_edge, which keeps the geometry and the lattice in agreement.
+        double open_edge = hex_edge_length(spacing - line_width);
         double area      = inset_open_area(spacing, line_width);
         return open_edge > 0.0 ? area / open_edge : 0.1;
     }
@@ -104,7 +104,6 @@ struct HexagonGeometry final : public MagmaGeometry
     }
 
     int max_neighbors() const override { return 6; }
-    int cells_per_pair() const override { return 2; }
 };
 
 // Shared pure-hex geometry instance (stateless).

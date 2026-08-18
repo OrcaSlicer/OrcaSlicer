@@ -139,6 +139,7 @@ public:
         const MagmaLattice &lattice,
         const std::unordered_map<TriangleCell, CellPresence, TriangleCellHash> &cells,
         const std::vector<LayerData> &layer_data,
+        int    first_layer,
         double min_tube_height_mm,
         double max_tube_height_mm,
         int    num_layers,
@@ -188,6 +189,9 @@ private:
     double m_min_h_mm;
     double m_max_h_mm;
     int    m_num_layers;
+    // First index in m_layer_data backed by a real layer. Non-zero with a raft, since
+    // Layer::id() is absolute. Rows below this are placeholders and must never be read.
+    int    m_first_layer;
     int    m_z_window; // Z block size in layers
     double m_dodge_mm; // boundary dodge distance (0 = stagger disabled)
     MagmaTubeSolverMode m_mode;

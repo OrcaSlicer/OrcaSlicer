@@ -60,7 +60,7 @@ inline double trihex_edge_length(double cell_spacing) { return cell_spacing * IN
 // ============================================================================
 // All formulas are derived from the trihexagonal (Kagome) geometry: the seal-critical
 // opening / area / inscribed-radius / neighbour-distance from the hexagon hub, the
-// window height from the hub's open cross-section, and the overlap corrections from the
+// window height from the hub's open cross-section, and the overlap correction from the
 // Kagome line topology (see vertex_overlap_excess_area).
 struct HexGeometry final : public MagmaGeometry
 {
@@ -81,26 +81,18 @@ struct HexGeometry final : public MagmaGeometry
     }
 
     // Largest circle inside the open hub = inscribed circle = open apothem = interior/2.
-    double inscribed_radius(double interior_width) const override { return interior_width * 0.5; }
+    // Hub is a regular hexagon: inscribed radius == apothem == interior/2.
+    double inscribed_radius(double interior_width, double) const override { return interior_width * 0.5; }
 
     // Hub (hex centre = grid vertex) to vent (triangle centroid) centre distance:
     // vertex-to-incident-triangle-centroid = g/sqrt3 = 2e/sqrt3 = (2/3) * spacing.
     double neighbor_centroid_distance(double spacing) const override { return (2.0 / 3.0) * spacing; }
 
-    double interlock_radius(double spacing) const override { return spacing * 0.5; }
-
     // Trihex (Kagome) degree-4 vertices: TWO families cross at 60deg, double-depositing a
     // rhombus 2 w^2/sqrt3 per vertex; compute charges it by corner count (hub 6 -> 1.5,
-    // vent 3 -> 0.75). Only subtracted when the overlap flow correction is off.
+    // vent 3 -> 0.75).
     double vertex_overlap_excess_area(double line_width) const override {
         return 2.0 * INV_SQRT3 * line_width * line_width;
-    }
-
-    // Wall deposited per cell = 2 edges x e = 2*spacing/sqrt3; the doubled rhombus is
-    // 2 w^2 / sqrt3. excess fraction = doubled / wall-area
-    //   = (2 w^2 / sqrt3) / ((2 spacing / sqrt3) * w) = w / spacing.
-    double line_overlap_excess_fraction(double spacing, double line_width) const override {
-        return spacing > 0.0 ? line_width / spacing : 0.0;
     }
 
     // Geometric window height. A window is a gap in ONE hub<->vent shared wall, and it
@@ -126,7 +118,6 @@ struct HexGeometry final : public MagmaGeometry
     }
 
     int max_neighbors() const override { return 6; }   // hub has 6 (vent has 3); report the max
-    int cells_per_pair() const override { return 2; }  // solver still does a 2-cell U-tube match;
                                                        // extra legs are added by the vent sweep
 };
 

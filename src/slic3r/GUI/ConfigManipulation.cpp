@@ -967,6 +967,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     // Magma Injection section
     for (auto el : { "magma_injection_temp", "magma_injection_speed", "magma_injection_ordering",
+                     "magma_injection_edge_pref",
         "magma_injection_park", "magma_injection_dwell", "magma_injection_retract" })
         toggle_line(el, have_magma_pattern);
     // Z-slam: auto toggle shown when Magma. Swap fields by mode — the auto TRIM when auto is on,
@@ -1011,9 +1012,6 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("magma_injection_park_retract", park_on);
 
     // Overlap line correction visible when Magma pattern is active
-    toggle_line("magma_overlap_line_correction", have_magma_pattern);
-    bool have_overlap_correction = have_magma_pattern && config->opt_bool("magma_overlap_line_correction");
-    toggle_line("magma_overlap_min_width", have_overlap_correction);
 
     // Orca
     auto is_role_based_wipe_speed = config->opt_bool("role_based_wipe_speed");
