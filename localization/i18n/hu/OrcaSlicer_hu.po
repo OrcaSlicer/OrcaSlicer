@@ -8244,21 +8244,21 @@ msgstr "A cseréhez nem lett mappa kiválasztva"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Cserélve a mappából származó 3D fájlokra:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Kihagyva %1%: azonos fájl.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ %s kihagyva: azonos fájl.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Kihagyva %1%: a fájl nem létezik.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ %s kihagyva: a fájl nem létezik.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Kihagyva %1%: a csere sikertelen.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ %s kihagyva: a csere sikertelen.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Lecserélve: %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔%s lecserélve.\n"
 
 msgid "Replaced volumes"
 msgstr "Lecserélt térfogatok"

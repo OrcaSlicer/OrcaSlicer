@@ -21,6 +21,18 @@
 		"Snapmaker U1 (0.4 nozzle)"
 	],
 	"ooze_prevention": "1",
+	"prime_tower_width": "30",
+	"prime_volume": "18",
 	"slowdown_for_curled_perimeters": "0",
-	"standby_temperature_delta": "-150"
+	"standby_temperature_delta": "-150",
+	"wipe_tower_filament": "0",
+	"prime_tower_brim_width": "5",
+	"wipe_tower_cone_angle": "15",
+	"wipe_tower_extra_spacing": "120%",
+	"enable_arc_fitting": "0",
+	"precise_outer_wall": "1",
+	"support_type": "tree(auto)",
+	"wipe_tower_extra_rib_length": "8",
+	"wipe_tower_wall_type": "rib",
+	"gap_fill_target": "topbottom"
 }

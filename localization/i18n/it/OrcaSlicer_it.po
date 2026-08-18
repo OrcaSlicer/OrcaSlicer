@@ -8244,21 +8244,21 @@ msgstr "La directory per la sostituzione non è stata selezionata"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Sostituito con file 3D dalla directory:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Saltato %1%: stesso file.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Saltato %s: stesso file.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Saltato %1%: il file non esiste.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Saltato %s: il file non esiste.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Saltato %1%: sostituzione fallita.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Saltato %s: sostituzione fallita.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Sostituito %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Sostituito %s.\n"
 
 msgid "Replaced volumes"
 msgstr "Volumi sostituiti"

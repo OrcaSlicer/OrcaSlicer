@@ -1,6 +1,6 @@
 {
 	"name": "Snapmaker",
-	"version": "02.04.00.07",
+	"version": "02.04.00.09",
 	"force_update": "0",
 	"description": "Snapmaker configurations",
 	"machine_model_list": [
@@ -427,10 +427,6 @@
 			"sub_path": "process/0.16 Optimal @Snapmaker U1 (0.4 nozzle).json"
 		},
 		{
-			"name": "0.20 Bambu Support W @Snapmaker U1 (0.4 nozzle)",
-			"sub_path": "process/0.20 Bambu Support W @Snapmaker U1 (0.4 nozzle).json"
-		},
-		{
 			"name": "0.20 Quality @Snapmaker U1 (0.4 nozzle)",
 			"sub_path": "process/0.20 Quality @Snapmaker U1 (0.4 nozzle).json"
 		},
@@ -485,6 +481,66 @@
 		{
 			"name": "fdm_process_U1_0.8_common",
 			"sub_path": "process/fdm_process_U1_0.8_common.json"
+		},
+		{
+			"name": "fdm_process_U1_0.06_nozzle_0.2",
+			"sub_path": "process/fdm_process_U1_0.06_nozzle_0.2.json"
+		},
+		{
+			"name": "fdm_process_U1_0.08_nozzle_0.2",
+			"sub_path": "process/fdm_process_U1_0.08_nozzle_0.2.json"
+		},
+		{
+			"name": "fdm_process_U1_0.10_nozzle_0.2",
+			"sub_path": "process/fdm_process_U1_0.10_nozzle_0.2.json"
+		},
+		{
+			"name": "fdm_process_U1_0.12_nozzle_0.2",
+			"sub_path": "process/fdm_process_U1_0.12_nozzle_0.2.json"
+		},
+		{
+			"name": "fdm_process_U1_0.14_nozzle_0.2",
+			"sub_path": "process/fdm_process_U1_0.14_nozzle_0.2.json"
+		},
+		{
+			"name": "fdm_process_U1_0.18_nozzle_0.6",
+			"sub_path": "process/fdm_process_U1_0.18_nozzle_0.6.json"
+		},
+		{
+			"name": "fdm_process_U1_0.24_nozzle_0.6",
+			"sub_path": "process/fdm_process_U1_0.24_nozzle_0.6.json"
+		},
+		{
+			"name": "fdm_process_U1_0.24_nozzle_0.8",
+			"sub_path": "process/fdm_process_U1_0.24_nozzle_0.8.json"
+		},
+		{
+			"name": "fdm_process_U1_0.30_nozzle_0.6",
+			"sub_path": "process/fdm_process_U1_0.30_nozzle_0.6.json"
+		},
+		{
+			"name": "fdm_process_U1_0.32_nozzle_0.8",
+			"sub_path": "process/fdm_process_U1_0.32_nozzle_0.8.json"
+		},
+		{
+			"name": "fdm_process_U1_0.36_nozzle_0.6",
+			"sub_path": "process/fdm_process_U1_0.36_nozzle_0.6.json"
+		},
+		{
+			"name": "fdm_process_U1_0.40_nozzle_0.8",
+			"sub_path": "process/fdm_process_U1_0.40_nozzle_0.8.json"
+		},
+		{
+			"name": "fdm_process_U1_0.42_nozzle_0.6",
+			"sub_path": "process/fdm_process_U1_0.42_nozzle_0.6.json"
+		},
+		{
+			"name": "fdm_process_U1_0.48_nozzle_0.8",
+			"sub_path": "process/fdm_process_U1_0.48_nozzle_0.8.json"
+		},
+		{
+			"name": "fdm_process_U1_0.56_nozzle_0.8",
+			"sub_path": "process/fdm_process_U1_0.56_nozzle_0.8.json"
 		},
 		{
 			"name": "0.06 High Quality @Snapmaker U1 (0.2 nozzle)",
@@ -1509,10 +1565,6 @@
 			"sub_path": "filament/Snapmaker PLA Metal @U1.json"
 		},
 		{
-			"name": "Snapmaker PLA Silk @U1",
-			"sub_path": "filament/Snapmaker PLA Silk @U1.json"
-		},
-		{
 			"name": "Snapmaker PLA Silk",
 			"sub_path": "filament/Snapmaker PLA Silk.json"
 		},
@@ -1671,6 +1723,214 @@
 		{
 			"name": "Snapmaker PLA Matte @U1 base",
 			"sub_path": "filament/Snapmaker PLA Matte @U1 base.json"
+		},
+		{
+			"name": "Polymaker PLA @U1 base",
+			"sub_path": "filament/Polymaker PLA @U1 base.json"
+		},
+		{
+			"name": "Polymaker Silk PLA Family @U1",
+			"sub_path": "filament/Polymaker Silk PLA Family @U1.json"
+		},
+		{
+			"name": "Polymaker Tough PLA Family @U1",
+			"sub_path": "filament/Polymaker Tough PLA Family @U1.json"
+		},
+		{
+			"name": "Snapmaker Breakaway Support For PLA @U1 0.2 nozzle",
+			"sub_path": "filament/Snapmaker Breakaway Support For PLA @U1 0.2 nozzle.json"
+		},
+		{
+			"name": "Snapmaker Breakaway Support For PLA @U1 0.6 nozzle",
+			"sub_path": "filament/Snapmaker Breakaway Support For PLA @U1 0.6 nozzle.json"
+		},
+		{
+			"name": "Snapmaker Breakaway Support For PLA @U1 0.8 nozzle",
+			"sub_path": "filament/Snapmaker Breakaway Support For PLA @U1 0.8 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PETG HF @U1 base2",
+			"sub_path": "filament/Snapmaker PETG HF @U1 base2.json"
+		},
+		{
+			"name": "Snapmaker PETG Translucent @U1 base",
+			"sub_path": "filament/Snapmaker PETG Translucent @U1 base.json"
+		},
+		{
+			"name": "Snapmaker PLA Basic @U1 base",
+			"sub_path": "filament/Snapmaker PLA Basic @U1 base.json"
+		},
+		{
+			"name": "Snapmaker PLA Full Spectrum @U1 0.4 nozzle",
+			"sub_path": "filament/Snapmaker PLA Full Spectrum @U1 0.4 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA Glow @U1 base",
+			"sub_path": "filament/Snapmaker PLA Glow @U1 base.json"
+		},
+		{
+			"name": "Snapmaker PLA Matte @U1 base2",
+			"sub_path": "filament/Snapmaker PLA Matte @U1 base2.json"
+		},
+		{
+			"name": "Snapmaker PLA Silk @U1 0.2 nozzle",
+			"sub_path": "filament/Snapmaker PLA Silk @U1 0.2 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA Silk @U1 0.6 nozzle",
+			"sub_path": "filament/Snapmaker PLA Silk @U1 0.6 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA Silk @U1 0.8 nozzle",
+			"sub_path": "filament/Snapmaker PLA Silk @U1 0.8 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA SnapSpeed @U1 base2",
+			"sub_path": "filament/Snapmaker PLA SnapSpeed @U1 base2.json"
+		},
+		{
+			"name": "Snapmaker PLA Translucent @U1 base",
+			"sub_path": "filament/Snapmaker PLA Translucent @U1 base.json"
+		},
+		{
+			"name": "Snapmaker PLA Wood @U1 0.4 nozzle",
+			"sub_path": "filament/Snapmaker PLA Wood @U1 0.4 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA Wood @U1 0.6 nozzle",
+			"sub_path": "filament/Snapmaker PLA Wood @U1 0.6 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA Wood @U1 0.8 nozzle",
+			"sub_path": "filament/Snapmaker PLA Wood @U1 0.8 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA-CF @U1 0.4 nozzle",
+			"sub_path": "filament/Snapmaker PLA-CF @U1 0.4 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA-CF @U1 0.6 nozzle",
+			"sub_path": "filament/Snapmaker PLA-CF @U1 0.6 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA-CF @U1 0.8 nozzle",
+			"sub_path": "filament/Snapmaker PLA-CF @U1 0.8 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PVA @U1 0.6 nozzle",
+			"sub_path": "filament/Snapmaker PVA @U1 0.6 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PVA @U1 0.8 nozzle",
+			"sub_path": "filament/Snapmaker PVA @U1 0.8 nozzle.json"
+		},
+		{
+			"name": "Snapmaker TPU 90A @U1",
+			"sub_path": "filament/Snapmaker TPU 90A @U1.json"
+		},
+		{
+			"name": "Snapmaker TPU 90A @U1 0.6 nozzle",
+			"sub_path": "filament/Snapmaker TPU 90A @U1 0.6 nozzle.json"
+		},
+		{
+			"name": "Snapmaker TPU 90A @U1 0.8 nozzle",
+			"sub_path": "filament/Snapmaker TPU 90A @U1 0.8 nozzle.json"
+		},
+		{
+			"name": "Snapmaker TPU 95A HF @U1",
+			"sub_path": "filament/Snapmaker TPU 95A HF @U1.json"
+		},
+		{
+			"name": "Snapmaker TPU 95A HF @U1 0.6 nozzle",
+			"sub_path": "filament/Snapmaker TPU 95A HF @U1 0.6 nozzle.json"
+		},
+		{
+			"name": "Snapmaker TPU 95A HF @U1 0.8 nozzle",
+			"sub_path": "filament/Snapmaker TPU 95A HF @U1 0.8 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA Silk @U1",
+			"sub_path": "filament/Snapmaker PLA Silk @U1.json"
+		},
+		{
+			"name": "Polymaker General PLA Family @U1",
+			"sub_path": "filament/Polymaker General PLA Family @U1.json"
+		},
+		{
+			"name": "Snapmaker PETG HF @U1 0.2 nozzle",
+			"sub_path": "filament/Snapmaker PETG HF @U1 0.2 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PETG HF @U1 0.6 nozzle",
+			"sub_path": "filament/Snapmaker PETG HF @U1 0.6 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PETG HF @U1 0.8 nozzle",
+			"sub_path": "filament/Snapmaker PETG HF @U1 0.8 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PETG Translucent @U1 0.2 nozzle",
+			"sub_path": "filament/Snapmaker PETG Translucent @U1 0.2 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PETG Translucent @U1 0.4 nozzle",
+			"sub_path": "filament/Snapmaker PETG Translucent @U1 0.4 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PETG Translucent @U1 0.6 nozzle",
+			"sub_path": "filament/Snapmaker PETG Translucent @U1 0.6 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PETG Translucent @U1 0.8 nozzle",
+			"sub_path": "filament/Snapmaker PETG Translucent @U1 0.8 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA Basic @U1",
+			"sub_path": "filament/Snapmaker PLA Basic @U1.json"
+		},
+		{
+			"name": "Snapmaker PLA Glow @U1 0.4 nozzle",
+			"sub_path": "filament/Snapmaker PLA Glow @U1 0.4 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA Matte @U1 0.2 nozzle",
+			"sub_path": "filament/Snapmaker PLA Matte @U1 0.2 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA Matte @U1 0.6 nozzle",
+			"sub_path": "filament/Snapmaker PLA Matte @U1 0.6 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA Matte @U1 0.8 nozzle",
+			"sub_path": "filament/Snapmaker PLA Matte @U1 0.8 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA SnapSpeed @U1 0.2 nozzle",
+			"sub_path": "filament/Snapmaker PLA SnapSpeed @U1 0.2 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA SnapSpeed @U1 0.6 nozzle",
+			"sub_path": "filament/Snapmaker PLA SnapSpeed @U1 0.6 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA SnapSpeed @U1 0.8 nozzle",
+			"sub_path": "filament/Snapmaker PLA SnapSpeed @U1 0.8 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA Translucent @U1 0.2 nozzle",
+			"sub_path": "filament/Snapmaker PLA Translucent @U1 0.2 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA Translucent @U1 0.4 nozzle",
+			"sub_path": "filament/Snapmaker PLA Translucent @U1 0.4 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA Translucent @U1 0.6 nozzle",
+			"sub_path": "filament/Snapmaker PLA Translucent @U1 0.6 nozzle.json"
+		},
+		{
+			"name": "Snapmaker PLA Translucent @U1 0.8 nozzle",
+			"sub_path": "filament/Snapmaker PLA Translucent @U1 0.8 nozzle.json"
 		}
 	],
 	"machine_list": [
