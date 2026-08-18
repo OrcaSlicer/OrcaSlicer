@@ -228,6 +228,12 @@
     document.onkeydown = function (event) {
 		var e = event || window.event || arguments.callee.caller.arguments[0];
 
+		if (e.keyCode == 117) { // F6 / Shift+F6: hand focus back to the app's pane cycle
+			OutputKey(e.keyCode, e.ctrlKey, e.shiftKey, e.metaKey);
+			e.preventDefault();
+			return;
+		}
+
 		if (e.ctrlKey && e.metaKey)
 			OutputKey(e.keyCode, true, false, true);
 		else if (e.ctrlKey)

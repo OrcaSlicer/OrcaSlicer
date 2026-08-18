@@ -34,6 +34,8 @@ public:
     void SetCompact(size_t n, bool compact); // ORCA
     wxString GetPageText(size_t n) const;
     wxFlexGridSizer* GetBtnsSizer(){return m_buttons_sizer;}; // ORCA
+    // ORCA: button of the currently selected page, the landing target for keyboard pane navigation
+    wxWindow* GetSelectedButton() const;
     // ORCA: a companion widget shown right after the tab buttons (before any side_tools), e.g.
     // an overflow indicator. Pass nullptr to remove it; ownership stays with the caller.
     void SetOverflowButton(wxWindow* button);

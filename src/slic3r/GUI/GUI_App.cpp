@@ -5269,6 +5269,7 @@ std::string GUI_App::handle_web_request(std::string cmd)
 #endif
                     e.SetShiftDown(shiftKey);
                     keyCode     = keyCode == 188 ? ',' : keyCode;
+                    keyCode     = keyCode == 117 ? WXK_F6 : keyCode; // ORCA: JS F6, forwarded for pane navigation out of the web view
                     e.m_keyCode = keyCode;
                     e.SetEventObject(mainframe);
                     wxPostEvent(mainframe, e);

@@ -743,6 +743,13 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
             if (m_plater) { m_plater->add_file(); }
             return;
         }
+
+        // ORCA: F6 / Shift+F6 cycles keyboard focus between the main panes
+        // (top bar, tab strip, current page) for keyboard accessibility
+        if (evt.GetKeyCode() == WXK_F6 && !evt.CmdDown() && !evt.AltDown()) {
+            focus_cycle_pane(!evt.ShiftDown());
+            return;
+        }
         evt.Skip();
     });
 
@@ -3994,6 +4001,82 @@ void MainFrame::load_config(const DynamicPrintConfig& config)
 
     wxGetApp().load_current_presets();
 #endif
+}
+
+// ORCA: first shown+enabled descendant (depth-first, creation order) that can take keyboard focus
+static wxWindow* find_first_focusable(wxWindow* win)
+{
+    for (wxWindow* child : win->GetChildren()) {
+        if (!child->IsShown() || !child->IsEnabled())
+            continue;
+        // IsFocusable() checks this window itself; CanAcceptFocus() is true if
+        // it OR ANY DESCENDANT can take focus, so it must not be used as the
+        // "found it" check here - doing so returns container panels (e.g. the
+        // sidebar) themselves, and SetFocus() on a plain container doesn't
+        // move focus anywhere a keyboard user can perceive.
+        //
+        // Recurse before checking the child itself: a scrollable container is
+        // often independently focusable (for keyboard scrolling) even though
+        // it also holds real controls, and landing on an unnamed scroll pane
+        // instead of the button inside it is a worse first stop.
+        if (wxWindow* descendant = find_first_focusable(child))
+            return descendant;
+        if (child->IsFocusable())
+            return child;
+    }
+    return nullptr;
+}
+
+// ORCA: F6 / Shift+F6 pane navigation for keyboard accessibility
+void MainFrame::focus_cycle_pane(bool forward)
+{
+    std::vector<wxWindow*> panes;
+    if (m_topbar && m_topbar->IsShown())
+        panes.push_back(m_topbar);
+    wxWindow* tab_strip = nullptr;
+    if (m_tabpanel) {
+        tab_strip = m_tabpanel->GetBtnsListCtrl();
+        if (tab_strip && tab_strip->IsShown())
+            panes.push_back(tab_strip);
+        else
+            tab_strip = nullptr;
+        if (wxWindow* page = m_tabpanel->GetCurrentPage(); page && page->IsShown())
+            panes.push_back(page);
+    }
+    const int n = int(panes.size());
+    if (n == 0)
+        return;
+
+    // Find the pane owning the current focus, if any.
+    int current = -1;
+    for (wxWindow* w = wxWindow::FindFocus(); w != nullptr && current < 0; w = w->GetParent())
+        for (int i = 0; i < n; ++i)
+            if (panes[i] == w) { current = i; break; }
+    // Focus inside the web view can be invisible to wx (it sits in a native child
+    // window); treat unknown focus as being on the last pane (the page) so F6
+    // forwarded from the page moves on to the expected neighbour.
+    if (current < 0)
+        current = n - 1;
+
+    for (int step = 1; step <= n; ++step) {
+        int idx = ((current + (forward ? step : -step)) % n + n) % n;
+        wxWindow* pane = panes[idx];
+        wxWindow* target = nullptr;
+        if (pane == tab_strip)
+            // Land on the currently selected tab button.
+            target = m_tabpanel->GetBtnsListCtrl()->GetSelectedButton();
+        else
+            target = find_first_focusable(pane);
+        // No focusable descendant (e.g. the top bar's tools are custom-drawn,
+        // not child windows): focus the pane itself if it accepts focus,
+        // otherwise move on to the next pane.
+        if (!target && pane->CanAcceptFocus())
+            target = pane;
+        if (target) {
+            target->SetFocus();
+            return;
+        }
+    }
 }
 
 //BBS: GUI refactor
