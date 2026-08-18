@@ -10407,12 +10407,12 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
         if (!cfg.single_extruder_multi_material.value) {
             error_message.emplace("coextrusion_c_axis_enable",
                                   L("Co-extrusion C-axis control requires Single Extruder Multi Material mode."));
+        } else if (cfg.coextrusion_c_axis_colors.values.empty()) {
+            error_message.emplace("coextrusion_c_axis_colors",
+                                  L("Co-extrusion C-axis control requires at least one physical color sector."));
         } else if (cfg.coextrusion_c_axis_colors.values.size() != cfg.coextrusion_c_axis_color_angles.values.size()) {
             error_message.emplace("coextrusion_c_axis_colors",
                                   L("Every physical co-extrusion color sector must have one center angle."));
-        } else if (cfg.coextrusion_c_axis_color_angles.values.size() < cfg.filament_colour.values.size()) {
-            error_message.emplace("coextrusion_c_axis_color_angles",
-                                  L("The physical co-extrusion filament has fewer color sectors than the painted 3MF uses."));
         } else if (std::any_of(cfg.coextrusion_c_axis_colors.values.begin(), cfg.coextrusion_c_axis_colors.values.end(),
                                [](const std::string &color) { return !can_decode_color(color); })) {
             error_message.emplace("coextrusion_c_axis_colors", L("Every physical co-extrusion color sector must have a valid color."));

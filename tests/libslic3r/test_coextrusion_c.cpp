@@ -89,6 +89,14 @@ TEST_CASE("More logical colors than physical sectors map many-to-one", "[CoExtru
         {"#FFFFFF", "#00FF00", "#0000FF"});
 
     REQUIRE(mapping == std::vector<size_t>{0, 1, 0, 2});
+
+    FullPrintConfig config;
+    config.single_extruder_multi_material.value = true;
+    config.coextrusion_c_axis_enable.value = true;
+    config.filament_colour.values = {"#FFFFFF", "#00C1AE", "#F4E2C1", "#0000FF"};
+    config.coextrusion_c_axis_colors.values = {"#FFFFFF", "#00FF00", "#0000FF"};
+    config.coextrusion_c_axis_color_angles.values = {0., 120., 240.};
+    REQUIRE(validate(config).count("coextrusion_c_axis_color_angles") == 0);
 }
 
 TEST_CASE("G-code preview preserves the physical co-extrusion color sector", "[CoExtrusionC]")
