@@ -4637,6 +4637,16 @@ void GUI_App::system_info()
     //dlg.ShowModal();
 }
 
+void GUI_App::orca_slicer_wiki()
+{
+    wxString url = "https://www.orcaslicer.com/wiki/";
+    if (wxGetApp().has_guide()) {
+        wxGetApp().mainframe->load_guide_url(url);
+    }
+    else
+        wxLaunchDefaultBrowser(url);
+}
+
 void GUI_App::keyboard_shortcuts()
 {
     KBShortcutsDialog dlg;

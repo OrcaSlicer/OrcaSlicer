@@ -226,6 +226,7 @@ public:
         tpCalibration   = 6,
         tpAuxiliary     = 7,
         toDebugTool     = 8,
+        tpGuide         = 9,
     };
 
     //BBS: add slice&&print status update logic
@@ -357,6 +358,10 @@ public:
     void        refresh_plugin_tips();
     void RunScript(wxString js);
 
+    void send_guide_url(wxString& url);
+
+    void load_guide_url(wxString url);
+
     //SoftFever
     void show_device(bool should_use_native);
     void fit_tab_labels(); // ORCA
@@ -377,6 +382,8 @@ public:
     Plater*               m_plater { nullptr };
     //BBS: GUI refactor
     MonitorPanel*         m_monitor{ nullptr };
+
+    WebViewPanel*         m_guide{nullptr};
 
     //AuxiliaryPanel*       m_auxiliary{ nullptr };
     MultiMachinePage*     m_multi_machine{ nullptr };

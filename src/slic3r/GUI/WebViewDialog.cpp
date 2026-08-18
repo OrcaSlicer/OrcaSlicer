@@ -250,6 +250,15 @@ void WebViewPanel::load_url(wxString& url)
     UpdateState();
 }
 
+void WebViewPanel::send_url(wxString& url) // for non-navigation panel
+{
+    this->Show();
+    this->Raise();
+    m_browser->LoadURL(url);
+    m_browser->SetFocus();
+    UpdateState();
+}
+
 /**
     * Method that retrieves the current state from the web control and updates the GUI
     * the reflect this current state.
