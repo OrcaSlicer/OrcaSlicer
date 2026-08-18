@@ -1612,16 +1612,12 @@ void PrintObject::compute_zone_boundary()
         return;
     }
 
-    // Get zone config from first enabled region
-    double outer_width = 0;
-    double min_inner_width = 0;
-    for (const auto &region_ref : this->all_regions()) {
-        if (region_ref.get().config().dual_infill_enabled) {
-            outer_width = region_ref.get().config().dual_infill_outer_width.value;
-            min_inner_width = region_ref.get().config().dual_infill_min_inner_width.value;
-            break;
-        }
-    }
+    // The zone boundary is ONE geometry for the whole object, so its dimensions are object
+    // config. They used to be region config read from the first enabled region, which meant
+    // the part panel accepted a per-part value, stored it in the 3MF and displayed it as
+    // modified while the engine used a different region's number.
+    const double outer_width     = this->config().dual_infill_outer_width.value;
+    const double min_inner_width = this->config().dual_infill_min_inner_width.value;
     if (outer_width <= 0)
         return;
 

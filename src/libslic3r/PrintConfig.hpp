@@ -1098,6 +1098,25 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<MagmaTubeSolverMode>, magma_tube_solver_mode))   // Basic (fast) vs Refined (better coverage)
     ((ConfigOptionEnum<MagmaInjectionOrdering>, magma_injection_ordering)) // Per-layer injection visiting order (TSP vs spread heat)
     ((ConfigOptionFloat,                magma_solver_timeout))         // CP-SAT timeout per block in seconds
+
+    // Magma lattice geometry. OBJECT scope, not region: an object gets exactly ONE tube map
+    // (PrintObject.cpp builds it from a single region's config) and ONE zone boundary
+    // (PrintObjectSlice.cpp takes the first enabled region's), so a per-part value has no
+    // coherent meaning. While these lived on PrintRegionConfig the part panel accepted them,
+    // wrote them into the 3MF and displayed them as modified, and the engine used the first
+    // region's value regardless. The dual_infill_* keys that ARE consumed per region
+    // (shell walls/width, solid layers/thickness, the speeds, the outer filament, enabled,
+    // outer pattern) deliberately stay on PrintRegionConfig.
+    ((ConfigOptionEnum<MagmaTubeWidthMode>, magma_tube_width_mode))   // Auto vs manual tube sizing
+    ((ConfigOptionFloat,                magma_nozzle_outer_diameter))  // Nozzle tip flat / shoulder (mm)
+    ((ConfigOptionFloat,                magma_nozzle_cone_half_angle)) // Nozzle tip cone half-angle (deg)
+    ((ConfigOptionFloat,                magma_interior_width))         // Cell hole size (mm), 0 = auto
+    ((ConfigOptionFloat,                magma_window_height_mm))       // Window gap height (mm), 0 = auto
+    ((ConfigOptionFloat,                magma_tube_height))            // Tube height in mm
+    ((ConfigOptionFloat,                magma_boundary_dodge))         // Boundary dodge distance (mm, 0 = auto)
+    ((ConfigOptionBool,                 magma_spiral_interlock))       // Spiral interlock between layers
+    ((ConfigOptionFloat,                dual_infill_outer_width))      // Width of outer (reinforcement) zone (mm)
+    ((ConfigOptionFloat,                dual_infill_min_inner_width))  // Minimum inner zone width (mm)
     ((ConfigOptionEnum<MagmaInjectionEdgePref>, magma_injection_edge_pref))  // Injection position: interior or exterior
 
     // Orca: internal use only
@@ -1279,10 +1298,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Outer zone always uses Magma Triangle infill at 100% density
     ((ConfigOptionBool,                 dual_infill_enabled))
     ((ConfigOptionEnum<InfillPattern>,    dual_infill_outer_pattern))  // Magma pattern for outer (reinforcement) zone
-    ((ConfigOptionFloat,                dual_infill_outer_width))      // Width of outer zone (mm)
     ((ConfigOptionInt,                  dual_infill_shell_walls))      // Number of shell walls
     ((ConfigOptionFloatOrPercent,       dual_infill_shell_width))      // Shell wall line width
-    ((ConfigOptionFloat,                dual_infill_min_inner_width))  // Minimum inner zone width
     ((ConfigOptionInt,                  dual_infill_solid_layers))     // Solid floor/ceiling layers
     ((ConfigOptionFloat,                dual_infill_solid_thickness))  // Solid floor/ceiling thickness
     // Dual infill speed configuration (0 = use default speed)
@@ -1290,15 +1307,6 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                dual_infill_shell_speed))
     ((ConfigOptionFloat,                dual_infill_floor_speed))
     ((ConfigOptionFloat,                dual_infill_ceiling_speed))
-    // Magma Triangle U-tube parameters (pattern-specific, shown when Magma is used)
-    ((ConfigOptionEnum<MagmaTubeWidthMode>, magma_tube_width_mode))   // Auto vs manual tube sizing
-    ((ConfigOptionFloat,                magma_nozzle_outer_diameter))  // Nozzle tip flat / shoulder (mm), 0 = use fallback
-    ((ConfigOptionFloat,                magma_nozzle_cone_half_angle)) // Nozzle tip cone half-angle (deg) for auto z-slam
-    ((ConfigOptionFloat,                magma_interior_width))         // Cell hole size (mm), 0 = auto
-    ((ConfigOptionFloat,                magma_window_height_mm))       // Window gap height (mm), 0 = auto
-    ((ConfigOptionFloat,                magma_tube_height))            // Tube height in mm
-    ((ConfigOptionFloat,                magma_boundary_dodge))         // Boundary dodge distance in mm (0 = auto: 4x max_layer_height)
-    ((ConfigOptionBool,                 magma_spiral_interlock))       // Enable spiral interlock between layers
 )
 
 PRINT_CONFIG_CLASS_DEFINE(

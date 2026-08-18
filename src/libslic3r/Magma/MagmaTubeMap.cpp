@@ -264,14 +264,14 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     }
 
     // Spiral params — use min_layer_height to cap helix angle at thinnest layer
-    bool spiral_enabled = config.magma_spiral_interlock.value;
+    bool spiral_enabled = obj_config.magma_spiral_interlock.value;
     map->m_spiral_params = compute_spiral_params(map->m_interior_width, map->m_line_width,
                                                   map->m_min_layer_height, spiral_enabled);
 
     // Window spec (handles window height auto-calculation).
     map->m_window_spec = WindowSpec::from_config(
         *map->m_geometry,
-        static_cast<float>(config.magma_window_height_mm.value),
+        static_cast<float>(obj_config.magma_window_height_mm.value),
         map->m_interior_width,
         map->m_line_width,
         map->m_layer_height
@@ -288,7 +288,7 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     // Tube height from user config (mm).
     // Clamped to m_min_tube_height_mm so tubes always fit at least one U-tube pair.
     {
-        double user_tube_mm = std::max(1.0, config.magma_tube_height.value);
+        double user_tube_mm = std::max(1.0, obj_config.magma_tube_height.value);
         // Candidate tube heights are layer-boundary differences — discrete steps of
         // one layer height. A [min,max] window narrower than one layer can straddle a
         // gap between two consecutive achievable heights and admit NONE (e.g. min=max=
@@ -328,7 +328,7 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     // Auto (0): 4 × max_layer_height. Ensures at least 4 solid layers bridging
     // each boundary discontinuity. Natural 3-level stagger from triangle lattice.
     {
-        double user_dodge = config.magma_boundary_dodge.value;
+        double user_dodge = obj_config.magma_boundary_dodge.value;
         if (user_dodge <= 0.0) {
             double max_lh = slicing_params.max_layer_height;
             if (max_lh <= 0.0) max_lh = double(map->m_layer_height);

@@ -41,21 +41,21 @@ bool resolve_magma(const PrintRegionConfig &region,
         // larger number, so the tube it describes is not the tube that gets printed.
         r.line_width = Flow::auto_extrusion_width(frInfill, float(r.nozzle_diameter));
 
-    r.nozzle_flat         = resolve_nozzle_flat(region.magma_nozzle_outer_diameter.value,
+    r.nozzle_flat         = resolve_nozzle_flat(object.magma_nozzle_outer_diameter.value,
                                                 r.nozzle_diameter);
 
     const int inj_filament = object.magma_injection_filament.value;
     r.injection_extruder   = inj_filament > 0 ? inj_filament - 1 : r.sparse_extruder;
     r.injection_nozzle_diameter = print.nozzle_diameter.get_at(r.injection_extruder);
-    r.injection_nozzle_flat     = resolve_nozzle_flat(region.magma_nozzle_outer_diameter.value,
+    r.injection_nozzle_flat     = resolve_nozzle_flat(object.magma_nozzle_outer_diameter.value,
                                                       r.injection_nozzle_diameter);
-    r.cone_half_angle_deg = region.magma_nozzle_cone_half_angle.value;
+    r.cone_half_angle_deg = object.magma_nozzle_cone_half_angle.value;
     r.max_immersion       = object.magma_max_immersion.value;
     r.slam_press          = object.magma_auto_slam_press.value;
 
     r.interior_width   = effective_interior_width(*r.geometry,
-                                                  region.magma_tube_width_mode.value,
-                                                  region.magma_interior_width.value,
+                                                  object.magma_tube_width_mode.value,
+                                                  object.magma_interior_width.value,
                                                   r.nozzle_flat, r.line_width,
                                                   r.cone_half_angle_deg, r.max_immersion);
     r.cell_spacing     = cell_spacing_from_geometry(r.interior_width, r.line_width);

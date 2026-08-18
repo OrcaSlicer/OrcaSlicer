@@ -1409,16 +1409,29 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 continue;
             const double nozzle_d = m.nozzle_diameter;
 
+            // (0) No lattice to inject into. The UI hides sparse_infill_density while a Magma
+            // pattern is selected, so this arrives from a preset or 3MF saved elsewhere. At 0
+            // the fill generator emits nothing, yet the tube map is still built and injection
+            // still runs -- the nozzle plunges into solid material and extrudes a tube's worth
+            // of plastic onto the part.
+            if (rcfg.sparse_infill_density.value <= 0) {
+                return { L("Magma infill is selected but sparse infill density is 0, so no "
+                           "lattice is printed. Injection would still run, pushing plastic into "
+                           "a part with no channels to receive it.\n\n"
+                           "Set sparse infill density above 0, or choose a non-Magma infill "
+                           "pattern."), object };
+            }
+
             // (1) Interior narrower than the nozzle bore -> can't be injected.
-            if (rcfg.magma_tube_width_mode.value == MagmaTubeWidthMode::Manual
-                && rcfg.magma_interior_width.value > 0
-                && rcfg.magma_interior_width.value < nozzle_d) {
+            if (obj_cfg.magma_tube_width_mode.value == MagmaTubeWidthMode::Manual
+                && obj_cfg.magma_interior_width.value > 0
+                && obj_cfg.magma_interior_width.value < nozzle_d) {
                 if (warning && warning->string.empty()) {
                     warning->string = Slic3r::format(
                         L("Magma injection tube width (%.2f mm) is smaller than the nozzle bore "
                           "(%.2f mm), so plastic cannot be injected into the tube. Increase the "
                           "injection tube width."),
-                        rcfg.magma_interior_width.value, nozzle_d);
+                        obj_cfg.magma_interior_width.value, nozzle_d);
                     warning->object = object;
                     warning->is_warning = true;
                 }
@@ -1558,7 +1571,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 // plastic (guess too high) or quietly halves the reinforcement while looking
                 // like the feature is just mediocre (guess too low). Blocking also blocks the
                 // preview, so the message has to actually get the user unstuck.
-                if (rcfg.magma_nozzle_outer_diameter.value <= 0.0) {
+                if (obj_cfg.magma_nozzle_outer_diameter.value <= 0.0) {
                     const double bore = nozzle_d > 0.0 ? nozzle_d : 0.4;
                     return { Slic3r::format(
                         L("Magma needs your nozzle's tip flat — the ring around the bore that "
@@ -2779,8 +2792,12 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             // 0 = the filament's max volumetric speed (validate rejects the case where the
             // filament defines none), and an explicit value is still capped by it.
             {
+                // 0 = "whatever is loaded", which is the sparse infill extruder printing the
+                // lattice -- not extruder 0. Same fallback MagmaResolved uses.
                 const int inj_f   = oc.magma_injection_filament.value;
-                const int inj_ext = inj_f > 0 ? (inj_f - 1) : 0;
+                const int inj_ext = inj_f > 0
+                                        ? (inj_f - 1)
+                                        : std::max(0, m_default_region_config.sparse_infill_filament.value - 1);
                 const double max_vol = m_config.filament_max_volumetric_speed.get_at(inj_ext);
                 const double vs = oc.magma_injection_speed.value;
                 double resolved = vs > 0.0 ? (max_vol > 0.0 ? std::min(vs, max_vol) : vs)

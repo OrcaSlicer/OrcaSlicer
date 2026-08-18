@@ -647,6 +647,12 @@ void PrintObject::prepare_infill()
     // is classified solid for bridging exactly like 100%-density infill, uniformly, with no
     // per-cell exception -- see is_effectively_solid in bridge_over_infill().
     {
+        // The lattice geometry itself is object config now; the region is still needed for the
+        // genuinely per-region inputs the tube map reads (sparse infill pattern, filament and
+        // line width, dual_infill_enabled / outer pattern), so pick the first region that asks
+        // for Magma. Those really are per-region settings -- a part CAN print a different
+        // pattern at a different line width -- and using the first is an approximation the
+        // pattern-mismatch guard in Fill.cpp turns into a hard error rather than silent drift.
         const PrintRegionConfig *tube_map_cfg = nullptr;
         for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id) {
             const PrintRegion &region = this->printing_region(region_id);
