@@ -412,23 +412,15 @@ std::string PresetHints::magma_injection_description(const PresetBundle &preset_
 
     const double budget = std::min(magma::MAGMA_SLAM_CLAMP,
                                    std::max(std::max(0.0, slam_press), std::max(0.0, max_immersion)));
-    double slam;
-    std::string mode;
-    if (print_config.opt_bool("magma_injection_z_slam_auto")) {
-        slam = std::min(budget, std::max(0.0,
-                   magma::auto_slam_depth(opening, flat, cone_deg, max_immersion, slam_press)
-                   + print_config.opt_float("magma_injection_z_slam_offset")));
-        mode = _utf8(L("auto"));
-    } else {
-        slam = std::min(print_config.opt_float("magma_injection_z_slam"), magma::MAGMA_SLAM_CLAMP);
-        mode = _utf8(L("manual"));
-    }
+    const double slam = std::min(budget, std::max(0.0,
+        magma::auto_slam_depth(opening, flat, cone_deg, max_immersion, slam_press)
+        + print_config.opt_float("magma_injection_z_slam_offset")));
     const double plunge = print_config.opt_bool("magma_injection_plunge")
         ? magma::clamp_plunge_depth(slam, print_config.opt_float("magma_injection_plunge_depth")) : 0.0;
 
     std::string out = (boost::format(_utf8(L(
-        "Z-slam %1$.3f mm (%2$s) + plunge %3$.3f mm = %4$.3f mm total nozzle intrusion.")))
-        % slam % mode % plunge % (slam + plunge)).str();
+        "Z-slam %1$.3f mm + plunge %2$.3f mm = %3$.3f mm total nozzle intrusion.")))
+        % slam % plunge % (slam + plunge)).str();
 
     // Immersion is the only thing that grows a tube past the nozzle flat, and the only
     // thing that deforms one, so say where this sits against the budget.

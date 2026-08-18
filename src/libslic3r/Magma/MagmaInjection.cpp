@@ -148,7 +148,7 @@ std::string generate_injection_gcode(
 
     // Crater wipe ("plow the displaced rim back, scrape nozzle clean").
     bool   wipe_enabled      = config.magma_injection_iron.value;
-    int    wipe_turns        = std::max(1, config.magma_injection_iron_turns.value);
+    int    wipe_turns_cfg    = config.magma_injection_iron_turns.value;  // 0 = auto (derived below)
     // Wipe speed: explicit setting if given, else the slicer's ironing speed (this
     // replaces ironing and is the same kind of slow surface-finishing move), else
     // travel speed as a last resort.
@@ -166,10 +166,9 @@ std::string generate_injection_gcode(
     double filament_diameter = config.filament_diameter.get_at(extruder_id);
     double filament_area = (PI / 4.0) * filament_diameter * filament_diameter;
 
-    // Resolve Z-slam depth: auto-derive from nozzle cone geometry (cone widens
-    // from the flat to cover the opening), or use the manual value. The seal math
-    // lives in MagmaTriangleCell.hpp so the injection here and Print::validate()
-    // stay in lockstep.
+    // Resolve Z-slam depth from nozzle cone geometry (the cone widens from the flat to
+    // cover the opening). The seal math lives in MagmaTriangleCell.hpp so the injection
+    // here and Print::validate() stay in lockstep.
     double seal_flat = resolve_nozzle_flat(config.magma_nozzle_outer_diameter.value,
                                            config.nozzle_diameter.get_at(extruder_id));
     const double max_immersion = config.magma_max_immersion.value;
@@ -178,18 +177,15 @@ std::string generate_injection_gcode(
     // offset and the plunge all spend from this one budget.
     const double immersion_budget = std::min(MAGMA_SLAM_CLAMP,
                                              std::max(std::max(0.0, slam_press), std::max(0.0, max_immersion)));
-    if (config.magma_injection_z_slam_auto.value) {
-        slam_depth = auto_slam_depth(tube_map.tube_opening_diameter(), seal_flat,
-                                     config.magma_nozzle_cone_half_angle.value,
-                                     max_immersion, slam_press);
-        // User trim on the auto depth (+ deeper / - shallower), re-clamped to the same
-        // budget so it stays the single limit on immersion. Raise Max nozzle immersion
-        // if you need more than it allows.
-        slam_depth = std::min(immersion_budget,
-                              std::max(0.0, slam_depth + config.magma_injection_z_slam_offset.value));
-    } else {
-        slam_depth = std::min(config.magma_injection_z_slam.value, MAGMA_SLAM_CLAMP);
-    }
+    // Sealing depth is always derived from this tube's own opening. A single fixed depth
+    // over-presses small boundary tubes and under-seals large ones, so there is no manual
+    // mode: magma_max_immersion is the direct depth control (in auto tube sizing the tube
+    // is sized so the depth lands exactly on the budget).
+    slam_depth = auto_slam_depth(tube_map.tube_opening_diameter(), seal_flat,
+                                 config.magma_nozzle_cone_half_angle.value,
+                                 max_immersion, slam_press);
+    slam_depth = std::min(immersion_budget,
+                          std::max(0.0, slam_depth + config.magma_injection_z_slam_offset.value));
 
     // Plunge ("slam-melt"): ramp the nozzle deeper during the injection so the hot
     // tip sinks into the softening tube top and keeps the seal pressed shut as the
@@ -245,7 +241,7 @@ std::string generate_injection_gcode(
         // scan_layers) instead of the global ideal — boundary-cap tubes have smaller
         // openings and would otherwise be over-slammed. Manual mode keeps the fixed
         // slam_depth resolved above. plunge_depth tracks slam_depth.
-        if (config.magma_injection_z_slam_auto.value) {
+        {
             const auto& slam_pair = tube_map.u_tube_pairs()[pt.pair_index];
             slam_depth = auto_slam_depth(tube_map.cap_opening_diameter(slam_pair), seal_flat,
                                          config.magma_nozzle_cone_half_angle.value,
@@ -473,6 +469,14 @@ std::string generate_injection_gcode(
             // i.e. margin >= r_flat -- plus a little clearance for the piled material itself.
             double margin   = wipe_margin > 0.0 ? wipe_margin : r_flat + MAGMA_IRON_RIM_CLEARANCE;
             double start_R  = crater_r + margin;
+
+            // Turns 0 = auto. The spiral runs start_R -> 0, so turns sets the radial step.
+            // The nozzle flat is also the width of the bevel doing the plowing, so the step
+            // has to scale with it -- a fixed count plows at a different density on every
+            // nozzle, and start_R already moves with the flat.
+            const int wipe_turns = wipe_turns_cfg > 0
+                ? wipe_turns_cfg
+                : std::max(1, (int)std::ceil(start_R / std::max(0.1, MAGMA_IRON_STEP_FRACTION * seal_flat)));
 
             double hover_z  = layer_z + wipe_hover;                   // height while hovering
             int    wf       = std::max(60, (int)(wipe_speed_mms * 60.0));  // mm/s -> mm/min

@@ -305,24 +305,6 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         is_msg_dlg_already_exist = false;
     }
 
-    if (auto* z_slam_opt = config->option<ConfigOptionFloat>("magma_injection_z_slam");
-        z_slam_opt && z_slam_opt->value > 3.5 + EPSILON)
-    {
-        const wxString msg_text = _(L("Z-slam depth beyond 3.5mm is very aggressive.\n\n"
-                                      "The correct z-slam depth is highly dependent on your nozzle "
-                                      "geometry — measure the shoulder (flat tip) diameter and taper "
-                                      "angle to determine how deep the nozzle must go to seal the "
-                                      "tube opening.\n\n"
-                                      "The value will be reset to 1mm."));
-        MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
-        DynamicPrintConfig new_conf = *config;
-        is_msg_dlg_already_exist = true;
-        dialog.ShowModal();
-        new_conf.set_key_value("magma_injection_z_slam", new ConfigOptionFloat(1.0));
-        apply(config, &new_conf);
-        is_msg_dlg_already_exist = false;
-    }
-
     if (config->option<ConfigOptionBool>("enable_wrapping_detection")->value) {
         std::string printer_type = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
         if (!DevPrinterConfigUtil::support_wrapping_detection(printer_type)) {
@@ -957,8 +939,6 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     // Auto Z-slam derives the slam depth from nozzle geometry; it needs the nozzle
     // tip flat and cone angle, so those fields follow this toggle.
-    auto* z_slam_auto_opt = config->option<ConfigOptionBool>("magma_injection_z_slam_auto");
-    bool z_slam_auto = have_magma_pattern && z_slam_auto_opt && z_slam_auto_opt->value;
 
     // Magma Pattern section
     toggle_line("magma_tube_width_mode", have_magma_pattern);
@@ -968,8 +948,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     auto* tube_mode_opt = config->option<ConfigOptionEnum<MagmaTubeWidthMode>>("magma_tube_width_mode");
     bool tube_auto = have_magma_pattern && tube_mode_opt &&
         tube_mode_opt->value == MagmaTubeWidthMode::Auto;
-    toggle_line("magma_nozzle_outer_diameter", tube_auto || z_slam_auto);  // flat is needed by auto z-slam even in manual tube mode
-    toggle_line("magma_nozzle_cone_half_angle", z_slam_auto);
+    // The flat sizes the tube in Auto and sets the seal in both modes, so it is always relevant.
+    toggle_line("magma_nozzle_outer_diameter", have_magma_pattern);
+    toggle_line("magma_nozzle_cone_half_angle", have_magma_pattern);
     toggle_line("magma_interior_width", have_magma_pattern && !tube_auto);
 
     // Magma Tubes section
@@ -990,15 +971,15 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         toggle_line(el, have_magma_pattern);
     // Z-slam: auto toggle shown when Magma. Swap fields by mode — the auto TRIM when auto is on,
     // the manual DEPTH when auto is off (only one is ever relevant/used at a time).
-    toggle_line("magma_injection_z_slam_auto", have_magma_pattern);
-    toggle_line("magma_injection_z_slam_offset", have_magma_pattern && z_slam_auto);
-    // Immersion budget is what auto sizing solves against and what caps the auto slam,
-    // so it only means anything while auto z-slam is on.
-    toggle_line("magma_max_immersion", have_magma_pattern && z_slam_auto);
-    // Contact press is only reached when the flat already covers the opening, which in
-    // auto tube mode happens exactly when the immersion budget is zero.
-    toggle_line("magma_auto_slam_press", have_magma_pattern && z_slam_auto);
-    toggle_line("magma_injection_z_slam", have_magma_pattern && !z_slam_auto);
+    // In Auto tube sizing the tube is sized so the slam lands exactly on the immersion
+    // budget, and the offset is re-clamped to that budget -- so a positive offset there is
+    // a silent no-op. Only show it in Manual tube width, where the slam can sit below the
+    // budget and the trim has room to work.
+    toggle_line("magma_injection_z_slam_offset", have_magma_pattern && !tube_auto);
+    // The immersion budget both sizes the tube (Auto) and caps the slam (always).
+    toggle_line("magma_max_immersion", have_magma_pattern);
+    // Contact press is only reached when the flat already covers the opening.
+    toggle_line("magma_auto_slam_press", have_magma_pattern);
     // Plunge ("slam-melt"): depth field only when the plunge toggle is on
     auto* plunge_opt = config->option<ConfigOptionBool>("magma_injection_plunge");
     bool plunge_on = have_magma_pattern && plunge_opt && plunge_opt->value;

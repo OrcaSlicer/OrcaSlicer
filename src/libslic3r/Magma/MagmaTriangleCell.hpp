@@ -71,6 +71,9 @@ constexpr double MAGMA_IRON_RIM_CLEARANCE = 0.3;
 // Crater-iron speed used when neither an explicit value nor an ironing speed is configured.
 // Must NOT fall back to travel speed -- see MagmaInjection.cpp.
 constexpr double MAGMA_IRON_SPEED_FALLBACK = 40.0;  // mm/s
+// Auto crater-iron radial step per spiral turn, as a fraction of the nozzle flat. The flat
+// is also the width of the bevel doing the plowing, so the step must scale with it.
+constexpr double MAGMA_IRON_STEP_FRACTION = 0.5;
 
 // Single resolver for the nozzle tip flat (magma_nozzle_outer_diameter). The user
 // should measure it (field tooltip says so); when left at 0 ("auto") we estimate

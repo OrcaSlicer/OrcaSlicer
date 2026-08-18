@@ -2453,6 +2453,9 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Magma Pattern"), L"param_magmatriangle");
         optgroup->append_single_option_line("magma_tube_width_mode");
+        // Sits here, not under Magma Injection: in Auto sizing this is what SIZES the tube,
+        // so it belongs next to the mode it drives rather than beside the injection moves.
+        optgroup->append_single_option_line("magma_max_immersion");
         optgroup->append_single_option_line("magma_nozzle_outer_diameter");
         optgroup->append_single_option_line("magma_nozzle_cone_half_angle");
         optgroup->append_single_option_line("magma_interior_width");
@@ -2481,11 +2484,8 @@ void TabPrint::build()
         optgroup->append_single_option_line("magma_injection_temp");
         optgroup->append_single_option_line("magma_injection_speed");
         optgroup->append_single_option_line("magma_injection_ordering");
-        optgroup->append_single_option_line("magma_injection_z_slam_auto");
         optgroup->append_single_option_line("magma_injection_z_slam_offset");
-        optgroup->append_single_option_line("magma_max_immersion");
         optgroup->append_single_option_line("magma_auto_slam_press");
-        optgroup->append_single_option_line("magma_injection_z_slam");
         optgroup->append_single_option_line("magma_injection_plunge");
         optgroup->append_single_option_line("magma_injection_plunge_depth");
         optgroup->append_single_option_line("magma_injection_dwell");

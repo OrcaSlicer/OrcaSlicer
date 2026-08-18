@@ -1523,12 +1523,10 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 double immersion_budget = std::min(magma::MAGMA_SLAM_CLAMP,
                                                    std::max(std::max(0.0, slam_press),
                                                             std::max(0.0, max_immersion)));
-                double slam = obj_cfg.magma_injection_z_slam_auto.value
-                    ? std::min(immersion_budget,
+                double slam = std::min(immersion_budget,
                                std::max(0.0, magma::auto_slam_depth(opening, flat, cone_deg,
                                                                     max_immersion, slam_press)
-                                             + obj_cfg.magma_injection_z_slam_offset.value))
-                    : std::min(obj_cfg.magma_injection_z_slam.value, magma::MAGMA_SLAM_CLAMP);
+                                             + obj_cfg.magma_injection_z_slam_offset.value));
                 double plunge = obj_cfg.magma_injection_plunge.value
                     ? magma::clamp_plunge_depth(slam, obj_cfg.magma_injection_plunge_depth.value) : 0.0;
                 double covered = magma::cone_coverage_at_depth(slam + plunge, flat, cone_deg);
@@ -1558,6 +1556,22 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                               "use a nozzle with a larger flat."),
                             covered, slam, plunge, opening);
                     }
+                    warning->object = object;
+                    warning->is_warning = true;
+                }
+
+                // The nozzle flat drives tube SIZING in auto mode, so an unmeasured one is not a
+                // harmless default -- it silently decides how big every tube is. New users have no
+                // reason to know the setting exists, so say so rather than estimating quietly.
+                if (warning && warning->string.empty() &&
+                    rcfg.magma_nozzle_outer_diameter.value <= 0.0) {
+                    warning->string = Slic3r::format(
+                        L("Magma is estimating your nozzle tip flat as %.2f mm (3x the bore) because "
+                          "it has not been measured. That estimate decides how large every injection "
+                          "tube is, and if it is too large the nozzle will not seal them.\n\n"
+                          "Measure the flat ring around your nozzle bore with calipers and set "
+                          "\"Nozzle tip flat\" under Magma Pattern."),
+                        flat);
                     warning->object = object;
                     warning->is_warning = true;
                 }
