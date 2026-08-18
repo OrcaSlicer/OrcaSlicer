@@ -59,6 +59,11 @@ private:
     // One selectable setting row: a checkbox (setting name) plus a value label
     // and a (optional) grey unit label. key is the full config key and may carry
     // a "#N" variant suffix (print/printer rows); material rows carry the base key.
+    enum class RowKind {
+        Setting, // a regular setting key
+        Color,   // material colour requirement (filament_colour)
+        Type,    // material type requirement (read-only text)
+    };
     struct Row
     {
         std::string key;
@@ -69,6 +74,7 @@ private:
         wxString unit;
         wxString section_title; // outer tab title, for filter matching
         Section section{Section::Print};
+        RowKind kind{RowKind::Setting};
         size_t outer_index{0};
         size_t inner_index{0};
         size_t subcategory_index{0};
@@ -77,6 +83,7 @@ private:
         wxCheckBox* check{nullptr};
         wxStaticText* value_label{nullptr};
         wxStaticText* unit_label{nullptr};
+        wxStaticBitmap* color_chip{nullptr}; // Color rows only; swatch next to the value
         wxSizerItem* item{nullptr}; // sizer item of this row's h-sizer in its tab list sizer
     };
 
@@ -89,7 +96,7 @@ private:
         std::vector<size_t> rows;
     };
 
-    // An inner TabCtrl page with its select-all/material controls and content.
+    // An inner TabCtrl page with its material controls and content.
     struct Category
     {
         wxString title;
@@ -106,11 +113,11 @@ private:
         ScalableBitmap icon_bmp;       // scalable bitmap for DPI changes
         wxStaticBitmap* icon{nullptr};
         wxStaticBitmap* filament_color_chip{nullptr};
-        wxCheckBox* header{nullptr};   // material select-all tri-state; null for Printer/Process
-        // Material opt-in: the master checkbox carries the material title and
-        // gates whether this material's keys may be exported.
-        bool master{false};
-        wxCheckBox* master_check{nullptr};
+        wxStaticText* title_label{nullptr}; // material title (static text, Full Publish carries the label elsewhere)
+        // "Full Publish": serializing the entire filament preset of this slot. While checked,
+        // the slot's rows (incl. Color/Type) are disabled.
+        bool full{false};
+        wxCheckBox* full_check{nullptr};
         // Material identity, only for Section::Material categories.
         std::string filament_type;
         std::string filament_vendor;
@@ -118,7 +125,7 @@ private:
         // The author's 0-based filament slot this material section represents.
         size_t filament_slot{0};
         std::vector<Subcategory> subs;
-        std::vector<size_t> rows; // flattened rows, for the tri-state math
+        std::vector<size_t> rows; // flattened rows of this category
     };
 
     // One outer TabCtrl page. Category entries are its inner tabs.
@@ -140,25 +147,23 @@ private:
     void select_all(bool value);
     void select_visible(bool value);
     void show_menu(wxMouseEvent& evt);
-    void update_category_header(Category& category);
     void set_row_bold(Row& row, bool bold);
-    void on_category_toggle(size_t category_index);
-    // Material opt-in toggled: enables/disables the material's rows + tri-state
-    // and resyncs the header.
-    void on_master_toggle(size_t category_index);
+    // "Full Publish" toggled: disables/enables the material's rows.
+    void on_full_toggle(size_t category_index);
     // Return/create the fixed outer page for a Section kind.
     size_t section_group_for(Section kind);
     size_t category_index_for(const wxString& title, Section section, const std::string& icon_name, size_t group,
                               size_t source_index, const PublishMaterialIdentity& identity = PublishMaterialIdentity());
     size_t subcategory_index_for(size_t category_index, const wxString& title, const wxString& icon);
     void add_row_ui(const std::string& key, const wxString& label, const wxString& value, const wxString& unit,
-                    size_t category_index, size_t subcategory_index);
+                    size_t category_index, size_t subcategory_index, RowKind kind = RowKind::Setting);
+    // The non-structural filament keys of a slot's preset, for a "Full Publish" entry.
+    std::vector<std::string> full_keys_for_slot() const;
     void save_scroll_position(Category& category);
     void show_outer_page(size_t section_index);
     void show_inner_page(size_t section_index, int inner_index);
     void on_outer_tab_changed(wxCommandEvent& event);
     void on_inner_tab_changed(size_t section_index, wxCommandEvent& event);
-    void update_all_headers();
     bool row_is_visible(const Row& row) const;
     void apply_visibility();
     void bind_tab_events();

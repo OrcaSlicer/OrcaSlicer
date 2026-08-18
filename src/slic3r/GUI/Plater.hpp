@@ -383,7 +383,7 @@ public:
     bool preview_zip_archive(const boost::filesystem::path& archive_path);
 
     // BBS: restore
-    std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false);
+    std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false, bool* published_out = nullptr);
     // To be called when providing a list of files to the GUI slic3r on command line.
     std::vector<size_t> load_files(const std::vector<std::string>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false);
     // to be called on drag and drop

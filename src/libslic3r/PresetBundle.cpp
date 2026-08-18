@@ -4783,6 +4783,11 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
     if (is_published) {
         std::vector<std::string> skipped_keys;
         std::set<std::string>    applied_keys;
+        // Set whenever the material overlay actually modifies a receiver filament preset
+        // (applied key, colour or slot replacement). Only then must the edited preset be
+        // re-snapshotted: re-selecting unconditionally would discard the user's unsaved
+        // in-memory filament edits when the published file touches nothing.
+        bool material_applied = false;
         // Structural keys must never be applied to the user's presets: doing so would
         // rewrite their preset inheritance/structure. This is the single source of truth
         // shared with PublishSettingsDialog.cpp (publish_structural_keys in
@@ -4869,6 +4874,11 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 return true;
             };
             for (const PublishedMaterialEntry &entry : published_config->material_keys) {
+                // Entries using the filament-publishing-v2 features (full dump, published type or
+                // colour) are handled by the positional per-slot pass below; the legacy identity
+                // matching here applies only to files that predate those features.
+                if (entry.full || entry.publish_type || entry.publish_color)
+                    continue;
                 // Resolve the author's source slot and its ordinal among the author slots
                 // carrying this entry's identity. A slotted entry (slot >= 0) names the exact
                 // author slot and targets the receiver's Nth matching preset (N = ordinal);
@@ -5002,7 +5012,208 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             continue;
                         }
                         static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, 0, author_slot);
+                        material_applied = true;
                     }
+                }
+            }
+        }
+
+        // Filament-publishing-v2: positional per-slot entries. The author published, per slot,
+        // either the entire filament (full) or specific keys plus optionally a curated type
+        // and/or colour. The receiver's slot is matched positionally against the published type:
+        //   - colour: always applied to the slot, independent of the type gate;
+        //   - type match: a full dump is intentionally ignored (the receiver keeps its material),
+        //     a partial entry's keys are applied as usual;
+        //   - type mismatch: the slot is replaced with the first visible same-type filament from
+        //     the receiver's library; the author's values are applied on top of it (full) or the
+        //     published keys are applied (partial);
+        //   - no replacement available: a full entry falls back to applying the author's values
+        //     in-memory onto the receiver's current preset (no library import); a partial entry
+        //     keeps the receiver's material and reports its keys as skipped.
+        {
+            // Slot growth is tied to the author slots that carry published content (full,
+            // type or colour): the file's total filament count is irrelevant, and a slot the
+            // author left unpublished must not pull a filler material into the receiver's
+            // setup. Grow only as far as the highest published slot (never shrink, never
+            // remove the receiver's existing materials).
+            bool   has_new_semantics = false;
+            size_t target_slots      = this->filament_presets.size();
+            for (const PublishedMaterialEntry &entry : published_config->material_keys) {
+                if (!entry.full && !entry.publish_type && !entry.publish_color)
+                    continue; // legacy entry, handled above
+                has_new_semantics = true;
+                if (entry.slot >= 0)
+                    target_slots = std::max(target_slots, size_t(entry.slot) + 1);
+            }
+            if (has_new_semantics) {
+                // Defensive cap: never exceed the file's own filament count.
+                target_slots = std::min(target_slots, num_filaments);
+                while (this->filament_presets.size() < target_slots) {
+                    const size_t new_slot_idx = this->filament_presets.size();
+                    std::string initial_preset;
+                    // Proactively assign matching candidate preset if this slot carries a published type
+                    for (const PublishedMaterialEntry &entry : published_config->material_keys) {
+                        if (entry.slot == static_cast<int>(new_slot_idx) && entry.publish_type && !entry.publish_type_value.empty()) {
+                            for (size_t i = 0; i < this->filaments.size(); ++i) {
+                                const Preset &candidate = this->filaments.preset(i);
+                                if (!candidate.is_visible)
+                                    continue;
+                                if (normalize_filament_type(candidate.config.opt_string("filament_type", 0u)) == entry.publish_type_value) {
+                                    initial_preset = candidate.name;
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    if (initial_preset.empty())
+                        initial_preset = this->filaments.first_visible().name;
+                    this->filament_presets.emplace_back(initial_preset);
+                }
+
+                auto apply_slot_keys = [&](Preset &preset, const std::vector<std::string> &slot_keys, int author_slot,
+                                           const std::string &material_label) {
+                    for (const std::string &key : slot_keys) {
+                        const std::string base_key = key.substr(0, key.find('#'));
+                        if (structural_keys.count(base_key) != 0)
+                            continue;
+                        const ConfigOption *src_opt = config.option(base_key);
+                        if (src_opt == nullptr || !src_opt->is_vector() ||
+                            author_slot < 0 || author_slot >= static_cast<int>(static_cast<const ConfigOptionVectorBase*>(src_opt)->size())) {
+                            skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
+                            continue;
+                        }
+                        ConfigOption *dst_opt = preset.config.option(base_key);
+                        if (dst_opt == nullptr || !dst_opt->is_vector() ||
+                            static_cast<const ConfigOptionVectorBase*>(dst_opt)->empty() ||
+                            dst_opt->type() != src_opt->type()) {
+                            skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
+                            continue;
+                        }
+                        // Per-slot scalar copy: the receiver's filament preset holds a single
+                        // value per key (vector of size 1), the file holds the per-slot vector.
+                        static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, 0, author_slot);
+                        material_applied = true;
+                    }
+                };
+
+                for (const PublishedMaterialEntry &entry : published_config->material_keys) {
+                    if (!entry.full && !entry.publish_type && !entry.publish_color)
+                        continue; // legacy entry, handled above
+                    if (entry.slot < 0 || size_t(entry.slot) >= this->filament_presets.size())
+                        continue; // out of range: nothing to do for this slot
+                    const size_t slot = size_t(entry.slot);
+                    // Modify the stored preset itself (real=true), never the edited snapshot:
+                    // find_preset would return &m_edited_preset for the currently selected slot,
+                    // and the re-select at the end of this block re-snapshots from the stored
+                    // preset, silently discarding any values applied to the snapshot.
+                    Preset *recv = this->filaments.find_preset(this->filament_presets[slot], false, true);
+                    if (recv == nullptr)
+                        continue;
+
+                    const std::string material_label = entry.filament_id.empty()
+                        ? (entry.publish_type_value.empty() ? entry.filament_type : entry.publish_type_value)
+                        : entry.filament_id;
+
+                    bool apply_slot = true;
+                    if (entry.publish_type && !entry.publish_type_value.empty()) {
+                        const std::string recv_type = normalize_filament_type(recv->config.opt_string("filament_type", 0u));
+                        if (recv_type == entry.publish_type_value) {
+                            // Type match: the receiver keeps its material. A full dump is
+                            // intentionally ignored for this slot; partial keys still apply.
+                            if (entry.full)
+                                apply_slot = false;
+                        } else {
+                            // Type mismatch: replace the slot with the first visible same-type
+                            // filament from the receiver's library.
+                            std::string replacement;
+                            for (size_t i = 0; i < this->filaments.size(); ++i) {
+                                const Preset &candidate = this->filaments.preset(i);
+                                if (!candidate.is_visible)
+                                    continue;
+                                if (normalize_filament_type(candidate.config.opt_string("filament_type", 0u)) != entry.publish_type_value)
+                                    continue;
+                                replacement = candidate.name;
+                                break;
+                            }
+                            if (!replacement.empty()) {
+                                const std::string old_name = recv->name;
+                                this->filament_presets[slot] = replacement;
+                                recv = this->filaments.find_preset(replacement, false, true);
+                                material_applied = true;
+                                published_config->material_replacements.emplace_back(
+                                    "slot " + std::to_string(slot) + ": " + old_name + " -> " + replacement);
+                            } else if (entry.full) {
+                                // No library match: create a temporary project-embedded custom preset
+                                // populated with default settings and overlaid with the author's values.
+                                std::string custom_name = entry.publish_type_value + " (Published)";
+                                for (size_t idx = 1; this->filaments.find_preset(custom_name, false) != nullptr; ++idx)
+                                    custom_name = entry.publish_type_value + " (Published " + std::to_string(idx) + ")";
+
+                                // Capture the slot's current name BEFORE load_preset: the custom
+                                // name sorts ahead of the slot's material, so the deque insertion
+                                // relocates it and recv would dangle after the call.
+                                const std::string old_name = recv->name;
+
+                                DynamicPrintConfig custom_cfg = this->filaments.default_preset_for(config).config;
+                                // filament_type is a per-slot vector option: set it via the strings
+                                // accessor. opt_string(key, bool) would ask for the scalar
+                                // ConfigOptionString, fail the cast and dereference nullptr.
+                                if (ConfigOptionStrings *type_opt = custom_cfg.opt<ConfigOptionStrings>("filament_type", true)) {
+                                    if (type_opt->values.empty())
+                                        type_opt->values.emplace_back();
+                                    type_opt->values[0] = entry.publish_type_value;
+                                }
+                                if (ConfigOptionStrings *id_opt = custom_cfg.opt<ConfigOptionStrings>("filament_settings_id", true))
+                                    if (!id_opt->values.empty())
+                                        id_opt->values[0] = custom_name;
+
+                                Preset &created = this->filaments.load_preset("", custom_name, std::move(custom_cfg), false, file_version);
+                                created.is_project_embedded = true;
+                                created.is_visible          = true;
+
+                                this->filament_presets[slot] = custom_name;
+                                recv = &created;
+                                material_applied = true;
+                                published_config->material_replacements.emplace_back(
+                                    "slot " + std::to_string(slot) + ": " + old_name + " -> " + custom_name);
+                            } else {
+                                // Partial publish with no replacement available: keep the
+                                // receiver's material and report this slot's keys as skipped.
+                                for (const std::string &key : entry.keys)
+                                    skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
+                                apply_slot = false;
+                            }
+                        }
+                    }
+
+                    // Colour is slot-scoped and independent of the type gate: it is applied to
+                    // whichever material ends up in the slot (original, replacement or the
+                    // in-memory fallback), and synced into project_config for GUI rendering.
+                    if (entry.publish_color && !entry.color.empty()) {
+                        if (recv != nullptr) {
+                            // Create the key when the target preset lacks it (e.g. a replacement
+                            // built from the static defaults): the colour is a requirement, not
+                            // an optional override.
+                            if (ConfigOptionStrings *colour = recv->config.opt<ConfigOptionStrings>("filament_colour", true)) {
+                                if (colour->values.empty())
+                                    colour->values.emplace_back();
+                                colour->values[0] = entry.color;
+                                material_applied = true;
+                            }
+                        }
+                        if (ConfigOptionStrings *proj_colour = this->project_config.opt<ConfigOptionStrings>("filament_colour")) {
+                            if (slot < proj_colour->values.size())
+                                proj_colour->values[slot] = entry.color;
+                        }
+                        if (ConfigOptionStrings *proj_multi_colour = this->project_config.opt<ConfigOptionStrings>("filament_multi_colour")) {
+                            if (slot < proj_multi_colour->values.size())
+                                proj_multi_colour->values[slot] = entry.color;
+                        }
+                    }
+
+                    if (apply_slot && recv != nullptr)
+                        apply_slot_keys(*recv, entry.full ? entry.full_keys : entry.keys, entry.slot, material_label);
                 }
             }
         }
@@ -5021,6 +5232,14 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             skipped_keys.emplace_back(key);
         }
         published_config->skipped_keys = std::move(skipped_keys);
+
+        // The material overlay above modified the filament collection presets in place, but
+        // the edited preset (what the GUI displays) is a snapshot taken when the preset was
+        // last selected. Re-select the first slot's filament (mirroring a normal project load)
+        // so the applied values (colour, type, keys and slot replacements) surface in the GUI;
+        // selecting any other slot's filament afterwards snapshots its modified preset too.
+        if (material_applied && !this->filament_presets.empty())
+            this->filaments.select_preset_by_name(this->filament_presets.front(), true);
     }
 
     //BBS

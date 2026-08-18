@@ -3,10 +3,30 @@
 #include "PresetBundle.hpp"
 #include "Preset.hpp"
 #include "PrintConfig.hpp"
+#include "MaterialType.hpp"
 
 #include <algorithm>
+#include <map>
+#include <set>
 
 namespace Slic3r {
+
+std::string normalize_filament_type(const std::string& type)
+{
+    if (type.empty())
+        return type;
+    if (MaterialType::find(type) != nullptr)
+        return type;
+    // "PLA High Speed" -> "PLA": strip a space-separated modifier, but keep dash-separated
+    // types like "PA-CF" / "PETG-CF" intact (they are distinct materials, not modifiers).
+    const size_t sep = type.find(' ');
+    if (sep != std::string::npos) {
+        const std::string base = type.substr(0, sep);
+        if (MaterialType::find(base) != nullptr)
+            return base;
+    }
+    return type;
+}
 
 const std::set<std::string>& publish_structural_keys()
 {
@@ -111,6 +131,13 @@ DynamicPrintConfig filter_published_config(
     DynamicPrintConfig filtered;
 
     std::set<std::string> base_keys_to_include;
+    // Base keys that must never be masked: identity, plate geometry, process/printer keys and
+    // partially-published material keys keep today's whole-vector serialization (all slots).
+    std::set<std::string>         mask_exempt_keys;
+    // For keys carried only by "full" entries: base key -> author slots whose values must
+    // survive; the other slots are masked to their defaults so a full publish does not leak
+    // the author's unrelated slot data.
+    std::map<std::string, std::set<int>> full_slot_map;
 
     // 1. Mandatory material identity & slot count keys for 3MF validation/normalization
     static const std::vector<std::string> s_material_identity_keys = {
@@ -122,8 +149,10 @@ DynamicPrintConfig filter_published_config(
         "filament_self_index",
         "filament_extruder_variant"
     };
-    for (const std::string &key : s_material_identity_keys)
+    for (const std::string &key : s_material_identity_keys) {
         base_keys_to_include.insert(key);
+        mask_exempt_keys.insert(key);
+    }
 
     // 2. Published plate / bed geometry keys (wipe tower positioning)
     static const std::vector<std::string> s_plate_geometry_keys = {
@@ -131,29 +160,69 @@ DynamicPrintConfig filter_published_config(
         "wipe_tower_y",
         "wipe_tower_rotation_angle"
     };
-    for (const std::string &key : s_plate_geometry_keys)
+    for (const std::string &key : s_plate_geometry_keys) {
         base_keys_to_include.insert(key);
+        mask_exempt_keys.insert(key);
+    }
 
     // 3. Process and printer published keys
     for (const std::string &key : published_keys) {
         const std::string base_key = key.substr(0, key.find('#'));
-        if (!base_key.empty())
+        if (!base_key.empty()) {
             base_keys_to_include.insert(base_key);
+            mask_exempt_keys.insert(base_key);
+        }
     }
 
     // 4. Material-specific published keys
     for (const PublishedMaterialEntry &entry : material_keys) {
         for (const std::string &key : entry.keys) {
             const std::string base_key = key.substr(0, key.find('#'));
-            if (!base_key.empty())
+            if (!base_key.empty()) {
                 base_keys_to_include.insert(base_key);
+                mask_exempt_keys.insert(base_key);
+            }
+        }
+        // 4b. "Full publish" entries carry the entire slot; the values of the covered keys are
+        // masked to the author's slot on export (see the copy loop below).
+        for (const std::string &key : entry.full_keys) {
+            const std::string base_key = key.substr(0, key.find('#'));
+            if (base_key.empty())
+                continue;
+            base_keys_to_include.insert(base_key);
+            if (entry.slot >= 0)
+                full_slot_map[base_key].insert(entry.slot);
         }
     }
 
+    // Mask a vector option's slots that are not author-published: copy the option default over
+    // each non-published index. Keys without an option default are left unmasked (the file then
+    // carries the whole vector, matching the partial-publish behavior).
+    auto mask_slots = [](ConfigOption &opt, const ConfigOptionDef *def, const std::set<int> &keep_slots) {
+        auto *vec = dynamic_cast<ConfigOptionVectorBase*>(&opt);
+        if (vec == nullptr || vec->size() == 0 || def == nullptr || !def->default_value)
+            return;
+        if (def->default_value->type() != opt.type())
+            return;
+        const auto *default_vec = dynamic_cast<const ConfigOptionVectorBase*>(def->default_value.get());
+        if (default_vec == nullptr || default_vec->empty())
+            return;
+        for (size_t idx = 0; idx < vec->size(); ++idx)
+            if (keep_slots.count(static_cast<int>(idx)) == 0)
+                vec->set_at(def->default_value.get(), idx, 0);
+    };
+
     // Copy selected options from full_config into filtered config
     for (const std::string &key : base_keys_to_include) {
-        if (const ConfigOption *opt = full_config.option(key))
-            filtered.set_key_value(key, opt->clone());
+        if (const ConfigOption *opt = full_config.option(key)) {
+            ConfigOption *cloned = opt->clone();
+            if (mask_exempt_keys.count(key) == 0) {
+                const auto it = full_slot_map.find(key);
+                if (it != full_slot_map.end() && !it->second.empty())
+                    mask_slots(*cloned, print_config_def.get(key), it->second);
+            }
+            filtered.set_key_value(key, cloned);
+        }
     }
 
     return filtered;

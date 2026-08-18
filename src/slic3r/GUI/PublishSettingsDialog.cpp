@@ -290,6 +290,25 @@ void PublishSettingsDialog::build_option_model()
                     const PublishMaterialIdentity identity = material_identity(slot, full);
                     const wxString title                   = material_title(slot, bundle, full);
                     const size_t category_index = category_index_for(title, Section::Material, "custom-gcode_filament", g, slot, identity);
+
+                    // Filament-publishing-v2 rows: the author may require a filament colour and/or
+                    // a vendor-agnostic material type for this slot. They live in their own
+                    // optgroup so they stay visually separated from the setting rows.
+                    {
+                        const size_t req_sub = subcategory_index_for(category_index, _L("Material"), "custom-gcode_filament");
+                        std::string hex;
+                        if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour"))
+                            if (slot < colours->size())
+                                hex = colours->get_at(slot);
+                        add_row_ui("filament_colour", _L("Color"), from_u8(hex), wxString(), category_index, req_sub, RowKind::Color);
+                        std::string type;
+                        if (const auto* types = full.opt<ConfigOptionStrings>("filament_type"))
+                            if (slot < types->size())
+                                type = types->get_at(slot);
+                        add_row_ui("filament_type", _L("Type"), from_u8(normalize_filament_type(type)), wxString(), category_index, req_sub,
+                                   RowKind::Type);
+                    }
+
                     // A material section must not repeat a key; the same key may
                     // appear in other material sections - that is intended.
                     std::set<std::string> material_added;
@@ -371,6 +390,10 @@ void PublishSettingsDialog::build_option_model()
         dirty_base.insert(n == std::string::npos ? key : key.substr(0, n));
     }
     for (Row& row : m_rows) {
+        // The Color/Type requirement rows are not "dirty overrides": they are never
+        // auto-checked by the dirty pre-check.
+        if (row.kind != RowKind::Setting)
+            continue;
         std::string base = row.key.substr(0, row.key.find('#'));
         row.dirty        = dirty_base.count(base) > 0;
         if (row.dirty) {
@@ -379,24 +402,11 @@ void PublishSettingsDialog::build_option_model()
         }
     }
 
-    // Wire the inner-page tri-state headers: clicking a header toggles all its children;
-    // toggling any child re-syncs its header. Bind by index so the lambdas stay
-    // valid even if the vectors are reallocated later.
-    for (size_t c = 0; c < m_categories.size(); ++c) {
-        if (m_categories[c].master_check != nullptr)
-            m_categories[c].master_check->Bind(wxEVT_CHECKBOX, [this, c](wxCommandEvent&) { on_master_toggle(c); });
-        if (m_categories[c].header != nullptr)
-            m_categories[c].header->Bind(wxEVT_CHECKBOX, [this, c](wxCommandEvent&) { on_category_toggle(c); });
-        for (size_t r : m_categories[c].rows)
-            m_rows[r].check->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { update_all_headers(); });
-        update_category_header(m_categories[c]);
-    }
-
-    // Material pages start gated (master OFF): their rows and tri-state are
-    // disabled until the author opts the material in.
+    // Wire the "Full Publish" checkboxes: toggling one disables/enables the material's
+    // rows. Bind by index so the lambda stays valid even if the vector is reallocated later.
     for (size_t c = 0; c < m_categories.size(); ++c)
-        if (m_categories[c].section == Section::Material)
-            on_master_toggle(c);
+        if (m_categories[c].full_check != nullptr)
+            m_categories[c].full_check->Bind(wxEVT_CHECKBOX, [this, c](wxCommandEvent&) { on_full_toggle(c); });
 
     // No filter is active at startup: every row matches until the user types.
     for (Row& row : m_rows)
@@ -502,13 +512,13 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
             category.filament_color_chip = new wxStaticBitmap(category.page, wxID_ANY, *chip);
             header_sizer->Add(category.filament_color_chip, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
         }
-        category.master_check = new wxCheckBox(category.page, wxID_ANY, title);
-        category.master_check->SetFont(Label::Head_14);
-        category.master_check->SetToolTip(_L("Export this material"));
-        header_sizer->Add(category.master_check, 0, wxALIGN_CENTER_VERTICAL);
-        category.header = new wxCheckBox(category.page, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxCHK_3STATE);
-        category.header->SetToolTip(_L("Select/deselect all settings in this material"));
-        header_sizer->Add(category.header, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(6));
+        category.title_label = new wxStaticText(category.page, wxID_ANY, title);
+        category.title_label->SetFont(Label::Head_14);
+        header_sizer->Add(category.title_label, 0, wxALIGN_CENTER_VERTICAL);
+        category.full_check = new wxCheckBox(category.page, wxID_ANY, _L("Full Publish"));
+        category.full_check->SetFont(Label::Body_13);
+        category.full_check->SetToolTip(_L("Embed the entire filament of this slot in the 3MF file"));
+        header_sizer->Add(category.full_check, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
         page_sizer->Add(header_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
     }
 
@@ -575,7 +585,8 @@ void PublishSettingsDialog::add_row_ui(const std::string& key,
                                        const wxString& value,
                                        const wxString& unit,
                                        size_t category_index,
-                                       size_t subcategory_index)
+                                       size_t subcategory_index,
+                                       RowKind kind)
 {
     Category& category = m_categories[category_index];
     Row row;
@@ -583,6 +594,7 @@ void PublishSettingsDialog::add_row_ui(const std::string& key,
     row.label              = label;
     row.value              = value;
     row.unit               = unit;
+    row.kind               = kind;
     row.category           = category.title;
     row.subcategory        = category.subs[subcategory_index].title;
     row.section            = category.section;
@@ -595,82 +607,38 @@ void PublishSettingsDialog::add_row_ui(const std::string& key,
     Row& current  = m_rows[row_index];
     current.check = new wxCheckBox(category.scroll, wxID_ANY, label);
     current.check->SetFont(Label::Body_13);
+    auto* row_sizer = new wxBoxSizer(wxHORIZONTAL);
+    row_sizer->Add(current.check, 0, wxALIGN_CENTER_VERTICAL);
+    // The value is read-only text (incl. the Type row: the published type is the slot's
+    // normalized type, the author cannot pick a different one here).
     current.value_label = new wxStaticText(category.scroll, wxID_ANY, value, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
     current.value_label->SetFont(Label::Body_13);
     current.value_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
     current.value_label->SetToolTip(unit.IsEmpty() ? value : value + " " + unit);
+    if (kind == RowKind::Color && !value.IsEmpty()) {
+        if (wxBitmap* chip = get_extruder_color_icon(value.ToStdString(), "", FromDIP(12), FromDIP(12))) {
+            current.color_chip = new wxStaticBitmap(category.scroll, wxID_ANY, *chip);
+            row_sizer->Add(current.color_chip, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+        }
+    }
+    row_sizer->Add(current.value_label, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
     if (!unit.IsEmpty()) {
         current.unit_label = new wxStaticText(category.scroll, wxID_ANY, unit);
         current.unit_label->SetFont(Label::Body_13);
         current.unit_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
-    }
-    auto* row_sizer = new wxBoxSizer(wxHORIZONTAL);
-    row_sizer->Add(current.check, 0, wxALIGN_CENTER_VERTICAL);
-    row_sizer->Add(current.value_label, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
-    if (current.unit_label != nullptr)
         row_sizer->Add(current.unit_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
+    }
     current.item = category.list_sizer->Add(row_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(38));
     category.rows.push_back(row_index);
     category.subs[subcategory_index].rows.push_back(row_index);
 }
 
-void PublishSettingsDialog::on_category_toggle(size_t category_index)
+void PublishSettingsDialog::on_full_toggle(size_t category_index)
 {
     Category& cat = m_categories[category_index];
-    // Defensive: a gated material header is disabled and cannot fire.
-    if (cat.section == Section::Material && !cat.master)
-        return;
-    // A click on the header toggles between "all" and "none": if every child is
-    // checked, uncheck all; otherwise check all.
-    bool all_checked = true;
+    cat.full      = cat.full_check->GetValue();
     for (size_t r : cat.rows)
-        if (!m_rows[r].check->GetValue()) {
-            all_checked = false;
-            break;
-        }
-    bool value = !all_checked;
-    for (size_t r : cat.rows)
-        m_rows[r].check->SetValue(value);
-    update_all_headers();
-}
-
-void PublishSettingsDialog::on_master_toggle(size_t category_index)
-{
-    Category& cat = m_categories[category_index];
-    cat.master    = cat.master_check->GetValue();
-    for (size_t r : cat.rows)
-        m_rows[r].check->Enable(cat.master);
-    cat.header->Enable(cat.master);
-    update_all_headers();
-}
-
-void PublishSettingsDialog::update_all_headers()
-{
-    for (Category& category : m_categories)
-        update_category_header(category);
-}
-
-void PublishSettingsDialog::update_category_header(Category& category)
-{
-    if (category.header == nullptr)
-        return;
-    // A gated material section's tri-state must not reflect the preserved
-    // (greyed-out) row values.
-    if (category.section == Section::Material && !category.master) {
-        category.header->Set3StateValue(wxCHK_UNCHECKED);
-        return;
-    }
-    int checked = 0;
-    for (size_t r : category.rows)
-        if (m_rows[r].check->GetValue())
-            ++checked;
-
-    if (checked == 0)
-        category.header->Set3StateValue(wxCHK_UNCHECKED);
-    else if (checked == static_cast<int>(category.rows.size()))
-        category.header->Set3StateValue(wxCHK_CHECKED);
-    else
-        category.header->Set3StateValue(wxCHK_UNDETERMINED);
+        m_rows[r].check->Enable(!cat.full);
 }
 
 void PublishSettingsDialog::set_row_bold(Row& row, bool bold)
@@ -845,7 +813,6 @@ void PublishSettingsDialog::select_all(bool value)
     for (Row& row : m_rows)
         if (row.check->IsEnabled())
             row.check->SetValue(value);
-    update_all_headers();
 }
 
 bool PublishSettingsDialog::row_is_visible(const Row& row) const
@@ -876,9 +843,8 @@ void PublishSettingsDialog::select_visible(bool value)
         // re-enters apply_filter() - that is fine, the rows above were already
         // toggled and the trailing call below is idempotent.
         m_filter_ctrl->ChangeValue("");
-        apply_filter(""); // resync visibility, headers and the All/None bar
+        apply_filter(""); // resync visibility and the All/None bar
     }
-    update_all_headers();
 }
 
 void PublishSettingsDialog::show_menu(wxMouseEvent& evt)
@@ -942,22 +908,65 @@ std::vector<Slic3r::PublishedMaterialEntry> PublishSettingsDialog::GetPublishedM
 {
     std::vector<Slic3r::PublishedMaterialEntry> out;
     for (const Category& cat : m_categories) {
-        // Only opted-in materials export their keys.
-        if (cat.section != Section::Material || !cat.master)
+        if (cat.section != Section::Material)
             continue;
         Slic3r::PublishedMaterialEntry entry;
         entry.filament_type   = cat.filament_type;
         entry.filament_vendor = cat.filament_vendor;
         entry.filament_id     = cat.filament_id;
         entry.slot            = static_cast<int>(cat.filament_slot);
-        for (size_t r : cat.rows)
-            if (m_rows[r].check->GetValue())
-                entry.keys.push_back(m_rows[r].key);
-        // A section without any checked key carries no information for the writer.
-        if (!entry.keys.empty())
+        // "Full Publish": the entire filament preset of the slot is embedded; type and color
+        // are implicitly published, and the per-key rows are disabled and their state is ignored.
+        if (cat.full_check != nullptr && cat.full_check->GetValue()) {
+            entry.full               = true;
+            entry.full_keys          = full_keys_for_slot();
+            entry.publish_type       = true;
+            entry.publish_type_value = normalize_filament_type(cat.filament_type);
+            for (size_t r : cat.rows) {
+                const Row& row = m_rows[r];
+                if (row.kind == RowKind::Color && !row.value.IsEmpty()) {
+                    entry.publish_color = true;
+                    entry.color         = row.value.ToStdString();
+                }
+            }
+            out.push_back(std::move(entry));
+            continue;
+        }
+        for (size_t r : cat.rows) {
+            const Row& row = m_rows[r];
+            if (!row.check->GetValue())
+                continue;
+            if (row.kind == RowKind::Color) {
+                entry.publish_color = true;
+                entry.color         = row.value.ToStdString();
+            } else if (row.kind == RowKind::Type) {
+                entry.publish_type       = true;
+                entry.publish_type_value = row.value.ToStdString();
+            } else {
+                entry.keys.push_back(row.key);
+            }
+        }
+        // A material with only setting keys but none checked, or with nothing selected at all,
+        // carries no information for the writer.
+        if (!entry.keys.empty() || entry.publish_type || entry.publish_color)
             out.push_back(std::move(entry));
     }
     return out;
+}
+
+std::vector<std::string> PublishSettingsDialog::full_keys_for_slot() const
+{
+    // The canonical filament preset keys, minus the structural keys the published overlay must
+    // never touch (inherits, compatibility, *_settings_id, ...), plus filament_colour (not a
+    // member of Preset::filament_options). The values travel in the exported config, masked to
+    // this slot, and are applied on load onto the receiver's slot.
+    const std::set<std::string>& denylist = publish_structural_keys();
+    std::vector<std::string> keys;
+    for (const std::string& key : Preset::filament_options())
+        if (denylist.count(key) == 0)
+            keys.emplace_back(key);
+    keys.emplace_back("filament_colour");
+    return keys;
 }
 
 void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
@@ -974,10 +983,10 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
             cat.icon_bmp.msw_rescale();
             cat.icon->SetBitmap(cat.icon_bmp.bmp());
         }
-        if (cat.header != nullptr)
-            cat.header->Refresh();
-        if (cat.master_check != nullptr)
-            cat.master_check->Refresh();
+        if (cat.full_check != nullptr)
+            cat.full_check->Refresh();
+        if (cat.title_label != nullptr)
+            cat.title_label->Refresh();
         if (cat.filament_color_chip != nullptr) {
             std::string hex;
             const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
@@ -993,6 +1002,14 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
 
     for (SectionGroup& section : m_sections)
         section.tabs->Rescale();
+
+    // Refresh the per-row Color chips at the new DPI.
+    for (Row& row : m_rows) {
+        if (row.color_chip != nullptr && !row.value.IsEmpty()) {
+            if (wxBitmap* chip = get_extruder_color_icon(row.value.ToStdString(), "", FromDIP(12), FromDIP(12)))
+                row.color_chip->SetBitmap(*chip);
+        }
+    }
 
     const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
     for (size_t category_index = 0; category_index < m_categories.size(); ++category_index) {

@@ -741,6 +741,10 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
             if (m_plater) { m_plater->add_file(); }
             return;
         }
+        if (evt.CmdDown() && evt.ShiftDown() && evt.GetKeyCode() == 'E') {
+            if (can_export_model()) publish_project();
+            return;
+        }
         evt.Skip();
     });
 
@@ -1726,6 +1730,16 @@ bool MainFrame::save_project_as(const wxString& filename)
         m_plater->reset_project_dirty_after_save();
     }
     return ret;
+}
+
+void MainFrame::publish_project()
+{
+    if (m_plater == nullptr)
+        return;
+    PublishSettingsDialog dlg(this);
+    if (dlg.ShowModal() != wxID_OK)
+        return;
+    m_plater->export_published_3mf(dlg.GetPublishedKeys(), dlg.GetPublishedMaterialKeys());
 }
 
 bool MainFrame::can_upload() const
@@ -2820,19 +2834,14 @@ void MainFrame::init_menubar_as_editor()
 
         // BBS: publish
         fileMenu->AppendSeparator();
-        auto publish_handler = [this](wxCommandEvent&) {
-            if (!m_plater) return;
-            PublishSettingsDialog dlg(this);
-            if (dlg.ShowModal() != wxID_OK) return;
-            m_plater->export_published_3mf(dlg.GetPublishedKeys(), dlg.GetPublishedMaterialKeys());
-        };
+        auto publish_handler = [this](wxCommandEvent&) { publish_project(); };
 
 #ifndef __APPLE__
-        append_menu_item(fileMenu, wxID_ANY, _L("Publish") + dots, _L("Export a 3MF file with the selected settings embedded"),
+        append_menu_item(fileMenu, wxID_ANY, _L("Publish") + dots + "\t" + ctrl + shift + "E", _L("Export a 3MF file with the selected settings embedded"),
             publish_handler, "menu_publish", nullptr,
             [this](){return can_export_model(); }, this);
 #else
-        append_menu_item(fileMenu, wxID_ANY, _L("Publish") + dots, _L("Export a 3MF file with the selected settings embedded"),
+        append_menu_item(fileMenu, wxID_ANY, _L("Publish") + dots + "\t" + ctrl + shift + "E", _L("Export a 3MF file with the selected settings embedded"),
             publish_handler, "", nullptr,
             [this](){return can_export_model(); }, this);
 #endif

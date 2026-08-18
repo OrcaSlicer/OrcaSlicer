@@ -5449,7 +5449,7 @@ struct Plater::priv
     BoundingBox scaled_bed_shape_bb() const;
 
     // BBS: backup & restore
-    std::vector<size_t> load_files(const std::vector<fs::path>& input_files, LoadStrategy strategy, bool ask_multi = false);
+    std::vector<size_t> load_files(const std::vector<fs::path>& input_files, LoadStrategy strategy, bool ask_multi = false, bool* published_out = nullptr);
     std::vector<size_t> load_model_objects(const ModelObjectPtrs& model_objects, bool allow_negative_z = false, bool split_object = false, bool auto_drop = true);
 
     fs::path get_export_file_path(GUI::FileType file_type);
@@ -6759,7 +6759,7 @@ void read_binary_stl(const std::string& filename, std::string& model_id, std::st
 }
 
 // BBS: backup & restore
-std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_files, LoadStrategy strategy, bool ask_multi)
+std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_files, LoadStrategy strategy, bool ask_multi, bool* published_out)
 {
     std::vector<size_t> empty_result;
     bool dlg_cont = true;
@@ -7257,6 +7257,22 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                             for (const auto &k : *entry_keys_it)
                                                 if (k.is_string())
                                                     entry.keys.emplace_back(k.get<std::string>());
+                                        // Filament-publishing-v2 fields; absent in legacy files.
+                                        if (m.contains("full") && m["full"].is_boolean())
+                                            entry.full = m["full"].get<bool>();
+                                        const auto entry_full_keys_it = m.find("full_keys");
+                                        if (entry_full_keys_it != m.end() && entry_full_keys_it->is_array())
+                                            for (const auto &k : *entry_full_keys_it)
+                                                if (k.is_string())
+                                                    entry.full_keys.emplace_back(k.get<std::string>());
+                                        if (m.contains("publish_type") && m["publish_type"].is_boolean())
+                                            entry.publish_type = m["publish_type"].get<bool>();
+                                        if (m.contains("type") && m["type"].is_string())
+                                            entry.publish_type_value = m["type"].get<std::string>();
+                                        if (m.contains("publish_color") && m["publish_color"].is_boolean())
+                                            entry.publish_color = m["publish_color"].get<bool>();
+                                        if (m.contains("color") && m["color"].is_string())
+                                            entry.color = m["color"].get<std::string>();
                                         published_config.material_keys.emplace_back(std::move(entry));
                                     }
                             } catch (...) {
@@ -7264,6 +7280,18 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             }
                         }
                     }
+                }
+
+                // BBS: a "published" 3MF behaves like a new project once loaded: the file's path
+                // must not become the project filename (Save/Ctrl-S would otherwise overwrite the
+                // shared file), and the published metadata is consumed by the overlay above and
+                // stripped so a later save produces a normal, unpublished 3MF.
+                if (published_out != nullptr && published_config.published)
+                    *published_out = true;
+                if (published_config.published && load_config && this->model.model_info != nullptr) {
+                    this->model.model_info->metadata_items.erase("published");
+                    this->model.model_info->metadata_items.erase("published_keys");
+                    this->model.model_info->metadata_items.erase("published_material_keys");
                 }
 
                 if (load_config) {
@@ -7377,6 +7405,16 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 std::string message = _u8L("Some published settings could not be applied:");
                                 for (const std::string &key : published_config.skipped_keys)
                                     message += "\n-" + key;
+                                notify_manager->bbl_show_3mf_warn_notification(message);
+                            }
+
+                            // BBS: notify the user about slot materials that were replaced while
+                            // loading a published project (type mismatch / no same-type match).
+                            if (!published_config.material_replacements.empty()) {
+                                NotificationManager *notify_manager = q->get_notification_manager();
+                                std::string message = _u8L("Some filament slots were changed to match the published materials:");
+                                for (const std::string &replacement : published_config.material_replacements)
+                                    message += "\n-" + replacement;
                                 notify_manager->bbl_show_3mf_warn_notification(message);
                             }
 
@@ -7519,7 +7557,13 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                     dynamic_map->value = false;
                             }
                             // Update filament combobox after loading config
-                            wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);
+                            if (published_config.published) {
+                                q->update_filament_colors_in_full_config();
+                                wxGetApp().plater()->sidebar().update_all_preset_comboboxes();
+                                wxGetApp().plater()->sidebar().update_dynamic_filament_list();
+                            } else {
+                                wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);
+                            }
                             // The loaded project supplies nozzle_volume_type; refresh the sidebar
                             // nozzle-count badges against it.
                             if (auto *nozzle_volumes = wxGetApp().preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")) {
@@ -13244,14 +13288,15 @@ void Plater::load_project(wxString const& filename2,
     if (strategy & LoadStrategy::Restore)
         input_paths.push_back(into_u8(originfile));
 
-    std::vector<size_t> res = load_files(input_paths, strategy);
+    bool loaded_published = false;
+    std::vector<size_t> res = load_files(input_paths, strategy, false, &loaded_published);
 
     reset_project_dirty_initial_presets();
     update_project_dirty_from_presets();
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
 
     // if res is empty no data has been loaded
-    if (!res.empty() && (load_restore || !(strategy & LoadStrategy::Silence))) {
+    if (!res.empty() && !loaded_published && (load_restore || !(strategy & LoadStrategy::Silence))) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " call set_project_filename: " << (load_restore ? originfile : filename);
         p->set_project_filename(load_restore ? originfile : filename);
         if (load_restore && originfile.IsEmpty()) {
@@ -13262,6 +13307,15 @@ void Plater::load_project(wxString const& filename2,
         if (using_exported_file()) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " using ecported set project filename: " << filename;
             p->set_project_filename(filename);
+        }
+        else if (loaded_published) {
+            // A "published" 3MF loads as a new project: the shared file's path must not become
+            // the project filename, so Save/Ctrl-S prompts for a destination instead of
+            // overwriting the published file. reset() above already cleared the project name
+            // and folder; restore the default new-project title and keep the file in recents.
+            p->set_project_name(_L("Untitled"));
+            if (!filename.IsEmpty())
+                wxGetApp().mainframe->add_to_recent_projects(filename);
         }
 
     }
@@ -14918,12 +14972,12 @@ void Plater::force_update_all_plate_thumbnails()
 }
 
 // BBS: backup
-std::vector<size_t> Plater::load_files(const std::vector<fs::path>& input_files, LoadStrategy strategy, bool ask_multi) {
+std::vector<size_t> Plater::load_files(const std::vector<fs::path>& input_files, LoadStrategy strategy, bool ask_multi, bool* published_out) {
     //BBS: wish to reset state when load a new file
     p->m_slice_all_only_has_gcode = false;
     //BBS: wish to reset all plates stats item selected state when load a new file
     p->preview->get_canvas3d()->reset_select_plate_toolbar_selection();
-    return p->load_files(input_files, strategy, ask_multi);
+    return p->load_files(input_files, strategy, ask_multi, published_out);
 }
 
 // To be called when providing a list of files to the GUI slic3r on command line.
@@ -16186,7 +16240,10 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
         j.push_back(key);
     nlohmann::json jm = nlohmann::json::array();
     for (const Slic3r::PublishedMaterialEntry& e : material_keys)
-        jm.push_back({ {"material", {{"filament_type", e.filament_type}, {"filament_vendor", e.filament_vendor}, {"filament_id", e.filament_id}}}, {"slot", e.slot}, {"keys", e.keys} });
+        jm.push_back({ {"material", {{"filament_type", e.filament_type}, {"filament_vendor", e.filament_vendor}, {"filament_id", e.filament_id}}}, {"slot", e.slot}, {"keys", e.keys},
+                       {"full", e.full}, {"full_keys", e.full_keys},
+                       {"publish_type", e.publish_type}, {"type", e.publish_type_value},
+                       {"publish_color", e.publish_color}, {"color", e.color} });
 
     Model& model = this->model();
     // Remember the previous metadata state so it can be restored after the export, keeping the

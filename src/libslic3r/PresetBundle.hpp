@@ -181,6 +181,9 @@ struct PublishedConfig
     // Keys that could not be applied (missing on the user's machine or vector size mismatch),
     // filled in by load_config_file_config for notification purposes.
     std::vector<std::string>    skipped_keys;
+    // Human-readable notices of the slot material replacements performed while loading a
+    // published project (e.g. "Slot 2: replaced PETG with PLA"), for the load notification.
+    std::vector<std::string>    material_replacements;
 };
 
 // Bundle of Print + Filament + Printer presets.

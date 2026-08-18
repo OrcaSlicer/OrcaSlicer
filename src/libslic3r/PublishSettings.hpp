@@ -52,7 +52,29 @@ struct PublishedMaterialEntry {
     // entries apply to every matching receiver preset.
     int         slot{-1};
     std::vector<std::string> keys;
+    // "Full Publish": the entire filament preset of this slot is serialized (see full_keys),
+    // not just the individually selected keys. On load the type gate (publish_type_value)
+    // decides whether the receiver keeps its material (type match) or is replaced; a full
+    // entry carries no partial keys.
+    bool full{false};
+    // All non-structural filament keys of the author's slot preset, present when full is true.
+    // Values travel in the file config, masked to the author's slot index.
+    std::vector<std::string> full_keys;
+    // Vendor-agnostic, curated (MaterialType) filament type the author requires for this slot.
+    // On load the receiver's slot material is matched against it; on mismatch the slot is
+    // replaced with a same-type filament from the receiver's library.
+    bool publish_type{false};
+    std::string publish_type_value;
+    // Required filament colour for this slot, applied on load regardless of the type match.
+    bool publish_color{false};
+    std::string color;
 };
+
+// Normalizes a filament type string against the curated MaterialType list: an exact match
+// wins, then the value is stripped after its first space ("PLA High Speed" -> "PLA"); a
+// value still not recognized is returned unchanged. Shared by the Publish dialog's type row
+// default and by the published-3MF loader's type matching.
+std::string normalize_filament_type(const std::string& type);
 
 // Constructs a minimal DynamicPrintConfig for a published 3MF export containing only the
 // author-selected published keys, material keys, material identity fields, and plate geometry keys.

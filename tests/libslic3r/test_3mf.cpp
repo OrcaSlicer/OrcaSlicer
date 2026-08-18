@@ -752,3 +752,98 @@ SCENARIO("Minimal published 3MF serialization filters config and omits embedded 
         }
     }
 }
+
+// Filament-publishing v2: a "full publish" entry carries the whole slot's key list. Its vector
+// options keep only the author's slot value; the other slots are masked to their defaults so a
+// slot-1 full publish does not leak slot 0's data into the file.
+SCENARIO("Full-publish entries filter the whole slot and mask the other slots", "[3mf]") {
+    GIVEN("a full print configuration with two filament slots") {
+        DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
+        full_cfg.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75 };
+        full_cfg.opt<ConfigOptionStrings>("filament_colour")->values = { "#111111", "#222222" };
+        // filament_flow_ratio carries a non-empty option default (1.0) of the same type, so the
+        // mask can restore it on the non-published slot.
+        full_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio", true)->values = { 1.02, 0.98 };
+
+        PublishedMaterialEntry full_entry;
+        full_entry.slot      = 1;
+        full_entry.full      = true;
+        full_entry.full_keys = { "filament_flow_ratio" };
+
+        WHEN("filtering with a full entry for slot 1") {
+            DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, {}, { full_entry });
+
+            THEN("the full key list is present with the author's slot value") {
+                REQUIRE(filtered_cfg.option("filament_flow_ratio") != nullptr);
+                REQUIRE(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[1] == 0.98);
+            }
+            THEN("the non-published slot is masked to its default") {
+                REQUIRE(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[0] == 1.0);
+            }
+            THEN("the identity keys stay present") {
+                REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
+            }
+        }
+    }
+}
+
+// Filament-publishing v2: the extended per-entry fields (full dump list, published type and
+// colour) travel inside the published_material_keys metadata and round-trip unchanged.
+SCENARIO("Published 3MF round-trips the filament-publishing-v2 material metadata", "[3mf]") {
+    GIVEN("a model carrying extended published material keys metadata") {
+        Model model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+
+        const std::string material_keys_json =
+            R"([{"material":{"filament_type":"PLA","filament_vendor":"Generic","filament_id":"GFL99"},"slot":1,"keys":[],"full":true,"full_keys":["filament_retraction_length","filament_colour"],"publish_type":true,"type":"PLA","publish_color":false,"color":""}])";
+
+        model.model_info = std::make_shared<ModelInfo>();
+        model.model_info->metadata_items["published_material_keys"] = material_keys_json;
+
+        ScopedTemporaryDir backup_dir("orca_pub_mat2");
+        model.set_backup_path(backup_dir.string());
+
+        WHEN("stored to and reloaded from a .3mf") {
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+
+            DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+            StoreParams store_params;
+            store_params.path     = test_file.c_str();
+            store_params.model    = &model;
+            store_params.config   = &config;
+            store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+            REQUIRE(store_bbs_3mf(store_params));
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs        dst_plates;
+            std::vector<Preset*> project_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                       &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                       LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+            THEN("the extended material metadata round-trips unchanged") {
+                REQUIRE(loaded);
+                REQUIRE(dst_model.model_info != nullptr);
+                REQUIRE(dst_model.model_info->metadata_items["published_material_keys"] == material_keys_json);
+
+                // The value must parse back with every filament-publishing-v2 field intact.
+                nlohmann::json entries = nlohmann::json::parse(material_keys_json);
+                REQUIRE(entries.is_array());
+                REQUIRE(entries.size() == 1);
+                REQUIRE(entries[0]["full"].get<bool>() == true);
+                REQUIRE(entries[0]["full_keys"].is_array());
+                REQUIRE(entries[0]["full_keys"].size() == 2);
+                REQUIRE(entries[0]["publish_type"].get<bool>() == true);
+                REQUIRE(entries[0]["type"] == "PLA");
+                REQUIRE(entries[0]["publish_color"].get<bool>() == false);
+            }
+            release_PlateData_list(dst_plates);
+        }
+    }
+}
