@@ -1310,49 +1310,129 @@ bool GuideFrame::BuildProfileDataFromVendors()
     try {
         // Same vendor set and precedence as the JSON scan in LoadProfileData: a
         // vendor in the user's system dir shadows the bundled one of that name.
-        // A vendor is named by its profile or, where a build ships preset caches
-        // instead, by its cache alone — so both forms name one here.
-        std::map<std::string, boost::filesystem::path> vendor_files;
-        auto collect = [&vendor_files](const boost::filesystem::path& dir) {
+        // vendor_names_in names a vendor by its profile or, where a build ships
+        // preset caches instead, by its cache alone.
+        std::map<std::string, boost::filesystem::path> vendor_sources;
+        for (const boost::filesystem::path& dir : { vendor_dir, rsrc_vendor_dir }) {
             boost::system::error_code ec;
-            if (!boost::filesystem::exists(dir, ec))
-                return;
-            for (const auto& e : boost::filesystem::directory_iterator(dir, ec))
-                if (Slic3r::is_json_file(e.path().string()) || e.path().extension() == ".opc")
-                    vendor_files.emplace(e.path().stem().string(), e.path());   // first wins
-        };
-        collect(vendor_dir);
-        collect(rsrc_vendor_dir);
+            if (boost::filesystem::exists(dir, ec))
+                for (const std::string& name : vendor_names_in(dir))
+                    vendor_sources.emplace(name, dir);   // first dir wins
+        }
 
-        // Each vendor comes from its preset cache where one covers it, which is what
-        // makes this worth doing instead of the scan below; the filament library goes
-        // first because the others' filaments inherit from it, and resolving those on
-        // the vendors the cache does not cover needs it already loaded.
-        PresetBundle bundle;
-        auto load_vendor = [this](PresetBundle& into, const std::string& vendor, const PresetBundle* base) {
-            into.load_vendor_configs_from_json(vendor_dir.string(), vendor, PresetBundle::LoadSystem,
-                                               ForwardCompatibilitySubstitutionRule::EnableSilent, base);
+        // The load order: the filament library first, because the others'
+        // filaments inherit from it, then every versioned vendor — each loaded
+        // from the directory it was found in, so a vendor that is not installed
+        // is served from the shipped profiles. Each is stamped by name and
+        // version alone: a profile change requires a version bump, so those two
+        // determine content wherever the vendor's copy sits.
+        struct VendorSource { std::string name; boost::filesystem::path dir; std::string version; };
+        std::vector<VendorSource> ordered;
+        auto add_vendor = [&ordered](const std::string& name, const boost::filesystem::path& dir) {
+            // The version a load from `dir` would serve: the profile's where one
+            // exists (a cache is only served while it covers the profile beside
+            // it), the cache's own stamp where the cache is the whole vendor.
+            // A profile without a version (blacklist.json) carries no presets
+            // and is passed over.
+            const boost::filesystem::path profile = dir / (name + ".json");
+            if (boost::filesystem::exists(profile)) {
+                const Semver v = get_version_from_json(profile.string());
+                if (v.valid())
+                    ordered.push_back({name, dir, v.to_string()});
+            } else {
+                ordered.push_back({name, dir,
+                    PresetBundle::peek_vendor_cache_version((dir / (name + ".opc")).string(), name)});
+            }
         };
         const std::string filament_library(PresetBundle::ORCA_FILAMENT_LIBRARY);
-        if (vendor_files.count(filament_library))
-            load_vendor(bundle, filament_library, nullptr);
-        for (const auto& entry : vendor_files) {
+        if (auto it = vendor_sources.find(filament_library); it != vendor_sources.end())
+            add_vendor(filament_library, it->second);
+        for (const auto& [name, dir] : vendor_sources)
+            if (name != filament_library)
+                add_vendor(name, dir);
+        if (ordered.empty())
+            return false;
+        json stamps = json::array();
+        for (const VendorSource& v : ordered)
+            stamps.push_back({v.name, v.version});
+
+        // What this function derives is a pure function of that stamped set, so
+        // the derived JSON is cached whole: a fresh cache makes an open one
+        // file read, with no bundle built and no preset installed. Stale or
+        // absent, the bundle is rebuilt below and the result written back.
+        const boost::filesystem::path cache_file =
+            boost::filesystem::path(Slic3r::data_dir()) / "cache" / "wizard_profile_data.json";
+        try {
+            // Slurped whole and parsed from the buffer — nlohmann's fastest
+            // input path; a stream adapter costs real time on a multi-MB file.
+            boost::nowide::ifstream ifs(cache_file.string(), std::ios::binary);
+            if (ifs.is_open()) {
+                const std::string text{std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>()};
+                json cached = json::parse(text);
+                if (cached.value("format", 0) == 1 && cached["vendors"] == stamps &&
+                    ! cached["profile"]["machine"].empty()) {
+                    for (const char* key : { "model", "machine", "filament", "process" })
+                        m_ProfileJson[key] = std::move(cached["profile"][key]);
+                    BOOST_LOG_TRIVIAL(info) << "GuideFrame: profile data served from " << cache_file;
+                    return true;
+                }
+            }
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(info) << "GuideFrame: rejecting cached profile data: " << e.what();
+        }
+
+        // Each vendor comes from its preset cache where one covers it, which is
+        // what makes this worth doing instead of the scan below; loading into a
+        // bundle per vendor keeps the install order the startup path has.
+        PresetBundle bundle;
+        auto load_vendor = [](PresetBundle& into, const std::string& vendor,
+                              const boost::filesystem::path& dir, const PresetBundle* base) {
+            into.load_vendor_configs_from_json(dir.string(), vendor, PresetBundle::LoadSystem,
+                                               ForwardCompatibilitySubstitutionRule::EnableSilent, base);
+        };
+        for (const VendorSource& v : ordered) {
             if (*m_cancel_token)
                 return false;   // as in the scan below: a vendor without a cache is parsed, and that takes time
-            const std::string& vendor = entry.first;
-            // A cache is only ever written for a versioned vendor; a JSON has to be
-            // asked, so that an unversioned one (blacklist.json) carrying no presets
-            // is passed over.
-            if (vendor == filament_library ||
-                (entry.second.extension() != ".opc" && ! get_version_from_json(entry.second.string()).valid()))
-                continue;
-            PresetBundle tmp;
-            load_vendor(tmp, vendor, &bundle);
-            bundle.merge_presets(std::move(tmp));
+            if (v.name == filament_library) {
+                load_vendor(bundle, v.name, v.dir, nullptr);
+            } else {
+                PresetBundle tmp;
+                load_vendor(tmp, v.name, v.dir, &bundle);
+                bundle.merge_presets(std::move(tmp));
+            }
         }
         if (bundle.vendors.empty())
             return false;
-        return BuildProfileJson(bundle, /*require_all_resource_vendors=*/false);
+        if (! BuildProfileJson(bundle, /*require_all_resource_vendors=*/false))
+            return false;
+
+        // Written through a temp file and moved into place, as the preset caches
+        // are: half a cache must never be readable, and the PID suffix keeps two
+        // instances from interleaving on one temp file.
+        const std::string tmp_path = cache_file.string() + "." + std::to_string(get_current_pid()) + ".tmp";
+        try {
+            json out;
+            out["format"]  = 1;
+            out["vendors"] = std::move(stamps);
+            json& profile  = out["profile"];
+            for (const char* key : { "model", "machine", "filament", "process" })
+                profile[key] = m_ProfileJson[key];
+            boost::filesystem::create_directories(cache_file.parent_path());
+            {
+                boost::nowide::ofstream ofs(tmp_path, std::ios::binary | std::ios::trunc);
+                ofs << out.dump(-1, ' ', false, json::error_handler_t::ignore);
+                ofs.close();
+                if (! ofs.good())
+                    throw std::runtime_error("write failed");
+            }
+            if (const std::error_code ec = rename_file(tmp_path, cache_file.string()))
+                throw std::runtime_error(ec.message());
+        } catch (const std::exception& e) {
+            boost::system::error_code rm;
+            boost::filesystem::remove(tmp_path, rm);
+            BOOST_LOG_TRIVIAL(warning) << "GuideFrame: could not write the profile data cache: " << e.what();
+        }
+        return true;
     } catch (const std::exception& e) {
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed: " << e.what();
         reset_profile_json();

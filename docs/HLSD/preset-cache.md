@@ -42,6 +42,7 @@ presets are never serialized — they have their own storage and their own lifec
 | `resources/profiles/` | `<vendor>.opc` alone — the profile and its preset JSONs both pruned | What the app ships with; what installing copies from, and the only thing it is read for |
 | `<data_dir>/system/` | `<vendor>.opc` alone, or `<vendor>.json` + `<vendor>/` after an update | What the user has installed |
 | `<data_dir>/system/` (dev build) | `<vendor>.json` + `<vendor>/` + `<vendor>.opc` written at runtime | A developer tree caches as it parses |
+| `<data_dir>/cache/wizard_profile_data.json` | The wizard's derived vendor catalog plus the stamps it was built from | Written and read by the setup wizard only; never shipped (see "The wizard's profile-data cache") |
 
 Two forms of the same vendor therefore exist, and the system's central rule is that
 **a vendor's cache is the whole of it**. Where a cache ships or is installed, no profile
@@ -174,9 +175,11 @@ order — both produce the same bundle, so cached and parsed vendors mix freely 
 one startup.
 
 **A vendor is loaded from where it is installed and nowhere else.** For startup that
-is `<data_dir>/system/`; the setup wizard asks for the same directory. Resources
-reaches the app by being *installed* into that directory first, never by being loaded
-from. There is one lookup tier and one parse source:
+is `<data_dir>/system/`; resources reaches the app by being *installed* into that
+directory first, never by being loaded from. (The setup wizard is the one caller with
+a different notion of "where": it also shows vendors the user has not installed, and
+loads those from `resources/profiles` — see "The wizard's profile-data cache".) There
+is one lookup tier and one parse source:
 
 ```
 load vendor V from <data_dir>/system:
@@ -227,6 +230,45 @@ If a parse does happen and the vendor's profile carries a version, the app write
 cache back beside where it looked for the vendor. That is how a developer build warms
 itself up on second launch, and how a vendor delivered by a profile update becomes
 cached without waiting for the next release.
+
+## The wizard's profile-data cache
+
+The setup wizard's printer and filament pages want every vendor in one bundle — the
+installed ones *and* the shipped ones the user has not installed yet, because the
+wizard is where installing is chosen. Its set therefore spans two directories:
+`<data_dir>/system/` for installed vendors (shadowing resources on a name collision),
+`resources/profiles` for the rest, each vendor loaded from its own directory.
+
+What the wizard actually consumes from that bundle is one derived JSON — the model /
+machine / filament / process catalog its web pages render — and that JSON is a pure
+function of the vendor set: each vendor's name and version, in load order. A profile
+change requires a version bump, so name and version determine a vendor's content
+wherever its copy sits; which directory served it is deliberately **not** stamped,
+and installing or removing a copy at an unchanged version leaves the cache valid. So
+the wizard caches the *derived JSON*, not another form of the inputs:
+`<data_dir>/cache/wizard_profile_data.json` holds the stamp list and the catalog. On
+open, the wizard computes the current stamps (one version peek per vendor) and, when
+they match, serves the catalog from the file — no bundle built, no preset installed.
+Caching bundle inputs instead was tried and measured: rebuilding the bundle from
+per-vendor caches costs ~2 s of preset installation whatever feeds it, so only
+skipping the rebuild entirely wins.
+
+Any change to the set — a vendor added, removed or updated, or its cache-only
+`.opc` replaced by a newer one — changes the stamps and retires the whole file;
+the wizard then rebuilds the bundle vendor by vendor (per-vendor caches serving where
+they cover) and writes the catalog back. Selections, region and per-open decorations
+are applied downstream of the cache either way, so a served catalog is
+indistinguishable from a rebuilt one. Nothing ships this file and the updater never
+touches it; it is a locally written artifact, re-derived whenever stale, written
+through a temp file and rename so half a cache is never readable.
+
+The cache lives under `<data_dir>/cache/`, not beside the vendors: everything that
+scans `<data_dir>/system/` treats any `.opc` there as a vendor, so a non-vendor
+cache file must not sit in that directory. Relatedly, the stamp reader is hardened:
+`read_cache_stamps` validates the cache version before reading anything
+variable-length and bounds the stamp strings' lengths, so a reader pointed at a
+foreign or damaged `.opc` rejects it cleanly instead of aborting on a garbage
+64-bit allocation.
 
 ## How a vendor is installed
 
