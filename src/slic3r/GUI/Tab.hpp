@@ -472,10 +472,19 @@ private:
 	// Magma auto sizing / auto Z-slam derive most of what matters and show none of it.
 	ogStaticText*	m_magma_geometry_description_line = nullptr;
 	ogStaticText*	m_magma_injection_description_line = nullptr;
+
+protected:
+	// TabPrintModel reuses TabPrint::build() and then strips every line that is not a
+	// plain option (remove_option_if + erase of empty groups). A widget-only description
+	// line has no option key, so it survives the strip in a broken state and ~OptionsGroup
+	// double-frees it. Only the real Print Settings tab gets description lines.
+	virtual bool supports_description_lines() const { return true; }
 };
 
 class TabPrintModel : public TabPrint
 {
+protected:
+	bool supports_description_lines() const override { return false; }
 public:
 	//BBS: GUI refactor
 	TabPrintModel(ParamsPanel* parent, std::vector<std::string> const & keys);

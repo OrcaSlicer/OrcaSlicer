@@ -2460,7 +2460,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("magma_overlap_line_correction");
         optgroup->append_single_option_line("magma_overlap_min_width");
         // Auto sizing derives the interior width and cell spacing and displays neither.
-        {
+        if (supports_description_lines()) {
             Line line = { "", "" };
             line.full_width = 1;
             line.widget = [this](wxWindow* parent) {
@@ -2500,7 +2500,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("magma_injection_iron_margin");
         // Auto Z-slam makes the manual depth and cone angle inert, so the depth that
         // actually reaches the printer is otherwise invisible.
-        {
+        if (supports_description_lines()) {
             Line line = { "", "" };
             line.full_width = 1;
             line.widget = [this](wxWindow* parent) {
