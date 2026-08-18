@@ -146,23 +146,23 @@ TEST_CASE("Current vendor type tolerates missing printer model", "[Preset][Bundl
 
 TEST_CASE("A malformed entry in a vendor's preset list is counted, not thrown", "[Preset][Bundle]")
 {
-    TempPresetDir dir;
+    ScopedTemporaryDir dir;
 
     // A bare number where the list wants an object. An array element has no key,
     // so reporting one as if it did throws nlohmann's invalid_iterator - which is
     // not a parse_error, and escapes the catch around the vendor profile parse.
-    std::ofstream((dir.path / "Acme.json").string())
+    std::ofstream((dir.path() / "Acme.json").string())
         << R"({"version":"1.0.0","name":"Acme","process_list":[123,)"
         << R"({"name":"0.20mm Standard @Acme","sub_path":"process/standard.json"}]})";
-    fs::create_directories(dir.path / "Acme" / "process");
-    std::ofstream((dir.path / "Acme" / "process" / "standard.json").string())
+    fs::create_directories(dir.path() / "Acme" / "process");
+    std::ofstream((dir.path() / "Acme" / "process" / "standard.json").string())
         << R"({"type":"process","name":"0.20mm Standard @Acme","from":"system",)"
         << R"("instantiation":"true","layer_height":"0.2"})";
 
     PresetBundle bundle;
     size_t       loaded = 0;
     REQUIRE_NOTHROW(loaded = bundle.load_vendor_configs_from_json(
-                        dir.path.string(), "Acme", PresetBundle::LoadSystem,
+                        dir.path().string(), "Acme", PresetBundle::LoadSystem,
                         ForwardCompatibilitySubstitutionRule::EnableSilent).second);
 
     CHECK(bundle.error_count() > 0);   // the malformed element was counted
