@@ -148,8 +148,7 @@ std::string generate_injection_gcode(
     const double slam_press    = config.magma_auto_slam_press.value;
     // How deep the hot nozzle may travel inside a tube, from any path. Slam, the user
     // offset and the plunge all spend from this one budget.
-    const double immersion_budget = std::min(MAGMA_SLAM_CLAMP,
-                                             std::max(std::max(0.0, slam_press), std::max(0.0, max_immersion)));
+    const double immersion_budget = immersion_budget_for(slam_press, max_immersion);
     // Sealing depth is always derived from this tube's own opening. A single fixed depth
     // over-presses small boundary tubes and under-seals large ones, so there is no manual
     // mode: magma_max_immersion is the direct depth control (in auto tube sizing the tube

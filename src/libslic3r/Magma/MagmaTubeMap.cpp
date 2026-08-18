@@ -1,4 +1,5 @@
 #include "MagmaTubeMap.hpp"
+#include "MagmaResolved.hpp"
 #include "MagmaTubeSolver.hpp"
 #include "MagmaPatterns.hpp"
 
@@ -196,28 +197,26 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
 
     auto map = std::unique_ptr<MagmaTubeMap>(new MagmaTubeMap());
 
-    // Extract config — use the sparse infill extruder's nozzle (1-based index in config)
-    const int sparse_extruder_idx = std::max(0, config.sparse_infill_filament.value - 1);
-    const float nozzle_diameter = static_cast<float>(print_config.nozzle_diameter.get_at(sparse_extruder_idx));
-    map->m_line_width = static_cast<float>(config.sparse_infill_line_width.get_abs_value(nozzle_diameter));
-    if (map->m_line_width <= 0.f)
-        // 0 means "auto" in OrcaSlicer. Resolve it the way the slicer does rather than
-        // standing in the nozzle diameter, which is a different (and larger) number.
-        map->m_line_width = Flow::auto_extrusion_width(frInfill, nozzle_diameter);
-    // Select the pattern's shape strategy (geometry formulas + lattice factory) FIRST --
-    // auto tube sizing below resolves through it, so it must exist before we size.
-    // In dual-infill mode sparse_infill_pattern is the inner yolk pattern, so the tube
-    // map must use the outer (reinforcement) pattern's geometry/lattice instead.
-    map->m_pattern  = magma_effective_pattern(config);
-    map->m_geometry = &magma_geometry_for(map->m_pattern);
+    // Every config-derived number comes from the one shared resolver, so the lattice built
+    // here, the warnings in Print::validate() and the PresetHints readout cannot describe
+    // three different tubes -- which is exactly what happened while each resolved its own.
+    MagmaResolved res;
+    if (! resolve_magma(config, obj_config, print_config, res)) {
+        // Unreachable from PrintObject, which only calls this for a region that already
+        // resolves to a Magma pattern. Say so rather than handing back a null map that
+        // surfaces later as FillMagmaBase::require_tube_map's "no tube map" slicing error,
+        // several steps away from the config that actually caused it.
+        BOOST_LOG_TRIVIAL(error)
+            << "MagmaTubeMap::build called for a region whose effective pattern is not a Magma "
+               "pattern; no tube map will be built.";
+        return nullptr;
+    }
 
-    const double seal_flat = resolve_nozzle_flat(config.magma_nozzle_outer_diameter.value,
-                                                 nozzle_diameter);
-    map->m_interior_width = static_cast<float>(effective_interior_width(
-        *map->m_geometry, config.magma_tube_width_mode.value,
-        config.magma_interior_width.value, seal_flat, map->m_line_width,
-        config.magma_nozzle_cone_half_angle.value, obj_config.magma_max_immersion.value));
-    map->m_cell_spacing = cell_spacing_from_geometry(map->m_interior_width, map->m_line_width);
+    map->m_line_width     = static_cast<float>(res.line_width);
+    map->m_pattern        = res.pattern;
+    map->m_geometry       = res.geometry;
+    map->m_interior_width = static_cast<float>(res.interior_width);
+    map->m_cell_spacing   = res.cell_spacing;
 
     // Nominal config layer height (fallback for missing layers in lookup tables)
     map->m_layer_height = static_cast<float>(obj_config.layer_height.value);
@@ -315,11 +314,8 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     // Injection speed vs filament max volumetric speed.
     if (map->m_warning_message.empty()) {
         double inj_speed = obj_config.magma_injection_speed.value;
-        int inj_filament = obj_config.magma_injection_filament.value;
-        unsigned int inj_idx = (inj_filament > 0)
-            ? (unsigned int)(inj_filament - 1)
-            : (unsigned int)std::max(0, config.sparse_infill_filament.value - 1);
-        double max_vol = print_config.filament_max_volumetric_speed.get_at(inj_idx);
+        double max_vol = print_config.filament_max_volumetric_speed.get_at(
+            (unsigned int)res.injection_extruder);
         if (max_vol > 0 && inj_speed > max_vol) {
             map->m_warning_message = Slic3r::format(
                 "Magma injection speed (%.1f mm\u00b3/s) exceeds the filament's "
@@ -376,15 +372,7 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     // area is fine. (flat/2 exactly: no margin, or boundary cells whose centre is just
     // over flat/2 from a wall get wrongly dropped.) Resolved from the injection
     // filament's nozzle, matching MagmaInjection.
-    {
-        int inj_filament = obj_config.magma_injection_filament.value;
-        unsigned int inj_idx = (inj_filament > 0)
-            ? (unsigned int)(inj_filament - 1)
-            : (unsigned int)std::max(0, config.sparse_infill_filament.value - 1);
-        double nozzle_dia = print_config.nozzle_diameter.get_at(inj_idx);
-        double seal_flat = resolve_nozzle_flat(config.magma_nozzle_outer_diameter.value, nozzle_dia);
-        map->m_min_cap_clearance = 0.5 * seal_flat;  // nozzle flat radius
-    }
+    map->m_min_cap_clearance = 0.5 * res.injection_nozzle_flat;  // injection nozzle flat radius
 
     // Build phases (scan_layers uses m_line_width for area threshold).
     // scan_layers' 70%-of-ideal area gate already excludes pinched/under-area

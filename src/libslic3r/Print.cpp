@@ -20,6 +20,7 @@
 #include "Model.hpp"
 #include "Magma/MagmaTubeMap.hpp"  // complete type for m_magma_tube_map.reset()
 #include "Magma/MagmaPatterns.hpp" // magma_geometry_for() pattern selector
+#include "Magma/MagmaResolved.hpp" // resolve_magma() — the one config-to-geometry resolver
 #include "Magma/MagmaInjectionOrder.hpp"  // global per-layer injection ordering
 #include "format.hpp"
 #include <float.h>
@@ -1401,11 +1402,12 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         // injectable), or so wide that auto Z-slam would crush the print.
         for (const auto& region : object->all_regions()) {
             const auto& rcfg = region.get().config();
-            const InfillPattern eff_pattern = magma::magma_effective_pattern(rcfg);
-            if (!is_magma_pattern(eff_pattern))
+            // One resolver, shared with MagmaTubeMap::build() and the PresetHints readout, so
+            // this warning can only ever describe the tube that is actually printed.
+            magma::MagmaResolved m;
+            if (! magma::resolve_magma(rcfg, obj_cfg, m_config, m))
                 continue;
-            int sparse_ext = std::max(0, rcfg.sparse_infill_filament.value - 1);
-            double nozzle_d = m_config.nozzle_diameter.get_at(sparse_ext);
+            const double nozzle_d = m.nozzle_diameter;
 
             // (1) Interior narrower than the nozzle bore -> can't be injected.
             if (rcfg.magma_tube_width_mode.value == MagmaTubeWidthMode::Manual
@@ -1429,39 +1431,16 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             // and a too-shallow manual z-slam. Uses the same seal math the injection
             // G-code applies (MagmaTriangleCell.hpp) so the warning can't drift.
             {
-                double flat = magma::resolve_nozzle_flat(rcfg.magma_nozzle_outer_diameter.value, nozzle_d);
-                double line_w = rcfg.sparse_infill_line_width.get_abs_value(nozzle_d);
-                if (line_w <= 0) line_w = nozzle_d;
-                double cone_deg      = rcfg.magma_nozzle_cone_half_angle.value;
-                double max_immersion = obj_cfg.magma_max_immersion.value;
-                double slam_press    = obj_cfg.magma_auto_slam_press.value;
-                const magma::MagmaGeometry &geom = magma::magma_geometry_for(eff_pattern);
-
-                // Resolve the tube exactly as MagmaTubeMap::build() will. Predicting it a
-                // second way here is how this warning used to drift from the g-code: it
-                // ignored the width mode entirely and read magma_interior_width even in
-                // auto mode.
-                double iw = magma::effective_interior_width(
-                    geom, rcfg.magma_tube_width_mode.value, rcfg.magma_interior_width.value,
-                    flat, line_w, cone_deg, max_immersion);
-                double cell_sp = magma::cell_spacing_from_geometry(iw, line_w);
-                double opening = geom.opening_diameter(cell_sp, line_w);
-
-                double immersion_budget = std::min(magma::MAGMA_SLAM_CLAMP,
-                                                   std::max(std::max(0.0, slam_press),
-                                                            std::max(0.0, max_immersion)));
-                double slam = std::min(immersion_budget,
-                               std::max(0.0, magma::auto_slam_depth(opening, flat, cone_deg,
-                                                                    max_immersion, slam_press)
-                                             + obj_cfg.magma_injection_z_slam_offset.value));
-                double plunge = obj_cfg.magma_injection_plunge.value
-                    ? magma::clamp_plunge_depth(slam, obj_cfg.magma_injection_plunge_depth.value,
-                                                immersion_budget) : 0.0;
-                double covered = magma::cone_coverage_at_depth(slam + plunge, flat, cone_deg);
+                const double flat    = m.nozzle_flat;
+                const double opening = m.opening_diameter;
+                const double slam    = m.slam_depth;
+                const double plunge  = m.plunge_depth;
+                const double covered = m.covered_diameter();
+                const double immersion_budget = m.immersion_budget;
 
                 // Immersion the cone genuinely needs to reach this opening.
                 double needed = magma::seal_depth_for_opening(opening + magma::MAGMA_SEAL_MARGIN,
-                                                              flat, cone_deg);
+                                                              flat, m.cone_half_angle_deg);
 
                 if (warning && warning->string.empty() && opening > 0.0 &&
                     covered + 1e-9 < opening + magma::MAGMA_SEAL_MARGIN) {
@@ -1522,8 +1501,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 // accepted today, so a typo like 5 emits M104 S5 and the print stalls forever
                 // waiting for a 5C nozzle. Only the filament knows its usable range.
                 if (obj_cfg.magma_injection_temp.value > 0) {
-                    const int inj_f   = obj_cfg.magma_injection_filament.value;
-                    const int inj_ext = inj_f > 0 ? (inj_f - 1) : sparse_ext;
+                    const int inj_ext = m.injection_extruder;
                     const int lo = m_config.nozzle_temperature_range_low.get_at(inj_ext);
                     const int hi = m_config.nozzle_temperature_range_high.get_at(inj_ext);
                     const int t  = obj_cfg.magma_injection_temp.value;
@@ -1542,8 +1520,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 // material we know nothing about, and injection rate is the difference between
                 // filling a tube and freezing halfway down it.
                 {
-                    const int inj_f = obj_cfg.magma_injection_filament.value;
-                    const int inj_ext = inj_f > 0 ? (inj_f - 1) : sparse_ext;
+                    const int inj_ext = m.injection_extruder;
                     if (obj_cfg.magma_injection_speed.value <= 0.0 &&
                         m_config.filament_max_volumetric_speed.get_at(inj_ext) <= 0.0) {
                         return { L("Magma injection speed is set to 0 (use the filament's max "
@@ -1615,7 +1592,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 // triangle that ratio is 1:2 (vs 1:1.41 rectilinear, 1:1.15 hex). Same nozzle,
                 // half the bore -- and a much larger opening, hence more immersion, for any
                 // given tube size. Lowest priority: only if nothing worse was found.
-                if (warning && warning->string.empty() && eff_pattern == ipMagmaTriangle) {
+                if (warning && warning->string.empty() && m.pattern == ipMagmaTriangle) {
                     warning->string =
                         L("Magma Triangle has the least efficient seal geometry of the Magma patterns. "
                           "The nozzle has to cover a triangle's circumscribed circle, but only its "
@@ -1632,8 +1609,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             // (3) Injection speed above the injection filament's melt rate. It is
             // silently capped at G-code time, so warn the user it won't run as set.
             {
-                int inj_filament = obj_cfg.magma_injection_filament.value;  // 0 = current/sparse
-                int inj_ext = inj_filament > 0 ? (inj_filament - 1) : sparse_ext;
+                const int inj_ext = m.injection_extruder;
                 double max_vol = m_config.filament_max_volumetric_speed.get_at(inj_ext);
                 double inj_speed = obj_cfg.magma_injection_speed.value;
                 if (warning && warning->string.empty() && max_vol > 0.0 && inj_speed > max_vol) {

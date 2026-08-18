@@ -113,6 +113,15 @@ inline double max_opening_for_immersion(double flat, double cone_half_angle_deg,
     return std::max(0.1, flat + 2.0 * std::max(0.0, max_immersion) * tan_t - MAGMA_SEAL_MARGIN);
 }
 
+// How deep the hot nozzle may travel inside a tube, from any path. The slam, the user's
+// offset and the plunge all spend from this one budget. slam_press participates because a
+// press is applied even when the flat already covers the opening and no descent is needed,
+// and MAGMA_SLAM_CLAMP is the absolute ceiling no configuration may exceed.
+inline double immersion_budget_for(double slam_press, double max_immersion) {
+    return std::min(MAGMA_SLAM_CLAMP,
+                    std::max(std::max(0.0, slam_press), std::max(0.0, max_immersion)));
+}
+
 // Auto Z-slam depth.
 //
 // The nozzle first touches the opening rim at seal_depth_for_opening(opening, flat);

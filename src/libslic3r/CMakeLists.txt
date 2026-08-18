@@ -296,6 +296,8 @@ set(lisbslic3r_sources
     Magma/MagmaGeometry.hpp
     Magma/MagmaLattice.hpp
     Magma/MagmaPatterns.hpp
+    Magma/MagmaResolved.cpp
+    Magma/MagmaResolved.hpp
     Magma/MagmaTriangleCell.cpp
     Magma/MagmaTriangleCell.hpp
     Magma/MagmaRectilinearCell.hpp

@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
@@ -80,7 +81,7 @@ TEST_CASE("Magma: bore is the inscribed circle of the cell, not the interior wid
         for (const Sizing &sz : sizings()) {
             const double spacing = cell_spacing_from_geometry(sz.interior, sz.line_width);
             const double opening = geom.opening_diameter(spacing, sz.line_width);
-            const double bore    = 2.0 * geom.inscribed_radius(sz.interior);
+            const double bore    = 2.0 * geom.inscribed_radius(sz.interior, sz.line_width);
             INFO(pc.name << " interior=" << sz.interior << " lw=" << sz.line_width
                          << " opening=" << opening << " bore=" << bore);
             CHECK(bore / opening == Catch::Approx(pc.bore_over_opening).epsilon(1e-6));
@@ -209,14 +210,20 @@ TEST_CASE("Magma: geometry and lattice agree on edge length", "[Magma][geometry]
     }
 }
 
-TEST_CASE("Magma: plunge never exceeds the total intrusion clamp", "[Magma][seal]")
+TEST_CASE("Magma: plunge stays inside both the intrusion clamp and the immersion budget",
+          "[Magma][seal]")
 {
+    // Regression: clamp_plunge_depth used to bound slam+plunge only by MAGMA_SLAM_PLUNGE_CLAMP
+    // and ignore max_immersion entirely, so a user who lowered the immersion budget still got
+    // the full plunge driven past it -- the budget bounded the seal but not the plunge.
     for (double slam : { 0.1, 0.6, 1.5, 3.4 })
-        for (double plunge : { 0.0, 0.05, 0.5, 2.0 }) {
-            const double clamped = clamp_plunge_depth(slam, plunge);
-            INFO("slam=" << slam << " plunge=" << plunge);
-            CHECK(clamped >= 0.0);
-            CHECK(clamped <= plunge);
-            CHECK(slam + clamped <= MAGMA_SLAM_PLUNGE_CLAMP + 1e-9);
-        }
+        for (double plunge : { 0.0, 0.05, 0.5, 2.0 })
+            for (double budget : { 0.0, 0.1, 0.6, 3.5 }) {
+                const double clamped = clamp_plunge_depth(slam, plunge, budget);
+                INFO("slam=" << slam << " plunge=" << plunge << " budget=" << budget);
+                CHECK(clamped >= 0.0);
+                CHECK(clamped <= plunge);
+                CHECK(slam + clamped <= MAGMA_SLAM_PLUNGE_CLAMP + 1e-9);
+                CHECK(slam + clamped <= std::max(slam, budget) + 1e-9);
+            }
 }
