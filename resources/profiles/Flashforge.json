@@ -172,22 +172,6 @@
 			"sub_path": "process/0.12mm Fine @Flashforge AD5M Pro 0.4 Nozzle.json"
 		},
 		{
-			"name": "0.08mm Standard @FF C5 0.25 nozzle",
-			"sub_path": "process/0.08mm Standard @FF C5 0.25 nozzle.json"
-		},
-		{
-			"name": "0.10mm Standard @FF C5 0.25 nozzle",
-			"sub_path": "process/0.10mm Standard @FF C5 0.25 nozzle.json"
-		},
-		{
-			"name": "0.12mm Standard @FF C5 0.25 nozzle",
-			"sub_path": "process/0.12mm Standard @FF C5 0.25 nozzle.json"
-		},
-		{
-			"name": "0.14mm Standard @FF C5 0.25 nozzle",
-			"sub_path": "process/0.14mm Standard @FF C5 0.25 nozzle.json"
-		},
-		{
 			"name": "0.12mm Standard @FF C5",
 			"sub_path": "process/0.12mm Standard @FF C5.json"
 		},
@@ -454,6 +438,22 @@
 		{
 			"name": "0.14mm Standard @FF AD5X 0.25 nozzle",
 			"sub_path": "process/0.14mm Standard @FF AD5X 0.25 nozzle.json"
+		},
+		{
+			"name": "0.08mm Standard @FF C5 0.25 nozzle",
+			"sub_path": "process/0.08mm Standard @FF C5 0.25 nozzle.json"
+		},
+		{
+			"name": "0.10mm Standard @FF C5 0.25 nozzle",
+			"sub_path": "process/0.10mm Standard @FF C5 0.25 nozzle.json"
+		},
+		{
+			"name": "0.12mm Standard @FF C5 0.25 nozzle",
+			"sub_path": "process/0.12mm Standard @FF C5 0.25 nozzle.json"
+		},
+		{
+			"name": "0.14mm Standard @FF C5 0.25 nozzle",
+			"sub_path": "process/0.14mm Standard @FF C5 0.25 nozzle.json"
 		},
 		{
 			"name": "0.14mm Standard @Flashforge AD5M 0.25 Nozzle",
