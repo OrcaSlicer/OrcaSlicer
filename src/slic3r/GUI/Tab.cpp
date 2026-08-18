@@ -3963,11 +3963,14 @@ void TabFilament::build()
         }
         optgroup->append_single_option_line("filament_coextrusion_filter_distance");
 
-        Line mapping_line{L("3MF color mapping"), L("Assign logical colors in the current 3MF project to physical sectors in this filament.")};
+        Line mapping_line{"", ""};
+        mapping_line.full_width = 1;
         mapping_line.widget = [](wxWindow *parent) {
             auto *sizer = new wxBoxSizer(wxHORIZONTAL);
+            auto *label = new wxStaticText(parent, wxID_ANY, _L("3MF color mapping"));
             auto *button = new wxButton(parent, wxID_ANY, _L("Configure mapping..."));
             button->Bind(wxEVT_BUTTON, [parent](wxCommandEvent &) { edit_coextrusion_color_mapping(parent, true); });
+            sizer->Add(label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, parent->FromDIP(12));
             sizer->Add(button, 0, wxALIGN_CENTER_VERTICAL);
             return sizer;
         };
