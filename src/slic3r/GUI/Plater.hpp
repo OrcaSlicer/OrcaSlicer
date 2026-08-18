@@ -492,6 +492,10 @@ public:
 
     void send_to_printer(bool isall = false);
     void export_gcode(bool prefer_removable);
+    // Schedule the active FFF plate through the normal slicing/export pipeline using a
+    // host-owned temporary destination. The destination is never exposed to plugins and
+    // is removed after success, failure, or cancellation.
+    bool export_gcode_to_temp();
     void export_gcode_3mf(bool export_all = false);
     void send_gcode_finish(wxString name);
     void export_core_3mf();
