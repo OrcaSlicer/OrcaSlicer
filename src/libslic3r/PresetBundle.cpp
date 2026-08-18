@@ -5047,15 +5047,30 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             if (has_new_semantics) {
                 // Defensive cap: never exceed the file's own filament count.
                 target_slots = std::min(target_slots, num_filaments);
+                // Slots that carry published content (full/type/colour) must reference a stored
+                // preset that no other slot shares: the overlay mutates stored presets in place
+                // (colour and keys), so a shared preset would leak one slot's published values
+                // into every slot that references it.
+                std::set<int> published_slots;
+                for (const PublishedMaterialEntry &entry : published_config->material_keys)
+                    if ((entry.full || entry.publish_type || entry.publish_color) && entry.slot >= 0)
+                        published_slots.insert(entry.slot);
+                std::set<std::string> used_preset_names(this->filament_presets.begin(), this->filament_presets.end());
+                // Mirror first_visible_idx()'s start index so suppressed default presets are
+                // never picked as a slot material.
+                const size_t first_candidate = this->filaments.is_default_suppressed() ? this->filaments.num_default_presets() : 0;
                 while (this->filament_presets.size() < target_slots) {
                     const size_t new_slot_idx = this->filament_presets.size();
                     std::string initial_preset;
-                    // Proactively assign matching candidate preset if this slot carries a published type
-                    for (const PublishedMaterialEntry &entry : published_config->material_keys) {
-                        if (entry.slot == static_cast<int>(new_slot_idx) && entry.publish_type && !entry.publish_type_value.empty()) {
+                    if (published_slots.count(static_cast<int>(new_slot_idx)) != 0) {
+                        // Proactively assign a distinct matching candidate preset if this slot
+                        // carries a published type...
+                        for (const PublishedMaterialEntry &entry : published_config->material_keys) {
+                            if (entry.slot != static_cast<int>(new_slot_idx) || !entry.publish_type || entry.publish_type_value.empty())
+                                continue;
                             for (size_t i = 0; i < this->filaments.size(); ++i) {
                                 const Preset &candidate = this->filaments.preset(i);
-                                if (!candidate.is_visible)
+                                if (!candidate.is_visible || used_preset_names.count(candidate.name) != 0)
                                     continue;
                                 if (normalize_filament_type(candidate.config.opt_string("filament_type", 0u)) == entry.publish_type_value) {
                                     initial_preset = candidate.name;
@@ -5064,11 +5079,114 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             }
                             break;
                         }
+                        // ...otherwise any visible preset not already used by another slot.
+                        if (initial_preset.empty()) {
+                            for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
+                                const Preset &candidate = this->filaments.preset(i);
+                                if (!candidate.is_visible || used_preset_names.count(candidate.name) != 0)
+                                    continue;
+                                initial_preset = candidate.name;
+                                break;
+                            }
+                        }
                     }
                     if (initial_preset.empty())
-                        initial_preset = this->filaments.first_visible().name;
+                        // Unpublished filler slot, or every visible preset is already used: repeat
+                        // the receiver's last preset, mirroring the "Add one filament" behaviour
+                        // (PresetBundle::set_num_filaments).
+                        initial_preset = this->filament_presets.empty() ? this->filaments.first_visible().name
+                                                                        : this->filament_presets.back();
                     this->filament_presets.emplace_back(initial_preset);
+                    used_preset_names.insert(initial_preset);
                 }
+                // Slots that were grown before this block (e.g. by update_multi_material_filament_presets
+                // matching the extruder count) may still alias another slot; re-point them at a
+                // distinct preset. Slot 0, the receiver's own material, is never re-assigned.
+                for (size_t slot = 1; slot < this->filament_presets.size(); ++slot) {
+                    if (published_slots.count(static_cast<int>(slot)) == 0)
+                        continue;
+                    bool shared = false;
+                    for (size_t other = 0; other < this->filament_presets.size(); ++other)
+                        if (other != slot && this->filament_presets[other] == this->filament_presets[slot]) {
+                            shared = true;
+                            break;
+                        }
+                    if (!shared)
+                        continue;
+                    std::string replacement;
+                    for (const PublishedMaterialEntry &entry : published_config->material_keys) {
+                        if (entry.slot != static_cast<int>(slot) || !entry.publish_type || entry.publish_type_value.empty())
+                            continue;
+                        for (size_t i = 0; i < this->filaments.size(); ++i) {
+                            const Preset &candidate = this->filaments.preset(i);
+                            if (!candidate.is_visible || used_preset_names.count(candidate.name) != 0)
+                                continue;
+                            if (normalize_filament_type(candidate.config.opt_string("filament_type", 0u)) == entry.publish_type_value) {
+                                replacement = candidate.name;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                    if (replacement.empty()) {
+                        for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
+                            const Preset &candidate = this->filaments.preset(i);
+                            if (!candidate.is_visible || used_preset_names.count(candidate.name) != 0)
+                                continue;
+                            replacement = candidate.name;
+                            break;
+                        }
+                    }
+                    if (replacement.empty())
+                        continue; // every visible preset is used: aliasing is unavoidable
+                    used_preset_names.erase(this->filament_presets[slot]);
+                    this->filament_presets[slot] = replacement;
+                    used_preset_names.insert(replacement);
+                }
+                // Mirror set_num_filaments' project_config vector handling ("Add one filament"):
+                // resize the per-slot colour/type/map vectors to the grown slot count and seed the
+                // new entries so the slots render with colours instead of blank chips. Only the
+                // new entries are seeded; the receiver's existing values are left untouched.
+                ConfigOptionStrings *proj_colour       = this->project_config.opt<ConfigOptionStrings>("filament_colour");
+                ConfigOptionStrings *proj_multi_colour = this->project_config.opt<ConfigOptionStrings>("filament_multi_colour");
+                ConfigOptionStrings *proj_colour_type  = this->project_config.opt<ConfigOptionStrings>("filament_colour_type");
+                ConfigOptionInts    *proj_map          = this->project_config.opt<ConfigOptionInts>("filament_map");
+                ConfigOptionInts    *proj_nozzle_map   = this->project_config.opt<ConfigOptionInts>("filament_nozzle_map");
+                ConfigOptionInts    *proj_volume_map   = this->project_config.opt<ConfigOptionInts>("filament_volume_map");
+                const size_t old_colour_count = (proj_colour != nullptr) ? proj_colour->values.size() : 0;
+                if (proj_colour)       proj_colour->resize(target_slots);
+                if (proj_multi_colour) proj_multi_colour->values.resize(target_slots);
+                if (proj_colour_type)  proj_colour_type->values.resize(target_slots);
+                if (proj_map)          proj_map->values.resize(target_slots, 1);
+                if (proj_nozzle_map)   proj_nozzle_map->values.resize(target_slots, 0);
+                if (proj_volume_map)   proj_volume_map->values.resize(target_slots, static_cast<int>(NozzleVolumeType::nvtStandard));
+                this->ams_multi_color_filment.resize(target_slots);
+                for (size_t slot = old_colour_count; slot < target_slots; ++slot) {
+                    std::string seed;
+                    for (const PublishedMaterialEntry &entry : published_config->material_keys)
+                        if (entry.slot == static_cast<int>(slot) && entry.publish_color && !entry.color.empty()) {
+                            seed = entry.color;
+                            break;
+                        }
+                    if (seed.empty()) {
+                        if (const Preset *preset = this->filaments.find_preset(this->filament_presets[slot], false)) {
+                            const ConfigOptionStrings *colours = preset->config.opt<ConfigOptionStrings>("filament_colour");
+                            if (colours != nullptr && !colours->values.empty())
+                                seed = colours->values.front();
+                        }
+                        if (seed.empty())
+                            seed = "#F2754E"; // filament_colour default
+                    }
+                    if (proj_colour && slot < proj_colour->values.size())
+                        proj_colour->values[slot] = seed;
+                    if (proj_multi_colour && slot < proj_multi_colour->values.size())
+                        proj_multi_colour->values[slot] = seed;
+                    if (proj_colour_type && slot < proj_colour_type->values.size())
+                        proj_colour_type->values[slot] = "1"; // default colour type
+                }
+                // Rebuild the flush volumes for the grown slot count (set_num_filaments does the
+                // same; without it the matrix would stay at the receiver's old size).
+                this->update_multi_material_filament_presets();
 
                 auto apply_slot_keys = [&](Preset &preset, const std::vector<std::string> &slot_keys, int author_slot,
                                            const std::string &material_label) {
@@ -5124,17 +5242,31 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                 apply_slot = false;
                         } else {
                             // Type mismatch: replace the slot with the first visible same-type
-                            // filament from the receiver's library.
-                            std::string replacement;
+                            // filament from the receiver's library, preferring one that no other
+                            // slot references (a shared stored preset would leak this slot's
+                            // published values into that slot).
+                            std::string replacement, first_same_type;
                             for (size_t i = 0; i < this->filaments.size(); ++i) {
                                 const Preset &candidate = this->filaments.preset(i);
                                 if (!candidate.is_visible)
                                     continue;
                                 if (normalize_filament_type(candidate.config.opt_string("filament_type", 0u)) != entry.publish_type_value)
                                     continue;
-                                replacement = candidate.name;
-                                break;
+                                if (first_same_type.empty())
+                                    first_same_type = candidate.name;
+                                bool used_elsewhere = false;
+                                for (size_t s = 0; s < this->filament_presets.size(); ++s)
+                                    if (s != slot && this->filament_presets[s] == candidate.name) {
+                                        used_elsewhere = true;
+                                        break;
+                                    }
+                                if (!used_elsewhere) {
+                                    replacement = candidate.name;
+                                    break;
+                                }
                             }
+                            if (replacement.empty())
+                                replacement = first_same_type;
                             if (!replacement.empty()) {
                                 const std::string old_name = recv->name;
                                 this->filament_presets[slot] = replacement;

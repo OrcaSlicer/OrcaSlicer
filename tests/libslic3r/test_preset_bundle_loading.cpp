@@ -1069,8 +1069,10 @@ TEST_CASE("Published 3MF grows the receiver's slots only as far as the published
         CHECK(bundle.filaments.find_preset("My PLA")->config.opt<ConfigOptionStrings>("filament_colour")->values == std::vector<std::string>{ "#ABCDEF" });
     }
 
-    // Slot 3 published: the receiver grows to 4 so the published slot exists; the filler is
-    // the receiver's own first visible material.
+    // Slot 3 published: the receiver grows to 4 so the published slot exists. The unpublished
+    // filler slots repeat the receiver's last preset ("Add one filament" behaviour); the
+    // published slot gets a visible preset not used by another slot (with a single-preset
+    // library it falls back to the receiver's last preset, aliasing being unavoidable).
     {
         PresetBundle bundle;
         add_pla_preset(bundle);
@@ -1085,7 +1087,18 @@ TEST_CASE("Published 3MF grows the receiver's slots only as far as the published
         bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
 
         REQUIRE(bundle.filament_presets.size() == 4);
+        CHECK(bundle.filament_presets[1] == "My PLA");
+        CHECK(bundle.filament_presets[2] == "My PLA");
         CHECK(bundle.filament_presets[3] == filler);
+        // The project-level per-slot vectors were grown and seeded like "Add one filament":
+        // fillers take their preset's colour, the published slot its published colour.
+        CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values.size() == 4);
+        CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values[1] == "#123456");
+        CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values[3] == "#ABCDEF");
+        CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_multi_colour")->values.size() == 4);
+        CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour_type")->values.size() == 4);
+        CHECK(bundle.project_config.opt<ConfigOptionInts>("filament_map")->values.size() == 4);
+        CHECK(bundle.project_config.opt<ConfigOptionFloats>("flush_volumes_matrix")->values.size() == 16);
     }
 
     // Slots 0 and 2 published: the receiver grows to 3, never to the file's 4.
@@ -1102,7 +1115,68 @@ TEST_CASE("Published 3MF grows the receiver's slots only as far as the published
         bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
 
         REQUIRE(bundle.filament_presets.size() == 3);
+        CHECK(bundle.filament_presets[1] == "My PLA");
     }
+}
+
+// The published overlay mutates stored filament presets in place per slot, so a slot carrying
+// published content must never share its stored preset with another slot: its colour/keys
+// would leak into the sibling slot - and, with "repeat the last preset" growth, into the
+// receiver's own first slot. Regression for the slot-aliasing hazard.
+TEST_CASE("Published 3MF gives grown published slots a distinct preset so values never leak", "[Preset][Bundle][Published]")
+{
+    auto make_file_config = [] {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75, 1.75, 1.75 };
+        config.opt<ConfigOptionInts>("filament_self_index")->values = { 1, 2, 3, 4 };
+        config.opt<ConfigOptionStrings>("filament_extruder_variant")->values = { "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard" };
+        config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#00FF00", "#0000FF", "#FFFF00" };
+        config.opt<ConfigOptionStrings>("filament_type")->values = { "PLA", "PLA", "PLA", "PLA" };
+        config.opt<ConfigOptionStrings>("filament_vendor")->values = { "Generic", "Generic", "Generic", "Generic" };
+        config.opt<ConfigOptionStrings>("filament_ids")->values = { "GFL99", "GFL99", "GFL99", "GFL99" };
+        return config;
+    };
+
+    // The receiver has one slot of its own material plus one more preset in the library; the
+    // author publishes only slot 4 (Red). With naive repeat-last growth the new slot would
+    // reference the receiver's own preset and the published red would recolor it; the grown
+    // slot must point at a distinct preset.
+    PresetBundle bundle;
+    Preset &mine = add_inmemory_preset(bundle.filaments, "My PLA");
+    mine.config.opt_string("filament_type", 0u) = "PLA";
+    mine.config.opt<ConfigOptionStrings>("filament_colour", true)->values = { "#123456" };
+    Preset &other = add_inmemory_preset(bundle.filaments, "Other PLA");
+    other.config.opt_string("filament_type", 0u) = "PLA";
+    other.config.opt<ConfigOptionStrings>("filament_colour", true)->values = { "#654321" };
+    bundle.filament_presets = { "My PLA" };
+
+    PublishedMaterialEntry entry;
+    entry.slot          = 3;
+    entry.publish_color = true;
+    entry.color         = "#ABCDEF";
+    PublishedConfig pub;
+    pub.published     = true;
+    pub.material_keys = { entry };
+    DynamicPrintConfig config = make_file_config();
+    Preset::normalize(config);
+    bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+    REQUIRE(bundle.filament_presets.size() == 4);
+    // Unpublished filler slots repeat the receiver's last preset ("Add one filament").
+    CHECK(bundle.filament_presets[1] == "My PLA");
+    CHECK(bundle.filament_presets[2] == "My PLA");
+    // The published slot references the unused library preset, not the receiver's own...
+    CHECK(bundle.filament_presets[3] == "Other PLA");
+    // ...so the published colour landed there and never recoloured the receiver's material.
+    CHECK(bundle.filaments.find_preset("My PLA", false, true)->config.opt<ConfigOptionStrings>("filament_colour")->values == std::vector<std::string>{ "#123456" });
+    CHECK(bundle.filaments.find_preset("Other PLA", false, true)->config.opt<ConfigOptionStrings>("filament_colour")->values == std::vector<std::string>{ "#ABCDEF" });
+    // The project-level colours are sized and seeded for every grown slot.
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values.size() == 4);
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values[1] == "#123456");
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values[3] == "#ABCDEF");
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_multi_colour")->values.size() == 4);
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour_type")->values.size() == 4);
+    CHECK(bundle.project_config.opt<ConfigOptionInts>("filament_map")->values.size() == 4);
 }
 
 // The GUI displays the edited preset, a snapshot of the selected collection preset taken at
