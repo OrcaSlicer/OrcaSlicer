@@ -221,17 +221,9 @@ public:
     double print_z(int layer_id) const;
     double layer_height_at(int layer_id) const;
 
-    // Triangle vertex overlap correction: flow multiplier for infill lines (≤1.0).
-    // Applied in Fill.cpp via Flow::with_flow_ratio() to reduce deposited line width.
-
     // Non-empty if slicing should display a warning to the user
-    // (e.g. overlap correction reduced injection volume by >33%).
+    // (e.g. the tri-hex vents are too narrow to stay open).
     const std::string& warning_message() const { return m_warning_message; }
-
-    // Return inset triangle polygons for cells that exist on this layer but are
-    // not covered by any UTubePair. These cells have infill lines but no injection,
-    // so they should not be treated as solid for bridge detection.
-    ExPolygons get_unfilled_cell_interiors(int layer_id) const;
 
     // Layer IDs that have injection caps (pair_end_layer of each UTubePair).
     // Used by ToolOrdering to register injection filament on the correct layers.

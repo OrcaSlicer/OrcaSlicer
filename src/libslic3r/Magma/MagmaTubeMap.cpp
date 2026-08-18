@@ -908,9 +908,9 @@ void MagmaTubeMap::assign_extra_vents()
             if (incl > best[i - 1]) {       // candidate i-1 is in the optimal set
                 const int pi = cands[i - 1].pi;
                 m_pairs[pi].extra_vents.push_back(V);
-                // Register the leg as covered so get_unfilled_cell_interiors() does NOT
-                // solid-fill it (which would block the injected cavity), exactly as the
-                // solver registers cell_a/cell_b. Covers V over this hub-tube's range.
+                // Register the leg as covered, exactly as the solver registers cell_a/cell_b,
+                // so every consumer of m_cell_pair_index (is_paired, the fill generator)
+                // sees it as belonging to this hub-tube over the tube's range.
                 m_cell_pair_index[V].push_back(pi);
                 ++extra_legs_added;
                 i = (pred[i - 1] >= 0) ? pred[i - 1] + 1 : 0;
@@ -1141,46 +1141,6 @@ bool MagmaTubeMap::is_paired(const TriangleCell &cell) const
 {
     auto it = m_cell_pair_index.find(cell);
     return (it != m_cell_pair_index.end() && !it->second.empty());
-}
-
-ExPolygons MagmaTubeMap::get_unfilled_cell_interiors(int layer_id) const
-{
-    ExPolygons result;
-    // Effective, not nominal: cell_inset_polygons documents itself as "the single source of
-    // truth ... so every path measures a cell the same way", and the presence scan and volume
-    // integration both pass m_line_width. Passing the nominal width here inset every
-    // unfilled cell slightly too far, so a thin ring around each was reported to bridge
-    // detection as solid material when it is actually open.
-    const double half_lw = m_line_width * 0.5;
-
-    const MagmaLattice &lattice = *m_layer_data[layer_id].lattice;
-
-    for (const auto &[cell, presence] : m_cells) {
-        if (!presence.present(layer_id))
-            continue;
-
-        // Check if any tube pair covers this cell on this layer
-        bool covered = false;
-        auto idx_it = m_cell_pair_index.find(cell);
-        if (idx_it != m_cell_pair_index.end()) {
-            for (int pi : idx_it->second) {
-                const UTubePair &pair = m_pairs[pi];
-                if (layer_id >= pair.pair_start_layer &&
-                    layer_id <= pair.pair_end_layer) {
-                    covered = true;
-                    break;
-                }
-            }
-        }
-        if (covered)
-            continue;
-
-        // Unfilled cell — its solid inset open polygon at the spiral-offset position.
-        ExPolygons inset = cell_inset_polygons(lattice, cell, half_lw);
-        for (ExPolygon &ep : inset)
-            result.push_back(std::move(ep));
-    }
-    return result;
 }
 
 

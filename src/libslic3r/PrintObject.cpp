@@ -642,9 +642,10 @@ void PrintObject::prepare_infill()
     } // for each region
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
-    // Build Magma tube map before bridge_over_infill() so that unfilled cell
-    // interiors can be subtracted from the solid contribution — cells without
-    // tube coverage should not suppress bridge detection.
+    // Build the Magma tube map. It must precede fill generation (which consumes it) and
+    // measure_volumes(); bridge_over_infill() below no longer depends on it. A Magma region
+    // is classified solid for bridging exactly like 100%-density infill, uniformly, with no
+    // per-cell exception -- see is_effectively_solid in bridge_over_infill().
     {
         const PrintRegionConfig *tube_map_cfg = nullptr;
         for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id) {
@@ -2725,16 +2726,6 @@ void PrintObject::bridge_over_infill()
                         }
                     }
                 }
-                // Zone outer infill (Magma Triangle) is treated as solid (injection fills
-                // tubes), but cells near model edges that aren't covered by any tube pair
-                // are unfilled. Subtract their interiors so bridge detection sees them as
-                // unsupported.
-                if (po->magma_tube_map()) {
-                    int lower_lid = static_cast<int>(layer->lower_layer->id());
-                    ExPolygons unfilled = po->magma_tube_map()->get_unfilled_cell_interiors(lower_lid);
-                    if (!unfilled.empty())
-                        lower_layer_solids = diff(lower_layer_solids, to_polygons(unfilled));
-                }
                 unsupported_area = closing(unsupported_area, float(SCALED_EPSILON));
 
                 // Orca:
@@ -3008,13 +2999,6 @@ void PrintObject::bridge_over_infill()
                         not_sparse_infill.push_back(surface.expolygon);
                     }
                 }
-            }
-            // Zone cells without tube coverage are unfilled — treat as sparse.
-            if (po->magma_tube_map()) {
-                int lid = static_cast<int>(layer->id());
-                ExPolygons unfilled = po->magma_tube_map()->get_unfilled_cell_interiors(lid);
-                for (ExPolygon &ep : unfilled)
-                    layers_sparse_infill.push_back(std::move(ep));
             }
         }
         layers_sparse_infill = union_ex(layers_sparse_infill);

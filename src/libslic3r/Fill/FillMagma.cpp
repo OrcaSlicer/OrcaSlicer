@@ -12,7 +12,20 @@
 #include <tuple>
 #include <boost/log/trivial.hpp>
 
+#include "../Exception.hpp"
+#include "../I18N.hpp"
+
 namespace Slic3r {
+
+const magma::MagmaTubeMap& FillMagmaBase::require_tube_map(const char *pattern_name) const
+{
+    if (this->tube_map == nullptr)
+        throw Slic3r::SlicingError(Slic3r::format(
+            L("%1% infill was selected but no Magma tube map was built for this object, so the "
+              "reinforcement zone would be printed hollow. This is an internal error -- please "
+              "report it with the project file."), pattern_name));
+    return *this->tube_map;
+}
 
 // ============================================================================
 // Infill Direction — fixed angle, world-origin reference
@@ -279,10 +292,7 @@ void FillMagmaTriangle::_fill_surface_single(
     ExPolygon          expolygon,
     Polylines         &polylines_out)
 {
-    if (!this->tube_map) {
-        BOOST_LOG_TRIVIAL(error) << "FillMagmaTriangle: null tube_map on layer " << this->layer_id;
-        return;
-    }
+    const magma::MagmaTubeMap &tm = this->require_tube_map("Magma Triangle");
 
     // Disable anchors for Magma infill: zone shells provide the bonding
     // surface, and anchors fill boundary cell interiors causing bad injections.
@@ -290,18 +300,18 @@ void FillMagmaTriangle::_fill_surface_single(
     no_anchor_params.anchor_length     = 0.f;
     no_anchor_params.anchor_length_max = 0.f;
 
-    const double cs   = this->tube_map->cell_spacing();
+    const double cs   = tm.cell_spacing();
     const int    layer = static_cast<int>(this->layer_id);
 
     // Use cached lattice with spiral offset for this layer
-    const magma::MagmaLattice &lattice = this->tube_map->lattice_at(layer);
+    const magma::MagmaLattice &lattice = tm.lattice_at(layer);
 
     const double edge  = lattice.edge_length();
     const double off_x = lattice.offset_x();
     const double off_y = lattice.offset_y();
 
     // Compute this shape's window cuts from the tube map's pair list.
-    MagmaWindowCuts gaps = triangle_window_cuts(*this->tube_map, layer, lattice);
+    MagmaWindowCuts gaps = triangle_window_cuts(tm, layer, lattice);
 
     // ---- Bounding box → lattice ranges ----
 
@@ -425,25 +435,22 @@ void FillMagmaRectilinear::_fill_surface_single(
     ExPolygon          expolygon,
     Polylines         &polylines_out)
 {
-    if (!this->tube_map) {
-        BOOST_LOG_TRIVIAL(error) << "FillMagmaRectilinear: null tube_map on layer " << this->layer_id;
-        return;
-    }
+    const magma::MagmaTubeMap &tm = this->require_tube_map("Magma Rectilinear");
 
     FillParams no_anchor_params = params;
     no_anchor_params.anchor_length     = 0.f;
     no_anchor_params.anchor_length_max = 0.f;
 
-    const double cs    = this->tube_map->cell_spacing();
+    const double cs    = tm.cell_spacing();
     const int    layer = static_cast<int>(this->layer_id);
 
     // Cached lattice with this layer's spiral offset.
-    const magma::MagmaLattice &lattice = this->tube_map->lattice_at(layer);
+    const magma::MagmaLattice &lattice = tm.lattice_at(layer);
     const double off_x = lattice.offset_x();
     const double off_y = lattice.offset_y();
 
     // Compute this shape's window cuts from the tube map's pair list.
-    MagmaWindowCuts gaps = square_window_cuts(*this->tube_map, layer, lattice);
+    MagmaWindowCuts gaps = square_window_cuts(tm, layer, lattice);
 
     BoundingBox bbox = expolygon.contour.bounding_box();
     double x_min = unscale<double>(bbox.min.x()) - cs;
@@ -585,21 +592,18 @@ void FillMagmaTriHex::_fill_surface_single(
     ExPolygon          expolygon,
     Polylines         &polylines_out)
 {
-    if (!this->tube_map) {
-        BOOST_LOG_TRIVIAL(error) << "FillMagmaTriHex: null tube_map on layer " << this->layer_id;
-        return;
-    }
+    const magma::MagmaTubeMap &tm = this->require_tube_map("Magma Tri-hex");
 
     FillParams no_anchor_params = params;
     no_anchor_params.anchor_length     = 0.f;
     no_anchor_params.anchor_length_max = 0.f;
 
-    const double s     = this->tube_map->cell_spacing();
+    const double s     = tm.cell_spacing();
     const int    layer = static_cast<int>(this->layer_id);
-    const magma::MagmaLattice &lattice = this->tube_map->lattice_at(layer);
+    const magma::MagmaLattice &lattice = tm.lattice_at(layer);
     const double off_y = lattice.offset_y();
 
-    MagmaWindowCuts gaps = trihex_window_cuts(*this->tube_map, layer, lattice);
+    MagmaWindowCuts gaps = trihex_window_cuts(tm, layer, lattice);
 
     // Bounding box -> half-integer lattice index ranges for the 3 families. The lattice is
     // skewed, so map all four bbox corners and take the spanning (ly, lx, lx+ly) box.
@@ -710,25 +714,22 @@ void FillMagmaHoneycomb::_fill_surface_single(
     ExPolygon          expolygon,
     Polylines         &polylines_out)
 {
-    if (!this->tube_map) {
-        BOOST_LOG_TRIVIAL(error) << "FillMagmaHoneycomb: null tube_map on layer " << this->layer_id;
-        return;
-    }
+    const magma::MagmaTubeMap &tm = this->require_tube_map("Magma Honeycomb");
 
     FillParams no_anchor_params = params;
     no_anchor_params.anchor_length     = 0.f;
     no_anchor_params.anchor_length_max = 0.f;
 
     const int    layer = static_cast<int>(this->layer_id);
-    const double s     = this->tube_map->cell_spacing();
-    const double iw    = std::max(0.0, double(this->tube_map->interior_width()));  // open f2f (user spec)
+    const double s     = tm.cell_spacing();
+    const double iw    = std::max(0.0, double(tm.interior_width()));  // open f2f (user spec)
     const double lw    = std::max(0.0, s - iw);          // line width = cell_spacing - interior
     // Build the toolpath from the OPEN hexagon (edge e = interior/√3) so the printed tube is the
     // requested interior width; the doubled vertical walls + single slants are added on top,
     // matching the lattice (MagmaHexCell.hpp) so windows/injection land on the drawn walls.
     const double e     = iw * magma::INV_SQRT3;          // OPEN hex edge = interior/√3
     const double x_off = std::min(lw * 0.5, s * 0.2);    // half-gap of the doubled vertical walls
-    const magma::MagmaLattice &lattice = this->tube_map->lattice_at(layer);
+    const magma::MagmaLattice &lattice = tm.lattice_at(layer);
     const double ox = lattice.offset_x(), oy = lattice.offset_y();
 
     BoundingBox bbox = expolygon.contour.bounding_box();
@@ -767,8 +768,8 @@ void FillMagmaHoneycomb::_fill_surface_single(
     // Windows: subtract each open pair's shared wall (a rectangle over the shared edge,
     // wide enough to span both doubled verticals, shortened by a bead so the corners stay).
     Polygons window_cuts;
-    for (const magma::UTubePair &pr : this->tube_map->u_tube_pairs()) {
-        if (!this->tube_map->window_open_at(pr, layer)) continue;
+    for (const magma::UTubePair &pr : tm.u_tube_pairs()) {
+        if (!tm.window_open_at(pr, layer)) continue;
         std::vector<Vec2d> ca = lattice.cell_corners(pr.cell_a);
         std::vector<Vec2d> cb = lattice.cell_corners(pr.cell_b);
         Vec2d shared[2]; int ns = 0;

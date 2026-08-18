@@ -20,6 +20,12 @@ public:
     // Pre-computed tube map (set by Fill.cpp, non-owning)
     const magma::MagmaTubeMap* tube_map = nullptr;
 
+    // Every pattern's line generator goes through this instead of dereferencing tube_map.
+    // It throws: a Magma filler with no tube map emits ZERO infill for the region, so the
+    // part comes out with a hollow reinforcement zone and injection G-code aimed at nothing
+    // -- with only a log line to say so. Failing the slice is the only honest outcome.
+    const magma::MagmaTubeMap& require_tube_map(const char *pattern_name) const;
+
     // Magma patterns are self-crossing (multiple line families intersect).
     bool is_self_crossing() override { return true; }
 
