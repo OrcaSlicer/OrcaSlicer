@@ -5899,8 +5899,10 @@ void PrintConfigDef::init_fff_params()
                      "Immersion exists only to fit a tube wider than the nozzle flat — a tube the "
                      "flat covers is sealed by seating on the rim, with no descent. It is also what "
                      "deforms tubes: 0.5mm printed cleanly in testing, 1.1mm visibly deformed.\n\n"
-                     "With Auto tube sizing this SIZES the tubes — bigger budget, bigger tubes. "
-                     "0 = tubes the flat covers outright.");
+                     "With Auto tube sizing this SIZES the tubes — bigger budget, bigger tubes.\n\n"
+                     "Requires a measured Nozzle tip flat. Until then Magma runs conservatively: "
+                     "tubes are kept small enough for the estimated flat to cover outright, since "
+                     "an estimate that runs high would size tubes the nozzle cannot seal.");
     def->sidetext = L("mm");
     def->min = 0;
     def->max = 3.5;

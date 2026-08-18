@@ -976,8 +976,14 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     // a silent no-op. Only show it in Manual tube width, where the slam can sit below the
     // budget and the trim has room to work.
     toggle_line("magma_injection_z_slam_offset", have_magma_pattern && !tube_auto);
-    // The immersion budget both sizes the tube (Auto) and caps the slam (always).
+    // The immersion budget both sizes the tube (Auto) and caps the slam (always) -- but it
+    // only makes sense once the nozzle flat is known, because immersion deliberately sizes
+    // tubes WIDER than the flat. Shown-but-disabled rather than hidden, so the tooltip can
+    // explain what measuring unlocks instead of the setting just not existing.
+    auto* flat_opt = config->option<ConfigOptionFloat>("magma_nozzle_outer_diameter");
+    const bool flat_measured = flat_opt && flat_opt->value > 0.0;
     toggle_line("magma_max_immersion", have_magma_pattern);
+    toggle_field("magma_max_immersion", have_magma_pattern && flat_measured);
     // Contact press is only reached when the flat already covers the opening.
     toggle_line("magma_auto_slam_press", have_magma_pattern);
     // Plunge ("slam-melt"): depth field only when the plunge toggle is on

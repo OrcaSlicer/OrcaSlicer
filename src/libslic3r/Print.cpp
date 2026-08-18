@@ -1506,7 +1506,8 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 double line_w = rcfg.sparse_infill_line_width.get_abs_value(nozzle_d);
                 if (line_w <= 0) line_w = nozzle_d;
                 double cone_deg      = rcfg.magma_nozzle_cone_half_angle.value;
-                double max_immersion = obj_cfg.magma_max_immersion.value;
+                double max_immersion = magma::effective_max_immersion(
+                    rcfg.magma_nozzle_outer_diameter.value, obj_cfg.magma_max_immersion.value);
                 double slam_press    = obj_cfg.magma_auto_slam_press.value;
                 const magma::MagmaGeometry &geom = magma::magma_geometry_for(eff_pattern);
 
@@ -1566,11 +1567,14 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 if (warning && warning->string.empty() &&
                     rcfg.magma_nozzle_outer_diameter.value <= 0.0) {
                     warning->string = Slic3r::format(
-                        L("Magma is estimating your nozzle tip flat as %.2f mm (3x the bore) because "
-                          "it has not been measured. That estimate decides how large every injection "
-                          "tube is, and if it is too large the nozzle will not seal them.\n\n"
+                        L("Magma is running conservatively: your nozzle tip flat has not been "
+                          "measured, so it is estimated at %.2f mm and tubes are kept small enough "
+                          "for that estimate to cover outright (nozzle immersion is held at 0). "
+                          "Injection will seal, but the tubes are smaller than your nozzle can "
+                          "actually handle.\n\n"
                           "Measure the flat ring around your nozzle bore with calipers and set "
-                          "\"Nozzle tip flat\" under Magma Pattern."),
+                          "\"Nozzle tip flat\" under Magma Pattern to unlock larger tubes and more "
+                          "reinforcement."),
                         flat);
                     warning->object = object;
                     warning->is_warning = true;
