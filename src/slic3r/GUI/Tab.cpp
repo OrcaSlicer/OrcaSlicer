@@ -3942,6 +3942,10 @@ void TabFilament::build()
         }
 
         optgroup = page->new_optgroup(L("Multi-color co-extrusion"), "param_multi_material");
+        optgroup->m_on_change = [this](t_config_option_key opt_key, boost::any value) {
+            update_dirty();
+            on_value_change(opt_key, value);
+        };
         optgroup->append_single_option_line("filament_coextrusion_enable");
         auto *sector_colors = m_config->option<ConfigOptionStrings>("filament_coextrusion_colors");
         auto *sector_angles = m_config->option<ConfigOptionFloats>("filament_coextrusion_color_angles");

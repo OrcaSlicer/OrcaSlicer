@@ -138,14 +138,18 @@ bool edit_coextrusion_color_mapping(wxWindow *parent, bool force)
     DynamicPrintConfig full_config = preset_bundle->full_config();
     const auto *machine_enabled = full_config.option<ConfigOptionBool>("coextrusion_c_axis_enable");
     const auto *filament_enabled = full_config.option<ConfigOptionBool>("filament_coextrusion_enable");
-    const bool use_filament_config = filament_enabled != nullptr && filament_enabled->value;
+    const DynamicPrintConfig &edited_filament_config = preset_bundle->filaments.get_edited_preset().config;
+    const auto *edited_filament_enabled = edited_filament_config.option<ConfigOptionBool>("filament_coextrusion_enable");
+    const bool use_edited_filament_config = force && edited_filament_enabled != nullptr && edited_filament_enabled->value;
+    const bool use_filament_config = use_edited_filament_config || (filament_enabled != nullptr && filament_enabled->value);
     // The settings-page button may prepare a project mapping before the
     // printer capability is enabled. Automatic pre-slice prompting still
     // requires an enabled C axis.
     if ((machine_enabled == nullptr || !machine_enabled->value) && !(force && use_filament_config))
         return true;
-    const auto *sector_colors = full_config.option<ConfigOptionStrings>(
-        use_filament_config ? "filament_coextrusion_colors" : "coextrusion_c_axis_colors");
+    const auto *sector_colors = use_edited_filament_config ?
+        edited_filament_config.option<ConfigOptionStrings>("filament_coextrusion_colors") :
+        full_config.option<ConfigOptionStrings>(use_filament_config ? "filament_coextrusion_colors" : "coextrusion_c_axis_colors");
     const auto *source_colors = full_config.option<ConfigOptionStrings>("coextrusion_source_colors");
     const auto *filament_colors = full_config.option<ConfigOptionStrings>("filament_colour");
     const ConfigOptionStrings *logical_colors = source_colors != nullptr && !source_colors->values.empty() ? source_colors : filament_colors;
