@@ -9066,12 +9066,6 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
                 opt_key == "ironing_pattern"               ||
                 opt_key == "support_ironing_pattern") && value == "zig-zag") {
         value = "rectilinear";
-    } else if ((opt_key == "sparse_infill_pattern"         ||
-                opt_key == "top_surface_pattern"           ||
-                opt_key == "bottom_surface_pattern"        ||
-                opt_key == "internal_solid_infill_pattern") && value == "concentricspiral") {
-        // Spiral Inset went by Concentric Spiral while it was in development.
-        value = "spiralinset";
     } else if (opt_key == "filament_map_mode") {
         if (value == "Auto") value = "Auto For Flush";
     }
