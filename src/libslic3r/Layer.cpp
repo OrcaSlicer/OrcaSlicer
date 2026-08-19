@@ -474,4 +474,16 @@ BoundingBox get_extents(const LayerRegionPtrs &layer_regions)
     return bbox;
 }
 
+bool LayerRegion::has_dual_infill_zone() const
+{
+    // Both halves are required. The config says the feature is on for this region; the layer's
+    // zone_boundary says this particular layer actually has one. A layer can have the feature
+    // enabled and no boundary -- below the zone's first layer, above its last, or where the
+    // object cross-section is too small for the configured widths -- and on those layers every
+    // internal surface is ordinary sparse infill, not zone.
+    return this->region().config().dual_infill_enabled.value
+        && this->layer() != nullptr
+        && ! this->layer()->zone_boundary.empty();
+}
+
 }

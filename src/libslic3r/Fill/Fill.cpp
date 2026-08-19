@@ -913,7 +913,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 // Zone floor/ceiling use solid infill (they're the shell layers)
                 if (surface.is_zone_inner()) {
                     // Yolk: user's sparse_infill_pattern already set as default above
-                } else if (surface.surface_type == stInternal && region_config.dual_infill_enabled) {
+                } else if (surface.surface_type == stInternal && layerm.has_dual_infill_zone()) {
                     // Outer zone: the selected Magma reinforcement pattern. magma_effective_pattern
                     // clamps a stray non-Magma value (imported profile / 3mf / API) to Triangle so
                     // the zone always has injectable channels and matches MagmaTubeMap::build.
@@ -951,7 +951,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                         params.extrusion_role = erInternalBridgeInfill;
                     else
                         params.extrusion_role = erBridgeInfill;
-                } else if (surface.surface_type == stInternal && region_config.dual_infill_enabled) {
+                } else if (surface.surface_type == stInternal && layerm.has_dual_infill_zone()) {
                     params.extrusion_role = erZoneOuterInfill;
                 } else if (surface.is_zone_ceiling()) {
                     params.extrusion_role = erZoneCeiling;

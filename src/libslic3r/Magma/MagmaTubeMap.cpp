@@ -223,7 +223,6 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
 
     // Nominal config layer height (fallback for missing layers in lookup tables)
     map->m_layer_height = static_cast<float>(obj_config.layer_height.value);
-    map->m_dual_infill_enabled = config.dual_infill_enabled.value;
     map->m_solver_mode    = obj_config.magma_tube_solver_mode.value;
     map->m_solver_timeout = obj_config.magma_solver_timeout.value;
 
@@ -638,8 +637,12 @@ void MagmaTubeMap::scan_layers(const std::vector<Layer*> &layers)
         for (const LayerRegion *layerm : layer->regions()) {
             const PrintRegionConfig &region_config = layerm->region().config();
             for (const Surface &surface : layerm->fill_surfaces.surfaces) {
+                // The two halves are not the same test. Non-dual Magma makes the WHOLE sparse
+                // region the lattice, so stInternal is exactly right there. Dual infill only
+                // owns the part inside the zone boundary -- and on a layer with no boundary it
+                // owns nothing, which is what has_dual_infill_zone() encodes.
                 if (surface.surface_type == stInternal
-                           && (region_config.dual_infill_enabled || is_magma_pattern(region_config.sparse_infill_pattern.value))) {
+                           && (layerm->has_dual_infill_zone() || is_magma_pattern(region_config.sparse_infill_pattern.value))) {
                     zone_regions.push_back(surface.expolygon);
                 }
             }
@@ -1009,7 +1012,7 @@ void MagmaTubeMap::measure_volumes(const std::vector<Layer*> &layers)
         ExPolygons zone; Polygons walls;
         for (const LayerRegion *lr : layer->regions()) {
             const PrintRegionConfig &rc = lr->region().config();
-            if (!(rc.dual_infill_enabled || is_magma_pattern(rc.sparse_infill_pattern.value)))
+            if (!(lr->has_dual_infill_zone() || is_magma_pattern(rc.sparse_infill_pattern.value)))
                 continue;
             for (const Surface &s : lr->fill_surfaces.surfaces)
                 if (s.surface_type == stInternal) zone.push_back(s.expolygon);

@@ -1978,8 +1978,7 @@ void PrintObject::detect_surfaces_type()
                     // of two Arachne yolks produces noisy crescents at the shell edge.
                     Surfaces zone_floor;
                     Surfaces zone_ceiling;
-                    const PrintRegionConfig& region_config = layerm->region().config();
-                    if (region_config.dual_infill_enabled && !layer->zone_boundary.empty()) {
+                    if (layerm->has_dual_infill_zone()) {
                         ExPolygons current_zone = layer->zone_boundary;
                         ExPolygons lower_zone;
                         if (lower_layer)
@@ -2116,7 +2115,11 @@ void PrintObject::detect_surfaces_type()
                                 surfaces_append(surfaces_out, diff_ex(remainder, layer->zone_boundary), stInternal);
                                 surfaces_append(surfaces_out, intersection_ex(remainder, layer->zone_boundary), stZoneInner);
                             } else {
-                                // No zone boundary on this layer - all internal is outer zone
+                                // No zone boundary on this layer, so there is no zone here: plain
+                                // stInternal, meaning ordinary sparse infill. Consumers must read
+                                // it that way -- see LayerRegion::has_dual_infill_zone(). They
+                                // used to test dual_infill_enabled alone and take the whole
+                                // cross-section for zone.
                                 surfaces_append(surfaces_out, remainder, stInternal);
                             }
                         } else {
@@ -2995,7 +2998,7 @@ void PrintObject::bridge_over_infill()
                         // Collect solid surfaces - anything that provides support
                         // Zone: stInternal with dual_infill is outer zone (magma triangle, solid after injection).
                         // stZoneInner is the yolk (sparse). Non-dual-infill stInternal is regular sparse.
-                        bool is_dual = region->region().config().dual_infill_enabled;
+                        bool is_dual = region->has_dual_infill_zone();
                         bool is_sparse = (surface.surface_type == stZoneInner) ||
                                          (surface.surface_type == stInternal && !is_dual);
                         bool is_effectively_solid = region->region().config().sparse_infill_density.value == 100
@@ -3316,7 +3319,7 @@ void PrintObject::bridge_over_infill()
                 for (const Surface &surface : region->fill_surfaces) {
                     // Zone: stInternal with dual_infill is outer zone (solid after injection).
                     // stZoneInner is the yolk (sparse). Non-dual-infill stInternal is regular sparse.
-                    bool is_dual = region->region().config().dual_infill_enabled;
+                    bool is_dual = region->has_dual_infill_zone();
                     bool is_sparse = (surface.surface_type == stZoneInner && has_low_density) ||
                                      (surface.surface_type == stInternal && !is_dual && has_low_density) ||
                                      surface.surface_type == stInternalVoid;

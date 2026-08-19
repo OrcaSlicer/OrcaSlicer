@@ -310,7 +310,6 @@ private:
     // First index in m_layer_data that corresponds to a real object layer. Non-zero when a
     // raft is present, because Layer::id() is absolute and includes the raft offset.
     int    m_first_layer_id = 0;
-    bool   m_dual_infill_enabled;
     MagmaTubeSolverMode m_solver_mode = MagmaTubeSolverMode::Refined;
     double m_solver_timeout = 20.0;
     MagmaInjectionEdgePref m_injection_edge_pref = MagmaInjectionEdgePref::Interior;
