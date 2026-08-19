@@ -128,7 +128,8 @@ private:
 
 } // namespace
 
-bool edit_coextrusion_color_mapping(wxWindow *parent, bool force)
+bool edit_coextrusion_color_mapping(wxWindow *parent, bool force,
+                                    const DynamicPrintConfig *filament_config)
 {
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
     Plater *plater = wxGetApp().plater();
@@ -138,7 +139,8 @@ bool edit_coextrusion_color_mapping(wxWindow *parent, bool force)
     DynamicPrintConfig full_config = preset_bundle->full_config();
     const auto *machine_enabled = full_config.option<ConfigOptionBool>("coextrusion_c_axis_enable");
     const auto *filament_enabled = full_config.option<ConfigOptionBool>("filament_coextrusion_enable");
-    const DynamicPrintConfig &edited_filament_config = preset_bundle->filaments.get_edited_preset().config;
+    const DynamicPrintConfig &edited_filament_config = filament_config != nullptr ?
+        *filament_config : preset_bundle->filaments.get_edited_preset().config;
     const auto *edited_filament_colors = edited_filament_config.option<ConfigOptionStrings>("filament_coextrusion_colors");
     // The settings-page button must reflect the fields currently displayed in
     // the filament editor.  In particular, do not fall back to the legacy
