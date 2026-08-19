@@ -18,6 +18,7 @@
 #include "../ShortestPath.hpp"
 #include "../VariableWidth.hpp"
 
+#include "FillCornerSmoothing.hpp"
 #include "FillRectilinear.hpp"
 
 // #define SLIC3R_DEBUG
@@ -3363,6 +3364,10 @@ bool FillRectilinear::fill_surface_trapezoidal(
     if (Pattern_type != 0)
         for (Polyline &pl : polylines)
             pl.translate(rotate_vector.second);
+
+    // Orca: round the corners of the trapezoids. The straight base lines of the triangular family
+    // have no corner to round.
+    smooth_polylines_corners(polylines, params.smooth_factor, scaled<double>(params.resolution));
 
     // Apply multiline fill
     multiline_fill(polylines, params, spacing);
