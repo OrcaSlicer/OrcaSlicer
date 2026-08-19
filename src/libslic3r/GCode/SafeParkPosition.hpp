@@ -30,6 +30,26 @@ struct ParkResult {
     bool needs_z_hop() const { return priority >= ParkPriority::SparseInfill; }
 };
 
+// The E word for the park path's extra retract / unretract.
+//
+// This is the C0 bug reduced to arithmetic, and it is a header function so a test can reach
+// it: under RELATIVE E a retraction is the delta (negative); under ABSOLUTE E the same text
+// means "move the E axis TO that coordinate", so the delta must be turned into a target.
+// Emitting -2.0 at E=850 on an absolute-E machine is an ~850mm retraction that pulls the
+// filament past the drive gear. 14 shipped machine profiles run absolute E, and this path is
+// shared with ooze prevention, so it is not gated behind Magma being enabled.
+//
+// Both are symmetric: the unretract returns E exactly to e_before_park, so the writer's
+// tracked position stays correct without touching it.
+inline double park_extra_retract_e(bool relative_e, double e_before_park, double extra)
+{
+    return relative_e ? -extra : e_before_park - extra;
+}
+inline double park_extra_unretract_e(bool relative_e, double e_before_park, double extra)
+{
+    return relative_e ? extra : e_before_park;
+}
+
 // Maintains cumulative XY object footprint during G-code generation.
 // Multi-object aware: update() merges slices from all objects at each Z.
 // Simplifies polygons (~1mm tolerance) since parking only needs coarse precision.

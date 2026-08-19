@@ -187,13 +187,9 @@ std::string SafeParkPosition::park_and_set_temp(
         // Either way E ends where it started (the symmetric restore below), so the writer's
         // tracked position stays correct without touching it.
         if (extra_retract > 0) {
-            if (relative_e) {
-                snprintf(buf, sizeof(buf), "G1 E-%.4f F%d ; park extra retract\n",
-                         extra_retract, park_e_feedrate);
-            } else {
-                snprintf(buf, sizeof(buf), "G1 E%.4f F%d ; park extra retract\n",
-                         e_before_park - extra_retract, park_e_feedrate);
-            }
+            snprintf(buf, sizeof(buf), "G1 E%.4f F%d ; park extra retract\n",
+                     park_extra_retract_e(relative_e, e_before_park, extra_retract),
+                     park_e_feedrate);
             gcode += buf;
         }
     } else {
@@ -205,13 +201,9 @@ std::string SafeParkPosition::park_and_set_temp(
     gcode += gcodegen.writer().set_temperature(target_temp, true);
 
     if (park.position && extra_retract > 0) {
-        if (relative_e) {
-            snprintf(buf, sizeof(buf), "G1 E%.4f F%d ; park extra unretract\n",
-                     extra_retract, park_e_feedrate);
-        } else {
-            snprintf(buf, sizeof(buf), "G1 E%.4f F%d ; park extra unretract\n",
-                     e_before_park, park_e_feedrate);
-        }
+        snprintf(buf, sizeof(buf), "G1 E%.4f F%d ; park extra unretract\n",
+                 park_extra_unretract_e(relative_e, e_before_park, extra_retract),
+                 park_e_feedrate);
         gcode += buf;
     }
 

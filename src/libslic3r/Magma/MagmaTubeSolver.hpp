@@ -126,6 +126,18 @@ ValidationResult validate_committed(
     double min_h_mm, double max_h_mm, int num_layers,
     const char *label);
 
+// Smallest POSITIVE layer height at or above `first_layer`, or 0.0 when there is none.
+//
+// This is the C1 bug reduced to a scan, and it is a free function so a test can reach it.
+// m_layer_data is indexed by ABSOLUTE Layer::id(), and object layer ids start at
+// raft_layers(), so a raft leaves zero-filled placeholder rows below first_layer. Seeding the
+// minimum from row 0 seeded it with one of those 0.0s, which a `> 0` guard can never displace
+// -- so the minimum stayed 0, max_tube_height / 0.0 was +inf, and the cast to int was
+// undefined behaviour (INT_MIN on x86-64) that collapsed the Z window to a single layer and
+// silently disabled CP-SAT refinement on every raft print, while the user was told to raise
+// the solver timeout.
+double min_positive_layer_height(const std::vector<LayerData> &layer_data, int first_layer);
+
 // ============================================================================
 // MagmaTubeSolver — CP-SAT interval scheduling solver for tube assignment
 // ============================================================================

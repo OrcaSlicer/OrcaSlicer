@@ -18,6 +18,17 @@
 namespace Slic3r {
 namespace magma {
 
+double min_positive_layer_height(const std::vector<LayerData> &layer_data, int first_layer)
+{
+    // Start below first_layer only if the caller asked for it; rows under it are raft
+    // placeholders whose 0.0 height is an absence of data, not a thin layer.
+    double min_lh = 0.0;
+    for (int L = std::max(0, first_layer); L < int(layer_data.size()); ++L)
+        if (layer_data[L].height > 0 && (min_lh <= 0.0 || layer_data[L].height < min_lh))
+            min_lh = layer_data[L].height;
+    return min_lh;
+}
+
 // ============================================================================
 // Constructor
 // ============================================================================
@@ -83,14 +94,7 @@ void MagmaTubeSolver::solve(
     // Uses smallest layer height for conservative layer count.
     int z_stride;
     {
-        // Seed from the first REAL layer. Seeding from index 0 meant seeding with a raft
-        // placeholder's 0.0, which the `> 0` guard can never displace -- so min_lh stayed 0,
-        // m_max_h_mm / 0.0 was +inf, and the cast to int was undefined behaviour that
-        // collapsed max_h_layers to 1 and disabled CP-SAT on every raft print.
-        double min_lh = 0.0;
-        for (int L = m_first_layer; L < int(m_layer_data.size()); ++L)
-            if (m_layer_data[L].height > 0 && (min_lh <= 0.0 || m_layer_data[L].height < min_lh))
-                min_lh = m_layer_data[L].height;
+        const double min_lh = min_positive_layer_height(m_layer_data, m_first_layer);
         // Every layer from m_first_layer up is a real Layer with a real height, so this can
         // only fire if the map was built with no layers at all -- in which case there is
         // nothing to solve. Bail rather than invent a height and produce a plausible answer
