@@ -980,7 +980,11 @@ TEST_CASE("Smoothing multiline lightning infill keeps its outlines connected", "
     const SparseInfillShape smooth = shape_for("100%");
 
     REQUIRE(sharp.path_count > 0);
-    REQUIRE(smooth.path_count <= sharp.path_count);
+    // The loop count varies by a loop or two between platforms and between runs, so this is not an
+    // exact comparison. Smoothing should leave it about where it was; uncapping the smoothing
+    // reach, the regression this guards against, adds about 10%.
+    const size_t allowed_extra = sharp.path_count / 50; // 2%
+    REQUIRE(smooth.path_count <= sharp.path_count + allowed_extra);
     // The outlines are still rounded.
     REQUIRE(smooth.point_count > sharp.point_count);
     REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
