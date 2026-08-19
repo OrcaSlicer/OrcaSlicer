@@ -4,6 +4,47 @@
 namespace Slic3r {
 
 // 1-based extruder identifier for this region and role.
+// Single source of truth for "which 1-based filament prints this extrusion role".
+//
+// Upstream's per-role filament refactor wrote this decision out in six places, and they did not
+// agree -- top surface and bottom surface are distinguished in some and folded into internal
+// solid in others. The fork then added four zone roles on top. One mapping means adding a role
+// is one edit, and it means two call sites cannot quietly answer differently for the same role.
+//
+// NOTE this resolves the MAPPING only. Callers still choose which role to ask about, and that
+// is where the remaining inconsistency lives: LayerTools::extruder() classifies a collection by
+// its aggregate role() plus any_of helpers, while LibVGCodeWrapper reads
+// entities.front()->role(). Unifying THAT means agreeing what a mixed collection is, which is a
+// separate change.
+unsigned int filament_id_for_role(const PrintRegionConfig &config, ExtrusionRole role)
+{
+    switch (role) {
+    case erExternalPerimeter:
+    case erOverhangPerimeter:
+        return config.outer_wall_filament_id;
+    case erPerimeter:
+    // The zone shell is an inner wall: never visible from outside the part, and printing it with
+    // the inner perimeters costs no extra tool change.
+    case erZoneShell:
+        return config.inner_wall_filament_id;
+    case erTopSolidInfill:
+    case erIroning:
+        return config.top_surface_filament_id;
+    case erBottomSurface:
+        return config.bottom_surface_filament_id;
+    case erSolidInfill:
+    // Zone floor and ceiling are the zone's solid skins.
+    case erZoneFloor:
+    case erZoneCeiling:
+        return config.internal_solid_filament_id;
+    // The outer zone carries the lattice and prints with the zone's own filament.
+    case erZoneOuterInfill:
+        return config.dual_infill_outer_filament;
+    default:
+        return config.sparse_infill_filament_id;
+    }
+}
+
 unsigned int PrintRegion::extruder(FlowRole role) const
 {
     size_t extruder = 0;

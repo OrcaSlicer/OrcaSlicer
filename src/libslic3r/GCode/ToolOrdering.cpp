@@ -111,36 +111,20 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
 	assert(region.config().internal_solid_filament_id.value > 0);
 	assert(region.config().top_surface_filament_id.value > 0);
 	assert(region.config().bottom_surface_filament_id.value > 0);
-	// 1 based extruder ID.
-    // Dual infill zone filament routing: each fill collection has a single role.
-    // Zone outer infill (erZoneOuterInfill) → dual_infill_outer_filament
-    // Zone floor/ceiling (erZoneFloor/Ceiling) → internal_solid_filament_id (via is_solid_infill)
-    // Zone shell (erZoneShell) → inner_wall_filament_id (lives in perimeters, not fills)
+	// 1 based extruder ID. Role-to-filament routing, zone roles included, is in
+	// filament_id_for_role() (PrintRegion.cpp).
     unsigned int extruder = 1;
     if (this->extruder_override == 0) {
+        // Classification (which role this collection counts as) stays here; the mapping from
+        // that role to a filament lives in filament_id_for_role().
         if (extrusions.has_zone_fill())
-            extruder = region.config().dual_infill_outer_filament;
-        else if (extrusions.has_infill()) {
-            if (extrusions.has_solid_infill()) {
-                ExtrusionRole role = extrusions.role();
-                if (role == erTopSolidInfill || role == erIroning)
-                    extruder = region.config().top_surface_filament_id;
-                else if (role == erBottomSurface)
-                    extruder = region.config().bottom_surface_filament_id;
-                else
-                    extruder = region.config().internal_solid_filament_id;
-            } else {
-                extruder = region.config().sparse_infill_filament_id;
-            }
-        } else {
-            const ExtrusionRole role = extrusions.role();
-            if (role == erPerimeter || role == erZoneShell)
-                // The zone shell is an inner wall: never visible from outside the part, and
-                // routing it with the inner perimeters costs no additional tool change.
-                extruder = region.config().inner_wall_filament_id.value;
-            else
-                extruder = region.config().outer_wall_filament_id.value;
-        }
+            extruder = filament_id_for_role(region.config(), erZoneOuterInfill);
+        else if (extrusions.has_infill())
+            extruder = filament_id_for_role(region.config(),
+                                            extrusions.has_solid_infill() ? extrusions.role()
+                                                                          : erInternalInfill);
+        else
+            extruder = filament_id_for_role(region.config(), extrusions.role());
     } else
         extruder = this->extruder_override;
 

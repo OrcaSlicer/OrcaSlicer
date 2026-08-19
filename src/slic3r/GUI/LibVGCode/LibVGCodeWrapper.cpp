@@ -760,22 +760,18 @@ static void convert_object_to_vertices(const Slic3r::PrintObject& object, const 
                         // fill represents infill extrusions of a single island.
                         const auto& fill = *dynamic_cast<const Slic3r::ExtrusionEntityCollection*>(ee);
                         if (!fill.entities.empty()) {
+                            // Preview must colour by the filament the slicer will actually use,
+                            // so the mapping comes from filament_id_for_role() rather than a
+                            // fourth copy of it. An outer zone reads as solid whatever role its
+                            // entities carry, because after injection it is solid.
                             const Slic3r::ExtrusionRole role = fill.entities.front()->role();
-                            const bool is_solid_infill = Slic3r::is_solid_infill(role);
-                            size_t extruder_id;
-                            EGCodeExtrusionRole viz_role;
-                            if (fill.has_zone_fill()) {
-                                extruder_id = static_cast<size_t>(std::max(cfg.dual_infill_outer_filament.value - 1, 0));
-                                viz_role = EGCodeExtrusionRole::SolidInfill;
-                            } else {
-                                extruder_id = is_solid_infill ?
-                                    static_cast<size_t>(std::max((role == Slic3r::erTopSolidInfill || role == Slic3r::erIroning ? cfg.top_surface_filament_id.value :
-                                                                  role == Slic3r::erBottomSurface ? cfg.bottom_surface_filament_id.value :
-                                                                  cfg.internal_solid_filament_id.value) - 1, 0)) :
-                                    static_cast<size_t>(std::max(cfg.sparse_infill_filament_id.value - 1, 0));
-                                viz_role = is_solid_infill ? EGCodeExtrusionRole::SolidInfill
-                                                           : EGCodeExtrusionRole::InternalInfill;
-                            }
+                            const bool is_zone = fill.has_zone_fill();
+                            const bool is_solid_infill = is_zone || Slic3r::is_solid_infill(role);
+                            const size_t extruder_id = static_cast<size_t>(std::max(
+                                int(Slic3r::filament_id_for_role(cfg, is_zone ? Slic3r::erZoneOuterInfill : role)) - 1, 0));
+                            const EGCodeExtrusionRole viz_role = is_solid_infill
+                                ? EGCodeExtrusionRole::SolidInfill
+                                : EGCodeExtrusionRole::InternalInfill;
                             convert_to_vertices(fill, layer_z, layer_id, extruder_id,
                                                 object_helper.color_id(layer_z, extruder_id),
                                                 viz_role, copy, data.vertices);
