@@ -4894,11 +4894,19 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 // Mirror first_visible_idx()'s start index so suppressed default presets are
                 // never picked as a slot material.
                 const size_t first_candidate = this->filaments.is_default_suppressed() ? this->filaments.num_default_presets() : 0;
-                // Candidate preference for a published entry: exact setting_id (variant-level,
-                // since "Generic PLA" and "Generic PLA Matte" share filament_id), then exact
-                // filament_id, then vendor+type, then type only (a type-only pick may surface an
-                // unrelated preset, e.g. a different vendor's PLA).
+                // Candidate preference for a published entry: exact preset name (unambiguous
+                // even when ids are shared between variants or missing from older files), then
+                // exact setting_id (variant-level, since "Generic PLA" and "Generic PLA Matte"
+                // share filament_id), then exact filament_id, then vendor+type, then type only
+                // (a type-only pick may surface an unrelated preset, e.g. a different vendor's
+                // PLA).
                 auto candidate_score = [](const Preset &candidate, const PublishedMaterialEntry &entry) -> int {
+                    if (!entry.preset_name.empty()) {
+                        const std::string bare_name = entry.preset_name.substr(0, entry.preset_name.find('@'));
+                        if (candidate.name == entry.preset_name || candidate.alias == entry.preset_name ||
+                            candidate.name == bare_name || candidate.alias == bare_name)
+                            return 4;
+                    }
                     if (!entry.setting_id.empty() && candidate.setting_id == entry.setting_id)
                         return 3;
                     const ConfigOptionStrings *types   = candidate.config.opt<ConfigOptionStrings>("filament_type");
@@ -4926,10 +4934,13 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             int best_score = -1;
                             for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
                                 const Preset &candidate = this->filaments.preset(i);
-                                if (!candidate.is_visible || used_preset_names.count(candidate.name) != 0)
-                                    continue;
                                 const int score = candidate_score(candidate, entry);
                                 if (score > best_score) {
+                                    // Exact identity tiers (name / setting_id) win even when the
+                                    // preset is hidden or already referenced by another slot; the
+                                    // alias re-pointing pass below still de-aliases afterwards.
+                                    if (score < 3 && (!candidate.is_visible || used_preset_names.count(candidate.name) != 0))
+                                        continue;
                                     best_score = score;
                                     initial_preset = candidate.name;
                                 }
@@ -4979,9 +4990,13 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             continue;
                         for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
                             const Preset &candidate = this->filaments.preset(i);
-                            if (!candidate.is_visible || referenced_elsewhere(candidate.name, size_t(-1)))
-                                continue;
                             const int score = candidate_score(candidate, entry);
+                            // Exact identity tiers (name / setting_id) may use a hidden preset;
+                            // the referenced check stays: re-pointing exists to de-alias.
+                            if (score < 3 && !candidate.is_visible)
+                                continue;
+                            if (referenced_elsewhere(candidate.name, size_t(-1)))
+                                continue;
                             if (score > best_score) {
                                 best_score = score;
                                 replacement = candidate.name;
@@ -5106,10 +5121,13 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                 std::string best_name;
                                 for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
                                     const Preset &candidate = this->filaments.preset(i);
-                                    if (!candidate.is_visible)
-                                        continue;
                                     const int score = candidate_score(candidate, entry);
                                     if (score <= best_score)
+                                        continue;
+                                    // Lower tiers (vendor+type, type only) need a visible preset;
+                                    // an exact identity match (name / setting_id) wins even when
+                                    // the preset is hidden in the library.
+                                    if (score < 3 && !candidate.is_visible)
                                         continue;
                                     if (unreferenced_only) {
                                         bool used = false;

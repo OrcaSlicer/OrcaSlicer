@@ -7252,6 +7252,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                                 entry.filament_id = mat["filament_id"].get<std::string>();
                                             if (mat.contains("setting_id") && mat["setting_id"].is_string())
                                                 entry.setting_id = mat["setting_id"].get<std::string>();
+                                            if (mat.contains("name") && mat["name"].is_string())
+                                                entry.preset_name = mat["name"].get<std::string>();
                                         }
                                         if (m.contains("slot") && m["slot"].is_number_integer())
                                             entry.slot = m["slot"].get<int>();
@@ -16251,7 +16253,7 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
         j.push_back(key);
     nlohmann::json jm = nlohmann::json::array();
     for (const Slic3r::PublishedMaterialEntry& e : material_keys)
-        jm.push_back({ {"material", {{"filament_type", e.filament_type}, {"filament_vendor", e.filament_vendor}, {"filament_id", e.filament_id}, {"setting_id", e.setting_id}}}, {"slot", e.slot}, {"keys", e.keys},
+        jm.push_back({ {"material", {{"filament_type", e.filament_type}, {"filament_vendor", e.filament_vendor}, {"filament_id", e.filament_id}, {"setting_id", e.setting_id}, {"name", e.preset_name}}}, {"slot", e.slot}, {"keys", e.keys},
                        {"full", e.full}, {"full_keys", e.full_keys},
                        {"publish_type", e.publish_type}, {"type", e.publish_type_value},
                        {"publish_color", e.publish_color}, {"color", e.color} });

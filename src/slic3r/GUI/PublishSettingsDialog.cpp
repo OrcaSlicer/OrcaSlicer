@@ -924,11 +924,14 @@ std::vector<Slic3r::PublishedMaterialEntry> PublishSettingsDialog::GetPublishedM
         entry.filament_id     = cat.filament_id;
         entry.slot            = static_cast<int>(cat.filament_slot);
         // The author's preset id distinguishes exact variants that share filament_id
-        // ("Generic PLA" vs "Generic PLA Matte"), so the receiver can match precisely.
+        // ("Generic PLA" vs "Generic PLA Matte"), so the receiver can match precisely; the
+        // preset name is the most direct identity and is matched first on load.
         PresetBundle *bundle = wxGetApp().preset_bundle;
         if (bundle != nullptr && cat.filament_slot < bundle->filament_presets.size()) {
-            if (const Preset *preset = bundle->filaments.find_preset(bundle->filament_presets[cat.filament_slot], false, true))
-                entry.setting_id = preset->setting_id;
+            if (const Preset *preset = bundle->filaments.find_preset(bundle->filament_presets[cat.filament_slot], false, true)) {
+                entry.setting_id  = preset->setting_id;
+                entry.preset_name = preset->name;
+            }
         }
         // "Full Publish": the whole filament preset is embedded; type and colour are implicitly
         // published, and the per-key rows are disabled / their state ignored.

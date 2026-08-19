@@ -40,6 +40,10 @@ struct PublishedMaterialEntry {
     // used on load to match the exact published variant, which filament_id alone cannot
     // distinguish ("Generic PLA" and "Generic PLA Matte" share their inherited id).
     std::string setting_id;
+    // Canonical name of the author's slot preset (e.g. "Generic PLA @System"). The receiver
+    // prefers an exact name/alias match over id matching: ids can be shared across variants
+    // or missing from older files, the name is what the author actually selected.
+    std::string preset_name;
     // 0-based author filament slot; -1 (hand-crafted files) is skipped.
     int         slot{-1};
     std::vector<std::string> keys;

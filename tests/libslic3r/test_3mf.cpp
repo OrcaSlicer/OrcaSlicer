@@ -684,7 +684,7 @@ SCENARIO("Minimal published 3MF serialization filters config and omits embedded 
 
         const std::vector<std::string> published_keys = { "layer_height", "retraction_length" };
         const std::vector<PublishedMaterialEntry> material_keys = {
-            { "PLA", "Generic", "GFL99", "", 0, { "filament_retraction_length" } }
+            { "PLA", "Generic", "GFL99", "", "Generic PLA", 0, { "filament_retraction_length" } }
         };
 
         DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_keys);
@@ -792,7 +792,7 @@ SCENARIO("Published 3MF round-trips the extended material metadata", "[3mf]") {
         model.add_default_instances();
 
         const std::string material_keys_json =
-            R"([{"material":{"filament_type":"PLA","filament_vendor":"Generic","filament_id":"GFL99","setting_id":"RFs9eCKYOMUSmvZf"},"slot":1,"keys":[],"full":true,"full_keys":["filament_retraction_length","filament_colour"],"publish_type":true,"type":"PLA","publish_color":false,"color":""}])";
+            R"([{"material":{"filament_type":"PLA","filament_vendor":"Generic","filament_id":"GFL99","setting_id":"RFs9eCKYOMUSmvZf","name":"Generic PLA Matte @System"},"slot":1,"keys":[],"full":true,"full_keys":["filament_retraction_length","filament_colour"],"publish_type":true,"type":"PLA","publish_color":false,"color":""}])";
 
         model.model_info = std::make_shared<ModelInfo>();
         model.model_info->metadata_items["published_material_keys"] = material_keys_json;
