@@ -3438,7 +3438,6 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("tpmsfk");
     def->enum_values.push_back("gyroid");
     def->enum_values.push_back("concentric");
-    def->enum_values.push_back("spiralinset");
     def->enum_values.push_back("hilbertcurve");
     def->enum_values.push_back("archimedeanchords");
     def->enum_values.push_back("octagramspiral");
@@ -3465,7 +3464,6 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("TPMS-FK"));
     def->enum_labels.push_back(L("Gyroid"));
     def->enum_labels.push_back(L("Concentric"));
-    def->enum_labels.push_back(L("Spiral Inset"));
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));

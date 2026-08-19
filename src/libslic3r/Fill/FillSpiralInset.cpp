@@ -300,7 +300,7 @@ void FillSpiralInset::_fill_surface_single(const FillParams& params,
 {
     BoundingBox bounding_box = expolygon.contour.bounding_box();
 
-    coord_t min_spacing = scale_(this->spacing) * params.multiline;
+    coord_t min_spacing = scale_(this->spacing);
     coord_t distance    = coord_t(min_spacing / params.density);
 
     if (params.density > 0.9999f && !params.dont_adjust) {
@@ -308,11 +308,9 @@ void FillSpiralInset::_fill_surface_single(const FillParams& params,
         this->spacing = unscale<double>(distance);
     }
 
-    ExPolygons contracted = offset_ex(expolygon, -float(scale_(0.5 * (params.multiline - 1) * this->spacing)));
+    Polygons loops = to_polygons(expolygon);
 
-    Polygons loops = to_polygons(contracted);
-
-    ExPolygons last{std::move(contracted)};
+    ExPolygons last{std::move(expolygon)};
     while (!last.empty()) {
         last = offset2_ex(last, -(distance + min_spacing / 2), +min_spacing / 2);
         append(loops, to_polygons(last));
@@ -328,8 +326,6 @@ void FillSpiralInset::_fill_surface_single(const FillParams& params,
 
     Polylines spiral_result = generate_spiral_insets<Polygon, Polyline>(params, loop_refs, loops, distance, expolygon);
 
-    // Apply multiline offset if needed.
-    multiline_fill(spiral_result, params, spacing);
     append(polylines_out, spiral_result);
 }
 
