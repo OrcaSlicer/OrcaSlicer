@@ -41,6 +41,11 @@ using namespace nlohmann;
 #define SETTING_OPENGL_PHONG_SSAO "opengl_phong_ssao"
 #define SETTING_OPENGL_PHONG_SMOOTH_NORMALS "opengl_phong_smooth_normals"
 
+#define SETTING_PLUGIN_PAGES_VISIBLE_COUNT "plugin_pages_visible_count"
+#define PLUGIN_PAGES_VISIBLE_COUNT_MIN 1
+#define PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT 5
+#define PLUGIN_PAGES_VISIBLE_COUNT_MAX 10
+
 #if defined(_WIN32) || defined(_WIN64)
 #define BAMBU_NETWORK_AGENT_VERSION_LEGACY "01.10.01.09"
 #else
@@ -373,6 +378,10 @@ public:
 
     std::string get_network_plugin_version() const;
     void set_network_plugin_version(const std::string& version);
+
+    // Number of plugin pages shown as fixed tabs before the rest are collapsed into a
+    // dropdown on the last tab.
+    int get_plugin_pages_visible_count() const;
 
     std::vector<std::string> get_skipped_network_versions() const;
     void add_skipped_network_version(const std::string& version);
