@@ -7208,9 +7208,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     }
                 }
 
-                // BBS: a "published" 3MF project carries a flag plus a list of author-selected
-                // setting keys. When present, keep the user's currently-selected presets and
-                // overlay only the published keys onto the edited presets on load.
+                // BBS: a "published" 3MF carries a flag plus the author-selected setting keys;
+                // on load keep the user's current presets and overlay only those keys.
                 PublishedConfig published_config;
                 if (model.model_info != nullptr) {
                     auto published_it = model.model_info->metadata_items.find("published");
@@ -7249,6 +7248,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                                 entry.filament_vendor = mat["filament_vendor"].get<std::string>();
                                             if (mat.contains("filament_id") && mat["filament_id"].is_string())
                                                 entry.filament_id = mat["filament_id"].get<std::string>();
+                                            if (mat.contains("setting_id") && mat["setting_id"].is_string())
+                                                entry.setting_id = mat["setting_id"].get<std::string>();
                                         }
                                         if (m.contains("slot") && m["slot"].is_number_integer())
                                             entry.slot = m["slot"].get<int>();
@@ -7257,7 +7258,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                             for (const auto &k : *entry_keys_it)
                                                 if (k.is_string())
                                                     entry.keys.emplace_back(k.get<std::string>());
-                                        // Filament-publishing-v2 fields; absent in legacy files.
+                                        // Fields always written by the current exporter.
                                         if (m.contains("full") && m["full"].is_boolean())
                                             entry.full = m["full"].get<bool>();
                                         const auto entry_full_keys_it = m.find("full_keys");
@@ -7282,10 +7283,10 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     }
                 }
 
-                // BBS: a "published" 3MF behaves like a new project once loaded: the file's path
-                // must not become the project filename (Save/Ctrl-S would otherwise overwrite the
-                // shared file), and the published metadata is consumed by the overlay above and
-                // stripped so a later save produces a normal, unpublished 3MF.
+                // BBS: a "published" 3MF loads as a new project: its path must not become the
+                // project filename (Save/Ctrl-S would overwrite the shared file), and the
+                // published metadata is consumed above and stripped so a later save is a normal
+                // unpublished 3MF.
                 if (published_out != nullptr && published_config.published)
                     *published_out = true;
                 if (published_config.published && load_config && this->model.model_info != nullptr) {
@@ -13309,10 +13310,10 @@ void Plater::load_project(wxString const& filename2,
             p->set_project_filename(filename);
         }
         else if (loaded_published) {
-            // A "published" 3MF loads as a new project: the shared file's path must not become
-            // the project filename, so Save/Ctrl-S prompts for a destination instead of
-            // overwriting the published file. reset() above already cleared the project name
-            // and folder; restore the default new-project title and keep the file in recents.
+            // A "published" 3MF loads as a new project: its path must not become the project
+            // filename (Save/Ctrl-S prompts for a destination instead of overwriting it);
+            // reset() already cleared the project name, so restore the default title and keep
+            // the file in recents.
             p->set_project_name(_L("Untitled"));
             if (!filename.IsEmpty())
                 wxGetApp().mainframe->add_to_recent_projects(filename);
@@ -16225,10 +16226,9 @@ void Plater::export_core_3mf()
     export_3mf(path_u8, SaveStrategy::Silence);
 }
 
-// Export the current project as a "published" 3MF. This is a pure export: unlike save_project(),
-// it never touches the project's file name, dirty state, backup path or title, and the
-// published metadata is attached to the model only for the duration of the export so the
-// in-memory project stays exactly as it was (a later Save Project produces a normal 3MF).
+// Export the current project as a "published" 3MF: a pure export that never touches the
+// project's file name, dirty state, backup path or title, and attaches the published metadata
+// to the model only for the duration of the export (a later Save Project is a normal 3MF).
 int Plater::export_published_3mf(const std::vector<std::string>& published_keys, const std::vector<Slic3r::PublishedMaterialEntry>& material_keys)
 {
     wxString path = p->get_export_file(FT_3MF, _L("Publish 3MF file as:"));
@@ -16240,14 +16240,14 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
         j.push_back(key);
     nlohmann::json jm = nlohmann::json::array();
     for (const Slic3r::PublishedMaterialEntry& e : material_keys)
-        jm.push_back({ {"material", {{"filament_type", e.filament_type}, {"filament_vendor", e.filament_vendor}, {"filament_id", e.filament_id}}}, {"slot", e.slot}, {"keys", e.keys},
+        jm.push_back({ {"material", {{"filament_type", e.filament_type}, {"filament_vendor", e.filament_vendor}, {"filament_id", e.filament_id}, {"setting_id", e.setting_id}}}, {"slot", e.slot}, {"keys", e.keys},
                        {"full", e.full}, {"full_keys", e.full_keys},
                        {"publish_type", e.publish_type}, {"type", e.publish_type_value},
                        {"publish_color", e.publish_color}, {"color", e.color} });
 
     Model& model = this->model();
-    // Remember the previous metadata state so it can be restored after the export, keeping the
-    // in-memory project pristine (the published flag lives only in the exported file).
+    // Save the previous metadata so it can be restored after the export, keeping the in-memory
+    // project pristine (the published flag lives only in the exported file).
     const bool had_model_info       = (model.model_info != nullptr);
     const bool had_published        = had_model_info && (model.model_info->metadata_items.find("published") != model.model_info->metadata_items.end());
     const bool had_published_keys   = had_model_info && (model.model_info->metadata_items.find("published_keys") != model.model_info->metadata_items.end());
@@ -16261,15 +16261,13 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
     model.model_info->metadata_items["published_keys"] = j.dump();
     model.model_info->metadata_items["published_material_keys"] = jm.dump();
 
-    // Minimal published export: filter full_config to only the published keys, material keys,
-    // identity fields, and plate geometry keys, and omit project-embedded preset dumps.
+    // Minimal published export: filter full_config to the published keys, material keys,
+    // identity fields and plate geometry keys, and omit project-embedded preset dumps.
     DynamicPrintConfig full_cfg = wxGetApp().preset_bundle->full_config_secure();
     DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_keys);
 
-    // Same file layout save_project() uses for its project files, plus SaveStrategy::Silence and SaveStrategy::MinimalPublished:
-    // without it export_3mf() calls set_project_filename() on success, which would make this
-    // pure export the current project file. Silence keeps the project state untouched, exactly
-    // like export_core_3mf().
+    // Same file layout as save_project(), plus Silence (so export_3mf does not set the project
+    // filename on success, keeping this a pure export like export_core_3mf()) and MinimalPublished.
     auto save_strategy = SaveStrategy::SplitModel | SaveStrategy::ShareMesh | SaveStrategy::Silence | SaveStrategy::MinimalPublished;
     bool full_pathnames = wxGetApp().app_config->get_bool("export_sources_full_pathnames");
     if (full_pathnames)

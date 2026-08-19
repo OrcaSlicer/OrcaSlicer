@@ -23,8 +23,8 @@
 namespace Slic3r { namespace GUI {
 namespace {
 
-// Menu ids for show_menu(). Dedicated range above the standard ids so the popup cannot
-// collide with application-level bindings (e.g. MainFrame's recent-files wxID_FILE1.. range).
+// Menu ids for show_menu(): dedicated range so the popup cannot collide with application-level
+// bindings (e.g. MainFrame's recent-files wxID_FILE1.. range).
 enum {
     kPublishSelectAll = wxID_HIGHEST + 1,
     kPublishDeselectAll,
@@ -49,9 +49,7 @@ PublishMaterialIdentity material_identity(size_t slot, const DynamicPrintConfig&
     return identity;
 }
 
-// "Generic PLA @System" -> "Generic PLA"; mirrors the alias derivation in
-// PresetBundle::load_vendor_configs_from_json (PresetBundle.cpp) and
-// PresetCollection::set_custom_preset_alias (Preset.cpp).
+// "Generic PLA @System" -> "Generic PLA"; mirrors the alias derivation in PresetBundle.cpp.
 std::string material_display_name(const std::string& preset_name)
 {
     const size_t at = preset_name.find_first_of('@');
@@ -62,8 +60,8 @@ std::string material_display_name(const std::string& preset_name)
     return bare.empty() ? preset_name : bare;
 }
 
-// Human-readable section title for a filament slot: the resolved preset name,
-// falling back to the filament type, then to the generic "Material".
+// Section title for a filament slot: the resolved preset name, then the filament type, then
+// the generic "Material".
 wxString material_title(size_t slot, const PresetBundle* bundle, const DynamicPrintConfig& full)
 {
     if (slot < bundle->filament_presets.size()) {
@@ -165,8 +163,7 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
     auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-        // Publish is always allowed: no settings selected means a publish with
-        // no settings override.
+        // Publish is always allowed: no settings selected means no settings override.
         EndModal(wxID_OK);
     });
     dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
@@ -183,12 +180,11 @@ PublishSettingsDialog::~PublishSettingsDialog() {}
 
 void PublishSettingsDialog::build_option_model()
 {
-    // Structural / non-publishable keys, shared with the published-3MF overlay
-    // path (see libslic3r/PublishSettings.hpp).
+    // Structural / non-publishable keys, shared with the published-3MF overlay path.
     const std::set<std::string>& denylist = publish_structural_keys();
-    // Base keys already added in the print/printer sections. Printer rows share
-    // this set: a base key appears once (per-extruder "#N" variants collapse to
-    // the first occurrence - acceptable MVP; the per-extruder context is lost).
+    // Base keys already added in the print/printer sections. Printer rows share this set:
+    // per-extruder "#N" variants collapse to the first occurrence (acceptable MVP; the
+    // per-extruder context is lost in the UI).
     std::set<std::string> added;
 
     PresetBundle* bundle    = wxGetApp().preset_bundle;
@@ -198,17 +194,17 @@ void PublishSettingsDialog::build_option_model()
     m_info_allsel = _L("All items selected...");
     m_info_empty  = _L("No matching items...");
 
-    // Keep the tab order explicit: Section's enum order is Print, Printer,
-    // Material, while the dialog presents Printer, Filament, Process.
+    // Tab order differs from Section's enum order (Print, Printer, Material): the dialog
+    // presents Printer, Filament, Process.
     m_sections.reserve(3);
     const Section tab_order[] = {Section::Printer, Section::Material, Section::Print};
     for (Section kind : tab_order)
         section_group_for(kind);
     bind_tab_events();
 
-    // Shared per-option label/value computation; returns false when the option
-    // must be skipped (denylisted / unknown / empty label). value is the pure
-    // stringified value; unit is the translated sidetext (may be empty).
+    // Shared per-option label/value computation; returns false when the option must be skipped
+    // (denylisted / unknown / empty label). value is the stringified value; unit the translated
+    // sidetext (may be empty).
     auto option_text = [&denylist, &full](const std::string& opt_id, const std::string& pure_key, wxString& label, wxString& value,
                                           wxString& unit) -> bool {
         if (denylist.count(pure_key) > 0)
@@ -224,9 +220,8 @@ void PublishSettingsDialog::build_option_model()
         return true;
     };
 
-    // --- Phase 1: printer per-extruder retraction settings (displayed first,
-    // mirroring the sidebar's Printer group). The printer tab's
-    // "Extruder"/"Extruder N" pages carry the per-extruder retraction options.
+    // --- Phase 1: printer per-extruder retraction settings (first, mirroring the sidebar's
+    // Printer group), from the printer tab's "Extruder"/"Extruder N" pages.
     {
         size_t g = section_group_for(Section::Printer);
         category_index_for(_L("Extruder"), Section::Printer, "custom-gcode_extruder", g, 0);
@@ -238,18 +233,17 @@ void PublishSettingsDialog::build_option_model()
                     continue;
                 const wxString page_title = Tab::translate_category(page->title(), tab->m_type);
                 for (const ConfigOptionsGroupShp& optgroup : page->m_optgroups) {
-                    // Allowlist on the untranslated optgroup title; the "Retraction
-                    // when switching material" group is intentionally skipped.
+                    // Allowlist on the untranslated optgroup title; the "Retraction when
+                    // switching material" group is intentionally skipped.
                     if (optgroup->title != "Retraction" && optgroup->title != "Z-Hop")
                         continue;
                     const wxString subcategory = _(optgroup->title);
                     for (const auto& opt : optgroup->opt_map()) {
                         const std::string& opt_id   = opt.first;
                         const std::string& pure_key = opt.second.first;
-                        // Per-extruder "#N" variants collapse to the first base key. The row stores
-                        // the BASE key (whole-vector semantics on load: the size-guarded apply
-                        // copies the author's full vector), while the "#0" opt_id is only used to
-                        // display the first extruder's value.
+                        // Per-extruder "#N" variants collapse to the first base key. The row
+                        // stores the base key; GetPublishedKeys() later expands it back to one
+                        // "#N" entry per extruder so the load side can apply per-extruder values.
                         if (!added.insert(pure_key).second)
                             continue;
                         wxString label, value, unit;
@@ -264,8 +258,8 @@ void PublishSettingsDialog::build_option_model()
         }
     }
 
-    // --- Phase 2: per-material sections synthesized from the filament tab's
-    // "Setting Overrides" page, under the Filament group.
+    // --- Phase 2: per-material sections synthesized from the filament tab's "Setting
+    // Overrides" page, under the Filament group.
     {
         size_t g          = section_group_for(Section::Material);
         Tab* filament_tab = nullptr;
@@ -283,17 +277,16 @@ void PublishSettingsDialog::build_option_model()
                 }
 
             if (overrides_page != nullptr) {
-                // One section per filament slot: a 4-slot printer (e.g. 1 PLA +
-                // 3 PETG) shows 4 separate pages, each disambiguated internally by
-                // its colour chip and slot identity while displaying the bare name.
+                // One section per filament slot (a 4-slot printer shows 4 pages), each
+                // disambiguated by its colour chip and slot identity while showing the bare name.
                 for (size_t slot = 0; slot < bundle->filament_presets.size(); ++slot) {
                     const PublishMaterialIdentity identity = material_identity(slot, full);
                     const wxString title                   = material_title(slot, bundle, full);
                     const size_t category_index = category_index_for(title, Section::Material, "custom-gcode_filament", g, slot, identity);
 
-                    // Filament-publishing-v2 rows: the author may require a filament colour and/or
-                    // a vendor-agnostic material type for this slot. They live in their own
-                    // optgroup so they stay visually separated from the setting rows.
+                    // Material requirement rows: an optional filament colour and/or a
+                    // vendor-agnostic material type for this slot, in their own optgroup so they
+                    // stay visually separated from the setting rows.
                     {
                         const size_t req_sub = subcategory_index_for(category_index, _L("Material"), "custom-gcode_filament");
                         std::string hex;
@@ -309,18 +302,16 @@ void PublishSettingsDialog::build_option_model()
                                    RowKind::Type);
                     }
 
-                    // A material section must not repeat a key; the same key may
-                    // appear in other material sections - that is intended.
+                    // A material section must not repeat a key; the same key may appear in other
+                    // material sections - that is intended.
                     std::set<std::string> material_added;
 
                     for (const ConfigOptionsGroupShp& optgroup : overrides_page->m_optgroups) {
-                        // Allowlist on the untranslated optgroup title; the
-                        // "Ironing" group is intentionally skipped.
+                        // Allowlist on the untranslated optgroup title; "Ironing" is skipped.
                         if (optgroup->title != "Retraction" && optgroup->title != "Retraction when switching material")
                             continue;
                         for (const auto& opt : optgroup->opt_map()) {
-                            // Row keys are base keys (no "#N"): the load side
-                            // matches the material and uses the author's slot.
+                            // Row keys are base keys; the load side applies them positionally.
                             const std::string& opt_id = opt.first;
                             std::string base          = opt_id.substr(0, opt_id.find('#'));
                             if (!material_added.insert(base).second)
@@ -381,17 +372,15 @@ void PublishSettingsDialog::build_option_model()
         }
     }
 
-    // Pre-check the dirty (modified) settings and mark them bold. The base-key
-    // match covers all sections; collect_dirty_settings_keys already unions the
-    // prints, printers and filaments of the bundle.
+    // Pre-check the dirty (modified) settings and mark them bold (base-key match, across all
+    // sections; collect_dirty_settings_keys unions the prints, printers and filaments).
     std::set<std::string> dirty_base;
     for (const std::string& key : collect_dirty_settings_keys(*wxGetApp().preset_bundle)) {
         auto n = key.find('#');
         dirty_base.insert(n == std::string::npos ? key : key.substr(0, n));
     }
     for (Row& row : m_rows) {
-        // The Color/Type requirement rows are not "dirty overrides": they are never
-        // auto-checked by the dirty pre-check.
+        // The Color/Type requirement rows are not "dirty overrides": never auto-checked.
         if (row.kind != RowKind::Setting)
             continue;
         std::string base = row.key.substr(0, row.key.find('#'));
@@ -402,8 +391,8 @@ void PublishSettingsDialog::build_option_model()
         }
     }
 
-    // Wire the "Full Publish" checkboxes: toggling one disables/enables the material's
-    // rows. Bind by index so the lambda stays valid even if the vector is reallocated later.
+    // Wire the "Full Publish" checkboxes: toggling one disables/enables the material's rows.
+    // Bind by index so the lambda stays valid even if the vector is reallocated later.
     for (size_t c = 0; c < m_categories.size(); ++c)
         if (m_categories[c].full_check != nullptr)
             m_categories[c].full_check->Bind(wxEVT_CHECKBOX, [this, c](wxCommandEvent&) { on_full_toggle(c); });
@@ -449,6 +438,7 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
         section.icon_name = "process";
         break;
     }
+    section.icon_bmp = ScalableBitmap(this, section.icon_name, 16);
 
     constexpr long tab_style = wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS |
                                wxTR_FULL_ROW_HIGHLIGHT;
@@ -466,7 +456,10 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
     page_sizer->Add(section.page_host, 1, wxEXPAND | wxTOP, FromDIP(4));
     section.page->SetSizer(page_sizer);
 
-    m_outer_tabs->AppendItem(section.title);
+    if (section.icon_bmp.bmp().IsOk())
+        m_outer_tabs->AppendItem(section.title, section.icon_bmp.bmp());
+    else
+        m_outer_tabs->AppendItem(section.title);
     m_outer_host_sizer->Add(section.page, 1, wxEXPAND);
     section.page->Hide();
     m_sections.push_back(std::move(section));
@@ -610,7 +603,7 @@ void PublishSettingsDialog::add_row_ui(const std::string& key,
     auto* row_sizer = new wxBoxSizer(wxHORIZONTAL);
     row_sizer->Add(current.check, 0, wxALIGN_CENTER_VERTICAL);
     // The value is read-only text (incl. the Type row: the published type is the slot's
-    // normalized type, the author cannot pick a different one here).
+    // normalized type, not author-editable).
     current.value_label = new wxStaticText(category.scroll, wxID_ANY, value, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
     current.value_label->SetFont(Label::Body_13);
     current.value_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
@@ -643,8 +636,7 @@ void PublishSettingsDialog::on_full_toggle(size_t category_index)
 
 void PublishSettingsDialog::set_row_bold(Row& row, bool bold)
 {
-    // Real set/clear: rebase on the dialog's body font so that clearing bold
-    // restores the exact original font (the old CheckList::SetBold was one-way).
+    // Rebase on the dialog's body font so clearing bold restores the exact original font.
     row.check->SetFont(bold ? Label::Body_13.Bold() : Label::Body_13);
 }
 
@@ -718,12 +710,11 @@ void PublishSettingsDialog::apply_filter(const wxString& filter_text)
     Freeze();
     wxString filter = filter_text.Lower();
 
-    // Pseudo filters (menu only): show only checked ("::sel") or only
-    // unchecked ("::nonsel") rows.
+    // Pseudo filters (menu only): show only checked ("::sel") or only unchecked ("::nonsel").
     const bool pseudo = (filter == "::sel" || filter == "::nonsel");
     m_fb_sizer->Show(!pseudo);
 
-    // Update row matches first; page and optgroup visibility is applied below.
+    // Row matches are computed first; page and optgroup visibility is applied below.
     if (pseudo) {
         if (m_filter_ctrl->GetValue().Lower() != filter) {
             m_filter_ctrl->ChangeValue(filter);
@@ -808,8 +799,7 @@ void PublishSettingsDialog::apply_visibility()
 
 void PublishSettingsDialog::select_all(bool value)
 {
-    // "All" does not auto-enable gated material sections; "None" leaves a gated
-    // row's preserved value untouched.
+    // "All" skips disabled (gated) rows; "None" leaves a gated row's preserved value.
     for (Row& row : m_rows)
         if (row.check->IsEnabled())
             row.check->SetValue(value);
@@ -829,19 +819,18 @@ bool PublishSettingsDialog::row_is_visible(const Row& row) const
 void PublishSettingsDialog::select_visible(bool value)
 {
     wxString filter = m_filter_ctrl->GetValue().Lower();
-    // In a pseudo-filter view the rows being toggled would all disappear;
-    // drop the filter afterwards so the result stays visible.
+    // In a pseudo-filter view the rows being toggled would all disappear; drop the filter
+    // afterwards so the result stays visible.
     bool clear_pseudo = (!value && filter == "::nonsel") || (value && filter == "::sel");
 
-    // Toggle the rows that are visible under the *current* filter.
+    // Toggle the rows visible under the *current* filter.
     for (Row& row : m_rows)
         if (row_is_visible(row))
             row.check->SetValue(value);
 
     if (clear_pseudo) {
-        // Note: SetValue() may fire wxEVT_TEXT on some platforms, which
-        // re-enters apply_filter() - that is fine, the rows above were already
-        // toggled and the trailing call below is idempotent.
+        // Note: SetValue() may fire wxEVT_TEXT on some platforms, re-entering apply_filter() -
+        // that is fine; the rows above were already toggled and the trailing call is idempotent.
         m_filter_ctrl->ChangeValue("");
         apply_filter(""); // resync visibility and the All/None bar
     }
@@ -895,12 +884,31 @@ void PublishSettingsDialog::show_menu(wxMouseEvent& evt)
 std::vector<std::string> PublishSettingsDialog::GetPublishedKeys() const
 {
     std::vector<std::string> out;
-    // Process and printer sections both travel through published_keys (the load-side
-    // overlay applies process keys to the prints edited preset and the allowlisted
-    // printer keys to the printers edited preset). Material keys use a separate API.
-    for (const Row& row : m_rows)
-        if ((row.section == Section::Print || row.section == Section::Printer) && row.check->GetValue())
+    // Process and printer sections both travel through published_keys (the load-side overlay
+    // applies process keys to the prints edited preset and the allowlisted printer keys to the
+    // printers edited preset); material keys use a separate API.
+    const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
+    for (const Row& row : m_rows) {
+        if ((row.section != Section::Print && row.section != Section::Printer) || !row.check->GetValue())
+            continue;
+        if (row.section == Section::Printer) {
+            // Printer rows store the base key (per-extruder "#N" variants collapsed during
+            // build). Publish every extruder element so the load side can apply per-extruder
+            // values even when the receiver has a different extruder count; a scalar printer
+            // key is published as-is.
+            const std::string base_key = row.key.substr(0, row.key.find('#'));
+            if (const ConfigOption* opt = full.option(base_key)) {
+                if (const auto* vec = dynamic_cast<const ConfigOptionVectorBase*>(opt)) {
+                    for (size_t i = 0; i < vec->size(); ++i)
+                        out.push_back(base_key + "#" + std::to_string(i));
+                } else {
+                    out.push_back(base_key);
+                }
+            }
+        } else {
             out.push_back(row.key);
+        }
+    }
     return out;
 }
 
@@ -915,8 +923,15 @@ std::vector<Slic3r::PublishedMaterialEntry> PublishSettingsDialog::GetPublishedM
         entry.filament_vendor = cat.filament_vendor;
         entry.filament_id     = cat.filament_id;
         entry.slot            = static_cast<int>(cat.filament_slot);
-        // "Full Publish": the entire filament preset of the slot is embedded; type and color
-        // are implicitly published, and the per-key rows are disabled and their state is ignored.
+        // The author's preset id distinguishes exact variants that share filament_id
+        // ("Generic PLA" vs "Generic PLA Matte"), so the receiver can match precisely.
+        PresetBundle *bundle = wxGetApp().preset_bundle;
+        if (bundle != nullptr && cat.filament_slot < bundle->filament_presets.size()) {
+            if (const Preset *preset = bundle->filaments.find_preset(bundle->filament_presets[cat.filament_slot], false, true))
+                entry.setting_id = preset->setting_id;
+        }
+        // "Full Publish": the whole filament preset is embedded; type and colour are implicitly
+        // published, and the per-key rows are disabled / their state ignored.
         if (cat.full_check != nullptr && cat.full_check->GetValue()) {
             entry.full               = true;
             entry.full_keys          = full_keys_for_slot();
@@ -946,8 +961,7 @@ std::vector<Slic3r::PublishedMaterialEntry> PublishSettingsDialog::GetPublishedM
                 entry.keys.push_back(row.key);
             }
         }
-        // A material with only setting keys but none checked, or with nothing selected at all,
-        // carries no information for the writer.
+        // Nothing checked at all -> nothing to write.
         if (!entry.keys.empty() || entry.publish_type || entry.publish_color)
             out.push_back(std::move(entry));
     }
@@ -956,9 +970,9 @@ std::vector<Slic3r::PublishedMaterialEntry> PublishSettingsDialog::GetPublishedM
 
 std::vector<std::string> PublishSettingsDialog::full_keys_for_slot() const
 {
-    // The canonical filament preset keys, minus the structural keys the published overlay must
+    // The canonical filament preset keys minus the structural keys the published overlay must
     // never touch (inherits, compatibility, *_settings_id, ...), plus filament_colour (not a
-    // member of Preset::filament_options). The values travel in the exported config, masked to
+    // member of Preset::filament_options). Values travel in the exported config, masked to
     // this slot, and are applied on load onto the receiver's slot.
     const std::set<std::string>& denylist = publish_structural_keys();
     std::vector<std::string> keys;
@@ -971,7 +985,7 @@ std::vector<std::string> PublishSettingsDialog::full_keys_for_slot() const
 
 void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
 {
-    // Rescale toolbar bitmaps and icons; collapse chevrons are vector-drawn and repaint themselves.
+    // Rescale toolbar bitmaps and icons; collapse chevrons are vector-drawn and repaint.
     m_search.msw_rescale();
     m_menu.msw_rescale();
     m_filter_box->SetIcon(m_search.bmp());
@@ -1000,8 +1014,13 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
         cat.list_sizer->Layout();
     }
 
-    for (SectionGroup& section : m_sections)
+    for (size_t s = 0; s < m_sections.size(); ++s) {
+        SectionGroup& section = m_sections[s];
+        section.icon_bmp.msw_rescale();
+        if (section.icon_bmp.bmp().IsOk())
+            m_outer_tabs->SetItemBitmap(s, section.icon_bmp.bmp());
         section.tabs->Rescale();
+    }
 
     // Refresh the per-row Color chips at the new DPI.
     for (Row& row : m_rows) {

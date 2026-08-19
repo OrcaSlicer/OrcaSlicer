@@ -501,12 +501,10 @@ SCENARIO("Nozzle-group metadata .3mf round-trip", "[3mf][MultiNozzle]") {
     }
 }
 
-// The "Publish" feature stores a published flag plus a JSON array of author-selected setting keys
-// in model.model_info->metadata_items. This locks the serialization contract: both keys must survive
-// a store_bbs_3mf -> load_bbs_3mf round-trip unchanged. (The full preset-preservation behavior —
-// keeping the user's currently-selected presets and overlaying only the published keys onto them —
-// is exercised headlessly in "Published 3MF overlays only the author-selected process keys onto the
-// edited preset" in test_preset_bundle_loading.cpp.)
+// Locks the serialization contract of the "Publish" metadata: the published flag and the
+// published_keys JSON array in model.model_info->metadata_items must survive a store_bbs_3mf ->
+// load_bbs_3mf round-trip unchanged. (The full preset-preservation behavior is exercised
+// headlessly in test_preset_bundle_loading.cpp.)
 SCENARIO("Published 3MF round-trips the published flag and published_keys metadata", "[3mf]") {
     GIVEN("a model carrying published metadata") {
         Model model;
@@ -518,8 +516,8 @@ SCENARIO("Published 3MF round-trips the published flag and published_keys metada
         model.model_info->metadata_items["published"]      = "1";
         model.model_info->metadata_items["published_keys"] = R"(["layer_height","wall_thickness"])";
 
-        // store_bbs_3mf stages Metadata/project_settings.config through the model's backup path;
-        // point it at a writable temp dir (the default lives under a read-only root in CI).
+        // store_bbs_3mf stages project_settings.config through the model's backup path; point
+        // it at a writable temp dir (the default lives under a read-only root in CI).
         ScopedTemporaryDir backup_dir("orca_pub");
         model.set_backup_path(backup_dir.string());
 
@@ -564,8 +562,8 @@ SCENARIO("Published 3MF round-trips the published flag and published_keys metada
     }
 }
 
-// A project saved without the Publish metadata (i.e. a normal 3MF) must load identically: the
-// loader must not fabricate a "published" flag or published_keys for files that never carried them.
+// A normal 3MF (no Publish metadata) must load identically: the loader must not fabricate a
+// "published" flag or published_keys for files that never carried them.
 SCENARIO("Legacy 3MF without published metadata loads unchanged", "[3mf]") {
     GIVEN("a model without any published metadata") {
         Model model;
@@ -610,10 +608,8 @@ SCENARIO("Legacy 3MF without published metadata loads unchanged", "[3mf]") {
     }
 }
 
-// The "Publish" feature can also store material-qualified setting keys, one entry per material
-// the author uses, in model.model_info->metadata_items. This locks the serialization contract
-// for that entry list: the JSON must survive a store_bbs_3mf -> load_bbs_3mf round-trip
-// verbatim, exactly like the plain published_keys array.
+// Locks the serialization contract of the published_material_keys metadata: the per-entry JSON
+// must survive a store_bbs_3mf -> load_bbs_3mf round-trip verbatim, exactly like published_keys.
 SCENARIO("Published 3MF round-trips the published_material_keys metadata", "[3mf]") {
     GIVEN("a model carrying published material keys metadata") {
         Model model;
@@ -658,8 +654,7 @@ SCENARIO("Published 3MF round-trips the published_material_keys metadata", "[3mf
                 REQUIRE(dst_model.model_info->metadata_items["published_material_keys"] == material_keys_json);
 
                 // The value must parse back to one material entry carrying the nested identity
-                // object, the author slot ordinal and the key list, so the loader can match it
-                // to the receiver's filaments.
+                // object, the author slot ordinal and the key list.
                 nlohmann::json entries = nlohmann::json::parse(material_keys_json);
                 REQUIRE(entries.is_array());
                 REQUIRE(entries.size() == 1);
@@ -689,19 +684,19 @@ SCENARIO("Minimal published 3MF serialization filters config and omits embedded 
 
         const std::vector<std::string> published_keys = { "layer_height", "retraction_length" };
         const std::vector<PublishedMaterialEntry> material_keys = {
-            { "PLA", "Generic", "GFL99", 0, { "filament_retraction_length" } }
+            { "PLA", "Generic", "GFL99", "", 0, { "filament_retraction_length" } }
         };
 
         DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_keys);
 
-        // Filtered config must contain the published keys and identity keys
+        // Filtered config keeps the published and identity keys...
         REQUIRE(filtered_cfg.option("layer_height") != nullptr);
         REQUIRE(filtered_cfg.option("retraction_length") != nullptr);
         REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
         REQUIRE(filtered_cfg.option("filament_type") != nullptr);
         REQUIRE(filtered_cfg.option("wipe_tower_x") != nullptr);
 
-        // Non-published settings should NOT be in filtered_cfg
+        // ...and drops everything else.
         REQUIRE(filtered_cfg.option("sparse_infill_density") == nullptr);
         REQUIRE(filtered_cfg.option("machine_start_gcode") == nullptr);
 
@@ -716,7 +711,7 @@ SCENARIO("Minimal published 3MF serialization filters config and omits embedded 
             ScopedTemporaryFile temp(".3mf");
             const std::string test_file = temp.string();
 
-            // Create a fake project preset to verify it gets omitted with MinimalPublished
+            // Create a fake project preset to verify MinimalPublished omits it.
             Preset preset(Preset::TYPE_PRINT, "TestPrintPreset");
             preset.config = full_cfg;
             std::vector<Preset*> project_presets = { &preset };
@@ -753,9 +748,9 @@ SCENARIO("Minimal published 3MF serialization filters config and omits embedded 
     }
 }
 
-// Filament-publishing v2: a "full publish" entry carries the whole slot's key list. Its vector
-// options keep only the author's slot value; the other slots are masked to their defaults so a
-// slot-1 full publish does not leak slot 0's data into the file.
+// A "full publish" entry carries the whole slot's key list: its vector options keep only the
+// author's slot value, the other slots are masked to their defaults so a slot-1 full publish
+// does not leak slot 0's data into the file.
 SCENARIO("Full-publish entries filter the whole slot and mask the other slots", "[3mf]") {
     GIVEN("a full print configuration with two filament slots") {
         DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
@@ -787,9 +782,9 @@ SCENARIO("Full-publish entries filter the whole slot and mask the other slots", 
     }
 }
 
-// Filament-publishing v2: the extended per-entry fields (full dump list, published type and
-// colour) travel inside the published_material_keys metadata and round-trip unchanged.
-SCENARIO("Published 3MF round-trips the filament-publishing-v2 material metadata", "[3mf]") {
+// The extended per-entry fields (full dump list, published type and colour) travel inside the
+// published_material_keys metadata and round-trip unchanged.
+SCENARIO("Published 3MF round-trips the extended material metadata", "[3mf]") {
     GIVEN("a model carrying extended published material keys metadata") {
         Model model;
         std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
@@ -797,7 +792,7 @@ SCENARIO("Published 3MF round-trips the filament-publishing-v2 material metadata
         model.add_default_instances();
 
         const std::string material_keys_json =
-            R"([{"material":{"filament_type":"PLA","filament_vendor":"Generic","filament_id":"GFL99"},"slot":1,"keys":[],"full":true,"full_keys":["filament_retraction_length","filament_colour"],"publish_type":true,"type":"PLA","publish_color":false,"color":""}])";
+            R"([{"material":{"filament_type":"PLA","filament_vendor":"Generic","filament_id":"GFL99","setting_id":"RFs9eCKYOMUSmvZf"},"slot":1,"keys":[],"full":true,"full_keys":["filament_retraction_length","filament_colour"],"publish_type":true,"type":"PLA","publish_color":false,"color":""}])";
 
         model.model_info = std::make_shared<ModelInfo>();
         model.model_info->metadata_items["published_material_keys"] = material_keys_json;
@@ -832,7 +827,7 @@ SCENARIO("Published 3MF round-trips the filament-publishing-v2 material metadata
                 REQUIRE(dst_model.model_info != nullptr);
                 REQUIRE(dst_model.model_info->metadata_items["published_material_keys"] == material_keys_json);
 
-                // The value must parse back with every filament-publishing-v2 field intact.
+                // The value must parse back with every extended field intact.
                 nlohmann::json entries = nlohmann::json::parse(material_keys_json);
                 REQUIRE(entries.is_array());
                 REQUIRE(entries.size() == 1);

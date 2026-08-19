@@ -28,25 +28,21 @@ struct PublishMaterialIdentity
     std::string id;
 };
 
-// Dialog that lets a model author select which settings get embedded in a 3MF.
-// Settings are grouped into the same nested custom tab layout used by the
-// Process settings: Printer, Filament, and Process outer tabs, with category or
-// material tabs inside each section. Optgroups are ordinary grouped headers.
-// Modified (dirty) settings are pre-checked and shown bold. On OK, the print
-// rows become the "published_keys" list and the material rows become the
-// per-material "published_material_keys".
+// Dialog letting a model author select which settings get embedded in a 3MF. Nested tab layout
+// mirroring the Process settings (Printer / Filament / Process outer tabs, category or material
+// tabs inside each). Dirty settings are pre-checked and shown bold; on OK the print rows become
+// "published_keys" and the material rows become "published_material_keys".
 class PublishSettingsDialog : public DPIDialog
 {
 public:
     PublishSettingsDialog(wxWindow* parent = nullptr);
     ~PublishSettingsDialog();
 
-    // The selected print-section setting keys (in display order). Keys may
-    // contain '#'.
+    // The selected print/printer setting keys (in display order); printer keys carry a '#N'
+    // per-extruder suffix.
     std::vector<std::string> GetPublishedKeys() const;
 
-    // The selected keys grouped per material: one entry per material section
-    // with at least one checked key. Keys are base keys (no "#N" suffix).
+    // The selected keys grouped per material section (base keys, no '#N' suffix).
     std::vector<Slic3r::PublishedMaterialEntry> GetPublishedMaterialKeys() const;
 
 protected:
@@ -56,9 +52,9 @@ private:
     // Which part of the settings the row/category came from.
     enum class Section { Print, Printer, Material };
 
-    // One selectable setting row: a checkbox (setting name) plus a value label
-    // and a (optional) grey unit label. key is the full config key and may carry
-    // a "#N" variant suffix (print/printer rows); material rows carry the base key.
+    // One selectable setting row: a checkbox (setting name) plus a value label and an optional
+    // grey unit label. key is the full config key, possibly with a "#N" variant suffix
+    // (print/printer rows); material rows carry the base key.
     enum class RowKind {
         Setting, // a regular setting key
         Color,   // material colour requirement (filament_colour)
@@ -113,9 +109,9 @@ private:
         ScalableBitmap icon_bmp;       // scalable bitmap for DPI changes
         wxStaticBitmap* icon{nullptr};
         wxStaticBitmap* filament_color_chip{nullptr};
-        wxStaticText* title_label{nullptr}; // material title (static text, Full Publish carries the label elsewhere)
-        // "Full Publish": serializing the entire filament preset of this slot. While checked,
-        // the slot's rows (incl. Color/Type) are disabled.
+        wxStaticText* title_label{nullptr}; // material title (static text; Full Publish carries the label elsewhere)
+        // "Full Publish": while checked, the whole slot preset is serialized and its rows
+        // (incl. Color/Type) are disabled.
         bool full{false};
         wxCheckBox* full_check{nullptr};
         // Material identity, only for Section::Material categories.
@@ -134,6 +130,7 @@ private:
         wxString title;               // _L("Printer") / _L("Filament") / _L("Process")
         Section kind{Section::Print}; // maps 1:1 to the display group
         std::string icon_name;        // "printer" / "filament" / "process"
+        ScalableBitmap icon_bmp;      // tab icon next to the title; rescaled on DPI change
         wxPanel* page{nullptr};
         TabCtrl* tabs{nullptr};
         wxPanel* page_host{nullptr};

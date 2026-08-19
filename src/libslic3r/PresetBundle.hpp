@@ -167,22 +167,21 @@ struct PresetBundleMetadata
     }
 };
 
-// Configuration describing a "published" 3MF project: the file carries a flag plus a list of
-// author-selected setting keys. When loading such a project the user's currently-selected
-// presets are kept and only the published keys are overlaid onto the edited presets.
+// A "published" 3MF project: keeps the user's currently-selected presets and overlays only the
+// author-selected published keys onto the edited presets.
 struct PublishedConfig
 {
     bool                        published = false;
     std::vector<std::string>    published_keys;
-    // Material-qualified published keys chosen by the author for the materials used in the
-    // project; applied on load only to the receiver's filament presets whose material
-    // identity matches (see PublishedMaterialEntry in PublishSettings.hpp).
+    // Per-slot published material keys, applied positionally (author slot N -> receiver slot N),
+    // gated by the author's optional type requirement and written onto the slot's stored preset
+    // in place (see PublishedMaterialEntry in PublishSettings.hpp).
     std::vector<PublishedMaterialEntry> material_keys;
     // Keys that could not be applied (missing on the user's machine or vector size mismatch),
     // filled in by load_config_file_config for notification purposes.
     std::vector<std::string>    skipped_keys;
     // Human-readable notices of the slot material replacements performed while loading a
-    // published project (e.g. "Slot 2: replaced PETG with PLA"), for the load notification.
+    // published project, for the load notification.
     std::vector<std::string>    material_replacements;
 };
 

@@ -2837,11 +2837,11 @@ void MainFrame::init_menubar_as_editor()
         auto publish_handler = [this](wxCommandEvent&) { publish_project(); };
 
 #ifndef __APPLE__
-        append_menu_item(fileMenu, wxID_ANY, _L("Publish") + dots + "\t" + ctrl + shift + "E", _L("Export a 3MF file with the selected settings embedded"),
+        append_menu_item(fileMenu, wxID_ANY, _L("Publish 3MF") + dots + "\t" + ctrl + shift + "E", _L("Export a 3MF file with the selected settings embedded"),
             publish_handler, "menu_publish", nullptr,
             [this](){return can_export_model(); }, this);
 #else
-        append_menu_item(fileMenu, wxID_ANY, _L("Publish") + dots + "\t" + ctrl + shift + "E", _L("Export a 3MF file with the selected settings embedded"),
+        append_menu_item(fileMenu, wxID_ANY, _L("Publish 3MF") + dots + "\t" + ctrl + shift + "E", _L("Export a 3MF file with the selected settings embedded"),
             publish_handler, "", nullptr,
             [this](){return can_export_model(); }, this);
 #endif

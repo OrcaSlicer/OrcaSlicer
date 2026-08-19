@@ -495,9 +495,8 @@ public:
     void export_gcode_3mf(bool export_all = false);
     void send_gcode_finish(wxString name);
     void export_core_3mf();
-    // Export the current project as a "published" 3MF: embeds the author-selected settings
-    // (published_keys / published_material_keys) into the file's metadata. A pure export: the
-    // in-memory project (filename, dirty state, model_info metadata) is left untouched.
+    // Export a "published" 3MF embedding the author-selected settings in the file metadata; a
+    // pure export that leaves the in-memory project untouched.
     int  export_published_3mf(const std::vector<std::string>& published_keys, const std::vector<Slic3r::PublishedMaterialEntry>& material_keys);
     static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});
     void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false, FileType file_type = FT_STL);

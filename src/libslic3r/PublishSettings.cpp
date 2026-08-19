@@ -30,11 +30,9 @@ std::string normalize_filament_type(const std::string& type)
 
 const std::set<std::string>& publish_structural_keys()
 {
-    // Structural / non-publishable keys. The *_settings_id keys are also part of
-    // PresetCollection::skipped_in_dirty (Preset.cpp) and are excluded there too.
-    // This mirrors the structural keys stripped from configs in Preset.cpp
-    // (profile_print_params_same) plus other keys that must never be published
-    // because they would rewrite the user's preset inheritance/structure.
+    // Non-publishable keys: the *_settings_id keys are also in PresetCollection::skipped_in_dirty
+    // (Preset.cpp) / stripped from configs (profile_print_params_same); publishing them would
+    // rewrite the user's preset inheritance/structure.
     static const std::set<std::string> structural_keys = {
         "printer_settings_id", "filament_settings_id", "print_settings_id",
         "sla_print_settings_id", "sla_material_settings_id",
@@ -88,9 +86,8 @@ const std::vector<PublishablePrinterOption>& publishable_printer_z_hop_options()
 
 const std::set<std::string>& publishable_printer_keys()
 {
-    // The union of the printer tab's "Retraction" and "Z-Hop" optgroups. The "Retraction when
-    // switching material" keys are intentionally excluded: toolchange retraction is
-    // device/profile territory, not a publishable behavior tweak.
+    // Union of the two optgroups; "Retraction when switching material" keys are excluded
+    // (toolchange retraction is device/profile territory, not a publishable behavior tweak).
     static const std::set<std::string> printer_keys = [] {
         std::set<std::string> keys;
         for (const PublishablePrinterOption &opt : publishable_printer_retraction_options())
@@ -113,9 +110,8 @@ std::vector<std::string> collect_dirty_settings_keys(const PresetBundle& bundle)
         }
     };
 
-    // Print and printer presets each track a single edited preset; filaments may span
-    // multiple slots (multi-material). Union the dirty keys of each collection's edited
-    // preset; this feeds only the Publish dialog's pre-check.
+    // Union the dirty keys of each collection's edited preset (filaments may span multiple
+    // slots); feeds only the Publish dialog's pre-check.
     append_dirty(bundle.prints.current_dirty_options(true));
     append_dirty(bundle.printers.current_dirty_options(true));
     append_dirty(bundle.filaments.current_dirty_options(true));
@@ -131,12 +127,11 @@ DynamicPrintConfig filter_published_config(
     DynamicPrintConfig filtered;
 
     std::set<std::string> base_keys_to_include;
-    // Base keys that must never be masked: identity, plate geometry, process/printer keys and
-    // partially-published material keys keep today's whole-vector serialization (all slots).
+    // Never masked (whole-vector serialization): identity, plate geometry, process/printer
+    // keys and partially-published material keys.
     std::set<std::string>         mask_exempt_keys;
-    // For keys carried only by "full" entries: base key -> author slots whose values must
-    // survive; the other slots are masked to their defaults so a full publish does not leak
-    // the author's unrelated slot data.
+    // "Full" entries only: base key -> author slots whose values must survive; other slots are
+    // masked to their defaults so a full publish does not leak unrelated slot data.
     std::map<std::string, std::set<int>> full_slot_map;
 
     // 1. Mandatory material identity & slot count keys for 3MF validation/normalization
@@ -183,8 +178,7 @@ DynamicPrintConfig filter_published_config(
                 mask_exempt_keys.insert(base_key);
             }
         }
-        // 4b. "Full publish" entries carry the entire slot; the values of the covered keys are
-        // masked to the author's slot on export (see the copy loop below).
+        // Full-publish keys: mask to the author's slot on export (see the copy loop below).
         for (const std::string &key : entry.full_keys) {
             const std::string base_key = key.substr(0, key.find('#'));
             if (base_key.empty())
@@ -195,9 +189,8 @@ DynamicPrintConfig filter_published_config(
         }
     }
 
-    // Mask a vector option's slots that are not author-published: copy the option default over
-    // each non-published index. Keys without an option default are left unmasked (the file then
-    // carries the whole vector, matching the partial-publish behavior).
+    // Mask non-published vector slots with the option default; keys without a default stay
+    // unmasked (whole vector, matching partial-publish behavior).
     auto mask_slots = [](ConfigOption &opt, const ConfigOptionDef *def, const std::set<int> &keep_slots) {
         auto *vec = dynamic_cast<ConfigOptionVectorBase*>(&opt);
         if (vec == nullptr || vec->size() == 0 || def == nullptr || !def->default_value)
@@ -212,7 +205,7 @@ DynamicPrintConfig filter_published_config(
                 vec->set_at(def->default_value.get(), idx, 0);
     };
 
-    // Copy selected options from full_config into filtered config
+    // Copy the selected options from full_config into the filtered config.
     for (const std::string &key : base_keys_to_include) {
         if (const ConfigOption *opt = full_config.option(key)) {
             ConfigOption *cloned = opt->clone();
