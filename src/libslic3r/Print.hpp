@@ -117,6 +117,10 @@ enum class SlicingPipelineStepPlugin {
 };
 
 // A PrintRegion object represents a group of volumes to print
+// 1-based filament that prints `role`, per that region's config. One table; see PrintRegion.cpp
+// for why, and for what it deliberately does NOT unify.
+unsigned int filament_id_for_role(const PrintRegionConfig &config, ExtrusionRole role);
+
 // sharing the same config (including the same assigned extruder(s))
 class PrintRegion
 {
@@ -137,10 +141,6 @@ public:
     int                         print_object_region_id() const throw() { return m_print_object_region_id; }
 	// 1-based extruder identifier for this region and role.
 	unsigned int 				extruder(FlowRole role) const;
-
-	// 1-based filament that prints `role`, per this region's config. Defined once in
-	// PrintRegion.cpp; see the comment there for why, and for what it deliberately does NOT fix.
-	friend unsigned int filament_id_for_role(const PrintRegionConfig &config, ExtrusionRole role);
     Flow                        flow(const PrintObject &object, FlowRole role, double layer_height, bool first_layer = false) const;
     // Average diameter of nozzles participating on extruding this region.
     coordf_t                    nozzle_dmr_avg(const PrintConfig &print_config) const;

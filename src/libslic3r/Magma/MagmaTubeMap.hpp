@@ -73,22 +73,16 @@ inline double effective_interior_width(const MagmaGeometry &geometry,
 inline InfillPattern magma_effective_pattern(bool dual_infill_enabled,
                                              InfillPattern outer,
                                              InfillPattern sparse) {
-    if (dual_infill_enabled) {
-        // Substituting a default here would silently print a different lattice than the
-        // one that was asked for, so Print::validate() reports the substitution. The UI
-        // enum only offers Magma patterns; this is reachable from a hand-edited or
-        // foreign 3MF. Keep the two in step if this ever changes.
-        return is_magma_pattern(outer) ? outer : ipMagmaTriangle;
-    }
-    return sparse;
+    // No clamp. The outer zone may legitimately be any infill pattern -- a non-Magma choice is
+    // simply a zone with no injectable channels, which is a useful configuration on its own.
+    // Callers that need a lattice all guard with is_magma_pattern(), and resolve_magma() returns
+    // false rather than reaching for a geometry that does not exist.
+    return dual_infill_enabled ? outer : sparse;
 }
 
 inline InfillPattern magma_effective_pattern(const PrintRegionConfig &config) {
-    if (config.dual_infill_enabled.value) {
-        InfillPattern outer = config.dual_infill_outer_pattern.value;
-        return is_magma_pattern(outer) ? outer : ipMagmaTriangle;
-    }
-    return config.sparse_infill_pattern.value;
+    return config.dual_infill_enabled.value ? config.dual_infill_outer_pattern.value
+                                            : config.sparse_infill_pattern.value;
 }
 
 // Per-cell layer presence and interior area

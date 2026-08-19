@@ -1682,18 +1682,11 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                         magma::MAGMA_FLAT_BORE_MULTIPLE * bore, bore), object };
                 }
 
-                // magma_effective_pattern() substitutes Magma Triangle when dual infill is on
-                // but the outer pattern is not a Magma pattern. Announce it: the part would
-                // otherwise be printed with a lattice nobody selected.
-                if (warning && warning->string.empty() && rcfg.dual_infill_enabled.value &&
-                    ! is_magma_pattern(rcfg.dual_infill_outer_pattern.value)) {
-                    warning->string =
-                        L("The dual-infill outer zone pattern is not a Magma pattern, so Magma "
-                          "Triangle is being substituted for the reinforcement lattice. Select a "
-                          "Magma pattern for the outer zone to control which lattice is used.");
-                    warning->object = object;
-                    warning->is_warning = true;
-                }
+                // A non-Magma outer pattern used to be clamped to Magma Triangle, and this
+                // announced the substitution. Nothing is substituted now -- the zone prints the
+                // pattern that was chosen -- so there is nothing to report. What the user does
+                // lose is injection, and that is visible: no channels in the preview, and the
+                // injection settings have no effect. Not a warning; it is what they selected.
 
                 // Triangle cells seal poorly: the nozzle must cover the circumscribed circle
                 // of the opening while only the inscribed circle is usable tube, and for a

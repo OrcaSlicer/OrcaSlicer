@@ -6287,7 +6287,10 @@ void PrintConfigDef::init_fff_params()
     def = this->add("dual_infill_outer_pattern", coEnum);
     def->label = L("Outer zone pattern");
     def->category = L("Strength");
-    def->tooltip = L("Which Magma pattern the outer (reinforcement) zone uses for injection channels.\n\n"
+    def->tooltip = L("Which pattern the outer (reinforcement) zone uses.\n\n"
+                     "A Magma pattern gives injectable channels. Any other pattern is ordinary "
+                     "infill inside the shell, with no injection -- useful on its own for a stiff "
+                     "band around a light core.\n\n"
                      "The nozzle must cover a cell\'s circumscribed circle to seal it, but only the "
                      "inscribed circle is usable tube — so rounder cells give more tube per nozzle and "
                      "need less immersion. Bore as a fraction of the nozzle flat: Triangle 50%, "
@@ -6296,14 +6299,18 @@ void PrintConfigDef::init_fff_params()
                      "walls, so it prints fastest. Hex seals best but its toolpath doubles the "
                      "vertical walls. Triangle needs the deepest immersion for a given tube.");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
-    def->enum_values.push_back("magmarectilinear");
-    def->enum_values.push_back("magmahoneycomb");
-    def->enum_values.push_back("magmatrihex");
-    def->enum_values.push_back("magmatriangle");
-    def->enum_labels.push_back(L("Magma Rectilinear"));
-    def->enum_labels.push_back(L("Magma Honeycomb"));
-    def->enum_labels.push_back(L("Magma Tri-hex"));
-    def->enum_labels.push_back(L("Magma Triangle"));
+    // Offer exactly what sparse infill offers, by copying its list rather than maintaining a
+    // second one that drifts every time upstream adds a pattern.
+    //
+    // The outer zone is ordinary infill that happens to sit in the reinforcement annulus. A Magma
+    // pattern there additionally gets a tube map and injection; anything else is simply a denser
+    // (or different) infill inside the shell, which is a useful thing on its own -- a stiff
+    // perimeter band with a light core, no injection involved. Nothing clamps the choice any
+    // more, so what the user picks is what prints.
+    if (const ConfigOptionDef *sparse = this->get("sparse_infill_pattern")) {
+        def->enum_values = sparse->enum_values;
+        def->enum_labels = sparse->enum_labels;
+    }
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMagmaRectilinear));
 
