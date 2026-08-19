@@ -1302,6 +1302,15 @@ static void reorient_perimeters(ExtrusionEntityCollection &entities, bool steep_
     }
 }
 
+double PerimeterGenerator::wall_simplify_resolution() const
+{
+    const double base = (print_config->enable_arc_fitting && !this->has_fuzzy_skin) ? 0.2 * m_scaled_resolution : m_scaled_resolution;
+    const double junction_deviation = firmware_junction_deviation(*print_config, *object_config);
+    if (junction_deviation <= 0.)
+        return base;
+    return std::min(base, std::max(scaled<double>(junction_deviation), 0.25 * m_scaled_resolution));
+}
+
 void PerimeterGenerator::process_classic()
 {
     group_region_by_fuzzify(*this);
@@ -1374,7 +1383,7 @@ void PerimeterGenerator::process_classic()
 
     process_no_bridge(all_surfaces, perimeter_spacing, ext_perimeter_width);
     // BBS: don't simplify too much which influence arc fitting when export gcode if arc_fitting is enabled
-    double surface_simplify_resolution = (print_config->enable_arc_fitting && !this->has_fuzzy_skin) ? 0.2 * m_scaled_resolution : m_scaled_resolution;
+    double surface_simplify_resolution = wall_simplify_resolution();
     //BBS: reorder the surface to reduce the travel time
     ExPolygons surface_exp;
     for (const Surface &surface : all_surfaces)
@@ -2362,7 +2371,7 @@ void PerimeterGenerator::process_arachne()
 
     process_no_bridge(all_surfaces, perimeter_spacing, ext_perimeter_width);
     // BBS: don't simplify too much which influence arc fitting when export gcode if arc_fitting is enabled
-    double surface_simplify_resolution = (print_config->enable_arc_fitting && !this->has_fuzzy_skin) ? 0.2 * m_scaled_resolution : m_scaled_resolution;
+    double surface_simplify_resolution = wall_simplify_resolution();
     // ORCA: neither one-wall option has a surface to act on without the shell behind it, see
     // has_top_shell_layers() / has_bottom_shell_layers(). Gated here so every use below - including the
     // topmost and first layers - sees the same answer.

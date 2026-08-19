@@ -11523,6 +11523,31 @@ void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPr
 
 //BBS: pass map to recording all invalid valies
 //FIXME localize this function.
+double firmware_junction_deviation(const PrintConfig &print_config, const PrintObjectConfig &object_config)
+{
+    auto configured = [](const ConfigOptionFloatsNullable &opt) {
+        const double v = opt.values.empty() ? 0. : opt.get_at(0);
+        return (std::isfinite(v) && v > 0.) ? v : 0.;
+    };
+
+    switch (print_config.gcode_flavor.value) {
+    case gcfMarlinFirmware:
+        return print_config.machine_max_junction_deviation.get_at(0);
+    case gcfKlipper: {
+        const double scv = std::min(print_config.machine_max_jerk_x.get_at(0),
+                                    print_config.machine_max_jerk_y.get_at(0));
+        double accel = configured(object_config.outer_wall_acceleration);
+        if (accel <= 0.)
+            accel = configured(object_config.default_acceleration);
+        if (accel <= 0.)
+            accel = print_config.machine_max_acceleration_extruding.get_at(0);
+        return (scv > 0. && accel > 0.) ? sqr(scv) * (std::sqrt(2.) - 1.) / accel : 0.;
+    }
+    default:
+        return 0.;
+    }
+}
+
 std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool under_cli)
 {
     std::map<std::string, std::string> error_message;

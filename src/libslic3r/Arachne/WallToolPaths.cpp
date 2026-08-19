@@ -60,6 +60,10 @@ WallToolPathsParams make_paths_params(const int layer_id, const PrintObjectConfi
 
         if (const auto& wall_maximum_deviation_opt = print_object_config.wall_maximum_deviation)
             input_params.wall_maximum_deviation = scaled<coord_t>(wall_maximum_deviation_opt.value);
+
+        if (const double junction_deviation = firmware_junction_deviation(print_config, print_object_config); junction_deviation > 0.)
+            input_params.wall_maximum_deviation = std::min(input_params.wall_maximum_deviation,
+                std::max(scaled<coord_t>(junction_deviation), input_params.wall_maximum_deviation / 4));
     }
 
     return input_params;

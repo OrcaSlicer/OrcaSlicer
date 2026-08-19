@@ -141,6 +141,8 @@ public:
     void        process_classic();
     void        process_arachne();
 
+    double      wall_simplify_resolution() const;
+
     void        add_infill_contour_for_arachne( ExPolygons infill_contour, int loops, coord_t ext_perimeter_spacing, coord_t perimeter_spacing, coord_t min_perimeter_infill_spacing, coord_t spacing, bool is_inner_part );
 
     double      ext_mm3_per_mm()        const { return m_ext_mm3_per_mm; }

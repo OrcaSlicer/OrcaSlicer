@@ -1931,6 +1931,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE0(
     (PrintObjectConfig, PrintRegionConfig, PrintConfig)
 )
 
+double firmware_junction_deviation(const PrintConfig &print_config, const PrintObjectConfig &object_config);
+
 // Validate the FullPrintConfig. Returns an empty string on success, otherwise an error message is returned.
 std::map<std::string, std::string> validate(const FullPrintConfig &config, bool under_cli = false);
 
