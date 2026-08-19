@@ -11523,8 +11523,11 @@ void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPr
 
 //BBS: pass map to recording all invalid valies
 //FIXME localize this function.
+// ORCA: junction deviation, in mm, that the target firmware's motion planner corners with.
+// Returns 0 for the classic jerk flavors, which have no such parameter and no curvature term.
 double firmware_junction_deviation(const PrintConfig &print_config, const PrintObjectConfig &object_config)
 {
+    // Accelerations are per filament and nullable; take the first value that is actually set.
     auto configured = [](const ConfigOptionFloatsNullable &opt) {
         const double v = opt.values.empty() ? 0. : opt.get_at(0);
         return (std::isfinite(v) && v > 0.) ? v : 0.;
@@ -11532,8 +11535,14 @@ double firmware_junction_deviation(const PrintConfig &print_config, const PrintO
 
     switch (print_config.gcode_flavor.value) {
     case gcfMarlinFirmware:
+        // Marlin 2 ships with CLASSIC_JERK commented out, so junction deviation is its default.
+        // A profile stores 0 to say that this printer was built with classic jerk after all.
         return print_config.machine_max_junction_deviation.get_at(0);
     case gcfKlipper: {
+        // Klipper has no jerk at all. It derives its junction deviation from the square corner
+        // velocity, junction_deviation = square_corner_velocity^2 * (sqrt(2) - 1) / accel, and
+        // Orca keeps the square corner velocity in the X/Y jerk slots. The acceleration is the
+        // one in force while the wall is printed.
         const double scv = std::min(print_config.machine_max_jerk_x.get_at(0),
                                     print_config.machine_max_jerk_y.get_at(0));
         double accel = configured(object_config.outer_wall_acceleration);

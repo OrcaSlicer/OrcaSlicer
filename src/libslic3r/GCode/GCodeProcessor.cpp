@@ -329,12 +329,26 @@ void GCodeProcessor::TimeMachine::reset()
     m_additional_time_buffer.clear();
 }
 
+// ORCA: corner velocity of the junction deviation motion planners, mirroring
+// Marlin (planner.cpp, HAS_JUNCTION_DEVIATION + JD_HANDLE_SMALL_SEGMENTS) and
+// Klipper (toolhead.py, Move.calc_junction). Both take the smaller of
+//   - a junction deviation term, v^2 = jd_acceleration * sin(t/2) / (1 - sin(t/2)), and
+//   - a curvature term,          v^2 = 0.5 * distance * acceleration / tan(t/2),
+// with the firmware convention for t in which t == 0 is a full reversal, so sin(t/2) -> 1
+// for a straight line. The curvature term is the one that keeps a finely segmented curve at
+// a constant speed: on a circle of radius R it reduces to v = sqrt(acceleration * R) however
+// the curve was sampled, while the junction deviation term grows without bound as the turn
+// per vertex shrinks. Classic jerk has no such term, which is why it decelerates into every
+// vertex of an unevenly sampled arc.
 static float junction_deviation_feedrate(const Vec3f& exit_direction, const Vec3f& enter_direction,
     float jd_acceleration, float acceleration, float curvature_distance, bool always_limit_curvature)
 {
+    // +1 is a full reversal, -1 is a straight line.
     float junction_cos_theta = -exit_direction.dot(enter_direction);
     if (junction_cos_theta > 0.999999f)
+        // Full reversal, the machine has to come to a stop.
         return 0.0f;
+    // Guard the division below, as Marlin does.
     junction_cos_theta = std::max(junction_cos_theta, -0.999999f);
 
     const float sin_theta_d2 = std::sqrt(0.5f * (1.0f - junction_cos_theta));
@@ -342,6 +356,8 @@ static float junction_deviation_feedrate(const Vec3f& exit_direction, const Vec3
 
     float v_sqr = jd_acceleration * sin_theta_d2 / (1.0f - sin_theta_d2);
 
+    // Klipper limits the curvature of every junction, Marlin only of the short segments with a
+    // shallow turn that a flattened curve is made of (JD_HANDLE_SMALL_SEGMENTS).
     if (cos_theta_d2 > 0.0f && (always_limit_curvature || (curvature_distance < 1.0f && junction_cos_theta < -0.7071067812f)))
         v_sqr = std::min(v_sqr, 0.5f * curvature_distance * acceleration * sin_theta_d2 / cos_theta_d2);
 
@@ -4903,6 +4919,8 @@ float GCodeProcessor::get_junction_deviation_acceleration(PrintEstimatedStatisti
     return get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, id) * acceleration;
 }
 
+// ORCA: plans the entry feedrate of a block. process_G1() and process_VG1() used to carry two
+// byte identical copies of this.
 void GCodeProcessor::calculate_block_junction(PrintEstimatedStatistics::ETimeMode mode, TimeMachine& machine, TimeBlock& block, float acceleration)
 {
     TimeMachine::State& curr = machine.curr;
@@ -4910,6 +4928,7 @@ void GCodeProcessor::calculate_block_junction(PrintEstimatedStatistics::ETimeMod
 
     block.acceleration = acceleration;
 
+    // calculates block exit feedrate
     curr.safe_feedrate = block.feedrate_profile.cruise;
 
     for (unsigned char a = X; a <= E; ++a) {
@@ -4922,20 +4941,30 @@ void GCodeProcessor::calculate_block_junction(PrintEstimatedStatistics::ETimeMod
 
     static const float PREVIOUS_FEEDRATE_THRESHOLD = 0.0001f;
 
+    // ORCA: 0 keeps the classic jerk model below, anything else switches the X-Y-Z corner over
+    // to the junction deviation model the firmware actually runs.
     const float jd_acceleration = get_junction_deviation_acceleration(mode, acceleration);
 
+    // calculates block entry feedrate
     float vmax_junction = curr.safe_feedrate;
     if (!machine.blocks.empty() && prev.feedrate > PREVIOUS_FEEDRATE_THRESHOLD) {
         bool prev_speed_larger = prev.feedrate > block.feedrate_profile.cruise;
         float smaller_speed_factor = prev_speed_larger ? (block.feedrate_profile.cruise / prev.feedrate) : (prev.feedrate / block.feedrate_profile.cruise);
+        // Pick the smaller of the nominal speeds. Higher speed shall not be achieved at the junction during coasting.
         vmax_junction = prev_speed_larger ? block.feedrate_profile.cruise : prev.feedrate;
 
         float v_factor = 1.0f;
         bool limited = false;
 
         for (unsigned char a = X; a <= E; ++a) {
+            // Limit an axis. We have to differentiate coasting from the reversal of an axis movement, or a full stop.
             if (a == X) {
                 if (jd_acceleration > 0.0f) {
+                    // ORCA: the whole X-Y-Z corner is limited at once, as both junction deviation
+                    // planners do. Expressed as a factor so that the E axis below keeps limiting
+                    // the result the same way it limits the classic jerk one.
+                    // Klipper takes the curvature of a junction from the shorter of the two moves
+                    // that meet in it, Marlin only ever looks at the one it is planning.
                     const float curvature_distance = (m_flavor == gcfKlipper) ?
                         std::min(machine.blocks.back().distance, block.distance) : block.distance;
                     const float v_jd = junction_deviation_feedrate(prev.exit_direction, curr.enter_direction,
@@ -4979,6 +5008,7 @@ void GCodeProcessor::calculate_block_junction(PrintEstimatedStatistics::ETimeMod
                     v_entry *= v_factor;
                 }
 
+                // Calculate the jerk depending on whether the axis is coasting in the same direction or reversing a direction.
                 float jerk =
                     (v_exit > v_entry) ?
                     (((v_entry > 0.0f) || (v_exit < 0.0f)) ?
@@ -5005,6 +5035,8 @@ void GCodeProcessor::calculate_block_junction(PrintEstimatedStatistics::ETimeMod
         if (limited)
             vmax_junction *= v_factor;
 
+        // Now the transition velocity is known, which maximizes the shared exit / entry velocity while
+        // respecting the jerk factors, it may be possible, that applying separate safe exit / entry velocities will achieve faster prints.
         float vmax_junction_threshold = vmax_junction * 0.99f;
 
         // Not coasting. The machine will stop and start the movements anyway, better to start the segment from start.
@@ -5228,6 +5260,9 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
         //BBS: limite the cruise according to centripetal acceleration
         //Only need to handle when both prev and curr segment has movement in x-y plane
+        // ORCA: skipped for the junction deviation flavors. This caps the cruise feedrate of the
+        // whole block, while Marlin and Klipper apply their equivalent curvature term to the
+        // corner only; calculate_block_junction() does that, and applying both would brake twice.
         if (!uses_junction_deviation(static_cast<PrintEstimatedStatistics::ETimeMode>(i)) &&
             (prev.exit_direction(0) != 0.0f || prev.exit_direction(1) != 0.0f) &&
             (curr.enter_direction(0) != 0.0f || curr.enter_direction(1) != 0.0f)) {
@@ -5488,6 +5523,9 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
 
         //BBS: limite the cruise according to centripetal acceleration
         //Only need to handle when both prev and curr segment has movement in x-y plane
+        // ORCA: skipped for the junction deviation flavors. This caps the cruise feedrate of the
+        // whole block, while Marlin and Klipper apply their equivalent curvature term to the
+        // corner only; calculate_block_junction() does that, and applying both would brake twice.
         if (!uses_junction_deviation(static_cast<PrintEstimatedStatistics::ETimeMode>(i)) &&
             (prev.exit_direction(0) != 0.0f || prev.exit_direction(1) != 0.0f) &&
             (curr.enter_direction(0) != 0.0f || curr.enter_direction(1) != 0.0f)) {

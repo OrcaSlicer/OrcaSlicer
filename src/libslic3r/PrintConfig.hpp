@@ -1931,6 +1931,10 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE0(
     (PrintObjectConfig, PrintRegionConfig, PrintConfig)
 )
 
+// ORCA: junction deviation, in mm, that the target firmware's motion planner corners with, or 0
+// for the classic jerk flavors, which have no such parameter. Both the wall contour simplification
+// and Arachne's wall simplification bound themselves by it, see
+// PerimeterGenerator::wall_simplify_resolution() for why.
 double firmware_junction_deviation(const PrintConfig &print_config, const PrintObjectConfig &object_config);
 
 // Validate the FullPrintConfig. Returns an empty string on success, otherwise an error message is returned.

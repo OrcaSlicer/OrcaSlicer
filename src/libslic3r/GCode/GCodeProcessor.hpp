@@ -1490,8 +1490,13 @@ class Print;
         float get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         float get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         Vec3f get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode) const;
+        // ORCA: true when the flavor's motion planner corners with a junction deviation model
+        // instead of classic jerk, in which case calculate_block_junction() mirrors the firmware.
         bool uses_junction_deviation(PrintEstimatedStatistics::ETimeMode mode) const;
+        // ORCA: the "junction_deviation * acceleration" product both junction deviation planners
+        // feed into their corner velocity. Returns 0 for the classic jerk flavors.
         float get_junction_deviation_acceleration(PrintEstimatedStatistics::ETimeMode mode, float acceleration) const;
+        // ORCA: plans the entry feedrate of a block. Shared by process_G1() and process_VG1().
         void calculate_block_junction(PrintEstimatedStatistics::ETimeMode mode, TimeMachine& machine, TimeBlock& block, float acceleration);
         float get_retract_acceleration(PrintEstimatedStatistics::ETimeMode mode) const;
         void  set_retract_acceleration(PrintEstimatedStatistics::ETimeMode mode, float value);

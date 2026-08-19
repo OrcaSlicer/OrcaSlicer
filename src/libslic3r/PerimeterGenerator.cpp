@@ -1302,6 +1302,17 @@ static void reorient_perimeters(ExtrusionEntityCollection &entities, bool steep_
     }
 }
 
+// ORCA: Douglas-Peucker may drop a vertex as long as the contour stays within `resolution` of the
+// original, but on a curve that same budget also sets the turn the toolhead has to make at every
+// vertex it keeps: simplifying a radius R by a deviation t leaves turns of up to sqrt(8 t / R).
+// Both firmware junction models corner at a speed that falls off with the turn until the curvature
+// of the path takes over instead, and it takes over below sqrt(8 * junction_deviation / R) -- the
+// same expression, so R cancels and the whole condition is that a contour must not be simplified
+// more coarsely than the junction deviation the firmware plans with. Past that point the
+// decimation no longer saves G-code, it makes the toolhead decelerate into every vertex it left
+// behind, which is what turns a wall of constant curvature into alternating accelerations.
+// This only ever tightens the tolerance, and never below a quarter of `resolution`, so the worst
+// case is roughly twice as many points along a curve and no loss of accuracy anywhere.
 double PerimeterGenerator::wall_simplify_resolution() const
 {
     const double base = (print_config->enable_arc_fitting && !this->has_fuzzy_skin) ? 0.2 * m_scaled_resolution : m_scaled_resolution;
