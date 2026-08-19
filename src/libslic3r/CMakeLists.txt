@@ -546,7 +546,9 @@ target_link_libraries(magma_tube_solver
         ortools::ortools
         boost_libs
         cereal::cereal
-        eigen
+        # Eigen 5.0.1 exports only the namespaced imported target; the bare `eigen` name
+        # resolved under the vendored 3.4 setup and does not now. Match what libslic3r links.
+        Eigen3::Eigen
         semver
         TBB::tbb
         # These are pulled in for their PUBLIC include-directory exports — the

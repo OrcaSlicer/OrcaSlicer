@@ -6665,7 +6665,9 @@ LayerResult GCode::process_layer(
                     // one, so search them all.
                     long label_id = -1;
                     for (const auto &kv : filament_to_print_instances) {
-                        for (const InstanceToPrint &ins : kv.second)
+                        // Upstream now stores {instances, visit order} per filament; the instances
+                        // are the first half.
+                        for (const InstanceToPrint &ins : kv.second.first)
                             if (&ins.print_object == obj && int(ins.instance_id) == mt.instance_idx) {
                                 label_id = long(ins.label_object_id);
                                 break;

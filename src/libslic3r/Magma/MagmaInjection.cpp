@@ -238,9 +238,10 @@ std::string generate_injection_gcode(
     // Z travel speed (same fallback as GCodeWriter::_travel_to_z); the firmware
     // caps it at max_z_velocity. A hardcoded feedrate left the nozzle lingering
     // on the hot tube top.
-    double z_speed_mms = config.travel_speed_z.value;
+    // Per-nozzle since upstream's refactor; read the tool actually doing the injection.
+    double z_speed_mms = config.travel_speed_z.get_at(extruder_id);
     if (z_speed_mms <= 0.)
-        z_speed_mms = config.travel_speed.value;
+        z_speed_mms = config.travel_speed.get_at(extruder_id);
     int z_feedrate = (int)(z_speed_mms * 60.0);
     if (z_feedrate < 60) z_feedrate = 60;
 
