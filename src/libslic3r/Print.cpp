@@ -2994,12 +2994,14 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             // 0 = the filament's max volumetric speed (validate rejects the case where the
             // filament defines none), and an explicit value is still capped by it.
             {
-                // 0 = "whatever is loaded", which is the sparse infill extruder printing the
-                // lattice -- not extruder 0. Same fallback MagmaResolved uses.
+                // 0 = "whatever is loaded", which is the extruder printing the lattice -- not
+                // extruder 0. Must stay in step with MagmaResolved, including the dual-infill
+                // case where the lattice belongs to the zone filament.
                 const int inj_f   = oc.magma_injection_filament.value;
-                const int inj_ext = inj_f > 0
-                                        ? (inj_f - 1)
-                                        : std::max(0, m_default_region_config.sparse_infill_filament.value - 1);
+                const int lattice_f = m_default_region_config.dual_infill_enabled.value
+                                          ? m_default_region_config.dual_infill_outer_filament.value
+                                          : m_default_region_config.sparse_infill_filament_id.value;
+                const int inj_ext = inj_f > 0 ? (inj_f - 1) : std::max(0, lattice_f - 1);
                 const double max_vol = m_config.filament_max_volumetric_speed.get_at(inj_ext);
                 const double vs = oc.magma_injection_speed.value;
                 double resolved = vs > 0.0 ? (max_vol > 0.0 ? std::min(vs, max_vol) : vs)

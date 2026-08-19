@@ -28,10 +28,18 @@ bool resolve_magma(const PrintRegionConfig &region,
     r.pattern  = pattern;
     r.geometry = &magma_geometry_for(pattern);
 
-    // The lattice is printed by the SPARSE INFILL extruder, so every nozzle-derived number
-    // below must come from that extruder. Reading nozzle_diameter[0] instead describes a
-    // nozzle that does not print the lattice on any mixed-nozzle machine.
-    r.sparse_extruder = std::max(0, region.sparse_infill_filament.value - 1);
+    // Every nozzle-derived number below must come from the extruder that actually prints the
+    // lattice. With dual infill that is the ZONE filament, not the sparse infill one: the lattice
+    // lives in the outer zone. Sizing it against sparse infill's nozzle described a tool that does
+    // not print it on any mixed-nozzle machine -- the same plan-versus-emit split as the injection
+    // extruder, one layer up.
+    //
+    // These ids are 1-based with 0 = "Default"; PrintApply resolves 0 to a real id before slicing,
+    // and the max() covers the GUI readout, which resolves against an unresolved preset.
+    const int lattice_filament = region.dual_infill_enabled.value
+                                     ? region.dual_infill_outer_filament.value
+                                     : region.sparse_infill_filament_id.value;
+    r.sparse_extruder = std::max(0, lattice_filament - 1);
     r.nozzle_diameter = print.nozzle_diameter.get_at(r.sparse_extruder);
 
     r.line_width = region.sparse_infill_line_width.get_abs_value(r.nozzle_diameter);

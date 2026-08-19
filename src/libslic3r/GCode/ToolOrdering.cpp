@@ -115,9 +115,7 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
     // Dual infill zone filament routing: each fill collection has a single role.
     // Zone outer infill (erZoneOuterInfill) → dual_infill_outer_filament
     // Zone floor/ceiling (erZoneFloor/Ceiling) → internal_solid_filament_id (via is_solid_infill)
-    // Zone shell (erZoneShell) → walls (lives in perimeters, not fills). It currently lands on
-    // outer_wall_filament_id via the else branch below; routing it to inner_wall_filament_id is
-    // a phase 2 task, since the shell is never visible from outside the part.
+    // Zone shell (erZoneShell) → inner_wall_filament_id (lives in perimeters, not fills)
     unsigned int extruder = 1;
     if (this->extruder_override == 0) {
         if (extrusions.has_zone_fill())
@@ -136,7 +134,9 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
             }
         } else {
             const ExtrusionRole role = extrusions.role();
-            if (role == erPerimeter)
+            if (role == erPerimeter || role == erZoneShell)
+                // The zone shell is an inner wall: never visible from outside the part, and
+                // routing it with the inner perimeters costs no additional tool change.
                 extruder = region.config().inner_wall_filament_id.value;
             else
                 extruder = region.config().outer_wall_filament_id.value;

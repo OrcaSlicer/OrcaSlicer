@@ -2533,7 +2533,8 @@ void PerimeterGenerator::process_arachne()
             // Generate inner shell walls using WallToolPaths
             coord_t shell_line_width = perimeter_spacing;
             if (this->config->dual_infill_shell_width.value > 0) {
-                double nozzle_diam = this->print_config->nozzle_diameter.get_at(this->config->wall_filament - 1);
+                double nozzle_diam = this->print_config->nozzle_diameter.get_at(
+                    std::max(0, this->config->inner_wall_filament_id.value - 1));
                 shell_line_width = scale_(this->config->dual_infill_shell_width.get_abs_value(nozzle_diam));
             }
 

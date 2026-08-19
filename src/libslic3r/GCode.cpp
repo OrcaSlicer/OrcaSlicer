@@ -6111,7 +6111,17 @@ LayerResult GCode::process_layer(
                                 const ExtrusionRole role = entity->role();
                                 if (role == erExternalPerimeter || role == erOverhangPerimeter)
                                     outer_perimeters->append(*entity);
-                                else if (role == erPerimeter)
+                                else
+                                    // Everything that is not an outer wall is an inner one for
+                                    // filament purposes -- including erZoneShell, which is never
+                                    // visible from outside the part, and gap fill.
+                                    //
+                                    // This partition used to enumerate `else if (role ==
+                                    // erPerimeter)` and drop anything else on the floor. A zone
+                                    // shell therefore VANISHED from the G-code whenever the two
+                                    // wall filaments differed: it compiled, it sliced, and the
+                                    // part simply came out with no shell. Defaulting instead of
+                                    // enumerating means a role added later cannot repeat that.
                                     inner_perimeters->append(*entity);
                             }
 
