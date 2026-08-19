@@ -389,7 +389,7 @@ enumerates only `*.json` will find no vendors at all in a packaged build.
 | Everything about the bytes on disk — the dictionary, one config's wire format, the file framing and stamps, entry serialization, `VendorCacheFile` save/load/peeks | `src/libslic3r/PresetCacheFormat.{hpp,cpp}` |
 | Serve-or-parse decision, installing cache entries into a bundle, cache write-back | `src/libslic3r/PresetBundle.{hpp,cpp}` |
 | Vendor profile serialization | `src/libslic3r/Preset.hpp` |
-| Vendor discovery, installed/shipped versions, installation | `src/libslic3r/PresetBundle.cpp` |
+| Vendor discovery, installed/shipped versions, installation | `src/libslic3r/utils.cpp` (declared in `Utils.hpp`) |
 | Update and reinstall decisions | `src/slic3r/Utils/PresetUpdater.cpp` |
 | Setup wizard and printer-selection dialog | `src/slic3r/GUI/ConfigWizard.cpp`, `src/slic3r/GUI/WebGuideDialog.cpp` |
 | Generator tool | `src/dev-utils/generate_system_cache.cpp` |
