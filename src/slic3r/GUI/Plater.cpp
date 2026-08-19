@@ -16430,10 +16430,11 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
         case FT_DRC: ext = ".drc"; break;
         }
 
-        auto path = dir + name + ext;
+        std::string base_name = boost::filesystem::path(name).stem().string();
+        auto path = dir + base_name + ext;
         int n = 1;
         while (boost::filesystem::exists(path))
-            path = dir + name + "(" + std::to_string(n++) + ")"+ext;
+            path = dir + base_name + "(" + std::to_string(n++) + ")"+ext;
         return path;
     };
 
