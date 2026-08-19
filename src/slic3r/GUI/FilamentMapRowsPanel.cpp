@@ -22,7 +22,12 @@ static const wxColour TextNormalGreyColor = wxColour("#6B6B6B");
 // physically recorded -- see FilamentMapRowsPanel::BuildTargetOptions) has no real colour yet;
 // alpha 0 is MaterialItem/MappingItem's own convention for "draw the transparent placeholder
 // swatch instead of a solid colour" (see doRender's `acolor.Alpha() == 0` branches).
-static const wxColour PlaceholderColour = wxColour(0xCE, 0xCE, 0xCE, 0);
+// Opaque, deliberately: MaterialSyncItem::doRender treats an alpha-0 colour as "transparent
+// filament" and paints the checkerboard texture with no header band at all -- on a fresh
+// install (empty inventory, every picker option in bootstrap mode) the whole picker rendered
+// as blank checkerboard tiles, reported as broken on Windows by two testers. A flat neutral
+// grey reads as "no colour recorded yet", which is what this placeholder means.
+static const wxColour PlaceholderColour = wxColour(0xCE, 0xCE, 0xCE);
 
 // Orca: the tile's width the rest of this file resizes every MaterialSyncItem to (see WidenTile
 // below), replacing MaterialItem::messure_size's hardcoded 65dip. Widened so the corner badge
