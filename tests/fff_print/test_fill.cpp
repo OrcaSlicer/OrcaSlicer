@@ -698,3 +698,290 @@ TEST_CASE("Solid infill direction offsets every layer when no template is set", 
         CHECK(delta == 30);
     }
 }
+
+TEST_CASE("Honeycomb infill rounds its cell corners with the smooth factor", "[Fill]")
+{
+    // A cell whose sides are several times the line width, so that the corners have room to be rounded.
+    const double spacing = 0.45;
+    const double density = 0.1;
+    auto         fill    = [spacing, density](double smooth_factor) {
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("honeycomb"));
+        filler->spacing = spacing;
+
+        FillParams params;
+        params.density = float(density);
+        params.dont_adjust = true;
+        // Keep the fragments apart, so that only the turns of the pattern itself are measured.
+        params.anchor_length_max = 0.f;
+        params.smooth_factor     = smooth_factor;
+
+        Slic3r::ExPolygon square{ Slic3r::Points{
+            Point::new_scale(0., 0.), Point::new_scale(50., 0.), Point::new_scale(50., 50.), Point::new_scale(0., 50.) } };
+        Slic3r::Surface surface(stInternal, square);
+        return filler->fill_surface(&surface, params);
+    };
+
+    // Cosine of the sharpest turn of any of the paths, 1 meaning none of them turns at all.
+    auto sharpest_turn_cosine = [](const Slic3r::Polylines &polylines) {
+        double sharpest = 1.;
+        for (const Polyline &polyline : polylines)
+            for (size_t i = 1; i + 1 < polyline.size(); ++i) {
+                const Vec2d incoming = (polyline[i] - polyline[i - 1]).cast<double>().normalized();
+                const Vec2d outgoing = (polyline[i + 1] - polyline[i]).cast<double>().normalized();
+                sharpest = std::min(sharpest, incoming.dot(outgoing));
+            }
+        return sharpest;
+    };
+    auto point_count = [](const Slic3r::Polylines &polylines) {
+        return std::accumulate(polylines.begin(), polylines.end(), size_t(0),
+                               [](size_t count, const Polyline &polyline) { return count + polyline.size(); });
+    };
+
+    const Slic3r::Polylines sharp  = fill(0.);
+    const Slic3r::Polylines smooth = fill(1.);
+
+    REQUIRE(!sharp.empty());
+    REQUIRE(smooth.size() == sharp.size());
+    REQUIRE(point_count(smooth) > point_count(sharp));
+    // The cell corners turn by 60 degrees; smoothing replaces them by gentle curves.
+    REQUIRE(sharpest_turn_cosine(sharp) < 0.6);
+    REQUIRE(sharpest_turn_cosine(smooth) > 0.9);
+}
+
+// Point count, number of turns sharper than 25 degrees and length of the sparse infill of a print.
+// A rounded corner is a run of much gentler turns, so smoothing shows up as fewer sharp ones.
+struct SparseInfillShape {
+    size_t point_count { 0 };
+    size_t sharp_turns { 0 };
+    size_t path_count { 0 };
+    double length { 0. };
+};
+
+static SparseInfillShape sparse_infill_shape(const Print &print)
+{
+    SparseInfillShape shape;
+
+    auto account = [&shape](const ExtrusionPath &path) {
+        if (!sparse_role(path.role()))
+            return;
+        const Points3 &pts = path.polyline.points;
+        ++shape.path_count;
+        shape.point_count += pts.size();
+        for (size_t i = 1; i < pts.size(); ++i)
+            shape.length += (pts[i] - pts[i - 1]).head<2>().cast<double>().norm();
+        for (size_t i = 1; i + 1 < pts.size(); ++i) {
+            const Vec2d incoming = (pts[i] - pts[i - 1]).head<2>().cast<double>();
+            const Vec2d outgoing = (pts[i + 1] - pts[i]).head<2>().cast<double>();
+            if (incoming.squaredNorm() > 0. && outgoing.squaredNorm() > 0. &&
+                incoming.normalized().dot(outgoing.normalized()) < 0.9)
+                ++shape.sharp_turns;
+        }
+    };
+
+    for (const Layer *layer : print.objects().front()->layers())
+        for (const LayerRegion *region : layer->regions())
+            for (const ExtrusionEntity *entity : region->fills.flatten().entities) {
+                if (auto *path = dynamic_cast<const ExtrusionPath *>(entity))
+                    account(*path);
+                else if (auto *multi = dynamic_cast<const ExtrusionMultiPath *>(entity))
+                    for (const ExtrusionPath &p : multi->paths)
+                        account(p);
+                else if (auto *loop = dynamic_cast<const ExtrusionLoop *>(entity))
+                    for (const ExtrusionPath &p : loop->paths)
+                        account(p);
+            }
+    return shape;
+}
+
+TEST_CASE("Lightning infill rounds the turns of its branches with the smooth factor", "[Fill]")
+{
+    auto shape_for = [](const std::string &smooth_factor) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"sparse_infill_pattern", "lightning"},
+                                             {"sparse_infill_density", "15%"},
+                                             {"sparse_infill_smooth_factor", smooth_factor},
+                                             {"layer_height", 0.2}});
+        return sparse_infill_shape(print);
+    };
+
+    const SparseInfillShape sharp  = shape_for("0%");
+    const SparseInfillShape smooth = shape_for("100%");
+
+    REQUIRE(sharp.point_count > 0);
+    // The branch turns are replaced by curves, which cut the corners off and take more points to
+    // describe. The turns where two branches are joined into one path stay sharp.
+    REQUIRE(smooth.point_count > sharp.point_count);
+    REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
+    REQUIRE(smooth.length < sharp.length);
+}
+
+TEST_CASE("Concentric infill rounds its loops with the smooth factor", "[Fill]")
+{
+    auto shape_for = [](const std::string &smooth_factor) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"sparse_infill_pattern", "concentric"},
+                                             {"sparse_infill_density", "20%"},
+                                             {"sparse_infill_smooth_factor", smooth_factor},
+                                             {"layer_height", 0.2}});
+        return sparse_infill_shape(print);
+    };
+
+    const SparseInfillShape sharp  = shape_for("0%");
+    const SparseInfillShape smooth = shape_for("100%");
+
+    REQUIRE(sharp.point_count > 0);
+    REQUIRE(smooth.point_count > sharp.point_count);
+    REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
+    REQUIRE(smooth.length < sharp.length);
+}
+
+TEST_CASE("Cross hatch infill rounds its transition layers with the smooth factor", "[Fill]")
+{
+    auto shape_for = [](const std::string &smooth_factor) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"sparse_infill_pattern", "crosshatch"},
+                                             {"sparse_infill_density", "20%"},
+                                             {"sparse_infill_smooth_factor", smooth_factor},
+                                             {"layer_height", 0.2}});
+        return sparse_infill_shape(print);
+    };
+
+    const SparseInfillShape sharp  = shape_for("0%");
+    const SparseInfillShape smooth = shape_for("100%");
+
+    REQUIRE(sharp.point_count > 0);
+    REQUIRE(smooth.point_count > sharp.point_count);
+    REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
+    REQUIRE(smooth.length < sharp.length);
+}
+
+TEST_CASE("Trapezoidal grid infill rounds its corners only with more than one line", "[Fill]")
+{
+    auto shape_for = [](int multiline, const std::string &smooth_factor) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"sparse_infill_pattern", "grid"},
+                                             {"sparse_infill_density", "20%"},
+                                             {"fill_multiline", multiline},
+                                             {"sparse_infill_smooth_factor", smooth_factor},
+                                             {"layer_height", 0.2}});
+        return sparse_infill_shape(print);
+    };
+
+    const SparseInfillShape sharp  = shape_for(2, "0%");
+    const SparseInfillShape smooth = shape_for(2, "100%");
+
+    REQUIRE(sharp.point_count > 0);
+    REQUIRE(smooth.point_count > sharp.point_count);
+    REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
+    REQUIRE(smooth.length < sharp.length);
+
+    // A single line per infill wall is the plain crossing line grid, which has no corner of its own.
+    const SparseInfillShape single_sharp  = shape_for(1, "0%");
+    const SparseInfillShape single_smooth = shape_for(1, "100%");
+    REQUIRE(single_sharp.point_count > 0);
+    REQUIRE(single_smooth.point_count == single_sharp.point_count);
+    REQUIRE(single_smooth.length == single_sharp.length);
+}
+
+TEST_CASE("3D honeycomb infill rounds its octahedral waves with the smooth factor", "[Fill]")
+{
+    auto shape_for = [](const std::string &smooth_factor) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"sparse_infill_pattern", "3dhoneycomb"},
+                                             {"sparse_infill_density", "20%"},
+                                             {"sparse_infill_smooth_factor", smooth_factor},
+                                             {"layer_height", 0.2}});
+        return sparse_infill_shape(print);
+    };
+
+    const SparseInfillShape sharp  = shape_for("0%");
+    const SparseInfillShape smooth = shape_for("100%");
+
+    REQUIRE(sharp.point_count > 0);
+    REQUIRE(smooth.point_count > sharp.point_count);
+    REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
+    REQUIRE(smooth.length < sharp.length);
+}
+
+TEST_CASE("Smoothed concentric infill stays inside the fill region", "[Fill][Regression]")
+{
+    // The concentric loops are offsets of the fill region and are never clipped to it, so a corner
+    // rounded across its boundary ends up in a hole or over a wall. Rounding cuts toward the inside of
+    // the turn, which leaves the region at every corner of a hole, and in a region thinner than the
+    // curve even at a corner turning inwards.
+    const bool  thin_region = GENERATE(false, true);
+    ExPolygon   region;
+    if (thin_region) {
+        // An L of two 1.2mm wide arms: cutting the corner they meet at crosses both of them.
+        region = ExPolygon{ Slic3r::Points{
+            Point::new_scale(0., 0.), Point::new_scale(20., 0.), Point::new_scale(20., 1.2),
+            Point::new_scale(1.2, 1.2), Point::new_scale(1.2, 20.), Point::new_scale(0., 20.) } };
+    } else {
+        region = ExPolygon{ Slic3r::Points{ Point::new_scale(0., 0.), Point::new_scale(50., 0.),
+                                            Point::new_scale(50., 50.), Point::new_scale(0., 50.) },
+                            Slic3r::Points{ Point::new_scale(30., 20.), Point::new_scale(30., 30.),
+                                            Point::new_scale(20., 30.), Point::new_scale(20., 20.) } };
+    }
+    CAPTURE(thin_region);
+
+    auto fill = [&region](double smooth_factor) {
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("concentric"));
+        filler->spacing = 0.45;
+
+        FillParams params;
+        params.density       = 0.1f;
+        params.dont_adjust   = true;
+        params.smooth_factor = smooth_factor;
+
+        Slic3r::Surface surface(stInternal, region);
+        return filler->fill_surface(&surface, params);
+    };
+    auto point_count = [](const Slic3r::Polylines &polylines) {
+        return std::accumulate(polylines.begin(), polylines.end(), size_t(0),
+                               [](size_t count, const Polyline &polyline) { return count + polyline.size(); });
+    };
+
+    const Slic3r::Polylines sharp  = fill(0.);
+    const Slic3r::Polylines smooth = fill(1.);
+    REQUIRE(!sharp.empty());
+
+    // Nothing leaves the fill region, which the unrounded loops already touch from the inside.
+    const ExPolygons bounds = offset_ex(region, float(SCALED_EPSILON));
+    REQUIRE(diff_pl(sharp, bounds).empty());
+    REQUIRE(diff_pl(smooth, bounds).empty());
+    // The corners that the region has room for are still rounded.
+    if (!thin_region)
+        REQUIRE(point_count(smooth) > point_count(sharp));
+}
+
+TEST_CASE("Smoothing multiline lightning infill keeps its outlines connected", "[Fill][Regression]")
+{
+    // With more than one line per infill wall, the branches are printed as outlines drawn around them,
+    // and the outlines of branches that run close to each other merge into one. Rounding the branches
+    // before those outlines are built moves them apart, which breaks the merged outlines up into
+    // separate loops - many more of them, each needing its own travel move.
+    auto shape_for = [](const std::string &smooth_factor) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"sparse_infill_pattern", "lightning"},
+                                             {"sparse_infill_density", "50%"},
+                                             {"fill_multiline", 2},
+                                             {"sparse_infill_smooth_factor", smooth_factor},
+                                             {"layer_height", 0.2}});
+        return sparse_infill_shape(print);
+    };
+
+    const SparseInfillShape sharp  = shape_for("0%");
+    const SparseInfillShape smooth = shape_for("100%");
+
+    REQUIRE(sharp.path_count > 0);
+    REQUIRE(smooth.path_count <= sharp.path_count);
+    // The outlines are still rounded.
+    REQUIRE(smooth.point_count > sharp.point_count);
+    REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
+}

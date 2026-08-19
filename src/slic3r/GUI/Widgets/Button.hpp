@@ -34,7 +34,6 @@ class Button : public StaticBox
     wxSize minSize; // set by outer
     wxSize paddingSize;
     ScalableBitmap active_icon;
-    ScalableBitmap inactive_icon;
 
     StateColor   text_color;
 
@@ -61,8 +60,7 @@ public:
     bool SetFont(const wxFont& font) override;
 
     void SetIcon(const wxString& icon);
-
-    void SetInactiveIcon(const wxString& icon);
+    void SetIcon(const wxBitmap& icon);
 
     void SetMinSize(const wxSize& size) override;
     void SetMaxSize(const wxSize& size) override;

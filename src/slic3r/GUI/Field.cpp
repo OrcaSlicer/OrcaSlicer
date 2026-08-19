@@ -331,8 +331,10 @@ void Field::PostInitialize()
                 }
 			    default: break;
 			    }
-			    if (tab_id >= 0)
-					wxGetApp().mainframe->select_tab(tab_id);
+			    if (tab_id >= 0) {
+					static constexpr const char* kShortcutTabIds[] = {TAB_ID_HOME, TAB_ID_PREPARE, TAB_ID_PREVIEW, TAB_ID_MONITOR};
+					wxGetApp().mainframe->select_tab(kShortcutTabIds[tab_id]);
+				}
 				if (tab_id > 0)
 					// tab panel should be focused for correct navigation between tabs
 				    wxGetApp().tab_panel()->SetFocus();

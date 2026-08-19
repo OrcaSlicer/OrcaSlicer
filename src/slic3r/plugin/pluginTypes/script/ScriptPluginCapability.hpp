@@ -11,8 +11,7 @@ public:
 
     virtual ExecutionResult execute() = 0;
 
-    static void RegisterBindings(pybind11::module_ &module,
-                                 pybind11::enum_<PluginCapabilityType> &pluginTypes);
+    static void RegisterBindings(pybind11::module_ &module);
 };
 } // namespace Slic3r
 

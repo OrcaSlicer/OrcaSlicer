@@ -620,6 +620,8 @@ set(SLIC3R_GUI_SOURCES
     plugin/host/PluginHostSlicing.cpp
     plugin/host/PluginHostUi.cpp
     plugin/host/PluginHostUi.hpp
+    plugin/host/PluginPages.cpp
+    plugin/host/PluginPages.hpp
     plugin/CloudPluginService.cpp
     plugin/CloudPluginService.hpp
     plugin/PluginFsUtils.cpp
@@ -640,6 +642,9 @@ set(SLIC3R_GUI_SOURCES
     plugin/pluginTypes/printerAgent/PrinterAgentPluginCapability.hpp
     plugin/pluginTypes/printerAgent/PrinterAgentPluginCapability.cpp
     plugin/pluginTypes/printerAgent/PrinterAgentPluginCapabilityTrampoline.hpp
+    plugin/pluginTypes/pages/PagesPluginCapability.hpp
+    plugin/pluginTypes/pages/PagesPluginCapability.cpp
+    plugin/pluginTypes/pages/PagesPluginCapabilityTrampoline.hpp
     plugin/pluginTypes/script/ScriptPluginCapability.hpp
     plugin/pluginTypes/script/ScriptPluginCapability.cpp
     plugin/pluginTypes/script/ScriptPluginCapabilityTrampoline.hpp
