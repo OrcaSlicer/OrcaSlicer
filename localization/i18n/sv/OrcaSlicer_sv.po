@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-08-19 14:07-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -5213,6 +5213,23 @@ msgstr "Kammarens aktuella temperatur är högre än materialets säkra temperat
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "Kammarens minimitemperatur (%d℃) är högre än kammarens måltemperatur (%d℃). Minimivärdet är tröskeln där utskriften startar medan kammaren fortsätter värmas mot målet, så det bör inte överstiga målet. Värdet begränsas till måltemperaturen."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr "Lagerhöjden är för liten. Den kommer att sättas till minimivärdet (%g mm)."
+
+# AI Translated
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr "Lagerhöjden ligger utanför gränserna som anges i Skrivarinställningar -> Extruder -> Lagerhöjds gränser, detta kan orsaka problem med utskriftskvaliteten."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr "Justera automatiskt till gränsvärdet (%g mm)?"
+
+msgid "Adjust"
+msgstr "Justera"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -5338,6 +5355,13 @@ msgstr ""
 "Vill du ändra dessa inställningar automatiskt?\n"
 "Ja – Aktivera Arachne-väggeneratorn\n"
 "Nej – Inaktivera Arachne-väggeneratorn och ställ in läget [Förskjutning] för ojämn yta"
+
+# AI Translated
+msgid "Brim ear radius"
+msgstr "Radie för brim-öra"
+
+msgid "Brim width"
+msgstr "Brim bredd"
 
 # AI Translated
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
@@ -5644,6 +5668,14 @@ msgstr "Misslyckades med att generera cali G kod"
 
 msgid "Calibration error"
 msgstr "Fel vid kalibrering"
+
+# AI Translated
+msgid "This printer is not configured with the hardware this control needs."
+msgstr "Den här skrivaren är inte konfigurerad med den maskinvara som den här kontrollen kräver."
+
+# AI Translated
+msgid "This control is not supported on this printer."
+msgstr "Den här kontrollen stöds inte på den här skrivaren."
 
 # AI Translated
 msgid "Network unavailable"
@@ -6596,7 +6628,7 @@ msgid "Size:"
 msgstr "Storlek:"
 
 # AI Translated
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Konflikter mellan G-code-banor hittades på lager %d, Z = %.2lfmm. Placera de objekt som krockar längre ifrån varandra (%s <-> %s)."
 
@@ -6797,6 +6829,10 @@ msgstr "Flera enheter"
 
 msgid "Project"
 msgstr "Projekt"
+
+# AI Translated
+msgid "Device (Web)"
+msgstr "Enhet (Webb)"
 
 msgid "Yes"
 msgstr "Ja"
@@ -9088,22 +9124,22 @@ msgid "Replaced with 3D files from directory:\n"
 msgstr "Ersatt med 3D-filer från mappen:\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ Hoppade över %s: samma fil.\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ Hoppade över %s: filen finns inte.\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ Hoppade över %s: det gick inte att ersätta.\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔ Ersatte %s.\n"
 
@@ -9934,6 +9970,18 @@ msgid "Pop up to select filament grouping mode"
 msgstr "Visa dialogruta för val av filamentgrupperingsläge"
 
 # AI Translated
+msgid "Visible plugin pages"
+msgstr "Synliga insticksmodulsidor"
+
+# AI Translated
+msgid "pages"
+msgstr "sidor"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "Antal insticksmodulsidor som visas som fasta flikar innan de återstående sidorna fälls ihop i en rullgardinsmeny på den sista fliken."
+
+# AI Translated
 msgid "Behaviour"
 msgstr "Beteende"
 
@@ -10358,6 +10406,18 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "Visa inkompatibla förinställningar och förinställningar som inte stöds i rullgardinslistorna för skrivare och filament. Dessa förinställningar kan inte väljas."
 
 # AI Translated
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr "(Experimentellt) Använd skrivaragenter i stället för utskriftsvärdar"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Skickar utskriftsjobb för icke-Bambu-skrivare via skrivarens insticksmodulagenter i stället för det klassiska uppladdningsflödet till utskriftsvärden.\n"
+"När detta är avaktiverat använder OrcaSlicer det äldre beteendet för utskriftsvärdar."
+
+# AI Translated
 msgid "Experimental Features"
 msgstr "Experimentella funktioner"
 
@@ -10638,8 +10698,24 @@ msgid "Preset Inside Project"
 msgstr "Projekt förinställning"
 
 # AI Translated
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr "Kopierar alla ärvda värden från den överordnade förinställningen till den här förinställningen och tar bort arvsrelationen. Förinställningar som endast är kompatibla med den överordnade förinställningen kan sluta stödjas."
+
+# AI Translated
 msgid "Detach from parent"
 msgstr "Koppla loss från överordnad"
+
+# AI Translated
+msgid "Unique preset"
+msgstr "Unik förinställning"
+
+# AI Translated
+msgid "Parent preset"
+msgstr "Överordnad förinställning"
+
+# AI Translated
+msgid "This preset does not inherit from another preset."
+msgstr "Den här förinställningen ärver inte från någon annan förinställning."
 
 msgid "Name is unavailable."
 msgstr "Namnet ej tillgängligt."
@@ -11460,23 +11536,6 @@ msgid "Infill patterns are typically designed to handle rotation automatically t
 msgstr "Ifyllnadsmönster är oftast konstruerade för att hantera rotation automatiskt så att de skrivs ut korrekt och ger avsedd effekt (t.ex. Gyroid, Kubisk). Att rotera det aktuella sparsamma ifyllnadsmönstret kan ge otillräckligt stöd. Var försiktig och kontrollera noga om det uppstår utskriftsproblem. Är du säker på att du vill aktivera det här alternativet?"
 
 # AI Translated
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"Lagerhöjden är för liten.\n"
-"Den ställs in på min_layer_height\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "Lagerhöjden överskrider gränsen i Skrivarinställningar -> Extruder -> Lagerhöjds gränser, detta kan orsaka problem med utskriftskvaliteten."
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "Justera automatiskt till det inställda området?\n"
-
-msgid "Adjust"
-msgstr "Justera"
-
-# AI Translated
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "Experimentell funktion: Filamentet dras tillbaka och kapas på ett längre avstånd vid filamentbyten för att minimera rensningen. Det kan minska rensningen avsevärt, men kan också öka risken för igensatt nozzel eller andra utskriftsproblem."
 
@@ -11707,6 +11766,9 @@ msgstr "Hittade reserverade nyckelord"
 msgid "Setting Overrides"
 msgstr "Åsidosätter inställningar"
 
+msgid "Retraction when switching material"
+msgstr "Reduktion vid material byte"
+
 msgid "Basic information"
 msgstr "Allmän information"
 
@@ -11847,6 +11909,14 @@ msgstr "Kompatibla process profiler"
 
 msgid "Printable space"
 msgstr "Utskriftsbar yta"
+
+# AI Translated
+msgid "Printer Agent"
+msgstr "Skrivaragent"
+
+# AI Translated
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "Välj vilken nätverksagentimplementation som ska användas för kommunikation med skrivaren. Tillgängliga agenter registreras vid start."
 
 # AI Translated
 #. TRN: The first argument is the parameter's name; the second argument is its value.
@@ -11991,9 +12061,6 @@ msgstr "Lagerhöjds begränsning"
 
 msgid "Z-Hop"
 msgstr "Z-Hop"
-
-msgid "Retraction when switching material"
-msgstr "Reduktion vid material byte"
 
 # AI Translated
 msgid ""
@@ -13487,6 +13554,10 @@ msgid " is too close to clumping detection area, and collisions will be caused.\
 msgstr " ligger för nära området för klumpdetektering, vilket kommer att orsaka kollisioner.\n"
 
 # AI Translated
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr " är delvis utanför det utskrivbara området och kan inte skrivas ut.\n"
+
+# AI Translated
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "De valda nozzeltemperaturerna är inkompatibla. Varje filaments nozzeltemperatur måste ligga inom de andra filamentens rekommenderade nozzeltemperaturintervall. Annars kan nozzeln sättas igen eller skrivaren skadas."
 
@@ -13855,10 +13926,6 @@ msgstr "Använd 3MF i stället för G-code"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Aktivera detta om skrivaren tar emot en 3MF-fil som utskriftsjobb. När det är aktiverat skickar Orca Slicer den beredda filen som en .gcode.3mf i stället för en vanlig .gcode-fil."
-
-# AI Translated
-msgid "Printer Agent"
-msgstr "Skrivaragent"
 
 # AI Translated
 msgid "Select the network agent implementation for printer communication."
@@ -14616,9 +14683,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "Hastighet för inre bridges. Om värdet anges i procent beräknas det utifrån bridge_speed. Standardvärdet är 150 %."
 
-msgid "Brim width"
-msgstr "Brim bredd"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Avståndet från modellen till yttersta brim linjen"
 
@@ -14706,6 +14770,14 @@ msgid ""
 msgstr ""
 "Geometrin decimeras innan skarpa vinklar detekteras. Den här parametern anger avvikelsens minsta längd för decimeringen.\n"
 "0 för att avaktivera."
+
+# AI Translated
+msgid "Brim ears outer only"
+msgstr "Brim-öron endast utvändigt"
+
+# AI Translated
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr "Genererar musöron endast på modellens yttre kontur, exklusive hål och slutna sektioner."
 
 msgid "upward compatible machine"
 msgstr "uppåt kompatibel maskin"
@@ -16039,6 +16111,14 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Gyroid"
 
+# AI Translated
+msgid "Sparse infill smooth factor"
+msgstr "Utjämningsfaktor för sparsam ifyllnad"
+
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "Styr hur kraftigt hörnen i den sparsamma ifyllnaden rundas av. 0% behåller den ursprungliga skarpa banan, medan 100% ger största möjliga kurvor mellan intilliggande ifyllnadslinjer."
+
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Acceleration av fyllning av toppytan. Att använda ett lägre värde kan förbättra ytkvaliteten"
 
@@ -16650,6 +16730,14 @@ msgstr "Vilken typ av G-kod är skrivaren kompatibel med"
 
 msgid "Klipper"
 msgstr "Klipper"
+
+# AI Translated
+msgid "Skip G-code config block"
+msgstr "Hoppa över G-code-konfigurationsblocket"
+
+# AI Translated
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr "Skriver inte CONFIG_BLOCK (nyckel/värde-paren för slicerkonfigurationen) till G-code-filen. Detta kan hjälpa med skrivare vars firmware kraschar när dessa kommentarrader tolkas (t.ex. Anycubic go-klipper). Obs: G-code-filen kommer inte längre att innehålla slicerinställningarna, så att importera den tillbaka till OrcaSlicer återställer inte konfigurationen."
 
 # AI Translated
 msgid "Pellet Modded Printer"
@@ -17869,6 +17957,14 @@ msgid "Retraction distance when extruder change"
 msgstr "Reduktionssträcka vid extruderbyte"
 
 # AI Translated
+msgid "Retraction Length (Toolchange)"
+msgstr "Reduktionslängd (Verktygsbyte)"
+
+# AI Translated
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr "När reduktionen utlöses före ett verktygsbyte dras filamentet tillbaka med den angivna mängden (längden mäts på det obearbetade filamentet, innan det når extrudern)."
+
+# AI Translated
 msgid "Z-hop height"
 msgstr "Z-hop-höjd"
 
@@ -17982,6 +18078,10 @@ msgstr "Extra längd vid omstart"
 # AI Translated
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "När reduktionen kompenseras efter flyttrörelsen trycker extrudern fram den här extra mängden filament. Den här inställningen behövs sällan."
+
+# AI Translated
+msgid "Extra length on restart (Toolchange)"
+msgstr "Extra längd vid omstart (Verktygsbyte)"
 
 # AI Translated
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
@@ -18476,6 +18576,14 @@ msgstr "Verktygsbyte vid prime tornet"
 # AI Translated
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "Tvinga verktygshuvudet att flytta till prime tornet innan verktygsbyteskommandot (Tx) skickas. Endast relevant för skrivare med flera extrudrar (flera verktygshuvuden) som använder ett prime torn av typ 2. Som standard hoppar Orca över flytten på maskiner med flera verktygshuvuden, eftersom den fasta programvaran hanterar huvudbytet, vilket kan leda till att Tx-kommandot skickas ovanför den utskrivna delen. Aktivera det här alternativet om du vill att verktygsbytet alltid ska ske ovanför prime tornet i stället."
+
+# AI Translated
+msgid "Wait for temperature on wipe tower"
+msgstr "Vänta på temperatur vid prime tornet"
+
+# AI Translated
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr "Hämtar det nya verktyget utan att vänta på att det ska nå utskriftstemperatur, förflyttar sig till prime tornet och väntar på temperaturen där, precis före rensningen. Materialet som droppar under uppvärmningen hamnar på tornet i stället för på modellen, och förflyttningen sker samtidigt som uppvärmningen. Endast relevant för skrivare med flera extrudrar (flera verktygshuvuden) som använder ett prime torn av typ 2. Firmware eller verktygsbytesmakrot får inte vänta på temperaturen själv. När detta är avaktiverat utfärdas temperaturväntan direkt efter verktygsbyteskommandot."
 
 # AI Translated
 msgid "No sparse layers (beta)"
@@ -22102,10 +22210,6 @@ msgid "Print Host upload"
 msgstr "Uppladdning utskriftsvärd"
 
 # AI Translated
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "Välj vilken nätverksagentimplementation som ska användas för kommunikation med skrivaren. Tillgängliga agenter registreras vid start."
-
-# AI Translated
 msgid "Select a Flashforge printer"
 msgstr "Välj en Flashforge-skrivare"
 
@@ -23182,10 +23286,6 @@ msgid "User canceled."
 msgstr "Användaren avbröt."
 
 # AI Translated
-msgid "Head diameter"
-msgstr "Huvuddiameter"
-
-# AI Translated
 msgid "Max angle"
 msgstr "Maxvinkel"
 
@@ -24070,6 +24170,24 @@ msgid ""
 msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
+
+# AI Translated
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "Lagerhöjden är för liten.\n"
+#~ "Den ställs in på min_layer_height\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "Lagerhöjden överskrider gränsen i Skrivarinställningar -> Extruder -> Lagerhöjds gränser, detta kan orsaka problem med utskriftskvaliteten."
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "Justera automatiskt till det inställda området?\n"
+
+# AI Translated
+#~ msgid "Head diameter"
+#~ msgstr "Huvuddiameter"
 
 # AI Translated
 #~ msgid "Print order within a single layer."
