@@ -385,6 +385,14 @@ PresetHints::MagmaReadout PresetHints::magma_geometry_readout(const PresetBundle
     auto mm = [](double v) { return (boost::format("%1$.3f mm") % v).str(); };
 
     MagmaRows r;
+    // The bore-scaled stand-in is a guess, and every number below is derived from it. Saying so
+    // first is the difference between a readout and a readout that misleads -- slicing refuses
+    // in this state, so without the line the panel looks more confident than the slicer is.
+    if (m.nozzle_flat_is_estimate)
+        r.add(_utf8(L("Nozzle tip flat")),
+              (boost::format(_utf8(L("%1$.2f mm  (ESTIMATED)"))) % m.nozzle_flat).str(),
+              _utf8(L("not measured, so this is a guess from the bore and every figure below is "
+                      "derived from it; slicing will refuse until you measure the flat")));
     r.add(_utf8(L("Tube interior")), mm(m.interior_width),
           (boost::format(_utf8(L("open width of one cell; cell spacing %1$.3f mm at %2$.2f mm line width")))
            % m.cell_spacing % m.line_width).str());

@@ -41,6 +41,7 @@ bool resolve_magma(const PrintRegionConfig &region,
         // larger number, so the tube it describes is not the tube that gets printed.
         r.line_width = Flow::auto_extrusion_width(frInfill, float(r.nozzle_diameter));
 
+    r.nozzle_flat_is_estimate = object.magma_nozzle_outer_diameter.value <= 0.0;
     r.nozzle_flat         = resolve_nozzle_flat(object.magma_nozzle_outer_diameter.value,
                                                 r.nozzle_diameter);
 

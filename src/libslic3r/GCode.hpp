@@ -19,6 +19,7 @@
 #include "GCode/GCodeProcessor.hpp"
 #include "EdgeGrid.hpp"
 #include "GCode/ThumbnailData.hpp"
+#include "Magma/MagmaInjection.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "GCode/ExtrusionProcessor.hpp"
 
@@ -577,6 +578,10 @@ private:
     bool                                m_enable_extrusion_role_markers;
     // Keeps track of the last extrusion role passed to the processor
     ExtrusionRole                       m_last_processor_extrusion_role;
+    // Ways the Magma injections came out weaker than the preview promised, accumulated across
+    // every layer and object and reported ONCE at the end of the export -- into the G-code and
+    // as a slicing warning. Per-occurrence logging does not reach whoever reads the part.
+    magma::InjectionDiagnostics         m_magma_diag;
     // How many times will change_layer() be called?
     // change_layer() will update the progress bar.
     unsigned int                        m_layer_count;

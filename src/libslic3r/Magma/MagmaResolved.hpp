@@ -32,6 +32,11 @@ struct MagmaResolved
     double nozzle_diameter     = 0.0;  // that extruder's bore
     double line_width          = 0.0;  // deposited bead width ("auto" already resolved)
     double nozzle_flat         = 0.0;  // measured tip flat (or the bore-scaled stand-in)
+    // True when nothing was measured and nozzle_flat is resolve_nozzle_flat's bore-scaled
+    // guess. Print::validate refuses to slice in that state, so it can only be reached by the
+    // GUI readout -- which would otherwise print tube sizes derived from a guess as though
+    // they were derived from a nozzle. Every consumer of nozzle_flat has to be able to say so.
+    bool   nozzle_flat_is_estimate = false;
     double cone_half_angle_deg = 0.0;
     double max_immersion       = 0.0;  // "Total immersion" in the UI: the budget every depth spends from
     double min_seal_depth      = 0.0;  // floor under seal_depth, itself clamped by the budget

@@ -4,6 +4,8 @@
 #include "../GCode.hpp"
 #include "../GCode/GCodeProcessor.hpp"
 #include "../ShortestPath.hpp"
+#include "../I18N.hpp"
+#include "../format.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -89,12 +91,45 @@ std::string park_and_set_temp(
     return gcode;
 }
 
+std::vector<std::string> InjectionDiagnostics::messages() const
+{
+    std::vector<std::string> out;
+    // Counts, not booleans: "3 of them" and "one of them" call for different responses, and a
+    // message that cannot tell you which is a message you cannot act on.
+    if (tubes_no_volume > 0)
+        out.push_back(Slic3r::format(
+            L("%1% Magma U-tube(s) were not injected: no injectable cavity was measured in the "
+              "printed lattice, so those channels are printing hollow and unreinforced. This is "
+              "usually a tube clipped away to nothing at a part boundary, or a tube height that "
+              "leaves no cavity between the window and the cap."),
+            tubes_no_volume));
+    if (layers_no_fill_factor > 0)
+        out.push_back(Slic3r::format(
+            L("Every Magma injection on %1% layer(s) was dropped because Tube fill factor is not "
+              "greater than zero. The lattice on those layers prints hollow."),
+            layers_no_fill_factor));
+    if (injections_invented_speed > 0)
+        out.push_back(Slic3r::format(
+            L("%1% Magma injection(s) ran at 1 mm\u00b3/s, a rate nobody chose: injection speed is "
+              "set to 0 (\"use the filament's max volumetric speed\") but the filament declares no "
+              "max volumetric speed. Set one or the other."),
+            injections_invented_speed));
+    if (injections_unlabelled > 0)
+        out.push_back(Slic3r::format(
+            L("%1% Magma injection(s) are not inside an object-exclusion block, so they will still "
+              "run if you cancel that object mid-print \u2014 the nozzle will press into and extrude "
+              "onto a part that is no longer being printed."),
+            injections_unlabelled));
+    return out;
+}
+
 std::string generate_injection_gcode(
     GCode& gcodegen,
     const MagmaTubeMap& tube_map,
     const std::vector<InjectionPoint>& points,
     double layer_z,
-    double actual_layer_height)
+    double actual_layer_height,
+    InjectionDiagnostics& diag)
 {
     if (points.empty())
         return {};
@@ -112,6 +147,7 @@ std::string generate_injection_gcode(
         // printed and unfilled, which looks like the feature simply not working.
         BOOST_LOG_TRIVIAL(error) << "Magma: tube fill factor is " << fill_factor
                                  << " (must be > 0); skipping all injections on this layer.";
+        ++diag.layers_no_fill_factor;
         return {};
     }
 
@@ -182,11 +218,13 @@ std::string generate_injection_gcode(
         // where the filament does not define one, so max_vol is always real here. If it is
         // not, the config reached us past validation (hand-edited or foreign 3MF): say so
         // rather than silently injecting at an invented rate that nobody chose.
-        if (max_vol <= 0.0)
+        if (max_vol <= 0.0) {
             BOOST_LOG_TRIVIAL(error)
                 << "Magma: injection speed is 0 (use filament max volumetric speed) but filament "
                 << extruder_id << " declares no max volumetric speed; falling back to 1 mm3/s. "
                 << "Set either Magma injection speed or the filament's max volumetric speed.";
+            diag.injections_invented_speed += (int) points.size();
+        }
         vol_speed = max_vol > 0.0 ? max_vol : 1.0;
     } else
         vol_speed = max_vol > 0.0 ? std::min(injection_speed_vol, max_vol) : injection_speed_vol;
@@ -217,6 +255,7 @@ std::string generate_injection_gcode(
             BOOST_LOG_TRIVIAL(warning)
                 << "Magma: tube pair " << pt.pair_index << " has no measured cavity volume ("
                 << pt.volume_mm3 << " mm3); skipping its injection.";
+            ++diag.tubes_no_volume;
             continue;
         }
 

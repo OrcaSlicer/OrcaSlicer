@@ -3369,6 +3369,27 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 file.write(m_wipe_tower->finalize(*this));
         }
     }
+    // Magma: report anything that came out weaker than the preview promised, once, now that
+    // every layer has been emitted. Both destinations matter and neither substitutes for the
+    // other: the G-code comment travels with the file to whoever runs it, the slicing warning
+    // reaches whoever sliced it. A debug log reaches neither.
+    if (m_magma_diag.any()) {
+        const std::vector<std::string> msgs = m_magma_diag.messages();
+        std::string joined;
+        for (const std::string &m : msgs) {
+            file.write("; MAGMA WARNING: " + m + "\n");
+            if (! joined.empty())
+                joined += "\n";
+            joined += m;
+        }
+        // The lattice printing hollow is a structural defect in the part, not a hint.
+        print.active_step_add_warning(
+            (m_magma_diag.tubes_no_volume || m_magma_diag.layers_no_fill_factor)
+                ? PrintStateBase::WarningLevel::CRITICAL
+                : PrintStateBase::WarningLevel::NON_CRITICAL,
+            joined);
+    }
+
     //BBS: the last retraction
     // Write end commands to file.
     file.write(this->retract(false, true));
@@ -5508,15 +5529,17 @@ LayerResult GCode::process_layer(
                         if (m_enable_exclude_object && t->label_object_id >= 0)
                             labels = object_exclude_labels(print, *t->obj, size_t(t->instance_idx),
                                                            size_t(t->label_object_id));
-                        else if (m_enable_exclude_object)
+                        else if (m_enable_exclude_object) {
                             BOOST_LOG_TRIVIAL(warning)
                                 << "Magma: could not match an injection to a print instance; its "
                                    "moves will not be inside an object-exclusion block and will "
                                    "still run if that object is cancelled.";
+                            ++m_magma_diag.injections_unlabelled;
+                        }
 
                         gcode += labels.start;
                         gcode += magma::generate_injection_gcode(
-                            *this, *t->tube_map, one, print_z, t->actual_h);
+                            *this, *t->tube_map, one, print_z, t->actual_h, m_magma_diag);
                         gcode += labels.end;
                     }
 
