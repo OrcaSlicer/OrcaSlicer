@@ -366,12 +366,12 @@ enumerates only `*.json` will find no vendors at all in a packaged build.
   build does not is dropped; one this build has and the cache does not is simply
   absent, as it would be from a JSON that predates it.
 - **Changing a hand-written `serialize()`** — `VendorProfile` or its nested types — or
-  the `CachedPreset` field list, which is written by `save_entries` / `load_entries` and
-  read again by `peek_vendor_cache_preset_names`, or the cache's own layout or stamps,
-  requires bumping `CACHE_VERSION` by hand. Those three field lists must stay identical.
+  the `CachedPreset` field list — written and read by `visit_entry` in
+  `PresetCacheFormat.cpp`, one list for the save, the load and the name peek alike — or
+  the cache's own layout or stamps, requires bumping `CACHE_VERSION` by hand.
 - **The dictionary indexes with a `uint16`**, so `print_config_def` may hold at most
   65535 options and one cache at most 65535 distinct enum value names.
-  `CacheDictionary::finalize` throws past that, which surfaces when CI generates the
+  `CacheDictionary::save` throws past that, which surfaces when CI generates the
   caches rather than on a user's machine.
 - **Bumping `CACHE_VERSION` is safe without a resources fallback** because
   `is_vendor_installed` means *present and usable*: cache-only vendors read as not
@@ -386,8 +386,8 @@ enumerates only `*.json` will find no vendors at all in a packaged build.
 
 | Area | Files |
 |---|---|
-| Name-keyed config wire format — the dictionary and one config's bytes | `src/libslic3r/PresetCacheFormat.{hpp,cpp}` |
-| Cache file format, entry serialization, read/write, load and save | `src/libslic3r/PresetBundle.{hpp,cpp}` |
+| Everything about the bytes on disk — the dictionary, one config's wire format, the file framing and stamps, entry serialization, `VendorCacheFile` save/load/peeks | `src/libslic3r/PresetCacheFormat.{hpp,cpp}` |
+| Serve-or-parse decision, installing cache entries into a bundle, cache write-back | `src/libslic3r/PresetBundle.{hpp,cpp}` |
 | Vendor profile serialization | `src/libslic3r/Preset.hpp` |
 | Vendor discovery, installed/shipped versions, installation | `src/libslic3r/PresetBundle.cpp` |
 | Update and reinstall decisions | `src/slic3r/Utils/PresetUpdater.cpp` |

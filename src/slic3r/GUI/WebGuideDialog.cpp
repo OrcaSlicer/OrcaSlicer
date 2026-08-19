@@ -13,6 +13,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PresetCacheFormat.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "libslic3r_version.h"
@@ -1341,7 +1342,7 @@ bool GuideFrame::BuildProfileDataFromVendors()
                     ordered.push_back({name, dir, v.to_string()});
             } else {
                 ordered.push_back({name, dir,
-                    PresetBundle::peek_vendor_cache_version((dir / (name + ".opc")).string(), name)});
+                    VendorCacheFile::peek_version((dir / (name + ".opc")).string(), name)});
             }
         };
         const std::string filament_library(PresetBundle::ORCA_FILAMENT_LIBRARY);

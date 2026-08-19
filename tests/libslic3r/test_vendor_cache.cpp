@@ -136,7 +136,7 @@ std::string slurp(const fs::path& p)
 
 // Flip one byte of the body. The default lands in the stamps at the front, which
 // every reader checks; pass an offset past them to corrupt a file that still
-// answers peek_vendor_cache_version but cannot survive its CRC.
+// answers VendorCacheFile::peek_version but cannot survive its CRC.
 void corrupt_blob_byte(const std::string& path, std::streamoff at = 30)
 {
     std::fstream f(path, std::ios::in | std::ios::out | std::ios::binary);
@@ -167,7 +167,7 @@ void patch_payload_bytes(const std::string& path, size_t payload_off, const void
 }
 
 // Patch cache_version (the payload's first word) so the file passes the CRC
-// check but fails the cache_version check in load_vendor_cache.
+// check but fails the cache_version check in VendorCacheFile::load.
 void patch_cache_version(const std::string& path, uint32_t wrong_version)
 {
     patch_payload_bytes(path, 0, &wrong_version, sizeof(wrong_version));
@@ -175,9 +175,9 @@ void patch_cache_version(const std::string& path, uint32_t wrong_version)
 
 // Truncates the cache's PAYLOAD (everything after the 20-byte header) by
 // `truncate_by` bytes and recomputes data_size/crc32 in the header, exactly
-// as write_cache_blob computes them, so read_cache_blob's size and CRC checks
+// as the cache writer computes them, so the framing's size and CRC checks
 // still pass but cereal runs out of bytes partway through deserializing the
-// body — exercising load_vendor_cache's catch block instead of its early
+// body — exercising VendorCacheFile::load's catch block instead of its early
 // (pre-body) rejection paths.
 void truncate_payload_and_fix_header(const std::string& path, size_t truncate_by)
 {
@@ -216,10 +216,10 @@ VendorMap one_vendor(const std::string& vendor_id, const std::string& name = "",
 
 // Source-form entries as parse_subfile would emit them. The alias is derived by
 // install from the '@' in the name, exactly as it is for the JSON parse.
-PresetBundle::CachedPreset filament_entry(const std::string& name, const std::string& filament_id = "GFA00",
+CachedPreset filament_entry(const std::string& name, const std::string& filament_id = "GFA00",
                                           const std::string& inherits = "")
 {
-    PresetBundle::CachedPreset e;
+    CachedPreset e;
     e.name          = name;
     e.sub_path      = "filament/" + name + ".json";
     e.instantiation = "true";
@@ -228,9 +228,9 @@ PresetBundle::CachedPreset filament_entry(const std::string& name, const std::st
     return e;
 }
 
-PresetBundle::CachedPreset printer_entry(const std::string& name)
+CachedPreset printer_entry(const std::string& name)
 {
-    PresetBundle::CachedPreset e;
+    CachedPreset e;
     e.name          = name;
     e.sub_path      = "machine/" + name + ".json";
     e.instantiation = "true";
@@ -241,12 +241,16 @@ PresetBundle::CachedPreset printer_entry(const std::string& name)
 
 static bool save_one_vendor(const std::string& path, const VendorMap& vendors,
                             const std::string& vendor, const std::string& vendor_version,
-                            const std::vector<PresetBundle::CachedPreset>& filament_entries = {},
-                            const std::vector<PresetBundle::CachedPreset>& machine_entries = {},
-                            const std::vector<PresetBundle::CachedPreset>& process_entries = {})
+                            const std::vector<CachedPreset>& filament_entries = {},
+                            const std::vector<CachedPreset>& machine_entries = {},
+                            const std::vector<CachedPreset>& process_entries = {})
 {
-    return PresetBundle::save_vendor_cache(path, vendor, vendor_version, vendors,
-                                           process_entries, filament_entries, machine_entries, 0);
+    VendorCacheData data;
+    data.vendors          = vendors;
+    data.process_entries  = process_entries;
+    data.filament_entries = filament_entries;
+    data.machine_entries  = machine_entries;
+    return VendorCacheFile::save(path, vendor, vendor_version, data);
 }
 
 // resources_dir()/data_dir() are process-wide, so restore them however the test
@@ -461,7 +465,7 @@ TEST_CASE("multiple presets in one collection all round-trip", "[VendorCache]")
 
     const std::vector<std::string> fi_names = {vid + " PLA", vid + " PETG", vid + " ABS"};
     const std::vector<std::string> pr_names = {vid + " Printer 0.4", vid + " Printer 0.6"};
-    std::vector<PresetBundle::CachedPreset> filament_entries, machine_entries;
+    std::vector<CachedPreset> filament_entries, machine_entries;
     for (const auto& n : fi_names) filament_entries.push_back(filament_entry(n));
     for (const auto& n : pr_names) machine_entries.push_back(printer_entry(n));
 
@@ -579,8 +583,8 @@ TEST_CASE("a cache-loaded vendor is indistinguishable from a JSON-loaded one", "
     }
 
     // Pin the explicit metadata against symmetric loss: dropping a field from
-    // CachedPreset::serialize keeps the two bundles equal to each other, but not
-    // to the fixture.
+    // visit_entry (PresetCacheFormat.cpp) keeps the two bundles equal to each
+    // other, but not to the fixture.
     const Preset* pla = from_cache.filaments.find_preset("Acme PLA @0.4", false);
     REQUIRE(pla != nullptr);
     CHECK(pla->setting_id == "GFSA04");
@@ -1026,8 +1030,8 @@ TEST_CASE("a cache installed with no profile beside it is used whatever its vers
     REQUIRE(save_one_vendor((user / "Acme.opc").string(), one_vendor("Acme", "Installed Acme"), "Acme", "0.9.0"));
 
     ScopedDirs dirs(tmp.path / "data", tmp.path / "resources");
-    CHECK(PresetBundle::peek_vendor_cache_version((user / "Acme.opc").string(), "Acme") == "0.9.0");
-    CHECK(PresetBundle::peek_vendor_cache_version((user / "Acme.opc").string(), "Other").empty());
+    CHECK(VendorCacheFile::peek_version((user / "Acme.opc").string(), "Acme") == "0.9.0");
+    CHECK(VendorCacheFile::peek_version((user / "Acme.opc").string(), "Other").empty());
     CHECK(installed_vendor_version("Acme") == Semver(0, 9, 0));
 
     // Loading the vendor takes the installed cache, not the newer shipped profile.
@@ -1087,13 +1091,13 @@ TEST_CASE("a vendor whose cache is stale falls back to parsing its JSONs", "[Ven
 
     // A one-off parse like this one leaves the stale cache alone: only a bundle
     // told its parses are complete writes one.
-    CHECK(PresetBundle::peek_vendor_cache_version((user / "Acme.opc").string(), "Acme") == "1.0.0");
+    CHECK(VendorCacheFile::peek_version((user / "Acme.opc").string(), "Acme") == "1.0.0");
 
     PresetBundle caching;
     caching.set_generate_vendor_caches(true);
     caching.load_vendor_configs_from_json(user.string(), "Acme", PresetBundle::LoadSystem,
                                           ForwardCompatibilitySubstitutionRule::EnableSilent);
-    CHECK(PresetBundle::peek_vendor_cache_version((user / "Acme.opc").string(), "Acme")
+    CHECK(VendorCacheFile::peek_version((user / "Acme.opc").string(), "Acme")
           == get_version_from_json((user / "Acme.json").string()).to_string());
 }
 
@@ -1182,7 +1186,7 @@ TEST_CASE("a cache that fails mid-body deserialization is rejected and leaves th
     REQUIRE(save_one_vendor(valid_cache.string(), one_vendor(vid), vid, "1.0.0",
                             {filament_entry(vid + " PLA @0.4")},
                             {printer_entry(vid + " Printer 0.4")}));
-    // Truncate the tail (machine entries + parse_errors, per save_vendor_cache's
+    // Truncate the tail (machine entries + parse_errors, per VendorCacheFile::save's
     // field order) so the header's size/CRC still validate but cereal runs out of
     // bytes partway through the body. Grow the cut if a given size ever stops
     // throwing (e.g. after an unrelated field-order change to the cache format).
@@ -1252,8 +1256,8 @@ TEST_CASE("a preset is traced to its vendor in a build that ships caches alone",
 {
     InstallDirs dirs;
 
-    std::vector<PresetBundle::CachedPreset> filaments { filament_entry("Cached PLA @0.4") };
-    std::vector<PresetBundle::CachedPreset> printers  { printer_entry("Cached 0.4 nozzle") };
+    std::vector<CachedPreset> filaments { filament_entry("Cached PLA @0.4") };
+    std::vector<CachedPreset> printers  { printer_entry("Cached 0.4 nozzle") };
     REQUIRE(save_one_vendor((dirs.profiles / "Cached.opc").string(), one_vendor("Cached"), "Cached", "1.0.0",
                             filaments, printers));
 
@@ -1286,7 +1290,7 @@ TEST_CASE("a cache that arrives unusable leaves the profile fallback in place", 
     // still succeeds — only the CRC, which decides whether it can be served,
     // catches this.
     corrupt_blob_byte(cache, std::streamoff(fs::file_size(cache)) - 4);
-    REQUIRE(PresetBundle::peek_vendor_cache_version(cache, "Torn") == "1.0.0");
+    REQUIRE(VendorCacheFile::peek_version(cache, "Torn") == "1.0.0");
 
     CHECK(install_vendor_bundles_from_resources({"Torn"}));
     CHECK(fs::exists(dirs.system / "Torn.json"));
@@ -1611,6 +1615,6 @@ TEST_CASE("a stamp string with an absurd length is rejected, not allocated", "[V
     PresetBundle out;
     REQUIRE(! out.load_vendor_cache(cache, "Evil", Semver::inf()));
     CHECK(out.vendors.empty());
-    CHECK(PresetBundle::peek_vendor_cache_version(cache, "Evil").empty());
+    CHECK(VendorCacheFile::peek_version(cache, "Evil").empty());
 }
 

@@ -2,6 +2,7 @@
 #define slic3r_PresetBundle_hpp_
 
 #include "Preset.hpp"
+#include "PresetCacheFormat.hpp"
 #include "AppConfig.hpp"
 #include "enum_bitmask.hpp"
 
@@ -173,76 +174,22 @@ class PresetBundle
 public:
     // ---- Per-vendor preset cache --------------------------------------------
     // One cache file per vendor (plus the Orca filament library), stamped with
-    // the vendor's own profile version rather than a directory scan.
+    // the vendor's own profile version rather than a directory scan. The bytes
+    // on disk are VendorCacheFile's business (PresetCacheFormat.hpp); what
+    // lives here is how a cache's contents install into a bundle.
 
     // The cache is not something a caller loads from: a vendor is loaded with
     // load_vendor_configs_from_json, which comes from the cache whenever one covers
     // it. What is public here is what the cache's own tests drive directly.
 
-    // One preset as its JSON subfile states it: the config diff, the name of the
-    // preset it inherits, and the parse metadata — everything the parse phase of
-    // load_vendor_configs_from_json extracts and nothing it derives. Inheritance
-    // is resolved when the entry is installed, against whatever filament library
-    // is loaded then, so a cache carries no other vendor's values and no other
-    // vendor's update can make it stale.
-    // Written and read by visit_entry in PresetBundle.cpp, which lists every field
-    // below in this order — once, for the save, the load and the name peek alike.
-    struct CachedPreset
-    {
-        std::string              name;
-        std::string              sub_path;       // path under the vendor's directory
-        DynamicPrintConfig       config_src;     // the preset's own diff, nothing inherited
-        std::string              inherits;
-        std::string              description;
-        std::string              instantiation;  // "true"/"false" as stated; anything else was already counted as a parse error
-        std::string              setting_id;
-        std::string              filament_id;
-        std::vector<std::string> renamed_from;
-    };
-
-    // Save one vendor (vendor_name at vendor_version): its vendor profile and its
-    // presets in source form, plus how many errors their parse counted.
-    static bool save_vendor_cache(const std::string& cache_path, const std::string& vendor_name,
-                          const std::string& vendor_version, const VendorMap& vendors,
-                          const std::vector<CachedPreset>& process_entries,
-                          const std::vector<CachedPreset>& filament_entries,
-                          const std::vector<CachedPreset>& machine_entries,
-                          uint64_t parse_errors);
-
-    // Load a validated per-vendor cache into this bundle by installing its
-    // entries, with base_bundle's filament library as the inheritance base.
-    // Rejects (returns false, with this bundle left clean) unless the cache
-    // version and vendor name match, the cache was built from a vendor profile
-    // at least as new as the expected one, and every entry installs. Options
-    // this build no longer defines are dropped, not fatal — the payload names
-    // its own keys. An invalid expected version (a profile whose version
-    // cannot be judged) is never served from cache; Semver::inf() (no profile
-    // beside the cache at all) accepts whatever is cached.
+    // Load a per-vendor cache into this bundle by installing its entries, with
+    // base_bundle's filament library as the inheritance base. Rejects (returns
+    // false, with this bundle left clean) unless VendorCacheFile::load accepts
+    // the file — see its contract for the version and identity checks — and
+    // every entry installs. Options this build no longer defines are dropped,
+    // not fatal — the payload names its own keys.
     bool load_vendor_cache(const std::string& cache_path, const std::string& expected_vendor_name,
                           const Semver& expected_vendor_version, const PresetBundle* base_bundle = nullptr);
-
-    // Read the profile version a cache was stamped with, without deserializing its
-    // presets. Empty if the file is unreadable, not a cache this build understands,
-    // or not this vendor's. This is how an installed vendor's version is known when
-    // only its cache is installed.
-    static std::string peek_vendor_cache_version(const std::string& cache_path, const std::string& expected_vendor_name);
-
-    // The profile version an installed cache can actually be served at, or an
-    // invalid Semver when the file is not a cache this build can read. Unlike
-    // peek_vendor_cache_version this verifies the body's CRC, at the cost of
-    // reading the whole file: where the cache is the vendor's whole
-    // installation, "a file is there" is not enough to call it installed, and a
-    // vendor wrongly believed installed is never repaired.
-    static Semver usable_cache_version(const std::string& cache_path, const std::string& expected_vendor_name);
-
-    // Whether a cache carries a preset of `type` under `preset_name`, without
-    // installing any of them. False when the file is not a cache this build can
-    // read. The three kinds are written in one stream, so reaching the machines
-    // means reading past the processes and filaments — their configs are consumed
-    // and dropped rather than built. This is how a build that ships caches instead
-    // of preset JSONs answers "which vendor carries this preset?".
-    static bool cache_carries_preset(const std::string& cache_path, const std::string& vendor_name,
-                                     Preset::Type type, const std::string& preset_name);
 
     // Enable writing a per-vendor cache after a JSON parse (off by default). Cache
     // content is pure parse output, so the guard is policy, not correctness: only
@@ -620,12 +567,6 @@ private:
     // is no usable cache and the vendor has to be parsed. This is how
     // load_vendor_configs_from_json reads a cache.
     bool load_vendor_cache(const boost::filesystem::path& dir, const std::string& vendor_name, const PresetBundle* base_bundle);
-
-    // Read raw cache blob: verify magic, size, CRC.
-    static bool read_cache_blob(const std::string& path, std::string& out_blob);
-    // Write a cache blob with the standard 20-byte file header. False when the
-    // file could not be opened or written whole.
-    static bool write_cache_blob(const std::string& path, const std::string& blob);
 
     // Install one source-form preset entry into this bundle: resolve `inherits`,
     // flatten, validate and register the preset. Returns the reason installation
