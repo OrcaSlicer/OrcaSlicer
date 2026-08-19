@@ -1318,6 +1318,13 @@ private:
     // Orca: the filament renumbering applied by the last apply(); empty unless the printer's
     // protocol requires dense tool numbering. See filament_compaction().
     FilamentCompaction                      m_filament_compaction;
+    // The renumbered copy of the caller's model that apply() slices from when a compaction is
+    // in effect. A MEMBER, never a local: apply() stores raw ModelInstance*/ModelObject*
+    // pointers from the model it was given into the PrintObjects (PrintInstance::model_instance),
+    // and validate()/G-code export dereference them long after apply() returns -- a local copy
+    // made every compacted slice a use-after-free (SEGFAULT on Windows arm64; sheer allocator
+    // luck elsewhere). Kept alive here until the next apply() rebuilds it.
+    Model                                   m_compacted_model;
     PrintObjectConfig                       m_default_object_config;
     PrintRegionConfig                       m_default_region_config;
     PrintObjectPtrs                         m_objects;

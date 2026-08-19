@@ -1211,20 +1211,22 @@ Print::ApplyStatus Print::apply(const Model &model_in, DynamicPrintConfig new_fu
     // filaments by this same space. Renumbering here is what makes all of them dense at once.
     // Inert for every printer that doesn't ask: no compaction is built, and a plate already using
     // a dense prefix produces an identity compaction that copies nothing.
-    Model        compacted_model;
     m_filament_compaction = printer_requires_dense_tool_numbering(new_full_config)
                                 ? build_filament_compaction(model_in, new_full_config)
                                 : FilamentCompaction();
     const bool compacting = !m_filament_compaction.slot_of_tool.empty();
     if (compacting) {
         // Model::operator= is assign_copy, which preserves object IDs -- apply's model diffing
-        // below keys on them, so a copy must not look like a different model.
-        compacted_model = model_in;
-        apply_filament_compaction(compacted_model, model_in, m_filament_compaction);
+        // below keys on them, so a copy must not look like a different model. The copy lives in
+        // m_compacted_model, NOT a local: the PrintObjects built below keep raw pointers into
+        // whichever model this function slices from (PrintInstance::model_instance), and those
+        // are dereferenced during validate() and export, long after this function returns.
+        m_compacted_model = model_in;
+        apply_filament_compaction(m_compacted_model, model_in, m_filament_compaction);
         apply_filament_compaction(new_full_config, m_filament_compaction);
     }
     // Everything below reads `model`; it is the caller's model unless we renumbered it.
-    const Model &model = compacting ? compacted_model : model_in;
+    const Model &model = compacting ? m_compacted_model : model_in;
 
     //BBS: add more logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: enter")%__LINE__;
