@@ -1029,25 +1029,20 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 					layerm.flow(extrusion_role, (surface.thickness == -1) ? layer.height : surface.thickness);
 
 				params.role_speed = 0;
-                if (params.extrusion_role == erBridgeInfill)
-                    params.role_speed = region_config.bridge_speed.get_at(layer.get_extruder_id(params.extruder));
-                else if (params.extrusion_role == erInternalBridgeInfill)
-                    params.role_speed = region_config.get_abs_value_at("internal_bridge_speed", layer.get_extruder_id(params.extruder));
-                else if (params.extrusion_role == erInternalInfill)
-                    params.role_speed = region_config.sparse_infill_speed.get_at(layer.get_extruder_id(params.extruder));
-                else if (params.extrusion_role == erTopSolidInfill)
-                    params.role_speed = region_config.top_surface_speed.get_at(layer.get_extruder_id(params.extruder));
-                else if (params.extrusion_role == erSolidInfill)
-                    params.role_speed = region_config.internal_solid_infill_speed.get_at(layer.get_extruder_id(params.extruder));
-                // Magma zone roles take the same speeds as their non-zone equivalents: the outer
-                // zone is sparse infill carrying a lattice pattern, the floor is internal solid,
-                // and the ceiling may bridge so it runs at the top-surface speed.
-                else if (params.extrusion_role == erZoneOuterInfill)
-                    params.role_speed = region_config.sparse_infill_speed.get_at(layer.get_extruder_id(params.extruder));
-                else if (params.extrusion_role == erZoneFloor)
-                    params.role_speed = region_config.internal_solid_infill_speed.get_at(layer.get_extruder_id(params.extruder));
-                else if (params.extrusion_role == erZoneCeiling)
-                    params.role_speed = region_config.top_surface_speed.get_at(layer.get_extruder_id(params.extruder));
+                // Zone roles take their ordinary role's speed. The four dual_infill_*_speed
+                // overrides in GCode.cpp are the only place a zone needs to be a zone.
+                const ExtrusionRole speed_role = base_role(params.extrusion_role);
+                const int           speed_ext  = layer.get_extruder_id(params.extruder);
+                if (speed_role == erBridgeInfill)
+                    params.role_speed = region_config.bridge_speed.get_at(speed_ext);
+                else if (speed_role == erInternalBridgeInfill)
+                    params.role_speed = region_config.get_abs_value_at("internal_bridge_speed", speed_ext);
+                else if (speed_role == erInternalInfill)
+                    params.role_speed = region_config.sparse_infill_speed.get_at(speed_ext);
+                else if (speed_role == erTopSolidInfill)
+                    params.role_speed = region_config.top_surface_speed.get_at(speed_ext);
+                else if (speed_role == erSolidInfill)
+                    params.role_speed = region_config.internal_solid_infill_speed.get_at(speed_ext);
 				// Calculate flow spacing for infill pattern generation.
 		        if (surface.is_solid() || is_bridge) {
 		            params.spacing = params.flow.spacing();

@@ -18,14 +18,18 @@ namespace Slic3r {
 // separate change.
 unsigned int filament_id_for_role(const PrintRegionConfig &config, ExtrusionRole role)
 {
-    switch (role) {
+    // The outer zone is the ONE role whose filament is not its ordinary role's: it carries the
+    // lattice and prints with the zone's own filament. Every other zone role -- shell, floor,
+    // ceiling -- wants exactly what an inner wall or a solid skin wants, which is what
+    // base_role() says, so they need no entry of their own below.
+    if (role == erZoneOuterInfill)
+        return config.dual_infill_outer_filament;
+
+    switch (base_role(role)) {
     case erExternalPerimeter:
     case erOverhangPerimeter:
         return config.outer_wall_filament_id;
     case erPerimeter:
-    // The zone shell is an inner wall: never visible from outside the part, and printing it with
-    // the inner perimeters costs no extra tool change.
-    case erZoneShell:
         return config.inner_wall_filament_id;
     case erTopSolidInfill:
     case erIroning:
@@ -33,13 +37,7 @@ unsigned int filament_id_for_role(const PrintRegionConfig &config, ExtrusionRole
     case erBottomSurface:
         return config.bottom_surface_filament_id;
     case erSolidInfill:
-    // Zone floor and ceiling are the zone's solid skins.
-    case erZoneFloor:
-    case erZoneCeiling:
         return config.internal_solid_filament_id;
-    // The outer zone carries the lattice and prints with the zone's own filament.
-    case erZoneOuterInfill:
-        return config.dual_infill_outer_filament;
     default:
         return config.sparse_infill_filament_id;
     }

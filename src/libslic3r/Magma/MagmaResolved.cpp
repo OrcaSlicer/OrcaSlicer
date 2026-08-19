@@ -49,16 +49,19 @@ bool resolve_magma(const PrintRegionConfig &region,
         // larger number, so the tube it describes is not the tube that gets printed.
         r.line_width = Flow::auto_extrusion_width(frInfill, float(r.nozzle_diameter));
 
-    r.nozzle_flat_is_estimate = object.magma_nozzle_outer_diameter.value <= 0.0;
-    r.nozzle_flat         = resolve_nozzle_flat(object.magma_nozzle_outer_diameter.value,
+    // Indexed by the extruder each number describes. This is the whole point of the option being
+    // per-extruder: the lattice and the injection can be different tools with different tips.
+    r.nozzle_flat_is_estimate = object.magma_nozzle_outer_diameter.get_at(r.sparse_extruder) <= 0.0;
+    r.nozzle_flat         = resolve_nozzle_flat(object.magma_nozzle_outer_diameter.get_at(r.sparse_extruder),
                                                 r.nozzle_diameter);
 
     const int inj_filament = object.magma_injection_filament.value;
     r.injection_extruder   = inj_filament > 0 ? inj_filament - 1 : r.sparse_extruder;
     r.injection_nozzle_diameter = print.nozzle_diameter.get_at(r.injection_extruder);
-    r.injection_nozzle_flat     = resolve_nozzle_flat(object.magma_nozzle_outer_diameter.value,
-                                                      r.injection_nozzle_diameter);
-    r.cone_half_angle_deg = object.magma_nozzle_cone_half_angle.value;
+    r.injection_nozzle_flat     = resolve_nozzle_flat(
+        object.magma_nozzle_outer_diameter.get_at(r.injection_extruder), r.injection_nozzle_diameter);
+    // The cone belongs to the tool that does the sealing, which is the injection extruder.
+    r.cone_half_angle_deg = object.magma_nozzle_cone_half_angle.get_at(r.injection_extruder);
     r.max_immersion       = object.magma_max_immersion.value;
     r.min_seal_depth      = object.magma_auto_slam_press.value;
 

@@ -1320,8 +1320,14 @@ PRINT_CONFIG_CLASS_DEFINE(
     // (shell walls/width, solid layers/thickness, the speeds, the outer filament, enabled,
     // outer pattern) deliberately stay on PrintRegionConfig.
     ((ConfigOptionEnum<MagmaTubeWidthMode>, magma_tube_width_mode))   // Auto vs manual tube sizing
-    ((ConfigOptionFloat,                magma_nozzle_outer_diameter))  // Nozzle tip flat / shoulder (mm)
-    ((ConfigOptionFloat,                magma_nozzle_cone_half_angle)) // Nozzle tip cone half-angle (deg)
+    // PER-EXTRUDER, and per-object. Per-extruder because nozzle_diameter always was, so a mixed
+    // -nozzle machine could state two bores but only one flat -- and with a dedicated injection
+    // filament the seal was then computed from the LATTICE nozzle's flat. Per-object because the
+    // flat is calibrated by printing, and a sweep means several copies at different values on one
+    // plate. A legacy scalar deserializes to a one-element vector, and get_at() falls back to
+    // front(), so an existing preset keeps working for every extruder.
+    ((ConfigOptionFloats,               magma_nozzle_outer_diameter))  // Nozzle tip flat / shoulder (mm)
+    ((ConfigOptionFloats,               magma_nozzle_cone_half_angle)) // Nozzle tip cone half-angle (deg)
     ((ConfigOptionFloat,                magma_interior_width))         // Cell hole size (mm), 0 = auto
     ((ConfigOptionFloat,                magma_window_height_mm))       // Window gap height (mm), 0 = auto
     ((ConfigOptionFloat,                magma_tube_height))            // Tube height in mm

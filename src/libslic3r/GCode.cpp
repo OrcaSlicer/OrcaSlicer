@@ -7749,6 +7749,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     double jerk = 0;
     // adjust acceleration
     if (NOZZLE_CONFIG(default_acceleration) > 0) {
+        // Zone roles take their ordinary role's acceleration; only the four dual_infill_*_speed
+        // overrides care that a zone is a zone.
+        const ExtrusionRole role = base_role(path.role());
         double acceleration;
         if (this->on_first_layer() && NOZZLE_CONFIG(initial_layer_acceleration) > 0) {
             acceleration = NOZZLE_CONFIG(initial_layer_acceleration);
@@ -7756,20 +7759,17 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         } else if (this->object_layer_over_raft() && m_config.first_layer_acceleration_over_raft.value > 0) {
             acceleration = m_config.first_layer_acceleration_over_raft.value;
 #endif
-        } else if (m_config.get_abs_value_at("bridge_acceleration", get_nozzle_config_index(m_writer.filament()->id())) > 0 && is_bridge(path.role())) {
+        } else if (m_config.get_abs_value_at("bridge_acceleration", get_nozzle_config_index(m_writer.filament()->id())) > 0 && is_bridge(role)) {
             acceleration = m_config.get_abs_value_at("bridge_acceleration", get_nozzle_config_index(m_writer.filament()->id()));
-        } else if (m_config.get_abs_value_at("sparse_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id())) > 0 && (path.role() == erInternalInfill || path.role() == erZoneOuterInfill)) {
+        } else if (m_config.get_abs_value_at("sparse_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id())) > 0 && (role == erInternalInfill)) {
             acceleration = m_config.get_abs_value_at("sparse_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id()));
-        } else if (m_config.get_abs_value_at("internal_solid_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id())) > 0 && (path.role() == erSolidInfill || path.role() == erZoneFloor || path.role() == erZoneCeiling)) {
+        } else if (m_config.get_abs_value_at("internal_solid_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id())) > 0 && (role == erSolidInfill)) {
             acceleration = m_config.get_abs_value_at("internal_solid_infill_acceleration", get_nozzle_config_index(m_writer.filament()->id()));
-        } else if (NOZZLE_CONFIG(inner_wall_acceleration) > 0 && path.role() == erZoneShell) {
-            // Zone shell uses inner wall acceleration -- it is never visible from outside.
-            acceleration = NOZZLE_CONFIG(inner_wall_acceleration);
-        } else if (NOZZLE_CONFIG(outer_wall_acceleration) > 0 && is_external_perimeter(path.role())) {
+        } else if (NOZZLE_CONFIG(outer_wall_acceleration) > 0 && is_external_perimeter(role)) {
             acceleration = NOZZLE_CONFIG(outer_wall_acceleration);
-        } else if (NOZZLE_CONFIG(inner_wall_acceleration) > 0 && is_internal_perimeter(path.role())) {
+        } else if (NOZZLE_CONFIG(inner_wall_acceleration) > 0 && is_internal_perimeter(role)) {
             acceleration = NOZZLE_CONFIG(inner_wall_acceleration);
-        } else if (NOZZLE_CONFIG(top_surface_acceleration) > 0 && is_top_surface(path.role())) {
+        } else if (NOZZLE_CONFIG(top_surface_acceleration) > 0 && is_top_surface(role)) {
             acceleration = NOZZLE_CONFIG(top_surface_acceleration);
         } else {
             acceleration = NOZZLE_CONFIG(default_acceleration);
@@ -7778,20 +7778,17 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     }
 
     // adjust X Y jerk
+    const ExtrusionRole role = base_role(path.role());
     if (NOZZLE_CONFIG(default_jerk) > 0) {
         if (this->on_first_layer() && NOZZLE_CONFIG(initial_layer_jerk) > 0) {
             jerk = NOZZLE_CONFIG(initial_layer_jerk);
-        } else if (NOZZLE_CONFIG(outer_wall_jerk) > 0 && is_external_perimeter(path.role())) {
+        } else if (NOZZLE_CONFIG(outer_wall_jerk) > 0 && is_external_perimeter(role)) {
              jerk = NOZZLE_CONFIG(outer_wall_jerk);
-        } else if (NOZZLE_CONFIG(inner_wall_jerk) > 0 && is_internal_perimeter(path.role())) {
+        } else if (NOZZLE_CONFIG(inner_wall_jerk) > 0 && is_internal_perimeter(role)) {
             jerk = NOZZLE_CONFIG(inner_wall_jerk);
-        } else if (NOZZLE_CONFIG(inner_wall_jerk) > 0 && path.role() == erZoneShell) {
-            jerk = NOZZLE_CONFIG(inner_wall_jerk);
-        } else if (NOZZLE_CONFIG(infill_jerk) > 0 && (path.role() == erZoneFloor || path.role() == erZoneCeiling)) {
-            jerk = NOZZLE_CONFIG(infill_jerk);
-        } else if (NOZZLE_CONFIG(top_surface_jerk) > 0 && is_top_surface(path.role())) {
+        } else if (NOZZLE_CONFIG(top_surface_jerk) > 0 && is_top_surface(role)) {
             jerk = NOZZLE_CONFIG(top_surface_jerk);
-        } else if (NOZZLE_CONFIG(infill_jerk) > 0 && is_infill(path.role())) {
+        } else if (NOZZLE_CONFIG(infill_jerk) > 0 && is_infill(role)) {
             jerk = NOZZLE_CONFIG(infill_jerk);
         }
         else {
@@ -7826,20 +7823,18 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     }
 
     if (m_config.set_other_flow_ratios) {
-        if (path.role() == erExternalPerimeter) {
+        // Flow ratio follows the ordinary role: a zone shell is walled like an inner wall, the
+        // zone lattice is extruded like sparse infill, the skins like solid infill.
+        const ExtrusionRole role = base_role(path.role());
+        if (role == erExternalPerimeter) {
             _mm3_per_mm *= m_config.outer_wall_flow_ratio;
-        } else if (path.role() == erPerimeter) {
+        } else if (role == erPerimeter) {
             _mm3_per_mm *= m_config.inner_wall_flow_ratio;
-        } else if (path.role() == erOverhangPerimeter) {
+        } else if (role == erOverhangPerimeter) {
             _mm3_per_mm *= m_config.overhang_flow_ratio;
-        } else if (path.role() == erInternalInfill || path.role() == erZoneOuterInfill) {
+        } else if (role == erInternalInfill) {
             _mm3_per_mm *= m_config.sparse_infill_flow_ratio;
-        } else if (path.role() == erSolidInfill) {
-            _mm3_per_mm *= m_config.internal_solid_infill_flow_ratio;
-        } else if (path.role() == erZoneShell) {
-            // Zone shell uses inner wall flow ratio
-            _mm3_per_mm *= m_config.inner_wall_flow_ratio;
-        } else if (path.role() == erZoneFloor || path.role() == erZoneCeiling) {
+        } else if (role == erSolidInfill) {
             _mm3_per_mm *= m_config.internal_solid_infill_flow_ratio;
         } else if (path.role() == erGapFill) {
             _mm3_per_mm *= m_config.gap_fill_flow_ratio;

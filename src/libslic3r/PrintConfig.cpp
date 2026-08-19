@@ -6437,7 +6437,7 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<MagmaTubeWidthMode>(MagmaTubeWidthMode::Auto));
 
-    def = this->add("magma_nozzle_outer_diameter", coFloat);
+    def = this->add("magma_nozzle_outer_diameter", coFloats);
     def->label = L("Nozzle tip flat");
     def->category = L("Strength");
     def->tooltip = L("Measured diameter of the flat at your nozzle tip — the ring around the bore that "
@@ -6451,9 +6451,11 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;  // 0 = use fallback
     def->max = 10.0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0));
+    // One element: get_at() falls back to front(), so a single measured flat covers every
+    // extruder until the user states a second one.
+    def->set_default_value(new ConfigOptionFloats{ 0.0 });
 
-    def = this->add("magma_nozzle_cone_half_angle", coFloat);
+    def = this->add("magma_nozzle_cone_half_angle", coFloats);
     def->label = L("Nozzle cone half-angle");
     def->category = L("Strength");
     def->tooltip = L("Half-angle of the cone above the nozzle tip flat, in degrees. The seal depth uses "
@@ -6466,7 +6468,7 @@ void PrintConfigDef::init_fff_params()
     def->min = 5;
     def->max = 60;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(30));
+    def->set_default_value(new ConfigOptionFloats{ 30.0 });
 
     def = this->add("magma_interior_width", coFloat);
     def->label = L("Injection tube width");

@@ -1666,7 +1666,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 // plastic (guess too high) or quietly halves the reinforcement while looking
                 // like the feature is just mediocre (guess too low). Blocking also blocks the
                 // preview, so the message has to actually get the user unstuck.
-                if (obj_cfg.magma_nozzle_outer_diameter.value <= 0.0) {
+                if (obj_cfg.magma_nozzle_outer_diameter.get_at(m.sparse_extruder) <= 0.0) {
                     const double bore = nozzle_d > 0.0 ? nozzle_d : 0.4;
                     return { Slic3r::format(
                         L("Magma needs your nozzle's tip flat — the ring around the bore that "

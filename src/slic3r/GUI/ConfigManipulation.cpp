@@ -1159,8 +1159,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // only makes sense once the nozzle flat is known, because immersion deliberately sizes
     // tubes WIDER than the flat. Shown-but-disabled rather than hidden, so the tooltip can
     // explain what measuring unlocks instead of the setting just not existing.
-    auto* flat_opt = config->option<ConfigOptionFloat>("magma_nozzle_outer_diameter");
-    const bool flat_measured = flat_opt && flat_opt->value > 0.0;
+    auto* flat_opt = config->option<ConfigOptionFloats>("magma_nozzle_outer_diameter");
+    const bool flat_measured = flat_opt && ! flat_opt->values.empty() &&
+                               std::any_of(flat_opt->values.begin(), flat_opt->values.end(),
+                                           [](double v) { return v > 0.0; });
     toggle_line("magma_max_immersion", have_magma_pattern);
     toggle_field("magma_max_immersion", have_magma_pattern && flat_measured);
     // Contact press is only reached when the flat already covers the opening.

@@ -99,6 +99,26 @@ inline bool is_top_surface(ExtrusionRole role)
     return role == erTopSolidInfill;
 }
 
+// A zone role is an ordinary role that happens to be inside a dual-infill zone. This says which
+// ordinary role, so the dozens of places that only care about "is this infill / a wall / solid"
+// can ask once instead of enumerating four zone roles each time they are extended.
+//
+// It is deliberately NOT the identity for erZoneOuterInfill's filament or the four
+// dual_infill_*_speed overrides -- those are the only things that genuinely need to know a zone
+// is a zone. Everything else (acceleration, jerk, base speed, flow role, preview grouping,
+// solid/infill predicates) wants the ordinary role and was previously getting it by listing the
+// zone cases inline, in ladders that then diverged.
+inline ExtrusionRole base_role(ExtrusionRole role)
+{
+    switch (role) {
+    case erZoneShell:        return erPerimeter;        // an inner wall; never seen from outside
+    case erZoneOuterInfill:  return erInternalInfill;   // sparse infill carrying the lattice
+    case erZoneFloor:        return erSolidInfill;      // the zone's solid skins
+    case erZoneCeiling:      return erSolidInfill;
+    default:                 return role;
+    }
+}
+
 inline bool is_solid_infill(ExtrusionRole role)
 {
     // erZoneOuterInfill excluded — routed to dual_infill_outer_filament

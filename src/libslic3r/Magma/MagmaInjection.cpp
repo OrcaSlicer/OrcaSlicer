@@ -178,7 +178,7 @@ std::string generate_injection_gcode(
     // Resolve the seal depth from nozzle cone geometry (the cone widens from the flat to
     // cover the opening). The seal math lives in MagmaTriangleCell.hpp so the injection
     // here and Print::validate() stay in lockstep.
-    double seal_flat = resolve_nozzle_flat(config.magma_nozzle_outer_diameter.value,
+    double seal_flat = resolve_nozzle_flat(config.magma_nozzle_outer_diameter.get_at(extruder_id),
                                            config.nozzle_diameter.get_at(extruder_id));
     const double min_seal_depth = config.magma_auto_slam_press.value;
     // How deep the hot nozzle may travel inside a tube, from any path. The seal depth and
@@ -189,7 +189,7 @@ std::string generate_injection_gcode(
     // mode: Total immersion is the direct depth control (in auto tube sizing the tube is
     // sized so the depth lands exactly on the budget).
     seal_depth = auto_seal_depth(tube_map.tube_opening_diameter(), seal_flat,
-                                 config.magma_nozzle_cone_half_angle.value,
+                                 config.magma_nozzle_cone_half_angle.get_at(extruder_id),
                                  budget, min_seal_depth);
 
     // Plunge ("slam-melt"): ramp the nozzle deeper during the injection so the hot
@@ -266,7 +266,7 @@ std::string generate_injection_gcode(
         {
             const auto& slam_pair = tube_map.u_tube_pairs()[pt.pair_index];
             seal_depth   = auto_seal_depth(tube_map.cap_opening_diameter(slam_pair), seal_flat,
-                                           config.magma_nozzle_cone_half_angle.value,
+                                           config.magma_nozzle_cone_half_angle.get_at(extruder_id),
                                            budget, min_seal_depth);
             plunge_depth = clamp_plunge_depth(seal_depth, plunge_cfg, budget);
         }
@@ -465,7 +465,7 @@ std::string generate_injection_gcode(
             // Nozzle geometry: r_flat = radius of the flat tip (resolved once above);
             // the cone above it rises at cone_rad from vertical.
             double r_flat   = seal_flat / 2.0;
-            double cone_rad = config.magma_nozzle_cone_half_angle.value * PI / 180.0;
+            double cone_rad = config.magma_nozzle_cone_half_angle.get_at(extruder_id) * PI / 180.0;
 
             // R_open = our tube opening's vertex radius (inset/hollow triangle, so
             //          it already excludes the cell walls / line width).
