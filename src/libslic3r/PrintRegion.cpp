@@ -84,6 +84,12 @@ void PrintRegion::collect_object_printing_extruders(const PrintConfig &print_con
     }
     if (region_config.sparse_infill_density.value > 0)
     	emplace_extruder(region_config.sparse_infill_filament_id);
+    // The dual-infill outer zone prints with its own filament. Without this the zone filament
+    // never reaches Print::extruders(), so it is absent from the extruder set the rest of the
+    // pipeline validates and clamps against -- and an out-of-range value from a 3mf saved on a
+    // machine with more extruders flows straight into nozzle_diameter.get_at().
+    if (region_config.dual_infill_enabled.value && region_config.sparse_infill_density.value > 0)
+        emplace_extruder(region_config.dual_infill_outer_filament);
     if (region_config.sparse_infill_density.value > 0 || region_config.top_shell_layers.value > 0 || region_config.bottom_shell_layers.value > 0)
     	emplace_extruder(region_config.internal_solid_filament_id);
     if (region_config.top_shell_layers.value > 0)

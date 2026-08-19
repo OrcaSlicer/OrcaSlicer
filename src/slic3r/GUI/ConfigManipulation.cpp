@@ -1112,7 +1112,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool have_dual_infill = dual_infill_opt && dual_infill_opt->value;
     for (auto el : { "dual_infill_outer_pattern", "dual_infill_outer_width", "dual_infill_shell_walls",
         "dual_infill_shell_width", "dual_infill_min_inner_width",
-        "dual_infill_solid_layers", "dual_infill_solid_thickness" })
+        "dual_infill_solid_layers", "dual_infill_solid_thickness",
+        "dual_infill_outer_speed", "dual_infill_shell_speed",
+        "dual_infill_floor_speed", "dual_infill_ceiling_speed" })
         toggle_line(el, have_dual_infill);
 
     // Magma settings — visible when Magma Triangle pattern is selected or dual infill is enabled
@@ -1178,7 +1180,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     // Zone filament settings — on the Filament for Features page, visibility
     // controlled here alongside other Magma toggles.
-    toggle_line("dual_infill_outer_filament", !bSEMM && (have_dual_infill || have_magma_pattern));
+    toggle_line("dual_infill_outer_filament", !bSEMM && have_magma_pattern);
     toggle_line("magma_injection_filament", !bSEMM && have_magma_pattern);
 
     // Park Z-hop visible only when Magma is active AND park is enabled

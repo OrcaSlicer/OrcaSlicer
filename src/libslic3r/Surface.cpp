@@ -43,7 +43,6 @@ const char* surface_type_to_color_name(const SurfaceType surface_type)
         case stInternalVoid:    return "rgb(128,128,128)";
         case stPerimeter:       return "rgb(128,0,0)"; // maroon
         // Dual infill zone surface types
-        case stZoneOuter:   return "rgb(255,165,0)"; // orange (legacy)
         case stZoneFloor:   return "rgb(255,140,0)"; // darkorange
         case stZoneCeiling: return "rgb(255,127,80)"; // coral
         case stZoneInner:   return "rgb(240,230,140)"; // khaki
