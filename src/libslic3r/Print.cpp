@@ -5827,7 +5827,7 @@ BoundingBoxf3 PrintInstance::get_bounding_box() const {
 
 Polygon PrintInstance::get_convex_hull_2d() {
     Polygon poly = print_object->model_object()->convex_hull_2d(model_instance->get_matrix());
-    poly.douglas_peucker(0.1);
+    poly.douglas_peucker(scale_(0.1));
     return poly;
 }
 
