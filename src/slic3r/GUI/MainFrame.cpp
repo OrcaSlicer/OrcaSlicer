@@ -4009,16 +4009,11 @@ static wxWindow* find_first_focusable(wxWindow* win)
     for (wxWindow* child : win->GetChildren()) {
         if (!child->IsShown() || !child->IsEnabled())
             continue;
-        // IsFocusable() checks this window itself; CanAcceptFocus() is true if
-        // it OR ANY DESCENDANT can take focus, so it must not be used as the
-        // "found it" check here - doing so returns container panels (e.g. the
-        // sidebar) themselves, and SetFocus() on a plain container doesn't
-        // move focus anywhere a keyboard user can perceive.
-        //
-        // Recurse before checking the child itself: a scrollable container is
-        // often independently focusable (for keyboard scrolling) even though
-        // it also holds real controls, and landing on an unnamed scroll pane
-        // instead of the button inside it is a worse first stop.
+        // IsFocusable() (this window itself), not CanAcceptFocus() (this
+        // window OR any descendant): the latter returns container panels,
+        // where SetFocus() does nothing perceptible. Recurse first so an
+        // independently-focusable scroll pane doesn't win over the real
+        // control inside it.
         if (wxWindow* descendant = find_first_focusable(child))
             return descendant;
         if (child->IsFocusable())
@@ -4033,7 +4028,7 @@ void MainFrame::focus_cycle_pane(bool forward)
     std::vector<wxWindow*> panes;
     if (m_topbar && m_topbar->IsShown())
         panes.push_back(m_topbar);
-    wxWindow* tab_strip = nullptr;
+    ButtonsListCtrl* tab_strip = nullptr;
     if (m_tabpanel) {
         tab_strip = m_tabpanel->GetBtnsListCtrl();
         if (tab_strip && tab_strip->IsShown())
@@ -4062,10 +4057,14 @@ void MainFrame::focus_cycle_pane(bool forward)
         int idx = ((current + (forward ? step : -step)) % n + n) % n;
         wxWindow* pane = panes[idx];
         wxWindow* target = nullptr;
+        // The tab strip lands on the currently selected tab button; if there
+        // is none (or it is hidden/disabled), fall through to the generic
+        // first-focusable search like any other pane.
         if (pane == tab_strip)
-            // Land on the currently selected tab button.
-            target = m_tabpanel->GetBtnsListCtrl()->GetSelectedButton();
-        else
+            target = tab_strip->GetSelectedButton();
+        if (target && (!target->IsShown() || !target->IsEnabled()))
+            target = nullptr;
+        if (!target)
             target = find_first_focusable(pane);
         // No focusable descendant (e.g. the top bar's tools are custom-drawn,
         // not child windows): focus the pane itself if it accepts focus,

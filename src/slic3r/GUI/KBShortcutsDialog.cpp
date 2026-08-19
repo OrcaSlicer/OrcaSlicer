@@ -197,6 +197,9 @@ void KBShortcutsDialog::fill_shortcuts()
 
             // Switch table page
             { ctrl + L("Tab"), L("Switch table page")},
+            // ORCA: keyboard pane navigation
+            { "F6", L("Move focus to the next main pane") },
+            { shift + "F6", L("Move focus to the previous main pane") },
             //DEL
             #ifdef __APPLE__
                 {"fn+⌫", L("Delete Selected")},

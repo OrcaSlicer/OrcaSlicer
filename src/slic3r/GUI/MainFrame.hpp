@@ -215,6 +215,9 @@ class MainFrame : public DPIFrame
     //jump to editor under preview only mode
     bool preview_only_to_editor = false;
 
+    // Move keyboard focus to the next/previous main pane (top bar, tab strip, current page)
+    void focus_cycle_pane(bool forward);
+
 protected:
     virtual void on_dpi_changed(const wxRect &suggested_rect) override;
     virtual void on_sys_color_changed() override;
@@ -330,8 +333,6 @@ public:
     void        select_tab(wxPanel* panel);
     void        select_tab(const wxString& id = wxString());
     void        request_select_tab(const wxString& id);
-    // Move keyboard focus to the next/previous main pane (top bar, tab strip, current page)
-    void        focus_cycle_pane(bool forward);
     int         get_calibration_curr_tab();
     void        select_view(const std::string& direction);
     // Propagate changed configuration from the Tab to the Plater and save changes to the AppConfig
