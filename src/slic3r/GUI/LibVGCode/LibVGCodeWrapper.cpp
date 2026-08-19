@@ -760,18 +760,23 @@ static void convert_object_to_vertices(const Slic3r::PrintObject& object, const 
                         // fill represents infill extrusions of a single island.
                         const auto& fill = *dynamic_cast<const Slic3r::ExtrusionEntityCollection*>(ee);
                         if (!fill.entities.empty()) {
-                            // Preview must colour by the filament the slicer will actually use,
-                            // so the mapping comes from filament_id_for_role() rather than a
-                            // fourth copy of it. An outer zone reads as solid whatever role its
-                            // entities carry, because after injection it is solid.
-                            const Slic3r::ExtrusionRole role = fill.entities.front()->role();
-                            const bool is_zone = fill.has_zone_fill();
-                            const bool is_solid_infill = is_zone || Slic3r::is_solid_infill(role);
-                            const size_t extruder_id = static_cast<size_t>(std::max(
-                                int(Slic3r::filament_id_for_role(cfg, is_zone ? Slic3r::erZoneOuterInfill : role)) - 1, 0));
-                            const EGCodeExtrusionRole viz_role = is_solid_infill
-                                ? EGCodeExtrusionRole::SolidInfill
-                                : EGCodeExtrusionRole::InternalInfill;
+                            // Both of these go through the shared mappings rather than a local
+                            // classification: filament_id_for_role() for the tool, convert() for
+                            // the preview role.
+                            //
+                            // This path used to hand-roll a solid/sparse split and hand the
+                            // renderer SolidInfill for a zone fill -- while the G-CODE preview,
+                            // which reaches the renderer through convert(), labelled the very
+                            // same extrusion ZoneOuterInfill. One extrusion, two colours and two
+                            // legend entries depending on which preview you were looking at.
+                            // Every zone role already exists in EGCodeExtrusionRole; nothing was
+                            // missing except this path using them.
+                            const Slic3r::ExtrusionRole role = fill.has_zone_fill()
+                                ? Slic3r::erZoneOuterInfill
+                                : fill.entities.front()->role();
+                            const size_t extruder_id = static_cast<size_t>(
+                                std::max(int(Slic3r::filament_id_for_role(cfg, role)) - 1, 0));
+                            const EGCodeExtrusionRole viz_role = convert(role);
                             convert_to_vertices(fill, layer_z, layer_id, extruder_id,
                                                 object_helper.color_id(layer_z, extruder_id),
                                                 viz_role, copy, data.vertices);
