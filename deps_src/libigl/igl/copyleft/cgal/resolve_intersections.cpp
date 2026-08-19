@@ -24,8 +24,8 @@ template <
   typename DerivedJ,
   typename DerivedIM>
 IGL_INLINE void igl::copyleft::cgal::resolve_intersections(
-  const Eigen::PlainObjectBase<DerivedV> & V,
-  const Eigen::PlainObjectBase<DerivedE> & E,
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedE> & E,
   Eigen::PlainObjectBase<DerivedVI> & VI,
   Eigen::PlainObjectBase<DerivedEI> & EI,
   Eigen::PlainObjectBase<DerivedJ> & J,
@@ -88,3 +88,8 @@ IGL_INLINE void igl::copyleft::cgal::resolve_intersections(
 
   subdivide_segments(V,E,steiner,VI,EI,J,IM);
 }
+
+#ifdef IGL_STATIC_LIBRARY
+// Explicit template instantiation
+template void igl::copyleft::cgal::resolve_intersections<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<CGAL::Epeck::FT, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<CGAL::Epeck::FT, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&);
+#endif

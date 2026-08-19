@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"setting_id": "KATHrxoL84i7MiVJ",
+	"name": "QIDI PLA Rapido @Qidi X-Plus 5 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI PLA Rapido@X-Plus 5-Series",
+	"pressure_advance": [
+		"0.038"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

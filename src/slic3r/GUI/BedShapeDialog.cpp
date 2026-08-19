@@ -566,7 +566,7 @@ void BedShapePanel::load_stl()
         model = Model::read_from_file(file_name);
 	}
 	catch (std::exception &) {
-        show_error(this, _L("Error! Invalid model"));
+        show_error(this, _L("Error: invalid model"));
         return;
     }
 
@@ -578,7 +578,7 @@ void BedShapePanel::load_stl()
 		return;
 	}
 	if (expolygons.size() > 1) {
-		show_error(this, _L("The selected file contains several disjoint areas. This is not supported."));
+		show_error(this, _L("The selected file contains several disjointed areas. This is not supported."));
 		return;
 	}
 

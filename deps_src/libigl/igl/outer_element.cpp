@@ -1,9 +1,9 @@
 // This file is part of libigl, a simple c++ geometry processing library.
-// 
+//
 // Copyright (C) 2015 Qingnan Zhou <qnzhou@gmail.com>
-// 
-// This Source Code Form is subject to the terms of the Mozilla Public License 
-// v. 2.0. If a copy of the MPL was not distributed with this file, You can 
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License
+// v. 2.0. If a copy of the MPL was not distributed with this file, You can
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "outer_element.h"
 #include <iostream>
@@ -17,13 +17,13 @@ template <
      typename DerivedA
      >
 IGL_INLINE void igl::outer_vertex(
-        const Eigen::PlainObjectBase<DerivedV> & V,
-        const Eigen::PlainObjectBase<DerivedF> & F,
-        const Eigen::PlainObjectBase<DerivedI> & I,
+        const Eigen::MatrixBase<DerivedV> & V,
+        const Eigen::MatrixBase<DerivedF> & F,
+        const Eigen::MatrixBase<DerivedI> & I,
         IndexType & v_index,
         Eigen::PlainObjectBase<DerivedA> & A)
 {
-    // Algorithm: 
+    // Algorithm:
     //    Find an outer vertex (i.e. vertex reachable from infinity)
     //    Return the vertex with the largest X value.
     //    If there is a tie, pick the one with largest Y value.
@@ -38,7 +38,7 @@ IGL_INLINE void igl::outer_vertex(
     typename DerivedV::Scalar outer_val = 0;
     for (size_t i=0; i<num_selected_faces; i++)
     {
-        size_t f = I(i);
+        size_t f = I(i, 0);
         for (size_t j=0; j<3; j++)
         {
             Index v = F(f, j);
@@ -74,7 +74,7 @@ IGL_INLINE void igl::outer_vertex(
     assert(outer_vid != INVALID);
     assert(candidate_faces.size() > 0);
     v_index = outer_vid;
-    A.resize(candidate_faces.size());
+    A.resize(candidate_faces.size(),1);
     std::copy(candidate_faces.begin(), candidate_faces.end(), A.data());
 }
 
@@ -86,9 +86,9 @@ template<
     typename DerivedA
     >
 IGL_INLINE void igl::outer_edge(
-        const Eigen::PlainObjectBase<DerivedV> & V,
-        const Eigen::PlainObjectBase<DerivedF> & F,
-        const Eigen::PlainObjectBase<DerivedI> & I,
+        const Eigen::MatrixBase<DerivedV> & V,
+        const Eigen::MatrixBase<DerivedF> & F,
+        const Eigen::MatrixBase<DerivedI> & I,
         IndexType & v1,
         IndexType & v2,
         Eigen::PlainObjectBase<DerivedA> & A) {
@@ -112,7 +112,7 @@ IGL_INLINE void igl::outer_edge(
     const ScalarArray3& outer_v = V.row(outer_vid);
     assert(candidate_faces.size() > 0);
 
-    auto get_vertex_index = [&](const IndexArray3& f, Index vid) -> Index 
+    auto get_vertex_index = [&](const IndexArray3& f, Index vid) -> Index
     {
         if (f[0] == vid) return 0;
         if (f[1] == vid) return 1;
@@ -200,7 +200,7 @@ IGL_INLINE void igl::outer_edge(
 
     v1 = outer_vid;
     v2 = outer_opp_vid;
-    A.resize(incident_faces.size());
+    A.resize(incident_faces.size(),1);
     std::copy(incident_faces.begin(), incident_faces.end(), A.data());
 }
 
@@ -212,10 +212,10 @@ template<
     typename IndexType
     >
 IGL_INLINE void igl::outer_facet(
-        const Eigen::PlainObjectBase<DerivedV> & V,
-        const Eigen::PlainObjectBase<DerivedF> & F,
-        const Eigen::PlainObjectBase<DerivedN> & N,
-        const Eigen::PlainObjectBase<DerivedI> & I,
+        const Eigen::MatrixBase<DerivedV> & V,
+        const Eigen::MatrixBase<DerivedF> & F,
+        const Eigen::MatrixBase<DerivedN> & N,
+        const Eigen::MatrixBase<DerivedI> & I,
         IndexType & f,
         bool & flipped) {
     // Algorithm:
@@ -241,7 +241,7 @@ IGL_INLINE void igl::outer_facet(
     Scalar max_nx = 0;
     size_t outer_fid = INVALID;
     const size_t num_incident_faces = incident_faces.size();
-    for (size_t i=0; i<num_incident_faces; i++) 
+    for (size_t i=0; i<num_incident_faces; i++)
     {
         const auto& fid = incident_faces(i);
         const Scalar nx = N(fid, 0);
@@ -273,8 +273,8 @@ IGL_INLINE void igl::outer_facet(
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template void igl::outer_facet<Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 3, 0, -1, 3>, Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<long, -1, 1, 0, -1, 1>, int>(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<long, -1, 1, 0, -1, 1> > const&, int&, bool&);
-template void igl::outer_facet<Eigen::Matrix<double, -1, -1, 1, -1, -1>, Eigen::Matrix<int, -1, -1, 1, -1, -1>, Eigen::Matrix<double, -1, -1, 1, -1, -1>, Eigen::Matrix<int, -1, -1, 1, -1, -1>, unsigned long>(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 1, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 1, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 1, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 1, -1, -1> > const&, unsigned long&, bool&);
-template void igl::outer_facet<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, int>(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, int&, bool&);
-template void igl::outer_facet<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, int>(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, int&, bool&);
+template void igl::outer_facet<Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 3, 0, -1, 3>, Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<long, -1, 1, 0, -1, 1>, int>(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<long, -1, 1, 0, -1, 1> > const&, int&, bool&);
+template void igl::outer_facet<Eigen::Matrix<double, -1, -1, 1, -1, -1>, Eigen::Matrix<int, -1, -1, 1, -1, -1>, Eigen::Matrix<double, -1, -1, 1, -1, -1>, Eigen::Matrix<int, -1, -1, 1, -1, -1>, unsigned long>(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 1, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 1, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 1, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 1, -1, -1> > const&, unsigned long&, bool&);
+template void igl::outer_facet<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, int>(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, int&, bool&);
+template void igl::outer_facet<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, int>(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, int&, bool&);
 #endif

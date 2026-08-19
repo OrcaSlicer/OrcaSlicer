@@ -2,6 +2,13 @@
 #define __I_PRINTER_AGENT_HPP__
 
 #include "bambu_networking.hpp"
+// why: these extend the BAMBU_NETWORK_* return space rather than opening a new one - the value
+// flows through the same int domain callers already compare against BAMBU_NETWORK_SUCCESS.
+// They live here and not in bambu_networking.hpp because that file is a vendor header replaced
+// wholesale by header-sync commits (see c09252ce11), which would silently clobber them.
+// -70xx is free: the vendor occupies -1..-25 and -10xx through -60xx.
+#define ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED -7010 // no translation exists for this command
+#define ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE -7020 // a translation exists; this printer lacks the capability
 #include <string>
 #include <memory>
 
@@ -48,6 +55,8 @@ enum class FilamentSyncMode {
  *
  * Implementations:
  * - OrcaPrinterAgent: Stub implementation (printer ops not yet supported)
+ * - PrinterAgentPluginCapability: Python printer-agent plugin capability that
+ *   implements IPrinterAgent directly and is handed out as the live agent
  * - BBLPrinterAgent: Wrapper around Bambu Lab's proprietary DLL
  *
  * Token Access:
@@ -127,7 +136,7 @@ public:
     /**
      * Execute the multi-stage printer binding workflow.
      */
-    virtual int bind(std::string dev_ip, std::string dev_id, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn) = 0;
+    virtual int bind(std::string dev_ip, std::string dev_id, std::string dev_model, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn) = 0;
 
     /**
      * Remove the association between account and printer.
@@ -138,6 +147,12 @@ public:
      * Request a one-time bind ticket from the server.
      */
     virtual int request_bind_ticket(std::string* ticket) = 0;
+
+    /**
+     * Fetch the cloud snapshot image captured at a print failure.
+     * Returns 0 if the request was dispatched; the image body arrives via callback(body, http_status).
+     */
+    virtual int get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback) = 0;
 
     /**
      * Register callback for fatal HTTP errors.

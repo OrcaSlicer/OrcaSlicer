@@ -12,21 +12,20 @@
 
 namespace igl
 {
-  // Super fast 3x3 SVD according to http://pages.cs.wisc.edu/~sifakis/project_pages/svd.html
-  // The resulting decomposition is A = U * diag(S[0], S[1], S[2]) * V'
-  // BEWARE: this SVD algorithm guarantees that det(U) = det(V) = 1, but this 
-  // comes at the cost that 'sigma3' can be negative
-  // for computing polar decomposition it's great because all we need to do is U*V'
-  // and the result will automatically have positive determinant
-  //
-  // Inputs:
-  //   A  3x3 matrix
-  // Outputs:
-  //   U  3x3 left singular vectors
-  //   S  3x1 singular values
-  //   V  3x3 right singular vectors
-  //
-  // Known bugs: this will not work correctly for double precision.
+  /// Super fast 3x3 SVD according to http://pages.cs.wisc.edu/~sifakis/project_pages/svd.html
+  /// The resulting decomposition is A = U * diag(S[0], S[1], S[2]) * V'
+  ///
+  /// \note this SVD algorithm guarantees that det(U) = det(V) = 1, but this 
+  /// comes at the cost that 'sigma3' can be negative
+  /// for computing polar decomposition it's great because all we need to do is U*V'
+  /// and the result will automatically have positive determinant
+  ///
+  /// @param[in] A  3x3 matrix
+  /// @param[out] U  3x3 left singular vectors
+  /// @param[out] S  3x1 singular values
+  /// @param[out] V  3x3 right singular vectors
+  ///
+  /// \bug this will not work correctly for double precision.
   template<typename T>
   IGL_INLINE void svd3x3(
     const Eigen::Matrix<T, 3, 3>& A, 

@@ -13,24 +13,19 @@
 
 namespace igl 
 {
-  //   MVC - MEAN VALUE COORDINATES
-  //  
-  //   mvc(V,C,W)
-  //  
-  //   Inputs:
-  //    V  #V x dim list of vertex positions (dim = 2 or dim = 3)
-  //    C  #C x dim list of polygon vertex positions in counter-clockwise order
-  //      (dim = 2 or dim = 3)
-  //  
-  //   Outputs:
-  //    W  weights, #V by #C matrix of weights
-  //  
-  //  Known Bugs: implementation is listed as "Broken"
+  /// Mean value coordinates for a polygon
+  /// 
+  /// @param[in] V  #V x dim list of vertex positions (dim = 2 or dim = 3)
+  /// @param[in] C  #C x dim list of polygon vertex positions in counter-clockwise order
+  ///     (dim = 2 or dim = 3)
+  /// 
+  /// @param[out] W  weights, #V by #C matrix of weights
+  /// 
+  /// \bug implementation is listed as "Broken"
   IGL_INLINE void mvc(
     const Eigen::MatrixXd &V, 
     const Eigen::MatrixXd &C, 
     Eigen::MatrixXd &W);
-  
 }
 
 #ifndef IGL_STATIC_LIBRARY

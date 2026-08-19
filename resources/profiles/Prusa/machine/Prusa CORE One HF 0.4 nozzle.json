@@ -3,6 +3,7 @@
 	"name": "Prusa CORE One HF 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
+	"setting_id": "AUk8BqRmHxaFL1UZ",
 	"instantiation": "true",
 	"before_layer_change_gcode": [
 		";BEFORE_LAYER_CHANGE\nG92 E0.0\n;[layer_z]\n{if layer_z > 150}\nM201 X{interpolate_table(layer_z, (0,7000), (150,7000), (200,4000), (270,2000))} Y{interpolate_table(layer_z, (0,7000), (150,7000), (200,4000), (270,2000))}\n{endif}\n"

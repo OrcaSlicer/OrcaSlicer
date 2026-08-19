@@ -7,13 +7,12 @@
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "uniformly_sample_two_manifold.h"
 #include "verbose.h"
-#include "slice.h"
 #include "colon.h"
 #include "all_pairs_distances.h"
-#include "mat_max.h"
 #include "vertex_triangle_adjacency.h"
 #include "get_seconds.h"
 #include "cat.h"
+#include "placeholders.h"
 //#include "MT19937.h"
 #include "partition.h"
 
@@ -90,7 +89,7 @@ IGL_INLINE void igl::uniformly_sample_two_manifold(
   // First get sampling as best as possible on mesh
   uniformly_sample_two_manifold_at_vertices(W,k,push,S);
   verbose("Lap: %g\n",get_seconds()-start);
-  slice(W,S,colon<int>(0,W.cols()-1),WS);
+  WS = W(S,igl::placeholders::all);
   //cout<<"WSmesh=["<<endl<<WS<<endl<<"];"<<endl;
 
 //#ifdef EXTREME_VERBOSE
@@ -363,8 +362,7 @@ IGL_INLINE void igl::uniformly_sample_two_manifold_at_vertices(
   // Remove corners, which better be at top
   S = S.segment(W.cols(),k).eval();
 
-  MatrixXd WS;
-  slice(W,S,colon<int>(0,W.cols()-1),WS);
+  MatrixXd WS = W(S,igl::placeholders::all);
   //cout<<"WSpartition=["<<endl<<WS<<endl<<"];"<<endl;
 
   // number of vertices

@@ -32,9 +32,17 @@ body:
     attributes:
       label: OrcaSlicer Version
       description: Which version of Orca Slicer are you running? You can see the full version in `Help` -> `About Orca Slicer`.
-      placeholder: e.g. 1.9.0
+      placeholder: e.g. 2.5.0
     validations:
       required: true
+  - type: input
+    id: working_version
+    attributes:
+      label: Regression compared to a previous version
+      description: Did it work in a previous version?
+      placeholder: e.g. 2.3.2
+    validations:
+      required: false
   - type: dropdown
     id: os_type
     attributes:

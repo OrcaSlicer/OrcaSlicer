@@ -1369,7 +1369,7 @@ wxPanel* SendMultiMachinePage::create_page()
 
     // add printing options
     wxBoxSizer* title_print_option = create_item_title(_L("Printing Options"), main_page, "");
-    wxBoxSizer* item_bed_level = create_item_checkbox(_L("Bed Leveling"), main_page, "", 50, "bed_leveling");
+    wxBoxSizer* item_bed_level = create_item_checkbox(_L("Bed leveling"), main_page, "", 50, "bed_leveling");
     wxBoxSizer* item_timelapse = create_item_checkbox(_L("Timelapse"), main_page, "", 50, "timelapse");
     wxBoxSizer* item_flow_dy_ca = create_item_checkbox(_L("Flow Dynamic Calibration"), main_page, "", 50, "flow_cali");
     sizer->Add(title_print_option, 0, wxEXPAND, 0);
@@ -1383,7 +1383,7 @@ wxPanel* SendMultiMachinePage::create_page()
     // add send option
     wxBoxSizer* title_send_option = create_item_title(_L("Send Options"), main_page, "");
     wxBoxSizer* max_printer_send = create_item_input(_L("Send to"), _L("printers at the same time. (It depends on how many devices can undergo heating at the same time.)"), main_page, "", "max_send");
-    wxBoxSizer* delay_time = create_item_input(_L("Wait"), _L("minute each batch. (It depends on how long it takes to complete the heating.)"), main_page, "", "sending_interval");
+    wxBoxSizer* delay_time = create_item_input(_L("Wait"), _L("minute each batch. (It depends on how long it takes to complete heating.)"), main_page, "", "sending_interval");
     sizer->Add(title_send_option, 0, wxEXPAND, 0);
     sizer->Add(max_printer_send, 0, wxLEFT, FromDIP(20));
     sizer->AddSpacer(FromDIP(3));
@@ -1650,17 +1650,17 @@ void SendMultiMachinePage::on_rename_enter()
     }
 
     if (m_valid_type == Valid && new_file_name.empty()) {
-        info_line = _L("The name is not allowed to be empty.");
+        info_line = _L("The name field is not allowed to be empty.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_first_of(' ') == 0) {
-        info_line = _L("The name is not allowed to start with space character.");
+        info_line = _L("The name is not allowed to start with a space.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_last_of(' ') == new_file_name.length() - 1) {
-        info_line = _L("The name is not allowed to end with space character.");
+        info_line = _L("The name is not allowed to end with a space.");
         m_valid_type = NoValid;
     }
 

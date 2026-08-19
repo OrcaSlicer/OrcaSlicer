@@ -436,11 +436,10 @@ wxBitmap create_scaled_bitmap(  const std::string& bmp_name_in,
         return create_scaled_bitmap2(bmp_name_in, cache, win, px_cnt, grayscale, resize, array_new_color);
     }
 
-    // Get a valid window for DPI scaling. Fall back to top window if win is null.
-    wxWindow* dpi_win = win ? win : wxTheApp->GetTopWindow();
-
     unsigned int width = 0;
-    unsigned int height = dpi_win ? (unsigned int) (dpi_win->FromDIP(px_cnt) + 0.5f) : (unsigned int) px_cnt;
+    // win may be nullptr; use the static overload, which falls back to the primary display DPI.
+    // Calling win->FromDIP() on a null win is UB and lets the optimizer drop later null checks.
+    unsigned int height = (unsigned int) (wxWindow::FromDIP(px_cnt, win) + 0.5f);
 
     std::string bmp_name = bmp_name_in;
     boost::replace_last(bmp_name, ".png", "");
@@ -452,10 +451,9 @@ wxBitmap create_scaled_bitmap(  const std::string& bmp_name_in,
     Slic3r::GUI::wxGetApp().dark_mode();
 
     // Try loading an SVG first, then PNG if SVG was not found:
-    wxBitmap *bmp = cache.load_svg(bmp_name, width, height, grayscale, dark_mode, new_color, resize ? em_unit(dpi_win) * 0.1f : 0.f);
+    wxBitmap *bmp = cache.load_svg(bmp_name, width, height, grayscale, dark_mode, new_color, resize ? em_unit(win) * 0.1f : 0.f);
     if (bmp == nullptr) {
-        float scale = (resize && dpi_win) ? dpi_win->FromDIP(10) * 0.1f : 0.f;
-        bmp = cache.load_png(bmp_name, width, height, grayscale, scale);
+        bmp = cache.load_png(bmp_name, width, height, grayscale, resize ? wxWindow::FromDIP(10, win) * 0.1f : 0.f);
     }
 
     if (bmp == nullptr) {
@@ -475,16 +473,14 @@ wxBitmap create_scaled_bitmap2(const std::string& bmp_name_in, Slic3r::GUI::Bitm
     const int px_cnt/* = 16*/, const bool grayscale/* = false*/ , const bool resize/* = false*/ ,
     const vector<std::string>& array_new_color/* = vector<std::string>()*/) // color witch will used instead of orange
 {
-    // Get a valid window for DPI scaling. Fall back to top window if win is null.
-    wxWindow* dpi_win = win ? win : wxTheApp->GetTopWindow();
-
     unsigned int width = 0;
-    unsigned int height = dpi_win ? (unsigned int)(dpi_win->FromDIP(px_cnt) + 0.5f) : (unsigned int)px_cnt;
+    // win may be nullptr; see create_scaled_bitmap() above.
+    unsigned int height = (unsigned int)(wxWindow::FromDIP(px_cnt, win) + 0.5f);
 
     std::string bmp_name = bmp_name_in;
     boost::replace_last(bmp_name, ".png", "");
 
-    wxBitmap* bmp = cache.load_svg2(bmp_name, width, height, grayscale, false, array_new_color, resize ? em_unit(dpi_win) * 0.1f : 0.f);
+    wxBitmap* bmp = cache.load_svg2(bmp_name, width, height, grayscale, false, array_new_color, resize ? em_unit(win) * 0.1f : 0.f);
     if (bmp == nullptr) {
         // No SVG found
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "Could not load bitmap: " << bmp_name;
@@ -1027,6 +1023,10 @@ ScalableButton::ScalableButton( wxWindow *          parent,
         m_width = size.x * 10 / em;
         m_height= size.y * 10 / em;
     }
+
+#ifdef __WXGTK__
+    Slic3r::GUI::RemoveButtonBorder(this);
+#endif
 }
 
 

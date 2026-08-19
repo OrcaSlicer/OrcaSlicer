@@ -32,8 +32,6 @@ int invoke_on_all_cloud_agents(const std::map<std::string, std::shared_ptr<IClou
 
 } // namespace
 
-bool NetworkAgent::use_legacy_network = true;
-
 // ============================================================================
 // Static methods - delegate to BBLNetworkPlugin
 // ============================================================================
@@ -117,21 +115,20 @@ void NetworkAgent::add_cloud_agent(const std::string& provider, std::shared_ptr<
 
 void NetworkAgent::set_printer_agent(std::shared_ptr<IPrinterAgent> printer_agent)
 {
-    if (!printer_agent) {
-        return;
-    }
-
     // Disconnect all callbacks from the old agent
     auto old_printer_agent = m_printer_agent;
 
     m_printer_agent    = std::move(printer_agent);
-    m_printer_agent_id = m_printer_agent->get_agent_info().id;
+    m_printer_agent_id = m_printer_agent ? m_printer_agent->get_agent_info().id : "";
 
     // Disconnect the old agent's connections/threads.
     if (old_printer_agent && old_printer_agent != m_printer_agent) {
         old_printer_agent->disconnect_printer();
         apply_printer_callbacks(old_printer_agent, {});
     }
+
+    if (!m_printer_agent)
+        return;
 
     apply_printer_callbacks(m_printer_agent, m_printer_callbacks);
 }
@@ -383,11 +380,12 @@ int NetworkAgent::put_setting(std::string                         setting_id,
                               std::string                         name,
                               std::map<std::string, std::string>* values_map,
                               unsigned int*                       http_code,
-                              const std::string&                  provider)
+                              const std::string&                  provider,
+                              bool force)
 {
     const auto cloud_agent = get_cloud_agent(provider);
     if (cloud_agent)
-        return cloud_agent->put_setting(std::move(setting_id), std::move(name), values_map, http_code);
+        return cloud_agent->put_setting(std::move(setting_id), std::move(name), values_map, http_code, force);
     return -1;
 }
 
@@ -582,21 +580,22 @@ int NetworkAgent::get_my_token(std::string ticket, unsigned int* http_code, std:
     return -1;
 }
 
-int NetworkAgent::track_enable(bool enable, const std::string& provider)
+int NetworkAgent::track_enable(bool enable)
 {
-    this->enable_track     = enable;
-    const auto cloud_agent = get_cloud_agent(provider);
+    // Orca cloud has no telemetry; the only cloud agent that tracks events is BBL.
+    this->enable_track = enable;
+    const auto cloud_agent = get_cloud_agent(BBL_CLOUD_PROVIDER);
     if (cloud_agent)
         return cloud_agent->track_enable(enable);
-    return -1;
+    return 0;
 }
 
-int NetworkAgent::track_remove_files(const std::string& provider)
+int NetworkAgent::track_remove_files()
 {
-    const auto cloud_agent = get_cloud_agent(provider);
+    const auto cloud_agent = get_cloud_agent(BBL_CLOUD_PROVIDER);
     if (cloud_agent)
         return cloud_agent->track_remove_files();
-    return -1;
+    return 0;
 }
 
 int NetworkAgent::track_event(std::string evt_key, std::string content, const std::string& provider)
@@ -824,10 +823,10 @@ int NetworkAgent::bind_detect(std::string dev_ip, std::string sec_link, detectRe
 }
 
 int NetworkAgent::bind(
-    std::string dev_ip, std::string dev_id, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn)
+    std::string dev_ip, std::string dev_id, std::string dev_model, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn)
 {
     if (m_printer_agent)
-        return m_printer_agent->bind(dev_ip, dev_id, sec_link, timezone, improved, update_fn);
+        return m_printer_agent->bind(dev_ip, dev_id, dev_model, sec_link, timezone, improved, update_fn);
     return -1;
 }
 
@@ -934,6 +933,13 @@ int NetworkAgent::request_bind_ticket(std::string* ticket)
 {
     if (m_printer_agent)
         return m_printer_agent->request_bind_ticket(ticket);
+    return -1;
+}
+
+int NetworkAgent::get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback)
+{
+    if (m_printer_agent)
+        return m_printer_agent->get_hms_snapshot(dev_id, file_name, callback);
     return -1;
 }
 

@@ -3,7 +3,7 @@
 	"name": "MyToolChanger 0.2 nozzle",
 	"inherits": "fdm_toolchanger_common",
 	"from": "system",
-	"setting_id": "GM_CUSTOM_001",
+	"setting_id": "BFnMQPzSH6GHG60z",
 	"instantiation": "true",
 	"printer_model": "Generic ToolChanger Printer",
 	"nozzle_diameter": [

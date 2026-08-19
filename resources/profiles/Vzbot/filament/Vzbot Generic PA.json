@@ -3,7 +3,7 @@
 	"name": "Vzbot Generic PA",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "4CBO5MnUk8Smhs3q",
 	"filament_id": "GFN99",
 	"instantiation": "true",
 	"nozzle_temperature_initial_layer": [

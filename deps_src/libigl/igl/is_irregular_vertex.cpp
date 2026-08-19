@@ -10,10 +10,10 @@
 
 #include "is_border_vertex.h"
 
-template <typename DerivedV, typename DerivedF>
-IGL_INLINE std::vector<bool> igl::is_irregular_vertex(const Eigen::PlainObjectBase<DerivedV> &V, const Eigen::PlainObjectBase<DerivedF> &F)
+template <typename DerivedF>
+IGL_INLINE std::vector<bool> igl::is_irregular_vertex(const Eigen::MatrixBase<DerivedF> &F)
 {
-  Eigen::VectorXi count = Eigen::VectorXi::Zero(F.maxCoeff());
+  Eigen::VectorXi count = Eigen::VectorXi::Zero(F.maxCoeff()+1);
 
   for(unsigned i=0; i<F.rows();++i)
   {
@@ -27,7 +27,19 @@ IGL_INLINE std::vector<bool> igl::is_irregular_vertex(const Eigen::PlainObjectBa
     }
   }
 
-  std::vector<bool> border = is_border_vertex(V,F);
+  std::vector<bool> border;
+  if(F.cols() == 3)
+  { 
+    border = is_border_vertex(F);
+  }else
+  {
+    assert(F.cols() == 4 && "Only triangle and quad meshes are supported");
+    // Silly way to find border vertices for now
+    Eigen::Matrix<typename DerivedF::Scalar, Eigen::Dynamic, Eigen::Dynamic> T(2*F.rows(),3);
+    T << F.col(0), F.col(1), F.col(2),
+      F.col(0), F.col(2), F.col(3);
+    border = is_border_vertex(T);
+  }
 
   std::vector<bool> res(count.size());
 
@@ -39,6 +51,6 @@ IGL_INLINE std::vector<bool> igl::is_irregular_vertex(const Eigen::PlainObjectBa
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template std::vector<bool, std::allocator<bool> > igl::is_irregular_vertex<Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 3, 0, -1, 3> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&);
-template std::vector<bool, std::allocator<bool> > igl::is_irregular_vertex<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&);
+template std::vector<bool, std::allocator<bool> > igl::is_irregular_vertex<Eigen::Matrix<int, -1, 3, 0, -1, 3> >  (Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&);
+template std::vector<bool, std::allocator<bool> > igl::is_irregular_vertex<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&);
 #endif

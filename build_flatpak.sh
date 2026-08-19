@@ -199,22 +199,22 @@ echo -e "${GREEN}All required dependencies found${NC}"
 # Install runtime and SDK if requested
 if [[ "$INSTALL_RUNTIME" == true ]]; then
     echo -e "${YELLOW}Installing GNOME runtime and SDK...${NC}"
-    flatpak install --user -y flathub org.gnome.Platform//49
-    flatpak install --user -y flathub org.gnome.Sdk//49
+    flatpak install --user -y flathub org.gnome.Platform//50
+    flatpak install --user -y flathub org.gnome.Sdk//50
 fi
 
 # Check if required runtime is available
-if ! flatpak info --user org.gnome.Platform//49 &> /dev/null; then
-    echo -e "${RED}Error: GNOME Platform 49 runtime is not installed.${NC}"
+if ! flatpak info --user org.gnome.Platform//50 &> /dev/null; then
+    echo -e "${RED}Error: GNOME Platform 50 runtime is not installed.${NC}"
     echo "Run with -i flag to install it automatically, or install manually:"
-    echo "flatpak install --user flathub org.gnome.Platform//49"
+    echo "flatpak install --user flathub org.gnome.Platform//50"
     exit 1
 fi
 
-if ! flatpak info --user org.gnome.Sdk//49 &> /dev/null; then
-    echo -e "${RED}Error: GNOME SDK 49 is not installed.${NC}"
+if ! flatpak info --user org.gnome.Sdk//50 &> /dev/null; then
+    echo -e "${RED}Error: GNOME SDK 50 is not installed.${NC}"
     echo "Run with -i flag to install it automatically, or install manually:"
-    echo "flatpak install --user flathub org.gnome.Sdk//49"
+    echo "flatpak install --user flathub org.gnome.Sdk//50"
     exit 1
 fi
 

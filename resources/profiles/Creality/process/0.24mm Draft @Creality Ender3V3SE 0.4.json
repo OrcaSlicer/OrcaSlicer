@@ -1,9 +1,10 @@
 {
 	"type": "process",
 	"name": "0.24mm Draft @Creality Ender3V3SE 0.4",
+	"renamed_from": "0.24mm Draft @Creality Ender3V3SE",
 	"inherits": "fdm_process_creality_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "Hg10EUNCLMEYYBN1",
 	"instantiation": "true",
 	"adaptive_layer_height": "1",
 	"reduce_crossing_wall": "0",

@@ -20,21 +20,19 @@ namespace igl
   {
     namespace cgal
     {
-      // Given a current 2D constrained Delaunay triangulation (cdt), insert a
-      // 3D "object" (e.g., resulting from intersecting two triangles) into the
-      // cdt, by projecting it via the given plane (P) and adding appropriate
-      // constraints.
-      //
-      // Inputs:
-      //   obj  CGAL::Object representing a vertex, segment, or (convex)
-      //     polygon. All vertices should lie on the plane P. If not, then this
-      //     adds the _projection_ of this object to the cdt and that might not
-      //     be what you wanted to do.
-      //   P  plane obj lies on and upon which the cdt is being performed
-      //   cdt  current CDT, see output
-      // Outputs:
-      //   cdt  CDT updated to contain constraints for the given object
-      //
+      /// Given a current 2D constrained Delaunay triangulation (cdt), insert a
+      /// 3D "object" (e.g., resulting from intersecting two triangles) into the
+      /// cdt, by projecting it via the given plane (P) and adding appropriate
+      /// constraints.
+      ///
+      /// @param[in] obj  CGAL::Object representing a vertex, segment, or (convex)
+      ///     polygon. All vertices should lie on the plane P. If not, then this
+      ///     adds the _projection_ of this object to the cdt and that might not
+      ///     be what you wanted to do.
+      /// @param[in] P  plane obj lies on and upon which the cdt is being performed
+      /// @param[in] cdt  current CDT, see output
+      /// @param[out] cdt  CDT updated to contain constraints for the given object
+      ///
       template <typename Kernel>
       IGL_INLINE void insert_into_cdt(
         const CGAL::Object & obj,

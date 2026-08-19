@@ -566,8 +566,11 @@ bool GLGizmoEmboss::on_mouse_for_translate(const wxMouseEvent &mouse_event)
 
 void GLGizmoEmboss::on_mouse_change_selection(const wxMouseEvent &mouse_event)
 {
-    static bool was_dragging = true;  
-    if ((mouse_event.LeftUp() || mouse_event.RightUp()) && !was_dragging) {
+    static bool was_dragging = true;
+    // The left up may be the end of a drag that started on the gizmo floating window (e.g. selecting
+    // text in the input field). Such a release is not a click on the scene and must not close the gizmo.
+    // (The flag is only set for left up events, so right up behavior is unchanged.)
+    if ((mouse_event.LeftUp() || mouse_event.RightUp()) && !was_dragging && !m_parent.is_mouse_left_up_ignored()) {
         // is hovered volume closest hovered?
         int hovered_idx = m_parent.get_first_hover_volume_idx();
         if (hovered_idx < 0) 
@@ -1267,6 +1270,59 @@ void GLGizmoEmboss::reset_volume()
     remove_notification_not_valid_font();
 }
 
+namespace {
+// FIX IT: It should not change volume position before successfull change volume by process
+void fix_transformation(const StyleManager::Style& from, const StyleManager::Style& to, GLCanvas3D& canvas)
+{
+    // fix Z rotation when exists difference in styles
+    const std::optional<float>& f_angle_opt = from.angle;
+    const std::optional<float>& t_angle_opt = to.angle;
+    if (!is_approx(f_angle_opt, t_angle_opt)) {
+        // fix rotation
+        float f_angle = f_angle_opt.value_or(.0f);
+        float t_angle = t_angle_opt.value_or(.0f);
+        do_local_z_rotate(canvas.get_selection(), t_angle - f_angle);
+        std::string no_snapshot;
+        canvas.do_rotate(no_snapshot);
+    }
+
+    // fix distance (Z move) when exists difference in styles
+    const std::optional<float>& f_move_opt = from.distance;
+    const std::optional<float>& t_move_opt = to.distance;
+    if (!is_approx(f_move_opt, t_move_opt)) {
+        float f_move = f_move_opt.value_or(.0f);
+        float t_move = t_move_opt.value_or(.0f);
+        do_local_z_move(canvas.get_selection(), t_move - f_move);
+        std::string no_snapshot;
+        canvas.do_move(no_snapshot);
+    }
+}
+} // namespace
+
+bool GLGizmoEmboss::is_changed_from_default_style()
+{
+    int                        default_index = 0;
+    const StyleManager::Style& default_style = m_style_manager.get_styles()[default_index];
+    const StyleManager::Style& current_style = m_style_manager.get_style();
+
+    return default_style == current_style;
+}
+
+void GLGizmoEmboss::reset_to_default_style()
+{
+    int                        default_index = 0;
+    const StyleManager::Style& current_style = m_style_manager.get_style();
+    const StyleManager::Style& default_style = m_style_manager.get_styles()[default_index];
+
+    StyleManager::Style cur_s = current_style; // copy
+    StyleManager::Style new_s = default_style; // copy
+
+    if (m_style_manager.load_style(default_index)) {
+        ::fix_transformation(cur_s, new_s, m_parent);
+        process();
+    }
+}
+
 void GLGizmoEmboss::calculate_scale() {
     Transform3d to_world = m_parent.get_selection().get_first_volume()->world_matrix();
     auto to_world_linear = to_world.linear();
@@ -1406,9 +1462,29 @@ void GLGizmoEmboss::draw_window(float x, float y)
         draw_model_type();
     }
 
+    ImGui::Spacing();
     ImGui::Separator();
+    ImGui::Spacing();
+    float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
 
     GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, m_shortcuts, x, y);
+
+    ImGui::SameLine();
+    m_imgui->disabled_begin(is_changed_from_default_style());
+    if (m_imgui->button(_L("Reset"), _L("Reset all options except the text and operation"))) {
+        reset_to_default_style();
+    }
+    m_imgui->disabled_end();
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({_L("Done")});
+
+    if (m_imgui->button(_L("Done"))) {
+        m_parent.reset_all_gizmos();
+    }
+
+    ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
        
 #ifdef SHOW_WX_FONT_DESCRIPTOR
     if (is_selected_style)
@@ -1878,7 +1954,7 @@ void GLGizmoEmboss::draw_model_type()
     float minimum_spacing_x = 8.0f;
     float minimum_offset_x  = ImGui::GetCursorPosX() + minimum_spacing_x;
     float offset_x          = std::max(m_gui_cfg->input_offset, minimum_offset_x);
-    ImGui::SameLine(offset_x);
+    ImGui::SameLine();
     
     ImGuiWrapper::push_radio_style(m_parent.get_scale()); // ORCA
     if (ImGui::RadioButton(_u8L("Join").c_str(), type == part))
@@ -1888,7 +1964,7 @@ void GLGizmoEmboss::draw_model_type()
 
     ImGui::SameLine();
     std::string last_solid_part_hint = _u8L("You can't change a type of the last solid part of the object.");
-    if (ImGui::RadioButton(_CTX_utf8(L_CONTEXT("Cut", "EmbossOperation"), "EmbossOperation").c_str(), type == negative))
+    if (ImGui::RadioButton(_u8L_CONTEXT(L_CONTEXT("Cut", "EmbossOperation"), "EmbossOperation").c_str(), type == negative))
         new_type = negative;
     else if (ImGui::IsItemHovered()) {
         if (is_last_solid_part)
@@ -2154,34 +2230,6 @@ void GLGizmoEmboss::draw_delete_style_button() {
         m_imgui->tooltip(tooltip, m_gui_cfg->max_tooltip_width);  
     }
 }
-
-namespace {
-// FIX IT: It should not change volume position before successfull change volume by process
-void fix_transformation(const StyleManager::Style &from, const StyleManager::Style &to, GLCanvas3D &canvas) {
-    // fix Z rotation when exists difference in styles
-    const std::optional<float> &f_angle_opt = from.angle;
-    const std::optional<float> &t_angle_opt = to.angle;
-    if (!is_approx(f_angle_opt, t_angle_opt)) {
-        // fix rotation
-        float f_angle = f_angle_opt.value_or(.0f);
-        float t_angle = t_angle_opt.value_or(.0f);
-        do_local_z_rotate(canvas.get_selection(), t_angle - f_angle);
-        std::string no_snapshot;
-        canvas.do_rotate(no_snapshot);
-    }
-
-    // fix distance (Z move) when exists difference in styles
-    const std::optional<float> &f_move_opt = from.distance;
-    const std::optional<float> &t_move_opt = to.distance;
-    if (!is_approx(f_move_opt, t_move_opt)) {
-        float f_move = f_move_opt.value_or(.0f);
-        float t_move = t_move_opt.value_or(.0f);
-        do_local_z_move(canvas.get_selection(), t_move - f_move);
-        std::string no_snapshot;
-        canvas.do_move(no_snapshot);
-    }
-}
-} // namesapce
 
 void GLGizmoEmboss::draw_style_list() {
     if (!m_style_manager.is_active_font()) return;
@@ -2766,29 +2814,29 @@ void GLGizmoEmboss::draw_advanced()
         ImGui::SameLine(input_offset);
         if (align.first==FontProp::HorizontalAlign::left) draw(get_icon(icons, IconType::align_horizontal_left, IconState::hovered));
         else if (draw_button(icons, IconType::align_horizontal_left)) { align.first=FontProp::HorizontalAlign::left; is_change = true; }
-        else if (ImGui::IsItemHovered()) m_imgui->tooltip(_CTX_utf8(L_CONTEXT("Left", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);
+        else if (ImGui::IsItemHovered()) m_imgui->tooltip(_u8L_CONTEXT(L_CONTEXT("Left", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);
         ImGui::SameLine();
         if (align.first==FontProp::HorizontalAlign::center) draw(get_icon(icons, IconType::align_horizontal_center, IconState::hovered));
         else if (draw_button(icons, IconType::align_horizontal_center)) { align.first=FontProp::HorizontalAlign::center; is_change = true; }
-        else if (ImGui::IsItemHovered()) m_imgui->tooltip(_CTX_utf8(L_CONTEXT("Center", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);
+        else if (ImGui::IsItemHovered()) m_imgui->tooltip(_u8L_CONTEXT(L_CONTEXT("Center", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);
         ImGui::SameLine();
         if (align.first==FontProp::HorizontalAlign::right) draw(get_icon(icons, IconType::align_horizontal_right, IconState::hovered));
         else if (draw_button(icons, IconType::align_horizontal_right)) { align.first=FontProp::HorizontalAlign::right; is_change = true; }
-        else if (ImGui::IsItemHovered()) m_imgui->tooltip(_CTX_utf8(L_CONTEXT("Right", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);
+        else if (ImGui::IsItemHovered()) m_imgui->tooltip(_u8L_CONTEXT(L_CONTEXT("Right", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);
 
         ImGui::SameLine(0, ImGui::GetStyle().ItemSpacing.x * 2.f); // ORCA use wider spacing for separation between horizontal / vertical alignment
 
         if (align.second==FontProp::VerticalAlign::top) draw(get_icon(icons, IconType::align_vertical_top, IconState::hovered));
         else if (draw_button(icons, IconType::align_vertical_top)) { align.second=FontProp::VerticalAlign::top; is_change = true; }
-        else if (ImGui::IsItemHovered()) m_imgui->tooltip(_CTX_utf8(L_CONTEXT("Top", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);
+        else if (ImGui::IsItemHovered()) m_imgui->tooltip(_u8L_CONTEXT(L_CONTEXT("Top", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);
         ImGui::SameLine();
         if (align.second==FontProp::VerticalAlign::center) draw(get_icon(icons, IconType::align_vertical_center, IconState::hovered));
         else if (draw_button(icons, IconType::align_vertical_center)) { align.second=FontProp::VerticalAlign::center; is_change = true; }
-        else if (ImGui::IsItemHovered()) m_imgui->tooltip(_CTX_utf8(L_CONTEXT("Middle", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);
+        else if (ImGui::IsItemHovered()) m_imgui->tooltip(_u8L_CONTEXT(L_CONTEXT("Middle", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);
         ImGui::SameLine();
         if (align.second==FontProp::VerticalAlign::bottom) draw(get_icon(icons, IconType::align_vertical_bottom, IconState::hovered));
         else if (draw_button(icons, IconType::align_vertical_bottom)) { align.second=FontProp::VerticalAlign::bottom; is_change = true; }
-        else if (ImGui::IsItemHovered()) m_imgui->tooltip(_CTX_utf8(L_CONTEXT("Bottom", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);
+        else if (ImGui::IsItemHovered()) m_imgui->tooltip(_u8L_CONTEXT(L_CONTEXT("Bottom", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);
         return is_change;
     };
     const FontProp::Align * def_align = stored_style ? &stored_style->prop.align : nullptr;

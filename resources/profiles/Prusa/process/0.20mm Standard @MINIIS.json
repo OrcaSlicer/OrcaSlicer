@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @MINIIS",
 	"inherits": "process_common_miniis",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "kzZbOFDyAMKrDA3k",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Prusa MINIIS 0.4 nozzle"

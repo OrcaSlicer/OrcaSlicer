@@ -10,14 +10,14 @@
 
 template <typename DerivedF, typename DerivedFO>
 IGL_INLINE void igl::connect_boundary_to_infinity(
-  const Eigen::PlainObjectBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedF> & F,
   Eigen::PlainObjectBase<DerivedFO> & FO)
 {
   return connect_boundary_to_infinity(F,F.maxCoeff(),FO);
 }
 template <typename DerivedF, typename DerivedFO>
 IGL_INLINE void igl::connect_boundary_to_infinity(
-  const Eigen::PlainObjectBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedF> & F,
   const typename DerivedF::Scalar inf_index,
   Eigen::PlainObjectBase<DerivedFO> & FO)
 {
@@ -25,7 +25,6 @@ IGL_INLINE void igl::connect_boundary_to_infinity(
   Eigen::Matrix<typename DerivedFO::Scalar,Eigen::Dynamic,Eigen::Dynamic> O;
   boundary_facets(F,O);
   FO.resize(F.rows()+O.rows(),F.cols());
-  typedef Eigen::Matrix<typename DerivedFO::Scalar,Eigen::Dynamic,1> VectorXI;
   FO.topLeftCorner(F.rows(),F.cols()) = F;
   FO.bottomLeftCorner(O.rows(),O.cols()) = O.rowwise().reverse();
   FO.bottomRightCorner(O.rows(),1).setConstant(inf_index);
@@ -37,8 +36,8 @@ template <
   typename DerivedVO, 
   typename DerivedFO>
 IGL_INLINE void igl::connect_boundary_to_infinity(
-  const Eigen::PlainObjectBase<DerivedV> & V,
-  const Eigen::PlainObjectBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedF> & F,
   Eigen::PlainObjectBase<DerivedVO> & VO,
   Eigen::PlainObjectBase<DerivedFO> & FO)
 {
@@ -51,5 +50,5 @@ IGL_INLINE void igl::connect_boundary_to_infinity(
 }
 
 #ifdef IGL_STATIC_LIBRARY
-template void igl::connect_boundary_to_infinity<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&);
+template void igl::connect_boundary_to_infinity<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&);
 #endif

@@ -3,7 +3,7 @@
 	"name": "0.16mm Optimal @FlyingBear Ghost7",
 	"inherits": "fdm_process_common_Ghost7",
 	"from": "system",
-	"setting_id": "GP005",
+	"setting_id": "1wZC0qr91DtOGVAo",
 	"instantiation": "true",
 	"inner_wall_acceleration": "3000",
 	"overhang_2_4_speed": "50",

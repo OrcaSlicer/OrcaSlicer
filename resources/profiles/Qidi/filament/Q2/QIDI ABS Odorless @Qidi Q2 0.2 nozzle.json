@@ -3,7 +3,7 @@
 	"name": "QIDI ABS Odorless @Qidi Q2 0.2 nozzle",
 	"inherits": "QIDI ABS Odorless@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "IL50RqcaWBcR8YCP",
 	"instantiation": "true",
 	"chamber_temperatures": [
 		"0"

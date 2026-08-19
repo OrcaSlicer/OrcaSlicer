@@ -3,9 +3,9 @@
 	"name": "Polymaker PETG Polymax black P1 @iQ TiQ2 0.4 Nozzle",
 	"inherits": "fdm_filament_common",
 	"from": "system",
+	"setting_id": "QefI7iu8bAQ9jzDK",
 	"filament_id": "IQM3",
 	"instantiation": "true",
-	"settings_id": "IQS3",
 	"activate_air_filtration": [
 		"0"
 	],

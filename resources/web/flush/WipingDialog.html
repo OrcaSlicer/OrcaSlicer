@@ -6,6 +6,7 @@
       * {
         user-select: none;
         -webkit-user-select: none;
+        box-sizing: border-box;
       }
 
       html, body {
@@ -16,19 +17,24 @@
         font-family: sans-serif;
         overscroll-behavior: none;
       }
-      
+
       body {
           position: fixed;
           inset: 0;
       }
 
       .container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
         background: #fff;
         padding: 20px;
         padding-bottom: 10px;
         border: 1px solid #ccc;
-        max-width:fit-content(1000px);
+        max-width: fit-content(1000px);
         margin: 0 auto;
+        overflow: hidden;
+        box-sizing: border-box;
       }
 
       .tip-panel {
@@ -36,15 +42,29 @@
         padding: 10px;
         margin-bottom: 10px;
         font-size: 12px;
+        flex-shrink: 0;
+      }
+
+      .scroll-wrapper {
+        flex: 1 1 0%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
       }
 
       .scroll-container {
+        flex: 1 1 0%;
+        min-height: 80px;
         max-width: 100%;
         max-height: 500px;
         overflow: auto;
         border: 1px solid #ccc;
         position: relative;
         margin: 0px;
+      }
+
+      .description-section {
+        flex-shrink: 0;
       }
 
       table {
@@ -148,34 +168,12 @@
         display: inline-block;
       }
 
-      select {
-        padding: 6px 9px;
-        border: 1px solid #dbdbdb;
-        border-radius: 3px;
-        font-size: 12px;
-        cursor: pointer;
-        appearance: auto;
-        background-color: white;
-        color: black;
-      }
-
-      select option {
-        background-color: white;
-        color: black;
-      }
-
-      select:hover,
-      select:focus {
-        outline: none;
-        border-color: #26A69A;
-        background-color: #edfaf2;
-      }
-
       .button-container {
         display: flex;
         justify-content: center;
         gap: 0px;
-        margin: 10px;
+        margin-top: 10px;
+        flex-shrink: 0;
       }
 
       /* 暗色模式样式 */
@@ -243,11 +241,6 @@
         position: sticky;
         z-index: 11;
       }
-      body.dark-mode select {
-        background-color: #2d2d31;
-        color: white;
-        border-color: #4c4c55;
-      }
 
       body.dark-mode .warning-text {
         color: #f44336;
@@ -273,7 +266,7 @@
         in Orca Slicer &gt; Preferences.
       </div>
 
-      <div style="margin-bottom: 10px; display: flex; align-items: center;">
+      <div style="margin-bottom: 10px; display: flex; align-items: center; flex-shrink: 0;">
         <div
           class="ButtonStyleConfirm ButtonTypeWindow"
           onclick="calcFlushingVolumes()"
@@ -281,60 +274,66 @@
         >
           Re-Calculate
       </div>
-        <select
-          id="extruders"
-          onchange="handleExtruderSelect(document.getElementById('extruders').value)"
-        >
-          <option value="left" id="extruder_label_0">Left Nozzle</option>
-          <option value="right" id="extruder_label_1">Right Nozzle</option>
-        </select>
-      </div>
-
-      <div class="scroll-container">
-        <table id="flushTable">
-          <thead>
-            <tr>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <div style="margin-top: 10px;">
-        <div id="volume_desp_panel" class="normal-text">
-          Flushing volume (mm³) for each filament pair.
-        </div>
-        <div
-          id="volume_range_panel"
-          class="normal-text"
-          style="margin-top: 5px;"
-        >
-          Suggestion: Flushing Volume in range [50, 999]
-        </div>
-        <div style="margin-top: 8px;">
-          <label
-            for="multiplierInput"
-            id="multiplier_label"
-            style="font-size: 12px;"
-            >Multiplier</label
+        <div class="ComboBox">
+          <div class="arrow-icon"></div>
+          <select
+            id="extruders"
+            onchange="handleExtruderSelect(document.getElementById('extruders').value)"
           >
-          <input
-            type="number"
-            step="0.1"
-            id="multiplierInput"
-            class="multiplier-input"
-            value="1.00"
-            oninput="onMultiplierChange()"
-          />
-        </div>
-        <div
-          style="margin-top: 5px; margin-bottom: 5px; color: #666; font-size: 12px;"
-          id="multiplier_range_panel"
-        >
-          The multiplier should be in range [0.50, 3.00].
+            <option value="left" id="extruder_label_0">Left Nozzle</option>
+            <option value="right" id="extruder_label_1">Right Nozzle</option>
+          </select>
         </div>
       </div>
+
+      <div class="scroll-wrapper">
+        <div class="scroll-container">
+          <table id="flushTable">
+            <thead>
+              <tr>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="description-section" style="margin-top: 10px;">
+          <div id="volume_desp_panel" class="normal-text">
+            Flushing volume (mm³) for each filament pair.
+          </div>
+          <div
+            id="volume_range_panel"
+            class="normal-text"
+            style="margin-top: 5px;"
+          >
+            Suggestion: Flushing Volume in range [50, 999]
+          </div>
+          <div style="margin-top: 8px;">
+            <label
+              for="multiplierInput"
+              id="multiplier_label"
+              style="font-size: 12px;"
+              >Multiplier</label
+            >
+            <input
+              type="number"
+              step="0.1"
+              id="multiplierInput"
+              class="multiplier-input"
+              value="1.00"
+              oninput="onMultiplierChange()"
+            />
+          </div>
+          <div
+            style="margin-top: 5px; margin-bottom: 5px; color: #666; font-size: 12px;"
+            id="multiplier_range_panel"
+          >
+            The multiplier should be in range [0.50, 3.00].
+          </div>
+        </div>
+      </div>
+
       <div class="button-container" style="padding: 0px; margin: 0px;">
         <div class="ButtonStyleConfirm ButtonTypeChoice" id="ok_btn" onclick="storeData()">
           Save

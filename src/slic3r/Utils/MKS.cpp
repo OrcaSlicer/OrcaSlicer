@@ -84,7 +84,7 @@ bool MKS::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn er
 		int err_code = get_err_code_from_body(body);
 		if (err_code != 0) {
 			BOOST_LOG_TRIVIAL(error) << boost::format("MKS: Request completed but error code was received: %1%") % err_code;
-			error_fn(format_error(body, L("Unknown error occurred"), 0));
+			error_fn(format_error(body, _u8L("Unknown error occurred"), 0));
 			res = false;
 		}
 		else if (upload_data.post_action == PrintHostPostUploadAction::StartPrint) {

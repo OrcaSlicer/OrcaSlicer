@@ -1,0 +1,15 @@
+{
+	"type": "machine_model",
+	"name": "SeeMeCNC BOSSdelta 500 0521",
+	"bed_model": "SeeMeCNC_Buildplate_Model_500.STL",
+	"bed_texture": "SeeMeCNC_Buildplate_texture.png",
+	"default_materials": "SeeMeCNC PLA;SeeMeCNC ABS;SeeMeCNC PETG;SeeMeCNC PETG-CF;SeeMeCNC PA-CF;SeeMeCNC TPU",
+	"nozzle_diameter": "0.4;0.5;0.7;1.0",
+	"machine_tech": "FFF",
+	"family": "SeeMeCNC BOSSdelta 500 0521",
+	"thumbnail": "SeeMeCNC BOSSdelta 500 0521_cover.png",
+	"machine_load_filament_time": "4",
+	"machine_unload_filament_time": "4",
+	"model_id": "SEEMECNC_BOSSDELTA_500_0521",
+	"description": "SeeMeCNC configurations"
+}

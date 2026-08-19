@@ -3,7 +3,7 @@
 	"name": "Tinmorry PETG-ECO",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "uVa250OrqClMz41k",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [
@@ -50,30 +50,6 @@
 	],
 	"nozzle_temperature": [
 		"235"
-	],
-	"cool_plate_temp": [
-		"70"
-	],
-	"eng_plate_temp": [
-		"70"
-	],
-	"hot_plate_temp": [
-		"70"
-	],
-	"textured_plate_temp": [
-		"70"
-	],
-	"cool_plate_temp_initial_layer": [
-		"70"
-	],
-	"eng_plate_temp_initial_layer": [
-		"70"
-	],
-	"hot_plate_temp_initial_layer": [
-		"70"
-	],
-	"textured_plate_temp_initial_layer": [
-		"70"
 	],
 	"filament_vendor": [
 		"Generic"

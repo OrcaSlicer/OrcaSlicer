@@ -13,13 +13,19 @@
 #include "list_to_matrix.h"
 #include <vector>
 
+template <
+  typename DerivedF,
+  typename DerivedE,
+  typename DerivedEMAP,
+  typename DerivedEF,
+  typename DerivedEI>
 IGL_INLINE bool igl::edge_collapse_is_valid(
   const int e,
-  const Eigen::MatrixXi & F,
-  const Eigen::MatrixXi & E,
-  const Eigen::VectorXi & EMAP,
-  const Eigen::MatrixXi & EF,
-  const Eigen::MatrixXi & EI)
+  const Eigen::MatrixBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedE> & E,
+  const Eigen::MatrixBase<DerivedEMAP> & EMAP,
+  const Eigen::MatrixBase<DerivedEF> & EF,
+  const Eigen::MatrixBase<DerivedEI> & EI)
 {
   using namespace Eigen;
   using namespace std;
@@ -39,17 +45,12 @@ IGL_INLINE bool igl::edge_collapse_is_valid(
   // http://stackoverflow.com/a/27049418/148668
   {
     // all vertex neighbors around edge, including the two vertices of the edge
-    const auto neighbors = [](
+    const auto neighbors = [&F,&E,&EMAP,&EF,&EI](
       const int e,
-      const bool ccw,
-      const Eigen::MatrixXi & F,
-      const Eigen::MatrixXi & E,
-      const Eigen::VectorXi & EMAP,
-      const Eigen::MatrixXi & EF,
-      const Eigen::MatrixXi & EI) 
+      const bool ccw)
     {
       vector<int> N,uN;
-      vector<int> V2Fe = circulation(e, ccw,F,E,EMAP,EF,EI);
+      vector<int> V2Fe = circulation(e, ccw,EMAP,EF,EI);
       for(auto f : V2Fe)
       {
         N.push_back(F(f,0));
@@ -62,8 +63,8 @@ IGL_INLINE bool igl::edge_collapse_is_valid(
       list_to_matrix(uN,uNm);
       return uNm;
     };
-    VectorXi Ns = neighbors(e, eflip,F,E,EMAP,EF,EI);
-    VectorXi Nd = neighbors(e,!eflip,F,E,EMAP,EF,EI);
+    VectorXi Ns = neighbors(e, eflip);
+    VectorXi Nd = neighbors(e,!eflip);
     VectorXi Nint = igl::intersect(Ns,Nd);
     if(Nint.size() != 4)
     {
@@ -84,3 +85,45 @@ IGL_INLINE bool igl::edge_collapse_is_valid(
   }
   return true;
 }
+
+IGL_INLINE bool igl::edge_collapse_is_valid(
+  std::vector<int> & Nsv,
+  std::vector<int> & Ndv)
+{
+  // Do we really need to check if edge is IGL_COLLAPSE_EDGE_NULL ?
+
+  if(Nsv.size()<2 || Ndv.size()<2)
+  {
+    // Bogus data
+    assert(false);
+    return false;
+  }
+  // determine if the first two vertices are the same before reordering.
+  // If they are and there are 3 each, then (I claim) this is an edge on a
+  // single tet.
+  const bool first_two_same = (Nsv[0] == Ndv[0]) && (Nsv[1] == Ndv[1]);
+  if(Nsv.size() == 3 && Ndv.size() == 3 && first_two_same)
+  {
+    // single tet
+    return false;
+  }
+  // https://stackoverflow.com/a/19483741/148668
+  std::sort(Nsv.begin(), Nsv.end());
+  std::sort(Ndv.begin(), Ndv.end());
+  std::vector<int> Nint;
+  std::set_intersection(
+    Nsv.begin(), Nsv.end(), Ndv.begin(), Ndv.end(), std::back_inserter(Nint));
+  // check if edge collapse is valid: intersection of vertex neighbors of s and
+  // d should be exactly 2+(s,d) = 4
+  // http://stackoverflow.com/a/27049418/148668
+  if(Nint.size() != 2)
+  {
+    return false;
+  }
+  
+  return true;
+}
+
+#ifdef IGL_STATIC_LIBRARY
+// Explicit template instantiation
+#endif

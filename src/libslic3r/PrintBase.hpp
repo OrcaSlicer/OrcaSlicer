@@ -32,7 +32,7 @@ struct StringObjectException
     std::string string;
     ObjectBase const *object = nullptr;
     std::string opt_key;
-    StringExceptionType         type;   // warning type for tips
+    StringExceptionType         type = STRING_EXCEPT_NOT_DEFINED;   // warning type for tips
     bool is_warning = false;
     std::vector<std::string>    params; // warning params for tips
 };
@@ -396,7 +396,7 @@ public:
 
     // Validate the print, return empty string if valid, return error if process() cannot (or should not) be started.
     //BBS: add more paremeters to validate
-    virtual StringObjectException validate(StringObjectException *warning = nullptr, Polygons* collison_polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr) const { return {}; }
+    virtual StringObjectException validate(std::vector<StringObjectException> *warnings = nullptr, Polygons* collison_polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr) const { return {}; }
 
     enum ApplyStatus {
         // No change after the Print::apply() call.

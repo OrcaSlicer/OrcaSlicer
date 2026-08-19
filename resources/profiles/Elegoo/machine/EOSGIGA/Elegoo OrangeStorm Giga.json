@@ -1,12 +1,12 @@
 {
 	"type": "machine_model",
 	"name": "Elegoo OrangeStorm Giga",
-	"model_id": "Elegoo-OrangeStorm-Giga",
-	"nozzle_diameter": "0.4;0.6;0.8;1.0",
+	"model_id": "Elegoo-OS-Giga",
+	"nozzle_diameter": "0.6;0.4;0.8;1.0",
 	"bed_model": "elegoo_orangestorm_giga_buildplate_model.stl",
 	"bed_texture": "elegoo_orangestorm_giga_buildplate_texture.svg",
 	"machine_tech": "FFF",
 	"family": "Elegoo",
 	"hotend_model": "",
-	"default_materials": "Elegoo PLA @Elegoo Giga;Elegoo PETG PRO @Elegoo Giga;Elegoo PLA Silk"
+	"default_materials": "Elegoo PLA @Elegoo Giga;Elegoo PETG PRO @Elegoo Giga;Elegoo ASA @Elegoo Giga;Elegoo PLA Matte @Elegoo Giga;Elegoo Rapid PETG @Elegoo Giga;Elegoo Rapid PLA+ @Elegoo Giga;Elegoo PLA Basic @0.2 nozzle;Elegoo PLA Basic @Elegoo Giga;Elegoo PLA Galaxy @Elegoo Giga;Elegoo PLA Marble @Elegoo Giga;Elegoo PLA Sparkle @Elegoo Giga;Elegoo PLA Wood @Elegoo Giga;Elegoo Rapid TPU 95A @Elegoo Giga;Elegoo PETG-CF @Elegoo Giga;Elegoo PETG-GF @Elegoo Giga;Elegoo PETG Translucent @0.2 nozzle;Elegoo PETG Translucent @Elegoo Giga"
 }

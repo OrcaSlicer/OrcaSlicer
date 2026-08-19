@@ -11,14 +11,13 @@
 
 namespace igl
 {
-  // Normalize a quaternion
-  // A Quaternion, q, is defined here as an arrays of four scalars (x,y,z,w),
-  // such that q = x*i + y*j + z*k + w
-  // Inputs:
-  //   q  input quaternion
-  // Outputs:
-  //   out  result of normalization, allowed to be same as q
-  // Returns true on success, false if len(q) < EPS
+  /// Normalize a quaternion
+  /// A Quaternion, q, is defined here as an arrays of four scalars (x,y,z,w),
+  /// such that q = x*i + y*j + z*k + w
+  ///
+  /// @param[in] q  input quaternion
+  /// @param[out] out  result of normalization, allowed to be same as q
+  /// @return true on success, false if len(q) < EPS
   template <typename Q_type>
   IGL_INLINE bool normalize_quat(
     const Q_type *q,

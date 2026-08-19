@@ -3,7 +3,6 @@
 	"name": "QIDI UltraPA-CF25@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"setting_id": "GFSN99",
 	"filament_id": "QD_1_1_26",
 	"instantiation": "false",
 	"box_temperature_range_high": [
@@ -78,5 +77,35 @@
 	"hot_plate_temp": [
 		"80"
 	],
-	"compatible_printers": []
+	"compatible_printers": [],
+	"cool_plate_temp": [
+		"60"
+	],
+	"eng_plate_temp": [
+		"80"
+	],
+	"supertack_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp": [
+		"80"
+	],
+	"textured_cool_plate_temp": [
+		"60"
+	],
+	"cool_plate_temp_initial_layer": [
+		"60"
+	],
+	"eng_plate_temp_initial_layer": [
+		"80"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"80"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"60"
+	]
 }

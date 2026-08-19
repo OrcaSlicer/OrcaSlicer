@@ -3,15 +3,45 @@
 	"name": "Elegoo ASA @base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "OGFE06",
+	"filament_id": "OEASAB00",
 	"instantiation": "false",
-	"filament_vendor": [
-		"Elegoo"
+	"eng_plate_temp": [
+		"90"
+	],
+	"eng_plate_temp_initial_layer": [
+		"90"
 	],
 	"filament_density": [
 		"1.1"
 	],
-	"filament_max_volumetric_speed": [
-		"12"
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_vendor": [
+		"Elegoo"
+	],
+	"hot_plate_temp": [
+		"90"
+	],
+	"hot_plate_temp_initial_layer": [
+		"90"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"temperature_vitrification": [
+		"100"
+	],
+	"textured_plate_temp": [
+		"90"
+	],
+	"textured_plate_temp_initial_layer": [
+		"90"
+	],
+	"filament_start_gcode": [
+		"; Filament start gcode\n"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
 	]
 }

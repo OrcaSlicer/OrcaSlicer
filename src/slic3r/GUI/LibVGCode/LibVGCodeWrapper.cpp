@@ -227,8 +227,8 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
         const EOptionType option_type = move_type_to_option(curr_type);
         if (option_type == EOptionType::COUNT || option_type == EOptionType::Travels || option_type == EOptionType::Wipes) {
             if (ret.vertices.empty() || prev.type != curr.type || prev.extrusion_role != curr.extrusion_role
-                // ORCA: Fix issue with flow rate changes being visualized incorrectly
-                || prev.mm3_per_mm != curr.mm3_per_mm) {
+                // ORCA: Split the path when a preview value changes.
+                || prev.mm3_per_mm != curr.mm3_per_mm || prev.acceleration != curr.acceleration || prev.jerk != curr.jerk) {
                 // to allow libvgcode to properly detect the start/end of a path we need to add a 'phantom' vertex
                 // equal to the current one with the exception of the position, which should match the previous move position,
                 // and the times, which are set to zero
@@ -750,7 +750,7 @@ static void convert_object_to_vertices(const Slic3r::PrintObject& object, const 
                     continue;
                 const Slic3r::PrintRegionConfig& cfg = layerm->region().config();
                 if (has_perimeters) {
-                    const size_t extruder_id = static_cast<size_t>(std::max(cfg.wall_filament.value - 1, 0));
+                    const size_t extruder_id = static_cast<size_t>(std::max(cfg.outer_wall_filament_id.value - 1, 0));
                     convert_to_vertices(layerm->perimeters, layer_z, layer_id, extruder_id,
                         object_helper.color_id(layer_z, extruder_id), EGCodeExtrusionRole::ExternalPerimeter,
                         copy, data.vertices);
@@ -760,17 +760,21 @@ static void convert_object_to_vertices(const Slic3r::PrintObject& object, const 
                         // fill represents infill extrusions of a single island.
                         const auto& fill = *dynamic_cast<const Slic3r::ExtrusionEntityCollection*>(ee);
                         if (!fill.entities.empty()) {
+                            const Slic3r::ExtrusionRole role = fill.entities.front()->role();
+                            const bool is_solid_infill = Slic3r::is_solid_infill(role);
                             size_t extruder_id;
                             EGCodeExtrusionRole viz_role;
                             if (fill.has_zone_fill()) {
                                 extruder_id = static_cast<size_t>(std::max(cfg.dual_infill_outer_filament.value - 1, 0));
                                 viz_role = EGCodeExtrusionRole::SolidInfill;
-                            } else if (Slic3r::is_solid_infill(fill.entities.front()->role())) {
-                                extruder_id = static_cast<size_t>(std::max(cfg.solid_infill_filament.value - 1, 0));
-                                viz_role = EGCodeExtrusionRole::SolidInfill;
                             } else {
-                                extruder_id = static_cast<size_t>(std::max(cfg.sparse_infill_filament.value - 1, 0));
-                                viz_role = EGCodeExtrusionRole::InternalInfill;
+                                extruder_id = is_solid_infill ?
+                                    static_cast<size_t>(std::max((role == Slic3r::erTopSolidInfill || role == Slic3r::erIroning ? cfg.top_surface_filament_id.value :
+                                                                  role == Slic3r::erBottomSurface ? cfg.bottom_surface_filament_id.value :
+                                                                  cfg.internal_solid_filament_id.value) - 1, 0)) :
+                                    static_cast<size_t>(std::max(cfg.sparse_infill_filament_id.value - 1, 0));
+                                viz_role = is_solid_infill ? EGCodeExtrusionRole::SolidInfill
+                                                           : EGCodeExtrusionRole::InternalInfill;
                             }
                             convert_to_vertices(fill, layer_z, layer_id, extruder_id,
                                                 object_helper.color_id(layer_z, extruder_id),

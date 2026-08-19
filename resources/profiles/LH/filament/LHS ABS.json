@@ -2,7 +2,7 @@
 	"name": "LHS ABS",
 	"type": "filament",
 	"filament_id": "LHF_abs",
-	"setting_id": "LHF_S_abs",
+	"setting_id": "EQxNYC7BdGEA2iiD",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_asa",

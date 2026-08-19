@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Artillery TPU @Artillery M1 Pro 0.6 nozzle",
 	"from": "system",
+	"setting_id": "QIgpIamYbSdI4DPW",
 	"filament_id": "P2fbf0c0",
 	"instantiation": "true",
 	"activate_air_filtration": [

@@ -86,6 +86,9 @@
 	"filament_max_volumetric_speed": [
 		"12"
 	],
+	"filament_multitool_ramming_flow": [
+		"16"
+	],
 	"filament_flow_ratio": [
 		"0.94"
 	]

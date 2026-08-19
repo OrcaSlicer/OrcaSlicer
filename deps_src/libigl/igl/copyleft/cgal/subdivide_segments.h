@@ -18,19 +18,17 @@ namespace igl
   {
     namespace cgal
     {
-      // Insert steiner points to subdivide a given set of line segments
-      // 
-      // Inputs:
-      //   V  #V by 2 list of vertex positions
-      //   E  #E by 2 list of segment indices into V
-      //   steiner  #E list of lists of unsorted steiner points (including
-      //     endpoints) along the #E original segments
-      // Outputs:
-      //   VI  #VI by 2 list of output vertex positions, copies of V are always
-      //     the first #V vertices
-      //   EI  #EI by 2 list of segment indices into V, #EI ≥ #E
-      //   J  #EI list of indices into E revealing "parent segments"
-      //   IM  #VI list of indices into VV of unique vertices.
+      /// Insert steiner points to subdivide a given set of line segments
+      /// 
+      /// @param[in] V  #V by 2 list of vertex positions
+      /// @param[in] E  #E by 2 list of segment indices into V
+      /// @param[in] steiner  #E list of lists of unsorted steiner points (including
+      ///     endpoints) along the #E original segments
+      /// @param[out] VI  #VI by 2 list of output vertex positions, copies of V are always
+      ///               the first #V vertices
+      /// @param[out] EI  #EI by 2 list of segment indices into V, #EI ≥ #E
+      /// @param[out] J  #EI list of indices into E revealing "parent segments"
+      /// @param[out] IM  #VI list of indices into VV of unique vertices.
       template <
         typename DerivedV, 
         typename DerivedE,
@@ -40,8 +38,8 @@ namespace igl
         typename DerivedJ,
         typename DerivedIM>
       IGL_INLINE void subdivide_segments(
-        const Eigen::PlainObjectBase<DerivedV> & V,
-        const Eigen::PlainObjectBase<DerivedE> & E,
+        const Eigen::MatrixBase<DerivedV> & V,
+        const Eigen::MatrixBase<DerivedE> & E,
         const std::vector<std::vector<CGAL::Point_2<Kernel> > > & steiner,
         Eigen::PlainObjectBase<DerivedVI> & VI,
         Eigen::PlainObjectBase<DerivedEI> & EI,

@@ -3,7 +3,7 @@
 	"name": "0.24mm Draft @MyKlipper",
 	"inherits": "fdm_process_klipper_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "E5SAhAOy240BOYOB",
 	"instantiation": "true",
 	"support_top_z_distance": "0.2",
 	"support_bottom_z_distance": "0.2",

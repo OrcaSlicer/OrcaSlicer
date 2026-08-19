@@ -3,6 +3,7 @@
 	"name": "0.32mm SPEED @MK4S HF0.5",
 	"inherits": "0.25mm SPEED @MK4S HF0.5",
 	"from": "system",
+	"setting_id": "pqaJA2REtKWdfqRN",
 	"instantiation": "true",
 	"inner_wall_speed": "160",
 	"layer_height": "0.32",

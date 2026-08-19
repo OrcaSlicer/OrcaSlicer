@@ -3,7 +3,7 @@
 	"name": "Flashforge Generic PLA @G3U",
 	"inherits": "Flashforge Generic PLA",
 	"from": "system",
-	"setting_id": "FFGP02",
+	"setting_id": "gjIdhPTLOr17mz5B",
 	"filament_id": "FFG01",
 	"instantiation": "true",
 	"activate_air_filtration": [

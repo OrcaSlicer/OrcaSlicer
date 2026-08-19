@@ -5,28 +5,28 @@
 	"from": "system",
 	"instantiation": "false",
 	"cool_plate_temp": [
-		"50"
+		"30"
 	],
 	"eng_plate_temp": [
-		"50"
+		"35"
 	],
 	"hot_plate_temp": [
-		"50"
+		"35"
 	],
 	"textured_plate_temp": [
-		"50"
+		"35"
 	],
 	"cool_plate_temp_initial_layer": [
-		"05"
+		"30"
 	],
 	"eng_plate_temp_initial_layer": [
-		"50"
+		"35"
 	],
 	"hot_plate_temp_initial_layer": [
-		"60"
+		"35"
 	],
 	"textured_plate_temp_initial_layer": [
-		"50"
+		"35"
 	],
 	"fan_cooling_layer_time": [
 		"60"
@@ -84,5 +84,17 @@
 	],
 	"enable_overhang_bridge_fan": [
 		"1"
+	],
+	"supertack_plate_temp": [
+		"30"
+	],
+	"textured_cool_plate_temp": [
+		"30"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"30"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"30"
 	]
 }

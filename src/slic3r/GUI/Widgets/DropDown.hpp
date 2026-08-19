@@ -105,10 +105,14 @@ public:
 
     bool HasDismissLongTime();
 
+    void Popup(wxWindow *focus = nullptr) override;
+
 protected:
     void Dismiss() override;
 
     void OnDismiss() override;
+
+    bool ShouldDismissOnTopWindowDeactivate() override;
 
 private:
     void paintEvent(wxPaintEvent& evt);

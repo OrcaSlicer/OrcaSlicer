@@ -3,7 +3,7 @@
 	"name": "QIDI Support For PET/PA @Qidi X-Plus 4 0.8 nozzle",
 	"inherits": "QIDI Support For PET/PA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "xJQLw0SvSPItH0wa",
 	"filament_id": "QD_0_1_33",
 	"instantiation": "true",
 	"filament_settings_id": [

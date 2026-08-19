@@ -3,6 +3,7 @@
 
 #include "GLGizmoBase.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "libslic3r/BrimEarsPoint.hpp"
 #include "libslic3r/ObjectID.hpp"
 
@@ -80,14 +81,15 @@ public:
     bool on_mouse(const wxMouseEvent& mouse_event) override;
     bool gizmo_event(SLAGizmoEventType action, const Vec2d& mouse_position, bool shift_down, bool alt_down, bool control_down);
     void delete_selected_points();
+    bool has_selected_points() const;
     void update_model_object();
     //ClippingPlane get_sla_clipping_plane() const;
 
     bool is_selection_rectangle_dragging() const { return m_selection_rectangle.is_dragging(); }
 
     bool wants_enter_leave_snapshots() const override { return true; }
-    std::string get_gizmo_entering_text() const override { return "Entering Brim Ears"; }
-    std::string get_gizmo_leaving_text() const override { return "Leaving Brim Ears"; }
+    std::string get_gizmo_entering_text() const override { return _u8L("Entering Brim Ears"); }
+    std::string get_gizmo_leaving_text() const override { return _u8L("Leaving Brim Ears"); }
 
 private:
     bool on_init() override;
@@ -96,12 +98,12 @@ private:
 
     void render_points(const Selection& selection);
 
-    float m_new_point_head_diameter;        // Size of a new point.
+    float m_new_point_head_radius;          // Radius of a new point.
     float m_max_angle = 125.f;
     float m_detection_radius = 1.f;
     double m_detection_radius_max = .0f;
     CacheEntry m_point_before_drag;         // undo/redo - so we know what state was edited
-    float m_old_point_head_diameter = 0.;   // the same
+    float m_old_point_head_radius = 0.;     // the same
     mutable std::vector<CacheEntry> m_editing_cache; // a support point and whether it is currently selectedchanges or undo/redo
     std::map<int, CacheEntry> m_single_brim;
     ObjectID m_old_mo_id;

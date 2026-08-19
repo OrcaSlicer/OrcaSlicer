@@ -3,7 +3,7 @@
 	"name": "Wanhao D12-300 0.4 nozzle",
 	"inherits": "fdm_wanhao_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "zEkUAK1KsoEiqC11",
 	"instantiation": "true",
 	"printer_model": "Wanhao D12-300",
 	"nozzle_diameter": [

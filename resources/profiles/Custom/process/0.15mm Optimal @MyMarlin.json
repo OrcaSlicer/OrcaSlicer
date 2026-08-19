@@ -3,7 +3,7 @@
 	"name": "0.15mm Optimal @MyMarlin",
 	"inherits": "fdm_process_marlin_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "gkXHi7QQxtxIy9V9",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",

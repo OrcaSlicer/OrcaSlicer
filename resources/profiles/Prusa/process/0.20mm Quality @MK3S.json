@@ -3,6 +3,7 @@
 	"name": "0.20mm Quality @MK3S",
 	"inherits": "process_common_mk3",
 	"from": "system",
+	"setting_id": "61A1R52rzLOrzAIm",
 	"instantiation": "true",
 	"print_settings_id": "0.20mm Quality @MK3S",
 	"bottom_shell_layers": "4",

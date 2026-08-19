@@ -3,7 +3,7 @@
 	"name": "QIDI ABS Rapido Metal @0.8 nozzle",
 	"inherits": "QIDI ABS Rapido Metal",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "QjDN8l4fq8nrEtZS",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [
@@ -31,9 +31,6 @@
 		"20"
 	],
 	"compatible_printers": [
-		"Qidi X-Plus 0.8 nozzle",
-		"Qidi X-Max 0.8 nozzle",
-		"Qidi X-CF Pro 0.8 nozzle",
 		"Qidi X-Smart 3 0.8 nozzle",
 		"Qidi X-Plus 3 0.8 nozzle",
 		"Qidi X-Max 3 0.8 nozzle"

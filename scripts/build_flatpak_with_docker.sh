@@ -22,7 +22,7 @@ ARCH="$(uname -m)"
 NO_DEBUG_INFO=false
 FORCE_PULL=false
 FORCE_CLEAN=true
-CONTAINER_IMAGE="ghcr.io/flathub-infra/flatpak-github-actions:gnome-49"
+CONTAINER_IMAGE="ghcr.io/flathub-infra/flatpak-github-actions:gnome-50"
 
 normalize_arch() {
     case "$1" in
@@ -142,6 +142,16 @@ fi
 
 DOCKER_RUN_ARGS=(run --rm -i --privileged)
 
+# When building from a git worktree, $PROJECT_ROOT/.git is a file pointing to the
+# main repo's git dir (outside $PROJECT_ROOT). The git commands and flatpak-builder
+# inside the container need that path to resolve, so bind-mount the common git dir
+# read-only at its original absolute path. No-op for a normal clone.
+GIT_COMMON_DIR="$(git -C "$PROJECT_ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+if [ -n "$GIT_COMMON_DIR" ] && [ "$GIT_COMMON_DIR" != "$PROJECT_ROOT/.git" ]; then
+    echo "  Git worktree detected; mounting common git dir read-only: $GIT_COMMON_DIR"
+    DOCKER_RUN_ARGS+=(-v "$GIT_COMMON_DIR":"$GIT_COMMON_DIR":ro)
+fi
+
 # Pass build parameters as env vars so the inner script doesn't need
 # variable expansion from the outer shell (avoids quoting issues).
 echo "=== Starting Flatpak build inside container ==="
@@ -167,16 +177,16 @@ format_duration() {
 overall_start=$(date +%s)
 install_start=$overall_start
 
-# The workspace and .flatpak-builder cache are bind-mounted from the host.
-# Git inside the container may reject cached source repos as unsafe due to
-# ownership mismatch, which breaks flatpak-builder when it reuses git sources.
-git config --global --add safe.directory /src
-git config --global --add safe.directory '/src/.flatpak-builder/git/*'
+# This container runs as root, but the bind-mounted workspace and .flatpak-builder
+# cache are host-user-owned, so git's dubious-ownership check rejects them and
+# breaks flatpak-builder's git checkouts (e.g. wxWidgets). Trust every repo: safe
+# in this ephemeral build container, and covers the workspace, mirrors and builds.
+git config --global --add safe.directory '*'
 
 # Install required SDK extensions (not pre-installed in the container image)
 flatpak install -y --noninteractive --arch="$BUILD_ARCH" flathub \
-    org.gnome.Platform//49 \
-    org.gnome.Sdk//49 \
+    org.gnome.Platform//50 \
+    org.gnome.Sdk//50 \
     org.freedesktop.Sdk.Extension.llvm21//25.08 || true
 
 install_end=$(date +%s)

@@ -335,12 +335,12 @@ SelectMachinePopup::SelectMachinePopup(wxWindow *parent)
 
 #if defined(__WINDOWS__)
 	m_sizer_search_bar = new wxBoxSizer(wxVERTICAL);
-	m_search_bar = new wxSearchCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	m_search_bar = new wxSearchCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxNO_BORDER );
 	m_search_bar->SetDescriptiveText(_L("Search"));
 	m_search_bar->ShowSearchButton( true );
 	m_search_bar->ShowCancelButton( false );
 	m_sizer_search_bar->Add( m_search_bar, 1, wxALL| wxEXPAND, 1 );
-	m_sizer_main->Add(m_sizer_search_bar, 0, wxALL | wxEXPAND, FromDIP(2));
+	m_sizer_main->Add(m_sizer_search_bar, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(1));
 	m_search_bar->Bind( wxEVT_COMMAND_TEXT_UPDATED, &SelectMachinePopup::update_machine_list, this );
 #endif
     auto own_title        = create_title_panel(_L("My Device"));
@@ -598,7 +598,7 @@ void SelectMachinePopup::update_other_devices()
     wxBoxSizer* placeholder_sizer = new wxBoxSizer(wxVERTICAL);
 
     // ORCA standardized HyperLink
-    m_hyperlink = new HyperLink(m_placeholder_panel, _L("Can't find my devices?"), wxT("https://wiki.bambulab.com/en/software/bambu-studio/failed-to-connect-printer"));
+    m_hyperlink = new HyperLink(m_placeholder_panel, _L("Can\'t find devices\?"), wxT("https://www.orcaslicer.com/wiki/")); // Orca: neutral wiki link (vendor URL removed)
     m_hyperlink->SetFont(::Label::Body_12);
     placeholder_sizer->Add(m_hyperlink, 0, wxALIGN_CENTER | wxALL, 5);
 
@@ -704,7 +704,6 @@ void SelectMachinePopup::update_user_devices()
                     }
 
                     mobj->set_access_code("");
-                    mobj->erase_user_access_code();
                 }
 
                 if (GUI::wxGetApp().plater())
@@ -866,7 +865,7 @@ void SelectMachinePopup::OnLeftUp(wxMouseEvent &event)
         //hyper link
         auto h_rect = m_hyperlink->ClientToScreen(wxPoint(0, 0));
         if (mouse_pos.x > h_rect.x && mouse_pos.y > h_rect.y && mouse_pos.x < (h_rect.x + m_hyperlink->GetSize().x) && mouse_pos.y < (h_rect.y + m_hyperlink->GetSize().y)) {
-          wxLaunchDefaultBrowser(wxT("https://wiki.bambulab.com/en/software/bambu-studio/failed-to-connect-printer"));
+          wxLaunchDefaultBrowser(wxT("https://www.orcaslicer.com/wiki/")); // Orca: neutral wiki link (vendor URL removed)
         }
     }
 }
@@ -951,17 +950,17 @@ void EditDevNameDialog::on_edit_name(wxCommandEvent &e)
     }
 
     if (m_valid_type == Valid && new_dev_name.empty()) {
-        info_line    = _L("The name is not allowed to be empty.");
+        info_line    = _L("The name field is not allowed to be empty.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_dev_name.find_first_of(' ') == 0) {
-        info_line    = _L("The name is not allowed to start with space character.");
+        info_line    = _L("The name is not allowed to start with a space.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_dev_name.find_last_of(' ') == new_dev_name.length() - 1) {
-        info_line    = _L("The name is not allowed to end with space character.");
+        info_line    = _L("The name is not allowed to end with a space.");
         m_valid_type = NoValid;
     }
 

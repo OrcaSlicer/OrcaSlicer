@@ -3,7 +3,7 @@
 	"name": "QIDI PPS-CF @Qidi Q1 Pro 0.6 nozzle",
 	"inherits": "QIDI PPS-CF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "iNx7JrGG0r5s24dV",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [

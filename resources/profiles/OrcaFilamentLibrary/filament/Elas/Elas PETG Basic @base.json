@@ -42,15 +42,6 @@
 	"fan_min_speed": [
 		"20"
 	],
-	"filament_cooling_final_speed": [
-		"0"
-	],
-	"filament_cooling_initial_speed": [
-		"0"
-	],
-	"filament_cooling_moves": [
-		"0"
-	],
 	"filament_cost": [
 		"445"
 	],
@@ -69,29 +60,11 @@
 	"filament_is_support": [
 		"0"
 	],
-	"filament_loading_speed": [
-		"0"
-	],
-	"filament_loading_speed_start": [
-		"0"
-	],
 	"filament_long_retractions_when_cut": [
 		"1"
 	],
 	"filament_max_volumetric_speed": [
 		"18"
-	],
-	"filament_minimal_purge_on_wipe_tower": [
-		"0"
-	],
-	"filament_multitool_ramming": [
-		"0"
-	],
-	"filament_multitool_ramming_flow": [
-		"10"
-	],
-	"filament_multitool_ramming_volume": [
-		"10"
 	],
 	"filament_notes": [
 		""
@@ -133,21 +106,6 @@
 		"100%"
 	],
 	"filament_soluble": [
-		"0"
-	],
-	"filament_stamping_distance": [
-		"0"
-	],
-	"filament_stamping_loading_speed": [
-		"0"
-	],
-	"filament_toolchange_delay": [
-		"0"
-	],
-	"filament_unloading_speed": [
-		"0"
-	],
-	"filament_unloading_speed_start": [
 		"0"
 	],
 	"filament_wipe": [

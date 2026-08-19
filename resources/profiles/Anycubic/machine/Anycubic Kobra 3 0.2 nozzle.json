@@ -3,7 +3,7 @@
 	"name": "Anycubic Kobra 3 0.2 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "N1JltE63FhgypxCh",
 	"instantiation": "true",
 	"printer_technology": "FFF",
 	"printer_settings_id": "Anycubic Kobra 3 0.2 nozzle",

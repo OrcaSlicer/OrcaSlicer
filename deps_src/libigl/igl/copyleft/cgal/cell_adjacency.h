@@ -20,23 +20,19 @@ namespace igl
   {
     namespace cgal
     {
-      // Inputs:
-      //   per_patch_cells  #P by 2 list of cell labels on each side of each
-      //                    patch.  Cell labels are assumed to be continuous
-      //                    from 0 to #C.
-      //   num_cells        number of cells.
-      //
-      // Outputs:
-      //   adjacency_list  #C array of list of adjcent cell information.  If
-      //                   cell i and cell j are adjacent via patch x, where i
-      //                   is on the positive side of x, and j is on the
-      //                   negative side.  Then,
-      //                   adjacency_list[i] will contain the entry {j, false, x}
-      //                   and
-      //                   adjacency_list[j] will contain the entry {i, true, x}
+      /// Determine adjacency of cells
+      ///
+      /// @param[in] per_patch_cells  #P by 2 list of cell labels on each side
+      ///   of each patch.  Cell labels are assumed to be continuous from 0 to #C.
+      /// @param[in] num_cells        number of cells.
+      /// @param[out] adjacency_list  #C array of list of adjcent cell
+      ///   information.  If cell i and cell j are adjacent via patch x, where i
+      ///   is on the positive side of x, and j is on the negative side.  Then,
+      ///   adjacency_list[i] will contain the entry {j, false, x} and
+      ///   adjacency_list[j] will contain the entry {i, true, x}
       template < typename DerivedC >
       IGL_INLINE void cell_adjacency(
-          const Eigen::PlainObjectBase<DerivedC>& per_patch_cells,
+          const Eigen::MatrixBase<DerivedC>& per_patch_cells,
           const size_t num_cells,
           std::vector<std::set<std::tuple<typename DerivedC::Scalar, bool, size_t> > >&
           adjacency_list);

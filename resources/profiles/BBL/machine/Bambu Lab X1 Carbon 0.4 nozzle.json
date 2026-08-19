@@ -192,6 +192,7 @@
 		"18"
 	],
 	"scan_first_layer": "1",
+	"support_air_filtration": "1",
 	"wipe_distance": [
 		"2",
 		"2"

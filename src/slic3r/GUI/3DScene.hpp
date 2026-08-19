@@ -488,7 +488,7 @@ public:
     GLVolume* new_toolpath_volume(const ColorRGBA& rgba);
     GLVolume* new_nontoolpath_volume(const ColorRGBA& rgba);
 
-    int get_selection_support_threshold_angle(bool&) const;
+    float get_selection_support_normal_z() const;
     // Render the volumes by OpenGL.
     //BBS: add outline drawing logic
     void render(ERenderType                           type,
@@ -497,7 +497,10 @@ public:
                 const Transform3d&                    projection_matrix,
                 const GUI::Size&                      cnv_size,
                 std::function<bool(const GLVolume &)> filter_func   = std::function<bool(const GLVolume &)>(),
-                bool                                  partly_inside_enable =true
+                bool                                  partly_inside_enable =true,
+                // Per-extruder printable heights (extruder_printable_height); null / size<=1
+                // leaves the shader's extruder_printable_heights flag at 0.0 (single-extruder = inert).
+                std::vector<double> *                 printable_heights = nullptr
            ) const;
 
     // Clear the geometry

@@ -3,6 +3,7 @@
 	"name": "Flashforge ASA Basic @FF G4P",
 	"inherits": "Flashforge Generic ABS",
 	"from": "system",
+	"setting_id": "3isZCWr4CBjFtGDX",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"
