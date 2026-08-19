@@ -8,6 +8,7 @@ add_executable(${_TEST_NAME}_tests
 	test_extrusion_processor.cpp
 	test_fill.cpp
 	test_flow.cpp
+	test_gcode_junction.cpp
 	test_gcode_timing.cpp
 	test_gcodewriter.cpp
 	test_model.cpp

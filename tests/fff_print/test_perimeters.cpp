@@ -255,3 +255,108 @@ TEST_CASE("Only one wall on the first layer needs a bottom shell", "[Perimeters]
     // No bottom shell: the option is inert, down to the same walls an unchecked box gives.
     CHECK_THAT(one_wall_no_shell, Catch::Matchers::WithinAbs(plain_no_shell, 1.0));
 }
+
+namespace {
+
+// Turn angle, in degrees, at every interior vertex of the external perimeters on the layer at
+// `print_z`. On a cylinder these are all the same angle if the contour was decimated evenly.
+std::vector<double> external_perimeter_turns(const Print &print, double print_z)
+{
+    std::vector<double> turns;
+    for (const Layer *layer : print.objects().front()->layers()) {
+        if (std::abs(layer->print_z - print_z) > 1e-4)
+            continue;
+        for (const LayerRegion *region : layer->regions()) {
+            Points pts;
+            for (const ExtrusionEntity *entity : region->perimeters.entities)
+                for (const ExtrusionEntity *path : static_cast<const ExtrusionEntityCollection *>(entity)->entities)
+                    if (path->role() == erExternalPerimeter)
+                        path->collect_points(pts);
+            for (size_t i = 1; i + 1 < pts.size(); ++ i) {
+                const Vec2d a = (pts[i] - pts[i - 1]).cast<double>();
+                const Vec2d b = (pts[i + 1] - pts[i]).cast<double>();
+                if (a.norm() < SCALED_EPSILON || b.norm() < SCALED_EPSILON)
+                    continue;
+                turns.push_back(Geometry::rad2deg(std::acos(std::clamp(a.dot(b) / (a.norm() * b.norm()), -1., 1.))));
+            }
+        }
+    }
+    return turns;
+}
+
+// Every setting the cylinder assertions depend on. The square corner velocity lives in the X/Y
+// jerk slots, which is where Orca keeps it for Klipper.
+DynamicPrintConfig cylinder_config(const char *flavor)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "gcode_flavor",                 flavor },
+        { "resolution",                   0.012 },
+        { "enable_arc_fitting",           "0" },
+        { "layer_height",                 0.2 },
+        { "initial_layer_print_height",   0.2 },
+        { "wall_loops",                   2 },
+        { "outer_wall_acceleration",      "5000" },
+        { "default_acceleration",         "5000" },
+        { "machine_max_jerk_x",           "9,9" },
+        { "machine_max_jerk_y",           "9,9" },
+        { "machine_max_junction_deviation", "0.01,0.01" },
+    });
+    return config;
+}
+
+} // namespace
+
+// Simplifying a contour of radius R by a deviation t leaves turns of up to sqrt(8 t / R) at the
+// vertices it keeps, and a junction deviation planner only stops charging for a turn once it drops
+// below sqrt(8 * junction_deviation / R). The radius cancels, so a wall must not be decimated more
+// coarsely than the junction deviation the firmware plans with, or the toolhead decelerates into
+// every vertex Douglas-Peucker left behind. Klipper's junction deviation is
+// square_corner_velocity^2 * (sqrt(2) - 1) / acceleration, so the faster the wall accelerates the
+// finer its contour has to be kept, down to the quarter-of-resolution floor.
+TEST_CASE("A curved wall is refined to what the firmware can corner through", "[Perimeters]")
+{
+    // Radius 8 mm, tessellated at the 2 degrees per facet that its_make_cylinder defaults to.
+    const TriangleMesh cylinder = make_cylinder(8., 6.);
+
+    auto wall_turns = [&cylinder](const DynamicPrintConfig &config) {
+        Print print;
+        init_and_process_print({cylinder}, print, config);
+        return external_perimeter_turns(print, 3.0);
+    };
+
+    // Marlin legacy corners with classic jerk, which has neither a junction deviation nor a
+    // curvature term, so there is nothing to align the decimation to and `resolution` stands.
+    const std::vector<double> jerk = wall_turns(cylinder_config("marlin"));
+    // Klipper at 5000 mm/s^2: 9^2 * (sqrt(2) - 1) / 5000 = 0.0067 mm, under the 0.012 mm resolution.
+    const std::vector<double> klipper = wall_turns(cylinder_config("klipper"));
+    // Klipper at 20000 mm/s^2: 0.0017 mm, so the floor at a quarter of `resolution` takes over.
+    DynamicPrintConfig fast = cylinder_config("klipper");
+    fast.set_deserialize_strict({{ "outer_wall_acceleration", "20000" }});
+    const std::vector<double> klipper_fast = wall_turns(fast);
+
+    REQUIRE(jerk.size() > 8);
+
+    // The harder the firmware would brake for a turn, the less of the curve is decimated away.
+    CHECK(klipper.size() > jerk.size());
+    CHECK(klipper_fast.size() > klipper.size());
+    CHECK(*std::max_element(klipper_fast.begin(), klipper_fast.end()) <
+          *std::max_element(jerk.begin(), jerk.end()));
+}
+
+// The clamp only ever refines, so a flavor Orca models as classic jerk keeps exactly the contour
+// `resolution` asks for, and no printer gets a coarser wall than before.
+TEST_CASE("A classic jerk flavor keeps the contour resolution asks for", "[Perimeters]")
+{
+    const TriangleMesh cylinder = make_cylinder(8., 6.);
+
+    Print jerk_print;
+    init_and_process_print({cylinder}, jerk_print, cylinder_config("marlin"));
+
+    DynamicPrintConfig zero_jd = cylinder_config("marlin");
+    zero_jd.set_deserialize_strict({{ "machine_max_junction_deviation", "0,0" }});
+    Print zero_jd_print;
+    init_and_process_print({cylinder}, zero_jd_print, zero_jd);
+
+    CHECK(external_perimeter_turns(jerk_print, 3.0).size() == external_perimeter_turns(zero_jd_print, 3.0).size());
+}
