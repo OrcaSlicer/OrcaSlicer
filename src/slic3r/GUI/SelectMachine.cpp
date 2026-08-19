@@ -1088,8 +1088,8 @@ void SelectMachineDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &res
         }
     }
     relayout_nozzle_cards();
-    auto tab_index = (MainFrame::TabPosition) dynamic_cast<Notebook *>(wxGetApp().tab_panel())->GetSelection();
-    if (tab_index == MainFrame::TabPosition::tp3DEditor || tab_index == MainFrame::TabPosition::tpPreview) {
+    wxString tab_name = wxGetApp().tab_panel()->GetSelectedPageName();
+    if (tab_name == TAB_ID_PREPARE || tab_name == TAB_ID_PREVIEW) {
         updata_thumbnail_data_after_connected_printer();
     }
 }
@@ -3629,7 +3629,7 @@ void SelectMachineDialog::on_send_print()
         BOOST_LOG_TRIVIAL(error) << "build_nozzle_info errors";
     }
 
-    m_print_job->sdcard_state = obj_->GetStorage()->get_sdcard_state();    
+    m_print_job->sdcard_state = obj_->GetStorage()->get_sdcard_state();
     m_print_job->has_sdcard =  wxGetApp().app_config->get("allow_abnormal_storage") == "true"
             ? (m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL
                || m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_ABNORMAL)
@@ -3868,12 +3868,11 @@ _compare_obj_names(MachineObject* obj1, MachineObject* obj2)
 }
 
 /*******************************************************************
-*@note   _collect_machine_list
-*@param  dev_manager -- the device manager
-*@param  sorted_machine_objs -- return the sorted machine objects
-*@param  best_one -- return the best one
-*/
-/*******************************************************************/
+* @note   _collect_machine_list
+* @param  dev_manager -- the device manager
+* @param  sorted_machine_objs -- return the sorted machine objects
+* @param  best_one -- return the best one
+*******************************************************************/
 static void
 _collect_sorted_machines(Slic3r::DeviceManager* dev_manager,
                          std::vector<MachineObject*>& sorted_machine_objs)

@@ -8288,24 +8288,24 @@ msgid "Replaced with 3D files from directory:\n"
 msgstr "다음 디렉터리의 3D 파일로 교체했습니다:\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ 건너뜀 %1%: 동일한 파일입니다.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ 건너뜀 %s: 동일한 파일입니다.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ 건너뜀 %1%: 파일이 존재하지 않습니다.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ 건너뜀 %s: 파일이 존재하지 않습니다.\n"
 
 # AI Translated
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ 건너뜀 %1%: 교체하지 못했습니다.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ 건너뜀 %s: 교체하지 못했습니다.\n"
 
 # AI Translated
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ %1%을(를) 교체했습니다.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ %s을(를) 교체했습니다.\n"
 
 # AI Translated
 msgid "Replaced volumes"

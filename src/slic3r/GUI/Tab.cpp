@@ -33,6 +33,7 @@
 
 #include "GUI_App.hpp"
 #include "GUI_ObjectList.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "slic3r/Utils/PresetUpdater.hpp"
 #include "slic3r/plugin/PluginConfig.hpp"
 #include "Plater.hpp"
@@ -2135,43 +2136,9 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         m_last_sparse_infill_rotate_template_value = m_config->opt_string("sparse_infill_rotate_template");
     }
 
-    if(opt_key=="layer_height"){
-        auto min_layer_height_from_nozzle=m_preset_bundle->full_config().option<ConfigOptionFloats>("min_layer_height")->values;
-        auto max_layer_height_from_nozzle=m_preset_bundle->full_config().option<ConfigOptionFloats>("max_layer_height")->values;
-        auto layer_height_floor = *std::min_element(min_layer_height_from_nozzle.begin(), min_layer_height_from_nozzle.end());
-        auto layer_height_ceil  = *std::max_element(max_layer_height_from_nozzle.begin(), max_layer_height_from_nozzle.end());
-        const auto lh = m_config->opt_float("layer_height");
-        bool exceed_minimum_flag = lh < layer_height_floor;
-        bool exceed_maximum_flag = lh > layer_height_ceil;
-
-        if (exceed_maximum_flag || exceed_minimum_flag) {
-            if (lh < EPSILON) {
-                auto          msg_text = _(L("Layer height is too small.\nIt will set to min_layer_height\n"));
-                MessageDialog dialog(wxGetApp().plater(), msg_text, "", wxICON_WARNING | wxOK);
-                dialog.SetButtonLabel(wxID_OK, _L("OK"));
-                dialog.ShowModal();
-                auto new_conf = *m_config;
-                new_conf.set_key_value("layer_height", new ConfigOptionFloat(layer_height_floor));
-                m_config_manipulation.apply(m_config, &new_conf);
-            } else {
-                wxString msg_text = _(L("Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, "
-                                        "this may cause printing quality issues."));
-                msg_text += "\n\n" + _(L("Adjust to the set range automatically?\n"));
-                MessageDialog dialog(wxGetApp().plater(), msg_text, "", wxICON_WARNING | wxYES | wxNO);
-                dialog.SetButtonLabel(wxID_YES, _L("Adjust"));
-                dialog.SetButtonLabel(wxID_NO, _L("Ignore"));
-                auto answer   = dialog.ShowModal();
-                auto new_conf = *m_config;
-                if (answer == wxID_YES) {
-                    if (exceed_maximum_flag)
-                        new_conf.set_key_value("layer_height", new ConfigOptionFloat(layer_height_ceil));
-                    if (exceed_minimum_flag)
-                        new_conf.set_key_value("layer_height", new ConfigOptionFloat(layer_height_floor));
-                    m_config_manipulation.apply(m_config, &new_conf);
-                }
-            }
+    if (opt_key == "layer_height") {
+        if (m_config_manipulation.check_layer_height(m_config))
             wxGetApp().plater()->update();
-        }
     }
 
     string opt_key_without_idx = opt_key.substr(0, opt_key.find('#'));
@@ -2823,7 +2790,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("fill_multiline", "strength_settings_infill#fill-multiline");
         optgroup->append_single_option_line("sparse_infill_pattern", "strength_settings_infill#sparse-infill-pattern");
         optgroup->append_single_option_line("gyroid_optimized", "strength_settings_patterns#gyroid-optimized");
-        optgroup->append_single_option_line("sparse_infill_smooth_factor", "strength_settings_patterns#sparse-infill-smooth-factor");
+        optgroup->append_single_option_line("sparse_infill_smooth_factor", "strength_settings_infill#sparse-infill-smooth-factor");
         optgroup->append_single_option_line("infill_direction", "strength_settings_infill#direction");
         optgroup->append_single_option_line("sparse_infill_rotate_template", "strength_settings_infill_rotation_template_metalanguage");
         optgroup->append_single_option_line("skin_infill_density", "strength_settings_patterns#locked-zag");
@@ -5028,6 +4995,40 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("gcode_skip_config_block", "printer_basic_information_advanced#skip-g-code-config-block");
         optgroup->append_single_option_line("pellet_modded_printer", "printer_basic_information_advanced#pellet-modded-printer");
         optgroup->append_single_option_line("bbl_use_printhost", "printer_basic_information_advanced#use-3rd-party-print-host");
+
+        // "Printer Agent" dropdown - printer_agent is a coString; gui_type routes it to
+        // PrinterAgentChoice instead of a TextCtrl. Rows and values come from the live agent
+        // registry, and the value is stored as the agent-id string.
+        if (wxGetApp().getAgent() != nullptr)
+        {
+            auto registered_printer_agents = NetworkAgentFactory::get_registered_printer_agents();
+            if (!registered_printer_agents.empty())
+            {
+                ConfigOptionDef def;
+                def.type = coString;
+                def.gui_type = ConfigOptionDef::GUIType::printer_agent_select;
+                def.width = 3 * Field::def_width_wider() / 2;
+                def.label = L("Printer Agent");
+                def.tooltip = L("Select the network agent implementation for printer communication. "
+                    "Available agents are registered at startup.");
+                def.mode = comAdvanced;
+
+                // Create the field without get_option() so it is not registered in m_opt_map.
+                // ConfigOptionsGroup handles printer_agent before the generic mapped write path.
+                Line agent_line = optgroup->create_single_option_line(Option(def, "printer_agent"));
+                optgroup->append_line(agent_line);
+                if (Field* agent_field = get_field("printer_agent"))
+                {
+                    if (auto* choice = dynamic_cast<PrinterAgentChoice*>(agent_field); choice && choice->getWindow())
+                        choice->set_value(m_config->opt_string("printer_agent"), false);
+                }
+
+                // Register by hand so the UnsavedChanges dialog can render a row for it.
+                wxGetApp().sidebar().get_searcher().add_key("printer_agent", m_type, optgroup->title,
+                                                            optgroup->config_category());
+            }
+        }
+
         optgroup->append_single_option_line("use_3mf");
         optgroup->append_single_option_line("scan_first_layer" , "printer_basic_information_advanced#scan-first-layer");
         optgroup->append_single_option_line("enable_power_loss_recovery", "printer_basic_information_advanced#power-loss-recovery");
@@ -5592,6 +5593,7 @@ if (is_marlin_flavor)
         optgroup->append_single_option_line("purge_in_prime_tower", "printer_multimaterial_wipe_tower#purge-in-prime-tower");
         optgroup->append_single_option_line("enable_filament_ramming", "printer_multimaterial_wipe_tower#enable-filament-ramming");
         optgroup->append_single_option_line("tool_change_on_wipe_tower", "printer_multimaterial_wipe_tower#tool-change-on-wipe-tower");
+        optgroup->append_single_option_line("wait_for_temp_on_wipe_tower", "printer_multimaterial_wipe_tower#wait-for-temperature-on-wipe-tower");
 
 
         optgroup = page->new_optgroup(L("Single extruder multi-material parameters"), "param_settings");
@@ -5894,6 +5896,16 @@ void TabPrinter::reload_config()
     // so update it implicitly
     if (m_active_page && m_active_page->title() == "Multimaterial")
         m_active_page->set_value("extruders_count", int(m_extruders_count));
+
+    // m_opt_map-driven reload does not cover printer_agent, so sync this custom field explicitly.
+    if (Field* agent_field = get_field("printer_agent"))
+    {
+        if (auto* choice = dynamic_cast<PrinterAgentChoice*>(agent_field); choice && choice->getWindow())
+        {
+            const std::string selected_agent = m_config->opt_string("printer_agent");
+            choice->set_value(selected_agent, false);
+        }
+    }
 }
 
 void TabPrinter::activate_selected_page(std::function<void()> throw_if_canceled)
@@ -5904,6 +5916,16 @@ void TabPrinter::activate_selected_page(std::function<void()> throw_if_canceled)
     // so update it implicitly
     if (m_active_page && m_active_page->title() == "Multimaterial")
         m_active_page->set_value("extruders_count", int(m_extruders_count));
+
+    // m_opt_map-driven reload does not cover printer_agent, so sync this custom field explicitly.
+    if (Field* agent_field = get_field("printer_agent"))
+    {
+        if (auto* choice = dynamic_cast<PrinterAgentChoice*>(agent_field); choice && choice->getWindow())
+        {
+            const std::string selected_agent = m_config->opt_string("printer_agent");
+            choice->set_value(selected_agent, false);
+        }
+    }
 }
 
 void TabPrinter::clear_pages()
@@ -6105,6 +6127,7 @@ void TabPrinter::toggle_options()
         // so the option is irrelevant there.
         const size_t extruders_count = m_config->option<ConfigOptionFloats>("nozzle_diameter")->size();
         toggle_option("tool_change_on_wipe_tower", !bSEMM && supports_wipe_tower_2 && extruders_count > 1);
+        toggle_option("wait_for_temp_on_wipe_tower", !bSEMM && supports_wipe_tower_2 && extruders_count > 1);
     }
     wxString extruder_number;
     long val = 1;
@@ -6435,7 +6458,7 @@ void Tab::load_current_preset()
                             std::string bmp_name = tab->type() == Slic3r::Preset::TYPE_FILAMENT      ? "spool" :
                                                    tab->type() == Slic3r::Preset::TYPE_SLA_MATERIAL  ? "" : "cog";
                             tab->Hide(); // #ys_WORKAROUND : Hide tab before inserting to avoid unwanted rendering of the tab
-                            dynamic_cast<Notebook*>(wxGetApp().tab_panel())->InsertPage(wxGetApp().tab_panel()->FindPage(this), tab, tab->title(), bmp_name);
+                            dynamic_cast<Notebook*>(wxGetApp().tab_panel())->InsertPage(wxGetApp().tab_panel()->FindPage(this), wxString(), tab, tab->title(), bmp_name);
                         }
                         else
 #endif
@@ -7862,6 +7885,24 @@ bool TabPrinter::apply_extruder_cnt_from_cache()
     return false;
 }
 
+void TabPrinter::refresh_printer_agent_dropdown() const
+{
+    auto* choice = dynamic_cast<PrinterAgentChoice*>(get_field("printer_agent"));
+    if (!choice || !choice->getWindow())
+        return;
+
+    const auto agents = NetworkAgentFactory::get_registered_printer_agents();
+    if (agents.empty())
+        return;
+
+    // why: rows live on PrinterAgentChoice now; rebuild them from the live registry and re-select the stored id.
+    const std::string selected_agent = wxGetApp().preset_bundle->printers.get_edited_preset()
+                                                 .config.opt_string("printer_agent");
+    choice->reload_rows();
+    choice->set_value(selected_agent, false);
+    this->GetParent()->Layout();
+}
+
 bool Tab::validate_custom_gcodes()
 {
     if (m_type != Preset::TYPE_FILAMENT &&
@@ -8496,8 +8537,12 @@ void Page::activate(ConfigOptionMode mode, std::function<void()> throw_if_cancel
 
 #ifdef __WXMSW__
     // BBS: fix field control position
-    wxTheApp->CallAfter([this]() {
-        for (auto group : m_optgroups) {
+    wxTheApp->CallAfter([wp = std::weak_ptr<Page>(shared_from_this())]() {
+        auto page = wp.lock();
+        if (!page)
+            return;
+
+        for (auto group : page->m_optgroups) {
             if (group->custom_ctrl)
                 group->custom_ctrl->fixup_items_positions();
         }

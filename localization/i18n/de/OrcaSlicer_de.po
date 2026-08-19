@@ -8191,21 +8191,21 @@ msgstr "Verzeichnis um daraus zu ersetzen wurde nicht ausgewählt"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Ersetzt durch 3D-Dateien aus Verzeichnis:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Übersprungen %1%: gleiche Datei.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Übersprungen %s: gleiche Datei.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Übersprungen %1%: Datei existiert nicht.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Übersprungen %s: Datei existiert nicht.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Übersprungen %1%: Ersetzen fehlgeschlagen.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Übersprungen %s: Ersetzen fehlgeschlagen.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Ersetzt %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Ersetzt %s.\n"
 
 msgid "Replaced volumes"
 msgstr "Ersetzte Volumen"
