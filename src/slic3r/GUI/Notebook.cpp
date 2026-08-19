@@ -196,23 +196,32 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
             wxPostEvent(this->GetParent(), evt);
         }
     });
-    // ORCA: Left/Right moves keyboard focus between tabs without activating
-    // them (WAI-ARIA "manual activation" pattern) - Enter/Space, already
-    // handled by Button::keyDownUp as a click, is what actually switches the
-    // page. This keeps arrowing past several tabs to reach a fourth one from
-    // paying for whatever the ones in between would trigger (Prepare/Preview
-    // both refresh the object list on show, for example).
+    // ORCA: WAI-ARIA tablist keyboard model. Button::keyDownUp already turns
+    // arrow keys into non-activating focus traversal (wxTAB_TRAVERSAL sibling
+    // order), so what this adds on top is confining Left/Right to the tab
+    // buttons (stock traversal walks on into the side tools sharing this
+    // strip), wrap-around at the ends, Home/End, and swallowing Up/Down (a
+    // horizontal tab list should ignore them). Enter/Space still activates
+    // via Button::keyDownUp's click simulation. This dynamic handler runs
+    // before Button's static event table, so it wins for the keys it takes.
     btn->Bind(wxEVT_KEY_DOWN, [this, btn](wxKeyEvent& evt) {
-        int key = evt.GetKeyCode();
         auto it = std::find(m_pageButtons.begin(), m_pageButtons.end(), btn);
-        if ((key != WXK_LEFT && key != WXK_RIGHT) || it == m_pageButtons.end()) {
+        if (it == m_pageButtons.end()) {
             evt.Skip();
             return;
         }
         int cur   = int(it - m_pageButtons.begin());
-        int dir   = key == WXK_RIGHT ? 1 : -1;
         int count = int(m_pageButtons.size());
-        int next  = ((cur + dir) % count + count) % count;
+        int next;
+        switch (evt.GetKeyCode()) {
+        case WXK_LEFT:  next = (cur + count - 1) % count; break;
+        case WXK_RIGHT: next = (cur + 1) % count; break;
+        case WXK_HOME:  next = 0; break;
+        case WXK_END:   next = count - 1; break;
+        case WXK_UP:
+        case WXK_DOWN:  return;
+        default:        evt.Skip(); return;
+        }
         m_pageButtons[next]->SetFocus();
     });
     Slic3r::GUI::wxGetApp().UpdateDarkUI(btn);
