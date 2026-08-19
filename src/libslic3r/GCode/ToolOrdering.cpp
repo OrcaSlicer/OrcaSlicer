@@ -345,20 +345,21 @@ void ToolOrdering::enforce_magma_injection_last(const PrintObject &object)
     // the LAST pass of that layer -- otherwise the tube is filled a layer before its own cap is
     // printed, and the nozzle descends onto a channel that is still open at the top.
     //
-    // With magma_injection_filament = 0 there is nothing to do: GCode.cpp targets
-    // layer_tools.extruders.back() directly, which is last by definition. With a dedicated
-    // injection filament the tool is just another entry in the layer's extruder list, ordered by
+    // The injecting tool is just another entry in the layer's extruder list, ordered by
     // reorder_extruders_for_minimum_flush_volume -- which minimises purge and will happily put it
     // first. So this runs after that optimiser and moves it back to the end. It costs flush
     // volume; the alternative is injecting into an unfinished tube.
-    const int inj = object.config().magma_injection_filament.value;
-    if (inj <= 0)
-        return;
+    //
+    // This used to skip magma_injection_filament == 0 entirely, on the grounds that GCode.cpp
+    // targeted layer_tools.extruders.back() and so was last by definition. That is no longer how
+    // the emitter picks: it reads the extruder the tube map's seal geometry was planned against,
+    // which for filament 0 is the sparse infill extruder and need not be last. So the ordering
+    // has to be enforced for whichever tool actually injects, not only for a dedicated one.
     const auto *tube_map = object.magma_tube_map();
     if (tube_map == nullptr)
         return;
 
-    const unsigned int inj_ext = (unsigned int)(inj - 1);  // extruders are 0-based by this point
+    const unsigned int inj_ext = (unsigned int) tube_map->injection_extruder();
     for (int lid : tube_map->injection_layer_ids()) {
         if (lid < 0 || lid >= (int)object.layers().size())
             continue;
@@ -829,16 +830,23 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         }
     }
 
-    // Magma injection filament: register on cap layers so ToolOrdering
-    // schedules the tool change and wipe tower handles the transition.
-    if (object.config().magma_injection_filament.value > 0) {
-        if (const auto* tube_map = object.magma_tube_map()) {
-            unsigned int inj_ext = (unsigned int)object.config().magma_injection_filament.value;
-            for (int lid : tube_map->injection_layer_ids()) {
-                if (lid >= 0 && lid < (int)object.layers().size()) {
-                    LayerTools &lt = this->tools_for_layer(object.layers()[lid]->print_z);
-                    lt.extruders.push_back(inj_ext);
-                }
+    // Magma injection tool: register on cap layers so ToolOrdering schedules the tool change and
+    // the wipe tower handles the transition.
+    //
+    // Registered for EVERY tube map, not only for a dedicated injection filament. GCode.cpp
+    // filters injections by `extruder_id != tube_map->injection_extruder()`, so a cap layer where
+    // that tool never prints matches no pass and drops its injections silently -- hollow channels,
+    // no diagnostic. With magma_injection_filament = 0 the tool is the sparse infill extruder,
+    // which normally prints the lattice on that layer but is not guaranteed to: a fully capped
+    // layer can be solid-only. Registering unconditionally makes the presence a fact rather than
+    // an assumption. Extruder ids are still 1-based here (reindexed in sort_and_build_data), and
+    // sort_remove_duplicates below collapses a repeat.
+    if (const auto* tube_map = object.magma_tube_map()) {
+        const unsigned int inj_ext = (unsigned int)(tube_map->injection_extruder() + 1);
+        for (int lid : tube_map->injection_layer_ids()) {
+            if (lid >= 0 && lid < (int)object.layers().size()) {
+                LayerTools &lt = this->tools_for_layer(object.layers()[lid]->print_z);
+                lt.extruders.push_back(inj_ext);
             }
         }
     }

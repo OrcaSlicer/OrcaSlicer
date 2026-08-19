@@ -5433,10 +5433,13 @@ LayerResult GCode::process_layer(
                     const auto* tube_map = obj->magma_tube_map();
                     if (!tube_map)
                         continue;
-                    // Injection extruder filter.
-                    int inj_filament = obj->config().magma_injection_filament.value;
-                    unsigned int eff_ext = (inj_filament > 0) ? (unsigned int)(inj_filament - 1)
-                                                              : layer_tools.extruders.back();
+                    // Injection extruder filter. Read back from the tube map, which recorded
+                    // what resolve_magma() decided at build time -- the same nozzle every seal
+                    // depth and clearance in that map was computed against. Re-deriving it here
+                    // (this used to fall back to layer_tools.extruders.back() for
+                    // magma_injection_filament == 0, where the map had used the SPARSE INFILL
+                    // extruder) plans the seal for one nozzle and presses it with another.
+                    const unsigned int eff_ext = (unsigned int) tube_map->injection_extruder();
                     if (extruder_id != eff_ext)
                         continue;
                     if (mt.pair_index < 0 || mt.pair_index >= int(tube_map->u_tube_pairs().size()))

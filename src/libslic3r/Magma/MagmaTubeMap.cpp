@@ -213,6 +213,9 @@ std::unique_ptr<MagmaTubeMap> MagmaTubeMap::build(
     }
 
     map->m_line_width     = static_cast<float>(res.line_width);
+    // Every seal depth and clearance below is computed against this extruder's nozzle, so the
+    // emitter reads it back rather than re-deriving one.
+    map->m_injection_extruder = res.injection_extruder;
     map->m_pattern        = res.pattern;
     map->m_geometry       = res.geometry;
     map->m_interior_width = static_cast<float>(res.interior_width);

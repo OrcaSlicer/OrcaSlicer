@@ -239,6 +239,15 @@ public:
     // Used by ToolOrdering to register injection filament on the correct layers.
     const std::vector<int>& injection_layer_ids() const { return m_injection_layer_ids; }
 
+    // 0-based extruder that performs the injections, resolved once at build time by
+    // resolve_magma() and stored so the emitter cannot resolve it a second, different way.
+    //
+    // It used to: GCode.cpp resolved magma_injection_filament == 0 to
+    // layer_tools.extruders.back() while the seal geometry here was planned against the SPARSE
+    // INFILL extruder. On any machine where those differ, the tube was sized and its seal depth
+    // computed for one nozzle and then pressed with another.
+    int injection_extruder() const { return m_injection_extruder; }
+
     // Statistics for debug logging
     int num_cells() const { return static_cast<int>(m_cells.size()); }
     int num_pairs() const { return static_cast<int>(m_pairs.size()); }
@@ -309,6 +318,7 @@ private:
     // Triangle vertex overlap correction
     std::string m_warning_message;           // non-empty if slicing warning should be shown
     std::vector<int> m_injection_layer_ids;  // sorted, deduplicated cap layer IDs
+    int    m_injection_extruder = 0;         // 0-based; the nozzle every seal here was planned for
 };
 
 using MagmaTubeMapPtr = std::unique_ptr<MagmaTubeMap>;
