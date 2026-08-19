@@ -57,18 +57,6 @@ std::string host_theme_vars_css()
     return s;
 }
 
-// Document-start user script: injects the contract <style>, stamps data-orca-theme before
-// first paint, and raises a JS flag so the legacy globalapi.js dark.css poll stands down for
-// host-themed pages. The WebView2 timing guard lives in document_start_injector().
-std::string host_theme_user_script()
-{
-    const std::string style = "<style id=\"orca-host-theme-vars\">" + host_theme_vars_css() + "</style>";
-    return WebViewHostDialog::document_start_injector(
-        style, "orca-host-theme-vars", "afterbegin",
-        "window.__orcaHostThemed=true;var theme=\"" + host_theme_name() + "\";",
-        "if(document.documentElement)document.documentElement.setAttribute('data-orca-theme',theme);");
-}
-
 // JS to re-theme an already-loaded document live (no reload): replace the injected
 // style's contents and update data-orca-theme. Everything downstream (theme.css
 // tokens, plugin element defaults, page layout) re-cascades from these values.
@@ -86,6 +74,46 @@ if(document.documentElement)
 }
 
 } // namespace
+
+// Document-start user script: injects the contract <style>, stamps data-orca-theme before
+// first paint, and raises a JS flag so the legacy globalapi.js dark.css poll stands down for
+// host-themed pages. The WebView2 timing guard lives in document_start_injector().
+std::string WebViewHostDialog::theme_user_script()
+{
+    const std::string style = "<style id=\"orca-host-theme-vars\">" + host_theme_vars_css() + "</style>";
+    return document_start_injector(
+        style, "orca-host-theme-vars", "afterbegin",
+        "window.__orcaHostThemed=true;var theme=\"" + host_theme_name() + "\";",
+        "if(document.documentElement)document.documentElement.setAttribute('data-orca-theme',theme);");
+}
+
+std::string WebViewHostDialog::plugin_defaults_user_script()
+{
+    std::string css;
+    css += "<style id=\"orca-plugin-defaults\">";
+    css += "html,body{background:var(--orca-bg);color:var(--orca-fg);"
+           "font-family:var(--orca-font);font-size:13px;}";
+    css += "body{margin:0;}";
+    css += "h1,h2,h3,h4,h5,h6{color:var(--orca-fg);font-weight:600;}";
+    css += "a{color:var(--orca-accent);}";
+    css += "hr{border:0;border-top:1px solid var(--orca-border);}";
+    css += "button{font:inherit;color:var(--orca-accent-fg);background:var(--orca-accent);"
+           "border:1px solid var(--orca-accent);border-radius:4px;padding:5px 14px;cursor:pointer;}";
+    css += "button:hover{filter:brightness(1.1);}";
+    css += "button:disabled{opacity:.5;cursor:default;}";
+    css += "input,select,textarea{font:inherit;color:var(--orca-fg);"
+           "background:var(--orca-bg);border:1px solid var(--orca-border);"
+           "border-radius:4px;padding:4px 8px;}";
+    css += "input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orca-accent);}";
+    css += "table{border-collapse:collapse;}";
+    css += "th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--orca-border);}";
+    css += "th{color:var(--orca-muted);font-weight:600;}";
+    css += "::-webkit-scrollbar{width:12px;height:12px;}";
+    css += "::-webkit-scrollbar-thumb{background:var(--orca-border);border-radius:6px;}";
+    css += "::-webkit-scrollbar-track{background:transparent;}";
+    css += "</style>";
+    return document_start_injector(css, "orca-plugin-defaults", "beforeend");
+}
 
 std::string WebViewHostDialog::document_start_injector(const std::string& markup,
                                                        const char*        dom_id,
@@ -244,7 +272,7 @@ void WebViewHostDialog::register_theme_user_scripts()
     // script message handler is registered separately (AddScriptMessageHandler), but on
     // some backends RemoveAllUserScripts() drops it too, which would break
     // window.wx.postMessage / HandleStudio. Live re-theme goes through apply_theme_live().
-    m_browser->AddUserScript(wxString::FromUTF8(host_theme_user_script()));
+    m_browser->AddUserScript(wxString::FromUTF8(theme_user_script()));
     add_user_scripts();
 }
 
