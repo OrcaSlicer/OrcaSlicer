@@ -238,6 +238,7 @@ void Tab::create_preset_tab()
     if (m_type < Preset::TYPE_COUNT) {
         // preset chooser
         m_presets_choice = new TabPresetComboBox(panel, m_type);
+        m_presets_choice->SetMinSize(wxSize(-1, SidebarProps::ComboHeightBig() * m_em_unit / 10));
         // m_presets_choice->SetFont(Label::Body_10); // BBS
         m_presets_choice->set_selection_changed_function([this](int selection) {
             if (!m_presets_choice->selection_is_changed_according_to_physical_printers())
@@ -316,7 +317,7 @@ void Tab::create_preset_tab()
     m_btn_search->SetToolTip(_L("Search in preset"));
 
     //search input
-    m_search_item = new StaticBox(m_top_panel);
+    m_search_item = new StaticBox(m_top_panel, wxID_ANY, wxDefaultPosition, wxSize(-1, SidebarProps::ComboHeightBig() * m_em_unit / 10)); // ensure its size matches with combo box
     StateColor box_colour(std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
     StateColor box_border_colour(std::pair<wxColour, int>(wxColour("#009688"), StateColor::Normal)); // ORCA match border color with other input/combo boxes
 
@@ -327,17 +328,13 @@ void Tab::create_preset_tab()
 
     //StateColor::darkModeColorFor(wxColour(238, 238, 238)), wxDefaultPosition, wxSize(m_top_panel->GetSize().GetWidth(), 3 * wxGetApp().em_unit()), 8);
     auto search_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_search_input = new TextInput(m_search_item, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 | wxBORDER_NONE);
+    m_search_input = new TextInput(m_search_item, wxEmptyString, wxEmptyString, "search", wxDefaultPosition, wxDefaultSize, 0 | wxBORDER_NONE);
     m_search_input->SetBackgroundColour(wxColour(238, 238, 238));
     m_search_input->SetForegroundColour(wxColour(43, 52, 54));
     m_search_input->SetFont(wxGetApp().bold_font());
-    m_search_input->SetIcon(*BitmapCache().load_svg("search", FromDIP(16), FromDIP(16)));
     m_search_input->GetTextCtrl()->SetHint(_L("Search in preset") + dots);
-    search_sizer->Add(new wxWindow(m_search_item, wxID_ANY, wxDefaultPosition, wxSize(0, 0)), 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(2));
+    m_search_input->GetTextCtrl()->SetSize(wxSize(-1, FromDIP(16))); // Centers text vertically
     search_sizer->Add(m_search_input, 1, wxEXPAND | wxALL, FromDIP(2));
-    //bbl for linux
-    //search_sizer->Add(new wxWindow(m_search_input, wxID_ANY, wxDefaultPosition, wxSize(0, 0)), 0, wxEXPAND | wxLEFT, 16);
-
 
      m_search_item->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
         m_search_input->SetFocus();
@@ -448,7 +445,7 @@ void Tab::create_preset_tab()
 
     m_top_sizer->AddSpacer(FromDIP(SidebarProps::ContentMargin()));
 
-    m_top_sizer->SetMinSize(-1, 3 * m_em_unit);
+    m_top_sizer->SetMinSize(-1, SidebarProps::TitlebarHeight() * m_em_unit / 10);
     m_top_panel->SetSizer(m_top_sizer);
     if (m_presets_choice)
         m_main_sizer->Add(m_top_panel, 0, wxEXPAND | wxUP | wxDOWN, FromDIP(SidebarProps::ContentMarginV()));
@@ -1588,13 +1585,15 @@ void Tab::msw_rescale()
 {
     m_em_unit = em_unit(m_parent);
 
-    m_top_sizer->SetMinSize(-1, 3 * m_em_unit);
+    m_top_sizer->SetMinSize(-1, SidebarProps::TitlebarHeight() * m_em_unit / 10);
 
     //BBS: GUI refactor
     //if (m_mode_sizer)
     //    m_mode_sizer->msw_rescale();
-    if (m_presets_choice)
+    if (m_presets_choice){
+        m_presets_choice->SetMinSize(wxSize(-1, SidebarProps::ComboHeightBig() * m_em_unit / 10));
         m_presets_choice->msw_rescale();
+    }
 
     m_tabctrl->SetMinSize(wxSize(20 * m_em_unit, -1));
 
@@ -1613,6 +1612,17 @@ void Tab::msw_rescale()
 
     if (m_detach_preset_btn)
         m_detach_preset_btn->msw_rescale();
+
+    if (m_extruder_sync)
+        m_extruder_sync->msw_rescale();
+
+    if (m_search_item){
+        m_search_item->SetSize(wxSize(-1, SidebarProps::ComboHeightBig() * m_em_unit / 10)); // ensure height matches with preset combo
+    }
+    if (m_search_input){
+        m_search_input->Rescale();
+        m_search_input->GetTextCtrl()->SetSize(wxSize(-1, FromDIP(16)));
+    }
 
     // rescale icons for tree_ctrl
     for (ScalableBitmap& bmp : m_scaled_icons_list)

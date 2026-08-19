@@ -819,7 +819,7 @@ void ObjColorPanel::generate_thumbnail()
                         image.SetAlpha((int) c, (int) r, px[3]);
                     }
                 }
-                image = image.Rescale(FromDIP(IMAGE_SIZE_WIDTH), FromDIP(IMAGE_SIZE_WIDTH));
+                image = image.Rescale(IMAGE_SIZE_WIDTH, IMAGE_SIZE_WIDTH); // ORCA control bitmap is DPI aware now
                 m_image_button->SetBitmap(image);
             }
 

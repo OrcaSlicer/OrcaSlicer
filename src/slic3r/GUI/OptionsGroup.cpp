@@ -938,6 +938,12 @@ void ConfigOptionsGroup::msw_rescale()
                     sc_btn->SetSize(sc_btn->GetBestSize());
                     return;
                 }
+                // check if window is Button // printer / filament settings > setup buttons etc
+                Button* cbtn = dynamic_cast<Button*>(win);
+                if (cbtn) { 
+                    cbtn->Rescale();
+                    return;
+                }
                 // check if window is wxButton
                 wxButton* btn = dynamic_cast<wxButton*>(win);
                 if (btn) {

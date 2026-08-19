@@ -603,6 +603,8 @@ void OG_CustomCtrl::msw_rescale()
     //m_bmp_mode_sz = create_scaled_bitmap("mode_simple", this, wxOSX ? 10 : 12).GetSize();
     m_bmp_blinking_sz = create_scaled_bitmap("blank_16", this).GetSize();
 
+    m_multi_extruder.msw_rescale();
+
     m_max_win_width = 0;
 
     wxCoord    h_pos = (ctrlWidth + get_title_width() - titleWidth) * m_em_unit;
@@ -694,7 +696,7 @@ void OG_CustomCtrl::CtrlLine::msw_rescale()
 {
     // if we have a single option with no label, no sidetext
     if (draw_just_act_buttons)
-        height = get_bitmap_size(create_scaled_bitmap("empty")).GetHeight();
+        height = get_bitmap_size(create_scaled_bitmap("empty")).GetHeight() + ctrl->m_v_gap;
 
     if (ctrl->opt_group->label_width != 0 && !og_line.label.IsEmpty()) {
         wxSize label_sz = ctrl->GetTextExtent(og_line.label);
@@ -807,8 +809,10 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
                 is_multi_extruder |= opt.opt_id.find_last_of('#') != std::string::npos;
         wxCoord icon_pos = h_pos;
         if (is_multi_extruder) {
-            static ScalableBitmap multi_extruder(ctrl, "multi_extruder");
-            h_pos = draw_act_bmps(dc, wxPoint(h_pos, v_pos), multi_extruder.bmp(), multi_extruder.bmp(), false, 0, true).x;
+            if (!ctrl->m_multi_extruder.bmp().IsOk()) {
+                ctrl->m_multi_extruder = ScalableBitmap(ctrl, "multi_extruder");
+            }
+            h_pos = draw_act_bmps(dc, wxPoint(h_pos, v_pos), ctrl->m_multi_extruder.bmp(), ctrl->m_multi_extruder.bmp(), false, 0, true).x;
         }
         is_url_string = !suppress_hyperlinks && !og_line.label_path.empty();
         // BBS

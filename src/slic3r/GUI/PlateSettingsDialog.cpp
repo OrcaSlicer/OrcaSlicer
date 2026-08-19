@@ -615,6 +615,30 @@ wxString PlateSettingsDialog::to_print_sequence_name(PrintSequence print_seq) {
 
 void PlateSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
 {
+    std::function<void(wxWindow*, int)> WalkControls;
+    WalkControls = [&](wxWindow* parent, int depth) -> void {
+        if (!parent) return;
+
+        for (auto* child : parent->GetChildren()) {
+            if (!child)
+                continue;
+            else if (auto* txt = dynamic_cast<TextInput*>(child))
+                txt->Rescale();
+            else if (auto* cmb = dynamic_cast<ComboBox*>(child))
+                cmb->Rescale();
+            else if (auto* dc = dynamic_cast<DragCanvas*>(child))
+                dc->Rescale();
+            else if (auto* sb = dynamic_cast<ScalableButton*>(child))
+                sb->msw_rescale();
+                
+            WalkControls(child, depth + 1);
+        }
+    };
+    WalkControls(this, 0);
+
+    Layout();
+    Refresh();
+    Fit();
 }
 
 wxString PlateSettingsDialog::get_plate_name() const {

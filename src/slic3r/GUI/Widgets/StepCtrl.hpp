@@ -72,7 +72,7 @@ public:
              const wxSize &  size      = wxDefaultSize,
              long            style     = 0);
 
-    virtual void Rescale();
+    virtual void Rescale() override;
 
 private:
     void mouseDown(wxMouseEvent &event);
@@ -96,7 +96,7 @@ public:
              const wxSize &  size      = wxDefaultSize,
              long            style     = 0);
 
-    virtual void Rescale();
+    virtual void Rescale() override;
 
     void SelectNext();
 private:
@@ -118,7 +118,7 @@ public:
         const wxSize& size = wxDefaultSize,
         long            style = 0);
 
-    virtual void Rescale();
+    virtual void Rescale() override;
 
     void SelectNext();
     void SetSlotInformation(wxString slot);

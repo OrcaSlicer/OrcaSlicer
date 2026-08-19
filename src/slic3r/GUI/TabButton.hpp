@@ -42,7 +42,7 @@ public:
 
     bool Enable(bool enable = true);
 
-    void Rescale();
+    void Rescale() override;
 
     void ShowNewTag(bool tag = false) {show_new_tag = tag; Refresh();};
     bool GetShowNewTag() const { return show_new_tag; };

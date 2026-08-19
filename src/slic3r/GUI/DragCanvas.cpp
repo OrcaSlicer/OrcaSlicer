@@ -14,6 +14,7 @@ DragCanvas::DragCanvas(wxWindow* parent, const std::vector<std::string>& colors,
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
     , m_drag_mode(DragMode::NONE)
     , m_max_shape_pos(wxPoint(0, 0))
+    , m_colors(colors)
 {
     SetBackgroundColour(*wxWHITE);
 
@@ -122,7 +123,10 @@ void DragCanvas::on_paint(wxPaintEvent& event)
             arrow_pos.x = m_max_shape_pos.x;
             arrow_pos.y -= LINE_HEIGHT;
         }
-        arrow_pos += wxSize((SHAPE_GAP - SHAPE_SIZE - m_arrow_bmp.GetWidth() / dc.GetContentScaleFactor()) / 2, (SHAPE_SIZE - m_arrow_bmp.GetHeight() / dc.GetContentScaleFactor()) / 2);
+        arrow_pos += wxSize(
+            (SHAPE_GAP - SHAPE_SIZE - m_arrow_bmp.GetWidth()) / 2,
+            (SHAPE_SIZE - m_arrow_bmp.GetHeight()) / 2
+        );
         dc.DrawBitmap(m_arrow_bmp, arrow_pos);
     }
 }
@@ -214,6 +218,16 @@ void DragCanvas::on_mouse(wxMouseEvent& event)
         Refresh();
         Update();
     }
+}
+
+void DragCanvas::Rescale()
+{
+    m_arrow_bmp = create_scaled_bitmap("plate_settings_arrow", this, 16);
+
+    auto order = get_shape_list_order();
+    set_shape_list(m_colors, order);
+
+    Refresh();
 }
 
 DragShape* DragCanvas::find_shape(const wxPoint& pt) const

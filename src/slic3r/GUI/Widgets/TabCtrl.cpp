@@ -82,6 +82,7 @@ void TabCtrl::Unselect()
 
 void TabCtrl::Rescale()
 {
+    StaticBox::Rescale();
     for (auto & b : btns)
         b->Rescale();
 }

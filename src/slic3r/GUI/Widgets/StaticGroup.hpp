@@ -11,6 +11,9 @@ public:
     StaticGroup(wxWindow *parent, wxWindowID id, const wxString &label);
     void ShowBadge(bool show);
 
+protected:
+    virtual void Rescale();
+
 private:
     void DrawBorderAndLabel(wxDC& dc) override;
     ScalableBitmap badge;

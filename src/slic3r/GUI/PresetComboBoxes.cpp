@@ -714,19 +714,31 @@ wxBitmap *PresetComboBox::get_bmp(Preset const &preset)
         wxString color = preset2.config.opt_string("default_filament_colour", 0);
         wxColour clr(color);
         if (clr.IsOk()) {
-            std::string bitmap_key = "default_filament_colour_" + color.ToStdString();
+            const double em      = Slic3r::GUI::wxGetApp().em_unit();
+            const int    icon_sz = lround(1.5 * em);
+            std::string bitmap_key = "default_filament_colour_" + color.ToStdString() + "-h" + std::to_string(icon_sz) + "-w" + std::to_string(icon_sz);
             wxBitmap *bmp        = bitmap_cache().find(bitmap_key);
             if (bmp == nullptr) {
-                wxImage img(16, 16);
-                if (clr.Red() > 224 && clr.Blue() > 224 && clr.Green() > 224) {
-                    img.SetRGB(wxRect({0, 0}, img.GetSize()), 128, 128, 128);
-                    img.SetRGB(wxRect({1, 1}, img.GetSize() - wxSize{2, 2}), clr.Red(), clr.Green(), clr.Blue());
-                } else {
-                    img.SetRGB(wxRect({0, 0}, img.GetSize()), clr.Red(), clr.Green(), clr.Blue());
-                }
-                bmp = new wxBitmap(img);
-                bmp = bitmap_cache().insert(bitmap_key, *bmp);
+                bmp = bitmap_cache().insert(bitmap_key, wxBitmap(icon_sz, icon_sz));
+        #ifdef __WXOSX__
+                bmp->UseAlpha();
+                wxMemoryDC dc(*bmp);
+        #elif defined(__WXMSW__)
+                wxClientDC cdc(this);
+                wxMemoryDC dc(&cdc);
+                dc.SelectObject(*bmp);
+        #else
+                wxMemoryDC dc;
+                dc.SelectObject(*bmp);
+        #endif
+                dc.SetBackground(wxBrush(clr));
+                dc.Clear();
+                dc.SetBrush(wxBrush(clr));
+                dc.SelectObject(wxNullBitmap);
             }
+            #ifdef __WXMSW__  // ORCA MSW needs to set scale factor for bitmaps loaded from cache because they arent auto scaled by wxBitmapBundle like bitmaps
+                bmp->SetScaleFactor(GetDPIScaleFactor());
+            #endif
             return bmp;
         }
     }
@@ -825,9 +837,12 @@ bool PresetComboBox::selection_is_changed_according_to_physical_printers()
 // ---------------------------------
 
 PlaterPresetComboBox::PlaterPresetComboBox(wxWindow *parent, Preset::Type preset_type) :
-    PresetComboBox(parent, preset_type, wxSize(25 * wxGetApp().em_unit(), 30 * wxGetApp().em_unit() / 10))
+    PresetComboBox(parent, preset_type, wxSize(-1, SidebarProps::ComboHeightBig() * em_unit(parent) / 10))
 {
-    GetDropDown().SetUseContentWidth(true,true);
+    // ComboBox might not be created yet. dropdowns uses incorrect size if limit_max_content_width is true and GetParent()->GetSize() returns {0,0}
+    CallAfter([this]() {
+        GetDropDown().SetUseContentWidth(true, true);
+    });
 
     if (m_type == Preset::TYPE_FILAMENT)
     {
@@ -861,8 +876,8 @@ PlaterPresetComboBox::PlaterPresetComboBox(wxWindow *parent, Preset::Type preset
 
     // BBS
     if (m_type == Preset::TYPE_FILAMENT) {
-        int em = wxGetApp().em_unit();
-        clr_picker = new wxBitmapButton(parent, wxID_ANY, {}, wxDefaultPosition, wxSize(FromDIP(20), FromDIP(20)), wxBU_EXACTFIT | wxBU_AUTODRAW | wxBORDER_NONE);
+        int em = em_unit(parent);
+        clr_picker = new wxBitmapButton(parent, wxID_ANY, {}, wxDefaultPosition, wxSize(2 * em, 2 * em), wxBU_EXACTFIT | wxBU_AUTODRAW | wxBORDER_NONE);
         clr_picker->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
         clr_picker->SetToolTip(_L("Click to select filament color"));
 #ifdef __WXGTK__
@@ -1528,10 +1543,12 @@ void PlaterPresetComboBox::update()
 void PlaterPresetComboBox::msw_rescale()
 {
     PresetComboBox::msw_rescale();
-    SetMinSize({-1, 30 * m_em_unit / 10});
+    wxSize sz = wxSize(-1, SidebarProps::ComboHeightBig() * m_em_unit / 10);
+    SetMinSize(sz);
+    SetSize(sz);
 
     if (clr_picker)
-        clr_picker->SetSize(20 * m_em_unit / 10, 20 * m_em_unit / 10);
+        clr_picker->SetSize(2 * m_em_unit, 2 * m_em_unit);
     // BBS
     if (edit_btn != nullptr)
         edit_btn->msw_rescale();
@@ -1629,9 +1646,12 @@ void PlaterPresetComboBox::sync_colour_config(const std::vector<std::string> &cl
 
 TabPresetComboBox::TabPresetComboBox(wxWindow* parent, Preset::Type preset_type) :
     // BBS: new layout
-    PresetComboBox(parent, preset_type, wxSize(20 * wxGetApp().em_unit(), 30 * wxGetApp().em_unit() / 10))
+    PresetComboBox(parent, preset_type, wxSize(-1, SidebarProps::ComboHeightBig() * em_unit(parent) / 10))
 {
-    GetDropDown().SetUseContentWidth(true,true);
+    // ComboBox might not be created yet. dropdowns uses incorrect size if limit_max_content_width is true and GetParent()->GetSize() returns {0,0}
+    CallAfter([this]() {
+        GetDropDown().SetUseContentWidth(true, true);
+    });
 }
 
 void TabPresetComboBox::OnSelect(wxCommandEvent &evt)
@@ -1895,8 +1915,7 @@ void TabPresetComboBox::update()
 void TabPresetComboBox::msw_rescale()
 {
     PresetComboBox::msw_rescale();
-    // BBS: new layout
-    wxSize sz = wxSize(20 * m_em_unit, 30 * m_em_unit / 10);
+    wxSize sz = wxSize(-1, SidebarProps::ComboHeightBig() * m_em_unit / 10);
     SetMinSize(sz);
     SetSize(sz);
 }

@@ -58,7 +58,7 @@ public:
     void SetSelection(int selection);
     void SelectAndNotify(int selection);
 
-    void Rescale();
+    void Rescale() override;
     void msw_rescale() { Rescale(); }
 
     bool Enable(bool enable = true) override;
@@ -164,7 +164,7 @@ public:
     void SetButtonCornerRadius(double radius);
     void SetButtonPadding(const wxSize &padding);
 
-    void Rescale();
+    void Rescale() override;
 
 protected:
     void button_clicked(wxCommandEvent &event);

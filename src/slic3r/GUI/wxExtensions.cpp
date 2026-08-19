@@ -981,6 +981,10 @@ int ScalableBitmap::GetBmpHeight() const
 
 void ScalableBitmap::msw_rescale()
 {
+    // This makes caller's life easier
+    if (!m_bmp.IsOk()) {
+        return;
+    }
     // BBS: support resize by fill border
     m_bmp = create_scaled_bitmap(m_icon_name, m_parent, m_px_cnt, m_grayscale, std::string(), false, m_resize);
 }

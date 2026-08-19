@@ -688,6 +688,8 @@ void wgtDeviceNozzleRackHotendUpdate::UpdateInfo(const DevNozzle& nozzle)
 
 void wgtDeviceNozzleRackHotendUpdate::Rescale()
 {
+    StaticBox::Rescale();
+
     // update images
     if (m_nozzle_image) { m_nozzle_image->msw_rescale(); }
     if (m_nozzle_empty_image) { m_nozzle_empty_image->msw_rescale(); }

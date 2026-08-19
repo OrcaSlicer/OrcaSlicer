@@ -36,6 +36,8 @@ class OG_CustomCtrl :public wxPanel
 
     int     m_max_win_width{0};
 
+    ScalableBitmap m_multi_extruder;
+
     struct CtrlLine {
         wxCoord           width{ wxDefaultCoord };
         wxCoord           height{ wxDefaultCoord };

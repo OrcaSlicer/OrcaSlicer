@@ -139,18 +139,17 @@ void SwitchButton::Rescale()
 			}
 		}
 		for (int i = 0; i < 2; ++i) {
-			wxMemoryDC memdc(&dc);
-#ifdef __WXMSW__
-			wxBitmap bmp(trackSize.x, trackSize.y);
-			memdc.SelectObject(bmp);
-			memdc.SetBackground(wxBrush(GetBackgroundColour()));
-			memdc.Clear();
-#else
+            wxMemoryDC memdc(&dc);
             wxImage image(trackSize);
+#ifndef __WXMSW__ // DrawText doesn't work properly on Windows with Alpha channel
             image.InitAlpha();
             memset(image.GetAlpha(), 0, trackSize.GetWidth() * trackSize.GetHeight());
+#endif
             wxBitmap bmp(std::move(image));
             memdc.SelectObject(bmp);
+#ifdef __WXMSW__
+            memdc.SetBackground(wxBrush(GetBackgroundColour()));
+            memdc.Clear();
 #endif
             memdc.SetFont(dc.GetFont());
 #ifdef __WXMSW__
@@ -258,6 +257,7 @@ ModeSwitchButton::ModeSwitchButton(wxWindow* parent, wxWindowID id)
     StaticBox::Create(parent, id, wxDefaultPosition, wxDefaultSize, 0);
     SetBackgroundColour(StaticBox::GetParentBackgroundColor(parent));
     SetCursor(wxCursor(wxCURSOR_HAND));
+    SetFont(Label::Body_12);
 
     m_tooltips[0] = _L("Simple settings");
     m_tooltips[1] = _L("Advanced settings");
@@ -290,6 +290,7 @@ void ModeSwitchButton::SelectAndNotify(int selection)
 
 void ModeSwitchButton::Rescale()
 {
+    StaticBox::Rescale();
     const wxSize button_size = FromDIP(wxSize(48, 18));
     SetMinSize(button_size);
     SetMaxSize(button_size);
@@ -356,6 +357,15 @@ void ModeSwitchButton::doRender(wxDC& dc)
         }
     }
     else { // Developer mode
+        double scale = 1.00;
+#ifdef __WXOSX__
+        scale = Slic3r::GUI::mac_max_scaling_factor();
+        dc.SetFont(dc.GetFont().Scaled(scale));
+#elif defined(__WXMSW__)
+        scale = m_parent->GetDPIScaleFactor();
+        dc.SetFont(dc.GetFont().Scaled(scale));
+#endif
+
         wxString str = "DEV";
         int kerning = 3; // pixels between chars
         dc.SetTextForeground(text_color.colorForStates(states));
@@ -365,8 +375,16 @@ void ModeSwitchButton::doRender(wxDC& dc)
             totalWidth += dc.GetTextExtent(wxString(c)).x + kerning;
         totalWidth -= kerning;
 
-        wxCoord x = bounds.x + (bounds.width - totalWidth) / 2;
-        wxCoord y = bounds.y + (bounds.height - dc.GetTextExtent(str).y) / 2 - 1;
+        wxCoord x = bounds.x + (bounds.width  - totalWidth) * 0.50;
+
+        wxFontMetrics fm = dc.GetFontMetrics();
+        int lineHeight   = fm.ascent + fm.descent + fm.internalLeading;
+
+        double y_offset = scale;
+#if   defined(__WXGTK__)
+        y_offset = 0;
+#endif
+        wxCoord y = std::floor(v_center - lineHeight * 0.50 - y_offset);
 
         for (char c : str) {
             wxString ch(c);
@@ -622,14 +640,14 @@ MultiSwitchButton::MultiSwitchButton(wxWindow *parent, wxWindowID id, const wxPo
     , m_button_radius(10.0)
     , m_button_padding(10, 6)
 {
-    SetCornerRadius(m_button_radius);
+    SetCornerRadius(parent->FromDIP(m_button_radius));
     SetBorderWidth(0);
 
     sizer = new wxBoxSizer(wxHORIZONTAL);
     auto *hsizer = new wxBoxSizer(wxVERTICAL);
     hsizer->Add(sizer, 1, wxEXPAND);
     SetSizer(hsizer);
-    SetMinSize(wxSize(-1, 20));
+    SetMinSize(parent->FromDIP(wxSize(-1, 20)));
 
     Bind(wxEVT_COMMAND_BUTTON_CLICKED, &MultiSwitchButton::button_clicked, this);
     SetFont(Label::Body_12);
@@ -647,15 +665,15 @@ int MultiSwitchButton::AppendOption(const wxString &option, void *clientData)
     btn->SetFont(GetFont());
     btn->SetBackgroundColor(m_bg_color);
     btn->SetTextColor(m_text_color);
-    btn->SetCornerRadius(m_button_radius);
-    btn->SetPaddingSize(m_button_padding);
+    btn->SetCornerRadius(m_parent->FromDIP(m_button_radius));
+    btn->SetPaddingSize(m_parent->FromDIP(m_button_padding));
     btn->SetClientData(clientData);
 
     btns.push_back(btn);
     sizer->Add(btn, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
 
     wxSize text_size = btn->GetTextExtent(option);
-    btn->SetMinSize(wxSize(text_size.x + m_button_padding.x * 2 + 6, -1));
+    btn->SetMinSize(wxSize(text_size.x + (m_parent->FromDIP(m_button_padding)).x * 2 + 6, -1));
 
     return int(btns.size()) - 1;
 }
@@ -756,10 +774,10 @@ void MultiSwitchButton::SetTextColor(const StateColor &color)
 
 void MultiSwitchButton::SetButtonCornerRadius(double radius)
 {
-    m_button_radius = radius;
-    SetCornerRadius(radius);
+    m_button_radius = m_parent->FromDIP(radius);
+    SetCornerRadius(m_button_radius);
     for (auto *btn : btns)
-        btn->SetCornerRadius(radius);
+        btn->SetCornerRadius(m_button_radius);
     Layout();
     Refresh();
 }
@@ -775,8 +793,13 @@ void MultiSwitchButton::SetButtonPadding(const wxSize &padding)
 
 void MultiSwitchButton::Rescale()
 {
-    for (auto *btn : btns)
+    StaticBox::Rescale();
+    for (auto *btn : btns){
         btn->Rescale();
+        btn->SetCornerRadius(m_parent->FromDIP(m_button_radius));
+        btn->SetPaddingSize(m_parent->FromDIP(m_button_padding));
+    }
+    SetMinSize(GetParent()->FromDIP(wxSize(-1, 20)));
 }
 
 void MultiSwitchButton::button_clicked(wxCommandEvent &event)

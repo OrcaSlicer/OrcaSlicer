@@ -43,6 +43,8 @@ public:
     std::vector<int> get_shape_list_order();
     std::vector<DragShape*> get_ordered_shape_list();
 
+    void Rescale();
+
 protected:
     void on_paint(wxPaintEvent& event);
     void on_erase(wxEraseEvent& event);
@@ -60,6 +62,7 @@ private:
     wxPoint                    m_max_shape_pos;
     wxColour                   m_background_color; // ORCA
     wxColour                   m_border_color; // ORCA
+    std::vector<std::string>   m_colors;
 };
 
 

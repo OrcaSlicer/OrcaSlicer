@@ -12,6 +12,9 @@ public:
     wxVector<wxInspector::PropertyDef> GetProperties(
         wxInspector::InspectableObject& obj) override;
 
+    wxVector<wxInspector::MethodInfo> GetMethods(
+        wxInspector::InspectableObject& obj) override;
+
 private:
     void addButtonProps(class Button* btn,
         wxVector<wxInspector::PropertyDef>& props);

@@ -133,6 +133,7 @@ StepCtrl::StepCtrl(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wx
 
 void StepCtrl::Rescale()
 {
+    StepCtrlBase::Rescale();
     bmp_thumb.msw_rescale();
     radius    = radius * bmp_thumb.GetBmpHeight() / 36;
     bar_width = bar_width * bmp_thumb.GetBmpHeight() / 36;
@@ -272,6 +273,7 @@ StepIndicator::StepIndicator(wxWindow *parent, wxWindowID id, const wxPoint &pos
 
 void StepIndicator::Rescale()
 {
+    StepCtrlBase::Rescale();
     bmp_ok.msw_rescale();
     radius    = bmp_ok.GetBmpHeight() / 2;
     bar_width = bmp_ok.GetBmpHeight() / 20;
@@ -381,6 +383,7 @@ FilamentStepIndicator::FilamentStepIndicator(wxWindow* parent, wxWindowID id, co
 
 void FilamentStepIndicator::Rescale()
 {
+    StepCtrlBase::Rescale();
     bmp_ok.msw_rescale();
     radius = bmp_ok.GetBmpHeight() / 2;
     bar_width = bmp_ok.GetBmpHeight() / 20;

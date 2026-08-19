@@ -257,6 +257,8 @@ void Button::SetStyle(const ButtonStyle style, const ButtonType type)
 
 void Button::Rescale()
 {
+    StaticBox::Rescale();
+
     if (this->active_icon.bmp().IsOk())
         this->active_icon.msw_rescale();
 

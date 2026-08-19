@@ -18,6 +18,11 @@ void StaticGroup::ShowBadge(bool show)
     }
 }
 
+void StaticGroup::Rescale()
+{
+    badge.msw_rescale();
+}
+
 void StaticGroup::DrawBorderAndLabel(wxDC& dc)
 {
     LabeledStaticBox::DrawBorderAndLabel(dc);

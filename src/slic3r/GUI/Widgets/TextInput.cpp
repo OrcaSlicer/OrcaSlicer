@@ -153,6 +153,8 @@ void TextInput::SetTextColor(StateColor const& color)
 
 void TextInput::Rescale()
 {
+    StaticBox::Rescale();
+
     if (!this->icon.name().empty())
         this->icon.msw_rescale();
     if (!this->icon_1.name().empty())
@@ -176,14 +178,15 @@ bool TextInput::Enable(bool enable)
 
 void TextInput::SetMinSize(const wxSize& size)
 {
-    wxSize size2 = size;
-    if (size2.y < 0) {
+    m_min_size = size;
+    wxWindow::SetMinSize(size);
+
 #ifdef __WXMAC__
         if (GetPeer()) // peer is not ready in Create on mac
+        return;
 #endif
-        size2.y = GetSize().y;
-    }
-    wxWindow::SetMinSize(size2);
+
+    messureSize();
 }
 
 void TextInput::DoSetSize(int x, int y, int width, int height, int sizeFlags)
@@ -204,7 +207,7 @@ void TextInput::DoSetSize(int x, int y, int width, int height, int sizeFlags)
     if (align_right)
         textPos.x += labelSize.x;
     if (text_ctrl) {
-        wxSize textSize = text_ctrl->GetSize();
+        wxSize textSize = text_ctrl->GetBestSize();
         textSize.x = size.x - textPos.x - labelSize.x - 10;
         if(textSize.x < -1) textSize.x = -1;
         text_ctrl->SetSize(textSize);
@@ -329,7 +332,7 @@ void TextInput::messureSize()
     else
         dc.SetFont(Label::Body_12);
     labelSize = dc.GetTextExtent(wxWindow::GetLabel());
-    wxSize textSize = text_ctrl->GetSize();
+    wxSize textSize = text_ctrl ? text_ctrl->GetBestSize() : wxSize(0, 0); // GetBestSize might also include border width + padding from OS
 
     if (!static_tips.empty()) {
         static_tips_size = dc.GetTextExtent(static_tips);
@@ -338,13 +341,12 @@ void TextInput::messureSize()
         textSize.y += 8;
     }
 
-    int h = textSize.y + 8;
-    if (size.y < h) {
-        size.y = h;
-    }
+    int calculatedH = textSize.y + 8;
+    size.y = std::max(std::max(calculatedH, m_min_size.y), size.y); // pick max value for regular size so min value works 
 
-    wxSize minSize = size;
-    minSize.x = GetMinWidth();
-    SetMinSize(minSize);
-    SetSize(size);
+    int minY = (m_min_size.y > 0) ? std::max(calculatedH, m_min_size.y) : calculatedH; // pick calculated height instead min value to prevent clipping
+    int minX = GetMinWidth(); // dont limit with text content so it will shrinks properly
+
+    wxWindow::SetMinSize(wxSize(minX, minY));
+    wxWindow::SetSize(size);
 }

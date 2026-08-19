@@ -60,8 +60,8 @@ void DropDown::Create(wxWindow *parent, long style)
     state_handler.attach({&border_color, &text_color, &selector_border_color, &selector_background_color});
     state_handler.update_binds();
     if ((style & DD_NO_CHECK_ICON) == 0)
-        check_bitmap = ScalableBitmap(this, "checked", 16);
-    arrow_bitmap = ScalableBitmap(this, "hms_arrow", 16);
+        check_bitmap = ScalableBitmap(parent, "checked", 16); // use parent window for proper scaling info in here since popup is a temporary window
+    arrow_bitmap = ScalableBitmap(parent, "hms_arrow", 16);
     text_off = style & DD_NO_TEXT;
 
     // BBS set default font
@@ -157,7 +157,12 @@ void DropDown::SetAlignIcon(bool align) { align_icon = align; }
 
 void DropDown::Rescale()
 {
+    if(!check_bitmap.name().empty())
+        check_bitmap.msw_rescale();
+    arrow_bitmap.msw_rescale();
     need_sync = true;
+    messureSize();
+    paintNow();
 }
 
 bool DropDown::HasDismissLongTime()

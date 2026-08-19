@@ -1163,6 +1163,9 @@ void CheckBox::BUILD() {
 	if (!wxOSX) temp->SetBackgroundStyle(wxBG_STYLE_PAINT);
 	//temp->SetBackgroundColour(*wxWHITE);
 	temp->SetValue(check_value);
+    // Ensure reused widget has the correct scaling
+    // TODO: only call this if scaling changed? Then we need to store the old em_unit/scale somewhere in the widget
+    temp->Rescale();
 
 	temp->Bind(wxEVT_TOGGLEBUTTON, ([this](wxCommandEvent & e) {
         m_is_na_val = false;
@@ -2878,6 +2881,9 @@ void PointCtrl::msw_rescale()
         x_input->SetMinSize(field_size);
         y_input->SetMinSize(field_size);
     }
+
+    x_input->Rescale(); // for icons
+    y_input->Rescale();
 }
 
 void PointCtrl::sys_color_changed()

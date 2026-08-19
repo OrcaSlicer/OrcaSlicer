@@ -209,7 +209,7 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
                                      bool                            machine_synced,
                                      bool                            show_default,
                                      bool                            with_checkbox)
-    : wxDialog(parent, wxID_ANY, _L("Filament grouping"), wxDefaultPosition, wxDefaultSize,wxDEFAULT_DIALOG_STYLE)
+    : DPIDialog(parent, wxID_ANY, _L("Filament grouping"), wxDefaultPosition, wxDefaultSize,wxDEFAULT_DIALOG_STYLE)
     , m_filament_color(filament_color)
     , m_filament_type(filament_type)
     , m_filament_map(filament_map)
@@ -450,6 +450,11 @@ void FilamentMapDialog::set_modal_btn_labels(const wxString &ok_label, const wxS
 {
     m_ok_btn->SetLabel(ok_label);
     m_cancel_btn->SetLabel(cancel_label);
+}
+
+void FilamentMapDialog::on_dpi_changed(const wxRect& suggested_rect) {
+    Refresh();
+    Fit();
 }
 
 }} // namespace Slic3r::GUI

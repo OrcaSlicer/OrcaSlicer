@@ -386,7 +386,7 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
     m_tip_text->Wrap(-1);
 
     m_button_add = new Button(m_main_panel, _L("Add"));
-    m_button_add->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
+    m_button_add->SetStyle(ButtonStyle::Confirm, ButtonType::Parameter);
 
     m_button_add->Bind(wxEVT_BUTTON, [this](wxCommandEvent& evt) {
         MultiMachinePickPage dlg;
@@ -712,9 +712,9 @@ void MultiMachineManagerPage::msw_rescale()
     m_action->Rescale();
     m_action->SetMinSize(wxSize(FromDIP(DEVICE_LEFT_PRO_NAME), FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
     m_action->SetMaxSize(wxSize(FromDIP(DEVICE_LEFT_PRO_NAME), FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
-    m_button_add->Rescale();
-    m_button_add->SetMinSize(wxSize(FromDIP(90), FromDIP(36)));
-    m_button_add->SetMaxSize(wxSize(FromDIP(90), FromDIP(36)));
+    m_button_add->Rescale(); // ORCA reapplies size and style
+    //m_button_add->SetMinSize(wxSize(FromDIP(90), FromDIP(36)));
+    //m_button_add->SetMaxSize(wxSize(FromDIP(90), FromDIP(36)));
 
     btn_last_page->Rescale();
     btn_last_page->SetMinSize(wxSize(FromDIP(20), FromDIP(20)));
@@ -726,9 +726,9 @@ void MultiMachineManagerPage::msw_rescale()
     m_page_num_enter->SetMinSize(wxSize(FromDIP(25), FromDIP(25)));
     m_page_num_enter->SetMaxSize(wxSize(FromDIP(25), FromDIP(25)));
 
-    m_button_edit->Rescale();
-    m_button_edit->SetMinSize(wxSize(FromDIP(90), FromDIP(36)));
-    m_button_edit->SetMaxSize(wxSize(FromDIP(90), FromDIP(36)));
+    m_button_edit->Rescale(); // ORCA reapplies size and style
+    //m_button_edit->SetMinSize(wxSize(FromDIP(90), FromDIP(36)));
+    //m_button_edit->SetMaxSize(wxSize(FromDIP(90), FromDIP(36)));
 
 
     for (const auto& item : m_device_items) {

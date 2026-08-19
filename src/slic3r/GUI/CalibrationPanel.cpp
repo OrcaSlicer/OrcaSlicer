@@ -685,6 +685,8 @@ void CalibrationPanel::set_default()
 
 void CalibrationPanel::msw_rescale()
 {
+    m_side_tools->msw_rescale(); //ORCA
+    m_tabpanel->Rescale(); //ORCA
     for (int i = 0; i < (int)CALI_MODE_COUNT; i++) {
         m_cali_panels[i]->msw_rescale();
     }

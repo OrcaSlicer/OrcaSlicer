@@ -112,4 +112,7 @@ private:
     bool m_skip_popup_file_menu;
     bool m_skip_popup_dropdown_menu;
     bool m_skip_popup_calib_menu;
+
+    void AddDIPSpacer(int dip);
+    std::vector<std::pair<wxAuiToolBarItem*, int>> m_spacers;
 };
