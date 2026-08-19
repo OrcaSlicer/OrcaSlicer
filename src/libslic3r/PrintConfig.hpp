@@ -1088,9 +1088,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                 magma_injection_park))         // Park nozzle during temp changes
     ((ConfigOptionFloat,                magma_injection_park_z_hop))   // Park Z-hop height (mm)
     ((ConfigOptionFloat,                magma_injection_park_retract)) // Extra retract during temp wait (mm)
-    ((ConfigOptionFloat,                magma_injection_z_slam_offset))// mm added to auto z-slam (+ deeper / - shallower)
     ((ConfigOptionFloat,                magma_max_immersion))          // Max depth the nozzle may enter a tube (mm) — also sizes auto tubes
-    ((ConfigOptionFloat,                magma_auto_slam_press))        // Contact press when the flat already covers the opening (mm)
+    ((ConfigOptionFloat,                magma_auto_slam_press))        // "Minimum seal depth": floor under the seal depth (mm)
     ((ConfigOptionBool,                 magma_injection_plunge))       // Ramp nozzle deeper during injection (slam-melt)
     ((ConfigOptionFloat,                magma_injection_plunge_depth)) // Extra depth rammed by end of injection (mm)
     ((ConfigOptionInt,                  magma_injection_dwell))        // Dwell after injection, before z-slam release (ms, 0 = disabled)

@@ -33,8 +33,8 @@ struct MagmaResolved
     double line_width          = 0.0;  // deposited bead width ("auto" already resolved)
     double nozzle_flat         = 0.0;  // measured tip flat (or the bore-scaled stand-in)
     double cone_half_angle_deg = 0.0;
-    double max_immersion       = 0.0;
-    double slam_press          = 0.0;
+    double max_immersion       = 0.0;  // "Total immersion" in the UI: the budget every depth spends from
+    double min_seal_depth      = 0.0;  // floor under seal_depth, itself clamped by the budget
 
     // The INJECTION extruder is not necessarily the one that prints the lattice: with a
     // dedicated injection filament it is a different tool with its own nozzle, and the seal
@@ -50,16 +50,29 @@ struct MagmaResolved
     double opening_diameter = 0.0;  // circle the nozzle must cover to seal
     double bore_diameter    = 0.0;  // largest circle that fits inside the tube
 
-    // --- derived seal depths, NOMINAL ---
+    // --- derived depths, NOMINAL ---
     // Computed from the nominal opening above. The G-code path recomputes these per tube
     // from that tube's own clipped opening, so a tube whose top was clipped narrow seals
     // deeper than this. Use these for warnings and readouts, never to emit a move.
-    double immersion_budget = 0.0;  // the cap both depths are held under
-    double slam_depth       = 0.0;
-    double plunge_depth     = 0.0;
+    //
+    // The nozzle reaches seal_depth in one fast Z move before anything is extruded, then
+    // sinks the further plunge_depth ACROSS the injection, arriving at total_depth() as the
+    // last of the filament goes in and holding there through the dwell.
+    double budget       = 0.0;  // the cap both depths are held under
+    double seal_depth   = 0.0;
+    double plunge_depth = 0.0;
+
+    // What the user asked for, before the budget clamped it. Kept so the readout and
+    // Print::validate can say a value was reduced instead of quietly showing a different
+    // number than the one that was typed.
+    double plunge_requested = 0.0;
+    bool   plunge_clamped()    const { return plunge_requested > plunge_depth + 1e-9; }
+    bool   min_seal_clamped()  const { return min_seal_depth   > budget       + 1e-9; }
 
     // Total depth below the print surface the nozzle reaches at the end of injection.
-    double total_depth() const { return slam_depth + plunge_depth; }
+    // <= budget <= max_immersion, by construction: both terms are clamped against the one
+    // budget resolved here, so no configuration can drive past the stated immersion.
+    double total_depth() const { return seal_depth + plunge_depth; }
 
     // Opening the cone actually covers at that depth. Compare against opening_diameter
     // to decide whether this nozzle can seal this tube at all.
@@ -70,8 +83,8 @@ struct MagmaResolved
 // Resolve everything above from the three configs that own the inputs. Returns false when
 // the effective pattern is not a Magma pattern, in which case `out` is untouched.
 //
-// `region` supplies the pattern, tube width, nozzle flat and cone; `object` supplies the
-// immersion budget and slam press; `print` supplies the nozzle diameters.
+// `region` supplies the pattern and tube width; `object` supplies the nozzle flat, cone,
+// immersion budget and minimum seal depth; `print` supplies the nozzle diameters.
 bool resolve_magma(const PrintRegionConfig &region,
                    const PrintObjectConfig &object,
                    const PrintConfig       &print,

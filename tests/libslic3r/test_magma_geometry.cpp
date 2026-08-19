@@ -91,7 +91,7 @@ TEST_CASE("Magma: bore is the inscribed circle of the cell, not the interior wid
 
 TEST_CASE("Magma: the immersion budget round-trips through sizing and slam", "[Magma][seal]")
 {
-    // Auto tube sizing inverts the budget into an opening; auto_slam_depth must then spend
+    // Auto tube sizing inverts the budget into an opening; auto_seal_depth must then spend
     // exactly that budget. If these drift, the tube is sized against one number and sealed
     // against another -- which is how a seal warning ends up blind to the case it exists for.
     const double flat  = 1.70;
@@ -110,27 +110,47 @@ TEST_CASE("Magma: the immersion budget round-trips through sizing and slam", "[M
             // Sizing must reproduce the opening the budget allows.
             CHECK(opening == Catch::Approx(opening_max).epsilon(1e-9));
 
-            const double slam = auto_slam_depth(opening, flat, cone, immersion, press);
-            // Above the contact press, the slam is exactly the budget: no more, no less.
-            CHECK(slam == Catch::Approx(std::max(press, immersion)).epsilon(1e-9));
+            const double seal = auto_seal_depth(opening, flat, cone,
+                                                immersion_budget(immersion), press);
+            // The seal spends exactly the budget: no more, no less. The minimum seal depth
+            // cannot move this either way -- above the geometric need it is capped by the same
+            // budget, below it the geometry already asks for more.
+            CHECK(seal == Catch::Approx(immersion).epsilon(1e-9));
         }
     }
 }
 
-TEST_CASE("Magma: zero immersion means the flat covers the opening and only presses", "[Magma][seal]")
+TEST_CASE("Magma: the minimum seal depth cannot outrank the immersion budget", "[Magma][seal]")
 {
-    // Seating mode. The nozzle must not enter the tube at all, and must still make contact.
-    const double flat = 1.70, cone = 30.0, press = 0.10;
-    const double opening = max_opening_for_immersion(flat, cone, 0.0);
+    // Regression: the budget used to be max(min_seal_depth, max_immersion), so a floor bounded
+    // at 1.0mm raised a setting named for the maximum whenever immersion sat below it -- a
+    // 0.3mm immersion with a 0.8mm floor drove 0.8mm into the part, past the depth measured as
+    // visibly deforming. A floor under the seal is descent past the rim like any other.
+    const double flat = 1.70, cone = 30.0;
 
-    CHECK(opening <= flat);                                    // covered outright
-    CHECK(auto_slam_depth(opening, flat, cone, 0.0, press)
-          == Catch::Approx(press).epsilon(1e-9));              // still presses
+    for (double immersion : { 0.0, 0.1, 0.3, 0.6, 1.0 }) {
+        const double budget  = immersion_budget(immersion);
+        const double opening = max_opening_for_immersion(flat, cone, immersion);
+        for (double floor_depth : { 0.0, 0.05, 0.5, 1.0 }) {
+            const double seal   = auto_seal_depth(opening, flat, cone, budget, floor_depth);
+            const double plunge = clamp_plunge_depth(seal, 0.05, budget);
+            INFO("immersion=" << immersion << " min_seal_depth=" << floor_depth);
+            CHECK(seal >= 0.0);
+            CHECK(seal + plunge <= immersion + 1e-9);   // the stated maximum, from every path
+        }
+    }
+
+    // Seating mode: at a zero budget nothing enters the tube, the floor included. The tube is
+    // covered by the flat outright, so the nozzle seats on the rim without descending.
+    const double opening0 = max_opening_for_immersion(flat, cone, 0.0);
+    CHECK(opening0 <= flat);
+    CHECK(auto_seal_depth(opening0, flat, cone, immersion_budget(0.0), 0.10)
+          == Catch::Approx(0.0).margin(1e-12));
 }
 
 TEST_CASE("Magma: mechanical interference past first contact is opening-independent", "[Magma][seal]")
 {
-    // The finding the immersion model is built on: because auto_slam_depth solves for
+    // The finding the immersion model is built on: because auto_seal_depth solves for
     // opening + MAGMA_SEAL_MARGIN while the rim is first touched at opening, the interference
     // past contact is MARGIN / (2 tan theta) -- the opening and the flat cancel. Two prints
     // differing only in immersion had identical interference; immersion is what deforms tubes.
@@ -223,31 +243,32 @@ TEST_CASE("Magma: auto sizing leaves room for the plunge", "[Magma][seal]")
                 geom, MagmaTubeWidthMode::Auto, 2.2, flat, lw, cone, immersion, plunge_cfg);
             const double spacing  = cell_spacing_from_geometry(interior, lw);
             const double opening  = geom.opening_diameter(spacing, lw);
-            const double budget   = immersion_budget_for(press, immersion);
-            const double slam     = std::min(budget, std::max(0.0,
-                auto_slam_depth(opening, flat, cone, immersion, press)));
-            const double plunge   = clamp_plunge_depth(slam, plunge_cfg, budget);
-            INFO(pc.name << " plunge_cfg=" << plunge_cfg << " slam=" << slam);
+            const double budget   = immersion_budget(immersion);
+            const double seal     = auto_seal_depth(opening, flat, cone, budget, press);
+            const double plunge   = clamp_plunge_depth(seal, plunge_cfg, budget);
+            INFO(pc.name << " plunge_cfg=" << plunge_cfg << " seal=" << seal);
             CHECK(plunge == Catch::Approx(plunge_cfg).epsilon(1e-6));
-            CHECK(slam + plunge <= budget + 1e-9);
+            CHECK(seal + plunge <= budget + 1e-9);
         }
     }
 }
 
-TEST_CASE("Magma: plunge stays inside both the intrusion clamp and the immersion budget",
-          "[Magma][seal]")
+TEST_CASE("Magma: the plunge never spends past the immersion budget", "[Magma][seal]")
 {
-    // Regression: clamp_plunge_depth used to bound slam+plunge only by MAGMA_SLAM_PLUNGE_CLAMP
-    // and ignore max_immersion entirely, so a user who lowered the immersion budget still got
-    // the full plunge driven past it -- the budget bounded the seal but not the plunge.
-    for (double slam : { 0.1, 0.6, 1.5, 3.4 })
+    // Regression: clamp_plunge_depth used to bound seal+plunge only by a separate 4.0mm
+    // constant and ignore max_immersion entirely, so a user who lowered the immersion budget
+    // still got the full plunge driven past it -- the budget bounded the seal but not the
+    // plunge. The budget is now the only ceiling, which is why the 4.0mm constant is gone.
+    for (double seal : { 0.1, 0.6, 1.5, 3.4 })
         for (double plunge : { 0.0, 0.05, 0.5, 2.0 })
             for (double budget : { 0.0, 0.1, 0.6, 3.5 }) {
-                const double clamped = clamp_plunge_depth(slam, plunge, budget);
-                INFO("slam=" << slam << " plunge=" << plunge << " budget=" << budget);
+                const double clamped = clamp_plunge_depth(seal, plunge, budget);
+                INFO("seal=" << seal << " plunge=" << plunge << " budget=" << budget);
                 CHECK(clamped >= 0.0);
                 CHECK(clamped <= plunge);
-                CHECK(slam + clamped <= MAGMA_SLAM_PLUNGE_CLAMP + 1e-9);
-                CHECK(slam + clamped <= std::max(slam, budget) + 1e-9);
+                // A seal already past the budget leaves no room at all, rather than the
+                // plunge topping up to some other ceiling.
+                CHECK(clamped <= std::max(0.0, budget - seal) + 1e-9);
+                CHECK(seal + clamped <= std::max(seal, budget) + 1e-9);
             }
 }

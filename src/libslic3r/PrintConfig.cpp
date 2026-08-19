@@ -5591,7 +5591,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("magma_nozzle_cone_half_angle", coFloat);
     def->label = L("Nozzle cone half-angle");
     def->category = L("Strength");
-    def->tooltip = L("Half-angle of the cone above the nozzle tip flat, in degrees. Auto Z-slam uses "
+    def->tooltip = L("Half-angle of the cone above the nozzle tip flat, in degrees. The seal depth uses "
                      "it to work out how far to press so the widening cone seals a tube opening larger "
                      "than the flat: z_slam = (opening + margin - flat) / (2 * tan(angle)), capped by "
                      "Max nozzle immersion.\n\n"
@@ -5866,29 +5866,19 @@ void PrintConfigDef::init_fff_params()
 
 
 
-    def = this->add("magma_injection_z_slam_offset", coFloat);
-    def->label = L("Auto Z-slam offset");
-    def->category = L("Strength");
-    def->tooltip = L("Adds this much to the calculated Z-slam depth (+ deeper / - shallower).\n\n"
-                     "Only meaningful with Manual tube width. In Auto sizing the slam already lands "
-                     "exactly on the immersion budget and this is clamped to it — use Max nozzle "
-                     "immersion there instead.");
-    def->sidetext = L("mm");
-    // The only numeric Magma option that had no bounds at all, so the field accepted
-    // +/-FLT_MAX and silently absorbed anything past the immersion budget.
-    def->min = -1.0;
-    def->max = 1.0;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0.0));
-
     def = this->add("magma_max_immersion", coFloat);
-    def->label = L("Max nozzle immersion");
+    def->label = L("Total immersion");
     def->category = L("Strength");
-    def->tooltip = L("How deep the nozzle may descend INTO a tube while sealing it.\n\n"
+    def->tooltip = L("The deepest the nozzle ever gets inside a tube. It seals at the seal depth in one "
+                     "fast move before anything is extruded, then sinks the plunge depth further WHILE "
+                     "the tube fills, arriving here as the last of the filament goes in. Seal depth, "
+                     "Minimum seal depth and Plunge depth are all held under this — nothing can "
+                     "drive past it.\n\n"
                      "Immersion exists only to fit a tube wider than the nozzle flat — a tube the "
                      "flat covers is sealed by seating on the rim, with no descent. It is also what "
                      "deforms tubes: 0.5mm printed cleanly in testing, 1.1mm visibly deformed.\n\n"
-                     "With Auto tube sizing this SIZES the tubes — bigger budget, bigger tubes. "
+                     "With Auto tube sizing this is not a ceiling you might stay under: tubes are sized "
+                     "so that sealing them costs exactly this, so a bigger value buys bigger tubes. "
                      "0 = tubes the flat covers outright.\n\n"
                      "Requires a measured Nozzle tip flat: immersion deliberately makes tubes wider "
                      "than the flat, so it cannot be set against a guess.");
@@ -5899,11 +5889,16 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0.6));
 
     def = this->add("magma_auto_slam_press", coFloat);
-    def->label = L("Seal contact press");
+    def->label = L("Minimum seal depth");
     def->category = L("Strength");
-    def->tooltip = L("Squish applied when the nozzle flat already covers the tube opening, so no descent "
-                     "is needed to seal and the nozzle seats on the rim. Only reached at low Max "
-                     "nozzle immersion; larger tubes seal by descending instead.");
+    def->tooltip = L("Floor under the sealing depth, so a tube whose opening the nozzle flat already "
+                     "covers is pressed into rather than merely touched and part-to-part variation "
+                     "cannot leave a seal open.\n\n"
+                     "It changes nothing unless it exceeds the depth the cone geometry already calls "
+                     "for, which happens only at low Total immersion — larger tubes seal by "
+                     "descending further than this on their own.\n\n"
+                     "This is descent into the tube like any other, so it is capped by Total immersion "
+                     "and consumes plunge headroom as it rises.");
     def->sidetext = L("mm");
     def->min = 0;
     def->max = 1.0;
@@ -5914,11 +5909,12 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Plunge while injecting");
     def->category = L("Strength");
     def->tooltip = L("Sink the nozzle deeper into the tube top as the injection proceeds, instead of "
-                     "holding a single fixed Z-slam. The hot nozzle melts its way into the softening "
+                     "holding one fixed depth. The hot nozzle melts its way into the softening "
                      "surface and keeps the seal pressed shut while the channel fills, so plastic is "
                      "driven down the tube rather than mushrooming out around the nozzle.\n\n"
-                     "The nozzle ramps from the sealing depth (manual or auto Z-slam) down to that "
-                     "depth plus the plunge depth below, spread across the injection.\n\n"
+                     "The descent is folded into the extrusion moves and paced to them, so the nozzle "
+                     "sinks from the seal depth to the seal depth plus the plunge depth over exactly "
+                     "the time the tube takes to fill.\n\n"
                      "KLIPPER: a plunge injection is a combined Z+extrude move that deposits a lot of "
                      "filament over a tiny amount of nozzle movement, so it trips Klipper's "
                      "max_extrude_cross_section guard and ABORTS the print at the first injection. "
@@ -5932,11 +5928,13 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Plunge depth");
     def->category = L("Strength");
     def->tooltip = L("How much deeper the nozzle ramps during a plunge injection, on top of the "
-                     "sealing Z-slam depth, by the time the injection finishes. Larger values press "
+                     "seal depth, by the time the injection finishes. Larger values press "
                      "the hot nozzle harder into the tube top (better seal and surface melting) but "
                      "risk digging into the part.\n\n"
-                     "This ADDS to the immersion the Z-slam already spent, so it is subject to the "
-                     "same deformation limit — keep slam + plunge inside Max nozzle immersion.");
+                     "This ADDS to the immersion the seal already spent and is clamped so the two "
+                     "together stay inside Total immersion. With Auto tube sizing the reservation is "
+                     "made up front, so a deeper plunge buys its room by making the tubes slightly "
+                     "narrower rather than by immersing further.");
     def->sidetext = L("mm");
     def->min = 0;
     def->max = 2.0;
@@ -5947,7 +5945,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Injection dwell time");
     def->category = L("Strength");
     def->tooltip = L("Time to hold the nozzle down after injection, before releasing the "
-                     "Z-slam. Allows injected plastic to spread and fill the tube interior "
+                     "seal. Allows injected plastic to spread and fill the tube interior "
                      "while the nozzle is still sealed against the opening.\n\n"
                      "Set to 0 to disable.");
     def->sidetext = L("ms");

@@ -179,13 +179,13 @@ public:
     float  interior_width() const { return m_interior_width; }
 
     // Circumscribed-circle diameter of the inset triangle = the tube opening the
-    // nozzle flat (plus cone, when z-slamming) must cover to seal. Auto tube
-    // sizing makes this approximately the nozzle tip flat. Used by auto z-slam.
+    // nozzle flat (plus cone, when it descends) must cover to seal. Auto tube
+    // sizing makes this approximately the nozzle tip flat. Used by auto_seal_depth().
     double tube_opening_diameter() const;
     // Actual tube-opening diameter at a pair's cap (injection) layer: 2× the max
     // distance from the injection cell centre to its clipped opening boundary.
     // Falls back to tube_opening_diameter() if unavailable. Drives the per-tube
-    // auto z-slam so the seal matches each tube's real opening.
+    // auto_seal_depth() so the seal matches each tube's real opening.
     double cap_opening_diameter(const UTubePair &pair) const;
     // Centre-to-centre distance to an edge-sharing neighbour cell (injection crater
     // clearance), via the active pattern's geometry.

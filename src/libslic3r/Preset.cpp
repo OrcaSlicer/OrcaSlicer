@@ -1070,7 +1070,6 @@ static std::vector<std::string> s_Preset_print_options{
     "magma_injection_park",
     "magma_injection_park_z_hop",
     "magma_injection_park_retract",
-    "magma_injection_z_slam_offset",
     "magma_max_immersion",
     "magma_auto_slam_press",
     "magma_injection_plunge",

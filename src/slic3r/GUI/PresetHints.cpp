@@ -323,10 +323,10 @@ std::string PresetHints::top_bottom_shell_thickness_explanation(const PresetBund
 // Magma live readouts
 // ============================================================================
 //
-// Auto tube sizing derives the interior width and cell spacing and shows neither, and
-// auto Z-slam makes the manual slam, the cone angle and (at a nonzero immersion budget)
-// the contact press all inert. That combination once cost a full debugging session to
-// discover, so the resolved numbers are printed here. Everything below resolves through
+// Auto tube sizing derives the interior width and cell spacing and shows neither, the seal
+// depth is derived from the tube rather than set, and the minimum seal depth is inert at any
+// immersion the geometry already needs more than. That combination once cost a full debugging
+// session to discover, so the resolved numbers are printed here. Everything below resolves through
 // the same magma:: helpers the slicer uses -- do not reimplement a formula in this file.
 
 // Adapt the edited presets to the typed configs the one shared resolver takes. The GUI is
@@ -415,19 +415,34 @@ PresetHints::MagmaReadout PresetHints::magma_injection_readout(const PresetBundl
     // Every number here comes from magma::resolve_magma -- the same resolver MagmaTubeMap::build
     // and Print::validate use -- so this cannot describe a tube the slicer will not print.
     MagmaRows r;
-    r.add(_utf8(L("Seal depth")), mm(m.slam_depth),
+    // A value the budget cut down is shown as what will happen, with what was asked for
+    // beside it. Printing only the clamped number leaves the field and the readout quietly
+    // disagreeing, which is how a setting that is not in effect reads as one that is.
+    auto mm_clamped = [&mm](double effective, double requested) {
+        return mm(effective) + (boost::format(_utf8(L("  (asked %1$.3f, capped)"))) % requested).str();
+    };
+
+    r.add(_utf8(L("Seal depth")), mm(m.seal_depth),
           m.opening_diameter > m.nozzle_flat
-              ? _utf8(L("the opening is wider than the nozzle flat, so the nozzle descends into the tube until the cone covers it"))
+              ? _utf8(L("reached in one fast move before any filament flows: the opening is wider than the nozzle flat, so the nozzle descends until the cone covers it"))
               : _utf8(L("the flat already covers the opening, so the nozzle seats on the rim without entering the tube")));
-    r.add(_utf8(L("Seal contact press")), mm(m.slam_press),
-          _utf8(L("squish applied when no descent is geometrically needed, so part-to-part variation cannot leave the seal open")));
-    r.add(_utf8(L("Plunge")), mm(m.plunge_depth),
-          print_config.opt_bool("magma_injection_plunge")
-              ? _utf8(L("extra depth the nozzle ramps to during injection, keeping the seal shut as pressure builds"))
-              : _utf8(L("disabled")));
+    r.add(_utf8(L("Minimum seal depth")),
+          m.min_seal_clamped() ? mm_clamped(m.budget, m.min_seal_depth) : mm(m.min_seal_depth),
+          m.min_seal_clamped()
+              ? _utf8(L("deeper than Total immersion allows, so the seal stops at the budget instead"))
+              : (m.min_seal_depth > m.seal_depth - 1e-9
+                     ? _utf8(L("floor under the seal depth; it is what is setting the depth above, since the cone geometry needs less"))
+                     : _utf8(L("floor under the seal depth; inert here, because the cone geometry already needs more than this"))));
+    r.add(_utf8(L("Plunge")),
+          m.plunge_clamped() ? mm_clamped(m.plunge_depth, m.plunge_requested) : mm(m.plunge_depth),
+          ! print_config.opt_bool("magma_injection_plunge")
+              ? _utf8(L("disabled"))
+              : (m.plunge_clamped()
+                     ? _utf8(L("the seal depth already spent most of the budget, leaving only this much room to sink further"))
+                     : _utf8(L("the nozzle sinks this much further WHILE the tube fills, paced to the extrusion, keeping the seal shut as pressure builds"))));
     r.add(_utf8(L("Total immersion")), mm(m.total_depth()),
-          (boost::format(_utf8(L("how far the hot nozzle travels inside the tube, against the %1$.3f mm budget; this is what deforms tube walls")))
-           % m.immersion_budget).str());
+          (boost::format(_utf8(L("deepest the nozzle gets, reached as the last filament goes in and held through the dwell; the budget is %1$.3f mm and this is what deforms tube walls")))
+           % m.budget).str());
 
     const double open_area   = m.geometry->inset_open_area(m.cell_spacing, m.line_width);
     const double tube_height = print_config.opt_float("magma_tube_height");

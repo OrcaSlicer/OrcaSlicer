@@ -937,7 +937,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     bool is_magma_infill = is_magma_pattern(config->opt_enum<InfillPattern>("sparse_infill_pattern"));
     bool have_magma_pattern = is_magma_infill || have_dual_infill;
 
-    // Auto Z-slam derives the slam depth from nozzle geometry; it needs the nozzle
+    // The seal depth is derived from nozzle geometry; it needs the nozzle
     // tip flat and cone angle, so those fields follow this toggle.
 
     // Magma Pattern section
@@ -970,14 +970,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
                      "magma_injection_edge_pref",
         "magma_injection_park", "magma_injection_dwell", "magma_injection_retract" })
         toggle_line(el, have_magma_pattern);
-    // Z-slam: auto toggle shown when Magma. Swap fields by mode — the auto TRIM when auto is on,
-    // the manual DEPTH when auto is off (only one is ever relevant/used at a time).
-    // In Auto tube sizing the tube is sized so the slam lands exactly on the immersion
-    // budget, and the offset is re-clamped to that budget -- so a positive offset there is
-    // a silent no-op. Only show it in Manual tube width, where the slam can sit below the
-    // budget and the trim has room to work.
-    toggle_line("magma_injection_z_slam_offset", have_magma_pattern && !tube_auto);
-    // The immersion budget both sizes the tube (Auto) and caps the slam (always) -- but it
+    // Immersion: the budget both sizes the tube (Auto) and caps the seal (always) -- but it
     // only makes sense once the nozzle flat is known, because immersion deliberately sizes
     // tubes WIDER than the flat. Shown-but-disabled rather than hidden, so the tooltip can
     // explain what measuring unlocks instead of the setting just not existing.

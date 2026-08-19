@@ -740,7 +740,7 @@ void MagmaTubeMap::scan_layers(const std::vector<Layer*> &layers)
 
             // Opening radius: farthest point of the clipped opening from the injection
             // point — the seal cone must spread this far to cover it. Drives the per-tube
-            // auto z-slam (see cap_opening_diameter()).
+            // the per-tube seal depth (see cap_opening_diameter()).
             double opening_r_scaled = 0.0;
             for (const ExPolygon &ep : clipped)
                 for (const Point &p : ep.contour.points)

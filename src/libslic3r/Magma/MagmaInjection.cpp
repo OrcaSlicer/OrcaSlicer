@@ -115,7 +115,7 @@ std::string generate_injection_gcode(
         return {};
     }
 
-    double slam_depth        = 0.0;  // resolved below (auto mode needs extruder/nozzle info)
+    double seal_depth        = 0.0;  // resolved below (auto mode needs extruder/nozzle info)
     int    dwell_ms          = config.magma_injection_dwell.value;
     bool inj_retract         = config.magma_injection_retract.value;
 
@@ -139,33 +139,31 @@ std::string generate_injection_gcode(
     double filament_diameter = config.filament_diameter.get_at(extruder_id);
     double filament_area = (PI / 4.0) * filament_diameter * filament_diameter;
 
-    // Resolve Z-slam depth from nozzle cone geometry (the cone widens from the flat to
+    // Resolve the seal depth from nozzle cone geometry (the cone widens from the flat to
     // cover the opening). The seal math lives in MagmaTriangleCell.hpp so the injection
     // here and Print::validate() stay in lockstep.
     double seal_flat = resolve_nozzle_flat(config.magma_nozzle_outer_diameter.value,
                                            config.nozzle_diameter.get_at(extruder_id));
-    const double max_immersion = config.magma_max_immersion.value;
-    const double slam_press    = config.magma_auto_slam_press.value;
-    // How deep the hot nozzle may travel inside a tube, from any path. Slam, the user
-    // offset and the plunge all spend from this one budget.
-    const double immersion_budget = immersion_budget_for(slam_press, max_immersion);
+    const double min_seal_depth = config.magma_auto_slam_press.value;
+    // How deep the hot nozzle may travel inside a tube, from any path. The seal depth and
+    // the plunge both spend from this one budget, and both are clamped against it below.
+    const double budget = immersion_budget(config.magma_max_immersion.value);
     // Sealing depth is always derived from this tube's own opening. A single fixed depth
     // over-presses small boundary tubes and under-seals large ones, so there is no manual
-    // mode: magma_max_immersion is the direct depth control (in auto tube sizing the tube
-    // is sized so the depth lands exactly on the budget).
-    slam_depth = auto_slam_depth(tube_map.tube_opening_diameter(), seal_flat,
+    // mode: Total immersion is the direct depth control (in auto tube sizing the tube is
+    // sized so the depth lands exactly on the budget).
+    seal_depth = auto_seal_depth(tube_map.tube_opening_diameter(), seal_flat,
                                  config.magma_nozzle_cone_half_angle.value,
-                                 max_immersion, slam_press);
-    slam_depth = std::min(immersion_budget,
-                          std::max(0.0, slam_depth + config.magma_injection_z_slam_offset.value));
+                                 budget, min_seal_depth);
 
     // Plunge ("slam-melt"): ramp the nozzle deeper during the injection so the hot
     // tip sinks into the softening tube top and keeps the seal pressed shut as the
-    // channel fills. Ramps from slam_depth to slam_depth + plunge_depth, clamped so
-    // the total intrusion stays bounded.
-    double plunge_depth = config.magma_injection_plunge.value
-                              ? clamp_plunge_depth(slam_depth, config.magma_injection_plunge_depth.value, immersion_budget)
-                              : 0.0;
+    // channel fills. Ramps from seal_depth to seal_depth + plunge_depth, clamped so
+    // the total intrusion stays inside the same budget.
+    const double plunge_cfg = config.magma_injection_plunge.value
+                                  ? std::max(0.0, config.magma_injection_plunge_depth.value)
+                                  : 0.0;
+    double plunge_depth = clamp_plunge_depth(seal_depth, plunge_cfg, budget);
 
     // Raw volume→E conversion: 1/cross_section, without filament_flow_ratio.
     // Injection volume is geometrically computed from tube dimensions; applying
@@ -222,20 +220,16 @@ std::string generate_injection_gcode(
             continue;
         }
 
-        // Per-tube auto z-slam: seal to THIS tube's actual cap opening (measured in
+        // Per-tube seal depth: seal to THIS tube's actual cap opening (measured in
         // scan_layers) instead of the global ideal — boundary-cap tubes have smaller
-        // openings and would otherwise be over-slammed. Manual mode keeps the fixed
-        // slam_depth resolved above. plunge_depth tracks slam_depth.
+        // openings and would otherwise be over-pressed. plunge_depth tracks seal_depth,
+        // so a shallower tube keeps the plunge headroom the deeper one spent.
         {
             const auto& slam_pair = tube_map.u_tube_pairs()[pt.pair_index];
-            slam_depth = auto_slam_depth(tube_map.cap_opening_diameter(slam_pair), seal_flat,
-                                         config.magma_nozzle_cone_half_angle.value,
-                                         max_immersion, slam_press);
-            slam_depth = std::min(immersion_budget,
-                                  std::max(0.0, slam_depth + config.magma_injection_z_slam_offset.value));
-            plunge_depth = config.magma_injection_plunge.value
-                               ? clamp_plunge_depth(slam_depth, config.magma_injection_plunge_depth.value, immersion_budget)
-                               : 0.0;
+            seal_depth   = auto_seal_depth(tube_map.cap_opening_diameter(slam_pair), seal_flat,
+                                           config.magma_nozzle_cone_half_angle.value,
+                                           budget, min_seal_depth);
+            plunge_depth = clamp_plunge_depth(seal_depth, plunge_cfg, budget);
         }
 
         // Travel to injection point. The built-in travel_to() handles retraction,
@@ -248,9 +242,9 @@ std::string generate_injection_gcode(
         // GCodeWriter::retract) and any travel retract/lift from travel_to().
         gcode += gcodegen.unretract();
 
-        // Z-slam: lower nozzle into surface to seal against hole
-        if (slam_depth > 0) {
-            sprintf(buf, "G1 Z%.3f F%d ; z-slam seal\n", layer_z - slam_depth, z_feedrate);
+        // Seal: one fast move down into the surface, sealing against the tube opening
+        if (seal_depth > 0) {
+            sprintf(buf, "G1 Z%.3f F%d ; magma seal\n", layer_z - seal_depth, z_feedrate);
             gcode += buf;
         }
 
@@ -374,7 +368,7 @@ std::string generate_injection_gcode(
             const double f_inject = feedrate_mmmin * plunge_depth / std::max(1e-4, filament_length);
             gcode += gcodegen.writer().set_speed(f_inject);
             for (int k = 0; k < N; ++k) {
-                double z = layer_z - (slam_depth + plunge_depth * double(k + 1) / double(N));
+                double z = layer_z - (seal_depth + plunge_depth * double(k + 1) / double(N));
                 gcode += gcodegen.writer().extrude_to_xyz(
                     Vec3d(xy.x(), xy.y(), z), filament_length / double(N),
                     N > 1 ? "injection segment" : "Magma injection");
@@ -397,7 +391,7 @@ std::string generate_injection_gcode(
         // freshly-injected plug back up through the still-sealed interface. 0.3mm
         // relieves the contact pressure regardless of how deep the plunge was.
         const double break_lift = 0.3;
-        double deep_z = layer_z - slam_depth - plunge_depth;   // nozzle depth after plunge
+        double deep_z = layer_z - seal_depth - plunge_depth;   // nozzle depth after plunge
         sprintf(buf, "G1 Z%.3f F%d ; injection break-lift\n", deep_z + break_lift, z_feedrate);
         gcode += buf;
         if (inj_retract)
@@ -454,7 +448,7 @@ std::string generate_injection_gcode(
             //            radius at the bottom of the slam+plunge.
             // start_R  = begin the spiral this far out, so it catches the whole
             //            displaced rim (margin beyond the footprint).
-            double crater_r = r_flat + (slam_depth + plunge_depth) * std::tan(cone_rad);
+            double crater_r = r_flat + (seal_depth + plunge_depth) * std::tan(cone_rad);
             // Margin 0 = auto. Any Z below the print surface displaces wall material out AND
             // up: it rides the nozzle bevel and piles into a rim just outside the mouth, like
             // an impact crater. The spiral plows that back in with the BEVEL, not the flat, so
@@ -547,7 +541,7 @@ std::string generate_injection_gcode(
             gcodegen.writer().set_position(Vec3d(c.x(), c.y(), layer_z));
         } else {
             // No wipe: just return to layer height and resync the writer's Z.
-            sprintf(buf, "G1 Z%.3f F%d ; z-slam release\n", layer_z, z_feedrate);
+            sprintf(buf, "G1 Z%.3f F%d ; magma seal release\n", layer_z, z_feedrate);
             gcode += buf;
             Vec3d p = gcodegen.writer().get_position(); p.z() = layer_z;
             gcodegen.writer().set_position(p);

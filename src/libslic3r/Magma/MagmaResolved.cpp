@@ -51,39 +51,32 @@ bool resolve_magma(const PrintRegionConfig &region,
                                                       r.injection_nozzle_diameter);
     r.cone_half_angle_deg = object.magma_nozzle_cone_half_angle.value;
     r.max_immersion       = object.magma_max_immersion.value;
-    r.slam_press          = object.magma_auto_slam_press.value;
+    r.min_seal_depth      = object.magma_auto_slam_press.value;
 
     // Auto sizing must leave room for the plunge, or the seal consumes the whole budget and
-    // the plunge clamps to zero (see effective_interior_width).
-    const double plunge_reserve = object.magma_injection_plunge.value
-                                      ? std::max(0.0, object.magma_injection_plunge_depth.value)
-                                      : 0.0;
+    // the plunge clamps to zero (see effective_interior_width). Resolved before sizing and
+    // reused for the clamp below, so the depth the tube was sized around and the depth the
+    // nozzle is asked for are the same number rather than two readings of one option.
+    r.plunge_requested = object.magma_injection_plunge.value
+                             ? std::max(0.0, object.magma_injection_plunge_depth.value)
+                             : 0.0;
     r.interior_width   = effective_interior_width(*r.geometry,
                                                   object.magma_tube_width_mode.value,
                                                   object.magma_interior_width.value,
                                                   r.nozzle_flat, r.line_width,
                                                   r.cone_half_angle_deg, r.max_immersion,
-                                                  plunge_reserve);
+                                                  r.plunge_requested);
     r.cell_spacing     = cell_spacing_from_geometry(r.interior_width, r.line_width);
     r.opening_diameter = r.geometry->opening_diameter(r.cell_spacing, r.line_width);
     r.bore_diameter    = 2.0 * r.geometry->inscribed_radius(r.interior_width, r.line_width);
 
-    // The budget both depths live under. slam_press participates because a press is applied
-    // even when the flat already covers the opening and no descent is geometrically needed.
-    r.immersion_budget = immersion_budget_for(r.slam_press, r.max_immersion);
-    // The user's offset is added before the clamp, exactly as MagmaInjection does it, so a
-    // positive offset in Auto tube mode is absorbed by the budget rather than deepening the
-    // seal -- and the readout says the same thing the G-code will do.
-    r.slam_depth       = std::min(r.immersion_budget,
-                                  std::max(0.0, auto_slam_depth(r.opening_diameter, r.nozzle_flat,
-                                                                r.cone_half_angle_deg,
-                                                                r.max_immersion, r.slam_press)
-                                                + object.magma_injection_z_slam_offset.value));
-    r.plunge_depth     = object.magma_injection_plunge.value
-                             ? clamp_plunge_depth(r.slam_depth,
-                                                  object.magma_injection_plunge_depth.value,
-                                                  r.immersion_budget)
-                             : 0.0;
+    // The one budget both depths live under. auto_seal_depth and clamp_plunge_depth are both
+    // handed this same value, which is what makes total_depth() <= max_immersion hold without
+    // any call site here clamping again.
+    r.budget           = immersion_budget(r.max_immersion);
+    r.seal_depth       = auto_seal_depth(r.opening_diameter, r.nozzle_flat,
+                                         r.cone_half_angle_deg, r.budget, r.min_seal_depth);
+    r.plunge_depth     = clamp_plunge_depth(r.seal_depth, r.plunge_requested, r.budget);
 
     out = r;
     return true;

@@ -1438,18 +1438,15 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 break;
             }
 
-            // (2) Seal prediction: at its deepest (z-slam + plunge, clamped) does
+            // (2) Seal prediction: at its deepest (seal depth + plunge, clamped) does
             // the nozzle cone widen enough to cover the tube opening with margin?
-            // This catches both an auto opening-too-big-for-the-flat (slam clamped)
-            // and a too-shallow manual z-slam. Uses the same seal math the injection
-            // G-code applies (MagmaTriangleCell.hpp) so the warning can't drift.
+            // This catches both an auto opening-too-big-for-the-flat and a too-shallow
+            // manual tube. Uses the same seal math the injection G-code applies
+            // (MagmaTriangleCell.hpp) so the warning can't drift.
             {
                 const double flat    = m.nozzle_flat;
                 const double opening = m.opening_diameter;
-                const double slam    = m.slam_depth;
-                const double plunge  = m.plunge_depth;
                 const double covered = m.covered_diameter();
-                const double immersion_budget = m.immersion_budget;
 
                 // Immersion the cone genuinely needs to reach this opening.
                 double needed = magma::seal_depth_for_opening(opening + magma::MAGMA_SEAL_MARGIN,
@@ -1457,26 +1454,53 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
 
                 if (warning && warning->string.empty() && opening > 0.0 &&
                     covered + 1e-9 < opening + magma::MAGMA_SEAL_MARGIN) {
-                    if (needed > immersion_budget + 1e-9) {
+                    if (needed > m.budget + 1e-9) {
                         // The tube is wider than the immersion budget can seal. Distinct from a
-                        // too-shallow manual slam: here the budget is deliberately holding the
+                        // too-shallow manual tube: here the budget is deliberately holding the
                         // nozzle back, which is what it is for.
                         warning->string = Slic3r::format(
                             L("Magma tube is too wide to seal within the immersion budget: covering a "
                               "%.2f mm opening with a %.2f mm nozzle flat needs the nozzle to enter the "
-                              "tube %.2f mm, but Max nozzle immersion is %.2f mm.\n\n"
-                              "Reduce the tube width, use a nozzle with a larger flat tip, or raise Max "
-                              "nozzle immersion — bearing in mind that deeper immersion is what deforms "
+                              "tube %.2f mm, but Total immersion is %.2f mm.\n\n"
+                              "Reduce the tube width, use a nozzle with a larger flat tip, or raise Total "
+                              "immersion — bearing in mind that deeper immersion is what deforms "
                               "tube walls (around 1.1 mm was measured as visibly deforming)."),
-                            opening, flat, needed, immersion_budget);
+                            opening, flat, needed, m.budget);
                     } else {
                         warning->string = Slic3r::format(
                             L("Magma injection may not seal: at its deepest the nozzle covers only "
-                              "%.2f mm (Z-slam %.2f + plunge %.2f mm) but the tube opening is %.2f mm. "
-                              "Increase the Z-slam or plunge depth, reduce the injection tube width, or "
-                              "use a nozzle with a larger flat."),
-                            covered, slam, plunge, opening);
+                              "%.2f mm (seal depth %.2f + plunge %.2f mm) but the tube opening is "
+                              "%.2f mm. Raise Total immersion, reduce the injection tube width, or use "
+                              "a nozzle with a larger flat."),
+                            covered, m.seal_depth, m.plunge_depth, opening);
                     }
+                    warning->object = object;
+                    warning->is_warning = true;
+                }
+
+                // A depth the budget cut down is reported, never silently applied. Both of these
+                // are settings whose field says one number while the nozzle does another, which
+                // is the failure the single budget exists to make impossible -- so it has to be
+                // audible here and not only in the settings readout.
+                if (warning && warning->string.empty() && m.min_seal_clamped()) {
+                    warning->string = Slic3r::format(
+                        L("Magma minimum seal depth (%.2f mm) is deeper than Total immersion "
+                          "(%.2f mm), so the nozzle stops at the budget instead.\n\n"
+                          "The minimum seal depth is descent into the tube like any other and is "
+                          "capped by Total immersion. Lower it, or raise Total immersion if you "
+                          "genuinely want the nozzle that deep."),
+                        m.min_seal_depth, m.budget);
+                    warning->object = object;
+                    warning->is_warning = true;
+                }
+                if (warning && warning->string.empty() && m.plunge_clamped()) {
+                    warning->string = Slic3r::format(
+                        L("Magma plunge depth is reduced from %.2f mm to %.2f mm: sealing this tube "
+                          "already spends %.2f mm of the %.2f mm Total immersion, and the plunge may "
+                          "not push past it.\n\n"
+                          "Raise Total immersion, or narrow the tubes so they seal shallower and "
+                          "leave the plunge more room."),
+                        m.plunge_requested, m.plunge_depth, m.seal_depth, m.budget);
                     warning->object = object;
                     warning->is_warning = true;
                 }

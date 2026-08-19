@@ -2483,7 +2483,6 @@ void TabPrint::build()
         optgroup->append_single_option_line("magma_injection_speed");
         optgroup->append_single_option_line("magma_injection_ordering");
         optgroup->append_single_option_line("magma_injection_edge_pref");
-        optgroup->append_single_option_line("magma_injection_z_slam_offset");
         optgroup->append_single_option_line("magma_auto_slam_press");
         optgroup->append_single_option_line("magma_injection_plunge");
         optgroup->append_single_option_line("magma_injection_plunge_depth");
@@ -2497,8 +2496,9 @@ void TabPrint::build()
         optgroup->append_single_option_line("magma_injection_iron_speed");
         optgroup->append_single_option_line("magma_injection_iron_hover");
         optgroup->append_single_option_line("magma_injection_iron_margin");
-        // Auto Z-slam makes the manual depth and cone angle inert, so the depth that
-        // actually reaches the printer is otherwise invisible.
+        // The seal depth is derived from the tube and the cone, never typed, so the depth that
+        // actually reaches the printer is otherwise invisible -- as is any value the immersion
+        // budget cut down on its way there.
         if (supports_description_lines()) {
             Line line = { "", "" };
             line.full_width = 1;
