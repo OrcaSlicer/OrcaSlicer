@@ -26,9 +26,11 @@
 #include "nlohmann/json.hpp"
 #include "slic3r/Utils/json_diff.hpp"
 
+#include <atomic>
 #include <map>
 #include <vector>
 #include <memory>
+#include <boost/thread.hpp>
 #include "Event.hpp"
 #include "libslic3r/ProjectTask.hpp"
 #include "wxExtensions.hpp"
@@ -60,14 +62,17 @@ struct project_file{
 class ProjectPanel : public wxPanel
 {
 private:
-    bool       m_web_init_completed = {false};
+    std::atomic<bool> m_web_init_completed{false};
     bool       m_reload_already = {false};
+
+    std::shared_ptr<std::atomic<bool>> m_reload_cancel_token{std::make_shared<std::atomic<bool>>(false)};
+    std::unique_ptr<boost::thread> m_reload_task;
 
     wxWebView* m_browser = {nullptr};
     AuxiliaryPanel*   m_auxiliary{nullptr};
     wxString   m_project_home_url;
     wxString   m_root_dir;
-    static inline int m_sequence_id = 8000;
+    static inline std::atomic<int> m_sequence_id{8000};
 
     void show_info_editor(bool show);
     
@@ -75,6 +80,7 @@ private:
 public:
     ProjectPanel(wxWindow *parent, wxWindowID id = wxID_ANY, const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize, long style = wxTAB_TRAVERSAL);
     ~ProjectPanel();
+    void shutdown();
 
     
     void onWebNavigating(wxWebViewEvent& evt);
