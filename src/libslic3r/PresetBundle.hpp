@@ -568,15 +568,15 @@ private:
     // load_vendor_configs_from_json reads a cache.
     bool load_vendor_cache(const boost::filesystem::path& dir, const std::string& vendor_name, const PresetBundle* base_bundle);
 
-    // Install one source-form preset entry into this bundle: resolve `inherits`,
-    // flatten, validate and register the preset. Returns the reason installation
+    // Load one source-form preset entry into this bundle: resolve `inherits`,
+    // flatten, validate and register the preset. Returns the reason loading
     // failed, empty on success. See the definition for the sharing contract
     // between the JSON parse and the cache load.
     // retain_configs, when non-null, names the only presets registered into
     // config_maps (a full config copy each). The cache load passes the names its
     // entries inherit — the only ones ever looked up again; the JSON parse
     // retains all, not knowing what later subfiles inherit.
-    std::string install_vendor_preset(const CachedPreset& entry,
+    std::string load_vendor_preset(const CachedPreset& entry,
         const std::string& path, const std::string& vendor_name,
         const PresetBundle* base_bundle,
         LoadConfigBundleAttributes flags,

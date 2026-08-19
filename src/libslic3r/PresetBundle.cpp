@@ -4796,14 +4796,14 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": finished");
 }
 
-// Orca: install one source-form preset entry — parsed from its JSON subfile just
+// Orca: load one source-form preset entry — parsed from its JSON subfile just
 // now, or deserialized from the vendor's cache; the code is shared so a
 // cache-loaded bundle cannot come out different from a JSON-loaded one.
-// Resolves `inherits` against the presets installed before this one
+// Resolves `inherits` against the presets loaded before this one
 // (config_maps) or against base_bundle's filament library, flattens, validates
-// and registers the preset. Returns the reason installation failed, empty on
+// and registers the preset. Returns the reason loading failed, empty on
 // success.
-std::string PresetBundle::install_vendor_preset(
+std::string PresetBundle::load_vendor_preset(
     const CachedPreset& entry,
     const std::string& path, const std::string& vendor_name,
     const PresetBundle* base_bundle,
@@ -5293,7 +5293,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
     size_t                   presets_loaded = 0;
 
     // Parse one subfile into a source-form entry — everything the JSON states,
-    // nothing resolved. Installing the entry (install_vendor_preset) is the
+    // nothing resolved. Loading the entry (load_vendor_preset) is the
     // same code whether the entry was parsed just now or deserialized from the
     // vendor's cache.
     auto parse_subfile = [this, dir, vendor_name](
@@ -5384,7 +5384,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
             std::string reason = parse_subfile(substitution_context, subfile, entry);
             if (reason.empty()) {
                 const int errors_before_install = m_errors;
-                reason = install_vendor_preset(entry, dir, vendor_name, base_bundle, flags,
+                reason = load_vendor_preset(entry, dir, vendor_name, base_bundle, flags,
                                                substitution_context, substitutions, configs, filament_id_maps, presets,
                                                presets_loaded, is_from_lib);
                 install_errors += m_errors - errors_before_install;
@@ -6112,7 +6112,7 @@ bool PresetBundle::load_vendor_cache(const std::string& cache_path, const std::s
                     inherited.insert(entry.inherits);
             const std::set<std::string>* retain_configs = is_from_lib ? nullptr : &inherited;
             for (const CachedPreset& entry : entries) {
-                const std::string reason = install_vendor_preset(entry, path, vendor_name,
+                const std::string reason = load_vendor_preset(entry, path, vendor_name,
                     base_bundle, LoadConfigBundleAttribute::LoadSystem, substitution_context, substitutions,
                     configs, filament_id_maps, presets, count, is_from_lib, retain_configs);
                 if (! reason.empty())
