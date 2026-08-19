@@ -1,0 +1,28 @@
+---
+ build/cmake/wxWidgetsConfig.cmake.in | 10 +++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/build/cmake/wxWidgetsConfig.cmake.in b/build/cmake/wxWidgetsConfig.cmake.in
+index 1a83f36..70ad8a4 100644
+--- a/build/cmake/wxWidgetsConfig.cmake.in
++++ b/build/cmake/wxWidgetsConfig.cmake.in
+@@ -58,7 +58,16 @@ if(WIN32_MSVC_NAMING)
+     endif()
+ endif()
+ 
+-include("${CMAKE_CURRENT_LIST_DIR}${wxPLATFORM_LIB_DIR}/@PROJECT_NAME@Targets.cmake")
++if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
++    if (CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64" OR CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "^(ARM64|arm64|aarch64)$")
++        set(_wx_clang_msvc_lib_dir "vc_arm64_lib")
++    else()
++        set(_wx_clang_msvc_lib_dir "vc_x64_lib")
++    endif()
++    include("${CMAKE_CURRENT_LIST_DIR}${wxPLATFORM_LIB_DIR}/${_wx_clang_msvc_lib_dir}/@PROJECT_NAME@Targets.cmake")
++else()
++    include("${CMAKE_CURRENT_LIST_DIR}${wxPLATFORM_LIB_DIR}/@PROJECT_NAME@Targets.cmake")
++endif()
+ 
+ macro(wx_inherit_property source dest name)
+     # property name without _<CONFIG>
+--
+2.43.0

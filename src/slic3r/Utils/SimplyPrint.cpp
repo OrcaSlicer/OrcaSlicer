@@ -325,7 +325,7 @@ bool SimplyPrint::do_temp_upload(const boost::filesystem::path& file_path,
                 wxLaunchDefaultBrowser(url);
             } else {
                 const auto mainframe = GUI::wxGetApp().mainframe;
-                mainframe->request_select_tab(MainFrame::TabPosition::tpMonitor);
+                mainframe->request_select_tab(TAB_ID_MONITOR);
                 mainframe->load_printer_url(url);
             }
 
