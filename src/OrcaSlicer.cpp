@@ -57,6 +57,7 @@ using namespace nlohmann;
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/GCode.hpp"
+#include "libslic3r/MaterialType.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/Platform.hpp"
@@ -7969,6 +7970,12 @@ bool CLI::setup(int argc, char **argv)
         boost::nowide::cerr << "Could not create data directory: " << data_dir() << std::endl;
         return false;
     }
+
+    // The material tables (and the filament type list derived from them) are shipped as JSON in
+    // <resources>/info and mirrored into <data_dir>/info, so they can only be read once both
+    // directories are known.
+    MaterialType::load();
+    refresh_material_type_config_defs();
 
     //FIXME Validating at this stage most likely does not make sense, as the config is not fully initialized yet.
     if (!validity.empty()) {
