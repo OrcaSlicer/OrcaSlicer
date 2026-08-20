@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:59+0800\n"
+"POT-Creation-Date: 2026-08-19 14:07-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -4786,16 +4786,19 @@ msgstr "Aktuální teplota komory je vyšší než bezpečná teplota materiálu
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "Minimální teplota komory (%d℃) je vyšší než cílová teplota komory (%d℃). Minimální hodnota je práh, při kterém tisk začíná, zatímco se komora dále ohřívá k cílové teplotě, takže by ji neměla překročit. Bude omezena na cílovou hodnotu."
 
+# AI Translated
 #, c-format, boost-format
 msgid "Layer height is too small. It will be set to the minimum (%g mm)."
-msgstr ""
+msgstr "Výška vrstvy je příliš malá. Bude nastavena na minimum (%g mm)."
 
+# AI Translated
 msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr ""
+msgstr "Výška vrstvy je mimo limity nastavené v Nastavení tiskárny -> Extruder -> Omezení výšky vrstvy, což může způsobit problémy s kvalitou tisku."
 
+# AI Translated
 #, c-format, boost-format
 msgid "Adjust it to the limit (%g mm) automatically?"
-msgstr ""
+msgstr "Upravit ji automaticky na limit (%g mm)?"
 
 msgid "Adjust"
 msgstr "Upravit"
@@ -4920,8 +4923,9 @@ msgstr ""
 "Ano – povolit Arachne Wall Generator\n"
 "Ne – zakázat Arachne Wall Generator a nastavit režim [Displacement] pro Fuzzy Skin"
 
+# AI Translated
 msgid "Brim ear radius"
-msgstr ""
+msgstr "Poloměr ouška límce"
 
 msgid "Brim width"
 msgstr "Šířka límce"
@@ -4940,10 +4944,6 @@ msgstr ""
 "Změnit tato nastavení automaticky?\n"
 "Ano – změnit tato nastavení a automaticky povolit spirálový režim\n"
 "Ne – tentokrát nepoužít spirálový režim"
-
-# AI Translated
-msgid "N/A"
-msgstr "N/A"
 
 msgid "Printing"
 msgstr "Tisk"
@@ -5184,11 +5184,13 @@ msgstr "Nepodařilo se vygenerovat kalibrační G-code."
 msgid "Calibration error"
 msgstr "Chyba kalibrace"
 
+# AI Translated
 msgid "This printer is not configured with the hardware this control needs."
-msgstr ""
+msgstr "Tato tiskárna nemá nakonfigurovaný hardware, který tento ovládací prvek vyžaduje."
 
+# AI Translated
 msgid "This control is not supported on this printer."
-msgstr ""
+msgstr "Tento ovládací prvek není na této tiskárně podporován."
 
 # AI Translated
 msgid "Network unavailable"
@@ -5401,6 +5403,10 @@ msgstr "Neplatný vzor. Použijte N, N#K nebo seznam oddělený čárkami s voli
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Neplatný formát. Očekávaný vektorový formát: \"%1%\""
+
+# AI Translated
+msgid "N/A"
+msgstr "N/A"
 
 # AI Translated
 msgid "System agents"
@@ -6236,8 +6242,9 @@ msgstr "Více zařízení"
 msgid "Project"
 msgstr "Projekt"
 
+# AI Translated
 msgid "Device (Web)"
-msgstr ""
+msgstr "Zařízení (Web)"
 
 msgid "Yes"
 msgstr "Ano"
@@ -6366,12 +6373,6 @@ msgstr "Uložit projekt jako"
 
 msgid "Save current project as"
 msgstr "Uložit aktuální projekt jako"
-
-msgid "Publish 3MF"
-msgstr ""
-
-msgid "Export a 3MF file with the selected settings embedded"
-msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Importovat 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -8192,12 +8193,6 @@ msgstr "Potvrďte prosím, že je G-code v těchto předvolbách bezpečný, aby
 msgid "Customized Preset"
 msgstr "Přizpůsobená předvolba"
 
-msgid "Some published settings could not be applied:"
-msgstr ""
-
-msgid "Some filament slots were changed to match the published materials:"
-msgstr ""
-
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "Názvy komponent v souboru STEP nejsou ve formátu UTF-8!"
 
@@ -8583,17 +8578,6 @@ msgstr "Uložit rozřezaný soubor jako:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "Soubor %s byl odeslán do úložiště tiskárny a lze jej zobrazit na tiskárně."
-
-msgid "Publish 3MF file as:"
-msgstr ""
-
-msgid ""
-"Failed to export the published 3MF file.\n"
-"Please check whether the folder exists online or if other programs have the file open."
-msgstr ""
-
-msgid "Publish"
-msgstr "Publikovat"
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "Typ trysky není nastaven. Nastavte prosím trysku a zkuste to znovu."
@@ -9122,6 +9106,18 @@ msgstr "Pokud je tato volba povolena, můžete odeslat úlohu na více zařízen
 msgid "Pop up to select filament grouping mode"
 msgstr "Zobrazit dialog pro výběr režimu seskupení filamentů"
 
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "Viditelné stránky pluginů"
+
+# AI Translated
+msgid "pages"
+msgstr "stránek"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "Počet stránek pluginů zobrazených jako pevné karty, než se zbývající stránky sbalí do rozbalovací nabídky na poslední kartě."
+
 msgid "Behaviour"
 msgstr "Chování"
 
@@ -9509,13 +9505,17 @@ msgstr "Zobrazit nepodporované předvolby"
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "Zobrazovat nekompatibilní/nepodporované předvolby v rozevíracích seznamech tiskáren a filamentů. Tyto předvolby nelze vybrat."
 
+# AI Translated
 msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr ""
+msgstr "(Experimentální) Používat agenty tiskárny místo tiskových hostů"
 
+# AI Translated
 msgid ""
 "Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
 "When disabled, OrcaSlicer uses the legacy print-host behavior."
 msgstr ""
+"Směruje tiskové úlohy pro tiskárny jiné než Bambu přes agenty pluginů tiskárny místo klasického nahrávání na tiskový host.\n"
+"Pokud je vypnuto, OrcaSlicer používá původní chování tiskového hosta."
 
 # AI Translated
 msgid "Experimental Features"
@@ -9756,6 +9756,9 @@ msgstr "Přejít na webovou stránku publikace modelu"
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "Poznámka: Příprava může trvat několik minut. Buďte prosím trpěliví."
 
+msgid "Publish"
+msgstr "Publikovat"
+
 msgid "Publish was canceled"
 msgstr "Publikování bylo zrušeno"
 
@@ -9771,21 +9774,6 @@ msgstr "Nahrávání dat"
 msgid "Jump to webpage"
 msgstr "Přejít na webovou stránku"
 
-msgid "Material"
-msgstr ""
-
-msgid "Publish 3MF..."
-msgstr ""
-
-msgid "Select which settings to embed in the 3MF file"
-msgstr ""
-
-msgid "Full Publish"
-msgstr ""
-
-msgid "Embed the entire filament of this slot in the 3MF file"
-msgstr ""
-
 #, c-format, boost-format
 msgid "Save %s as"
 msgstr "Uložit %s jako"
@@ -9796,21 +9784,25 @@ msgstr "Uživatelská předvolba"
 msgid "Preset Inside Project"
 msgstr "Předvolba v projektu"
 
+# AI Translated
 msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
-msgstr ""
+msgstr "Zkopíruje do této předvolby všechny hodnoty zděděné z nadřazené předvolby a odstraní vztah dědičnosti. Předvolby kompatibilní pouze s nadřazenou předvolbou mohou přestat být podporovány."
 
 # AI Translated
 msgid "Detach from parent"
 msgstr "Oddělit od nadřazeného"
 
+# AI Translated
 msgid "Unique preset"
-msgstr ""
+msgstr "Samostatná předvolba"
 
+# AI Translated
 msgid "Parent preset"
-msgstr ""
+msgstr "Nadřazená předvolba"
 
+# AI Translated
 msgid "This preset does not inherit from another preset."
-msgstr ""
+msgstr "Tato předvolba nedědí z jiné předvolby."
 
 msgid "Name is unavailable."
 msgstr "Název není k dispozici."
@@ -12438,8 +12430,9 @@ msgstr " je příliš blízko oblasti vyloučení a může způsobit kolize.\n"
 msgid " is too close to clumping detection area, and collisions will be caused.\n"
 msgstr " je příliš blízko oblasti detekce shlukování a dojde ke kolizi.\n"
 
+# AI Translated
 msgid " is partially outside the printable area, and it cannot be printed.\n"
-msgstr ""
+msgstr " je částečně mimo tisknutelnou oblast a nelze jej vytisknout.\n"
 
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "Vybrané teploty trysky nejsou kompatibilní. Teplota trysky každého filamentu musí spadat do doporučeného rozsahu teplot ostatních filamentů. Jinak může dojít k ucpání trysky nebo poškození tiskárny."
@@ -13541,11 +13534,13 @@ msgstr ""
 "Geometrie bude decimována před detekcí ostrých úhlů. Tento parametr určuje minimální délku odchylky pro decimaci.\n"
 "0 pro deaktivaci."
 
+# AI Translated
 msgid "Brim ears outer only"
-msgstr ""
+msgstr "Ouška límce pouze na vnějším obrysu"
 
+# AI Translated
 msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
-msgstr ""
+msgstr "Vytvoří myší ouška pouze na vnějším obrysu modelu, bez otvorů a uzavřených částí."
 
 msgid "upward compatible machine"
 msgstr "stroj zpětně kompatibilní"
@@ -14723,11 +14718,13 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Gyroid"
 
+# AI Translated
 msgid "Sparse infill smooth factor"
-msgstr ""
+msgstr "Faktor vyhlazení řídké výplně"
 
-msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original right-angle path, while 100% produces the largest possible curves between adjacent infill lines. Currently applies only to the Hilbert Curve."
-msgstr ""
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "Určuje, jak silně se zaoblují rohy řídké výplně. 0% zachová původní ostrou dráhu, zatímco 100% vytvoří největší možné křivky mezi sousedními liniemi výplně."
 
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Akcelerace výplně horní plochy. Použití nižší hodnoty může zlepšit kvalitu horní plochy."
@@ -15281,11 +15278,13 @@ msgstr "Jaký typ G-code je s tiskárnou kompatibilní."
 msgid "Klipper"
 msgstr "Klipper"
 
+# AI Translated
 msgid "Skip G-code config block"
-msgstr ""
+msgstr "Vynechat konfigurační blok G-code"
 
+# AI Translated
 msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
-msgstr ""
+msgstr "Nezapisuje CONFIG_BLOCK (dvojice klíč/hodnota s konfigurací sliceru) do souboru G-code. Může to pomoci u tiskáren, jejichž firmware při zpracování těchto řádků s komentáři havaruje (např. Anycubic go-klipper). Poznámka: soubor G-code již nebude obsahovat nastavení sliceru, takže jeho opětovný import do OrcaSlicer konfiguraci neobnoví."
 
 msgid "Pellet Modded Printer"
 msgstr "Tiskárna na pelety"
@@ -16354,11 +16353,13 @@ msgstr "Dlouhá retrakce při změně extruderu"
 msgid "Retraction distance when extruder change"
 msgstr "Délka retrakce při změně extruderu"
 
+# AI Translated
 msgid "Retraction Length (Toolchange)"
-msgstr ""
+msgstr "Délka retrakce (Změna nástroje)"
 
+# AI Translated
 msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
-msgstr ""
+msgstr "Když je retrakce spuštěna před změnou nástroje, filament se zatáhne o zadanou hodnotu (délka se měří na nezpracovaném filamentu, než vstoupí do extruderu)."
 
 msgid "Z-hop height"
 msgstr "Výška Z-hopu"
@@ -16457,8 +16458,9 @@ msgstr "Dodatečná délka při restartu"
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "Při kompenzaci retrakce po pohybu přesunu extruder posune toto přídavné množství filamentu. Toto nastavení je potřeba jen zřídka."
 
+# AI Translated
 msgid "Extra length on restart (Toolchange)"
-msgstr ""
+msgstr "Dodatečná délka při restartu (Změna nástroje)"
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Při kompenzaci retrakce po výměně nástroje extruder posune toto přídavné množství filamentu."
@@ -16878,11 +16880,13 @@ msgstr "Výměna nástroje na věži na očištění trysky"
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "Vynutí přejezd tiskové hlavy k věži na očištění trysky před vydáním příkazu k výměně nástroje (Tx). Týká se pouze tiskáren s více extrudery (více tiskovými hlavami), které používají věž na očištění trysky typu 2. Ve výchozím nastavení Orca na strojích s více tiskovými hlavami tento přejezd vynechává, protože výměnu hlavy řeší firmware, což může vést k vydání příkazu Tx nad tištěným dílem. Zapněte tuto volbu, chcete-li, aby byla výměna nástroje vždy vydána nad věží na očištění trysky."
 
+# AI Translated
 msgid "Wait for temperature on wipe tower"
-msgstr ""
+msgstr "Čekat na teplotu na věži na očištění trysky"
 
+# AI Translated
 msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
-msgstr ""
+msgstr "Vyzvedne nový nástroj, aniž by čekal na dosažení tiskové teploty, přejede na věž na očištění trysky a počká na teplotu tam, těsně před čištěním. Materiál vytékající při ohřevu skončí na věži místo na modelu a přejezd se překrývá s ohřevem. Relevantní pouze pro tiskárny s více extrudery (více tiskovými hlavami) používající věž na očištění trysky typu 2. Firmware ani makro pro změnu nástroje nesmí na teplotu čekat samo. Pokud je vypnuto, čekání na teplotu se vloží hned po příkazu ke změně nástroje."
 
 msgid "No sparse layers (beta)"
 msgstr "Žádné řídké vrstvy (beta)"

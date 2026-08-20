@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:59+0800\n"
+"POT-Creation-Date: 2026-08-19 14:07-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -4720,16 +4720,19 @@ msgstr "อุณหภูมิห้องพิมพ์ปัจจุบั
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "อุณหภูมิห้องพิมพ์ต่ำสุด (%d℃) สูงกว่าอุณหภูมิห้องพิมพ์เป้าหมาย (%d℃) ค่าต่ำสุดคือเกณฑ์ที่การพิมพ์จะเริ่มต้นในขณะที่ห้องพิมพ์ยังคงร้อนขึ้นไปสู่เป้าหมาย จึงไม่ควรเกินค่าเป้าหมาย ระบบจะจำกัดค่าให้เท่ากับเป้าหมาย"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Layer height is too small. It will be set to the minimum (%g mm)."
-msgstr ""
+msgstr "ความสูงเลเยอร์น้อยเกินไป จะถูกตั้งค่าเป็นค่าต่ำสุด (%g mm)"
 
+# AI Translated
 msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr ""
+msgstr "ความสูงเลเยอร์อยู่นอกขีดจำกัดที่ตั้งไว้ใน การตั้งค่าเครื่องพิมพ์ -> ชุดดันเส้น -> การจำกัดความสูงของเลเยอร์ ซึ่งอาจทำให้เกิดปัญหาคุณภาพการพิมพ์"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Adjust it to the limit (%g mm) automatically?"
-msgstr ""
+msgstr "ปรับเป็นค่าขีดจำกัด (%g mm) โดยอัตโนมัติหรือไม่?"
 
 msgid "Adjust"
 msgstr "ปรับ"
@@ -4854,8 +4857,9 @@ msgstr ""
 "ใช่ - เปิดใช้งาน Arachne Wall Generator\n"
 "ไม่ - ปิดการใช้งาน Arachne Wall Generator และตั้งค่าโหมด [Displacement] ของ Fuzzy Skin"
 
+# AI Translated
 msgid "Brim ear radius"
-msgstr ""
+msgstr "รัศมีของหูขอบยึดชิ้นงาน"
 
 msgid "Brim width"
 msgstr "ความกว้าง ขอบยึดชิ้นงาน"
@@ -4874,9 +4878,6 @@ msgstr ""
 "เปลี่ยนการตั้งค่าเหล่านี้โดยอัตโนมัติหรือไม่\n"
 "ใช่ - เปลี่ยนการตั้งค่าเหล่านี้และเปิดใช้งานโหมดเกลียวโดยอัตโนมัติ\n"
 "ไม่ - เลิกใช้โหมดเกลียวในครั้งนี้"
-
-msgid "N/A"
-msgstr "ไม่มี"
 
 msgid "Printing"
 msgstr "กำลังพิมพ์"
@@ -5117,11 +5118,13 @@ msgstr "ไม่สามารถสร้าง cali G-code"
 msgid "Calibration error"
 msgstr "ข้อผิดพลาดในการสอบเทียบ"
 
+# AI Translated
 msgid "This printer is not configured with the hardware this control needs."
-msgstr ""
+msgstr "เครื่องพิมพ์นี้ไม่ได้ตั้งค่าฮาร์ดแวร์ที่ตัวควบคุมนี้ต้องการ"
 
+# AI Translated
 msgid "This control is not supported on this printer."
-msgstr ""
+msgstr "ตัวควบคุมนี้ไม่รองรับบนเครื่องพิมพ์นี้"
 
 # AI Translated
 msgid "Network unavailable"
@@ -5334,6 +5337,9 @@ msgstr "รูปแบบไม่ถูกต้อง ใช้ N, N#K หร
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "รูปแบบไม่ถูกต้อง รูปแบบเวกเตอร์ที่ต้องการ: \"%1%\""
+
+msgid "N/A"
+msgstr "ไม่มี"
 
 # AI Translated
 msgid "System agents"
@@ -6159,8 +6165,9 @@ msgstr "หลายอุปกรณ์"
 msgid "Project"
 msgstr "โปรเจกต์"
 
+# AI Translated
 msgid "Device (Web)"
-msgstr ""
+msgstr "อุปกรณ์ (เว็บ)"
 
 msgid "Yes"
 msgstr "ใช่"
@@ -6288,12 +6295,6 @@ msgstr "บันทึกโปรเจกต์เป็น"
 
 msgid "Save current project as"
 msgstr "บันทึกโครงการปัจจุบันเป็น"
-
-msgid "Publish 3MF"
-msgstr ""
-
-msgid "Export a 3MF file with the selected settings embedded"
-msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "นำเข้า 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -8073,12 +8074,6 @@ msgstr "โปรดยืนยันว่ารหัส G ภายในค
 msgid "Customized Preset"
 msgstr "ค่าที่ตั้งไว้ล่วงหน้าที่กำหนดเอง"
 
-msgid "Some published settings could not be applied:"
-msgstr ""
-
-msgid "Some filament slots were changed to match the published materials:"
-msgstr ""
-
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "ชื่อของส่วนประกอบภายในไฟล์ STEP ไม่ใช่รูปแบบ UTF8!"
 
@@ -8461,17 +8456,6 @@ msgstr "บันทึกไฟล์ที่สไลซ์เป็น:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "ไฟล์ %s ถูกส่งไปยังพื้นที่เก็บข้อมูลของเครื่องพิมพ์แล้ว และสามารถดูได้บนเครื่องพิมพ์"
-
-msgid "Publish 3MF file as:"
-msgstr ""
-
-msgid ""
-"Failed to export the published 3MF file.\n"
-"Please check whether the folder exists online or if other programs have the file open."
-msgstr ""
-
-msgid "Publish"
-msgstr "เผยแพร่"
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "ไม่ได้ตั้งค่าประเภทหัวฉีด โปรดตั้งหัวฉีดแล้วลองอีกครั้ง"
@@ -8997,6 +8981,18 @@ msgstr "เมื่อเปิดใช้งานตัวเลือกน
 msgid "Pop up to select filament grouping mode"
 msgstr "ปรากฏขึ้นเพื่อเลือกโหมดการจัดกลุ่มเส้นพลาสติก"
 
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "หน้าปลั๊กอินที่แสดง"
+
+# AI Translated
+msgid "pages"
+msgstr "หน้า"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "จำนวนหน้าปลั๊กอินที่แสดงเป็นแท็บถาวร ก่อนที่หน้าที่เหลือจะถูกยุบรวมเป็นเมนูแบบเลื่อนลงในแท็บสุดท้าย"
+
 msgid "Behaviour"
 msgstr "พฤติกรรม"
 
@@ -9351,13 +9347,17 @@ msgstr "แสดงค่าที่ตั้งไว้ล่วงหน้
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "แสดงค่าที่ตั้งไว้ล่วงหน้าที่ไม่เข้ากันหรือไม่รองรับในรายการเลือกเครื่องพิมพ์และเส้นพลาสติก ไม่สามารถเลือกค่าที่ตั้งไว้ล่วงหน้าเหล่านี้ได้"
 
+# AI Translated
 msgid "(Experimental) Use printer agents instead of print hosts"
-msgstr ""
+msgstr "(ทดลอง) ใช้เอเจนต์เครื่องพิมพ์แทนโฮสต์การพิมพ์"
 
+# AI Translated
 msgid ""
 "Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
 "When disabled, OrcaSlicer uses the legacy print-host behavior."
 msgstr ""
+"ส่งงานพิมพ์ของเครื่องพิมพ์ที่ไม่ใช่ Bambu ผ่านเอเจนต์ปลั๊กอินของเครื่องพิมพ์ แทนการอัพโหลดไปยังโฮสต์การพิมพ์แบบเดิม\n"
+"เมื่อปิดใช้ OrcaSlicer จะใช้พฤติกรรมโฮสต์การพิมพ์แบบเดิม"
 
 # AI Translated
 msgid "Experimental Features"
@@ -9595,6 +9595,9 @@ msgstr "ข้ามไปที่โมเดลเผยแพร่หน้
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "หมายเหตุ: การเตรียมการอาจใช้เวลาหลายนาที กรุณาอดทน."
 
+msgid "Publish"
+msgstr "เผยแพร่"
+
 msgid "Publish was canceled"
 msgstr "การเผยแพร่ถูกยกเลิก"
 
@@ -9610,21 +9613,6 @@ msgstr "กำลังอัพโหลดข้อมูล"
 msgid "Jump to webpage"
 msgstr "ข้ามไปที่หน้าเว็บ"
 
-msgid "Material"
-msgstr ""
-
-msgid "Publish 3MF..."
-msgstr ""
-
-msgid "Select which settings to embed in the 3MF file"
-msgstr ""
-
-msgid "Full Publish"
-msgstr ""
-
-msgid "Embed the entire filament of this slot in the 3MF file"
-msgstr ""
-
 #, c-format, boost-format
 msgid "Save %s as"
 msgstr "บันทึก %s เป็น"
@@ -9635,20 +9623,24 @@ msgstr "พรีเซ็ตผู้ใช้"
 msgid "Preset Inside Project"
 msgstr "พรีเซ็ตภายในโปรเจ็กต์"
 
+# AI Translated
 msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
-msgstr ""
+msgstr "คัดลอกค่าที่สืบทอดมาจากพรีเซ็ตแม่ทั้งหมดมาไว้ในพรีเซ็ตนี้ และตัดความสัมพันธ์กับพรีเซ็ตแม่ พรีเซ็ตที่เข้ากันได้กับพรีเซ็ตแม่เท่านั้นอาจไม่ได้รับการรองรับอีกต่อไป"
 
 msgid "Detach from parent"
 msgstr "แยกออกจากพรีเซ็ตแม่"
 
+# AI Translated
 msgid "Unique preset"
-msgstr ""
+msgstr "พรีเซ็ตอิสระ"
 
+# AI Translated
 msgid "Parent preset"
-msgstr ""
+msgstr "พรีเซ็ตแม่"
 
+# AI Translated
 msgid "This preset does not inherit from another preset."
-msgstr ""
+msgstr "พรีเซ็ตนี้ไม่ได้สืบทอดมาจากพรีเซ็ตอื่น"
 
 msgid "Name is unavailable."
 msgstr "ชื่อไม่พร้อมใช้งาน"
@@ -12185,8 +12177,9 @@ msgstr "อยู่ใกล้เขตหวงห้ามมากเกิ
 msgid " is too close to clumping detection area, and collisions will be caused.\n"
 msgstr "อยู่ใกล้พื้นที่การตรวจจับการจับตัวกันมากเกินไป และจะเกิดการชนกัน\n"
 
+# AI Translated
 msgid " is partially outside the printable area, and it cannot be printed.\n"
-msgstr ""
+msgstr "อยู่นอกพื้นที่การพิมพ์บางส่วน จึงไม่สามารถพิมพ์ได้\n"
 
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "อุณหภูมิหัวฉีดที่เลือกเข้ากันไม่ได้ อุณหภูมิหัวฉีดของเส้นพลาสติกแต่ละเส้นต้องอยู่ในช่วงอุณหภูมิหัวฉีดที่แนะนำของเส้นพลาสติกอื่นๆ มิฉะนั้นอาจเกิดการอุดตันของหัวฉีดหรือเครื่องพิมพ์เสียหายได้"
@@ -13256,11 +13249,13 @@ msgstr ""
 "รูปทรงจะถูกทำลายก่อนที่จะตรวจจับมุมแหลม พารามิเตอร์นี้ระบุความยาวขั้นต่ำของการเบี่ยงเบนสำหรับการทำลาย\n"
 "0 เพื่อปิดการใช้งาน"
 
+# AI Translated
 msgid "Brim ears outer only"
-msgstr ""
+msgstr "หูขอบยึดชิ้นงานเฉพาะด้านนอก"
 
+# AI Translated
 msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
-msgstr ""
+msgstr "สร้างหูหนูเฉพาะบนคอนทัวร์ด้านนอกของโมเดล โดยไม่รวมรูและส่วนที่ปิดล้อม"
 
 msgid "upward compatible machine"
 msgstr "เครื่องที่รองรับขึ้นไป"
@@ -14428,11 +14423,13 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "ไจรอยด์"
 
+# AI Translated
 msgid "Sparse infill smooth factor"
-msgstr ""
+msgstr "ค่าความเรียบของไส้ในแบบโปร่ง"
 
-msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original right-angle path, while 100% produces the largest possible curves between adjacent infill lines. Currently applies only to the Hilbert Curve."
-msgstr ""
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "ควบคุมระดับความมนของมุมไส้ในแบบโปร่ง ค่า 0% จะคงเส้นทางเดิมที่เป็นมุมแหลม ส่วน 100% จะสร้างส่วนโค้งที่ใหญ่ที่สุดเท่าที่เป็นไปได้ระหว่างเส้นไส้ในที่อยู่ติดกัน"
 
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "ความเร่งของไส้ในพื้นผิวด้านบน การใช้ค่าที่ต่ำกว่าอาจปรับปรุงคุณภาพพื้นผิวด้านบนได้"
@@ -14976,11 +14973,13 @@ msgstr "เครื่องพิมพ์ G-code ชนิดใดที่�
 msgid "Klipper"
 msgstr "คลิปเปอร์"
 
+# AI Translated
 msgid "Skip G-code config block"
-msgstr ""
+msgstr "ข้ามบล็อกการตั้งค่าใน G-code"
 
+# AI Translated
 msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
-msgstr ""
+msgstr "ไม่เขียน CONFIG_BLOCK (คู่คีย์/ค่าของการตั้งค่าโปรแกรมสไลซ์) ลงในไฟล์ G-code ซึ่งอาจช่วยได้กับเครื่องพิมพ์ที่เฟิร์มแวร์ขัดข้องเมื่ออ่านบรรทัดคอมเมนต์เหล่านี้ (เช่น Anycubic go-klipper) หมายเหตุ: ไฟล์ G-code จะไม่มีการตั้งค่าโปรแกรมสไลซ์อีกต่อไป ดังนั้นการนำเข้ากลับมาใน OrcaSlicer จะไม่คืนค่าการตั้งค่า"
 
 msgid "Pellet Modded Printer"
 msgstr "เครื่องพิมพ์ Modded เม็ด"
@@ -16034,11 +16033,13 @@ msgstr "การถอยกลับนานเมื่อเปลี่ย
 msgid "Retraction distance when extruder change"
 msgstr "ระยะการดึงกลับเมื่อชุดดันเส้นเปลี่ยน"
 
+# AI Translated
 msgid "Retraction Length (Toolchange)"
-msgstr ""
+msgstr "ความยาวการดึงกลับ (การเปลี่ยนเครื่องมือ)"
 
+# AI Translated
 msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
-msgstr ""
+msgstr "เมื่อการดึงกลับทำงานก่อนการเปลี่ยนเครื่องมือ เส้นพลาสติกจะถูกดึงกลับตามระยะที่กำหนด (วัดความยาวบนเส้นพลาสติกดิบ ก่อนเข้าสู่ชุดดันเส้น)"
 
 msgid "Z-hop height"
 msgstr "ความสูงยกแกน Z"
@@ -16134,8 +16135,9 @@ msgstr "ความยาวพิเศษเมื่อรีสตาร์
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "เมื่อชดเชยการดึงกลับหลังการเคลื่อนที่เดินทาง ชุดดันเส้นจะดันเส้นพลาสติกเพิ่มเติมในปริมาณนี้ การตั้งค่านี้ไม่ค่อยจำเป็น"
 
+# AI Translated
 msgid "Extra length on restart (Toolchange)"
-msgstr ""
+msgstr "ความยาวพิเศษเมื่อรีสตาร์ท (การเปลี่ยนเครื่องมือ)"
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "เมื่อชดเชยการดึงกลับหลังเปลี่ยนเครื่องมือ ชุดดันเส้นจะดันเส้นพลาสติกเพิ่มเติมในปริมาณนี้"
@@ -16549,11 +16551,13 @@ msgstr "การเปลี่ยนเครื่องมือบน Wipe 
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "บังคับให้หัวเครื่องมือเคลื่อนที่ไปที่ Wipe Tower ก่อนที่จะออกคำสั่งเปลี่ยนเครื่องมือ (Tx) เกี่ยวข้องเฉพาะกับเครื่องพิมพ์ที่มีชุดดันเส้นหลายเครื่อง (หลายหัวเครื่องมือ) ที่ใช้แผ่นเช็ดแบบ Type 2 ตามค่าเริ่มต้น Orca จะข้ามการเดินทางบนเครื่องที่มีหัวเครื่องมือหลายหัวเนื่องจากเฟิร์มแวร์จัดการการสลับหัว ซึ่งอาจส่งผลให้มีการออกคำสั่ง Tx เหนือส่วนที่พิมพ์ เปิดใช้งานตัวเลือกนี้หากคุณต้องการให้ทำการเปลี่ยนแปลงเครื่องมือเหนือ Wipe Tower แทนเสมอ"
 
+# AI Translated
 msgid "Wait for temperature on wipe tower"
-msgstr ""
+msgstr "รอให้ถึงอุณหภูมิที่ Wipe Tower"
 
+# AI Translated
 msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
-msgstr ""
+msgstr "รับเครื่องมือใหม่โดยไม่รอให้ถึงอุณหภูมิการพิมพ์ แล้วเคลื่อนที่ไปยัง Wipe Tower และรออุณหภูมิที่นั่นก่อนไล่เส้นทันที เส้นพลาสติกที่ซึมออกมาระหว่างการอุ่นจะตกลงบน Wipe Tower แทนที่จะตกบนโมเดล และการเคลื่อนที่จะเกิดขึ้นพร้อมกับการอุ่น ใช้ได้เฉพาะกับเครื่องพิมพ์แบบหลายชุดดันเส้น (หลายหัวพิมพ์) ที่ใช้ Wipe Tower ชนิดที่ 2 เฟิร์มแวร์หรือแมโครการเปลี่ยนเครื่องมือต้องไม่รออุณหภูมิเอง เมื่อปิดใช้ คำสั่งรออุณหภูมิจะถูกส่งทันทีหลังคำสั่งเปลี่ยนเครื่องมือ"
 
 msgid "No sparse layers (beta)"
 msgstr "ไม่มีชั้นกระจัดกระจาย (เบต้า)"

@@ -782,6 +782,36 @@ SCENARIO("Full-publish entries filter the whole slot and mask the other slots", 
     }
 }
 
+// A partial-publish entry (per-slot keys) is masked to the author's slot exactly like a full
+// entry, so publishing one slot's retraction does not ship the other slots' values in the file.
+SCENARIO("Partial-publish entries mask the other slots like full entries", "[3mf]") {
+    GIVEN("a full print configuration with two filament slots") {
+        DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
+        full_cfg.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75 };
+        full_cfg.opt<ConfigOptionStrings>("filament_colour")->values = { "#111111", "#222222" };
+        full_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio", true)->values = { 1.02, 0.98 };
+
+        PublishedMaterialEntry partial_entry;
+        partial_entry.slot = 1;
+        partial_entry.keys = { "filament_flow_ratio" };
+
+        WHEN("filtering with a partial entry for slot 1") {
+            DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, {}, { partial_entry });
+
+            THEN("the partial key is present with the author's slot value") {
+                REQUIRE(filtered_cfg.option("filament_flow_ratio") != nullptr);
+                REQUIRE(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[1] == 0.98);
+            }
+            THEN("the non-published slot is masked to its default") {
+                REQUIRE(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[0] == 1.0);
+            }
+            THEN("the identity keys stay present") {
+                REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
+            }
+        }
+    }
+}
+
 // The extended per-entry fields (full dump list, published type and colour) travel inside the
 // published_material_keys metadata and round-trip unchanged.
 SCENARIO("Published 3MF round-trips the extended material metadata", "[3mf]") {

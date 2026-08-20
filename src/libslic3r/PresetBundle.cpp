@@ -4818,6 +4818,14 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     const ConfigOption *dst_opt = target.option(base_key);
                     if (dst_opt == nullptr || !dst_opt->is_vector())
                         continue; // cannot apply; will be reported as skipped
+                    // Type mismatch: ConfigOptionVector::set() throws ConfigurationError on a
+                    // mismatch, which would abort the whole project load; report the key as
+                    // skipped instead (the material pass guards the same way). Note that the
+                    // nullable variants report the same type() as their non-nullable base, so
+                    // this catches genuinely different option kinds (e.g. a string where a float
+                    // vector is expected), not nullable-ness.
+                    if (dst_opt->type() != src_opt->type())
+                        continue;
                     // A '#N' variant key (e.g. per-extruder retraction_length#2) applies one
                     // element, so the index only needs to be in range on both sides - the
                     // receiver may have a different extruder count than the author. Out-of-range
@@ -4841,8 +4849,12 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     if (key.find('#') != std::string::npos)
                         continue;
                     // Scalar key: apply only if present on the user's machine.
-                    if (target.option(base_key) == nullptr)
+                    const ConfigOption *dst_opt = target.option(base_key);
+                    if (dst_opt == nullptr)
                         continue; // not present on the edited preset; will be reported as skipped
+                    // Type mismatch: skipped, never thrown (see the vector branch above).
+                    if (dst_opt->type() != src_opt->type())
+                        continue;
                     target.apply_only(config, {key}, true);
                     applied_keys.insert(key);
                 }
@@ -4859,18 +4871,22 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
         //     filament had been loaded from a normal save); a partial entry's keys are applied
         //     as usual;
         //   - type mismatch: the slot is replaced with the best visible candidate, scored by the
-        //     published identity (exact filament_id, then vendor+type, then type only); a
-        //     preset no other slot references wins on equal scores, and a shared exact-material
-        //     preset is taken even though mutating it also affects the other slot; the author's
-        //     values are applied on top of it (full) or the published keys are applied (partial);
+        //     published identity (exact preset name resolved through the collection's name
+        //     machinery, then exact setting_id, exact filament_id, then vendor+type, then type
+        //     only); a preset no other slot references wins on equal scores, and a shared
+        //     exact-material preset is taken even though mutating it also affects the other
+        //     slot; the author's values are applied on top of it (full) or the published keys
+        //     are applied (partial);
         //   - no replacement available: a full entry falls back to the first available visible
         //     preset, applying the author's values on top of it; a partial entry keeps the
         //     receiver's material and reports its keys as skipped.
-        // All applied values (colour and keys) are written onto the slot's stored preset
-        // directly (mutate in place): the receiver's material keeps its identity and is simply
-        // overridden. To keep slot-to-slot aliasing (several slots referencing one preset) from
-        // leaking one slot's values into another, published slots sharing a preset with another
-        // slot are re-pointed at distinct presets before the values are applied.
+        // All applied values (colour and keys) are written onto the slot's effective preset -
+        // the collection's edited layer when the slot references the edited preset (visible as
+        // a modification, revertible, the user's unsaved edits preserved), otherwise the stored
+        // preset in place: the receiver's material keeps its identity and is simply overridden.
+        // To keep slot-to-slot aliasing (several slots referencing one preset) from leaking one
+        // slot's values into another, published slots sharing a preset with another slot are
+        // re-pointed at distinct presets before the values are applied.
         {
             // Grow the receiver's slots only as far as the highest published slot (never
             // shrink, never pull filler materials for unpublished slots).
@@ -4890,21 +4906,49 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 for (const PublishedMaterialEntry &entry : published_config->material_keys)
                     if (entry.slot >= 0)
                         published_slots.insert(entry.slot);
+                // Exact-name resolution of each published slot's preset through the collection's
+                // own name machinery: find_preset2 follows renamed_from (vendor profile renames)
+                // and canonical bundle names, and auto-matches removed vendor-generic profiles
+                // to the Orca Filament Library. First entry per slot wins (mirrors the loops'
+                // break-on-first behavior); an empty value means "no resolution" and the string
+                // tiers (raw name / trimmed bare name / alias) below take over.
+                std::map<int, std::string> exact_name_by_slot;
+                for (const PublishedMaterialEntry &entry : published_config->material_keys)
+                    if (entry.slot >= 0 && !entry.preset_name.empty() && exact_name_by_slot.count(entry.slot) == 0)
+                        if (const Preset *resolved = this->filaments.find_preset2(entry.preset_name, true))
+                            exact_name_by_slot.emplace(entry.slot, resolved->name);
+                auto resolved_name_for = [&exact_name_by_slot](int slot) -> std::string {
+                    const auto it = exact_name_by_slot.find(slot);
+                    return it == exact_name_by_slot.end() ? std::string() : it->second;
+                };
                 std::set<std::string> used_preset_names(this->filament_presets.begin(), this->filament_presets.end());
                 // Mirror first_visible_idx()'s start index so suppressed default presets are
                 // never picked as a slot material.
                 const size_t first_candidate = this->filaments.is_default_suppressed() ? this->filaments.num_default_presets() : 0;
-                // Candidate preference for a published entry: exact preset name (unambiguous
-                // even when ids are shared between variants or missing from older files), then
-                // exact setting_id (variant-level, since "Generic PLA" and "Generic PLA Matte"
-                // share filament_id), then exact filament_id, then vendor+type, then type only
-                // (a type-only pick may surface an unrelated preset, e.g. a different vendor's
+                // Candidate preference for a published entry: exact preset name (the raw author
+                // name and the collection-resolved name - renames, removed vendor-generic
+                // library fallback - both identify the exact preset, unambiguous even when ids
+                // are shared between variants or missing from older files), then the trimmed
+                // bare form / alias ("Generic PLA" from "Generic PLA @System"): a same-family
+                // match that must never outrank the exact preset, then exact setting_id
+                // (variant-level, since "Generic PLA" and "Generic PLA Matte" share
+                // filament_id), then exact filament_id, then vendor+type, then type only (a
+                // type-only pick may surface an unrelated preset, e.g. a different vendor's
                 // PLA).
-                auto candidate_score = [](const Preset &candidate, const PublishedMaterialEntry &entry) -> int {
+                auto candidate_score = [](const Preset &candidate, const PublishedMaterialEntry &entry, const std::string &resolved_name) -> int {
+                    // Exact preset name: raw and collection-resolved forms both score above the
+                    // fuzzy bare/alias tier, so a receiver preset literally named "Generic PLA"
+                    // can never beat the author's exact "Generic PLA @Vendor" preset on a tie.
+                    if (!entry.preset_name.empty() && candidate.name == entry.preset_name)
+                        return 5;
+                    if (!resolved_name.empty() && candidate.name == resolved_name)
+                        return 5;
                     if (!entry.preset_name.empty()) {
-                        const std::string bare_name = entry.preset_name.substr(0, entry.preset_name.find('@'));
-                        if (candidate.name == entry.preset_name || candidate.alias == entry.preset_name ||
-                            candidate.name == bare_name || candidate.alias == bare_name)
+                        std::string bare_name = entry.preset_name.substr(0, entry.preset_name.find('@'));
+                        boost::trim_right(bare_name);
+                        if (!bare_name.empty() &&
+                            (candidate.alias == entry.preset_name ||
+                             candidate.name == bare_name || candidate.alias == bare_name))
                             return 4;
                     }
                     if (!entry.setting_id.empty() && candidate.setting_id == entry.setting_id)
@@ -4927,24 +4971,47 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     std::string initial_preset;
                     if (published_slots.count(static_cast<int>(new_slot_idx)) != 0) {
                         // Prefer the best distinct candidate for the slot's published material
-                        // (exact id, then vendor+type, then type only)...
+                        // (exact id, then vendor+type, then type only), searching compatible
+                        // presets first and falling back to incompatible ones only when no
+                        // compatible candidate exists...
                         for (const PublishedMaterialEntry &entry : published_config->material_keys) {
                             if (entry.slot != static_cast<int>(new_slot_idx) || !entry.publish_type || entry.publish_type_value.empty())
                                 continue;
+                            const std::string resolved_name = resolved_name_for(entry.slot);
                             int best_score = -1;
-                            for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
-                                const Preset &candidate = this->filaments.preset(i);
-                                const int score = candidate_score(candidate, entry);
-                                if (score > best_score) {
-                                    // Exact identity tiers (name / setting_id) win even when the
-                                    // preset is hidden or already referenced by another slot; the
-                                    // alias re-pointing pass below still de-aliases afterwards.
-                                    if (score < 3 && (!candidate.is_visible || used_preset_names.count(candidate.name) != 0))
+                            auto scan = [&](bool compatible_only) -> std::pair<int, std::string> {
+                                int best_score = -1;
+                                std::string best_name;
+                                for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
+                                    const Preset &candidate = this->filaments.preset(i);
+                                    if (compatible_only && !candidate.is_compatible)
                                         continue;
-                                    best_score = score;
-                                    initial_preset = candidate.name;
+                                    const int score = candidate_score(candidate, entry, resolved_name);
+                                    if (score > best_score) {
+                                        // Exact identity tiers (name / setting_id) win even when the
+                                        // preset is hidden or already referenced by another slot; the
+                                        // alias re-pointing pass below still de-aliases afterwards.
+                                        if (score < 3 && (!candidate.is_visible || used_preset_names.count(candidate.name) != 0))
+                                            continue;
+                                        best_score = score;
+                                        best_name = candidate.name;
+                                    }
                                 }
+                                return { best_score, best_name };
+                            };
+                            const auto [compat_score, compat_name] = scan(true);
+                            const auto [any_score, any_name]       = scan(false);
+                            if (compat_score >= 0) {
+                                best_score     = compat_score;
+                                initial_preset = compat_name;
+                            } else if (any_score >= 0) {
+                                best_score     = any_score;
+                                initial_preset = any_name;
                             }
+                            if (best_score >= 0)
+                                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF grew slot " << new_slot_idx
+                                                        << " with " << initial_preset << " (score " << best_score << ", preset_name \""
+                                                        << entry.preset_name << "\", type \"" << entry.publish_type_value << "\")";
                             break;
                         }
                         // ...otherwise any visible preset not already used by another slot.
@@ -4967,10 +5034,10 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     used_preset_names.insert(initial_preset);
                 }
                 // Published slots that alias another slot (multi-extruder with one filament)
-                // get re-pointed at distinct presets: the overlay mutates stored presets in
-                // place, so a shared preset would leak one slot's published values into every
-                // aliased slot. Slot 0 (the receiver's own material) is never re-assigned;
-                // when no unused candidate exists the aliasing stays (unavoidable).
+                // get re-pointed at distinct presets: the overlay writes onto the slot's
+                // effective preset in place, so a shared preset would leak one slot's published
+                // values into every aliased slot. Slot 0 (the receiver's own material) is never
+                // re-assigned; when no unused candidate exists the aliasing stays (unavoidable).
                 auto referenced_elsewhere = [&](const std::string &preset_name, size_t except_slot) {
                     for (size_t s = 0; s < this->filament_presets.size(); ++s)
                         if (s != except_slot && this->filament_presets[s] == preset_name)
@@ -4982,26 +5049,47 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         !referenced_elsewhere(this->filament_presets[slot], slot))
                         continue;
                     // Prefer the best distinct candidate for the slot's published material
-                    // (exact id, then vendor+type, then type only)...
+                    // (exact id, then vendor+type, then type only), compatible presets first...
                     std::string replacement;
                     int best_score = -1;
                     for (const PublishedMaterialEntry &entry : published_config->material_keys) {
                         if (entry.slot != static_cast<int>(slot) || !entry.publish_type || entry.publish_type_value.empty())
                             continue;
-                        for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
-                            const Preset &candidate = this->filaments.preset(i);
-                            const int score = candidate_score(candidate, entry);
-                            // Exact identity tiers (name / setting_id) may use a hidden preset;
-                            // the referenced check stays: re-pointing exists to de-alias.
-                            if (score < 3 && !candidate.is_visible)
-                                continue;
-                            if (referenced_elsewhere(candidate.name, size_t(-1)))
-                                continue;
-                            if (score > best_score) {
-                                best_score = score;
-                                replacement = candidate.name;
+                        const std::string resolved_name = resolved_name_for(entry.slot);
+                        auto scan = [&](bool compatible_only) -> std::pair<int, std::string> {
+                            int best_score = -1;
+                            std::string best_name;
+                            for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
+                                const Preset &candidate = this->filaments.preset(i);
+                                if (compatible_only && !candidate.is_compatible)
+                                    continue;
+                                const int score = candidate_score(candidate, entry, resolved_name);
+                                // Exact identity tiers (name / setting_id) may use a hidden preset;
+                                // the referenced check stays: re-pointing exists to de-alias.
+                                if (score < 3 && !candidate.is_visible)
+                                    continue;
+                                if (referenced_elsewhere(candidate.name, size_t(-1)))
+                                    continue;
+                                if (score > best_score) {
+                                    best_score = score;
+                                    best_name = candidate.name;
+                                }
                             }
+                            return { best_score, best_name };
+                        };
+                        const auto [compat_score, compat_name] = scan(true);
+                        const auto [any_score, any_name]       = scan(false);
+                        if (compat_score >= 0) {
+                            best_score   = compat_score;
+                            replacement  = compat_name;
+                        } else if (any_score >= 0) {
+                            best_score   = any_score;
+                            replacement  = any_name;
                         }
+                        if (best_score >= 0)
+                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF re-pointed slot " << slot
+                                                    << " to " << replacement << " (score " << best_score << ", preset_name \""
+                                                    << entry.preset_name << "\", type \"" << entry.publish_type_value << "\")";
                         break;
                     }
                     // ...otherwise any distinct visible preset not referenced by another slot.
@@ -5062,7 +5150,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 // Rebuild the flush volumes for the grown slot count (as set_num_filaments does).
                 this->update_multi_material_filament_presets();
 
-                auto apply_slot_keys = [&](Preset &preset, const std::vector<std::string> &slot_keys, int author_slot,
+                auto apply_slot_keys = [&](DynamicPrintConfig &preset_config, const std::vector<std::string> &slot_keys, int author_slot,
                                            const std::string &material_label) {
                     for (const std::string &key : slot_keys) {
                         const std::string base_key = key.substr(0, key.find('#'));
@@ -5074,7 +5162,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
                             continue;
                         }
-                        ConfigOption *dst_opt = preset.config.option(base_key);
+                        ConfigOption *dst_opt = preset_config.option(base_key);
                         if (dst_opt == nullptr || !dst_opt->is_vector() ||
                             static_cast<const ConfigOptionVectorBase*>(dst_opt)->empty() ||
                             dst_opt->type() != src_opt->type()) {
@@ -5088,15 +5176,26 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     }
                 };
 
-                // The slot's values are applied directly onto the slot's stored preset (mutate
-                // in place); the per-entry type gate below may re-point the slot first.
+                // The slot's values are applied onto the slot's effective preset (the
+                // collection's edited layer when the slot references it, otherwise the stored
+                // preset in place); the per-entry type gate below may re-point the slot first.
+                //
+                // The edited layer only survives the load when the final re-select below stays
+                // off, i.e. slot 0's preset still matches the edited preset. Otherwise the
+                // re-select re-snapshots the edited layer from a stored preset and silently
+                // discards everything written there: route the overlay to the stored presets
+                // instead so the values survive. (Residual edge: a slot-0 type replacement
+                // re-pointing slot 0 mid-loop can still invalidate the layer after earlier
+                // slots wrote to it; that compound case is not chased.)
+                const bool edited_survives_load = this->filament_presets.empty() ||
+                    this->filament_presets.front() == this->filaments.get_edited_preset().name;
                 for (const PublishedMaterialEntry &entry : published_config->material_keys) {
                     if (entry.slot < 0 || size_t(entry.slot) >= this->filament_presets.size())
                         continue; // out of range: nothing to do for this slot
                     const size_t slot = size_t(entry.slot);
                     // Resolve the stored preset itself (real=true), never the edited snapshot:
-                    // find_preset would return &m_edited_preset for the selected slot, and the
-                    // re-select at the end re-snapshots from the stored preset.
+                    // find_preset would return &m_edited_preset for the selected slot. The
+                    // overlay target below decides between the edited layer and this preset.
                     Preset *recv = this->filaments.find_preset(this->filament_presets[slot], false, true);
                     if (recv == nullptr)
                         continue;
@@ -5106,57 +5205,82 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         : entry.filament_id;
 
                     bool apply_slot = true;
+                    // The gate compares against the slot's effective material type: the edited
+                    // layer when the slot references the collection's edited preset and that
+                    // layer will survive the load (see edited_survives_load below), the stored
+                    // preset otherwise.
+                    const DynamicPrintConfig &effective_config = (edited_survives_load && recv->name == this->filaments.get_edited_preset().name)
+                        ? this->filaments.get_edited_preset().config
+                        : recv->config;
                     if (entry.publish_type && !entry.publish_type_value.empty()) {
                         // Null-guard: a malformed receiver preset may lack filament_type.
-                        const ConfigOptionStrings *recv_types = recv->config.opt<ConfigOptionStrings>("filament_type");
+                        const ConfigOptionStrings *recv_types = effective_config.opt<ConfigOptionStrings>("filament_type");
                         const std::string recv_type = (recv_types != nullptr && !recv_types->values.empty()) ? recv_types->get_at(0) : std::string();
                         if (normalize_filament_type(recv_type) != entry.publish_type_value) {
                             // Type mismatch: replace the slot with the best matching preset,
-                            // scored by the published identity (exact filament_id, then
-                            // vendor+type, then type only). A preset no other slot references
-                            // wins on equal scores; a shared exact-material preset is taken even
-                            // though mutating it also affects the other slot.
-                            auto find_best = [&](bool unreferenced_only) -> std::pair<int, std::string> {
-                                int best_score = -1;
-                                std::string best_name;
-                                for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
-                                    const Preset &candidate = this->filaments.preset(i);
-                                    const int score = candidate_score(candidate, entry);
-                                    if (score <= best_score)
-                                        continue;
-                                    // Lower tiers (vendor+type, type only) need a visible preset;
-                                    // an exact identity match (name / setting_id) wins even when
-                                    // the preset is hidden in the library.
-                                    if (score < 3 && !candidate.is_visible)
-                                        continue;
-                                    if (unreferenced_only) {
-                                        bool used = false;
-                                        for (size_t s = 0; s < this->filament_presets.size(); ++s)
-                                            if (s != slot && this->filament_presets[s] == candidate.name) {
-                                                used = true;
-                                                break;
-                                            }
-                                        if (used)
+                            // scored by the published identity (exact preset name, then exact
+                            // setting_id, exact filament_id, then vendor+type, then type only).
+                            // A preset no other slot references wins on equal scores; a shared
+                            // exact-material preset is taken even though mutating it also
+                            // affects the other slot. Compatible presets are searched first: an
+                            // incompatible preset is only picked when no compatible candidate
+                            // exists at all.
+                            auto find_best = [&](bool compatible_only) -> std::pair<int, std::string> {
+                                auto scan = [&](bool unreferenced_only) -> std::pair<int, std::string> {
+                                    int best_score = -1;
+                                    std::string best_name;
+                                    const std::string resolved_name = resolved_name_for(entry.slot);
+                                    for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
+                                        const Preset &candidate = this->filaments.preset(i);
+                                        if (compatible_only && !candidate.is_compatible)
                                             continue;
+                                        const int score = candidate_score(candidate, entry, resolved_name);
+                                        if (score <= best_score)
+                                            continue;
+                                        // Lower tiers (vendor+type, type only) need a visible preset;
+                                        // an exact identity match (name / setting_id) wins even when
+                                        // the preset is hidden in the library.
+                                        if (score < 3 && !candidate.is_visible)
+                                            continue;
+                                        if (unreferenced_only) {
+                                            bool used = false;
+                                            for (size_t s = 0; s < this->filament_presets.size(); ++s)
+                                                if (s != slot && this->filament_presets[s] == candidate.name) {
+                                                    used = true;
+                                                    break;
+                                                }
+                                            if (used)
+                                                continue;
+                                        }
+                                        best_score = score;
+                                        best_name = candidate.name;
                                     }
-                                    best_score = score;
-                                    best_name = candidate.name;
-                                }
-                                return { best_score, best_name };
+                                    return { best_score, best_name };
+                                };
+                                const auto [strict_score, strict_name] = scan(true);
+                                const auto [relaxed_score, relaxed_name] = scan(false);
+                                if (relaxed_score > strict_score)
+                                    return { relaxed_score, relaxed_name };
+                                return { strict_score, strict_name };
                             };
-                            const auto [strict_score, strict_name] = find_best(true);
-                            const auto [relaxed_score, relaxed_name] = find_best(false);
-                            int         score       = strict_score;
-                            std::string replacement = strict_name;
-                            if (relaxed_score > strict_score) {
-                                score       = relaxed_score;
-                                replacement = relaxed_name;
+                            const auto [compat_score, compat_name] = find_best(true);
+                            const auto [any_score, any_name]       = find_best(false);
+                            int         score       = any_score;
+                            std::string replacement = any_name;
+                            if (compat_score >= 0) {
+                                score       = compat_score;
+                                replacement = compat_name;
                             }
                             if (!replacement.empty()) {
                                 const std::string old_name = recv->name;
                                 this->filament_presets[slot] = replacement;
                                 recv = this->filaments.find_preset(replacement, false, true);
                                 material_applied = true;
+                                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF slot " << slot << " material " << old_name
+                                                        << " -> " << replacement << " (score " << score << ", preset_name \""
+                                                        << entry.preset_name << "\", filament_id \"" << entry.filament_id
+                                                        << "\", setting_id \"" << entry.setting_id << "\", type \""
+                                                        << entry.publish_type_value << "\")";
                                 std::string replacement_line = "slot " + std::to_string(slot) + ": " + old_name + " -> " + replacement;
                                 // A pick that is not the exact published material is a substitute;
                                 // an entry without identity fields cannot be judged, so it stays plain.
@@ -5191,6 +5315,9 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                     this->filament_presets[slot] = fallback;
                                     recv = this->filaments.find_preset(fallback, false, true);
                                     material_applied = true;
+                                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF slot " << slot << " material " << old_name
+                                                            << " -> " << fallback << " (full-publish fallback, preset_name \""
+                                                            << entry.preset_name << "\", type \"" << entry.publish_type_value << "\")";
                                     published_config->material_replacements.emplace_back(
                                         "slot " + std::to_string(slot) + ": " + old_name + " -> " + fallback +
                                         " (substitute: no " + entry.publish_type_value + " available)");
@@ -5207,8 +5334,14 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         }
                     }
 
-                    // The values below are applied onto whatever stored preset the slot ended up
-                    // on (original, type replacement or the full-publish fallback), in place.
+                    // The values below are applied onto the slot's effective preset: the edited
+                    // layer when the slot references the collection's edited preset and that
+                    // layer will survive the load (visible as a modification and revertible,
+                    // preserving the user's unsaved edits), otherwise the stored preset it ended
+                    // up on (original, type replacement or the full-publish fallback), in place.
+                    DynamicPrintConfig &write_config = (edited_survives_load && recv->name == this->filaments.get_edited_preset().name)
+                        ? this->filaments.get_edited_preset().config
+                        : recv->config;
 
                     // Colour is slot-scoped and independent of the type gate; it is also synced
                     // into project_config for GUI rendering.
@@ -5216,7 +5349,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         if (recv != nullptr) {
                             // Create the key when the target preset lacks it: the colour is a
                             // requirement, not an override.
-                            if (ConfigOptionStrings *colour = recv->config.opt<ConfigOptionStrings>("filament_colour", true)) {
+                            if (ConfigOptionStrings *colour = write_config.opt<ConfigOptionStrings>("filament_colour", true)) {
                                 if (colour->values.empty())
                                     colour->values.emplace_back();
                                 colour->values[0] = entry.color;
@@ -5234,7 +5367,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     }
 
                     if (apply_slot && recv != nullptr)
-                        apply_slot_keys(*recv, entry.full ? entry.full_keys : entry.keys, entry.slot, material_label);
+                        apply_slot_keys(write_config, entry.full ? entry.full_keys : entry.keys, entry.slot, material_label);
                 }
             }
         }
@@ -5254,11 +5387,15 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
         }
         published_config->skipped_keys = std::move(skipped_keys);
 
-        // The material overlay mutates the collection presets in place, but the edited preset
-        // (what the GUI displays) is a snapshot taken when the preset was last selected.
-        // Re-select the first slot's filament so the applied values surface in the GUI.
-        if (material_applied && !this->filament_presets.empty())
-            this->filaments.select_preset_by_name(this->filament_presets.front(), true);
+        // The overlay lands on the edited layer only when it survives the load (slot 0's preset
+        // still matches the edited preset; see edited_survives_load) and on the stored presets
+        // otherwise. The edited preset is a snapshot taken when the preset was last selected, so
+        // a slot-0 preset change (type replacement) still needs a re-select to surface; when
+        // slot 0 is unchanged the edited layer already carries the overlay, and re-selecting
+        // would discard both it and the user's unsaved edits.
+        if (material_applied && !this->filament_presets.empty() &&
+            this->filament_presets.front() != this->filaments.get_edited_preset().name)
+            this->filaments.select_preset_by_name(this->filament_presets.front(), false);
     }
 
     //BBS

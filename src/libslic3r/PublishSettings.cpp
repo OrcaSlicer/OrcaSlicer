@@ -127,12 +127,13 @@ DynamicPrintConfig filter_published_config(
     DynamicPrintConfig filtered;
 
     std::set<std::string> base_keys_to_include;
-    // Never masked (whole-vector serialization): identity, plate geometry, process/printer
-    // keys and partially-published material keys.
+    // Never masked (whole-vector serialization): identity, plate geometry and process/printer
+    // keys.
     std::set<std::string>         mask_exempt_keys;
-    // "Full" entries only: base key -> author slots whose values must survive; other slots are
-    // masked to their defaults so a full publish does not leak unrelated slot data.
-    std::map<std::string, std::set<int>> full_slot_map;
+    // Material entries: base key -> author slots whose values must survive; other slots are
+    // masked to their defaults so a publish (partial or full) does not leak unrelated slot
+    // data.
+    std::map<std::string, std::set<int>> slot_mask_map;
 
     // 1. Mandatory material identity & slot count keys for 3MF validation/normalization
     static const std::vector<std::string> s_material_identity_keys = {
@@ -169,23 +170,25 @@ DynamicPrintConfig filter_published_config(
         }
     }
 
-    // 4. Material-specific published keys
+    // 4. Material-specific published keys. Both partial (entry.keys) and full-publish
+    // (entry.full_keys) entries mask to the author's slot on export (see the copy loop below);
+    // slot-less entries (hand-crafted files) stay unmasked (whole vector).
     for (const PublishedMaterialEntry &entry : material_keys) {
         for (const std::string &key : entry.keys) {
             const std::string base_key = key.substr(0, key.find('#'));
-            if (!base_key.empty()) {
-                base_keys_to_include.insert(base_key);
-                mask_exempt_keys.insert(base_key);
-            }
+            if (base_key.empty())
+                continue;
+            base_keys_to_include.insert(base_key);
+            if (entry.slot >= 0)
+                slot_mask_map[base_key].insert(entry.slot);
         }
-        // Full-publish keys: mask to the author's slot on export (see the copy loop below).
         for (const std::string &key : entry.full_keys) {
             const std::string base_key = key.substr(0, key.find('#'));
             if (base_key.empty())
                 continue;
             base_keys_to_include.insert(base_key);
             if (entry.slot >= 0)
-                full_slot_map[base_key].insert(entry.slot);
+                slot_mask_map[base_key].insert(entry.slot);
         }
     }
 
@@ -210,8 +213,8 @@ DynamicPrintConfig filter_published_config(
         if (const ConfigOption *opt = full_config.option(key)) {
             ConfigOption *cloned = opt->clone();
             if (mask_exempt_keys.count(key) == 0) {
-                const auto it = full_slot_map.find(key);
-                if (it != full_slot_map.end() && !it->second.empty())
+                const auto it = slot_mask_map.find(key);
+                if (it != slot_mask_map.end() && !it->second.empty())
                     mask_slots(*cloned, print_config_def.get(key), it->second);
             }
             filtered.set_key_value(key, cloned);
