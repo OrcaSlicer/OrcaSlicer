@@ -21,10 +21,14 @@ else ()
     set(_wx_edge "-DwxUSE_WEBVIEW_EDGE=OFF")
 endif ()
 
-set(_wx_patch_command "")
+set(_wx_patch_command
+    ${GIT_EXECUTABLE} checkout -f -- build/cmake/wxWidgetsConfig.cmake.in
+    COMMAND ${GIT_EXECUTABLE} apply --verbose --ignore-space-change --whitespace=fix
+            ${CMAKE_CURRENT_LIST_DIR}/0001-Clang-CL-fix.patch
+)
 if (APPLE)
-    set(_wx_patch_command
-        ${GIT_EXECUTABLE} checkout -f -- src/osx/cocoa/colour.mm
+    list(APPEND _wx_patch_command
+        COMMAND ${GIT_EXECUTABLE} checkout -f -- src/osx/cocoa/colour.mm
         COMMAND ${GIT_EXECUTABLE} apply --verbose
                 ${CMAKE_CURRENT_LIST_DIR}/0001-macos-use-srgb-colour-components.patch
     )
@@ -38,7 +42,6 @@ orcaslicer_add_cmake_project(
     GIT_SUBMODULES 3rdparty/catch 3rdparty/pcre 3rdparty/libwebp
     PATCH_COMMAND ${_wx_patch_command}
     DEPENDS ${PNG_PKG} ${ZLIB_PKG} ${EXPAT_PKG} ${JPEG_PKG}
-    PATCH_COMMAND git apply --verbose --ignore-space-change --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/0001-Clang-CL-fix.patch
     CMAKE_ARGS
         -DwxBUILD_PRECOMP=ON
         ${_wx_toolkit}
