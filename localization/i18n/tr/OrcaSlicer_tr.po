@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-08-19 14:07-0300\n"
 "PO-Revision-Date: 2026-08-04 19:36+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -4808,6 +4808,23 @@ msgstr "Mevcut hazne sıcaklığı malzemenin güvenli sıcaklığından yüksek
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "Minimum oda sıcaklığı (%d℃), hedef oda sıcaklığından (%d℃) yüksek. Minimum değer, oda hedefe doğru ısınmaya devam ederken baskının başladığı eşiktir; bu nedenle hedefi aşmamalıdır. Değer hedefe sınırlandırılacak."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr "Katman yüksekliği çok küçük. Minimum değere (%g mm) ayarlanacak."
+
+# AI Translated
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr "Katman yüksekliği, Yazıcı Ayarları -> Ekstruder -> Katman yüksekliği sınırları bölümünde ayarlanan sınırların dışında, bu durum baskı kalitesi sorunlarına neden olabilir."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr "Otomatik olarak sınır değerine (%g mm) ayarlansın mı?"
+
+msgid "Adjust"
+msgstr "Ayarla"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4927,6 +4944,13 @@ msgstr ""
 "Bu ayarlar otomatik olarak değiştirilsin mi?\n"
 "Evet - Arachne Duvarı Oluşturucusunu Etkinleştir\n"
 "Hayır - Arachne Duvarı Oluşturucusunu Devre Dışı Bırak ve Pütürlü Yüzey [Yer Değiştirme] modunu ayarla"
+
+# AI Translated
+msgid "Brim ear radius"
+msgstr "Kenar kulak yarıçapı"
+
+msgid "Brim width"
+msgstr "Kenar genişliği"
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "Spiral mod yalnızca duvar döngüleri 1 olduğunda, destek devre dışı bırakıldığında, problama yoluyla topaklanma tespiti devre dışı bırakıldığında, üst kabuk katmanları 0 olduğunda, seyrek dolgu yoğunluğu 0 olduğunda ve hızlandırılmış tip geleneksel olduğunda çalışır."
@@ -5181,6 +5205,14 @@ msgstr "Cali G-code oluşturma başarısız oldu"
 
 msgid "Calibration error"
 msgstr "Kalibrasyon hatası"
+
+# AI Translated
+msgid "This printer is not configured with the hardware this control needs."
+msgstr "Bu yazıcı, bu denetimin ihtiyaç duyduğu donanımla yapılandırılmamış."
+
+# AI Translated
+msgid "This control is not supported on this printer."
+msgstr "Bu denetim bu yazıcıda desteklenmiyor."
 
 # AI Translated
 msgid "Network unavailable"
@@ -6045,7 +6077,7 @@ msgstr "Hacim:"
 msgid "Size:"
 msgstr "Boyut:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "%d katmanında gcode yollarında çakışmalar bulundu, Z = %.2lfmm. Lütfen çakışan nesneleri daha uzağa ayırın (%s <-> %s)."
 
@@ -6226,6 +6258,10 @@ msgstr "Çoklu cihaz"
 
 msgid "Project"
 msgstr "Proje"
+
+# AI Translated
+msgid "Device (Web)"
+msgstr "Cihaz (Web)"
 
 msgid "Yes"
 msgstr "Evet"
@@ -8324,19 +8360,19 @@ msgstr "Değiştirme için dizin seçilmedi"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Dizindeki 3D dosyalarla değiştirildi:\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ %s atlandı: aynı dosya.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ %s atlandı: dosya mevcut değil.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ %s atlandı: değiştirilemedi.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔ %s değiştirildi.\n"
 
@@ -9076,6 +9112,18 @@ msgstr "Bu seçenek etkinleştirildiğinde, aynı anda birden fazla cihaza bir g
 msgid "Pop up to select filament grouping mode"
 msgstr "Filament gruplama modunu seçmek için açılır pencere"
 
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "Görünür eklenti sayfaları"
+
+# AI Translated
+msgid "pages"
+msgstr "sayfa"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "Kalan sayfalar son sekmedeki açılır listeye toplanmadan önce sabit sekme olarak gösterilen eklenti sayfalarının sayısı."
+
 msgid "Behaviour"
 msgstr "Davranış"
 
@@ -9467,6 +9515,18 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "Yazıcı ve filament açılır listelerinde uyumsuz/desteklenmeyen ön ayarları gösterir. Bu ön ayarlar seçilemez."
 
 # AI Translated
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr "(Deneysel) Baskı sunucuları yerine yazıcı aracılarını kullan"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Bambu olmayan yazıcıların baskı işlerini, klasik baskı sunucusuna yükleme akışı yerine yazıcı eklenti aracıları üzerinden yönlendirir.\n"
+"Devre dışı bırakıldığında OrcaSlicer eski baskı sunucusu davranışını kullanır."
+
+# AI Translated
 msgid "Experimental Features"
 msgstr "Deneysel Özellikler"
 
@@ -9733,8 +9793,24 @@ msgstr "Kullanıcı Ön Ayarı"
 msgid "Preset Inside Project"
 msgstr "Ön ayar içerisinde proje"
 
+# AI Translated
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr "Üst ön ayardan devralınan tüm değerleri bu ön ayara kopyalar ve üst ön ayarla olan ilişkiyi kaldırır. Yalnızca üst ön ayarla uyumlu olan ön ayarlar desteklenmeyebilir."
+
 msgid "Detach from parent"
 msgstr "Ebeveynden ayrıl"
+
+# AI Translated
+msgid "Unique preset"
+msgstr "Bağımsız ön ayar"
+
+# AI Translated
+msgid "Parent preset"
+msgstr "Üst ön ayar"
+
+# AI Translated
+msgid "This preset does not inherit from another preset."
+msgstr "Bu ön ayar başka bir ön ayardan devralmıyor."
 
 msgid "Name is unavailable."
 msgstr "Ad kullanılamıyor."
@@ -10485,22 +10561,6 @@ msgstr "Bu seçeneği etkinleştirmek istediğinizden emin misiniz?"
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "Dolgu desenleri genellikle, doğru baskı alınmasını ve istenen etkilerin (ör. Gyroid, Kübik) elde edilmesini sağlamak için döndürme işlemini otomatik olarak yapacak şekilde tasarlanmıştır. Mevcut seyrek dolgu desenini döndürmek, yetersiz destekle sonuçlanabilir. Lütfen dikkatli ilerleyin ve olası baskı sorunlarını iyice kontrol edin. Bu seçeneği etkinleştirmek istediğinizden emin misiniz?"
 
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"Katman yüksekliği çok küçük.\n"
-"min_layer_height olarak ayarlanacak\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "Katman yüksekliği, Yazıcı Ayarları -> Ekstruder -> Katman yüksekliği sınırları bölümündeki sınırı aşıyor bu durum baskı kalitesi sorunlarına neden olabilir."
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "Ayarlanan aralığa otomatik olarak ayarlansın mı?\n"
-
-msgid "Adjust"
-msgstr "Ayarla"
-
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "Deneysel özellik: Filament değişiklikleri sırasında, floşu en aza indirmek için filamenti daha büyük bir mesafeden geri çekmek ve kesmek. Flush’u önemli ölçüde azaltabilmesine rağmen, aynı zamanda nozul tıkanmaları veya diğer yazdırma komplikasyonları riskini de artırabilir."
 
@@ -10699,6 +10759,9 @@ msgstr "Ayrılmış anahtar kelimeler bulundu"
 msgid "Setting Overrides"
 msgstr "Ayarların Üzerine Yaz"
 
+msgid "Retraction when switching material"
+msgstr "Malzemeyi Değiştirirken Geri Çekme"
+
 msgid "Basic information"
 msgstr "Temel Bilgiler"
 
@@ -10832,6 +10895,12 @@ msgstr "Uyumlu süreç profilleri"
 msgid "Printable space"
 msgstr "Plaka Ayarı"
 
+msgid "Printer Agent"
+msgstr "Yazıcı Aracısı"
+
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "Yazıcı iletişimi için ağ aracısı uygulamasını seçin. Kullanılabilir aracılar başlangıçta kaydedilir."
+
 #. TRN: The first argument is the parameter's name; the second argument is its value.
 #, boost-format
 msgid "Invalid value provided for parameter %1%: %2%"
@@ -10961,9 +11030,6 @@ msgstr "Katman Yüksekliği Sınırları"
 
 msgid "Z-Hop"
 msgstr "Z Sıçraması"
-
-msgid "Retraction when switching material"
-msgstr "Malzemeyi Değiştirirken Geri Çekme"
 
 # AI Translated
 msgid ""
@@ -12343,6 +12409,10 @@ msgid " is too close to clumping detection area, and collisions will be caused.\
 msgstr " topaklanma algılama alanına çok yakın, çarpışmalar meydana gelecektir.\n"
 
 # AI Translated
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr " yazdırılabilir alanın kısmen dışında ve yazdırılamaz.\n"
+
+# AI Translated
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "Seçilen nozul sıcaklıkları uyumsuz. Her filamentin nozul sıcaklığı, diğer filamentlerin önerilen nozul sıcaklığı aralığında olmalıdır. Aksi hâlde nozul tıkanması veya yazıcıda hasar oluşabilir."
 
@@ -12676,9 +12746,6 @@ msgstr "G-code yerine 3MF kullan"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Yazıcı, baskı işi olarak 3MF dosyası kabul ediyorsa bunu etkinleştirin. Etkinleştirildiğinde Orca Slicer, dilimlenmiş dosyayı düz bir .gcode dosyası yerine .gcode.3mf olarak gönderir."
-
-msgid "Printer Agent"
-msgstr "Yazıcı Aracısı"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "Yazıcı iletişimi için ağ aracısı uygulamasını seçin."
@@ -13362,9 +13429,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "İç köprülerin hızı. Değer yüzde olarak ifade edilirse köprü hızına göre hesaplanacaktır. Varsayılan değer %150’dir."
 
-msgid "Brim width"
-msgstr "Kenar genişliği"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Modelden en dış kenar çizgisine kadar olan mesafe."
 
@@ -13448,6 +13512,14 @@ msgid ""
 msgstr ""
 "Keskin açılar algılanmadan önce geometri azaltılacaktır. Bu parametre, azaltma için minimum sapma uzunluğunu belirtir.\n"
 "Devre dışı bırakmak için 0."
+
+# AI Translated
+msgid "Brim ears outer only"
+msgstr "Kenar kulakları yalnızca dışta"
+
+# AI Translated
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr "Fare kulaklarını yalnızca modelin dış konturunda oluşturur, delikleri ve kapalı bölümleri hariç tutar."
 
 msgid "upward compatible machine"
 msgstr "yukarı doğru uyumlu makine"
@@ -14633,6 +14705,14 @@ msgstr "Tpms-fk"
 msgid "Gyroid"
 msgstr "Jiroid"
 
+# AI Translated
+msgid "Sparse infill smooth factor"
+msgstr "Dolgu yumuşatma faktörü"
+
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "Dolgu köşelerinin ne kadar yuvarlatılacağını belirler. 0% özgün keskin yolu korur, 100% ise komşu dolgu çizgileri arasında mümkün olan en büyük eğrileri üretir."
+
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Üst yüzey dolgusunun hızlandırılması. Daha düşük bir değerin kullanılması üst yüzey kalitesini iyileştirebilir."
 
@@ -15190,6 +15270,14 @@ msgstr "Yazıcının ne tür bir gcode ile uyumlu olduğu."
 
 msgid "Klipper"
 msgstr "Klipper"
+
+# AI Translated
+msgid "Skip G-code config block"
+msgstr "G-code yapılandırma bloğunu atla"
+
+# AI Translated
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr "CONFIG_BLOCK bloğunu (dilimleyici yapılandırmasının anahtar/değer çiftlerini) G-code dosyasına yazmaz. Bu, bu yorum satırlarını ayrıştırırken donanım yazılımı çöken yazıcılarda yardımcı olabilir (ör. Anycubic go-klipper). Not: G-code dosyası artık dilimleyici ayarlarını içermeyeceğinden, dosyayı OrcaSlicer'a geri aktarmak yapılandırmayı geri yüklemez."
 
 msgid "Pellet Modded Printer"
 msgstr "Pelet modlu yazıcı"
@@ -16278,6 +16366,14 @@ msgstr "Ekstruder değiştiğinde uzun geri çekilme"
 msgid "Retraction distance when extruder change"
 msgstr "Ekstruder değiştiğinde geri çekilme mesafesi"
 
+# AI Translated
+msgid "Retraction Length (Toolchange)"
+msgstr "Geri çekme uzunluğu (Takım değişimi)"
+
+# AI Translated
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr "Takım değişiminden önce geri çekme tetiklendiğinde, filament belirtilen miktarda geri çekilir (uzunluk, ekstrudere girmeden önce ham filament üzerinde ölçülür)."
+
 msgid "Z-hop height"
 msgstr "Z-Sıçrama yüksekliği"
 
@@ -16376,6 +16472,10 @@ msgstr "Yeniden başlatma sırasında ekstra uzunluk"
 
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "İlerleme hareketinden sonra geri çekilme telafi edildiğinde, ekstruder bu ek filament miktarını itecektir. Bu ayara nadiren ihtiyaç duyulur."
+
+# AI Translated
+msgid "Extra length on restart (Toolchange)"
+msgstr "Yeniden başlatma sırasında ekstra uzunluk (Takım değişimi)"
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Takım değiştirildikten sonra geri çekilme telafi edildiğinde, ekstruder bu ilave filament miktarını itecektir."
@@ -16793,6 +16893,14 @@ msgstr "Silme kulesinde takım değişimi"
 # AI Translated
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "Takım değişimi komutu (Tx) verilmeden önce baskı kafasını silme kulesine gitmeye zorlar. Yalnızca Tip 2 silme kulesi kullanan çok ekstruderli (çok baskı kafalı) yazıcılar için geçerlidir. Orca, çok baskı kafalı makinelerde bu seyahati varsayılan olarak atlar çünkü kafa değişimini ürün yazılımı yönetir; bu da Tx komutunun yazdırılan parçanın üzerinde verilmesine yol açabilir. Takım değişiminin her zaman silme kulesinin üzerinde verilmesini istiyorsanız bu seçeneği etkinleştirin."
+
+# AI Translated
+msgid "Wait for temperature on wipe tower"
+msgstr "Silme kulesinde sıcaklığı bekle"
+
+# AI Translated
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr "Yeni takımı baskı sıcaklığına ulaşmasını beklemeden alır, silme kulesine gider ve sıcaklığı orada, yıkamadan hemen önce bekler. Isınma sırasında sızan malzeme modele değil kuleye düşer ve hareket ısınmayla çakışır. Yalnızca 2. tip silme kulesi kullanan çok ekstruderli (çok baskı kafalı) yazıcılar için geçerlidir. Donanım yazılımı veya takım değişimi makrosu sıcaklığı kendisi beklememelidir. Devre dışı bırakıldığında, sıcaklık bekleme komutu takım değişimi komutundan hemen sonra verilir."
 
 msgid "No sparse layers (beta)"
 msgstr "Seyrek katman yok (beta)"
@@ -20078,9 +20186,6 @@ msgstr "Fiziksel Yazıcı"
 msgid "Print Host upload"
 msgstr "Yazıcı Bağlantı Ayarları"
 
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "Yazıcı iletişimi için ağ aracısı uygulamasını seçin. Kullanılabilir aracılar başlangıçta kaydedilir."
-
 # AI Translated
 msgid "Select a Flashforge printer"
 msgstr "Bir Flashforge yazıcısı seçin"
@@ -21022,9 +21127,6 @@ msgstr "Giriş yapmaya çalışırken beklenmeyen bir şey oldu, lütfen tekrar 
 msgid "User canceled."
 msgstr "Kullanıcı iptal edildi."
 
-msgid "Head diameter"
-msgstr "Kafa çapı"
-
 msgid "Max angle"
 msgstr "Maksimum açı"
 
@@ -21753,7 +21855,8 @@ msgstr ""
 "Baskılarınızı plakalara ayırın\n"
 "Çok sayıda parçası olan bir modeli baskıya hazır ayrı kalıplara bölebileceğinizi biliyor muydunuz? Bu, tüm parçaları takip etme sürecini basitleştirecektir."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
+#: Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -21826,7 +21929,8 @@ msgstr ""
 "Gücü artırın\n"
 "Modelin gücünü artırmak için daha fazla duvar halkası ve daha yüksek seyrek dolgu yoğunluğu kullanabileceğinizi biliyor muydunuz?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer
+#: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -21841,6 +21945,22 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "Katman yüksekliği çok küçük.\n"
+#~ "min_layer_height olarak ayarlanacak\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "Katman yüksekliği, Yazıcı Ayarları -> Ekstruder -> Katman yüksekliği sınırları bölümündeki sınırı aşıyor bu durum baskı kalitesi sorunlarına neden olabilir."
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "Ayarlanan aralığa otomatik olarak ayarlansın mı?\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "Kafa çapı"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "Tek bir katmanda yazdırma sırası."
