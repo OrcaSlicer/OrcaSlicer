@@ -8968,7 +8968,7 @@ void DesignPanel::on_commit()
     sync_recipe_to_model();
 
     if (wxGetApp().mainframe != nullptr)
-        wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+        wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
 }
 
 CadFeature DesignPanel::build_candidate(Tool t) const

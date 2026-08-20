@@ -3469,9 +3469,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("sparse_infill_smooth_factor", coPercent);
     def->label = L("Sparse infill smooth factor");
     def->category = L("Strength");
-    def->tooltip = L("Controls how strongly sparse infill corners are rounded. 0% keeps the original right-angle path, "
-                     "while 100% produces the largest possible curves between adjacent infill lines. "
-                     "Currently applies only to the Hilbert Curve.");
+    def->tooltip = L("Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, "
+                     "while 100% produces the largest possible curves between adjacent infill lines.");
     def->sidetext = "%";
     def->min = 0;
     def->max = 100;
@@ -10426,6 +10425,16 @@ int DynamicPrintConfig::update_values_from_multi_to_multi_2(const std::vector<st
 
 }
 
+void set_variant_override(ConfigOptionVectorBase &target, const ConfigOptionVectorBase &source,
+                          const std::vector<int> &variant_index, int stride)
+{
+    // A single-value object or region override applies to every nozzle variant.
+    std::vector<int> indices = variant_index;
+    if (source.size() == 1 && !source.is_nil(0))
+        std::fill(indices.begin(), indices.end(), 0);
+    target.set_to_index(&source, indices, stride);
+}
+
 
 //used for object/region config
 //use the smallest of multiple to single
@@ -11503,7 +11512,7 @@ void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPr
                 else {
                     ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(opt_src);
                     const ConfigOptionVectorBase* opt_vec_dest = static_cast<const ConfigOptionVectorBase*>(opt_dest);
-                    opt_vec_src->set_to_index(opt_vec_dest, variant_index, stride);
+                    set_variant_override(*opt_vec_src, *opt_vec_dest, variant_index, stride);
                 }
             }
         }
