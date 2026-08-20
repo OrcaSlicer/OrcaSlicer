@@ -350,6 +350,7 @@ include(GLEW/GLEW.cmake)
 
 include(GLFW/GLFW.cmake)
 include(OpenCSG/OpenCSG.cmake)
+include(SLVS/SLVS.cmake)
 
 include(TBB/TBB.cmake)
 
@@ -436,6 +437,7 @@ set(_dep_list
     dep_NLopt
     dep_OpenVDB
     dep_OpenCSG
+    dep_SLVS
     dep_OpenCV
     dep_Eigen
     dep_CGAL

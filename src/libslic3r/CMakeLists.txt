@@ -21,9 +21,9 @@ endif()
 option(BUILD_SHARED_LIBS "Build shared libs" OFF)
 option(USE_SLIC3R_CONSOLE_LOG "Enable console logging in RelWithDebInfo builds" OFF)
 
-# Vendored SolveSpace constraint solver (2D sketch solver backbone).
+# SolveSpace constraint solver (2D sketch solver backbone), built in deps/SLVS.
 if (SLIC3R_CAD)
-    add_subdirectory(slvs)
+    find_package(SLVS REQUIRED)
 endif ()
 
 set(lisbslic3r_sources
@@ -683,7 +683,7 @@ if (TARGET OpenVDB::openvdb)
 endif()
 
 if (SLIC3R_CAD)
-    target_link_libraries(libslic3r PUBLIC libslvs)
+    target_link_libraries(libslic3r PUBLIC SLVS::slvs)
 endif ()
 
 if(WIN32)
