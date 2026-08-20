@@ -1,10 +1,10 @@
 # SnapOrca-CAD vs Onshape — capability gap analysis
 
 Generated 2026-07-22 by enumerating the source, not from recollection:
-`CadFeatureType` and `add_*` in `src/libslic3r/CadDocument.hpp`, `Tool` in
-`src/slic3r/GUI/DesignPanel.hpp`, `Mode` in `src/slic3r/GUI/DesignSketchTool.hpp`,
-`SketchConstraintType` + `SketchEntity::Type` in `src/libslic3r/SketchEngine.hpp`,
-and the JSON-RPC dispatch in `src/slic3r/GUI/McpControl.cpp`.
+`CadFeatureType` and `add_*` in `src/libslic3r/CAD/CadDocument.hpp`, `Tool` in
+`src/slic3r/GUI/CAD/DesignPanel.hpp`, `Mode` in `src/slic3r/GUI/CAD/DesignSketchTool.hpp`,
+`SketchConstraintType` + `SketchEntity::Type` in `src/libslic3r/CAD/SketchEngine.hpp`,
+and the JSON-RPC dispatch in `src/slic3r/GUI/CAD/McpControl.cpp`.
 
 **Scope note.** Onshape is a cloud PLM platform; SnapOrca is a Design tab inside a
 slicer. A large share of Onshape's surface (release management, branching, real-time

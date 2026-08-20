@@ -3,7 +3,7 @@
 
 #include "GLGizmoBase.hpp"
 #include "GLGizmosCommon.hpp"
-#include "libslic3r/SketchEngine.hpp"
+#include "libslic3r/CAD/SketchEngine.hpp"
 #include <imgui/imgui.h>
 
 namespace Slic3r {

@@ -1,11 +1,11 @@
-#include "SketchImport.hpp"
+#include "libslic3r/CAD/SketchImport.hpp"
 
-#include "Emboss.hpp"
-#include "NSVGUtils.hpp"
-#include "ExPolygon.hpp"
-#include "TextConfiguration.hpp"   // FontProp
-#include "libslic3r.h"             // SCALING_FACTOR
-#include "Utils.hpp"               // resources_dir
+#include "libslic3r/Emboss.hpp"
+#include "libslic3r/NSVGUtils.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/TextConfiguration.hpp"   // FontProp
+#include "libslic3r/libslic3r.h"             // SCALING_FACTOR
+#include "libslic3r/Utils.hpp"               // resources_dir
 
 #include <algorithm>
 #include <limits>

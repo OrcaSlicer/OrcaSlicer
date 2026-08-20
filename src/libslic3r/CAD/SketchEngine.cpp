@@ -1,4 +1,4 @@
-#include "SketchEngine.hpp"
+#include "libslic3r/CAD/SketchEngine.hpp"
 
 #include <algorithm>
 #include <cmath>

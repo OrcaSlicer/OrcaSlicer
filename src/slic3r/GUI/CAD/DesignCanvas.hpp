@@ -8,10 +8,10 @@
 #include <memory>
 #include <string>
 
-#include "3DBed.hpp"
+#include "slic3r/GUI/3DBed.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/SketchEngine.hpp"
-#include "DesignSketchTool.hpp"
+#include "libslic3r/CAD/SketchEngine.hpp"
+#include "slic3r/GUI/CAD/DesignSketchTool.hpp"
 
 class wxGLCanvas;
 class wxFrame;

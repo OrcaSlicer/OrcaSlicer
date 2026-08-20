@@ -1,16 +1,16 @@
-#include "DesignSketchTool.hpp"
-#include "GLCanvas3D.hpp"
-#include "GUI_App.hpp"
-#include "ImGuiWrapper.hpp"
-#include "Plater.hpp"
+#include "slic3r/GUI/CAD/DesignSketchTool.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Plater.hpp"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include "libslic3r/BuildVolume.hpp"
-#include "Camera.hpp"
-#include "3DScene.hpp"
-#include "GLShader.hpp"
-#include "libslic3r/GeometryEngine.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "libslic3r/CAD/GeometryEngine.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
 #include <GL/glew.h>

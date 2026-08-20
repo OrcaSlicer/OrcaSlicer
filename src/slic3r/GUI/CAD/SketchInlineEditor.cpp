@@ -1,4 +1,4 @@
-#include "SketchInlineEditor.hpp"
+#include "slic3r/GUI/CAD/SketchInlineEditor.hpp"
 
 #include <wx/display.h>
 

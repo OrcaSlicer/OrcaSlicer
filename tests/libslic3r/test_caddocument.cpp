@@ -12,11 +12,11 @@
     do { const std::string _actual = (str); INFO("actual: " << _actual); \
          CHECK(_actual.find(sub) != std::string::npos); } while (0)
 
-#include "libslic3r/CadDocument.hpp"
-#include "libslic3r/GeometryEngine.hpp"
-#include "libslic3r/SketchEngine.hpp"
-#include "libslic3r/SketchImport.hpp"
-#include "libslic3r/ThreadStandards.hpp"
+#include "libslic3r/CAD/CadDocument.hpp"
+#include "libslic3r/CAD/GeometryEngine.hpp"
+#include "libslic3r/CAD/SketchEngine.hpp"
+#include "libslic3r/CAD/SketchImport.hpp"
+#include "libslic3r/CAD/ThreadStandards.hpp"
 #include "libslic3r/Utils.hpp"
 
 #include <cmath>

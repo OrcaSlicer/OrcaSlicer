@@ -1,4 +1,4 @@
-#include "McpControl.hpp"
+#include "slic3r/GUI/CAD/McpControl.hpp"
 
 #ifndef _WIN32  // POSIX Unix-domain-socket transport only (slice 1)
 
@@ -21,13 +21,13 @@
 #include <boost/log/trivial.hpp>
 #include <Standard_Failure.hxx>   // OCCT base error (not a std::exception)
 
-#include "GUI_App.hpp"
-#include "MainFrame.hpp"
-#include "DesignPanel.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/CAD/DesignPanel.hpp"
 
-#include "libslic3r/CadDocument.hpp"
-#include "libslic3r/SketchEngine.hpp"
-#include "libslic3r/GeometryEngine.hpp"
+#include "libslic3r/CAD/CadDocument.hpp"
+#include "libslic3r/CAD/SketchEngine.hpp"
+#include "libslic3r/CAD/GeometryEngine.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Format/OBJ.hpp"
 #include <boost/algorithm/string/case_conv.hpp>

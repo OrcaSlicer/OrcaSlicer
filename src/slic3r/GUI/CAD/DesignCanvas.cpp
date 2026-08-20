@@ -1,15 +1,15 @@
-#include "DesignCanvas.hpp"
+#include "slic3r/GUI/CAD/DesignCanvas.hpp"
 
-#include "SketchInlineEditor.hpp"
-#include "GLCanvas3D.hpp"
-#include "OpenGLManager.hpp"
-#include "3DBed.hpp"
-#include "GUI_App.hpp"
-#include "Plater.hpp"
+#include "slic3r/GUI/CAD/SketchInlineEditor.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/3DBed.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Plater.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/TriangleMesh.hpp"
-#include "3DScene.hpp"
-#include "MeshUtils.hpp"   // ClippingPlane (section view)
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"   // ClippingPlane (section view)
 #include "libslic3r/Config.hpp"
 #include <boost/algorithm/string/predicate.hpp>
 #include <algorithm>

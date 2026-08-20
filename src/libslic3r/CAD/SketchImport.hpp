@@ -1,7 +1,7 @@
 #ifndef slic3r_SketchImport_hpp_
 #define slic3r_SketchImport_hpp_
 
-#include "Point.hpp"   // Vec2d
+#include "libslic3r/Point.hpp"   // Vec2d
 
 #include <string>
 #include <vector>

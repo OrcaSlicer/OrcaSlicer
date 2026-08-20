@@ -1,6 +1,6 @@
 #include <catch2/catch_all.hpp>   // mainline OrcaSlicer ships Catch2 v3 (v2 was catch2/catch.hpp)
 
-#include "libslic3r/SketchImport.hpp"
+#include "libslic3r/CAD/SketchImport.hpp"
 #include "libslic3r/Utils.hpp"   // resources_dir
 #include "test_utils.hpp"        // ScopedTemporaryFile
 

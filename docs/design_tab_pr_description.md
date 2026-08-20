@@ -70,4 +70,4 @@ AGPLv3/GPLv3 compatibility argument; this point should be confirmed with upstrea
 
 See the [Where the code lives](docs/design_tab.md#where-the-code-lives) table in the user
 doc for the file-to-role mapping, and [docs/ux/tool_atlas.json](docs/ux/tool_atlas.json) as
-the generated-from source of `src/slic3r/GUI/DesignOffer.hpp`.
+the generated-from source of `src/slic3r/GUI/CAD/DesignOffer.hpp`.

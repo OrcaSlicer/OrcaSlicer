@@ -1,7 +1,7 @@
 #include "libslic3r/libslic3r.h"
 #include "GLCanvas3D.hpp"
 #ifdef SLIC3R_CAD
-#include "DesignSketchTool.hpp"   // SnapOrca Design: interactive 2D sketch tool
+#include "slic3r/GUI/CAD/DesignSketchTool.hpp"   // SnapOrca Design: interactive 2D sketch tool
 #endif
 
 #include <igl/unproject.h>

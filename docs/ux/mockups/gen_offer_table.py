@@ -7,7 +7,7 @@ The map exists ONCE. The mockups and the shipping menu read the same rows in the
 order from the same file, so a drawing and the product cannot drift apart — which is the
 only way row constancy (charter 4.1) survives contact with a codebase.
 
-Output: src/slic3r/GUI/DesignOffer.hpp, checked in and never hand-edited.
+Output: src/slic3r/GUI/CAD/DesignOffer.hpp, checked in and never hand-edited.
 """
 
 import json
@@ -17,7 +17,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 UX = os.path.dirname(HERE)
 REPO = os.path.dirname(os.path.dirname(UX))
 ATLAS = os.path.join(UX, "tool_atlas.json")
-OUT = os.path.join(REPO, "src", "slic3r", "GUI", "DesignOffer.hpp")
+OUT = os.path.join(REPO, "src", "slic3r", "GUI", "CAD", "DesignOffer.hpp")
 
 # selection id -> C++ enumerator
 ENUM = {

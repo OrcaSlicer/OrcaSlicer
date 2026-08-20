@@ -320,14 +320,14 @@ Being straight about the edges, so nobody discovers them the hard way:
 
 | Path | Role |
 |---|---|
-| `src/libslic3r/CadDocument.*` | the feature recipe and its replay |
-| `src/libslic3r/GeometryEngine.*` | OCCT wrapper — faces, edges, booleans, healing |
-| `src/libslic3r/SketchEngine.*` | profile → wire → solid |
-| `src/libslic3r/SketchSolver.*` | constraint solving, over the vendored solver |
+| `src/libslic3r/CAD/CadDocument.*` | the feature recipe and its replay |
+| `src/libslic3r/CAD/GeometryEngine.*` | OCCT wrapper — faces, edges, booleans, healing |
+| `src/libslic3r/CAD/SketchEngine.*` | profile → wire → solid |
+| `src/libslic3r/CAD/SketchSolver.*` | constraint solving, over the vendored solver |
 | `src/libslic3r/slvs/` | vendored 2D constraint solver (GPLv3) |
-| `src/slic3r/GUI/DesignPanel.*` | the tab: toolbar, cards, feature tree |
-| `src/slic3r/GUI/DesignCanvas.*` | viewport integration |
-| `src/slic3r/GUI/DesignSketchTool.*` | in-canvas sketching |
+| `src/slic3r/GUI/CAD/DesignPanel.*` | the tab: toolbar, cards, feature tree |
+| `src/slic3r/GUI/CAD/DesignCanvas.*` | viewport integration |
+| `src/slic3r/GUI/CAD/DesignSketchTool.*` | in-canvas sketching |
 
 Build with `-DSLIC3R_CAD=ON` (the default). With it OFF the tab is not compiled and the deps
 prefix matches upstream exactly — see [cad_dependency_weight.md](cad_dependency_weight.md).

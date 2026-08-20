@@ -1,8 +1,8 @@
 #include <catch2/catch_all.hpp>   // mainline OrcaSlicer ships Catch2 v3 (v2 was catch2/catch.hpp)
 using Catch::Approx;   // v3 scopes Approx into the Catch namespace; v2 had it at global scope
 
-#include "libslic3r/SketchSolver.hpp"
-#include "libslic3r/SketchEngine.hpp"
+#include "libslic3r/CAD/SketchSolver.hpp"
+#include "libslic3r/CAD/SketchEngine.hpp"
 
 using namespace Slic3r;
 using CT = SketchConstraintType;

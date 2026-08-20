@@ -1,4 +1,4 @@
-#include "SketchSolver.hpp"
+#include "libslic3r/CAD/SketchSolver.hpp"
 
 #include <slvs.h>
 

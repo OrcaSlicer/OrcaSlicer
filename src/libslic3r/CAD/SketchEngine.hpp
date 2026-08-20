@@ -1,9 +1,9 @@
 #ifndef slic3r_SketchEngine_hpp_
 #define slic3r_SketchEngine_hpp_
 
-#include "TriangleMesh.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Point.hpp"
-#include "GeometryEngine.hpp"
+#include "libslic3r/CAD/GeometryEngine.hpp"
 
 #include <gp_Pln.hxx>
 #include <gp_Ax3.hxx>

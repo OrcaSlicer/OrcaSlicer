@@ -763,15 +763,15 @@ set(SLIC3R_GUI_SOURCES
 # All of it sits behind SLIC3R_CAD and links the CAD kernel in libslic3r.
 if (SLIC3R_CAD)
     list(APPEND SLIC3R_GUI_SOURCES
-        GUI/DesignPanel.cpp
-        GUI/DesignPanel.hpp
-        GUI/DesignCanvas.cpp
-        GUI/DesignCanvas.hpp
-        GUI/DesignSketchTool.cpp
-        GUI/SketchInlineEditor.cpp
-        GUI/SketchInlineEditor.hpp
-        GUI/McpControl.cpp
-        GUI/McpControl.hpp
+        GUI/CAD/DesignPanel.cpp
+        GUI/CAD/DesignPanel.hpp
+        GUI/CAD/DesignCanvas.cpp
+        GUI/CAD/DesignCanvas.hpp
+        GUI/CAD/DesignSketchTool.cpp
+        GUI/CAD/SketchInlineEditor.cpp
+        GUI/CAD/SketchInlineEditor.hpp
+        GUI/CAD/McpControl.cpp
+        GUI/CAD/McpControl.hpp
         GUI/Gizmos/GLGizmoSketch.cpp
         GUI/Gizmos/GLGizmoSketch.hpp
         # Needs GeometryEngine (make_primitive / apply_fillet / tessellate).

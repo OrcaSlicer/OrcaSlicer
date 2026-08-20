@@ -1,7 +1,7 @@
 #ifndef slic3r_GeometryEngine_hpp_
 #define slic3r_GeometryEngine_hpp_
 
-#include "TriangleMesh.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>

@@ -1,4 +1,4 @@
-#include "GeometryEngine.hpp"
+#include "libslic3r/CAD/GeometryEngine.hpp"
 
 #include <BRepMesh_IncrementalMesh.hxx>
 #include <BRep_Tool.hxx>

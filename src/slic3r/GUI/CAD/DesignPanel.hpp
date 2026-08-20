@@ -10,7 +10,7 @@
 #include <functional>
 #include <map>
 
-#include "libslic3r/CadDocument.hpp"
+#include "libslic3r/CAD/CadDocument.hpp"
 
 class ComboBox;    // Orca dropdown (Widgets/ComboBox.hpp) — replaces wxChoice everywhere here
 class StaticBox;   // Orca rounded card frame (Widgets/StaticBox.hpp)

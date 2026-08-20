@@ -489,22 +489,22 @@ set(lisbslic3r_sources
 # vendored SolveSpace solver; both are pulled in only when SLIC3R_CAD is ON.
 if (SLIC3R_CAD)
     list(APPEND lisbslic3r_sources
-            GeometryEngine.cpp
-            GeometryEngine.hpp
-            SketchEngine.cpp
-            SketchEngine.hpp
-            SketchConstraints.cpp
-            SketchConstraints.hpp
-            SketchSolver.cpp
-            SketchSolver.hpp
-            SketchInference.cpp
-            SketchInference.hpp
-            SketchImport.cpp
-            SketchImport.hpp
-            CadDocument.cpp
-            CadDocument.hpp
-            ThreadStandards.cpp
-            ThreadStandards.hpp
+            CAD/GeometryEngine.cpp
+            CAD/GeometryEngine.hpp
+            CAD/SketchEngine.cpp
+            CAD/SketchEngine.hpp
+            CAD/SketchConstraints.cpp
+            CAD/SketchConstraints.hpp
+            CAD/SketchSolver.cpp
+            CAD/SketchSolver.hpp
+            CAD/SketchInference.cpp
+            CAD/SketchInference.hpp
+            CAD/SketchImport.cpp
+            CAD/SketchImport.hpp
+            CAD/CadDocument.cpp
+            CAD/CadDocument.hpp
+            CAD/ThreadStandards.cpp
+            CAD/ThreadStandards.hpp
         )
 endif ()
 

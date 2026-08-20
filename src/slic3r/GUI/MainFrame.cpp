@@ -38,8 +38,8 @@
 #include "GLCanvas3D.hpp"
 #include "Plater.hpp"
 #ifdef SLIC3R_CAD
-#include "DesignPanel.hpp"
-#include "McpControl.hpp"
+#include "slic3r/GUI/CAD/DesignPanel.hpp"
+#include "slic3r/GUI/CAD/McpControl.hpp"
 #endif
 #include "WebViewDialog.hpp"
 #include "../Utils/Process.hpp"

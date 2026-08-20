@@ -1,7 +1,7 @@
-#include "CadDocument.hpp"
-#include "SketchConstraints.hpp"
-#include "SketchSolver.hpp"
-#include "SketchImport.hpp"   // transform_regions for imported art
+#include "libslic3r/CAD/CadDocument.hpp"
+#include "libslic3r/CAD/SketchConstraints.hpp"
+#include "libslic3r/CAD/SketchSolver.hpp"
+#include "libslic3r/CAD/SketchImport.hpp"   // transform_regions for imported art
 
 #include <array>
 

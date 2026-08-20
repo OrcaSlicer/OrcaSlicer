@@ -1,8 +1,8 @@
-#include "DesignPanel.hpp"
-#include "DesignCanvas.hpp"
-#include "DesignSketchTool.hpp"
-#include "DesignOffer.hpp"                // generated offer table — see docs/ux/tool_atlas.json
-#include "libslic3r/GeometryEngine.hpp"   // face_by_index for face-extrude gizmo anchor
+#include "slic3r/GUI/CAD/DesignPanel.hpp"
+#include "slic3r/GUI/CAD/DesignCanvas.hpp"
+#include "slic3r/GUI/CAD/DesignSketchTool.hpp"
+#include "slic3r/GUI/CAD/DesignOffer.hpp"                // generated offer table — see docs/ux/tool_atlas.json
+#include "libslic3r/CAD/GeometryEngine.hpp"   // face_by_index for face-extrude gizmo anchor
 #include "libslic3r/TriangleMesh.hpp"     // mesh import: STL/OBJ -> indexed_triangle_set
 #include "libslic3r/Format/OBJ.hpp"
 
@@ -45,14 +45,14 @@
 #include <atomic>
 
 #include "slic3r/GUI/wxExtensions.hpp"   // ScalableButton, create_scaled_bitmap
-#include "Widgets/Label.hpp"             // HarmonyOS Sans fonts (Head_*/Body_*) shared with the rest of Orca
-#include "Widgets/DropDown.hpp"          // Orca-themed combo dropdown (white/teal selector) for the tool flyouts
-#include "Widgets/Button.hpp"            // Orca-styled Button (ButtonStyle/ButtonType) — same look as Prepare
-#include "Widgets/CheckBox.hpp"          // Orca teal check (label lives in the row's left column)
-#include "Widgets/ComboBox.hpp"          // Orca dropdown — replaces wxChoice in every Design card
-#include "Widgets/StaticBox.hpp"         // Prepare's rounded white card frame around each tool dialog
-#include "libslic3r/SketchImport.hpp"    // text_to_regions / svg_to_regions
-#include "libslic3r/ThreadStandards.hpp" // ISO metric / Unified imperial thread tables
+#include "slic3r/GUI/Widgets/Label.hpp"             // HarmonyOS Sans fonts (Head_*/Body_*) shared with the rest of Orca
+#include "slic3r/GUI/Widgets/DropDown.hpp"          // Orca-themed combo dropdown (white/teal selector) for the tool flyouts
+#include "slic3r/GUI/Widgets/Button.hpp"            // Orca-styled Button (ButtonStyle/ButtonType) — same look as Prepare
+#include "slic3r/GUI/Widgets/CheckBox.hpp"          // Orca teal check (label lives in the row's left column)
+#include "slic3r/GUI/Widgets/ComboBox.hpp"          // Orca dropdown — replaces wxChoice in every Design card
+#include "slic3r/GUI/Widgets/StaticBox.hpp"         // Prepare's rounded white card frame around each tool dialog
+#include "libslic3r/CAD/SketchImport.hpp"    // text_to_regions / svg_to_regions
+#include "libslic3r/CAD/ThreadStandards.hpp" // ISO metric / Unified imperial thread tables
 #include "libslic3r/Model.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"

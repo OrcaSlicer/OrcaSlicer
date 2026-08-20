@@ -1,4 +1,4 @@
-#include "SketchInference.hpp"
+#include "libslic3r/CAD/SketchInference.hpp"
 
 #include <cmath>
 
