@@ -501,6 +501,7 @@ void SelectMachinePopup::update_other_devices()
     DeviceManager* dev = wxGetApp().getDeviceManager();
     if (!dev) return;
     m_free_machine_list = dev->get_local_machinelist();
+    const std::string current_agent_id = dev->get_current_printer_agent_id();
 
     BOOST_LOG_TRIVIAL(trace) << "SelectMachinePopup update_other_devices start";
     this->Freeze();
@@ -511,6 +512,10 @@ void SelectMachinePopup::update_other_devices()
         MachineObject *     mobj = elem.second;
         /* do not show printer bind state is empty */
         if (!mobj->is_avaliable()) continue;
+
+        /* do not show devices discovered/bound by a different printer agent */
+        if (mobj->printer_agent_id != current_agent_id)
+            continue;
 
         if (!wxGetApp().is_user_login(wxGetApp().get_printer_cloud_provider()) && !mobj->is_lan_mode_printer())
             continue;
@@ -634,7 +639,7 @@ void SelectMachinePopup::update_user_devices()
     }
 
     m_bind_machine_list.clear();
-    m_bind_machine_list = dev->get_my_machine_list();
+    m_bind_machine_list = dev->get_my_machine_list(dev->get_current_printer_agent_id());
 
     //sort list
     std::vector<std::pair<std::string, MachineObject*>> user_machine_list;
