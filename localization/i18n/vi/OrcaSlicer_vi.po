@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-08-19 14:07-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -4975,6 +4975,23 @@ msgstr "Nhiệt độ buồng hiện tại cao hơn nhiệt độ an toàn của
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "Nhiệt độ buồng tối thiểu (%d℃) cao hơn nhiệt độ buồng mục tiêu (%d℃). Giá trị tối thiểu là ngưỡng để bắt đầu in trong khi buồng vẫn tiếp tục gia nhiệt tới mục tiêu, nên nó không được vượt quá giá trị mục tiêu. Nó sẽ được giới hạn về mức mục tiêu."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr "Chiều cao lớp quá nhỏ. Nó sẽ được đặt về giá trị tối thiểu (%g mm)."
+
+# AI Translated
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr "Chiều cao lớp nằm ngoài giới hạn được đặt trong Cài đặt máy in -> Extruder -> Giới hạn chiều cao lớp, điều này có thể gây ra vấn đề chất lượng in."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr "Tự động điều chỉnh về giới hạn (%g mm)?"
+
+msgid "Adjust"
+msgstr "Điều chỉnh"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -5094,6 +5111,13 @@ msgstr ""
 "Thay đổi các cài đặt này tự động?\n"
 "Yes - Bật trình tạo wall Arachne\n"
 "No  - Tắt trình tạo wall Arachne và đặt chế độ [Displacement] của Fuzzy Skin"
+
+# AI Translated
+msgid "Brim ear radius"
+msgstr "Bán kính tai brim"
+
+msgid "Brim width"
+msgstr "Độ rộng brim"
 
 # AI Translated
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
@@ -5398,6 +5422,14 @@ msgstr "Không thể tạo G-code hiệu chỉnh"
 
 msgid "Calibration error"
 msgstr "Lỗi hiệu chỉnh"
+
+# AI Translated
+msgid "This printer is not configured with the hardware this control needs."
+msgstr "Máy in này không được cấu hình phần cứng mà điều khiển này cần."
+
+# AI Translated
+msgid "This control is not supported on this printer."
+msgstr "Điều khiển này không được hỗ trợ trên máy in này."
 
 # AI Translated
 msgid "Network unavailable"
@@ -6317,7 +6349,7 @@ msgstr "Thể tích:"
 msgid "Size:"
 msgstr "Kích thước:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Đã tìm thấy xung đột đường đi G-code tại lớp %d, Z = %.2lfmm. Vui lòng tách các vật thể xung đột ra xa hơn (%s <-> %s)."
 
@@ -6515,6 +6547,10 @@ msgstr "Nhiều thiết bị"
 
 msgid "Project"
 msgstr "Dự án"
+
+# AI Translated
+msgid "Device (Web)"
+msgstr "Thiết bị (Web)"
 
 msgid "Yes"
 msgstr "Có"
@@ -8721,22 +8757,22 @@ msgid "Replaced with 3D files from directory:\n"
 msgstr "Đã thay thế bằng file 3D từ thư mục:\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ Đã bỏ qua %s: cùng một file.\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ Đã bỏ qua %s: file không tồn tại.\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ Đã bỏ qua %s: thay thế thất bại.\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔ Đã thay thế %s.\n"
 
@@ -9533,6 +9569,18 @@ msgid "Pop up to select filament grouping mode"
 msgstr "Hiện cửa sổ để chọn chế độ nhóm filament"
 
 # AI Translated
+msgid "Visible plugin pages"
+msgstr "Số trang plugin hiển thị"
+
+# AI Translated
+msgid "pages"
+msgstr "trang"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "Số trang plugin được hiển thị dưới dạng tab cố định trước khi các trang còn lại được gom vào danh sách thả xuống ở tab cuối cùng."
+
+# AI Translated
 msgid "Behaviour"
 msgstr "Hành vi"
 
@@ -9948,6 +9996,18 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "Hiện các cài đặt sẵn không tương thích/không được hỗ trợ trong danh sách thả xuống máy in và filament. Không thể chọn các cài đặt sẵn này."
 
 # AI Translated
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr "(Thử nghiệm) Dùng tác nhân máy in thay cho máy chủ in"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Định tuyến các tác vụ in của máy in không phải Bambu qua các tác nhân plugin máy in thay vì luồng tải lên máy chủ in cổ điển.\n"
+"Khi tắt, OrcaSlicer sẽ dùng hành vi máy chủ in cũ."
+
+# AI Translated
 msgid "Experimental Features"
 msgstr "Tính năng thử nghiệm"
 
@@ -10224,8 +10284,24 @@ msgid "Preset Inside Project"
 msgstr "Preset bên trong dự án"
 
 # AI Translated
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr "Sao chép tất cả các giá trị kế thừa từ preset cha vào preset này và gỡ bỏ quan hệ kế thừa. Các preset chỉ tương thích với preset cha có thể không còn được hỗ trợ."
+
+# AI Translated
 msgid "Detach from parent"
 msgstr "Tách khỏi vật thể cha"
+
+# AI Translated
+msgid "Unique preset"
+msgstr "Preset độc lập"
+
+# AI Translated
+msgid "Parent preset"
+msgstr "Preset cha"
+
+# AI Translated
+msgid "This preset does not inherit from another preset."
+msgstr "Preset này không kế thừa từ preset khác."
 
 msgid "Name is unavailable."
 msgstr "Tên không khả dụng."
@@ -11026,22 +11102,6 @@ msgstr "Bạn có chắc chắn muốn bật tùy chọn này?"
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "Mẫu infill thường được thiết kế để xử lý xoay tự động nhằm đảm bảo in đúng cách và đạt được hiệu quả dự kiến (ví dụ: Gyroid, Cubic). Xoay mẫu infill thưa hiện tại có thể dẫn đến support không đủ . Vui lòng tiến hành thận trọng và kiểm tra kỹ bất kỳ vấn đề in tiềm ẩn nào. Bạn có chắc chắn muốn bật tùy chọn này?"
 
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"Chiều cao lớp quá nhỏ.\n"
-"Nó sẽ được đặt thành min_layer_height\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "Chiều cao lớp vượt quá giới hạn trong Cài đặt máy in -> Extruder -> Giới hạn chiều cao lớp, điều này có thể gây ra vấn đề chất lượng in."
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "Điều chỉnh về phạm vi đặt tự động?\n"
-
-msgid "Adjust"
-msgstr "Điều chỉnh"
-
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "Tính năng thử nghiệm: Rút và cắt filament ở khoảng cách lớn hơn trong quá trình thay filament để giảm thiểu xả. Mặc dù có thể giảm đáng kể lượng xả, nó cũng có thể làm tăng nguy cơ tắc đầu phun hoặc các vấn đề in khác."
 
@@ -11235,6 +11295,9 @@ msgstr "Tìm thấy từ khóa dành riêng"
 msgid "Setting Overrides"
 msgstr "Ghi đè cài đặt"
 
+msgid "Retraction when switching material"
+msgstr "Rút khi chuyển vật liệu"
+
 msgid "Basic information"
 msgstr "Thông tin cơ bản"
 
@@ -11365,6 +11428,14 @@ msgstr "Hồ sơ quy trình tương thích"
 
 msgid "Printable space"
 msgstr "Không gian in"
+
+# AI Translated
+msgid "Printer Agent"
+msgstr "Tác nhân máy in"
+
+# AI Translated
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "Chọn cách triển khai tác nhân mạng cho việc giao tiếp với máy in. Các tác nhân khả dụng được đăng ký khi khởi động."
 
 #. TRN: The first argument is the parameter's name; the second argument is its value.
 #, boost-format
@@ -11497,9 +11568,6 @@ msgstr "Giới hạn chiều cao lớp"
 
 msgid "Z-Hop"
 msgstr "Z-Hop"
-
-msgid "Retraction when switching material"
-msgstr "Rút khi chuyển vật liệu"
 
 # AI Translated
 msgid ""
@@ -12951,6 +13019,10 @@ msgid " is too close to clumping detection area, and collisions will be caused.\
 msgstr " ở quá gần vùng phát hiện vón cục, và sẽ gây ra va chạm.\n"
 
 # AI Translated
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr " nằm một phần ngoài vùng in được, và không thể in.\n"
+
+# AI Translated
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "Nhiệt độ đầu phun đã chọn không tương thích. Nhiệt độ đầu phun của mỗi filament phải nằm trong dải nhiệt độ đầu phun được khuyến nghị của các filament còn lại. Nếu không, có thể xảy ra tắc đầu phun hoặc hư hỏng máy in."
 
@@ -13290,10 +13362,6 @@ msgstr "Dùng 3MF thay cho G-code"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Bật tùy chọn này nếu máy in nhận file 3MF làm tác vụ in. Khi bật, Orca Slicer sẽ gửi file đã slice dưới dạng .gcode.3mf thay vì file .gcode thuần."
-
-# AI Translated
-msgid "Printer Agent"
-msgstr "Tác nhân máy in"
 
 # AI Translated
 msgid "Select the network agent implementation for printer communication."
@@ -14002,9 +14070,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "Tốc độ của cầu bên trong. Nếu giá trị được biểu thị dưới dạng phần trăm, nó sẽ được tính dựa trên bridge_speed. Giá trị mặc định là 150%."
 
-msgid "Brim width"
-msgstr "Độ rộng brim"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Khoảng cách từ model đến đường brim ngoài cùng."
 
@@ -14087,6 +14152,14 @@ msgid ""
 msgstr ""
 "Hình học sẽ được giảm trước khi phát hiện góc sắc. Tham số này chỉ ra độ dài tối thiểu của độ lệch cho việc giảm.\n"
 "0 để vô hiệu hóa."
+
+# AI Translated
+msgid "Brim ears outer only"
+msgstr "Tai brim chỉ ở mặt ngoài"
+
+# AI Translated
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr "Chỉ tạo tai chuột trên đường viền ngoài của mô hình, không tính các lỗ và phần khép kín."
 
 msgid "upward compatible machine"
 msgstr "máy tương thích ngược"
@@ -15305,6 +15378,14 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Gyroid"
 
+# AI Translated
+msgid "Sparse infill smooth factor"
+msgstr "Hệ số làm mượt infill thưa"
+
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "Điều chỉnh mức độ bo tròn các góc của infill thưa. 0% giữ nguyên đường đi sắc cạnh ban đầu, còn 100% tạo ra các đường cong lớn nhất có thể giữa các đường infill liền kề."
+
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Gia tốc của infill bề mặt trên. Sử dụng giá trị thấp hơn có thể cải thiện chất lượng bề mặt trên."
 
@@ -15867,6 +15948,14 @@ msgstr "Loại G-code mà máy in tương thích."
 
 msgid "Klipper"
 msgstr "Klipper"
+
+# AI Translated
+msgid "Skip G-code config block"
+msgstr "Bỏ qua khối cấu hình G-code"
+
+# AI Translated
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr "Không ghi CONFIG_BLOCK (các cặp khóa/giá trị cấu hình của phần mềm slice) vào tệp G-code. Điều này có thể hữu ích với các máy in có firmware bị treo khi phân tích những dòng chú thích này (ví dụ Anycubic go-klipper). Lưu ý: tệp G-code sẽ không còn chứa các thiết lập slice, nên việc nhập lại tệp vào OrcaSlicer sẽ không khôi phục được cấu hình."
 
 msgid "Pellet Modded Printer"
 msgstr "Máy in Pellet đã chỉnh sửa"
@@ -16971,6 +17060,14 @@ msgstr "Rút dài khi đổi extruder"
 msgid "Retraction distance when extruder change"
 msgstr "Khoảng cách rút khi đổi extruder"
 
+# AI Translated
+msgid "Retraction Length (Toolchange)"
+msgstr "Độ dài rút (Đổi công cụ)"
+
+# AI Translated
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr "Khi rút được kích hoạt trước khi đổi công cụ, filament sẽ bị kéo lùi lại theo lượng đã chỉ định (độ dài được đo trên filament thô, trước khi nó đi vào extruder)."
+
 msgid "Z-hop height"
 msgstr "Chiều cao Z-hop"
 
@@ -17068,6 +17165,10 @@ msgstr "Độ dài bổ sung khi khởi động lại"
 
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "Khi rút được bù sau khi di chuyển, extruder sẽ đẩy lượng filament bổ sung này. Cài đặt này hiếm khi cần thiết."
+
+# AI Translated
+msgid "Extra length on restart (Toolchange)"
+msgstr "Độ dài bổ sung khi khởi động lại (Đổi công cụ)"
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Khi rút được bù sau khi thay công cụ, extruder sẽ đẩy lượng filament bổ sung này."
@@ -17488,6 +17589,14 @@ msgstr "Đổi công cụ trên wipe tower"
 # AI Translated
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "Buộc đầu công cụ di chuyển đến wipe tower trước khi phát lệnh đổi công cụ (Tx). Chỉ liên quan đến máy in nhiều extruder (nhiều đầu công cụ) dùng wipe tower Loại 2. Theo mặc định, Orca bỏ qua bước di chuyển này trên máy nhiều đầu công cụ vì firmware tự xử lý việc đổi đầu, điều này có thể khiến lệnh Tx được phát ra ngay phía trên phần đang in. Hãy bật tùy chọn này nếu bạn muốn việc đổi công cụ luôn diễn ra phía trên wipe tower."
+
+# AI Translated
+msgid "Wait for temperature on wipe tower"
+msgstr "Chờ nhiệt độ tại wipe tower"
+
+# AI Translated
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr "Lấy công cụ mới mà không chờ nó đạt nhiệt độ in, di chuyển đến wipe tower và chờ nhiệt độ tại đó, ngay trước khi xả. Nhựa chảy ra trong lúc gia nhiệt sẽ rơi lên wipe tower thay vì lên mô hình, và quãng di chuyển diễn ra đồng thời với quá trình gia nhiệt. Chỉ áp dụng cho máy in nhiều extruder (nhiều đầu công cụ) dùng wipe tower loại 2. Firmware hoặc macro đổi công cụ không được tự chờ nhiệt độ. Khi tắt, lệnh chờ nhiệt độ sẽ được phát ngay sau lệnh đổi công cụ."
 
 msgid "No sparse layers (beta)"
 msgstr "Không có lớp thưa (beta)"
@@ -20850,10 +20959,6 @@ msgid "Print Host upload"
 msgstr "Tải lên máy chủ in"
 
 # AI Translated
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "Chọn cách triển khai tác nhân mạng cho việc giao tiếp với máy in. Các tác nhân khả dụng được đăng ký khi khởi động."
-
-# AI Translated
 msgid "Select a Flashforge printer"
 msgstr "Chọn một máy in Flashforge"
 
@@ -21832,9 +21937,6 @@ msgstr "Đã xảy ra điều gì đó không mong đợi khi cố gắng đăng
 msgid "User canceled."
 msgstr "Người dùng đã hủy."
 
-msgid "Head diameter"
-msgstr "Đường kính đầu"
-
 msgid "Max angle"
 msgstr "Góc tối đa"
 
@@ -22701,6 +22803,22 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "Chiều cao lớp quá nhỏ.\n"
+#~ "Nó sẽ được đặt thành min_layer_height\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "Chiều cao lớp vượt quá giới hạn trong Cài đặt máy in -> Extruder -> Giới hạn chiều cao lớp, điều này có thể gây ra vấn đề chất lượng in."
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "Điều chỉnh về phạm vi đặt tự động?\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "Đường kính đầu"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "Thứ tự in trong một lớp đơn."
