@@ -434,7 +434,9 @@ static inline void fill_expolygon_generate_paths(
         dst,
         std::move(polylines),
         role,
-        flow.mm3_per_mm(), flow.width(), flow.height());
+        // ORCA: a zero height flow is a zero flow ironing pass, which deliberately extrudes nothing.
+        // Flow::mm3_per_mm() rejects the resulting zero cross section, so bypass it in that case only.
+        flow.height() > 0.f ? flow.mm3_per_mm() : 0., flow.width(), flow.height());
 }
 
 static inline void fill_expolygons_generate_paths(

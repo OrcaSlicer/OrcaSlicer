@@ -1099,7 +1099,7 @@ std::string GCodeWriter::extrude_to_xy(const Vec2d &point, double dE, const std:
 {
     m_pos(0) = point(0);
     m_pos(1) = point(1);
-    if(std::abs(dE) <= std::numeric_limits<double>::epsilon())
+    if(std::abs(dE) <= std::numeric_limits<double>::epsilon() && !m_zero_flow_ironing)
         force_no_extrusion = true;
 
     if (!force_no_extrusion)
@@ -1244,6 +1244,23 @@ std::string GCodeWriter::unretract(float extra_retract)
         }
     }
 
+    return gcode;
+}
+
+std::string GCodeWriter::ironing_e_move(double dE, const std::string &comment)
+{
+    // The retract state (Extruder::m_retracted) is intentionally left alone: marking the
+    // extruder as retracted would make the arrival unretract of the very next travel
+    // restore the filament before ironing even starts.
+    GCodeG1Formatter w;
+    w.emit_e(this->config.use_relative_e_distances ? dE : filament()->E() + dE);
+    w.emit_f((dE < 0. ? filament()->retract_speed() : filament()->deretract_speed()) * 60.);
+    w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+    std::string gcode = w.string();
+    // In absolute E mode the move above leaves the firmware E coordinate offset by dE
+    // from the tracked position; re-anchor both at zero so subsequent moves stay in sync.
+    if (! this->config.use_relative_e_distances)
+        gcode += this->reset_e(true);
     return gcode;
 }
 

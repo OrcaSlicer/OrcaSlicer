@@ -4759,6 +4759,31 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPercent(10));
 
+    def = this->add("ironing_retract", coFloat);
+    def->label = L("Ironing retract");
+    def->category = L("Quality");
+    def->tooltip = L("Retraction distance before an ironing pass with zero flow.\n"
+                     "This stops the nozzle from oozing onto the finished surface, "
+                     "and marks the ironing moves as extrusion instead of travel in the G-code.");
+    def->sidetext = "mm";
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(20));
+
+    def = this->add("ironing_unretract_extra", coFloat);
+    def->label = L("Ironing unretract extra");
+    def->category = L("Quality");
+    def->tooltip = L("Extra length pushed out, on top of the ironing retraction, "
+                     "when unretracting after a zero flow ironing pass.\n"
+                     "Compensates for filament lost to ooze or heat creep while "
+                     "retracted; use a negative value if it over-extrudes instead.");
+    def->sidetext = "mm";
+    def->min = -20;
+    def->max = 20;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
     def = this->add("ironing_spacing", coFloat);
     def->label = L("Ironing line spacing");
     def->category = L("Quality");
@@ -7174,6 +7199,31 @@ void PrintConfigDef::init_fff_params()
     def->max = 100;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPercent(10));
+
+    def = this->add("support_ironing_retract", coFloat);
+    def->label = L("Support ironing retract");
+    def->category = L("Support");
+    def->tooltip = L("Retraction distance before a support interface ironing pass with zero flow.\n"
+                     "This stops the nozzle from oozing onto the finished surface, "
+                     "and marks the ironing moves as extrusion instead of travel in the G-code.");
+    def->sidetext = "mm";
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(20));
+
+    def = this->add("support_ironing_unretract_extra", coFloat);
+    def->label = L("Support ironing unretract extra");
+    def->category = L("Support");
+    def->tooltip = L("Extra length pushed out, on top of the support ironing retraction, "
+                     "when unretracting after a zero flow ironing pass.\n"
+                     "Compensates for filament lost to ooze or heat creep while "
+                     "retracted; use a negative value if it over-extrudes instead.");
+    def->sidetext = "mm";
+    def->min = -20;
+    def->max = 20;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("support_ironing_spacing", coFloat);
     def->label = L("Support Ironing line spacing");

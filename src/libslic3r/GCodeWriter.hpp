@@ -91,6 +91,11 @@ public:
     // extra_retract adds a small over-extrusion to the deretract move (PETG pre-extrusion).
     // Default 0 -> byte-identical to the plain deretract.
     std::string unretract(float extra_retract = 0.f);
+    std::string ironing_e_move(double dE, const std::string &comment);
+    // A zero flow ironing pass is in progress: its strokes keep an explicit E word even though they
+    // extrude nothing, and the filament stays parked where the ironing retract left it.
+    void set_zero_flow_ironing(bool active) { m_zero_flow_ironing = active; }
+    bool zero_flow_ironing() const { return m_zero_flow_ironing; }
     // do lift instantly
     std::string eager_lift(const LiftType type);
     // record a lift request, do realy lift in next travel
@@ -181,6 +186,7 @@ public:
     //BBS: x, y offset for gcode generated
     double          m_x_offset{ 0 };
     double          m_y_offset{ 0 };
+    bool            m_zero_flow_ironing = false;
 
     // Orca: slicing resolution in mm
     double          m_resolution = 0.01;

@@ -847,3 +847,56 @@ TEST_CASE("Custom G-code motion limits are restored before generated moves", "[G
     REQUIRE(gcode.find("M204 S6000 ; adjust acceleration", custom_gcode_pos) != std::string::npos);
     REQUIRE(gcode.find("M205 X8 Y8 ; adjust jerk", custom_gcode_pos) != std::string::npos);
 }
+
+TEST_CASE("Ironing E moves keep the firmware and tracked E position in sync in both E modes", "[GCodeWriter]") {
+    GCodeWriter writer;
+    writer.config.retraction_speed.values   = {40.};
+    writer.config.deretraction_speed.values = {25.};
+    writer.config.filament_diameter.values  = {1.75};
+    writer.set_extruders({0});
+    writer.toolchange(0, 0);
+    REQUIRE(writer.filament() != nullptr);
+
+    SECTION("relative E distances emit the shift verbatim, without a G92 re-anchor") {
+        writer.config.use_relative_e_distances.value = true;
+
+        std::string retract = writer.ironing_e_move(-20., "ironing retract");
+        REQUIRE(retract.find("E-20") != std::string::npos);
+        REQUIRE(retract.find("F2400") != std::string::npos); // 40 mm/s retract speed
+        REQUIRE(retract.find("G92") == std::string::npos);
+
+        std::string unretract = writer.ironing_e_move(20.5, "ironing unretract");
+        REQUIRE(unretract.find("E20.5") != std::string::npos);
+        REQUIRE(unretract.find("F1500") != std::string::npos); // 25 mm/s deretract speed
+    }
+
+    SECTION("absolute E distances target tracked E + shift, then re-anchor with G92 E0") {
+        writer.config.use_relative_e_distances.value = false;
+        writer.filament()->extrude(5.); // prior extrusion: tracked E = 5
+
+        std::string retract = writer.ironing_e_move(-20., "ironing retract");
+        REQUIRE(retract.find("E-15") != std::string::npos); // 5 - 20, an absolute target
+        REQUIRE(retract.find("G92 E0") != std::string::npos);
+        // The tracked position was re-anchored with the firmware, so the next
+        // absolute E word starts from 0 instead of silently undoing the shift.
+        REQUIRE_THAT(writer.filament()->E(), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("the retract state is left alone, so travel retracts keep working on top") {
+        writer.config.use_relative_e_distances.value = true;
+        writer.ironing_e_move(-20., "ironing retract");
+        REQUIRE_THAT(writer.filament()->retracted(), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("zero-dE strokes emit an explicit E word only while forced") {
+        writer.config.use_relative_e_distances.value = true;
+        std::string plain = writer.extrude_to_xy(Vec2d(10., 10.), 0., "");
+        REQUIRE(plain.find(" E") == std::string::npos);
+        writer.set_zero_flow_ironing(true);
+        std::string forced = writer.extrude_to_xy(Vec2d(20., 10.), 0., "");
+        REQUIRE(forced.find(" E0") != std::string::npos);
+        writer.set_zero_flow_ironing(false);
+        std::string after = writer.extrude_to_xy(Vec2d(30., 10.), 0., "");
+        REQUIRE(after.find(" E") == std::string::npos);
+    }
+}

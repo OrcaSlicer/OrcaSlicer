@@ -919,6 +919,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool has_support_ironing = can_ironing_support && config->opt_bool("support_ironing");
     for (auto el : {"support_ironing_pattern", "support_ironing_flow", "support_ironing_spacing" })
         toggle_line(el, has_support_ironing);
+    for (auto el : {"support_ironing_retract", "support_ironing_unretract_extra"})
+        toggle_line(el, has_support_ironing && config->opt<ConfigOptionPercent>("support_ironing_flow")->value == 0);
     // Orca: Force solid support interface when using support ironing
     toggle_field("support_interface_spacing", have_support_material && have_support_interface && !has_support_ironing);
 
@@ -954,6 +956,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : {"ironing_angle", "ironing_angle_fixed"})
         toggle_field(el, has_ironing && has_rectilinear_ironing);
     
+    for (auto el : { "ironing_retract", "ironing_unretract_extra"})
+        toggle_line(el,  has_ironing && config->opt<ConfigOptionPercent>("ironing_flow")->value == 0);
+
     toggle_line("ironing_speed", has_ironing || has_support_ironing);
 
     bool has_zaa = config->opt_bool("zaa_enabled");

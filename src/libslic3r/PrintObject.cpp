@@ -1548,7 +1548,11 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "filament_flow_ratio"
             || opt_key == "scarf_joint_flow_ratio"
             || opt_key == "spiral_starting_flow_ratio"
-            || opt_key == "spiral_finishing_flow_ratio") {
+            || opt_key == "spiral_finishing_flow_ratio"
+            || opt_key == "ironing_retract"
+            || opt_key == "ironing_unretract_extra"
+            || opt_key == "support_ironing_retract"
+            || opt_key == "support_ironing_unretract_extra") {
             invalidated |= m_print->invalidate_step(psGCodeExport);
         } else if (
                opt_key == "flush_into_infill"
