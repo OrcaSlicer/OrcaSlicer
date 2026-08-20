@@ -66,7 +66,7 @@ if (MSVC)
     target_link_libraries(${_TEST_NAME}_tests Setupapi.lib)
 endif ()
 
-target_link_libraries(${_TEST_NAME}_tests test_common libslic3r_gui libslic3r pybind11::embed Catch2::Catch2WithMain)
+target_link_libraries(${_TEST_NAME}_tests test_common test_slic3r_bootstrap libslic3r_gui libslic3r pybind11::embed Catch2::Catch2WithMain)
 if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
     add_precompiled_header(${_TEST_NAME}_tests ${CMAKE_SOURCE_DIR}/src/slic3r/pchheader.hpp FORCEINCLUDE)
 endif ()
