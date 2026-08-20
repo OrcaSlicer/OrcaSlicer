@@ -55,6 +55,7 @@ using namespace nlohmann;
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/GCode.hpp"
+#include "libslic3r/MaterialType.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/Platform.hpp"
@@ -7316,6 +7317,12 @@ bool CLI::setup(int argc, char **argv)
             m_config.option(optdef.first, true);
 
     set_data_dir(m_config.opt_string("datadir"));
+
+    // The material tables (and the filament type list derived from them) are shipped as JSON in
+    // <resources>/info and mirrored into <data_dir>/info, so they can only be read once both
+    // directories are known.
+    MaterialType::load();
+    refresh_material_type_config_defs();
 
     //FIXME Validating at this stage most likely does not make sense, as the config is not fully initialized yet.
     if (!validity.empty()) {

@@ -3235,12 +3235,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Filament material type");
     def->gui_type = ConfigOptionDef::GUIType::f_enum_open;
     def->gui_flags = "show_value";
-
-    // Populate the enum values using the shared material type database
-    for (const auto& filament : MaterialType::all()) {
-        def->enum_values.push_back(filament.name);
-    }
-
+    this->init_filament_type_values();
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionStrings { "PLA" });
 
@@ -9294,7 +9289,21 @@ void PrintConfigDef::handle_legacy_composite(DynamicPrintConfig &config)
     }
 }
 
-const PrintConfigDef print_config_def;
+// Populate the value list from the shared material type database. Called again by
+// refresh_material_type_config_defs() once the database has been loaded from disk, as the definitions
+// are built during static initialisation, before the resource paths are known.
+void PrintConfigDef::init_filament_type_values()
+{
+    ConfigOptionDef &def = this->options.at("filament_type");
+    def.enum_values.clear();
+    for (const MaterialTypeInfo &filament : MaterialType::all())
+        def.enum_values.push_back(filament.name);
+}
+
+static PrintConfigDef s_print_config_def;
+const PrintConfigDef &print_config_def = s_print_config_def;
+
+void refresh_material_type_config_defs() { s_print_config_def.init_filament_type_values(); }
 
 //todo
 std::set<std::string> print_options_with_variant = {

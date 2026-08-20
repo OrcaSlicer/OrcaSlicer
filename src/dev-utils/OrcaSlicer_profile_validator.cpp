@@ -9,6 +9,7 @@
 #include "nanosvg/nanosvgrast.h"
 
 #include "libslic3r/GCode.hpp"
+#include "libslic3r/MaterialType.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -424,8 +425,13 @@ int main(int argc, char* argv[])
     // <resources> parent. Without this, resources_dir() is empty and slice mode's HRC lookup
     // (info/nozzle_info.json) resolves to a non-existent relative path and falls back to a
     // built-in table (logging a spurious parse error and dropping the E3D entry).
-    if (fs::exists(fs::path(path).parent_path() / "info"))
+    if (fs::exists(fs::path(path).parent_path() / "info")) {
         set_resources_dir(fs::path(path).parent_path().string());
+        // Read the shipped material tables (temperature ranges, adhesion rules) so validation and slice
+        // mode see the same data as the application. No mirroring: data_dir() is the profile folder here.
+        MaterialType::load(/*mirror_to_data_dir=*/false);
+        refresh_material_type_config_defs();
+    }
 
     auto user_dir = fs::path(Slic3r::data_dir()) / PRESET_USER_DIR;
     user_dir.make_preferred();
