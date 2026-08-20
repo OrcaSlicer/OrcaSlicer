@@ -260,7 +260,7 @@ static std::vector<std::string> filament_colors_for_gcode_tools(const Slic3r::Pr
     {
         std::string slots;
         for (int v : compaction.slot_of_tool) slots += std::to_string(v) + " ";
-        BOOST_LOG_TRIVIAL(info) << "preview tool colors: compaction slots=[" << slots << "] project colors=" << project_colors.size();
+        BOOST_LOG_TRIVIAL(warning) << "preview tool colors: compaction slots=[" << slots << "] project colors=" << project_colors.size(); // warning: Windows configs filter info
     }
     if (compaction.slot_of_tool.empty())
         return project_colors;
