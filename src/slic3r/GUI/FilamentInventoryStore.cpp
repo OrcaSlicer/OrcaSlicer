@@ -1,8 +1,13 @@
 #include "FilamentInventoryStore.hpp"
 
 #include "ActivePrinterSession.hpp"
+#include "DeviceCore/DevDefs.h"
 #include "DeviceCore/DevFilaSystem.h"
+#include "DeviceManager.hpp"
 #include "GUI_App.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+
+#include <boost/log/trivial.hpp>
 
 namespace Slic3r { namespace GUI {
 
@@ -106,6 +111,48 @@ const Preset* find_generic_filament_preset(const std::string& type, const Preset
             fallback = &*it;
     }
     return fallback;
+}
+
+bool sync_filament_inventory_from_printer(FilamentInventories& store, FilamentInventory& inv, size_t tool_count)
+{
+    const ActivePrinterSession& session   = active_printer_session();
+    NetworkAgent*               net_agent = session.sync_agent();
+    MachineObject*              machine   = session.live_machine();
+    if (net_agent == nullptr || machine == nullptr)
+        return false;
+    if (net_agent->get_filament_sync_mode() == FilamentSyncMode::pull &&
+        !net_agent->fetch_filament_info(machine->get_dev_id()))
+        return false;
+
+    std::shared_ptr<DevFilaSystem> fila_system = machine->GetFilaSystem();
+    if (!fila_system)
+        return false;
+
+    const PresetCollection& filaments = wxGetApp().preset_bundle->filaments;
+    size_t tool_idx = 0;
+    bool   applied  = false;
+    for (const auto& [tray_index, slot_id] : fila_system->GetTrayIndexMap()) {
+        // Virtual/external-spool pseudo-trays are always seeded and never resolve; see the
+        // materials editor's sync for the full story.
+        if (devPrinterUtil::IsVirtualSlot(slot_id.first))
+            continue;
+        if (tool_idx >= tool_count)
+            break;
+        DevAmsTray* tray = fila_system->GetAmsTray(std::to_string(slot_id.first), std::to_string(slot_id.second));
+        const DeviceSlotResolution res = resolve_device_tray(tray, filaments);
+        PhysicalFilament slot; // stays empty when nothing is loaded -- mirrors the machine
+        if (res.present)
+            slot = build_physical_filament(res.color, res.type, res.preset, /*id=*/0, PhysicalFilament::Kind::Manual);
+        inv.apply_synced_loaded_slot(tool_idx, slot);
+        applied |= res.present;
+        ++tool_idx;
+    }
+    if (tool_idx == 0)
+        return false;
+
+    inv.ensure_ids();
+    save_filament_inventories(store);
+    return applied;
 }
 
 DeviceSlotResolution resolve_device_tray(DevAmsTray* tray, const PresetCollection& filaments)

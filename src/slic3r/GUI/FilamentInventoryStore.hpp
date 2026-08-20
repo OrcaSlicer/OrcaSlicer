@@ -27,6 +27,14 @@ size_t resolve_active_printer_tool_count(FilamentInventories& store);
 // least tool_count tools; never truncates.
 FilamentInventory& current_inventory_for_preset(const Preset& printer_preset, FilamentInventories& store, size_t tool_count);
 
+// Orca: one blocking read of the connected printer's loaded filaments into `inv` (registry
+// write-through + save), via the same agent fetch and resolve_device_tray conversion the
+// materials editor's sync uses. For dialogs that need a populated inventory on open -- the
+// device print dialog calls it when nothing was ever recorded, so a first-ever Print click
+// offers the printer's real filaments instead of bare bootstrap tools. Returns false (inventory
+// untouched) with no connection, a failed fetch, or nothing reported.
+bool sync_filament_inventory_from_printer(FilamentInventories& store, FilamentInventory& inv, size_t tool_count);
+
 // How many tools this printer preset addresses: the physical nozzle count.
 size_t addressable_tool_count_of(const Preset& printer_preset);
 
