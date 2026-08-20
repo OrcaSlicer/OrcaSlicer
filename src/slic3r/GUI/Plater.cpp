@@ -9634,6 +9634,8 @@ void Plater::priv::reload_from_disk()
     selected_volumes.erase(std::unique(selected_volumes.begin(), selected_volumes.end()), selected_volumes.end());
 #endif // ENABLE_RELOAD_FROM_DISK_REWORK
 
+    BackupSuspendGuard backup_suspend_guard;
+
     // collects paths of files to load
     std::vector<fs::path> input_paths;
     std::vector<fs::path> missing_input_paths;
@@ -9787,6 +9789,8 @@ void Plater::priv::reload_from_disk()
                 new_model = Model::read_from_file(path, nullptr, nullptr, LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel, &plate_data, &project_presets, nullptr, nullptr, nullptr, nullptr, nullptr, 0, obj_color_fun);
             }
 
+            if (new_model.objects.empty())
+                return;
 
             for (ModelObject* model_object : new_model.objects)
             {
