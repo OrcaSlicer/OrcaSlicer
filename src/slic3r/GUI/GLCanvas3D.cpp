@@ -4159,7 +4159,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     // https://github.com/OrcaSlicer/OrcaSlicer/pull/14999#issuecomment-5151344759
     // We solve this by correcting the state of the event from the actual mouse state querying with `wxGetMouseState()`
     // so it works like on other platforms.
-    {
+    // Only fill in state the event does not carry, to preserve wx's synthetic right button for Ctrl+left.
+    if (!evt.ButtonIsDown(wxMOUSE_BTN_ANY)) {
         const auto state = wxGetMouseState();
         evt.SetLeftDown(state.LeftIsDown());
         evt.SetMiddleDown(state.MiddleIsDown());
