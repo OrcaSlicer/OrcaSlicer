@@ -71,6 +71,7 @@ Before opening a pull request or posting on GitHub, read [CONTRIBUTING.md](CONTR
 - Keep code concise and clear. Manually simplify AI generated bloated codes before review.
 - Include targeted tests or documented verification for behavior changes, especially in slicing logic, profiles, formats, and GUI defaults.
 - For profile changes (`resources/profiles/<Vendor>/**`), check that `version` in the sibling `resources/profiles/<Vendor>.json` was bumped.
+- For material data changes (`resources/info/material_types.json`, `resources/info/base_compatibilities.json`), check that the file's `version` was bumped: an installation only refreshes its copy in `<data_dir>/info` when the shipped version is newer.
 - For new or changed UI strings, check they follow [Writing translatable strings in the source](#writing-translatable-strings-in-the-source): no concatenated fragments, plural forms for counts, contexts for ambiguous words.
 - For translation changes (`localization/i18n/**/*.po`), check that recurring terms match the [Localization glossary](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/developer_reference/localization_glossary.md) for that language.
 
