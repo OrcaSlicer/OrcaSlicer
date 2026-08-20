@@ -38,6 +38,14 @@ struct BaseMaterialCompatibility {
 
 class MaterialType {
 public:
+    // Load both tables from the JSON files shipped in <resources>/info. Call once at startup, as soon as
+    // the resource and data directories are known: until then - and whenever the files cannot be read -
+    // the built-in fallback tables are used.
+    // mirror_to_data_dir keeps an updatable copy of the files in <data_dir>/info and reads that one
+    // instead (see MaterialType.cpp for the versioning rules); pass false in tools that must not write
+    // to their data directory.
+    static void load(bool mirror_to_data_dir = true);
+
     static const std::vector<MaterialTypeInfo>& all();
     static const std::vector<BaseMaterialCompatibility>& base_compatibilities();
 
