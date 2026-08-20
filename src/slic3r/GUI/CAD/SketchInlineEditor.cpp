@@ -72,6 +72,23 @@ void present_toplevel(wxFrame* frame)
 }
 #endif
 
+// Between two queued dimensions (a rectangle's Width then Height) the frame is either kept
+// MAPPED and merely re-titled, or unmapped and mapped again. That is a per-toolkit choice, not
+// a preference:
+//   GTK/mutter  keep it mapped. Focus-stealing prevention refuses keyboard focus to a window
+//               that was just re-mapped, so hiding between the two fields left the second one
+//               visible but dead (snaporca-p8uw).
+//   elsewhere   map it afresh. This is what shipped before that workaround, which was applied
+//               with no platform guard — and it is the only difference between the first queued
+//               field (works everywhere) and the second (macOS wedges the whole app, PR #15238).
+//               A workaround for one window manager must not become a contract for all of them.
+constexpr bool keep_mapped_between_fields =
+#ifdef __WXGTK__
+    true;
+#else
+    false;
+#endif
+
 void trace_inline_focus(wxFrame* frame, const std::string& title)
 {
     if (!std::getenv("SNAPORCA_KEYTRACE")) return;
@@ -136,9 +153,11 @@ void SketchInlineEditor::open(const wxPoint& screen_px, double value,
                               std::function<void()> on_cancel)
 {
     if (m_frame == nullptr || m_ctrl == nullptr) { if (on_cancel) on_cancel(); return; }
-    // Never close/unmap on the way in: the previous queued dimension left this frame mapped
-    // (see do_commit), and re-mapping a hidden toplevel is exactly what mutter refuses to
-    // focus. Reuse the still-mapped frame and just re-title/re-position it.
+    // Where the frame is kept mapped, never close/unmap on the way in: the previous queued
+    // dimension left it mapped (see do_commit) and re-mapping is what mutter refuses to focus,
+    // so reuse it and just re-title/re-position. Elsewhere, force a fresh map.
+    if (!keep_mapped_between_fields && m_frame->IsShown())
+        m_frame->Hide();
     m_commit = std::move(on_commit);
     m_cancel = std::move(on_cancel);
     m_ctrl->ChangeValue(en_format(value));
@@ -195,14 +214,18 @@ void SketchInlineEditor::do_commit()
         return;
     }
     auto cb = m_commit;
-    m_open   = false;          // logically closed: the frame stays MAPPED
+    m_open   = false;          // logically closed; whether it stays MAPPED is per-toolkit
     m_commit = nullptr;
     m_cancel = nullptr;
+    // Unmap BEFORE the callback where we are not keeping it mapped, so the reopen the callback
+    // schedules starts from a hidden frame — the ordering that shipped before the workaround.
+    if (!keep_mapped_between_fields)
+        m_frame->Hide();
     if (cb) cb(v);
-    // The callback either re-opens us for the next queued dimension (via its own CallAfter,
-    // queued during cb(v), therefore BEFORE the one below) or it does not. Hiding here would
-    // unmap the window and mutter would refuse to focus the re-map; so hide only after the
-    // reopen has had its turn.
+    // Kept mapped: the callback either re-opens us for the next queued dimension (via its own
+    // CallAfter, queued during cb(v), therefore BEFORE the one below) or it does not. Hiding
+    // here would unmap the window and mutter would refuse to focus the re-map; so hide only
+    // after the reopen has had its turn. Harmless on the unmapped path — already hidden.
     m_frame->CallAfter([this] { if (!m_open && m_frame) m_frame->Hide(); });
 }
 
