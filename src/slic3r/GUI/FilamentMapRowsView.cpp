@@ -218,6 +218,9 @@ void FilamentMapRowsView::seed_status()
     if (m_on_state_changed)
         m_on_state_changed(all_assigned);
 
+    if (m_rows_panel)
+        m_rows_panel->LogRowGeometry();
+
     // The relayout above MOVES children (record row appearing shifts everything below it). On
     // Windows the dialog does not erase the pixels a moved child used to cover, so its old
     // rendering survives as a ghost next to the new one -- field report: the preview thumbnail

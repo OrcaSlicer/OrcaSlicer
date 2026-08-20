@@ -1,4 +1,6 @@
 #include "FilamentMapRowsPanel.hpp"
+
+#include <boost/log/trivial.hpp>
 #include "FilamentMapPanel.hpp" // wxEVT_INVALID_MANUAL_MAP
 #include "DragDropPanel.hpp"    // Hex2Color
 #include "AmsMappingPopup.hpp"  // MaterialSyncItem, MappingItem, MappingContainer
@@ -719,6 +721,21 @@ std::vector<int> FilamentMapRowsPanel::GetPhysicalMaps() const
             result[row.filament_id - 1] = id > 0 ? id : 0;
     }
     return result;
+}
+
+void FilamentMapRowsPanel::LogRowGeometry() const
+{
+    // Warning level on purpose: Windows configs commonly run log_severity_level=warning, and
+    // this line exists precisely for Windows field reports of invisible-but-clickable rows.
+    std::string detail;
+    for (const Row& row : m_rows) {
+        if (row.tile == nullptr) continue;
+        const wxRect r = row.tile->GetRect();
+        detail += "[f" + std::to_string(row.filament_id) + " shown=" + (row.tile->IsShown() ? "1" : "0") +
+                  " rect=" + std::to_string(r.x) + "," + std::to_string(r.y) + "," +
+                  std::to_string(r.width) + "x" + std::to_string(r.height) + "] ";
+    }
+    BOOST_LOG_TRIVIAL(warning) << "mapping row geometry: " << detail;
 }
 
 bool FilamentMapRowsPanel::AllRowsAssigned() const

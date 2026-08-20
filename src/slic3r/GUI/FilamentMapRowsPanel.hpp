@@ -93,6 +93,9 @@ public:
 
     // True when every row has a target selected.
     bool AllRowsAssigned() const;
+    // Orca: field diagnostic (warning level -- Windows configs filter info) for tiles that
+    // occupy layout space but paint nothing: logs every row tile's shown-state, rect and colour.
+    void LogRowGeometry() const;
 
     // Sum over tools of max(0, distinct-targets-on-that-tool - 1): how many tool swaps this
     // plate will need. Rows sharing the same physical filament on a tool count as one target

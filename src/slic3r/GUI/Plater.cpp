@@ -19745,7 +19745,7 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool up
                 detail += " [" + std::to_string(oi) + " extr=" + std::to_string(oe ? oe->getInt() : -1) +
                           " contained=" + (device_plate->contain_instance_totally((int) oi, 0) ? "1" : "0") + "]";
             }
-            BOOST_LOG_TRIVIAL(info) << "send dialog plate filaments: " << detail;
+            BOOST_LOG_TRIVIAL(warning) << "send dialog plate filaments: " << detail; // warning: Windows configs filter info
         }
 
         std::unique_ptr<PrintHostSendDialog> pDlg;

@@ -139,11 +139,13 @@ private:
         dc.SetBrush(wxBrush(m_color));
         dc.DrawRoundedRectangle(0, 0, size.x - 1, size.y - 1, FromDIP(6));
 
-        // Auto-contrast text off the card's own background color, then run it through
-        // StateColor::darkModeColorFor per the house pattern (AmsMappingPopup.cpp:377 et al.)
-        // so the same tile still reads correctly when the app is switched to dark mode.
-        wxColour text_color = m_color.GetLuminance() < 0.6 ? *wxWHITE : wxColour(0x26, 0x2E, 0x30);
-        text_color = StateColor::darkModeColorFor(text_color);
+        // Auto-contrast text off the card's own background color -- and NOT through
+        // StateColor::darkModeColorFor: the text sits on the card's own absolute colour, which
+        // does not change with the theme (a white card is white in dark mode too). The wrapper
+        // inverted the correctly-chosen dark text into light grey in dark mode -- pale grey on a
+        // white card, near-invisible (field report from Windows). MaterialSyncItem draws its
+        // name with this same unwrapped rule.
+        const wxColour text_color = m_color.GetLuminance() < 0.6 ? *wxWHITE : wxColour(0x26, 0x2E, 0x30);
         dc.SetTextForeground(text_color);
         dc.SetFont(GetFont());
 
