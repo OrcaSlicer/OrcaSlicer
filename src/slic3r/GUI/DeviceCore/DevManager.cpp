@@ -676,21 +676,14 @@ namespace Slic3r
 
                     return true;
                 }
-                // same dev_id, lan => disconnect and reconnect
+                // The selected LAN printer is already connected.  Reconnecting it here can
+                // invalidate the network plugin's session while asynchronous status messages
+                // are still in flight (notably immediately after a print is sent).  Keep the
+                // existing session and let its normal status path continue instead.
                 else
                 {
                     BOOST_LOG_TRIVIAL(info) << "set_selected_machine: same lan machine, dev_id =" << dev_id
-                        << ", disconnect and reconnect";
-
-                    // lan mode printer reconnect printer
-                    if (m_agent)
-                    {
-                        m_agent->disconnect_printer();
-                        it->second->reset();
-
-                        it->second->connect();
-                        it->second->set_lan_mode_connection_state(true);
-                    }
+                        << ", keep existing connection";
                 }
             }
             else
