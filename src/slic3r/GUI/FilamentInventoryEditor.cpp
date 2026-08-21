@@ -147,7 +147,11 @@ private:
         // name with this same unwrapped rule.
         const wxColour text_color = m_color.GetLuminance() < 0.6 ? *wxWHITE : wxColour(0x26, 0x2E, 0x30);
         dc.SetTextForeground(text_color);
-        dc.SetFont(GetFont());
+        // The house DPI-aware label font, not GetFont(): the panel default stays at the
+        // unscaled system size on Windows while the FromDIP-sized card grows around it --
+        // field report showed near-unreadably small card text at high DPI. Body_12 is what
+        // MaterialSyncItem draws its tile name with.
+        dc.SetFont(::Label::Body_12);
 
         // Orca: label sits at the top-left, the edit/remove icons at the top-right (overlay
         // sizer, ctor above) -- reserve their cluster width plus a small gap so long names
@@ -160,9 +164,12 @@ private:
 
         int y = FromDIP(8);
         if (!m_top_label.empty()) {
+            // Slot identity leads the card; give it the heavier cut of the same DPI-aware family.
+            dc.SetFont(::Label::Head_12);
             wxString top_label = wxControl::Ellipsize(m_top_label, dc, wxELLIPSIZE_END, max_text_width);
             dc.DrawText(top_label, FromDIP(6), y);
             y += dc.GetTextExtent(top_label).GetHeight() + FromDIP(2);
+            dc.SetFont(::Label::Body_12);
         }
         // Material type and vendor/brand each get their own line (both independently
         // ellipsized to the icon-safe width) instead of being squeezed into one -- see
