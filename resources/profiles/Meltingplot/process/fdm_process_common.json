@@ -47,6 +47,7 @@
 	"line_width": "110%",
 	"inner_wall_line_width": "110%",
 	"outer_wall_line_width": "100%",
+	"precise_outer_wall": "0",
 	"top_surface_line_width": "93.75%",
 	"sparse_infill_line_width": "110%",
 	"initial_layer_line_width": "120%",
