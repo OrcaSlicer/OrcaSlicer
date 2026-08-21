@@ -77,6 +77,12 @@ public:
 protected:
     void doRender(wxDC &dc) override
     {
+        // Field diagnostic (warning: Windows filters info): proves whether this tile's paint
+        // actually EXECUTES. First-wrap-row tiles show blank on Windows while their geometry is
+        // correct; this line splits "never painted" from "painted then overdrawn".
+        BOOST_LOG_TRIVIAL(warning) << "tile doRender: idx=" << get_material_index_str()
+                                   << " rect=" << GetRect().x << "," << GetRect().y
+                                   << " size=" << GetSize().x << "x" << GetSize().y;
         // Runs through MaterialSyncItem::render's existing MSW double-buffer path unchanged --
         // that path calls doRender(dc2) polymorphically on the memory-DC-backed wxGCDC (or the
         // live dc directly off-MSW), so this override's extra painting is captured by the same
