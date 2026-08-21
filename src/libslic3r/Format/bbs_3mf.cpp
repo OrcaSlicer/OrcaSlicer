@@ -1214,6 +1214,19 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // add backup & restore logic
         bool _load_model_from_file(std::string filename, Model& model, PlateDataPtrs& plate_data_list, std::vector<Preset*>& project_presets, DynamicPrintConfig& config, ConfigSubstitutionContext& config_substitutions, Import3mfProgressFn proFn = nullptr,
             BBLProject* project = nullptr, int plate_id = 0);
+
+        // A minimal published 3MF carries no slicer tags (any tag would make old receivers show
+        // a baked-in, wrong "old version" popup on their geometry-only fallback), so it
+        // classifies as From_Other. It is still a fully structured OrcaSlicer file though:
+        // identified by its own metadata, it keeps BBS-grade geometry handling (no instance
+        // splitting, no transform baking, no renaming) in this build. Old receivers without the
+        // publish feature don't know the metadata and take their third-party geometry path.
+        // Reads the parse-time metadata: the model XML carries it before its resources, while
+        // m_model->model_info is only filled in after the whole XML has been parsed.
+        bool _is_published_3mf() const {
+            return this->model_info.metadata_items.find("published") != this->model_info.metadata_items.end();
+        }
+
         bool _is_svg_shape_file(const std::string &filename) const;
         bool _extract_from_archive(mz_zip_archive& archive, std::string const & path, std::function<bool (mz_zip_archive& archive, const mz_zip_archive_file_stat& stat)>, bool restore = false);
         bool _extract_xml_from_archive(mz_zip_archive& archive, std::string const & path, XML_StartElementHandler start_handler, XML_EndElementHandler end_handler);
@@ -2037,7 +2050,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         lock.close();
 
-        if (!m_is_bbl_3mf) {
+        if (!m_is_bbl_3mf && !_is_published_3mf()) {
             // if the 3mf was not produced by OrcaSlicer and there is more than one instance,
             // split the object in as many objects as instances
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", found 3mf from other vendor, split as instance");
@@ -3591,7 +3604,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             m_index_paths.insert({ object.first.second, object.first.first});
         }
 
-        if (!m_is_bbl_3mf) {
+        if (!m_is_bbl_3mf && !_is_published_3mf()) {
             // if the 3mf was not produced by OrcaSlicer and there is only one object,
             // set the object name to match the filename
             if (m_model->objects.size() == 1)
@@ -5297,7 +5310,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             TriangleMesh triangle_mesh(std::move(its), volume_data.mesh_stats);
 
-            if (!m_is_bbl_3mf) {
+            if (!m_is_bbl_3mf && !_is_published_3mf()) {
                 // if the 3mf was not produced by OrcaSlicer and there is only one instance,
                 // bake the transformation into the geometry to allow the reload from disk command
                 // to work properly
@@ -5943,7 +5956,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool m_save_gcode { false };        // whether to save gcode for normal save
         bool m_skip_model { false };        // skip model when exporting .gcode.3mf
         bool m_skip_auxiliary { false };    // skip normal axuiliary files
-        bool m_minimal_published { false }; // published 3MF: omit embedded preset files
+        bool m_minimal_published { false }; // published 3MF: omit the project config, the embedded preset files and the slicer tags
         bool m_use_loaded_id { false };        // whether to use loaded id for identify_id
         bool m_share_mesh { false };        // whether to share mesh between objects
         std::string m_thumbnail_middle = PRINTER_THUMBNAIL_MIDDLE_FILE;
@@ -6453,7 +6466,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             // Adds slic3r print config file ("Metadata/Slic3r_PE.config").
             // This file contains the content of FullPrintConfig / SLAFullPrintConfig.
-            if (config != nullptr) {
+            // Omitted for minimal published 3MF: OrcaSlicer versions without the publish feature
+            // then fall back to importing the geometry only, and new versions read the published
+            // payload from the model metadata instead.
+            if (config != nullptr && !m_minimal_published) {
                 // BBS: change to json format
                 // if (!_add_print_config_file_to_archive(archive, *config)) {
                 if (!_add_project_config_file_to_archive(archive, *config, model)) { return false; }
@@ -6939,8 +6955,13 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 // Orca: PRIVACY: do not store creation & modification date in 3mf
                 metadata_item_map[BBL_CREATION_DATE_TAG] = "";
                 metadata_item_map[BBL_MODIFICATION_TAG]  = "";
-                // Orca: Write the BambuStudio compatibility version string using SLIC3R_VERSION
-                metadata_item_map[BBL_APPLICATION_TAG] = (boost::format("%1%-%2%") % "BambuStudio" % SLIC3R_VERSION).str();
+                // Orca: Write the BambuStudio compatibility version string using SLIC3R_VERSION.
+                // A minimal published 3MF writes no slicer tags at all: any tag would route old
+                // receivers onto a geometry-only fallback whose baked-in popup misreports the
+                // file ("old OrcaSlicer version" / "BambuStudio"), while tag-less files classify
+                // as From_Other and import the geometry silently.
+                if (!m_minimal_published)
+                    metadata_item_map[BBL_APPLICATION_TAG] = (boost::format("%1%-%2%") % "BambuStudio" % SLIC3R_VERSION).str();
             }
             metadata_item_map[BBS_3MF_VERSION] = std::to_string(VERSION_BBS_3MF);
 
@@ -6966,8 +6987,17 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 stream << " <" << METADATA_TAG << " name=\"" << item.first << "\">"
                        << xml_escape(item.second) << "</" << METADATA_TAG << ">\n";
                 if (item.first == BBL_APPLICATION_TAG) {
-                    stream << " <" << METADATA_TAG << " name=\"" << ORCASLICER_TAG << "\">"
-                           << xml_escape(SoftFever_VERSION) << "</" << METADATA_TAG << ">\n";
+                    // The OrcaSlicer tag is the version receivers compare against their own to
+                    // pick the import branch, and every graceful config-less branch of an
+                    // Orca-classified file shows a baked-in "old OrcaSlicer version" popup. A
+                    // minimal published 3MF omits the tag (together with the Application tag
+                    // above): old receivers then classify it From_Other and import the geometry
+                    // silently, while this build rebuilds the config from the published metadata
+                    // payload before the branch runs.
+                    if (!m_minimal_published) {
+                        stream << " <" << METADATA_TAG << " name=\"" << ORCASLICER_TAG << "\">"
+                               << xml_escape(SoftFever_VERSION) << "</" << METADATA_TAG << ">\n";
+                    }
                 }
             }
 

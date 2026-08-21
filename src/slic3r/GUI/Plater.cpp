@@ -6881,6 +6881,11 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 DynamicPrintConfig config;
                 Semver             file_version;
                 En3mfType          en_3mf_file_type = En3mfType::From_BBS;
+                // BBS: a "published" 3MF carries a flag plus the author-selected setting keys;
+                // on load keep the user's current presets and overlay only those keys. Declared
+                // here (outside the config block below) so it stays alive for the embedded-preset
+                // gate, the metadata strip and the preset overlay after the block closes.
+                PublishedConfig published_config;
                 {
                     DynamicPrintConfig config_loaded;
 
@@ -6907,6 +6912,102 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                           BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__
                                       << boost::format(", plate_data.size %1%, project_preset.size %2%, is_bbs_or_orca_3mf %3%, file_version %4% \n") % plate_data.size() %
                                           project_presets.size() % (en_3mf_file_type == En3mfType::From_BBS || en_3mf_file_type == En3mfType::From_Orca) % file_version.to_string();
+
+                    // BBS: a "published" 3MF carries a flag plus the author-selected setting keys;
+                    // on load keep the user's current presets and overlay only those keys. Parsed
+                    // here (before the version/fallback chain below) because a published file has
+                    // no project_settings.config: its values travel in the published_config
+                    // metadata payload, which must fill config_loaded before the chain decides
+                    // whether to import geometry only.
+                    if (model.model_info != nullptr) {
+                        auto published_it = model.model_info->metadata_items.find("published");
+                        if (published_it != model.model_info->metadata_items.end() &&
+                            (published_it->second == "true" || published_it->second == "1")) {
+                            published_config.published = true;
+                            auto keys_it = model.model_info->metadata_items.find("published_keys");
+                            if (keys_it != model.model_info->metadata_items.end()) {
+                                try {
+                                    auto j = nlohmann::json::parse(keys_it->second);
+                                    if (j.is_array())
+                                        for (const auto &k : j)
+                                            if (k.is_string())
+                                                published_config.published_keys.emplace_back(k.get<std::string>());
+                                } catch (...) {
+                                    // Ignore malformed published_keys; the project still loads normally.
+                                }
+                            }
+
+                            auto material_keys_it = model.model_info->metadata_items.find("published_material_keys");
+                            if (material_keys_it != model.model_info->metadata_items.end()) {
+                                try {
+                                    auto jm = nlohmann::json::parse(material_keys_it->second);
+                                    if (jm.is_array())
+                                        for (const auto &m : jm) {
+                                            // Malformed entries are skipped individually.
+                                            if (!m.is_object())
+                                                continue;
+                                            PublishedMaterialEntry entry;
+                                            const auto mat_it = m.find("material");
+                                            if (mat_it != m.end() && mat_it->is_object()) {
+                                                const auto &mat = *mat_it;
+                                                if (mat.contains("filament_type") && mat["filament_type"].is_string())
+                                                    entry.filament_type = mat["filament_type"].get<std::string>();
+                                                if (mat.contains("filament_vendor") && mat["filament_vendor"].is_string())
+                                                    entry.filament_vendor = mat["filament_vendor"].get<std::string>();
+                                                if (mat.contains("filament_id") && mat["filament_id"].is_string())
+                                                    entry.filament_id = mat["filament_id"].get<std::string>();
+                                                if (mat.contains("setting_id") && mat["setting_id"].is_string())
+                                                    entry.setting_id = mat["setting_id"].get<std::string>();
+                                                if (mat.contains("name") && mat["name"].is_string())
+                                                    entry.preset_name = mat["name"].get<std::string>();
+                                            }
+                                            if (m.contains("slot") && m["slot"].is_number_integer())
+                                                entry.slot = m["slot"].get<int>();
+                                            const auto entry_keys_it = m.find("keys");
+                                            if (entry_keys_it != m.end() && entry_keys_it->is_array())
+                                                for (const auto &k : *entry_keys_it)
+                                                    if (k.is_string())
+                                                        entry.keys.emplace_back(k.get<std::string>());
+                                            // Fields always written by the current exporter.
+                                            if (m.contains("full") && m["full"].is_boolean())
+                                                entry.full = m["full"].get<bool>();
+                                            const auto entry_full_keys_it = m.find("full_keys");
+                                            if (entry_full_keys_it != m.end() && entry_full_keys_it->is_array())
+                                                for (const auto &k : *entry_full_keys_it)
+                                                    if (k.is_string())
+                                                        entry.full_keys.emplace_back(k.get<std::string>());
+                                            if (m.contains("publish_type") && m["publish_type"].is_boolean())
+                                                entry.publish_type = m["publish_type"].get<bool>();
+                                            if (m.contains("type") && m["type"].is_string())
+                                                entry.publish_type_value = m["type"].get<std::string>();
+                                            if (m.contains("publish_color") && m["publish_color"].is_boolean())
+                                                entry.publish_color = m["publish_color"].get<bool>();
+                                            if (m.contains("color") && m["color"].is_string())
+                                                entry.color = m["color"].get<std::string>();
+                                            published_config.material_keys.emplace_back(std::move(entry));
+                                        }
+                                } catch (...) {
+                                    // Ignore malformed published_material_keys; the project still loads normally.
+                                }
+                            }
+
+                            // Rebuild the published values from the metadata payload: a published
+                            // file carries no project_settings.config, so config_loaded is filled
+                            // from here; a missing or malformed payload leaves it empty and the
+                            // fallback chain below imports the geometry only.
+                            auto payload_it = model.model_info->metadata_items.find("published_config");
+                            if (payload_it != model.model_info->metadata_items.end()) {
+                                try {
+                                    ConfigSubstitutions payload_substitutions = config_loaded.load_from_ini_string(payload_it->second, ForwardCompatibilitySubstitutionRule::Enable);
+                                    config_substitutions.substitutions.insert(config_substitutions.substitutions.end(),
+                                                                              std::make_move_iterator(payload_substitutions.begin()),
+                                                                              std::make_move_iterator(payload_substitutions.end()));
+                                } catch (...) {
+                                    // Ignore malformed published_config; the project still loads normally.
+                                }
+                            }
+                        }
+                    }
 
                     // 1. add extruder for prusa model if the number of existing extruders is not enough
                     // 2. add extruder for BBS or Other model if only import geometry
@@ -7071,7 +7172,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                     text += "\n";
                                     log_and_show_3mf_info(text, bambu_project_title);
                                 }
-                            } else if (load_config) {
+                            } else if (load_config && !published_config.published) {
                                 // BambuStudio version is older or same as our SLIC3R_VERSION
                                 wxString text = _L("The 3MF was created by BambuStudio. Some settings may differ from OrcaSlicer.");
                                 log_and_show_3mf_info(text, bambu_project_title);
@@ -7153,8 +7254,10 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         }
                     }
 
-                    // BBS:: project embedded presets
-                    if ((project_presets.size() > 0) && load_config) {
+                    // BBS:: project embedded presets (skipped for published projects: the author's
+                    // embedded presets must not pollute the receiver's library, the overlay applies
+                    // the published keys to the receiver's own presets instead).
+                    if ((project_presets.size() > 0) && load_config && !published_config.published) {
                         // load project embedded presets
                         PresetsConfigSubstitutions preset_substitutions;
                         PresetBundle &             preset_bundle = *wxGetApp().preset_bundle;
@@ -7210,83 +7313,6 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     }
                 }
 
-                // BBS: a "published" 3MF carries a flag plus the author-selected setting keys;
-                // on load keep the user's current presets and overlay only those keys.
-                PublishedConfig published_config;
-                if (model.model_info != nullptr) {
-                    auto published_it = model.model_info->metadata_items.find("published");
-                    if (published_it != model.model_info->metadata_items.end() &&
-                        (published_it->second == "true" || published_it->second == "1")) {
-                        published_config.published = true;
-                        auto keys_it = model.model_info->metadata_items.find("published_keys");
-                        if (keys_it != model.model_info->metadata_items.end()) {
-                            try {
-                                auto j = nlohmann::json::parse(keys_it->second);
-                                if (j.is_array())
-                                    for (const auto &k : j)
-                                        if (k.is_string())
-                                            published_config.published_keys.emplace_back(k.get<std::string>());
-                            } catch (...) {
-                                // Ignore malformed published_keys; the project still loads normally.
-                            }
-                        }
-
-                        auto material_keys_it = model.model_info->metadata_items.find("published_material_keys");
-                        if (material_keys_it != model.model_info->metadata_items.end()) {
-                            try {
-                                auto jm = nlohmann::json::parse(material_keys_it->second);
-                                if (jm.is_array())
-                                    for (const auto &m : jm) {
-                                        // Malformed entries are skipped individually.
-                                        if (!m.is_object())
-                                            continue;
-                                        PublishedMaterialEntry entry;
-                                        const auto mat_it = m.find("material");
-                                        if (mat_it != m.end() && mat_it->is_object()) {
-                                            const auto &mat = *mat_it;
-                                            if (mat.contains("filament_type") && mat["filament_type"].is_string())
-                                                entry.filament_type = mat["filament_type"].get<std::string>();
-                                            if (mat.contains("filament_vendor") && mat["filament_vendor"].is_string())
-                                                entry.filament_vendor = mat["filament_vendor"].get<std::string>();
-                                            if (mat.contains("filament_id") && mat["filament_id"].is_string())
-                                                entry.filament_id = mat["filament_id"].get<std::string>();
-                                            if (mat.contains("setting_id") && mat["setting_id"].is_string())
-                                                entry.setting_id = mat["setting_id"].get<std::string>();
-                                            if (mat.contains("name") && mat["name"].is_string())
-                                                entry.preset_name = mat["name"].get<std::string>();
-                                        }
-                                        if (m.contains("slot") && m["slot"].is_number_integer())
-                                            entry.slot = m["slot"].get<int>();
-                                        const auto entry_keys_it = m.find("keys");
-                                        if (entry_keys_it != m.end() && entry_keys_it->is_array())
-                                            for (const auto &k : *entry_keys_it)
-                                                if (k.is_string())
-                                                    entry.keys.emplace_back(k.get<std::string>());
-                                        // Fields always written by the current exporter.
-                                        if (m.contains("full") && m["full"].is_boolean())
-                                            entry.full = m["full"].get<bool>();
-                                        const auto entry_full_keys_it = m.find("full_keys");
-                                        if (entry_full_keys_it != m.end() && entry_full_keys_it->is_array())
-                                            for (const auto &k : *entry_full_keys_it)
-                                                if (k.is_string())
-                                                    entry.full_keys.emplace_back(k.get<std::string>());
-                                        if (m.contains("publish_type") && m["publish_type"].is_boolean())
-                                            entry.publish_type = m["publish_type"].get<bool>();
-                                        if (m.contains("type") && m["type"].is_string())
-                                            entry.publish_type_value = m["type"].get<std::string>();
-                                        if (m.contains("publish_color") && m["publish_color"].is_boolean())
-                                            entry.publish_color = m["publish_color"].get<bool>();
-                                        if (m.contains("color") && m["color"].is_string())
-                                            entry.color = m["color"].get<std::string>();
-                                        published_config.material_keys.emplace_back(std::move(entry));
-                                    }
-                            } catch (...) {
-                                // Ignore malformed published_material_keys; the project still loads normally.
-                            }
-                        }
-                    }
-                }
-
                 // BBS: a "published" 3MF loads as a new project: its path must not become the
                 // project filename (Save/Ctrl-S would overwrite the shared file), and the
                 // published metadata is consumed above and stripped so a later save is a normal
@@ -7297,6 +7323,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     this->model.model_info->metadata_items.erase("published");
                     this->model.model_info->metadata_items.erase("published_keys");
                     this->model.model_info->metadata_items.erase("published_material_keys");
+                    this->model.model_info->metadata_items.erase("published_config");
                 }
 
                 if (load_config) {
@@ -16265,9 +16292,11 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
     const bool had_published        = had_model_info && (model.model_info->metadata_items.find("published") != model.model_info->metadata_items.end());
     const bool had_published_keys   = had_model_info && (model.model_info->metadata_items.find("published_keys") != model.model_info->metadata_items.end());
     const bool had_material_keys    = had_model_info && (model.model_info->metadata_items.find("published_material_keys") != model.model_info->metadata_items.end());
+    const bool had_payload          = had_model_info && (model.model_info->metadata_items.find("published_config") != model.model_info->metadata_items.end());
     const std::string prev_published      = had_published ? model.model_info->metadata_items.at("published") : std::string();
     const std::string prev_published_keys = had_published_keys ? model.model_info->metadata_items.at("published_keys") : std::string();
     const std::string prev_material_keys  = had_material_keys ? model.model_info->metadata_items.at("published_material_keys") : std::string();
+    const std::string prev_payload        = had_payload ? model.model_info->metadata_items.at("published_config") : std::string();
     if (model.model_info == nullptr)
         model.model_info = std::make_shared<ModelInfo>();
     model.model_info->metadata_items["published"] = "1";
@@ -16275,9 +16304,17 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
     model.model_info->metadata_items["published_material_keys"] = jm.dump();
 
     // Minimal published export: filter full_config to the published keys, material keys,
-    // identity fields and plate geometry keys, and omit project-embedded preset dumps.
+    // identity fields and plate geometry keys, and omit the project config file, the
+    // project-embedded preset dumps and the OrcaSlicer version tag from the archive. The
+    // filtered values are serialized into the published_config metadata payload instead, so
+    // OrcaSlicer versions without the publish feature fall back to importing the geometry only
+    // (keeping the receiver's presets) while new versions rebuild the config from the payload.
     DynamicPrintConfig full_cfg = wxGetApp().preset_bundle->full_config_secure();
     DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_keys);
+    std::string payload;
+    for (const std::string &key : filtered_cfg.keys())
+        payload += key + " = " + filtered_cfg.opt_serialize(key) + "\n";
+    model.model_info->metadata_items["published_config"] = std::move(payload);
 
     // Same file layout as save_project(), plus Silence (so export_3mf does not set the project
     // filename on success, keeping this a pure export like export_core_3mf()) and MinimalPublished.
@@ -16286,7 +16323,7 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
     if (full_pathnames)
         save_strategy = save_strategy | SaveStrategy::FullPathSources;
 
-    const int ret = export_3mf(into_path(path), save_strategy, -1, nullptr, &filtered_cfg);
+    const int ret = export_3mf(into_path(path), save_strategy, -1, nullptr);
 
     // Restore the previous metadata state (both on success and on failure).
     if (!had_model_info) {
@@ -16304,6 +16341,10 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
             model.model_info->metadata_items["published_material_keys"] = prev_material_keys;
         else
             model.model_info->metadata_items.erase("published_material_keys");
+        if (had_payload)
+            model.model_info->metadata_items["published_config"] = prev_payload;
+        else
+            model.model_info->metadata_items.erase("published_config");
     }
 
     if (ret < 0) {

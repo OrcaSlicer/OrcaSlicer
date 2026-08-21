@@ -671,12 +671,15 @@ SCENARIO("Published 3MF round-trips the published_material_keys metadata", "[3mf
     }
 }
 
-SCENARIO("Minimal published 3MF serialization filters config and omits embedded presets", "[3mf]") {
-    GIVEN("a full print configuration and published keys") {
+SCENARIO("Minimal published 3MF omits project config, preset dumps and slicer tags", "[3mf]") {
+    GIVEN("a multi-instance model carrying published metadata and a published_config payload") {
         Model model;
         std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
         REQUIRE(load_stl(src_file.c_str(), &model));
         model.add_default_instances();
+        // A second instance: tag-less third-party files get their multi-instance objects split,
+        // published files must not (the loader recognizes them by their metadata).
+        model.objects.front()->add_instance();
 
         DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
         full_cfg.set_key_value("layer_height", new ConfigOptionFloat(0.24));
@@ -687,27 +690,30 @@ SCENARIO("Minimal published 3MF serialization filters config and omits embedded 
             { "PLA", "Generic", "GFL99", "", "Generic PLA", 0, { "filament_retraction_length" } }
         };
 
+        // The payload builder keeps the published and identity keys and drops everything else.
         DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, published_keys, material_keys);
-
-        // Filtered config keeps the published and identity keys...
         REQUIRE(filtered_cfg.option("layer_height") != nullptr);
         REQUIRE(filtered_cfg.option("retraction_length") != nullptr);
         REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
         REQUIRE(filtered_cfg.option("filament_type") != nullptr);
         REQUIRE(filtered_cfg.option("wipe_tower_x") != nullptr);
-
-        // ...and drops everything else.
         REQUIRE(filtered_cfg.option("sparse_infill_density") == nullptr);
         REQUIRE(filtered_cfg.option("machine_start_gcode") == nullptr);
+
+        // Serialize the payload exactly like export_published_3mf does.
+        std::string payload;
+        for (const std::string &key : filtered_cfg.keys())
+            payload += key + " = " + filtered_cfg.opt_serialize(key) + "\n";
 
         model.model_info = std::make_shared<ModelInfo>();
         model.model_info->metadata_items["published"]      = "1";
         model.model_info->metadata_items["published_keys"] = R"(["layer_height","retraction_length"])";
+        model.model_info->metadata_items["published_config"] = payload;
 
         ScopedTemporaryDir backup_dir("orca_min_pub");
         model.set_backup_path(backup_dir.string());
 
-        WHEN("stored using SaveStrategy::MinimalPublished") {
+        WHEN("stored using SaveStrategy::MinimalPublished and reloaded") {
             ScopedTemporaryFile temp(".3mf");
             const std::string test_file = temp.string();
 
@@ -736,12 +742,35 @@ SCENARIO("Minimal published 3MF serialization filters config and omits embedded 
             bool loaded = load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
                                        &loaded_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
                                        LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
-            THEN("the 3MF loads successfully without project embedded presets") {
+            THEN("the 3MF loads without project config or embedded presets") {
                 REQUIRE(loaded);
+                REQUIRE(dst_config.empty());
                 REQUIRE(loaded_presets.empty());
-                REQUIRE(dst_config.option("layer_height") != nullptr);
-                REQUIRE_THAT(dst_config.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.24, 1e-6));
-                REQUIRE(dst_config.option("sparse_infill_density") == nullptr);
+            }
+            THEN("the file carries no slicer tags and classifies as a generic 3MF") {
+                REQUIRE_FALSE(is_bbl_3mf);
+                REQUIRE_FALSE(is_orca_3mf);
+                // No Application / OrcaSlicer tag: old receivers import the geometry silently
+                // instead of showing a baked-in, wrong "old version" popup.
+                REQUIRE_FALSE(file_version.valid());
+            }
+            THEN("the geometry keeps BBS-grade handling: instances are not split") {
+                REQUIRE(dst_model.objects.size() == 1);
+                REQUIRE(dst_model.objects.front()->instances.size() == 2);
+            }
+            THEN("the published metadata and payload round-trip unchanged") {
+                REQUIRE(dst_model.model_info != nullptr);
+                REQUIRE(dst_model.model_info->metadata_items["published"] == "1");
+                REQUIRE(dst_model.model_info->metadata_items["published_keys"] == R"(["layer_height","retraction_length"])");
+                REQUIRE(dst_model.model_info->metadata_items["published_config"] == payload);
+            }
+            THEN("the payload parses back to the published values") {
+                DynamicPrintConfig parsed_payload;
+                parsed_payload.load_from_ini_string(dst_model.model_info->metadata_items["published_config"], ForwardCompatibilitySubstitutionRule::Enable);
+                REQUIRE(parsed_payload.option("layer_height") != nullptr);
+                REQUIRE_THAT(parsed_payload.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.24, 1e-6));
+                REQUIRE(parsed_payload.option("retraction_length") != nullptr);
+                REQUIRE_THAT(parsed_payload.opt<ConfigOptionFloats>("retraction_length")->get_at(0), Catch::Matchers::WithinAbs(1.2, 1e-6));
             }
             release_PlateData_list(dst_plates);
         }
