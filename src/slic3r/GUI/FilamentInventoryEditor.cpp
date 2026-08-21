@@ -89,9 +89,14 @@ public:
         m_type_line  = type_line;
         m_vendor_line = vendor_line;
         m_locked    = edit_disabled;
-        m_edit_btn->Enable(!edit_disabled);
+        // Hidden, not merely disabled: a disabled ScalableButton looks identical to an enabled
+        // one on these colored cards, and MSW never delivers mouse events (so no tooltip) to a
+        // disabled control -- field report was pencils that "do nothing". The dialog shows a
+        // visible note when the whole inventory is read-only.
+        m_edit_btn->Show(!edit_disabled);
         m_edit_btn->SetToolTip(edit_disabled ? disabled_reason : _L("Edit filament"));
         m_edit_btn->SetBackgroundColour(color);
+        Layout();
         Refresh();
     }
 
@@ -159,7 +164,7 @@ private:
         // visible on swap cards: "Gene…" colliding with the pencil/cross). wxControl::Ellipsize
         // is the same house-consistent DC-text-truncation entry point BBLTopbar.cpp and
         // CreatePresetsDialog.cpp already use for custom-painted labels.
-        int icon_cluster_width = m_edit_btn->GetSize().GetWidth() + FromDIP(2);
+        int icon_cluster_width = m_edit_btn->IsShown() ? m_edit_btn->GetSize().GetWidth() + FromDIP(2) : 0;
         const int max_text_width = std::max(0, size.x - FromDIP(6) - FromDIP(4) - icon_cluster_width);
 
         int y = FromDIP(8);
@@ -237,6 +242,14 @@ FilamentInventoryEditor::FilamentInventoryEditor(wxWindow* parent, const std::st
     device_sizer->Add(new Label(this, wxString::Format(_L("Printer: %s"), from_u8(printer_preset_name))),
                        0, wxALIGN_CENTER_VERTICAL);
     main_sizer->Add(device_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(15));
+    if (m_read_only) {
+        // The cards below carry no edit affordance in this state (see FilamentCard::set_content);
+        // this note is the visible explanation a disabled-control tooltip can't give on MSW.
+        auto* note = new Label(this, _L("Materials are reported by the printer and can't be edited here."));
+        note->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
+        main_sizer->AddSpacer(FromDIP(6));
+        main_sizer->Add(note, 0, wxLEFT | wxRIGHT, FromDIP(15));
+    }
     main_sizer->AddSpacer(FromDIP(15));
 
     // Horizontal card strip: one column per tool, each holding the tool's loaded-filament card.
