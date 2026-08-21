@@ -1461,13 +1461,6 @@ static Polygons make_loops(
     chain_open_polylines_close_gaps(open_polylines, loops, max_gap, true);
 #endif
 
-    // Orca: A planar quad represented by two triangles contributes a point where the
-    // slicing plane crosses the shared diagonal. After rounding to coord_t this
-    // point may be very slightly off the otherwise straight contour edge. Apart
-    // from being redundant, such points make the subsequent contour
-    // simplification depend on the slice height (and may move seam candidates).
-    remove_collinear(loops);
-
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
     {
         static int iRun = 0;
