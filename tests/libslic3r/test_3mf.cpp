@@ -841,6 +841,39 @@ SCENARIO("Partial-publish entries mask the other slots like full entries", "[3mf
     }
 }
 
+// A key needing slot masking that cannot be masked (no registered option default of the same
+// type) is dropped from the payload entirely instead of shipping the author's whole vector.
+SCENARIO("Unmaskable keys are dropped from the published payload instead of leaking", "[3mf]") {
+    GIVEN("a config carrying a synthetic def-less vector key and a maskable one") {
+        DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
+        full_cfg.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75 };
+        full_cfg.opt<ConfigOptionStrings>("filament_colour")->values  = { "#111111", "#222222" };
+        // Not a PrintConfig key: print_config_def has no default to mask with.
+        full_cfg.set_key_value("orca_synthetic_setting", new ConfigOptionFloats({ 9.9, 8.8 }));
+        full_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio", true)->values = { 1.02, 0.98 };
+
+        PublishedMaterialEntry partial_entry;
+        partial_entry.slot = 1;
+        partial_entry.keys = { "orca_synthetic_setting", "filament_flow_ratio" };
+
+        WHEN("filtering with a partial entry for slot 1") {
+            DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, {}, { partial_entry });
+
+            THEN("the unmaskable synthetic key is not published") {
+                REQUIRE(filtered_cfg.option("orca_synthetic_setting") == nullptr);
+            }
+            THEN("the maskable key is present, author slot kept, other slot masked") {
+                REQUIRE(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio") != nullptr);
+                REQUIRE(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[1] == 0.98);
+                REQUIRE(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[0] == 1.0);
+            }
+            THEN("the identity keys stay present") {
+                REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
+            }
+        }
+    }
+}
+
 // The extended per-entry fields (full dump list, published type and colour) travel inside the
 // published_material_keys metadata and round-trip unchanged.
 SCENARIO("Published 3MF round-trips the extended material metadata", "[3mf]") {

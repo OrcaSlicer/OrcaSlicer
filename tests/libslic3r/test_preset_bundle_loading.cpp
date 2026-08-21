@@ -1890,6 +1890,41 @@ TEST_CASE("Published 3MF grows the receiver's slots only as far as the published
         REQUIRE(bundle.filament_presets.size() == 3);
         CHECK(bundle.filament_presets[1] == "My PLA");
     }
+
+    // A receiver with more slots than the file's filament count keeps its setup: neither the
+    // preset list nor the project-level vectors are shrunk to the file's smaller size.
+    {
+        PresetBundle bundle;
+        add_pla_preset(bundle);
+        bundle.filament_presets = { "My PLA", "My PLA", "My PLA" };
+        // Distinct project colours make a shrink observable.
+        bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values       = { "#111111", "#222222", "#333333" };
+        bundle.project_config.opt<ConfigOptionStrings>("filament_multi_colour")->values = { "#111111", "#222222", "#333333" };
+
+        PublishedConfig pub;
+        pub.published     = true;
+        pub.material_keys = { make_color_entry(0) }; // highest published slot: 0
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        // A one-filament file: num_filaments (1) is below the receiver's slot count (3).
+        config.opt<ConfigOptionFloats>("filament_diameter")->values          = { 1.75 };
+        config.opt<ConfigOptionInts>("filament_self_index")->values          = { 1 };
+        config.opt<ConfigOptionStrings>("filament_extruder_variant")->values = { "Direct Drive Standard" };
+        config.opt<ConfigOptionStrings>("filament_colour")->values           = { "#FF0000" };
+        config.opt<ConfigOptionStrings>("filament_type")->values             = { "PLA" };
+        config.opt<ConfigOptionStrings>("filament_vendor")->values           = { "Generic" };
+        config.opt<ConfigOptionStrings>("filament_ids")->values              = { "GFL99" };
+        Preset::normalize(config);
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        REQUIRE(bundle.filament_presets.size() == 3);
+        // No shrink: all three project entries survive, with slot 0 synced to the published
+        // colour at its unshifted index and slots 1-2 untouched.
+        CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values == std::vector<std::string>{ "#ABCDEF", "#222222", "#333333" });
+        CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_multi_colour")->values == std::vector<std::string>{ "#ABCDEF", "#222222", "#333333" });
+        CHECK(bundle.project_config.opt<ConfigOptionInts>("filament_map")->values.size() == 3);
+        // The published colour still reached slot 0's preset in place.
+        CHECK(bundle.filaments.find_preset("My PLA", false, true)->config.opt<ConfigOptionStrings>("filament_colour")->values == std::vector<std::string>{ "#ABCDEF" });
+    }
 }
 
 // A published slot is seeded from an unused library preset and the values are written onto it
@@ -2108,14 +2143,16 @@ TEST_CASE("Published 3MF rejects out-of-range vector variants and variant-suffix
 
     PublishedConfig pub;
     pub.published      = true;
-    pub.published_keys = { "wiping_volumes_extruders#5", "wiping_volumes_extruders#1", "layer_height#0" };
+    pub.published_keys = { "wiping_volumes_extruders#5", "wiping_volumes_extruders#1", "wiping_volumes_extruders#abc", "layer_height#0" };
     bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
 
     // In-range variant applied element-wise; the out-of-range one did not resize the vector.
     CHECK(bundle.prints.get_edited_preset().config.opt<ConfigOptionFloats>("wiping_volumes_extruders")->values == std::vector<double>{ 10., 150. });
     CHECK(bundle.prints.get_edited_preset().config.opt<ConfigOptionFloats>("wiping_volumes_extruders")->values.size() == 2);
-    // Out-of-range variant and variant-suffixed scalar are reported as skipped.
+    // Out-of-range variant, malformed variant and variant-suffixed scalar are reported as
+    // skipped; the malformed one must not fall back to element 0.
     CHECK(contains_key(pub.skipped_keys, "wiping_volumes_extruders#5"));
+    CHECK(contains_key(pub.skipped_keys, "wiping_volumes_extruders#abc"));
     CHECK(contains_key(pub.skipped_keys, "layer_height#0"));
     CHECK_FALSE(contains_key(pub.skipped_keys, "wiping_volumes_extruders#1"));
     // The scalar was never applied.

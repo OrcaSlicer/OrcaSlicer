@@ -4834,10 +4834,26 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     // receiver may have a different extruder count than the author. Out-of-range
                     // indices are skipped (set_at would otherwise resize the receiver's vector).
                     if (key.size() > base_key.size()) {
-                        const size_t idx = static_cast<size_t>(std::atoi(key.c_str() + base_key.size() + 1));
-                        if (idx >= static_cast<const ConfigOptionVectorBase*>(src_opt)->size() ||
+                        // Strict numeric suffix parse: a malformed variant ("#abc", "#1x")
+                        // must be reported as skipped, not silently applied as element 0.
+                        const std::string suffix = key.substr(base_key.size() + 1);
+                        size_t idx   = 0;
+                        bool   valid = !suffix.empty();
+                        for (const char c : suffix) {
+                            if (c < '0' || c > '9') {
+                                valid = false;
+                                break;
+                            }
+                            idx = idx * 10 + size_t(c - '0');
+                            if (idx > 1000000) { // overflow guard; real vector sizes are tiny
+                                valid = false;
+                                break;
+                            }
+                        }
+                        if (!valid ||
+                            idx >= static_cast<const ConfigOptionVectorBase*>(src_opt)->size() ||
                             idx >= static_cast<const ConfigOptionVectorBase*>(dst_opt)->size())
-                            continue; // out-of-range variant: cannot apply; reported as skipped
+                            continue; // malformed or out-of-range variant: cannot apply; reported as skipped
                     } else if (static_cast<const ConfigOptionVectorBase*>(src_opt)->size() !=
                                static_cast<const ConfigOptionVectorBase*>(dst_opt)->size()) {
                         // Whole-vector base key: the receiver must have a matching vector size,
@@ -4894,15 +4910,18 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             // Grow the receiver's slots only as far as the highest published slot (never
             // shrink, never pull filler materials for unpublished slots).
             bool   has_published_entries = false;
-            size_t target_slots          = this->filament_presets.size();
+            size_t grow_target           = 0;
             for (const PublishedMaterialEntry &entry : published_config->material_keys) {
                 has_published_entries = true;
                 if (entry.slot >= 0)
-                    target_slots = std::max(target_slots, size_t(entry.slot) + 1);
+                    grow_target = std::max(grow_target, size_t(entry.slot) + 1);
             }
             if (has_published_entries) {
-                // Defensive cap: never exceed the file's own filament count.
-                target_slots = std::min(target_slots, num_filaments);
+                // Defensive cap: growth never exceeds the file's own filament count. The
+                // receiver's current slot count is a floor: neither the preset list nor the
+                // project vectors are ever shrunk, even when the file carries fewer filaments
+                // than the receiver has slots.
+                const size_t target_slots = std::max(this->filament_presets.size(), std::min(grow_target, num_filaments));
                 // Slots carrying published content, steering the initial preset selection of
                 // newly grown slots.
                 std::set<int> published_slots;
@@ -5122,13 +5141,22 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 ConfigOptionInts    *proj_nozzle_map   = this->project_config.opt<ConfigOptionInts>("filament_nozzle_map");
                 ConfigOptionInts    *proj_volume_map   = this->project_config.opt<ConfigOptionInts>("filament_volume_map");
                 const size_t old_colour_count = (proj_colour != nullptr) ? proj_colour->values.size() : 0;
-                if (proj_colour)       proj_colour->resize(target_slots);
-                if (proj_multi_colour) proj_multi_colour->values.resize(target_slots);
-                if (proj_colour_type)  proj_colour_type->values.resize(target_slots);
-                if (proj_map)          proj_map->values.resize(target_slots, 1);
-                if (proj_nozzle_map)   proj_nozzle_map->values.resize(target_slots, 0);
-                if (proj_volume_map)   proj_volume_map->values.resize(target_slots, static_cast<int>(NozzleVolumeType::nvtStandard));
-                this->ams_multi_color_filment.resize(target_slots);
+                // Grow-only: an already-larger project vector is left untouched (the receiver's
+                // slot count never shrinks below its own setup).
+                if (proj_colour && proj_colour->values.size() < target_slots)
+                    proj_colour->resize(target_slots);
+                if (proj_multi_colour && proj_multi_colour->values.size() < target_slots)
+                    proj_multi_colour->values.resize(target_slots);
+                if (proj_colour_type && proj_colour_type->values.size() < target_slots)
+                    proj_colour_type->values.resize(target_slots);
+                if (proj_map && proj_map->values.size() < target_slots)
+                    proj_map->values.resize(target_slots, 1);
+                if (proj_nozzle_map && proj_nozzle_map->values.size() < target_slots)
+                    proj_nozzle_map->values.resize(target_slots, 0);
+                if (proj_volume_map && proj_volume_map->values.size() < target_slots)
+                    proj_volume_map->values.resize(target_slots, static_cast<int>(NozzleVolumeType::nvtStandard));
+                if (this->ams_multi_color_filment.size() < target_slots)
+                    this->ams_multi_color_filment.resize(target_slots);
                 for (size_t slot = old_colour_count; slot < target_slots; ++slot) {
                     std::string seed;
                     for (const PublishedMaterialEntry &entry : published_config->material_keys)

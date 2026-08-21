@@ -5,6 +5,8 @@
 #include "PrintConfig.hpp"
 #include "MaterialType.hpp"
 
+#include <boost/log/trivial.hpp>
+
 #include <map>
 #include <set>
 
@@ -188,17 +190,20 @@ DynamicPrintConfig filter_published_config(
         }
     }
 
-    // Mask non-published vector slots with the option default; keys without a default stay
-    // unmasked (whole vector, matching partial-publish behavior).
+    // Masking restores every non-published slot of a vector option with the option default, so
+    // a partial publish does not leak unrelated slot data. can_mask_slots reports whether a key
+    // is maskable at all (vector option plus a registered default of the same type); an
+    // unmaskable key is dropped from the payload entirely instead of shipping the author's
+    // whole vector.
+    auto can_mask_slots = [](const ConfigOption &opt, const ConfigOptionDef *def) -> bool {
+        if (def == nullptr || !def->default_value || def->default_value->type() != opt.type())
+            return false;
+        const auto *vec         = dynamic_cast<const ConfigOptionVectorBase *>(&opt);
+        const auto *default_vec = dynamic_cast<const ConfigOptionVectorBase *>(def->default_value.get());
+        return vec != nullptr && vec->size() > 0 && default_vec != nullptr && !default_vec->empty();
+    };
     auto mask_slots = [](ConfigOption &opt, const ConfigOptionDef *def, const std::set<int> &keep_slots) {
         auto *vec = dynamic_cast<ConfigOptionVectorBase*>(&opt);
-        if (vec == nullptr || vec->size() == 0 || def == nullptr || !def->default_value)
-            return;
-        if (def->default_value->type() != opt.type())
-            return;
-        const auto *default_vec = dynamic_cast<const ConfigOptionVectorBase*>(def->default_value.get());
-        if (default_vec == nullptr || default_vec->empty())
-            return;
         for (size_t idx = 0; idx < vec->size(); ++idx)
             if (keep_slots.count(static_cast<int>(idx)) == 0)
                 vec->set_at(def->default_value.get(), idx, 0);
@@ -206,15 +211,20 @@ DynamicPrintConfig filter_published_config(
 
     // Copy the selected options from full_config into the filtered config.
     for (const std::string &key : base_keys_to_include) {
-        if (const ConfigOption *opt = full_config.option(key)) {
-            ConfigOption *cloned = opt->clone();
-            if (mask_exempt_keys.count(key) == 0) {
-                const auto it = slot_mask_map.find(key);
-                if (it != slot_mask_map.end() && !it->second.empty())
-                    mask_slots(*cloned, print_config_def.get(key), it->second);
-            }
-            filtered.set_key_value(key, cloned);
+        const ConfigOption *opt = full_config.option(key);
+        if (opt == nullptr)
+            continue;
+        const auto  mask_it       = slot_mask_map.find(key);
+        const bool  needs_masking = mask_exempt_keys.count(key) == 0 && mask_it != slot_mask_map.end() && !mask_it->second.empty();
+        if (needs_masking && !can_mask_slots(*opt, print_config_def.get(key))) {
+            BOOST_LOG_TRIVIAL(warning) << "publish: dropping unmaskable key \"" << key
+                                       << "\" from the published payload (no usable option default)";
+            continue;
         }
+        ConfigOption *cloned = opt->clone();
+        if (needs_masking)
+            mask_slots(*cloned, print_config_def.get(key), mask_it->second);
+        filtered.set_key_value(key, cloned);
     }
 
     return filtered;
