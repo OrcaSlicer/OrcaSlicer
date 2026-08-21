@@ -5,6 +5,7 @@
 #include "Arachne/WallToolPaths.hpp"
 
 #include "FillConcentric.hpp"
+#include "FillCornerSmoothing.hpp"
 #include <libslic3r/ShortestPath.hpp>
 
 namespace Slic3r {
@@ -32,11 +33,31 @@ void FillConcentric::_fill_surface_single(
 
     Polygons loops = to_polygons(contracted);
 
-    ExPolygons last { std::move(contracted) };
+    ExPolygons last { contracted };
     while (! last.empty()) {
         last = offset2_ex(last, -(distance + min_spacing/2), +min_spacing/2);
         append(loops, to_polygons(last));
     }
+
+    // Orca: round the corners of the loops. Unlike the other patterns these are never clipped to the
+    // fill region - they are its offsets - so a corner may only be rounded where the curve replacing it
+    // stays inside. Rounding cuts toward the inside of the turn, which around a hole, at a concave
+    // feature or across a thin region is outside the fill and would put the extrusion over a wall.
+    // The reach is capped at half the distance between two loops as well: a loop is as long as the
+    // object, and a corner cut by half of its side would swallow the neighbouring loops.
+    auto corner_stays_inside = [&contracted](const Vec2d &from, const Vec2d &to) {
+        // The straight chord between the ends of the curve is the deepest the curve can cut.
+        for (const double t : { 0.25, 0.5, 0.75 }) {
+            const Vec2d  sample = from + t * (to - from);
+            const Point  point(coord_t(sample.x()), coord_t(sample.y()));
+            if (std::none_of(contracted.begin(), contracted.end(),
+                             [&point](const ExPolygon &region) { return region.contains(point); }))
+                return false;
+        }
+        return true;
+    };
+    smooth_polygons_corners(loops, params.smooth_factor, scaled<double>(params.resolution), 0.5 * distance,
+                            corner_stays_inside);
 
     // generate paths from the outermost to the innermost, to avoid
     // adhesion problems of the first central tiny loops

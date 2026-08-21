@@ -2,10 +2,12 @@
 #define slic3r_PresetBundle_hpp_
 
 #include "Preset.hpp"
+#include "PresetCacheFormat.hpp"
 #include "AppConfig.hpp"
 #include "enum_bitmask.hpp"
 
 #include <memory>
+#include <set>
 #include <shared_mutex>
 #include <unordered_map>
 #include <optional>
@@ -170,6 +172,31 @@ struct PresetBundleMetadata
 class PresetBundle
 {
 public:
+    // ---- Per-vendor preset cache --------------------------------------------
+    // One cache file per vendor (plus the Orca filament library), stamped with
+    // the vendor's own profile version rather than a directory scan. The bytes
+    // on disk are VendorCacheFile's business (PresetCacheFormat.hpp); what
+    // lives here is how a cache's contents install into a bundle.
+
+    // The cache is not something a caller loads from: a vendor is loaded with
+    // load_vendor_configs_from_json, which comes from the cache whenever one covers
+    // it. What is public here is what the cache's own tests drive directly.
+
+    // Load a per-vendor cache into this bundle by installing its entries, with
+    // base_bundle's filament library as the inheritance base. Rejects (returns
+    // false, with this bundle left clean) unless VendorCacheFile::load accepts
+    // the file — see its contract for the version and identity checks — and
+    // every entry installs. Options this build no longer defines are dropped,
+    // not fatal — the payload names its own keys.
+    bool load_vendor_cache(const std::string& cache_path, const std::string& expected_vendor_name,
+                          const Semver& expected_vendor_version, const PresetBundle* base_bundle = nullptr);
+
+    // Enable writing a per-vendor cache after a JSON parse (off by default). Cache
+    // content is pure parse output, so the guard is policy, not correctness: only
+    // the deliberate generators (load_system_presets_from_json, the cache build
+    // tool) write files, not every incidental load a dialog performs.
+    void set_generate_vendor_caches(bool enable) { m_generate_vendor_caches = enable; }
+
     static DynamicPrintConfig construct_full_config(Preset                         &in_printer_preset,
                                                     Preset                         &in_print_preset,
                                                     const DynamicPrintConfig       &project_config,
@@ -444,8 +471,12 @@ public:
     /*std::pair<PresetsConfigSubstitutions, size_t> load_configbundle(
         const std::string &path, LoadConfigBundleAttributes flags, ForwardCompatibilitySubstitutionRule compatibility_rule);*/
     //Orca: load config bundle from json, pass the base bundle to support cross vendor inheritance
+    // Orca: `dir` is where the vendor is looked for — its own directory, whether or
+    // not the profile JSONs are still there. A whole-vendor load comes from the
+    // vendor's preset cache whenever one covers the profile on disk, and is parsed
+    // from the JSONs in `dir` only when none does. Nothing here reads resources.
     std::pair<PresetsConfigSubstitutions, size_t> load_vendor_configs_from_json(
-        const std::string &path, const std::string &vendor_name, LoadConfigBundleAttributes flags, ForwardCompatibilitySubstitutionRule compatibility_rule, const PresetBundle* base_bundle = nullptr);
+        const std::string &dir, const std::string &vendor_name, LoadConfigBundleAttributes flags, ForwardCompatibilitySubstitutionRule compatibility_rule, const PresetBundle* base_bundle = nullptr);
 
     // Export a config bundle file containing all the presets and the names of the active presets.
     //void                        export_configbundle(const std::string &path, bool export_system_settings = false, bool export_physical_printers = false);
@@ -517,11 +548,49 @@ public:
     // Orca: for validation only.
     bool has_errors(bool check_duplicate_filament_subtypes = false) const;
 
+    // Errors the last load recorded. What the cache's error accounting promises —
+    // a cache-served vendor reports what its parse would — is pinned against this.
+    int error_count() const { return m_errors; }
+
     // Orca: for validation only. Flag any system preset whose inherits / compatible_printers /
     // compatible_prints references a deleted (unknown) or renamed (old) preset name.
     bool check_preset_references() const;
 
+    // Merge one vendor's presets with the other vendor's presets, report duplicates.
+    // Public so per-vendor-cache consumers (e.g. the setup wizard) can assemble a
+    // bundle out of several per-vendor caches loaded into separate PresetBundle instances.
+    std::vector<std::string>    merge_presets(PresetBundle &&other);
+
 private:
+    // Load one vendor from the preset cache installed in `dir`, judged against
+    // the vendor profile there. False, with this bundle left clean, when there
+    // is no usable cache and the vendor has to be parsed. This is how
+    // load_vendor_configs_from_json reads a cache.
+    bool load_vendor_cache(const boost::filesystem::path& dir, const std::string& vendor_name, const PresetBundle* base_bundle);
+
+    // Load one source-form preset entry into this bundle: resolve `inherits`,
+    // flatten, validate and register the preset. Returns the reason loading
+    // failed, empty on success. See the definition for the sharing contract
+    // between the JSON parse and the cache load.
+    // retain_configs, when non-null, names the only presets registered into
+    // config_maps (a full config copy each). The cache load passes the names its
+    // entries inherit — the only ones ever looked up again; the JSON parse
+    // retains all, not knowing what later subfiles inherit.
+    std::string load_vendor_preset(const CachedPreset& entry,
+        const std::string& path, const std::string& vendor_name,
+        const PresetBundle* base_bundle,
+        LoadConfigBundleAttributes flags,
+        ConfigSubstitutionContext& substitution_context, PresetsConfigSubstitutions& substitutions,
+        std::map<std::string, DynamicPrintConfig>& config_maps, std::map<std::string, std::string>& filament_id_maps,
+        PresetCollection* presets_collection, size_t& count, bool is_from_lib,
+        const std::set<std::string>* retain_configs = nullptr);
+
+    // Clear every collection's m_printer_hold_alias, which reset() leaves alone.
+    void clear_printer_hold_aliases();
+
+    // Whether to (re)write a per-vendor cache after a JSON parse.
+    bool m_generate_vendor_caches { false };
+
     // Orca: validation only - flag any printer with two or more compatible
     // filament presets sharing one filament_id (ambiguous AMS subtype match).
     bool check_duplicate_filament_subtypes() const;
@@ -529,8 +598,6 @@ private:
     //std::pair<PresetsConfigSubstitutions, std::string> load_system_presets(ForwardCompatibilitySubstitutionRule compatibility_rule);
     //BBS: add json related logic
     std::pair<PresetsConfigSubstitutions, std::string> load_system_presets_from_json(ForwardCompatibilitySubstitutionRule compatibility_rule);
-    // Merge one vendor's presets with the other vendor's presets, report duplicates.
-    std::vector<std::string>    merge_presets(PresetBundle &&other);
     // Update the multicolor information for filaments.
     void update_filament_multi_color();
     // Update renamed_from and alias maps of system profiles.

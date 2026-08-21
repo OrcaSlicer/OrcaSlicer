@@ -17,7 +17,9 @@ add_executable(${_TEST_NAME}_tests
     test_preset_bundle_loading.cpp
     test_preset_setting_id.cpp
     test_preset_diff.cpp
+    test_vendor_cache.cpp
     test_elephant_foot_compensation.cpp
+    test_fill_corner_smoothing.cpp
     test_fill_plane_path.cpp
     test_geometry.cpp
     test_multimaterial_segmentation.cpp

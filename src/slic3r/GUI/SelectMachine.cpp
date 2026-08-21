@@ -1088,8 +1088,8 @@ void SelectMachineDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &res
         }
     }
     relayout_nozzle_cards();
-    auto tab_index = (MainFrame::TabPosition) dynamic_cast<Notebook *>(wxGetApp().tab_panel())->GetSelection();
-    if (tab_index == MainFrame::TabPosition::tp3DEditor || tab_index == MainFrame::TabPosition::tpPreview) {
+    wxString tab_name = wxGetApp().tab_panel()->GetSelectedPageName();
+    if (tab_name == TAB_ID_PREPARE || tab_name == TAB_ID_PREVIEW) {
         updata_thumbnail_data_after_connected_printer();
     }
 }
@@ -3912,7 +3912,7 @@ _collect_sorted_machines(Slic3r::DeviceManager* dev_manager,
     };
 
     // collect from user machine list
-    const auto& user_machine_list = dev_manager->get_my_machine_list();// user machine list
+    const auto& user_machine_list = dev_manager->get_my_machine_list(dev_manager->get_current_printer_agent_id());// user machine list
     for (const auto& elem : user_machine_list)
     {
         MachineObject* mobj = elem.second;
