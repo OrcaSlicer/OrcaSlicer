@@ -842,6 +842,9 @@ wxDECLARE_EVENT(EVT_UPDATE_BUNDLE_COMPLETE, wxCommandEvent);
 
 bool is_support_filament(int extruder_id, bool strict_check = true);
 bool is_soluble_filament(int extruder_id);
+// Replace a support filament left on "Auto" (SUPPORT_FILAMENT_AUTO) by the 1-based filament the slicer will
+// actually print with, so the GUI can react to a pick it did not make itself. See GUI_App.cpp.
+void resolve_auto_support_filaments(int &support_filament, int &support_interface_filament);
 // check if the filament for model is in the list
 bool has_filaments(const std::vector<std::string>& model_filaments);
 } // namespace GUI
