@@ -329,6 +329,11 @@ refuses that target unless given `--prune-source`, and CI passes it.
 Generation runs after the build, in the same job, so the caches ship with a build that
 can read them.
 
+The flatpak differs only in where the script is called from. Nothing outside
+flatpak-builder ever builds it, so there is no packaged tree for the workflow to point
+the script at afterwards: the manifest runs it as a build step instead, against the
+profiles the install has already copied into `/app`.
+
 ## Behavior when things go wrong
 
 The system is designed so that no cache problem is fatal:
