@@ -76,6 +76,14 @@ void DevicePrintOptionsDialog::init()
                                                   if (m_print_btn)
                                                       m_print_btn->Enable(all_assigned && m_mapping_undeliverable_reason.IsEmpty());
                                                   Layout();
+                                                  // The mapping view just rebuilt or reflowed its content (Reset/Automatic
+                                                  // recreate the rows panel), but a descendant rebuild does not invalidate
+                                                  // THIS dialog's cached best size -- and Fit() consults that cache. Stale
+                                                  // cache meant Layout() above already gave the view its new, taller
+                                                  // allocation while Fit() kept the old dialog height, clipping everything
+                                                  // below the view under the button row (field report: "Print Preferences
+                                                  // disappears" after pressing Reset). Re-measure before fitting.
+                                                  InvalidateBestSize();
                                                   Fit();
                                               });
         content_sizer->Add(m_rows_view, 0, wxEXPAND);

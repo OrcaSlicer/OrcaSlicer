@@ -80,6 +80,7 @@ public:
 
 private:
     void rebuild_rows_panel(const std::vector<int>& proposal, bool auto_matched);
+    void repin_rows_min_height();
     void seed_status();
     void update_mismatch_warning();
     void update_preview();
