@@ -6987,17 +6987,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 stream << " <" << METADATA_TAG << " name=\"" << item.first << "\">"
                        << xml_escape(item.second) << "</" << METADATA_TAG << ">\n";
                 if (item.first == BBL_APPLICATION_TAG) {
-                    // The OrcaSlicer tag is the version receivers compare against their own to
-                    // pick the import branch, and every graceful config-less branch of an
-                    // Orca-classified file shows a baked-in "old OrcaSlicer version" popup. A
-                    // minimal published 3MF omits the tag (together with the Application tag
-                    // above): old receivers then classify it From_Other and import the geometry
-                    // silently, while this build rebuilds the config from the published metadata
-                    // payload before the branch runs.
-                    if (!m_minimal_published) {
-                        stream << " <" << METADATA_TAG << " name=\"" << ORCASLICER_TAG << "\">"
-                               << xml_escape(SoftFever_VERSION) << "</" << METADATA_TAG << ">\n";
-                    }
+                    // The OrcaSlicer tag is only written for files that carry the Application
+                    // tag, which a minimal published 3MF omits (see the map assignment above):
+                    // the branch below is unreachable in minimal mode.
+                    stream << " <" << METADATA_TAG << " name=\"" << ORCASLICER_TAG << "\">"
+                           << xml_escape(SoftFever_VERSION) << "</" << METADATA_TAG << ">\n";
                 }
             }
 

@@ -584,6 +584,7 @@ TEST_CASE("Published 3MF overlays only the author-selected process keys onto the
         config.opt_string("print_settings_id", true) = "file process";
         config.opt<ConfigOptionFloats>("flush_multiplier")->values = { 2., 2. }; // must NOT cross over
         config.opt<ConfigOptionFloats>("wipe_tower_x")->values = { 100. };       // plate geometry, does cross over
+        config.opt<ConfigOptionFloat>("wipe_tower_rotation_angle")->value = 45.; // published-only plate geometry, crosses over
         config.option("curr_bed_type")->setInt(BedType::btPC);                   // must NOT cross over
         return config;
     };
@@ -639,6 +640,7 @@ TEST_CASE("Published 3MF overlays only the author-selected process keys onto the
     CHECK(bundle.project_config.opt<ConfigOptionFloats>("flush_multiplier")->values == seed_flush_multiplier);
     CHECK(bundle.project_config.option("curr_bed_type")->getInt() == seed_bed_type);
     CHECK(bundle.project_config.opt<ConfigOptionFloats>("wipe_tower_x")->values == std::vector<double>{ 100. });
+    CHECK_THAT(bundle.project_config.opt<ConfigOptionFloat>("wipe_tower_rotation_angle")->value, Catch::Matchers::WithinAbs(45., 0.000001));
 
     // e) The published path keeps the user's currently-selected presets: same preset, same size.
     CHECK(bundle.prints.get_edited_preset().name == pre_load_name);
@@ -676,6 +678,9 @@ TEST_CASE("Published 3MF overlays only the allowlisted retraction and z-hop keys
 
     PresetBundle bundle;
     bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_length")->values = { 0.8 };
+    // A recognizable non-default value: the skipped mismatch below must leave it untouched
+    // (asserting the default instead would silently test PrintConfig's retraction_speed).
+    bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_speed")->values = { 33. };
     bundle.printers.get_edited_preset().config.opt_string("machine_start_gcode") = "G28 ; user";
 
     PublishedConfig pub;
@@ -683,9 +688,10 @@ TEST_CASE("Published 3MF overlays only the allowlisted retraction and z-hop keys
     pub.published_keys = { "retraction_length", "retraction_speed", "machine_start_gcode" };
     bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
 
-    // Matching-size retraction vector applied; mismatched vector reported as skipped.
+    // Matching-size retraction vector applied; mismatched vector reported as skipped and the
+    // receiver's own value survives.
     CHECK(bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_length")->values == std::vector<double>{ 1.4 });
-    CHECK(bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_speed")->values == std::vector<double>{ 30. });
+    CHECK(bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_speed")->values == std::vector<double>{ 33. });
     CHECK(contains_key(pub.skipped_keys, "retraction_speed"));
     // Contract-excluded printer key: silently ignored, absent from skipped_keys.
     CHECK(bundle.printers.get_edited_preset().config.opt_string("machine_start_gcode") == "G28 ; user");

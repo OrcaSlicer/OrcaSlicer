@@ -1,5 +1,4 @@
-#ifndef slic3r_GUI_PublishSettingsDialog_hpp_
-#define slic3r_GUI_PublishSettingsDialog_hpp_
+#pragma once
 
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
@@ -200,5 +199,3 @@ private:
 };
 
 }} // namespace Slic3r::GUI
-
-#endif // slic3r_GUI_PublishSettingsDialog_hpp_

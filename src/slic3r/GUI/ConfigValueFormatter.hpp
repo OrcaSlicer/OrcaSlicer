@@ -1,5 +1,4 @@
-#ifndef slic3r_ConfigValueFormatter_hpp_
-#define slic3r_ConfigValueFormatter_hpp_
+#pragma once
 
 #include <string>
 
@@ -25,5 +24,3 @@ wxString get_string_from_enum(const std::string& opt_key, const DynamicPrintConf
 
 } // namespace GUI
 } // namespace Slic3r
-
-#endif // slic3r_ConfigValueFormatter_hpp_

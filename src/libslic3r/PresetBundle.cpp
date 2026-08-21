@@ -43,6 +43,8 @@ namespace Slic3r {
 
 // Project-level options imported from a loaded 3MF into project_config. s_project_options_published
 // below is the reduced subset that crosses over in "published" 3MF mode; keep both in sync.
+// s_project_options_published additionally carries wipe_tower_rotation_angle, which normal
+// loads do not import (it is not listed here): published-only plate geometry.
 static std::vector<std::string> s_project_options {
     "flush_volumes_vector",
     "flush_volumes_matrix",
@@ -73,8 +75,9 @@ static std::vector<std::string> s_project_options {
     "enable_filament_dynamic_map"
 };
 
-// Project options applied when loading a "published" 3MF project: the full s_project_options
-// minus the filament/purge keys. A published file must not port the author's filament data
+// Project options applied when loading a "published" 3MF project: s_project_options minus the
+// filament/purge keys, plus wipe_tower_rotation_angle (plate geometry that only published
+// loads import today). A published file must not port the author's filament data
 // (colors, colour types, filament/map/AMS slot state, purge/prime/flush volumes, nozzle
 // volume types, filament switcher state) to the receiver's project_config, which feeds the
 // scene colors, AMS slot colors and purge data. Only the plate/bed geometry keys cross over;
@@ -4799,7 +4802,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 if (applied_keys.count(key) != 0)
                     continue; // already applied
                 // A '#' suffix denotes a variant key; resolve the base key.
-                const std::string    base_key = key.substr(0, key.find('#'));
+                const std::string    base_key = publish_base_key(key);
                 // Structural keys are never applied (not "skipped due to mismatch"), so bail
                 // out before the applied/skipped bookkeeping.
                 if (structural_keys.count(base_key) != 0)
@@ -4936,9 +4939,11 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 // type-only pick may surface an unrelated preset, e.g. a different vendor's
                 // PLA).
                 auto candidate_score = [](const Preset &candidate, const PublishedMaterialEntry &entry, const std::string &resolved_name) -> int {
-                    // Exact preset name: raw and collection-resolved forms both score above the
-                    // fuzzy bare/alias tier, so a receiver preset literally named "Generic PLA"
-                    // can never beat the author's exact "Generic PLA @Vendor" preset on a tie.
+                    // Exact preset name: raw and collection-resolved forms both outrank the
+                    // fuzzy bare/alias tier by tier value, so a receiver preset literally named
+                    // "Generic PLA" (tier 4) can never beat the author's exact
+                    // "Generic PLA @Vendor" (tier 5). Within one tier the strict ">"
+                    // comparison keeps the first candidate in collection order.
                     if (!entry.preset_name.empty() && candidate.name == entry.preset_name)
                         return 5;
                     if (!resolved_name.empty() && candidate.name == resolved_name)
@@ -5137,8 +5142,14 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             if (colours != nullptr && !colours->values.empty())
                                 seed = colours->values.front();
                         }
-                        if (seed.empty())
-                            seed = "#F2754E"; // filament_colour default
+                        if (seed.empty()) {
+                            // Fall back to the option's registered default instead of a
+                            // duplicated literal; if the lookup fails the chip stays blank.
+                            if (const ConfigOptionDef *colour_def = print_config_def.get("filament_colour"))
+                                if (const auto *default_colours = dynamic_cast<const ConfigOptionStrings *>(colour_def->default_value.get()))
+                                    if (!default_colours->values.empty())
+                                        seed = default_colours->values.front();
+                        }
                     }
                     if (proj_colour && slot < proj_colour->values.size())
                         proj_colour->values[slot] = seed;
@@ -5153,7 +5164,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 auto apply_slot_keys = [&](DynamicPrintConfig &preset_config, const std::vector<std::string> &slot_keys, int author_slot,
                                            const std::string &material_label) {
                     for (const std::string &key : slot_keys) {
-                        const std::string base_key = key.substr(0, key.find('#'));
+                        const std::string base_key = publish_base_key(key);
                         if (structural_keys.count(base_key) != 0)
                             continue;
                         const ConfigOption *src_opt = config.option(base_key);
@@ -5375,7 +5386,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
         for (const std::string &key : published_config->published_keys) {
             if (applied_keys.count(key) != 0)
                 continue;
-            const std::string base_key = key.substr(0, key.find('#'));
+            const std::string base_key = publish_base_key(key);
             // Structural keys are silently ignored, never reported as skipped: a hand-crafted
             // 3MF must not trigger the "could not be applied" warning for them.
             if (structural_keys.count(base_key) != 0)

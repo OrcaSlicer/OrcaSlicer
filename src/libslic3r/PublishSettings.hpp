@@ -6,8 +6,17 @@
 namespace Slic3r {
 class PresetBundle;
 
-// Structural keys that must never be published (single source of truth for the denylist):
-// publishing them would rewrite the user's preset inheritance/structure.
+// Strip a trailing "#N" variant suffix ("retraction_length#2" -> "retraction_length").
+inline std::string publish_base_key(const std::string &key)
+{
+    const size_t pos = key.find('#');
+    return pos == std::string::npos ? key : key.substr(0, pos);
+}
+
+// Structural keys that are never applied onto the receiver's presets when loading a published
+// 3MF (single source of truth for the denylist): applying them would rewrite the user's preset
+// inheritance/structure. filament_ids is nevertheless exported via the identity list in
+// filter_published_config because 3MF validation needs it - exported, never applied.
 const std::set<std::string>& publish_structural_keys();
 
 // One row of the printer tab's "Retraction" / "Z-Hop" optgroups (key + tab icon id), kept

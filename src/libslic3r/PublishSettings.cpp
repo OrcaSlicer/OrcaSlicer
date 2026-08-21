@@ -5,7 +5,6 @@
 #include "PrintConfig.hpp"
 #include "MaterialType.hpp"
 
-#include <algorithm>
 #include <map>
 #include <set>
 
@@ -101,22 +100,18 @@ const std::set<std::string>& publishable_printer_keys()
 
 std::vector<std::string> collect_dirty_settings_keys(const PresetBundle& bundle)
 {
-    std::vector<std::string> keys;
-
-    auto append_dirty = [&keys](const std::vector<std::string>& dirty) {
-        for (const std::string& key : dirty) {
-            if (std::find(keys.begin(), keys.end(), key) == keys.end())
-                keys.push_back(key);
-        }
-    };
+    std::set<std::string> keys;
 
     // Union the dirty keys of each collection's edited preset (filaments may span multiple
     // slots); feeds only the Publish dialog's pre-check.
-    append_dirty(bundle.prints.current_dirty_options(true));
-    append_dirty(bundle.printers.current_dirty_options(true));
-    append_dirty(bundle.filaments.current_dirty_options(true));
+    for (const std::string& key : bundle.prints.current_dirty_options(true))
+        keys.insert(key);
+    for (const std::string& key : bundle.printers.current_dirty_options(true))
+        keys.insert(key);
+    for (const std::string& key : bundle.filaments.current_dirty_options(true))
+        keys.insert(key);
 
-    return keys;
+    return std::vector<std::string>(keys.begin(), keys.end());
 }
 
 DynamicPrintConfig filter_published_config(
@@ -136,6 +131,7 @@ DynamicPrintConfig filter_published_config(
     std::map<std::string, std::set<int>> slot_mask_map;
 
     // 1. Mandatory material identity & slot count keys for 3MF validation/normalization
+    // (filament_ids: exported for validation, denylisted on apply - see publish_structural_keys).
     static const std::vector<std::string> s_material_identity_keys = {
         "filament_colour",
         "filament_type",
@@ -163,7 +159,7 @@ DynamicPrintConfig filter_published_config(
 
     // 3. Process and printer published keys
     for (const std::string &key : published_keys) {
-        const std::string base_key = key.substr(0, key.find('#'));
+        const std::string base_key = publish_base_key(key);
         if (!base_key.empty()) {
             base_keys_to_include.insert(base_key);
             mask_exempt_keys.insert(base_key);
@@ -175,7 +171,7 @@ DynamicPrintConfig filter_published_config(
     // slot-less entries (hand-crafted files) stay unmasked (whole vector).
     for (const PublishedMaterialEntry &entry : material_keys) {
         for (const std::string &key : entry.keys) {
-            const std::string base_key = key.substr(0, key.find('#'));
+            const std::string base_key = publish_base_key(key);
             if (base_key.empty())
                 continue;
             base_keys_to_include.insert(base_key);
@@ -183,7 +179,7 @@ DynamicPrintConfig filter_published_config(
                 slot_mask_map[base_key].insert(entry.slot);
         }
         for (const std::string &key : entry.full_keys) {
-            const std::string base_key = key.substr(0, key.find('#'));
+            const std::string base_key = publish_base_key(key);
             if (base_key.empty())
                 continue;
             base_keys_to_include.insert(base_key);

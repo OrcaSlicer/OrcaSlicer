@@ -332,7 +332,7 @@ void PublishSettingsDialog::build_option_model()
                         for (const auto& opt : optgroup->opt_map()) {
                             // Row keys are base keys; the load side applies them positionally.
                             const std::string& opt_id = opt.first;
-                            std::string base          = opt_id.substr(0, opt_id.find('#'));
+                            std::string base          = publish_base_key(opt_id);
                             if (!material_added.insert(base).second)
                                 continue;
                             // Show the value of this slot; fall back to slot 0 if out of range.
@@ -388,15 +388,13 @@ void PublishSettingsDialog::build_option_model()
     // Pre-check the dirty (modified) settings and mark them bold (base-key match, across all
     // sections; collect_dirty_settings_keys unions the prints, printers and filaments).
     std::set<std::string> dirty_base;
-    for (const std::string& key : collect_dirty_settings_keys(*wxGetApp().preset_bundle)) {
-        auto n = key.find('#');
-        dirty_base.insert(n == std::string::npos ? key : key.substr(0, n));
-    }
+    for (const std::string& key : collect_dirty_settings_keys(*wxGetApp().preset_bundle))
+        dirty_base.insert(publish_base_key(key));
     for (Row& row : m_rows) {
         // The Color/Type requirement rows are not "dirty overrides": never auto-checked.
         if (row.kind != RowKind::Setting)
             continue;
-        std::string base = row.key.substr(0, row.key.find('#'));
+        std::string base = publish_base_key(row.key);
         row.dirty        = dirty_base.count(base) > 0;
         if (row.dirty) {
             row.check->SetValue(true);
@@ -919,7 +917,7 @@ std::vector<std::string> PublishSettingsDialog::GetPublishedKeys() const
             // build). Publish every extruder element so the load side can apply per-extruder
             // values even when the receiver has a different extruder count; a scalar printer
             // key is published as-is.
-            const std::string base_key = row.key.substr(0, row.key.find('#'));
+            const std::string base_key = publish_base_key(row.key);
             if (const ConfigOption* opt = full.option(base_key)) {
                 if (const auto* vec = dynamic_cast<const ConfigOptionVectorBase*>(opt)) {
                     for (size_t i = 0; i < vec->size(); ++i)
