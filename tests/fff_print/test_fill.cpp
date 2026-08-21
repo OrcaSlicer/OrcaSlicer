@@ -4,6 +4,7 @@
 #include <cmath>
 #include <map>
 #include <numeric>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -536,6 +537,32 @@ static bool solid_role(ExtrusionRole role) { return is_solid_infill(role) && rol
 static bool sparse_role(ExtrusionRole role) { return role == erInternalInfill; }
 static bool ironing_role(ExtrusionRole role) { return role == erIroning; }
 
+// Rectilinear chains parallel lines into few paths; concentric emits one path per offset loop.
+static size_t infill_path_count(const Print &print, ExtrusionRole role, size_t min_layer_id = 0)
+{
+    size_t paths = 0;
+    for (const Layer *layer : print.objects().front()->layers()) {
+        if (layer->id() < min_layer_id)
+            continue;
+        for (const LayerRegion *region : layer->regions())
+            for (const ExtrusionEntity *entity : region->fills.flatten().entities) {
+                auto account = [&](const ExtrusionPath &path) {
+                    if (path.role() == role)
+                        ++paths;
+                };
+                if (auto *path = dynamic_cast<const ExtrusionPath *>(entity))
+                    account(*path);
+                else if (auto *multi = dynamic_cast<const ExtrusionMultiPath *>(entity))
+                    for (const ExtrusionPath &p : multi->paths)
+                        account(p);
+                else if (auto *loop = dynamic_cast<const ExtrusionLoop *>(entity))
+                    for (const ExtrusionPath &p : loop->paths)
+                        account(p);
+            }
+    }
+    return paths;
+}
+
 TEST_CASE("Infill rotation template is unaffected by a raft", "[Fill][Regression]")
 {
     // More angles than raft layers, so a raft cannot alias back to the same angle.
@@ -1021,4 +1048,73 @@ TEST_CASE("Smoothing multiline lightning infill keeps its outlines connected", "
     // The outlines are still rounded.
     REQUIRE(smooth.point_count > sharp.point_count);
     REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
+}
+
+TEST_CASE("Bridge bottom surface pattern changes the underside infill of a bridge", "[Fill]")
+{
+    auto path_count_for = [](const char *pattern) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::TestMesh::bridge}, print,
+                                            {{"bridge_bottom_surface_pattern", pattern},
+                                             {"top_surface_pattern", "rectilinear"},
+                                             {"enable_support", 0},
+                                             {"layer_height", 0.2},
+                                             {"sparse_infill_density", "20%"}});
+        REQUIRE_FALSE(print.objects().empty());
+        return infill_path_count(print, erBridgeInfill);
+    };
+
+    const size_t rectilinear = path_count_for("rectilinear");
+    const size_t concentric  = path_count_for("concentric");
+    REQUIRE(rectilinear > 0);
+    // Rectilinear chains parallel lines into few paths. Concentric emits one path
+    // per offset loop, so it must produce more paths if the setting switched the
+    // bridge underside pattern.
+    REQUIRE(concentric > rectilinear);
+}
+
+TEST_CASE("Bridge bottom surface pattern changes the underside of a supported overhang", "[Fill]")
+{
+    auto path_count_for = [](const char *pattern) {
+        Print print;
+        // Top Z distance 0 types the overhang as stBottom (erBottomSurface), not a bridge.
+        Slic3r::Test::init_and_process_print({Slic3r::Test::TestMesh::bridge}, print,
+                                            {{"bridge_bottom_surface_pattern", pattern},
+                                             {"top_surface_pattern", "rectilinear"},
+                                             {"bottom_surface_pattern", "rectilinear"},
+                                             {"enable_support", 1},
+                                             {"support_type", "normal(auto)"},
+                                             {"support_interface_top_layers", 3},
+                                             {"support_top_z_distance", 0},
+                                             {"bridge_no_support", 0},
+                                             {"layer_height", 0.2},
+                                             {"sparse_infill_density", "20%"}});
+        REQUIRE_FALSE(print.objects().empty());
+        return infill_path_count(print, erBottomSurface, 1);
+    };
+
+    const size_t rectilinear = path_count_for("rectilinear");
+    const size_t concentric  = path_count_for("concentric");
+    REQUIRE(rectilinear > 0);
+    REQUIRE(concentric > rectilinear);
+}
+
+TEST_CASE("Bridge bottom surface pattern does not change internal bridge infill", "[Fill]")
+{
+    auto path_count_for = [](const char *pattern) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"bridge_bottom_surface_pattern", pattern},
+                                             {"top_surface_pattern", "rectilinear"},
+                                             {"internal_solid_infill_pattern", "rectilinear"},
+                                             {"enable_support", 0},
+                                             {"layer_height", 0.2},
+                                             {"sparse_infill_density", "20%"}});
+        REQUIRE_FALSE(print.objects().empty());
+        return infill_path_count(print, erInternalBridgeInfill);
+    };
+
+    const size_t rectilinear = path_count_for("rectilinear");
+    REQUIRE(rectilinear > 0);
+    REQUIRE(path_count_for("concentric") == rectilinear);
 }

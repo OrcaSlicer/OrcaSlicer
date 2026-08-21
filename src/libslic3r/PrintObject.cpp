@@ -1393,6 +1393,7 @@ bool PrintObject::invalidate_state_by_config_options(
         } else if (
                opt_key == "top_surface_pattern"
             || opt_key == "bottom_surface_pattern"
+            || opt_key == "bridge_bottom_surface_pattern"
             || opt_key == "top_surface_fill_order"
             || opt_key == "bottom_surface_fill_order"
             || opt_key == "internal_solid_infill_pattern"

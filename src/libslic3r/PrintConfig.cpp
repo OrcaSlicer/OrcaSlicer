@@ -280,6 +280,19 @@ static t_config_enum_values s_keys_map_InfillPattern {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InfillPattern)
 
+static t_config_enum_values s_keys_map_BridgeBottomSurfacePattern {
+    { "default",            int(BridgeBottomSurfacePattern::Default) },
+    { "monotonic",          int(BridgeBottomSurfacePattern::Monotonic) },
+    { "monotonicline",      int(BridgeBottomSurfacePattern::MonotonicLine) },
+    { "rectilinear",        int(BridgeBottomSurfacePattern::Rectilinear) },
+    { "alignedrectilinear", int(BridgeBottomSurfacePattern::AlignedRectilinear) },
+    { "concentric",         int(BridgeBottomSurfacePattern::Concentric) },
+    { "hilbertcurve",       int(BridgeBottomSurfacePattern::HilbertCurve) },
+    { "archimedeanchords",  int(BridgeBottomSurfacePattern::ArchimedeanChords) },
+    { "octagramspiral",     int(BridgeBottomSurfacePattern::OctagramSpiral) },
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(BridgeBottomSurfacePattern)
+
 static t_config_enum_values s_keys_map_IroningType {
     { "no ironing",     int(IroningType::NoIroning) },
     { "top",            int(IroningType::TopSurfaces) },
@@ -2366,6 +2379,19 @@ void PrintConfigDef::init_fff_params()
     def->enum_values = def_top_fill_pattern->enum_values;
     def->enum_labels = def_top_fill_pattern->enum_labels;
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMonotonic));
+
+    def = this->add("bridge_bottom_surface_pattern", coEnum);
+    def->label = L("Bridge bottom surface pattern");
+    def->category = L("Strength");
+    def->tooltip = L("Line pattern for the underside of bridges (overhangs printed over support or air). "
+                     "Default uses monotonic if the top surface is monotonic or monotonic line, otherwise rectilinear.");
+    def->enum_keys_map = &ConfigOptionEnum<BridgeBottomSurfacePattern>::get_enum_values();
+    def->enum_values.push_back("default");
+    def->enum_values.insert(def->enum_values.end(), def_top_fill_pattern->enum_values.begin(), def_top_fill_pattern->enum_values.end());
+    def->enum_labels.push_back(L("Default"));
+    def->enum_labels.insert(def->enum_labels.end(), def_top_fill_pattern->enum_labels.begin(), def_top_fill_pattern->enum_labels.end());
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<BridgeBottomSurfacePattern>(BridgeBottomSurfacePattern::Default));
 
     def           = this->add("bottom_surface_density", coPercent);
     def->label    = L("Bottom surface density");
@@ -9057,6 +9083,7 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
     } else if ((opt_key == "sparse_infill_pattern"         ||
                 opt_key == "top_surface_pattern"           ||
                 opt_key == "bottom_surface_pattern"        ||
+                opt_key == "bridge_bottom_surface_pattern" ||
                 opt_key == "internal_solid_infill_pattern" ||
                 opt_key == "ironing_pattern"               ||
                 opt_key == "support_ironing_pattern") && value == "zig-zag") {
@@ -11600,6 +11627,10 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
     // --bottom-fill-pattern
     if (! print_config_def.get("bottom_surface_pattern")->has_enum_value(cfg.bottom_surface_pattern.serialize())) {
         error_message.emplace("bottom_surface_pattern", L("invalid value ") + cfg.bottom_surface_pattern.serialize());
+    }
+
+    if (! print_config_def.get("bridge_bottom_surface_pattern")->has_enum_value(cfg.bridge_bottom_surface_pattern.serialize())) {
+        error_message.emplace("bridge_bottom_surface_pattern", L("invalid value ") + cfg.bridge_bottom_surface_pattern.serialize());
     }
 
     // --soild-fill-pattern

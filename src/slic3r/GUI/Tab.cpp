@@ -2780,6 +2780,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("bottom_shell_thickness", "strength_settings_top_bottom_shells#shell-thickness");
         optgroup->append_single_option_line("bottom_surface_density", "strength_settings_top_bottom_shells#surface-density");
         optgroup->append_single_option_line("bottom_surface_pattern", "strength_settings_top_bottom_shells#surface-pattern");
+        optgroup->append_single_option_line("bridge_bottom_surface_pattern", "strength_settings_top_bottom_shells#surface-pattern");
         optgroup->append_single_option_line("bottom_surface_fill_order", "strength_settings_top_bottom_shells#fill-order");
         optgroup->append_single_option_line("bottom_layer_direction", "strength_settings_infill#top-bottom-direction");
         optgroup->append_single_option_line("center_of_surface_pattern", "strength_settings_top_bottom_shells#center-surface-pattern-on");

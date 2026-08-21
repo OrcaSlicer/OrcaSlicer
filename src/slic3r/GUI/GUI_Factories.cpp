@@ -137,6 +137,7 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"top_surface_expansion_margin", "", 1},
        {"top_surface_expansion_direction", "", 1},
        {"bottom_surface_pattern", "", 1},
+       {"bridge_bottom_surface_pattern", "", 1},
        {"internal_solid_infill_pattern", "", 1},
        {"align_infill_direction_to_model", "", 1},
        {"extra_solid_infills", "", 1},

@@ -755,6 +755,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("sparse_infill_smooth_factor", is_smoothable_infill_pattern(pattern, config->opt_int("fill_multiline")));
     toggle_field("top_surface_pattern", has_top_shell);
     toggle_field("bottom_surface_pattern", has_bottom_shell);
+    toggle_field("bridge_bottom_surface_pattern", have_infill || has_solid_infill);
     toggle_field("top_surface_density", has_top_shell_layers);
     toggle_field("bottom_surface_density", has_bottom_shell);
     toggle_field("top_layer_direction", has_top_shell);
