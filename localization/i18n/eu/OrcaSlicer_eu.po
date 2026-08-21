@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-08-21 14:25+0800\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -4764,6 +4764,9 @@ msgstr ""
 "Bai - Aldatu ezarpen hauek eta gaitu espiral/loreontzi modua automatikoki\n"
 "Ez  - Utzi bertan behera espiral modua gaitzea"
 
+msgid "N/A"
+msgstr "N/A"
+
 msgid "Printing"
 msgstr "Inprimatzen"
 
@@ -5223,9 +5226,6 @@ msgstr "Patroi baliogabea. Erabili N, N#K edo komaz bereizitako zerrenda bat, sa
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Formatuak ez du balio. Espero den formatu bektoriala: \"%1%\""
-
-msgid "N/A"
-msgstr "N/A"
 
 msgid "System agents"
 msgstr "Sistema-agenteak"
@@ -6167,6 +6167,12 @@ msgstr "Gorde proiektua honela"
 
 msgid "Save current project as"
 msgstr "Gorde uneko proiektua honela"
+
+msgid "Publish 3MF"
+msgstr ""
+
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Inportatu 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -7945,6 +7951,12 @@ msgstr "Berretsi aurrezarpen hauetako G-codea segurua dela, makinari kalterik ez
 msgid "Customized Preset"
 msgstr "Aurrezarpen pertsonalizatua"
 
+msgid "Some published settings could not be applied:"
+msgstr ""
+
+msgid "Some filament slots were changed to match the published materials:"
+msgstr ""
+
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "STEP fitxategiko osagai-izena(k) ez dago/daude UTF-8 formatuan!"
 
@@ -8320,6 +8332,17 @@ msgstr "Gorde xerratutako fitxategia honela:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "%s fitxategia inprimagailuaren biltegiratze-eremura bidali da eta inprimagailuan ikus daiteke."
+
+msgid "Publish 3MF file as:"
+msgstr ""
+
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
+
+msgid "Publish"
+msgstr "Argitaratu"
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "Pita mota ez dago ezarrita. Ezarri pita eta saiatu berriro."
@@ -9434,9 +9457,6 @@ msgstr "Joan modeloa argitaratzeko web-orrira"
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "Oharra: prestaketak minutu batzuk iraun ditzake. Izan pazientzia."
 
-msgid "Publish"
-msgstr "Argitaratu"
-
 msgid "Publish was canceled"
 msgstr "Argitaratzea bertan behera utzi da"
 
@@ -9451,6 +9471,24 @@ msgstr "Datuak igotzen"
 
 msgid "Jump to webpage"
 msgstr "Joan web-orrira"
+
+msgid "Material"
+msgstr ""
+
+msgid "Publish 3MF..."
+msgstr ""
+
+msgid "Select which settings to embed in the 3MF file"
+msgstr ""
+
+msgid "Full Publish"
+msgstr ""
+
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
+msgid "Filter non-selected"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Save %s as"

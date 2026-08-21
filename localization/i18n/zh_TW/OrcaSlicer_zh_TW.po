@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-08-21 14:25+0800\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -4864,6 +4864,9 @@ msgstr ""
 "是 - 自動調整這些設定並啟用花瓶模式\n"
 "否 - 不使用花瓶模式"
 
+msgid "N/A"
+msgstr "不適用"
+
 msgid "Printing"
 msgstr "列印中"
 
@@ -5322,9 +5325,6 @@ msgstr "無效的格式。請使用 N、N#K 或逗號分隔的清單，每個項
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "無效格式，應該是「%1%」這種格式"
-
-msgid "N/A"
-msgstr "不適用"
 
 # AI Translated
 msgid "System agents"
@@ -6280,6 +6280,12 @@ msgstr "另存專案為"
 
 msgid "Save current project as"
 msgstr "將目前專案另存為"
+
+msgid "Publish 3MF"
+msgstr ""
+
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "匯入 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -8066,6 +8072,12 @@ msgstr "請確認這些預設中的 G-code 是安全的，以防止對列印裝�
 msgid "Customized Preset"
 msgstr "自訂預設"
 
+msgid "Some published settings could not be applied:"
+msgstr ""
+
+msgid "Some filament slots were changed to match the published materials:"
+msgstr ""
+
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "STEP 檔案內部元件的名稱不是 UTF-8 格式！"
 
@@ -8451,6 +8463,17 @@ msgstr "切片檔案另存為："
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "檔案 %s 已經傳送到列印裝置的儲存空間，可以在列印裝置上瀏覽。"
+
+msgid "Publish 3MF file as:"
+msgstr ""
+
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
+
+msgid "Publish"
+msgstr "發布"
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "噴嘴類型尚未設定。請設定噴嘴後再試一次。"
@@ -9590,9 +9613,6 @@ msgstr "發布頁面"
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "提示：發布前需要一些準備時間，請耐心等待。"
 
-msgid "Publish"
-msgstr "發布"
-
 msgid "Publish was canceled"
 msgstr "發布已取消"
 
@@ -9607,6 +9627,24 @@ msgstr "正在上傳資料"
 
 msgid "Jump to webpage"
 msgstr "跳至網頁"
+
+msgid "Material"
+msgstr ""
+
+msgid "Publish 3MF..."
+msgstr ""
+
+msgid "Select which settings to embed in the 3MF file"
+msgstr ""
+
+msgid "Full Publish"
+msgstr ""
+
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
+msgid "Filter non-selected"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Save %s as"

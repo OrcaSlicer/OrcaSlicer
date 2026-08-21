@@ -34,6 +34,20 @@ enum {
     kPublishFilterNonSelected
 };
 
+// Tree-style flags shared by the outer tabs and every group's inner tabs.
+constexpr long s_tab_style = wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS |
+                             wxTR_FULL_ROW_HIGHLIGHT;
+
+// The author's hex colour for a filament slot (empty when the slot is out of range); shared by
+// the header chip, the inner-tab chip and the DPI rescale paths.
+std::string filament_color_hex(const DynamicPrintConfig& full, size_t slot)
+{
+    if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour"))
+        if (slot < colours->size())
+            return colours->get_at(slot);
+    return std::string();
+}
+
 PublishMaterialIdentity material_identity(size_t slot, const DynamicPrintConfig& full)
 {
     PublishMaterialIdentity identity;
@@ -114,7 +128,6 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
         e.Skip();
     });
     f_sizer->Add(m_filter_box, 1, wxEXPAND);
-    Bind(wxEVT_SET_FOCUS, [this](auto&) { m_filter_box->SetFocus(); });
 
     m_fb_sizer      = new wxBoxSizer(wxHORIZONTAL);
     auto create_btn = [this, f_bar](wxString title, bool select) {
@@ -129,6 +142,17 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
     create_btn(_L("All"), true);
     create_btn(_L("None"), false);
 
+    // Indicator for the menu's pseudo filters: sits where All/None go while they are hidden.
+    // Labels reuse the menu entries (no new strings); clicking the chip returns to text
+    // filtering, keeping the search box contents.
+    m_pseudo_chip = new wxStaticText(f_bar, wxID_ANY, "");
+    m_pseudo_chip->SetForegroundColour("#009687");
+    m_pseudo_chip->SetCursor(wxCURSOR_HAND);
+    m_pseudo_chip->SetFont(Label::Body_13);
+    m_pseudo_chip->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent&) { apply_filter(m_filter_ctrl->GetValue()); });
+    m_pseudo_chip->Hide();
+    f_sizer->Add(m_pseudo_chip, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+
     m_menu_button = new wxStaticBitmap(f_bar, wxID_ANY, m_menu.bmp());
     m_menu_button->SetCursor(wxCURSOR_HAND);
     m_menu_button->Bind(wxEVT_LEFT_DOWN, &PublishSettingsDialog::show_menu, this);
@@ -136,9 +160,7 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
 
     f_bar->SetSizerAndFit(f_sizer);
 
-    constexpr long tab_style = wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS |
-                               wxTR_FULL_ROW_HIGHLIGHT;
-    m_outer_tabs             = new TabCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, tab_style);
+    m_outer_tabs = new TabCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, s_tab_style);
     m_outer_tabs->SetFont(Label::Body_14);
     m_outer_tabs->SetBackgroundColour(GetBackgroundColour());
 
@@ -224,7 +246,7 @@ void PublishSettingsDialog::build_option_model()
     // Printer group), from the printer tab's "Extruder"/"Extruder N" pages.
     {
         size_t g = section_group_for(Section::Printer);
-        category_index_for(_L("Extruder"), Section::Printer, "custom-gcode_extruder", g, 0);
+        category_index_for(_L("Extruder"), Section::Printer, g, 0);
         for (Tab* tab : wxGetApp().tabs_list) {
             if (tab->m_type != Preset::TYPE_PRINTER)
                 continue;
@@ -249,7 +271,7 @@ void PublishSettingsDialog::build_option_model()
                         wxString label, value, unit;
                         if (!option_text(opt_id, pure_key, label, value, unit))
                             continue;
-                        size_t cat_index = category_index_for(_L("Extruder"), Section::Printer, "custom-gcode_extruder", g, 0);
+                        size_t cat_index = category_index_for(_L("Extruder"), Section::Printer, g, 0);
                         size_t sub_index = subcategory_index_for(cat_index, subcategory, optgroup->icon);
                         add_row_ui(pure_key, label, value, unit, cat_index, sub_index);
                     }
@@ -282,18 +304,15 @@ void PublishSettingsDialog::build_option_model()
                 for (size_t slot = 0; slot < bundle->filament_presets.size(); ++slot) {
                     const PublishMaterialIdentity identity = material_identity(slot, full);
                     const wxString title                   = material_title(slot, bundle, full);
-                    const size_t category_index = category_index_for(title, Section::Material, "custom-gcode_filament", g, slot, identity);
+                    const size_t category_index            = category_index_for(title, Section::Material, g, slot, identity);
 
                     // Material requirement rows: an optional filament colour and/or a
                     // vendor-agnostic material type for this slot, in their own optgroup so they
                     // stay visually separated from the setting rows.
                     {
                         const size_t req_sub = subcategory_index_for(category_index, _L("Material"), "custom-gcode_filament");
-                        std::string hex;
-                        if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour"))
-                            if (slot < colours->size())
-                                hex = colours->get_at(slot);
-                        add_row_ui("filament_colour", _L("Color"), from_u8(hex), wxString(), category_index, req_sub, RowKind::Color);
+                        add_row_ui("filament_colour", _L("Color"), from_u8(filament_color_hex(full, slot)), wxString(), category_index,
+                                   req_sub, RowKind::Color);
                         std::string type;
                         if (const auto* types = full.opt<ConfigOptionStrings>("filament_type"))
                             if (slot < types->size())
@@ -340,16 +359,10 @@ void PublishSettingsDialog::build_option_model()
         for (Tab* tab : wxGetApp().tabs_list) {
             if (tab->m_type != Preset::TYPE_PRINT)
                 continue;
-            const auto& icon_map = tab->get_category_icon_map();
-            size_t page_index    = 0;
+            size_t page_index = 0;
             for (const PageShp& page : tab->m_pages) {
-                wxString category = Tab::translate_category(page->title(), tab->m_type);
-                // Page icon, keyed by the untranslated page title (per-Tab map).
-                std::string icon_name;
-                auto icon_it = icon_map.find(page->title());
-                if (icon_it != icon_map.end())
-                    icon_name = icon_it->second;
-                const size_t category_index = category_index_for(category, Section::Print, icon_name, g, page_index);
+                wxString category           = Tab::translate_category(page->title(), tab->m_type);
+                const size_t category_index = category_index_for(category, Section::Print, g, page_index);
 
                 for (const ConfigOptionsGroupShp& optgroup : page->m_optgroups) {
                     for (const auto& opt : optgroup->opt_map()) {
@@ -440,12 +453,10 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
     }
     section.icon_bmp = ScalableBitmap(this, section.icon_name, 16);
 
-    constexpr long tab_style = wxTR_NO_BUTTONS | wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES | wxBORDER_NONE | wxWANTS_CHARS |
-                               wxTR_FULL_ROW_HIGHLIGHT;
-    section.page             = new wxPanel(m_outer_host, wxID_ANY);
+    section.page = new wxPanel(m_outer_host, wxID_ANY);
     section.page->SetBackgroundColour(GetBackgroundColour());
     auto* page_sizer = new wxBoxSizer(wxVERTICAL);
-    section.tabs     = new TabCtrl(section.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, tab_style);
+    section.tabs     = new TabCtrl(section.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, s_tab_style);
     section.tabs->SetFont(Label::Body_14);
     section.tabs->SetBackgroundColour(GetBackgroundColour());
     page_sizer->Add(section.tabs, 0, wxEXPAND);
@@ -466,12 +477,8 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
     return new_index;
 }
 
-size_t PublishSettingsDialog::category_index_for(const wxString& title,
-                                                 Section section,
-                                                 const std::string& icon_name,
-                                                 size_t group,
-                                                 size_t source_index,
-                                                 const PublishMaterialIdentity& identity)
+size_t PublishSettingsDialog::category_index_for(
+    const wxString& title, Section section, size_t group, size_t source_index, const PublishMaterialIdentity& identity)
 {
     for (size_t i : m_sections[group].categories) {
         Category& existing = m_categories[i];
@@ -485,7 +492,6 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     category.section         = section;
     category.group           = group;
     category.source_index    = source_index;
-    category.icon_name       = icon_name;
     category.filament_type   = identity.type;
     category.filament_vendor = identity.vendor;
     category.filament_id     = identity.id;
@@ -494,13 +500,13 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     category.page->SetBackgroundColour(GetBackgroundColour());
     auto* page_sizer = new wxBoxSizer(wxVERTICAL);
 
+    // The slot's colour chip decorates both the section header and the inner tab.
+    std::string hex;
+    if (section == Section::Material)
+        hex = filament_color_hex(wxGetApp().preset_bundle->full_config(), source_index);
+
     if (section == Section::Material) {
         auto* header_sizer = new wxBoxSizer(wxHORIZONTAL);
-        std::string hex;
-        const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
-        if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour"))
-            if (source_index < colours->size())
-                hex = colours->get_at(source_index);
         if (wxBitmap* chip = get_extruder_color_icon(hex, "", FromDIP(12), FromDIP(12))) {
             category.filament_color_chip = new wxStaticBitmap(category.page, wxID_ANY, *chip);
             header_sizer->Add(category.filament_color_chip, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
@@ -534,11 +540,6 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
     m_categories.push_back(std::move(category));
     m_sections[group].categories.push_back(category_index);
     if (section == Section::Material) {
-        std::string hex;
-        const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
-        if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour"))
-            if (source_index < colours->size())
-                hex = colours->get_at(source_index);
         if (wxBitmap* chip = get_extruder_color_icon(hex, "", FromDIP(12), FromDIP(12)))
             m_sections[group].tabs->AppendItem(title, *chip);
         else
@@ -564,7 +565,7 @@ size_t PublishSettingsDialog::subcategory_index_for(size_t category_index, const
     if (!title.IsEmpty()) {
         sub.header = new ::StaticLine(category.scroll, false, title, icon);
         sub.header->SetFont(Label::Head_14);
-        sub.header->SetForegroundColour("#363636");
+        sub.header->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
         auto* wrap = new wxBoxSizer(wxVERTICAL);
         wrap->Add(sub.header, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(6));
         sub.item = category.list_sizer->Add(wrap, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(22));
@@ -594,7 +595,6 @@ void PublishSettingsDialog::add_row_ui(const std::string& key,
     row.section_title      = m_sections[category.group].title;
     row.outer_index        = category.group;
     row.inner_index        = category_index;
-    row.subcategory_index  = subcategory_index;
     const size_t row_index = m_rows.size();
     m_rows.push_back(std::move(row));
     Row& current  = m_rows[row_index];
@@ -628,10 +628,10 @@ void PublishSettingsDialog::add_row_ui(const std::string& key,
 
 void PublishSettingsDialog::on_full_toggle(size_t category_index)
 {
-    Category& cat = m_categories[category_index];
-    cat.full      = cat.full_check->GetValue();
+    Category& cat   = m_categories[category_index];
+    const bool full = cat.full_check->GetValue();
     for (size_t r : cat.rows)
-        m_rows[r].check->Enable(!cat.full);
+        m_rows[r].check->Enable(!full);
 }
 
 void PublishSettingsDialog::set_row_bold(Row& row, bool bold)
@@ -707,20 +707,30 @@ void PublishSettingsDialog::bind_tab_events()
 
 void PublishSettingsDialog::apply_filter(const wxString& filter_text)
 {
-    Freeze();
-    wxString filter = filter_text.Lower();
+    m_filter_mode = FilterMode::Text;
+    refresh_filter(filter_text.Lower());
+}
 
-    // Pseudo filters (menu only): show only checked ("::sel") or only unchecked ("::nonsel").
-    const bool pseudo = (filter == "::sel" || filter == "::nonsel");
+void PublishSettingsDialog::apply_pseudo_filter(bool selected_only)
+{
+    m_filter_mode = selected_only ? FilterMode::SelectedOnly : FilterMode::UnselectedOnly;
+    refresh_filter(wxString()); // the pseudo modes ignore the search text
+}
+
+void PublishSettingsDialog::refresh_filter(const wxString& filter)
+{
+    Freeze();
+    const bool pseudo       = m_filter_mode != FilterMode::Text;
+    const bool want_checked = m_filter_mode == FilterMode::SelectedOnly;
     m_fb_sizer->Show(!pseudo);
+    if (pseudo) {
+        // "×" marks the chip as a dismissible filter state (U+00D7, present in all UI fonts).
+        m_pseudo_chip->SetLabel((want_checked ? _L("Filter selected") : _L("Filter non-selected")) + " " + wxString::FromUTF8("\u00d7"));
+    }
+    m_pseudo_chip->Show(pseudo);
 
     // Row matches are computed first; page and optgroup visibility is applied below.
     if (pseudo) {
-        if (m_filter_ctrl->GetValue().Lower() != filter) {
-            m_filter_ctrl->ChangeValue(filter);
-            m_filter_ctrl->SetSelection(0, -1);
-        }
-        const bool want_checked = (filter == "::sel");
         for (Row& row : m_rows)
             row.matches_filter = row.check->IsEnabled() && row.check->GetValue() == want_checked;
     } else {
@@ -744,7 +754,7 @@ void PublishSettingsDialog::apply_filter(const wxString& filter_text)
                 has_match = has_match || m_rows[r].matches_filter;
             category.info->Show(!has_match);
             if (!has_match)
-                category.info->SetLabel(pseudo ? (filter == "::sel" ? m_info_nonsel : m_info_allsel) : m_info_empty);
+                category.info->SetLabel(pseudo ? (want_checked ? m_info_nonsel : m_info_allsel) : m_info_empty);
             if (has_match && first_inner < 0) {
                 first_outer = s;
                 first_inner = static_cast<int>(inner);
@@ -818,10 +828,10 @@ bool PublishSettingsDialog::row_is_visible(const Row& row) const
 
 void PublishSettingsDialog::select_visible(bool value)
 {
-    wxString filter = m_filter_ctrl->GetValue().Lower();
     // In a pseudo-filter view the rows being toggled would all disappear; drop the filter
     // afterwards so the result stays visible.
-    bool clear_pseudo = (!value && filter == "::nonsel") || (value && filter == "::sel");
+    const bool clear_pseudo = (m_filter_mode == FilterMode::UnselectedOnly && !value) ||
+                              (m_filter_mode == FilterMode::SelectedOnly && value);
 
     // Toggle the rows visible under the *current* filter.
     for (Row& row : m_rows)
@@ -838,7 +848,7 @@ void PublishSettingsDialog::select_visible(bool value)
 
 void PublishSettingsDialog::show_menu(wxMouseEvent& evt)
 {
-    bool filtering  = !m_filter_ctrl->GetValue().IsEmpty();
+    bool filtering  = !m_filter_ctrl->GetValue().IsEmpty() || m_filter_mode != FilterMode::Text;
     bool list_empty = true;
     if (m_selected_outer >= 0) {
         for (const Row& row : m_rows)
@@ -855,8 +865,10 @@ void PublishSettingsDialog::show_menu(wxMouseEvent& evt)
     m.Append(kPublishSelectVisible, _L("Select visible"))->Enable(!list_empty && filtering);
     m.Append(kPublishDeselectVisible, _L("Deselect visible"))->Enable(!list_empty && filtering);
     m.AppendSeparator();
-    m.Append(kPublishFilterSelected, _L("Filter selected"));
-    m.Append(kPublishFilterNonSelected, _L("Filter nonSelected"));
+    m.AppendCheckItem(kPublishFilterSelected, _L("Filter selected"));
+    m.AppendCheckItem(kPublishFilterNonSelected, _L("Filter non-selected"));
+    m.Check(kPublishFilterSelected, m_filter_mode == FilterMode::SelectedOnly);
+    m.Check(kPublishFilterNonSelected, m_filter_mode == FilterMode::UnselectedOnly);
 
     m.Bind(
         wxEVT_MENU,
@@ -866,8 +878,19 @@ void PublishSettingsDialog::show_menu(wxMouseEvent& evt)
             case kPublishDeselectAll: select_all(false); break;
             case kPublishSelectVisible: select_visible(true); break;
             case kPublishDeselectVisible: select_visible(false); break;
-            case kPublishFilterSelected: apply_filter("::sel"); break;
-            case kPublishFilterNonSelected: apply_filter("::nonsel"); break;
+            case kPublishFilterSelected:
+                // Clicking the active entry again clears the pseudo filter.
+                if (m_filter_mode == FilterMode::SelectedOnly)
+                    apply_filter(m_filter_ctrl->GetValue());
+                else
+                    apply_pseudo_filter(true);
+                break;
+            case kPublishFilterNonSelected:
+                if (m_filter_mode == FilterMode::UnselectedOnly)
+                    apply_filter(m_filter_ctrl->GetValue());
+                else
+                    apply_pseudo_filter(false);
+                break;
             default: break;
             }
         },
@@ -926,9 +949,9 @@ std::vector<Slic3r::PublishedMaterialEntry> PublishSettingsDialog::GetPublishedM
         // The author's preset id distinguishes exact variants that share filament_id
         // ("Generic PLA" vs "Generic PLA Matte"), so the receiver can match precisely; the
         // preset name is the most direct identity and is matched first on load.
-        PresetBundle *bundle = wxGetApp().preset_bundle;
+        PresetBundle* bundle = wxGetApp().preset_bundle;
         if (bundle != nullptr && cat.filament_slot < bundle->filament_presets.size()) {
-            if (const Preset *preset = bundle->filaments.find_preset(bundle->filament_presets[cat.filament_slot], false, true)) {
+            if (const Preset* preset = bundle->filaments.find_preset(bundle->filament_presets[cat.filament_slot], false, true)) {
                 entry.setting_id  = preset->setting_id;
                 entry.preset_name = preset->name;
             }
@@ -995,22 +1018,15 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
     m_menu_button->SetBitmap(m_menu.bmp());
     m_outer_tabs->Rescale();
 
+    const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
+
     for (Category& cat : m_categories) {
-        if (cat.icon != nullptr && cat.icon_bmp.bmp().IsOk()) {
-            cat.icon_bmp.msw_rescale();
-            cat.icon->SetBitmap(cat.icon_bmp.bmp());
-        }
         if (cat.full_check != nullptr)
             cat.full_check->Refresh();
         if (cat.title_label != nullptr)
             cat.title_label->Refresh();
         if (cat.filament_color_chip != nullptr) {
-            std::string hex;
-            const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
-            if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour"))
-                if (cat.filament_slot < colours->size())
-                    hex = colours->get_at(cat.filament_slot);
-            if (wxBitmap* chip = get_extruder_color_icon(hex, "", FromDIP(12), FromDIP(12)))
+            if (wxBitmap* chip = get_extruder_color_icon(filament_color_hex(full, cat.filament_slot), "", FromDIP(12), FromDIP(12)))
                 cat.filament_color_chip->SetBitmap(*chip);
         }
         cat.scroll->FitInside();
@@ -1033,16 +1049,11 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
         }
     }
 
-    const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
     for (size_t category_index = 0; category_index < m_categories.size(); ++category_index) {
         const Category& category = m_categories[category_index];
         if (category.section != Section::Material)
             continue;
-        std::string hex;
-        if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour"))
-            if (category.filament_slot < colours->size())
-                hex = colours->get_at(category.filament_slot);
-        if (wxBitmap* chip = get_extruder_color_icon(hex, "", FromDIP(12), FromDIP(12))) {
+        if (wxBitmap* chip = get_extruder_color_icon(filament_color_hex(full, category.filament_slot), "", FromDIP(12), FromDIP(12))) {
             const SectionGroup& section = m_sections[category.group];
             const auto iter             = std::find(section.categories.begin(), section.categories.end(), category_index);
             if (iter != section.categories.end())

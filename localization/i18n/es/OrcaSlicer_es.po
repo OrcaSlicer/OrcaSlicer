@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-08-21 14:25+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -4723,6 +4723,9 @@ msgstr ""
 "Sí - Cambiar estos ajustes y activar el modo espiral automáticamente\n"
 "No - Dejar de usar el modo espiral esta vez"
 
+msgid "N/A"
+msgstr "N/A"
+
 msgid "Printing"
 msgstr "Imprimiendo"
 
@@ -5175,9 +5178,6 @@ msgstr "Patrón inválido. Use N, N#K, o una lista separada por comas con #K opc
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Formato inválido. Formato de vector esperado: \"%1%\""
-
-msgid "N/A"
-msgstr "N/A"
 
 msgid "System agents"
 msgstr "Agentes del sistema"
@@ -6122,6 +6122,12 @@ msgstr "Guardar proyecto como"
 
 msgid "Save current project as"
 msgstr "Guardar el proyecto actual como"
+
+msgid "Publish 3MF"
+msgstr ""
+
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Importar 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -7877,6 +7883,12 @@ msgstr "¡Por favor, confirme que el G-Code dentro de los perfiles son seguros p
 msgid "Customized Preset"
 msgstr "Perfil Personalizado"
 
+msgid "Some published settings could not be applied:"
+msgstr ""
+
+msgid "Some filament slots were changed to match the published materials:"
+msgstr ""
+
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "¡El nombre de los componentes dentro del archivo de pasos no tiene formato UTF8!"
 
@@ -8253,6 +8265,17 @@ msgstr "Guardar el archivo laminado como:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "El archivo %s ha sido mandado al almacenamiento de la impresora y puede ser visualizado en la impresora."
+
+msgid "Publish 3MF file as:"
+msgstr ""
+
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
+
+msgid "Publish"
+msgstr "Publicar"
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "El tipo de boquilla no está establecido. Configure la boquilla e inténtelo de nuevo."
@@ -9365,9 +9388,6 @@ msgstr "Ir a la página web de publicación de modelos"
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "Nota: La preparación puede llevar varios minutos. Por favor, sea paciente."
 
-msgid "Publish"
-msgstr "Publicar"
-
 msgid "Publish was canceled"
 msgstr "La publicación fue cancelada"
 
@@ -9382,6 +9402,24 @@ msgstr "Cargando datos"
 
 msgid "Jump to webpage"
 msgstr "Ir a la página web"
+
+msgid "Material"
+msgstr ""
+
+msgid "Publish 3MF..."
+msgstr ""
+
+msgid "Select which settings to embed in the 3MF file"
+msgstr ""
+
+msgid "Full Publish"
+msgstr ""
+
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
+msgid "Filter non-selected"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Save %s as"

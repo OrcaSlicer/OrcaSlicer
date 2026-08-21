@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-08-21 14:25+0800\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -5379,6 +5379,10 @@ msgstr ""
 "JA -Ändra dessa inställningar och möjliggör Spiral läge automatiskt\n"
 "NEJ  -Avbryt Spiral läge denna gång"
 
+# AI Translated
+msgid "N/A"
+msgstr "Ej tillämpligt"
+
 msgid "Printing"
 msgstr "Utskrift pågår"
 
@@ -5927,10 +5931,6 @@ msgstr "Ogiltigt mönster. Använd N, N#K eller en kommaseparerad lista med valf
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Ogiltligt format. Förväntat vector format: \"%1%\""
-
-# AI Translated
-msgid "N/A"
-msgstr "Ej tillämpligt"
 
 # AI Translated
 msgid "System agents"
@@ -6963,6 +6963,12 @@ msgstr "Spara Projekt som"
 
 msgid "Save current project as"
 msgstr "Spara nuvarande projekt som"
+
+msgid "Publish 3MF"
+msgstr ""
+
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Importera 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -8952,6 +8958,12 @@ msgstr "Bekräfta att G-koderna i dessa inställningar är säkra för att förh
 msgid "Customized Preset"
 msgstr "Anpassad inställning"
 
+msgid "Some published settings could not be applied:"
+msgstr ""
+
+msgid "Some filament slots were changed to match the published materials:"
+msgstr ""
+
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "Komponent namnet i STEP filen är inte UTF8 format!"
 
@@ -9363,6 +9375,17 @@ msgstr "Spara beredningen som:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "Filen %s har skickats till skrivarens lagringsutrymme och kan visas på skrivaren."
+
+msgid "Publish 3MF file as:"
+msgstr ""
+
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
+
+msgid "Publish"
+msgstr "Publicera"
 
 # AI Translated
 msgid "The nozzle type is not set. Please set the nozzle and try again."
@@ -10668,9 +10691,6 @@ msgstr "Växla till modell publicerings hemsidan"
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "Notera: Förberedelserna kan ta flera minuter. Vänligen vänta."
 
-msgid "Publish"
-msgstr "Publicera"
-
 msgid "Publish was canceled"
 msgstr "Publiceringen avbröts"
 
@@ -10686,6 +10706,24 @@ msgstr "Laddar upp data"
 
 msgid "Jump to webpage"
 msgstr "Växla till hemsidan"
+
+msgid "Material"
+msgstr ""
+
+msgid "Publish 3MF..."
+msgstr ""
+
+msgid "Select which settings to embed in the 3MF file"
+msgstr ""
+
+msgid "Full Publish"
+msgstr ""
+
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
+msgid "Filter non-selected"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Save %s as"

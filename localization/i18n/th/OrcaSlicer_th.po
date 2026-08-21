@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-08-21 14:25+0800\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -4879,6 +4879,9 @@ msgstr ""
 "ใช่ - เปลี่ยนการตั้งค่าเหล่านี้และเปิดใช้งานโหมดเกลียวโดยอัตโนมัติ\n"
 "ไม่ - เลิกใช้โหมดเกลียวในครั้งนี้"
 
+msgid "N/A"
+msgstr "ไม่มี"
+
 msgid "Printing"
 msgstr "กำลังพิมพ์"
 
@@ -5337,9 +5340,6 @@ msgstr "รูปแบบไม่ถูกต้อง ใช้ N, N#K หร
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "รูปแบบไม่ถูกต้อง รูปแบบเวกเตอร์ที่ต้องการ: \"%1%\""
-
-msgid "N/A"
-msgstr "ไม่มี"
 
 # AI Translated
 msgid "System agents"
@@ -6295,6 +6295,12 @@ msgstr "บันทึกโปรเจกต์เป็น"
 
 msgid "Save current project as"
 msgstr "บันทึกโครงการปัจจุบันเป็น"
+
+msgid "Publish 3MF"
+msgstr ""
+
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "นำเข้า 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -8074,6 +8080,12 @@ msgstr "โปรดยืนยันว่ารหัส G ภายในค
 msgid "Customized Preset"
 msgstr "ค่าที่ตั้งไว้ล่วงหน้าที่กำหนดเอง"
 
+msgid "Some published settings could not be applied:"
+msgstr ""
+
+msgid "Some filament slots were changed to match the published materials:"
+msgstr ""
+
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "ชื่อของส่วนประกอบภายในไฟล์ STEP ไม่ใช่รูปแบบ UTF8!"
 
@@ -8456,6 +8468,17 @@ msgstr "บันทึกไฟล์ที่สไลซ์เป็น:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "ไฟล์ %s ถูกส่งไปยังพื้นที่เก็บข้อมูลของเครื่องพิมพ์แล้ว และสามารถดูได้บนเครื่องพิมพ์"
+
+msgid "Publish 3MF file as:"
+msgstr ""
+
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
+
+msgid "Publish"
+msgstr "เผยแพร่"
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "ไม่ได้ตั้งค่าประเภทหัวฉีด โปรดตั้งหัวฉีดแล้วลองอีกครั้ง"
@@ -9595,9 +9618,6 @@ msgstr "ข้ามไปที่โมเดลเผยแพร่หน้
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "หมายเหตุ: การเตรียมการอาจใช้เวลาหลายนาที กรุณาอดทน."
 
-msgid "Publish"
-msgstr "เผยแพร่"
-
 msgid "Publish was canceled"
 msgstr "การเผยแพร่ถูกยกเลิก"
 
@@ -9612,6 +9632,24 @@ msgstr "กำลังอัพโหลดข้อมูล"
 
 msgid "Jump to webpage"
 msgstr "ข้ามไปที่หน้าเว็บ"
+
+msgid "Material"
+msgstr ""
+
+msgid "Publish 3MF..."
+msgstr ""
+
+msgid "Select which settings to embed in the 3MF file"
+msgstr ""
+
+msgid "Full Publish"
+msgstr ""
+
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
+msgid "Filter non-selected"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Save %s as"

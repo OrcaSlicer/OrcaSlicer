@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-08-21 14:25+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -4851,6 +4851,9 @@ msgstr ""
 "Ja - Diese Einstellungen ändern und den Spiralmodus automatisch aktivieren\n"
 "Nein - Spiralmodus nicht aktivieren"
 
+msgid "N/A"
+msgstr "Nicht verfügbar"
+
 msgid "Printing"
 msgstr "Drucken"
 
@@ -5309,9 +5312,6 @@ msgstr "Ungültiges Muster. Verwenden Sie N, N#K oder eine durch Kommas getrennt
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Ungültiges Format. Erwartetes Vektorformat: \"%1%\""
-
-msgid "N/A"
-msgstr "Nicht verfügbar"
 
 # AI Translated
 msgid "System agents"
@@ -6265,6 +6265,12 @@ msgstr "Projekt speichern als"
 
 msgid "Save current project as"
 msgstr "Aktuelles Projekt speichern als"
+
+msgid "Publish 3MF"
+msgstr ""
+
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Importiere 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -8063,6 +8069,12 @@ msgstr "Bitte bestätigen Sie, dass die G-Codes innerhalb dieser Profile sicher 
 msgid "Customized Preset"
 msgstr "Benutzerdefinierte Profile"
 
+msgid "Some published settings could not be applied:"
+msgstr ""
+
+msgid "Some filament slots were changed to match the published materials:"
+msgstr ""
+
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "Der Name der Komponenten in der Step-Datei ist nicht im UTF8-Format!"
 
@@ -8450,6 +8462,17 @@ msgstr "Geslicte Datei speichern unter:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "Die Datei %s wurde an den Speicher des Druckers gesendet und kann auf dem Drucker angezeigt werden."
+
+msgid "Publish 3MF file as:"
+msgstr ""
+
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
+
+msgid "Publish"
+msgstr "Veröffentlichen"
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "Die Düsenart ist nicht eingestellt. Bitte stellen Sie die Düse ein und versuchen Sie es erneut."
@@ -9590,9 +9613,6 @@ msgstr "Zur Modellveröffentlichungs-Webseite springen"
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "Hinweis: Die Vorbereitung kann einige Minuten dauern. Bitte haben Sie Geduld."
 
-msgid "Publish"
-msgstr "Veröffentlichen"
-
 msgid "Publish was canceled"
 msgstr "Veröffentlichung wurde abgebrochen"
 
@@ -9607,6 +9627,24 @@ msgstr "Daten werden hochgeladen"
 
 msgid "Jump to webpage"
 msgstr "Zu einer Website springen"
+
+msgid "Material"
+msgstr ""
+
+msgid "Publish 3MF..."
+msgstr ""
+
+msgid "Select which settings to embed in the 3MF file"
+msgstr ""
+
+msgid "Full Publish"
+msgstr ""
+
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
+msgid "Filter non-selected"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Save %s as"

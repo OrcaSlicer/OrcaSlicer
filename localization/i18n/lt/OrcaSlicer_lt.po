@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-08-21 14:25+0800\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -4886,6 +4886,9 @@ msgstr ""
 "Taip – pakeisti šiuos nustatymus ir automatiškai įjungti spiralinį režimą\n"
 "Ne –  nenaudoti spiralinio režimo"
 
+msgid "N/A"
+msgstr "N/A"
+
 msgid "Printing"
 msgstr "Spausdinimas"
 
@@ -5344,9 +5347,6 @@ msgstr "Neteisingas šablonas. Naudokite N, N#K arba kableliais atskirtą sąra�
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Netinkamas formatas. Tinkamas vektorinis formatas: \"%1%\""
-
-msgid "N/A"
-msgstr "N/A"
 
 # AI Translated
 msgid "System agents"
@@ -6304,6 +6304,12 @@ msgstr "Įrašyti projektą kaip"
 
 msgid "Save current project as"
 msgstr "Įrašyti dabartinį projektą kaip"
+
+msgid "Publish 3MF"
+msgstr ""
+
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Importuoti 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -8110,6 +8116,12 @@ msgstr "Patvirtinkite, kad šiuose profiliuose esantis G-kodas yra saugus, kad i
 msgid "Customized Preset"
 msgstr "Pritaikytas profilis"
 
+msgid "Some published settings could not be applied:"
+msgstr ""
+
+msgid "Some filament slots were changed to match the published materials:"
+msgstr ""
+
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "Komponentų pavadinimai STEP faile nėra UTF-8 formato!"
 
@@ -8496,6 +8508,17 @@ msgstr "Išsaugoti susluoksniuotą failą kaip:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "Failas %s išsiųstas į spausdintuvo laikmeną ir gali būti peržiūrimas spausdintuve."
+
+msgid "Publish 3MF file as:"
+msgstr ""
+
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
+
+msgid "Publish"
+msgstr "Talpinti"
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "Purkštuko tipas nenustatytas. Nustatykite purkštuką ir bandykite dar kartą."
@@ -9622,9 +9645,6 @@ msgstr "Pereiti į modelio talpinimo interneto puslapį"
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "Pastaba: paruošimas gali užtrukti kelias minutes. Būkite kantrūs."
 
-msgid "Publish"
-msgstr "Talpinti"
-
 msgid "Publish was canceled"
 msgstr "Publikavimas buvo atšauktas"
 
@@ -9639,6 +9659,24 @@ msgstr "Įkeliami duomenys"
 
 msgid "Jump to webpage"
 msgstr "Pereiti į interneto puslapį"
+
+msgid "Material"
+msgstr ""
+
+msgid "Publish 3MF..."
+msgstr ""
+
+msgid "Select which settings to embed in the 3MF file"
+msgstr ""
+
+msgid "Full Publish"
+msgstr ""
+
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
+msgid "Filter non-selected"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Save %s as"

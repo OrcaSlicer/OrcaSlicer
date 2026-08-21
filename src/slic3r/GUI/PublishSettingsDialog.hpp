@@ -73,14 +73,13 @@ private:
         RowKind kind{RowKind::Setting};
         size_t outer_index{0};
         size_t inner_index{0};
-        size_t subcategory_index{0};
         bool dirty{false};          // matches a dirty base key: pre-checked + bold
         bool matches_filter{false}; // survives the active filter (computed by apply_filter)
         wxCheckBox* check{nullptr};
         wxStaticText* value_label{nullptr};
         wxStaticText* unit_label{nullptr};
         wxStaticBitmap* color_chip{nullptr}; // Color rows only; swatch next to the value
-        wxSizerItem* item{nullptr}; // sizer item of this row's h-sizer in its tab list sizer
+        wxSizerItem* item{nullptr};          // sizer item of this row's h-sizer in its tab list sizer
     };
 
     // An optgroup heading. Rows store indices into m_rows.
@@ -97,22 +96,17 @@ private:
     {
         wxString title;
         Section section{Section::Print};
-        size_t group{0};               // index into m_sections / outer page
-        size_t source_index{0};        // stable source page or material slot index
-        std::string source_title;
-        std::string icon_name;
+        size_t group{0};        // index into m_sections / outer page
+        size_t source_index{0}; // stable source page or material slot index
         wxPanel* page{nullptr};
         wxScrolledWindow* scroll{nullptr};
         wxBoxSizer* list_sizer{nullptr};
         wxStaticText* info{nullptr};
         wxPoint scroll_pos{0, 0};
-        ScalableBitmap icon_bmp;       // scalable bitmap for DPI changes
-        wxStaticBitmap* icon{nullptr};
         wxStaticBitmap* filament_color_chip{nullptr};
         wxStaticText* title_label{nullptr}; // material title (static text; Full Publish carries the label elsewhere)
         // "Full Publish": while checked, the whole slot preset is serialized and its rows
         // (incl. Color/Type) are disabled.
-        bool full{false};
         wxCheckBox* full_check{nullptr};
         // Material identity, only for Section::Material categories.
         std::string filament_type;
@@ -141,6 +135,12 @@ private:
 
     void build_option_model();
     void apply_filter(const wxString& filter_text);
+    // Menu-only pseudo filters: show only the checked ("Filter selected") or only the
+    // unchecked ("Filter non-selected") rows. The search box keeps the user's text.
+    void apply_pseudo_filter(bool selected_only);
+    // Recompute row matches and visibility for the active filter mode. filter is the lowered
+    // search text; it is ignored by the pseudo modes.
+    void refresh_filter(const wxString& filter);
     void select_all(bool value);
     void select_visible(bool value);
     void show_menu(wxMouseEvent& evt);
@@ -149,11 +149,19 @@ private:
     void on_full_toggle(size_t category_index);
     // Return/create the fixed outer page for a Section kind.
     size_t section_group_for(Section kind);
-    size_t category_index_for(const wxString& title, Section section, const std::string& icon_name, size_t group,
-                              size_t source_index, const PublishMaterialIdentity& identity = PublishMaterialIdentity());
+    size_t category_index_for(const wxString& title,
+                              Section section,
+                              size_t group,
+                              size_t source_index,
+                              const PublishMaterialIdentity& identity = PublishMaterialIdentity());
     size_t subcategory_index_for(size_t category_index, const wxString& title, const wxString& icon);
-    void add_row_ui(const std::string& key, const wxString& label, const wxString& value, const wxString& unit,
-                    size_t category_index, size_t subcategory_index, RowKind kind = RowKind::Setting);
+    void add_row_ui(const std::string& key,
+                    const wxString& label,
+                    const wxString& value,
+                    const wxString& unit,
+                    size_t category_index,
+                    size_t subcategory_index,
+                    RowKind kind = RowKind::Setting);
     // The non-structural filament keys of a slot's preset, for a "Full Publish" entry.
     std::vector<std::string> full_keys_for_slot() const;
     void save_scroll_position(Category& category);
@@ -170,9 +178,15 @@ private:
     wxBoxSizer* m_outer_host_sizer{nullptr};
     int m_selected_outer{-1};
     wxBoxSizer* m_fb_sizer{nullptr}; // "All"/"None" buttons sizer
+    // Active filter mode: free text from the search box, or one of the menu's pseudo filters.
+    enum class FilterMode { Text, SelectedOnly, UnselectedOnly };
+    FilterMode m_filter_mode{FilterMode::Text};
     TextInput* m_filter_box{nullptr};
     wxTextCtrl* m_filter_ctrl{nullptr};
     wxStaticBitmap* m_menu_button{nullptr};
+    // Shown while a pseudo filter is active (the search box keeps the user's text, so the chip
+    // carries the visible state); clicking it returns to text filtering.
+    wxStaticText* m_pseudo_chip{nullptr};
     wxString m_info_nonsel;
     wxString m_info_allsel;
     wxString m_info_empty;

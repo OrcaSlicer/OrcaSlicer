@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-08-21 14:25+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4912,6 +4912,10 @@ msgstr ""
 "はい - 変更して、スパイラルモードを有効にします\n"
 "いいえ - 変更せず、スパイラルモードを有効しません"
 
+# AI Translated
+msgid "N/A"
+msgstr "N/A"
+
 msgid "Printing"
 msgstr "造形中"
 
@@ -5369,10 +5373,6 @@ msgstr "無効なパターンです。N、N#K、またはオプション#K付き
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "無効なフォーマット、%1%であるはずです。"
-
-# AI Translated
-msgid "N/A"
-msgstr "N/A"
 
 # AI Translated
 msgid "System agents"
@@ -6327,6 +6327,12 @@ msgstr "プロジェクトを名前を付けて保存"
 
 msgid "Save current project as"
 msgstr "プロジェクトを名前を付けて保存"
+
+msgid "Publish 3MF"
+msgstr ""
+
+msgid "Export a 3MF file with the selected settings embedded"
+msgstr ""
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "3MF/STL/STEP/SVG/OBJ/AMFをインポート"
@@ -8133,6 +8139,12 @@ msgstr "これらのプリセット内のG-codeがマシンに損傷を与えな
 msgid "Customized Preset"
 msgstr "カスタマイズされたプリセット"
 
+msgid "Some published settings could not be applied:"
+msgstr ""
+
+msgid "Some filament slots were changed to match the published materials:"
+msgstr ""
+
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "ファイルのエンコーディング方式はUTF8形式ではありません"
 
@@ -8520,6 +8532,17 @@ msgstr "名前を付けて保存:"
 #, c-format, boost-format
 msgid "The file %s has been sent to the printer's storage space and can be viewed on the printer."
 msgstr "%sを送信しました、プリンターにて確認できます"
+
+msgid "Publish 3MF file as:"
+msgstr ""
+
+msgid ""
+"Failed to export the published 3MF file.\n"
+"Please check whether the folder exists online or if other programs have the file open."
+msgstr ""
+
+msgid "Publish"
+msgstr "公開する"
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
 msgstr "ノズルタイプが設定されていません。ノズルを設定して再試行してください。"
@@ -9704,9 +9727,6 @@ msgstr "モデル公開ページに移動"
 msgid "Note: The preparation may take several minutes. Please be patient."
 msgstr "注意: 準備するには数分かかる場合があります、暫くお待ち下さい。"
 
-msgid "Publish"
-msgstr "公開する"
-
 msgid "Publish was canceled"
 msgstr "公開は取り消しました"
 
@@ -9721,6 +9741,24 @@ msgstr "データをアップロード中"
 
 msgid "Jump to webpage"
 msgstr "ウェブページに移動"
+
+msgid "Material"
+msgstr ""
+
+msgid "Publish 3MF..."
+msgstr ""
+
+msgid "Select which settings to embed in the 3MF file"
+msgstr ""
+
+msgid "Full Publish"
+msgstr ""
+
+msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
+msgid "Filter non-selected"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Save %s as"
