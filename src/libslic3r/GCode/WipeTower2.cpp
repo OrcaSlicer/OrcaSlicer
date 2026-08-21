@@ -1019,6 +1019,7 @@ bool WipeTower2::wait_for_temp_enabled(const PrintConfig& config)
 
 WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& default_region_config,int plate_idx, Vec3d plate_origin, const std::vector<std::vector<float>>& wiping_matrix, size_t initial_tool) :
     m_semm(config.single_extruder_multi_material.value),
+    m_manual_filament_change(config.manual_filament_change.value),
     m_enable_filament_ramming(config.enable_filament_ramming.value),
     m_wipe_tower_filament(config.wipe_tower_filament.value),
     m_wipe_tower_pos(config.wipe_tower_x.get_at(plate_idx), config.wipe_tower_y.get_at(plate_idx)),
@@ -1820,7 +1821,9 @@ void WipeTower2::toolchange_Load(
 	WipeTowerWriter2 &writer,
 	const WipeTower::box_coordinates  &cleaning_box)
 {
-    if (m_semm && m_enable_filament_ramming && (m_parking_pos_retraction != 0 || m_extra_loading_move != 0)) {
+    // In manual mode the operator or firmware has already loaded and purged the incoming filament.
+    if (m_semm && !m_manual_filament_change && m_enable_filament_ramming &&
+        (m_parking_pos_retraction != 0 || m_extra_loading_move != 0)) {
         float xl = cleaning_box.ld.x() + m_perimeter_width * 0.75f;
         float xr = cleaning_box.rd.x() - m_perimeter_width * 0.75f;
         float oldx = writer.x();	// the nozzle is in place to do the first wiping moves, we will remember the position

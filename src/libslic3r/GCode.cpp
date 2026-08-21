@@ -1074,6 +1074,17 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         bool is_used_travel_avoid_perimeter = gcodegen.m_config.prime_tower_skip_points.value;
         if (is_nozzle_change && !tcr.nozzle_change_result.is_extruder_change) is_used_travel_avoid_perimeter = false;
 
+        const Point start_wipe_pos = wipe_tower_point_to_object_point(gcodegen, tool_change_start_pos + plate_origin_2d);
+        auto tower_avoid_bbx = [&]() {
+            BoundingBox avoid_bbx = scaled(m_wipe_tower_bbx);
+            Polygon     avoid_points = avoid_bbx.polygon();
+            for (Point &p : avoid_points.points) {
+                const Vec2f pp = transform_wt_pt(unscale(p).cast<float>());
+                p = wipe_tower_point_to_object_point(gcodegen, pp + plate_origin_2d);
+            }
+            return BoundingBox(avoid_points.points);
+        };
+
         // add nozzle change gcode into change filament gcode
         std::string nozzle_change_gcode_trans;
         if (is_nozzle_change) {
@@ -1097,6 +1108,26 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         std::string wipe_next_start_point_str;
         bool        need_travel_after_change_filament_gcode = false; // travel need be after the filament changed to get the correct "m_curr_extruder_id"
+        bool        traveled_before_manual_change = false;
+        if (!tcr.priming && tcr.is_tool_change && gcodegen.config().manual_filament_change.value &&
+            !change_filament_gcode.empty() && gcodegen.last_pos_defined()) {
+            // A firmware pause resumes at the command following the pause and commonly returns to
+            // the saved pause position first. Reach the tower before pausing so manual purge residue
+            // and the planned wipe both stay off the model. Preserve gap-wall routing when enabled.
+            std::string travel_to_wipe_tower_gcode;
+            if (is_used_travel_avoid_perimeter) {
+                const Polyline travel_polyline = generate_path_to_wipe_tower(
+                    gcodegen.last_pos(), start_wipe_pos, tower_avoid_bbx(), shared_printable_area(gcodegen));
+                for (const Point &p : travel_polyline.points)
+                    travel_to_wipe_tower_gcode += gcodegen.travel_to(p, erMixed, "Move to start pos");
+            } else {
+                travel_to_wipe_tower_gcode = gcodegen.travel_to(start_wipe_pos, erMixed, "Move to start pos");
+            }
+            check_add_eol(travel_to_wipe_tower_gcode);
+            end_filament_gcode_str += travel_to_wipe_tower_gcode;
+            gcodegen.set_last_pos(start_wipe_pos);
+            traveled_before_manual_change = true;
+        }
         if (! change_filament_gcode.empty()) {
             DynamicConfig config;
             int old_filament_id = gcodegen.writer().filament() ? (int)gcodegen.writer().filament()->id() : -1;
@@ -1307,7 +1338,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     gcodegen.writer().set_position(pos);
                 }
             }
-            need_travel_after_change_filament_gcode = true;
+            need_travel_after_change_filament_gcode = !traveled_before_manual_change;
         }
 
         std::string toolchange_command;
@@ -1325,29 +1356,19 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (need_travel_after_change_filament_gcode) {
             // move to start_pos for wiping after toolchange
             if (!is_used_travel_avoid_perimeter) {
-                std::string start_pos_str = gcodegen.travel_to(wipe_tower_point_to_object_point(gcodegen, tool_change_start_pos + plate_origin_2d), erMixed, "Move to start pos");
+                std::string start_pos_str = gcodegen.travel_to(start_wipe_pos, erMixed, "Move to start pos");
                 check_add_eol(start_pos_str);
                 wipe_next_start_point_str = start_pos_str;
             } else {
                 // BBS:change travel_path
-                Vec3f gcode_last_pos;
+                Vec3f gcode_last_pos = gcodegen.writer().get_position().cast<float>();
                 GCodeProcessor::get_last_position_from_gcode(toolchange_gcode_str, gcode_last_pos);
-                Vec2f       gcode_last_pos2d{gcode_last_pos[0], gcode_last_pos[1]};
-                Point       gcode_last_pos2d_object = gcodegen.gcode_to_point(gcode_last_pos2d.cast<double>() + plate_origin_2d.cast<double>());
-                Point       start_wipe_pos          = wipe_tower_point_to_object_point(gcodegen, tool_change_start_pos + plate_origin_2d);
-                BoundingBox avoid_bbx;
-                {
-                    // set avoid_bbx
-                    avoid_bbx            = scaled(m_wipe_tower_bbx);
-                    Polygon avoid_points = avoid_bbx.polygon();
-                    for (auto &p : avoid_points.points) {
-                        Vec2f pp = transform_wt_pt(unscale(p).cast<float>());
-                        p        = wipe_tower_point_to_object_point(gcodegen, pp + plate_origin_2d);
-                    }
-                    avoid_bbx = BoundingBox(avoid_points.points);
-                }
+                const Vec2f gcode_last_pos2d{gcode_last_pos[0], gcode_last_pos[1]};
+                const Point gcode_last_pos2d_object =
+                    gcodegen.gcode_to_point(gcode_last_pos2d.cast<double>() + plate_origin_2d.cast<double>());
                 std::string travel_to_wipe_tower_gcode;
-                Polyline    travel_polyline = generate_path_to_wipe_tower(gcode_last_pos2d_object, start_wipe_pos, avoid_bbx, shared_printable_area(gcodegen));
+                Polyline travel_polyline = generate_path_to_wipe_tower(
+                    gcode_last_pos2d_object, start_wipe_pos, tower_avoid_bbx(), shared_printable_area(gcodegen));
 
                 for (size_t i = 0; i < travel_polyline.points.size(); ++i) {
                     const auto &p = travel_polyline.points[i];
