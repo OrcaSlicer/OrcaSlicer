@@ -61,6 +61,8 @@ private:
     wxString m_apikey;
     bool m_apikey_sent;
     wxString m_url_deferred;
+    // Last URL handed to load_url(); guards against redundant re-navigation.
+    wxString m_url_requested;
     std::unique_ptr<PrinterWebViewHandler> m_handler;
 
     // DECLARE_EVENT_TABLE()
