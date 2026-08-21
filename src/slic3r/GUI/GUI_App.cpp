@@ -3951,7 +3951,13 @@ void GUI_App::set_live_printer_agent(std::shared_ptr<IPrinterAgent> agent)
         m_agent->set_user_selected_machine("");
         // note: belt-and-suspenders (precedent: DeviceManagerRefresher::on_timer)
         dev->OnSelectedMachineLost(); // why: clear stale sidebar sync-status / AMS
-        dev->clear_other_devices(); // why: drop stale LAN discoveries; keep My Devices
+        // why: drop stale LAN discoveries; keep My Devices, but only those belonging to the
+        // agent we're about to swap to, so a device stamped by the outgoing agent doesn't
+        // linger hidden - the new agent's start_discovery re-inserts and re-stamps it fresh.
+        // agent is null when clearing the live agent entirely (e.g. plugin unload); there's no
+        // target to filter against then, so fall back to the original "keep all My Devices"
+        // behavior rather than guessing.
+        dev->clear_other_devices(agent ? agent->get_agent_info().id : std::string());
     }
 
     m_agent->set_printer_agent(agent);
