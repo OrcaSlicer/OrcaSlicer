@@ -1216,17 +1216,20 @@ TEST_CASE("Published 3MF prefers a compatible preset over an exact but incompati
     petg.config.opt_string("filament_type", 0u) = "PETG";
     petg.config.opt<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.6 };
     // The bare-named legacy preset (Bambu-printer only) and the exact author preset are both
-    // incompatible with the receiver's printer.
+    // incompatible with the receiver's printer. update_compatible() recomputes is_compatible
+    // inside load_config_model, so the incompatibility is expressed the way production derives
+    // it: a compatible_printers constraint no receiver printer satisfies (the fresh bundle's
+    // active printer is the "Default Printer" placeholder).
     Preset &bare = add_inmemory_preset(bundle.filaments, "Generic PLA");
     bare.config.opt_string("filament_type", 0u) = "PLA";
     bare.config.opt_string("filament_vendor", 0u) = "Generic";
     bare.config.opt<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.5 };
-    bare.is_compatible = false;
+    bare.config.set_key_value("compatible_printers", new ConfigOptionStrings({ "Unrelated Printer" }));
     Preset &qidi = add_inmemory_preset(bundle.filaments, "Generic PLA @Qidi Q2 0.4 nozzle");
     qidi.config.opt_string("filament_type", 0u) = "PLA";
     qidi.config.opt_string("filament_vendor", 0u) = "Generic";
     qidi.config.opt<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.5 };
-    qidi.is_compatible = false;
+    qidi.config.set_key_value("compatible_printers", new ConfigOptionStrings({ "Unrelated Printer" }));
     // The receiver's own compatible library preset.
     Preset &sys = add_inmemory_preset(bundle.filaments, "Generic PLA @System");
     sys.config.opt_string("filament_type", 0u) = "PLA";
@@ -1264,11 +1267,15 @@ TEST_CASE("Published 3MF falls back to an incompatible exact preset when no comp
     Preset &petg = add_inmemory_preset(bundle.filaments, "My PETG");
     petg.config.opt_string("filament_type", 0u) = "PETG";
     petg.config.opt<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.6 };
+    // The exact author preset is incompatible with the receiver's printer. update_compatible()
+    // recomputes is_compatible inside load_config_model, so the incompatibility is expressed the
+    // way production derives it: a compatible_printers constraint the receiver's printer (the
+    // fresh bundle's "Default Printer" placeholder) does not satisfy.
     Preset &qidi = add_inmemory_preset(bundle.filaments, "Generic PLA @Qidi Q2 0.4 nozzle");
     qidi.config.opt_string("filament_type", 0u) = "PLA";
     qidi.config.opt_string("filament_vendor", 0u) = "Generic";
     qidi.config.opt<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.5 };
-    qidi.is_compatible = false;
+    qidi.config.set_key_value("compatible_printers", new ConfigOptionStrings({ "Unrelated Printer" }));
     bundle.filament_presets = { "My PETG" };
 
     PublishedMaterialEntry entry;
