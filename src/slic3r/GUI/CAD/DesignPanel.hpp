@@ -305,6 +305,10 @@ private:
     // while a sketch is open (single letters = sketch tools); m_keys_feature fires only when
     // no sketch is open (Shift+letter = feature tools; single letters = view toggles/section).
     static constexpr int SC_SHIFT = 0x10000;
+    // ...and with 0x20000 when Ctrl is required too. The Shift+letter space is full, so an
+    // action that arrives late lives on Ctrl+Shift; plain Ctrl-combos are still passed
+    // straight through, which is what leaves this layer free.
+    static constexpr int SC_CTRL = 0x20000;
     std::map<int, std::function<void()>> m_keys_sketch;
     std::map<int, std::function<void()>> m_keys_feature;
 

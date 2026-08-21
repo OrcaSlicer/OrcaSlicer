@@ -473,6 +473,19 @@ DesignPanel::DesignPanel(wxWindow* parent)
         set_status(_L("Isometric view, fitted"));
     };
 
+    // Commit to Plate and the bed toggle were mouse-only: a toolbar button and a checkbox with
+    // no accelerator between them, so neither could be reached from the keyboard at all, nor by
+    // anything driving the keyboard. Ctrl+Shift+P is Plate, Ctrl+Shift+B is Bed; neither
+    // collides with Orca's own Ctrl+Shift+S (Save as) or Ctrl+Shift+G (Print plate).
+    m_keys_feature['P' | SC_SHIFT | SC_CTRL] = [this] { on_commit(); };
+    m_keys_feature['B' | SC_SHIFT | SC_CTRL] = [this] {
+        if (!m_show_bed) return;
+        const bool show = !m_show_bed->GetValue();
+        m_show_bed->SetValue(show);
+        if (m_viewport) m_viewport->set_show_bed(show);
+        set_status(show ? _L("Bed shown") : _L("Bed hidden"));
+    };
+
     // Shared flyout glyph tint (used by BOTH the feature and sketch toolbars). Re-tint each
     // design_* glyph to the DropDown's resolved TEXT colour so it reads on the popup in either
     // theme: text_color is 0x363636, which darkModeColorFor() maps to a light tone in dark mode
@@ -3952,6 +3965,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
             const int up2 = (key >= 'a' && key <= 'z') ? key - 'a' + 'A' : key;
             auto it2 = m_keys_sketch.find(up2);
             if (it2 != m_keys_sketch.end()) { it2->second(); return; }
+        }
+        // Ctrl+Shift first: the block below deliberately ignores every Ctrl-combo, which is
+        // exactly what makes this layer free to use.
+        if (!in_text && ctrl && e.ShiftDown()) {
+            const int up = (key >= 'a' && key <= 'z') ? key - 'a' + 'A' : key;
+            auto it = m_keys_feature.find(up | SC_SHIFT | SC_CTRL);
+            if (it != m_keys_feature.end()) { it->second(); return; }
         }
         if (!in_text && !ctrl) {
             const int up = (key >= 'a' && key <= 'z') ? key - 'a' + 'A' : key;   // normalise case
