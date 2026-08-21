@@ -343,7 +343,10 @@ else ()
 endif ()
 
 if (MSVC)
-    if (SLIC3R_MSVC_COMPILE_PARALLEL AND NOT IS_CLANG_CL)
+    # /MP only matters for the VS generators, where CMake turns it into the
+    # MultiProcessorCompilation property. Ninja parallelises on its own, and
+    # clang-cl warns "argument unused" if the flag reaches it.
+    if (SLIC3R_MSVC_COMPILE_PARALLEL AND CMAKE_GENERATOR MATCHES "Visual Studio")
            add_compile_options(/MP)
     endif ()
     # /bigobj (Increase Number of Sections in .Obj file)
