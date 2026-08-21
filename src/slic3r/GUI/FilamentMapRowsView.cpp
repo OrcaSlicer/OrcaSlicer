@@ -117,6 +117,15 @@ FilamentMapRowsView::FilamentMapRowsView(wxWindow                       *parent,
 
     main_sizer->AddSpacer(FromDIP(8));
     m_preview_panel = new ThumbnailPanel(this);
+    // Orca: ThumbnailPanel mis-parents its internal wxStaticBitmap to the panel's PARENT (us)
+    // while positioning it with the panel's own sizer, so an empty static bitmap floats at
+    // top-left of THIS view, above the row tiles in z-order -- painting a grey square over the
+    // first wrap-row (filaments 1/2 invisible-but-clickable on Windows; the offset grey square
+    // beside the preview in the same reports). It never displays anything -- set_thumbnail()
+    // draws through the panel's own paint, not this child -- so hide the stray. Latent upstream
+    // in SelectMachine, where the misapplied coordinates happen to land harmlessly.
+    if (m_preview_panel->m_staticbitmap != nullptr)
+        m_preview_panel->m_staticbitmap->Hide();
     m_preview_panel->SetMinSize(wxSize(FromDIP(180), FromDIP(180)));
     m_preview_panel->SetMaxSize(wxSize(FromDIP(180), FromDIP(180)));
     m_preview_panel->Hide();
