@@ -133,6 +133,15 @@ FilamentMapRowsView::FilamentMapRowsView(wxWindow                       *parent,
 
     SetSizerAndFit(main_sizer);
 
+    // Re-pin the rows panel's honest height whenever our width changes -- how many rows the
+    // tiles wrap into (and thus the content height) depends on it. MSW delivers size events
+    // synchronously during the host dialog's own Fit/resize, so the host's next measurement
+    // already sees the corrected min.
+    Bind(wxEVT_SIZE, [this](wxSizeEvent &e) {
+        e.Skip();
+        repin_rows_min_height();
+    });
+
     // m_rows_panel's own construction stays silent (no wxEVT_INVALID_MANUAL_MAP), so seed the
     // initial state explicitly.
     seed_status();
@@ -199,6 +208,30 @@ void FilamentMapRowsView::rebuild_rows_panel(const std::vector<int> &proposal, b
     Layout();
 }
 
+void FilamentMapRowsView::repin_rows_min_height()
+{
+    // Scroll-wrapper mode sizes itself explicitly (see rebuild_rows_panel); only the direct
+    // panel needs rescue from its wrap sizer's one-row-per-tile CalcMin.
+    if (!m_rows_panel || m_rows_panel->GetParent() != this)
+        return;
+    m_rows_panel->Layout(); // wrap the tiles at the panel's current width first
+    int bottom = 0;
+    for (wxWindow *c : m_rows_panel->GetChildren()) {
+        // The tile picker popup (wxPopupTransientWindow) is parented to the panel, so it
+        // appears among the children while it is open -- during a live pick it sat "below"
+        // the real content and poisoned this measurement, re-inflating the dialog on every
+        // selection. Popups are top-level windows, not content; skip them.
+        if (c->IsTopLevel() || !c->IsShown())
+            continue;
+        bottom = std::max(bottom, c->GetPosition().y + c->GetSize().GetHeight());
+    }
+    if (bottom <= 0)
+        return; // nothing laid out yet (construction time) -- leave the default measurement
+    const int wanted = bottom + FromDIP(6);
+    if (m_rows_panel->GetMinSize().GetHeight() != wanted)
+        m_rows_panel->SetMinSize(wxSize(-1, wanted));
+}
+
 void FilamentMapRowsView::seed_status()
 {
     if (!m_rows_panel) return;
@@ -211,6 +244,17 @@ void FilamentMapRowsView::seed_status()
     update_mismatch_warning();
     update_preview();
 
+    // Orca: the rows panel cannot report its own height honestly -- its tile wrap sizer's
+    // CalcMin assumes one row per tile (see TILE_ROW_HEIGHT_DIP's doc), so a panel rebuilt
+    // while the dialog is up (Reset/Automatic) claims far more height than its wrapped content
+    // uses, and the host dialog's sizer crushes whatever sits below this view to satisfy it --
+    // field report from Windows: pressing Reset squeezed the Print Preferences section and its
+    // checkboxes to zero height. Lay out at the real width first, then pin the panel's min
+    // height to what its content actually occupies (repin_rows_min_height), and lay out again
+    // at the honest size before the host re-fits.
+    Layout();
+    repin_rows_min_height();
+    InvalidateBestSize();
     Layout();
     // Notify LAST: the host re-fits itself from here, and showing/hiding the record row and the
     // preview above changes this panel's best size. Notifying first sized the host to a layout

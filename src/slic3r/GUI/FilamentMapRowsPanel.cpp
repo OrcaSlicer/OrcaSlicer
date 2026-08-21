@@ -677,11 +677,16 @@ void FilamentMapRowsPanel::UpdateFooter()
     }
 
     Layout();
-    Fit();
-    if (GetParent()) {
+    // Orca: deliberately NO Fit() here. This panel's best size is its tile wrap sizer's
+    // CalcMin, which stacks one tile per row (see FilamentMapRowsView::repin_rows_min_height),
+    // so fitting to it inflated the panel into a tall narrow stack -- and every later content
+    // measurement then happened at that distorted geometry. That is how one tile pick that
+    // toggled the merge warning blew the dialog up to twice its height, and where the blank
+    // band after Reset came from (field reports from Windows). Every event that lands here
+    // also runs the hosting view's seed_status, which re-measures honestly and re-fits the
+    // host, so a plain relayout is all that is needed.
+    if (GetParent())
         GetParent()->Layout();
-        GetParent()->Fit();
-    }
 }
 
 void FilamentMapRowsPanel::SetFooterWarning(const wxString &text)
