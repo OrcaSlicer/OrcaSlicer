@@ -21,7 +21,7 @@ namespace Slic3r {
 namespace WonderMakerProtocol {
 // box_of_tool_1based: one entry per DENSE tool number, 1-based box index as picked in the send
 // dialog. filename may be PRINT_HOST_UPLOADED_FILENAME_PLACEHOLDER (PrintHost.hpp).
-std::string build_start_script(const std::string& filename, const std::vector<int>& box_of_tool_1based, bool bed_leveling);
+std::string build_start_script(const std::string& filename, const std::vector<int>& box_of_tool_1based, bool bed_leveling, bool time_lapse);
 std::string build_start_script(const std::string& filename, const DevicePrintJobInfo& job);
 } // namespace WonderMakerProtocol
 

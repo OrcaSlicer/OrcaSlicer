@@ -179,14 +179,25 @@ bool WonderMakerPrinterAgent::fetch_tmt_filament_info(std::vector<AmsTrayData>& 
 
 std::string WonderMakerProtocol::build_start_script(const std::string&      filename,
                                                     const std::vector<int>& box_of_tool_1based,
-                                                    bool                    bed_leveling)
+                                                    bool                    bed_leveling,
+                                                    bool                    time_lapse)
 {
     std::string script;
-    // The ZR's touchscreen probes before each print; G30 is what its start sequence issues. An
-    // absent command simply means "don't probe", so the off case emits nothing rather than a
-    // disable command the firmware has no notion of.
-    if (bed_leveling)
-        script += "G30\n";
+    // Timelapse first, mirroring the touchscreen's own start sequence (captured from the
+    // vendor UI 2026-08-18: _SET_TIMELAPSE_SETUP, HYPERLAPSE ACTION=STOP, G30, SDCARD_PRINT_FILE).
+    // ENABLE is stated BOTH ways -- the component's enabled flag is persistent printer state, so
+    // omitting the off case would inherit whatever the last print or the screen set (the same
+    // absent-is-not-off lesson the Snapmaker protocol taught). The stale-hyperlapse clear only
+    // matters when recording. moonraker-timelapse ships in stock firmware (timelapse.cfg present
+    // on an unmodified ZR Ultra S), so these macros always exist.
+    script += std::string("_SET_TIMELAPSE_SETUP ENABLE=") + (time_lapse ? "True" : "False") + "\n";
+    if (time_lapse)
+        script += "HYPERLAPSE ACTION=STOP\n";
+    // G30 = probe a fresh adaptive mesh in START_PRINT; G31 = load the saved default mesh.
+    // Explicit BOTH ways: the underlying adaptive_mesh_enable variable is sticky on the printer,
+    // so emitting nothing for "off" (as this originally did) actually meant "whatever the last
+    // print chose".
+    script += bed_leveling ? "G30\n" : "G31\n";
 
     for (size_t tool = 0; tool < box_of_tool_1based.size(); ++tool) {
         const int box_1based = box_of_tool_1based[tool];
@@ -212,7 +223,7 @@ std::string WonderMakerProtocol::build_start_script(const std::string& filename,
     // filament_map_1based is indexed by the tool numbers the g-code actually emits, which for this
     // protocol are dense (see protocol_requires_dense_tool_numbering), so it is already the
     // per-tool box list this dialect wants.
-    return build_start_script(filename, job.filament_map_1based, job.option_on("bed_leveling"));
+    return build_start_script(filename, job.filament_map_1based, job.option_on("bed_leveling"), job.option_on("time_lapse"));
 }
 
 WonderMakerPrinterAgent::WonderMakerPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}

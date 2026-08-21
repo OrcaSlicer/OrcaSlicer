@@ -7,6 +7,7 @@
 	"instantiation": "true",
 	"filament_mapping_protocol": "wondermaker",
 	"printer_model": "WonderMaker ZR Ultra S",
+	"layer_change_gcode": "TIMELAPSE_TAKE_FRAME\n",
 	"nozzle_diameter": [
 		"0.2",
 		"0.2",
