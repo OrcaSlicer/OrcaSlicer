@@ -175,6 +175,15 @@ void PrinterWebView::load_url(wxString& url, wxString apikey)
 //    this->Raise();
     if (m_browser == nullptr)
         return;
+    // Sidebar/config refreshes call this repeatedly with an unchanged target; every
+    // re-navigation tears the page down mid-handshake, and a burst of them can leave the
+    // hosted UI (e.g. Fluidd) stuck in its "no connection" state. Navigate only when the
+    // target actually changes; a failed navigation clears m_url_requested so it retries.
+    if (url == m_url_requested && apikey == m_apikey) {
+        UpdateState();
+        return;
+    }
+    m_url_requested = url;
     m_apikey = apikey;
     m_apikey_sent = false;
     m_handler = create_printer_webview_handler(*this);
@@ -290,6 +299,8 @@ void PrinterWebView::OnError(wxWebViewEvent &evt)
         break;
       }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(": error loading page %1% %2% %3% %4%") %evt.GetURL() %evt.GetTarget() %e %evt.GetString();
+    // Let the next load_url() retry a target that failed to load.
+    m_url_requested.clear();
 }
 
 void PrinterWebView::OnLoaded(wxWebViewEvent& evt)
