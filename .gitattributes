@@ -1,2 +1,7 @@
 # Set the default behavior, in case people don't have core.autocrlf set.
 * text=auto
+
+# Shell scripts are run by Git Bash on Windows CI, which cannot read a script
+# with CRLF line endings: it fails on the first line. Windows checkouts default
+# to core.autocrlf=true, so keep these LF whatever the platform.
+*.sh text eol=lf

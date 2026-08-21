@@ -14,6 +14,7 @@ on:
      - 'localization/**'
      - 'resources/**'
      - ".github/workflows/build_*.yml"
+     - 'scripts/build_preset_cache.*'
      - 'scripts/flatpak/**'
      - 'scripts/msix/**'
      - 'tests/**'
@@ -33,6 +34,7 @@ on:
      - 'build_release_vs.bat'
      - 'build_release_vs2022.bat'
      - 'build_release_macos.sh'
+     - 'scripts/build_preset_cache.*'
      - 'scripts/flatpak/**'
      - 'scripts/msix/**'
      - 'tests/**'

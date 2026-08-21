@@ -6817,6 +6817,12 @@ void GUI_App::add_pending_vendor_preset(const std::pair<std::string, std::map<st
 
     // Add the corresponding vendor
     std::string vendor_name = PresetBundle::find_preset_vendor(inherits_name, type);
+    if (vendor_name.empty()) {
+        // No vendor ships this preset's parent. An unnamed entry here becomes an
+        // unnamed bundle at install time, which nothing can install.
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": no vendor carries " << inherits_name << ", skipping";
+        return;
+    }
     if (need_add_vendors.find(vendor_name) == need_add_vendors.end())
         need_add_vendors[vendor_name] = std::map<std::string, std::set<std::string>>();
 
