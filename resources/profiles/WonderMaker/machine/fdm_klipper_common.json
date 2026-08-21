@@ -3,6 +3,7 @@
 	"name": "fdm_klipper_common",
 	"inherits": "fdm_machine_common",
 	"from": "system",
+	"host_type": "moonraker",
 	"instantiation": "false",
 	"nozzle_diameter": [
 		"0.4"

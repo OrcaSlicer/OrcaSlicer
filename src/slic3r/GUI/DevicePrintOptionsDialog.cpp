@@ -154,9 +154,18 @@ void DevicePrintOptionsDialog::init()
         m_print_btn->SetLabel(_L_CONTEXT("Print", "Verb"));
         if (!m_mapping_undeliverable_reason.IsEmpty()) {
             // Refuse up front rather than accepting the click and silently downgrading the send to
-            // an upload afterwards: the user should never believe a mapping was delivered.
+            // an upload afterwards: the user should never believe a mapping was delivered. The
+            // reason must be VISIBLE TEXT, not only a tooltip: disabled controls receive no mouse
+            // events on Windows, so a tooltip on a disabled button can never appear -- field
+            // report was a mute dead Print button with every row mapped ("not clear why").
             m_print_btn->Disable();
             m_print_btn->SetToolTip(m_mapping_undeliverable_reason);
+            wxStaticText* reason = new wxStaticText(this, wxID_ANY, m_mapping_undeliverable_reason);
+            reason->SetForegroundColour(wxColour(0xFF, 0x6F, 0x00)); // house warning orange
+            reason->Wrap(FromDIP(420));
+            content_sizer->AddSpacer(FromDIP(6));
+            content_sizer->Add(reason, 0, wxLEFT | wxRIGHT | wxEXPAND, FromDIP(12));
+            finalize();
         } else if (m_rows_view != nullptr) {
             m_print_btn->Enable(m_rows_view->AllRowsAssigned());
             m_print_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {
