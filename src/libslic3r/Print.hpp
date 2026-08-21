@@ -496,6 +496,11 @@ public:
     // object will use; 0 means "Default". Public so that the GUI can enumerate the filaments a plate actually
     // prints with (prime tower, AMS mapping, arrange) before the object config is built. See PrintObject.cpp.
     static int              resolve_auto_support_filament(const ModelObject &object, size_t num_extruders, const ConfigBase &print_config, bool support_enabled, int exclude_extruder = 0);
+    // Resolve the three support filaments of one object at once, in the order their picks depend on each
+    // other. Values that are not "Auto" pass through untouched. print_config may be null, which resolves
+    // "Auto" to "Default"; otherwise it is any config carrying the filament-scope keys the resolver reads.
+    static void             resolve_auto_support_filaments(const ModelObject &object, size_t num_extruders, const ConfigBase *print_config, bool support_enabled, bool interface_not_for_body,
+                                                           int &support_filament, int &support_interface_filament, int &support_ironing_filament);
 
   private:
     // to be called from Print only.

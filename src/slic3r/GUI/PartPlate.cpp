@@ -1553,22 +1553,11 @@ static void append_support_extruders(std::vector<int>                           
     int ironing_extruder   = obj_or_global_bool("support_ironing") ? obj_or_global_int("support_ironing_filament") : 0;
 
     if (interface_extruder == SUPPORT_FILAMENT_AUTO || base_extruder == SUPPORT_FILAMENT_AUTO || ironing_extruder == SUPPORT_FILAMENT_AUTO) {
-        // Same order as PrintObject::object_config_from_model_object: the base resolves last so "Avoid
-        // interface filament for base" can keep it off the interface's pick.
+        // Building the full config is not cheap, so it is only asked for once an object actually needs it.
         const DynamicPrintConfig &full_config   = get_full_config();
         const size_t              num_extruders = full_config.option<ConfigOptionFloats>("filament_diameter")->size();
-        auto resolve = [&](int exclude_extruder) {
-            return PrintObject::resolve_auto_support_filament(mo, num_extruders, full_config, true, exclude_extruder);
-        };
-        // Interface and ironing resolve unconstrained, so they share one ranking.
-        std::optional<int> unconstrained;
-        auto resolve_unconstrained = [&] { return *(unconstrained ? unconstrained : unconstrained = resolve(0)); };
-        if (interface_extruder == SUPPORT_FILAMENT_AUTO)
-            interface_extruder = resolve_unconstrained();
-        if (ironing_extruder == SUPPORT_FILAMENT_AUTO)
-            ironing_extruder = resolve_unconstrained();
-        if (base_extruder == SUPPORT_FILAMENT_AUTO)
-            base_extruder = resolve(obj_or_global_bool("support_interface_not_for_body") ? interface_extruder : 0);
+        PrintObject::resolve_auto_support_filaments(mo, num_extruders, &full_config, true, obj_or_global_bool("support_interface_not_for_body"),
+                                                    base_extruder, interface_extruder, ironing_extruder);
     }
 
     for (int extruder : {interface_extruder, base_extruder, ironing_extruder})

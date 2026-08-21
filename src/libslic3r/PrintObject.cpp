@@ -3827,6 +3827,36 @@ int PrintObject::resolve_auto_support_filament(const ModelObject &object, size_t
     return *object_extruders.begin();
 }
 
+// Resolve the three support filaments of one object, any of which may be "Auto". The order matters: the
+// interface and the ironing pass resolve unconstrained and therefore share one ranking, and the base resolves
+// last so "Avoid interface filament for base" can keep it off the interface's pick.
+void PrintObject::resolve_auto_support_filaments(const ModelObject &object, size_t num_extruders, const ConfigBase *print_config, bool support_enabled, bool interface_not_for_body,
+                                                 int &support_filament, int &support_interface_filament, int &support_ironing_filament)
+{
+    if (support_filament != SUPPORT_FILAMENT_AUTO && support_interface_filament != SUPPORT_FILAMENT_AUTO && support_ironing_filament != SUPPORT_FILAMENT_AUTO)
+        return;
+    if (print_config == nullptr) {
+        // Nothing to resolve against: fall back to "Default".
+        for (int *value : {&support_filament, &support_interface_filament, &support_ironing_filament})
+            if (*value == SUPPORT_FILAMENT_AUTO)
+                *value = 0;
+        return;
+    }
+    std::optional<int> unconstrained;
+    auto resolve_unconstrained = [&] {
+        if (! unconstrained)
+            unconstrained = resolve_auto_support_filament(object, num_extruders, *print_config, support_enabled, 0);
+        return *unconstrained;
+    };
+    if (support_interface_filament == SUPPORT_FILAMENT_AUTO)
+        support_interface_filament = resolve_unconstrained();
+    if (support_ironing_filament == SUPPORT_FILAMENT_AUTO)
+        support_ironing_filament = resolve_unconstrained();
+    if (support_filament == SUPPORT_FILAMENT_AUTO)
+        support_filament = interface_not_for_body ? resolve_auto_support_filament(object, num_extruders, *print_config, support_enabled, support_interface_filament) :
+                                                    resolve_unconstrained();
+}
+
 PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders, std::vector<int>& variant_index, const PrintConfig *print_config)
 {
     PrintObjectConfig config = default_object_config;
@@ -3835,26 +3865,11 @@ PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObject
         src_normalized.normalize_fdm();
         update_static_print_config_from_dynamic(config, src_normalized, variant_index, print_options_with_variant, 1);
     }
-    // Resolve "Auto" before anything downstream reads these. The base resolves last so it can be kept off the
-    // interface's pick. The gate matches has_support_material(): raft and enforced support use them too.
+    // Resolve "Auto" before anything downstream reads these. The gate matches has_support_material(): raft and
+    // enforced support use these filaments too.
     const bool support_enabled = config.enable_support.value || config.enforce_support_layers.value > 0 || config.raft_layers.value > 0;
-    auto resolve_auto = [&, unconstrained = std::optional<int>()](int exclude_extruder) mutable {
-        if (! print_config)
-            return 0;
-        // Interface and ironing both resolve unconstrained, so they share one ranking.
-        if (exclude_extruder == 0) {
-            if (! unconstrained)
-                unconstrained = resolve_auto_support_filament(object, num_extruders, *print_config, support_enabled, 0);
-            return *unconstrained;
-        }
-        return resolve_auto_support_filament(object, num_extruders, *print_config, support_enabled, exclude_extruder);
-    };
-    if (config.support_interface_filament.value == SUPPORT_FILAMENT_AUTO)
-        config.support_interface_filament.value = resolve_auto(0);
-    if (config.support_ironing_filament.value == SUPPORT_FILAMENT_AUTO)
-        config.support_ironing_filament.value = resolve_auto(0);
-    if (config.support_filament.value == SUPPORT_FILAMENT_AUTO)
-        config.support_filament.value = resolve_auto(config.support_interface_not_for_body.value ? config.support_interface_filament.value : 0);
+    resolve_auto_support_filaments(object, num_extruders, print_config, support_enabled, config.support_interface_not_for_body.value,
+                                   config.support_filament.value, config.support_interface_filament.value, config.support_ironing_filament.value);
     // Clamp invalid extruders to the default extruder (with index 1).
     clamp_exturder_to_default(config.support_filament,           num_extruders);
     clamp_exturder_to_default(config.support_interface_filament, num_extruders);

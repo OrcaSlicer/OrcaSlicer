@@ -72,6 +72,7 @@
 
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Print.hpp"
 #include "libslic3r/I18N.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Thread.hpp"
@@ -87,6 +88,7 @@
 #include "3DScene.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
+#include "PartPlate.hpp"
 #include "GLCanvas3D.hpp"
 #include "EncodedFilament.hpp"
 #include "GeneratedConfig.hpp"
@@ -9969,6 +9971,43 @@ bool is_soluble_filament(int extruder_id)
 
     return support_option->get_at(0);
 };
+
+// Replace a support filament left on "Auto" by the 1-based filament the slicer will pick, so the GUI can react
+// to a pick it did not make itself - without this, everything keyed on "the user chose a support material"
+// stays silent for "Auto". Values that are not "Auto" pass through, and so does "Auto" itself when there is
+// nothing to resolve against (an empty plate, or a printer where "Auto" is a no-op).
+// "Auto" resolves per object while these two settings are global, so the objects on the current plate are
+// resolved in turn and the first one that lands on a support material wins - that is the object the callers
+// care about. With none of them on a support material the first object's pick is reported.
+void resolve_auto_support_filaments(int &support_filament, int &support_interface_filament)
+{
+    if (support_filament != SUPPORT_FILAMENT_AUTO && support_interface_filament != SUPPORT_FILAMENT_AUTO)
+        return;
+    Plater *plater = wxGetApp().plater();
+    if (plater == nullptr)
+        return;
+    PartPlate *plate = plater->get_partplate_list().get_curr_plate();
+    if (plate == nullptr)
+        return;
+
+    const DynamicPrintConfig &full_config   = wxGetApp().preset_bundle->full_config();
+    const size_t              num_extruders = wxGetApp().preset_bundle->filament_presets.size();
+    const bool                not_for_body  = full_config.opt_bool("support_interface_not_for_body");
+    const int                 base_in = support_filament, interface_in = support_interface_filament;
+    bool                      have_pick     = false;
+    for (const ModelObject *mo : plate->get_objects_on_this_plate()) {
+        int base = base_in, interface_filament = interface_in, ironing = 0;
+        PrintObject::resolve_auto_support_filaments(*mo, num_extruders, &full_config, true, not_for_body, base, interface_filament, ironing);
+        const bool on_support_material = interface_filament > 0 && (is_support_filament(interface_filament - 1, false) || is_soluble_filament(interface_filament - 1));
+        if (have_pick && ! on_support_material)
+            continue;
+        support_filament           = base;
+        support_interface_filament = interface_filament;
+        have_pick                  = true;
+        if (on_support_material)
+            break;
+    }
+}
 
 bool has_filaments(const std::vector<string>& model_filaments) {
     auto &filament_presets = Slic3r::GUI::wxGetApp().preset_bundle->filament_presets;

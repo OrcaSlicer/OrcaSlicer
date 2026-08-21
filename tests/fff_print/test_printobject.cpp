@@ -201,6 +201,43 @@ TEST_CASE("Auto support filament picks a filament that does not bond to the obje
     }
 }
 
+TEST_CASE("Auto support filaments resolve in the order their picks depend on each other", "[PrintObject]")
+{
+    Model              model;
+    const ModelObject &object = auto_support_object(model, 1); // printed in PLA
+    // Two candidates the PLA object does not bond to: a soluble one, which outranks the plain PETG.
+    const DynamicPrintConfig config = auto_support_config({"PLA", "PETG", "PVA"}, {false, false, true}, {"#FFFFFF", "#000000", "#000000"});
+
+    SECTION("interface and ironing share one pick, the base avoids it") {
+        int base = SUPPORT_FILAMENT_AUTO, interface_filament = SUPPORT_FILAMENT_AUTO, ironing = SUPPORT_FILAMENT_AUTO;
+        PrintObject::resolve_auto_support_filaments(object, 3, &config, true, true, base, interface_filament, ironing);
+        REQUIRE(interface_filament == 3);
+        REQUIRE(ironing == 3);
+        REQUIRE(base == 2); // kept off the interface's filament
+    }
+    SECTION("without \"Avoid interface filament for base\" all three share one pick") {
+        int base = SUPPORT_FILAMENT_AUTO, interface_filament = SUPPORT_FILAMENT_AUTO, ironing = SUPPORT_FILAMENT_AUTO;
+        PrintObject::resolve_auto_support_filaments(object, 3, &config, true, false, base, interface_filament, ironing);
+        REQUIRE(base == 3);
+        REQUIRE(interface_filament == 3);
+        REQUIRE(ironing == 3);
+    }
+    SECTION("a filament that is not Auto passes through and still constrains the base") {
+        int base = SUPPORT_FILAMENT_AUTO, interface_filament = 2, ironing = 0;
+        PrintObject::resolve_auto_support_filaments(object, 3, &config, true, true, base, interface_filament, ironing);
+        REQUIRE(interface_filament == 2);
+        REQUIRE(ironing == 0);
+        REQUIRE(base == 3);
+    }
+    SECTION("without a config to resolve against, Auto becomes Default") {
+        int base = SUPPORT_FILAMENT_AUTO, interface_filament = SUPPORT_FILAMENT_AUTO, ironing = 1;
+        PrintObject::resolve_auto_support_filaments(object, 3, nullptr, true, true, base, interface_filament, ironing);
+        REQUIRE(base == 0);
+        REQUIRE(interface_filament == 0);
+        REQUIRE(ironing == 1);
+    }
+}
+
 TEST_CASE("Auto support filament makes a single-material plate use two filaments", "[PrintObject]")
 {
     // Regression guard: the auto-picked interface filament has to show up in Print::extruders(), otherwise the

@@ -2050,8 +2050,15 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
     // BBS popup a message to ask the user to set optimum parameters for support interface if support materials are used
     if (opt_key == "support_interface_filament") {
-        int filament_id           = m_config->opt_int("support_filament") - 1;
-        int interface_filament_id = m_config->opt_int("support_interface_filament") - 1; // the displayed id is based from 1, while internal id is based from 0
+        // "Auto" only becomes a filament when the object config is built, so ask the resolver what it will
+        // pick. Without this the recommendations below are never offered for "Auto" and the support prints
+        // with the default top Z distance - the very thing a support material is picked to avoid.
+        int        support_filament   = m_config->opt_int("support_filament");
+        int        interface_filament = m_config->opt_int("support_interface_filament");
+        const bool base_is_auto       = support_filament == SUPPORT_FILAMENT_AUTO;
+        resolve_auto_support_filaments(support_filament, interface_filament);
+        int filament_id           = support_filament - 1;
+        int interface_filament_id = interface_filament - 1; // the displayed id is based from 1, while internal id is based from 0
         if ((is_support_filament(interface_filament_id, false) &&
              !(m_config->opt_float("support_top_z_distance") == 0 && m_config->opt_float("support_interface_spacing") == 0 &&
                m_config->opt_enum<SupportMaterialInterfacePattern>("support_interface_pattern") == SupportMaterialInterfacePattern::smipRectilinearInterlaced)) ||
@@ -2079,8 +2086,14 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 new_conf.set_key_value("support_interface_spacing", new ConfigOptionFloat(0));
                 new_conf.set_key_value("support_interface_pattern", new ConfigOptionEnum<SupportMaterialInterfacePattern>(SupportMaterialInterfacePattern::smipRectilinearInterlaced));
                 new_conf.set_key_value("independent_support_layer_height", new ConfigOptionBool(false));
-                if ((filament_type == "PLA" && has_filaments({"TPU", "TPU-AMS"})) || (is_soluble_filament(interface_filament_id) && !is_soluble_filament(filament_id)))
-                    new_conf.set_key_value("support_filament", new ConfigOptionInt(interface_filament_id + 1));
+                if ((filament_type == "PLA" && has_filaments({"TPU", "TPU-AMS"})) || (is_soluble_filament(interface_filament_id) && !is_soluble_filament(filament_id))) {
+                    if (base_is_auto)
+                        // The base is picked for the user as well, so let it land on the interface's filament
+                        // instead of pinning it to a fixed one, which would silently drop "Auto".
+                        new_conf.set_key_value("support_interface_not_for_body", new ConfigOptionBool(false));
+                    else
+                        new_conf.set_key_value("support_filament", new ConfigOptionInt(interface_filament_id + 1));
+                }
                 m_config_manipulation.apply(m_config, &new_conf);
             }
             wxGetApp().plater()->update();
