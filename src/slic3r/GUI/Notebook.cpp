@@ -185,6 +185,15 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
     StateColor text_color = StateColor(
         std::pair{wxColour(254,254, 254), (int) StateColor::Normal});
     btn->SetTextColor(text_color);
+    // ORCA: keyboard focus ring, switched on by the border width because these
+    // buttons are borderless. RadioGroup's pattern (permanent border, Focused
+    // color) does not fit here: a permanent border insets the fill in every
+    // state, so its unfocused color would have to track each tab's own fill,
+    // which SetSelection swaps. #FEFEFE matches the label and, unlike #FFFFFF,
+    // is not remapped for dark mode.
+    btn->SetBorderColorNormal(wxColour(254, 254, 254));
+    btn->Bind(wxEVT_SET_FOCUS,  [btn](wxFocusEvent& evt) { btn->SetBorderWidth(btn->FromDIP(2)); evt.Skip(); });
+    btn->Bind(wxEVT_KILL_FOCUS, [btn](wxFocusEvent& evt) { btn->SetBorderWidth(0); evt.Skip(); });
     btn->Bind(wxEVT_BUTTON, [this, btn](wxCommandEvent& event) {
         if (auto it = std::find(m_pageButtons.begin(), m_pageButtons.end(), btn); it != m_pageButtons.end()) {
             auto sel = it - m_pageButtons.begin();
