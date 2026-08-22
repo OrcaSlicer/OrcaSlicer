@@ -347,6 +347,7 @@ modules:
       - |
         cmake . -B build_flatpak \
           -DFLATPAK=ON \
+          -DORCA_TOOLS=ON \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_PREFIX_PATH=/app \
           -DCMAKE_INSTALL_PREFIX=/app \
@@ -356,6 +357,13 @@ modules:
       - cmake --build build_flatpak --target OrcaSlicer -j$FLATPAK_BUILDER_N_JOBS
       - ./scripts/run_gettext.sh
       - cmake --build build_flatpak --target install -j$FLATPAK_BUILDER_N_JOBS
+
+      # Per-vendor preset caches. On the other platforms CI runs this script
+      # itself; the flatpak is built inside flatpak-builder and the generator
+      # only exists in here, so the swap is a build step instead, against the
+      # profiles the install above copied into /app.
+      - cmake --build build_flatpak --target generate_system_cache -j$FLATPAK_BUILDER_N_JOBS
+      - ./scripts/build_preset_cache.sh -n -b build_flatpak /app/share/OrcaSlicer/profiles
 
     cleanup:
       - /include
@@ -402,6 +410,9 @@ modules:
         path: ../../version.inc
       - type: file
         path: ../run_gettext.sh
+        dest: scripts
+      - type: file
+        path: ../build_preset_cache.sh
         dest: scripts
 
       # AppData metainfo for GNOME Software & Co.
