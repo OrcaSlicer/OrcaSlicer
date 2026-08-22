@@ -637,9 +637,8 @@ class Print;
                 //For line move, there are same. For arc move, there are different.
                 Vec3f enter_direction;
                 Vec3f exit_direction;
-                // Orca: move direction over all four axes, scaled by 1 / block.distance. Used by
-                // calc_vmax_junction_deviation(), which needs E to see extrusion-rate changes
-                // between collinear moves the way Marlin and Klipper do.
+                // Orca: move direction over all four axes, unit length. Used by
+                // calc_vmax_junction_deviation(); see there for why E is normalized in.
                 Vec4f jd_unit_vec;
 
                 void reset();
