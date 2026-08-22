@@ -67,4 +67,14 @@ RUN ./build_linux.sh -u
 
 # Pinned dependencies in ./deps (OCCT 7.6 with ModelingAlgorithms enabled, OpenCV,
 # OpenVDB, Boost, wxWidgets, ...). This is the long step; it is baked into the image.
-RUN ./build_linux.sh -dr
+# -j 12, not the default all-cores: on 2026-08-21 an unbounded deps build plus an unbounded
+# app build put 42 GB of cc1plus on a 62 GB box and OOM-killed the host for 2h28m. 12 keeps
+# the compile fast while leaving the machine usable. Pair with `docker build --memory`.
+RUN ./build_linux.sh -dr -j 12
+
+# Compatibility symlink. This deps tree installs into deps/build/OrcaSlicer_dep/, while the
+# orcacad_buildcache volume was configured against the previous image, whose prefix was
+# deps/build/destdir/. Those paths are baked as absolute strings into the app's CMakeCache, so
+# without this symlink a rebuild on the new image reconfigures from scratch — hours of compile
+# to change one directory name. Same tree, two names.
+RUN ln -sfn /OrcaSlicer/deps/build/OrcaSlicer_dep /OrcaSlicer/deps/build/destdir

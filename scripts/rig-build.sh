@@ -42,13 +42,13 @@ fi
 # build produced a single object. The bounds, weakest to strongest:
 #   flock    — the lock path is shared by both forks on purpose, so they SERIALISE instead of
 #              summing. Peak is one build's worth no matter who else starts one.
-#   -j8      — ~8 TUs in flight, ~10-20 GB, and the box stays usable while it compiles.
-#              JOBS=n overrides for a machine with more headroom.
+#   -j12     — measured 1.17 GB average per cc1plus in the incident dump, so 12 in flight
+#              is ~14 GB typical and leaves the box usable. JOBS=n overrides.
 #   --memory — the actual guarantee. A runaway build hits its own cgroup limit and dies alone;
 #              the host never reaches global OOM again, whatever -j or flock do.
 #              --memory-swap equal to --memory forbids swap, which is what made ssh hang.
-JOBS="${JOBS:-8}"
-MEM="${MEM:-32g}"
+JOBS="${JOBS:-12}"
+MEM="${MEM:-40g}"
 LOCK=/tmp/orca-rig-build.lock
 
 exec 9>"$LOCK"
