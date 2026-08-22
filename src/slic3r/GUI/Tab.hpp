@@ -515,13 +515,13 @@ public:
 	bool has_key(std::string const &key);
 
 protected:
-	virtual void    activate_selected_page(std::function<void()> throw_if_canceled);
+	virtual void    activate_selected_page(std::function<void()> throw_if_canceled) override;
 
 	virtual void    on_value_change(const std::string& opt_key, const boost::any& value) override;
 
 	virtual void    notify_changed(ObjectBase * object) = 0;
 
-	virtual void	reload_config();
+	virtual void	reload_config() override;
 
 	virtual void	update_custom_dirty(std::vector<std::string> &dirty_options, std::vector<std::string> &nonsys_options) override;
 

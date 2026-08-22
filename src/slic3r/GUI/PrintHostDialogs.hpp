@@ -163,7 +163,7 @@ public:
     BedType      bedType() const { return m_BedType; }
 
     virtual void                               init() override;
-    virtual std::map<std::string, std::string> extendedInfo() const
+    virtual std::map<std::string, std::string> extendedInfo() const override
     {
         return {{"bedType", std::to_string(static_cast<int>(m_BedType))},
                 {"timeLapse", std::to_string(m_timeLapse)},
@@ -200,7 +200,7 @@ public:
                                 PrintHost*                     printhost);
 
     virtual void                               init() override;
-    virtual std::map<std::string, std::string> extendedInfo() const;
+    virtual std::map<std::string, std::string> extendedInfo() const override;
 
 private:
     static constexpr const char* CONFIG_KEY_ENABLESELFTEST = "crealityprint_enable_self_test";
