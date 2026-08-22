@@ -1025,6 +1025,8 @@ std::string PartPlate::build_imex_cache_key() const
 }
 
 // Reposition the IMEX mode icon without requiring a full set_shape() rebuild.
+static void register_model_for_picking(GLCanvas3D &canvas, PickingModel &model, int id);
+
 // Called when is_imex is toggled on a printer whose bed shape matches the current plate,
 // which would otherwise cause set_shape() to short-circuit before reaching icon calc.
 void PartPlate::refresh_imex_icon()
@@ -1038,6 +1040,15 @@ void PartPlate::refresh_imex_icon()
         int imex_slot = dual_bbl ? 7 : 6;
         calc_vertex_for_icons(imex_slot, m_imex_mode_icon);
         calc_vertex_for_imex_warn_badge(imex_slot, m_imex_warn_icon);
+
+        // calc_vertex_for_icons() destroyed the MeshRaycaster that SceneRaycaster still
+        // holds by raw pointer; swap the registration as calc_vertex_for_plate_name() does.
+        // Only the mode icon is picked -- the warn badge is a plain GLModel.
+        if (GLCanvas3D *canvas = m_plater->get_view3D_canvas3D()) {
+            canvas->remove_raycasters_for_picking(SceneRaycaster::EType::Bed,
+                                                  picking_id_component(PLATE_IMEX_MODE_ID));
+            register_model_for_picking(*canvas, m_imex_mode_icon, picking_id_component(PLATE_IMEX_MODE_ID));
+        }
     }
 }
 

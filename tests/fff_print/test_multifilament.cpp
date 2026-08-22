@@ -715,3 +715,173 @@ TEST_CASE("Multi-extruder slice stays in bounds with a short max_layer_height", 
     REQUIRE_FALSE(print.objects().front()->layers().empty());
 }
 
+
+// Shared IMEX printer geometry: 7 logical extruders across 4 physical heads.
+// physical_extruder_map is only honoured when its length matches the nozzle count
+// (PrintApply feeds effective_physical_extruder_map the nozzle_diameter size), so the
+// nozzle keys must be sized to 7 or the map is silently replaced with the identity and
+// every logical slot resolves to its own head -- which hides the defects under test.
+static void imex_7x4_printer(DynamicPrintConfig &config)
+{
+    config.set_deserialize_strict({
+        { "nozzle_diameter",           "0.4,0.4,0.4,0.4,0.4,0.4,0.4" },
+        { "printer_extruder_id",       "1,2,3,4,5,6,7" },
+        { "printer_extruder_variant",  "Direct Drive Standard,Direct Drive Standard,Direct Drive Standard,"
+                                       "Direct Drive Standard,Direct Drive Standard,Direct Drive Standard,"
+                                       "Direct Drive Standard" },
+        { "extruder_printable_height", "0,0,0,0,0,0,0" },
+        { "physical_extruder_map",     "0,0,0,0,1,2,3" },
+        { "is_imex",                   "1" },
+        { "imex_mode_names",           "primary;copy" },
+        { "imex_mode_active_tools",    "0:P;0:P,1:C" },
+        { "skirt_loops",               "0" },
+        { "brim_type",                 "no_brim" },
+        // Temperature assertions below spell "M104 S<t> T<n>"; RepRapFirmware would emit
+        // "G10 S<t> P<n>" from the same code, so the flavor is pinned rather than defaulted.
+        { "gcode_flavor",              "klipper" },
+    });
+}
+
+// Route every region to one filament. An unset *_filament_id is not "inherit":
+// clamp_feature_filament_to_valid rewrites <=0 to 1, which would drag tool 0 into
+// tool_ordering and mask what these tests assert. PrintObject.cpp's call to that
+// function is the source of truth for this key list -- a new one has to be added here.
+static void all_regions_on_filament(DynamicPrintConfig &config, int filament_1based)
+{
+    for (const char *key : { "outer_wall_filament_id", "inner_wall_filament_id",
+                             "sparse_infill_filament_id", "internal_solid_filament_id",
+                             "top_surface_filament_id", "bottom_surface_filament_id" })
+        config.set_deserialize_strict({ { key, std::to_string(filament_1based) } });
+}
+
+// IMEX parallel modes emit per-carriage temperatures from a branch that is mutually
+// exclusive with the standard per-extruder path, and that branch skipped the head the
+// print's own toolpaths run on. That head therefore never received its 1st->2nd layer
+// transition and held nozzle_temperature_initial_layer for the whole job.
+TEST_CASE("Parallel-mode IMEX prints transition the printing head to its second-layer temperature",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 1); // filament 1 => logical slot 0 => physical head 0
+    // The multi-extruder normalization collapses per-filament temperature vectors to a
+    // single value, so heads are told apart by their tool qualifier, not by temperature.
+    config.set_deserialize_strict({
+        { "imex_parallel_mode",                "copy" },
+        { "nozzle_temperature_initial_layer",  "200" },
+        { "nozzle_temperature",                "240" },
+    });
+
+    const std::string gcode = slice({ cube(20) }, config);
+
+    // Head 0 runs the print's own toolpaths and must step 200 -> 240 at the second layer.
+    CHECK(gcode.find("M104 S240 T0") != std::string::npos);
+    // Head 1 is the copy carriage; it already worked and must keep working.
+    CHECK(gcode.find("M104 S240 T1") != std::string::npos);
+}
+
+// IMEX supplements is_extruder_used for the secondary carriages a parallel mode drives.
+// `primary` drives exactly one tool, so the supplement must not run: routing every region
+// to filament 6 puts the initial tool on physical head 2, while the mode's only declared
+// head is 0, which the unguarded supplement resolved back to filament slot 0.
+TEST_CASE("Primary-mode IMEX prints mark only the filament slot they print with",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 6); // filament 6 => logical slot 5 => physical head 2
+    config.set_deserialize_strict({
+        { "imex_parallel_mode", "primary" },
+        { "machine_start_gcode",
+          ";USED0:{if is_extruder_used[0]}1{else}0{endif}\n"
+          ";USED5:{if is_extruder_used[5]}1{else}0{endif}\n" },
+    });
+
+    const std::string gcode = slice({ cube(20) }, config);
+
+    CHECK(gcode.find(";USED5:1") != std::string::npos);
+    CHECK(gcode.find(";USED0:0") != std::string::npos);
+}
+
+// Guard rail for the fix above: the modes the supplement exists for must keep marking their
+// secondaries. `copy` declares heads 0 and 1; neither is the initial tool's head (filament 6
+// routes to head 2), so both are still enumerated. Head 0 -> slot 0, head 1 -> slot 4.
+TEST_CASE("Copy-mode IMEX prints still mark every secondary carriage's filament slot",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 6);
+    config.set_deserialize_strict({
+        { "imex_parallel_mode", "copy" },
+        { "machine_start_gcode",
+          ";USED0:{if is_extruder_used[0]}1{else}0{endif}\n"
+          ";USED4:{if is_extruder_used[4]}1{else}0{endif}\n"
+          ";USED5:{if is_extruder_used[5]}1{else}0{endif}\n" },
+    });
+
+    const std::string gcode = slice({ cube(20) }, config);
+
+    CHECK(gcode.find(";USED5:1") != std::string::npos);
+    CHECK(gcode.find(";USED0:1") != std::string::npos);
+    CHECK(gcode.find(";USED4:1") != std::string::npos);
+}
+
+// The two IMEX changes are coupled: get_imex_active_tools() now returns an empty roster in
+// primary mode, so if the temperature branch ever stopped excluding primary it would enter,
+// emit nothing, skip the standard path, and silently restore the bug the copy-mode case above
+// covers -- with every other test still green.
+TEST_CASE("Primary-mode IMEX prints still transition to the second-layer temperature",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 1);
+    config.set_deserialize_strict({
+        { "imex_parallel_mode",                "primary" },
+        { "nozzle_temperature_initial_layer",  "200" },
+        { "nozzle_temperature",                "240" },
+    });
+
+    const std::string gcode = slice({ cube(20) }, config);
+
+    CHECK(gcode.find("M104 S240") != std::string::npos);
+}
+
+// IQEX: when the second gantry is active the mode drives all four carriages, so every one of
+// them needs its own filament resolved -- for the first layer via is_extruder_used (consumed by
+// machine_start_gcode) and for the second via the per-tool transition. pem routes filament 1 to
+// head 0, and heads 1/2/3 to filament slots 4/5/6, so all four slots must appear.
+TEST_CASE("IQEX modes emit first- and second-layer temperatures for every active carriage",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 1);
+    config.set_deserialize_strict({
+        { "imex_mode_names",                   "primary;copy;iq-copy" },
+        { "imex_mode_active_tools",            "0:P;0:P,1:C;0:P,1:C,2:C,3:C" },
+        { "imex_parallel_mode",                "iq-copy" },
+        { "nozzle_temperature_initial_layer",  "200" },
+        { "nozzle_temperature",                "240" },
+        { "machine_start_gcode",
+          ";USED0:{if is_extruder_used[0]}1{else}0{endif}\n"
+          ";USED4:{if is_extruder_used[4]}1{else}0{endif}\n"
+          ";USED5:{if is_extruder_used[5]}1{else}0{endif}\n"
+          ";USED6:{if is_extruder_used[6]}1{else}0{endif}\n" },
+    });
+
+    const std::string gcode = slice({ cube(20) }, config);
+
+    // First layer: every active carriage's filament is declared to machine_start_gcode.
+    CHECK(gcode.find(";USED0:1") != std::string::npos);
+    CHECK(gcode.find(";USED4:1") != std::string::npos);
+    CHECK(gcode.find(";USED5:1") != std::string::npos);
+    CHECK(gcode.find(";USED6:1") != std::string::npos);
+
+    // Second layer: every active carriage gets its own transition.
+    CHECK(gcode.find("M104 S240 T0") != std::string::npos);
+    CHECK(gcode.find("M104 S240 T1") != std::string::npos);
+    CHECK(gcode.find("M104 S240 T2") != std::string::npos);
+    CHECK(gcode.find("M104 S240 T3") != std::string::npos);
+}
