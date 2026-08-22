@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Prusament PA11 Carbon Fiber @MK4S 0.8",
+    "inherits": "Prusament PA11 Carbon Fiber @MK4S",
+    "from": "system",
+    "setting_id": "0NFWsNglK5k71qTn",
+    "filament_id": "Prusament PA11 Carbon Fiber @MK4S 0.8",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4S 0.8 nozzle"
+    ],
+    "fan_max_speed": "15",
+    "fan_min_speed": "15",
+    "slow_down_layer_time": "18"
+}

@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Prusament PC Blend @MK4S HF0.5",
+    "inherits": "Prusament PC Blend @MK4S",
+    "from": "system",
+    "setting_id": "rnFCKXWalTbb1kCq",
+    "filament_id": "Prusament PC Blend @MK4S HF0.5",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4S HF0.5 nozzle"
+    ]
+}
