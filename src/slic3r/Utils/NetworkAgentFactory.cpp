@@ -465,25 +465,5 @@ void NetworkAgentFactory::deregister_python_printer_agent(const std::string& plu
                             << plugin_key << "' with agent ID '" << agent_id << "'";
 }
 
-bool NetworkAgentFactory::is_current_printer_agent_plugin()
-{
-    auto* preset_bundle = GUI::wxGetApp().preset_bundle;
-    if (!preset_bundle)
-        return false;
-
-    std::string agent_key = ORCA_PRINTER_AGENT_ID;
-    if (preset_bundle->is_bbl_vendor())
-        agent_key = BBL_PRINTER_AGENT_ID;
-
-    const auto& cfg = preset_bundle->printers.get_edited_preset().config;
-    if (cfg.has("printer_agent")) {
-        const std::string& value = cfg.option<ConfigOptionString>("printer_agent")->value;
-        if (!value.empty())
-            agent_key = value;
-    }
-
-    const PrinterAgentInfo* info = get_printer_agent_info(agent_key);
-    return info && info->is_plugin();
-}
 
 } // namespace Slic3r

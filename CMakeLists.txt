@@ -80,8 +80,12 @@ endif()
 
 if (DEFINED BBL_RELEASE_TO_PUBLIC)
     add_compile_definitions("BBL_RELEASE_TO_PUBLIC=${BBL_RELEASE_TO_PUBLIC}")
+    if (BBL_RELEASE_TO_PUBLIC)
+        add_compile_definitions(WXINSPECTOR_DISABLE)
+    endif ()
 else ()
     add_compile_definitions("BBL_RELEASE_TO_PUBLIC=$<CONFIG:Release>")
+    add_compile_definitions("$<$<CONFIG:Release>:WXINSPECTOR_DISABLE>")
 endif ()
 
 find_package(Git)
@@ -339,7 +343,10 @@ else ()
 endif ()
 
 if (MSVC)
-    if (SLIC3R_MSVC_COMPILE_PARALLEL AND NOT IS_CLANG_CL)
+    # /MP only matters for the VS generators, where CMake turns it into the
+    # MultiProcessorCompilation property. Ninja parallelises on its own, and
+    # clang-cl warns "argument unused" if the flag reaches it.
+    if (SLIC3R_MSVC_COMPILE_PARALLEL AND CMAKE_GENERATOR MATCHES "Visual Studio")
            add_compile_options(/MP)
     endif ()
     # /bigobj (Increase Number of Sections in .Obj file)

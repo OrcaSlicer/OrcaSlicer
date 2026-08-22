@@ -34,7 +34,6 @@ class Button : public StaticBox
     wxSize minSize; // set by outer
     wxSize paddingSize;
     ScalableBitmap active_icon;
-    ScalableBitmap inactive_icon;
 
     StateColor   text_color;
 
@@ -61,8 +60,7 @@ public:
     bool SetFont(const wxFont& font) override;
 
     void SetIcon(const wxString& icon);
-
-    void SetInactiveIcon(const wxString& icon);
+    void SetIcon(const wxBitmap& icon);
 
     void SetMinSize(const wxSize& size) override;
     void SetMaxSize(const wxSize& size) override;
@@ -76,6 +74,11 @@ public:
     void SetTextColorNormal(wxColor const &color);
 
     void SetSelected(bool selected = true) { m_selected = selected; }
+
+    // Only meant to be used by inspector, not public API
+    ButtonStyle GetStyle() const { return m_style; }
+    ButtonType  GetType() const  { return m_type; }
+    bool IsSelected() const      { return m_selected; }
 
     bool Enable(bool enable = true) override;
     void EnableTooltipEvenDisabled();// The tip will be shown even if the button is disabled

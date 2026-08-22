@@ -6,6 +6,8 @@
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
 
+#include "plugin_test_utils.hpp"
+
 #include <boost/filesystem.hpp>
 
 #include <algorithm>
@@ -24,32 +26,6 @@ namespace fs = boost::filesystem;
 // interpreter singletons are brought up at most once per test.
 
 namespace {
-
-// Point data_dir() at a throwaway directory for the lifetime of a test and restore the previous
-// value afterwards, so discovery scans a disposable {data_dir}/orca_plugins tree and tests don't
-// leak state into each other.
-struct ScopedDataDir
-{
-    std::string previous;
-    fs::path    dir;
-
-    explicit ScopedDataDir(const std::string& tag)
-    {
-        previous = data_dir();
-        dir      = fs::temp_directory_path() / fs::unique_path("orca-" + tag + "-%%%%-%%%%");
-        fs::create_directories(dir);
-        set_data_dir(dir.string());
-    }
-
-    ~ScopedDataDir()
-    {
-        set_data_dir(previous);
-        boost::system::error_code ec;
-        fs::remove_all(dir, ec);
-    }
-
-    fs::path plugins_dir() const { return dir / "orca_plugins"; }
-};
 
 // Brings the plugin system up, and tears it down explicitly at the end of the test.
 //

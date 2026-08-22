@@ -118,7 +118,7 @@
 	"deretraction_speed": [
 		"30"
 	],
-	"z_hop_types": "Normal Lift",
+	"z_hop_types": "Slope Lift",
 	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "",

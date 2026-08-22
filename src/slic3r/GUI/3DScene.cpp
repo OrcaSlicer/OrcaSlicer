@@ -70,6 +70,9 @@ float FullTransparentModdifiedToFixAlpha = 0.3f;
 // value like 0.18f could not because in C++ (int)(0.18f * 255) == 45 however in OpenGL it renders this as 46
 // which breaks the `SelectMachineDialog::record_edge_pixels_data()` function!
 float FULL_BLACK_THRESHOLD = 0.2f;
+// Keep depth_tex away from texture unit 0 to avoid sampler-type aliasing with
+// shadow/environment samplers when realistic view is disabled.
+static constexpr int OUTLINE_DEPTH_TEX_UNIT = 5;
 
 Slic3r::ColorRGBA adjust_color_for_rendering(const Slic3r::ColorRGBA &colors)
 {
@@ -518,6 +521,37 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     glsafe(::glStencilMask(0xFF));
     glsafe(::glDisable(GL_STENCIL_TEST));
     // render the outline using depth buffer and discard the pixels that are not on the outline
+    // The silhouette is resolved per sample in the shader (see DetectSilho in gouraud.fs/phong.fs).
+    // That needs the GL 3.2 entry points and a shader that declares depth_tex as sampler2DMS, which
+    // only the 140 ones do and only under GL_ARB_texture_multisample - so ask the compiled program
+    // rather than the GL version, or a sampler2D ends up bound to a multisample texture.
+    // Only the Arb branch below allocates a multisample texture, so keep the target consistent with it.
+    const bool  use_msaa_outline = framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb &&
+                                   GUI::wxGetApp().is_gl_version_greater_or_equal_to(3, 2) &&
+                                   shader->get_uniform_location("msaa_samples") >= 0;
+    const GLenum depth_tex_target = use_msaa_outline ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+    // Keep the depth texture off image unit 0. The object shaders leave shadow_map (and
+    // environment_tex) at the default sampler value 0 whenever the shadow pass is skipped - which is
+    // the case with realistic view off - and GL forbids two sampler types referring to the same image
+    // unit. A sampler2DMS on unit 0 then makes every draw fail with INVALID_OPERATION on drivers that
+    // enforce it (Mesa), i.e. the model disappears entirely. Unit 5 is unused (shadow_map takes 4).
+    const int depth_tex_unit = OUTLINE_DEPTH_TEX_UNIT;
+    int aa_samples = 1;
+    if (use_msaa_outline) {
+        if (const AppConfig* app_config = GUI::wxGetApp().app_config; app_config != nullptr) {
+            const std::string value = app_config->get(SETTING_OPENGL_AA_SAMPLES);
+            if (value == "2" || value == "4" || value == "8" || value == "16")
+                aa_samples = ::atoi(value.c_str());
+        }
+        // Never request more samples than the driver supports for depth textures (a 1-sample texture
+        // is used when MSAA is disabled, keeping a single code path for the sampler2DMS shader).
+        GLint max_samples = 1;
+        glsafe(::glGetIntegerv(GL_MAX_DEPTH_TEXTURE_SAMPLES, &max_samples));
+        if (aa_samples > max_samples)
+            aa_samples = max_samples < 1 ? 1 : max_samples;
+        if (aa_samples < 1)
+            aa_samples = 1;
+    }
     // 1st. render pass, render the model into a separate render target that has only depth buffer
     GLuint depth_fbo   = 0;
     GLuint depth_tex = 0;
@@ -525,21 +559,26 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
         glsafe(::glGenFramebuffers(1, &depth_fbo));
         glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, depth_fbo));
 
-        glActiveTexture(GL_TEXTURE0);
+        glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
         glsafe(::glGenTextures(1, &depth_tex));
-        glsafe(::glBindTexture(GL_TEXTURE_2D, depth_tex));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
+        glsafe(::glBindTexture(depth_tex_target, depth_tex));
+        if (use_msaa_outline) {
+            // Multisample textures do not take filter/wrap parameters.
+            glsafe(::glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, aa_samples, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), GL_TRUE));
+        } else {
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+            glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
+        }
 
-        glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_tex, 0));
+        glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_tex_target, depth_tex, 0));
     } else {
         glsafe(::glGenFramebuffersEXT(1, &depth_fbo));
         glsafe(::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, depth_fbo));
 
-        glActiveTexture(GL_TEXTURE0);
+        glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
         glsafe(::glGenTextures(1, &depth_tex));
         glsafe(::glBindTexture(GL_TEXTURE_2D, depth_tex));
         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
@@ -550,12 +589,15 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
 
         glsafe(::glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depth_tex, 0));
     }
+    // Unbind before drawing: the texture is this framebuffer's depth attachment, so leaving it bound
+    // to a sampled unit would be a feedback loop.
+    glsafe(::glBindTexture(depth_tex_target, 0));
+    glsafe(::glActiveTexture(GL_TEXTURE0));
     glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
     if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
         model.render(shader);
     else
         model.render(this->tverts_range, shader);
-    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
 
     // 2nd. render pass, just a normal render with the depth buffer passed as a texture
     if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb) {
@@ -565,13 +607,17 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     }
     shader->set_uniform("is_outline", true);
     shader->set_uniform("screen_size", Vec2f{cnv_size.get_width(), cnv_size.get_height()});
-    glActiveTexture(GL_TEXTURE0);
-    glsafe(::glBindTexture(GL_TEXTURE_2D, depth_tex));
-    shader->set_uniform("depth_tex", 0);
+    shader->set_uniform("msaa_samples", aa_samples);
+    glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
+    glsafe(::glBindTexture(depth_tex_target, depth_tex));
+    glsafe(::glActiveTexture(GL_TEXTURE0));
+    shader->set_uniform("depth_tex", depth_tex_unit);
     simple_render(shader, model_objects, colors);
 
     // Some clean up to do
-    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+    glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
+    glsafe(::glBindTexture(depth_tex_target, 0));
+    glsafe(::glActiveTexture(GL_TEXTURE0));
     shader->set_uniform("is_outline", false);
     if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb) {
         glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, 0));
@@ -1074,6 +1120,10 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         glsafe(::glDisable(GL_CULL_FACE));
 
     const float support_normal_z = get_selection_support_normal_z();
+
+    // Prime depth_tex on every frame so non-outline draws do not keep the
+    // default sampler unit 0, which can conflict with other sampler types.
+    shader->set_uniform("depth_tex", OUTLINE_DEPTH_TEX_UNIT);
 
     for (GLVolumeWithIdAndZ& volume : to_render) {
 #if ENABLE_MODIFIERS_ALWAYS_TRANSPARENT
