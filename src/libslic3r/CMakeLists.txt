@@ -149,6 +149,8 @@ set(lisbslic3r_sources
     Fill/FillConcentric.hpp
     Fill/FillConcentricInternal.cpp
     Fill/FillConcentricInternal.hpp
+    Fill/FillCornerSmoothing.cpp
+    Fill/FillCornerSmoothing.hpp
     Fill/Fill.cpp
     Fill/FillCrossHatch.cpp
     Fill/FillCrossHatch.hpp
@@ -348,6 +350,8 @@ set(lisbslic3r_sources
     Polyline.hpp
     PresetBundle.cpp
     PresetBundle.hpp
+    PresetCacheFormat.cpp
+    PresetCacheFormat.hpp
     Preset.cpp
     Preset.hpp
     PrincipalComponents2D.cpp

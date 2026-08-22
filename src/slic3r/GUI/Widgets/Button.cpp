@@ -95,14 +95,11 @@ void Button::SetIcon(const wxString& icon)
     }
 }
 
-void Button::SetInactiveIcon(const wxString &icon)
+void Button::SetIcon(const wxBitmap& icon)
 {
-    if (!icon.IsEmpty()) {
-        // BBS set button icon default size to 20
-        this->inactive_icon = ScalableBitmap(this, icon.ToStdString(), this->active_icon.px_cnt());
-    } else {
-        this->inactive_icon = ScalableBitmap();
-    }
+    this->active_icon = ScalableBitmap();
+    this->active_icon.bmp() = icon;
+    messureSize();
     Refresh();
 }
 
@@ -257,11 +254,9 @@ void Button::SetStyle(const ButtonStyle style, const ButtonType type)
 
 void Button::Rescale()
 {
-    if (this->active_icon.bmp().IsOk())
+    // Only a named icon can be re-rasterized; one set from a wxBitmap has no source file,
+    if (!this->active_icon.name().empty())
         this->active_icon.msw_rescale();
-
-    if (this->inactive_icon.bmp().IsOk())
-        this->inactive_icon.msw_rescale();
 
     messureSize();
 
@@ -293,11 +288,7 @@ void Button::render(wxDC& dc)
     wxSize szIcon;
     wxSize textSize = this->textSize.GetSize();
 
-    ScalableBitmap icon;
-    if (m_selected || ((states & (int)StateColor::State::Hovered) != 0))
-        icon = active_icon;
-    else
-        icon = inactive_icon;
+    const ScalableBitmap& icon = active_icon;
     wxSize padding = this->paddingSize;
     int spacing = 5;
     // Wrap text

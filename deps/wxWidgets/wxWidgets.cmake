@@ -28,6 +28,7 @@ orcaslicer_add_cmake_project(
     GIT_SHALLOW ON
     GIT_SUBMODULES 3rdparty/catch 3rdparty/pcre 3rdparty/libwebp
     DEPENDS ${PNG_PKG} ${ZLIB_PKG} ${EXPAT_PKG} ${JPEG_PKG}
+    PATCH_COMMAND git apply --verbose --ignore-space-change --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/0001-Clang-CL-fix.patch
     CMAKE_ARGS
         -DwxBUILD_PRECOMP=ON
         ${_wx_toolkit}

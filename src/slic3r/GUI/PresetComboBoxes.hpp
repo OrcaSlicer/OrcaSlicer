@@ -39,7 +39,7 @@ public:
     PresetComboBox(wxWindow* parent, Preset::Type preset_type, const wxSize& size = wxDefaultSize, PresetBundle* preset_bundle = nullptr);
     ~PresetComboBox();
 
-	enum LabelItemType {
+	enum LabelItemType : std::size_t {
 		LABEL_ITEM_PHYSICAL_PRINTER = 0xffffff01,
         LABEL_ITEM_PRINTER_MODELS,
 		LABEL_ITEM_DISABLED,
