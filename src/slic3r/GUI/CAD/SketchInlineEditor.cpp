@@ -1,4 +1,5 @@
 #include "slic3r/GUI/CAD/SketchInlineEditor.hpp"
+#include "slic3r/GUI/I18N.hpp"   // _L for the refusal messages shown in the title line
 
 #include <wx/display.h>
 
@@ -111,6 +112,29 @@ void trace_inline_focus(wxFrame* frame, const std::string& title)
 }
 } // namespace
 
+// The title line doubles as the error line, so both colours live here rather than as a
+// literal at the one place that used to set it.
+// Keep the frame fully on-screen: an anchor that maps off the display makes GTK drop the
+// window at a default corner (top-left) instead of the requested point. Clamp to the display
+// the anchor is ON, not the primary one — wxGetClientDisplayRect() only ever describes the
+// primary monitor, so on a multi-head desktop this shoved the field onto a different screen
+// than the app. It then sat invisible while m_awaiting_length made the sketch tool eat every
+// mouse event, which read as the viewport freezing after a sketch, with only Enter able to
+// release it. Shared with the error re-fit below, which can widen the frame after placement.
+static wxPoint clamp_to_display(wxPoint pos, const wxSize& sz, const wxPoint& anchor, wxWindow* w)
+{
+    int disp = wxDisplay::GetFromPoint(anchor);
+    if (disp == wxNOT_FOUND) disp = wxDisplay::GetFromWindow(w);
+    const wxRect area = (disp != wxNOT_FOUND) ? wxDisplay(unsigned(disp)).GetClientArea()
+                                              : wxGetClientDisplayRect();
+    pos.x = std::max(area.GetLeft(), std::min(pos.x, area.GetRight()  - sz.GetWidth()));
+    pos.y = std::max(area.GetTop(),  std::min(pos.y, area.GetBottom() - sz.GetHeight()));
+    return pos;
+}
+
+static const wxColour kTitleFg (160, 162, 168);
+static const wxColour kTitleErr(232, 106, 106);
+
 SketchInlineEditor::SketchInlineEditor(wxWindow* parent_canvas)
 {
     wxWindow* top = parent_canvas ? wxGetTopLevelParent(parent_canvas) : nullptr;
@@ -127,7 +151,7 @@ SketchInlineEditor::SketchInlineEditor(wxWindow* parent_canvas)
                             wxTE_PROCESS_ENTER | wxTE_RIGHT | wxBORDER_SIMPLE);
     m_frame->SetBackgroundColour(wxColour(40, 42, 46));
     m_title = new wxStaticText(m_frame, wxID_ANY, wxEmptyString);
-    m_title->SetForegroundColour(wxColour(160, 162, 168));
+    m_title->SetForegroundColour(kTitleFg);
     auto* sizer = new wxBoxSizer(wxVERTICAL);
     sizer->Add(m_title, 0, wxLEFT | wxRIGHT | wxTOP, 3);
     sizer->Add(m_ctrl, 1, wxEXPAND | wxALL, 2);
@@ -135,6 +159,9 @@ SketchInlineEditor::SketchInlineEditor(wxWindow* parent_canvas)
     m_frame->Hide();
 
     m_ctrl->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { do_commit(); });
+    // The complaint goes away the moment the user starts answering it — an error that
+    // outlives the input it was about is just noise on the next attempt.
+    m_ctrl->Bind(wxEVT_TEXT, [this](wxCommandEvent& e) { clear_invalid(); e.Skip(); });
     m_ctrl->Bind(wxEVT_KEY_DOWN, [this](wxKeyEvent& e) {
         if (e.GetKeyCode() == WXK_ESCAPE) do_cancel();
         // Tab commits, exactly like Enter — the caller's on_commit is what walks to the next
@@ -162,25 +189,16 @@ void SketchInlineEditor::open(const wxPoint& screen_px, double value,
     m_cancel = std::move(on_cancel);
     m_ctrl->ChangeValue(en_format(value));
     if (m_title) {
-        m_title->SetLabel(wxString::FromUTF8(title.c_str()));
+        m_title_text = wxString::FromUTF8(title.c_str());
+        m_title->SetLabel(m_title_text);
+        m_title->SetForegroundColour(kTitleFg);   // drop any refusal left over from the last field
         m_title->Show(!title.empty());
     }
     m_frame->Fit();
     const wxSize sz = m_frame->GetSize();
-    wxPoint pos(screen_px.x - sz.GetWidth() / 2, screen_px.y - sz.GetHeight() / 2);
-    // Keep the frame fully on-screen: an anchor that maps off the display makes GTK drop
-    // the window at a default corner (top-left) instead of the requested point.
-    // Clamp to the display the anchor is ON, not the primary one: wxGetClientDisplayRect()
-    // only ever describes the primary monitor, so on a multi-head desktop it shoved this
-    // field onto a different screen than the app. It then sat invisible while
-    // m_awaiting_length made the sketch tool eat every mouse event, which read as the
-    // viewport freezing after a sketch with only Enter able to release it.
-    int disp = wxDisplay::GetFromPoint(screen_px);
-    if (disp == wxNOT_FOUND) disp = wxDisplay::GetFromWindow(m_frame);
-    const wxRect area = (disp != wxNOT_FOUND) ? wxDisplay(unsigned(disp)).GetClientArea()
-                                              : wxGetClientDisplayRect();
-    pos.x = std::max(area.GetLeft(), std::min(pos.x, area.GetRight()  - sz.GetWidth()));
-    pos.y = std::max(area.GetTop(),  std::min(pos.y, area.GetBottom() - sz.GetHeight()));
+    wxPoint pos = clamp_to_display(wxPoint(screen_px.x - sz.GetWidth() / 2,
+                                           screen_px.y - sz.GetHeight() / 2),
+                                   sz, screen_px, m_frame);
     // Show() BEFORE Move(): GTK ignores a Move() issued before the window is mapped (the
     // WM places it at its default, i.e. the top-left corner). Move after Show sticks.
     if (!m_frame->IsShown())
@@ -208,7 +226,13 @@ void SketchInlineEditor::do_commit()
 {
     if (!m_open || m_ctrl == nullptr) return;
     double v = 0.0;
-    if (!en_parse(m_ctrl->GetValue(), v)) {   // invalid: keep editing
+    if (!en_parse(m_ctrl->GetValue(), v)) {   // invalid: keep editing, and SAY SO
+        // Silence here read as a freeze: Enter did nothing, the text re-selected itself, and
+        // nothing on screen said the value had been refused or what would be accepted. Every
+        // other CAD names the problem in place; so do we.
+        flag_invalid(m_ctrl->GetValue().Strip(wxString::both).IsEmpty()
+                         ? _L("Enter a number")
+                         : _L("Not a number"));
         m_ctrl->SetFocus();
         m_ctrl->SelectAll();
         return;
@@ -238,7 +262,45 @@ void SketchInlineEditor::cancel()
 // just entered — the same rule set_tool already follows for a ready edit-op.
 void SketchInlineEditor::commit()
 {
-    if (m_open) do_commit();
+    if (!m_open) return;
+    do_commit();
+    // do_commit REFUSES to close on unparseable text, which is right while the user is still
+    // typing — but this entry point is "we are leaving", and the caller (set_tool) unfreezes
+    // the canvas immediately afterwards. Refusing here left the field alive and focused over a
+    // viewport that was interactive again, editing geometry nothing was pointing at any more.
+    // We cannot accept the text and we must not keep it: fall back to keep-as-drawn, the same
+    // thing Esc means.
+    if (m_open) do_cancel();
+}
+
+// Re-fit around a changed title, keeping the field itself where it is. The frame is anchored
+// top-left, so growing it can push the right edge off the display — re-clamp after the Fit.
+void SketchInlineEditor::refit()
+{
+    if (m_frame == nullptr) return;
+    const wxPoint at = m_frame->GetPosition();
+    m_frame->Fit();
+    m_frame->Move(clamp_to_display(at, m_frame->GetSize(), at, m_frame));
+}
+
+void SketchInlineEditor::flag_invalid(const wxString& why)
+{
+    if (m_title == nullptr) return;
+    m_title->SetLabel(why);
+    m_title->SetForegroundColour(kTitleErr);
+    m_title->Show(true);
+    refit();      // "Not a number" is wider than "Length" — without this it renders as "Not a"
+    m_title->Refresh();
+}
+
+void SketchInlineEditor::clear_invalid()
+{
+    if (m_title == nullptr || m_title->GetForegroundColour() != kTitleErr) return;
+    m_title->SetLabel(m_title_text);
+    m_title->SetForegroundColour(kTitleFg);
+    m_title->Show(!m_title_text.IsEmpty());
+    refit();
+    m_title->Refresh();
 }
 
 void SketchInlineEditor::do_cancel()
@@ -251,7 +313,10 @@ void SketchInlineEditor::do_cancel()
 
 void SketchInlineEditor::close()
 {
-    if (m_frame == nullptr || !m_open) return;
+    // m_closing was written and never read — a flag that looked like re-entrancy protection
+    // and was not. Hide() below pumps native events, so a nested close is reachable in
+    // principle; read the flag and the guard becomes real.
+    if (m_frame == nullptr || !m_open || m_closing) return;
     m_closing = true;
     m_open    = false;
     m_frame->Hide();

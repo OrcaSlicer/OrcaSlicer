@@ -265,6 +265,14 @@ void DesignSketchTool::set_tool(Mode mode)
         && m_features[m_open_feature].end <= m_features[m_open_feature].begin)
         m_features.pop_back();          // always the last one: begin_feature pushed it
     m_open_feature = -1;
+
+    // Constrain-mode picks and the imported-art transform outlived the tool that made them.
+    // Neither can misfire while another mode is active, which is why this is quieter than the
+    // dimension picks — but coming BACK to Constrain resurrected picks made before leaving,
+    // possibly against entities deleted in between. Reset them the way begin_constrain does.
+    m_sel_a = m_sel_b = -1;
+    m_constrain_entities = false;
+    reset_xform();          // cancel() already does this; a tool switch is just as much a leave
     // A READY edit-op carries the user's typed or dragged value, so switching tools commits it
     // rather than dropping it — the same rule Tab follows in the dimension editor. Discarding it
     // here is most of why Fillet looked like it simply did not work: every documented route (type
@@ -10192,10 +10200,17 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             return true;
         }
         if (evt.RightDown()) {
+            // END the chain — do NOT close it. This used to call push_closed_lines() for three
+            // or more points, i.e. it drew a final segment from the last point back to the
+            // first that the user never asked for, and did it silently. No mainstream sketcher
+            // does that: FreeCAD, Fusion and Onshape all end an open chain on right-click and
+            // require the close to be EXPLICIT. Ours already has that gesture — click back on
+            // the start point, which near_first() picks up in the LeftDown branch above — so
+            // the fabricated edge was not even the only way to get a loop, just the one the
+            // user could not see coming. A closed loop is this tab's goal, but an invented
+            // segment is not "precise definition of every aspect", it is a guess.
             const int base = int(m_entities.size());
-            if (m_points.size() >= 3)
-                push_closed_lines(m_points);
-            else if (m_points.size() == 2)
+            if (m_points.size() >= 2)
                 push_open_chain(m_points);
             infer_auto_constraints(base);
             m_points.clear();

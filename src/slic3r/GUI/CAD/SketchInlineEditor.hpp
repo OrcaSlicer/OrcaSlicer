@@ -41,6 +41,12 @@ public:
 private:
     void do_commit();
     void do_cancel();
+    // Say WHY a value was refused, in the title line above the field. Refusing input in
+    // silence is indistinguishable from the app having frozen — the field just sits there
+    // with the text re-selected and the user has no idea what it wants.
+    void refit();                        // re-Fit around a changed title, then re-clamp on-screen
+    void flag_invalid(const wxString& why);
+    void clear_invalid();
 
     wxFrame*                    m_frame{nullptr};
     wxTextCtrl*                 m_ctrl{nullptr};
@@ -49,6 +55,7 @@ private:
     std::function<void()>       m_cancel;
     bool                        m_open{false};
     bool                        m_closing{false};
+    wxString                    m_title_text;   // the real title, restored after an error message
 };
 
 }} // namespace Slic3r::GUI
