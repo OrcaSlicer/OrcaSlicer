@@ -202,6 +202,33 @@ def point_in(pt, ring):
     return inside
 
 
+def interior_point(ring):
+    """A point strictly inside a simple closed ring (first == last).
+
+    The lowest vertex of a simple polygon is always convex, so stepping from it along the
+    bisector of its two edges goes inward; the step is a small fraction of the shorter edge so
+    it stays inside however sharp the corner is.
+    """
+    q = ring[:-1] if len(ring) > 1 and ring[0] == ring[-1] else ring
+    if len(q) < 3:
+        return ring[0]
+    k = min(range(len(q)), key=lambda i: (q[i][1], q[i][0]))
+    v = q[k]
+    a = (q[(k - 1) % len(q)][0] - v[0], q[(k - 1) % len(q)][1] - v[1])
+    b = (q[(k + 1) % len(q)][0] - v[0], q[(k + 1) % len(q)][1] - v[1])
+    la, lb = math.hypot(*a), math.hypot(*b)
+    if la < 1e-12 or lb < 1e-12:
+        return v
+    a = (a[0] / la, a[1] / la)
+    b = (b[0] / lb, b[1] / lb)
+    bx, by = a[0] + b[0], a[1] + b[1]
+    n = math.hypot(bx, by)
+    if n < 1e-12:
+        return v
+    step = 1e-3 * min(la, lb)
+    return (v[0] + bx / n * step, v[1] + by / n * step)
+
+
 # ── one drawing ──────────────────────────────────────────────────────────────
 def grade(pdf, name, report):
     segs = drawing_segments(pdf)
@@ -258,11 +285,17 @@ def grade(pdf, name, report):
     # void. So compute the same rule here, independently, and compare the whole attribution.
     if got:
         rings = [outer] + voids
+        # Probe from a point STRICTLY INSIDE each ring, never from one of its vertices — the
+        # same rule the engine now uses (DesignSketchTool::region_loops). A vertex is exactly
+        # where two loops touch in a real drawing, and a ray cast from a point lying ON the
+        # polygon under test answers by rounding: that alone accounted for every one of the 6
+        # sheets where the two attributions used to disagree. snaporca-5hvl.
+        probes = [interior_point(r) for r in rings]
         mine_parent = {}
         for i, r in enumerate(rings):
             best, best_a = -1, 0.0
             for j, q in enumerate(rings):
-                if i == j or not point_in(r[0], q):
+                if i == j or not point_in(probes[i], q):
                     continue
                 a = shoelace(q)
                 if best < 0 or a < best_a:

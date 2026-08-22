@@ -2311,7 +2311,7 @@ bool DesignSketchTool::try_add_constraints(const std::vector<SketchEntityConstra
     return false;
 }
 
-void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad)
+void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad, double weld_tol)
 {
     const int n = int(m_entities.size());
     if (base < 0 || base >= n) return;
@@ -2341,7 +2341,7 @@ void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad)
                 for (int b = 0; b < nj; ++b) {
                     if (j >= base && j < i) continue;          // avoid duplicate (i,j)/(j,i)
                     Vec2d pb; if (!point_at(j, jr[b], pb)) continue;
-                    if ((pa - pb).squaredNorm() > 1e-6) continue;
+                    if ((pa - pb).squaredNorm() > weld_tol * weld_tol) continue;
                     if (has_coincident(i, ir[a], j, jr[b])) continue;
                     SketchEntityConstraintDef c;
                     c.type = SketchConstraintType::Coincident;
@@ -6261,9 +6261,17 @@ DesignSketchTool::region_loops(const std::vector<SketchEntity>& ents) const
     // what Tommaso hit: a rectangle with a circle inside extruded to a plain box, because only
     // the rectangle loop could be picked and only its entities were passed on.
     //
-    // Loops in a well-formed sketch do not cross, so testing ONE vertex decides containment.
+    // Loops in a well-formed sketch do not cross, so testing ONE point decides containment.
     // Each loop is assigned to the SMALLEST loop that contains it, which is what makes a hole
     // belong to the region that actually bounds it rather than to every enclosing loop.
+    //
+    // The point must be STRICTLY INSIDE the loop, not one of its vertices. A vertex is exactly
+    // where two loops are most likely to touch in a real drawing — a bore breaking out through
+    // a boss wall, a slot that ends on an outline — and a ray cast from a point that lies ON the
+    // polygon being tested answers by rounding, so the same drawing can be read either way.
+    // Measured on the StudyCadCam corpus: the engine and an independent containment check
+    // disagreed on 6 of 39 sheets, and every disagreement was a probe point sitting on the other
+    // loop's boundary. snaporca-5hvl.
     auto poly_area = [](const std::vector<Vec2d>& q) {
         double a2 = 0.0;
         for (size_t i = 0, j = q.size() - 1; i < q.size(); j = i++)
@@ -6280,13 +6288,36 @@ DesignSketchTool::region_loops(const std::vector<SketchEntity>& ents) const
         }
         return in;
     };
+    // A point strictly inside a simple polygon: the lowest vertex of a simple polygon is always
+    // CONVEX, so stepping from it along the bisector of its two edges goes into the interior.
+    // The step is a small fraction of the shorter adjacent edge, so it stays inside however
+    // sharp the corner is.
+    auto interior_point = [](const std::vector<Vec2d>& q) {
+        size_t k = 0;
+        for (size_t i = 1; i < q.size(); ++i)
+            if (q[i].y() < q[k].y() || (q[i].y() == q[k].y() && q[i].x() < q[k].x())) k = i;
+        const Vec2d& v = q[k];
+        Vec2d a = q[(k + q.size() - 1) % q.size()] - v;
+        Vec2d b = q[(k + 1) % q.size()] - v;
+        const double la = a.norm(), lb = b.norm();
+        if (la < 1e-12 || lb < 1e-12) return v;             // degenerate: nothing better to say
+        a /= la; b /= lb;
+        Vec2d bis = a + b;
+        if (bis.norm() < 1e-12) return v;                   // 180 deg spike: same
+        bis.normalize();
+        return Vec2d(v + bis * (1e-3 * std::min(la, lb)));
+    };
+    std::vector<Vec2d> probe(regions.size());
+    for (size_t i = 0; i < regions.size(); ++i)
+        if (regions[i].poly.size() >= 3) probe[i] = interior_point(regions[i].poly);
+        else if (!regions[i].poly.empty()) probe[i] = regions[i].poly.front();
     for (size_t i = 0; i < regions.size(); ++i) {
         if (regions[i].poly.empty()) continue;
         int    best = -1;
         double best_area = 0.0;
         for (size_t j = 0; j < regions.size(); ++j) {
             if (i == j || regions[j].poly.size() < 3) continue;
-            if (!point_in(regions[i].poly.front(), regions[j].poly)) continue;
+            if (!point_in(probe[i], regions[j].poly)) continue;
             const double a2 = poly_area(regions[j].poly);
             if (best < 0 || a2 < best_area) { best = int(j); best_area = a2; }
         }
@@ -8904,7 +8935,19 @@ int DesignSketchTool::add_entities_scripted(const std::vector<SketchEntity>& ent
     // 0.067%, because several segments of the polygon fell inside that 3 degree window. Exact
     // coincidence inference is unaffected — it already tests to 1e-6 — so chains still weld
     // and genuinely axis-aligned scripted geometry still gets its Horizontal/Vertical.
-    infer_auto_constraints(base, 1e-4);
+    //
+    // ZERO, not 1e-4. Any window at all is a window that moves the caller's points, and 1e-4 rad
+    // was still wide enough to catch the short chords of a small flattened circle: on four of
+    // the 39 corpus drawings the loops that came back wrong were all TINY (1.4 to 13 mm^2), out
+    // by up to 7e-4 relative, because a 0.005 degree tilt on a 0.3 mm chord is inside 1e-4.
+    // With zero, only a segment that is EXACTLY axis-aligned is constrained, and constraining
+    // something already true cannot move it. snaporca-8xg1.
+    // The weld window closes too. Two endpoints a micron apart are not the same point when a
+    // caller typed both of them: on MPD681, 20 of 363 scripted segments were dragged onto a
+    // common point up to 0.0021 mm away, because welding is TRANSITIVE and three vertices near
+    // the origin chained into one. Exactly-equal endpoints still weld, which is what keeps a
+    // scripted profile closed — a ring's last point IS its first point.
+    infer_auto_constraints(base, 0.0, 0.0);
     resolve_live();
     return base;
 }

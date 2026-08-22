@@ -632,7 +632,13 @@ private:
     // A gesture needs the default 3 degrees — nobody clicks a horizontal line exactly — but
     // that same slack MOVES geometry that was given exactly, so the scripted path passes a
     // tolerance tight enough to recognise only what is already true. See add_entities_scripted.
-    void infer_auto_constraints(int base, double ang_tol_rad = 3.0 * M_PI / 180.0);
+    // ang_tol_rad: how far off axis a segment may be and still be called Horizontal/Vertical.
+    // weld_tol:    how far apart two endpoints may be and still be called Coincident.
+    // Both default to GESTURE slack. A scripted add passes zero for both: the caller has
+    // already said exactly what it means, and every non-zero window is a window in which the
+    // inference rewrites it. snaporca-8xg1.
+    void infer_auto_constraints(int base, double ang_tol_rad = 3.0 * M_PI / 180.0,
+                                double weld_tol = 1e-3);
 
     // Selection helpers (Mode::Select).
     int hit_test(const Vec2d& p, double tol) const;       // nearest entity within tol, or -1

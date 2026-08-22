@@ -1328,10 +1328,15 @@ TEST_CASE("datum plane: offset + tilt resolution and sketching on it", "[CadDocu
     CHECK_THAT(zmax, WithinAbs(34.0, 1e-6));
     CHECK_THAT(double(doc.display_mesh.volume()), WithinRel(400.0, 0.02));
 
-    // A datum-plane-only document has no solid -> recompute is a benign failure.
+    // A datum-plane-only document has no solid, and that is a benign SUCCESS, not a benign
+    // failure. It used to return false, and "benign failure" is exactly the phrasing that hid
+    // snaporca-mtav: two callers read the false as "unusable document" and threw the design
+    // away — the 3MF recipe was never written, and a project that had one was refused on load.
     CadDocument only_plane;
     only_plane.add_plane(0, 10.0, 0.0, 0, "P");
-    REQUIRE_FALSE(only_plane.recompute());
+    REQUIRE(only_plane.recompute());
+    REQUIRE(only_plane.error.empty());
+    REQUIRE(only_plane.bodies.empty());
 }
 
 TEST_CASE("loft builds a solid skinning two profiles on parallel planes", "[CadDocument]")
@@ -8041,3 +8046,54 @@ TEST_CASE("add_extrude_entities builds a plate with a bore (clockwise circle)", 
     REQUIRE(face_count == 7);
 }
 
+
+// snaporca-mtav. A document that has only sketches in it is not a broken document, it is the
+// state every design passes through between drawing a profile and extruding it. recompute()
+// used to call that "no solid-producing features" and return false, and two things downstream
+// read that false as "the document is unusable": the GUI syncs the 3MF recipe only after a
+// successful recompute, so a sketch-only design was saved with NO recipe at all and vanished on
+// reopen; and deserialize_recipe ends with `return recompute()`, so even a project that did
+// carry one was refused on load. The failure has to stay for a document that ASKED for a solid
+// and got none — that is a real geometry failure — so both halves are asserted here.
+TEST_CASE("A sketch-only document recomputes and round-trips", "[CadDocument]")
+{
+    CadDocument doc;
+    std::vector<SketchEntity> ents{
+        {SketchEntity::Type::Line, Vec2d(-60, -40), Vec2d(60, -40)},
+        {SketchEntity::Type::Line, Vec2d(60, -40), Vec2d(60, 40)},
+        {SketchEntity::Type::Line, Vec2d(60, 40), Vec2d(-60, 40)},
+        {SketchEntity::Type::Line, Vec2d(-60, 40), Vec2d(-60, -40)},
+    };
+    const int sk = doc.add_sketch_entities(ents, SketchPlane::XY(), "Profile");
+    REQUIRE(sk == 0);
+
+    const bool built = doc.recompute();     // nothing to build is not a failure
+    INFO("recompute error: " << doc.error);
+    REQUIRE(built);
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.empty());
+
+    const std::string blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument fresh;
+    REQUIRE(fresh.deserialize_recipe(blob));
+    REQUIRE(fresh.error.empty());
+    REQUIRE(fresh.features.size() == 1);
+    REQUIRE(fresh.features[0].name == "Profile");
+    REQUIRE(fresh.features[0].entities.size() == 4);
+    for (size_t i = 0; i < ents.size(); ++i) {
+        REQUIRE(fresh.features[0].entities[i].p0.x() == ents[i].p0.x());
+        REQUIRE(fresh.features[0].entities[i].p0.y() == ents[i].p0.y());
+        REQUIRE(fresh.features[0].entities[i].p1.x() == ents[i].p1.x());
+        REQUIRE(fresh.features[0].entities[i].p1.y() == ents[i].p1.y());
+    }
+
+    // The other half of the rule: a feature that MEANT to build a solid and produced none is
+    // still an error, and must not be swallowed by the change above.
+    CadDocument bad;
+    bad.add_sketch_entities(ents, SketchPlane::XY(), "Profile");
+    bad.add_extrude(0, 0.0, false, BooleanMode::New, "ZeroDepth");
+    REQUIRE_FALSE(bad.recompute());
+    REQUIRE_FALSE(bad.error.empty());
+}

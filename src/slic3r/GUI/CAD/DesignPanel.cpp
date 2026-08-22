@@ -6630,6 +6630,24 @@ void DesignPanel::load_recipe(const std::string& blob)
 
 void DesignPanel::refresh_tree()
 {
+    // The recipe mirrors the FEATURE LIST, and this is the moment the feature list changed —
+    // every add, delete, reorder, rename and suppression ends here to redraw the tree. Putting
+    // the sync in recompute_guarded instead tied it to "a solid was built", and CadDocument::
+    // recompute() returns FALSE for a document that has no solid ("no solid-producing features",
+    // CadDocument.cpp) — which is precisely a document the user has only drawn sketches in. So
+    // drawing a profile, pressing Confirm and saving wrote a 3MF with no SnapOrca_cad.bin in it
+    // at all, and the app reported success: the whole design was gone on reopen (snaporca-mtav).
+    // The three sites that say "a lone sketch yields an empty body; that is expected" call
+    // m_doc.recompute() directly and so never reached the sync either. One hook here covers all
+    // of them, including the live sketch tool's own commit path.
+    //
+    // ONLY when the document has something in it. sync_recipe_to_model() CLEARS the blob for an
+    // empty document, and the tree is also refreshed while the Design tab is still empty — before
+    // the deferred load at on_show() has had the chance to read the blob the project arrived
+    // with. Clearing there would destroy the recipe of every project being opened. Deleting the
+    // last feature still clears it, through the tree-edit call site that always did.
+    if (!m_doc.features.empty()) sync_recipe_to_model();
+
     // Preserve the selected row across the rebuild — wxTreeCtrl::DeleteAllItems
     // drops the selection, which made every edit/add feel like it "lost" the
     // selection (and broke Edit/Move/Delete on the just-touched feature).

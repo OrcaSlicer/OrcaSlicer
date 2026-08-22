@@ -3510,6 +3510,14 @@ bool CadDocument::recompute()
     error.clear();
     detect_mate_conflicts();
     std::vector<CadBody> built;
+    // Did any feature in this document even ASK for a solid? A document made only of sketches
+    // and datums has nothing to build, and that is a legitimate state — it is every document
+    // between drawing the first profile and extruding it. Reporting it as a failure is what
+    // made a sketch-only design unsaveable AND unopenable: DesignPanel::recompute_guarded syncs
+    // the 3MF recipe only "on success", so nothing was written, and deserialize_recipe ends with
+    // `return recompute()`, so a project that did carry a recipe was refused on load with
+    // "Could not restore the CAD model" while its features sat correctly in the list. snaporca-mtav.
+    bool any_solid_feature = false;
     try {
         // Parametric pass: evaluate document variables, then each feature's expression bindings,
         // writing the results into the feature's numeric fields before geometry runs.
@@ -3525,6 +3533,8 @@ bool CadDocument::recompute()
             if (f.type == CadFeatureType::Plane)   continue; // datum: no solid, derived on demand
             if (f.type == CadFeatureType::Axis)    continue; // datum axis
             if (f.type == CadFeatureType::CoordSys) continue; // datum coordinate system
+            // Past the skips: this feature is one that means to leave a body behind.
+            any_solid_feature = true;
             if (f.type == CadFeatureType::Project) { apply_project(built, f); }
             else                                   { route_feature(built, f); }
             // Record which feature made each body. "Still unset?" is the whole rule, and it is
@@ -3551,7 +3561,7 @@ bool CadDocument::recompute()
         error = "unknown geometry error";
         return false;
     }
-    if (built.empty()) { error = "no solid-producing features"; return false; }
+    if (built.empty() && any_solid_feature) { error = "no solid-producing features"; return false; }
 
     // A feature that leaves a body with a null shape must fail loudly. Until this existed,
     // recompute() returned true and the document kept advertising the body: describe_scene
@@ -3624,7 +3634,9 @@ bool CadDocument::recompute()
     display_mesh = tessellate_bodies(bodies, display_tri_face, display_tri_body,
                                      display_body_meshes,
                                      linear_deflection, angular_deflection);
-    if (display_mesh.its.indices.empty()) {
+    if (display_mesh.its.indices.empty() && any_solid_feature) {
+        // Empty only because there are no bodies to tessellate is the same legitimate state as
+        // above: a sketch-only document has nothing to draw as a solid, and that is not a fault.
         error = "tessellation produced an empty mesh";
         return false;
     }
