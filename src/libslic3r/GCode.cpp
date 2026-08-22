@@ -2887,7 +2887,9 @@ static BambuBedType to_bambu_bed_type(BedType type)
     return bambu_bed_type;
 }
 
-// Orca IMEX: Returns the tool indices active in the current IMEX mode.
+// Orca IMEX: Returns the PHYSICAL tool indices the active IMEX mode drives, or an EMPTY
+// vector in primary mode -- a single tool, so there are no parallel carriages to list.
+// The mode's Primary head IS included in parallel modes; callers handle it themselves.
 // In copy/mirror parallel modes, secondary carriages never receive tool-change
 // commands — the firmware mirrors the primary's moves — so they don't appear in
 // tool_ordering.all_extruders(). This helper extracts the active mode's tool string
@@ -2905,6 +2907,10 @@ static std::vector<int> get_imex_active_tools(const Print& print)
 
     const std::string& raw_mode = print.objects().front()->config().imex_parallel_mode.value;
     const std::string  active_mode = raw_mode.empty() ? kImexPrimaryMode : raw_mode;
+
+    // Primary mode drives a single tool, so there are no parallel carriages to list.
+    if (active_mode == kImexPrimaryMode)
+        return active_tools;
 
     const auto* mode_names_opt = print.config().option<ConfigOptionStrings>("imex_mode_names");
     const auto* tools_opt      = print.config().option<ConfigOptionStrings>("imex_mode_active_tools");

@@ -715,6 +715,7 @@ TEST_CASE("Multi-extruder slice stays in bounds with a short max_layer_height", 
     REQUIRE_FALSE(print.objects().front()->layers().empty());
 }
 
+
 // Shared IMEX printer geometry: 7 logical extruders across 4 physical heads.
 // physical_extruder_map is only honoured when its length matches the nozzle count
 // (PrintApply feeds effective_physical_extruder_map the nozzle_diameter size), so the
@@ -777,6 +778,53 @@ TEST_CASE("Parallel-mode IMEX prints transition the printing head to its second-
     CHECK(gcode.find("M104 S240 T0") != std::string::npos);
     // Head 1 is the copy carriage; it already worked and must keep working.
     CHECK(gcode.find("M104 S240 T1") != std::string::npos);
+}
+
+// IMEX supplements is_extruder_used for the secondary carriages a parallel mode drives.
+// `primary` drives exactly one tool, so the supplement must not run: routing every region
+// to filament 6 puts the initial tool on physical head 2, while the mode's only declared
+// head is 0, which the unguarded supplement resolved back to filament slot 0.
+TEST_CASE("Primary-mode IMEX prints mark only the filament slot they print with",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 6); // filament 6 => logical slot 5 => physical head 2
+    config.set_deserialize_strict({
+        { "imex_parallel_mode", "primary" },
+        { "machine_start_gcode",
+          ";USED0:{if is_extruder_used[0]}1{else}0{endif}\n"
+          ";USED5:{if is_extruder_used[5]}1{else}0{endif}\n" },
+    });
+
+    const std::string gcode = slice({ cube(20) }, config);
+
+    CHECK(gcode.find(";USED5:1") != std::string::npos);
+    CHECK(gcode.find(";USED0:0") != std::string::npos);
+}
+
+// Guard rail for the fix above: the modes the supplement exists for must keep marking their
+// secondaries. `copy` declares heads 0 and 1; neither is the initial tool's head (filament 6
+// routes to head 2), so both are still enumerated. Head 0 -> slot 0, head 1 -> slot 4.
+TEST_CASE("Copy-mode IMEX prints still mark every secondary carriage's filament slot",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 6);
+    config.set_deserialize_strict({
+        { "imex_parallel_mode", "copy" },
+        { "machine_start_gcode",
+          ";USED0:{if is_extruder_used[0]}1{else}0{endif}\n"
+          ";USED4:{if is_extruder_used[4]}1{else}0{endif}\n"
+          ";USED5:{if is_extruder_used[5]}1{else}0{endif}\n" },
+    });
+
+    const std::string gcode = slice({ cube(20) }, config);
+
+    CHECK(gcode.find(";USED5:1") != std::string::npos);
+    CHECK(gcode.find(";USED0:1") != std::string::npos);
+    CHECK(gcode.find(";USED4:1") != std::string::npos);
 }
 
 // The two IMEX changes are coupled: get_imex_active_tools() now returns an empty roster in
