@@ -127,7 +127,7 @@ static const OfferVerb kOfferVerbs[] = {
     {"delete", "Delete", 7, "Del", "btn:delete", nullptr, 0x000f7c00u, 0, 0, false, false, nullptr, "design_delete", "Delete what is selected"},
     {"delete_body", "Delete Body", 7, nullptr, "btn:delete_body", nullptr, 0x000001feu, 1, 0, false, false, nullptr, "design_delete", "Delete this whole body — removes the feature it was made from"},
     {"sk_line_t", "Line", 0, "L", "key:L", nullptr, 0x000f8000u, 0, 0, false, true, "Line", "design_line", "Line — click start, then end"},
-    {"sk_polyline", "Polyline", 0, nullptr, "fly:design_line#1", nullptr, 0x000f8000u, 0, 0, false, true, "Line", "design_polyline", "Click points; click first / right-click to close the loop"},
+    {"sk_polyline", "Polyline", 0, nullptr, "fly:design_line#1", nullptr, 0x000f8000u, 0, 0, false, true, "Line", "design_polyline", "Click points; click the first point to close the loop, right-click to end it open"},
     {"sk_rect", "Corner rectangle", 0, "R", "key:R", nullptr, 0x000f8000u, 0, 0, false, true, "Rectangle", "design_rect", "Rectangle — click two opposite corners"},
     {"sk_rect_center", "Centre rectangle", 0, nullptr, "fly:design_rect#1", nullptr, 0x000f8000u, 0, 0, false, true, "Rectangle", "design_crect", "Click center, then a corner"},
     {"sk_rect_oblique", "Oblique rectangle", 0, nullptr, "fly:design_rect#2", nullptr, 0x000f8000u, 0, 0, false, true, "Rectangle", "design_rect_oblique", "Click two corners of one edge, then a point for the width"},

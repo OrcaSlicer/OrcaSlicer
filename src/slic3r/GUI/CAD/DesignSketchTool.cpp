@@ -2206,9 +2206,25 @@ bool DesignSketchTool::screen_to_plane(GLCanvas3D& canvas, const wxMouseEvent& e
     return true;
 }
 
-bool DesignSketchTool::near_first(const Vec2d& p) const
+// Closing the loop is THE outcome this tab exists for — a sketch that is not closed cannot be
+// extruded — so it must be as easy and as visible as any other snap, and it must behave the
+// same at every zoom. This used to be a bare `squaredNorm() < 4.0`, i.e. a fixed 2 mm bubble in
+// plane units: a pixel hunt zoomed out, an over-eager magnet zoomed in, and invisible either
+// way — nothing told the user their next click would close the loop rather than place another
+// vertex. Now the chain's first point is a real snap target on the same 8 px screen tolerance
+// as every endpoint snap: hovering it moves the cursor exactly onto it, which makes the rubber
+// band draw the closing segment as a preview and lights the existing snap marker. The click
+// then closes only because it was SNAPPED, never because it was merely nearby.
+bool DesignSketchTool::snap_chain_start(GLCanvas3D& canvas, const wxMouseEvent& evt, Vec2d& p) const
 {
-    return m_points.size() >= 3 && (p - m_points[0]).squaredNorm() < 4.0;
+    if (m_mode != Mode::Polyline || m_points.size() < 3) return false;
+    if ((p - m_points[0]).norm() > screen_tol(canvas, evt, p)) return false;
+    p = m_points[0];
+    InferenceSnap s;
+    s.kind  = InferenceSnap::Kind::Endpoint;   // renders the same hint as any endpoint snap
+    s.point = m_points[0];
+    const_cast<DesignSketchTool*>(this)->m_cursor_snap = s;
+    return true;
 }
 
 Vec2d DesignSketchTool::snap_dir(const Vec2d& anchor, const Vec2d& raw, bool& locked) const
@@ -10156,6 +10172,9 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         m_cursor_locked = false;
         bool vsnap = false;
         m_cursor = snap_vertex(canvas, evt, m_cursor, vsnap);   // preview-snap to endpoints
+        // The chain's own start is not an entity yet, so snap_vertex cannot see it. Offer it
+        // here: the cursor lands exactly on it, so the rubber band below IS the closing segment.
+        if (snap_chain_start(canvas, evt, m_cursor)) vsnap = true;
         const bool line_like = (m_mode == Mode::Polyline || m_mode == Mode::Line);
         if (line_like && !m_points.empty() && !vsnap)
             m_cursor = snap_dir(m_points.back(), m_cursor, m_cursor_locked);
@@ -10175,7 +10194,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             m_snap_off = evt.ShiftDown();
             bool vsnap = false;
             p = snap_vertex(canvas, evt, p, vsnap);   // snap onto an existing endpoint
-            if (near_first(p)) {              // closing the current chain back to its start
+            if (snap_chain_start(canvas, evt, p)) {   // clicked the previewed close target
                 const int base = int(m_entities.size());
                 push_closed_lines(m_points);  // close the loop
                 infer_auto_constraints(base); // loop self-closes via auto Coincident + H/V
@@ -10204,11 +10223,12 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             // or more points, i.e. it drew a final segment from the last point back to the
             // first that the user never asked for, and did it silently. No mainstream sketcher
             // does that: FreeCAD, Fusion and Onshape all end an open chain on right-click and
-            // require the close to be EXPLICIT. Ours already has that gesture — click back on
-            // the start point, which near_first() picks up in the LeftDown branch above — so
-            // the fabricated edge was not even the only way to get a loop, just the one the
-            // user could not see coming. A closed loop is this tab's goal, but an invented
-            // segment is not "precise definition of every aspect", it is a guess.
+            // require the close to be EXPLICIT. Ours has that gesture — click the chain's first
+            // point, which snap_chain_start() previews and snaps onto in the LeftDown branch
+            // above, so the closing segment is on screen BEFORE it is committed. A closed loop
+            // is this tab's goal and it stays a four-action triangle either way; what changes
+            // is that the closing edge is now something the user saw and chose, not one the
+            // app appended on their behalf.
             const int base = int(m_entities.size());
             if (m_points.size() >= 2)
                 push_open_chain(m_points);

@@ -1181,7 +1181,7 @@
       "mode": "sketch",
       "family": "Line",
       "icon": "design_polyline",
-      "hint": "Click points; click first / right-click to close the loop"
+      "hint": "Click points; click the first point to close the loop, right-click to end it open"
     },
     {
       "id": "sk_rect",

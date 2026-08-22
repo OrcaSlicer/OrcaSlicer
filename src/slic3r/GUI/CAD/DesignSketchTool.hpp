@@ -601,7 +601,10 @@ public:
 
 private:
     bool screen_to_plane(GLCanvas3D& canvas, const wxMouseEvent& evt, Vec2d& out) const;
-    bool near_first(const Vec2d& p) const;
+    // True when the cursor is close enough to the open chain's FIRST point to close the loop,
+    // on the same screen tolerance as every other snap; snaps `p` exactly onto that point so
+    // the rubber band previews the closing segment and the snap marker lights.
+    bool snap_chain_start(GLCanvas3D& canvas, const wxMouseEvent& evt, Vec2d& p) const;
 
     // Onshape-style angle inference: snap the direction anchor->raw to the nearest
     // of {0,30,45,60,90} deg (replicated every 90 deg) when within tolerance, keeping
