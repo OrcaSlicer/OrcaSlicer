@@ -236,9 +236,35 @@ void DesignSketchTool::set_tool(Mode mode)
     m_mode = mode;
     m_points.clear();
     m_has_cursor = false;
-    m_awaiting_length = false;
-    m_autoedit_seen = int(m_entities.size());   // resync baseline so a switch never fires
-    m_autoedit_pending = false;
+    // DRAIN THE QUEUED DIMENSIONS, do not just resync the baseline. on_inline_commit() above
+    // commits the field that is open, and the commit callback installed by
+    // open_next_autoedit_dim does `++m_autoedit_dim_idx; CallAfter(open_next_autoedit_dim)` —
+    // so the switch's OWN commit schedules the next queued field, which then opens on top of the
+    // tool the user just armed. Measured: draw a rectangle, its Width field opens, arm Line from
+    // the offer; Width commits, the status line reads "Line — click start, then end", and the
+    // rectangle's Height field is sitting over it. (The keyboard cannot reproduce it: in_text
+    // includes inline_busy(), so letters are swallowed while a field is open — the switch has to
+    // come from the menu, the toolbar or the MCP socket.)
+    //
+    // reset_autoedit() is the existing helper for exactly this and its comment already says it
+    // "mirrors set_tool's resync" — the three lines that used to be here were that mirror drifting
+    // out of step, missing the two members that matter. The already-queued CallAfter then finds
+    // m_autoedit_dim_idx == -1 and returns through the guard at the top of open_next_autoedit_dim.
+    //
+    // The current value is COMMITTED rather than cancelled, matching the ready-edit-op rule a few
+    // lines above and Tab in the dimension editor. Esc is the gesture that means keep-as-drawn; a
+    // tool switch is not Esc.
+    reset_autoedit();
+
+    // An abandoned gesture must not leave its half-open Feature behind. begin_feature() pushes a
+    // Feature with end == begin immediately and end_feature() is what fills it in — and pops it
+    // when the gesture appended nothing. Switching tools mid-gesture skips end_feature entirely,
+    // so a zero-span Feature stays in m_features for good and m_open_feature stays set, which
+    // also gates the auto-edit trigger for whatever is drawn next.
+    if (m_open_feature >= 0 && m_open_feature < int(m_features.size())
+        && m_features[m_open_feature].end <= m_features[m_open_feature].begin)
+        m_features.pop_back();          // always the last one: begin_feature pushed it
+    m_open_feature = -1;
     // A READY edit-op carries the user's typed or dragged value, so switching tools commits it
     // rather than dropping it — the same rule Tab follows in the dimension editor. Discarding it
     // here is most of why Fillet looked like it simply did not work: every documented route (type
