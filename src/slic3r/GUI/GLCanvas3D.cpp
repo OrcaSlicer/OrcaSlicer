@@ -3228,7 +3228,21 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     // BBS
     //m_dirty |= wxGetApp().plater()->get_view_toolbar().update_items_state();
     m_dirty |= wxGetApp().plater()->get_collapse_toolbar().update_items_state();
-    bool mouse3d_controller_applied = wxGetApp().plater()->get_mouse3d_controller().apply(wxGetApp().plater()->get_camera());
+    // ONLY THE CANVAS THE USER IS LOOKING AT MAY CONSUME THE 3D-MOUSE QUEUE. apply() DRAINS the
+    // queue, and every bound canvas idles — but a hidden canvas's render() early-returns on
+    // _is_shown_on_screen(), so the motion it swallowed is applied to the SHARED camera and never
+    // drawn. The next visible frame then jumps by more than one state change at once.
+    //
+    // The plater avoids this by binding exactly one of its three views at a time (Plater.cpp,
+    // around the current_panel switch). The Design tab's canvas binds once at construction and
+    // never unbinds, so from the moment it exists two canvases drain the same queue. Reported
+    // upstream as the SpaceMouse being "more severe lag, and jerkyness vs really smooth on the
+    // other tab ... its more than 1 state change" (OrcaSlicer PR #15238).
+    //
+    // Guarding here rather than at the bind sites fixes the whole class: whatever is bound, only
+    // the visible canvas takes motion off the queue.
+    bool mouse3d_controller_applied = _is_shown_on_screen()
+        && wxGetApp().plater()->get_mouse3d_controller().apply(wxGetApp().plater()->get_camera());
     m_dirty |= mouse3d_controller_applied;
     m_dirty |= wxGetApp().plater()->get_notification_manager()->update_notifications(*this);
     auto gizmo = wxGetApp().plater()->get_view3D_canvas3D()->get_gizmos_manager().get_current();
