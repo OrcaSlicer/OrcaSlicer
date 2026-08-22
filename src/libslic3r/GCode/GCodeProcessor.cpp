@@ -5037,10 +5037,10 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
         if (!is_extrusion_only_move(delta_pos))
             curr.enter_direction = curr.enter_direction / norm;
         curr.exit_direction = curr.enter_direction;
-        curr.jd_unit_vec = Vec4f(static_cast<float>(delta_pos[X]) * inv_distance,
-                                 static_cast<float>(delta_pos[Y]) * inv_distance,
-                                 static_cast<float>(delta_pos[Z]) * inv_distance,
-                                 static_cast<float>(delta_pos[E]) * inv_distance);
+        curr.jd_unit_vec = Vec4f(static_cast<float>(delta_pos[X]),
+                                 static_cast<float>(delta_pos[Y]),
+                                 static_cast<float>(delta_pos[Z]),
+                                 static_cast<float>(delta_pos[E])).normalized();
 
         TimeBlock block;
         block.move_type = type;
@@ -5415,10 +5415,10 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
         if (!is_extrusion_only_move(delta_pos))
             curr.enter_direction = curr.enter_direction / norm;
         curr.exit_direction = curr.enter_direction;
-        curr.jd_unit_vec = Vec4f(static_cast<float>(delta_pos[X]) * inv_distance,
-                                 static_cast<float>(delta_pos[Y]) * inv_distance,
-                                 static_cast<float>(delta_pos[Z]) * inv_distance,
-                                 static_cast<float>(delta_pos[E]) * inv_distance);
+        curr.jd_unit_vec = Vec4f(static_cast<float>(delta_pos[X]),
+                                 static_cast<float>(delta_pos[Y]),
+                                 static_cast<float>(delta_pos[Z]),
+                                 static_cast<float>(delta_pos[E])).normalized();
 
         TimeBlock block;
         block.move_type = type;
@@ -7245,6 +7245,11 @@ float GCodeProcessor::calc_vmax_junction_deviation(const TimeBlock& block, const
         return 0.0f;  // starts from rest, the planner raises this on the reverse pass
 
     // -1 for a straight continuation, +1 for a full reversal. Half angle identity, no acos()/sin().
+    // Both vectors are unit length over XYZE, so this really is a cosine: scaling by 1 / distance
+    // instead, as PrusaSlicer does, leaves an E term that makes extruding corners look straighter
+    // than they are. Marlin normalizes over XYZE for any extruding move (planner.cpp, esteps > 0)
+    // and Klipper keeps E out of the cosine entirely (toolhead.py::Move.calc_junction); both agree
+    // that the corner is planned by its geometry, and normalizing matches them to within 1e-5.
     float junction_cos_theta = (-prev.jd_unit_vec).dot(curr.jd_unit_vec);
     if (junction_cos_theta > 0.999999f)
         return 0.0f; // the path doubles back, the machine has to stop
