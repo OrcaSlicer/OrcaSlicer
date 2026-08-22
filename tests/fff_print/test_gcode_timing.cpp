@@ -468,22 +468,27 @@ FullPrintConfig make_junction_config(GCodeFlavor flavor, double corner_velocity,
 constexpr double junction_x = 60.0;
 constexpr double junction_y = 60.0;
 
-// Two 40mm travels meeting at (junction_x, junction_y) with the given turn, rotated by `orientation`.
+// Two 40mm moves meeting at (junction_x, junction_y) with the given turn, rotated by `orientation`.
 // 40mm is long enough to reach the commanded 150mm/s and brake back to any corner speed these tests
-// produce. Travels (no E) keep the junction vector purely geometric, as the formulas below assume.
-std::string corner_gcode(double turn_deg, double orientation_deg)
+// produce. `e_per_mm` of zero makes them travels, which keeps the junction vector purely geometric
+// as the formulas below assume.
+std::string corner_gcode(double turn_deg, double orientation_deg, double e_per_mm = 0.0)
 {
     const double len   = 40.0;
     const double a_in  = orientation_deg * M_PI / 180.0;
     const double a_out = (orientation_deg + turn_deg) * M_PI / 180.0;
+    std::ostringstream extrude;
+    if (e_per_mm > 0.0)
+        extrude << std::fixed << std::setprecision(4) << " E" << len * e_per_mm;
 
     std::ostringstream os;
     os << std::fixed << std::setprecision(4)
        << "M83\n"
        << "G1 Z0.2 F1200\n"
        << "G1 X" << junction_x - len * std::cos(a_in)  << " Y" << junction_y - len * std::sin(a_in)  << " F6000\n"
-       << "G1 X" << junction_x                         << " Y" << junction_y                         << " F9000\n"
-       << "G1 X" << junction_x + len * std::cos(a_out) << " Y" << junction_y + len * std::sin(a_out) << " F9000\n";
+       << "G1 X" << junction_x                         << " Y" << junction_y   << extrude.str()      << " F9000\n"
+       << "G1 X" << junction_x + len * std::cos(a_out) << " Y" << junction_y + len * std::sin(a_out)
+       << extrude.str() << " F9000\n";
     return os.str();
 }
 
@@ -492,7 +497,7 @@ std::string corner_gcode(double turn_deg, double orientation_deg)
 double corner_speed(const GCodeProcessorResult& r)
 {
     for (const auto& mv : r.moves)
-        if (mv.type == EMoveType::Travel &&
+        if ((mv.type == EMoveType::Travel || mv.type == EMoveType::Extrude) &&
             std::abs(mv.position.x() - junction_x) < 1e-3 &&
             std::abs(mv.position.y() - junction_y) < 1e-3)
             return mv.actual_feedrate;
@@ -500,11 +505,11 @@ double corner_speed(const GCodeProcessorResult& r)
 }
 
 double planned_corner_speed(GCodeFlavor flavor, double corner_velocity, double junction_deviation,
-                            double turn_deg, double orientation_deg = 0.0)
+                            double turn_deg, double orientation_deg = 0.0, double e_per_mm = 0.0)
 {
     GCodeProcessor proc;
     run_processor(proc, make_junction_config(flavor, corner_velocity, junction_deviation),
-                  corner_gcode(turn_deg, orientation_deg).c_str());
+                  corner_gcode(turn_deg, orientation_deg, e_per_mm).c_str());
     return corner_speed(proc.get_result());
 }
 
@@ -580,5 +585,32 @@ TEST_CASE("Junction deviation is only used where the firmware actually plans wit
         const double without = planned_corner_speed(gcfMarlinLegacy, jerk, 0.0, 90.0);
         REQUIRE_THAT(planned_corner_speed(gcfMarlinLegacy, jerk, 0.05, 90.0),
                      Catch::Matchers::WithinRel(without, 1e-4));
+    }
+}
+
+TEST_CASE("How fast a corner is taken does not depend on how much is extruded through it",
+          "[GCodeTiming][JunctionDeviation]")
+{
+    // The junction cosine is taken over XYZE, so the direction vectors have to be unit length or the
+    // E term makes the two paths look more parallel than they are and the corner comes out too fast,
+    // the more so the higher the flow. Marlin normalizes over XYZE on any extruding move
+    // (planner.cpp, esteps > 0) and Klipper leaves E out of the cosine altogether
+    // (toolhead.py::Move.calc_junction); on both, this corner is planned by its geometry alone.
+    const double scv  = 5.0;
+    const double turn = 6.0;
+    const double geometric = planned_corner_speed(gcfKlipper, scv, 0.0, turn);
+    REQUIRE(geometric > 0.0);
+
+    // 0.029mm/mm is an ordinary 0.42 x 0.2 line on 1.75mm filament; 0.1 is a fat large-nozzle one.
+    // Unnormalized these came out at 94.4 and 150.0mm/s against a geometric 86.9.
+    for (double e_per_mm : {0.029, 0.1})
+        REQUIRE_THAT(planned_corner_speed(gcfKlipper, scv, 0.0, turn, 0.0, e_per_mm),
+                     Catch::Matchers::WithinRel(geometric, 0.02));
+
+    SECTION("and the same holds on Marlin 2") {
+        const double marlin = planned_corner_speed(gcfMarlinFirmware, scv, 0.05, turn);
+        REQUIRE(marlin > 0.0);
+        REQUIRE_THAT(planned_corner_speed(gcfMarlinFirmware, scv, 0.05, turn, 0.0, 0.029),
+                     Catch::Matchers::WithinRel(marlin, 0.02));
     }
 }

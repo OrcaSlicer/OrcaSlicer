@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <boost/filesystem.hpp>
+#include <fstream>
 
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -132,7 +133,7 @@ TEST_CASE("Current vendor type tolerates missing printer model", "[Preset][Bundl
 {
     PresetBundle bundle;
 
-    VendorProfile orca_vendor("ORCA");
+    VendorProfile orca_vendor; orca_vendor.id = "ORCA";
     VendorProfile::PrinterModel model;
     model.name = "Orca Test";
     orca_vendor.models.emplace_back(model);
@@ -141,6 +142,31 @@ TEST_CASE("Current vendor type tolerates missing printer model", "[Preset][Bundl
     bundle.printers.get_edited_preset().config.erase("printer_model");
 
     CHECK(bundle.get_current_vendor_type() == VendorType::Unknown);
+}
+
+TEST_CASE("A malformed entry in a vendor's preset list is counted, not thrown", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir dir;
+
+    // A bare number where the list wants an object. An array element has no key,
+    // so reporting one as if it did throws nlohmann's invalid_iterator - which is
+    // not a parse_error, and escapes the catch around the vendor profile parse.
+    std::ofstream((dir.path() / "Acme.json").string())
+        << R"({"version":"1.0.0","name":"Acme","process_list":[123,)"
+        << R"({"name":"0.20mm Standard @Acme","sub_path":"process/standard.json"}]})";
+    fs::create_directories(dir.path() / "Acme" / "process");
+    std::ofstream((dir.path() / "Acme" / "process" / "standard.json").string())
+        << R"({"type":"process","name":"0.20mm Standard @Acme","from":"system",)"
+        << R"("instantiation":"true","layer_height":"0.2"})";
+
+    PresetBundle bundle;
+    size_t       loaded = 0;
+    REQUIRE_NOTHROW(loaded = bundle.load_vendor_configs_from_json(
+                        dir.path().string(), "Acme", PresetBundle::LoadSystem,
+                        ForwardCompatibilitySubstitutionRule::EnableSilent).second);
+
+    CHECK(bundle.error_count() > 0);   // the malformed element was counted
+    CHECK(loaded == 1);                // the well-formed one beside it still loaded
 }
 
 TEST_CASE("Printer extruder count tolerates missing nozzle diameter", "[Preset][Bundle]")
