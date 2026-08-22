@@ -3885,6 +3885,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             // for the PA setting lookup. Guarded on non-empty pem above.
             const int initial_physical = m_config.physical_extruder_map.get_at((int)initial_extruder_id);
             for (int tool_idx : get_imex_active_tools(print)) {
+                // Unlike the second-layer temperature loop, the primary is skipped here:
+                // set_extruder() above already emitted its PA with the pem tool qualifier.
                 if (tool_idx == initial_physical) continue;
                 const int logical = resolve_filament_for_head(
                     m_imex_head_filament_map, m_config.physical_extruder_map, tool_idx);
@@ -5902,20 +5904,21 @@ LayerResult GCode::process_layer(
             // All active tools need explicit temps — none receive tool-change commands,
             // so we can't rely on the condition used for non-IMEX (temp != initial_layer_temp).
             // A tool whose initial and regular temps are the same still needs to be set here.
-            // Skip the primary head: its filament is governed by the object sidebar and
-            // the standard per-extruder temp path already addresses it (matching the PA
-            // emission site above). `tool_idx` is physical; resolve to a filament slot
-            // via pem inversion for temp lookup.
-            const int num_nozzles = (int)print.config().nozzle_temperature.values.size();
+            // Mutually exclusive with the `else` below, so a head skipped here gets no
+            // transition at all. `tool_idx` is physical; the printing head uses this layer's
+            // own filament, the parallel carriages resolve through the head map.
+            const int num_filament_columns = (int)print.config().nozzle_temperature.values.size();
             const int initial_physical = m_config.physical_extruder_map.values.empty()
                 ? -1
                 : m_config.physical_extruder_map.get_at((int)first_extruder_id);
             for (int tool_idx : get_imex_active_tools(print)) {
-                if (tool_idx == initial_physical) continue;
-                const int logical = resolve_filament_for_head(
-                    m_imex_head_filament_map, m_config.physical_extruder_map, tool_idx);
-                if (logical < 0 || logical >= num_nozzles) continue;
-                int temperature = print.config().nozzle_temperature.values[logical];
+                const int logical = (tool_idx == initial_physical)
+                    ? (int)first_extruder_id
+                    : resolve_filament_for_head(
+                          m_imex_head_filament_map, m_config.physical_extruder_map, tool_idx);
+                if (logical < 0 || logical >= num_filament_columns) continue;
+                // Variant-expanded printers column each filament; index as the `else` does.
+                int temperature = print.config().nozzle_temperature.get_at(get_filament_config_index(logical));
                 if (temperature > 0)
                     gcode += GCodeWriter::set_temperature(temperature, m_writer.config.gcode_flavor, false,
                         tool_idx, "set IMEX tool temperature");
