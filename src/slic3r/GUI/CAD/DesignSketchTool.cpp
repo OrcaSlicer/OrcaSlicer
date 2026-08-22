@@ -2311,7 +2311,7 @@ bool DesignSketchTool::try_add_constraints(const std::vector<SketchEntityConstra
     return false;
 }
 
-void DesignSketchTool::infer_auto_constraints(int base)
+void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad)
 {
     const int n = int(m_entities.size());
     if (base < 0 || base >= n) return;
@@ -2357,7 +2357,7 @@ void DesignSketchTool::infer_auto_constraints(int base)
     //    so a single conflict never drops the others).
     for (int i = base; i < n; ++i) {
         if (m_entities[i].type != SketchEntity::Type::Line) continue;
-        auto ax = infer_axis_constraint(m_entities[i].p0, m_entities[i].p1);
+        auto ax = infer_axis_constraint(m_entities[i].p0, m_entities[i].p1, ang_tol_rad);
         if (!ax) continue;
         SketchEntityConstraintDef c;
         c.type = *ax;
@@ -8896,7 +8896,15 @@ int DesignSketchTool::add_entities_scripted(const std::vector<SketchEntity>& ent
     if (ents.empty()) return -1;
     const int base = int(m_entities.size());
     for (const SketchEntity& e : ents) m_entities.push_back(e);
-    infer_auto_constraints(base);   // the same auto-coincidence/H/V pass a gesture runs
+    // Auto-constrain, but do NOT let the inference move what the caller specified. A gesture
+    // gets 3 degrees of slack because a hand cannot click an exact horizontal; a scripted add
+    // has already said exactly what it means, and snapping a segment 2 degrees off to exactly
+    // horizontal silently rewrites it. Measured on a real drawing: feeding the 64 flattened
+    // segments of one circle moved vertices by up to 0.058 mm and shrank the enclosed area by
+    // 0.067%, because several segments of the polygon fell inside that 3 degree window. Exact
+    // coincidence inference is unaffected — it already tests to 1e-6 — so chains still weld
+    // and genuinely axis-aligned scripted geometry still gets its Horizontal/Vertical.
+    infer_auto_constraints(base, 1e-4);
     resolve_live();
     return base;
 }

@@ -1204,18 +1204,30 @@ SketchEntity sketch_entity_from(const json& j)
         return Vec2d(a[0].get<double>(), a[1].get<double>());
     };
     e.construction = j.value("construction", false);
+    // A circle and an arc are defined BY their centre, so a request that does not carry one is
+    // incomplete, not a request for a circle at the origin. Defaulting it silently put geometry
+    // somewhere the caller never asked for and then reported perfectly consistent loops, areas
+    // and hole attribution ABOUT THAT WRONG GEOMETRY — which is far more expensive to disbelieve
+    // than an error would have been. `p0` is accepted as an alias because that is exactly what a
+    // circle stores internally (e.p0 = e.center below), so a caller who writes p0 means centre.
+    auto centre_of = [&](const char* what) {
+        if (j.contains("center")) return p("center", 0, 0);
+        if (j.contains("centre")) return p("centre", 0, 0);
+        if (j.contains("p0"))     return p("p0", 0, 0);
+        throw std::runtime_error(std::string(what) + " needs a 'center' (or 'p0')");
+    };
     if (t == "line") {
         e.type = SketchEntity::Type::Line;
         e.p0 = p("p0", 0, 0); e.p1 = p("p1", 0, 0);
     } else if (t == "circle") {
         e.type   = SketchEntity::Type::Circle;
-        e.center = p("center", 0, 0);
+        e.center = centre_of("circle");
         e.radius = j.value("radius", 0.0);
         e.p0     = e.center;
         if (e.radius <= 0.0) throw std::runtime_error("circle needs a positive 'radius'");
     } else if (t == "arc") {
         e.type        = SketchEntity::Type::Arc;
-        e.center      = p("center", 0, 0);
+        e.center      = centre_of("arc");
         e.radius      = j.value("radius", 0.0);
         e.start_angle = j.value("start_angle", 0.0);
         e.end_angle   = j.value("end_angle", 0.0);

@@ -628,7 +628,11 @@ private:
     // After entities [base, end) were committed, auto-emit the constraints that make
     // the new geometry stick: Coincident between co-located endpoints (so loops close
     // on their own) and Horizontal/Vertical on axis-aligned new segments.
-    void infer_auto_constraints(int base);
+    // ang_tol_rad is how far from an axis a segment may be and still be CALLED axis-aligned.
+    // A gesture needs the default 3 degrees — nobody clicks a horizontal line exactly — but
+    // that same slack MOVES geometry that was given exactly, so the scripted path passes a
+    // tolerance tight enough to recognise only what is already true. See add_entities_scripted.
+    void infer_auto_constraints(int base, double ang_tol_rad = 3.0 * M_PI / 180.0);
 
     // Selection helpers (Mode::Select).
     int hit_test(const Vec2d& p, double tol) const;       // nearest entity within tol, or -1
