@@ -36,6 +36,27 @@ if [ -n "${DRY_RUN:-}" ]; then
     exit 0
 fi
 
+# Three memory bounds. On 2026-08-21 both forks ran this script at the same time, each with
+# ninja -j$(nproc)=16: ~36 cc1plus holding 42 GB of a 62 GB box -> global OOM at 21:05, a
+# 2h28m kill storm, ssh unreachable, lightdm destroyed, 2946 session kill events. Neither
+# build produced a single object. The bounds, weakest to strongest:
+#   flock    — the lock path is shared by both forks on purpose, so they SERIALISE instead of
+#              summing. Peak is one build's worth no matter who else starts one.
+#   -j8      — ~8 TUs in flight, ~10-20 GB, and the box stays usable while it compiles.
+#              JOBS=n overrides for a machine with more headroom.
+#   --memory — the actual guarantee. A runaway build hits its own cgroup limit and dies alone;
+#              the host never reaches global OOM again, whatever -j or flock do.
+#              --memory-swap equal to --memory forbids swap, which is what made ssh hang.
+JOBS="${JOBS:-8}"
+MEM="${MEM:-32g}"
+LOCK=/tmp/orca-rig-build.lock
+
+exec 9>"$LOCK"
+if ! flock -n 9; then
+    echo "another fork's rig-build holds $LOCK — waiting (this is the OOM guard, not a hang)"
+    flock 9
+fi
+
 # Every one of these mounts covers a trap, none is decorative:
 #   CMakeLists.txt + cmake/ carry the SLIC3R_CAD gate — inherit the baked copies and the cache
 #     says SLIC3R_CAD=ON while -DSLIC3R_CAD is never defined, so every #ifdef block compiles out.
@@ -43,6 +64,7 @@ fi
 #   src/, resources/, localization/, version.inc are the code under test.
 rc=0
 docker run --rm \
+    --memory="$MEM" --memory-swap="$MEM" \
     -v "$REPO/src":/OrcaSlicer/src \
     -v "$REPO/resources":/OrcaSlicer/resources \
     -v "$REPO/cmake":/OrcaSlicer/cmake \
@@ -59,7 +81,7 @@ docker run --rm \
         # PREVIOUS one and drops TKBool/TKOffset — a wall of TopOpeBRepBuild undefined references
         # that reads as a broken OCCT install and is not. Trap 4.
         cmake . > /tmp/cfg2.log 2>&1 || { echo 'RECONFIGURE FAILED'; tail -25 /tmp/cfg2.log; exit 1; }
-        ninja -f build-Release.ninja -j\"$(nproc)\" $TARGET > /tmp/bld.log 2>&1
+        ninja -f build-Release.ninja -j$JOBS $TARGET > /tmp/bld.log 2>&1
         rc=\$?
         echo \"EXIT=\$rc\"
         grep -n 'error:' /tmp/bld.log | head -20
