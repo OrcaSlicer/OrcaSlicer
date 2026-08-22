@@ -122,16 +122,20 @@ private:
         memdc.Blit({0, 0}, size, &dc, {0, 0});
         {
             wxGCDC dc2(memdc);
-            doRender(dc2);
+            // The offscreen bitmap is 96-DPI, so point-sized fonts rasterize WITHOUT the
+            // monitor's scale factor -- the card text stayed tiny at high DPI through two
+            // font-size bumps (field reports). Scale the fonts explicitly for this path; a
+            // window DC (the #else branch) already applies the factor itself.
+            doRender(dc2, GetDPIScaleFactor());
         }
         memdc.SelectObject(wxNullBitmap);
         dc.DrawBitmap(bmp, 0, 0);
 #else
-        doRender(dc);
+        doRender(dc, 1.0);
 #endif
     }
 
-    void doRender(wxDC& dc)
+    void doRender(wxDC& dc, double font_scale)
     {
         const wxSize size = GetSize();
         // Orca: a white/near-white filament (or an untouched slot, UNSET_COLOR) is barely
@@ -156,7 +160,7 @@ private:
         // unscaled system size on Windows while the FromDIP-sized card grows around it --
         // field report showed near-unreadably small card text at high DPI. Body_12 is what
         // MaterialSyncItem draws its tile name with.
-        dc.SetFont(::Label::Body_12);
+        dc.SetFont(::Label::Body_13.Scaled(font_scale));
 
         // Orca: label sits at the top-left, the edit/remove icons at the top-right (overlay
         // sizer, ctor above) -- reserve their cluster width plus a small gap so long names
@@ -170,11 +174,11 @@ private:
         int y = FromDIP(8);
         if (!m_top_label.empty()) {
             // Slot identity leads the card; give it the heavier cut of the same DPI-aware family.
-            dc.SetFont(::Label::Head_12);
+            dc.SetFont(::Label::Head_14.Scaled(font_scale));
             wxString top_label = wxControl::Ellipsize(m_top_label, dc, wxELLIPSIZE_END, max_text_width);
             dc.DrawText(top_label, FromDIP(6), y);
             y += dc.GetTextExtent(top_label).GetHeight() + FromDIP(2);
-            dc.SetFont(::Label::Body_12);
+            dc.SetFont(::Label::Body_13.Scaled(font_scale));
         }
         // Material type and vendor/brand each get their own line (both independently
         // ellipsized to the icon-safe width) instead of being squeezed into one -- see
