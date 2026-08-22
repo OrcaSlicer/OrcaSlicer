@@ -432,14 +432,9 @@ const Snapshot&	SnapshotDB::take_snapshot(const AppConfig &app_config, Snapshot:
                 cfg.models_variants_installed.erase(it ++);
             else
                 ++ it;
-        // Read the active config bundle, parse the config version.
-        PresetBundle bundle;
-        //BBS: change directoties by design
-        //bundle.load_configbundle((data_dir / PRESET_SYSTEM_DIR / (cfg.name + ".ini")).string(), PresetBundle::LoadConfigBundleAttribute::LoadVendorOnly, ForwardCompatibilitySubstitutionRule::EnableSilent);
-        bundle.load_vendor_configs_from_json((data_dir/PRESET_SYSTEM_DIR).string(), cfg.name, PresetBundle::LoadConfigBundleAttribute::LoadVendorOnly, ForwardCompatibilitySubstitutionRule::EnableSilent);
-        for (const auto &vp : bundle.vendors)
-            if (vp.second.id == cfg.name)
-                cfg.version.config_version = vp.second.config_version;
+        // Orca: the version the vendor is installed at, read from its profile or —
+        // where the cache is the whole installation — from the cache's own stamp.
+        cfg.version.config_version = installed_vendor_version(cfg.name);
         snapshot.vendor_configs.emplace_back(std::move(cfg));
     }
 
