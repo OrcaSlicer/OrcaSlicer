@@ -73,6 +73,15 @@ public:
         set_ui_mode(on ? UiMode::Sketch : UiMode::Feature);
         update_action_bar();
     }
+    // The offer-table vocabulary without a right-click: the external controller asks which verbs
+    // exist (and which apply to the current selection) and fires one by id, so a deck key names a
+    // verb instead of spending a letter and every verb is reachable — including the rows with no
+    // keyboard shortcut, which are otherwise invisible to anything that parses key tables.
+    int  mcp_offer_selection_kind() const { return offer_selection_kind(); }  // OfferSel as int
+    void mcp_run_action(const char* action) { run_offer_action(action); }     // dispatch an action string
+    // Defined out of line in DesignPanel.cpp: it needs kOfferVerbs, which this header deliberately
+    // does not include (the table is generated and belongs to the offer-menu code).
+    bool mcp_run_verb(const char* verb_id);
 
 private:
     enum class Tool { None, Sketch, Extrude, Dressup, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Boolean, Cut, Insert, Axis, CoordSys, SurfaceExtrude, SurfaceRevolve, SurfaceLoft, SurfaceFill, SurfaceOffset, ThickenSurface, Transform, Mirror, Thicken, Rib, Project, DeleteFace, Helix, Mate };

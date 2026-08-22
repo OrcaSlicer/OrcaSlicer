@@ -5433,6 +5433,16 @@ void DesignPanel::on_check_interference()
 // than in the on_add_* family. The caller only reaches us with m_sel_solid_body in range.
 void DesignPanel::on_mass_properties()
 {
+    // This bounds check is not defensive padding — it is what makes the verb safe to fire from
+    // the socket, which has no offer menu to grey the row out. The menu-only route never reached
+    // here with nothing selected; run_verb does. Nothing selected is not an error, hence the
+    // neutral colour, not the error red.
+    if (m_sel_solid_body < 0 || m_sel_solid_body >= int(m_doc.bodies.size())) {
+        m_status->SetForegroundColour(wxNullColour);
+        set_status(_L("Select a solid body first — its mass properties are what is reported"));
+        m_status->Refresh();
+        return;
+    }
     const auto mp = GeometryEngine::mass_properties(m_doc.bodies[m_sel_solid_body].shape);
     if (!mp.valid) {
         m_status->SetForegroundColour(wxColour(235, 110, 110));
@@ -5799,6 +5809,23 @@ void DesignPanel::run_offer_action(const char* action)
     auto it = m_verb_actions.find(a);
     if (it != m_verb_actions.end() && it->second)
         it->second();
+}
+
+// Look a verb up by its offer id and dispatch it — the "run_verb" half of the MCP offer surface.
+// Unknown ids and rows whose action string is null (kernel support, no GUI route yet) return
+// false without touching anything, so the caller can tell "no such verb" from "not wired yet".
+bool DesignPanel::mcp_run_verb(const char* verb_id)
+{
+    if (!verb_id) return false;
+    for (int i = 0; i < kOfferVerbCount; ++i) {
+        const OfferVerb& v = kOfferVerbs[i];
+        if (std::string(v.id) == verb_id) {
+            if (v.action == nullptr) return false;
+            run_offer_action(v.action);
+            return true;
+        }
+    }
+    return false;
 }
 
 wxPoint DesignPanel::offer_anchor() const

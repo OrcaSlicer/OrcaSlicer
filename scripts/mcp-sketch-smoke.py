@@ -110,5 +110,23 @@ call("sketch_construction")
 r = call("sketch_describe")
 check(r["buildable"], "turning it back closes it again")
 
+print("6. re-dimensioning one side keeps the rectangle a single closed loop")
+call("sketch_cancel")
+call("sketch_begin", plane="XY")
+call("sketch_add", rect=[0, 0, 60, 40])
+r = call("sketch_describe")
+check(areas(r) == [2400.0], f"one loop of 2400 mm^2 (got {areas(r)})")
+call("sketch_select", entities=[0])   # the bottom edge, y=0, from x=0 to x=60
+r = call("sketch_set_value", value=40)
+check(r["kind"] == "length", f"dimension kind is length (got {r['kind']})")
+check(near(r["before"], 60), f"the edge measured 60 before (got {r['before']})")
+r = call("sketch_describe")
+check(len(r["closed_loops"]) == 1, "the rectangle is still exactly one closed loop")
+check(r["open_ends"] == [], "no open ends after re-dimensioning")
+# The point of the whole section: a rectangle must SURVIVE one side being re-dimensioned. We do
+# not assert a specific area — only that the topology held — but print it so a topology-preserving
+# yet geometry-wrong result is visible in the output.
+print(f"  note  resulting rectangle area = {areas(r)} mm^2 (topology held; geometry is what it is)")
+
 call("sketch_cancel")
 print("\nall sketch assertions held")

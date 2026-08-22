@@ -26,6 +26,7 @@
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
 #include "slic3r/GUI/CAD/DesignCanvas.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
+#include "slic3r/GUI/CAD/DesignOffer.hpp"   // offer table — served whole by list_verbs, fired by run_verb
 
 #include "libslic3r/CAD/CadDocument.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
@@ -1481,6 +1482,178 @@ json action_sketch_heal(DesignPanel* panel, const json& params)
     return out;
 }
 
+// Why sketch_set_value exists: committing a typed dimension could previously only be exercised
+// by driving the in-canvas value field, and the rig's window manager never gives that frame
+// keyboard focus, so the behaviour of apply_dimension on CONSTRAINED geometry was untestable.
+// This calls the same function the widget calls, so the geometry can be asserted with no window
+// manager involved. Note apply_dimension clears the selection.
+json action_sketch_set_value(DesignPanel* panel, const json& params)
+{
+    DesignSketchTool& t = mcp_sketch(panel);
+    if (!params.contains("value")) throw std::runtime_error("sketch_set_value needs 'value'");
+    const double value = params["value"].get<double>();
+    const DesignSketchTool::DimType kind = t.dimension_kind();
+    if (kind == DesignSketchTool::DimType::None)
+        throw std::runtime_error("the selection has no value to set — pick a line, an arc, a circle, or two entities");
+
+    const char* kind_name = "none";
+    switch (kind) {
+    case DesignSketchTool::DimType::Length:         kind_name = "length"; break;
+    case DesignSketchTool::DimType::Radius:         kind_name = "radius"; break;
+    case DesignSketchTool::DimType::Diameter:       kind_name = "diameter"; break;
+    case DesignSketchTool::DimType::Angle:          kind_name = "angle"; break;
+    case DesignSketchTool::DimType::Distance:       kind_name = "distance"; break;
+    case DesignSketchTool::DimType::DistanceToLine: kind_name = "distance_to_line"; break;
+    default: break;
+    }
+
+    // Validate BEFORE apply_dimension, at the socket boundary. The tool only MOVES geometry when
+    // the value passes its own per-case thresholds, but it records the driving constraint
+    // UNCONDITIONALLY afterwards — a negative/zero/NaN value that moved nothing would still be
+    // pushed to the solver as a constraint it must satisfy and cannot, silently corrupting the
+    // sketch rather than failing. (apply_dimension has the same flaw for any other caller; this
+    // guard protects the socket, not the tool.) Fail loudly instead of recording a poison value.
+    if (!std::isfinite(value))
+        throw std::runtime_error("dimension must be finite — NaN or infinity is not a dimension");
+    switch (kind) {
+    case DesignSketchTool::DimType::Length:
+    case DesignSketchTool::DimType::Radius:
+    case DesignSketchTool::DimType::Diameter:
+        if (value <= 0.0)
+            throw std::runtime_error(std::string(kind_name) + " must be positive (got " + std::to_string(value) + ")");
+        break;
+    case DesignSketchTool::DimType::Distance:
+    case DesignSketchTool::DimType::DistanceToLine:
+        if (value < 0.0)
+            throw std::runtime_error(std::string(kind_name) + " must be >= 0 (zero means coincident / on the line)");
+        break;
+    case DesignSketchTool::DimType::Angle:
+    default:
+        break;   // any finite angle is valid
+    }
+
+    const double before = t.dimension_current();
+    t.apply_dimension(value);
+    panel->mcp_viewport()->request_repaint();
+
+    json out{{"ok", true}, {"kind", kind_name}, {"before", before}, {"value", value},
+             {"dof", t.dof()}, {"solve_ok", t.solve_ok()}};
+    out.update(sketch_report(t));
+    return out;
+}
+
+// Verbs whose handler opens a MODAL dialog. This matters more than it looks: the socket thread
+// posts the call to the wx main thread and waits 15 s on a future, so a verb that blocks that
+// thread inside ShowModal() times the RPC out AND leaves the main thread blocked until a human
+// dismisses the dialog — every later call then times out too, 15 s at a time. Which is exactly
+// the trap for the deck user this surface exists for: one button press and the app is modal,
+// waiting for a mouse they may not be reaching for.
+//
+// So run_verb NEVER dispatches inline. The list here is only so list_verbs can label the keys
+// that will want a mouse; re-derive it with
+//     grep -n ShowModal src/slic3r/GUI/CAD/DesignPanel.cpp
+// and map each handler back to its action string in DesignOffer.hpp.
+bool verb_is_modal(const char* id)
+{
+    static const char* kModal[] = { "sk_text", "sk_svg", "colour" };
+    for (const char* m : kModal)
+        if (std::strcmp(m, id) == 0) return true;
+    return false;
+}
+
+// Why list_verbs exists: the deck profile in VSD_n1_streamcontroller is built by parsing
+// DesignPanel's key tables out of the SOURCE, so a verb without a keyboard shortcut is invisible
+// to it. Serving the whole offer table over the socket lets the profile be generated from the
+// running app instead, and lets a deck key name a verb rather than spend a letter.
+json action_list_verbs(DesignPanel* panel, const json& params)
+{
+    const int      kind      = panel->mcp_offer_selection_kind();
+    const uint32_t bit       = offer_bit(OfferSel(kind));
+    const bool     applicable_only = params.value("applicable_only", false);
+    const bool     has_sketch_mode = params.contains("sketch_mode");
+    const bool     want_sketch_mode = has_sketch_mode && params["sketch_mode"].get<bool>();
+
+    json verbs = json::array();
+    for (int i = 0; i < kOfferVerbCount; ++i) {
+        const OfferVerb& v = kOfferVerbs[i];
+        const bool applies = (v.accepts & bit) != 0;
+        if (applicable_only && !applies) continue;
+        if (has_sketch_mode && v.sketch_mode != want_sketch_mode) continue;
+        // Verbs whose action is nullptr exist in the vocabulary but have no GUI path yet — report
+        // them with a null action rather than dropping them.
+        verbs.push_back(json{
+            {"id", v.id},
+            {"name", v.name},
+            {"row", v.row},
+            {"row_name", kOfferRowNames[v.row]},
+            {"key", v.key ? json(v.key) : json(nullptr)},
+            {"action", v.action ? json(v.action) : json(nullptr)},
+            {"sketch_mode", v.sketch_mode},
+            {"applies", applies},
+            {"modal", verb_is_modal(v.id)},   // opening a dialog: this key will want a mouse
+            {"hint", v.hint ? json(v.hint) : json(nullptr)},
+        });
+    }
+    return json{{"ok", true}, {"selection_kind", kind}, {"count", verbs.size()},
+                {"verbs", std::move(verbs)}};
+}
+
+json action_run_verb(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("verb")) throw std::runtime_error("run_verb needs 'verb' (an offer verb id)");
+    const std::string verb = params["verb"].get<std::string>();
+
+    // Scan the offer table BEFORE dispatching so the failure message can tell an unknown id from
+    // one that exists in the vocabulary but has no GUI path (action == nullptr).
+    bool known = false;
+    bool has_action = false;
+    const char* action = nullptr;
+    for (int i = 0; i < kOfferVerbCount; ++i) {
+        if (std::strcmp(kOfferVerbs[i].id, verb.c_str()) == 0) {
+            known = true;
+            has_action = (kOfferVerbs[i].action != nullptr);
+            action = kOfferVerbs[i].action;
+            break;
+        }
+    }
+
+    if (!known)      throw std::runtime_error("run_verb: unknown verb '" + verb + "'");
+    if (!has_action) throw std::runtime_error("run_verb: '" + verb + "' has no GUI path yet");
+
+    // Whether the verb would be OFFERED for the current selection. Not a refusal: the GUI lets
+    // you press a tool's shortcut whatever is selected, and refusing here would make the socket
+    // stricter than the keyboard for no reason. Reported so a caller can tell "did nothing
+    // because it did not apply" from "did nothing because it is broken".
+    const int      kind    = panel->mcp_offer_selection_kind();
+    const uint32_t bit     = offer_bit(OfferSel(kind));
+    bool           applies = false;
+    for (int i = 0; i < kOfferVerbCount; ++i)
+        if (std::strcmp(kOfferVerbs[i].id, verb.c_str()) == 0) { applies = (kOfferVerbs[i].accepts & bit) != 0; break; }
+
+    // The rule is not "validate more", it is "the socket should offer exactly what the GUI
+    // offers, no more and no less". A "btn:"/"fly:" verb is reachable in the GUI ONLY through
+    // the offer menu, which GREYS its row when it does not apply to the current selection — so
+    // a socket caller must not be able to fire it either. But a "key:" verb is reachable from
+    // the KEYBOARD whatever is selected, and the app permits that, so refusing it would make
+    // the socket stricter than the keyboard for no reason. Refuse only the menu-only verbs.
+    if (!applies && action &&
+        (std::strncmp(action, "btn:", 4) == 0 || std::strncmp(action, "fly:", 4) == 0)) {
+        throw std::runtime_error("run_verb: '" + verb +
+                                 "' does not apply to the current selection (selection_kind " +
+                                 std::to_string(kind) + ")");
+    }
+
+    // Dispatch on the NEXT turn of the event loop, never inline. See verb_is_modal above: a verb
+    // that opens a dialog would otherwise block the thread this call is running on. Deferring
+    // costs the ability to report the verb's outcome — which run_offer_action never returned
+    // anyway — and buys a socket that cannot be wedged by any verb in the table.
+    wxGetApp().CallAfter([panel, verb]() { panel->mcp_run_verb(verb.c_str()); });
+
+    return json{{"ok", true}, {"verb", verb}, {"dispatched", true},
+                {"applies", applies}, {"modal", verb_is_modal(verb.c_str())},
+                {"selection_kind", kind}};
+}
+
 json action_mirror(DesignPanel* panel, const json& params)
 {
     std::string m_str = params.value("mode", std::string("new"));
@@ -1819,6 +1992,9 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "sketch_describe") return rpc_result(id, action_sketch_describe(panel, params));
         if (method == "sketch_validate") return rpc_result(id, action_sketch_validate(panel, params));
         if (method == "sketch_heal")    return rpc_result(id, action_sketch_heal(panel, params));
+        if (method == "sketch_set_value") return rpc_result(id, action_sketch_set_value(panel, params));
+        if (method == "list_verbs")     return rpc_result(id, action_list_verbs(panel, params));
+        if (method == "run_verb")       return rpc_result(id, action_run_verb(panel, params));
         if (method == "transform")      return rpc_result(id, action_transform(panel, params));
         if (method == "thicken")        return rpc_result(id, action_thicken(panel, params));
         if (method == "split")          return rpc_result(id, action_split(panel, params));
