@@ -64,11 +64,17 @@ InferenceSnap infer_point_snap(const std::vector<SketchEntity>& entities,
             }
             break;
         }
-        case SketchEntity::Type::Arc:
+        case SketchEntity::Type::Arc: {
             offer(InferenceSnap::Kind::Endpoint, ei, SketchPointRole::P0, e.p0);
             offer(InferenceSnap::Kind::Endpoint, ei, SketchPointRole::P1, e.p1);
             offer(InferenceSnap::Kind::Center,   ei, SketchPointRole::Center, e.center);
+            // Mid-arc point, so an arc is as snappable in its middle as a line is.
+            const double am = 0.5 * (e.start_angle + e.end_angle);
+            offer(InferenceSnap::Kind::Midpoint, ei, SketchPointRole::P0,
+                  Vec2d(e.center.x() + e.radius * std::cos(am),
+                        e.center.y() + e.radius * std::sin(am)));
             break;
+        }
         case SketchEntity::Type::Circle: {
             offer(InferenceSnap::Kind::Center, ei, SketchPointRole::Center, e.center);
             // Nearest point on the circle rim (PointOnObject candidate).

@@ -38,7 +38,31 @@ echo "REPO=$REPO  IMAGE=$IMAGE  BUILD_VOL=$BUILD_VOL"
 # scripts/ likewise: build_linux.sh's packaging step sources scripts/appimage_lib_policy.sh,
 # which the baked snaporca tree does not have, so a fully successful link still exited
 # non-zero with "missing AppImage helper" and the binary check never ran.
+
+# ---- OOM guard (2026-08-21) -------------------------------------------------------------
+# Two of these builds ran at once on 2026-08-21, each with ninja -j$(nproc)=16: ~36 cc1plus
+# holding 42 GB of a 62 GB box -> global OOM at 21:05, a 2h28m kill storm, ssh unreachable,
+# lightdm destroyed. Neither build produced a single object. scripts/rig-build.sh grew the
+# bounds first; every script that starts a compile needs the same three, or the guard is only
+# as strong as the script you happened not to use.
+#   flock    — the lock path is SHARED with rig-build.sh and the other fork on purpose, so
+#              concurrent builds serialise instead of summing.
+#   -j       — bounded parallelism; ~1.17 GB per cc1plus was the measured average.
+#   --memory — the actual guarantee: a runaway build dies in its own cgroup instead of taking
+#              the host down. --memory-swap equal to --memory forbids swap, which is what made
+#              ssh hang.
+JOBS="${JOBS:-12}"
+MEM="${MEM:-40g}"
+LOCK=/tmp/orca-rig-build.lock
+
+exec 9>"$LOCK"
+if ! flock -n 9; then
+    echo "another build holds $LOCK — waiting (this is the OOM guard, not a hang)"
+    flock 9
+fi
+
 docker run --rm \
+  --memory="$MEM" --memory-swap="$MEM" \
   -v "$REPO/src":/OrcaSlicer/src \
   -v "$REPO/resources":/OrcaSlicer/resources \
   -v "$REPO/CMakeLists.txt":/OrcaSlicer/CMakeLists.txt \
@@ -48,7 +72,7 @@ docker run --rm \
   -v "$REPO/scripts":/OrcaSlicer/scripts \
   -v "$BUILD_VOL":/OrcaSlicer/build \
   "$IMAGE" \
-  bash -lc 'cd /OrcaSlicer && ./build_linux.sh -sr'
+  bash -lc "cd /OrcaSlicer && ./build_linux.sh -sr -j $JOBS"
 
 # src/CMakeLists.txt:151 renames the OrcaSlicer target's output to "orca-slicer" — not
 # "snapmaker-orca", which is the other fork's binary name.

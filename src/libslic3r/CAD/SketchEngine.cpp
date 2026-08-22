@@ -900,52 +900,246 @@ std::vector<SketchEntity> SketchEngine::mirror_entities(
     return out;
 }
 
+// ---- offset: chain-aware, with corner repair -------------------------------
+//
+// Offsetting each entity on its own is geometrically correct per entity and USELESS as a
+// sketch operation: a closed rectangle offset that way comes back as four parallel segments
+// that no longer touch, so the result is four open wires and nothing can be extruded from it
+// (measured — tests/libslic3r/test_sketchprofile.cpp). A profile is a chain, and the property
+// that has to survive the operation is the chain, not the individual coordinates.
+//
+// So the offset runs in three steps: split the input into chains of entities joined by shared
+// endpoints; offset every entity in a chain; then repair each seam by trimming/extending the
+// two neighbours to the intersection of their offset supports (a miter join). Closed chains
+// get their last-to-first seam repaired too, which is what makes the result closed again.
+namespace {
+
+constexpr double kOffJoinEps = 1e-6;
+
+bool off_same(const Vec2d& a, const Vec2d& b) { return (a - b).squaredNorm() < kOffJoinEps * kOffJoinEps; }
+
+// Does this entity type take part in chaining (i.e. does it have two ends)?
+bool off_is_open_curve(const SketchEntity& e)
+{
+    return e.type == SketchEntity::Type::Line || e.type == SketchEntity::Type::Arc;
+}
+
+// Infinite-support intersections. Each returns the candidate closest to `seed`, which is where
+// the seam is expected to land, so the branch choice never depends on entity orientation.
+bool off_pick(const std::vector<Vec2d>& cands, const Vec2d& seed, Vec2d& out)
+{
+    if (cands.empty()) return false;
+    double best = std::numeric_limits<double>::max();
+    for (const Vec2d& c : cands) {
+        const double d = (c - seed).squaredNorm();
+        if (d < best) { best = d; out = c; }
+    }
+    return true;
+}
+
+bool off_line_line(const Vec2d& a0, const Vec2d& a1, const Vec2d& b0, const Vec2d& b1,
+                   const Vec2d& seed, Vec2d& out)
+{
+    const Vec2d da = a1 - a0, db = b1 - b0;
+    const double den = da.x() * db.y() - da.y() * db.x();
+    if (std::abs(den) < 1e-12) return false;                 // parallel: no miter exists
+    const Vec2d w = b0 - a0;
+    const double t = (w.x() * db.y() - w.y() * db.x()) / den;
+    out = a0 + t * da;
+    (void)seed;
+    return true;
+}
+
+std::vector<Vec2d> off_line_circle(const Vec2d& p0, const Vec2d& p1, const Vec2d& c, double r)
+{
+    std::vector<Vec2d> out;
+    Vec2d d = p1 - p0;
+    const double dd = d.squaredNorm();
+    if (dd < 1e-18 || r <= 0.0) return out;
+    const Vec2d f = p0 - c;
+    const double b = 2.0 * f.dot(d), cc = f.squaredNorm() - r * r;
+    const double disc = b * b - 4.0 * dd * cc;
+    if (disc < 0.0) return out;
+    const double sq = std::sqrt(disc);
+    out.push_back(p0 + ((-b - sq) / (2.0 * dd)) * d);
+    out.push_back(p0 + ((-b + sq) / (2.0 * dd)) * d);
+    return out;
+}
+
+std::vector<Vec2d> off_circle_circle(const Vec2d& c0, double r0, const Vec2d& c1, double r1)
+{
+    std::vector<Vec2d> out;
+    const Vec2d d = c1 - c0;
+    const double L = d.norm();
+    if (L < 1e-12 || L > r0 + r1 || L < std::abs(r0 - r1)) return out;
+    const double a = (r0 * r0 - r1 * r1 + L * L) / (2.0 * L);
+    const double h2 = r0 * r0 - a * a;
+    const double h = h2 > 0.0 ? std::sqrt(h2) : 0.0;
+    const Vec2d u = d / L, n(-u.y(), u.x());
+    out.push_back(c0 + a * u + h * n);
+    out.push_back(c0 + a * u - h * n);
+    return out;
+}
+
+// Move one end of an entity to `q`, keeping the entity's kind consistent (an arc re-derives
+// the parametric angle from its centre, and its sweep direction is preserved).
+void off_set_end(SketchEntity& e, bool at_end, const Vec2d& q)
+{
+    if (e.type == SketchEntity::Type::Line) {
+        (at_end ? e.p1 : e.p0) = q;
+        return;
+    }
+    if (e.type != SketchEntity::Type::Arc) return;
+    const bool ccw = e.end_angle >= e.start_angle;
+    const double ang = std::atan2(q.y() - e.center.y(), q.x() - e.center.x());
+    if (at_end) {
+        e.p1 = q;
+        double a = ang;
+        if (ccw) { while (a < e.start_angle) a += 2.0 * M_PI; while (a - e.start_angle > 2.0 * M_PI) a -= 2.0 * M_PI; }
+        else     { while (a > e.start_angle) a -= 2.0 * M_PI; while (e.start_angle - a > 2.0 * M_PI) a += 2.0 * M_PI; }
+        e.end_angle = a;
+    } else {
+        e.p0 = q;
+        double a = ang;
+        if (ccw) { while (a > e.end_angle) a -= 2.0 * M_PI; while (e.end_angle - a > 2.0 * M_PI) a += 2.0 * M_PI; }
+        else     { while (a < e.end_angle) a += 2.0 * M_PI; while (a - e.end_angle > 2.0 * M_PI) a -= 2.0 * M_PI; }
+        e.start_angle = a;
+    }
+}
+
+// Offset ONE entity, unrepaired. Returns false for the kinds v1 does not offset.
+bool off_one(const SketchEntity& e, double d, SketchEntity& out)
+{
+    switch (e.type) {
+    case SketchEntity::Type::Line: {
+        Vec2d t = e.p1 - e.p0;
+        if (t.norm() < 1e-12) return false;
+        t.normalize();
+        const Vec2d n(-t.y(), t.x());
+        out = e;
+        out.p0 = e.p0 + d * n;
+        out.p1 = e.p1 + d * n;
+        return true;
+    }
+    case SketchEntity::Type::Circle: {
+        const double r = e.radius + d;
+        if (r <= 1e-9) return false;
+        out = e; out.radius = r; out.p0 = out.center;
+        return true;
+    }
+    case SketchEntity::Type::Arc: {
+        // Same convention as the Line above: +d moves the curve to the LEFT of its direction
+        // of travel. For a CCW arc the left side is the inside, so the radius SHRINKS; for a
+        // CW arc it grows. Reading the sign off the sweep is what keeps a stadium outline
+        // (lines + caps) offsetting as one body instead of the lines going one way and the
+        // caps the other — which is what a plain `radius + d` did.
+        const double sgn = (e.end_angle >= e.start_angle) ? -1.0 : 1.0;
+        const double r = e.radius + sgn * d;
+        if (r <= 1e-9) return false;
+        out = e;
+        out.radius = r;
+        out.p0 = e.center + r * Vec2d(std::cos(e.start_angle), std::sin(e.start_angle));
+        out.p1 = e.center + r * Vec2d(std::cos(e.end_angle),   std::sin(e.end_angle));
+        return true;
+    }
+    default:
+        // Point has nothing to offset; a true parallel of an ellipse is not an ellipse and of a
+        // spline is not a same-degree spline, so both stay out of v1 rather than lie about it.
+        return false;
+    }
+}
+
+// Repair the seam between `a`'s end and `b`'s start: both are trimmed/extended to the
+// intersection of their infinite supports nearest the gap. Returns false when no such point
+// exists (parallel lines, non-intersecting circles), in which case the seam stays open.
+bool off_join(SketchEntity& a, SketchEntity& b)
+{
+    const Vec2d seed = 0.5 * (a.p1 + b.p0);
+    Vec2d q;
+    const bool aL = a.type == SketchEntity::Type::Line;
+    const bool bL = b.type == SketchEntity::Type::Line;
+    if (aL && bL) {
+        if (!off_line_line(a.p0, a.p1, b.p0, b.p1, seed, q)) return false;
+    } else if (aL) {
+        if (!off_pick(off_line_circle(a.p0, a.p1, b.center, b.radius), seed, q)) return false;
+    } else if (bL) {
+        if (!off_pick(off_line_circle(b.p0, b.p1, a.center, a.radius), seed, q)) return false;
+    } else {
+        if (!off_pick(off_circle_circle(a.center, a.radius, b.center, b.radius), seed, q)) return false;
+    }
+    off_set_end(a, true,  q);
+    off_set_end(b, false, q);
+    return true;
+}
+
+} // namespace
+
 std::vector<SketchEntity> SketchEngine::offset_entities(
     const std::vector<SketchEntity>& src, double d)
 {
     std::vector<SketchEntity> out;
 
-    for (const auto& e : src) {
-        switch (e.type) {
-        case SketchEntity::Type::Line: {
-            Vec2d t = e.p1 - e.p0;
-            if (t.norm() < 1e-12) continue;
-            t.normalize();
-            Vec2d n(-t.y(), t.x());
-            SketchEntity o = e;
-            o.p0 = e.p0 + d * n;
-            o.p1 = e.p1 + d * n;
-            out.push_back(o);
-            break;
+    // Closed and unchainable kinds first: they carry no seams, so they pass straight through.
+    std::vector<int> open_idx;
+    for (int i = 0; i < int(src.size()); ++i) {
+        if (off_is_open_curve(src[i])) { open_idx.push_back(i); continue; }
+        SketchEntity o;
+        if (off_one(src[i], d, o)) out.push_back(o);
+    }
+
+    // Chain the open curves by shared endpoints. Greedy walk: start from an entity nobody
+    // precedes (an open chain's head), else from whatever is left (a closed loop).
+    std::vector<bool> used(open_idx.size(), false);
+    auto ends = [&](int k, Vec2d& p0, Vec2d& p1) { p0 = src[open_idx[k]].p0; p1 = src[open_idx[k]].p1; };
+
+    auto has_predecessor = [&](int k) {
+        Vec2d p0, p1; ends(k, p0, p1);
+        for (size_t j = 0; j < open_idx.size(); ++j) {
+            if (int(j) == k || used[j]) continue;
+            Vec2d q0, q1; ends(int(j), q0, q1);
+            if (off_same(q1, p0)) return true;
         }
-        case SketchEntity::Type::Circle: {
-            double r = e.radius + d;
-            if (r <= 1e-9) continue;
-            SketchEntity o = e;
-            o.radius = r;
-            o.p0     = o.center;
-            out.push_back(o);
-            break;
-        }
-        case SketchEntity::Type::Arc: {
-            double r = e.radius + d;
-            if (r <= 1e-9) continue;
-            SketchEntity o = e;
-            o.radius = r;
-            o.p0     = e.center + r * Vec2d(std::cos(e.start_angle), std::sin(e.start_angle));
-            o.p1     = e.center + r * Vec2d(std::cos(e.end_angle),   std::sin(e.end_angle));
-            out.push_back(o);
-            break;
-        }
-        case SketchEntity::Type::Point:
-            continue;
-        case SketchEntity::Type::Ellipse:
-        case SketchEntity::Type::EllipseArc:
-            // A true parallel offset of an ellipse is not an ellipse; skip in v1.
-            continue;
-        case SketchEntity::Type::BSpline:
-            // Offset of a spline is not a same-degree spline; skip in v1.
-            continue;
+        return false;
+    };
+
+    for (size_t pass = 0; pass < 2; ++pass) {
+        for (size_t s = 0; s < open_idx.size(); ++s) {
+            if (used[s]) continue;
+            // Pass 0 seeds only open-chain heads, so an open chain is never entered mid-way
+            // (which would split it in two and lose a seam).
+            if (pass == 0 && has_predecessor(int(s))) continue;
+
+            std::vector<int> chain{ int(s) };
+            used[s] = true;
+            for (;;) {
+                Vec2d p0, p1; ends(chain.back(), p0, p1);
+                int nxt = -1;
+                for (size_t j = 0; j < open_idx.size(); ++j) {
+                    if (used[j]) continue;
+                    Vec2d q0, q1; ends(int(j), q0, q1);
+                    if (off_same(p1, q0)) { nxt = int(j); break; }
+                }
+                if (nxt < 0) break;
+                used[nxt] = true;
+                chain.push_back(nxt);
+            }
+
+            Vec2d h0, h1, t0, t1;
+            ends(chain.front(), h0, h1);
+            ends(chain.back(),  t0, t1);
+            const bool closed = chain.size() > 2 && off_same(t1, h0);
+
+            std::vector<SketchEntity> off;
+            for (int k : chain) {
+                SketchEntity o;
+                if (off_one(src[open_idx[k]], d, o)) off.push_back(o);
+            }
+            if (off.empty()) continue;
+
+            for (size_t i = 0; i + 1 < off.size(); ++i) off_join(off[i], off[i + 1]);
+            if (closed && off.size() > 1) off_join(off.back(), off.front());
+
+            for (auto& o : off) out.push_back(o);
         }
     }
 

@@ -54,6 +54,11 @@ public:
     void set_sketch_tool(DesignSketchTool::Mode mode);
     void set_sketch_plane(const SketchPlane& plane);   // re-plane the live sketch when a reference plane is clicked in 3D
     void set_sketch_construction(bool c);
+    // Flip the sketch selection between construction and real geometry; returns the
+    // number of entities changed (0 = nothing selected, caller falls back to the mode).
+    // Open the in-canvas value field on the sketch selection's defining number.
+    bool edit_sketch_selection_value();
+    int  toggle_sketch_construction_selection();
     // Text / SVG art into the LIVE sketch, as ordinary editable lines. False = no session.
     bool add_sketch_regions(const std::vector<std::vector<std::vector<Vec2d>>>& regions);
     void set_sketch_polygon_sides(int n);
@@ -288,6 +293,12 @@ public:
     // cycle); software GL (llvmpipe etc.) gets a direct render() because a
     // scheduled Refresh() is frequently dropped there. Backend cached on first use.
     // Public: DesignPanel calls it after a tree edit to force a frame on software GL.
+    // Scripted (MCP) access to the live sketch. One accessor rather than a passthrough per
+    // verb: the MCP layer drives the SAME tool the mouse drives, which is the whole point of
+    // having it — a socket that talked to a private copy would prove nothing about the app.
+    DesignSketchTool&       mcp_sketch_tool()       { return m_sketch_tool; }
+    const DesignSketchTool& mcp_sketch_tool() const { return m_sketch_tool; }
+
     void request_repaint();
     // Repaint synchronously, once the pending show/resize has settled. Needed when the
     // notebook re-shows the Design page: an invalidation issued while the page is still

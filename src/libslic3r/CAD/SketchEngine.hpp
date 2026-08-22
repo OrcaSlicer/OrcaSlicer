@@ -233,6 +233,12 @@ public:
     static std::vector<SketchEntity> mirror_entities(
         const std::vector<SketchEntity>& src, const Vec2d& a, const Vec2d& b);
 
+    // Offset a sketch by `d`, PRESERVING CHAINS. Entities joined by shared endpoints are
+    // offset together and their seams repaired (miter join), so a closed profile comes back
+    // closed and can still be extruded; per-entity offsetting cannot do that. Sign convention:
+    // +d moves each curve to the LEFT of its direction of travel, which for a CCW closed loop
+    // is inward. Ellipses and splines are not offset (a parallel of either is not the same
+    // kind of curve) and are dropped from the result.
     static std::vector<SketchEntity> offset_entities(
         const std::vector<SketchEntity>& src, double d);
 

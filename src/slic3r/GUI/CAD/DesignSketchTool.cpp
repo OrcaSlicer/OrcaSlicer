@@ -331,6 +331,31 @@ void DesignSketchTool::delete_selected()
     if (on_selection_changed) on_selection_changed(0);
 }
 
+// Convert the selection to/from construction geometry (snaporca-6zic). The Construction
+// checkbox only ever set the mode for what you draw NEXT, so a line drawn as real geometry
+// could never become a guide, nor a guide become real. Whole Feature groups flip together:
+// a rectangle is four Line entities and converting three of them is never what was meant.
+int DesignSketchTool::toggle_selection_construction()
+{
+    if (!selection_valid() || m_selection.empty()) return 0;
+    std::vector<bool> hit(m_entities.size(), false);
+    for (int i : m_selection) {
+        const int f = feature_of(i);
+        if (f >= 0)
+            for (int k = m_features[f].begin; k < m_features[f].end; ++k) hit[k] = true;
+        else
+            hit[i] = true;
+    }
+    // One direction for the whole batch: any real geometry in it -> all become construction.
+    bool any_real = false;
+    for (size_t i = 0; i < hit.size(); ++i)
+        if (hit[i] && !m_entities[i].construction) { any_real = true; break; }
+    int n = 0;
+    for (size_t i = 0; i < hit.size(); ++i)
+        if (hit[i] && m_entities[i].construction != any_real) { m_entities[i].construction = any_real; ++n; }
+    return n;
+}
+
 bool DesignSketchTool::selection_valid() const
 {
     for (int i : m_selection)
@@ -1085,6 +1110,43 @@ void DesignSketchTool::open_angle_editor(int ei)
     on_inline_edit(px, measure_dim(a), "Angle",
                    [this, ei](double deg) { set_line_angle(ei, deg); },
                    []()                   {});
+}
+
+// Type the defining number of whatever is selected. One entry point for every 2D element, so
+// the gesture is the same whichever tool drew it: point at it, right-click, type the value.
+//
+// This is what a sketch element was missing. Its endpoints could be dragged and its handles
+// grabbed, but its own quantities — a line's LENGTH, an arc's RADIUS, a circle's DIAMETER, the
+// ANGLE between two lines — were reachable only by arming the Dimension tool and re-picking the
+// geometry that was already selected. The machinery was all here (dimension_kind / dimension_
+// current / apply_dimension); the way in was not.
+bool DesignSketchTool::open_selection_dimension_editor()
+{
+    if (!on_inline_edit || !selection_valid()) return false;
+    const DimType k = dimension_kind();
+    if (k == DimType::None) return false;
+    const char* title = "Value";
+    switch (k) {
+    case DimType::Length:         title = "Length";   break;
+    case DimType::Radius:         title = "Radius";   break;
+    case DimType::Diameter:       title = "Diameter"; break;
+    case DimType::Angle:          title = "Angle";    break;
+    case DimType::Distance:       title = "Distance"; break;
+    case DimType::DistanceToLine: title = "Distance"; break;
+    default: break;
+    }
+    // Anchor over the geometry it belongs to, not the panel: the value belongs to the element.
+    DimAnnot a; a.kind = k;
+    a.ea = m_selection.empty() ? -1 : m_selection[0];
+    if (m_selection.size() > 1) a.eb = m_selection[1];
+    const Vec2d at = dim_anchor(a);
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    wxPoint px = world_to_screen_px(cam, m_plane.to_world(at));
+    if (px.x < 0 || px.y < 0) px = wxPoint(m_last_mouse_x, m_last_mouse_y);
+    on_inline_edit(px, dimension_current(), title,
+                   [this](double v) { apply_dimension(v); },
+                   []()             {});
+    return true;
 }
 
 void DesignSketchTool::set_line_angle(int ei, double deg)
@@ -8257,6 +8319,23 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         if (!handles.empty())     draw_vertices(m_vertex_model, handles, ColorRGBA(0.65f, 0.65f, 0.30f, 1.0f));
         if (!sel_handles.empty()) draw_vertices(m_highlight_model, sel_handles, white);
 
+        // Midpoint of every segment, drawn smaller and cooler than the endpoint handles
+        // (snaporca-te8v). Without it the Midpoint snap is invisible: it exists in the
+        // inference engine but the user has nothing to aim at. Construction lines get one
+        // too — you constrain to them as readily as to real geometry.
+        std::vector<Vec2d> mids;
+        for (const SketchEntity& e : m_entities) {
+            if (e.type == SketchEntity::Type::Line)
+                mids.push_back(0.5 * (e.p0 + e.p1));
+            else if (e.type == SketchEntity::Type::Arc) {
+                const double am = 0.5 * (e.start_angle + e.end_angle);
+                mids.push_back(Vec2d(e.center.x() + e.radius * std::cos(am),
+                                     e.center.y() + e.radius * std::sin(am)));
+            }
+        }
+        if (!mids.empty())
+            draw_vertices(m_vertex_model, mids, ColorRGBA(0.35f, 0.75f, 0.85f, 1.0f), 0.9);
+
         // Derived feature handles (A3): the circle RadiusHandle is not a SketchPointRole,
         // so the per-point pass above doesn't draw it. Render it (cyan) + the hovered
         // handle (white, larger) at a screen-constant size so they stay grabbable at any
@@ -8548,8 +8627,9 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     // Inference hint: highlight the snapped target under the cursor (C1.3). Colour
     // encodes what the placed point will be Coincident/PointOnObject/Fixed onto.
     if (m_has_cursor && m_mode != Mode::Constrain && m_cursor_snap.snapped()) {
-        ColorRGBA hint(1.0f, 0.55f, 0.1f, 1.0f);                 // endpoint/midpoint: orange
+        ColorRGBA hint(1.0f, 0.55f, 0.1f, 1.0f);                 // endpoint: orange
         switch (m_cursor_snap.kind) {
+        case InferenceSnap::Kind::Midpoint: hint = ColorRGBA(0.35f, 0.90f, 0.75f, 1.0f); break; // teal
         case InferenceSnap::Kind::Center: hint = ColorRGBA(0.30f, 0.80f, 1.0f, 1.0f); break; // cyan
         case InferenceSnap::Kind::Origin: hint = ColorRGBA(1.0f, 0.30f, 0.85f, 1.0f); break; // magenta
         case InferenceSnap::Kind::OnEdge: hint = ColorRGBA(0.45f, 0.70f, 1.0f, 1.0f); break; // blue
@@ -8729,6 +8809,190 @@ static void translate_entity(SketchEntity& e, const Vec2d& d)
     e.p1 += d;
     e.center += d;
     for (auto& cp : e.ctrl) cp += d;     // BSpline poles
+}
+
+// Select whatever the cursor is over, for a RIGHT-click. In every CAD application the context
+// menu belongs to the thing you pointed at; here the menu was built from whatever happened to be
+// selected already, so right-clicking a line you had not left-clicked first offered the empty-
+// selection vocabulary and its own Delete/Length/Trim rows were nowhere. The offer table already
+// described all of those for SkLine/SkArc/SkPoint — the pick was the missing half.
+//
+// Nothing is stolen from an existing selection: if the entity under the cursor is already part
+// of it, the selection is left exactly as it is, so right-clicking one member of a multi-entity
+// pick still offers the multi-entity verbs.
+// ---- Scripted surface (MCP) ------------------------------------------------------------
+
+int DesignSketchTool::add_entities_scripted(const std::vector<SketchEntity>& ents)
+{
+    if (ents.empty()) return -1;
+    const int base = int(m_entities.size());
+    for (const SketchEntity& e : ents) m_entities.push_back(e);
+    infer_auto_constraints(base);   // the same auto-coincidence/H/V pass a gesture runs
+    resolve_live();
+    return base;
+}
+
+bool DesignSketchTool::select_indices(const std::vector<int>& idx)
+{
+    m_selection.clear();
+    m_point_sel.clear();
+    const int n = int(m_entities.size());
+    for (int i : idx)
+        if (i >= 0 && i < n &&
+            std::find(m_selection.begin(), m_selection.end(), i) == m_selection.end())
+            m_selection.push_back(i);
+    if (on_selection_changed) on_selection_changed(int(m_selection.size()));
+    return !m_selection.empty();
+}
+
+DesignSketchTool::LoopReport DesignSketchTool::loop_report() const
+{
+    LoopReport out;
+
+    // Closed regions and their voids come straight from the code the viewport already uses to
+    // decide what can be extruded, so the report cannot drift from what the tool will build.
+    const auto regs = region_loops(m_entities);
+    out.loops.reserve(regs.size());
+    for (const auto& r : regs) {
+        LoopInfo li;
+        li.ents   = r.ents;
+        li.holes  = r.holes;
+        li.closed = true;
+        // Analytic where the loop IS one closed curve; shoelace only where it is a chain.
+        // region_loops hands back the render polyline, and a circle's is a 64-gon whose area is
+        // 0.3% short — a number reported as "area" must not be the faceting error.
+        if (r.ents.size() == 1 && r.ents[0] >= 0 && r.ents[0] < int(m_entities.size()) &&
+            (m_entities[r.ents[0]].type == SketchEntity::Type::Circle ||
+             m_entities[r.ents[0]].type == SketchEntity::Type::Ellipse)) {
+            const SketchEntity& c = m_entities[r.ents[0]];
+            li.area = (c.type == SketchEntity::Type::Circle)
+                          ? M_PI * c.radius * c.radius
+                          : M_PI * c.radius * c.rminor;
+        } else {
+            double a = 0.0;
+            for (size_t i = 0; i + 1 < r.poly.size(); ++i)
+                a += r.poly[i].x() * r.poly[i + 1].y() - r.poly[i + 1].x() * r.poly[i].y();
+            if (r.poly.size() > 2)
+                a += r.poly.back().x() * r.poly.front().y() - r.poly.front().x() * r.poly.back().y();
+            li.area = 0.5 * a;
+        }
+        out.loops.push_back(std::move(li));
+    }
+
+    // Open ends: an endpoint of an open curve that no other open curve's endpoint meets. This is
+    // the actionable half of the report — it says WHERE the profile fails to close, in plane
+    // coordinates, instead of only that it does.
+    struct End { Vec2d p; };
+    std::vector<End> ends;
+    for (const SketchEntity& e : m_entities) {
+        if (e.construction) continue;
+        if (e.type == SketchEntity::Type::Line || e.type == SketchEntity::Type::Arc ||
+            e.type == SketchEntity::Type::EllipseArc || e.type == SketchEntity::Type::BSpline) {
+            ends.push_back({ e.p0 });
+            ends.push_back({ e.p1 });
+        }
+    }
+    const double eps = 1e-3;
+    for (size_t i = 0; i < ends.size(); ++i) {
+        int met = 0;
+        for (size_t j = 0; j < ends.size(); ++j) {
+            if (i == j) continue;
+            if ((ends[i].p - ends[j].p).norm() < eps) ++met;
+        }
+        if (met == 0) {
+            // Report each free end once; two ends of the same gap are two different points.
+            bool dup = false;
+            for (const Vec2d& q : out.open_ends)
+                if ((q - ends[i].p).norm() < eps) { dup = true; break; }
+            if (!dup) out.open_ends.push_back(ends[i].p);
+        }
+    }
+    return out;
+}
+
+int DesignSketchTool::heal_coincidences(double tol, bool ignore_construction)
+{
+    if (tol <= 0.0) tol = 1e-3;
+    // Endpoint roles an entity exposes, same set infer_auto_constraints matches on.
+    auto roles_of = [](const SketchEntity& e, SketchPointRole out[2]) -> int {
+        switch (e.type) {
+        case SketchEntity::Type::Line:
+        case SketchEntity::Type::Arc:
+        case SketchEntity::Type::BSpline:
+        case SketchEntity::Type::EllipseArc:
+            out[0] = SketchPointRole::P0; out[1] = SketchPointRole::P1; return 2;
+        case SketchEntity::Type::Point:
+            out[0] = SketchPointRole::P0; return 1;
+        default: return 0;
+        }
+    };
+
+    const int n = int(m_entities.size());
+    int welded = 0;
+    std::vector<SketchEntityConstraintDef> cands;
+    for (int i = 0; i < n; ++i) {
+        if (ignore_construction && m_entities[i].construction) continue;
+        SketchPointRole ir[2]; const int ni = roles_of(m_entities[i], ir);
+        for (int a = 0; a < ni; ++a) {
+            Vec2d pa; if (!point_at(i, ir[a], pa)) continue;
+            for (int j = i + 1; j < n; ++j) {
+                if (ignore_construction && m_entities[j].construction) continue;
+                SketchPointRole jr[2]; const int nj = roles_of(m_entities[j], jr);
+                for (int b = 0; b < nj; ++b) {
+                    Vec2d pb; if (!point_at(j, jr[b], pb)) continue;
+                    const double d = (pa - pb).norm();
+                    if (d > tol) continue;
+                    if (has_coincident(i, ir[a], j, jr[b])) continue;
+                    // WELD FIRST, then constrain. Handing the solver two points a tolerance
+                    // apart and asking it to make them equal lets it move the rest of the sketch
+                    // to get there; snapping them together first means the constraint it is
+                    // asked to satisfy is already true, so nothing else shifts.
+                    if (d > 0.0) { set_point(j, jr[b], pa); pb = pa; }
+                    SketchEntityConstraintDef c;
+                    c.type = SketchConstraintType::Coincident;
+                    c.ea = i; c.ra = ir[a]; c.eb = j; c.rb = jr[b];
+                    cands.push_back(c);
+                    ++welded;
+                }
+            }
+        }
+    }
+    if (!cands.empty()) {
+        try_add_constraints(cands);
+        resolve_live();
+    }
+    return welded;
+}
+
+bool DesignSketchTool::select_at_screen(GLCanvas3D& canvas, int sx, int sy)
+{
+    if (!is_active()) return false;
+    const Linef3 ray  = canvas.mouse_ray(Point(sx, sy));
+    const Linef3 ray8 = canvas.mouse_ray(Point(sx + 8, sy));
+    const Vec2d  p    = m_plane.project(ray.a,  ray.vector());
+    const Vec2d  p8   = m_plane.project(ray8.a, ray8.vector());
+    const double tol  = std::max(1e-3, (p8 - p).norm());
+
+    // A point handle beats the curve it belongs to, same precedence the left-click pick uses.
+    int ei = -1; SketchPointRole role = SketchPointRole::P0;
+    if (hit_test_point(p, tol, ei, role)) {
+        const auto pr = std::make_pair(ei, role);
+        if (std::find(m_point_sel.begin(), m_point_sel.end(), pr) != m_point_sel.end())
+            return false;                                   // already selected: leave it alone
+        m_selection.clear();
+        m_point_sel.assign(1, pr);
+        if (on_selection_changed) on_selection_changed(1);
+        return true;
+    }
+
+    const int hit = hit_test(p, tol);
+    if (hit < 0) return false;
+    if (std::find(m_selection.begin(), m_selection.end(), hit) != m_selection.end())
+        return false;                                       // already selected: leave it alone
+    m_selection.assign(1, hit);
+    m_point_sel.clear();
+    if (on_selection_changed) on_selection_changed(1);
+    return true;
 }
 
 int DesignSketchTool::hit_test(const Vec2d& p, double tol) const

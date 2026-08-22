@@ -171,9 +171,17 @@ static const OfferVerb kOfferVerbs[] = {
     {"constrain", "Constrain sketch", 7, nullptr, "btn:constrain", "Select a sketch to constrain it", 0x00004000u, 0, 1, false, false, nullptr, "design_constrain", "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch"},
     {"sk_construct", "Construction", 6, "Q", "key:Q", nullptr, 0x000b8000u, 0, 0, false, true, nullptr, nullptr, "Toggle construction: geometry that guides but is never built"},
     {"sk_extend", "Extend", 7, "X", "key:X", nullptr, 0x000b0000u, 0, 0, false, true, nullptr, "design_extend", "Extend — click a line/arc to extend it"},
-    {"sk_delete", "Delete", 7, "Del", "btn:delete", nullptr, 0x000f0000u, 0, 0, false, true, nullptr, "design_delete", "Delete the selected sketch entities"},
+    {"sk_delete", "Delete", 7, "Del", "btn:sk_delete", nullptr, 0x000f0000u, 0, 0, false, true, nullptr, "design_delete", "Delete the selected sketch entities"},
+    // Typing the defining number of the element you pointed at. Three rows rather than one so
+    // each names the quantity in the drawing-office word for THAT element; all three land on
+    // the same handler, because dimension_kind() already resolves the quantity from the
+    // selection. Without these, an element's own numbers were reachable only by arming the
+    // Dimension tool and re-picking geometry that was already selected.
+    {"sk_length", "Length…", 7, "V", "key:V", nullptr, 0x00010000u, 0, 0, false, true, nullptr, "design_dimension", "Type the length of this line"},
+    {"sk_radius", "Radius / diameter…", 7, "V", "key:V", nullptr, 0x00020000u, 0, 0, false, true, nullptr, "design_dimension", "Type the radius of this arc, or the diameter of this circle"},
+    {"sk_angdist", "Angle / distance…", 7, "V", "key:V", nullptr, 0x00080000u, 0, 0, false, true, nullptr, "design_dimension", "Type the angle between two lines, or the distance between the two picks"},
 };
-static const int kOfferVerbCount = 87;
+static const int kOfferVerbCount = 90;
 
 }} // namespace Slic3r::GUI
 

@@ -24,6 +24,8 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
+#include "slic3r/GUI/CAD/DesignCanvas.hpp"
+#include "slic3r/GUI/CAD/DesignSketchTool.hpp"
 
 #include "libslic3r/CAD/CadDocument.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
@@ -1159,6 +1161,326 @@ json action_draft(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"draft_index", d}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+// ---- 2D sketch verbs --------------------------------------------------------------------
+//
+// The model is FreeCAD's Sketcher, adapted to this tab's right-click world. Three ideas are
+// taken over deliberately:
+//
+//   * GEOMETRY IS SEPARATE FROM CONSTRAINTS. You add curves, then you constrain them; the
+//     solver reports degrees of freedom and whether it is consistent. `sketch_describe` returns
+//     both halves plus the DoF, which is the whole state a caller needs to reason about.
+//   * A SKETCH IS JUDGED BY ITS LOOPS, not by its coordinates. FreeCAD asks whether the profile
+//     is closed before it will build from it; `sketch_describe` answers that directly, listing
+//     each closed loop, the loops it encloses as VOIDS, and — the actionable part — the exact
+//     plane coordinates where a chain is still open.
+//   * VALIDATE, THEN FIX. FreeCAD's ValidateSketch finds vertices that overlap within a
+//     tolerance but carry no coincidence, and adds the missing ones. `sketch_validate` reports
+//     them, `sketch_heal` welds and constrains them. That is what turns a loop that is closed by
+//     floating-point luck into one that is closed by construction and stays closed through
+//     every later solve.
+//
+// What is NOT taken over: FreeCAD's Sketcher is a modal dialog with its own toolbars. Here the
+// vocabulary is the right-click offer, so these verbs are named after what the menu offers on a
+// selection, and every one of them drives the SAME DesignSketchTool the mouse drives.
+
+DesignSketchTool& mcp_sketch(DesignPanel* panel)
+{
+    DesignCanvas* vp = panel->mcp_viewport();
+    if (vp == nullptr) throw std::runtime_error("no viewport");
+    if (!vp->is_sketching())
+        throw std::runtime_error("no sketch is open — call sketch_begin first");
+    return vp->mcp_sketch_tool();
+}
+
+SketchEntity sketch_entity_from(const json& j)
+{
+    const std::string t = j.value("type", std::string(""));
+    SketchEntity e;
+    auto p = [&](const char* k, double dx, double dy) {
+        if (!j.contains(k)) return Vec2d(dx, dy);
+        const json& a = j.at(k);
+        if (!a.is_array() || a.size() < 2) throw std::runtime_error(std::string(k) + " must be [x, y]");
+        return Vec2d(a[0].get<double>(), a[1].get<double>());
+    };
+    e.construction = j.value("construction", false);
+    if (t == "line") {
+        e.type = SketchEntity::Type::Line;
+        e.p0 = p("p0", 0, 0); e.p1 = p("p1", 0, 0);
+    } else if (t == "circle") {
+        e.type   = SketchEntity::Type::Circle;
+        e.center = p("center", 0, 0);
+        e.radius = j.value("radius", 0.0);
+        e.p0     = e.center;
+        if (e.radius <= 0.0) throw std::runtime_error("circle needs a positive 'radius'");
+    } else if (t == "arc") {
+        e.type        = SketchEntity::Type::Arc;
+        e.center      = p("center", 0, 0);
+        e.radius      = j.value("radius", 0.0);
+        e.start_angle = j.value("start_angle", 0.0);
+        e.end_angle   = j.value("end_angle", 0.0);
+        if (e.radius <= 0.0) throw std::runtime_error("arc needs a positive 'radius'");
+        e.p0 = e.center + e.radius * Vec2d(std::cos(e.start_angle), std::sin(e.start_angle));
+        e.p1 = e.center + e.radius * Vec2d(std::cos(e.end_angle),   std::sin(e.end_angle));
+    } else if (t == "point") {
+        e.type = SketchEntity::Type::Point;
+        e.p0   = p("p", 0, 0);
+    } else {
+        throw std::runtime_error("unknown entity type '" + t + "' (line, arc, circle, point)");
+    }
+    return e;
+}
+
+json sketch_entity_to(const SketchEntity& e, int index)
+{
+    json j{{"index", index}, {"construction", e.construction}};
+    switch (e.type) {
+    case SketchEntity::Type::Line:
+        j["type"] = "line";
+        j["p0"] = json::array({e.p0.x(), e.p0.y()});
+        j["p1"] = json::array({e.p1.x(), e.p1.y()});
+        j["length"] = (e.p1 - e.p0).norm();
+        break;
+    case SketchEntity::Type::Circle:
+        j["type"] = "circle";
+        j["center"] = json::array({e.center.x(), e.center.y()});
+        j["radius"] = e.radius;
+        break;
+    case SketchEntity::Type::Arc:
+        j["type"] = "arc";
+        j["center"] = json::array({e.center.x(), e.center.y()});
+        j["radius"] = e.radius;
+        j["start_angle"] = e.start_angle;
+        j["end_angle"]   = e.end_angle;
+        j["p0"] = json::array({e.p0.x(), e.p0.y()});
+        j["p1"] = json::array({e.p1.x(), e.p1.y()});
+        break;
+    case SketchEntity::Type::Point:
+        j["type"] = "point";
+        j["p"] = json::array({e.p0.x(), e.p0.y()});
+        break;
+    case SketchEntity::Type::Ellipse:     j["type"] = "ellipse";     break;
+    case SketchEntity::Type::EllipseArc:  j["type"] = "ellipse_arc"; break;
+    case SketchEntity::Type::BSpline:     j["type"] = "spline";      break;
+    }
+    return j;
+}
+
+// Which entities a verb acts on: an explicit "entities" array, else the current selection,
+// else — only where the verb says so — everything. Same precedence the menu uses: what you
+// pointed at wins, and the menu never silently acts on the whole sketch.
+std::vector<int> sketch_targets(const json& params, DesignSketchTool& t, bool all_if_empty)
+{
+    std::vector<int> out;
+    if (params.contains("entities")) {
+        for (const auto& v : params.at("entities")) out.push_back(v.get<int>());
+        return out;
+    }
+    out = t.selection();
+    if (out.empty() && all_if_empty)
+        for (int i = 0; i < int(t.entities().size()); ++i) out.push_back(i);
+    return out;
+}
+
+json action_sketch_begin(DesignPanel* panel, const json& params)
+{
+    DesignCanvas* vp = panel->mcp_viewport();
+    if (vp == nullptr) throw std::runtime_error("no viewport");
+    if (vp->is_sketching()) throw std::runtime_error("a sketch is already open");
+    const std::string pl = params.value("plane", std::string("XY"));
+    SketchPlane plane = SketchPlane::XY();
+    if      (pl == "XZ") plane = SketchPlane::XZ();
+    else if (pl == "YZ") plane = SketchPlane::YZ();
+    else if (pl != "XY") throw std::runtime_error("plane must be XY, XZ or YZ");
+    vp->begin_sketch(plane, DesignSketchTool::Mode::Select);
+    // The panel has to enter sketch mode too, or the app is half in it: the tool sketches, the
+    // offer menu offers sketch verbs, and every sketch KEY is dead because key dispatch tests
+    // m_ui_mode while the menu tests the viewport. Driving the socket must leave the GUI in the
+    // state a user would be in, not a state only the socket can produce.
+    panel->mcp_set_sketch_mode(true);
+    return json{{"ok", true}, {"plane", pl}};
+}
+
+json action_sketch_commit(DesignPanel* panel, const json& params)
+{
+    (void)params;
+    DesignCanvas* vp = panel->mcp_viewport();
+    if (vp == nullptr || !vp->is_sketching()) throw std::runtime_error("no sketch is open");
+    vp->finish_sketch();
+    panel->mcp_set_sketch_mode(false);
+    panel->mcp_after_change();
+    return json{{"ok", true}, {"features", int(panel->mcp_doc().features.size())}};
+}
+
+json action_sketch_cancel(DesignPanel* panel, const json& params)
+{
+    (void)params;
+    DesignCanvas* vp = panel->mcp_viewport();
+    if (vp == nullptr || !vp->is_sketching()) throw std::runtime_error("no sketch is open");
+    vp->cancel_sketch();
+    panel->mcp_set_sketch_mode(false);
+    return json{{"ok", true}};
+}
+
+json action_sketch_add(DesignPanel* panel, const json& params)
+{
+    DesignSketchTool& t = mcp_sketch(panel);
+    std::vector<SketchEntity> ents;
+    if (params.contains("entities")) {
+        for (const auto& j : params.at("entities")) ents.push_back(sketch_entity_from(j));
+    } else if (params.contains("type")) {
+        ents.push_back(sketch_entity_from(params));      // single-entity shorthand
+    } else if (params.contains("rect")) {
+        // Corner rectangle as four shared-endpoint lines, so it arrives as ONE closed loop
+        // rather than four segments that happen to touch.
+        const json& r = params.at("rect");
+        if (!r.is_array() || r.size() < 4) throw std::runtime_error("rect must be [x0, y0, x1, y1]");
+        const double x0 = r[0].get<double>(), y0 = r[1].get<double>();
+        const double x1 = r[2].get<double>(), y1 = r[3].get<double>();
+        const bool c = params.value("construction", false);
+        auto seg = [&](Vec2d a, Vec2d b) { SketchEntity e; e.type = SketchEntity::Type::Line;
+                                           e.p0 = a; e.p1 = b; e.construction = c; return e; };
+        ents.push_back(seg({x0, y0}, {x1, y0}));
+        ents.push_back(seg({x1, y0}, {x1, y1}));
+        ents.push_back(seg({x1, y1}, {x0, y1}));
+        ents.push_back(seg({x0, y1}, {x0, y0}));
+    } else {
+        throw std::runtime_error("sketch_add needs 'entities', a single 'type', or 'rect'");
+    }
+    const int base = t.add_entities_scripted(ents);
+    panel->mcp_viewport()->request_repaint();
+    return json{{"ok", base >= 0}, {"first_index", base}, {"added", int(ents.size())},
+                {"entities", int(t.entities().size())}, {"dof", t.dof()}};
+}
+
+json action_sketch_select(DesignPanel* panel, const json& params)
+{
+    DesignSketchTool& t = mcp_sketch(panel);
+    std::vector<int> idx;
+    if (params.contains("entities"))
+        for (const auto& v : params.at("entities")) idx.push_back(v.get<int>());
+    const bool any = t.select_indices(idx);
+    panel->mcp_viewport()->request_repaint();
+    return json{{"ok", true}, {"selected", int(t.selection().size())}, {"any", any}};
+}
+
+json action_sketch_delete(DesignPanel* panel, const json& params)
+{
+    DesignSketchTool& t = mcp_sketch(panel);
+    const std::vector<int> tgt = sketch_targets(params, t, false);
+    if (tgt.empty()) throw std::runtime_error("nothing selected and no 'entities' given");
+    const int before = int(t.entities().size());
+    t.select_indices(tgt);
+    t.delete_selected();
+    panel->mcp_viewport()->request_repaint();
+    return json{{"ok", true}, {"removed", before - int(t.entities().size())},
+                {"entities", int(t.entities().size())}};
+}
+
+json action_sketch_construction(DesignPanel* panel, const json& params)
+{
+    DesignSketchTool& t = mcp_sketch(panel);
+    const std::vector<int> tgt = sketch_targets(params, t, false);
+    if (tgt.empty()) throw std::runtime_error("nothing selected and no 'entities' given");
+    t.select_indices(tgt);
+    const int n = t.toggle_selection_construction();
+    panel->mcp_viewport()->request_repaint();
+    return json{{"ok", n > 0}, {"changed", n}};
+}
+
+json action_sketch_offset(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("distance")) throw std::runtime_error("sketch_offset needs 'distance'");
+    DesignSketchTool& t = mcp_sketch(panel);
+    const double d = params.at("distance").get<double>();
+    const std::vector<int> tgt = sketch_targets(params, t, true);
+    std::vector<SketchEntity> src;
+    for (int i : tgt)
+        if (i >= 0 && i < int(t.entities().size())) src.push_back(t.entities()[i]);
+    if (src.empty()) throw std::runtime_error("nothing to offset");
+    const auto out = SketchEngine::offset_entities(src, d);
+    if (out.empty()) throw std::runtime_error("offset produced nothing (ellipses and splines are not offset)");
+    const int base = t.add_entities_scripted(out);
+    panel->mcp_viewport()->request_repaint();
+    return json{{"ok", true}, {"first_index", base}, {"added", int(out.size())}, {"dof", t.dof()}};
+}
+
+json action_sketch_mirror(DesignPanel* panel, const json& params)
+{
+    DesignSketchTool& t = mcp_sketch(panel);
+    auto pt = [&](const char* k, double dx, double dy) {
+        if (!params.contains(k)) return Vec2d(dx, dy);
+        const json& a = params.at(k);
+        if (!a.is_array() || a.size() < 2) throw std::runtime_error(std::string(k) + " must be [x, y]");
+        return Vec2d(a[0].get<double>(), a[1].get<double>());
+    };
+    const Vec2d a = pt("axis_a", 0, 0), b = pt("axis_b", 0, 1);
+    const std::vector<int> tgt = sketch_targets(params, t, true);
+    std::vector<SketchEntity> src;
+    for (int i : tgt)
+        if (i >= 0 && i < int(t.entities().size())) src.push_back(t.entities()[i]);
+    if (src.empty()) throw std::runtime_error("nothing to mirror");
+    const auto out = SketchEngine::mirror_entities(src, a, b);
+    const int base = t.add_entities_scripted(out);
+    panel->mcp_viewport()->request_repaint();
+    return json{{"ok", true}, {"first_index", base}, {"added", int(out.size())}, {"dof", t.dof()}};
+}
+
+json sketch_report(DesignSketchTool& t)
+{
+    const auto rep = t.loop_report();
+    json loops = json::array();
+    for (const auto& l : rep.loops) {
+        json holes = json::array();
+        for (int h : l.holes) holes.push_back(h);
+        loops.push_back(json{{"entities", l.ents}, {"holes", holes},
+                             {"closed", l.closed}, {"area", l.area}});
+    }
+    json open_ends = json::array();
+    for (const Vec2d& p : rep.open_ends) open_ends.push_back(json::array({p.x(), p.y()}));
+    // A profile is buildable when at least one loop closed and nothing is left dangling.
+    const bool buildable = !rep.loops.empty() && rep.open_ends.empty();
+    return json{{"closed_loops", loops}, {"open_ends", open_ends}, {"buildable", buildable}};
+}
+
+json action_sketch_describe(DesignPanel* panel, const json& params)
+{
+    (void)params;
+    DesignSketchTool& t = mcp_sketch(panel);
+    json ents = json::array();
+    for (int i = 0; i < int(t.entities().size()); ++i)
+        ents.push_back(sketch_entity_to(t.entities()[i], i));
+    json out{{"ok", true},
+             {"entities", ents},
+             {"constraints", int(t.constraints().size())},
+             {"dof", t.dof()},
+             {"solve_ok", t.solve_ok()},
+             {"selection", t.selection()}};
+    out.update(sketch_report(t));
+    return out;
+}
+
+json action_sketch_validate(DesignPanel* panel, const json& params)
+{
+    DesignSketchTool& t = mcp_sketch(panel);
+    const double tol = params.value("tolerance", 1e-3);
+    json out{{"ok", true}, {"tolerance", tol}, {"dof", t.dof()}, {"solve_ok", t.solve_ok()}};
+    out.update(sketch_report(t));
+    return out;
+}
+
+json action_sketch_heal(DesignPanel* panel, const json& params)
+{
+    DesignSketchTool& t = mcp_sketch(panel);
+    const double tol = params.value("tolerance", 1e-3);
+    const bool   ic  = params.value("ignore_construction", true);
+    const int welded = t.heal_coincidences(tol, ic);
+    panel->mcp_viewport()->request_repaint();
+    json out{{"ok", true}, {"welded", welded}, {"tolerance", tol},
+             {"dof", t.dof()}, {"solve_ok", t.solve_ok()}};
+    out.update(sketch_report(t));
+    return out;
+}
+
 json action_mirror(DesignPanel* panel, const json& params)
 {
     std::string m_str = params.value("mode", std::string("new"));
@@ -1485,6 +1807,18 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "rib")            return rpc_result(id, action_rib(panel, params));
         if (method == "draft")          return rpc_result(id, action_draft(panel, params));
         if (method == "mirror")         return rpc_result(id, action_mirror(panel, params));
+        if (method == "sketch_begin")   return rpc_result(id, action_sketch_begin(panel, params));
+        if (method == "sketch_commit")  return rpc_result(id, action_sketch_commit(panel, params));
+        if (method == "sketch_cancel")  return rpc_result(id, action_sketch_cancel(panel, params));
+        if (method == "sketch_add")     return rpc_result(id, action_sketch_add(panel, params));
+        if (method == "sketch_select")  return rpc_result(id, action_sketch_select(panel, params));
+        if (method == "sketch_delete")  return rpc_result(id, action_sketch_delete(panel, params));
+        if (method == "sketch_construction") return rpc_result(id, action_sketch_construction(panel, params));
+        if (method == "sketch_offset")  return rpc_result(id, action_sketch_offset(panel, params));
+        if (method == "sketch_mirror")  return rpc_result(id, action_sketch_mirror(panel, params));
+        if (method == "sketch_describe") return rpc_result(id, action_sketch_describe(panel, params));
+        if (method == "sketch_validate") return rpc_result(id, action_sketch_validate(panel, params));
+        if (method == "sketch_heal")    return rpc_result(id, action_sketch_heal(panel, params));
         if (method == "transform")      return rpc_result(id, action_transform(panel, params));
         if (method == "thicken")        return rpc_result(id, action_thicken(panel, params));
         if (method == "split")          return rpc_result(id, action_split(panel, params));

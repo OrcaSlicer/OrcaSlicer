@@ -426,8 +426,28 @@ DesignPanel::DesignPanel(wxWindow* parent)
         select_tool(DesignSketchTool::Mode::Polygon, _L("Polygon — click center, then a vertex"));
     };
     // Constrain (finish the live sketch + enter constrain), and Construction toggle.
+    // V for Value: type the defining number of whatever is selected — a line's length, an arc's
+    // radius, a circle's diameter, the angle between two lines. One handler behind three offer
+    // rows, because the quantity comes from the selection, not from which row was clicked.
+    //
+    // It needs a KEY, not just a menu row. The deck profile in VSD_n1_streamcontroller is
+    // generated from these two key tables, so a verb with no shortcut cannot be put on a
+    // physical button at all — which is the whole point of that profile for a user who drives
+    // the app from buttons rather than a menu.
+    m_keys_sketch['V'] = [this] {
+        if (m_viewport && m_viewport->is_sketching() && !m_viewport->edit_sketch_selection_value())
+            set_status(_L("Nothing here has a value to type — pick a line, an arc, a circle, or two entities"));
+    };
     m_keys_sketch['K'] = [this] { enter_constrain_inline(); };
     m_keys_sketch['Q'] = [this] {
+        // With geometry selected, Q converts THAT geometry (snaporca-6zic) — the reading
+        // everyone arrives with from other sketchers. With nothing selected it keeps its
+        // old meaning: arm construction for whatever you draw next.
+        if (m_viewport && m_viewport->is_sketching() &&
+            m_viewport->toggle_sketch_construction_selection() > 0) {
+            set_status(_L("Converted the selection between construction and real geometry"));
+            return;
+        }
         if (m_construction) {
             m_construction->SetValue(!m_construction->GetValue());
             if (m_viewport && m_viewport->is_sketching())
@@ -1007,6 +1027,16 @@ DesignPanel::DesignPanel(wxWindow* parent)
         fadd("color", b_color);
         m_verb_actions["btn:colour"] = [this] { on_set_body_color(); };
         m_verb_actions["btn:delete"] = [this] { on_delete_feature(); };
+        // The sketch's own Delete. It used to share "btn:delete" with the feature tree, so
+        // choosing Delete on a selected LINE ran on_delete_feature() and removed a tree row (or
+        // nothing) while the line stayed — the reported "I click a line and cannot remove it".
+        m_verb_actions["btn:sk_delete"] = [this] {
+            if (m_viewport && m_viewport->is_sketching())
+                m_viewport->delete_selected_sketch_entities();
+            else
+                on_delete_feature();
+        };
+
         m_verb_actions["btn:delete_body"] = [this] { on_delete_body(); };
         m_verb_actions["btn:edit"]   = [this] { on_edit_feature(); };
         m_verb_actions["btn:mass"]   = [this] { on_mass_properties(); };

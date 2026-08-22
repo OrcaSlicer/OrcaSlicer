@@ -115,7 +115,12 @@ TEST_CASE("Offset Circle: expand and collapse", "[SketchEdit]")
     REQUIRE(collapsed.empty());
 }
 
-TEST_CASE("Offset Arc by positive d", "[SketchEdit]")
+// CONTRACT CHANGED: +d used to mean "radius + d" for every arc regardless of its sweep, while
+// for a line it meant "left of the direction of travel". The two disagreed, so a profile made
+// of lines AND arcs (any slot outline) offset with its straights going one way and its caps the
+// other, and could never come back closed. The arc now follows the line's rule: +d is left of
+// travel, which for this CCW quarter-arc is inward -> r = 3. See [SketchProfile].
+TEST_CASE("Offset Arc by positive d (left of travel: a CCW arc shrinks)", "[SketchEdit]")
 {
     SketchEntity e;
     e.type        = SketchEntity::Type::Arc;
@@ -131,11 +136,11 @@ TEST_CASE("Offset Arc by positive d", "[SketchEdit]")
 
     const auto& o = result[0];
     REQUIRE(o.type == SketchEntity::Type::Arc);
-    REQUIRE_THAT(o.radius, WithinAbs(5.0, 1e-9));
-    REQUIRE_THAT(o.p0.x(), WithinAbs(5.0, 1e-9));
+    REQUIRE_THAT(o.radius, WithinAbs(3.0, 1e-9));
+    REQUIRE_THAT(o.p0.x(), WithinAbs(3.0, 1e-9));
     REQUIRE_THAT(o.p0.y(), WithinAbs(0.0, 1e-9));
     REQUIRE_THAT(o.p1.x(), WithinAbs(0.0, 1e-9));
-    REQUIRE_THAT(o.p1.y(), WithinAbs(5.0, 1e-9));
+    REQUIRE_THAT(o.p1.y(), WithinAbs(3.0, 1e-9));
 }
 
 TEST_CASE("Fillet right-angle corner", "[SketchEdit]")

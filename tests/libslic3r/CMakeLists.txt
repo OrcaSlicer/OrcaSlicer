@@ -46,6 +46,7 @@ if (SLIC3R_CAD)
         test_caddocument.cpp
         test_sketchconstraints.cpp
         test_sketchedit.cpp
+        test_sketchprofile.cpp
         test_sketchimport.cpp
         test_sketchinference.cpp
         test_slvs_constraints.cpp)

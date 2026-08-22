@@ -473,6 +473,20 @@ void DesignCanvas::set_sketch_construction(bool c)
     m_sketch_tool.set_construction(c);
 }
 
+bool DesignCanvas::edit_sketch_selection_value()
+{
+    const bool ok = m_sketch_tool.open_selection_dimension_editor();
+    if (ok) request_repaint();
+    return ok;
+}
+
+int DesignCanvas::toggle_sketch_construction_selection()
+{
+    const int n = m_sketch_tool.toggle_selection_construction();
+    if (n > 0) request_repaint();
+    return n;
+}
+
 bool DesignCanvas::add_sketch_regions(
     const std::vector<std::vector<std::vector<Vec2d>>>& regions)
 {
@@ -970,6 +984,12 @@ void DesignCanvas::set_on_context_menu(std::function<void(const wxPoint&)> cb)
         const bool terminated = m_sketch_tool.take_right_consumed();
         if (m_on_context_menu && !terminated && !inline_busy()
             && std::max(std::abs(d.x), std::abs(d.y)) <= 8) {
+            // The menu belongs to what you POINTED AT. Pick first, so a right-click on a line
+            // offers that line's verbs instead of the empty-selection vocabulary. Selecting an
+            // entity that is already selected is a no-op, so a multi-entity pick survives a
+            // right-click on one of its members.
+            if (m_canvas && m_sketch_tool.select_at_screen(*m_canvas, e.GetX(), e.GetY()))
+                request_repaint();
             m_on_context_menu(m_canvas_widget->ClientToScreen(e.GetPosition()));
             return;   // consumed
         }
