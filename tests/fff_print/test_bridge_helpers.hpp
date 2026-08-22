@@ -189,6 +189,31 @@ inline double perimeter_role_length_at_z(const Print &print, double z, Extrusion
     return len;
 }
 
+/// Collect extrusion roles from a layer's gap-fill (LayerRegion::thin_fills) at a Z.
+inline std::vector<ExtrusionRole>
+collect_thinfill_roles_at_z(const Print &print, double z, double tolerance = 0.02)
+{
+    std::vector<ExtrusionRole> roles;
+    for (const PrintObject *obj : print.objects())
+        for (const Layer *layer : obj->layers()) {
+            if (std::abs(layer->print_z - z) > tolerance)
+                continue;
+            for (const LayerRegion *region : layer->regions())
+                collect_roles_from_entity(region->thin_fills, roles);
+        }
+    return roles;
+}
+
+/// Count thin-fill (gap-fill) paths with a given role at a Z.
+inline size_t count_thinfill_role_at_z(const Print &print, double z, ExtrusionRole role,
+                                       double tolerance = 0.02)
+{
+    auto roles = collect_thinfill_roles_at_z(print, z, tolerance);
+    size_t n = 0;
+    for (auto r : roles) if (r == role) ++n;
+    return n;
+}
+
 /// Recursively expand [minx,maxx] (mm) over points of paths with a given role.
 inline void collect_role_x_range(const ExtrusionEntity &entity, ExtrusionRole target,
                                  double &minx, double &maxx)
