@@ -448,7 +448,11 @@ void FilamentMapRowsPanel::BuildTargetOptions(const FilamentInventory &inventory
             else if (!pf.type.empty())
                 name = from_u8(pf.type);
             wxString tool_part = wxString::Format(_L("Tool %d"), (int) t + 1);
-            wxString label = name.IsEmpty() ? tool_part : wxString::Format("%s – %s", name, tool_part);
+            // FromUTF8 for the en dash: a raw literal goes through the ANSI conversion on
+            // Windows and renders as mojibake in the option tooltip (same class of bug as the
+            // stats separator).
+            wxString label = name.IsEmpty() ? tool_part
+                                             : wxString::Format("%s%s%s", name, wxString::FromUTF8(" – "), tool_part);
             label += (si == 0) ? _L(" (loaded)") : _L(" (swap)");
             opt.label = label;
 
@@ -652,7 +656,10 @@ void FilamentMapRowsPanel::UpdateFooter()
     wxString text;
     auto append_stat = [&text](const wxString &segment) {
         if (segment.empty()) return;
-        if (!text.empty()) text += " · ";
+        // FromUTF8: a raw "·" literal goes through the ANSI conversion on Windows and renders
+        // as mojibake ("Â·" -- field report); the translation macros handle UTF-8, plain
+        // char* concatenation does not.
+        if (!text.empty()) text += wxString::FromUTF8(" · ");
         text += segment;
     };
     if (idle > 0) append_stat(wxString::Format(_L("%d tools idle"), idle));
@@ -673,6 +680,16 @@ void FilamentMapRowsPanel::UpdateFooter()
             combined += empty_tool_txt;
         }
         m_warning_label->SetLabel(combined);
+        // Wrap to the panel's width -- long preset names ran off the dialog's right edge
+        // (field report). Wrap() inserts hard newlines into the CURRENT label, so it must
+        // run after every SetLabel of fresh text; before the first real layout the panel
+        // has no meaningful width yet, so fall back to a fixed sane measure.
+        if (!combined.empty()) {
+            int wrap_w = GetClientSize().GetWidth();
+            if (wrap_w < FromDIP(200))
+                wrap_w = FromDIP(520);
+            m_warning_label->Wrap(wrap_w);
+        }
         m_warning_label->Show(!combined.empty());
     }
 

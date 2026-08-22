@@ -114,6 +114,7 @@ public:
     void set_material_cols(int ctype, const std::vector<wxColour>& cols);
 
     void reset_ams_info();
+    void set_toolchanger(bool v) { m_is_toolchanger = v; }
     virtual void reset_valid_info();
 
     void set_nozzle_info(const wxString& mapped_nozzle_str);
@@ -165,6 +166,9 @@ public:
     bool m_warning{false};
     bool m_match {true};
     bool m_enable {true};
+    // Orca: honest tooltip wording for toolchangers ("tool", not "AMS") -- set by the hosting
+    // dialog, consumed by render().
+    bool m_is_toolchanger {false};
 
     void paintEvent(wxPaintEvent &evt);
     virtual void render(wxDC &dc);

@@ -1238,6 +1238,12 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
         is_toolchanger = obj_ && obj_->GetFilaSystem()->IsAllToolchanger();
     }
 
+    // Keep every tile's tooltip wording honest for the printer kind ("tool" vs "AMS"),
+    // including rows the result loop below never visits.
+    for (auto &kv : m_materialList)
+        if (kv.second->item)
+            kv.second->item->set_toolchanger(is_toolchanger);
+
     m_back_ams_mapping_result = result;
     if (result.empty()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "ams_mapping result is empty";
