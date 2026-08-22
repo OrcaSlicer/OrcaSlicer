@@ -162,3 +162,26 @@ TEST_CASE("profile: an open chain offsets without being forced closed", "[Sketch
     // The interior seam is repaired: the two offset segments still meet.
     REQUIRE_THAT((out[0].p1 - out[1].p0).norm(), WithinAbs(0.0, 1e-9));
 }
+
+TEST_CASE("profile: a mirrored half offsets as one loop, not two", "[SketchProfile]")
+{
+    // The classic "draw half, mirror it" gesture on a stadium. mirror_entities emits a half
+    // that travels the opposite way round, so the concatenation must still chain as ONE closed
+    // loop and its mirrored cap must offset outward like the original, not inward.
+    const double L = 30, R = 15, d = 4;
+    const std::vector<SketchEntity> half = {
+        line({0, -R}, {L, -R}),
+        arc({L, 0}, R, -M_PI / 2, M_PI / 2),
+        line({L, R}, {0, R}),
+    };
+    std::vector<SketchEntity> all = half;
+    for (const auto& e : SketchEngine::mirror_entities(half, Vec2d(0, 0), Vec2d(0, 1)))
+        all.push_back(e);
+    REQUIRE(closed_wires(all) == 1);
+
+    const auto out = SketchEngine::offset_entities(all, -d);   // -d = outward for this loop
+    REQUIRE(closed_wires(out) == 1);
+    for (const auto& o : out)
+        if (o.type == SketchEntity::Type::Arc)
+            REQUIRE_THAT(o.radius, WithinAbs(R + d, 1e-9));
+}

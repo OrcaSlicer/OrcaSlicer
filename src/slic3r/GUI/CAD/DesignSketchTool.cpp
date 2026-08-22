@@ -27,6 +27,11 @@
 namespace Slic3r {
 namespace GUI {
 
+// How many chords an arc is drawn with. loop_report corrects each arc's area back to the true
+// curve using this exact number, so the two MUST agree — changing it here without updating the
+// correction silently biases every reported area.
+static constexpr int kArcFacets = 24;
+
 // Positioning helpers (defined lower down, used by the dimension methods above them).
 static bool entity_ref_point(const SketchEntity& e, Vec2d& out);
 static void translate_entity(SketchEntity& e, const Vec2d& d);
@@ -2814,7 +2819,7 @@ std::vector<Vec2d> DesignSketchTool::entity_polyline(const SketchEntity& e, bool
         closed = true;
         return circle_polygon(e.center, e.radius);
     case SketchEntity::Type::Arc: {
-        const int n = 24;
+        const int n = kArcFacets;
         std::vector<Vec2d> pts; pts.reserve(n + 1);
         for (int i = 0; i <= n; ++i) {
             const double a = e.start_angle + (e.end_angle - e.start_angle) * double(i) / double(n);
@@ -8883,12 +8888,70 @@ DesignSketchTool::LoopReport DesignSketchTool::loop_report() const
                           ? M_PI * c.radius * c.radius
                           : M_PI * c.radius * c.rminor;
         } else {
-            double a = 0.0;
-            for (size_t i = 0; i + 1 < r.poly.size(); ++i)
-                a += r.poly[i].x() * r.poly[i + 1].y() - r.poly[i + 1].x() * r.poly[i].y();
-            if (r.poly.size() > 2)
-                a += r.poly.back().x() * r.poly.front().y() - r.poly.front().x() * r.poly.back().y();
-            li.area = 0.5 * a;
+            // EXACT area by Green's theorem over the chain, entity by entity, with no faceting
+            // anywhere. The obvious alternative — shoelace over the render polyline — is short by
+            // the slivers between each arc and its chords: 2.02 mm2 on a 3706.86 mm2 stadium,
+            // 0.054%, invisible on screen and simply wrong in a number reported as "the area".
+            // Correcting the shoelace afterwards does NOT work: a mirrored arc stores a negated
+            // sweep, so two corrections that should add cancel instead. Integrating each entity
+            // in TRAVERSAL order sidesteps the sign question entirely.
+            //   line A->B : x0*y1 - x1*y0
+            //   arc a0->a1: Cx*r*(sin a1 - sin a0) - Cy*r*(cos a1 - cos a0) + r^2*(a1 - a0)
+            // Both are the integrand of the contour integral, so area2 accumulates 2*area and is
+            // halved once at the end. (Doubling the arc term instead reads 5913.72 on the stadium
+            // — exactly one arc's contribution too much, which is how the slip was caught.)
+            auto ent_ends = [&](int ei, Vec2d& a, Vec2d& b) {
+                a = m_entities[ei].p0; b = m_entities[ei].p1;
+            };
+            const double eps = 1e-6;
+            double area2 = 0.0;
+            bool   exact = true;
+            Vec2d  cur(0, 0);
+            for (size_t k = 0; k < r.ents.size(); ++k) {
+                const int ei = r.ents[k];
+                if (ei < 0 || ei >= int(m_entities.size())) { exact = false; break; }
+                const SketchEntity& e = m_entities[ei];
+                if (e.type != SketchEntity::Type::Line && e.type != SketchEntity::Type::Arc) {
+                    exact = false; break;      // spline / ellipse arc: fall back below
+                }
+                Vec2d A, B; ent_ends(ei, A, B);
+                bool rev = false;
+                if (k == 0) {
+                    // Orient the first entity by whichever of its ends the SECOND one touches:
+                    // that shared point is where this entity must finish.
+                    if (r.ents.size() > 1) {
+                        Vec2d C, D; ent_ends(r.ents[1], C, D);
+                        if ((A - C).norm() < eps || (A - D).norm() < eps) rev = true;
+                    }
+                } else {
+                    if ((B - cur).norm() < eps)      rev = true;
+                    else if ((A - cur).norm() >= eps) { exact = false; break; }
+                }
+                const Vec2d P = rev ? B : A;
+                const Vec2d Q = rev ? A : B;
+                if (e.type == SketchEntity::Type::Line) {
+                    area2 += P.x() * Q.y() - Q.x() * P.y();
+                } else {
+                    const double a0 = rev ? e.end_angle   : e.start_angle;
+                    const double a1 = rev ? e.start_angle : e.end_angle;
+                    area2 += e.center.x() * e.radius * (std::sin(a1) - std::sin(a0))
+                           - e.center.y() * e.radius * (std::cos(a1) - std::cos(a0))
+                           + e.radius * e.radius * (a1 - a0);
+                }
+                cur = Q;
+            }
+            if (exact) {
+                li.area = 0.5 * area2;
+            } else {
+                // Splines and elliptical arcs have no closed form here; the render polyline is
+                // the honest best estimate, and it is flagged as such by being the fallback.
+                double a = 0.0;
+                for (size_t i = 0; i + 1 < r.poly.size(); ++i)
+                    a += r.poly[i].x() * r.poly[i + 1].y() - r.poly[i + 1].x() * r.poly[i].y();
+                if (r.poly.size() > 2)
+                    a += r.poly.back().x() * r.poly.front().y() - r.poly.front().x() * r.poly.back().y();
+                li.area = 0.5 * a;
+            }
         }
         out.loops.push_back(std::move(li));
     }

@@ -1072,6 +1072,16 @@ bool off_join(SketchEntity& a, SketchEntity& b)
     return true;
 }
 
+// Normalise an entity that was offset while traversed REVERSED to head-to-tail traversal order:
+// swap its stored ends so p0 is the traversal start and p1 the traversal end. An arc must swap
+// its stored sweep too, because "traversed the other way" reverses the stored sweep direction.
+void off_reverse(SketchEntity& e)
+{
+    std::swap(e.p0, e.p1);
+    if (e.type == SketchEntity::Type::Arc)
+        std::swap(e.start_angle, e.end_angle);
+}
+
 } // namespace
 
 std::vector<SketchEntity> SketchEngine::offset_entities(
@@ -1087,60 +1097,97 @@ std::vector<SketchEntity> SketchEngine::offset_entities(
         if (off_one(src[i], d, o)) out.push_back(o);
     }
 
-    // Chain the open curves by shared endpoints. Greedy walk: start from an entity nobody
-    // precedes (an open chain's head), else from whatever is left (a closed loop).
     std::vector<bool> used(open_idx.size(), false);
+
+    // Stored endpoints of the k-th open entity.
     auto ends = [&](int k, Vec2d& p0, Vec2d& p1) { p0 = src[open_idx[k]].p0; p1 = src[open_idx[k]].p1; };
 
-    auto has_predecessor = [&](int k) {
-        Vec2d p0, p1; ends(k, p0, p1);
+    // An endpoint shared by no OTHER unused open curve is a FREE end: the loose end of an open
+    // chain rather than a seam. (`used` matters — entities already pulled into a chain must not
+    // count, otherwise the far end of the chain we just walked would look shared.)
+    auto is_free = [&](int k, const Vec2d& pt) {
         for (size_t j = 0; j < open_idx.size(); ++j) {
             if (int(j) == k || used[j]) continue;
             Vec2d q0, q1; ends(int(j), q0, q1);
-            if (off_same(q1, p0)) return true;
+            if (off_same(pt, q0) || off_same(pt, q1)) return false;
         }
-        return false;
+        return true;
     };
 
-    for (size_t pass = 0; pass < 2; ++pass) {
-        for (size_t s = 0; s < open_idx.size(); ++s) {
-            if (used[s]) continue;
-            // Pass 0 seeds only open-chain heads, so an open chain is never entered mid-way
-            // (which would split it in two and lose a seam).
-            if (pass == 0 && has_predecessor(int(s))) continue;
+    struct Chain {
+        std::vector<std::pair<int, bool>> items;   // (entity index, reversed)
+        Vec2d start, end;                          // traversal start/end points
+    };
 
-            std::vector<int> chain{ int(s) };
-            used[s] = true;
-            for (;;) {
-                Vec2d p0, p1; ends(chain.back(), p0, p1);
-                int nxt = -1;
-                for (size_t j = 0; j < open_idx.size(); ++j) {
-                    if (used[j]) continue;
-                    Vec2d q0, q1; ends(int(j), q0, q1);
-                    if (off_same(p1, q0)) { nxt = int(j); break; }
-                }
-                if (nxt < 0) break;
-                used[nxt] = true;
-                chain.push_back(nxt);
+    // Walk one chain from the unused seed `s`, traversing AWAY from its free end. `reversed`
+    // means the traversal enters at the entity's p1 and leaves at its p0, i.e. the entity is
+    // travelled opposite to its STORED direction. An entity whose p1 is free (but p0 is not)
+    // is the head of an open chain and must start reversed; an isolated entity or a closed
+    // loop starts forward.
+    auto walk = [&](int s) -> Chain {
+        Chain c;
+        Vec2d s0, s1; ends(s, s0, s1);
+        const bool rev = !is_free(s, s0) && is_free(s, s1);
+        c.items.emplace_back(s, rev);
+        used[s] = true;
+        c.start = rev ? s1 : s0;
+        c.end   = rev ? s0 : s1;
+        for (;;) {
+            int  nxt  = -1;
+            bool nrev = false;
+            for (size_t j = 0; j < open_idx.size(); ++j) {
+                if (used[j]) continue;
+                Vec2d q0, q1; ends(int(j), q0, q1);
+                if (off_same(c.end, q0)) { nxt = int(j); nrev = false; break; }
+                if (off_same(c.end, q1)) { nxt = int(j); nrev = true;  break; }
             }
-
-            Vec2d h0, h1, t0, t1;
-            ends(chain.front(), h0, h1);
-            ends(chain.back(),  t0, t1);
-            const bool closed = chain.size() > 2 && off_same(t1, h0);
-
-            std::vector<SketchEntity> off;
-            for (int k : chain) {
-                SketchEntity o;
-                if (off_one(src[open_idx[k]], d, o)) off.push_back(o);
-            }
-            if (off.empty()) continue;
-
-            for (size_t i = 0; i + 1 < off.size(); ++i) off_join(off[i], off[i + 1]);
-            if (closed && off.size() > 1) off_join(off.back(), off.front());
-
-            for (auto& o : off) out.push_back(o);
+            if (nxt < 0) break;
+            c.items.emplace_back(nxt, nrev);
+            used[nxt] = true;
+            Vec2d q0, q1; ends(nxt, q0, q1);
+            c.end = nrev ? q0 : q1;
         }
+        return c;
+    };
+
+    // Offset one chain as traversed: every entity is offset with an EFFECTIVE distance that
+    // already accounts for how it was walked, then reversed entities have their stored ends
+    // swapped so the emitted chain is head-to-tail in traversal order (which is what keeps the
+    // seam repair below — and any later offset/mirror — well-oriented). A chain whose final
+    // traversal end coincides with its first traversal start is CLOSED.
+    auto emit = [&](const Chain& c) {
+        const bool closed = c.items.size() > 1 && off_same(c.end, c.start);
+        std::vector<SketchEntity> off;
+        off.reserve(c.items.size());
+        for (const auto& it : c.items) {
+            // A reversed entity offsets with -d rather than +d:
+            //  * a line walked backwards has its left-hand side on the other side, so -d;
+            //  * an arc walked backwards has its sweep sign effectively flipped, which is exactly
+            //    the `sgn` term off_one reads, so -d again.
+            const double ed = it.second ? -d : d;
+            SketchEntity o;
+            if (!off_one(src[open_idx[it.first]], ed, o)) continue;
+            if (it.second) off_reverse(o);
+            off.push_back(o);
+        }
+        if (off.empty()) return;
+        for (size_t i = 0; i + 1 < off.size(); ++i) off_join(off[i], off[i + 1]);
+        if (closed && off.size() > 1) off_join(off.back(), off.front());
+        for (auto& o : off) out.push_back(o);
+    };
+
+    // Pass 1: open chains, seeded at a free end so they are never entered mid-way (which would
+    // split one open chain in two and lose a seam).
+    for (size_t s = 0; s < open_idx.size(); ++s) {
+        if (used[s]) continue;
+        Vec2d s0, s1; ends(int(s), s0, s1);
+        if (!is_free(int(s), s0) && !is_free(int(s), s1)) continue;
+        emit(walk(int(s)));
+    }
+    // Pass 2: what is left has no free end and is a CLOSED loop; start anywhere, forward.
+    for (size_t s = 0; s < open_idx.size(); ++s) {
+        if (used[s]) continue;
+        emit(walk(int(s)));
     }
 
     return out;
