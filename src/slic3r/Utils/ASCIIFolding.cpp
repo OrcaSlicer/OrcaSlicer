@@ -4,7 +4,6 @@
 #include <string.h>
 #include <locale>
 #include <boost/locale/encoding_utf.hpp>
-#include <codecvt>
 #include <regex>
 
 namespace Slic3r {

@@ -26,9 +26,6 @@
 
 #include "Widgets/HyperLink.hpp" // ORCA
 
-// DESIGN_INPUT_SIZE is defined in Preferences.hpp / ExportPresetBundleDialog.hpp
-// and not used in this file — remove the conflicting redefinition.
-
 namespace Slic3r {
 namespace GUI {
 
