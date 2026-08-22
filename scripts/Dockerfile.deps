@@ -78,3 +78,18 @@ RUN ./build_linux.sh -dr -j 12
 # without this symlink a rebuild on the new image reconfigures from scratch — hours of compile
 # to change one directory name. Same tree, two names.
 RUN ln -sfn /OrcaSlicer/deps/build/OrcaSlicer_dep /OrcaSlicer/deps/build/destdir
+
+# The rig's GUI runtime. This used to arrive for free because orcacad-deps was layered on
+# snaporca-deps; that lineage is Trap 1 in docs/rig_build_traps.md (a baked project(Snapmaker_Orca)
+# tree) and building from this Dockerfile is what removes it — along with the X stack the rig
+# needs. scripts/gui-session.sh requires Xvfb and openbox (without a window manager `xdotool
+# windowactivate` aborts with "windowmanager claims not to support..."), drives the UI with
+# xdotool, and captures to /shots with scrot/ImageMagick. Same set snaporca-deps carries.
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    imagemagick \
+    openbox \
+    scrot \
+    xauth \
+    xdotool \
+    xvfb \
+ && rm -rf /var/lib/apt/lists/*
