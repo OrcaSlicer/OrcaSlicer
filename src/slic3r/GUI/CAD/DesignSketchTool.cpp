@@ -241,6 +241,15 @@ void DesignSketchTool::set_tool(Mode mode)
     // the value away and reverted the corner to sharp, with nothing on screen saying so.
     reset_op();                 // drop any in-progress (not yet ready) edit-op gizmo
     reset_tf();                 // drop any in-progress transform gizmo
+    // A pick that survives the tool that made it is invisible, and the first sign of it is a
+    // constraint or a dimension landing on geometry the user did not choose. Drop the modal
+    // picks left armed by the tool we are leaving: the Dimension tool's first pick, the
+    // Constrain tool's picks, and the individual point selection.
+    m_dim_has0 = false;
+    m_dim_e0   = -1;
+    m_dim_r0   = SketchPointRole::P0;
+    m_pick0 = m_pick1 = m_pick2 = -1;
+    m_point_sel.clear();
     m_selection.clear();
     if (on_selection_changed) on_selection_changed(0);
 }
@@ -328,6 +337,11 @@ void DesignSketchTool::delete_selected()
     m_dimensions.clear();
     m_dim_has0 = false;
     m_pending_dim = -1;
+    // The Dimension tool's pending FIRST pick is the same dangling-reference hazard as the placed
+    // quotes just cleared above: it references an entity index that has shifted or gone away, and
+    // a stale m_dim_e0 would dereference out of range on the next click. Drop it too.
+    m_dim_e0 = -1;
+    m_dim_r0 = SketchPointRole::P0;
     if (on_selection_changed) on_selection_changed(0);
 }
 

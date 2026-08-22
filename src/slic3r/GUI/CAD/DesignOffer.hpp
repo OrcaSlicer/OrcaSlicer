@@ -121,6 +121,7 @@ static const OfferVerb kOfferVerbs[] = {
     {"mass_props", "Mass", 6, nullptr, "btn:mass", nullptr, 0x000000feu, 1, 0, false, false, nullptr, "info", "Report the volume and surface area of the selected body"},
     {"interference", "Interference", 6, nullptr, nullptr, nullptr, 0x00000200u, 2, 0, false, false, nullptr, nullptr, "Check whether two bodies overlap — reports, changes nothing"},
     {"edit_feature", "Edit", 7, nullptr, "btn:edit", nullptr, 0x00007d8eu, 0, 0, false, false, nullptr, "design_edit", "Reopen the selected feature to change what it was made from"},
+    {"rename", "Rename…", 7, "F2", "btn:rename", "Select a feature to rename it", 0x00004000u, 0, 0, false, false, nullptr, nullptr, "Give this feature a name you will recognise in the tree"},
     {"delete_face", "Delete Face", 7, nullptr, "fly:dressup#3", "Delete Face needs a body — add or import one first", 0x0000000eu, 1, 0, false, false, nullptr, "design_delete", "Remove faces from a body and heal the solid"},
     {"colour", "Colour", 7, nullptr, "btn:colour", nullptr, 0x000001feu, 1, 0, false, false, nullptr, "color_palette", "Set the selected body's display colour"},
     {"delete", "Delete", 7, "Del", "btn:delete", nullptr, 0x000f7c00u, 0, 0, false, false, nullptr, "design_delete", "Delete what is selected"},
@@ -181,7 +182,7 @@ static const OfferVerb kOfferVerbs[] = {
     {"sk_radius", "Radius / diameter…", 7, "V", "key:V", nullptr, 0x00020000u, 0, 0, false, true, nullptr, "design_dimension", "Type the radius of this arc, or the diameter of this circle"},
     {"sk_angdist", "Angle / distance…", 7, "V", "key:V", nullptr, 0x00080000u, 0, 0, false, true, nullptr, "design_dimension", "Type the angle between two lines, or the distance between the two picks"},
 };
-static const int kOfferVerbCount = 90;
+static const int kOfferVerbCount = 91;
 
 }} // namespace Slic3r::GUI
 

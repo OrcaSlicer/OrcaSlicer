@@ -4,7 +4,8 @@
 #include <functional>
 #include <string>
 
-class wxWindow;
+#include <wx/window.h>
+
 class wxFrame;
 class wxTextCtrl;
 class wxStaticText;
@@ -33,6 +34,9 @@ public:
     void cancel();                       // if open, run the registered cancel (keep-as-drawn)
     void commit();                       // if open, run the registered commit (accept the typed value)
     bool is_open() const { return m_open; }
+    // True when the field itself holds keyboard focus. Callers use this to decide whether the
+    // field will handle a key on its own or needs it forwarded — see DesignPanel's CHAR_HOOK.
+    bool has_focus() const { return m_ctrl != nullptr && wxWindow::FindFocus() == m_ctrl; }
 
 private:
     void do_commit();

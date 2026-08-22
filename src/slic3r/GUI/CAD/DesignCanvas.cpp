@@ -1211,6 +1211,27 @@ bool DesignCanvas::inline_busy() const
     return m_sketch_tool.inline_busy();
 }
 
+bool DesignCanvas::inline_has_focus() const
+{
+    return m_inline_editor && m_inline_editor->has_focus();
+}
+
+void DesignCanvas::inline_commit()
+{
+    if (m_inline_editor) m_inline_editor->commit();
+}
+
+void DesignCanvas::inline_cancel()
+{
+    if (m_inline_editor) m_inline_editor->cancel();
+}
+
+void DesignCanvas::request_sketch_exit()
+{
+    m_sketch_tool.request_exit();
+    request_repaint();
+}
+
 bool DesignCanvas::live_sketch_has_work() const
 {
     return m_sketch_tool.live_sketch_has_work();
