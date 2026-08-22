@@ -897,6 +897,36 @@ std::vector<SketchEntity> SketchEngine::mirror_entities(
         out.push_back(m);
     }
 
+    // A REFLECTION REVERSES ORIENTATION, so the reflected half is handed back reversed — in
+    // order, and each entity flipped — or it does not CONTINUE the chain it was made from.
+    //
+    // Draw half a stadium left-to-right along the bottom, round the cap, right-to-left along the
+    // top, ending at (0, R). Reflecting each entity in place gives a half whose top run STARTS at
+    // (-L, R) and ENDS at (0, R): it meets the original head-to-head, not head-to-tail. Every
+    // consumer that walks the loop then has to cope, and two already had to be taught — the loop
+    // area cancelled its own arc correction against the negated sweep, and offset put the
+    // reflected half on the wrong side because it read each entity's STORED direction. Reversed
+    // here, the two halves are one walkable chain and a mirrored CCW loop stays CCW.
+    std::reverse(out.begin(), out.end());
+    for (SketchEntity& m : out) {
+        switch (m.type) {
+        case SketchEntity::Type::Line:
+            std::swap(m.p0, m.p1);
+            break;
+        case SketchEntity::Type::Arc:
+        case SketchEntity::Type::EllipseArc:
+            std::swap(m.p0, m.p1);
+            std::swap(m.start_angle, m.end_angle);   // what "walked the other way" means
+            break;
+        case SketchEntity::Type::BSpline:
+            std::swap(m.p0, m.p1);
+            std::reverse(m.ctrl.begin(), m.ctrl.end());
+            break;
+        default:
+            break;   // circle, ellipse, point: no direction to reverse
+        }
+    }
+
     return out;
 }
 

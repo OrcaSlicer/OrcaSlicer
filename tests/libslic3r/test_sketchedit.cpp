@@ -6,7 +6,11 @@ using namespace Slic3r;
 
 using Catch::Matchers::WithinAbs;
 
-TEST_CASE("Mirror Line across Y axis", "[SketchEdit]")
+// CONTRACT: mirror_entities hands the reflected half back REVERSED — the order of the entities
+// and the direction of each — because a reflection reverses orientation and the result has to
+// CONTINUE the chain it was made from. So a mirrored line's p0 is the reflection of the source's
+// p1, not its p0. See [SketchProfile] "a mirrored half continues the original chain".
+TEST_CASE("Mirror Line across Y axis (reversed: p0 is the reflection of the source p1)", "[SketchEdit]")
 {
     SketchEntity e;
     e.type = SketchEntity::Type::Line;
@@ -21,10 +25,10 @@ TEST_CASE("Mirror Line across Y axis", "[SketchEdit]")
 
     const auto& m = result[0];
     REQUIRE(m.type == SketchEntity::Type::Line);
-    REQUIRE_THAT(m.p0.x(), WithinAbs(-3.0, 1e-9));
-    REQUIRE_THAT(m.p0.y(), WithinAbs(2.0, 1e-9));
-    REQUIRE_THAT(m.p1.x(), WithinAbs(-5.0, 1e-9));
-    REQUIRE_THAT(m.p1.y(), WithinAbs(4.0, 1e-9));
+    REQUIRE_THAT(m.p0.x(), WithinAbs(-5.0, 1e-9));   // reflection of the SOURCE p1
+    REQUIRE_THAT(m.p0.y(), WithinAbs(4.0, 1e-9));
+    REQUIRE_THAT(m.p1.x(), WithinAbs(-3.0, 1e-9));   // reflection of the SOURCE p0
+    REQUIRE_THAT(m.p1.y(), WithinAbs(2.0, 1e-9));
 }
 
 TEST_CASE("Mirror Circle across Y axis", "[SketchEdit]")
@@ -70,15 +74,19 @@ TEST_CASE("Mirror Arc across X axis", "[SketchEdit]")
     const auto& m = result[0];
     REQUIRE(m.type == SketchEntity::Type::Arc);
 
-    REQUIRE_THAT(m.p0.x(), WithinAbs(1.0, 1e-9));
-    REQUIRE_THAT(m.p0.y(), WithinAbs(0.0, 1e-9));
-    REQUIRE_THAT(m.p1.x(), WithinAbs(0.0, 1e-9));
-    REQUIRE_THAT(m.p1.y(), WithinAbs(-1.0, 1e-9));
+    // Reversed with the rest of the half: the mirrored arc STARTS where the reflection of the
+    // source's end is, and finishes at the reflection of its start.
+    REQUIRE_THAT(m.p0.x(), WithinAbs(0.0, 1e-9));
+    REQUIRE_THAT(m.p0.y(), WithinAbs(-1.0, 1e-9));
+    REQUIRE_THAT(m.p1.x(), WithinAbs(1.0, 1e-9));
+    REQUIRE_THAT(m.p1.y(), WithinAbs(0.0, 1e-9));
 
+    // The reflection alone would negate the sweep; walking the arc the other way negates it
+    // again, so a mirrored CCW arc is CCW once more and a mirrored CCW loop stays CCW.
     double sweep = m.end_angle - m.start_angle;
     double orig_sweep = e.end_angle - e.start_angle;
     REQUIRE(orig_sweep > 0.0);
-    REQUIRE(sweep < 0.0);
+    REQUIRE(sweep > 0.0);
 }
 
 TEST_CASE("Offset Line by positive d", "[SketchEdit]")

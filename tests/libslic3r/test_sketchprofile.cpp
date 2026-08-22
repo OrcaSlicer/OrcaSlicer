@@ -185,3 +185,25 @@ TEST_CASE("profile: a mirrored half offsets as one loop, not two", "[SketchProfi
         if (o.type == SketchEntity::Type::Arc)
             REQUIRE_THAT(o.radius, WithinAbs(R + d, 1e-9));
 }
+
+TEST_CASE("profile: a mirrored half continues the original chain", "[SketchProfile]")
+{
+    // The point of emitting the reflected half reversed: appending it to the source must give a
+    // chain you can WALK, head-to-tail, with no consumer having to notice that half of it came
+    // from a mirror. The end of the last source entity must be the start of the first mirrored
+    // one, and the end of the last mirrored one must close back to the very first start.
+    const std::vector<SketchEntity> half = {
+        line({0, -15}, {50, -15}), line({50, -15}, {50, 15}), line({50, 15}, {0, 15}) };
+    const auto m = SketchEngine::mirror_entities(half, Vec2d(0, 0), Vec2d(0, 1));
+    REQUIRE(m.size() == 3);
+
+    REQUIRE_THAT((half.back().p1 - m.front().p0).norm(), WithinAbs(0.0, 1e-9));
+    REQUIRE_THAT((m.back().p1   - half.front().p0).norm(), WithinAbs(0.0, 1e-9));
+
+    for (size_t i = 0; i + 1 < m.size(); ++i)
+        REQUIRE_THAT((m[i].p1 - m[i + 1].p0).norm(), WithinAbs(0.0, 1e-9));
+
+    auto all = half;
+    for (const auto& e : m) all.push_back(e);
+    REQUIRE(closed_wires(all) == 1);
+}
