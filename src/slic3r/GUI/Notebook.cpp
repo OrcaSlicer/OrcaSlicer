@@ -205,14 +205,15 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
             wxPostEvent(this->GetParent(), evt);
         }
     });
-    // ORCA: WAI-ARIA tablist keyboard model. Button::keyDownUp already turns
-    // arrow keys into non-activating focus traversal (wxTAB_TRAVERSAL sibling
-    // order), so what this adds on top is confining Left/Right to the tab
-    // buttons (stock traversal walks on into the side tools sharing this
-    // strip), wrap-around at the ends, Home/End, and swallowing Up/Down (a
-    // horizontal tab list should ignore them). Enter/Space still activates
-    // via Button::keyDownUp's click simulation. This dynamic handler runs
-    // before Button's static event table, so it wins for the keys it takes.
+    // ORCA: WAI-ARIA tablist keyboard model. Arrow keys were dead on these
+    // buttons: Button::keyDownUp hands them to HandleAsNavigationKey, which
+    // acts only on Tab, and never calls Skip(). This handler gives them
+    // meaning - Left/Right move focus among the tab buttons and wrap at the
+    // ends (stock Tab traversal walks on into the side tools sharing this
+    // strip), Home/End jump to the first/last tab, and Up/Down stay swallowed,
+    // as a horizontal tab list should. Enter/Space still activates via
+    // Button::keyDownUp's click simulation. This dynamic handler runs before
+    // Button's static event table, so it wins for the keys it takes.
     btn->Bind(wxEVT_KEY_DOWN, [this, btn](wxKeyEvent& evt) {
         auto it = std::find(m_pageButtons.begin(), m_pageButtons.end(), btn);
         if (it == m_pageButtons.end()) {
