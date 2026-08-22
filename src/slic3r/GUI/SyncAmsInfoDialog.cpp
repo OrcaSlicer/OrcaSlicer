@@ -1,6 +1,8 @@
 #include "SyncAmsInfoDialog.hpp"
 
+#include <algorithm>
 #include <thread>
+#include <wx/display.h>
 #include <wx/event.h>
 #include <wx/sizer.h>
 #include <wx/slider.h>
@@ -41,9 +43,18 @@ using namespace Slic3r::GUI;
 #define OK_BUTTON_SIZE wxSize(FromDIP(90), FromDIP(24))
 #define CANCEL_BUTTON_SIZE wxSize(FromDIP(58), FromDIP(24))
 #define SyncAmsInfoDialogWidth  FromDIP(675)
-#define SyncAmsInfoDialogHeightMIN FromDIP(620)
-#define SyncAmsInfoDialogHeightMIDDLE FromDIP(630)
-#define SyncAmsInfoDialogHeightMAX FromDIP(700)
+// Orca: tall enough that mapping mode shows everything without scrolling (field request --
+// the fixed 700dip cap forced a scrollbar just to reach the advanced settings and the note),
+// clamped to the display so small screens get the scrollbar back instead of an off-screen
+// dialog. The reserve covers the dialog title bar, bottom buttons and the taskbar.
+static int sync_dialog_scrolled_height(wxWindow *w, int dip)
+{
+    const int avail = wxDisplay(wxDisplay::GetFromWindow(w)).GetClientArea().GetHeight() - w->FromDIP(160);
+    return std::min(w->FromDIP(dip), avail);
+}
+#define SyncAmsInfoDialogHeightMIN sync_dialog_scrolled_height(this, 700)
+#define SyncAmsInfoDialogHeightMIDDLE sync_dialog_scrolled_height(this, 920)
+#define SyncAmsInfoDialogHeightMAX sync_dialog_scrolled_height(this, 960)
 #define SyncLabelWidth FromDIP(640)
 #define SyncAttentionTipWidth FromDIP(550)
 namespace Slic3r { namespace GUI {
@@ -954,6 +965,25 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
         tip_sizer->Add(m_tip_text, 0, wxALIGN_LEFT | wxTOP, FromDIP(2));
         tip_sizer->AddSpacer(FromDIP(20));
         bSizer->Add(tip_sizer, 0, wxEXPAND | wxLEFT, FromDIP(25));
+
+        {
+            // Orca: whole-map quick actions (field request), mirroring the print dialog's
+            // Reset/Automatic pair. Clear unmaps every tool; Automatic restores the initial
+            // proposal, which is the auto-match (same material family, closest color) the
+            // dialog opened with -- a tool with no close-enough match stays unmapped.
+            wxBoxSizer *map_btns  = new wxBoxSizer(wxHORIZONTAL);
+            auto       *clear_btn = new Button(m_scrolledWindow, _L("Clear"));
+            clear_btn->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
+            clear_btn->SetToolTip(_L("Unassign every tool so no filament is mapped."));
+            clear_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { clear_all_ams_info(); });
+            map_btns->Add(clear_btn, 0);
+            auto *auto_btn = new Button(m_scrolledWindow, _L("Automatic"));
+            auto_btn->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
+            auto_btn->SetToolTip(_L("Restore the automatic match: same material family and closest color."));
+            auto_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { reset_all_ams_info(); });
+            map_btns->Add(auto_btn, 0, wxLEFT, FromDIP(8));
+            bSizer->Add(map_btns, 0, wxLEFT | wxTOP, FromDIP(25));
+        }
 
         add_two_image_control();
 
@@ -2445,6 +2475,22 @@ void SyncAmsInfoDialog::reset_ams_material()
     }
 }
 
+void SyncAmsInfoDialog::clear_all_ams_info()
+{
+    // Mirrors the per-row erase button inside the tile dropdown (the popup's reset callback):
+    // same helper, same refresh steps, just applied to every row. Deliberately NO
+    // sync_ams_mapping_result here -- it re-renders every tile from the result's tray_id,
+    // which would put the tool label right back on the rows this just cleared (field
+    // report), and it also snapshots its input as the backup the Automatic button restores.
+    for (int i = 0; i < (int) m_ams_mapping_result.size(); i++) {
+        reset_one_ams_material(std::to_string(i + 1), false);
+    }
+    update_final_thumbnail_data();
+    if (m_reset_all_btn && !m_reset_all_btn->IsShown())
+        m_reset_all_btn->Show();
+    Refresh();
+}
+
 void SyncAmsInfoDialog::reset_all_ams_info()
 {
     for (int i = 0; i < m_ams_mapping_result.size(); i++) {
@@ -2478,6 +2524,11 @@ void SyncAmsInfoDialog::reset_one_ams_material(const std::string &index_str, boo
                     m_ams_mapping_result[index].ams_id = "";
                     m_ams_mapping_result[index].slot_id = "";
                     m_ams_mapping_result[index].color = "";
+                    // tray_id is what sync_ams_mapping_result renders the tool label from --
+                    // leaving it set kept the tile showing "T%d" after a clear (field report);
+                    // -1 is the "-"/Unmapped signal throughout this dialog.
+                    m_ams_mapping_result[index].tray_id = -1;
+                    m_ams_mapping_result[index].colors.clear();
                 }
             }
             break;
