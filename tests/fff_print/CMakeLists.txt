@@ -8,6 +8,7 @@ add_executable(${_TEST_NAME}_tests
 	test_flow.cpp
 	test_gcode.cpp
 	test_gcodewriter.cpp
+	test_gradual_infill.cpp
 	test_model.cpp
 	test_print.cpp
 	test_printgcode.cpp

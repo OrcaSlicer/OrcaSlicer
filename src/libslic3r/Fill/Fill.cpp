@@ -864,7 +864,12 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 		        bool     is_bridge 	    = layer.id() > 0 && surface.is_bridge();
 		        params.extruder 	 = layerm.region().extruder(extrusion_role);
 		        params.pattern 		 = region_config.sparse_infill_pattern.value;
-		        params.density       = float(region_config.sparse_infill_density);
+		        // Orca: gradual_infill() may have raised the density of this individual surface because
+		        // it sits below a top shell. SurfaceFillParams is keyed on density, so surfaces at
+		        // different densities are batched and filled separately on their own.
+		        params.density       = surface.density_override >= 0.f ?
+		                               100.f * surface.density_override :
+		                               float(region_config.sparse_infill_density);
                 params.lateral_lattice_angle_1 = region_config.lateral_lattice_angle_1;
                 params.lateral_lattice_angle_2 = region_config.lateral_lattice_angle_2;
                 params.infill_overhang_angle = region_config.infill_overhang_angle;

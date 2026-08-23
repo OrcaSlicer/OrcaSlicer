@@ -1101,6 +1101,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                infill_shift_step))
     ((ConfigOptionString,               sparse_infill_rotate_template))
     ((ConfigOptionPercent,              sparse_infill_density))
+    ((ConfigOptionFloat,                max_infill_bridge_length))
+    ((ConfigOptionInt,                  sparse_infill_top_offset))
     ((ConfigOptionEnum<InfillPattern>,  sparse_infill_pattern))
     ((ConfigOptionFloat,                lateral_lattice_angle_1))
     ((ConfigOptionFloat,                lateral_lattice_angle_2))

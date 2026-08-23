@@ -2467,6 +2467,8 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Infill"), L"param_infill");
         optgroup->append_single_option_line("sparse_infill_density", "strength_settings_infill#sparse-infill-density");
+        optgroup->append_single_option_line("max_infill_bridge_length", "strength_settings_infill#max-infill-bridge-length");
+        optgroup->append_single_option_line("sparse_infill_top_offset", "strength_settings_infill#densified-layers-below-top");
         optgroup->append_single_option_line("fill_multiline", "strength_settings_infill#fill-multiline");
         optgroup->append_single_option_line("sparse_infill_pattern", "strength_settings_infill#sparse-infill-pattern");
         optgroup->append_single_option_line("gyroid_optimized", "strength_settings_patterns#gyroid-optimized");
