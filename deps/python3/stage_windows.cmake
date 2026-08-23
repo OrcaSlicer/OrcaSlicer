@@ -26,6 +26,13 @@ if(EXISTS "${PYTHON_SOURCE_DIR}/LICENSE" AND NOT EXISTS "${PYTHON_BUILD_DIR}/LIC
     configure_file("${PYTHON_SOURCE_DIR}/LICENSE" "${PYTHON_BUILD_DIR}/LICENSE.txt" COPYONLY)
 endif()
 
+# PC/layout filters artifacts by whether their name ends in _d, matched
+# against its own --debug flag, so a debug build has to pass it.
+set(_layout_debug_arg "")
+if(PYTHON_DEBUG)
+    set(_layout_debug_arg --debug)
+endif()
+
 execute_process(
     COMMAND
         "${CMAKE_COMMAND}" -E env
@@ -38,6 +45,7 @@ execute_process(
             --arch "${PYTHON_LAYOUT_ARCH}"
             --copy "${PYTHON_DEST_DIR}"
             --include-dev
+            ${_layout_debug_arg}
     WORKING_DIRECTORY "${PYTHON_SOURCE_DIR}"
     RESULT_VARIABLE _layout_result
 )
