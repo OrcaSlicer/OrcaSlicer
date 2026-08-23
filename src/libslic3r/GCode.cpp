@@ -1537,7 +1537,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             }
             gcode += gcodegen.retract(false, false, lift_type);
             gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
-            if (!tcr.priming && gcodegen.last_pos_defined())
+            if (!tcr.priming && gcodegen.last_pos_defined() && gcodegen.writer().is_current_position_clear())
                 gcode += travel_to_tower_gap(gcodegen, gcodegen.last_pos(), start_wipe_pos);
             gcode += gcodegen.travel_to(start_wipe_pos, erMixed, "Travel to a Wipe Tower");
             gcode += gcodegen.unretract();
@@ -1899,28 +1899,37 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (m_layer_idx >= (int) m_tool_changes.size())
             return gcode;
         if (gcodegen.wipe_tower_type() == WipeTowerType::Type2) {
-            if (gcodegen.writer().need_toolchange(extruder_id) || finish_layer) {
-                if (m_layer_idx < (int) m_tool_changes.size()) {
-                    if (!(size_t(m_tool_change_idx) < m_tool_changes[m_layer_idx].size()))
-                        throw Slic3r::RuntimeError("Wipe tower generation failed, possibly due to empty first layer.");
+            // Calculate where the wipe tower layer will be printed. -1 means that print z will not change,
+            // resulting in a wipe tower with sparse layers.
+            double wipe_tower_z  = -1;
+            bool   ignore_sparse = false;
+            if (gcodegen.config().wipe_tower_no_sparse_layers.value) {
+                wipe_tower_z  = m_last_wipe_tower_print_z;
+                ignore_sparse = (!m_enable_timelapse_print && m_tool_changes[m_layer_idx].size() == 1 &&
+                                 m_tool_changes[m_layer_idx].front().initial_tool == m_tool_changes[m_layer_idx].front().new_tool &&
+                                 m_layer_idx != 0);
+                if (m_tool_change_idx == 0 && !ignore_sparse)
+                    wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height;
+            }
 
-                    // Calculate where the wipe tower layer will be printed. -1 means that print z will not change,
-                    // resulting in a wipe tower with sparse layers.
-                    double wipe_tower_z  = -1;
-                    bool   ignore_sparse = false;
-                    if (gcodegen.config().wipe_tower_no_sparse_layers.value) {
-                        wipe_tower_z  = m_last_wipe_tower_print_z;
-                        ignore_sparse = (m_tool_changes[m_layer_idx].size() == 1 &&
-                                         m_tool_changes[m_layer_idx].front().initial_tool == m_tool_changes[m_layer_idx].front().new_tool &&
-                                         m_layer_idx != 0);
-                        if (m_tool_change_idx == 0 && !ignore_sparse)
-                        wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height;
-                    }
+            // Type 2 prepends a standalone smooth-timelapse wall so it can run before any object path.
+            if (m_enable_timelapse_print && m_is_first_print) {
+                if (!(size_t(m_tool_change_idx) < m_tool_changes[m_layer_idx].size()))
+                    throw Slic3r::RuntimeError("Wipe tower generation failed, possibly due to empty first layer.");
+                const WipeTower::ToolChangeResult &tcr = m_tool_changes[m_layer_idx][m_tool_change_idx++];
+                gcode += append_tcr2(gcodegen, tcr, tcr.new_tool, wipe_tower_z);
+                m_last_wipe_tower_print_z = wipe_tower_z;
+                m_is_first_print          = false;
+            }
 
-                    if (!ignore_sparse) {
-                        gcode += append_tcr2(gcodegen, m_tool_changes[m_layer_idx][m_tool_change_idx++], extruder_id, wipe_tower_z);
-                        m_last_wipe_tower_print_z = wipe_tower_z;
-                    }
+            const bool needs_toolchange = gcodegen.writer().need_toolchange(extruder_id);
+            if (needs_toolchange || finish_layer) {
+                if (!(size_t(m_tool_change_idx) < m_tool_changes[m_layer_idx].size()))
+                    throw Slic3r::RuntimeError("Wipe tower generation failed, possibly due to empty first layer.");
+
+                if (!ignore_sparse) {
+                    gcode += append_tcr2(gcodegen, m_tool_changes[m_layer_idx][m_tool_change_idx++], extruder_id, wipe_tower_z);
+                    m_last_wipe_tower_print_z = wipe_tower_z;
                 }
             }
         } else {
@@ -5398,13 +5407,22 @@ std::string GCode::generate_timelapse_gcode(const Print &print, coordf_t print_z
     }
 
     if (!timelapse_gcode.empty()) {
+        const double z_before_timelapse = m_writer.get_position().z();
         m_writer.set_current_position_clear(false);
 
-        double temp_z_after_tool_change;
-        if (GCodeProcessor::get_last_z_from_gcode(timelapse_gcode, temp_z_after_tool_change)) {
-            Vec3d pos = m_writer.get_position();
-            pos(2)    = temp_z_after_tool_change;
-            m_writer.set_position(pos);
+        double z_after_timelapse;
+        if (GCodeProcessor::get_last_z_from_gcode(timelapse_gcode, z_after_timelapse)) {
+            const bool restore_z = !is_BBL_Printer() && m_config.timelapse_type.value == TimelapseType::tlSmooth;
+            if (restore_z && std::abs(z_after_timelapse - z_before_timelapse) > EPSILON) {
+                // Restore physical Z without changing the writer's lift bookkeeping.
+                char buf[64];
+                snprintf(buf, sizeof(buf), "G1 Z%.3f\n", z_before_timelapse);
+                timelapse_gcode += buf;
+            } else {
+                Vec3d pos = m_writer.get_position();
+                pos.z()   = z_after_timelapse;
+                m_writer.set_position(pos);
+            }
         }
     }
 
@@ -5583,7 +5601,11 @@ LayerResult GCode::process_layer(
     m_layer = &layer;
     m_object_layer_over_raft = false;
 
-    if (!m_config.time_lapse_gcode.value.empty() && !is_BBL_Printer()) {
+    // Smooth snapshot motion must use generate_timelapse_gcode() so its final XY is treated as unknown.
+    const bool use_dedicated_smooth_timelapse = !is_BBL_Printer() &&
+                                                  m_config.timelapse_type.value == TimelapseType::tlSmooth &&
+                                                  !m_config.time_lapse_gcode.value.empty();
+    if (!m_config.time_lapse_gcode.value.empty() && !is_BBL_Printer() && !use_dedicated_smooth_timelapse) {
         DynamicConfig config;
         config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
         config.set_key_value("layer_z", new ConfigOptionFloat(print_z));
@@ -6223,8 +6245,8 @@ LayerResult GCode::process_layer(
     // With farthest-point-is-photo-head active, the snapshot is deferred to the inline _extrude
     // hook / layer-end fallback, so skip the layer-start placement here. The extra clause is inert (true)
     // whenever the subsystem is off → pre-existing behavior byte-for-byte.
-    if (!need_insert_timelapse_gcode_for_traditional  && is_BBL_Printer()
-        && !(m_farthest_point_timelapse.enabled && m_farthest_point_timelapse.farthest_is_photo_head)) { // Equivalent to the timelapse gcode placed in layer_change_gcode
+    if (!need_insert_timelapse_gcode_for_traditional && (is_BBL_Printer() || use_dedicated_smooth_timelapse)
+        && !(m_farthest_point_timelapse.enabled && m_farthest_point_timelapse.farthest_is_photo_head)) {
         if (FILAMENT_CONFIG(retract_when_changing_layer)) {
             gcode += this->retract(false, false, auto_lift_type, true);
         }

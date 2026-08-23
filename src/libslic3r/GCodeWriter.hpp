@@ -25,7 +25,7 @@ public:
         m_last_acceleration(0), m_max_acceleration(0),m_last_travel_acceleration(0), m_max_travel_acceleration(0),
         m_last_jerk(0), m_max_jerk_x(0), m_max_jerk_y(0),
         m_last_bed_temperature(0), m_last_bed_temperature_reached(true),
-        m_lifted(0),
+        m_lifted(0), m_max_z(DBL_MAX),
         m_to_lift(0),
         m_to_lift_type(LiftType::NormalLift),
         m_current_speed(3600), m_is_first_layer(true)
@@ -169,6 +169,7 @@ public:
     int             m_last_bed_temperature;
     bool            m_last_bed_temperature_reached;
     double          m_lifted;
+    double          m_max_z;
 
     // BBS
     double          m_to_lift;

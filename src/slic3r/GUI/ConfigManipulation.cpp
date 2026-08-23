@@ -1081,7 +1081,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         apply(config, &new_conf);
     }
     toggle_line("overhang_reverse_threshold", has_detect_overhang_wall && allow_overhang_reverse && has_overhang_reverse && !has_overhang_reverse_internal_only);
-    toggle_line("timelapse_type", is_BBL_Printer);
+    bool support_smooth_timelapse = preset_bundle->printers.get_edited_preset().config.opt_bool("support_smooth_timelapse");
+    toggle_line("timelapse_type", is_BBL_Printer || support_smooth_timelapse);
 
 
     bool have_small_area_infill_flow_compensation = config->opt_bool("small_area_infill_flow_compensation");

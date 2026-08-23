@@ -1688,6 +1688,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                tool_change_on_wipe_tower))
     ((ConfigOptionBool,                wait_for_temp_on_wipe_tower))
     ((ConfigOptionBool,                support_multi_bed_types))
+    ((ConfigOptionBool,                support_smooth_timelapse))
     ((ConfigOptionBool,                use_3mf))
 
     // Small Area Infill Flow Compensation

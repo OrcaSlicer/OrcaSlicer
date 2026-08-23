@@ -4281,6 +4281,12 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("support_smooth_timelapse", coBool);
+    def->label = L("Support smooth timelapse");
+    def->tooltip = L("Enable this option if the printer profile supports selecting smooth timelapse mode.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("gcode_label_objects", coBool);
     def->label = L("Label objects");
     def->tooltip = L("Enable this to add comments into the G-code labeling print moves with what object they belong to,"
