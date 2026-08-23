@@ -6,7 +6,7 @@
 # run this, read the last line, and do not push a red one. The kernel suite is the only part CI
 # can carry, and it already does.
 #
-#   scripts/ladder-all.sh                 # kernel + engine + corpus (every 20th) + gestures
+#   scripts/ladder-all.sh                 # kernel + engine + corpus (every 20th) + gestures + offer
 #   FULL=1 scripts/ladder-all.sh          # corpus over ALL 997 sheets (~25 min)
 #   SKIP_GUI=1 scripts/ladder-all.sh      # kernel only, for a machine with no rig
 #
@@ -45,6 +45,14 @@ if [ -z "${SKIP_GUI:-}" ]; then
         run_in_rig scripts/ladder-corpus.py /tmp/ladder-corpus.py --corpus "$CORPUS" --scale
     step "gesture ladder (mouse and keyboard)" \
         run_in_rig scripts/gui-ladder.py /tmp/gui-ladder.py
+    # The offer ladder needs TWO extra things the others do not: the app must have been launched
+    # with SNAPORCA_KEYTRACE=1 (its [OFFER] lines are the whole instrument), and it reads the
+    # generated offer table to predict what each selection should show — which is not in the
+    # container's own baked source tree, so it is copied in beside the script — /tmp, where
+    # run_in_rig puts the script, is one of the paths the ladder looks in.
+    docker cp src/slic3r/GUI/CAD/DesignOffer.hpp "$C:/tmp/DesignOffer.hpp" >/dev/null
+    step "offer ladder (right-click, the menu, the verbs behind it)" \
+        run_in_rig scripts/offer-ladder.py /tmp/offer-ladder.py
 fi
 
 echo

@@ -12,6 +12,7 @@
 #include <Standard_Failure.hxx>
 
 #include <cassert>
+#include <cstdarg>                        // offer_trace: diagnostic row dump for the offer ladder
 #include <map>
 #include <set>
 #include <wx/sizer.h>
@@ -5968,6 +5969,22 @@ wxMenuItem* DesignPanel::append_offer_item(wxMenu* menu, int id, const wxString&
     return item;
 }
 
+// Diagnostic only: what the offer is about to show, line per row, on stderr. Costs one getenv
+// per menu when off. The ladder that drives right-click needs to assert the ROW SET, and the only
+// honest source for that is the loop that builds the rows.
+static void offer_trace(const char* fmt, ...)
+{
+    static const bool on = std::getenv("SNAPORCA_KEYTRACE") != nullptr;
+    if (!on) return;
+    va_list ap;
+    va_start(ap, fmt);
+    fprintf(stderr, "[OFFER] ");
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    va_end(ap);
+    fflush(stderr);
+}
+
 void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
 {
     const int      kind = offer_selection_kind();
@@ -5977,6 +5994,11 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     // is_sketching() the offer opened on entering a sketch showing the FEATURE rows, every one
     // of them refusing the sketch selection, so it read as a menu of nine dead entries.
     const bool     sketching = sketch_map_applies();
+    // The offer ladder reads THIS, not the pixels: the trace is emitted from the same loop that
+    // builds the menu, so it cannot drift from what the user is shown. Gated on the existing
+    // SNAPORCA_KEYTRACE so a rig run needs one env var, not two. snaporca-<offer ladder>.
+    offer_trace("open kind=%d sketching=%d bodies=%d", kind, sketching ? 1 : 0,
+                int(m_doc.bodies.size()));
 
     const int bodies = int(m_doc.bodies.size());
     int sketches = 0;
@@ -6046,9 +6068,13 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
                 s += wxString::FromUTF8("   —   ") + tr(why);
             else if (OfferSel(kind) == OfferSel::None)
                 s += wxString::FromUTF8("   —   ") + _L("select something first");
+            offer_trace("row=%d %s DISABLED (%s)", row, kOfferRowNames[row],
+                        why ? why : "no verb accepts this selection");
             menu.Append(base + int(bound.size()), s)->Enable(false);
             bound.push_back(nullptr);
         } else if (live.size() == 1) {
+            offer_trace("row=%d %s -> %s%s", row, kOfferRowNames[row], live[0]->id,
+                        live[0]->action ? "" : " (no GUI route)");
             append_offer_item(&menu, base + int(bound.size()), label(*live[0]), *live[0])
                 ->Enable(live[0]->action != nullptr);
             bound.push_back(live[0]);
@@ -6073,6 +6099,10 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
                         target = it->second;
                     }
                 }
+                offer_trace("row=%d %s > %s%s%s%s", row, kOfferRowNames[row],
+                            (v->family && *v->family) ? v->family : "",
+                            (v->family && *v->family) ? " > " : "", v->id,
+                            v->action ? "" : " (no GUI route)");
                 append_offer_item(target, base + int(bound.size()), label(*v), *v)
                     ->Enable(v->action != nullptr);
                 bound.push_back(v);

@@ -123,6 +123,9 @@ public:
     bool is_active() const { return m_active; }
     bool has_entities() const { return !m_entities.empty(); }
     bool on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas);
+    // Right-click on a draw tool: true when an in-progress anchor was abandoned, false when
+    // there was nothing to abandon — and false is what lets the offer menu open. snaporca-ghcz.
+    bool right_abandon();
     // True if the LAST right-press was consumed as a gesture terminator (end a polyline chain,
     // abandon an anchor, exit a tool). Read-and-clear: the canvas asks on the matching release to
     // decide whether that right-click was the user's, in which case it opens the offer.

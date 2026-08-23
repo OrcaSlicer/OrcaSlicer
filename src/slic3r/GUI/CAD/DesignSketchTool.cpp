@@ -9170,6 +9170,21 @@ bool DesignSketchTool::select_at_screen(GLCanvas3D& canvas, int sx, int sy)
     // A point handle beats the curve it belongs to, same precedence the left-click pick uses.
     int ei = -1; SketchPointRole role = SketchPointRole::P0;
     if (hit_test_point(p, tol, ei, role)) {
+        // A Point ENTITY is its own handle: there is nothing else to select there. Taking the
+        // handle branch for it filled m_point_sel and left m_selection empty — and the offer
+        // counts only m_selection, so right-clicking a sketch point produced the EMPTY
+        // vocabulary and every SkPoint row in the atlas was unreachable from the menu. Other
+        // entities keep the handle pick: a line's endpoint is a drag target, not a thing with a
+        // vocabulary of its own. snaporca-lnri.
+        if (ei >= 0 && ei < int(m_entities.size())
+            && m_entities[ei].type == SketchEntity::Type::Point) {
+            if (std::find(m_selection.begin(), m_selection.end(), ei) != m_selection.end())
+                return false;                               // already selected: leave it alone
+            m_selection.assign(1, ei);
+            m_point_sel.clear();
+            if (on_selection_changed) on_selection_changed(1);
+            return true;
+        }
         const auto pr = std::make_pair(ei, role);
         if (std::find(m_point_sel.begin(), m_point_sel.end(), pr) != m_point_sel.end())
             return false;                                   // already selected: leave it alone
@@ -9236,6 +9251,23 @@ std::vector<int> DesignSketchTool::connected_loop(int seed) const
 // The honest test is not "which mode are we in" but "did the tool actually USE this right-click",
 // and only the tool knows. Wrapping on_mouse records that once, for every terminator, instead of
 // threading a flag through the twenty-odd sites that consume a RightDown.
+// Right-click abandons the anchor a draw tool has down. With NOTHING down there is nothing to
+// abandon — and consuming the click anyway made the offer unreachable from every armed draw tool:
+// on_mouse records the consumption in m_right_consumed and DesignCanvas's RIGHT_UP handler
+// suppresses the menu whenever it is set, so right-click became a no-op that also hid the one door
+// to half the vocabulary (47 of 86 verbs have no shortcut). Measured on the rig: with Line armed,
+// two right-clicks in a row produced no menu and no tool change; only Escape freed it.
+// Same rule as snaporca-xmh6, which said it for the selection: clearing nothing is not a gesture
+// terminator. snaporca-ghcz.
+bool DesignSketchTool::right_abandon()
+{
+    if (m_points.empty())
+        return false;               // hand it back, so the canvas opens the offer
+    m_points.clear();
+    m_has_cursor = false;
+    return true;
+}
+
 bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
 {
     const bool consumed = on_mouse_impl(evt, canvas);
@@ -10285,6 +10317,8 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
+        if (evt.RightDown() && m_points.empty())
+            return false;               // no chain to end — snaporca-ghcz, let the offer open
         if (evt.RightDown()) {
             // END the chain — do NOT close it. This used to call push_closed_lines() for three
             // or more points, i.e. it drew a final segment from the last point back to the
@@ -10328,11 +10362,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             keep_segment_as_drawn();
             return true;
         }
-        if (evt.RightDown()) {          // abandon the in-progress anchor
-            m_points.clear();
-            m_has_cursor = false;
-            return true;
-        }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10354,7 +10384,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
-        if (evt.RightDown()) { m_points.clear(); return true; }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10379,7 +10409,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
-        if (evt.RightDown()) { m_points.clear(); return true; }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10407,7 +10437,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
-        if (evt.RightDown()) { m_points.clear(); return true; }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10437,7 +10467,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
-        if (evt.RightDown()) { m_points.clear(); return true; }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10454,7 +10484,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
-        if (evt.RightDown()) { m_points.clear(); return true; }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10471,7 +10501,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
-        if (evt.RightDown()) { m_points.clear(); return true; }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10485,7 +10515,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
-        if (evt.RightDown()) { m_points.clear(); return true; }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10505,7 +10535,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
-        if (evt.RightDown()) { m_points.clear(); return true; }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10523,7 +10553,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
-        if (evt.RightDown()) { m_points.clear(); return true; }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10543,7 +10573,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
-        if (evt.RightDown()) { m_points.clear(); return true; }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10569,7 +10599,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
-        if (evt.RightDown()) { m_points.clear(); return true; }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10595,7 +10625,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
-        if (evt.RightDown()) { m_points.clear(); return true; }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10614,7 +10644,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
-        if (evt.RightDown()) { m_points.clear(); return true; }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10632,7 +10662,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
-        if (evt.RightDown()) { m_points.clear(); return true; }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10651,7 +10681,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             return true;
         }
-        if (evt.RightDown()) { m_points.clear(); return true; }
+        if (evt.RightDown()) return right_abandon();
         break;
     }
 
@@ -10666,6 +10696,8 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             m_points.push_back(p);
             return true;
         }
+        if (evt.RightDown() && m_points.empty())
+            return false;               // no poles down — snaporca-ghcz, let the offer open
         if (evt.LeftDClick() || evt.RightDown()) {
             if (m_points.size() >= 2) {
                 const int base = int(m_entities.size());
@@ -10685,7 +10717,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             push_point(p);
             return true;
         }
-        if (evt.RightDown()) { return true; }
+        if (evt.RightDown()) return false;   // no anchor to abandon: the offer belongs here
         break;
     }
 
