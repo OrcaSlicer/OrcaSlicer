@@ -36,6 +36,7 @@ public:
     {
         int      id;   // physical filament id, or 0 for a bootstrap/empty-tool placeholder
         int      tool; // 0-based owning/placeholder tool index
+        std::string type; // physical material type ("" for bootstrap/bare-tool placeholders)
         wxString label;
         wxColour colour; // transparent (alpha 0) for a placeholder with no recorded colour
     };
@@ -174,6 +175,9 @@ private:
     void ComputeStats(int &idle, int &swaps, int &merged) const;
 
     std::vector<Row>          m_rows;
+    // Project filament types, 0-based by filament id -- kept for the picker's material-family
+    // gate (each row restricts its options to type-compatible physical filaments).
+    std::vector<std::string>  m_filament_types;
     std::vector<TargetOption> m_target_options;
     bool                      m_bootstrap_mode{false};
     std::vector<int>          m_base_map;
