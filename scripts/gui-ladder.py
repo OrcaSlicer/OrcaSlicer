@@ -1060,12 +1060,11 @@ def rung_scale():
           f"every cut-out is exactly {side:.6f} squared")
     # Now the part that matters: draw ONE more entity by hand, on top of all that.
     #
-    # The Escape is a WORKAROUND, not decoration: after a bulk sketch_add the next tool key and
-    # click are swallowed — the preview is drawn, its value field opens, and no entity is ever
-    # committed — until one Escape has been pressed. It is reachable only by mixing the socket
-    # into a live gesture session, which is exactly what this rung does. snaporca-j7gc; when that
-    # is fixed, delete this line and the rung must still pass.
-    key("Escape", 0.8)
+    # No Escape here, deliberately: this rung is the regression test for snaporca-j7gc, where a
+    # bulk sketch_add made while a creation tool is armed was read as a drawn gesture, opened that
+    # tool's value field and swallowed the next key and click until one Escape dismissed it. The
+    # gesture below has to land on the FIRST try. Fixed by resyncing m_autoedit_seen in
+    # add_entities_scripted; if this rung ever needs an Escape again, the bug is back.
     key("l", 0.8)
     global PACE
     PACE = 6.0                                     # a thousand entities re-solve between fields

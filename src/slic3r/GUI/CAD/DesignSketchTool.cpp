@@ -8956,6 +8956,15 @@ int DesignSketchTool::add_entities_scripted(const std::vector<SketchEntity>& ent
     // scripted profile closed — a ring's last point IS its first point.
     infer_auto_constraints(base, 0.0, 0.0);
     resolve_live();
+    // A scripted add is not a drawn gesture, and draw-then-edit must not fire for it. The render
+    // pass arms that on a jump in the entity count (see the m_autoedit_seen block in render()),
+    // so a bulk load made while a creation tool is armed selected the last scripted entity and
+    // opened that tool's value field — which freezes the canvas (on_mouse_impl returns early
+    // while m_awaiting_length) and swallows every letter (in_text includes inline_busy()). The
+    // symptom was that the first key and click after sketch_add did nothing until one Escape had
+    // dismissed the field. Resyncing the baseline here leaves an ALREADY open field alone; it
+    // only stops this add from being read as something the user just drew. snaporca-j7gc.
+    m_autoedit_seen = int(m_entities.size());
     return base;
 }
 
