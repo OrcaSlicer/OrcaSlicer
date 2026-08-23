@@ -288,12 +288,13 @@ def draw_line_at(x0, y0, x1, y1, length):
     G.clickmm(x0, y0)
     G.clickmm(x1, y1)
     G.values(int(length), 0)
+    keep_as_drawn()          # drain any straggler field before the caller clicks anything
 
 
 def rung_kinds():
     """O1 — the offer adapts to the element under the cursor, one element type at a time."""
     print("\nO1  the offer reads what was right-clicked")
-    G.enter_sketch("l")
+    fresh_sketch("l")
     x0, x1, y0, y1 = G._SAFE
     cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
 
@@ -355,17 +356,26 @@ def rung_kinds():
     # purpose — the Sk2Ent vocabulary (angle, equal, parallel, the two-entity constraints) is
     # about pairs of curves, so the pair the ladder builds should be the pair the verbs mean.
     draw_line_at(ax, ay - (y1 - y0) * 0.18, bx, ay - (y1 - y0) * 0.18, 40)
-    # ONE Escape, to drop the armed tool to Select. Left-click means "draw" while a tool is
-    # armed, so a picking gesture has to say so first — and from a draw tool with no anchor down
-    # Escape does exactly that and nothing more; it is only a second Escape, from Select, that
-    # would leave the sketch.
+    # ONE Escape, to drop the armed tool to Select, and only once the value fields are quiet.
+    # Left-click means "draw" while a tool is armed, so a picking gesture has to say so first —
+    # and from a draw tool with no anchor down Escape does exactly that and nothing more; it is
+    # only a second Escape, from Select, that would leave the sketch.
+    keep_as_drawn()
     G.key("Escape", 0.5)
-    G.clickmm((ax + bx) / 2.0, ay)
+    G.clickmm(*on_line((ax, ay), (bx, ay)))
     G.xdo("keydown shift")
-    G.clickmm((ax + bx) / 2.0, ay - (y1 - y0) * 0.18)
+    G.clickmm(*on_line((ax, ay - (y1 - y0) * 0.18), (bx, ay - (y1 - y0) * 0.18)))
     G.xdo("keyup shift")
+    d = G.describe()
+    G.check("OFFER", len(d["selection"]) == 2,
+            f"two entities picked: {d['selection']} (tool={d['tool']} pending={d['pending']} "
+            f"editing={d['editing']})")
     o = open_offer((ax + bx) / 2.0, ay)
-    G.check("OFFER", o.kind == 19, f"right-click with two picked -> {o.kind_name()}")
+    G.check("OFFER", o.kind == 19,
+            f"right-click with two picked -> {o.kind_name()}"
+            + ("" if o.kind is not None else
+               f" (no menu: tool={G.describe()['tool']} pending={G.describe()['pending']} "
+               f"editing={G.describe()['editing']})"))
     dismiss(o)
     G.leave_sketch()
     G.reset_document()
@@ -379,7 +389,7 @@ def rung_vocabulary():
     predictions can tell those apart.
     """
     print("\nO2  the menu and the offer table agree, selection by selection")
-    G.enter_sketch("l")
+    fresh_sketch("l")
     x0, x1, y0, y1 = G._SAFE
     cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
     ax, ay = x0 + (x1 - x0) * 0.15, cy
@@ -407,8 +417,9 @@ def rung_vocabulary():
             # The two-entity vocabulary was the one selection nothing compared against the table,
             # and it is where the missing row hid: sk_angdist accepts Sk2Ent and nothing else, so
             # an off-by-one that dropped the LAST verb was invisible from every other selection.
+            keep_as_drawn()
             G.key("Escape", 0.5)
-            G.clickmm((ax + bx) / 2.0, ay)
+            G.clickmm(*on_line((ax, ay), (bx, ay)))
             G.xdo("keydown shift")
             # The TOP of the circle, not its +X point: the radius grip lives there, and a click on
             # a grip arms a handle drag which REPLACES the selection with that one entity. The
@@ -443,7 +454,7 @@ def rung_vocabulary():
 def rung_author():
     """O3 — the target itself, authored through the menu: no tool key is pressed anywhere here."""
     print("\nO3  a precise closed profile, drawn entirely from the right-click offer")
-    G.enter_sketch("p")            # 'p' only to open the session; calibration needs the Point tool
+    fresh_sketch("p")            # 'p' only to open the session; calibration needs the Point tool
     G.key("Escape", 0.4)
     x0, x1, y0, y1 = G._SAFE
     cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
@@ -473,7 +484,7 @@ def rung_no_shortcut():
     only door. Arming the tool is not the assertion — the exact rectangle it then draws is.
     """
     print("\nO4  a tool that has no shortcut, reached the only way it can be")
-    G.enter_sketch("p")
+    fresh_sketch("p")
     G.key("Escape", 0.5)
     x0, x1, y0, y1 = G._SAFE
     cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
@@ -528,8 +539,20 @@ def keep_as_drawn():
     # previous one commits (a rectangle queues Width then Height), so one Escape leaves a second
     # field on screen and the canvas still frozen. The loop stops the moment nothing is open,
     # which is what keeps the last press from being the one that drops the tool.
-    while G.describe().get("editing") and n < 6:
-        G.key("Escape", 0.5)
+    #
+    # And it waits for QUIET, not for a single false reading. A field that has not opened YET
+    # reads exactly like one that will never open, so a driver that looks once, sees nothing and
+    # moves on gets frozen by the field that arrives a moment later — with no symptom except
+    # that clicks stop working. Measured: this rung passed alone and failed inside the gate,
+    # where the app is warmer and the CallAfter lands later; the diagnostic that found it was
+    # editing=True with an empty selection after two clicks that should have picked two entities.
+    for _ in range(8):
+        time.sleep(0.35 * G.PACE)
+        if not G.describe().get("editing"):
+            time.sleep(0.35 * G.PACE)
+            if not G.describe().get("editing"):
+                return n
+        G.key("Escape", 0.45)
         n += 1
     return n
 
@@ -591,6 +614,33 @@ def clicked(X, Y):
     return G.unpx(int(u), int(v))
 
 
+def fresh_sketch(tool):
+    """Enter a sketch from a KNOWN empty state, whatever the previous rung or run left behind.
+
+    gui-ladder's enter_sketch dismisses the old session with keys, and a key is exactly what an
+    open value field swallows — so a session that should have been cancelled survives, the four
+    calibration probes land in it on top of whatever was already there, and the run dies with
+    "calibration expected 4 points, got 7". Cancelling through the socket cannot be swallowed:
+    it reaches the tool directly. This is fixture teardown, not the thing under test.
+    """
+    G.try_call("sketch_cancel")
+    G.key("Escape", 0.3)
+    G.enter_sketch(tool)
+
+
+def on_line(a, b, t=0.3):
+    """A point a fraction t ALONG a line — never its midpoint.
+
+    A left-click within ~24 px of a live dimension label opens that dimension's value editor
+    instead of selecting anything (the Select branch tests m_live_quotes before it picks), and a
+    line's Length quote sits at its middle. Clicking there froze the canvas on an open field, so
+    the following clicks and the right-click all landed on nothing and the pair vocabulary was
+    never reached. It bit only when the previous step had left the line selected — live quotes are
+    drawn for the SELECTION — which is why it passed alone and failed inside the gate.
+    """
+    return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
+
+
 def poly_click(pt):
     """One click of a multi-segment tool, then close whatever value field that click opened.
 
@@ -622,7 +672,7 @@ def rung_curves():
     pixel the click landed on. Where a value field opens, the typed value is graded exactly too.
     """
     print("\nO5  the 2D creation verbs that have no keyboard route")
-    G.enter_sketch("p")
+    fresh_sketch("p")
     G.key("Escape", 0.5)
     x0, x1, y0, y1 = G._SAFE
     cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
@@ -892,7 +942,7 @@ def rung_transforms():
     multiplies the length and leaves the direction alone.
     """
     print("\nO6  the 2D transforms — gizmo verbs, none of them on the keyboard")
-    G.enter_sketch("p")
+    fresh_sketch("p")
     G.key("Escape", 0.5)
     x0, x1, y0, y1 = G._SAFE
     cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
@@ -1037,7 +1087,7 @@ def rung_art():
     came back, and the exact aspect ratio of a shape whose proportions are known.
     """
     print("\nO7  Text and SVG — the two verbs that go through a dialog")
-    G.enter_sketch("p")
+    fresh_sketch("p")
     G.key("Escape", 0.5)
     x0, x1, y0, y1 = G._SAFE
     cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
