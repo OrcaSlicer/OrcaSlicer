@@ -1478,11 +1478,19 @@ Polygon PartPlate::imex_wipe_tower_hull() const
     //    the real tower height (m_wipe_tower_data.height), likewise post-slice;
     //    approximating it from object height over-reserved space and blocked legal
     //    placements. The default rib wall prints no cone.
-    //  - wipe_tower_rotation_angle is ignored (estimate_wipe_tower_polygon has it
-    //    commented out), so a rotated tower's true footprint differs from this hull.
     // See also the unvalidated object brim / skirt / support gaps, which affect every
     // print.
     Polygon hull = ap.poly.contour;
+
+    // estimate_wipe_tower_polygon() builds an axis-aligned box; the real tower is
+    // rotated about its anchor corner before placement (first_layer_wipe_tower_corners
+    // rotates the tower-local box about the local origin, then translates it by
+    // wipe_tower_x/y). Without this a rotated tower's footprint escapes the hull and
+    // the zone check passes on a tower that intrudes.
+    if (const auto* rot = print_cfg.option<ConfigOptionFloat>("wipe_tower_rotation_angle");
+        rot && rot->value != 0.)
+        hull.rotate(Geometry::deg2rad(rot->value),
+                    Point(scaled(wt_pos.x()), scaled(wt_pos.y())));
 
     // estimate_wipe_tower_polygon() works in plate-local mm; the zones and the
     // instance hulls it is compared against are in plate-list coordinates.
