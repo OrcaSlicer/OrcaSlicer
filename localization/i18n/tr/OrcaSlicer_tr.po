@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-19 14:07-0300\n"
-"PO-Revision-Date: 2026-08-04 19:36+0300\n"
+"PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
 "Language: tr\n"
@@ -14,27 +14,21 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n==1) ? 0 : 1;\n"
 "X-Generator: Poedit 3.9\n"
 
-# AI Translated
 msgid "Main Extruder"
 msgstr "Ana Ekstruder"
 
-# AI Translated
 msgid "Main extruder"
 msgstr "Ana ekstruder"
 
-# AI Translated
 msgid "main extruder"
 msgstr "ana ekstruder"
 
-# AI Translated
 msgid "Auxiliary Extruder"
 msgstr "Yardımcı Ekstruder"
 
-# AI Translated
 msgid "Auxiliary extruder"
 msgstr "Yardımcı ekstruder"
 
-# AI Translated
 msgid "auxiliary extruder"
 msgstr "yardımcı ekstruder"
 
@@ -56,27 +50,21 @@ msgstr "Sağ ekstruder"
 msgid "right extruder"
 msgstr "sağ ekstruder"
 
-# AI Translated
 msgid "Main Nozzle"
 msgstr "Ana Nozul"
 
-# AI Translated
 msgid "Main nozzle"
 msgstr "Ana nozul"
 
-# AI Translated
 msgid "main nozzle"
 msgstr "ana nozul"
 
-# AI Translated
 msgid "Auxiliary Nozzle"
 msgstr "Yardımcı Nozul"
 
-# AI Translated
 msgid "Auxiliary nozzle"
 msgstr "Yardımcı nozul"
 
-# AI Translated
 msgid "auxiliary nozzle"
 msgstr "yardımcı nozul"
 
@@ -106,59 +94,45 @@ msgstr "Ana Hotend"
 msgid "Main hotend"
 msgstr "Ana hotend"
 
-# AI Translated
 msgid "main hotend"
 msgstr "ana hotend"
 
-# AI Translated
 msgid "Auxiliary Hotend"
 msgstr "Yardımcı Hotend"
 
-# AI Translated
 msgid "Auxiliary hotend"
 msgstr "Yardımcı hotend"
 
-# AI Translated
 msgid "auxiliary hotend"
 msgstr "yardımcı hotend"
 
-# AI Translated
 msgid "Left Hotend"
 msgstr "Sol Hotend"
 
-# AI Translated
 msgid "Left hotend"
 msgstr "Sol hotend"
 
-# AI Translated
 msgid "left hotend"
 msgstr "sol hotend"
 
-# AI Translated
 msgid "Right Hotend"
 msgstr "Sağ Hotend"
 
-# AI Translated
 msgid "Right hotend"
 msgstr "Sağ hotend"
 
-# AI Translated
 msgid "right hotend"
 msgstr "sağ hotend"
 
-# AI Translated
 msgid "main"
 msgstr "ana"
 
-# AI Translated
 msgid "auxiliary"
 msgstr "yardımcı"
 
-# AI Translated
 msgid "Main"
 msgstr "Ana"
 
-# AI Translated
 msgid "Auxiliary"
 msgstr "Yardımcı"
 
@@ -1237,7 +1211,7 @@ msgid "Text move"
 msgstr "Metin taşıma"
 
 msgid "Set Mirror"
-msgstr "Aynayı Ayarla"
+msgstr "Aynalamayı ayarla"
 
 msgid "Embossed text"
 msgstr "Kabartmalı metin"
@@ -1784,10 +1758,10 @@ msgid "Lock/unlock rotation angle when dragging above the surface."
 msgstr "Yüzeyin üzerinde sürüklerken dönüş açısını kilitleyin/kilidini açın."
 
 msgid "Mirror vertically"
-msgstr "Dikey olarak yansıt"
+msgstr "Dikey aynala"
 
 msgid "Mirror horizontally"
-msgstr "Yatay olarak yansıt"
+msgstr "Yatay aynala"
 
 #. TRN: This is the name of the action that shows in undo/redo stack (changing part type from SVG to something else).
 msgid "Change SVG Type"
@@ -1795,7 +1769,7 @@ msgstr "SVG Türünü Değiştir"
 
 #. TRN - Input label. Be short as possible
 msgid "Mirror"
-msgstr "Ayna"
+msgstr "Aynala"
 
 msgid "Choose SVG file for emboss:"
 msgstr "Kabartma için SVG dosyasını seçin:"
@@ -2072,10 +2046,10 @@ msgid "3MF files"
 msgstr "3MF dosyaları"
 
 msgid "G-code 3MF files"
-msgstr "Gcode 3MF dosyaları"
+msgstr "G-code 3MF dosyaları"
 
 msgid "G-code files"
-msgstr "G kodu dosyaları"
+msgstr "G-code dosyaları"
 
 msgid "Supported files"
 msgstr "Desteklenen dosyalar"
@@ -2569,7 +2543,7 @@ msgid "Ongoing uploads"
 msgstr "Devam eden yüklemeler"
 
 msgid "Select a G-code file:"
-msgstr "G kodu dosyası seçin:"
+msgstr "G-code dosyası seçin:"
 
 msgid "Could not start URL download. Destination folder is not set. Please choose destination folder in Configuration Wizard."
 msgstr "URL indirme işlemi başlatılamadı. Hedef klasör ayarlanmamış. Lütfen Yapılandırma Sihirbazı’nda hedef klasörü seçin."
@@ -2663,7 +2637,7 @@ msgid "Add Negative Part"
 msgstr "Negatif parça ekle"
 
 msgid "Add Modifier"
-msgstr "Değiştirici Ekle"
+msgstr "Değiştirici ekle"
 
 msgid "Add Support Blocker"
 msgstr "Destek engelleyici ekle"
@@ -2804,10 +2778,10 @@ msgid "Set as Individual Objects"
 msgstr "Bireysel nesneler olarak ayarla"
 
 msgid "Fill bed with copies"
-msgstr "Tablayı kopyalarla doldur"
+msgstr "Yatağı kopyalarla doldur"
 
 msgid "Fill the remaining area of bed with copies of the selected object"
-msgstr "Yatağın kalan alanını seçilen nesnenin kopyalarıyla doldurun"
+msgstr "Yatağın kalan alanını seçili nesnenin kopyalarıyla doldur"
 
 msgid "Printable"
 msgstr "Yazdırılabilir"
@@ -2921,19 +2895,19 @@ msgid "Along X Axis"
 msgstr "X ekseni boyunca"
 
 msgid "Mirror along the X Axis"
-msgstr "X ekseni boyunca aynalama"
+msgstr "X ekseni boyunca aynala"
 
 msgid "Along Y Axis"
 msgstr "Y ekseni boyunca"
 
 msgid "Mirror along the Y Axis"
-msgstr "Y ekseni boyunca aynalama"
+msgstr "Y ekseni boyunca aynala"
 
 msgid "Along Z Axis"
 msgstr "Z ekseni boyunca"
 
 msgid "Mirror along the Z Axis"
-msgstr "Z ekseni boyunca aynalama"
+msgstr "Z ekseni boyunca aynala"
 
 msgid "Mirror object"
 msgstr "Nesneyi aynala"
@@ -3041,28 +3015,28 @@ msgid "Remove the selected plate"
 msgstr "Seçilen plakayı kaldır"
 
 msgid "Add instance"
-msgstr "Kopya ekle"
+msgstr "Eş kopya ekle"
 
 msgid "Add one more instance of the selected object"
-msgstr "Seçilen nesnenin bir örneğini daha ekle"
+msgstr "Seçili nesneye bir eş kopya ekle"
 
 msgid "Remove instance"
-msgstr "Kopyayı kaldır"
+msgstr "Eş kopyayı kaldır"
 
 msgid "Remove one instance of the selected object"
-msgstr "Seçilen nesnenin bir örneğini kaldır"
+msgstr "Seçili nesnenin bir eş kopyasını kaldır"
 
 msgid "Set number of instances"
-msgstr "Örnek sayısını ayarlayın"
+msgstr "Eş kopya sayısını ayarla"
 
 msgid "Change the number of instances of the selected object"
-msgstr "Seçilen nesnenin kopya sayısını değiştirme"
+msgstr "Seçili nesnenin eş kopya sayısını değiştir"
 
 msgid "Fill bed with instances"
-msgstr "Tablayı kopyalarla doldur"
+msgstr "Yatağı eş kopyalarla doldur"
 
 msgid "Fill the remaining area of bed with instances of the selected object"
-msgstr "Yatağın kalan alanını seçilen nesnenin örnekleriyle doldurun"
+msgstr "Yatağın kalan alanını seçili nesnenin eş kopyalarıyla doldur"
 
 msgid "Clone"
 msgstr "Klon oluştur"
@@ -3321,7 +3295,7 @@ msgid "Part manipulation"
 msgstr "Parça manipülasyonu"
 
 msgid "Instance manipulation"
-msgstr "Örnek manipülasyonu"
+msgstr "Eş kopya manipülasyonu"
 
 msgid "Height ranges"
 msgstr "Yükseklik aralıkları"
@@ -3357,7 +3331,7 @@ msgstr "Parça tipini seçin"
 
 # AI Translated
 msgid "Instances to Separated Objects"
-msgstr "Örnekleri Ayrı Nesnelere Dönüştür"
+msgstr "Eş Kopyaları Ayrı Nesnelere Dönüştür"
 
 msgid "Enter new name"
 msgstr "Yeni adı girin"
@@ -3501,13 +3475,13 @@ msgid "Custom Template:"
 msgstr "Özel Şablon:"
 
 msgid "Custom G-code:"
-msgstr "Özel G kodu:"
+msgstr "Özel G-code:"
 
 msgid "Custom G-code"
-msgstr "Özel G kodu"
+msgstr "Özel G-code"
 
 msgid "Enter Custom G-code used on current layer:"
-msgstr "Geçerli katmanda kullanılan Özel G kodunu girin:"
+msgstr "Geçerli katmanda kullanılan Özel G-code'u girin:"
 
 msgid "Jump to layer"
 msgstr "Katmana Atla"
@@ -3522,16 +3496,16 @@ msgid "Insert a pause command at the beginning of this layer."
 msgstr "Bu katmanın başına bir duraklatma komutu ekleyin."
 
 msgid "Add Custom G-code"
-msgstr "Özel G Kodu Ekle"
+msgstr "Özel G-code Ekle"
 
 msgid "Insert custom G-code at the beginning of this layer."
-msgstr "Bu katmanın başına özel G kodunu ekleyin."
+msgstr "Bu katmanın başına özel G-code'u ekleyin."
 
 msgid "Add Custom Template"
 msgstr "Özel Şablon Ekle"
 
 msgid "Insert template custom G-code at the beginning of this layer."
-msgstr "Bu katmanın başlangıcına şablon özel G kodunu ekleyin."
+msgstr "Bu katmanın başlangıcına şablon özel G-code'u ekleyin."
 
 # AI Translated
 msgid "Filament "
@@ -3547,10 +3521,10 @@ msgid "Delete Custom Template"
 msgstr "Özel Şablonu Sil"
 
 msgid "Edit Custom G-code"
-msgstr "Özel G Kodunu Düzenle"
+msgstr "Özel G-code'u Düzenle"
 
 msgid "Delete Custom G-code"
-msgstr "Özel G Kodunu Sil"
+msgstr "Özel G-code'u Sil"
 
 msgid "Delete Filament Change"
 msgstr "Filament Değişikliğini Sil"
@@ -4065,10 +4039,10 @@ msgid "Encountered an unknown error with the Storage status. Please try again."
 msgstr "Depolama durumuyla ilgili bilinmeyen bir hatayla karşılaşıldı. Lütfen tekrar deneyin."
 
 msgid "Sending G-code file over LAN"
-msgstr "LAN üzerinden gcode dosyası gönderiliyor"
+msgstr "LAN üzerinden G-code dosyası gönderiliyor"
 
 msgid "Sending G-code file to SD card"
-msgstr "Gcode dosyası sdcard'a gönderiliyor"
+msgstr "G-code dosyası sdcard'a gönderiliyor"
 
 #, c-format, boost-format
 msgid "Successfully sent. Close current page in %s s"
@@ -4078,7 +4052,7 @@ msgid "Storage needs to be inserted before sending to printer."
 msgstr "Yazıcıya göndermeden önce depolama biriminin eklenmesi gerekir."
 
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
-msgstr "G kodu dosyası LAN üzerinden gönderiliyor ancak yazıcıdaki Depolama anormal ve yazdırma sorunları bundan kaynaklanabilir."
+msgstr "G-code dosyası LAN üzerinden gönderiliyor ancak yazıcıdaki Depolama anormal ve yazdırma sorunları bundan kaynaklanabilir."
 
 msgid "The Storage in the printer is abnormal. Please replace it with a normal Storage before sending to printer."
 msgstr "Yazıcıdaki Depolama anormal. Lütfen yazıcıya göndermeden önce normal bir Depolama ile değiştirin."
@@ -4618,7 +4592,7 @@ msgid "Please save your project and restart the application."
 msgstr "Lütfen projeyi kaydedin ve programı yeniden başlatın."
 
 msgid "Processing G-Code from previous file…"
-msgstr "Önceki dosyadan G-Kodu işleniyor…"
+msgstr "Önceki dosyadan G-code işleniyor…"
 
 msgid "Slicing complete"
 msgstr "Dilimleme tamamlandı"
@@ -4651,35 +4625,35 @@ msgid "Successfully executed post-processing script"
 msgstr "İşlem sonrası komut dosyası başarıyla çalıştırıldı"
 
 msgid "Unknown error occurred during exporting G-code."
-msgstr "G kodu dışa aktarılırken bilinmeyen bir hata oluştu."
+msgstr "G-code dışa aktarılırken bilinmeyen bir hata oluştu."
 
 #, boost-format
 msgid ""
 "Copying of the temporary G-code to the output G-code failed. Maybe the SD card is write locked?\n"
 "Error message: %1%"
 msgstr ""
-"Geçici G kodunun çıkış G koduna kopyalanması başarısız oldu. Belki SD kart yazma kilitlidir.\n"
+"Geçici G-code'un çıkış G-code'a kopyalanması başarısız oldu. Belki SD kart yazma kilitlidir.\n"
 "Hata mesajı: %1%"
 
 #, boost-format
 msgid "Copying of the temporary G-code to the output G-code failed. There might be problem with target device, please try exporting again or using different device. The corrupted output G-code is at %1%.tmp."
-msgstr "Geçici G kodunun çıkış G koduna kopyalanması başarısız oldu. Hedef cihazda sorun olabilir, lütfen tekrar dışa aktarmayı veya farklı bir cihaz kullanmayı deneyin. Bozuk çıktı G kodu %1%.tmp konumunda."
+msgstr "Geçici G-code'un çıkış G-code'a kopyalanması başarısız oldu. Hedef cihazda sorun olabilir, lütfen tekrar dışa aktarmayı veya farklı bir cihaz kullanmayı deneyin. Bozuk çıktı G-code %1%.tmp konumunda."
 
 #, boost-format
 msgid "Renaming of the G-code after copying to the selected destination folder has failed. Current path is %1%.tmp. Please try exporting again."
-msgstr "Seçilen hedef klasöre kopyalandıktan sonra G kodunun yeniden adlandırılması başarısız oldu. Geçerli yol: %1%.tmp. Lütfen dışa aktarmayı tekrar deneyin."
+msgstr "Seçilen hedef klasöre kopyalandıktan sonra G-code'un yeniden adlandırılması başarısız oldu. Geçerli yol: %1%.tmp. Lütfen dışa aktarmayı tekrar deneyin."
 
 #, boost-format
 msgid "Copying of the temporary G-code has finished but the original code at %1% couldn't be opened during copy check. The output G-code is at %2%.tmp."
-msgstr "Geçici G kodunun kopyalanması tamamlandı ancak %1% konumundaki orijinal kod kopyalama kontrolü sırasında açılamadı. Çıkış G kodu %2%.tmp konumundadır."
+msgstr "Geçici G-code'un kopyalanması tamamlandı ancak %1% konumundaki orijinal kod kopyalama kontrolü sırasında açılamadı. Çıkış G-code %2%.tmp konumundadır."
 
 #, boost-format
 msgid "Copying of the temporary G-code has finished but the exported code couldn't be opened during copy check. The output G-code is at %1%.tmp."
-msgstr "Geçici G kodunun kopyalanması tamamlandı ancak kopya kontrolü sırasında dışa aktarılan kod açılamadı. Çıkış G kodu %1%.tmp konumundadır."
+msgstr "Geçici G-code'un kopyalanması tamamlandı ancak kopya kontrolü sırasında dışa aktarılan kod açılamadı. Çıkış G-code %1%.tmp konumundadır."
 
 #, boost-format
 msgid "G-code file exported to %1%"
-msgstr "G kodu dosyası %1%’e aktarıldı"
+msgstr "G-code dosyası %1%’e aktarıldı"
 
 msgid "Unknown error with G-code export"
 msgstr "G-code dışa aktarımında bilinmeyen hata"
@@ -4690,12 +4664,12 @@ msgid ""
 "Error message: %1%.\n"
 "Source file %2%."
 msgstr ""
-"Gcode dosyası kaydedilemedi.\n"
+"G-code dosyası kaydedilemedi.\n"
 "Hata mesajı: %1%.\n"
 "Kaynak dosya %2%."
 
 msgid "Copying of the temporary G-code to the output G-code failed."
-msgstr "Geçici G-kodu dosyasının çıktı G-kodu dosyasına kopyalanması başarısız oldu."
+msgstr "Geçici G-code dosyasının çıktı G-code dosyasına kopyalanması başarısız oldu."
 
 #, boost-format
 msgid "Scheduling upload to `%1%`. See Window -> Print Host Upload Queue"
@@ -4708,7 +4682,7 @@ msgid "Size in X and Y of the rectangular plate."
 msgstr "Dikdörtgen plakanın X ve Y boyutları."
 
 msgid "Distance of the 0,0 G-code coordinate from the front left corner of the rectangle."
-msgstr "0,0 G kodu koordinatının dikdörtgenin sol ön köşesinden uzaklığı."
+msgstr "0,0 G-code koordinatının dikdörtgenin sol ön köşesinden uzaklığı."
 
 msgid "Diameter of the print bed. It is assumed that origin (0,0) is located in the center."
 msgstr "Baskı yatağının çapı. Orjinin (0,0) merkezde olduğu varsayılmaktadır."
@@ -5058,7 +5032,7 @@ msgid "Cooling chamber"
 msgstr "Soğutma haznesi"
 
 msgid "Pause (G-code inserted by user)"
-msgstr "Duraklat (Kullanıcı tarafından eklenen G kodu)"
+msgstr "Duraklat (Kullanıcı tarafından eklenen G-code)"
 
 msgid "Motor noise showoff"
 msgstr "Motor gürültü gösterimi"
@@ -5306,16 +5280,16 @@ msgstr "varsayılan"
 
 #, boost-format
 msgid "Edit Custom G-code (%1%)"
-msgstr "Özel G Kodunu Düzenle (%1%)"
+msgstr "Özel G-code'u Düzenle (%1%)"
 
 msgid "Built-in placeholders (Double click item to add to G-code)"
-msgstr "Yerleşik yer tutucular (G koduna eklemek için öğeye çift tıklayın)"
+msgstr "Yerleşik yer tutucular (G-code'a eklemek için öğeye çift tıklayın)"
 
 msgid "Search G-code placeholders"
-msgstr "Gcode yer tutucularını arayın"
+msgstr "G-code yer tutucularını arayın"
 
 msgid "Add selected placeholder to G-code"
-msgstr "Seçili yer tutucuyu G koduna ekle"
+msgstr "Seçili yer tutucuyu G-code'a ekle"
 
 msgid "Select placeholder"
 msgstr "Yer tutucuyu seçin"
@@ -6079,16 +6053,16 @@ msgstr "Boyut:"
 
 #, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
-msgstr "%d katmanında gcode yollarında çakışmalar bulundu, Z = %.2lfmm. Lütfen çakışan nesneleri daha uzağa ayırın (%s <-> %s)."
+msgstr "%d katmanında G-code yollarında çakışmalar bulundu, Z = %.2lfmm. Lütfen çakışan nesneleri daha uzağa ayırın (%s <-> %s)."
 
 msgid "An object is laid over the plate boundaries."
 msgstr "Plakanın sınırına bir nesne serilir."
 
 msgid "A G-code path goes beyond the max print height."
-msgstr "Bir G kodu yolu maksimum baskı yüksekliğinin ötesine geçer."
+msgstr "Bir G-code yolu maksimum baskı yüksekliğinin ötesine geçer."
 
 msgid "A G-code path goes beyond plate boundaries."
-msgstr "Bir G kodu yolu plakanın sınırlarının ötesine geçer."
+msgstr "Bir G-code yolu plakanın sınırlarının ötesine geçer."
 
 msgid "Not support printing 2 or more TPU filaments."
 msgstr "2 veya daha fazla TPU filamentinin yazdırılmasını desteklemez."
@@ -6099,19 +6073,19 @@ msgstr "Araç %d"
 
 #, c-format, boost-format
 msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr "%s filamenti %s içine yerleştirildi, ancak oluşturulan G kodu yolu %s'nin yazdırılabilir aralığını aşıyor."
+msgstr "%s filamenti %s içine yerleştirildi, ancak oluşturulan G-code yolu %s'nin yazdırılabilir aralığını aşıyor."
 
 #, c-format, boost-format
 msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr "%s filamentleri %s içine yerleştirildi, ancak oluşturulan G kodu yolu %s'nin yazdırılabilir aralığını aşıyor."
+msgstr "%s filamentleri %s içine yerleştirildi, ancak oluşturulan G-code yolu %s'nin yazdırılabilir aralığını aşıyor."
 
 #, c-format, boost-format
 msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr "%s filamenti %s'e yerleştirildi, ancak oluşturulan G kodu yolu %s'nin yazdırılabilir yüksekliğini aşıyor."
+msgstr "%s filamenti %s'e yerleştirildi, ancak oluşturulan G-code yolu %s'nin yazdırılabilir yüksekliğini aşıyor."
 
 #, c-format, boost-format
 msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr "%s filamentleri %s'e yerleştirildi, ancak oluşturulan G kodu yolu %s'nin yazdırılabilir yüksekliğini aşıyor."
+msgstr "%s filamentleri %s'e yerleştirildi, ancak oluşturulan G-code yolu %s'nin yazdırılabilir yüksekliğini aşıyor."
 
 msgid "Open wiki for more information."
 msgstr "Daha fazla bilgi için wiki'yi açın."
@@ -6279,7 +6253,7 @@ msgid "Print plate"
 msgstr "Plakayı Yazdır"
 
 msgid "Export G-code file"
-msgstr "G-kod dosyasını dışa aktar"
+msgstr "G-code dosyasını dışa aktar"
 
 msgctxt "Verb"
 msgid "Print"
@@ -6436,10 +6410,10 @@ msgid "Export all plate sliced file"
 msgstr "Dilimlenmiş tüm plaka dosyalarını dışa aktar"
 
 msgid "Export G-code"
-msgstr "G-kodunu dışa aktar"
+msgstr "G-code'u dışa aktar"
 
 msgid "Export current plate as G-code"
-msgstr "Geçerli plakayı G kodu olarak dışa aktar"
+msgstr "Geçerli plakayı G-code olarak dışa aktar"
 
 msgid "Export toolpaths as OBJ"
 msgstr "Takımyollarını OBJ olarak dışa aktar"
@@ -6523,7 +6497,7 @@ msgid "Show &G-code Window"
 msgstr "&G-code Penceresini Göster"
 
 msgid "Show G-code window in Preview scene."
-msgstr "Previce sahnesinde G-kodu penceresini göster."
+msgstr "Previce sahnesinde G-code penceresini göster."
 
 msgid "Show 3D Navigator"
 msgstr "3D gezgini göster"
@@ -6633,10 +6607,10 @@ msgid "Calibration Guide"
 msgstr "Kalibrasyon kılavuzu"
 
 msgid "&Open G-code"
-msgstr "&G kodunu aç"
+msgstr "&G-code'u aç"
 
 msgid "Open a G-code file"
-msgstr "G kodu dosyası aç"
+msgstr "G-code dosyası aç"
 
 msgid "Re&load from Disk"
 msgstr "Diskten yeniden yükle"
@@ -6927,7 +6901,7 @@ msgid "Failed to parse model information."
 msgstr "Model bilgileri ayrıştırılamadı."
 
 msgid "The .gcode.3mf file contains no G-code data. Please slice it with Orca Slicer and export a new .gcode.3mf file."
-msgstr ".gcode.3mf dosyası hiçbir G kodu verisi içermiyor. Lütfen dosyayı Bambu Studio ile dilimleyin ve yeni bir .gcode.3mf dosyasını dışa aktarın."
+msgstr ".gcode.3mf dosyası hiçbir G-code verisi içermiyor. Lütfen dosyayı Bambu Studio ile dilimleyin ve yeni bir .gcode.3mf dosyasını dışa aktarın."
 
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
@@ -7629,7 +7603,7 @@ msgid "Your model needs support! Please enable support material."
 msgstr "Modelinizin desteğe ihtiyacı var! Lütfen destek materyalini etkinleştirin."
 
 msgid "G-code path overlap"
-msgstr "Gcode yolu çakışması"
+msgstr "G-code yolu çakışması"
 
 msgid "Cut connectors"
 msgstr "Konektörleri kes"
@@ -8180,19 +8154,19 @@ msgid "Please correct them in the Param tabs"
 msgstr "Lütfen bunları parametre sekmelerinde düzeltin"
 
 msgid "The 3MF has the following modified G-code in filament or printer presets:"
-msgstr "3mf dosyasında filament veya yazıcı ön ayarlarında şu değiştirilmiş G-kodları bulunmaktadır:"
+msgstr "3mf dosyasında filament veya yazıcı ön ayarlarında şu değiştirilmiş G-code'ları bulunmaktadır:"
 
 msgid "Please confirm that all modified G-code is safe to prevent any damage to the machine!"
-msgstr "Lütfen bu değiştirilmiş G-kodlarının makineye herhangi bir zarar vermemesi için güvenli olduğunu onaylayın!"
+msgstr "Lütfen bu değiştirilmiş G-code'larının makineye herhangi bir zarar vermemesi için güvenli olduğunu onaylayın!"
 
 msgid "Modified G-code"
-msgstr "G-kodları Değişti"
+msgstr "G-code'ları Değişti"
 
 msgid "The 3MF has the following customized filament or printer presets:"
 msgstr "3mf dosyasında şu özel filament veya yazıcı ayarları bulunmaktadır:"
 
 msgid "Please confirm that the G-code within these presets is safe to prevent any damage to the machine!"
-msgstr "Lütfen bu ön ayarlar içindeki G-kodlarının makineye herhangi bir zararı önlemek için güvenli olduğunu onaylayın!"
+msgstr "Lütfen bu ön ayarlar içindeki G-code'larının makineye herhangi bir zararı önlemek için güvenli olduğunu onaylayın!"
 
 msgid "Customized Preset"
 msgstr "Özel Ayar"
@@ -8437,7 +8411,7 @@ msgid ""
 "The loaded file contains G-code only, cannot enter the Prepare page."
 msgstr ""
 "Yalnızca önizleme modu:\n"
-"Yüklenen dosya yalnızca Gcode içeriyor, hazırlama sayfasına girilemiyor."
+"Yüklenen dosya yalnızca G-code içeriyor, hazırlama sayfasına girilemiyor."
 
 msgid ""
 "The nozzle type and AMS quantity information has not been synced from the connected printer.\n"
@@ -8508,7 +8482,7 @@ msgid "The selected file"
 msgstr "Seçili dosya"
 
 msgid "Does not contain valid G-code."
-msgstr "Geçerli bir G-kodu içermiyor."
+msgstr "Geçerli bir G-code içermiyor."
 
 msgid "An Error has occurred while loading the G-code file."
 msgstr "G-code dosyası yüklenirken bir hata oluştu."
@@ -8540,13 +8514,13 @@ msgid "Import geometry only"
 msgstr "Yalnızca geometriyi içe aktar"
 
 msgid "Only one G-code file can be opened at a time."
-msgstr "Aynı anda yalnızca bir G kodu dosyası açılabilir."
+msgstr "Aynı anda yalnızca bir G-code dosyası açılabilir."
 
 msgid "G-code loading"
-msgstr "G-kod yükleniyor"
+msgstr "G-code yükleniyor"
 
 msgid "G-code files and models cannot be loaded together!"
-msgstr "G kodu dosyaları modellerle birlikte yüklenemez!"
+msgstr "G-code dosyaları modellerle birlikte yüklenemez!"
 
 msgid "Unable to add models in preview mode"
 msgstr "Önizleme modundayken model ekleyemezsiniz"
@@ -8564,7 +8538,7 @@ msgid "Copies of the selected object"
 msgstr "Seçilen nesnenin kopyaları"
 
 msgid "Save G-code file as:"
-msgstr "G-kod dosyasını şu şekilde kaydedin:"
+msgstr "G-code dosyasını şu şekilde kaydedin:"
 
 msgid "Save SLA file as:"
 msgstr "SLA dosyasını farklı bir isimle kaydet:"
@@ -8635,7 +8609,7 @@ msgstr ""
 "Yazdırma sırasında çarpışmaları önlemek için otomatik düzenlemeyi kullanmanızı önerin."
 
 msgid "Send G-code"
-msgstr "G-kodu gönder"
+msgstr "G-code gönder"
 
 msgid "Send to printer"
 msgstr "Yazıcıya gönder"
@@ -8894,10 +8868,10 @@ msgid "Current Association: "
 msgstr "Mevcut Bağlantı: "
 
 msgid "Current Instance"
-msgstr "Mevcut Kopya"
+msgstr "Mevcut Örnek"
 
 msgid "Current Instance Path: "
-msgstr "Mevcut Kopya Yolu: "
+msgstr "Mevcut Örnek Yolu: "
 
 msgid "General"
 msgstr "Genel"
@@ -8924,13 +8898,13 @@ msgid "Enable dark Mode"
 msgstr "Karanlık modu etkinleştir"
 
 msgid "Allow only one OrcaSlicer instance"
-msgstr "Yalnızca bir orca slicer örneğine izin ver"
+msgstr "Yalnızca tek bir OrcaSlicer örneğine izin ver"
 
 msgid "On OSX there is always only one instance of app running by default. However it is allowed to run multiple instances of same app from the command line. In such case this settings will allow only one instance."
-msgstr "OSX’te her zaman varsayılan olarak çalışan tek bir uygulama örneği vardır. Ancak aynı uygulamanın birden fazla örneğinin komut satırından çalıştırılmasına izin verilir. Böyle bir durumda bu ayarlar yalnızca bir örneğe izin verecektir."
+msgstr "macOS'ta varsayılan olarak her zaman uygulamanın yalnızca tek bir örneği çalışır. Ancak komut satırından aynı uygulamanın birden fazla örneğinin çalıştırılmasına izin verilir. Böyle bir durumda bu ayar, yalnızca tek bir örneğe izin verecektir."
 
 msgid "If this is enabled, when starting OrcaSlicer and another instance of the same OrcaSlicer is already running, that instance will be reactivated instead."
-msgstr "Bu etkinleştirilirse, OrcaSlicer başlatıldığında ve aynı OrcaSlicer’ın başka bir örneği zaten çalışıyorken, bunun yerine bu örnek yeniden etkinleştirilecektir."
+msgstr "Bu seçenek etkinleştirildiğinde; OrcaSlicer başlatılırken aynı OrcaSlicer'ın başka bir örneği zaten çalışıyorsa, yeni bir pencere yerine o örnek yeniden etkinleştirilir."
 
 msgid "Show splash screen"
 msgstr "Açılış ekranını göster"
@@ -8985,7 +8959,7 @@ msgid "Add STL/STEP files to recent files list"
 msgstr "STL/STEP dosyalarını son dosyalar listesine ekle"
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr "Değiştirilmiş G-kodları içeren 3MF dosyalarını yüklerken uyarma"
+msgstr "Değiştirilmiş G-code'ları içeren 3MF dosyalarını yüklerken uyarma"
 
 msgid "Show options when importing STEP file"
 msgstr "STEP dosyasını içe aktarırken seçenekleri göster"
@@ -10033,7 +10007,7 @@ msgid "The filament type setting of external spool is different from the filamen
 msgstr "Harici makaranın filament türü ayarı, dilimleme dosyasındaki filamentden farklıdır."
 
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
-msgstr "G Kodu oluşturulurken seçilen yazıcı türü mevcut seçili yazıcıyla tutarlı değil. Dilimleme için aynı yazıcı tipini kullanmanız tavsiye edilir."
+msgstr "G-code oluşturulurken seçilen yazıcı türü mevcut seçili yazıcıyla tutarlı değil. Dilimleme için aynı yazıcı tipini kullanmanız tavsiye edilir."
 
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "AMS eşlemelerinde bazı bilinmeyen filamentler var. Lütfen bunların gerekli filamentler olup olmadığını kontrol edin. Sorun yoksa, yazdırmayı başlatmak için \"Onayla\"ya basın."
@@ -10717,10 +10691,10 @@ msgid "Special mode"
 msgstr "Özel Mod"
 
 msgid "G-code output"
-msgstr "G Kodu Çıktısı"
+msgstr "G-code Çıktısı"
 
 msgid "Change extrusion role G-code"
-msgstr "Ekstrüzyon Rolü G-kodu Değiştirme"
+msgstr "Ekstrüzyon Rolü G-code Değiştirme"
 
 msgid "Post-processing Scripts"
 msgstr "İşlem Sonrası Komut Dosyaları"
@@ -10748,10 +10722,10 @@ msgid_plural ""
 "Please remove them, or G-code visualization and print time estimation will be broken."
 msgstr[0] ""
 "Aşağıdaki %s satırı ayrılmış anahtar kelimeler içeriyor.\n"
-"Lütfen onu kaldırın, aksi takdirde G kodu görselleştirmesini ve yazdırma süresi tahminini geçeceksiniz."
+"Lütfen onu kaldırın, aksi takdirde G-code görselleştirmesini ve yazdırma süresi tahminini geçeceksiniz."
 msgstr[1] ""
 "Aşağıdaki satırlar %s ayrılmış anahtar sözcükler içeriyor.\n"
-"Lütfen bunları kaldırın, aksi takdirde G kodu görselleştirmesini ve yazdırma süresi tahminini geçeceksiniz."
+"Lütfen bunları kaldırın, aksi takdirde G-code görselleştirmesini ve yazdırma süresi tahminini geçeceksiniz."
 
 msgid "Reserved keywords found"
 msgstr "Ayrılmış anahtar kelimeler bulundu"
@@ -10863,10 +10837,10 @@ msgid "Complete print"
 msgstr "Baskı tamamlanınca"
 
 msgid "Filament start G-code"
-msgstr "Filament Başlangıç G Kodu"
+msgstr "Filament Başlangıç G-code"
 
 msgid "Filament end G-code"
-msgstr "Filament Bitiş G Kodu"
+msgstr "Filament Bitiş G-code"
 
 msgid "Wipe tower parameters"
 msgstr "Silme Kulesi Parametreleri"
@@ -10907,7 +10881,7 @@ msgid "Invalid value provided for parameter %1%: %2%"
 msgstr "%1% parametresi için geçersiz değer sağlandı: %2%"
 
 msgid "G-code flavor is switched"
-msgstr "G-kod çeşidi değiştirildi"
+msgstr "G-code çeşidi değiştirildi"
 
 msgid "Cooling Fan"
 msgstr "Soğutucu Fan"
@@ -10925,40 +10899,40 @@ msgid "Accessory"
 msgstr "Aksesuar"
 
 msgid "Machine G-code"
-msgstr "Yazıcı G-kod"
+msgstr "Yazıcı G-code"
 
 msgid "File header G-code"
-msgstr "Dosya başlığı G kodu"
+msgstr "Dosya başlığı G-code"
 
 msgid "Machine start G-code"
-msgstr "Yazıcı Başlangıç G-kod"
+msgstr "Yazıcı Başlangıç G-code"
 
 msgid "Machine end G-code"
-msgstr "Yazıcı Bitiş G-kod"
+msgstr "Yazıcı Bitiş G-code"
 
 msgid "Printing by object G-code"
-msgstr "Nesneye Göre Yazdırma G-kod"
+msgstr "Nesneye Göre Yazdırma G-code"
 
 msgid "Before layer change G-code"
-msgstr "Katman Değişimi Öncesi G-kod"
+msgstr "Katman Değişimi Öncesi G-code"
 
 msgid "Layer change G-code"
-msgstr "Katman Değişimi G-kod"
+msgstr "Katman Değişimi G-code"
 
 msgid "Timelapse G-code"
-msgstr "Timelapse G-kod"
+msgstr "Timelapse G-code"
 
 msgid "Clumping Detection G-code"
-msgstr "Topaklanma Tespiti G Kodu"
+msgstr "Topaklanma Tespiti G-code"
 
 msgid "Change filament G-code"
-msgstr "Filament Değişimi G-kod"
+msgstr "Filament Değişimi G-code"
 
 msgid "Pause G-code"
-msgstr "Duraklatma G-Kod"
+msgstr "Duraklatma G-code"
 
 msgid "Template Custom G-code"
-msgstr "Şablon Özel G-kod"
+msgstr "Şablon Özel G-code"
 
 msgid "Motion ability"
 msgstr "Hareket"
@@ -11974,7 +11948,7 @@ msgid "On/Off one layer mode of the vertical slider"
 msgstr "Dikey kaydırıcının tek katman modunu açma/kapama"
 
 msgid "On/Off G-code window"
-msgstr "G-kodu penceresini aç/kapat"
+msgstr "G-code penceresini aç/kapat"
 
 msgid "Move slider 5x faster"
 msgstr "Kaydırıcıyı 5 kat daha hızlı hareket ettirin"
@@ -12208,7 +12182,7 @@ msgid " updated to "
 msgstr " güncellendi "
 
 msgid "Open G-code file:"
-msgstr "G kodu dosyasını açın:"
+msgstr "G-code dosyasını açın:"
 
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "Bir nesnenin ilk katmanı boş ve yazdırılamıyor. Lütfen alt kısmı kesin veya destekleri etkinleştirin."
@@ -12242,15 +12216,15 @@ msgid ""
 "Failed to generate G-code for invalid custom G-code.\n"
 "\n"
 msgstr ""
-"Geçersiz özel G kodu için gcode oluşturulamadı.\n"
+"Geçersiz özel G-code için G-code oluşturulamadı.\n"
 "\n"
 
 msgid "Please check the custom G-code or use the default custom G-code."
-msgstr "Lütfen özel G kodunu kontrol edin veya varsayılan özel G kodunu kullanın."
+msgstr "Lütfen özel G-code'u kontrol edin veya varsayılan özel G-code'u kullanın."
 
 #, boost-format
 msgid "Generating G-code: layer %1%"
-msgstr "G kodu oluşturuluyor: katman %1%"
+msgstr "G-code oluşturuluyor: katman %1%"
 
 msgid "Flush volumes matrix do not match to the correct size!"
 msgstr "Yıkama hacimleri matrisi doğru boyutla eşleşmiyor!"
@@ -12473,7 +12447,7 @@ msgid "Ooze prevention is only supported with the wipe tower when 'single_extrud
 msgstr "Sızıntı önleme yalnızca ‘tek ekstruder çoklu malzeme’ kapalıyken silme kulesiyle desteklenir."
 
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
-msgstr "Prime tower şu anda yalnızca Marlin, RepRap/Sprinter, RepRapFirmware ve Repetier G kodu türleri için desteklenmektedir."
+msgstr "Prime tower şu anda yalnızca Marlin, RepRap/Sprinter, RepRapFirmware ve Repetier G-code türleri için desteklenmektedir."
 
 msgid "A prime tower is not supported in “By object” print."
 msgstr "Prime tower, \"Nesneye göre\" yazdırmada desteklenmez."
@@ -12628,10 +12602,10 @@ msgstr ""
 "Nesneleri birbirinden uzaklaştırın, kenar/etek boyutunu küçültün, Etek tipini Birleşik olarak değiştirin veya Yazdırma sırasını Katmana göre olarak değiştirin."
 
 msgid "Exporting G-code"
-msgstr "G kodu dışa aktarılıyor"
+msgstr "G-code dışa aktarılıyor"
 
 msgid "Generating G-code"
-msgstr "G kodu oluşturuluyor"
+msgstr "G-code oluşturuluyor"
 
 # AI Translated
 msgid "Processing of the filename_format template failed."
@@ -12754,7 +12728,7 @@ msgid "Hostname, IP or URL"
 msgstr "Ana bilgisayar adı, IP veya URL"
 
 msgid "Orca Slicer can upload G-code files to a printer host. This field should contain the hostname, IP address or URL of the printer host instance. Print host behind HAProxy with basic auth enabled can be accessed by putting the user name and password into the URL in the following format: https://username:password@your-octopi-address/"
-msgstr "Orca Slicer, G kodu dosyalarını bir yazıcı ana bilgisayarına yükleyebilir. Bu alan, yazıcı ana bilgisayar örneğinin ana bilgisayar adını, IP adresini veya URL'sini içermelidir. Temel kimlik doğrulamanın etkin olduğu HAProxy'nin arkasındaki yazdırma ana bilgisayarına, kullanıcı adı ve parolanın aşağıdaki biçimdeki URL'ye girilmesiyle erişilebilir: https://username:password@your-octopi-address/"
+msgstr "OrcaSlicer, G-code dosyalarını bir yazıcı ana bilgisayarına yükleyebilir. Bu alan; yazıcı ana bilgisayarı örneğinin ana bilgisayar adını, IP adresini veya URL'sini içermelidir. Temel kimlik doğrulaması etkin ve HAProxy arkasında çalışan yazıcı ana bilgisayarlarına URL içine kullanıcı adı ve parola şu biçimde eklenerek erişilebilir: https://kullaniciadi:parola@octopi-adresiniz/"
 
 msgid "Device UI"
 msgstr "Cihaz kullanıcı arayüzü"
@@ -12766,7 +12740,7 @@ msgid "API Key / Password"
 msgstr "API Anahtarı / Şifre"
 
 msgid "Orca Slicer can upload G-code files to a printer host. This field should contain the API Key or the password required for authentication."
-msgstr "Orca Slicer, G kodu dosyalarını bir yazıcı ana bilgisayarına yükleyebilir. Bu alan, kimlik doğrulama için gereken API Anahtarını veya şifreyi içermelidir."
+msgstr "Orca Slicer, G-code dosyalarını bir yazıcı ana bilgisayarına yükleyebilir. Bu alan, kimlik doğrulama için gereken API Anahtarını veya şifreyi içermelidir."
 
 # AI Translated
 msgid "Serial Number"
@@ -12895,7 +12869,7 @@ msgid "Other layers filament sequence"
 msgstr "Diğer katmanlar filament dizisi"
 
 msgid "This G-code is inserted at every layer change before the Z lift."
-msgstr "Bu G kodu, z'yi kaldırmadan önce her katman değişikliğinde eklenir."
+msgstr "Bu G-code, z'yi kaldırmadan önce her katman değişikliğinde eklenir."
 
 msgid "Bottom shell layers"
 msgstr "Alt katmanlar"
@@ -13545,7 +13519,6 @@ msgstr "Nesneye göre"
 msgid "Intra-layer order"
 msgstr "Katman içi sıra"
 
-# AI Translated
 msgid ""
 "Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
 "\n"
@@ -13556,14 +13529,17 @@ msgid ""
 "\n"
 "With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
 msgstr ""
-"Tek bir katman içinde nesne örneklerinin hangi sırayla ziyaret edileceği; bu da aralarında ne kadar seyahat harcanacağını belirler.\n"
+"Tek bir katman içinde nesne eş kopyalarının (instances) basılma sırasıdır; bunlar arasındaki seyahat mesafesini ve süresini kontrol eder.\n"
 "\n"
-"Varsayılan: en yakın komşu zincirlemesi, 2-opt ve kesişim giderme ile iyileştirilir. İyi bir genel seçim.\n"
-"Nesne listesi olarak: örnekler, herhangi bir yol optimizasyonu olmadan nesne listesindeki sırayla yazdırılır. Öngörülebilir, elle denetlenen bir sıraya ihtiyacınız olduğunda kullanın.\n"
-"Hepsinin en iyisi (en kısa yol): her strateji değerlendirilir ve en kısa olanı kullanılır. Nesne örneklerinin sırası tüm baskı için bir kez belirlenir, tek tek adaların sırası ise her katman için ayrı belirlenir; bu nedenle farklı katmanlar farklı stratejiler kullanabilir. Dilimleme biraz daha yavaştır.\n"
-"Yılankavi: satır satır ilerleyen yılankavi geçiş, 2-opt ile iyileştirilir. Çok sayıda küçük parçadan oluşan düzenli ızgaralar için çok uygundur.\n"
+"Varsayılan (Default): 2-opt algoritması ve hat kesişimi giderme ile iyileştirilmiş en yakın komşu zincirleme yöntemi. Genel kullanım için dengeli ve ideal bir tercihtir.\n"
 "\n"
-"Aynı katmanda birden fazla filament veya araç varsa, araç değişimlerini en aza indirmek önceliklidir: nesneler önce filamente göre gruplanır ve bu ayar yalnızca her filament grubu içindeki örnekleri sıralar; bu nedenle genel sıra, tabla genelindeki en kısa yol gibi görünmeyebilir."
+"Nesne listesi olarak (As object list): Eş kopyalar (instances), herhangi bir rota optimizasyonu yapılmadan doğrudan nesne listesindeki sıralamayla basılır. Manuel ve öngörülebilir bir sıra istendiğinde kullanılır.\n"
+"\n"
+"Hepsinin en iyisi (en kısa yol): Mevcut tüm stratejiler hesaplanır ve en kısa mesafe sunan rota seçilir. Nesne eş kopyalarının sırası tüm baskı için tek seferde kararlaştırılırken, bağımsız adacıkların sıralaması katman bazında hesaplanır (farklı katmanlarda farklı stratejiler devreye girebilir). Dilimleme süresini biraz uzatabilir.\n"
+"\n"
+"Yılankavi (Snake): 2-opt ile optimize edilmiş satır satır kıvrımlı (serpantin) tarama rotası. Yatağa ızgara şeklinde dizilmiş çok sayıda küçük parçalı baskılar için son derece uygundur.\n"
+"\n"
+"Aynı katmanda birden fazla filament veya nozül/takım kullanıldığında, takım değişimlerini en aza indirmek önceliklidir: Nesneler önce filamente göre gruplanır; bu ayar ise sadece ilgili filament grubu içindeki eş kopyaları (instances) sıralar. Bu nedenle genel hareket sırası plakanın tamamına bakıldığında her zaman en kısa rota gibi görünmeyebilir."
 
 msgid "As object list"
 msgstr "Nesne listesi olarak"
@@ -13626,7 +13602,7 @@ msgid "Activate air filtration"
 msgstr "Hava filtrelemesini etkinleştirin"
 
 msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
-msgstr "Daha iyi hava filtrasyonu için etkinleştirin. G-kodu komutu: M106 P3 S(0-255)"
+msgstr "Daha iyi hava filtrasyonu için etkinleştirin. G-code komutu: M106 P3 S(0-255)"
 
 # AI Translated
 msgid "Enable this to override the fan speed set in custom G-code during print."
@@ -13641,7 +13617,7 @@ msgid "Enable this to override the fan speed set in custom G-code after print co
 msgstr "Baskı tamamlandıktan sonra özel G-code'da ayarlanan fan hızını geçersiz kılmak için bunu etkinleştirin."
 
 msgid "Speed of exhaust fan during printing. This speed will override the speed in filament custom G-code."
-msgstr "Baskı sırasında egzoz fanının hızı. Bu hız, filament özel gcode'undaki hızın üzerine yazılacaktır."
+msgstr "Baskı sırasında egzoz fanının hızı. Bu hız, filament özel G-code'undaki hızın üzerine yazılacaktır."
 
 msgid "Speed of exhaust fan after printing completes."
 msgstr "Baskı tamamlandıktan sonra egzoz fanının hızı."
@@ -13755,19 +13731,19 @@ msgid "This is the maximum length of bridges that don't need support. Set it to 
 msgstr "Desteğe ihtiyaç duymayan maksimum köprü uzunluğu. Tüm köprülerin desteklenmesini istiyorsanız bunu 0'a, hiçbir köprünün desteklenmesini istemiyorsanız çok büyük bir değere ayarlayın."
 
 msgid "End G-code"
-msgstr "Bitiş G kodu"
+msgstr "Bitiş G-code"
 
 msgid "Add end G-Code when finishing the entire print."
-msgstr "Tüm yazdırmayı tamamladığında çalışacak olan G Kodu."
+msgstr "Tüm yazdırmayı tamamladığında çalışacak olan G-code."
 
 msgid "Between Object G-code"
-msgstr "Nesne Arası Gcode"
+msgstr "Nesne Arası G-code"
 
 msgid "Insert G-code between objects. This parameter will only come into effect when you print your models object by object."
-msgstr "Nesnelerin arasına Gcode ekleyin. Bu parametre yalnızca modellerinizi nesne nesne yazdırdığınızda etkili olacaktır."
+msgstr "Nesnelerin arasına G-code ekleyin. Bu parametre yalnızca modellerinizi nesne nesne yazdırdığınızda etkili olacaktır."
 
 msgid "Add end G-code when finishing the printing of this filament."
-msgstr "Bu filament ile baskı bittiğinde çalışacak G kod."
+msgstr "Bu filament ile baskı bittiğinde çalışacak G-code."
 
 msgid "Ensure vertical shell thickness"
 msgstr "Dikey kabuk kalınlığını koru"
@@ -14089,14 +14065,14 @@ msgid "Extruder offset"
 msgstr "Ekstruder konumu"
 
 msgid "The material may have volumetric change after switching between molten and crystalline states. This setting changes all extrusion flow of this filament in G-code proportionally. The recommended value range is between 0.95 and 1.05. You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow."
-msgstr "Malzeme, erimiş hal ile kristal hal arasında geçiş yaptıktan sonra hacimsel değişime sahip olabilir. Bu ayar, bu filamentin gcode'daki tüm ekstrüzyon akışını orantılı olarak değiştirir. Önerilen değer aralığı 0,95 ile 1,05 arasındadır. Belki hafif taşma veya taşma olduğunda güzel düz bir yüzey elde etmek için bu değeri ayarlayabilirsiniz."
+msgstr "Malzeme, erimiş hal ile kristal hal arasında geçiş yaptıktan sonra hacimsel değişime sahip olabilir. Bu ayar, bu filamentin G-code'daki tüm ekstrüzyon akışını orantılı olarak değiştirir. Önerilen değer aralığı 0,95 ile 1,05 arasındadır. Belki hafif taşma veya taşma olduğunda güzel düz bir yüzey elde etmek için bu değeri ayarlayabilirsiniz."
 
 msgid ""
 "The material may have volumetric change after switching between molten and crystalline states. This setting changes all extrusion flow of this filament in G-code proportionally. The recommended value range is between 0.95 and 1.05. You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow.\n"
 "\n"
 "The final object flow ratio is this value multiplied by the filament flow ratio."
 msgstr ""
-"Malzeme, erimiş hal ile kristal hal arasında geçiş yaptıktan sonra hacimsel değişime sahip olabilir. Bu ayar, bu filamentin gcode’daki tüm ekstrüzyon akışını orantılı olarak değiştirir. Önerilen değer aralığı 0,95 ile 1,05 arasındadır. Belki hafif taşma veya taşma olduğunda güzel düz bir yüzey elde etmek için bu değeri ayarlayabilirsiniz.\n"
+"Malzeme, erimiş hal ile kristal hal arasında geçiş yaptıktan sonra hacimsel değişime sahip olabilir. Bu ayar, bu filamentin G-code’daki tüm ekstrüzyon akışını orantılı olarak değiştirir. Önerilen değer aralığı 0,95 ile 1,05 arasındadır. Belki hafif taşma veya taşma olduğunda güzel düz bir yüzey elde etmek için bu değeri ayarlayabilirsiniz.\n"
 "\n"
 "Nihai nesne akış oranı, bu değerin filament akış oranıyla çarpılmasıyla elde edilir."
 
@@ -14308,7 +14284,7 @@ msgid "By Highest Temp"
 msgstr "En yüksek sıcaklığa göre"
 
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
-msgstr "Filament çapı, gcode'da ekstrüzyonu hesaplamak için kullanılır; bu nedenle önemlidir ve doğru olmalıdır."
+msgstr "Filament çapı, G-code'da ekstrüzyonu hesaplamak için kullanılır; bu nedenle önemlidir ve doğru olmalıdır."
 
 msgid "Pellet flow coefficient"
 msgstr "Pelet akış katsayısı"
@@ -14757,24 +14733,23 @@ msgid "Jerk of inner walls."
 msgstr "İç duvarlar sarsıntı değeri."
 
 msgid "Jerk for top surface."
-msgstr "Üst yüzey için JERK değeri."
+msgstr "Üst yüzey için Sarsıntı değeri."
 
 msgid "Jerk for infill."
-msgstr "Dolgu için JERK değeri."
+msgstr "Dolgu için Sarsıntı değeri."
 
 msgid "Jerk for the first layer."
-msgstr "İlk katman için JERK değeri."
+msgstr "İlk katman için Sarsıntı değeri."
 
 msgid "Jerk for travel."
-msgstr "Seyahat için JERK değeri."
+msgstr "Seyahat için Sarsıntı değeri."
 
-# AI Translated
 msgid ""
 "Travel jerk of first layer.\n"
 "The percentage value is relative to Travel Jerk."
 msgstr ""
-"İlk katmanın seyahat jerk'i.\n"
-"Yüzde değeri Seyahat Jerk'ine göredir."
+"İlk katmanın seyahat sarsıntısı (travel jerk).\n"
+"Yüzde değeri, Seyahat Sarsıntısı (Travel Jerk) değerine bağlıdır."
 
 msgid "Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "İlk katmanın çizgi genişliği. % olarak ifade edilirse Nozul çapı üzerinden hesaplanacaktır."
@@ -15093,7 +15068,7 @@ msgid ""
 "\n"
 "Note: For Klipper machines, this option is recommended to be disabled. Klipper does not benefit from arc commands as these are split again into line segments by the firmware. This results in a reduction in surface quality as line segments are converted to arcs by the slicer and then back to line segments by the firmware."
 msgstr ""
-"G2 ve G3 hareketlerine sahip bir G kodu dosyası elde etmek için bunu etkinleştirin. Montaj toleransı çözünürlükle aynıdır.\n"
+"G2 ve G3 hareketlerine sahip bir G-code dosyası elde etmek için bunu etkinleştirin. Montaj toleransı çözünürlükle aynıdır.\n"
 "\n"
 "Not: Klipper makineler için bu seçeneğin devre dışı bırakılması önerilir. Klipper, yazılım tarafından tekrar çizgi bölümlerine bölündüğü için yay komutlarından faydalanmaz. Bu, çizgi bölümlerinin dilimleyici tarafından yaylara dönüştürülmesi ve ardından donanım yazılımı tarafından tekrar çizgi bölümlerine dönüştürülmesi nedeniyle yüzey kalitesinde bir azalmaya neden olur."
 
@@ -15101,7 +15076,7 @@ msgid "Add line number"
 msgstr "Satır numarası ekle"
 
 msgid "Enable this to add line number(Nx) at the beginning of each G-code line."
-msgstr "Her G Kodu satırının başına satır numarası (Nx) eklemek için bunu etkinleştirin."
+msgstr "Her G-code satırının başına satır numarası (Nx) eklemek için bunu etkinleştirin."
 
 msgid "Scan first layer"
 msgstr "İlk katmanı tara"
@@ -15113,7 +15088,7 @@ msgid "Power Loss Recovery"
 msgstr "Güç Kaybının Geri Kazanımı"
 
 msgid "Choose how to control power loss recovery. When set to Printer configuration, the slicer will not emit power loss recovery G-code and will leave the printer's configuration unchanged. Applicable to Bambu Lab or Marlin 2 firmware based printers."
-msgstr "Güç kaybı kurtarmanın nasıl kontrol edileceğini seçin. Yazıcı yapılandırması olarak ayarlandığında, dilimleyici güç kaybı kurtarma G kodunu yayınlamayacak ve yazıcının yapılandırmasını değiştirmeden bırakacaktır. Bambu Lab veya Marlin 2 ürün yazılımı tabanlı yazıcılar için geçerlidir."
+msgstr "Güç kaybı kurtarmanın nasıl kontrol edileceğini seçin. Yazıcı yapılandırması olarak ayarlandığında, dilimleyici güç kaybı kurtarma G-code'u yayınlamayacak ve yazıcının yapılandırmasını değiştirmeden bırakacaktır. Bambu Lab veya Marlin 2 ürün yazılımı tabanlı yazıcılar için geçerlidir."
 
 msgid "Printer configuration"
 msgstr "Yazıcı yapılandırması"
@@ -15189,7 +15164,7 @@ msgid ""
 msgstr ""
 "Fanı hedef başlangıç zamanından bu kadar saniye önce başlatın (kesirli saniyeleri kullanabilirsiniz). Bu süre tahmini için sonsuz ivme varsayar ve yalnızca G1 ve G0 hareketlerini hesaba katar (yay uydurma desteklenmez).\n"
 "Fan komutlarını özel kodlardan taşımaz (bir çeşit 'bariyer' görevi görürler).\n"
-"'Yalnızca özel başlangıç gcode'u etkinleştirilmişse, fan komutları başlangıç gcode'una taşınmayacaktır.\n"
+"'Yalnızca özel başlangıç G-code'u etkinleştirilmişse, fan komutları başlangıç G-code'una taşınmayacaktır.\n"
 "Devre dışı bırakmak için 0'ı kullanın."
 
 msgid "Only overhangs"
@@ -15266,7 +15241,7 @@ msgid "G-code flavor"
 msgstr "G-code türü"
 
 msgid "What kind of G-code the printer is compatible with."
-msgstr "Yazıcının ne tür bir gcode ile uyumlu olduğu."
+msgstr "Yazıcının ne tür bir G-code ile uyumlu olduğu."
 
 msgid "Klipper"
 msgstr "Klipper"
@@ -15301,13 +15276,13 @@ msgid "Exclude objects"
 msgstr "Nesneleri hariç tut"
 
 msgid "Enable this option to add EXCLUDE OBJECT command in G-code."
-msgstr "G koduna EXCLUDE OBJECT komutunu eklemek için bu seçeneği etkinleştirin."
+msgstr "G-code'a EXCLUDE OBJECT komutunu eklemek için bu seçeneği etkinleştirin."
 
 msgid "Verbose G-code"
 msgstr "Ayrıntılı G-code"
 
 msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
-msgstr "Her satırın açıklayıcı bir metinle açıklandığı, yorumlu bir G kodu dosyası almak için bunu etkinleştirin. SD karttan yazdırırsanız dosyanın ilave ağırlığı ürün yazılımınızın yavaşlamasına neden olabilir."
+msgstr "Her satırın açıklayıcı bir metinle açıklandığı, yorumlu bir G-code dosyası almak için bunu etkinleştirin. SD karttan yazdırırsanız dosyanın ilave ağırlığı ürün yazılımınızın yavaşlamasına neden olabilir."
 
 msgid "Infill combination"
 msgstr "Dolgu kombinasyonu"
@@ -15672,10 +15647,10 @@ msgstr ""
 "Ayrıca dilimleme düzlemini de denetler."
 
 msgid "This G-code is inserted at every layer change after the Z lift."
-msgstr "Bu gcode kısmı, z kaldırma işleminden sonra her katman değişikliğinde eklenir."
+msgstr "Bu G-code kısmı, z kaldırma işleminden sonra her katman değişikliğinde eklenir."
 
 msgid "Clumping detection G-code"
-msgstr "Topaklanma tespiti G kodu"
+msgstr "Topaklanma tespiti G-code"
 
 # AI Translated
 msgid "Silent Mode"
@@ -15685,7 +15660,7 @@ msgid "Whether the machine supports silent mode in which machine uses lower acce
 msgstr "Daha sessiz baskı için ivmelenmeyi düşüren sessiz mod desteği"
 
 msgid "Emit limits to G-code"
-msgstr "G-kod sınırları"
+msgstr "G-code sınırları"
 
 msgid "Machine limits"
 msgstr "Yazıcı sınırları"
@@ -15694,14 +15669,14 @@ msgid ""
 "If enabled, the machine limits will be emitted to G-code file.\n"
 "This option will be ignored if the G-code flavor is set to Klipper."
 msgstr ""
-"Etkinleştirilirse, makine sınırları G kodu dosyasına aktarılacaktır.\n"
-"G kodu tadı Klipper olarak ayarlandığında bu seçenek göz ardı edilecektir."
+"Etkinleştirilirse, makine sınırları G-code dosyasına aktarılacaktır.\n"
+"G-code tadı Klipper olarak ayarlandığında bu seçenek göz ardı edilecektir."
 
 msgid "This G-code will be used as a code for the pause print. Users can insert pause G-code in the G-code viewer."
-msgstr "Bu G kodu duraklatma yazdırması için bir kod olarak kullanılacaktır. Kullanıcı gcode görüntüleyiciye duraklatma G kodunu ekleyebilir."
+msgstr "Bu G-code duraklatma yazdırması için bir kod olarak kullanılacaktır. Kullanıcı G-code görüntüleyiciye duraklatma G-code'u ekleyebilir."
 
 msgid "This G-code will be used as a custom code."
-msgstr "Bu G kodu özel kod olarak kullanılacak."
+msgstr "Bu G-code özel kod olarak kullanılacak."
 
 msgid "Small area flow compensation (beta)"
 msgstr "Küçük alan akış telafisi (beta)"
@@ -16043,7 +16018,7 @@ msgid ""
 "\n"
 "Allowed values: 0.5-5"
 msgstr ""
-"Daha düşük bir değer, daha düzgün ekstrüzyon hızı geçişleriyle sonuçlanır. Ancak bu, önemli ölçüde daha büyük bir gcode dosyasına ve yazıcının işlemesi için daha fazla talimata neden olur.\n"
+"Daha düşük bir değer, daha düzgün ekstrüzyon hızı geçişleriyle sonuçlanır. Ancak bu, önemli ölçüde daha büyük bir G-code dosyasına ve yazıcının işlemesi için daha fazla talimata neden olur.\n"
 "\n"
 "Varsayılan 3 değeri çoğu durumda işe yarar. Yazıcınız tutukluk yapıyorsa, yapılan ayarlama sayısını azaltmak için bu değeri artırın\n"
 "\n"
@@ -16100,13 +16075,13 @@ msgid "Configuration notes"
 msgstr "Yapılandırma notları"
 
 msgid "You can put here your personal notes. This text will be added to the G-code header comments."
-msgstr "Buraya kişisel notlarınızı yazabilirsiniz. Bu not G-kodu başlık yorumlarına eklenecektir."
+msgstr "Buraya kişisel notlarınızı yazabilirsiniz. Bu not G-code başlık yorumlarına eklenecektir."
 
 msgid "Host Type"
 msgstr "Bağlantı Türü"
 
 msgid "Orca Slicer can upload G-code files to a printer host. This field must contain the kind of the host."
-msgstr "Orca Slicer, G kodu dosyalarını bir yazıcı ana bilgisayarına yükleyebilir. Bu alan ana bilgisayarın türünü içermelidir."
+msgstr "Orca Slicer, G-code dosyalarını bir yazıcı ana bilgisayarına yükleyebilir. Bu alan ana bilgisayarın türünü içermelidir."
 
 msgid "Nozzle volume"
 msgstr "Nozul hacmi"
@@ -16155,7 +16130,7 @@ msgstr "Dolguda geri çekmeyi azalt"
 
 # AI Translated
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "Hareket tamamen dolgu alanı içindeyken geri çekme yapılmaz. Bu, sızıntının görülemeyeceği anlamına gelir. Bu, karmaşık modellerde geri çekme sayısını azaltabilir ve yazdırma süresinden tasarruf sağlayabilir, ancak dilimlemeyi ve G kodu oluşturmayı yavaşlatır. Geri çekmenin atlandığı alanlarda z-hop'un da uygulanmadığını unutmayın."
+msgstr "Hareket tamamen dolgu alanı içindeyken geri çekme yapılmaz. Bu, sızıntının görülemeyeceği anlamına gelir. Bu, karmaşık modellerde geri çekme sayısını azaltabilir ve yazdırma süresinden tasarruf sağlayabilir, ancak dilimlemeyi ve G-code oluşturmayı yavaşlatır. Geri çekmenin atlandığı alanlarda z-hop'un da uygulanmadığını unutmayın."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Bu seçenek sızıntıyı önlemek için aktif olmayan ekstrüderlerin sıcaklığını düşürecektir."
@@ -16241,7 +16216,7 @@ msgstr ""
 "İlave çevrelerin sabitleneceği dolgu sınırlı olduğundan, bu seçenekle birlikte yıldırım dolgusunun kullanılması önerilmez."
 
 msgid "If you want to process the output G-code through custom scripts, just list their absolute paths here. Separate multiple scripts with a semicolon. Scripts will be passed the absolute path to the G-code file as the first argument, and they can access the Orca Slicer config settings by reading environment variables."
-msgstr "Çıktı G-kodunu özel komut dosyaları aracılığıyla işlemek istiyorsanız, mutlak yollarını burada listeleyin. Birden fazla betiği noktalı virgülle ayırın. Betiklere ilk argüman olarak G-code dosyasının mutlak yolu aktarılır ve ortam değişkenlerini okuyarak Orca Slicer yapılandırma ayarlarına erişebilirler."
+msgstr "Çıktı G-code'u özel komut dosyaları aracılığıyla işlemek istiyorsanız, mutlak yollarını burada listeleyin. Birden fazla betiği noktalı virgülle ayırın. Betiklere ilk argüman olarak G-code dosyasının mutlak yolu aktarılır ve ortam değişkenlerini okuyarak Orca Slicer yapılandırma ayarlarına erişebilirler."
 
 # AI Translated
 msgid "Change extrusion role G-code (process)"
@@ -16309,7 +16284,7 @@ msgid "Object will be raised by this number of support layers. Use this function
 msgstr "Nesne bu sayıdaki destek katmanı tarafından yükseltilecektir. ABS yazdırırken sarmayı önlemek için bu işlevi kullanın."
 
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
-msgstr "Gcode dosyasında çok fazla nokta ve gcode çizgisinin olmaması için modelin konturu basitleştirildikten sonra G-code yolu oluşturulur. Daha küçük değer, daha yüksek çözünürlük ve dilimleme için daha fazla zaman anlamına gelir."
+msgstr "G-code dosyasında çok fazla nokta ve G-code çizgisinin olmaması için modelin konturu basitleştirildikten sonra G-code yolu oluşturulur. Daha küçük değer, daha yüksek çözünürlük ve dilimleme için daha fazla zaman anlamına gelir."
 
 msgid "Travel distance threshold"
 msgstr "Seyahat mesafesi"
@@ -16513,7 +16488,7 @@ msgid "Disable set remaining print time"
 msgstr "Kalan yazdırma süresini ayarlamayı devre dışı bırak"
 
 msgid "Disable generating of the M73: Set remaining print time in the final G-code."
-msgstr "M73'ün oluşturulmasını devre dışı bırakın: Son gcode'da kalan yazdırma süresini ayarlayın."
+msgstr "M73'ün oluşturulmasını devre dışı bırakın: Son G-code'da kalan yazdırma süresini ayarlayın."
 
 msgid "Seam position"
 msgstr "Dikiş konumu"
@@ -16734,7 +16709,7 @@ msgstr ""
 "Nihai döngü sayısı, nesnelerin mesafesini düzenlerken veya doğrularken dikkate alınmaz. Böyle bir durumda döngü sayısını artırın."
 
 msgid "The printing speed in exported G-code will be slowed down when the estimated layer time is shorter than this value in order to get better cooling for these layers."
-msgstr "Tahmini katman süresi bu değerden kısa olduğunda, bu katmanlar için daha iyi soğutma sağlamak amacıyla, dışa aktarılan gcode'daki yazdırma hızı yavaşlatılacaktır."
+msgstr "Tahmini katman süresi bu değerden kısa olduğunda, bu katmanlar için daha iyi soğutma sağlamak amacıyla, dışa aktarılan G-code'daki yazdırma hızı yavaşlatılacaktır."
 
 msgid "Minimum sparse infill threshold"
 msgstr "Minimum seyrek dolgu"
@@ -16842,16 +16817,16 @@ msgid "Insert multiple preheat commands (e.g. M104.1). Only useful for Prusa XL.
 msgstr "Birden fazla ön ısıtma komutu ekleyin (örn. M104.1). Yalnızca Prusa XL için kullanışlıdır. Diğer yazıcılar için lütfen 1’e ayarlayın."
 
 msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
-msgstr "G kodu, çıktı dosyasının en üstünde, diğer içeriklerden önce yazılır. Yazıcı ürün yazılımının dosyanın ilk satırlarından okuduğu meta verileri (ör. tahmini yazdırma süresi, filament kullanımı) eklemek için kullanışlıdır. {print_time_sec} ve {used_filament_length} gibi yer tutucuları destekler."
+msgstr "G-code, çıktı dosyasının en üstünde, diğer içeriklerden önce yazılır. Yazıcı ürün yazılımının dosyanın ilk satırlarından okuduğu meta verileri (ör. tahmini yazdırma süresi, filament kullanımı) eklemek için kullanışlıdır. {print_time_sec} ve {used_filament_length} gibi yer tutucuları destekler."
 
 msgid "Start G-code"
-msgstr "Başlangıç G Kodu"
+msgstr "Başlangıç G-code"
 
 msgid "G-code added when starting a print."
-msgstr "Baskı başladığında çalışacak G Kodu."
+msgstr "Baskı başladığında çalışacak G-code."
 
 msgid "G-code added when the printer starts using this filament"
-msgstr "Bu filament kullanılırken yazıcı başladığında eklenen G-kodu"
+msgstr "Bu filament kullanılırken yazıcı başladığında eklenen G-code"
 
 msgid "Single Extruder Multi Material"
 msgstr "Tek ekstruder çoklu malzeme"
@@ -16863,7 +16838,7 @@ msgid "Manual Filament Change"
 msgstr "Manuel filament değişimi"
 
 msgid "Enable this option to omit the custom Change filament G-code only at the beginning of the print. The tool change command (e.g., T0) will be skipped throughout the entire print. This is useful for manual multi-material printing, where we use M600/PAUSE to trigger the manual filament change action."
-msgstr "Sadece baskının başında özel Filament Değiştirme G-kodu'nu atlamak için bu seçeneği etkinleştirin. Aracı değiştirme komutu (örneğin, T0), baskının tamamı boyunca atlanacaktır. Bu, manuel çoklu malzeme baskısı için kullanışlıdır, burada manuel filament değişim eylemini tetiklemek için M600/PAUSE kullanırız."
+msgstr "Sadece baskının başında özel Filament Değiştirme G-code'u atlamak için bu seçeneği etkinleştirin. Aracı değiştirme komutu (örneğin, T0), baskının tamamı boyunca atlanacaktır. Bu, manuel çoklu malzeme baskısı için kullanışlıdır, burada manuel filament değişim eylemini tetiklemek için M600/PAUSE kullanırız."
 
 msgid "Wipe tower type"
 msgstr "Temizleme kulesi tipi"
@@ -16960,7 +16935,7 @@ msgid "Z offset"
 msgstr "Z ofseti"
 
 msgid "This value will be added (or subtracted) from all the Z coordinates in the output G-code. It is used to compensate for bad Z endstop position: for example, if your endstop zero actually leaves the nozzle 0.3mm far from the print bed, set this to -0.3 (or fix your endstop)."
-msgstr "Bu değer, çıkış G-kodu içindeki tüm Z koordinatlarına eklenir (veya çıkarılır).Bu, kötü Z endstop konumunu telafi etmek için kullanılır: örneğin, endstop sıfır noktanız aslında nozulu baskı plakasından 0.3mm uzakta bırakıyorsa, bu değeri -0.3 olarak ayarlayın (veya endstop'unuzu düzeltin)."
+msgstr "Bu değer, çıkış G-code içindeki tüm Z koordinatlarına eklenir (veya çıkarılır).Bu, kötü Z endstop konumunu telafi etmek için kullanılır: örneğin, endstop sıfır noktanız aslında nozulu baskı plakasından 0.3mm uzakta bırakıyorsa, bu değeri -0.3 olarak ayarlayın (veya endstop'unuzu düzeltin)."
 
 msgid "Enable support"
 msgstr "Desteği etkinleştir"
@@ -17311,7 +17286,7 @@ msgstr ""
 "\n"
 "PLA, PETG, TPU, PVA ve diğer düşük sıcaklıktaki malzemeler için, ısı kırılmasında malzemenin yumuşamasından kaynaklanan ekstrüderin tıkanmasını önlemek için oda sıcaklığının düşük olması gerektiğinden bu seçenek devre dışı bırakılmalıdır (0’a ayarlanmalıdır).\n"
 "\n"
-"Etkinleştirilirse, bu parametre aynı zamanda istenen oda sıcaklığını yazdırma başlatma makronuza veya şuna benzer bir ısı emme makrosuna iletmek için kullanılabilecek Chamber_temperature adlı bir gcode değişkenini de ayarlar: PRINT_START (diğer değişkenler) CHAMBER_TEMP=[chamber_temperature]. Yazıcınız M141/M191 komutlarını desteklemiyorsa veya aktif oda ısıtıcısı takılı değilse yazdırma başlatma makrosunda ısı bekletme işlemini gerçekleştirmek istiyorsanız bu yararlı olabilir."
+"Etkinleştirilirse, bu parametre aynı zamanda istenen oda sıcaklığını yazdırma başlatma makronuza veya şuna benzer bir ısı emme makrosuna iletmek için kullanılabilecek Chamber_temperature adlı bir G-code değişkenini de ayarlar: PRINT_START (diğer değişkenler) CHAMBER_TEMP=[chamber_temperature]. Yazıcınız M141/M191 komutlarını desteklemiyorsa veya aktif oda ısıtıcısı takılı değilse yazdırma başlatma makrosunda ısı bekletme işlemini gerçekleştirmek istiyorsanız bu yararlı olabilir."
 
 # AI Translated
 msgid ""
@@ -17341,10 +17316,10 @@ msgid "This detects thin walls which can’t contain two lines and uses a single
 msgstr "İki çizgi genişliğini içeremeyen ince duvarı tespit edin. Ve yazdırmak için tek satır kullanın. Kapalı döngü olmadığından pek iyi basılmamış olabilir."
 
 msgid "This G-code is inserted when filament is changed, including T commands to trigger tool change."
-msgstr "Bu gcode, takım değişimini tetiklemek için T komutu da dahil olmak üzere filament değiştirildiğinde eklenir."
+msgstr "Bu G-code, takım değişimini tetiklemek için T komutu da dahil olmak üzere filament değiştirildiğinde eklenir."
 
 msgid "This G-code is inserted when the extrusion role is changed."
-msgstr "Bu gcode, ekstrüzyon rolü değiştirildiğinde eklenir."
+msgstr "Bu G-code, ekstrüzyon rolü değiştirildiğinde eklenir."
 
 # AI Translated
 msgid "Change extrusion role G-code (filament)"
@@ -17696,10 +17671,10 @@ msgid "Picture sizes to be stored into a .gcode and .sl1 / .sl1s files, in the f
 msgstr "Resim boyutları aşağıdaki formatta bir .gcode ve .sl1 / .sl1s dosyalarında saklanacaktır: \"XxY, XxY, ...\""
 
 msgid "Format of G-code thumbnails"
-msgstr "G kodu küçük resimlerinin formatı"
+msgstr "G-code küçük resimlerinin formatı"
 
 msgid "Format of G-code thumbnails: PNG for best quality, JPG for smallest size, QOI for low memory firmware."
-msgstr "G kodu küçük resimlerinin formatı: En iyi kalite için PNG, en küçük boyut için JPG, düşük bellekli donanım yazılımı için QOI."
+msgstr "G-code küçük resimlerinin formatı: En iyi kalite için PNG, en küçük boyut için JPG, düşük bellekli donanım yazılımı için QOI."
 
 msgid "Use relative E distances"
 msgstr "Göreceli (relative) E mesafelerini kullan"
@@ -17949,7 +17924,7 @@ msgid "No check"
 msgstr "Kontrol yok"
 
 msgid "Do not run any validity checks, such as G-code path conflicts check."
-msgstr "Gcode yol çakışmaları kontrolü gibi herhangi bir geçerlilik kontrolü çalıştırmayın."
+msgstr "G-code yol çakışmaları kontrolü gibi herhangi bir geçerlilik kontrolü çalıştırmayın."
 
 msgid "Normative check"
 msgstr "Normatif kontrol"
@@ -18113,10 +18088,10 @@ msgid "If enabled, this slicing will be considered using timelapse."
 msgstr "Etkinleştirilirse, bu dilimleme hızlandırılmış çekim kullanılarak değerlendirilecektir."
 
 msgid "Load custom G-code"
-msgstr "Özel gcode yükle"
+msgstr "Özel G-code yükle"
 
 msgid "Load custom G-code from json."
-msgstr "Json'dan özel gcode yükleyin."
+msgstr "Json'dan özel G-code yükleyin."
 
 msgid "Load filament IDs"
 msgstr "Filament kimliklerini yükle"
@@ -18143,10 +18118,10 @@ msgid "If enabled, Arrange will avoid extrusion calibrate region when placing ob
 msgstr "Etkinleştirilirse, nesne yerleştirildiğinde düzenleme ekstrüzyon kalibrasyon bölgesini önleyecektir."
 
 msgid "Skip modified G-code in 3MF"
-msgstr "3mf’de değiştirilmiş gcode’ları atla"
+msgstr "3mf’de değiştirilmiş G-code’ları atla"
 
 msgid "Skip the modified G-code in 3MF from printer or filament presets."
-msgstr "Yazıcı veya filament Ön Ayarlarından 3mf’deki değiştirilmiş gcode’ları atlayın."
+msgstr "Yazıcı veya filament Ön Ayarlarından 3mf’deki değiştirilmiş G-code’ları atlayın."
 
 msgid "MakerLab name"
 msgstr "MakerLab adı"
@@ -18183,13 +18158,13 @@ msgid "Current Z-hop"
 msgstr "Mevcut z-hop"
 
 msgid "Contains Z-hop present at the beginning of the custom G-code block."
-msgstr "Özel G kodu bloğunun başında bulunan z-hop'u içerir."
+msgstr "Özel G-code bloğunun başında bulunan z-hop'u içerir."
 
 msgid "Position of the extruder at the beginning of the custom G-code block. If the custom G-code travels somewhere else, it should write to this variable so OrcaSlicer knows where it travels from when it gets control back."
-msgstr "Ekstruderin özel G kodu bloğunun başlangıcındaki konumu. Özel G kodu başka bir yere seyahat ederse, Slicer'ın kontrolü geri aldığında nereden seyahat ettiğini bilmesi için bu değişkene yazması gerekir."
+msgstr "Ekstruderin özel G-code bloğunun başlangıcındaki konumu. Özel G-code başka bir yere seyahat ederse, Slicer'ın kontrolü geri aldığında nereden seyahat ettiğini bilmesi için bu değişkene yazması gerekir."
 
 msgid "Retraction state at the beginning of the custom G-code block. If the custom G-code moves the extruder axis, it should write to this variable so OrcaSlicer de-retracts correctly when it gets control back."
-msgstr "Özel G kodu bloğunun başlangıcındaki geri çekilme durumu. Özel G kodu ekstruder eksenini hareket ettirirse, Slicer'ın kontrolü geri aldığında doğru şekilde geri çekme yapması için bu değişkene yazması gerekir."
+msgstr "Özel G-code bloğunun başlangıcındaki geri çekilme durumu. Özel G-code ekstruder eksenini hareket ettirirse, Slicer'ın kontrolü geri aldığında doğru şekilde geri çekme yapması için bu değişkene yazması gerekir."
 
 msgid "Extra de-retraction"
 msgstr "Ekstra deretraksiyon"
@@ -18342,10 +18317,10 @@ msgid "Total number of objects in the print."
 msgstr "Baskıdaki toplam nesne sayısı."
 
 msgid "Number of instances"
-msgstr "Örnek sayısı"
+msgstr "Eş kopya sayısı"
 
 msgid "Total number of object instances in the print, summed over all objects."
-msgstr "Tüm nesneler üzerinden toplanan, yazdırmadaki nesne örneklerinin toplam sayısı."
+msgstr "Tüm nesneler genelinde toplanmış, baskıdaki toplam nesne eş kopyası (instance) sayısı."
 
 msgid "Scale per object"
 msgstr "Nesne başına ölçeklendirme"
@@ -19450,7 +19425,7 @@ msgid "Only materials of the same type can be selected."
 msgstr "Yalnızca aynı tipteki malzemeler seçilebilir."
 
 msgid "Send G-code to printer host"
-msgstr "G Kodunu yazıcı ana bilgisayarına gönder"
+msgstr "G-code'u yazıcı ana bilgisayarına gönder"
 
 msgid "Upload to Printer Host with the following filename:"
 msgstr "Yazıcıya aşağıdaki dosya adıyla yükleyin:"
@@ -20356,9 +20331,8 @@ msgstr "İletişim kutusunu kapatıp projeyi incelemek için HAYIR'ı seçin."
 msgid "No project file on current session. Only logs will be included to package"
 msgstr "Geçerli oturumda proje dosyası yok. Pakete yalnızca günlükler eklenecek"
 
-# AI Translated
 msgid "Please make sure any instances of OrcaSlicer are not running"
-msgstr "Lütfen çalışan bir OrcaSlicer örneği olmadığından emin olun"
+msgstr "Lütfen hiçbir OrcaSlicer örneğinin çalışmadığından emin olun"
 
 # AI Translated
 msgid "System folder cannot be deleted because some files are in use by another application. Please close any applications using these files and try again."
@@ -20373,7 +20347,7 @@ msgid "Failed to determine executable path."
 msgstr "Yürütülebilir dosya yolu belirlenemedi."
 
 msgid "Failed to launch a new instance."
-msgstr "Yeni bir kopya başlatılamadı."
+msgstr "Yeni bir örnek başlatılamadı."
 
 # AI Translated
 msgid "log(s)"
@@ -21697,8 +21671,8 @@ msgid ""
 "G-code window\n"
 "You can turn on/off the G-code window by pressing the <b>C</b> key."
 msgstr ""
-"G-kodu penceresi\n"
-"<b>C</b> tuşuna basarak G*kodu penceresini açabilir/kapatabilirsiniz."
+"G-code penceresi\n"
+"<b>C</b> tuşuna basarak G-code penceresini açabilir/kapatabilirsiniz."
 
 #: resources/data/hints.ini: [hint:Switch workspaces]
 msgid ""
@@ -21855,8 +21829,7 @@ msgstr ""
 "Baskılarınızı plakalara ayırın\n"
 "Çok sayıda parçası olan bir modeli baskıya hazır ayrı kalıplara bölebileceğinizi biliyor muydunuz? Bu, tüm parçaları takip etme sürecini basitleştirecektir."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -21929,8 +21902,7 @@ msgstr ""
 "Gücü artırın\n"
 "Modelin gücünü artırmak için daha fazla duvar halkası ve daha yüksek seyrek dolgu yoğunluğu kullanabileceğinizi biliyor muydunuz?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."

@@ -229,6 +229,22 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
 
     // Append thin walls to the nearest-neighbor search (only for first iteration)
     if (! thin_walls.empty()) {
+        // Orca: apply fuzzy skin to thin walls as well
+        for (auto& thin_wall : thin_walls) {
+            // First, we convert the ThickPolyline into Arachne::ExtrusionLine so we could reuse our existing fuzzy code
+            Arachne::ExtrusionLine el(0, true);
+            el.junctions.reserve(thin_wall.points.size());
+            for (int i = 0; i < thin_wall.points.size(); i++) {
+                el.junctions.emplace_back(thin_wall.points[i], thin_wall.width[i], 0);
+            }
+
+            // Then we fuzzy it
+            apply_fuzzy_skin(&el, perimeter_generator, true, thin_wall.is_closed());
+
+            // Then convert the result back to ThickPolyline
+            thin_wall = Arachne::to_thick_polyline(el);
+        }
+
         variable_width(thin_walls, erExternalPerimeter, perimeter_generator.ext_perimeter_flow, coll.entities);
         thin_walls.clear();
     }
