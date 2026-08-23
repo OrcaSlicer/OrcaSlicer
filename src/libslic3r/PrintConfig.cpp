@@ -6293,11 +6293,16 @@ void PrintConfigDef::init_fff_params()
                      "band around a light core.\n\n"
                      "The nozzle must cover a cell\'s circumscribed circle to seal it, but only the "
                      "inscribed circle is usable tube — so rounder cells give more tube per nozzle and "
-                     "need less immersion. Bore as a fraction of the nozzle flat: Triangle 50%, "
-                     "Rectilinear 71%, Hex/Tri-hex 87%.\n\n"
-                     "Rectilinear is the default — its grid traces as straight lines with no doubled "
-                     "walls, so it prints fastest. Hex seals best but its toolpath doubles the "
-                     "vertical walls. Triangle needs the deepest immersion for a given tube.");
+                     "need less immersion. Bore as a fraction of that circle the nozzle must cover: "
+                     "Triangle 50%, Rectilinear 71%, Hex/Tri-hex 87%.\n\n"
+                     "That ranking is about the MOUTH of the tube, and it is not the whole story. "
+                     "Hex and Tri-hex draw every vertical wall as two beads side by side (each edge "
+                     "is traced by both adjacent columns), so the join between them runs the full "
+                     "height of the tube — a leak path the seal geometry above cannot see. Measured "
+                     "on test prints, that outweighs their better mouth geometry.\n\n"
+                     "Rectilinear is the default and the one to use: its grid traces as straight "
+                     "lines, so each wall is a single bead with no lengthwise join. Triangle needs "
+                     "the deepest immersion for a given tube and has the narrowest bore.");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     // Offer exactly what sparse infill offers, by copying its list rather than maintaining a
     // second one that drifts every time upstream adds a pattern.

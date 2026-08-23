@@ -1558,7 +1558,19 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                              m.min_seal_depth, m.budget),
                          "magma_auto_slam_press", object);
                 }
-                if (m.plunge_clamped()) {
+                if (m.plunge_clamped() && m.plunge_depth <= 0.0) {
+                    // Not a reduction -- the feature is on and cannot run at all. Say that, or it
+                    // reads as a rounding-down and gets waved past.
+                    warn(Slic3r::format(
+                        L("Magma plunge is switched ON but CANNOT RUN: sealing this tube already "
+                          "spends the whole %.2f mm Total immersion, leaving nothing for it. The "
+                          "injection will hold one fixed depth with no slam-melt at all.\n\n"
+                          "Total immersion must be at least Minimum seal depth + Plunge depth "
+                          "(%.2f + %.2f = %.2f mm) for both to fit."),
+                             m.budget, m.min_seal_depth, m.plunge_requested,
+                             m.min_seal_depth + m.plunge_requested),
+                         "magma_max_immersion", object);
+                } else if (m.plunge_clamped()) {
                     warn(Slic3r::format(
                         L("Magma plunge depth is reduced from %.2f mm to %.2f mm: sealing this tube "
                           "already spends %.2f mm of the %.2f mm Total immersion, and the plunge may "
@@ -1686,7 +1698,8 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 if (m.pattern == ipMagmaTriangle) {
                     warn(L("Magma Triangle has the least efficient seal geometry of the Magma patterns. "
                           "The nozzle has to cover a triangle's circumscribed circle, but only its "
-                          "inscribed circle is usable tube — so the bore is just 50% of the nozzle flat "
+                          "inscribed circle is usable tube — so the bore is just 50% of the circle the "
+                          "nozzle must cover "
                           "(Rectilinear gives 71%, Hex 87%). For the same usable tube it needs a much "
                           "larger opening, and therefore deeper nozzle immersion, which is what deforms "
                           "tube walls. Consider Magma Rectilinear or Magma Hex unless you specifically "
