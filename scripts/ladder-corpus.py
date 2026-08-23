@@ -245,7 +245,12 @@ def grade(pdf, name, report):
     voids = [r for r in loops[2:]
              if shoelace(r) > 1.0 and point_in(r[0], outer)]
     if shoelace(outer) < 100.0:
-        report(name, "SKIP", "outline too small to grade")
+        # Not a defect and not a near miss: on these sheets the part outline is not a closed
+        # stroked path at all, so the only loops extraction recovers are glyph counters and
+        # arrowheads. Measured on MPD12/30/31/60: the LARGEST loop on the sheet is 5 to 132 mm2.
+        # Say the number, so nobody has to re-measure to know which kind of skip this is.
+        report(name, "SKIP", f"no part outline on this sheet — largest loop is only "
+                             f"{shoelace(outer):.1f} mm2")
         return None
 
     # Feed the drawing's own geometry to the engine, as lines only.
@@ -392,6 +397,12 @@ def grade_scale(pdf, name, report, budget):
     return ok
 
 
+def _pdf_error(path):
+    """What poppler says about a file it refused, so a refusal can be classified."""
+    r = subprocess.run(["pdfinfo", path], capture_output=True, text=True)
+    return (r.stderr or "") + (r.stdout or "")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--corpus", default=os.path.expanduser("~/studycadcam"))
@@ -454,7 +465,13 @@ def main():
             if r is not None:
                 results.append((name, r))
         except Exception as e:                       # noqa: BLE001
-            report(name, "ERROR", str(e)[:120], False)
+            # An unreadable SOURCE file is not a grading failure. MPD133 of this corpus is
+            # password-protected, and pdftocairo says so on stderr while exiting non-zero;
+            # reporting that as ERROR made one encrypted sheet look like an engine defect.
+            if "password" in _pdf_error(f).lower():
+                report(name, "SKIP", "the PDF is password-protected — nothing to extract")
+            else:
+                report(name, "ERROR", str(e)[:120], False)
 
     graded = len(results)
     passed = sum(1 for _, r in results if r)
