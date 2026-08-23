@@ -34,6 +34,12 @@ run_in_rig() {                      # copy the script in fresh, then run it ther
     docker exec "$C" python3 "$@"
 }
 
+# FIRST, and it needs no rig: the offer table the menu is compiled from must be what the atlas
+# says. The header calls itself GENERATED and had been hand-edited anyway — which cost four rows
+# that existed only in the header, one row wired to the wrong action, and a count of 91 for a
+# 92-row array, so the last verb was unreachable (snaporca-z8rs, snaporca-ziam).
+step "offer table matches the atlas" python3 docs/ux/mockups/gen_offer_table.py --check
+
 step "kernel suite" scripts/kernel-test.sh --vol "${KVOL:-snaporca_kerneltest}"
 
 if [ -z "${SKIP_GUI:-}" ]; then

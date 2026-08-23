@@ -399,9 +399,26 @@ def rung_vocabulary():
     where = [("SkNone", cx, y1 - (y1 - y0) * 0.12),
              ("SkLine", (ax + bx) / 2.0, ay),
              ("SkArc", circ["center"][0] + circ["radius"], circ["center"][1]),
-             ("SkPoint", pxx, pyy)]
+             ("SkPoint", pxx, pyy),
+             ("Sk2Ent", None, None)]
     seen = {}
     for name, X, Y in where:
+        if name == "Sk2Ent":
+            # The two-entity vocabulary was the one selection nothing compared against the table,
+            # and it is where the missing row hid: sk_angdist accepts Sk2Ent and nothing else, so
+            # an off-by-one that dropped the LAST verb was invisible from every other selection.
+            G.key("Escape", 0.5)
+            G.clickmm((ax + bx) / 2.0, ay)
+            G.xdo("keydown shift")
+            # The TOP of the circle, not its +X point: the radius grip lives there, and a click on
+            # a grip arms a handle drag which REPLACES the selection with that one entity. The
+            # pick then silently collapses to one and the offer answers SkLine — right, for the
+            # selection that actually existed.
+            G.clickmm(circ["center"][0], circ["center"][1] + circ["radius"])
+            G.xdo("keyup shift")
+            picked = len(G.describe()["selection"])
+            G.check("OFFER", picked == 2, f"two entities picked for the pair vocabulary: {picked}")
+            X, Y = (ax + bx) / 2.0, ay
         o = open_offer(X, Y)
         want = sorted(predicted(o.kind, o.sketching))
         got = sorted(o.verbs)
@@ -414,7 +431,7 @@ def rung_vocabulary():
     # And the sets are genuinely DIFFERENT — an offer that adapts is not one that always shows
     # the same rows. Without this, four identical menus would have passed four checks.
     G.check("OFFER", len(set(map(frozenset, seen.values()))) == len(seen),
-            "all four selections offer a different set: "
+            "every selection offers a different set: "
             + ", ".join(f"{k}={len(v)}" for k, v in seen.items()))
     G.check("OFFER", seen["SkLine"] - seen["SkNone"],
             f"a picked line adds {len(seen['SkLine'] - seen['SkNone'])} verbs an empty pick has not: "

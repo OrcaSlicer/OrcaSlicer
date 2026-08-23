@@ -12,6 +12,7 @@ Output: src/slic3r/GUI/CAD/DesignOffer.hpp, checked in and never hand-edited.
 
 import json
 import os
+import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 UX = os.path.dirname(HERE)
@@ -112,6 +113,13 @@ def main():
     blind = [v["id"] for v in A["verbs"] if v.get("action") and not v.get("hint")]
     assert not blind, f"wired verbs with no hint: {blind}"
     for v in A["verbs"]:
+        # A verb may carry a NOTE: the reason it exists, emitted as a C++ comment above its row.
+        # Without somewhere to put it, a rationale written into the generated header is deleted by
+        # the next regeneration — which is how the model-mode "Constrain sketch" row came to exist
+        # in the header and not in the atlas at all (snaporca-ziam). The map exists once; so does
+        # the explanation.
+        for ln in ([v["note"]] if isinstance(v.get("note"), str) else v.get("note") or []):
+            lines.append(f"    // {ln}")
         mask = 0
         for a in v["accepts"]:
             mask |= 1 << sels.index(a)
@@ -133,12 +141,28 @@ def main():
         "#endif // slic3r_GUI_DesignOffer_hpp_",
         "",
     ]
+    text = "\n".join(lines)
+    # --check: prove the checked-in header IS what this generator produces, and change nothing.
+    # The header calls itself GENERATED and was hand-edited anyway; a claim like that is only
+    # worth having if something enforces it, so ladder-all.sh runs this on every gate.
+    if "--check" in sys.argv:
+        have = open(OUT, encoding="utf-8").read() if os.path.exists(OUT) else ""
+        if have == text:
+            print(f"{os.path.relpath(OUT, REPO)} matches tool_atlas.json")
+            return 0
+        import difflib
+        d = list(difflib.unified_diff(have.splitlines(), text.splitlines(),
+                                      "checked-in", "generated", lineterm="", n=1))
+        print(f"{os.path.relpath(OUT, REPO)} DIFFERS from tool_atlas.json:")
+        print("\n".join(d[:60]))
+        return 1
     with open(OUT, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines))
+        f.write(text)
     wired = sum(1 for v in A["verbs"] if v.get("action"))
     print(f"wrote {os.path.relpath(OUT, REPO)}: {len(A['verbs'])} verbs, "
           f"{len(slots)} rows, {wired} wired to existing actions")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -182,7 +182,7 @@ static const OfferVerb kOfferVerbs[] = {
     {"sk_radius", "Radius / diameter…", 7, "V", "key:V", nullptr, 0x00020000u, 0, 0, false, true, nullptr, "design_dimension", "Type the radius of this arc, or the diameter of this circle"},
     {"sk_angdist", "Angle / distance…", 7, "V", "key:V", nullptr, 0x00080000u, 0, 0, false, true, nullptr, "design_dimension", "Type the angle between two lines, or the distance between the two picks"},
 };
-static const int kOfferVerbCount = 91;
+static const int kOfferVerbCount = 92;
 
 }} // namespace Slic3r::GUI
 

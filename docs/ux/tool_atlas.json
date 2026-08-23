@@ -1041,6 +1041,24 @@
       "hint": "Reopen the selected feature to change what it was made from"
     },
     {
+      "id": "rename",
+      "name": "Rename…",
+      "slot": "modify",
+      "key": "F2",
+      "feature": "Tree",
+      "mcp": null,
+      "mode": "model",
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {},
+      "refusal": "Select a feature to rename it",
+      "gui": true,
+      "action": "btn:rename",
+      "icon": null,
+      "hint": "Give this feature a name you will recognise in the tree"
+    },
+    {
       "id": "delete_face",
       "name": "Delete Face",
       "slot": "modify",
@@ -2027,6 +2045,31 @@
       "hint": "Constrain the selected sketch entities to each other"
     },
     {
+      "id": "constrain",
+      "name": "Constrain sketch",
+      "slot": "modify",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "model",
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {
+        "sketches": 1
+      },
+      "refusal": "Select a sketch to constrain it",
+      "gui": true,
+      "action": "btn:constrain",
+      "icon": "design_constrain",
+      "hint": "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch",
+      "note": [
+        "Same verb, model-mode vocabulary: offered when a SKETCH is selected (bit 14, SkLoop), the",
+        "state a user is in right after finishing one. Without this row the only way in was the",
+        "toolbar icon, and constraints read as absent — see the Onshape-comparison report."
+      ]
+    },
+    {
       "id": "sk_construct",
       "name": "Construction",
       "slot": "reference",
@@ -2084,9 +2127,70 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "btn:delete",
+      "action": "btn:sk_delete",
       "icon": "design_delete",
       "hint": "Delete the selected sketch entities"
+    },
+    {
+      "id": "sk_length",
+      "name": "Length…",
+      "slot": "modify",
+      "key": "V",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:V",
+      "icon": "design_dimension",
+      "hint": "Type the length of this line",
+      "note": [
+        "Typing the defining number of the element you pointed at. Three rows rather than one so",
+        "each names the quantity in the drawing-office word for THAT element; all three land on",
+        "the same handler, because dimension_kind() already resolves the quantity from the",
+        "selection. Without these, an element's own numbers were reachable only by arming the",
+        "Dimension tool and re-picking geometry that was already selected."
+      ]
+    },
+    {
+      "id": "sk_radius",
+      "name": "Radius / diameter…",
+      "slot": "modify",
+      "key": "V",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_arc"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:V",
+      "icon": "design_dimension",
+      "hint": "Type the radius of this arc, or the diameter of this circle"
+    },
+    {
+      "id": "sk_angdist",
+      "name": "Angle / distance…",
+      "slot": "modify",
+      "key": "V",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:V",
+      "icon": "design_dimension",
+      "hint": "Type the angle between two lines, or the distance between the two picks"
     }
   ],
   "chrome_only": {
