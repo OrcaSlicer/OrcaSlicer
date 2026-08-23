@@ -17,6 +17,10 @@
 #include "Platform.hpp"
 #include "Time.hpp"
 #include "libslic3r.h"
+// For the vendor-installation helpers: the vendor profile version
+// (get_version_from_json) and the preset cache stamp (VendorCacheFile).
+#include "Preset.hpp"
+#include "PresetCacheFormat.hpp"
 
 #ifdef __APPLE__
 #include "MacUtils.hpp"
@@ -1724,6 +1728,85 @@ void copy_directory_recursively(const boost::filesystem::path& source,
     return;
 }
 
+// ---- Vendor installation on disk ------------------------------------------
+
+// Whether a cache stamped `cache_ver` still speaks for a vendor whose profile on
+// disk claims `profile_ver`: it does unless the profile has moved ahead of it. A
+// profile that is missing or carries no judgeable version cannot be ahead of
+// anything. The one rule behind both "which form gets installed" and "which form
+// is installed"; they must not drift apart. Deliberately NOT the serve rule
+// (VendorCacheFile::load), which refuses an unjudgeable profile instead.
+static bool cache_covers(const Semver& cache_ver, const Semver& profile_ver)
+{
+    return cache_ver.valid() && (! profile_ver.valid() || cache_ver >= profile_ver);
+}
+
+bool is_vendor_installed(const std::string& vendor)
+{
+    const boost::filesystem::path dir = boost::filesystem::path(data_dir()) / PRESET_SYSTEM_DIR;
+    // A cache is the whole of a cache-only installation, so a file this build
+    // cannot serve the vendor from is not an installation. Left counted as one,
+    // the updater would never lay a working copy down.
+    return boost::filesystem::exists(dir / (vendor + ".json"))
+        || VendorCacheFile::usable_version((dir / (vendor + ".opc")).string(), vendor).valid();
+}
+
+Semver installed_vendor_version(const std::string& vendor)
+{
+    const boost::filesystem::path dir  = boost::filesystem::path(data_dir()) / PRESET_SYSTEM_DIR;
+    const boost::filesystem::path json = dir / (vendor + ".json");
+    // Guarded: get_version_from_json logs an error and throws-and-catches its way
+    // to an invalid version on a file that is not there, and a cache-only vendor
+    // never has one.
+    const Semver from_json  = boost::filesystem::exists(json) ? get_version_from_json(json.string()) : Semver();
+    const Semver from_cache = VendorCacheFile::usable_version((dir / (vendor + ".opc")).string(), vendor);
+    // Whichever form a load would serve.
+    return cache_covers(from_cache, from_json) ? from_cache : from_json;
+}
+
+void remove_installed_vendor(const std::string& vendor)
+{
+    const boost::filesystem::path dir = boost::filesystem::path(data_dir()) / PRESET_SYSTEM_DIR;
+    boost::filesystem::remove(dir / (vendor + ".json"));
+    boost::filesystem::remove(dir / (vendor + ".opc"));
+    if (boost::filesystem::exists(dir / vendor))
+        boost::filesystem::remove_all(dir / vendor);
+}
+
+std::set<std::string> vendor_names_in(const boost::filesystem::path& dir)
+{
+    std::set<std::string> names;
+    for (auto& dir_entry : boost::filesystem::directory_iterator(dir)) {
+        const auto& path = dir_entry.path();
+        if (Slic3r::is_json_file(path.string()) || path.extension() == ".opc")
+            names.insert(path.stem().string());
+    }
+    return names;
+}
+
+// A vendor's preset cache is the whole of its installation: it carries the presets,
+// the vendor profile and the version they were built at, so where one ships nothing
+// else needs copying. Unless the profile beside it claims a newer version — a cache
+// generated before that profile was bumped is out of date, and a cache that cannot
+// be read is no installation at all — and the vendor is installed the way it was
+// before caches existed, as its profile and the preset JSONs it points at. Returns
+// the version the cache is stamped with, invalid when it is not the form to install.
+static Semver installable_cache_version(const boost::filesystem::path& dir, const std::string& vendor)
+{
+    const auto cache_ver = Semver::parse(VendorCacheFile::peek_version((dir / (vendor + ".opc")).string(), vendor));
+    if (! cache_ver)
+        return Semver::invalid();
+    const Semver profile_ver = get_version_from_json((dir / (vendor + ".json")).string());
+    return cache_covers(*cache_ver, profile_ver) ? *cache_ver : Semver::invalid();
+}
+
+Semver resource_vendor_version(const std::string& vendor)
+{
+    const boost::filesystem::path dir = boost::filesystem::path(resources_dir()) / "profiles";
+    const Semver ver = installable_cache_version(dir, vendor);
+    return ver.valid() ? ver : get_version_from_json((dir / (vendor + ".json")).string());
+}
+
 bool install_vendor_bundles_from_resources(
     const std::vector<std::string>& bundle_names,
     const std::string& resource_subdir,
@@ -1736,37 +1819,82 @@ bool install_vendor_bundles_from_resources(
 
     BOOST_LOG_TRIVIAL(info) << "Installing " << bundle_names.size() << " bundles from resources...";
 
+    // One vendor that cannot be installed is one vendor missing, not a reason to
+    // leave the rest uninstalled. The caller is told, and every bundle that can
+    // be laid down is.
+    bool all_installed = true;
+
     for (const auto &bundle : bundle_names) {
         try {
+            if (bundle.empty()) {
+                BOOST_LOG_TRIVIAL(warning) << "Refusing to install a bundle with no name";
+                all_installed = false;
+                continue;
+            }
+
             // Install the JSON file
             auto path_in_rsrc = (rsrc_path / bundle).replace_extension(".json");
             auto path_in_vendors = (vendor_path / bundle).replace_extension(".json");
+            auto cache_in_rsrc = (rsrc_path / bundle).replace_extension(".opc");
+            auto cache_in_vendors = (vendor_path / bundle).replace_extension(".opc");
 
-            if (!fs::exists(path_in_rsrc)) {
+            // Either form of the vendor will do: a build may ship it as a cache alone.
+            if (!fs::exists(path_in_rsrc) && !fs::exists(cache_in_rsrc)) {
                 BOOST_LOG_TRIVIAL(warning) << "Bundle not found in resources: " << bundle;
-                return false;
+                all_installed = false;
+                continue;
             }
 
             // Create target directory if needed
             if (!fs::exists(vendor_path))
                 fs::create_directories(vendor_path);
 
-            // Copy JSON file
             std::string error_message;
-            CopyFileResult cfr = copy_file(path_in_rsrc.string(), path_in_vendors.string(), error_message, false);
-            if (cfr != CopyFileResult::SUCCESS) {
-                BOOST_LOG_TRIVIAL(error) << "Failed to copy " << bundle << ".json: " << error_message;
-                return false;
+            bool installed_cache = false;
+            if (installable_cache_version(rsrc_path, bundle).valid()) {
+                installed_cache = copy_file(cache_in_rsrc.string(), cache_in_vendors.string(), error_message, false) == CopyFileResult::SUCCESS;
+                if (! installed_cache) {
+                    BOOST_LOG_TRIVIAL(warning) << "Failed to copy " << bundle << ".opc: " << error_message;
+                } else if (! VendorCacheFile::usable_version(cache_in_vendors.string(), bundle).valid()) {
+                    // The copy is what will be loaded, so it — not the kilobyte
+                    // peek that chose this form — decides whether the profile
+                    // beside it can go.
+                    BOOST_LOG_TRIVIAL(warning) << "Installed cache for " << bundle << " cannot be read; installing its profile instead";
+                    boost::system::error_code ec;
+                    fs::remove(cache_in_vendors, ec);
+                    installed_cache = false;
+                }
+            }
+
+            if (! installed_cache) {
+                CopyFileResult cfr = copy_file(path_in_rsrc.string(), path_in_vendors.string(), error_message, false);
+                if (cfr != CopyFileResult::SUCCESS) {
+                    BOOST_LOG_TRIVIAL(error) << "Failed to copy " << bundle << ".json: " << error_message;
+                    all_installed = false;
+                    continue;
+                }
+                // Only now: an earlier install's cache would shadow this profile,
+                // but removing it before the profile lands would leave neither.
+                boost::system::error_code ec;
+                fs::remove(cache_in_vendors, ec);
+            } else {
+                // Left in place, an earlier install's profile would shadow the cache.
+                boost::system::error_code ec;
+                fs::remove(path_in_vendors, ec);
+                if (ec)
+                    BOOST_LOG_TRIVIAL(warning) << "Could not remove the superseded profile " << path_in_vendors.string() << ": " << ec.message();
             }
 
             // Copy the vendor directory (if it exists)
             auto dir_in_rsrc = rsrc_path / bundle;
             auto dir_in_vendors = vendor_path / bundle;
 
-            if (fs::exists(dir_in_rsrc) && fs::is_directory(dir_in_rsrc)) {
-                // Remove existing directory
-                if (fs::exists(dir_in_vendors))
-                    fs::remove_all(dir_in_vendors);
+            // Whatever is installed came from an earlier version of this vendor and
+            // would be parsed in place of the one being installed now.
+            if (fs::exists(dir_in_vendors))
+                fs::remove_all(dir_in_vendors);
+
+            if (! installed_cache && fs::exists(dir_in_rsrc) && fs::is_directory(dir_in_rsrc)) {
                 fs::create_directories(dir_in_vendors);
 
                 // Copy with file filter (same as PresetUpdater::install_bundles_rsrc)
@@ -1787,11 +1915,11 @@ bool install_vendor_bundles_from_resources(
 
         } catch (const std::exception& e) {
             BOOST_LOG_TRIVIAL(error) << "Exception installing bundle " << bundle << ": " << e.what();
-            return false;
+            all_installed = false;
         }
     }
 
-    return true;
+    return all_installed;
 }
 
 void save_string_file(const boost::filesystem::path& p, const std::string& str)

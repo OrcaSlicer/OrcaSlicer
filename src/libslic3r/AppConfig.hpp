@@ -66,10 +66,19 @@ struct BBLocalMachine
     std::string dev_ip;
     std::string dev_id; /* serial number */
     std::string printer_type; /* model_id */
+    std::string printer_agent_id; /* id of the IPrinterAgent that discovered/bound this device, e.g. "bbl"; empty for entries persisted before this field existed */
+    // Access code, scoped to printer_agent_id above - so a code saved while bound under one
+    // printer agent isn't treated as valid for a different, independent agent talking to the
+    // same physical dev_id. Empty for entries persisted before this field existed; those fall
+    // back to the legacy flat "access_code"/"user_access_code" AppConfig sections (BBL-only,
+    // since BBL was the only agent when they were saved) - see
+    // get_access_code_with_legacy_fallback() in DevManager.cpp.
+    std::string access_code;
 
     bool operator==(const BBLocalMachine& other) const
     {
-        return dev_name == other.dev_name && dev_ip == other.dev_ip && dev_id == other.dev_id && printer_type == other.printer_type;
+        return dev_name == other.dev_name && dev_ip == other.dev_ip && dev_id == other.dev_id && printer_type == other.printer_type &&
+               printer_agent_id == other.printer_agent_id && access_code == other.access_code;
     }
     bool operator!=(const BBLocalMachine& other) const { return !operator==(other); }
 };
