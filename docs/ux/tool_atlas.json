@@ -1049,14 +1049,15 @@
       "mcp": null,
       "mode": "model",
       "accepts": [
-        "sk_loop"
+        "sk_loop",
+        "body_solid"
       ],
       "needs": {},
-      "refusal": "Select a feature to rename it",
+      "refusal": "Select a feature, or a body, to rename it",
       "gui": true,
       "action": "btn:rename",
       "icon": null,
-      "hint": "Give this feature a name you will recognise in the tree"
+      "hint": "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)"
     },
     {
       "id": "delete_face",

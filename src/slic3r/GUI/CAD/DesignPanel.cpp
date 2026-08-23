@@ -1032,9 +1032,44 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // tool vocabulary — a rename that only a double-click reveals is not discoverable, and
         // the row IS the object, so it belongs in the menu (and on F2) as well as on the row.
         auto rename_feature = [this] {
-            const int sel = tree_selection();
+            int sel = tree_selection();
+            // A SELECTED BODY RENAMES THE FEATURE THAT MAKES IT. A body has no name it can
+            // keep — it is recomputed from the recipe on every change and CadBody::name is
+            // derived from its source feature, which is why the label editor vetoes body rows
+            // outright. So the verb resolves the body to that feature instead of refusing.
+            // Reported as "clicking on a body row in feature tree, I cannot find rename on
+            // right click": the offer DID open (that is the designed gesture for a selected
+            // body) and simply had no Rename row, because the verb accepted sk_loop alone.
+            if (sel == wxNOT_FOUND) {
+                const int b = (m_sel_solid_body >= 0) ? m_sel_solid_body : tree_body_selection();
+                if (b >= 0 && b < int(m_doc.bodies.size())) {
+                    const int src = m_doc.bodies[b].source_feature;
+                    if (src >= 0 && src < int(m_tree_items.size())) {
+                        // Unselect(), NOT UnselectAll(): both trees are wxTR_SINGLE, and
+                        // UnselectAll() is the MULTI-selection call — on a single-selection tree
+                        // it leaves the row selected. That is why every route into the rename
+                        // failed identically: the body row stayed selected, so
+                        // tree_body_selection() stayed >= 0 and BEGIN_LABEL_EDIT vetoed the
+                        // edit before it could open. Proven by discriminator: F2 on a body row
+                        // failed exactly like the menu, which rules out the menu's event loop.
+                        if (m_parts) m_parts->Unselect();
+                        m_tree->SelectItem(m_tree_items[src]);
+                        m_status->SetForegroundColour(wxNullColour);
+                        set_status(wxString::Format(
+                            _L("A body takes its name from the feature that makes it — renaming '%s'"),
+                            wxString::FromUTF8(m_doc.features[src].name)));
+                        m_status->Refresh();
+                        sel = src;
+                    }
+                }
+            }
             if (sel != wxNOT_FOUND && sel < int(m_tree_items.size())) {
-                m_tree->EditLabel(m_tree_items[sel]);   // opens the in-place editor on that row
+                // AFTER the menu, not inside it: the offer runs a nested event loop and an
+                // in-place editor opened from within it never appears (measured three times —
+                // the row selected, the handler ran, no editor). Same family as the
+                // refresh_tree-inside-END_LABEL_EDIT trap documented further down this file.
+                const wxTreeItemId row = m_tree_items[sel];
+                CallAfter([this, row] { m_tree->SetFocus(); m_tree->EditLabel(row); });
             } else {
                 m_status->SetForegroundColour(wxNullColour);   // "nothing selected" is not an error
                 set_status(_L("Select a feature first — click a sketch or feature row, then rename it"));
@@ -3065,7 +3100,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         if (!m_viewport) return;
         // Bodies live in the Parts list now; picking a feature here drops any body selection
         // so the two lists can't both claim to be "the target".
-        if (m_parts) m_parts->UnselectAll();
+        if (m_parts) m_parts->Unselect();     // wxTR_SINGLE: UnselectAll() does nothing here
         const int sel = tree_selection();
         const bool body = (sel >= 0 && sel < int(m_doc.features.size()) &&
                            m_doc.features[sel].type != CadFeatureType::Sketch &&
@@ -3309,7 +3344,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         if (!m_viewport || b < 0) return;
         // One selection at a time: a body row and a feature row mean different things to the
         // op bar, so clear the feature tree's highlight when a body takes over.
-        if (m_tree) m_tree->UnselectAll();
+        if (m_tree) m_tree->Unselect();       // wxTR_SINGLE: UnselectAll() does nothing here
         m_viewport->set_body_highlight(false);   // the per-body overlay does the tint
         m_viewport->select_body(b);              // also drops the vertex/edge marker
         m_sel_solid_body   = b;
@@ -7033,10 +7068,16 @@ void DesignPanel::refresh_parts()
 
     sync_body_visible();   // keep flags parallel before reading them for the row colour
     for (size_t b = 0; b < m_doc.bodies.size(); ++b) {
-        // Label "Body N" (matches the viewport/status); the originating feature name is kept
-        // on the CadBody for tooltips/debug but isn't shown as the row label.
+        // "Body N" keeps the positional identity every status line and message uses ("Body 2
+        // selected", the interference report), and the NAME follows it because that is the part
+        // a rename can change: a body's name is derived from the feature that produced it, so
+        // renaming through this row and seeing the label sit unchanged at "Body 1" would read as
+        // a rename that did nothing.
         const bool vis = b >= m_body_visible.size() || m_body_visible[b];
-        wxTreeItemId id = m_parts->AppendItem(proot, wxString::Format(_L("Body %zu"), b + 1));
+        const wxString bname = wxString::FromUTF8(m_doc.bodies[b].name);
+        wxTreeItemId id = m_parts->AppendItem(proot,
+            bname.IsEmpty() ? wxString::Format(_L("Body %zu"), b + 1)
+                            : wxString::Format(_L("Body %zu — %s"), b + 1, bname));
         // Hidden bodies are greyed so the show/hide state reads at a glance (eye toggle).
         m_parts->SetItemTextColour(id, vis ? dp_item_text() : dp_item_dim());
         m_tree_body_items.push_back(id);
