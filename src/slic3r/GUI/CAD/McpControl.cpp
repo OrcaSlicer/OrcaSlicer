@@ -407,7 +407,11 @@ json describe_scene(DesignPanel* panel)
 
     json bodies = json::array();
     for (size_t i = 0; i < doc.bodies.size(); ++i) {
-        json b{{"index", int(i)}, {"name", doc.bodies[i].name},
+        // The user's name when the body has one, the derived maker name otherwise — the same
+        // rule the Bodies row shows, so a driver and a person read the same thing.
+        json b{{"index", int(i)},
+               {"name", doc.bodies[i].has_user_name ? doc.bodies[i].user_name : doc.bodies[i].name},
+               {"user_name", doc.bodies[i].has_user_name},
                {"has_color", doc.bodies[i].has_color}};
         // Per-body bbox/centre from the already-tessellated display meshes.
         if (i < doc.display_body_meshes.size() && !doc.display_body_meshes[i].empty()) {

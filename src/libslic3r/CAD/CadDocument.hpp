@@ -409,6 +409,14 @@ TopoDS_Shape brep_from_string(const std::string& d);
 struct CadBody {
     TopoDS_Shape shape;
     std::string  name;
+    // The name the USER gave this body. A body is NOT its first feature: an Extrude, a Cut and
+    // a Fillet all land on the same body, so renaming `source_feature` renames one operation in
+    // the history, not the object — which is exactly the bug this field exists to end. `name`
+    // above is the DERIVED label (the maker's name, restamped every recompute) and stays that;
+    // this one is set only by a rename, carried across recompute() by body index, and written
+    // into the recipe so it survives save/load.
+    bool         has_user_name{false};
+    std::string  user_name;
     // Per-body display colour override (Color tool). When has_color is false the GUI
     // falls back to the auto body-index palette. Carried across recompute() by body index.
     bool         has_color{false};

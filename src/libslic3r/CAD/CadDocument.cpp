@@ -3592,6 +3592,12 @@ bool CadDocument::recompute()
             built[i].has_color = true;
             built[i].color     = bodies[i].color;
         }
+        // ...and the name the user gave the body, for the same reason and by the same index
+        // contract. Without this a rename would live exactly until the next feature was added.
+        if (bodies[i].has_user_name) {
+            built[i].has_user_name = true;
+            built[i].user_name     = bodies[i].user_name;
+        }
     }
     bodies = std::move(built);
     // The face and edge maps have just been rebuilt, so every global id handed out before this
@@ -3729,6 +3735,31 @@ std::string CadDocument::serialize_recipe() const
         uint32_t vlen = static_cast<uint32_t>(vb.size());
         ar(vlen);
         ar(cereal::binary_data(vb.data(), vb.size()));
+        // BODY NAMES, appended after the variables block. Bodies are not serialised — they are
+        // recomputed — so a name the user gave one has nowhere else to live, and without this it
+        // would survive a recompute (see the carry-over in recompute()) but not a save.
+        //
+        // APPENDED RATHER THAN VERSION-BUMPED, on purpose: a build that predates this block
+        // reads features and variables, returns, and never looks at the trailing bytes, so its
+        // projects still open here AND this build's projects still open there. A version bump
+        // would have made every project written today unreadable by yesterday's build for the
+        // sake of one optional field. Written as (index, name) pairs so an unnamed body costs
+        // nothing.
+        // A map, not a vector of pairs: cereal's map support is already included here and its
+        // pair support is not, and one more include for one more field is not worth it.
+        std::map<uint32_t, std::string> named;
+        for (uint32_t i = 0; i < bodies.size(); ++i)
+            if (bodies[i].has_user_name && !bodies[i].user_name.empty())
+                named[i] = bodies[i].user_name;
+        std::ostringstream bos;
+        {
+            cereal::BinaryOutputArchive ba(bos);
+            ba(named);
+        }
+        std::string bb = bos.str();
+        uint32_t blen = static_cast<uint32_t>(bb.size());
+        ar(blen);
+        ar(cereal::binary_data(bb.data(), bb.size()));
     }
     return oss.str();
 }
@@ -3789,7 +3820,29 @@ bool CadDocument::deserialize_recipe(const std::string& blob)
             } catch (...) {
                 // Variables blob predates this build: keep what was read, default the rest.
             }
-            return recompute();
+            // Body names, if this project carries them. A project written before the block
+            // simply ends here, so the read throws and there are no names — not an error.
+            std::map<uint32_t, std::string> named;
+            try {
+                uint32_t blen;
+                ar(blen);
+                std::string bbuf(blen, '\0');
+                if (blen > 0)
+                    ar(cereal::binary_data(&bbuf[0], blen));
+                std::istringstream bs(bbuf);
+                cereal::BinaryInputArchive ba(bs);
+                ba(named);
+            } catch (...) {
+                named.clear();
+            }
+            // AFTER the rebuild, never before: recompute() replaces the bodies vector wholesale.
+            const bool ok = recompute();
+            for (const auto& kv : named)
+                if (kv.first < bodies.size()) {
+                    bodies[kv.first].has_user_name = true;
+                    bodies[kv.first].user_name     = kv.second;
+                }
+            return ok;
         }
         if (v == 4) {
             // Pre-framing flat path, unchanged: v4 projects keep opening exactly as before.

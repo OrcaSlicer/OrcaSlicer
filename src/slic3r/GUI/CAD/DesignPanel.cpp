@@ -1032,47 +1032,25 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // tool vocabulary — a rename that only a double-click reveals is not discoverable, and
         // the row IS the object, so it belongs in the menu (and on F2) as well as on the row.
         auto rename_feature = [this] {
-            int sel = tree_selection();
-            // A SELECTED BODY RENAMES THE FEATURE THAT MAKES IT. A body has no name it can
-            // keep — it is recomputed from the recipe on every change and CadBody::name is
-            // derived from its source feature, which is why the label editor vetoes body rows
-            // outright. So the verb resolves the body to that feature instead of refusing.
-            // Reported as "clicking on a body row in feature tree, I cannot find rename on
-            // right click": the offer DID open (that is the designed gesture for a selected
-            // body) and simply had no Rename row, because the verb accepted sk_loop alone.
-            if (sel == wxNOT_FOUND) {
-                const int b = (m_sel_solid_body >= 0) ? m_sel_solid_body : tree_body_selection();
-                if (b >= 0 && b < int(m_doc.bodies.size())) {
-                    const int src = m_doc.bodies[b].source_feature;
-                    if (src >= 0 && src < int(m_tree_items.size())) {
-                        // Unselect(), NOT UnselectAll(): both trees are wxTR_SINGLE, and
-                        // UnselectAll() is the MULTI-selection call — on a single-selection tree
-                        // it leaves the row selected. That is why every route into the rename
-                        // failed identically: the body row stayed selected, so
-                        // tree_body_selection() stayed >= 0 and BEGIN_LABEL_EDIT vetoed the
-                        // edit before it could open. Proven by discriminator: F2 on a body row
-                        // failed exactly like the menu, which rules out the menu's event loop.
-                        if (m_parts) m_parts->Unselect();
-                        m_tree->SelectItem(m_tree_items[src]);
-                        m_status->SetForegroundColour(wxNullColour);
-                        set_status(wxString::Format(
-                            _L("A body takes its name from the feature that makes it — renaming '%s'"),
-                            wxString::FromUTF8(m_doc.features[src].name)));
-                        m_status->Refresh();
-                        sel = src;
-                    }
-                }
+            // A BODY renames ITSELF. The earlier version resolved the body to
+            // CadBody::source_feature and renamed that feature, which is the wrong object: a
+            // body accumulates many features and the first one is not its name. The body row
+            // is editable now (CadBody::user_name), so the verb opens the editor there.
+            const int b = tree_body_selection();
+            if (b >= 0 && b < int(m_tree_body_items.size())) {
+                const wxTreeItemId row = m_tree_body_items[b];
+                // After the menu, not inside it: an editor opened from within PopupMenu's
+                // nested loop never appears.
+                CallAfter([this, row] { m_parts->SetFocus(); m_parts->EditLabel(row); });
+                return;
             }
+            const int sel = tree_selection();
             if (sel != wxNOT_FOUND && sel < int(m_tree_items.size())) {
-                // AFTER the menu, not inside it: the offer runs a nested event loop and an
-                // in-place editor opened from within it never appears (measured three times —
-                // the row selected, the handler ran, no editor). Same family as the
-                // refresh_tree-inside-END_LABEL_EDIT trap documented further down this file.
                 const wxTreeItemId row = m_tree_items[sel];
                 CallAfter([this, row] { m_tree->SetFocus(); m_tree->EditLabel(row); });
             } else {
                 m_status->SetForegroundColour(wxNullColour);   // "nothing selected" is not an error
-                set_status(_L("Select a feature first — click a sketch or feature row, then rename it"));
+                set_status(_L("Select a feature, or a body, first — then rename it"));
                 m_status->Refresh();
             }
         };
@@ -3100,7 +3078,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
         if (!m_viewport) return;
         // Bodies live in the Parts list now; picking a feature here drops any body selection
         // so the two lists can't both claim to be "the target".
-        if (m_parts) m_parts->Unselect();     // wxTR_SINGLE: UnselectAll() does nothing here
+        // ONLY when this tree actually has a selection. These two lists clear each other's
+        // selection so that "the target" is never ambiguous, and that was harmless while both
+        // calls were UnselectAll() — a no-op on a wxTR_SINGLE tree. Now that Unselect() really
+        // clears, the pair became a loop: clicking a body row runs apply_body_row, which calls
+        // m_tree->Unselect(), which fires THIS handler, which cleared the body row the user had
+        // just clicked. The guard keeps the mutual-exclusion and drops the echo.
+        if (m_parts && tree_selection() != wxNOT_FOUND) m_parts->Unselect();
         const int sel = tree_selection();
         const bool body = (sel >= 0 && sel < int(m_doc.features.size()) &&
                            m_doc.features[sel].type != CadFeatureType::Sketch &&
@@ -3326,7 +3310,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_parts_rule->Hide();
     m_parts = new wxTreeCtrl(m_parts_box, wxID_ANY, wxDefaultPosition, wxSize(-1, 48),
                              wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES |
-                             wxTR_FULL_ROW_HIGHLIGHT | wxBORDER_SIMPLE);
+                             wxTR_FULL_ROW_HIGHLIGHT | wxBORDER_SIMPLE | wxTR_EDIT_LABELS);
     if (!dp_dark()) m_parts->SetBackgroundColour(dp_panel_bg());
     parts_inner->Add(m_parts, 0, wxEXPAND | wxALL, 12);
     // Start hidden: a fresh document has no bodies, and refresh_parts() only runs on the first
@@ -3363,6 +3347,32 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // can see highlighted. That is the confirmation a face pick cannot give: pointing at a face
     // lights the face, never the body the verb will actually change. The status line above has
     // been promising this right-click since before it existed.
+    // Renaming a BODY names the body itself. It does NOT rename the feature that created it:
+    // an Extrude, a Cut and a Fillet all land on one body, so source_feature is one operation in
+    // its history and renaming that is renaming the wrong object — reported, correctly, as "you
+    // consider the extrusion = the body". CadBody::user_name is carried across recompute() by
+    // index and written into the recipe, so the name outlives both the rebuild and the save.
+    m_parts->Bind(wxEVT_TREE_BEGIN_LABEL_EDIT, [this](wxTreeEvent& e) {
+        if (tree_body_selection() < 0) { e.Veto(); return; }
+        e.Skip();
+    });
+    m_parts->Bind(wxEVT_TREE_END_LABEL_EDIT, [this](wxTreeEvent& e) {
+        if (e.IsEditCancelled()) return;
+        const int b = tree_body_selection();
+        if (b < 0 || b >= int(m_doc.bodies.size())) { e.Veto(); return; }
+        wxString label = e.GetLabel();
+        label.Trim(true).Trim(false);
+        if (label.empty()) { e.Veto(); return; }      // a nameless row is worse than a bad name
+        m_doc.bodies[b].has_user_name = true;
+        m_doc.bodies[b].user_name     = std::string(label.ToUTF8().data());
+        sync_recipe_to_model();                        // the name is part of what gets saved
+        e.Skip();
+        // Rebuild on the NEXT event-loop turn: refresh_parts() destroys every wxTreeItemId and
+        // we are inside wx's own END_LABEL_EDIT dispatch for one of them. The feature tree
+        // learned this the hard way — doing it here took the process down.
+        CallAfter([this] { refresh_parts(); });
+    });
+
     m_parts->Bind(wxEVT_TREE_ITEM_MENU, [this, apply_body_row](wxTreeEvent& e) {
         if (e.GetItem().IsOk())
             m_parts->SelectItem(e.GetItem());   // the row under the cursor, never a stale one
@@ -7074,7 +7084,12 @@ void DesignPanel::refresh_parts()
         // renaming through this row and seeing the label sit unchanged at "Body 1" would read as
         // a rename that did nothing.
         const bool vis = b >= m_body_visible.size() || m_body_visible[b];
-        const wxString bname = wxString::FromUTF8(m_doc.bodies[b].name);
+        // The user's name wins over the derived one (the maker's name, restamped every
+        // recompute); "Body N" still leads, because every status line, the interference report
+        // and the mate errors identify a body by its number.
+        const wxString bname = m_doc.bodies[b].has_user_name
+                             ? wxString::FromUTF8(m_doc.bodies[b].user_name)
+                             : wxString::FromUTF8(m_doc.bodies[b].name);
         wxTreeItemId id = m_parts->AppendItem(proot,
             bname.IsEmpty() ? wxString::Format(_L("Body %zu"), b + 1)
                             : wxString::Format(_L("Body %zu — %s"), b + 1, bname));

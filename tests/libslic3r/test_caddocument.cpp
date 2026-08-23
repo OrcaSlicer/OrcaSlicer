@@ -8097,3 +8097,51 @@ TEST_CASE("A sketch-only document recomputes and round-trips", "[CadDocument]")
     REQUIRE_FALSE(bad.recompute());
     REQUIRE_FALSE(bad.error.empty());
 }
+
+// A body is NOT the feature that created it. Reported 2026-08-23, in these words: "you have
+// renamed the feature extrusion, not the body ... this means that you consider the extrusion =
+// the body, which is very far from truth as a body can contain several extrusions." The rename
+// used to resolve CadBody::source_feature and rename THAT, so naming a body edited one operation
+// in its history. A body now carries its own name, and this pins the three properties that make
+// it a name rather than a label: it does not touch the features, it survives a recompute that
+// adds more features to the same body, and it survives the recipe round trip.
+TEST_CASE("a body carries its own name, through recompute and the recipe", "[CadDocument]")
+{
+    CadDocument doc;
+    std::vector<SketchEntity> ents;
+    auto line = [&](double x0, double y0, double x1, double y1) {
+        SketchEntity e; e.type = SketchEntity::Type::Line;
+        e.p0 = Vec2d(x0, y0); e.p1 = Vec2d(x1, y1); ents.push_back(e); };
+    line(0, 0, 40, 0); line(40, 0, 40, 30); line(40, 30, 0, 30); line(0, 30, 0, 0);
+
+    const int sk = doc.add_sketch_entities(ents, SketchPlane::XY(), "Profile");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    doc.bodies[0].has_user_name = true;
+    doc.bodies[0].user_name     = "Bracket";
+
+    // A SECOND feature lands on the same body — the case the report is about.
+    doc.add_hole(6.0, 5.0, true, 20.0, 15.0, SketchPlane::XY(), "Hole");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+    CHECK(doc.bodies[0].has_user_name);
+    CHECK(doc.bodies[0].user_name == "Bracket");
+
+    // The features keep their own names: renaming the body renamed nothing else.
+    REQUIRE(doc.features.size() == 3);
+    CHECK(doc.features[0].name == "Profile");
+    CHECK(doc.features[1].name == "Extrude");
+    CHECK(doc.features[2].name == "Hole");
+
+    // ...and the name is part of what gets saved. Bodies are recomputed, never serialised, so
+    // without the recipe block a body name would live exactly until the project was reopened.
+    const std::string blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+    CadDocument fresh;
+    REQUIRE(fresh.deserialize_recipe(blob));
+    REQUIRE(fresh.bodies.size() == 1);
+    CHECK(fresh.bodies[0].has_user_name);
+    CHECK(fresh.bodies[0].user_name == "Bracket");
+}
