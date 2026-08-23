@@ -21,9 +21,9 @@
 #ifdef _WIN32
 	// The standard Windows includes.
 	#define WIN32_LEAN_AND_MEAN
-    #ifndef NOMINMAX
+	#ifndef NOMINMAX
 	#define NOMINMAX
-    #endif
+	#endif
 	#include <Windows.h>
 	#include <psapi.h>
 #endif /* _WIN32 */

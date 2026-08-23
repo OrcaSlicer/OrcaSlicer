@@ -522,6 +522,7 @@ void Button::OnParentMotion(wxMouseEvent& event)
     {
         if (tipWindow)
         {
+            tipWindow->Dismiss();
             tipWindow->Destroy();
             tipWindow = nullptr;
         }

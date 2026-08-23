@@ -572,7 +572,7 @@ int OrcaCloudServiceAgent::set_config_dir(std::string cfg_dir)
 {
     config_dir = cfg_dir;
     wxFileName fallback(wxString::FromUTF8(cfg_dir.c_str()), secret_constants::USER_SECRET_FILENAME);
-    fallback.Normalize(wxPATH_NORM_DOTS | wxPATH_NORM_ABSOLUTE | wxPATH_NORM_ENV_VARS | wxPATH_NORM_LONG | wxPATH_NORM_SHORTCUT);
+    fallback.MakeAbsolute();
     secret_fallback_path = fallback.GetFullPath().ToStdString();
     return BAMBU_NETWORK_SUCCESS;
 }
@@ -1564,7 +1564,7 @@ void OrcaCloudServiceAgent::persist_user_secret(const std::string& secret)
             return;
         }
         wxFileName path(wxString::FromUTF8(secret_fallback_path.c_str()));
-        path.Normalize(wxPATH_NORM_DOTS | wxPATH_NORM_ABSOLUTE | wxPATH_NORM_ENV_VARS | wxPATH_NORM_LONG | wxPATH_NORM_SHORTCUT);
+        path.MakeAbsolute();
         if (!wxFileName::DirExists(path.GetPath())) {
             wxFileName::Mkdir(path.GetPath(), wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
         }
@@ -2487,7 +2487,7 @@ void OrcaCloudServiceAgent::compute_fallback_path()
     if (wxTheApp == nullptr)
         return;
     wxFileName fallback(wxStandardPaths::Get().GetUserDataDir(), "orca_refresh_token.sec");
-    fallback.Normalize(wxPATH_NORM_DOTS | wxPATH_NORM_ABSOLUTE | wxPATH_NORM_ENV_VARS | wxPATH_NORM_LONG | wxPATH_NORM_SHORTCUT);
+    fallback.MakeAbsolute();
     secret_fallback_path = fallback.GetFullPath().ToStdString();
 }
 
@@ -3581,7 +3581,7 @@ std::string OrcaCloudServiceAgent::token_lock_path() const
     if (config_dir.empty())
         return {};
     wxFileName lock(wxString::FromUTF8(config_dir.c_str()), "orca_refresh_token.lock");
-    lock.Normalize(wxPATH_NORM_DOTS | wxPATH_NORM_ABSOLUTE | wxPATH_NORM_ENV_VARS | wxPATH_NORM_LONG | wxPATH_NORM_SHORTCUT);
+    lock.MakeAbsolute();
     return lock.GetFullPath().ToStdString();
 }
 
