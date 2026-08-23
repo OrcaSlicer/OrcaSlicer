@@ -196,7 +196,7 @@ static bool same_material_family(const std::string& a, const std::string& b)
     return false;
 }
 
-static bool type_compatible(const std::string& project_type, const std::string& slot_type)
+bool type_compatible(const std::string& project_type, const std::string& slot_type)
 {
     std::string a = trim_lower(project_type);
     std::string b = trim_lower(slot_type);

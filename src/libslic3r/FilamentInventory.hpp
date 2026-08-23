@@ -160,6 +160,13 @@ std::map<std::string, std::vector<SlotAssignment>> load_slot_assignments(const s
 // filament_presets[id] that exactly equals a slot's PhysicalFilament::preset is trusted the same
 // way here as it is at slice time, and PLA/PLA+ (etc, see type_compatible's family table) are
 // treated as compatible here too.
+// True when a project filament of `project_type` may be routed onto a physical slot of
+// `slot_type`: exact match (case/whitespace-insensitive) or membership in the same small,
+// explicit material-family table (PLA/PLA+, PETG/PETG+). Empty on either side is NOT
+// compatible here -- callers gate their own unknown-type cases. Shared by the auto-matcher
+// and the mapping picker UI so "family" means one thing everywhere.
+bool type_compatible(const std::string& project_type, const std::string& slot_type);
+
 std::vector<int> compute_physical_map_proposal(
     const std::vector<std::string>& filament_colors,
     const std::vector<std::string>& filament_types,

@@ -1144,3 +1144,20 @@ TEST_CASE("Manual map confirmations tolerate malformed JSON", "[FilamentInventor
     CHECK(load_manual_map_confirmations("[1,2,3]").empty());
     CHECK(load_manual_map_confirmations("").empty());
 }
+
+TEST_CASE("type_compatible matches exact types and small families only", "[FilamentInventory]") {
+    // Exact, case/whitespace-insensitive.
+    CHECK(type_compatible("PLA", "pla"));
+    CHECK(type_compatible(" PETG ", "PETG"));
+    // Family table: PLA/PLA+ and PETG/PETG+.
+    CHECK(type_compatible("PLA", "PLA+"));
+    CHECK(type_compatible("PETG+", "PETG"));
+    // Distinct chemistries never match, however similar.
+    CHECK_FALSE(type_compatible("PCTG", "PETG"));
+    CHECK_FALSE(type_compatible("PLA", "ABS"));
+    // Filled variants are their own types.
+    CHECK_FALSE(type_compatible("PLA-CF", "PLA"));
+    // Unknown on either side is not compatible -- callers gate that case themselves.
+    CHECK_FALSE(type_compatible("", "PLA"));
+    CHECK_FALSE(type_compatible("PLA", ""));
+}

@@ -165,7 +165,7 @@ public:
     // swallowed instead of invoking on_pick. This only affects which chips are clickable here; it
     // does not touch FilamentMapRowsPanel's own bootstrap-mode-gated merge/warning logic elsewhere.
     void Rebuild(const std::vector<FilamentMapRowsPanel::TargetOption> &options, int current_index,
-                 bool bootstrap_mode, std::function<void(int)> on_pick)
+                 bool bootstrap_mode, const std::string &row_type, std::function<void(int)> on_pick)
     {
         m_on_pick = std::move(on_pick);
         m_sizer->Clear(true);
@@ -225,15 +225,28 @@ public:
                 // the tile's own name field, which truncates hard past 5 characters
                 // (MappingItem::render).
                 bool disabled = !bootstrap_mode && opt.id <= 0;
+                // Orca: hard material-family gate (field request) -- any material could be
+                // mapped onto any tool here while the sync dialog and the auto-matcher both
+                // restrict by family. Uses the same libslic3r type_compatible as the
+                // auto-matcher so "family" means one thing everywhere; options with an
+                // unknown type on either side stay pickable (nothing to compare).
+                bool wrong_type = !disabled && opt.id > 0 && !row_type.empty() && !opt.type.empty() &&
+                                  !Slic3r::type_compatible(row_type, opt.type);
                 item->set_data(opt.label, opt.colour, wxString(), /*remain_dect=*/false, data,
-                               /*unmatch=*/false, opt.label);
+                               /*unmatch=*/wrong_type, opt.label);
                 item->set_checked(idx == current_index);
                 item->Enable(!disabled);
                 if (disabled)
                     item->SetToolTip(_L("No filament is loaded on this tool -- load one, or sync from the printer, before selecting it."));
+                else if (wrong_type)
+                    // Stays ENABLED (a disabled control never shows its tooltip on Windows);
+                    // the click is swallowed below and the unmatch paint greys the tile.
+                    item->SetToolTip(wxString::Format(
+                        _L("Material mismatch: this row prints %s but the tool holds %s. Only matching material families can be mapped."),
+                        from_u8(row_type), from_u8(opt.type)));
 
-                item->Bind(wxEVT_LEFT_DOWN, [this, idx, disabled](wxMouseEvent &) {
-                    if (disabled) return; // swallow the click -- an empty tool isn't pickable outside bootstrap mode
+                item->Bind(wxEVT_LEFT_DOWN, [this, idx, disabled, wrong_type](wxMouseEvent &) {
+                    if (disabled || wrong_type) return; // swallow the click -- empty tool or material-family mismatch
                     if (m_on_pick) m_on_pick(idx);
                     Dismiss();
                 });
@@ -295,6 +308,7 @@ FilamentMapRowsPanel::FilamentMapRowsPanel(wxWindow                        *pare
                                            bool                              auto_matched_proposal)
     : wxPanel(parent)
     , m_filament_count(filament_colors.size())
+    , m_filament_types(filament_types)
     , m_tool_count(tool_count)
 {
     SetName(wxT("FilamentMapRowsPanel"));
@@ -435,6 +449,7 @@ void FilamentMapRowsPanel::BuildTargetOptions(const FilamentInventory &inventory
             TargetOption opt;
             opt.id   = pf.id;
             opt.tool = (int) t;
+            opt.type = pf.type;
 
             // Orca: prefer the slot's resolved preset name (installed exact preset, or a
             // "Generic <type>" fallback -- see resolve_slot_preset) over the bare type, since it's
@@ -500,7 +515,12 @@ void FilamentMapRowsPanel::OnTileClicked(size_t row_index)
     // "unknown", not "known empty" -- allow the same bare tool pick bootstrap mode does. See
     // FilamentMapPickerPopup::Rebuild's doc for why this is safe to fold into the same parameter.
     const bool allow_bare_pick = m_bootstrap_mode || !active_printer_session().live();
-    m_picker_popup->Rebuild(m_target_options, row.selected_index, allow_bare_pick,
+    // The row's project material type drives the picker's family gate; out-of-range ids
+    // (defensive) or projects without type data yield an empty string = no restriction.
+    std::string row_type;
+    if (row.filament_id >= 1 && row.filament_id <= (int) m_filament_types.size())
+        row_type = m_filament_types[row.filament_id - 1];
+    m_picker_popup->Rebuild(m_target_options, row.selected_index, allow_bare_pick, row_type,
                             [this, row_index](int idx) { ApplyPick(row_index, idx); });
 
     wxPoint pos = row.tile->ClientToScreen(wxPoint(0, 0));
