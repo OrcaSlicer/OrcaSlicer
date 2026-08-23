@@ -3104,12 +3104,30 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_tree->SelectItem(e.GetItem());          // right-click targets what it points at
         const int sel = tree_selection();
         if (sel == wxNOT_FOUND) return;
+        // EVERYTHING A ROW CAN DO, in one place. The header icons stay as a quick bar, but the
+        // menu is the reference: the element you click answers with what applies to it, and a
+        // menu grows without spending an icon nobody recognises. Split into what the row IS
+        // (name, contents), where it SITS (order, visibility) and what removes it.
         wxMenu menu;
         const int id_rename = wxWindow::NewControlId();
         const int id_edit   = wxWindow::NewControlId();
+        const int id_up     = wxWindow::NewControlId();
+        const int id_down   = wxWindow::NewControlId();
+        const int id_vis    = wxWindow::NewControlId();
+        const int id_art    = wxWindow::NewControlId();
         const int id_del    = wxWindow::NewControlId();
         menu.Append(id_rename, _L("Rename\tF2"));
         menu.Append(id_edit,   _L("Edit"));
+        // Scale artwork acts on THIS feature's imported outline, so it belongs to the row and
+        // is offered only where it means something. It used to hide inside the header's Move
+        // button, which otherwise moved a body — two different subjects on one icon.
+        const bool art = sel < int(m_doc.features.size()) &&
+                         !m_doc.features[sel].imported_regions.empty();
+        if (art) menu.Append(id_art, _L("Scale artwork"));
+        menu.AppendSeparator();
+        menu.Append(id_up,     _L("Move up"));
+        menu.Append(id_down,   _L("Move down"));
+        menu.Append(id_vis,    _L("Show / hide"));
         menu.AppendSeparator();
         menu.Append(id_del,    _L("Delete"));
         menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
@@ -3117,8 +3135,16 @@ DesignPanel::DesignPanel(wxWindow* parent)
             if (row != wxNOT_FOUND && row < int(m_tree_items.size()))
                 m_tree->EditLabel(m_tree_items[row]);
         }, id_rename);
-        menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) { on_edit_feature(); },   id_edit);
-        menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) { on_delete_feature(); }, id_del);
+        menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) { on_edit_feature(); },      id_edit);
+        menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) { on_move_feature(-1); },    id_up);
+        menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) { on_move_feature(+1); },    id_down);
+        menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) { on_toggle_visibility(); }, id_vis);
+        menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) { on_delete_feature(); },    id_del);
+        if (art)
+            menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+                const int row = tree_selection();
+                if (row != wxNOT_FOUND) on_transform_imported(row);
+            }, id_art);
         m_tree->PopupMenu(&menu);
     });
 
@@ -3170,20 +3196,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
         };
         auto* edit = edit_btn("design_edit", _L("Edit"));
         edit->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_edit_feature(); });
-        auto* move = edit_btn("design_move", _L("Move body / Scale imported Text-SVG"));
-        move->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-            const int sel = tree_selection();
-            if (sel != wxNOT_FOUND && sel < int(m_doc.features.size()) &&
-                !m_doc.features[sel].imported_regions.empty()) {
-                on_transform_imported(sel);
-            } else if (m_sel_solid_body >= 0 && m_sel_solid_body < int(m_doc.bodies.size())) {
-                on_move_body();   // translate the selected body with the 3-axis gizmo
-            } else {
-                m_status->SetForegroundColour(wxColour(235, 110, 110));
-                set_status(_L("Select a body to move it, or an imported Text/SVG to scale"));
-                m_status->Refresh();
-            }
-        });
+        // NO Move here. Moving a body is not a feature-row action — this header sits over the
+        // FEATURE tree, and the button had to guess its subject from whatever happened to be
+        // selected, answering a feature row with an instruction about bodies. It lives where a
+        // body lives: the Bodies card's own action row, and the offer for a selected body.
+        // Scaling imported artwork, which shared this button, moved to the row's own menu.
         auto* vis = edit_btn("design_eye", _L("Show / hide"));
         vis->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_toggle_visibility(); });
         auto* del  = edit_btn("design_delete", _L("Delete"));
@@ -3204,7 +3221,6 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_btn_interfere->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_check_interference(); });
         const int gap = FromDIP(SidebarProps::ElementSpacing());
         trow->Add(edit, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
-        trow->Add(move, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
         trow->Add(vis,  0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
         trow->Add(del,  0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
         trow->Add(up,   0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
@@ -3229,6 +3245,43 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_parts_hdr = new wxBoxSizer(wxHORIZONTAL);
     m_parts_hdr->Add(card_header(m_parts_box, "design_extrude", _L("Bodies"), m_parts_label), 0,
                      wxALIGN_CENTER_VERTICAL);
+    // The bodies card carries the actions that act on a BODY. Move came from the feature-tree
+    // header, where it had to guess whether its subject was a body or a feature; Show/hide,
+    // Delete and Colour are deliberate COPIES of feature-tree actions, because a body row is a
+    // different subject and a user working in this list should not have to travel to another
+    // card to hide or recolour what they have selected. Each one already resolves the body row
+    // itself (on_toggle_visibility, on_delete_body, on_set_body_color), so nothing here decides
+    // policy — the card only gives them a home next to the rows they act on.
+    {
+        auto body_btn = [this](const char* icon, const wxString& tip) {
+            auto* b = new ScalableButton(m_parts_box, wxID_ANY, icon, "", wxSize(24, 24),
+                                         wxDefaultPosition, wxBU_EXACTFIT | wxBORDER_NONE, false, 20);
+            b->SetToolTip(tip);
+            return b;
+        };
+        auto* bmove = body_btn("design_move",   _L("Move body"));
+        bmove->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+            if (m_sel_solid_body >= 0 && m_sel_solid_body < int(m_doc.bodies.size())) {
+                on_move_body();
+            } else {
+                m_status->SetForegroundColour(wxNullColour);
+                set_status(_L("Select a body row first, then move it"));
+                m_status->Refresh();
+            }
+        });
+        auto* bvis  = body_btn("design_eye",    _L("Show / hide"));
+        bvis->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_toggle_visibility(); });
+        auto* bdel  = body_btn("design_delete", _L("Delete"));
+        bdel->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_delete_body(); });
+        auto* bcol  = body_btn("color_palette", _L("Colour"));
+        bcol->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_set_body_color(); });
+        const int bgap = FromDIP(SidebarProps::ElementSpacing());
+        m_parts_hdr->AddStretchSpacer(1);
+        m_parts_hdr->Add(bmove, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, bgap);
+        m_parts_hdr->Add(bvis,  0, wxALIGN_CENTER_VERTICAL | wxRIGHT, bgap);
+        m_parts_hdr->Add(bdel,  0, wxALIGN_CENTER_VERTICAL | wxRIGHT, bgap);
+        m_parts_hdr->Add(bcol,  0, wxALIGN_CENTER_VERTICAL);
+    }
     parts_inner->Add(m_parts_hdr, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP,
               FromDIP(SidebarProps::ContentMargin()));
     m_parts_rule = new wxStaticLine(m_parts_box);
