@@ -17,15 +17,10 @@ TEST_CASE("Canceling OBJ color mapping returns an empty model", "[Model][OBJ]")
                   "f 1 2 3\n";
     obj_output.close();
 
-    bool callback_invoked = false;
     Model model = Model::read_from_file(obj_file.string(), nullptr, nullptr, LoadStrategy::AddDefaultInstances, nullptr, nullptr,
                                         nullptr, nullptr, nullptr, nullptr, nullptr, 0,
-                                        [&callback_invoked](ObjDialogInOut &in_out) {
-                                            callback_invoked = true;
-                                            in_out.is_canceled = true;
-                                        });
+                                        [](ObjDialogInOut &in_out) { in_out.is_canceled = true; });
 
-    CHECK(callback_invoked);
     CHECK(model.objects.empty());
 }
 

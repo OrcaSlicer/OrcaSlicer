@@ -8762,33 +8762,11 @@ public:
         std::deque<Task> tasks;
         {
             boost::lock_guard lock(m_mutex);
-            if (m_suspend_count > 0)
-                return;
             std::swap(tasks, m_ui_tasks);
         }
         for (auto& t : tasks)
         {
             process_ui_task(t);
-        }
-    }
-
-    void suspend() {
-        boost::lock_guard lock(m_mutex);
-        ++m_suspend_count;
-    }
-
-    void resume() {
-        std::function<void(int)> callback;
-        {
-            boost::lock_guard lock(m_mutex);
-            assert(m_suspend_count > 0);
-            if (--m_suspend_count == 0 && !m_ui_tasks.empty())
-                callback = m_post_callback;
-        }
-        if (callback) {
-            try {
-                callback(0);
-            } catch (...) {}
         }
     }
 
@@ -9122,7 +9100,6 @@ private:
     Model m_temp_model; // visit only in main thread
     bool m_other_changes = false; // visit only in main thread
     bool m_other_changes_backup = false; // visit only in main thread
-    size_t m_suspend_count = 0;
     std::vector<std::pair<ModelObject*, size_t>> m_gaurd_objects;
     boost::thread m_thread;
 };
@@ -9232,16 +9209,6 @@ void set_backup_callback(std::function<void(int)> callback)
 void run_backup_ui_tasks()
 {
     _BBS_Backup_Manager::get().run_ui_tasks();
-}
-
-BackupSuspendGuard::BackupSuspendGuard()
-{
-    _BBS_Backup_Manager::get().suspend();
-}
-
-BackupSuspendGuard::~BackupSuspendGuard()
-{
-    _BBS_Backup_Manager::get().resume();
 }
 
 bool has_restore_data(std::string & path, std::string& origin)

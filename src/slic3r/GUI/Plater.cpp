@@ -6774,13 +6774,12 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     std::vector<size_t> empty_result;
     bool dlg_cont = true;
     bool is_user_cancel = false;
+    bool obj_import_canceled = false;
     bool translate_old = false;
     int current_width = 0, current_depth = 0, current_height = 0, project_filament_count = 1;
 
     if (input_files.empty())
         return std::vector<size_t>();
-
-    BackupSuspendGuard backup_suspend_guard;
 
     if (!input_files.empty())
        q->m_3mf_path = input_files[0].string();
@@ -7485,7 +7484,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 Semver                file_version;
 
                 //ObjImportColorFn obj_color_fun=nullptr;
-                auto obj_color_fun = [this, &path, &is_user_cancel](ObjDialogInOut &in_out) {
+                auto obj_color_fun = [this, &path, &obj_import_canceled](ObjDialogInOut &in_out) {
 
                     if (!boost::iends_with(path.string(), ".obj")) { return; }
                     const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
@@ -7494,7 +7493,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         in_out.filament_ids.clear();
                     }
                     if (in_out.is_canceled)
-                        is_user_cancel = true;
+                        obj_import_canceled = true;
                 };
                 if (boost::iends_with(path.string(), ".stp") ||
                     boost::iends_with(path.string(), ".step")) {
@@ -7956,7 +7955,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
     if (tolal_model_count <= 0 && !q->m_exported_file) {
         dlg.Hide();
-        if (!is_user_cancel) {
+        if (!is_user_cancel && !obj_import_canceled) {
             MessageDialog msg(wxGetApp().mainframe, _L("The file does not contain any geometry data."), _L("Warning"), wxYES | wxICON_WARNING);
             if (msg.ShowModal() == wxID_YES) {}
         }
@@ -9636,8 +9635,6 @@ void Plater::priv::reload_from_disk()
     selected_volumes.erase(std::unique(selected_volumes.begin(), selected_volumes.end()), selected_volumes.end());
 #endif // ENABLE_RELOAD_FROM_DISK_REWORK
 
-    BackupSuspendGuard backup_suspend_guard;
-
     // collects paths of files to load
     std::vector<fs::path> input_paths;
     std::vector<fs::path> missing_input_paths;
@@ -9792,7 +9789,7 @@ void Plater::priv::reload_from_disk()
             }
 
             if (new_model.objects.empty())
-                return;
+                continue;
 
             for (ModelObject* model_object : new_model.objects)
             {

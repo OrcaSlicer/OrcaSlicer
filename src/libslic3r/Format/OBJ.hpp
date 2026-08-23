@@ -29,8 +29,8 @@ struct ObjDialogInOut
     unsigned char              first_extruder_id;
     bool                       deal_vertex_color;
     Model *                    model{nullptr};
-    bool                       is_canceled{false};
     std::string lost_material_name{""};
+    bool                       is_canceled{false};
 };
 typedef std::function<void(ObjDialogInOut &in_out)> ObjImportColorFn;
 extern bool load_obj(const char *path, TriangleMesh *mesh, ObjInfo &vertex_colors, std::string &message);

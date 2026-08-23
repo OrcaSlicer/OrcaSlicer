@@ -305,15 +305,6 @@ extern void set_backup_callback(std::function<void(int)> callback);
 
 extern void run_backup_ui_tasks();
 
-class BackupSuspendGuard {
-public:
-    BackupSuspendGuard();
-    ~BackupSuspendGuard();
-
-    BackupSuspendGuard(const BackupSuspendGuard &) = delete;
-    BackupSuspendGuard &operator=(const BackupSuspendGuard &) = delete;
-};
-
 extern bool has_restore_data(std::string & path, std::string & origin);
 
 extern void put_other_changes();
