@@ -3731,21 +3731,79 @@ void PrintObject::bridge_over_infill()
 // support keep their original role and flow.  Mirrors PerimeterGenerator's
 // classic overhang split (intersection_pl / diff_pl) so the result is
 // consistent with how the first bridge layer is already tagged.
-static void split_perimeter_over_void(ExtrusionEntity *entity, const Polygons &support, const Flow &overhang_flow)
+//
+// A "remain" segment (outside `support`) is a genuine bridge span only when the
+// straight chord between its two endpoints crosses OVER the void, i.e. lies outside
+// `support` -- the two anchors straddle the gap.  If the chord instead runs
+// along/inside `support` (e.g. a cantilever that wraps around a free tip and
+// returns along the same pillar edge, or an arc whose chord runs along the
+// supporting wall), the segment is an overhang/cantilever and keeps its original
+// role even though its underside may still be bridge-filled.
+//
+// bridge_region: the union of actual bridge fill surfaces (stBottomBridge /
+// stInternalBridge) expanded by ~1 nozzle diameter.  Only the remain portion
+// that intersects this region AND whose chord crosses the void is promoted
+// to erBridgePerimeter.  If bridge_region is empty, nothing is promoted.
+static void split_perimeter_over_void(ExtrusionEntity *entity, const Polygons &support,
+                                      const Polygons &bridge_region, const Flow &overhang_flow)
 {
     if (entity == nullptr)
         return;
     if (entity->is_collection()) {
         for (ExtrusionEntity *child : static_cast<ExtrusionEntityCollection *>(entity)->entities)
-            split_perimeter_over_void(child, support, overhang_flow);
+            split_perimeter_over_void(child, support, bridge_region, overhang_flow);
         return;
     }
 
-    auto split_paths = [&support, &overhang_flow](ExtrusionPaths &paths) -> bool {
+    // A remain segment is a genuine bridge span only when BOTH its endpoints are
+    // real anchors (they touch `support`) AND the straight chord between them
+    // crosses OVER the void, i.e. lies outside `support` -- meaning the two anchors
+    // straddle the gap.
+    //
+    // A remain fragment's endpoints are not always real anchors: diff_pl() cuts the
+    // (possibly seam-opened) perimeter polyline wherever it crosses the support
+    // boundary, but a fragment can also end at the polyline's own start/end (the
+    // seam) or at a free-hanging tip -- a point that never touches support at all
+    // (e.g. the open corner of a one-sided cantilever). Such a fragment is an
+    // overhang/cantilever, not a bridge, regardless of what its chord does.
+    //
+    // The endpoints that ARE real crossings sit exactly on the support boundary, so
+    // grow support by a tiny tolerance purely for these containment tests: it lets
+    // boundary-exact anchors register as "touching" despite floating-point/meshing
+    // noise, without reaching genuinely free-hanging points (which are much farther
+    // from support than this tolerance).
+    const coord_t pt_tol = scaled<coord_t>(0.05f); // 0.05 mm snap tolerance
+    Polygons      support_grown = offset(union_(support), pt_tol);
+    auto touches_support = [&support_grown](const Point &p) -> bool {
+        for (const Polygon &poly : support_grown)
+            if (poly.contains(p))
+                return true;
+        return false;
+    };
+    auto chord_is_bridge_span = [&support_grown, &touches_support](const Point &p0, const Point &p1) -> bool {
+        if (!touches_support(p0) || !touches_support(p1))
+            return false; // at least one end is a free tip / seam artifact, not a real anchor
+        // Both ends are real anchors; sample a few interior points of the chord
+        // against `support` to see whether it crosses the void (straddling the gap)
+        // or runs along/inside `support` (cantilever wrap-around / arc chord).
+        static constexpr double ts[] = {0.5, 0.25, 0.75};
+        for (double t : ts) {
+            const Point sample(p0.x() + coord_t(std::llround((p1.x() - p0.x()) * t)),
+                                p0.y() + coord_t(std::llround((p1.y() - p0.y()) * t)));
+            for (const Polygon &poly : support_grown)
+                if (poly.contains(sample))
+                    return false; // chord touches/enters support: same-side anchor
+        }
+        return true;
+    };
+
+    auto split_paths = [&support, &bridge_region, &overhang_flow,
+                        &chord_is_bridge_span](ExtrusionPaths &paths) -> bool {
         ExtrusionPaths result;
         bool           changed = false;
         for (ExtrusionPath &path : paths) {
-            if (path.role() != erPerimeter && path.role() != erExternalPerimeter) {
+            if (path.role() != erPerimeter && path.role() != erExternalPerimeter
+                && path.role() != erOverhangPerimeter) {
                 result.push_back(path);
                 continue;
             }
@@ -3758,8 +3816,43 @@ static void split_perimeter_over_void(ExtrusionEntity *entity, const Polygons &s
             changed = true;
             Polylines inside = intersection_pl(pl, support);
             extrusion_paths_append(result, inside, path.role(), path.mm3_per_mm, path.width, path.height);
-            extrusion_paths_append(result, remain, erBridgePerimeter, overhang_flow.mm3_per_mm(),
-                                   overhang_flow.width(), overhang_flow.height());
+
+            if (!bridge_region.empty()) {
+                // For each remain segment, decide whether its chord crosses the void
+                // (genuine bridge span) or runs along/inside support (cantilever/arc).
+                // Only bridge spans that also intersect bridge_region are promoted to
+                // erBridgePerimeter.
+                for (Polyline &seg : remain) {
+                    // A genuine bridge span requires both endpoints to be real
+                    // anchors whose connecting chord passes OVER the void (outside
+                    // `support`). A cantilever/arc/seam-cut fragment fails this:
+                    // either an endpoint is a free tip (no anchor), or the chord
+                    // runs along/inside `support` (anchors on the same side).
+                    // A bridge perimeter is only a STRAIGHT span anchored on two sides
+                    // of a void. A curved (concave or convex) arc is an overhang even
+                    // when its chord crosses the void, so require the segment's path to
+                    // be near-straight (chord/path length ratio) in addition to the
+                    // chord/anchor test above.
+                    const double chord_len = (seg.last_point() - seg.first_point()).cast<double>().norm();
+                    const double path_len  = seg.length();
+                    const double straightness = (path_len > 0.) ? (chord_len / path_len) : 0.;
+                    static constexpr double straightness_threshold = 0.95;
+                    const bool is_bridge_span = chord_is_bridge_span(seg.first_point(), seg.last_point())
+                                             && straightness >= straightness_threshold;
+                    if (is_bridge_span) {
+                        extrusion_paths_append(result, {seg}, erBridgePerimeter,
+                                               overhang_flow.mm3_per_mm(), overhang_flow.width(),
+                                               overhang_flow.height());
+                    } else {
+                        // Cantilever wrap-around: keep original role/flow.
+                        extrusion_paths_append(result, {seg}, path.role(),
+                                               path.mm3_per_mm, path.width, path.height);
+                    }
+                }
+            } else {
+                // No bridge fill present on this layer: keep original role/flow.
+                extrusion_paths_append(result, remain, path.role(), path.mm3_per_mm, path.width, path.height);
+            }
         }
         if (changed)
             paths = std::move(result);
@@ -3847,8 +3940,22 @@ void PrintObject::tag_extra_bridge_perimeters()
 
                 for (LayerRegion *region : layer->regions()) {
                     const Flow overhang_flow = region->bridging_flow(frPerimeter, this->config().thick_bridges);
+
+                    // Build bridge_region: union of genuine bridge fill surfaces
+                    // (stBottomBridge / stInternalBridge) on THIS region, expanded
+                    // by ~1 nozzle so it covers the perimeter ring surrounding the
+                    // bridge infill.  Only perimeter segments that fall inside this
+                    // region are promoted to erBridgePerimeter; cantilevers/overhangs
+                    // with no bridge fill below stay erOverhangPerimeter.
+                    Polygons bridge_polys;
+                    for (const Surface &s : region->fill_surfaces.surfaces)
+                        if (s.surface_type == stBottomBridge || s.surface_type == stInternalBridge)
+                            polygons_append(bridge_polys, to_polygons(s.expolygon));
+                    const float nozzle_d = scaled<float>(m_print->config().nozzle_diameter.get_at(0));
+                    Polygons bridge_region = bridge_polys.empty() ? Polygons{} : offset(union_(bridge_polys), nozzle_d);
+
                     for (ExtrusionEntity *entity : region->perimeters.entities)
-                        split_perimeter_over_void(entity, support, overhang_flow);
+                        split_perimeter_over_void(entity, support, bridge_region, overhang_flow);
                 }
             }
         });
