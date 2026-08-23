@@ -3079,6 +3079,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
             m_status->SetForegroundColour(wxColour(235, 110, 110));
             set_status(wxString::FromUTF8(*why) + _L(" — the eye suppresses this mate"));
             m_status->Refresh();
+        } else if (sel >= 0 && sel < int(m_doc.features.size())) {
+            // Name the two gestures the row supports, because neither is visible on it.
+            m_status->SetForegroundColour(wxNullColour);
+            set_status(wxString::Format(
+                _L("%s selected — F2 or right-click renames it, double-click edits it"),
+                wxString::FromUTF8(m_doc.features[sel].name)));
+            m_status->Refresh();
         }
     });
 
@@ -3086,6 +3093,34 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // Without it the row only highlights and the feature looks dead until the user finds the
     // Edit button in the section header.
     m_tree->Bind(wxEVT_TREE_ITEM_ACTIVATED, [this](wxTreeEvent&) { on_edit_feature(); });
+
+    // Right-click a row: the three things a row can do. Renaming had no discoverable route at
+    // all — the header pencil is Edit, a double-click ACTIVATES the row and is also Edit (the
+    // "slow double-click renames" the old comment promised does not survive wxGTK, which fires
+    // ITEM_ACTIVATED first), none of the seven header icons renames, and F2 is a function key
+    // nothing announces. A user who wants to name a sketch tries the row, and now the row
+    // answers. snaporca-rename.
+    m_tree->Bind(wxEVT_TREE_ITEM_RIGHT_CLICK, [this](wxTreeEvent& e) {
+        m_tree->SelectItem(e.GetItem());          // right-click targets what it points at
+        const int sel = tree_selection();
+        if (sel == wxNOT_FOUND) return;
+        wxMenu menu;
+        const int id_rename = wxWindow::NewControlId();
+        const int id_edit   = wxWindow::NewControlId();
+        const int id_del    = wxWindow::NewControlId();
+        menu.Append(id_rename, _L("Rename\tF2"));
+        menu.Append(id_edit,   _L("Edit"));
+        menu.AppendSeparator();
+        menu.Append(id_del,    _L("Delete"));
+        menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+            const int row = tree_selection();
+            if (row != wxNOT_FOUND && row < int(m_tree_items.size()))
+                m_tree->EditLabel(m_tree_items[row]);
+        }, id_rename);
+        menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) { on_edit_feature(); },   id_edit);
+        menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) { on_delete_feature(); }, id_del);
+        m_tree->PopupMenu(&menu);
+    });
 
     // In-place rename of a feature row (slow double-click, the offer's Rename verb, or F2).
     // The name is what makes a tree of eight sketches readable, and the tree row IS the object —
