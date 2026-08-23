@@ -1101,11 +1101,83 @@ def reopen_sketch():
     return describe()
 
 
+def rung_mirror_arcs():
+    """C4b — mirror a shape that HAS ARCS. The rung above mirrors three straight lines, which is
+    why it sat green through the defect a user hit on 2026-08-23: a slot mirrored about a vertical
+    line came back with its caps at r=32.2 and a 237 deg sweep, one rail collapsed from 62.9 mm to
+    2.1 mm, and the ORIGINAL was wrecked along with the copy. An arc has five degrees of freedom
+    and the copy was bound to its source by its CENTRE alone, so the solver was free to answer with
+    a different, internally consistent sketch. Circles were unaffected — a circle has no endpoints
+    to leave free — so the failure read as "circles fine, slots and rounded rectangles destroyed".
+
+    Graded on the property the user actually stated: THE APPLIED RESULT IS THE PREVIEW. The copy is
+    the source reflected, the source does not move, and no arc comes back reflex.
+    """
+    print("\nC4b mirror — a slot, so the reflection has arcs in it")
+    enter_sketch("l")
+    click(*CONSTRUCTION_CHECKBOX)
+    key("l", 0.6)
+    draw_line(0, -40, 0, 40, 80, 90)                 # the axis, on x = 0
+    click(*CONSTRUCTION_CHECKBOX)
+    key("s", 0.6)                                    # slot: two centreline ends, then the width
+    clickmm(-70, -10); clickmm(-30, -10); clickmm(-30, 0)
+    values(40, 10, 0)                                # typed, so the slot is exact before mirroring
+    d0 = describe()["entities"]
+    axis = [e for e in d0 if e.get("construction")][0]
+    slot = [e for e in d0 if not e.get("construction")]
+    arcs0 = [e for e in slot if e["type"] == "arc"]
+    check("ARC", len(arcs0) == 2, f"{len(arcs0)} caps on the slot")
+
+    key("m", 0.6)
+    clickmm(*mid(axis))
+    for e in slot:
+        if e["type"] == "line":
+            clickmm(*mid(e))
+        else:                                        # a point ON the arc, at its mid sweep
+            a = (e["start_angle"] + e["end_angle"]) / 2.0
+            clickmm(e["center"][0] + e["radius"] * math.cos(a),
+                    e["center"][1] + e["radius"] * math.sin(a))
+    clickmm(60, 60)                                  # empty space confirms
+    d1 = describe()["entities"]
+    check("VERTEX", len(d1) == len(d0) + len(slot),
+          f"{len(d1) - len(d0)} copies for {len(slot)} picked entities")
+
+    # the sources, entity by entity, must be exactly where they were
+    def shape_of(e):
+        if e["type"] == "arc":
+            return (round(e["radius"], 9), round(abs(e["end_angle"] - e["start_angle"]), 9))
+        return (round(math.dist(e["p0"], e["p1"]), 9),)
+    moved = [i for i, e in enumerate(d0) if shape_of(e) != shape_of(d1[i])]
+    check("VERTEX", not moved, f"the mirror left every source alone (moved: {moved})")
+
+    # and every copy is its source reflected — endpoints unordered, because a reflection
+    # reverses orientation and legitimately stores p0/p1 the other way round
+    (ax, ay), (bx, by) = axis["p0"], axis["p1"]
+    dx, dy = bx - ax, by - ay
+    n = math.hypot(dx, dy); dx, dy = dx / n, dy / n
+    def refl(q):
+        vx, vy = q[0] - ax, q[1] - ay
+        k = 2.0 * (vx * dx + vy * dy)
+        return (ax + k * dx - vx, ay + k * dy - vy)
+    copies = d1[len(d0):]
+    worst = 0.0
+    for e in slot:
+        best = min(max(min(max(math.dist(refl(e["p0"]), c["p0"]), math.dist(refl(e["p1"]), c["p1"])),
+                           max(math.dist(refl(e["p0"]), c["p1"]), math.dist(refl(e["p1"]), c["p0"]))),
+                       abs(shape_of(e)[0] - shape_of(c)[0]))
+                   for c in copies if c["type"] == e["type"])
+        worst = max(worst, best)
+    check("SYMMETRY", worst <= 1e-6, f"every copy is the exact reflection (worst {worst:.9f})")
+    reflex = [c for c in copies
+              if c["type"] == "arc" and abs(c["end_angle"] - c["start_angle"]) > math.pi + 1e-9]
+    check("ARC", not reflex, f"{len(reflex)} copied cap(s) came back reflex — the 'cloud' failure")
+
+
 RUNGS = {"rect": rung_rect, "circle": rung_circle, "line": rung_line, "arc": rung_arc,
          "slot": rung_slot, "polygon": rung_polygon, "ellipse": rung_ellipse,
          "point": rung_point, "spline": rung_spline, "voids": rung_voids,
          "fillet": rung_fillet, "chamfer": rung_chamfer, "offset": rung_offset,
-         "mirror": rung_mirror, "trim": rung_trim, "extend": rung_extend,
+         "mirror": rung_mirror, "mirror_arcs": rung_mirror_arcs, "trim": rung_trim, "extend": rung_extend,
          "dimension": rung_dimension, "constrain": rung_constrain,
          "perpendicular": rung_perpendicular, "undo": rung_undo,
          "feature_undo": rung_feature_undo, "roundtrip": rung_roundtrip,

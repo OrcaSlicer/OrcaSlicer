@@ -7727,6 +7727,34 @@ void DesignSketchTool::render_op_gizmo(double unit_per_px)
     draw_text(m_line_model, dim_text(a), m_op_label, th, dc);
 }
 
+// Did an entity actually change shape or position? Compares only the fields that define each
+// type, so a re-solve that leaves the geometry alone reads as "unchanged" whatever else moved in
+// the record. Used by the mirror postcondition below.
+static bool entity_moved(const SketchEntity& a, const SketchEntity& b, double tol)
+{
+    if (a.type != b.type) return true;
+    auto far = [tol](const Vec2d& p, const Vec2d& q) { return (p - q).norm() > tol; };
+    if (far(a.p0, b.p0)) return true;
+    switch (a.type) {
+    case SketchEntity::Type::Point:
+        return false;
+    case SketchEntity::Type::Line:
+        return far(a.p1, b.p1);
+    case SketchEntity::Type::Circle:
+        return far(a.center, b.center) || std::abs(a.radius - b.radius) > tol;
+    case SketchEntity::Type::Arc:
+        return far(a.p1, b.p1) || far(a.center, b.center)
+            || std::abs(a.radius - b.radius) > tol
+            || std::abs((a.end_angle - a.start_angle) - (b.end_angle - b.start_angle)) > tol;
+    case SketchEntity::Type::Ellipse:
+    case SketchEntity::Type::EllipseArc:
+        return far(a.center, b.center) || std::abs(a.radius - b.radius) > tol
+            || std::abs(a.rminor - b.rminor) > tol || std::abs(a.rotation - b.rotation) > tol;
+    default:
+        return far(a.p1, b.p1);
+    }
+}
+
 void DesignSketchTool::confirm_op()
 {
     if (!op_ready()) return;
@@ -7788,24 +7816,79 @@ void DesignSketchTool::confirm_op()
         if (emit) try_add_constraints({ d });
     } else if (m_mode == Mode::Mirror) {
         const SketchEntity axis = m_entities[m_op_a];   // by value (m_entities grows below)
+        // The sources as they stand BEFORE any of this op's constraints exist. Two jobs: every
+        // copy is reflected from the untouched original (so a batch that moves the sketch cannot
+        // feed a later copy moved geometry), and the invariant at the bottom has something to
+        // compare against. snaporca-mirror-slot.
+        const std::vector<SketchEntity> before = m_entities;
+        const size_t cmark = m_constraints.size();
+        std::vector<std::pair<int, SketchEntity>> fresh;   // copy index -> its pristine reflection
         for (int ti : m_mirror_targets) {
-            if (ti < 0 || ti >= int(m_entities.size())) continue;
-            auto out = SketchEngine::mirror_entities({ m_entities[ti] }, axis.p0, axis.p1);
+            if (ti < 0 || ti >= int(before.size())) continue;
+            auto out = SketchEngine::mirror_entities({ before[ti] }, axis.p0, axis.p1);
             if (out.empty()) continue;
             const int mi = int(m_entities.size());
-            for (auto& m : out) m_entities.push_back(m);
+            for (auto& m : out) { fresh.emplace_back(int(m_entities.size()), m); m_entities.push_back(m); }
             SketchEntityConstraintDef d; d.type = CT::Symmetric; d.ea = ti; d.eb = mi; d.ec = m_op_a;
-            const SketchEntity::Type st = m_entities[ti].type;
-            std::vector<SketchEntityConstraintDef> cand;
+            const SketchEntity::Type st = before[ti].type;
+            std::vector<std::vector<SketchEntityConstraintDef>> ladder;
             if (st == SketchEntity::Type::Line) {
-                d.ra = R::P0; d.rb = R::P0; cand.push_back(d);
-                d.ra = R::P1; d.rb = R::P1; cand.push_back(d);
-            } else if (st == SketchEntity::Type::Arc || st == SketchEntity::Type::Circle) {
-                d.ra = R::Center; d.rb = R::Center; cand.push_back(d);
+                d.ra = R::P0; d.rb = R::P0; auto p0 = d;
+                d.ra = R::P1; d.rb = R::P1; auto p1 = d;
+                ladder = { { p0, p1 }, { p0 } };
+            } else if (st == SketchEntity::Type::Arc) {
+                // BOTH ENDS AND THE CENTRE. Binding only the centre — which is all this did —
+                // leaves the copy's endpoints and sweep free while the shape's own coincidences
+                // still tie them to its neighbours, and the solver then answers with a wildly
+                // different, internally consistent sketch: a slot's caps came back at r=32.2 and
+                // a 237 deg sweep, one rail collapsed from 62.9 mm to 2.1 mm, and the ORIGINAL
+                // moved with them. A circle survived the same code only because a circle has no
+                // endpoints to leave free, which is why the bug reads as "circles fine, rounded
+                // rectangles and slots destroyed".
+                d.ra = R::Center; d.rb = R::Center; auto ct = d;
+                d.ra = R::P0;     d.rb = R::P0;     auto p0 = d;
+                d.ra = R::P1;     d.rb = R::P1;     auto p1 = d;
+                // Endpoints BEFORE centre: an arc is five DoF, so {centre, p0, p1} is six
+                // equations and is refused; {p0, p1} is four and pins the sweep, which is the
+                // half that was going wild. The postcondition below is what makes the ladder
+                // safe — any rung that does not reproduce the preview is thrown away whole.
+                ladder = { { p0, p1 }, { ct, p0 }, { ct } };
+            } else if (st == SketchEntity::Type::Circle) {
+                d.ra = R::Center; d.rb = R::Center; ladder = { { d } };
             } else if (st == SketchEntity::Type::Point) {
-                d.ra = R::P0; d.rb = R::P0; cand.push_back(d);
+                d.ra = R::P0; d.rb = R::P0; ladder = { { d } };
             }
-            if (!cand.empty()) try_add_constraints(cand);
+            for (const auto& set : ladder) if (try_add_constraints(set)) break;
+        }
+        // A MIRROR MAY NOT MOVE WHAT IT COPIED. try_add_constraints only rolls back when the
+        // solve FAILS, and the failure here is a solve that succeeds at something else: the
+        // numbers above came out of a solver that was perfectly happy. So the op checks its own
+        // postcondition on the geometry, and if a source moved it keeps the copies — which are
+        // exactly what the preview showed — and drops the whole constraint web that moved them.
+        // Restoring the sources needs no re-solve: the pre-batch state was itself solved, and a
+        // failed solve does not write back (snaporca-pl5).
+        // BOTH HALVES. Watching only the sources caught the slot (whose web dragged everything)
+        // and missed the rounded rectangle, where the solver held the sources still and put the
+        // COPIES somewhere else: an arc has five degrees of freedom and Symmetric on centre plus
+        // both endpoints is six equations, so that batch is refused and the ladder degrades to a
+        // set that leaves the sweep free. The rule that covers both, and that is what the user
+        // actually asked for, is: THE APPLIED RESULT IS THE PREVIEW. Anything else drops the web.
+        bool disturbed = false;
+        for (size_t i = 0; i < before.size() && !disturbed; ++i)
+            disturbed = entity_moved(before[i], m_entities[i], 1e-6);
+        for (const auto& f : fresh)
+            if (!disturbed && f.first < int(m_entities.size()))
+                disturbed = entity_moved(f.second, m_entities[f.first], 1e-6);
+        if (disturbed) {
+            m_constraints.resize(cmark);
+            for (size_t i = 0; i < before.size(); ++i) m_entities[i] = before[i];
+            // The copies too, and for the same reason: a batch that moved the sketch moved them
+            // as well, so the ones sitting in m_entities are the solver's answer, not the
+            // reflection. Restoring only the sources left a slot whose copy came back with a
+            // 13.8 mm rail and a 308 deg cap — the original was safe and the copy was still
+            // wrong, which is half a fix. `fresh` is what the preview drew.
+            for (const auto& f : fresh)
+                if (f.first < int(m_entities.size())) m_entities[f.first] = f.second;
         }
     }
     reset_op();

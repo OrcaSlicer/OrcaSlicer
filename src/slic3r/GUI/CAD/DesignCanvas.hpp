@@ -59,6 +59,9 @@ public:
     // Open the in-canvas value field on the sketch selection's defining number.
     bool edit_sketch_selection_value();
     int  toggle_sketch_construction_selection();
+    // Is the sketch tool on Select (as opposed to a draw/edit tool being armed)? The
+    // Construction box needs it to tell "convert what I picked" from "arm what I draw next".
+    bool sketch_is_selecting() const { return m_sketch_tool.mode() == DesignSketchTool::Mode::Select; }
     // Text / SVG art into the LIVE sketch, as ordinary editable lines. False = no session.
     bool add_sketch_regions(const std::vector<std::vector<std::vector<Vec2d>>>& regions);
     void set_sketch_polygon_sides(int n);

@@ -1447,9 +1447,35 @@ DesignPanel::DesignPanel(wxWindow* parent)
         b_poly->Bind(wxEVT_BUTTON, [arm_polygon](wxCommandEvent&) { arm_polygon(); });
         sadd(b_poly);
         // (separator dropped: the group it divided is now reached from the offer)
+        // Q's semantics, on the control that carries the word. With geometry selected the box
+        // CONVERTS it — that is what a user who has just selected a construction circle and
+        // reached for the box labelled "Construction" is asking for, and until now it was the
+        // only one of the three routes (Q, the offer's Reference row, this box) that could not
+        // do it: it armed the mode for the NEXT entity, silently, changing nothing about the
+        // shape on screen and flipping the draw mode behind the user's back. The tick is a MODE
+        // indicator, so after a conversion it goes back to what it was.
         m_construction->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
-            if (m_viewport && m_viewport->is_sketching())
-                m_viewport->set_sketch_construction(m_construction->GetValue()); });
+            if (!m_viewport || !m_viewport->is_sketching())
+                return;
+            // ONLY IN SELECT MODE. Drawing auto-selects what was just drawn (draw-then-edit), so
+            // with a draw tool armed "there is a selection" does not mean the user picked
+            // anything — it means they finished a line. Converting there turns the box into a
+            // trap: arm construction, draw the axis, click the box to go back to real geometry,
+            // and instead of disarming the mode it converts the axis you just drew. The gesture
+            // ladder's mirror rung does exactly that and reported three construction entities
+            // where it wanted one. In Select mode the intent is unambiguous.
+            const int n = m_viewport->sketch_is_selecting()
+                        ? m_viewport->toggle_sketch_construction_selection() : 0;
+            if (n > 0) {
+                m_construction->SetValue(!m_construction->GetValue());   // the mode did not move
+                m_status->SetForegroundColour(wxNullColour);
+                set_status(wxString::Format(
+                    _L("Converted %d entit%s between construction and real geometry"),
+                    n, n == 1 ? "y" : "ies"));
+                m_status->Refresh();
+                return;
+            }
+            m_viewport->set_sketch_construction(m_construction->GetValue()); });
         // STAYS on the bar. Construction is not a tool, it is a persistent MODE — the same kind
         // of thing as the Bed checkbox — and the sketch bar is already shown only in Sketch mode,
         // so it appears exactly while it can apply. Hiding it left Q and the offer's Construction
