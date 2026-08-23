@@ -1129,8 +1129,12 @@ function(orcaslicer_silence_third_party_warnings _dir)
                     string(REGEX REPLACE ";;+" ";" _opts "${_opts}")
                     set_target_properties(${_target} PROPERTIES COMPILE_OPTIONS "${_opts}")
                 endif ()
+                # CMake maps a level into the VS generator's WarningLevel element, while a
+                # bare -w stays on the command line and trips D9025 there, once per file.
+                target_compile_options(${_target} PRIVATE /W0)
+            else ()
+                target_compile_options(${_target} PRIVATE -w)
             endif ()
-            target_compile_options(${_target} PRIVATE -w)
         endif ()
     endforeach ()
 endfunction()
