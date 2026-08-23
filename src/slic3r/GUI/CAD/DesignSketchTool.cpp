@@ -2353,8 +2353,13 @@ void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad, doub
     }
     try_add_constraints(coincs);   // co-located points: consistent by construction
 
-    // 2) Horizontal / Vertical on axis-aligned new line segments (added one at a time
-    //    so a single conflict never drops the others).
+    // 2) Horizontal / Vertical on axis-aligned new line segments. Tried as ONE batch first and
+    //    only then one at a time, which is the same outcome — a single conflict never drops the
+    //    others — for one solve instead of n. That matters now that large sketches actually
+    //    solve: a bulk add of 1200 axis-aligned segments used to be fast only because every
+    //    solve failed instantly on the unknown limit, and once they started succeeding the
+    //    per-constraint loop turned into 1200 solves and blew the MCP main-thread budget.
+    std::vector<SketchEntityConstraintDef> axes;
     for (int i = base; i < n; ++i) {
         if (m_entities[i].type != SketchEntity::Type::Line) continue;
         auto ax = infer_axis_constraint(m_entities[i].p0, m_entities[i].p1, ang_tol_rad);
@@ -2363,8 +2368,10 @@ void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad, doub
         c.type = *ax;
         c.ea = i; c.ra = SketchPointRole::P0;
         c.eb = i; c.rb = SketchPointRole::P1;
-        try_add_constraints({ c });
+        axes.push_back(c);
     }
+    if (!try_add_constraints(axes))
+        for (const auto& c : axes) try_add_constraints({ c });
 
     resolve_live();
 }

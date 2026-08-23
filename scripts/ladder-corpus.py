@@ -33,6 +33,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import time
 
 SOCK = os.environ.get("SNAPORCA_MCP", "/tmp/mcp.sock")
 TOL = 1e-6          # exact-comparison tolerance (all inputs are lines)
@@ -339,11 +340,67 @@ def grade(pdf, name, report):
     return ok
 
 
+# ── scale ────────────────────────────────────────────────────────────────────
+def grade_scale(pdf, name, report, budget):
+    """Same exactness, on a profile of several hundred entities, and timed.
+
+    "Interactive" is measurable from here even though nothing is clicked: every MCP verb is
+    serviced on the UI THREAD, so the time a reply takes is time the window was not repainting.
+    A round trip that stays inside the budget is a window that stayed responsive.
+    """
+    segs = drawing_segments(pdf)
+    loops = find_loops(segs)
+    if len(loops) < 2:
+        report(name, "SKIP", f"no nested closed geometry found ({len(loops)} loops)")
+        return None
+    loops.sort(key=shoelace, reverse=True)
+    outer = loops[1]
+    voids = [r for r in loops[2:] if shoelace(r) > 1.0 and point_in(r[0], outer)]
+    rings = [outer] + voids
+    ents = []
+    for ring in rings:
+        for i in range(len(ring) - 1):
+            ents.append({"type": "line",
+                         "p0": [ring[i][0], ring[i][1]],
+                         "p1": [ring[i + 1][0], ring[i + 1][1]]})
+    if len(ents) < 300:
+        report(name, "SKIP", f"only {len(ents)} entities — not a scale case")
+        return None
+
+    try_call("sketch_cancel")
+    call("sketch_begin", plane="XY")
+    t0 = time.monotonic(); call("sketch_add", entities=ents);  t_add = time.monotonic() - t0
+    t0 = time.monotonic(); r = call("sketch_describe");        t_desc = time.monotonic() - t0
+    t0 = time.monotonic(); call("sketch_select", entities=list(range(len(ents))))
+    t_sel = time.monotonic() - t0
+    t0 = time.monotonic(); call("sketch_validate");            t_val = time.monotonic() - t0
+
+    ok = True
+    ok &= report(name, "SCALE", f"{len(ents)} entities in {len(rings)} loops", True)
+    got = r["closed_loops"]
+    ok &= report(name, "CLOSED", f"engine finds {len(got)} closed loops, this script "
+                                 f"finds {len(rings)}", len(got) == len(rings))
+    mine = sorted(shoelace(x) for x in rings)
+    theirs = sorted(abs(l["area"]) for l in got)
+    same = len(mine) == len(theirs) and all(
+        abs(a - b) <= max(1e-3, 1e-6 * a) for a, b in zip(mine, theirs))
+    ok &= report(name, "AREA", "every loop area matches the shoelace value exactly", same)
+    worst = max(t_add, t_desc, t_sel, t_val)
+    ok &= report(name, "TIME", f"add {t_add*1000:.0f} ms, describe {t_desc*1000:.0f} ms, "
+                               f"select {t_sel*1000:.0f} ms, validate {t_val*1000:.0f} ms "
+                               f"(budget {budget*1000:.0f} ms)", worst <= budget)
+    return ok
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--corpus", default=os.path.expanduser("~/studycadcam"))
     ap.add_argument("--step", type=int, default=20)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--scale", action="store_true",
+                    help="grade the LARGEST drawings instead: exactness plus a UI-thread budget")
+    ap.add_argument("--budget", type=float, default=2.0,
+                    help="seconds; the slowest round trip a scale drawing may take")
     a = ap.parse_args()
 
     files = {}
@@ -351,8 +408,28 @@ def main():
         m = re.search(r"MPD(\d+)", os.path.basename(f))
         if m:
             files[int(m.group(1))] = f
-    picks = [files[n] for n in sorted(files) if n % a.step == 1]
-    if a.limit:
+    # step 1 means EVERY sheet. Written as `n % step == 1` it silently selected nothing, because
+    # n % 1 is always 0 — and the run then printed "RUNG 9 HELD" over zero drawings graded. A
+    # gate that passes by grading nothing is worse than no gate, so the count is checked below.
+    picks = [files[n] for n in sorted(files) if a.step <= 1 or n % a.step == 1]
+    if a.scale:
+        # The heaviest real profiles in the corpus, biggest first — up to ~1300 entities.
+        sized = []
+        for f in files.values():
+            try:
+                segs = drawing_segments(f)
+                loops = find_loops(segs)
+                if len(loops) < 2:
+                    continue
+                loops.sort(key=shoelace, reverse=True)
+                outer = loops[1]
+                voids = [r for r in loops[2:] if shoelace(r) > 1.0 and point_in(r[0], outer)]
+                sized.append((sum(len(r) - 1 for r in [outer] + voids), f))
+            except Exception:                        # noqa: BLE001
+                continue
+        sized.sort(reverse=True)
+        picks = [f for _, f in sized[:max(1, a.limit or 6)]]
+    elif a.limit:
         picks = picks[:a.limit]
     print(f"corpus: {len(files)} sheets;  systematic sample every {a.step}th "
           f"-> {len(picks)} drawings\n")
@@ -372,7 +449,8 @@ def main():
     for f in picks:
         name = re.search(r"MPD\d+", os.path.basename(f)).group(0)
         try:
-            r = grade(f, name, report)
+            r = (grade_scale(f, name, report, a.budget) if a.scale
+                 else grade(f, name, report))
             if r is not None:
                 results.append((name, r))
         except Exception as e:                       # noqa: BLE001
@@ -380,6 +458,9 @@ def main():
 
     graded = len(results)
     passed = sum(1 for _, r in results if r)
+    if graded == 0:
+        print("\nNOTHING WAS GRADED — that is a harness failure, not a clean run", file=sys.stderr)
+        sys.exit(2)
     print(f"\ngraded {graded} drawings; {passed} fully clean, {graded - passed} with "
           f"at least one failure")
     if fails:

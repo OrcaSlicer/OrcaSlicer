@@ -4,6 +4,8 @@
 
 #include <cmath>
 #include <cstring>
+#include <functional>
+#include <map>
 #include <unordered_map>
 
 namespace Slic3r {
@@ -53,9 +55,9 @@ inline int role_idx(Role r) { return int(r); }
 
 } // namespace
 
-static SketchSolveResult solve_impl(std::vector<SketchEntity>& entities,
-                                    const std::vector<SketchEntityConstraintDef>& constraints,
-                                    int dragged_ei, Role dragged_role)
+static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
+                                      const std::vector<SketchEntityConstraintDef>& constraints,
+                                      int dragged_ei, Role dragged_role)
 {
     SketchSolveResult out;
     if (constraints.empty()) { out.ok = true; out.dof = -1; return out; }
@@ -374,6 +376,106 @@ static SketchSolveResult solve_impl(std::vector<SketchEntity>& entities,
     }
 
     return out;
+}
+
+// libslvs carries a COMPILE-TIME ceiling: solvespace.h declares `enum { MAX_UNKNOWNS = 1024 }`
+// and sizes the System's param and equation arrays with it. solve_system() hands the solver every
+// entity in the sketch, constrained or not, at 2 params per point — so a sketch of about 480 lines
+// is the last one that fits, and the very next one comes back TOO_MANY_UNKNOWNS.
+//
+// What that did, before this: DesignSketchTool::try_add_constraints rolls the whole batch back
+// when the solve fails, so the auto-constraint pass over a large sketch dropped EVERY constraint
+// it had just inferred. Measured on the rig — 480 lines: 960 constraints, dof 480. 520 lines:
+// 0 constraints, dof unknown. Nothing was said, and from there on no dimension and no constraint
+// could ever be applied to that sketch, because each attempt re-solved the same oversized system
+// and was rejected in turn. A typed length simply did nothing.
+//
+// Constraints only couple entities that SHARE a point, so a sketch is naturally a set of
+// independent systems — a plate with 300 cut-outs is 301 little problems, not one big one.
+// Solving them separately keeps every one of them far under the ceiling AND is faster, since the
+// solver's work is superlinear in system size.
+//
+// The whole system is still tried FIRST, and this runs only on TOO_MANY_UNKNOWNS, so every sketch
+// that fits today keeps its exact current behaviour, including its reported degrees of freedom.
+// A genuinely over-constrained sketch still fails: the conflict lives inside one component and
+// that component still rejects it.
+static SketchSolveResult solve_partitioned(std::vector<SketchEntity>& entities,
+                                           const std::vector<SketchEntityConstraintDef>& constraints,
+                                           int dragged_ei, Role dragged_role)
+{
+    const int n = int(entities.size());
+    std::vector<int> parent(n);
+    for (int i = 0; i < n; ++i) parent[i] = i;
+    std::function<int(int)> find = [&](int a) {
+        while (parent[a] != a) { parent[a] = parent[parent[a]]; a = parent[a]; }
+        return a;
+    };
+    auto unite = [&](int a, int b) {
+        if (a < 0 || b < 0 || a >= n || b >= n) return;
+        a = find(a); b = find(b);
+        if (a != b) parent[a] = b;
+    };
+    for (const auto& c : constraints) { unite(c.ea, c.eb); unite(c.ea, c.ec); }
+
+    // Group the constraints by the component they belong to.
+    std::map<int, std::vector<int>> groups;
+    for (size_t i = 0; i < constraints.size(); ++i) {
+        const int a = constraints[i].ea;
+        if (a < 0 || a >= n) continue;
+        groups[find(a)].push_back(int(i));
+    }
+
+    SketchSolveResult out;
+    out.ok  = true;
+    out.dof = 0;
+    // Solve into COPIES and commit only if every component succeeded. The contract callers rely
+    // on is all-or-nothing — try_add_constraints rolls the batch back and expects the geometry it
+    // rolls back to be untouched — and partial writes would break it.
+    std::vector<std::pair<std::vector<int>, std::vector<SketchEntity>>> solved;
+    for (const auto& [root, cidx] : groups) {
+        std::vector<int> ents;                       // global indices, in order
+        std::map<int, int> local;                    // global -> local
+        auto take = [&](int e) {
+            if (e < 0 || e >= n || local.count(e)) return;
+            local[e] = int(ents.size());
+            ents.push_back(e);
+        };
+        for (int ci : cidx) { take(constraints[ci].ea); take(constraints[ci].eb); take(constraints[ci].ec); }
+        std::vector<SketchEntity> sub;
+        sub.reserve(ents.size());
+        for (int e : ents) sub.push_back(entities[e]);
+        std::vector<SketchEntityConstraintDef> subc;
+        subc.reserve(cidx.size());
+        for (int ci : cidx) {
+            SketchEntityConstraintDef d = constraints[ci];
+            auto map1 = [&](int& e) { e = (e >= 0 && local.count(e)) ? local[e] : -1; };
+            map1(d.ea); map1(d.eb); map1(d.ec);
+            subc.push_back(d);
+        }
+        const int sub_drag = (dragged_ei >= 0 && local.count(dragged_ei)) ? local[dragged_ei] : -1;
+        SketchSolveResult r = solve_system(sub, subc, sub_drag, dragged_role);
+        if (!r.ok) {
+            out.ok     = false;
+            out.result = r.result;
+            for (int bi : r.bad)
+                if (bi >= 0 && bi < int(cidx.size())) out.bad.push_back(cidx[bi]);
+        }
+        if (r.dof > 0) out.dof += r.dof;
+        solved.emplace_back(std::move(ents), std::move(sub));
+    }
+    if (!out.ok) return out;
+    for (auto& [ents, sub] : solved)
+        for (size_t k = 0; k < ents.size(); ++k) entities[ents[k]] = sub[k];
+    return out;
+}
+
+static SketchSolveResult solve_impl(std::vector<SketchEntity>& entities,
+                                    const std::vector<SketchEntityConstraintDef>& constraints,
+                                    int dragged_ei, Role dragged_role)
+{
+    SketchSolveResult out = solve_system(entities, constraints, dragged_ei, dragged_role);
+    if (out.ok || out.result != SLVS_RESULT_TOO_MANY_UNKNOWNS) return out;
+    return solve_partitioned(entities, constraints, dragged_ei, dragged_role);
 }
 
 SketchSolveResult sketch_solve(std::vector<SketchEntity>& entities,

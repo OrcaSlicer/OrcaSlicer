@@ -112,3 +112,50 @@ TEST_CASE("slvs: over-constrained / inconsistent is detected", "[slvs]")
     auto res = sketch_solve(ents, cons);
     CHECK_FALSE(res.ok);   // SLVS_RESULT_INCONSISTENT
 }
+
+// snaporca-yww4. libslvs sizes its System with a compile-time `MAX_UNKNOWNS = 1024`, and the
+// solver is handed every entity in the sketch at 2 params per point — so a sketch of about 480
+// lines is the last one that fits and the next comes back TOO_MANY_UNKNOWNS. Because
+// try_add_constraints rolls a failed batch back, that turned into: every auto-inferred constraint
+// on a large sketch silently dropped, and from then on no dimension could ever be applied to it.
+// Constraints only couple entities that share a point, so the sketch is solved component by
+// component when the whole system does not fit.
+TEST_CASE("slvs: a sketch past the solver's unknown limit still solves", "[slvs]")
+{
+    // 300 disjoint squares: 1200 lines, 4800 unknowns whole, 8 per component.
+    const int N = 300;
+    std::vector<SketchEntity> ents;
+    std::vector<SketchEntityConstraintDef> cons;
+    for (int i = 0; i < N; ++i) {
+        const double x = (i % 30) * 10.0, y = (i / 30) * 10.0;
+        const int b = int(ents.size());
+        ents.push_back(line({x, y},         {x + 4.0, y}));
+        ents.push_back(line({x + 4.0, y},   {x + 4.0, y + 4.0}));
+        ents.push_back(line({x + 4.0, y + 4.0}, {x, y + 4.0}));
+        ents.push_back(line({x, y + 4.0},   {x, y}));
+        for (int k = 0; k < 4; ++k)
+            cons.push_back(con(CT::Coincident, b + k, R::P1, b + (k + 1) % 4, R::P0));
+    }
+    REQUIRE(ents.size() == size_t(4 * N));
+
+    std::vector<SketchEntity> before = ents;
+    auto res = sketch_solve(ents, cons);
+    REQUIRE(res.ok);
+    for (size_t i = 0; i < ents.size(); ++i) {         // already satisfied: nothing may move
+        CHECK(ents[i].p0.x() == Approx(before[i].p0.x()).margin(1e-9));
+        CHECK(ents[i].p0.y() == Approx(before[i].p0.y()).margin(1e-9));
+        CHECK(ents[i].p1.x() == Approx(before[i].p1.x()).margin(1e-9));
+        CHECK(ents[i].p1.y() == Approx(before[i].p1.y()).margin(1e-9));
+    }
+
+    // And a dimension typed onto one of them lands exactly, which is what stopped working.
+    cons.push_back(con(CT::Distance, 0, R::P0, 0, R::P1, 7.0));
+    auto res2 = sketch_solve(ents, cons);
+    REQUIRE(res2.ok);
+    CHECK((ents[0].p1 - ents[0].p0).norm() == Approx(7.0).margin(1e-9));
+
+    // A conflict inside ONE component must still be caught, not swallowed by the split.
+    cons.push_back(con(CT::Distance, 0, R::P0, 0, R::P1, 99.0));
+    auto res3 = sketch_solve(ents, cons);
+    CHECK_FALSE(res3.ok);
+}

@@ -129,6 +129,7 @@ def shot(path):
 # the near one. Four measured correspondences determine it exactly. Measuring beats assuming —
 # the camera can be anywhere, and a wrong constant silently puts every click somewhere else.
 _H = None            # plane -> pixel, row-major 3x3
+_SAFE = None         # (xmin, xmax, ymin, ymax) of the plane region the probes covered
 
 
 def _solve(A, b):
@@ -245,18 +246,24 @@ def enter_sketch(tool_key, plane_px=(913, 359)):
     click(*plane_px)
     key("shift+s", 0.8)
     key("Escape", 0.4)          # entering sketch mode pops the offer; dismiss it
-    key(tool_key, 0.6)
+    key("p", 0.6)
     if try_call("sketch_describe") is None:
         shot("/shots/gl-enter-failed.png")
-        die("no sketch opened after plane click + Shift+S + " + tool_key
-            + " (see /shots/gl-enter-failed.png)")
+        die("no sketch opened after plane click + Shift+S (see /shots/gl-enter-failed.png)")
+    calibrate_here()            # THIS sketch's own camera map, on THIS sketch's own plane
+    key(tool_key, 0.6)
 
 
-def calibrate():
-    """Place four Points by hand, read where they landed, and solve for the camera's map."""
+def calibrate_here():
+    """Place four Points in the sketch that is already open, solve the map, then undo them.
+
+    PER SKETCH, not once per run. The camera is wherever the previous rung left it — reopening a
+    sketch and loading a project both move it — and the plane label the entry click lands on
+    moves with it, so a later sketch can end up on XZ while the map was solved on XY. Both of
+    those turn into clicks that land somewhere else, and geometry that looks drawn but is not
+    where it was asked for. Four points cost about four seconds and remove the whole class.
+    """
     global _H
-    reset_document()
-    enter_sketch("p")
     probes = [(1000, 500), (1400, 500), (1400, 760), (1000, 760)]
     for u, v in probes:
         click(u, v)
@@ -270,12 +277,24 @@ def calibrate():
         u, v = px(e["p"][0], e["p"][1])
         if abs(u - probes[i][0]) > 0.5 or abs(v - probes[i][1]) > 0.5:
             die(f"calibration residual too large at probe {i}: {(u, v)} vs {probes[i]}")
-    say(f"calibrated: 4 probes, plane span "
-        f"{ents[1]['p'][0] - ents[0]['p'][0]:.1f} x {ents[0]['p'][1] - ents[3]['p'][1]:.1f} mm")
-    leave_sketch()
+    global _SAFE
+    xs = [e["p"][0] for e in ents]; ys = [e["p"][1] for e in ents]
+    _SAFE = (min(xs), max(xs), min(ys), max(ys))
+    for _ in range(len(probes)):
+        key("ctrl+z", 0.5)                 # the probes are scaffolding, not geometry
+    left = describe()["entities"]
+    if left:
+        die(f"{len(left)} calibration probes survived the undo")
 
 
 # ---------------------------------------------------------------- typed values
+
+# How long to wait for the in-canvas field to appear and to settle after a commit. The queue
+# opens each field from a CallAfter that runs AFTER a re-solve, so on a heavy sketch the field is
+# simply not there yet when a fast driver starts typing — the digits go nowhere and the value
+# stays as drawn. Rungs that work on a thousand entities raise this.
+PACE = 1.0
+
 
 def value(v, pause=0.6):
     """Type one number into the open in-canvas field and commit it.
@@ -284,9 +303,10 @@ def value(v, pause=0.6):
     pre-selection that a synthetic click has disturbed would otherwise leave the typed digits
     appended to it.
     """
+    time.sleep(0.25 * PACE)
     key("ctrl+a", 0.15)
     typ(str(v), 0.25)
-    key("Return", pause)
+    key("Return", pause * PACE)
 
 
 def values(*vs):
@@ -998,6 +1018,82 @@ def rung_roundtrip():
     reset_document()
 
 
+def rung_scale():
+    print("\nE4  scale — a gesture on top of a sketch that already holds a thousand entities")
+    enter_sketch("r")
+    # The heavy profile is bulk-loaded through the socket ON PURPOSE: what is under test here is
+    # whether the interactive path still works with a large sketch already on screen, not where
+    # that sketch came from. A plate with a 20 x 15 grid of square cut-outs — 1204 entities.
+    # Sized to the region the calibration probes covered, so every part of it can actually be
+    # clicked: the camera is wherever the last rung left it, and a plate drawn off-screen would
+    # test nothing but my arithmetic.
+    x0, x1, y0, y1 = _SAFE
+    cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+    hw, hh = (x1 - x0) * 0.44, (y1 - y0) * 0.44
+    ents = [{"type": "line", "p0": [cx - hw, cy - hh], "p1": [cx + hw, cy - hh]},
+            {"type": "line", "p0": [cx + hw, cy - hh], "p1": [cx + hw, cy + hh]},
+            {"type": "line", "p0": [cx + hw, cy + hh], "p1": [cx - hw, cy + hh]},
+            {"type": "line", "p0": [cx - hw, cy + hh], "p1": [cx - hw, cy - hh]}]
+    # 300 square cut-outs in the LEFT half; the right half stays clear so the gesture below has
+    # somewhere to land that is not within snapping distance of a cut-out corner.
+    pitch_x, pitch_y = hw * 0.9 / 20.0, hh * 1.9 / 15.0
+    side = min(pitch_x, pitch_y) * 0.4
+    for i in range(20):
+        for j in range(15):
+            x = cx - hw * 0.95 + i * pitch_x
+            y = cy - hh * 0.95 + j * pitch_y
+            c = [(x, y), (x + side, y), (x + side, y + side), (x, y + side), (x, y)]
+            for k in range(4):
+                ents.append({"type": "line", "p0": list(c[k]), "p1": list(c[k + 1])})
+    t0 = time.monotonic(); call("sketch_add", entities=ents); t_add = time.monotonic() - t0
+    d0 = describe()
+    check("SCALE", len(d0["entities"]) == len(ents), f"{len(d0['entities'])} entities loaded "
+                                                     f"in {t_add*1000:.0f} ms")
+    lp0 = d0["closed_loops"]
+    check("CLOSED", len(lp0) == 301, f"{len(lp0)} closed loops")
+    outer = max(range(len(lp0)), key=lambda i: abs(lp0[i]["area"]))
+    check("AREA", near(abs(lp0[outer]["area"]), 4.0 * hw * hh, 1e-9),
+          f"outer plate {abs(lp0[outer]['area']):.9f} vs {4.0*hw*hh:.9f}")
+    check("VOID", len(lp0[outer]["holes"]) == 300,
+          f"all {len(lp0[outer]['holes'])} cut-outs attributed to the plate")
+    check("AREA", all(near(abs(lp0[h]["area"]), side * side, 1e-9) for h in lp0[outer]["holes"]),
+          f"every cut-out is exactly {side:.6f} squared")
+    # Now the part that matters: draw ONE more entity by hand, on top of all that.
+    #
+    # The Escape is a WORKAROUND, not decoration: after a bulk sketch_add the next tool key and
+    # click are swallowed — the preview is drawn, its value field opens, and no entity is ever
+    # committed — until one Escape has been pressed. It is reachable only by mixing the socket
+    # into a live gesture session, which is exactly what this rung does. snaporca-j7gc; when that
+    # is fixed, delete this line and the rung must still pass.
+    key("Escape", 0.8)
+    key("l", 0.8)
+    global PACE
+    PACE = 6.0                                     # a thousand entities re-solve between fields
+    t0 = time.monotonic()
+    ax, ay = cx + hw * 0.15, cy + hh * 0.55        # clear of the grid, inside the plate
+    want_len = int(hw * 0.5)                       # a WHOLE number: see value() on separators
+    clickmm(ax, ay); clickmm(ax + want_len, ay)
+    value(want_len)
+    dl = describe()
+    say(f"after the typed length: solve_ok={dl['solve_ok']} constraints={dl['constraints']} "
+        f"dof={dl['dof']} entities={len(dl['entities'])}")
+    value(0)
+    t_draw = time.monotonic() - t0
+    d = describe()
+    check("SCALE", len(d["entities"]) == len(ents) + 1,
+          f"the gesture added exactly one entity ({t_draw:.1f} s including four synthetic events)")
+    new = d["entities"][-1]
+    check("LENGTH", near(new["length"], float(want_len), 1e-9),
+          f"and it took its typed length exactly: {new['length']}")
+    ang = math.degrees(math.atan2(new["p1"][1] - new["p0"][1], new["p1"][0] - new["p0"][0])) % 360.0
+    check("ANGLE", near(ang, 0.0, 1e-9) or near(ang, 360.0, 1e-9), f"and its typed angle: {ang}")
+    same = all(math.dist(a["p0"], b["p0"]) == 0.0 and math.dist(a["p1"], b["p1"]) == 0.0
+               for a, b in zip(d0["entities"], d["entities"]))
+    check("VERTEX", same, "and moved none of the thousand entities already there")
+    PACE = 1.0
+    leave_sketch()
+
+
 def reopen_sketch():
     w, X, Y, _, _ = win()
     sh(f"DISPLAY={DISP} xdotool mousemove {X+TREE_ROW0[0]} {Y+TREE_ROW0[1]} "
@@ -1013,12 +1109,13 @@ RUNGS = {"rect": rung_rect, "circle": rung_circle, "line": rung_line, "arc": run
          "mirror": rung_mirror, "trim": rung_trim, "extend": rung_extend,
          "dimension": rung_dimension, "constrain": rung_constrain,
          "perpendicular": rung_perpendicular, "undo": rung_undo,
-         "feature_undo": rung_feature_undo, "roundtrip": rung_roundtrip}
+         "feature_undo": rung_feature_undo, "roundtrip": rung_roundtrip,
+         "scale": rung_scale}
 
 
 def main():
     want = sys.argv[1:] or list(RUNGS)
-    calibrate()
+    reset_document()
     for name in want:
         if name not in RUNGS:
             die(f"unknown rung {name}; have {' '.join(RUNGS)}")
