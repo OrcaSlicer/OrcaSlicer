@@ -67,6 +67,7 @@ public:
     // row off arms a NEIGHBOURING tool and then grades whatever that drew. snaporca-ekt9.
     Mode mode() const { return m_mode; }
     int  pending_points() const { return int(m_points.size()); }
+    void emit_step_hint();   // fires on_step_changed when the step actually moved
     // Is an in-canvas value field open? While one is, the canvas is frozen and every letter is
     // swallowed — the single most common reason a driven gesture "does nothing".
     bool value_field_open() const { return m_awaiting_length; }
@@ -434,6 +435,13 @@ public:
 
     // Live readout while drawing a Line/Polyline segment (anchor->cursor metrics).
     std::function<void(double length, double angle_deg, bool locked)> on_cursor_metrics;
+
+    // Live step guidance (snaporca-1c0c). The armed tool reports WHICH STEP of its gesture the
+    // user is on, every time that changes, so the status line can name the next click instead of
+    // repeating the one-shot sentence written when the tool was armed. step = anchors/picks
+    // already down (Mirror: 0 = no axis, 1 = axis down, 2 = ready to apply); picks = size of the
+    // set the gesture accumulates (mirror targets, transform targets, Select's selection).
+    std::function<void(Mode mode, int step, int picks)> on_step_changed;
 
     // DoF feedback (P3): solver state after each live solve. dof>0 = under-constrained,
     // dof==0 = fully constrained, ok==false = conflicting/inconsistent constraints.
@@ -1005,6 +1013,10 @@ private:
     // In-canvas edit-op gizmo state (Fillet/Chamfer/Offset/Mirror). GUI-only, reset by
     // set_tool/cancel. Fillet/Chamfer: m_op_a,m_op_b = the two lines; Offset: m_op_a = src;
     // Mirror: m_op_a = axis line, m_mirror_targets = entities to mirror.
+    // Last (mode, step, picks) reported through on_step_changed; -1 mode = nothing reported yet.
+    int    m_step_mode_last{-1};
+    int    m_step_last{-1};
+    int    m_step_picks_last{-1};
     int    m_op_a{-1};
     int    m_op_b{-1};
     double m_op_value{0.0};                 // radius / setback / signed offset distance

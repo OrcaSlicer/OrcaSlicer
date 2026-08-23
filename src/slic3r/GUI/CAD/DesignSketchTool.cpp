@@ -66,6 +66,7 @@ void DesignSketchTool::begin(const SketchPlane& plane, Mode mode)
 {
     m_plane = plane;
     m_mode = mode;
+    m_step_mode_last = -1;        // a new session re-announces its step, even if it repeats the last
     m_points.clear();
     m_entities.clear();
     m_construction = false;
@@ -297,6 +298,7 @@ void DesignSketchTool::cancel()
 {
     close_session_chrome();     // same orphaned-field freeze as finish() — see snaporca-yce
     m_active = false;
+    m_step_mode_last = -1;
     m_points.clear();
     m_entities.clear();
     m_construction = false;
@@ -6414,12 +6416,53 @@ int DesignSketchTool::region_at(const Vec2d& p) const
 
 // ---- rendering --------------------------------------------------------------
 
+// Chop a polyline into dashes (snaporca-imlq). Construction geometry is dashed in every CAD;
+// this one painted it solid grey, which against the under-constrained orange reads as "another
+// line", not as "reference only". The dash and gap arrive in WORLD units — the caller scales them
+// by units-per-pixel, so the dash keeps its size on screen at any zoom instead of turning into a
+// solid line when you zoom out and into three dashes when you zoom in.
+static std::vector<std::vector<Vec2d>> dash_polyline(const std::vector<Vec2d>& pts, bool closed,
+                                                     double dash, double gap)
+{
+    std::vector<std::vector<Vec2d>> out;
+    if (pts.size() < 2 || dash <= 0.0 || gap <= 0.0) return out;
+    const size_t segs = closed ? pts.size() : pts.size() - 1;
+    bool   on   = true;      // start on a dash, so a short entity is still visible
+    double left = dash;      // distance remaining in the current dash/gap
+    std::vector<Vec2d> cur;
+    if (on) cur.push_back(pts[0]);
+    for (size_t i = 0; i < segs; ++i) {
+        const Vec2d a = pts[i], b = pts[(i + 1) % pts.size()];
+        double seg = (b - a).norm();
+        if (seg < 1e-12) continue;
+        const Vec2d dir = (b - a) / seg;
+        double t = 0.0;
+        while (seg - t > left) {
+            t += left;
+            const Vec2d p = a + dir * t;
+            if (on) { cur.push_back(p); out.push_back(cur); cur.clear(); }
+            else    { cur.clear(); cur.push_back(p); }
+            on   = !on;
+            left = on ? dash : gap;
+        }
+        left -= (seg - t);
+        if (on) cur.push_back(b);
+    }
+    if (on && cur.size() >= 2) out.push_back(cur);
+    return out;
+}
+
 void DesignSketchTool::draw_quad_strip(GLModel& model, const std::vector<Vec2d>& pts, bool closed, const ColorRGBA& color)
 {
     if (pts.size() < 2)
         return;
 
-    const double hw = 0.6;
+    // Half-width in WORLD units, so a stroke is 2*hw mm wide on the plane. Halved from 0.6 on
+    // user report 2026-08-23: at 1.2 mm the orange under-constrained line was heavy enough to
+    // swallow a short segment and to hide which of two near-parallel lines the cursor was on.
+    // Every one of this function's call sites is a sketch stroke (entities, previews, rubber
+    // bands), which is why the constant is here and not a parameter at twenty call sites.
+    const double hw = 0.3;
     GLModel::Geometry g;
     g.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
     unsigned int base = 0;
@@ -8156,10 +8199,37 @@ const ColorRGBA* DesignSketchTool::sketch_hl_color(int feature) const
     return nullptr;
 }
 
+// Which step of the armed gesture is live, reported only when it moves (snaporca-1c0c). Called
+// from render(), which is the one place EVERY state change passes through — a per-call-site
+// notification would have to be added to each of the thirty-odd tool branches and would be
+// forgotten by the next one. Cheap: three ints compared per frame.
+void DesignSketchTool::emit_step_hint()
+{
+    if (!on_step_changed) return;
+    int step = 0, picks = 0;
+    if (is_edit_op_mode()) {
+        picks = (m_mode == Mode::Mirror) ? int(m_mirror_targets.size())
+                                         : int(m_op_a >= 0) + int(m_op_b >= 0);
+        step  = (m_op_a < 0) ? 0 : (op_ready() ? 2 : 1);
+    } else if (is_transform_mode()) {
+        picks = int(m_tf_targets.size());
+        step  = m_tf_targets.empty() ? 0 : 1;
+    } else if (m_mode == Mode::Select || m_mode == Mode::Constrain) {
+        picks = int(m_selection.size());
+    } else {
+        step = int(m_points.size());
+    }
+    if (int(m_mode) == m_step_mode_last && step == m_step_last && picks == m_step_picks_last)
+        return;
+    m_step_mode_last = int(m_mode); m_step_last = step; m_step_picks_last = picks;
+    on_step_changed(m_mode, step, picks);
+}
+
 void DesignSketchTool::render(GLCanvas3D& canvas)
 {
     m_dim_label_seq = 0;
     m_render_scale  = canvas.get_scale();
+    emit_step_hint();   // before the early returns: an armed tool on an empty sketch still guides
     (void)canvas;
     if (!has_display()) {
         if (on_readout) on_readout(std::string());   // nothing to show -> hide HUD
@@ -8389,6 +8459,8 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     const ColorRGBA white(1.0f, 1.0f, 1.0f, 1.0f);
     const ColorRGBA green(0.30f, 0.85f, 0.42f, 1.0f);
     const ColorRGBA conflict(1.0f, 0.22f, 0.22f, 1.0f);
+    const ColorRGBA opref(0.80f, 0.45f, 1.0f, 1.0f);     // violet: the edit-op's reference pick
+    const double    upp_dash = 1.0 / std::max(camera.get_zoom(), 1e-6);   // world units per pixel
     const ColorRGBA editing(1.0f, 0.78f, 0.10f, 1.0f);   // amber: entity whose dim is being typed
     const bool fully = (m_dof == 0 && m_solve_ok);
     // While an auto-edit value field is open, the active step names the entities its dimension
@@ -8405,8 +8477,15 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         const bool editing_this =
             edit_hi && std::find(edit_hi->begin(), edit_hi->end(), int(i)) != edit_hi->end();
         const bool bad = i < m_entity_conflict.size() && m_entity_conflict[i];
+        // The first pick of an edit-op has a DIFFERENT ROLE from the rest of the selection —
+        // Mirror's is the axis, Fillet/Chamfer's is the first of the two lines — and until now
+        // every pick painted the same white, so the picture could not answer "what did I select
+        // as what". Violet, not cyan: cyan means SELECTED here and nothing else may wear it.
+        // snaporca-vd6v.
+        const bool op_ref = is_edit_op_mode() && int(i) == m_op_a;
         ColorRGBA col;
         if (editing_this)        col = editing;
+        else if (op_ref)         col = opref;
         else if (selected)       col = white;
         else if (bad)            col = conflict;
         else if (e.construction) col = grey;
@@ -8417,7 +8496,13 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         }
         bool closed = false;
         std::vector<Vec2d> poly = entity_polyline(e, closed);
-        draw_quad_strip((selected || editing_this) ? m_highlight_model : m_line_model, poly, closed, col);
+        GLModel& target = (selected || editing_this || op_ref) ? m_highlight_model : m_line_model;
+        if (e.construction) {
+            for (const std::vector<Vec2d>& d : dash_polyline(poly, closed, 9.0 * upp_dash, 6.0 * upp_dash))
+                draw_quad_strip(target, d, false, col);
+        } else {
+            draw_quad_strip(target, poly, closed, col);
+        }
     }
     if (!point_markers.empty())
         draw_vertices(m_vertex_model, point_markers, yellow);

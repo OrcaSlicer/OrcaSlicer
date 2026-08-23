@@ -857,6 +857,14 @@ private:
     // "no opinion" by setting wxNullColour, which restores exactly this — so it is the only
     // reliable way to tell a chosen colour (the error red) from the default. See set_status().
     wxColour          m_status_default_fg;
+    // The guidance sentence for the step the armed sketch tool is on, kept so a transient
+    // readout (the live length/angle while a segment is being dragged) can be appended to it
+    // instead of replacing it — the guidance used to vanish on the first mouse move after a
+    // click, which is precisely when it is needed. snaporca-1c0c.
+    wxString          m_sketch_step;
+    // mode is a DesignSketchTool::Mode; passed as an int because this header deliberately does
+    // not include the tool's, and the .cpp (which does) casts it back.
+    void              on_sketch_step(int mode, int step, int picks);
     wxStaticText*     m_dof_status{nullptr};   // DoF / constraint-state readout (P3)
     // Last live-solve result, so entering Constrain can restore the readout without a solve.
     int               m_dof_last{-1};

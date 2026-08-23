@@ -78,6 +78,8 @@ public:
     void set_on_segment_drawn(std::function<void(double, double)> cb);
     void set_on_cursor_metrics(std::function<void(double, double, bool)> cb);
     void set_on_solve_state(std::function<void(int, bool, bool)> cb);  // dof, ok, has_constraints
+    // Live per-step guidance from the armed sketch tool (mode, step, picks). snaporca-1c0c.
+    void set_on_sketch_step(std::function<void(DesignSketchTool::Mode, int, int)> cb);
     void apply_segment_length(double len);  // exact length, then commit & repaint
     void keep_segment_as_drawn();           // commit as-drawn & repaint
 

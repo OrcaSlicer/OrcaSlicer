@@ -3407,9 +3407,19 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_viewport->set_on_cursor_metrics([this](double len, double ang_deg, bool locked) {
         double a = ang_deg; if (a < 0.0) a += 360.0;   // show bearing 0..360
         m_status->SetForegroundColour(wxNullColour);
-        set_status(wxString::Format(L"L %.2f mm   %.1f°%s",
-                                            len, a, locked ? L"  (locked)" : L""));
+        // APPENDED to the step guidance, never in place of it. This fires on every mouse move
+        // while a segment is being dragged, so replacing the line wiped the instruction for the
+        // step the user is in the middle of — one mouse move after the click that armed it.
+        const wxString metrics = wxString::Format(L"L %.2f mm   %.1f°%s",
+                                                  len, a, locked ? L"  (locked)" : L"");
+        set_status(m_sketch_step.IsEmpty() ? metrics
+                                           : m_sketch_step + L"   ·   " + metrics);
         m_status->Refresh();
+    });
+
+    // Live per-step guidance: the armed tool says which step it is on, we write the sentence.
+    m_viewport->set_on_sketch_step([this](DesignSketchTool::Mode mode, int step, int picks) {
+        on_sketch_step(int(mode), step, picks);
     });
 
     // DoF feedback (P3): after each live solve, report constraint state on its own
@@ -3422,14 +3432,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
         apply_dof_status(dof, ok, has_constraints);
     });
 
-    // Selection (Select tool): reflect the count in the status line.
-    m_viewport->set_on_sketch_selection_changed([this](int count) {
-        m_status->SetForegroundColour(wxNullColour);
-        set_status(count > 0
-            ? wxString::Format(_L("%d selected — Delete removes them"), count)
-            : _L("Click to select; click a filled face to extrude; Shift to add"));
-        m_status->Refresh();
-    });
+    // Selection no longer writes the status line: on_sketch_step owns it, says the same thing
+    // for Select mode and — unlike this callback, which also fired while an edit-op mirrored its
+    // picks into the selection — never claims "N selected, Delete removes them" in the middle of
+    // a Mirror gesture, where Delete does nothing of the sort. snaporca-1c0c.
 
     // Onshape flow: clicking inside a closed-loop face commits the sketch and opens
     // the Extrude dialog (with a ghost preview) targeting that sketch.
@@ -4044,7 +4050,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         }
         // Delete — the selected sketch entities (or the last drawn one if none is selected), or the
         // selected feature in Feature mode. Focus-independent, same reason as undo above.
-        if (!in_text && key == WXK_DELETE) {
+        // WXK_BACK too: on a keyboard whose Del is a chord (every laptop this runs on), Del is
+        // the one destructive key nobody can reach, and Backspace is what users press. snaporca-oql1.
+        if (!in_text && (key == WXK_DELETE || (key == WXK_BACK && sketching))) {
             if (sketching) { m_viewport->delete_selected_or_last_sketch_entity(); return; }
             if (m_ui_mode == UiMode::Feature && m_active == Tool::None
                 && tree_selection() != wxNOT_FOUND) { on_delete_feature(); return; }
@@ -5954,6 +5962,179 @@ void DesignPanel::set_status(const wxString& text)
         m_viewport->set_status_text(text, fg != m_status_default_fg ? fg
                                                                     : wxColour(0xDD, 0xE1, 0xE6));
     }
+}
+
+
+// The sentence for the step the armed sketch tool is on (snaporca-1c0c). One table, so a tool's
+// gesture is described in one place and the description cannot drift from the code that reads the
+// clicks: the step counts here are the ones DesignSketchTool::render previews and on_mouse
+// consumes. `step` = anchors already placed (edit-ops: 0 none, 1 first pick down, 2 ready to
+// apply); `picks` = the size of the set the gesture accumulates.
+//
+// It is deliberately explicit about the gesture that ENDS each tool, because none of them is
+// discoverable: a click on empty space applies an edit-op or a transform, right-click cancels it,
+// and Esc downgrades an armed tool to Select before it ever exits the sketch.
+static wxString sketch_step_prompt(DesignSketchTool::Mode m, int step, int picks)
+{
+    using Mode = DesignSketchTool::Mode;
+    auto pick_more = [](const wxString& lead, int n) {
+        return n <= 0 ? lead
+                      : lead + wxString::Format(_L("  ·  %d picked"), n);
+    };
+    switch (m) {
+    case Mode::Select:
+        return picks > 0
+            ? wxString::Format(_L("%d selected  ·  Del removes them  ·  Shift-click adds  ·  "
+                                  "double-click takes the whole loop"), picks)
+            : _L("Select — click an entity to pick it  ·  drag an endpoint or centre to move it  ·  "
+                 "Shift-click adds  ·  Del removes");
+    case Mode::Constrain:
+        return picks > 0
+            ? wxString::Format(_L("%d picked  ·  now choose a constraint (Horizontal, Parallel, "
+                                  "Tangent, Equal…)"), picks)
+            : _L("Constrain — click one or two entities, then choose a constraint");
+    case Mode::Dimension:
+        return step == 0 ? _L("Dimension — click an entity, or the first of two points")
+                         : _L("Dimension — click the second point");
+    case Mode::Line:
+        return step == 0 ? _L("Line — click the start point")
+                         : _L("Line — click the end point, or type the length");
+    case Mode::Polyline:
+        return step == 0 ? _L("Polyline — click the first point")
+                         : pick_more(_L("Polyline — click the next point  ·  click the start point "
+                                        "to close it  ·  right-click to end the chain"), step);
+    case Mode::CornerRect:
+        return step == 0 ? _L("Rectangle — click one corner")
+                         : _L("Rectangle — click the opposite corner");
+    case Mode::CenterRect:
+        return step == 0 ? _L("Centre rectangle — click the centre")
+                         : _L("Centre rectangle — click a corner");
+    case Mode::ObliqueRect:
+        return step == 0 ? _L("Oblique rectangle — click the start of the base edge")
+             : step == 1 ? _L("Oblique rectangle — click the end of the base edge (this sets the angle)")
+                         : _L("Oblique rectangle — click to set the width");
+    case Mode::RoundedRect:
+        return step == 0 ? _L("Rounded rectangle — click one corner")
+             : step == 1 ? _L("Rounded rectangle — click the opposite corner")
+                         : _L("Rounded rectangle — click to set the corner radius");
+    case Mode::CenterCircle:
+        return step == 0 ? _L("Circle — click the centre")
+                         : _L("Circle — click to set the radius, or type it");
+    case Mode::TwoPointCircle:
+        return step == 0 ? _L("Circle (2 points) — click one end of the diameter")
+                         : _L("Circle (2 points) — click the other end of the diameter");
+    case Mode::ThreePointCircle:
+        return step == 0 ? _L("Circle (3 points) — click the first point on the circle")
+             : step == 1 ? _L("Circle (3 points) — click the second point")
+                         : _L("Circle (3 points) — click the third point");
+    case Mode::ThreePointArc:
+        return step == 0 ? _L("Arc — click the start point")
+             : step == 1 ? _L("Arc — click the end point")
+                         : _L("Arc — click a point the arc passes through");
+    case Mode::TangentArc:
+        return step == 0 ? _L("Tangent arc — click the endpoint it leaves from")
+                         : _L("Tangent arc — click its far end");
+    case Mode::CenterArc:
+        return step == 0 ? _L("Centre arc — click the centre")
+             : step == 1 ? _L("Centre arc — click the start point (this sets the radius)")
+                         : _L("Centre arc — click the end point");
+    case Mode::Slot:
+        return step == 0 ? _L("Slot — click one end of the centreline")
+             : step == 1 ? _L("Slot — click the other end of the centreline")
+                         : _L("Slot — click to set the width");
+    case Mode::ArcSlot:
+        return step == 0 ? _L("Arc slot — click the centre the slot curves about")
+             : step == 1 ? _L("Arc slot — click the start of the centreline (this sets the radius)")
+             : step == 2 ? _L("Arc slot — click the end of the centreline")
+                         : _L("Arc slot — click to set the width");
+    case Mode::Polygon:
+        return step == 0 ? _L("Polygon — click the centre")
+                         : _L("Polygon — click a vertex (this sets size and orientation)");
+    case Mode::Ellipse:
+        return step == 0 ? _L("Ellipse — click the centre")
+             : step == 1 ? _L("Ellipse — click the end of the major axis")
+                         : _L("Ellipse — click a point on the minor axis");
+    case Mode::EllipseArc:
+        return step == 0 ? _L("Elliptical arc — click the centre")
+             : step == 1 ? _L("Elliptical arc — click the end of the major axis")
+             : step == 2 ? _L("Elliptical arc — click a point on the minor axis")
+             : step == 3 ? _L("Elliptical arc — click where the arc starts")
+                         : _L("Elliptical arc — click where the arc ends");
+    case Mode::BSpline:
+        return step == 0 ? _L("Spline — click the first control point")
+                         : pick_more(_L("Spline — click the next control point  ·  right-click to "
+                                        "finish the curve"), step);
+    case Mode::Point:
+        return _L("Point — click to place one; the tool stays armed for more");
+    case Mode::Trim:
+        return _L("Trim — click a segment where it crosses another entity  ·  right-click to exit");
+    case Mode::Extend:
+        return _L("Extend — click a line or arc to grow it out to the nearest entity  ·  "
+                  "right-click to exit");
+    case Mode::Fillet:
+        return step == 0 ? _L("Fillet — click the first of two lines that meet")
+             : step == 1 ? _L("Fillet — click the second line")
+                         : _L("Fillet — drag the arrow, or click the number to type the radius  ·  "
+                              "click empty space to apply  ·  right-click cancels");
+    case Mode::Chamfer:
+        return step == 0 ? _L("Chamfer — click the first of two lines that meet")
+             : step == 1 ? _L("Chamfer — click the second line")
+                         : _L("Chamfer — drag the arrow, or click the number to type the setback  ·  "
+                              "click empty space to apply  ·  right-click cancels");
+    case Mode::Offset:
+        return step == 0 ? _L("Offset — click the entity to offset")
+                         : _L("Offset — drag the arrow to either side, or click the number to type "
+                              "the distance  ·  click empty space to apply  ·  right-click cancels");
+    case Mode::Mirror:
+        // The two-phase pick is the one gesture users reported as unguided: nothing said the
+        // AXIS comes first, and nothing said an empty click is what applies it.
+        return step == 0
+            ? _L("Mirror — first click the LINE to mirror about (a construction line works)")
+            : picks == 0
+                ? _L("Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels")
+                : wxString::Format(_L("Mirror — axis set  ·  %d to mirror  ·  click another to add or "
+                                      "remove it  ·  click empty space to apply"), picks);
+    case Mode::Move:
+        return step == 0 ? _L("Move — click the entities to move")
+                         : pick_more(_L("Move — drag the handle, or click the number to type the "
+                                        "distance  ·  click empty space to apply"), picks);
+    case Mode::Rotate:
+        return step == 0 ? _L("Rotate — click the entities to rotate")
+                         : pick_more(_L("Rotate — drag the handle, or click the number to type the "
+                                        "angle  ·  click empty space to apply"), picks);
+    case Mode::Scale:
+        return step == 0 ? _L("Scale — click the entities to scale")
+                         : pick_more(_L("Scale — drag the handle, or click the number to type the "
+                                        "factor  ·  click empty space to apply"), picks);
+    case Mode::Array:
+        return step == 0 ? _L("Array — click the entities to repeat")
+                         : pick_more(_L("Array — drag the handle to set the step, click the count to "
+                                        "type it  ·  click empty space to apply"), picks);
+    case Mode::PolarArray:
+        return step == 0 ? _L("Polar array — click the entities to repeat")
+                         : pick_more(_L("Polar array — drag the handle to set the sweep, click the "
+                                        "count to type it  ·  click empty space to apply"), picks);
+    case Mode::TransformArt:
+        return _L("Drag a corner to scale, the centre to move  ·  right-click when done");
+    }
+    return wxString();
+}
+
+void DesignPanel::on_sketch_step(int mode, int step, int picks)
+{
+    wxString text = sketch_step_prompt(DesignSketchTool::Mode(mode), step, picks);
+    // Esc is layered (DesignSketchTool::request_exit): it drops the anchors down, then downgrades
+    // the armed tool to Select, and only then leaves the sketch. Nothing in the UI said so, so
+    // the route back to selecting existing geometry was invisible. Said once, on the step where
+    // the gesture has not started yet, so it does not crowd the instruction that matters.
+    if (step == 0 && picks == 0 && DesignSketchTool::Mode(mode) != DesignSketchTool::Mode::Select
+        && !text.IsEmpty())
+        text += _L("  ·  Esc goes back to Select");
+    m_sketch_step = text;
+    if (text.IsEmpty() || m_status == nullptr) return;
+    m_status->SetForegroundColour(wxNullColour);
+    set_status(text);
+    m_status->Refresh();
 }
 
 wxMenuItem* DesignPanel::append_offer_item(wxMenu* menu, int id, const wxString& text,
