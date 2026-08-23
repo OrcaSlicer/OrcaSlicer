@@ -381,6 +381,42 @@ void DesignSketchTool::delete_selected()
     // a stale m_dim_e0 would dereference out of range on the next click. Drop it too.
     m_dim_e0 = -1;
     m_dim_r0 = SketchPointRole::P0;
+
+    // FEATURE GROUPS hold [begin,end) ranges into m_entities, and every index past a deletion has
+    // just moved. Left alone they point at other people's geometry: feature_of() then answers with
+    // a group the user never drew, and the rect/slot/polygon handles and live quotes follow it.
+    // Survivors are remapped (a contiguous range stays contiguous, since the remap preserves
+    // order); a group that lost any member is dropped, the same rule the placed quotes above
+    // already follow — dangling is worse than absent.
+    {
+        std::vector<Feature> kept_f;
+        for (const Feature& f : m_features) {
+            if (f.begin < 0 || f.end > n || f.end <= f.begin) continue;
+            bool whole = true;
+            for (int k = f.begin; k < f.end; ++k)
+                if (del[k]) { whole = false; break; }
+            if (!whole) continue;
+            Feature g = f;
+            g.begin = remap[f.begin];
+            g.end   = remap[f.end - 1] + 1;
+            kept_f.push_back(g);
+        }
+        m_features.swap(kept_f);
+        m_open_feature = -1;
+    }
+
+    // The draw-then-edit QUEUE outlives the entities it was queued for. Its own helper says so:
+    // "Removing an entity that still has a deferred auto-edit would otherwise open a field on a
+    // now-deleted entity and freeze the flow" — it was simply never called from here. Measured:
+    // delete a rectangle whose Width/Height were still queued, draw a circle, type its radius —
+    // the field opens, the digits go in, and the radius does not move, because the field belongs
+    // to a rectangle that no longer exists. snaporca-ua9g.
+    reset_autoedit();
+
+    // And re-solve, so the sketch's reported degrees of freedom describe the sketch that is
+    // actually there. Without this, sketch_describe answered dof=16 for a document holding one
+    // circle — the DoF of the geometry that had just been deleted.
+    resolve_live();
     if (on_selection_changed) on_selection_changed(0);
 }
 

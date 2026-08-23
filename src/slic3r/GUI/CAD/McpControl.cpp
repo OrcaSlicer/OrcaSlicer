@@ -1271,9 +1271,38 @@ json sketch_entity_to(const SketchEntity& e, int index)
         j["type"] = "point";
         j["p"] = json::array({e.p0.x(), e.p0.y()});
         break;
-    case SketchEntity::Type::Ellipse:     j["type"] = "ellipse";     break;
-    case SketchEntity::Type::EllipseArc:  j["type"] = "ellipse_arc"; break;
-    case SketchEntity::Type::BSpline:     j["type"] = "spline";      break;
+    // Ellipses and splines used to serialise as a TYPE NAME and nothing else, so every
+    // parameter they have was invisible to the only read-back this project has. A ladder could
+    // count them and grade the faceted area of the loop they close (2e-2, the faceting error) —
+    // it could not check a single axis, angle or pole. "Precise definition of every aspect"
+    // cannot be asserted about an entity whose aspects the instrument cannot see.
+    case SketchEntity::Type::Ellipse:
+        j["type"]     = "ellipse";
+        j["center"]   = json::array({e.center.x(), e.center.y()});
+        j["radius"]   = e.radius;     // semi-major (a)
+        j["rminor"]   = e.rminor;     // semi-minor (b)
+        j["rotation"] = e.rotation;   // major-axis angle, radians
+        break;
+    case SketchEntity::Type::EllipseArc:
+        j["type"]        = "ellipse_arc";
+        j["center"]      = json::array({e.center.x(), e.center.y()});
+        j["radius"]      = e.radius;
+        j["rminor"]      = e.rminor;
+        j["rotation"]    = e.rotation;
+        j["start_angle"] = e.start_angle;
+        j["end_angle"]   = e.end_angle;
+        j["p0"] = json::array({e.p0.x(), e.p0.y()});
+        j["p1"] = json::array({e.p1.x(), e.p1.y()});
+        break;
+    case SketchEntity::Type::BSpline: {
+        j["type"] = "spline";
+        json poles = json::array();
+        for (const Vec2d& c : e.ctrl) poles.push_back(json::array({c.x(), c.y()}));
+        j["ctrl"] = poles;
+        j["p0"] = json::array({e.p0.x(), e.p0.y()});
+        j["p1"] = json::array({e.p1.x(), e.p1.y()});
+        break;
+    }
     }
     return j;
 }
@@ -1462,11 +1491,29 @@ json action_sketch_describe(DesignPanel* panel, const json& params)
     json ents = json::array();
     for (int i = 0; i < int(t.entities().size()); ++i)
         ents.push_back(sketch_entity_to(t.entities()[i], i));
+    // The armed TOOL and its pending anchors. Without these the only way to tell which tool a
+    // menu row actually armed is to draw with it and infer from what came out — which is how a
+    // menu walk that lands one row off gets diagnosed as "the tool is broken".
+    static const char* const kModeNames[] = {
+        "select", "dimension", "polyline", "line", "rect_corner", "rect_center", "rect_oblique",
+        "rect_rounded", "circle_center", "circle_2pt", "point",
+        "circle_3pt", "arc_3pt", "arc_tangent", "arc_center", "slot", "slot_arc", "polygon",
+        "ellipse", "ellipse_arc", "spline",
+        "fillet", "chamfer", "offset", "mirror",
+        "trim", "extend",
+        "move", "rotate", "scale", "array", "array_polar",
+        "transform_art",
+        "constrain" };
+    const int mi = int(t.mode());
     json out{{"ok", true},
              {"entities", ents},
              {"constraints", int(t.constraints().size())},
              {"dof", t.dof()},
              {"solve_ok", t.solve_ok()},
+             {"tool", (mi >= 0 && mi < int(sizeof(kModeNames) / sizeof(kModeNames[0])))
+                          ? kModeNames[mi] : "unknown"},
+             {"pending", t.pending_points()},
+             {"editing", t.value_field_open()},
              {"selection", t.selection()}};
     out.update(sketch_report(t));
     return out;

@@ -62,6 +62,14 @@ public:
                       // In-canvas bounding-box transform for imported Text/SVG art:
                       TransformArt,
                       Constrain };
+    // Which tool is armed, and how many anchors it has down. Read-only, for the offer ladder:
+    // "the menu armed the verb I chose" is otherwise unassertable, and a menu walk that lands one
+    // row off arms a NEIGHBOURING tool and then grades whatever that drew. snaporca-ekt9.
+    Mode mode() const { return m_mode; }
+    int  pending_points() const { return int(m_points.size()); }
+    // Is an in-canvas value field open? While one is, the canvas is frozen and every letter is
+    // swallowed — the single most common reason a driven gesture "does nothing".
+    bool value_field_open() const { return m_awaiting_length; }
     bool is_edit_op_mode() const { return m_mode == Mode::Fillet || m_mode == Mode::Chamfer ||
                                           m_mode == Mode::Offset || m_mode == Mode::Mirror; }
     bool is_transform_mode() const { return m_mode == Mode::Move || m_mode == Mode::Rotate ||
