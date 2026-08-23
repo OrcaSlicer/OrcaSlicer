@@ -7485,7 +7485,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 Semver                file_version;
 
                 //ObjImportColorFn obj_color_fun=nullptr;
-                auto obj_color_fun = [this, &path](ObjDialogInOut &in_out) {
+                auto obj_color_fun = [this, &path, &is_user_cancel](ObjDialogInOut &in_out) {
 
                     if (!boost::iends_with(path.string(), ".obj")) { return; }
                     const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
@@ -7493,6 +7493,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     if (color_dlg.ShowModal() != wxID_OK) {
                         in_out.filament_ids.clear();
                     }
+                    if (in_out.is_canceled)
+                        is_user_cancel = true;
                 };
                 if (boost::iends_with(path.string(), ".stp") ||
                     boost::iends_with(path.string(), ".step")) {
