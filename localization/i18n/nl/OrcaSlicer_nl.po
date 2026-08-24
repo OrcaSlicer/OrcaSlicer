@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-08-19 14:07-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -5150,6 +5150,23 @@ msgstr "De huidige kamertemperatuur is hoger dan de veilige temperatuur van het 
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "De minimale kamertemperatuur (%d℃) is hoger dan de doelkamertemperatuur (%d℃). De minimale waarde is de drempel waarbij het printen start terwijl de kamer verder opwarmt naar de doelwaarde; deze mag die dus niet overschrijden. De waarde wordt begrensd tot de doelwaarde."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr "De laaghoogte is te klein. Deze wordt ingesteld op het minimum (%g mm)."
+
+# AI Translated
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr "De laaghoogte valt buiten de limieten die zijn ingesteld in Printerinstellingen -> Extruder -> Laaghoogtelimieten, dit kan problemen met de afdrukkwaliteit veroorzaken."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr "Automatisch aanpassen naar de limiet (%g mm)?"
+
+msgid "Adjust"
+msgstr "Aanpassen"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -5276,6 +5293,13 @@ msgstr ""
 "Deze instellingen automatisch wijzigen?\n"
 "Ja - Arachne-wandgenerator inschakelen\n"
 "Nee - Arachne-wandgenerator uitschakelen en de modus [Displacement] van Vage buitenkant instellen"
+
+# AI Translated
+msgid "Brim ear radius"
+msgstr "Straal van randoren"
+
+msgid "Brim width"
+msgstr "Rand breedte"
 
 # AI Translated
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
@@ -5581,6 +5605,14 @@ msgstr "Cali G-code niet gegenereerd"
 
 msgid "Calibration error"
 msgstr "Kalibratiefout"
+
+# AI Translated
+msgid "This printer is not configured with the hardware this control needs."
+msgstr "Deze printer beschikt niet over de hardware die dit besturingselement nodig heeft."
+
+# AI Translated
+msgid "This control is not supported on this printer."
+msgstr "Dit besturingselement wordt niet ondersteund op deze printer."
 
 # AI Translated
 msgid "Network unavailable"
@@ -6513,7 +6545,7 @@ msgid "Size:"
 msgstr "Maat:"
 
 # AI Translated
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Er zijn conflicten tussen G-code-paden gevonden op laag %d, Z = %.2lfmm. Plaats de conflicterende objecten verder uit elkaar (%s <-> %s)."
 
@@ -6713,6 +6745,10 @@ msgstr "Meerdere apparaten"
 # AI Translated
 msgid "Project"
 msgstr "Project"
+
+# AI Translated
+msgid "Device (Web)"
+msgstr "Apparaat (Web)"
 
 msgid "Yes"
 msgstr "Ja"
@@ -8999,22 +9035,22 @@ msgid "Replaced with 3D files from directory:\n"
 msgstr "Vervangen door 3D-bestanden uit de map:\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ Overgeslagen %s: hetzelfde bestand.\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ Overgeslagen %s: bestand bestaat niet.\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ Overgeslagen %s: vervangen is mislukt.\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔ Vervangen %s.\n"
 
@@ -9827,6 +9863,18 @@ msgstr "Met deze optie ingeschakeld kunt u een taak tegelijkertijd naar meerdere
 msgid "Pop up to select filament grouping mode"
 msgstr "Pop-up om de filamentgroeperingsmodus te kiezen"
 
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "Zichtbare plug-inpagina's"
+
+# AI Translated
+msgid "pages"
+msgstr "pagina's"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "Aantal plug-inpagina's dat als vaste tabbladen wordt getoond voordat de overige pagina's worden samengevouwen in een vervolgkeuzelijst op het laatste tabblad."
+
 msgid "Behaviour"
 msgstr "Gedrag"
 
@@ -10244,6 +10292,18 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "Toon incompatibele/niet-ondersteunde voorinstellingen in de keuzelijsten voor printer en filament. Deze voorinstellingen kunnen niet worden geselecteerd."
 
 # AI Translated
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr "(Experimenteel) Printeragents gebruiken in plaats van printhosts"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Stuurt printtaken voor niet-Bambu-printers via printer-plug-inagents in plaats van via de klassieke uploadstroom naar de printhost.\n"
+"Wanneer dit is uitgeschakeld, gebruikt OrcaSlicer het oude printhostgedrag."
+
+# AI Translated
 msgid "Experimental Features"
 msgstr "Experimentele functies"
 
@@ -10524,8 +10584,24 @@ msgid "Preset Inside Project"
 msgstr "Voorinstelling binnen project"
 
 # AI Translated
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr "Kopieert alle overgeërfde waarden van de bovenliggende voorinstelling naar deze voorinstelling en verwijdert de overervingsrelatie. Voorinstellingen die alleen met de bovenliggende voorinstelling compatibel zijn, kunnen daardoor niet meer worden ondersteund."
+
+# AI Translated
 msgid "Detach from parent"
 msgstr "Losmaken van bovenliggend element"
+
+# AI Translated
+msgid "Unique preset"
+msgstr "Unieke voorinstelling"
+
+# AI Translated
+msgid "Parent preset"
+msgstr "Bovenliggende voorinstelling"
+
+# AI Translated
+msgid "This preset does not inherit from another preset."
+msgstr "Deze voorinstelling erft niet van een andere voorinstelling."
 
 msgid "Name is unavailable."
 msgstr "Naam is niet beschikbaar."
@@ -11336,22 +11412,6 @@ msgstr "Weet u zeker dat u deze optie wilt inschakelen?"
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "Vulpatronen zijn doorgaans ontworpen om rotatie automatisch af te handelen, zodat ze goed printen en hun beoogde effect bereiken (bijv. Gyroide, Kubisch). Het roteren van het huidige patroon voor de dunne vulling (infill) kan tot onvoldoende ondersteuning leiden. Ga voorzichtig te werk en controleer grondig op mogelijke printproblemen. Weet u zeker dat u deze optie wilt inschakelen?"
 
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"Laaghoogte is te klein.\n"
-"Het zal worden ingesteld op min_layer_height\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "De laaghoogte overschrijdt de limiet in Printerinstellingen -> Extruder -> Laaghoogtelimieten, dit kan problemen met de afdrukkwaliteit veroorzaken."
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "Automatisch aanpassen aan het ingestelde bereik?\n"
-
-msgid "Adjust"
-msgstr "Aanpassen"
-
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "Experimentele functie: Het filament op grotere afstand terugtrekken en afsnijden tijdens filamentwisselingen om flush te minimaliseren. Hoewel het het doorspoelen aanzienlijk kan verminderen, kan het ook het risico op een verstopt mondstuk of andere printcomplicaties vergroten."
 
@@ -11551,6 +11611,9 @@ msgstr "Gereserveerde zoekworden gevonden"
 msgid "Setting Overrides"
 msgstr "Overschrijvingen instellen"
 
+msgid "Retraction when switching material"
+msgstr "Terugtrekken (retraction) bij het wisselen van filament"
+
 msgid "Basic information"
 msgstr "Basisinformatie"
 
@@ -11688,6 +11751,14 @@ msgstr "Geschikte proces profielen"
 
 msgid "Printable space"
 msgstr "Ruimte waarbinnen geprint kan worden"
+
+# AI Translated
+msgid "Printer Agent"
+msgstr "Printeragent"
+
+# AI Translated
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "Selecteer de implementatie van de netwerkagent voor de communicatie met de printer. Beschikbare agenten worden bij het opstarten geregistreerd."
 
 # AI Translated
 #. TRN: The first argument is the parameter's name; the second argument is its value.
@@ -11828,9 +11899,6 @@ msgstr "Limieten voor laaghoogte"
 
 msgid "Z-Hop"
 msgstr "Z-hop"
-
-msgid "Retraction when switching material"
-msgstr "Terugtrekken (retraction) bij het wisselen van filament"
 
 # AI Translated
 msgid ""
@@ -13324,6 +13392,10 @@ msgid " is too close to clumping detection area, and collisions will be caused.\
 msgstr " ligt te dicht bij het gebied voor klontdetectie, waardoor er botsingen zullen ontstaan.\n"
 
 # AI Translated
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr " ligt gedeeltelijk buiten het printbare gebied en kan niet worden geprint.\n"
+
+# AI Translated
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "De geselecteerde mondstuktemperaturen zijn niet compatibel. De mondstuktemperatuur van elk filament moet binnen het aanbevolen mondstuktemperatuurbereik van de andere filamenten vallen. Anders kan het mondstuk verstopt raken of kan de printer beschadigd raken."
 
@@ -13685,10 +13757,6 @@ msgstr "3MF gebruiken in plaats van G-code"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Schakel dit in als de printer een 3MF-bestand als printopdracht accepteert. Indien ingeschakeld verzendt Orca Slicer het geslicede bestand als een .gcode.3mf in plaats van als een gewoon .gcode-bestand."
-
-# AI Translated
-msgid "Printer Agent"
-msgstr "Printeragent"
 
 # AI Translated
 msgid "Select the network agent implementation for printer communication."
@@ -14443,9 +14511,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "Snelheid van interne bruggen. Als de waarde als percentage wordt uitgedrukt, wordt deze berekend op basis van bridge_speed. De standaardwaarde is 150%."
 
-msgid "Brim width"
-msgstr "Rand breedte"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Dit is de afstand van het model tot de buitenste randlijn."
 
@@ -14536,6 +14601,14 @@ msgid ""
 msgstr ""
 "De geometrie wordt vereenvoudigd voordat scherpe hoeken worden gedetecteerd. Deze parameter geeft de minimale lengte van de afwijking voor die vereenvoudiging aan.\n"
 "0 om uit te schakelen."
+
+# AI Translated
+msgid "Brim ears outer only"
+msgstr "Randoren alleen aan de buitenzijde"
+
+# AI Translated
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr "Genereert alleen muisoren op de buitencontour van het model, met uitsluiting van gaten en gesloten secties."
 
 msgid "upward compatible machine"
 msgstr "opwaarts compatibele machine"
@@ -15846,6 +15919,14 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Gyroide"
 
+# AI Translated
+msgid "Sparse infill smooth factor"
+msgstr "Afvlakkingsfactor voor dunne vulling"
+
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "Bepaalt hoe sterk de hoeken van de dunne vulling worden afgerond. 0% behoudt het oorspronkelijke scherpe pad, terwijl 100% de grootst mogelijke bochten tussen aangrenzende vullijnen oplevert."
+
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Versnelling van de topoppervlakte-invulling. Gebruik van een lagere waarde kan de kwaliteit van de bovenlaag verbeteren."
 
@@ -16455,6 +16536,14 @@ msgstr "Het type G-code waarmee de printer compatibel is."
 
 msgid "Klipper"
 msgstr "Klipper"
+
+# AI Translated
+msgid "Skip G-code config block"
+msgstr "G-code-configuratieblok overslaan"
+
+# AI Translated
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr "Schrijft het CONFIG_BLOCK (de sleutel/waarde-paren van de slicerconfiguratie) niet naar het G-code-bestand. Dit kan helpen bij printers waarvan de firmware vastloopt bij het verwerken van deze commentaarregels (bijv. Anycubic go-klipper). Let op: het G-code-bestand bevat dan geen slicerinstellingen meer, dus door het weer in OrcaSlicer te importeren wordt de configuratie niet hersteld."
 
 # AI Translated
 msgid "Pellet Modded Printer"
@@ -17654,6 +17743,14 @@ msgid "Retraction distance when extruder change"
 msgstr "Terugtrekafstand bij extruderwissel"
 
 # AI Translated
+msgid "Retraction Length (Toolchange)"
+msgstr "Terugtreklengte (Gereedschapswissel)"
+
+# AI Translated
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr "Wanneer het terugtrekken vóór een gereedschapswissel wordt geactiveerd, wordt het filament met de opgegeven hoeveelheid teruggetrokken (de lengte wordt gemeten op het onbewerkte filament, voordat het de extruder ingaat)."
+
+# AI Translated
 msgid "Z-hop height"
 msgstr "Z-hop-hoogte"
 
@@ -17762,6 +17859,10 @@ msgstr "Extra lengte bij herstart"
 
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "Als retracten wordt gecompenseerd na een beweging, wordt deze extra hoeveelheid filament geëxtrudeerd. Deze instelling is zelden van toepassing."
+
+# AI Translated
+msgid "Extra length on restart (Toolchange)"
+msgstr "Extra lengte bij herstart (Gereedschapswissel)"
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Als retracten wordt gecompenseerd na een toolwisseling, wordt deze extra hoeveelheid filament geëxtrudeerd."
@@ -18254,6 +18355,14 @@ msgstr "Toolwissel op het afveegblok"
 # AI Translated
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "Dwing de printkop naar het afveegblok te bewegen voordat de opdracht voor de toolwissel (Tx) wordt gegeven. Alleen relevant voor printers met meerdere extruders (meerdere printkoppen) die een afveegblok van type 2 gebruiken. Standaard slaat Orca deze verplaatsing op machines met meerdere printkoppen over, omdat de firmware de kopwissel afhandelt, waardoor de Tx-opdracht boven het geprinte onderdeel kan worden gegeven. Schakel deze optie in als u wilt dat de toolwissel altijd boven het afveegblok wordt uitgevoerd."
+
+# AI Translated
+msgid "Wait for temperature on wipe tower"
+msgstr "Wachten op temperatuur bij het afveegblok"
+
+# AI Translated
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr "Pakt het nieuwe gereedschap op zonder te wachten tot het de printtemperatuur bereikt, verplaatst zich naar het afveegblok en wacht daar op de temperatuur, vlak voor het spoelen. Het materiaal dat tijdens het opwarmen uitloopt komt op het blok terecht in plaats van op het model, en de verplaatsing overlapt met het opwarmen. Alleen relevant voor printers met meerdere extruders (meerdere printkoppen) die een afveegblok van type 2 gebruiken. De firmware of de gereedschapswisselmacro mag niet zelf op de temperatuur wachten. Wanneer dit is uitgeschakeld, wordt het wachten op de temperatuur direct na het gereedschapswisselcommando uitgevoerd."
 
 # AI Translated
 msgid "No sparse layers (beta)"
@@ -21861,10 +21970,6 @@ msgid "Print Host upload"
 msgstr "Host-upload afdrukken"
 
 # AI Translated
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "Selecteer de implementatie van de netwerkagent voor de communicatie met de printer. Beschikbare agenten worden bij het opstarten geregistreerd."
-
-# AI Translated
 msgid "Select a Flashforge printer"
 msgstr "Selecteer een Flashforge-printer"
 
@@ -22918,9 +23023,6 @@ msgstr "Er is iets onverwachts gebeurd bij het inloggen. Probeer het opnieuw."
 msgid "User canceled."
 msgstr "Gebruiker geannuleerd."
 
-msgid "Head diameter"
-msgstr "Kopdiameter"
-
 # AI Translated
 msgid "Max angle"
 msgstr "Maximale hoek"
@@ -23780,6 +23882,22 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "Laaghoogte is te klein.\n"
+#~ "Het zal worden ingesteld op min_layer_height\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "De laaghoogte overschrijdt de limiet in Printerinstellingen -> Extruder -> Laaghoogtelimieten, dit kan problemen met de afdrukkwaliteit veroorzaken."
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "Automatisch aanpassen aan het ingestelde bereik?\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "Kopdiameter"
 
 # AI Translated
 #~ msgid "Print order within a single layer."

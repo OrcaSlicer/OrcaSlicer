@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-08-19 14:07-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -4691,6 +4691,23 @@ msgstr "目前列印裝置內部溫度高於線材的安全溫度，可能會導
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "最低倉室溫度（%d℃）高於目標倉室溫度（%d℃）。最低值是列印開始的門檻，此時倉室會持續朝目標溫度加熱，因此不應超過目標值。系統會將其限制在目標值。"
 
+# AI Translated
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr "層高過小，將設定為最小值（%g mm）。"
+
+# AI Translated
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr "層高超出了印表裝置設定 -> 擠出機 -> 層高限制中設定的範圍，這可能會導致列印品質問題。"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr "是否自動調整至限制值（%g mm）？"
+
+msgid "Adjust"
+msgstr "調整"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4824,6 +4841,13 @@ msgstr ""
 "要自動調整這些設定嗎？\n"
 "是 - 啟用 Arachne Wall 產生器\n"
 "否 - 停用 Arachne Wall 產生器，並將 Fuzzy Skin 設定為 [位移] 模式"
+
+# AI Translated
+msgid "Brim ear radius"
+msgstr "耳狀 Brim 半徑"
+
+msgid "Brim width"
+msgstr "Brim 寬度"
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "花瓶模式僅適用於牆體圈數為 1、停用支撐、停用偵測堵塞、頂部外殼層數為 0、稀疏填充密度為 0，且延時攝影類型為傳統模式時。"
@@ -5078,6 +5102,14 @@ msgstr "產生校正代碼失敗"
 
 msgid "Calibration error"
 msgstr "校正錯誤"
+
+# AI Translated
+msgid "This printer is not configured with the hardware this control needs."
+msgstr "此列印裝置未配置此控制項所需的硬體。"
+
+# AI Translated
+msgid "This control is not supported on this printer."
+msgstr "此列印裝置不支援此控制項。"
 
 # AI Translated
 msgid "Network unavailable"
@@ -5936,7 +5968,7 @@ msgstr "體積："
 msgid "Size:"
 msgstr "尺寸："
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "發現 G-code 路徑在 %d 層，Z = %.2lf mm 處的衝突。請將有衝突的物件分離得更遠（%s <-> %s）。"
 
@@ -6117,6 +6149,10 @@ msgstr "多臺裝置"
 
 msgid "Project"
 msgstr "專案"
+
+# AI Translated
+msgid "Device (Web)"
+msgstr "裝置（網頁）"
 
 msgid "Yes"
 msgstr "是"
@@ -8193,19 +8229,19 @@ msgstr "未選擇替換的目錄"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "已從目錄替換為 3D 檔案：\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ 已跳過 %s：相同檔案。\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ 已跳過 %s：檔案不存在。\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ 已跳過 %s：無法替換。\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔ 已替換 %s。\n"
 
@@ -8940,6 +8976,18 @@ msgstr "啟用時可以同時傳送到並管理多個機臺。"
 msgid "Pop up to select filament grouping mode"
 msgstr "彈出視窗選擇線材分組模式"
 
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "可見的外掛頁面數"
+
+# AI Translated
+msgid "pages"
+msgstr "頁"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "以固定分頁顯示的外掛頁面數量，其餘頁面會收合至最後一個分頁的下拉選單中。"
+
 msgid "Behaviour"
 msgstr "行為"
 
@@ -9295,6 +9343,18 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "在列印裝置和線材下拉選單中顯示不相容/不支援的預設。這些預設無法選取。"
 
 # AI Translated
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr "（實驗性）使用列印裝置代理程式取代列印主機"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"將非 Bambu 列印裝置的列印工作透過列印裝置外掛代理程式傳送，而非傳統的列印主機上傳流程。\n"
+"停用時，OrcaSlicer 會使用舊有的列印主機行為。"
+
+# AI Translated
 msgid "Experimental Features"
 msgstr "實驗性功能"
 
@@ -9558,8 +9618,24 @@ msgstr "使用者預設"
 msgid "Preset Inside Project"
 msgstr "項目預設"
 
+# AI Translated
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr "將父配置繼承的所有數值複製到目前的配置，並解除繼承關係。僅與父配置相容的配置可能會變成不受支援。"
+
 msgid "Detach from parent"
 msgstr "從父預設分離"
+
+# AI Translated
+msgid "Unique preset"
+msgstr "獨立配置"
+
+# AI Translated
+msgid "Parent preset"
+msgstr "父配置"
+
+# AI Translated
+msgid "This preset does not inherit from another preset."
+msgstr "此配置未繼承自其他配置。"
 
 msgid "Name is unavailable."
 msgstr "名稱不可用。"
@@ -10299,22 +10375,6 @@ msgstr "您確認要啟用此選項嗎？"
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "填充模式通常設計為自動處理旋轉，以確保正確列印並實現其預期效果（例如：Gyroid、Cubic）。旋轉目前的稀疏填充模式可能會導致支撐不足。請謹慎操作，並仔細檢查任何潛在的列印問題。您確定要啟用此選項嗎？"
 
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"層高過薄\n"
-"將改為 min_layer_height\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "層高超過了印表裝置設定 -> 擠出機 -> 層高限制，這可能會導致列印品質問題。"
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "是否自動調整至設定範圍？\n"
-
-msgid "Adjust"
-msgstr "調整"
-
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "實驗性功能：在換線過程中以更大的距離收回並切斷線材，以減少沖洗量。儘管這可以顯著減少沖洗，但也可能增加噴嘴堵塞或其他列印問題的風險。"
 
@@ -10507,6 +10567,9 @@ msgstr "偵測到保留的關鍵字"
 msgid "Setting Overrides"
 msgstr "參數覆蓋"
 
+msgid "Retraction when switching material"
+msgstr "切換線材時的回抽量"
+
 msgid "Basic information"
 msgstr "基本資訊"
 
@@ -10637,6 +10700,12 @@ msgstr "相容的切片設定"
 msgid "Printable space"
 msgstr "可列印區域"
 
+msgid "Printer Agent"
+msgstr "列印裝置代理"
+
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "選擇列印裝置通訊的網路代理實施。可用代理在啟動時註冊。"
+
 #. TRN: The first argument is the parameter's name; the second argument is its value.
 #, boost-format
 msgid "Invalid value provided for parameter %1%: %2%"
@@ -10761,9 +10830,6 @@ msgstr "層高限制"
 
 msgid "Z-Hop"
 msgstr "Z 軸抬升"
-
-msgid "Retraction when switching material"
-msgstr "切換線材時的回抽量"
 
 msgid ""
 "The Retract before wipe option could be only 100% when using the Firmware Retraction mode.\n"
@@ -12113,6 +12179,10 @@ msgstr "離淨空區域太近，會發生碰撞。\n"
 msgid " is too close to clumping detection area, and collisions will be caused.\n"
 msgstr "離堵塞偵測區域太近，會發生碰撞。\n"
 
+# AI Translated
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr "有部分超出可列印區域，無法列印。\n"
+
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "所選的噴嘴溫度不相容。每種線材的噴嘴溫度都必須落在其他線材的建議噴嘴溫度範圍內。否則可能會發生噴嘴堵塞或列印裝置損壞。"
 
@@ -12425,9 +12495,6 @@ msgstr "使用 3MF 取代 G-code"
 
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "若列印裝置接受 3MF 檔案作為列印作業，請啟用此選項。啟用後，Orca Slicer 會將切片後的檔案以 .gcode.3mf 形式傳送，而非單純的 .gcode 檔案。"
-
-msgid "Printer Agent"
-msgstr "列印裝置代理"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "選擇用於列印裝置通訊的網路代理實作。"
@@ -13074,9 +13141,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "內部橋接速度。如果該值以百分比表示，將基於 bridge_speed 進行計算。預設值為 150%。"
 
-msgid "Brim width"
-msgstr "Brim 寬度"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "從模型到 Brim 最外圈的距離"
 
@@ -13156,6 +13220,14 @@ msgid ""
 msgstr ""
 "在偵測尖銳角度之前，幾何形狀將被簡化。此參數表示簡化的最小偏差長度。\n"
 "設為 0 以停用"
+
+# AI Translated
+msgid "Brim ears outer only"
+msgstr "僅外輪廓產生耳狀 Brim"
+
+# AI Translated
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr "僅在模型的外輪廓上產生耳狀 Brim，不包含孔洞與封閉區域。"
 
 msgid "upward compatible machine"
 msgstr "向上相容的裝置"
@@ -14316,6 +14388,14 @@ msgstr "TPMS-FK結構"
 msgid "Gyroid"
 msgstr "螺旋體"
 
+# AI Translated
+msgid "Sparse infill smooth factor"
+msgstr "稀疏填充平滑係數"
+
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "控制稀疏填充轉角的圓滑程度。0% 保持原有的銳利路徑，100% 則在相鄰填充線之間產生盡可能大的圓弧。"
+
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "頂面填充的加速度。使用較低值可能會改善頂面列印品質"
 
@@ -14855,6 +14935,14 @@ msgstr "列印裝置相容的 G-code 樣式"
 
 msgid "Klipper"
 msgstr "Klipper"
+
+# AI Translated
+msgid "Skip G-code config block"
+msgstr "略過 G-code 設定區塊"
+
+# AI Translated
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr "不將 CONFIG_BLOCK（切片軟體設定的鍵值對）寫入 G-code 檔案。這對於韌體在解析這些註解行時會當機的列印裝置（例如 Anycubic go-klipper）有幫助。注意：G-code 檔案將不再包含切片設定，因此重新匯入 OrcaSlicer 時無法還原設定。"
 
 msgid "Pellet Modded Printer"
 msgstr "顆粒改裝列印裝置"
@@ -15909,6 +15997,14 @@ msgstr "更換擠出機時長回抽"
 msgid "Retraction distance when extruder change"
 msgstr "更換擠出機時的回抽距離"
 
+# AI Translated
+msgid "Retraction Length (Toolchange)"
+msgstr "回抽長度（換工具）"
+
+# AI Translated
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr "在換工具之前觸發回抽時，線材會依指定的長度回抽（長度是在線材進入擠出機之前，以原始線材測量）。"
+
 msgid "Z-hop height"
 msgstr "Z 抬升高度"
 
@@ -16001,6 +16097,10 @@ msgstr "額外回填長度"
 
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "每當空駛後回抽被補償時，擠出機將推入額外長度的線材。很少需要此設定。"
+
+# AI Translated
+msgid "Extra length on restart (Toolchange)"
+msgstr "額外回填長度（換工具）"
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "當換色後回抽被補償時，擠出機將推入額外長度的線材。"
@@ -16404,6 +16504,14 @@ msgstr "在換料塔上換刀"
 
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "強制工具頭在發出換刀指令 (Tx) 之前先移動到換料塔。僅適用於使用 Type 2 換料塔的多擠出機（多工具頭）列印裝置。預設情況下，Orca 會在多工具頭機器上略過此空駛，因為韌體會處理工具頭交換，這可能導致 Tx 指令在已列印零件上方發出。若您希望換刀一律改在換料塔上方發出，請啟用此選項。"
+
+# AI Translated
+msgid "Wait for temperature on wipe tower"
+msgstr "在換料塔上等待溫度"
+
+# AI Translated
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr "取用新工具時不等待其達到列印溫度，先移動到換料塔，並在清理前於換料塔上等待溫度。升溫過程中滲出的線材會落在換料塔上而非模型上，且移動時間與加熱過程重疊。僅適用於使用第 2 型換料塔的多擠出機（多工具頭）列印裝置。韌體或換工具巨集本身不得等待溫度。停用時，等待溫度的指令會在換工具命令之後立即發出。"
 
 msgid "No sparse layers (beta)"
 msgstr "取消稀疏層（Beta）"
@@ -19622,9 +19730,6 @@ msgstr "實體列印裝置"
 msgid "Print Host upload"
 msgstr "列印主機上傳"
 
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "選擇列印裝置通訊的網路代理實施。可用代理在啟動時註冊。"
-
 msgid "Select a Flashforge printer"
 msgstr "選取 Flashforge 列印裝置"
 
@@ -20516,9 +20621,6 @@ msgstr "嘗試登入時發生了意外錯誤，請再試一次。"
 msgid "User canceled."
 msgstr "使用者取消。"
 
-msgid "Head diameter"
-msgstr "頭直徑"
-
 msgid "Max angle"
 msgstr "最大角度"
 
@@ -21322,6 +21424,22 @@ msgid ""
 msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度可以降低翹曲的機率。"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "層高過薄\n"
+#~ "將改為 min_layer_height\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "層高超過了印表裝置設定 -> 擠出機 -> 層高限制，這可能會導致列印品質問題。"
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "是否自動調整至設定範圍？\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "頭直徑"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "每一層的列印順序"

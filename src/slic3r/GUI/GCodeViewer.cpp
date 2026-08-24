@@ -420,7 +420,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         if (properties_shown) {
             float label_w = 0.0f;
             float value_w = 0.0f;
-            properties_rows.reserve(13);
+            properties_rows.reserve(14);
             auto add_row = [&properties_rows, &label_w, &value_w](std::string label, std::string value) {
                  label_w = std::max(label_w, ImGui::CalcTextSize(label.c_str()).x);
                  value_w = std::max(value_w, ImGui::CalcTextSize(value.c_str()).x);
@@ -433,6 +433,27 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             add_row(_u8L("Width"), buff);
             if (is_extrusion) sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), vertex.height); else strcpy(buff, NA_CSTR);
             add_row(_u8L("Height"), buff);
+            // ORCA: Length of the move ending at the current vertex. Arc moves (G2/G3) are discretized
+            // into several vertices sharing the same gcode line id, so accumulate the whole run to report
+            // the arc length instead of the length of a single chord.
+            if (vertex_id > 0 && (is_extrusion || vertex.is_travel() || vertex.is_wipe())) {
+                const size_t vertices_count = viewer->get_vertices_count();
+                size_t first_id = vertex_id;
+                while (first_id > 0 && viewer->get_vertex_at(first_id - 1).gcode_id == vertex.gcode_id)
+                    --first_id;
+                size_t last_id = vertex_id;
+                while (last_id + 1 < vertices_count && viewer->get_vertex_at(last_id + 1).gcode_id == vertex.gcode_id)
+                    ++last_id;
+                float length = 0.0f;
+                for (size_t i = std::max<size_t>(first_id, 1); i <= last_id; ++i) {
+                    length += (libvgcode::convert(viewer->get_vertex_at(i).position) -
+                               libvgcode::convert(viewer->get_vertex_at(i - 1).position)).norm();
+                }
+                sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), length);
+            }
+            else
+                strcpy(buff, NA_CSTR);
+            add_row(_u8L("Length"), buff);
             sprintf(buff, "%d", vertex.layer_id + 1);
             add_row(_u8L("Layer"), buff);
             sprintf(buff, ("%.1f " + _u8L("mm/s")).c_str(), vertex.feedrate);

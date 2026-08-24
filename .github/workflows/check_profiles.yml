@@ -1,8 +1,12 @@
 name: Check profiles
 on:
   pull_request:
+    # release/* is included because pr-merge-bot.yml lets delegates merge into
+    # it, and it gates on this workflow's result. Without it a delegated merge
+    # into a release branch would run no profile validation at all.
     branches:
     - main
+    - release/*
     paths:
     - 'resources/profiles/**'
     - ".github/workflows/check_profiles.yml"
@@ -20,6 +24,8 @@ permissions:
 
 jobs:
   check_profiles:
+    # This job name is the check-run name pr-merge-bot.yml requires before a
+    # delegated merge. Renaming it silently disables that gate.
     name: Check profiles
     runs-on: ubuntu-24.04
     steps:
