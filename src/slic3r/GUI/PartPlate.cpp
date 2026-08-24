@@ -4445,8 +4445,6 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
 //this may be happened after machine changed
 void PartPlateList::reset_size(int width, int depth, int height, bool reload_objects, bool update_shapes)
 {
-	Vec3d origin1, origin2;
-
 	BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":before size: plate_width %1%, plate_depth %2%, plate_height %3%") % m_plate_width % m_plate_depth % m_plate_height;
 	BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":after size: plate_width %1%, plate_depth %2%, plate_height %3%") % width % depth % height;
 	if ((m_plate_width != width) || (m_plate_depth != depth) || (m_plate_height != height))

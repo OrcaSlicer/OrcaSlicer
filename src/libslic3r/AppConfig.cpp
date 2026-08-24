@@ -856,6 +856,10 @@ std::string AppConfig::load()
                         local_machine.dev_ip = p["dev_ip"].get<std::string>();
                     if (p.contains("printer_type"))
                         local_machine.printer_type = p["printer_type"].get<std::string>();
+                    if (p.contains("printer_agent_id"))
+                        local_machine.printer_agent_id = p["printer_agent_id"].get<std::string>();
+                    if (p.contains("access_code"))
+                        local_machine.access_code = p["access_code"].get<std::string>();
                     m_local_machines[local_machine.dev_id] = local_machine;
                 }
             } else {
@@ -1068,6 +1072,8 @@ void AppConfig::save()
         m_json["dev_name"]         = local_machine.second.dev_name;
         m_json["dev_ip"]           = local_machine.second.dev_ip;
         m_json["printer_type"]     = local_machine.second.printer_type;
+        m_json["printer_agent_id"] = local_machine.second.printer_agent_id;
+        m_json["access_code"]      = local_machine.second.access_code;
 
         j["local_machines"][local_machine.first] = m_json;
     }
