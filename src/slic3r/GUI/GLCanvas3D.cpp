@@ -2887,7 +2887,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 float x = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_x"))->get_at(plate_id);
                 float y = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->get_at(plate_id);
                 float w = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_tower_width"))->value;
-                float a = dynamic_cast<const ConfigOptionFloat*>(proj_cfg.option("wipe_tower_rotation_angle"))->value;
+                float a = dynamic_cast<const ConfigOptionFloat*>(m_config->option("wipe_tower_rotation_angle"))->value;
                 // BBS
                 float v = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_volume"))->value;
                 Vec3d plate_origin = ppl.get_plate(plate_id)->get_origin();
@@ -9196,7 +9196,7 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
                                     view3d_canvas->get_gizmos_manager().reset_all_states(); // close all gizmos
                                     view3d_canvas->reload_scene(true);
                                 }
-                                app.mainframe->select_tab((size_t)MainFrame::TabPosition::tp3DEditor);
+                                app.mainframe->select_tab(TAB_ID_PREPARE);
                             }
                         }
                     });

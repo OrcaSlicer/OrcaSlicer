@@ -559,11 +559,9 @@ static inline bool model_volume_solid_or_modifier(const ModelVolume &mv)
 
 static inline Transform3f trafo_for_bbox(const Transform3d &object_trafo, const Transform3d &volume_trafo)
 {
-    // Orca: Keep the volume's local XY offset for multipart overlap checks, but remove the object's bed placement.
-    Transform3d object_trafo_local = object_trafo;
-    object_trafo_local.translation().x() = 0.;
-    object_trafo_local.translation().y() = 0.;
-    Transform3d m = object_trafo_local * volume_trafo;
+    Transform3d m = object_trafo * volume_trafo;
+    m.translation().x() = 0.;
+    m.translation().y() = 0.;
     return m.cast<float>();
 }
 

@@ -5783,6 +5783,8 @@ private:
     bool show_warning_dialog { false };
 };
 
+Plater::~Plater() = default;
+
 const std::regex Plater::priv::pattern_bundle(".*[.](amf|amf[.]xml|zip[.]amf|3mf)", std::regex::icase);
 const std::regex Plater::priv::pattern_3mf(".*3mf", std::regex::icase);
 const std::regex Plater::priv::pattern_zip_amf(".*[.]zip[.]amf", std::regex::icase);
@@ -5797,7 +5799,7 @@ bool PlaterDropTarget::OnDropFiles(wxCoord x, wxCoord y, const wxArrayString &fi
 #endif // WIN32
 
     m_mainframe.Raise();
-    m_mainframe.select_tab(size_t(MainFrame::tp3DEditor));
+    m_mainframe.select_tab(TAB_ID_PREPARE);
     if (wxGetApp().is_editor())
         m_plater.select_view_3D("3D");
 
@@ -6579,9 +6581,9 @@ void Plater::priv::select_next_view_3D()
 {
     
     if (current_panel == view3D)
-        wxGetApp().mainframe->select_tab(size_t(MainFrame::tpPreview));
+        wxGetApp().mainframe->select_tab(TAB_ID_PREVIEW);
     else if (current_panel == preview)
-        wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+        wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
 //    else if (current_panel == assemble_view)
 //        set_current_panel(view3D);
 }
@@ -7880,7 +7882,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 q->select_plate(first_plate_index);
                 //set to 3d tab
                 q->select_view_3D("Preview");
-                wxGetApp().mainframe->select_tab(MainFrame::tpPreview);
+                wxGetApp().mainframe->select_tab(TAB_ID_PREVIEW);
             }
             else {
                 //set to 3d tab
@@ -7899,7 +7901,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     else {
         //always set to 3D after loading files
         q->select_view_3D("3D");
-        wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+        wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     }
 
     if (load_model) {
@@ -8807,7 +8809,7 @@ void Plater::priv::process_validation_warning(StringObjectException const &warni
                           }
                       }
 
-                      wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+                      wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
 
                       if (inst_idx != -1) {
                          auto* model = wxGetApp().obj_list()->GetModel();
@@ -8836,7 +8838,7 @@ void Plater::priv::process_validation_warning(StringObjectException const &warni
             } else {
 		        auto iter = id.id ? std::find_if(objects.begin(), objects.end(), [id](auto o) { return o->id() == id; }) : objects.end();
                 if (iter != objects.end()) {
-                    wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+                    wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
 			        wxGetApp().obj_list()->select_items({{*iter, nullptr}});
                     wxGetApp().obj_list()->update_selections_on_canvas();
                 }
@@ -11220,13 +11222,19 @@ void Plater::priv::on_tab_selection_changing(wxBookCtrlEvent& e)
     }
 
     const int new_sel = e.GetSelection();
-    sidebar_layout.show = new_sel == MainFrame::tp3DEditor || new_sel == MainFrame::tpPreview;
+    if (new_sel == wxNOT_FOUND) {
+        // GetPage(new_sel) below needs a valid index.
+        e.Skip();
+        return;
+    }
+    const wxString new_name = main_frame->m_tabpanel->GetPageName(new_sel);
+    sidebar_layout.show = new_name == TAB_ID_PREPARE || new_name == TAB_ID_PREVIEW;
     update_sidebar();
     int old_sel = e.GetOldSelection();
     const bool use_printer_agents = wxGetApp().app_config->get_bool("use_printer_agents");
     const bool use_native_device_tab = wxGetApp().preset_bundle &&
         (wxGetApp().preset_bundle->use_bbl_device_tab() || use_printer_agents);
-    if (use_native_device_tab && new_sel == MainFrame::tpMonitor) {
+    if (use_native_device_tab && new_name == TAB_ID_MONITOR) {
         // BBL network module is only required for BBL-vendor printers.
         // Non-BBL Python plugins (e.g. moonraker) drive the Device tab without it.
         if (!use_printer_agents && wxGetApp().preset_bundle->is_bbl_vendor() && !Slic3r::NetworkAgent::is_network_module_loaded()) {
@@ -11238,12 +11246,15 @@ void Plater::priv::on_tab_selection_changing(wxBookCtrlEvent& e)
             }
         }
     } else {
+        // Pointer test, not a name lookup: in printer-agents mode this page is TAB_ID_MONITOR_WEB
+        // while the native Device tab holds TAB_ID_MONITOR, and in legacy-web mode it holds
+        // TAB_ID_MONITOR itself.
         const bool selecting_web_device_tab = main_frame->m_printer_view &&
             main_frame->m_tabpanel->GetPage(new_sel) == main_frame->m_printer_view;
         if (selecting_web_device_tab) {
             // Use the selected discovered machine when the preset has no host.
             main_frame->load_printer_url();
-        } else if (new_sel == MainFrame::tpMonitor && wxGetApp().preset_bundle != nullptr) {
+        } else if (new_name == TAB_ID_MONITOR && wxGetApp().preset_bundle != nullptr) {
             auto     cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
             wxString url = from_u8(PrintHost::get_print_host_webui(&cfg));
             if (main_frame->m_printer_view && url.empty()) {
@@ -12106,7 +12117,7 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
                         wxPostEvent(q, SimpleEvent(EVT_GLTOOLBAR_SLICE_ALL));
                     else
                         wxPostEvent(q, SimpleEvent(EVT_GLTOOLBAR_SLICE_PLATE));
-                    wxGetApp().mainframe->m_tabpanel->SetSelection(MainFrame::TabPosition::tpPreview);
+                    wxGetApp().mainframe->m_tabpanel->SelectPageByName(TAB_ID_PREVIEW);
                 }
                 return false;
             }
@@ -12674,7 +12685,7 @@ void Plater::priv::take_snapshot(const std::string& snapshot_name, const UndoRed
             ModelWipeTower& tower = model.wipe_tower;
 
             tower.positions[plate_idx] = Vec2d(tower_x_opt->get_at(plate_idx), tower_y_opt->get_at(plate_idx));
-            tower.rotation = proj_cfg.opt_float("wipe_tower_rotation_angle");
+            tower.rotation = config.opt_float("wipe_tower_rotation_angle");
         }
     }
     const GLGizmosManager& gizmos = get_current_canvas3D()->get_canvas_type() == GLCanvas3D::CanvasAssembleView ? assemble_view->get_canvas3d()->get_gizmos_manager() : view3D->get_canvas3d()->get_gizmos_manager();
@@ -12784,7 +12795,7 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
             ModelWipeTower& tower = model.wipe_tower;
 
             tower.positions[plate_idx] = Vec2d(tower_x_opt->get_at(plate_idx), tower_y_opt->get_at(plate_idx));
-            tower.rotation = proj_cfg.opt_float("wipe_tower_rotation_angle");
+            tower.rotation = config.opt_float("wipe_tower_rotation_angle");
         }
     }
     const int layer_range_idx = it_snapshot->snapshot_data.layer_range_idx;
@@ -13063,7 +13074,7 @@ int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_
     get_notification_manager()->clear_all();
 
     if (!silent)
-        wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+        wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
 
     //get_partplate_list().reinit();
     //get_partplate_list().update_slice_context_to_current_plate(p->background_process);
@@ -13212,7 +13223,7 @@ void Plater::load_project(wxString const& filename2,
     if (!m_exported_file) {
         p->select_view("topfront");
         p->camera.requires_zoom_to_plate = REQUIRES_ZOOM_TO_ALL_PLATE;
-        wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+        wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     }
     else {
         p->partplate_list.select_plate_view();
@@ -13326,7 +13337,7 @@ void Plater::import_model_id(wxString download_info)
     const int max_retries = 3;
 
     /* jump to 3D eidtor */
-    wxGetApp().mainframe->select_tab((size_t)MainFrame::TabPosition::tp3DEditor);
+    wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
 
     /* prepare progress dialog */
     bool cont = true;
@@ -13635,7 +13646,7 @@ void Plater::calib_pa(const Calib_Params& params)
 {
     const auto calib_pa_name = wxString::Format(L"Pressure Advance Test");
     new_project(false, false, calib_pa_name);
-    wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+    wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     print_config->set_key_value("overhang_reverse", new ConfigOptionBool(false));
@@ -14116,7 +14127,7 @@ void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern) {
     if (new_project(false, false, calib_name) == wxID_CANCEL)
         return;
 
-    wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+    wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
 
     if (is_linear) {
         if (pass == 1)
@@ -14153,7 +14164,7 @@ void Plater::calib_temp(const Calib_Params& params) {
 
     const auto calib_temp_name = wxString::Format(L"Nozzle temperature test");
     new_project(false, false, calib_temp_name);
-    wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+    wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Temp_Tower) return;
     
     if (!add_model(false, Slic3r::resources_dir() + "/calib/temperature_tower/temperature_tower.drc"))
@@ -14233,7 +14244,7 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
 {
     const auto calib_vol_speed_name = wxString::Format(L"Max volumetric speed test");
     new_project(false, false, calib_vol_speed_name);
-    wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+    wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Vol_speed_Tower)
         return;
     if (!add_model(false, Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.drc"))
@@ -14312,7 +14323,7 @@ void Plater::calib_retraction(const Calib_Params& params)
 {
     const auto calib_retraction_name = wxString::Format(L"Retraction");
     new_project(false, false, calib_retraction_name);
-    wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+    wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Retraction_tower)
         return;
 
@@ -14372,7 +14383,7 @@ void Plater::calib_VFA(const Calib_Params& params)
 {
     const auto calib_vfa_name = wxString::Format(L"VFA test");
     new_project(false, false, calib_vfa_name);
-    wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+    wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_VFA_Tower)
         return;
 
@@ -14455,7 +14466,7 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
 {
     const auto calib_input_shaping_name = wxString::Format(L"Input shaping Frequency test");
     new_project(false, false, calib_input_shaping_name);
-    wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+    wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Input_shaping_freq)
         return;
 
@@ -14521,7 +14532,7 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
 {
     const auto calib_input_shaping_name = wxString::Format(L"Input shaping Damping test");
     new_project(false, false, calib_input_shaping_name);
-    wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+    wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Input_shaping_damp)
         return;
 
@@ -14586,7 +14597,7 @@ void Plater::Calib_Cornering(const Calib_Params& params)
 {
     const auto Calib_Cornering = wxString::Format(L"Cornering test");
     new_project(false, false, Calib_Cornering);
-    wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+    wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (params.mode != CalibMode::Calib_Cornering)
         return;
 
@@ -14719,7 +14730,7 @@ void Plater::load_gcode(const wxString& filename)
     //p->gcode_result.reset();
     //reset_gcode_toolpaths();
     p->preview->reload_print(m_only_gcode);
-    wxGetApp().mainframe->select_tab(MainFrame::tpPreview);
+    wxGetApp().mainframe->select_tab(TAB_ID_PREVIEW);
     p->set_current_panel(p->preview, true);
     p->get_current_canvas3D()->render();
     //p->notification_manager->bbl_show_plateinfo_notification(into_u8(_L("Preview only mode for gcode file.")));
@@ -15392,7 +15403,7 @@ LoadType determine_load_type(std::string filename, std::string override_setting)
             wxGetApp().app_config->set("import_project_action", std::to_string(choice));
 
             // BBS: jump to plater panel
-            wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+            wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
             return load_type;
         }
 
@@ -15621,7 +15632,7 @@ void Plater::reset_with_confirm()
                                             .ShowModal() == wxID_YES) {
         reset();
         // BBS: jump to plater panel
-        wxGetApp().mainframe->select_tab(size_t(0));
+        wxGetApp().mainframe->select_tab(TAB_ID_HOME);
     }
 }
 
@@ -17435,7 +17446,7 @@ int Plater::export_config_3mf(int plate_idx, Export3mfProgressFn proFn)
 //BBS
 void Plater::send_calibration_job_finished(wxCommandEvent & evt)
 {
-    p->main_frame->request_select_tab(MainFrame::TabPosition::tpCalibration);
+    p->main_frame->request_select_tab(TAB_ID_CALIBRATION);
     auto calibration_panel = p->main_frame->m_calibration;
     if (calibration_panel) {
         auto curr_wizard = static_cast<CalibrationWizard*>(calibration_panel->get_tabpanel()->GetPage(evt.GetInt()));
@@ -17467,7 +17478,7 @@ void Plater::print_job_finished(wxCommandEvent &evt)
     if (!dev) return;
 
     dev->set_selected_machine(evt.GetString().ToStdString());
-    p->main_frame->request_select_tab(MainFrame::TabPosition::tpMonitor);
+    p->main_frame->request_select_tab(TAB_ID_MONITOR);
     //jump to monitor and select device status panel
     MonitorPanel* curr_monitor = p->main_frame->m_monitor;
     if(curr_monitor)
@@ -17482,7 +17493,7 @@ void Plater::send_job_finished(wxCommandEvent& evt)
 
     send_gcode_finish(evt.GetString());
     p->hide_send_to_printer_dlg();
-    //p->main_frame->request_select_tab(MainFrame::TabPosition::tpMonitor);
+    //p->main_frame->request_select_tab(TAB_ID_MONITOR);
     ////jump to monitor and select device status panel
     //MonitorPanel* curr_monitor = p->main_frame->m_monitor;
     //if (curr_monitor)
@@ -18376,7 +18387,7 @@ void Plater::pop_warning_and_go_to_device_page(wxString printer_name, PrinterWar
     MessageDialog dlg(this, content, title, wxOK | wxFORWARD | wxICON_WARNING, _L("Device Page"));
     auto          result = dlg.ShowModal();
     if (result == wxFORWARD) {
-        wxGetApp().mainframe->select_tab(size_t(MainFrame::tpMonitor));
+        wxGetApp().mainframe->select_tab(TAB_ID_MONITOR);
     }
 }
 

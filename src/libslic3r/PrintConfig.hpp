@@ -146,6 +146,29 @@ inline bool is_separable_infill_pattern(InfillPattern pattern)
     }
 }
 
+// Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
+// Grid, Triangles and Tri-hexagon only do so in their trapezoidal form, which is generated with more
+// than one line per infill wall; a single line makes them plain crossing lines with nothing to round.
+inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 1)
+{
+    switch (pattern) {
+    case ipHilbertCurve:
+    case ipOctagramSpiral:
+    case ipLightning:
+    case ipHoneycomb:
+    case ip3DHoneycomb:
+    case ipConcentric:
+    case ipCrossHatch:
+        return true;
+    case ipGrid:
+    case ipTriangles:
+    case ipStars:
+        return multiline > 1;
+    default:
+        return false;
+    }
+}
+
 enum class IroningType {
     NoIroning,
     TopSurfaces,
@@ -2466,7 +2489,8 @@ namespace cereal {
             archive(serialization_key_ordinal);
             assert(serialization_key_ordinal > 0);
             auto it = Slic3r::print_config_def.by_serialization_key_ordinal.find(serialization_key_ordinal);
-            assert(it != Slic3r::print_config_def.by_serialization_key_ordinal.end());
+            if (it == Slic3r::print_config_def.by_serialization_key_ordinal.end())
+                throw std::runtime_error("VendorCache: unknown serialization_key_ordinal " + std::to_string(serialization_key_ordinal) + " - cache is stale");
             config.set_key_value(it->second->opt_key, it->second->load_option_from_archive(archive));
         }
     }
