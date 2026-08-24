@@ -578,26 +578,45 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
 
 bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
 {
-    std::vector<AmsTrayData> trays;
-    int max_lane_index = 0;
+    auto count_loaded = [](const std::vector<AmsTrayData>& trays) {
+        int loaded = 0;
+        for (const auto& tray : trays) {
+            if (tray.has_filament) {
+                ++loaded;
+            }
+        }
+        return loaded;
+    };
 
-    // Try Moonraker filament data (more generic, supports any filament changer
-    // software that reports lane data to Moonraker like AFC and recent Happy
-    // Hare as of Feb 15, 2026)
-    if (fetch_moonraker_filament_data(trays, max_lane_index)) {
-        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Moonraker filament system with "
-                                << (max_lane_index + 1) << " lanes";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
+    // Query both sources. The Moonraker lane_data namespace (AFC and recent Happy
+    // Hare as of Feb 15, 2026) is more generic, but it can be stale or only
+    // partially populated, while the Happy Hare mmu object carries the full gate
+    // inventory (or vice versa). Pick whichever source reports more loaded slots
+    // so a sparse database can't shadow a fully-populated changer.
+    std::vector<AmsTrayData> moonraker_trays;
+    int moonraker_max_lane = 0;
+    const bool moonraker_ok = fetch_moonraker_filament_data(moonraker_trays, moonraker_max_lane);
+    const int moonraker_loaded = moonraker_ok ? count_loaded(moonraker_trays) : 0;
+
+    std::vector<AmsTrayData> hh_trays;
+    int hh_max_lane = 0;
+    const bool hh_ok = fetch_hh_filament_info(hh_trays, hh_max_lane);
+    const int hh_loaded = hh_ok ? count_loaded(hh_trays) : 0;
+
+    // Prefer Moonraker lane_data on ties to keep the original priority.
+    if (moonraker_ok && moonraker_loaded >= hh_loaded) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Using Moonraker filament data with "
+                                << moonraker_loaded << " loaded of " << (moonraker_max_lane + 1) << " lanes";
+        int ams_count = (moonraker_max_lane + 4) / 4;
+        build_ams_payload(ams_count, moonraker_max_lane, moonraker_trays);
         return true;
     }
 
-    // Attempt Happy Hare first (more widely adopted, supports more filament changers)
-    if (fetch_hh_filament_info(trays, max_lane_index)) {
-        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Happy Hare MMU with "
-                                << (max_lane_index + 1) << " gates";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
+    if (hh_ok) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Using Happy Hare MMU data with "
+                                << hh_loaded << " loaded of " << (hh_max_lane + 1) << " gates";
+        int ams_count = (hh_max_lane + 4) / 4;
+        build_ams_payload(ams_count, hh_max_lane, hh_trays);
         return true;
     }
 
@@ -786,6 +805,7 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
     const auto& value = json["result"]["value"];
     trays.clear();
     max_lane_index = 0;
+    bool has_populated_lane = false;
 
     for (const auto& [lane_key, lane_obj] : value.items()) {
         if (!lane_obj.is_object()) {
@@ -814,17 +834,28 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         tray.bed_temp = safe_json_int(lane_obj, "bed_temp");
         tray.nozzle_temp = safe_json_int(lane_obj, "nozzle_temp");
         tray.has_filament = !tray.tray_type.empty();
+        has_populated_lane = has_populated_lane || tray.has_filament;
         auto* bundle = GUI::wxGetApp().preset_bundle;
         tray.tray_info_idx = bundle
             ? bundle->filaments.filament_id_by_type(tray.tray_type)
             : map_filament_type_to_generic_id(tray.tray_type);
 
-        max_lane_index = std::max(max_lane_index, lane_index);
+        // Only advance max_lane_index for lanes that actually hold filament so trailing
+        // empty lanes are trimmed. Interior empty lanes (e.g. lane 0 empty, lane 1 loaded,
+        // lane 2 empty, lane 3 loaded) stay below the highest filled index and are still
+        // emitted as empty placeholder slots by build_ams_payload.
+        if (tray.has_filament) {
+            max_lane_index = std::max(max_lane_index, lane_index);
+        }
         trays.push_back(tray);
     }
 
     if (trays.empty()) {
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: No lanes found";
+        return false;
+    }
+
+    if (!has_populated_lane) {
         return false;
     }
 

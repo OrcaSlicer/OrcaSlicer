@@ -269,6 +269,11 @@ int PresetComboBox::update_ams_color()
     auto color_pack = static_cast<ConfigOptionStrings *>(cfg->option("filament_multi_colour")->clone()); // multi color (all colors in all kinds of filament)
     auto color_type = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour_type")->clone()); // color type
 
+    if (m_filament_idx >= color_head->values.size()) color_head->values.resize(m_filament_idx + 1);
+    if (m_filament_idx >= color_pack->values.size()) color_pack->values.resize(m_filament_idx + 1);
+    if (m_filament_idx >= color_type->values.size()) color_type->values.resize(m_filament_idx + 1);
+    if (ctype.empty()) ctype = "1";
+
     color_head->values[m_filament_idx] = color;
     color_type->values[m_filament_idx] = ctype;
     std::string color_str = ""; // Translate multi color info to config storage format
