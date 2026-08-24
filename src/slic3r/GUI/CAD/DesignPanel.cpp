@@ -7850,16 +7850,25 @@ void DesignPanel::commit_entity_constraints(const std::vector<SketchEntityConstr
     // (Symmetric on two lines) must solve together, so push all then resize back.
     const std::vector<SketchEntity> saved = feat.entities;
     const size_t before = feat.entity_constraints.size();
+    // Undo boundary: adding a constraint. Without it Ctrl+Z reached PAST this edit to the
+    // previous boundary and threw away whatever happened in between — a constraint was the
+    // one document mutation the user could not take back on its own.
+    m_doc.checkpoint();
     for (const auto& d : defs) feat.entity_constraints.push_back(d);
     if (!m_doc.solve_sketch_feature(m_constrain_feat)) {
         feat.entity_constraints.resize(before);
         feat.entities = saved;
+        m_doc.abandon_checkpoint();   // fully restored above: nothing happened, so nothing to undo
         m_status->SetForegroundColour(wxColour(235, 110, 110));
         set_status(_L("Constraint rejected (over-constrained)"));
         m_status->Refresh();
         return;
     }
     m_doc.recompute();
+    // The constraint lives in the recipe, so the save path has to be told the recipe moved;
+    // otherwise saving after a constraint edit wrote the blob from before it.
+    sync_recipe_to_model();
+    update_undo_redo_buttons();
     m_viewport->update_constrain_entities(m_doc.features[m_constrain_feat].entities);
     if (!m_doc.display_mesh.its.indices.empty())
         feed_bodies();
@@ -8029,11 +8038,14 @@ void DesignPanel::delete_constraint(int idx)
     CadFeature& feat = m_doc.features[m_constrain_feat];
     if (idx < 0 || idx >= int(feat.entity_constraints.size()))
         return;
+    m_doc.checkpoint();   // undo boundary: deleting a constraint
     feat.entity_constraints.erase(feat.entity_constraints.begin() + idx);
     // Re-solve the remaining system (deleting a constraint can only free DoF, so it
     // cannot fail for over-constraint; ignore the bool and refresh either way).
     m_doc.solve_sketch_feature(m_constrain_feat);
     m_doc.recompute();
+    sync_recipe_to_model();       // the removal is part of the recipe
+    update_undo_redo_buttons();
     m_viewport->set_constraint_highlight({});
     m_viewport->update_constrain_entities(m_doc.features[m_constrain_feat].entities);
     if (!m_doc.display_mesh.its.indices.empty())
@@ -8867,16 +8879,20 @@ void DesignPanel::apply_constraint(SketchConstraintType type)
     // solve_sketch_feature rewrites profile.points even on failure, so snapshot
     // the geometry to roll back a rejected constraint cleanly.
     const std::vector<Vec2d> saved_pts = feat.profile.points;
+    m_doc.checkpoint();   // undo boundary: adding a constraint (profile sketches)
     feat.constraints.push_back(SketchConstraintDef{type, a, b, -1, -1, 0.0});
     if (!m_doc.solve_sketch_feature(m_constrain_feat)) {
         feat.constraints.pop_back();        // reject the non-converging addition
         feat.profile.points = saved_pts;    // and restore the pre-solve geometry
+        m_doc.abandon_checkpoint();         // restored: no state change, so no undo step
         m_status->SetForegroundColour(wxColour(235, 110, 110));
         set_status(_L("Constraint rejected (over-constrained)"));
         m_status->Refresh();
         return;
     }
     m_doc.recompute();
+    sync_recipe_to_model();
+    update_undo_redo_buttons();
     m_viewport->update_constrain_profile(m_doc.features[m_constrain_feat].profile.points);
     if (!m_doc.display_mesh.its.indices.empty())
         feed_bodies();

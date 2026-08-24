@@ -1859,6 +1859,12 @@ void CadDocument::checkpoint()
         m_undo.erase(m_undo.begin());
 }
 
+void CadDocument::abandon_checkpoint()
+{
+    if (!m_undo.empty())
+        m_undo.pop_back();
+}
+
 bool CadDocument::undo()
 {
     if (m_undo.empty())
@@ -1915,6 +1921,33 @@ static bool commit_or_rollback(CadDocument& doc, std::vector<CadFeature>& snapsh
     return false;
 }
 
+// Visit every field of `f` that holds an index into features[].
+//
+// Deliberately NOT dispatched on f.type. A type switch is what this replaced, and it was
+// wrong in the way type switches go wrong: it listed Extrude and Mate, and every feature
+// type added afterwards — Revolve, Sweep, Loft, Rib, Pattern-on-curve, the Surface* family —
+// silently inherited a remap that skipped its references. Visiting the FIELDS instead means
+// a new type is covered the moment it reuses one of them, and reaching a field its type
+// never reads costs nothing: unset refs are -1 and every visitor here ignores those.
+//
+// The list is exactly the fields documented as "index into features[]" / "feature index" in
+// CadDocument.hpp. Not included, because they are a different basis and need their own pass:
+// plane_base / axis_plane_a / axis_plane_b encode `3 + N` = the Nth DATUM PLANE, an ordinal
+// into resolve_datum_planes(), not into features[]. Everything named *_body / *_face / *_edge
+// is a body index or a global topology id and must never be remapped here.
+template<class Visit>
+static void for_each_feature_ref(CadFeature& f, Visit&& visit)
+{
+    visit(f.sketch_ref);
+    visit(f.sweep_path_ref);
+    visit(f.pattern_curve_sketch);
+    visit(f.rib_sketch_ref);
+    visit(f.mate_cs_a);
+    visit(f.mate_cs_b);
+    for (int& r : f.loft_profile_refs)
+        visit(r);
+}
+
 bool CadDocument::remove_feature(int index)
 {
     if (index < 0 || index >= int(features.size()))
@@ -1922,13 +1955,22 @@ bool CadDocument::remove_feature(int index)
 
     std::vector<CadFeature> snapshot = features;
 
-    // Deleting a Sketch cascades to every Extrude that consumes it (a dangling
-    // Extrude would have no wire). A lone Sketch, by contrast, is harmless.
+    // Deleting a Sketch cascades to every feature that consumes it AS ITS PROFILE — the
+    // reason is the original one ("a dangling Extrude would have no wire"), and it applies
+    // unchanged to Revolve, Sweep, Rib and the Surface* family, which all read the profile
+    // through sketch_ref, plus the sweep spine and the rib line. Testing the FIELD rather
+    // than the type is what makes that true without a list to keep up to date.
+    //
+    // pattern_curve_sketch and loft_profile_refs are deliberately NOT cascaded: a Pattern or
+    // a Loft that loses one of several inputs is degraded, not meaningless, so those refs go
+    // to -1 in the remap below and the feature survives. A lone Sketch is harmless either way.
     std::vector<int> remove{index};
     if (features[index].type == CadFeatureType::Sketch) {
-        for (int j = 0; j < int(features.size()); ++j)
-            if (features[j].type == CadFeatureType::Extrude && features[j].sketch_ref == index)
+        for (int j = 0; j < int(features.size()); ++j) {
+            const CadFeature& c = features[j];
+            if (c.sketch_ref == index || c.sweep_path_ref == index || c.rib_sketch_ref == index)
                 remove.push_back(j);
+        }
     }
     std::sort(remove.begin(), remove.end());
     remove.erase(std::unique(remove.begin(), remove.end()), remove.end());
@@ -1956,14 +1998,8 @@ bool CadDocument::remove_feature(int index)
             ref -= shift;
         }
     };
-    for (auto& f : features) {
-        if (f.type == CadFeatureType::Extrude) {
-            remap(f.sketch_ref);
-        } else if (f.type == CadFeatureType::Mate) {
-            remap(f.mate_cs_a);
-            remap(f.mate_cs_b);
-        }
-    }
+    for (auto& f : features)
+        for_each_feature_ref(f, remap);
 
     return commit_or_rollback(*this, snapshot);
 }
@@ -1985,14 +2021,8 @@ bool CadDocument::move_feature(int index, int delta)
         if (ref == index)       ref = target;
         else if (ref == target) ref = index;
     };
-    for (auto& f : features) {
-        if (f.type == CadFeatureType::Extrude) {
-            swap_ref(f.sketch_ref);
-        } else if (f.type == CadFeatureType::Mate) {
-            swap_ref(f.mate_cs_a);
-            swap_ref(f.mate_cs_b);
-        }
-    }
+    for (auto& f : features)
+        for_each_feature_ref(f, swap_ref);
 
     return commit_or_rollback(*this, snapshot);
 }

@@ -670,6 +670,11 @@ public:
     // body) is derived by recompute(), snapshotting `features` alone is a complete,
     // exact history; one checkpoint == one Ctrl+Z step.
     void checkpoint();   // snapshot `features` for undo + invalidate redo
+    // Drop the most recent checkpoint. For a mutation that took a checkpoint, then failed
+    // and restored the pre-mutation state itself (the constraint paths reject an
+    // over-constrained addition this way): the snapshot now describes a state identical to
+    // the current one, and leaving it turns the next Ctrl+Z into a press that does nothing.
+    void abandon_checkpoint();
     bool can_undo() const { return !m_undo.empty(); }
     bool can_redo() const { return !m_redo.empty(); }
     size_t undo_depth() const { return m_undo.size(); }

@@ -4,6 +4,7 @@
 
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/stat.h>   // umask/chmod: the socket's file mode IS its access control
 #include <unistd.h>
 #include <cstdlib>
 #include <cstring>
@@ -2008,7 +2009,14 @@ std::string handle_on_main(const std::string& method, const json& params, const 
     // keeps every existing script working exactly as before, and supplying it is what buys the
     // guarantee. One check at the dispatcher rather than one per handler, so a method added
     // later cannot forget it.
+    //
+    // The type check is not decoration: this runs OUTSIDE the try below, and a bare
+    // get<uint64_t>() on `"generation": "x"` throws nlohmann::type_error straight out of
+    // the CallAfter lambda that invoked us — through a wx event loop, which does not catch,
+    // so the whole GUI went down on one malformed line. Refuse it as a parameter error.
     if (params.is_object() && params.contains("generation")) {
+        if (!params["generation"].is_number_unsigned())
+            return rpc_error(id, -32602, "generation must be an unsigned integer");
         const uint64_t want = params["generation"].get<uint64_t>();
         const uint64_t have = panel->mcp_doc().topo_generation;
         if (want != have)
@@ -2099,8 +2107,18 @@ std::string dispatch_request(const std::string& line)
 
     auto prom = std::make_shared<std::promise<std::string>>();
     auto fut  = prom->get_future();
+    // Nothing may escape this lambda. It is invoked by the wx event loop, which has no
+    // handler of its own, so an escaping exception is std::terminate — the socket would
+    // become a way for any client to kill the application. handle_on_main() catches what
+    // it knows about; this catches what it does not, and still answers the caller.
     wxGetApp().CallAfter([prom, method, params, id]() {
-        prom->set_value(handle_on_main(method, params, id));
+        try {
+            prom->set_value(handle_on_main(method, params, id));
+        } catch (const std::exception& ex) {
+            prom->set_value(rpc_error(id, -32000, std::string("internal error: ") + ex.what()));
+        } catch (...) {
+            prom->set_value(rpc_error(id, -32000, "internal error: unknown exception"));
+        }
     });
     if (fut.wait_for(std::chrono::seconds(15)) != std::future_status::ready)
         return rpc_error(id, -32000, "main-thread timeout");
@@ -2123,7 +2141,14 @@ void serve_client(int cfd)
             if (line.empty()) continue;
             std::string reply = dispatch_request(line);
             reply.push_back('\n');
-            if (::write(cfd, reply.data(), reply.size()) < 0) return;
+            // Never a bare write(): a client that hangs up between its request and our
+            // reply raises SIGPIPE, whose default action kills the process — so closing
+            // a socket mid-call would take the GUI with it.
+#ifdef MSG_NOSIGNAL
+            if (::send(cfd, reply.data(), reply.size(), MSG_NOSIGNAL) < 0) return;
+#else
+            if (::write(cfd, reply.data(), reply.size()) < 0) return;   // SO_NOSIGPIPE set at accept
+#endif
         }
     }
 }
@@ -2137,9 +2162,22 @@ void server_thread(std::string sock_path)
     sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
     std::strncpy(addr.sun_path, sock_path.c_str(), sizeof(addr.sun_path) - 1);
-    if (::bind(sfd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
+    // The socket is the full CAD command surface, including import_step on absolute paths.
+    // It lands in a world-writable directory by default (/tmp), so its access control is
+    // its file mode and nothing else — leaving that to the ambient umask means any local
+    // process may drive the modeller. umask around bind() makes it 0600 with no window in
+    // which a wider mode exists; the chmod afterwards covers platforms that do not apply
+    // umask to sockets.
+    const mode_t old_umask = ::umask(0177);
+    const int bind_rc = ::bind(sfd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
+    ::umask(old_umask);
+    if (bind_rc < 0) {
         BOOST_LOG_TRIVIAL(error) << "MCP: bind() failed on " << sock_path;
         ::close(sfd); return;
+    }
+    if (::chmod(sock_path.c_str(), S_IRUSR | S_IWUSR) < 0) {
+        BOOST_LOG_TRIVIAL(error) << "MCP: cannot restrict " << sock_path << " to the owner; refusing to listen";
+        ::close(sfd); ::unlink(sock_path.c_str()); return;
     }
     if (::listen(sfd, 1) < 0) { BOOST_LOG_TRIVIAL(error) << "MCP: listen() failed"; ::close(sfd); return; }
     BOOST_LOG_TRIVIAL(info) << "MCP control listening on " << sock_path;
@@ -2147,6 +2185,10 @@ void server_thread(std::string sock_path)
     for (;;) {
         int cfd = ::accept(sfd, nullptr, nullptr);
         if (cfd < 0) continue;
+#if !defined(MSG_NOSIGNAL) && defined(SO_NOSIGPIPE)
+        const int on = 1;                                   // macOS/BSD equivalent of MSG_NOSIGNAL
+        ::setsockopt(cfd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
+#endif
         serve_client(cfd);
         ::close(cfd);
     }

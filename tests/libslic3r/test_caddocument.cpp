@@ -8145,3 +8145,75 @@ TEST_CASE("a body carries its own name, through recompute and the recipe", "[Cad
     CHECK(fresh.bodies[0].has_user_name);
     CHECK(fresh.bodies[0].user_name == "Bracket");
 }
+
+// A feature reference is a reference whatever feature holds it.
+//
+// remove_feature()/move_feature() used to remap Extrude::sketch_ref and a Mate's two
+// connectors, and nothing else — so every later consumer of a Sketch (Revolve, Sweep, Loft,
+// Rib, Pattern-on-curve, the Surface* family) kept an index that the erase had just
+// invalidated. The failure is quiet by construction: a shifted index still names a real
+// feature, recompute() succeeds, and what comes out is built from the wrong profile.
+//
+// The volume is the assertion. Two different profiles go in; deleting the unused feature in
+// front of them must leave the SAME solid behind, which it only can if the reference moved
+// with its target.
+TEST_CASE("deleting a feature remaps the references of every consumer, not just Extrude",
+          "[CadDocument]")
+{
+    using namespace Slic3r;
+    const SketchPlane xy = SketchPlane::XY();
+
+    // A rectangle 10x10 centred at v = 15, revolved 360 deg about the plane X axis.
+    auto rect_at = [&](double v0) {
+        CadFeature sk;
+        sk.type  = CadFeatureType::Sketch;
+        sk.plane = xy;
+        sk.profile.points = { Vec2d(-5, v0 - 5), Vec2d(5, v0 - 5),
+                              Vec2d(5, v0 + 5), Vec2d(-5, v0 + 5) };
+        sk.profile.closed = true;
+        return sk;
+    };
+
+    SECTION("Revolve::sketch_ref survives the deletion of a feature in front of it") {
+        CadDocument doc;
+        doc.features.push_back(rect_at(40.0));   // f0: a decoy profile, never consumed
+        doc.features.push_back(rect_at(15.0));   // f1: the real profile
+        doc.add_revolve(1, 360.0, /*axis=X*/0, false, BooleanMode::New, "Rev");
+        REQUIRE(doc.recompute());
+        const double before = double(doc.display_mesh.volume());
+        REQUIRE(before == Approx(9424.78).epsilon(0.05));
+
+        // f0 is consumed by nothing, so this deletes exactly one feature and shifts f1 to 0.
+        REQUIRE(doc.remove_feature(0));
+        REQUIRE(doc.features.size() == 2);
+        REQUIRE(doc.features[1].type == CadFeatureType::Revolve);
+        REQUIRE(doc.features[1].sketch_ref == 0);          // followed its target
+        REQUIRE(doc.error.empty());
+        REQUIRE(double(doc.display_mesh.volume()) == Approx(before).epsilon(1e-6));
+    }
+
+    SECTION("move_feature swaps a Revolve's reference too") {
+        CadDocument doc;
+        doc.features.push_back(rect_at(40.0));   // f0
+        doc.features.push_back(rect_at(15.0));   // f1 -> consumed
+        doc.add_revolve(1, 360.0, 0, false, BooleanMode::New, "Rev");
+        REQUIRE(doc.recompute());
+        const double before = double(doc.display_mesh.volume());
+
+        REQUIRE(doc.move_feature(0, 1));                   // f0 and f1 trade places
+        REQUIRE(doc.features[2].sketch_ref == 0);          // the profile is now at 0
+        REQUIRE(double(doc.display_mesh.volume()) == Approx(before).epsilon(1e-6));
+    }
+
+    SECTION("deleting a Sketch cascades to a Revolve that consumes it") {
+        CadDocument doc;
+        doc.features.push_back(rect_at(15.0));
+        doc.add_revolve(0, 360.0, 0, false, BooleanMode::New, "Rev");
+        REQUIRE(doc.recompute());
+
+        // The Revolve has no profile without this Sketch, exactly as an Extrude would not:
+        // it goes with it rather than being left pointing at nothing.
+        REQUIRE(doc.remove_feature(0));
+        REQUIRE(doc.features.empty());
+    }
+}
