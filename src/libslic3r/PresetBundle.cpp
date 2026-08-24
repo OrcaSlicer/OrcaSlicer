@@ -5020,7 +5020,12 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     const std::string vendor = (vendors != nullptr && !vendors->values.empty()) ? vendors->get_at(0) : std::string();
                     if (!entry.filament_id.empty() && candidate.filament_id == entry.filament_id)
                         return 2;
-                    if (normalize_filament_type(type) == entry.publish_type_value) {
+                    // Tier 0/1 family gate: the explicit type requirement when published as
+                    // such, otherwise the entry's own material family - so identity scoring
+                    // also applies to entries published without a checked Type row.
+                    const std::string required_type = !entry.publish_type_value.empty()
+                        ? entry.publish_type_value : normalize_filament_type(entry.filament_type);
+                    if (!required_type.empty() && normalize_filament_type(type) == required_type) {
                         if (!entry.filament_vendor.empty() && vendor == entry.filament_vendor)
                             return 1;
                         return 0;
@@ -5036,7 +5041,10 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         // presets first and falling back to incompatible ones only when no
                         // compatible candidate exists...
                         for (const PublishedMaterialEntry &entry : published_config->material_keys) {
-                            if (entry.slot != static_cast<int>(new_slot_idx) || !entry.publish_type || entry.publish_type_value.empty())
+                            // Scored for every entry with an identity (name / ids / family),
+                            // not only when a Type requirement was checked; candidate_score's
+                            // family tiers fall back to the entry's own filament_type.
+                            if (entry.slot != static_cast<int>(new_slot_idx))
                                 continue;
                             const std::string resolved_name = resolved_name_for(entry.slot);
                             int best_score = -1;
@@ -5073,14 +5081,32 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF grew slot " << new_slot_idx
                                                         << " with " << initial_preset << " (score " << best_score << ", preset_name \""
                                                         << entry.preset_name << "\", type \"" << entry.publish_type_value << "\")";
+                            if (best_score >= 0 && best_score < 2 && (!entry.filament_id.empty() || !entry.filament_vendor.empty()))
+                                published_config->material_replacements.emplace_back(
+                                    "slot " + std::to_string(new_slot_idx) + ": " + initial_preset +
+                                    " (substitute: no exact material match)");
                             break;
                         }
-                        // ...otherwise any visible preset not already used by another slot.
+                        // ...otherwise any visible preset not already used by another slot,
+                        // preferring the published material's own family when it is known.
                         if (initial_preset.empty()) {
+                            std::string slot_family;
+                            for (const PublishedMaterialEntry &entry : published_config->material_keys)
+                                if (entry.slot == static_cast<int>(new_slot_idx)) {
+                                    slot_family = !entry.publish_type_value.empty()
+                                        ? entry.publish_type_value : normalize_filament_type(entry.filament_type);
+                                    break;
+                                }
                             for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
                                 const Preset &candidate = this->filaments.preset(i);
                                 if (!candidate.is_visible || used_preset_names.count(candidate.name) != 0)
                                     continue;
+                                if (!slot_family.empty()) {
+                                    const ConfigOptionStrings *types = candidate.config.opt<ConfigOptionStrings>("filament_type");
+                                    const std::string cand_type = (types != nullptr && !types->values.empty()) ? types->get_at(0) : std::string();
+                                    if (normalize_filament_type(cand_type) != slot_family)
+                                        continue;
+                                }
                                 initial_preset = candidate.name;
                                 break;
                             }
@@ -5114,7 +5140,9 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     std::string replacement;
                     int best_score = -1;
                     for (const PublishedMaterialEntry &entry : published_config->material_keys) {
-                        if (entry.slot != static_cast<int>(slot) || !entry.publish_type || entry.publish_type_value.empty())
+                        // Scored for every entry with an identity, not only when a Type
+                        // requirement was checked (same as the growth seeding above).
+                        if (entry.slot != static_cast<int>(slot))
                             continue;
                         const std::string resolved_name = resolved_name_for(entry.slot);
                         auto scan = [&](bool compatible_only) -> std::pair<int, std::string> {
@@ -5153,20 +5181,39 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                                     << entry.preset_name << "\", type \"" << entry.publish_type_value << "\")";
                         break;
                     }
-                    // ...otherwise any distinct visible preset not referenced by another slot.
+                    // ...otherwise any distinct visible preset not referenced by another slot,
+                    // preferring the published material's own family when it is known.
                     if (replacement.empty()) {
-                        for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
-                            const Preset &candidate = this->filaments.preset(i);
-                            if (candidate.is_visible && !referenced_elsewhere(candidate.name, size_t(-1))) {
-                                replacement = candidate.name;
+                        std::string slot_family;
+                        for (const PublishedMaterialEntry &entry : published_config->material_keys)
+                            if (entry.slot == static_cast<int>(slot)) {
+                                slot_family = !entry.publish_type_value.empty()
+                                    ? entry.publish_type_value : normalize_filament_type(entry.filament_type);
                                 break;
                             }
+                        for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
+                            const Preset &candidate = this->filaments.preset(i);
+                            if (!candidate.is_visible || referenced_elsewhere(candidate.name, size_t(-1)))
+                                continue;
+                            if (!slot_family.empty()) {
+                                const ConfigOptionStrings *types = candidate.config.opt<ConfigOptionStrings>("filament_type");
+                                const std::string cand_type = (types != nullptr && !types->values.empty()) ? types->get_at(0) : std::string();
+                                if (normalize_filament_type(cand_type) != slot_family)
+                                    continue;
+                            }
+                            replacement = candidate.name;
+                            break;
                         }
                     }
                     if (replacement.empty())
                         continue; // every visible preset is referenced: aliasing is unavoidable
+                    const std::string aliased_name = this->filament_presets[slot];
                     this->filament_presets[slot] = replacement;
                     material_applied = true;
+                    // The re-point used to be silent; surface it like the other slot changes.
+                    published_config->material_replacements.emplace_back(
+                        "slot " + std::to_string(slot) + ": " + aliased_name + " -> " + replacement +
+                        " (de-aliased: shared profile)");
                 }
                 // Grow the per-slot colour/type/map project vectors to the new slot count and
                 // seed the new entries so the slots render with colours instead of blank chips
@@ -5367,25 +5414,43 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                 // No same-type library preset: fall back to the first available
                                 // visible preset, preferring one no other slot references, and
                                 // apply the author's full values on top of it (the dump carries
-                                // filament_type, so the preset takes the author's type).
+                                // filament_type, so the preset takes the author's type). A preset
+                                // of the published material's own family is preferred overall -
+                                // except that a referenced preset must never win just on family,
+                                // since the dump would mutate it for every sharing slot too.
                                 std::string fallback;
-                                for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
-                                    const Preset &candidate = this->filaments.preset(i);
-                                    if (!candidate.is_visible)
-                                        continue;
-                                    if (fallback.empty())
-                                        fallback = candidate.name;
-                                    bool referenced = false;
-                                    for (size_t s = 0; s < this->filament_presets.size(); ++s)
-                                        if (this->filament_presets[s] == candidate.name) {
-                                            referenced = true;
-                                            break;
+                                const std::string wanted_family = !entry.publish_type_value.empty()
+                                    ? entry.publish_type_value : normalize_filament_type(entry.filament_type);
+                                auto pick_fallback = [&](bool want_family) -> std::string {
+                                    std::string first;
+                                    for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
+                                        const Preset &candidate = this->filaments.preset(i);
+                                        if (!candidate.is_visible)
+                                            continue;
+                                        if (want_family) {
+                                            if (wanted_family.empty())
+                                                break;
+                                            const ConfigOptionStrings *cand_types = candidate.config.opt<ConfigOptionStrings>("filament_type");
+                                            if (normalize_filament_type(cand_types != nullptr && !cand_types->values.empty() ? cand_types->get_at(0) : std::string()) != wanted_family)
+                                                continue;
                                         }
-                                    if (!referenced) {
-                                        fallback = candidate.name;
-                                        break;
+                                        bool referenced = false;
+                                        for (size_t s = 0; s < this->filament_presets.size(); ++s)
+                                            if (this->filament_presets[s] == candidate.name) {
+                                                referenced = true;
+                                                break;
+                                            }
+                                        if (!referenced)
+                                            return candidate.name;
+                                        if (first.empty())
+                                            first = candidate.name;
                                     }
-                                }
+                                    return first;
+                                };
+                                if (!wanted_family.empty())
+                                    fallback = pick_fallback(true);
+                                if (fallback.empty())
+                                    fallback = pick_fallback(false);
                                 if (!fallback.empty() && fallback != recv->name) {
                                     const std::string old_name = recv->name;
                                     this->filament_presets[slot] = fallback;

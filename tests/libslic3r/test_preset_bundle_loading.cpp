@@ -2010,6 +2010,72 @@ TEST_CASE("Published 3MF seeds published slots from unused presets and mutates t
     CHECK(bundle.project_config.opt<ConfigOptionInts>("filament_map")->values.size() == 4);
 }
 
+// Without a checked Type row, a grown published slot is still seeded from the published
+// material's identity - an exact filament_id outranks any arbitrary unused preset, and an
+// entry carrying only a family constrains the pick to that family.
+TEST_CASE("Published 3MF seeds a grown slot by published identity or family without a type requirement", "[Preset][Bundle][Published]")
+{
+    auto make_file_config = [] {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75, 1.75, 1.75 };
+        config.opt<ConfigOptionInts>("filament_self_index")->values = { 1, 2, 3, 4 };
+        config.opt<ConfigOptionStrings>("filament_extruder_variant")->values = { "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard" };
+        config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#00FF00", "#0000FF", "#FFFF00" };
+        config.opt<ConfigOptionStrings>("filament_type")->values = { "PLA", "PLA", "PLA", "PLA" };
+        config.opt<ConfigOptionStrings>("filament_vendor")->values = { "Generic", "Generic", "Generic", "Generic" };
+        config.opt<ConfigOptionStrings>("filament_ids")->values = { "GFL99", "GFL99", "GFL99", "GFL99" };
+        return config;
+    };
+
+    PublishedMaterialEntry entry;
+    entry.slot            = 2;
+    entry.filament_type   = "PLA";
+    entry.filament_vendor = "Generic";
+    // An unused preset sorting before everything else: an unconstrained pick would take it.
+    PresetBundle bundle;
+    Preset &mine     = add_inmemory_preset(bundle.filaments, "My PLA");
+    mine.config.opt_string("filament_type", 0u) = "PLA";
+    Preset &arbitrary = add_inmemory_preset(bundle.filaments, "Aaa PLA");
+    arbitrary.config.opt_string("filament_type", 0u) = "PLA";
+    bundle.filament_presets = { "My PLA" };
+
+    SECTION("an exact filament_id outranks the first unused preset") {
+        Preset &authored = add_inmemory_preset(bundle.filaments, "Zzz PLA");
+        authored.config.opt_string("filament_type", 0u) = "PLA";
+        authored.filament_id = "GFA00";
+        entry.filament_id    = "GFA00";
+
+        PublishedConfig pub;
+        pub.published     = true;
+        pub.material_keys = { entry };
+        DynamicPrintConfig config = make_file_config();
+        Preset::normalize(config);
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        REQUIRE(bundle.filament_presets.size() == 3);
+        CHECK(bundle.filament_presets[1] == "My PLA");
+        CHECK(bundle.filament_presets[2] == "Zzz PLA");
+        // An exact identity match is not a substitute, so nothing is reported.
+        CHECK(pub.material_replacements.empty());
+    }
+
+    SECTION("a family-only entry picks an unused preset of that family") {
+        Preset &petg = add_inmemory_preset(bundle.filaments, "Bbb PETG");
+        petg.config.opt_string("filament_type", 0u) = "PETG";
+        entry.filament_type = "PETG";
+
+        PublishedConfig pub;
+        pub.published     = true;
+        pub.material_keys = { entry };
+        DynamicPrintConfig config = make_file_config();
+        Preset::normalize(config);
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        REQUIRE(bundle.filament_presets.size() == 3);
+        CHECK(bundle.filament_presets[2] == "Bbb PETG");
+    }
+}
+
 // The GUI displays the edited preset, a snapshot of the selected collection preset taken at
 // selection time. Since the overlay mutates the collection presets in place, the load must
 // re-select the first slot's filament so the applied values - and slot replacements - surface
@@ -2412,6 +2478,59 @@ TEST_CASE("Published 3MF gives each published slot its own preset on an aliased 
         REQUIRE(preset != nullptr);
         CHECK(preset->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values == std::vector<double>{ expected[slot] });
     }
+    CHECK(pub.skipped_keys.empty());
+}
+
+// De-aliasing runs on the exported identity even without a checked Type row: the re-pointed
+// slot lands on the exact published material (by filament_id) rather than an arbitrary spare,
+// and the formerly silent re-point is surfaced through the replacements notification list.
+TEST_CASE("Published 3MF de-aliases an aliased slot by published identity without a type requirement", "[Preset][Bundle][Published]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75 };
+    config.opt<ConfigOptionInts>("filament_self_index")->values = { 1, 2 };
+    config.opt<ConfigOptionStrings>("filament_extruder_variant")->values = { "Direct Drive Standard", "Direct Drive Standard" };
+    config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#00FF00" };
+    config.opt<ConfigOptionStrings>("filament_type")->values = { "PLA", "PLA" };
+    config.opt<ConfigOptionStrings>("filament_vendor")->values = { "Generic", "Generic" };
+    config.opt<ConfigOptionStrings>("filament_ids")->values = { "GFL99", "GFL99" };
+    config.option<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.6, 0.9 };
+
+    PresetBundle bundle;
+    Preset &mine = add_inmemory_preset(bundle.filaments, "My PLA");
+    mine.config.opt_string("filament_type", 0u) = "PLA";
+    mine.config.opt<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.5 };
+    // A spare sorting before the exact match: an unconstrained pick would take it.
+    Preset &spare = add_inmemory_preset(bundle.filaments, "Aaa PLA");
+    spare.config.opt_string("filament_type", 0u) = "PLA";
+    spare.config.opt<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.5 };
+    Preset &match = add_inmemory_preset(bundle.filaments, "Zzz PLA");
+    match.config.opt_string("filament_type", 0u) = "PLA";
+    match.config.opt<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.5 };
+    match.filament_id = "GFA00";
+    bundle.filament_presets = { "My PLA", "My PLA" };
+
+    PublishedMaterialEntry entry;
+    entry.slot            = 1;
+    entry.filament_type   = "PLA";
+    entry.filament_vendor = "Generic";
+    entry.filament_id     = "GFA00";
+    entry.keys            = { "filament_retraction_length" };
+    PublishedConfig pub;
+    pub.published     = true;
+    pub.material_keys = { entry };
+    Preset::normalize(config);
+    bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+    REQUIRE(bundle.filament_presets.size() == 2);
+    CHECK(bundle.filament_presets[0] == "My PLA");
+    CHECK(bundle.filament_presets[1] == "Zzz PLA");
+    // The published key was written onto the re-pointed slot's own preset.
+    Preset *target = bundle.filaments.find_preset("Zzz PLA", false, true);
+    REQUIRE(target != nullptr);
+    CHECK(target->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values == std::vector<double>{ 0.9 });
+    REQUIRE(pub.material_replacements.size() == 1);
+    CHECK(pub.material_replacements[0].find("(de-aliased") != std::string::npos);
     CHECK(pub.skipped_keys.empty());
 }
 
