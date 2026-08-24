@@ -1493,8 +1493,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             }
 
             // (1) Interior narrower than the nozzle bore -> can't be injected.
-            if (obj_cfg.magma_tube_width_mode.value == MagmaTubeWidthMode::Manual
-                && obj_cfg.magma_interior_width.value > 0
+            if (obj_cfg.magma_interior_width.value > 0
                 && obj_cfg.magma_interior_width.value < nozzle_d) {
                 warn(Slic3r::format(
                          L("Magma injection tube width (%.2f mm) is smaller than the nozzle bore "
@@ -1515,69 +1514,51 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 const double opening = m.opening_diameter;
                 const double covered = m.covered_diameter();
 
-                // Immersion the cone genuinely needs to reach this opening.
-                double needed = magma::seal_depth_for_opening(opening + magma::MAGMA_SEAL_MARGIN,
-                                                              flat, m.cone_half_angle_deg);
+                // The seal depth is SOLVED for this opening, so coverage is exact by
+                // construction and there is nothing to check here -- what can go wrong is
+                // physical, and the two things that do are below.
 
-                if (opening > 0.0 && covered + 1e-9 < opening + magma::MAGMA_SEAL_MARGIN) {
-                    if (needed > m.budget + 1e-9) {
-                        // The tube is wider than the immersion budget can seal. Distinct from a
-                        // too-shallow manual tube: here the budget is deliberately holding the
-                        // nozzle back, which is what it is for.
-                        warn(Slic3r::format(
-                            L("Magma tube is too wide to seal within the immersion budget: covering a "
-                              "%.2f mm opening with a %.2f mm nozzle flat needs the nozzle to enter the "
-                              "tube %.2f mm, but Total immersion is %.2f mm.\n\n"
-                              "Reduce the tube width, use a nozzle with a larger flat tip, or raise Total "
-                              "immersion — bearing in mind that deeper immersion is what deforms "
-                              "tube walls (around 1.1 mm was measured as visibly deforming)."),
-                                 opening, flat, needed, m.budget),
-                             "magma_max_immersion", object);
-                    } else {
-                        warn(Slic3r::format(
-                            L("Magma injection may not seal: at its deepest the nozzle covers only "
-                              "%.2f mm (seal depth %.2f + plunge %.2f mm) but the tube opening is "
-                              "%.2f mm. Raise Total immersion, reduce the injection tube width, or use "
-                              "a nozzle with a larger flat."),
-                                 covered, m.seal_depth, m.plunge_depth, opening),
-                             "magma_max_immersion", object);
-                    }
+                // (a) The lattice pitch. At full depth the cone is wider than one cell, so it
+                // presses into the NEIGHBOURING cells and not only the one being sealed. Past
+                // roughly MAGMA_PITCH_WARN_RATIO a print sweep showed the grid visibly
+                // distorted. The model checked the cone against the tube it was sealing and
+                // never against the lattice; this is that missing ceiling.
+                if (m.pitch_ratio() > magma::MAGMA_PITCH_WARN_RATIO) {
+                    warn(Slic3r::format(
+                        L("Magma nozzle reaches %.0f%% of the cell pitch at full depth, so it is "
+                          "pressing into the cells NEXT TO the one it is sealing and will distort "
+                          "the lattice.\n\n"
+                          "At %.2f mm seal depth plus %.2f mm plunge the cone is %.2f mm across, "
+                          "against a %.2f mm cell pitch.\n\n"
+                          "Narrow the tube, reduce the plunge, or widen the sparse infill line "
+                          "width (which widens the pitch without shrinking the tube)."),
+                             100.0 * m.pitch_ratio(), m.seal_depth, m.plunge_depth,
+                             m.cone_at_full, m.cell_spacing),
+                         "magma_interior_width", object);
                 }
 
-                // A depth the budget cut down is reported, never silently applied. Both of these
-                // are settings whose field says one number while the nozzle does another, which
-                // is the failure the single budget exists to make impossible -- so it has to be
-                // audible here and not only in the settings readout.
-                if (m.min_seal_clamped()) {
+                // (b) The seal depth this tube costs, versus what is physically sensible. The
+                // absolute clamp is the only hard stop; anything approaching it is a tube far
+                // wider than this nozzle can seal without burying itself in the part.
+                if (m.seal_depth > magma::MAGMA_SLAM_CLAMP * 0.5) {
                     warn(Slic3r::format(
-                        L("Magma minimum seal depth (%.2f mm) is deeper than Total immersion "
-                          "(%.2f mm), so the nozzle stops at the budget instead.\n\n"
-                          "The minimum seal depth is descent into the tube like any other and is "
-                          "capped by Total immersion. Lower it, or raise Total immersion if you "
-                          "genuinely want the nozzle that deep."),
-                             m.min_seal_depth, m.budget),
-                         "magma_auto_slam_press", object);
+                        L("Magma tube width %.2f mm needs the nozzle to descend %.2f mm to seal "
+                          "it on a %.2f mm flat.\n\n"
+                          "Tube width and seal depth are the same number in two units — the cone "
+                          "has to widen far enough to cover the cell's furthest corner. A nozzle "
+                          "with a larger tip flat is what buys a wider tube without a deeper "
+                          "press."),
+                             m.interior_width, m.seal_depth, m.nozzle_flat),
+                         "magma_interior_width", object);
                 }
-                if (m.plunge_clamped() && m.plunge_depth <= 0.0) {
-                    // Not a reduction -- the feature is on and cannot run at all. Say that, or it
-                    // reads as a rounding-down and gets waved past.
+
+                if (m.plunge_clamped()) {
                     warn(Slic3r::format(
-                        L("Magma plunge is switched ON but CANNOT RUN: sealing this tube already "
-                          "spends the whole %.2f mm Total immersion, leaving nothing for it. The "
-                          "injection will hold one fixed depth with no slam-melt at all.\n\n"
-                          "Total immersion must be at least Minimum seal depth + Plunge depth "
-                          "(%.2f + %.2f = %.2f mm) for both to fit."),
-                             m.budget, m.min_seal_depth, m.plunge_requested,
-                             m.min_seal_depth + m.plunge_requested),
-                         "magma_max_immersion", object);
-                } else if (m.plunge_clamped()) {
-                    warn(Slic3r::format(
-                        L("Magma plunge depth is reduced from %.2f mm to %.2f mm: sealing this tube "
-                          "already spends %.2f mm of the %.2f mm Total immersion, and the plunge may "
-                          "not push past it.\n\n"
-                          "Raise Total immersion, or narrow the tubes so they seal shallower and "
-                          "leave the plunge more room."),
-                             m.plunge_requested, m.plunge_depth, m.seal_depth, m.budget),
+                        L("Magma plunge depth reduced from %.2f mm to %.2f mm: seal depth %.2f mm "
+                          "plus the plunge would exceed the %.2f mm absolute limit on how far the "
+                          "nozzle may enter the part."),
+                             m.plunge_requested, m.plunge_depth, m.seal_depth,
+                             magma::MAGMA_SLAM_CLAMP),
                          "magma_injection_plunge_depth", object);
                 }
 

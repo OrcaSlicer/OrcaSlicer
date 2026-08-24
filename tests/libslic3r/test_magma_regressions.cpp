@@ -49,8 +49,8 @@ const std::vector<PatternCase> &all_patterns()
 
 // A classic E3D 0.6mm nozzle: 1.70mm flat, 30 degree cone.
 constexpr double REF_FLAT = 1.70, REF_CONE = 30.0, REF_NOZZLE = 0.60;
-constexpr double REF_LINE_WIDTH = 0.42, REF_IMMERSION = 0.60;
-constexpr double REF_MIN_SEAL = 0.10, REF_PLUNGE = 0.05;
+constexpr double REF_LINE_WIDTH = 0.42, REF_INTERIOR = 1.6;
+constexpr double REF_INTERFERENCE = 0.05, REF_PLUNGE = 0.05;
 
 // Resolve through the SAME entry point MagmaTubeMap::build, Print::validate and PresetHints
 // use. A test against a reimplementation of the chain would pass while the shipped one drifted,
@@ -64,16 +64,15 @@ MagmaResolved resolve_ref(InfillPattern pattern)
     printer.nozzle_diameter.values = { REF_NOZZLE };
 
     region.sparse_infill_pattern.value      = pattern;
-    region.sparse_infill_filament.value     = 1;
+    region.sparse_infill_filament_id.value  = 1;
     region.dual_infill_enabled.value        = false;
     region.sparse_infill_line_width.value   = REF_LINE_WIDTH;
     region.sparse_infill_line_width.percent = false;
 
-    object.magma_tube_width_mode.value        = MagmaTubeWidthMode::Auto;
-    object.magma_nozzle_outer_diameter.value  = REF_FLAT;
-    object.magma_nozzle_cone_half_angle.value = REF_CONE;
-    object.magma_max_immersion.value          = REF_IMMERSION;
-    object.magma_auto_slam_press.value        = REF_MIN_SEAL;
+    object.magma_interior_width.value          = REF_INTERIOR;
+    object.magma_nozzle_outer_diameter.values  = { REF_FLAT };
+    object.magma_nozzle_cone_half_angle.values = { REF_CONE };
+    object.magma_seal_press.value       = REF_INTERFERENCE;
     object.magma_injection_plunge.value       = true;
     object.magma_injection_plunge_depth.value = REF_PLUNGE;
 
@@ -84,41 +83,33 @@ MagmaResolved resolve_ref(InfillPattern pattern)
 
 } // namespace
 
-TEST_CASE("Magma: auto sizing spends the immersion budget exactly, for every pattern",
+TEST_CASE("Magma: the resolver derives one consistent geometry per pattern",
           "[Magma][resolved]")
 {
-    // The audit's own summary of what it needed: "a single test asserting the opening/slam the
-    // G-code uses equals what validate predicts, run per pattern, would have caught H2, C4, H6
-    // and the three drift bugs found by hand."
-    //
-    // In Auto mode the opening is set by the NOZZLE and the budget, not by the lattice, so it is
-    // identical across all four patterns -- only what fits inside it is pattern-specific. A
-    // change that made the opening pattern-dependent would break the seal model silently.
-    const double seal_budget = REF_IMMERSION - REF_PLUNGE;
-    const double golden_opening =
-        REF_FLAT + 2.0 * seal_budget * std::tan(REF_CONE * MAGMA_DEG2RAD) - MAGMA_SEAL_MARGIN;
-    REQUIRE(golden_opening == Catch::Approx(2.2350853).epsilon(1e-6));
-
+    // Resolved through the same entry point MagmaTubeMap::build, Print::validate and the
+    // PresetHints readout use, so a test cannot pass while the shipped chain drifts.
     for (const PatternCase &pc : all_patterns()) {
         const MagmaResolved m = resolve_ref(pc.pattern);
         INFO(pc.name);
-
-        CHECK(m.line_width       == Catch::Approx(REF_LINE_WIDTH));
-        CHECK(m.opening_diameter == Catch::Approx(golden_opening).epsilon(1e-9));
+        CHECK(m.line_width     == Catch::Approx(REF_LINE_WIDTH));
+        CHECK(m.interior_width == Catch::Approx(REF_INTERIOR));
+        // bore/opening is the pattern's cos(pi/n), computed independently here.
         CHECK(m.bore_diameter
               == Catch::Approx(m.opening_diameter * pc.bore_over_opening).epsilon(1e-9));
-
-        // The seal spends the budget less the plunge reservation, the plunge spends the
-        // reservation, and together they are the budget. Exactly -- not "within".
-        CHECK(m.seal_depth    == Catch::Approx(seal_budget).epsilon(1e-9));
-        CHECK(m.plunge_depth  == Catch::Approx(REF_PLUNGE).epsilon(1e-9));
-        CHECK(m.total_depth() == Catch::Approx(REF_IMMERSION).epsilon(1e-9));
-
-        // And the point of sizing it that way: this nozzle seals this tube.
+        // Seal depth is SOLVED for this tube: the cone covers the opening exactly at first
+        // contact and then descends by the press. So the coverage past the opening is
+        // 2*press*tan(theta) -- the press is a DEPTH, and only tan(theta) turns it into width.
+        CHECK(cone_diameter_at(m.seal_depth, m.nozzle_flat, m.cone_half_angle_deg)
+              == Catch::Approx(m.opening_diameter
+                               + 2.0 * m.seal_press
+                                     * std::tan(m.cone_half_angle_deg * MAGMA_DEG2RAD))
+                     .epsilon(1e-9));
         CHECK(m.seals());
+        // Plunge is additive: total is the sum, not a budget the two were taken from.
+        CHECK(m.total_depth() == Catch::Approx(m.seal_depth + m.plunge_depth).epsilon(1e-9));
+        CHECK_FALSE(m.plunge_clamped());
     }
 }
-
 TEST_CASE("Magma: the park retract is an absolute target under absolute E", "[Magma][regression]")
 {
     // C0: the park path emitted a raw "G1 E-2.0" delta regardless of E mode. Under ABSOLUTE E

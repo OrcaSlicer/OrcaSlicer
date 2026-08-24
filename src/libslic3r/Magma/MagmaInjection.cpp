@@ -180,26 +180,20 @@ std::string generate_injection_gcode(
     // here and Print::validate() stay in lockstep.
     double seal_flat = resolve_nozzle_flat(config.magma_nozzle_outer_diameter.get_at(extruder_id),
                                            config.nozzle_diameter.get_at(extruder_id));
-    const double min_seal_depth = config.magma_auto_slam_press.value;
-    // How deep the hot nozzle may travel inside a tube, from any path. The seal depth and
-    // the plunge both spend from this one budget, and both are clamped against it below.
-    const double budget = immersion_budget(config.magma_max_immersion.value);
-    // Sealing depth is always derived from this tube's own opening. A single fixed depth
-    // over-presses small boundary tubes and under-seals large ones, so there is no manual
-    // mode: Total immersion is the direct depth control (in auto tube sizing the tube is
-    // sized so the depth lands exactly on the budget).
+    const double seal_press = std::max(0.0, config.magma_seal_press.value);
+    // Sealing depth is always derived from THIS tube's own opening. A single fixed depth
+    // over-presses small boundary tubes and under-seals large ones.
     seal_depth = auto_seal_depth(tube_map.tube_opening_diameter(), seal_flat,
                                  config.magma_nozzle_cone_half_angle.get_at(extruder_id),
-                                 budget, min_seal_depth);
+                                 seal_press);
 
-    // Plunge ("slam-melt"): ramp the nozzle deeper during the injection so the hot
-    // tip sinks into the softening tube top and keeps the seal pressed shut as the
-    // channel fills. Ramps from seal_depth to seal_depth + plunge_depth, clamped so
-    // the total intrusion stays inside the same budget.
+    // Plunge ("slam-melt"): ramp the nozzle deeper during the injection so the hot tip sinks
+    // into the softening tube top and keeps the corners pressed shut as the channel fills.
+    // ADDITIVE -- it descends past seal_depth rather than being carved out of it.
     const double plunge_cfg = config.magma_injection_plunge.value
                                   ? std::max(0.0, config.magma_injection_plunge_depth.value)
                                   : 0.0;
-    double plunge_depth = clamp_plunge_depth(seal_depth, plunge_cfg, budget);
+    double plunge_depth = clamp_plunge_depth(seal_depth, plunge_cfg);
 
     // Raw volume→E conversion: 1/cross_section, without filament_flow_ratio.
     // Injection volume is geometrically computed from tube dimensions; applying
@@ -268,8 +262,8 @@ std::string generate_injection_gcode(
             const auto& slam_pair = tube_map.u_tube_pairs()[pt.pair_index];
             seal_depth   = auto_seal_depth(tube_map.cap_opening_diameter(slam_pair), seal_flat,
                                            config.magma_nozzle_cone_half_angle.get_at(extruder_id),
-                                           budget, min_seal_depth);
-            plunge_depth = clamp_plunge_depth(seal_depth, plunge_cfg, budget);
+                                           seal_press);
+            plunge_depth = clamp_plunge_depth(seal_depth, plunge_cfg);
         }
 
         // Travel to injection point. The built-in travel_to() handles retraction,
@@ -402,8 +396,13 @@ std::string generate_injection_gcode(
         // raised for injection. Without plunge we inject in place as pure-E moves, which the
         // firmware paces by the extruder directly (split only to stay under the extrude-only
         // move distance).
-        const int N = (plunge_depth > 0.0)
-            ? 8 : std::max(1, std::min(8, (int) std::ceil(filament_length / 40.0)));
+        // Segment count. A plunge is a UNIFORM ramp -- z and E both advance linearly -- so the
+        // firmware interpolates a single G1 into exactly the same motion that N equal sub-moves
+        // produce. The old code split it 8 ways unconditionally with no recorded reason, which
+        // was 8x the G-code for an identical toolpath. Both branches now split for the one
+        // reason that is real: keeping a single move's extruded length under the firmware's
+        // extrude-only distance limit.
+        const int N = std::max(1, std::min(8, (int) std::ceil(filament_length / 40.0)));
         if (plunge_depth > 0.0) {
             const double f_inject = feedrate_mmmin * plunge_depth / std::max(1e-4, filament_length);
             gcode += gcodegen.writer().set_speed(f_inject);

@@ -1125,18 +1125,12 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // The seal depth is derived from nozzle geometry; it needs the nozzle
     // tip flat and cone angle, so those fields follow this toggle.
 
-    // Magma Pattern section
-    toggle_line("magma_tube_width_mode", have_magma_pattern);
+    // Magma Pattern section. There is one sizing path now: the tube width is the setting and
+    // the seal depth follows from it, so there is no mode to pick.
     toggle_line("magma_spiral_interlock", have_magma_pattern);
-
-    // Tube width mode: show nozzle OD for Auto, interior width for Manual
-    auto* tube_mode_opt = config->option<ConfigOptionEnum<MagmaTubeWidthMode>>("magma_tube_width_mode");
-    bool tube_auto = have_magma_pattern && tube_mode_opt &&
-        tube_mode_opt->value == MagmaTubeWidthMode::Auto;
-    // The flat sizes the tube in Auto and sets the seal in both modes, so it is always relevant.
     toggle_line("magma_nozzle_outer_diameter", have_magma_pattern);
     toggle_line("magma_nozzle_cone_half_angle", have_magma_pattern);
-    toggle_line("magma_interior_width", have_magma_pattern && !tube_auto);
+    toggle_line("magma_interior_width", have_magma_pattern);
 
     // Magma Tubes section
     for (auto el : { "magma_window_height_mm",
@@ -1155,18 +1149,16 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
                      "magma_injection_edge_pref",
         "magma_injection_park", "magma_injection_dwell", "magma_injection_retract" })
         toggle_line(el, have_magma_pattern);
-    // Immersion: the budget both sizes the tube (Auto) and caps the seal (always) -- but it
-    // only makes sense once the nozzle flat is known, because immersion deliberately sizes
-    // tubes WIDER than the flat. Shown-but-disabled rather than hidden, so the tooltip can
-    // explain what measuring unlocks instead of the setting just not existing.
+    // Seal press and the tube width both resolve against the nozzle flat, so neither
+    // means anything until it is measured. Shown-but-disabled rather than hidden, so the
+    // tooltip can explain what measuring unlocks instead of the setting just not existing.
     auto* flat_opt = config->option<ConfigOptionFloats>("magma_nozzle_outer_diameter");
     const bool flat_measured = flat_opt && ! flat_opt->values.empty() &&
                                std::any_of(flat_opt->values.begin(), flat_opt->values.end(),
                                            [](double v) { return v > 0.0; });
-    toggle_line("magma_max_immersion", have_magma_pattern);
-    toggle_field("magma_max_immersion", have_magma_pattern && flat_measured);
-    // Contact press is only reached when the flat already covers the opening.
-    toggle_line("magma_auto_slam_press", have_magma_pattern);
+    toggle_line("magma_seal_press", have_magma_pattern);
+    toggle_field("magma_seal_press", have_magma_pattern && flat_measured);
+    toggle_field("magma_interior_width", have_magma_pattern && flat_measured);
     // Plunge ("slam-melt"): depth field only when the plunge toggle is on
     auto* plunge_opt = config->option<ConfigOptionBool>("magma_injection_plunge");
     bool plunge_on = have_magma_pattern && plunge_opt && plunge_opt->value;

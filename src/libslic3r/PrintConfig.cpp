@@ -287,11 +287,6 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InfillPattern)
 
 // MagmaPattern enum removed - dual_infill_outer_pattern uses InfillPattern directly
 
-static t_config_enum_values s_keys_map_MagmaTubeWidthMode {
-    { "auto",   int(MagmaTubeWidthMode::Auto) },
-    { "manual", int(MagmaTubeWidthMode::Manual) }
-};
-CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(MagmaTubeWidthMode)
 
 static t_config_enum_values s_keys_map_MagmaTubeSolverMode {
     { "basic",   int(MagmaTubeSolverMode::Basic) },
@@ -6431,23 +6426,31 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
-    def = this->add("magma_tube_width_mode", coEnum);
-    def->label = L("Tube width sizing");
+    def = this->add("magma_seal_press", coFloat);
+    def->label = L("Seal press");
     def->category = L("Strength");
-    def->tooltip = L("How the injection tube width is determined.\n\n"
-                     "Auto (from nozzle): sizes the tube to the largest opening the immersion budget "
-                     "allows, using the selected pattern\'s own cell geometry. Raise Max nozzle "
-                     "immersion for bigger tubes.\n\n"
-                     "Manual: set the tube interior width directly. Tubes too small for your nozzle "
-                     "let the flat cover both ends of a U-tube at once, blocking airflow and "
-                     "preventing injection.");
-    def->enum_keys_map = &ConfigOptionEnum<MagmaTubeWidthMode>::get_enum_values();
-    def->enum_values.push_back("auto");
-    def->enum_values.push_back("manual");
-    def->enum_labels.push_back(L("Auto from nozzle (Recommended)"));
-    def->enum_labels.push_back(L("Manual"));
+    def->tooltip = L("How far the nozzle descends PAST the point where it first touches the cell, "
+                     "before any filament flows.\n\n"
+                     "Covering a cell is not the same as sealing it. At first contact the nozzle "
+                     "is resting on the opening, not gripping it — this is what decides how hard. "
+                     "At zero the cell is geometrically covered and mechanically open.\n\n"
+                     "It is also the only way to press harder into a tube of a GIVEN size. "
+                     "Everything else that would push deeper — a smaller nozzle flat, a sharper "
+                     "cone — changes the tube as well.\n\n"
+                     "Press and Plunge depth are the same kind of thing, depth past first "
+                     "contact: this one before the injection, the plunge during it. What resists "
+                     "the injection is (press + plunge) x tan(cone half-angle), shown as Corner "
+                     "grip in the readout.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 1.0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionEnum<MagmaTubeWidthMode>(MagmaTubeWidthMode::Auto));
+    // Literal rather than magma::MAGMA_SEAL_PRESS: the Magma headers include
+    // PrintConfig.hpp, so pulling one in here would be circular. Keep the two in step.
+    // This is a DEPTH, so it is the old hardcoded 0.1 diametral margin converted:
+    // 0.1 / (2 tan 30) = 0.0866. Setting it to the old 0.05 would be a silent 42% cut.
+    def->set_default_value(new ConfigOptionFloat(0.0866));
+
 
     def = this->add("magma_nozzle_outer_diameter", coFloats);
     def->label = L("Nozzle tip flat");
@@ -6483,19 +6486,27 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloats{ 30.0 });
 
     def = this->add("magma_interior_width", coFloat);
-    def->label = L("Injection tube width");
+    def->label = L("Tube interior width");
     def->category = L("Strength");
-    def->tooltip = L("Width of the tube interior (injection channel), measured across the cell.\n\n"
-                     "Only used when Tube width sizing is Manual — in Auto the tube is sized from the "
-                     "nozzle flat and the immersion budget, and this field is ignored.\n\n"
-                     "WARNING: If this value is too small, the nozzle shoulder may cover "
-                     "both ends of the U-tube simultaneously, blocking airflow and preventing "
-                     "injection fill. Ensure the tube spacing is wider than your nozzle shoulder.");
+    def->tooltip = L("Open width of one injection channel, wall to wall. THE primary Magma "
+                     "setting: it is what the reinforcement's strength and injected volume "
+                     "depend on.\n\n"
+                     "Everything about the seal follows from it. The nozzle cone has to widen "
+                     "enough to cover this cell's furthest corner, so the tube width and the "
+                     "depth the nozzle must descend are the same number in two units — pick "
+                     "one and the hardware fixes the other. The readout below shows the seal "
+                     "depth this width costs on your nozzle.\n\n"
+                     "Wider tubes hold more injected material and resist freezing on the way "
+                     "down, but need a deeper press, which eventually reaches the neighbouring "
+                     "cells and distorts the lattice. Slicing warns when it does.");
     def->sidetext = L("mm");
     def->min = 0.1;
     def->max = 5.0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(3.0));
+    // Sized for a measured 1.70mm flat at a 30 degree cone: about 0.6mm of seal depth, which is
+    // inside the window a print sweep found usable. A different nozzle wants a different value,
+    // and the seal-depth readout is how you tell.
+    def->set_default_value(new ConfigOptionFloat(1.6));
 
     def = this->add("magma_window_height_mm", coFloat);
     def->label = L("Window height");
@@ -6744,45 +6755,6 @@ void PrintConfigDef::init_fff_params()
 
 
 
-
-    def = this->add("magma_max_immersion", coFloat);
-    def->label = L("Total immersion");
-    def->category = L("Strength");
-    def->tooltip = L("The deepest the nozzle ever gets inside a tube. It seals at the seal depth in one "
-                     "fast move before anything is extruded, then sinks the plunge depth further WHILE "
-                     "the tube fills, arriving here as the last of the filament goes in. Seal depth, "
-                     "Minimum seal depth and Plunge depth are all held under this — nothing can "
-                     "drive past it.\n\n"
-                     "Immersion exists only to fit a tube wider than the nozzle flat — a tube the "
-                     "flat covers is sealed by seating on the rim, with no descent. It is also what "
-                     "deforms tubes: 0.5mm printed cleanly in testing, 1.1mm visibly deformed.\n\n"
-                     "With Auto tube sizing this is not a ceiling you might stay under: tubes are sized "
-                     "so that sealing them costs exactly this, so a bigger value buys bigger tubes. "
-                     "0 = tubes the flat covers outright.\n\n"
-                     "Requires a measured Nozzle tip flat: immersion deliberately makes tubes wider "
-                     "than the flat, so it cannot be set against a guess.");
-    def->sidetext = L("mm");
-    def->min = 0;
-    def->max = 3.5;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0.6));
-
-    def = this->add("magma_auto_slam_press", coFloat);
-    def->label = L("Minimum seal depth");
-    def->category = L("Strength");
-    def->tooltip = L("Floor under the sealing depth, so a tube whose opening the nozzle flat already "
-                     "covers is pressed into rather than merely touched and part-to-part variation "
-                     "cannot leave a seal open.\n\n"
-                     "It changes nothing unless it exceeds the depth the cone geometry already calls "
-                     "for, which happens only at low Total immersion — larger tubes seal by "
-                     "descending further than this on their own.\n\n"
-                     "This is descent into the tube like any other, so it is capped by Total immersion "
-                     "and consumes plunge headroom as it rises.");
-    def->sidetext = L("mm");
-    def->min = 0;
-    def->max = 1.0;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0.1));
 
     def = this->add("magma_injection_plunge", coBool);
     def->label = L("Plunge while injecting");
@@ -9614,6 +9586,14 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "change_filament_gcode";
     } else if (opt_key == "bridge_fan_speed") {
         opt_key = "overhang_fan_speed";
+    } else if (opt_key == "magma_max_immersion" || opt_key == "magma_auto_slam_press" ||
+               opt_key == "magma_tube_width_mode") {
+        // Retired with the seal rework. Total immersion is now a readout (seal depth + plunge),
+        // the minimum seal depth is meaningless once seal depth is derived from the tube you
+        // asked for, and there is only one sizing mode because tube width and seal depth were
+        // never two independent choices. Ignored rather than dropped on the floor: an unknown
+        // key in a .json user preset is the path that DELETES the preset and its .info sidecar.
+        opt_key = "";
     } else if (opt_key == "infill_extruder" || opt_key == "sparse_infill_filament") {
         // ORCA: legacy feature-filament selector. Pre-2.4.0-dev these keys were 1-based and the
         // default value "1" meant "the first/active filament". The current scheme uses a dedicated

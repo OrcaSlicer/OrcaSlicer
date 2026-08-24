@@ -1656,7 +1656,7 @@ bool PrintObject::invalidate_state_by_config_options(
         } else if (
                opt_key == "dual_infill_solid_layers"
             || opt_key == "dual_infill_solid_thickness"
-            || opt_key == "magma_tube_width_mode"
+            || opt_key == "magma_seal_press"
             || opt_key == "magma_nozzle_outer_diameter"
             || opt_key == "magma_interior_width"
             || opt_key == "magma_window_height_mm"

@@ -89,125 +89,32 @@ TEST_CASE("Magma: bore is the inscribed circle of the cell, not the interior wid
     }
 }
 
-TEST_CASE("Magma: the immersion budget round-trips through sizing and slam", "[Magma][seal]")
+TEST_CASE("Magma: the press is depth past first contact, whatever the tube", "[Magma][seal]")
 {
-    // Auto tube sizing inverts the budget into an opening; auto_seal_depth must then spend
-    // exactly that budget. If these drift, the tube is sized against one number and sealed
-    // against another -- which is how a seal warning ends up blind to the case it exists for.
-    const double flat  = 1.70;
-    const double cone  = 30.0;
-    const double press = 0.10;
-
-    for (const PatternCase &pc : all_patterns()) {
-        const MagmaGeometry &geom = magma_geometry_for(pc.pattern);
-        for (double immersion : { 0.0, 0.2, 0.6, 1.0 }) {
-            const double opening_max = max_opening_for_immersion(flat, cone, immersion);
-            const double interior    = geom.interior_for_opening(opening_max, 0.60);
-            const double spacing     = cell_spacing_from_geometry(interior, 0.60);
-            const double opening     = geom.opening_diameter(spacing, 0.60);
-
-            INFO(pc.name << " immersion=" << immersion);
-            // Sizing must reproduce the opening the budget allows.
-            CHECK(opening == Catch::Approx(opening_max).epsilon(1e-9));
-
-            const double seal = auto_seal_depth(opening, flat, cone,
-                                                immersion_budget(immersion), press);
-            // The seal spends exactly the budget: no more, no less. The minimum seal depth
-            // cannot move this either way -- above the geometric need it is capped by the same
-            // budget, below it the geometry already asks for more.
-            CHECK(seal == Catch::Approx(immersion).epsilon(1e-9));
-        }
-    }
-}
-
-TEST_CASE("Magma: the minimum seal depth cannot outrank the immersion budget", "[Magma][seal]")
-{
-    // Regression: the budget used to be max(min_seal_depth, max_immersion), so a floor bounded
-    // at 1.0mm raised a setting named for the maximum whenever immersion sat below it -- a
-    // 0.3mm immersion with a 0.8mm floor drove 0.8mm into the part, past the depth measured as
-    // visibly deforming. A floor under the seal is descent past the rim like any other.
-    const double flat = 1.70, cone = 30.0;
-
-    for (double immersion : { 0.0, 0.1, 0.3, 0.6, 1.0 }) {
-        const double budget  = immersion_budget(immersion);
-        const double opening = max_opening_for_immersion(flat, cone, immersion);
-        for (double floor_depth : { 0.0, 0.05, 0.5, 1.0 }) {
-            const double seal   = auto_seal_depth(opening, flat, cone, budget, floor_depth);
-            const double plunge = clamp_plunge_depth(seal, 0.05, budget);
-            INFO("immersion=" << immersion << " min_seal_depth=" << floor_depth);
-            CHECK(seal >= 0.0);
-            CHECK(seal + plunge <= immersion + 1e-9);   // the stated maximum, from every path
-        }
-    }
-
-    // Seating mode: at a zero budget nothing enters the tube, the floor included. The tube is
-    // covered by the flat outright, so the nozzle seats on the rim without descending.
-    const double opening0 = max_opening_for_immersion(flat, cone, 0.0);
-    CHECK(opening0 <= flat);
-    CHECK(auto_seal_depth(opening0, flat, cone, immersion_budget(0.0), 0.10)
-          == Catch::Approx(0.0).margin(1e-12));
-}
-
-TEST_CASE("Magma: mechanical interference past first contact is opening-independent", "[Magma][seal]")
-{
-    // The finding the immersion model is built on: because auto_seal_depth solves for
-    // opening + MAGMA_SEAL_MARGIN while the rim is first touched at opening, the interference
-    // past contact is MARGIN / (2 tan theta) -- the opening and the flat cancel. Two prints
-    // differing only in immersion had identical interference; immersion is what deforms tubes.
+    // The whole point of parameterising it this way: the depth travelled past first contact IS
+    // the setting, for every tube size and every nozzle, with no conversion and no regime
+    // switch. The previous radial form needed a division by tan(theta) here and a separate
+    // branch for tubes the flat already spanned.
     const double cone = 30.0;
-    const double expected = MAGMA_SEAL_MARGIN / (2.0 * std::tan(cone * MAGMA_DEG2RAD));
-
-    for (double flat : { 1.2, 1.7, 2.4 }) {
-        for (double opening : { 2.0, 2.9, 3.6 }) {
-            if (opening <= flat) continue;
-            const double d_slam    = seal_depth_for_opening(opening + MAGMA_SEAL_MARGIN, flat, cone);
-            const double d_contact = seal_depth_for_opening(opening, flat, cone);
-            INFO("flat=" << flat << " opening=" << opening);
-            CHECK(d_slam - d_contact == Catch::Approx(expected).epsilon(1e-9));
-        }
-    }
+    for (double press : { 0.0, 0.05, 0.0866, 0.3 })
+        for (double flat : { 1.2, 1.7, 2.4 })
+            for (double opening : { 1.0, 2.0, 2.9, 3.6 }) {
+                const double d_seal    = auto_seal_depth(opening, flat, cone, press);
+                const double d_contact = seal_depth_for_opening(opening, flat, cone);
+                INFO("flat=" << flat << " opening=" << opening << " press=" << press);
+                CHECK(d_seal - d_contact == Catch::Approx(press).epsilon(1e-9));
+            }
 }
-
-TEST_CASE("Magma: effective_interior_width honours the tube width mode", "[Magma][sizing]")
-{
-    // Regression: this was resolved three different ways -- once via a triangle-specific free
-    // function that ignored the geometry, and twice in Print::validate ignoring the mode
-    // entirely, so warnings were evaluated against tubes that were never printed.
-    const double flat = 1.70, cone = 30.0, lw = 0.60, immersion = 0.6;
-
-    for (const PatternCase &pc : all_patterns()) {
-        const MagmaGeometry &geom = magma_geometry_for(pc.pattern);
-        INFO(pc.name);
-
-        // Manual: the user's value, verbatim, whatever the nozzle says.
-        CHECK(effective_interior_width(geom, MagmaTubeWidthMode::Manual, 2.2,
-                                       flat, lw, cone, immersion, 0.0)
-              == Catch::Approx(2.2).epsilon(1e-12));
-
-        // Auto: resolved through THIS pattern's geometry, ignoring the manual value.
-        const double expect = geom.interior_for_opening(
-            max_opening_for_immersion(flat, cone, immersion), lw);
-        CHECK(effective_interior_width(geom, MagmaTubeWidthMode::Auto, 2.2,
-                                       flat, lw, cone, immersion, 0.0)
-              == Catch::Approx(expect).epsilon(1e-12));
-
-        // ...and Auto must differ per pattern, or the geometry is not being consulted.
-        if (pc.pattern != ipMagmaTriangle) {
-            const double tri = magma_geometry_for(ipMagmaTriangle).interior_for_opening(
-                max_opening_for_immersion(flat, cone, immersion), lw);
-            CHECK(expect != Catch::Approx(tri).epsilon(1e-6));
-        }
-    }
-}
-
 TEST_CASE("Magma: effective pattern resolution follows dual-infill state", "[Magma][sizing]")
 {
     CHECK(magma_effective_pattern(false, ipMagmaHoneycomb, ipMagmaRectilinear)
           == ipMagmaRectilinear);                                   // dual off -> sparse wins
     CHECK(magma_effective_pattern(true, ipMagmaHoneycomb, ipMagmaRectilinear)
           == ipMagmaHoneycomb);                                     // dual on  -> outer wins
+    // No longer clamped: a non-Magma outer pattern is a legitimate choice -- a zone with no
+    // injectable channels -- so it comes back as chosen rather than substituted.
     CHECK(magma_effective_pattern(true, ipGrid, ipMagmaRectilinear)
-          == ipMagmaTriangle);                                      // non-Magma outer -> substituted
+          == ipGrid);                                               // non-Magma outer -> honoured
 }
 
 TEST_CASE("Magma: geometry and lattice agree on edge length", "[Magma][geometry]")
@@ -230,45 +137,65 @@ TEST_CASE("Magma: geometry and lattice agree on edge length", "[Magma][geometry]
     }
 }
 
-TEST_CASE("Magma: auto sizing leaves room for the plunge", "[Magma][seal]")
+TEST_CASE("Magma: seal depth is solved for the cell's furthest corner", "[Magma][seal]")
 {
-    // Regression: auto sizing spent the ENTIRE immersion budget on the seal depth, so
-    // clamp_plunge_depth found zero headroom and the plunge was always exactly 0 in Auto mode
-    // -- the default. The slam-melt never ran, with the setting switched on in the UI.
-    const double flat = 1.75, cone = 30.0, lw = 0.60, immersion = 0.6, press = 0.1;
+    // Tube width and seal depth are the same number in two units. The cone must widen to cover
+    // the CIRCUMSCRIBED circle -- the corners are the last thing it reaches -- plus the corner
+    // press. Solve one way and back again for every pattern; if these drift, a tube is
+    // sized against one depth and sealed at another.
+    const double flat = 1.70, cone = 30.0, lw = 0.60;
     for (const PatternCase &pc : all_patterns()) {
         const MagmaGeometry &geom = magma_geometry_for(pc.pattern);
-        for (double plunge_cfg : { 0.05, 0.2 }) {
-            const double interior = effective_interior_width(
-                geom, MagmaTubeWidthMode::Auto, 2.2, flat, lw, cone, immersion, plunge_cfg);
-            const double spacing  = cell_spacing_from_geometry(interior, lw);
-            const double opening  = geom.opening_diameter(spacing, lw);
-            const double budget   = immersion_budget(immersion);
-            const double seal     = auto_seal_depth(opening, flat, cone, budget, press);
-            const double plunge   = clamp_plunge_depth(seal, plunge_cfg, budget);
-            INFO(pc.name << " plunge_cfg=" << plunge_cfg << " seal=" << seal);
-            CHECK(plunge == Catch::Approx(plunge_cfg).epsilon(1e-6));
-            CHECK(seal + plunge <= budget + 1e-9);
+        for (double interior : { 1.2, 1.6, 2.0 }) {
+            for (double press : { 0.0, 0.05, 0.2 }) {
+                const double spacing = cell_spacing_from_geometry(interior, lw);
+                const double opening = geom.opening_diameter(spacing, lw);
+                const double d       = auto_seal_depth(opening, flat, cone, press);
+                INFO(pc.name << " interior=" << interior << " press=" << press);
+                // The cone covers the cell's furthest corner and is then pressed further, so
+                // coverage is never short. Equality only when the flat did not already span it.
+                CHECK(cone_diameter_at(d, flat, cone) + 1e-9 >= opening);
+                CHECK(d - seal_depth_for_opening(opening, flat, cone)
+                      == Catch::Approx(press).epsilon(1e-9));
+                // And the bore/opening ratio is the pattern's cos(pi/n), independently computed.
+                CHECK(2.0 * geom.inscribed_radius(interior, lw)
+                      == Catch::Approx(opening * pc.bore_over_opening).epsilon(1e-9));
+            }
         }
     }
 }
 
-TEST_CASE("Magma: the plunge never spends past the immersion budget", "[Magma][seal]")
+TEST_CASE("Magma: corner grip depends on press and plunge, nothing else", "[Magma][seal]")
 {
-    // Regression: clamp_plunge_depth used to bound seal+plunge only by a separate 4.0mm
-    // constant and ignore max_immersion entirely, so a user who lowered the immersion budget
-    // still got the full plunge driven past it -- the budget bounded the seal but not the
-    // plunge. The budget is now the only ceiling, which is why the 4.0mm constant is gone.
-    for (double seal : { 0.1, 0.6, 1.5, 3.4 })
-        for (double plunge : { 0.0, 0.05, 0.5, 2.0 })
-            for (double budget : { 0.0, 0.1, 0.6, 3.5 }) {
-                const double clamped = clamp_plunge_depth(seal, plunge, budget);
-                INFO("seal=" << seal << " plunge=" << plunge << " budget=" << budget);
-                CHECK(clamped >= 0.0);
-                CHECK(clamped <= plunge);
-                // A seal already past the budget leaves no room at all, rather than the
-                // plunge topping up to some other ceiling.
-                CHECK(clamped <= std::max(0.0, budget - seal) + 1e-9);
-                CHECK(seal + clamped <= std::max(seal, budget) + 1e-9);
-            }
+    // The corner is the least-pressed contact in the cell and the one that lets go first, so
+    // what holds it is the number worth pinning. It is deliberately independent of tube size
+    // and of seal depth -- a wider tube does NOT grip its corners any harder.
+    // Press and plunge are the same quantity in the same units -- depth past first contact,
+    // one before the injection and one during it -- so they enter the grip identically.
+    const double cone = 30.0, T = std::tan(cone * MAGMA_DEG2RAD);
+    for (double press : { 0.0, 0.05, 0.2 })
+        for (double pl : { 0.0, 0.1, 0.3 }) {
+            INFO("press=" << press << " plunge=" << pl);
+            CHECK(corner_grip(press, pl, cone) == Catch::Approx((press + pl) * T).epsilon(1e-9));
+        }
+    // No press and no plunge means the corners are covered and ungripped -- the geometry
+    // seals and the mechanics do not.
+    CHECK(corner_grip(0.0, 0.0, cone) == Catch::Approx(0.0).margin(1e-12));
+}
+
+TEST_CASE("Magma: the plunge is additive, not carved out of the seal", "[Magma][seal]")
+{
+    // Regression: the plunge used to be subtracted before the tube was sized while the emitter
+    // added it back at print time, so raising the plunge silently shrank the tube. Sizing no
+    // longer sees it at all, and only the absolute sanity clamp bounds the pair.
+    for (double interior : { 1.2, 1.6, 2.0 })
+        CHECK(effective_interior_width(interior) == Catch::Approx(interior));
+
+    for (double seal : { 0.2, 0.6, 1.0 })
+        for (double pl : { 0.0, 0.05, 0.3, 2.0 }) {
+            const double got = clamp_plunge_depth(seal, pl);
+            INFO("seal=" << seal << " plunge=" << pl);
+            CHECK(got <= pl + 1e-9);
+            CHECK(seal + got <= MAGMA_SLAM_CLAMP + 1e-9);
+        }
 }

@@ -437,13 +437,8 @@ PresetHints::MagmaReadout PresetHints::magma_injection_readout(const PresetBundl
           m.opening_diameter > m.nozzle_flat
               ? _utf8(L("reached in one fast move before any filament flows: the opening is wider than the nozzle flat, so the nozzle descends until the cone covers it"))
               : _utf8(L("the flat already covers the opening, so the nozzle seats on the rim without entering the tube")));
-    r.add(_utf8(L("Minimum seal depth")),
-          m.min_seal_clamped() ? mm_clamped(m.budget, m.min_seal_depth) : mm(m.min_seal_depth),
-          m.min_seal_clamped()
-              ? _utf8(L("deeper than Total immersion allows, so the seal stops at the budget instead"))
-              : (m.min_seal_depth > m.seal_depth - 1e-9
-                     ? _utf8(L("floor under the seal depth; it is what is setting the depth above, since the cone geometry needs less"))
-                     : _utf8(L("floor under the seal depth; inert here, because the cone geometry already needs more than this"))));
+    r.add(_utf8(L("Corner grip")), mm(m.grip),
+          _utf8(L("what actually holds the seal shut: (press + plunge) x tan(cone angle). Both are depth past first contact -- one before the injection, one during it. The corner is the last part of the opening the cone covers, so it is the least pressed contact in the cell and the first to let go")));
     r.add(_utf8(L("Plunge")),
           m.plunge_clamped() ? mm_clamped(m.plunge_depth, m.plunge_requested) : mm(m.plunge_depth),
           ! print_config.opt_bool("magma_injection_plunge")
@@ -452,8 +447,12 @@ PresetHints::MagmaReadout PresetHints::magma_injection_readout(const PresetBundl
                      ? _utf8(L("the seal depth already spent most of the budget, leaving only this much room to sink further"))
                      : _utf8(L("the nozzle sinks this much further WHILE the tube fills, paced to the extrusion, keeping the seal shut as pressure builds"))));
     r.add(_utf8(L("Total immersion")), mm(m.total_depth()),
-          (boost::format(_utf8(L("deepest the nozzle gets, reached as the last filament goes in and held through the dwell; the budget is %1$.3f mm and this is what deforms tube walls")))
-           % m.budget).str());
+          _utf8(L("seal depth plus plunge -- the deepest the nozzle gets, reached as the last filament goes in and held through the dwell. A consequence of the two settings above, not a budget they are spent from")));
+    r.add(_utf8(L("Nozzle vs cell pitch")),
+          (boost::format("%1$.0f%%") % (100.0 * m.pitch_ratio())).str(),
+          m.pitch_ratio() > magma::MAGMA_PITCH_WARN_RATIO
+              ? _utf8(L("the cone is wider than one cell at full depth, so it presses into the neighbouring cells and distorts the lattice"))
+              : _utf8(L("how much of the cell pitch the cone spans at full depth; past ~110% it starts crushing the neighbouring cells")));
 
     const double open_area   = m.geometry->inset_open_area(m.cell_spacing, m.line_width);
     const double tube_height = print_config.opt_float("magma_tube_height");

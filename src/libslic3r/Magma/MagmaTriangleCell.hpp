@@ -61,8 +61,29 @@ inline double inset_triangle_area(double cell_spacing, double line_width) {
 // *predicts* whether it will seal, so the two can never drift apart.
 
 constexpr double MAGMA_DEG2RAD           = 0.017453292519943295;
-constexpr double MAGMA_SLAM_CLAMP        = 3.5;  // absolute ceiling on total immersion (mm)
-constexpr double MAGMA_SEAL_MARGIN       = 0.1;  // min opening coverage to predict a seal (mm)
+constexpr double MAGMA_SLAM_CLAMP        = 3.5;  // absolute sanity ceiling on total depth (mm)
+
+// Above which cone-diameter-to-cell-pitch ratio the nozzle is judged to be crushing the
+// NEIGHBOURING cells rather than only the one it is sealing.
+//
+// MEASURED, not derived. A sweep at flat 1.70 / line width 0.60 / plunge 0.10 was clean up to a
+// ratio of 1.129 and showed the lattice visibly disrupted from 1.139, so the threshold sits
+// between them. Do not tighten it without print evidence: at 1.10 it fires on configurations
+// that demonstrably print well.
+//
+// Evaluated at FULL depth (seal + plunge), on the reasoning that plastic deformation follows the
+// deepest penetration. That is an ASSUMPTION the calibration cannot yet confirm -- every cell in
+// that sweep used the same 0.10 plunge, so the ratio at seal depth and at full depth moved
+// together and the data cannot separate them. If the damage turns out to track the seal press
+// alone, a brief plunge is far cheaper than this predicts. See CALIBRATION.md.
+constexpr double MAGMA_PITCH_WARN_RATIO   = 1.135;
+// Default seal press, in mm. Exposed as magma_seal_press; this is only
+// the default. It used to be a hardcoded DIAMETRAL 0.1, i.e. 0.05 radial, which is what this
+// preserves. See corner_grip() for why it is the load-bearing number in the seal.
+// Default seal PRESS: how far the nozzle descends past the depth at which it first touches the
+// cell, in mm. 0.0866 is the old hardcoded 0.1mm DIAMETRAL margin expressed as a depth
+// (0.1 / (2 tan30)), so the default behaviour is unchanged.
+constexpr double MAGMA_SEAL_PRESS         = 0.0866;
 // Clearance added to the auto crater-iron start margin, beyond the r_flat needed to put the
 // nozzle flat outside the crater mouth. Covers the displaced material that rode up the bevel
 // and piled into a rim just outside the mouth.
@@ -107,64 +128,69 @@ inline double cone_coverage_at_depth(double depth, double flat, double cone_half
 // large as the budget permits instead of as large as some fixed formula happens to give.
 // max_immersion == 0 yields opening = flat - margin, i.e. the nozzle seats on the rim
 // and never enters the tube at all.
-inline double max_opening_for_immersion(double flat, double cone_half_angle_deg, double max_immersion) {
+// Largest opening a given seal depth can cover, with `seal_press` of that depth spent pressing
+// rather than reaching. The inverse of auto_seal_depth(); kept for readouts and calibration.
+inline double max_opening_for_immersion(double flat, double cone_half_angle_deg,
+                                        double seal_depth, double seal_press) {
     double tan_t = std::tan(cone_half_angle_deg * MAGMA_DEG2RAD);
-    return std::max(0.1, flat + 2.0 * std::max(0.0, max_immersion) * tan_t - MAGMA_SEAL_MARGIN);
+    return std::max(0.1, flat + 2.0 * std::max(0.0, seal_depth - std::max(0.0, seal_press)) * tan_t);
 }
 
-// How deep the hot nozzle may travel inside a tube, from any path. The seal depth and the
-// plunge both spend from this one budget, and MAGMA_SLAM_CLAMP is the absolute ceiling no
-// configuration may exceed.
-//
-// The minimum seal depth deliberately does NOT participate. It used to, through a max(),
-// which let a knob bounded at 1.0mm raise the one named "max nozzle immersion" whenever
-// immersion was set below it -- a 0.3mm immersion with a 0.8mm floor drove 0.8mm into the
-// part, past the depth its own tooltip calls visibly deforming. A floor under the seal
-// depth is descent past the rim like any other, so it is clamped by the budget rather than
-// exempt from it, and Print::validate() reports the clamp.
-inline double immersion_budget(double max_immersion) {
-    return std::min(MAGMA_SLAM_CLAMP, std::max(0.0, max_immersion));
+// Diameter of the nozzle cone at a given depth below first contact with the print surface.
+inline double cone_diameter_at(double depth, double flat, double cone_half_angle_deg) {
+    return flat + 2.0 * std::max(0.0, depth) * std::tan(cone_half_angle_deg * MAGMA_DEG2RAD);
 }
 
-// Seal depth: how deep the nozzle sits at the instant it seals, before any injection flows.
-// One fast Z move gets it here; the plunge then carries it deeper DURING the fill.
+// How hard the corners are gripped at the END of the injection.
 //
-// The nozzle first touches the opening rim at seal_depth_for_opening(opening, flat);
-// everything shallower than that is free descent *inside* the tube, touching nothing.
-// Because this solves for opening + MAGMA_SEAL_MARGIN, the mechanical interference past
-// first contact is always MAGMA_SEAL_MARGIN / (2*tan θ) -- the opening and the flat
-// cancel, so it is identical for every tube size and every nozzle (0.0866mm at 30°).
+// This is the quantity that actually holds the seal shut, and until it was written down
+// nothing in the code computed it. At the sealing depth the cone has jammed a long way into
+// the EDGE MIDPOINTS of the cell but only `press * tan(theta)` past the CORNERS -- and the
+// corner is where the seal is made, because it is the last part of the opening to be covered.
+// The plunge then adds `plunge * tan(theta)` of further radial grip as it descends.
 //
-// So interference is NOT what varies between a clean tube and a deformed one. What
-// varies is how deep the hot nozzle travels inside the tube before it seals: two test
-// prints differing only in that (0.54mm clean, 1.08mm deformed) had byte-identical
-// interference. The immersion budget is therefore what matters, and it caps the depth
-// here. In auto tube mode the opening was sized against that budget so the cap never
-// binds; in manual mode it binds and Print::validate() reports the shortfall rather than
-// letting the nozzle drive arbitrarily deep.
+// Note it does not depend on the tube size or the seal depth at all: corner grip is set by
+// the press and the plunge, and by nothing else.
+inline double corner_grip(double seal_press, double plunge_depth, double cone_half_angle_deg) {
+    return (std::max(0.0, seal_press) + std::max(0.0, plunge_depth))
+         * std::tan(cone_half_angle_deg * MAGMA_DEG2RAD);
+}
+
+// Seal depth: how deep the nozzle must sit for the cone to cover the whole cell opening,
+// then pressed `seal_press` further. One fast Z move gets it here,
+// before any filament flows; the plunge then carries it deeper DURING the fill.
 //
-// Takes the resolved budget rather than max_immersion so it cannot derive a second,
-// disagreeing one -- every depth in the system is held under the value the caller resolved
-// once, which is what makes total immersion <= max_immersion true by construction instead
-// of by each call site remembering to clamp. `min_seal_depth` is the floor applied when the
-// flat already covers the opening and no descent is geometrically needed.
+// Cell SHAPE enters through `opening_dia`, which each MagmaGeometry reports as its cell's
+// CIRCUMSCRIBED circle -- the corners are the last thing the widening cone reaches, so they
+// are what the depth has to be solved for.
+//
+// This is not a free choice. Given the nozzle, seal depth and cell size are the same number in
+// two units: solve for one and the other follows. The tube width is the setting because it is
+// the thing the part's strength depends on; this depth is the price the hardware charges for
+// it, and it is reported rather than chosen.
 inline double auto_seal_depth(double opening_dia, double flat, double cone_half_angle_deg,
-                              double budget, double min_seal_depth) {
-    const double needed = seal_depth_for_opening(opening_dia + MAGMA_SEAL_MARGIN, flat,
-                                                 cone_half_angle_deg);
-    return std::min(std::max(std::max(0.0, min_seal_depth), needed), std::max(0.0, budget));
+                              double seal_press) {
+    // First contact: the depth at which the widening cone reaches the cell's furthest corner.
+    // Zero when the flat already spans the opening -- then the nozzle touches at the surface.
+    // Everything shallower than this is free descent inside the tube, touching nothing.
+    const double first_contact = seal_depth_for_opening(opening_dia, flat, cone_half_angle_deg);
+    // Then press. Covered is not the same as sealed: at first contact the nozzle is resting,
+    // not gripping. This is the ONE quantity that decides how hard -- and it is a depth, so it
+    // reads the same whether the cone is biting into a corner or the flat is bearing on a rim.
+    // No regime switch, because there is only one thing being measured.
+    return first_contact + std::max(0.0, seal_press);
 }
 
-// Plunge depth clamped so seal + plunge stays inside the immersion budget.
+// The plunge is ADDITIVE: it descends further during the injection, on top of the seal depth.
 //
-// The plunge drives the nozzle further INTO the tube, so it spends from exactly the same
-// budget as the seal -- same hot metal, same direction. This used to clamp against a
-// separate 4.0mm seal+plunge constant instead, so a 0.6mm budget plus a 2.0mm plunge gave
-// 2.6mm of intrusion against a setting whose own tooltip says 1.1mm visibly deformed cells.
-// That constant is gone: the budget is bounded by MAGMA_SLAM_CLAMP already, so a second
-// ceiling above it could never bind and only made it look like two limits were at work.
-inline double clamp_plunge_depth(double seal_depth, double plunge_depth, double budget) {
-    return std::min(std::max(0.0, plunge_depth), std::max(0.0, std::max(0.0, budget) - seal_depth));
+// It used to be carved out of a shared "total immersion" budget, which meant raising the plunge
+// silently shrank the tube -- the sizing subtracted it while the emitter added it back at print
+// time. Only the absolute sanity clamp bounds the pair now; whether the total is sensible is a
+// question about the LATTICE PITCH, which Print::validate() checks and reports rather than
+// quietly reshaping the settings to satisfy.
+inline double clamp_plunge_depth(double seal_depth, double plunge_depth) {
+    return std::min(std::max(0.0, plunge_depth),
+                    std::max(0.0, MAGMA_SLAM_CLAMP - std::max(0.0, seal_depth)));
 }
 
 // ============================================================================

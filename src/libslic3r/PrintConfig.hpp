@@ -129,11 +129,6 @@ inline bool is_magma_pattern(InfillPattern p) {
            p == ipMagmaHoneycomb;
 }
 
-enum class MagmaTubeWidthMode : int {
-    Auto   = 0,  // Derive from nozzle outer diameter measurement
-    Manual = 1,  // User specifies interior width directly
-    Count,
-};
 
 enum class MagmaTubeSolverMode : int {
     Basic   = 0,  // Greedy assignment only (fast)
@@ -1301,8 +1296,6 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                 magma_injection_park))         // Park nozzle during temp changes
     ((ConfigOptionFloat,                magma_injection_park_z_hop))   // Park Z-hop height (mm)
     ((ConfigOptionFloat,                magma_injection_park_retract)) // Extra retract during temp wait (mm)
-    ((ConfigOptionFloat,                magma_max_immersion))          // Max depth the nozzle may enter a tube (mm) — also sizes auto tubes
-    ((ConfigOptionFloat,                magma_auto_slam_press))        // "Minimum seal depth": floor under the seal depth (mm)
     ((ConfigOptionBool,                 magma_injection_plunge))       // Ramp nozzle deeper during injection (slam-melt)
     ((ConfigOptionFloat,                magma_injection_plunge_depth)) // Extra depth rammed by end of injection (mm)
     ((ConfigOptionInt,                  magma_injection_dwell))        // Dwell after injection, before z-slam release (ms, 0 = disabled)
@@ -1319,7 +1312,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     // region's value regardless. The dual_infill_* keys that ARE consumed per region
     // (shell walls/width, solid layers/thickness, the speeds, the outer filament, enabled,
     // outer pattern) deliberately stay on PrintRegionConfig.
-    ((ConfigOptionEnum<MagmaTubeWidthMode>, magma_tube_width_mode))   // Auto vs manual tube sizing
+    ((ConfigOptionFloat,                magma_seal_press))     // radial corner grip past the cell corners (mm)
     // PER-EXTRUDER, and per-object. Per-extruder because nozzle_diameter always was, so a mixed
     // -nozzle machine could state two bores but only one flat -- and with a dedicated injection
     // filament the seal was then computed from the LATTICE nozzle's flat. Per-object because the
@@ -1328,7 +1321,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     // front(), so an existing preset keeps working for every extruder.
     ((ConfigOptionFloats,               magma_nozzle_outer_diameter))  // Nozzle tip flat / shoulder (mm)
     ((ConfigOptionFloats,               magma_nozzle_cone_half_angle)) // Nozzle tip cone half-angle (deg)
-    ((ConfigOptionFloat,                magma_interior_width))         // Cell hole size (mm), 0 = auto
+    ((ConfigOptionFloat,                magma_interior_width))         // Tube interior width (mm) -- the primary lattice lever
     ((ConfigOptionFloat,                magma_window_height_mm))       // Window gap height (mm), 0 = auto
     ((ConfigOptionFloat,                magma_tube_height))            // Tube height in mm
     ((ConfigOptionFloat,                magma_boundary_dodge))         // Boundary dodge distance (mm, 0 = auto)

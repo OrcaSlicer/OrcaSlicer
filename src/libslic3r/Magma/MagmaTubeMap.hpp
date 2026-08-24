@@ -21,51 +21,15 @@ struct SlicingParameters;
 
 namespace magma {
 
-// Effective Magma reinforcement pattern for a region. In dual-infill mode the reinforcement
-// is the OUTER zone (dual_infill_outer_pattern); otherwise it is the region's sparse pattern.
-// Single source of truth so MagmaTubeMap::build, the pre-slice warnings in Print::validate,
-// and the fill path all key off the same pattern (sparse_infill_pattern is the inner yolk in
-// dual mode and must NOT drive seal/overlap geometry).
+// The tube interior is a SETTING now, not something derived from a depth budget.
 //
-// The dual outer-pattern option is typed as the full InfillPattern enum but only Magma values
-// are valid for the reinforcement zone (the GUI dropdown lists only those). An imported
-// profile / edited 3mf / API call could set a non-Magma value, which would build an ordinary
-// infill with no U-tube channels while injection still runs into nothing — so clamp a stray
-// non-Magma outer pattern to Triangle. The non-dual case returns the sparse pattern verbatim
-// (callers use is_magma_pattern() on the result to decide whether the region is Magma at all).
-// Resolve the tube interior width exactly as MagmaTubeMap::build() does.
-//
-// Manual: the user's value verbatim.
-// Auto:   the largest tube the injection immersion budget allows, resolved through THIS
-//         pattern's geometry. Immersion exists only to fit a tube wider than the nozzle
-//         flat -- a tube the flat covers is sealed by seating on the rim with no descent,
-//         so a bigger budget buys a bigger tube and nothing else.
-//
-// `plunge_reserve` is the plunge depth that must still fit INSIDE the budget after the seal.
-// Without it, auto sizing spent the whole budget on the seal depth and clamp_plunge_depth()
-// then found zero headroom -- so the plunge was mathematically always 0 in Auto mode, i.e. on
-// the default configuration. The seal held by a single fixed press with no slam-melt at all,
-// silently, with the setting switched on in the UI. Reserving it here keeps
-// `magma_max_immersion` meaning what it says: the TOTAL depth the nozzle reaches, seal plus
-// plunge, rather than the seal alone.
-//
-// Lives here, not inside MagmaTubeMap.cpp, because Print::validate() must predict the
-// same geometry the injection G-code will actually use. Resolving it twice is how the
-// two silently drift apart.
-inline double effective_interior_width(const MagmaGeometry &geometry,
-                                       MagmaTubeWidthMode mode,
-                                       double manual_width,
-                                       double nozzle_flat,
-                                       double line_width,
-                                       double cone_half_angle_deg,
-                                       double max_immersion,
-                                       double plunge_reserve)
+// It used to be computed from `max_immersion - plunge`, which had two bad consequences: raising
+// the plunge silently shrank the tube (the sizing subtracted it while the emitter added it back
+// at print time), and it encoded a premise -- that total immersion is a single damage budget --
+// that print sweeps later contradicted. See CALIBRATION.md.
+inline double effective_interior_width(double interior_width)
 {
-    if (mode == MagmaTubeWidthMode::Manual)
-        return manual_width;
-    const double seal_budget = std::max(0.0, max_immersion - std::max(0.0, plunge_reserve));
-    return geometry.interior_for_opening(
-        max_opening_for_immersion(nozzle_flat, cone_half_angle_deg, seal_budget), line_width);
+    return std::max(0.1, interior_width);
 }
 
 // Scalar overload so the GUI (which holds a DynamicPrintConfig, not a PrintRegionConfig)

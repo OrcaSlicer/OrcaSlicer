@@ -38,8 +38,7 @@ struct MagmaResolved
     // they were derived from a nozzle. Every consumer of nozzle_flat has to be able to say so.
     bool   nozzle_flat_is_estimate = false;
     double cone_half_angle_deg = 0.0;
-    double max_immersion       = 0.0;  // "Total immersion" in the UI: the budget every depth spends from
-    double min_seal_depth      = 0.0;  // floor under seal_depth, itself clamped by the budget
+    double seal_press          = 0.0;  // depth pressed past first contact, before injection
 
     // The INJECTION extruder is not necessarily the one that prints the lattice: with a
     // dedicated injection filament it is a different tool with its own nozzle, and the seal
@@ -63,20 +62,34 @@ struct MagmaResolved
     // The nozzle reaches seal_depth in one fast Z move before anything is extruded, then
     // sinks the further plunge_depth ACROSS the injection, arriving at total_depth() as the
     // last of the filament goes in and holding there through the dwell.
-    double budget       = 0.0;  // the cap both depths are held under
-    double seal_depth   = 0.0;
-    double plunge_depth = 0.0;
+    double seal_depth   = 0.0;  // derived from the tube width -- not a free choice
+    double plunge_depth = 0.0;  // additive, during the injection
+
+    // What holds the seal shut: (press + plunge) * tan(theta). Press and plunge are the same
+    // kind of thing -- depth past first contact -- one applied before the injection and one
+    // during it, so they add. The
+    // corner is the last part of the opening the cone covers and therefore the least pressed,
+    // so this is the smallest contact in the system and the one that fails first.
+    double grip         = 0.0;
+    // Cone diameter at full depth. Compared against the CELL PITCH, not against the tube: past
+    // roughly MAGMA_PITCH_WARN_RATIO the nozzle is crushing the neighbouring cells.
+    double cone_at_full = 0.0;
 
     // What the user asked for, before the budget clamped it. Kept so the readout and
     // Print::validate can say a value was reduced instead of quietly showing a different
     // number than the one that was typed.
     double plunge_requested = 0.0;
-    bool   plunge_clamped()    const { return plunge_requested > plunge_depth + 1e-9; }
-    bool   min_seal_clamped()  const { return min_seal_depth   > budget       + 1e-9; }
+    bool   plunge_clamped() const { return plunge_requested > plunge_depth + 1e-9; }
+
+    // Ratio the grid-disruption warning fires on.
+    double pitch_ratio() const {
+        const double pitch = cell_spacing;
+        return pitch > 0.0 ? cone_at_full / pitch : 0.0;
+    }
 
     // Total depth below the print surface the nozzle reaches at the end of injection.
-    // <= budget <= max_immersion, by construction: both terms are clamped against the one
-    // budget resolved here, so no configuration can drive past the stated immersion.
+    // A REPORTED consequence now, not a budget that was spent: the seal depth is whatever the
+    // chosen tube costs, and the plunge is added on top.
     double total_depth() const { return seal_depth + plunge_depth; }
 
     // Opening the cone actually covers at that depth. Compare against opening_diameter

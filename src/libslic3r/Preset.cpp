@@ -1089,7 +1089,7 @@ static std::vector<std::string> s_Preset_print_options{
     "dual_infill_ceiling_speed",
     "dual_infill_outer_filament",
     // Magma Triangle pattern-specific options
-    "magma_tube_width_mode",
+    "magma_seal_press",
     "magma_nozzle_outer_diameter",
     "magma_nozzle_cone_half_angle",
     "magma_interior_width",
@@ -1112,8 +1112,6 @@ static std::vector<std::string> s_Preset_print_options{
     "magma_injection_park",
     "magma_injection_park_z_hop",
     "magma_injection_park_retract",
-    "magma_max_immersion",
-    "magma_auto_slam_press",
     "magma_injection_plunge",
     "magma_injection_plunge_depth",
     "magma_injection_dwell",

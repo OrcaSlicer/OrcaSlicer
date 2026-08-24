@@ -62,33 +62,27 @@ bool resolve_magma(const PrintRegionConfig &region,
         object.magma_nozzle_outer_diameter.get_at(r.injection_extruder), r.injection_nozzle_diameter);
     // The cone belongs to the tool that does the sealing, which is the injection extruder.
     r.cone_half_angle_deg = object.magma_nozzle_cone_half_angle.get_at(r.injection_extruder);
-    r.max_immersion       = object.magma_max_immersion.value;
-    r.min_seal_depth      = object.magma_auto_slam_press.value;
+    r.seal_press        = std::max(0.0, object.magma_seal_press.value);
 
-    // Auto sizing must leave room for the plunge, or the seal consumes the whole budget and
-    // the plunge clamps to zero (see effective_interior_width). Resolved before sizing and
-    // reused for the clamp below, so the depth the tube was sized around and the depth the
-    // nozzle is asked for are the same number rather than two readings of one option.
-    r.plunge_requested = object.magma_injection_plunge.value
-                             ? std::max(0.0, object.magma_injection_plunge_depth.value)
-                             : 0.0;
-    r.interior_width   = effective_interior_width(*r.geometry,
-                                                  object.magma_tube_width_mode.value,
-                                                  object.magma_interior_width.value,
-                                                  r.nozzle_flat, r.line_width,
-                                                  r.cone_half_angle_deg, r.max_immersion,
-                                                  r.plunge_requested);
+    // The tube is the SETTING; the seal depth is what the hardware charges for it. Solve one
+    // way only -- these were never two independent choices.
+    r.interior_width   = effective_interior_width(object.magma_interior_width.value);
     r.cell_spacing     = cell_spacing_from_geometry(r.interior_width, r.line_width);
     r.opening_diameter = r.geometry->opening_diameter(r.cell_spacing, r.line_width);
     r.bore_diameter    = 2.0 * r.geometry->inscribed_radius(r.interior_width, r.line_width);
-
-    // The one budget both depths live under. auto_seal_depth and clamp_plunge_depth are both
-    // handed this same value, which is what makes total_depth() <= max_immersion hold without
-    // any call site here clamping again.
-    r.budget           = immersion_budget(r.max_immersion);
     r.seal_depth       = auto_seal_depth(r.opening_diameter, r.nozzle_flat,
-                                         r.cone_half_angle_deg, r.budget, r.min_seal_depth);
-    r.plunge_depth     = clamp_plunge_depth(r.seal_depth, r.plunge_requested, r.budget);
+                                         r.cone_half_angle_deg, r.seal_press);
+
+    // Additive, not carved out of the seal. Only the absolute sanity clamp bounds the pair.
+    r.plunge_requested = object.magma_injection_plunge.value
+                             ? std::max(0.0, object.magma_injection_plunge_depth.value)
+                             : 0.0;
+    r.plunge_depth     = clamp_plunge_depth(r.seal_depth, r.plunge_requested);
+
+    // What actually resists the injection, and what the lattice pitch has to survive.
+    r.grip             = corner_grip(r.seal_press, r.plunge_depth, r.cone_half_angle_deg);
+    r.cone_at_full     = cone_diameter_at(r.seal_depth + r.plunge_depth, r.nozzle_flat,
+                                          r.cone_half_angle_deg);
 
     out = r;
     return true;
