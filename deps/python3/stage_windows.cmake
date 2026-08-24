@@ -9,9 +9,6 @@ foreach(_var PYTHON_SOURCE_DIR PYTHON_BUILD_DIR PYTHON_DEST_DIR PYTHON_LAYOUT_AR
 endforeach()
 
 set(_python_exe "${PYTHON_BUILD_DIR}/python.exe")
-if(PYTHON_DEBUG)
-    set(_python_exe "${PYTHON_BUILD_DIR}/python_d.exe")
-endif()
 
 if(NOT EXISTS "${_python_exe}")
     message(FATAL_ERROR "Built Python executable not found: ${_python_exe}")
@@ -49,21 +46,10 @@ endif()
 set(_required_files
     "${PYTHON_DEST_DIR}/Lib/encodings/__init__.py"
     "${PYTHON_DEST_DIR}/include/Python.h"
+    "${PYTHON_DEST_DIR}/python.exe"
+    "${PYTHON_DEST_DIR}/python${_python_abi}.dll"
+    "${PYTHON_DEST_DIR}/libs/python${_python_abi}.lib"
 )
-
-if(PYTHON_DEBUG)
-    list(APPEND _required_files
-        "${PYTHON_DEST_DIR}/python_d.exe"
-        "${PYTHON_DEST_DIR}/python${_python_abi}_d.dll"
-        "${PYTHON_DEST_DIR}/libs/python${_python_abi}_d.lib"
-    )
-else()
-    list(APPEND _required_files
-        "${PYTHON_DEST_DIR}/python.exe"
-        "${PYTHON_DEST_DIR}/python${_python_abi}.dll"
-        "${PYTHON_DEST_DIR}/libs/python${_python_abi}.lib"
-    )
-endif()
 
 foreach(_required_file IN LISTS _required_files)
     if(NOT EXISTS "${_required_file}")
