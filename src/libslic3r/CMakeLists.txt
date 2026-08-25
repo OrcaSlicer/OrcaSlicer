@@ -346,6 +346,8 @@ set(lisbslic3r_sources
     PolygonTrimmer.hpp
     Polyline.cpp
     Polyline.hpp
+    ProcessSettingsMerger.cpp
+    ProcessSettingsMerger.hpp
     PresetBundle.cpp
     PresetBundle.hpp
     PresetCacheFormat.cpp

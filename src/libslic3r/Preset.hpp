@@ -680,8 +680,9 @@ public:
 
     const Preset& get_selected_preset_base() const { return *get_preset_base(m_presets[m_idx_selected]); }
 
-    // Return the last saved preset.
-//  const Preset&   get_saved_preset() const { return m_saved_preset; }
+    // Return the last saved preset. This snapshot is also refreshed when a project is loaded,
+    // allowing callers to distinguish the project-file state from later in-memory edits.
+    const Preset&   get_saved_preset() const { return m_saved_preset; }
 
     // Return vendor of the first parent profile, for which the vendor is defined, or null if such profile does not exist.
     PresetWithVendorProfile get_preset_with_vendor_profile(const Preset &preset) const;

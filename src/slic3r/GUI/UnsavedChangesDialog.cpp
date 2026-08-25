@@ -1,5 +1,6 @@
 #include "UnsavedChangesDialog.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -22,6 +23,7 @@
 #include "MsgDialog.hpp"
 
 #include "PresetComboBoxes.hpp"
+#include "PresetSwitchLogic.hpp"
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
@@ -81,34 +83,46 @@ static void make_string_bold(wxString& str)
 }
 
 // preset(root) node
-ModelNode::ModelNode(Preset::Type preset_type, wxWindow* parent_win, const wxString& text, const std::string& icon_name) :
+ModelNode::ModelNode(Preset::Type preset_type, wxWindow* parent_win, const wxString& text, const std::string& icon_name,
+                     const std::string& group_id, bool toggle, const wxString& match_text) :
     m_parent_win(parent_win),
     m_parent(nullptr),
     m_preset_type(preset_type),
     m_icon_name(icon_name),
-    m_text(text)
+    m_group_id(group_id),
+    m_text(text),
+    m_match_text(match_text.IsEmpty() ? text : match_text)
 {
-    UpdateIcons();
+    m_toggle = toggle;
+    UpdateEnabling();
 }
 
 // category node
-ModelNode::ModelNode(ModelNode* parent, const wxString& text, const std::string& icon_name) :
+ModelNode::ModelNode(ModelNode* parent, const wxString& text, const std::string& icon_name, const wxString& match_text) :
     m_parent_win(parent->m_parent_win),
     m_parent(parent),
+    m_preset_type(parent->m_preset_type),
     m_icon_name(icon_name),
-    m_text(text)
+    m_group_id(parent->m_group_id),
+    m_text(text),
+    m_match_text(match_text.IsEmpty() ? text : match_text)
 {
-    UpdateIcons();
+    m_toggle = parent->IsToggled();
+    UpdateEnabling();
 }
 
 // group node
-ModelNode::ModelNode(ModelNode* parent, const wxString& text) :
+ModelNode::ModelNode(ModelNode* parent, const wxString& text, const wxString& match_text) :
     m_parent_win(parent->m_parent_win),
     m_parent(parent),
+    m_preset_type(parent->m_preset_type),
     m_icon_name("node_dot"),
-    m_text(text)
+    m_group_id(parent->m_group_id),
+    m_text(text),
+    m_match_text(match_text.IsEmpty() ? text : match_text)
 {
-    UpdateIcons();
+    m_toggle = parent->IsToggled();
+    UpdateEnabling();
 }
 
 #ifdef __linux__
@@ -139,16 +153,23 @@ wxBitmap ModelNode::get_bitmap(const wxString& color)
 }
 
 // option node
-ModelNode::ModelNode(ModelNode* parent, const wxString& text, const wxString& old_value, const wxString& new_value) :
+ModelNode::ModelNode(ModelNode* parent, const wxString& text, const wxString& old_value, const wxString& new_value,
+                     const wxString& match_text) :
+    m_parent_win(parent->m_parent_win),
     m_parent(parent),
+    m_preset_type(parent->m_preset_type),
     m_old_color(old_value.StartsWith("#") ? old_value : ""),
     m_new_color(new_value.StartsWith("#") ? new_value : ""),
     m_icon_name("empty"),
+    m_group_id(parent->m_group_id),
     m_text(text),
+    m_match_text(match_text.IsEmpty() ? text : match_text),
     m_old_value(old_value),
     m_new_value(new_value),
     m_container(false)
 {
+    m_toggle = parent->IsToggled();
+
     // check if old/new_value is color
     if (m_old_color.IsEmpty()) {
         if (!m_new_color.IsEmpty())
@@ -172,7 +193,7 @@ ModelNode::ModelNode(ModelNode* parent, const wxString& text, const wxString& ol
     color_string(m_old_value, def_text_color());
     color_string(m_new_value, orange);
 
-    UpdateIcons();
+    UpdateEnabling();
 }
 
 void ModelNode::UpdateEnabling()
@@ -229,13 +250,13 @@ DiffModel::DiffModel(wxWindow* parent) :
 {
 }
 
-wxDataViewItem DiffModel::AddPreset(Preset::Type type, wxString preset_name, PrinterTechnology pt)
+wxDataViewItem DiffModel::AddPreset(Preset::Type type, wxString preset_name, PrinterTechnology pt, const std::string& group_id, bool toggle)
 {
     // "color" strings
     color_string(preset_name, def_text_color());
     make_string_bold(preset_name);
 
-    auto preset = new ModelNode(type, m_parent_win, preset_name, get_icon_name(type, pt));
+    auto preset = new ModelNode(type, m_parent_win, preset_name, get_icon_name(type, pt), group_id, toggle);
     m_preset_nodes.emplace_back(preset);
 
     wxDataViewItem child((void*)preset);
@@ -245,9 +266,9 @@ wxDataViewItem DiffModel::AddPreset(Preset::Type type, wxString preset_name, Pri
     return child;
 }
 
-ModelNode* DiffModel::AddOption(ModelNode* group_node, wxString option_name, wxString old_value, wxString new_value)
+ModelNode* DiffModel::AddOption(ModelNode* group_node, wxString option_name, wxString old_value, wxString new_value, const wxString& match_name)
 {
-    group_node->Append(std::make_unique<ModelNode>(group_node, option_name, old_value, new_value));
+    group_node->Append(std::make_unique<ModelNode>(group_node, option_name, old_value, new_value, match_name));
     ModelNode* option = group_node->GetChildren().back().get();
     wxDataViewItem group_item = wxDataViewItem((void*)group_node);
     ItemAdded(group_item, wxDataViewItem((void*)option));
@@ -256,28 +277,34 @@ ModelNode* DiffModel::AddOption(ModelNode* group_node, wxString option_name, wxS
     return option;
 }
 
-ModelNode* DiffModel::AddOptionWithGroup(ModelNode* category_node, wxString group_name, wxString option_name, wxString old_value, wxString new_value)
+ModelNode* DiffModel::AddOptionWithGroup(ModelNode* category_node, wxString group_name, wxString option_name, wxString old_value, wxString new_value,
+                                         const wxString& raw_group_name, const wxString& raw_option_name)
 {
-    category_node->Append(std::make_unique<ModelNode>(category_node, group_name));
+    category_node->Append(std::make_unique<ModelNode>(category_node, group_name, raw_group_name));
     ModelNode* group_node = category_node->GetChildren().back().get();
     ItemAdded(wxDataViewItem((void*)category_node), wxDataViewItem((void*)group_node));
 
-    return AddOption(group_node, option_name, old_value, new_value);
+    return AddOption(group_node, option_name, old_value, new_value, raw_option_name);
 }
 
 ModelNode* DiffModel::AddOptionWithGroupAndCategory(ModelNode* preset_node, wxString category_name, wxString group_name,
-                                            wxString option_name, wxString old_value, wxString new_value, const std::string category_icon_name)
+                                            wxString option_name, wxString old_value, wxString new_value, const std::string category_icon_name,
+                                            const wxString& raw_category_name, const wxString& raw_group_name, const wxString& raw_option_name)
 {
-    preset_node->Append(std::make_unique<ModelNode>(preset_node, category_name, category_icon_name));
+    preset_node->Append(std::make_unique<ModelNode>(preset_node, category_name, category_icon_name, raw_category_name));
     ModelNode* category_node = preset_node->GetChildren().back().get();
     ItemAdded(wxDataViewItem((void*)preset_node), wxDataViewItem((void*)category_node));
 
-    return AddOptionWithGroup(category_node, group_name, option_name, old_value, new_value);
+    return AddOptionWithGroup(category_node, group_name, option_name, old_value, new_value, raw_group_name, raw_option_name);
 }
 
 wxDataViewItem DiffModel::AddOption(Preset::Type type, wxString category_name, wxString group_name, wxString option_name,
-                                              wxString old_value, wxString new_value, const std::string category_icon_name)
+                                              wxString old_value, wxString new_value, const std::string category_icon_name, const std::string& group_id)
 {
+    const wxString raw_category_name = category_name;
+    const wxString raw_group_name    = group_name;
+    const wxString raw_option_name   = option_name;
+
     // "color" strings
     color_string(category_name, def_text_color());
     color_string(group_name,    def_text_color());
@@ -289,19 +316,21 @@ wxDataViewItem DiffModel::AddOption(Preset::Type type, wxString category_name, w
 
     // add items
     for (std::unique_ptr<ModelNode>& preset : m_preset_nodes)
-        if (preset->type() == type)
+        if (preset->type() == type && preset->group_id() == group_id)
         {
             for (std::unique_ptr<ModelNode> &category : preset->GetChildren())
-                if (category->text() == category_name)
+                if (category->match_text() == raw_category_name)
                 {
                     for (std::unique_ptr<ModelNode> &group : category->GetChildren())
-                        if (group->text() == group_name)
-                            return wxDataViewItem((void*)AddOption(group.get(), option_name, old_value, new_value));
+                        if (group->match_text() == raw_group_name)
+                            return wxDataViewItem((void*)AddOption(group.get(), option_name, old_value, new_value, raw_option_name));
 
-                    return wxDataViewItem((void*)AddOptionWithGroup(category.get(), group_name, option_name, old_value, new_value));
+                    return wxDataViewItem((void*)AddOptionWithGroup(category.get(), group_name, option_name, old_value, new_value,
+                                                                    raw_group_name, raw_option_name));
                 }
 
-            return wxDataViewItem((void*)AddOptionWithGroupAndCategory(preset.get(), category_name, group_name, option_name, old_value, new_value, category_icon_name));
+            return wxDataViewItem((void*)AddOptionWithGroupAndCategory(preset.get(), category_name, group_name, option_name, old_value, new_value,
+                                                                       category_icon_name, raw_category_name, raw_group_name, raw_option_name));
         }
 
     return wxDataViewItem(nullptr);
@@ -646,16 +675,16 @@ void DiffViewCtrl::Rescale(int em /*= 0*/)
 
 void DiffViewCtrl::Append(  const std::string& opt_key, Preset::Type type,
                             wxString category_name, wxString group_name, wxString option_name,
-                            wxString old_value, wxString new_value, const std::string category_icon_name)
+                            wxString old_value, wxString new_value, const std::string category_icon_name, const std::string& group_id)
 {
-    ItemData item_data = { opt_key, option_name, old_value, new_value, type };
+    ItemData item_data = { opt_key, option_name, old_value, new_value, type, group_id };
 
     wxString old_val = get_short_string(item_data.old_val);
     wxString new_val = get_short_string(item_data.new_val);
     if (old_val != item_data.old_val || new_val != item_data.new_val)
         item_data.is_long = true;
 
-    m_items_map.emplace(model->AddOption(type, category_name, group_name, option_name, old_val, new_val, category_icon_name), item_data);
+    m_items_map.emplace(model->AddOption(type, category_name, group_name, option_name, old_val, new_val, category_icon_name, group_id), item_data);
 
 }
 
@@ -663,6 +692,8 @@ void DiffViewCtrl::Clear()
 {
     model->Clear();
     m_items_map.clear();
+    m_has_long_strings = false;
+    m_empty_selection = false;
 }
 
 wxString DiffViewCtrl::get_short_string(wxString full_string)
@@ -749,6 +780,18 @@ std::vector<std::string> DiffViewCtrl::options(Preset::Type type, bool selected)
 
     for (auto item : m_items_map) {
         if (item.second.type == type && model->IsEnabledItem(item.first) == selected)
+            ret.emplace_back(get_pure_opt_key(item.second.opt_key));
+    }
+
+    return ret;
+}
+
+std::vector<std::string> DiffViewCtrl::options(Preset::Type type, const std::string& group_id, bool selected)
+{
+    std::vector<std::string> ret;
+
+    for (auto item : m_items_map) {
+        if (item.second.type == type && item.second.group_id == group_id && model->IsEnabledItem(item.first) == selected)
             ret.emplace_back(get_pure_opt_key(item.second.opt_key));
     }
 
@@ -1951,6 +1994,133 @@ static std::string get_selection(PresetComboBox* preset_combo)
     return into_u8(preset_combo->GetString(preset_combo->GetSelection()));
 }
 
+static void select_or_append_readonly_preset_label(PresetComboBox *preset_combo, const std::string &preset_name, bool modified)
+{
+    if (preset_combo == nullptr || preset_name.empty())
+        return;
+
+    const wxString label = from_u8(modified ? Preset::suffix_modified() + preset_name : preset_name);
+    int selection = wxNOT_FOUND;
+    for (unsigned int idx = 0; idx < preset_combo->GetCount(); ++idx) {
+        if (Preset::remove_suffix_modified(into_u8(preset_combo->GetString(idx))) == preset_name) {
+            selection = static_cast<int>(idx);
+            break;
+        }
+    }
+
+    if (selection == wxNOT_FOUND)
+        selection = preset_combo->Append(label);
+    else
+        preset_combo->SetString(selection, label);
+
+    preset_combo->SetSelection(selection);
+    preset_combo->SetToolTip(label);
+}
+
+static const Preset* find_preset_by_name(const PresetCollection &presets, const std::string &name)
+{
+    for (const Preset &preset : presets.get_presets()) {
+        if (preset.name == name)
+            return &preset;
+    }
+    return nullptr;
+}
+
+static const std::string transfer_group_unsaved{"unsaved"};
+static const std::string transfer_group_system_defaults{"system_defaults"};
+static constexpr int compare_preset_combo_width_em = 35;
+static constexpr int transfer_preset_combo_width_em = 42;
+
+struct TransferPresetIdentity
+{
+    std::string          name;
+    std::string          canonical_name;
+    TransferPresetOrigin origin { TransferPresetOrigin::Unknown };
+    bool                 unsaved { false };
+};
+
+static std::string preset_identity_from_config(Preset::Type type, const DynamicPrintConfig &config)
+{
+    if (type == Preset::TYPE_PRINTER) {
+        if (const auto *option = config.option<ConfigOptionString>("printer_settings_id"); option != nullptr)
+            return option->value;
+    } else if (type == Preset::TYPE_PRINT) {
+        if (const auto *option = config.option<ConfigOptionString>("print_settings_id"); option != nullptr)
+            return option->value;
+    } else if (type == Preset::TYPE_FILAMENT) {
+        if (const auto *option = config.option<ConfigOptionStrings>("filament_settings_id"); option != nullptr && !option->values.empty())
+            return option->values.front();
+    }
+
+    return {};
+}
+
+static wxString transfer_preset_origin_label(TransferPresetOrigin origin)
+{
+    switch (origin) {
+    case TransferPresetOrigin::Default:     return _L("Default");
+    case TransferPresetOrigin::System:      return _L("System");
+    case TransferPresetOrigin::User:        return _L("User");
+    case TransferPresetOrigin::Bundle:      return _L("Bundle");
+    case TransferPresetOrigin::ProjectFile: return _L("Project File");
+    case TransferPresetOrigin::Unknown:     return _L("Unknown");
+    }
+
+    return _L("Unknown");
+}
+
+static wxString transfer_preset_identity_label(const TransferPresetIdentity &identity)
+{
+    wxString label = identity.name.empty() ? _L("Unknown") : from_u8(identity.name);
+    label += " (";
+    label += transfer_preset_origin_label(identity.origin);
+    label += ")";
+    if (identity.unsaved) {
+        label += "  * ";
+        label += _L("Unsaved");
+    }
+    return label;
+}
+
+static bool configs_differ(const DynamicPrintConfig &left, const DynamicPrintConfig &right)
+{
+    return !left.diff(right).empty() || !right.diff(left).empty();
+}
+
+struct TransferTreeCategory
+{
+    int      order;
+    wxString label;
+    wxString icon_key;
+};
+
+static TransferTreeCategory transfer_tree_category_for(const Search::Option& option, bool found_option)
+{
+    if (!found_option)
+        return {5, _L("Others"), "Others"};
+
+    if (option.category == L"Quality")
+        return {0, _L("Quality"), "Quality"};
+    if (option.category == L"Strength")
+        return {1, _L("Strength"), "Strength"};
+    if (option.category == L"Speed")
+        return {2, _L("Speed"), "Speed"};
+    if (option.category == L"Support")
+        return {3, _L("Support"), "Support"};
+    if (option.category == L"Multimaterial")
+        return {4, _L("Multimaterial"), "Multimaterial"};
+
+    return {5, _L("Others"), "Others"};
+}
+
+DiffPresetDialog::DiffPresets* DiffPresetDialog::find_preset_combo(Preset::Type type)
+{
+    auto it = std::find_if(m_preset_combos.begin(), m_preset_combos.end(), [type](const DiffPresets& presets) {
+        return presets.presets_left->get_type() == type;
+    });
+    return it == m_preset_combos.end() ? nullptr : &(*it);
+}
+
 void DiffPresetDialog::create_presets_sizer()
 {
     m_presets_sizer = new wxBoxSizer(wxVERTICAL);
@@ -1962,9 +2132,11 @@ void DiffPresetDialog::create_presets_sizer()
         PresetComboBox* presets_left;
         PresetComboBox* presets_right;
         ScalableButton* equal_bmp = new ScalableButton(this, wxID_ANY, "equal");
+        wxStaticText* transfer_arrow = new wxStaticText(this, wxID_ANY, L"\u2192");
+        transfer_arrow->SetFont(wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT).Bold());
 
         auto add_preset_combobox = [collection, sizer, new_type, this](PresetComboBox** cb_, PresetBundle* preset_bundle) {
-            *cb_ = new PresetComboBox(this, new_type, wxSize(em_unit() * 35, -1), preset_bundle);
+            *cb_ = new PresetComboBox(this, new_type, wxSize(em_unit() * compare_preset_combo_width_em, -1), preset_bundle);
             PresetComboBox* cb = (*cb_);
             cb->set_selection_changed_function([this, new_type, preset_bundle, cb](int selection) {
                 if (m_view_type == Preset::TYPE_INVALID) {
@@ -1981,11 +2153,13 @@ void DiffPresetDialog::create_presets_sizer()
         };
         add_preset_combobox(&presets_left, m_preset_bundle_left.get());
         sizer->Add(equal_bmp, 0, wxRIGHT | wxLEFT | wxALIGN_CENTER_VERTICAL, 5);
+        sizer->Add(transfer_arrow, 0, wxRIGHT | wxLEFT | wxALIGN_CENTER_VERTICAL, 5);
         add_preset_combobox(&presets_right, m_preset_bundle_right.get());
         m_presets_sizer->Add(sizer, 1, wxTOP, 5);
         equal_bmp->Show(new_type == Preset::TYPE_PRINTER);
+        transfer_arrow->Show(false);
 
-        m_preset_combos.push_back({ presets_left, equal_bmp, presets_right });
+        m_preset_combos.push_back({ presets_left, equal_bmp, transfer_arrow, presets_right });
 
         equal_bmp->Bind(wxEVT_BUTTON, [presets_left, presets_right, this](wxEvent&) {
             std::string preset_name = get_selection(presets_left);
@@ -1995,6 +2169,51 @@ void DiffPresetDialog::create_presets_sizer()
             update_tree();
         });
     }
+}
+
+void DiffPresetDialog::create_transfer_details_sizer()
+{
+    m_transfer_details_sizer = new wxBoxSizer(wxVERTICAL);
+
+    auto *identity_grid = new wxFlexGridSizer(0, 4, 4, 8);
+    identity_grid->AddGrowableCol(1, 1);
+    identity_grid->AddGrowableCol(3, 1);
+
+    auto add_identity_row = [this, identity_grid](Preset::Type type, const wxString &type_label) {
+        auto *label = new wxStaticText(this, wxID_ANY, type_label);
+        auto *source = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                                        wxSize(em_unit() * transfer_preset_combo_width_em, -1),
+                                        wxST_ELLIPSIZE_END | wxBORDER_SIMPLE);
+        auto *relation = new wxStaticText(this, wxID_ANY, L"=");
+        auto *target = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                                        wxSize(em_unit() * transfer_preset_combo_width_em, -1),
+                                        wxST_ELLIPSIZE_END | wxBORDER_SIMPLE);
+        relation->SetFont(wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT).Bold());
+
+        identity_grid->Add(label, 0, wxALIGN_CENTER_VERTICAL);
+        identity_grid->Add(source, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+        identity_grid->Add(relation, 0, wxALIGN_CENTER);
+        identity_grid->Add(target, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+        m_transfer_identity_controls.push_back({type, source, relation, target});
+    };
+
+    add_identity_row(Preset::TYPE_PRINTER, _L("Printer preset"));
+    add_identity_row(Preset::TYPE_FILAMENT, _L("Filament preset"));
+    add_identity_row(Preset::TYPE_PRINT, _L("Process preset"));
+
+    m_transfer_project_file = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                                                wxSize(em_unit() * transfer_preset_combo_width_em, -1),
+                                                wxST_ELLIPSIZE_END | wxBORDER_SIMPLE);
+    identity_grid->Add(new wxStaticText(this, wxID_ANY, _L("Project file")), 0, wxALIGN_CENTER_VERTICAL);
+    identity_grid->Add(m_transfer_project_file, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+    identity_grid->AddSpacer(1);
+    identity_grid->AddSpacer(1);
+
+    m_transfer_details_sizer->Add(identity_grid, 0, wxEXPAND);
+
+    m_transfer_unsaved_legend = new wxStaticText(this, wxID_ANY, _L("* Unsaved changes in the current application"));
+    m_transfer_details_sizer->Add(m_transfer_unsaved_legend, 0, wxTOP, 6);
+    m_transfer_details_sizer->ShowItems(false);
 }
 
 void DiffPresetDialog::create_show_all_presets_chb()
@@ -2066,6 +2285,11 @@ void DiffPresetDialog::create_buttons()
         return true;
     };
     transfer_btn->Bind(wxEVT_UPDATE_UI, [this, enable_transfer, show_in_bottom_info, transfer_btn](wxUpdateUIEvent& evt) {
+        if (m_process_transfer_mode) {
+            evt.Enable(!selected_transfer_target_profile_name().empty());
+            return;
+        }
+
         bool enable = m_tree->has_selection();
         if (enable) {
             if (m_view_type == Preset::TYPE_INVALID) {
@@ -2136,6 +2360,7 @@ void DiffPresetDialog::complete_dialog_creation()
     int border = 10;
     topSizer->Add(m_top_info_line,      0, wxEXPAND | wxLEFT | wxTOP | wxRIGHT, 2 * border);
     topSizer->Add(m_presets_sizer,      0, wxEXPAND | wxLEFT | wxTOP | wxRIGHT, border);
+    topSizer->Add(m_transfer_details_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, border);
     topSizer->Add(m_show_all_presets,   0, wxEXPAND | wxALL, border);
     topSizer->Add(m_tree,               1, wxEXPAND | wxALL, border);
     topSizer->Add(m_bottom_info_line,   0, wxEXPAND | wxALL, 2 * border);
@@ -2173,6 +2398,8 @@ DiffPresetDialog::DiffPresetDialog(MainFrame* mainframe)
 
     create_presets_sizer();
 
+    create_transfer_details_sizer();
+
     create_show_all_presets_chb();
 
     create_tree();
@@ -2192,6 +2419,7 @@ void DiffPresetDialog::update_controls_visibility(Preset::Type type /* = Preset:
                                                       cb_type == Preset::TYPE_SLA_PRINT || cb_type == Preset::TYPE_SLA_MATERIAL;
         preset_combos.presets_left->Show(show);
         preset_combos.equal_bmp->Show(show);
+        preset_combos.transfer_arrow->Show(false);
         preset_combos.presets_right->Show(show);
 
         if (show) {
@@ -2213,11 +2441,25 @@ void DiffPresetDialog::update_bundles_from_app()
 
 void DiffPresetDialog::show(Preset::Type type /* = Preset::TYPE_INVALID*/)
 {
+    m_process_transfer_mode = false;
+    m_transfer_details_sizer->ShowItems(false);
     this->SetTitle(_L("Compare presets"));
+    m_top_info_line->SetLabel(_L("Select presets to compare"));
+    m_tree->GetColumn(DiffModel::colOldValue)->SetTitle(_L("Left Preset Value"));
+    m_tree->GetColumn(DiffModel::colNewValue)->SetTitle(_L("Right Preset Value"));
+    m_use_for_transfer->Show(true);
+    m_tree->GetColumn(DiffModel::colToggle)->SetHidden(!m_use_for_transfer->GetValue());
     m_view_type = type;
 
     update_bundles_from_app();
     update_controls_visibility(type);
+    for (DiffPresets& preset_combos : m_preset_combos) {
+        preset_combos.presets_left->SetMinSize(wxSize(em_unit() * compare_preset_combo_width_em, -1));
+        preset_combos.presets_right->SetMinSize(wxSize(em_unit() * compare_preset_combo_width_em, -1));
+        preset_combos.presets_left->Enable(true);
+        preset_combos.presets_right->Enable(true);
+        preset_combos.transfer_arrow->Show(false);
+    }
     if (type == Preset::TYPE_INVALID)
         Fit();
 
@@ -2228,6 +2470,70 @@ void DiffPresetDialog::show(Preset::Type type /* = Preset::TYPE_INVALID*/)
     if (IsShown())
         Hide();
     Show();
+}
+
+int DiffPresetDialog::show_process_transfer(const PresetBundle& target_bundle,
+                                            const std::string& source_profile_name,
+                                            const std::string& initial_target_profile,
+                                            const DynamicPrintConfig& saved_config,
+                                            const DynamicPrintConfig& edited_config,
+                                            const DynamicPrintConfig* parent_config,
+                                            const wxString& project_file_name)
+{
+    m_process_transfer_mode = true;
+    m_view_type = Preset::TYPE_PRINT;
+    m_transfer_source_profile_name = source_profile_name;
+    m_transfer_initial_target_profile_name = initial_target_profile;
+    m_transfer_project_file_name = project_file_name;
+    m_transfer_saved_config = saved_config;
+    m_transfer_edited_config = edited_config;
+    m_has_transfer_parent_config = parent_config != nullptr;
+    if (parent_config != nullptr)
+        m_transfer_parent_config = *parent_config;
+    else
+        m_transfer_parent_config.clear();
+
+    update_bundles_from_app();
+    *m_preset_bundle_right = target_bundle;
+    m_pr_technology = ptFFF;
+
+    SetTitle(_L("Transfer settings"));
+    m_top_info_line->SetLabel(_L("Choose which settings to transfer to the new process profile."));
+    m_tree->GetColumn(DiffModel::colToggle)->SetHidden(false);
+    m_tree->GetColumn(DiffModel::colOldValue)->SetTitle(_L("Transfer Value"));
+    m_tree->GetColumn(DiffModel::colNewValue)->SetTitle(_L("Target Preset Value"));
+    m_use_for_transfer->SetValue(true);
+    m_use_for_transfer->Show(false);
+
+    update_controls_visibility(Preset::TYPE_PRINT);
+    m_show_all_presets->Show(false);
+    m_transfer_details_sizer->ShowItems(true);
+
+    for (DiffPresets& preset_combos : m_preset_combos) {
+        const bool show = preset_combos.presets_left->get_type() == Preset::TYPE_PRINT;
+        preset_combos.presets_left->Show(show);
+        preset_combos.equal_bmp->Show(false);
+        preset_combos.transfer_arrow->Show(show);
+        preset_combos.presets_right->Show(show);
+        if (show) {
+            preset_combos.presets_left->SetMinSize(wxSize(em_unit() * transfer_preset_combo_width_em, -1));
+            preset_combos.presets_right->SetMinSize(wxSize(em_unit() * transfer_preset_combo_width_em, -1));
+            preset_combos.presets_left->update(source_profile_name);
+            select_or_append_readonly_preset_label(
+                preset_combos.presets_left,
+                source_profile_name,
+                configs_differ(saved_config, edited_config));
+            preset_combos.presets_left->Enable(true);
+            preset_combos.presets_right->Enable(true);
+            preset_combos.presets_right->update(initial_target_profile);
+        }
+    }
+
+    update_tree();
+    wxGetApp().UpdateDlgDarkUI(this);
+    Fit();
+    CenterOnScreen();
+    return ShowModal();
 }
 
 void DiffPresetDialog::update_presets(Preset::Type type)
@@ -2263,8 +2569,269 @@ void DiffPresetDialog::update_bottom_info(wxString bottom_info)
     m_bottom_info_line->Show(show_bottom_info);
 }
 
+void DiffPresetDialog::update_transfer_details()
+{
+    if (!m_process_transfer_mode)
+        return;
+
+    const std::string selected_source_name = selected_transfer_source_profile_name();
+    const std::string selected_target_name = selected_transfer_target_profile_name();
+    const bool using_initial_source = selected_source_name == m_transfer_source_profile_name;
+    const bool initial_source_unsaved = using_initial_source &&
+                                        configs_differ(m_transfer_saved_config, m_transfer_edited_config);
+    const bool has_project_file = !m_transfer_project_file_name.empty();
+
+    auto identity_for = [this,
+                         &selected_source_name,
+                         &selected_target_name,
+                         using_initial_source,
+                         initial_source_unsaved,
+                         has_project_file](Preset::Type type, bool source) {
+        PresetBundle *bundle = source ? m_preset_bundle_left.get() : m_preset_bundle_right.get();
+        PresetCollection *collection = get_preset_collection(type, bundle);
+        TransferPresetIdentity identity;
+        if (collection == nullptr)
+            return identity;
+
+        const DynamicPrintConfig *snapshot = nullptr;
+        const Preset *preset = nullptr;
+        bool project_snapshot = false;
+
+        if (source && type == Preset::TYPE_PRINT) {
+            identity.name = selected_source_name;
+            if (using_initial_source) {
+                snapshot = &m_transfer_saved_config;
+                project_snapshot = has_project_file;
+                identity.unsaved = initial_source_unsaved;
+            } else {
+                preset = find_preset_by_name(*collection, selected_source_name);
+                if (preset != nullptr)
+                    snapshot = &preset->config;
+            }
+        } else if (!source && type == Preset::TYPE_PRINT) {
+            identity.name = selected_target_name;
+            preset = find_preset_by_name(*collection, selected_target_name);
+            if (preset != nullptr)
+                snapshot = &preset->config;
+        } else if (source) {
+            const Preset &saved_preset = collection->get_saved_preset();
+            const Preset &edited_preset = collection->get_edited_preset();
+            snapshot = &saved_preset.config;
+            identity.name = preset_identity_from_config(type, edited_preset.config);
+            if (identity.name.empty())
+                identity.name = edited_preset.name;
+            identity.unsaved = configs_differ(saved_preset.config, edited_preset.config);
+            project_snapshot = has_project_file;
+        } else {
+            const Preset &selected_preset = collection->get_selected_preset();
+            snapshot = &selected_preset.config;
+            identity.name = preset_identity_from_config(type, *snapshot);
+            if (identity.name.empty())
+                identity.name = selected_preset.name;
+            preset = find_preset_by_name(*collection, identity.name);
+            if (preset == nullptr)
+                preset = &selected_preset;
+        }
+
+        if (preset == nullptr && !identity.name.empty())
+            preset = find_preset_by_name(*collection, identity.name);
+
+        const bool snapshot_differs = snapshot != nullptr && preset != nullptr && configs_differ(*snapshot, preset->config);
+        identity.canonical_name = preset != nullptr ? preset->name : identity.name;
+        identity.origin = transfer_preset_origin(preset, project_snapshot, snapshot_differs);
+        return identity;
+    };
+
+    bool has_unsaved_identity = initial_source_unsaved;
+    for (TransferIdentityControls &controls : m_transfer_identity_controls) {
+        const TransferPresetIdentity source = identity_for(controls.type, true);
+        const TransferPresetIdentity target = identity_for(controls.type, false);
+        const wxString source_label = transfer_preset_identity_label(source);
+        const wxString target_label = transfer_preset_identity_label(target);
+
+        controls.source->SetLabelText(source_label);
+        controls.source->SetToolTip(source_label);
+        controls.target->SetLabelText(target_label);
+        controls.target->SetToolTip(target_label);
+        controls.relation->SetLabel(
+            transfer_preset_identities_equal(source.canonical_name, target.canonical_name) ? L"=" : L"\u2260");
+        has_unsaved_identity |= source.unsaved;
+    }
+
+    const wxString project_file_label = has_project_file ? m_transfer_project_file_name : _L("Not saved");
+    m_transfer_project_file->SetLabelText(project_file_label);
+    m_transfer_project_file->SetToolTip(project_file_label);
+    m_transfer_unsaved_legend->Show(has_unsaved_identity);
+}
+
+void DiffPresetDialog::update_transfer_tree()
+{
+    Search::OptionsSearcher& searcher = wxGetApp().sidebar().get_searcher();
+    searcher.sort_options_by_key();
+
+    m_tree->Clear();
+    wxString bottom_info = "";
+    bool show_tree = false;
+
+    const Preset *target_preset = nullptr;
+    if (find_preset_combo(Preset::TYPE_PRINT) != nullptr) {
+        const std::string target_name = selected_transfer_target_profile_name();
+        target_preset = m_preset_bundle_right->prints.find_preset(target_name, false);
+    }
+
+    if (target_preset == nullptr) {
+        bottom_info = _L("One of the presets does not exist");
+    } else {
+        const std::string source_name = selected_transfer_source_profile_name();
+        const Preset *source_preset = source_name.empty() ? nullptr : find_preset_by_name(m_preset_bundle_left->prints, source_name);
+        const DynamicPrintConfig *saved_config = &m_transfer_saved_config;
+        const DynamicPrintConfig *edited_config = &m_transfer_edited_config;
+        const DynamicPrintConfig *parent_config = m_has_transfer_parent_config ? &m_transfer_parent_config : nullptr;
+
+        if (source_name == m_transfer_source_profile_name) {
+            saved_config = &m_transfer_saved_config;
+            edited_config = &m_transfer_edited_config;
+        } else if (source_preset != nullptr) {
+            saved_config = &source_preset->config;
+            edited_config = saved_config;
+            if (const Preset *source_parent = m_preset_bundle_left->prints.get_preset_parent(*source_preset); source_parent != nullptr)
+                parent_config = &source_parent->config;
+        }
+
+        const ProcessSettingsMerger::TransferableSettings transferable = ProcessSettingsMerger::transferable_settings(
+            *saved_config,
+            *edited_config,
+            parent_config,
+            &target_preset->config);
+
+        const std::map<wxString, std::string>& category_icon_map = wxGetApp().get_tab(Preset::TYPE_PRINT)->get_category_icon_map();
+        auto get_category_icon = [&category_icon_map](const wxString& key) {
+            auto it = category_icon_map.find(key);
+            return it != category_icon_map.end() ? it->second : std::string();
+        };
+
+        auto append_group = [this, &searcher, &target_preset, &get_category_icon](
+                                const std::string& group_id,
+                                const wxString& root_label,
+                                bool checked,
+                                const ProcessSettingsMerger::OptionKeys& option_keys,
+                                const DynamicPrintConfig& source_config) {
+            if (option_keys.empty())
+                return false;
+
+            struct TransferTreeRow
+            {
+                std::string opt_key;
+                int         category_order;
+                wxString    category;
+                wxString    group;
+                wxString    label;
+                wxString    source_value;
+                wxString    target_value;
+                std::string icon;
+            };
+
+            std::vector<TransferTreeRow> rows;
+            rows.reserve(option_keys.size());
+
+            for (const std::string& opt_key : option_keys) {
+                const std::string lookup_key = get_pure_opt_key(opt_key);
+                int            variant_index = 0;
+                Search::Option option        = searcher.get_option(lookup_key, Preset::TYPE_PRINT, variant_index);
+                if (get_pure_opt_key(option.opt_key()) != lookup_key)
+                    option = searcher.get_option(opt_key, get_full_label(opt_key, source_config), Preset::TYPE_PRINT);
+                const bool found_option = get_pure_opt_key(option.opt_key()) == lookup_key;
+                const TransferTreeCategory tree_category = transfer_tree_category_for(option, found_option);
+
+                const wxString group = found_option && !wxString(option.group_local).IsEmpty() ? wxString(option.group_local) : _L("Settings");
+                const wxString label = found_option ? wxString(option.label_local) : from_u8(opt_key);
+                std::string icon = get_category_icon(tree_category.icon_key);
+                if (icon.empty() && found_option)
+                    icon = get_category_icon(option.category);
+
+                rows.push_back({
+                    opt_key,
+                    tree_category.order,
+                    tree_category.label,
+                    group,
+                    label,
+                    get_string_value(opt_key, source_config),
+                    get_string_value(opt_key, target_preset->config),
+                    icon
+                });
+            }
+
+            std::sort(rows.begin(), rows.end(), [](const TransferTreeRow& left, const TransferTreeRow& right) {
+                if (left.category_order != right.category_order)
+                    return left.category_order < right.category_order;
+                int cmp = left.group.CmpNoCase(right.group);
+                if (cmp != 0)
+                    return cmp < 0;
+                cmp = left.label.CmpNoCase(right.label);
+                if (cmp != 0)
+                    return cmp < 0;
+                return left.opt_key < right.opt_key;
+            });
+
+            wxDataViewItem root = m_tree->model->AddPreset(Preset::TYPE_PRINT, root_label, target_preset->printer_technology(), group_id, checked);
+            for (const TransferTreeRow& row : rows) {
+                m_tree->Append(
+                    row.opt_key,
+                    Preset::TYPE_PRINT,
+                    row.category,
+                    row.group,
+                    row.label,
+                    row.source_value,
+                    row.target_value,
+                    row.icon,
+                    group_id);
+            }
+            m_tree->Expand(root);
+            return true;
+        };
+
+        show_tree |= append_group(
+            transfer_group_unsaved,
+            _L("Unsaved changes"),
+            true,
+            transferable.unsaved_options,
+            *edited_config);
+        show_tree |= append_group(
+            transfer_group_system_defaults,
+            _L("Differences from system defaults"),
+            false,
+            transferable.system_default_options,
+            *saved_config);
+
+        if (!show_tree)
+            bottom_info = _L("No setting differences to transfer for the selected target profile.");
+    }
+
+    bool tree_was_shown = m_tree->IsShown();
+    m_tree->Show(show_tree);
+    m_edit_sizer->Show(true);
+    m_use_for_transfer->Show(false);
+    m_buttons->Show(true);
+    update_bottom_info(bottom_info);
+
+    if (tree_was_shown == m_tree->IsShown())
+        Layout();
+    else {
+        Fit();
+        Refresh();
+    }
+
+    searcher.sort_options_by_label();
+}
+
 void DiffPresetDialog::update_tree()
 {
+    if (m_process_transfer_mode) {
+        update_transfer_details();
+        update_transfer_tree();
+        return;
+    }
+
     Search::OptionsSearcher& searcher = wxGetApp().sidebar().get_searcher();
     searcher.sort_options_by_key();
 
@@ -2389,10 +2956,21 @@ void DiffPresetDialog::on_dpi_changed(const wxRect&)
     SetMinSize(size);
 
     for (auto preset_combos : m_preset_combos) {
+        const int combo_width = m_process_transfer_mode ? transfer_preset_combo_width_em : compare_preset_combo_width_em;
+        preset_combos.presets_left->SetMinSize(wxSize(em * combo_width, -1));
         preset_combos.presets_left->msw_rescale();
         preset_combos.equal_bmp->msw_rescale();
+        preset_combos.presets_right->SetMinSize(wxSize(em * combo_width, -1));
         preset_combos.presets_right->msw_rescale();
+        preset_combos.transfer_arrow->SetFont(wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT).Bold());
     }
+
+    for (TransferIdentityControls &controls : m_transfer_identity_controls) {
+        controls.source->SetMinSize(wxSize(em * transfer_preset_combo_width_em, -1));
+        controls.target->SetMinSize(wxSize(em * transfer_preset_combo_width_em, -1));
+        controls.relation->SetFont(wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT).Bold());
+    }
+    m_transfer_project_file->SetMinSize(wxSize(em * transfer_preset_combo_width_em, -1));
 
     m_tree->Rescale(em);
 
@@ -2479,6 +3057,11 @@ void DiffPresetDialog::update_compatibility(const std::string& preset_name, Pres
 
 void DiffPresetDialog::button_event(Action act)
 {
+    if (m_process_transfer_mode) {
+        EndModal(act == Action::Transfer ? wxID_OK : wxID_CANCEL);
+        return;
+    }
+
     Hide();
     if (act == Action::Transfer)
         wxPostEvent(this, SimpleEvent(EVT_DIFF_DIALOG_TRANSFER));
@@ -2498,6 +3081,39 @@ std::string DiffPresetDialog::get_right_preset_name(Preset::Type type)
                              return p.presets_right->get_type() == type;
                          })->presets_right;
     return Preset::remove_suffix_modified(get_selection(cb));
+}
+
+ProcessSettingsMerger::TransferSelection DiffPresetDialog::selected_transfer_options() const
+{
+    ProcessSettingsMerger::TransferSelection selection;
+    if (m_tree == nullptr)
+        return selection;
+
+    selection.unsaved_options = m_tree->options(Preset::TYPE_PRINT, transfer_group_unsaved, true);
+    selection.system_default_options = m_tree->options(Preset::TYPE_PRINT, transfer_group_system_defaults, true);
+    return selection;
+}
+
+std::string DiffPresetDialog::selected_transfer_source_profile_name() const
+{
+    auto it = std::find_if(m_preset_combos.begin(), m_preset_combos.end(), [](const DiffPresets& p) {
+        return p.presets_left->get_type() == Preset::TYPE_PRINT;
+    });
+    if (it == m_preset_combos.end() || it->presets_left->GetSelection() == wxNOT_FOUND)
+        return {};
+
+    return Preset::remove_suffix_modified(get_selection(it->presets_left));
+}
+
+std::string DiffPresetDialog::selected_transfer_target_profile_name() const
+{
+    auto it = std::find_if(m_preset_combos.begin(), m_preset_combos.end(), [](const DiffPresets& p) {
+        return p.presets_right->get_type() == Preset::TYPE_PRINT;
+    });
+    if (it == m_preset_combos.end() || it->presets_right->GetSelection() == wxNOT_FOUND)
+        return {};
+
+    return Preset::remove_suffix_modified(get_selection(it->presets_right));
 }
 
 }

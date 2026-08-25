@@ -8,6 +8,7 @@
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/ProcessSettingsMerger.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/ScrolledWindow.hpp"
 
@@ -44,6 +45,7 @@ class ModelNode
     Preset::Type        m_preset_type {Preset::TYPE_INVALID};
 
     std::string         m_icon_name;
+    std::string         m_group_id;
     // saved values for colors if they exist
     wxString            m_old_color;
     wxString            m_new_color;
@@ -67,6 +69,7 @@ public:
     wxBitmap    m_new_color_bmp;
 #endif //__linux__
     wxString    m_text;
+    wxString    m_match_text;
     wxString    m_old_value;
     wxString    m_new_value;
 
@@ -82,16 +85,18 @@ public:
     bool                m_container {true};
 
     // preset(root) node
-    ModelNode(Preset::Type preset_type, wxWindow* parent_win, const wxString& text, const std::string& icon_name);
+    ModelNode(Preset::Type preset_type, wxWindow* parent_win, const wxString& text, const std::string& icon_name,
+              const std::string& group_id = "", bool toggle = true, const wxString& match_text = wxEmptyString);
 
     // category node
-    ModelNode(ModelNode* parent, const wxString& text, const std::string& icon_name);
+    ModelNode(ModelNode* parent, const wxString& text, const std::string& icon_name, const wxString& match_text = wxEmptyString);
 
     // group node
-    ModelNode(ModelNode* parent, const wxString& text);
+    ModelNode(ModelNode* parent, const wxString& text, const wxString& match_text = wxEmptyString);
 
     // option node
-    ModelNode(ModelNode* parent, const wxString& text, const wxString& old_value, const wxString& new_value);
+    ModelNode(ModelNode* parent, const wxString& text, const wxString& old_value, const wxString& new_value,
+              const wxString& match_text = wxEmptyString);
 
     bool                IsContainer() const         { return m_container; }
     bool                IsToggled() const           { return m_toggle; }
@@ -99,6 +104,8 @@ public:
     bool                IsRoot() const              { return m_parent == nullptr; }
     Preset::Type        type() const                { return m_preset_type; }
     const wxString&     text() const                { return m_text; }
+    const wxString&     match_text() const          { return m_match_text; }
+    const std::string&  group_id() const            { return m_group_id; }
 
     ModelNode*          GetParent()                 { return m_parent; }
     ModelNodePtrArray&  GetChildren()               { return m_children; }
@@ -126,19 +133,25 @@ class DiffModel : public wxDataViewModel
     ModelNode *AddOption(ModelNode *group_node,
                          wxString   option_name,
                          wxString   old_value,
-                         wxString   new_value);
+                         wxString   new_value,
+                         const wxString& match_name = wxEmptyString);
     ModelNode *AddOptionWithGroup(ModelNode *category_node,
                                   wxString   group_name,
                                   wxString   option_name,
                                   wxString   old_value,
-                                  wxString   new_value);
+                                  wxString   new_value,
+                                  const wxString& raw_group_name = wxEmptyString,
+                                  const wxString& raw_option_name = wxEmptyString);
     ModelNode *AddOptionWithGroupAndCategory(ModelNode *preset_node,
                                              wxString   category_name,
                                              wxString   group_name,
                                              wxString   option_name,
                                              wxString   old_value,
                                              wxString   new_value,
-                                             const std::string category_icon_name);
+                                             const std::string category_icon_name,
+                                             const wxString& raw_category_name = wxEmptyString,
+                                             const wxString& raw_group_name = wxEmptyString,
+                                             const wxString& raw_option_name = wxEmptyString);
 
 public:
     enum {
@@ -154,9 +167,9 @@ public:
 
     void            SetAssociatedControl(wxDataViewCtrl* ctrl) { m_ctrl = ctrl; }
 
-    wxDataViewItem  AddPreset(Preset::Type type, wxString preset_name, PrinterTechnology pt);
+    wxDataViewItem  AddPreset(Preset::Type type, wxString preset_name, PrinterTechnology pt, const std::string& group_id = "", bool toggle = true);
     wxDataViewItem  AddOption(Preset::Type type, wxString category_name, wxString group_name, wxString option_name,
-                              wxString old_value, wxString new_value, const std::string category_icon_name);
+                              wxString old_value, wxString new_value, const std::string category_icon_name, const std::string& group_id = "");
 
     void            UpdateItemEnabling(wxDataViewItem item);
     bool            IsEnabledItem(const wxDataViewItem& item);
@@ -199,6 +212,7 @@ class DiffViewCtrl : public wxDataViewCtrl
         wxString        old_val;
         wxString        new_val;
         Preset::Type    type;
+        std::string     group_id;
         bool            is_long{ false };
     };
 
@@ -216,7 +230,7 @@ public:
     void    AppendToggleColumn_(const wxString& label, unsigned model_column, int width);
     void    Rescale(int em = 0);
     void    Append(const std::string& opt_key, Preset::Type type, wxString category_name, wxString group_name, wxString option_name,
-                   wxString old_value, wxString new_value, const std::string category_icon_name);
+                   wxString old_value, wxString new_value, const std::string category_icon_name, const std::string& group_id = "");
     void    Clear();
 
     wxString    get_short_string(wxString full_string);
@@ -227,6 +241,7 @@ public:
     bool        has_unselected_options();
 
     std::vector<std::string> options(Preset::Type type, bool selected);
+    std::vector<std::string> options(Preset::Type type, const std::string& group_id, bool selected);
     std::vector<std::string> selected_options();
 };
 
@@ -420,8 +435,11 @@ class DiffPresetDialog : public DPIDialog
 {
     DiffViewCtrl*           m_tree              { nullptr };
     wxBoxSizer*             m_presets_sizer     { nullptr };
+    wxBoxSizer*             m_transfer_details_sizer { nullptr };
     wxStaticText*           m_top_info_line     { nullptr };
     wxStaticText*           m_bottom_info_line  { nullptr };
+    wxStaticText*           m_transfer_project_file { nullptr };
+    wxStaticText*           m_transfer_unsaved_legend { nullptr };
     wxCheckBox*             m_show_all_presets  { nullptr };
     wxCheckBox*             m_use_for_transfer  { nullptr };
     wxBoxSizer*             m_buttons           { nullptr };
@@ -431,20 +449,34 @@ class DiffPresetDialog : public DPIDialog
     PrinterTechnology       m_pr_technology;
     std::unique_ptr<PresetBundle>   m_preset_bundle_left;
     std::unique_ptr<PresetBundle>   m_preset_bundle_right;
+    bool                    m_process_transfer_mode { false };
+    DynamicPrintConfig      m_transfer_saved_config;
+    DynamicPrintConfig      m_transfer_edited_config;
+    DynamicPrintConfig      m_transfer_parent_config;
+    bool                    m_has_transfer_parent_config { false };
+    std::string             m_transfer_source_profile_name;
+    std::string             m_transfer_initial_target_profile_name;
+    wxString                m_transfer_project_file_name;
+
+    struct DiffPresets;
 
     void create_buttons();
     void create_edit_sizer();
     void complete_dialog_creation();
     void create_presets_sizer();
+    void create_transfer_details_sizer();
     void create_info_lines();
     void create_tree();
     void create_show_all_presets_chb();
 
     void update_bottom_info(wxString bottom_info = "");
     void update_tree();
+    void update_transfer_tree();
+    void update_transfer_details();
     void update_bundles_from_app();
     void update_controls_visibility(Preset::Type type = Preset::TYPE_INVALID);
     void update_compatibility(const std::string& preset_name, Preset::Type type, PresetBundle* preset_bundle);
+    DiffPresets* find_preset_combo(Preset::Type type);
          
     void button_event(Action act);
 
@@ -452,16 +484,33 @@ class DiffPresetDialog : public DPIDialog
     {
         PresetComboBox* presets_left    { nullptr };
         ScalableButton* equal_bmp       { nullptr };
+        wxStaticText*   transfer_arrow  { nullptr };
         PresetComboBox* presets_right   { nullptr };
     };
 
+    struct TransferIdentityControls
+    {
+        Preset::Type  type { Preset::TYPE_INVALID };
+        wxStaticText* source { nullptr };
+        wxStaticText* relation { nullptr };
+        wxStaticText* target { nullptr };
+    };
+
     std::vector<DiffPresets> m_preset_combos;
+    std::vector<TransferIdentityControls> m_transfer_identity_controls;
 
 public:
     DiffPresetDialog(MainFrame*mainframe);
     ~DiffPresetDialog() override = default;
 
     void show(Preset::Type type = Preset::TYPE_INVALID);
+    int  show_process_transfer(const PresetBundle& target_bundle,
+                               const std::string& source_profile_name,
+                               const std::string& initial_target_profile,
+                               const DynamicPrintConfig& saved_config,
+                               const DynamicPrintConfig& edited_config,
+                               const DynamicPrintConfig* parent_config,
+                               const wxString& project_file_name);
     void update_presets(Preset::Type type = Preset::TYPE_INVALID);
 
     Preset::Type        view_type() const           { return m_view_type; }
@@ -471,6 +520,9 @@ public:
     std::string get_right_preset_name(Preset::Type type);
 
     std::vector<std::string> get_selected_options(Preset::Type type) const { return m_tree->options(type, true); }
+    ProcessSettingsMerger::TransferSelection selected_transfer_options() const;
+    std::string selected_transfer_source_profile_name() const;
+    std::string selected_transfer_target_profile_name() const;
 
     std::array<Preset::Type, 3>         types_list() const;
 

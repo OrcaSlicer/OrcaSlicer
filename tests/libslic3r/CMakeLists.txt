@@ -24,6 +24,8 @@ add_executable(${_TEST_NAME}_tests
     test_geometry.cpp
     test_multimaterial_segmentation.cpp
     test_placeholder_parser.cpp
+    test_preset_switch_logic.cpp
+    test_process_settings_merger.cpp
     test_polygon.cpp
     test_mutable_polygon.cpp
     test_mutable_priority_queue.cpp
