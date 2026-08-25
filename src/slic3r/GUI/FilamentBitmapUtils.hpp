@@ -22,9 +22,12 @@ enum class FilamentRenderMode {
     Gradient
 };
 
+// ORCA
+void DrawFrame(wxDC& dc, int w, int h, int inset, int thickness, const wxColour& colour);
+
 // Create a colour swatch bitmap. The render mode is chosen automatically from the
 // number of colours unless force_gradient is true.
-wxBitmap create_filament_bitmap(const std::vector<wxColour>& colors,
+wxBitmap create_filament_bitmap(const wxWindow* parent, const std::vector<wxColour>& colors,
                               const wxSize& size,
                               bool force_gradient = false);
 

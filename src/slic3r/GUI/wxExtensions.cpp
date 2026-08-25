@@ -642,9 +642,7 @@ wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradi
     bitmap_key += "h" + std::to_string(icon_height) + "-w" + std::to_string(icon_width) + "-i" + label;
 
     wxBitmap *bitmap = bmp_cache.find(bitmap_key);
-    #ifdef __WXMSW__
-        auto win = (wxWindow *) Slic3r::GUI::wxGetApp().mainframe;
-    #endif
+    auto win = (wxWindow *) Slic3r::GUI::wxGetApp().mainframe;
     if (bitmap == nullptr) {
 
         std::vector<wxColour> wx_colors;
@@ -656,7 +654,7 @@ wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradi
         }
 
         // create filament bitmap in multi color
-        wxBitmap base_bitmap = Slic3r::GUI::create_filament_bitmap(wx_colors, wxSize(icon_width, icon_height), is_gradient);
+        wxBitmap base_bitmap = Slic3r::GUI::create_filament_bitmap(win, wx_colors, wxSize(icon_width, icon_height), is_gradient);
 
         if (!base_bitmap.IsOk()) {
             // if create failed, return nullptr
@@ -670,9 +668,6 @@ wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradi
 #else
             wxClientDC cdc(win);
             wxMemoryDC dc(&cdc);
-            // ORCA MSW needs to set scale factor for bitmaps loaded from cache because they arent auto scaled by wxBitmapBundle like bitmaps
-            double scale = win ? win->GetDPIScaleFactor() : (wxWindow::FromDIP(100, nullptr) / 100.0);
-            base_bitmap.SetScaleFactor(scale);
             dc.SelectObject(base_bitmap);
 #endif
 
@@ -692,17 +687,27 @@ wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradi
             int text_x = (icon_width - size.x) / 2;
             int text_y = (icon_height - size.y) / 2;
 
-            // Draw very thin border with lighter color and fewer directions
-            dc.SetTextForeground(wxColor("262E30")); // Semi-transparent dark gray
-            dc.DrawText(label, text_x - 1, text_y);     // Left
-            dc.DrawText(label, text_x + 1, text_y);     // Right
-            dc.DrawText(label, text_x, text_y - 1);     // Up
-            dc.DrawText(label, text_x, text_y + 1);     // Down
+            if (is_gradient){
+                // Draw very thin border with lighter color and fewer directions
+                dc.SetTextForeground(wxColor("262E30")); // Semi-transparent dark gray
+                dc.DrawText(label, text_x - 1, text_y);     // Left
+                dc.DrawText(label, text_x + 1, text_y);     // Right
+                dc.DrawText(label, text_x, text_y - 1);     // Up
+                dc.DrawText(label, text_x, text_y + 1);     // Down
 
-            // Draw main white text on top
-            dc.SetTextForeground(*wxWHITE);
+                // Draw main white text on top
+                dc.SetTextForeground(*wxWHITE);
+            } 
+            else {
+                wxColour clr(wx_colors[0]);
+                if (clr.Red() > 224 && clr.Blue() > 224 && clr.Green() > 224) {
+                    dc.SetPen(*wxGREY_PEN);
+                    dc.DrawRectangle(0, 0, icon_width, icon_height);
+                }
+                dc.SetTextForeground(clr.GetLuminance() < 0.51 ? *wxWHITE : *wxBLACK);
+            }
+
             dc.DrawText(label, text_x, text_y);
-
             dc.SelectObject(wxNullBitmap);
         }
 
@@ -719,6 +724,8 @@ wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradi
 
 wxBitmap *get_extruder_color_icon(std::string color, std::string label, int icon_width, int icon_height)
 {
+    return get_extruder_color_icon(std::vector<std::string>{color}, false, label, icon_width, icon_height); // directly pass it as single item vector
+    /* ORCA use single function for all color swatches
     static Slic3r::GUI::BitmapCache bmp_cache;
 
     std::string bitmap_key = color + "-h" + std::to_string(icon_height) + "-w" + std::to_string(icon_width) + "-i" + label;
@@ -777,6 +784,7 @@ wxBitmap *get_extruder_color_icon(std::string color, std::string label, int icon
         bitmap->SetScaleFactor(scale);
     #endif
     return bitmap;
+    */
 }
 void apply_extruder_selector(Slic3r::GUI::BitmapComboBox** ctrl,
                              wxWindow* parent,

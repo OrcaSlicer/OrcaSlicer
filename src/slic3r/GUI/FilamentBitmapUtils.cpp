@@ -105,6 +105,24 @@ static void sort_colors_by_hsv(std::vector<wxColour>& colors) {
         });
 }
 
+
+// ORCA: DPI compatible pixel-perfect framing (including odd widths produced by fractional DPI scales like 150%).
+void DrawFrame(wxDC& dc, int w, int h, int inset, int thickness, const wxColour& colour)
+{
+    if (thickness <= 0) return;
+    dc.SetPen(*wxTRANSPARENT_PEN);
+    dc.SetBrush(wxBrush(colour));
+
+    const int innerW = w - 2 * inset;
+    const int innerH = h - 2 * inset;
+    if (innerW <= 0 || innerH <= 0) return;
+
+    dc.DrawRectangle(inset, inset, innerW, thickness);
+    dc.DrawRectangle(inset, inset + innerH - thickness, innerW, thickness);
+    dc.DrawRectangle(inset, inset + thickness, thickness, innerH - 2 * thickness);
+    dc.DrawRectangle(inset + innerW - thickness, inset + thickness, thickness, innerH - 2 * thickness);
+}
+
 static wxBitmap create_single_filament_bitmap(const wxColour& color, const wxSize& size)
 {
     // Check if color is transparent
@@ -122,16 +140,12 @@ static wxBitmap create_single_filament_bitmap(const wxColour& color, const wxSiz
 
     // Add gray border for light colors (similar to wxExtensions.cpp logic) - only in light mode
     if (!wxGetApp().dark_mode() && color.Red() > 224 && color.Blue() > 224 && color.Green() > 224) {
-        bdc.dc.SetPen(wxPen(wxColour(130, 130, 128), 1, wxPENSTYLE_SOLID));
-        bdc.dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        bdc.dc.DrawRectangle(0, 0, size.GetWidth(), size.GetHeight());
+        DrawFrame(bdc.dc, size.GetWidth(), size.GetHeight(), 0, 1, wxColour(130, 130, 128)); // ORCA fix invisible borders on scaled screens
     }
 
     // Add white border for dark colors - only in dark mode
     if(wxGetApp().dark_mode() && color.Red() < 45 && color.Blue() < 45 && color.Green() < 45) {
-        bdc.dc.SetPen(wxPen(wxColour(207, 207, 207), 1, wxPENSTYLE_SOLID));
-        bdc.dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        bdc.dc.DrawRectangle(0, 0, size.GetWidth(), size.GetHeight());
+        DrawFrame(bdc.dc, size.GetWidth(), size.GetHeight(), 0, 1, wxColour(207, 207, 207)); // ORCA fix invisible borders on scaled screens
     }
 
     bdc.dc.SelectObject(wxNullBitmap);
@@ -240,7 +254,7 @@ static wxBitmap create_gradient_filament_bitmap(const std::vector<wxColour>& col
     return bdc.bitmap;
 }
 
-wxBitmap create_filament_bitmap(const std::vector<wxColour>& colors, const wxSize& size, bool force_gradient)
+wxBitmap create_filament_bitmap(const wxWindow* parent, const std::vector<wxColour>& colors, const wxSize& size, bool force_gradient)
 {
     if (colors.empty()) return wxNullBitmap;
 
@@ -252,17 +266,26 @@ wxBitmap create_filament_bitmap(const std::vector<wxColour>& colors, const wxSiz
         sort_colors_by_hsv(sorted_colors);
     }
 
+    wxBitmap bmp;
+
     if (force_gradient && sorted_colors.size() >= 2) {
-        return create_gradient_filament_bitmap(sorted_colors, size);
+        bmp = create_gradient_filament_bitmap(sorted_colors, size);
+    }
+    else {
+        switch (sorted_colors.size()) {
+            case 1:  {bmp = create_single_filament_bitmap(sorted_colors[0], size)                ; break;}
+            case 2:  {bmp = create_dual_filament_bitmap(sorted_colors[0], sorted_colors[1], size); break;}
+            case 3:  {bmp = create_triple_filament_bitmap(sorted_colors, size)                   ; break;}
+            case 4:  {bmp = create_quadruple_filament_bitmap(sorted_colors, size)                ; break;}
+            default: {bmp = create_gradient_filament_bitmap(sorted_colors, size)                 ; break;}
+        }
     }
 
-    switch (sorted_colors.size()) {
-        case 1: return create_single_filament_bitmap(sorted_colors[0], size);
-        case 2: return create_dual_filament_bitmap(sorted_colors[0], sorted_colors[1], size);
-        case 3: return create_triple_filament_bitmap(sorted_colors, size);
-        case 4: return create_quadruple_filament_bitmap(sorted_colors, size);
-        default: return create_gradient_filament_bitmap(sorted_colors, size);
-    }
+    #ifdef __WXMSW__ // ORCA MSW needs to set scale factor for bitmaps
+        bmp.SetScaleFactor(parent ? parent->GetDPIScaleFactor()  : (wxWindow::FromDIP(100, nullptr) / 100.0));
+    #endif
+
+    return bmp;
 }
 
 }} // namespace Slic3r::GUI

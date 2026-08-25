@@ -241,14 +241,14 @@ void FilamentPickerDialog::CreateColorBitmap(const FilamentColor &fila_color)
     // Generate bitmap content
     if (fila_color.ColorCount() > 0) {
         std::vector<wxColour> wx_colors(fila_color.m_colors.begin(), fila_color.m_colors.end());
-        wxBitmap init_bmp = create_filament_bitmap(wx_colors, COLOR_DEMO_SIZE,
+        wxBitmap init_bmp = create_filament_bitmap(this, wx_colors, COLOR_DEMO_SIZE,
                                                 fila_color.m_color_type == FilamentColor::ColorType::GRADIENT_CLR);
         m_color_demo->SetBitmap(init_bmp);
     }
     else{
         std::vector<wxColour> wx_colors;
         wx_colors.push_back(wxNullColour);
-        wxBitmap init_bmp = create_filament_bitmap(wx_colors, COLOR_DEMO_SIZE, false);
+        wxBitmap init_bmp = create_filament_bitmap(this, wx_colors, COLOR_DEMO_SIZE, false);
         m_color_demo->SetBitmap(init_bmp);
     }
 }
@@ -378,6 +378,7 @@ wxScrolledWindow* FilamentPickerDialog::CreateColorGrid()
             if (!color_code) continue;
             std::vector<wxColour> wx_colors(fila_color.m_colors.begin(), fila_color.m_colors.end());
             wxBitmap btn_bmp = create_filament_bitmap(
+                this, 
                 wx_colors,
                 COLOR_BTN_BITMAP_SIZE,
                 fila_color.m_color_type == FilamentColor::ColorType::GRADIENT_CLR
@@ -469,7 +470,7 @@ void FilamentPickerDialog::UpdatePreview(const FilamentColorCode& color_code)
     std::vector<wxColour> wx_colors(fila_color.m_colors.begin(), fila_color.m_colors.end());
 
     // Update preview bitmap
-    wxBitmap bmp = create_filament_bitmap(wx_colors, COLOR_DEMO_SIZE,
+    wxBitmap bmp = create_filament_bitmap(this, wx_colors, COLOR_DEMO_SIZE,
                                         fila_color.m_color_type == FilamentColor::ColorType::GRADIENT_CLR);
 
     if (bmp.IsOk()) {
@@ -494,7 +495,7 @@ void FilamentPickerDialog::UpdateCustomColorPreview(const wxColour& custom_color
     std::vector<wxColour> wx_colors = {custom_color};
 
     // Update preview bitmap
-    wxBitmap bmp = create_filament_bitmap(wx_colors, COLOR_DEMO_SIZE, false);
+    wxBitmap bmp = create_filament_bitmap(this, wx_colors, COLOR_DEMO_SIZE, false);
 
     if (bmp.IsOk()) {
         BOOST_LOG_TRIVIAL(debug) << "Custom color bitmap created successfully: " << bmp.GetWidth() << "x" << bmp.GetHeight();
@@ -670,24 +671,32 @@ void FilamentPickerDialog::OnButtonPaint(wxPaintEvent& event)
     // Create paint DC and let default painting happen first
     wxPaintDC dc(button);
 
+    // ORCA Use the client size so drawing always matches the actual (possibly DPI-scaled) rect
+    const wxSize size = button->GetClientSize();
+    const int w = size.GetWidth();
+    const int h = size.GetHeight();
+
+    if (w <= 0 || h <= 0)
+        return;
+
     //Clear the button with white background
     dc.SetBrush(wxBrush(*wxTRANSPARENT_BRUSH));
     dc.SetPen(*wxTRANSPARENT_PEN);
-    dc.DrawRectangle(0, 0, COLOR_BTN_SIZE.GetWidth(), COLOR_BTN_SIZE.GetHeight());
+    dc.DrawRectangle(0, 0, w, h);
 
     // Draw the bitmap in the center
     wxBitmapButton* bmpBtn = dynamic_cast<wxBitmapButton*>(button);
     if (bmpBtn && bmpBtn->GetBitmap().IsOk()) {
         wxBitmap bmp = bmpBtn->GetBitmap();
-        int x = (COLOR_BTN_SIZE.GetWidth() - COLOR_BTN_BITMAP_SIZE.GetWidth()) / 2;
-        int y = (COLOR_BTN_SIZE.GetHeight() - COLOR_BTN_BITMAP_SIZE.GetHeight()) / 2;
+        int x = (w - COLOR_BTN_BITMAP_SIZE.GetWidth()) / 2;
+        int y = (h - COLOR_BTN_BITMAP_SIZE.GetHeight()) / 2;
         dc.DrawBitmap(bmp, x, y, true);
     }
 
-    // Draw the green border
-    dc.SetPen(wxPen(wxColour("#009688"), 2));  // Green pen, 2px thick
-    dc.SetBrush(*wxTRANSPARENT_BRUSH);
-    dc.DrawRectangle(1, 1, COLOR_BTN_SIZE.GetWidth() - 1, COLOR_BTN_SIZE.GetHeight() - 1);
+    // ORCA DPI aware pixel-perfect borders
+    const int pen_w = std::max(1, button->FromDIP(2));
+    DrawFrame(dc, w, h, 0    , pen_w, wxColour("#009688"));   // Selection border
+    DrawFrame(dc, w, h, pen_w, std::max(1, button->FromDIP(1)), GetBackgroundColour()); // inner border for separation
 }
 
 bool FilamentPickerDialog::IsClickOnTopMostWindow(const wxPoint& mouse_pos)
