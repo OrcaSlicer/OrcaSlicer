@@ -1196,11 +1196,16 @@ public:
     static FilamentTempType get_filament_temp_type(const std::string& filament_type);
     static int get_hrc_by_nozzle_type(const NozzleType& type);
     static std::vector<std::string> get_incompatible_filaments_by_nozzle(const float nozzle_diameter, const std::optional<NozzleVolumeType> nozzle_volume_type = std::nullopt);
+    // support_only marks entries (parallel to filament_types) that the plate uses solely as a
+    // support base/interface/ironing filament. Not bonding to the object is the whole point of
+    // such a filament, so the material-bonding rule is not applied to it; the temperature rules
+    // still are. Pass empty to check every filament as an object material.
     static FilamentCompatibilityType check_multi_filaments_compatibility(
         const std::vector<std::string>& filament_types,
         const std::vector<int>& nozzle_temperatures,
         const std::vector<int>& nozzle_temperature_range_lows,
-        const std::vector<int>& nozzle_temperature_range_highs);
+        const std::vector<int>& nozzle_temperature_range_highs,
+        const std::vector<unsigned char>& support_only = {});
     // similar to check_multi_filaments_compatibility, but the input is int, and may be negative (means unset)
     static bool is_filaments_compatible(const std::vector<int>& types);
     // get the compatible filament type of a multi-material object

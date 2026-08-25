@@ -457,6 +457,60 @@ TEST_CASE("Sequential printing publishes the nozzle group result", "[Print][Mult
     }
 }
 
+// A support filament is picked for NOT bonding - that is how the support detaches, and it is exactly what
+// "Auto" support filament selects for. Applying the material-bonding rule to it would reject the prints the
+// setting was made for. The temperature rules still apply: those are about running the two in one hotend.
+TEST_CASE("A filament used only for support is exempt from the material bonding rule", "[Print][SupportFilament]")
+{
+    // PLA object, PETG support: known-incompatible, which is the property support wants.
+    const std::vector<std::string> types       = { "PLA", "PETG" };
+    const std::vector<int>         temps       = { 220, 240 };
+    const std::vector<int>         range_lows  = { 190, 220 };
+    const std::vector<int>         range_highs = { 250, 260 };
+
+    SECTION("both printing object geometry is still rejected") {
+        CHECK(Print::check_multi_filaments_compatibility(types, temps, range_lows, range_highs) ==
+              FilamentCompatibilityType::IncompatibleMaterials);
+    }
+    SECTION("the second used only for support is accepted") {
+        CHECK(Print::check_multi_filaments_compatibility(types, temps, range_lows, range_highs, { 0, 1 }) ==
+              FilamentCompatibilityType::Compatible);
+    }
+    SECTION("a support-only filament outside the object's temperature range is still flagged") {
+        // The exemption covers bonding only. Printing the support filament at 300 puts it above the object
+        // filament's 250 max, which the temperature rule must still catch.
+        const std::vector<int> hot_temps       = { 220, 300 };
+        const std::vector<int> hot_range_highs = { 250, 320 };
+        CHECK(Print::check_multi_filaments_compatibility(types, hot_temps, range_lows, hot_range_highs, { 0, 1 }) ==
+              FilamentCompatibilityType::HighLowMixed);
+    }
+    SECTION("a PETG support interface under a PLA object slices") {
+        // End to end: one nozzle, so check_multi_filament_valid runs and would block the print outright.
+        // Filament 2 prints nothing but the support interface.
+        DynamicPrintConfig config = Slic3r::Test::multifilament_config(2, {
+            { "filament_type",              "PLA;PETG" },
+            { "enable_support",             "1"        },
+            { "support_interface_filament", "2"        },
+        });
+        std::vector<StringObjectException> warnings;
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.empty());
+    }
+    SECTION("a filament that also prints object geometry stays checked") {
+        // The same PETG, now used for a top surface as well: it bonds to the object there, so the rule
+        // applies and the print is rejected.
+        DynamicPrintConfig config = Slic3r::Test::multifilament_config(2, {
+            { "filament_type",              "PLA;PETG" },
+            { "enable_support",             "1"        },
+            { "support_interface_filament", "2"        },
+            { "top_surface_filament_id",    "2"        },
+        });
+        std::vector<StringObjectException> warnings;
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.find("materials are incompatible") != std::string::npos);
+    }
+}
+
 // Everything inside one object is fused together, so its materials have to bond - the opposite of the support
 // filaments, which are picked for NOT bonding. Covers both a per-feature pick (ironing here) and a modifier
 // volume on its own filament, runs on every printer (a second nozzle does not keep the two apart inside one
