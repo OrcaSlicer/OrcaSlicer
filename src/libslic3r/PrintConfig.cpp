@@ -6447,9 +6447,10 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     // Literal rather than magma::MAGMA_SEAL_PRESS: the Magma headers include
     // PrintConfig.hpp, so pulling one in here would be circular. Keep the two in step.
-    // This is a DEPTH, so it is the old hardcoded 0.1 diametral margin converted:
-    // 0.1 / (2 tan 30) = 0.0866. Setting it to the old 0.05 would be a silent 42% cut.
-    def->set_default_value(new ConfigOptionFloat(0.0866));
+    // A round 0.1mm of engagement past first contact. Note this is a DEPTH: the old
+    // pre-rework setting was a 0.1mm DIAMETRAL margin, which is a different quantity, and
+    // reading that number straight across as a depth would be a silent 42% cut.
+    def->set_default_value(new ConfigOptionFloat(0.1));
 
 
     def = this->add("magma_nozzle_outer_diameter", coFloats);
@@ -6457,9 +6458,13 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Measured diameter of the flat at your nozzle tip — the ring around the bore that "
                      "presses on the print. Measure it with calipers.\n\n"
-                     "This is the seal size: the flat, plus the cone above it once pressed down, has "
-                     "to cover the tube opening. For tubes larger than the flat, raise Max nozzle "
-                     "immersion.\n\n"
+                     "This is the seal size: the flat, plus the cone above it once pressed down, "
+                     "has to cover the tube opening -- so the wider a cell is compared with this "
+                     "flat, the further the nozzle must descend to seal it.\n\n"
+                     "It is the most consequential piece of hardware in Magma. A SMALLER flat "
+                     "seals a SMALLER cell, and small cells are better: every tube gets the same "
+                     "injection-time budget whatever its size, so many small tubes put more "
+                     "plastic into the part than a few large ones.\n\n"
                      "0 = estimate as 3x the nozzle bore. Measuring is strongly preferred — the "
                      "estimate drives tube sizing and a wrong one gives tubes that will not seal.");
     def->sidetext = L("mm");
@@ -6475,10 +6480,9 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Half-angle of the cone above the nozzle tip flat, in degrees. The seal depth uses "
                      "it to work out how far to press so the widening cone seals a tube opening larger "
-                     "than the flat: z_slam = (opening + margin - flat) / (2 * tan(angle)), capped by "
-                     "Max nozzle immersion.\n\n"
+                     "than the flat: seal depth = (opening - flat) / (2 * tan(angle)) + seal press.\n\n"
                      "Most nozzles are around 30 degrees — measure from the nozzle profile or its "
-                     "datasheet. A smaller (pointier) cone needs a deeper slam for the same opening.");
+                     "datasheet. A smaller (pointier) cone descends further for the same opening.");
     def->sidetext = L("°");
     def->min = 5;
     def->max = 60;
@@ -6496,9 +6500,14 @@ void PrintConfigDef::init_fff_params()
                      "depth the nozzle must descend are the same number in two units — pick "
                      "one and the hardware fixes the other. The readout below shows the seal "
                      "depth this width costs on your nozzle.\n\n"
-                     "Wider tubes hold more injected material and resist freezing on the way "
-                     "down, but need a deeper press, which eventually reaches the neighbouring "
-                     "cells and distorts the lattice. Slicing warns when it does.");
+                     "Width is pulled in both directions and the middle is narrow. Too narrow "
+                     "and the cone barely enters the cell: the seal has no tolerance for an "
+                     "uneven printed rim, and it leaks. Too wide and each injection carries more "
+                     "plastic, so it takes longer -- past about 1.5 s the nozzle softens the "
+                     "walls around it and the lattice deforms. Slicing warns at both ends.\n\n"
+                     "Your nozzle's tip flat sets the narrow end: a cell only slightly wider than "
+                     "the flat is sealed almost immediately, and that shallow engagement is the "
+                     "one that leaks. A smaller flat is what lets you run a smaller tube.");
     def->sidetext = L("mm");
     def->min = 0.1;
     def->max = 5.0;
@@ -6525,15 +6534,27 @@ void PrintConfigDef::init_fff_params()
     def = this->add("magma_tube_height", coFloat);
     def->label = L("Max tube height");
     def->category = L("Strength");
-    def->tooltip = L("Maximum height of U-tube segments. Shorter tubes are used near object boundaries. "
-                     "Taller tubes interlock better but risk cooling mid-injection.\n\n"
-                     "3-4mm is the sweet spot: past that the melt freezes before reaching the bottom. "
-                     "Longer needs a wider channel to stay molten, i.e. a larger nozzle flat.");
+    def->tooltip = L("Maximum height of U-tube segments. Shorter tubes are used near object "
+                     "boundaries. Taller tubes reinforce deeper, and this is the FIRST setting to "
+                     "reduce when an injection runs too long.\n\n"
+                     "Tube volume is about 2 x cell area x this height x fill factor, and the "
+                     "injection has to finish in roughly 1.5 s or the nozzle softens the walls "
+                     "around it. Height is the cheapest way to trade volume away, because unlike "
+                     "the tube width it does not disturb the seal. The readout shows the "
+                     "resulting injection time.\n\n"
+                     "A separate risk pulls the other way and is NOT yet measured: the melt has "
+                     "to travel the whole height before it cools, and a tall narrow channel is "
+                     "the worst case for that. Do not chase extreme height just because the time "
+                     "budget allows it -- 3-4mm is where the good prints are.");
     def->sidetext = L("mm");
     def->min = 1;
     def->max = 100;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(4.0));
+    // 3.5 rather than 4.0: at the default 1.6mm tube on PLA (12 mm3/s) a 4.0mm tube injects
+    // 18.4 mm3, which is 1.53s -- the default would trip its own injection-time warning. 3.5
+    // gives 1.34s, with headroom for materials slower than PLA. Slower materials still warn at
+    // this height, correctly: they genuinely need shorter tubes.
+    def->set_default_value(new ConfigOptionFloat(3.5));
 
     def = this->add("magma_boundary_dodge", coFloat);
     def->label = L("Weak plane avoidance");
@@ -6805,9 +6826,13 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Injection dwell time");
     def->category = L("Strength");
     def->tooltip = L("Time to hold the nozzle down after injection, before releasing the "
-                     "seal. Allows injected plastic to spread and fill the tube interior "
-                     "while the nozzle is still sealed against the opening.\n\n"
-                     "Set to 0 to disable.");
+                     "seal.\n\n"
+                     "LEAVE THIS AT ZERO. It was meant to let the injected plastic settle, and a "
+                     "test plate found it does nothing of the kind: no value improved anything, "
+                     "and 5 s of dwell melted the cell wall outright. The nozzle is a heat source "
+                     "the whole time it is sealed in, so every millisecond here is damage with no "
+                     "benefit -- the injection itself already lasts about as long as a cell can "
+                     "safely take.");
     def->sidetext = L("ms");
     def->min = 0;
     def->max = 10000;

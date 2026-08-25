@@ -451,8 +451,8 @@ PresetHints::MagmaReadout PresetHints::magma_injection_readout(const PresetBundl
     r.add(_utf8(L("Nozzle vs cell pitch")),
           (boost::format("%1$.0f%%") % (100.0 * m.pitch_ratio())).str(),
           m.pitch_ratio() > magma::MAGMA_PITCH_ABSURD_RATIO
-              ? _utf8(L("the cone is wider than one cell at full depth, so it presses into the neighbouring cells and distorts the lattice"))
-              : _utf8(L("how much of the cell pitch the cone spans at full depth; past ~110% it starts crushing the neighbouring cells")));
+              ? _utf8(L("the cone covers an entire neighbouring cell before it touches the one it is sealing"))
+              : _utf8(L("how much of the cell pitch the cone spans at seal depth. A geometry figure, not a quality one -- prints have been clean well past 100%; what actually damages the lattice is how LONG each injection takes")));
 
     const double open_area   = m.geometry->inset_open_area(m.cell_spacing, m.line_width);
     const double tube_height = print_config.opt_float("magma_tube_height");
@@ -465,6 +465,20 @@ PresetHints::MagmaReadout PresetHints::magma_injection_readout(const PresetBundl
               (boost::format("%1$.2f mm\u00b3") % (2.0 * open_area * tube_height * fill_factor)).str(),
               (boost::format(_utf8(L("estimate: 2 cells x %1$.3f mm\u00b2 x %2$.1f mm x %3$.2f fill factor. The slicer measures each tube's real cavity from the printed toolpath")))
                % open_area % tube_height % fill_factor).str());
+
+    // The binding constraint, so it goes last where the eye lands.
+    // filament_max_volumetric_speed lives in the FILAMENT preset, not the print preset.
+    const double max_vol =
+        preset_bundle.filaments.get_edited_preset().config.opt_float("filament_max_volumetric_speed", 0);
+    const double secs    = magma::injection_seconds(open_area, tube_height, fill_factor, max_vol);
+    if (secs > 0.0)
+        r.add(_utf8(L("Injection time")),
+              (boost::format("%1$.2f s") % secs).str(),
+              secs > magma::MAGMA_MAX_INJECTION_SECONDS
+                  ? (boost::format(_utf8(L("past the ~%1$.1f s the lattice survives -- the nozzle softens the surrounding walls and the cells deform. Reduce tube height, then width")))
+                     % magma::MAGMA_MAX_INJECTION_SECONDS).str()
+                  : (boost::format(_utf8(L("how long the nozzle stays sealed in each cell, at the filament's %1$.1f mm\u00b3/s. THE number that decides whether a print is clean: keep it under ~%2$.1f s")))
+                     % max_vol % magma::MAGMA_MAX_INJECTION_SECONDS).str());
     return r.finish();
 }
 

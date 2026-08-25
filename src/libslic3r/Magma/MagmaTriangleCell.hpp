@@ -89,13 +89,43 @@ constexpr double MAGMA_PITCH_ABSURD_RATIO = 2.0;
 // engagement has no tolerance left for layer-height and squish variation on the printed rim,
 // while 0.56 absorbs it. Sits at 0.40, between the deepest failure and the shallowest success.
 constexpr double MAGMA_SEAL_DEPTH_MIN     = 0.40;
+
+// Longest an injection may run, in seconds. THE binding constraint on Magma geometry.
+//
+// While the nozzle is sealed into a cell it is a heat source held against thin walls. Past
+// roughly this long it softens them: the lattice around the injection deforms, and once the
+// wall goes soft the seal goes with it and the tube leaks out of the top. By 3s the cell is
+// destroyed. MEASURED two independent ways that agree: varying tube size at a fixed flow rate,
+// and varying flow rate at a fixed tube. A 1.7mm tube injected fast (1.85s) and a 1.6mm tube
+// injected slowly (2.14s) fail identically, so what matters is the DURATION, not the volume
+// and not the tube.
+//
+// Injection runs at the filament's max volumetric rate, so that rate is fixed by the material
+// and the only way to shorten an injection is to inject less per tube. Splitting one into
+// several short bursts does not work -- the melt freezes into a plug and the remainder has
+// nowhere to go.
+constexpr double MAGMA_MAX_INJECTION_SECONDS = 1.5;
+
+// Seconds one U-tube injection will take: a U-tube is a PAIR of cells sharing a window, filled
+// by one injection. Estimate -- ignores the window cavity and part-edge clipping, and the
+// slicer measures each tube's real cavity from the printed toolpath. Returns 0 when the rate
+// is unknown (filament max volumetric speed unset), so callers can skip the check rather than
+// invent a number.
+inline double injection_seconds(double open_area_mm2, double tube_height_mm, double fill_factor,
+                                double max_volumetric_mm3s) {
+    if (max_volumetric_mm3s <= 0.0 || open_area_mm2 <= 0.0 || tube_height_mm <= 0.0)
+        return 0.0;
+    return (2.0 * open_area_mm2 * tube_height_mm * fill_factor) / max_volumetric_mm3s;
+}
 // Default seal press, in mm. Exposed as magma_seal_press; this is only
 // the default. It used to be a hardcoded DIAMETRAL 0.1, i.e. 0.05 radial, which is what this
 // preserves. See corner_grip() for why it is the load-bearing number in the seal.
 // Default seal PRESS: how far the nozzle descends past the depth at which it first touches the
-// cell, in mm. 0.0866 is the old hardcoded 0.1mm DIAMETRAL margin expressed as a depth
-// (0.1 / (2 tan30)), so the default behaviour is unchanged.
-constexpr double MAGMA_SEAL_PRESS         = 0.0866;
+// cell, in mm. A round 0.1mm of engagement. It was briefly 0.0866, which was the old hardcoded
+// 0.1mm DIAMETRAL margin converted to a depth -- an exact translation of a number that no
+// longer exists, and nothing measured it. 0.1 is within a hundredth of it, prints the same,
+// and is a figure someone can reason about.
+constexpr double MAGMA_SEAL_PRESS         = 0.1;
 // Clearance added to the auto crater-iron start margin, beyond the r_flat needed to put the
 // nozzle flat outside the crater mouth. Covers the displaced material that rode up the bevel
 // and piled into a rim just outside the mouth.

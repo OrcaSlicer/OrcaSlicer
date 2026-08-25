@@ -1537,6 +1537,34 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                          "magma_interior_width", object);
                 }
 
+                // (a2) THE binding constraint: how long the nozzle sits in the cell. Everything
+                // else on this page is geometry; this one is what actually ruins prints.
+                {
+                    const double open_area = m.geometry->inset_open_area(m.cell_spacing,
+                                                                         m.line_width);
+                    const double max_vol   = m_config.filament_max_volumetric_speed.get_at(
+                                                 (unsigned int) m.injection_extruder);
+                    const double secs = magma::injection_seconds(
+                        open_area, obj_cfg.magma_tube_height.value,
+                        obj_cfg.magma_tube_fill_factor.value, max_vol);
+                    if (secs > magma::MAGMA_MAX_INJECTION_SECONDS) {
+                        warn(Slic3r::format(
+                            L("Magma injection takes about %.1f s per tube, past the ~%.1f s the "
+                              "lattice survives. The nozzle is a heat source while it is sealed "
+                              "in, and this long softens the surrounding walls -- the cells "
+                              "deform, and once a wall goes soft the seal goes with it and the "
+                              "tube leaks.\n\n"
+                              "Injection already runs at the filament's maximum volumetric rate "
+                              "(%.1f mm3/s), so the only fix is less plastic per tube: reduce "
+                              "the max tube height (currently %.1f mm), then the tube width. "
+                              "Smaller cells are not a loss -- each tube gets the same time "
+                              "budget, so more of them puts MORE plastic into the part."),
+                                 secs, magma::MAGMA_MAX_INJECTION_SECONDS, max_vol,
+                                 obj_cfg.magma_tube_height.value),
+                             "magma_tube_height", object);
+                    }
+                }
+
                 // (b) Geometry sanity: the cone spans a whole neighbouring cell. Not a quality
                 // threshold -- see MAGMA_PITCH_ABSURD_RATIO for the plates that ruled the cone
                 // out as a predictor of lattice damage.
