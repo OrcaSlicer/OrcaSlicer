@@ -1198,7 +1198,8 @@ struct DynamicFilamentList : DynamicList
 };
 
 // Same as DynamicFilamentList, but leads with an "Auto" entry (value SUPPORT_FILAMENT_AUTO). Used for the
-// support base/interface filaments, where "Auto" picks a non-bonding filament per object at slicing time.
+// support filaments (base, interface and ironing), where "Auto" picks a non-bonding filament per object
+// at slicing time.
 struct DynamicSupportFilamentList : DynamicFilamentList
 {
     DynamicSupportFilamentList() : DynamicFilamentList(true) {}
