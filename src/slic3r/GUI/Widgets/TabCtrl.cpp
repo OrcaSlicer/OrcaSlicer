@@ -182,7 +182,7 @@ void TabCtrl::SetItemBitmap(unsigned int item, const wxBitmap& bitmap)
 {
     if (item >= btns.size())
         return;
-    btns[item]->SetBitmap(bitmap);
+    btns[item]->SetIcon(bitmap);
     relayout();
 }
 

@@ -64,6 +64,9 @@ public:
     int GetNextVisible(int item) const;
     bool IsVisible(unsigned int item) const;
 
+    // Width of the tab strip that keeps every button visible (used to size the Publish dialog).
+    int buttons_best_width() const;
+
 private:
     virtual void DoSetSize(int x, int y, int width, int height, int sizeFlags = wxSIZE_AUTO);
 
@@ -72,8 +75,6 @@ private:
 #endif
 
     void relayout();
-
-    int buttons_best_width() const;
 
     void buttonClicked(wxCommandEvent & event);
     void keyDown(wxKeyEvent &event);

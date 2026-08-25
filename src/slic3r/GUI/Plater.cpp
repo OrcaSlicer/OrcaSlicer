@@ -16323,29 +16323,43 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
     if (full_pathnames)
         save_strategy = save_strategy | SaveStrategy::FullPathSources;
 
-    const int ret = export_3mf(into_path(path), save_strategy, -1, nullptr);
+    // Restore the previous metadata state (both on success and on failure): a thrown export
+    // must not leave the published metadata on the in-memory project, or a later Save Project
+    // would write a hybrid file (full config + slicer tags + published metadata) that receivers
+    // silently load in published mode, skipping the project's own presets.
+    auto restore_metadata = [&]() {
+        if (!had_model_info) {
+            model.model_info = nullptr;
+        } else {
+            if (had_published)
+                model.model_info->metadata_items["published"] = prev_published;
+            else
+                model.model_info->metadata_items.erase("published");
+            if (had_published_keys)
+                model.model_info->metadata_items["published_keys"] = prev_published_keys;
+            else
+                model.model_info->metadata_items.erase("published_keys");
+            if (had_material_keys)
+                model.model_info->metadata_items["published_material_keys"] = prev_material_keys;
+            else
+                model.model_info->metadata_items.erase("published_material_keys");
+            if (had_payload)
+                model.model_info->metadata_items["published_config"] = prev_payload;
+            else
+                model.model_info->metadata_items.erase("published_config");
+        }
+    };
 
-    // Restore the previous metadata state (both on success and on failure).
-    if (!had_model_info) {
-        model.model_info = nullptr;
-    } else {
-        if (had_published)
-            model.model_info->metadata_items["published"] = prev_published;
-        else
-            model.model_info->metadata_items.erase("published");
-        if (had_published_keys)
-            model.model_info->metadata_items["published_keys"] = prev_published_keys;
-        else
-            model.model_info->metadata_items.erase("published_keys");
-        if (had_material_keys)
-            model.model_info->metadata_items["published_material_keys"] = prev_material_keys;
-        else
-            model.model_info->metadata_items.erase("published_material_keys");
-        if (had_payload)
-            model.model_info->metadata_items["published_config"] = prev_payload;
-        else
-            model.model_info->metadata_items.erase("published_config");
+    int ret;
+    try {
+        ret = export_3mf(into_path(path), save_strategy, -1, nullptr);
+    } catch (...) {
+        restore_metadata();
+        MessageDialog(this, _L("Failed to export the published 3MF file.\nPlease check whether the folder exists online or if other programs have the file open."),
+            _L("Publish"), wxOK | wxICON_WARNING).ShowModal();
+        return wxID_CANCEL;
     }
+    restore_metadata();
 
     if (ret < 0) {
         MessageDialog(this, _L("Failed to export the published 3MF file.\nPlease check whether the folder exists online or if other programs have the file open."),
