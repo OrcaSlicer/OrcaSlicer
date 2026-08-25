@@ -175,9 +175,10 @@ struct PublishedConfig
 {
     bool                        published = false;
     std::vector<std::string>    published_keys;
-    // Per-slot published material keys, applied positionally (author slot N -> receiver slot N),
-    // gated by the author's optional type requirement and written onto the slot's stored preset
-    // in place (see PublishedMaterialEntry in PublishSettings.hpp).
+    // Per-slot published material keys, applied positionally (author slot N -> receiver slot N).
+    // Partial entries are gated by the author's optional type requirement and written onto the
+    // slot's stored preset in place; full entries instead detach (see PublishedMaterialEntry in
+    // PublishSettings.hpp).
     std::vector<PublishedMaterialEntry> material_keys;
     // Keys that could not be applied (missing on the user's machine or vector size mismatch),
     // filled in by load_config_file_config for notification purposes.

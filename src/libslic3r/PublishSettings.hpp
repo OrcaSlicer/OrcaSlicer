@@ -35,19 +35,20 @@ const std::set<std::string>& publishable_printer_keys();
 std::vector<std::string> collect_dirty_settings_keys(const PresetBundle& bundle);
 
 // Per-slot published material keys, applied positionally (author slot N -> receiver slot N).
-// The identity fields are carried for reference/notification labels only; the type gate
-// (publish_type) is the author's explicit opt-in for requiring a material type.
+// The identity fields drive the created copy's naming and grouping on Full entries, the
+// notification labels, and the partial type gate (publish_type) is the author's explicit
+// opt-in for requiring a material type.
 struct PublishedMaterialEntry {
     std::string filament_type;   // material family, e.g. "PLA" (may be empty)
     std::string filament_vendor; // e.g. "Generic", "Bambu" (may be empty)
     std::string filament_id;     // stable material id, e.g. "GFL99" (may be empty)
-    // Unique preset id of the author's slot preset (e.g. Orca Filament Library "setting_id");
-    // used on load to match the exact published variant, which filament_id alone cannot
-    // distinguish ("Generic PLA" and "Generic PLA Matte" share their inherited id).
+    // Unique preset id of the author's slot preset (e.g. Orca Filament Library "setting_id").
+    // Not matched against the receiver's library; carried so identical Full entries within one
+    // load share one created instance (within-load dedup key).
     std::string setting_id;
-    // Canonical name of the author's slot preset (e.g. "Generic PLA @System"). The receiver
-    // prefers an exact name/alias match over id matching: ids can be shared across variants
-    // or missing from older files, the name is what the author actually selected.
+    // Canonical name of the author's slot preset (e.g. "Generic PLA @System"). On Full import
+    // it names the created copy after its "@variant" tail is stripped; never matched against
+    // the receiver's library.
     std::string preset_name;
     // 0-based author filament slot; -1 (hand-crafted files) is skipped.
     int         slot{-1};
@@ -63,9 +64,10 @@ struct PublishedMaterialEntry {
     // All non-structural filament keys of the author's slot preset; values travel in the file
     // config, masked to the author's slot index.
     std::vector<std::string> full_keys;
-    // Vendor-agnostic (MaterialType) filament type the author requires for this slot; on
-    // mismatch the slot is replaced with a same-type filament from the receiver's library.
-    // For Full entries the baked filament_type on the created copy satisfies the type gate.
+    // Vendor-agnostic (MaterialType) filament type the author requires for this slot; on a
+    // partial entry's mismatch the slot is replaced with a same-type filament from the
+    // receiver's library. Full entries consult no gate: they detach unconditionally, and the
+    // copy carries whatever values the payload bakes.
     bool publish_type{false};
     std::string publish_type_value;
     // Required filament colour, applied on load regardless of the type match.

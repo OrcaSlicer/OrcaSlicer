@@ -3056,9 +3056,11 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
 }
 
 // A detached standalone preset for the Full Publish receiver: create a user preset holding
-// the full resolved filament config (no inheritance, no vendor/alias links), parentless and
-// universally compatible. Mirrors save_current_preset(detach=true)'s creation branch but
-// does not force-select or diff against a parent; the caller decides whether to select it.
+// the full resolved filament config (no inheritance, no vendor/alias links), parentless.
+// Note: universal printer compatibility is not enforced here - callers apply
+// make_publish_universal() to the config before handing it over when they need it.
+// Mirrors save_current_preset(detach=true)'s creation branch but does not force-select or
+// diff against a parent; the caller decides whether to select it.
 // The published entry's filament_id is forwarded so user bases keep their stable
 // material grouping (get_filament_presets() groups user bases by filament_id).
 // save_to_project=true (the Full Publish default) creates a project-embedded preset:
@@ -3094,8 +3096,6 @@ std::string PresetCollection::add_detached_preset(const std::string &name_base, 
     lock();
     const auto it = this->find_preset_internal(final_name);
     Preset &preset = *m_presets.insert(it, stored);
-    stored.name.clear();           // avoid stale copied name being used below
-    stored.config.clear();
     preset.name = final_name;
     preset.vendor = nullptr;
     preset.alias.clear();
@@ -3103,7 +3103,7 @@ std::string PresetCollection::add_detached_preset(const std::string &name_base, 
     preset.m_excluded_from.clear();
     preset.setting_id.clear();
     preset.inherits().clear();
-    preset.version = Semver::parse(SoftFever_VERSION) ? *Semver::parse(SoftFever_VERSION) : Semver();
+    preset.version = Semver::parse(SoftFever_VERSION).value_or(Semver());
     preset.is_default  = false;
     preset.is_system   = false;
     preset.is_external = false;
