@@ -148,3 +148,25 @@ SCENARIO("Remove collinear points from Polygon", "[Polygon]") {
         }
     }
 }
+
+// The near-duplicate points below reproduce a slice of an axis aligned box: the loop starts
+// exactly on a corner and the vertices around it are only nanometers apart.
+SCENARIO("Remove collinear points keeps corners at the start of the loop", "[Polygon]") {
+    GIVEN("Rectangle whose loop starts on a corner") {
+        Slic3r::Polygon p({
+            { 2876626, 29223886 }, { 13696622, 29223886 }, { 13696625, 29223886 }, { 13696625, 29223883 },
+            { 13696625, 29223872 }, { 13696625, 18403896 }, { 13696625, 18403884 }, { 2876652, 18403884 },
+            { 2876626, 18403884 }, { 2876626, 18403896 }, { 2876626, 29223872 }, { 2876626, 29223883 }
+        });
+        const double area = p.area();
+        WHEN("collinear points are removed") {
+            remove_collinear(p);
+            THEN("all four corners are kept") {
+                REQUIRE(p.points.size() == 4);
+            }
+            THEN("the area is preserved (up to the rounding of the near duplicate corner points)") {
+                REQUIRE(p.area() == Catch::Approx(area).epsilon(1e-5));
+            }
+        }
+    }
+}
