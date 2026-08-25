@@ -9,6 +9,8 @@
 #include "../GUI_Utils.hpp"
 #endif
 
+wxDEFINE_EVENT(EVT_SPINCTRL_TEXT, wxCommandEvent);
+
 BEGIN_EVENT_TABLE(SpinInput, StaticBox)
 
 EVT_KEY_DOWN(SpinInput::keyPressed)
@@ -74,6 +76,7 @@ void SpinInput::Create(wxWindow *parent,
     state_handler.attach_child(text_ctrl);
     text_ctrl->Bind(wxEVT_KILL_FOCUS, &SpinInput::onTextLostFocus, this);
     text_ctrl->Bind(wxEVT_TEXT_ENTER, &SpinInput::onTextEnter, this);
+    text_ctrl->Bind(wxEVT_TEXT, &SpinInput::onTextChanged, this);
     text_ctrl->Bind(wxEVT_KEY_DOWN, &SpinInput::keyPressed, this);
     text_ctrl->Bind(wxEVT_RIGHT_DOWN, [](auto &e) {}); // disable context menu
     button_inc = createButton(true);
@@ -298,6 +301,19 @@ void SpinInput::onTextEnter(wxCommandEvent &event)
     }
     event.SetId(GetId());
     ProcessEventLocally(event);
+}
+
+void SpinInput::onTextChanged(wxCommandEvent &event)
+{
+    long value;
+    if (text_ctrl->GetValue().ToLong(&value)) {
+        wxCommandEvent e(EVT_SPINCTRL_TEXT, GetId());
+        e.SetEventObject(this);
+        e.SetInt((int) value);
+        e.SetString(text_ctrl->GetValue());
+        GetEventHandler()->ProcessEvent(e);
+    }
+    event.Skip();
 }
 
 void SpinInput::mouseWheelMoved(wxMouseEvent &event)

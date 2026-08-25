@@ -555,14 +555,20 @@ std::vector<wxBitmap*> get_extruder_color_icons(bool thin_icon/* = false*/)
         const int    icon_width  = lround((thin_icon ? 2 : 4.4) * em);
         const int    icon_height = lround(2 * em);
 
+        // A gradient mixed filament fades over the model's height, so it gets the same
+        // curve-sampled ramp the editor previews instead of a fade between two endpoints.
+        const auto& gradient_ramps = Slic3r::GUI::wxGetApp().plater()->get_filament_gradient_ramps();
+
         int index = 0;
         for (const auto &colors : readable_color_info) {
             auto label = std::to_string(++index);
-            bool is_gradient = ctype[index-1] == "0";
-            if (colors.size() == 1) {
+            const size_t slot = index - 1;
+            bool is_gradient = ctype[slot] == "0";
+            const std::vector<wxColour>* ramp = (slot < gradient_ramps.size() && !gradient_ramps[slot].empty()) ? &gradient_ramps[slot] : nullptr;
+            if (ramp == nullptr && colors.size() == 1) {
                 bmps.push_back(get_extruder_color_icon(colors[0], label, icon_width, icon_height));
             } else {
-                bmps.push_back(get_extruder_color_icon(colors, is_gradient, label, icon_width, icon_height));
+                bmps.push_back(get_extruder_color_icon(colors, is_gradient, label, icon_width, icon_height, ramp));
             }
         }
     } else {
@@ -630,14 +636,27 @@ wxColourData show_sys_picker_dialog(wxWindow *parent, const wxColourData &clr_da
     return data;
 }
 
-wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradient, std::string label, int icon_width, int icon_height){
+wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradient, std::string label, int icon_width, int icon_height,
+                                  const std::vector<wxColour> *ramp){
 
     static Slic3r::GUI::BitmapCache bmp_cache;
 
-    // build cache key, include all color info
+    // build cache key, include all color info. A ramp already encodes its slot's components,
+    // colours and curve, so keying on it rebuilds the icon whenever any of them change.
     std::string bitmap_key = "";
-    for (const auto& color : colors) {
-        bitmap_key += color + "_";
+    if (ramp != nullptr) {
+        static const char hex_digits[] = "0123456789ABCDEF";
+        bitmap_key = "grad_";
+        for (const wxColour &c : *ramp)
+            for (unsigned char v : {c.Red(), c.Green(), c.Blue()}) {
+                bitmap_key += hex_digits[v >> 4];
+                bitmap_key += hex_digits[v & 0x0F];
+            }
+        bitmap_key += "_";
+    } else {
+        for (const auto& color : colors) {
+            bitmap_key += color + "_";
+        }
     }
     bitmap_key += "h" + std::to_string(icon_height) + "-w" + std::to_string(icon_width) + "-i" + label;
 
@@ -647,16 +666,21 @@ wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradi
     #endif
     if (bitmap == nullptr) {
 
-        std::vector<wxColour> wx_colors;
-        for (const auto& color_str : colors) {
-            wx_colors.push_back(wxColour(color_str));
-        }
-        if (wx_colors.empty()) {
-            wx_colors.push_back(wxColour("#636363")); // default color if no colors provided
-        }
+        wxBitmap base_bitmap;
+        if (ramp != nullptr) {
+            base_bitmap = Slic3r::GUI::create_gradient_ramp_bitmap(*ramp, wxSize(icon_width, icon_height));
+        } else {
+            std::vector<wxColour> wx_colors;
+            for (const auto& color_str : colors) {
+                wx_colors.push_back(wxColour(color_str));
+            }
+            if (wx_colors.empty()) {
+                wx_colors.push_back(wxColour("#636363")); // default color if no colors provided
+            }
 
-        // create filament bitmap in multi color
-        wxBitmap base_bitmap = Slic3r::GUI::create_filament_bitmap(wx_colors, wxSize(icon_width, icon_height), is_gradient);
+            // create filament bitmap in multi color
+            base_bitmap = Slic3r::GUI::create_filament_bitmap(wx_colors, wxSize(icon_width, icon_height), is_gradient);
+        }
 
         if (!base_bitmap.IsOk()) {
             // if create failed, return nullptr

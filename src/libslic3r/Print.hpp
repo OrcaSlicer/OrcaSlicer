@@ -117,9 +117,9 @@ class PrintRegion
 public:
     PrintRegion() = default;
     PrintRegion(const PrintRegionConfig &config);
-    PrintRegion(const PrintRegionConfig &config, const size_t config_hash, int print_object_region_id = -1) : m_config(config), m_config_hash(config_hash), m_print_object_region_id(print_object_region_id) {}
+    PrintRegion(const PrintRegionConfig &config, const size_t config_hash, int print_object_region_id = -1, ObjectID gradient_volume_id = ObjectID()) : m_config(config), m_config_hash(config_hash), m_print_object_region_id(print_object_region_id), m_gradient_volume_id(gradient_volume_id) {}
     PrintRegion(PrintRegionConfig &&config);
-    PrintRegion(PrintRegionConfig &&config, const size_t config_hash, int print_object_region_id = -1) : m_config(std::move(config)), m_config_hash(config_hash), m_print_object_region_id(print_object_region_id) {}
+    PrintRegion(PrintRegionConfig &&config, const size_t config_hash, int print_object_region_id = -1, ObjectID gradient_volume_id = ObjectID()) : m_config(std::move(config)), m_config_hash(config_hash), m_print_object_region_id(print_object_region_id), m_gradient_volume_id(gradient_volume_id) {}
     ~PrintRegion() = default;
 
 // Methods NOT modifying the PrintRegion's state:
@@ -129,6 +129,10 @@ public:
     // Identifier of this PrintRegion in the list of Print::m_print_regions.
     int                         print_region_id() const throw() { return m_print_region_id; }
     int                         print_object_region_id() const throw() { return m_print_object_region_id; }
+    // Volume identity used to differentiate same-config regions when per-part gradient is enabled.
+    // Default-constructed (invalid) means this region is not tied to a specific volume — preserves
+    // existing behavior for all paths not using per_part_gradient.
+    ObjectID                    gradient_volume_id() const throw() { return m_gradient_volume_id; }
 	// 1-based extruder identifier for this region and role.
 	unsigned int 				extruder(FlowRole role) const;
     Flow                        flow(const PrintObject &object, FlowRole role, double layer_height, bool first_layer = false) const;
@@ -158,6 +162,10 @@ private:
     int                m_print_region_id { -1 };
     int                m_print_object_region_id { -1 };
     int                m_ref_cnt { 0 };
+    // Per-part gradient: when non-invalid, this region belongs exclusively to one ModelVolume,
+    // letting same-color volumes within a combined ModelObject be tracked separately for gradient
+    // emission. Default invalid -> region keying behaves exactly as before.
+    ObjectID           m_gradient_volume_id;
 };
 
 inline bool operator==(const PrintRegion &lhs, const PrintRegion &rhs) { return lhs.config_hash() == rhs.config_hash() && lhs.config() == rhs.config(); }
@@ -305,6 +313,11 @@ public:
     // This transformation is used to calculate VolumeExtents.
     Transform3d                                 trafo_bboxes;
     std::vector<ObjectID>                       cached_volume_ids;
+
+    // Per-part gradient: the slot_per_part_enabled bit vector that produced these regions.
+    // Print::apply compares it against the current one to detect a change that PrintRegionConfig
+    // alone would not reveal, and regenerates the regions when it differs.
+    std::vector<bool>                           last_slot_per_part_enabled;
 
     void ref_cnt_inc() { ++ m_ref_cnt; }
     void ref_cnt_dec() { if (-- m_ref_cnt == 0) delete this; }
@@ -1075,6 +1088,10 @@ public:
         m_slice_used_filaments = used_filaments;
     }
     std::vector<unsigned int> get_slice_used_filaments(bool first_layer) const { return first_layer ? m_slice_used_filaments_first_layer : m_slice_used_filaments;}
+    void set_slice_used_mixed_filaments(const std::vector<unsigned int> &used_mixed_filaments) {
+        m_slice_used_mixed_filaments = used_mixed_filaments;
+    }
+    const std::vector<unsigned int>& get_slice_used_mixed_filaments() const { return m_slice_used_mixed_filaments; }
 
     /**
     * @brief Determines the unprintable filaments for each extruder based on its physical attributes
@@ -1342,6 +1359,8 @@ private:
 
     std::vector<unsigned int> m_slice_used_filaments;
     std::vector<unsigned int> m_slice_used_filaments_first_layer;
+    // 0-based mixed (virtual) filament slots actually used on this plate.
+    std::vector<unsigned int> m_slice_used_mixed_filaments;
 
     //BBS: plate's origin
     Vec3d   m_origin {0, 0, 0};
