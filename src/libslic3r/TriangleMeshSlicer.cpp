@@ -148,12 +148,20 @@ using IntersectionLines = std::vector<IntersectionLine>;
 
 // Orca: A planar face is commonly represented by multiple triangles. A slicing plane then crosses
 // their shared edges and creates intermediate 2D points which are not part of the model contour.
-// Track only edges whose two incident triangles have the same normal so those artificial
-// junctions can be omitted without simplifying genuine, nearly-collinear geometry.
+// Track only edges whose two incident triangles lie in the same geometric plane within the slicing
+// coordinate precision, so those artificial junctions can be omitted without simplifying genuine,
+// nearly-collinear geometry.
 using CoplanarEdges = std::vector<bool>;
 
-static CoplanarEdges coplanar_edges(const indexed_triangle_set &mesh, const std::vector<Vec3i32> &face_edge_ids)
+static CoplanarEdges coplanar_edges(const indexed_triangle_set &mesh, const std::vector<Vec3i32> &face_edge_ids,
+                                    const Transform3d &trafo)
 {
+    struct FacePlane {
+        Vec3d origin { Vec3d::Zero() };
+        Vec3d normal { Vec3d::Zero() };
+        bool  valid { false };
+    };
+
     // Orca: Edge IDs are dense but may include boundary edges referenced by just one face.
     int num_edges = 0;
     for (const Vec3i32 &edge_ids : face_edge_ids)
@@ -161,28 +169,56 @@ static CoplanarEdges coplanar_edges(const indexed_triangle_set &mesh, const std:
 
     CoplanarEdges coplanar(num_edges, false);
     std::vector<int> first_face(num_edges, -1);
-    std::vector<Vec3f> face_normals(face_edge_ids.size());
-    std::vector<bool> face_normal_computed(face_edge_ids.size(), false);
-    // Orca: Compute normals lazily. The single-plane slicer masks most faces, so eagerly calculating
-    // every normal would defeat part of that optimization.
-    auto face_normal = [&mesh, &face_normals, &face_normal_computed](int face_idx) -> const Vec3f& {
-        if (! face_normal_computed[face_idx]) {
-            face_normals[face_idx] = its_face_normal(mesh, face_idx);
-            face_normal_computed[face_idx] = true;
-        }
-        return face_normals[face_idx];
+    std::vector<int> first_face_edge(num_edges, -1);
+    std::vector<FacePlane> face_planes(face_edge_ids.size());
+    std::vector<bool> face_plane_computed(face_edge_ids.size(), false);
+    auto transformed_vertex = [&mesh, &trafo](int vertex_idx) {
+        return trafo * mesh.vertices[vertex_idx].cast<double>();
     };
+    // Orca: Compute planes lazily. The single-plane slicer masks most faces, so eagerly calculating
+    // every plane would defeat part of that optimization.
+    auto face_plane = [&mesh, &face_planes, &face_plane_computed, &transformed_vertex](int face_idx) -> const FacePlane& {
+        if (! face_plane_computed[face_idx]) {
+            const Vec3i32 &face = mesh.indices[face_idx];
+            const Vec3d a = transformed_vertex(face(0));
+            const Vec3d b = transformed_vertex(face(1));
+            const Vec3d c = transformed_vertex(face(2));
+            FacePlane &plane = face_planes[face_idx];
+            plane.origin = a;
+            plane.normal = (b - a).cross(c - a);
+            const double normal_length = plane.normal.norm();
+            if (normal_length > 0.) {
+                plane.normal /= normal_length;
+                plane.valid = true;
+            }
+            face_plane_computed[face_idx] = true;
+        }
+        return face_planes[face_idx];
+    };
+    const double plane_distance_tolerance = SCALING_FACTOR;
     for (int face_idx = 0; face_idx < int(face_edge_ids.size()); ++ face_idx) {
         for (int edge_idx = 0; edge_idx < 3; ++ edge_idx) {
             const int edge_id = face_edge_ids[face_idx](edge_idx);
             if (edge_id < 0)
                 continue;
-            if (first_face[edge_id] == -1)
+            if (first_face[edge_id] == -1) {
                 first_face[edge_id] = face_idx;
-            else {
-                // Orca: Require equal orientation as well as coplanarity. Oppositely oriented duplicate
-                // faces must retain their junctions for the existing non-manifold recovery logic.
-                coplanar[edge_id] = is_approx(face_normal(first_face[edge_id]), face_normal(face_idx), 1e-6f);
+                first_face_edge[edge_id] = edge_idx;
+            } else {
+                const int first_face_idx = first_face[edge_id];
+                const FacePlane &first_plane = face_plane(first_face_idx);
+                const FacePlane &second_plane = face_plane(face_idx);
+                const int first_opposite_idx = mesh.indices[first_face_idx]((first_face_edge[edge_id] + 2) % 3);
+                const int second_opposite_idx = mesh.indices[face_idx]((edge_idx + 2) % 3);
+                const Vec3d first_opposite = transformed_vertex(first_opposite_idx);
+                const Vec3d second_opposite = transformed_vertex(second_opposite_idx);
+                // Orca: A shared edge guarantees that the planes intersect, but not that they coincide.
+                // Check both opposite vertices against the neighboring plane using one coord_t as the
+                // distance tolerance. The normal dot product only preserves face orientation; it does
+                // not classify a shallow angle as coplanar (see #15364).
+                coplanar[edge_id] = first_plane.valid && second_plane.valid && first_plane.normal.dot(second_plane.normal) > 0. &&
+                    std::abs(first_plane.normal.dot(second_opposite - first_plane.origin)) <= plane_distance_tolerance &&
+                    std::abs(second_plane.normal.dot(first_opposite - second_plane.origin)) <= plane_distance_tolerance;
             }
         }
     }
@@ -1936,7 +1972,7 @@ std::vector<Polygons> slice_mesh(
         // to make sure that no code relies on it.
         std::vector<Vec3i32> face_edge_ids = its_face_edge_ids(mesh);
         // Orca: Keep the coplanarity classification aligned with the edge IDs used to chain this slice.
-        coplanar = coplanar_edges(mesh, face_edge_ids);
+        coplanar = coplanar_edges(mesh, face_edge_ids, params.trafo);
         if (zs.size() <= 1) {
             // It likely is not worthwile to copy the vertices. Apply the transformation in place.
             if (is_identity(params.trafo)) {
@@ -2041,7 +2077,7 @@ Polygons slice_mesh(
         // 3) Calculate face neighbors for just the faces in face_mask.
         std::vector<Vec3i32> face_edge_ids = its_face_edge_ids(mesh, face_mask);
         // Orca: The single-plane path has its own masked edge-ID space, so classify that space separately.
-        coplanar = coplanar_edges(mesh, face_edge_ids);
+        coplanar = coplanar_edges(mesh, face_edge_ids, params.trafo);
 
         // 4) Slice "face_mask" triangles, collect line segments.
         // It likely is not worthwile to copy the vertices. Apply the transformation in place.
