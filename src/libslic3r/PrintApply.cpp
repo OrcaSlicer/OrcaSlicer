@@ -1,6 +1,7 @@
 #include "ClipperUtils.hpp"
 #include "Model.hpp"
 #include "Print.hpp"
+#include "MixedFilament.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <cfloat>
@@ -736,7 +737,7 @@ PrintObjectRegions::BoundingBox find_modifier_volume_extents(const PrintObjectRe
     return out;
 }
 
-PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_extruders, std::vector<int>& variant_index);
+PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_total_filaments, std::vector<int>& variant_index);
 
 void print_region_ref_inc(PrintRegion &r) { ++ r.m_ref_cnt; }
 void print_region_ref_reset(PrintRegion &r) { r.m_ref_cnt = 0; }
@@ -749,6 +750,7 @@ bool verify_update_print_object_regions(
     ModelVolumePtrs                     model_volumes,
     const PrintRegionConfig            &default_region_config,
     size_t                              num_extruders,
+    size_t                              num_total_filaments,
     PrintObjectRegions                 &print_object_regions,
     const std::function<void(const PrintRegionConfig&, const PrintRegionConfig&, const t_config_option_keys&)> &callback_invalidate,
     std::vector<int>& variant_index)
@@ -796,7 +798,7 @@ bool verify_update_print_object_regions(
                             } else if (PrintObjectRegions::BoundingBox parent_bbox = find_modifier_volume_extents(layer_range, parent_region_id); parent_bbox.intersects(*bbox))
                                 // Such parent region does not exist. If it is needed, then we need to reslice.
                                 // Only create new region for a modifier, which actually modifies config of it's parent.
-                                if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, **it_model_volume, num_extruders, variant_index);
+                                if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, **it_model_volume, num_total_filaments, variant_index);
                                     config != parent_region.region->config())
                                     // This modifier newly overrides a region, which it did not before. We need to reslice.
                                     return false;
@@ -804,8 +806,8 @@ bool verify_update_print_object_regions(
                     }
                 }
                 PrintRegionConfig cfg = region.parent == -1 ?
-                    region_config_from_model_volume(default_region_config, layer_range.config, **it_model_volume, num_extruders, variant_index) :
-                    region_config_from_model_volume(layer_range.volume_regions[region.parent].region->config(), nullptr, **it_model_volume, num_extruders, variant_index);
+                    region_config_from_model_volume(default_region_config, layer_range.config, **it_model_volume, num_total_filaments, variant_index) :
+                    region_config_from_model_volume(layer_range.volume_regions[region.parent].region->config(), nullptr, **it_model_volume, num_total_filaments, variant_index);
                 if (cfg != region.region->config()) {
                     // Region configuration changed.
                     if (print_region_ref_cnt(*region.region) == 0) {
@@ -975,6 +977,7 @@ static PrintObjectRegions* generate_print_object_regions(
     const PrintRegionConfig                     &default_region_config,
     const Transform3d                           &trafo,
     size_t                                       num_extruders,
+    size_t                                       num_total_filaments,
     const float                                  xy_contour_compensation,
     const std::vector<unsigned int>             &painting_extruders,
     std::vector<int>                            &variant_index,
@@ -1036,7 +1039,7 @@ static PrintObjectRegions* generate_print_object_regions(
                         // Add a model volume, assign an existing region or generate a new one.
                         layer_range.volume_regions.push_back({
                             &volume, -1,
-                            get_create_region(region_config_from_model_volume(default_region_config, layer_range.config, volume, num_extruders, variant_index)),
+                            get_create_region(region_config_from_model_volume(default_region_config, layer_range.config, volume, num_total_filaments, variant_index)),
                             bbox
                         });
                     } else if (volume.is_negative_volume()) {
@@ -1053,7 +1056,7 @@ static PrintObjectRegions* generate_print_object_regions(
                             if (parent_volume.is_model_part() || parent_volume.is_modifier())
                                 if (PrintObjectRegions::BoundingBox parent_bbox = find_modifier_volume_extents(layer_range, parent_region_id); parent_bbox.intersects(*bbox)) {
                                     // Only create new region for a modifier, which actually modifies config of it's parent.
-                                    if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, volume, num_extruders, variant_index);
+                                    if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, volume, num_total_filaments, variant_index);
                                         config != parent_region.region->config()) {
                                         added = true;
                                         layer_range.volume_regions.push_back({ &volume, parent_region_id, get_create_region(std::move(config)), bbox });
@@ -1122,6 +1125,67 @@ static PrintObjectRegions* generate_print_object_regions(
     }
 
     return out.release();
+}
+
+static inline void append_unique_painted_extruder(std::vector<unsigned int> &painting_extruders,
+                                                  unsigned int                extruder_id,
+                                                  size_t                      num_physical_extruders)
+{
+    if (extruder_id < 1 || extruder_id > num_physical_extruders)
+        return;
+    if (std::find(painting_extruders.begin(), painting_extruders.end(), extruder_id) == painting_extruders.end())
+        painting_extruders.emplace_back(extruder_id);
+}
+
+static void append_mixed_component_extruders(const MixedFilamentManager &mixed_mgr,
+                                             unsigned int                state_id,
+                                             size_t                      num_physical_extruders,
+                                             std::vector<unsigned int>  &painting_extruders)
+{
+    if (state_id <= num_physical_extruders)
+        return;
+
+    const MixedFilament *mixed_row = mixed_mgr.mixed_filament_from_id(state_id, num_physical_extruders);
+    if (mixed_row == nullptr || !mixed_row->enabled)
+        return;
+
+    // Pre-create painted target regions for every physical filament a mixed row
+    // may resolve to. apply_mm_segmentation can then collapse ordinary mixed
+    // channels onto the active physical tool for a layer without losing the
+    // destination region.
+    append_unique_painted_extruder(painting_extruders, mixed_row->component_a, num_physical_extruders);
+    append_unique_painted_extruder(painting_extruders, mixed_row->component_b, num_physical_extruders);
+
+    for (unsigned int id : MixedFilamentManager::decode_gradient_component_ids(mixed_row->gradient_component_ids, num_physical_extruders))
+        append_unique_painted_extruder(painting_extruders, id, num_physical_extruders);
+
+    {
+        const std::string flattened = MixedFilamentManager::normalize_manual_pattern(mixed_row->manual_pattern);
+        if (!flattened.empty()) {
+            const std::vector<std::string> group_strs = MixedFilamentManager::split_pattern_groups(flattened);
+            for (const std::string &group : group_strs) {
+                const std::vector<std::string> tokens =
+                    MixedFilamentManager::split_pattern_group_to_tokens(group, num_physical_extruders);
+                for (const std::string &token : tokens) {
+                    const unsigned int extruder_id =
+                        MixedFilamentManager::physical_filament_from_token(token, *mixed_row, num_physical_extruders);
+                    append_unique_painted_extruder(painting_extruders, extruder_id, num_physical_extruders);
+                }
+            }
+        }
+    }
+}
+
+static bool same_layer_pointillism_enabled(const MixedFilamentManager &mixed_mgr)
+{
+    // Deprecated: same-layer pointillism is disabled and will be removed.
+#if 0
+    for (const MixedFilament &mf : mixed_mgr.mixed_filaments())
+        if (mf.enabled && mf.distribution_mode == int(MixedFilament::SameLayerPointillisme))
+            return true;
+#endif
+    (void)mixed_mgr;
+    return false;
 }
 
 Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_config, bool extruder_applied)
@@ -1426,6 +1490,82 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         m_config.apply(filament_overrides);
     }
 
+
+    int   mixed_gradient_mode   = 0;
+    float mixed_height_lower    = 0.04f;
+    float mixed_height_upper    = 0.16f;
+    bool  mixed_advanced_dither = false;
+    float mixed_pointillism_pixel_size = 0.f;
+    float mixed_pointillism_line_gap   = 0.f;
+    float mixed_surface_indentation    = 0.f;
+    std::string mixed_custom_definitions;
+    if (new_full_config.has("mixed_filament_gradient_mode")) {
+        if (const ConfigOptionBool *opt = new_full_config.option<ConfigOptionBool>("mixed_filament_gradient_mode"))
+            mixed_gradient_mode = opt->value ? 1 : 0;
+        else
+            mixed_gradient_mode = new_full_config.opt_int("mixed_filament_gradient_mode");
+    }
+    if (new_full_config.has("mixed_filament_height_lower_bound"))
+        mixed_height_lower = float(new_full_config.opt_float("mixed_filament_height_lower_bound"));
+    if (new_full_config.has("mixed_filament_height_upper_bound"))
+        mixed_height_upper = float(new_full_config.opt_float("mixed_filament_height_upper_bound"));
+    if (new_full_config.has("mixed_filament_advanced_dithering")) {
+        if (const ConfigOptionBool *opt = new_full_config.option<ConfigOptionBool>("mixed_filament_advanced_dithering"))
+            mixed_advanced_dither = opt->value;
+        else
+            mixed_advanced_dither = (new_full_config.opt_int("mixed_filament_advanced_dithering") != 0);
+    }
+    if (new_full_config.has("mixed_filament_pointillism_pixel_size"))
+        mixed_pointillism_pixel_size = float(new_full_config.opt_float("mixed_filament_pointillism_pixel_size"));
+    if (new_full_config.has("mixed_filament_pointillism_line_gap"))
+        mixed_pointillism_line_gap = float(new_full_config.opt_float("mixed_filament_pointillism_line_gap"));
+    if (new_full_config.has("mixed_filament_surface_indentation"))
+        mixed_surface_indentation = float(new_full_config.opt_float("mixed_filament_surface_indentation"));
+    if (new_full_config.has("mixed_filament_definitions"))
+        mixed_custom_definitions = new_full_config.opt_string("mixed_filament_definitions");
+
+    mixed_gradient_mode = std::clamp(mixed_gradient_mode, 0, 1);
+    mixed_height_lower  = std::max(0.01f, mixed_height_lower);
+    mixed_height_upper  = std::max(mixed_height_lower, mixed_height_upper);
+    mixed_pointillism_pixel_size = std::max(0.f, mixed_pointillism_pixel_size);
+    mixed_pointillism_line_gap   = std::max(0.f, mixed_pointillism_line_gap);
+    mixed_surface_indentation    = std::clamp(mixed_surface_indentation, -2.f, 2.f);
+
+    BOOST_LOG_TRIVIAL(info) << "Print::apply mixed settings"
+                            << ", gradient_mode=" << mixed_gradient_mode
+                            << ", lower=" << mixed_height_lower
+                            << ", upper=" << mixed_height_upper
+                            << ", advanced_dither=" << (mixed_advanced_dither ? 1 : 0)
+                            << ", pointillism_pixel_size=" << mixed_pointillism_pixel_size
+                            << ", pointillism_line_gap=" << mixed_pointillism_line_gap
+                            << ", surface_indentation=" << mixed_surface_indentation
+                            << ", custom_definitions_len=" << mixed_custom_definitions.size()
+                            << ", physical_extruders=" << num_extruders;
+
+    // Regenerate mixed (virtual) filaments from physical filament colours and
+    // re-apply user custom mixed definitions.
+    std::vector<std::string> physical_filament_colors = m_config.filament_colour.values;
+    physical_filament_colors.resize(num_extruders, "#26A69A");
+    m_mixed_filament_mgr.clear_custom_entries();
+    m_mixed_filament_mgr.auto_generate(physical_filament_colors);
+    m_mixed_filament_mgr.load_custom_entries(mixed_custom_definitions, physical_filament_colors);
+    m_mixed_filament_mgr.apply_gradient_settings(mixed_gradient_mode,
+                                                 mixed_height_lower,
+                                                 mixed_height_upper,
+                                                 mixed_advanced_dither);
+    size_t mixed_custom_count = 0;
+    for (const auto &mf : m_mixed_filament_mgr.mixed_filaments())
+        if (mf.custom)
+            ++mixed_custom_count;
+
+    BOOST_LOG_TRIVIAL(info) << "Print::apply mixed manager state"
+                            << ", mixed_total=" << m_mixed_filament_mgr.mixed_filaments().size()
+                            << ", mixed_enabled=" << m_mixed_filament_mgr.enabled_count()
+                            << ", mixed_custom=" << mixed_custom_count;
+    // Total filaments = physical extruders + enabled mixed (virtual) filaments.
+    // Used for extruder ID clamping so that virtual IDs are accepted.
+    size_t num_total_filaments = m_mixed_filament_mgr.total_filaments(num_extruders);
+
     ModelObjectStatusDB model_object_status_db;
 
     // 1) Synchronize model objects.
@@ -1613,7 +1753,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 			if (object_config_changed)
 				model_object.config.assign_config(model_object_new.config);
             if (! object_diff.empty() || object_config_changed || num_extruders_changed ) {
-                PrintObjectConfig new_config = PrintObject::object_config_from_model_object(m_default_object_config, model_object, num_extruders, print_variant_index);
+                PrintObjectConfig new_config = PrintObject::object_config_from_model_object(m_default_object_config, model_object, num_total_filaments, print_variant_index);
                 for (const PrintObjectStatus &print_object_status : print_object_status_db.get_range(model_object)) {
                     t_config_option_keys diff = print_object_status.print_object->config().diff(new_config);
                     if (! diff.empty()) {
@@ -1679,10 +1819,10 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             // Generate a list of trafos and XY offsets for instances of a ModelObject
             // Producing the config for PrintObject on demand, caching it at print_object_last.
             const PrintObject *print_object_last = nullptr;
-            auto print_object_apply_config = [this, &print_object_last, model_object, num_extruders, &print_variant_index](PrintObject *print_object) {
+            auto print_object_apply_config = [this, &print_object_last, model_object, num_total_filaments, &print_variant_index](PrintObject *print_object) {
                 print_object->config_apply(print_object_last ?
                     print_object_last->config() :
-                    PrintObject::object_config_from_model_object(m_default_object_config, *model_object, num_extruders, print_variant_index));
+                    PrintObject::object_config_from_model_object(m_default_object_config, *model_object, num_total_filaments, print_variant_index));
                 print_object_last = print_object;
             };
             if (old.empty()) {
@@ -1819,6 +1959,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             model_object_status.print_object_regions = print_object_regions;
             print_object_regions->ref_cnt_inc();
         }
+        const bool same_layer_mode_active = same_layer_pointillism_enabled(m_mixed_filament_mgr);
         std::vector<unsigned int> painting_extruders;
         if (const auto &volumes = print_object.model_object()->volumes;
             num_extruders > 1 &&
@@ -1828,14 +1969,41 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             for (const ModelVolume *volume : volumes) {
                 const std::vector<bool> &volume_used_facet_states = volume->mmu_segmentation_facets.get_data().used_states;
 
-                assert(volume_used_facet_states.size() == used_facet_states.size());
+                // ORCA mixed filament: sizes can legitimately differ (older data / extended state
+                // range), so merge over the common prefix instead of asserting equal sizes.
                 for (size_t state_idx = 0; state_idx < std::min(volume_used_facet_states.size(), used_facet_states.size()); ++state_idx)
                     used_facet_states[state_idx] |= volume_used_facet_states[state_idx];
             }
 
+            size_t dropped_painted_states = 0;
             for (size_t state_idx = static_cast<size_t>(EnforcerBlockerType::Extruder1); state_idx < used_facet_states.size(); ++state_idx) {
-                if (used_facet_states[state_idx])
-                    painting_extruders.emplace_back(state_idx);
+                if (!used_facet_states[state_idx])
+                    continue;
+                if (state_idx <= num_total_filaments) {
+                    painting_extruders.emplace_back(static_cast<unsigned int>(state_idx));
+                    append_mixed_component_extruders(m_mixed_filament_mgr,
+                                                     static_cast<unsigned int>(state_idx),
+                                                     num_extruders,
+                                                     painting_extruders);
+                } else
+                    ++dropped_painted_states;
+            }
+            std::sort(painting_extruders.begin(), painting_extruders.end());
+            painting_extruders.erase(std::unique(painting_extruders.begin(), painting_extruders.end()), painting_extruders.end());
+
+            if (same_layer_mode_active && !painting_extruders.empty()) {
+                const unsigned int max_channel = unsigned(std::min<size_t>(num_total_filaments, size_t(EnforcerBlockerType::ExtruderMax)));
+                for (unsigned int channel_id = 1; channel_id <= max_channel; ++channel_id)
+                    painting_extruders.emplace_back(channel_id);
+                std::sort(painting_extruders.begin(), painting_extruders.end());
+                painting_extruders.erase(std::unique(painting_extruders.begin(), painting_extruders.end()), painting_extruders.end());
+            }
+
+            if (dropped_painted_states > 0) {
+                BOOST_LOG_TRIVIAL(warning) << "Print::apply dropping painted extruder IDs above available filament range"
+                                           << " dropped_states=" << dropped_painted_states
+                                           << " physical_filaments=" << num_extruders
+                                           << " total_filaments=" << num_total_filaments;
             }
         }
         if (model_object_status.print_object_regions_status == ModelObjectStatus::PrintObjectRegionsStatus::Valid) {
@@ -1855,6 +2023,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                     print_object.model_object()->volumes,
                     m_default_region_config,
                     num_extruders,
+                    num_total_filaments,
                     *print_object_regions,
                     [it_print_object, it_print_object_end, &update_apply_status](const PrintRegionConfig &old_config, const PrintRegionConfig &new_config, const t_config_option_keys &diff_keys) {
                         for (auto it = it_print_object; it != it_print_object_end; ++it)
@@ -1881,6 +2050,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 m_default_region_config,
                 model_object_status.print_instances.front().trafo,
                 num_extruders ,
+                num_total_filaments,
                 print_object.is_mm_painted() ? 0.f : float(print_object.config().xy_contour_compensation.value),
                 painting_extruders,
                 print_variant_index,

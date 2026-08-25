@@ -3835,7 +3835,7 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
     }
 }
 
-PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_extruders, std::vector<int>& variant_index)
+PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_total_filaments, std::vector<int>& variant_index)
 {
     PrintRegionConfig config = default_or_parent_region_config;
     FeatureFilamentOverrideMask feature_overrides;
@@ -3866,12 +3866,14 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
     	apply_to_print_region_config(config, *layer_range_config, feature_overrides, variant_index);
     }
     // Resolve feature defaults and clamp invalid extruders to index 1.
-    clamp_feature_filament_to_valid(config.sparse_infill_filament_id, num_extruders);
-    clamp_feature_filament_to_valid(config.outer_wall_filament_id, num_extruders);
-    clamp_feature_filament_to_valid(config.inner_wall_filament_id, num_extruders);
-    clamp_feature_filament_to_valid(config.internal_solid_filament_id, num_extruders);
-    clamp_feature_filament_to_valid(config.top_surface_filament_id, num_extruders);
-    clamp_feature_filament_to_valid(config.bottom_surface_filament_id, num_extruders);
+    // ORCA: the bound is the TOTAL filament count (physical + mixed/virtual) so that a
+    // mixed-filament selection for a feature/part/object is accepted rather than reset.
+    clamp_feature_filament_to_valid(config.sparse_infill_filament_id, num_total_filaments);
+    clamp_feature_filament_to_valid(config.outer_wall_filament_id, num_total_filaments);
+    clamp_feature_filament_to_valid(config.inner_wall_filament_id, num_total_filaments);
+    clamp_feature_filament_to_valid(config.internal_solid_filament_id, num_total_filaments);
+    clamp_feature_filament_to_valid(config.top_surface_filament_id, num_total_filaments);
+    clamp_feature_filament_to_valid(config.bottom_surface_filament_id, num_total_filaments);
     if (config.sparse_infill_density.value < 0.00011f)
         // Switch of infill for very low infill rates, also avoid division by zero in infill generator for these very low rates.
         // See GH issue #5910.

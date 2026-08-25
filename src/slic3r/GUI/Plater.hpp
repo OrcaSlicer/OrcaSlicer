@@ -175,6 +175,9 @@ public:
     void change_top_border_for_mode_sizer(bool increase_border);
     void update_filaments_area_height();
     void update_filaments_counter(bool force_layout = false);
+    // ORCA: Color Mixing panel — virtual "mixed" filaments (+/- with 4-mode Add dialog).
+    void init_color_mix_panel(wxWindow* parent, wxSizer* sizer);
+    void update_color_mix_panel();
     void msw_rescale();
     void sys_color_changed();
     void search();
@@ -569,6 +572,8 @@ public:
     void on_filament_change(size_t filament_idx);
     void on_filament_count_change(size_t extruders_count);
     void on_filaments_delete(size_t extruders_count, size_t filament_id, int replace_filament_id = -1);
+    // ORCA mixed filament: prompt (for large counts) whether to auto-generate gradient filaments.
+    bool confirm_auto_generated_gradients(size_t num_physical);
     std::vector<Slic3r::ColorRGBA> get_extruders_colors();
     // BBS
     void on_bed_type_change(BedType bed_type);
@@ -580,7 +585,7 @@ public:
     void force_print_bed_update();
     // On activating the parent window.
     void on_activate();
-    std::vector<std::string> get_extruder_colors_from_plater_config(const GCodeProcessorResult* const result = nullptr) const;
+    std::vector<std::string> get_extruder_colors_from_plater_config(const GCodeProcessorResult* const result = nullptr, bool include_mixed = true) const;
     std::vector<std::string> get_filament_colors_render_info() const;
     std::vector<std::string> get_filament_color_render_type() const;
     std::vector<std::string> get_colors_for_color_print(const GCodeProcessorResult* const result = nullptr) const;

@@ -71,7 +71,18 @@ static std::vector<std::string> s_project_options {
     // whether dynamic per-nozzle filament mapping is active. Persisted with the project and
     // restored from a saved 3mf; reset to false on load and set true only by live device sync.
     "has_filament_switcher",
-    "enable_filament_dynamic_map"
+    "enable_filament_dynamic_map",
+    // Mixed filament / local-Z settings
+    "mixed_filament_gradient_mode",
+    "mixed_filament_height_lower_bound",
+    "mixed_filament_height_upper_bound",
+    "mixed_filament_advanced_dithering",
+    "mixed_filament_component_bias_enabled",
+    "mixed_filament_surface_indentation",
+    "mixed_filament_region_collapse",
+    "mixed_filament_definitions",
+    "mixed_color_layer_height_a",
+    "mixed_color_layer_height_b"
 };
 
 //Orca: add custom as default
@@ -4322,11 +4333,15 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
         "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
         "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id"
     };
+    // ORCA: feature filament slots accept mixed (virtual) IDs, so validate against the TOTAL
+    // filament count (physical + mixed) instead of the physical count. Otherwise a mixed
+    // "Filament for features" value is reset to 0 (Default) here and the base extruder wins.
+    const size_t num_total_filaments = this->mixed_filaments.total_filaments(num_filaments);
     for (size_t i = 0; i < sizeof(keys_with_default) / sizeof(keys_with_default[0]); ++ i) {
         std::string key = std::string(keys_with_default[i]);
         auto *opt = dynamic_cast<ConfigOptionInt*>(out.option(key, false));
         assert(opt != nullptr);
-        if(opt->value < 0 || opt->value > int(num_filaments))
+        if(opt->value < 0 || opt->value > int(num_total_filaments))
             opt->value = 0;
     }
     out.option<ConfigOptionString >("print_settings_id",    true)->value  = this->prints.get_selected_preset_name();

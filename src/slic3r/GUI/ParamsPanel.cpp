@@ -258,7 +258,9 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
 
         m_process_icon = new ScalableButton(m_top_panel, wxID_ANY, "process");
 
-        m_title_label = new Label(m_top_panel, _L("Process"));
+        // ORCA: propagate mouse events so clicking the "Process" text collapses/expands the
+        // section (the sidebar binds the header for this), matching Printer / Filament Management.
+        m_title_label = new Label(m_top_panel, _L("Process"), LB_PROPAGATE_MOUSE_EVENT);
 
         //int width, height;
         // BBS: new layout

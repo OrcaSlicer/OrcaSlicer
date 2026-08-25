@@ -49,6 +49,24 @@ static std::map<wxColour, wxColour> gDarkColors{
     // ORCA
     {"#BFE1DE", "#223C3C"}, // rgb(191, 225, 222)  Dropdown checked item background color > ORCA color with %25 opacity
     {"#E5F0EE", "#283232"}, // rgb(229, 240, 238)  Combo / Dropdown focused background color > ORCA color with %10 opacity
+    // MixedFilamentDialog dark mode
+    {"#F8F7F7", "#2A2A2E"}, // rgb(248, 247, 247)  Dialog / scrolled content background
+    {"#F0F0F0", "#3F3F46"}, // rgb(240, 240, 240)  Card borders, dividers
+    {"#F3F4F6", "#3A3A3F"}, // rgb(243, 244, 246)  Internal card dividers
+    {"#242424", "#E4E4E7"}, // rgb(36, 36, 36)    Primary text (hex input, cancel btn)
+    {"#4A4A4A", "#A1A1AA"}, // rgb(74, 74, 74)    Secondary text (segmented btns)
+    {"#8F8F8F", "#8A8A95"}, // rgb(143, 143, 143) Label text (Hex:, Preview, percentages)
+    {"#EBEBEB", "#45454B"}, // rgb(235, 235, 235)  Slider track background
+    {"#FDE8E8", "#4D2020"}, // rgb(253, 232, 232)  Error banner background
+    {"#D32F2F", "#EF5350"}, // rgb(211, 47, 47)    Error text
+    {"#FFF3EB", "#452A1A"}, // rgb(255, 243, 235)  Warning banner background
+    {"#FF842D", "#FF9F43"}, // rgb(255, 132, 45)   Warning text
+    {"#B4B4B4", "#73737D"}, // rgb(180, 180, 180)  Preview/strip border
+    {"#D1D5DC", "#52525B"}, // rgb(209, 213, 220)  Cancel button border
+    {"#FF0000", "#FF5252"}, // rgb(255, 0, 0)      Hex input error border
+    {"#019687", "#00675B"}, // rgb(1, 150, 135)    Confirm button bg (near #009688)
+    {"#26A69A", "#00675B"}, // rgb(38, 166, 154)   Default target/match color
+    {"#FEFEFE", "#FEFEFE"}, // rgb(254, 254, 254)   Near-white text (segment btn selected, confirm btn)
 };
 
 std::tuple<double, double, double> StateColor::GetLAB(const wxColour& color) {

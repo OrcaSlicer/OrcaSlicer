@@ -154,6 +154,9 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/StaticGroup.hpp"
+#include "MixedFilamentDialog.hpp"
+#include "MixedFilamentBadge.hpp"
+#include "MixedColorMatchHelpers.hpp"
 
 #include "GUI_ObjectTable.hpp"
 #include "libslic3r/Thread.hpp"
@@ -717,8 +720,19 @@ struct Sidebar::priv
     ScalableButton *  m_bpButton_ams_filament;
     ScalableButton *  m_bpButton_set_filament;
     int m_menu_filament_id = -1;
-    wxScrolledWindow* m_panel_filament_content;
+    // ORCA: plain container for the "Filament Management" group. The physical filament combos
+    // and the Color Mixing list each live in their own scrolled window below.
+    wxPanel*          m_panel_filament_content;
+    wxScrolledWindow* m_scrolled_filaments              = nullptr;
+    wxPanel*          m_panel_scrolled_filament_content = nullptr;
     wxScrolledWindow* m_scrolledWindow_filament_content;
+    // ORCA: Color Mixing panel
+    StaticBox*        m_panel_color_mix_title   = nullptr;
+    wxPanel*          m_panel_color_mix_content = nullptr;
+    wxScrolledWindow* m_scrolled_color_mix      = nullptr;
+    ScalableButton*   m_color_mix_icon          = nullptr;
+    ScalableButton*   m_btn_add_color_mix       = nullptr;
+    ScalableButton*   m_btn_del_color_mix       = nullptr;
     wxStaticLine* m_staticline2;
     wxPanel* m_panel_project_title;
     ScalableButton* m_filament_icon = nullptr;
@@ -740,6 +754,9 @@ struct Sidebar::priv
     // Filament Track Switch status overlay: an icon floated over the left/single extruder AMS area,
     // shown only when the switch is installed (green when ready, red when not calibrated).
     wxStaticBitmap* extruder_separator_icon = nullptr;
+    // ORCA: sidebar-owned container wrapping the shared param panel, so the Process section can be
+    // collapsed like Printer/Filament (toggling this hides it regardless of the tab system).
+    wxPanel* m_panel_process_content = nullptr;
 
     ObjectList          *m_object_list{ nullptr };
     ObjectSettings      *object_settings{ nullptr };
@@ -1113,6 +1130,18 @@ struct DynamicFilamentList : DynamicList
             wxGetApp().preset_bundle->filaments.find_preset(presets[i])->get_filament_type(type);
             str << type;
             items.push_back({str, i < icons.size() ? icons[i] : nullptr});
+        }
+        // ORCA: append mixed (virtual) filaments so the per-feature/support filament
+        // selectors list them too. Their icons follow the physical ones in `icons`.
+        const size_t physical_count = presets.size();
+        size_t mixed_offset = 0;
+        for (const MixedFilament &mf : wxGetApp().preset_bundle->mixed_filaments.mixed_filaments()) {
+            if (!mf.enabled || mf.deleted)
+                continue;
+            const size_t icon_idx = physical_count + mixed_offset;
+            items.push_back({wxString::Format(_L("Mixed F%u+F%u"), unsigned(mf.component_a), unsigned(mf.component_b)),
+                             icon_idx < icons.size() ? icons[icon_idx] : nullptr});
+            ++mixed_offset;
         }
         DynamicList::update();
     }
@@ -2835,16 +2864,19 @@ Sidebar::Sidebar(Plater *parent)
     p->m_panel_filament_title->SetBackgroundColor(title_bg);
     p->m_panel_filament_title->SetBackgroundColor2(0xF1F1F1);
     p->m_panel_filament_title->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent &e) {
-        if (!p || !p->m_panel_filament_content || !m_scrolled_sizer || !p->m_bpButton_set_filament || !p->m_purge_mode_btn || !p->m_flushing_volume_btn || !p->m_bpButton_add_filament || !ams_btn)
+        if (!p || !p->m_panel_filament_content || !m_scrolled_sizer)
             return;
-        // ORCA exclude area of del button from titlebar collapse/expand feature to fix undesired collapse when user spams del filament button
-        // also block fold/unfold feature when user clicks to spacing between icons
-        int exclude_pt = p->m_bpButton_set_filament->GetPosition().x; // maximum fixed item
-        if      (p->m_purge_mode_btn->IsShown())        exclude_pt = p->m_purge_mode_btn->GetPosition().x;
-        else if (p->m_flushing_volume_btn->IsShown())   exclude_pt = p->m_flushing_volume_btn->GetPosition().x;
-        else if (p->m_bpButton_add_filament->IsShown()) exclude_pt = p->m_bpButton_add_filament->GetPosition().x - FromDIP(30); // reserve spacing for delete button
-        else if (ams_btn->IsShown())                    exclude_pt = ams_btn->GetPosition().x;
-        if (e.GetPosition().x > exclude_pt)
+        // ORCA: the +/- /sync buttons live on the "Filaments" sub-header; the Purge-mode, Flushing-
+        // volumes and Set-filaments buttons remain on this group header — exclude their (right-side)
+        // area from the collapse/expand click so pressing them doesn't also toggle the group.
+        int exclude_x = INT_MAX;
+        if (p->m_purge_mode_btn && p->m_purge_mode_btn->IsShown())
+            exclude_x = std::min(exclude_x, p->m_purge_mode_btn->GetPosition().x);
+        if (p->m_flushing_volume_btn && p->m_flushing_volume_btn->IsShown())
+            exclude_x = std::min(exclude_x, p->m_flushing_volume_btn->GetPosition().x);
+        if (p->m_bpButton_set_filament && p->m_bpButton_set_filament->IsShown())
+            exclude_x = std::min(exclude_x, p->m_bpButton_set_filament->GetPosition().x);
+        if (e.GetPosition().x > exclude_x)
             return;
         bool isShown = p->m_panel_filament_content->IsShown();
         p->m_panel_filament_content->Show(!isShown);
@@ -2856,8 +2888,10 @@ Sidebar::Sidebar(Plater *parent)
 
     wxBoxSizer* bSizer39;
     bSizer39 = new wxBoxSizer( wxHORIZONTAL );
-    p->m_filament_icon = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "filament");
-    p->m_staticText_filament_settings = new Label(p->m_panel_filament_title, _L("Project Filaments"), LB_PROPAGATE_MOUSE_EVENT);
+    // ORCA: the group header uses the "filament_group" icon; the per-filament "filament" icon
+    // moves to the "Filaments" sub-header below.
+    p->m_filament_icon = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "filament_group");
+    p->m_staticText_filament_settings = new Label(p->m_panel_filament_title, _L("Filament Management"), LB_PROPAGATE_MOUSE_EVENT);
     bSizer39->Add(p->m_filament_icon, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
     bSizer39->Add(p->m_staticText_filament_settings, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, FromDIP(SidebarProps::ElementSpacing()));
     bSizer39->SetMinSize(-1, FromDIP(30));
@@ -2912,64 +2946,24 @@ Sidebar::Sidebar(Plater *parent)
     bSizer39->Add(p->m_flushing_volume_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
     bSizer39->Hide(p->m_flushing_volume_btn); // ORCA Ensure button is hidden on launch while 1 filament exist
 
-    ScalableButton* add_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "add_filament");
-    add_btn->SetToolTip(_L("Add one filament"));
-    add_btn->Bind(wxEVT_BUTTON, [this, scrolled_sizer](wxCommandEvent& e){
-        add_filament();
-        update_filaments_counter();
-    });
-    p->m_bpButton_add_filament = add_btn;
-
-    // ORCA Moved add button after delete button to prevent add button position change when remove icon automatically hidden
-
-    ScalableButton* del_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "delete_filament");
-    del_btn->SetToolTip(_L("Remove last filament"));
-    del_btn->Bind(wxEVT_BUTTON, [this, scrolled_sizer](wxCommandEvent &e) {
-        delete_filament();
-        update_filaments_counter();
-    });
-    p->m_bpButton_del_filament = del_btn;
-
-    bSizer39->Add(del_btn, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
-    bSizer39->Add(add_btn, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::IconSpacing())); // ORCA Moved add button after delete button to prevent add button position change when remove icon automatically hidden
-
-    bSizer39->Hide(p->m_bpButton_del_filament); // ORCA Ensure button is hidden on launch while 1 filament exist
-
-    ams_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "ams_fila_sync", wxEmptyString, wxDefaultSize, wxDefaultPosition,
-                                                 wxBU_EXACTFIT | wxNO_BORDER, false, 16); // ORCA match icon size with other icons as 16x16
-    ams_btn->SetToolTip(_L("Synchronize filament list from AMS"));
-    ams_btn->Bind(wxEVT_BUTTON, [this, scrolled_sizer](wxCommandEvent &e) {
-        sync_ams_list();
-    });
-
-    ams_btn->Bind(wxEVT_UPDATE_UI, &Sidebar::update_sync_ams_btn_enable, this);
-    p->m_bpButton_ams_filament = ams_btn;
-
-    bSizer39->Add(ams_btn, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::WideSpacing()));
-    //bSizer39->Add(FromDIP(10), 0, 0, 0, 0 );
-
+    // ORCA: "Set filaments to use" stays on the Filament Management header line, next to flushing.
     ScalableButton* set_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "settings");
     set_btn->SetToolTip(_L("Set filaments to use"));
     set_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         p->editing_filament = -1;
-        // wxGetApp().params_dialog()->Popup();
-        // wxGetApp().get_tab(Preset::TYPE_FILAMENT)->restore_last_select_item();
         wxGetApp().run_wizard(ConfigWizard::RR_USER, ConfigWizard::SP_FILAMENTS);
-        });
+    });
     p->m_bpButton_set_filament = set_btn;
-
-    bSizer39->Add(set_btn, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::WideSpacing()));
+    bSizer39->Add(set_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::WideSpacing()));
     bSizer39->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
+    // ORCA: the filament add/remove/sync buttons are created on the "Filaments"
+    // sub-header inside m_panel_filament_content (see below), not on this group header.
 
     // add filament content
-    p->m_panel_filament_content = new wxScrolledWindow( p->scrolled, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
-    p->m_panel_filament_content->SetScrollbars(0, 100, 1, 2);
-    p->m_panel_filament_content->SetScrollRate(0, 5);
-    //p->m_panel_filament_content->SetMaxSize(wxSize{-1, FromDIP(174)});
+    // ORCA: plain (non-scrolling) container; the physical filaments and Color Mixing lists each
+    // get their own scrolled window so they scroll independently and the group is taller.
+    p->m_panel_filament_content = new wxPanel( p->scrolled, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
     p->m_panel_filament_content->SetBackgroundColour(wxColour(255, 255, 255));
-
-    //wxBoxSizer* bSizer_filament_content;
-    //bSizer_filament_content = new wxBoxSizer( wxHORIZONTAL );
 
     // Orca: Sidebar - Filament content UI: setup filament selection combos panel layout
     // Creates a two-column grid layout for filament selection dropdowns within the scrollable panel
@@ -2977,14 +2971,92 @@ Sidebar::Sidebar(Plater *parent)
     p->sizer_filaments->Add(new wxBoxSizer(wxVERTICAL), 1, wxEXPAND);
     p->sizer_filaments->Add(new wxBoxSizer(wxVERTICAL), 1, wxEXPAND);
 
+    // ORCA: own scrolled window for the physical filament combos (capped height in
+    // update_filaments_area_height), independent of the Color Mixing scroll below.
+    p->m_scrolled_filaments = new wxScrolledWindow(p->m_panel_filament_content, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
+    p->m_scrolled_filaments->SetScrollRate(0, 5);
+    p->m_scrolled_filaments->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    p->m_panel_scrolled_filament_content = new wxPanel(p->m_scrolled_filaments, wxID_ANY);
+    p->m_panel_scrolled_filament_content->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    p->m_panel_scrolled_filament_content->SetSizer(p->sizer_filaments);
+    auto* scrolled_fila_sizer = new wxBoxSizer(wxVERTICAL);
+    scrolled_fila_sizer->Add(p->m_panel_scrolled_filament_content, 0, wxEXPAND);
+    p->m_scrolled_filaments->SetSizer(scrolled_fila_sizer);
+
     p->combos_filament.push_back(nullptr);
 
     /* first filament item */
     init_filament_combo(&p->combos_filament[0], 0);
 
-    //bSizer_filament_content->Add(p->sizer_filaments, 1, wxALIGN_CENTER | wxALL);
     wxSizer *sizer_filaments2 = new wxBoxSizer(wxVERTICAL);
-    sizer_filaments2->Add(p->sizer_filaments, 0, wxEXPAND, 0);
+
+    // ORCA: "Filaments" sub-section header (under the "Filament Management" group, above the
+    // physical filament list). Mirrors the "Color Mixing" sub-section header styling and hosts
+    // the filament add/remove/sync/settings buttons (moved off the group header).
+    {
+        auto* filaments_title = new StaticBox(p->m_panel_filament_content, wxID_ANY, wxDefaultPosition,
+                                              wxDefaultSize, wxTAB_TRAVERSAL | wxBORDER_NONE);
+        filaments_title->SetBackgroundColor(wxColour(248, 248, 248));
+        filaments_title->SetBackgroundColor2(0xF1F1F1);
+        filaments_title->SetMinSize(wxSize(-1, FromDIP(30)));
+        filaments_title->SetMaxSize(wxSize(-1, FromDIP(30)));
+        auto* f_icon  = new ScalableButton(filaments_title, wxID_ANY, "filament");
+        auto* f_label = new Label(filaments_title, _L("Filaments"), LB_PROPAGATE_MOUSE_EVENT);
+
+        // Synchronize filament list from AMS
+        ams_btn = new ScalableButton(filaments_title, wxID_ANY, "ams_fila_sync", wxEmptyString, wxDefaultSize, wxDefaultPosition,
+                                     wxBU_EXACTFIT | wxNO_BORDER, false, 16);
+        ams_btn->SetToolTip(_L("Synchronize filament list from AMS"));
+        ams_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { sync_ams_list(); });
+        ams_btn->Bind(wxEVT_UPDATE_UI, &Sidebar::update_sync_ams_btn_enable, this);
+        p->m_bpButton_ams_filament = ams_btn;
+
+        // Remove last filament
+        auto* del_btn = new ScalableButton(filaments_title, wxID_ANY, "delete_filament");
+        del_btn->SetToolTip(_L("Remove last filament"));
+        del_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
+            delete_filament();
+            update_filaments_counter();
+        });
+        p->m_bpButton_del_filament = del_btn;
+
+        // Add one filament
+        auto* add_btn = new ScalableButton(filaments_title, wxID_ANY, "add_filament");
+        add_btn->SetToolTip(_L("Add one filament"));
+        add_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e){
+            add_filament();
+            update_filaments_counter();
+        });
+        p->m_bpButton_add_filament = add_btn;
+
+        auto* h_filaments = new wxBoxSizer(wxHORIZONTAL);
+        auto* white_left_f = new wxPanel(filaments_title, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(SidebarProps::ContentMargin()), -1));
+        white_left_f->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+        h_filaments->Add(white_left_f, 0, wxEXPAND | wxTOP | wxBOTTOM, 0);
+        h_filaments->Add(f_icon, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
+        h_filaments->AddSpacer(FromDIP(SidebarProps::ElementSpacing()));
+        h_filaments->Add(f_label, 0, wxALIGN_CENTER_VERTICAL);
+        h_filaments->AddStretchSpacer();
+        h_filaments->Add(ams_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(SidebarProps::WideSpacing()));
+        h_filaments->Add(del_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+        h_filaments->Add(add_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+        auto* white_right_f = new wxPanel(filaments_title, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(SidebarProps::ContentMargin()), -1));
+        white_right_f->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+        h_filaments->Add(white_right_f, 0, wxEXPAND | wxTOP | wxBOTTOM, 0);
+        filaments_title->SetSizer(h_filaments);
+        filaments_title->Layout();
+
+        // Match prior launch state: delete button hidden with a single filament (show_SEMM_buttons
+        // takes over visibility afterwards).
+        if (p->combos_filament.size() <= 1)
+            del_btn->Hide();
+
+        sizer_filaments2->Add(filaments_title, 0, wxEXPAND, 0);
+    }
+
+    sizer_filaments2->Add(p->m_scrolled_filaments, 0, wxEXPAND, 0);
+    // ORCA: Color Mixing section (under Filament Management, below the filament list).
+    this->init_color_mix_panel(p->m_panel_filament_content, sizer_filaments2);
     p->m_panel_filament_content->SetSizer(sizer_filaments2);
     p->m_panel_filament_content->Layout();
     
@@ -2992,6 +3064,7 @@ Sidebar::Sidebar(Plater *parent)
 
     scrolled_sizer->Add(p->m_panel_filament_content, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(SidebarProps::ContentMarginV())); // ORCA use vertical margin on parent otherwise it shows scrollbar even on 1 filament
     }
+
 
     {
     //add project title
@@ -3005,6 +3078,19 @@ Sidebar::Sidebar(Plater *parent)
         auto spliter_2 = new ::StaticLine(p->scrolled);
         spliter_2->SetLineColour("#CECECE");
         scrolled_sizer->Add(spliter_2, 0, wxEXPAND);
+
+        // ORCA: make the Process section collapsible by clicking its header, like the Printer and
+        // Filament Management sections. The header's own controls (mode switch / compare / settings)
+        // consume their clicks, so only clicks on the header background/label toggle the panel.
+        params_panel->get_top_panel()->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& e) {
+            // Toggle the sidebar-owned container (not the shared param panel directly), so the tab
+            // system's Show() calls on the param panel inside it don't un-collapse the section.
+            if (p->m_panel_process_content && m_scrolled_sizer) {
+                p->m_panel_process_content->Show(!p->m_panel_process_content->IsShown());
+                m_scrolled_sizer->Layout();
+            }
+            e.Skip();
+        });
     }
 
     //add project content
@@ -3071,8 +3157,16 @@ Sidebar::Sidebar(Plater *parent)
     p->sizer_params->Add(p->object_settings->get_sizer(), 0, wxEXPAND | wxTOP, 5 * em / 10);
 #else
     if (params_panel) {
-        params_panel->Reparent(p->scrolled);
-        scrolled_sizer->Add(params_panel, 3, wxEXPAND);
+        // ORCA: wrap the shared param panel in a sidebar-owned container so the Process section
+        // collapses like Printer / Filament Management. Toggling the container (in the header
+        // click handler) hides it regardless of the tab system re-showing params_panel inside.
+        p->m_panel_process_content = new wxPanel(p->scrolled, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+        p->m_panel_process_content->SetBackgroundColour(wxColour(255, 255, 255));
+        auto* process_content_sizer = new wxBoxSizer(wxVERTICAL);
+        params_panel->Reparent(p->m_panel_process_content);
+        process_content_sizer->Add(params_panel, 1, wxEXPAND);
+        p->m_panel_process_content->SetSizer(process_content_sizer);
+        scrolled_sizer->Add(p->m_panel_process_content, 3, wxEXPAND);
     }
 #endif
     }
@@ -3143,7 +3237,7 @@ void Sidebar::create_printer_preset()
 
 void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filament_idx)
 {
-    *combo = new PlaterPresetComboBox(p->m_panel_filament_content, Slic3r::Preset::TYPE_FILAMENT);
+    *combo = new PlaterPresetComboBox(p->m_panel_scrolled_filament_content, Slic3r::Preset::TYPE_FILAMENT);
     (*combo)->set_filament_idx(filament_idx);
 
     auto combo_and_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -3172,7 +3266,7 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
     combo_and_btn_sizer->Add(32 * em / 10, 0, 0, 0, 0);
     combo_and_btn_sizer->Add(del_btn, 0, wxALIGN_CENTER_VERTICAL, 5 * em / 10);
     */
-    ScalableButton* edit_btn = new ScalableButton(p->m_panel_filament_content, wxID_ANY, "menu_filament");
+    ScalableButton* edit_btn = new ScalableButton(p->m_panel_scrolled_filament_content, wxID_ANY, "menu_filament");
     edit_btn->SetToolTip(_L("Click to edit preset"));
 
     PlaterPresetComboBox* combobox = (*combo);
@@ -3301,8 +3395,8 @@ void Sidebar::update_all_preset_comboboxes()
 		p->m_staticText_filament_settings->SetLabel(_L("Pellets"));
         p->m_filament_icon->SetBitmap_("pellets");
     } else {
-		p->m_staticText_filament_settings->SetLabel(_L("Filament"));
-        p->m_filament_icon->SetBitmap_("filament");
+		p->m_staticText_filament_settings->SetLabel(_L("Filament Management"));
+        p->m_filament_icon->SetBitmap_("filament_group");
     }
 
     show_SEMM_buttons();
@@ -3362,6 +3456,9 @@ void Sidebar::update_all_preset_comboboxes()
 
     p_mainframe->show_device(use_native_device_tab);
     p_mainframe->m_tabpanel->SetSelection(p_mainframe->m_tabpanel->GetSelection());
+
+    // ORCA: keep the Color Mixing panel in sync with filament colours / loaded project.
+    this->update_color_mix_panel();
 }
 
 void Sidebar::update_presets(Preset::Type preset_type)
@@ -3704,15 +3801,477 @@ void Sidebar::update_filaments_area_height()
     auto combo_sizer         = left_sizer->GetItem((size_t) 0)->GetSizer();
     int  preferred_rows      = std::ceil(0.5 * std::stoi(wxGetApp().app_config->get("filaments_area_preferred_count")));
     auto height_with_borders = combo_sizer->GetSize().GetHeight(); // gets height from sizer instead static numbers
-    p->m_panel_filament_content->SetMaxSize(wxSize{-1, preferred_rows * height_with_borders});
+    const int max_h          = preferred_rows * height_with_borders;
 
-    // fixes wxScrolledWindow not shrinks its height to content size
-    auto min_size = p->m_panel_filament_content->GetSizer()->GetMinSize();
-    if (min_size.y > p->m_panel_filament_content->GetMaxHeight())
-        min_size.y = p->m_panel_filament_content->GetMaxHeight();
-    p->m_panel_filament_content->SetMinSize({-1, min_size.y});
+    // ORCA: cap the physical-filaments scrolled window only (the Color Mixing list has its own
+    // independent scroll), so each section scrolls separately and the group grows taller.
+    if (p->m_scrolled_filaments && p->m_panel_scrolled_filament_content) {
+        p->m_panel_scrolled_filament_content->Layout();
+        const int content_h = p->m_panel_scrolled_filament_content->GetSizer()->GetMinSize().y;
+        const int desired_h = (max_h > 0) ? std::min(content_h, max_h) : content_h;
+        p->m_scrolled_filaments->SetMinSize({-1, desired_h});
+        p->m_scrolled_filaments->SetMaxSize({-1, desired_h});
+    }
 
     update_filaments_counter();
+}
+
+void Sidebar::init_color_mix_panel(wxWindow* parent, wxSizer* sizer)
+{
+    // Title bar
+    p->m_panel_color_mix_title = new StaticBox(parent, wxID_ANY, wxDefaultPosition,
+                                               wxDefaultSize, wxTAB_TRAVERSAL | wxBORDER_NONE);
+    p->m_panel_color_mix_title->SetBackgroundColor(wxColour(248, 248, 248));
+    p->m_panel_color_mix_title->SetBackgroundColor2(0xF1F1F1);
+    p->m_panel_color_mix_title->SetMinSize(wxSize(-1, FromDIP(30)));
+    p->m_panel_color_mix_title->SetMaxSize(wxSize(-1, FromDIP(30)));
+
+    p->m_color_mix_icon = new ScalableButton(p->m_panel_color_mix_title, wxID_ANY, "color_palette");
+    auto* label = new Label(p->m_panel_color_mix_title, _L("Color Mixing"), LB_PROPAGATE_MOUSE_EVENT);
+
+    p->m_btn_del_color_mix = new ScalableButton(p->m_panel_color_mix_title, wxID_ANY, "delete_filament");
+    p->m_btn_add_color_mix = new ScalableButton(p->m_panel_color_mix_title, wxID_ANY, "add_filament");
+
+    auto* h_title = new wxBoxSizer(wxHORIZONTAL);
+    auto* white_left_c = new wxPanel(p->m_panel_color_mix_title, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(SidebarProps::ContentMargin()), -1));
+    white_left_c->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    h_title->Add(white_left_c, 0, wxEXPAND | wxTOP | wxBOTTOM, 0);
+    h_title->Add(p->m_color_mix_icon, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
+    h_title->AddSpacer(FromDIP(SidebarProps::ElementSpacing()));
+    h_title->Add(label, 0, wxALIGN_CENTER_VERTICAL);
+    h_title->AddStretchSpacer();
+    h_title->Add(p->m_btn_del_color_mix, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+    h_title->Add(p->m_btn_add_color_mix, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+    auto* white_right_c = new wxPanel(p->m_panel_color_mix_title, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(SidebarProps::ContentMargin()), -1));
+    white_right_c->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    h_title->Add(white_right_c, 0, wxEXPAND | wxTOP | wxBOTTOM, 0);
+    p->m_panel_color_mix_title->SetSizer(h_title);
+    p->m_panel_color_mix_title->Layout();
+
+    // Scrolled window for content with max height of 3 rows
+    p->m_scrolled_color_mix = new wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
+    p->m_scrolled_color_mix->SetScrollRate(0, 5);
+    p->m_scrolled_color_mix->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+
+    // Content panel — match physical filament content panel (sizer set dynamically in update)
+    p->m_panel_color_mix_content = new wxPanel(p->m_scrolled_color_mix, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+    p->m_panel_color_mix_content->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+
+    // Add content panel to scrolled window
+    auto* scrolled_sizer = new wxBoxSizer(wxVERTICAL);
+    scrolled_sizer->Add(p->m_panel_color_mix_content, 0, wxEXPAND);
+    p->m_scrolled_color_mix->SetSizer(scrolled_sizer);
+
+    sizer->Add(p->m_panel_color_mix_title, 0, wxEXPAND, 0);
+    sizer->Add(p->m_scrolled_color_mix, 0, wxEXPAND, 0);
+
+    // Add button: open dialog to create new mix
+    p->m_btn_add_color_mix->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        PresetBundle* pb = wxGetApp().preset_bundle;
+        if (!pb) return;
+
+        auto* co = pb->project_config.option<ConfigOptionStrings>("filament_colour");
+        const std::vector<std::string> colors = co ? co->values : std::vector<std::string>{};
+        if (colors.size() < 2) return;
+
+        MixedFilamentDialog dlg(wxGetApp().mainframe, colors);
+        if (dlg.ShowModal() != wxID_OK) return;
+
+        auto& mgr = pb->mixed_filaments;
+        if (mgr.total_filaments(colors.size()) >= 64) return;
+        const MixedFilament& r = dlg.GetResult();
+        mgr.add_custom_filament(r.component_a, r.component_b, r.mix_b_percent, colors);
+        auto& mfs = mgr.mixed_filaments();
+        if (!mfs.empty()) {
+            mfs.back().distribution_mode       = r.distribution_mode;
+            mfs.back().manual_pattern          = r.manual_pattern;
+            mfs.back().gradient_component_ids      = r.gradient_component_ids;
+            mfs.back().gradient_component_weights  = r.gradient_component_weights;
+            mfs.back().ratio_a                     = r.ratio_a;
+            mfs.back().ratio_b                     = r.ratio_b;
+            mfs.back().gradient_enabled            = r.gradient_enabled;
+            mfs.back().gradient_start              = r.gradient_start;
+            mfs.back().gradient_end                = r.gradient_end;
+            mfs.back().display_color             = r.display_color;
+            mfs.back().ui_mode                       = r.ui_mode;
+            mfs.back().custom                  = true;
+        }
+        if (auto* opt = pb->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+            opt->value = mgr.serialize_custom_entries();
+        wxGetApp().plater()->schedule_background_process();
+        wxGetApp().plater()->update();
+        update_color_mix_panel();
+        m_scrolled_sizer->Layout();
+    });
+
+    // Delete button: remove last custom entry
+    p->m_btn_del_color_mix->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        PresetBundle* pb = wxGetApp().preset_bundle;
+        if (!pb) return;
+
+        auto& mgr = pb->mixed_filaments;
+        auto& mfs = mgr.mixed_filaments();
+        // ORCA: remove the last still-present mixed filament regardless of how it was created
+        // (custom, auto-generated, or loaded from a project) — not just custom ones.
+        for (int i = static_cast<int>(mfs.size()) - 1; i >= 0; --i) {
+            if (!mfs[i].deleted) {
+                mfs[i].deleted = true;
+                mfs[i].enabled = false;
+                break;
+            }
+        }
+        if (auto* opt = pb->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+            opt->value = mgr.serialize_custom_entries();
+        wxGetApp().plater()->schedule_background_process();
+        wxGetApp().plater()->update();
+        update_color_mix_panel();
+        m_scrolled_sizer->Layout();
+    });
+
+    // Initial visibility: hide if fewer than 2 physical filaments
+    update_color_mix_panel();
+}
+
+void Sidebar::update_color_mix_panel()
+{
+    if (!p->m_panel_color_mix_content) return;
+
+    // ORCA: every mixed-filament mutation (add/delete/edit) routes through here, so refresh the
+    // per-feature/support filament combos as well to keep the selectable mixed entries in sync.
+    update_dynamic_filament_list();
+
+    auto* co = wxGetApp().preset_bundle
+                   ? wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")
+                   : nullptr;
+    const int n_physical = co ? static_cast<int>(co->values.size()) : 0;
+    const bool show = (n_physical >= 2);
+    p->m_panel_color_mix_title->Show(show);
+    p->m_scrolled_color_mix->Show(show);
+    if (!show) {
+        return;
+    }
+
+    wxWindowUpdateLocker no_updates(p->m_panel_color_mix_content);
+    p->m_panel_color_mix_content->DestroyChildren();
+
+    auto* preset_bundle = wxGetApp().preset_bundle;
+    const size_t num_physical = p->combos_filament.size();
+
+    std::vector<std::string> physical_colors = co->values;
+    physical_colors.resize(num_physical, "#26A69A");
+
+    std::vector<double> nozzle_diameters(num_physical, 0.4);
+    if (const ConfigOptionFloats* opt = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter")) {
+        const size_t opt_count = opt->values.size();
+        if (opt_count > 0)
+            for (size_t i = 0; i < num_physical; ++i)
+                nozzle_diameters[i] = std::max(0.05, opt->get_at(unsigned(std::min(i, opt_count - 1))));
+    }
+
+    float lower_bound = 0.04f, upper_bound = 0.16f;
+    if (preset_bundle->project_config.has("mixed_filament_height_lower_bound"))
+        lower_bound = std::max(0.01f, float(preset_bundle->project_config.opt_float("mixed_filament_height_lower_bound")));
+    if (preset_bundle->project_config.has("mixed_filament_height_upper_bound"))
+        upper_bound = std::max(lower_bound, float(preset_bundle->project_config.opt_float("mixed_filament_height_upper_bound")));
+
+    bool component_bias_enabled = false;
+    if (const ConfigOptionBool* opt = preset_bundle->project_config.option<ConfigOptionBool>("mixed_filament_component_bias_enabled"))
+        component_bias_enabled = opt->value;
+
+    const MixedFilamentPreviewSettings preview_settings {
+        0.2f, lower_bound, upper_bound, 0.f, 0.f, 1
+    };
+    const MixedFilamentDisplayContext display_context {
+        num_physical, physical_colors, nozzle_diameters, preview_settings, component_bias_enabled
+    };
+    preset_bundle->mixed_filaments.set_display_context(display_context);
+
+    auto& mfs = preset_bundle->mixed_filaments.mixed_filaments();
+    bool any_visible = false;
+    for (const MixedFilament& mf : mfs)
+        if (!mf.deleted) { any_visible = true; break; }
+
+    if (!any_visible) {
+        p->m_scrolled_color_mix->Hide();
+        p->m_btn_del_color_mix->Hide();
+        p->m_btn_add_color_mix->SetBitmap_("icon_add_circle");
+        m_scrolled_sizer->Layout();
+        return;
+    }
+    p->m_scrolled_color_mix->Show();
+    p->m_btn_del_color_mix->Show();
+    p->m_btn_add_color_mix->SetBitmap_("add_filament");
+
+    // 2-column grid matching the physical filament panel layout
+    auto* grid_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto* col0 = new wxBoxSizer(wxVERTICAL);
+    auto* col1 = new wxBoxSizer(wxVERTICAL);
+    grid_sizer->Add(col0, 1, wxEXPAND);
+    grid_sizer->Add(col1, 1, wxEXPAND);
+
+    int visible_idx = 0;
+    for (size_t i = 0; i < mfs.size(); ++i) {
+        MixedFilament& mf = mfs[i];
+        if (mf.deleted) continue;
+        // ORCA: skip mixed entries that reference physical filaments which no longer exist
+        // (e.g. after switching to a printer/preset with fewer filaments). Their components are
+        // out of range for the current physical colour list, so rendering them is both wrong and
+        // unsafe.
+        if (mf.component_a == 0 || mf.component_b == 0 ||
+            mf.component_a > num_physical || mf.component_b > num_physical)
+            continue;
+
+        const std::string synced_color = compute_mixed_filament_display_color(mf, display_context);
+        if (mf.display_color != synced_color)
+            mf.display_color = synced_color;
+
+        const int virtual_id = static_cast<int>(num_physical) + visible_idx + 1;
+
+        // Badge button: colored background + virtual filament number with gradient support
+        auto* badge = new MixedFilamentBadge(p->m_panel_color_mix_content, wxID_ANY,
+                                             virtual_id, mf, display_context);
+
+        const std::string normalized_pattern_cm = MixedFilamentManager::normalize_manual_pattern(mf.manual_pattern);
+        std::vector<unsigned int> gradient_ids = MixedFilamentManager::decode_gradient_component_ids(mf.gradient_component_ids, 0);
+        const bool z_gradient_tile = mf.gradient_enabled && mf.component_a != mf.component_b
+                                  && normalized_pattern_cm.empty() && gradient_ids.size() < 3;
+        wxString lbl;
+        if (!normalized_pattern_cm.empty())
+            lbl = wxString(summarize_cycle_pattern_text(normalized_pattern_cm, mf, int(num_physical)));
+        else if (gradient_ids.size() >= 3) {
+            // parse weights
+            const size_t n = gradient_ids.size();
+            std::vector<int> weights;
+            {
+                std::string token;
+                for (const char c : mf.gradient_component_weights) {
+                    if (c >= '0' && c <= '9') { token.push_back(c); continue; }
+                    if (!token.empty()) { weights.emplace_back(std::max(0, std::atoi(token.c_str()))); token.clear(); }
+                }
+                if (!token.empty()) weights.emplace_back(std::max(0, std::atoi(token.c_str())));
+                if (weights.size() != n) weights.assign(n, int(100 / n));
+            }
+            // normalize to 100
+            int sum = 0; for (int v : weights) sum += v;
+            if (sum <= 0) { weights.assign(n, 0); weights[0] = 100; sum = 100; }
+            for (size_t k = 0; k < n; ++k) {
+                const unsigned int fid = gradient_ids[k];
+                const int pct = int(std::round(100.0 * weights[k] / sum));
+                if (k > 0) lbl += "+";
+                lbl += wxString::Format("F%u %d%%", fid, pct);
+            }
+        } else if (z_gradient_tile) {
+            const unsigned from_id =
+                mf.gradient_start >= mf.gradient_end ? mf.component_a : mf.component_b;
+            const unsigned to_id =
+                mf.gradient_start >= mf.gradient_end ? mf.component_b : mf.component_a;
+            lbl = wxString::Format("F%u->F%u", from_id, to_id);
+        } else {
+            const int pct_b = std::clamp(mf.mix_b_percent, 0, 100);
+            const int pct_a = 100 - pct_b;
+            lbl = wxString::Format("F%u %d%%+F%u %d%%", mf.component_a, pct_a, mf.component_b, pct_b);
+            if (mf.distribution_mode != int(MixedFilament::Simple))
+                for (unsigned int fid : gradient_ids)
+                    lbl += wxString::Format("+F%u", fid);
+        }
+        
+        bool has_error = !is_filament_compatible(mf);
+        
+        // Create a panel with border for the text
+        auto* name_panel = new wxPanel(p->m_panel_color_mix_content, wxID_ANY);
+        name_panel->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+
+        auto* name_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+        // Add error icon if there's an error
+        if (has_error) {
+            name_sizer->AddSpacer(FromDIP(8));
+            ScalableBitmap error_bmp(name_panel, "error_icon_red_exclamation", 14);
+            auto* error_icon = new wxStaticBitmap(name_panel, wxID_ANY, error_bmp.bmp());
+            name_sizer->Add(error_icon, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+        }
+
+        auto* name_btn = new wxStaticText(name_panel, wxID_ANY, lbl, wxDefaultPosition, wxDefaultSize, 0);
+        name_btn->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+        name_btn->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+        name_btn->SetCursor(wxCursor(wxCURSOR_HAND));
+        name_btn->SetMinSize(wxSize(0, -1)); // allow sizer to shrink below text width
+
+        int name_flags = wxEXPAND | (has_error ? (wxTOP | wxBOTTOM | wxRIGHT) : wxALL);
+        name_sizer->Add(name_btn, 1, name_flags, FromDIP(8));
+        name_panel->SetSizer(name_sizer);
+        name_panel->SetMinSize(wxSize(name_panel->FromDIP(100), name_panel->FromDIP(30)));
+        name_panel->SetMaxSize(wxSize(-1, name_panel->FromDIP(30)));
+
+        // Use wxControl::Ellipsize on resize to match combo truncation behavior
+        name_panel->Bind(wxEVT_SIZE, [lbl, name_btn, name_panel](wxSizeEvent& evt) {
+            name_panel->Layout(); // force sizer layout so name_btn has its current size
+            int avail = name_btn->GetSize().x;
+            if (avail > 0) {
+                wxClientDC dc(name_btn);
+                dc.SetFont(name_btn->GetFont());
+                wxString ellipsized = wxControl::Ellipsize(lbl, dc, wxELLIPSIZE_END, avail);
+                name_btn->SetLabel(ellipsized);
+            }
+            evt.Skip();
+        });
+
+        // Add border to the panel
+        name_panel->Bind(wxEVT_PAINT, [](wxPaintEvent& evt) {
+            wxPanel* panel = dynamic_cast<wxPanel*>(evt.GetEventObject());
+            if (!panel) return;
+
+            wxPaintDC dc(panel);
+            wxRect rect = panel->GetClientRect();
+
+            // Draw border matching combo (#dbdbdb, 1px)
+            dc.SetPen(wxPen(StateColor::darkModeColorFor(wxColour(0xdb, 0xdb, 0xdb)), 1));
+            dc.SetBrush(*wxTRANSPARENT_BRUSH);
+            dc.DrawRectangle(rect);
+        });
+
+        name_btn->SetToolTip(lbl);
+        name_btn->Bind(wxEVT_LEFT_DOWN, [this, i](wxMouseEvent&) {
+            auto* co = wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour");
+            const std::vector<std::string> colors = co ? co->values : std::vector<std::string>{};
+            if (colors.size() < 2) return;
+            auto& mgr = wxGetApp().preset_bundle->mixed_filaments;
+            auto& mfs2 = mgr.mixed_filaments();
+            if (i >= mfs2.size()) return;
+            MixedFilamentDialog dlg(wxGetApp().mainframe, colors, mfs2[i]);
+            if (dlg.ShowModal() != wxID_OK) return;
+            const MixedFilament& r = dlg.GetResult();
+            mfs2[i].component_a                = r.component_a;
+            mfs2[i].component_b                = r.component_b;
+            mfs2[i].mix_b_percent              = r.mix_b_percent;
+            mfs2[i].distribution_mode          = r.distribution_mode;
+            mfs2[i].manual_pattern             = r.manual_pattern;
+            mfs2[i].gradient_component_ids     = r.gradient_component_ids;
+            mfs2[i].gradient_component_weights = r.gradient_component_weights;
+            mfs2[i].ratio_a                    = r.ratio_a;
+            mfs2[i].ratio_b                    = r.ratio_b;
+            mfs2[i].gradient_enabled           = r.gradient_enabled;
+            mfs2[i].gradient_start             = r.gradient_start;
+            mfs2[i].gradient_end               = r.gradient_end;
+            mfs2[i].display_color               = r.display_color;
+            mfs2[i].ui_mode                       = r.ui_mode;
+            mfs2[i].custom                      = true;
+            if (auto* opt = wxGetApp().preset_bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+                opt->value = mgr.serialize_custom_entries();
+            wxGetApp().plater()->schedule_background_process();
+            wxGetApp().plater()->update();
+            wxWeakRef<Sidebar> weak_this(this);
+            wxTheApp->CallAfter([weak_this]() {
+                Sidebar* sidebar = weak_this.get();
+                if (sidebar) {
+                    sidebar->update_color_mix_panel();
+                    sidebar->m_scrolled_sizer->Layout();
+                }
+            });
+        });
+
+        auto* menu_btn = new ScalableButton(p->m_panel_color_mix_content, wxID_ANY, "menu_filament");
+        menu_btn->SetToolTip(_L("Options"));
+        menu_btn->Bind(wxEVT_BUTTON, [this, i, menu_btn](wxCommandEvent&) {
+            wxMenu menu;
+            const int edit_id = wxWindow::NewControlId();
+            const int del_id  = wxWindow::NewControlId();
+
+            menu.Append(edit_id, _L("Edit"));
+            menu.Bind(wxEVT_MENU, [this, i](wxCommandEvent&) {
+                auto* co = wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour");
+                const std::vector<std::string> colors = co ? co->values : std::vector<std::string>{};
+                if (colors.size() < 2) return;
+                auto& mgr = wxGetApp().preset_bundle->mixed_filaments;
+                auto& mfs2 = mgr.mixed_filaments();
+                if (i >= mfs2.size()) return;
+                MixedFilamentDialog dlg(wxGetApp().mainframe, colors, mfs2[i]);
+                if (dlg.ShowModal() != wxID_OK) return;
+                const bool was_custom = mfs2[i].custom;
+                mfs2[i] = dlg.GetResult();
+                mfs2[i].custom = was_custom;
+                if (auto* opt = wxGetApp().preset_bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+                    opt->value = mgr.serialize_custom_entries();
+                wxGetApp().plater()->schedule_background_process();
+                wxGetApp().plater()->update();
+                update_color_mix_panel();
+                m_scrolled_sizer->Layout();
+            }, edit_id);
+
+            menu.Append(del_id, _L("Delete"));
+            menu.Bind(wxEVT_MENU, [this, i](wxCommandEvent&) {
+                auto& mgr = wxGetApp().preset_bundle->mixed_filaments;
+                auto& mfs2 = mgr.mixed_filaments();
+                if (i < mfs2.size()) { mfs2[i].deleted = true; mfs2[i].enabled = false; }
+                if (auto* opt = wxGetApp().preset_bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+                    opt->value = mgr.serialize_custom_entries();
+                wxGetApp().plater()->schedule_background_process();
+                wxGetApp().plater()->update();
+                update_color_mix_panel();
+                m_scrolled_sizer->Layout();
+            }, del_id);
+
+            wxPoint pt{0, menu_btn->GetSize().GetHeight()};
+            pt = menu_btn->ClientToScreen(pt);
+            pt = wxGetApp().mainframe->ScreenToClient(pt);
+            wxGetApp().mainframe->PopupMenu(&menu, pt);
+        });
+
+        auto* cell = new wxBoxSizer(wxHORIZONTAL);
+        // Match physical filament asymmetric layout: left column gets left spacer, right doesn't
+        if (visible_idx % 2 == 0)
+            cell->AddSpacer(FromDIP(SidebarProps::ContentMargin()));
+        cell->Add(badge,    0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(SidebarProps::ElementSpacing()) - FromDIP(2));
+        cell->Add(name_panel, 1, wxEXPAND | wxALL, FromDIP(2));
+        cell->Add(menu_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::ElementSpacing()) - FromDIP(2));
+        cell->AddSpacer(FromDIP(SidebarProps::ContentMargin()));
+
+        (visible_idx % 2 == 0 ? col0 : col1)->Add(cell, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
+
+        ++visible_idx;
+    }
+
+    // If odd count, pad right column so left column doesn't stretch
+    if (visible_idx % 2 == 1)
+        col1->AddStretchSpacer(1);
+
+    // Wrap grid in vertical sizer for padding, then set as panel sizer (matches physical structure)
+    auto* wrapper = new wxBoxSizer(wxVERTICAL);
+    wrapper->Add(grid_sizer, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(8));
+    p->m_panel_color_mix_content->SetSizer(wrapper);
+    p->m_panel_color_mix_content->Layout();
+
+    // Dynamic height: grow with rows up to the same row cap as the physical Filaments list
+    // (filaments_area_preferred_count), so both scrolled sections use the same maximum height.
+    const wxSize content_best = p->m_panel_color_mix_content->GetBestSize();
+    const int row_count = (visible_idx + 1) / 2; // rows (2 columns)
+    const int preferred_rows = std::max(1, (int) std::ceil(0.5 * std::stoi(wxGetApp().app_config->get("filaments_area_preferred_count"))));
+    const int desired_h = row_count > preferred_rows
+        ? (content_best.GetHeight() / row_count) * preferred_rows
+        : content_best.GetHeight();
+    p->m_scrolled_color_mix->SetMinSize({-1, desired_h});
+    p->m_scrolled_color_mix->SetMaxSize({-1, desired_h});
+    
+    m_scrolled_sizer->Layout();
+    wxWeakRef<Sidebar> weak_this(this);
+    wxTheApp->CallAfter([weak_this]() {
+        Sidebar* sidebar = weak_this.get();
+        if (sidebar && sidebar->p && sidebar->p->m_scrolled_color_mix) {
+            int vh = sidebar->p->m_scrolled_color_mix->GetVirtualSize().y;
+            int ch = sidebar->p->m_scrolled_color_mix->GetClientSize().y;
+            sidebar->p->m_scrolled_color_mix->Scroll(0, std::max(0, vh - ch));
+        }
+    });
+    p->m_panel_color_mix_content->Refresh();
+
+    // Disable add buttons when combined filament limit reached
+    if (preset_bundle) {
+        const bool can_add = preset_bundle->mixed_filaments.total_filaments(num_physical) < 64;
+        if (p->m_bpButton_add_filament)
+            p->m_bpButton_add_filament->Enable(can_add);
+        if (p->m_btn_add_color_mix)
+            p->m_btn_add_color_mix->Enable(can_add);
+    }
 }
 
 void Sidebar::update_filaments_counter(bool force_layout)
@@ -3986,7 +4545,29 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
     Layout();
     p->m_panel_filament_title->Refresh();
     update_ui_from_settings();
-    update_dynamic_filament_list();
+
+    // ORCA mixed filament: (re)generate the pairwise auto gradients for the new physical filament
+    // count when enabled. The prompt/preference is resolved by the add/remove action via
+    // confirm_auto_generated_gradients() (which sets this static flag); here we only act on it so
+    // no modal is shown from inside this (update-locked, multi-context) handler.
+    if (MixedFilamentManager::auto_generate_enabled()) {
+        if (PresetBundle* pb = wxGetApp().preset_bundle) {
+            std::vector<std::string> physical_colors;
+            if (auto* co = pb->project_config.option<ConfigOptionStrings>("filament_colour"))
+                physical_colors = co->values;
+            physical_colors.resize(num_filaments, "#26A69A");
+            pb->mixed_filaments.auto_generate(physical_colors);
+            if (auto* opt = pb->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+                opt->value = pb->mixed_filaments.serialize_custom_entries();
+        }
+        // auto_generate() drops mixed entries referencing now-removed filaments, so the full
+        // panel rebuild is safe here.
+        update_color_mix_panel();
+    } else {
+        // Default path (e.g. switching printers): only refresh the per-feature/support filament
+        // combos. Avoid the heavier color-mix panel rebuild during the preset-change cascade.
+        update_dynamic_filament_list();
+    }
 }
 
 void Sidebar::on_filaments_delete(size_t filament_id)
@@ -4050,7 +4631,8 @@ void Sidebar::add_filament() {
         filament_list->Show(); // ORCA show list if its folded
         m_scrolled_sizer->Layout();
     }
-    filament_list->Scroll(-1, INT_MAX); // ORCA scroll to end of list on changes to inform user about filament count
+    if (p->m_scrolled_filaments)
+        p->m_scrolled_filaments->Scroll(-1, INT_MAX); // ORCA scroll to end of filament list on changes to inform user about filament count
 }
 
 void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
@@ -4090,7 +4672,8 @@ void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
         m_scrolled_sizer->Layout();
     }
 
-    filament_list->Scroll(-1, INT_MAX); // ORCA scroll to end of list on changes to inform user about filament count
+    if (p->m_scrolled_filaments)
+        p->m_scrolled_filaments->Scroll(-1, INT_MAX); // ORCA scroll to end of filament list on changes to inform user about filament count
 }
 
 void Sidebar::change_filament(size_t from_id, size_t to_id)
@@ -4114,6 +4697,10 @@ void Sidebar::add_custom_filament(wxColour new_col) {
     std::string new_color      = new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
     wxGetApp().preset_bundle->set_num_filaments(filament_count, new_color);
     wxGetApp().plater()->get_partplate_list().on_filament_added(filament_count);
+    // ORCA mixed filament: resolve the auto-generate decision (preference + >4 prompt) here in the
+    // add action, before the count change. This sets the engine's static enable flag, which
+    // on_filament_count_change() then acts on to actually create the gradients.
+    wxGetApp().plater()->confirm_auto_generated_gradients(filament_count);
     wxGetApp().plater()->on_filament_count_change(filament_count);
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
@@ -5065,7 +5652,10 @@ void Sidebar::auto_calc_flushing_volumes_internal(const int modify_id, const int
     int m_max_flush_volume = Slic3r::g_max_flush_volume;
     unsigned int m_number_of_extruders = (int)(sqrt(init_matrix.size()) + 0.001);
 
-    const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
+    // ORCA mixed filament: the flush matrix is sized for PHYSICAL filaments only, so request
+    // physical colours (mixed/virtual filaments must not be included here or the matrix indexing
+    // overflows and corrupts the heap).
+    const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config(nullptr, false);
     std::vector<std::vector<wxColour>> multi_colours;
 
     // Support for multi-color filament
@@ -5270,6 +5860,11 @@ struct Plater::priv
     std::string m_cloud_missing_shown_sig;
     std::string m_inactive_shown_sig;
     std::string m_broken_shown_sig;
+    // ORCA mixed filament: cache of the last auto-gradient confirmation so the prompt is not
+    // repeated for the same physical filament count.
+    size_t m_last_auto_gradient_prompt_physical_count{0};
+    bool   m_last_auto_gradient_prompt_accepted{false};
+    bool   confirm_auto_generated_gradients(wxWindow *parent, size_t num_physical);
     bool auto_reslice_pending {false};
     bool auto_reslice_after_cancel {false};
     bool m_is_publishing {false};
@@ -6379,6 +6974,58 @@ Plater::priv::~priv()
     // Saves the database of visited (already shown) hints into hints.ini.
     notification_manager->deactivate_loaded_hints();
     main_frame->m_tabpanel->Unbind(wxEVT_NOTEBOOK_PAGE_CHANGING, &priv::on_tab_selection_changing, this);
+}
+
+// ORCA mixed filament: prompt (for large filament counts) whether to auto-generate the pairwise
+// gradient/mixed filaments. Mirrors the Snapmaker fork behavior. Returns true when generation
+// should proceed and updates MixedFilamentManager's static enable flag accordingly.
+bool Plater::priv::confirm_auto_generated_gradients(wxWindow *parent, size_t num_physical)
+{
+    auto *app_config = wxGetApp().app_config;
+    if (app_config == nullptr)
+        return MixedFilamentManager::auto_generate_enabled();
+
+    const bool pref_enabled = app_config->get_bool("auto_generate_gradients");
+    if (!pref_enabled) {
+        m_last_auto_gradient_prompt_physical_count = 0;
+        m_last_auto_gradient_prompt_accepted = false;
+        MixedFilamentManager::set_auto_generate_enabled(false);
+        return false;
+    }
+
+    // Small counts generate only a handful of pairs; create them without prompting.
+    if (num_physical <= 4 || parent == nullptr || !parent->IsShownOnScreen()) {
+        m_last_auto_gradient_prompt_physical_count = 0;
+        m_last_auto_gradient_prompt_accepted = false;
+        MixedFilamentManager::set_auto_generate_enabled(true);
+        return true;
+    }
+
+    // Reuse the previous decision for the same physical count to avoid repeated prompts.
+    if (m_last_auto_gradient_prompt_physical_count == num_physical) {
+        MixedFilamentManager::set_auto_generate_enabled(m_last_auto_gradient_prompt_accepted);
+        return m_last_auto_gradient_prompt_accepted;
+    }
+
+    const size_t auto_gradient_count = num_physical * (num_physical - 1) / 2;
+    const wxString message = wxString::Format(
+        _L("Using %d physical filaments will create %d auto-generated gradients.\nDo you want to create them now?"),
+        int(num_physical), int(auto_gradient_count));
+    const int result = MessageDialog(parent, message,
+                                     wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Auto gradients"),
+                                     wxYES_NO | wxYES_DEFAULT | wxCENTRE | wxICON_QUESTION)
+                           .ShowModal();
+    const bool accepted = result == wxID_YES;
+    m_last_auto_gradient_prompt_physical_count = num_physical;
+    m_last_auto_gradient_prompt_accepted = accepted;
+    MixedFilamentManager::set_auto_generate_enabled(accepted);
+    return accepted;
+}
+
+bool Plater::confirm_auto_generated_gradients(size_t num_physical)
+{
+    return p != nullptr ? p->confirm_auto_generated_gradients(this, num_physical)
+                        : MixedFilamentManager::auto_generate_enabled();
 }
 
 void Plater::priv::update(unsigned int flags)
@@ -17622,9 +18269,13 @@ void Plater::on_filament_count_change(size_t num_filaments)
         part_plate->update_first_layer_print_sequence(num_filaments);
     }
 
+    // ORCA: include virtual (mixed) filaments so painted mixed-colour regions are not stripped.
+    size_t total_filaments_for_paint = num_filaments;
+    if (wxGetApp().preset_bundle)
+        total_filaments_for_paint = wxGetApp().preset_bundle->mixed_filaments.total_filaments(num_filaments);
     for (ModelObject* mo : wxGetApp().model().objects) {
         for (ModelVolume* mv : mo->volumes) {
-            mv->update_extruder_count(num_filaments);
+            mv->update_extruder_count(total_filaments_for_paint);
         }
     }
 }
@@ -17969,7 +18620,7 @@ void Plater::on_activate()
 }
 
 // Get vector of extruder colors considering filament color, if extruder color is undefined.
-std::vector<std::string> Plater::get_extruder_colors_from_plater_config(const GCodeProcessorResult* const result) const
+std::vector<std::string> Plater::get_extruder_colors_from_plater_config(const GCodeProcessorResult* const result, bool include_mixed) const
 {
     if (wxGetApp().is_gcode_viewer() && result != nullptr)
         return result->extruder_colors;
@@ -17980,6 +18631,12 @@ std::vector<std::string> Plater::get_extruder_colors_from_plater_config(const GC
             return filament_colors;
 
         filament_colors = (config->option<ConfigOptionStrings>("filament_colour"))->values;
+        // ORCA: append enabled mixed (virtual) filament display colours so virtual extruder IDs
+        // (painted mixed regions / resolved tools) render with a colour in editor and preview.
+        if (include_mixed && wxGetApp().preset_bundle != nullptr) {
+            const auto mixed = wxGetApp().preset_bundle->mixed_filaments.display_colors();
+            filament_colors.insert(filament_colors.end(), mixed.begin(), mixed.end());
+        }
         return filament_colors;
     }
 }

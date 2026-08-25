@@ -682,13 +682,23 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
             if (shader) {
                 if (idx == 0) {
                     int extruder_id = model_volume->extruder_id();
-                    //to make black not too hard too see
-                    ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[extruder_id - 1]);
-                    if (ban_light) {
-                        new_color[3] = (255 - (extruder_id - 1))/255.0f;
+                    // ORCA: extruder_id can be a mixed (virtual) filament id beyond the colour
+                    // list (or otherwise out of range) — clamp the index so a painted volume
+                    // assigned a mixed filament doesn't read out of bounds and crash.
+                    int color_idx = extruder_id - 1;
+                    if (color_idx < 0)
+                        color_idx = 0;
+                    if (color_idx >= int(extruder_colors.size()))
+                        color_idx = int(extruder_colors.size()) - 1;
+                    if (color_idx >= 0) {
+                        //to make black not too hard too see
+                        ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[color_idx]);
+                        if (ban_light) {
+                            new_color[3] = (255 - color_idx)/255.0f;
+                        }
+                        m.set_color(new_color);
+                        // shader->set_uniform("uniform_color", new_color);
                     }
-                    m.set_color(new_color);
-                    // shader->set_uniform("uniform_color", new_color);
                 }
                 else {
                     if (idx <= extruder_colors.size()) {
@@ -1605,16 +1615,24 @@ void GLVolumeCollection::update_colors_by_extruder(const DynamicPrintConfig *con
         if (filamemts_opt == nullptr)
             return;
 
-        size_t colors_count = (size_t)filamemts_opt->values.size();
-        if (colors_count == 0)
+        std::vector<std::string> filament_colors = filamemts_opt->values;
+        if (filament_colors.empty())
             return;
+
+        // ORCA: include enabled mixed (virtual) filament colours so volumes/regions painted with a
+        // mixed row render with the mix colour in the Prepare view instead of falling back/clamping.
+        if (GUI::wxGetApp().preset_bundle != nullptr) {
+            const auto mixed_colors = GUI::wxGetApp().preset_bundle->mixed_filaments.display_colors();
+            filament_colors.insert(filament_colors.end(), mixed_colors.begin(), mixed_colors.end());
+        }
+
+        const size_t colors_count = filament_colors.size();
         colors.resize(colors_count);
 
         for (unsigned int i = 0; i < colors_count; ++i) {
             ColorRGBA rgba;
-            const std::string& fil_color = config->opt_string("filament_colour", i);
-            if (decode_color(fil_color, rgba))
-                colors[i] = { fil_color, rgba };
+            if (decode_color(filament_colors[i], rgba))
+                colors[i] = { filament_colors[i], rgba };
         }
     }
 

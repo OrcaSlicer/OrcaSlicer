@@ -1736,13 +1736,21 @@ TriangleSelector::TriangleSplittingData TriangleSelector::serialize() const {
                     data.used_states[n] = true;
 
                 if (n >= 3) {
-                    assert(n <= 16);
-                    if (n <= 16) {
-                        // Store "11" plus 4 bits of (n-3).
-                        data.bitstream.insert(data.bitstream.end(), { true, true });
-                        n -= 3;
+                    assert(n <= static_cast<int>(EnforcerBlockerType::ExtruderMax));
+                    // Store "11" plus a 4-bit nibble. Legacy states (3..16) use a single nibble
+                    // of (n-3) in 0..13; extended states (17..32) use an escape nibble 0b1110
+                    // (never produced by the legacy range) followed by a nibble of (n-17).
+                    data.bitstream.insert(data.bitstream.end(), { true, true });
+                    auto &bitstream = data.bitstream;
+                    auto push_nibble = [&bitstream](int value) {
                         for (size_t bit_idx = 0; bit_idx < 4; ++bit_idx)
-                            data.bitstream.push_back(n & (uint64_t(0b0001) << bit_idx));
+                            bitstream.push_back((value & (1 << int(bit_idx))) != 0);
+                    };
+                    if (n <= 16) {
+                        push_nibble(n - 3);
+                    } else {
+                        push_nibble(0b1110);
+                        push_nibble(n - 17);
                     }
                 } else {
                     // Simple case, compatible with PrusaSlicer 2.3.1 and older for storing paint on supports and seams.
@@ -1810,6 +1818,15 @@ void TriangleSelector::deserialize(const TriangleSplittingData &data,
                 n |= data.bitstream[ibit ++] << i;
             return n;
         };
+        // Decode an extruder leaf state stored after the "11" prefix. Legacy states (3..16) are a
+        // single nibble of (state-3); extended states (17..32) use escape nibble 0b1110 followed
+        // by a nibble of (state-17).
+        auto decode_leaf_state = [&next_nibble]() -> EnforcerBlockerType {
+            const int extended = next_nibble();
+            if (extended == 0b1110)
+                return EnforcerBlockerType(next_nibble() + 17);
+            return EnforcerBlockerType(extended + 3);
+        };
 
         parents.clear();
         while (true) {
@@ -1818,8 +1835,8 @@ void TriangleSelector::deserialize(const TriangleSplittingData &data,
             int num_of_split_sides = code & 0b11;
             int num_of_children = num_of_split_sides == 0 ? 0 : num_of_split_sides + 1;
             bool is_split = num_of_children != 0;
-            // Only valid if not is_split. Value of the second nibble was subtracted by 3, so it is added back.
-            auto state = is_split ? EnforcerBlockerType::NONE : EnforcerBlockerType((code & 0b1100) == 0b1100 ? next_nibble() + 3 : code >> 2);
+            // Only valid if not is_split.
+            auto state = is_split ? EnforcerBlockerType::NONE : ((code & 0b1100) == 0b1100 ? decode_leaf_state() : EnforcerBlockerType(code >> 2));
 
             // BBS
             if (state == to_delete_filament)
@@ -1916,7 +1933,14 @@ void TriangleSelector::TriangleSplittingData::update_used_states(const size_t bi
         if (const bool is_split = (code & 0b11) != 0; is_split)
             continue;
 
-        const uint8_t facet_state = (code & 0b1100) == 0b1100 ? read_next_nibble() + 3 : code >> 2;
+        uint8_t facet_state;
+        if ((code & 0b1100) == 0b1100) {
+            // Leaf with "11" prefix: legacy nibble (state-3), or escape 0b1110 + nibble (state-17).
+            const uint8_t extended = read_next_nibble();
+            facet_state = extended == 0b1110 ? uint8_t(read_next_nibble() + 17) : uint8_t(extended + 3);
+        } else {
+            facet_state = code >> 2;
+        }
         assert(facet_state < this->used_states.size());
         if (facet_state >= this->used_states.size())
             continue;
@@ -1946,9 +1970,14 @@ bool TriangleSelector::has_facets(const TriangleSplittingData &data, const Enfor
         auto num_children_or_state = [&next_nibble]() -> int {
             int code               = next_nibble();
             int num_of_split_sides = code & 0b11;
-            return num_of_split_sides == 0 ?
-                ((code & 0b1100) == 0b1100 ? next_nibble() + 3 : code >> 2) :
-                - num_of_split_sides - 1;
+            if (num_of_split_sides != 0)
+                return - num_of_split_sides - 1;
+            // Leaf with "11" prefix: legacy nibble (state-3), or escape 0b1110 + nibble (state-17).
+            if ((code & 0b1100) == 0b1100) {
+                const int extended = next_nibble();
+                return extended == 0b1110 ? next_nibble() + 17 : extended + 3;
+            }
+            return code >> 2;
         };
 
         int state = num_children_or_state();

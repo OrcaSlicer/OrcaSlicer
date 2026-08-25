@@ -122,6 +122,11 @@ void AppConfig::set_defaults()
         if (get("auto_slice_after_change").empty())
             set_bool("auto_slice_after_change", false);
 
+        // ORCA mixed filament: auto-generate pairwise gradient/mixed filaments when the
+        // physical filament count changes. Off by default; toggled in Preferences.
+        if (get("auto_generate_gradients").empty())
+            set_bool("auto_generate_gradients", false);
+
         if (get("auto_slice_change_delay_seconds").empty())
             set("auto_slice_change_delay_seconds", "1");
 
