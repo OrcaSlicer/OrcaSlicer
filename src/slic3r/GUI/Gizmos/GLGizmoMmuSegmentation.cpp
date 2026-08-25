@@ -307,12 +307,13 @@ void GLGizmoMmuSegmentation::render_tooltip_button(float x, float y)
 // ORCA
 bool GLGizmoMmuSegmentation::draw_color_button(int idx, std::string id_str, const ColorRGBA& color, ColorRGBA& map_color, bool active, float scale)
 {
+    const auto& colors = ImGuiWrapper::canvas_colors();
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     std::string label_id  = std::to_string(idx) + id_str + std::to_string(idx);
     ImVec2      pos       = ImGui::GetCursorScreenPos();
     ImVec2      size      = ImVec2(27.f * scale, 27.f * scale);
     ImVec4      color_vec = ImGuiWrapper::to_ImVec4(color);
-    ImU32       br_color  = ImGui::ColorConvertFloat4ToU32(active ? ImGuiWrapper::COL_ORCA : m_is_dark_mode ? ImVec4(.35f, .35f, .35f, 1) : ImVec4(.85f, .85f, .85f, 1));
+    ImU32       br_color  = ImGuiWrapper::to_ImU32(active ? colors.main_fixed : colors.border);
     bool        dark_tone = (0.299f * color.r() + 0.587f * color.g() + 0.114f * color.b()) < 0.51f; // matching values used by wxWidgets with clr.GetLuminance() < 0.51
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0);
@@ -329,7 +330,7 @@ bool GLGizmoMmuSegmentation::draw_color_button(int idx, std::string id_str, cons
     auto drawBorder = [&](float d, float r, float t, ImU32 col) {
         draw_list->AddRect({pos.x + d * scale, pos.y + d * scale}, {pos.x + size.x - d * scale , pos.y + size.y - d * scale}, col, r * scale, 0, t * scale);
     };
-    drawBorder(1.5f, 3.f, 4.f, ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_WindowBg)));
+    drawBorder(1.5f, 3.f, 4.f, ImGuiWrapper::to_ImU32(colors.bg));
     if(active)
         drawBorder(.5f, 4.f , 2.f, br_color);
     else
@@ -353,6 +354,8 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
         scale *= (float) dpi / (float) DPI_DEFAULT;
     #endif // WIN32
+
+    const auto& colors = ImGuiWrapper::canvas_colors();
 
     const float approx_height = m_imgui->scaled(22.0f);
     y = std::min(y, bottom_limit - approx_height);
@@ -495,11 +498,11 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding  , 3.f * scale);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding   , ImVec2(4.f * scale, 4.f * scale));
         ImGui::PushStyleColor(ImGuiCol_Text         , ImVec4(1,1,1,1)); // ORCA Fixes icon rendered without colors while using Light theme
-        ImGui::PushStyleColor(ImGuiCol_Button       , is_active ? ImVec4(0.f, .59f, .53f, .25f) : ImVec4(0,0,0,0));         // ORCA
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, is_active ? ImVec4(0.f, .59f, .53f, .25f) : ImVec4(.6f,.6f,.6f,.2f)); // ORCA
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive , is_active ? ImVec4(0.f, .59f, .53f, .30f) : ImVec4(0,0,0,0));         // ORCA
-        ImGui::PushStyleColor(ImGuiCol_Border       , is_active ? ImGuiWrapper::COL_ORCA        : ImVec4(0,0,0,0));         // ORCA
-        ImGui::PushStyleColor(ImGuiCol_BorderActive , is_active ? ImGuiWrapper::COL_ORCA        : ImVec4(0,0,0,0));         // ORCA matched color for fixing flicker on click
+        ImGui::PushStyleColor(ImGuiCol_Button       , is_active ? colors.focus_item : ImVec4(0,0,0,0));                // ORCA
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, is_active ? colors.focus_item : colors.button_regular.bg_hover); // ORCA
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive , is_active ? colors.focus_item : ImVec4(0,0,0,0));                // ORCA
+        ImGui::PushStyleColor(ImGuiCol_Border       , is_active ? colors.main_fixed : ImVec4(0,0,0,0));                // ORCA
+        ImGui::PushStyleColor(ImGuiCol_BorderActive , is_active ? colors.main_fixed : ImVec4(0,0,0,0));                // ORCA matched color for fixing flicker on click
         bool btn_clicked = m_imgui->glyph_button(icons[i], ImVec2(16.f  * scale, 16.f  * scale)); // ORCA glyph_button for fixing unequal paddings
         ImGui::PopStyleColor(6);
         ImGui::PopStyleVar(3);
@@ -617,6 +620,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         ImGui::BBLDragFloat("##gap_area_input", &TriangleSelectorPatch::gap_area, 0.05f, 0.0f, 0.0f, "%.2f");
 
         // Apply Gap fill button
+        m_imgui->push_button_style(scale);
         if (m_imgui->button(m_desc.at("perform"))) {
             Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Gap fill", UndoRedo::SnapshotType::GizmoAction);
 
@@ -628,6 +632,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             update_model_object();
             m_parent.set_as_dirty();
         }
+        m_imgui->pop_button_style();
     }
 
     ImGui::Separator();
@@ -635,9 +640,11 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         ImGui::AlignTextToFramePadding();
         m_imgui->text(m_desc.at("clipping_of_view"));
     } else {
+        m_imgui->push_button_style(scale, ImGuiWrapper::CanvasButtonType::Window);
         if (m_imgui->button(m_desc.at("reset_direction"))) {
             wxGetApp().CallAfter([this]() { m_c->object_clipper()->set_position_by_ratio(-1., false); });
         }
+        m_imgui->pop_button_style();
     }
 
     auto clp_dist = float(m_c->object_clipper()->get_position());
@@ -658,6 +665,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
 
     ImGui::SameLine();
     m_imgui->disabled_begin(m_c->selection_info()->model_object()->is_mm_painted() == false);
+    m_imgui->push_button_style(scale);
     if (m_imgui->button(m_desc.at("remove_all"))) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Reset selection", UndoRedo::SnapshotType::GizmoAction);
         ModelObject *        mo  = m_c->selection_info()->model_object();
@@ -672,13 +680,16 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         update_model_object();
         m_parent.set_as_dirty();
     }
+    m_imgui->pop_button_style();
     m_imgui->disabled_end();
 
     ImGui::SameLine();
+    m_imgui->push_button_style(scale);
     GLGizmoUtils::begin_right_aligned_buttons({_L("Done")});
     if (m_imgui->button(_L("Done"))) {
         m_parent.reset_all_gizmos();
     }
+    m_imgui->pop_button_style();
 
     ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
     GizmoImguiEnd();
@@ -990,6 +1001,8 @@ void GLGizmoMmuSegmentation::update_used_filaments()
 
 void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float max_tooltip_width, float scale)
 {
+    const auto& colors = ImGuiWrapper::canvas_colors();
+
     size_t n_extr = std::min((size_t)EnforcerBlockerType::ExtruderMax, m_extruders_colors.size());
 
     int displayed_count = 0;
@@ -1042,8 +1055,8 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
         // Apply popup styling before BeginPopup using standard Orca colors
         ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding  , 8.0f * scale);
         ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 2.0f * scale); // thicker & colored border to prevent mixing with main window. Current ImGui version not supports shadows
-        ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
-        ImGui::PushStyleColor(ImGuiCol_Border , ImGui::ColorConvertFloat4ToU32(ImGuiWrapper::COL_ORCA));
+        ImGui::PushStyleColor(ImGuiCol_PopupBg, colors.bg);
+        ImGui::PushStyleColor(ImGuiCol_Border , colors.main_fixed);
         
         if (ImGui::BeginPopup(pop_id.c_str())) {
             

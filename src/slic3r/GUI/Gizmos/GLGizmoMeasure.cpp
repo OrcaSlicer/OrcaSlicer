@@ -1274,7 +1274,7 @@ void GLGizmoMeasure::render_dimensioning()
             const ImGuiStyle& style = ImGui::GetStyle();
             draw_list->AddRectFilled({pos.x - style.FramePadding.x, pos.y + style.FramePadding.y},
                                      {pos.x + txt_size.x + 2.0f * style.FramePadding.x, pos.y + txt_size.y + 2.0f * style.FramePadding.y},
-                                     ImGuiWrapper::to_ImU32({1.0f, 1.0f, 1.0f, 0.5f}));
+                                     ImGuiWrapper::to_ImU32(ColorRGBA(1.0f, 1.0f, 1.0f, 0.5f)));
             ImGui::SetCursorScreenPos({ pos.x + style.FramePadding.x, pos.y });
             m_imgui->text(txt);
             if (m_hit_different_volumes.size() < 2 && wxGetApp().plater()->canvas3D()->get_canvas_type() == GLCanvas3D::ECanvasType::CanvasView3D) {

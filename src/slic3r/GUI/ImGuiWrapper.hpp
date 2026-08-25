@@ -317,11 +317,48 @@ public:
     void disable_background_fadeout_animation();
 
     static ImU32 to_ImU32(const ColorRGBA& color);
+    static ImU32 to_ImU32(const ImVec4& color);
     static ImVec4 to_ImVec4(const ColorRGBA& color);
+    static ImVec4 to_ImVec4(const char* hex_code);
     static ColorRGBA from_ImU32(const ImU32& color);
     static ColorRGBA from_ImVec4(const ImVec4& color);
 
     ImFontAtlasCustomRect* GetTextureCustomRect(const wchar_t& tex_id);
+
+    // ORCA global color managment
+    // Color conversion method for ColorRGBA / ImU32 > ImGuiWrapper::from_ImVec4(ImVec4)
+    struct CanvasButtonColors { ImVec4 bg, bg_hover, fg, fg_disabled; };
+    struct CanvasColors {
+        ImVec4 main;          // main accent color
+        ImVec4 main_fixed;    // main accent color. for improving readability / visibility of some controls on dark mode
+        ImVec4 x_axis;
+        ImVec4 y_axis;
+        ImVec4 z_axis;
+        ImVec4 white;
+        ImVec4 black;
+        ImVec4 transparent;
+        ImVec4 alert;
+        ImVec4 bg;            // background color
+        ImVec4 bg_sec;        // used for separation with background like titlebars / 
+        ImVec4 bg_alt;        // used when secondary background color not enough for separation 
+        ImVec4 text;          // Text color
+        ImVec4 text_disabled; // Text color for disabled controls
+        ImVec4 text_warning;  // Text color for warnings labels
+        ImVec4 text_modified; // Text color for labels on modified parameters
+        ImVec4 focus_control; // ORCA color with 10% opacity. Used on focused control backgrounds
+        ImVec4 focus_item;    // ORCA color with 25% opacity. Used on checked items in control boxes / selected text bg
+        ImVec4 border;        // border color for controls
+        ImVec4 separator;     // separator color
+        ImVec4 icon;          // color matches the icons; use it when the border is not visible enough
+        ImVec4 toolbar_bg;
+        CanvasButtonColors button_regular;
+        CanvasButtonColors button_confirm;
+        CanvasButtonColors button_disabled;
+        CanvasButtonColors button_alert;
+    };
+    static CanvasColors m_canvas_colors;
+    static void update_canvas_colors(bool is_dark);
+    static const CanvasColors canvas_colors() { return m_canvas_colors; }
 
     static const ImVec4 COL_GREY_DARK;
     static const ImVec4 COL_GREY_LIGHT;
@@ -362,6 +399,23 @@ public:
     static void pop_menu_style();
     static void push_common_window_style(const float scale);
     static void pop_common_window_style();
+
+    // ORCA unified button styling
+    enum class CanvasButtonStyle : uint8_t{
+        Regular = 0,
+        Confirm,
+        Disabled,
+        Alert,
+        COUNT
+    };
+    enum class CanvasButtonType : uint8_t{
+        Choice = 0, // Semi-Rounded For dialog choice buttons
+        Window,     // FullyRounded For slightly more compact pill shaped button
+        COUNT
+    };
+    static void push_button_style(const float scale, CanvasButtonType type = CanvasButtonType::Choice, CanvasButtonStyle style = CanvasButtonStyle::Regular);
+    static void pop_button_style();
+
     static void push_confirm_button_style();
     static void pop_confirm_button_style();
     static void push_cancel_button_style();
