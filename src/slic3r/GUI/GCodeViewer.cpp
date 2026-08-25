@@ -1331,6 +1331,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
             libvgcode::EGCodeExtrusionRole::SupportTransition, libvgcode::EGCodeExtrusionRole::Mixed
             });
     m_paths_bounding_box = BoundingBoxf3(libvgcode::convert(bbox[0]).cast<double>(), libvgcode::convert(bbox[1]).cast<double>());
+    m_max_bounding_box = m_paths_bounding_box;
 
     if (wxGetApp().is_editor())
         m_contained_in_bed = wxGetApp().plater()->build_volume().all_paths_inside(gcode_result, m_paths_bounding_box);
