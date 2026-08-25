@@ -4325,6 +4325,12 @@ void TabFilament::build()
         };
         //
 
+        // Orca: per-filament first layer Z offset (issue #4660). Grouped with the other per-material
+        // calibration tweaks rather than on the Setting Overrides page, because it adds to the
+        // printer's Z offset instead of replacing it.
+        optgroup = page->new_optgroup(L("First layer Z offset"), L"param_position");
+        optgroup->append_single_option_line("filament_first_layer_z_offset");
+
         optgroup = page->new_optgroup(L("Print chamber temperature"), L"param_chamber_temp");
         optgroup->append_single_option_line("activate_chamber_temp_control", "material_temperatures#print-chamber-temperature");
         line = { L("Chamber temperature"), L("Target chamber temperature, and the minimal chamber temperature at which printing should start") };
@@ -4717,6 +4723,12 @@ void TabFilament::toggle_options()
     {
         bool pa = m_config->opt_bool("enable_pressure_advance", 0);
         toggle_option("pressure_advance", pa);
+
+        // Orca: the first layer Z offset shifts a machine-wide value, so it can only be honoured
+        // when one filament is loaded (issue #4660). Grey it out otherwise - toggle_option rather
+        // than toggle_line, so it stays visible and reads as "not applicable here" instead of
+        // disappearing. Mirrors the gate in apply_filament_z_offset.
+        toggle_option("filament_first_layer_z_offset", m_preset_bundle->filament_presets.size() == 1);
 
         //Orca: Enable the plates that should be visible when multi bed support is enabled or a BBL printer is selected; otherwise, enable only the plate visible for the selected bed type.
         DynamicConfig& proj_cfg               = m_preset_bundle->project_config;

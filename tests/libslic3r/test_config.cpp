@@ -828,3 +828,94 @@ SCENARIO("ConfigOptionVector::set_to_index throws on incompatible type", "[Confi
         }
     }
 }
+
+TEST_CASE("The filament first layer Z offset defaults to no change", "[Config][FilamentZOffset]") {
+    // Default 0 is what keeps every existing profile printing exactly as it did before.
+    const ConfigOptionDef *def = print_config_def.get("filament_first_layer_z_offset");
+    REQUIRE(def != nullptr);
+    CHECK_FALSE(def->nullable);
+
+    Slic3r::DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
+    config.set("z_offset", 0.2);
+    REQUIRE_THAT(config.option<ConfigOptionFloats>("filament_first_layer_z_offset", true)->get_at(0),
+                 Catch::Matchers::WithinAbs(0.0, 1e-9));
+
+    apply_filament_z_offset(config, 1);
+
+    CHECK_THAT(config.opt_float("z_offset"), Catch::Matchers::WithinAbs(0.2, 1e-9));
+}
+
+TEST_CASE("The filament first layer Z offset adds to the printer's z offset", "[Config][FilamentZOffset]") {
+    // Adding, not replacing, is the whole point: the printer keeps one bed calibration and the
+    // filament carries only its deviation, so re-levelling does not invalidate every material.
+    Slic3r::DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
+    config.set("z_offset", -0.2);
+    config.set_deserialize_strict("filament_first_layer_z_offset", "0.3");
+
+    apply_filament_z_offset(config, 1);
+
+    CHECK_THAT(config.opt_float("z_offset"), Catch::Matchers::WithinAbs(0.1, 1e-9));
+}
+
+TEST_CASE("A negative filament first layer Z offset lowers the nozzle", "[Config][FilamentZOffset]") {
+    Slic3r::DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
+    config.set("z_offset", -0.2);
+    config.set_deserialize_strict("filament_first_layer_z_offset", "-0.1");
+
+    apply_filament_z_offset(config, 1);
+
+    CHECK_THAT(config.opt_float("z_offset"), Catch::Matchers::WithinAbs(-0.3, 1e-9));
+}
+
+TEST_CASE("The filament first layer Z offset is ignored with several filaments", "[Config][FilamentZOffset]") {
+    // Z offset is machine-wide, so one material's adjustment would move Z for the others too.
+    // Nothing is applied rather than silently picking one.
+    Slic3r::DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
+    config.set("z_offset", -0.2);
+    config.set_deserialize_strict("filament_first_layer_z_offset", "0.3,-0.1");
+
+    apply_filament_z_offset(config, 2);
+
+    CHECK_THAT(config.opt_float("z_offset"), Catch::Matchers::WithinAbs(-0.2, 1e-9));
+}
+
+TEST_CASE("The filament first layer Z offset is bounded to a trim-sized range", "[Config][FilamentZOffset]") {
+    // A delta is a material tweak, not a machine calibration, so it can be bounded - which an
+    // absolute override could not be, since a legitimate machine value can be anything.
+    const ConfigOptionDef *def = print_config_def.get("filament_first_layer_z_offset");
+    REQUIRE(def != nullptr);
+    CHECK(def->min < 0);
+    CHECK(def->max > 0);
+    CHECK(def->max <= 1);
+    CHECK_FALSE(def->is_value_valid(5.0));
+}
+
+TEST_CASE("A filament first layer Z offset outside the bound is clamped when applied", "[Config][FilamentZOffset]") {
+    // def->min/max only gates the GUI. A value from JSON, CLI, or a hand-edited preset would
+    // otherwise apply verbatim - a 5mm entry there would drive the nozzle 5mm off. The clamp
+    // in apply makes the ±1mm bound a real safety limit rather than a UI hint.
+    Slic3r::DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
+    config.set("z_offset", 0.0);
+    config.set_deserialize_strict("filament_first_layer_z_offset", "5.0");
+
+    apply_filament_z_offset(config, 1);
+
+    CHECK_THAT(config.opt_float("z_offset"), Catch::Matchers::WithinAbs(1.0, 1e-9));
+}
+
+TEST_CASE("The filament first layer Z offset is preserved in the assembled config", "[Config][FilamentZOffset]") {
+    // Existing filament overrides (filament_retraction_length, filament_z_hop, etc.) keep the
+    // user's typed value in the assembled config alongside the composed printer key, so it lands
+    // in the emitted G-code header for debuggability. This one follows the same convention: the
+    // filament value stays; z_offset carries the composed result.
+    Slic3r::DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
+    config.set("z_offset", 0.0);
+    config.set_deserialize_strict("filament_first_layer_z_offset", "-0.17");
+
+    apply_filament_z_offset(config, 1);
+
+    CHECK_THAT(config.opt_float("z_offset"), Catch::Matchers::WithinAbs(-0.17, 1e-9));
+    const auto *delta = config.option<ConfigOptionFloats>("filament_first_layer_z_offset");
+    REQUIRE(delta != nullptr);
+    CHECK_THAT(delta->get_at(0), Catch::Matchers::WithinAbs(-0.17, 1e-9));
+}

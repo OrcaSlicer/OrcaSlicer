@@ -3221,6 +3221,24 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 10. });
     
+    // Orca: per-filament first layer Z offset (issue #4660). Added to the printer's Z offset rather
+    // than replacing it, so the printer keeps one bed calibration and each material carries
+    // only its own deviation from it. See apply_filament_z_offset.
+    def = this->add("filament_first_layer_z_offset", coFloats);
+    def->label = L("First layer Z offset (squish)");
+    def->tooltip = L("Fine-tunes the first-layer squish for this filament, added on top of the "
+                     "printer's Z offset.\n\n"
+                     "• Negative: nozzle closer to the bed. More squish, better adhesion.\n"
+                     "• Positive: nozzle further from the bed. Less squish.\n\n"
+                     "The whole print shifts by this amount; layer heights are unchanged. Only "
+                     "applied when a single filament is loaded, because the Z offset is "
+                     "machine-wide.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = -1;
+    def->max = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats { 0. });
+
     def = this->add("filament_density", coFloats);
     def->label = L("Density");
     def->tooltip = L("Filament density, for statistical purposes only.");
@@ -11498,6 +11516,35 @@ void compute_filament_override_value(const std::string& opt_key, const ConfigOpt
         delete opt_copy;
 }
 
+
+void apply_filament_z_offset(DynamicPrintConfig &config, size_t num_filaments)
+{
+    // The Z offset is a single machine-wide value, so it cannot differ between materials during
+    // one print. Applying one filament's adjustment would move Z for the others too, so with
+    // more than one filament loaded nothing is applied.
+    if (num_filaments != 1)
+        return;
+
+    auto *delta = config.option<ConfigOptionFloats>("filament_first_layer_z_offset");
+    if (delta == nullptr || delta->empty())
+        return;
+
+    // Clamp to the same range the UI enforces. def->min/max only gates GUI input; a value
+    // arriving via JSON, CLI, or set_deserialize would otherwise bypass the bound.
+    double d = delta->get_at(0);
+    if (const ConfigOptionDef *def = config.def()->get("filament_first_layer_z_offset"); def != nullptr)
+        d = d < def->min ? static_cast<double>(def->min) : (d > def->max ? static_cast<double>(def->max) : d);
+    if (d == 0.)
+        return;
+
+    // The filament value is deliberately left in place: the emitted G-code header keeps the
+    // user's typed value alongside the composed z_offset, matching how every other filament
+    // override (filament_retraction_length, filament_z_hop, etc.) is preserved for
+    // debuggability. z_offset in the header is the effective slicing value; the two are not
+    // meant to be added together.
+    if (auto *z_offset = config.option<ConfigOptionFloat>("z_offset"); z_offset != nullptr)
+        z_offset->value += d;
+}
 
 void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPrintConfig& dest_config, std::vector<int> variant_index, std::set<std::string>& key_set1, int stride)
 {
