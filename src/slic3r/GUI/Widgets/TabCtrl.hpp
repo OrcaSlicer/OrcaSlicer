@@ -73,6 +73,8 @@ private:
 
     void relayout();
 
+    int buttons_best_width() const;
+
     void buttonClicked(wxCommandEvent & event);
     void keyDown(wxKeyEvent &event);
 

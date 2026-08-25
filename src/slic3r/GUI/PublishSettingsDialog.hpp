@@ -48,6 +48,8 @@ protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;
 
 private:
+    void fit_to_content();
+
     // Which part of the settings the row/category came from.
     enum class Section { Print, Printer, Material };
 

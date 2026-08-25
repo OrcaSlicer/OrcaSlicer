@@ -295,6 +295,15 @@ void TabCtrl::relayout()
     Layout();
 }
 
+int TabCtrl::buttons_best_width() const
+{
+    // Mirrors relayout(): a 10px leading spacer plus every button's min width and spacing.
+    int width = 10;
+    for (const Button *btn : btns)
+        width += btn->GetMinSize().x + TAB_BUTTON_SPACE * 2;
+    return width;
+}
+
 void TabCtrl::buttonClicked(wxCommandEvent &event)
 {
     SetFocus();

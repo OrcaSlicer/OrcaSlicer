@@ -17,6 +17,7 @@
 #include "libslic3r/PublishSettings.hpp"
 
 #include <boost/algorithm/string/trim.hpp>
+#include <wx/display.h>
 #include <set>
 #include <algorithm>
 
@@ -97,7 +98,7 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
                 _L("Publish 3MF..."),
                 wxDefaultPosition,
                 wxDefaultSize,
-                wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER)
+                wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER | wxFULL_REPAINT_ON_RESIZE)
     , m_search(this, "search", 16)
     , m_menu(this, "filter", 16)
 {
@@ -193,9 +194,40 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
     w_sizer->Add(dlg_btns, 0, wxEXPAND);
 
     SetSizerAndFit(w_sizer);
-    SetMinSize(FromDIP(wxSize(600, 500)));
-    SetSize(FromDIP(wxSize(600, 500))); // initial size only; the dialog is resizable
+    fit_to_content(); // initial size only; the dialog is resizable
     wxGetApp().UpdateDlgDarkUI(this);
+}
+
+// Size the window to its content: width follows the widest tab strip so no filament tab is
+// hidden (TabCtrl::relayout hides overflowing buttons), height scales proportionally. Both
+// are floored at the 600x500 base and capped at hard DIP limits - deliberately not the whole
+// display - with one last-resort clamp so the dialog can never open larger than the screen.
+// Also owns the resize floor: the window cannot be resized below what the tabs need, so
+// shrinking never re-hides a filament tab.
+void PublishSettingsDialog::fit_to_content()
+{
+    static const wxSize BASE{600, 500};
+    static const wxSize CAP{1300, 850};
+
+    int strip = m_outer_tabs->buttons_best_width();
+    for (const SectionGroup& section : m_sections)
+        strip = std::max(strip, section.tabs->buttons_best_width());
+
+    // Minimum width: whatever keeps every tab visible (never below the base). strip is device
+    // pixels (Button min sizes); BASE/CAP are DIP and converted over.
+    const int min_w = std::max(strip + 2 * FromDIP(10), FromDIP(BASE.x));
+
+    // Initial size: prefer proportional growth within the caps.
+    const int w    = std::clamp(min_w, FromDIP(BASE.x), FromDIP(CAP.x));
+    const double f = double(w) / FromDIP(BASE.x);
+    const int h    = std::clamp(int(FromDIP(BASE.y) * f), FromDIP(BASE.y), FromDIP(CAP.y));
+
+    const wxRect area = wxDisplay(this).GetClientArea();
+    const int max_w   = area.width * 9 / 10;
+    const int max_h   = area.height * 9 / 10;
+
+    SetMinSize(wxSize(std::min(min_w, max_w), std::min(FromDIP(BASE.y), max_h)));
+    SetSize(std::min(w, max_w), std::min(h, max_h));
 }
 
 PublishSettingsDialog::~PublishSettingsDialog() {}
@@ -1059,7 +1091,7 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
         }
     }
 
-    SetMinSize(FromDIP(wxSize(600, 500)));
+    fit_to_content(); // tab buttons' min widths grew with the DPI: re-fit (incl. resize floor)
     Refresh();
 }
 
