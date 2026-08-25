@@ -1028,6 +1028,32 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
                     if (valid)
                         this->set_deserialize(opt_key, value_str, substitution_context);
                 }
+                else if (it.value().is_boolean() || it.value().is_number()) {
+                    // Orca keeps every option in its serialised, textual form,
+                    // and the profiles it ships write even booleans as "0" and
+                    // "1".  A JSON number or boolean here is therefore not the
+                    // usual shape -- but discarding it, which is what this
+                    // branch used to do, is the worst of the three options.
+                    //
+                    // The key simply vanished: no error the caller could see,
+                    // and the option then took its compiled-in default.  For
+                    // precise_outer_wall that default is true, so writing
+                    // "precise_outer_wall": 0 in a config *enabled* it.  A
+                    // boolean switched on by being set to zero is not a
+                    // corner case anybody can be expected to guess at, and
+                    // the slice still exits 0.
+                    //
+                    // So convert instead.  The intent is unambiguous in every
+                    // case, and anything genuinely unconvertible still falls
+                    // through to the error below.
+                    if (it.value().is_boolean())
+                        value_str = it.value().get<bool>() ? "1" : "0";
+                    else if (it.value().is_number_integer())
+                        value_str = std::to_string(it.value().get<int64_t>());
+                    else
+                        value_str = float_to_string_decimal_point(it.value().get<double>());
+                    this->set_deserialize(opt_key, value_str, substitution_context);
+                }
                 else {
                     //should not happen
                     BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<file<<" error, invalid json type for " << it.key();
