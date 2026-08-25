@@ -139,6 +139,15 @@ void TextInput::SetIcon_1(const wxString &icon) {
     Rescale();
 }
 
+// Set icon_1 from a raw bitmap. Note: won't auto-rescale on DPI change
+// since ScalableBitmap::name() will be empty. Caller should re-set after DPI change.
+void TextInput::SetIcon_1(const wxBitmap &icon) {
+    this->icon_1 = ScalableBitmap();
+    if (icon.IsOk())
+        this->icon_1.bmp() = icon;
+    Rescale();
+}
+
 void TextInput::SetLabelColor(StateColor const &color)
 {
     label_color = color;

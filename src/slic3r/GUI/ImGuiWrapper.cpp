@@ -2404,6 +2404,25 @@ void ImGuiWrapper::draw(
     }
 }
 
+void ImGuiWrapper::draw_gradient_ramp(ImDrawList *draw_list, const ImVec2 &top_left, const ImVec2 &bottom_right, const std::vector<wxColour> &ramp)
+{
+    if (draw_list == nullptr || ramp.empty() || bottom_right.x <= top_left.x || bottom_right.y <= top_left.y)
+        return;
+
+    const int    rows  = std::max(1, (int) std::lround(bottom_right.y - top_left.y));
+    const float  row_h = (bottom_right.y - top_left.y) / rows;
+    const size_t last  = ramp.size() - 1;
+    for (int r = 0; r < rows; ++r) {
+        // Row 0 is the top of the rect and so takes the ramp's last entry, the model's top.
+        const double    t = (rows > 1) ? (double) (rows - 1 - r) / (rows - 1) : 0.5;
+        const wxColour &c = ramp[(size_t) (t * last + 0.5)];
+        // The bottom row snaps to the rect's edge so rounding never leaves a sliver uncovered.
+        const float y0 = top_left.y + r * row_h;
+        const float y1 = (r + 1 == rows) ? bottom_right.y : top_left.y + (r + 1) * row_h;
+        draw_list->AddRectFilled({top_left.x, y0}, {bottom_right.x, y1}, IM_COL32(c.Red(), c.Green(), c.Blue(), c.Alpha()));
+    }
+}
+
 void ImGuiWrapper::draw_cross_hair(const ImVec2 &position, float radius, ImU32 color, int num_segments, float thickness) {
     auto draw_list = ImGui::GetOverlayDrawList();
     draw_list->AddCircle(position, radius, color, num_segments, thickness);
