@@ -88,15 +88,54 @@ TEST_CASE("remap_mixed_components_on_delete rewrites ids around the deleted slot
     }
 }
 
-TEST_CASE("check_mixed_filament_type_consistency flags mismatched component types", "[FilamentMixer]")
+// The components of a mix alternate inside one printed body, so they have to bond. That is the
+// adhesion question MaterialType answers - not whether the type strings match, which would reject
+// perfectly printable combinations like PLA with PLA-CF.
+TEST_CASE("check_mixed_filament_type_consistency flags components that cannot bond", "[FilamentMixer]")
 {
     const std::vector<unsigned char> is_mixed  = {0, 0, 1};
     const std::vector<std::string>   comp_strs = {"", "", "1,2"};
+    auto check = [&](std::vector<std::string> types) {
+        return check_mixed_filament_type_consistency(is_mixed, comp_strs, std::move(types));
+    };
 
-    REQUIRE(check_mixed_filament_type_consistency(is_mixed, comp_strs, {"PLA", "PLA"}).empty());
+    SECTION("materials known not to bond are flagged") {
+        REQUIRE(check({"PLA", "PETG"}) == std::vector<size_t>{2});
+        REQUIRE(check({"PLA", "ABS"})  == std::vector<size_t>{2});
+        // A soluble support material bonds with nothing.
+        REQUIRE(check({"PLA", "PVA"})  == std::vector<size_t>{2});
+    }
 
-    auto bad = check_mixed_filament_type_consistency(is_mixed, comp_strs, {"PLA", "PETG"});
-    REQUIRE(bad == std::vector<size_t>{2});
+    SECTION("the same material is always accepted") {
+        REQUIRE(check({"PLA", "PLA"}).empty());
+    }
+
+    SECTION("differing types in one material family are accepted") {
+        REQUIRE(check({"PLA", "PLA-CF"}).empty());   // both base PLA
+        REQUIRE(check({"ABS", "ASA"}).empty());      // both base ABS
+        REQUIRE(check({"PET", "PETG"}).empty());     // both base PET
+    }
+
+    SECTION("a listed cross-family bond is accepted") {
+        REQUIRE(check({"ABS", "PC"}).empty());
+    }
+
+    SECTION("materials with no adhesion data are allowed rather than blocked") {
+        REQUIRE(check({"PLA", "TPU"}).empty());
+    }
+}
+
+TEST_CASE("mixed_filament_types_compatible rejects only known non-bonding pairs", "[FilamentMixer]")
+{
+    REQUIRE(mixed_filament_types_compatible("PLA", "PLA"));
+    REQUIRE(mixed_filament_types_compatible("PLA", "PLA-CF"));
+    REQUIRE(mixed_filament_types_compatible("ABS", "PC"));
+    REQUIRE(mixed_filament_types_compatible("PLA", "TPU"));  // unknown pairing
+    REQUIRE_FALSE(mixed_filament_types_compatible("PLA", "PETG"));
+    REQUIRE_FALSE(mixed_filament_types_compatible("PP", "PLA")); // PP bonds with nothing
+    // A support filament is made to peel off, so it blends only with itself.
+    REQUIRE(mixed_filament_types_compatible("PLA-S", "PLA-S"));
+    REQUIRE_FALSE(mixed_filament_types_compatible("PLA", "PLA-S"));
 }
 
 TEST_CASE("a support-flagged component reads as its own filament type for the consistency check", "[FilamentMixer]")
