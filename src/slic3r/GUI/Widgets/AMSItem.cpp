@@ -2083,9 +2083,6 @@ void AMSRoad::OnPassRoad(std::vector<AMSPassRoadMode> prord_list)
     }
 }
 
-/*
-
-
 /*************************************************
 Description:AMSRoadUpPart
 **************************************************/
