@@ -630,37 +630,27 @@ bool remove_small(Polygons &polys, double min_area)
 
 void remove_collinear(Polygon &poly)
 {
-    if (poly.points.size() > 2) {
-        // copy points and append both 1 and last point in place to cover the boundaries
-        Points pp;
-        pp.reserve(poly.points.size()+2);
-        pp.push_back(poly.points.back());
-        pp.insert(pp.begin()+1, poly.points.begin(), poly.points.end());
-        pp.push_back(poly.points.front());
-        // delete old points vector. Will be re-filled in the loop
-        poly.points.clear();
+    if (poly.points.size() < 4)
+        return;
 
-        size_t i = 0;
-        size_t k = 0;
-        while (i < pp.size()-2) {
-            k = i+1;
-            const Point &p1 = pp[i];
-            while (k < pp.size()-1) {
-                const Point &p2 = pp[k];
-                const Point &p3 = pp[k+1];
-                Line l(p1, p3);
-                if(l.distance_to(p2) < SCALED_EPSILON) {
-                    k++;
-                } else {
-                    if(i > 0) poly.points.push_back(p1); // implicitly removes the first point we appended above
-                    i = k;
-                    break;
-                }
-            }
-            if(k > pp.size()-2) break; // all remaining points are collinear and can be skipped
-        }
-        poly.points.push_back(pp[i]);
+    // A point is dropped when it lies on the segment connecting its neighbours. The previous
+    // neighbour is the last point that was actually kept, so that a run of collinear points
+    // collapses into a single segment. The next neighbour of the last point is the first point
+    // that was kept: taking the original one instead would let the two points adjacent to the
+    // start of the loop remove each other, cutting off the corner they form.
+    Points kept;
+    kept.reserve(poly.points.size());
+    const size_t n = poly.points.size();
+    for (size_t i = 0; i < n; ++ i) {
+        const Point &prev = kept.empty() ? poly.points[n - 1] : kept.back();
+        const Point &next = i + 1 < n     ? poly.points[i + 1] :
+                            kept.empty() ? poly.points[0] : kept.front();
+        // Never collapse the loop below a triangle.
+        if (kept.size() + (n - i) > 3 && Line(prev, next).distance_to(poly.points[i]) < SCALED_EPSILON)
+            continue;
+        kept.push_back(poly.points[i]);
     }
+    poly.points = std::move(kept);
 }
 
 void remove_collinear(Polygons &polys)
