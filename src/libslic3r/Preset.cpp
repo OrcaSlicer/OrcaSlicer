@@ -1754,7 +1754,8 @@ void PresetCollection::load_presets(
                     const Preset& default_preset = this->default_preset_for(config);
                     if (inherit_preset) {
                         preset.config = inherit_preset->config;
-                        preset.filament_id = inherit_preset->filament_id;
+                        if (preset.filament_id.empty())
+                            preset.filament_id = inherit_preset->filament_id;
                         extend_default_config_length(config, false, {});
                         preset.config.update_diff_values_to_child_config(config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
                     }

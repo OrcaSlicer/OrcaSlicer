@@ -3340,9 +3340,20 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         }
         bool has_type = false;
         auto filament_type = ams.opt_string("filament_type", 0u);
-        auto iter = std::find_if(filaments.begin(), filaments.end(), [this, &filament_id, &has_type, filament_type](auto &f) {
-            has_type |= f.config.opt_string("filament_type", 0u) == filament_type;
-            return f.is_compatible && filaments.get_preset_base(f) == &f && f.filament_id == filament_id; });
+        // Orca: the filament matcher may have identified one specific preset.
+        // Prefer it over the filament_id lookup below, which can only return the
+        // first preset carrying that id -- and ids are shared, both across
+        // unrelated products in shipped profiles and between every GUI-created
+        // preset and the parent it inherits from.
+        auto matched_preset_name = ams.has("matched_preset_name") ? ams.opt_string("matched_preset_name", 0u) : std::string();
+        auto iter = filaments.end();
+        if (!matched_preset_name.empty())
+            iter = std::find_if(filaments.begin(), filaments.end(), [&matched_preset_name](auto &f) {
+                return f.is_compatible && f.name == matched_preset_name; });
+        if (iter == filaments.end())
+            iter = std::find_if(filaments.begin(), filaments.end(), [this, &filament_id, &has_type, filament_type](auto &f) {
+                has_type |= f.config.opt_string("filament_type", 0u) == filament_type;
+                return f.is_compatible && boost::iequals(f.filament_id, filament_id); });
         if (iter == filaments.end()) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": filament_id %1% not found or system or compatible") % filament_id;
             if (!filament_type.empty()) {

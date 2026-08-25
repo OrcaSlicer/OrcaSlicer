@@ -95,6 +95,10 @@ protected:
         std::string tray_type;           // Material type (e.g., "PLA", "ASA")
         std::string tray_color;          // Raw color (#RRGGBB, 0xRRGGBB, or RRGGBBAA)
         std::string tray_info_idx;       // Setting ID (optional)
+        // Name of the preset the matcher settled on, when it identified one.
+        // tray_info_idx alone cannot name a preset: filament_id is shared across
+        // presets in real profile data, and GUI-created presets inherit theirs.
+        std::string matched_preset_name; // Optional
         int         bed_temp = 0;        // Optional
         int         nozzle_temp = 0;     // Optional
     };
@@ -117,9 +121,6 @@ protected:
 
     // Trim whitespace and convert to uppercase
     static std::string trim_and_upper(const std::string& input);
-
-    // Map filament type to OrcaFilamentLibrary preset ID for AMS sync compatibility
-    static std::string map_filament_type_to_generic_id(const std::string& filament_type);
 
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);
