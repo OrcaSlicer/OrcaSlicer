@@ -9109,7 +9109,19 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
 
         //During the filament change, the extruder will extrude an extra length of grab_length for the corresponding detection, so the purge can reduce this length.
         float grab_purge_volume = m_config.grab_length.get_at(new_extruder_id) * 2.4;
-        if (old_extruder_id != new_extruder_id) {
+        if (m_config.multi_extruder_multi_material.value) {
+            // TODO(hybrid-mmu phase 2d): TEMPORARY. Once tool<->lane mapping exists, derive the
+            // real (toolhead, lane) from filament_map and restore proper per-toolhead purge logic
+            // (purge only on same-toolhead lane swaps); remove this unconditional branch.
+            // Orca: hybrid MMU interim. Tool<->lane mapping is not implemented yet, so Orca cannot
+            // know which physical toolhead/lane a filament is loaded in and must not zero the purge
+            // for what it believes is a cross-toolhead move. Always emit the color-change purge from
+            // the shared flush matrix (real previous filament -> new filament) and leave it to the
+            // printer's MMU firmware to decide whether an actual purge is needed for a given Tn.
+            wipe_volume = flush_matrix[old_filament_id * number_of_extruders + new_filament_id];
+            wipe_volume *= m_config.flush_multiplier.get_at(new_extruder_id);
+        }
+        else if (old_extruder_id != new_extruder_id) {
             //calc flush volume between the same extruder id
             int old_filament_id_in_new_extruder = m_writer.filament(new_extruder_id) != nullptr ? m_writer.filament(new_extruder_id)->id() : -1;
             if (old_filament_id_in_new_extruder == -1)

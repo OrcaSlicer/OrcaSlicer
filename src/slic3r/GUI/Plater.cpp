@@ -4040,8 +4040,39 @@ void Sidebar::on_filaments_delete(size_t filament_id)
     dynamic_filament_list.update();
 }
 
+size_t Sidebar::get_mmu_filament_cap() const
+{
+    const auto& cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    if (!(cfg.has("multi_extruder_multi_material") && cfg.opt_bool("multi_extruder_multi_material")))
+        return MAXIMUM_EXTRUDER_NUMBER; // not in hybrid mode: no extra cap beyond the global maximum
+    const size_t extruders_count = cfg.option<ConfigOptionFloats>("nozzle_diameter")->size();
+    const int    declared        = cfg.has("multi_extruder_multi_material_filament_count")
+                                       ? cfg.opt_int("multi_extruder_multi_material_filament_count") : 1;
+    // Never below the number of toolheads, never above the global maximum.
+    return std::min<size_t>(MAXIMUM_EXTRUDER_NUMBER, std::max<size_t>(extruders_count, std::max(1, declared)));
+}
+
+void Sidebar::set_filament_count(size_t n)
+{
+    n = std::clamp<size_t>(n, 1, MAXIMUM_EXTRUDER_NUMBER);
+    // Reuse the tested add/delete paths to converge on the requested count. Guard against a call that
+    // doesn't change the size (e.g. add/delete refused) so we never spin forever.
+    size_t prev = size_t(-1);
+    while (p->combos_filament.size() < n && p->combos_filament.size() != prev) {
+        prev = p->combos_filament.size();
+        add_custom_filament(Plater::get_next_color_for_filament());
+    }
+    prev = size_t(-1);
+    while (p->combos_filament.size() > n && p->combos_filament.size() != prev) {
+        prev = p->combos_filament.size();
+        delete_filament(p->combos_filament.size() - 1, -1);
+    }
+}
+
 void Sidebar::add_filament() {
     if (p->combos_filament.size() >= MAXIMUM_EXTRUDER_NUMBER) return;
+    // Orca: in hybrid MMU mode, don't let the filament list exceed the declared MMU filament count.
+    if (p->combos_filament.size() >= get_mmu_filament_cap()) return;
     wxColour    new_col        = Plater::get_next_color_for_filament();
     add_custom_filament(new_col);
 
@@ -4606,7 +4637,12 @@ bool Sidebar::should_show_SEMM_buttons()
     bool is_bbl_vendor = preset_bundle.is_bbl_vendor();
     auto cfg = preset_bundle.printers.get_edited_preset().config;
 
-    return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor;
+    // Orca: a multi-toolhead printer backed by a filament switcher (MMU) behaves like a SEMM printer
+    // for the purpose of adding filaments and editing the flushing-volume matrix. Treat the hybrid
+    // gate the same way so the add/delete-filament and flushing-volume buttons are available.
+    bool is_memm = cfg.has("multi_extruder_multi_material") && cfg.opt_bool("multi_extruder_multi_material");
+
+    return cfg.opt_bool("single_extruder_multi_material") || is_memm || is_bbl_vendor;
 }
 
 void Sidebar::show_SEMM_buttons()

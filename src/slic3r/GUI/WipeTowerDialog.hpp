@@ -65,6 +65,13 @@ private:
 	VolumeMatrix m_raw_matrixs;
 	std::vector<double> m_flush_multipliers;
 	bool m_submit_flag{ false };
+
+	// TODO(hybrid-mmu phase 2c): TEMPORARY. Remove once per-toolhead flush matrices land.
+	// Orca: hybrid MMU (multi_extruder_multi_material) interim — edit a single shared
+	// flushing matrix as if the MMU can route any filament to any toolhead, then
+	// replicate it to every physical toolhead block on save.
+	bool m_single_matrix_mode{ false };
+	int  m_physical_nozzle_num{ 1 };
 };
 
 #endif  // _WIPE_TOWER_DIALOG_H_

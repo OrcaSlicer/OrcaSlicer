@@ -1861,8 +1861,47 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         }
     }
 
-    if (opt_key == "single_extruder_multi_material" || opt_key == "extruders_count" )
+    if (opt_key == "single_extruder_multi_material" || opt_key == "extruders_count" || opt_key == "multi_extruder_multi_material")
         update_wiping_button_visibility();
+
+    // Orca: toggling the hybrid MMU gate enables/disables the add-filament and flushing-volume
+    // buttons, mirroring how SEMM does. Refresh the sidebar and print tab so the UI updates live.
+    if (opt_key == "multi_extruder_multi_material") {
+        // Orca: when enabling the gate, seed the declared filament count to at least the toolhead
+        // count so the spinbox shows a meaningful starting value instead of the default 1.
+        if (m_config->opt_bool("multi_extruder_multi_material")) {
+            const size_t extruders_count = m_config->option<ConfigOptionFloats>("nozzle_diameter")->size();
+            if ((size_t) m_config->opt_int("multi_extruder_multi_material_filament_count") < extruders_count) {
+                DynamicPrintConfig new_conf = *m_config;
+                new_conf.set_key_value("multi_extruder_multi_material_filament_count", new ConfigOptionInt((int) extruders_count));
+                load_config(new_conf);
+            }
+        }
+        wxGetApp().sidebar().show_SEMM_buttons();
+        wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
+    }
+
+    // Orca: changing the declared MMU filament count resizes the filament list live (clamped to at
+    // least the number of toolheads). This touches presets and other tabs, so it MUST run deferred
+    // via CallAfter (mirroring the extruders_count handler) — doing it synchronously inside this
+    // value-change callback re-enters config/preset updates and corrupts state.
+    if (opt_key == "multi_extruder_multi_material_filament_count" && m_config->opt_bool("multi_extruder_multi_material")) {
+        wxTheApp->CallAfter([this]() {
+            if (!m_config->opt_bool("multi_extruder_multi_material"))
+                return;
+            const size_t extruders_count = m_config->option<ConfigOptionFloats>("nozzle_diameter")->size();
+            int declared = m_config->opt_int("multi_extruder_multi_material_filament_count");
+            // The filament count must never be fewer than the toolhead count. If the user tries to set
+            // it lower, silently clamp the stored value back up (no error dialog).
+            if (declared < (int) extruders_count) {
+                declared = (int) extruders_count;
+                DynamicPrintConfig new_conf = *m_config;
+                new_conf.set_key_value("multi_extruder_multi_material_filament_count", new ConfigOptionInt(declared));
+                load_config(new_conf);
+            }
+            wxGetApp().sidebar().set_filament_count((size_t) declared);
+        });
+    }
 
 
     if (opt_key == "pellet_flow_coefficient")
@@ -5501,7 +5540,7 @@ if (is_marlin_flavor)
     if (from_initial_build) {
         // create a page, but pretend it's an extruder page, so we can add it to m_pages ourselves
         auto page     = add_options_page(L("Multimaterial"), "custom-gcode_multi_material", true); // ORCA: icon only visible on placeholders
-        auto optgroup = page->new_optgroup(L("Single extruder multi-material setup"), "param_multi_material");
+        auto optgroup = page->new_optgroup(L("Multi-material setup"), "param_multi_material");
         optgroup->append_single_option_line("single_extruder_multi_material", "printer_multimaterial_setup#single-extruder-multi-material");
         ConfigOptionDef def;
         def.type    = coInt, def.set_default_value(new ConfigOptionInt((int) m_extruders_count));
@@ -5585,6 +5624,11 @@ if (is_marlin_flavor)
                 }
             });
         };
+        // Orca: gate for the hybrid multi-toolhead + filament switcher (MMU) workflow.
+        // Visibility is managed in toggle_options(): only shown when SEMM is off and extruders_count > 1.
+        optgroup->append_single_option_line("multi_extruder_multi_material", "printer_multimaterial_setup#multi-extruder-multi-material");
+        // Orca: declared total filament count for the MMU. Visible only when the hybrid gate is on.
+        optgroup->append_single_option_line("multi_extruder_multi_material_filament_count", "printer_multimaterial_setup#multi-extruder-multi-material");
         optgroup->append_single_option_line("manual_filament_change", "printer_multimaterial_setup#manual-filament-change");
         optgroup->append_single_option_line("bed_temperature_formula", "printer_basic_information_advanced#bed-temperature-type");
 
@@ -6128,6 +6172,22 @@ void TabPrinter::toggle_options()
         const size_t extruders_count = m_config->option<ConfigOptionFloats>("nozzle_diameter")->size();
         toggle_option("tool_change_on_wipe_tower", !bSEMM && supports_wipe_tower_2 && extruders_count > 1);
         toggle_option("wait_for_temp_on_wipe_tower", !bSEMM && supports_wipe_tower_2 && extruders_count > 1);
+
+        // Orca: the hybrid multi-toolhead + filament switcher (MMU) gate only applies to a multi-extruder
+        // printer that is NOT in single-nozzle mode. Hide it otherwise to avoid contradictory setups.
+        const bool show_memm = !bSEMM && extruders_count > 1;
+        toggle_line("multi_extruder_multi_material", show_memm);
+        if (!show_memm && m_config->opt_bool("multi_extruder_multi_material")) {
+            DynamicPrintConfig new_conf = *m_config;
+            new_conf.set_key_value("multi_extruder_multi_material", new ConfigOptionBool(false));
+            load_config(new_conf);
+        }
+        // Orca: the declared MMU filament count only applies once the hybrid gate is on.
+        const bool memm_on = show_memm && m_config->opt_bool("multi_extruder_multi_material");
+        toggle_line("multi_extruder_multi_material_filament_count", memm_on);
+        // NB: the count is floored at the toolhead count on enable (gate handler) and on edit (deferred,
+        // in on_value_change). We intentionally do NOT mutate config here: toggle_options runs inside
+        // update(), and a re-entrant load_config from here can corrupt preset state.
     }
     wxString extruder_number;
     long val = 1;

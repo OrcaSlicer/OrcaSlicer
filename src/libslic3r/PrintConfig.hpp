@@ -1609,6 +1609,13 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionString,              machine_start_gcode))
     ((ConfigOptionStrings,             filament_start_gcode))
     ((ConfigOptionBool,                single_extruder_multi_material))
+    // Orca: when set, a multi-toolhead printer is also fed by a filament switcher (MMU),
+    // so it can carry more filaments than it has toolheads. Gates the hybrid SEMM/multi-tool workflow.
+    ((ConfigOptionBool,                multi_extruder_multi_material))
+    // Orca: total filaments the filament switcher (MMU) can feed across all toolheads. Caps the
+    // filament count for the hybrid workflow and is the count restored on restart. Only meaningful
+    // when multi_extruder_multi_material is on.
+    ((ConfigOptionInt,                 multi_extruder_multi_material_filament_count))
     ((ConfigOptionBool,                manual_filament_change))
     ((ConfigOptionBool,                single_extruder_multi_material_priming))
     ((ConfigOptionEnum<ToolChangeOrderingType>, toolchange_ordering))
@@ -2398,9 +2405,15 @@ private:
 template<class T>
 static std::vector<T> get_flush_volumes_matrix(const std::vector<T> &fv_matrix, size_t extruder_id = -1, size_t nozzle_nums = 1)
 {
-    if (extruder_id != -1 && nozzle_nums != 1) {
-        return std::vector<T>(fv_matrix.begin() + size_t(fv_matrix.size() / nozzle_nums * extruder_id + EPSILON),
-                                   fv_matrix.begin() + size_t(fv_matrix.size() / nozzle_nums * (extruder_id + 1) + EPSILON));
+    // Only slice out a per-nozzle block when the matrix is actually laid out as nozzle_nums equal
+    // blocks. Otherwise (e.g. a single shared block on a hybrid MMU printer, or any size that does
+    // not divide evenly) fall back to the whole matrix, so callers never get a truncated or
+    // out-of-range slice. Guards against OOB reads that previously corrupted downstream indexing.
+    if (extruder_id != size_t(-1) && nozzle_nums != 1 && fv_matrix.size() % nozzle_nums == 0) {
+        const size_t block = fv_matrix.size() / nozzle_nums;
+        const size_t begin = block * extruder_id;
+        if (begin + block <= fv_matrix.size())
+            return std::vector<T>(fv_matrix.begin() + begin, fv_matrix.begin() + begin + block);
     }
     return fv_matrix;
 }
@@ -2411,9 +2424,19 @@ static std::vector<T> get_flush_volumes_matrix(const std::vector<T> &fv_matrix, 
 template<class T>
 static void set_flush_volumes_matrix(std::vector<T> &out_matrix, const std::vector<T> &fv_matrix, size_t extruder_id = -1, size_t nozzle_nums = 1)
 {
-    bool is_multi_extruder = false;
-    if (extruder_id != -1 && nozzle_nums != 1) {
-        std::copy(fv_matrix.begin(), fv_matrix.end(), out_matrix.begin() + size_t(out_matrix.size() / nozzle_nums * extruder_id + EPSILON));
+    if (extruder_id != size_t(-1) && nozzle_nums != 1) {
+        // fv_matrix is one nozzle's (filament x filament) block. Make sure the destination can hold
+        // one block per nozzle before writing; otherwise writing a higher extruder's block runs past
+        // the end of out_matrix and corrupts the heap (observed crash on a hybrid MMU printer whose
+        // stored matrix was still a single shared block). Auto-grow to the full layout, then bounds-
+        // check the copy.
+        const size_t block  = fv_matrix.size();
+        const size_t needed = block * nozzle_nums;
+        if (out_matrix.size() < needed)
+            out_matrix.resize(needed, T(0));
+        const size_t offset = block * extruder_id;
+        if (block > 0 && offset + block <= out_matrix.size())
+            std::copy(fv_matrix.begin(), fv_matrix.end(), out_matrix.begin() + offset);
     }
     else {
         out_matrix = std::vector<T>(fv_matrix.begin(), fv_matrix.end());

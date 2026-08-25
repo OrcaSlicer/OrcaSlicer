@@ -8905,7 +8905,17 @@ void GUI_App::load_current_presets(bool active_preset_combox/*= false*/, bool ch
     if (printer_technology == ptFFF && !edited_printer_preset.config.opt_bool("single_extruder_multi_material")) {
         auto* nozzle_diameter = edited_printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
         if (nozzle_diameter) {
-            preset_bundle->set_num_filaments(nozzle_diameter->values.size());
+            size_t num_filaments = nozzle_diameter->values.size();
+            // Orca: hybrid MMU printers can carry more filaments than toolheads. Restore the declared
+            // MMU filament count (clamped to at least the toolhead count) instead of collapsing the
+            // filament list back to the number of extruders on every reload/restart.
+            if (edited_printer_preset.config.has("multi_extruder_multi_material") &&
+                edited_printer_preset.config.opt_bool("multi_extruder_multi_material") &&
+                edited_printer_preset.config.has("multi_extruder_multi_material_filament_count")) {
+                int declared = edited_printer_preset.config.opt_int("multi_extruder_multi_material_filament_count");
+                num_filaments = std::max<size_t>(num_filaments, (size_t) std::max(1, declared));
+            }
+            preset_bundle->set_num_filaments(num_filaments);
         }
     }
 	this->plater()->set_printer_technology(printer_technology);

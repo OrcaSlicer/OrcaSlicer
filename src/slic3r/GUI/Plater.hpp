@@ -189,6 +189,10 @@ public:
     void change_filament(size_t from_id, size_t to_id);  // 0 base
     void edit_filament();
     void add_custom_filament(wxColour new_col);
+    // Orca: hybrid MMU — set the filament list to an exact count (used by the declared MMU filament count).
+    void set_filament_count(size_t n);
+    // Orca: hybrid MMU — effective filament cap = max(declared count, toolhead count), or unlimited if not in hybrid mode.
+    size_t get_mmu_filament_cap() const;
     bool is_new_project_in_gcode3mf();
     // BBS
     void on_bed_type_change(BedType bed_type);
