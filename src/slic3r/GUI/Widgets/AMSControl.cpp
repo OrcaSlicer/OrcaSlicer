@@ -984,7 +984,7 @@ void AMSControl::UpdateAms(const std::string   &series_name,
             if (cans->get_ams_id() == std::to_string(VIRTUAL_TRAY_MAIN_ID) || cans->get_ams_id() == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
                 for (auto ifo : m_ext_info) {
                     if (ifo.ams_id == ams_id) {
-                        cans->Update(ifo);
+                        cans->UpdateInfo(ifo);
                         cans->show_sn_value(m_ams_model == AMSModel::AMS_LITE ? false : true);
                     }
                 }
@@ -992,7 +992,7 @@ void AMSControl::UpdateAms(const std::string   &series_name,
             else{
                 for (auto ifo : m_ams_info) {
                     if (ifo.ams_id == ams_id) {
-                        cans->Update(ifo);
+                        cans->UpdateInfo(ifo);
                         cans->show_sn_value(m_ams_model == AMSModel::AMS_LITE ? false : true);
                     }
                 }
@@ -1015,7 +1015,7 @@ void AMSControl::UpdateAms(const std::string   &series_name,
             std::string id = ams_prv.second->get_ams_id();
             auto item = m_ams_item_list.find(id);
             if (item != m_ams_item_list.end())
-            { ams_prv.second->Update(item->second->get_ams_info());
+            { ams_prv.second->UpdateInfo(item->second->get_ams_info());
             }
         }
     }
