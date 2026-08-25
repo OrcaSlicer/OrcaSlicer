@@ -1224,7 +1224,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // Reads the parse-time metadata: the model XML carries it before its resources, while
         // m_model->model_info is only filled in after the whole XML has been parsed.
         bool _is_published_3mf() const {
-            return this->model_info.metadata_items.find("published") != this->model_info.metadata_items.end();
+            return this->model_info.metadata_items.find(ORCA_PUBLISHED_TAG) != this->model_info.metadata_items.end();
         }
 
         bool _is_svg_shape_file(const std::string &filename) const;

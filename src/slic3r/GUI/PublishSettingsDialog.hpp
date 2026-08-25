@@ -11,7 +11,6 @@
 #include <wx/menu.h>
 #include <vector>
 #include <string>
-#include <functional>
 
 // Forward declarations (all are global classes, see Widgets/TextInput.hpp and
 // Widgets/StaticLine.hpp).
@@ -30,7 +29,7 @@ struct PublishMaterialIdentity
 // Dialog letting a model author select which settings get embedded in a 3MF. Nested tab layout
 // mirroring the Process settings (Printer / Filament / Process outer tabs, category or material
 // tabs inside each). Dirty settings are pre-checked and shown bold; on OK the print rows become
-// "published_keys" and the material rows become "published_material_keys".
+// "orca_published_keys" and the material rows become "orca_published_material_keys".
 class PublishSettingsDialog : public DPIDialog
 {
 public:

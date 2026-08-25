@@ -154,6 +154,15 @@ enum class SaveStrategy
     Backup = 0x10000 | WithGcode | Silence | SkipStatic | SplitModel,
 };
 
+// Model metadata keys of a "published" 3MF (see MinimalPublished): the flag marks a minimal,
+// tag-less publish export, the others carry the author-selected settings payload. Namespaced
+// with the "orca_published" prefix because metadata_items round-trips verbatim through other
+// slicers, where a bare "published" key could collide.
+inline constexpr const char *ORCA_PUBLISHED_TAG          = "orca_published";
+inline constexpr const char *ORCA_PUBLISHED_KEYS_TAG     = "orca_published_keys";
+inline constexpr const char *ORCA_PUBLISHED_MATERIAL_TAG = "orca_published_material_keys";
+inline constexpr const char *ORCA_PUBLISHED_CONFIG_TAG   = "orca_published_config";
+
 inline SaveStrategy operator | (SaveStrategy lhs, SaveStrategy rhs)
 {
     using T = std::underlying_type_t <SaveStrategy>;

@@ -501,8 +501,8 @@ SCENARIO("Nozzle-group metadata .3mf round-trip", "[3mf][MultiNozzle]") {
     }
 }
 
-// Locks the serialization contract of the "Publish" metadata: the published flag and the
-// published_keys JSON array in model.model_info->metadata_items must survive a store_bbs_3mf ->
+// Locks the serialization contract of the "Publish" metadata: the orca_published flag and the
+// orca_published_keys JSON array in model.model_info->metadata_items must survive a store_bbs_3mf ->
 // load_bbs_3mf round-trip unchanged. (The full preset-preservation behavior is exercised
 // headlessly in test_preset_bundle_loading.cpp.)
 SCENARIO("Published 3MF round-trips the published flag and published_keys metadata", "[3mf]") {
@@ -513,8 +513,8 @@ SCENARIO("Published 3MF round-trips the published flag and published_keys metada
         model.add_default_instances();
 
         model.model_info = std::make_shared<ModelInfo>();
-        model.model_info->metadata_items["published"]      = "1";
-        model.model_info->metadata_items["published_keys"] = R"(["layer_height","wall_thickness"])";
+        model.model_info->metadata_items[ORCA_PUBLISHED_TAG]      = "1";
+        model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG] = R"(["layer_height","wall_thickness"])";
 
         // store_bbs_3mf stages project_settings.config through the model's backup path; point
         // it at a writable temp dir (the default lives under a read-only root in CI).
@@ -546,12 +546,12 @@ SCENARIO("Published 3MF round-trips the published flag and published_keys metada
             THEN("the published metadata round-trips unchanged") {
                 REQUIRE(loaded);
                 REQUIRE(dst_model.model_info != nullptr);
-                REQUIRE(dst_model.model_info->metadata_items["published"] == "1");
-                REQUIRE(dst_model.model_info->metadata_items["published_keys"] == R"(["layer_height","wall_thickness"])");
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_TAG] == "1");
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG] == R"(["layer_height","wall_thickness"])");
 
-                // The published_keys value is a JSON array of setting keys; it must parse back to
+                // The orca_published_keys value is a JSON array of setting keys; it must parse back to
                 // the same keys that were selected.
-                nlohmann::json keys = nlohmann::json::parse(dst_model.model_info->metadata_items["published_keys"]);
+                nlohmann::json keys = nlohmann::json::parse(dst_model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG]);
                 REQUIRE(keys.is_array());
                 REQUIRE(keys.size() == 2);
                 REQUIRE(keys[0] == "layer_height");
@@ -563,7 +563,7 @@ SCENARIO("Published 3MF round-trips the published flag and published_keys metada
 }
 
 // A normal 3MF (no Publish metadata) must load identically: the loader must not fabricate a
-// "published" flag or published_keys for files that never carried them.
+// "orca_published" flag or orca_published_keys for files that never carried them.
 SCENARIO("Legacy 3MF without published metadata loads unchanged", "[3mf]") {
     GIVEN("a model without any published metadata") {
         Model model;
@@ -599,8 +599,8 @@ SCENARIO("Legacy 3MF without published metadata loads unchanged", "[3mf]") {
             THEN("no published key is fabricated") {
                 REQUIRE(loaded);
                 if (dst_model.model_info != nullptr) {
-                    REQUIRE(dst_model.model_info->metadata_items.count("published") == 0);
-                    REQUIRE(dst_model.model_info->metadata_items.count("published_keys") == 0);
+                    REQUIRE(dst_model.model_info->metadata_items.count(ORCA_PUBLISHED_TAG) == 0);
+                    REQUIRE(dst_model.model_info->metadata_items.count(ORCA_PUBLISHED_KEYS_TAG) == 0);
                 }
             }
             release_PlateData_list(dst_plates);
@@ -608,8 +608,8 @@ SCENARIO("Legacy 3MF without published metadata loads unchanged", "[3mf]") {
     }
 }
 
-// Locks the serialization contract of the published_material_keys metadata: the per-entry JSON
-// must survive a store_bbs_3mf -> load_bbs_3mf round-trip verbatim, exactly like published_keys.
+// Locks the serialization contract of the orca_published_material_keys metadata: the per-entry JSON
+// must survive a store_bbs_3mf -> load_bbs_3mf round-trip verbatim, exactly like orca_published_keys.
 SCENARIO("Published 3MF round-trips the published_material_keys metadata", "[3mf]") {
     GIVEN("a model carrying published material keys metadata") {
         Model model;
@@ -621,7 +621,7 @@ SCENARIO("Published 3MF round-trips the published_material_keys metadata", "[3mf
             R"([{"material":{"filament_type":"PLA","filament_vendor":"Generic","filament_id":"GFL99"},"slot":0,"keys":["filament_retraction_length","filament_z_hop"]}])";
 
         model.model_info = std::make_shared<ModelInfo>();
-        model.model_info->metadata_items["published_material_keys"] = material_keys_json;
+        model.model_info->metadata_items[ORCA_PUBLISHED_MATERIAL_TAG] = material_keys_json;
 
         ScopedTemporaryDir backup_dir("orca_pub_mat");
         model.set_backup_path(backup_dir.string());
@@ -651,7 +651,7 @@ SCENARIO("Published 3MF round-trips the published_material_keys metadata", "[3mf
             THEN("the published material keys metadata round-trips unchanged") {
                 REQUIRE(loaded);
                 REQUIRE(dst_model.model_info != nullptr);
-                REQUIRE(dst_model.model_info->metadata_items["published_material_keys"] == material_keys_json);
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_MATERIAL_TAG] == material_keys_json);
 
                 // The value must parse back to one material entry carrying the nested identity
                 // object, the author slot ordinal and the key list.
@@ -706,9 +706,9 @@ SCENARIO("Minimal published 3MF omits project config, preset dumps and slicer ta
             payload += key + " = " + filtered_cfg.opt_serialize(key) + "\n";
 
         model.model_info = std::make_shared<ModelInfo>();
-        model.model_info->metadata_items["published"]      = "1";
-        model.model_info->metadata_items["published_keys"] = R"(["layer_height","retraction_length"])";
-        model.model_info->metadata_items["published_config"] = payload;
+        model.model_info->metadata_items[ORCA_PUBLISHED_TAG]      = "1";
+        model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG] = R"(["layer_height","retraction_length"])";
+        model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] = payload;
 
         ScopedTemporaryDir backup_dir("orca_min_pub");
         model.set_backup_path(backup_dir.string());
@@ -760,13 +760,13 @@ SCENARIO("Minimal published 3MF omits project config, preset dumps and slicer ta
             }
             THEN("the published metadata and payload round-trip unchanged") {
                 REQUIRE(dst_model.model_info != nullptr);
-                REQUIRE(dst_model.model_info->metadata_items["published"] == "1");
-                REQUIRE(dst_model.model_info->metadata_items["published_keys"] == R"(["layer_height","retraction_length"])");
-                REQUIRE(dst_model.model_info->metadata_items["published_config"] == payload);
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_TAG] == "1");
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG] == R"(["layer_height","retraction_length"])");
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] == payload);
             }
             THEN("the payload parses back to the published values") {
                 DynamicPrintConfig parsed_payload;
-                parsed_payload.load_from_ini_string(dst_model.model_info->metadata_items["published_config"], ForwardCompatibilitySubstitutionRule::Enable);
+                parsed_payload.load_from_ini_string(dst_model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG], ForwardCompatibilitySubstitutionRule::Enable);
                 REQUIRE(parsed_payload.option("layer_height") != nullptr);
                 REQUIRE_THAT(parsed_payload.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.24, 1e-6));
                 REQUIRE(parsed_payload.option("retraction_length") != nullptr);
@@ -887,7 +887,7 @@ SCENARIO("Published 3MF round-trips the extended material metadata", "[3mf]") {
             R"([{"material":{"filament_type":"PLA","filament_vendor":"Generic","filament_id":"GFL99","setting_id":"RFs9eCKYOMUSmvZf","name":"Generic PLA Matte @System"},"slot":1,"keys":[],"full":true,"full_keys":["filament_retraction_length","filament_colour"],"publish_type":true,"type":"PLA","publish_color":false,"color":""}])";
 
         model.model_info = std::make_shared<ModelInfo>();
-        model.model_info->metadata_items["published_material_keys"] = material_keys_json;
+        model.model_info->metadata_items[ORCA_PUBLISHED_MATERIAL_TAG] = material_keys_json;
 
         ScopedTemporaryDir backup_dir("orca_pub_mat2");
         model.set_backup_path(backup_dir.string());
@@ -917,7 +917,7 @@ SCENARIO("Published 3MF round-trips the extended material metadata", "[3mf]") {
             THEN("the extended material metadata round-trips unchanged") {
                 REQUIRE(loaded);
                 REQUIRE(dst_model.model_info != nullptr);
-                REQUIRE(dst_model.model_info->metadata_items["published_material_keys"] == material_keys_json);
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_MATERIAL_TAG] == material_keys_json);
 
                 // The value must parse back with every extended field intact.
                 nlohmann::json entries = nlohmann::json::parse(material_keys_json);

@@ -6920,11 +6920,11 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     // metadata payload, which must fill config_loaded before the chain decides
                     // whether to import geometry only.
                     if (model.model_info != nullptr) {
-                        auto published_it = model.model_info->metadata_items.find("published");
+                        auto published_it = model.model_info->metadata_items.find(ORCA_PUBLISHED_TAG);
                         if (published_it != model.model_info->metadata_items.end() &&
                             (published_it->second == "true" || published_it->second == "1")) {
                             published_config.published = true;
-                            auto keys_it = model.model_info->metadata_items.find("published_keys");
+                            auto keys_it = model.model_info->metadata_items.find(ORCA_PUBLISHED_KEYS_TAG);
                             if (keys_it != model.model_info->metadata_items.end()) {
                                 try {
                                     auto j = nlohmann::json::parse(keys_it->second);
@@ -6937,7 +6937,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 }
                             }
 
-                            auto material_keys_it = model.model_info->metadata_items.find("published_material_keys");
+                            auto material_keys_it = model.model_info->metadata_items.find(ORCA_PUBLISHED_MATERIAL_TAG);
                             if (material_keys_it != model.model_info->metadata_items.end()) {
                                 try {
                                     auto jm = nlohmann::json::parse(material_keys_it->second);
@@ -6995,7 +6995,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             // file carries no project_settings.config, so config_loaded is filled
                             // from here; a missing or malformed payload leaves it empty and the
                             // fallback chain below imports the geometry only.
-                            auto payload_it = model.model_info->metadata_items.find("published_config");
+                            auto payload_it = model.model_info->metadata_items.find(ORCA_PUBLISHED_CONFIG_TAG);
                             if (payload_it != model.model_info->metadata_items.end()) {
                                 try {
                                     ConfigSubstitutions payload_substitutions = config_loaded.load_from_ini_string(payload_it->second, ForwardCompatibilitySubstitutionRule::Enable);
@@ -7320,10 +7320,10 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 if (published_out != nullptr && published_config.published)
                     *published_out = true;
                 if (published_config.published && load_config && this->model.model_info != nullptr) {
-                    this->model.model_info->metadata_items.erase("published");
-                    this->model.model_info->metadata_items.erase("published_keys");
-                    this->model.model_info->metadata_items.erase("published_material_keys");
-                    this->model.model_info->metadata_items.erase("published_config");
+                    this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_TAG);
+                    this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_KEYS_TAG);
+                    this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_MATERIAL_TAG);
+                    this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_CONFIG_TAG);
                 }
 
                 if (load_config) {
@@ -16289,19 +16289,19 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
     // Save the previous metadata so it can be restored after the export, keeping the in-memory
     // project pristine (the published flag lives only in the exported file).
     const bool had_model_info       = (model.model_info != nullptr);
-    const bool had_published        = had_model_info && (model.model_info->metadata_items.find("published") != model.model_info->metadata_items.end());
-    const bool had_published_keys   = had_model_info && (model.model_info->metadata_items.find("published_keys") != model.model_info->metadata_items.end());
-    const bool had_material_keys    = had_model_info && (model.model_info->metadata_items.find("published_material_keys") != model.model_info->metadata_items.end());
-    const bool had_payload          = had_model_info && (model.model_info->metadata_items.find("published_config") != model.model_info->metadata_items.end());
-    const std::string prev_published      = had_published ? model.model_info->metadata_items.at("published") : std::string();
-    const std::string prev_published_keys = had_published_keys ? model.model_info->metadata_items.at("published_keys") : std::string();
-    const std::string prev_material_keys  = had_material_keys ? model.model_info->metadata_items.at("published_material_keys") : std::string();
-    const std::string prev_payload        = had_payload ? model.model_info->metadata_items.at("published_config") : std::string();
+    const bool had_published        = had_model_info && (model.model_info->metadata_items.find(ORCA_PUBLISHED_TAG) != model.model_info->metadata_items.end());
+    const bool had_published_keys   = had_model_info && (model.model_info->metadata_items.find(ORCA_PUBLISHED_KEYS_TAG) != model.model_info->metadata_items.end());
+    const bool had_material_keys    = had_model_info && (model.model_info->metadata_items.find(ORCA_PUBLISHED_MATERIAL_TAG) != model.model_info->metadata_items.end());
+    const bool had_payload          = had_model_info && (model.model_info->metadata_items.find(ORCA_PUBLISHED_CONFIG_TAG) != model.model_info->metadata_items.end());
+    const std::string prev_published      = had_published ? model.model_info->metadata_items.at(ORCA_PUBLISHED_TAG) : std::string();
+    const std::string prev_published_keys = had_published_keys ? model.model_info->metadata_items.at(ORCA_PUBLISHED_KEYS_TAG) : std::string();
+    const std::string prev_material_keys  = had_material_keys ? model.model_info->metadata_items.at(ORCA_PUBLISHED_MATERIAL_TAG) : std::string();
+    const std::string prev_payload        = had_payload ? model.model_info->metadata_items.at(ORCA_PUBLISHED_CONFIG_TAG) : std::string();
     if (model.model_info == nullptr)
         model.model_info = std::make_shared<ModelInfo>();
-    model.model_info->metadata_items["published"] = "1";
-    model.model_info->metadata_items["published_keys"] = j.dump();
-    model.model_info->metadata_items["published_material_keys"] = jm.dump();
+    model.model_info->metadata_items[ORCA_PUBLISHED_TAG] = "1";
+    model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG] = j.dump();
+    model.model_info->metadata_items[ORCA_PUBLISHED_MATERIAL_TAG] = jm.dump();
 
     // Minimal published export: filter full_config to the published keys, material keys,
     // identity fields and plate geometry keys, and omit the project config file, the
@@ -16314,7 +16314,7 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
     std::string payload;
     for (const std::string &key : filtered_cfg.keys())
         payload += key + " = " + filtered_cfg.opt_serialize(key) + "\n";
-    model.model_info->metadata_items["published_config"] = std::move(payload);
+    model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] = std::move(payload);
 
     // Same file layout as save_project(), plus Silence (so export_3mf does not set the project
     // filename on success, keeping this a pure export like export_core_3mf()) and MinimalPublished.
@@ -16332,21 +16332,21 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
             model.model_info = nullptr;
         } else {
             if (had_published)
-                model.model_info->metadata_items["published"] = prev_published;
+                model.model_info->metadata_items[ORCA_PUBLISHED_TAG] = prev_published;
             else
-                model.model_info->metadata_items.erase("published");
+                model.model_info->metadata_items.erase(ORCA_PUBLISHED_TAG);
             if (had_published_keys)
-                model.model_info->metadata_items["published_keys"] = prev_published_keys;
+                model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG] = prev_published_keys;
             else
-                model.model_info->metadata_items.erase("published_keys");
+                model.model_info->metadata_items.erase(ORCA_PUBLISHED_KEYS_TAG);
             if (had_material_keys)
-                model.model_info->metadata_items["published_material_keys"] = prev_material_keys;
+                model.model_info->metadata_items[ORCA_PUBLISHED_MATERIAL_TAG] = prev_material_keys;
             else
-                model.model_info->metadata_items.erase("published_material_keys");
+                model.model_info->metadata_items.erase(ORCA_PUBLISHED_MATERIAL_TAG);
             if (had_payload)
-                model.model_info->metadata_items["published_config"] = prev_payload;
+                model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] = prev_payload;
             else
-                model.model_info->metadata_items.erase("published_config");
+                model.model_info->metadata_items.erase(ORCA_PUBLISHED_CONFIG_TAG);
         }
     };
 
