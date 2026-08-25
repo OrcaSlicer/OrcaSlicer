@@ -1518,22 +1518,25 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 // construction and there is nothing to check here -- what can go wrong is
                 // physical, and the two things that do are below.
 
-                // (a) The lattice pitch. At full depth the cone is wider than one cell, so it
-                // presses into the NEIGHBOURING cells and not only the one being sealed. Past
-                // roughly MAGMA_PITCH_WARN_RATIO a print sweep showed the grid visibly
-                // distorted. The model checked the cone against the tube it was sealing and
+                // (a) The lattice pitch. By the time the cone has descended far enough to seal
+                // this tube it is wider than one cell, so it presses into the NEIGHBOURING cells
+                // and not only the one being sealed. Past roughly MAGMA_PITCH_WARN_RATIO a print
+                // sweep showed the grid visibly distorted. Measured at SEAL depth: a later plate
+                // took the plunge to 135% of pitch with no disruption, so the plunge is not
+                // counted here. The model checked the cone against the tube it was sealing and
                 // never against the lattice; this is that missing ceiling.
                 if (m.pitch_ratio() > magma::MAGMA_PITCH_WARN_RATIO) {
                     warn(Slic3r::format(
-                        L("Magma nozzle reaches %.0f%% of the cell pitch at full depth, so it is "
-                          "pressing into the cells NEXT TO the one it is sealing and will distort "
-                          "the lattice.\n\n"
-                          "At %.2f mm seal depth plus %.2f mm plunge the cone is %.2f mm across, "
-                          "against a %.2f mm cell pitch.\n\n"
-                          "Narrow the tube, reduce the plunge, or widen the sparse infill line "
-                          "width (which widens the pitch without shrinking the tube)."),
-                             100.0 * m.pitch_ratio(), m.seal_depth, m.plunge_depth,
-                             m.cone_at_full, m.cell_spacing),
+                        L("Magma nozzle reaches %.0f%% of the cell pitch just to seal this tube, "
+                          "so it is pressing into the cells NEXT TO the one it is sealing and "
+                          "will distort the lattice.\n\n"
+                          "At %.2f mm seal depth the cone is %.2f mm across, against a %.2f mm "
+                          "cell pitch. The %.2f mm plunge goes deeper still, but depth reached "
+                          "while injecting has not been shown to distort the lattice.\n\n"
+                          "Narrow the tube, or widen the sparse infill line width (which widens "
+                          "the pitch without shrinking the tube)."),
+                             100.0 * m.pitch_ratio(), m.seal_depth,
+                             m.cone_at_seal, m.cell_spacing, m.plunge_depth),
                          "magma_interior_width", object);
                 }
 

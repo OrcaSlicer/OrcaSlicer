@@ -6778,19 +6778,27 @@ void PrintConfigDef::init_fff_params()
     def = this->add("magma_injection_plunge_depth", coFloat);
     def->label = L("Plunge depth");
     def->category = L("Strength");
-    def->tooltip = L("How much deeper the nozzle ramps during a plunge injection, on top of the "
-                     "seal depth, by the time the injection finishes. Larger values press "
-                     "the hot nozzle harder into the tube top (better seal and surface melting) but "
-                     "risk digging into the part.\n\n"
-                     "This ADDS to the immersion the seal already spent and is clamped so the two "
-                     "together stay inside Total immersion. With Auto tube sizing the reservation is "
-                     "made up front, so a deeper plunge buys its room by making the tubes slightly "
-                     "narrower rather than by immersing further.");
+    def->tooltip = L("How much deeper the nozzle ramps during the injection, on top of the seal "
+                     "depth, by the time the injection finishes. The descent is a uniform ramp "
+                     "against filament, so the nozzle arrives at full depth exactly as the tube "
+                     "fills.\n\n"
+                     "Press and this are the same quantity -- depth past first contact -- differing "
+                     "only in when: the press before the injection, this during it. Both add to "
+                     "Corner grip. It takes nothing from the seal or the tube; it is added on "
+                     "top, and its only cost is total depth into the part.\n\n"
+                     "A plate sweeping this from 0.10 to 0.60 printed cleanly throughout, "
+                     "including well past the depth at which seal-driven immersion distorts the "
+                     "lattice -- depth reached while the tube is filling with hot plastic behaves "
+                     "differently from depth reached before it.");
     def->sidetext = L("mm");
     def->min = 0;
     def->max = 2.0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0.05));
+    // 0.10 rather than the best-looking 0.30: that plate showed all six values clean with 0.30
+    // marginally best, but it is one plate, one nozzle, one material. 0.10 is the lowest value
+    // it PROVED good, so it is the safe default for hardware we know nothing about. Raise it
+    // when a second geometry agrees.
+    def->set_default_value(new ConfigOptionFloat(0.10));
 
     def = this->add("magma_injection_dwell", coInt);
     def->label = L("Injection dwell time");

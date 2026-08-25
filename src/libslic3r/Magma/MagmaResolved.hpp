@@ -71,9 +71,11 @@ struct MagmaResolved
     // corner is the last part of the opening the cone covers and therefore the least pressed,
     // so this is the smallest contact in the system and the one that fails first.
     double grip         = 0.0;
-    // Cone diameter at full depth. Compared against the CELL PITCH, not against the tube: past
-    // roughly MAGMA_PITCH_WARN_RATIO the nozzle is crushing the neighbouring cells.
-    double cone_at_full = 0.0;
+    // Cone diameter at SEAL depth -- before any plunge. Compared against the CELL PITCH, not
+    // against the tube: past roughly MAGMA_PITCH_WARN_RATIO the nozzle is crushing the
+    // neighbouring cells on the way in. The plunge goes deeper still and is deliberately not
+    // counted; see MAGMA_PITCH_WARN_RATIO for the print that separated the two.
+    double cone_at_seal = 0.0;
 
     // What the user asked for, before the budget clamped it. Kept so the readout and
     // Print::validate can say a value was reduced instead of quietly showing a different
@@ -84,7 +86,7 @@ struct MagmaResolved
     // Ratio the grid-disruption warning fires on.
     double pitch_ratio() const {
         const double pitch = cell_spacing;
-        return pitch > 0.0 ? cone_at_full / pitch : 0.0;
+        return pitch > 0.0 ? cone_at_seal / pitch : 0.0;
     }
 
     // Total depth below the print surface the nozzle reaches at the end of injection.

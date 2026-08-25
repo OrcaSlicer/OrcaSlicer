@@ -81,8 +81,7 @@ bool resolve_magma(const PrintRegionConfig &region,
 
     // What actually resists the injection, and what the lattice pitch has to survive.
     r.grip             = corner_grip(r.seal_press, r.plunge_depth, r.cone_half_angle_deg);
-    r.cone_at_full     = cone_diameter_at(r.seal_depth + r.plunge_depth, r.nozzle_flat,
-                                          r.cone_half_angle_deg);
+    r.cone_at_seal     = cone_diameter_at(r.seal_depth, r.nozzle_flat, r.cone_half_angle_deg);
 
     out = r;
     return true;

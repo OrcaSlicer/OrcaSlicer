@@ -71,11 +71,15 @@ constexpr double MAGMA_SLAM_CLAMP        = 3.5;  // absolute sanity ceiling on t
 // between them. Do not tighten it without print evidence: at 1.10 it fires on configurations
 // that demonstrably print well.
 //
-// Evaluated at FULL depth (seal + plunge), on the reasoning that plastic deformation follows the
-// deepest penetration. That is an ASSUMPTION the calibration cannot yet confirm -- every cell in
-// that sweep used the same 0.10 plunge, so the ratio at seal depth and at full depth moved
-// together and the data cannot separate them. If the damage turns out to track the seal press
-// alone, a brief plunge is far cheaper than this predicts. See CALIBRATION.md.
+// Evaluated at SEAL depth, NOT at seal + plunge. That assumption used to run the other way, and
+// a print settled it: a plate sweeping plunge 0.10 -> 0.60 at a fixed tube reached 135% of pitch
+// at full depth with no lattice disruption at all, and the 0.30 cell looked the best of the six.
+// Depth reached while injecting does not do the damage that depth reached before it does -- the
+// cone descends into a cell that is filling with hot plastic, not into cold neighbours.
+//
+// The 1.135 value itself predates that plate and is INHERITED, not re-measured against this
+// definition: it came from a sweep whose geometry the calibration record does not preserve well
+// enough to recompute. A tube-width sweep is what re-derives it. See CALIBRATION.md.
 constexpr double MAGMA_PITCH_WARN_RATIO   = 1.135;
 // Default seal press, in mm. Exposed as magma_seal_press; this is only
 // the default. It used to be a hardcoded DIAMETRAL 0.1, i.e. 0.05 radial, which is what this
