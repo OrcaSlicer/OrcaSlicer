@@ -20,6 +20,13 @@ for %%a in (%*) do (
     if "%%a"=="-x" set USE_NINJA=1
 )
 
+@REM Check for the clang-cl option ("clang"). Selects LLVM's ClangCL platform toolset for
+@REM the slicer; dependencies are unaffected and stay MSVC-built.
+set TOOLSET_ARG=
+for %%a in (%*) do (
+    if /I "%%a"=="clang" set TOOLSET_ARG=-T ClangCL
+)
+
 @REM Check for unit-tests option ("tests")
 set BUILD_TESTS=OFF
 for %%a in (%*) do (
@@ -154,7 +161,7 @@ if "%USE_NINJA%"=="1" (
     cmake .. -G %CMAKE_GENERATOR% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target all
 ) else (
-    cmake .. -G %CMAKE_GENERATOR% -A %arch% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake .. -G %CMAKE_GENERATOR% -A %arch% %TOOLSET_ARG% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target ALL_BUILD -- -m
 )
 @echo off

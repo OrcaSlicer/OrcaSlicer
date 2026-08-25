@@ -395,7 +395,7 @@ jobs:
         # "tests" builds the unit tests too; the unit_tests_windows_* jobs run them.
         run: |
           $arch = "${{ inputs.arch }}"
-          if ($arch -eq "arm64") { .\build_release_vs.bat slicer arm64 tests } else { .\build_release_vs.bat slicer tests }
+          if ($arch -eq "arm64") { .\build_release_vs.bat slicer arm64 tests } else { .\build_release_vs.bat slicer clang tests }
         shell: pwsh
 
       - name: Build system preset cache (Windows)
