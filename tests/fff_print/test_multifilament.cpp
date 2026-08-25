@@ -804,14 +804,22 @@ TEST_CASE("Primary-mode IMEX prints mark only the filament slot they print with"
 }
 
 // Guard rail for the fix above: the modes the supplement exists for must keep marking their
-// secondaries. `copy` declares heads 0 and 1; neither is the initial tool's head (filament 6
-// routes to head 2), so both are still enumerated. Head 0 -> slot 0, head 1 -> slot 4.
+// secondaries. Printed on filament 1 (slot 0), which pem routes to head 0 -- the head `copy`
+// declares Primary -- so the plate is well-formed and validate() lets it through. Head 0 is
+// the initial tool's head and is skipped (tool_ordering already marked slot 0); head 1 is the
+// secondary and resolves to slot 4.
+//
+// This case previously printed on filament 6, which routes to head 2 while `copy` declares
+// head 0 Primary. Print::validate() now refuses that plate outright (no filament on it can
+// feed the Primary tool), so asserting it slices correctly would contradict
+// "An IMEX plate whose filament never routes to the primary carriage is blocked" below.
+// slice() does not surface validate()'s return, so the contradiction would have gone unnoticed.
 TEST_CASE("Copy-mode IMEX prints still mark every secondary carriage's filament slot",
           "[MultiFilament][IMEX]")
 {
     DynamicPrintConfig config = multifilament_config(7);
     imex_7x4_printer(config);
-    all_regions_on_filament(config, 6);
+    all_regions_on_filament(config, 1);
     config.set_deserialize_strict({
         { "imex_parallel_mode", "copy" },
         { "machine_start_gcode",
@@ -822,9 +830,9 @@ TEST_CASE("Copy-mode IMEX prints still mark every secondary carriage's filament 
 
     const std::string gcode = slice({ cube(20) }, config);
 
-    CHECK(gcode.find(";USED5:1") != std::string::npos);
-    CHECK(gcode.find(";USED0:1") != std::string::npos);
-    CHECK(gcode.find(";USED4:1") != std::string::npos);
+    CHECK(gcode.find(";USED0:1") != std::string::npos);  // the filament actually printed
+    CHECK(gcode.find(";USED4:1") != std::string::npos);  // head 1, the secondary carriage
+    CHECK(gcode.find(";USED5:0") != std::string::npos);
 }
 
 // The two IMEX changes are coupled: get_imex_active_tools() now returns an empty roster in
@@ -884,4 +892,58 @@ TEST_CASE("IQEX modes emit first- and second-layer temperatures for every active
     CHECK(gcode.find("M104 S240 T1") != std::string::npos);
     CHECK(gcode.find("M104 S240 T2") != std::string::npos);
     CHECK(gcode.find("M104 S240 T3") != std::string::npos);
+}
+
+// The IMEX Primary tool prints the sliced paths directly, so it can only use a filament the
+// printer's physical_extruder_map routes to it. The ghost filament picker enforces that for
+// the secondary tools; the primary's filament comes from the ordinary object selector, which
+// has no IMEX awareness. `copy` declares T0 Primary, but every filament this plate uses --
+// filament 6, slot 5 -- routes to head 2, so nothing can feed T0 and validate() must refuse.
+//
+// The object's own extruder is pinned too: ModelVolume::get_extruders() reports the volume's
+// extruder_id (1 by default), which would put slot 0 on the plate. Slot 0 routes to head 0,
+// the declared primary, so the plate would be well-formed and correctly NOT blocked.
+TEST_CASE("An IMEX plate whose filament never routes to the Primary tool is blocked",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 6);
+    config.set_deserialize_strict({ { "imex_parallel_mode", "copy" } });
+
+    std::vector<TriangleMesh> meshes;
+    meshes.push_back(cube(20));
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { { "extruder", "6" } } };
+
+    Slic3r::Model model;
+    Slic3r::Print print;
+    init_print(std::move(meshes), print, model, config, &overrides, false);
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException err = print.validate(&warnings);
+
+    REQUIRE_FALSE(err.string.empty());
+    CHECK(err.string.find("Primary tool") != std::string::npos);
+    CHECK(err.string.find("T0") != std::string::npos);   // the declared primary
+    CHECK(err.string.find("T2") != std::string::npos);   // where the filament actually lives
+}
+
+// Guard rail: the block must not fire on a well-formed plate. Filament 1 (slot 0) routes to
+// head 0, which `copy` declares Primary, so the Primary tool has something to print with.
+TEST_CASE("An IMEX plate whose filament routes to the Primary tool validates",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 1);
+    config.set_deserialize_strict({ { "imex_parallel_mode", "copy" } });
+
+    Slic3r::Model model;
+    Slic3r::Print print;
+    init_print({ cube(20) }, print, model, config);
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException err = print.validate(&warnings);
+
+    CHECK(err.string.empty());
 }

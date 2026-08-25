@@ -1331,11 +1331,14 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
     // IDEX/IQEX: block multi-color in non-primary parallel modes when the active
     // configuration can't physically support it (no within-gantry toolchange path
     // or MMU lane sharing). See imex_multicolor_block_reason() for the full rule.
-    if (m_config.is_imex.value && extruders.size() > 1 && !m_objects.empty()) {
+    // Both IMEX checks below need the active mode's tools string, so the parallel table is
+    // walked once here. Note this block is NOT gated on extruders.size() > 1: the primary
+    // routing check applies to a single-filament plate too, which is its most common case.
+    if (m_config.is_imex.value && !m_objects.empty()) {
         const std::string& parallel_mode = m_objects.front()->config().imex_parallel_mode.value;
         if (!parallel_mode.empty() && parallel_mode != kImexPrimaryMode) {
             // Look up the active mode's tools string in the printer config's parallel
-            // table. Fall back to empty (block helper handles it gracefully).
+            // table. Fall back to empty (the helpers below handle it gracefully).
             std::string active_tools_str;
             const auto& mode_names = m_config.imex_mode_names.values;
             const auto& mode_tools = m_config.imex_mode_active_tools.values;
@@ -1349,14 +1352,94 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             used_filaments_0b.reserve(extruders.size());
             for (unsigned int e : extruders)
                 used_filaments_0b.push_back((int)e);
-            const std::string reason = imex_multicolor_block_reason(
-                parallel_mode,
-                active_tools_str,
-                m_config.imex_tools_per_gantry.value,
-                used_filaments_0b,
-                m_config.physical_extruder_map);
-            if (!reason.empty())
-                return { reason };
+
+            // Multi-color has the more specific rule and its remedies are self-contained
+            // (an MMU manifold sharing one head cannot be fixed by switching mode), so it runs
+            // first: validate() returns on the first error, and the routing block below would
+            // otherwise mask it with advice that leads to this error on the next slice.
+            if (used_filaments_0b.size() > 1) {
+                const std::string reason = imex_multicolor_block_reason(
+                    parallel_mode,
+                    active_tools_str,
+                    m_config.imex_tools_per_gantry.value,
+                    used_filaments_0b,
+                    m_config.physical_extruder_map);
+                if (!reason.empty())
+                    return { reason };
+            }
+
+            // The IMEX Primary tool prints the sliced paths directly, so it can only use a
+            // filament the printer's physical_extruder_map routes to it. The ghost filament
+            // picker already enforces this for the secondary tools; the primary's filament
+            // comes from the ordinary object filament selector, which has no IMEX awareness,
+            // so nothing detected the mismatch. collect_imex_warnings() computes the same
+            // condition and discards it into a display fallback.
+            //
+            // Blocks rather than warns, matching the multi-color rule above. The plate is not
+            // printable as configured: the primary tool executes the toolpaths while the flow
+            // and temperatures were computed for a filament it cannot load. Where the routed
+            // head is also absent from the mode's active tools, the 1st->2nd layer temperature
+            // branch (GCode.cpp, mutually exclusive with the standard path) skips it too, so
+            // that head holds nozzle_temperature_initial_layer for the whole job. First-layer
+            // temperatures are unaffected -- _print_first_layer_extruder_temperatures is not
+            // IMEX-branched -- so this is a stuck-hot nozzle, not a cold one.
+            const ConfigOptionInts& pem = m_config.physical_extruder_map;
+            const int declared_primary = imex_primary_tool_for_mode(active_tools_str);
+            if (declared_primary >= 0 && !pem.values.empty()) {
+                std::vector<int> used_slots_1b;
+                used_slots_1b.reserve(used_filaments_0b.size());
+                for (int slot_0b : used_filaments_0b)
+                    used_slots_1b.push_back(slot_0b + 1);
+                if (imex_primary_logical_from_objects(used_slots_1b, pem, declared_primary) < 0) {
+                    // Bounds-check exactly as imex_primary_logical_from_objects does. get_at()
+                    // CLAMPS out-of-range slots to values.front(), which would let the message
+                    // name the very tool it just said nothing routes to.
+                    std::vector<int> routed_heads;
+                    routed_heads.reserve(used_filaments_0b.size());
+                    for (int slot_0b : used_filaments_0b)
+                        if (slot_0b >= 0 && slot_0b < (int) pem.values.size())
+                            routed_heads.push_back(pem.values[slot_0b]);
+                    std::sort(routed_heads.begin(), routed_heads.end());
+                    routed_heads.erase(std::unique(routed_heads.begin(), routed_heads.end()), routed_heads.end());
+                    std::string routed_list;
+                    for (int head : routed_heads)
+                        routed_list += (routed_list.empty() ? "T" : ", T") + std::to_string(head);
+                    if (routed_list.empty())
+                        routed_list = L("no configured extruder");
+
+                    // Name the modes that would actually work, by primary tool. Suggesting a
+                    // tool number is useless on its own -- the plate's mode menu lists mode
+                    // names, never their primaries.
+                    std::string candidate_modes;
+                    for (size_t i = 0; i < mode_names.size() && i < mode_tools.size(); ++i) {
+                        const int primary_i = imex_primary_tool_for_mode(mode_tools[i]);
+                        if (primary_i >= 0 && std::binary_search(routed_heads.begin(), routed_heads.end(), primary_i))
+                            candidate_modes += (candidate_modes.empty() ? "\"" : ", \"") + mode_names[i] + "\"";
+                    }
+
+                    StringObjectException err;
+                    err.string = candidate_modes.empty()
+                        ? Slic3r::format(
+                            L("IMEX mode \"%1%\" prints with tool T%2%, but no filament used on this plate "
+                              "is loaded on T%2% -- the plate's filaments are on %3%. The Primary tool "
+                              "prints the sliced paths directly, so it can only use a filament the "
+                              "printer's physical extruder map routes to it. Assign an object a filament "
+                              "loaded on T%2%, switch this plate to Primary mode, or edit the mode in "
+                              "Printer Settings so its Primary tool is one of %3%."),
+                            parallel_mode, declared_primary, routed_list)
+                        : Slic3r::format(
+                            L("IMEX mode \"%1%\" prints with tool T%2%, but no filament used on this plate "
+                              "is loaded on T%2% -- the plate's filaments are on %3%. The Primary tool "
+                              "prints the sliced paths directly, so it can only use a filament the "
+                              "printer's physical extruder map routes to it. Assign an object a filament "
+                              "loaded on T%2%, switch this plate to Primary mode, or switch it to one of: %4%."),
+                            parallel_mode, declared_primary, routed_list, candidate_modes);
+                    // Gives the notification a "Jump to <object>" link, which selects the object
+                    // and switches to Prepare -- directly enabling the first suggested remedy.
+                    err.object = m_objects.front();
+                    return err;
+                }
+            }
         }
     }
 
