@@ -46,8 +46,6 @@ class Button : public StaticBox
     bool isCenter    = true;
     bool vertical    = false;
 
-    wxTipWindow* tipWindow = nullptr;
-
     static const int buttonWidth  = 200;
     static const int buttonHeight = 50;
 
