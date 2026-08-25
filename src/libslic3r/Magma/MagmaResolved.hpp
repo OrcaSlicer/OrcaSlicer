@@ -71,10 +71,9 @@ struct MagmaResolved
     // corner is the last part of the opening the cone covers and therefore the least pressed,
     // so this is the smallest contact in the system and the one that fails first.
     double grip         = 0.0;
-    // Cone diameter at SEAL depth -- before any plunge. Compared against the CELL PITCH, not
-    // against the tube: past roughly MAGMA_PITCH_WARN_RATIO the nozzle is crushing the
-    // neighbouring cells on the way in. The plunge goes deeper still and is deliberately not
-    // counted; see MAGMA_PITCH_WARN_RATIO for the print that separated the two.
+    // Cone diameter at SEAL depth -- before any plunge. Compared against the CELL PITCH as a
+    // geometry sanity bound only (MAGMA_PITCH_ABSURD_RATIO); it is NOT a quality predictor, and
+    // the constant's comment records the plates that proved it is not.
     double cone_at_seal = 0.0;
 
     // What the user asked for, before the budget clamped it. Kept so the readout and

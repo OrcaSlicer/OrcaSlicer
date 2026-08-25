@@ -450,7 +450,7 @@ PresetHints::MagmaReadout PresetHints::magma_injection_readout(const PresetBundl
           _utf8(L("seal depth plus plunge -- the deepest the nozzle gets, reached as the last filament goes in and held through the dwell. A consequence of the two settings above, not a budget they are spent from")));
     r.add(_utf8(L("Nozzle vs cell pitch")),
           (boost::format("%1$.0f%%") % (100.0 * m.pitch_ratio())).str(),
-          m.pitch_ratio() > magma::MAGMA_PITCH_WARN_RATIO
+          m.pitch_ratio() > magma::MAGMA_PITCH_ABSURD_RATIO
               ? _utf8(L("the cone is wider than one cell at full depth, so it presses into the neighbouring cells and distorts the lattice"))
               : _utf8(L("how much of the cell pitch the cone spans at full depth; past ~110% it starts crushing the neighbouring cells")));
 

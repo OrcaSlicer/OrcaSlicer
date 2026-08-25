@@ -66,21 +66,29 @@ constexpr double MAGMA_SLAM_CLAMP        = 3.5;  // absolute sanity ceiling on t
 // Above which cone-diameter-to-cell-pitch ratio the nozzle is judged to be crushing the
 // NEIGHBOURING cells rather than only the one it is sealing.
 //
-// MEASURED, not derived. A sweep at flat 1.70 / line width 0.60 / plunge 0.10 was clean up to a
-// ratio of 1.129 and showed the lattice visibly disrupted from 1.139, so the threshold sits
-// between them. Do not tighten it without print evidence: at 1.10 it fires on configurations
-// that demonstrably print well.
+// GEOMETRY SANITY ONLY -- deliberately not a quality threshold. At 2.0 the cone spans an entire
+// neighbouring cell, which is broken as geometry whatever the physics turns out to be.
 //
-// Evaluated at SEAL depth, NOT at seal + plunge. That assumption used to run the other way, and
-// a print settled it: a plate sweeping plunge 0.10 -> 0.60 at a fixed tube reached 135% of pitch
-// at full depth with no lattice disruption at all, and the 0.30 cell looked the best of the six.
-// Depth reached while injecting does not do the damage that depth reached before it does -- the
-// cone descends into a cell that is filling with hot plastic, not into cold neighbours.
+// It used to sit at 1.135, presented as a measured lattice-disruption ceiling. It was not one.
+// Every result since has contradicted it in both directions: a plunge sweep reached 135% with no
+// disruption and its best-looking cell sat at 120%, while a tube sweep degraded at 106%, well
+// underneath it. The original 1.129/1.139 measurement came from a sweep where immersion drove
+// tube size, so the thing that actually changed across it was the TUBE, not the cone -- the
+// ceiling was real, the variable was wrong.
 //
-// The 1.135 value itself predates that plate and is INHERITED, not re-measured against this
-// definition: it came from a sweep whose geometry the calibration record does not preserve well
-// enough to recompute. A tube-width sweep is what re-derives it. See CALIBRATION.md.
-constexpr double MAGMA_PITCH_WARN_RATIO   = 1.135;
+// What the damage does track is tube width (onset near 1.7mm interior on two independent plates)
+// and possibly injected volume or injection time, which no plate has yet separated. There is
+// deliberately NO warning for that until a plate says which one it is; a threshold on the wrong
+// variable is exactly how this constant got here. See CALIBRATION.md.
+constexpr double MAGMA_PITCH_ABSURD_RATIO = 2.0;
+
+// Minimum seal depth, in mm, below which the seal is reported as unreliable. MEASURED: plates at
+// 0.10 and 0.29 leaked -- the 0.29 one on the healthiest matrix of its plate, so it was not a
+// side effect of something else -- and 0.56 held across a whole plate. It is not the ideal
+// geometry that fails: coverage is exact by construction at any depth. It is that a 0.29mm
+// engagement has no tolerance left for layer-height and squish variation on the printed rim,
+// while 0.56 absorbs it. Sits at 0.40, between the deepest failure and the shallowest success.
+constexpr double MAGMA_SEAL_DEPTH_MIN     = 0.40;
 // Default seal press, in mm. Exposed as magma_seal_press; this is only
 // the default. It used to be a hardcoded DIAMETRAL 0.1, i.e. 0.05 radial, which is what this
 // preserves. See corner_grip() for why it is the load-bearing number in the seal.

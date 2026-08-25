@@ -1518,25 +1518,38 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 // construction and there is nothing to check here -- what can go wrong is
                 // physical, and the two things that do are below.
 
-                // (a) The lattice pitch. By the time the cone has descended far enough to seal
-                // this tube it is wider than one cell, so it presses into the NEIGHBOURING cells
-                // and not only the one being sealed. Past roughly MAGMA_PITCH_WARN_RATIO a print
-                // sweep showed the grid visibly distorted. Measured at SEAL depth: a later plate
-                // took the plunge to 135% of pitch with no disruption, so the plunge is not
-                // counted here. The model checked the cone against the tube it was sealing and
-                // never against the lattice; this is that missing ceiling.
-                if (m.pitch_ratio() > magma::MAGMA_PITCH_WARN_RATIO) {
+                // (a) The seal is too shallow to survive a real printed surface. Coverage is
+                // exact at any depth by construction, so this is not a geometry failure -- it is
+                // that a rim printed in 0.2mm layers is not flat to better than a few hundredths,
+                // and an engagement this shallow has no tolerance left for that. Measured: 0.10
+                // and 0.29 leaked, 0.56 held.
+                if (m.seal_depth < magma::MAGMA_SEAL_DEPTH_MIN) {
+                    warn(Slic3r::format(
+                        L("Magma seals this tube only %.2f mm deep, which has leaked on test "
+                          "prints. The seal covers the opening exactly, but that little "
+                          "engagement leaves no margin for the unevenness of a printed rim.\n\n"
+                          "Seal depth is (opening - nozzle flat) / (2 tan(cone angle)) + press, "
+                          "so it is set by how much WIDER the cell is than the nozzle tip. A "
+                          "%.2f mm tube on a %.2f mm flat barely clears it. Widen the tube, or "
+                          "use a nozzle with a smaller tip flat -- a smaller flat seals the same "
+                          "tube deeper, and is the only way to seal a SMALL tube well."),
+                             m.seal_depth, m.interior_width, m.nozzle_flat),
+                         "magma_interior_width", object);
+                }
+
+                // (b) Geometry sanity: the cone spans a whole neighbouring cell. Not a quality
+                // threshold -- see MAGMA_PITCH_ABSURD_RATIO for the plates that ruled the cone
+                // out as a predictor of lattice damage.
+                if (m.pitch_ratio() > magma::MAGMA_PITCH_ABSURD_RATIO) {
                     warn(Slic3r::format(
                         L("Magma nozzle reaches %.0f%% of the cell pitch just to seal this tube, "
-                          "so it is pressing into the cells NEXT TO the one it is sealing and "
-                          "will distort the lattice.\n\n"
+                          "so the cone covers an entire neighbouring cell before it touches the "
+                          "one it is sealing.\n\n"
                           "At %.2f mm seal depth the cone is %.2f mm across, against a %.2f mm "
-                          "cell pitch. The %.2f mm plunge goes deeper still, but depth reached "
-                          "while injecting has not been shown to distort the lattice.\n\n"
-                          "Narrow the tube, or widen the sparse infill line width (which widens "
-                          "the pitch without shrinking the tube)."),
+                          "cell pitch. Narrow the tube, or widen the sparse infill line width "
+                          "(which widens the pitch without shrinking the tube)."),
                              100.0 * m.pitch_ratio(), m.seal_depth,
-                             m.cone_at_seal, m.cell_spacing, m.plunge_depth),
+                             m.cone_at_seal, m.cell_spacing),
                          "magma_interior_width", object);
                 }
 

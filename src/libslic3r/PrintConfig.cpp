@@ -6794,11 +6794,12 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->max = 2.0;
     def->mode = comAdvanced;
-    // 0.10 rather than the best-looking 0.30: that plate showed all six values clean with 0.30
-    // marginally best, but it is one plate, one nozzle, one material. 0.10 is the lowest value
-    // it PROVED good, so it is the safe default for hardware we know nothing about. Raise it
-    // when a second geometry agrees.
-    def->set_default_value(new ConfigOptionFloat(0.10));
+    // 0.40 is the lowest value proven good at a realistic injection volume. A first plate
+    // showed 0.10 to 0.60 all clean at ~18mm3 per tube; a second, at ~22mm3 and taller tubes,
+    // leaked at 0.20 and was indistinguishable across 0.40 to 0.60. So the earlier 0.10 was
+    // only ever adequate for the smallest tubes, and this is the value that holds once the
+    // injection is long enough for the seal to have to survive it.
+    def->set_default_value(new ConfigOptionFloat(0.40));
 
     def = this->add("magma_injection_dwell", coInt);
     def->label = L("Injection dwell time");
