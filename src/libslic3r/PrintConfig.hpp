@@ -708,6 +708,9 @@ public:
     PrintConfigDef();
 
     static void handle_legacy(t_config_option_key &opt_key, std::string &value);
+    // True for a key this version retired on purpose, as opposed to one
+    // it simply does not recognise.  handle_legacy() clears both.
+    static bool is_obsolete_key(const t_config_option_key &opt_key);
     static void handle_legacy_composite(DynamicPrintConfig &config);
 
     // Array options growing with the number of extruders
