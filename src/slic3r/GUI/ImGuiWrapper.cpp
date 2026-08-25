@@ -3332,8 +3332,9 @@ const char* ImGuiWrapper::clipboard_get(void* user_data)
             wxTextDataObject data;
             wxTheClipboard->GetData(data);
 
-            if (data.GetTextLength() > 0) {
-                self->m_clipboard_text = into_u8(data.GetText());
+            const wxString text = data.GetText();
+            if (text.Length() > 0) {
+                self->m_clipboard_text = into_u8(text);
                 res = self->m_clipboard_text.c_str();
             }
         }

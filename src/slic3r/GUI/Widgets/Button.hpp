@@ -3,6 +3,7 @@
 
 #include "../wxExtensions.hpp"
 #include "StaticBox.hpp"
+#include <wx/tipwin.h>
 
 class ButtonProps
 {
@@ -28,9 +29,9 @@ enum class ButtonType {
     Expanded,  // Font14  Semi-Rounded  For full length buttons. ex. buttons in static box
 };
 
-class wxTipWindow;
 class Button : public StaticBox
 {
+    wxTipWindow::Ref tipWindow;
     wxRect textSize;
     wxSize minSize; // set by outer
     wxSize paddingSize;
