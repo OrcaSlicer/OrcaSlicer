@@ -5312,6 +5312,10 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 // slots wrote to it; that compound case is not chased.)
                 const bool edited_survives_load = this->filament_presets.empty() ||
                     this->filament_presets.front() == this->filaments.get_edited_preset().name;
+                // Full Publish within-load dedup: identical Full materials (same setting_id
+                // + preset_name identity) share one created instance, so an author who
+                // pointed two slots at one preset yields one standalone copy here.
+                std::map<std::string, std::string> published_full_dedup;
                 for (const PublishedMaterialEntry &entry : published_config->material_keys) {
                     if (entry.slot < 0 || size_t(entry.slot) >= this->filament_presets.size())
                         continue; // out of range: nothing to do for this slot
@@ -5326,6 +5330,113 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     const std::string material_label = entry.filament_id.empty()
                         ? (entry.publish_type_value.empty() ? entry.filament_type : entry.publish_type_value)
                         : entry.filament_id;
+
+                    // Full Publish: always create a standalone detached copy (even on exact
+                    // identity match) as a "Preset Inside Project" (project-embedded: lives
+                    // in this project only, never written to the library), universally
+                    // compatible, named after the author's preset with its variant tail
+                    // stripped ("(Published)" uniquification on collision). No existing
+                    // preset is ever mutated.
+                    if (entry.full) {
+                        std::string dedup_key = entry.setting_id + std::string("\x1f") + entry.preset_name;
+                        // Identity-less hand-crafted files (empty setting_id+name) must not
+                        // collide: fall back to slot-scoped key so each slot gets its own copy
+                        // unless the dedup above is meaningful.
+                        if (dedup_key == std::string("\x1f"))
+                            dedup_key = dedup_key + std::to_string(slot);
+                        else if (!entry.filament_id.empty())
+                            dedup_key += std::string("\x1f") + entry.filament_id;
+                        std::string new_name;
+                        const auto dedup_it = published_full_dedup.find(dedup_key);
+                        if (dedup_it != published_full_dedup.end()) {
+                            new_name = dedup_it->second;
+                        } else {
+                            // Baseline: clone the receiver slot's stored preset config (schema-
+                            // complete across versions), then overlay the published full_keys.
+                            DynamicPrintConfig new_cfg = recv != nullptr
+                                ? recv->config : this->filaments.default_preset().config;
+                            for (const std::string &key : entry.full_keys) {
+                                const std::string base_key = publish_base_key(key);
+                                if (structural_keys.count(base_key) != 0)
+                                    continue;
+                                const ConfigOption *src_opt = config.option(base_key);
+                                if (src_opt == nullptr || !src_opt->is_vector() ||
+                                    entry.slot < 0 ||
+                                    entry.slot >= static_cast<int>(static_cast<const ConfigOptionVectorBase*>(src_opt)->size()))
+                                    continue;
+                                ConfigOption *dst_opt = new_cfg.option(base_key);
+                                if (dst_opt == nullptr || !dst_opt->is_vector() ||
+                                    static_cast<const ConfigOptionVectorBase*>(dst_opt)->empty() ||
+                                    dst_opt->type() != src_opt->type())
+                                    continue;
+                                static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, 0, entry.slot);
+                            }
+                            // The published colour is authoritative even for Full (the payload's
+                            // filament_colour plus the explicit publish_color field).
+                            if (entry.publish_color && !entry.color.empty()) {
+                                if (ConfigOptionStrings *col = new_cfg.opt<ConfigOptionStrings>("filament_colour", true)) {
+                                    if (col->values.empty())
+                                        col->values.emplace_back();
+                                    col->values[0] = entry.color;
+                                }
+                            }
+                            make_publish_universal(new_cfg);
+                            // Naming: stripped variant tail ("Generic PLA @System" -> "Generic
+                            // PLA"), then identity fallbacks; collisions uniquify with
+                            // "(Published)" / "(Published N)" inside add_detached_preset.
+                            std::string base_name = entry.preset_name.empty() ? std::string() : publish_material_base_name(entry.preset_name);
+                            if (base_name.empty()) {
+                                base_name = !entry.filament_id.empty() ? entry.filament_id
+                                    : (!entry.publish_type_value.empty() ? entry.publish_type_value : entry.filament_type);
+                                if (base_name.empty())
+                                    base_name = "Published Filament";
+                            }
+                            new_name = this->filaments.add_detached_preset(base_name, std::move(new_cfg), entry.filament_id);
+                            published_full_dedup.emplace(dedup_key, new_name);
+                        }
+                        const std::string old_name = this->filament_presets[slot];
+                        this->filament_presets[slot] = new_name;
+                        material_applied = true;
+                        published_config->material_replacements.emplace_back(
+                            "slot " + std::to_string(slot) + ": " + old_name + " -> " + new_name +
+                            " (published material imported)");
+                        // Colour is slot-scoped and project-visible: sync into project_config
+                        // (the copy already baked it, this makes the chips render).
+                        if (entry.publish_color && !entry.color.empty()) {
+                            if (ConfigOptionStrings *proj_colour = this->project_config.opt<ConfigOptionStrings>("filament_colour")) {
+                                if (slot < proj_colour->values.size())
+                                    proj_colour->values[slot] = entry.color;
+                            }
+                            if (ConfigOptionStrings *proj_multi_colour = this->project_config.opt<ConfigOptionStrings>("filament_multi_colour")) {
+                                if (slot < proj_multi_colour->values.size())
+                                    proj_multi_colour->values[slot] = entry.color;
+                            }
+                        } else if (proj_colour && new_name != old_name) {
+                            // Fall back to the copy's colour so the chip is never blank: try
+                            // the newly created preset's filament_colour, then the option default.
+                            std::string seed;
+                            if (const Preset *created = this->filaments.find_preset(new_name, false, true)) {
+                                if (const ConfigOptionStrings *cols = created->config.opt<ConfigOptionStrings>("filament_colour"))
+                                    if (!cols->values.empty())
+                                        seed = cols->values.front();
+                            }
+                            if (seed.empty()) {
+                                if (const ConfigOptionDef *colour_def = print_config_def.get("filament_colour"))
+                                    if (const auto *defaults = dynamic_cast<const ConfigOptionStrings*>(colour_def->default_value.get()))
+                                        if (!defaults->values.empty())
+                                            seed = defaults->values.front();
+                            }
+                            if (!seed.empty()) {
+                                if (proj_colour && slot < proj_colour->values.size())
+                                    proj_colour->values[slot] = seed;
+                                if (proj_multi_colour && slot < proj_multi_colour->values.size())
+                                    proj_multi_colour->values[slot] = seed;
+                            }
+                        }
+                        if (proj_colour_type && slot < proj_colour_type->values.size())
+                            proj_colour_type->values[slot] = "1";
+                        continue;
+                    }
 
                     bool apply_slot = true;
                     // The gate compares against the slot's effective material type: the edited

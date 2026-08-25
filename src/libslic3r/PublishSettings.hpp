@@ -7,11 +7,7 @@ namespace Slic3r {
 class PresetBundle;
 
 // Strip a trailing "#N" variant suffix ("retraction_length#2" -> "retraction_length").
-inline std::string publish_base_key(const std::string &key)
-{
-    const size_t pos = key.find('#');
-    return pos == std::string::npos ? key : key.substr(0, pos);
-}
+std::string publish_base_key(const std::string &key);
 
 // Structural keys that are never applied onto the receiver's presets when loading a published
 // 3MF (single source of truth for the denylist): applying them would rewrite the user's preset
@@ -56,14 +52,20 @@ struct PublishedMaterialEntry {
     // 0-based author filament slot; -1 (hand-crafted files) is skipped.
     int         slot{-1};
     std::vector<std::string> keys;
-    // "Full Publish": serialize the whole filament preset (full_keys); the type gate then
-    // decides whether the receiver keeps its material (type match) or is replaced.
+    // "Full Publish": the whole filament preset (full_keys) is published. On the receiver
+    // Full Publish always creates a standalone parentless copy (libslic3r's "Detach from
+    // parent"): a new project-embedded preset ("Preset Inside Project") with the full
+    // resolved config, universally compatible (compatible_printers/condition cleared).
+    // It lives inside the loaded project only - never written to the user's library,
+    // no existing preset is ever selected-by-reference or mutated. Identical Full
+    // entries inside one load share one created instance (within-load dedup).
     bool full{false};
     // All non-structural filament keys of the author's slot preset; values travel in the file
     // config, masked to the author's slot index.
     std::vector<std::string> full_keys;
     // Vendor-agnostic (MaterialType) filament type the author requires for this slot; on
     // mismatch the slot is replaced with a same-type filament from the receiver's library.
+    // For Full entries the baked filament_type on the created copy satisfies the type gate.
     bool publish_type{false};
     std::string publish_type_value;
     // Required filament colour, applied on load regardless of the type match.
@@ -74,9 +76,21 @@ struct PublishedMaterialEntry {
 // "PLA High Speed" -> "PLA" (strip a space modifier); dash types like "PA-CF" are kept intact.
 std::string normalize_filament_type(const std::string& type);
 
+class DynamicPrintConfig;
+// Clear the compatibility lists/conditions on a filament config so it is compatible
+// with every printer and every print profile. A detached published material is
+// universally compatible by construction: the baseline clone may carry machine-specific
+// restrictions. Empty lists + empty conditions => compatible with everything
+// (see is_compatible_with_printer, Preset.cpp:840).
+void make_publish_universal(DynamicPrintConfig &config);
+
+// Naming base for a detached published-material copy: "Generic PLA @System" ->
+// "Generic PLA" (truncate at the first '@' variant tail, right-trimmed). Unchanged
+// when the name carries no '@'. Empty result means "fall back to identity fields".
+std::string publish_material_base_name(const std::string &preset_name);
+
 // Minimal DynamicPrintConfig for a published 3MF export: only the selected published keys,
 // material keys, identity fields and plate geometry keys.
-class DynamicPrintConfig;
 DynamicPrintConfig filter_published_config(
     const DynamicPrintConfig &full_config,
     const std::vector<std::string> &published_keys,

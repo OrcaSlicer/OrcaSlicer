@@ -6,11 +6,18 @@
 #include "MaterialType.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #include <map>
 #include <set>
 
 namespace Slic3r {
+
+std::string publish_base_key(const std::string &key)
+{
+    const size_t pos = key.find('#');
+    return pos == std::string::npos ? key : key.substr(0, pos);
+}
 
 std::string normalize_filament_type(const std::string& type)
 {
@@ -27,6 +34,32 @@ std::string normalize_filament_type(const std::string& type)
             return base;
     }
     return type;
+}
+
+void make_publish_universal(DynamicPrintConfig &config)
+{
+    // Lists: empty => compatible with every printer / every print preset. Conditions:
+    // empty so a leftover expression left behind by the baseline clone can never
+    // re-narrow the match (see is_compatible_with_printer, Preset.cpp:840). All four
+    // keys exist on filament presets; nil-guard for hand-crafted future schemas.
+    if (auto *opt = config.opt<ConfigOptionStrings>("compatible_printers", false))
+        opt->values.clear();
+    if (auto *opt = config.opt<ConfigOptionStrings>("compatible_prints", false))
+        opt->values.clear();
+    if (auto *opt = config.opt<ConfigOptionString>("compatible_printers_condition", false))
+        opt->value.clear();
+    if (auto *opt = config.opt<ConfigOptionString>("compatible_prints_condition", false))
+        opt->value.clear();
+}
+
+std::string publish_material_base_name(const std::string &preset_name)
+{
+    if (preset_name.empty())
+        return preset_name;
+    const size_t at = preset_name.find('@');
+    std::string base = (at == std::string::npos) ? preset_name : preset_name.substr(0, at);
+    boost::trim_right(base);
+    return base;
 }
 
 const std::set<std::string>& publish_structural_keys()
