@@ -4914,7 +4914,10 @@ void Sidebar::edit_mixed_filament(size_t panel_idx)
         if (multi_colour_opt && cfg_idx < multi_colour_opt->values.size())
             multi_colour_opt->values[cfg_idx] = blended;
 
+        // The edited slot keeps its index, so nothing else refreshes the per-feature filament
+        // lists - and its blended colour and type are what they show for it.
         update_mixed_filament_list();
+        update_dynamic_filament_list();
         wxGetApp().plater()->update_project_dirty_from_presets();
         wxPostEvent(this, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, this));
     }
@@ -5286,8 +5289,11 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
     if (num_physical == choices.size()) {
         // The ctor pre-creates one combo, so a single-filament project hits this guard before
         // any layout pass has sized the scroll areas; refresh them here as well.
+        // Adding a mixed slot also lands here, since only the virtual count changed, so the
+        // per-feature filament lists - which do list mixed slots - have to be refreshed too.
         recalc_filament_scroll_sizes();
         update_mixed_filament_list();
+        update_dynamic_filament_list();
         return;
     }
 
