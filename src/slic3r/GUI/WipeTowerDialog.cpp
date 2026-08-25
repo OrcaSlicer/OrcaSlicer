@@ -6,6 +6,7 @@
 #include "GUI.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
+#include "GUI_Utils.hpp"
 #include "MsgDialog.hpp"
 #include "format.hpp"
 #include "libslic3r/Color.hpp"
@@ -387,7 +388,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
 
     // Clamp to screen size (leave some margin for window decorations)
     wxSize scaled_screen_size = wxGetDisplaySize();
-    double scale_factor = wxDisplay().GetScaleFactor();
+    double scale_factor = safe_display_scale_factor(parent);
     scaled_screen_size = { (int)(scaled_screen_size.x / scale_factor), (int)(scaled_screen_size.y / scale_factor) };
     wxSize screen_margin = { FromDIP(40), FromDIP(60) };
     scaled_screen_size -= screen_margin;

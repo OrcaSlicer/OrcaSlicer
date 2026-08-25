@@ -5,6 +5,7 @@
 #include <wx/display.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
+#include "../GUI_Utils.hpp"
 
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
@@ -654,7 +655,7 @@ void DropDown::autoPosition()
     }
     if (GetPosition().y > pos.y) {
         // may exceed
-        auto drect = wxDisplay(GetParent()).GetGeometry();
+        auto drect = Slic3r::GUI::safe_display_geometry(GetParent());
         if (GetPosition().y + size.y + 10 > drect.GetBottom()) {
             int available_height = drect.GetBottom() - GetPosition().y - 10;
             if (available_height < rowSize.y * 2)

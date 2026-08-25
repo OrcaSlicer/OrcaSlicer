@@ -6,6 +6,7 @@
 #include "slic3r/Utils/WxFontUtils.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "GUI_Utils.hpp"
 #include "DeviceCore/DevConfigUtil.h"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
@@ -975,12 +976,7 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
          if (e.IsShown() && m_parent_item)
          {
              auto show_pos = m_parent_item->ClientToScreen(wxPoint(0, 0));
-             int  display_idx = wxDisplay::GetFromWindow(m_parent_item);
-
-             if (display_idx == wxNOT_FOUND)
-                 display_idx = 0;
-
-             wxRect screen_size = wxDisplay(display_idx).GetClientArea();
+             wxRect screen_size = safe_display_client_area(m_parent_item);
              auto   parent_size = m_parent_item->GetRect();
              auto   content_size = m_sizer_main_h->GetMinSize();
              int    popup_width  = content_size.x + FromDIP(28);

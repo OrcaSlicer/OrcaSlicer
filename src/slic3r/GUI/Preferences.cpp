@@ -1649,6 +1649,13 @@ void PreferencesDialog::create_items()
 #ifdef __linux__
     auto item_window_button_pos  = create_item_checkbox(_L("Use window buttons on left side"), "", "window_buttons_on_left", _L("(Requires restart)"));
     g_sizer->Add(item_window_button_pos);
+
+    auto item_x11_backend_on_wayland = create_item_checkbox(
+        _L("Use X11 backend on Wayland"),
+        _L("Workaround for rare crashes after KVM or monitor switching on Wayland. Enables XWayland when available."),
+        SETTING_LINUX_USE_X11_BACKEND_ON_WAYLAND,
+        _L("(Requires restart)"));
+    g_sizer->Add(item_x11_backend_on_wayland);
 #endif
 
     //auto item_hints            = create_item_checkbox(_L("Show \"Daily Tips\" after start"), page, _L("If enabled, useful hints are displayed at startup."), "show_daily_tips");

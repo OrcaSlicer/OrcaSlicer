@@ -627,6 +627,8 @@ void AppConfig::set_defaults()
 #ifdef __linux__
     if (get("window_buttons_on_left").empty())
         set_bool("window_buttons_on_left", false);
+    if (get(SETTING_LINUX_USE_X11_BACKEND_ON_WAYLAND).empty())
+        set_bool(SETTING_LINUX_USE_X11_BACKEND_ON_WAYLAND, false);
 #endif
 
     if (get("use_printer_agents").empty())

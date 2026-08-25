@@ -16,6 +16,7 @@
 #include "libslic3r/PresetCacheFormat.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
 #include "libslic3r_version.h"
 
 #include <wx/sizer.h>
@@ -1030,11 +1031,10 @@ bool GuideFrame::run()
 
     BOOST_LOG_TRIVIAL(info) << "GuideFrame before ShowModal";
     // display position
-    int main_frame_display_index = wxDisplay::GetFromWindow(wxGetApp().mainframe);
-    int guide_display_index = wxDisplay::GetFromWindow(this);
+    int main_frame_display_index = safe_display_index(wxGetApp().mainframe);
+    int guide_display_index = safe_display_index(this);
     if (main_frame_display_index != guide_display_index) {
-        wxDisplay display    = wxDisplay(main_frame_display_index);
-        wxRect    screenRect = display.GetGeometry();
+        wxRect    screenRect = safe_display_geometry(wxGetApp().mainframe);
         int       guide_x    = screenRect.x + (screenRect.width - this->GetSize().GetWidth()) / 2;
         int       guide_y    = screenRect.y + (screenRect.height - this->GetSize().GetHeight()) / 2;
         this->SetPosition(wxPoint(guide_x, guide_y));

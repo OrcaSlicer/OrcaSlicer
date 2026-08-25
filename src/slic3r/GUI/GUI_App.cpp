@@ -9626,13 +9626,10 @@ bool GUI_App::window_pos_restore(wxTopLevelWindow* window, const std::string &na
 
 void GUI_App::window_pos_sanitize(wxTopLevelWindow* window)
 {
-    /*unsigned*/int display_idx = wxDisplay::GetFromWindow(window);
-    wxRect display;
+    const int display_idx = safe_display_index(window);
+    wxRect display = safe_display_client_area(window);
     if (display_idx == wxNOT_FOUND) {
-        display = wxDisplay(0u).GetClientArea();
         window->Move(display.GetTopLeft());
-    } else {
-        display = wxDisplay(display_idx).GetClientArea();
     }
 
     auto metrics = WindowMetrics::from_window(window);
@@ -9644,13 +9641,10 @@ void GUI_App::window_pos_sanitize(wxTopLevelWindow* window)
 
 void GUI_App::window_pos_center(wxTopLevelWindow *window)
 {
-    /*unsigned*/int display_idx = wxDisplay::GetFromWindow(window);
-    wxRect display;
+    const int display_idx = safe_display_index(window);
+    wxRect display = safe_display_client_area(window);
     if (display_idx == wxNOT_FOUND) {
-        display = wxDisplay(0u).GetClientArea();
         window->Move(display.GetTopLeft());
-    } else {
-        display = wxDisplay(display_idx).GetClientArea();
     }
 
     auto metrics = WindowMetrics::from_window(window);

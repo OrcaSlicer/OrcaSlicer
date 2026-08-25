@@ -4,6 +4,7 @@
 #include <wx/display.h>
 #include <wx/dcgraph.h>
 #include "../GUI_App.hpp"
+#include "../GUI_Utils.hpp"
 
 
 
@@ -44,7 +45,7 @@ bool SidePopup::Show( bool show )
 void SidePopup::Popup(wxWindow* focus)
 {
     Create();
-    auto drect = wxDisplay(GetParent()).GetGeometry();
+    auto drect = Slic3r::GUI::safe_display_geometry(GetParent());
     int screenwidth = drect.x + drect.width;
     //int screenwidth = wxSystemSettings::GetMetric(wxSYS_SCREEN_X,NULL);
 

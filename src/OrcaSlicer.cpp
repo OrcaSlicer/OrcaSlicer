@@ -21,6 +21,7 @@
 #endif /* WIN32 */
 
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <cstring>
 #include <iostream>
@@ -53,6 +54,7 @@ using namespace nlohmann;
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/Model.hpp"
@@ -100,9 +102,82 @@ using namespace nlohmann;
 
 #ifdef SLIC3R_GUI
     #include "slic3r/GUI/GUI_Init.hpp"
+    #include "slic3r/GUI/GUI_Utils.hpp"
 #endif /* SLIC3R_GUI */
 
 using namespace Slic3r;
+
+#ifdef __WXGTK__
+namespace {
+
+bool has_env_value(const char *value)
+{
+    return value != nullptr && value[0] != '\0';
+}
+
+boost::filesystem::path default_linux_config_dir()
+{
+    if (const char *xdg_config_home = ::getenv("XDG_CONFIG_HOME"); has_env_value(xdg_config_home))
+        return boost::filesystem::path(xdg_config_home) / SLIC3R_APP_KEY;
+
+    if (const char *home = ::getenv("HOME"); has_env_value(home))
+        return boost::filesystem::path(home) / ".config" / SLIC3R_APP_KEY;
+
+    return {};
+}
+
+boost::filesystem::path early_linux_app_config_path()
+{
+    try {
+        const boost::filesystem::path app_dir = boost::dll::program_location().parent_path();
+        const boost::filesystem::path portable_data_dir = app_dir / "data_dir";
+        if (boost::filesystem::exists(portable_data_dir))
+            return (portable_data_dir / (SLIC3R_APP_KEY ".conf")).make_preferred();
+    } catch (const std::exception&) {
+        // Fall back to the normal XDG config path below. Logging is not initialized yet.
+    }
+
+    const boost::filesystem::path config_dir = default_linux_config_dir();
+    return config_dir.empty() ? boost::filesystem::path() : (config_dir / (SLIC3R_APP_KEY ".conf")).make_preferred();
+}
+
+bool read_early_app_config_bool(const char *key, bool default_value)
+{
+    const boost::filesystem::path path = early_linux_app_config_path();
+    if (path.empty() || !boost::filesystem::exists(path))
+        return default_value;
+
+    try {
+        boost::nowide::ifstream ifs(path.string());
+        if (!ifs)
+            return default_value;
+
+        nlohmann::json config = nlohmann::json::parse(ifs, nullptr, true, true);
+        const auto app_it = config.find("app");
+        if (app_it == config.end() || !app_it->is_object())
+            return default_value;
+
+        const auto value_it = app_it->find(key);
+        if (value_it == app_it->end())
+            return default_value;
+
+        if (value_it->is_boolean())
+            return value_it->get<bool>();
+        if (value_it->is_string()) {
+            const std::string value = value_it->get<std::string>();
+            return value == "true" || value == "1";
+        }
+        if (value_it->is_number_integer())
+            return value_it->get<int>() != 0;
+    } catch (const std::exception&) {
+        // Corrupted config handling happens later in AppConfig::load(); do not block startup here.
+    }
+
+    return default_value;
+}
+
+} // namespace
+#endif // __WXGTK__
 
 /*typedef struct _error_message{
     int code;
@@ -1196,40 +1271,38 @@ int CLI::run(int argc, char **argv)
 
 #ifdef __WXGTK__
     // ------------------------------------------------------------------
-    // Linux backend selection — runtime, based on GDK_BACKEND env var.
+    // Linux backend selection — must run before wx/GTK initializes.
     //
-    //   GDK_BACKEND unset (DEFAULT)    Wayland path.
-    //                                  GTK auto-picks Wayland on Wayland
-    //                                  sessions and X11 otherwise. WebKit
-    //                                  XWayland-compositing workaround
-    //                                  applied only when actually on
-    //                                  XWayland. XInitThreads gated on
-    //                                  DISPLAY presence.
+    // Native Wayland remains the default. Users affected by rare KVM or
+    // display-hotplug crashes can enable the Linux preference
+    // SETTING_LINUX_USE_X11_BACKEND_ON_WAYLAND; on the next launch, when an
+    // XWayland display is available, OrcaSlicer forces GDK_BACKEND=x11 before
+    // GTK connects to the display.
     //
-    //   GDK_BACKEND=x11   (OPT-IN)     X11/XWayland mode. Applies the
-    //                                  v2.3.2 workarounds that the X11
-    //                                  path benefits from: DRI_PRIME for
-    //                                  AMD/nouveau PRIME, NVIDIA PRIME
-    //                                  render offload (when nvidia.ko is
-    //                                  loaded), XInitThreads. 
-    //                                  Multi monitor is compromised
-    //
-    // WEBKIT_DISABLE_COMPOSITING_MODE is deliberately NOT set on the X11
-    // opt-in path. The ~2020-era WebKit2GTK XWayland compositor bug it
-    // worked around appears fixed in WebKit2GTK >= 2.42; leaving it
-    // unset preserves WebKit hardware acceleration on Device / Setup
-    // Wizard / login / store. The default path still applies it on
-    // XWayland sessions as a conservative fallback for older WebKit.
+    // Explicit GDK_BACKEND values are respected unless the preference is
+    // enabled. This keeps the workaround opt-in and reversible.
     // ------------------------------------------------------------------
     {
+        const bool x11_wayland_workaround_enabled = read_early_app_config_bool(SETTING_LINUX_USE_X11_BACKEND_ON_WAYLAND, false);
         const char* gdk_backend = ::getenv("GDK_BACKEND");
-        // Match "x11" and comma-prefixed forms like "x11,wayland" (GTK
-        // honours the first backend in the comma-separated list).
-        const bool x11_opt_in = gdk_backend && boost::starts_with(gdk_backend, "x11");
+        const char* display_env = ::getenv("DISPLAY");
+        const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
 
-        if (x11_opt_in) {
-            // ===== X11 / XWayland (opted in via GDK_BACKEND=x11) =====
-            BOOST_LOG_TRIVIAL(info) << "GDK_BACKEND=x11 detected; applying v2.3.2 X11/XWayland workarounds.";
+        if (Slic3r::GUI::detail::should_force_x11_backend_for_wayland_kvm(gdk_backend, display_env, wayland_env, x11_wayland_workaround_enabled)) {
+            BOOST_LOG_TRIVIAL(warning) << "Linux Wayland X11-backend workaround is enabled; forcing GDK_BACKEND=x11 to avoid KVM/display-hotplug crashes.";
+            ::setenv("GDK_BACKEND", "x11", true);
+            gdk_backend = ::getenv("GDK_BACKEND");
+        } else if (gdk_backend && *gdk_backend) {
+            BOOST_LOG_TRIVIAL(info) << "GDK_BACKEND=" << gdk_backend << " detected; respecting GTK backend selection.";
+        }
+
+        // Match "x11" and comma-prefixed forms like "x11,wayland" (GTK
+        // honours the first backend in the comma-separated list). Apply the
+        // X11/XWayland workarounds to both explicit and preference-forced X11.
+        const bool x11_backend = gdk_backend && boost::starts_with(gdk_backend, "x11");
+
+        if (x11_backend) {
+            BOOST_LOG_TRIVIAL(info) << "GDK_BACKEND=x11 active; applying v2.3.2 X11/XWayland workarounds.";
 
             // On Linux dual-GPU systems, request the high-performance
             // discrete GPU. DRI_PRIME=1 handles AMD and nouveau PRIME
@@ -1245,14 +1318,11 @@ int CLI::run(int argc, char **argv)
             }
 
             // Tell Xlib we will be using threads, lest we crash when
-            // GStreamer fires up. Safe to call here since the user has
-            // explicitly opted into X11.
+            // GStreamer fires up. Safe to call here before GTK initializes.
             #if __has_include(<X11/Xlib.h>)
             XInitThreads();
             #endif
         } else {
-            // ===== Wayland default =====
-
             // Safety fallback: if wxWidgets was not built with EGL
             // support, native Wayland will crash in
             // wxGLCanvas::IsDisplaySupported() because the GLX backend
@@ -1261,12 +1331,9 @@ int CLI::run(int argc, char **argv)
             // wxHAS_EGL in the build — it protects against builds where
             // deps were not rebuilt.
             #if !defined(wxHAS_EGL) || !wxHAS_EGL
-            {
-                const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
-                if (wayland_env && *wayland_env) {
-                    BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
-                    ::setenv("GDK_BACKEND", "x11", true);
-                }
+            if (wayland_env && *wayland_env) {
+                BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
+                ::setenv("GDK_BACKEND", "x11", true);
             }
             #endif
 
@@ -1275,23 +1342,16 @@ int CLI::run(int argc, char **argv)
             // WAYLAND_DISPLAY are set (i.e. an XWayland session is in
             // use). On pure X11 or native Wayland, compositing is left
             // enabled so WebKit retains HW acceleration.
-            {
-                const char* display_env_wk = ::getenv("DISPLAY");
-                const char* wayland_env_wk = ::getenv("WAYLAND_DISPLAY");
-                if (display_env_wk && *display_env_wk && wayland_env_wk && *wayland_env_wk) {
-                    ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
-                }
+            if (display_env && *display_env && wayland_env && *wayland_env) {
+                ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
             }
 
             // XInitThreads is needed before GStreamer may use Xlib. On
             // native Wayland without DISPLAY, GStreamer uses waylandsink
             // (no Xlib involved), so the call is skipped.
             #if __has_include(<X11/Xlib.h>)
-            {
-                const char* display_env = ::getenv("DISPLAY");
-                if (display_env && *display_env) {
-                    XInitThreads();
-                }
+            if (display_env && *display_env) {
+                XInitThreads();
             }
             #endif
         }

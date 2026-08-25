@@ -4,6 +4,7 @@
 #include "I18N.hpp"
 
 #include <algorithm>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 
@@ -24,6 +25,7 @@
 #include <wx/font.h>
 #include <wx/fontutil.h>
 #include <wx/display.h>
+#include <wx/settings.h>
 #include <wx/utils.h>
 
 #include "libslic3r/Config.hpp"
@@ -524,9 +526,100 @@ bool generate_image(const std::string &filename, wxImage &image, wxSize img_size
 
 std::deque<wxDialog*> dialogStack;
 
+namespace {
+
+wxRect fallback_display_rect()
+{
+    const int width  = wxSystemSettings::GetMetric(wxSYS_SCREEN_X);
+    const int height = wxSystemSettings::GetMetric(wxSYS_SCREEN_Y);
+    return wxRect(wxPoint(0, 0), wxSize(width > 0 ? width : 1, height > 0 ? height : 1));
+}
+
+int primary_display_index()
+{
+    return wxDisplay::GetCount() > 0 ? 0 : wxNOT_FOUND;
+}
+
+} // namespace
+
+namespace detail {
+
+int safe_display_index(int window_display_idx, unsigned display_count)
+{
+    if (display_count == 0)
+        return wxNOT_FOUND;
+
+    if (window_display_idx != wxNOT_FOUND && window_display_idx >= 0 && static_cast<unsigned>(window_display_idx) < display_count)
+        return window_display_idx;
+
+    return wxNOT_FOUND;
+}
+
+bool should_force_x11_backend_for_wayland_kvm(const char* gdk_backend, const char* display, const char* wayland_display, bool preference_enabled)
+{
+    const auto has_value = [](const char* value) { return value != nullptr && value[0] != '\0'; };
+
+    if (!preference_enabled)
+        return false;
+
+    if (!has_value(display) || !has_value(wayland_display))
+        return false;
+
+    // If the user enabled OrcaSlicer's workaround, prefer X11/XWayland even
+    // when the launcher or desktop supplied a Wayland-first backend list.
+    // Already-X11 selections need no change.
+    return !has_value(gdk_backend) || !boost::starts_with(gdk_backend, "x11");
+}
+
+}
+
+int safe_display_index(wxWindow* window)
+{
+    const unsigned display_count = wxDisplay::GetCount();
+    const int window_display_idx = window != nullptr ? wxDisplay::GetFromWindow(window) : wxNOT_FOUND;
+    return detail::safe_display_index(window_display_idx, display_count);
+}
+
+wxRect safe_display_client_area(wxWindow* window)
+{
+    int display_idx = safe_display_index(window);
+    if (display_idx == wxNOT_FOUND)
+        display_idx = primary_display_index();
+
+    if (display_idx != wxNOT_FOUND)
+        return wxDisplay(static_cast<unsigned>(display_idx)).GetClientArea();
+
+    return fallback_display_rect();
+}
+
+wxRect safe_display_geometry(wxWindow* window)
+{
+    int display_idx = safe_display_index(window);
+    if (display_idx == wxNOT_FOUND)
+        display_idx = primary_display_index();
+
+    if (display_idx != wxNOT_FOUND)
+        return wxDisplay(static_cast<unsigned>(display_idx)).GetGeometry();
+
+    return fallback_display_rect();
+}
+
+double safe_display_scale_factor(wxWindow* window)
+{
+    int display_idx = safe_display_index(window);
+    if (display_idx == wxNOT_FOUND)
+        display_idx = primary_display_index();
+
+    if (display_idx == wxNOT_FOUND)
+        return 1.0;
+
+    const double scale_factor = wxDisplay(static_cast<unsigned>(display_idx)).GetScaleFactor();
+    return scale_factor > 0.0 ? scale_factor : 1.0;
+}
+
 void fit_in_display(wxTopLevelWindow& window, wxSize desired_size)
 {
-    const auto display_size = wxDisplay(window.GetParent()).GetClientArea();
+    const auto display_size = safe_display_client_area(window.GetParent());
     if (desired_size.GetWidth() > display_size.GetWidth()) {
         desired_size.SetWidth(display_size.GetWidth() * 4 / 5);
     }
