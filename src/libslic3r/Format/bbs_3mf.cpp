@@ -678,6 +678,11 @@ bool bbs_is_valid_object_type(const std::string& type)
 
 namespace Slic3r {
 
+bool is_published_3mf_flag(const std::string &value)
+{
+    return value == "1";
+}
+
 void PlateData::parse_filament_info(GCodeProcessorResult *result)
 {
     if (!result) return;
@@ -1224,7 +1229,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // Reads the parse-time metadata: the model XML carries it before its resources, while
         // m_model->model_info is only filled in after the whole XML has been parsed.
         bool _is_published_3mf() const {
-            return this->model_info.metadata_items.find(ORCA_PUBLISHED_TAG) != this->model_info.metadata_items.end();
+            const auto it = this->model_info.metadata_items.find(ORCA_PUBLISHED_TAG);
+            return it != this->model_info.metadata_items.end() && is_published_3mf_flag(it->second);
         }
 
         bool _is_svg_shape_file(const std::string &filename) const;
