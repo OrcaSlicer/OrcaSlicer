@@ -8,7 +8,9 @@
 
 #ifdef _MSC_VER
     #define WIN32_LEAN_AND_MEAN
+    #ifndef NOMINMAX
     #define NOMINMAX
+    #endif
     #include <Windows.h>
 #endif /* _MSC_VER */
 
@@ -1183,6 +1185,7 @@ static std::vector<std::string> s_Preset_print_options{
     "flush_into_infill",
     "flush_into_objects",
     "flush_into_support",
+    "enable_mixed_color_sublayer",
     "tree_support_branch_angle",
     "tree_support_angle_slow",
     "tree_support_wall_count",
