@@ -2741,6 +2741,10 @@ void MainFrame::init_menubar_as_editor()
             [this](){return m_plater != nullptr && can_save_as(); }, this);
 #endif
 
+        append_menu_item(fileMenu, wxID_ANY, _L("Adopt to ZR Ultra S (CMYK 1–4)"),
+            _L("Select ZR Ultra S with four CMYK physicals; keep original painted colours as a source palette"),
+            [this](wxCommandEvent&) { if (m_plater) m_plater->adopt_to_zr_ultra_s_cmyk(); }, "", nullptr,
+            [this]() { return m_plater && !m_plater->model().objects.empty(); }, this);
 
         fileMenu->AppendSeparator();
 

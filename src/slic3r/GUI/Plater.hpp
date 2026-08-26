@@ -310,6 +310,7 @@ public:
     // BBS: save & backup
     void load_project(wxString const & filename = "", wxString const & originfile = "-");
     int save_project(bool saveAs = false);
+    void adopt_to_zr_ultra_s_cmyk();
     //BBS download project by project id
     void import_model_id(wxString download_info);
     void download_project(const wxString& project_id);

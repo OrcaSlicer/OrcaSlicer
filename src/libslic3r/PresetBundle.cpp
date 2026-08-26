@@ -57,6 +57,7 @@ static std::vector<std::string> s_project_options {
     "filament_map",
     // M4 pair-mix: also keep mix defs on project_config so full_config apply path is robust.
     "mixed_filament_definitions",
+    "spectrum_source_filament_colour",
 };
 
 //Orca: add custom as default
@@ -2995,8 +2996,23 @@ void PresetBundle::export_selections(AppConfig &config)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": printer %1%, print %2%, filaments[0] %3% ")%printers.get_selected_preset_name() % prints.get_selected_preset_name() %filament_presets[0];
 }
 
+void snapshot_spectrum_source_palette_if_empty(DynamicPrintConfig &cfg)
+{
+    ConfigOptionStrings *source = cfg.option<ConfigOptionStrings>("spectrum_source_filament_colour", true);
+    if (source == nullptr || !source->values.empty())
+        return;
+    const ConfigOptionStrings *colours = cfg.option<ConfigOptionStrings>("filament_colour");
+    if (colours == nullptr)
+        return;
+    source->values = colours->values;
+}
+
 // BBS
 void PresetBundle::set_num_filaments(unsigned int n, std::vector<std::string> new_colors) {
+    if (const ConfigOptionStrings *filament_color = project_config.option<ConfigOptionStrings>("filament_colour")) {
+        if (n < filament_color->values.size())
+            snapshot_spectrum_source_palette_if_empty(project_config);
+    }
     int old_filament_count = this->filament_presets.size();
     if (n > old_filament_count && old_filament_count != 0)
         filament_presets.resize(n, filament_presets.back());
@@ -3034,6 +3050,10 @@ void PresetBundle::set_num_filaments(unsigned int n, std::vector<std::string> ne
 }
 void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
 {
+    if (const ConfigOptionStrings *filament_color = project_config.option<ConfigOptionStrings>("filament_colour")) {
+        if (n < filament_color->values.size())
+            snapshot_spectrum_source_palette_if_empty(project_config);
+    }
     unsigned old_filament_count = this->filament_presets.size();
     if (n > old_filament_count && old_filament_count != 0)
         filament_presets.resize(n, filament_presets.back());

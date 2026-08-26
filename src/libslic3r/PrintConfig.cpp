@@ -4861,6 +4861,12 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionString(""));
 
+    def = this->add("spectrum_source_filament_colour", coStrings);
+    def->label = L("Source filament colours");
+    def->tooltip = L("Original painted 3mf colours kept when shrinking to 4 tools. Empty = none.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionStrings());
+
     def = this->add("dithering_local_z_mode", coBool);
     def->label = L("Subdivide Mix Layer");
     def->tooltip = L("Split a mixed layer into ratio-proportional sub-layers "

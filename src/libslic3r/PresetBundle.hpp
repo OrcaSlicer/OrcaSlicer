@@ -534,6 +534,9 @@ private:
 
 };
 
+// Copy filament_colour strings as-is into spectrum_source_filament_colour when that key is empty.
+void snapshot_spectrum_source_palette_if_empty(DynamicPrintConfig &cfg);
+
 ENABLE_ENUM_BITMASK_OPERATORS(PresetBundle::LoadConfigBundleAttribute)
 
 } // namespace Slic3r

@@ -6412,6 +6412,18 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             if (wipe_tower_y_opt)
                                 file_wipe_tower_y = *wipe_tower_y_opt;
 
+                            {
+                                size_t dest_tools = 0;
+                                if (preset_bundle) {
+                                    const auto *nozzles = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
+                                    if (nozzles)
+                                        dest_tools = nozzles->values.size();
+                                }
+                                const ConfigOptionStrings *loaded_colours = config.option<ConfigOptionStrings>("filament_colour");
+                                if (loaded_colours && loaded_colours->values.size() > dest_tools)
+                                    snapshot_spectrum_source_palette_if_empty(config);
+                            }
+
                             preset_bundle->load_config_model(filename.string(), std::move(config), file_version);
 
                             ConfigOption* bed_type_opt = preset_bundle->project_config.option("curr_bed_type");
@@ -12279,6 +12291,130 @@ int Plater::save_project(bool saveAs)
 
     update_title_dirty_status();
     return wxID_YES;
+}
+
+void Plater::adopt_to_zr_ultra_s_cmyk()
+{
+    PresetBundle *bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return;
+
+    snapshot_spectrum_source_palette_if_empty(bundle->project_config);
+
+    static const char *k_printer = "WonderMaker ZR Ultra S 0.4 nozzle";
+    static const char *k_process = "0.08mm Extra Fine @WonderMaker ZR Ultra";
+    static const char *k_process_fallback = "0.12mm Fine @WonderMaker ZR Ultra";
+    static const char *k_filament = "WonderMaker PLA Basic";
+
+    if (bundle->printers.find_preset(k_printer) == nullptr ||
+        !bundle->printers.select_preset_by_name(k_printer, true)) {
+        MessageDialog(this,
+            _L("Could not find printer preset 'WonderMaker ZR Ultra S 0.4 nozzle'."),
+            _L("Adopt to ZR Ultra S"), wxOK | wxICON_ERROR).ShowModal();
+        return;
+    }
+    bundle->update_compatible(PresetSelectCompatibleType::Always);
+    wxGetApp().load_current_presets();
+
+    std::string process_name = k_process;
+    if (bundle->prints.find_preset(process_name) == nullptr)
+        process_name = k_process_fallback;
+    if (bundle->prints.find_preset(process_name) == nullptr ||
+        !bundle->prints.select_preset_by_name(process_name, true)) {
+        BOOST_LOG_TRIVIAL(warning) << "Adopt: process preset not found: " << process_name;
+    }
+
+    std::string filament_name = k_filament;
+    if (bundle->filaments.find_preset(filament_name) == nullptr) {
+        BOOST_LOG_TRIVIAL(warning) << "Adopt: filament preset '" << k_filament << "' not found";
+        auto is_pla = [](const Preset *preset) {
+            if (preset == nullptr)
+                return false;
+            const ConfigOptionStrings *types = preset->config.option<ConfigOptionStrings>("filament_type");
+            if (types == nullptr || types->values.empty())
+                return false;
+            return boost::icontains(types->values.front(), "PLA");
+        };
+        const Preset *current = nullptr;
+        if (!bundle->filament_presets.empty())
+            current = bundle->filaments.find_preset(bundle->filament_presets.front());
+        if (current == nullptr)
+            current = &bundle->filaments.get_edited_preset();
+        if (is_pla(current)) {
+            filament_name = current->name;
+        } else {
+            filament_name.clear();
+            for (const Preset &preset : bundle->filaments.get_presets()) {
+                if (preset.is_visible && is_pla(&preset)) {
+                    filament_name = preset.name;
+                    break;
+                }
+            }
+            if (filament_name.empty())
+                filament_name = current->name;
+        }
+        BOOST_LOG_TRIVIAL(warning) << "Adopt: using PLA '" << filament_name << "'";
+    }
+    if (bundle->filaments.find_preset(filament_name) != nullptr)
+        bundle->filaments.select_preset_by_name(filament_name, true);
+
+    wxGetApp().load_current_presets();
+
+    if (bundle->filament_presets.size() != 4)
+        bundle->set_num_filaments(4);
+    for (size_t i = 0; i < bundle->filament_presets.size(); ++i)
+        bundle->set_filament_preset(i, filament_name);
+
+    ConfigOptionStrings *filament_colour = bundle->project_config.option<ConfigOptionStrings>("filament_colour", true);
+    ConfigOptionStrings *filament_multi = bundle->project_config.option<ConfigOptionStrings>("filament_multi_colour", true);
+    const char *cmyk[] = { "#08ABFB", "#D93B90", "#F9ED3D", "#9199A4" };
+    bool append_ff = false;
+    if (filament_colour) {
+        for (const std::string &hex : filament_colour->values) {
+            if (hex.size() == 9 && hex.front() == '#') {
+                append_ff = true;
+                break;
+            }
+        }
+    }
+    if (filament_colour) {
+        filament_colour->values.resize(4);
+        for (size_t i = 0; i < 4; ++i) {
+            filament_colour->values[i] = append_ff ? std::string(cmyk[i]) + "FF" : cmyk[i];
+        }
+    }
+    if (filament_multi && filament_colour)
+        filament_multi->values = filament_colour->values;
+
+    const Preset &printer = bundle->printers.get_edited_preset();
+    const bool semm = printer.config.opt_bool("single_extruder_multi_material");
+    const ConfigOptionFloat *tool_change = printer.config.option<ConfigOptionFloat>("machine_tool_change_time");
+    const double tool_change_time = tool_change ? tool_change->value : -1.;
+    if (semm || bundle->filament_presets.size() != 4 || tool_change_time != 10.) {
+        BOOST_LOG_TRIVIAL(warning) << "Adopt: expected SEMM=0, 4 filaments, machine_tool_change_time=10; got SEMM="
+                                   << semm << " filaments=" << bundle->filament_presets.size()
+                                   << " tool_change_time=" << tool_change_time;
+    }
+
+    on_filament_count_change(4);
+    update_filament_colors_in_full_config();
+    sidebar().update_all_preset_comboboxes();
+    for (PlaterPresetComboBox *combo : sidebar().combos_filament())
+        combo->update();
+    sidebar().obj_list()->update_filament_colors();
+    if (wxGetApp().app_config)
+        bundle->export_selections(*wxGetApp().app_config);
+
+    const ConfigOptionStrings *source = bundle->project_config.option<ConfigOptionStrings>("spectrum_source_filament_colour");
+    const size_t source_size = source ? source->values.size() : 0;
+    BOOST_LOG_TRIVIAL(info) << "Adopt to ZR Ultra S: source palette size=" << source_size
+                            << " printer=" << printer.name
+                            << " process=" << bundle->prints.get_edited_preset().name
+                            << " filament=" << filament_name;
+
+    MessageDialog(this,
+        _L("Paint still uses source slot IDs 5–8. Those regions will not print as intended until track 0011 maps them to CMYK mixes. Slice/print of this file is not this command's goal."),
+        _L("Adopt to ZR Ultra S"), wxOK | wxICON_WARNING).ShowModal();
 }
 
 //BBS import model by model id
