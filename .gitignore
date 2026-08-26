@@ -2,6 +2,7 @@ Build
 Build.bat
 /build*/
 CMakeLists.txt.user
+CMakeUserPresets.json
 **/CMakeLists.txt.autosave
 deps/build*
 MYMETA.json

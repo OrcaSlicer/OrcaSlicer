@@ -53,7 +53,7 @@ bool is_decimal_separator_point()
 
 double string_to_double_decimal_point(const std::string_view str, size_t* pos /* = nullptr*/)
 {
-    double out;
+    double out = 0.;
     size_t p = fast_float::from_chars(str.data(), str.data() + str.size(), out).ptr - str.data();
     if (pos)
         *pos = p;
