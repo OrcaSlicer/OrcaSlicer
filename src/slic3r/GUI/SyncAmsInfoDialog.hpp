@@ -371,7 +371,7 @@ public:
     };
     FinishSyncAmsDialog(InputInfo &input_info);
     ~FinishSyncAmsDialog() override;
-    void deal_ok();
+    void deal_ok() override;
     void update_info(InputInfo& info);
     bool Layout() override;
 
