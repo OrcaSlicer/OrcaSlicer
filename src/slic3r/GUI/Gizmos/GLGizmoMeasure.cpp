@@ -597,7 +597,6 @@ void GLGizmoMeasure::on_render()
         }
     }
     Vec3d  position_on_model;
-    Vec3d  direction_on_model;
     size_t model_facet_idx = -1;
     double closest_hit_distance = std::numeric_limits<double>::max();
     {
