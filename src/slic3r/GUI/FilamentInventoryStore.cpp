@@ -140,6 +140,19 @@ bool sync_filament_inventory_from_printer(FilamentInventories& store, FilamentIn
             break;
         DevAmsTray* tray = fila_system->GetAmsTray(std::to_string(slot_id.first), std::to_string(slot_id.second));
         const DeviceSlotResolution res = resolve_device_tray(tray, filaments);
+        // Orca: with the print dialog now refreshing on every open (not just bootstrap), an
+        // unconditional overwrite would silently downgrade a hand-picked preset to the Generic
+        // fallback each time on printers that only report type+color. When the printer reports
+        // the SAME spool (type and color unchanged) and the recorded slot carries richer detail
+        // (a preset), keep the recorded slot; any reported change still wins wholesale.
+        if (res.present && tool_idx < inv.tools.size() && !inv.tools[tool_idx].empty()) {
+            const PhysicalFilament& cur = inv.tools[tool_idx][0];
+            if (!cur.empty() && !cur.preset.empty() && cur.type == res.type && cur.color == res.color) {
+                applied = true;
+                ++tool_idx;
+                continue;
+            }
+        }
         PhysicalFilament slot; // stays empty when nothing is loaded -- mirrors the machine
         if (res.present)
             slot = build_physical_filament(res.color, res.type, res.preset, /*id=*/0, PhysicalFilament::Kind::Manual);
