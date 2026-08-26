@@ -57,11 +57,13 @@ void DevicePrintOptionsDialog::init()
         const size_t        tool_count = resolve_active_printer_tool_count(store);
         const Preset&       printer    = active_printer_session().profile();
         FilamentInventory&  live_inventory = current_inventory_for_preset(printer, store, tool_count);
-        // First-ever Print with nothing recorded: read the printer's loaded filaments now, so
-        // the mapping targets are its real spools instead of bare bootstrap tools. One blocking
-        // fetch, same as opening the materials editor; any failure just leaves bootstrap mode.
-        if (inventory_all_unset(live_inventory))
-            sync_filament_inventory_from_printer(store, live_inventory, tool_count);
+        // Refresh from the printer on EVERY open, not only first-ever bootstrap: a spool changed
+        // on the printer otherwise kept showing its stale recorded color/material here until the
+        // user manually synced from the materials editor (field report and fix by ricvil25). One
+        // blocking fetch, same as the materials editor's sync; failure (or no live session) just
+        // keeps whatever is recorded, and an unchanged spool keeps its recorded detail (see
+        // sync_filament_inventory_from_printer's same-spool guard).
+        sync_filament_inventory_from_printer(store, live_inventory, tool_count);
         const FilamentInventory inventory = live_inventory;
 
         // No plate to read a stored map from at send time: full-length all-zero base maps plus
