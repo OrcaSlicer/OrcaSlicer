@@ -1273,6 +1273,20 @@ void MenuFactory::append_menu_item_merge_parts_to_single_part(wxMenu* menu)
         []() { return obj_list()->can_mesh_boolean(); }, m_parent);
 }
 
+// BBS: merge the selected parts into one part, keeping the other parts of the object
+void MenuFactory::append_menu_item_merge_some_parts_to_single_part(wxMenu* menu)
+{
+    menu->AppendSeparator();
+    append_menu_item(menu, wxID_ANY, _L("Merge into Single Part"), _L("Merge the selected parts into one part"),
+        [](wxCommandEvent&) { obj_list()->merge_volumes(); }, "", menu,
+        []() {
+            if (plater()->canvas3D()->get_canvas_type() != GLCanvas3D::ECanvasType::CanvasView3D)
+                return false;
+            return !obj_list()->has_selected_cut_object();
+        },
+        m_parent);
+}
+
 void MenuFactory::append_menu_items_mirror(wxMenu* menu)
 {
     wxMenu* mirror_menu = new wxMenu();
@@ -1967,6 +1981,7 @@ wxMenu* MenuFactory::multi_selection_menu()
     else {
         append_menu_item_center(menu);
         append_menu_item_drop(menu);
+        append_menu_item_merge_some_parts_to_single_part(menu);
         append_menu_item_fix_through_cgal(menu);
         //append_menu_item_simplify(menu);
         append_menu_item_delete(menu);

@@ -3197,39 +3197,24 @@ void ObjectList::merge(bool to_multipart_object)
     }
 }
 
-/*void ObjectList::merge_volumes()
+// BBS: merge parts to single part
+void ObjectList::merge_volumes()
 {
     std::vector<int> obj_idxs, vol_idxs;
     get_selection_indexes(obj_idxs, vol_idxs);
-    if (obj_idxs.empty() && vol_idxs.empty())
+    // Merging is defined only for two or more parts of one object; a selection
+    // spanning several objects would silently apply the volume indices of the
+    // other objects to the first one. A mixed object+volume selection yields -1
+    // for the object item (GetVolumeIdByItem on a non-volume node).
+    if (obj_idxs.size() != 1 || vol_idxs.size() < 2)
         return;
+    for (int vol_idx : vol_idxs)
+        if (vol_idx < 0)
+            return;
 
     wxBusyCursor wait;
-#if 0
-    ModelObjectPtrs objects;
-    for (int obj_idx : obj_idxs) {
-        ModelObject* object = (*m_objects)[obj_idx];
-        object->merge_volumes(vol_idxs);
-        //changed_object(obj_idx);
-        //remove();
-    }
-   // wxGetApp().plater()->load_model_objects(objects);
-
-    Selection& selection = p->view3D->get_canvas3d()->get_selection();
-    size_t last_obj_idx = p->model.objects.size() - 1;
-
-    if (vol_idxs.empty()) {
-        for (size_t i = 0; i < objects.size(); ++i)
-            selection.add_object((unsigned int)(last_obj_idx - i), i == 0);
-    }
-    else {
-        for (int vol_idx : vol_idxs)
-            selection.add_volume(last_obj_idx, vol_idx, 0, false);
-    }#1#
-#else
     wxGetApp().plater()->merge(obj_idxs[0], vol_idxs);
-#endif
-}*/
+}
 
 void ObjectList::layers_editing()
 {
