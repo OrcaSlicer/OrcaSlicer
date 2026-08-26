@@ -305,9 +305,6 @@ public:
     /** Whether this printer supports virtual trays (external/manual filament loading).
      *  When true, vt_slot data is used by build_filament_ams_list() to include external filaments. */
     bool  ams_support_virtual_tray { true };
-    // Filament entries supplied by a printer agent (for example, toolchanger tools)
-    // remain valid even when a regular status message has no vir_slot field.
-    bool  agent_virtual_tray { false };
     time_t ams_user_setting_start = 0;
     time_t ams_switch_filament_start = 0;
     AmsStatusMain ams_status_main;
