@@ -7,6 +7,7 @@
 #include "Plater.hpp"
 #include "Selection.hpp"
 #include "wxExtensions.hpp"
+#include "MsgDialog.hpp"
 
 #include "libslic3r/MixedFilament.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -361,6 +362,27 @@ void MixedFilamentDialog::apply_to_project()
     store_editors_into_selected_row();
     const std::string serialized = serialize_enabled_rows(m_rows);
 
+    std::string old_serialized;
+    if (const ConfigOptionString *opt = bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+        old_serialized = opt->value;
+    if (old_serialized.empty()) {
+        if (const ConfigOptionString *opt = bundle->prints.get_edited_preset().config.option<ConfigOptionString>("mixed_filament_definitions"))
+            old_serialized = opt->value;
+    }
+    const size_t num_physical = bundle->filament_presets.size();
+    std::vector<int> painted_ids;
+    for (const ModelObject *obj : plater->model().objects) {
+        for (const ModelVolume *vol : obj->volumes) {
+            const std::vector<int> ids = vol->get_extruders();
+            painted_ids.insert(painted_ids.end(), ids.begin(), ids.end());
+        }
+    }
+    if (mixed_filament_painted_ids_would_shift(old_serialized, serialized, num_physical, painted_ids)) {
+        MessageDialog(this,
+            _L("Disabling a mix in the middle of the list changes Mix IDs. Painted regions using later mix IDs will follow the new enabled-row order."),
+            _L("Mixed Filaments"), wxOK | wxICON_WARNING).ShowModal();
+    }
+
     // Persist on both print preset and project_config (belt and suspenders).
     DynamicPrintConfig &print_cfg = bundle->prints.get_edited_preset().config;
     print_cfg.set_key_value("mixed_filament_definitions", new ConfigOptionString(serialized));
@@ -372,8 +394,7 @@ void MixedFilamentDialog::apply_to_project()
     print_cfg.set_key_value("dithering_local_z_whole_objects", new ConfigOptionBool(m_full_domain->GetValue()));
     print_cfg.set_key_value("mixed_filament_gradient_mode", new ConfigOptionBool(m_gradient->GetValue()));
 
-    const size_t num_physical = bundle->filament_presets.size();
-    const int    virtual_id   = (m_selected_row >= 0) ? virtual_id_for_row(size_t(m_selected_row), num_physical) : -1;
+    const int virtual_id = (m_selected_row >= 0) ? virtual_id_for_row(size_t(m_selected_row), num_physical) : -1;
 
     if (m_apply_object->GetValue() && virtual_id > 0 && !plater->model().objects.empty()) {
         ModelVolume *volume = nullptr;

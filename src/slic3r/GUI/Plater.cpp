@@ -16675,9 +16675,24 @@ void Plater::on_filament_count_change(size_t num_filaments)
         part_plate->update_first_layer_print_sequence(num_filaments);
     }
 
+    size_t max_filament_id = num_filaments;
+    size_t source_palette_size = 0;
+    if (PresetBundle *bundle = wxGetApp().preset_bundle) {
+        std::string mixed_defs;
+        if (const ConfigOptionString *opt = bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+            mixed_defs = opt->value;
+        if (mixed_defs.empty()) {
+            if (const ConfigOptionString *opt = bundle->prints.get_edited_preset().config.option<ConfigOptionString>("mixed_filament_definitions"))
+                mixed_defs = opt->value;
+        }
+        max_filament_id = MixedFilamentManager::max_filament_id(mixed_defs, num_filaments);
+        if (const ConfigOptionStrings *src = bundle->project_config.option<ConfigOptionStrings>("spectrum_source_filament_colour"))
+            source_palette_size = src->values.size();
+    }
+
     for (ModelObject* mo : wxGetApp().model().objects) {
         for (ModelVolume* mv : mo->volumes) {
-            mv->update_extruder_count(num_filaments);
+            mv->update_extruder_count(num_filaments, max_filament_id, source_palette_size);
         }
     }
 }
@@ -16695,10 +16710,26 @@ void Plater::on_filaments_delete(size_t num_filaments, size_t filament_id, int r
         part_plate->update_first_layer_print_sequence_when_delete_filament(filament_id);
     }*/
 
+    size_t max_filament_id = num_filaments;
+    size_t source_palette_size = 0;
+    if (PresetBundle *bundle = wxGetApp().preset_bundle) {
+        std::string mixed_defs;
+        if (const ConfigOptionString *opt = bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+            mixed_defs = opt->value;
+        if (mixed_defs.empty()) {
+            if (const ConfigOptionString *opt = bundle->prints.get_edited_preset().config.option<ConfigOptionString>("mixed_filament_definitions"))
+                mixed_defs = opt->value;
+        }
+        max_filament_id = MixedFilamentManager::max_filament_id(mixed_defs, num_filaments);
+        if (const ConfigOptionStrings *src = bundle->project_config.option<ConfigOptionStrings>("spectrum_source_filament_colour"))
+            source_palette_size = src->values.size();
+    }
+
     // update mmu info
     for (ModelObject *mo : wxGetApp().model().objects) {
         for (ModelVolume *mv : mo->volumes) {
-            mv->update_extruder_count_when_delete_filament(num_filaments, filament_id + 1, replace_filament_id + 1);  // this function is 1 base
+            mv->update_extruder_count_when_delete_filament(num_filaments, filament_id + 1, replace_filament_id + 1,
+                                                           max_filament_id, source_palette_size);  // this function is 1 base
         }
     }
 

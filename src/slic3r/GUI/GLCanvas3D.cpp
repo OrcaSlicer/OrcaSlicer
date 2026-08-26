@@ -2579,7 +2579,21 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 continue;
 
             unsigned int filaments_count = (unsigned int)dynamic_cast<const ConfigOptionStrings*>(m_config->option("filament_colour"))->values.size();
-            model_volume.update_extruder_count(filaments_count);
+            size_t max_filament_id = filaments_count;
+            size_t source_palette_size = 0;
+            if (PresetBundle *bundle = wxGetApp().preset_bundle) {
+                std::string mixed_defs;
+                if (const ConfigOptionString *opt = bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+                    mixed_defs = opt->value;
+                if (mixed_defs.empty()) {
+                    if (const ConfigOptionString *opt = bundle->prints.get_edited_preset().config.option<ConfigOptionString>("mixed_filament_definitions"))
+                        mixed_defs = opt->value;
+                }
+                max_filament_id = MixedFilamentManager::max_filament_id(mixed_defs, filaments_count);
+                if (const ConfigOptionStrings *src = bundle->project_config.option<ConfigOptionStrings>("spectrum_source_filament_colour"))
+                    source_palette_size = src->values.size();
+            }
+            model_volume.update_extruder_count(filaments_count, max_filament_id, source_palette_size);
         }
     }
 

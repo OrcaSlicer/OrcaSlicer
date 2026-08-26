@@ -4,6 +4,9 @@
 #include "GLGizmoPainterBase.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
+#include <string>
+#include <vector>
+
 namespace Slic3r::GUI {
 
 class GLMmSegmentationGizmo3DScene
@@ -109,6 +112,9 @@ protected:
     size_t                            m_selected_extruder_idx = 0;
     std::vector<ColorRGBA>            m_extruders_colors;
     std::vector<int>                  m_volumes_extruder_idxs;
+    std::string                       m_mixed_filament_definitions;
+    size_t                            m_physical_extruder_count = 0;
+    std::vector<std::string>          m_extruder_tooltips;
 
     // BBS
     wchar_t                           m_current_tool = 0;

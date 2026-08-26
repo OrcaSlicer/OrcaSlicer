@@ -12,6 +12,8 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/MixedFilament.hpp"
+#include "libslic3r/Color.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
@@ -30,10 +32,89 @@ static inline void show_notification_extruders_limit_exceeded()
                                            "first %1% filaments will be available in painting tool."), GLGizmoMmuSegmentation::EXTRUDERS_LIMIT));
 }
 
+static inline void show_notification_paint_persist_cap()
+{
+    wxGetApp()
+        .plater()
+        ->get_notification_manager()
+        ->push_notification(NotificationType::MmSegmentationExceededExtrudersLimit, NotificationManager::NotificationLevel::PrintInfoNotificationLevel,
+                            GUI::format(_L("Filament count exceeds the 3MF paint persist limit. Only IDs 1–%1% round-trip in a project file."),
+                                        SPECTRUM_PAINT_ID_PERSIST_CAP));
+}
+
+static std::string current_mixed_filament_definitions()
+{
+    PresetBundle *bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return {};
+    std::string mixed_defs;
+    if (const ConfigOptionString *opt = bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+        mixed_defs = opt->value;
+    if (mixed_defs.empty()) {
+        if (const ConfigOptionString *opt = bundle->prints.get_edited_preset().config.option<ConfigOptionString>("mixed_filament_definitions"))
+            mixed_defs = opt->value;
+    }
+    return mixed_defs;
+}
+
+static size_t current_source_palette_size()
+{
+    PresetBundle *bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return 0;
+    if (const ConfigOptionStrings *src = bundle->project_config.option<ConfigOptionStrings>("spectrum_source_filament_colour"))
+        return src->values.size();
+    return 0;
+}
+
+// Deserialize must not smash source/mix paint IDs that the ModelVolume clamp keeps
+// (Adopt → 4 physicals, source palette 8, or Mix 5+). Palette swatches can be shorter.
+static EnforcerBlockerType paint_deserialize_max_ebt(size_t physical_n, size_t palette_n)
+{
+    const size_t mix_aware = MixedFilamentManager::max_filament_id(current_mixed_filament_definitions(), physical_n);
+    const size_t limit     = spectrum_paint_id_limit(physical_n, std::max(palette_n, mix_aware), current_source_palette_size());
+    return EnforcerBlockerType(limit);
+}
+
+static std::vector<ColorRGBA> paint_palette_colors(std::vector<std::string> *tooltips, size_t *physical_count)
+{
+    std::vector<ColorRGBA> colors = wxGetApp().plater()->get_extruders_colors();
+    if (physical_count)
+        *physical_count = colors.size();
+    if (tooltips)
+        tooltips->assign(colors.size(), {});
+
+    const size_t physical_n = colors.size();
+    if (physical_n == 0)
+        return colors;
+
+    MixedFilamentManager mgr;
+    mgr.load_definitions(current_mixed_filament_definitions());
+    const std::vector<ColorRGBA> physical = colors;
+    for (size_t i = 0; i < mgr.enabled_count() && colors.size() < GLGizmoMmuSegmentation::EXTRUDERS_LIMIT; ++i) {
+        const MixedFilament &mf = mgr.mixed_filaments()[i];
+        const size_t ia = (mf.component_a >= 1 && size_t(mf.component_a) <= physical_n) ? size_t(mf.component_a - 1) : 0;
+        const size_t ib = (mf.component_b >= 1 && size_t(mf.component_b) <= physical_n) ? size_t(mf.component_b - 1) : 0;
+        colors.push_back(lerp(physical[ia], physical[ib], 0.5f));
+        if (tooltips) {
+            tooltips->push_back(GUI::format(_L("Mix %1%: T%2%+T%3% %4%:%5%"),
+                                            int(physical_n + i + 1),
+                                            int(mf.component_a - 1),
+                                            int(mf.component_b - 1),
+                                            mf.ratio_a,
+                                            mf.ratio_b));
+        }
+    }
+    return colors;
+}
+
 void GLGizmoMmuSegmentation::on_opening()
 {
     if (wxGetApp().filaments_cnt() > int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT))
         show_notification_extruders_limit_exceeded();
+    const size_t palette_n = paint_palette_colors(nullptr, nullptr).size();
+    if (palette_n > SPECTRUM_PAINT_ID_PERSIST_CAP)
+        show_notification_paint_persist_cap();
 }
 
 void GLGizmoMmuSegmentation::on_shutdown()
@@ -75,8 +156,9 @@ static std::vector<int> get_extruder_id_for_volumes(const ModelObject &model_obj
 
 void GLGizmoMmuSegmentation::init_extruders_data()
 {
-    m_extruders_colors      = wxGetApp().plater()->get_extruders_colors();
-    m_selected_extruder_idx = 0;
+    m_mixed_filament_definitions = current_mixed_filament_definitions();
+    m_extruders_colors           = paint_palette_colors(&m_extruder_tooltips, &m_physical_extruder_count);
+    m_selected_extruder_idx      = 0;
 
     // keep remap table consistent with current extruder count
     m_extruder_remap.resize(m_extruders_colors.size());
@@ -178,16 +260,18 @@ void GLGizmoMmuSegmentation::data_changed(bool is_serializing)
         return;
 
     ModelObject* model_object = m_c->selection_info()->model_object();
-    int prev_extruders_count = int(m_extruders_colors.size());
-    if (prev_extruders_count != wxGetApp().filaments_cnt()) {
+    const std::string mixed_defs = current_mixed_filament_definitions();
+    const std::vector<ColorRGBA> expected_colors = paint_palette_colors(nullptr, nullptr);
+    const int prev_extruders_count = int(m_extruders_colors.size());
+    if (prev_extruders_count != int(expected_colors.size()) || mixed_defs != m_mixed_filament_definitions) {
         if (wxGetApp().filaments_cnt() > int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT))
             show_notification_extruders_limit_exceeded();
+        if (expected_colors.size() > SPECTRUM_PAINT_ID_PERSIST_CAP)
+            show_notification_paint_persist_cap();
 
         this->init_extruders_data();
-        // Reinitialize triangle selectors because of change of extruder count need also change the size of GLIndexedVertexArray
-        if (prev_extruders_count != wxGetApp().filaments_cnt())
-            this->init_model_triangle_selectors();
-    } else if (wxGetApp().plater()->get_extruders_colors() != m_extruders_colors) {
+        this->init_model_triangle_selectors();
+    } else if (expected_colors != m_extruders_colors) {
         this->init_extruders_data();
         this->update_triangle_selectors_colors();
     }
@@ -433,7 +517,14 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             m_selected_extruder_idx = extruder_idx;
         }
 
-        if (extruder_idx < 16 && ImGui::IsItemHovered()) m_imgui->tooltip(_L("Shortcut Key ") + std::to_string(extruder_idx + 1), max_tooltip_width);
+        if (extruder_idx < 16 && ImGui::IsItemHovered()) {
+            wxString tip = _L("Shortcut Key ") + std::to_string(extruder_idx + 1);
+            if (size_t(extruder_idx) >= m_physical_extruder_count &&
+                size_t(extruder_idx) < m_extruder_tooltips.size() &&
+                !m_extruder_tooltips[size_t(extruder_idx)].empty())
+                tip = from_u8(m_extruder_tooltips[size_t(extruder_idx)]);
+            m_imgui->tooltip(tip, max_tooltip_width);
+        }
     }
     // ORCA: Remap filaments section (Border only, Title in border). 
     // Styled as a panel for visual grouping.
@@ -731,6 +822,8 @@ void GLGizmoMmuSegmentation::init_model_triangle_selectors()
             continue;
 
         int extruder_idx = (mv->extruder_id() > 0) ? mv->extruder_id() - 1 : 0;
+        if (extruder_idx < 0 || size_t(extruder_idx) >= m_extruders_colors.size())
+            extruder_idx = 0;
         std::vector<ColorRGBA> ebt_colors;
         ebt_colors.push_back(m_extruders_colors[size_t(extruder_idx)]);
         ebt_colors.insert(ebt_colors.end(), m_extruders_colors.begin(), m_extruders_colors.end());
@@ -739,7 +832,7 @@ void GLGizmoMmuSegmentation::init_model_triangle_selectors()
         const TriangleMesh* mesh = &mv->mesh();
         m_triangle_selectors.emplace_back(std::make_unique<TriangleSelectorPatch>(*mesh, ebt_colors, 0.2));
         // Reset of TriangleSelector is done inside TriangleSelectorMmGUI's constructor, so we don't need it to perform it again in deserialize().
-        EnforcerBlockerType max_ebt = (EnforcerBlockerType)std::min(m_extruders_colors.size(), (size_t)EnforcerBlockerType::ExtruderMax);
+        EnforcerBlockerType max_ebt = paint_deserialize_max_ebt(m_physical_extruder_count, m_extruders_colors.size());
         m_triangle_selectors.back()->deserialize(mv->mmu_segmentation_facets.get_data(), false, max_ebt);
         m_triangle_selectors.back()->request_update_render_data();
         m_triangle_selectors.back()->set_wireframe_needed(true);
@@ -753,6 +846,8 @@ void GLGizmoMmuSegmentation::update_triangle_selectors_colors()
         TriangleSelectorPatch* selector = dynamic_cast<TriangleSelectorPatch*>(m_triangle_selectors[i].get());
         int extruder_idx = m_volumes_extruder_idxs[i];
         int extruder_color_idx = std::max(0, extruder_idx - 1);
+        if (size_t(extruder_color_idx) >= m_extruders_colors.size())
+            extruder_color_idx = 0;
         std::vector<ColorRGBA> ebt_colors;
         ebt_colors.push_back(m_extruders_colors[extruder_color_idx]);
         ebt_colors.insert(ebt_colors.end(), m_extruders_colors.begin(), m_extruders_colors.end());
@@ -766,8 +861,11 @@ void GLGizmoMmuSegmentation::update_from_model_object(bool first_update)
 
     // Extruder colors need to be reloaded before calling init_model_triangle_selectors to render painted triangles
     // using colors from loaded 3MF and not from printer profile in Slicer.
-    if (int prev_extruders_count = int(m_extruders_colors.size());
-        prev_extruders_count != wxGetApp().filaments_cnt() || wxGetApp().plater()->get_extruders_colors() != m_extruders_colors)
+    const std::string mixed_defs = current_mixed_filament_definitions();
+    const std::vector<ColorRGBA> expected_colors = paint_palette_colors(nullptr, nullptr);
+    if (int(m_extruders_colors.size()) != int(expected_colors.size()) ||
+        mixed_defs != m_mixed_filament_definitions ||
+        expected_colors != m_extruders_colors)
         this->init_extruders_data();
 
     this->init_model_triangle_selectors();

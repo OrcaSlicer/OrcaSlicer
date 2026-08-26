@@ -1773,7 +1773,8 @@ void TriangleSelector::deserialize(const TriangleSplittingData &data,
                                    bool                         needs_reset,
                                    EnforcerBlockerType          max_ebt,
                                    EnforcerBlockerType          to_delete_filament,
-                                   EnforcerBlockerType          replace_filament)
+                                   EnforcerBlockerType          replace_filament,
+                                   EnforcerBlockerType          remap_ceiling)
 {
     if (needs_reset)
         reset(); // dump any current state
@@ -1825,7 +1826,9 @@ void TriangleSelector::deserialize(const TriangleSplittingData &data,
             if (state == to_delete_filament)
                 state = replace_filament;
             else if (to_delete_filament != EnforcerBlockerType::NONE && state != EnforcerBlockerType::NONE) {
-                state = state > to_delete_filament ? EnforcerBlockerType((int)state - 1) : state;
+                // Compact only physical IDs. Mix/source paint (state > remap_ceiling) stays put.
+                if (state > to_delete_filament && state <= remap_ceiling)
+                    state = EnforcerBlockerType((int)state - 1);
             }
 
             if (state > max_ebt) {

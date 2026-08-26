@@ -311,6 +311,47 @@ void MixedFilamentManager::append_physical_0based(unsigned int filament_id_1base
         out.emplace_back(0); // unknown virtual → first physical (safe fallback)
 }
 
+size_t spectrum_paint_id_limit(size_t physical_n, size_t max_filament_id, size_t source_palette_size)
+{
+    const size_t raw = std::max(physical_n, std::max(max_filament_id, source_palette_size));
+    return std::min(SPECTRUM_PAINT_ID_PERSIST_CAP, raw);
+}
+
+bool mixed_filament_painted_ids_would_shift(const std::string     &old_serialized,
+                                            const std::string     &new_serialized,
+                                            size_t                 num_physical,
+                                            const std::vector<int> &painted_filament_ids)
+{
+    if (num_physical == 0 || painted_filament_ids.empty())
+        return false;
+
+    MixedFilamentManager old_mgr;
+    MixedFilamentManager new_mgr;
+    old_mgr.load_definitions(old_serialized);
+    new_mgr.load_definitions(new_serialized);
+
+    auto same_mix = [](const MixedFilament *lhs, const MixedFilament *rhs) -> bool {
+        if (lhs == nullptr || rhs == nullptr)
+            return lhs == rhs;
+        return lhs->component_a == rhs->component_a && lhs->component_b == rhs->component_b &&
+               lhs->ratio_a == rhs->ratio_a && lhs->ratio_b == rhs->ratio_b &&
+               MixedFilamentManager::normalize_manual_pattern(lhs->manual_pattern) ==
+                   MixedFilamentManager::normalize_manual_pattern(rhs->manual_pattern);
+    };
+
+    for (int id : painted_filament_ids) {
+        if (id <= int(num_physical))
+            continue;
+        const MixedFilament *old_mix = old_mgr.mixed_filament_from_id(unsigned(id), num_physical);
+        if (old_mix == nullptr)
+            continue;
+        const MixedFilament *new_mix = new_mgr.mixed_filament_from_id(unsigned(id), num_physical);
+        if (!same_mix(old_mix, new_mix))
+            return true;
+    }
+    return false;
+}
+
 ExPolygons apply_surface_offset(const ExPolygons &src, float offset_mm)
 {
     if (src.empty() || std::abs(offset_mm) <= 1e-6f)

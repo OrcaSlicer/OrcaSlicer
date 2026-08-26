@@ -80,4 +80,19 @@ private:
 // Positive contracts inward; negative expands. Empty in / failed offset → {}.
 ExPolygons apply_surface_offset(const ExPolygons &src, float offset_mm);
 
+// Clamp/slice/gizmo persist policy. TriangleSelector 4-bit packing can encode state 16;
+// 0008 does not promise Extruder16 3mf round-trip (fold-in: cap 15).
+constexpr size_t SPECTRUM_PAINT_ID_PERSIST_CAP = 15;
+
+// Shared paint-ID clamp for update_extruder_count and the delete-filament sibling.
+// min(15, max(physical_n, max_filament_id, source_palette_size)).
+size_t spectrum_paint_id_limit(size_t physical_n, size_t max_filament_id, size_t source_palette_size);
+
+// True if applying new_serialized would change the mix (A/B/ratio/pattern) of any painted mix ID.
+// Mix IDs are enabled-row order; disabling a middle row shifts later IDs. No silent remap.
+bool mixed_filament_painted_ids_would_shift(const std::string     &old_serialized,
+                                            const std::string     &new_serialized,
+                                            size_t                 num_physical,
+                                            const std::vector<int> &painted_filament_ids);
+
 } // namespace Slic3r

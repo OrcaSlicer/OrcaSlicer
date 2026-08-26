@@ -2195,7 +2195,12 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
 
 // Returns multi-material segmentation based on painting in multi-material segmentation gizmo
 std::vector<std::vector<ExPolygons>> multi_material_segmentation_by_painting(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback) {
-    const size_t num_facets_states  = print_object.print()->config().filament_colour.size() + 1;
+    const size_t physical_n = print_object.print()->config().filament_colour.size();
+    const size_t paint_max  = spectrum_paint_id_limit(
+        physical_n,
+        print_object.print()->mixed_filament_manager().total_filaments(physical_n),
+        print_object.print()->config().spectrum_source_filament_colour.values.size());
+    const size_t num_facets_states  = paint_max + 1;
     const float  max_width          = float(print_object.config().mmu_segmented_region_max_width.value);
     const float  interlocking_depth = float(print_object.config().mmu_segmented_region_interlocking_depth.value);
     const bool   interlocking_beam  = print_object.config().interlocking_beam.value;

@@ -885,7 +885,11 @@ static inline void apply_mm_segmentation(PrintObject &print_object, ThrowOnCance
             double       z              = print_object.get_layer(int(range.begin()))->slice_z;
             auto         it_layer_range = layer_range_first(layer_ranges, z);
             // BBS
-            const size_t num_extruders = print_object.print()->config().filament_diameter.size();
+            const size_t physical_n = print_object.print()->config().filament_colour.size();
+            const size_t num_extruders = spectrum_paint_id_limit(
+                physical_n,
+                print_object.print()->mixed_filament_manager().total_filaments(physical_n),
+                print_object.print()->config().spectrum_source_filament_colour.values.size());
 
             struct ByExtruder {
                 ExPolygons  expolygons;

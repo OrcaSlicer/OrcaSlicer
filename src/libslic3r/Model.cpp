@@ -10,6 +10,7 @@
 #include "MTUtils.hpp"
 #include "TriangleMeshSlicer.hpp"
 #include "TriangleSelector.hpp"
+#include "MixedFilament.hpp"
 #include "MaterialType.hpp"
 
 #include "Format/AMF.hpp"
@@ -2564,35 +2565,46 @@ std::vector<int> ModelVolume::get_extruders() const
     return volume_extruders;
 }
 
-void ModelVolume::update_extruder_count(size_t extruder_count)
+void ModelVolume::update_extruder_count(size_t extruder_count, size_t max_filament_id, size_t source_palette_size)
 {
+    const size_t paint_limit = spectrum_paint_id_limit(extruder_count, max_filament_id, source_palette_size);
     std::vector<int> used_extruders = get_extruders();
     for (int extruder_id : used_extruders) {
-        if (extruder_id > extruder_count) {
-            mmu_segmentation_facets.set_enforcer_block_type_limit(*this, (EnforcerBlockerType)extruder_count);
+        if (extruder_id > int(paint_limit)) {
+            mmu_segmentation_facets.set_enforcer_block_type_limit(*this, (EnforcerBlockerType)paint_limit);
             break;
         }
     }
     // Clear a stale per-volume filament assignment that no longer exists after the extruder count
     // shrank (e.g. printer switch to one with fewer filaments), so downstream readers never index
     // per-filament config vectors out of range. Ported from BambuStudio (STUDIO-15763).
-    if (extruder_id() > extruder_count) {
+    if (extruder_id() > int(paint_limit)) {
         this->config.erase("extruder");
     }
 }
 
-void ModelVolume::update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id)
+void ModelVolume::update_extruder_count_when_delete_filament(size_t extruder_count,
+                                                             size_t filament_id,
+                                                             int    replace_filament_id,
+                                                             size_t max_filament_id,
+                                                             size_t source_palette_size)
 {
+    const size_t paint_limit  = spectrum_paint_id_limit(extruder_count, max_filament_id, source_palette_size);
+    const size_t old_physical = extruder_count + 1; // caller passes the post-delete physical count
     std::vector<int> used_extruders = get_extruders();
     for (int extruder_id : used_extruders) {
-        if (extruder_id >= filament_id) {
-            mmu_segmentation_facets.set_enforcer_block_type_limit(*this, (EnforcerBlockerType)(extruder_count), (EnforcerBlockerType)(filament_id), (EnforcerBlockerType)(replace_filament_id));
+        if (extruder_id >= int(filament_id)) {
+            mmu_segmentation_facets.set_enforcer_block_type_limit(*this,
+                (EnforcerBlockerType)(paint_limit),
+                (EnforcerBlockerType)(filament_id),
+                (EnforcerBlockerType)(replace_filament_id),
+                (EnforcerBlockerType)(old_physical));
             break;
         }
     }
     // Same stale-assignment cleanup as update_extruder_count, for the filament-delete path.
     // Ported from BambuStudio (STUDIO-15763).
-    if (extruder_id() > extruder_count) {
+    if (extruder_id() > int(paint_limit)) {
         this->config.erase("extruder");
     }
 }
@@ -3501,10 +3513,11 @@ void FacetsAnnotation::get_facets(const ModelVolume& mv, std::vector<indexed_tri
 void FacetsAnnotation::set_enforcer_block_type_limit(const ModelVolume  &mv,
                                                      EnforcerBlockerType max_type,
                                                      EnforcerBlockerType to_delete_filament,
-                                                     EnforcerBlockerType replace_filament)
+                                                     EnforcerBlockerType replace_filament,
+                                                     EnforcerBlockerType remap_ceiling)
 {
     TriangleSelector selector(mv.mesh());
-    selector.deserialize(m_data, false, max_type, to_delete_filament, replace_filament);
+    selector.deserialize(m_data, false, max_type, to_delete_filament, replace_filament, remap_ceiling);
     this->set(selector);
 }
 
