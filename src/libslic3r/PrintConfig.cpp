@@ -6468,7 +6468,7 @@ void PrintConfigDef::init_fff_params()
                      "seals a SMALLER cell, and small cells are better: every tube gets the same "
                      "injection-time budget whatever its size, so many small tubes put more "
                      "plastic into the part than a few large ones.\n\n"
-                     "0 = estimate as 3x the nozzle bore. Measuring is strongly preferred — the "
+                     "0 = estimate as 2.5x the nozzle bore. Measuring is strongly preferred — the "
                      "estimate drives tube sizing and a wrong one gives tubes that will not seal.");
     def->sidetext = L("mm");
     def->min = 0;  // 0 = use fallback
