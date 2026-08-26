@@ -3446,6 +3446,10 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     if (has_scarf_joint_seam != nullptr)
         m_detect_layer_based_on_tag = m_detect_layer_based_on_tag || has_scarf_joint_seam->value;
 
+    const ConfigOptionBool* manual_filament_change = config.option<ConfigOptionBool>("manual_filament_change");
+    if (manual_filament_change != nullptr)
+        m_manual_filament_change = manual_filament_change->value;
+
     const ConfigOptionEnumGeneric *bed_type = config.option<ConfigOptionEnumGeneric>("curr_bed_type");
     if (bed_type != nullptr)
         m_result.bed_type = (BedType)bed_type->value;
