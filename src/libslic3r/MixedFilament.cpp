@@ -60,6 +60,10 @@ float parse_float_default(const std::string &s, float def)
     return v;
 }
 
+// Named optional tokens after the pair prefix. Parse order is load-bearing:
+// existing xa/xb, then rc before c (longer prefix first, case-insensitive like xa/xb),
+// then pattern fallback. cN must be recognized before normalize_manual_pattern
+// because normalize_manual_pattern("c3") strips 'c' and would set pattern "3".
 bool parse_offset_token(const std::string &field, MixedFilament &mf)
 {
     if (field.size() >= 2 && (field[0] == 'x' || field[0] == 'X') &&
@@ -70,6 +74,28 @@ bool parse_offset_token(const std::string &field, MixedFilament &mf)
     if (field.size() >= 2 && (field[0] == 'x' || field[0] == 'X') &&
         (field[1] == 'b' || field[1] == 'B')) {
         mf.component_b_surface_offset = parse_float_default(field.substr(2), 0.f);
+        return true;
+    }
+    return false;
+}
+
+bool parse_ratio_c_token(const std::string &field, MixedFilament &mf)
+{
+    if (field.size() >= 2 && (field[0] == 'r' || field[0] == 'R') &&
+        (field[1] == 'c' || field[1] == 'C')) {
+        mf.ratio_c = std::max(0, parse_int_default(field.substr(2), 0));
+        return true;
+    }
+    return false;
+}
+
+bool parse_component_c_token(const std::string &field, MixedFilament &mf)
+{
+    if (field.size() >= 2 && (field[0] == 'c' || field[0] == 'C')) {
+        const int v = parse_int_default(field.substr(1), -1);
+        if (v < 0)
+            return false;
+        mf.component_c = unsigned(v);
         return true;
     }
     return false;
@@ -101,13 +127,16 @@ bool is_pattern_separator(char c)
 }
 
 // Map pattern token to physical filament ID (1-based).
-// '1' → component_a, '2' → component_b, '3'..'9' → direct physical (clamped).
+// '1' → component_a, '2' → component_b,
+// '3' → component_c when set else physical 3, '4'..'9' → direct physical (clamped).
 unsigned int physical_from_pattern_token(char token, const MixedFilament &mf, size_t num_physical)
 {
     if (token == '1')
         return clamp_component(mf.component_a, num_physical);
     if (token == '2')
         return clamp_component(mf.component_b, num_physical);
+    if (token == '3' && mf.component_c != 0)
+        return clamp_component(mf.component_c, num_physical);
     if (token >= '3' && token <= '9') {
         const unsigned int direct = unsigned(token - '0');
         return clamp_component(direct, num_physical);
@@ -185,11 +214,18 @@ void MixedFilamentManager::load_definitions(const std::string &serialized)
         mf.enabled     = fields.size() > 2 ? (parse_int_default(trim_copy(fields[2]), 1) != 0) : true;
         mf.ratio_a     = fields.size() > 3 ? parse_int_default(trim_copy(fields[3]), 1) : 1;
         mf.ratio_b     = fields.size() > 4 ? parse_int_default(trim_copy(fields[4]), 1) : 1;
+        bool saw_rc    = false;
         for (size_t i = 5; i < fields.size(); ++i) {
             const std::string token = trim_copy(fields[i]);
             if (token.empty())
                 continue;
             if (parse_offset_token(token, mf))
+                continue;
+            if (parse_ratio_c_token(token, mf)) {
+                saw_rc = true;
+                continue;
+            }
+            if (parse_component_c_token(token, mf))
                 continue;
             if (mf.manual_pattern.empty())
                 mf.manual_pattern = normalize_manual_pattern(token);
@@ -203,6 +239,11 @@ void MixedFilamentManager::load_definitions(const std::string &serialized)
             mf.ratio_a = 0;
         if (mf.ratio_b < 0)
             mf.ratio_b = 0;
+        if (mf.ratio_c < 0)
+            mf.ratio_c = 0;
+        // cN without rcN defaults ratio_c to 1. Absent / c0 stays pair-only.
+        if (mf.component_c != 0 && !saw_rc)
+            mf.ratio_c = 1;
 
         // Keep enabled rows only.
         if (mf.enabled)
@@ -226,6 +267,8 @@ std::string MixedFilamentManager::serialize_definitions() const
             oss << ',' << format_offset_token('a', mf.component_a_surface_offset);
         if (std::abs(mf.component_b_surface_offset) > 1e-6f)
             oss << ',' << format_offset_token('b', mf.component_b_surface_offset);
+        if (mf.component_c != 0)
+            oss << ",c" << mf.component_c << ",rc" << mf.ratio_c;
     }
     return oss.str();
 }
@@ -261,7 +304,9 @@ float MixedFilamentManager::component_surface_offset(unsigned int filament_id_1b
     const unsigned int physical = resolve(filament_id_1based, num_physical, layer_index);
     if (physical == clamp_component(mf->component_a, num_physical))
         return mf->component_a_surface_offset;
-    return mf->component_b_surface_offset;
+    if (physical == clamp_component(mf->component_b, num_physical))
+        return mf->component_b_surface_offset;
+    return 0.f;
 }
 
 unsigned int MixedFilamentManager::resolve(unsigned int filament_id_1based, size_t num_physical, int layer_index) const
@@ -280,14 +325,23 @@ unsigned int MixedFilamentManager::resolve(unsigned int filament_id_1based, size
 
     int ratio_a = std::max(0, mf->ratio_a);
     int ratio_b = std::max(0, mf->ratio_b);
-    if (ratio_a == 0 && ratio_b == 0) {
+    int ratio_c = (mf->component_c != 0) ? std::max(0, mf->ratio_c) : 0;
+    if (ratio_a == 0 && ratio_b == 0 && ratio_c == 0) {
         return clamp_component(mf->component_a, num_physical);
     }
 
-    const int cycle = std::max(1, ratio_a + ratio_b);
+    const int cycle = std::max(1, ratio_a + ratio_b + ratio_c);
     const int pos   = safe_mod(layer_index, cycle);
 
-    const unsigned int chosen = (pos < ratio_a) ? mf->component_a : mf->component_b;
+    unsigned int chosen = mf->component_a;
+    if (pos < ratio_a)
+        chosen = mf->component_a;
+    else if (pos < ratio_a + ratio_b)
+        chosen = mf->component_b;
+    else if (mf->component_c != 0)
+        chosen = mf->component_c;
+    else
+        chosen = mf->component_b;
     return clamp_component(chosen, num_physical);
 }
 
@@ -297,11 +351,20 @@ void MixedFilamentManager::append_physical_0based(unsigned int filament_id_1base
         return;
 
     if (const MixedFilament *mf = mixed_filament_from_id(filament_id_1based, num_physical)) {
-        const unsigned int a = clamp_component(mf->component_a, num_physical);
-        const unsigned int b = clamp_component(mf->component_b, num_physical);
-        out.emplace_back(a - 1);
-        if (b != a)
-            out.emplace_back(b - 1);
+        auto append_unique = [&](unsigned int id_1based) {
+            if (id_1based == 0)
+                return;
+            const unsigned int z = id_1based - 1;
+            if (std::find(out.begin(), out.end(), z) == out.end())
+                out.emplace_back(z);
+        };
+        append_unique(clamp_component(mf->component_a, num_physical));
+        append_unique(clamp_component(mf->component_b, num_physical));
+        if (mf->component_c != 0)
+            append_unique(clamp_component(mf->component_c, num_physical));
+        const std::string pattern = normalize_manual_pattern(mf->manual_pattern);
+        for (char token : pattern)
+            append_unique(physical_from_pattern_token(token, *mf, num_physical));
         return;
     }
 
@@ -334,7 +397,8 @@ bool mixed_filament_painted_ids_would_shift(const std::string     &old_serialize
         if (lhs == nullptr || rhs == nullptr)
             return lhs == rhs;
         return lhs->component_a == rhs->component_a && lhs->component_b == rhs->component_b &&
-               lhs->ratio_a == rhs->ratio_a && lhs->ratio_b == rhs->ratio_b &&
+               lhs->component_c == rhs->component_c && lhs->ratio_a == rhs->ratio_a &&
+               lhs->ratio_b == rhs->ratio_b && lhs->ratio_c == rhs->ratio_c &&
                MixedFilamentManager::normalize_manual_pattern(lhs->manual_pattern) ==
                    MixedFilamentManager::normalize_manual_pattern(rhs->manual_pattern);
     };

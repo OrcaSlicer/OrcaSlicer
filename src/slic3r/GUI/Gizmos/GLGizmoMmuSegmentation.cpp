@@ -95,14 +95,29 @@ static std::vector<ColorRGBA> paint_palette_colors(std::vector<std::string> *too
         const MixedFilament &mf = mgr.mixed_filaments()[i];
         const size_t ia = (mf.component_a >= 1 && size_t(mf.component_a) <= physical_n) ? size_t(mf.component_a - 1) : 0;
         const size_t ib = (mf.component_b >= 1 && size_t(mf.component_b) <= physical_n) ? size_t(mf.component_b - 1) : 0;
-        colors.push_back(lerp(physical[ia], physical[ib], 0.5f));
-        if (tooltips) {
-            tooltips->push_back(GUI::format(_L("Mix %1%: T%2%+T%3% %4%:%5%"),
-                                            int(physical_n + i + 1),
-                                            int(mf.component_a - 1),
-                                            int(mf.component_b - 1),
-                                            mf.ratio_a,
-                                            mf.ratio_b));
+        if (mf.component_c != 0) {
+            const size_t ic = (mf.component_c >= 1 && size_t(mf.component_c) <= physical_n) ? size_t(mf.component_c - 1) : 0;
+            colors.push_back(lerp(lerp(physical[ia], physical[ib], 0.5f), physical[ic], 1.f / 3.f));
+            if (tooltips) {
+                tooltips->push_back(GUI::format(_L("Mix %1%: T%2%+T%3%+T%4% %5%:%6%:%7%"),
+                                                int(physical_n + i + 1),
+                                                int(mf.component_a - 1),
+                                                int(mf.component_b - 1),
+                                                int(mf.component_c - 1),
+                                                mf.ratio_a,
+                                                mf.ratio_b,
+                                                mf.ratio_c));
+            }
+        } else {
+            colors.push_back(lerp(physical[ia], physical[ib], 0.5f));
+            if (tooltips) {
+                tooltips->push_back(GUI::format(_L("Mix %1%: T%2%+T%3% %4%:%5%"),
+                                                int(physical_n + i + 1),
+                                                int(mf.component_a - 1),
+                                                int(mf.component_b - 1),
+                                                mf.ratio_a,
+                                                mf.ratio_b));
+            }
         }
     }
     return colors;

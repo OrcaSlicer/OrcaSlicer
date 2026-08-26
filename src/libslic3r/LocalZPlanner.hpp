@@ -28,6 +28,27 @@ inline std::pair<int, int> local_z_pair_ratio(const MixedFilament &mf)
     // Pattern rows keep M4 whole-layer cadence (FS excludes them from Local-Z).
     if (!mf.manual_pattern.empty())
         return { 0, 0 };
+    // 3-component mixes stay whole-layer. Do not invent a 3-way sub-layer split.
+    if (mf.component_c != 0)
+        return { 0, 0 };
+    unsigned ids[3];
+    int      unique = 0;
+    auto     push   = [&](unsigned id) {
+        if (id == 0)
+            return;
+        for (int i = 0; i < unique; ++i) {
+            if (ids[i] == id)
+                return;
+        }
+        if (unique < 3)
+            ids[unique++] = id;
+    };
+    push(mf.component_a);
+    push(mf.component_b);
+    if (mf.component_c != 0)
+        push(mf.component_c);
+    if (unique >= 3)
+        return { 0, 0 };
     return { std::max(0, mf.ratio_a), std::max(0, mf.ratio_b) };
 }
 

@@ -301,3 +301,148 @@ TEST_CASE("LocalZOrderOptimizer: order_pass_group prefers bucket containing acti
     REQUIRE(order.size() == 3);
     CHECK(order[0] == 1u);
 }
+
+TEST_CASE("MixedFilament 3-component c3,rc1 resolve and empty pattern", "[MixedFilament]")
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions("1,2,1,1,1,c3,rc1");
+    REQUIRE(mgr.enabled_count() == 1);
+    REQUIRE(mgr.mixed_filaments().front().component_c == 3u);
+    REQUIRE(mgr.mixed_filaments().front().ratio_c == 1);
+    REQUIRE(mgr.mixed_filaments().front().manual_pattern.empty());
+    REQUIRE(mgr.resolve(5, 4, 0) == 1);
+    REQUIRE(mgr.resolve(5, 4, 1) == 2);
+    REQUIRE(mgr.resolve(5, 4, 2) == 3);
+    REQUIRE(mgr.resolve(5, 4, 3) == 1);
+    REQUIRE(mgr.serialize_definitions() == "1,2,1,1,1,c3,rc1");
+
+    MixedFilamentManager c_only;
+    c_only.load_definitions("1,2,1,1,1,c3");
+    REQUIRE(c_only.mixed_filaments().front().manual_pattern.empty());
+    REQUIRE(c_only.mixed_filaments().front().component_c == 3u);
+    REQUIRE(c_only.mixed_filaments().front().ratio_c == 1);
+    REQUIRE(c_only.serialize_definitions() == "1,2,1,1,1,c3,rc1");
+}
+
+TEST_CASE("MixedFilament pattern 123 without cN still 1,2,3", "[MixedFilament]")
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions("1,2,1,1,1,123");
+    REQUIRE(mgr.mixed_filaments().front().component_c == 0u);
+    REQUIRE(mgr.mixed_filaments().front().manual_pattern == "123");
+    REQUIRE(mgr.resolve(5, 4, 0) == 1);
+    REQUIRE(mgr.resolve(5, 4, 1) == 2);
+    REQUIRE(mgr.resolve(5, 4, 2) == 3);
+}
+
+TEST_CASE("MixedFilament pattern token 3 maps to C when C is not physical 3", "[MixedFilament]")
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions("1,2,1,1,1,123,c4");
+    REQUIRE(mgr.mixed_filaments().front().component_c == 4u);
+    REQUIRE(mgr.mixed_filaments().front().manual_pattern == "123");
+    REQUIRE(mgr.resolve(5, 4, 0) == 1);
+    REQUIRE(mgr.resolve(5, 4, 1) == 2);
+    REQUIRE(mgr.resolve(5, 4, 2) == 4);
+}
+
+TEST_CASE("MixedFilament pair serialize stays exact 1,2,1,1,1", "[MixedFilament]")
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions("1,2,1,1,1");
+    REQUIRE(mgr.serialize_definitions() == "1,2,1,1,1");
+    REQUIRE(mgr.mixed_filaments().front().component_c == 0u);
+    REQUIRE(mgr.mixed_filaments().front().ratio_c == 0);
+}
+
+TEST_CASE("MixedFilament 0006 six-pair string IDs 5-10 cadences unchanged", "[MixedFilament]")
+{
+    const std::string six =
+        "1,2,1,1,1;1,3,1,1,1;2,3,1,1,1;1,4,1,1,1;2,4,1,1,1;3,4,1,1,1";
+    MixedFilamentManager mgr;
+    mgr.load_definitions(six);
+    REQUIRE(mgr.enabled_count() == 6);
+    REQUIRE(mgr.total_filaments(4) == 10);
+    REQUIRE(mgr.is_mixed(5, 4));
+    REQUIRE(mgr.is_mixed(10, 4));
+    REQUIRE_FALSE(mgr.is_mixed(4, 4));
+    REQUIRE_FALSE(mgr.is_mixed(11, 4));
+
+    REQUIRE(mgr.resolve(5, 4, 0) == 1);
+    REQUIRE(mgr.resolve(5, 4, 1) == 2);
+    REQUIRE(mgr.resolve(6, 4, 0) == 1);
+    REQUIRE(mgr.resolve(6, 4, 1) == 3);
+    REQUIRE(mgr.resolve(7, 4, 0) == 2);
+    REQUIRE(mgr.resolve(7, 4, 1) == 3);
+    REQUIRE(mgr.resolve(8, 4, 0) == 1);
+    REQUIRE(mgr.resolve(8, 4, 1) == 4);
+    REQUIRE(mgr.resolve(9, 4, 0) == 2);
+    REQUIRE(mgr.resolve(9, 4, 1) == 4);
+    REQUIRE(mgr.resolve(10, 4, 0) == 3);
+    REQUIRE(mgr.resolve(10, 4, 1) == 4);
+    REQUIRE(mgr.serialize_definitions() == six);
+}
+
+TEST_CASE("MixedFilament append_physical_0based includes C and pattern 123", "[MixedFilament]")
+{
+    MixedFilamentManager ratio;
+    ratio.load_definitions("1,2,1,1,1,c3,rc1");
+    std::vector<unsigned int> out_ratio;
+    ratio.append_physical_0based(5, 4, out_ratio);
+    REQUIRE(out_ratio == std::vector<unsigned int>{0, 1, 2});
+
+    MixedFilamentManager pat_unset;
+    pat_unset.load_definitions("1,2,1,1,1,123");
+    std::vector<unsigned int> out_unset;
+    pat_unset.append_physical_0based(5, 4, out_unset);
+    REQUIRE(out_unset == std::vector<unsigned int>{0, 1, 2});
+
+    MixedFilamentManager pat_set;
+    pat_set.load_definitions("1,2,1,1,1,123,c3");
+    REQUIRE(pat_set.mixed_filaments().front().component_c == 3u);
+    std::vector<unsigned int> out_set;
+    pat_set.append_physical_0based(5, 4, out_set);
+    REQUIRE(out_set == std::vector<unsigned int>{0, 1, 2});
+}
+
+TEST_CASE("LocalZ three-component c3 row does not split", "[LocalZ][MixedFilament]")
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions("1,2,1,1,1,c3,rc1");
+    REQUIRE(mgr.enabled_count() == 1);
+    const LocalZPassHeights h = plan_local_z_pair_heights(0.24, mgr.mixed_filaments().front(), 0.08);
+    REQUIRE_FALSE(h.split);
+    REQUIRE(h.height_a == Catch::Approx(0.24));
+}
+
+TEST_CASE("MixedFilament A=3,B=4,C=1 1:1:1 hits those physicals", "[MixedFilament]")
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions("3,4,1,1,1,c1,rc1");
+    REQUIRE(mgr.mixed_filaments().front().component_a == 3u);
+    REQUIRE(mgr.mixed_filaments().front().component_b == 4u);
+    REQUIRE(mgr.mixed_filaments().front().component_c == 1u);
+    REQUIRE(mgr.resolve(5, 4, 0) == 3);
+    REQUIRE(mgr.resolve(5, 4, 1) == 4);
+    REQUIRE(mgr.resolve(5, 4, 2) == 1);
+}
+
+TEST_CASE("MixedFilament C-layer surface offset is 0 even with xb", "[MixedFilament]")
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions("1,2,1,1,1,c3,rc1,xb0.2");
+    REQUIRE(mgr.mixed_filaments().front().component_b_surface_offset == Catch::Approx(0.2f));
+    REQUIRE(mgr.resolve(5, 4, 2) == 3);
+    REQUIRE(mgr.component_surface_offset(5, 4, 2) == Catch::Approx(0.f));
+    REQUIRE(mgr.component_surface_offset(5, 4, 1) == Catch::Approx(0.2f));
+}
+
+TEST_CASE("mixed_filament_painted_ids_would_shift on C-only or rc-only edit", "[MixedFilament]")
+{
+    const std::string base = "1,2,1,1,1,c3,rc1";
+    const std::string c_only = "1,2,1,1,1,c4,rc1";
+    const std::string rc_only = "1,2,1,1,1,c3,rc2";
+    CHECK(mixed_filament_painted_ids_would_shift(base, c_only, 4, {5}));
+    CHECK(mixed_filament_painted_ids_would_shift(base, rc_only, 4, {5}));
+    CHECK_FALSE(mixed_filament_painted_ids_would_shift(base, base, 4, {5}));
+}

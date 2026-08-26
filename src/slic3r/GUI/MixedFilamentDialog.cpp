@@ -39,6 +39,10 @@ std::string serialize_mix_row(const MixedFilament &mf)
         row += ",xa" + std::to_string(mf.component_a_surface_offset);
     if (std::abs(mf.component_b_surface_offset) > 1e-6)
         row += ",xb" + std::to_string(mf.component_b_surface_offset);
+    if (mf.component_c != 0) {
+        row += ",c" + std::to_string(mf.component_c);
+        row += ",rc" + std::to_string(mf.ratio_c);
+    }
     return row;
 }
 
@@ -104,10 +108,16 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
                               wxSP_ARROW_KEYS, 1, 16, 1);
     m_spin_b = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
                               wxSP_ARROW_KEYS, 1, 16, 2);
+    m_spin_c = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
+                              wxSP_ARROW_KEYS, 0, 16, 0);
     m_spin_ratio_a = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
                                     wxSP_ARROW_KEYS, 0, 99, 1);
     m_spin_ratio_b = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
                                     wxSP_ARROW_KEYS, 0, 99, 1);
+    m_spin_ratio_c = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1),
+                                    wxSP_ARROW_KEYS, 0, 99, 1);
+    m_spin_c->SetToolTip(_L("Third physical (1-based). 0 = pair mix. Period ratio A+B+C must be at most 4."));
+    m_spin_ratio_c->SetToolTip(_L("Layer count for C in the A then B then C cadence. Ignored when C is 0."));
     m_pattern = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(160), -1));
     m_pattern->SetToolTip(_L("Optional cycle pattern (1-based tools). Empty = ratio cadence. "
                              "Example: 112 → A,A,B when A=1,B=2 → T0,T0,T1."));
@@ -134,8 +144,10 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
 
     add_row(_L("Component A (1-based)"), m_spin_a);
     add_row(_L("Component B (1-based)"), m_spin_b);
+    add_row(_L("Component C (0 = pair)"), m_spin_c);
     add_row(_L("Ratio A"), m_spin_ratio_a);
     add_row(_L("Ratio B"), m_spin_ratio_b);
+    add_row(_L("Ratio C"), m_spin_ratio_c);
     add_row(_L("Pattern (optional)"), m_pattern);
     add_row(_L("Bias A (mm)"), m_offset_a);
     add_row(_L("Bias B (mm)"), m_offset_b);
@@ -153,6 +165,7 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
            "Select a mix and apply it to the selected volume; sibling volumes are left unchanged. "
            "If only an object is selected, the object extruder is set and child volume extruders are kept. "
            "Subdivide Mix Layer + Full domain splits a 0.24 mm 2:1 mix into 0.16 + 0.08 mm. "
+           "Component C 0 = pair; C ≥ 1 adds a third filament (period A+B+C ≤ 4). "
            "Save project and reopen to verify persistence."));
     hint->Wrap(FromDIP(360));
     root->Add(hint, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
@@ -175,8 +188,8 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
 
     Bind(wxEVT_BUTTON, [this](wxCommandEvent &evt) {
         if (evt.GetId() == wxID_OK) {
-            apply_to_project();
-            EndModal(wxID_OK);
+            if (apply_to_project())
+                EndModal(wxID_OK);
         } else {
             evt.Skip();
         }
@@ -197,7 +210,10 @@ wxString MixedFilamentDialog::row_label(size_t idx, size_t num_physical) const
     if (idx >= m_rows.size())
         return {};
     const MixedFilament &mf  = m_rows[idx];
-    const wxString       pair = wxString::Format("%u+%u  %d:%d", mf.component_a, mf.component_b, mf.ratio_a, mf.ratio_b);
+    const wxString       pair = (mf.component_c != 0)
+        ? wxString::Format("%u+%u+%u  %d:%d:%d", mf.component_a, mf.component_b, mf.component_c,
+                           mf.ratio_a, mf.ratio_b, mf.ratio_c)
+        : wxString::Format("%u+%u  %d:%d", mf.component_a, mf.component_b, mf.ratio_a, mf.ratio_b);
     const int            vid  = virtual_id_for_row(idx, num_physical);
     if (vid > 0)
         return wxString::Format(_L("Mix %d  %s"), vid, pair);
@@ -255,8 +271,10 @@ void MixedFilamentDialog::load_selected_row_into_editors()
 
     m_spin_a->SetValue(int(mf.component_a));
     m_spin_b->SetValue(int(mf.component_b));
+    m_spin_c->SetValue(int(mf.component_c));
     m_spin_ratio_a->SetValue(mf.ratio_a);
     m_spin_ratio_b->SetValue(mf.ratio_b);
+    m_spin_ratio_c->SetValue(mf.component_c != 0 ? mf.ratio_c : 1);
     m_enabled->SetValue(mf.enabled);
     m_pattern->SetValue(wxString::FromUTF8(mf.manual_pattern.c_str()));
     m_offset_a->SetValue(wxString::FromDouble(double(mf.component_a_surface_offset)));
@@ -271,8 +289,12 @@ void MixedFilamentDialog::store_editors_into_selected_row()
     MixedFilament &mf = m_rows[size_t(m_selected_row)];
     mf.component_a    = unsigned(std::max(1, m_spin_a->GetValue()));
     mf.component_b    = unsigned(std::max(1, m_spin_b->GetValue()));
+    mf.component_c    = unsigned(std::max(0, m_spin_c->GetValue()));
     mf.ratio_a        = std::max(0, m_spin_ratio_a->GetValue());
     mf.ratio_b        = std::max(0, m_spin_ratio_b->GetValue());
+    mf.ratio_c        = std::max(0, m_spin_ratio_c->GetValue());
+    if (mf.component_c != 0 && mf.ratio_c == 0)
+        mf.ratio_c = 1;
     mf.enabled        = m_enabled->GetValue();
     mf.manual_pattern = MixedFilamentManager::normalize_manual_pattern(into_u8(m_pattern->GetValue()));
     double offset_a   = 0.0;
@@ -352,14 +374,36 @@ void MixedFilamentDialog::load_from_config()
         m_gradient->SetValue(gr->value);
 }
 
-void MixedFilamentDialog::apply_to_project()
+bool MixedFilamentDialog::apply_to_project()
 {
     PresetBundle *bundle = wxGetApp().preset_bundle;
     Plater       *plater = wxGetApp().plater();
     if (bundle == nullptr || plater == nullptr)
-        return;
+        return false;
 
     store_editors_into_selected_row();
+    for (const MixedFilament &mf : m_rows) {
+        if (!mf.enabled || mf.component_c == 0)
+            continue;
+        if (mf.component_c == mf.component_a || mf.component_c == mf.component_b) {
+            MessageDialog(this,
+                _L("Component C must be different from A and B."),
+                _L("Mixed Filaments"), wxOK | wxICON_WARNING).ShowModal();
+            return false;
+        }
+        if (mf.ratio_a + mf.ratio_b + mf.ratio_c > 4) {
+            MessageDialog(this,
+                _L("Three-component mix period (ratio A+B+C) must be at most 4."),
+                _L("Mixed Filaments"), wxOK | wxICON_WARNING).ShowModal();
+            return false;
+        }
+        if (MixedFilamentManager::normalize_manual_pattern(mf.manual_pattern).size() > 4) {
+            MessageDialog(this,
+                _L("Three-component mix pattern length must be at most 4."),
+                _L("Mixed Filaments"), wxOK | wxICON_WARNING).ShowModal();
+            return false;
+        }
+    }
     const std::string serialized = serialize_enabled_rows(m_rows);
 
     std::string old_serialized;
@@ -424,6 +468,7 @@ void MixedFilamentDialog::apply_to_project()
 
     plater->on_config_change(bundle->full_config());
     plater->schedule_background_process();
+    return true;
 }
 
 } // namespace GUI

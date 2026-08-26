@@ -4853,9 +4853,11 @@ void PrintConfigDef::init_fff_params()
     def = this->add("mixed_filament_definitions", coString);
     def->label = L("Mixed filament definitions");
     def->tooltip = L("Serialized virtual mixed filaments (pair-mix). Rows ';' separated: "
-                     "A,B,enabled,ratio_a,ratio_b[,pattern][,xaN][,xbN] (1-based physical IDs). "
+                     "A,B,enabled,ratio_a,ratio_b[,pattern][,xaN][,xbN][,cN][,rcN] (1-based physical IDs). "
                      "Empty pattern uses ratio cadence (e.g. 1,2,1,2,1 for 2:1). "
-                     "Optional pattern tokens: '1'→component A, '2'→component B, '3'..'9'→direct physical. "
+                     "Optional cN/rcN add a third component (1,2,1,1,1,c3,rc1 → 1:1:1 of A,B,C; period ra+rb+rc). "
+                     "Optional pattern tokens: '1'→component A, '2'→component B, "
+                     "'3'→C when cN is set else physical 3, '4'..'9'→direct physical. "
                      "Optional xa/xb persist component surface offsets in mm. "
                      "Example pattern 112 with A=1,B=2 → T0,T0,T1. Prefer Edit → Mixed Filaments… dialog.");
     def->mode = comSimple;

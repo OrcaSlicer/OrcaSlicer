@@ -29,7 +29,7 @@ protected:
 
 private:
     void load_from_config();
-    void apply_to_project();
+    bool apply_to_project();
 
     void refresh_list();
     void refresh_list_labels();
@@ -52,8 +52,10 @@ private:
     wxButton   *m_btn_remove{nullptr};
     wxSpinCtrl *m_spin_a{nullptr};
     wxSpinCtrl *m_spin_b{nullptr};
+    wxSpinCtrl *m_spin_c{nullptr};
     wxSpinCtrl *m_spin_ratio_a{nullptr};
     wxSpinCtrl *m_spin_ratio_b{nullptr};
+    wxSpinCtrl *m_spin_ratio_c{nullptr};
     wxTextCtrl *m_pattern{nullptr};
     wxCheckBox *m_enabled{nullptr};
     wxCheckBox *m_apply_object{nullptr};
