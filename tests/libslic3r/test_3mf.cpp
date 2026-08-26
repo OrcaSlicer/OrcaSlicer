@@ -799,10 +799,10 @@ SCENARIO("Full-publish entries filter the whole slot and mask the other slots", 
 
             THEN("the full key list is present with the author's slot value") {
                 REQUIRE(filtered_cfg.option("filament_flow_ratio") != nullptr);
-                REQUIRE(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[1] == 0.98);
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[1], Catch::Matchers::WithinAbs(0.98, 1e-6));
             }
             THEN("the non-published slot is masked to its default") {
-                REQUIRE(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[0] == 1.0);
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[0], Catch::Matchers::WithinAbs(1.0, 1e-6));
             }
             THEN("the identity keys stay present") {
                 REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
@@ -829,10 +829,10 @@ SCENARIO("Partial-publish entries mask the other slots like full entries", "[3mf
 
             THEN("the partial key is present with the author's slot value") {
                 REQUIRE(filtered_cfg.option("filament_flow_ratio") != nullptr);
-                REQUIRE(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[1] == 0.98);
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[1], Catch::Matchers::WithinAbs(0.98, 1e-6));
             }
             THEN("the non-published slot is masked to its default") {
-                REQUIRE(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[0] == 1.0);
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[0], Catch::Matchers::WithinAbs(1.0, 1e-6));
             }
             THEN("the identity keys stay present") {
                 REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
@@ -864,8 +864,8 @@ SCENARIO("Unmaskable keys are dropped from the published payload instead of leak
             }
             THEN("the maskable key is present, author slot kept, other slot masked") {
                 REQUIRE(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio") != nullptr);
-                REQUIRE(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[1] == 0.98);
-                REQUIRE(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[0] == 1.0);
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[1], Catch::Matchers::WithinAbs(0.98, 1e-6));
+                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[0], Catch::Matchers::WithinAbs(1.0, 1e-6));
             }
             THEN("the identity keys stay present") {
                 REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
