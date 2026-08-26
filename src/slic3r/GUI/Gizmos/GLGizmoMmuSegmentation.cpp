@@ -13,6 +13,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/MixedFilament.hpp"
+#include "libslic3r/MixedFilamentMatch.hpp"
 #include "libslic3r/Color.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
@@ -91,13 +92,14 @@ static std::vector<ColorRGBA> paint_palette_colors(std::vector<std::string> *too
     MixedFilamentManager mgr;
     mgr.load_definitions(current_mixed_filament_definitions());
     const std::vector<ColorRGBA> physical = colors;
+    std::vector<ColorRGB> physical_rgb;
+    physical_rgb.reserve(physical.size());
+    for (const ColorRGBA &c : physical)
+        physical_rgb.push_back(to_rgb(c));
     for (size_t i = 0; i < mgr.enabled_count() && colors.size() < GLGizmoMmuSegmentation::EXTRUDERS_LIMIT; ++i) {
         const MixedFilament &mf = mgr.mixed_filaments()[i];
-        const size_t ia = (mf.component_a >= 1 && size_t(mf.component_a) <= physical_n) ? size_t(mf.component_a - 1) : 0;
-        const size_t ib = (mf.component_b >= 1 && size_t(mf.component_b) <= physical_n) ? size_t(mf.component_b - 1) : 0;
+        colors.push_back(to_rgba(predicted_swatch_for_mix(mf, physical_rgb)));
         if (mf.component_c != 0) {
-            const size_t ic = (mf.component_c >= 1 && size_t(mf.component_c) <= physical_n) ? size_t(mf.component_c - 1) : 0;
-            colors.push_back(lerp(lerp(physical[ia], physical[ib], 0.5f), physical[ic], 1.f / 3.f));
             if (tooltips) {
                 tooltips->push_back(GUI::format(_L("Mix %1%: T%2%+T%3%+T%4% %5%:%6%:%7%"),
                                                 int(physical_n + i + 1),
@@ -109,7 +111,6 @@ static std::vector<ColorRGBA> paint_palette_colors(std::vector<std::string> *too
                                                 mf.ratio_c));
             }
         } else {
-            colors.push_back(lerp(physical[ia], physical[ib], 0.5f));
             if (tooltips) {
                 tooltips->push_back(GUI::format(_L("Mix %1%: T%2%+T%3% %4%:%5%"),
                                                 int(physical_n + i + 1),

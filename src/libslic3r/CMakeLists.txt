@@ -359,6 +359,8 @@ set(lisbslic3r_sources
     Print.hpp
     MixedFilament.cpp
     MixedFilament.hpp
+    MixedFilamentMatch.cpp
+    MixedFilamentMatch.hpp
     LocalZPlanner.hpp
     LocalZOrderOptimizer.hpp
     PrintObject.cpp

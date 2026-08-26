@@ -1,9 +1,11 @@
 #pragma once
 
 #include "GUI_Utils.hpp"
+#include "libslic3r/Color.hpp"
 #include "libslic3r/MixedFilament.hpp"
 
 #include <wx/checkbox.h>
+#include <wx/clrpicker.h>
 #include <wx/dialog.h>
 #include <wx/spinctrl.h>
 #include <wx/textctrl.h>
@@ -38,10 +40,15 @@ private:
     void on_list_select(wxCommandEvent &evt);
     void on_add_row(wxCommandEvent &evt);
     void on_remove_row(wxCommandEvent &evt);
+    void on_create_mix_from_color(wxCommandEvent &evt);
+    void on_target_colour_changed(wxColourPickerEvent &evt);
+    void refresh_predicted_swatch();
 
     wxString row_label(size_t idx, size_t num_physical) const;
     int      virtual_id_for_row(size_t idx, size_t num_physical) const;
     size_t   physical_filament_count() const;
+    size_t   enabled_mix_count() const;
+    std::vector<ColorRGB> live_physical_colors() const;
 
     std::vector<MixedFilament> m_rows;
     int                        m_selected_row{-1};
@@ -65,6 +72,11 @@ private:
     wxCheckBox *m_gradient{nullptr};
     wxTextCtrl *m_offset_a{nullptr};
     wxTextCtrl *m_offset_b{nullptr};
+
+    wxColourPickerCtrl *m_clr_target{nullptr};
+    wxTextCtrl         *m_hex_target{nullptr};
+    wxButton           *m_btn_create_mix{nullptr};
+    wxColourPickerCtrl *m_clr_predicted{nullptr};
 };
 
 } // namespace GUI

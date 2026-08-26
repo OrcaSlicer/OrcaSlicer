@@ -1,9 +1,16 @@
 #include <catch2/catch_all.hpp>
 
+#include "libslic3r/Color.hpp"
 #include "libslic3r/LocalZOrderOptimizer.hpp"
 #include "libslic3r/LocalZPlanner.hpp"
 #include "libslic3r/MixedFilament.hpp"
+#include "libslic3r/MixedFilamentMatch.hpp"
 #include "libslic3r/Print.hpp"
+
+#include <cmath>
+#include <set>
+#include <string>
+#include <vector>
 
 using namespace Slic3r;
 
@@ -445,4 +452,201 @@ TEST_CASE("mixed_filament_painted_ids_would_shift on C-only or rc-only edit", "[
     CHECK(mixed_filament_painted_ids_would_shift(base, c_only, 4, {5}));
     CHECK(mixed_filament_painted_ids_would_shift(base, rc_only, 4, {5}));
     CHECK_FALSE(mixed_filament_painted_ids_would_shift(base, base, 4, {5}));
+}
+
+namespace {
+
+ColorRGB decode_hex_or_fail(const std::string &hex)
+{
+    ColorRGB c;
+    REQUIRE(decode_color(hex, c));
+    return c;
+}
+
+std::vector<ColorRGB> panchroma_physicals()
+{
+    return {
+        decode_hex_or_fail("#08ABFB"), // 1 C
+        decode_hex_or_fail("#D93B90"), // 2 M
+        decode_hex_or_fail("#F9ED3D"), // 3 Y
+        decode_hex_or_fail("#9199A4"), // 4 Grey K
+    };
+}
+
+int mix_period(const MixedFilament &mf)
+{
+    int p = mf.ratio_a + mf.ratio_b;
+    if (mf.component_c != 0)
+        p += mf.ratio_c;
+    return p;
+}
+
+} // namespace
+
+TEST_CASE("Match pure C and Grey are Physical slots", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    const MixMatchResult        cyan = match_printable_mix(phys[0], phys);
+    REQUIRE(cyan.valid);
+    REQUIRE(cyan.kind == MixMatchResult::Kind::Physical);
+    REQUIRE(cyan.physical_id == 1u);
+    REQUIRE(cyan.recipe_row.empty());
+
+    const MixMatchResult grey = match_printable_mix(phys[3], phys);
+    REQUIRE(grey.valid);
+    REQUIRE(grey.kind == MixMatchResult::Kind::Physical);
+    REQUIRE(grey.physical_id == 4u);
+    REQUIRE(grey.recipe_row.empty());
+}
+
+TEST_CASE("Match black maps to Grey physical not a CMY stack", "[MixedFilamentMatch]")
+{
+    const MixMatchResult r = match_printable_mix(decode_hex_or_fail("#000000"), panchroma_physicals());
+    REQUIRE(r.valid);
+    REQUIRE(r.kind == MixMatchResult::Kind::Physical);
+    REQUIRE(r.physical_id == 4u);
+    REQUIRE(r.recipe_row.empty());
+}
+
+TEST_CASE("Match C+M 1:1 predicted serializes gcd-reduced 1,2,1,1,1", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    MixedFilament               pair;
+    pair.component_a = 1;
+    pair.component_b = 2;
+    pair.ratio_a     = 1;
+    pair.ratio_b     = 1;
+    pair.enabled     = true;
+    const ColorRGB         yn = predicted_swatch_for_mix(pair, phys);
+    const MixMatchResult   r  = match_printable_mix(yn, phys);
+    REQUIRE(r.valid);
+    REQUIRE(r.kind == MixMatchResult::Kind::Mix);
+    REQUIRE(r.mix.component_a == 1u);
+    REQUIRE(r.mix.component_b == 2u);
+    REQUIRE(r.mix.component_c == 0u);
+    REQUIRE(r.recipe_row == "1,2,1,1,1");
+    REQUIRE(r.recipe_row.find('c') == std::string::npos);
+    REQUIRE(mix_period(r.mix) >= 2);
+    REQUIRE(mix_period(r.mix) <= 3);
+
+    MixedFilamentManager mgr;
+    mgr.load_definitions(r.recipe_row);
+    REQUIRE(mgr.enabled_count() == 1);
+    REQUIRE(mgr.serialize_definitions() == "1,2,1,1,1");
+
+    const ColorRGB avg = lerp(phys[0], phys[1], 0.5f);
+    REQUIRE(std::abs(yn.r() - avg.r()) + std::abs(yn.g() - avg.g()) + std::abs(yn.b() - avg.b()) > 1e-4f);
+}
+
+TEST_CASE("Match linear C+M midpoint is a pair of 1+2 without cN", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    const ColorRGB              mid  = lerp(phys[0], phys[1], 0.5f);
+    const MixMatchResult        r    = match_printable_mix(mid, phys);
+    REQUIRE(r.valid);
+    REQUIRE(r.kind == MixMatchResult::Kind::Mix);
+    REQUIRE(r.mix.component_c == 0u);
+    REQUIRE(r.recipe_row.find('c') == std::string::npos);
+    const bool pair_12 = (r.mix.component_a == 1u && r.mix.component_b == 2u) ||
+                         (r.mix.component_a == 2u && r.mix.component_b == 1u);
+    REQUIRE(pair_12);
+    REQUIRE(mix_period(r.mix) >= 2);
+    REQUIRE(mix_period(r.mix) <= 3);
+}
+
+TEST_CASE("Match brown is a short CMY mix that round-trips", "[MixedFilamentMatch]")
+{
+    const MixMatchResult r = match_printable_mix(decode_hex_or_fail("#99401B"), panchroma_physicals());
+    REQUIRE(r.valid);
+    REQUIRE(r.kind == MixMatchResult::Kind::Mix);
+    REQUIRE(mix_period(r.mix) <= 4);
+    REQUIRE(mix_period(r.mix) >= 2);
+    std::set<unsigned> ids = {r.mix.component_a, r.mix.component_b};
+    if (r.mix.component_c != 0)
+        ids.insert(r.mix.component_c);
+    const int cmy = int(ids.count(1u) + ids.count(2u) + ids.count(3u));
+    REQUIRE(cmy >= 2);
+    REQUIRE_FALSE(r.recipe_row.empty());
+
+    MixedFilamentManager mgr;
+    mgr.load_definitions(r.recipe_row);
+    REQUIRE(mgr.enabled_count() == 1);
+    REQUIRE(mgr.serialize_definitions() == r.recipe_row);
+}
+
+TEST_CASE("Match mountain earth is a mix not Grey-only", "[MixedFilamentMatch]")
+{
+    const MixMatchResult r = match_printable_mix(decode_hex_or_fail("#A47C6F"), panchroma_physicals());
+    REQUIRE(r.valid);
+    REQUIRE(r.kind == MixMatchResult::Kind::Mix);
+    REQUIRE(mix_period(r.mix) <= 4);
+    REQUIRE(r.physical_id != 4u);
+    const bool grey_only = r.mix.component_a == 4u && r.mix.component_b == 4u && r.mix.component_c == 0u;
+    REQUIRE_FALSE(grey_only);
+}
+
+TEST_CASE("Match is stable for the same target", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    const ColorRGB              brown = decode_hex_or_fail("#99401B");
+    const MixMatchResult        a     = match_printable_mix(brown, phys);
+    const MixMatchResult        b     = match_printable_mix(brown, phys);
+    REQUIRE(a.valid);
+    REQUIRE(a.kind == b.kind);
+    REQUIRE(a.recipe_row == b.recipe_row);
+    REQUIRE(a.physical_id == b.physical_id);
+}
+
+TEST_CASE("Match #RRGGBBFF equals #RRGGBB", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    const MixMatchResult        a    = match_printable_mix(decode_hex_or_fail("#08ABFB"), phys);
+    const MixMatchResult        b    = match_printable_mix(decode_hex_or_fail("#08ABFBFF"), phys);
+    REQUIRE(a.valid);
+    REQUIRE(b.valid);
+    REQUIRE(a.kind == b.kind);
+    REQUIRE(a.physical_id == b.physical_id);
+    REQUIRE(a.recipe_row == b.recipe_row);
+    REQUIRE(normalize_mix_match_hex("  99401b") == "#99401B");
+    REQUIRE(normalize_mix_match_hex("#99401BFF") == "#99401BFF");
+    REQUIRE(normalize_mix_match_hex("not-hex").empty());
+}
+
+TEST_CASE("Match ignores physicals beyond slot 4", "[MixedFilamentMatch]")
+{
+    std::vector<ColorRGB> phys = panchroma_physicals();
+    phys.push_back(decode_hex_or_fail("#FF00FF"));
+    const MixMatchResult neon = match_printable_mix(phys.back(), phys);
+    REQUIRE(neon.valid);
+    if (neon.kind == MixMatchResult::Kind::Physical)
+        REQUIRE(neon.physical_id <= 4u);
+    else {
+        REQUIRE(neon.mix.component_a <= 4u);
+        REQUIRE(neon.mix.component_b <= 4u);
+        REQUIRE(neon.mix.component_c <= 4u);
+        REQUIRE(neon.recipe_row.find("c5") == std::string::npos);
+    }
+
+    const MixMatchResult cyan = match_printable_mix(phys[0], phys);
+    REQUIRE(cyan.valid);
+    REQUIRE(cyan.kind == MixMatchResult::Kind::Physical);
+    REQUIRE(cyan.physical_id == 1u);
+}
+
+TEST_CASE("Match 0 or 1 physical does not crash", "[MixedFilamentMatch]")
+{
+    const ColorRGB black = ColorRGB::BLACK();
+    const MixMatchResult empty = match_printable_mix(black, {});
+    REQUIRE_FALSE(empty.valid);
+
+    const ColorRGB one = decode_hex_or_fail("#08ABFB");
+    const MixMatchResult single = match_printable_mix(one, {one});
+    REQUIRE(single.valid);
+    REQUIRE(single.kind == MixMatchResult::Kind::Physical);
+    REQUIRE(single.physical_id == 1u);
+    REQUIRE(single.recipe_row.empty());
+
+    const MixMatchResult other = match_printable_mix(black, {one});
+    REQUIRE(other.valid);
+    REQUIRE(other.kind == MixMatchResult::Kind::Physical);
 }

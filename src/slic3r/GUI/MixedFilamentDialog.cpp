@@ -9,16 +9,20 @@
 #include "wxExtensions.hpp"
 #include "MsgDialog.hpp"
 
+#include "libslic3r/Color.hpp"
 #include "libslic3r/MixedFilament.hpp"
+#include "libslic3r/MixedFilamentMatch.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
 
+#include <wx/clrpicker.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/button.h>
 #include <wx/listbox.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <string>
 
@@ -94,6 +98,23 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     list_row->Add(m_list, 1, wxEXPAND);
     list_row->Add(list_btns, 0, wxLEFT, FromDIP(8));
     root->Add(list_row, 0, wxEXPAND | wxALL, FromDIP(12));
+
+    auto *match_row = new wxBoxSizer(wxHORIZONTAL);
+    match_row->Add(new wxStaticText(this, wxID_ANY, _L("Target color")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT,
+                   FromDIP(8));
+    m_clr_target = new wxColourPickerCtrl(this, wxID_ANY, wxColour(255, 255, 255));
+    m_hex_target = new wxTextCtrl(this, wxID_ANY, "#FFFFFF", wxDefaultPosition, wxSize(FromDIP(100), -1));
+    m_btn_create_mix = new wxButton(this, wxID_ANY, _L("Create mix from color"));
+    match_row->Add(m_clr_target, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+    match_row->Add(m_hex_target, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+    match_row->Add(m_btn_create_mix, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(12));
+    match_row->Add(new wxStaticText(this, wxID_ANY, _L("Predicted mix")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT,
+                   FromDIP(8));
+    m_clr_predicted = new wxColourPickerCtrl(this, wxID_ANY, wxColour(255, 255, 255));
+    m_clr_predicted->Enable(false);
+    m_clr_predicted->SetToolTip(_L("Predicted printable mix colour (Yule-Nielsen)."));
+    match_row->Add(m_clr_predicted, 0, wxALIGN_CENTER_VERTICAL);
+    root->Add(match_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
 
     auto *grid = new wxFlexGridSizer(2, FromDIP(6), FromDIP(12));
     grid->AddGrowableCol(1, 1);
@@ -179,6 +200,8 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     m_list->Bind(wxEVT_LISTBOX, &MixedFilamentDialog::on_list_select, this);
     m_btn_add->Bind(wxEVT_BUTTON, &MixedFilamentDialog::on_add_row, this);
     m_btn_remove->Bind(wxEVT_BUTTON, &MixedFilamentDialog::on_remove_row, this);
+    m_clr_target->Bind(wxEVT_COLOURPICKER_CHANGED, &MixedFilamentDialog::on_target_colour_changed, this);
+    m_btn_create_mix->Bind(wxEVT_BUTTON, &MixedFilamentDialog::on_create_mix_from_color, this);
     m_enabled->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &) {
         store_editors_into_selected_row();
         refresh_list_labels();
@@ -203,6 +226,129 @@ size_t MixedFilamentDialog::physical_filament_count() const
     if (PresetBundle *bundle = wxGetApp().preset_bundle)
         return bundle->filament_presets.size();
     return 0;
+}
+
+size_t MixedFilamentDialog::enabled_mix_count() const
+{
+    size_t n = 0;
+    for (const MixedFilament &mf : m_rows) {
+        if (mf.enabled)
+            ++n;
+    }
+    return n;
+}
+
+std::vector<ColorRGB> MixedFilamentDialog::live_physical_colors() const
+{
+    std::vector<ColorRGB> out;
+    if (PresetBundle *bundle = wxGetApp().preset_bundle) {
+        if (const ConfigOptionStrings *opt = bundle->project_config.option<ConfigOptionStrings>("filament_colour")) {
+            out.reserve(opt->values.size());
+            for (const std::string &hex : opt->values) {
+                ColorRGB c;
+                const std::string norm = normalize_mix_match_hex(hex);
+                if ((!norm.empty() && decode_color(norm, c)) || decode_color(hex, c))
+                    out.push_back(c);
+                else
+                    out.push_back(ColorRGB::WHITE());
+            }
+        }
+    }
+    if (out.empty()) {
+        if (Plater *plater = wxGetApp().plater()) {
+            for (const ColorRGBA &c : plater->get_extruders_colors())
+                out.push_back(to_rgb(c));
+        }
+    }
+    if (out.size() > 4)
+        out.resize(4);
+    return out;
+}
+
+void MixedFilamentDialog::refresh_predicted_swatch()
+{
+    if (m_clr_predicted == nullptr)
+        return;
+    MixedFilament mf;
+    if (m_selected_row >= 0 && size_t(m_selected_row) < m_rows.size())
+        mf = m_rows[size_t(m_selected_row)];
+    const ColorRGB pred = predicted_swatch_for_mix(mf, live_physical_colors());
+    m_clr_predicted->SetColour(wxColour(pred.r_uchar(), pred.g_uchar(), pred.b_uchar()));
+}
+
+void MixedFilamentDialog::on_target_colour_changed(wxColourPickerEvent &)
+{
+    if (m_suppress_events || m_hex_target == nullptr || m_clr_target == nullptr)
+        return;
+    const wxColour c = m_clr_target->GetColour();
+    const ColorRGB rgb(static_cast<unsigned char>(c.Red()), static_cast<unsigned char>(c.Green()),
+                       static_cast<unsigned char>(c.Blue()));
+    m_hex_target->ChangeValue(wxString::FromUTF8(encode_color(rgb).c_str()));
+}
+
+void MixedFilamentDialog::on_create_mix_from_color(wxCommandEvent &)
+{
+    store_editors_into_selected_row();
+
+    ColorRGB          target;
+    bool              have_target = false;
+    const std::string hex_raw     = into_u8(m_hex_target->GetValue());
+    const std::string hex_norm    = normalize_mix_match_hex(hex_raw);
+    const bool        hex_blank   = std::all_of(hex_raw.begin(), hex_raw.end(), [](unsigned char ch) {
+        return std::isspace(ch) != 0;
+    });
+    if (!hex_norm.empty()) {
+        have_target = decode_color(hex_norm, target);
+        if (!have_target) {
+            MessageDialog(this, _L("Invalid color. Enter a hex value like #99401B or #99401BFF."),
+                          _L("Mixed Filaments"), wxOK | wxICON_WARNING)
+                .ShowModal();
+            return;
+        }
+    } else if (!hex_blank) {
+        MessageDialog(this, _L("Invalid color. Enter a hex value like #99401B or #99401BFF."),
+                      _L("Mixed Filaments"), wxOK | wxICON_WARNING)
+            .ShowModal();
+        return;
+    } else if (m_clr_target != nullptr) {
+        const wxColour c = m_clr_target->GetColour();
+        target           = ColorRGB(static_cast<unsigned char>(c.Red()), static_cast<unsigned char>(c.Green()),
+                                    static_cast<unsigned char>(c.Blue()));
+        have_target      = true;
+    }
+    if (!have_target)
+        return;
+
+    const std::vector<ColorRGB> physicals = live_physical_colors();
+    const MixMatchResult        result    = match_printable_mix(target, physicals);
+    if (!result.valid) {
+        MessageDialog(this, _L("Could not match a printable mix for that color."), _L("Mixed Filaments"),
+                      wxOK | wxICON_WARNING)
+            .ShowModal();
+        return;
+    }
+    if (result.kind == MixMatchResult::Kind::Physical) {
+        MessageDialog(this,
+                      wxString::Format(_L("Closest is filament %u"), result.physical_id),
+                      _L("Mixed Filaments"), wxOK | wxICON_INFORMATION)
+            .ShowModal();
+        return;
+    }
+
+    const size_t num_physical = physical_filament_count();
+    if (num_physical + enabled_mix_count() + 1 > SPECTRUM_PAINT_ID_PERSIST_CAP) {
+        MessageDialog(this,
+                      wxString::Format(_L("Physical filaments plus enabled mixes cannot exceed %d."),
+                                       int(SPECTRUM_PAINT_ID_PERSIST_CAP)),
+                      _L("Mixed Filaments"), wxOK | wxICON_WARNING)
+            .ShowModal();
+        return;
+    }
+
+    m_rows.push_back(result.mix);
+    m_selected_row = int(m_rows.size()) - 1;
+    refresh_list();
+    load_selected_row_into_editors();
 }
 
 wxString MixedFilamentDialog::row_label(size_t idx, size_t num_physical) const
@@ -279,6 +425,7 @@ void MixedFilamentDialog::load_selected_row_into_editors()
     m_pattern->SetValue(wxString::FromUTF8(mf.manual_pattern.c_str()));
     m_offset_a->SetValue(wxString::FromDouble(double(mf.component_a_surface_offset)));
     m_offset_b->SetValue(wxString::FromDouble(double(mf.component_b_surface_offset)));
+    refresh_predicted_swatch();
 }
 
 void MixedFilamentDialog::store_editors_into_selected_row()
@@ -382,6 +529,15 @@ bool MixedFilamentDialog::apply_to_project()
         return false;
 
     store_editors_into_selected_row();
+    const size_t num_physical_now = physical_filament_count();
+    if (num_physical_now + enabled_mix_count() > SPECTRUM_PAINT_ID_PERSIST_CAP) {
+        MessageDialog(this,
+                      wxString::Format(_L("Physical filaments plus enabled mixes cannot exceed %d."),
+                                       int(SPECTRUM_PAINT_ID_PERSIST_CAP)),
+                      _L("Mixed Filaments"), wxOK | wxICON_WARNING)
+            .ShowModal();
+        return false;
+    }
     for (const MixedFilament &mf : m_rows) {
         if (!mf.enabled || mf.component_c == 0)
             continue;
