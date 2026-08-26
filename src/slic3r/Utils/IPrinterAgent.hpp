@@ -12,6 +12,41 @@
 #include <string>
 #include <memory>
 
+#if 1
+
+struct OrcaProtocol
+{
+    enum CameraStreamMode { http, http_snapshot, rtsp, webrtc };
+    struct Capabilities {
+        bool has_ams;
+        struct CameraInfo {
+            CameraStreamMode available_modes;
+            std::string url;
+        };
+
+        std::vector<CameraInfo> cameras;
+
+        bool toolchanger;
+        int nozzle_count;
+    };
+
+    struct AMSInfo {
+        int slot_count;
+        std::vector<std::string> color_info;
+        std::vector<std::string> filament_id;
+    };
+
+    AMSInfo ams_info;
+
+    struct Status {
+        std::vector<int> nozzle_temps;
+        int bed_temp;
+        int chamber_temp;  
+    };
+};
+
+#endif
+
 namespace Slic3r {
 
 class ICloudServiceAgent;

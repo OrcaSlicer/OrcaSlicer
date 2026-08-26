@@ -264,6 +264,10 @@ namespace Slic3r
             /* update userMachineList info */
             auto it = userMachineList.find(dev_id);
             if (it != userMachineList.end()) {
+                // A reused entry may have been created while another printer agent was active.
+                // The response was obtained through the current agent, so move ownership with
+                // the entry; otherwise agent-scoped lists hide it after a preset switch.
+                it->second->printer_agent_id = get_current_printer_agent_id();
                 if (it->second->get_dev_ip() != dev_ip ||
                     it->second->bind_state != bind_state ||
                     it->second->bind_sec_link != sec_link ||
@@ -294,6 +298,9 @@ namespace Slic3r
                 // update properties
                 /* ip changed */
                 obj = it->second;
+                // A reused LAN entry may have been discovered while another printer agent was
+                // active. The current discovery message establishes ownership for this agent.
+                obj->printer_agent_id = get_current_printer_agent_id();
 
                 if (obj->get_dev_ip().compare(dev_ip) != 0) {
                     if ( connection_name.empty() ) {
@@ -405,6 +412,9 @@ namespace Slic3r
         auto           it = localMachineList.find(machine.dev_id);
         if (it != localMachineList.end()) {
             obj = it->second;
+            // insert_local_device is called by the active agent, so a reused entry must follow
+            // that agent as well; otherwise the agent-scoped printer list hides it.
+            obj->printer_agent_id = get_current_printer_agent_id();
         } else {
             obj = new MachineObject(this, m_agent, machine.dev_name, machine.dev_id, machine.dev_ip);
             obj->printer_agent_id = get_current_printer_agent_id();
@@ -534,25 +544,15 @@ namespace Slic3r
         OnSelectedMachineChanged(previous_selected_machine, selected_machine);
     }
 
-    void DeviceManager::clear_other_devices(const std::string& target_agent_id)
+    void DeviceManager::clear_other_devices()
     {
-        // why: on agent swap, keep "My Devices" but drop the transient "Other Devices"
-        // Those belong to the previous agent's network scan; the new agent's start_discovery re-populates its own.
-        //
-        // Also drop "My Devices" stamped by a different agent than the one we're swapping to
-        // (target_agent_id, passed by the caller since the live agent hasn't been repointed yet
-        // at this point): otherwise a device first discovered under agent A survives every swap
-        // with a stale printer_agent_id, stays hidden from every agent's filtered list, and only
-        // gets re-tagged if something happens to delete and re-create it (e.g. account logout).
-        // Dropping it here instead lets the new agent's start_discovery re-insert and re-stamp it
-        // like any other fresh device.
-        const auto my = get_my_machine_list();
+        // Device entries are now scoped by printer_agent_id when they are presented. Keep
+        // agent-owned discoveries across a switch so agents without automatic discovery (and
+        // plugins whose devices have not received an access code yet) do not lose their list.
+        // Entries without an owner are legacy/unscoped and cannot safely be shown.
         for (auto it = localMachineList.begin(); it != localMachineList.end();)
         {
-            const bool is_my_device = my.find(it->first) != my.end();
-            const bool agent_mismatch = !target_agent_id.empty() && it->second &&
-                                         it->second->printer_agent_id != target_agent_id;
-            if (!is_my_device || agent_mismatch)
+            if (!it->second || it->second->printer_agent_id.empty())
             {
                 delete it->second;
                 it = localMachineList.erase(it);
@@ -845,6 +845,9 @@ namespace Slic3r
                         /* update field */
                         obj = iter->second;
                         obj->set_dev_id(dev_id);
+                        // A device can be rediscovered by a different agent after a preset
+                        // switch while retaining the same MachineObject instance.
+                        obj->printer_agent_id = get_current_printer_agent_id();
                     }
                     else
                     {
