@@ -1793,8 +1793,9 @@ int CLI::run(int argc, char **argv)
                     old_printable_area = config.option<ConfigOptionPoints>("printable_area", true)->values;
                     old_exclude_area = config.option<ConfigOptionPoints>("bed_exclude_area", true)->values;
                     if (old_printable_area.size() >= 4) {
-                        old_printable_width = (int)(old_printable_area[2].x() - old_printable_area[0].x());
-                        old_printable_depth = (int)(old_printable_area[2].y() - old_printable_area[0].y());
+                        BoundingBoxf old_printable_bbox(old_printable_area);
+                        old_printable_width = static_cast<int>(old_printable_bbox.size().x());
+                        old_printable_depth = static_cast<int>(old_printable_bbox.size().y());
                     }
                     old_printable_height = (int)(config.opt_float("printable_height"));
 
@@ -2343,8 +2344,9 @@ int CLI::run(int argc, char **argv)
                         Pointfs orig_printable_area;
                         orig_printable_area = config.option<ConfigOptionPoints>("printable_area", true)->values;
                         if (orig_printable_area.size() >= 4) {
-                            orig_printable_width = (int)(orig_printable_area[2].x() - orig_printable_area[0].x());
-                            orig_printable_depth = (int)(orig_printable_area[2].y() - orig_printable_area[0].y());
+                            BoundingBoxf orig_printable_bbox(orig_printable_area);
+                            orig_printable_width = static_cast<int>(orig_printable_bbox.size().x());
+                            orig_printable_depth = static_cast<int>(orig_printable_bbox.size().y());
                         }
                         orig_printable_height = (int)(config.opt_float("printable_height"));
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(":%1%, check printable size: old_printable_width=%2%, orig_printable_width=%3%, old_printable_depth=%4%, orig_printable_depth=%5%, old_printable_height=%6%, orig_printable_height=%7%")
@@ -3742,8 +3744,11 @@ int CLI::run(int argc, char **argv)
     if (m_print_config.opt<ConfigOptionFloatsNullable>("extruder_printable_height")) {
         current_extruder_print_heights = m_print_config.opt<ConfigOptionFloatsNullable>("extruder_printable_height")->values;
     }
-    current_printable_width = current_printable_area[2].x() - current_printable_area[0].x();
-    current_printable_depth = current_printable_area[2].y() - current_printable_area[0].y();
+    {
+        BoundingBoxf current_printable_bbox(current_printable_area);
+        current_printable_width = static_cast<int>(current_printable_bbox.size().x());
+        current_printable_depth = static_cast<int>(current_printable_bbox.size().y());
+    }
     current_printable_height = print_height;
     if (old_printable_width == 0)
         old_printable_width = current_printable_width;
@@ -4139,8 +4144,9 @@ int CLI::run(int argc, char **argv)
             temp_extruder_print_heights = config.option<ConfigOptionFloatsNullable>("extruder_printable_height", true)->values;
 
             if (temp_printable_area.size() >= 4) {
-                printer_plate.printable_width = (int)(temp_printable_area[2].x() - temp_printable_area[0].x());
-                printer_plate.printable_depth = (int)(temp_printable_area[2].y() - temp_printable_area[0].y());
+                BoundingBoxf temp_printable_bbox(temp_printable_area);
+                printer_plate.printable_width = static_cast<int>(temp_printable_bbox.size().x());
+                printer_plate.printable_depth = static_cast<int>(temp_printable_bbox.size().y());
                 printer_plate.printable_height = (int)(config.opt_float("printable_height"));
             }
             if (temp_exclude_area.size() >= 4) {
