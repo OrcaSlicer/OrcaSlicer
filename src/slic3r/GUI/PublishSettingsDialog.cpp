@@ -120,12 +120,9 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
     m_filter_ctrl->SetHint(_L("Type to filter..."));
     m_filter_ctrl->Bind(wxEVT_TEXT, [this](auto&) { apply_filter(m_filter_ctrl->GetValue()); });
     m_filter_ctrl->Bind(wxEVT_TEXT_ENTER, [this](auto&) { apply_filter(m_filter_ctrl->GetValue()); });
-    m_filter_ctrl->Bind(wxEVT_SET_FOCUS, [this](auto& e) {
-        apply_filter(m_filter_ctrl->GetValue());
-        e.Skip();
-    });
-    m_filter_ctrl->Bind(wxEVT_KILL_FOCUS, [this](auto& e) {
-        apply_filter(m_filter_ctrl->GetValue());
+    m_filter_ctrl->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {
+        if (m_filter_mode != FilterMode::Text)
+            apply_filter(m_filter_ctrl->GetValue());
         e.Skip();
     });
     f_sizer->Add(m_filter_box, 1, wxEXPAND);
