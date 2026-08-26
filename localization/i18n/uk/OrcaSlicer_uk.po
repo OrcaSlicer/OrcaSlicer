@@ -4142,10 +4142,10 @@ msgid "PA Profile"
 msgstr "Профіль PA"
 
 msgid "Factor K"
-msgstr "Коэф. K"
+msgstr "Коеф. K"
 
 msgid "Factor N"
-msgstr "Коэф. N"
+msgstr "Коеф. N"
 
 msgid "Setting AMS slot information while printing is not supported"
 msgstr "Зміна інформації про слоти AMS під час друку не підтримується"
