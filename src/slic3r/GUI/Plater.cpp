@@ -8897,6 +8897,40 @@ void Plater::priv::process_validation_warnings(const std::vector<StringObjectExc
 
 // Update background processing thread from the current config and Model.
 // Returns a bitmask of UpdateBackgroundProcessReturnState.
+namespace {
+
+// IDEX/IQEX placement check, shared by every path that decides whether the plate can be
+// sliced. It must not live in only one of them: update_background_process() and
+// Plater::validate_current_plate() both clear update_apply_result_invalid(false) and close
+// the ValidateError notification on success, so a path that skips this check silently
+// re-enables the Slice button on a plate the slicer will still refuse.
+//
+// The message names both kinds of reserved area because the check covers secondary zones
+// AND the carriage clearance strips, and the strips sit INSIDE the primary zone -- saying
+// "secondary zone" alone sends the user looking in the wrong half of the bed.
+//
+// The null guard mirrors the one it replaced. PartPlateList::get_curr_plate() indexes a
+// vector and cannot actually return null, and the guard is fail-open, so do not read it as
+// making the surrounding code null-safe.
+std::string imex_placement_error(PartPlate* plate)
+{
+    if (!plate)
+        return {};
+    switch (plate->imex_placement_violation()) {
+    case PartPlate::ImexPlacementViolation::Object:
+        return _u8L("Cannot slice: an object overlaps an area reserved for IMEX parallel printing "
+                    "(a secondary zone, or a carriage clearance strip inside the primary zone).");
+    case PartPlate::ImexPlacementViolation::PrimeTower:
+        return _u8L("Cannot slice: the prime tower overlaps an area reserved for IMEX parallel printing "
+                    "(a secondary zone, or a carriage clearance strip inside the primary zone).");
+    case PartPlate::ImexPlacementViolation::None:
+        break;
+    }
+    return {};
+}
+
+} // namespace
+
 unsigned int Plater::priv::update_background_process(bool force_validation, bool postpone_error_messages, bool switch_print)
 {
     // bitmap of enum UpdateBackgroundProcessReturnState
@@ -8994,29 +9028,8 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         q->post_process_string_object_exception(err);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": validate err=%1%, warnings=%2%")%err.string%warnings.size();
 
-        // IDEX/IQEX placement check: if anything overlaps a reserved area, treat it as a
-        // validation error so the standard pathway handles button state, notifications,
-        // and auto-slice blocking consistently. The message names both kinds of reserved
-        // area because the check covers secondary zones AND the carriage clearance strips,
-        // and the strips sit INSIDE the primary zone — saying "secondary zone" alone sends
-        // the user looking in the wrong half of the bed.
-        if (err.string.empty()) {
-            PartPlate* imex_plate = partplate_list.get_curr_plate();
-            if (imex_plate) {
-                switch (imex_plate->imex_placement_violation()) {
-                case PartPlate::ImexPlacementViolation::Object:
-                    err.string = _u8L("Cannot slice: an object overlaps an area reserved for IMEX parallel printing "
-                                      "(a secondary zone, or a carriage clearance strip inside the primary zone).");
-                    break;
-                case PartPlate::ImexPlacementViolation::PrimeTower:
-                    err.string = _u8L("Cannot slice: the prime tower overlaps an area reserved for IMEX parallel printing "
-                                      "(a secondary zone, or a carriage clearance strip inside the primary zone).");
-                    break;
-                case PartPlate::ImexPlacementViolation::None:
-                    break;
-                }
-            }
-        }
+        if (err.string.empty())
+            err.string = imex_placement_error(partplate_list.get_curr_plate());
 
         if (err.string.empty()) {
             this->partplate_list.get_curr_plate()->update_apply_result_invalid(false);
@@ -19073,6 +19086,17 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
         // update string by type
         post_process_string_object_exception(err);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": validate err=%1%, warnings=%2%, model_fits %3%")%err.string%warnings.size() %model_fits;
+
+        // The same check update_background_process() applies. Without it this path clears
+        // the invalid flag and closes the notification on a plate that is still unslicable.
+        // model_fits is set too, mirroring the missing-plugin block further down: the slice
+        // is already gated by m_apply_invalid, but leaving m_ready_for_slice true would be a
+        // trap for any future consumer that reads it on its own.
+        if (err.string.empty()) {
+            err.string = imex_placement_error(p->partplate_list.get_curr_plate());
+            if (!err.string.empty())
+                model_fits = false;
+        }
 
         if (err.string.empty()) {
             p->partplate_list.get_curr_plate()->update_apply_result_invalid(false);
