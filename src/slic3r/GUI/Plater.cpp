@@ -8,6 +8,7 @@
 #include <limits>
 #include <vector>
 #include <string>
+#include <unordered_set>
 #include <regex>
 #include <future>
 #include <boost/algorithm/string.hpp>
@@ -62,6 +63,9 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/MixedFilamentMatch.hpp"
+#include "libslic3r/MixedFilamentPaintBake.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -12413,8 +12417,121 @@ void Plater::adopt_to_zr_ultra_s_cmyk()
                             << " filament=" << filament_name;
 
     MessageDialog(this,
-        _L("Paint still uses source slot IDs 5–8. Those regions will not print as intended until track 0011 maps them to CMYK mixes. Slice/print of this file is not this command's goal."),
+        _L("Paint still uses source slot IDs 5–8. Use File → Map painted colors to CMYK mixes to turn those regions into C/M/Y/K physicals and Mix 5+. Slice/print of this file is not this command's goal."),
         _L("Adopt to ZR Ultra S"), wxOK | wxICON_WARNING).ShowModal();
+}
+
+void Plater::map_painted_colors_to_cmyk_mixes()
+{
+    PresetBundle *bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return;
+
+    if (model().objects.empty()) {
+        MessageDialog(this,
+            _L("Open a project with objects before mapping painted colours."),
+            _L("Map painted colors to CMYK mixes"), wxOK | wxICON_INFORMATION).ShowModal();
+        return;
+    }
+
+    if (const ConfigOptionBool *mapped = bundle->project_config.option<ConfigOptionBool>("spectrum_paint_mapped")) {
+        if (mapped->value) {
+            MessageDialog(this,
+                _L("Painted colours are already mapped. Reopen a pre-bake 3mf to restore source paint."),
+                _L("Map painted colors to CMYK mixes"), wxOK | wxICON_INFORMATION).ShowModal();
+            return;
+        }
+    }
+
+    const ConfigOptionStrings *source_opt =
+        bundle->project_config.option<ConfigOptionStrings>("spectrum_source_filament_colour");
+    if (source_opt == nullptr || source_opt->values.empty()) {
+        MessageDialog(this,
+            _L("Adopt first. There is no source palette to map."),
+            _L("Map painted colors to CMYK mixes"), wxOK | wxICON_WARNING).ShowModal();
+        return;
+    }
+
+    std::vector<ColorRGB> physicals;
+    if (const ConfigOptionStrings *fc = bundle->project_config.option<ConfigOptionStrings>("filament_colour")) {
+        for (const std::string &hex : fc->values) {
+            if (physicals.size() >= 4)
+                break;
+            const std::string normalized = normalize_mix_match_hex(hex);
+            ColorRGB          c;
+            if (!normalized.empty() && decode_color(normalized, c))
+                physicals.push_back(c);
+        }
+    }
+    if (physicals.size() < 2) {
+        MessageDialog(this,
+            _L("Need at least two physical filament colours (prefer C/M/Y/K on slots 1–4)."),
+            _L("Map painted colors to CMYK mixes"), wxOK | wxICON_WARNING).ShowModal();
+        return;
+    }
+
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(source_opt->values, physicals);
+    if (!plan.valid) {
+        const wxString err = plan.error.empty()
+            ? _L("Mapping failed.")
+            : wxString::FromUTF8(plan.error.c_str());
+        MessageDialog(this, err, _L("Map painted colors to CMYK mixes"), wxOK | wxICON_ERROR).ShowModal();
+        return;
+    }
+
+    wxString confirm = _L("Paint IDs will become C/M/Y/K physicals and Mix 5+. This is not an AMS 8-color replica. Save a copy first.");
+    confirm += "\n\n";
+    if (plan.mix_count > 0) {
+        const int mix_hi = int(physicals.size() + plan.mix_count);
+        confirm += wxString::Format(
+            _L("Mapped %d source colors to %d physical slots and %d mixes (Mix 5–%d)."),
+            int(source_opt->values.size()), int(plan.physical_mapped_count), int(plan.mix_count), mix_hi);
+    } else {
+        confirm += wxString::Format(
+            _L("Mapped %d source colors to %d physical slots."),
+            int(source_opt->values.size()), int(plan.physical_mapped_count));
+    }
+    if (MessageDialog(this, confirm, _L("Map painted colors to CMYK mixes"),
+                      wxYES_NO | wxYES_DEFAULT | wxICON_QUESTION).ShowModal() != wxID_YES)
+        return;
+
+    take_snapshot("Map painted colors to CMYK mixes");
+
+    DynamicPrintConfig &print_cfg = bundle->prints.get_edited_preset().config;
+    print_cfg.set_key_value("mixed_filament_definitions", new ConfigOptionString(plan.mixed_filament_definitions));
+    bundle->project_config.set_key_value("mixed_filament_definitions", new ConfigOptionString(plan.mixed_filament_definitions));
+    bundle->project_config.set_key_value("spectrum_paint_mapped", new ConfigOptionBool(true));
+
+    std::unordered_set<int> dest_mix_ids;
+    for (size_t i = 1; i <= source_opt->values.size() && i < plan.slot_map.size(); ++i) {
+        const int dest = int(plan.slot_map[i]);
+        if (dest > 4)
+            dest_mix_ids.insert(dest);
+    }
+
+    for (ModelObject *obj : model().objects) {
+        for (ModelVolume *vol : obj->volumes) {
+            apply_spectrum_paint_bake(*vol, plan.slot_map);
+            if (!vol->config.has("extruder"))
+                continue;
+            const int e = vol->config.opt_int("extruder");
+            if (e > 4 && dest_mix_ids.count(e) == 0)
+                vol->config.erase("extruder");
+        }
+    }
+
+    std::string dest_log;
+    for (size_t i = 1; i <= source_opt->values.size() && i < plan.slot_map.size(); ++i) {
+        if (!dest_log.empty())
+            dest_log += ',';
+        dest_log += std::to_string(int(plan.slot_map[i]));
+    }
+    BOOST_LOG_TRIVIAL(info) << "Map painted colors to CMYK mixes: mix_count=" << plan.mix_count
+                            << " physical_mapped=" << plan.physical_mapped_count
+                            << " dest_ids=" << dest_log;
+
+    on_config_change(bundle->full_config());
+    schedule_background_process();
 }
 
 //BBS import model by model id

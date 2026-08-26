@@ -1660,6 +1660,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionString,              mixed_filament_definitions))
     // Original painted 3mf filament_colour kept when shrinking to 4 tools.
     ((ConfigOptionStrings,             spectrum_source_filament_colour))
+    // 0011: File → Map painted colors to CMYK mixes already applied (idempotent no-op).
+    ((ConfigOptionBool,                spectrum_paint_mapped))
     // M5 Local-Z (Snapmaker: Subdivide Mix Layer / Full domain).
     ((ConfigOptionBool,                dithering_local_z_mode))
     ((ConfigOptionBool,                dithering_local_z_whole_objects))

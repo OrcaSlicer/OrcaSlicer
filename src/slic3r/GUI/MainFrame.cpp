@@ -2746,6 +2746,11 @@ void MainFrame::init_menubar_as_editor()
             [this](wxCommandEvent&) { if (m_plater) m_plater->adopt_to_zr_ultra_s_cmyk(); }, "", nullptr,
             [this]() { return m_plater && !m_plater->model().objects.empty(); }, this);
 
+        append_menu_item(fileMenu, wxID_ANY, _L("Map painted colors to CMYK mixes"),
+            _L("Map each painted source colour to a C/M/Y/K physical or Mix 5+; G-code uses T0–T3 only"),
+            [this](wxCommandEvent&) { if (m_plater) m_plater->map_painted_colors_to_cmyk_mixes(); }, "", nullptr,
+            [this]() { return m_plater && !m_plater->model().objects.empty(); }, this);
+
         fileMenu->AppendSeparator();
 
         // BBS

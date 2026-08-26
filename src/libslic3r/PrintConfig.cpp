@@ -4869,6 +4869,12 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
 
+    def = this->add("spectrum_paint_mapped", coBool);
+    def->label = L("Painted colours mapped to CMYK mixes");
+    def->tooltip = L("True after File → Map painted colors to CMYK mixes. A second invoke is a no-op.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("dithering_local_z_mode", coBool);
     def->label = L("Subdivide Mix Layer");
     def->tooltip = L("Split a mixed layer into ratio-proportional sub-layers "

@@ -28,6 +28,7 @@ add_executable(${_TEST_NAME}_tests
     test_mixed_filament.cpp
     test_spectrum_source_palette.cpp
     test_paint_virtual_mix.cpp
+    test_spectrum_paint_bake.cpp
     # test_png_io.cpp
     test_indexed_triangle_set.cpp
     ../libnest2d/printer_parts.cpp
