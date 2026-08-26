@@ -6516,10 +6516,20 @@ int CLI::run(int argc, char **argv)
                 plate_data->nozzle_diameters = nozzle_diameter_str;
 
             for (auto it = plate_data->slice_filaments_info.begin(); it != plate_data->slice_filaments_info.end(); it++) {
+                // ConfigOptionVector::get_at() falls back to values.front() when the index is out of
+                // range, but that is undefined behavior when values is empty outright (e.g. filament_ids
+                // is never populated on a from-scratch slice with no --load-filaments) - guard every
+                // get_at() here on the vector actually having an entry at it->id before calling it.
+                bool valid_id = it->id >= 0;
                 std::string display_filament_type;
-                it->type  = m_print_config.get_filament_type(display_filament_type, it->id);
-                it->color = filament_color ? filament_color->get_at(it->id) : "#FFFFFF";
-                it->filament_id = filament_id?filament_id->get_at(it->id):"";
+                if (valid_id && filament_types && static_cast<size_t>(it->id) < filament_types->values.size())
+                    it->type = m_print_config.get_filament_type(display_filament_type, it->id);
+                it->color       = (valid_id && filament_color && static_cast<size_t>(it->id) < filament_color->values.size()) ?
+                                      filament_color->get_at(it->id) :
+                                      "#FFFFFF";
+                it->filament_id = (valid_id && filament_id && static_cast<size_t>(it->id) < filament_id->values.size()) ?
+                                      filament_id->get_at(it->id) :
+                                      "";
             }
 
             if (!plate_data->plate_thumbnail.is_valid()) {
