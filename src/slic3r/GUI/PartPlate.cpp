@@ -1549,10 +1549,26 @@ bool PartPlate::has_imex_multimaterial_conflict() const
     }
 
     // Convert PartPlate's 1-based extruder list to the 0-based form the helper expects.
-    const std::vector<int> used_1b = get_extruders(true);
+    //
+    // get_extruders(true) expands a mixed slot into its physical components, which is right for
+    // AMS mapping but wrong here: Print::validate counts the slot itself, so an expanded list
+    // makes the badge disagree with the thing it is previewing. A plate holding one 2-component
+    // blend reads as 2 filaments to the badge and 1 to validate -- the badge stays silent and
+    // the slice is then refused, or it warns about "multi-material objects" on a plate the user
+    // sees as single-colour. Undo the expansion so both sides count the same way.
+    const std::vector<int> used_1b = get_extruders(true, /*expand_mixed=*/false);
     std::vector<int> used_0b;
     used_0b.reserve(used_1b.size());
     for (int e : used_1b) if (e > 0) used_0b.push_back(e - 1);
+
+    // validate()'s first rule: a mixed filament is unsupported in a parallel mode outright,
+    // ahead of any multi-color reasoning. The badge has to agree or it under-reports.
+    if (auto* is_mixed_opt = wxGetApp().preset_bundle->project_config.option<ConfigOptionBools>("filament_is_mixed")) {
+        const auto& is_mixed = is_mixed_opt->values;
+        if (std::any_of(used_0b.begin(), used_0b.end(),
+                        [&](int slot) { return slot >= 0 && slot < (int) is_mixed.size() && is_mixed[slot]; }))
+            return true;
+    }
 
     return !imex_multicolor_block_reason(mode, active_tools_str, tpg_opt->value, used_0b, *pem_opt).empty();
 }
@@ -2761,7 +2777,7 @@ int PartPlate::picking_id_component(int idx) const
     return this->m_plate_index * GRABBER_COUNT + idx;
 }
 
-std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
+std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, bool expand_mixed) const
 {
 	std::vector<int> plate_extruders;
     if (check_objects_empty_and_gcode3mf(plate_extruders)) {
@@ -2920,7 +2936,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 		auto& project_config = wxGetApp().preset_bundle->project_config;
 		auto* is_mixed_opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
 		auto* comp_strs_opt = project_config.option<ConfigOptionStrings>("filament_mixed_components");
-		if (is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {
+		if (expand_mixed && is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {
 			std::vector<unsigned int> ext_0based;
 			for (int e : plate_extruders)
 				if (e >= 1) ext_0based.push_back((unsigned int)(e - 1));
