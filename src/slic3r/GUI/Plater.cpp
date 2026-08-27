@@ -3870,7 +3870,7 @@ bool Sidebar::reset_bed_type_combox_choices(bool is_sidebar_init)
         }
     }
     m_last_combo_bedtype_count = p->combo_printer_bed->GetCount();
-    if (!is_sidebar_init && &p->plater->get_partplate_list()) {
+    if (!is_sidebar_init) {
         p->plater->get_partplate_list().check_all_plate_local_bed_type(m_cur_combox_bed_types);
     }
     return true;

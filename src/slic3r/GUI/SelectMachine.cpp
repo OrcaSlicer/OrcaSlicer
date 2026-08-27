@@ -483,7 +483,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     m_link_edit_nozzle->Bind(wxEVT_LEFT_DOWN, [this](auto &e) {
 
-        if (this && this->m_is_in_sending_mode) {
+        if (m_is_in_sending_mode) {
             return;
         }
 
