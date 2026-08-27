@@ -1645,7 +1645,8 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
                                              float target_edge_length_mm, int max_triangles,
                                              std::vector<int> *out_source, const HeightFieldSampler &sampler,
                                              float chord_tolerance_mm, float min_edge_length_mm,
-                                             float border_edge_length_mm)
+                                             float border_edge_length_mm,
+                                             const DisplacementProgressFn &progress)
 {
     // Neighbour slots that are not a triangle index.
     constexpr int NB_BOUNDARY    = -1; // open edge: terminal on its own, bisected from this side alone
@@ -1948,7 +1949,18 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
 
     // Every iteration either drops one satisfied triangle from the queue or performs exactly one
     // bisection, and bisections are capped by the triangle budget, so this always terminates.
+    // Progress is reported against the triangle budget, which is what the loop is bounded by. Polled
+    // rather than pushed on every bisection: a refinement spends its budget in hundreds of thousands
+    // of them, and every hook call wakes the UI's idle loop to repaint the notification.
+    const int start_tris  = int(tris.size());
+    const int budget_tris = std::max(1, max_triangles - start_tris);
+    int       next_poll   = start_tris;
     while (!queue.empty() && int(tris.size()) + 2 <= max_triangles) {
+        if (progress && int(tris.size()) >= next_poll) {
+            next_poll = int(tris.size()) + std::max(1024, budget_tris / 100);
+            if (!progress(std::clamp((int(tris.size()) - start_tris) * 100 / budget_tris, 0, 100)))
+                break; // still conformal - whole bisections only; the caller decides whether to keep it
+        }
         const int ti = queue.top().second;
         queue.pop();
         if (priority(ti) <= 1.f)

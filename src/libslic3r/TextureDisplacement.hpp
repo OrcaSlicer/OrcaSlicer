@@ -677,13 +677,51 @@ indexed_triangle_set subdivide_mesh_uniform(const indexed_triangle_set &mesh, fl
 // rim of an unpainted island into a ring of large, steeply tilted triangles. Refining that band by
 // plain edge length is bounded (it is a thin ring, and a length target always terminates) and needs
 // no paint-aware sampler.
+//
+// `progress`, when given, is called with a 0..100 percentage of the triangle budget spent; returning
+// false stops the refinement early. What it hands back then is still a complete, conformal mesh - the
+// loop only ever finishes whole bisections - so a caller that wants to discard it has to do so itself.
 indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
                                              const std::vector<uint8_t> &refine_region,
                                              float target_edge_length_mm, int max_triangles = 1000000,
                                              std::vector<int> *out_source = nullptr,
                                              const HeightFieldSampler &sampler = nullptr,
                                              float chord_tolerance_mm = 0.f, float min_edge_length_mm = 0.f,
-                                             float border_edge_length_mm = 0.f);
+                                             float border_edge_length_mm = 0.f,
+                                             const DisplacementProgressFn &progress = nullptr);
+
+// The recipe for getting a mesh ready to receive displacement: even out the triangle density, then
+// refine it where the texture bends. Either stage is skipped when its target is <= 0. Pure data, and
+// the whole of it, so the preparation can be handed to a background job instead of running on the UI
+// thread - see GLGizmoTextureDisplacement::prepare_mesh().
+struct TextureDisplacementPrepareParams
+{
+    // Isotropic remesh (CGAL). The target is clamped against the part's own surface area before it is
+    // used, so a value that would produce millions of triangles cannot be asked for by accident.
+    float remesh_edge_mm   = 0.f;
+    float remesh_sharp_deg = 0.f; // 0 = do not protect sharp edges
+
+    // Adaptive (Rivara) subdivision of the painted area. See subdivide_mesh_adaptive().
+    float subdiv_target_mm       = 0.f; // "Max edge": the length baseline, and the only criterion when
+                                        // subdiv_feature is off
+    float subdiv_detail_mm       = 0.f; // "Detail": chord tolerance, feature mode only
+    float subdiv_min_edge_mm     = 0.f; // "Min edge": the floor under both, feature mode only
+    float subdiv_border_mm       = 0.f; // "Edge detail": the band straddling the paint's edge, 0 = off
+    bool  subdiv_feature         = false; // follow texture curvature, not just edge length
+    int   subdiv_added_triangles = 0;     // budget, *added* to the mesh's own count
+};
+
+// What a preparation run produced. An empty `mesh` means there was nothing to do and the caller must
+// commit nothing - which is not a failure: a mesh that is already even needs no remesh, and one that
+// is already fine enough for the texture needs no subdivision.
+struct TextureDisplacementPrepareResult
+{
+    indexed_triangle_set          mesh;
+    TextureDisplacementFacetsData masks;
+    // The remesh landed but no layer's paint survived being carried onto it. Nothing is committed:
+    // everything downstream is driven by that paint, so baking on would bake a flat mesh.
+    bool                          paint_lost = false;
+};
 
 } // namespace Slic3r
 

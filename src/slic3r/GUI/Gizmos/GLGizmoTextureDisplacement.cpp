@@ -2,6 +2,7 @@
 
 #include <boost/log/trivial.hpp>
 
+#include "libslic3r/AABBTreeIndirect.hpp"
 #include "libslic3r/MeshBoolean.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Utils.hpp"
@@ -23,11 +24,13 @@
 #include "slic3r/GUI/TextureProjectorFrame.hpp"
 #include "slic3r/GUI/UVEditorCanvas.hpp"
 #include "slic3r/GUI/Jobs/TextureDisplacementBakeJob.hpp"
+#include "slic3r/GUI/Jobs/TextureDisplacementPrepareJob.hpp"
 #include "slic3r/GUI/Jobs/TextureDisplacementPreviewJob.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
 #include <glad/gl.h>
+#include <tbb/parallel_for.h>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -96,6 +99,117 @@ bool point_in_triangle_coplanar(const Vec3f &p, const std::array<Vec3f, 3> &t)
     return (t[1] - t[0]).cross(p - t[0]).dot(n) >= eps &&
            (t[2] - t[1]).cross(p - t[1]).dot(n) >= eps &&
            (t[0] - t[2]).cross(p - t[2]).dot(n) >= eps;
+}
+
+// Carries one texture-displacement paint mask from `src_mesh` onto `dst_mesh` - a different
+// tessellation of the same surface (an isotropic remesh, in practice).
+//
+// TriangleSelector::remap_painting(), which ModelVolume::restore_painting() uses for the four
+// standard paint channels, is not usable here. It runs one select_patch() flood fill per
+// (painted sub-triangle x overlapping target facet) pair, and select_patch() splits the *target's*
+// triangles down to a 0.02-0.05 mm edge limit along every cursor boundary, behind an
+// O(target triangles) visited-set allocation per call. A coarse import painted with a fine brush
+// carries tens of thousands of painted sub-triangles, so that is tens of millions of sub-triangles
+// created on the target - which is what made Remesh, and Standard mode's Bake (which remeshes for
+// you), appear to hang rather than finish.
+//
+// Each target triangle here asks one question instead: is the point on the source surface closest
+// to my centroid inside a painted piece? One AABB-tree query per target triangle, whole facets
+// only, no splitting - O(target log source). `src_tree` is built over `src_mesh.its` by the caller
+// and shared across the layers; `dst_to_src` brings the target's vertices into the source's frame.
+TriangleSelector::TriangleSplittingData remap_texture_paint_spatial(
+    const TriangleMesh &src_mesh, const TriangleSelector::TriangleSplittingData &src_data,
+    const AABBTreeIndirect::Tree3f &src_tree, const TriangleMesh &dst_mesh, const Vec3f &dst_to_src)
+{
+    const indexed_triangle_set &src  = src_mesh.its;
+    const indexed_triangle_set &dst  = dst_mesh.its;
+    const size_t                ntri = src.indices.size();
+    if (src_data.bitstream.empty() || ntri == 0 || dst.indices.empty() || src_tree.empty())
+        return {};
+
+    // The painted patch, split into per-source-triangle pieces - the same shape
+    // collect_paint_region() builds, and for the same reason: a source triangle the brush only
+    // partly covered has to answer "is this point painted" geometrically rather than be rounded to
+    // painted-or-not, which leaves a ragged fringe along any curved brush boundary.
+    TriangleSelector src_sel(src_mesh);
+    src_sel.deserialize(src_data, false);
+    std::vector<int>           piece_src;
+    const indexed_triangle_set patch = src_sel.get_facets_strict(EnforcerBlockerType::ENFORCER, &piece_src);
+    if (patch.indices.empty())
+        return {};
+
+    const auto tri_area2 = [](const Vec3f &a, const Vec3f &b, const Vec3f &c) {
+        return (b - a).cross(c - a).norm();
+    };
+    std::vector<float> src_area2(ntri, 0.f), covered2(ntri, 0.f);
+    for (size_t i = 0; i < ntri; ++i)
+        src_area2[i] = tri_area2(src.vertices[size_t(src.indices[i][0])], src.vertices[size_t(src.indices[i][1])],
+                                 src.vertices[size_t(src.indices[i][2])]);
+    for (size_t j = 0; j < patch.indices.size() && j < piece_src.size(); ++j) {
+        if (size_t(piece_src[j]) >= ntri)
+            continue;
+        const stl_triangle_vertex_indices &t = patch.indices[j];
+        covered2[size_t(piece_src[j])] += tri_area2(patch.vertices[size_t(t[0])], patch.vertices[size_t(t[1])],
+                                                    patch.vertices[size_t(t[2])]);
+    }
+    std::vector<uint8_t> full(ntri, 0);
+    for (size_t i = 0; i < ntri; ++i)
+        full[i] = (src_area2[i] > 0.f && covered2[i] >= 0.999f * src_area2[i]) ? 1 : 0;
+
+    // CSR pieces, kept for partly covered sources only - a full one answers every query "painted".
+    std::vector<int> part_start(ntri + 1, 0);
+    for (size_t j = 0; j < patch.indices.size() && j < piece_src.size(); ++j)
+        if (size_t(piece_src[j]) < ntri && !full[size_t(piece_src[j])])
+            ++part_start[size_t(piece_src[j]) + 1];
+    for (size_t i = 0; i < ntri; ++i)
+        part_start[i + 1] += part_start[i];
+    std::vector<std::array<Vec3f, 3>> part;
+    part.resize(size_t(part_start[ntri])); // not a constructor call: `vector<T> p(size_t(x[n]));` parses
+                                           // as a function declaration, and every use of `part` below
+                                           // then fails with something that does not mention the cause.
+    {
+        std::vector<int> fill(part_start.begin(), part_start.begin() + ntri);
+        for (size_t j = 0; j < patch.indices.size() && j < piece_src.size(); ++j) {
+            const size_t S = size_t(piece_src[j]);
+            if (S >= ntri || full[S])
+                continue;
+            const stl_triangle_vertex_indices &t = patch.indices[j];
+            part[size_t(fill[S]++)] = { patch.vertices[size_t(t[0])], patch.vertices[size_t(t[1])],
+                                        patch.vertices[size_t(t[2])] };
+        }
+    }
+
+    // Classify in parallel, then write the mask serially - TriangleSelector is not thread safe.
+    std::vector<uint8_t> painted(dst.indices.size(), 0);
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, dst.indices.size()),
+                      [&](const tbb::blocked_range<size_t> &range) {
+        for (size_t i = range.begin(); i < range.end(); ++i) {
+            const stl_triangle_vertex_indices &t = dst.indices[i];
+            const Vec3f centroid = (dst.vertices[size_t(t[0])] + dst.vertices[size_t(t[1])] +
+                                    dst.vertices[size_t(t[2])]) / 3.f + dst_to_src;
+            size_t hit     = 0;
+            Vec3f  hit_pos = Vec3f::Zero();
+            if (AABBTreeIndirect::squared_distance_to_indexed_triangle_set(src.vertices, src.indices, src_tree,
+                                                                          centroid, hit, hit_pos) < 0.f ||
+                hit >= ntri)
+                continue;
+            if (full[hit]) {
+                painted[i] = 1;
+                continue;
+            }
+            for (int k = part_start[hit]; k < part_start[hit + 1]; ++k)
+                if (point_in_triangle_coplanar(hit_pos, part[size_t(k)])) {
+                    painted[i] = 1;
+                    break;
+                }
+        }
+    });
+
+    TriangleSelector dst_sel(dst_mesh);
+    for (size_t i = 0; i < painted.size(); ++i)
+        if (painted[i])
+            dst_sel.set_facet(int(i), EnforcerBlockerType::ENFORCER);
+    return dst_sel.serialize();
 }
 
 std::unique_ptr<GLTexture> upload_height_thumbnail(const DecodedHeightTexture &decoded, int max_px = THUMBNAIL_MAX_PX)
@@ -2964,13 +3078,11 @@ void GLGizmoTextureDisplacement::subdivide_model()
 }
 
 bool GLGizmoTextureDisplacement::collect_paint_region(
+    const TriangleMesh &mesh, const TextureDisplacementFacetsData &facets,
     std::vector<uint8_t> &region,
-    std::array<LayerPaintMap, TEXTURE_DISPLACEMENT_MAX_LAYERS> *paint) const
+    std::array<LayerPaintMap, TEXTURE_DISPLACEMENT_MAX_LAYERS> *paint)
 {
-    const ModelVolume *mv = texture_volume();
-    if (mv == nullptr)
-        return false;
-    const indexed_triangle_set &its  = mv->mesh().its;
+    const indexed_triangle_set &its  = mesh.its;
     const size_t                ntri = its.indices.size();
     const size_t                nvert = its.vertices.size();
 
@@ -2996,7 +3108,7 @@ bool GLGizmoTextureDisplacement::collect_paint_region(
 
     bool any_paint = false;
     for (int slot = 0; slot < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++slot) {
-        const TriangleSelector::TriangleSplittingData &data = mv->texture_displacement_facet(slot).get_data();
+        const TriangleSelector::TriangleSplittingData &data = facets[size_t(slot)];
         if (!TriangleSelector::has_facets(data, EnforcerBlockerType::ENFORCER))
             continue;
 
@@ -3013,7 +3125,7 @@ bool GLGizmoTextureDisplacement::collect_paint_region(
                 region[m.triangle_idx] |= REFINE_PAINTED;
 
         if (paint) {
-            TriangleSelector sel(mv->mesh());
+            TriangleSelector sel(mesh);
             sel.deserialize(data, false);
             // get_facets_strict() now reports which source triangle each sub-triangle came from, which
             // is what lets partial coverage be carried forward geometrically instead of being rounded
@@ -3120,87 +3232,146 @@ bool GLGizmoTextureDisplacement::collect_paint_region(
     return true;
 }
 
-bool GLGizmoTextureDisplacement::plan_adaptive_subdivision(const ModelVolume &mv, SubdivisionPlan &out) const
+TextureDisplacementFacetsData GLGizmoTextureDisplacement::masks_after_subdivision(
+    const TriangleMesh &new_mesh, const std::vector<int> &source,
+    const std::array<LayerPaintMap, TEXTURE_DISPLACEMENT_MAX_LAYERS> &paint)
 {
-    if (m_subdivide_target_mm <= 0.f)
-        return false;
-
-    std::vector<uint8_t> region;
-    if (!collect_paint_region(region, &out.paint))
-        return false;
-
-    // Feature-adaptive: sample the combined displacement so refinement follows texture curvature. A
-    // null sampler (only LSCM layers, or nothing decodable) falls back to the length baseline alone.
-    HeightFieldSampler sampler;
-    if (m_subdivide_feature) {
-        TextureDisplacementFacetsData facets{};
-        for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
-            facets[size_t(i)] = mv.texture_displacement_facet(i).get_data();
-        sampler = make_combined_displacement_sampler(mv.mesh().its, mv.texture_displacement_layers, facets);
-    }
-
-    // "Min edge" is a feature-mode control (it is the floor the curvature test refines down to); in
-    // plain adaptive mode the target edge length is the only criterion, so the floor must not be
-    // allowed to silently override a target the user set below it.
-    const float tol   = m_subdivide_feature ? m_subdivide_detail_mm : 0.f;
-    const float floor = m_subdivide_feature ? m_subdivide_min_edge_mm : 0.f;
-    {
-        wxBusyCursor wait;
-        // The budget slider is "triangles the refinement may *add*", so the model's own count is the
-        // baseline - otherwise the control would be meaningless (or a dead end) on a dense model.
-        out.refined = subdivide_mesh_adaptive(mv.mesh().its, region, m_subdivide_target_mm,
-                                             int(mv.mesh().its.indices.size()) + m_subdivide_budget_k * 1000,
-                                             &out.source, sampler, tol, floor, m_subdivide_border_mm);
-    }
-    return out.refined.indices.size() != mv.mesh().its.indices.size();
-}
-
-void GLGizmoTextureDisplacement::apply_adaptive_subdivision(ModelVolume &mv, SubdivisionPlan &&plan)
-{
-    // Other paint channels ride across via the standard remap; texture-displacement paint is rebuilt
-    // below from the plan's source map, which is the whole point of driving this by the paint.
-    std::optional<TriangleSelector::SavedPainting> saved_painting = mv.save_painting();
-    mv.set_mesh(TriangleMesh(std::move(plan.refined)));
-    mv.set_new_unique_id();
-    mv.calculate_convex_hull();
-    mv.restore_painting(saved_painting); // resets extra facets (incl. texture-displacement) + remaps the rest
-
-    // Carry each layer's paint onto the new mesh. Children inherit their parent's source triangle, and
-    // subdivision only ever adds edge midpoints, so every new triangle lies inside its source and on
-    // the same surface - which means the source's painted *pieces* can be queried directly by point
-    // containment. That is what keeps a brush outline smooth: rounding each source to wholly painted
-    // or not instead leaves a ragged fringe of isolated triangles along any curved boundary, and the
-    // refined mesh then reproduces that fringe exactly rather than hiding it.
-    const indexed_triangle_set &new_its = mv.mesh().its;
+    // Children inherit their parent's source triangle, and subdivision only ever adds edge midpoints,
+    // so every new triangle lies inside its source and on the same surface - which means the source's
+    // painted *pieces* can be queried directly by point containment. That is what keeps a brush outline
+    // smooth: rounding each source to wholly painted or not instead leaves a ragged fringe of isolated
+    // triangles along any curved boundary, and the refined mesh then reproduces that fringe exactly
+    // rather than hiding it.
+    TextureDisplacementFacetsData       out{};
+    const indexed_triangle_set         &its = new_mesh.its;
     for (int slot = 0; slot < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++slot) {
-        const LayerPaintMap &pm = plan.paint[size_t(slot)];
+        const LayerPaintMap &pm = paint[size_t(slot)];
         if (pm.empty())
             continue;
-        TriangleSelector sel(mv.mesh());
-        for (size_t i = 0; i < plan.source.size() && i < new_its.indices.size(); ++i) {
-            const size_t S = size_t(plan.source[i]);
+        TriangleSelector sel(new_mesh);
+        for (size_t i = 0; i < source.size() && i < its.indices.size(); ++i) {
+            const size_t S = size_t(source[i]);
             if (S >= pm.full.size())
                 continue;
             bool painted = pm.full[S] != 0;
             if (!painted && pm.part_start[S] != pm.part_start[S + 1]) {
-                const stl_triangle_vertex_indices &t = new_its.indices[i];
-                const Vec3f centroid = (new_its.vertices[size_t(t[0])] + new_its.vertices[size_t(t[1])] +
-                                        new_its.vertices[size_t(t[2])]) / 3.f;
+                const stl_triangle_vertex_indices &t = its.indices[i];
+                const Vec3f centroid = (its.vertices[size_t(t[0])] + its.vertices[size_t(t[1])] +
+                                        its.vertices[size_t(t[2])]) / 3.f;
                 for (int k = pm.part_start[S]; k < pm.part_start[S + 1] && !painted; ++k)
                     painted = point_in_triangle_coplanar(centroid, pm.part[size_t(k)]);
             }
             if (painted)
                 sel.set_facet(int(i), EnforcerBlockerType::ENFORCER);
         }
-        mv.texture_displacement_facet(slot).set(sel);
+        out[size_t(slot)] = sel.serialize();
     }
+    return out;
+}
+
+TextureDisplacementFacetsData GLGizmoTextureDisplacement::facets_data_of(const ModelVolume &mv)
+{
+    TextureDisplacementFacetsData out{};
+    for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
+        out[size_t(i)] = mv.texture_displacement_facet(i).get_data();
+    return out;
+}
+
+TextureDisplacementPrepareResult GLGizmoTextureDisplacement::prepare_mesh(
+    const indexed_triangle_set &base, const TextureDisplacementFacetsData &masks,
+    const std::vector<TextureDisplacementLayer> &layers, const TextureDisplacementPrepareParams &params,
+    const DisplacementProgressFn &progress)
+{
+    TextureDisplacementPrepareResult out;
+    const auto                       report = [&progress](int pct) { return !progress || progress(pct); };
+
+    TriangleMesh                  mesh(base);
+    TextureDisplacementFacetsData current = masks;
+    bool                          changed = false;
+    bool                          had_paint = false;
+    for (const TriangleSelector::TriangleSplittingData &m : masks)
+        had_paint = had_paint || TriangleSelector::has_facets(m, EnforcerBlockerType::ENFORCER);
+    if (!report(1))
+        return out;
+
+    // 1. Even out the triangle density, and carry the paint onto the result. Everything downstream is
+    //    driven by that paint, so losing it is a hard stop rather than something to bake around - and
+    //    stopping here, before anything is committed, leaves the user's model exactly as it was.
+    if (params.remesh_edge_mm > 0.f) {
+        indexed_triangle_set remeshed;
+        if (plan_remesh(mesh.its, params.remesh_edge_mm, params.remesh_sharp_deg, remeshed)) {
+            TriangleMesh                   new_mesh(std::move(remeshed));
+            const AABBTreeIndirect::Tree3f old_tree =
+                AABBTreeIndirect::build_aabb_tree_over_indexed_triangle_set(mesh.its.vertices, mesh.its.indices);
+            TextureDisplacementFacetsData carried{};
+            bool                          any = false;
+            for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i) {
+                // Both meshes are the volume's own local frame, so there is no shift between them.
+                carried[size_t(i)] =
+                    remap_texture_paint_spatial(mesh, current[size_t(i)], old_tree, new_mesh, Vec3f::Zero());
+                any = any || !carried[size_t(i)].bitstream.empty();
+            }
+            mesh    = std::move(new_mesh);
+            current = std::move(carried);
+            changed = true;
+            if (had_paint && !any) {
+                out.paint_lost = true;
+                return out;
+            }
+        }
+    }
+    if (!report(50))
+        return {};
+
+    // 2. Refine where the texture bends - the painted area only, plus the graded band the conformal
+    //    closure pulls in around it.
+    if (params.subdiv_target_mm > 0.f) {
+        std::vector<uint8_t>                                       region;
+        std::array<LayerPaintMap, TEXTURE_DISPLACEMENT_MAX_LAYERS> paint;
+        if (collect_paint_region(mesh, current, region, &paint)) {
+            // Feature-adaptive: sample the combined displacement so refinement follows texture
+            // curvature. A null sampler (only LSCM layers, or nothing decodable) falls back to the
+            // length baseline alone.
+            HeightFieldSampler sampler;
+            if (params.subdiv_feature)
+                sampler = make_combined_displacement_sampler(mesh.its, layers, current);
+            // "Min edge" is a feature-mode control (it is the floor the curvature test refines down
+            // to); in plain adaptive mode the target edge length is the only criterion, so the floor
+            // must not be allowed to silently override a target the user set below it.
+            const float tol   = params.subdiv_feature ? params.subdiv_detail_mm : 0.f;
+            const float floor = params.subdiv_feature ? params.subdiv_min_edge_mm : 0.f;
+            bool        aborted = false;
+            std::vector<int> source;
+            // The budget is "triangles the refinement may *add*", so the mesh's own count is the
+            // baseline - otherwise the control would be meaningless (or a dead end) on a dense model.
+            indexed_triangle_set refined =
+                subdivide_mesh_adaptive(mesh.its, region, params.subdiv_target_mm,
+                                        int(mesh.its.indices.size()) + params.subdiv_added_triangles, &source,
+                                        sampler, tol, floor, params.subdiv_border_mm, [&](int pct) {
+                                            aborted = !report(50 + pct / 2);
+                                            return !aborted;
+                                        });
+            if (aborted)
+                return {};
+            if (refined.indices.size() != mesh.its.indices.size()) {
+                mesh    = TriangleMesh(std::move(refined));
+                current = masks_after_subdivision(mesh, source, paint);
+                changed = true;
+            }
+        }
+    }
+    if (!report(100) || !changed)
+        return out; // an empty result: nothing to commit, which is not a failure
+
+    out.mesh  = std::move(mesh.its);
+    out.masks = std::move(current);
+    return out;
 }
 
 void GLGizmoTextureDisplacement::subdivide_model_adaptive()
 {
     ModelVolume *mv = texture_volume();
-    ModelObject *mo = m_c->selection_info()->model_object();
-    if (mv == nullptr || mo == nullptr)
+    if (mv == nullptr || m_subdivide_target_mm <= 0.f)
         return;
 
     update_model_object(); // flush any in-progress stroke into the committed masks first
@@ -3211,27 +3382,16 @@ void GLGizmoTextureDisplacement::subdivide_model_adaptive()
         return;
     }
 
-    // Plan before the snapshot, so a no-op leaves no empty undo step - mirrors remesh_model().
-    SubdivisionPlan plan;
-    if (!plan_adaptive_subdivision(*mv, plan)) {
-        show_error(nullptr, _u8L("Nothing to subdivide - the painted area already meets the target edge "
-                                 "length and detail tolerance, or the triangle budget is already used up."));
-        return;
-    }
-
-    Plater *plater = wxGetApp().plater();
-    Plater::TakeSnapshot snapshot(plater, _u8L("Adaptive subdivide for texture displacement"), UndoRedo::SnapshotType::GizmoAction);
-    apply_adaptive_subdivision(*mv, std::move(plan));
-
-    if (ObjectList *obj_list = wxGetApp().obj_list()) {
-        const ModelObjectPtrs &objs = plater->model().objects;
-        auto it = std::find(objs.begin(), objs.end(), mo);
-        if (it != objs.end())
-            obj_list->update_info_items(size_t(it - objs.begin()));
-    }
-    plater->changed_object(*mo);
-    update_from_model_object(false); // reload selectors/preview against the new mesh + carried paint
-    m_parent.set_as_dirty();
+    TextureDisplacementPrepareParams params;
+    params.subdiv_target_mm       = m_subdivide_target_mm;
+    params.subdiv_detail_mm       = m_subdivide_detail_mm;
+    params.subdiv_min_edge_mm     = m_subdivide_min_edge_mm;
+    params.subdiv_border_mm       = m_subdivide_border_mm;
+    params.subdiv_feature         = m_subdivide_feature;
+    params.subdiv_added_triangles = m_subdivide_budget_k * 1000;
+    queue_prepare(params, _u8L("Adaptive subdivide for texture displacement"), /* then_bake */ false,
+                  _u8L("Nothing to subdivide - the painted area already meets the target edge length and "
+                       "detail tolerance, or the triangle budget is already used up."));
 }
 
 void GLGizmoTextureDisplacement::smooth_model()
@@ -3318,49 +3478,35 @@ void GLGizmoTextureDisplacement::smooth_model()
     m_parent.set_as_dirty();
 }
 
-void GLGizmoTextureDisplacement::replace_mesh_keep_all_paint(ModelVolume &mv, TriangleMesh &&new_mesh)
-{
-    const indexed_triangle_set                                                           old_its = mv.mesh().its;
-    std::array<TriangleSelector::TriangleSplittingData, TEXTURE_DISPLACEMENT_MAX_LAYERS> saved_texture;
-    for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
-        saved_texture[size_t(i)] = mv.texture_displacement_facet(i).get_data();
-    std::optional<TriangleSelector::SavedPainting> saved_painting = mv.save_painting();
-
-    mv.set_mesh(std::move(new_mesh));
-    mv.set_new_unique_id();
-    mv.calculate_convex_hull();
-    mv.restore_painting(saved_painting); // clears the extra facets, then remaps the four standard channels
-
-    // ... and the same spatial remap for the texture-displacement masks, which restore_painting() knows
-    // nothing about. Without this a remesh would wipe the texture paint, which is fine for a standalone
-    // "Remesh" click but fatal for Standard mode's pipeline: it remeshes *after* the user has painted,
-    // and the subdivision and displacement that follow are both driven by that paint.
-    const Transform3d to_source = Slic3r::Geometry::translation_transform(mv.mesh().get_init_shift());
-    for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i) {
-        if (saved_texture[size_t(i)].bitstream.empty())
-            continue;
-        TriangleSelector::TriangleSplittingData remapped =
-            TriangleSelector::remap_painting(old_its, saved_texture[size_t(i)], mv.mesh().its, to_source,
-                                             {}); // no existing paint to merge with: set_mesh() just cleared it
-        if (!remapped.bitstream.empty())
-            mv.texture_displacement_facet(i).set_data(std::move(remapped));
-    }
-}
-
-bool GLGizmoTextureDisplacement::plan_remesh(const ModelVolume &mv, float target_edge_mm, float sharp_angle_deg,
-                                             TriangleMesh &out)
+bool GLGizmoTextureDisplacement::plan_remesh(const indexed_triangle_set &src, float target_edge_mm,
+                                             float sharp_angle_deg, indexed_triangle_set &out)
 {
     if (target_edge_mm <= 0.f)
         return false;
 
-    // CGAL isotropic remeshing can be slow on a big mesh, which is why this is separated from applying
-    // it: the caller runs it before taking the snapshot so a failure leaves no empty undo step.
-    const indexed_triangle_set &src = mv.mesh().its;
-    indexed_triangle_set        remeshed;
-    {
-        wxBusyCursor wait;
-        remeshed = MeshBoolean::cgal::remesh_isotropic(src, double(target_edge_mm), 3, double(sharp_angle_deg));
+    // Its cost and memory grow with the *square* of 1/target_edge, and it runs single-threaded on the
+    // UI thread, so the target has to be bounded against the part's actual surface area rather than
+    // taken at face value. Standard mode asks for 1 mm whatever it is handed, and the slider goes down
+    // to 0.1 mm: on a 150 mm part those are ~500 k and ~50 M triangles respectively - minutes to hours
+    // of frozen UI, which is indistinguishable from a hang. Raising the target instead still gives the
+    // subdivider the even density it needs, and the subdivision that follows is where the detail was
+    // always going to come from anyway. An equilateral triangle of edge L covers sqrt(3)/4 * L^2.
+    static constexpr double REMESH_MAX_TRIANGLES = 150000.0;
+    double area = 0.0;
+    for (const stl_triangle_vertex_indices &tri : src.indices)
+        area += 0.5 * double((src.vertices[size_t(tri[1])] - src.vertices[size_t(tri[0])])
+                                 .cross(src.vertices[size_t(tri[2])] - src.vertices[size_t(tri[0])])
+                                 .norm());
+    if (const double budget_edge = std::sqrt(area / (0.4330127 * REMESH_MAX_TRIANGLES));
+        budget_edge > double(target_edge_mm)) {
+        BOOST_LOG_TRIVIAL(info) << "Texture displacement: remesh target raised from " << target_edge_mm
+                                << " mm to " << budget_edge << " mm to stay within "
+                                << int(REMESH_MAX_TRIANGLES) << " triangles.";
+        target_edge_mm = float(budget_edge);
     }
+
+    indexed_triangle_set remeshed =
+        MeshBoolean::cgal::remesh_isotropic(src, double(target_edge_mm), 3, double(sharp_angle_deg));
     // remesh_isotropic() signals failure by handing the input straight back, so compare against it
     // structurally. Vertex count alone is not enough: a remesh that only redistributes triangles at
     // roughly the current density legitimately lands on the same count, and treating that as failure
@@ -3370,39 +3516,23 @@ bool GLGizmoTextureDisplacement::plan_remesh(const ModelVolume &mv, float target
          remeshed.indices == src.indices))
         return false;
 
-    out = TriangleMesh(std::move(remeshed));
+    out = std::move(remeshed);
     return true;
 }
 
 void GLGizmoTextureDisplacement::remesh_model()
 {
-    ModelVolume *mv = texture_volume();
-    ModelObject *mo = m_c->selection_info()->model_object();
-    if (mv == nullptr || mo == nullptr || m_remesh_target_edge_mm <= 0.f)
+    if (texture_volume() == nullptr || m_remesh_target_edge_mm <= 0.f)
         return;
 
-    TriangleMesh remeshed;
-    if (!plan_remesh(*mv, m_remesh_target_edge_mm, m_remesh_keep_sharp_edges ? m_remesh_sharp_angle_deg : 0.f,
-                     remeshed)) {
-        show_error(nullptr, _u8L("Remeshing did not change the model. It may be non-manifold (open edges or "
-                                 "edges shared by more than two triangles), or the target edge length may "
-                                 "already be met."));
-        return;
-    }
+    update_model_object(); // the paint rides across the remesh, so flush any in-progress stroke first
 
-    Plater *plater = wxGetApp().plater();
-    Plater::TakeSnapshot snapshot(plater, _u8L("Remesh model for texture displacement"), UndoRedo::SnapshotType::GizmoAction);
-    replace_mesh_keep_all_paint(*mv, std::move(remeshed));
-
-    if (ObjectList *obj_list = wxGetApp().obj_list()) {
-        const ModelObjectPtrs &objs = plater->model().objects;
-        auto it = std::find(objs.begin(), objs.end(), mo);
-        if (it != objs.end())
-            obj_list->update_info_items(size_t(it - objs.begin()));
-    }
-    plater->changed_object(*mo);
-    update_from_model_object(false);
-    m_parent.set_as_dirty();
+    TextureDisplacementPrepareParams params;
+    params.remesh_edge_mm   = m_remesh_target_edge_mm;
+    params.remesh_sharp_deg = m_remesh_keep_sharp_edges ? m_remesh_sharp_angle_deg : 0.f;
+    queue_prepare(params, _u8L("Remesh model for texture displacement"), /* then_bake */ false,
+                  _u8L("Remeshing did not change the model. It may be non-manifold (open edges or edges "
+                       "shared by more than two triangles), or the target edge length may already be met."));
 }
 
 void GLGizmoTextureDisplacement::rebuild_subdivide_preview()
@@ -3419,16 +3549,13 @@ void GLGizmoTextureDisplacement::rebuild_subdivide_preview()
     if (m_subdivide_adaptive) {
         if (m_subdivide_target_mm <= 0.f)
             return;
-        std::vector<uint8_t> region;
-        if (!collect_paint_region(region, nullptr))
+        const TextureDisplacementFacetsData facets = facets_data_of(*mv);
+        std::vector<uint8_t>                region;
+        if (!collect_paint_region(mv->mesh(), facets, region, nullptr))
             return; // nothing painted yet: nothing to preview
         HeightFieldSampler sampler;
-        if (m_subdivide_feature) {
-            TextureDisplacementFacetsData facets{};
-            for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
-                facets[size_t(i)] = mv->texture_displacement_facet(i).get_data();
+        if (m_subdivide_feature)
             sampler = make_combined_displacement_sampler(mv->mesh().its, mv->texture_displacement_layers, facets);
-        }
         // Feature mode: curvature (Detail tolerance) on top of the Max-edge baseline, down to the
         // Min-edge floor. Plain adaptive: tol 0, so only the target-edge-length criterion applies.
         const float tol   = m_subdivide_feature ? m_subdivide_detail_mm : 0.f;
@@ -3605,8 +3732,7 @@ bool GLGizmoTextureDisplacement::apply_standard_mode_presets(ModelVolume *mv)
 void GLGizmoTextureDisplacement::bake_standard()
 {
     ModelVolume *mv = texture_volume();
-    ModelObject *mo = m_c->selection_info()->model_object();
-    if (mv == nullptr || mo == nullptr || m_bake_in_progress)
+    if (mv == nullptr || m_bake_in_progress || m_prepare_in_progress)
         return;
 
     update_model_object(); // flush the active layer's in-progress strokes before anything reads them
@@ -3616,63 +3742,70 @@ void GLGizmoTextureDisplacement::bake_standard()
     }
     apply_standard_mode_presets(mv); // belt and braces: never bake with values the panel is not showing
 
-    // Both stages are planned before the snapshot so a stage that has nothing to do is simply skipped.
-    // Skipping is normal, not a failure: a mesh that is already even needs no remesh, and one that is
-    // already fine enough for the texture needs no subdivision.
-    TriangleMesh remeshed;
-    const bool   do_remesh = plan_remesh(*mv, STD_REMESH_EDGE_MM, STD_REMESH_SHARP_DEG, remeshed);
+    // The whole recipe in one go. Either stage having nothing to do is normal, not a failure - a mesh
+    // that is already even needs no remesh, one that is already fine enough for the texture needs no
+    // subdivision - so no "nothing changed" message here: it goes straight on to the displacement.
+    TextureDisplacementPrepareParams params;
+    params.remesh_edge_mm         = STD_REMESH_EDGE_MM;
+    params.remesh_sharp_deg       = STD_REMESH_SHARP_DEG;
+    params.subdiv_target_mm       = STD_SUBDIV_MAX_EDGE_MM;
+    params.subdiv_detail_mm       = STD_SUBDIV_DETAIL_MM;
+    params.subdiv_min_edge_mm     = STD_SUBDIV_MIN_EDGE_MM;
+    params.subdiv_border_mm       = STD_SUBDIV_BORDER_MM;
+    params.subdiv_feature         = true;
+    params.subdiv_added_triangles = m_subdivide_budget_k * 1000;
+    queue_prepare(params, _u8L("Bake texture displacement"), /* then_bake */ true, {});
+}
 
-    Plater *plater = wxGetApp().plater();
-    bool    paint_transfer_failed = false;
-    {
-        // ONE undo step for the whole pipeline. take_snapshot() records the state *before* the change,
-        // so a single Undo goes all the way back to the untouched mesh - which is the only thing "undo
-        // the bake" can sensibly mean when the bake is also what prepared the geometry. The background
-        // displacement job is told not to add its own (see queue_texture_displacement_bake's
-        // take_snapshot), because an undo step landing between the subdivision and the displacement
-        // leaves a mesh with 1.5 M extra triangles and no relief on it - and baking again from there
-        // subdivides that mesh a second time.
-        Plater::TakeSnapshot snapshot(plater, _u8L("Bake texture displacement"),
-                                      UndoRedo::SnapshotType::GizmoAction);
-        if (do_remesh)
-            replace_mesh_keep_all_paint(*mv, std::move(remeshed));
-
-        // The remesh carries the paint across spatially, but if that remap came back empty the rest of
-        // the pipeline has nothing to work from - stop here rather than silently baking a flat mesh.
-        // Note this cannot just `return`: the remesh above has already replaced the volume's mesh, so
-        // the scene and the gizmo's own TriangleSelectors still have to be brought back into step with
-        // it below. Returning from here left the gizmo painting and raycasting against a mesh that no
-        // longer existed.
-        paint_transfer_failed = !mv->is_texture_displacement_painted();
-
-        // Planning the subdivision has to happen inside the snapshot because it reads the mesh the
-        // remesh just produced. It is the expensive step, but by here we are committed anyway.
-        if (!paint_transfer_failed) {
-            SubdivisionPlan plan;
-            if (plan_adaptive_subdivision(*mv, plan))
-                apply_adaptive_subdivision(*mv, std::move(plan));
-        }
-    }
-
-    if (ObjectList *obj_list = wxGetApp().obj_list()) {
-        const ModelObjectPtrs &objs = plater->model().objects;
-        auto it = std::find(objs.begin(), objs.end(), mo);
-        if (it != objs.end())
-            obj_list->update_info_items(size_t(it - objs.begin()));
-    }
-    plater->changed_object(*mo);
-    update_from_model_object(false); // reload selectors against the prepared mesh + carried paint
-    m_parent.set_as_dirty();
-
-    if (paint_transfer_failed) {
-        show_error(nullptr, _u8L("The painted area could not be transferred onto the remeshed model. Undo, "
-                                 "then switch to Pro mode to prepare the mesh before painting."));
+void GLGizmoTextureDisplacement::queue_prepare(const TextureDisplacementPrepareParams &params,
+                                               const std::string &snapshot_name, bool then_bake,
+                                               const std::string &unchanged_msg)
+{
+    ModelVolume *mv = texture_volume();
+    if (mv == nullptr || m_prepare_in_progress || m_bake_in_progress)
         return;
-    }
 
-    // ... and finally the displacement itself, in the background exactly as the Pro-mode button does -
-    // except that it commits into the snapshot taken above instead of pushing another one.
-    bake(/* own_snapshot */ false);
+    TextureDisplacementPrepareInput input;
+    input.volume_id     = mv->id();
+    input.base_mesh     = mv->mesh().its;
+    input.masks         = facets_data_of(*mv);
+    input.layers        = mv->texture_displacement_layers;
+    input.params        = params;
+    input.snapshot_name = snapshot_name;
+
+    m_prepare_in_progress = true;
+    queue_texture_displacement_prepare(std::move(input), [this, then_bake, unchanged_msg](
+                                                             TextureDisplacementPrepareOutcome outcome) {
+        m_prepare_in_progress = false;
+        // The commit replaced the volume's mesh (new id, new topology) without changing the object's id
+        // or volume count, which is not something GLGizmoPainterBase::data_changed() can detect - so the
+        // reload is explicit, exactly as it is after a bake. Done for every outcome: even a run that
+        // committed nothing may have left the panel showing a stale triangle count.
+        if (m_state == On && m_c->selection_info() && m_c->selection_info()->model_object())
+            update_from_model_object(false);
+        m_parent.set_as_dirty();
+
+        switch (outcome) {
+        case TextureDisplacementPrepareOutcome::Failed:
+            return; // cancelled, or the volume went away while the job ran - say nothing, do nothing
+        case TextureDisplacementPrepareOutcome::PaintLost:
+            show_error(nullptr, _u8L("The painted area could not be carried onto the remeshed model, so "
+                                     "nothing was changed. Switch to Pro mode and remesh before painting."));
+            return;
+        case TextureDisplacementPrepareOutcome::Unchanged:
+            if (!unchanged_msg.empty())
+                show_error(nullptr, unchanged_msg);
+            break;
+        case TextureDisplacementPrepareOutcome::Committed:
+            break;
+        }
+        // ... and then the displacement itself, in the background exactly as the Pro-mode button does.
+        // It commits into the snapshot the prepare opened - but only if the prepare opened one: a run
+        // that found nothing to do took none, and a bake chained onto that has to push its own or it
+        // would not be undoable at all.
+        if (then_bake)
+            bake(/* own_snapshot */ outcome == TextureDisplacementPrepareOutcome::Unchanged);
+    });
 }
 
 void GLGizmoTextureDisplacement::render_paint_cursor_hint()
@@ -4686,7 +4819,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                                   "commit it, or Done to leave the model as it is."),
                               m_imgui->scaled(20.f));
     } else {
-        m_imgui->disabled_begin(!subdivide_ready);
+        m_imgui->disabled_begin(!subdivide_ready || m_prepare_in_progress || m_bake_in_progress);
         if (m_imgui->button(_u8L("Apply"))) {
             if (m_subdivide_adaptive) {
                 subdivide_model_adaptive(); // refines only the painted area, carrying the paint forward
@@ -4752,7 +4885,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                               m_imgui->scaled(20.f));
     }
 
-    m_imgui->disabled_begin(mv == nullptr);
+    m_imgui->disabled_begin(mv == nullptr || m_prepare_in_progress || m_bake_in_progress);
     if (m_imgui->button(_u8L("Remesh")))
         remesh_model();
     m_imgui->disabled_end();
@@ -4783,8 +4916,11 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
     m_imgui->disabled_end();
 
     ImGui::SameLine();
-    m_imgui->disabled_begin(m_bake_in_progress || mv == nullptr || !mv->is_texture_displacement_painted());
-    if (m_imgui->button(m_bake_in_progress ? _L("Baking...") : m_desc.at("bake"))) {
+    m_imgui->disabled_begin(m_bake_in_progress || m_prepare_in_progress || mv == nullptr ||
+                            !mv->is_texture_displacement_painted());
+    if (m_imgui->button(m_prepare_in_progress ? _L("Preparing...") :
+                        m_bake_in_progress    ? _L("Baking...") :
+                                                m_desc.at("bake"))) {
         // Standard mode's Bake is the whole pipeline (remesh -> refine -> displace); Pro's is only the
         // displacement, because there the user has already prepared the mesh with the controls above.
         if (pro_mode())

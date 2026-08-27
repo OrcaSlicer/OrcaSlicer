@@ -32,6 +32,24 @@ class GLGizmoTextureDisplacement : public GLGizmoPainterBase
 public:
     GLGizmoTextureDisplacement(GLCanvas3D& parent, const std::string& icon_filename, unsigned int sprite_id);
 
+    // The whole of mesh preparation - remesh, carry the paint across, refine where the texture bends -
+    // as one pure function over plain data: no ModelVolume, no Model, no GUI, no undo. That is what lets
+    // TextureDisplacementPrepareJob run it on the job worker instead of on the UI thread, where CGAL's
+    // remesher and a several-hundred-thousand-triangle refinement together freeze the window for tens
+    // of seconds with nothing to look at and no way to cancel.
+    //
+    // `progress` is called with 0..100 and aborts the run when it returns false; an aborted run reports
+    // an empty result. An empty result is also how "nothing needed doing" is reported - see
+    // TextureDisplacementPrepareResult.
+    static TextureDisplacementPrepareResult prepare_mesh(const indexed_triangle_set                  &base,
+                                                         const TextureDisplacementFacetsData         &masks,
+                                                         const std::vector<TextureDisplacementLayer> &layers,
+                                                         const TextureDisplacementPrepareParams      &params,
+                                                         const DisplacementProgressFn                &progress);
+    // The volume's eight texture-displacement masks, gathered into the array every pure function here
+    // (and every job input) takes.
+    static TextureDisplacementFacetsData facets_data_of(const ModelVolume &mv);
+
     void render_painter_gizmo() override;
 
     // Intercepts mouse input while "Adjust Texture" mode is on (dragging the on-canvas offset/
@@ -88,20 +106,26 @@ private:
     // Standard mode's Bake: remesh to an even density, refine where the texture bends, then displace.
     // The order matters and is the whole reason this is one button - a height map can only move
     // existing vertices, so the mesh has to be prepared first, and remeshing after painting would drop
-    // the paint if it were not remapped across (see replace_mesh_keep_all_paint()).
+    // the paint if it were not carried across (see prepare_mesh()).
     void bake_standard();
 
-    // Replaces `mv`'s mesh and carries *every* paint channel onto it, texture displacement included -
-    // the four standard channels via ModelVolume::restore_painting(), the eight texture-displacement
-    // masks via the same TriangleSelector::remap_painting() spatial remap, which restore_painting()
-    // does not cover. Shared by Remesh and by Standard mode's pipeline.
-    static void replace_mesh_keep_all_paint(ModelVolume &mv, TriangleMesh &&new_mesh);
-    // Remesh and adaptive Subdivide are each split into a *plan* (the heavy geometry work, touching
-    // nothing) and an *apply* (pure mutation). That split is what lets both the standalone buttons and
-    // Standard mode's one-button pipeline run the expensive part **before** taking the undo snapshot,
-    // so a run that turns out to be a no-op does not leave an empty undo step behind - and it keeps
-    // snapshot ownership with the caller, which matters because the buttons want one snapshot per click
-    // while the pipeline wants a single one around remesh + subdivide together.
+    // Queues one prepare_mesh() run on the job worker and commits its result when it lands. Every
+    // mesh-preparation button goes through here - Pro's Remesh, Pro's adaptive Subdivide and Standard's
+    // Bake differ only in which stages `params` enables and in what happens afterwards:
+    //  - `snapshot_name` is the single undo step the commit opens. With `then_bake` it is also the step
+    //    the displacement job that follows commits into, rather than pushing its own - an undo landing
+    //    between the two would leave a mesh carrying every added triangle and no relief on it, and
+    //    baking again from there would prepare it a second time.
+    //  - `unchanged_msg`, when not empty, is shown if the run had nothing to do. Standard's Bake passes
+    //    nothing: a mesh that already meets the criteria is not an error there, it just goes straight
+    //    on to the displacement.
+    void queue_prepare(const TextureDisplacementPrepareParams &params, const std::string &snapshot_name,
+                       bool then_bake, const std::string &unchanged_msg);
+    // Set from queue_prepare() until its job's result has been committed. Distinct from
+    // m_bake_in_progress because Standard's Bake sets both in turn, and because every button that would
+    // read or replace the mesh has to stay disabled for the whole of it.
+    bool m_prepare_in_progress = false;
+
     // How one layer's paint sits on the pre-subdivision mesh, precise enough to carry across the
     // refinement without rounding each source triangle to wholly painted or not.
     //
@@ -117,17 +141,16 @@ private:
         std::vector<std::array<Vec3f, 3>> part;       // painted pieces of partly covered source triangles
         bool empty() const { return full.empty(); }
     };
-    struct SubdivisionPlan
-    {
-        indexed_triangle_set                                        refined;
-        std::vector<int>                                            source; // new tri -> input tri
-        std::array<LayerPaintMap, TEXTURE_DISPLACEMENT_MAX_LAYERS>  paint;  // per layer
-    };
-    // False means "nothing to refine" and `out` must not be used.
-    bool        plan_adaptive_subdivision(const ModelVolume &mv, SubdivisionPlan &out) const;
-    static void apply_adaptive_subdivision(ModelVolume &mv, SubdivisionPlan &&plan);
-    // False means the remesh failed or changed nothing (CGAL signals failure by handing the input back).
-    static bool plan_remesh(const ModelVolume &mv, float target_edge_mm, float sharp_angle_deg, TriangleMesh &out);
+    // Rebuilds every layer's mask on a subdivided mesh from `source` (new triangle -> the input triangle
+    // it descends from) and the pre-subdivision coverage in `paint`.
+    static TextureDisplacementFacetsData masks_after_subdivision(
+        const TriangleMesh &new_mesh, const std::vector<int> &source,
+        const std::array<LayerPaintMap, TEXTURE_DISPLACEMENT_MAX_LAYERS> &paint);
+    // False means the remesh failed or changed nothing (CGAL signals failure by handing the input back),
+    // and `out` must not be used. `target_edge_mm` is a request rather than a promise: it is clamped
+    // against the part's surface area first, because CGAL's cost grows with the square of 1/target.
+    static bool plan_remesh(const indexed_triangle_set &src, float target_edge_mm, float sharp_angle_deg,
+                            indexed_triangle_set &out);
 
     // Marks every facet of every model-part volume as painted for the currently active layer -
     // "whole model" as an alternative to brushing/clicking every triangle by hand.
@@ -417,8 +440,9 @@ private:
     // painted area plus the band straddling its edge. If `paint` is non-null, also fills the per-layer
     // coverage map the subdivision carries forward - the expensive half, skipped by the live preview,
     // which only needs the region. Returns false when nothing is painted at all.
-    bool  collect_paint_region(std::vector<uint8_t> &region,
-                               std::array<LayerPaintMap, TEXTURE_DISPLACEMENT_MAX_LAYERS> *paint) const;
+    static bool collect_paint_region(const TriangleMesh &mesh, const TextureDisplacementFacetsData &facets,
+                                     std::vector<uint8_t> &region,
+                                     std::array<LayerPaintMap, TEXTURE_DISPLACEMENT_MAX_LAYERS> *paint);
 
     // Runs the volume's TextureDisplacementOptions smoothing over the *already committed* geometry,
     // restricted to the painted area. The same settings are folded into Preview/Bake automatically;
@@ -430,9 +454,9 @@ private:
     // Isotropic remeshing (CGAL) to even out wildly varying triangle sizes so displacement has a
     // consistent density to work with. Target edge length in mm; 0 means "not yet initialised", filled
     // with the mesh's mean edge length the first time the control is shown. Like subdivide, it replaces
-    // the geometry, but unlike subdivide it keeps every paint channel: replace_mesh_keep_all_paint()
-    // remaps the texture-displacement masks spatially, which is also what lets Standard mode remesh
-    // *after* the user has painted.
+    // the geometry, but unlike subdivide it keeps every paint channel: prepare_mesh() carries the
+    // texture-displacement masks across spatially, which is also what lets Standard mode remesh *after*
+    // the user has painted.
     float m_remesh_target_edge_mm = 0.f;
     // Dihedral angle above which an edge counts as a hard feature and is held fixed by the remesher.
     // Off by default would round every sharp edge off, so this is on; 0 disables the protection.
