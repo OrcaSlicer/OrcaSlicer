@@ -3140,7 +3140,22 @@ int CLI::run(int argc, char **argv)
         std::vector<int> old_variant_counts(filament_count, 1), new_variant_counts;
 
         ConfigOptionInts* filament_self_index_opt = m_print_config.option<ConfigOptionInts>("filament_self_index");
-        if (!filament_self_index_opt) {
+        bool need_regenerate_self_index = !filament_self_index_opt;
+        if (filament_self_index_opt) {
+            // a filament_self_index carried over from a project with a different
+            // filament_count can imply more distinct filament groups than currently exist.
+            // old_start_indice/old_variant_counts below are sized to filament_count, so an
+            // unreconciled index walks old_start_indice[++k] past its bounds (heap corruption).
+            int max_self_index = 0;
+            for (int v : filament_self_index_opt->values)
+                max_self_index = std::max(max_self_index, v);
+            if (max_self_index > filament_count) {
+                BOOST_LOG_TRIVIAL(warning) << boost::format("filament_self_index implies %1% filament groups but filament_count is %2%, regenerating")
+                        % max_self_index % filament_count;
+                need_regenerate_self_index = true;
+            }
+        }
+        if (need_regenerate_self_index) {
             filament_self_index_opt = m_print_config.option<ConfigOptionInts>("filament_self_index", true);
             std::vector<int>& filament_self_indice = filament_self_index_opt->values;
             filament_self_indice.resize(filament_count);
