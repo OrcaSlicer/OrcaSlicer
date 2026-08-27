@@ -1,0 +1,59 @@
+{
+  "type": "filament",
+  "name": "INSLOGIC PA6-66 @Prusa CORE One",
+  "inherits": "INSLOGIC PA6-66 @base",
+  "from": "system",
+  "instantiation": "true",
+  "filament_flow_ratio": [
+    "0.99"
+  ],
+  "nozzle_temperature": [
+    "265"
+  ],
+  "nozzle_temperature_initial_layer": [
+    "265"
+  ],
+  "hot_plate_temp": [
+    "40"
+  ],
+  "hot_plate_temp_initial_layer": [
+    "40"
+  ],
+  "textured_plate_temp": [
+    "40"
+  ],
+  "textured_plate_temp_initial_layer": [
+    "40"
+  ],
+  "fan_min_speed": [
+    "100"
+  ],
+  "fan_max_speed": [
+    "100"
+  ],
+  "overhang_fan_speed": [
+    "100"
+  ],
+  "close_fan_the_first_x_layers": [
+    "0"
+  ],
+  "full_fan_speed_layer": [
+    "0"
+  ],
+  "slow_down_layer_time": [
+    "15"
+  ],
+  "slow_down_min_speed": [
+    "20"
+  ],
+  "filament_multitool_ramming_flow": [
+    "10"
+  ],
+  "filament_notes": [
+    "Inslogic Nylon PA6/66 TDS (20.01.2025). Nozzle sizes 0.2/0.4/0.6mm. Nozzle 250-280C. Bed 30-50C. Printing speed 50-150mm/s. Cooling fan 100%. Textured PEI Sheet. Drying 80C for 48h or 110C for 3h. TDS linear speed is not converted to filament_max_volumetric_speed."
+  ],
+  "compatible_printers": [
+    "Prusa CORE One 0.4 nozzle",
+    "Prusa CORE One L 0.4 nozzle"
+  ]
+}

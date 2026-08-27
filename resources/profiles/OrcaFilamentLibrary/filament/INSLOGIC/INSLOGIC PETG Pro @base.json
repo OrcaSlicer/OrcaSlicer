@@ -1,0 +1,30 @@
+{
+  "type": "filament",
+  "name": "INSLOGIC PETG Pro @base",
+  "inherits": "fdm_filament_pet",
+  "from": "system",
+  "filament_id": "INS00002",
+  "instantiation": "false",
+  "filament_vendor": [
+    "INSLOGIC"
+  ],
+  "filament_type": [
+    "PETG"
+  ],
+  "filament_density": [
+    "1.26"
+  ],
+  "filament_max_volumetric_speed": [
+    "12"
+  ],
+  "nozzle_temperature_range_low": [
+    "230"
+  ],
+  "nozzle_temperature_range_high": [
+    "270"
+  ],
+  "filament_notes": [
+    "Inslogic PETG Pro TDS (12.02.2024). Nozzle sizes 0.2/0.4/0.6mm. 230-240C at 50-100mm/s; 240-255C at 100-300mm/s; 255-270C at 300-600mm/s. Bed 60-70C. Cooling fan 100%. Bed: Smooth PEI Sheet / High Temperature Plate. Drying 50C for 4h. TDS linear speed is not converted to filament_max_volumetric_speed."
+  ],
+  "compatible_printers": []
+}
