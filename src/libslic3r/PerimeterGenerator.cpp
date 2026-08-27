@@ -408,7 +408,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         ExtrusionRole role = is_external ? erExternalPerimeter : erPerimeter;
 
         const bool  is_contour = !extrusion->is_closed || pg_extrusion.is_contour;
-        apply_fuzzy_skin(extrusion, perimeter_generator, is_contour);
+        apply_fuzzy_skin(extrusion, perimeter_generator, is_contour, extrusion->is_closed);
 
         ExtrusionPaths paths;
         // detect overhanging/bridging perimeters

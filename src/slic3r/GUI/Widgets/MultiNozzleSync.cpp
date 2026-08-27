@@ -630,7 +630,7 @@ NozzleListTable::NozzleListTable(wxWindow* parent) : wxPanel(parent,wxID_ANY,wxD
     SetSizer(sizer);
     Layout();
 
-    m_web_view->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, [this,sizer](wxWebViewEvent& evt) {
+    m_web_view->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, [this](wxWebViewEvent& evt) {
         std::string message = evt.GetString().ToStdString();
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << "Received message: " << message;
         try {
@@ -1168,8 +1168,8 @@ void MultiNozzleSyncDialog::UpdateButton(std::weak_ptr<DevNozzleRack> rack, bool
         m_cancel_btn->SetLabel(_L("Ignore"));
         m_confirm_btn->SetLabel(_L("Refresh"));
 
-        m_cancel_btn->Bind(wxEVT_LEFT_DOWN, [this, rack, ignore_opt](auto& e) {ignore_opt(); });
-        m_confirm_btn->Bind(wxEVT_LEFT_DOWN, [this, rack, refresh_cmd](auto& e) {refresh_cmd(); });
+        m_cancel_btn->Bind(wxEVT_LEFT_DOWN, [rack, ignore_opt](auto& e) {ignore_opt(); });
+        m_confirm_btn->Bind(wxEVT_LEFT_DOWN, [rack, refresh_cmd](auto& e) {refresh_cmd(); });
     }
     else if (has_unknown) {
         m_cancel_btn->Show();
@@ -1178,8 +1178,8 @@ void MultiNozzleSyncDialog::UpdateButton(std::weak_ptr<DevNozzleRack> rack, bool
         m_cancel_btn->SetLabel(_L("Ignore"));
         m_confirm_btn->SetLabel(_L("Refresh"));
 
-        m_cancel_btn->Bind(wxEVT_LEFT_DOWN, [this, rack, ignore_opt](auto& e) {ignore_opt(); });
-        m_confirm_btn->Bind(wxEVT_LEFT_DOWN, [this, rack, refresh_cmd](auto& e) {refresh_cmd(); });
+        m_cancel_btn->Bind(wxEVT_LEFT_DOWN, [rack, ignore_opt](auto& e) {ignore_opt(); });
+        m_confirm_btn->Bind(wxEVT_LEFT_DOWN, [rack, refresh_cmd](auto& e) {refresh_cmd(); });
     }
     else if (has_unreliable) {
         m_cancel_btn->Show();
@@ -1188,8 +1188,8 @@ void MultiNozzleSyncDialog::UpdateButton(std::weak_ptr<DevNozzleRack> rack, bool
         m_cancel_btn->SetLabel(_L("Refresh"));
         m_confirm_btn->SetLabel(_L("Confirm"));
 
-        m_cancel_btn->Bind(wxEVT_LEFT_DOWN, [this, rack, refresh_cmd](auto& e) {refresh_cmd(); });
-        m_confirm_btn->Bind(wxEVT_LEFT_DOWN, [this, rack, trust_cmd](auto& e) {trust_cmd(); });
+        m_cancel_btn->Bind(wxEVT_LEFT_DOWN, [rack, refresh_cmd](auto& e) {refresh_cmd(); });
+        m_confirm_btn->Bind(wxEVT_LEFT_DOWN, [rack, trust_cmd](auto& e) {trust_cmd(); });
 
     }
     else {

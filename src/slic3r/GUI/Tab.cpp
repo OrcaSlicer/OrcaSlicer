@@ -4,6 +4,7 @@
 #include "PresetHints.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
@@ -2173,18 +2174,25 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
     //Orca: sync filament num if it's a multi tool printer
     if (opt_key == "extruders_count" && !m_config->opt_bool("single_extruder_multi_material")){
-        auto num_extruder = boost::any_cast<size_t>(value);
-        int         old_filament_size = wxGetApp().preset_bundle->filament_presets.size();
-        std::vector<std::string> new_colors;
-        for (int i = old_filament_size; i < num_extruder; ++i) {
-            wxColour    new_col   = Plater::get_next_color_for_filament();
-            std::string new_color = new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
-            new_colors.push_back(new_color);
+        const size_t num_extruder = boost::any_cast<size_t>(value);
+        auto        *bundle       = wxGetApp().preset_bundle;
+        Sidebar     &sidebar      = wxGetApp().plater()->sidebar();
+        // A tool changer feeds filament N from nozzle N, so the extruder count sizes the physical
+        // run only; mixed slots are virtual and keep the tail. Go one slot at a time through the
+        // sidebar's own +/- calls: they insert ahead of the mixed tail and renumber filament ids,
+        // painted facets, custom g-code and mixed components, which a bulk resize clamps away.
+        // Both also refresh the print tab and export the selections, so nothing to do afterwards.
+        size_t physical = bundle->num_physical_filaments();
+        while (physical != num_extruder) {
+            if (physical < num_extruder)
+                sidebar.add_custom_filament(Plater::get_next_color_for_filament());
+            else
+                sidebar.delete_filament(physical - 1);   // physical > num_extruder >= 1
+            const size_t updated = bundle->num_physical_filaments();
+            if (updated == physical)
+                break;   // the call declined, e.g. the total slot limit - do not spin
+            physical = updated;
         }
-        wxGetApp().preset_bundle->set_num_filaments(num_extruder, new_colors);
-        wxGetApp().plater()->on_filament_count_change(num_extruder);
-        wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
-        wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
     }
 
     //Orca: disable purge_in_prime_tower if single_extruder_multi_material is disabled
@@ -2629,6 +2637,7 @@ void TabPrint::build()
         auto optgroup = page->new_optgroup(L("Layer height"), L"param_layer_height");
         optgroup->append_single_option_line("layer_height","quality_settings_layer_height");
         optgroup->append_single_option_line("initial_layer_print_height","quality_settings_layer_height");
+        optgroup->append_single_option_line("enable_mixed_color_sublayer");
 
         optgroup = page->new_optgroup(L("Line width"), L"param_line_width");
         optgroup->append_single_option_line("line_width","quality_settings_line_width");
@@ -3497,6 +3506,21 @@ void TabPrintModel::activate_selected_page(std::function<void()> throw_if_cancel
                 f->set_value(boost::any(), false);
         }
     }
+    if (m_type == Preset::TYPE_PLATE)
+        static_cast<TabPrintPlate *>(this)->update_mixed_filament_seq_state();
+}
+
+// A mixed-color slot resolves to a different physical filament per layer, so a
+// user-defined filament print order cannot be honoured while one exists.
+void TabPrintPlate::update_mixed_filament_seq_state()
+{
+    if (!m_active_page) return;
+    auto &proj_cfg  = m_preset_bundle->project_config;
+    auto *opt       = proj_cfg.option<ConfigOptionBools>("filament_is_mixed");
+    bool  has_mixed = opt && has_any_mixed_filament(opt->values);
+
+    toggle_option("first_layer_sequence_choice", !has_mixed);
+    toggle_option("other_layers_sequence_choice", !has_mixed);
 }
 
 void TabPrintModel::on_value_change(const std::string& opt_id, const boost::any& value)

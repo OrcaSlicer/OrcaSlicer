@@ -167,7 +167,7 @@ class MultiNozzleSyncDialog : public DPIDialog
 {
 public:
     MultiNozzleSyncDialog(wxWindow* parent, std::weak_ptr<DevNozzleRack> rack);
-    virtual void on_dpi_changed(const wxRect& suggested_rect) {};
+    virtual void on_dpi_changed(const wxRect& suggested_rect) override {};
     std::vector<NozzleOption> GetNozzleOptions(const std::vector<MultiNozzleUtils::NozzleGroupInfo>& group_infos);
 
     std::optional<NozzleOption> GetSelectedOption() {
