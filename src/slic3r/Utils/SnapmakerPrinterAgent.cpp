@@ -1,11 +1,13 @@
 #include "SnapmakerPrinterAgent.hpp"
 #include "Http.hpp"
+#include "IPrinterAgent.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "nlohmann/json.hpp"
 #include <boost/log/trivial.hpp>
 #include <chrono>
+#include <sstream>
 #include <thread>
 
 namespace Slic3r {
@@ -269,6 +271,13 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
 
     build_ams_payload(1, slot_count - 1, trays);
     return true;
+}
+
+FilamentSyncMode SnapmakerPrinterAgent::get_filament_sync_mode() const
+{
+    if (GUI::wxGetApp().app_config->get_bool("use_printer_agents"))
+        return FilamentSyncMode::subscription;
+    return FilamentSyncMode::pull;
 }
 
 } // namespace Slic3r

@@ -34,7 +34,7 @@ public:
     int start_local_print_with_record(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override;
     int start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn) override;
 
-    FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::subscription; }
+    FilamentSyncMode get_filament_sync_mode() const override;
 
 private:
     // Push enable_box + value_t<tool> SAVE_VARIABLEs before a print starts.

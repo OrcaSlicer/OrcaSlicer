@@ -1,5 +1,6 @@
 #include "QidiPrinterAgent.hpp"
 #include "Http.hpp"
+#include "IPrinterAgent.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
@@ -46,6 +47,13 @@ QidiPrinterAgent::QidiPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(
 AgentInfo QidiPrinterAgent::get_agent_info_static()
 {
     return AgentInfo{"qidi", "Qidi", QidiPrinterAgent_VERSION, "Qidi printer agent"};
+}
+
+FilamentSyncMode QidiPrinterAgent::get_filament_sync_mode() const
+{
+    if (GUI::wxGetApp().app_config->get_bool("use_printer_agents"))
+        return FilamentSyncMode::subscription;
+    return FilamentSyncMode::pull;
 }
 
 bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode)

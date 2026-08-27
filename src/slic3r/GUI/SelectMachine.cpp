@@ -1124,7 +1124,10 @@ bool SelectMachineDialog::do_ams_mapping(MachineObject *obj_,bool use_ams)
 
     int filament_result = 0;
     std::vector<bool> map_opt;  //four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
-    if (nozzle_nums > 1){
+    // Orca: only do the per-physical-extruder left/right split when the device actually reports
+    // 2+ extruders. A non-BBL multi-nozzle printer (e.g. Snapmaker U1) reports a single extruder
+    // with one filament pool, so it maps as a single surface via the else branch below.
+    if (nozzle_nums > 1 && obj_->GetExtderSystem()->GetTotalExtderCount() > 1){
         //get nozzle property, the extders are same?
         if (true/*!can_hybrid_mapping(obj_get_extder_data())*/){
             std::vector<FilamentInfo>           m_ams_mapping_result_left, m_ams_mapping_result_right;
@@ -5498,8 +5501,8 @@ void SelectMachineDialog::reset_and_sync_ams_list()
                 item = new MaterialItem(m_filament_left_panel, colour_rgb, _L(display_materials[extruder]));
                 m_sizer_ams_mapping_left->Add(item, 0, wxALL, FromDIP(5));
             }
-            else if (m_filaments_map[extruder] == 2)
-            {
+            else // map == 2, or (non-BBL multi-nozzle) 3+; update_material_item_pos() collapses
+            {    // these into the single panel when the device reports < 2 extruders.
                 item = new MaterialItem(m_filament_right_panel, colour_rgb, _L(display_materials[extruder]));
                 m_sizer_ams_mapping_right->Add(item, 0, wxALL, FromDIP(5));
             }
