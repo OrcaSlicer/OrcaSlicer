@@ -4,6 +4,7 @@
 #include "GUI_App.hpp"
 #include "libslic3r/Preset.hpp"
 #include "I18N.hpp"
+#include <algorithm>
 #include <boost/log/trivial.hpp>
 #include <wx/colordlg.h>
 #include <wx/dcgraph.h>
@@ -16,6 +17,9 @@
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevFilaBlackList.h"
 #include "DeviceCore/DevFilaSystem.h"
+#include "DeviceCore/DevFilaSwitch.h"
+#include "DeviceCore/DevNozzleSystem.h" // DevNozzle / GetNozzleByPosId / GetNozzleRack
+#include "DeviceCore/DevNozzleRack.h"   // DevNozzleRack::IsSupported (rack gating)
 
 #define FILAMENT_MAX_TEMP       300
 #define FILAMENT_MIN_TEMP       120
@@ -293,12 +297,9 @@ void AMSMaterialsSetting::create_panel_kn(wxWindow* parent)
     m_ratio_text->SetForegroundColour(wxColour(50, 58, 61));
     m_ratio_text->SetFont(Label::Head_14);
 
-    std::string language = wxGetApp().app_config->get("language");
-    wxString    region   = "en";
-    if (language.find("zh") == 0)
-        region = "zh";
-    wxString link_url = wxString::Format("https://wiki.bambulab.com/%s/software/bambu-studio/calibration_pa", region);
-    m_wiki_ctrl = new HyperLink(parent, "Wiki Guide", link_url);
+    // Orca: link to the Orca Slicer pressure-advance wiki (region-agnostic).
+    wxString link_url = "https://www.orcaslicer.com/wiki/pressure_advance_calib";
+    m_wiki_ctrl = new HyperLink(parent, _L("Wiki Guide"), link_url);
     cali_title_sizer->Add(m_ratio_text, 0, wxALIGN_CENTER_VERTICAL);
     cali_title_sizer->Add(m_wiki_ctrl, 0, wxALIGN_CENTER_VERTICAL);
 
@@ -446,9 +447,19 @@ void AMSMaterialsSetting::update_filament_editing(bool is_printing)
         m_tip_readonly->Wrap(FromDIP(380));
         m_tip_readonly->Show(is_printing);
     }
+
+    if (m_view_only) { // Orca: view-only (2D laser/cut) — lock every edit control and hide apply/reset
+        m_comboBox_filament->Enable(false);
+        m_comboBox_cali_result->Enable(false);
+        m_input_k_val->Enable(false);
+        m_input_n_val->Enable(false);
+        m_button_confirm->Hide();
+        m_button_reset->Hide();
+    }
 }
 
 void AMSMaterialsSetting::on_select_reset(wxCommandEvent& event) {
+    if (m_view_only) return; // Orca: view-only never commits
     MessageDialog msg_dlg(nullptr, _L("Are you sure you want to clear the filament information?"), wxEmptyString, wxICON_WARNING | wxOK | wxCANCEL);
     auto result = msg_dlg.ShowModal();
     if (result != wxID_OK)
@@ -531,56 +542,123 @@ void AMSMaterialsSetting::on_select_reset(wxCommandEvent& event) {
     Close();
 }
 
+// Nozzle-context builder for the AMS-edit blacklist check. Factors the blacklist evaluation out of
+// on_select_ok and threads rack-gated per-nozzle context (extruder id + nozzle flow + nozzle diameter)
+// into CheckFilamentInfo, returning the accumulate-all CheckResult. As a side effect it resolves
+// ams_filament_id/ams_setting_id from the matched preset. fila_name is kept as the preset name (not
+// the short alias) so the name / name_suffix rules match on the non-rack fleet (no unintended
+// activation of e.g. the PLA Glow rule).
+static DevFilaBlacklist::CheckResult
+sCheckFilamentInfo(PresetBundle*      preset_bundle,
+                   MachineObject*     obj,
+                   int                ams_id,
+                   int                slot_id,
+                   const std::string& filament_id,
+                   std::string&       ams_filament_id,
+                   std::string&       ams_setting_id)
+{
+    DevFilaBlacklist::CheckResult result;
+    if (!preset_bundle || !obj)
+        return result;
+
+    // Orca: there is no lookup struct that also carries setting_id, so resolve the (root) preset by
+    // scanning the filaments collection for a matching filament_id.
+    Preset* fila_preset = nullptr;
+    for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); ++it) {
+        if (it->filament_id == filament_id) {
+            fila_preset = &(*it);
+            break;
+        }
+    }
+    if (!fila_preset)
+        return result;
+
+    if (wxGetApp().app_config->get("skip_ams_blacklist_check") != "true") {
+        std::string filamnt_type;
+        fila_preset->get_filament_type(filamnt_type);
+
+        DevFilaBlacklist::CheckFilamentInfo check_info;
+        check_info.dev_id              = obj->get_dev_id();
+        check_info.model_id            = obj->printer_type;
+        check_info.fila_id             = fila_preset->filament_id;
+        check_info.fila_type           = filamnt_type;
+        check_info.fila_name           = fila_preset->name;
+        check_info.has_filament_switch = obj->GetFilaSwitch()->IsInstalled();
+        check_info.ams_id              = ams_id;
+        check_info.slot_id             = slot_id;
+
+        if (auto vendor = dynamic_cast<ConfigOptionStrings*>(fila_preset->config.option("filament_vendor"));
+            vendor && !vendor->values.empty()) {
+            check_info.fila_vendor = vendor->values[0];
+        }
+
+        check_info.extruder_id = obj->GetFilaSystem()->GetExtruderIdByAmsId(std::to_string(ams_id));
+
+        // Rack-gated per-nozzle context. For a multi-nozzle main extruder on a rack printer (H2C) the
+        // specific nozzle is resolved later by the print-dispatch rack mapping, so leave
+        // nozzle_flow/nozzle_diameter unset here to keep the high-flow nozzle rules dormant. Every
+        // non-rack printer takes the else branch, threading the reported nozzle flow + diameter and
+        // thereby activating the high-flow blacklist warnings in the AMS-edit dialog for H2D/H2S/X2D/P2S
+        // (and the E3D-kit X1C/P1x).
+        DevNozzleSystem* nozzle_system = obj->GetNozzleSystem();
+        const bool       rack_supported = nozzle_system && nozzle_system->GetNozzleRack() &&
+                                    nozzle_system->GetNozzleRack()->IsSupported();
+        if (check_info.extruder_id == MAIN_EXTRUDER_ID && rack_supported) {
+            ; // multi-nozzle main extruder on a rack printer — nozzle resolved later by print dispatch
+        } else {
+            check_info.nozzle_flow = obj->GetFilaSystem()->GetNozzleFlowStringByAmsId(std::to_string(ams_id));
+            if (nozzle_system) {
+                DevNozzle nozzle = nozzle_system->GetNozzleByPosId(check_info.extruder_id.value_or(-1));
+                if (!nozzle.IsEmpty())
+                    check_info.nozzle_diameter = nozzle.GetNozzleDiameter();
+            }
+        }
+
+        result = DevFilaBlacklist::check_filaments_in_blacklist(check_info);
+    }
+
+    ams_filament_id = fila_preset->filament_id;
+    ams_setting_id  = fila_preset->setting_id;
+    return result;
+}
+
 void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
 {
+    if (!obj)
+        return;
+
+    if (m_view_only) return; // Orca: view-only never commits
+
     //get filament id
     ams_filament_id = "";
     ams_setting_id = "";
 
+    // the combobox item
+    auto filament_item = map_filament_items[m_comboBox_filament->GetValue().ToStdString()];
+
+    // check filament info (rack-gated per-nozzle blacklist evaluation)
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
-    if (preset_bundle) {
-        for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++) {
+    const auto& fila_check_res = sCheckFilamentInfo(preset_bundle, obj, ams_id, slot_id,
+                                                    filament_item.filament_id, ams_filament_id, ams_setting_id);
 
-            auto filament_item = map_filament_items[m_comboBox_filament->GetValue().ToStdString()];
-            std::string filament_id = filament_item.filament_id;
-            if (it->filament_id.compare(filament_id) == 0) {
+    if (const auto& prohibit_items = fila_check_res.get_items_by_action("prohibition"); !prohibit_items.empty()) {
+        wxString info_msg;
+        for (const auto& item : prohibit_items) { info_msg += item.info_msg + "\n"; }
+        MessageDialog msg_wingow(nullptr, info_msg, _L("Error"), wxICON_WARNING | wxOK);
+        msg_wingow.ShowModal();
+        return;
+    }
 
-
-                //check is it in the filament blacklist
-                if (wxGetApp().app_config->get("skip_ams_blacklist_check") != "true") {
-                    bool in_blacklist = false;
-                    std::string action;
-                    wxString info;
-                    std::string filamnt_type;
-                    std::string filamnt_name;
-                    it->get_filament_type(filamnt_type);
-
-                    auto vendor = dynamic_cast<ConfigOptionStrings *>(it->config.option("filament_vendor"));
-
-                    if (vendor && (vendor->values.size() > 0)) {
-                        std::string vendor_name = vendor->values[0];
-                        DevFilaBlacklist::check_filaments_in_blacklist(obj->printer_type, vendor_name, filamnt_type, it->filament_id, ams_id, slot_id, it->name, in_blacklist, action, info);
-                    }
-
-                    if (in_blacklist) {
-                        if (action == "prohibition") {
-                            MessageDialog msg_wingow(nullptr, info, _L("Error"), wxICON_WARNING | wxOK);
-                            msg_wingow.ShowModal();
-                            //m_comboBox_filament->SetSelection(m_filament_selection);
-                            return;
-                        }
-                        else if (action == "warning") {
-                            MessageDialog msg_wingow(nullptr, info, _L("Warning"), wxICON_INFORMATION | wxOK);
-                            msg_wingow.ShowModal();
-                        }
-                    }
-                }
-
-                ams_filament_id = it->filament_id;
-                ams_setting_id = it->setting_id;
-                break;
-            }
+    if (const auto& warning_items = fila_check_res.get_items_by_action("warning"); !warning_items.empty()) {
+        std::vector<FilamentWarningInfo> infos;
+        for (const auto& item : warning_items) {
+            FilamentWarningInfo winfo;
+            winfo.info_msg = item.info_msg;
+            winfo.wiki_url = item.wiki_url;
+            infos.emplace_back(winfo);
         }
+        FilamentWarningDialog msg_window(nullptr, _L("Warning"), infos);
+        msg_window.ShowModal();
     }
 
     wxString nozzle_temp_min = m_input_nozzle_min->GetTextCtrl()->GetValue();
@@ -762,6 +840,7 @@ void AMSMaterialsSetting::on_picker_color(wxCommandEvent& event)
 
 void AMSMaterialsSetting::on_clr_picker(wxMouseEvent &event)
 {
+    if (m_view_only) return; // Orca: view-only disables color editing
     if(!m_is_third)
         return;
 
@@ -997,54 +1076,105 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
 
     // Sort the filaments
     {
-        static std::unordered_map<wxString, int> sorted_names
-        {   {"Bambu PLA Basic",        0},
-            {"Bambu PLA Matte",        1},
-            {"Bambu PETG HF",          2},
-            {"Bambu ABS",              3},
-            {"Bambu PLA Silk",         4},
-            {"Bambu PLA-CF" ,          5},
-            {"Bambu PLA Galaxy",       6},
-            {"Bambu PLA Metal",        7},
-            {"Bambu PLA Marble",       8},
-            {"Bambu PETG-CF",          9},
-            {"Bambu PETG Translucent", 10},
-            {"Bambu ABS-GF",           11}
+        std::unordered_map<wxString, int> selected_filament_ranks;
+
+        // Helper lambda to find a filament Preset by name. We can call this multiple times to walk the inheritance chain and find the base filament.
+        auto find_filament_by_name = [](const std::string& wanted, const PresetCollection& filaments) -> const Preset* {
+            for (auto it = filaments.begin(); it != filaments.end(); ++it) {
+                if (it->name == wanted) {
+                    return &(*it);
+                }
+            }
+            return nullptr;
         };
 
-        static std::vector<wxString> sorted_vendors { "Bambu Lab", "Generic" };
-        static std::vector<wxString> sorted_types { "PLA", "PETG", "ABS", "TPU" };
-        auto _filament_sorter = [&query_filament_vendors, &query_filament_types](const wxString& left, const wxString& right) -> bool
-        {
-            { // Compare name order
-                const auto& iter1 = sorted_names.find(left);
-                int name_order1 = (iter1 != sorted_names.end()) ? iter1->second : INT_MAX;
+        // For each active filament preset, find its base filament alias and promote it in extruder order.
+        auto        bundle       = wxGetApp().preset_bundle;
+        const auto& preset_names = bundle->filament_presets;
+        for (size_t i = preset_names.size(); i-- > 0; ) {
+            std::string wanted = preset_names[i];
+            const int sort_rank = -static_cast<int>(preset_names.size() - i);
+            
+            const Preset* match = nullptr;
 
-                const auto& iter2 = sorted_names.find(right);
-                int name_order2 = (iter2 != sorted_names.end()) ? iter2->second : INT_MAX;
-                if (name_order1 != name_order2)
+            do {
+                auto find_result = find_filament_by_name(wanted, bundle->filaments);
+                if (!find_result) {
+                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " No available filament name matches " << wanted;
+                    break;
+                }
+
+                match = find_result;
+
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found available filament matching current preset name " << wanted
+                                        << " - Name: " << match->name << " - Alias: " << match->alias
+                                        << " - Inherits: " << match->inherits();
+
+                if (match->inherits().length() == 0) {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " No more inherits so we reached the base filament";
+                    break;
+                }
+
+                wanted = match->inherits();
+            } while (1); // Or loop while (match->alias.length() == 0) because existence of alias and inherits on a Preset seem to be exclusive
+
+            if (!match) {
+                continue;
+            }
+
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Update filament rank to " + std::to_string(sort_rank) + " for preset Name: "
+                                    << match->name << " - Alias: " << match->alias;
+            selected_filament_ranks.insert_or_assign(match->alias, sort_rank);
+        }
+        
+        static const std::vector<wxString> sorted_vendors { "Generic" };
+        static const std::vector<wxString> sorted_types { "PLA", "PETG", "ABS", "TPU" };
+        auto priority_rank = [](const std::vector<wxString>& priorities, const wxString& value) {
+            const auto iter = std::find_if(priorities.begin(), priorities.end(), [&value](const wxString& priority) {
+                return priority.CmpNoCase(value) == 0;
+            });
+            return iter - priorities.begin();
+        };
+        auto _filament_sorter = [&query_filament_vendors, &query_filament_types, &selected_filament_ranks, &priority_rank](const wxString& left, const wxString& right) -> bool
+        {
+            { // Compare selected filament order
+                const auto& iter1 = selected_filament_ranks.find(left);
+                int selected_order1 = (iter1 != selected_filament_ranks.end()) ? iter1->second : INT_MAX;
+
+                const auto& iter2 = selected_filament_ranks.find(right);
+                int selected_order2 = (iter2 != selected_filament_ranks.end()) ? iter2->second : INT_MAX;
+                if (selected_order1 != selected_order2)
                 {
-                    return name_order1 < name_order2;
+                    return selected_order1 < selected_order2;
                 }
             }
             { // Compare vendor
-                auto iter1 = std::find(sorted_vendors.begin(), sorted_vendors.end(), query_filament_vendors[left]);
-                auto iter2 = std::find(sorted_vendors.begin(), sorted_vendors.end(), query_filament_vendors[right]);
-                if (iter1 != iter2)
-                {
-                    return iter1 < iter2;
-                };
+                const wxString& vendor1 = query_filament_vendors.at(left);
+                const wxString& vendor2 = query_filament_vendors.at(right);
+                const auto      rank1   = priority_rank(sorted_vendors, vendor1);
+                const auto      rank2   = priority_rank(sorted_vendors, vendor2);
+                if (rank1 != rank2)
+                    return rank1 < rank2;
+
+                const int vendor_compare = vendor1.CmpNoCase(vendor2);
+                if (vendor_compare != 0)
+                    return vendor_compare < 0;
             }
             { // Compare type
-                auto iter1 = std::find(sorted_types.begin(), sorted_types.end(), query_filament_types[left]);
-                auto iter2 = std::find(sorted_types.begin(), sorted_types.end(), query_filament_types[right]);
-                if (iter1 != iter2)
-                {
-                    return iter1 < iter2;
-                }
+                const wxString& type1 = query_filament_types.at(left);
+                const wxString& type2 = query_filament_types.at(right);
+                const auto      rank1 = priority_rank(sorted_types, type1);
+                const auto      rank2 = priority_rank(sorted_types, type2);
+                if (rank1 != rank2)
+                    return rank1 < rank2;
+
+                const int type_compare = type1.CmpNoCase(type2);
+                if (type_compare != 0)
+                    return type_compare < 0;
             }
 
-            return left < right;
+            const int name_compare = left.CmpNoCase(right);
+            return name_compare != 0 ? name_compare < 0 : left < right;
         };
 
         std::sort(filament_items.begin(), filament_items.end(), _filament_sorter);

@@ -59,6 +59,13 @@ if (APPLE)
     message(STATUS "CMAKE_OSX_DEPLOYMENT_TARGET: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif ()
 
+# Keep MSVC's default /W3 out of CMAKE_<LANG>_FLAGS so it can be applied to our own
+# targets only. Silencing a bundled target would otherwise override a warning level,
+# which cl reports as D9025 for every file it compiles.
+if (POLICY CMP0092)
+    cmake_policy(SET CMP0092 NEW)
+endif ()
+
 project(OrcaSlicer)
 
 # Backward compatibility for old CMake versions
@@ -80,8 +87,12 @@ endif()
 
 if (DEFINED BBL_RELEASE_TO_PUBLIC)
     add_compile_definitions("BBL_RELEASE_TO_PUBLIC=${BBL_RELEASE_TO_PUBLIC}")
+    if (BBL_RELEASE_TO_PUBLIC)
+        add_compile_definitions(WXINSPECTOR_DISABLE)
+    endif ()
 else ()
     add_compile_definitions("BBL_RELEASE_TO_PUBLIC=$<CONFIG:Release>")
+    add_compile_definitions("$<$<CONFIG:Release>:WXINSPECTOR_DISABLE>")
 endif ()
 
 find_package(Git)
@@ -122,9 +133,136 @@ option(SLIC3R_GUI               "Compile OrcaSlicer with GUI components (OpenGL,
 option(SLIC3R_FHS               "Assume OrcaSlicer is to be installed in a FHS directory structure" 0)
 option(SLIC3R_PROFILE           "Compile OrcaSlicer with an invasive Shiny profiler" 0)
 option(SLIC3R_PCH               "Use precompiled headers" 1)
+option(SLIC3R_WARNINGS          "Emit compiler warnings for OrcaSlicer sources" 1)
+option(SLIC3R_BUNDLED_WARNINGS  "Emit compiler warnings for bundled third-party sources" 0)
 option(SLIC3R_MSVC_COMPILE_PARALLEL "Compile on Visual Studio in parallel" 1)
 option(SLIC3R_MSVC_PDB          "Generate PDB files on MSVC in Release mode" 1)
 option(SLIC3R_ASAN              "Enable ASan on Clang and GCC" 0)
+
+# Python stubgen module
+option(ORCA_BUILD_PYTHON_STUBGEN_MODULE "Build importable Python module for pybind11-stubgen" ON)
+set(ORCA_BUNDLED_UV_EXECUTABLE "" CACHE FILEPATH "Path to a uv executable to bundle for Python package installation. Leave empty to auto-download.")
+
+# Auto-download uv if not provided by the user.
+# uv is pinned: the executable ships inside the signed app, so the build must
+# be reproducible and the download verified. To upgrade, bump ORCA_UV_VERSION
+# and refresh every hash below from the release's .sha256 assets, e.g.:
+#   curl -sL https://github.com/astral-sh/uv/releases/download/<ver>/uv-<triple>.tar.gz.sha256
+set(ORCA_UV_VERSION "0.11.21")
+set(ORCA_UV_SHA256_aarch64-apple-darwin      "1f921d491ba5ffeea774eb04d6681ecee379101341cbb1500394993b541bf3f4")
+set(ORCA_UV_SHA256_x86_64-apple-darwin       "f3c8e5708a84b920c18b691214d54d2b0da6b984789caae95d47c95120cb7765")
+set(ORCA_UV_SHA256_aarch64-unknown-linux-gnu "88e800834007cc5efd4675f166eb2a51e7e3ad19876d85fa8805a6fb5c922397")
+set(ORCA_UV_SHA256_x86_64-unknown-linux-gnu  "8c88519b0ef0af9801fcdee419bbb12116bd9e6b18e162ae093c932d8b264050")
+set(ORCA_UV_SHA256_x86_64-pc-windows-msvc    "ace861f360c6de2babedc1607d0f454b6b09a820dbc8182dc15af927e4df9589")
+
+# Version-scoped cache dir so a version bump invalidates the cached binary.
+set(ORCA_UV_DOWNLOAD_DIR "${CMAKE_BINARY_DIR}/.uv/${ORCA_UV_VERSION}")
+set(ORCA_UV_BINARY "${ORCA_UV_DOWNLOAD_DIR}/uv")
+if(WIN32)
+    set(ORCA_UV_BINARY "${ORCA_UV_DOWNLOAD_DIR}/uv.exe")
+endif()
+
+# Older configures FORCE-cached the auto-downloaded path; any cache entry
+# under .uv/ is that legacy value -- clear it so auto-download re-resolves
+# (user-provided paths never live under .uv/).
+if(ORCA_BUNDLED_UV_EXECUTABLE MATCHES "/\\.uv/")
+    set(ORCA_BUNDLED_UV_EXECUTABLE "" CACHE FILEPATH "Path to the auto-downloaded uv executable" FORCE)
+endif()
+
+if(NOT ORCA_BUNDLED_UV_EXECUTABLE)
+    if(NOT EXISTS "${ORCA_UV_BINARY}")
+        # Select uv by TARGET arch. On macOS universal builds each leg sets a single
+        # CMAKE_OSX_ARCHITECTURES (and the x86_64 leg cross-builds on an arm64 runner),
+        # so prefer it over the host CMAKE_SYSTEM_PROCESSOR -- otherwise both legs fetch
+        # the same arch and the later universal lipo merge of tools/uv/uv fails.
+        set(_orca_uv_proc "${CMAKE_SYSTEM_PROCESSOR}")
+        if(APPLE AND CMAKE_OSX_ARCHITECTURES)
+            set(_orca_uv_proc "${CMAKE_OSX_ARCHITECTURES}")
+        endif()
+        # All release archives are tar.gz except the Windows zip.
+        set(ORCA_UV_EXT "tar.gz")
+        if(_orca_uv_proc MATCHES "x86_64|AMD64|amd64")
+            if(WIN32)
+                set(ORCA_UV_ARCH "x86_64-pc-windows-msvc")
+                set(ORCA_UV_EXT "zip")
+            elseif(APPLE)
+                set(ORCA_UV_ARCH "x86_64-apple-darwin")
+            else()
+                set(ORCA_UV_ARCH "x86_64-unknown-linux-gnu")
+            endif()
+        elseif(_orca_uv_proc MATCHES "aarch64|arm64|ARM64")
+            if(APPLE)
+                set(ORCA_UV_ARCH "aarch64-apple-darwin")
+            else()
+                set(ORCA_UV_ARCH "aarch64-unknown-linux-gnu")
+            endif()
+        else()
+            message(WARNING "Unsupported architecture for auto-downloading uv: ${_orca_uv_proc}")
+        endif()
+
+        if(ORCA_UV_ARCH)
+            set(ORCA_UV_URL "https://github.com/astral-sh/uv/releases/download/${ORCA_UV_VERSION}/uv-${ORCA_UV_ARCH}.${ORCA_UV_EXT}")
+            set(ORCA_UV_ARCHIVE "${ORCA_UV_DOWNLOAD_DIR}/uv-archive.${ORCA_UV_EXT}")
+            file(MAKE_DIRECTORY "${ORCA_UV_DOWNLOAD_DIR}")
+            message(STATUS "Downloading uv ${ORCA_UV_VERSION} from ${ORCA_UV_URL} ...")
+            file(DOWNLOAD "${ORCA_UV_URL}" "${ORCA_UV_ARCHIVE}" STATUS ORCA_UV_DL_STATUS TLS_VERIFY ON)
+            list(GET ORCA_UV_DL_STATUS 0 ORCA_UV_DL_CODE)
+            list(GET ORCA_UV_DL_STATUS 1 ORCA_UV_DL_MSG)
+            if(NOT ORCA_UV_DL_CODE EQUAL 0)
+                # Network failure keeps the historical graceful degradation (uv is
+                # optional at build time) -- but a hash mismatch below is fatal.
+                message(WARNING "Failed to download uv: ${ORCA_UV_DL_MSG}")
+                file(REMOVE "${ORCA_UV_ARCHIVE}")
+            else()
+                file(SHA256 "${ORCA_UV_ARCHIVE}" _orca_uv_actual_sha256)
+                if(NOT _orca_uv_actual_sha256 STREQUAL "${ORCA_UV_SHA256_${ORCA_UV_ARCH}}")
+                    file(REMOVE "${ORCA_UV_ARCHIVE}")
+                    message(FATAL_ERROR
+                        "uv archive checksum mismatch for ${ORCA_UV_ARCH} ${ORCA_UV_VERSION}:\n"
+                        "  expected ${ORCA_UV_SHA256_${ORCA_UV_ARCH}}\n"
+                        "  actual   ${_orca_uv_actual_sha256}\n"
+                        "Possible tampering or a stale pin; refusing to bundle.")
+                endif()
+                message(STATUS "Extracting uv ...")
+                file(ARCHIVE_EXTRACT INPUT "${ORCA_UV_ARCHIVE}" DESTINATION "${ORCA_UV_DOWNLOAD_DIR}")
+                file(REMOVE "${ORCA_UV_ARCHIVE}")
+                # Pinned archives have a fixed layout: the tarballs hold
+                # uv-<triple>/uv, the Windows zip holds uv.exe at the root
+                # (already at ORCA_UV_BINARY). A layout change implies a new
+                # archive, hence a hash bump -- and RENAME fails loudly.
+                if(NOT WIN32)
+                    file(RENAME "${ORCA_UV_DOWNLOAD_DIR}/uv-${ORCA_UV_ARCH}/uv" "${ORCA_UV_BINARY}")
+                    file(REMOVE_RECURSE "${ORCA_UV_DOWNLOAD_DIR}/uv-${ORCA_UV_ARCH}")
+                endif()
+            endif()
+        endif()
+    endif()
+
+    if(EXISTS "${ORCA_UV_BINARY}")
+        # Plain set (shadows the empty cache entry for this configure run):
+        # the version-scoped path re-derives every configure, so a version
+        # bump takes effect in warm build dirs without cache surgery.
+        set(ORCA_BUNDLED_UV_EXECUTABLE "${ORCA_UV_BINARY}")
+    endif()
+endif()
+
+# Resolve ORCA_BUNDLED_UV_EXECUTABLE -> ORCA_BUNDLED_UV_EXECUTABLE_CONFIG / ORCA_BUNDLED_UV_FILENAME
+# Must run before add_subdirectory(src) so target_compile_definitions sees it.
+if(ORCA_BUNDLED_UV_EXECUTABLE)
+    if(EXISTS "${ORCA_BUNDLED_UV_EXECUTABLE}")
+        file(TO_CMAKE_PATH "${ORCA_BUNDLED_UV_EXECUTABLE}" ORCA_BUNDLED_UV_EXECUTABLE_CONFIG)
+        get_filename_component(ORCA_BUNDLED_UV_FILENAME "${ORCA_BUNDLED_UV_EXECUTABLE}" NAME)
+    else()
+        message(WARNING "ORCA_BUNDLED_UV_EXECUTABLE does not exist: ${ORCA_BUNDLED_UV_EXECUTABLE}")
+        set(ORCA_BUNDLED_UV_EXECUTABLE "")
+        set(ORCA_BUNDLED_UV_EXECUTABLE_CONFIG "")
+        set(ORCA_BUNDLED_UV_FILENAME "")
+    endif()
+else()
+    set(ORCA_BUNDLED_UV_EXECUTABLE_CONFIG "")
+    set(ORCA_BUNDLED_UV_FILENAME "")
+endif()
+
 # If SLIC3R_FHS is 1 -> SLIC3R_DESKTOP_INTEGRATION is always 0, othrewise variable.
 CMAKE_DEPENDENT_OPTION(SLIC3R_DESKTOP_INTEGRATION "Allow performing desktop integration during runtime" 1 "NOT SLIC3R_FHS" 0)
 
@@ -206,21 +344,28 @@ if (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
 
     # clang-cl can interpret SYSTEM header paths if -imsvc is used
     set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-imsvc")
-
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall \
-        -Wno-old-style-cast -Wno-reserved-id-macro -Wno-c++98-compat-pedantic")
 else ()
     set(IS_CLANG_CL FALSE)
 endif ()
 
 if (MSVC)
-    if (SLIC3R_MSVC_COMPILE_PARALLEL AND NOT IS_CLANG_CL)
+    # CMP0092 only applies when the cache is created; an existing tree keeps its /W3,
+    # which a silenced bundled target would then override (D9025, once per file).
+    string(REGEX REPLACE "/W[0-4]" "" CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}")
+    string(REGEX REPLACE "/W[0-4]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+    # /MP only matters for the VS generators, where CMake turns it into the
+    # MultiProcessorCompilation property. Ninja parallelises on its own, and
+    # clang-cl warns "argument unused" if the flag reaches it.
+    if (SLIC3R_MSVC_COMPILE_PARALLEL AND CMAKE_GENERATOR MATCHES "Visual Studio")
            add_compile_options(/MP)
     endif ()
     # /bigobj (Increase Number of Sections in .Obj file)
     # error C3859: virtual memory range for PCH exceeded; please recompile with a command line option of '-Zm90' or greater
     # Generate symbols at every build target, even for the release.
-    add_compile_options(-bigobj -Zm520 /Zi)
+	# -Zm520 fixes error C3859 but forces the compiler to pre-allocate that memory for every translation unit regardless
+	# combining /Zi with /FS frees up a significant amount of memory pressure across all parallel compile jobs and makes /MP faster overall.
+    add_compile_options(-bigobj /Zi /FS)
     # Disable STL4007: Many result_type typedefs and all argument_type, first_argument_type, and second_argument_type typedefs are deprecated in C++17.
     #FIXME Remove this line after eigen library adapts to the new C++17 adaptor rules.
     add_compile_options(-D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
@@ -231,6 +376,11 @@ if (MSVC)
     # Disable warnings on comparison of unsigned and signed
     # C4018: signed/unsigned mismatch
     add_compile_options(/wd4018)
+    # Prevent linker restart when TBB (or other deps) built with /GL are linked
+	# Make your full (clean) build slower because it enables link-time code generation across all translation units.
+	# helps incremental builds by preventing the double-link restart from TBB
+    set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /LTCG")
 endif ()
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang" AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER 15)
@@ -387,8 +537,15 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUXX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fext-numeric-literals" )
 endif()
 
-if (NOT MSVC AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
-    if (NOT MINGW)
+if ((NOT MSVC OR IS_CLANG_CL) AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
+    if (IS_CLANG_CL)
+        # clang-cl reads -Wall as MSVC /Wall, which clang maps to -Weverything. /W4 is
+        # its -Wall -Wextra and, unlike /clang:-Wall, is ordered with the -Wno-* below
+        # instead of after them. The -Wextra-only warnings are dropped again so the set
+        # matches what -Wall gives the GNU/Clang builds.
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4" )
+        add_compile_options(-Wno-unused-parameter -Wno-ignored-qualifiers -Wno-missing-field-initializers)
+    elseif (NOT MINGW)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall" )
     endif ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-reorder" )
@@ -703,7 +860,7 @@ endif ()
 set(L10N_DIR "${SLIC3R_RESOURCES_DIR}/i18n")
 set(BBL_L18N_DIR "${CMAKE_CURRENT_SOURCE_DIR}/localization/i18n")
 add_custom_target(gettext_make_pot
-    COMMAND xgettext --keyword=L --keyword=_L --keyword=_u8L --keyword=L_CONTEXT:1,2c --keyword=_L_PLURAL:1,2 --add-comments=TRN --from-code=UTF-8 --no-location --debug --boost
+    COMMAND xgettext --keyword=L --keyword=_L --keyword=_u8L --keyword=L_CONTEXT:1,2c --keyword=_L_CONTEXT:1,2c --keyword=_u8L_CONTEXT:1,2c --keyword=_L_PLURAL:1,2 --add-comments=TRN --from-code=UTF-8 --no-location --debug --boost
         -f "${BBL_L18N_DIR}/list.txt"
         -o "${BBL_L18N_DIR}/OrcaSlicer.pot"
     COMMAND hintsToPot ${SLIC3R_RESOURCES_DIR} ${BBL_L18N_DIR}
@@ -721,7 +878,6 @@ foreach(po_file ${BBL_L10N_PO_FILES})
     add_custom_command(
         TARGET gettext_merge_po_with_pot PRE_BUILD
         COMMAND msgmerge -N -o ${po_file} ${po_file} "${BBL_L18N_DIR}/OrcaSlicer.pot"
-        DEPENDS ${po_file}
     )
 endforeach()
 add_custom_target(gettext_po_to_mo
@@ -737,11 +893,90 @@ foreach(po_file ${BBL_L10N_PO_FILES})
         TARGET gettext_po_to_mo PRE_BUILD
         COMMAND msgfmt ARGS --check-format -o ${mo_file} ${po_file}
         #COMMAND msgfmt ARGS --check-compatibility -o ${mo_file} ${po_file}
-        DEPENDS ${po_file}
     )
 endforeach()
 
 find_package(NLopt 1.4 REQUIRED)
+
+# Use bundled Python from deps instead of system Python
+set(_bundled_python_version "3.12.13")
+set(_bundled_python_abi "312")
+string(REGEX REPLACE "^([0-9]+\\.[0-9]+)\\..*$" "\\1" _bundled_python_version_short "${_bundled_python_version}")
+set(_bundled_python_root "${CMAKE_PREFIX_PATH}/libpython")
+set(Python3_ROOT_DIR "${_bundled_python_root}" CACHE PATH "Root directory for bundled Python" FORCE)
+set(Python3_USE_STATIC_LIBS OFF)
+set(Python3_FIND_STRATEGY LOCATION)
+set(Python3_FIND_IMPLEMENTATIONS CPython)
+
+if(WIN32)
+    set(_bundled_python_executable "${_bundled_python_root}/python.exe")
+    set(_bundled_python_library "${_bundled_python_root}/libs/python${_bundled_python_abi}.lib")
+    if(EXISTS "${_bundled_python_root}/python_d.exe")
+        set(_bundled_python_executable "${_bundled_python_root}/python_d.exe")
+    endif()
+    if(EXISTS "${_bundled_python_root}/libs/python${_bundled_python_abi}_d.lib")
+        set(_bundled_python_library "${_bundled_python_root}/libs/python${_bundled_python_abi}_d.lib")
+    endif()
+
+    set(Python3_FIND_REGISTRY NEVER)
+    set(Python3_EXECUTABLE "${_bundled_python_executable}" CACHE FILEPATH "Bundled Python executable" FORCE)
+    set(Python3_INCLUDE_DIR "${_bundled_python_root}/include" CACHE PATH "Bundled Python include directory" FORCE)
+    set(Python3_LIBRARY "${_bundled_python_library}" CACHE FILEPATH "Bundled Python embed import library" FORCE)
+elseif(APPLE)
+    set(Python3_FIND_FRAMEWORK NEVER)
+
+    find_program(_bundled_python_executable
+        NAMES python${_bundled_python_version_short} python3
+        PATHS "${_bundled_python_root}/bin"
+        NO_DEFAULT_PATH
+    )
+    find_path(_bundled_python_include_dir
+        NAMES Python.h
+        PATHS
+            "${_bundled_python_root}/include/python${_bundled_python_version_short}"
+            "${_bundled_python_root}/include"
+        NO_DEFAULT_PATH
+    )
+    find_library(_bundled_python_library
+        NAMES python${_bundled_python_version_short} libpython${_bundled_python_version_short}
+        PATHS "${_bundled_python_root}/lib"
+        NO_DEFAULT_PATH
+    )
+
+    if(NOT _bundled_python_executable)
+        message(FATAL_ERROR "Bundled Python executable not found under ${_bundled_python_root}/bin")
+    endif()
+    if(NOT _bundled_python_include_dir)
+        message(FATAL_ERROR "Bundled Python headers not found under ${_bundled_python_root}/include")
+    endif()
+    if(NOT _bundled_python_library)
+        message(FATAL_ERROR "Bundled Python library not found under ${_bundled_python_root}/lib")
+    endif()
+
+    set(Python3_EXECUTABLE "${_bundled_python_executable}" CACHE FILEPATH "Bundled Python executable" FORCE)
+    set(Python3_INCLUDE_DIR "${_bundled_python_include_dir}" CACHE PATH "Bundled Python include directory" FORCE)
+    set(Python3_LIBRARY "${_bundled_python_library}" CACHE FILEPATH "Bundled Python embed library" FORCE)
+endif()
+
+find_package(Python3 ${_bundled_python_version} EXACT REQUIRED
+    COMPONENTS Interpreter Development.Embed
+)
+
+# Provide a minimal pybind11::embed target sourced from deps_src/pybind11 headers.
+set(PYBIND11_SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps_src/pybind11")
+if(NOT EXISTS "${PYBIND11_SOURCE_DIR}/include/pybind11/pybind11.h")
+    message(FATAL_ERROR "pybind11 headers not found in ${PYBIND11_SOURCE_DIR}. Did you initialize submodules?")
+endif()
+
+add_library(pybind11_headers INTERFACE)
+target_include_directories(pybind11_headers INTERFACE "${PYBIND11_SOURCE_DIR}/include")
+add_library(pybind11::headers ALIAS pybind11_headers)
+add_library(pybind11::pybind11 ALIAS pybind11_headers)
+
+add_library(pybind11_embed INTERFACE)
+target_link_libraries(pybind11_embed INTERFACE pybind11_headers Python3::Python)
+target_compile_definitions(pybind11_embed INTERFACE PYBIND11_SIMPLE_GIL_MANAGEMENT)
+add_library(pybind11::embed ALIAS pybind11_embed)
 
 
 if(SLIC3R_STATIC)
@@ -872,8 +1107,57 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
 endfunction()
 
 
+# Bundled sources set their own warning flags, and a plain -Wall there means /Wall
+# (= -Weverything) under clang-cl. Target options are applied after the ones a target
+# set on itself, so these win. Targets are discovered rather than listed so a newly
+# bundled library needs no maintenance here.
+function(orcaslicer_silence_third_party_warnings _dir)
+    get_property(_subdirs DIRECTORY "${_dir}" PROPERTY SUBDIRECTORIES)
+    foreach (_subdir IN LISTS _subdirs)
+        orcaslicer_silence_third_party_warnings("${_subdir}")
+    endforeach ()
+    get_property(_targets DIRECTORY "${_dir}" PROPERTY BUILDSYSTEM_TARGETS)
+    foreach (_target IN LISTS _targets)
+        get_target_property(_type ${_target} TYPE)
+        if (NOT _type STREQUAL "INTERFACE_LIBRARY" AND NOT _type STREQUAL "UTILITY")
+            if (MSVC AND NOT IS_CLANG_CL)
+                # Drop any level the target set for itself, or -w overrides it and cl
+                # reports D9025 once per file.
+                get_target_property(_opts ${_target} COMPILE_OPTIONS)
+                if (_opts)
+                    string(REGEX REPLACE "/W[0-4]|/Wall" "" _opts "${_opts}")
+                    string(REGEX REPLACE ";;+" ";" _opts "${_opts}")
+                    set_target_properties(${_target} PROPERTIES COMPILE_OPTIONS "${_opts}")
+                endif ()
+                # CMake maps a level into the VS generator's WarningLevel element, while a
+                # bare -w stays on the command line and trips D9025 there, once per file.
+                target_compile_options(${_target} PRIVATE /W0)
+            else ()
+                target_compile_options(${_target} PRIVATE -w)
+            endif ()
+        endif ()
+    endforeach ()
+endfunction()
+
+
 # libslic3r, OrcaSlicer GUI and the OrcaSlicer executable.
 add_subdirectory(deps_src)
+
+if (NOT SLIC3R_BUNDLED_WARNINGS)
+    orcaslicer_silence_third_party_warnings("${CMAKE_CURRENT_SOURCE_DIR}/deps_src")
+endif ()
+
+# Warning level for the targets added below: our sources, plus glad and libvgcode,
+# which are vendored but live under src/. The deps_src libraries were configured just
+# above. CMP0092 left MSVC without a default level, so it is set here.
+if (NOT SLIC3R_WARNINGS)
+    add_compile_options(-w)
+elseif (MSVC AND NOT IS_CLANG_CL)
+    # /we4715 is C4715, no return from a non-void function, matching the
+    # -Werror=return-type the GNU/Clang builds apply.
+    add_compile_options(/W3 /we4715)
+endif ()
+
 add_subdirectory(src)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT OrcaSlicer_app_gui)
 
@@ -885,6 +1169,10 @@ endif()
 
 if(BUILD_TESTS)
     add_subdirectory(tests)
+    if (NOT SLIC3R_BUNDLED_WARNINGS)
+        # Catch2 is vendored under tests/ and sets its own warning flags too.
+        orcaslicer_silence_third_party_warnings("${CMAKE_CURRENT_SOURCE_DIR}/tests/catch2")
+    endif ()
 endif()
 
 if (NOT WIN32 AND NOT APPLE)
@@ -892,10 +1180,12 @@ if (NOT WIN32 AND NOT APPLE)
     configure_file(${LIBDIR}/dev-utils/platform/unix/build_appimage.sh.in ${CMAKE_CURRENT_BINARY_DIR}/build_appimage.sh USE_SOURCE_PERMISSIONS @ONLY)
 endif()
 
-
 # Resources install target, configure fhs.hpp on UNIX
 if (WIN32)
     install(DIRECTORY "${SLIC3R_RESOURCES_DIR}/" DESTINATION "./resources")
+    if(ORCA_BUNDLED_UV_EXECUTABLE)
+        install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "./resources/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
+    endif()
     set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
     include(InstallRequiredSystemLibraries)
     install (PROGRAMS ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ".")
@@ -905,6 +1195,9 @@ elseif (SLIC3R_FHS)
     install(DIRECTORY ${SLIC3R_RESOURCES_DIR}/ DESTINATION ${SLIC3R_FHS_RESOURCES}
         PATTERN "*/udev" EXCLUDE
     )
+    if(ORCA_BUNDLED_UV_EXECUTABLE)
+        install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "${SLIC3R_FHS_RESOURCES}/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
+    endif()
     install(FILES src/dev-utils/platform/unix/com.orcaslicer.OrcaSlicer.desktop DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
     foreach(SIZE 32 128 192)
         install(FILES ${SLIC3R_RESOURCES_DIR}/images/OrcaSlicer_${SIZE}px.png
@@ -913,9 +1206,15 @@ elseif (SLIC3R_FHS)
     endforeach()
 elseif (CMAKE_MACOSX_BUNDLE)
     # install(DIRECTORY "${SLIC3R_RESOURCES_DIR}/" DESTINATION "${CMAKE_INSTALL_PREFIX}/OrcaSlicer.app/Contents/resources")
+    if(ORCA_BUNDLED_UV_EXECUTABLE)
+        install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "${CMAKE_INSTALL_PREFIX}/OrcaSlicer.app/Contents/Resources/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
+    endif()
 else ()
     install(FILES src/dev-utils/platform/unix/com.orcaslicer.OrcaSlicer.desktop DESTINATION ${CMAKE_INSTALL_PREFIX}/resources/applications)
     install(DIRECTORY "${SLIC3R_RESOURCES_DIR}/" DESTINATION "${CMAKE_INSTALL_PREFIX}/resources")
+    if(ORCA_BUNDLED_UV_EXECUTABLE)
+        install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "${CMAKE_INSTALL_PREFIX}/resources/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
+    endif()
 endif ()
 
 install(FILES ${CMAKE_SOURCE_DIR}/LICENSE.txt DESTINATION ".")
@@ -927,6 +1226,16 @@ set (CPACK_PACKAGE_VERSION_MAJOR "${ORCA_VERSION_MAJOR}")
 set (CPACK_PACKAGE_VERSION_MINOR "${ORCA_VERSION_MINOR}")
 set (CPACK_PACKAGE_VERSION_PATCH "${ORCA_VERSION_PATCH}")
 set (CPACK_PACKAGE_FILE_NAME "OrcaSlicer_Windows_Installer_V${SoftFever_VERSION}")
+# Suffix the Windows installer with its target arch so the x64 and arm64 builds
+# produce distinct filenames (matches ARCH_SUFFIX in build_orca.yml). Same
+# CMAKE_SYSTEM_PROCESSOR mapping used by orcaslicer_copy_dlls() above.
+if (WIN32)
+    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+        string (APPEND CPACK_PACKAGE_FILE_NAME "_arm64")
+    else ()
+        string (APPEND CPACK_PACKAGE_FILE_NAME "_x64")
+    endif ()
+endif ()
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "Orca Slicer is an open source slicer for FDM printers")
 set (CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/OrcaSlicer/OrcaSlicer")
 set (CPACK_PACKAGE_INSTALL_DIRECTORY ${CPACK_PACKAGE_NAME})
@@ -934,9 +1243,6 @@ set (CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/resources/images\\\\OrcaSlicer.ico"
 set (CPACK_NSIS_MUI_ICON "${CPACK_PACKAGE_ICON}")
 set (CPACK_NSIS_MUI_UNIICON "${CPACK_PACKAGE_ICON}")
 set (CPACK_NSIS_INSTALLED_ICON_NAME  "$INSTDIR\\\\orca-slicer.exe")
-set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
-    CreateShortCut \\\"$DESKTOP\\\\OrcaSlicer.lnk\\\" \\\"$INSTDIR\\\\orca-slicer.exe\\\"
-")
 set (CPACK_PACKAGE_CHECKSUM SHA256)
 set (CPACK_PACKAGE_INSTALL_REGISTRY_KEY "OrcaSlicer")
 set (CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)

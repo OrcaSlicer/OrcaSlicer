@@ -3,7 +3,7 @@
 	"name": "Generic PETG-CF @System",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "OGFSG50",
+	"setting_id": "aRVqy4a3X1UTIKem",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"30"
@@ -16,6 +16,9 @@
 	],
 	"filament_max_volumetric_speed": [
 		"11.5"
+	],
+	"filament_multitool_ramming_flow": [
+		"13"
 	],
 	"overhang_fan_speed": [
 		"100"

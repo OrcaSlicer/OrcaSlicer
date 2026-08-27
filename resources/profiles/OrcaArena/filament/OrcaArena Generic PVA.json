@@ -3,7 +3,7 @@
 	"name": "OrcaArena Generic PVA",
 	"inherits": "OrcaArena Generic PVA @base",
 	"from": "system",
-	"setting_id": "GFSS99",
+	"setting_id": "Qh5TOtrBfOFul0OC",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Orca Arena X1 Carbon 0.4 nozzle",

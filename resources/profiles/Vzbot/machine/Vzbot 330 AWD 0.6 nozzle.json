@@ -3,7 +3,7 @@
 	"name": "Vzbot 330 AWD 0.6 nozzle",
 	"inherits": "Vzbot 330 AWD 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "o56K7oCaMvsfo8BT",
 	"instantiation": "true",
 	"printer_model": "Vzbot 330 AWD",
 	"nozzle_diameter": [

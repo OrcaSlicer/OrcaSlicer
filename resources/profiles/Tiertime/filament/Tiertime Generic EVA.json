@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic EVA",
 	"inherits": "fdm_filament_eva",
 	"from": "system",
+	"setting_id": "ev5w69eBuTCYXB2d",
 	"filament_id": "GFR99",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [

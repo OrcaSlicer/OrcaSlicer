@@ -59,9 +59,6 @@
 	"temperature_vitrification": [
 		"150"
 	],
-	"default_filament_colour": [
-		""
-	],
 	"filament_type": [
 		"PLA-CF"
 	],

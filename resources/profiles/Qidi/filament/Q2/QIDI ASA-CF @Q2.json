@@ -1,11 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "QD_1_1_20",
-	"setting_id": "GFSA04",
 	"name": "QIDI ASA-CF@Q2-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_q_common",
+	"from": "system",
+	"filament_id": "QD_1_1_20",
+	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"
 	],

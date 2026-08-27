@@ -229,10 +229,11 @@ int MoonrakerPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link,
 }
 
 int MoonrakerPrinterAgent::bind(
-    std::string dev_ip, std::string dev_id, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn)
+    std::string dev_ip, std::string dev_id, std::string dev_model, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn)
 {
     (void) dev_ip;
     (void) dev_id;
+    (void) dev_model;
     (void) sec_link;
     (void) timezone;
     (void) improved;
@@ -251,6 +252,15 @@ int MoonrakerPrinterAgent::request_bind_ticket(std::string* ticket)
     if (ticket)
         *ticket = "";
     return BAMBU_NETWORK_SUCCESS;
+}
+
+int MoonrakerPrinterAgent::get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback)
+{
+    // No BBL cloud snapshot source; report failure so the caller falls back.
+    (void) dev_id;
+    (void) file_name;
+    (void) callback;
+    return -1;
 }
 
 int MoonrakerPrinterAgent::set_server_callback(OnServerErrFn fn)
@@ -536,7 +546,7 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     print_json["ams"] = ams_json;
 
     // Call the parser to populate DevFilaSystem
-    DevFilaSystemParser::ParseV1_0(print_json, obj, obj->GetFilaSystem(), false);
+    DevFilaSystemParser::ParseV1_0(print_json, obj, obj->GetFilaSystem().get(), false);
     BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::build_ams_payload: Parsed " << trays.size() << " trays";
 
     // Set printer_type so update_sync_status() can match it against the preset's printer type.
@@ -1349,7 +1359,6 @@ void MoonrakerPrinterAgent::announce_printhost_device()
     if (auto* app_config = GUI::wxGetApp().app_config) {
         const std::string access_code = device_info.api_key.empty() ? "88888888" : device_info.api_key;
         app_config->set_str("access_code", device_info.dev_id, access_code);
-        app_config->set_str("user_access_code", device_info.dev_id, access_code);
     }
 
     nlohmann::json payload;

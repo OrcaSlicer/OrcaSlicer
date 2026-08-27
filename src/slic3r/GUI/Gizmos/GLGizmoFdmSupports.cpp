@@ -80,10 +80,10 @@ bool GLGizmoFdmSupports::on_init()
     // BBS
     m_shortcut_key = WXK_CONTROL_L;
 
-    m_desc["perform"]            = _L("Perform");
+    m_desc["perform"]            = _L("Apply");
     m_desc["on_overhangs_only"]  = _L("On highlighted overhangs only");
     m_desc["remove_all"]         = _L("Erase all");
-    m_desc["highlight_by_angle"] = _L("Highlight overhang areas");
+    m_desc["highlight_by_angle"] = _L("Highlight overhangs");
     m_desc["tool_type"]          = _L("Tool type");
     m_desc["gap_fill"]           = _L("Gap fill");
     m_desc["reset_direction"]    = _L("Reset direction");
@@ -315,6 +315,17 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+
+        if (m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)) {
+            if (m_vertical_only) {
+                m_horizontal_only = false;
+            }
+        }
+        if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
+            if (m_horizontal_only) {
+                m_vertical_only = false;
+            }
+        }
     } else if (m_current_tool == ImGui::SphereButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::SPHERE;
         m_tool_type = ToolType::BRUSH;
@@ -327,6 +338,17 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+
+        if (m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)) {
+            if (m_vertical_only) {
+                m_horizontal_only = false;
+            }
+        }
+        if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
+            if (m_horizontal_only) {
+                m_vertical_only = false;
+            }
+        }
     } else if (m_current_tool == ImGui::FillButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         m_tool_type = ToolType::SMART_FILL;
@@ -850,7 +872,7 @@ void GLGizmoFdmSupports::run_thread()
         if (!m_print_instance.print_object->support_layers().size())
         {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ",no support layer found, update status to 100%\n";
-            print->set_status(100, L("Support Generated"));
+            print->set_status(100, L("Support generated"));
             goto _finished;
         }
         GLModel::Geometry init_data;
@@ -864,7 +886,7 @@ void GLGizmoFdmSupports::run_thread()
         }
         m_support_volume->model.init_from(std::move(init_data));
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished extrusionentity_to_verts, update status to 100%";
-        print->set_status(100, L("Support Generated"));
+        print->set_status(100, L("Support generated"));
         
         record_timestamp();
     }

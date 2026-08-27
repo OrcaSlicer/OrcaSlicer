@@ -3,6 +3,7 @@
 	"name": "Cubicon xCeler-Plus 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
+	"setting_id": "7HzIqD1n0ns79wV1",
 	"instantiation": "true",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "1",

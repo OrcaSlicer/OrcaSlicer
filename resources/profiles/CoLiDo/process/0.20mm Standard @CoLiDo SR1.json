@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @CoLiDo SR1",
 	"inherits": "fdm_process_colidosr1_common",
 	"from": "system",
-	"setting_id": "GP006",
+	"setting_id": "xYCS2o1r2isLD7pB",
 	"instantiation": "true",
 	"layer_height": "0.2",
 	"print_settings_id": "0.20mm Standard @CoLiDo SR1"

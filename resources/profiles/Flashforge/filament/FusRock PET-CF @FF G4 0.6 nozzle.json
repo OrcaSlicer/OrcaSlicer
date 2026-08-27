@@ -3,6 +3,7 @@
 	"name": "FusRock PET-CF @FF G4 0.6 nozzle",
 	"inherits": "FusRock Generic PET-CF @G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "A8PDgw1jZE2m3bem",
 	"instantiation": "true",
 	"complete_print_exhaust_fan_speed": [
 		"40"

@@ -3,6 +3,7 @@
 	"default_print_profile": "0.20mm Standard @Eryone ER20 Klipper",
 	"from": "system",
 	"inherits": "fdm_machine_eryone_ER20_Klipper_common",
+	"setting_id": "xp3wEd41u0J6bR65",
 	"instantiation": "true",
 	"max_layer_height": [
 		"0.32"

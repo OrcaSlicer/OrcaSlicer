@@ -1,11 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "QD_3_1_27",
-	"setting_id": "GFSN99",
 	"name": "QIDI PA12-CF@X-Max 4-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_x4_common",
+	"from": "system",
+	"filament_id": "QD_3_1_27",
+	"instantiation": "false",
 	"box_temperature_range_high": [
 		"65"
 	],
@@ -20,6 +19,9 @@
 	],
 	"close_fan_the_first_x_layers": [
 		"3"
+	],
+	"during_print_exhaust_fan_speed": [
+		"0"
 	],
 	"fan_cooling_layer_time": [
 		"10"

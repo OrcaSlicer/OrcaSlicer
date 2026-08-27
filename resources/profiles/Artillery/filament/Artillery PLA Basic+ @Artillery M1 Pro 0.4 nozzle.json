@@ -3,6 +3,7 @@
 	"name": "Artillery PLA Basic+ @Artillery M1 Pro 0.4 nozzle",
 	"inherits": "Artillery Generic PLA",
 	"from": "system",
+	"setting_id": "2VIrSoq3kufjHMXj",
 	"instantiation": "true",
 	"complete_print_exhaust_fan_speed": [
 		"100"

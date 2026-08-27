@@ -3,7 +3,7 @@
 	"name": "0.40mm Standard @Elegoo C 0.8 nozzle",
 	"inherits": "fdm_process_elegoo_08040",
 	"from": "system",
-	"setting_id": "PEC08040",
+	"setting_id": "l2HZgbqMPub2XDa8",
 	"instantiation": "true",
 	"sparse_infill_pattern": "zig-zag",
 	"filename_format": "EC_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",

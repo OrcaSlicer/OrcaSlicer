@@ -10,20 +10,20 @@
 namespace Slic3r {
 namespace GUI {
 
-static auto check_gcode_failed_str = _u8L("Abnormal print file data. Please slice again.");
+static auto check_gcode_failed_str = _u8L("Abnormal print file data: please slice again.");
 static auto printjob_cancel_str         = _u8L("Task canceled.");
 static auto timeout_to_upload_str       = _u8L("Upload task timed out. Please check the network status and try again.");
 static auto failed_in_cloud_service_str = _u8L("Cloud service connection failed. Please try again.");
-static auto file_is_not_exists_str      = _u8L("Print file not found. Please slice again.");
+static auto file_is_not_exists_str      = _u8L("Print file not found; please slice again.");
 static auto file_over_size_str = _u8L("The print file exceeds the maximum allowable size (1GB). Please simplify the model and slice again.");
 static auto print_canceled_str    = _u8L("Task canceled.");
 static auto send_print_failed_str = _u8L("Failed to send the print job. Please try again.");
 static auto upload_ftp_failed_str = _u8L("Failed to upload file to ftp. Please try again.");
 
-static auto desc_network_error     = _u8L("Check the current status of the bambu server by clicking on the link above.");
+static auto desc_network_error     = _u8L("Check the current status of the Bambu Lab server by clicking on the link above.");
 static auto desc_file_too_large    = _u8L("The size of the print file is too large. Please adjust the file size and try again.");
-static auto desc_fail_not_exist    = _u8L("Print file not found, please slice it again and send it for printing.");
-static auto desc_upload_ftp_failed = _u8L("Failed to upload print file to FTP. Please check the network status and try again.");
+static auto desc_fail_not_exist    = _u8L("Print file not found; please slice it again and send it for printing.");
+static auto desc_upload_ftp_failed = _u8L("Failed to upload print file via FTP. Please check the network status and try again.");
 
 static auto sending_over_lan_str   = _u8L("Sending print job over LAN");
 static auto sending_over_cloud_str = _u8L("Sending print job through cloud service");
@@ -117,6 +117,35 @@ void SendJob::process(Ctl &ctl)
 
     ctl.call_on_main_thread([this] { prepare(); }).wait();
     ctl.update_status(0, msg);
+
+    // In check mode (InputIpAddressDialog / lan-mode send) verify the connection with a dummy
+    // "verify_job" upload and fire the caller's success/fail callback; when not continuing, stop
+    // here. Cloud sends skip this.
+    if (m_is_check_mode) {
+        PrintParams verify_params;
+        verify_params.dev_ip           = m_dev_ip;
+        verify_params.username         = "bblp";
+        verify_params.password         = m_access_code;
+        verify_params.use_ssl_for_ftp  = m_local_use_ssl_for_ftp;
+        verify_params.use_ssl_for_mqtt = m_local_use_ssl;
+        verify_params.dev_id           = m_dev_id;
+        verify_params.project_name     = "verify_job";
+        verify_params.filename         = job_data._temp_path.string();
+        verify_params.connection_type  = this->connection_type;
+
+        int verify_result = agent->start_send_gcode_to_sdcard(verify_params, nullptr, nullptr, nullptr);
+        if (verify_result != 0) {
+            BOOST_LOG_TRIVIAL(error) << "send_job: access code / ip verification failed, result = " << verify_result;
+            if (m_enter_ip_address_fun_fail) m_enter_ip_address_fun_fail(verify_result);
+            m_job_finished = true;
+            return;
+        } else if (!m_check_and_continue) {
+            if (m_enter_ip_address_fun_success) m_enter_ip_address_fun_success();
+            m_job_finished = true;
+            return;
+        }
+    }
+
     int total_plate_num = m_plater->get_partplate_list().get_plate_count();
 
     PartPlate* plate = m_plater->get_partplate_list().get_plate(job_data.plate_idx);

@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PCTG@300HS",
 	"inherits": "fdm_filament_pctg",
 	"from": "system",
+	"setting_id": "2Qbbi90zWBoo9dBl",
 	"filament_id": "GFG97-01",
 	"instantiation": "true",
 	"cool_plate_temp": [

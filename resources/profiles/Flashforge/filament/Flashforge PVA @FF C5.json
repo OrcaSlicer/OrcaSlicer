@@ -3,6 +3,7 @@
 	"name": "Flashforge PVA @FF C5",
 	"inherits": "Generic PVA @System",
 	"from": "system",
+	"setting_id": "rSYGG2ni41NDVw6l",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

@@ -184,6 +184,9 @@ const ImVec4 ImGuiWrapper::COL_WINDOW_BG_DARK    = { 45 / 255.f, 45 / 255.f, 49 
 const ImVec4 ImGuiWrapper::COL_TOOLBAR_BG        = { 250 / 255.f, 250 / 255.f, 250 / 255.f, 1.f }; // ORCA color matches with toolbar_background.png
 const ImVec4 ImGuiWrapper::COL_TOOLBAR_BG_DARK   = { 57  / 255.f, 60  / 255.f, 66  / 255.f, 1.f }; // ORCA color matches with toolbar_background_dark.png
 const ImVec4 ImGuiWrapper::COL_ORCA              = to_ImVec4(ColorRGBA::ORCA());
+const ImVec4 ImGuiWrapper::COL_ORCA_DARK         = { 0.f       , 103 / 255.f, 91  / 255.f, 1.f };
+const ImVec4 ImGuiWrapper::COL_ORCA_HOVER        = { 38 / 255.f, 166 / 255.f, 154 / 255.f, 1.f };
+const ImVec4 ImGuiWrapper::COL_ORCA_HOVER_DARK   = { 0.f       , 129 / 255.f, 114  / 255.f, 1.f };
 const ImVec4 ImGuiWrapper::COL_MODIFIED          = { 253.f / 255.f, 111.f / 255.f, 40.f / 255.f, 1}; // ORCA same color with m_color_label_modified
 const ImVec4 ImGuiWrapper::COL_WARNING           = to_ImVec4(ColorRGB::WARNING());
 
@@ -2401,6 +2404,25 @@ void ImGuiWrapper::draw(
     }
 }
 
+void ImGuiWrapper::draw_gradient_ramp(ImDrawList *draw_list, const ImVec2 &top_left, const ImVec2 &bottom_right, const std::vector<wxColour> &ramp)
+{
+    if (draw_list == nullptr || ramp.empty() || bottom_right.x <= top_left.x || bottom_right.y <= top_left.y)
+        return;
+
+    const int    rows  = std::max(1, (int) std::lround(bottom_right.y - top_left.y));
+    const float  row_h = (bottom_right.y - top_left.y) / rows;
+    const size_t last  = ramp.size() - 1;
+    for (int r = 0; r < rows; ++r) {
+        // Row 0 is the top of the rect and so takes the ramp's last entry, the model's top.
+        const double    t = (rows > 1) ? (double) (rows - 1 - r) / (rows - 1) : 0.5;
+        const wxColour &c = ramp[(size_t) (t * last + 0.5)];
+        // The bottom row snaps to the rect's edge so rounding never leaves a sliver uncovered.
+        const float y0 = top_left.y + r * row_h;
+        const float y1 = (r + 1 == rows) ? bottom_right.y : top_left.y + (r + 1) * row_h;
+        draw_list->AddRectFilled({top_left.x, y0}, {bottom_right.x, y1}, IM_COL32(c.Red(), c.Green(), c.Blue(), c.Alpha()));
+    }
+}
+
 void ImGuiWrapper::draw_cross_hair(const ImVec2 &position, float radius, ImU32 color, int num_segments, float thickness) {
     auto draw_list = ImGui::GetOverlayDrawList();
     draw_list->AddCircle(position, radius, color, num_segments, thickness);
@@ -2778,6 +2800,11 @@ void ImGuiWrapper::init_font(bool compress)
     builder.BuildRanges(&ranges); // Build the final result (ordered ranges with all the unique characters submitted)
 
     io.Fonts->Flags |= ImFontAtlasFlags_NoPowerOfTwoHeight;
+    // TexDesiredWidth will be increased adaptively below if the built height
+    // exceeds GL_MAX_TEXTURE_SIZE. Leave it at 0 so ImGui picks the minimum
+    // width for small glyph sets and we only widen when actually necessary.
+    io.Fonts->TexDesiredWidth = 0;
+
     ImFontConfig cfg = ImFontConfig();
     cfg.OversampleH = cfg.OversampleV = 1;
     //FIXME replace with io.Fonts->AddFontFromMemoryTTF(buf_decompressed_data, (int)buf_decompressed_size, m_font_size, nullptr, ranges.Data);
@@ -2801,10 +2828,24 @@ void ImGuiWrapper::init_font(bool compress)
         }
     }
 
+    if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
+        ImFontConfig fallback_cfg = cfg;
+        fallback_cfg.MergeMode = true;
+        static constexpr ImWchar celsius_range[] = { 0x2103, 0x2103, 0 };
+        io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Regular.ttf").c_str(), m_font_size, &fallback_cfg, celsius_range);
+    }
+
     bold_font        = io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/" + font_name_bold).c_str(), m_font_size, &cfg, ranges.Data);
     if (bold_font == nullptr) {
         bold_font = io.Fonts->AddFontDefault();
         if (bold_font == nullptr) { throw Slic3r::RuntimeError("ImGui: Could not load deafult font"); }
+    }
+
+    if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
+        ImFontConfig fallback_cfg = cfg;
+        fallback_cfg.MergeMode = true;
+        static constexpr ImWchar celsius_range[] = { 0x2103, 0x2103, 0 };
+        io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Bold.ttf").c_str(), m_font_size, &fallback_cfg, celsius_range);
     }
 
     if (m_glyph_ranges == ImGui::GetIO().Fonts->GetGlyphRangesThai()) {
@@ -2849,7 +2890,23 @@ void ImGuiWrapper::init_font(bool compress)
         io.Fonts->AddCustomRectFontGlyph(default_font, icon.first, icon_sz * 4, icon_sz * 4, 3.0 * font_scale + icon_sz * 4);
     }
 
-    // Build texture atlas
+    // Build texture atlas, widening it if the height would exceed GL_MAX_TEXTURE_SIZE.
+    // Increasing the width allows the packing algorithm to grow more horizontally which reduces the height.
+    io.Fonts->Build();
+    GLint gl_max_tex_size = 0;
+    glsafe(::glGetIntegerv(GL_MAX_TEXTURE_SIZE, &gl_max_tex_size));
+    constexpr int max_retries = 6;
+    for (int attempt = 0; attempt < max_retries && io.Fonts->TexHeight > gl_max_tex_size; ++attempt) {
+        io.Fonts->TexDesiredWidth = (io.Fonts->TexDesiredWidth > 0 ? io.Fonts->TexDesiredWidth : io.Fonts->TexWidth) * 2;
+        io.Fonts->Build();
+    }
+    if (io.Fonts->TexHeight > gl_max_tex_size) {
+        // Shouldn't really happen
+        BOOST_LOG_TRIVIAL(error) << "Font atlas height " << io.Fonts->TexHeight
+            << " still exceeds GL_MAX_TEXTURE_SIZE (" << gl_max_tex_size << ")"
+            << " after " << max_retries << " attempts; rendering may be incomplete";
+    }
+
     unsigned char* pixels;
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
@@ -3134,6 +3191,9 @@ void ImGuiWrapper::render_draw_data(ImDrawData *draw_data)
     shader->set_uniform("Texture", 0);
     shader->set_uniform("ProjMtx", ortho_projection);
 
+    const uint8_t stage = 0;
+    shader->set_uniform("s_texture", stage);
+
     // Will project scissor/clipping rectangles into framebuffer space
     const ImVec2 clip_off   = draw_data->DisplayPos;       // (0,0) unless using multi-viewports
     const ImVec2 clip_scale = draw_data->FramebufferScale; // (1,1) unless using retina display which are often (2,2)
@@ -3198,6 +3258,7 @@ void ImGuiWrapper::render_draw_data(ImDrawData *draw_data)
                 glsafe(::glScissor((int)clip_min.x, (int)(fb_height - clip_max.y), (int)(clip_max.x - clip_min.x), (int)(clip_max.y - clip_min.y)));
 
                 // Bind texture, Draw
+                glsafe(::glActiveTexture(GL_TEXTURE0 + stage));
                 glsafe(::glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->GetTexID()));
                 glsafe(::glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, (void*)(intptr_t)(pcmd->IdxOffset * sizeof(ImDrawIdx))));
             }
@@ -3290,8 +3351,9 @@ const char* ImGuiWrapper::clipboard_get(void* user_data)
             wxTextDataObject data;
             wxTheClipboard->GetData(data);
 
-            if (data.GetTextLength() > 0) {
-                self->m_clipboard_text = into_u8(data.GetText());
+            const wxString text = data.GetText();
+            if (text.Length() > 0) {
+                self->m_clipboard_text = into_u8(text);
                 res = self->m_clipboard_text.c_str();
             }
         }

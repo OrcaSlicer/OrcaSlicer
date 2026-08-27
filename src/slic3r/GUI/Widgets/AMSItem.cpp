@@ -3,6 +3,7 @@
 #include "../BitmapCache.hpp"
 #include "../I18N.hpp"
 #include "../GUI_App.hpp"
+#include "../FilamentBitmapUtils.hpp"
 #include "../Utils/WxFontUtils.hpp"
 
 #include "slic3r/GUI/DeviceTab/uiAmsHumidityPopup.h"
@@ -64,6 +65,7 @@ bool AMSinfo::parse_ams_info(MachineObject *obj, DevAms *ams, bool remain_flag, 
     this->ams_type = AMSModel(ams->GetAmsType());
 
     nozzle_id = ams->GetExtruderId();
+    switch_pos = ams->GetSwitcherPos(); // Orca: carry the switch inlet for inlet-aware panel placement
     cans.clear();
     for (int i = 0; i < ams->GetTrays().size(); i++) {
         auto    it = ams->GetTrays().find(std::to_string(i));
@@ -234,6 +236,19 @@ int AMSinfo::get_humidity_display_idx() const
     return 1;
 }
 
+// Orca: inlet-aware panel routing. REF placed AMS by switch inlet (POS_IN_A/B) via a tray-level binding
+// that Orca's pull-mode fila model does not carry; the AMS-level DevAms::GetSwitcherPos() does, and it is
+// stashed in switch_pos. When a Filament Track Switch is installed the device pins nozzle_id to MAIN for
+// command consumers, so placement follows the inlet here instead (POS_IN_B -> main/right, POS_IN_A ->
+// deputy/left). switch_pos is empty on switch-less machines and for ext spools (no tray-level inlet in the
+// kept model), so this reduces to the original nozzle_id == MAIN_EXTRUDER_ID test — identical behavior.
+bool AMSinfo::routes_to_main_extruder() const
+{
+    if (switch_pos.has_value())
+        return switch_pos.value() == DevFilaSwitch::SwitchPos::POS_IN_B;
+    return nozzle_id == MAIN_EXTRUDER_ID;
+}
+
 /*************************************************
 Description:AMSExtText
 **************************************************/
@@ -310,7 +325,7 @@ AMSrefresh::AMSrefresh(wxWindow *parent, std::string ams_id, wxString can_id, Ca
     m_can_id = can_id.ToStdString();
     create(parent, wxID_ANY, pos, size);
 
-    Update(ams_id, info);
+    UpdateInfo(ams_id, info);
 }
 
 AMSrefresh::AMSrefresh(wxWindow *parent, std::string ams_id, int can_id, Caninfo info, const wxPoint &pos, const wxSize &size) : AMSrefresh()
@@ -318,7 +333,7 @@ AMSrefresh::AMSrefresh(wxWindow *parent, std::string ams_id, int can_id, Caninfo
     m_can_id = wxString::Format("%d", can_id).ToStdString();
     create(parent, wxID_ANY, pos, size);
 
-    Update(ams_id, info);
+    UpdateInfo(ams_id, info);
 }
 
  AMSrefresh::~AMSrefresh()
@@ -467,7 +482,7 @@ void AMSrefresh::paintEvent(wxPaintEvent &evt)
     dc.DrawText(m_refresh_id, pot);
 }
 
-void AMSrefresh::Update(std::string ams_id, Caninfo info)
+void AMSrefresh::UpdateInfo(std::string ams_id, Caninfo info)
 {
     if (m_ams_id == ams_id && m_info == info)
     {
@@ -742,6 +757,63 @@ void AMSExtImage::doRender(wxDC& dc)
 }
 
 
+// Orca: SwitcherImage — routing glyph drawn when a Filament Track Switch is installed.
+void SwitcherImage::paintEvent(wxPaintEvent &evt)
+{
+    wxPaintDC dc(this);
+    render(dc);
+}
+
+void SwitcherImage::render(wxDC &dc)
+{
+#ifdef __WXMSW__
+    wxSize     size = GetSize();
+    wxMemoryDC memdc;
+    wxBitmap   bmp(size.x, size.y);
+    memdc.SelectObject(bmp);
+    memdc.Blit({0, 0}, size, &dc, {0, 0});
+
+    {
+        wxGCDC dc2(memdc);
+        doRender(dc2);
+    }
+
+    memdc.SelectObject(wxNullBitmap);
+    dc.DrawBitmap(bmp, 0, 0);
+#else
+    doRender(dc);
+#endif
+}
+
+void SwitcherImage::doRender(wxDC &dc)
+{
+    auto size = GetSize();
+    if (m_show_state){
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(*wxWHITE);
+        dc.DrawBitmap(m_switcher.bmp(), wxPoint((size.x - m_switcher.GetBmpSize().x) / 2, 0));
+    }
+    Layout();
+}
+
+SwitcherImage::SwitcherImage(wxWindow *parent, wxWindowID id, string file_name, const wxSize& size, const wxPoint &pos)
+{
+    wxWindow::Create(parent, id, pos, size);
+    SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    m_show_state = true;
+    m_switcher = ScalableBitmap(this, file_name, 16);
+    m_file_name = file_name;
+    SetSize(size);
+    SetMinSize(size);
+    SetMaxSize(size);
+
+
+    Bind(wxEVT_PAINT, &SwitcherImage::paintEvent, this);
+}
+
+SwitcherImage::~SwitcherImage() {}
+
+
 //DevAms Extruder
 AMSextruder::AMSextruder(wxWindow *parent, wxWindowID id, int nozzle_num, const wxPoint &pos, const wxSize &size)
 {
@@ -873,7 +945,7 @@ AMSLib::AMSLib(wxWindow *parent, std::string ams_idx, Caninfo info, AMSModelOrig
     Bind(wxEVT_LEAVE_WINDOW, &AMSLib::on_leave_window, this);
     Bind(wxEVT_LEFT_DOWN, &AMSLib::on_left_down, this);
 
-    Update(info, ams_idx, false);
+    UpdateInfo(info, ams_idx, false);
 }
 
 AMSLib::~AMSLib()
@@ -1303,6 +1375,11 @@ void AMSLib::render_lite_lib(wxDC& dc)
         }
     }
 
+    // View-only mode forces the read-only (eye) icon even for third-party spools.
+    if (m_view_only) {
+        temp_bitmap_third = temp_bitmap_brand;
+    }
+
     dc.SetPen(wxPen(*wxTRANSPARENT_PEN));
     if (m_info.material_cols.size() > 1) {
         int left = FromDIP(10);
@@ -1311,7 +1388,7 @@ void AMSLib::render_lite_lib(wxDC& dc)
         if (m_info.ctype == 0) {
             for (int i = 0; i < m_info.material_cols.size() - 1; i++) {
                 auto rect = wxRect(left, FromDIP(10), libsize.x - FromDIP(18), libsize.y - FromDIP(18));
-                dc.GradientFillLinear(rect, m_info.material_cols[i], m_info.material_cols[i + 1], wxEAST);
+                fill_gradient_rect_east(dc, rect, m_info.material_cols[i], m_info.material_cols[i + 1]);
                 left += gwidth;
             }
         }
@@ -1392,6 +1469,11 @@ void AMSLib::render_generic_lib(wxDC &dc)
     if (tmp_lib_colour.Alpha() == 0) {
         temp_bitmap_third = m_bitmap_editable;
         temp_bitmap_brand = m_bitmap_readonly;
+    }
+
+    // View-only mode forces the read-only (eye) icon even for third-party spools.
+    if (m_view_only) {
+        temp_bitmap_third = temp_bitmap_brand;
     }
 
     dc.SetPen(wxPen(tmp_lib_colour, 1, wxPENSTYLE_SOLID));
@@ -1504,7 +1586,7 @@ void AMSLib::render_generic_lib(wxDC &dc)
                     }
 
                     auto rect = wxRect(left, height - curr_height, gwidth, curr_height);
-                    dc.GradientFillLinear(rect, m_info.material_cols[i], m_info.material_cols[i + 1], wxEAST);
+                    fill_gradient_rect_east(dc, rect, m_info.material_cols[i], m_info.material_cols[i + 1]);
                     left += gwidth;
                 }
             }
@@ -1648,7 +1730,7 @@ void AMSLib::on_pass_road(bool pass)
     }
 }
 
-void AMSLib::Update(Caninfo info, std::string ams_idx, bool refresh)
+void AMSLib::UpdateInfo(Caninfo info, std::string ams_idx, bool refresh)
 {
     DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (!dev) return;
@@ -1786,7 +1868,7 @@ AMSRoad::AMSRoad(wxWindow *parent, wxWindowID id, Caninfo info, int canindex, in
 
 void AMSRoad::create(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size) { wxWindow::Create(parent, id, pos, size); }
 
-void AMSRoad::Update(AMSinfo amsinfo, Caninfo info, int canindex, int maxcan)
+void AMSRoad::UpdateInfo(AMSinfo amsinfo, Caninfo info, int canindex, int maxcan)
 {
     m_amsinfo = amsinfo;
     m_info     = info;
@@ -2001,9 +2083,6 @@ void AMSRoad::OnPassRoad(std::vector<AMSPassRoadMode> prord_list)
     }
 }
 
-/*
-
-
 /*************************************************
 Description:AMSRoadUpPart
 **************************************************/
@@ -2042,7 +2121,7 @@ void AMSRoadUpPart::create(wxWindow* parent, wxWindowID id, const wxPoint& pos, 
     Refresh();
 }
 
-void AMSRoadUpPart::Update(AMSinfo amsinfo)
+void AMSRoadUpPart::UpdateInfo(AMSinfo amsinfo)
 {
     if (m_amsinfo != amsinfo)
     {
@@ -2534,7 +2613,7 @@ void AMSPreview::Close()
     Hide();
 }
 
-void AMSPreview::Update(AMSinfo amsinfo)
+void AMSPreview::UpdateInfo(AMSinfo amsinfo)
 {
     if (m_amsinfo == amsinfo)
     {
@@ -2678,7 +2757,7 @@ void AMSPreview::doRender(wxDC &dc)
                         }
 
                         auto rect = wxRect(fleft, (size.y - AMS_ITEM_CUBE_SIZE.y) / 2, gwidth, AMS_ITEM_CUBE_SIZE.y);
-                        dc.GradientFillLinear(rect, iter->material_cols[i], iter->material_cols[i + 1], wxEAST);
+                        fill_gradient_rect_east(dc, rect, iter->material_cols[i], iter->material_cols[i + 1]);
                         fleft += gwidth;
                     }
                 }
@@ -2750,7 +2829,7 @@ void AMSPreview::doRender(wxDC &dc)
                     }
 
                     auto rect = wxRect(fleft, (size.y - AMS_ITEM_CUBE_SIZE.y) / 2, gwidth, AMS_ITEM_CUBE_SIZE.y);
-                    dc.GradientFillLinear(rect, iter.material_cols[i], iter.material_cols[i + 1], wxEAST);
+                    fill_gradient_rect_east(dc, rect, iter.material_cols[i], iter.material_cols[i + 1]);
                     fleft += gwidth;
                 }
             }
@@ -2872,7 +2951,7 @@ AMSHumidity::AMSHumidity(wxWindow* parent, wxWindowID id, AMSinfo info, const wx
         }
         });
 
-    Update(info);
+    UpdateInfo(info);
 }
 
 void AMSHumidity::create(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size) {
@@ -2881,7 +2960,7 @@ void AMSHumidity::create(wxWindow* parent, wxWindowID id, const wxPoint& pos, co
 }
 
 
-void AMSHumidity::Update(AMSinfo amsinfo)
+void AMSHumidity::UpdateInfo(AMSinfo amsinfo)
 {
     if (m_amsinfo != amsinfo)
     {
@@ -3298,7 +3377,7 @@ void AmsItem::AddLiteCan(Caninfo caninfo, int canindex, wxGridSizer* sizer)
     //m_can_road_list[caninfo.can_id] = m_panel_road;
 }
 
-void AmsItem::Update(AMSinfo info)
+void AmsItem::UpdateInfo(AMSinfo info)
 {
     if (m_info == info)
     {
@@ -3310,7 +3389,7 @@ void AmsItem::Update(AMSinfo info)
 
     if (m_humidity)
     {
-        m_humidity->Update(m_info);
+        m_humidity->UpdateInfo(m_info);
     }
 
     for (int i = 0; i < m_can_count; i++) {
@@ -3319,7 +3398,7 @@ void AmsItem::Update(AMSinfo info)
 
         auto refresh = it->second;
         if (refresh != nullptr){
-            refresh->Update(info.ams_id, info.cans[i]);
+            refresh->UpdateInfo(info.ams_id, info.cans[i]);
             refresh->Show();
         }
     }
@@ -3328,7 +3407,7 @@ void AmsItem::Update(AMSinfo info)
         AMSLib* lib = m_can_lib_list[std::to_string(i)];
         if (lib != nullptr){
             if (i < m_can_count){
-                lib->Update(info.cans[i], info.ams_id);
+                lib->UpdateInfo(info.cans[i], info.ams_id);
                 lib->Show();
             }
             else{
@@ -3337,12 +3416,7 @@ void AmsItem::Update(AMSinfo info)
         }
     }
     if (m_panel_road != nullptr){
-        m_panel_road->Update(m_info);
-    }
-
-    if (true || m_ams_model == AMSModel::GENERIC_AMS) {
-        /*m_panel_road->Update(m_info, info.cans[0]);
-        m_panel_road->Show();*/
+        m_panel_road->UpdateInfo(m_info);
     }
 
     Layout();
@@ -3577,6 +3651,18 @@ void AmsItem::doRender(wxDC& dc)
     }
 }
 
+// Orca: toggle the road segment below the item (m_panel_road). Used to drop the external-spool
+// road when a Filament Track Switch is installed. No-op (returns false) when already in state.
+bool AmsItem::ShowRoad(bool show)
+{
+    if (!m_panel_road) return false;
+    if (m_panel_road->IsShown() == show) return false;
+    m_panel_road->Show(show);
+    Layout();
+    Refresh();
+    return true;
+}
+
 void AmsItem::RenderLiteRoad(wxDC& dc, wxSize size) {
     auto end_top = size.x - FromDIP(3);
     if (m_panel_pos == AMSPanelPos::RIGHT_PANEL){
@@ -3703,6 +3789,344 @@ void AmsItem::show_sn_value(bool show)
     for (auto lib_it : m_can_lib_list) {
         AMSLib* lib = lib_it.second;
         if (lib) lib->show_kn_value(show);
+    }
+}
+
+DevExtruderImage::DevExtruderImage(wxWindow *parent, wxWindowID id, int extruder_num, const wxPoint &pos, const wxSize &size) : wxWindow(parent, id, pos, wxDefaultSize), m_extruder_num(extruder_num)
+{
+    // wxWindow::Create(parent, id, pos, wxSize(FromDIP(45), FromDIP(112)));
+    SetBackgroundColour(*wxWHITE);
+    SetSize(wxSize(FromDIP(48), FromDIP(112)));
+    SetMinSize(wxSize(FromDIP(48), FromDIP(112)));
+    SetMaxSize(wxSize(FromDIP(48), FromDIP(112)));
+
+
+    m_left_extruder_active_filled    = new ScalableBitmap(this, "left_extruder_active_filled", 62);
+    m_left_extruder_active_empty     = new ScalableBitmap(this, "left_extruder_active_empty", 62);
+    m_left_extruder_unactive_filled  = new ScalableBitmap(this, "left_extruder_unactive_filled", 62);
+    m_left_extruder_unactive_empty   = new ScalableBitmap(this, "left_extruder_unactive_empty", 62);
+    m_right_extruder_active_filled   = new ScalableBitmap(this, "right_extruder_active_filled", 62);
+    m_right_extruder_active_empty    = new ScalableBitmap(this, "right_extruder_active_empty", 62);
+    m_right_extruder_unactive_filled = new ScalableBitmap(this, "right_extruder_unactive_filled", 62);
+    m_right_extruder_unactive_empty  = new ScalableBitmap(this, "right_extruder_unactive_empty", 62);
+
+    m_extruder_single_nozzle_empty_load    = new ScalableBitmap(this, "monitor_extruder_empty_load", 106);
+    m_extruder_single_nozzle_empty_unload  = new ScalableBitmap(this, "monitor_extruder_empty_unload", 106);
+    m_extruder_single_nozzle_filled_load   = new ScalableBitmap(this, "monitor_extruder_filled_load", 106);
+    m_extruder_single_nozzle_filled_unload = new ScalableBitmap(this, "monitor_extruder_filled_unload", 106);
+
+    Bind(wxEVT_PAINT, &DevExtruderImage::paintEvent, this);
+}
+
+void DevExtruderImage::msw_rescale()
+{
+    m_left_extruder_active_filled->msw_rescale();
+    m_left_extruder_active_empty->msw_rescale();
+    m_left_extruder_unactive_filled->msw_rescale();
+    m_left_extruder_unactive_empty->msw_rescale();
+    m_right_extruder_active_filled->msw_rescale();
+    m_right_extruder_active_empty->msw_rescale();
+    m_right_extruder_unactive_filled->msw_rescale();
+    m_right_extruder_unactive_empty->msw_rescale();
+
+    m_extruder_single_nozzle_empty_load->msw_rescale();
+    m_extruder_single_nozzle_empty_unload->msw_rescale();
+    m_extruder_single_nozzle_filled_load->msw_rescale();
+    m_extruder_single_nozzle_filled_unload->msw_rescale();
+    Layout();
+    Refresh();
+}
+
+void DevExtruderImage::render(wxDC &dc)
+{
+#ifdef __WXMSW__
+    wxSize     size = GetSize();
+    wxMemoryDC memdc;
+    wxBitmap   bmp(size.x, size.y);
+    memdc.SelectObject(bmp);
+    memdc.Blit({0, 0}, size, &dc, {0, 0});
+
+    {
+        wxGCDC dc2(memdc);
+        doRender(dc2);
+    }
+
+    memdc.SelectObject(wxNullBitmap);
+    dc.DrawBitmap(bmp, 0, 0);
+#else
+    doRender(dc);
+#endif
+}
+
+void DevExtruderImage::doRender(wxDC &dc)
+{
+    auto size = GetSize();
+    auto pot = wxPoint(size.x / 2, (size.y - m_left_extruder_active_filled->GetBmpSize().y) / 2);
+
+    if (m_extruder_num >= 2)
+    {
+        ScalableBitmap *left_extruder_bmp{nullptr};
+        ScalableBitmap *right_extruder_bmp{nullptr};
+
+        switch (m_right_ext_state)
+        {
+            case DevExtruderState::FILLED_LOAD:
+                right_extruder_bmp = current_extruder_loc == "right" ? m_right_extruder_active_filled : m_right_extruder_unactive_filled;
+                break;
+            case DevExtruderState::FILLED_UNLOAD:
+                right_extruder_bmp = current_extruder_loc == "right" ? m_right_extruder_active_filled : m_right_extruder_unactive_filled;
+                break;
+            case DevExtruderState::EMPTY_LOAD:
+                if (current_extruder_loc.empty())
+                {
+                    right_extruder_bmp = m_right_extruder_active_empty;
+                }
+                else
+                {
+                    right_extruder_bmp = current_extruder_loc == "right" ? m_right_extruder_active_empty : m_right_extruder_unactive_empty;
+                }
+                break;
+            case DevExtruderState::EMPTY_UNLOAD:
+                right_extruder_bmp = current_extruder_loc == "right" ? m_right_extruder_active_empty : m_right_extruder_unactive_empty;
+                break;
+            default: break;
+        }
+
+        switch (m_left_ext_state)
+        {
+            case DevExtruderState::FILLED_LOAD:
+                left_extruder_bmp = current_extruder_loc == "left" ? m_left_extruder_active_filled : m_left_extruder_unactive_filled;
+                break;
+            case DevExtruderState::FILLED_UNLOAD:
+                left_extruder_bmp = current_extruder_loc == "left" ? m_left_extruder_active_filled : m_left_extruder_unactive_filled;
+                break;
+            case DevExtruderState::EMPTY_LOAD:
+                if (current_extruder_loc.empty())
+                {
+                    left_extruder_bmp = m_left_extruder_active_empty;
+                }
+                else
+                {
+                    left_extruder_bmp = current_extruder_loc == "left" ? m_left_extruder_active_empty : m_left_extruder_unactive_empty;
+                }
+                break;
+            case DevExtruderState::EMPTY_UNLOAD:
+                left_extruder_bmp = current_extruder_loc == "left" ? m_left_extruder_active_empty : m_left_extruder_unactive_empty;
+                break;
+            default: break;
+        }
+
+        if (left_extruder_bmp) { dc.DrawBitmap(left_extruder_bmp->bmp(), pot.x - left_extruder_bmp->GetBmpWidth(), pot.y); }
+        if (right_extruder_bmp) { dc.DrawBitmap(right_extruder_bmp->bmp(), pot.x, pot.y); }
+    }
+    else
+    {
+        ScalableBitmap *extruder_bmp = nullptr;
+        switch (m_single_ext_state)
+        {
+            case DevExtruderState::FILLED_LOAD:
+                extruder_bmp = m_extruder_single_nozzle_filled_load;
+                break;
+            case DevExtruderState::FILLED_UNLOAD:
+                extruder_bmp = m_extruder_single_nozzle_filled_unload;
+                break;
+            case DevExtruderState::EMPTY_LOAD:
+                extruder_bmp = m_extruder_single_nozzle_empty_load;
+                break;
+            case DevExtruderState::EMPTY_UNLOAD:
+                extruder_bmp = m_extruder_single_nozzle_empty_unload;
+                break;
+            default: break;
+        }
+
+        if (extruder_bmp) { dc.DrawBitmap(extruder_bmp->bmp(), pot.x - extruder_bmp->GetBmpWidth() / 2, (size.y - extruder_bmp->GetBmpHeight()) / 2); }
+    }
+}
+
+
+FeedDirectionDialog::FeedDirectionDialog(wxWindow* parent,
+                                        const int extruderNum,
+                                        const std::string& printer_type)
+    : wxDialog(parent, wxID_ANY, "", wxDefaultPosition, wxDefaultSize),
+    m_extruder_num(extruderNum),
+    m_printer_type(printer_type)
+{
+    SetBackgroundColour(wxColour("#FFFFFF"));
+    SetMaxSize(wxSize(FromDIP(360), FromDIP(207)));
+    SetMinSize(wxSize(FromDIP(360), FromDIP(207)));
+    SetSize(wxSize(FromDIP(360), FromDIP(207)));
+
+    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+
+    wxGridSizer* topSizer = new wxGridSizer (1, 3, FromDIP(5), 0);
+
+    m_radioHelper = new wxRadioButton(this, wxID_ANY, wxT(""), wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
+    m_leftRadio = new wxRadioButton(this, wxID_ANY,
+        _L(DevPrinterConfigUtil::get_toolhead_display_name(m_printer_type, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::TitleCase, true)));
+    m_rightRadio = new wxRadioButton(this, wxID_ANY,
+        _L(DevPrinterConfigUtil::get_toolhead_display_name(m_printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::TitleCase, true)));
+    m_radioHelper->Show(false);
+    m_radioHelper->SetCanFocus(false);
+
+    m_leftRadio->SetForegroundColour(*wxBLACK);
+    m_rightRadio->SetForegroundColour(*wxBLACK);
+
+    topSizer->Add(m_leftRadio, 0, wxALIGN_CENTER | wxALL, FromDIP(20));
+    m_extruderImage = new DevExtruderImage(this, wxID_ANY, m_extruder_num);
+    topSizer->Add(m_extruderImage, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
+    topSizer->Add(m_rightRadio, 0, wxALIGN_CENTER | wxALL, FromDIP(20));
+
+    mainSizer->AddStretchSpacer(1);
+    mainSizer->Add(topSizer, 1, wxEXPAND);
+    mainSizer->AddStretchSpacer(1);
+
+    wxBoxSizer* bottomSizer = new wxBoxSizer(wxHORIZONTAL);
+    m_confirmBtn = new Button(this, _L("Confirm"));
+    m_confirmBtn->SetSize(wxSize(FromDIP(80), FromDIP(32)));
+    m_confirmBtn->Enable(false);
+    m_confirmBtn->SetFont(::Label::Body_14);
+    bottomSizer->Add(m_confirmBtn, 0, wxALIGN_RIGHT);
+
+    mainSizer->Add(bottomSizer, 0, wxALIGN_RIGHT | wxBOTTOM | wxRIGHT, FromDIP(10));
+
+    SetSizer(mainSizer);
+    Layout();
+    Centre(wxBOTH);
+
+    m_lastChecked = m_radioHelper;
+    m_confirmBtn->Bind(wxEVT_BUTTON, &FeedDirectionDialog::OnConfirm, this);
+    m_leftRadio->Bind(wxEVT_RADIOBUTTON, &FeedDirectionDialog::OnRadioClicked, this);
+    m_rightRadio->Bind(wxEVT_RADIOBUTTON, &FeedDirectionDialog::OnRadioClicked, this);
+}
+
+void FeedDirectionDialog::OnConfirm(wxCommandEvent& event)
+{
+    EndModal(wxID_OK);
+}
+
+void FeedDirectionDialog::OnRadioClicked(wxCommandEvent& evt)
+{
+    auto clicked = static_cast<wxRadioButton*>(evt.GetEventObject());
+    m_load_extruder_id = std::nullopt;
+    if (clicked == m_lastChecked)
+    {
+        m_radioHelper->SetValue(true);
+        m_lastChecked = m_radioHelper;
+        m_confirmBtn->Enable(false);
+        m_extruderImage->update(DevExtruderState::EMPTY_LOAD, DevExtruderState::EMPTY_LOAD);
+        m_extruderImage->setExtruderUsed("");
+
+    }
+    else
+    {
+        clicked->SetValue(true);
+        m_lastChecked = clicked;
+        m_confirmBtn->Enable(true);
+
+        if (clicked == m_leftRadio)
+        {
+            m_extruderImage->update(DevExtruderState::FILLED_LOAD, DevExtruderState::EMPTY_LOAD);
+            m_extruderImage->setExtruderUsed("left");
+            m_load_extruder_id = 1;
+            {
+                SetTitle(wxString::Format(_L("Load %s to ") + _L(DevPrinterConfigUtil::get_toolhead_display_name(m_printer_type, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::LowerCase)), m_filament_id));
+            }
+        }
+        else if (clicked == m_rightRadio)
+        {
+            m_extruderImage->update(DevExtruderState::EMPTY_LOAD, DevExtruderState::FILLED_LOAD);
+            m_extruderImage->setExtruderUsed("right");
+            m_load_extruder_id = 0;
+            {
+                SetTitle(wxString::Format(_L("Load %s to ") + _L(DevPrinterConfigUtil::get_toolhead_display_name(m_printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::LowerCase)), m_filament_id));
+            }
+        }
+    }
+    m_leftRadio->Refresh();
+    m_rightRadio->Refresh();
+    Fit();
+    Update();
+}
+
+std::optional<int> FeedDirectionDialog::GetExtruderID()
+{
+    if (m_extruderImage)
+    {
+        return m_load_extruder_id;
+    }
+    return std::nullopt;
+}
+
+wxString FeedDirectionDialog::calcTrayName(MachineObject* obj, const std::string& amsID, const std::string& slotID)
+{
+    if (amsID.empty() || slotID.empty() || !obj)
+        return wxString();
+
+    auto filaSys = obj->GetFilaSystem();
+    if (!filaSys)
+        return wxString();
+
+    DevAms* ams = filaSys->GetAmsById(amsID);
+    if (!ams)
+        return wxString();
+
+    int ams_id_int  = std::stoi(amsID);
+    int slot_id_int = std::stoi(slotID);
+    int tray_id     = 0;
+
+    // Orca: DevAms::AmsType is the local enum (AMS / AMS_LITE / N3F / N3S); it has no EXT_SPOOL
+    // member, and external/virtual spools are not real DevAms objects (GetAmsById returns nullptr
+    // above), so the EXT_SPOOL branch from upstream is unnecessary here.
+    if (ams->GetAmsType() == DevAms::AMS || ams->GetAmsType() == DevAms::AMS_LITE || ams->GetAmsType() == DevAms::N3F) {
+        tray_id = ams_id_int * 4 + slot_id_int;
+    } else if (ams->GetAmsType() == DevAms::N3S) {
+        tray_id = ams_id_int + slot_id_int;
+    } else {
+        return wxString();
+    }
+
+    return wxGetApp().transition_tridid(tray_id);
+}
+
+void FeedDirectionDialog::SetExtruderMapping(MachineObject* obj,
+                                             const std::string& currAmsId,
+                                             const std::string& currSlotId,
+                                             const std::vector<std::pair<std::string, std::string>>& extruderSlots)
+{
+    wxString filamentID = calcTrayName(obj, currAmsId, currSlotId);
+    if (filamentID.empty())
+        return;
+
+    m_filament_id = filamentID;
+    SetTitle(wxString::Format(_L("Load %s to "), filamentID));
+
+    std::vector<wxString> extruderMapping(extruderSlots.size());
+    for (size_t i = 0; i < extruderSlots.size(); ++i) {
+        if (!extruderSlots[i].first.empty())
+            extruderMapping[i] = calcTrayName(obj, extruderSlots[i].first, extruderSlots[i].second);
+    }
+
+    if (extruderMapping.size() > 1 && extruderMapping[1] == filamentID) //left extruder
+    {
+        m_leftRadio->Enable(false);
+        m_confirmBtn->Enable(false);
+        m_extruderImage->update(DevExtruderState::EMPTY_LOAD, DevExtruderState::EMPTY_LOAD);
+        m_extruderImage->setExtruderUsed("right");
+    }
+    else if (!extruderMapping.empty() && extruderMapping[0] == filamentID) //right extruder
+    {
+        m_rightRadio->Enable(false);
+        m_confirmBtn->Enable(false);
+        m_extruderImage->update(DevExtruderState::EMPTY_LOAD, DevExtruderState::EMPTY_LOAD);
+        m_extruderImage->setExtruderUsed("left");
+    }
+    else
+    {
+        m_radioHelper->SetValue(true);
+        m_lastChecked = m_radioHelper;
+        m_confirmBtn->Enable(false);
+        m_extruderImage->update(DevExtruderState::EMPTY_LOAD, DevExtruderState::EMPTY_LOAD);
+        m_extruderImage->setExtruderUsed("");
     }
 }
 

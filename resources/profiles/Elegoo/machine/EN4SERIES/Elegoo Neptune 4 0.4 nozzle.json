@@ -2,7 +2,7 @@
 	"type": "machine",
 	"name": "Elegoo Neptune 4 0.4 nozzle",
 	"from": "system",
-	"setting_id": "EN404",
+	"setting_id": "69QdWuRQwAZk9rFu",
 	"instantiation": "true",
 	"inherits": "fdm_elegoo_3dp_001_common",
 	"host_type": "elegoolink",

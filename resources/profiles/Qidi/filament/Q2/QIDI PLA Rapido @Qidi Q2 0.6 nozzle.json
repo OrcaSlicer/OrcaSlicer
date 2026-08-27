@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido @Qidi Q2 0.6 nozzle",
 	"inherits": "QIDI PLA Rapido@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "c2Lp8H7mc4jUyZQK",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.016"

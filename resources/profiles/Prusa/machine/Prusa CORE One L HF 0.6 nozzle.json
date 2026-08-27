@@ -3,6 +3,7 @@
 	"name": "Prusa CORE One L HF 0.6 nozzle",
 	"inherits": "Prusa CORE One L HF 0.4 nozzle",
 	"from": "system",
+	"setting_id": "aeDaJfwY7b0lluK8",
 	"instantiation": "true",
 	"default_filament_profile": "Prusament PLA @CORE One HF 0.6",
 	"default_print_profile": "0.32mm SPEED @CORE One HF 0.6",

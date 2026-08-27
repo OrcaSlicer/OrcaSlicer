@@ -5,14 +5,17 @@
 	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
 	"filament_id": "GFL99",
-	"setting_id": "re3d_pla",
+	"setting_id": "nPpDwvFg7WQr7K3t",
 	"filament_settings_id": [
 		"re3D PLA"
 	],
 	"compatible_printers": [
-		"re3D Gigabot 4",
-		"re3D Gigabot 4 XLT",
-		"re3D Terabot 4"
+		"re3D Gigabot 4 0.4 nozzle",
+		"re3D Gigabot 4 XLT 0.4 nozzle",
+		"re3D Terabot 4 0.4 nozzle",
+		"re3D Gigabot 4 0.8 nozzle",
+		"re3D Gigabot 4 XLT 0.8 nozzle",
+		"re3D Terabot 4 0.8 nozzle"
 	],
 	"filament_vendor": [
 		"re3D"

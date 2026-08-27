@@ -3,7 +3,7 @@
 	"name": "Bambu PETG @Qidi Q2 0.2 nozzle",
 	"inherits": "Bambu PETG@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "7AO8j6OgpjvRpa6m",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"1"

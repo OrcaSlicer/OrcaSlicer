@@ -2,7 +2,7 @@
 	"name": "LHS TPU",
 	"type": "filament",
 	"filament_id": "LHF_ptpu_pl",
-	"setting_id": "LHF_S_ptpu_pl",
+	"setting_id": "ILgpZYIqYGH6mqdI",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_tpu",

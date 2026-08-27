@@ -28,6 +28,7 @@
 #include "SimplyPrint.hpp"
 #include "ElegooLink.hpp"
 #include "3DPrinterOS.hpp"
+#include "Moonraker.hpp"
 
 namespace fs = boost::filesystem;
 using boost::optional;
@@ -69,6 +70,7 @@ PrintHost* PrintHost::get_print_host(DynamicPrintConfig *config)
             case htSimplyPrint: return new SimplyPrint(config);
             case htElegooLink: return new ElegooLink(config);
             case ht3DPrinterOS: return new C3DPrinterOS(config);
+            case htMoonraker: return new Moonraker(config);
             default:          return nullptr;
         }
     } else {
@@ -366,7 +368,7 @@ void PrintHostJobQueue::priv::perform_job(PrintHostJob the_job)
         emit_progress(100);
         if (the_job.switch_to_device_tab) {
             const auto mainframe = GUI::wxGetApp().mainframe;
-            mainframe->request_select_tab(MainFrame::TabPosition::tpMonitor);
+            mainframe->request_select_tab(TAB_ID_MONITOR);
         }
     }
 }

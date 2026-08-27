@@ -3,6 +3,7 @@
 	"name": "SeeMeCNC ABS",
 	"inherits": "SeeMeCNC filament base",
 	"from": "System",
+	"setting_id": "jvmDQqgLy8vboFHw",
 	"filament_id": "SMCFB001",
 	"instantiation": "true",
 	"filament_settings_id": [
@@ -261,5 +262,17 @@
 	],
 	"keep_fan_always_on": [
 		"0"
+	],
+	"filament_retraction_length": [
+		"5"
+	],
+	"filament_z_hop": [
+		"0.3"
+	],
+	"filament_retraction_speed": [
+		"45"
+	],
+	"filament_deretraction_speed": [
+		"35"
 	]
 }

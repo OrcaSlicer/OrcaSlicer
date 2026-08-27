@@ -1376,7 +1376,7 @@ void IMSlider::do_go_to_layer(size_t layer_number) {
 void IMSlider::render_go_to_layer_dialog()
 {
     if (m_show_go_to_layer_dialog)
-        ImGui::OpenPopup((_u8L("Jump to Layer")).c_str());
+        ImGui::OpenPopup((_u8L("Jump to layer")).c_str());
 
     ImGuiWrapper& imgui = *wxGetApp().imgui();
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -1396,9 +1396,9 @@ void IMSlider::render_go_to_layer_dialog()
         | ImGuiWindowFlags_NoResize
         | ImGuiWindowFlags_NoScrollbar
         | ImGuiWindowFlags_NoScrollWithMouse;
-    if (ImGui::BeginPopupModal((_u8L("Jump to Layer")).c_str(), NULL, windows_flag))
+    if (ImGui::BeginPopupModal((_u8L("Jump to layer")).c_str(), NULL, windows_flag))
     {
-        imgui.text(_u8L("Please enter the layer number") + " (" + std::to_string(m_min_value + 1) + " - " + std::to_string(m_max_value + 1) + "):");
+        imgui.text(_u8L("Please enter the layer number.") + " (" + std::to_string(m_min_value + 1) + " - " + std::to_string(m_max_value + 1) + "):");
         if (ImGui::IsMouseClicked(0)) {
             set_focus = false;
         }
@@ -1510,7 +1510,7 @@ void IMSlider::render_add_menu()
                 if (hovered) { show_tooltip(_u8L("Insert template custom G-code at the beginning of this layer.")); }
             }
 
-            if (menu_item_with_icon(_u8L("Jump to Layer").c_str(), "")) {
+            if (menu_item_with_icon(_u8L("Jump to layer").c_str(), "")) {
                 m_show_go_to_layer_dialog = true;
             }
         }
@@ -1733,7 +1733,7 @@ std::string IMSlider::get_label(int tick, LabelType label_type)
         ::sprintf(layer_height, "%.2f", m_values.empty() ? m_label_koef * value : m_values[value]);
         if (label_type == ltHeight) return std::string(layer_height);
         if (label_type == ltHeightWithLayer) {
-            char   buffer[64];
+            char   buffer[90];
             size_t layer_number;
             layer_number = m_draw_mode == dmSequentialFffPrint ? (m_values.empty() ? value : value + 1) : m_is_wipe_tower ? get_layer_number(value, label_type) + 1 : (m_values.empty() ? value : value + 1);
             ::sprintf(buffer, "%5s\n%5s", std::to_string(layer_number).c_str(), layer_height);

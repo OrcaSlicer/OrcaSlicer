@@ -3,7 +3,7 @@
 	"name": "D12 300 PRO SMARTPAD MONO DUAL PoopTool 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "ADwIpXgme0LgZuMR",
 	"instantiation": "true",
 	"printer_settings_id": "Wanhao France D12 300 PRO SMARTPAD MONO DUAL PoopTool 0.4 nozzle",
 	"printer_model": "D12 300 PRO SMARTPAD MONO DUAL PoopTool",

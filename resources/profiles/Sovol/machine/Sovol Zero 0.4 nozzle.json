@@ -3,7 +3,7 @@
 	"name": "Sovol Zero 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "QclEa2nmpBiii6Y0",
 	"instantiation": "true",
 	"printer_model": "Sovol Zero",
 	"default_print_profile": "0.20mm Standard @Sovol Zero 0.4 nozzle",

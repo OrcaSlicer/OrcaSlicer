@@ -3,7 +3,7 @@
 	"name": "CoLiDo Generic PLA @CoLiDo DIY 4.0",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA99",
+	"setting_id": "foEeUk6PK78QXleQ",
 	"filament_id": "GFA99",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [

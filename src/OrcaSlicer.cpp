@@ -3,7 +3,9 @@
     #define _WIN32_WINNT 0x0502
     // The standard Windows includes.
     #define WIN32_LEAN_AND_MEAN
+    #ifndef NOMINMAX
     #define NOMINMAX
+    #endif
     #include <Windows.h>
     #include <wchar.h>
     #include <commctrl.h>
@@ -24,6 +26,8 @@
 #include <iostream>
 #include <math.h>
 #include <csignal>
+#include <atomic>
+#include <new>
 
 #if defined(__linux__) || defined(__LINUX__)
 #include <condition_variable>
@@ -51,7 +55,6 @@ using namespace nlohmann;
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/GCode.hpp"
-#include "libslic3r/GCode/PostProcessor.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/Platform.hpp"
@@ -1192,43 +1195,108 @@ int CLI::run(int argc, char **argv)
     save_main_thread_id();
 
 #ifdef __WXGTK__
-    // Safety fallback: if wxWidgets was not built with EGL support, native
-    // Wayland will crash in wxGLCanvas::IsDisplaySupported() because the GLX
-    // backend cannot access an X11 display. Force X11 mode in that case.
-    // NOTE: Do NOT remove this block even after enabling wxHAS_EGL
-    // in the build — it protects against builds where deps were not rebuilt.
-#if !defined(wxHAS_EGL) || !wxHAS_EGL
+    // ------------------------------------------------------------------
+    // Linux backend selection — runtime, based on GDK_BACKEND env var.
+    //
+    //   GDK_BACKEND unset (DEFAULT)    Wayland path.
+    //                                  GTK auto-picks Wayland on Wayland
+    //                                  sessions and X11 otherwise. WebKit
+    //                                  XWayland-compositing workaround
+    //                                  applied only when actually on
+    //                                  XWayland. XInitThreads gated on
+    //                                  DISPLAY presence.
+    //
+    //   GDK_BACKEND=x11   (OPT-IN)     X11/XWayland mode. Applies the
+    //                                  v2.3.2 workarounds that the X11
+    //                                  path benefits from: DRI_PRIME for
+    //                                  AMD/nouveau PRIME, NVIDIA PRIME
+    //                                  render offload (when nvidia.ko is
+    //                                  loaded), XInitThreads. 
+    //                                  Multi monitor is compromised
+    //
+    // WEBKIT_DISABLE_COMPOSITING_MODE is deliberately NOT set on the X11
+    // opt-in path. The ~2020-era WebKit2GTK XWayland compositor bug it
+    // worked around appears fixed in WebKit2GTK >= 2.42; leaving it
+    // unset preserves WebKit hardware acceleration on Device / Setup
+    // Wizard / login / store. The default path still applies it on
+    // XWayland sessions as a conservative fallback for older WebKit.
+    // ------------------------------------------------------------------
     {
-        const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
-        if (wayland_env && *wayland_env) {
-            BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
-            ::setenv("GDK_BACKEND", "x11", true);
-        }
-    }
-#endif
+        const char* gdk_backend = ::getenv("GDK_BACKEND");
+        // Match "x11" and comma-prefixed forms like "x11,wayland" (GTK
+        // honours the first backend in the comma-separated list).
+        const bool x11_opt_in = gdk_backend && boost::starts_with(gdk_backend, "x11");
 
-    // WebKit2GTK compositing can fail under XWayland. Only disable it when
-    // both DISPLAY and WAYLAND_DISPLAY are set (i.e., XWayland is in use).
-    // On pure X11 or native Wayland, compositing is left enabled.
-    {
-        const char* display_env_wk = ::getenv("DISPLAY");
-        const char* wayland_env_wk = ::getenv("WAYLAND_DISPLAY");
-        if (display_env_wk && *display_env_wk && wayland_env_wk && *wayland_env_wk) {
-            ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
-        }
-    }
+        if (x11_opt_in) {
+            // ===== X11 / XWayland (opted in via GDK_BACKEND=x11) =====
+            BOOST_LOG_TRIVIAL(info) << "GDK_BACKEND=x11 detected; applying v2.3.2 X11/XWayland workarounds.";
 
-    // XInitThreads is needed before GStreamer may use Xlib. On native
-    // Wayland without DISPLAY, GStreamer uses waylandsink (no Xlib).
-    #if __has_include(<X11/Xlib.h>)
-    {
-        const char* display_env = ::getenv("DISPLAY");
-        if (display_env && *display_env) {
+            // On Linux dual-GPU systems, request the high-performance
+            // discrete GPU. DRI_PRIME=1 handles AMD and nouveau PRIME
+            // setups; harmless on single-GPU systems (Mesa ignores it).
+            ::setenv("DRI_PRIME", "1", /* replace */ false);
+
+            // For NVIDIA proprietary driver PRIME render offload, set
+            // additional variables. Only set if the NVIDIA kernel module
+            // is loaded to avoid breaking systems without NVIDIA.
+            if (::access("/proc/driver/nvidia/version", F_OK) == 0) {
+                ::setenv("__NV_PRIME_RENDER_OFFLOAD", "1", /* replace */ false);
+                ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
+            }
+
+            // Tell Xlib we will be using threads, lest we crash when
+            // GStreamer fires up. Safe to call here since the user has
+            // explicitly opted into X11.
+            #if __has_include(<X11/Xlib.h>)
             XInitThreads();
+            #endif
+        } else {
+            // ===== Wayland default =====
+
+            // Safety fallback: if wxWidgets was not built with EGL
+            // support, native Wayland will crash in
+            // wxGLCanvas::IsDisplaySupported() because the GLX backend
+            // cannot access an X11 display. Force X11 mode in that case.
+            // NOTE: Do NOT remove this block even after enabling
+            // wxHAS_EGL in the build — it protects against builds where
+            // deps were not rebuilt.
+            #if !defined(wxHAS_EGL) || !wxHAS_EGL
+            {
+                const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
+                if (wayland_env && *wayland_env) {
+                    BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
+                    ::setenv("GDK_BACKEND", "x11", true);
+                }
+            }
+            #endif
+
+            // WebKit2GTK compositing can fail under XWayland on older
+            // WebKit releases. Disable it only when both DISPLAY and
+            // WAYLAND_DISPLAY are set (i.e. an XWayland session is in
+            // use). On pure X11 or native Wayland, compositing is left
+            // enabled so WebKit retains HW acceleration.
+            {
+                const char* display_env_wk = ::getenv("DISPLAY");
+                const char* wayland_env_wk = ::getenv("WAYLAND_DISPLAY");
+                if (display_env_wk && *display_env_wk && wayland_env_wk && *wayland_env_wk) {
+                    ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
+                }
+            }
+
+            // XInitThreads is needed before GStreamer may use Xlib. On
+            // native Wayland without DISPLAY, GStreamer uses waylandsink
+            // (no Xlib involved), so the call is skipped.
+            #if __has_include(<X11/Xlib.h>)
+            {
+                const char* display_env = ::getenv("DISPLAY");
+                if (display_env && *display_env) {
+                    XInitThreads();
+                }
+            }
+            #endif
         }
     }
-    #endif
-#endif
+#endif // __WXGTK__
 
 	// Switch boost::filesystem to utf8.
     try {
@@ -1252,8 +1320,22 @@ int CLI::run(int argc, char **argv)
         return CLI_INVALID_PARAMS;
     }
     BOOST_LOG_TRIVIAL(info) << "finished setup params, argc="<< argc << std::endl;
-    std::string temp_path = wxFileName::GetTempDir().utf8_str().data();
+    std::string temp_path = per_user_temp_dir(wxFileName::GetTempDir().utf8_str().data(), per_user_temp_id());
+    // Some consumers write into the temp root directly, so create it up front.
+    try {
+        boost::filesystem::create_directories(temp_path);
+    } catch (const std::exception &ex) {
+        BOOST_LOG_TRIVIAL(warning) << "failed to create per-user temp dir " << temp_path << ": " << ex.what();
+    }
     set_temporary_dir(temp_path);
+
+    // The Filament Track Switch flags are live-device state with no meaning in headless slicing;
+    // default both off unless explicitly provided on the command line, so an old 3MF that had
+    // them enabled still slices without the switch behavior.
+    if (!m_extra_config.has("has_filament_switcher"))
+        m_extra_config.set_key_value("has_filament_switcher", new ConfigOptionBool(false));
+    if (!m_extra_config.has("enable_filament_dynamic_map"))
+        m_extra_config.set_key_value("enable_filament_dynamic_map", new ConfigOptionBool(false));
 
     m_extra_config.apply(m_config, true);
     m_extra_config.normalize_fdm();
@@ -1595,7 +1677,7 @@ int CLI::run(int argc, char **argv)
                         record_exit_reson(outfile_dir, CLI_FILE_VERSION_NOT_SUPPORTED, 0, cli_errors[CLI_FILE_VERSION_NOT_SUPPORTED], sliced_info);
                         flush_and_exit(CLI_FILE_VERSION_NOT_SUPPORTED);
                     }
-                    Semver old_version(1, 5, 9), old_version2(1, 5, 9), old_version3(2, 0, 0), old_version4(2, 2, 0), old_version5("2.4.0");
+                    Semver old_version(1, 5, 9), old_version2(1, 5, 9), old_version3(2, 0, 0), old_version4(2, 2, 0);
                     if ((file_version < old_version) && !config.empty()) {
                         translate_old = true;
                         BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf version %1%, need to translate")%file_version.to_string();
@@ -1610,18 +1692,9 @@ int CLI::run(int argc, char **argv)
                         BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf version %1%, need to set enable_wrapping_detection to false")%file_version.to_string();
                     }
 
-                    if ((file_version < old_version5) && !config.empty()) {
-                        int converted_count = ConfigMigrations::migrate_legacy_feature_filament_defaults(config);
-                        for (ModelObject *model_object : model.objects) {
-                            converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_object->config);
-                            for (ModelVolume *model_volume : model_object->volumes)
-                                converted_count += ConfigMigrations::migrate_legacy_feature_filament_defaults(model_volume->config);
-                        }
-
-                        if (converted_count > 0) {
-                            BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf version %1%, migrated %2% feature filament selections from 1 to 0 (Default)") % file_version.to_string() % converted_count;
-                        }
-                    }
+                    // ORCA: legacy feature-filament default migration (1 -> 0) is now handled
+                    // uniformly in PrintConfigDef::handle_legacy() via the old->new key rename
+                    // (wall_filament -> wall_filament_id, etc.), which covers presets too.
 
                     if (normative_check) {
                         ConfigOptionStrings* postprocess_scripts = config.option<ConfigOptionStrings>("post_process");
@@ -1641,11 +1714,13 @@ int CLI::run(int argc, char **argv)
                             const Vec3d &instance_offset = model_instance->get_offset();
                             BOOST_LOG_TRIVIAL(info) << boost::format("instance %1% transform {%2%,%3%,%4%} at %5%:%6%")% model_object->name % instance_offset.x() % instance_offset.y() %instance_offset.z() % __FUNCTION__ % __LINE__<< std::endl;
                         }*/
-                    current_printer_name = config.option<ConfigOptionString>("printer_settings_id")->value;
-                    current_process_name = config.option<ConfigOptionString>("print_settings_id")->value;
+                    // Read defensively — a 3mf missing preset ids (e.g. one produced
+                    // by a non-GUI writer) would otherwise crash here on the deref.
+                    if (const auto *o = config.option<ConfigOptionString>("printer_settings_id"))  current_printer_name  = o->value;
+                    if (const auto *o = config.option<ConfigOptionString>("print_settings_id"))    current_process_name  = o->value;
                     current_printer_model = config.option<ConfigOptionString>("printer_model", true)->value;
-                    current_filaments_name = config.option<ConfigOptionStrings>("filament_settings_id")->values;
-                    current_extruder_count = config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+                    if (const auto *o = config.option<ConfigOptionStrings>("filament_settings_id")) current_filaments_name = o->values;
+                    if (const auto *o = config.option<ConfigOptionFloats>("nozzle_diameter"))       current_extruder_count = o->values.size();
                     current_printer_variant_count = config.option<ConfigOptionStrings>("printer_extruder_variant", true)->values.size();
                     current_print_variant_count = config.option<ConfigOptionStrings>("print_extruder_variant", true)->values.size();
                     current_is_multi_extruder = current_extruder_count > 1;
@@ -3809,13 +3884,13 @@ int CLI::run(int argc, char **argv)
         }
 
         //travel_acceleration
-        ConfigOptionFloat *travel_acceleration_option = m_print_config.option<ConfigOptionFloat>("travel_acceleration", true);
-        ConfigOptionFloat *default_acceleration_option = m_print_config.option<ConfigOptionFloat>("default_acceleration");
-        travel_acceleration_option->value = default_acceleration_option->value;
+        ConfigOptionFloatsNullable *travel_acceleration_option = m_print_config.option<ConfigOptionFloatsNullable>("travel_acceleration", true);
+        ConfigOptionFloatsNullable *default_acceleration_option = m_print_config.option<ConfigOptionFloatsNullable>("default_acceleration");
+        travel_acceleration_option->values = default_acceleration_option->values;
 
-        ConfigOptionFloat *initial_layer_travel_acceleration_option = m_print_config.option<ConfigOptionFloat>("initial_layer_travel_acceleration", true);
-        ConfigOptionFloat *initial_layer_acceleration_option = m_print_config.option<ConfigOptionFloat>("initial_layer_acceleration");
-        initial_layer_travel_acceleration_option->value = initial_layer_acceleration_option->value;
+        ConfigOptionFloatsNullable *initial_layer_travel_acceleration_option = m_print_config.option<ConfigOptionFloatsNullable>("initial_layer_travel_acceleration", true);
+        ConfigOptionFloatsNullable *initial_layer_acceleration_option = m_print_config.option<ConfigOptionFloatsNullable>("initial_layer_acceleration");
+        initial_layer_travel_acceleration_option->values = initial_layer_acceleration_option->values;
     }
 
     auto get_print_sequence = [](Slic3r::GUI::PartPlate* plate, DynamicPrintConfig& print_config, bool &is_seq_print) {
@@ -5875,6 +5950,72 @@ int CLI::run(int argc, char **argv)
                                     else
                                         filament_maps = part_plate->get_real_filament_maps(m_print_config);
 
+                                    // Multi-nozzle printers need the per-filament volume assignment as a grouping
+                                    // input in the manual modes: synthesize it from the per-extruder flow types when
+                                    // the caller did not provide one (an extruder whose nozzle stats span several
+                                    // volume types keeps the per-filament choice), and require explicit maps in
+                                    // nozzle-manual mode.
+                                    auto max_nozzle_counts_opt = m_print_config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+                                    // Skip nil entries: a nullable-int nil is INT_MAX (> 1) and would otherwise falsely pass the gate.
+                                    bool support_multi_nozzle =
+                                        max_nozzle_counts_opt &&
+                                        std::any_of(max_nozzle_counts_opt->values.begin(), max_nozzle_counts_opt->values.end(),
+                                                    [](int v) { return v > 1 && v != ConfigOptionIntsNullable::nil_value(); });
+                                    if (support_multi_nozzle && (mode == fmmManual || mode == fmmNozzleManual) && (plate_to_slice != 0)) {
+                                        // Orca: the grouping result is reconstructed purely from the passed maps in
+                                        // nozzle-manual mode, so all of them must be present (there are no separate
+                                        // per-nozzle CLI parameters to rebuild them from).
+                                        if (mode == FilamentMapMode::fmmNozzleManual &&
+                                            (!m_extra_config.has("filament_volume_map") || !m_extra_config.has("filament_nozzle_map") ||
+                                             !m_extra_config.has("filament_map"))) {
+                                            BOOST_LOG_TRIVIAL(error)
+                                                << boost::format("%1%, can not find filament_volume_map/filament_nozzle_map/filament_map under Nozzle Manual mode") % __LINE__;
+                                            record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, index + 1, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                                            flush_and_exit(CLI_INVALID_PARAMS);
+                                        }
+
+                                        if (mode == fmmManual) {
+                                            // Build the volume map when absent: filaments on a single-volume extruder
+                                            // print with that extruder's volume; a mixed-volume extruder keeps the
+                                            // per-filament choice (default Standard).
+                                            std::vector<NozzleVolumeType> using_nozzle_volume_type = new_nozzle_volume_type;
+                                            using_nozzle_volume_type.resize(new_extruder_count, nvtStandard);
+                                            if (auto extruder_nozzle_stats_opt = m_print_config.option<ConfigOptionStrings>("extruder_nozzle_stats")) {
+                                                auto nozzle_stats = get_extruder_nozzle_stats(extruder_nozzle_stats_opt->values);
+                                                for (int e_index = 0; e_index < new_extruder_count && e_index < (int) nozzle_stats.size(); e_index++) {
+                                                    if (nozzle_stats[e_index].size() > 1) {
+                                                        using_nozzle_volume_type[e_index] = nvtHybrid;
+                                                        BOOST_LOG_TRIVIAL(info) << boost::format("%1% : extruder %2%, set nozzle_volume_type to hybrid ") % __LINE__ % (e_index + 1);
+                                                    }
+                                                }
+                                            }
+                                            std::vector<int> &manual_volume_maps = m_extra_config.option<ConfigOptionInts>("filament_volume_map", true)->values;
+                                            // default to standard flow
+                                            manual_volume_maps.resize(filament_count, (int) (nvtStandard));
+                                            for (int f_index = 0; f_index < filament_count && f_index < (int) filament_maps.size(); f_index++) {
+                                                int f_extruder_index = filament_maps[f_index] - 1;
+                                                if (f_extruder_index >= 0 && f_extruder_index < new_extruder_count &&
+                                                    using_nozzle_volume_type[f_extruder_index] != nvtHybrid) {
+                                                    manual_volume_maps[f_index] = int(using_nozzle_volume_type[f_extruder_index]);
+                                                    BOOST_LOG_TRIVIAL(info) << boost::format("%1% : filament %2% extruder %3%, set filament_volume_map to %4% ") % __LINE__ % (f_index + 1) % (f_extruder_index + 1) % manual_volume_maps[f_index];
+                                                }
+                                            }
+                                        }
+
+                                        if (m_extra_config.has("filament_volume_map")) {
+                                            part_plate->set_filament_volume_maps(m_extra_config.option<ConfigOptionInts>("filament_volume_map")->values);
+                                        }
+                                        if (m_extra_config.has("filament_nozzle_map")) {
+                                            part_plate->set_filament_nozzle_maps(m_extra_config.option<ConfigOptionInts>("filament_nozzle_map")->values);
+                                        }
+                                    }
+                                    else if (!support_multi_nozzle && (mode == fmmNozzleManual)) {
+                                        BOOST_LOG_TRIVIAL(error)
+                                            << boost::format("%1%, Nozzle Manual mode not supported for %2%") % __LINE__ % new_printer_name;
+                                        record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, index + 1, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                                        flush_and_exit(CLI_INVALID_PARAMS);
+                                    }
+
                                     for (int index = 0; index < filament_maps.size(); index++)
                                     {
                                         int filament_extruder = filament_maps[index];
@@ -6002,9 +6143,9 @@ int CLI::run(int argc, char **argv)
                         }
                         (dynamic_cast<Print*>(print))->is_BBL_printer() = is_bbl_vendor_preset;
 
-                        StringObjectException warning;
+                        std::vector<StringObjectException> warnings;
                         print_fff->set_check_multi_filaments_compatibility(!allow_mix_temp);
-                        auto err = print->validate(&warning);
+                        auto err = print->validate(&warnings);
                         if (!err.string.empty()) {
                             if ((STRING_EXCEPT_LAYER_HEIGHT_EXCEEDS_LIMIT == err.type) && no_check) {
                                 BOOST_LOG_TRIVIAL(warning) << "got warnings: "<< err.string << std::endl;
@@ -6038,8 +6179,9 @@ int CLI::run(int argc, char **argv)
                                 flush_and_exit(validate_error);
                             }
                         }
-                        else if (!warning.string.empty()) {
-                            BOOST_LOG_TRIVIAL(warning) << "got warnings: "<< warning.string << std::endl;
+                        else if (!warnings.empty()) {
+                            for (const auto& w : warnings)
+                                BOOST_LOG_TRIVIAL(warning) << "got warnings: "<< w.string << std::endl;
                         }
 
                         if (print->empty()) {
@@ -6059,8 +6201,14 @@ int CLI::run(int argc, char **argv)
                                     BOOST_LOG_TRIVIAL(info) << "set print's callback to cli_status_callback.";
                                     print->set_status_callback(cli_status_callback);
                                     g_cli_callback_mgr.set_plate_info(index+1, (plate_to_slice== 0)?partplate_list.get_plate_count():1);
-                                    if (!warning.string.empty()) {
-                                        PrintBase::SlicingStatus slicing_status{4, warning.string, 0, 0};
+                                    if (!warnings.empty()) {
+                                        std::string warning_text;
+                                        for (const auto& w : warnings) {
+                                            if (!warning_text.empty())
+                                                warning_text += "\n";
+                                            warning_text += w.string;
+                                        }
+                                        PrintBase::SlicingStatus slicing_status{4, warning_text, 0, 0};
                                         cli_status_callback(slicing_status);
                                     }
                                     else {
@@ -6106,6 +6254,22 @@ int CLI::run(int argc, char **argv)
                                     BOOST_LOG_TRIVIAL(info) << "print::process: first time_using_cache is " << time_using_cache << " secs.";
                                 }
                                 if (printer_technology == ptFFF) {
+                                    // Read the engine's final grouping back onto the plate so an exported
+                                    // project (--export-3mf / gcode.3mf) carries the concrete maps in its
+                                    // plate settings, matching what a GUI slice persists.
+                                    // Orca: deliberately gated to multi-extruder printers so single-extruder
+                                    // exports keep their plate settings unchanged.
+                                    if (new_extruder_count > 1) {
+                                        FilamentMapMode current_map_mode = print_fff->config().filament_map_mode.value;
+                                        if (is_auto_filament_map_mode(current_map_mode)) {
+                                            part_plate->set_filament_maps(print_fff->get_filament_maps());
+                                            part_plate->set_filament_volume_maps(print_fff->get_filament_volume_maps());
+                                        }
+                                        if (current_map_mode != FilamentMapMode::fmmNozzleManual) {
+                                            part_plate->set_filament_nozzle_maps(print_fff->get_filament_nozzle_maps());
+                                        }
+                                    }
+
                                     std::string conflict_result = print_fff->get_conflict_string();
                                     if (!conflict_result.empty()) {
                                        BOOST_LOG_TRIVIAL(error) << "plate "<< index+1<< ": found slicing result conflict!"<< std::endl;
@@ -6892,7 +7056,7 @@ int CLI::run(int argc, char **argv)
             gcode_viewer.render_calibration_thumbnail(*calibration_data, cali_thumbnail_width, cali_thumbnail_height,
                 calibration_params, partplate_list, opengl_mgr);
             //generate_calibration_thumbnail(*calibration_data, thumbnail_width, thumbnail_height, calibration_params);
-            //*plate_bboxes[index] = p->generate_first_layer_bbox();
+            // *plate_bboxes[index] = p->generate_first_layer_bbox();
             calibration_thumbnails.push_back(calibration_data);*/
 
             PlateBBoxData* plate_bbox = new PlateBBoxData();
@@ -7290,7 +7454,7 @@ bool CLI::export_project(Model *model, std::string& path, PlateDataPtrs &partpla
     bool success = false;
 
     StoreParams store_params;
-    store_params.path = path.c_str();
+    store_params.path = path;
     store_params.model = model;
     store_params.plate_data_list = partplate_data;
     store_params.project_presets = project_presets;
@@ -7448,6 +7612,9 @@ LONG WINAPI VectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo)
 }*/
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
+// Guards against a failed allocation inside the dump re-entering the new-handler.
+static std::atomic<bool> g_dump_in_progress{false};
+
 extern "C" {
     __declspec(dllexport) int __stdcall orcaslicer_main(int argc, wchar_t **argv)
     {
@@ -7466,10 +7633,22 @@ extern "C" {
         //AddVectoredExceptionHandler(1, CBaseException::UnhandledExceptionFilter);
         SET_DEFULTER_HANDLER();
 #endif
+        // Dump before unwinding, while the stack still names what asked for the memory. Throwing
+        // std::bad_alloc is standard-permitted here and is what reaches generic_exception_handle().
         std::set_new_handler([]() {
-            int *a = nullptr;
-            *a     = 0;
-            });
+            if (!g_dump_in_progress.exchange(true)) {
+                try {
+                    // A null EXCEPTION_POINTERS walks the calling thread as it stands.
+                    CBaseException base(GetCurrentProcess(), GetCurrentProcessId(), NULL, nullptr);
+                    base.ShowCallstack();
+                } catch (...) {
+                    // A failed dump must not displace the std::bad_alloc owed to the caller.
+                }
+                // ObjParser recovers from std::bad_alloc, so let a later one dump again.
+                g_dump_in_progress = false;
+            }
+            throw std::bad_alloc();
+        });
         // Call the UTF8 main.
         return CLI().run(argc, argv_ptrs.data());
     }

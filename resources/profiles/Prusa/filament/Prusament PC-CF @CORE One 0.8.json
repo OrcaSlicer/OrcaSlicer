@@ -3,7 +3,7 @@
 	"name": "Prusament PC-CF @CORE One 0.8",
 	"inherits": "Prusament PC-CF @CORE One",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "0J8ZuIRTB6EgSke8",
 	"filament_id": "Prusament PC-CF @CORE One 0.8",
 	"instantiation": "true",
 	"compatible_printers": [

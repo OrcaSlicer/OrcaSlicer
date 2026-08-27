@@ -3,7 +3,7 @@
 	"name": "0.32mm High Flow @MK3.5",
 	"inherits": "process_highflow_MK3.5",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "GmseuiaxndWA2NEA",
 	"instantiation": "true",
 	"line_width": "0.68",
 	"inner_wall_line_width": "0.68",

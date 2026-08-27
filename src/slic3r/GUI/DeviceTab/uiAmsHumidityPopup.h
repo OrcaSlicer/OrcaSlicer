@@ -1,9 +1,9 @@
-//**********************************************************/
-/* File: uiAmsHumidityPopup.h
+/**********************************************************
+* File: uiAmsHumidityPopup.h
 *  Description: The popup with DevAms Humidity
 *
 *  \n class uiAmsHumidityPopup
-//**********************************************************/
+**********************************************************/
 
 #pragma once
 #include "slic3r/GUI/Widgets/AMSItem.hpp"
@@ -20,7 +20,7 @@ namespace Slic3r { namespace GUI {
 struct uiAmsHumidityInfo
 {
     std::string ams_id;
-    AMSModel ams_type;
+    AMSModel ams_type; // Orca: GUI-layer AMS enum; consumer (AMSItem.cpp) assigns an AMSModel
     int humidity_display_idx = -1;
     int humidity_percent = -1;
     float current_temperature;
@@ -68,7 +68,7 @@ private:
 
     wxStaticBitmap* m_dry_state_img;
     Label*          m_dry_state;
-    
+
     Label* m_humidity_header;
     Label* m_humidity_label;
 

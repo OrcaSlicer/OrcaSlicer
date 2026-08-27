@@ -155,16 +155,24 @@ if (NOT _is_multi AND NOT CMAKE_BUILD_TYPE)
 endif ()
 
 function(orcaslicer_add_cmake_project projectname)
-    cmake_parse_arguments(P_ARGS "" "INSTALL_DIR;BUILD_COMMAND;INSTALL_COMMAND" "CMAKE_ARGS" ${ARGN})
+    cmake_parse_arguments(P_ARGS "FORWARD_CONFIG" "INSTALL_DIR;BUILD_COMMAND;INSTALL_COMMAND" "CMAKE_ARGS" ${ARGN})
 
     set(_configs_line -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE})
     if (_is_multi OR MSVC)
-        if (ORCA_INCLUDE_DEBUG_INFO AND NOT DEP_DEBUG)
+        if (P_ARGS_FORWARD_CONFIG)
+            set(_configs_line -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE})
+        elseif (ORCA_INCLUDE_DEBUG_INFO AND NOT DEP_DEBUG)
             set(_configs_line "-DCMAKE_C_FLAGS_RELEASE:STRING=${CMAKE_C_FLAGS_RELWITHDEBINFO} -DCMAKE_CXX_FLAGS_RELEASE:STRING=${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
         else ()
             set(_configs_line "")
         endif ()
     endif ()
+
+    if (P_ARGS_FORWARD_CONFIG)
+        set(_target_config "$<CONFIG>")
+    else()
+        set(_target_config "Release")
+    endif()
 
     if (MSVC)
       set(_gen CMAKE_GENERATOR "${DEP_MSVC_GEN}" CMAKE_GENERATOR_PLATFORM "${DEP_PLATFORM}")
@@ -196,6 +204,8 @@ if (NOT IS_CROSS_COMPILE OR NOT APPLE)
             -DCMAKE_DEBUG_POSTFIX:STRING=d
             -DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}
             -DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}
+            -DCMAKE_C_COMPILER_LAUNCHER:STRING=${CMAKE_C_COMPILER_LAUNCHER}
+            -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=${CMAKE_CXX_COMPILER_LAUNCHER}
             -DCMAKE_TOOLCHAIN_FILE:STRING=${CMAKE_TOOLCHAIN_FILE}
             -DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS}
             -DCMAKE_SHARED_LINKER_FLAGS:STRING=${CMAKE_SHARED_LINKER_FLAGS}
@@ -206,8 +216,8 @@ if (NOT IS_CROSS_COMPILE OR NOT APPLE)
             ${DEP_CMAKE_OPTS}
             ${P_ARGS_CMAKE_ARGS}
        ${P_ARGS_UNPARSED_ARGUMENTS}
-       BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release -- ${_build_j}
-       INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config Release
+       BUILD_COMMAND ${CMAKE_COMMAND} --build . --config ${_target_config} -- ${_build_j}
+       INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config ${_target_config}
     )
 
     if (FLATPAK)
@@ -241,14 +251,16 @@ else()
             -DCMAKE_INSTALL_PREFIX:STRING=${DESTDIR}
             -DCMAKE_PREFIX_PATH:STRING=${DESTDIR}
             -DCMAKE_IGNORE_PREFIX_PATH:STRING=${CMAKE_IGNORE_PREFIX_PATH}
+            -DCMAKE_C_COMPILER_LAUNCHER:STRING=${CMAKE_C_COMPILER_LAUNCHER}
+            -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=${CMAKE_CXX_COMPILER_LAUNCHER}
             -DBUILD_SHARED_LIBS:BOOL=OFF
             ${_cmake_osx_arch}
             "${_configs_line}"
             ${DEP_CMAKE_OPTS}
             ${P_ARGS_CMAKE_ARGS}
        ${P_ARGS_UNPARSED_ARGUMENTS}
-       BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release -- ${_build_j}
-       INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config Release
+       BUILD_COMMAND ${CMAKE_COMMAND} --build . --config ${_target_config} -- ${_build_j}
+       INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config ${_target_config}
     )
 
 endif()
@@ -355,6 +367,9 @@ include(libnoise/libnoise.cmake)
 
 include(Draco/Draco.cmake)
 
+# Assimp: glTF/GLB/FBX import for the texture-to-color feature.
+include(Assimp/Assimp.cmake)
+
 
 # I *think* 1.1 is used for *just* md5 hashing?
 # 3.1 has everything in the right place, but the md5 funcs used are deprecated
@@ -410,6 +425,8 @@ endif ()
 
 include(OCCT/OCCT.cmake)
 include(OpenCV/OpenCV.cmake)
+include(python3/python3.cmake)
+include(wxInspector/wxInspector.cmake)
 
 set(_dep_list
     dep_Boost
@@ -432,6 +449,9 @@ set(_dep_list
     ${ZLIB_PKG}
     ${EXPAT_PKG}
     dep_libnoise
+    dep_python3
+    dep_wxInspector
+    dep_Assimp
     )
 
 if (MSVC)

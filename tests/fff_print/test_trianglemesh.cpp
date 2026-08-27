@@ -12,14 +12,14 @@
 #include <chrono>
 
 //#include "test_options.hpp"
-#include "test_data.hpp"
+#include "test_helpers.hpp"
 
 using namespace Slic3r;
 using namespace std;
 
 static inline TriangleMesh make_cube() { return make_cube(20., 20, 20); }
 
-SCENARIO( "TriangleMesh: Basic mesh statistics") {
+SCENARIO("Basic mesh statistics", "[TriangleMesh]") {
     GIVEN( "A 20mm cube, built from constexpr std::array" ) {
         std::vector<Vec3f> vertices { {20,20,0}, {20,0,0}, {0,0,0}, {0,20,0}, {20,20,20}, {0,20,20}, {0,0,20}, {20,0,20} };
         std::vector<Vec3i32> facets { {0,1,2}, {0,2,3}, {4,5,6}, {4,6,7}, {0,4,7}, {0,7,1}, {1,7,6}, {1,6,2}, {2,6,5}, {2,5,3}, {4,0,3}, {4,3,5} };
@@ -71,7 +71,7 @@ SCENARIO( "TriangleMesh: Basic mesh statistics") {
     }
 }
 
-SCENARIO( "TriangleMesh: Transformation functions affect mesh as expected.") {
+SCENARIO("Transformation functions affect the mesh as expected", "[TriangleMesh]") {
     GIVEN( "A 20mm cube with one corner on the origin") {
         auto cube = make_cube();
 
@@ -134,7 +134,7 @@ SCENARIO( "TriangleMesh: Transformation functions affect mesh as expected.") {
     }
 }
 
-SCENARIO( "TriangleMesh: slice behavior.") {
+SCENARIO("Slice behavior", "[TriangleMesh]") {
     GIVEN( "A 20mm cube with one corner on the origin") {
         auto cube = make_cube();
         
@@ -177,7 +177,7 @@ SCENARIO( "TriangleMesh: slice behavior.") {
     }
 }
 
-SCENARIO( "make_xxx functions produce meshes.") {
+SCENARIO("make_xxx functions produce meshes", "[TriangleMesh]") {
     GIVEN("make_cube() function") {
         WHEN("make_cube() is called with arguments 20,20,20") {
 			TriangleMesh cube = make_cube(20,20,20);
@@ -232,7 +232,7 @@ SCENARIO( "make_xxx functions produce meshes.") {
     }
 }
 
-SCENARIO( "TriangleMesh: split functionality.") {
+SCENARIO("Split functionality", "[TriangleMesh]") {
     GIVEN( "A 20mm cube with one corner on the origin") {
 		auto cube = make_cube();
         WHEN( "The mesh is split into its component parts.") {
@@ -260,7 +260,7 @@ SCENARIO( "TriangleMesh: split functionality.") {
     }
 }
 
-SCENARIO( "TriangleMesh: Mesh merge functions") {
+SCENARIO("Mesh merge functions", "[TriangleMesh]") {
     GIVEN( "Two 20mm cubes, each with one corner on the origin") {
 		auto cube = make_cube();
 		TriangleMesh cube2(cube);
@@ -274,7 +274,7 @@ SCENARIO( "TriangleMesh: Mesh merge functions") {
     }
 }
 
-SCENARIO( "TriangleMeshSlicer: Cut behavior.") {
+SCENARIO("Cut behavior", "[TriangleMesh]") {
     GIVEN( "A 20mm cube with one corner on the origin") {
 		auto cube = make_cube();
         WHEN( "Object is cut at the bottom") {
@@ -302,7 +302,7 @@ SCENARIO( "TriangleMeshSlicer: Cut behavior.") {
     }
 }
 #ifdef TEST_PERFORMANCE
-TEST_CASE("Regression test for issue #4486 - files take forever to slice") {
+TEST_CASE("Large mesh slices within the time budget (#4486)", "[TriangleMesh][Regression]") {
     TriangleMesh mesh;
     DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
     mesh.ReadSTLFile(std::string(testfile_dir) + "test_trianglemesh/4486/100_000.stl");
@@ -329,7 +329,7 @@ TEST_CASE("Regression test for issue #4486 - files take forever to slice") {
 #endif // TEST_PERFORMANCE
 
 #ifdef BUILD_PROFILE
-TEST_CASE("Profile test for issue #4486 - files take forever to slice") {
+TEST_CASE("Large mesh slicing profile (#4486)", "[TriangleMesh][Profile]") {
     TriangleMesh mesh;
     DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
     mesh.ReadSTLFile(std::string(testfile_dir) + "test_trianglemesh/4486/10_000.stl");

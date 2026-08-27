@@ -2,7 +2,7 @@
 	"name": "LHS PLA",
 	"type": "filament",
 	"filament_id": "LHF_pla",
-	"setting_id": "LHF_S_pla",
+	"setting_id": "M8WSwqD1iQkQntpy",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pla",

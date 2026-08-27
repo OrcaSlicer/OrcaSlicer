@@ -250,6 +250,7 @@ protected:
     std::vector<Preset::Type>	m_dependent_tabs;
 	enum OptStatus { osSystemValue = 1, osInitValue = 2 };
 	std::map<std::string, int>	m_options_list;
+    std::map<std::string, int> m_all_extruder_options_status;
 	int							m_opt_status_value = 0;
 
 	bool				m_is_modified_values{ false };
@@ -307,8 +308,12 @@ public:
 
 	ModeSwitchButton *m_mode_view = nullptr;
 	ScalableButton* m_mode_icon = nullptr; // ORCA m_static_title replacement
-    SwitchButton *m_extruder_switch = nullptr;
-    MultiSwitchButton *m_variant_combo = nullptr;
+    wxSizer *       m_variant_sizer   = nullptr;
+    MultiSwitchButton *  m_extruder_switch = nullptr;
+    MultiSwitchButton *  m_variant_combo   = nullptr;
+    ScalableButton *m_extruder_sync   = nullptr;
+	wxPanel *       m_extruder_sync_box  = nullptr;
+    std::vector<NozzleVolumeType> m_actual_nozzle_volumes;
 
 public:
 	// BBS
@@ -361,8 +366,11 @@ public:
 	void		decorate();
 	void		update_changed_ui();
 	void		get_sys_and_mod_flags(const std::string& opt_key, bool& sys_page, bool& modified_page);
-	void		update_changed_tree_ui();
+    void        update_changed_tree_ui();
 	void		update_undo_buttons();
+    void        update_extruder_switch_colors();
+    void        update_all_extruder_options_status();
+    void        check_extruder_options_status(int index, bool &sys_extruder, bool &modified_extruder, const std::vector<PageShp>& pages_to_check);
 
 	void		on_roll_back_value(const bool to_sys = false);
 
@@ -375,6 +383,7 @@ public:
 	virtual void	update() = 0;
 	virtual void	toggle_options() = 0;
 	virtual void	init_options_list();
+	std::string	options_list_storage_key(const std::string& opt_key) const;
     virtual void    update_custom_dirty(std::vector<std::string> &dirty_options, std::vector<std::string> &nonsys_options) {}
 	void			load_initial_data();
 	void			update_dirty();
@@ -393,10 +402,12 @@ public:
     Field*          get_field(const t_config_option_key &opt_key, Page** selected_page, int opt_index = -1);
     void            toggle_option(const std::string &opt_key, bool toggle, int opt_index = -1);
     void            toggle_line(const std::string &opt_key, bool toggle, int opt_index = -1); // BBS: hide some line
+    void            set_option_label(const std::string &opt_key, const wxString &label, int opt_index = -1);
 	wxSizer*		description_line_widget(wxWindow* parent, ogStaticText** StaticText, wxString text = wxEmptyString);
 	bool			current_preset_is_dirty() const;
 	bool			saved_preset_is_dirty() const;
 	void            update_saved_preset_from_current_preset();
+    void            update_pages_with_multi_variant();
 
 	DynamicPrintConfig*	get_config() { return m_config; }
     PresetCollection *  get_presets() { return m_presets; }
@@ -429,9 +440,16 @@ public:
     virtual const std::string&	get_custom_gcode(const t_config_option_key& opt_key);
     virtual void				set_custom_gcode(const t_config_option_key& opt_key, const std::string& value);
 
-    void        update_extruder_variants(int extruder_id = -1);
-    void        switch_excluder(int extruder_id = -1);
-    std::vector<wxString> generate_extruder_options();
+    void        update_extruder_variants(int extruder_id = -1, bool reload = true);
+    void        switch_excluder(int extruder_id = -1, bool reload = true);
+    void        sync_excluder();
+	void        parse_extruder_selection(int selection, int &extruder_id, NozzleVolumeType &nozzle_type);
+    int         calculate_selection_index_for_extruder(int extruder_id, NozzleVolumeType nozzle_type);
+	bool        get_extruder_sync_enable_state(int extruder_id);
+	int         get_current_active_extruder();
+
+	std::vector<wxString>  generate_extruder_options();
+    NozzleVolumeType       get_actual_nozzle_volume_type(int extruder_id);
 
 protected:
 	void			create_line_with_widget(ConfigOptionsGroup* optgroup, const std::string& opt_key, const std::string& path, widget_t widget);
@@ -497,13 +515,13 @@ public:
 	bool has_key(std::string const &key);
 
 protected:
-	virtual void    activate_selected_page(std::function<void()> throw_if_canceled);
+	virtual void    activate_selected_page(std::function<void()> throw_if_canceled) override;
 
 	virtual void    on_value_change(const std::string& opt_key, const boost::any& value) override;
 
 	virtual void    notify_changed(ObjectBase * object) = 0;
 
-	virtual void	reload_config();
+	virtual void	reload_config() override;
 
 	virtual void	update_custom_dirty(std::vector<std::string> &dirty_options, std::vector<std::string> &nonsys_options) override;
 
@@ -527,6 +545,8 @@ public:
 	void build() override;
 	void reset_model_config() override;
 	int show_spiral_mode_settings_dialog(bool is_object_config) { return m_config_manipulation.show_spiral_mode_settings_dialog(is_object_config); }
+	// Disables the user-defined filament print order while a mixed-color filament exists.
+	void update_mixed_filament_seq_state();
 
 protected:
 	virtual void    on_value_change(const std::string& opt_key, const boost::any& value) override;
@@ -592,6 +612,8 @@ public:
     void        clear_pages() override;
 	bool 		supports_printer_technology(const PrinterTechnology tech) const override { return tech == ptFFF; }
 
+	void		on_value_change(const std::string& opt_key, const boost::any& value) override;
+
     const std::string&	get_custom_gcode(const t_config_option_key& opt_key) override;
     void				set_custom_gcode(const t_config_option_key& opt_key, const std::string& value) override;
 };
@@ -650,11 +672,12 @@ public:
 	bool 		supports_printer_technology(const PrinterTechnology /* tech */) const override { return true; }
 
 	void		set_extruder_volume_type(int extruder_id, NozzleVolumeType type);
+	void		on_value_change(const std::string& opt_key, const boost::any& value) override;
 
 	wxSizer*	create_bed_shape_widget(wxWindow* parent);
 	void		cache_extruder_cnt(const DynamicPrintConfig* config = nullptr);
 	bool		apply_extruder_cnt_from_cache();
-
+	void		refresh_printer_agent_dropdown() const;
 };
 
 class TabSLAMaterial : public Tab

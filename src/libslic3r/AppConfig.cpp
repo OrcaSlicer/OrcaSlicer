@@ -202,6 +202,25 @@ void AppConfig::set_defaults()
     if (get("seq_top_layer_only").empty())
         set("seq_top_layer_only", "1");
 
+    // ORCA: darken the layers the preview layer slider is not scrubbed to
+    if (get("preview_dim_previous_layers").empty())
+        set_bool("preview_dim_previous_layers", false);
+
+    // ORCA: brightness of those dimmed layers, in percent. 0 = black, capped at 99 because
+    // 100 would render them unchanged, which is what disabling the option already does
+    if (get("preview_dim_previous_layers_brightness").empty())
+        set("preview_dim_previous_layers_brightness", "40");
+    else {
+        int brightness = 40;
+        try {
+            brightness = std::stoi(get("preview_dim_previous_layers_brightness"));
+        }
+        catch (...) {
+            brightness = 40;
+        }
+        set("preview_dim_previous_layers_brightness", std::to_string(std::max(0, std::min(brightness, 99))));
+    }
+
     if (get("filaments_area_preferred_count").empty())
         set("filaments_area_preferred_count", "10");
 
@@ -261,6 +280,9 @@ void AppConfig::set_defaults()
         set(SETTING_OPENGL_FPS_CAP, std::to_string(fps_cap));
     }
 
+    // The getter already defaults, parses and clamps; write back what it resolves to.
+    set(SETTING_PLUGIN_PAGES_VISIBLE_COUNT, std::to_string(get_plugin_pages_visible_count()));
+
     if (get(SETTING_OPENGL_SHOW_FPS_OVERLAY).empty())
         set_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY, false);
 
@@ -275,6 +297,9 @@ void AppConfig::set_defaults()
 
     if (get(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS).empty())
         set_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS, false);
+
+    if (get(SETTING_OPENGL_PHONG_SMOOTH_NORMALS).empty())
+        set_bool(SETTING_OPENGL_PHONG_SMOOTH_NORMALS, false);
 
     if (get(SETTING_OPENGL_PHONG_SSAO).empty())
         set_bool(SETTING_OPENGL_PHONG_SSAO, false);
@@ -300,6 +325,10 @@ void AppConfig::set_defaults()
 
     if (get("show_3d_navigator").empty())
         set_bool("show_3d_navigator", true);
+
+    // Show the one-time "Filament Track Switch is ready" tip until it has been seen once.
+    if (get("show_fila_switch_tips").empty())
+        set_bool("show_fila_switch_tips", true);
 
     if (get("show_plate_gridlines").empty())
         set_bool("show_plate_gridlines", true);
@@ -576,9 +605,16 @@ void AppConfig::set_defaults()
     if (get("enable_step_mesh_setting").empty()) {
         set_bool("enable_step_mesh_setting", true);
     }
-    if (get("linear_defletion", "angle_defletion").empty()) {
-        set("linear_defletion", "0.003");
-        set("angle_defletion", "0.5");
+    // Migrate legacy misspelled keys (linear_defletion/angle_defletion) to the corrected spelling.
+    if (get("linear_deflection").empty() && !get("linear_defletion").empty())
+        set("linear_deflection", get("linear_defletion"));
+    if (get("angle_deflection").empty() && !get("angle_defletion").empty())
+        set("angle_deflection", get("angle_defletion"));
+    if (get("linear_deflection").empty()) {
+        set("linear_deflection", "0.003");
+    }
+    if (get("angle_deflection").empty()) {
+        set("angle_deflection", "0.5");
     }
     if (get("is_split_compound").empty()) {
         set_bool("is_split_compound", false);
@@ -592,6 +628,12 @@ void AppConfig::set_defaults()
     if (get("window_buttons_on_left").empty())
         set_bool("window_buttons_on_left", false);
 #endif
+
+    if (get("use_printer_agents").empty())
+    {
+        // false = legacy behavior using print hosts
+        set_bool("use_printer_agents", false);
+    }
 
     // Remove legacy window positions/sizes
     erase("app", "main_frame_maximized");
@@ -790,6 +832,10 @@ std::string AppConfig::load()
                                 preset_info.nozzle_volume_type  = NozzleVolumeType(cali_it.value()["nozzle_volume_type"].get<int>());
                             if (cali_it.value().contains("bed_type"))
                                 preset_info.bed_type = BedType(cali_it.value()["bed_type"].get<int>());
+                            if (cali_it.value().contains("nozzle_pos_id"))
+                                preset_info.nozzle_pos_id = cali_it.value()["nozzle_pos_id"].get<int>();
+                            if (cali_it.value().contains("nozzle_sn"))
+                                preset_info.nozzle_sn = cali_it.value()["nozzle_sn"].get<std::string>();
                             cali_info.selected_presets.push_back(preset_info);
                         }
                     }
@@ -810,6 +856,10 @@ std::string AppConfig::load()
                         local_machine.dev_ip = p["dev_ip"].get<std::string>();
                     if (p.contains("printer_type"))
                         local_machine.printer_type = p["printer_type"].get<std::string>();
+                    if (p.contains("printer_agent_id"))
+                        local_machine.printer_agent_id = p["printer_agent_id"].get<std::string>();
+                    if (p.contains("access_code"))
+                        local_machine.access_code = p["access_code"].get<std::string>();
                     m_local_machines[local_machine.dev_id] = local_machine;
                 }
             } else {
@@ -840,7 +890,7 @@ std::string AppConfig::load()
                 }
             }
         }
-    } catch(std::exception err) {
+    } catch(const std::exception &err) {
         BOOST_LOG_TRIVIAL(info) << format("parse app config \"%1%\", error: %2%", AppConfig::loading_path(), err.what());
 
         return err.what();
@@ -947,6 +997,8 @@ void AppConfig::save()
             preset_json["extruder_id"]      = filament_preset.extruder_id;
             preset_json["nozzle_volume_type"]  = int(filament_preset.nozzle_volume_type);
             preset_json["bed_type"] = int(filament_preset.bed_type);
+            preset_json["nozzle_pos_id"]    = filament_preset.nozzle_pos_id;
+            preset_json["nozzle_sn"]        = filament_preset.nozzle_sn;
             preset_json["nozzle_diameter"]  = filament_preset.nozzle_diameter;
             preset_json["filament_id"]      = filament_preset.filament_id;
             preset_json["setting_id"]       = filament_preset.setting_id;
@@ -1020,6 +1072,8 @@ void AppConfig::save()
         m_json["dev_name"]         = local_machine.second.dev_name;
         m_json["dev_ip"]           = local_machine.second.dev_ip;
         m_json["printer_type"]     = local_machine.second.printer_type;
+        m_json["printer_agent_id"] = local_machine.second.printer_agent_id;
+        m_json["access_code"]      = local_machine.second.access_code;
 
         j["local_machines"][local_machine.first] = m_json;
     }
@@ -1583,6 +1637,22 @@ std::string AppConfig::get_network_plugin_version() const
 void AppConfig::set_network_plugin_version(const std::string& version)
 {
     set(SETTING_NETWORK_PLUGIN_VERSION, version);
+}
+
+int AppConfig::get_plugin_pages_visible_count() const
+{
+    std::string value = get(SETTING_PLUGIN_PAGES_VISIBLE_COUNT);
+    if (value.empty())
+        return PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT;
+
+    int visible_count = PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT;
+    try {
+        visible_count = std::stoi(value);
+    }
+    catch (...) {
+        return PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT;
+    }
+    return std::clamp(visible_count, PLUGIN_PAGES_VISIBLE_COUNT_MIN, PLUGIN_PAGES_VISIBLE_COUNT_MAX);
 }
 
 std::vector<std::string> AppConfig::get_skipped_network_versions() const

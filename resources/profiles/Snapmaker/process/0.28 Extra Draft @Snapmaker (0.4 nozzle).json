@@ -3,7 +3,7 @@
 	"name": "0.28 Extra Draft @Snapmaker (0.4 nozzle)",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "3717021337",
+	"setting_id": "MwuZ1zOqyZjq7Xn3",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 (0.4 nozzle)",

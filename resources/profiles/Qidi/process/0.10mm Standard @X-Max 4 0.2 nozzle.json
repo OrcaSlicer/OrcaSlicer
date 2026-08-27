@@ -1,10 +1,10 @@
 {
 	"type": "process",
-	"setting_id": "GP007",
 	"name": "0.10mm Standard @X-Max 4 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_process_n_common",
+	"from": "system",
+	"setting_id": "ABeYedxpPRk7Mv4k",
+	"instantiation": "true",
 	"bottom_color_penetration_layers": "5",
 	"bottom_shell_layers": "5",
 	"bridge_flow": "1",

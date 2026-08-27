@@ -326,7 +326,7 @@ void CalibrationCaliPage::update_subtask(MachineObject* obj)
                     prepare_text = wxString::Format(_L("Cloud Slicing..."));
                 }
                 else {
-                    prepare_text = wxString::Format(_L("In Cloud Slicing Queue, there are %s tasks ahead."), std::to_string(obj->queue_number));
+                    prepare_text = wxString::Format(_L("In Cloud Slicing Queue, there are %s tasks ahead of you."), std::to_string(obj->queue_number));
                     show_percent = false;
                 }
             }

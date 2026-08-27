@@ -1,0 +1,17 @@
+{
+	"type": "machine_model",
+	"name": "Bambu Lab A2L",
+	"nozzle_diameter": "0.4;0.2;0.6;0.8",
+	"url": "http://www.bambulab.com/Parameters/printer_model/Bambu Lab X1.json",
+	"bed_model": "bbl-3dp-H2C.stl",
+	"bed_texture": "bbl-3dp-logo.svg",
+	"bottom_texture_rect_longer": "45, -14.5, 240, 8",
+	"default_bed_type": "Textured PEI Plate",
+	"family": "BBL-3DP",
+	"image_bed_type": "o",
+	"machine_tech": "FFF",
+	"model_id": "N9",
+	"not_support_bed_type": "Cool Plate",
+	"use_double_extruder_default_texture": "true",
+	"default_materials": "Bambu PLA Matte @BBL A2L;Bambu PLA Basic @BBL A2L;Bambu PLA Silk @BBL A2L;Bambu Support For PLA/PETG @BBL A2L;Bambu TPU 95A @BBL A2L;Bambu PLA Tough @BBL A2L;Generic PLA @BBL A2L;Generic PLA High Speed @BBL A2L;Generic PETG @BBL A2L;Generic PVA @BBL A2L;Bambu PETG HF @BBL A2L"
+}

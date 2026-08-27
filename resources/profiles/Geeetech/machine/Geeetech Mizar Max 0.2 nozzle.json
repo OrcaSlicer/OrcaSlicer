@@ -3,7 +3,7 @@
 	"name": "Geeetech Mizar Max 0.2 nozzle",
 	"inherits": "fdm_geeetech_common",
 	"from": "system",
-	"setting_id": "GM_GEEETECH_017",
+	"setting_id": "1h9CYaulDN5YSWpN",
 	"instantiation": "true",
 	"printer_model": "Geeetech Mizar Max",
 	"default_filament_profile": [

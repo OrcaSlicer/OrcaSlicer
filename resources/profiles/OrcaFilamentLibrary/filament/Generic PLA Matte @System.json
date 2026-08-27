@@ -3,9 +3,12 @@
 	"name": "Generic PLA Matte @System",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "OGFSL99_02",
+	"setting_id": "RFs9eCKYOMUSmvZf",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
+		"11"
+	],
+	"filament_multitool_ramming_flow": [
 		"11"
 	],
 	"filament_retraction_length": [

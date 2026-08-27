@@ -3,7 +3,7 @@
 	"name": "PolyLite PETG Translucent @Snapmaker U1",
 	"inherits": "PolyLite PETG Translucent @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSL74_00",
+	"setting_id": "NBQOZiQQ8MpcDnLM",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"
@@ -17,7 +17,6 @@
 	"supertack_plate_temp_initial_layer": [
 		"70"
 	],
-
 	"pressure_advance": [
 		"0.05"
 	]

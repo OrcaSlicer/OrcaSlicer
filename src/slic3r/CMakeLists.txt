@@ -23,11 +23,14 @@ set(SLIC3R_GUI_SOURCES
     GUI/AboutDialog.cpp
     GUI/AboutDialog.hpp
     GUI/AmsMappingPopup.cpp
+    GUI/AmsMappingPopupUpdate.cpp
     GUI/AmsMappingPopup.hpp
     GUI/AMSMaterialsSetting.cpp
     GUI/AMSMaterialsSetting.hpp
     GUI/AMSSetting.cpp
     GUI/AMSSetting.hpp
+    GUI/AMSDryControl.cpp
+    GUI/AMSDryControl.hpp
     GUI/AmsWidgets.cpp
     GUI/AmsWidgets.hpp
     GUI/Auxiliary.cpp
@@ -38,6 +41,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Auxiliary.hpp
     GUI/BackgroundSlicingProcess.cpp
     GUI/BackgroundSlicingProcess.hpp
+    GUI/PostProcessor.cpp
+    GUI/PostProcessor.hpp
     GUI/BBLStatusBarBind.cpp
     GUI/BBLStatusBarBind.hpp
     GUI/BBLStatusBar.cpp
@@ -56,6 +61,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/BitmapComboBox.hpp
     GUI/BonjourDialog.cpp
     GUI/BonjourDialog.hpp
+    GUI/CrealityDiscoveryDialog.cpp
+    GUI/CrealityDiscoveryDialog.hpp
     GUI/calib_dlg.cpp
     GUI/calib_dlg.hpp
     GUI/Calibration.cpp
@@ -105,6 +112,27 @@ set(SLIC3R_GUI_SOURCES
     GUI/Downloader.hpp
     GUI/DownloadProgressDialog.cpp
     GUI/DownloadProgressDialog.hpp
+    GUI/PluginSource.hpp
+    GUI/PluginSort.hpp
+    GUI/PluginStatus.hpp
+    GUI/PluginPickerDialog.cpp
+    GUI/PluginPickerDialog.hpp
+    GUI/PluginsDialog.cpp
+    GUI/PluginsDialog.hpp
+    GUI/SpeedDialDialog.cpp
+    GUI/SpeedDialDialog.hpp
+    GUI/ActionRegistry.cpp
+    GUI/ActionRegistry.hpp
+    GUI/PluginsConfigDialog.cpp
+    GUI/PluginsConfigDialog.hpp
+    GUI/ProcessRunner.cpp
+    GUI/ProcessRunner.hpp
+    GUI/TerminalDialog.cpp
+    GUI/TerminalDialog.hpp
+    GUI/PluginProgressDialog.cpp
+    GUI/PluginProgressDialog.hpp
+    GUI/PluginWebDialog.cpp
+    GUI/PluginWebDialog.hpp
     GUI/DragCanvas.cpp
     GUI/DragCanvas.hpp
     GUI/EditGCodeDialog.cpp
@@ -325,6 +353,16 @@ set(SLIC3R_GUI_SOURCES
     GUI/Monitor.hpp
     GUI/MonitorPage.cpp
     GUI/MonitorPage.hpp
+    GUI/MixedFilamentDialog.cpp
+    GUI/MixedFilamentDialog.hpp
+    GUI/GradientCurveEditor.cpp
+    GUI/GradientCurveEditor.hpp
+    GUI/ColorDecomposeDialog.cpp
+    GUI/ColorDecomposeDialog.hpp
+    GUI/ColorDecomposeSupport.cpp
+    GUI/ColorDecomposeSupport.hpp
+    GUI/TextureImportDialog.cpp
+    GUI/TextureImportDialog.hpp
     GUI/Mouse3DController.cpp
     GUI/Mouse3DController.hpp
     GUI/MsgDialog.cpp
@@ -409,6 +447,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Project.hpp
     GUI/PublishDialog.cpp
     GUI/PublishDialog.hpp
+    GUI/PurgeModeDialog.cpp
+    GUI/PurgeModeDialog.hpp
     GUI/RammingChart.cpp
     GUI/RammingChart.hpp
     GUI/RecenterDialog.cpp
@@ -466,6 +506,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/TextLines.hpp
     GUI/TickCode.cpp
     GUI/TickCode.hpp
+    GUI/TroubleshootDialog.cpp
+    GUI/TroubleshootDialog.hpp
     GUI/UnsavedChangesDialog.cpp
     GUI/UnsavedChangesDialog.hpp
     GUI/UpdateDialogs.cpp
@@ -490,6 +532,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/AMSControl.hpp
     GUI/Widgets/AMSItem.cpp
     GUI/Widgets/AMSItem.hpp
+    GUI/Widgets/MultiNozzleSync.cpp
+    GUI/Widgets/MultiNozzleSync.hpp
     GUI/Widgets/AxisCtrlButton.cpp
     GUI/Widgets/AxisCtrlButton.hpp
     GUI/SafetyOptionsDialog.hpp
@@ -560,11 +604,63 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/TempInput.hpp
     GUI/Widgets/TextInput.cpp
     GUI/Widgets/TextInput.hpp
+    GUI/Widgets/WebViewHostDialog.cpp
+    GUI/Widgets/WebViewHostDialog.hpp
     GUI/Widgets/WebView.cpp
     GUI/Widgets/WebView.hpp
     GUI/WipeTowerDialog.cpp
     GUI/wxExtensions.cpp
     GUI/wxExtensions.hpp
+    plugin/PythonInterpreter.cpp
+    plugin/PythonInterpreter.hpp
+    plugin/PythonPluginBridge.cpp
+    plugin/PythonPluginBridge.hpp
+    plugin/PythonPluginInterface.hpp
+    plugin/PyPluginPackage.hpp
+    plugin/PluginBindingUtils.hpp
+    plugin/host/PluginHost.cpp
+    plugin/host/PluginHost.hpp
+    plugin/host/PluginHostBindings.hpp
+    plugin/host/PluginHostApp.cpp
+    plugin/host/PluginHostGeometry.cpp
+    plugin/host/PluginHostMesh.cpp
+    plugin/host/PluginHostMesh.hpp
+    plugin/host/PluginHostModel.cpp
+    plugin/host/PluginHostPresets.cpp
+    plugin/host/PluginHostSlicing.cpp
+    plugin/host/PluginHostUi.cpp
+    plugin/host/PluginHostUi.hpp
+    plugin/host/PluginPages.cpp
+    plugin/host/PluginPages.hpp
+    plugin/CloudPluginService.cpp
+    plugin/CloudPluginService.hpp
+    plugin/PluginFsUtils.cpp
+    plugin/PluginFsUtils.hpp
+    plugin/PluginConfig.cpp
+    plugin/PluginConfig.hpp
+    plugin/PluginLoader.cpp
+    plugin/PluginLoader.hpp
+    plugin/PluginDescriptor.hpp
+    plugin/PluginHooks.cpp
+    plugin/PluginHooks.hpp
+    plugin/PluginManager.cpp
+    plugin/PluginManager.hpp
+    plugin/PluginAuditManager.cpp
+    plugin/PluginAuditManager.hpp
+    plugin/PluginResolver.cpp
+    plugin/PluginResolver.hpp
+    plugin/pluginTypes/printerAgent/PrinterAgentPluginCapability.hpp
+    plugin/pluginTypes/printerAgent/PrinterAgentPluginCapability.cpp
+    plugin/pluginTypes/printerAgent/PrinterAgentPluginCapabilityTrampoline.hpp
+    plugin/pluginTypes/pages/PagesPluginCapability.hpp
+    plugin/pluginTypes/pages/PagesPluginCapability.cpp
+    plugin/pluginTypes/pages/PagesPluginCapabilityTrampoline.hpp
+    plugin/pluginTypes/script/ScriptPluginCapability.hpp
+    plugin/pluginTypes/script/ScriptPluginCapability.cpp
+    plugin/pluginTypes/script/ScriptPluginCapabilityTrampoline.hpp
+    plugin/pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp
+    plugin/pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.cpp
+    plugin/pluginTypes/slicingPipeline/SlicingPipelinePluginCapabilityTrampoline.hpp
     pchheader.cpp
     pchheader.hpp
     Utils/ASCIIFolding.cpp
@@ -580,6 +676,10 @@ set(SLIC3R_GUI_SOURCES
     Utils/ColorSpaceConvert.hpp
     Utils/CrealityPrint.cpp
     Utils/CrealityPrint.hpp
+    Utils/CrealityPrintAgent.cpp
+    Utils/CrealityPrintAgent.hpp
+    Utils/CrealityHostDiscovery.cpp
+    Utils/CrealityHostDiscovery.hpp
     Utils/Duet.cpp
     Utils/Duet.hpp
     Utils/ElegooLink.cpp
@@ -626,6 +726,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/SnapmakerPrinterAgent.hpp
     Utils/MoonrakerPrinterAgent.cpp
     Utils/MoonrakerPrinterAgent.hpp
+    Utils/Moonraker.cpp
+    Utils/Moonraker.hpp
     Utils/BBLCloudServiceAgent.cpp
     Utils/BBLCloudServiceAgent.hpp
     Utils/BBLPrinterAgent.cpp
@@ -665,6 +767,11 @@ set(SLIC3R_GUI_SOURCES
     Utils/WxFontUtils.hpp
     Utils/FileTransferUtils.cpp
     Utils/FileTransferUtils.hpp
+    Utils/wxInspectorPlugins/DPIAwarePlugin.hpp
+    Utils/wxInspectorPlugins/DPIAwarePlugin.cpp
+    Utils/wxInspectorPlugins/CustomWidgetsPlugin.hpp
+    Utils/wxInspectorPlugins/CustomWidgetsPlugin.cpp
+    Utils/wxInspectorPlugins/Registration.hpp
 )
 
 add_subdirectory(GUI/DeviceCore)
@@ -754,8 +861,16 @@ else()
     set(_opengl_link_lib OpenGL::GL)
 endif()
 
-target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise)
+target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi mdns ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise pybind11::embed)
 
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    # Linux finds wxWidgets in module mode, whose include dirs and definitions
+    # only apply at src/ directory scope; export them from the target so wx
+    # headers reach GUI-header consumers outside src/ (tests). The CONFIG-mode
+    # wx::* imported targets used on Windows/macOS already propagate these.
+    target_include_directories(libslic3r_gui SYSTEM PUBLIC ${wxWidgets_INCLUDE_DIRS})
+    target_compile_definitions(libslic3r_gui PUBLIC ${wxWidgets_DEFINITIONS} $<$<CONFIG:Debug>:${wxWidgets_DEFINITIONS_DEBUG}>)
+endif ()
 
 if (MSVC)
     target_link_libraries(libslic3r_gui Setupapi.lib)
@@ -833,3 +948,33 @@ endif ()
 
 # Add a definition so that we can tell we are compiling slic3r.
 target_compile_definitions(libslic3r_gui PRIVATE SLIC3R_CURRENTLY_COMPILING_GUI_MODULE)
+
+if(ORCA_BUNDLED_UV_EXECUTABLE_CONFIG)
+    target_compile_definitions(libslic3r_gui PRIVATE "ORCA_BUNDLED_UV_EXECUTABLE=\"${ORCA_BUNDLED_UV_EXECUTABLE_CONFIG}\"")
+endif()
+
+if (ORCA_BUILD_PYTHON_STUBGEN_MODULE)
+    add_library(orca_stubgen MODULE
+        plugin/PythonPluginBridge.cpp
+    )
+
+    target_compile_definitions(orca_stubgen PRIVATE
+        ORCA_PYTHON_STUBGEN_MODULE
+    )
+
+    target_include_directories(orca_stubgen PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}
+        Utils
+    )
+
+    target_link_libraries(orca_stubgen PRIVATE
+        libslic3r_gui
+        pybind11::embed
+    )
+
+    set_target_properties(orca_stubgen PROPERTIES
+        OUTPUT_NAME orca
+        PREFIX ""
+    )
+endif()

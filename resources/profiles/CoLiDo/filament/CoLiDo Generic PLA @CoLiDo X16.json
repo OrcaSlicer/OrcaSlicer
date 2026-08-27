@@ -3,7 +3,7 @@
 	"name": "CoLiDo Generic PLA @CoLiDo X16",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA99_05",
+	"setting_id": "HY8RFWOKRptC2YVt",
 	"filament_id": "GFA99",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [

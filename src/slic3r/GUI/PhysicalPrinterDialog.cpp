@@ -25,7 +25,6 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
-#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "format.hpp"
 #include "Tab.hpp"
 #include "wxExtensions.hpp"
@@ -37,6 +36,7 @@
 #include "RemovableDriveManager.hpp"
 #include "BitmapCache.hpp"
 #include "BonjourDialog.hpp"
+#include "CrealityDiscoveryDialog.hpp"
 #include "MsgDialog.hpp"
 #include "OAuthDialog.hpp"
 #include "SimplyPrint.hpp"
@@ -61,7 +61,7 @@ PhysicalPrinterDialog::PhysicalPrinterDialog(wxWindow* parent) :
     Tab *tab = wxGetApp().get_tab(Preset::TYPE_PRINTER);
     m_presets = tab->get_presets();
     const Preset &sel_preset  = m_presets->get_selected_preset();
-    std::string suffix = _CTX_utf8(L_CONTEXT("Copy", "PresetName"), "PresetName");
+    std::string suffix = _u8L_CONTEXT(L_CONTEXT("Copy", "PresetName"), "PresetName");
     std::string   preset_name = sel_preset.is_default ? "Untitled" : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.name;
 
     auto input_sizer = new wxBoxSizer(wxVERTICAL);
@@ -127,22 +127,8 @@ PhysicalPrinterDialog::~PhysicalPrinterDialog()
 void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgroup)
 {
     m_optgroup->m_on_change = [this](t_config_option_key opt_key, boost::any value) {
-        // Special handling for printer_agent: convert fake enum index to string agent ID
-        if (opt_key == "printer_agent") {
-            try {
-                int selected_idx = boost::any_cast<int>(value);
-                auto agents = NetworkAgentFactory::get_registered_printer_agents();
-                if (selected_idx >= 0 && selected_idx < static_cast<int>(agents.size())) {
-                    m_config->set_key_value("printer_agent",
-                                          new ConfigOptionString(agents[selected_idx].id));
-                }
-            } catch (const boost::bad_any_cast&) {
-                // If value is not an int, ignore
-            }
+        if (opt_key == "host_type" || opt_key == "printhost_authorization_type")
             this->update();
-        } else if (opt_key == "host_type" || opt_key == "printhost_authorization_type") {
-            this->update();
-        }
         if (opt_key == "print_host")
             this->update_printhost_buttons();
         if (opt_key == "printhost_port")
@@ -153,47 +139,6 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
 
     m_optgroup->append_single_option_line("host_type");
 
-    // Build printer agent dropdown from registry (only if network agent is available)
-    if (wxGetApp().getAgent() != nullptr) {
-        auto agents = NetworkAgentFactory::get_registered_printer_agents();
-
-        if (!agents.empty()) {
-            // Create a fake enum option to force a Choice widget instead of TextCtrl
-            // (printer_agent is coString in config, but we need a dropdown)
-            ConfigOptionDef def;
-            def.type    = coEnum;
-            def.width   = Field::def_width_wider();
-            def.label   = L("Printer Agent");
-            def.tooltip = L("Select the network agent implementation for printer communication. "
-                            "Available agents are registered at startup.");
-            def.mode    = comAdvanced;
-
-            // Populate enum values and labels from registered agents
-            for (const auto& agent : agents) {
-                def.enum_values.push_back(agent.id);
-                def.enum_labels.push_back(agent.display_name);
-            }
-
-            // Resolve selected agent: use config value if valid, otherwise fall back to default
-            std::string selected_agent = m_config->opt_string("printer_agent");
-            auto it = std::find_if(agents.begin(), agents.end(), [&selected_agent](const auto& a) { return a.id == selected_agent; });
-            if (it == agents.end()) {
-                selected_agent = ORCA_PRINTER_AGENT_ID;
-                it = std::find_if(agents.begin(), agents.end(), [&selected_agent](const auto& a) { return a.id == selected_agent; });
-            }
-
-            if (it != agents.end()) {
-                size_t default_idx = std::distance(agents.begin(), it);
-                def.set_default_value(new ConfigOptionInt(static_cast<int>(default_idx)));
-            }
-
-            // Create and append the option line
-            auto agent_option = Option(def, "printer_agent");
-            Line agent_line   = m_optgroup->create_single_option_line(agent_option);
-            m_optgroup->append_line(agent_line);
-        }
-    }
-
     auto create_sizer_with_btn = [](wxWindow* parent, Button** btn, const std::string& icon_name, const wxString& label) {
         *btn = new Button(parent, label);
         (*btn)->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
@@ -203,11 +148,28 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
         return sizer;
     };
 
-    auto printhost_browse = [=](wxWindow* parent) 
+    auto printhost_browse = [=](wxWindow* parent)
     {
         auto sizer = create_sizer_with_btn(parent, &m_printhost_browse_btn, "printer_host_browser", _L("Browse") + " " + dots);
         m_printhost_browse_btn->Bind(wxEVT_BUTTON, [=](wxCommandEvent& e) {
             const auto host_type = m_config->opt_enum<PrintHostType>("host_type");
+
+            // Creality K-series printers announce themselves via DNS-SD under a
+            // per-device-unique service type _Creality-<MAC-hex>._udp, so the
+            // standard fixed-service-name Bonjour browser does not find them.
+            // Dispatch to the Creality-specific scanner instead.
+            if (host_type == htCrealityPrint) {
+                CrealityDiscoveryDialog dialog(this);
+                if (dialog.ShowModal() == wxID_OK && !dialog.selected_ip().empty()) {
+                    // set_value expects the value wrapped as wxString -- TextCtrl::set_value
+                    // any_casts to wxString, so a raw std::string throws bad_any_cast.
+                    wxString new_url = wxString::FromUTF8("http://" + dialog.selected_ip());
+                    m_optgroup->set_value("print_host", new_url, true);
+                    m_optgroup->get_field("print_host")->field_changed();
+                }
+                return;
+            }
+
             if (host_type == htFlashforge) {
                 wxBusyCursor                            wait;
                 std::vector<FlashforgeDiscoveredPrinter> printers;
@@ -232,12 +194,13 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
                         update_printhost_buttons();
                     }
                 }
-            } else {
-                BonjourDialog dialog(this, Preset::printer_technology(*m_config));
-                if (dialog.show_and_lookup()) {
-                    m_optgroup->set_value("print_host", dialog.get_selected(), true);
-                    m_optgroup->get_field("print_host")->field_changed();
-                }
+                return;
+            }
+
+            BonjourDialog dialog(this, Preset::printer_technology(*m_config));
+            if (dialog.show_and_lookup()) {
+                m_optgroup->set_value("print_host", dialog.get_selected(), true);
+                m_optgroup->get_field("print_host")->field_changed();
             }
         });
 
@@ -587,22 +550,22 @@ void PhysicalPrinterDialog::update_preset_input() {
             info_line = from_u8((boost::format(_u8L("Preset \"%1%\" already exists.")) % m_preset_name).str());
         else
             info_line = from_u8((boost::format(_u8L("Preset \"%1%\" already exists and is incompatible with the current printer.")) % m_preset_name).str());
-        info_line += "\n" + _L("Please note that saving will overwrite this preset.");
+        info_line += "\n" + _L("Please note that saving will overwrite the current preset.");
         m_valid_type = Warning;
     }
 
     if (m_valid_type == Valid && m_preset_name.empty()) {
-        info_line    = _L("The name is not allowed to be empty.");
+        info_line    = _L("The name field is not allowed to be empty.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && m_preset_name.find_first_of(' ') == 0) {
-        info_line    = _L("The name is not allowed to start with space character.");
+        info_line    = _L("The name is not allowed to start with a space.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && m_preset_name.find_last_of(' ') == m_preset_name.length() - 1) {
-        info_line    = _L("The name is not allowed to end with space character.");
+        info_line    = _L("The name is not allowed to end with a space.");
         m_valid_type = NoValid;
     }
 
@@ -706,7 +669,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 }
 
                 // For bbl printers, show option to control the device tab
-                if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+                if (wxGetApp().preset_bundle->is_bbl_vendor() || wxGetApp().app_config->get_bool("use_printer_agents")) {
                     m_optgroup->show_field("bbl_use_print_host_webui");
                     const bool use_print_host_webui = !current_webui.empty();
                     if (Field* printhost_webui_field = m_optgroup->get_field("bbl_use_print_host_webui"); printhost_webui_field) {
@@ -797,31 +760,6 @@ void PhysicalPrinterDialog::update_host_type(bool printer_change)
     }
 }
 
-void PhysicalPrinterDialog::update_printer_agent_type()
-{
-    if (m_config == nullptr)
-        return;
-
-    Field* agent_field = m_optgroup->get_field("printer_agent");
-    if (!agent_field)
-        return;
-
-    Choice* agent_choice = dynamic_cast<Choice*>(agent_field);
-    if (!agent_choice)
-        return;
-
-    // Sync selection with current config value
-    const std::string current_agent = m_config->opt_string("printer_agent");
-
-    auto agents = NetworkAgentFactory::get_registered_printer_agents();
-    for (size_t i = 0; i < agents.size(); ++i) {
-        if (agents[i].id == current_agent) {
-            agent_choice->set_value(i);
-            return;
-        }
-    }
-}
-
 void PhysicalPrinterDialog::update_printers()
 {
     wxBusyCursor wait;
@@ -875,11 +813,6 @@ void PhysicalPrinterDialog::OnOK(wxEvent& event)
 {
     wxGetApp().get_tab(Preset::TYPE_PRINTER)->save_preset("", false, false, true, m_preset_name);
     event.Skip();
-
-    // Defer printer agent switch to ensure preset save completes first
-    wxGetApp().CallAfter([] {
-        wxGetApp().switch_printer_agent();
-    });
 }
 
 }}    // namespace Slic3r::GUI

@@ -33,7 +33,7 @@ LayerNumberTextInput::LayerNumberTextInput(wxWindow* parent, int layer_number, w
 {
     GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_DIGITS));
     GetTextCtrl()->SetFont(::Label::Body_14);
-    Append(_L("End"));
+    Append(_L_CONTEXT("End", "Layer range"));
     Append(_L("Customize"));
     if (m_value_type == ValueType::End)
         SetSelection(0);
@@ -45,7 +45,7 @@ LayerNumberTextInput::LayerNumberTextInput(wxWindow* parent, int layer_number, w
     Bind(wxEVT_TEXT, [this](auto& evt) {
             if (m_value_type == ValueType::End) {
                 // TextCtrl->SetValue() will generate a wxEVT_TEXT event
-                GetTextCtrl()->ChangeValue(_L("End"));
+                GetTextCtrl()->ChangeValue(_L_CONTEXT("End", "Layer range"));
                 return;
             }
             evt.Skip();
@@ -472,6 +472,31 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     m_sizer_main->AddSpacer(FromDIP(5));
     m_sizer_main->Add(m_other_layers_seq_panel, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
 
+    // A mixed-color slot resolves to a different physical filament per layer, so a user-defined
+    // filament order cannot be honoured; grey out the choice and explain that in the dialog.
+    {
+        auto &proj_cfg     = wxGetApp().preset_bundle->project_config;
+        auto *is_mixed_opt = proj_cfg.option<ConfigOptionBools>("filament_is_mixed");
+        if (is_mixed_opt && Slic3r::has_any_mixed_filament(is_mixed_opt->values)) {
+            m_first_layer_print_seq_choice->Enable(false);
+            m_other_layers_seq_panel->enable_seq_choice(false);
+
+            auto *warn_sizer = new wxBoxSizer(wxHORIZONTAL);
+            auto *warn_icon  = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("warning", this, 16),
+                                                  wxDefaultPosition, wxSize(FromDIP(16), FromDIP(16)));
+            auto *warn_text  = new wxStaticText(this, wxID_ANY,
+                _L("The filament list contains mixed filaments. Custom filament sequence will not take effect."));
+            warn_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#FF6F00")));
+            warn_text->SetFont(Label::Body_12);
+            warn_text->Wrap(FromDIP(300));
+
+            warn_sizer->Add(warn_icon, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(5));
+            warn_sizer->Add(warn_text, 1, wxALIGN_CENTER_VERTICAL, 0);
+            m_sizer_main->AddSpacer(FromDIP(5));
+            m_sizer_main->Add(warn_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
+        }
+    }
+
     auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, [this](auto& e) {
@@ -598,7 +623,7 @@ wxString PlateSettingsDialog::to_bed_type_name(BedType bed_type) {
         return _(bed_type_def->enum_labels[size_t(bed_type) - 1]);
         }
     }
-    return _L("Same as Global Bed Type");
+    return _L("Same as Global Plate Type");
 }
 
 wxString PlateSettingsDialog::to_print_sequence_name(PrintSequence print_seq) {

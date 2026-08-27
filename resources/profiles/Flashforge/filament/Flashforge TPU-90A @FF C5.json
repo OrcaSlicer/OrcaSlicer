@@ -3,6 +3,7 @@
 	"name": "Flashforge TPU-90A @FF C5",
 	"inherits": "Generic TPU @System",
 	"from": "system",
+	"setting_id": "Lis7BZ3lMkoX5KQt",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

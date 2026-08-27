@@ -3,7 +3,7 @@
 	"name": "Artillery Sidewinder X3 Plus 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM005",
+	"setting_id": "kYxFDURI6G6xkM0G",
 	"instantiation": "true",
 	"printer_model": "Artillery Sidewinder X3 Plus",
 	"default_print_profile": "0.20mm Standard @Artillery Genius",
@@ -123,7 +123,7 @@
 		"0"
 	],
 	"machine_pause_gcode": "M600",
-	"machine_start_gcode": "M140 S60\nM104 S140\nM190 S[first_layer_bed_temperature]\nM109 S{temperature_vitrification[0]}\nG28;\nNOZZLE_WIPE\nM140 S[first_layer_bed_temperature];\nM104 S[first_layer_temperature];\nDRAW_LINE_ONLY",
+	"machine_start_gcode": "M140 S60\nM104 S140\nM190 S[first_layer_bed_temperature]\nM109 S{temperature_vitrification[0]}\nG28;\nNOZZLE_WIPE\nM140 S[first_layer_bed_temperature];\nM109 S[first_layer_temperature];\nDRAW_LINE_ONLY",
 	"machine_unload_filament_time": "0",
 	"manual_filament_change": "0",
 	"max_layer_height": [
