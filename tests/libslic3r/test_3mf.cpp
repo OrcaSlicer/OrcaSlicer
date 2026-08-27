@@ -1024,3 +1024,55 @@ SCENARIO("Published 3MF round-trips the extended material metadata", "[3mf]") {
         }
     }
 }
+
+// A published mixed filament serializes its whole definition (components, ratios, gradient)
+// masked to the author's slot: the mix slot's values survive, the non-published slots reset to
+// their defaults, so a partial publish never leaks another slot's mix data.
+SCENARIO("Published mixed-filament keys are masked to the author's slot", "[3mf]") {
+    GIVEN("a full print configuration with three slots, one of them mixed") {
+        DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
+        full_cfg.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75, 1.75 };
+        full_cfg.opt<ConfigOptionStrings>("filament_colour")->values  = { "#111111", "#222222", "#333333" };
+        full_cfg.opt<ConfigOptionBools>("filament_is_mixed")->values  = { 0, 0, 1 };
+        full_cfg.opt<ConfigOptionStrings>("filament_mixed_components")->values       = { "", "", "1,2" };
+        full_cfg.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values   = { "", "", "0.6,0.4" };
+        full_cfg.opt<ConfigOptionBools>("filament_mixed_gradient")->values            = { 0, 0, 1 };
+        full_cfg.opt<ConfigOptionStrings>("filament_mixed_gradient_range")->values    = { "", "", "0.9,0.1" };
+        full_cfg.opt<ConfigOptionStrings>("filament_mixed_gradient_curve")->values    = { "", "", "0,0.1|1,0.9" };
+        full_cfg.opt<ConfigOptionBools>("filament_mixed_gradient_per_part")->values   = { 0, 0, 1 };
+
+        PublishedMaterialEntry mix_entry;
+        mix_entry.slot = 2;
+        mix_entry.keys = {
+            "filament_is_mixed",          "filament_mixed_components",       "filament_mixed_sublayer_ratios",
+            "filament_mixed_gradient",    "filament_mixed_gradient_range",   "filament_mixed_gradient_curve",
+            "filament_mixed_gradient_per_part"
+        };
+
+        WHEN("filtering with a mixed entry for slot 2") {
+            DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, {}, { mix_entry });
+
+            THEN("the author's mixed slot keeps its definition") {
+                REQUIRE(filtered_cfg.option("filament_is_mixed") != nullptr);
+                REQUIRE(filtered_cfg.opt<ConfigOptionBools>("filament_is_mixed")->values == std::vector<unsigned char>{ 0, 0, 1 });
+                const auto& components = filtered_cfg.opt<ConfigOptionStrings>("filament_mixed_components")->values;
+                REQUIRE(components.size() == 3);
+                CHECK(components[2] == "1,2");
+                CHECK(filtered_cfg.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values[2] == "0.6,0.4");
+                CHECK(filtered_cfg.opt<ConfigOptionStrings>("filament_mixed_gradient_curve")->values[2] == "0,0.1|1,0.9");
+                CHECK(filtered_cfg.opt<ConfigOptionBools>("filament_mixed_gradient")->values[2]);
+                CHECK(filtered_cfg.opt<ConfigOptionBools>("filament_mixed_gradient_per_part")->values[2]);
+            }
+            THEN("the non-published slots are masked to their defaults") {
+                CHECK(filtered_cfg.opt<ConfigOptionStrings>("filament_mixed_components")->values[0] == "");
+                CHECK(filtered_cfg.opt<ConfigOptionStrings>("filament_mixed_components")->values[1] == "");
+                CHECK(filtered_cfg.opt<ConfigOptionBools>("filament_is_mixed")->values[0] == 0);
+                CHECK(filtered_cfg.opt<ConfigOptionBools>("filament_is_mixed")->values[1] == 0);
+            }
+            THEN("the identity keys stay present") {
+                REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
+            }
+        }
+    }
+}
+

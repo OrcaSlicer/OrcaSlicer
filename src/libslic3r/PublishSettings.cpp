@@ -83,6 +83,23 @@ const std::set<std::string>& publish_structural_keys()
     return structural_keys;
 }
 
+const std::set<std::string>& publish_mixed_keys()
+{
+    // Must match PresetBundle's s_project_options mixed-color group (PresetBundle.cpp): these
+    // are project-level parallel per-slot arrays, not filament-preset options, so the import
+    // material pass applies them into project_config instead of a filament preset config.
+    static const std::set<std::string> mixed_keys = {
+        "filament_is_mixed",
+        "filament_mixed_components",
+        "filament_mixed_sublayer_ratios",
+        "filament_mixed_gradient",
+        "filament_mixed_gradient_range",
+        "filament_mixed_gradient_curve",
+        "filament_mixed_gradient_per_part"
+    };
+    return mixed_keys;
+}
+
 // The printer tab's "Retraction" optgroup (TabPrinter::build_fff, Tab.cpp), in tab order.
 // KEEP IN SYNC with that optgroup: the published-3MF printer allowlist is built from these
 // lists, so any key shown there must be publishable here (and vice versa).

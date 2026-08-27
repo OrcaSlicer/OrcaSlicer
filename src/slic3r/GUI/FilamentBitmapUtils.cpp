@@ -11,6 +11,45 @@
 
 namespace Slic3r { namespace GUI {
 
+// Barycentric utilities for a ternary (triangle) ratio picker.
+double tri_signed_area2(TriPoint a, TriPoint b, TriPoint c)
+{
+    return (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
+}
+
+bool tri_contains(TriPoint p, TriPoint v0, TriPoint v1, TriPoint v2)
+{
+    double total = tri_signed_area2(v0, v1, v2);
+    if (std::abs(total) < 1e-9) return false;
+    double s0 = tri_signed_area2(p, v1, v2) / total;
+    double s1 = tri_signed_area2(v0, p, v2) / total;
+    double s2 = 1.0 - s0 - s1;
+    return s0 >= -0.001 && s1 >= -0.001 && s2 >= -0.001;
+}
+
+void tri_barycentric(TriPoint p, TriPoint v0, TriPoint v1, TriPoint v2,
+                     double& w0, double& w1, double& w2)
+{
+    double total = std::abs(tri_signed_area2(v0, v1, v2));
+    if (total < 1e-9) { w0 = w1 = w2 = 1.0 / 3.0; return; }
+    w0 = std::abs(tri_signed_area2(p, v1, v2)) / total;
+    w1 = std::abs(tri_signed_area2(v0, p, v2)) / total;
+    w2 = 1.0 - w0 - w1;
+    w0 = std::clamp(w0, 0.0, 1.0);
+    w1 = std::clamp(w1, 0.0, 1.0);
+    w2 = std::clamp(w2, 0.0, 1.0);
+    double s = w0 + w1 + w2;
+    if (s > 0) { w0 /= s; w1 /= s; w2 /= s; }
+}
+
+TriPoint tri_clamp(TriPoint p, TriPoint v0, TriPoint v1, TriPoint v2)
+{
+    double w0, w1, w2;
+    tri_barycentric(p, v0, v1, v2, w0, w1, w2);
+    return {w0 * v0.x + w1 * v1.x + w2 * v2.x,
+            w0 * v0.y + w1 * v1.y + w2 * v2.y};
+}
+
 void fill_gradient_rect_east(wxDC& dc, const wxRect& rect, const wxColour& from, const wxColour& to)
 {
     if (rect.width <= 0 || rect.height <= 0) return;
@@ -73,7 +112,7 @@ std::vector<wxColour> sample_gradient_ramp(const wxColour& first,
 // Resolve the curve a gradient slot is sampled with, mirroring the slicer's fallback in
 // ToolOrdering: a custom curve wins, otherwise a straight line between gradient_range's
 // endpoints, otherwise the 0.10 -> 0.90 default.
-static Slic3r::GradientCurve mixed_gradient_curve(const Slic3r::DynamicPrintConfig& cfg, size_t slot)
+Slic3r::GradientCurve mixed_gradient_curve(const Slic3r::DynamicPrintConfig& cfg, size_t slot)
 {
     const auto* curve_opt = cfg.option<ConfigOptionStrings>("filament_mixed_gradient_curve");
     if (curve_opt && slot < curve_opt->values.size() && !curve_opt->values[slot].empty()) {

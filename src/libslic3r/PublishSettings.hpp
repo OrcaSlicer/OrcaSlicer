@@ -15,6 +15,13 @@ std::string publish_base_key(const std::string &key);
 // filter_published_config because 3MF validation needs it - exported, never applied.
 const std::set<std::string>& publish_structural_keys();
 
+// The mixed-color filament project keys (parallel per-slot arrays, see PresetBundle's
+// s_project_options): a mixed slot's full definition - which slots it blends, the sublayer
+// ratios and the optional Z-gradient description. A published mixed slot always serializes
+// these keys; on import they are applied into the receiver's project_config (not a filament
+// preset), so the mix survives the round-trip.
+const std::set<std::string>& publish_mixed_keys();
+
 // One row of the printer tab's "Retraction" / "Z-Hop" optgroups (key + tab icon id), kept
 // together so the tab can later be migrated onto these lists.
 struct PublishablePrinterOption {

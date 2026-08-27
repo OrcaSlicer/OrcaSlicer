@@ -13,6 +13,16 @@ namespace Slic3r { class DynamicPrintConfig; struct GradientCurve; }
 
 namespace Slic3r { namespace GUI {
 
+// Barycentric utilities for a ternary (triangle) ratio picker, shared by the mixed-filament
+// editor and the Publish dialog's read-only definition preview.
+struct TriPoint { double x, y; };
+
+double tri_signed_area2(TriPoint a, TriPoint b, TriPoint c);
+bool tri_contains(TriPoint p, TriPoint v0, TriPoint v1, TriPoint v2);
+void tri_barycentric(TriPoint p, TriPoint v0, TriPoint v1, TriPoint v2,
+                     double& w0, double& w1, double& w2);
+TriPoint tri_clamp(TriPoint p, TriPoint v0, TriPoint v1, TriPoint v2);
+
 // Fills a rect with a west->east linear gradient by drawing solid 1px columns.
 // Use instead of wxDC::GradientFillLinear, whose CoreGraphics (CGShading) backend
 // fails to render on some macOS builds; solid fills are unaffected.
@@ -50,6 +60,12 @@ std::vector<wxColour> sample_gradient_ramp(const wxColour& first,
 // two-component gradient mixed filament. steps is the ramp's resolution; pass the
 // destination's height in pixels.
 std::vector<wxColour> mixed_gradient_ramp(const Slic3r::DynamicPrintConfig& cfg, size_t slot, int steps);
+
+// Resolve the curve a gradient slot is sampled with: the custom curve wins when it has at
+// least two points, otherwise a straight line between gradient_range's endpoints, otherwise
+// the 0.10 -> 0.90 default. Mirrors the slicer's ToolOrdering fallback so every preview
+// agrees with what gets sliced. Always returns a two-point curve.
+Slic3r::GradientCurve mixed_gradient_curve(const Slic3r::DynamicPrintConfig& cfg, size_t slot);
 
 // Fill rect with a ramp, ramp.front() along the bottom edge.
 void fill_gradient_ramp_rect(wxDC& dc, const wxRect& rect, const std::vector<wxColour>& ramp);

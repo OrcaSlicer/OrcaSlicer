@@ -7,8 +7,10 @@
 #include "libslic3r/PublishSettings.hpp"
 
 #include <wx/wx.h>
+#include <wx/colour.h>
 #include <wx/scrolwin.h>
 #include <wx/menu.h>
+#include <utility>
 #include <vector>
 #include <string>
 
@@ -105,9 +107,18 @@ private:
         wxPoint scroll_pos{0, 0};
         wxStaticBitmap* filament_color_chip{nullptr};
         wxStaticText* title_label{nullptr}; // material title (static text; Full Publish carries the label elsewhere)
+        // "Enable": while unchecked nothing of this slot is exported and everything below the
+        // header row is hidden. For physical slots the Full Publish toggle sits on a second
+        // line (full_line_item) visible only when enabled; for mixed slots Enable alone implies
+        // publishing the mix definition, so no Full Publish widget exists at all.
+        wxCheckBox* enable_check{nullptr};
+        wxSizerItem* full_line_item{nullptr}; // sizer item of the Full Publish line (physical slots only)
         // "Full Publish": while checked, the whole slot preset is serialized and its rows
         // (incl. Color/Type) are disabled.
         wxCheckBox* full_check{nullptr};
+        // True for a mixed-color filament slot: no Material/Retraction rows; Enable publishes
+        // the slot's gradient/ratio definition as a whole.
+        bool is_mixed{false};
         // Material identity, only for Section::Material categories.
         std::string filament_type;
         std::string filament_vendor;
@@ -116,6 +127,21 @@ private:
         size_t filament_slot{0};
         std::vector<Subcategory> subs;
         std::vector<size_t> rows; // flattened rows of this category
+    };
+
+    // Frozen snapshot of a mixed filament slot's definition for the read-only visualization
+    // painted on the slot's page. Plain data only: the paint handler must never touch the
+    // config. For gradient slots the curve is pre-sampled (t, ratio) pairs, where ratio is the
+    // first component's share over model height; anchors carry the raw control points.
+    struct MixedVisualSpec
+    {
+        bool valid{false};
+        bool is_gradient{false};
+        std::vector<wxColour> component_colours;   // colour per component, in config order
+        std::vector<double> ratios;                // sublayer shares summing to ~1 (non-gradient)
+        std::vector<double> tri_weights;           // 3-component mixes: barycentric shares
+        std::vector<std::pair<double, double>> gradient_samples;
+        std::vector<std::pair<double, double>> gradient_anchors;
     };
 
     // One outer TabCtrl page. Category entries are its inner tabs.
@@ -127,13 +153,24 @@ private:
         ScalableBitmap icon_bmp;      // tab icon next to the title; rescaled on DPI change
         wxPanel* page{nullptr};
         TabCtrl* tabs{nullptr};
+        // Second tab strip, below the main one, listing only the mixed-color filament slots.
+        // Present on the Material section only (null elsewhere).
+        TabCtrl* mixed_tabs{nullptr};
         wxPanel* page_host{nullptr};
         wxBoxSizer* page_host_sizer{nullptr};
         int selected_inner{-1};
-        std::vector<size_t> categories; // indices into m_categories
+        // Selected mixed tab (index into mixed_categories), valid while a mixed slot page is shown.
+        int selected_mixed{-1};
+        std::vector<size_t> categories;      // indices into m_categories (physical slots)
+        std::vector<size_t> mixed_categories; // indices into m_categories (mixed slots)
     };
 
     void build_option_model();
+    // Frozen snapshot of a mixed slot's definition for the page visualization, resolved from
+    // the full config once at dialog-build time. Gradient slots pre-sample exactly what the
+    // slicer will print: the custom curve wins over the gradient_range endpoints over the
+    // 0.10 -> 0.90 default (the resolution FilamentBitmapUtils::mixed_gradient_curve mirrors).
+    static MixedVisualSpec make_mixed_visual_spec(const Slic3r::DynamicPrintConfig& full, size_t slot);
     void apply_filter(const wxString& filter_text);
     // Menu-only pseudo filters: show only the checked ("Filter selected") or only the
     // unchecked ("Filter non-selected") rows. The search box keeps the user's text.
@@ -147,13 +184,21 @@ private:
     void set_row_bold(Row& row, bool bold);
     // "Full Publish" toggled: disables/enables the material's rows.
     void on_full_toggle(size_t category_index);
+    // "Enable" toggled on a material slot: reveals/hides everything below the header and, for a
+    // mixed slot, auto-selects its component filaments' "Enable" + "Full Publish" toggles.
+    void on_enable_toggle(size_t category_index);
+    // Read-only visualization of a mixed slot's definition (a stacked ratio bar, or the
+    // Material Ratio vs Model Height graph for a gradient), inserted above the info hint
+    // inside the category's scroll area.
+    void add_mixed_visual(size_t category_index, const MixedVisualSpec& spec);
     // Return/create the fixed outer page for a Section kind.
     size_t section_group_for(Section kind);
     size_t category_index_for(const wxString& title,
                               Section section,
                               size_t group,
                               size_t source_index,
-                              const PublishMaterialIdentity& identity = PublishMaterialIdentity());
+                              const PublishMaterialIdentity& identity = PublishMaterialIdentity(),
+                              bool is_mixed                          = false);
     size_t subcategory_index_for(size_t category_index, const wxString& title, const wxString& icon);
     void add_row_ui(const std::string& key,
                     const wxString& label,
@@ -167,8 +212,10 @@ private:
     void save_scroll_position(Category& category);
     void show_outer_page(size_t section_index);
     void show_inner_page(size_t section_index, int inner_index);
+    void show_mixed_page(size_t section_index, int mixed_index);
     void on_outer_tab_changed(wxCommandEvent& event);
     void on_inner_tab_changed(size_t section_index, wxCommandEvent& event);
+    void on_mixed_tab_changed(size_t section_index, wxCommandEvent& event);
     bool row_is_visible(const Row& row) const;
     void apply_visibility();
     void bind_tab_events();
@@ -190,6 +237,7 @@ private:
     wxString m_info_nonsel;
     wxString m_info_allsel;
     wxString m_info_empty;
+    wxString m_info_mix; // body hint shown for a mixed slot (published as a whole)
 
     ScalableBitmap m_search;
     ScalableBitmap m_menu;

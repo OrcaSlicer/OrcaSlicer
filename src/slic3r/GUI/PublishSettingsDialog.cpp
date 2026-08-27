@@ -6,6 +6,7 @@
 #include "I18N.hpp"
 #include "Tab.hpp"
 #include "ConfigValueFormatter.hpp"
+#include "FilamentBitmapUtils.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/DialogButtons.hpp"
@@ -15,11 +16,21 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PublishSettings.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 
 #include <boost/algorithm/string/trim.hpp>
 #include <wx/display.h>
+#include <wx/dcbuffer.h>
+#include <wx/dcmemory.h>
+#include <wx/dcgraph.h>
+#include <wx/image.h>
 #include <set>
 #include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <memory>
+#include <numeric>
+#include <tuple>
 
 namespace Slic3r { namespace GUI {
 namespace {
@@ -90,7 +101,229 @@ wxString material_title(size_t slot, const PresetBundle* bundle, const DynamicPr
     return _L("Material");
 }
 
+// The component slots of a mixed filament ("1,2,3"), 1-based, or empty when out of range.
+std::vector<unsigned int> mixed_slot_components(const DynamicPrintConfig& full, size_t slot)
+{
+    const auto* comp_opt = full.opt<ConfigOptionStrings>("filament_mixed_components");
+    if (comp_opt == nullptr || slot >= comp_opt->size())
+        return {};
+    return parse_mixed_components(comp_opt->values[slot]);
+}
+
+// Human-readable label of a mixed filament, mirroring the sidebar's mixed filament rows: the
+// 1-based component slot numbers with their blend percentages (or a "->" gradient arrow),
+// e.g. "1 (60%) + 2 (40%)". Used as the slot's tab/header title in place of a preset name.
+wxString mixed_filament_label(const DynamicPrintConfig& full, size_t slot)
+{
+    const std::vector<unsigned int> comps = mixed_slot_components(full, slot);
+    if (comps.empty())
+        return _L("Mixed filament");
+    const auto* grad_opt   = full.opt<ConfigOptionBools>("filament_mixed_gradient");
+    const bool is_gradient = grad_opt != nullptr && slot < grad_opt->size() && grad_opt->values[slot];
+    const auto* ratios_opt = full.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios");
+    wxString label;
+    for (size_t i = 0; i < comps.size(); ++i) {
+        if (i > 0)
+            label += is_gradient ? wxString::FromUTF8(" \u2192 ") : wxString::FromUTF8(" + ");
+        label += wxString::Format("%u", comps[i]);
+        if (!is_gradient) {
+            double ratio = 100.0 / comps.size();
+            if (ratios_opt != nullptr && slot < ratios_opt->size()) {
+                const std::vector<double> rs = parse_mixed_ratios(ratios_opt->values[slot], comps.size());
+                if (i < rs.size())
+                    ratio = rs[i] * 100.0;
+            }
+            label += wxString::Format(" (%d%%)", int(ratio + 0.5));
+        }
+    }
+    return label;
+}
+
+// Blended representative colour of a mixed slot, computed exactly like the sidebar's swatches
+// (recompute_mixed_slot_colors): sublayer slots blend by their ratios, gradient slots by their
+// two end colours, broken references fall back to grey.
+wxColour mixed_filament_blend_color(const DynamicPrintConfig& full, size_t slot)
+{
+    std::vector<wxColour> colors;
+    if (const auto* colours = full.opt<ConfigOptionStrings>("filament_colour")) {
+        colors.reserve(colours->values.size());
+        for (const std::string& hex : colours->values) {
+            const wxColour c(hex);
+            colors.push_back(c.IsOk() ? c : wxColour(0, 0, 0));
+        }
+    }
+    while (colors.size() <= slot)
+        colors.push_back(wxColour("#D9D9D9"));
+    recompute_mixed_slot_colors(colors, full);
+    return slot < colors.size() ? colors[slot] : wxColour("#D9D9D9");
+}
+
+// Tab-strip bitmap for a mixed slot: the mix's own chip, then its component swatches each
+// followed by their percent share (or a "->" arrow for gradients), mirroring the main GUI's
+// sidebar rows - e.g. "[3 purple]: [1 red] 50% + [2 blue] 50%". The whole composition is one
+// bitmap because a TabCtrl item cannot interleave images into its text; the tab's text is
+// therefore empty. Transparent background like the other chips.
+wxBitmap mixed_filament_tab_bitmap(const DynamicPrintConfig& full, size_t slot, int swatch_sz)
+{
+    const std::vector<unsigned int> comps = mixed_slot_components(full, slot);
+    if (comps.empty())
+        return wxNullBitmap;
+    const auto* grad_opt   = full.opt<ConfigOptionBools>("filament_mixed_gradient");
+    const bool is_gradient = grad_opt != nullptr && slot < grad_opt->size() && grad_opt->values[slot];
+    const auto* ratios_opt = full.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios");
+    std::vector<double> ratio_pct(comps.size(), 100.0 / comps.size());
+    if (!is_gradient && ratios_opt != nullptr && slot < ratios_opt->size()) {
+        const std::vector<double> rs = parse_mixed_ratios(ratios_opt->values[slot], comps.size());
+        for (size_t i = 0; i < rs.size() && i < comps.size(); ++i)
+            ratio_pct[i] = rs[i] * 100.0;
+    }
+
+    const auto* colours     = full.opt<ConfigOptionStrings>("filament_colour");
+    const wxString lead_sep = wxString::FromUTF8(":");
+    const wxString comp_sep = is_gradient ? wxString::FromUTF8("\u2192") : wxString::FromUTF8("+");
+
+    // Phase 1 (layout): render every swatch and measure every text piece so the composite
+    // width is known before drawing; the dummy bitmap keeps GetTextExtent reliable.
+    struct Piece
+    {
+        enum Kind { Swatch, Text } kind{Text};
+        wxBitmap bmp;
+        wxString text;
+    };
+    std::vector<Piece> pieces;
+    bool has_lead = false;
+    wxBitmap dummy(1, 1);
+    wxMemoryDC measure_dc;
+    measure_dc.SelectObject(dummy);
+    measure_dc.SetFont(::Label::Body_12);
+    const int gap = wxWindow::FromDIP(4, nullptr);
+
+    auto push_swatch = [&](const std::string& hex, const std::string& label) {
+        wxBitmap* icon = get_extruder_color_icon(hex, label, swatch_sz, swatch_sz);
+        if (icon == nullptr)
+            return;
+        pieces.push_back({Piece::Swatch, *icon, wxString()});
+    };
+    auto push_text = [&](const wxString& text) { pieces.push_back({Piece::Text, wxNullBitmap, text}); };
+
+    {
+        const wxColour blend = mixed_filament_blend_color(full, slot);
+        const std::string blend_hex = blend.IsOk() ?
+                                          std::string(wxString::Format("#%02X%02X%02X", blend.Red(), blend.Green(), blend.Blue()).ToUTF8()) :
+                                          std::string("#808080");
+        const size_t before = pieces.size();
+        push_swatch(blend_hex, std::to_string(slot + 1));
+        has_lead = pieces.size() > before;
+    }
+    for (size_t ci = 0; ci < comps.size(); ++ci) {
+        if (pieces.empty())
+            break;
+        push_text(has_lead && pieces.size() == 1 ? lead_sep : comp_sep); // lead chip may have failed to render
+        std::string hex = "#D9D9D9";
+        if (colours != nullptr && comps[ci] >= 1 && comps[ci] <= colours->size())
+            hex = colours->values[comps[ci] - 1];
+        const size_t before = pieces.size();
+        push_swatch(hex, std::to_string(comps[ci]));
+        if (pieces.size() == before)
+            break; // swatch failed: stop cleanly before an orphaned separator/percent pair
+        if (!is_gradient) {
+            push_text(wxString::Format("%d%%", int(ratio_pct[ci] + 0.5)));
+        }
+    }
+    if (pieces.empty())
+        return wxNullBitmap;
+
+    int width = 0;
+    for (const Piece& p : pieces)
+        width += (p.kind == Piece::Swatch ? swatch_sz : measure_dc.GetTextExtent(p.text).x + gap);
+
+    // Phase 2 (draw): transparent background like the page-header chips.
+    wxBitmap composite(width, swatch_sz);
+    wxMemoryDC memdc;
+#ifdef __WXOSX__
+    composite.UseAlpha();
+    memdc.SelectObject(composite);
+#else
+    {
+        wxImage img(width, swatch_sz);
+        img.InitAlpha();
+        memset(img.GetAlpha(), 0, width * swatch_sz);
+        composite = wxBitmap(std::move(img));
+    }
+    memdc.SelectObject(composite);
+#endif
+    {
+#ifdef __WXMSW__
+        wxGCDC dc(memdc);
+#else
+        wxDC& dc = memdc;
+#endif
+        dc.SetBackgroundMode(wxTRANSPARENT);
+        dc.SetFont(::Label::Body_12);
+        dc.SetTextForeground(StateColor::darkModeColorFor(wxColour("#262E30")));
+        int x = 0;
+        for (const Piece& p : pieces) {
+            if (p.kind == Piece::Swatch) {
+                dc.DrawBitmap(p.bmp, x, 0);
+                x += swatch_sz;
+            } else {
+                const wxSize tsz = measure_dc.GetTextExtent(p.text);
+                dc.DrawText(p.text, x + gap / 2, (swatch_sz - tsz.y) / 2);
+                x += tsz.x + gap;
+            }
+        }
+    }
+    memdc.SelectObject(wxNullBitmap);
+    return composite;
+}
+
 } // namespace
+
+PublishSettingsDialog::MixedVisualSpec PublishSettingsDialog::make_mixed_visual_spec(const DynamicPrintConfig& full, size_t slot)
+{
+    MixedVisualSpec spec;
+    const std::vector<unsigned int> comps = mixed_slot_components(full, slot);
+    if (comps.empty())
+        return spec;
+
+    const auto* grad_opt = full.opt<ConfigOptionBools>("filament_mixed_gradient");
+    spec.is_gradient     = grad_opt != nullptr && slot < grad_opt->size() && grad_opt->values[slot];
+
+    const auto* colours = full.opt<ConfigOptionStrings>("filament_colour");
+    for (unsigned int cid : comps) {
+        std::string hex = "#D9D9D9";
+        if (colours != nullptr && cid >= 1 && cid <= colours->size())
+            hex = colours->values[cid - 1];
+        const wxColour c(hex);
+        spec.component_colours.push_back(c.IsOk() ? c : wxColour("#D9D9D9"));
+    }
+
+    if (!spec.is_gradient) {
+        // Sublayer shares; parse_mixed_ratios already falls back to equal shares and
+        // normalizes to sum 1.
+        spec.ratios.assign(comps.size(), 1.0 / comps.size());
+        if (const auto* ratios_opt = full.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios"))
+            if (slot < ratios_opt->size()) {
+                const std::vector<double> rs = parse_mixed_ratios(ratios_opt->values[slot], comps.size());
+                if (rs.size() == comps.size())
+                    spec.ratios = rs;
+            }
+        if (comps.size() == 3)
+            spec.tri_weights = spec.ratios; // the picker's barycentric shares
+    } else {
+        const Slic3r::GradientCurve curve = mixed_gradient_curve(full, slot);
+        constexpr int kSamples            = 64;
+        for (int i = 0; i <= kSamples; ++i) {
+            const double t = double(i) / kSamples;
+            spec.gradient_samples.emplace_back(t, sample_gradient_curve(curve, t));
+        }
+        for (const Slic3r::GradientAnchor& anchor : curve.points)
+            spec.gradient_anchors.emplace_back(anchor.x, anchor.y);
+    }
+
+    spec.valid = true;
+    return spec;
+}
 
 PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
     : DPIDialog(parent ? parent : static_cast<wxWindow*>(wxGetApp().mainframe),
@@ -206,9 +439,12 @@ void PublishSettingsDialog::fit_to_content()
     static const wxSize BASE{600, 500};
     static const wxSize CAP{1300, 850};
 
-    int strip = m_outer_tabs->buttons_best_width();
-    for (const SectionGroup& section : m_sections)
-        strip = std::max(strip, section.tabs->buttons_best_width());
+    int strip = m_outer_tabs->GetFullSize();
+    for (const SectionGroup& section : m_sections) {
+        strip = std::max(strip, section.tabs->GetFullSize());
+        if (section.mixed_tabs != nullptr)
+            strip = std::max(strip, section.mixed_tabs->GetFullSize());
+    }
 
     // Minimum width: whatever keeps every tab visible (never below the base). strip is device
     // pixels (Button min sizes); BASE/CAP are DIP and converted over.
@@ -233,9 +469,9 @@ void PublishSettingsDialog::build_option_model()
 {
     // Structural / non-publishable keys, shared with the published-3MF overlay path.
     const std::set<std::string>& denylist = publish_structural_keys();
-    // Base keys already added in the print/printer sections. Printer rows share this set:
-    // per-extruder "#N" variants collapse to the first occurrence (acceptable MVP; the
-    // per-extruder context is lost in the UI).
+    // Base keys already added in the print section (dedup across pages/optgroups). The printer
+    // section keeps its own printer_added set keyed by the full per-extruder "#N" opt_id, so
+    // every extruder gets its own row (see Phase 1 below).
     std::set<std::string> added;
 
     PresetBundle* bundle    = wxGetApp().preset_bundle;
@@ -244,6 +480,7 @@ void PublishSettingsDialog::build_option_model()
     m_info_nonsel = _L("No selected items...");
     m_info_allsel = _L("All items selected...");
     m_info_empty  = _L("No matching items...");
+    m_info_mix    = _L("Mixed filament - published as a whole when \"Enable\" above is selected");
 
     // Tab order differs from Section's enum order (Print, Printer, Material): the dialog
     // presents Printer, Filament, Process.
@@ -272,15 +509,32 @@ void PublishSettingsDialog::build_option_model()
     };
 
     // --- Phase 1: printer per-extruder retraction settings (first, mirroring the sidebar's
-    // Printer group), from the printer tab's "Extruder"/"Extruder N" pages.
+    // Printer group), from the printer tab's "Extruder"/"Extruder N" pages. One inner tab per
+    // extruder (e.g. "Left Extruder"/"Right Extruder" via Tab::translate_category), each holding
+    // that extruder's Retraction and Z-Hop rows with per-extruder "#N" values.
     {
         size_t g = section_group_for(Section::Printer);
-        category_index_for(_L("Extruder"), Section::Printer, g, 0);
+        std::set<std::string> printer_added;
         for (Tab* tab : wxGetApp().tabs_list) {
             if (tab->m_type != Preset::TYPE_PRINTER)
                 continue;
             for (const PageShp& page : tab->m_pages) {
                 if (!page->title().StartsWith("Extruder"))
+                    continue;
+                // The extruder index of this page: its options are appended with the same
+                // "#N" opt_index (opt.second.second), so derive the tab's index from the first
+                // allowlisted option; skip the page when none is found (defensive).
+                int extruder_idx = -1;
+                for (const ConfigOptionsGroupShp& optgroup : page->m_optgroups) {
+                    if (optgroup->title != "Retraction" && optgroup->title != "Z-Hop")
+                        continue;
+                    for (const auto& opt : optgroup->opt_map())
+                        if (extruder_idx < 0)
+                            extruder_idx = opt.second.second;
+                    if (extruder_idx >= 0)
+                        break;
+                }
+                if (extruder_idx < 0)
                     continue;
                 const wxString page_title = Tab::translate_category(page->title(), tab->m_type);
                 for (const ConfigOptionsGroupShp& optgroup : page->m_optgroups) {
@@ -292,17 +546,17 @@ void PublishSettingsDialog::build_option_model()
                     for (const auto& opt : optgroup->opt_map()) {
                         const std::string& opt_id   = opt.first;
                         const std::string& pure_key = opt.second.first;
-                        // Per-extruder "#N" variants collapse to the first base key. The row
-                        // stores the base key; GetPublishedKeys() later expands it back to one
-                        // "#N" entry per extruder so the load side can apply per-extruder values.
-                        if (!added.insert(pure_key).second)
+                        // Rows are keyed by the full per-extruder "#N" opt_id so each extruder
+                        // tab publishes its own value; GetPublishedKeys() emits the checked rows
+                        // as-is.
+                        if (!printer_added.insert(opt_id).second)
                             continue;
                         wxString label, value, unit;
                         if (!option_text(opt_id, pure_key, label, value, unit))
                             continue;
-                        size_t cat_index = category_index_for(_L("Extruder"), Section::Printer, g, 0);
+                        size_t cat_index = category_index_for(page_title, Section::Printer, g, size_t(extruder_idx));
                         size_t sub_index = subcategory_index_for(cat_index, subcategory, optgroup->icon);
-                        add_row_ui(pure_key, label, value, unit, cat_index, sub_index);
+                        add_row_ui(opt_id, label, value, unit, cat_index, sub_index);
                     }
                 }
             }
@@ -328,12 +582,28 @@ void PublishSettingsDialog::build_option_model()
                 }
 
             if (overrides_page != nullptr) {
+                // Mixed-color slots are virtual: they carry no per-key Material/Retraction
+                // settings; their "Enable" toggle always embeds the mix definition (components,
+                // ratios, gradient). Detect them via the project-level flag.
+                const ConfigOptionBools* is_mixed_opt = full.opt<ConfigOptionBools>("filament_is_mixed");
                 // One section per filament slot (a 4-slot printer shows 4 pages), each
                 // disambiguated by its colour chip and slot identity while showing the bare name.
                 for (size_t slot = 0; slot < bundle->filament_presets.size(); ++slot) {
+                    const bool is_mixed = is_mixed_opt != nullptr && slot < is_mixed_opt->size() && is_mixed_opt->values[slot];
                     const PublishMaterialIdentity identity = material_identity(slot, full);
-                    const wxString title                   = material_title(slot, bundle, full);
-                    const size_t category_index            = category_index_for(title, Section::Material, g, slot, identity);
+                    // A mixed slot's title is its component composition (e.g. "1 (60%) + 2
+                    // (40%)"), not the cloned preset's name shown in the main GUI.
+                    const wxString title        = is_mixed ? mixed_filament_label(full, slot) : material_title(slot, bundle, full);
+                    const size_t category_index = category_index_for(title, Section::Material, g, slot, identity, is_mixed);
+
+                    if (is_mixed) {
+                        // A mixed slot publishes as one unit (its definition); nothing to select
+                        // per-key. Its component filaments are auto-enabled + Full Published when
+                        // "Enable" is checked (see on_enable_toggle). Its page still shows what
+                        // would be published: a ratio bar, or the gradient graph.
+                        add_mixed_visual(category_index, make_mixed_visual_spec(full, slot));
+                        continue;
+                    }
 
                     // Material requirement rows: an optional filament colour and/or a
                     // vendor-agnostic material type for this slot, in their own optgroup so they
@@ -414,25 +684,37 @@ void PublishSettingsDialog::build_option_model()
         }
     }
 
-    // Pre-check the dirty (modified) settings and mark them bold (base-key match, across all
+    // Pre-check the dirty (modified) settings and mark them bold (per-slot match, across all
     // sections; collect_dirty_settings_keys unions the prints, printers and filaments).
-    std::set<std::string> dirty_base;
+    // Dirty keys carry a "#N" per-extruder/per-slot suffix (deep_diff), so the base key alone
+    // cannot distinguish which extruder/filament slot changed: match the row's exact key, and
+    // for material rows (base key + per-slot value) the base key plus the section's slot.
+    std::set<std::string> dirty_keys;
     for (const std::string& key : collect_dirty_settings_keys(*wxGetApp().preset_bundle))
-        dirty_base.insert(publish_base_key(key));
+        dirty_keys.insert(key);
     for (Row& row : m_rows) {
         // The Color/Type requirement rows are not "dirty overrides": never auto-checked.
         if (row.kind != RowKind::Setting)
             continue;
-        std::string base = publish_base_key(row.key);
-        row.dirty        = dirty_base.count(base) > 0;
+        bool dirty = dirty_keys.count(row.key) != 0;
+        if (!dirty && row.section == Section::Material)
+            dirty = dirty_keys.count(publish_base_key(row.key) + "#" + std::to_string(m_categories[row.inner_index].filament_slot)) != 0;
+        row.dirty = dirty;
         if (row.dirty) {
             row.check->SetValue(true);
             set_row_bold(row, true);
         }
     }
 
-    // Wire the "Full Publish" checkboxes: toggling one disables/enables the material's rows.
-    // Bind by index so the lambda stays valid even if the vector is reallocated later.
+    // Wire the "Enable" checkboxes: toggling one reveals/hides the slot's settings below the
+    // header (and, for a mixed slot, auto-selects its components). Bind by index so the lambda
+    // stays valid even if the vector is reallocated later.
+    for (size_t c = 0; c < m_categories.size(); ++c)
+        if (m_categories[c].enable_check != nullptr)
+            m_categories[c].enable_check->Bind(wxEVT_CHECKBOX, [this, c](wxCommandEvent&) { on_enable_toggle(c); });
+
+    // Wire the "Full Publish" checkboxes (physical slots): toggling one disables/enables the
+    // material's rows.
     for (size_t c = 0; c < m_categories.size(); ++c)
         if (m_categories[c].full_check != nullptr)
             m_categories[c].full_check->Bind(wxEVT_CHECKBOX, [this, c](wxCommandEvent&) { on_full_toggle(c); });
@@ -487,6 +769,18 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
     section.tabs->SetFont(Label::Body_14);
     section.tabs->SetBackgroundColour(GetBackgroundColour());
     page_sizer->Add(section.tabs, 0, wxEXPAND);
+    // Mixed-color filament slots get a second tab strip below the physical filament tabs; only
+    // the Material section has them.
+    if (kind == Section::Material) {
+        section.mixed_tabs = new TabCtrl(section.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, s_tab_style);
+        section.mixed_tabs->SetFont(Label::Body_14);
+        section.mixed_tabs->SetBackgroundColour(GetBackgroundColour());
+        // The mixed tabs carry full swatch compositions: give them extra room to breathe so
+        // neighbouring compositions do not read as one long row (must precede AppendItem).
+        section.mixed_tabs->SetItemSpace(FromDIP(5));
+        page_sizer->Add(section.mixed_tabs, 0, wxEXPAND | wxTOP, FromDIP(2));
+        section.mixed_tabs->Hide();
+    }
     section.page_host = new wxPanel(section.page, wxID_ANY);
     section.page_host->SetBackgroundColour(GetBackgroundColour());
     section.page_host_sizer = new wxBoxSizer(wxVERTICAL);
@@ -505,14 +799,20 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
 }
 
 size_t PublishSettingsDialog::category_index_for(
-    const wxString& title, Section section, size_t group, size_t source_index, const PublishMaterialIdentity& identity)
+    const wxString& title, Section section, size_t group, size_t source_index, const PublishMaterialIdentity& identity, bool is_mixed)
 {
-    for (size_t i : m_sections[group].categories) {
-        Category& existing = m_categories[i];
-        if (existing.title == title && existing.section == section && existing.source_index == source_index &&
-            existing.filament_id == identity.id && existing.filament_type == identity.type && existing.filament_vendor == identity.vendor)
+    // Dedup across both tab rows (physical + mixed); mixed slots are never duplicated anyway.
+    auto match = [&](const Category& existing) {
+        return existing.title == title && existing.section == section && existing.source_index == source_index &&
+               existing.filament_id == identity.id && existing.filament_type == identity.type &&
+               existing.filament_vendor == identity.vendor;
+    };
+    for (size_t i : m_sections[group].categories)
+        if (match(m_categories[i]))
             return i;
-    }
+    for (size_t i : m_sections[group].mixed_categories)
+        if (match(m_categories[i]))
+            return i;
 
     Category category;
     category.title           = title;
@@ -523,29 +823,58 @@ size_t PublishSettingsDialog::category_index_for(
     category.filament_vendor = identity.vendor;
     category.filament_id     = identity.id;
     category.filament_slot   = source_index;
+    category.is_mixed        = is_mixed;
     category.page            = new wxPanel(m_sections[group].page_host, wxID_ANY);
     category.page->SetBackgroundColour(GetBackgroundColour());
     auto* page_sizer = new wxBoxSizer(wxVERTICAL);
 
-    // The slot's colour chip decorates both the section header and the inner tab.
+    // The physical slot's colour chip decorates the page header and the inner tab; it carries
+    // the 1-based slot number, mirroring the main GUI's filament swatches. A mixed slot has no
+    // header at all: its page is just the Enable toggle above the (always visible) definition
+    // preview - the identification lives in the tab strip's composition bitmap.
     std::string hex;
-    if (section == Section::Material)
-        hex = filament_color_hex(wxGetApp().preset_bundle->full_config(), source_index);
+    std::string chip_label;
+    if (section == Section::Material && !is_mixed) {
+        const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
+        hex                           = filament_color_hex(full, source_index);
+        chip_label                    = std::to_string(source_index + 1);
+    }
 
     if (section == Section::Material) {
-        auto* header_sizer = new wxBoxSizer(wxHORIZONTAL);
-        if (wxBitmap* chip = get_extruder_color_icon(hex, "", FromDIP(12), FromDIP(12))) {
-            category.filament_color_chip = new wxStaticBitmap(category.page, wxID_ANY, *chip);
-            header_sizer->Add(category.filament_color_chip, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+        if (is_mixed) {
+            // No chip/title: the lone "Enable" checkbox tops the page.
+            auto* enable_sizer    = new wxBoxSizer(wxHORIZONTAL);
+            category.enable_check = new wxCheckBox(category.page, wxID_ANY, _L("Enable"));
+            category.enable_check->SetFont(Label::Body_13);
+            category.enable_check->SetToolTip(_L("Publish this mixed filament and enable + Full Publish its component filaments"));
+            enable_sizer->Add(category.enable_check, 0, wxALIGN_CENTER_VERTICAL);
+            page_sizer->Add(enable_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
+        } else {
+            // Line 1: [chip] [title] [Enable]. The Enable checkbox gates the whole slot: while
+            // it is unchecked nothing below the title is shown and nothing of it is published.
+            auto* header_sizer = new wxBoxSizer(wxHORIZONTAL);
+            if (wxBitmap* chip = get_extruder_color_icon(hex, chip_label, FromDIP(20), FromDIP(20))) {
+                category.filament_color_chip = new wxStaticBitmap(category.page, wxID_ANY, *chip);
+                header_sizer->Add(category.filament_color_chip, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+            }
+            category.title_label = new wxStaticText(category.page, wxID_ANY, title);
+            category.title_label->SetFont(Label::Head_14);
+            header_sizer->Add(category.title_label, 0, wxALIGN_CENTER_VERTICAL);
+            category.enable_check = new wxCheckBox(category.page, wxID_ANY, _L("Enable"));
+            category.enable_check->SetFont(Label::Body_13);
+            category.enable_check->SetToolTip(_L("Publish this filament slot in the 3MF file"));
+            header_sizer->Add(category.enable_check, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
+            page_sizer->Add(header_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
+
+            // Line 2: the "Full Publish" toggle, on its own line below the title (hidden until
+            // the slot is enabled).
+            auto* full_sizer    = new wxBoxSizer(wxHORIZONTAL);
+            category.full_check = new wxCheckBox(category.page, wxID_ANY, _L("Full Publish"));
+            category.full_check->SetFont(Label::Body_13);
+            category.full_check->SetToolTip(_L("Embed the entire filament of this slot in the 3MF file"));
+            full_sizer->Add(category.full_check, 0, wxALIGN_CENTER_VERTICAL);
+            category.full_line_item = page_sizer->Add(full_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(2));
         }
-        category.title_label = new wxStaticText(category.page, wxID_ANY, title);
-        category.title_label->SetFont(Label::Head_14);
-        header_sizer->Add(category.title_label, 0, wxALIGN_CENTER_VERTICAL);
-        category.full_check = new wxCheckBox(category.page, wxID_ANY, _L("Full Publish"));
-        category.full_check->SetFont(Label::Body_13);
-        category.full_check->SetToolTip(_L("Embed the entire filament of this slot in the 3MF file"));
-        header_sizer->Add(category.full_check, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
-        page_sizer->Add(header_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
     }
 
     category.scroll = new wxScrolledWindow(category.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
@@ -555,28 +884,53 @@ size_t PublishSettingsDialog::category_index_for(
     category.scroll->SetSizer(category.list_sizer);
     category.scroll->DisableFocusFromKeyboard();
     category.scroll->Bind(wxEVT_RIGHT_DOWN, &PublishSettingsDialog::show_menu, this);
-    category.info = new wxStaticText(category.scroll, wxID_ANY, m_info_empty);
+    category.info = new wxStaticText(category.scroll, wxID_ANY, is_mixed ? m_info_mix : m_info_empty);
     category.info->SetFont(Label::Body_13);
     category.list_sizer->Add(category.info, 1, wxALIGN_CENTER_HORIZONTAL | wxALL, FromDIP(10));
     category.info->Hide();
     page_sizer->Add(category.scroll, 1, wxEXPAND | wxALL, FromDIP(4));
+    // A material slot starts disabled: its rows (and its Full Publish line) stay hidden until
+    // "Enable" is checked.
+    if (section == Section::Material)
+        category.scroll->Hide();
     category.page->SetSizer(page_sizer);
     category.page->Hide();
 
     const size_t category_index = m_categories.size();
     m_categories.push_back(std::move(category));
-    m_sections[group].categories.push_back(category_index);
+    // Mixed slots live in a second tab row below the physical filament tabs.
+    if (is_mixed)
+        m_sections[group].mixed_categories.push_back(category_index);
+    else
+        m_sections[group].categories.push_back(category_index);
     if (section == Section::Material) {
-        if (wxBitmap* chip = get_extruder_color_icon(hex, "", FromDIP(12), FromDIP(12)))
-            m_sections[group].tabs->AppendItem(title, *chip);
-        else
-            m_sections[group].tabs->AppendItem(title);
+        TabCtrl* target = is_mixed ? m_sections[group].mixed_tabs : m_sections[group].tabs;
+        if (is_mixed) {
+            // The tab's whole composition (mix chip + components + percents) lives in one
+            // bitmap; the text is empty because a TabCtrl item cannot interleave images into
+            // its text.
+            const DynamicPrintConfig full_cfg = wxGetApp().preset_bundle->full_config();
+            const wxBitmap tab_bmp            = mixed_filament_tab_bitmap(full_cfg, source_index, FromDIP(20));
+            if (tab_bmp.IsOk())
+                target->AppendItem(wxString(), tab_bmp);
+            else
+                target->AppendItem(title);
+        } else if (wxBitmap* chip = get_extruder_color_icon(hex, chip_label, FromDIP(20), FromDIP(20))) {
+            target->AppendItem(title, *chip);
+        } else {
+            target->AppendItem(title);
+        }
     } else {
         m_sections[group].tabs->AppendItem(title);
     }
     m_sections[group].page_host_sizer->Add(m_categories[category_index].page, 1, wxEXPAND);
-    if (m_sections[group].selected_inner < 0)
+    if (is_mixed) {
+        if (m_sections[group].selected_mixed < 0)
+            m_sections[group].selected_mixed = 0;
+        m_sections[group].mixed_tabs->Show();
+    } else if (m_sections[group].selected_inner < 0) {
         m_sections[group].selected_inner = 0;
+    }
     return category_index;
 }
 
@@ -636,7 +990,9 @@ void PublishSettingsDialog::add_row_ui(const std::string& key,
     current.value_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
     current.value_label->SetToolTip(unit.IsEmpty() ? value : value + " " + unit);
     if (kind == RowKind::Color && !value.IsEmpty()) {
-        if (wxBitmap* chip = get_extruder_color_icon(value.ToStdString(), "", FromDIP(12), FromDIP(12))) {
+        // The colour swatch carries this slot's 1-based number, like the main GUI swatches.
+        const std::string chip_label = std::to_string(category.filament_slot + 1);
+        if (wxBitmap* chip = get_extruder_color_icon(value.ToStdString(), chip_label, FromDIP(20), FromDIP(20))) {
             current.color_chip = new wxStaticBitmap(category.scroll, wxID_ANY, *chip);
             row_sizer->Add(current.color_chip, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
         }
@@ -661,6 +1017,320 @@ void PublishSettingsDialog::on_full_toggle(size_t category_index)
         m_rows[r].check->Enable(!full);
 }
 
+void PublishSettingsDialog::on_enable_toggle(size_t category_index)
+{
+    Category& cat      = m_categories[category_index];
+    const bool enabled = cat.enable_check->GetValue();
+
+    // A published mixed filament needs its component filaments published too: mark the slots it
+    // uses as "Enable"d and Full Published so the mix's physical components always ship their
+    // identities.
+    if (cat.is_mixed && enabled) {
+        const DynamicPrintConfig full              = wxGetApp().preset_bundle->full_config();
+        const std::vector<unsigned int> components = mixed_slot_components(full, cat.filament_slot);
+        for (const unsigned int component : components) {
+            // Components are 1-based physical filament indices.
+            const size_t component_slot = size_t(component) - 1;
+            for (size_t c = 0; c < m_categories.size(); ++c) {
+                Category& comp_cat = m_categories[c];
+                if (comp_cat.section != Section::Material || comp_cat.is_mixed || comp_cat.filament_slot != component_slot)
+                    continue;
+                if (comp_cat.enable_check != nullptr)
+                    comp_cat.enable_check->SetValue(true);
+                if (comp_cat.full_check != nullptr)
+                    comp_cat.full_check->SetValue(true);
+                on_full_toggle(c);
+            }
+        }
+    }
+
+    // Reveal/hide everything below the slot's header (rows, info, Full Publish line) and refresh
+    // the visibility of the auto-selected component slots.
+    apply_visibility();
+    if (cat.page != nullptr)
+        cat.page->GetSizer()->Layout();
+}
+
+void PublishSettingsDialog::add_mixed_visual(size_t category_index, const MixedVisualSpec& spec)
+{
+    if (category_index >= m_categories.size() || !spec.valid)
+        return;
+    Category& category = m_categories[category_index];
+    if (category.page == nullptr || category.page->GetSizer() == nullptr || category.scroll == nullptr || spec.component_colours.empty())
+        return;
+
+    auto* viz = new wxPanel(category.page, wxID_ANY);
+    viz->SetBackgroundStyle(wxBG_STYLE_PAINT);
+    // Per-panel fill-bitmap cache for the ternary branch; rebuilt only when size or colours
+    // change (shared_ptr keeps the lifetime independent of this method's locals).
+    struct TriCache
+    {
+        wxBitmap bmp;
+        wxSize sz{0, 0};
+        wxColour c0, c1, c2;
+    };
+    auto tri_cache = std::make_shared<TriCache>();
+    // Theme colours and DIP metrics are resolved inside the paint handler so dark-mode toggles
+    // and DPI changes are picked up on the next repaint without any explicit listener.
+    viz->Bind(wxEVT_PAINT, [this, panel = viz, spec, tri_cache](wxPaintEvent&) {
+        const wxColour bg = StateColor::darkModeColorFor(*wxWHITE);
+        wxBufferedPaintDC pdc(panel);
+        pdc.SetBackground(wxBrush(bg));
+        pdc.Clear();
+        const wxRect rc = panel->GetClientRect();
+        if (rc.width <= 0 || rc.height <= 0)
+            return;
+
+        const size_t n = spec.component_colours.size();
+
+        if (spec.tri_weights.size() == 3 && n == 3 && !spec.is_gradient) {
+            // Ternary mix: a read-only miniature of the MixedFilamentDialog's triangle picker.
+            // Per-pixel barycentric fill is cached into a bitmap keyed on size + colours; the
+            // marker and labels are redrawn on top every paint.
+            const wxColour tri_bg   = StateColor::darkModeColorFor(*wxWHITE);
+            const wxColour outline  = StateColor::darkModeColorFor(wxColour("#CECECE"));
+            const wxColour ring     = StateColor::darkModeColorFor(wxColour("#262E30"));
+            const wxColour label_c  = StateColor::darkModeColorFor(wxColour(107, 107, 107)); // grey 700
+            const double margin_dip = 24.0;
+            auto& cache             = *tri_cache;
+
+            auto vertices_for = [&](const wxSize& sz) -> std::tuple<TriPoint, TriPoint, TriPoint> {
+                const double pw = sz.GetWidth(), ph = sz.GetHeight();
+                const int margin   = FromDIP(int(margin_dip));
+                const double avail = std::min(pw, ph) - 2.0 * margin;
+                const double side  = avail;
+                const double tri_h = side * std::sqrt(3.0) / 2.0;
+                const double cx    = pw / 2.0;
+                const double top_y = (ph - tri_h) / 2.0;
+                return {{cx, top_y}, {cx - side / 2.0, top_y + tri_h}, {cx + side / 2.0, top_y + tri_h}};
+            };
+
+            pdc.SetFont(::Label::Body_12);
+            const wxColour& c0 = spec.component_colours[0];
+            const wxColour& c1 = spec.component_colours[1];
+            const wxColour& c2 = spec.component_colours[2];
+
+            if (!cache.bmp.IsOk() || cache.sz != rc.GetSize() || cache.c0 != c0 || cache.c1 != c1 || cache.c2 != c2) {
+                auto [v0, v1, v2] = vertices_for(rc.GetSize());
+                cache.bmp         = wxBitmap(rc.width, rc.height, 32);
+                wxMemoryDC mdc(cache.bmp);
+                mdc.SetBrush(wxBrush(tri_bg));
+                mdc.SetPen(*wxTRANSPARENT_PEN);
+                mdc.DrawRectangle(0, 0, rc.width, rc.height);
+
+                const int min_y = int(std::min({v0.y, v1.y, v2.y}));
+                const int max_y = int(std::max({v0.y, v1.y, v2.y}));
+                const int min_x = int(std::min({v0.x, v1.x, v2.x}));
+                const int max_x = int(std::max({v0.x, v1.x, v2.x}));
+                for (int py = min_y; py <= max_y; ++py)
+                    for (int px = min_x; px <= max_x; ++px) {
+                        const TriPoint p = {double(px), double(py)};
+                        if (!tri_contains(p, v0, v1, v2))
+                            continue;
+                        double w0, w1, w2;
+                        tri_barycentric(p, v0, v1, v2, w0, w1, w2);
+                        unsigned char mr, mg, mb;
+                        if (w0 + w1 > 1e-6) {
+                            float t01 = static_cast<float>(w1 / (w0 + w1));
+                            Slic3r::filament_mixer_lerp(c0.Red(), c0.Green(), c0.Blue(), c1.Red(), c1.Green(), c1.Blue(), t01, &mr, &mg,
+                                                        &mb);
+                            Slic3r::filament_mixer_lerp(mr, mg, mb, c2.Red(), c2.Green(), c2.Blue(), static_cast<float>(w2), &mr, &mg, &mb);
+                        } else {
+                            mr = c2.Red();
+                            mg = c2.Green();
+                            mb = c2.Blue();
+                        }
+                        mdc.SetPen(wxPen(wxColour(mr, mg, mb)));
+                        mdc.DrawPoint(px, py);
+                    }
+
+                mdc.SetPen(wxPen(outline, 1));
+                mdc.SetBrush(*wxTRANSPARENT_BRUSH);
+                const wxPoint pts[3] = {{int(v0.x), int(v0.y)}, {int(v1.x), int(v1.y)}, {int(v2.x), int(v2.y)}};
+                mdc.DrawPolygon(3, pts);
+                mdc.SelectObject(wxNullBitmap);
+
+                cache.sz = rc.GetSize();
+                cache.c0 = c0;
+                cache.c1 = c1;
+                cache.c2 = c2;
+            }
+            pdc.DrawBitmap(cache.bmp, 0, 0);
+
+            // Published-ratio marker (read-only twin of the editor's drag handle).
+            {
+                auto [v0, v1, v2] = vertices_for(rc.GetSize());
+                const double w0 = spec.tri_weights[0], w1 = spec.tri_weights[1], w2 = spec.tri_weights[2];
+                const int hx = int(w0 * v0.x + w1 * v1.x + w2 * v2.x);
+                const int hy = int(w0 * v0.y + w1 * v1.y + w2 * v2.y);
+                pdc.SetBrush(*wxWHITE_BRUSH);
+                pdc.SetPen(wxPen(ring, FromDIP(2)));
+                pdc.DrawCircle(hx, hy, FromDIP(5));
+
+                // Percent label beside each vertex.
+                for (int i = 0; i < 3; ++i) {
+                    const wxString text = wxString::Format("%d%%", int(std::lround(spec.tri_weights[i] * 100.0)));
+                    const wxSize tsz    = pdc.GetTextExtent(text);
+                    const TriPoint vtx  = (i == 0) ? v0 : (i == 1) ? v1 : v2;
+                    int lx              = int(vtx.x - tsz.GetWidth() / 2.0);
+                    int ly              = (i == 0) ? int(vtx.y - tsz.GetHeight()) : int(vtx.y + FromDIP(3));
+                    ly                  = std::clamp(ly, 0, rc.height - tsz.GetHeight());
+                    lx                  = std::clamp(lx, 0, rc.width - tsz.GetWidth());
+                    pdc.SetTextForeground(label_c);
+                    pdc.DrawText(text, lx, ly);
+                }
+            }
+        } else if (!spec.is_gradient) {
+            // Stacked ratio bar: one solid segment per component, widths proportional to the
+            // published shares. Integer widths accumulate left to right; the last segment takes
+            // the rounding remainder so the bar always fills exactly.
+            std::vector<double> shares = spec.ratios;
+            double total               = 0.0;
+            for (double r : shares)
+                total += r;
+            if (shares.size() != n || total <= 0.0) {
+                shares.assign(n, 1.0 / n);
+                total = 1.0;
+            }
+            auto share_to_px = [&](double share_sum) { return rc.x + int(std::lround(share_sum / total * double(rc.width))); };
+            std::vector<wxRect> segs(n);
+            int x0 = rc.x;
+            for (size_t i = 0; i < n; ++i) {
+                int x1 = rc.x + rc.width;
+                if (i + 1 < n)
+                    x1 = share_to_px(std::accumulate(shares.begin(), shares.begin() + i + 1, 0.0));
+                segs[i] = wxRect(x0, rc.y, std::max(1, x1 - x0), rc.height);
+                x0      = segs[i].GetRight() + 1;
+            }
+
+            for (size_t i = 0; i < n; ++i) {
+                pdc.SetPen(*wxTRANSPARENT_PEN);
+                pdc.SetBrush(wxBrush(spec.component_colours[i]));
+                pdc.DrawRectangle(segs[i]);
+            }
+            pdc.SetBrush(*wxTRANSPARENT_BRUSH);
+            pdc.SetPen(wxPen(StateColor::darkModeColorFor(wxColour("#ACACAC")), 1));
+            pdc.DrawRectangle(rc);
+
+            // Percent label centred in each segment wide enough to hold it.
+            pdc.SetFont(::Label::Body_12);
+            for (size_t i = 0; i < n; ++i) {
+                const wxString text = wxString::Format("%d%%", int(std::lround(shares[i] / total * 100.0)));
+                const wxSize tsz    = pdc.GetTextExtent(text);
+                if (tsz.GetWidth() + FromDIP(4) > segs[i].GetWidth())
+                    continue;
+                // Label contrast follows the swatch itself, not the theme.
+                const wxColour& c = spec.component_colours[i];
+                const double lum  = 0.299 * c.Red() + 0.587 * c.Green() + 0.114 * c.Blue();
+                pdc.SetTextForeground(lum > 140 ? wxColour("#262E30") : *wxWHITE);
+                pdc.DrawText(text, segs[i].x + (segs[i].GetWidth() - tsz.GetWidth()) / 2, rc.y + (rc.height - tsz.GetHeight()) / 2);
+            }
+        } else {
+            // Gradient: compact "Material Ratio" over "Model Height" graph, a read-only
+            // miniature of the GradientCurveEditor plot. Component order matches the config;
+            // the second component's curve is the mirror of the first's.
+            const wxColour grid_color  = StateColor::darkModeColorFor(wxColour(238, 238, 238)); // grey 300
+            const wxColour axis_color  = StateColor::darkModeColorFor(wxColour(107, 107, 107)); // grey 700
+            const wxColour label_muted = StateColor::darkModeColorFor(wxColour(107, 107, 107));
+            const wxColour point_fill  = StateColor::darkModeColorFor(*wxWHITE);
+
+            const int pad_left   = FromDIP(34);
+            const int pad_right  = FromDIP(10);
+            const int pad_top    = FromDIP(18);
+            const int pad_bottom = FromDIP(16);
+            const wxRect plot(rc.x + pad_left, rc.y + pad_top, std::max(1, rc.width - pad_left - pad_right),
+                              std::max(1, rc.height - pad_top - pad_bottom));
+
+            constexpr int kGridDivisions = 5;
+            pdc.SetPen(wxPen(grid_color, 1));
+            for (int i = 0; i <= kGridDivisions; ++i) {
+                const int gx = plot.x + plot.width * i / kGridDivisions;
+                const int gy = plot.y + plot.height * i / kGridDivisions;
+                pdc.DrawLine(gx, plot.y, gx, plot.y + plot.height);
+                pdc.DrawLine(plot.x, gy, plot.x + plot.width, gy);
+            }
+
+            // Axes with small filled arrowheads along the plot's left and bottom edges.
+            const int arrow_len  = FromDIP(7);
+            const int arrow_half = FromDIP(3);
+            pdc.SetPen(wxPen(axis_color, 1));
+            pdc.SetBrush(wxBrush(axis_color));
+            pdc.DrawLine(plot.x, plot.y + plot.height, plot.x, plot.y);
+            {
+                wxPoint tri[3] = {wxPoint(plot.x, plot.y - arrow_len), wxPoint(plot.x - arrow_half, plot.y),
+                                  wxPoint(plot.x + arrow_half, plot.y)};
+                pdc.DrawPolygon(3, tri);
+            }
+            pdc.DrawLine(plot.x, plot.y + plot.height, plot.x + plot.width, plot.y + plot.height);
+            {
+                wxPoint tri[3] = {wxPoint(plot.x + plot.width + arrow_len, plot.y + plot.height),
+                                  wxPoint(plot.x + plot.width, plot.y + plot.height - arrow_half),
+                                  wxPoint(plot.x + plot.width, plot.y + plot.height + arrow_half)};
+                pdc.DrawPolygon(3, tri);
+            }
+
+            wxFont label_font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+            label_font.SetPointSize(std::max(7, label_font.GetPointSize() - 1));
+            pdc.SetFont(label_font);
+            pdc.SetTextForeground(label_muted);
+            pdc.DrawText(_L("Material Ratio"), plot.x + FromDIP(4), plot.y - pdc.GetTextExtent(_L("Material Ratio")).GetHeight());
+            const wxString height_title = _L("Model Height");
+            pdc.DrawText(height_title, plot.x + plot.width - pdc.GetTextExtent(height_title).GetWidth(), plot.y + plot.height + FromDIP(2));
+
+            if (spec.gradient_samples.size() >= 2 && n >= 2) {
+                auto curve_point = [&](double t, double ratio) {
+                    return wxPoint(plot.x + int(std::lround(t * plot.width)), plot.y + int(std::lround((1.0 - ratio) * plot.height)));
+                };
+                // First component's ratio solid, its mirror dashed-free twin for the other.
+                const wxColour& col_a = spec.component_colours[0];
+                const wxColour& col_b = spec.component_colours[1];
+                std::vector<wxPoint> pts_a, pts_b;
+                pts_a.reserve(spec.gradient_samples.size());
+                pts_b.reserve(spec.gradient_samples.size());
+                for (const auto& [t, r] : spec.gradient_samples) {
+                    pts_a.push_back(curve_point(t, r));
+                    pts_b.push_back(curve_point(t, 1.0 - r));
+                }
+                pdc.SetPen(wxPen(col_b, 2));
+                for (size_t i = 0; i + 1 < pts_b.size(); ++i)
+                    pdc.DrawLine(pts_b[i], pts_b[i + 1]);
+                pdc.SetPen(wxPen(col_a, 2));
+                for (size_t i = 0; i + 1 < pts_a.size(); ++i)
+                    pdc.DrawLine(pts_a[i], pts_a[i + 1]);
+
+                // Control-point anchors of the stored curve on the first component's line.
+                pdc.SetBrush(wxBrush(point_fill));
+                pdc.SetPen(wxPen(col_a, 1));
+                for (const auto& [t, r] : spec.gradient_anchors) {
+                    const wxPoint c = curve_point(t, r);
+                    pdc.DrawCircle(c, FromDIP(3));
+                }
+            }
+        }
+    });
+
+    // Fixed DIP size, left-aligned: the visualization keeps its proportions no matter how the
+    // dialog is resized (the paint handler draws into whatever client rect the panel ends up
+    // with, so nothing else has to change).
+    const int viz_h = spec.is_gradient ? 150 : (spec.tri_weights.size() == 3 ? 180 : 30);
+    const wxSize viz_sz(FromDIP(240), FromDIP(viz_h));
+    viz->SetMinSize(viz_sz);
+    viz->SetMaxSize(viz_sz);
+    // Parented to the page right above the scroll area, so it is always shown with the tab:
+    // the "Enable" toggle keeps gating only the rows/info below, never this preview.
+    wxSizer* page_sizer = category.page->GetSizer();
+    int scroll_idx      = -1;
+    for (size_t i = 0; i < page_sizer->GetChildren().size(); ++i)
+        if (page_sizer->GetChildren()[i]->GetWindow() == category.scroll) {
+            scroll_idx = int(i);
+            break;
+        }
+    if (scroll_idx < 0)
+        page_sizer->Add(viz, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(10)); // defensive: no scroll item
+    else
+        page_sizer->Insert(scroll_idx, viz, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(10));
+}
+
 void PublishSettingsDialog::set_row_bold(Row& row, bool bold)
 {
     // Rebase on the dialog's body font so clearing bold restores the exact original font.
@@ -681,13 +1351,18 @@ void PublishSettingsDialog::show_outer_page(size_t section_index)
         SectionGroup& old_section = m_sections[m_selected_outer];
         if (old_section.selected_inner >= 0 && old_section.selected_inner < static_cast<int>(old_section.categories.size()))
             save_scroll_position(m_categories[old_section.categories[old_section.selected_inner]]);
+        if (old_section.selected_mixed >= 0 && old_section.selected_mixed < static_cast<int>(old_section.mixed_categories.size()))
+            save_scroll_position(m_categories[old_section.mixed_categories[old_section.selected_mixed]]);
         m_sections[m_selected_outer].page->Hide();
     }
     m_selected_outer      = static_cast<int>(section_index);
     SectionGroup& section = m_sections[section_index];
     section.page->Show();
+    // Restore whichever tab row (physical or mixed) was active.
     if (section.selected_inner >= 0)
         show_inner_page(section_index, section.selected_inner);
+    else if (section.selected_mixed >= 0)
+        show_mixed_page(section_index, section.selected_mixed);
     m_outer_host_sizer->Layout();
 }
 
@@ -702,11 +1377,43 @@ void PublishSettingsDialog::show_inner_page(size_t section_index, int inner_inde
         save_scroll_position(m_categories[section.categories[section.selected_inner]]);
         m_categories[section.categories[section.selected_inner]].page->Hide();
     }
+    if (section.selected_mixed >= 0 && section.selected_mixed < static_cast<int>(section.mixed_categories.size())) {
+        save_scroll_position(m_categories[section.mixed_categories[section.selected_mixed]]);
+        m_categories[section.mixed_categories[section.selected_mixed]].page->Hide();
+        section.selected_mixed = -1;
+    }
     section.selected_inner = inner_index;
     Category& category     = m_categories[section.categories[inner_index]];
     category.page->Show();
     category.scroll->FitInside();
     category.scroll->Scroll(category.scroll_pos.x, category.scroll_pos.y);
+    if (section.mixed_tabs != nullptr)
+        section.mixed_tabs->Unselect();
+    section.page_host_sizer->Layout();
+}
+
+void PublishSettingsDialog::show_mixed_page(size_t section_index, int mixed_index)
+{
+    if (section_index >= m_sections.size())
+        return;
+    SectionGroup& section = m_sections[section_index];
+    if (mixed_index < 0 || mixed_index >= static_cast<int>(section.mixed_categories.size()))
+        return;
+    if (section.selected_mixed >= 0 && section.selected_mixed < static_cast<int>(section.mixed_categories.size())) {
+        save_scroll_position(m_categories[section.mixed_categories[section.selected_mixed]]);
+        m_categories[section.mixed_categories[section.selected_mixed]].page->Hide();
+    }
+    if (section.selected_inner >= 0 && section.selected_inner < static_cast<int>(section.categories.size())) {
+        save_scroll_position(m_categories[section.categories[section.selected_inner]]);
+        m_categories[section.categories[section.selected_inner]].page->Hide();
+        section.selected_inner = -1;
+    }
+    section.selected_mixed = mixed_index;
+    Category& category     = m_categories[section.mixed_categories[mixed_index]];
+    category.page->Show();
+    category.scroll->FitInside();
+    category.scroll->Scroll(category.scroll_pos.x, category.scroll_pos.y);
+    section.tabs->Unselect();
     section.page_host_sizer->Layout();
 }
 
@@ -724,12 +1431,25 @@ void PublishSettingsDialog::on_inner_tab_changed(size_t section_index, wxCommand
         show_inner_page(section_index, selection);
 }
 
+void PublishSettingsDialog::on_mixed_tab_changed(size_t section_index, wxCommandEvent& event)
+{
+    const int selection = event.GetInt();
+    if (section_index < m_sections.size() && selection >= 0 &&
+        selection < static_cast<int>(m_sections[section_index].mixed_categories.size()))
+        show_mixed_page(section_index, selection);
+}
+
 void PublishSettingsDialog::bind_tab_events()
 {
     m_outer_tabs->Bind(wxEVT_TAB_SEL_CHANGED, &PublishSettingsDialog::on_outer_tab_changed, this);
-    for (size_t section_index = 0; section_index < m_sections.size(); ++section_index)
+    for (size_t section_index = 0; section_index < m_sections.size(); ++section_index) {
         m_sections[section_index].tabs->Bind(wxEVT_TAB_SEL_CHANGED,
                                              [this, section_index](wxCommandEvent& event) { on_inner_tab_changed(section_index, event); });
+        if (m_sections[section_index].mixed_tabs != nullptr)
+            m_sections[section_index].mixed_tabs->Bind(wxEVT_TAB_SEL_CHANGED, [this, section_index](wxCommandEvent& event) {
+                on_mixed_tab_changed(section_index, event);
+            });
+    }
 }
 
 void PublishSettingsDialog::apply_filter(const wxString& filter_text)
@@ -781,13 +1501,22 @@ void PublishSettingsDialog::refresh_filter(const wxString& filter)
                 has_match = has_match || m_rows[r].matches_filter;
             category.info->Show(!has_match);
             if (!has_match)
-                category.info->SetLabel(pseudo ? (want_checked ? m_info_nonsel : m_info_allsel) : m_info_empty);
+                // A mixed slot has no selectable rows: always explain it is published whole.
+                category.info->SetLabel(category.is_mixed ? m_info_mix :
+                                                            (pseudo ? (want_checked ? m_info_nonsel : m_info_allsel) : m_info_empty));
             if (has_match && first_inner < 0) {
                 first_outer = s;
                 first_inner = static_cast<int>(inner);
             }
             if (static_cast<int>(s) == m_selected_outer && static_cast<int>(inner) == m_sections[s].selected_inner)
                 active_has_match = has_match;
+        }
+        // Mixed slots have no rows: they can never match a filter, so they always fall back to
+        // their explanatory hint (shown once the slot is enabled).
+        for (size_t mixed : m_sections[s].mixed_categories) {
+            Category& category = m_categories[mixed];
+            category.info->Show(true);
+            category.info->SetLabel(m_info_mix);
         }
     }
     if (!active_has_match && first_inner >= 0 &&
@@ -815,18 +1544,26 @@ void PublishSettingsDialog::apply_visibility()
 {
     Freeze();
     for (Category& category : m_categories) {
+        // A disabled material slot hides everything below its header (rows, info and the Full
+        // Publish line); enable it first to reveal its settings.
+        const bool enabled = category.section != Section::Material ||
+                             (category.enable_check != nullptr && category.enable_check->GetValue());
+        if (category.scroll != nullptr)
+            category.scroll->Show(enabled);
+        if (category.full_line_item != nullptr)
+            category.full_line_item->Show(enabled);
         bool category_any = false;
         for (size_t r : category.rows)
             category_any = category_any || m_rows[r].matches_filter;
-        category.info->Show(!category_any);
+        category.info->Show(enabled && !category_any);
         for (Subcategory& sub : category.subs) {
             bool sub_any = false;
             for (size_t r : sub.rows)
                 sub_any = sub_any || m_rows[r].matches_filter;
             if (sub.header != nullptr)
-                sub.item->Show(sub_any);
+                sub.item->Show(enabled && sub_any);
             for (size_t r : sub.rows)
-                m_rows[r].item->Show(m_rows[r].matches_filter);
+                m_rows[r].item->Show(enabled && m_rows[r].matches_filter);
         }
         category.list_sizer->Layout();
         category.scroll->FitInside();
@@ -840,6 +1577,17 @@ void PublishSettingsDialog::select_all(bool value)
     for (Row& row : m_rows)
         if (row.check->IsEnabled())
             row.check->SetValue(value);
+    // "All" also enables every material slot (so its rows/Full Publish become visible and the
+    // selection is actually exported); "None" disables them all again.
+    for (Category& cat : m_categories)
+        if (cat.section == Section::Material && cat.enable_check != nullptr)
+            cat.enable_check->SetValue(value);
+    // wxCheckBox::SetValue does not emit wxEVT_CHECKBOX, so re-run the enable handlers to
+    // propagate mixed-slot components and refresh visibility as if the user had clicked.
+    for (size_t c = 0; c < m_categories.size(); ++c)
+        if (m_categories[c].section == Section::Material)
+            on_enable_toggle(c);
+    apply_visibility();
 }
 
 bool PublishSettingsDialog::row_is_visible(const Row& row) const
@@ -936,28 +1684,13 @@ std::vector<std::string> PublishSettingsDialog::GetPublishedKeys() const
     std::vector<std::string> out;
     // Process and printer sections both travel through published_keys (the load-side overlay
     // applies process keys to the prints edited preset and the allowlisted printer keys to the
-    // printers edited preset); material keys use a separate API.
-    const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
+    // printers edited preset); material keys use a separate API. Printer rows carry the full
+    // per-extruder "#N" opt_id (built in Phase 1), so a checked row publishes exactly that
+    // extruder's value - per-extruder selection is independent.
     for (const Row& row : m_rows) {
         if ((row.section != Section::Print && row.section != Section::Printer) || !row.check->GetValue())
             continue;
-        if (row.section == Section::Printer) {
-            // Printer rows store the base key (per-extruder "#N" variants collapsed during
-            // build). Publish every extruder element so the load side can apply per-extruder
-            // values even when the receiver has a different extruder count; a scalar printer
-            // key is published as-is.
-            const std::string base_key = publish_base_key(row.key);
-            if (const ConfigOption* opt = full.option(base_key)) {
-                if (const auto* vec = dynamic_cast<const ConfigOptionVectorBase*>(opt)) {
-                    for (size_t i = 0; i < vec->size(); ++i)
-                        out.push_back(base_key + "#" + std::to_string(i));
-                } else {
-                    out.push_back(base_key);
-                }
-            }
-        } else {
-            out.push_back(row.key);
-        }
+        out.push_back(row.key);
     }
     return out;
 }
@@ -967,6 +1700,9 @@ std::vector<Slic3r::PublishedMaterialEntry> PublishSettingsDialog::GetPublishedM
     std::vector<Slic3r::PublishedMaterialEntry> out;
     for (const Category& cat : m_categories) {
         if (cat.section != Section::Material)
+            continue;
+        // A slot that is not "Enable"d publishes nothing at all.
+        if (cat.enable_check != nullptr && !cat.enable_check->GetValue())
             continue;
         Slic3r::PublishedMaterialEntry entry;
         entry.filament_type   = cat.filament_type;
@@ -982,6 +1718,28 @@ std::vector<Slic3r::PublishedMaterialEntry> PublishSettingsDialog::GetPublishedM
                 entry.setting_id  = preset->setting_id;
                 entry.preset_name = preset->name;
             }
+        }
+        // A mixed slot publishes as one unit: its definition (components, ratios, gradient)
+        // always travels (its Enable implies this), and the component filaments are enabled +
+        // Full Published by on_enable_toggle into their own entries.
+        if (cat.is_mixed) {
+            Slic3r::PublishedMaterialEntry mixed_entry;
+            mixed_entry.filament_type   = cat.filament_type;
+            mixed_entry.filament_vendor = cat.filament_vendor;
+            mixed_entry.filament_id     = cat.filament_id;
+            mixed_entry.slot            = static_cast<int>(cat.filament_slot);
+            // The mix's own colour (blended) is a property of the definition, not a
+            // requirement row; carry it so the receiver renders the swatch.
+            const DynamicPrintConfig full_cfg = wxGetApp().preset_bundle->full_config();
+            const std::string mix_color       = filament_color_hex(full_cfg, cat.filament_slot);
+            if (!mix_color.empty()) {
+                mixed_entry.publish_color = true;
+                mixed_entry.color         = mix_color;
+            }
+            for (const std::string& key : publish_mixed_keys())
+                mixed_entry.keys.emplace_back(key);
+            out.push_back(std::move(mixed_entry));
+            continue;
         }
         // "Full Publish": the whole filament preset is embedded; type and colour are implicitly
         // published, and the per-key rows are disabled / their state ignored.
@@ -1050,11 +1808,16 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
     for (Category& cat : m_categories) {
         if (cat.full_check != nullptr)
             cat.full_check->Refresh();
+        if (cat.enable_check != nullptr)
+            cat.enable_check->Refresh();
         if (cat.title_label != nullptr)
             cat.title_label->Refresh();
         if (cat.filament_color_chip != nullptr) {
-            if (wxBitmap* chip = get_extruder_color_icon(filament_color_hex(full, cat.filament_slot), "", FromDIP(12), FromDIP(12)))
+            // Mixed pages have no header chip; this only ever fires for physical slots.
+            if (wxBitmap* chip = get_extruder_color_icon(filament_color_hex(full, cat.filament_slot), std::to_string(cat.filament_slot + 1),
+                                                         FromDIP(20), FromDIP(20))) {
                 cat.filament_color_chip->SetBitmap(*chip);
+            }
         }
         cat.scroll->FitInside();
         cat.list_sizer->Layout();
@@ -1066,12 +1829,17 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
         if (section.icon_bmp.bmp().IsOk())
             m_outer_tabs->SetItemBitmap(s, section.icon_bmp.bmp());
         section.tabs->Rescale();
+        if (section.mixed_tabs != nullptr)
+            section.mixed_tabs->Rescale();
     }
 
-    // Refresh the per-row Color chips at the new DPI.
+    // Refresh the per-row Color chips at the new DPI (they carry the slot number too).
     for (Row& row : m_rows) {
         if (row.color_chip != nullptr && !row.value.IsEmpty()) {
-            if (wxBitmap* chip = get_extruder_color_icon(row.value.ToStdString(), "", FromDIP(12), FromDIP(12)))
+            const std::string chip_label = (row.inner_index < m_categories.size()) ?
+                                               std::to_string(m_categories[row.inner_index].filament_slot + 1) :
+                                               "";
+            if (wxBitmap* chip = get_extruder_color_icon(row.value.ToStdString(), chip_label, FromDIP(20), FromDIP(20)))
                 row.color_chip->SetBitmap(*chip);
         }
     }
@@ -1080,9 +1848,19 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
         const Category& category = m_categories[category_index];
         if (category.section != Section::Material)
             continue;
-        if (wxBitmap* chip = get_extruder_color_icon(filament_color_hex(full, category.filament_slot), "", FromDIP(12), FromDIP(12))) {
-            const SectionGroup& section = m_sections[category.group];
-            const auto iter             = std::find(section.categories.begin(), section.categories.end(), category_index);
+        const SectionGroup& section = m_sections[category.group];
+        if (category.is_mixed) {
+            // The tab carries the full composition bitmap (mix chip + components + percents);
+            // the page header has no chip/title to refresh.
+            const wxBitmap tab_bmp = mixed_filament_tab_bitmap(full, category.filament_slot, FromDIP(20));
+            if (tab_bmp.IsOk()) {
+                const auto iter = std::find(section.mixed_categories.begin(), section.mixed_categories.end(), category_index);
+                if (iter != section.mixed_categories.end() && section.mixed_tabs != nullptr)
+                    section.mixed_tabs->SetItemBitmap(static_cast<unsigned int>(iter - section.mixed_categories.begin()), tab_bmp);
+            }
+        } else if (wxBitmap* chip = get_extruder_color_icon(filament_color_hex(full, category.filament_slot),
+                                                            std::to_string(category.filament_slot + 1), FromDIP(20), FromDIP(20))) {
+            const auto iter = std::find(section.categories.begin(), section.categories.end(), category_index);
             if (iter != section.categories.end())
                 m_sections[category.group].tabs->SetItemBitmap(static_cast<unsigned int>(iter - section.categories.begin()), *chip);
         }

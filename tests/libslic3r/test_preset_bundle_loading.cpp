@@ -2545,3 +2545,252 @@ TEST_CASE("Published 3MF applies per-extruder printer keys across extruder-count
         CHECK(pub.skipped_keys.empty());
     }
 }
+
+// A published mixed filament serializes its definition (components, ratios, gradient) into the
+// receiver's project_config - the project-level parallel arrays, not a filament preset. The
+// mix's own blended colour is carried as publish_color so the receiver renders the swatch.
+TEST_CASE("Published 3MF applies a mixed filament definition onto the receiver's project config", "[Preset][Bundle][Published]")
+{
+    auto make_file_config = [] {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        // Three author slots: two physical PLA/PETG plus one virtual mixed slot (index 2)
+        // blending slots 1 and 2 at 60/40 with a gradient.
+        config.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75, 1.75 };
+        config.opt<ConfigOptionInts>("filament_self_index")->values = { 1, 2, 3 };
+        config.opt<ConfigOptionStrings>("filament_extruder_variant")->values = {
+            "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard"
+        };
+        config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#0000FF", "#800080" };
+        config.opt<ConfigOptionStrings>("filament_type")->values = { "PLA", "PETG", "PLA" };
+        config.opt<ConfigOptionStrings>("filament_vendor")->values = { "Generic", "Generic", "Generic" };
+        config.opt<ConfigOptionStrings>("filament_ids")->values = { "GFL99", "GFT99", "GFL99" };
+        // The mixed slot's definition. These keys are project-level arrays in the full config;
+        // on export they are masked so only the published slot's entry survives.
+        config.opt<ConfigOptionBools>("filament_is_mixed")->values = { 0, 0, 1 };
+        config.opt<ConfigOptionStrings>("filament_mixed_components")->values = { "", "", "1,2" };
+        config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values = { "", "", "0.6,0.4" };
+        config.opt<ConfigOptionBools>("filament_mixed_gradient")->values = { 0, 0, 1 };
+        config.opt<ConfigOptionStrings>("filament_mixed_gradient_range")->values = { "", "", "0.9,0.1" };
+        config.opt<ConfigOptionStrings>("filament_mixed_gradient_curve")->values = { "", "", "0,0.1|1,0.9" };
+        config.opt<ConfigOptionBools>("filament_mixed_gradient_per_part")->values = { 0, 0, 1 };
+        return config;
+    };
+
+    // A receiver that already carries the mix slot at index 2 (e.g. a two-physical-plus-one-mix
+    // project with the same layout).
+    {
+        PresetBundle bundle;
+        Preset &pla = add_inmemory_preset(bundle.filaments, "My PLA");
+        pla.config.opt_string("filament_type", 0u) = "PLA";
+        Preset &petg = add_inmemory_preset(bundle.filaments, "My PETG");
+        petg.config.opt_string("filament_type", 0u) = "PETG";
+        bundle.filament_presets = { "My PLA", "My PETG", "My PLA" };
+
+        // Grow the receiver's project arrays to 3 slots first, as set_num_filaments would.
+        bundle.set_num_filaments(3);
+
+        PublishedMaterialEntry mix;
+        mix.filament_type   = "PLA";
+        mix.filament_vendor = "Generic";
+        mix.filament_id     = "GFL99";
+        mix.slot            = 2;
+        mix.publish_color   = true;
+        mix.color           = "#800080";
+        mix.keys            = { "filament_is_mixed",       "filament_mixed_components",
+                                "filament_mixed_sublayer_ratios", "filament_mixed_gradient",
+                                "filament_mixed_gradient_range",  "filament_mixed_gradient_curve",
+                                "filament_mixed_gradient_per_part" };
+
+        PublishedConfig pub;
+        pub.published     = true;
+        pub.material_keys = { mix };
+        DynamicPrintConfig config = make_file_config();
+        Preset::normalize(config);
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        // The definition landed in project_config's parallel arrays at the author slot.
+        const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
+        REQUIRE(is_mixed.size() == 3);
+        CHECK(is_mixed[2]);
+        const auto &components = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values;
+        REQUIRE(components.size() == 3);
+        CHECK(components[2] == "1,2");
+        const auto &ratios = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values;
+        REQUIRE(ratios.size() == 3);
+        CHECK(ratios[2] == "0.6,0.4");
+        const auto &gradient = bundle.project_config.opt<ConfigOptionBools>("filament_mixed_gradient")->values;
+        CHECK(gradient[2]);
+        const auto &range = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_gradient_range")->values;
+        CHECK(range[2] == "0.9,0.1");
+        const auto &curve = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_gradient_curve")->values;
+        CHECK(curve[2] == "0,0.1|1,0.9");
+        const auto &per_part = bundle.project_config.opt<ConfigOptionBools>("filament_mixed_gradient_per_part")->values;
+        CHECK(per_part[2]);
+        // The mix's blended colour crossed into project_config for the swatch.
+        const auto &colour = bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values;
+        REQUIRE(colour.size() == 3);
+        CHECK(colour[2] == "#800080");
+        // The other slots were not overwritten by the mask.
+        CHECK_FALSE(is_mixed[0]);
+        CHECK_FALSE(is_mixed[1]);
+        // Nothing skipped: every serialized mixed key was applied.
+        CHECK(pub.skipped_keys.empty());
+    }
+
+    // A receiver with fewer slots: the slot is grown and seeded before the definition applies.
+    {
+        PresetBundle bundle;
+        Preset &pla = add_inmemory_preset(bundle.filaments, "My PLA");
+        pla.config.opt_string("filament_type", 0u) = "PLA";
+        bundle.filament_presets = { "My PLA" };
+
+        PublishedMaterialEntry mix;
+        mix.slot = 2;
+        mix.keys = { "filament_is_mixed", "filament_mixed_components", "filament_mixed_sublayer_ratios" };
+
+        PublishedConfig pub;
+        pub.published     = true;
+        pub.material_keys = { mix };
+        DynamicPrintConfig config = make_file_config();
+        Preset::normalize(config);
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        REQUIRE(bundle.filament_presets.size() == 3);
+        const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
+        REQUIRE(is_mixed.size() == 3);
+        CHECK(is_mixed[2]);
+        const auto &components = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values;
+        REQUIRE(components.size() == 3);
+        CHECK(components[2] == "1,2");
+        CHECK(pub.skipped_keys.empty());
+    }
+}
+
+// A published mixed filament whose definition cannot be applied is reported as skipped instead
+// of aborting the load: the entry lists a mixed key that the file's payload does not carry.
+TEST_CASE("Published 3MF reports an unappliable mixed filament definition as skipped", "[Preset][Bundle][Published]")
+{
+    PresetBundle bundle;
+    Preset &pla = add_inmemory_preset(bundle.filaments, "My PLA");
+    pla.config.opt_string("filament_type", 0u) = "PLA";
+    bundle.filament_presets = { "My PLA" };
+
+    // Two author slots (so slot 1 is in range) but the payload omits the mixed arrays: the
+    // entry lists them, the file config does not.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75 };
+    config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#00FF00" };
+    config.opt<ConfigOptionStrings>("filament_type")->values = { "PLA", "PLA" };
+    config.opt<ConfigOptionStrings>("filament_vendor")->values = { "Generic", "Generic" };
+
+    PublishedMaterialEntry mix;
+    mix.slot = 1;
+    mix.keys = { "filament_mixed_components", "filament_mixed_sublayer_ratios" };
+
+    PublishedConfig pub;
+    pub.published     = true;
+    pub.material_keys = { mix };
+    Preset::normalize(config);
+    bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+    // The receiver grows to two slots; the missing payload keys are reported as skipped rather
+    // than dropped silently (material_label is empty for this entry).
+    REQUIRE(bundle.filament_presets.size() == 2);
+    CHECK(contains_key(pub.skipped_keys, "material: (filament_mixed_components)"));
+    CHECK(contains_key(pub.skipped_keys, "material: (filament_mixed_sublayer_ratios)"));
+}
+
+// A single-extruder receiver collapses the author's per-extruder printer slots onto its single
+// slot: the first serialized variant of a base key is applied, the remaining variants of that
+// base key are reported as skipped.
+TEST_CASE("Published 3MF collapses a multi-extruder publish onto a single-extruder receiver", "[Preset][Bundle][Published]")
+{
+    auto make_file_config = [] {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000" };
+        // Author has two extruders.
+        config.opt<ConfigOptionFloats>("retraction_length")->values = { 0.6, 0.9 };
+        config.opt<ConfigOptionFloats>("retraction_speed")->values  = { 30.0, 40.0 };
+        Preset::normalize(config);
+        return config;
+    };
+
+    // Both extruders published: the first serialized variant (#0, left) lands on the receiver's
+    // single slot; the second variant (#1) is reported as skipped.
+    {
+        PresetBundle bundle;
+        bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_length")->values = { 0.8 };
+        bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_speed")->values  = { 25.0 };
+        PublishedConfig pub;
+        pub.published      = true;
+        pub.published_keys = { "retraction_length#0", "retraction_length#1", "retraction_speed#0", "retraction_speed#1" };
+        DynamicPrintConfig config = make_file_config();
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        check_double_vector(bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_length")->values, { 0.6 });
+        check_double_vector(bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_speed")->values, { 30.0 });
+        CHECK(contains_key(pub.skipped_keys, "retraction_length#1"));
+        CHECK(contains_key(pub.skipped_keys, "retraction_speed#1"));
+        CHECK_FALSE(contains_key(pub.skipped_keys, "retraction_length#0"));
+        CHECK_FALSE(contains_key(pub.skipped_keys, "retraction_speed#0"));
+    }
+
+    // Only the second extruder published: the single-extruder receiver still applies it (the
+    // author's "right" is the only serialized slot) and reports nothing skipped.
+    {
+        PresetBundle bundle;
+        bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_length")->values = { 0.8 };
+        PublishedConfig pub;
+        pub.published      = true;
+        pub.published_keys = { "retraction_length#1" };
+        DynamicPrintConfig config = make_file_config();
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        check_double_vector(bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_length")->values, { 0.9 });
+        CHECK(pub.skipped_keys.empty());
+    }
+}
+
+// A multi-extruder "similar setup" receiver overrides each published extruder slot element-wise
+// (no collapsing): each '#N' variant applies to the matching receiver slot, out-of-range ones are
+// reported as skipped.
+TEST_CASE("Published 3MF overrides each extruder slot on a similar multi-extruder receiver", "[Preset][Bundle][Published]")
+{
+    auto make_file_config = [] {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#00FF00" };
+        // Author has two extruders.
+        config.opt<ConfigOptionFloats>("retraction_length")->values = { 0.6, 0.9 };
+        Preset::normalize(config);
+        return config;
+    };
+
+    // Receiver with two extruders: both published slots override element-wise.
+    {
+        PresetBundle bundle;
+        bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_length")->values = { 0.8, 0.8 };
+        PublishedConfig pub;
+        pub.published      = true;
+        pub.published_keys = { "retraction_length#0", "retraction_length#1" };
+        DynamicPrintConfig config = make_file_config();
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        check_double_vector(bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_length")->values, { 0.6, 0.9 });
+        CHECK(pub.skipped_keys.empty());
+    }
+
+    // Receiver with three extruders: slots 0 and 1 override, slot 2 keeps its own value.
+    {
+        PresetBundle bundle;
+        bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_length")->values = { 0.8, 0.8, 0.7 };
+        PublishedConfig pub;
+        pub.published      = true;
+        pub.published_keys = { "retraction_length#0", "retraction_length#1" };
+        DynamicPrintConfig config = make_file_config();
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        check_double_vector(bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("retraction_length")->values, { 0.6, 0.9, 0.7 });
+        CHECK(pub.skipped_keys.empty());
+    }
+}
+

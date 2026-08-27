@@ -5291,6 +5291,11 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
         const std::set<std::string> printer_option_set(printer_options.begin(), printer_options.end());
         std::set<std::string> contract_excluded_keys;
         auto apply_published = [&](DynamicPrintConfig& target, const std::set<std::string>* allowlist) {
+            // Single-extruder receivers collapse a base key's per-extruder "#N" variants onto
+            // their single slot: only the first serialized variant of a base key is applied
+            // (the author's "left or right" whichever came first), the rest are reported as
+            // skipped. Per-target, so the process and printer passes each track their own bases.
+            std::set<std::string> collapsed_bases;
             for (const std::string& key : published_config->published_keys) {
                 if (applied_keys.count(key) != 0)
                     continue; // already applied
@@ -5309,7 +5314,7 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                 if (src_opt == nullptr)
                     continue; // key not present in the loaded config; record later
                 if (src_opt->is_vector()) {
-                    const ConfigOption* dst_opt = target.option(base_key);
+                    ConfigOption* dst_opt = target.option(base_key);
                     if (dst_opt == nullptr || !dst_opt->is_vector())
                         continue; // cannot apply; will be reported as skipped
                     // Type mismatch: ConfigOptionVector::set() throws ConfigurationError on a
@@ -5321,7 +5326,7 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                     if (dst_opt->type() != src_opt->type())
                         continue;
                     // A '#N' variant key (e.g. per-extruder retraction_length#2) applies one
-                    // element, so the index only needs to be in range on both sides - the
+                    // element, so the index only needs to be in range on the author's side - the
                     // receiver may have a different extruder count than the author. Out-of-range
                     // indices are skipped (set_at would otherwise resize the receiver's vector).
                     if (key.size() > base_key.size()) {
@@ -5341,16 +5346,33 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                                 break;
                             }
                         }
-                        if (!valid || idx >= static_cast<const ConfigOptionVectorBase*>(src_opt)->size() ||
-                            idx >= static_cast<const ConfigOptionVectorBase*>(dst_opt)->size())
-                            continue; // malformed or out-of-range variant: cannot apply; reported as skipped
+                        const size_t src_size = static_cast<const ConfigOptionVectorBase*>(src_opt)->size();
+                        if (!valid || idx >= src_size)
+                            continue; // malformed or out-of-range on the author's side: cannot apply; reported as skipped
+                        const size_t dst_size = static_cast<const ConfigOptionVectorBase*>(dst_opt)->size();
+                        if (dst_size == 1) {
+                            // Single-extruder receiver: collapse the author's per-extruder slots
+                            // onto the receiver's single slot. Only the first serialized variant
+                            // of a base key is applied (the author's "left or right" whichever was
+                            // published first); later variants of the same base are reported as
+                            // skipped, mirroring the receiver's single extruder.
+                            if (collapsed_bases.count(base_key) != 0)
+                                continue;
+                            collapsed_bases.insert(base_key);
+                            static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, 0, idx);
+                        } else {
+                            if (idx >= dst_size)
+                                continue; // out-of-range variant: cannot apply; reported as skipped
+                            target.apply_only(config, {key}, true);
+                        }
                     } else if (static_cast<const ConfigOptionVectorBase*>(src_opt)->size() !=
                                static_cast<const ConfigOptionVectorBase*>(dst_opt)->size()) {
                         // Whole-vector base key: the receiver must have a matching vector size,
                         // otherwise applying would overwrite a different number of elements.
                         continue; // cannot apply; will be reported as skipped
+                    } else {
+                        target.apply_only(config, {key}, true);
                     }
-                    target.apply_only(config, {key}, true);
                     applied_keys.insert(key);
                 } else {
                     // A scalar key cannot carry a '#N' suffix; a hand-crafted file listing one
@@ -5688,6 +5710,30 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                     proj_nozzle_map->values.resize(target_slots, 0);
                 if (proj_volume_map && proj_volume_map->values.size() < target_slots)
                     proj_volume_map->values.resize(target_slots, static_cast<int>(NozzleVolumeType::nvtStandard));
+                // The mixed-color project arrays are parallel per-slot like filament_colour;
+                // grow them in lockstep so a published mix slot has room for its definition.
+                // Defaults mirror set_num_filaments (false / empty string).
+                if (auto* opt = this->project_config.opt<ConfigOptionBools>("filament_is_mixed"))
+                    if (opt->values.size() < target_slots)
+                        opt->values.resize(target_slots, false);
+                if (auto* opt = this->project_config.opt<ConfigOptionStrings>("filament_mixed_components"))
+                    if (opt->values.size() < target_slots)
+                        opt->values.resize(target_slots, std::string{});
+                if (auto* opt = this->project_config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios"))
+                    if (opt->values.size() < target_slots)
+                        opt->values.resize(target_slots, std::string{});
+                if (auto* opt = this->project_config.opt<ConfigOptionBools>("filament_mixed_gradient"))
+                    if (opt->values.size() < target_slots)
+                        opt->values.resize(target_slots, false);
+                if (auto* opt = this->project_config.opt<ConfigOptionStrings>("filament_mixed_gradient_range"))
+                    if (opt->values.size() < target_slots)
+                        opt->values.resize(target_slots, std::string{});
+                if (auto* opt = this->project_config.opt<ConfigOptionStrings>("filament_mixed_gradient_curve"))
+                    if (opt->values.size() < target_slots)
+                        opt->values.resize(target_slots, std::string{});
+                if (auto* opt = this->project_config.opt<ConfigOptionBools>("filament_mixed_gradient_per_part"))
+                    if (opt->values.size() < target_slots)
+                        opt->values.resize(target_slots, false);
                 if (this->ams_multi_color_filment.size() < target_slots)
                     this->ams_multi_color_filment.resize(target_slots);
                 for (size_t slot = old_colour_count; slot < target_slots; ++slot) {
@@ -5995,7 +6041,13 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                     // Colour is slot-scoped and independent of the type gate; it is also synced
                     // into project_config for GUI rendering.
                     if (entry.publish_color && !entry.color.empty()) {
-                        if (recv != nullptr) {
+                        // A mixed-definition entry carries the mix's blended colour for the
+                        // swatch only: never write it into the slot's (possibly shared) preset
+                        // config, only into the project-level colour arrays.
+                        const bool is_mixed_entry = std::any_of(entry.keys.begin(), entry.keys.end(), [&](const std::string& key) {
+                            return publish_mixed_keys().count(publish_base_key(key)) != 0;
+                        });
+                        if (!is_mixed_entry && recv != nullptr) {
                             // Create the key when the target preset lacks it: the colour is a
                             // requirement, not an override.
                             if (ConfigOptionStrings* colour = write_config.opt<ConfigOptionStrings>("filament_colour", true)) {
@@ -6016,8 +6068,36 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                         }
                     }
 
-                    if (apply_slot && recv != nullptr)
-                        apply_slot_keys(write_config, entry.keys, entry.slot, material_label);
+                    if (apply_slot && recv != nullptr) {
+                        // Mixed-color definition keys live in project_config (parallel per-slot
+                        // arrays), not in a filament preset; route them there. Normal keys keep
+                        // the per-slot preset path below.
+                        const std::set<std::string>& mixed_keys = publish_mixed_keys();
+                        std::vector<std::string>        preset_keys;
+                        for (const std::string& key : entry.keys) {
+                            const std::string base_key = publish_base_key(key);
+                            if (mixed_keys.count(base_key) != 0) {
+                                const ConfigOption* src_opt = config.option(base_key);
+                                if (src_opt != nullptr && src_opt->is_vector() && entry.slot >= 0 &&
+                                    entry.slot < static_cast<int>(static_cast<const ConfigOptionVectorBase*>(src_opt)->size())) {
+                                    if (ConfigOption* dst_opt = this->project_config.option(base_key)) {
+                                        if (dst_opt->is_vector() && dst_opt->type() == src_opt->type() &&
+                                            slot < static_cast<const ConfigOptionVectorBase*>(dst_opt)->size()) {
+                                            static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, slot, entry.slot);
+                                            material_applied = true;
+                                            continue;
+                                        }
+                                    }
+                                }
+                                // The slot (or its arrays) could not be written: report rather
+                                // than drop the mix silently.
+                                skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
+                                continue;
+                            }
+                            preset_keys.emplace_back(key);
+                        }
+                        apply_slot_keys(write_config, preset_keys, entry.slot, material_label);
+                    }
                 }
             }
         }
