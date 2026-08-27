@@ -9,6 +9,7 @@
 #include <string>
 
 #include "slic3r/GUI/3DBed.hpp"
+#include "slic3r/GUI/Camera.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
@@ -69,6 +70,13 @@ public:
     void finish_sketch();
     bool is_sketching() const;
     void refresh_bed();   // re-sync the bed to the current printer (call on tab activation)
+    // The Camera is Plater-owned and shared with Prepare/Preview/Assemble; GLCanvas3D has no
+    // per-canvas camera, so every orbit here would otherwise overwrite what the editor tabs
+    // show. Exactly one of the two views is live at a time, so entering and leaving are the
+    // same operation: trade the live camera for the parked one. That also keeps this canvas's
+    // own view across a tab switch.
+    void enter_viewport();
+    void leave_viewport();
     void set_show_bed(bool b);   // view option: draw the printer bed + plate grid, or not
     void cancel_sketch();
     void set_on_sketch_commit(std::function<void(const SketchProfile&, const SketchPlane&)> cb);
@@ -324,6 +332,7 @@ public:
 
 private:
     void reload(bool keep_view);
+    void swap_camera();   // enter_viewport / leave_viewport, in the one direction they share
 
     wxGLCanvas* m_canvas_widget{nullptr};
     GLCanvas3D* m_canvas{nullptr};
@@ -334,6 +343,11 @@ private:
     wxPoint     m_ctx_press{0, 0};    // right-press origin: a right-DRAG pans, it must not offer
 
     Bed3D       m_bed;
+    // The half of the camera swap above that is NOT on screen: the editor tabs' view while
+    // Design is up, this canvas's view while it is not. Seeded in the constructor so the first
+    // entry inherits the view the user was already looking at.
+    Camera      m_parked_camera;
+    bool        m_camera_swapped{false};   // guards a leave without an enter, and the reverse
     Model       m_model;
     bool        m_first_frame{true};
     bool        m_body_selected{false};   // tree selected a body feature → tint the solid

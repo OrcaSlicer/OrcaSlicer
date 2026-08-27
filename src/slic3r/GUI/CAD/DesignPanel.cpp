@@ -6937,12 +6937,18 @@ wxString DesignPanel::idle_hint() const
 // Nothing else in the panel needs to know: the popup keeps its text and comes straight back.
 void DesignPanel::on_tab_hidden()
 {
-    if (m_viewport) m_viewport->show_status_hud(false);
+    if (m_viewport) {
+        m_viewport->show_status_hud(false);
+        m_viewport->leave_viewport();   // hand the shared camera back to the editor tabs
+    }
 }
 
 void DesignPanel::on_tab_shown()
 {
-    if (m_viewport) m_viewport->show_status_hud(true);   // ...and back on the way in
+    if (m_viewport) {
+        m_viewport->show_status_hud(true);   // ...and back on the way in
+        m_viewport->enter_viewport();        // borrow the shared camera; on_tab_hidden gives it back
+    }
 
     if (m_active == Tool::None && m_doc.display_mesh.its.indices.empty())
         set_status(idle_hint());   // first paint: the tab has never been edited

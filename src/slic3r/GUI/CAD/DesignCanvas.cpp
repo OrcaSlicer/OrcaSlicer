@@ -189,6 +189,15 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
 
     refresh_bed();
 
+    // The view this canvas opens on. Built lazily, on the way into the Design tab, so this
+    // is the view the user is looking at right now.
+    m_parked_camera = wxGetApp().plater()->get_camera();
+
+    // Before any of this class's own Binds below: wx calls dynamically bound handlers in
+    // reverse order of binding, and GLCanvas3D::on_mouse takes wxEVT_RIGHT_UP / ENTER_WINDOW
+    // without skipping them — so whatever is bound last is the only handler that sees them.
+    // The context menu, the focus-follows-mouse and the status-chip re-anchor all depend on
+    // running first, which is only true while this call stays ahead of them.
     m_canvas->bind_event_handlers();
 
     // The Design GL canvas only receives key events (Esc to exit/enter Select, Ctrl+Z undo)
@@ -266,6 +275,24 @@ void DesignCanvas::request_repaint()
     } else {
         m_canvas->render();               // software GL or backend not yet known
     }
+}
+
+void DesignCanvas::enter_viewport()
+{
+    if (!m_camera_swapped) swap_camera();
+}
+
+void DesignCanvas::leave_viewport()
+{
+    if (m_camera_swapped) swap_camera();
+}
+
+void DesignCanvas::swap_camera()
+{
+    Plater* plater = wxGetApp().plater();
+    if (plater == nullptr) return;
+    std::swap(plater->get_camera(), m_parked_camera);
+    m_camera_swapped = !m_camera_swapped;
 }
 
 void DesignCanvas::force_repaint()
