@@ -550,6 +550,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         if (!paths.empty()) {
             if (extrusion->is_closed) {
                 ExtrusionLoop extrusion_loop(std::move(paths), pg_extrusion.is_contour ? elrDefault : elrHole);
+                extrusion_loop.inset_idx = extrusion->inset_idx;
                 if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) ==
                     (pg_extrusion.is_contour || pg_extrusions.size() == 2))
                     extrusion_loop.make_counter_clockwise();
@@ -1318,6 +1319,70 @@ static void reorient_perimeters(ExtrusionEntityCollection &entities, bool steep_
     }
 }
 
+// A loop made of nothing but overhang paths lies entirely off the lower layer.
+static bool is_unsupported_loop(const ExtrusionEntity *entity)
+{
+    if (!entity->is_loop())
+        return false;
+    const ExtrusionPaths &paths = static_cast<const ExtrusionLoop *>(entity)->paths;
+    return !paths.empty() && std::all_of(paths.begin(), paths.end(),
+                                         [](const ExtrusionPath &path) { return path.role() == erOverhangPerimeter; });
+}
+
+// ORCA: A wall loop with nothing under it has nothing to lean on, so whatever the configured wall
+// sequence it is extruded after the loops that anchor it, innermost first. A loop that runs alongside
+// an anchored one belongs to the same wall stack and keeps its place ahead of the infill, which needs
+// it as an anchor; one that touches nothing has only that infill to rest on, so it is flagged for the
+// G-code writer to hold it back until the infill is down.
+static void defer_unsupported_loops(const PerimeterGenerator &perimeter_generator, ExtrusionEntityCollection &entities)
+{
+    ExtrusionEntitiesPtr &src = entities.entities;
+    auto first_deferred = std::stable_partition(src.begin(), src.end(),
+                                                [](const ExtrusionEntity *entity) { return !is_unsupported_loop(entity); });
+    if (first_deferred == src.end())
+        return;
+
+    std::stable_sort(first_deferred, src.end(),
+                     [](const ExtrusionEntity *lhs, const ExtrusionEntity *rhs) { return lhs->inset_idx > rhs->inset_idx; });
+
+    auto collect_lines = [](const ExtrusionEntity *entity, Lines &out) {
+        Polylines polylines;
+        entity->collect_polylines(polylines);
+        append(out, to_lines(polylines));
+    };
+
+    Lines anchored;
+    for (auto it = src.begin(); it != first_deferred; ++it)
+        collect_lines(*it, anchored);
+
+    std::vector<ExtrusionLoop *> unattached;
+    for (auto it = first_deferred; it != src.end(); ++it)
+        unattached.emplace_back(static_cast<ExtrusionLoop *>(*it));
+
+    // A loop leaning on a loop that is itself anchored is anchored as well, so spread outwards from
+    // the anchored loops until no unsupported loop is left touching what was reached.
+    const double touch_distance = 1.5 * std::max(perimeter_generator.ext_perimeter_flow.scaled_spacing(),
+                                                 perimeter_generator.perimeter_flow.scaled_spacing());
+    while (!anchored.empty()) {
+        AABBTreeLines::LinesDistancer<Line> distancer{std::move(anchored)};
+        anchored.clear();
+        for (ExtrusionLoop *&loop : unattached) {
+            if (loop == nullptr)
+                continue;
+            const Points points = loop->as_polyline().points;
+            if (std::any_of(points.begin(), points.end(),
+                            [&distancer, touch_distance](const Point &point) { return distancer.distance_from_lines<false>(point) < touch_distance; })) {
+                collect_lines(loop, anchored);
+                loop = nullptr;
+            }
+        }
+    }
+
+    for (ExtrusionLoop *loop : unattached)
+        if (loop != nullptr)
+            loop->print_after_infill = true;
+}
+
 void PerimeterGenerator::process_classic()
 {
     group_region_by_fuzzify(*this);
@@ -1804,6 +1869,8 @@ void PerimeterGenerator::process_classic()
                 }
             }
             
+            defer_unsupported_loops(*this, entities);
+
             // append perimeters for this slice as a collection
             if (! entities.empty())
                 this->loops->append(entities);
@@ -2742,6 +2809,7 @@ void PerimeterGenerator::process_arachne()
                 reorient_perimeters(extrusion_coll, steep_overhang_contour, steep_overhang_hole,
                                     this->config->overhang_reverse_internal_only);
             }
+            defer_unsupported_loops(*this, extrusion_coll);
             this->loops->append(extrusion_coll);
         }
 
