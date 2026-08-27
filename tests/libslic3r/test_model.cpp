@@ -74,6 +74,24 @@ TEST_CASE("Merging selected volumes yields one part and keeps the rest", "[Model
     CHECK(merged.front()->volumes[1]->mesh().its.indices.size() == faces_first);
 }
 
+TEST_CASE("Merging keeps the part type", "[Model]")
+{
+    Model model;
+    ModelObject* object = model.add_object();
+    object->add_volume(make_cube(10, 10, 10), ModelVolumeType::NEGATIVE_VOLUME, false);
+    ModelVolume* second = object->add_volume(make_cube(10, 10, 10), ModelVolumeType::NEGATIVE_VOLUME, false);
+    second->set_offset(Vec3d(20., 0., 0.));
+    object->add_volume(make_cube(10, 10, 10), ModelVolumeType::MODEL_PART, false);
+
+    std::vector<int> vol_indeces = {0, 1};
+    const ModelObjectPtrs merged = object->merge_volumes(vol_indeces);
+
+    REQUIRE(merged.size() == 1);
+    // Defaulting to MODEL_PART here would print geometry that was meant to be
+    // subtracted.
+    CHECK(merged.front()->volumes.front()->type() == ModelVolumeType::NEGATIVE_VOLUME);
+}
+
 TEST_CASE("Painting survives merging volumes", "[Model]")
 {
     Model model;

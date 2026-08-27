@@ -3208,8 +3208,15 @@ void ObjectList::merge_volumes()
     // for the object item (GetVolumeIdByItem on a non-volume node).
     if (obj_idxs.size() != 1 || vol_idxs.size() < 2)
         return;
+    const ModelObject* object = (*m_objects)[obj_idxs.front()];
     for (int vol_idx : vol_idxs)
-        if (vol_idx < 0)
+        if (vol_idx < 0 || vol_idx >= (int)object->volumes.size())
+            return;
+    // Merging parts of different types has no meaning: the result can only carry
+    // one type, so a negative part or modifier would end up printed as solid.
+    const ModelVolumeType type = object->volumes[vol_idxs.front()]->type();
+    for (int vol_idx : vol_idxs)
+        if (object->volumes[vol_idx]->type() != type)
             return;
 
     wxBusyCursor wait;

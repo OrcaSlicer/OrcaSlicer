@@ -2267,7 +2267,7 @@ void ModelObject::merge()
 ModelObjectPtrs ModelObject::merge_volumes(std::vector<int>& vol_indeces)
 {
     ModelObjectPtrs res;
-    if (this->volumes.size() == 1) {
+    if (this->volumes.size() == 1 || vol_indeces.empty()) {
         // We can't merge meshes if there's just one volume
         return res;
     }
@@ -2306,9 +2306,15 @@ ModelObjectPtrs ModelObject::merge_volumes(std::vector<int>& vol_indeces)
         }
     }
 
-    ModelVolume* vol = upper->add_volume(mesh);
+    // Keep the part type: the default add_volume() overload would make the result
+    // a normal part, which would turn a merged negative part or modifier into
+    // printed geometry.
+    const ModelVolumeType merged_type = volumes[vol_indeces.front()]->type();
+    const size_t merged_face_count = mesh.its.indices.size();
+
+    ModelVolume* vol = upper->add_volume(std::move(mesh), merged_type);
     // BBS: re-apply the painting captured above onto the merged volume.
-    for (size_t f = 0; f < merged_mmu.size() && f < mesh.its.indices.size(); ++f) {
+    for (size_t f = 0; f < merged_mmu.size() && f < merged_face_count; ++f) {
         if (!merged_supported[f].empty()) vol->supported_facets.set_triangle_from_string((int)f, merged_supported[f]);
         if (!merged_seam[f].empty())      vol->seam_facets.set_triangle_from_string((int)f, merged_seam[f]);
         if (!merged_mmu[f].empty())       vol->mmu_segmentation_facets.set_triangle_from_string((int)f, merged_mmu[f]);
