@@ -251,6 +251,23 @@ TEST_CASE("A Type 1 manual filament change pauses after reaching the wipe tower"
     CHECK_FALSE(contains_xy_move(block.substr(pause, wipe - pause)));
 }
 
+TEST_CASE("A Type 1 manual filament change returns to the wipe tower after a custom XY move", "[WipeTower][Regression]")
+{
+    DynamicPrintConfig config = manual_change_tower_config("type1", true);
+    config.set_key_value("change_filament_gcode",
+                         new ConfigOptionString("M400 U1\nG1 X1 Y1 ; custom parking move"));
+
+    const std::string gcode = slice_with_prime_tower(config, true);
+    const std::string block = toolchange_region_containing(gcode, "; CP TOOLCHANGE START");
+    REQUIRE_FALSE(block.empty());
+
+    const size_t custom_move = block.find("custom parking move");
+    const size_t wipe        = block.find("; CP_TOOLCHANGE_WIPE", custom_move);
+    REQUIRE(custom_move != std::string::npos);
+    REQUIRE(wipe != std::string::npos);
+    CHECK(contains_xy_move(block.substr(custom_move, wipe - custom_move)));
+}
+
 TEST_CASE("A Type 2 manual filament change does not repeat the automatic loading phase", "[WipeTower][Regression]")
 {
     const std::string gcode = slice_with_prime_tower(manual_change_tower_config("type2", true));

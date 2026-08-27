@@ -745,6 +745,22 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return code.find_first_of("XxYy") != std::string_view::npos;
     }
 
+    static bool custom_gcode_moves_xy(const std::string &gcode)
+    {
+        bool moves_xy = false;
+        GCodeReader parser;
+        parser.parse_buffer(gcode, [&moves_xy](GCodeReader &parser, const GCodeReader::GCodeLine &line) {
+            const std::string_view cmd = line.cmd();
+            if ((boost::iequals(cmd, "G0") || boost::iequals(cmd, "G1") ||
+                 boost::iequals(cmd, "G2") || boost::iequals(cmd, "G3")) &&
+                custom_gcode_line_has_xy_parameter(line.raw())) {
+                moves_xy = true;
+                parser.quit_parsing();
+            }
+        });
+        return moves_xy;
+    }
+
     static CustomGCodeMotionStateChanges custom_gcode_motion_state_changes(const std::string &gcode)
     {
         CustomGCodeMotionStateChanges changes;
@@ -1338,7 +1354,11 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     gcodegen.writer().set_position(pos);
                 }
             }
-            need_travel_after_change_filament_gcode = !traveled_before_manual_change;
+            // A pause-only script returns to the position where it was invoked, so the pre-travel
+            // above already leaves the nozzle at the tower. Custom scripts may move XY explicitly;
+            // retain the post-change return in that case before starting the planned tower wipe.
+            need_travel_after_change_filament_gcode =
+                !traveled_before_manual_change || custom_gcode_moves_xy(toolchange_gcode_str);
         }
 
         std::string toolchange_command;
