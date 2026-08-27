@@ -3237,19 +3237,9 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     // BBS
     //m_dirty |= wxGetApp().plater()->get_view_toolbar().update_items_state();
     m_dirty |= wxGetApp().plater()->get_collapse_toolbar().update_items_state();
-    // ONLY THE CANVAS THE USER IS LOOKING AT MAY CONSUME THE 3D-MOUSE QUEUE. apply() DRAINS the
-    // queue, and every bound canvas idles — but a hidden canvas's render() early-returns on
-    // _is_shown_on_screen(), so the motion it swallowed is applied to the SHARED camera and never
-    // drawn. The next visible frame then jumps by more than one state change at once.
-    //
-    // The plater avoids this by binding exactly one of its three views at a time (Plater.cpp,
-    // around the current_panel switch). The Design tab's canvas binds once at construction and
-    // never unbinds, so from the moment it exists two canvases drain the same queue. Reported
-    // upstream as the SpaceMouse being "more severe lag, and jerkyness vs really smooth on the
-    // other tab ... its more than 1 state change" (OrcaSlicer PR #15238).
-    //
-    // Guarding here rather than at the bind sites fixes the whole class: whatever is bound, only
-    // the visible canvas takes motion off the queue.
+    // apply() DRAINS the 3D-mouse queue, so only the canvas actually on screen may call it: a
+    // hidden canvas renders nothing, so the motion it swallowed moves the shared camera without
+    // ever being drawn and the next visible frame jumps several states at once.
     bool mouse3d_controller_applied = _is_shown_on_screen()
         && wxGetApp().plater()->get_mouse3d_controller().apply(wxGetApp().plater()->get_camera());
     m_dirty |= mouse3d_controller_applied;
@@ -3288,10 +3278,7 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
         m_last_frame_start_time = now;
     }
 
-    // Not on screen yet (e.g. the notebook is still showing this page): nothing was rendered,
-    // so keep the frame pending instead of dropping it — clearing m_dirty here leaves the
-    // canvas blank until some later event happens to dirty it again.
-    const bool rendered = _refresh_if_shown_on_screen();
+    _refresh_if_shown_on_screen();
 
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     if (m_extra_frame_requested || mouse3d_controller_applied || imgui_requires_extra_frame || wxGetApp().imgui()->requires_extra_frame()) {
@@ -3303,7 +3290,7 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
         evt.RequestMore();
     }
     else
-        m_dirty = !rendered;
+        m_dirty = false;
 }
 
 void GLCanvas3D::on_char(wxKeyEvent& evt)
@@ -7376,18 +7363,16 @@ void GLCanvas3D::_update_camera_zoom(double zoom)
     m_dirty = true;
 }
 
-bool GLCanvas3D::_refresh_if_shown_on_screen()
+void GLCanvas3D::_refresh_if_shown_on_screen()
 {
-    if (!_is_shown_on_screen())
-        return false;
+    if (_is_shown_on_screen()) {
+        const Size& cnv_size = get_canvas_size();
+        _resize((unsigned int)cnv_size.get_width(), (unsigned int)cnv_size.get_height());
 
-    const Size& cnv_size = get_canvas_size();
-    _resize((unsigned int)cnv_size.get_width(), (unsigned int)cnv_size.get_height());
-
-    // Because of performance problems on macOS, where PaintEvents are not delivered
-    // frequently enough, we call render() here directly when we can.
-    render();
-    return true;
+        // Because of performance problems on macOS, where PaintEvents are not delivered
+        // frequently enough, we call render() here directly when we can.
+        render();
+    }
 }
 
 void GLCanvas3D::_picking_pass()

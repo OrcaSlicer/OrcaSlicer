@@ -1279,9 +1279,7 @@ private:
     void _zoom_to_box(const BoundingBoxf3& box, double margin_factor = DefaultCameraZoomToBoxMarginFactor);
     void _update_camera_zoom(double zoom);
 
-    // Returns false when the canvas is not on screen yet and therefore nothing was rendered,
-    // so callers can keep it dirty instead of dropping the pending frame.
-    bool _refresh_if_shown_on_screen();
+    void _refresh_if_shown_on_screen();
 
     void _picking_pass();
     void _rectangular_selection_picking_pass();
