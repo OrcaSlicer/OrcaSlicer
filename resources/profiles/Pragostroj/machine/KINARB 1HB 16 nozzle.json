@@ -1,0 +1,25 @@
+{
+    "type": "machine",
+    "name": "KINARB 1HB 1.6 nozzle",
+    "setting_id": "KINARB 1HB 1.6 nozzle",
+    "instantiation": "true",
+    "printer_model": "KINARB 1HB",
+    "inherits": "kinarb_machine_common",
+    "from": "system",
+    "printer_variant": "1.6",
+    "nozzle_diameter": [
+        "1.6"
+    ],
+    "default_print_profile": "0.8mm Draft @Pragostroj 1.6",
+    "default_filament_profile": [
+        "Fillamentum PLA Concret Grey @Pragostroj 330 AWD 0.4 nozzle"
+    ],
+    "is_custom_defined": "1",
+    "max_layer_height": [
+        "1.28"
+    ],
+    "min_layer_height": [
+        "0.4"
+    ],
+    "version": "2.2.0.4"
+}
