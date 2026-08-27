@@ -28,6 +28,9 @@
 
 #include <cereal/access.hpp>
 #include <cereal/types/base_class.hpp>
+// The serialize() members below archive ConfigOption hierarchies through
+// cereal::base_class, whose registration machinery lives in polymorphic.hpp.
+#include <cereal/types/polymorphic.hpp>
 
 namespace Slic3r {
     struct FloatOrPercent
@@ -2982,6 +2985,8 @@ public:
     const double &      opt_float(const t_config_option_key &opt_key, unsigned int idx) const;
     double &            opt_float_nullable(const t_config_option_key &opt_key, unsigned int idx) { return this->option<ConfigOptionFloatsNullable>(opt_key)->get_at(idx); }
     const double &      opt_float_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionFloatsNullable *>(this->option(opt_key))->get_at(idx); }
+    FloatOrPercent &    opt_float_or_percent_nullable(const t_config_option_key &opt_key, unsigned int idx) { return this->option<ConfigOptionFloatsOrPercentsNullable>(opt_key)->get_at(idx); }
+    const FloatOrPercent & opt_float_or_percent_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionFloatsOrPercentsNullable *>(this->option(opt_key))->get_at(idx); }
 
     int&                opt_int(const t_config_option_key &opt_key)                             { return this->option<ConfigOptionInt>(opt_key)->value; }
     int                 opt_int(const t_config_option_key &opt_key) const                       { return dynamic_cast<const ConfigOptionInt*>(this->option(opt_key))->value; }
