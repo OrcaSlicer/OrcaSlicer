@@ -86,17 +86,8 @@ std::string AppConfig::get_hms_host()
 
 bool AppConfig::get_stealth_mode()
 {
-    // Before the setup wizard has been completed the user has not been asked whether the app may
-    // use the network, so default to no. Signing in to a cloud account IS that answer, though, and
-    // the latch must not survive it: a user who closes the wizard and logs in from the account menu
-    // — the workaround people share for the wizard never offering login — otherwise gets every
-    // cloud feature silently switched off. No post-login sync prompt, no user presets fetched, and
-    // "Sync Presets" greyed out with nothing to say why, because on_user_login_handle() returns
-    // early on stealth. Upstream #15239.
-    //
-    // This releases the pre-wizard DEFAULT only. An explicit Stealth mode setting still wins, so a
-    // user who deliberately turned it on stays offline whether or not they are signed in.
-    if (!m_cloud_logged_in && !get_bool("firstguide","finish")) {
+    // always return true when user did not finish setup wizard yet
+    if (!get_bool("firstguide","finish")) {
         return true;
     }
     return get_bool("stealth_mode");

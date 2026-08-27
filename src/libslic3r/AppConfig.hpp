@@ -105,13 +105,6 @@ public:
 	std::string get_language_code();
 	std::string get_hms_host();
 	bool get_stealth_mode();
-	// The user's OWN Stealth mode setting, without the pre-wizard default that get_stealth_mode()
-	// applies. Use this wherever "the wizard is unfinished" must not count as stealth — blocking
-	// sign-in above all, since signing in is how a user leaves that state in the first place.
-	bool get_stealth_mode_setting() { return get_bool("stealth_mode"); }
-	// Session state, not a setting: mirrors whether a cloud account is currently signed in, so
-	// get_stealth_mode() can tell "the user has not been asked yet" from "the user said no".
-	void set_cloud_logged_in(bool logged_in) { m_cloud_logged_in = logged_in; }
 	bool get_hide_login_side_panel();
 
 	// Clear and reset to defaults.
@@ -449,9 +442,6 @@ private:
 	Semver                                                      m_orig_version;
 	// Whether the existing version is before system profiles & configuration updating
 	bool                                                        m_legacy_datadir;
-	// A cloud account is signed in right now. Deliberately NOT persisted: it is mirrored from the
-	// network agent on login/logout, so a stale value cannot outlive the session that set it.
-	bool                                                        m_cloud_logged_in{false};
 
 	std::string                                                 m_loading_path;
 
