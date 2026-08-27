@@ -260,8 +260,8 @@ std::vector<ColorRGB> MixedFilamentDialog::live_physical_colors() const
                 out.push_back(to_rgb(c));
         }
     }
-    if (out.size() > 4)
-        out.resize(4);
+    // Preview uses every live physical (same list as the gizmo). Do not
+    // truncate to 4 — Create-mix lattice prefix is match_printable_mix min(n,4).
     return out;
 }
 
@@ -320,6 +320,7 @@ void MixedFilamentDialog::on_create_mix_from_color(wxCommandEvent &)
         return;
 
     const std::vector<ColorRGB> physicals = live_physical_colors();
+    // Lattice prefix is match_printable_mix min(n,4), not a dialog truncate.
     const MixMatchResult        result    = match_printable_mix(target, physicals);
     if (!result.valid) {
         MessageDialog(this, _L("Could not match a printable mix for that color."), _L("Mixed Filaments"),

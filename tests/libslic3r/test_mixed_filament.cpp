@@ -612,6 +612,59 @@ TEST_CASE("Match #RRGGBBFF equals #RRGGBB", "[MixedFilamentMatch]")
     REQUIRE(normalize_mix_match_hex("not-hex").empty());
 }
 
+TEST_CASE("Predicted swatch uses all live physicals not a 4-slot truncate", "[MixedFilamentMatch]")
+{
+    std::vector<ColorRGB> six = panchroma_physicals();
+    six.push_back(decode_hex_or_fail("#FF8800"));
+    six.push_back(decode_hex_or_fail("#00FF88"));
+    const std::vector<ColorRGB> first4(six.begin(), six.begin() + 4);
+
+    MixedFilament pair;
+    pair.component_a = 1;
+    pair.component_b = 2;
+    pair.ratio_a     = 1;
+    pair.ratio_b     = 1;
+    pair.enabled     = true;
+
+    const ColorRGB on_six  = predicted_swatch_for_mix(pair, six);
+    const ColorRGB on_four = predicted_swatch_for_mix(pair, first4);
+    REQUIRE(on_six != on_four);
+
+    const ColorRGB yn4  = predicted_swatch_for_mix(pair, panchroma_physicals());
+    const ColorRGB avg4 = lerp(panchroma_physicals()[0], panchroma_physicals()[1], 0.5f);
+    REQUIRE(yn4 == on_four);
+    const float yn_vs_lerp = std::abs(yn4.r() - avg4.r()) + std::abs(yn4.g() - avg4.g()) + std::abs(yn4.b() - avg4.b());
+    REQUIRE_THAT(yn_vs_lerp, !Catch::Matchers::WithinAbs(0.f, 1e-4f));
+
+    MixedFilament slot5;
+    slot5.component_a = 5;
+    slot5.component_b = 5;
+    slot5.ratio_a     = 1;
+    slot5.ratio_b     = 1;
+    slot5.enabled     = true;
+    const ColorRGB got5       = predicted_swatch_for_mix(slot5, six);
+    const ColorRGB old_clamp  = predicted_swatch_for_mix(slot5, first4);
+
+    MixedFilament slot4;
+    slot4.component_a = 4;
+    slot4.component_b = 4;
+    slot4.ratio_a     = 1;
+    slot4.ratio_b     = 1;
+    slot4.enabled     = true;
+    // n!=4 → no default Panchroma TDs; 1:1 of slot 5 equals mixing physicals[4].
+    const std::vector<ColorRGB> mix_slot5{six[4], six[4]};
+    MixedFilament               as_pair;
+    as_pair.component_a = 1;
+    as_pair.component_b = 2;
+    as_pair.ratio_a     = 1;
+    as_pair.ratio_b     = 1;
+    REQUIRE(got5 == predicted_swatch_for_mix(as_pair, mix_slot5));
+    REQUIRE(got5 != six[3]);
+    REQUIRE(got5 != predicted_swatch_for_mix(slot4, six));
+    REQUIRE(got5 != old_clamp);
+    REQUIRE(old_clamp == predicted_swatch_for_mix(slot4, first4));
+}
+
 TEST_CASE("Match ignores physicals beyond slot 4", "[MixedFilamentMatch]")
 {
     std::vector<ColorRGB> phys = panchroma_physicals();
