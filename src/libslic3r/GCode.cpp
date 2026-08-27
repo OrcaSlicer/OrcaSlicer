@@ -1617,7 +1617,16 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                                                       : gcodegen.config().nozzle_temperature.get_at(new_fi);
             if (std::abs(tcr.print_z) < EPSILON)
                 base_temp = gcodegen.config().nozzle_temperature_initial_layer.get_at(new_fi);
-            const std::string t_token = " T" + std::to_string(new_extruder_id);
+            // This pass strips the M109 that OozePrevention::post_toolchange just emitted into
+            // toolchange_gcode_str, so it must look for the tool index that emission actually
+            // wrote -- physical, translated by GCodeWriter::set_temperature -- not the logical
+            // id the temperature lookups above use. Matching on the logical id would leave the
+            // blocking M109 in place and silently defeat the tower interface temperature.
+            // (The sibling scan further down reads WipeTower2 output, whose set_extruder_temp
+            // emits no T at all, so it is deliberately left alone.)
+            const int heater_id = imex_physical_heater_for(
+                gcodegen.config().is_imex.value, gcodegen.config().physical_extruder_map, new_extruder_id);
+            const std::string t_token = " T" + std::to_string(heater_id);
             std::string out;
             out.reserve(toolchange_gcode_str.size());
             size_t pos = 0;
@@ -1638,7 +1647,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                             const std::string t_val = trimmed.substr(t_pos + 1, t_end == std::string::npos ? std::string::npos : t_end - (t_pos + 1));
                             if (!t_val.empty()) {
                                 try {
-                                    matches_extruder = std::stoi(t_val) == new_extruder_id;
+                                    matches_extruder = std::stoi(t_val) == heater_id;
                                 } catch (...) {
                                     matches_extruder = false;
                                 }

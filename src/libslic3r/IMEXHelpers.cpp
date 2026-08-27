@@ -44,6 +44,15 @@ int imex_pem_tool_for(int filament_id, const std::string& parallel_mode, const C
     return pem.get_at(filament_id);
 }
 
+int imex_physical_heater_for(bool is_imex, const ConfigOptionInts& pem, int logical_id)
+{
+    // Bounds-check rather than get_at(): get_at() CLAMPS to values.front(), which would
+    // silently retarget an out-of-range id at whatever heater sits in slot 0.
+    if (!is_imex || logical_id < 0 || logical_id >= (int) pem.values.size())
+        return logical_id;
+    return pem.values[logical_id];
+}
+
 bool imex_suppresses_bare_toolchange(const std::string& parallel_mode, unsigned int toolchange_count)
 {
     return toolchange_count <= 1

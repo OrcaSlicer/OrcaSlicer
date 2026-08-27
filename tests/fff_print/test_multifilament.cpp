@@ -894,6 +894,59 @@ TEST_CASE("IQEX modes emit first- and second-layer temperatures for every active
     CHECK(gcode.find("M104 S240 T3") != std::string::npos);
 }
 
+// M104/M109 name a physical heater, but every caller of the instance set_temperature overload
+// addresses filaments by logical id. pem routes filament 5 (logical 4) to head 1, so a
+// toolchange between filaments 1 and 5 must cool and wait on T1 -- never T4, which on this
+// machine is an AFC lane index and names no heater at all.
+//
+// Regression: the same-physical short-circuit in set_extruder hides this for lane swaps within
+// one head (filaments 1-4 all map to head 0, so no cool-down is emitted), so only a toolchange
+// that CROSSES heads reaches the emission. Ooze prevention must be on for pre/post_toolchange
+// to run at all.
+TEST_CASE("IMEX heater commands name the physical head, not the logical filament",
+          "[MultiFilament][IMEX][Regression]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    config.set_deserialize_strict({
+        { "imex_parallel_mode",                "primary" },
+        { "ooze_prevention",                   "1" },
+        { "standby_temperature_delta",         "-50" },
+        { "single_extruder_multi_material",    "0" },
+        { "nozzle_temperature_initial_layer",  "200,200,200,200,200,200,200" },
+        { "nozzle_temperature",                "240,240,240,240,240,240,240" },
+    });
+
+    // Two objects on filaments 1 and 5: logical 0 -> head 0, logical 4 -> head 1.
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{
+        { { "extruder", "1" } },
+        { { "extruder", "5" } },
+    };
+    const std::string gcode = slice_with_object_overrides({ cube(20), cube(20) }, config, overrides);
+
+    // The bare toolchange stays LOGICAL -- it is an AFC lane selector, not a heater.
+    CHECK(gcode.find("\nT4") != std::string::npos);
+
+    // Every heater command carrying a tool must name a configured head (0-3 here), never a
+    // logical slot above the head count. Scanning beats a fixed-string check: it fails on any
+    // stray unmapped emission, not just the two sites this test was written for.
+    std::istringstream ss(gcode);
+    std::string        line;
+    std::vector<std::string> offenders;
+    while (std::getline(ss, line)) {
+        if (line.rfind("M104", 0) != 0 && line.rfind("M109", 0) != 0)
+            continue;
+        const size_t t = line.find(" T");
+        if (t == std::string::npos || t + 2 >= line.size() || !std::isdigit((unsigned char) line[t + 2]))
+            continue;
+        if (std::stoi(line.substr(t + 2)) > 3)
+            offenders.push_back(line);
+    }
+    INFO("heater commands naming a non-existent head: " << offenders.size()
+         << (offenders.empty() ? "" : " e.g. " + offenders.front()));
+    CHECK(offenders.empty());
+}
+
 // The IMEX Primary tool prints the sliced paths directly, so it can only use a filament the
 // printer's physical_extruder_map routes to it. The ghost filament picker enforces that for
 // the secondary tools; the primary's filament comes from the ordinary object selector, which

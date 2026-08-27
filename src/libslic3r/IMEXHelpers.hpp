@@ -87,6 +87,22 @@ ConfigOptionInts effective_physical_extruder_map(const PresetBundle& pb);
 // firmware commands like any non-IMEX printer.
 int imex_pem_tool_for(int filament_id, const std::string& parallel_mode, const ConfigOptionInts& pem);
 
+// Translate a logical filament id into the physical heater that an M104/M109 `T` must
+// name. Applies in every IMEX mode including Primary -- a heater command names hardware,
+// so it does not depend on a parallel mode being active the way imex_pem_tool_for does.
+//
+// Gated on is_imex because physical_extruder_map carries two readings in this tree: the
+// BBL paths index it by extruder id (GCode.cpp:3333, WipeTower.cpp:1353), the IMEX paths
+// by filament id. Those coincide only when the filament and nozzle counts match, so an
+// ungated mapping would impose the IMEX reading on profiles that mean the other one --
+// fdm_bbl_3dp_002_common ships a non-identity [1,0] and is spared today only because
+// single_extruder_multi_material suppresses the T qualifier entirely.
+//
+// Out-of-range ids pass through unchanged, the same rule GCodeProcessor's preheat rewrite
+// uses (GCode/GCodeProcessor.cpp:1407), so a printer whose map is the registered
+// single-entry default is unaffected.
+int imex_physical_heater_for(bool is_imex, const ConfigOptionInts& pem, int logical_id);
+
 // True when GCode::set_extruder should suppress its bare T<n> at the print-start
 // initial-tool selection because the active IMEX parallel mode's setup macro
 // (imex_mode_gcode) and machine_start_gcode already activate the primary tool
