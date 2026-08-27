@@ -15,7 +15,6 @@ public:
     ScrolledWindow(wxWindow *parent, wxWindowID id, wxPoint position, wxSize size, long style, int marginWidth = 0, int scrollbarWidth = 4, int tipLength = 0);
     void OnMouseWheel(wxMouseEvent &event);
     void SetTipColor(wxColour color);
-    void Refresh();
     void SetBackgroundColour(wxColour color);
 
     void         SetMarginColor(wxColour color);

@@ -1464,12 +1464,12 @@ void ExtruderGroup::update_ams()
     size_t left  = 4;
     size_t index = 0;
     for (size_t i = i4; i < ams_n4 && left > 0; ++i, ++index, left -= 2) {
-        ams[index]->Update(i < ams_4.size() ? ams_4[i] : info4);
+        ams[index]->UpdateInfo(i < ams_4.size() ? ams_4[i] : info4);
         ams[index]->Refresh();
         ams[index]->Open();
     }
     for (size_t i = i1; i < ams_n1 && left > 0; ++i, ++index, --left) {
-        ams[index]->Update(i < ams_1.size() ? ams_1[i] : info1);
+        ams[index]->UpdateInfo(i < ams_1.size() ? ams_1[i] : info1);
         ams[index]->Refresh();
         ams[index]->Open();
     }
@@ -5593,12 +5593,15 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
 
     // Mixed-color slots are kept at the tail of the filament arrays, so a new physical
     // filament has to be inserted just after the last physical one rather than appended.
-    // total == every slot (physical + mixed); insert_pos == the physical slot count.
-    size_t total          = wxGetApp().preset_bundle->filament_presets.size();
-    size_t insert_pos     = p->combos_filament.size();
-    int filament_count    = (int) (total + 1);
-    std::string new_color = new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
-    wxGetApp().preset_bundle->set_num_filaments(filament_count, new_color);
+    // Count off filament_is_mixed, not filament_presets or the combos: the extruder-count spinner
+    // reaches this before the sidebar has rebuilt, and update_multi_material_filament_presets()
+    // can have grown filament_presets alone.
+    auto       *bundle         = wxGetApp().preset_bundle;
+    size_t      insert_pos     = bundle->num_physical_filaments();
+    size_t      total          = insert_pos + bundle->num_mixed_filaments();
+    int         filament_count = (int)(total + 1);
+    std::string new_color      = new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
+    bundle->set_num_filaments(filament_count, new_color);
 
     // Maintain physical-first ordering: rotate the new slot from end to insert_pos.
     // No mixed slots -> insert_pos == total -> every rotate below is a no-op.

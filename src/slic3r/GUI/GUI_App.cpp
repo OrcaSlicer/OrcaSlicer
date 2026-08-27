@@ -8906,10 +8906,16 @@ void GUI_App::load_current_presets(bool active_preset_combox/*= false*/, bool ch
         auto* nozzle_diameter = edited_printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
         if (nozzle_diameter) {
             // Mixed-color slots are virtual filaments kept at the tail of the list, so they have no
-            // nozzle of their own. Sizing to the nozzle count alone would silently drop the mixes of
-            // a just-loaded project, and update_extruder_count() would then strip the facets painted
-            // with them.
-            preset_bundle->set_num_filaments(nozzle_diameter->values.size() + preset_bundle->num_mixed_filaments());
+            // nozzle of their own and the count has to allow for them. Only ever grow: this sizes
+            // the list so the combo boxes have something to bind to, and set_num_filaments() trims
+            // at the raw tail, so shrinking here would eat the mixes rather than the surplus
+            // physical slots. A list longer than the nozzle count is a state the app reaches
+            // legitimately - raising the extruder count and not saving the printer preset leaves
+            // exactly that on the next start - and losing the project's mixes to it is worse than
+            // carrying a filament the printer has no nozzle for until the count is next changed.
+            const size_t target = nozzle_diameter->values.size() + preset_bundle->num_mixed_filaments();
+            if (target > preset_bundle->filament_presets.size())
+                preset_bundle->set_num_filaments(target);
         }
     }
 	this->plater()->set_printer_technology(printer_technology);

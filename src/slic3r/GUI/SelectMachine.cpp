@@ -2847,7 +2847,7 @@ void SelectMachineDialog::on_ok_btn(wxCommandEvent &event)
             });
 
         // STUDIO-9580
-        /* use warning color if there are warning and normal messages* /
+        /* use warning color if there are warning and normal messages*/
         /* use indexes if there are several messages*/
         /* add header and ending if there are several messages or has none block warnings*/
         if (confirm_text.size() > 1 || !is_printing_block)
