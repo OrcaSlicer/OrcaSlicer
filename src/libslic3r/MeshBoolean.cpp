@@ -352,7 +352,7 @@ void segment(CGALMesh& src, std::vector<CGALMesh>& dst, double smoothing_alpha =
         //}
         //else
         {
-            dst.emplace_back(std::move(CGALMesh(out)));
+            dst.emplace_back(CGALMesh(out));
         }
     }
     //if (mesh_merged.is_empty() == false) {
@@ -371,7 +371,7 @@ std::vector<TriangleMesh> segment(const TriangleMesh& src, double smoothing_alph
     std::vector<TriangleMesh> out_meshes;
     for (auto& outf_cgal_mesh: out_cgal_meshes)
     {
-        out_meshes.emplace_back(std::move(cgal_to_triangle_mesh(outf_cgal_mesh.m)));
+        out_meshes.emplace_back(cgal_to_triangle_mesh(outf_cgal_mesh.m));
     }
 
     return out_meshes;

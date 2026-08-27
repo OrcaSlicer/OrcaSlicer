@@ -3790,7 +3790,7 @@ std::vector<Polygons> Print::get_extruder_printable_polygons() const
         Polygons ploys = {Polygon::new_scale(e_printable_area)};
         extruder_printable_polys.emplace_back(ploys);
     }
-    return std::move(extruder_printable_polys);
+    return extruder_printable_polys;
 }
 
 std::vector<Polygons> Print::get_extruder_unprintable_polygons() const
@@ -3803,7 +3803,7 @@ std::vector<Polygons> Print::get_extruder_unprintable_polygons() const
         Polygons ploys = diff(printable_poly, Polygon::new_scale(e_printable_area));
         extruder_unprintable_polys.emplace_back(ploys);
     }
-    return std::move(extruder_unprintable_polys);
+    return extruder_unprintable_polys;
 }
 
 size_t Print::get_extruder_id(unsigned int filament_id) const
