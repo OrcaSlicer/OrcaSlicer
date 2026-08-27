@@ -2565,6 +2565,16 @@ std::vector<int> ModelVolume::get_extruders() const
     return volume_extruders;
 }
 
+static void erase_illegal_volume_extruder(ModelVolume &vol, size_t physical_n, size_t max_filament_id)
+{
+    if (spectrum_volume_extruder_keep(vol.extruder_id(), physical_n, max_filament_id))
+        return;
+    vol.config.erase("extruder");
+    ModelObject *obj = vol.get_object();
+    if (obj != nullptr && !spectrum_volume_extruder_keep(vol.extruder_id(), physical_n, max_filament_id))
+        obj->config.erase("extruder");
+}
+
 void ModelVolume::update_extruder_count(size_t extruder_count, size_t max_filament_id, size_t source_palette_size)
 {
     const size_t paint_limit = spectrum_paint_id_limit(extruder_count, max_filament_id, source_palette_size);
@@ -2575,12 +2585,9 @@ void ModelVolume::update_extruder_count(size_t extruder_count, size_t max_filame
             break;
         }
     }
-    // Clear a stale per-volume filament assignment that no longer exists after the extruder count
-    // shrank (e.g. printer switch to one with fewer filaments), so downstream readers never index
-    // per-filament config vectors out of range. Ported from BambuStudio (STUDIO-15763).
-    if (extruder_id() > int(paint_limit)) {
-        this->config.erase("extruder");
-    }
+    // Volume assignment is physical or live mix IDs only — not the source-palette gap
+    // that paint_limit keeps for facets (Adopt leftover 5 must not look like Mix 5).
+    erase_illegal_volume_extruder(*this, extruder_count, max_filament_id);
 }
 
 void ModelVolume::update_extruder_count_when_delete_filament(size_t extruder_count,
@@ -2602,11 +2609,8 @@ void ModelVolume::update_extruder_count_when_delete_filament(size_t extruder_cou
             break;
         }
     }
-    // Same stale-assignment cleanup as update_extruder_count, for the filament-delete path.
-    // Ported from BambuStudio (STUDIO-15763).
-    if (extruder_id() > int(paint_limit)) {
-        this->config.erase("extruder");
-    }
+    // Same volume-assignment cleanup as update_extruder_count (not paint_limit).
+    erase_illegal_volume_extruder(*this, extruder_count, max_filament_id);
 }
 
 void ModelVolume::center_geometry_after_creation(bool update_source_offset)

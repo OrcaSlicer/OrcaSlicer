@@ -93,6 +93,15 @@ constexpr size_t SPECTRUM_PAINT_ID_PERSIST_CAP = 15;
 // min(15, max(physical_n, max_filament_id, source_palette_size)).
 size_t spectrum_paint_id_limit(size_t physical_n, size_t max_filament_id, size_t source_palette_size);
 
+// Volume/object `extruder` keep: 1..physical_n and mix IDs physical_n+1 … max_filament_id.
+// Source-palette gap IDs are paint-facet-only — do not keep them as volume assignment.
+bool spectrum_volume_extruder_keep(int id, size_t physical_n, size_t max_filament_id);
+
+// Sidebar::delete_filament passes post-delete physical count into Plater::on_filaments_delete.
+// Mix-aware max uses pre-delete physical (post_n + 1) so Mix N paint is not wiped.
+// Do not use this on on_filament_count_change (that path already has the target n).
+size_t spectrum_delete_filament_mix_max(const std::string &serialized, size_t post_delete_physical);
+
 // True if applying new_serialized would change the mix (A/B/C/ratio/pattern) of any painted mix ID.
 // Mix IDs are enabled-row order; disabling a middle row shifts later IDs. No silent remap.
 bool mixed_filament_painted_ids_would_shift(const std::string     &old_serialized,

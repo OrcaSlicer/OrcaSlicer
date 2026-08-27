@@ -64,6 +64,7 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Color.hpp"
+#include "libslic3r/MixedFilament.hpp"
 #include "libslic3r/MixedFilamentMatch.hpp"
 #include "libslic3r/MixedFilamentPaintBake.hpp"
 #include "libslic3r/SLAPrint.hpp"
@@ -16837,7 +16838,9 @@ void Plater::on_filaments_delete(size_t num_filaments, size_t filament_id, int r
             if (const ConfigOptionString *opt = bundle->prints.get_edited_preset().config.option<ConfigOptionString>("mixed_filament_definitions"))
                 mixed_defs = opt->value;
         }
-        max_filament_id = MixedFilamentManager::max_filament_id(mixed_defs, num_filaments);
+        // Sidebar::delete_filament passes post-delete physical count. Mix max uses pre-delete n
+        // so Mix 6+ paint is not wiped. Do not apply this n+1 on on_filament_count_change.
+        max_filament_id = spectrum_delete_filament_mix_max(mixed_defs, num_filaments);
         if (const ConfigOptionStrings *src = bundle->project_config.option<ConfigOptionStrings>("spectrum_source_filament_colour"))
             source_palette_size = src->values.size();
     }

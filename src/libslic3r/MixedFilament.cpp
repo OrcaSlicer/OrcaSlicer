@@ -380,6 +380,21 @@ size_t spectrum_paint_id_limit(size_t physical_n, size_t max_filament_id, size_t
     return std::min(SPECTRUM_PAINT_ID_PERSIST_CAP, raw);
 }
 
+bool spectrum_volume_extruder_keep(int id, size_t physical_n, size_t max_filament_id)
+{
+    if (id <= 0)
+        return true;
+    const size_t uid = size_t(id);
+    if (uid <= physical_n)
+        return true;
+    return uid <= max_filament_id;
+}
+
+size_t spectrum_delete_filament_mix_max(const std::string &serialized, size_t post_delete_physical)
+{
+    return MixedFilamentManager::max_filament_id(serialized, post_delete_physical + 1);
+}
+
 bool mixed_filament_painted_ids_would_shift(const std::string     &old_serialized,
                                             const std::string     &new_serialized,
                                             size_t                 num_physical,

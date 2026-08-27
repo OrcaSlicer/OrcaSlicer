@@ -1,6 +1,8 @@
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
+#include <fstream>
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -188,6 +190,109 @@ TEST_CASE("max_filament_id 6 leaves Mix 5-6 after update_extruder_count(4)", "[p
     vol_del->update_extruder_count_when_delete_filament(3, 1, 1, 6, 0);
     CHECK(used_paint_state(*vol_del, 5));
     CHECK(used_paint_state(*vol_del, 6));
+}
+
+TEST_CASE("spectrum_volume_extruder_keep splits physical/mix from source-palette gap", "[paint_mix]")
+{
+    CHECK(spectrum_volume_extruder_keep(1, 4, 0));
+    CHECK(spectrum_volume_extruder_keep(4, 4, 0));
+    CHECK_FALSE(spectrum_volume_extruder_keep(5, 4, 0));
+    CHECK(spectrum_volume_extruder_keep(5, 4, 6));
+    CHECK(spectrum_volume_extruder_keep(6, 4, 6));
+    CHECK_FALSE(spectrum_volume_extruder_keep(7, 4, 6));
+}
+
+TEST_CASE("Adopt leftover volume extruder 5 is not Mix 5; painted 5-8 remain", "[paint_mix]")
+{
+    Model        model;
+    ModelVolume *vol = add_painted_cube(model, {{0, 5}, {1, 6}, {2, 7}, {3, 8}});
+    vol->config.set("extruder", 5);
+    REQUIRE(vol->extruder_id() == 5);
+
+    vol->update_extruder_count(4, 0, 8);
+    CHECK(vol->extruder_id() != 5);
+    CHECK_FALSE(vol->config.has("extruder"));
+    CHECK(used_paint_state(*vol, 5));
+    CHECK(used_paint_state(*vol, 6));
+    CHECK(used_paint_state(*vol, 7));
+    CHECK(used_paint_state(*vol, 8));
+}
+
+TEST_CASE("mix-shaped volume extruder 5 is kept with max_filament_id 6", "[paint_mix]")
+{
+    Model        model;
+    ModelVolume *vol = add_painted_cube(model, {{0, 5}, {1, 6}});
+    vol->config.set("extruder", 5);
+    vol->update_extruder_count(4, 6, 8);
+    CHECK(vol->extruder_id() == 5);
+    CHECK(vol->config.has("extruder"));
+    CHECK(used_paint_state(*vol, 5));
+    CHECK(used_paint_state(*vol, 6));
+}
+
+TEST_CASE("object-inherited extruder 5 is cleared after Adopt-shaped clamp", "[paint_mix]")
+{
+    Model        model;
+    ModelVolume *vol = add_painted_cube(model, {{0, 5}});
+    vol->get_object()->config.set("extruder", 5);
+    REQUIRE(vol->extruder_id() == 5);
+    REQUIRE_FALSE(vol->config.has("extruder"));
+
+    vol->update_extruder_count(4, 0, 8);
+    CHECK(vol->extruder_id() != 5);
+    CHECK_FALSE(vol->get_object()->config.has("extruder"));
+    CHECK(used_paint_state(*vol, 5));
+}
+
+TEST_CASE("delete-filament production max keeps Mix 6 paint", "[paint_mix]")
+{
+    const std::string two_mixes = "1,2,1,1,1;1,3,1,1,1";
+    const size_t      post_n    = 3;
+    // Trap: post-delete physical into max_filament_id drops Mix 6 (PR #6 Cursor High).
+    REQUIRE(MixedFilamentManager::max_filament_id(two_mixes, post_n) == 5);
+    const size_t pre_mix_max = spectrum_delete_filament_mix_max(two_mixes, post_n);
+    REQUIRE(pre_mix_max == 6);
+    REQUIRE(spectrum_paint_id_limit(post_n, pre_mix_max, 0) == 6);
+    REQUIRE(spectrum_delete_filament_mix_max("", post_n) == post_n + 1);
+
+    Model        model;
+    ModelVolume *vol = add_painted_cube(model, {{0, 5}, {1, 6}});
+    vol->config.set("extruder", 6);
+    vol->update_extruder_count_when_delete_filament(post_n, 1, 1, pre_mix_max, 0);
+    CHECK(used_paint_state(*vol, 5));
+    CHECK(used_paint_state(*vol, 6));
+    CHECK(vol->extruder_id() == 6);
+}
+
+TEST_CASE("Plater on_filaments_delete binds spectrum_delete_filament_mix_max", "[paint_mix]")
+{
+    // libslic3r_tests does not link GUI. Bind the production call site so a Plater-only
+    // revert to max_filament_id(defs, post_n) fails this suite (spec DoD-2).
+    const boost::filesystem::path here(__FILE__);
+    const boost::filesystem::path plater = here.parent_path().parent_path().parent_path() /
+                                           "src" / "slic3r" / "GUI" / "Plater.cpp";
+    REQUIRE(boost::filesystem::exists(plater));
+    std::ifstream in(plater.string());
+    REQUIRE(in.good());
+    const std::string src((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+
+    const auto count_pos  = src.find("void Plater::on_filament_count_change");
+    const auto delete_pos = src.find("void Plater::on_filaments_delete");
+    REQUIRE(count_pos != std::string::npos);
+    REQUIRE(delete_pos != std::string::npos);
+    REQUIRE(delete_pos > count_pos);
+
+    auto delete_end = src.find("\nvoid Plater::", delete_pos + 1);
+    const auto next_vec = src.find("\nstd::vector<", delete_pos + 1);
+    if (next_vec != std::string::npos && (delete_end == std::string::npos || next_vec < delete_end))
+        delete_end = next_vec;
+    REQUIRE(delete_end != std::string::npos);
+
+    const std::string count_fn  = src.substr(count_pos, delete_pos - count_pos);
+    const std::string delete_fn = src.substr(delete_pos, delete_end - delete_pos);
+    CHECK(count_fn.find("spectrum_delete_filament_mix_max") == std::string::npos);
+    CHECK(delete_fn.find("spectrum_delete_filament_mix_max") != std::string::npos);
+    CHECK(delete_fn.find("max_filament_id(mixed_defs, num_filaments)") == std::string::npos);
 }
 
 TEST_CASE("disable middle of three enabled mixes after painting Mix 6 shifts IDs", "[paint_mix]")
