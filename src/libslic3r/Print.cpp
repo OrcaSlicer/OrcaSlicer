@@ -1401,10 +1401,17 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             // so nothing detected the mismatch. collect_imex_warnings() computes the same
             // condition and discards it into a display fallback.
             //
-            // Blocks rather than warns, matching the multi-color rule above. The plate is not
-            // printable as configured: the primary tool executes the toolpaths while the flow
-            // and temperatures were computed for a filament it cannot load. Where the routed
-            // head is also absent from the mode's active tools, the 1st->2nd layer temperature
+            // Blocks rather than warns, matching the multi-color rule above -- but on intent,
+            // not on physics, and the distinction matters to anyone tempted to relax it. The
+            // emitter does not use the declared primary: it re-derives an effective one from
+            // the filament actually in use (GCode.cpp's initial_extruder_id -> pem lookups), so
+            // a plate whose only filament sits on a Span tool sharing the primary's gantry does
+            // produce coherent G-code. It is refused anyway. A parallel mode exists to run
+            // carriages in parallel; a single-colour plate riding one span lane is not that, and
+            // silently accepting it would make the mode's declared roster meaningless.
+            //
+            // Where the routed head is absent from the mode's active tools the plate is broken
+            // outright, not merely off-intent: the 1st->2nd layer temperature
             // branch (GCode.cpp, mutually exclusive with the standard path) skips it too, so
             // that head holds nozzle_temperature_initial_layer for the whole job. First-layer
             // temperatures are unaffected -- _print_first_layer_extruder_temperatures is not
