@@ -8286,27 +8286,6 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     if (input_files.empty())
         return std::vector<size_t>();
 
-    // Fusion 360 .f3d cannot be opened: closed Autodesk ShapeManager kernel, no offline reader
-    // exists. Redirect the user to STEP (which we import natively). Skip any .f3d, load the rest.
-    {
-        bool any_f3d = false;
-        for (const auto& p : input_files)
-            if (boost::iends_with(p.string(), ".f3d")) { any_f3d = true; break; }
-        if (any_f3d) {
-            MessageDialog(static_cast<wxWindow*>(q),
-                _L("Fusion 360 .f3d files can't be opened directly — they use Autodesk's "
-                   "closed file format, which no offline tool can read.\n\n"
-                   "In Fusion 360, use File ▸ Export and choose STEP (.step), then open that "
-                   "file here."),
-                _L("Unsupported format: .f3d"), wxOK | wxICON_INFORMATION).ShowModal();
-            std::vector<fs::path> kept;
-            for (const auto& p : input_files)
-                if (!boost::iends_with(p.string(), ".f3d")) kept.push_back(p);
-            if (kept.empty()) return std::vector<size_t>();
-            return load_files(kept, strategy, ask_multi);
-        }
-    }
-
     if (!input_files.empty())
        q->m_3mf_path = input_files[0].string();
     
