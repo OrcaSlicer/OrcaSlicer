@@ -187,6 +187,11 @@ private:
     // "Enable" toggled on a material slot: reveals/hides everything below the header and, for a
     // mixed slot, auto-selects its component filaments' "Enable" + "Full Publish" toggles.
     void on_enable_toggle(size_t category_index);
+    // 0-based material slots required by enabled mixed-filament slots that would ship without
+    // their identity: "Enable" not checked, or enabled with neither "Full Publish" nor the
+    // "Type" requirement row checked. Colour is deliberately ignored (the receiver renders the
+    // mix from its own components' colours). Sorted, deduplicated.
+    std::vector<size_t> unpublished_mixed_components() const;
     // Read-only visualization of a mixed slot's definition (a stacked ratio bar, or the
     // Material Ratio vs Model Height graph for a gradient), inserted above the info hint
     // inside the category's scroll area.

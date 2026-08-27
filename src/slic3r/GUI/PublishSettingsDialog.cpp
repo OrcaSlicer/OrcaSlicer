@@ -416,7 +416,24 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
     auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-        // Publish is always allowed: no settings selected means no settings override.
+        // Publish is always allowed: no settings selected means no settings override. Warn only
+        // when an enabled mixed filament would ship without the identity of one of its
+        // components; "Proceed" accepts that and publishes anyway.
+        if (const std::vector<size_t> missing = unpublished_mixed_components(); !missing.empty()) {
+            wxString missing_list;
+            for (size_t i = 0; i < missing.size(); ++i) {
+                if (i > 0)
+                    missing_list += ", ";
+                missing_list += wxString::Format(_L("Filament %d"), int(missing[i] + 1));
+            }
+            const wxString msg = _L("The following filaments are used by published mixed filaments but will not carry their material identity:")
+                                 + wxString(" ") + missing_list;
+            MessageDialog warn(this, msg, _L("Warning"), wxICON_WARNING);
+            warn.AddButton(wxID_CANCEL, _L("Cancel"), true); // safe choice gets the focus
+            warn.AddButton(wxID_OK, _L("Proceed"), false);
+            if (warn.ShowModal() != wxID_OK)
+                return; // Cancel: dismiss the warning and stay in this dialog
+        }
         EndModal(wxID_OK);
     });
     dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
@@ -1693,6 +1710,53 @@ std::vector<std::string> PublishSettingsDialog::GetPublishedKeys() const
         out.push_back(row.key);
     }
     return out;
+}
+
+std::vector<size_t> PublishSettingsDialog::unpublished_mixed_components() const
+{
+    std::set<size_t> missing;
+    for (const Category& cat : m_categories) {
+        if (!cat.is_mixed || cat.section != Section::Material)
+            continue;
+        // Only enabled mixed slots depend on their components being published.
+        if (cat.enable_check == nullptr || !cat.enable_check->GetValue())
+            continue;
+        const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
+        // Components are 1-based physical filament indices.
+        for (const unsigned int component : mixed_slot_components(full, cat.filament_slot)) {
+            const size_t component_slot = size_t(component) - 1;
+            // Find the component slot's material category (one exists per physical slot).
+            const Category* comp_cat = nullptr;
+            for (const Category& other : m_categories) {
+                if (other.section == Section::Material && !other.is_mixed && other.filament_slot == component_slot) {
+                    comp_cat = &other;
+                    break;
+                }
+            }
+            if (comp_cat == nullptr || comp_cat->enable_check == nullptr)
+                continue;
+            // Missing when the component's "Enable" is off, or it is enabled with neither
+            // "Full Publish" nor the "Type" requirement row checked. Colour never counts:
+            // the receiver renders the mix from its own components' colours.
+            if (!comp_cat->enable_check->GetValue()) {
+                missing.insert(component_slot);
+                continue;
+            }
+            if (comp_cat->full_check != nullptr && comp_cat->full_check->GetValue())
+                continue;
+            bool type_checked = false;
+            for (const size_t r : comp_cat->rows) {
+                const Row& row = m_rows[r];
+                if (row.kind == RowKind::Type && row.check->GetValue()) {
+                    type_checked = true;
+                    break;
+                }
+            }
+            if (!type_checked)
+                missing.insert(component_slot);
+        }
+    }
+    return std::vector<size_t>(missing.begin(), missing.end());
 }
 
 std::vector<Slic3r::PublishedMaterialEntry> PublishSettingsDialog::GetPublishedMaterialKeys() const
