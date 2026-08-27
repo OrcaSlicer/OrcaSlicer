@@ -6555,6 +6555,8 @@ LayerResult GCode::process_layer(
                         }
                         // Then print infill
                         gcode += this->extrude_infill(print, by_region_specific, false);
+                        // Then the walls left hanging in mid air, now that the infill can anchor them
+                        gcode += this->extrude_perimeters(print, by_region_specific, first_layer, false, true);
                         // Then print perimeters of regions that has is_infill_first == true
                         gcode += this->extrude_perimeters(print, by_region_specific, first_layer, true);
                     }
@@ -6850,6 +6852,7 @@ LayerResult GCode::process_layer(
                             has_insert_timelapse_gcode = true;
                         }
                         gcode += this->extrude_infill(print, by_region_specific, false);
+                        gcode += this->extrude_perimeters(print, by_region_specific, first_layer, false, true);
                         gcode += this->extrude_perimeters(print, by_region_specific, first_layer, true);
                         // ironing
                         gcode += this->extrude_infill(print, by_region_specific, true);
@@ -7582,7 +7585,7 @@ std::string GCode::extrude_path(const ExtrusionPath& path, const std::string& de
 }
 
 // Extrude perimeters: Decide where to put seams (hide or align seams).
-std::string GCode::extrude_perimeters(const Print &print, const std::vector<ObjectByExtruder::Island::Region> &by_region, bool is_first_layer, bool is_infill_first)
+std::string GCode::extrude_perimeters(const Print &print, const std::vector<ObjectByExtruder::Island::Region> &by_region, bool is_first_layer, bool is_infill_first, bool unsupported_loops_only)
 {
     std::string gcode;
     for (const ObjectByExtruder::Island::Region &region : by_region)
@@ -7594,8 +7597,18 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
                 : (m_config.is_infill_first == is_infill_first);
             if (!should_print) continue;
 
-            for (const ExtrusionEntity* ee : region.perimeters)
+            // ORCA: loops flagged as extruded in mid air, out of reach of the layer below, are held back
+            // for a second pass after the infill that anchors them. Infill already precedes infill first walls.
+            const bool defer_unsupported = !is_infill_first;
+            auto waits_for_infill = [](const ExtrusionEntity *ee) {
+                return ee->is_loop() && static_cast<const ExtrusionLoop *>(ee)->print_after_infill;
+            };
+
+            for (const ExtrusionEntity* ee : region.perimeters) {
+                if (defer_unsupported && waits_for_infill(ee) != unsupported_loops_only)
+                    continue;
                 gcode += this->extrude_entity(*ee, "perimeter", -1., region.perimeters);
+            }
         }
     return gcode;
 }
