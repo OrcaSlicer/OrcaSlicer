@@ -3578,6 +3578,27 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
     ConfigOptionStrings *filament_color_type = project_config.option<ConfigOptionStrings>("filament_colour_type");
     ConfigOptionInts *   filament_map = project_config.option<ConfigOptionInts>("filament_map");
     ConfigOptionInts *   filament_volume_map = project_config.option<ConfigOptionInts>("filament_volume_map");
+    // why: project filament_multi_colour stores space-joined components per
+    // filament; decode once so every merge branch seeds from the same view,
+    // falling back to the main color where the project has no components.
+    auto decode_project_multi_colors = [this](const std::vector<std::string> &main_colors) {
+        std::vector<std::vector<std::string>> decoded(main_colors.size());
+        for (size_t i = 0; i < main_colors.size(); ++i) decoded[i] = {main_colors[i]};
+        const ConfigOptionStrings *project_multi_color = project_config.option<ConfigOptionStrings>("filament_multi_colour");
+        if (project_multi_color) {
+            for (size_t i = 0; i < std::min(decoded.size(), project_multi_color->values.size()); ++i) {
+                std::vector<std::string> colors = split_string(project_multi_color->values[i], ' ');
+                // why: a whitespace-only persisted entry splits into empty
+                // tokens, so keep the main-color fallback rather than
+                // serializing an empty component.
+                colors.erase(std::remove_if(colors.begin(), colors.end(),
+                                            [](const std::string &c) { return c.empty(); }),
+                             colors.end());
+                if (!colors.empty()) decoded[i] = colors;
+            }
+        }
+        return decoded;
+    };
 
     // Snapshot and temporarily strip mixed filament slots so AMS sync operates on physical
     // filaments only. A mixed slot is virtual and has no tray to sync against; leaving it in
