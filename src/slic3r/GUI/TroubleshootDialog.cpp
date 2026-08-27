@@ -354,7 +354,7 @@ TroubleshootDialog::TroubleshootDialog()
     m_sizer->AddSpacer(FromDIP(20));
     m_sizer->Add(right_sizer, 0, wxEXPAND | wxTOP | wxBOTTOM | wxRIGHT, FromDIP(15));
 
-    SetSizer(m_sizer);
+    SetSizerAndFit(m_sizer);
     Layout();
     Fit();
     CenterOnParent();

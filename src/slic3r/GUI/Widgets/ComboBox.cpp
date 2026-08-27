@@ -87,10 +87,18 @@ void ComboBox::SetSelection(int n)
         return;
     drop.SetSelection(n);
     SetLabel(drop.GetValue());
-    if (drop.selection >= 0 && drop.iconSize.y > 0 && items[drop.selection].icon_textctrl.IsOk())
-        SetIcon(items[drop.selection].icon_textctrl);
-    else
+    if (drop.selection >= 0 && drop.iconSize.y > 0 && items[drop.selection].icon_textctrl.IsOk()) {
+        if (m_keep_drop_arrow) {
+            SetIcon("drop_down");
+            SetIcon_1(items[drop.selection].icon_textctrl);
+        } else {
+            SetIcon(items[drop.selection].icon_textctrl);
+        }
+    } else {
         SetIcon("drop_down");
+        if (m_keep_drop_arrow)
+            SetIcon_1(wxNullBitmap);
+    }
 
     if (drop.selection >= 0) {
         SetStaticTips(items[drop.selection].text_static_tips, wxNullBitmap);
@@ -120,10 +128,18 @@ void ComboBox::SetValue(const wxString &value)
 {
     drop.SetValue(value);
     SetLabel(value);
-    if (drop.selection >= 0 && drop.iconSize.y > 0 && items[drop.selection].icon_textctrl.IsOk())
-        SetIcon(items[drop.selection].icon_textctrl);
-    else
+    if (drop.selection >= 0 && drop.iconSize.y > 0 && items[drop.selection].icon_textctrl.IsOk()) {
+        if (m_keep_drop_arrow) {
+            SetIcon("drop_down");
+            SetIcon_1(items[drop.selection].icon_textctrl);
+        } else {
+            SetIcon(items[drop.selection].icon_textctrl);
+        }
+    } else {
         SetIcon("drop_down");
+        if (m_keep_drop_arrow)
+            SetIcon_1(wxNullBitmap);
+    }
 
     if (drop.selection >= 0) {
         SetStaticTips(items[drop.selection].text_static_tips, wxNullBitmap);

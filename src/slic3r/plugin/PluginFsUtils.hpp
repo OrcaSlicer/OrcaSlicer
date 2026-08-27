@@ -12,6 +12,7 @@
 #include <vector>
 
 #define PLUGIN_SUBSCRIBED_DIR "_subscribed"
+#define PLUGIN_DATA_DIR "plugin_data"
 
 namespace Slic3r {
 

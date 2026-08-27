@@ -120,8 +120,7 @@ bool delete_plugin_root(const boost::filesystem::path& resolved_root, const std:
     }
 
     if (removed_count == 0) {
-        error = "Plugin folder was not found: " + resolved_root.string();
-        return false;
+        return true;
     }
 
     BOOST_LOG_TRIVIAL(info) << "Deleted plugin: " << plugin_id << " from " << resolved_root.string();
@@ -632,7 +631,7 @@ void parse_metadata_rfc822(const std::string& content,
 bool is_ignored_plugin_directory(const boost::filesystem::path& path)
 {
     const std::string name = path.filename().string();
-    return name.empty() || name[0] == '.' || name.rfind("__", 0) == 0 || name == PLUGIN_SUBSCRIBED_DIR;
+    return name.empty() || name[0] == '.' || name.rfind("__", 0) == 0 || name == PLUGIN_SUBSCRIBED_DIR || name == PLUGIN_DATA_DIR;
 }
 
 bool is_safe_relative_path(const boost::filesystem::path& path)

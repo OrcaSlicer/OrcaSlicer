@@ -6,6 +6,7 @@
 #include <sstream>
 #include <regex>
 #include "libslic3r/MultiNozzleUtils.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 #include <future>
 #include <glad/gl.h>
 #include <boost/algorithm/string.hpp>
@@ -1675,6 +1676,25 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 	std::sort(plate_extruders.begin(), plate_extruders.end());
 	auto it_end = std::unique(plate_extruders.begin(), plate_extruders.end());
 	plate_extruders.resize(std::distance(plate_extruders.begin(), it_end));
+
+	// Expand mixed filament slots to their physical components. A mixed slot is virtual and
+	// is never loaded into a tray, so callers (AMS mapping, filament checks) must see the
+	// physical filaments it resolves to instead.
+	{
+		auto& project_config = wxGetApp().preset_bundle->project_config;
+		auto* is_mixed_opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
+		auto* comp_strs_opt = project_config.option<ConfigOptionStrings>("filament_mixed_components");
+		if (is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {
+			std::vector<unsigned int> ext_0based;
+			for (int e : plate_extruders)
+				if (e >= 1) ext_0based.push_back((unsigned int)(e - 1));
+			auto expanded = expand_mixed_filaments(ext_0based, is_mixed_opt->values, comp_strs_opt->values);
+			plate_extruders.clear();
+			for (unsigned int e : expanded)
+				plate_extruders.push_back((int)(e + 1));
+		}
+	}
+
 	return plate_extruders;
 }
 
@@ -1836,6 +1856,24 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
     std::sort(plate_extruders.begin(), plate_extruders.end());
     auto it_end = std::unique(plate_extruders.begin(), plate_extruders.end());
     plate_extruders.resize(std::distance(plate_extruders.begin(), it_end));
+
+    // Expand mixed filament slots to their physical components. A mixed slot is virtual and
+    // is never loaded into a tray, so callers (AMS mapping, filament checks) must see the
+    // physical filaments it resolves to instead.
+    {
+        auto* is_mixed_opt = full_config.option<ConfigOptionBools>("filament_is_mixed");
+        auto* comp_strs_opt = full_config.option<ConfigOptionStrings>("filament_mixed_components");
+        if (is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {
+            std::vector<unsigned int> ext_0based;
+            for (int e : plate_extruders)
+                if (e >= 1) ext_0based.push_back((unsigned int)(e - 1));
+            auto expanded = expand_mixed_filaments(ext_0based, is_mixed_opt->values, comp_strs_opt->values);
+            plate_extruders.clear();
+            for (unsigned int e : expanded)
+                plate_extruders.push_back((int)(e + 1));
+        }
+    }
+
     return plate_extruders;
 }
 
@@ -1889,6 +1927,25 @@ std::vector<int> PartPlate::get_extruders_without_support(bool conside_custom_gc
 	std::sort(plate_extruders.begin(), plate_extruders.end());
 	auto it_end = std::unique(plate_extruders.begin(), plate_extruders.end());
 	plate_extruders.resize(std::distance(plate_extruders.begin(), it_end));
+
+	// Expand mixed filament slots to their physical components. A mixed slot is virtual and
+	// is never loaded into a tray, so callers (AMS mapping, filament checks) must see the
+	// physical filaments it resolves to instead.
+	{
+		auto& project_config = wxGetApp().preset_bundle->project_config;
+		auto* is_mixed_opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
+		auto* comp_strs_opt = project_config.option<ConfigOptionStrings>("filament_mixed_components");
+		if (is_mixed_opt && comp_strs_opt && has_any_mixed_filament(is_mixed_opt->values)) {
+			std::vector<unsigned int> ext_0based;
+			for (int e : plate_extruders)
+				if (e >= 1) ext_0based.push_back((unsigned int)(e - 1));
+			auto expanded = expand_mixed_filaments(ext_0based, is_mixed_opt->values, comp_strs_opt->values);
+			plate_extruders.clear();
+			for (unsigned int e : expanded)
+				plate_extruders.push_back((int)(e + 1));
+		}
+	}
+
 	return plate_extruders;
 }
 
@@ -1988,6 +2045,50 @@ bool PartPlate::check_tpu_printable_status(const DynamicPrintConfig & config, co
 {
 	// do not limit the num of tpu filament in slicing
 	return true;
+}
+
+// A mixed-color filament alternates between its components constantly. On a single-nozzle
+// printer every one of those switches is a full filament change plus a purge, so warn before
+// slicing. Multi-nozzle printers keep the components loaded at once and are not affected.
+bool PartPlate::check_single_extruder_mixed_filament_risk(const DynamicPrintConfig &config, std::string &warning_text) const
+{
+    warning_text.clear();
+
+    auto *nozzle_diameter_opt = config.option<ConfigOptionFloatsNullable>("nozzle_diameter");
+    if (!nozzle_diameter_opt || nozzle_diameter_opt->values.size() > 1)
+        return false;
+
+    auto *is_mixed_opt = wxGetApp().preset_bundle->project_config.option<ConfigOptionBools>("filament_is_mixed");
+    if (!is_mixed_opt || !has_any_mixed_filament(is_mixed_opt->values))
+        return false;
+
+    auto is_mixed_slot = [&](int extruder_1based) {
+        size_t idx = (size_t)(extruder_1based - 1);
+        return idx < is_mixed_opt->values.size() && is_mixed_opt->values[idx];
+    };
+
+    const std::string mixed_warn_msg = _u8L("Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, "
+                                            "which may significantly increase waste and the risk of nozzle / waste-chute clogging.");
+
+    for (int obj_idx = 0; obj_idx < (int)m_model->objects.size(); ++obj_idx) {
+        if (!contain_instance_totally(obj_idx, 0))
+            continue;
+        ModelObject *mo = m_model->objects[obj_idx];
+        int obj_ext = mo->config.has("extruder") ? mo->config.extruder() : 1;
+        if (is_mixed_slot(obj_ext)) {
+            warning_text = mixed_warn_msg;
+            return true;
+        }
+        for (ModelVolume *mv : mo->volumes) {
+            int vol_ext = mv->config.has("extruder") ? mv->config.extruder() : obj_ext;
+            if (is_mixed_slot(vol_ext)) {
+                warning_text = mixed_warn_msg;
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 bool PartPlate::check_mixture_of_pla_and_petg(const DynamicPrintConfig &config)
@@ -2262,6 +2363,12 @@ Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig & config, con
     }
     double volume = wipe_volume * (extruder_count == 2 ? plate_extruder_size : (plate_extruder_size - 1));
     if (extruder_count == 2) volume += filament_change_volume * (int) (plate_extruder_size / 2);
+    // Read from the passed plate config — m_print may not have been applied yet
+    // (fresh plates, CLI), in which case its PrintConfig still holds defaults.
+    const auto *purge_opt  = config.option<ConfigOptionBool>("purge_in_prime_tower");
+    const auto *semm_opt   = config.option<ConfigOptionBool>("single_extruder_multi_material");
+    const bool  semm_flush = purge_opt && purge_opt->value && semm_opt && semm_opt->value;
+    if (semm_flush) volume = WipeTower2::estimate_semm_flush_volume(config, plate_extruder_size);
     if (use_rib_wall) {
         depth = std::sqrt(volume / layer_height * extra_spacing);
         if (need_wipe_tower || plate_extruder_size > 1) {
@@ -2274,7 +2381,9 @@ Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig & config, con
         }
     }
     else {
-        depth  =  volume/ (layer_height * w) *extra_spacing;
+        depth = volume / (layer_height * w);
+        // The flush volumes already hold the spacing between wipes.
+        if (!semm_flush) depth *= extra_spacing;
         if (need_wipe_tower || depth > EPSILON) {
             float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
             depth = std::max((double)min_wipe_tower_depth, depth);
@@ -2298,6 +2407,7 @@ arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const Dynamic
 	bool enable_wrapping = (wrapping_opt != nullptr) && wrapping_opt->value;
 	wt_size = estimate_wipe_tower_size(config, w, v, extruder_count, plate_extruder_size, use_global_objects, enable_wrapping);
 	int plate_width=m_width, plate_depth=m_depth;
+	w = wt_size(0); // effective width; differs from prime_tower_width when the rib wall squares the tower
 	float depth = wt_size(1);
 	float margin = WIPE_TOWER_MARGIN + tower_brim_width, wp_brim_width = 0.f;
 	const ConfigOption* wipe_tower_brim_width_opt = config.option("prime_tower_brim_width");
@@ -3334,6 +3444,11 @@ BoundingBoxf3 PartPlate::get_build_volume(bool use_share)
 	}
     BoundingBoxf3 plate_box(low_point, up_point);
     return plate_box;
+}
+
+Polygon PartPlate::get_shared_printable_polygon() const
+{
+	return m_extruder_areas.empty() ? Polygon::new_scale(m_shape) : get_shared_poly(m_extruder_areas);
 }
 
 bool PartPlate::contains(const Vec3d& point) const
@@ -4374,22 +4489,21 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
         f_volume_maps = wxGetApp().preset_bundle->get_default_nozzle_volume_types_for_filaments(filament_maps);
     }
     DynamicPrintConfig full_config = wxGetApp().preset_bundle->full_config(false, filament_maps, f_volume_maps);
-    const DynamicPrintConfig &print_cfg = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-    float w = dynamic_cast<const ConfigOptionFloat *>(print_cfg.option("prime_tower_width"))->value;
+    float w = dynamic_cast<const ConfigOptionFloat *>(full_config.option("prime_tower_width"))->value;
     float v = dynamic_cast<const ConfigOptionFloat *>(full_config.option("prime_volume"))->value;
     bool enable_wrapping = false;
     const ConfigOptionBool *wrapping_opt = dynamic_cast<const ConfigOptionBool *>(full_config.option("enable_wrapping_detection"));
     if (wrapping_opt) enable_wrapping = wrapping_opt->value;
     int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
-    Vec3d wipe_tower_size = part_plate->estimate_wipe_tower_size(print_cfg, w, v, nozzle_nums, init_pos ? 2 : 0, false, enable_wrapping);
+    Vec3d wipe_tower_size = part_plate->estimate_wipe_tower_size(full_config, w, v, nozzle_nums, init_pos ? 2 : 0, false, enable_wrapping);
 
     if (!init_pos && (is_approx(wipe_tower_size(0), 0.0) || is_approx(wipe_tower_size(1), 0.0))) {
-        wipe_tower_size = part_plate->estimate_wipe_tower_size(print_cfg, w, v, nozzle_nums, 2, false, enable_wrapping);
+        wipe_tower_size = part_plate->estimate_wipe_tower_size(full_config, w, v, nozzle_nums, 2, false, enable_wrapping);
     }
 
     // Compute brim-aware margin: brim extends outward from tower position
     float brim_width = 0.f;
-    const ConfigOptionFloat *brim_opt = print_cfg.option<ConfigOptionFloat>("prime_tower_brim_width");
+    const ConfigOptionFloat *brim_opt = full_config.option<ConfigOptionFloat>("prime_tower_brim_width");
     if (brim_opt) {
         brim_width = brim_opt->value;
         if (brim_width < 0) brim_width = WipeTower::get_auto_brim_by_height((float) wipe_tower_size.z());
@@ -4411,6 +4525,18 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
         }
     }
 
+    // The bounding box above still allows a corner a delta or hexagonal bed does not have, and the
+    // prime tower is validated against the real outline — pull it onto the bed before storing.
+    {
+        Polygons bed{part_plate->get_shared_printable_polygon()};
+        bed.front().translate(Point(-scaled(plate_origin.x()), -scaled(plate_origin.y()))); // into the frame x/y live in
+        const BoundingBox tower(Point::new_scale(x, y),
+                                Point::new_scale(x + wipe_tower_size(0), y + wipe_tower_size(1)));
+        const Vec2f move = WipeTower::move_box_inside_polygon(tower, bed, scaled<coord_t>(margin));
+        x += move.x();
+        y += move.y();
+    }
+
     ConfigOptionFloat wt_x_opt(x);
     ConfigOptionFloat wt_y_opt(y);
     dynamic_cast<ConfigOptionFloats *>(proj_cfg.option("wipe_tower_x"))->set_at(&wt_x_opt, plate_idx, 0);
@@ -4420,8 +4546,6 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
 //this may be happened after machine changed
 void PartPlateList::reset_size(int width, int depth, int height, bool reload_objects, bool update_shapes)
 {
-	Vec3d origin1, origin2;
-
 	BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":before size: plate_width %1%, plate_depth %2%, plate_height %3%") % m_plate_width % m_plate_depth % m_plate_height;
 	BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":after size: plate_width %1%, plate_depth %2%, plate_height %3%") % width % depth % height;
 	if ((m_plate_width != width) || (m_plate_depth != depth) || (m_plate_height != height))
@@ -4552,6 +4676,9 @@ int PartPlateList::create_plate(bool adjust_position)
 		return -1;
 	int cols = compute_colum_count(new_index + 1);
 	int old_cols = compute_colum_count(new_index);
+	// Orca: Rebuild plate membership before moving instances during a grid reflow.
+	if (adjust_position && old_cols != cols)
+		reload_all_objects();
 
 	origin = compute_origin(new_index, cols);
 	plate = new PartPlate(this, origin, m_plate_width, m_plate_depth, m_plate_height, m_plater, m_model, true, printer_technology);
@@ -5040,6 +5167,9 @@ int PartPlateList::move_plate_to_index(int old_index, int new_index)
 		BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(":should not happen, the same index %1%") % old_index;
 		return -1;
 	}
+
+	// Orca: Rebuild plate membership before moving the plates.
+	reload_all_objects();
 
 	if (old_index < new_index)
 	{
@@ -6355,6 +6485,31 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
 					}
 					//parse filament info
 					plate_data_item->parse_filament_info(m_plate_list[i]->get_slice_result());
+
+					// Record mixed (virtual) filaments actually used on this plate.
+					// Source is ToolOrdering::used_mixed_filaments (slots that appeared in
+					// layer tools before resolve), persisted on GCodeProcessorResult / Print —
+					// not print->extruders() which only reflects assignment.
+					{
+						std::vector<unsigned int> used_mixed;
+						if (auto *slice_result = m_plate_list[i]->get_slice_result())
+							used_mixed = slice_result->used_mixed_filaments;
+						if (used_mixed.empty() && print)
+							used_mixed = print->get_slice_used_mixed_filaments();
+						if (!used_mixed.empty() && print) {
+							const auto &fila_types  = print->config().filament_type.values;
+							const auto &fila_colors = print->config().filament_colour.values;
+							const auto &fila_comps  = print->config().filament_mixed_components.values;
+							for (unsigned int fid : used_mixed) {
+								PlateMixedFilamentInfo mixed_info;
+								mixed_info.id = (int) fid + 1;
+								if (fid < fila_types.size())  mixed_info.type       = fila_types[fid];
+								if (fid < fila_colors.size()) mixed_info.color      = fila_colors[fid];
+								if (fid < fila_comps.size())  mixed_info.components = fila_comps[fid];
+								plate_data_item->mixed_filaments_info.push_back(mixed_info);
+							}
+						}
+					}
 				} else {
 					BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "slice result = " << m_plate_list[i]->get_slice_result()
 										<< ", result valid = " << m_plate_list[i]->is_slice_result_valid();
@@ -6421,6 +6576,13 @@ int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int f
 		m_plate_list[index]->slice_filaments_info = plate_data_list[i]->slice_filaments_info;
 		gcode_result->warnings = plate_data_list[i]->warnings;
         gcode_result->filament_maps = plate_data_list[i]->filament_maps;
+		gcode_result->used_mixed_filaments.clear();
+		for (const auto &mixed_info : plate_data_list[i]->mixed_filaments_info) {
+			if (mixed_info.id > 0)
+				gcode_result->used_mixed_filaments.push_back(static_cast<unsigned int>(mixed_info.id - 1));
+		}
+		if (Print *print = dynamic_cast<Print*>(fff_print))
+			print->set_slice_used_mixed_filaments(gcode_result->used_mixed_filaments);
 
         // Reconstruct the device-side nozzle grouping from the loaded 3mf so
         // the monitor/preview can map filaments to physical nozzles.

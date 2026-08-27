@@ -3,6 +3,7 @@
 #include "I18N.hpp"
 #include "PrintConfig.hpp"
 #include "ClipperUtils.hpp"
+#include "Geometry/ArcWelder.hpp"
 #include "Line.hpp"
 #include <algorithm>
 #include <iomanip>
@@ -1018,45 +1019,48 @@ std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, c
     }
 
     if (!this->config.enable_arc_fitting) { // Orca: if arc fitting is disabled, approximate the arc with small linear segments
-        std::ostringstream oss;
         const double z_start = m_pos(2); // starting Z height
-
-        // --------------------------------------------------------------------
-        // Determine number of segments based on Resolution
-        // --------------------------------------------------------------------
-        const double ref_resolution = 0.01; // reference resolution in mm
-        const double ref_segments  = 8.0;  // reference number of segments at reference resolution
-        
-        // number of linear segments to use for approximating the arc, clamp between 4 and 16
-        const int segments = std::clamp(int(std::round(ref_segments * (ref_resolution / m_resolution))), 4, 16);
-        // --------------------------------------------------------------------
 
         const double px = m_pos(0) - m_x_offset;        // take plate offset into consideration
         const double py = m_pos(1) - m_y_offset;        // take plate offset into consideration
         const double cx = px + ij_offset(0);            // center x
         const double cy = py + ij_offset(1);            // center y
         const double radius = ij_offset.norm();         // radius
+
+        // Number of linear segments approximating the circle, chosen so that a chord never deviates
+        // from the true arc by more than the slicing resolution. A resolution of 0 means "no
+        // simplification", which has no finite segment count, so it takes the upper bound.
+        constexpr size_t min_segments = 8;              // keep a small spiral visibly round
+        constexpr size_t max_segments = 128;            // bound the emitted G-code
+        const int segments = int(m_resolution > 0. ?
+            std::clamp(Geometry::ArcWelder::arc_discretization_steps(radius, 2. * M_PI, m_resolution), min_segments, max_segments) :
+            max_segments);
+
         const double a0 = std::atan2(py - cy, px - cx); // start angle
-        const double delta = 2.0 * M_PI;                // CCW full circle
 
-        if (full_gcode_comment)
-            oss << ";" << comment << "\n";
+        auto emit_point = [&output](const Vec3d &point) {
+            GCodeG1Formatter w;
+            w.emit_xyz(point);
+            output += w.string();
+        };
 
-        oss << "G1 F" << (speed * 60.0) << "\n";  // set feedrate
+        output.reserve(size_t(segments) * 40);          // ~40 characters per emitted G1 line
+
+        GCodeG1Formatter w;                             // set feedrate
+        w.emit_f(speed * 60.0);
+        w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+        output += w.string();
 
         // approximate the arc with small linear segments (without the last point which is added later to ensure exactness)
         for (int i = 1; i < segments; ++i) {
-            double t = double(i) / segments;            // parametric position along arc
-            double a = a0 + delta * t;                  // CCW arc param
-            double x = cx + radius * std::cos(a);       // point on circle
-            double y = cy + radius * std::sin(a);       // point on circle
-            double zz = z_start + (z - z_start) * t;    // interpolated Z height
-
-            oss << "G1 X" << x << " Y" << y << " Z" << zz << "\n";
+            const double t = double(i) / segments;      // parametric position along arc
+            const double a = a0 + 2. * M_PI * t;        // CCW arc param, full circle
+            emit_point(Vec3d(cx + radius * std::cos(a), // point on circle
+                             cy + radius * std::sin(a),
+                             z_start + (z - z_start) * t)); // interpolated Z height
         }
 
-        oss << "G1 X" << px << " Y" << py << " Z" << z << "\n";  // final point to ensure exactness
-        output = oss.str();
+        emit_point(Vec3d(px, py, z));                   // final point to ensure exactness
     } else { // Orca: if arc fitting is enabled emit a G2/G3 command for the spiral lift
         output = std::string("G17") + (full_gcode_comment ? " ; XY plane for arc\n" : "\n");
 

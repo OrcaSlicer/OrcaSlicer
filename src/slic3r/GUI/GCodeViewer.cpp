@@ -420,7 +420,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         if (properties_shown) {
             float label_w = 0.0f;
             float value_w = 0.0f;
-            properties_rows.reserve(13);
+            properties_rows.reserve(14);
             auto add_row = [&properties_rows, &label_w, &value_w](std::string label, std::string value) {
                  label_w = std::max(label_w, ImGui::CalcTextSize(label.c_str()).x);
                  value_w = std::max(value_w, ImGui::CalcTextSize(value.c_str()).x);
@@ -433,6 +433,27 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             add_row(_u8L("Width"), buff);
             if (is_extrusion) sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), vertex.height); else strcpy(buff, NA_CSTR);
             add_row(_u8L("Height"), buff);
+            // ORCA: Length of the move ending at the current vertex. Arc moves (G2/G3) are discretized
+            // into several vertices sharing the same gcode line id, so accumulate the whole run to report
+            // the arc length instead of the length of a single chord.
+            if (vertex_id > 0 && (is_extrusion || vertex.is_travel() || vertex.is_wipe())) {
+                const size_t vertices_count = viewer->get_vertices_count();
+                size_t first_id = vertex_id;
+                while (first_id > 0 && viewer->get_vertex_at(first_id - 1).gcode_id == vertex.gcode_id)
+                    --first_id;
+                size_t last_id = vertex_id;
+                while (last_id + 1 < vertices_count && viewer->get_vertex_at(last_id + 1).gcode_id == vertex.gcode_id)
+                    ++last_id;
+                float length = 0.0f;
+                for (size_t i = std::max<size_t>(first_id, 1); i <= last_id; ++i) {
+                    length += (libvgcode::convert(viewer->get_vertex_at(i).position) -
+                               libvgcode::convert(viewer->get_vertex_at(i - 1).position)).norm();
+                }
+                sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), length);
+            }
+            else
+                strcpy(buff, NA_CSTR);
+            add_row(_u8L("Length"), buff);
             sprintf(buff, "%d", vertex.layer_id + 1);
             add_row(_u8L("Layer"), buff);
             sprintf(buff, ("%.1f " + _u8L("mm/s")).c_str(), vertex.feedrate);
@@ -1134,8 +1155,9 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     if (current_top_layer_only != required_top_layer_only)
         m_viewer.toggle_top_layer_only_view_range();
 
-    // ORCA: darken layers below the current one while scrubbing the preview (ported from preFlight)
+    // ORCA: darken the layers the preview layer slider is not scrubbed to
     m_viewer.set_dim_previous_layers(get_app_config()->get_bool("preview_dim_previous_layers"));
+    m_viewer.set_dim_previous_layers_brightness(0.01f * std::stoi(get_app_config()->get("preview_dim_previous_layers_brightness")));
 
     // avoid processing if called with the same gcode_result
     if (m_last_result_id == gcode_result.id && wxGetApp().is_editor()) {
@@ -4268,7 +4290,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         };
 
         auto append_print = [&imgui, imperial_units](const ColorRGBA& color, const std::array<float, 4>& offsets, const Times& times, std::pair<double, double> used_filament) {
-            imgui.text(_CTX_utf8("Print", "Noun"));
+            imgui.text(_u8L_CONTEXT("Print", "Noun"));
             ImGui::SameLine();
 
             float icon_size = ImGui::GetTextLineHeight();
@@ -4302,7 +4324,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             for (const PartialTime& item : partial_times) {
                 switch (item.type)
                 {
-                case PartialTime::EType::Print:       { labels.push_back(_CTX_utf8("Print", "Noun")); break; }
+                case PartialTime::EType::Print:       { labels.push_back(_u8L_CONTEXT("Print", "Noun")); break; }
                 case PartialTime::EType::Pause:       { labels.push_back(_u8L("Pause")); break; }
                 case PartialTime::EType::ColorChange: { labels.push_back(_u8L("Color change")); break; }
                 }

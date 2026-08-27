@@ -132,12 +132,21 @@ public:
     bool try_get_plugin_descriptor(const std::string& plugin_key, PluginDescriptor& out) const;
     // Same, but only for packages that are loadable (i.e. not an invalid package).
     bool try_get_valid_plugin_descriptor(const std::string& plugin_key, PluginDescriptor& out) const;
+    // Packages that were present in the previous discovery pass but were not found on disk in the
+    // latest rescan. They are retained until the user explicitly removes them or a later scan finds
+    // them again.
+    std::vector<PluginDescriptor> get_missing_plugin_descriptors() const;
+    void remove_missing_plugins(const std::vector<std::string>& plugin_keys);
     // Packages whose .install_state.json marks them for auto-load.
     std::vector<std::string> get_enabled_plugin_keys() const;
     // The package owning a loaded capability, for the by-name dispatch path.
     bool try_get_plugin_descriptor_for_capability(const std::string& capability_name,
                                                   PluginCapabilityType type,
                                                   PluginDescriptor& out) const;
+    // Per-plugin storage directory under orca_plugins/plugin_data, created if missing. Throws
+    // std::runtime_error if the plugin is unregistered, the key is invalid, or (cloud plugins)
+    // no user is logged in yet.
+    std::string get_storage_dir(const std::string& plugin_key) const;
 
     std::vector<std::shared_ptr<PluginCapabilityInterface>> get_plugin_capabilities(
         const std::string& plugin_key = "",                            // "" => all plugins
@@ -196,8 +205,6 @@ public:
     bool delete_plugin(const std::string& plugin_key, std::string& error);
     bool unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error);
     bool delete_and_unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error);
-    bool delete_mine_plugin_from_cloud(const std::string& plugin_key, std::string& error);
-    bool delete_mine_local_and_cloud_plugin(const std::string& plugin_key, std::string& error);
 
     ExecutionResult run_script_capability(const std::string& plugin_key, const std::string& capability_name, std::string& error);
 
@@ -264,6 +271,7 @@ private:
 
     // Every discovered plugin, loaded or not. module == nullptr => not loaded.
     std::vector<Plugin> m_plugins;
+    std::unordered_set<std::string> m_missing_plugin_keys;
 
     std::unordered_set<std::string> m_load_in_progress;
     // Keys whose in-flight load has been cancelled. Cancellation does NOT remove the key from

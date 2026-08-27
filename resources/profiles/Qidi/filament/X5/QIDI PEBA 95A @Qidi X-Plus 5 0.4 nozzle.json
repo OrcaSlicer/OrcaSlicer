@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"setting_id": "hgdi1oL4EFzh0h7h",
+	"name": "QIDI PEBA 95A @Qidi X-Plus 5 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI PEBA 95A@X-Plus 5-Series",
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}
