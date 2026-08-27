@@ -1679,44 +1679,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             toolchange_gcode_str.swap(out);
         }
 
-        if (toolchange_temp_override > 0) {
-            const std::string preheat_token = "preheat T" + std::to_string(new_extruder_id);
-            const int         preheat_temp  = interface_temp > 0 ? interface_temp : toolchange_temp_override;
-            std::string out;
-            out.reserve(tcr_rotated_gcode.size());
-            size_t pos = 0;
-            while (pos < tcr_rotated_gcode.size()) {
-                size_t line_end = tcr_rotated_gcode.find('\n', pos);
-                if (line_end == std::string::npos)
-                    line_end = tcr_rotated_gcode.size();
-                std::string line = tcr_rotated_gcode.substr(pos, line_end - pos);
-                std::string trimmed = line;
-                trimmed.erase(0, trimmed.find_first_not_of(" \t"));
-                const bool is_preheat_line = (trimmed.find(preheat_token) != std::string::npos);
-                if (is_preheat_line) {
-                    // Preserve early-preheat timing while forcing interface temp for contact toolchanges.
-                    size_t s_pos = trimmed.find('S');
-                    if (s_pos != std::string::npos) {
-                        size_t s_end = trimmed.find_first_not_of("0123456789", s_pos + 1);
-                        trimmed.replace(s_pos + 1,
-                                        (s_end == std::string::npos ? trimmed.size() : s_end) - (s_pos + 1),
-                                        std::to_string(preheat_temp));
-                        // Reapply left indentation from the original line.
-                        size_t line_prefix = line.find_first_not_of(" \t");
-                        if (line_prefix != std::string::npos)
-                            line = line.substr(0, line_prefix) + trimmed;
-                        else
-                            line = trimmed;
-                    }
-                }
-                out.append(line);
-                if (line_end < tcr_rotated_gcode.size())
-                    out.push_back('\n');
-                pos = line_end + 1;
-            }
-            tcr_rotated_gcode.swap(out);
-        }
-
         if (toolchange_temp_override > 0 && interface_temp > 0) {
             const std::string t_token = " T" + std::to_string(new_extruder_id);
             std::string out;
