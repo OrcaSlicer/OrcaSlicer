@@ -1,6 +1,6 @@
 {
 	"name": "OrcaFilamentLibrary",
-	"version": "02.04.00.04",
+	"version": "02.04.00.05",
 	"force_update": "0",
 	"description": "Orca Filament Library",
 	"filament_list": [
@@ -1931,7 +1931,23 @@
 		{
 			"name": "COEX PLA+Silk @System",
 			"sub_path": "filament/COEX/COEX PLA+Silk @System.json"
-		}
+		},
+		{
+            "name": "INSLOGIC PLA Pro @System",
+    		"sub_path": "filament/INSLOGIC/INSLOGIC PLA Pro @System.json"
+		},
+		{
+   			 "name": "INSLOGIC PETG Pro @System",
+    		"sub_path": "filament/INSLOGIC/INSLOGIC PETG Pro @System.json"
+		},
+		{
+		    "name": "INSLOGIC PA6-CF @System",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-CF @System.json"
+		},
+		{
+			"name": "INSLOGIC PA6-66 @System",
+			"sub_path": "filament/INSLOGIC/INSLOGIC PA6-66 @System.json"
+}
 	],
 	"process_list": [],
 	"machine_model_list": [],
