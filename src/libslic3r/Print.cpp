@@ -1354,10 +1354,35 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             for (unsigned int e : extruders)
                 used_filaments_0b.push_back((int)e);
 
+            // A mixed filament is blended at the nozzle by its component toolheads, and a
+            // parallel mode is already using those toolheads to print copies or mirrors, so
+            // the two cannot run at once -- regardless of where the components are routed.
+            //
+            // Runs before BOTH rules below. Against the routing rule it would otherwise be
+            // reported as merely unrouted: mixed slots are kept at the tail of the filament
+            // arrays, past the physical filament count, so on a printer whose logical extruder
+            // count equals that count they fall outside physical_extruder_map and resolve to no
+            // head. Against the multi-color rule, a mixed slot plus any second filament trips
+            // the >1 gate and earns a lecture about gantry topology the user never configured.
+            // Being unsupported outright, this dominates both.
+            {
+                const auto& is_mixed = m_config.filament_is_mixed.values;
+                if (std::any_of(used_filaments_0b.begin(), used_filaments_0b.end(),
+                                [&](int slot) { return slot >= 0 && slot < (int) is_mixed.size() && is_mixed[slot]; })) {
+                    StringObjectException err;
+                    // "Mixed filament" is the term the rest of the UI uses -- the button that
+                    // creates one, and the sibling refusal for the wipe tower filament.
+                    err.string = L("Mixed filaments are not supported in IMEX parallel modes. "
+                                   "Switch this plate to Primary mode.");
+                    err.object = m_objects.front();
+                    return err;
+                }
+            }
+
             // Multi-color has the more specific rule and its remedies are self-contained
             // (an MMU manifold sharing one head cannot be fixed by switching mode), so it runs
-            // first: validate() returns on the first error, and the routing block below would
-            // otherwise mask it with advice that leads to this error on the next slice.
+            // ahead of the routing block below, which would otherwise mask it with advice that
+            // leads to this error on the next slice. validate() returns on the first error.
             if (used_filaments_0b.size() > 1) {
                 const std::string reason = imex_multicolor_block_reason(
                     parallel_mode,
@@ -1367,24 +1392,6 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                     m_config.physical_extruder_map);
                 if (!reason.empty())
                     return { reason };
-            }
-
-            // A blended filament is mixed at the nozzle by its component toolheads. A
-            // parallel mode is already using those toolheads to print copies or mirrors, so
-            // the two cannot run at once -- regardless of where the components are routed.
-            // Checked BEFORE the routing rule below, which would otherwise report a blended
-            // slot as simply unrouted: mixed slots sit past the end of physical_extruder_map
-            // (it has one entry per physical extruder), so they resolve to no head at all.
-            {
-                const auto& is_mixed = m_config.filament_is_mixed.values;
-                if (std::any_of(used_filaments_0b.begin(), used_filaments_0b.end(),
-                                [&](int slot) { return slot >= 0 && slot < (int) is_mixed.size() && is_mixed[slot]; })) {
-                    StringObjectException err;
-                    err.string = L("Blended filaments are not supported in IMEX parallel modes. "
-                                   "Switch this plate to Primary mode.");
-                    err.object = m_objects.front();
-                    return err;
-                }
             }
 
             // The IMEX Primary tool prints the sliced paths directly, so it can only use a
@@ -1425,10 +1432,12 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                     std::string routed_list;
                     for (int head : routed_heads)
                         routed_list += (routed_list.empty() ? "T" : ", T") + std::to_string(head);
-                    // Reachable when the profile declares IMEX modes but no physical_extruder_map:
-                    // validate() reads the raw config, and the PrintConfig default is a single
-                    // entry, so every slot past the first falls outside it. Without this the
-                    // sentence ends in a dangling "on .".
+                    // Print::apply() normalises physical_extruder_map through
+                    // effective_physical_extruder_map (PrintApply.cpp) before validate() runs, so
+                    // an unauthored map arrives here as the identity and every slot is in range.
+                    // What is left is a printer with more filaments than logical extruders, where
+                    // the tail slots fall outside the map. Narrow, but without this the sentence
+                    // ends in a dangling "on .".
                     if (routed_list.empty())
                         routed_list = L("no configured tool");
 

@@ -980,20 +980,28 @@ TEST_CASE("An IMEX plate whose filament never routes to the Primary tool is bloc
     CHECK(err.string.find("T2") != std::string::npos);   // where the filament actually lives
 }
 
-// A blended filament is mixed at the nozzle by its component toolheads, which a parallel
+// A mixed filament is blended at the nozzle by its component toolheads, which a parallel
 // mode is already using to print copies. Unsupported regardless of where the components
 // route, so this must refuse even though component filament 1 sits on the declared primary
-// T0 -- and it must refuse with the blended message, not the routing one. Mixed slots sit
-// past the end of physical_extruder_map, so the routing rule would call them unrouted.
-TEST_CASE("An IMEX plate using a blended filament is blocked", "[MultiFilament][IMEX]")
+// T0 -- and it must refuse with the mixed message, not the routing one. Mixed slots normally
+// sit past the end of physical_extruder_map, so the routing rule would call them unrouted.
+TEST_CASE("An IMEX plate using a mixed filament is blocked", "[MultiFilament][IMEX]")
 {
     DynamicPrintConfig config = multifilament_config(8);
     imex_7x4_printer(config);
     all_regions_on_filament(config, 8);
     config.set_deserialize_strict({
-        { "imex_parallel_mode",         "copy" },
-        { "filament_is_mixed",          "0,0,0,0,0,0,0,1" },
-        { "filament_mixed_components",  ";;;;;;;1,5" },
+        { "imex_parallel_mode",               "copy" },
+        { "filament_is_mixed",                "0,0,0,0,0,0,0,1" },
+        { "filament_mixed_components",        ";;;;;;;1,5" },
+        // The mixed arrays run parallel to filament_colour and must be sized to the filament
+        // count (see test_mixed_filament.cpp). validate() returns before the other five are
+        // read, but that is a property of where the rule sits, not something to rely on.
+        { "filament_mixed_sublayer_ratios",   ";;;;;;;" },
+        { "filament_mixed_gradient",          "0,0,0,0,0,0,0,0" },
+        { "filament_mixed_gradient_range",    ";;;;;;;" },
+        { "filament_mixed_gradient_curve",    ";;;;;;;" },
+        { "filament_mixed_gradient_per_part", "0,0,0,0,0,0,0,0" },
     });
 
     std::vector<TriangleMesh> meshes;
@@ -1008,7 +1016,83 @@ TEST_CASE("An IMEX plate using a blended filament is blocked", "[MultiFilament][
     const StringObjectException err = print.validate(&warnings);
 
     REQUIRE_FALSE(err.string.empty());
-    CHECK(err.string.find("Blended filaments") != std::string::npos);
+    CHECK(err.string.find("Mixed filaments") != std::string::npos);
+}
+
+// Filament 8 (slot 7) is the blend, filament 1 (slot 0) is ordinary, so used_filaments is > 1
+// and the multi-color rule's gate opens too. This pins that the mixed rule still wins: with the
+// two the other way round the user is told the mode's active tools all sit on one gantry --
+// a lecture about a multi-color print they never asked for -- and never learns the blend is
+// the problem.
+//
+// The second half is what keeps this honest. The multi-color rule only fires here because this
+// fixture's `copy` mode is degenerate (imex_tools_per_gantry defaults to 2, so "0:P,1:C" puts
+// both tools on gantry 0). Give the mode a Span tool and it returns nothing, and this test would
+// pass under EITHER ordering while appearing to guard it. So assert the rule is actually armed.
+TEST_CASE("A mixed filament outranks the multi-color rule on the same plate",
+          "[MultiFilament][IMEX][Regression]")
+{
+    // Two cubes, offset: make_cube() is corner-at-origin, so identical meshes would be exactly
+    // coincident. validate() returns from the IMEX block before any geometry check today, but a
+    // future check landing earlier would fail this test for a reason it is not about.
+    const auto build = [](bool blend_slot_8) {
+        DynamicPrintConfig config = multifilament_config(8);
+        imex_7x4_printer(config);
+        all_regions_on_filament(config, 8);
+        config.set_deserialize_strict({
+            { "imex_parallel_mode",               "copy" },
+        { "filament_is_mixed",                "0,0,0,0,0,0,0,1" },
+        { "filament_mixed_components",        ";;;;;;;1,5" },
+        // The mixed arrays run parallel to filament_colour and must be sized to the filament
+        // count (see test_mixed_filament.cpp). validate() returns before the other five are
+        // read, but that is a property of where the rule sits, not something to rely on.
+        { "filament_mixed_sublayer_ratios",   ";;;;;;;" },
+        { "filament_mixed_gradient",          "0,0,0,0,0,0,0,0" },
+        { "filament_mixed_gradient_range",    ";;;;;;;" },
+        { "filament_mixed_gradient_curve",    ";;;;;;;" },
+        { "filament_mixed_gradient_per_part", "0,0,0,0,0,0,0,0" },
+        });
+        if (!blend_slot_8)
+            config.set_deserialize_strict({ { "filament_is_mixed", "0,0,0,0,0,0,0,0" } });
+        return config;
+    };
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{
+        { { "extruder", "8" } }, { { "extruder", "1" } },
+    };
+    const auto validate_plate = [&](const DynamicPrintConfig& config, Slic3r::Print& print,
+                                    Slic3r::Model& model) {
+        std::vector<TriangleMesh> meshes;
+        meshes.push_back(cube(20));
+        TriangleMesh second = cube(20);
+        second.translate(30.0, 0.0, 0.0);
+        meshes.push_back(second);
+        init_print(std::move(meshes), print, model, config, &overrides, false);
+        std::vector<StringObjectException> warnings;
+        return print.validate(&warnings);
+    };
+
+    // The multi-color rule IS armed for this plate -- without that, the check below proves nothing.
+    {
+        Slic3r::Model model;
+        Slic3r::Print print;
+        const StringObjectException err = validate_plate(build(false), print, model);
+        REQUIRE_FALSE(err.string.empty());
+        CHECK(err.string.find("Multi-color") != std::string::npos);
+    }
+
+    // With the blend present the mixed rule takes precedence over it.
+    {
+        Slic3r::Model model;
+        Slic3r::Print print;
+        const StringObjectException err = validate_plate(build(true), print, model);
+        REQUIRE_FALSE(err.string.empty());
+        CHECK(err.string.find("not supported in IMEX parallel modes") != std::string::npos);
+        CHECK(err.string.find("Multi-color") == std::string::npos);
+        // The two rules differ in more than wording: the mixed path attaches an object (for the
+        // notification's "Jump to" link), the multi-color path returns none. Pins which fired
+        // independently of the message text.
+        CHECK(err.object == print.objects().front());
+    }
 }
 
 // Guard rail: the block must not fire on a well-formed plate. Filament 1 (slot 0) routes to
