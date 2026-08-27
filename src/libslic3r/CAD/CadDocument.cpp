@@ -3741,7 +3741,7 @@ std::string CadDocument::serialize_recipe() const
     std::ostringstream oss;
     {
         cereal::BinaryOutputArchive ar(oss);
-        uint32_t v = SNAPORCA_CAD_RECIPE_VERSION;
+        uint32_t v = ORCA_CAD_RECIPE_VERSION;
         ar(v);
         uint32_t n = static_cast<uint32_t>(features.size());
         ar(n);
@@ -3802,10 +3802,10 @@ bool CadDocument::deserialize_recipe(const std::string& blob)
         cereal::BinaryInputArchive ar(iss);
         uint32_t v;
         ar(v);
-        if (v > SNAPORCA_CAD_RECIPE_VERSION) {
-            error = "saved with a newer version of SnapOrca CAD (format v"
+        if (v > ORCA_CAD_RECIPE_VERSION) {
+            error = "saved with a newer version of the Design tab (format v"
                   + std::to_string(v) + ", this build reads up to v"
-                  + std::to_string(SNAPORCA_CAD_RECIPE_VERSION) + ")";
+                  + std::to_string(ORCA_CAD_RECIPE_VERSION) + ")";
             return false;
         }
         if (v == 5) {
@@ -3882,7 +3882,7 @@ bool CadDocument::deserialize_recipe(const std::string& blob)
         }
         // v < 4: the field lists for v2/v3 no longer exist in this code, so those files
         // cannot be recovered here. This fix is for the future, not the past.
-        error = "saved with an older version of SnapOrca CAD (format v"
+        error = "saved with an older version of the Design tab (format v"
               + std::to_string(v) + "); this project cannot be opened by this build";
         return false;
     } catch (const Standard_Failure& e) {

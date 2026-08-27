@@ -3987,7 +3987,7 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
         cereal::BinaryInputArchive ar(iss);
         uint32_t v;
         ar(v);
-        REQUIRE(v <= CadDocument::SNAPORCA_CAD_RECIPE_VERSION);
+        REQUIRE(v <= CadDocument::ORCA_CAD_RECIPE_VERSION);
         ar(features);
     }
 

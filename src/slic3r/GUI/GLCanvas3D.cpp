@@ -1,7 +1,7 @@
 #include "libslic3r/libslic3r.h"
 #include "GLCanvas3D.hpp"
 #ifdef SLIC3R_CAD
-#include "slic3r/GUI/CAD/DesignSketchTool.hpp"   // SnapOrca Design: interactive 2D sketch tool
+#include "slic3r/GUI/CAD/DesignSketchTool.hpp"   // Design tab: interactive 2D sketch tool
 #endif
 
 #include <igl/unproject.h>
@@ -2162,7 +2162,7 @@ void GLCanvas3D::render(bool only_init)
     if (_is_fxaa_enabled())
         _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
 
-    // SnapOrca Design: interactive 2D sketch overlay, drawn over the scene but
+    // Design tab: interactive 2D sketch overlay, drawn over the scene but
     // beneath the UI overlays (toolbars, labels).
 #ifdef SLIC3R_CAD
     if (m_design_sketch_tool != nullptr && m_design_sketch_tool->has_display())
@@ -3322,7 +3322,7 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
         return;
     }
 
-    // SnapOrca Design: Delete/Backspace removes the selected sketch entities while a
+    // Design tab: Delete/Backspace removes the selected sketch entities while a
     // sketch tool is active and the canvas has focus (dialog text fields are separate
     // wx controls, so this never eats their editing keys).
 #ifdef SLIC3R_CAD
@@ -3348,7 +3348,7 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
     }
 #endif
 
-    // SnapOrca Design: Ctrl+Z / Ctrl+Shift+Z (and Ctrl+Y) undo/redo the Design feature
+    // Design tab: Ctrl+Z / Ctrl+Shift+Z (and Ctrl+Y) undo/redo the Design feature
     // history. Scoped by m_design_sketch_tool — only the Design canvas owns one — so the
     // main 3D editor's undo/redo (the CanvasView3D-gated cases further below) is untouched.
     // Handled here, before the generic Ctrl block, so it takes precedence and early-returns.
@@ -3366,7 +3366,7 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
     }
 #endif
 
-    // SnapOrca Design: F = Place on Face (Prepare's lay-flat), when the Design viewport is up
+    // Design tab: F = Place on Face (Prepare's lay-flat), when the Design viewport is up
     // and a body face is selected. The tool forwards to DesignPanel::place_on_face; it returns
     // false (no face picked) so F falls through to the default handler below.
 #ifdef SLIC3R_CAD
@@ -3757,7 +3757,7 @@ public:
 
 void GLCanvas3D::on_key(wxKeyEvent& evt)
 {
-    // SnapOrca Design: Delete/Backspace removes selected sketch entities. GTK delivers
+    // Design tab: Delete/Backspace removes selected sketch entities. GTK delivers
     // these as KEY_DOWN rather than CHAR, so handle it here too.
 #ifdef SLIC3R_CAD
     if (evt.GetEventType() == wxEVT_KEY_DOWN
@@ -4334,7 +4334,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             return;
     }
 
-    // SnapOrca Design: the interactive sketch tool owns the mouse whenever it has
+    // Design tab: the interactive sketch tool owns the mouse whenever it has
     // something on screen — an active session OR committed sketch overlays that the user
     // can click to select. It runs after ImGui (so dialogs still work) but before
     // camera/toolbar/gizmo handling; on_mouse returns false for events it doesn't consume
@@ -8084,7 +8084,7 @@ void GLCanvas3D::_render_bed(const Transform3d& view_matrix, const Transform3d& 
     //bool show_texture = true;
     //BBS set axes mode
     if (m_axes_at_bed_center) {
-        // SnapOrca Design: triad at the bed centre = modeling origin (set every frame because
+        // Design tab: triad at the bed centre = modeling origin (set every frame because
         // set_shape/set_axes_mode otherwise reset it to the bed corner).
         const Vec2d bc = m_bed.build_volume().bed_center();
         m_bed.set_axes_origin(Vec3d(bc.x(), bc.y(), 0.0));

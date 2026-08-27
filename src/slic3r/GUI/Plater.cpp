@@ -9291,7 +9291,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
             obj_idxs.insert(obj_idxs.end(), loaded_idxs.begin(), loaded_idxs.end());
 
             // load_model_objects only transfers ModelObjects; carry the Model-level CAD
-            // recipe (Metadata/SnapOrca_cad.bin) onto the plater model so the Design tab
+            // recipe (Metadata/orca_cad.bin) onto the plater model so the Design tab
             // can rehydrate the editable feature tree on reopen.
             if (!model.cad_recipe.empty())
                 q->model().cad_recipe = model.cad_recipe;
@@ -9513,7 +9513,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     //}
 
     // A CAD project legitimately carries no mesh: the model lives in the feature tree
-    // (Metadata/SnapOrca_cad.bin) until it is committed to the plate. Warning "no geometry data"
+    // (Metadata/orca_cad.bin) until it is committed to the plate. Warning "no geometry data"
     // for one is false, and it is the LAST thing a user sees after opening a design they spent an
     // hour on — it reads as "your work is gone" when the recipe has in fact just been loaded and
     // the Design tab will rehydrate it. Count the recipe as geometry.

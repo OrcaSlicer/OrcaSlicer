@@ -4587,7 +4587,7 @@ static void run_off_ui_thread(wxWindow* parent, const wxString& message, const s
     int elapsed_ms = 0;
     while (!done.load(std::memory_order_acquire)) {
         if (dlg == nullptr && elapsed_ms >= 300)
-            dlg = std::make_unique<wxProgressDialog>(_L("SnapOrca"), message, 100, parent,
+            dlg = std::make_unique<wxProgressDialog>(_L("Design"), message, 100, parent,
                                                      wxPD_AUTO_HIDE | wxPD_SMOOTH);
         if (dlg != nullptr)
             dlg->Pulse();
@@ -6947,7 +6947,7 @@ void DesignPanel::on_tab_shown()
     }
 
     // Rehydrate the parametric model from a freshly loaded project (the 3MF carried the
-    // recipe in Metadata/SnapOrca_cad.bin). Only when nothing is in progress here, so we
+    // recipe in Metadata/orca_cad.bin). Only when nothing is in progress here, so we
     // never clobber an active design when the user just toggles back to the Design tab.
     if (m_doc.features.empty()) {
         if (Plater* plater = wxGetApp().plater()) {
@@ -6982,7 +6982,7 @@ void DesignPanel::load_recipe(const std::string& blob)
         // Carry the kernel's reason. deserialize_recipe distinguishes three cases that matter
         // very differently to the person reading this — saved by a NEWER build, saved by an
         // OLDER one, or genuinely unreadable — and replacing all three with one sentence left
-        // the user unable to tell "update SnapOrca" from "your file is damaged". Same
+        // the user unable to tell "update OrcaSlicer" from "your file is damaged". Same
         // error-loss class as the 31 McpControl sites (1de72de9ed): the message exists, it was
         // simply not passed on.
         m_status->SetForegroundColour(wxColour(235, 110, 110));
@@ -7005,7 +7005,7 @@ void DesignPanel::refresh_tree()
     // the sync in recompute_guarded instead tied it to "a solid was built", and CadDocument::
     // recompute() returns FALSE for a document that has no solid ("no solid-producing features",
     // CadDocument.cpp) — which is precisely a document the user has only drawn sketches in. So
-    // drawing a profile, pressing Confirm and saving wrote a 3MF with no SnapOrca_cad.bin in it
+    // drawing a profile, pressing Confirm and saving wrote a 3MF with no orca_cad.bin in it
     // at all, and the app reported success: the whole design was gone on reopen (snaporca-mtav).
     // The three sites that say "a lone sketch yields an empty body; that is expected" call
     // m_doc.recompute() directly and so never reached the sync either. One hook here covers all

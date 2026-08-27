@@ -58,7 +58,7 @@ namespace GUI {
 class Bed3D;
 class PartPlateList;
 #ifdef SLIC3R_CAD
-class DesignSketchTool;   // SnapOrca Design: interactive 2D sketch tool
+class DesignSketchTool;   // Design tab: interactive 2D sketch tool
 #endif
 
 #if ENABLE_RETINA_GL
@@ -549,10 +549,10 @@ private:
     mutable float m_paint_toolbar_width;
     bool m_collapse_toolbar_enabled{true};
     bool m_plate_chrome_enabled{true};
-    // SnapOrca Design: render the world-axis triad at the bed centre (= modeling origin) instead of
+    // Design tab: render the world-axis triad at the bed centre (= modeling origin) instead of
     // the bed corner. Default false preserves the main editor's corner triad.
     bool m_axes_at_bed_center{false};
-    // SnapOrca Design: draw the printer bed and its plate grid at all. Default true, so the
+    // Design tab: draw the printer bed and its plate grid at all. Default true, so the
     // main editor is untouched; the Design tab lets the user hide it to model without a bed.
     bool m_show_bed{true};
 #ifdef SLIC3R_CAD

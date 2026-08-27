@@ -214,7 +214,7 @@ const std::string BBS_MODEL_CONFIG_RELS_FILE = "Metadata/_rels/model_settings.co
 const std::string SLICE_INFO_CONFIG_FILE = "Metadata/slice_info.config";
 const std::string FILAMENT_SEQUENCE_FILE = "Metadata/filament_sequence.json";
 const std::string BBS_LAYER_HEIGHTS_PROFILE_FILE = "Metadata/layer_heights_profile.txt";
-const std::string BBS_CAD_RECIPE_FILE = "Metadata/SnapOrca_cad.bin";
+const std::string ORCA_CAD_RECIPE_FILE = "Metadata/orca_cad.bin";
 const std::string LAYER_CONFIG_RANGES_FILE = "Metadata/layer_config_ranges.xml";
 const std::string BRIM_EAR_POINTS_FILE = "Metadata/brim_ear_points.txt";
 /*const std::string SLA_SUPPORT_POINTS_FILE = "Metadata/Slic3r_PE_sla_support_points.txt";
@@ -1971,8 +1971,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     // extract slic3r print config file
                     _extract_project_config_from_archive(archive, stat, config, config_substitutions, model);
                 }
-                else if (boost::algorithm::iequals(name, BBS_CAD_RECIPE_FILE)) {
-                    // SnapOrca: restore the editable CAD recipe (optional; absent in non-CAD projects).
+                else if (boost::algorithm::iequals(name, ORCA_CAD_RECIPE_FILE)) {
+                    // Restore the editable CAD recipe (optional; absent in non-CAD projects).
                     if (stat.m_uncomp_size > 0) {
                         std::string buf((size_t)stat.m_uncomp_size, '\0');
                         if (mz_zip_reader_extract_to_mem(&archive, stat.m_file_index, buf.data(), buf.size(), 0))
@@ -7667,7 +7667,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     {
         if (model.cad_recipe.empty())
             return true;
-        if (!mz_zip_writer_add_mem(&archive, BBS_CAD_RECIPE_FILE.c_str(),
+        if (!mz_zip_writer_add_mem(&archive, ORCA_CAD_RECIPE_FILE.c_str(),
                 (const void*)model.cad_recipe.data(), model.cad_recipe.length(),
                 MZ_DEFAULT_COMPRESSION)) {
             add_error("Unable to add CAD recipe file to archive");

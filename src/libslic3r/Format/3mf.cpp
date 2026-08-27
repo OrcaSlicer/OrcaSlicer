@@ -73,7 +73,7 @@ const std::string THUMBNAIL_FILE = "Metadata/thumbnail.png";
 const std::string PRINT_CONFIG_FILE = "Metadata/Slic3r_PE.config";
 const std::string MODEL_CONFIG_FILE = "Metadata/Slic3r_PE_model.config";
 const std::string LAYER_HEIGHTS_PROFILE_FILE = "Metadata/Slic3r_PE_layer_heights_profile.txt";
-const std::string CAD_RECIPE_FILE = "Metadata/SnapOrca_cad.bin";
+const std::string CAD_RECIPE_FILE = "Metadata/orca_cad.bin";
 const std::string LAYER_CONFIG_RANGES_FILE = "Metadata/Prusa_Slicer_layer_config_ranges.xml";
 const std::string SLA_SUPPORT_POINTS_FILE = "Metadata/Slic3r_PE_sla_support_points.txt";
 const std::string SLA_DRAIN_HOLES_FILE = "Metadata/Slic3r_PE_sla_drain_holes.txt";
@@ -2400,7 +2400,7 @@ ModelVolumeType type_from_string(const std::string &s)
             return false;
         }
 
-        // Adds CAD recipe file ("Metadata/SnapOrca_cad.bin").
+        // Adds CAD recipe file ("Metadata/orca_cad.bin").
         if (!_add_cad_recipe_file_to_archive(archive, model)) {
             close_zip_writer(&archive);
             boost::filesystem::remove(filename);

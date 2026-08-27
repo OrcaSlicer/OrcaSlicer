@@ -1,7 +1,7 @@
 #ifndef slic3r_SketchSolver_hpp_
 #define slic3r_SketchSolver_hpp_
 
-// Bridge from SnapOrca's SketchEntity / SketchEntityConstraintDef model onto the
+// Bridge from the Design tab's SketchEntity / SketchEntityConstraintDef model onto the
 // vendored SolveSpace constraint solver (src/libslic3r/slvs, libslvs). Replaces the
 // hand-rolled SketchConstraints: full constraint set, real DoF counting, and
 // over-constrained (bad-constraint) detection. Solves on a fixed 2D XY workplane.

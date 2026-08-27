@@ -183,7 +183,7 @@ SCENARIO("CAD recipe blob survives a 3mf save/load cycle", "[3mf]") {
 
 // The GUI saves/loads projects via the BBS-native 3mf backend (store_bbs_3mf /
 // load_bbs_3mf), NOT the PrusaSlicer 3mf.cpp. This locks in that store_bbs_3mf embeds the
-// CAD recipe (Metadata/SnapOrca_cad.bin) byte-for-byte, read back the same iterate-and-match
+// CAD recipe (Metadata/orca_cad.bin) byte-for-byte, read back the same iterate-and-match
 // way load_bbs_3mf does. The full GUI reopen is verified live on the Design tab.
 SCENARIO("CAD recipe is embedded in the BBS 3mf archive", "[3mf]") {
     GIVEN("a model carrying a binary cad_recipe") {
@@ -229,7 +229,7 @@ SCENARIO("CAD recipe is embedded in the BBS 3mf archive", "[3mf]") {
                 if (!mz_zip_reader_file_stat(&zip, i, &st)) continue;
                 std::string name(st.m_filename);
                 std::replace(name.begin(), name.end(), '\\', '/');
-                if (boost::algorithm::iequals(name, std::string("Metadata/SnapOrca_cad.bin"))) {
+                if (boost::algorithm::iequals(name, std::string("Metadata/orca_cad.bin"))) {
                     got.resize(st.m_uncomp_size);
                     mz_zip_reader_extract_to_mem(&zip, i, got.data(), got.size(), 0);
                     break;
