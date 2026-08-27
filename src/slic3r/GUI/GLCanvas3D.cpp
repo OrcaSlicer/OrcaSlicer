@@ -8096,12 +8096,7 @@ void GLCanvas3D::_render_bed(const Transform3d& view_matrix, const Transform3d& 
 
 void GLCanvas3D::_render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body, int hover_id, bool render_cali, bool show_grid)
 {
-    // SnapOrca Design: transiently suppress plate chrome for opted-out canvases.
-    auto& plate_list = wxGetApp().plater()->get_partplate_list();
-    const bool prev_hide_chrome = plate_list.get_hide_chrome();
-    plate_list.set_hide_chrome(!m_plate_chrome_enabled);
-    plate_list.render(view_matrix, projection_matrix, bottom, only_current, only_body, hover_id, render_cali, show_grid);
-    plate_list.set_hide_chrome(prev_hide_chrome);
+    wxGetApp().plater()->get_partplate_list().render(view_matrix, projection_matrix, bottom, only_current, only_body, hover_id, render_cali, show_grid, !m_plate_chrome_enabled);
 }
 
 void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform3d& projection_matrix)
