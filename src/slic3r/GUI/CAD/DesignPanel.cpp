@@ -5,6 +5,7 @@
 #include "libslic3r/CAD/GeometryEngine.hpp"   // face_by_index for face-extrude gizmo anchor
 #include "libslic3r/TriangleMesh.hpp"     // mesh import: STL/OBJ -> indexed_triangle_set
 #include "libslic3r/Format/OBJ.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"   // put_other_changes: mark the project dirty outside the undo stack
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem/path.hpp>
@@ -4620,7 +4621,16 @@ void DesignPanel::sync_recipe_to_model()
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr) return;
     // An empty document CLEARS it, so a non-CAD project never carries a stale recipe.
-    plater->model().cad_recipe = m_doc.features.empty() ? std::string() : m_doc.serialize_recipe();
+    std::string recipe = m_doc.features.empty() ? std::string() : m_doc.serialize_recipe();
+    if (recipe == plater->model().cad_recipe)
+        return;   // no change — this is the rehydrate of a project that was just opened
+    plater->model().cad_recipe = std::move(recipe);
+
+    // The plater's dirty flag rides its own undo/redo stack, which Design edits never touch, and
+    // a design that has not been committed to the plate has no ModelObjects either — so without
+    // this the project reads as clean: no autosave, and no "unsaved changes" prompt on quit.
+    // Same hook the auxiliary-files panel uses for project data that lives outside the model.
+    Slic3r::put_other_changes();
 }
 
 bool DesignPanel::recompute_guarded(const wxString& message)
@@ -7427,6 +7437,15 @@ void DesignPanel::on_new_design()
         _L("Erase all features and bodies and start a new design? This cannot be undone."),
         _L("New Design"), wxYES_NO | wxICON_EXCLAMATION);
     if (dlg.ShowModal() != wxID_YES) return;
+    clear_document();
+}
+
+// The teardown behind New Design, without the confirmation. Also what New Project / Open
+// Project run through Plater::priv::reset: the document lives here rather than in the Model,
+// so without this it survives the project that produced it and the next Design edit writes
+// the previous project's feature tree into the new one.
+void DesignPanel::clear_document()
+{
     tool_cancel();                 // leave any active tool / sketch / constrain cleanly
     m_doc.clear();                 // features + bodies + meshes + history
     m_edit_index = -1;
