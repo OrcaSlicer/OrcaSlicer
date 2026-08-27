@@ -3734,6 +3734,8 @@ int CLI::run(int argc, char **argv)
     double height_to_lid = m_print_config.opt_float("extruder_clearance_height_to_lid");
     double height_to_rod = m_print_config.opt_float("extruder_clearance_height_to_rod");
     double clearance_radius = m_print_config.opt_float("extruder_clearance_radius");
+    double nozzle_height = m_print_config.opt_float("nozzle_height");
+    Vec2d align_center = m_print_config.option<ConfigOptionPoint>("best_object_pos")->value;
     int shared_printable_width = 0, shared_printable_depth = 0, shared_printable_height = 0, shared_center_x = 0, shared_center_y = 0;
     //double plate_stride;
     std::string bed_texture;
@@ -4794,6 +4796,8 @@ int CLI::run(int argc, char **argv)
                 arrange_cfg.clearance_height_to_rod = height_to_rod;
                 arrange_cfg.clearance_height_to_lid = height_to_lid;
                 arrange_cfg.clearance_radius = clearance_radius;
+                arrange_cfg.nozzle_height = nozzle_height;
+                arrange_cfg.align_center = align_center;
                 arrange_cfg.printable_height = print_height;
                 arrange_cfg.min_obj_distance = 0;
                 if (arrange_cfg.is_seq_print) {
@@ -5244,6 +5248,8 @@ int CLI::run(int argc, char **argv)
                 arrange_cfg.clearance_height_to_rod             = height_to_rod;
                 arrange_cfg.clearance_height_to_lid             = height_to_lid;
                 arrange_cfg.clearance_radius                   = clearance_radius;
+                arrange_cfg.nozzle_height                       = nozzle_height;
+                arrange_cfg.align_center                        = align_center;
                 arrange_cfg.printable_height                    = print_height;
                 arrange_cfg.min_obj_distance = 0;
                 if (arrange_cfg.is_seq_print) {
