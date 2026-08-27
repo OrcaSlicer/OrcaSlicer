@@ -1,0 +1,54 @@
+{
+    "type": "filament",
+    "filament_id": "INS00003",
+    "name": "INSLOGIC PA6-CF @System",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pa",
+    "filament_vendor": [
+        "INSLOGIC"
+    ],
+    "filament_type": [
+        "PA-CF"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "nozzle_temperature": [
+        "280"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "280"
+    ],
+    "nozzle_temperature_range_low": [
+        "270"
+    ],
+    "nozzle_temperature_range_high": [
+        "290"
+    ],
+    "hot_plate_temp": [
+        "60"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "60"
+    ],
+    "textured_plate_temp": [
+        "60"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "60"
+    ],
+    "filament_density": [
+        "1.20"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "fan_min_speed": [
+        "30"
+    ],
+    "fan_max_speed": [
+        "30"
+    ],
+    "compatible_printers": []
+}
