@@ -1369,6 +1369,24 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                     return { reason };
             }
 
+            // A blended filament is mixed at the nozzle by its component toolheads. A
+            // parallel mode is already using those toolheads to print copies or mirrors, so
+            // the two cannot run at once -- regardless of where the components are routed.
+            // Checked BEFORE the routing rule below, which would otherwise report a blended
+            // slot as simply unrouted: mixed slots sit past the end of physical_extruder_map
+            // (it has one entry per physical extruder), so they resolve to no head at all.
+            {
+                const auto& is_mixed = m_config.filament_is_mixed.values;
+                if (std::any_of(used_filaments_0b.begin(), used_filaments_0b.end(),
+                                [&](int slot) { return slot >= 0 && slot < (int) is_mixed.size() && is_mixed[slot]; })) {
+                    StringObjectException err;
+                    err.string = L("Blended filaments are not supported in IMEX parallel modes. "
+                                   "Switch this plate to Primary mode.");
+                    err.object = m_objects.front();
+                    return err;
+                }
+            }
+
             // The IMEX Primary tool prints the sliced paths directly, so it can only use a
             // filament the printer's physical_extruder_map routes to it. The ghost filament
             // picker already enforces this for the secondary tools; the primary's filament
@@ -1394,7 +1412,9 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 if (imex_primary_logical_from_objects(used_slots_1b, pem, declared_primary) < 0) {
                     // Bounds-check exactly as imex_primary_logical_from_objects does. get_at()
                     // CLAMPS out-of-range slots to values.front(), which would let the message
-                    // name the very tool it just said nothing routes to.
+                    // name the very tool it just said nothing routes to. Blended slots are
+                    // out of range by construction, but they never reach here -- the rule
+                    // above returns first.
                     std::vector<int> routed_heads;
                     routed_heads.reserve(used_filaments_0b.size());
                     for (int slot_0b : used_filaments_0b)
@@ -1405,36 +1425,18 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                     std::string routed_list;
                     for (int head : routed_heads)
                         routed_list += (routed_list.empty() ? "T" : ", T") + std::to_string(head);
+                    // Reachable when the profile declares IMEX modes but no physical_extruder_map:
+                    // validate() reads the raw config, and the PrintConfig default is a single
+                    // entry, so every slot past the first falls outside it. Without this the
+                    // sentence ends in a dangling "on .".
                     if (routed_list.empty())
-                        routed_list = L("no configured extruder");
-
-                    // Name the modes that would actually work, by primary tool. Suggesting a
-                    // tool number is useless on its own -- the plate's mode menu lists mode
-                    // names, never their primaries.
-                    std::string candidate_modes;
-                    for (size_t i = 0; i < mode_names.size() && i < mode_tools.size(); ++i) {
-                        const int primary_i = imex_primary_tool_for_mode(mode_tools[i]);
-                        if (primary_i >= 0 && std::binary_search(routed_heads.begin(), routed_heads.end(), primary_i))
-                            candidate_modes += (candidate_modes.empty() ? "\"" : ", \"") + mode_names[i] + "\"";
-                    }
+                        routed_list = L("no configured tool");
 
                     StringObjectException err;
-                    err.string = candidate_modes.empty()
-                        ? Slic3r::format(
-                            L("IMEX mode \"%1%\" prints with tool T%2%, but no filament used on this plate "
-                              "is loaded on T%2% -- the plate's filaments are on %3%. The Primary tool "
-                              "prints the sliced paths directly, so it can only use a filament the "
-                              "printer's physical extruder map routes to it. Assign an object a filament "
-                              "loaded on T%2%, switch this plate to Primary mode, or edit the mode in "
-                              "Printer Settings so its Primary tool is one of %3%."),
-                            parallel_mode, declared_primary, routed_list)
-                        : Slic3r::format(
-                            L("IMEX mode \"%1%\" prints with tool T%2%, but no filament used on this plate "
-                              "is loaded on T%2% -- the plate's filaments are on %3%. The Primary tool "
-                              "prints the sliced paths directly, so it can only use a filament the "
-                              "printer's physical extruder map routes to it. Assign an object a filament "
-                              "loaded on T%2%, switch this plate to Primary mode, or switch it to one of: %4%."),
-                            parallel_mode, declared_primary, routed_list, candidate_modes);
+                    err.string = Slic3r::format(
+                        L("IMEX mode \"%1%\" prints with T%2%, but this plate's filaments are on %3%. "
+                          "Assign a filament loaded on T%2%, or switch this plate to Primary mode."),
+                        parallel_mode, declared_primary, routed_list);
                     // Gives the notification a "Jump to <object>" link, which selects the object
                     // and switches to Prepare -- directly enabling the first suggested remedy.
                     err.object = m_objects.front();

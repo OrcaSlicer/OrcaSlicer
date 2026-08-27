@@ -923,9 +923,39 @@ TEST_CASE("An IMEX plate whose filament never routes to the Primary tool is bloc
     const StringObjectException err = print.validate(&warnings);
 
     REQUIRE_FALSE(err.string.empty());
-    CHECK(err.string.find("Primary tool") != std::string::npos);
     CHECK(err.string.find("T0") != std::string::npos);   // the declared primary
     CHECK(err.string.find("T2") != std::string::npos);   // where the filament actually lives
+}
+
+// A blended filament is mixed at the nozzle by its component toolheads, which a parallel
+// mode is already using to print copies. Unsupported regardless of where the components
+// route, so this must refuse even though component filament 1 sits on the declared primary
+// T0 -- and it must refuse with the blended message, not the routing one. Mixed slots sit
+// past the end of physical_extruder_map, so the routing rule would call them unrouted.
+TEST_CASE("An IMEX plate using a blended filament is blocked", "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(8);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 8);
+    config.set_deserialize_strict({
+        { "imex_parallel_mode",         "copy" },
+        { "filament_is_mixed",          "0,0,0,0,0,0,0,1" },
+        { "filament_mixed_components",  ";;;;;;;1,5" },
+    });
+
+    std::vector<TriangleMesh> meshes;
+    meshes.push_back(cube(20));
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { { "extruder", "8" } } };
+
+    Slic3r::Model model;
+    Slic3r::Print print;
+    init_print(std::move(meshes), print, model, config, &overrides, false);
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException err = print.validate(&warnings);
+
+    REQUIRE_FALSE(err.string.empty());
+    CHECK(err.string.find("Blended filaments") != std::string::npos);
 }
 
 // Guard rail: the block must not fire on a well-formed plate. Filament 1 (slot 0) routes to
