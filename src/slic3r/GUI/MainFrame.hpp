@@ -387,6 +387,9 @@ public:
     PrintHostQueueDialog* printhost_queue_dlg() { return m_printhost_queue_dlg; }
     Plater*               m_plater { nullptr };
 #ifdef SLIC3R_CAD
+    // The tab page is the placeholder; m_design_panel stays null until the tab is first
+    // selected, so everything the Design panel builds stays off the startup path.
+    wxPanel*              m_design_page { nullptr };
     DesignPanel*          m_design_panel { nullptr };
 #endif
     //BBS: GUI refactor

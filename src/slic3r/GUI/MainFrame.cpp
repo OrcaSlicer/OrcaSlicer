@@ -1025,8 +1025,8 @@ void MainFrame::update_layout()
         size_t prepare_pos = (home_idx == wxNOT_FOUND) ? 0 : static_cast<size_t>(home_idx) + 1;
 #ifdef SLIC3R_CAD
         // Design sits between Home and Prepare, so it goes in first and pushes Prepare along.
-        m_design_panel->Reparent(m_tabpanel);
-        m_tabpanel->InsertPage(prepare_pos++, TAB_ID_DESIGN, m_design_panel, _L("Design"), "tab_design_active");
+        m_design_page->Reparent(m_tabpanel);
+        m_tabpanel->InsertPage(prepare_pos++, TAB_ID_DESIGN, m_design_page, _L("Design"), "tab_design_active");
 #endif
         m_tabpanel->InsertPage(prepare_pos, TAB_ID_PREPARE, m_plater, _L("Prepare"), "tab_3d_active");
         m_tabpanel->InsertPage(prepare_pos + 1, TAB_ID_PREVIEW, m_plater, _L("Preview"), "tab_preview_active");
@@ -1286,7 +1286,16 @@ void MainFrame::init_tabpanel() {
         //else if (panel == m_param_panel)
         //    m_param_panel->OnActivate();
 #ifdef SLIC3R_CAD
-        else if (panel == m_design_panel) {
+        else if (panel == m_design_page) {
+            // Built on first activation, never at startup: the panel creates several hundred
+            // controls and its own GL canvas, which a user who does not open the tab should
+            // not pay for.
+            if (m_design_panel == nullptr) {
+                wxBusyCursor busy;
+                m_design_panel = new DesignPanel(m_design_page);
+                m_design_page->GetSizer()->Add(m_design_panel, 1, wxEXPAND);
+                m_design_page->Layout();
+            }
             // Re-sync the Design bed to the active printer: the panel is built before the
             // printer profile is fully applied, so its bed must refresh on activation or the
             // grid (true bed) spills past the stale default bed quad.
@@ -1299,7 +1308,7 @@ void MainFrame::init_tabpanel() {
 #ifdef SLIC3R_CAD
         // Any page that is not Design takes the Design status line down with it — see
         // DesignPanel::on_tab_hidden for why the popup does not follow the page on its own.
-        if (m_design_panel != nullptr && panel != m_design_panel) m_design_panel->on_tab_hidden();
+        if (m_design_panel != nullptr && panel != m_design_page) m_design_panel->on_tab_hidden();
 #endif
 #ifndef __APPLE__
         if (m_last_selected_tab == TAB_ID_PREPARE) {
@@ -1326,15 +1335,20 @@ void MainFrame::init_tabpanel() {
     }
 
     m_plater = new Plater(this, this);
-    // Register the plater with the app BEFORE constructing DesignPanel: its
-    // DesignCanvas reads wxGetApp().plater()->config() at construction time.
-    wxGetApp().plater_ = m_plater;
-#ifdef SLIC3R_CAD
-    m_design_panel = new DesignPanel(this);
-    start_mcp_control_if_enabled();   // opens the MCP socket iff SNAPORCA_MCP is set
-#endif
     m_plater->SetBackgroundColour(*wxWHITE);
     m_plater->Hide();
+
+    wxGetApp().plater_ = m_plater;
+
+#ifdef SLIC3R_CAD
+    // Stand-in page for the Design tab. The real DesignPanel is built into it the first time
+    // the tab is selected (see the page-changed handler above), so nothing it constructs sits
+    // on the startup path.
+    m_design_page = new wxPanel(this);
+    m_design_page->SetSizer(new wxBoxSizer(wxVERTICAL));
+    m_design_page->Hide();
+    start_mcp_control_if_enabled();   // opens the MCP socket iff SNAPORCA_MCP is set
+#endif
 
     create_preset_tabs();
 
