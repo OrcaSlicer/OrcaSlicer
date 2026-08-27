@@ -108,6 +108,22 @@ const std::vector<Vec2d>& CornerSmoother::curve_coefficients(
     return m_cached_coefficients;
 }
 
+bool CornerSmoother::is_on_straight_run(const Vec2d &previous, const Vec2d &vertex, const Vec2d &next)
+{
+    const Vec2d  incoming_leg    = vertex - previous;
+    const Vec2d  outgoing_leg    = next - vertex;
+    const double incoming_length = incoming_leg.norm();
+    const double outgoing_length = outgoing_leg.norm();
+    // A vertex repeating one of its neighbours carries no direction of its own.
+    if (incoming_length < EPSILON || outgoing_length < EPSILON)
+        return true;
+
+    const Vec2d incoming = incoming_leg / incoming_length;
+    const Vec2d outgoing = outgoing_leg / outgoing_length;
+    return incoming.dot(outgoing) > 0. &&
+           std::abs(incoming.x() * outgoing.y() - incoming.y() * outgoing.x()) < EPSILON;
+}
+
 void CornerSmoother::round_corner(const Vec2d &previous, const Vec2d &corner, const Vec2d &next)
 {
     m_corner_points.clear();

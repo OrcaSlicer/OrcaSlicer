@@ -131,6 +131,10 @@ public:
         PrinterVariant() {}
         PrinterVariant(const std::string &name) : name(name) {}
         std::string                 name;
+
+        // All fields, declaration order — keep in sync; bump CACHE_VERSION on change.
+        template<class Archive>
+        void serialize(Archive& ar) { ar(name); }                       // PrinterVariant
     };
 
     struct PrinterModel {
@@ -139,7 +143,7 @@ public:
         std::string                 name;
         //BBS: this is internal id for the printer. Currently only used for searching in database
         std::string                 model_id;
-        PrinterTechnology           technology;
+        PrinterTechnology           technology = ptFFF;
         std::string                 family;
         std::vector<PrinterVariant> variants;
         std::vector<std::string>	default_materials;
@@ -162,6 +166,17 @@ public:
         }
 
         const PrinterVariant* variant(const std::string &name) const { return const_cast<PrinterModel*>(this)->variant(name); }
+
+        // All fields, declaration order — keep in sync; bump CACHE_VERSION on change.
+        template<class Archive>
+        void serialize(Archive& ar)                                     // PrinterModel
+        {
+            ar(id, name, model_id, technology, family, variants, default_materials,
+               not_support_bed_types, bed_model, bed_texture, image_bed_type,
+               bottom_texture_end_name, use_double_extruder_default_texture,
+               bottom_texture_rect, bottom_texture_rect_longer, middle_texture_rect,
+               hotend_model);
+        }
     };
     std::vector<PrinterModel>          models;
 
@@ -172,6 +187,14 @@ public:
     VendorProfile(std::string id) : id(std::move(id)) {}
 
     bool 		valid() const { return ! name.empty() && ! id.empty() && config_version.valid(); }
+
+    // All fields, declaration order — keep in sync; bump CACHE_VERSION on change.
+    template<class Archive>
+    void serialize(Archive& ar)                                         // VendorProfile
+    {
+        ar(name, id, config_version, config_update_url, changelog_url,
+           models, default_filaments, default_sla_materials);
+    }
 
     // Load VendorProfile from an ini file.
     // If `load_all` is false, only the header with basic info (name, version, URLs) is loaded.
@@ -427,10 +450,10 @@ public:
     Preset(Type type, const std::string &name, bool is_default = false) : type(type), is_default(is_default), name(name) {}
 
 protected:
-    Preset() = default;
-
     friend class        PresetCollection;
     friend class        PresetBundle;
+
+    Preset() = default;
 };
 
 bool is_compatible_with_print  (const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_print, const PresetWithVendorProfile &active_printer);

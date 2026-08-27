@@ -394,6 +394,7 @@ class GLCanvas3D
         PrimeTowerOutside,
         NozzleFilamentIncompatible,
         MixtureFilamentIncompatible,
+        SingleExtruderMixedFilament,
         FlushingVolumeZero
     };
 

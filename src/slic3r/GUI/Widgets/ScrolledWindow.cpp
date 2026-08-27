@@ -110,17 +110,6 @@ void ScrolledWindow::SetTipColor(wxColour color)
     if (m_bottomScrollbar) m_bottomScrollbar->SetTipColor(color);
 }
 
-void ScrolledWindow::Refresh()
-{
-    // m_rightScrollbar->SetViewStart(0);
-    // m_rightScrollbar->Refresh();
-    // m_rightScrollbar->Update();
-    // m_userPanel->Refresh();
-    // m_bottomScrollbar->SetViewStart(0);
-    // m_rightScrollbar->Refresh();
-    // m_bottomScrollbar->Refresh();
-}
-
 void ScrolledWindow::SetBackgroundColour(wxColour color)
 {
     wxWindow::SetBackgroundColour(color); 

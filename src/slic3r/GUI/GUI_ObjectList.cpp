@@ -3233,6 +3233,24 @@ void ObjectList::merge(bool to_multipart_object)
 
 void ObjectList::layers_editing()
 {
+    // Height ranges give each range its own layer height, varying the mixed sub-layer heights just
+    // like an adaptive profile, so this raises the same warning as variable layer height and shares
+    // its do-not-show-again flag.
+    const auto& print_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    if (print_config.opt_bool("enable_mixed_color_sublayer")) {
+        if (wxGetApp().app_config->get("no_warn_mixed_sublayer_variable_layer") != "1") {
+            // Orca: parent to the plater like the sibling site in Plater::priv::on_action_layersediting
+            // (BBS passes nullptr, which MsgDialog remaps to the main frame).
+            MessageDialog dlg(wxGetApp().plater(),
+                _L("Using variable layer height together with mixed color sublayer may result in poor color mixing quality."),
+                _L("Warning"), wxICON_WARNING | wxOK);
+            dlg.show_dsa_button();
+            dlg.ShowModal();
+            if (dlg.get_checkbox_state())
+                wxGetApp().app_config->set("no_warn_mixed_sublayer_variable_layer", "1");
+        }
+    }
+
     const Selection& selection = scene_selection();
     const int obj_idx = selection.get_object_idx();
     wxDataViewItem item = obj_idx >= 0 && GetSelectedItemsCount() > 1 && selection.is_single_full_object() ?

@@ -28,6 +28,9 @@
 
 #include <cereal/access.hpp>
 #include <cereal/types/base_class.hpp>
+// The serialize() members below archive ConfigOption hierarchies through
+// cereal::base_class, whose registration machinery lives in polymorphic.hpp.
+#include <cereal/types/polymorphic.hpp>
 
 namespace Slic3r {
     struct FloatOrPercent
