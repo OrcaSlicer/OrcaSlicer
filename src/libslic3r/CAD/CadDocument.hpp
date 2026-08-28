@@ -639,8 +639,10 @@ public:
     // v5: every feature is length-framed, so a reader can stop early on an older file and skip
     // the tail of a newer one. This is the LAST version that has to break anything — from here a
     // new field only needs appending to save/load, with no bump and no orphaned projects.
-    // v4 is still read, by the pre-framing flat path, so existing projects keep opening.
-    static constexpr uint32_t ORCA_CAD_RECIPE_VERSION = 5;
+    // v6: no wire-format change — the bytes are v5's, and both are read by the same framed path.
+    // The stamp advances only to put a project-container change on the record; the 3MF backends
+    // own that story. v4 still opens through the pre-framing flat path.
+    static constexpr uint32_t ORCA_CAD_RECIPE_VERSION = 6;
     std::string serialize_recipe() const;
     bool deserialize_recipe(const std::string& blob);
 

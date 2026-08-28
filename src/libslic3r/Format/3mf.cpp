@@ -74,6 +74,9 @@ const std::string PRINT_CONFIG_FILE = "Metadata/Slic3r_PE.config";
 const std::string MODEL_CONFIG_FILE = "Metadata/Slic3r_PE_model.config";
 const std::string LAYER_HEIGHTS_PROFILE_FILE = "Metadata/Slic3r_PE_layer_heights_profile.txt";
 const std::string CAD_RECIPE_FILE = "Metadata/orca_cad.bin";
+// Read-only: the recipe entry's pre-rename name. A reader that knows only the new one drops the
+// feature tree of every project written before the move, without a word. Never written.
+const std::string LEGACY_CAD_RECIPE_FILE = "Metadata/SnapOrca_cad.bin";
 const std::string LAYER_CONFIG_RANGES_FILE = "Metadata/Prusa_Slicer_layer_config_ranges.xml";
 const std::string SLA_SUPPORT_POINTS_FILE = "Metadata/Slic3r_PE_sla_support_points.txt";
 const std::string SLA_DRAIN_HOLES_FILE = "Metadata/Slic3r_PE_sla_drain_holes.txt";
@@ -806,7 +809,8 @@ ModelVolumeType type_from_string(const std::string &s)
                         return false;
                     }
                 }
-                if (boost::algorithm::iequals(name, CAD_RECIPE_FILE)) {
+                if (boost::algorithm::iequals(name, CAD_RECIPE_FILE)
+                 || boost::algorithm::iequals(name, LEGACY_CAD_RECIPE_FILE)) {
                     if (stat.m_uncomp_size > 0) {
                         std::string buffer((size_t)stat.m_uncomp_size, 0);
                         if (mz_zip_reader_extract_file_to_mem(&archive, stat.m_filename,

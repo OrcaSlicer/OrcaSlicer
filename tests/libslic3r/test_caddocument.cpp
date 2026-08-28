@@ -2159,6 +2159,33 @@ TEST_CASE("a v4 project still opens", "[CadDocument][recipe]")
     REQUIRE(doc.features.size() == flat.size());
 }
 
+// Do NOT regenerate cad_recipe_v5.bin either. It was written by the build that predates the
+// bump to v6, which is the whole reason it can prove the gate lets a v5 project through.
+TEST_CASE("a v5 project still opens", "[CadDocument][recipe]")
+{
+    // The bump to v6 renamed nothing inside the blob — it records the recipe's move to
+    // Metadata/orca_cad.bin — so a v5 project must still come through the framed path rather
+    // than be refused at the version gate for being old.
+    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v5.bin";
+    std::ifstream ifs(path, std::ios::binary);
+    REQUIRE(ifs.is_open());
+    std::string blob((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    ifs.close();
+    REQUIRE(blob.size() >= sizeof(uint32_t));
+
+    uint32_t stamped = 0;
+    std::memcpy(&stamped, blob.data(), sizeof(stamped));
+    REQUIRE(stamped == 5);   // the fixture really is pre-bump, not a regenerated one
+
+    CadDocument doc;
+    doc.deserialize_recipe(blob);
+    // As with the v4 fixture: the only failure allowed is the golden tree's own geometry, which
+    // is orthogonal to the version gate. Being turned away at the gate is not.
+    REQUIRE(doc.error.find("older version") == std::string::npos);
+    REQUIRE(doc.error.find("newer version") == std::string::npos);
+    REQUIRE_FALSE(doc.features.empty());
+}
+
 TEST_CASE("a v5 round trip is exact", "[CadDocument][recipe]")
 {
     using Catch::Matchers::WithinRel;
@@ -2206,7 +2233,7 @@ TEST_CASE("a v5 round trip is exact", "[CadDocument][recipe]")
 
 TEST_CASE("a truncated feature keeps what it could read", "[CadDocument][recipe]")
 {
-    // The forward-compat proof: a v5 reader that meets a feature blob shorter than its own
+    // The forward-compat proof: a framed reader that meets a feature blob shorter than its own
     // field list must keep what it read and default the rest, not error. Simulate an older
     // file by hand-shortening ONE feature's frame: rewrite its length prefix and drop the
     // tail bytes, then confirm the load still succeeds and the fields before the cut survive.
@@ -2238,7 +2265,9 @@ TEST_CASE("a truncated feature keeps what it could read", "[CadDocument][recipe]
         std::memcpy(&s[off], &u, sizeof(u));
     };
 
-    REQUIRE(rd32(blob, 0) == 5);
+    // Against the constant, not a literal: what this asserts is that the outer frame opens with
+    // the version stamp, which stays true across every bump.
+    REQUIRE(rd32(blob, 0) == CadDocument::ORCA_CAD_RECIPE_VERSION);
     uint32_t count = rd32(blob, 4);
     REQUIRE(count == doc.features.size());
 
@@ -3934,7 +3963,10 @@ TEST_CASE("regenerate golden recipe fixture", "[.regen]")
     auto blob = doc.serialize_recipe();
     REQUIRE_FALSE(blob.empty());
 
-    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v5.bin";
+    // Version-free on purpose: this writes whatever today's format is, so a version bump does
+    // not have to remember to edit it. The version-stamped fixtures beside it are frozen
+    // evidence from older builds and are never regenerated.
+    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_current.bin";
     std::ofstream ofs(path, std::ios::binary);
     REQUIRE(ofs.is_open());
     ofs.write(blob.data(), static_cast<std::streamsize>(blob.size()));

@@ -98,7 +98,7 @@ std::string cad_recipe;   // empty for non-CAD projects
 ```
 
 ```
-Metadata/SnapOrca_cad.bin   // written only when cad_recipe is non-empty
+Metadata/orca_cad.bin   // written only when cad_recipe is non-empty
 ```
 
 Readers that do not know the entry ignore it; writers skip it entirely when empty. So
@@ -107,8 +107,7 @@ existing projects are bit-identical and old readers are unaffected. Good.
 **But the moment upstream ships this, it owns forward-compatibility forever.** Three
 things should be settled *before* the first release, because none can be changed after:
 
-1. **Name.** `SnapOrca_cad.bin` is fork-branded in an upstream project file. Rename to a
-   neutral path (e.g. `Metadata/cad_recipe.bin`).
+1. **Name.** Renamed to `Metadata/orca_cad.bin`.
 2. **Encoding.** The recipe is an opaque **cereal `PortableBinaryArchive`** blob whose
    layout is the field order of `CadFeature::serialize`. Portable across endianness and
    word size — *not* across a field reorder. Append-only is currently a convention held by

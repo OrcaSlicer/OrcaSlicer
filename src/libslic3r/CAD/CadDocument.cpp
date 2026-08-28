@@ -3808,7 +3808,13 @@ bool CadDocument::deserialize_recipe(const std::string& blob)
                   + std::to_string(ORCA_CAD_RECIPE_VERSION) + ")";
             return false;
         }
-        if (v == 5) {
+        // The framed layout has been byte-identical since v5 (v6 advanced the stamp without
+        // touching the bytes), so every version from 5 up is read below. A future bump that DOES
+        // change the framing must exclude itself there — this is what forces that decision
+        // instead of letting a v7 blob be silently misread by the v5 reader.
+        static_assert(ORCA_CAD_RECIPE_VERSION <= 6,
+                      "recipe version bumped: confirm the new version still uses the v5 framing");
+        if (v >= 5) {
             // Framed path: every feature is a length-prefixed self-contained cereal stream, so
             // the same four lines handle BOTH directions of mismatch. Older file, newer build:
             // the sub-stream ends early, fa(f) throws, and the fields already assigned are kept
