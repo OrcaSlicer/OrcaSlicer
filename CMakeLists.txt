@@ -360,6 +360,16 @@ if (MSVC)
     if (SLIC3R_MSVC_COMPILE_PARALLEL AND CMAKE_GENERATOR MATCHES "Visual Studio")
            add_compile_options(/MP)
     endif ()
+
+    # Parse lambdas the way the standard says, as clang and GCC already do. Without it
+    # MSVC keeps its legacy lambda processor under /std:c++17 and rejects reading a
+    # constexpr constant inside a lambda that does not capture it (C3493), which no
+    # other compiler requires. Implied by /std:c++20 and /permissive-, so it is only
+    # needed while we are on C++17. clang-cl is conforming already and does not take
+    # the flag. Requires VS2019 16.8 or newer.
+    if (NOT IS_CLANG_CL)
+        add_compile_options(/Zc:lambda)
+    endif ()
     # /bigobj (Increase Number of Sections in .Obj file)
     # error C3859: virtual memory range for PCH exceeded; please recompile with a command line option of '-Zm90' or greater
     # Generate symbols at every build target, even for the release.
