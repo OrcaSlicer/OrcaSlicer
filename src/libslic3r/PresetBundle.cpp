@@ -1289,7 +1289,7 @@ bool PresetBundle::reload_local_bundle(const std::string& preset_folder, const s
         auto restore_selection = [](PresetCollection& collection, const Selection& selection) {
             if (collection.find_preset(selection.name, false, true) == nullptr) {
                 collection.select_preset(collection.first_visible_idx());
-                return;
+                return false;
             }
             collection.select_preset_by_name(selection.name, true);
             Preset& edited = collection.get_edited_preset();
@@ -1300,6 +1300,7 @@ bool PresetBundle::reload_local_bundle(const std::string& preset_folder, const s
                     edited.config.erase(key);
             }
             collection.update_dirty();
+            return true;
         };
 
         install_target(prints, staged.prints);
@@ -1308,11 +1309,19 @@ bool PresetBundle::reload_local_bundle(const std::string& preset_folder, const s
         prints.update_map_alias_to_profile_name();
         filaments.update_map_alias_to_profile_name();
         printers.update_map_alias_to_profile_name();
+        const bool printer_preserved  = restore_selection(printers, printer_selection);
+        const bool print_preserved    = restore_selection(prints, print_selection);
+        const bool filament_preserved = restore_selection(filaments, filament_selection);
+        const auto selection_mode = [printer_preserved](bool selection_preserved) {
+            if (!selection_preserved)
+                return PresetSelectCompatibleType::Always;
+            return printer_preserved ? PresetSelectCompatibleType::Never : PresetSelectCompatibleType::OnlyIfWasCompatible;
+        };
+        update_compatible(selection_mode(print_preserved), selection_mode(filament_preserved));
+        for (std::string& name : filament_presets)
+            if (boost::starts_with(name, target_prefix) && filaments.find_preset(name, false) == nullptr)
+                name = filaments.first_compatible().name;
         update_multi_material_filament_presets();
-        update_compatible(PresetSelectCompatibleType::Never);
-        restore_selection(prints, print_selection);
-        restore_selection(filaments, filament_selection);
-        restore_selection(printers, printer_selection);
 
         metadata.bundle_type = BundleType::Local;
         metadata.is_subscribed = false;

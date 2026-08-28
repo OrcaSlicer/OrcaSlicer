@@ -282,8 +282,23 @@ TEST_CASE("Reloading one local bundle preserves unrelated and modified presets",
     REQUIRE(fs::remove_all(process_file.parent_path()) > 0);
     REQUIRE(bundle.reload_local_bundle("", id, &error));
     CHECK(bundle.prints.find_preset(target_name, false, true) == nullptr);
+    CHECK(bundle.prints.get_selected_preset_name() != target_name);
     CHECK(bundle.filaments.find_preset(std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Filament") != nullptr);
     CHECK(bundle.printers.find_preset(std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Printer") != nullptr);
+
+    const std::string filament_name = std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Filament";
+    const std::string printer_name  = std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Printer";
+    bundle.filaments.select_preset_by_name(filament_name, true);
+    bundle.printers.select_preset_by_name(printer_name, true);
+    bundle.filament_presets = { filament_name };
+    REQUIRE(fs::remove_all(bundle_dir / PRESET_FILAMENT_NAME) > 0);
+    REQUIRE(fs::remove_all(bundle_dir / PRESET_PRINTER_NAME) > 0);
+    REQUIRE(bundle.reload_local_bundle("", id, &error));
+    CHECK(bundle.filaments.get_selected_preset_name() != filament_name);
+    CHECK(bundle.printers.get_selected_preset_name() != printer_name);
+    REQUIRE(bundle.filament_presets.size() == 1);
+    CHECK(bundle.filament_presets.front() != filament_name);
+    CHECK(bundle.filaments.find_preset(bundle.filament_presets.front(), false) != nullptr);
 }
 
 TEST_CASE("Reloading a local bundle rejects unsafe source and inheritance changes", "[Preset][Bundle]")
