@@ -1078,68 +1078,36 @@ const double GLCanvas3D::DefaultCameraZoomToPlateMarginFactor = 1.25;
 
 void GLCanvas3D::load_arrange_settings()
 {
-    std::string dist_fff_str =
-        wxGetApp().app_config->get("arrange", "min_object_distance_fff");
-
-    std::string dist_fff_seq_print_str =
-        wxGetApp().app_config->get("arrange", "min_object_distance_fff_seq_print");
-
-    std::string dist_sla_str =
-        wxGetApp().app_config->get("arrange", "min_object_distance_sla");
-
-    std::string en_rot_fff_str =
-        wxGetApp().app_config->get("arrange", "enable_rotation_fff");
-
-    std::string en_rot_fff_seqp_str =
-        wxGetApp().app_config->get("arrange", "enable_rotation_fff_seq_print");
-
-    std::string en_rot_sla_str =
-        wxGetApp().app_config->get("arrange", "enable_rotation_sla");
-
-    std::string en_allow_multiple_materials_str =
-        wxGetApp().app_config->get("arrange", "allow_multi_materials_on_same_plate");
-
-    std::string en_avoid_region_str =
-        wxGetApp().app_config->get("arrange", "avoid_extrusion_cali_region");
-
-
-
-    // The menu writes these with float_to_string_decimal_point, so parse them back the
-    // same way; std::stof would follow LC_NUMERIC and throw on a corrupt value.
-    auto load_distance = [](const std::string &value, float &out) {
-        size_t parsed = 0;
-        double number = string_to_double_decimal_point(value, &parsed);
+    // Each key must match what _render_arrange_menu writes, which appends a per-mode
+    // postfix to the base name.
+    auto load_float = [](const char *key, float &out) {
+        // The menu writes these with float_to_string_decimal_point, so parse them back
+        // the same way rather than with anything locale-dependent.
+        std::string value = wxGetApp().app_config->get("arrange", key);
+        size_t      parsed = 0;
+        double      number = string_to_double_decimal_point(value, &parsed);
         if (parsed > 0)
             out = float(number);
     };
+    auto load_bool = [](const char *key, bool &out) {
+        std::string value = wxGetApp().app_config->get("arrange", key);
+        if (!value.empty())
+            out = (value == "1" || value == "true");
+    };
 
-    load_distance(dist_fff_str,           m_arrange_settings_fff.distance);
-    load_distance(dist_fff_seq_print_str, m_arrange_settings_fff_seq_print.distance);
-    load_distance(dist_sla_str,           m_arrange_settings_sla.distance);
+    load_float("min_object_distance_fff",           m_arrange_settings_fff.distance);
+    load_float("min_object_distance_fff_seq_print", m_arrange_settings_fff_seq_print.distance);
+    load_float("min_object_distance_sla",           m_arrange_settings_sla.distance);
 
-    if (!en_rot_fff_str.empty())
-        m_arrange_settings_fff.enable_rotation = (en_rot_fff_str == "1" || en_rot_fff_str == "true");
+    load_bool("enable_rotation_fff",           m_arrange_settings_fff.enable_rotation);
+    load_bool("enable_rotation_fff_seq_print", m_arrange_settings_fff_seq_print.enable_rotation);
+    load_bool("enable_rotation_sla",           m_arrange_settings_sla.enable_rotation);
 
-    // This key carries no postfix, so the one stored value covers both FFF modes.
-    if (!en_allow_multiple_materials_str.empty()) {
-        const bool allow = (en_allow_multiple_materials_str == "1" || en_allow_multiple_materials_str == "true");
-        m_arrange_settings_fff.allow_multi_materials_on_same_plate           = allow;
-        m_arrange_settings_fff_seq_print.allow_multi_materials_on_same_plate = allow;
-    }
-
-
-    if (!en_rot_fff_seqp_str.empty())
-        m_arrange_settings_fff_seq_print.enable_rotation = (en_rot_fff_seqp_str == "1" || en_rot_fff_seqp_str == "true");
-
-    // Un-postfixed as well.
-    if (!en_avoid_region_str.empty()) {
-        const bool avoid = (en_avoid_region_str == "1" || en_avoid_region_str == "true");
-        m_arrange_settings_fff.avoid_extrusion_cali_region           = avoid;
-        m_arrange_settings_fff_seq_print.avoid_extrusion_cali_region = avoid;
-    }
-
-    if (!en_rot_sla_str.empty())
-        m_arrange_settings_sla.enable_rotation = (en_rot_sla_str == "1" || en_rot_sla_str == "true");
+    // These two keys carry no postfix, so the one stored value covers both FFF modes.
+    load_bool("allow_multi_materials_on_same_plate", m_arrange_settings_fff.allow_multi_materials_on_same_plate);
+    load_bool("allow_multi_materials_on_same_plate", m_arrange_settings_fff_seq_print.allow_multi_materials_on_same_plate);
+    load_bool("avoid_extrusion_cali_region",         m_arrange_settings_fff.avoid_extrusion_cali_region);
+    load_bool("avoid_extrusion_cali_region",         m_arrange_settings_fff_seq_print.avoid_extrusion_cali_region);
 
     //BBS: add specific arrange settings
     m_arrange_settings_fff_seq_print.is_seq_print = true;
