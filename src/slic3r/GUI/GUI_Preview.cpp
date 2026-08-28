@@ -29,6 +29,9 @@
 #include <wx/combobox.h>
 #include <wx/checkbox.h>
 #include <wx/button.h>
+#include <wx/choicdlg.h>
+#include <wx/msgdlg.h>
+#include <wx/weakref.h>
 
 // this include must follow the wxWidgets ones or it won't compile on Windows -> see http://trac.wxwidgets.org/ticket/2421
 #include "libslic3r/Print.hpp"
@@ -247,6 +250,7 @@ void Preview::update_gcode_result(GCodeProcessorResult* gcode_result)
 {
     m_gcode_result = gcode_result;
     refresh_visualization_action();
+    notify_visualization_result();
 }
 
 bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
@@ -285,6 +289,7 @@ bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
 
     wxBoxSizer *main_sizer = new wxBoxSizer(wxVERTICAL);
     m_realistic_preview_button = new wxButton(this, wxID_ANY, _L("Realistic Preview"));
+    m_realistic_preview_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { open_visualization(); });
     main_sizer->Add(m_realistic_preview_button, 0, wxALL | wxALIGN_RIGHT, 5);
     main_sizer->Add(m_canvas_widget, 1, wxALL | wxEXPAND, 0);
 
@@ -303,6 +308,7 @@ bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
 Preview::~Preview()
 {
     PluginVisualizations::instance().unsubscribe(m_visualization_change_subscription);
+    PluginVisualizations::instance().close_all();
     unbind_event_handlers();
 
     if (m_canvas != nullptr)
@@ -343,15 +349,72 @@ void Preview::refresh_visualization_action()
     const bool is_fff = m_process != nullptr && m_process->current_printer_technology() == ptFFF;
     const bool show = is_fff && !PluginVisualizations::instance().capabilities().empty();
     const Print* print = is_fff ? m_process->fff_print() : nullptr;
-    const bool has_final_result = print != nullptr && print->is_step_done(psGCodeExport) && m_gcode_result != nullptr &&
-                                  !m_gcode_result->moves.empty();
+    const bool has_final_result = m_gcode_result != nullptr && !m_gcode_result->moves.empty() &&
+                                  (m_only_gcode || (print != nullptr && print->is_step_done(psGCodeExport)));
 
     m_realistic_preview_button->Show(show);
-    m_realistic_preview_button->Disable();
-    m_realistic_preview_button->SetToolTip(has_final_result ?
-        _L("Realistic Preview geometry export is not available yet.") :
+    m_realistic_preview_button->Enable(show && has_final_result);
+    m_realistic_preview_button->SetToolTip(has_final_result ? wxString{} :
         _L("Slice the current plate before opening Realistic Preview."));
     Layout();
+}
+
+void Preview::open_visualization()
+{
+    if (m_process == nullptr || m_gcode_result == nullptr || m_gcode_result->moves.empty())
+        return;
+
+    auto capabilities = PluginVisualizations::instance().capabilities();
+    if (capabilities.empty())
+        return;
+
+    size_t selected = 0;
+    if (capabilities.size() > 1) {
+        wxArrayString choices;
+        for (const auto& capability : capabilities)
+            choices.Add(from_u8(capability->name()));
+        wxSingleChoiceDialog picker(this, _L("Choose a visualization plugin."), _L("Realistic Preview"), choices);
+        if (picker.ShowModal() != wxID_OK)
+            return;
+        selected = static_cast<size_t>(picker.GetSelection());
+    }
+
+    const int plate_index = wxGetApp().plater()->get_partplate_list().get_curr_plate_index();
+    SuppressBackgroundProcessingUpdate suppress_background_processing;
+    PluginVisualizations::instance().request_open(
+        capabilities[selected], *m_gcode_result, plate_index, m_gcode_result->id, SoftFever_VERSION,
+        [weak = wxWeakRef<Preview>(this)](ExecutionResult result) {
+            wxGetApp().CallAfter([weak, result = std::move(result)]() mutable {
+                if (weak)
+                    weak->handle_visualization_result(std::move(result));
+            });
+        });
+}
+
+void Preview::notify_visualization_result()
+{
+    if (m_gcode_result == nullptr || m_gcode_result->moves.empty() ||
+        !PluginVisualizations::instance().has_active_sessions())
+        return;
+
+    const int plate_index = wxGetApp().plater()->get_partplate_list().get_curr_plate_index();
+    SuppressBackgroundProcessingUpdate suppress_background_processing;
+    PluginVisualizations::instance().request_updates(
+        *m_gcode_result, plate_index, m_gcode_result->id, SoftFever_VERSION,
+        [weak = wxWeakRef<Preview>(this)](ExecutionResult result) {
+            wxGetApp().CallAfter([weak, result = std::move(result)]() mutable {
+                if (weak)
+                    weak->handle_visualization_result(std::move(result));
+            });
+        });
+}
+
+void Preview::handle_visualization_result(ExecutionResult result)
+{
+    if (result.status == PluginResult::RecoverableError || result.status == PluginResult::FatalError) {
+        const wxString message = result.message.empty() ? _L("The visualization plugin could not be opened.") : from_u8(result.message);
+        wxMessageBox(message, _L("Realistic Preview"), wxOK | wxICON_ERROR, this);
+    }
 }
 
 //BBS: add only gcode mode
@@ -740,6 +803,7 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
             //BBS: add m_loaded_print logic
             //m_loaded = true;
             m_loaded_print = print;
+            notify_visualization_result();
         }
         else if (is_pregcode_preview) {
             // Load the initial preview based on slices, not the final G-code.

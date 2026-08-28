@@ -25,6 +25,7 @@ namespace Slic3r {
 
 class DynamicPrintConfig;
 class Print;
+struct ExecutionResult;
 class BackgroundSlicingProcess;
 class Model;
 
@@ -177,6 +178,9 @@ private:
     void update_layers_slider_mode();
     void update_layers_slider_from_canvas(wxKeyEvent &event);
     void refresh_visualization_action();
+    void open_visualization();
+    void notify_visualization_result();
+    void handle_visualization_result(ExecutionResult result);
     //BBS: add only gcode mode
     void load_print_as_fff(bool keep_z_range = false, bool only_gcode = false);
 };
