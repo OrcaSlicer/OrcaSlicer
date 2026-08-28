@@ -1,6 +1,7 @@
 #include "PluginVisualizations.hpp"
 
 #include "PreviewGeometrySnapshot.hpp"
+#include "../../GUI/ToolpathMeshBuilder.hpp"
 #include "../PluginManager.hpp"
 
 #include <boost/filesystem.hpp>
@@ -234,12 +235,13 @@ bool PluginVisualizations::has_active_sessions() const
 }
 
 void PluginVisualizations::request_open(const std::shared_ptr<VisualizationPluginCapability>& capability,
+                                        std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
                                         const GCodeProcessorResult& result, int plate_index, uint64_t scene_id,
                                         std::string orca_version, Completion completion)
 {
-    if (!capability || !capability->is_enabled()) {
+    if (!capability || !capability->is_enabled() || !mesh) {
         if (completion)
-            completion(ExecutionResult::skipped("Visualization capability is unavailable"));
+            completion(ExecutionResult::skipped(mesh ? "Visualization capability is unavailable" : "Preview mesh is unavailable"));
         return;
     }
 
@@ -257,7 +259,7 @@ void PluginVisualizations::request_open(const std::shared_ptr<VisualizationPlugi
     request.completion = std::move(completion);
     try {
         request.snapshot = std::make_shared<PreviewGeometrySnapshot::Snapshot>(
-            PreviewGeometrySnapshot::capture(result, plate_index, scene_id));
+            PreviewGeometrySnapshot::capture(*mesh, result, plate_index, scene_id));
         request.snapshot_path = prepare_cache(request.id.plugin_key, plate_index, scene_id);
         enqueue(std::move(request));
     } catch (const std::exception& error) {
@@ -266,7 +268,8 @@ void PluginVisualizations::request_open(const std::shared_ptr<VisualizationPlugi
     }
 }
 
-void PluginVisualizations::request_updates(const GCodeProcessorResult& result, int plate_index, uint64_t scene_id,
+void PluginVisualizations::request_updates(std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
+                                           const GCodeProcessorResult& result, int plate_index, uint64_t scene_id,
                                            std::string orca_version, Completion completion)
 {
     std::vector<std::shared_ptr<VisualizationPluginCapability>> capabilities_to_update;
@@ -278,11 +281,16 @@ void PluginVisualizations::request_updates(const GCodeProcessorResult& result, i
     }
     if (capabilities_to_update.empty())
         return;
+    if (!mesh) {
+        if (completion)
+            completion(ExecutionResult::failure(PluginResult::RecoverableError, "Preview mesh is unavailable"));
+        return;
+    }
 
     std::shared_ptr<const PreviewGeometrySnapshot::Snapshot> snapshot;
     try {
         snapshot = std::make_shared<PreviewGeometrySnapshot::Snapshot>(
-            PreviewGeometrySnapshot::capture(result, plate_index, scene_id));
+            PreviewGeometrySnapshot::capture(*mesh, result, plate_index, scene_id));
     } catch (const std::exception& error) {
         if (completion)
             completion(recoverable_error(capabilities_to_update.front()->identity(), "capture", error));
@@ -421,7 +429,7 @@ boost::filesystem::path PluginVisualizations::prepare_cache(const std::string& p
         fs::remove_all(cache, ignored);
     }
     fs::create_directories(cache);
-    return cache / ("plate-" + std::to_string(plate_index) + "-scene-" + std::to_string(scene_id) + ".orpv");
+    return cache / ("plate-" + std::to_string(plate_index) + "-scene-" + std::to_string(scene_id) + ".orpm");
 }
 
 void PluginVisualizations::remove_snapshot(const boost::filesystem::path& path)

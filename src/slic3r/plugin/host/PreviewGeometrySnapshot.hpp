@@ -10,98 +10,83 @@
 
 namespace Slic3r {
 struct GCodeProcessorResult;
+namespace GUI { struct PreviewTriangleMesh; }
 
 namespace PreviewGeometrySnapshot {
 
-// ORPV v1 is renderer-neutral, fixed-width, and explicitly little-endian. These constants are
-// duplicated by external readers so changing them requires a format-major bump.
 constexpr uint16_t FORMAT_MAJOR = 1;
 constexpr uint16_t FORMAT_MINOR = 0;
-constexpr uint32_t HEADER_BYTE_SIZE = 128;
-constexpr uint32_t VERTEX_RECORD_SIZE = 36;
+constexpr uint32_t HEADER_BYTE_SIZE = 256;
+constexpr uint32_t VERTEX_RECORD_SIZE = 32;
+constexpr uint32_t GROUP_RECORD_SIZE = 24;
 constexpr uint32_t MATERIAL_RECORD_SIZE = 40;
 constexpr uint32_t POINT_RECORD_SIZE = 8;
 constexpr uint64_t DEFAULT_MAX_VERTICES = 20'000'000;
-constexpr uint64_t DEFAULT_MAX_FILE_SIZE = 1ull << 30;
+constexpr uint64_t DEFAULT_MAX_INDICES = 120'000'000;
+constexpr uint64_t DEFAULT_MAX_GROUPS = 4'000'000;
+constexpr uint64_t DEFAULT_MAX_FILE_SIZE = 4ull << 30;
+constexpr uint32_t FLAG_SPIRAL_VASE = 1u << 0;
+constexpr uint32_t FLAG_INDEXED = 1u << 1;
 
-enum PathFlags : uint8_t {
-    PathStart    = 1 << 0,
-    PathEnd      = 1 << 1,
-    InternalOnly = 1 << 2,
-};
-
-struct Point {
-    float x{0.0f};
-    float y{0.0f};
-};
-
+struct Point { float x{0}; float y{0}; };
 struct Vertex {
-    float    x{0.0f};
-    float    y{0.0f};
-    float    z{0.0f};
-    float    width{0.0f};
-    float    height{0.0f};
-    uint32_t gcode_id{0};
+    std::array<float, 3> position{};
+    std::array<float, 3> normal{};
+    std::array<float, 2> uv{};
+};
+struct Group {
+    uint32_t first_index{0};
+    uint32_t index_count{0};
+    uint16_t material_slot{0};
+    uint8_t extrusion_role{0};
+    uint8_t extruder_id{0};
+    uint8_t colour_id{0};
     uint32_t layer_id{0};
-    uint8_t  move_type{0};
-    uint8_t  extrusion_role{0};
-    uint8_t  extruder_id{0};
-    uint8_t  colour_id{0};
-    uint8_t  path_flags{0};
 };
-
 struct MaterialSlot {
-    uint8_t                 extruder_id{0};
-    std::array<uint8_t, 4>  rgba{{128, 128, 128, 255}};
-    std::string             preset_id;
-    std::string             display_name;
+    uint8_t extruder_id{0};
+    std::array<uint8_t, 4> rgba{{128,128,128,255}};
+    std::string preset_id;
+    std::string display_name;
 };
-
 struct Snapshot {
-    uint64_t                  scene_id{0};
-    int32_t                   plate_index{-1};
-    uint32_t                  flags{0};
-    std::vector<Vertex>       vertices;
-    std::vector<MaterialSlot> materials;
-    std::vector<Point>        printable_area;
-    std::vector<Point>        bed_excluded_area;
-    std::vector<Point>        wrapping_excluded_area;
-    float                     z_offset{0.0f};
-    float                     printable_height{0.0f};
-};
-
-struct Header {
-    uint16_t major_version{0};
-    uint16_t minor_version{0};
-    uint32_t header_size{0};
-    uint32_t vertex_record_size{0};
-    uint32_t material_record_size{0};
-    uint32_t point_record_size{0};
     uint64_t scene_id{0};
-    int32_t  plate_index{-1};
+    int32_t plate_index{-1};
+    uint32_t flags{FLAG_INDEXED};
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
+    std::vector<Group> groups;
+    std::vector<MaterialSlot> materials;
+    std::vector<Point> printable_area;
+    std::vector<Point> bed_excluded_area;
+    std::vector<Point> wrapping_excluded_area;
+    float z_offset{0};
+    float printable_height{0};
+    std::array<float,3> bounds_min{};
+    std::array<float,3> bounds_max{};
+};
+struct Header {
+    uint16_t major_version{0}, minor_version{0};
+    uint32_t header_size{0}, vertex_record_size{0}, group_record_size{0}, point_record_size{0};
+    uint64_t scene_id{0};
+    int32_t plate_index{-1};
     uint32_t flags{0};
-    uint64_t vertex_count{0};
-    uint32_t material_slot_count{0};
-    uint32_t printable_area_count{0};
-    uint32_t excluded_area_count{0};
-    uint32_t bed_excluded_area_count{0};
-    uint64_t vertices_offset{0};
-    uint64_t materials_offset{0};
-    uint64_t printable_area_offset{0};
-    uint64_t excluded_area_offset{0};
-    uint64_t strings_offset{0};
-    uint64_t file_size{0};
-    float    z_offset{0.0f};
-    float    printable_height{0.0f};
+    uint64_t vertex_count{0}, index_count{0}, group_count{0};
+    uint32_t material_slot_count{0}, printable_area_count{0}, excluded_area_count{0}, bed_excluded_area_count{0};
+    uint64_t vertices_offset{0}, indices_offset{0}, groups_offset{0}, materials_offset{0};
+    uint64_t printable_area_offset{0}, excluded_area_offset{0}, strings_offset{0}, file_size{0};
+    float z_offset{0}, printable_height{0};
+    std::array<float,3> bounds_min{}, bounds_max{};
 };
 
-Snapshot capture(const GCodeProcessorResult& result, int plate_index, uint64_t expected_scene_id);
+Snapshot capture(const GUI::PreviewTriangleMesh& mesh, const GCodeProcessorResult& result,
+                 int plate_index, uint64_t expected_scene_id);
 std::vector<uint8_t> serialize(const Snapshot& snapshot);
-Header validate(const uint8_t* data, size_t size,
-                uint64_t max_vertices = DEFAULT_MAX_VERTICES,
+Header validate(const uint8_t* data, size_t size, uint64_t max_vertices = DEFAULT_MAX_VERTICES,
+                uint64_t max_indices = DEFAULT_MAX_INDICES, uint64_t max_groups = DEFAULT_MAX_GROUPS,
                 uint64_t max_file_size = DEFAULT_MAX_FILE_SIZE);
-Header validate(const std::vector<uint8_t>& data,
-                uint64_t max_vertices = DEFAULT_MAX_VERTICES,
+Header validate(const std::vector<uint8_t>& data, uint64_t max_vertices = DEFAULT_MAX_VERTICES,
+                uint64_t max_indices = DEFAULT_MAX_INDICES, uint64_t max_groups = DEFAULT_MAX_GROUPS,
                 uint64_t max_file_size = DEFAULT_MAX_FILE_SIZE);
 void write_atomic(const Snapshot& snapshot, const boost::filesystem::path& target);
 

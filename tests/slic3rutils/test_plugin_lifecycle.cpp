@@ -217,7 +217,7 @@ TEST_CASE("Visualization sessions dispatch lifecycle calls and close when disabl
     ctx.orca_version  = "test";
     ctx.scene_id      = 1;
     ctx.plate_index   = 0;
-    ctx.geometry_path = (events_path.parent_path() / "snapshot.orpv").string();
+    ctx.geometry_path = (events_path.parent_path() / "snapshot.orpm").string();
     ctx.metadata_json = events_path.string();
 
     PluginVisualizations& visualizations = PluginVisualizations::instance();

@@ -250,7 +250,6 @@ void Preview::update_gcode_result(GCodeProcessorResult* gcode_result)
 {
     m_gcode_result = gcode_result;
     refresh_visualization_action();
-    notify_visualization_result();
 }
 
 bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
@@ -381,8 +380,9 @@ void Preview::open_visualization()
 
     const int plate_index = wxGetApp().plater()->get_partplate_list().get_curr_plate_index();
     SuppressBackgroundProcessingUpdate suppress_background_processing;
+    auto mesh = m_canvas->get_gcode_viewer().create_preview_triangle_mesh_snapshot();
     PluginVisualizations::instance().request_open(
-        capabilities[selected], *m_gcode_result, plate_index, m_gcode_result->id, SoftFever_VERSION,
+        capabilities[selected], std::move(mesh), *m_gcode_result, plate_index, m_gcode_result->id, SoftFever_VERSION,
         [weak = wxWeakRef<Preview>(this)](ExecutionResult result) {
             wxGetApp().CallAfter([weak, result = std::move(result)]() mutable {
                 if (weak)
@@ -399,8 +399,9 @@ void Preview::notify_visualization_result()
 
     const int plate_index = wxGetApp().plater()->get_partplate_list().get_curr_plate_index();
     SuppressBackgroundProcessingUpdate suppress_background_processing;
+    auto mesh = m_canvas->get_gcode_viewer().create_preview_triangle_mesh_snapshot();
     PluginVisualizations::instance().request_updates(
-        *m_gcode_result, plate_index, m_gcode_result->id, SoftFever_VERSION,
+        std::move(mesh), *m_gcode_result, plate_index, m_gcode_result->id, SoftFever_VERSION,
         [weak = wxWeakRef<Preview>(this)](ExecutionResult result) {
             wxGetApp().CallAfter([weak, result = std::move(result)]() mutable {
                 if (weak)

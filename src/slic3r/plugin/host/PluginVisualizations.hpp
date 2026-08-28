@@ -21,6 +21,7 @@ namespace Slic3r {
 
 class PluginManager;
 struct GCodeProcessorResult;
+namespace GUI { struct PreviewTriangleMesh; }
 
 class PluginVisualizations
 {
@@ -43,12 +44,14 @@ public:
     bool            is_active(const PluginCapabilityId& id) const;
     bool            has_active_sessions() const;
 
-    // The UI-thread caller supplies a final result while background processing is suppressed. The
-    // compact immutable capture is owned by the request; serialization remains on the worker.
+    // The GUI hook supplies Orca's immutable authoritative preview triangle mesh. Python receives
+    // only the atomically published snapshot path; serialization remains on the worker.
     void request_open(const std::shared_ptr<VisualizationPluginCapability>& capability,
+                      std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
                       const GCodeProcessorResult& result, int plate_index, uint64_t scene_id,
                       std::string orca_version, Completion completion = {});
-    void request_updates(const GCodeProcessorResult& result, int plate_index, uint64_t scene_id,
+    void request_updates(std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
+                         const GCodeProcessorResult& result, int plate_index, uint64_t scene_id,
                          std::string orca_version, Completion completion = {});
 
     ChangeToken subscribe(std::function<void()> callback);
