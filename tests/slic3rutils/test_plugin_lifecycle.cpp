@@ -5,6 +5,7 @@
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
+#include <slic3r/plugin/host/PluginVisualizations.hpp>
 
 #include "plugin_test_utils.hpp"
 
@@ -13,6 +14,7 @@
 #include <algorithm>
 #include <chrono>
 #include <fstream>
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -71,6 +73,42 @@ class Echo(orca.script.ScriptPluginCapabilityBase):
 class EchoPackage(orca.base):
     def register_capabilities(self):
         orca.register_capability(Echo)
+)PY";
+
+const char* const VISUALIZATION_PLUGIN_SOURCE = R"PY(# /// script
+# requires-python = ">=3.12"
+#
+# [tool.orcaslicer.plugin]
+# name = "Visualization Plugin"
+# version = "1.0"
+# type = "script"
+# ///
+import orca
+
+class DummyVisualization(orca.visualization.VisualizationPluginCapabilityBase):
+    def get_name(self):
+        return "Dummy Visualization"
+
+    def _record(self, event):
+        with open(self.events_path, "a", encoding="utf-8") as output:
+            output.write(event + "\n")
+
+    def open(self, ctx):
+        self.events_path = ctx.geometry_path
+        self._record(f"open:{ctx.scene_id}")
+        return orca.ExecutionResult.success()
+
+    def update(self, ctx):
+        self._record(f"update:{ctx.scene_id}")
+        return orca.ExecutionResult.success()
+
+    def close(self):
+        self._record("close")
+
+@orca.plugin
+class VisualizationPackage(orca.base):
+    def register_capabilities(self):
+        orca.register_capability(DummyVisualization)
 )PY";
 
 // Writes {data_dir}/orca_plugins/<stem>/<stem>.py and returns the plugin directory.
@@ -150,6 +188,48 @@ TEST_CASE("A discovered script plugin loads and materializes its capability", "[
     CHECK(manager.get_plugin_capability({PluginCapabilityType::Script, "Echo", "Echo_Plugin"}) == echo);
 
     manager.unload_plugin("Echo_Plugin");
+}
+
+TEST_CASE("Visualization sessions dispatch lifecycle calls and close before plugin unload", "[PluginLifecycle][Visualization][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("visualization-lifecycle");
+    write_plugin(data_dir_guard, "Visualization_Plugin", VISUALIZATION_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "Visualization_Plugin", error));
+    INFO("load error: " << error);
+    REQUIRE(error.empty());
+
+    auto capability = std::dynamic_pointer_cast<VisualizationPluginCapability>(
+        manager.get_plugin_capability({PluginCapabilityType::Visualization, "Dummy Visualization", "Visualization_Plugin"}));
+    REQUIRE(capability != nullptr);
+
+    const fs::path events_path = fs::path(manager.get_storage_dir("Visualization_Plugin")) / "events.txt";
+    VisualizationContext ctx;
+    ctx.orca_version  = "test";
+    ctx.scene_id      = 1;
+    ctx.plate_index   = 0;
+    ctx.geometry_path = events_path.string();
+
+    PluginVisualizations& visualizations = PluginVisualizations::instance();
+    CHECK(visualizations.open(capability, ctx).status == PluginResult::Success);
+    CHECK(visualizations.is_active(capability->identity()));
+
+    ctx.scene_id = 2;
+    CHECK(visualizations.update(capability->identity(), ctx).status == PluginResult::Success);
+    CHECK(manager.unload_plugin("Visualization_Plugin"));
+    CHECK_FALSE(visualizations.is_active(capability->identity()));
+
+    std::ifstream events(events_path.string());
+    const std::string contents((std::istreambuf_iterator<char>(events)), std::istreambuf_iterator<char>());
+    CHECK(contents == "open:1\nupdate:2\nclose\n");
 }
 
 TEST_CASE("Plugin manager can initialize again after shutdown", "[PluginLifecycle][Python]")
