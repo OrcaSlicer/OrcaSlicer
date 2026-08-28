@@ -7733,25 +7733,25 @@ void DesignSketchTool::render_op_gizmo(double unit_per_px)
 static bool entity_moved(const SketchEntity& a, const SketchEntity& b, double tol)
 {
     if (a.type != b.type) return true;
-    auto far = [tol](const Vec2d& p, const Vec2d& q) { return (p - q).norm() > tol; };
-    if (far(a.p0, b.p0)) return true;
+    auto moved = [tol](const Vec2d& p, const Vec2d& q) { return (p - q).norm() > tol; };
+    if (moved(a.p0, b.p0)) return true;
     switch (a.type) {
     case SketchEntity::Type::Point:
         return false;
     case SketchEntity::Type::Line:
-        return far(a.p1, b.p1);
+        return moved(a.p1, b.p1);
     case SketchEntity::Type::Circle:
-        return far(a.center, b.center) || std::abs(a.radius - b.radius) > tol;
+        return moved(a.center, b.center) || std::abs(a.radius - b.radius) > tol;
     case SketchEntity::Type::Arc:
-        return far(a.p1, b.p1) || far(a.center, b.center)
+        return moved(a.p1, b.p1) || moved(a.center, b.center)
             || std::abs(a.radius - b.radius) > tol
             || std::abs((a.end_angle - a.start_angle) - (b.end_angle - b.start_angle)) > tol;
     case SketchEntity::Type::Ellipse:
     case SketchEntity::Type::EllipseArc:
-        return far(a.center, b.center) || std::abs(a.radius - b.radius) > tol
+        return moved(a.center, b.center) || std::abs(a.radius - b.radius) > tol
             || std::abs(a.rminor - b.rminor) > tol || std::abs(a.rotation - b.rotation) > tol;
     default:
-        return far(a.p1, b.p1);
+        return moved(a.p1, b.p1);
     }
 }
 

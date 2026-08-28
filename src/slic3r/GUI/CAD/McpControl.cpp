@@ -594,7 +594,7 @@ chain_segments(std::vector<std::vector<Vec3d>> segs, double tol)
 {
     std::vector<std::pair<std::vector<Vec3d>, bool>> contours;
     std::vector<char> used(segs.size(), 0);
-    auto near = [&](const Vec3d& a, const Vec3d& b) { return (a - b).norm() <= tol; };
+    auto meets = [&](const Vec3d& a, const Vec3d& b) { return (a - b).norm() <= tol; };
     for (size_t i = 0; i < segs.size(); ++i) {
         if (used[i] || segs[i].size() < 2) continue;
         used[i] = 1;
@@ -603,9 +603,9 @@ chain_segments(std::vector<std::vector<Vec3d>> segs, double tol)
             bool grew = false;
             for (size_t j = 0; j < segs.size(); ++j) {
                 if (used[j] || segs[j].size() < 2) continue;
-                if (near(c.back(), segs[j].front())) {
+                if (meets(c.back(), segs[j].front())) {
                     c.insert(c.end(), segs[j].begin() + 1, segs[j].end()); used[j] = 1; grew = true;
-                } else if (near(c.back(), segs[j].back())) {
+                } else if (meets(c.back(), segs[j].back())) {
                     for (auto it = segs[j].rbegin() + 1; it != segs[j].rend(); ++it) c.push_back(*it);
                     used[j] = 1; grew = true;
                 }
@@ -613,7 +613,7 @@ chain_segments(std::vector<std::vector<Vec3d>> segs, double tol)
             if (grew) { side = 0; continue; }
             std::reverse(c.begin(), c.end()); ++side;   // try the other end
         }
-        bool closed = c.size() > 2 && near(c.front(), c.back());
+        bool closed = c.size() > 2 && meets(c.front(), c.back());
         contours.emplace_back(std::move(c), closed);
     }
     return contours;
