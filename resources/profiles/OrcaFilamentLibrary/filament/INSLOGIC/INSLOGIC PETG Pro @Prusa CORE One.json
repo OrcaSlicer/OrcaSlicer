@@ -3,6 +3,7 @@
   "name": "INSLOGIC PETG Pro @Prusa CORE One",
   "inherits": "INSLOGIC PETG Pro @base",
   "from": "system",
+  "setting_id": "yHUGQJhN0HUa7A5V",
   "instantiation": "true",
   "hot_plate_temp": [
     "65"

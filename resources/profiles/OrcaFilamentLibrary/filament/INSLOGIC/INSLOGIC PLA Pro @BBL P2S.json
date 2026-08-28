@@ -3,6 +3,7 @@
   "name": "INSLOGIC PLA Pro @BBL P2S",
   "inherits": "INSLOGIC PLA Pro @base",
   "from": "system",
+  "setting_id": "UAd1QXW7vm9gwoEc",
   "instantiation": "true",
   "filament_flow_ratio": [
     "0.98",

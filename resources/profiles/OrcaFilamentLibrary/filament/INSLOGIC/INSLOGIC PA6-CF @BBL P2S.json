@@ -3,6 +3,7 @@
   "name": "INSLOGIC PA6-CF @BBL P2S",
   "inherits": "INSLOGIC PA6-CF @base",
   "from": "system",
+  "setting_id": "Km9iCy4A8kukE0AA",
   "instantiation": "true",
   "activate_air_filtration": [
     "1"

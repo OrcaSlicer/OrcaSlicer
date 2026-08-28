@@ -3,6 +3,7 @@
   "name": "INSLOGIC PETG Pro @BBL P2S",
   "inherits": "INSLOGIC PETG Pro @base",
   "from": "system",
+  "setting_id": "6iAMtvQjja2ZKenA",
   "instantiation": "true",
   "cool_plate_temp": [
     "0"

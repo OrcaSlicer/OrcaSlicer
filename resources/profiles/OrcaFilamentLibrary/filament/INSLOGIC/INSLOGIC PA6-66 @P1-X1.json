@@ -3,6 +3,7 @@
   "name": "INSLOGIC PA6-66 @P1-X1",
   "inherits": "INSLOGIC PA6-66 @base",
   "from": "system",
+  "setting_id": "X6EcSgHdfuxoY1lL",
   "instantiation": "true",
   "cool_plate_temp": [
     "0"

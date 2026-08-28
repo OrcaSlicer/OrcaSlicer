@@ -3,6 +3,7 @@
   "name": "INSLOGIC PLA Pro @Prusa CORE One",
   "inherits": "INSLOGIC PLA Pro @base",
   "from": "system",
+  "setting_id": "Qkscha5uuuFXbvbB",
   "instantiation": "true",
   "hot_plate_temp": [
     "55"

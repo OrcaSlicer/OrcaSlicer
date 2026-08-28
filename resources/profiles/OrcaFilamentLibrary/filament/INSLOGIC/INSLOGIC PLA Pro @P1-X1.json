@@ -3,6 +3,7 @@
   "name": "INSLOGIC PLA Pro @P1-X1",
   "inherits": "INSLOGIC PLA Pro @base",
   "from": "system",
+  "setting_id": "InmXr3LoNKKDfnQu",
   "instantiation": "true",
   "cool_plate_temp": [
     "0"

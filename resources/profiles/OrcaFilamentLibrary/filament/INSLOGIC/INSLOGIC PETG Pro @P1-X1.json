@@ -3,6 +3,7 @@
   "name": "INSLOGIC PETG Pro @P1-X1",
   "inherits": "INSLOGIC PETG Pro @base",
   "from": "system",
+  "setting_id": "miOBX0bGzziXI6SE",
   "instantiation": "true",
   "cool_plate_temp": [
     "0"

@@ -3,6 +3,7 @@
   "name": "INSLOGIC PA6-CF @Prusa CORE One",
   "inherits": "INSLOGIC PA6-CF @base",
   "from": "system",
+  "setting_id": "ZCYSMR6VCj0IrYAF",
   "instantiation": "true",
   "hot_plate_temp": [
     "60"
