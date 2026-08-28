@@ -1273,7 +1273,7 @@ void GCodeProcessor::run_post_process()
     // add lines M73 to exported gcode
     auto process_line_move = [
         // Lambdas, mostly for string formatting, all with an empty capture block.
-        time_in_minutes, format_time_float, format_line_M73_main, format_line_M73_stop_int, format_line_M73_stop_float, time_in_last_minute,format_line_exhaust_fan_control,
+        time_in_minutes, format_time_float, format_line_M73_main, format_line_M73_stop_int, format_line_M73_stop_float, time_in_last_minute,
         &self = std::as_const(m_time_processor),
         // Caches, to be modified
         &g1_times_cache_it, &last_exported_main, &last_exported_stop,
@@ -5304,7 +5304,7 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
     float filament_radius = 0.5f * filament_diameter;
     float area_filament_cross_section = static_cast<float>(M_PI) * sqr(filament_radius);
 
-    auto absolute_position = [this, area_filament_cross_section](Axis axis, const GCodeReader::GCodeLine& lineG1) {
+    auto absolute_position = [this](Axis axis, const GCodeReader::GCodeLine& lineG1) {
         bool is_relative = (m_global_positioning_type == EPositioningType::Relative);
         if (axis == E)
             is_relative |= (m_e_local_positioning_type == EPositioningType::Relative);
@@ -5755,7 +5755,7 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
     if (travel_length < 0.001)
         return;
 
-    auto adjust_target = [this, area_filament_cross_section](const AxisCoords& target, const AxisCoords& prev_position) {
+    auto adjust_target = [this](const AxisCoords& target, const AxisCoords& prev_position) {
         AxisCoords ret = target;
         if (m_global_positioning_type == EPositioningType::Relative) {
             for (unsigned char a = X; a <= E; ++a) {
@@ -7006,7 +7006,7 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
                                                                     get_acceleration(normal_mode));
     const float junction_deviation = get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, normal_mode_id);
     const bool use_jd_jerk = (m_flavor == gcfMarlinFirmware && junction_deviation > 0.0f);
-    const auto axis_jerk_for_preview = [this, normal_mode, use_jd_jerk, move_acceleration](Axis axis) {
+    const auto axis_jerk_for_preview = [this, use_jd_jerk, move_acceleration](Axis axis) {
         return use_jd_jerk ? get_axis_max_jerk_with_jd(normal_mode, axis, move_acceleration) : get_axis_max_jerk(normal_mode, axis);
     };
     const float jerk_x = axis_jerk_for_preview(X);

@@ -227,7 +227,7 @@ void SendJob::process(Ctl &ctl)
     };
 
     auto update_fn = [this, &ctl,
-        &msg, &curr_percent, &error_text, StagePercentPoint](int stage, int code, std::string info) {
+        &msg, &curr_percent, StagePercentPoint](int stage, int code, std::string info) {
                         if (stage == SendingPrintJobStage::PrintingStageCreate) {
                             if (this->connection_type == "lan") {
                                 msg = _u8L("Sending G-code file over LAN");

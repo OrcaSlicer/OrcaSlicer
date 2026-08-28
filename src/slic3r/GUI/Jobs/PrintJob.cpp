@@ -402,9 +402,7 @@ void PrintJob::process(Ctl &ctl)
         &is_try_lan_mode,
         &is_try_lan_mode_failed,
         &msg,
-        &error_str,
         &curr_percent,
-        &error_text,
         StagePercentPoint
     ](int stage, int code, std::string info) {
 
@@ -491,7 +489,7 @@ void PrintJob::process(Ctl &ctl)
     DeviceManager* dev = wxGetApp().getDeviceManager();
     MachineObject* obj = dev->get_selected_machine();
 
-    auto wait_fn = [this, &ctl, curr_percent, &obj](int state, std::string job_info) {
+    auto wait_fn = [&ctl, &obj](int state, std::string job_info) {
             BOOST_LOG_TRIVIAL(info) << "print_job: get_job_info = " << job_info;
 
             if (!obj->is_support_wait_sending_finish) {
