@@ -3,6 +3,7 @@
 #include "MixedFilament.hpp"
 #include "MixedFilamentMatch.hpp"
 #include "Model.hpp"
+#include "PrintConfig.hpp"
 
 #include <boost/log/trivial.hpp>
 
@@ -24,7 +25,8 @@ void fill_identity(EnforcerBlockerStateMap &slot_map)
 
 SpectrumPaintBakePlan plan_spectrum_paint_bake(
     const std::vector<std::string> &source_hexes,
-    const std::vector<ColorRGB>    &physicals)
+    const std::vector<ColorRGB>    &physicals,
+    size_t                          mix_base)
 {
     SpectrumPaintBakePlan plan;
     fill_identity(plan.slot_map);
@@ -38,15 +40,17 @@ SpectrumPaintBakePlan plan_spectrum_paint_bake(
         return plan;
     }
 
-    const size_t num_physical = physicals.size() < size_t(4) ? physicals.size() : size_t(4);
+    const size_t num_match_slots = physicals.size() < size_t(4) ? physicals.size() : size_t(4);
     std::vector<ColorRGB> slots;
-    slots.reserve(num_physical);
-    for (size_t i = 0; i < num_physical; ++i)
+    slots.reserve(num_match_slots);
+    for (size_t i = 0; i < num_match_slots; ++i)
         slots.push_back(physicals[i]);
 
     std::vector<std::string> recipe_rows;
     std::unordered_map<std::string, unsigned> recipe_to_mix_id;
     recipe_to_mix_id.reserve(source_hexes.size());
+    // Delay Mix dest writes into slot_map until persist-cap is known-ok.
+    std::vector<unsigned> pending_mix_dest(source_hexes.size() + 1, 0);
 
     for (size_t src = 1; src <= source_hexes.size(); ++src) {
         const std::string normalized = normalize_mix_match_hex(source_hexes[src - 1]);
@@ -73,8 +77,8 @@ SpectrumPaintBakePlan plan_spectrum_paint_bake(
             unsigned pid = match.physical_id;
             if (pid < 1)
                 pid = 1;
-            if (num_physical > 0 && pid > num_physical)
-                pid = unsigned(num_physical);
+            if (num_match_slots > 0 && pid > num_match_slots)
+                pid = unsigned(num_match_slots);
             plan.slot_map[src] = EnforcerBlockerType(pid);
             ++plan.physical_mapped_count;
             continue;
@@ -85,21 +89,26 @@ SpectrumPaintBakePlan plan_spectrum_paint_bake(
         if (found != recipe_to_mix_id.end()) {
             dest_id = found->second;
         } else {
-            dest_id = unsigned(num_physical + recipe_rows.size() + 1);
+            dest_id = unsigned(mix_base + recipe_rows.size() + 1);
             recipe_to_mix_id.emplace(match.recipe_row, dest_id);
             recipe_rows.push_back(match.recipe_row);
         }
-        plan.slot_map[src] = EnforcerBlockerType(dest_id);
+        pending_mix_dest[src] = dest_id;
     }
 
     plan.mix_count = recipe_rows.size();
-    if (num_physical + plan.mix_count > SPECTRUM_PAINT_ID_PERSIST_CAP) {
+    if (mix_base + plan.mix_count > SPECTRUM_PAINT_ID_PERSIST_CAP) {
         plan.error = "Physical filaments plus unique mixes exceed the persist cap of 15.";
         plan.mix_count             = 0;
         plan.physical_mapped_count = 0;
         plan.mixed_filament_definitions.clear();
         fill_identity(plan.slot_map);
         return plan;
+    }
+
+    for (size_t src = 1; src <= source_hexes.size(); ++src) {
+        if (pending_mix_dest[src] != 0)
+            plan.slot_map[src] = EnforcerBlockerType(pending_mix_dest[src]);
     }
 
     for (size_t j = 1; j <= size_t(EnforcerBlockerType::ExtruderMax); ++j) {
@@ -129,6 +138,38 @@ bool apply_spectrum_paint_bake(ModelVolume &vol, const EnforcerBlockerStateMap &
     selector.remap_triangle_state(slot_map);
     vol.mmu_segmentation_facets.set(selector);
     return true;
+}
+
+bool apply_spectrum_map_keys(DynamicPrintConfig        &project_config,
+                             const SpectrumMapUndoKeys &keys,
+                             DynamicPrintConfig        *print_config)
+{
+    bool changed = false;
+
+    const ConfigOptionBool *cur_mapped = project_config.option<ConfigOptionBool>("spectrum_paint_mapped");
+    if (cur_mapped == nullptr || cur_mapped->value != keys.mapped) {
+        project_config.set_key_value("spectrum_paint_mapped", new ConfigOptionBool(keys.mapped));
+        changed = true;
+    }
+
+    const ConfigOptionString *cur_mix = project_config.option<ConfigOptionString>("mixed_filament_definitions");
+    if (cur_mix == nullptr || cur_mix->value != keys.mixed_filament_definitions) {
+        project_config.set_key_value("mixed_filament_definitions",
+                                     new ConfigOptionString(keys.mixed_filament_definitions));
+        changed = true;
+    }
+
+    if (print_config != nullptr) {
+        const ConfigOptionString *print_mix =
+            print_config->option<ConfigOptionString>("mixed_filament_definitions");
+        if (print_mix == nullptr || print_mix->value != keys.mixed_filament_definitions) {
+            print_config->set_key_value("mixed_filament_definitions",
+                                        new ConfigOptionString(keys.mixed_filament_definitions));
+            changed = true;
+        }
+    }
+
+    return changed;
 }
 
 } // namespace Slic3r

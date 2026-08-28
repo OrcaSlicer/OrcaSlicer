@@ -4841,6 +4841,9 @@ struct Plater::priv
     //BBS: project
     BBLProject                  project;
 
+    // Map painted colors: restore spectrum_paint_mapped + mix defs with model undo/redo.
+    SpectrumMapUndoRecord       m_spectrum_map_undo;
+
     //BBS: add print project related logic
     void update_fff_scene_only_shells(bool only_shells = true);
     //BBS: add popup object table logic
@@ -7596,6 +7599,7 @@ void Plater::priv::reset(bool apply_presets_change)
 
     // BBS
     m_saved_timestamp = m_backup_timestamp = size_t(-1);
+    m_spectrum_map_undo = SpectrumMapUndoRecord{};
 
     // Save window layout
     if (sidebar_layout.is_enabled) {
@@ -11686,8 +11690,10 @@ void Plater::priv::take_snapshot(const std::string& snapshot_name, const UndoRed
     }
     const GLGizmosManager& gizmos = get_current_canvas3D()->get_canvas_type() == GLCanvas3D::CanvasAssembleView ? assemble_view->get_canvas3d()->get_gizmos_manager() : view3D->get_canvas3d()->get_gizmos_manager();
 
-    if (snapshot_type == UndoRedo::SnapshotType::ProjectSeparator)
+    if (snapshot_type == UndoRedo::SnapshotType::ProjectSeparator) {
         this->undo_redo_stack().clear();
+        m_spectrum_map_undo = SpectrumMapUndoRecord{};
+    }
     this->undo_redo_stack().take_snapshot(snapshot_name, model, get_current_canvas3D()->get_canvas_type() == GLCanvas3D::CanvasAssembleView ? assemble_view->get_canvas3d()->get_selection() : view3D->get_canvas3d()->get_selection(), gizmos, partplate_list, snapshot_data);
     if (snapshot_type == UndoRedo::SnapshotType::LeavingGizmoWithAction) {
         // Filter all but the last UndoRedo::SnapshotType::GizmoAction in a row between the last UndoRedo::SnapshotType::EnteringGizmo and UndoRedo::SnapshotType::LeavingGizmoWithAction.
@@ -11884,6 +11890,17 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
                 this->partplate_list.update_slice_context_to_current_plate(this->background_process);
                 this->preview->update_gcode_result(this->partplate_list.get_current_slice_result());
                 this->update();
+            }
+        }
+        // Restore Map side-record keys with the loaded model snapshot (wipe-tower analogue).
+        if (m_spectrum_map_undo.active) {
+            PresetBundle *bundle = wxGetApp().preset_bundle;
+            if (bundle != nullptr) {
+                const SpectrumMapUndoKeys &keys =
+                    spectrum_map_undo_pick(m_spectrum_map_undo, snapshot_copy.timestamp);
+                DynamicPrintConfig &print_cfg = bundle->prints.get_edited_preset().config;
+                if (apply_spectrum_map_keys(bundle->project_config, keys, &print_cfg))
+                    q->on_config_change(bundle->full_config());
             }
         }
         // set selection mode for ObjectList on sidebar
@@ -12453,8 +12470,10 @@ void Plater::map_painted_colors_to_cmyk_mixes()
         return;
     }
 
+    size_t mix_base = 0;
     std::vector<ColorRGB> physicals;
     if (const ConfigOptionStrings *fc = bundle->project_config.option<ConfigOptionStrings>("filament_colour")) {
+        mix_base = fc->values.size();
         for (const std::string &hex : fc->values) {
             if (physicals.size() >= 4)
                 break;
@@ -12464,6 +12483,11 @@ void Plater::map_painted_colors_to_cmyk_mixes()
                 physicals.push_back(c);
         }
     }
+    if (mix_base == 0)
+        mix_base = size_t(std::max(0, wxGetApp().filaments_cnt()));
+    if (mix_base == 0)
+        mix_base = 1;
+
     if (physicals.size() < 2) {
         MessageDialog(this,
             _L("Need at least two physical filament colours (prefer C/M/Y/K on slots 1–4)."),
@@ -12471,7 +12495,7 @@ void Plater::map_painted_colors_to_cmyk_mixes()
         return;
     }
 
-    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(source_opt->values, physicals);
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(source_opt->values, physicals, mix_base);
     if (!plan.valid) {
         const wxString err = plan.error.empty()
             ? _L("Mapping failed.")
@@ -12480,13 +12504,16 @@ void Plater::map_painted_colors_to_cmyk_mixes()
         return;
     }
 
-    wxString confirm = _L("Paint IDs will become C/M/Y/K physicals and Mix 5+. This is not an AMS 8-color replica. Save a copy first.");
+    const int mix_lo = int(mix_base + 1);
+    const int mix_hi = int(mix_base + plan.mix_count);
+    wxString confirm = wxString::Format(
+        _L("Paint IDs will become C/M/Y/K physicals and Mix %d+. This is not an AMS 8-color replica. Save a copy first."),
+        mix_lo);
     confirm += "\n\n";
     if (plan.mix_count > 0) {
-        const int mix_hi = int(physicals.size() + plan.mix_count);
         confirm += wxString::Format(
-            _L("Mapped %d source colors to %d physical slots and %d mixes (Mix 5–%d)."),
-            int(source_opt->values.size()), int(plan.physical_mapped_count), int(plan.mix_count), mix_hi);
+            _L("Mapped %d source colors to %d physical slots and %d mixes (Mix %d–%d)."),
+            int(source_opt->values.size()), int(plan.physical_mapped_count), int(plan.mix_count), mix_lo, mix_hi);
     } else {
         confirm += wxString::Format(
             _L("Mapped %d source colors to %d physical slots."),
@@ -12496,17 +12523,38 @@ void Plater::map_painted_colors_to_cmyk_mixes()
                       wxYES_NO | wxYES_DEFAULT | wxICON_QUESTION).ShowModal() != wxID_YES)
         return;
 
+    SpectrumMapUndoKeys pre_keys;
+    if (const ConfigOptionBool *mapped = bundle->project_config.option<ConfigOptionBool>("spectrum_paint_mapped"))
+        pre_keys.mapped = mapped->value;
+    if (const ConfigOptionString *mix_opt =
+            bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+        pre_keys.mixed_filament_definitions = mix_opt->value;
+
+    const size_t ts_before = p->undo_redo_stack().active_snapshot_time();
     take_snapshot("Map painted colors to CMYK mixes");
+    const size_t ts_after = p->undo_redo_stack().active_snapshot_time();
 
     DynamicPrintConfig &print_cfg = bundle->prints.get_edited_preset().config;
     print_cfg.set_key_value("mixed_filament_definitions", new ConfigOptionString(plan.mixed_filament_definitions));
     bundle->project_config.set_key_value("mixed_filament_definitions", new ConfigOptionString(plan.mixed_filament_definitions));
     bundle->project_config.set_key_value("spectrum_paint_mapped", new ConfigOptionBool(true));
 
+    if (ts_after != ts_before) {
+        SpectrumMapUndoRecord rec;
+        rec.active                 = true;
+        rec.map_snapshot_timestamp = ts_after;
+        rec.pre                    = std::move(pre_keys);
+        rec.post.mapped            = true;
+        rec.post.mixed_filament_definitions = plan.mixed_filament_definitions;
+        p->m_spectrum_map_undo     = std::move(rec);
+    } else {
+        p->m_spectrum_map_undo = SpectrumMapUndoRecord{};
+    }
+
     std::unordered_set<int> dest_mix_ids;
     for (size_t i = 1; i <= source_opt->values.size() && i < plan.slot_map.size(); ++i) {
         const int dest = int(plan.slot_map[i]);
-        if (dest > 4)
+        if (dest > int(mix_base))
             dest_mix_ids.insert(dest);
     }
 
@@ -12516,7 +12564,7 @@ void Plater::map_painted_colors_to_cmyk_mixes()
             if (!vol->config.has("extruder"))
                 continue;
             const int e = vol->config.opt_int("extruder");
-            if (e > 4 && dest_mix_ids.count(e) == 0)
+            if (e > int(mix_base) && dest_mix_ids.count(e) == 0)
                 vol->config.erase("extruder");
         }
     }
@@ -12527,7 +12575,8 @@ void Plater::map_painted_colors_to_cmyk_mixes()
             dest_log += ',';
         dest_log += std::to_string(int(plan.slot_map[i]));
     }
-    BOOST_LOG_TRIVIAL(info) << "Map painted colors to CMYK mixes: mix_count=" << plan.mix_count
+    BOOST_LOG_TRIVIAL(info) << "Map painted colors to CMYK mixes: mix_base=" << mix_base
+                            << " mix_count=" << plan.mix_count
                             << " physical_mapped=" << plan.physical_mapped_count
                             << " dest_ids=" << dest_log;
 
@@ -18818,7 +18867,11 @@ bool Plater::can_scale_to_print_volume() const { return p->can_scale_to_print_vo
 #endif // ENABLE_ENHANCED_PRINT_VOLUME_FIT
 
 const UndoRedo::Stack& Plater::undo_redo_stack_main() const { return p->undo_redo_stack_main(); }
-void Plater::clear_undo_redo_stack_main() { p->undo_redo_stack_main().clear(); }
+void Plater::clear_undo_redo_stack_main()
+{
+    p->undo_redo_stack_main().clear();
+    p->m_spectrum_map_undo = SpectrumMapUndoRecord{};
+}
 void Plater::enter_gizmos_stack() { p->enter_gizmos_stack(); }
 bool Plater::leave_gizmos_stack() { return p->leave_gizmos_stack(); } // BBS: return false if not changed
 bool Plater::inside_snapshot_capture() { return p->inside_snapshot_capture(); }

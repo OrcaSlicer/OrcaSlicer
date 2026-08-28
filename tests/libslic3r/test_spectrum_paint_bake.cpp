@@ -111,7 +111,7 @@ std::vector<std::string> unique_mix_source_hexes(size_t n, const std::vector<Col
 TEST_CASE("mountain 8 hexes bake to Grey physical 4 and several mixes", "[spectrum_paint_bake]")
 {
     const std::vector<ColorRGB> phys = panchroma_physicals();
-    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(k_mountain_hexes, phys);
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(k_mountain_hexes, phys, 4);
     REQUIRE(plan.valid);
     REQUIRE(plan.error.empty());
     REQUIRE(plan.slot_map[0] == EnforcerBlockerType::NONE);
@@ -140,7 +140,7 @@ TEST_CASE("duplicate source hexes share dest Mix ID", "[spectrum_paint_bake]")
 {
     const std::vector<ColorRGB> phys = panchroma_physicals();
     const std::vector<std::string> source = {"#A47C6FFF", "#A47C6F", "#99401BFF"};
-    const SpectrumPaintBakePlan    plan   = plan_spectrum_paint_bake(source, phys);
+    const SpectrumPaintBakePlan    plan   = plan_spectrum_paint_bake(source, phys, 4);
     REQUIRE(plan.valid);
     REQUIRE(plan.slot_map[1] == plan.slot_map[2]);
     REQUIRE(plan.slot_map[1] != plan.slot_map[3]);
@@ -148,14 +148,14 @@ TEST_CASE("duplicate source hexes share dest Mix ID", "[spectrum_paint_bake]")
 
 TEST_CASE("identity NONE stays NONE", "[spectrum_paint_bake]")
 {
-    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake({"#08ABFB"}, panchroma_physicals());
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake({"#08ABFB"}, panchroma_physicals(), 4);
     REQUIRE(plan.valid);
     REQUIRE(plan.slot_map[0] == EnforcerBlockerType::NONE);
 }
 
 TEST_CASE("empty source is invalid", "[spectrum_paint_bake]")
 {
-    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake({}, panchroma_physicals());
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake({}, panchroma_physicals(), 4);
     REQUIRE_FALSE(plan.valid);
     REQUIRE_FALSE(plan.error.empty());
 }
@@ -163,7 +163,7 @@ TEST_CASE("empty source is invalid", "[spectrum_paint_bake]")
 TEST_CASE("source palette larger than persist cap is refused", "[spectrum_paint_bake]")
 {
     std::vector<std::string> too_many(16, "#08ABFB");
-    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(too_many, panchroma_physicals());
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(too_many, panchroma_physicals(), 4);
     REQUIRE_FALSE(plan.valid);
     REQUIRE_FALSE(plan.error.empty());
 }
@@ -173,7 +173,7 @@ TEST_CASE("twelve unique Mix recipes plus four physicals refuse persist cap", "[
     const std::vector<ColorRGB> phys = panchroma_physicals();
     const std::vector<std::string> hexes = unique_mix_source_hexes(12, phys);
     REQUIRE(hexes.size() == 12);
-    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(hexes, phys);
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(hexes, phys, 4);
     REQUIRE_FALSE(plan.valid);
     REQUIRE_FALSE(plan.error.empty());
 }
@@ -181,7 +181,7 @@ TEST_CASE("twelve unique Mix recipes plus four physicals refuse persist cap", "[
 TEST_CASE("apply remaps painted 1-8 including Grey physical 4", "[spectrum_paint_bake]")
 {
     const std::vector<ColorRGB> phys = panchroma_physicals();
-    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(k_mountain_hexes, phys);
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(k_mountain_hexes, phys, 4);
     REQUIRE(plan.valid);
 
     Model model;
@@ -211,7 +211,7 @@ TEST_CASE("out-of-range paint state maps to physical 1", "[spectrum_paint_bake]"
     const std::vector<ColorRGB> phys = panchroma_physicals();
     std::vector<std::string>    six  = k_mountain_hexes;
     six.resize(6);
-    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(six, phys);
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(six, phys, 4);
     REQUIRE(plan.valid);
     REQUIRE(plan.slot_map[8] == EnforcerBlockerType::Extruder1);
 
@@ -230,7 +230,7 @@ TEST_CASE("3mf round-trip of baked paint and mix defs", "[spectrum_paint_bake]")
     const std::string out_path = logs_dir + "/project_spectrum_paint_bake.3mf";
 
     const std::vector<ColorRGB> phys = panchroma_physicals();
-    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(k_mountain_hexes, phys);
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(k_mountain_hexes, phys, 4);
     REQUIRE(plan.valid);
 
     DynamicPrintConfig        config;
@@ -355,7 +355,7 @@ TEST_CASE("mountain fixture bakes to slice-ready 3mf", "[spectrum_paint_bake]")
     REQUIRE(source != nullptr);
     REQUIRE(source->values.size() == 8);
 
-    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(source->values, panchroma_physicals());
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(source->values, panchroma_physicals(), 4);
     REQUIRE(plan.valid);
     REQUIRE(size_t(plan.slot_map[2]) == 4);
     REQUIRE(plan.mix_count >= 3);
@@ -459,4 +459,110 @@ TEST_CASE("mountain fixture bakes to slice-ready 3mf", "[spectrum_paint_bake]")
     cleanup_bbs(project_presets, plates);
     cleanup_bbs(donor_presets, baked_plates);
     cleanup_bbs(presets2, plates2);
+}
+
+TEST_CASE("mix_base 4 with 4 Panchroma first Mix dest is 5", "[spectrum_paint_bake]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(k_mountain_hexes, phys, 4);
+    REQUIRE(plan.valid);
+    REQUIRE(plan.mix_count >= 1);
+
+    unsigned first_mix = 0;
+    for (size_t src = 1; src <= k_mountain_hexes.size(); ++src) {
+        const unsigned dest = unsigned(plan.slot_map[src]);
+        if (dest > 4 && (first_mix == 0 || dest < first_mix))
+            first_mix = dest;
+    }
+    REQUIRE(first_mix == 5);
+}
+
+TEST_CASE("mix_base 4 with only 3 decoded physicals never emits Mix dest 4", "[spectrum_paint_bake]")
+{
+    const std::vector<ColorRGB> phys = {
+        decode_hex_or_fail("#08ABFB"),
+        decode_hex_or_fail("#D93B90"),
+        decode_hex_or_fail("#F9ED3D"),
+    };
+    REQUIRE(phys.size() == 3);
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(k_mountain_hexes, phys, 4);
+    REQUIRE(plan.valid);
+    REQUIRE(plan.mix_count >= 1);
+
+    bool saw_mix = false;
+    for (size_t src = 1; src <= k_mountain_hexes.size(); ++src) {
+        const unsigned dest = unsigned(plan.slot_map[src]);
+        if (dest > 4) {
+            saw_mix = true;
+            REQUIRE(dest >= 5);
+            REQUIRE(dest != 4);
+        }
+    }
+    REQUIRE(saw_mix);
+}
+
+TEST_CASE("mix_base 6 with 4 Panchroma first Mix dest is 7", "[spectrum_paint_bake]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(k_mountain_hexes, phys, 6);
+    REQUIRE(plan.valid);
+    REQUIRE(plan.mix_count >= 1);
+
+    unsigned first_mix = 0;
+    for (size_t src = 1; src <= k_mountain_hexes.size(); ++src) {
+        const unsigned dest = unsigned(plan.slot_map[src]);
+        if (dest > 6 && (first_mix == 0 || dest < first_mix))
+            first_mix = dest;
+    }
+    REQUIRE(first_mix == 7);
+    REQUIRE(first_mix != 5);
+}
+
+TEST_CASE("spectrum map undo record pick and apply_keys round-trip", "[spectrum_paint_bake]")
+{
+    SpectrumMapUndoRecord rec;
+    rec.active                 = true;
+    rec.map_snapshot_timestamp = 100;
+    rec.pre.mapped             = false;
+    rec.pre.mixed_filament_definitions.clear();
+    rec.post.mapped            = true;
+    rec.post.mixed_filament_definitions = "1:2:1:0";
+
+    REQUIRE_FALSE(spectrum_map_undo_is_post(rec, 100));
+    REQUIRE_FALSE(spectrum_map_undo_is_post(rec, 50));
+    REQUIRE(spectrum_map_undo_is_post(rec, 101));
+
+    const SpectrumMapUndoKeys &at_map = spectrum_map_undo_pick(rec, 100);
+    REQUIRE_FALSE(at_map.mapped);
+    REQUIRE(at_map.mixed_filament_definitions.empty());
+
+    const SpectrumMapUndoKeys &after = spectrum_map_undo_pick(rec, 101);
+    REQUIRE(after.mapped);
+    REQUIRE(after.mixed_filament_definitions == "1:2:1:0");
+
+    DynamicPrintConfig project;
+    DynamicPrintConfig print_cfg;
+    REQUIRE(apply_spectrum_map_keys(project, rec.post, &print_cfg));
+    const auto *mapped = project.option<ConfigOptionBool>("spectrum_paint_mapped");
+    REQUIRE(mapped != nullptr);
+    CHECK(mapped->value);
+    const auto *proj_mix = project.option<ConfigOptionString>("mixed_filament_definitions");
+    REQUIRE(proj_mix != nullptr);
+    CHECK(proj_mix->value == "1:2:1:0");
+    const auto *print_mix = print_cfg.option<ConfigOptionString>("mixed_filament_definitions");
+    REQUIRE(print_mix != nullptr);
+    CHECK(print_mix->value == "1:2:1:0");
+
+    REQUIRE(apply_spectrum_map_keys(project, rec.pre, &print_cfg));
+    const auto *mapped2 = project.option<ConfigOptionBool>("spectrum_paint_mapped");
+    REQUIRE(mapped2 != nullptr);
+    CHECK_FALSE(mapped2->value);
+    const auto *proj_mix2 = project.option<ConfigOptionString>("mixed_filament_definitions");
+    REQUIRE(proj_mix2 != nullptr);
+    CHECK(proj_mix2->value.empty());
+    const auto *print_mix2 = print_cfg.option<ConfigOptionString>("mixed_filament_definitions");
+    REQUIRE(print_mix2 != nullptr);
+    CHECK(print_mix2->value.empty());
+
+    REQUIRE_FALSE(apply_spectrum_map_keys(project, rec.pre, &print_cfg));
 }
