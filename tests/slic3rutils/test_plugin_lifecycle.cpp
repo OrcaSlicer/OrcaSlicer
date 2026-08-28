@@ -94,11 +94,13 @@ class DummyVisualization(orca.visualization.VisualizationPluginCapabilityBase):
             output.write(event + "\n")
 
     def open(self, ctx):
-        self.events_path = ctx.geometry_path
+        self.events_path = ctx.metadata_json
         self._record(f"open:{ctx.scene_id}")
         return orca.ExecutionResult.success()
 
     def update(self, ctx):
+        if ctx.scene_id == 99:
+            raise RuntimeError("dummy update failure")
         self._record(f"update:{ctx.scene_id}")
         return orca.ExecutionResult.success()
 
@@ -190,7 +192,7 @@ TEST_CASE("A discovered script plugin loads and materializes its capability", "[
     manager.unload_plugin("Echo_Plugin");
 }
 
-TEST_CASE("Visualization sessions dispatch lifecycle calls and close before plugin unload", "[PluginLifecycle][Visualization][Python]")
+TEST_CASE("Visualization sessions dispatch lifecycle calls and close when disabled", "[PluginLifecycle][Visualization][Python]")
 {
     ScopedDataDir data_dir_guard("visualization-lifecycle");
     ScopedPluginManager plugin_system;
@@ -215,16 +217,24 @@ TEST_CASE("Visualization sessions dispatch lifecycle calls and close before plug
     ctx.orca_version  = "test";
     ctx.scene_id      = 1;
     ctx.plate_index   = 0;
-    ctx.geometry_path = events_path.string();
+    ctx.geometry_path = (events_path.parent_path() / "snapshot.orpv").string();
+    ctx.metadata_json = events_path.string();
 
     PluginVisualizations& visualizations = PluginVisualizations::instance();
     CHECK(visualizations.open(capability, ctx).status == PluginResult::Success);
     CHECK(visualizations.is_active(capability->identity()));
 
+    CHECK(visualizations.update(capability->identity(), ctx).status == PluginResult::Skipped);
+
+    ctx.scene_id = 99;
+    CHECK(visualizations.update(capability->identity(), ctx).status == PluginResult::RecoverableError);
+    CHECK(visualizations.is_active(capability->identity()));
+
     ctx.scene_id = 2;
     CHECK(visualizations.update(capability->identity(), ctx).status == PluginResult::Success);
-    CHECK(manager.unload_plugin("Visualization_Plugin"));
+    manager.set_capability_enabled(capability->identity(), false);
     CHECK_FALSE(visualizations.is_active(capability->identity()));
+    CHECK(manager.unload_plugin("Visualization_Plugin"));
 
     std::ifstream events(events_path.string());
     const std::string contents((std::istreambuf_iterator<char>(events)), std::istreambuf_iterator<char>());
