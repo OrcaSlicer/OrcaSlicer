@@ -828,3 +828,73 @@ SCENARIO("ConfigOptionVector::set_to_index throws on incompatible type", "[Confi
         }
     }
 }
+
+namespace {
+
+// min_object_distance reads exactly these three options.
+DynamicPrintConfig spacing_config(PrinterTechnology tech, PrintSequence seq, double clearance_radius)
+{
+    DynamicPrintConfig c;
+    c.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(tech));
+    c.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(seq));
+    c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(clearance_radius));
+    return c;
+}
+
+} // namespace
+
+TEST_CASE("min_object_distance floors object spacing per print sequence", "[Config]")
+{
+    struct Case
+    {
+        std::string       description;
+        PrinterTechnology tech;
+        PrintSequence     sequence;
+        double            clearance_radius;
+        double            expected;
+    };
+
+    auto c = GENERATE(values<Case>({
+        {"sequential FFF takes a clearance radius above the floor", ptFFF, PrintSequence::ByObject, 12., 12.},
+        {"sequential FFF holds the floor at the radius",            ptFFF, PrintSequence::ByObject,  6.,  6.},
+        {"sequential FFF holds the floor below the radius",         ptFFF, PrintSequence::ByObject,  4.,  6.},
+        {"layered FFF ignores the clearance radius",                ptFFF, PrintSequence::ByLayer,  12.,  6.},
+        {"SLA is a flat 6mm",                                       ptSLA, PrintSequence::ByObject, 12.,  6.},
+        {"SLA ignores the print sequence too",                      ptSLA, PrintSequence::ByLayer,  12.,  6.},
+    }));
+
+    DYNAMIC_SECTION(c.description)
+    {
+        CHECK_THAT(min_object_distance(spacing_config(c.tech, c.sequence, c.clearance_radius)),
+                   Catch::Matchers::WithinAbs(c.expected, 1e-9));
+    }
+}
+
+TEST_CASE("min_object_distance yields no floor when an FFF config lacks the options", "[Config]")
+{
+    // Missing options yield 0 rather than an error, so a caller gets no floor at all.
+    SECTION("no clearance radius") {
+        DynamicPrintConfig c;
+        c.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(ptFFF));
+        c.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(PrintSequence::ByObject));
+        CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("no print sequence") {
+        DynamicPrintConfig c;
+        c.set_key_value("printer_technology", new ConfigOptionEnum<PrinterTechnology>(ptFFF));
+        c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(12.));
+        CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("nothing at all") {
+        CHECK_THAT(min_object_distance(DynamicPrintConfig{}), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
+
+    SECTION("an unset printer technology is treated as FFF") {
+        DynamicPrintConfig c;
+        c.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(PrintSequence::ByObject));
+        c.set_key_value("extruder_clearance_radius", new ConfigOptionFloat(12.));
+        CHECK_THAT(min_object_distance(c), Catch::Matchers::WithinAbs(12., 1e-9));
+    }
+}
