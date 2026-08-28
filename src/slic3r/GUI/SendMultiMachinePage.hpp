@@ -149,7 +149,6 @@ private:
     ScalableBitmap*                     print_time{ nullptr };
     wxStaticBitmap*                     weightimg{ nullptr };
     ScalableBitmap*                     print_weight{ nullptr };
-    wxBoxSizer*                         m_thumbnail_sizer{ nullptr };
     ThumbnailPanel*                     m_thumbnail_panel{nullptr};
     wxPanel*                            m_panel_image{ nullptr };
     wxBoxSizer*                         m_image_sizer{ nullptr };
