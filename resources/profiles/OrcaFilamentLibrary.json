@@ -1933,21 +1933,69 @@
 			"sub_path": "filament/COEX/COEX PLA+Silk @System.json"
 		},
 		{
-            "name": "INSLOGIC PLA Pro @System",
-    		"sub_path": "filament/INSLOGIC/INSLOGIC PLA Pro @System.json"
+		    "name": "INSLOGIC PLA Pro @base",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PLA Pro @base.json"
 		},
 		{
-   			 "name": "INSLOGIC PETG Pro @System",
-    		"sub_path": "filament/INSLOGIC/INSLOGIC PETG Pro @System.json"
+		    "name": "INSLOGIC PLA Pro @P1-X1",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PLA Pro @P1-X1.json"
 		},
 		{
-		    "name": "INSLOGIC PA6-CF @System",
-		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-CF @System.json"
+		    "name": "INSLOGIC PLA Pro @BBL P2S",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PLA Pro @BBL P2S.json"
 		},
 		{
-			"name": "INSLOGIC PA6-66 @System",
-			"sub_path": "filament/INSLOGIC/INSLOGIC PA6-66 @System.json"
-}
+		    "name": "INSLOGIC PLA Pro @Prusa CORE One",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PLA Pro @Prusa CORE One.json"
+		},
+		{
+		    "name": "INSLOGIC PETG Pro @base",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PETG Pro @base.json"
+		},
+		{
+		    "name": "INSLOGIC PETG Pro @P1-X1",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PETG Pro @P1-X1.json"
+		},
+		{
+		    "name": "INSLOGIC PETG Pro @BBL P2S",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PETG Pro @BBL P2S.json"
+		},
+		{
+		    "name": "INSLOGIC PETG Pro @Prusa CORE One",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PETG Pro @Prusa CORE One.json"
+		},
+		{
+		    "name": "INSLOGIC PA6-CF @base",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-CF @base.json"
+		},
+		{
+		    "name": "INSLOGIC PA6-CF @P1-X1",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-CF @P1-X1.json"
+		},
+		{
+		    "name": "INSLOGIC PA6-CF @BBL P2S",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-CF @BBL P2S.json"
+		},
+		{
+		    "name": "INSLOGIC PA6-CF @Prusa CORE One",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-CF @Prusa CORE One.json"
+		},
+		{
+		    "name": "INSLOGIC PA6-66 @base",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-66 @base.json"
+		},
+		{
+		    "name": "INSLOGIC PA6-66 @P1-X1",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-66 @P1-X1.json"
+		},
+		{
+		    "name": "INSLOGIC PA6-66 @BBL P2S",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-66 @BBL P2S.json"
+		},
+		{
+		    "name": "INSLOGIC PA6-66 @Prusa CORE One",
+		    "sub_path": "filament/INSLOGIC/INSLOGIC PA6-66 @Prusa CORE One.json"
+		}
 	],
 	"process_list": [],
 	"machine_model_list": [],
