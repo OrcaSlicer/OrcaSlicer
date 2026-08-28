@@ -21,6 +21,8 @@ ScrolledWindow::ScrolledWindow(wxWindow *parent, wxWindowID id, wxPoint position
     m_bottomScrollbar    = NULL;
     m_verticalSplitter   = NULL;
     m_horizontalSplitter = NULL;
+    m_userPanel          = NULL;
+    m_scroll_win         = NULL;
 
     m_marginWidth        = marginWidth;
 
@@ -110,12 +112,13 @@ void ScrolledWindow::SetTipColor(wxColour color)
     if (m_bottomScrollbar) m_bottomScrollbar->SetTipColor(color);
 }
 
-void ScrolledWindow::SetBackgroundColour(wxColour color)
+bool ScrolledWindow::SetBackgroundColour(const wxColour &color)
 {
-    wxWindow::SetBackgroundColour(color); 
+    const bool result = wxWindow::SetBackgroundColour(color);
     m_verticalSplitter->SetBackgroundColour(color); 
     m_userPanel->SetBackgroundColour(color);
     m_scroll_win->SetBackgroundColour(color);
+    return result;
 }
 
 void ScrolledWindow::SetMarginColor(wxColour color)
