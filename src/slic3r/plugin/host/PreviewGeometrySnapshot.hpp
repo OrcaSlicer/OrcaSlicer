@@ -22,9 +22,10 @@ constexpr uint32_t GROUP_RECORD_SIZE = 24;
 constexpr uint32_t MATERIAL_RECORD_SIZE = 40;
 constexpr uint32_t POINT_RECORD_SIZE = 8;
 constexpr uint64_t DEFAULT_MAX_VERTICES = 20'000'000;
-constexpr uint64_t DEFAULT_MAX_INDICES = 120'000'000;
-constexpr uint64_t DEFAULT_MAX_GROUPS = 4'000'000;
-constexpr uint64_t DEFAULT_MAX_FILE_SIZE = 4ull << 30;
+constexpr uint64_t DEFAULT_MAX_INDICES = 60'000'000;
+constexpr uint64_t DEFAULT_MAX_GROUPS = 1'000'000;
+constexpr uint32_t DEFAULT_MAX_MATERIALS = 4096;
+constexpr uint64_t DEFAULT_MAX_FILE_SIZE = 1ull << 30;
 constexpr uint32_t FLAG_SPIRAL_VASE = 1u << 0;
 constexpr uint32_t FLAG_INDEXED = 1u << 1;
 
