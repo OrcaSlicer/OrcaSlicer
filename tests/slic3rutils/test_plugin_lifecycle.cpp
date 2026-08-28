@@ -192,11 +192,10 @@ TEST_CASE("A discovered script plugin loads and materializes its capability", "[
 
 TEST_CASE("Visualization sessions dispatch lifecycle calls and close before plugin unload", "[PluginLifecycle][Visualization][Python]")
 {
+    ScopedDataDir data_dir_guard("visualization-lifecycle");
     ScopedPluginManager plugin_system;
     if (!plugin_system.initialized)
         SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
-
-    ScopedDataDir data_dir_guard("visualization-lifecycle");
     write_plugin(data_dir_guard, "Visualization_Plugin", VISUALIZATION_PLUGIN_SOURCE);
 
     PluginManager& manager = PluginManager::instance();
