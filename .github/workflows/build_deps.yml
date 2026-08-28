@@ -16,6 +16,10 @@ on:
       arch:
         required: false
         type: string
+      compiler:
+        required: false
+        type: string
+        default: msvc
       build-deps-only:
         required: false
         type: boolean
@@ -135,11 +139,13 @@ jobs:
               choco install strawberryperl
             }
             $arch = "${{ inputs.arch }}"
+            # -l selects clang-cl and -x Ninja; together they build the deps with clang.
+            $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { @() }
             if ($arch -eq "arm64") {
-              .\build_release_vs.bat deps arm64
+              .\build_release_vs.bat deps arm64 @flags
               .\build_release_vs.bat pack arm64
             } else {
-              .\build_release_vs.bat deps -l -x
+              .\build_release_vs.bat deps @flags
               .\build_release_vs.bat pack
             }
         shell: pwsh
@@ -204,4 +210,5 @@ jobs:
       cache-path: ${{ inputs.cache-path }}
       os: ${{ inputs.os }}
       arch: ${{ inputs.arch }}
+      compiler: ${{ inputs.compiler }}
     secrets: inherit

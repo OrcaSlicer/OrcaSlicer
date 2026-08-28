@@ -13,6 +13,10 @@ on:
         arch:
           required: false
           type: string
+        compiler:
+          required: false
+          type: string
+          default: msvc
         macos-combine-only:
           required: false
           type: boolean
@@ -395,7 +399,9 @@ jobs:
         # "tests" builds the unit tests too; the unit_tests_windows_* jobs run them.
         run: |
           $arch = "${{ inputs.arch }}"
-          if ($arch -eq "arm64") { .\build_release_vs.bat slicer arm64 tests } else { .\build_release_vs.bat slicer -l -x tests }
+          # -l selects clang-cl and -x Ninja; together they build the slicer with clang.
+          $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { @() }
+          if ($arch -eq "arm64") { .\build_release_vs.bat slicer arm64 @flags tests } else { .\build_release_vs.bat slicer @flags tests }
         shell: pwsh
 
       - name: Build system preset cache (Windows)
