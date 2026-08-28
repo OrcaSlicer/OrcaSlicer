@@ -3,10 +3,12 @@
 #include "GUI_Utils.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/MixedFilament.hpp"
+#include "libslic3r/MixedFilamentMatch.hpp"
 
 #include <wx/checkbox.h>
 #include <wx/clrpicker.h>
 #include <wx/dialog.h>
+#include <wx/slider.h>
 #include <wx/spinctrl.h>
 #include <wx/textctrl.h>
 
@@ -14,6 +16,7 @@
 
 class wxButton;
 class wxListBox;
+class wxStaticText;
 
 namespace Slic3r {
 namespace GUI {
@@ -42,7 +45,14 @@ private:
     void on_remove_row(wxCommandEvent &evt);
     void on_create_mix_from_color(wxCommandEvent &evt);
     void on_target_colour_changed(wxColourPickerEvent &evt);
+    void on_hex_target_changed();
+    void on_candidate_select(wxCommandEvent &evt);
+    void on_min_mix_slider(wxCommandEvent &evt);
     void refresh_predicted_swatch();
+    // preserve_selection: Min Mix slider only (SHOULD). Hex/picker always reset to ranked [0].
+    void refresh_candidates(bool preserve_selection = false);
+    bool parse_target_color(ColorRGB &out) const;
+    wxString candidate_label(const MixMatchResult &r, const std::vector<std::string> *slot_names) const;
 
     wxString row_label(size_t idx, size_t num_physical) const;
     int      virtual_id_for_row(size_t idx, size_t num_physical) const;
@@ -50,9 +60,12 @@ private:
     size_t   enabled_mix_count() const;
     std::vector<ColorRGB> live_physical_colors() const;
 
-    std::vector<MixedFilament> m_rows;
-    int                        m_selected_row{-1};
-    bool                       m_suppress_events{false};
+    std::vector<MixedFilament>  m_rows;
+    std::vector<MixMatchResult> m_candidates;
+    ColorRGB                    m_candidates_target;
+    bool                        m_candidates_target_valid{false};
+    int                         m_selected_row{-1};
+    bool                        m_suppress_events{false};
 
     wxListBox  *m_list{nullptr};
     wxButton   *m_btn_add{nullptr};
@@ -77,6 +90,9 @@ private:
     wxTextCtrl         *m_hex_target{nullptr};
     wxButton           *m_btn_create_mix{nullptr};
     wxColourPickerCtrl *m_clr_predicted{nullptr};
+    wxListBox          *m_candidate_list{nullptr};
+    wxSlider           *m_min_mix_slider{nullptr};
+    wxStaticText       *m_min_mix_label{nullptr};
 };
 
 } // namespace GUI

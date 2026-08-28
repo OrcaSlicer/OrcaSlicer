@@ -17,6 +17,7 @@
 
 #include <wx/clrpicker.h>
 #include <wx/sizer.h>
+#include <wx/slider.h>
 #include <wx/stattext.h>
 #include <wx/button.h>
 #include <wx/listbox.h>
@@ -25,6 +26,7 @@
 #include <cctype>
 #include <cmath>
 #include <string>
+#include <vector>
 
 namespace Slic3r {
 namespace GUI {
@@ -103,7 +105,8 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     match_row->Add(new wxStaticText(this, wxID_ANY, _L("Target color")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT,
                    FromDIP(8));
     m_clr_target = new wxColourPickerCtrl(this, wxID_ANY, wxColour(255, 255, 255));
-    m_hex_target = new wxTextCtrl(this, wxID_ANY, "#FFFFFF", wxDefaultPosition, wxSize(FromDIP(100), -1));
+    m_hex_target = new wxTextCtrl(this, wxID_ANY, "#FFFFFF", wxDefaultPosition, wxSize(FromDIP(100), -1),
+                                  wxTE_PROCESS_ENTER);
     m_btn_create_mix = new wxButton(this, wxID_ANY, _L("Create mix from color"));
     match_row->Add(m_clr_target, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
     match_row->Add(m_hex_target, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
@@ -115,6 +118,18 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     m_clr_predicted->SetToolTip(_L("Predicted printable mix colour (Yule-Nielsen)."));
     match_row->Add(m_clr_predicted, 0, wxALIGN_CENTER_VERTICAL);
     root->Add(match_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
+
+    m_candidate_list = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(360), FromDIP(110)));
+    root->Add(m_candidate_list, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
+
+    auto *min_row = new wxBoxSizer(wxHORIZONTAL);
+    m_min_mix_slider = new wxSlider(this, wxID_ANY, 25, 25, 50, wxDefaultPosition, wxSize(FromDIP(180), -1));
+    m_min_mix_label  = new wxStaticText(this, wxID_ANY, _L("Min mix: 25%"));
+    m_min_mix_slider->SetToolTip(
+        _L("Period-4 floor is 25%; Snapmaker 15% not available; useful stops 25 / 33 / 34+."));
+    min_row->Add(m_min_mix_slider, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+    min_row->Add(m_min_mix_label, 0, wxALIGN_CENTER_VERTICAL);
+    root->Add(min_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
 
     auto *grid = new wxFlexGridSizer(2, FromDIP(6), FromDIP(12));
     grid->AddGrowableCol(1, 1);
@@ -202,12 +217,25 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     m_btn_remove->Bind(wxEVT_BUTTON, &MixedFilamentDialog::on_remove_row, this);
     m_clr_target->Bind(wxEVT_COLOURPICKER_CHANGED, &MixedFilamentDialog::on_target_colour_changed, this);
     m_btn_create_mix->Bind(wxEVT_BUTTON, &MixedFilamentDialog::on_create_mix_from_color, this);
+    m_candidate_list->Bind(wxEVT_LISTBOX, &MixedFilamentDialog::on_candidate_select, this);
+    m_candidate_list->Bind(wxEVT_KEY_UP, [this](wxKeyEvent &evt) {
+        wxCommandEvent dummy;
+        on_candidate_select(dummy);
+        evt.Skip();
+    });
+    m_min_mix_slider->Bind(wxEVT_SLIDER, &MixedFilamentDialog::on_min_mix_slider, this);
+    m_hex_target->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent &) { on_hex_target_changed(); });
+    m_hex_target->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent &evt) {
+        on_hex_target_changed();
+        evt.Skip();
+    });
     m_enabled->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &) {
         store_editors_into_selected_row();
         refresh_list_labels();
     });
 
     load_from_config();
+    refresh_candidates();
 
     Bind(wxEVT_BUTTON, [this](wxCommandEvent &evt) {
         if (evt.GetId() == wxID_OK) {
@@ -276,6 +304,133 @@ void MixedFilamentDialog::refresh_predicted_swatch()
     m_clr_predicted->SetColour(wxColour(pred.r_uchar(), pred.g_uchar(), pred.b_uchar()));
 }
 
+bool MixedFilamentDialog::parse_target_color(ColorRGB &out) const
+{
+    if (m_hex_target == nullptr)
+        return false;
+    const std::string hex_raw  = into_u8(m_hex_target->GetValue());
+    const std::string hex_norm = normalize_mix_match_hex(hex_raw);
+    const bool        hex_blank =
+        std::all_of(hex_raw.begin(), hex_raw.end(), [](unsigned char ch) { return std::isspace(ch) != 0; });
+    if (!hex_norm.empty())
+        return decode_color(hex_norm, out);
+    if (!hex_blank)
+        return false;
+    if (m_clr_target == nullptr)
+        return false;
+    const wxColour c = m_clr_target->GetColour();
+    out = ColorRGB(static_cast<unsigned char>(c.Red()), static_cast<unsigned char>(c.Green()),
+                   static_cast<unsigned char>(c.Blue()));
+    return true;
+}
+
+wxString MixedFilamentDialog::candidate_label(const MixMatchResult &r,
+                                              const std::vector<std::string> *slot_names) const
+{
+    if (r.kind == MixMatchResult::Kind::Physical) {
+        if (slot_names != nullptr && r.physical_id >= 1 &&
+            size_t(r.physical_id - 1) < slot_names->size()) {
+            return wxString::Format("%s (filament %u)  ΔE %.1f",
+                                    wxString::FromUTF8((*slot_names)[size_t(r.physical_id - 1)].c_str()),
+                                    r.physical_id, double(r.distance));
+        }
+        return wxString::Format("filament %u  ΔE %.1f", r.physical_id, double(r.distance));
+    }
+
+    int period = r.mix.ratio_a + r.mix.ratio_b;
+    int mn     = std::min(r.mix.ratio_a, r.mix.ratio_b);
+    if (r.mix.component_c != 0) {
+        period += r.mix.ratio_c;
+        mn = std::min(mn, r.mix.ratio_c);
+    }
+    const int min_share = period > 0 ? (mn * 100) / period : 0;
+    const std::string recipe = mix_recipe_label(r.mix, slot_names);
+    return wxString::Format("%s  ΔE %.1f  min %d%%", wxString::FromUTF8(recipe.c_str()),
+                            double(r.distance), min_share);
+}
+
+void MixedFilamentDialog::refresh_candidates(bool preserve_selection)
+{
+    if (m_candidate_list == nullptr || m_min_mix_slider == nullptr)
+        return;
+
+    MixMatchResult keep;
+    if (preserve_selection) {
+        const int prev_sel = m_candidate_list->GetSelection();
+        if (prev_sel >= 0 && size_t(prev_sel) < m_candidates.size())
+            keep = m_candidates[size_t(prev_sel)];
+    }
+
+    ColorRGB target;
+    m_candidates.clear();
+    m_candidate_list->Clear();
+    m_candidates_target_valid = false;
+    if (!parse_target_color(target)) {
+        refresh_predicted_swatch();
+        return;
+    }
+
+    const std::vector<ColorRGB> physicals = live_physical_colors();
+    const int                   min_pct   = m_min_mix_slider->GetValue();
+    m_candidates = match_printable_candidates(target, physicals, nullptr, 4, min_pct, 12);
+    m_candidates_target       = target;
+    m_candidates_target_valid = true;
+
+    const std::vector<std::string> names_cmik{"C", "M", "Y", "K"};
+    const std::vector<std::string> *slot_names =
+        (physicals.size() == 4) ? &names_cmik : nullptr;
+
+    int select = -1;
+    for (size_t i = 0; i < m_candidates.size(); ++i) {
+        m_candidate_list->Append(candidate_label(m_candidates[i], slot_names));
+        if (keep.valid && select < 0) {
+            const MixMatchResult &c = m_candidates[i];
+            if (c.kind == keep.kind) {
+                if (c.kind == MixMatchResult::Kind::Physical && c.physical_id == keep.physical_id)
+                    select = int(i);
+                else if (c.kind == MixMatchResult::Kind::Mix && c.recipe_row == keep.recipe_row)
+                    select = int(i);
+            }
+        }
+    }
+
+    if (m_candidates.empty()) {
+        refresh_predicted_swatch();
+        return;
+    }
+    // Target hex/picker: ranked best ([0]), including Physical when dark-neutral/pure wins.
+    // Min Mix slider: keep prior recipe/Physical when it survived the filter (SHOULD).
+    if (select < 0)
+        select = 0;
+    m_suppress_events = true;
+    m_candidate_list->SetSelection(select);
+    m_suppress_events = false;
+    const MixMatchResult &chosen = m_candidates[size_t(select)];
+    m_clr_predicted->SetColour(
+        wxColour(chosen.predicted.r_uchar(), chosen.predicted.g_uchar(), chosen.predicted.b_uchar()));
+}
+
+void MixedFilamentDialog::on_candidate_select(wxCommandEvent &)
+{
+    if (m_suppress_events || m_candidate_list == nullptr || m_clr_predicted == nullptr)
+        return;
+    const int sel = m_candidate_list->GetSelection();
+    if (sel < 0 || size_t(sel) >= m_candidates.size()) {
+        refresh_predicted_swatch();
+        return;
+    }
+    const ColorRGB &pred = m_candidates[size_t(sel)].predicted;
+    m_clr_predicted->SetColour(wxColour(pred.r_uchar(), pred.g_uchar(), pred.b_uchar()));
+}
+
+void MixedFilamentDialog::on_min_mix_slider(wxCommandEvent &)
+{
+    if (m_min_mix_slider == nullptr || m_min_mix_label == nullptr)
+        return;
+    m_min_mix_label->SetLabel(wxString::Format(_L("Min mix: %d%%"), m_min_mix_slider->GetValue()));
+    refresh_candidates(true);
+}
+
 void MixedFilamentDialog::on_target_colour_changed(wxColourPickerEvent &)
 {
     if (m_suppress_events || m_hex_target == nullptr || m_clr_target == nullptr)
@@ -284,22 +439,34 @@ void MixedFilamentDialog::on_target_colour_changed(wxColourPickerEvent &)
     const ColorRGB rgb(static_cast<unsigned char>(c.Red()), static_cast<unsigned char>(c.Green()),
                        static_cast<unsigned char>(c.Blue()));
     m_hex_target->ChangeValue(wxString::FromUTF8(encode_color(rgb).c_str()));
+    refresh_candidates();
+}
+
+void MixedFilamentDialog::on_hex_target_changed()
+{
+    if (m_suppress_events || m_hex_target == nullptr || m_clr_target == nullptr)
+        return;
+    ColorRGB target;
+    const std::string hex_norm = normalize_mix_match_hex(into_u8(m_hex_target->GetValue()));
+    if (!hex_norm.empty() && decode_color(hex_norm, target)) {
+        m_suppress_events = true;
+        m_clr_target->SetColour(wxColour(target.r_uchar(), target.g_uchar(), target.b_uchar()));
+        m_suppress_events = false;
+    }
+    refresh_candidates();
 }
 
 void MixedFilamentDialog::on_create_mix_from_color(wxCommandEvent &)
 {
     store_editors_into_selected_row();
 
-    ColorRGB          target;
-    bool              have_target = false;
-    const std::string hex_raw     = into_u8(m_hex_target->GetValue());
-    const std::string hex_norm    = normalize_mix_match_hex(hex_raw);
-    const bool        hex_blank   = std::all_of(hex_raw.begin(), hex_raw.end(), [](unsigned char ch) {
-        return std::isspace(ch) != 0;
-    });
+    ColorRGB target;
+    const std::string hex_raw  = into_u8(m_hex_target->GetValue());
+    const std::string hex_norm = normalize_mix_match_hex(hex_raw);
+    const bool        hex_blank =
+        std::all_of(hex_raw.begin(), hex_raw.end(), [](unsigned char ch) { return std::isspace(ch) != 0; });
     if (!hex_norm.empty()) {
-        have_target = decode_color(hex_norm, target);
-        if (!have_target) {
+        if (!decode_color(hex_norm, target)) {
             MessageDialog(this, _L("Invalid color. Enter a hex value like #99401B or #99401BFF."),
                           _L("Mixed Filaments"), wxOK | wxICON_WARNING)
                 .ShowModal();
@@ -310,28 +477,47 @@ void MixedFilamentDialog::on_create_mix_from_color(wxCommandEvent &)
                       _L("Mixed Filaments"), wxOK | wxICON_WARNING)
             .ShowModal();
         return;
-    } else if (m_clr_target != nullptr) {
-        const wxColour c = m_clr_target->GetColour();
-        target           = ColorRGB(static_cast<unsigned char>(c.Red()), static_cast<unsigned char>(c.Green()),
-                                    static_cast<unsigned char>(c.Blue()));
-        have_target      = true;
-    }
-    if (!have_target)
+    } else if (!parse_target_color(target)) {
         return;
+    }
 
-    const std::vector<ColorRGB> physicals = live_physical_colors();
-    // Lattice prefix is match_printable_mix min(n,4), not a dialog truncate.
-    const MixMatchResult        result    = match_printable_mix(target, physicals);
-    if (!result.valid) {
+    // Rebuild only when the list is stale for this target; keep the user's pick when it survives.
+    const bool same_target = m_candidates_target_valid && m_candidates_target == target;
+    refresh_candidates(same_target);
+    if (m_candidates.empty()) {
         MessageDialog(this, _L("Could not match a printable mix for that color."), _L("Mixed Filaments"),
                       wxOK | wxICON_WARNING)
             .ShowModal();
         return;
     }
-    if (result.kind == MixMatchResult::Kind::Physical) {
-        MessageDialog(this,
-                      wxString::Format(_L("Closest is filament %u"), result.physical_id),
-                      _L("Mixed Filaments"), wxOK | wxICON_INFORMATION)
+
+    const int sel = (m_candidate_list != nullptr) ? m_candidate_list->GetSelection() : 0;
+    const MixMatchResult *selected =
+        (sel >= 0 && size_t(sel) < m_candidates.size()) ? &m_candidates[size_t(sel)] : &m_candidates.front();
+
+    // Selected Mix → append. Selected / best Physical → informational modal (0010 behavior).
+    // No selection → first Mix if any, else Physical modal.
+    const MixMatchResult *mix_to_add = nullptr;
+    if (selected->kind == MixMatchResult::Kind::Mix) {
+        mix_to_add = selected;
+    } else if (sel < 0) {
+        for (const MixMatchResult &c : m_candidates) {
+            if (c.kind == MixMatchResult::Kind::Mix) {
+                mix_to_add = &c;
+                break;
+            }
+        }
+    }
+    if (mix_to_add == nullptr) {
+        if (selected->kind == MixMatchResult::Kind::Physical) {
+            MessageDialog(this,
+                          wxString::Format(_L("Closest is filament %u"), selected->physical_id),
+                          _L("Mixed Filaments"), wxOK | wxICON_INFORMATION)
+                .ShowModal();
+            return;
+        }
+        MessageDialog(this, _L("Could not match a printable mix for that color."), _L("Mixed Filaments"),
+                      wxOK | wxICON_WARNING)
             .ShowModal();
         return;
     }
@@ -346,7 +532,7 @@ void MixedFilamentDialog::on_create_mix_from_color(wxCommandEvent &)
         return;
     }
 
-    m_rows.push_back(result.mix);
+    m_rows.push_back(mix_to_add->mix);
     m_selected_row = int(m_rows.size()) - 1;
     refresh_list();
     load_selected_row_into_editors();
@@ -356,12 +542,12 @@ wxString MixedFilamentDialog::row_label(size_t idx, size_t num_physical) const
 {
     if (idx >= m_rows.size())
         return {};
-    const MixedFilament &mf  = m_rows[idx];
-    const wxString       pair = (mf.component_c != 0)
-        ? wxString::Format("%u+%u+%u  %d:%d:%d", mf.component_a, mf.component_b, mf.component_c,
-                           mf.ratio_a, mf.ratio_b, mf.ratio_c)
-        : wxString::Format("%u+%u  %d:%d", mf.component_a, mf.component_b, mf.ratio_a, mf.ratio_b);
-    const int            vid  = virtual_id_for_row(idx, num_physical);
+    const MixedFilament &mf = m_rows[idx];
+    const std::vector<std::string> names_cmik{"C", "M", "Y", "K"};
+    const std::vector<std::string> *slot_names =
+        (live_physical_colors().size() == 4) ? &names_cmik : nullptr;
+    const wxString pair = wxString::FromUTF8(mix_recipe_label(mf, slot_names).c_str());
+    const int      vid  = virtual_id_for_row(idx, num_physical);
     if (vid > 0)
         return wxString::Format(_L("Mix %d  %s"), vid, pair);
     return wxString::Format(_L("(off)  %s"), pair);

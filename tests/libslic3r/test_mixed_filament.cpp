@@ -7,6 +7,7 @@
 #include "libslic3r/MixedFilamentMatch.hpp"
 #include "libslic3r/Print.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <set>
 #include <string>
@@ -774,4 +775,145 @@ TEST_CASE("Preview colors empty physicals is empty", "[MixedFilamentMatch]")
 {
     const std::vector<ColorRGB> out = preview_filament_colors({}, "1,2,1,1,1");
     REQUIRE(out.empty());
+}
+
+TEST_CASE("mix_recipe_label pair and triple with names or digits", "[MixedFilamentMatch]")
+{
+    const std::vector<std::string> names{"C", "M", "Y", "K"};
+    MixedFilament                  pair;
+    pair.component_a = 1;
+    pair.component_b = 2;
+    pair.ratio_a     = 1;
+    pair.ratio_b     = 1;
+    REQUIRE(mix_recipe_label(pair, &names) == "C+M 1:1");
+    REQUIRE(mix_recipe_label(pair, nullptr) == "1+2 1:1");
+
+    MixedFilament triple;
+    triple.component_a = 1;
+    triple.component_b = 2;
+    triple.component_c = 3;
+    triple.ratio_a     = 1;
+    triple.ratio_b     = 1;
+    triple.ratio_c     = 2;
+    const std::string named = mix_recipe_label(triple, &names);
+    REQUIRE(named.find("C+M+Y") != std::string::npos);
+    REQUIRE(named.find("1:1:2") != std::string::npos);
+}
+
+namespace {
+
+bool same_match_result(const MixMatchResult &a, const MixMatchResult &b)
+{
+    if (a.valid != b.valid || a.kind != b.kind || a.distance != b.distance)
+        return false;
+    if (a.kind == MixMatchResult::Kind::Physical)
+        return a.physical_id == b.physical_id;
+    return a.recipe_row == b.recipe_row && a.mix.component_a == b.mix.component_a &&
+           a.mix.component_b == b.mix.component_b && a.mix.component_c == b.mix.component_c &&
+           a.mix.ratio_a == b.mix.ratio_a && a.mix.ratio_b == b.mix.ratio_b &&
+           a.mix.ratio_c == b.mix.ratio_c;
+}
+
+int mix_min_share_percent(const MixedFilament &mf)
+{
+    int period = mf.ratio_a + mf.ratio_b;
+    int mn     = std::min(mf.ratio_a, mf.ratio_b);
+    if (mf.component_c != 0) {
+        period += mf.ratio_c;
+        mn = std::min(mn, mf.ratio_c);
+    }
+    return period <= 0 ? 0 : (mn * 100) / period;
+}
+
+} // namespace
+
+TEST_CASE("match_printable_candidates #CE921A ranked list and equals mix front", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys   = panchroma_physicals();
+    const ColorRGB              target = decode_hex_or_fail("#CE921A");
+    const auto                  cands  = match_printable_candidates(target, phys);
+    REQUIRE_FALSE(cands.empty());
+    REQUIRE(cands.size() <= 12);
+
+    const MixMatchResult best = match_printable_mix(target, phys);
+    REQUIRE(same_match_result(cands[0], best));
+
+    bool found_mix = false;
+    for (const MixMatchResult &c : cands) {
+        if (c.kind != MixMatchResult::Kind::Mix)
+            continue;
+        found_mix = true;
+        std::set<unsigned> ids = {c.mix.component_a, c.mix.component_b};
+        if (c.mix.component_c != 0)
+            ids.insert(c.mix.component_c);
+        const int used = int(ids.count(1u) + ids.count(2u) + ids.count(3u));
+        REQUIRE(used >= 2);
+        break;
+    }
+    REQUIRE(found_mix);
+
+    for (size_t i = 1; i < cands.size(); ++i) {
+        REQUIRE(cands[i - 1].distance <= cands[i].distance);
+        if (cands[i - 1].distance == cands[i].distance) {
+            const int p0 = (cands[i - 1].kind == MixMatchResult::Kind::Physical)
+                               ? 1
+                               : mix_period(cands[i - 1].mix);
+            const int p1 = (cands[i].kind == MixMatchResult::Kind::Physical) ? 1 : mix_period(cands[i].mix);
+            REQUIRE(p0 <= p1);
+        }
+    }
+
+    const auto at25 = match_printable_candidates(target, phys, nullptr, 4, 25, 12);
+    REQUIRE_FALSE(at25.empty());
+    REQUIRE(same_match_result(at25[0], match_printable_mix(target, phys)));
+}
+
+TEST_CASE("match_printable_candidates integer min-share filter", "[MixedFilamentMatch]")
+{
+    MixedFilament r21;
+    r21.ratio_a = 2;
+    r21.ratio_b = 1;
+    REQUIRE(mix_min_share_percent(r21) == 33);
+    MixedFilament r31;
+    r31.ratio_a = 3;
+    r31.ratio_b = 1;
+    REQUIRE(mix_min_share_percent(r31) == 25);
+
+    const std::vector<ColorRGB> phys   = panchroma_physicals();
+    const ColorRGB              target = decode_hex_or_fail("#CE921A");
+    const auto                  cands  = match_printable_candidates(target, phys, nullptr, 4, 33, 64);
+    REQUIRE_FALSE(cands.empty());
+
+    bool saw_11 = false;
+    bool saw_21 = false;
+    for (const MixMatchResult &c : cands) {
+        if (c.kind != MixMatchResult::Kind::Mix)
+            continue;
+        REQUIRE(mix_min_share_percent(c.mix) >= 33);
+        const bool is_11 = c.mix.component_c == 0 && c.mix.ratio_a == 1 && c.mix.ratio_b == 1;
+        const bool is_21 = c.mix.component_c == 0 &&
+                           ((c.mix.ratio_a == 2 && c.mix.ratio_b == 1) || (c.mix.ratio_a == 1 && c.mix.ratio_b == 2));
+        const bool is_31 = c.mix.component_c == 0 &&
+                           ((c.mix.ratio_a == 3 && c.mix.ratio_b == 1) || (c.mix.ratio_a == 1 && c.mix.ratio_b == 3));
+        const bool is_211 = c.mix.component_c != 0 && mix_period(c.mix) == 4 &&
+                            mix_min_share_percent(c.mix) == 25;
+        REQUIRE_FALSE(is_31);
+        REQUIRE_FALSE(is_211);
+        saw_11 = saw_11 || is_11;
+        saw_21 = saw_21 || is_21;
+    }
+    REQUIRE(saw_11);
+    REQUIRE(saw_21);
+}
+
+TEST_CASE("match_printable_candidates black front equals mix Grey physical", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys   = panchroma_physicals();
+    const ColorRGB              target = decode_hex_or_fail("#000000");
+    const auto                  cands  = match_printable_candidates(target, phys);
+    REQUIRE_FALSE(cands.empty());
+    const MixMatchResult best = match_printable_mix(target, phys);
+    REQUIRE(same_match_result(cands[0], best));
+    REQUIRE(cands[0].kind == MixMatchResult::Kind::Physical);
+    REQUIRE(cands[0].physical_id == 4u);
 }

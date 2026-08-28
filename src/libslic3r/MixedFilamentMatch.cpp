@@ -249,16 +249,61 @@ std::vector<ColorRGB> preview_filament_colors(
     return out;
 }
 
-MixMatchResult match_printable_mix(const ColorRGB              &target,
-                                   const std::vector<ColorRGB> &physicals,
-                                   const std::vector<float>    *td,
-                                   int                          period_cap)
+std::string mix_recipe_label(const MixedFilament &mf, const std::vector<std::string> *slot_names)
 {
-    MixMatchResult best;
+    auto slot_token = [&](unsigned id_1based) -> std::string {
+        if (slot_names != nullptr && id_1based >= 1 && size_t(id_1based - 1) < slot_names->size())
+            return (*slot_names)[size_t(id_1based - 1)];
+        return std::to_string(id_1based);
+    };
+
+    std::ostringstream oss;
+    if (mf.component_c != 0) {
+        oss << slot_token(mf.component_a) << '+' << slot_token(mf.component_b) << '+'
+            << slot_token(mf.component_c) << ' ' << mf.ratio_a << ':' << mf.ratio_b << ':' << mf.ratio_c;
+    } else {
+        oss << slot_token(mf.component_a) << '+' << slot_token(mf.component_b) << ' ' << mf.ratio_a
+            << ':' << mf.ratio_b;
+    }
+    return oss.str();
+}
+
+namespace {
+
+int mix_min_component_share_percent(const MixedFilament &mf)
+{
+    int period = mf.ratio_a + mf.ratio_b;
+    int mn     = std::min(mf.ratio_a, mf.ratio_b);
+    if (mf.component_c != 0) {
+        period += mf.ratio_c;
+        mn = std::min(mn, mf.ratio_c);
+    }
+    if (period <= 0)
+        return 0;
+    return (mn * 100) / period;
+}
+
+bool passes_min_component_percent(const MixMatchResult &r, int min_component_percent)
+{
+    if (r.kind == MixMatchResult::Kind::Physical)
+        return true;
+    return mix_min_component_share_percent(r.mix) >= min_component_percent;
+}
+
+} // namespace
+
+std::vector<MixMatchResult> match_printable_candidates(const ColorRGB              &target,
+                                                       const std::vector<ColorRGB> &physicals,
+                                                       const std::vector<float>    *td,
+                                                       int                          period_cap,
+                                                       int                          min_component_percent,
+                                                       size_t                       max_results)
+{
+    std::vector<MixMatchResult> out;
     // This track's printable lattice is C/M/Y/K slots 1–4. Extra physicals are ignored.
     const size_t n = std::min(physicals.size(), size_t(4));
-    if (n == 0)
-        return best;
+    if (n == 0 || max_results == 0)
+        return out;
     const std::vector<ColorRGB> slots(physicals.begin(), physicals.begin() + int(n));
     std::vector<float>          td_prefix;
     const std::vector<float>   *td_use = td;
@@ -272,25 +317,19 @@ MixMatchResult match_printable_mix(const ColorRGB              &target,
     }
 
     const int cap = std::max(0, period_cap);
+    std::vector<MixMatchResult> all;
 
-    auto consider = [&](MixMatchResult cand, int period) {
-        if (!best.valid || cand.distance < best.distance ||
-            (cand.distance == best.distance && period < result_period(best))) {
-            best = std::move(cand);
-        }
-    };
-
-    auto consider_physical = [&](unsigned id_1based) {
+    auto push_physical = [&](unsigned id_1based) {
         MixMatchResult cand;
         cand.valid       = true;
         cand.kind        = MixMatchResult::Kind::Physical;
         cand.physical_id = id_1based;
         cand.predicted   = slots[size_t(id_1based - 1)];
         cand.distance    = cie76(cand.predicted, target);
-        consider(std::move(cand), 1);
+        all.push_back(std::move(cand));
     };
 
-    auto consider_mix = [&](const MixedFilament &mf, int period) {
+    auto push_mix = [&](const MixedFilament &mf) {
         MixMatchResult cand;
         cand.valid      = true;
         cand.kind       = MixMatchResult::Kind::Mix;
@@ -298,11 +337,11 @@ MixMatchResult match_printable_mix(const ColorRGB              &target,
         cand.recipe_row = serialize_mix_recipe(mf);
         cand.predicted  = predicted_swatch_for_mix(mf, slots, td_use);
         cand.distance   = cie76(cand.predicted, target);
-        consider(std::move(cand), period);
+        all.push_back(std::move(cand));
     };
 
     for (size_t i = 0; i < n; ++i)
-        consider_physical(unsigned(i + 1));
+        push_physical(unsigned(i + 1));
 
     using Key = std::tuple<unsigned, unsigned, unsigned, int, int, int>;
     std::set<Key> seen;
@@ -330,7 +369,7 @@ MixMatchResult match_printable_mix(const ColorRGB              &target,
                     mf.ratio_b     = rb;
                     mf.ratio_c     = 0;
                     mf.enabled     = true;
-                    consider_mix(mf, period);
+                    push_mix(mf);
                 }
             }
         }
@@ -360,20 +399,31 @@ MixMatchResult match_printable_mix(const ColorRGB              &target,
                         mf.ratio_b     = rb;
                         mf.ratio_c     = rc;
                         mf.enabled     = true;
-                        consider_mix(mf, period);
+                        push_mix(mf);
                     }
                 }
             }
         }
     }
 
+    for (MixMatchResult &cand : all) {
+        if (passes_min_component_percent(cand, min_component_percent))
+            out.push_back(std::move(cand));
+    }
+
+    std::sort(out.begin(), out.end(), [](const MixMatchResult &a, const MixMatchResult &b) {
+        if (a.distance != b.distance)
+            return a.distance < b.distance;
+        return result_period(a) < result_period(b);
+    });
+
     // Neutral targets darker than every physical: a short CMY YN mud can beat Grey
-    // on CIE76 for #000000. Spec still requires the nearest physical (Grey), not a stack.
-    if (best.valid && n > 0) {
+    // on CIE76 for #000000. Spec still requires the nearest physical (Grey) at [0].
+    if (!out.empty() && n > 0) {
         float tL = 0.f, ta = 0.f, tb = 0.f;
         rgb_to_lab(target, &tL, &ta, &tb);
         const float tchroma = std::sqrt(ta * ta + tb * tb);
-        float min_L = 1e30f;
+        float       min_L   = 1e30f;
         for (size_t i = 0; i < n; ++i) {
             float L = 0.f, a = 0.f, b = 0.f;
             rgb_to_lab(slots[i], &L, &a, &b);
@@ -381,22 +431,51 @@ MixMatchResult match_printable_mix(const ColorRGB              &target,
         }
         if (tchroma < 8.f && tL + 1.f < min_L) {
             MixMatchResult phys_best;
-            for (size_t i = 0; i < n; ++i) {
-                MixMatchResult cand;
-                cand.valid       = true;
-                cand.kind        = MixMatchResult::Kind::Physical;
-                cand.physical_id = unsigned(i + 1);
-                cand.predicted   = slots[i];
-                cand.distance    = cie76(cand.predicted, target);
+            for (const MixMatchResult &cand : out) {
+                if (cand.kind != MixMatchResult::Kind::Physical)
+                    continue;
                 if (!phys_best.valid || cand.distance < phys_best.distance)
-                    phys_best = std::move(cand);
+                    phys_best = cand;
             }
-            if (phys_best.valid)
-                best = std::move(phys_best);
+            if (!phys_best.valid) {
+                for (size_t i = 0; i < n; ++i) {
+                    MixMatchResult cand;
+                    cand.valid       = true;
+                    cand.kind        = MixMatchResult::Kind::Physical;
+                    cand.physical_id = unsigned(i + 1);
+                    cand.predicted   = slots[i];
+                    cand.distance    = cie76(cand.predicted, target);
+                    if (!phys_best.valid || cand.distance < phys_best.distance)
+                        phys_best = std::move(cand);
+                }
+            }
+            if (phys_best.valid) {
+                out.erase(std::remove_if(out.begin(), out.end(),
+                                         [&](const MixMatchResult &c) {
+                                             return c.kind == MixMatchResult::Kind::Physical &&
+                                                    c.physical_id == phys_best.physical_id;
+                                         }),
+                          out.end());
+                out.insert(out.begin(), std::move(phys_best));
+            }
         }
     }
 
-    return best;
+    if (out.size() > max_results)
+        out.resize(max_results);
+    return out;
+}
+
+MixMatchResult match_printable_mix(const ColorRGB              &target,
+                                   const std::vector<ColorRGB> &physicals,
+                                   const std::vector<float>    *td,
+                                   int                          period_cap)
+{
+    const std::vector<MixMatchResult> cands =
+        match_printable_candidates(target, physicals, td, period_cap, 25, 1);
+    if (cands.empty())
+        return {};
+    return cands.front();
 }
 
 } // namespace Slic3r
