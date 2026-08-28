@@ -604,7 +604,6 @@ find_package(JPEG REQUIRED)
 find_package(Draco REQUIRED)
 
 set(OCCT_LIBS
-    TKBool
     TKXDESTEP
     TKSTEP
     TKSTEP209
@@ -632,23 +631,29 @@ set(OCCT_LIBS
     TKMath
     TKernel
 )
-# The CAD kernel is the only consumer of OCCT's ModelingAlgorithms module. Upstream's
-# DataExchange already pulls TKBool in transitively, so the true delta is these two.
+# The CAD kernel is the only consumer of OCCT's ModelingAlgorithms module: TKFillet
+# (BRepFilletAPI), TKOffset (BRepOffsetAPI) and TKBool, which the other two need.
 #
 # PREPEND, never append: this list is single-pass static link order, dependents before
 # dependencies — note TKernel, which everything needs, is deliberately last. TKOffset
 # references BRepAlgo_Loop, which TKBool defines, so TKOffset must come BEFORE TKBool.
-# Appending put it after, and the Snapmaker fork's Flatpak build — the one configuration
-# whose linker is strictly single-pass — failed with
+# Appending put it after, and a strictly single-pass linker (the Flatpak build) failed with
 #     libTKOffset.a(BRepOffset_MakeLoops.cxx.o): undefined reference to
 #     `BRepAlgo_Loop::BRepAlgo_Loop()'
 # while the ordinary Linux, macOS and Windows links resolved it anyway. Use set() rather
 # than list(PREPEND), which needs CMake 3.15 and this project supports 3.13.
 if (SLIC3R_CAD)
-    set(OCCT_LIBS TKFillet TKOffset ${OCCT_LIBS})
+    set(OCCT_LIBS TKFillet TKOffset TKBool ${OCCT_LIBS})
+    # deps is configured separately, so its SLIC3R_CAD can differ from ours. The module is
+    # all-or-nothing, so one absent toolkit proves it; fail here rather than at link time.
+    if (NOT TARGET TKFillet)
+        message(FATAL_ERROR
+            "SLIC3R_CAD is ON, but the OpenCASCADE in ${CMAKE_PREFIX_PATH} was built without "
+            "BUILD_MODULE_ModelingAlgorithms. Rebuild the dependencies with -DSLIC3R_CAD=ON, "
+            "or configure this project with -DSLIC3R_CAD=OFF.")
+    endif ()
 endif ()
-# Publish the link list so the Windows packaging step can assert it ships a DLL for
-# every toolkit we link, instead of shipping whatever the deps prefix happens to hold.
+# Published for the Windows packaging step in the top-level CMakeLists.txt.
 set(OCCT_LIBS "${OCCT_LIBS}" CACHE INTERNAL "OCCT toolkits linked by libslic3r")
 
 target_link_libraries(libslic3r

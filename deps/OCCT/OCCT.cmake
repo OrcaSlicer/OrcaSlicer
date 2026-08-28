@@ -4,8 +4,9 @@ else()
     set(library_build_type "Static")
 endif()
 
-# The parametric Design/CAD tab is the only consumer of OCCT's ModelingAlgorithms
-# module (fillet/offset/loft). With it OFF the deps prefix matches upstream exactly.
+# SLIC3R_CAD (declared in deps/CMakeLists.txt) builds OCCT's ModelingAlgorithms module
+# (fillet/offset/loft), whose only consumer is the parametric Design/CAD tab. With it OFF
+# the deps prefix matches upstream exactly.
 #
 # With it ON the delta is THREE toolkits, not two: TKFillet (7.40 MiB archive, used via
 # BRepFilletAPI), TKOffset (5.38 MiB, used via BRepOffsetAPI) and TKFeat (4.42 MiB), which
@@ -17,9 +18,6 @@ endif()
 # shipped bytes. The Windows figure is a real DLL cost and has NOT been measured -- an
 # earlier "3.77 MiB, Windows only" note here covered only two of the three toolkits and is
 # not a number to quote. See docs/cad_dependency_weight.md.
-#
-# Must match the SLIC3R_CAD passed to the main project.
-option(SLIC3R_CAD "Build OCCT's ModelingAlgorithms module (required by the Design/CAD tab)" ON)
 
 if (IN_GIT_REPO)
     set(OCCT_DIRECTORY_FLAG --directory ${BINARY_DIR_REL}/dep_OCCT-prefix/src/dep_OCCT)

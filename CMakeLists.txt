@@ -1043,34 +1043,28 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
             ${TOP_LEVEL_PROJECT_DIR}/deps/WebView2/lib/win-${_arch}/WebView2Loader.dll
         DESTINATION ${_out_dir})
 
-    # Copy EVERY OCCT DLL the deps build produced. Do NOT hand-maintain an explicit
-    # list here: it silently drifts from what libslic3r links (src/libslic3r OCCT_LIBS)
-    # and their transitive OCCT deps, yielding a portable/installer that fails at launch
-    # with "OrcaSlicer.dll error 126 (dependency not found)" — e.g. missing TKFillet/
-    # TKOffset/TKBool/TKFeat. Glob everything instead; the built occt/ dir is the one
-    # source of truth. (OCCT is Shared only on Windows — deps/OCCT/OCCT.cmake.)
-    file(GLOB _occt_dlls "${CMAKE_PREFIX_PATH}/bin/occt/*.dll")
-    # The glob degrades silently: it ships whatever the deps prefix holds. That is not the
-    # same as shipping what we link. A deps tree built with BUILD_MODULE_ModelingAlgorithms=OFF
-    # (upstream OrcaSlicer's setting) simply has no TKFillet.dll / TKOffset.dll, so the glob
-    # copies 40 of 42 DLLs, the build succeeds, and the slicer dies at launch with
-    # "error 126 (dependency not found)". The explicit per-file list this replaced failed
-    # the configure instead. Assert the real invariant: every linked toolkit has a DLL.
+    # Stage the OCCT toolkits libslic3r links (published as OCCT_LIBS), not whatever the
+    # deps prefix happens to hold, and fail the configure if one of them is missing.
     if (NOT OCCT_LIBS)
         message(FATAL_ERROR "OCCT_LIBS is not set; libslic3r must be configured first.")
     endif ()
+    set(_occt_bin "${CMAKE_PREFIX_PATH}/bin/occt")
+    set(_occt_dlls "")
+    set(_occt_staged "")
     set(_missing_occt "")
     foreach (_tk IN LISTS OCCT_LIBS)
-        if (NOT EXISTS "${CMAKE_PREFIX_PATH}/bin/occt/${_tk}.dll")
+        if (EXISTS "${_occt_bin}/${_tk}.dll")
+            list(APPEND _occt_dlls "${_occt_bin}/${_tk}.dll")
+            list(APPEND _occt_staged "${_out_dir}/${_tk}.dll")
+        else ()
             list(APPEND _missing_occt "${_tk}.dll")
         endif ()
     endforeach ()
     if (_missing_occt)
         message(FATAL_ERROR
-            "OCCT DLLs missing from ${CMAKE_PREFIX_PATH}/bin/occt/: ${_missing_occt}\n"
-            "Rebuild the dependencies (build_release_vs2022.bat deps). This fork sets "
-            "BUILD_MODULE_ModelingAlgorithms=ON, so a deps tree built from upstream "
-            "OrcaSlicer lacks TKFillet/TKOffset and the slicer would fail at startup.")
+            "OCCT DLLs missing from ${_occt_bin}/: ${_missing_occt}\n"
+            "Rebuild the dependencies (build_release_vs2022.bat deps) with the same "
+            "SLIC3R_CAD setting as this project.")
     endif ()
     file(COPY ${_occt_dlls}
             ${CMAKE_PREFIX_PATH}/bin/freetype.dll
@@ -1083,9 +1077,6 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
 
         ${_out_dir}/freetype.dll
     )
-    # Mirror every OCCT DLL staged above (all OpenCASCADE toolkits are named TK*) into
-    # the install/portable manifest, so this list can never drift from what was copied.
-    file(GLOB _occt_staged "${_out_dir}/TK*.dll")
     list(APPEND _dll_list ${_occt_staged})
     set(${output_dlls} ${_dll_list} PARENT_SCOPE)
 
