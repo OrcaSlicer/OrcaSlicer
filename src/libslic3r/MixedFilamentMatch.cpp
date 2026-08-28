@@ -228,6 +228,27 @@ ColorRGB predicted_swatch_for_mix(const MixedFilament         &mf,
     return yule_nielsen_n3(cols, weights);
 }
 
+std::vector<ColorRGB> preview_filament_colors(
+    const std::vector<ColorRGB> &physicals,
+    const std::string           &mixed_filament_definitions,
+    size_t                       cap)
+{
+    if (physicals.empty())
+        return {};
+
+    std::vector<ColorRGB> out = physicals;
+    if (out.size() >= cap)
+        return std::vector<ColorRGB>(out.begin(), out.begin() + int(cap));
+
+    MixedFilamentManager mgr;
+    mgr.load_definitions(mixed_filament_definitions);
+    for (size_t i = 0; i < mgr.enabled_count() && out.size() < cap; ++i) {
+        const MixedFilament &mf = mgr.mixed_filaments()[i];
+        out.push_back(predicted_swatch_for_mix(mf, physicals));
+    }
+    return out;
+}
+
 MixMatchResult match_printable_mix(const ColorRGB              &target,
                                    const std::vector<ColorRGB> &physicals,
                                    const std::vector<float>    *td,

@@ -79,28 +79,40 @@ static EnforcerBlockerType paint_deserialize_max_ebt(size_t physical_n, size_t p
 
 static std::vector<ColorRGBA> paint_palette_colors(std::vector<std::string> *tooltips, size_t *physical_count)
 {
-    std::vector<ColorRGBA> colors = wxGetApp().plater()->get_extruders_colors();
+    std::vector<ColorRGBA> physical = wxGetApp().plater()->get_extruders_colors();
     if (physical_count)
-        *physical_count = colors.size();
+        *physical_count = physical.size();
     if (tooltips)
-        tooltips->assign(colors.size(), {});
+        tooltips->assign(physical.size(), {});
 
-    const size_t physical_n = colors.size();
+    const size_t physical_n = physical.size();
     if (physical_n == 0)
-        return colors;
+        return physical;
 
-    MixedFilamentManager mgr;
-    mgr.load_definitions(current_mixed_filament_definitions());
-    const std::vector<ColorRGBA> physical = colors;
+    const std::string mixed_defs = current_mixed_filament_definitions();
     std::vector<ColorRGB> physical_rgb;
     physical_rgb.reserve(physical.size());
     for (const ColorRGBA &c : physical)
         physical_rgb.push_back(to_rgb(c));
-    for (size_t i = 0; i < mgr.enabled_count() && colors.size() < GLGizmoMmuSegmentation::EXTRUDERS_LIMIT; ++i) {
-        const MixedFilament &mf = mgr.mixed_filaments()[i];
-        colors.push_back(to_rgba(predicted_swatch_for_mix(mf, physical_rgb)));
-        if (mf.component_c != 0) {
-            if (tooltips) {
+
+    const std::vector<ColorRGB> preview =
+        preview_filament_colors(physical_rgb, mixed_defs, GLGizmoMmuSegmentation::EXTRUDERS_LIMIT);
+
+    MixedFilamentManager mgr;
+    mgr.load_definitions(mixed_defs);
+
+    // Keep physical ColorRGBA (preserve alpha); append only mix YN swatches.
+    std::vector<ColorRGBA> colors;
+    colors.reserve(preview.size());
+    const size_t keep_physical = std::min(physical.size(), preview.size());
+    colors.insert(colors.end(), physical.begin(), physical.begin() + int(keep_physical));
+    for (size_t i = keep_physical; i < preview.size(); ++i)
+        colors.push_back(to_rgba(preview[i]));
+
+    if (tooltips) {
+        for (size_t i = 0; i < mgr.enabled_count() && physical_n + i < colors.size(); ++i) {
+            const MixedFilament &mf = mgr.mixed_filaments()[i];
+            if (mf.component_c != 0) {
                 tooltips->push_back(GUI::format(_L("Mix %1%: T%2%+T%3%+T%4% %5%:%6%:%7%"),
                                                 int(physical_n + i + 1),
                                                 int(mf.component_a - 1),
@@ -109,9 +121,7 @@ static std::vector<ColorRGBA> paint_palette_colors(std::vector<std::string> *too
                                                 mf.ratio_a,
                                                 mf.ratio_b,
                                                 mf.ratio_c));
-            }
-        } else {
-            if (tooltips) {
+            } else {
                 tooltips->push_back(GUI::format(_L("Mix %1%: T%2%+T%3% %4%:%5%"),
                                                 int(physical_n + i + 1),
                                                 int(mf.component_a - 1),

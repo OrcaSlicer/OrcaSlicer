@@ -791,7 +791,7 @@ void ObjColorPanel::deal_thumbnail() {
 void ObjColorPanel::generate_thumbnail()
 {
     if (m_deal_thumbnail_flag && m_obj_in_out.model->objects.size() == 1) {
-        std::vector<Slic3r::ColorRGBA> colors = GUI::wxGetApp().plater()->get_extruders_colors();
+        std::vector<Slic3r::ColorRGBA> colors = GUI::wxGetApp().plater()->get_preview_filament_colors();
         for (size_t i = 0; i < m_new_add_colors.size(); i++) {
             Slic3r::ColorRGBA temp_color;
             temp_color[0] = m_new_add_colors[i].Red() / 255.f;

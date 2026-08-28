@@ -16956,6 +16956,35 @@ std::vector<Slic3r::ColorRGBA> Plater::get_extruders_colors()
     return colors_out;
 }
 
+std::vector<Slic3r::ColorRGBA> Plater::get_preview_filament_colors()
+{
+    const std::vector<ColorRGBA> physical_rgba = get_extruders_colors();
+    std::vector<ColorRGB>        physicals;
+    physicals.reserve(physical_rgba.size());
+    for (const ColorRGBA &c : physical_rgba)
+        physicals.push_back(to_rgb(c));
+
+    std::string mixed_defs;
+    if (PresetBundle *bundle = wxGetApp().preset_bundle) {
+        if (const ConfigOptionString *opt = bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+            mixed_defs = opt->value;
+        if (mixed_defs.empty()) {
+            if (const ConfigOptionString *opt = bundle->prints.get_edited_preset().config.option<ConfigOptionString>("mixed_filament_definitions"))
+                mixed_defs = opt->value;
+        }
+    }
+
+    const std::vector<ColorRGB> preview = preview_filament_colors(physicals, mixed_defs);
+    // Keep physical ColorRGBA (preserve alpha); append only mix YN swatches.
+    std::vector<ColorRGBA> out;
+    out.reserve(preview.size());
+    const size_t keep_physical = std::min(physical_rgba.size(), preview.size());
+    out.insert(out.end(), physical_rgba.begin(), physical_rgba.begin() + int(keep_physical));
+    for (size_t i = keep_physical; i < preview.size(); ++i)
+        out.push_back(to_rgba(preview[i]));
+    return out;
+}
+
 void Plater::on_bed_type_change(BedType bed_type)
 {
     sidebar().on_bed_type_change(bed_type);

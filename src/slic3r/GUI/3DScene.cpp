@@ -9,9 +9,11 @@
 #include "Camera.hpp"
 
 #include "libslic3r/BuildVolume.hpp"
+#include "libslic3r/Color.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Geometry.hpp"
+#include "libslic3r/MixedFilamentMatch.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Slicing.hpp"
@@ -471,7 +473,7 @@ void GLVolume::render()
         return;
 
     ModelObjectPtrs &model_objects = GUI::wxGetApp().model().objects;
-    std::vector<ColorRGBA> colors = GUI::wxGetApp().plater()->get_extruders_colors();
+    std::vector<ColorRGBA> colors = GUI::wxGetApp().plater()->get_preview_filament_colors();
 
     simple_render(shader, model_objects, colors);
 }
@@ -487,7 +489,7 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
         return;
 
     ModelObjectPtrs &model_objects = GUI::wxGetApp().model().objects;
-    std::vector<ColorRGBA> colors = GUI::wxGetApp().plater()->get_extruders_colors();
+    std::vector<ColorRGBA> colors = GUI::wxGetApp().plater()->get_preview_filament_colors();
 
     const GUI::OpenGLManager::EFramebufferType framebuffers_type = GUI::OpenGLManager::get_framebuffers_type();
     if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Unknown) {
@@ -614,10 +616,16 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
             if (shader) {
                 if (idx == 0) {
                     int extruder_id = model_volume->extruder_id();
+                    size_t color_idx = 0;
+                    if (!extruder_colors.empty()) {
+                        const int zero_based = extruder_id - 1;
+                        if (zero_based >= 0 && zero_based < int(extruder_colors.size()))
+                            color_idx = size_t(zero_based);
+                    }
                     //to make black not too hard too see
-                    ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[extruder_id - 1]);
+                    ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[color_idx]);
                     if (ban_light) {
-                        new_color[3] = (255 - (extruder_id - 1))/255.0f;
+                        new_color[3] = (255 - int(color_idx))/255.0f;
                     }
                     m.set_color(new_color);
                     // shader->set_uniform("uniform_color", new_color);
@@ -840,7 +848,7 @@ int GLVolumeCollection::load_wipe_tower_preview(
     if (height == 0.0f)
         height = 0.1f;
 
-    std::vector<ColorRGBA> extruder_colors = GUI::wxGetApp().plater()->get_extruders_colors();
+    std::vector<ColorRGBA> extruder_colors = GUI::wxGetApp().plater()->get_preview_filament_colors();
     std::vector<ColorRGBA> colors;
     GUI::PartPlateList& ppl = GUI::wxGetApp().plater()->get_partplate_list();
     std::vector<int> plate_extruders = ppl.get_plate(plate_idx)->get_extruders(true);
@@ -882,7 +890,7 @@ int GLVolumeCollection::load_real_wipe_tower_preview(
     int plate_idx = obj_idx - 1000;
     if (wt_mesh.its.vertices.empty()) return int(this->volumes.size() - 1);
 
-    std::vector<Slic3r::ColorRGBA> extruder_colors = GUI::wxGetApp().plater()->get_extruders_colors();
+    std::vector<Slic3r::ColorRGBA> extruder_colors = GUI::wxGetApp().plater()->get_preview_filament_colors();
     GUI::PartPlateList               &ppl              = GUI::wxGetApp().plater()->get_partplate_list();
     std::vector<int>                  plate_extruders  = ppl.get_plate(plate_idx)->get_extruders(true);
     std::vector<Slic3r::ColorRGBA>    colors;
@@ -1526,6 +1534,29 @@ void GLVolumeCollection::update_colors_by_extruder(const DynamicPrintConfig *con
             if (decode_color(fil_color, rgba))
                 colors[i] = { fil_color, rgba };
         }
+
+        std::string mixed_defs;
+        if (const ConfigOptionString *opt = config->option<ConfigOptionString>("mixed_filament_definitions"))
+            mixed_defs = opt->value;
+        if (mixed_defs.empty()) {
+            if (PresetBundle *bundle = GUI::wxGetApp().preset_bundle) {
+                if (const ConfigOptionString *opt = bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+                    mixed_defs = opt->value;
+                if (mixed_defs.empty()) {
+                    if (const ConfigOptionString *opt = bundle->prints.get_edited_preset().config.option<ConfigOptionString>("mixed_filament_definitions"))
+                        mixed_defs = opt->value;
+                }
+            }
+        }
+
+        std::vector<ColorRGB> physicals;
+        physicals.reserve(colors.size());
+        for (const ColorItem &item : colors)
+            physicals.push_back(to_rgb(item.second));
+        const std::vector<ColorRGB> preview = preview_filament_colors(physicals, mixed_defs);
+        colors.resize(preview.size());
+        for (size_t i = physicals.size(); i < preview.size(); ++i)
+            colors[i] = { encode_color(to_rgba(preview[i])), to_rgba(preview[i]) };
     }
 
     for (GLVolume* volume : volumes) {

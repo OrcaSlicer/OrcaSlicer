@@ -34,4 +34,12 @@ ColorRGB predicted_swatch_for_mix(const MixedFilament          &mf,
                                   const std::vector<ColorRGB>  &physicals,
                                   const std::vector<float>     *td = nullptr);
 
+// physicals in order (1-based IDs 1..n), then one YN swatch per enabled mix
+// (same order as MixedFilamentManager virtual IDs). Cap total length at 16
+// (Color Painting EXTRUDERS_LIMIT). Disabled rows are not in the manager.
+std::vector<ColorRGB> preview_filament_colors(
+    const std::vector<ColorRGB> &physicals,
+    const std::string           &mixed_filament_definitions,
+    size_t                       cap = 16);
+
 } // namespace Slic3r

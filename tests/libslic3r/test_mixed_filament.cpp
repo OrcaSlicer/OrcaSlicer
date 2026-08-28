@@ -703,3 +703,75 @@ TEST_CASE("Match 0 or 1 physical does not crash", "[MixedFilamentMatch]")
     REQUIRE(other.valid);
     REQUIRE(other.kind == MixMatchResult::Kind::Physical);
 }
+
+TEST_CASE("Preview colors append one YN mix after physicals", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    const std::vector<ColorRGB> out  = preview_filament_colors(phys, "1,2,1,1,1");
+    REQUIRE(out.size() == 5);
+    REQUIRE(out[0] == phys[0]);
+
+    MixedFilament pair;
+    pair.component_a = 1;
+    pair.component_b = 2;
+    pair.ratio_a     = 1;
+    pair.ratio_b     = 1;
+    pair.enabled     = true;
+    REQUIRE(out[4] == predicted_swatch_for_mix(pair, phys));
+    REQUIRE(out[4] != out[0]);
+}
+
+TEST_CASE("Preview colors empty mix string equals physicals", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    const std::vector<ColorRGB> out  = preview_filament_colors(phys, "");
+    REQUIRE(out.size() == 4);
+    REQUIRE(out == phys);
+}
+
+TEST_CASE("Preview colors drop disabled mix rows", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    const std::vector<ColorRGB> out  = preview_filament_colors(phys, "1,2,0,1,1");
+    REQUIRE(out.size() == 4);
+    REQUIRE(out == phys);
+}
+
+TEST_CASE("Preview colors 3-component mix is not a first-component clone", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    const std::vector<ColorRGB> out  = preview_filament_colors(phys, "1,2,1,1,1,c3,rc1");
+    REQUIRE(out.size() == 5);
+
+    MixedFilament triple;
+    triple.component_a = 1;
+    triple.component_b = 2;
+    triple.component_c = 3;
+    triple.ratio_a     = 1;
+    triple.ratio_b     = 1;
+    triple.ratio_c     = 1;
+    triple.enabled     = true;
+    REQUIRE(out[4] == predicted_swatch_for_mix(triple, phys));
+    REQUIRE(out[4] != phys[0]);
+    REQUIRE(out[4] != phys[1]);
+    REQUIRE(out[4] != phys[2]);
+}
+
+TEST_CASE("Preview colors cap at 16 total", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    std::string defs;
+    for (int i = 0; i < 12; ++i) {
+        if (!defs.empty())
+            defs += ';';
+        defs += "1,2,1,1,1";
+    }
+    const std::vector<ColorRGB> out = preview_filament_colors(phys, defs);
+    REQUIRE(out.size() == 16);
+}
+
+TEST_CASE("Preview colors empty physicals is empty", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> out = preview_filament_colors({}, "1,2,1,1,1");
+    REQUIRE(out.empty());
+}
