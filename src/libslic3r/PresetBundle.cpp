@@ -1305,6 +1305,9 @@ bool PresetBundle::reload_local_bundle(const std::string& preset_folder, const s
         install_target(prints, staged.prints);
         install_target(filaments, staged.filaments);
         install_target(printers, staged.printers);
+        prints.update_map_alias_to_profile_name();
+        filaments.update_map_alias_to_profile_name();
+        printers.update_map_alias_to_profile_name();
         update_multi_material_filament_presets();
         update_compatible(PresetSelectCompatibleType::Never);
         restore_selection(prints, print_selection);

@@ -247,6 +247,11 @@ TEST_CASE("Reloading one local bundle preserves unrelated and modified presets",
     CHECK_FALSE(target->is_user());
     REQUIRE(bundle.filaments.find_preset(std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Filament") != nullptr);
     REQUIRE(bundle.printers.find_preset(std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Printer") != nullptr);
+    CHECK(bundle.prints.get_preset_name_by_alias("Managed Print") == target_name);
+    CHECK(bundle.filaments.get_preset_name_by_alias("Managed Filament") ==
+          std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Filament");
+    CHECK(bundle.printers.get_preset_name_by_alias("Managed Printer") ==
+          std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Printer");
 
     Preset& unrelated = add_inmemory_preset(bundle.prints, "Unrelated Process");
     bundle.prints.select_preset_by_name(unrelated.name, true);
