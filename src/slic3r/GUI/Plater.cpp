@@ -11694,6 +11694,8 @@ void Plater::priv::take_snapshot(const std::string& snapshot_name, const UndoRed
         this->undo_redo_stack().clear();
         m_spectrum_map_undo = SpectrumMapUndoRecord{};
     }
+    if (m_undo_redo_stack_active == &m_undo_redo_stack_main)
+        spectrum_map_undo_drop_if_rewritten(m_spectrum_map_undo, this->undo_redo_stack().active_snapshot_time());
     this->undo_redo_stack().take_snapshot(snapshot_name, model, get_current_canvas3D()->get_canvas_type() == GLCanvas3D::CanvasAssembleView ? assemble_view->get_canvas3d()->get_selection() : view3D->get_canvas3d()->get_selection(), gizmos, partplate_list, snapshot_data);
     if (snapshot_type == UndoRedo::SnapshotType::LeavingGizmoWithAction) {
         // Filter all but the last UndoRedo::SnapshotType::GizmoAction in a row between the last UndoRedo::SnapshotType::EnteringGizmo and UndoRedo::SnapshotType::LeavingGizmoWithAction.
@@ -11893,7 +11895,7 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
             }
         }
         // Restore Map side-record keys with the loaded model snapshot (wipe-tower analogue).
-        if (m_spectrum_map_undo.active) {
+        if (m_undo_redo_stack_active == &m_undo_redo_stack_main && m_spectrum_map_undo.active) {
             PresetBundle *bundle = wxGetApp().preset_bundle;
             if (bundle != nullptr) {
                 const SpectrumMapUndoKeys &keys =
@@ -12542,7 +12544,7 @@ void Plater::map_painted_colors_to_cmyk_mixes()
     if (ts_after != ts_before) {
         SpectrumMapUndoRecord rec;
         rec.active                 = true;
-        rec.map_snapshot_timestamp = ts_after;
+        rec.map_snapshot_timestamp = ts_before;
         rec.pre                    = std::move(pre_keys);
         rec.post.mapped            = true;
         rec.post.mixed_filament_definitions = plan.mixed_filament_definitions;

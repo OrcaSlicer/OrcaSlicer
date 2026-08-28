@@ -58,6 +58,14 @@ inline const SpectrumMapUndoKeys &spectrum_map_undo_pick(const SpectrumMapUndoRe
     return spectrum_map_undo_is_post(record, target_timestamp) ? record.post : record.pre;
 }
 
+// Deactivate when a new main-stack snapshot is taken at or before the named Map time
+// (Undo-of-Map + new edit rewrites the Map redo branch).
+inline void spectrum_map_undo_drop_if_rewritten(SpectrumMapUndoRecord &record, size_t active_time_before_new_snapshot)
+{
+    if (record.active && active_time_before_new_snapshot <= record.map_snapshot_timestamp)
+        record.active = false;
+}
+
 // Apply mapped + mix-def onto project config; optionally print preset mix defs too.
 // Returns true if any key value changed.
 bool apply_spectrum_map_keys(DynamicPrintConfig             &project_config,

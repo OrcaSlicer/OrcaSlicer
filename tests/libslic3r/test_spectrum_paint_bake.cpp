@@ -520,6 +520,7 @@ TEST_CASE("mix_base 6 with 4 Panchroma first Mix dest is 7", "[spectrum_paint_ba
 
 TEST_CASE("spectrum map undo record pick and apply_keys round-trip", "[spectrum_paint_bake]")
 {
+    // Timestamp 100 is the named Map snapshot; unnamed topmost after Map is 101.
     SpectrumMapUndoRecord rec;
     rec.active                 = true;
     rec.map_snapshot_timestamp = 100;
@@ -530,6 +531,7 @@ TEST_CASE("spectrum map undo record pick and apply_keys round-trip", "[spectrum_
 
     REQUIRE_FALSE(spectrum_map_undo_is_post(rec, 100));
     REQUIRE_FALSE(spectrum_map_undo_is_post(rec, 50));
+    // Named Map 100 + unnamed topmost 101: post keys apply after the named Map time.
     REQUIRE(spectrum_map_undo_is_post(rec, 101));
 
     const SpectrumMapUndoKeys &at_map = spectrum_map_undo_pick(rec, 100);
@@ -565,4 +567,22 @@ TEST_CASE("spectrum map undo record pick and apply_keys round-trip", "[spectrum_
     CHECK(print_mix2->value.empty());
 
     REQUIRE_FALSE(apply_spectrum_map_keys(project, rec.pre, &print_cfg));
+}
+
+TEST_CASE("spectrum map undo drop_if_rewritten", "[spectrum_paint_bake]")
+{
+    SpectrumMapUndoRecord rec;
+    rec.active                 = true;
+    rec.map_snapshot_timestamp = 100;
+
+    spectrum_map_undo_drop_if_rewritten(rec, 100);
+    REQUIRE_FALSE(rec.active);
+
+    rec.active = true;
+    spectrum_map_undo_drop_if_rewritten(rec, 50);
+    REQUIRE_FALSE(rec.active);
+
+    rec.active = true;
+    spectrum_map_undo_drop_if_rewritten(rec, 101);
+    REQUIRE(rec.active);
 }
