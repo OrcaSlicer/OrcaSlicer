@@ -6,7 +6,10 @@ if(DEFINED OPENSSL_ARCH)
     set(_cross_arch ${OPENSSL_ARCH})
 else()
     if(WIN32)
-        if("${CMAKE_GENERATOR_PLATFORM}" STREQUAL "ARM64")
+        # CMAKE_GENERATOR_PLATFORM is only set by -A, which Ninja never receives,
+        # so fall back to the processor when the generator did not name a platform.
+        if("${CMAKE_GENERATOR_PLATFORM}" STREQUAL "ARM64"
+           OR (NOT CMAKE_GENERATOR_PLATFORM AND CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|arm64|aarch64"))
             set(_cross_arch "VC-WIN64-ARM")
         else()
             set(_cross_arch "VC-WIN64A")
