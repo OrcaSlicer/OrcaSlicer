@@ -383,6 +383,13 @@ jobs:
         if: runner.os == 'Windows'
         uses: microsoft/setup-msbuild@v3
 
+      - name: Set up the VC environment (Windows, Ninja)
+        # MSBuild hands its own build steps a VC environment; Ninja does not.
+        if: runner.os == 'Windows' && inputs.compiler == 'clang'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ inputs.arch == 'arm64' && 'arm64' || 'amd64' }}
+
       - name: Install nsis
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
         run: |

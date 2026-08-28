@@ -75,6 +75,14 @@ jobs:
         if: runner.os == 'Windows'
         uses: microsoft/setup-msbuild@v3
 
+      - name: Set up the VC environment (Windows, Ninja)
+        # MSBuild hands its own build steps a VC environment; Ninja does not,
+        # and OpenSSL's nmake needs one.
+        if: runner.os == 'Windows' && inputs.compiler == 'clang'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ inputs.arch == 'arm64' && 'arm64' || 'amd64' }}
+
       - name: Get the date on Ubuntu and macOS
         if: runner.os != 'Windows'
         run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
