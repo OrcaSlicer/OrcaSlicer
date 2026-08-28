@@ -114,7 +114,6 @@ bool AMSinfo::parse_ams_info(MachineObject *obj, DevAms *ams, bool remain_flag, 
                 info.ctype = 0;
                 info.material_colour = AMS_TRAY_DEFAULT_COL;
                 info.material_state = AMSCanType::AMS_CAN_TYPE_THIRDBRAND;
-                wxColour(255, 255, 255);
             }
 
             if (it->second->is_tray_info_ready() && obj->cali_version >= 0) {
@@ -171,7 +170,6 @@ void AMSinfo::parse_ext_info(MachineObject* obj, DevAmsTray tray) {
         info.filament_id = "";
         info.ctype = 0;
         info.material_colour = AMS_TRAY_DEFAULT_COL;
-        wxColour(255, 255, 255);
     }
     info.material_state = AMSCanType::AMS_CAN_TYPE_VIRTUAL;
     if (tray.is_tray_info_ready() && obj->cali_version >= 0) {
