@@ -368,6 +368,12 @@ if (MSVC)
     # needed while we are on C++17. clang-cl is conforming already and does not take
     # the flag. Requires VS2019 16.8 or newer.
     if (NOT IS_CLANG_CL)
+        # cl.exe only warns (D9002) about an unknown /Zc: option, so without this the
+        # flag would be dropped and the first lambda reading a constexpr constant would
+        # fail with C3493 far from the cause.
+        if (MSVC_VERSION LESS 1928)
+            message(FATAL_ERROR "Visual Studio 2019 16.8 (MSVC 19.28) or newer is required; detected MSVC ${MSVC_VERSION}.")
+        endif ()
         add_compile_options(/Zc:lambda)
     endif ()
     # /bigobj (Increase Number of Sections in .Obj file)
