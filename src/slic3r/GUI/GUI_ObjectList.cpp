@@ -289,7 +289,20 @@ ObjectList::ObjectList(wxWindow* parent) :
 
         for (int i = 1; i < 10; i++)
             this->Bind(wxEVT_MENU, [this, i](wxCommandEvent &evt) {
-                if (filaments_count() > 1 && i <= filaments_count())
+                if (filaments_count() <= 1)
+                    return;
+                size_t max_id = size_t(filaments_count());
+                if (PresetBundle *bundle = wxGetApp().preset_bundle) {
+                    std::string mixed_defs;
+                    if (const ConfigOptionString *opt = bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+                        mixed_defs = opt->value;
+                    if (mixed_defs.empty()) {
+                        if (const ConfigOptionString *opt = bundle->prints.get_edited_preset().config.option<ConfigOptionString>("mixed_filament_definitions"))
+                            mixed_defs = opt->value;
+                    }
+                    max_id = MixedFilamentManager::max_filament_id(mixed_defs, size_t(filaments_count()));
+                }
+                if (size_t(i) <= max_id)
                     this->set_extruder_for_selected_items(i);
             }, wxID_LAST+i);
 
@@ -771,27 +784,42 @@ void ObjectList::update_filament_values_for_items(const size_t filaments_count)
             if (object->config.has(key) && object->config.opt_int(key) > max_filament_id)
                 object->config.erase(key);
 
-        if (object->volumes.size() > 1) {
-            for (size_t id = 0; id < object->volumes.size(); id++) {
-                item = m_objects_model->GetItemByVolumeId(i, id);
-                if (!item) continue;
-                if (!object->volumes[id]->config.has("extruder") ||
-                    size_t(object->volumes[id]->config.extruder()) > max_filament_id) {
-                    extruder = wxString::Format("%d", object->config.extruder());
-                    // Clear the stale per-volume assignment so it falls back to the object's
-                    // extruder; otherwise the out-of-range index survives. Ported from
-                    // BambuStudio (STUDIO-15763).
-                    object->volumes[id]->config.erase("extruder");
-                }
-                else {
-                    extruder = wxString::Format("%d", object->volumes[id]->config.extruder());
-                }
+        // Every volume (including single-volume objects): illegal leftover Mix IDs
+        // must clear so the column matches Model.cpp spectrum_volume_extruder_keep.
+        for (size_t id = 0; id < object->volumes.size(); id++) {
+            item = m_objects_model->GetItemByVolumeId(i, id);
+            const int vol_extruder = object->volumes[id]->config.has("extruder")
+                                         ? object->volumes[id]->config.extruder()
+                                         : 0;
+            if (!spectrum_volume_extruder_keep(vol_extruder, filaments_count, max_filament_id)) {
+                object->volumes[id]->config.erase("extruder");
+                // Fall back to object extruder for the column digit.
+                extruder = wxString::Format("%d", object->config.extruder());
+            } else if (object->volumes[id]->config.has("extruder")) {
+                extruder = wxString::Format("%d", object->volumes[id]->config.extruder());
+            } else {
+                extruder = wxString::Format("%d", object->config.extruder());
+            }
 
+            if (item)
                 m_objects_model->SetExtruder(extruder, item);
 
-                for (auto key : keys)
-                    if (object->volumes[id]->config.has(key) && object->volumes[id]->config.opt_int(key) > filaments_count)
-                        object->volumes[id]->config.erase(key);
+            for (auto key : keys)
+                if (object->volumes[id]->config.has(key) && object->volumes[id]->config.opt_int(key) > filaments_count)
+                    object->volumes[id]->config.erase(key);
+        }
+
+        // Refresh object column after volume erase (inherit may still be illegal).
+        {
+            wxDataViewItem obj_item = m_objects_model->GetItemById(i);
+            if (obj_item) {
+                if (!object->config.has("extruder") ||
+                    !spectrum_volume_extruder_keep(object->config.extruder(), filaments_count, max_filament_id)) {
+                    object->config.set_key_value("extruder", new ConfigOptionInt(1));
+                    m_objects_model->SetExtruder("1", obj_item);
+                } else {
+                    m_objects_model->SetExtruder(wxString::Format("%d", object->config.extruder()), obj_item);
+                }
             }
         }
     }
@@ -1701,7 +1729,11 @@ void ObjectList::extruder_editing()
 
     apply_extruder_selector(&m_extruder_editor, this, "1", pos, size);
 
-    m_extruder_editor->SetSelection(m_objects_model->GetExtruderNumber(item));
+    // ObjectList combo has no default row: selection k → id k+1.
+    {
+        const int extruder_id = m_objects_model->GetExtruderNumber(item);
+        m_extruder_editor->SetSelection(extruder_id > 0 ? extruder_id - 1 : 0);
+    }
     m_extruder_editor->Show();
 
     auto set_extruder = [this]()
@@ -1710,8 +1742,11 @@ void ObjectList::extruder_editing()
         if (!item) return;
 
         const int selection = m_extruder_editor->GetSelection();
-        if (selection >= 0)
-            m_objects_model->SetExtruder(m_extruder_editor->GetString(selection), item);
+        if (selection >= 0) {
+            // Never atoi the Mix recipe display string — store digit "N".
+            const int filament_id = selection + 1;
+            m_objects_model->SetExtruder(wxString::Format("%d", filament_id), item);
+        }
 
         m_extruder_editor->Hide();
         update_filament_in_config(item);
@@ -1843,8 +1878,19 @@ void ObjectList::key_event(wxKeyEvent& event)
         wxChar key_char = event.GetUnicodeKey();
         if (std::find(numbers.begin(), numbers.end(), key_char) != numbers.end()) {
             long extruder_number;
+            size_t max_id = size_t(filaments_count());
+            if (PresetBundle *bundle = wxGetApp().preset_bundle) {
+                std::string mixed_defs;
+                if (const ConfigOptionString *opt = bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+                    mixed_defs = opt->value;
+                if (mixed_defs.empty()) {
+                    if (const ConfigOptionString *opt = bundle->prints.get_edited_preset().config.option<ConfigOptionString>("mixed_filament_definitions"))
+                        mixed_defs = opt->value;
+                }
+                max_id = MixedFilamentManager::max_filament_id(mixed_defs, size_t(filaments_count()));
+            }
             if (wxNumberFormatter::FromString(wxString(key_char), &extruder_number) &&
-                filaments_count() >= extruder_number)
+                size_t(extruder_number) <= max_id)
                 set_extruder_for_selected_items(int(extruder_number));
         }
         else

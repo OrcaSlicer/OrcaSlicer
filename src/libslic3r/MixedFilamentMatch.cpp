@@ -268,6 +268,11 @@ std::string mix_recipe_label(const MixedFilament &mf, const std::vector<std::str
     return oss.str();
 }
 
+std::string mix_surface_label(int id_1based, const MixedFilament &mf, const std::vector<std::string> *slot_names)
+{
+    return "Mix " + std::to_string(id_1based) + "  " + mix_recipe_label(mf, slot_names);
+}
+
 namespace {
 
 int mix_min_component_share_percent(const MixedFilament &mf)

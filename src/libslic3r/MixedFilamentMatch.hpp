@@ -39,6 +39,10 @@ std::vector<MixMatchResult> match_printable_candidates(
 // Pair "A+B ra:rb" / triple "A+B+C ra:rb:rc". Names by 1-based id when provided; else digits.
 std::string mix_recipe_label(const MixedFilament &mf, const std::vector<std::string> *slot_names = nullptr);
 
+// "Mix 5  C+Y 2:1" / "Mix 5  1+3 2:1". Prefix + mix_recipe_label. English Catch2 contract (no wx).
+std::string mix_surface_label(int id_1based, const MixedFilament &mf,
+                              const std::vector<std::string> *slot_names = nullptr);
+
 // Trim, optional '#', 6 or 8 hex digits → "#RRGGBB" / "#RRGGBBFF". Empty if invalid.
 std::string normalize_mix_match_hex(const std::string &text);
 

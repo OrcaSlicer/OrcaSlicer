@@ -1,9 +1,15 @@
 #include "ExtraRenderers.hpp"
 #include "wxExtensions.hpp"
 #include "GUI.hpp"
+#include "GUI_App.hpp"
+#include "I18N.hpp"
 #include "BitmapComboBox.hpp"
 #include "Plater.hpp"
 #include "Widgets/ComboBox.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/MixedFilament.hpp"
+#include "libslic3r/MixedFilamentMatch.hpp"
+#include "libslic3r/PresetBundle.hpp"
 
 #include <wx/dc.h>
 #ifdef wxHAS_GENERIC_DATAVIEWCTRL
@@ -312,14 +318,53 @@ wxWindow* BitmapChoiceRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelR
         labelRect.GetTopLeft(), wxSize(labelRect.GetWidth(), -1),
         0, nullptr, wxCB_READONLY | CB_NO_DROP_ICON | CB_NO_TEXT);
     c_editor->GetDropDown().SetUseContentWidth(true);
-       
-    if (has_default_extruder && has_default_extruder())
+
+    const bool with_default = has_default_extruder && has_default_extruder();
+    if (with_default)
         c_editor->Append(_L("default"), *get_default_extruder_color_icon());
 
     for (size_t i = 0; i < icons.size(); i++)
-        c_editor->Append(wxString::Format("%d", i+1), *icons[i]);
+        c_editor->Append(wxString::Format("%d", i + 1), *icons[i]);
 
-    if (has_default_extruder && has_default_extruder())
+    // Mix rows after physical icons (Sidebar icons stay physical-only).
+    {
+        const size_t physical_n = icons.size();
+        std::string  mixed_defs;
+        if (Slic3r::PresetBundle *bundle = Slic3r::GUI::wxGetApp().preset_bundle) {
+            if (const Slic3r::ConfigOptionString *opt = bundle->project_config.option<Slic3r::ConfigOptionString>("mixed_filament_definitions"))
+                mixed_defs = opt->value;
+            if (mixed_defs.empty()) {
+                if (const Slic3r::ConfigOptionString *opt = bundle->prints.get_edited_preset().config.option<Slic3r::ConfigOptionString>("mixed_filament_definitions"))
+                    mixed_defs = opt->value;
+            }
+        }
+        Slic3r::MixedFilamentManager mgr;
+        mgr.load_definitions(mixed_defs);
+        if (mgr.enabled_count() > 0 && physical_n > 0) {
+            std::vector<Slic3r::ColorRGB> physicals;
+            physicals.reserve(physical_n);
+            for (const Slic3r::ColorRGBA &c : Slic3r::GUI::wxGetApp().plater()->get_extruders_colors())
+                physicals.push_back(Slic3r::to_rgb(c));
+            if (physicals.size() > physical_n)
+                physicals.resize(physical_n);
+
+            const std::vector<std::string> names_cmyk{"C", "M", "Y", "K"};
+            const std::vector<std::string> *slot_names = (physical_n == 4) ? &names_cmyk : nullptr;
+            const double em          = Slic3r::GUI::wxGetApp().em_unit();
+            const int    icon_width  = lround(4.4 * em);
+            const int    icon_height = lround(2 * em);
+            for (size_t i = 0; i < mgr.enabled_count(); ++i) {
+                const Slic3r::MixedFilament &mf     = mgr.mixed_filaments()[i];
+                const int                   id     = int(physical_n + i + 1);
+                const Slic3r::ColorRGB      yn     = Slic3r::predicted_swatch_for_mix(mf, physicals);
+                wxBitmap *                  icon   = get_extruder_color_icon(Slic3r::encode_color(yn), std::to_string(id), icon_width, icon_height);
+                const wxString              recipe = wxString::FromUTF8(Slic3r::mix_recipe_label(mf, slot_names).c_str());
+                c_editor->Append(wxString::Format(_L("Mix %d  %s"), id, recipe), icon ? *icon : wxNullBitmap);
+            }
+        }
+    }
+
+    if (with_default)
         c_editor->SetSelection(atoi(data.GetText().c_str()));
     else
         c_editor->SetSelection(atoi(data.GetText().c_str()) - 1);
@@ -359,10 +404,13 @@ bool BitmapChoiceRenderer::GetValueFromEditorCtrl(wxWindow* ctrl, wxVariant& val
     int selection = c->GetSelection();
     if (selection < 0)
         return false;
-   
-    DataViewBitmapText bmpText;
 
-    bmpText.SetText(c->GetString(selection));
+    // Never atoi the recipe display string — map combo index → filament id digit.
+    const bool with_default = has_default_extruder && has_default_extruder();
+    const int  filament_id  = with_default ? selection : (selection + 1);
+
+    DataViewBitmapText bmpText;
+    bmpText.SetText(wxString::Format("%d", filament_id));
     bmpText.SetBitmap(c->GetItemBitmap(selection));
 
     value << bmpText;

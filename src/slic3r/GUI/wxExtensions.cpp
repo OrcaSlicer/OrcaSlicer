@@ -20,6 +20,10 @@
 #include "../Utils/WxFontUtils.hpp"
 #include "FilamentBitmapUtils.hpp"
 #include "../Utils/ColorSpaceConvert.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/MixedFilament.hpp"
+#include "libslic3r/MixedFilamentMatch.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #ifndef __linux__
 // msw_menuitem_bitmaps is used for MSW and OSX
 static std::map<int, std::string> msw_menuitem_bitmaps;
@@ -806,19 +810,60 @@ void apply_extruder_selector(Slic3r::GUI::BitmapComboBox** ctrl,
     // For ObjectList we use short extruder name (just a number)
     const bool use_full_item_name = dynamic_cast<Slic3r::GUI::ObjectList*>(parent) == nullptr;
 
-    int i = 0;
-    wxString str = _(L("Extruder"));
-    for (wxBitmap* bmp : icons) {
-        if (i == 0) {
-            if (!first_item.empty())
-                (*ctrl)->Append(_(first_item), *bmp);
+    if (!use_full_item_name) {
+        // ObjectList: digit labels for physicals, then Mix recipe rows. Index k → id k+1.
+        int i = 1;
+        for (wxBitmap *bmp : icons) {
+            (*ctrl)->Append(wxString::Format("%d", i), *bmp);
             ++i;
         }
+        const size_t physical_n = icons.size();
+        std::string  mixed_defs;
+        if (Slic3r::PresetBundle *bundle = Slic3r::GUI::wxGetApp().preset_bundle) {
+            if (const Slic3r::ConfigOptionString *opt = bundle->project_config.option<Slic3r::ConfigOptionString>("mixed_filament_definitions"))
+                mixed_defs = opt->value;
+            if (mixed_defs.empty()) {
+                if (const Slic3r::ConfigOptionString *opt = bundle->prints.get_edited_preset().config.option<Slic3r::ConfigOptionString>("mixed_filament_definitions"))
+                    mixed_defs = opt->value;
+            }
+        }
+        Slic3r::MixedFilamentManager mgr;
+        mgr.load_definitions(mixed_defs);
+        if (mgr.enabled_count() > 0 && physical_n > 0) {
+            std::vector<Slic3r::ColorRGB> physicals;
+            physicals.reserve(physical_n);
+            for (const Slic3r::ColorRGBA &c : Slic3r::GUI::wxGetApp().plater()->get_extruders_colors())
+                physicals.push_back(Slic3r::to_rgb(c));
+            if (physicals.size() > physical_n)
+                physicals.resize(physical_n);
 
-        (*ctrl)->Append(use_full_item_name
-                        ? Slic3r::GUI::from_u8((boost::format("%1% %2%") % str % i).str())
-                        : wxString::Format("%d", i), *bmp);
-        ++i;
+            const std::vector<std::string> names_cmyk{"C", "M", "Y", "K"};
+            const std::vector<std::string> *slot_names = (physical_n == 4) ? &names_cmyk : nullptr;
+            const double em          = Slic3r::GUI::wxGetApp().em_unit();
+            const int    icon_width  = lround(4.4 * em);
+            const int    icon_height = lround(2 * em);
+            for (size_t mi = 0; mi < mgr.enabled_count(); ++mi) {
+                const Slic3r::MixedFilament &mf     = mgr.mixed_filaments()[mi];
+                const int                    id     = int(physical_n + mi + 1);
+                const Slic3r::ColorRGB       yn     = Slic3r::predicted_swatch_for_mix(mf, physicals);
+                wxBitmap *                   icon   = get_extruder_color_icon(Slic3r::encode_color(yn), std::to_string(id), icon_width, icon_height);
+                const wxString               recipe = wxString::FromUTF8(Slic3r::mix_recipe_label(mf, slot_names).c_str());
+                (*ctrl)->Append(wxString::Format(_L("Mix %d  %s"), id, recipe), icon ? *icon : wxNullBitmap);
+            }
+        }
+    } else {
+        int i = 0;
+        wxString str = _(L("Extruder"));
+        for (wxBitmap* bmp : icons) {
+            if (i == 0) {
+                if (!first_item.empty())
+                    (*ctrl)->Append(_(first_item), *bmp);
+                ++i;
+            }
+
+            (*ctrl)->Append(Slic3r::GUI::from_u8((boost::format("%1% %2%") % str % i).str()), *bmp);
+            ++i;
+        }
     }
     (*ctrl)->SetSelection(0);
 }

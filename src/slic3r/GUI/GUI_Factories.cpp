@@ -1,6 +1,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/MixedFilament.hpp"
+#include "libslic3r/MixedFilamentMatch.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
 
@@ -74,7 +75,16 @@ static wxString filament_menu_item_name(int id_1based, int physical_count)
             return wxString::Format(_L("Filament %d"), id_1based);
         return from_u8(preset->label(false));
     }
-    return wxString::Format(_L("Mix %d"), id_1based);
+    MixedFilamentManager mgr;
+    mgr.load_definitions(mixed_filament_definitions_serialized());
+    const int mix_idx = id_1based - physical_count - 1;
+    if (mix_idx < 0 || size_t(mix_idx) >= mgr.enabled_count())
+        return wxString::Format(_L("Mix %d"), id_1based);
+    const MixedFilament &mf = mgr.mixed_filaments()[size_t(mix_idx)];
+    const std::vector<std::string> names_cmyk{"C", "M", "Y", "K"};
+    const std::vector<std::string> *slot_names = (physical_count == 4) ? &names_cmyk : nullptr;
+    const wxString recipe = wxString::FromUTF8(mix_recipe_label(mf, slot_names).c_str());
+    return wxString::Format(_L("Mix %d  %s"), id_1based, recipe);
 }
 
 static bool is_improper_category(const std::string& category, const int filaments_cnt, const bool is_object_settings = true)

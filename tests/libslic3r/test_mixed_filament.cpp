@@ -800,6 +800,18 @@ TEST_CASE("mix_recipe_label pair and triple with names or digits", "[MixedFilame
     REQUIRE(named.find("1:1:2") != std::string::npos);
 }
 
+TEST_CASE("mix_surface_label named and unnamed", "[MixedFilamentMatch]")
+{
+    const std::vector<std::string> names{"C", "M", "Y", "K"};
+    MixedFilament                  pair;
+    pair.component_a = 1;
+    pair.component_b = 2;
+    pair.ratio_a     = 1;
+    pair.ratio_b     = 1;
+    REQUIRE(mix_surface_label(5, pair, &names) == "Mix 5  C+M 1:1");
+    REQUIRE(mix_surface_label(5, pair, nullptr) == "Mix 5  1+2 1:1");
+}
+
 namespace {
 
 bool same_match_result(const MixMatchResult &a, const MixMatchResult &b)

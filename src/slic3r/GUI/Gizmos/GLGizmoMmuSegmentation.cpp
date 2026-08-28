@@ -110,25 +110,16 @@ static std::vector<ColorRGBA> paint_palette_colors(std::vector<std::string> *too
         colors.push_back(to_rgba(preview[i]));
 
     if (tooltips) {
+        const std::vector<std::string> names_cmyk{"C", "M", "Y", "K"};
+        const std::vector<std::string> *slot_names = (physical_n == 4) ? &names_cmyk : nullptr;
         for (size_t i = 0; i < mgr.enabled_count() && physical_n + i < colors.size(); ++i) {
-            const MixedFilament &mf = mgr.mixed_filaments()[i];
-            if (mf.component_c != 0) {
-                tooltips->push_back(GUI::format(_L("Mix %1%: T%2%+T%3%+T%4% %5%:%6%:%7%"),
-                                                int(physical_n + i + 1),
-                                                int(mf.component_a - 1),
-                                                int(mf.component_b - 1),
-                                                int(mf.component_c - 1),
-                                                mf.ratio_a,
-                                                mf.ratio_b,
-                                                mf.ratio_c));
-            } else {
-                tooltips->push_back(GUI::format(_L("Mix %1%: T%2%+T%3% %4%:%5%"),
-                                                int(physical_n + i + 1),
-                                                int(mf.component_a - 1),
-                                                int(mf.component_b - 1),
-                                                mf.ratio_a,
-                                                mf.ratio_b));
-            }
+            const MixedFilament &mf  = mgr.mixed_filaments()[i];
+            const int            id  = int(physical_n + i + 1);
+            const std::string    recipe = mix_recipe_label(mf, slot_names);
+            std::string tip = GUI::format(_L("Mix %1%  %2%"), id, recipe);
+            if (id <= 9)
+                tip += GUI::format(_L(" · Shortcut Key %1%"), id);
+            tooltips->push_back(std::move(tip));
         }
     }
     return colors;
@@ -552,6 +543,36 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             m_imgui->tooltip(tip, max_tooltip_width);
         }
     }
+    ImGui::PopStyleVar(2);
+
+    // Selected filament identity (recipe for Mix; digit for physical).
+    // Rebuild from mix_recipe_label — do not strip the tooltip's Shortcut Key suffix.
+    {
+        const int selected_id = int(m_selected_extruder_idx) + 1;
+        wxString  painting_status;
+        if (m_selected_extruder_idx >= int(m_physical_extruder_count)) {
+            MixedFilamentManager mgr;
+            mgr.load_definitions(current_mixed_filament_definitions());
+            const size_t mix_idx = size_t(m_selected_extruder_idx) - m_physical_extruder_count;
+            if (mix_idx < mgr.enabled_count()) {
+                const MixedFilament &mf = mgr.mixed_filaments()[mix_idx];
+                const std::vector<std::string> names_cmyk{"C", "M", "Y", "K"};
+                const std::vector<std::string> *slot_names =
+                    (m_physical_extruder_count == 4) ? &names_cmyk : nullptr;
+                const std::string recipe = mix_recipe_label(mf, slot_names);
+                painting_status = _L("Painting: ") +
+                                  from_u8(GUI::format(_L("Mix %1%  %2%"), selected_id, recipe));
+            } else {
+                painting_status = GUI::format(_L("Painting: Mix %1%"), selected_id);
+            }
+        } else {
+            painting_status = GUI::format(_L("Painting: Filament %1%"), selected_id);
+        }
+        m_imgui->text_wrapped(painting_status, window_width);
+    }
+
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(7.f * scale, 7.f * scale));
+    ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0);
     // ORCA: Remap filaments section (Border only, Title in border). 
     // Styled as a panel for visual grouping.
     if (ImGui::TreeNodeEx(m_desc.at("perform_remap").c_str(), ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding)){
