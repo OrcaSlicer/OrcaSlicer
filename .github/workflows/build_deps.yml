@@ -139,7 +139,7 @@ jobs:
               .\build_release_vs.bat deps arm64
               .\build_release_vs.bat pack arm64
             } else {
-              .\build_release_vs.bat deps
+              .\build_release_vs.bat deps -l -x
               .\build_release_vs.bat pack
             }
         shell: pwsh
