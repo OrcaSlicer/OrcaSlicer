@@ -774,7 +774,7 @@ set(SLIC3R_GUI_SOURCES
     Utils/wxInspectorPlugins/Registration.hpp
 )
 
-# Design/CAD tab: parametric sketch UI, its gizmo, and the MCP control socket.
+# Design/CAD tab: parametric sketch UI, its gizmos, and the MCP control socket.
 # All of it sits behind SLIC3R_CAD and links the CAD kernel in libslic3r.
 if (SLIC3R_CAD)
     list(APPEND SLIC3R_GUI_SOURCES
@@ -783,6 +783,8 @@ if (SLIC3R_CAD)
         GUI/CAD/DesignCanvas.cpp
         GUI/CAD/DesignCanvas.hpp
         GUI/CAD/DesignSketchTool.cpp
+        GUI/CAD/DesignSketchTool.hpp
+        GUI/CAD/DesignOffer.hpp
         GUI/CAD/SketchInlineEditor.cpp
         GUI/CAD/SketchInlineEditor.hpp
         GUI/CAD/McpControl.cpp
@@ -864,7 +866,7 @@ if (WIN32)
 else ()
     add_library(libslic3r_gui STATIC ${SLIC3R_GUI_SOURCES})
 endif ()
-target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/GUI)
+target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DIR})
 
 if (WIN32)
     target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../deps/WebView2/include)
