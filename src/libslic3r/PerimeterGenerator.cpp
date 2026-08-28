@@ -1336,6 +1336,9 @@ static bool is_unsupported_loop(const ExtrusionEntity *entity)
 // G-code writer to hold it back until the infill is down.
 static void defer_unsupported_loops(const PerimeterGenerator &perimeter_generator, ExtrusionEntityCollection &entities)
 {
+    if (!perimeter_generator.config->unsupported_wall_last)
+        return;
+
     ExtrusionEntitiesPtr &src = entities.entities;
     auto first_deferred = std::stable_partition(src.begin(), src.end(),
                                                 [](const ExtrusionEntity *entity) { return !is_unsupported_loop(entity); });
