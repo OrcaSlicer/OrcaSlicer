@@ -957,7 +957,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
 }
 
 //BBS
-static StringObjectException layered_print_cleareance_valid(const Print &print, StringObjectException *warning)
+static StringObjectException layered_print_cleareance_valid(const Print &print, StringObjectException *warning, Polygons *polygons = nullptr)
 {
     std::vector<const PrintInstance*> print_instances_ordered = sort_object_instances_by_model_order(print, true);
     if (print_instances_ordered.size() < 1)
@@ -977,6 +977,8 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     }
 
     Polygons convex_hulls_other;
+    // Orca: per-instance Y-range + height, used below for the wipe tower gantry-rod clearance check
+    std::vector<std::pair<BoundingBox, double>> instance_bboxes_and_heights;
     // Orca: check convex hull intersection for each instance individually
     for (auto& inst : print_instances_ordered) {
         Polygons current_instance_hulls;
@@ -1004,6 +1006,9 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
             }
             current_instance_hulls.emplace_back(volume_hull);
         }
+
+        if (!current_instance_hulls.empty())
+            instance_bboxes_and_heights.emplace_back(get_extents(current_instance_hulls), inst->print_object->height());
 
         if (!intersection(convex_hulls_other, current_instance_hulls).empty()) {
             if (warning) {
@@ -1064,6 +1069,75 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     if (!intersection(convex_hulls_other, convex_hulls_temp).empty()) {
         if (warning) {
             warning->string += L("Prime Tower") + L(" is too close to others, and collisions may be caused.\n");
+        }
+    }
+    // Orca: also flag when an object sits within the toolhead/gantry clearance radius of the wipe
+    // tower without directly overlapping it. The wipe tower can be printed several layers below the
+    // tallest object (e.g. "no sparse layers"), so a toolchange can sweep the toolhead past a taller
+    // neighbour at a much lower Z than that neighbour's height. This is only a coarse, height-agnostic
+    // heuristic reusing the extruder clearance radius already used for object-to-object checks above -
+    // it can both miss real risks and flag safe layouts, and does not replace verifying actual
+    // clearance for your printer and toolchange gcode. Treated as a hard error (like the sequential
+    // by-object collision check) rather than a warning, since we can now actually detect it.
+    // Gated on wipe_tower_no_sparse_layers: without it the tower always prints at the current
+    // layer's real Z (see WipeTowerIntegration::tool_change() in GCode.cpp), so there is no Z
+    // mismatch and thus no risk from this specific mechanism.
+    else if (print.config().wipe_tower_no_sparse_layers.value) {
+        Polygons convex_hulls_temp_inflated;
+        for (const Polygon &poly : convex_hulls_temp)
+            append(convex_hulls_temp_inflated, offset(poly, scale_(print.config().extruder_clearance_radius.value), jtRound, scale_(0.1)));
+        if (!intersection(convex_hulls_other, convex_hulls_temp_inflated).empty()) {
+            if (polygons)
+                append(*polygons, convex_hulls_temp_inflated);
+            return {L("Prime Tower") + L(" is close to other objects - make sure there is enough clearance "
+                                          "for the toolhead/gantry during a toolchange, or collisions may be caused.\n")};
+        }
+    }
+    // Orca: also flag when an object shares the wipe tower's Y-band and is taller than the gantry
+    // rod clearance height. On typical Cartesian/CoreXY kinematics the X-axis gantry beam spans the
+    // full bed width and only moves in Y, so reaching the tower's Y coordinate sweeps the beam across
+    // that whole row regardless of X distance - a tall object anywhere in that row can be hit even if
+    // it is nowhere near the tower's XY footprint. Mirrors the same Y-band/height logic already used
+    // for object-to-object ordering in sequential_print_clearance_valid() above. Same coarse-heuristic
+    // caveats as the radius check above, and same wipe_tower_no_sparse_layers gating rationale.
+    if (print.config().wipe_tower_no_sparse_layers.value && !convex_hulls_temp.empty()) {
+        const BoundingBox wipe_tower_bbox = get_extents(convex_hulls_temp);
+        // Orca: NOT extruder_clearance_radius here - that models the toolhead/fan-shroud XY
+        // footprint, which is irrelevant to whether the object's Y-span overlaps the row the
+        // gantry beam occupies. Shrinking by half of it (as the by-object rod check above does)
+        // silently drops any object narrower in Y than the radius - e.g. a 72.5mm clearance radius
+        // (real Snapmaker U1 default) would erase a normal ~40mm-deep object entirely. Use only the
+        // skirt offset as a small tolerance for edge-touching bboxes.
+        auto [object_skirt_offset, _2] = print.object_skirt_offset();
+        const coord_t shrink = scale_(object_skirt_offset);
+        const coord_t hc2    = scale_(print.config().extruder_clearance_height_to_rod.value);
+        for (const auto &[bbox, height] : instance_bboxes_and_heights) {
+            if (height <= hc2)
+                continue;
+            const coord_t inst_min_y = bbox.min.y() + shrink;
+            const coord_t inst_max_y = bbox.max.y() - shrink;
+            if (inst_min_y > inst_max_y)
+                continue;
+            const coord_t inter_min = std::max(wipe_tower_bbox.min.y(), inst_min_y);
+            const coord_t inter_max = std::min(wipe_tower_bbox.max.y(), inst_max_y);
+            if (inter_max > inter_min) {
+                if (polygons) {
+                    // Orca: visualize the whole swept row (full bed width at the tower's Y-range),
+                    // not just the tower's small footprint - that's what's actually at risk here.
+                    const Points bed_shape = get_bed_shape(print.config());
+                    const BoundingBox bed_bbox(bed_shape);
+                    const coord_t bed_min_x = bed_bbox.min.x() + scale_(plate_origin(0));
+                    const coord_t bed_max_x = bed_bbox.max.x() + scale_(plate_origin(0));
+                    Polygon danger_row;
+                    danger_row.points.emplace_back(bed_min_x, wipe_tower_bbox.min.y());
+                    danger_row.points.emplace_back(bed_max_x, wipe_tower_bbox.min.y());
+                    danger_row.points.emplace_back(bed_max_x, wipe_tower_bbox.max.y());
+                    danger_row.points.emplace_back(bed_min_x, wipe_tower_bbox.max.y());
+                    polygons->emplace_back(std::move(danger_row));
+                }
+                return {L("Prime Tower") + L(" shares a gantry row with a tall object - the X-axis rod/gantry may "
+                                              "collide with it during a toolchange, even without direct XY overlap.\n")};
+            }
         }
     }
     if (!intersection(exclude_polys, convex_hulls_temp).empty()) {
@@ -1374,7 +1448,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
     else {
         //BBS
         StringObjectException layer_warning;
-        auto ret = layered_print_cleareance_valid(*this, &layer_warning);
+        auto ret = layered_print_cleareance_valid(*this, &layer_warning, collison_polygons);
         if (!ret.string.empty()) {
             ret.type = STRING_EXCEPT_OBJECT_COLLISION_IN_LAYER_PRINT;
             return ret;
