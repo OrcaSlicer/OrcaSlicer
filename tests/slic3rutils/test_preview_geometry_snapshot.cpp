@@ -7,6 +7,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -127,6 +128,10 @@ TEST_CASE("ORPV capture preserves final move identity and path boundaries", "[Pr
     result.extruder_colors = {"#123456"};
     result.settings_ids.filament = {"filament-preset"};
 
+    GCodeProcessorResult::MoveVertex travel;
+    travel.type = EMoveType::Travel;
+    travel.position = Vec3f(0.0f, 2.0f, 0.2f);
+
     GCodeProcessorResult::MoveVertex first;
     first.type = EMoveType::Extrude;
     first.extrusion_role = erPerimeter;
@@ -140,15 +145,30 @@ TEST_CASE("ORPV capture preserves final move identity and path boundaries", "[Pr
     GCodeProcessorResult::MoveVertex second = first;
     second.position.x() = 2.0f;
     second.gcode_id = 101;
-    result.moves = {first, second};
+    second.acceleration = first.acceleration + 100.0f;
+    GCodeProcessorResult::MoveVertex distant_travel = travel;
+    distant_travel.position.x() = 100.0f;
+    GCodeProcessorResult::MoveVertex third = first;
+    third.position.x() = 101.0f;
+    third.gcode_id = 102;
+    result.moves = {travel, first, second, distant_travel, third};
 
     const ORPV::Snapshot snapshot = ORPV::capture(result, 4, 77);
-    REQUIRE(snapshot.vertices.size() == 2);
+    REQUIRE(snapshot.vertices.size() == 5);
     CHECK(snapshot.scene_id == 77);
     CHECK(snapshot.plate_index == 4);
     CHECK(snapshot.vertices.front().gcode_id == 100);
     CHECK(snapshot.vertices.front().colour_id == 9);
+    CHECK(snapshot.vertices.front().x == 0.0f);
+    CHECK(snapshot.vertices[2].x == 2.0f);
+    CHECK(snapshot.vertices[3].x == 100.0f);
+    CHECK(snapshot.vertices.back().x == 101.0f);
+    CHECK(std::all_of(snapshot.vertices.begin(), snapshot.vertices.end(), [](const ORPV::Vertex& vertex) {
+        return vertex.move_type == static_cast<uint8_t>(EMoveType::Extrude);
+    }));
     CHECK((snapshot.vertices.front().path_flags & ORPV::PathStart) != 0);
+    CHECK((snapshot.vertices[2].path_flags & ORPV::PathEnd) != 0);
+    CHECK((snapshot.vertices[3].path_flags & ORPV::PathStart) != 0);
     CHECK((snapshot.vertices.back().path_flags & ORPV::PathEnd) != 0);
     REQUIRE(snapshot.materials.size() == 1);
     CHECK(snapshot.materials.front().preset_id == "filament-preset");

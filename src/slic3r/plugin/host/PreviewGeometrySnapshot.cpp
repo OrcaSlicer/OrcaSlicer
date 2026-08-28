@@ -79,18 +79,17 @@ float get_float(const uint8_t* data, size_t size, uint64_t offset)
     return value;
 }
 
-bool is_path_move(EMoveType type)
+bool is_renderable_extrusion(const GCodeProcessorResult::MoveVertex& move)
 {
-    return type == EMoveType::Extrude || type == EMoveType::Travel || type == EMoveType::Wipe;
+    return move.type == EMoveType::Extrude && move.width > 0.0f && move.height > 0.0f;
 }
 
 bool starts_new_path(const GCodeProcessorResult::MoveVertex& previous,
                      const GCodeProcessorResult::MoveVertex& current)
 {
-    return previous.type != current.type || previous.extrusion_role != current.extrusion_role ||
+    return previous.type != EMoveType::Extrude || previous.extrusion_role != current.extrusion_role ||
            previous.extruder_id != current.extruder_id || previous.cp_color_id != current.cp_color_id ||
-           previous.mm3_per_mm != current.mm3_per_mm || previous.acceleration != current.acceleration ||
-           previous.jerk != current.jerk;
+           previous.layer_id != current.layer_id || previous.internal_only != current.internal_only;
 }
 
 uint8_t channel(float value)
@@ -110,6 +109,8 @@ Snapshot capture(const GCodeProcessorResult& result, int plate_index, uint64_t e
 {
     static_assert(sizeof(GCodeProcessorResult::MoveVertex::cp_color_id) == sizeof(uint8_t),
                   "ORPV v1 colour_id must widen if cp_color_id widens");
+    static_assert(static_cast<uint8_t>(EMoveType::Extrude) == 10,
+                  "ORPV v1 move_type encoding must be versioned if EMoveType changes");
     static_assert(static_cast<unsigned int>(erCount) <= std::numeric_limits<uint8_t>::max(),
                   "ORPV v1 extrusion_role must widen if ExtrusionRole widens");
 
@@ -155,39 +156,50 @@ Snapshot capture(const GCodeProcessorResult& result, int plate_index, uint64_t e
         throw std::runtime_error("ORPV printable height is negative");
 
     snapshot.vertices.reserve(moves.size());
-    for (const GCodeProcessorResult::MoveVertex& move : moves) {
+    const auto make_vertex = [](const GCodeProcessorResult::MoveVertex& move, const Vec3f& position, uint8_t flags) {
         Vertex vertex;
-        vertex.x = move.position.x();
-        vertex.y = move.position.y();
-        vertex.z = move.position.z();
+        vertex.x = position.x();
+        vertex.y = position.y();
+        vertex.z = position.z();
         vertex.width = move.width;
         vertex.height = move.height;
         vertex.gcode_id = move.gcode_id;
         vertex.layer_id = move.layer_id;
-        vertex.move_type = static_cast<uint8_t>(move.type);
+        vertex.move_type = static_cast<uint8_t>(EMoveType::Extrude);
         vertex.extrusion_role = static_cast<uint8_t>(move.extrusion_role);
         vertex.extruder_id = move.extruder_id;
         vertex.colour_id = move.cp_color_id;
-        vertex.path_flags = move.internal_only ? InternalOnly : 0;
+        vertex.path_flags = flags | (move.internal_only ? InternalOnly : 0);
         validate_finite(vertex.x, "vertex x");
         validate_finite(vertex.y, "vertex y");
         validate_finite(vertex.z, "vertex z");
         validate_finite(vertex.width, "vertex width");
         validate_finite(vertex.height, "vertex height");
-        if (vertex.width < 0.0f || vertex.height < 0.0f)
-            throw std::runtime_error("ORPV contains negative extrusion dimensions");
-        snapshot.vertices.push_back(vertex);
-    }
+        return vertex;
+    };
 
-    snapshot.vertices.front().path_flags |= PathStart;
+    // MoveVertex stores move destinations. Each extrusion segment therefore starts at the previous
+    // move's position and ends at the current extrusion position. Duplicate that anchor only when a
+    // path starts; travel/wipe/control moves never become renderable ORPV primitives.
     for (size_t i = 1; i < moves.size(); ++i) {
         const auto& previous = moves[i - 1];
         const auto& current = moves[i];
-        if (!is_path_move(current.type) || !is_path_move(previous.type) || starts_new_path(previous, current)) {
-            snapshot.vertices[i - 1].path_flags |= PathEnd;
-            snapshot.vertices[i].path_flags |= PathStart;
+        if (!is_renderable_extrusion(current))
+            continue;
+
+        const bool begins_path = snapshot.vertices.empty() || !is_renderable_extrusion(previous) ||
+                                 starts_new_path(previous, current);
+        if (begins_path) {
+            if (!snapshot.vertices.empty())
+                snapshot.vertices.back().path_flags |= PathEnd;
+            snapshot.vertices.push_back(make_vertex(current, previous.position, PathStart));
         }
+        snapshot.vertices.push_back(make_vertex(current, current.position, 0));
+        if (snapshot.vertices.size() > DEFAULT_MAX_VERTICES)
+            throw std::runtime_error("ORPV vertex limit exceeded after path anchoring");
     }
+    if (snapshot.vertices.empty())
+        throw std::runtime_error("Cannot build an ORPV snapshot without extrusion moves");
     snapshot.vertices.back().path_flags |= PathEnd;
 
     const size_t material_count = std::max({extruder_colors.size(), filament_ids.size(), filaments_count});
