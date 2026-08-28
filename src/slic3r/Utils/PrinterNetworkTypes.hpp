@@ -31,24 +31,4 @@ enum FileRemote {
     FR_TutkAgora
 };
 
-struct CameraURLParams {
-    std::string ip_address;
-    std::string user;
-    std::string password;
-    LiveviewLocal protocol;
-    std::string device;
-    std::string network_version;
-    std::string device_version;
-    std::string refresh_url;
-    std::string client_id;
-    std::string client_version;
-    bool        apply_meta{false};
-};
-
-struct CameraURLResult {
-    bool        is_success{false};
-    std::string url;
-    int         error_code{-1};
-};
-
 } // namespace Slic3r

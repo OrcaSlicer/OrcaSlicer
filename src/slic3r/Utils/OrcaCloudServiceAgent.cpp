@@ -1,5 +1,4 @@
 #include "OrcaCloudServiceAgent.hpp"
-#include "NetworkAgent.hpp"
 #include "Http.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -2699,12 +2698,11 @@ int OrcaCloudServiceAgent::modify_printer_name(std::string dev_id, std::string d
     return BAMBU_NETWORK_SUCCESS;
 }
 
-int OrcaCloudServiceAgent::get_camera_url(std::string dev_id, std::function<void(CameraURLResult)> callback, CameraURLParams params)
+int OrcaCloudServiceAgent::get_camera_url(std::string dev_id, std::function<void(std::string)> callback)
 {
-    (void) params;
     BOOST_LOG_TRIVIAL(debug) << "OrcaCloudServiceAgent: get_camera_url (stub)";
     if (callback)
-        callback({});
+        callback("");
     return BAMBU_NETWORK_SUCCESS;
 }
 

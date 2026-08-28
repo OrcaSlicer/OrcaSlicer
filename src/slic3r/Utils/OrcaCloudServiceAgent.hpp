@@ -240,7 +240,7 @@ public:
     // ========================================================================
     // ICloudServiceAgent Interface Implementation - Model Mall & Publishing
     // ========================================================================
-    int get_camera_url(std::string dev_id, std::function<void(CameraURLResult)> callback, CameraURLParams params) override;
+    int get_camera_url(std::string dev_id, std::function<void(std::string)> callback) override;
     int get_design_staffpick(int offset, int limit, std::function<void(std::string)> callback) override;
     int start_publish(PublishParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, std::string* out) override;
     int get_model_publish_url(std::string* url) override;

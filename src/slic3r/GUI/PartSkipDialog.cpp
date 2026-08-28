@@ -27,7 +27,6 @@
 #include "PartSkipDialog.hpp"
 #include "SkipPartCanvas.hpp"
 #include "MediaPlayCtrl.h"
-#include "slic3r/Utils/NetworkAgent.hpp"
 
 #include "DeviceCore/DevManager.h"
 
@@ -434,41 +433,57 @@ void PartSkipDialog::fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs)
     }
     std::string dev_ver = obj->get_ota_version();
     std::string dev_id  = obj->get_dev_id();
+    // int         remote_proto = obj->get_file_remote();
+
+    NetworkAgent *agent         = wxGetApp().getAgent();
+    std::string   agent_version = agent ? agent->get_version() : "";
 
     auto url_state = m_url_state;
     if (obj->is_lan_mode_printer()) { url_state = URL_TCP; }
 
-    NetworkAgent *agent = wxGetApp().getAgent();
-    if (!agent) {
-        fs->SetUrl("3");
-        return;
-    }
-
-    switch (url_state) {
-    case URL_TCP: {
-        std::string tcp_url = "bambu:///local/" + obj->get_dev_ip() + "?port=6000&user=bblp&passwd=" + obj->get_access_code();
-        CallAfter([wfs, tcp_url = std::move(tcp_url)] {
-            if (auto fs = wfs.lock())
-                fs->SetUrl(boost::algorithm::starts_with(tcp_url, "bambu:///") ? tcp_url : "3");
-        });
-        break;
-    }
-    case URL_TUTK: {
-        std::string protocols[] = {"", "\"tutk\"", "\"agora\"", "\"tutk\",\"agora\""};
-        agent->get_camera_url(dev_id + "|" + dev_ver + "|" + protocols[3],
-            [this, wfs](CameraURLResult result) {
-            CallAfter([wfs, result = std::move(result)]() mutable {
+    if (agent) {
+        switch (url_state) {
+        case URL_TCP: {
+            std::string devIP      = obj->get_dev_ip();
+            std::string accessCode = obj->get_access_code();
+            std::string tcp_url    = "bambu:///local/" + devIP + "?port=6000&user=" + "bblp" + "&passwd=" + accessCode;
+            CallAfter([=] {
                 boost::shared_ptr fs(wfs.lock());
                 if (!fs) return;
-                fs->SetUrl(result.is_success && boost::algorithm::starts_with(result.url, "bambu:///") ? result.url : "3");
+                if (boost::algorithm::starts_with(tcp_url, "bambu:///")) {
+                    fs->SetUrl(tcp_url);
+                } else {
+                    fs->SetUrl("3");
+                }
             });
-        }, wxGetApp().get_printer_cloud_provider(),
-        CameraURLParams{"", "", "", LVL_None, dev_id, agent->get_version(), dev_ver,
-                        boost::lexical_cast<std::string>(&refresh_agora_url), wxGetApp().app_config->get("slicer_uuid"), SLIC3R_VERSION, true});
-        break;
-    }
-    default:
-        break;
+            break;
+        }
+        case URL_TUTK: {
+            std::string protocols[] = {"", "\"tutk\"", "\"agora\"", "\"tutk\",\"agora\""};
+            agent->get_camera_url(obj->get_dev_id() + "|" + dev_ver + "|" + protocols[3], [this, wfs, m = dev_id, v = agent->get_version(), dv = dev_ver](std::string url)
+                {
+                if (boost::algorithm::starts_with(url, "bambu:///")) {
+                    url += "&device=" + m;
+                    url += "&net_ver=" + v;
+                    url += "&dev_ver=" + dv;
+                    url += "&refresh_url=" + boost::lexical_cast<std::string>(&refresh_agora_url);
+                    url += "&cli_id=" + wxGetApp().app_config->get("slicer_uuid");
+                    url += "&cli_ver=" + std::string(SLIC3R_VERSION);
+                }
+                CallAfter([=] {
+                    boost::shared_ptr fs(wfs.lock());
+                    if (!fs) return;
+                    if (boost::algorithm::starts_with(url, "bambu:///")) {
+                        fs->SetUrl(url);
+                    } else {
+                        fs->SetUrl("3");
+                    }
+                });
+            });
+            break;
+        }
+        default: break;
+        }
     }
 }
 // controller

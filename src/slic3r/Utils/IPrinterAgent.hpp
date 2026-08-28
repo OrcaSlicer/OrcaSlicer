@@ -322,7 +322,6 @@ public:
      * Populates the MachineObject's DevFilaSystem with fetched filament data.
      */
     virtual bool fetch_filament_info(std::string dev_id) { return false; }
-
 };
 
 } // namespace Slic3r

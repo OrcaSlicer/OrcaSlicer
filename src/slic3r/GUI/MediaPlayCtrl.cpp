@@ -129,7 +129,6 @@ MediaPlayCtrl::MediaPlayCtrl(wxWindow *parent, wxMediaCtrl2 *media_ctrl, const w
 
     m_lan_user = "bblp";
     m_lan_passwd = "bblp";
-
 }
 
 MediaPlayCtrl::~MediaPlayCtrl()
@@ -249,8 +248,8 @@ void refresh_agora_url(char const* device, char const* dev_ver, char const* chan
     device2 += dev_ver;
     device2 += "|\"agora\"|";
     device2 += channel;
-    wxGetApp().getAgent()->get_camera_url(device2, [context, callback](CameraURLResult result) {
-        callback(context, result.url.c_str());
+    wxGetApp().getAgent()->get_camera_url(device2, [context, callback](std::string url) {
+        callback(context, url.c_str());
     }, wxGetApp().get_printer_cloud_provider());
 }
 
@@ -284,11 +283,7 @@ void MediaPlayCtrl::Play()
 
     BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::Play: " << m_lan_proto << m_remote_proto << m_disable_lan;
     NetworkAgent *agent = wxGetApp().getAgent();
-    if (!agent) {
-        Stop(_L("Please confirm if the printer is connected."));
-        return;
-    }
-    std::string  agent_version = agent->get_version();
+    std::string  agent_version = agent ? agent->get_version() : "";
     if (m_lan_proto > LiveviewLocal::LVL_Disable && (m_lan_mode || !m_remote_proto) && !m_disable_lan && !m_lan_ip.empty()) {
         m_disable_lan = m_remote_proto && !m_lan_mode; // try remote next time
         std::string url;
@@ -342,39 +337,46 @@ void MediaPlayCtrl::Play()
 
     if (agent) {
         std::string protocols[] = {"", "\"tutk\"", "\"agora\"", "\"tutk\",\"agora\""};
-        agent->get_camera_url(
-            m_machine + "|" + m_dev_ver + "|" + protocols[m_remote_proto],
-                [this, m = m_machine, token = std::weak_ptr(m_token)](CameraURLResult result) {
-            std::string url = std::move(result.url);
-            const bool success = result.is_success;
-            const int error_code = result.error_code;
-                if (token.expired()) {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": token has been expired";
+        agent->get_camera_url(m_machine + "|" + m_dev_ver + "|" + protocols[m_remote_proto],
+                [this, m = m_machine, v = agent_version, dv = m_dev_ver, token = std::weak_ptr(m_token)](std::string url) {
+            if (token.expired()) {
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": token has been expired";
+                return;
+            }
+
+            if (boost::algorithm::starts_with(url, "bambu:///")) {
+                url += "&device=" + into_u8(m);
+                url += "&net_ver=" + v;
+                url += "&dev_ver=" + dv;
+                url += "&refresh_url=" + boost::lexical_cast<std::string>(&refresh_agora_url);
+                url += "&cli_id=" + wxGetApp().app_config->get("slicer_uuid");
+                url += "&cli_ver=" + std::string(SLIC3R_VERSION);
+            }
+            BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl: " << hide_passwd(url, 
+                    {"?uid=", "authkey=", "passwd=", "license=", "token="});
+            CallAfter([this, m, url] {
+                if (m != m_machine) {
+                    BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl drop late ttcode for machine: " << m;
                     return;
                 }
-
-                BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl: " << hide_passwd(url, {"?uid=", "authkey=", "passwd=", "license=", "token="});
-                CallAfter([this, m, url, success, error_code] {
-                    if (m != m_machine) {
-                        BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl drop late ttcode for machine: " << m;
-                        return;
-                    }
-                    if (m_last_state == MEDIASTATE_INITIALIZING) {
-                    if (!success) {
-                            m_failed_code = error_code >= 0 ? error_code : 3;
-                            Stop(_L("Connection Failed. Please check the network and try again"), from_u8(url));
-                        } else {
-                            m_url = url;
-                            load();
+                if (m_last_state == MEDIASTATE_INITIALIZING) {
+                    if (url.empty() || !boost::algorithm::starts_with(url, "bambu:///")) {
+                        m_failed_code = 3;
+                        if (boost::ends_with(url, "]")) {
+                            size_t n = url.find_last_of('[');
+                            if (n != std::string::npos)
+                                m_failed_code = std::atoi(url.substr(n + 1, url.length() - n - 2).c_str());
                         }
+                        Stop(_L("Connection Failed. Please check the network and try again"), from_u8(url));
                     } else {
-                        BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl drop late ttcode for state: " << m_last_state;
+                        m_url = url;
+                        load();
                     }
-                });
-            },
-            wxGetApp().get_printer_cloud_provider(),
-            CameraURLParams{"", "", "", LVL_None, into_u8(m_machine), agent_version, m_dev_ver,
-                            boost::lexical_cast<std::string>(&refresh_agora_url), wxGetApp().app_config->get("slicer_uuid"), SLIC3R_VERSION, true});
+                } else {
+                    BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl drop late ttcode for state: " << m_last_state;
+                }
+            });
+        }, wxGetApp().get_printer_cloud_provider());
     }
 }
 
@@ -550,14 +552,20 @@ void MediaPlayCtrl::ToggleStream()
     if (!agent) return;
     std::string protocols[] = {"", "\"tutk\"", "\"agora\"", "\"tutk\",\"agora\""};
     agent->get_camera_url(m_machine + "|" + m_dev_ver + "|" + protocols[m_remote_proto],
-            [this, m = m_machine](CameraURLResult result) {
-        std::string url = std::move(result.url);
-        const bool success = result.is_success;
+            [this, m = m_machine, v = agent->get_version(), dv = m_dev_ver](std::string url) {
+        if (boost::algorithm::starts_with(url, "bambu:///")) {
+            url += "&device=" + m;
+            url += "&net_ver=" + v;
+            url += "&dev_ver=" + dv;
+            url += "&refresh_url=" + boost::lexical_cast<std::string>(&refresh_agora_url);
+            url += "&cli_id=" + wxGetApp().app_config->get("slicer_uuid");
+            url += "&cli_ver=" + std::string(SLIC3R_VERSION);
+        }
         BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::ToggleStream: " << hide_passwd(url, 
                 {"?uid=", "authkey=", "passwd=", "license=", "token="});
-        CallAfter([this, m, url, success] {
+        CallAfter([this, m, url] {
             if (m != m_machine) return;
-            if (!success) {
+            if (url.empty() || !boost::algorithm::starts_with(url, "bambu:///")) {
                 MessageDialog(this->GetParent(), wxString::Format(_L("Virtual camera initialize failed (%s)!"), url.empty() ? _L("Network unreachable") : from_u8(url)), _L("Information"),
                               wxICON_INFORMATION)
                     .ShowModal();
@@ -570,8 +578,7 @@ void MediaPlayCtrl::ToggleStream()
             file.close();
             m_streaming = true;
         });
-    }, wxGetApp().get_printer_cloud_provider(), CameraURLParams{"", "", "", LVL_None, into_u8(m_machine), agent->get_version(), m_dev_ver,
-        boost::lexical_cast<std::string>(&refresh_agora_url), wxGetApp().app_config->get("slicer_uuid"), SLIC3R_VERSION, true});
+    }, wxGetApp().get_printer_cloud_provider());
 }
 
 void MediaPlayCtrl::msw_rescale() { 

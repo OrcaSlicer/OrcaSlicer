@@ -288,7 +288,7 @@ void PrintJob::process(Ctl &ctl)
         if (v == "0" || v == "false")
             disable_emmc = false;
     }
-    params.try_emmc_print = this->could_emmc_print && !disable_emmc;
+    params.try_emmc_print         = this->could_emmc_print && !disable_emmc;
 
     if (m_print_type == "from_sdcard_view") {
         params.dst_file = m_dst_path;

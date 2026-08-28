@@ -13,6 +13,7 @@
 #include <pybind11/stl.h>
 
 #include "PythonInterpreter.hpp"
+#include "PluginFsUtils.hpp"
 #include "PluginConfig.hpp"
 #include "host/PluginHost.hpp"
 #include "PyPluginPackage.hpp"

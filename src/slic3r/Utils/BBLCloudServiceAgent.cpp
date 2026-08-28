@@ -1,6 +1,5 @@
 #include "BBLCloudServiceAgent.hpp"
 #include "BBLNetworkPlugin.hpp"
-#include "NetworkAgent.hpp"
 
 #include <boost/log/trivial.hpp>
 #include "Http.hpp"
@@ -607,47 +606,13 @@ int BBLCloudServiceAgent::modify_printer_name(std::string dev_id, std::string de
 // Model Mall & Publishing
 // ============================================================================
 
-int BBLCloudServiceAgent::get_camera_url(std::string dev_id, std::function<void(CameraURLResult)> callback, CameraURLParams params)
+int BBLCloudServiceAgent::get_camera_url(std::string dev_id, std::function<void(std::string)> callback)
 {
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_get_camera_url();
     if (func && agent) {
-        auto make_result = [](std::string url) {
-            CameraURLResult result;
-            result.url = std::move(url);
-            result.is_success = result.url.rfind("bambu:///", 0) == 0;
-            if (result.is_success) {
-                result.error_code = 0;
-            } else if (!result.url.empty() && result.url.back() == ']') {
-                const auto start = result.url.rfind('[');
-                if (start != std::string::npos && start + 1 < result.url.size() - 1) {
-                    try {
-                        result.error_code = std::stoi(result.url.substr(start + 1, result.url.size() - start - 2));
-                    } catch (...) {
-                    }
-                }
-            }
-            return result;
-        };
-        if (params.apply_meta) {
-            auto decorated_callback = [callback = std::move(callback), params = std::move(params), make_result](std::string url) {
-                CameraURLResult result = make_result(std::move(url));
-                if (result.is_success) {
-                    result.url += "&device=" + params.device;
-                    result.url += "&net_ver=" + params.network_version;
-                    result.url += "&dev_ver=" + params.device_version;
-                    result.url += "&refresh_url=" + params.refresh_url;
-                    result.url += "&cli_id=" + params.client_id;
-                    result.url += "&cli_ver=" + params.client_version;
-                }
-                callback(std::move(result));
-            };
-            return func(agent, std::move(dev_id), std::move(decorated_callback));
-        }
-        return func(agent, std::move(dev_id), [callback = std::move(callback), make_result](std::string url) {
-            callback(make_result(std::move(url)));
-        });
+        return func(agent, dev_id, callback);
     }
     return -1;
 }

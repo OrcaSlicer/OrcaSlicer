@@ -868,12 +868,12 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
     if (wxGetApp().plater()->using_exported_file()) {
         m_plater->set_print_job_plate_idx(m_print_plate_idx);
         result = 0;
-    } else {
-        result = m_plater->send_gcode(m_print_plate_idx, [this](int export_stage, int current, int total, bool& cancel) {
-            if (this->m_is_canceled)
-                return;
-            bool cancelled = false;
-            wxString msg   = _L("Preparing print job");
+    }
+     else {
+         result = m_plater->send_gcode(m_print_plate_idx, [this](int export_stage, int current, int total, bool &cancel) {
+             if (this->m_is_canceled) return;
+             bool     cancelled = false;
+             wxString msg       = _L("Preparing print job");
              m_status_bar->update_status(msg, cancelled, 10, true);
              m_export_3mf_cancel = cancel = cancelled;
          });
@@ -1728,8 +1728,15 @@ void SendToPrinterDialog::GetConnection()
         else if (m_tutk_try_connect)
         {
             std::string protocols[] = {"", "\"tutk\"", "\"agora\"", "\"tutk\",\"agora\""};
-            agent->get_camera_url(obj->get_dev_id() + "|" + dev_ver + "|" + protocols[1], [this, m = dev_id](CameraURLResult result) {
-                std::string url = std::move(result.url);
+            agent->get_camera_url(obj->get_dev_id() + "|" + dev_ver + "|" + protocols[1], [this, m = dev_id, v = agent->get_version(), dv = dev_ver](std::string url) {
+                if (boost::algorithm::starts_with(url, "bambu:///")) {
+                    url += "&device=" + m;
+                    url += "&net_ver=" + v;
+                    url += "&dev_ver=" + dv;
+                    url += "&refresh_url=" + boost::lexical_cast<std::string>(&refresh_agora_url);
+                    url += "&cli_id=" + wxGetApp().app_config->get("slicer_uuid");
+                    url += "&cli_ver=" + std::string(SLIC3R_VERSION);
+                }
 
                 if (m_url_timer && m_url_timer->IsRunning())
                 {
@@ -1741,7 +1748,7 @@ void SendToPrinterDialog::GetConnection()
                 #endif
 
 
-                if (result.is_success)
+                if (boost::algorithm::starts_with(url, "bambu:///"))
                 {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Connect method tutk";
                     m_filetransfer_tunnel = std::make_unique<FileTransferTunnel>(module(), url);
@@ -1761,9 +1768,7 @@ void SendToPrinterDialog::GetConnection()
                     }
                     BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " : Tutk url error: ress = " << res;
                 }
-            }, wxGetApp().get_printer_cloud_provider(),
-               CameraURLParams{"", "", "", LVL_None, dev_id, agent->get_version(), dev_ver,
-                               boost::lexical_cast<std::string>(&refresh_agora_url), wxGetApp().app_config->get("slicer_uuid"), SLIC3R_VERSION, true});
+            });
         }
     }
 }

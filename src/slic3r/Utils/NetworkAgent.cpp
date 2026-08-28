@@ -508,12 +508,11 @@ int NetworkAgent::modify_printer_name(std::string dev_id, std::string dev_name, 
     return -1;
 }
 
-int NetworkAgent::get_camera_url(std::string dev_id, std::function<void(CameraURLResult)> callback,
-                                 const std::string& provider, CameraURLParams params)
+int NetworkAgent::get_camera_url(std::string dev_id, std::function<void(std::string)> callback, const std::string& provider)
 {
     const auto cloud_agent = get_cloud_agent(provider);
     if (cloud_agent)
-        return cloud_agent->get_camera_url(std::move(dev_id), std::move(callback), std::move(params));
+        return cloud_agent->get_camera_url(std::move(dev_id), std::move(callback));
     return -1;
 }
 
