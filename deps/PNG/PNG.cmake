@@ -1,5 +1,7 @@
-if (APPLE)
-    # Only disable NEON extension for Apple ARM builds, leave it enabled for Raspberry PI.
+if (APPLE OR ("${DEPS_ARCH}" STREQUAL "arm64" AND CMAKE_CXX_COMPILER_ID STREQUAL Clang))
+    # Only disable NEON extension for Apple and Windows ARM builds, leave it
+    # enabled for Raspberry PI. Under clang-cl on ARM64 libpng leaves
+    # png_init_filter_functions_neon undefined and the slicer fails to link.
     set(_disable_neon_extension "-DPNG_ARM_NEON=off")
 else ()
     set(_disable_neon_extension "")

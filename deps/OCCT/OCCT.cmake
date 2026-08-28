@@ -1,3 +1,10 @@
+# clang-cl cannot emit IGESAppli_GeneralModule.cxx on ARM64
+# (llvm/llvm-project#62081). cl and clang-cl share an ABI.
+set(_occt_compiler_args "")
+if ("${DEPS_ARCH}" STREQUAL "arm64" AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+    set(_occt_compiler_args -DCMAKE_C_COMPILER:STRING=cl -DCMAKE_CXX_COMPILER:STRING=cl)
+endif ()
+
 if(WIN32)
     set(library_build_type "Shared")
 else()
@@ -31,10 +38,7 @@ orcaslicer_add_cmake_project(OCCT
         -DBUILD_MODULE_ModelingAlgorithms=OFF
         -DBUILD_MODULE_ModelingData=OFF
         -DBUILD_MODULE_Visualization=OFF
-        # clang-cl fails to emit IGESAppli_GeneralModule.cxx on ARM64 with an
-        # out-of-range value error from LLVM's MC layer
-        # (llvm/llvm-project#62081).
-        ${DEP_FORCE_CL_ARGS}
+        ${_occt_compiler_args}
 )
 
 # add_dependencies(dep_OCCT ${FREETYPE_PKG})

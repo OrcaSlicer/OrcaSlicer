@@ -318,14 +318,6 @@ else()
     include("deps-linux.cmake")
 endif()
 
-# A dependency that does not compile with clang-cl on ARM64 opts out by adding
-# ${DEP_FORCE_CL_ARGS} to its CMAKE_ARGS; the reason is at each use site. cl and
-# clang-cl share an ABI, so the rest of the bundle stays on clang-cl.
-set(DEP_FORCE_CL_ARGS "")
-if ("${DEPS_ARCH}" STREQUAL "arm64" AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
-    set(DEP_FORCE_CL_ARGS -DCMAKE_C_COMPILER:STRING=cl -DCMAKE_CXX_COMPILER:STRING=cl)
-endif ()
-
 if(FLATPAK)
     # flatpak bundles some deps with the layer, so attempt to find them first
     # also, yes, this reduces CI by not needing to vendor certain deps
