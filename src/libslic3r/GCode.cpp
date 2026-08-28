@@ -1928,8 +1928,15 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         std::string gcode;
         if (gcodegen.wipe_tower_type() == WipeTowerType::Type2) {
             for (const WipeTower::ToolChangeResult &tcr : m_priming) {
-                if (!tcr.extrusions.empty())
+                if (!tcr.extrusions.empty()) {
                     gcode += append_tcr2(gcodegen, tcr, tcr.new_tool);
+                    // Orca: priming is the tower's first real deposit, so keep finalize()'s Z
+                    // target (m_last_wipe_tower_print_z) in sync with it even if no later
+                    // toolchange ever updates it (e.g. a priming-only single-filament print) -
+                    // otherwise finalize() falls back to its z_offset default instead of the
+                    // tower's actual printed height.
+                    m_last_wipe_tower_print_z = tcr.print_z;
+                }
             }
         }
         return gcode;
@@ -2032,9 +2039,15 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     {
         std::string gcode;
         if (gcodegen.wipe_tower_type() == WipeTowerType::Type2 && !m_final_purge.gcode.empty()) {
-            if (std::abs(gcodegen.writer().get_position().z() - m_final_purge.print_z) > EPSILON)
-                gcode += gcodegen.change_layer(m_final_purge.print_z);
-            gcode += append_tcr2(gcodegen, m_final_purge, -1);
+            // Orca: purge at the wipe tower's actual accumulated height (m_last_wipe_tower_print_z),
+            // not m_final_purge.print_z. WipeTower2::set_layer() is called with the real current
+            // layer Z every layer regardless of wipe_tower_no_sparse_layers, so m_final_purge.print_z
+            // (== m_z_pos) always tracks the topmost real layer height, while the tower's physical
+            // top surface can be much lower. Purging at the wrong (real-layer) Z prints this final
+            // pass in mid-air, disconnected from the printed tower.
+            if (std::abs(gcodegen.writer().get_position().z() - m_last_wipe_tower_print_z) > EPSILON)
+                gcode += gcodegen.change_layer(m_last_wipe_tower_print_z);
+            gcode += append_tcr2(gcodegen, m_final_purge, -1, m_last_wipe_tower_print_z);
         }
 
         return gcode;
