@@ -661,6 +661,9 @@ set(SLIC3R_GUI_SOURCES
     plugin/pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp
     plugin/pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.cpp
     plugin/pluginTypes/slicingPipeline/SlicingPipelinePluginCapabilityTrampoline.hpp
+    plugin/pluginTypes/visualization/VisualizationPluginCapability.hpp
+    plugin/pluginTypes/visualization/VisualizationPluginCapability.cpp
+    plugin/pluginTypes/visualization/VisualizationPluginCapabilityTrampoline.hpp
     pchheader.cpp
     pchheader.hpp
     Utils/ASCIIFolding.cpp
