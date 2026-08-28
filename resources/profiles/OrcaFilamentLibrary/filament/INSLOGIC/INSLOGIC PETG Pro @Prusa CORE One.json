@@ -1,0 +1,164 @@
+{
+  "type": "filament",
+  "name": "INSLOGIC PETG Pro @Prusa CORE One",
+  "inherits": "INSLOGIC PETG Pro @base",
+  "from": "system",
+  "instantiation": "true",
+  "hot_plate_temp": [
+    "65"
+  ],
+  "hot_plate_temp_initial_layer": [
+    "65"
+  ],
+  "textured_plate_temp": [
+    "65"
+  ],
+  "textured_plate_temp_initial_layer": [
+    "65"
+  ],
+  "enable_overhang_bridge_fan": [
+    "1"
+  ],
+  "overhang_fan_speed": [
+    "100"
+  ],
+  "chamber_minimal_temperature": [
+    "0"
+  ],
+  "chamber_temperature": [
+    "0"
+  ],
+  "slow_down_for_layer_cooling": [
+    "1"
+  ],
+  "close_fan_the_first_x_layers": [
+    "0"
+  ],
+  "filament_end_gcode": [
+    "; Filament-specific end gcode"
+  ],
+  "filament_flow_ratio": [
+    "0.99"
+  ],
+  "fan_cooling_layer_time": [
+    "100"
+  ],
+  "filament_cooling_final_speed": [
+    "3.5"
+  ],
+  "filament_cooling_initial_speed": [
+    "10"
+  ],
+  "filament_cooling_moves": [
+    "2"
+  ],
+  "filament_deretraction_speed": [
+    "nil"
+  ],
+  "filament_loading_speed": [
+    "10"
+  ],
+  "filament_loading_speed_start": [
+    "50"
+  ],
+  "filament_max_volumetric_speed": [
+    "12"
+  ],
+  "filament_minimal_purge_on_wipe_tower": [
+    "15"
+  ],
+  "filament_multitool_ramming": [
+    "0"
+  ],
+  "filament_multitool_ramming_flow": [
+    "10"
+  ],
+  "filament_multitool_ramming_volume": [
+    "10"
+  ],
+  "filament_ramming_parameters": [
+    "250 100 40.1613 40.3548 40.4516 40.3548 40.2581| 0.05 40.1483 0.45 40.3419 0.95 40.3419 1.45 40.3419 1.95 40.3419 2.45 40.3419 2.95 40.3419 3.45 40.3419 3.95 40.3419 4.45 40.3419 4.95 40.3419"
+  ],
+  "filament_retraction_minimum_travel": [
+    "nil"
+  ],
+  "filament_retract_before_wipe": [
+    "nil"
+  ],
+  "filament_retract_when_changing_layer": [
+    "nil"
+  ],
+  "filament_retraction_length": [
+    "nil"
+  ],
+  "filament_retract_length_toolchange": [
+    "nil"
+  ],
+  "filament_z_hop": [
+    "nil"
+  ],
+  "filament_retract_lift_above": [
+    "nil"
+  ],
+  "filament_retract_lift_below": [
+    "nil"
+  ],
+  "filament_retract_restart_extra": [
+    "nil"
+  ],
+  "filament_retract_restart_extra_toolchange": [
+    "nil"
+  ],
+  "filament_retraction_speed": [
+    "nil"
+  ],
+  "filament_stamping_distance": [
+    "45"
+  ],
+  "filament_stamping_loading_speed": [
+    "29"
+  ],
+  "filament_toolchange_delay": [
+    "0"
+  ],
+  "filament_unloading_speed": [
+    "100"
+  ],
+  "filament_unloading_speed_start": [
+    "100"
+  ],
+  "filament_wipe": [
+    "nil"
+  ],
+  "nozzle_temperature_initial_layer": [
+    "250"
+  ],
+  "full_fan_speed_layer": [
+    "0"
+  ],
+  "idle_temperature": [
+    "170"
+  ],
+  "fan_max_speed": [
+    "100"
+  ],
+  "fan_min_speed": [
+    "100"
+  ],
+  "slow_down_min_speed": [
+    "20"
+  ],
+  "slow_down_layer_time": [
+    "15"
+  ],
+  "filament_start_gcode": [
+    ""
+  ],
+  "nozzle_temperature": [
+    "250"
+  ],
+  "compatible_printers": [
+    "Prusa CORE One 0.4 nozzle",
+    "Prusa CORE One L 0.4 nozzle"
+  ]
+}

@@ -1,0 +1,189 @@
+{
+  "type": "filament",
+  "name": "INSLOGIC PLA Pro @BBL P2S",
+  "inherits": "INSLOGIC PLA Pro @base",
+  "from": "system",
+  "instantiation": "true",
+  "filament_flow_ratio": [
+    "0.98",
+    "0.98"
+  ],
+  "filament_max_volumetric_speed": [
+    "12",
+    "12"
+  ],
+  "filament_scarf_seam_type": [
+    "all"
+  ],
+  "filament_scarf_height": [
+    "10%"
+  ],
+  "filament_scarf_gap": [
+    "0%"
+  ],
+  "filament_scarf_length": [
+    "10"
+  ],
+  "filament_change_length": [
+    "5"
+  ],
+  "filament_prime_volume": [
+    "30"
+  ],
+  "filament_start_gcode": [
+    "; filament start gcode\n{if  (bed_temperature[current_extruder] >55)||(bed_temperature_initial_layer[current_extruder] >55)}M106 P3 S200\n{elsif(bed_temperature[current_extruder] >50)||(bed_temperature_initial_layer[current_extruder] >50)}M106 P3 S150\n{elsif(bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S50\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+  ],
+  "eng_plate_temp": [
+    "55"
+  ],
+  "eng_plate_temp_initial_layer": [
+    "55"
+  ],
+  "filament_deretraction_speed": [
+    "nil",
+    "nil"
+  ],
+  "filament_flush_temp": [
+    "0",
+    "0"
+  ],
+  "filament_flush_volumetric_speed": [
+    "0",
+    "0"
+  ],
+  "filament_long_retractions_when_cut": [
+    "nil",
+    "nil"
+  ],
+  "filament_ramming_volumetric_speed": [
+    "-1",
+    "-1"
+  ],
+  "filament_ramming_volumetric_speed_nc": [
+    "-1",
+    "-1"
+  ],
+  "filament_retract_before_wipe": [
+    "nil",
+    "nil"
+  ],
+  "filament_retract_restart_extra": [
+    "nil",
+    "nil"
+  ],
+  "filament_retract_when_changing_layer": [
+    "nil",
+    "nil"
+  ],
+  "filament_retraction_distances_when_cut": [
+    "10",
+    "10"
+  ],
+  "filament_retraction_length": [
+    "1",
+    "1"
+  ],
+  "filament_retraction_minimum_travel": [
+    "nil",
+    "nil"
+  ],
+  "filament_retraction_speed": [
+    "nil",
+    "nil"
+  ],
+  "filament_wipe": [
+    "nil",
+    "nil"
+  ],
+  "filament_wipe_distance": [
+    "nil",
+    "nil"
+  ],
+  "filament_z_hop": [
+    "nil",
+    "nil"
+  ],
+  "filament_z_hop_types": [
+    "nil",
+    "nil"
+  ],
+  "filament_extruder_variant": [
+    "Direct Drive Standard",
+    "Direct Drive High Flow"
+  ],
+  "first_x_layer_fan_speed": [
+    "40"
+  ],
+  "filament_pre_cooling_temperature": [
+    "0",
+    "0"
+  ],
+  "filament_pre_cooling_temperature_nc": [
+    "0",
+    "0"
+  ],
+  "filament_ramming_travel_time": [
+    "0",
+    "0"
+  ],
+  "filament_ramming_travel_time_nc": [
+    "0",
+    "0"
+  ],
+  "filament_adaptive_volumetric_speed": [
+    "0",
+    "0"
+  ],
+  "long_retractions_when_ec": [
+    "0",
+    "0"
+  ],
+  "nozzle_temperature": [
+    "215",
+    "215"
+  ],
+  "nozzle_temperature_initial_layer": [
+    "215",
+    "215"
+  ],
+  "retraction_distances_when_ec": [
+    "0",
+    "0"
+  ],
+  "volumetric_speed_coefficients": [
+    "0 0 0 0 0 0",
+    "0 0 0 0 0 0"
+  ],
+  "nozzle_temperature_range_low": [
+    "205",
+    "205"
+  ],
+  "nozzle_temperature_range_high": [
+    "245",
+    "245"
+  ],
+  "hot_plate_temp": [
+    "55"
+  ],
+  "hot_plate_temp_initial_layer": [
+    "55"
+  ],
+  "textured_plate_temp": [
+    "55"
+  ],
+  "textured_plate_temp_initial_layer": [
+    "55"
+  ],
+  "fan_min_speed": [
+    "60"
+  ],
+  "fan_max_speed": [
+    "100"
+  ],
+  "additional_cooling_fan_speed": [
+    "70"
+  ],
+  "compatible_printers": [
+    "Bambu Lab P2S 0.4 nozzle"
+  ]
+}
