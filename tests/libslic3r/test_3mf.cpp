@@ -688,10 +688,9 @@ SCENARIO("Legacy 3MF without published metadata loads unchanged", "[3mf]") {
                                        LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
             THEN("no published key is fabricated") {
                 REQUIRE(loaded);
-                if (dst_model.model_info != nullptr) {
-                    REQUIRE(dst_model.model_info->metadata_items.count(ORCA_PUBLISHED_TAG) == 0);
-                    REQUIRE(dst_model.model_info->metadata_items.count(ORCA_PUBLISHED_KEYS_TAG) == 0);
-                }
+                REQUIRE(dst_model.model_info != nullptr);
+                REQUIRE(dst_model.model_info->metadata_items.count(ORCA_PUBLISHED_TAG) == 0);
+                REQUIRE(dst_model.model_info->metadata_items.count(ORCA_PUBLISHED_KEYS_TAG) == 0);
             }
             release_PlateData_list(dst_plates);
         }

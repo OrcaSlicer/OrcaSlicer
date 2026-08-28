@@ -3064,14 +3064,14 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
 // diff against a parent; the caller decides whether to select it.
 // The published entry's filament_id is forwarded so user bases keep their stable
 // material grouping (get_filament_presets() groups user bases by filament_id).
-// save_to_project=true (the Full Publish default) creates a project-embedded preset:
-// it lives inside the loaded project only (serialized into the saved .3mf, restored by
-// load_project_embedded_presets) and never touches the user's library directory;
-// Preset::save() early-returns for embedded presets, so persistence is skipped here too.
+// The copy is a project-embedded preset: it lives inside the loaded project only
+// (serialized into the saved .3mf, restored by load_project_embedded_presets) and
+// never touches the user's library directory; Preset::save() early-returns for
+// embedded presets, so persistence is skipped here too.
 // Returns the final (uniquified) name; on collision "<base>" -> "<base> (Published)" ->
 // "<base> (Published 2)" ...
 std::string PresetCollection::add_detached_preset(const std::string &name_base, DynamicPrintConfig config,
-                                                  const std::string &filament_id, bool save_to_project)
+                                                  const std::string &filament_id)
 {
     if (name_base.empty())
         return std::string();
@@ -3111,7 +3111,7 @@ std::string PresetCollection::add_detached_preset(const std::string &name_base, 
     preset.bundle_id.clear();
     preset.file                = this->path_for_preset(preset);
     preset.is_visible          = true;
-    preset.is_project_embedded = save_to_project;
+    preset.is_project_embedded = true;
     if (m_type == Preset::TYPE_PRINT)
         preset.config.option<ConfigOptionString>("print_settings_id", true)->value = final_name;
     else if (m_type == Preset::TYPE_FILAMENT)
@@ -3120,14 +3120,6 @@ std::string PresetCollection::add_detached_preset(const std::string &name_base, 
         preset.config.option<ConfigOptionString>("printer_settings_id", true)->value = final_name;
     unlock();
 
-    if (!save_to_project) {
-        // Persist the full resolved config (no parent). Project-embedded presets are
-        // serialized into the .3mf instead; Preset::save() would early-return anyway.
-        // find by final_name — m_presets may have reallocated, so don't keep a raw ref.
-        auto persist_it = this->find_preset_internal(final_name);
-        if (persist_it != m_presets.end() && persist_it->name == final_name)
-            persist_it->save(nullptr);
-    }
     return final_name;
 }
 

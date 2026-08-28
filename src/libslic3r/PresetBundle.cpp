@@ -5466,8 +5466,10 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                     const std::string material_label = !entry.filament_id.empty()           ? entry.filament_id :
                                                        !entry.publish_type_value.empty()    ? entry.publish_type_value :
                                                                                                entry.filament_type;
-                    published_config->skipped_keys.emplace_back("material:" + material_label +
-                                                                " (mixed filament definition: filament slot limit reached)");
+                    // The local skipped_keys is published wholesale at the end of the pass;
+                    // writing published_config->skipped_keys here would be clobbered by it.
+                    skipped_keys.emplace_back("material:" + material_label +
+                                              " (mixed filament definition: filament slot limit reached)");
                     BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": published 3MF mixed filament from slot " << entry.slot
                                                << " could not be placed: all " << next_free_slot << " slots exhausted";
                     entry_it = published_config->material_keys.erase(entry_it);
@@ -5880,6 +5882,19 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                 // slots wrote to it; that compound case is not chased.)
                 const bool edited_survives_load = this->filament_presets.empty() ||
                                                   this->filament_presets.front() == this->filaments.get_edited_preset().name;
+                // Final layout for mix-definition validation: every slot that will hold a
+                // mixed definition once this load completes - the receiver's own virtual
+                // slots plus each published mixed entry's final (possibly relocated) slot.
+                // Mix components are 1-based slot numbers, so a component is valid only
+                // when the slot it names exists and does not itself hold a mixed filament.
+                std::set<int> mixed_final_slots;
+                for (const PublishedMaterialEntry& mix_entry : published_config->material_keys)
+                    if (mix_entry.slot >= 0 && is_mixed_definition(mix_entry))
+                        mixed_final_slots.insert(mix_entry.slot);
+                for (size_t i = 0; i < this->filament_presets.size(); ++i)
+                    if (this->is_mixed_filament(i))
+                        mixed_final_slots.insert(int(i));
+                const size_t mixed_final_slot_count = this->filament_presets.size();
                 // Full Publish within-load dedup: identical Full materials (same setting_id
                 // + preset_name identity) share one created instance, so an author who
                 // pointed two slots at one preset yields one standalone copy here.
@@ -5899,6 +5914,40 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                                                            (entry.publish_type_value.empty() ? entry.filament_type :
                                                                                                entry.publish_type_value) :
                                                            entry.filament_id;
+
+                    // Import-side validation of a mixed-filament definition: the publish
+                    // dialog cannot produce a definition whose components reference slots
+                    // that do not exist or hold other mixed filaments, so a broken one here
+                    // means the payload itself is broken (hand-crafted or corrupt file).
+                    // Report it through the same channel as every other rejected input and
+                    // skip the entry, instead of shipping a mix the GUI integrity check
+                    // (check_mixed_filament_integrity) would only flag later. A payload
+                    // that omits the mixed arrays entirely is not an error here: the key
+                    // routing below reports those per key as usual.
+                    if (is_mixed_definition(entry)) {
+                        std::string mix_error;
+                        if (const ConfigOptionStrings* comp_opt = config.opt<ConfigOptionStrings>("filament_mixed_components");
+                            comp_opt != nullptr && entry.slot < static_cast<int>(comp_opt->values.size())) {
+                            const std::vector<unsigned int> comps = parse_mixed_components(comp_opt->values[entry.slot]);
+                            if (comps.size() < 2)
+                                // An empty definition cell counts as broken too: applying it
+                                // would ship a mix the sidebar would only flag later.
+                                mix_error = "needs at least two components";
+                            else
+                                for (unsigned int comp : comps)
+                                    if (comp < 1 || size_t(comp) > mixed_final_slot_count ||
+                                        mixed_final_slots.count(int(comp) - 1) != 0) {
+                                        mix_error = "components reference missing slots";
+                                        break;
+                                    }
+                        }
+                        if (!mix_error.empty()) {
+                            skipped_keys.emplace_back("material:" + material_label + " (mixed filament definition: " + mix_error + ")");
+                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": published 3MF mixed filament from slot " << entry.slot
+                                                       << " rejected: " << mix_error;
+                            continue;
+                        }
+                    }
 
                     // Full Publish: always create a standalone detached copy (even on exact
                     // identity match) as a "Preset Inside Project" (project-embedded: lives
