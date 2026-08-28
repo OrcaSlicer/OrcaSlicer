@@ -5,6 +5,7 @@
 
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Utils.hpp"
 
 #include "test_utils.hpp"
 
@@ -64,6 +65,42 @@ struct RenameTestCollection : public PresetCollection
     {}
     using PresetCollection::update_map_system_profile_renamed;
 };
+
+struct ScopedPresetDataDir
+{
+    ScopedTemporaryDir tmp{"orca-local-bundle-reload"};
+    std::string        previous{data_dir()};
+
+    ScopedPresetDataDir() { set_data_dir(tmp.path().string()); }
+    ~ScopedPresetDataDir() { set_data_dir(previous); }
+
+    fs::path bundle_dir(const std::string& id) const
+    {
+        return tmp.path() / PRESET_USER_DIR / DEFAULT_USER_FOLDER_NAME / PRESET_LOCAL_DIR / id;
+    }
+};
+
+void write_bundle_metadata(const fs::path& bundle_dir, const std::string& id)
+{
+    fs::create_directories(bundle_dir);
+    std::ofstream((bundle_dir / PRESET_BUNDLE_METADATA).string()) << "{\"id\":\"" << id << "\"}";
+}
+
+void write_print_preset_with_layer_height(const DynamicPrintConfig& default_config, const fs::path& file,
+                                          const std::string& name, double layer_height)
+{
+    DynamicPrintConfig config(default_config);
+    config.option<ConfigOptionString>("print_settings_id", true)->value = name;
+    config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value.clear();
+    config.option<ConfigOptionFloat>("layer_height", true)->value = layer_height;
+    fs::create_directories(file.parent_path());
+    config.save_to_json(file.string(), name, "User", "1.0.0");
+}
+
+double layer_height(const Preset& preset)
+{
+    return preset.config.option<ConfigOptionFloat>("layer_height")->value;
+}
 
 } // namespace
 
@@ -182,6 +219,97 @@ TEST_CASE("Printer extruder count tolerates missing nozzle diameter", "[Preset][
 
     config.set_key_value("nozzle_diameter", new ConfigOptionFloats({ 0.4, 0.6 }));
     CHECK(bundle.get_printer_extruder_count() == 2);
+}
+
+TEST_CASE("Reloading one local bundle preserves unrelated and modified presets", "[Preset][Bundle]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    ScopedPresetDataDir data_dir;
+    PresetBundle        bundle;
+    const std::string   id = "reload-target";
+    const fs::path      bundle_dir = data_dir.bundle_dir(id);
+    const fs::path      process_file = bundle_dir / PRESET_PRINT_NAME / "Managed Print.json";
+    const std::string   target_name = std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Print";
+    std::string         error;
+
+    write_bundle_metadata(bundle_dir, id);
+    write_print_preset_with_layer_height(bundle.prints.default_preset().config, process_file, "Managed Print", 0.20);
+    write_preset_with_inherits(bundle.filaments.default_preset().config,
+                               bundle_dir / PRESET_FILAMENT_NAME / "Managed Filament.json", "Managed Filament", "");
+    write_preset_with_inherits(bundle.printers.default_preset().config,
+                               bundle_dir / PRESET_PRINTER_NAME / "Managed Printer.json", "Managed Printer", "");
+
+    REQUIRE(bundle.reload_local_bundle("", id, &error));
+    const Preset* target = bundle.prints.find_preset(target_name, false, true);
+    REQUIRE(target != nullptr);
+    CHECK(target->bundle_id == id);
+    CHECK_FALSE(target->is_user());
+    REQUIRE(bundle.filaments.find_preset(std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Filament") != nullptr);
+    REQUIRE(bundle.printers.find_preset(std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Printer") != nullptr);
+
+    Preset& unrelated = add_inmemory_preset(bundle.prints, "Unrelated Process");
+    bundle.prints.select_preset_by_name(unrelated.name, true);
+    write_print_preset_with_layer_height(bundle.prints.default_preset().config, process_file, "Managed Print", 0.25);
+    REQUIRE(bundle.reload_local_bundle("", id, &error));
+    CHECK(bundle.prints.get_selected_preset_name() == unrelated.name);
+    target = bundle.prints.find_preset(target_name, false, true);
+    REQUIRE(target != nullptr);
+    CHECK_THAT(layer_height(*target), WithinAbs(0.25, 1e-6));
+
+    bundle.prints.select_preset_by_name(target_name, true);
+    bundle.prints.get_edited_preset().config.option<ConfigOptionFloat>("layer_height", true)->value = 0.33;
+    REQUIRE(bundle.prints.update_dirty());
+    write_print_preset_with_layer_height(bundle.prints.default_preset().config, process_file, "Managed Print", 0.28);
+    REQUIRE(bundle.reload_local_bundle("", id, &error));
+    CHECK(bundle.prints.get_selected_preset_name() == target_name);
+    CHECK_THAT(layer_height(bundle.prints.get_selected_preset()), WithinAbs(0.28, 1e-6));
+    CHECK_THAT(layer_height(bundle.prints.get_edited_preset()), WithinAbs(0.33, 1e-6));
+    CHECK(bundle.prints.current_is_dirty());
+
+    std::ofstream(process_file.string()) << "not json";
+    CHECK_FALSE(bundle.reload_local_bundle("", id, &error));
+    CHECK(fs::exists(process_file));
+    CHECK_THAT(layer_height(bundle.prints.get_selected_preset()), WithinAbs(0.28, 1e-6));
+    CHECK_THAT(layer_height(bundle.prints.get_edited_preset()), WithinAbs(0.33, 1e-6));
+
+    bundle.prints.discard_current_changes();
+    REQUIRE(fs::remove_all(process_file.parent_path()) > 0);
+    REQUIRE(bundle.reload_local_bundle("", id, &error));
+    CHECK(bundle.prints.find_preset(target_name, false, true) == nullptr);
+    CHECK(bundle.filaments.find_preset(std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Filament") != nullptr);
+    CHECK(bundle.printers.find_preset(std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Printer") != nullptr);
+}
+
+TEST_CASE("Reloading a local bundle rejects unsafe source and inheritance changes", "[Preset][Bundle]")
+{
+    ScopedPresetDataDir data_dir;
+    PresetBundle        bundle;
+    const std::string   id = "guarded-target";
+    const fs::path      bundle_dir = data_dir.bundle_dir(id);
+    const std::string   target_name = std::string(PRESET_LOCAL_DIR) + "/" + id + "/Managed Print";
+    std::string         error;
+
+    write_bundle_metadata(bundle_dir, id);
+    write_print_preset_with_layer_height(bundle.prints.default_preset().config,
+                                         bundle_dir / PRESET_PRINT_NAME / "Managed Print.json", "Managed Print", 0.20);
+    REQUIRE(bundle.reload_local_bundle("", id, &error));
+
+    add_inmemory_preset(bundle.prints, "External Child", target_name);
+    CHECK_FALSE(bundle.reload_local_bundle("", id, &error));
+    CHECK(error.find("External Child") != std::string::npos);
+    CHECK(bundle.prints.find_preset(target_name, false, true) != nullptr);
+
+    for (auto it = bundle.prints.begin(); it != bundle.prints.end(); ++it) {
+        if (it->name == "External Child") {
+            bundle.prints.erase(it);
+            break;
+        }
+    }
+    fs::remove_all(bundle_dir);
+    CHECK_FALSE(bundle.reload_local_bundle("", id, &error));
+    CHECK(bundle.prints.find_preset(target_name, false, true) != nullptr);
+    CHECK_FALSE(bundle.reload_local_bundle("", "../outside", &error));
 }
 
 TEST_CASE("find_preset resolves a system preset's renamed_from", "[Preset][Rename]")

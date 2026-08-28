@@ -450,6 +450,11 @@ void progress_close(int id)
 
 } // namespace
 
+void PluginHostUi::run_on_ui_thread(std::function<void()> fn)
+{
+    run_on_ui_blocking(std::move(fn));
+}
+
 void PluginHostUi::RegisterBindings(pybind11::module_& host)
 {
     auto ui = host.def_submodule(
