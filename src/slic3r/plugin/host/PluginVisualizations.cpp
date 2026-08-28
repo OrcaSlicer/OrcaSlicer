@@ -243,10 +243,14 @@ void PluginVisualizations::request_open(const std::shared_ptr<VisualizationPlugi
         return;
     }
 
+    const PluginCapabilityId id = capability->identity();
+    if (is_active(id))
+        close(id);
+
     Request request;
     request.kind = RequestKind::Open;
     request.capability = capability;
-    request.id = capability->identity();
+    request.id = id;
     request.plate_index = plate_index;
     request.scene_id = scene_id;
     request.orca_version = std::move(orca_version);
