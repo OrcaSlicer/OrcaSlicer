@@ -29,6 +29,7 @@
 #include "libslic3r/format.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PresetCacheFormat.hpp"
 #include "libslic3r_version.h"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -96,6 +97,8 @@ struct Update
 	bool forced_update;
 	//BBS: add directory support
 	bool is_directory {false};
+	// Orca: a vendor update may be the cache-only form.
+	bool is_opc {false};
 
 	Update() {}
 	//BBS: add directory support
@@ -131,6 +134,18 @@ struct Update
         }
         else {
             copy_file_fix(source, target);
+
+            // A vendor must be installed in exactly one form. Remove the
+            // representation that would otherwise be stale or shadow this one.
+            boost::system::error_code ec;
+            if (is_opc) {
+                fs::remove(target.parent_path() / (vendor + ".json"), ec);
+                ec.clear();
+                fs::remove_all(target.parent_path() / vendor, ec);
+            }
+            else {
+                fs::remove(target.parent_path() / (vendor + ".opc"), ec);
+            }
         }
 	}
 
@@ -708,6 +723,7 @@ void PresetUpdater::priv::sync_vendor_config(const std::string& vendor_id)
     fs::remove_all(cache_profile_path / vendor_id, ec);
     fs::remove(cache_profile_path / (vendor_id + ".json"), ec);
     fs::remove(cache_profile_path / (vendor_id + ".changelog"), ec);
+    fs::remove(cache_profile_path / (vendor_id + ".opc"), ec);
 
     // Download the zip
     BOOST_LOG_TRIVIAL(info) << "[Orca Updater] downloading update for " << vendor_id
@@ -735,7 +751,7 @@ void PresetUpdater::priv::sync_vendor_config(const std::string& vendor_id)
     if (!download_ok || cancel || vendor_check_cancel) return;
 
     // Extract vendor profile bundles under ota/profiles. The downloaded zip contains
-    // the vendor json/folder at its root.
+    // either the vendor json/folder or the vendor cache at its root.
     BOOST_LOG_TRIVIAL(info) << "[Orca Updater] extracting update for " << vendor_id;
     if (!extract_file(download_file, cache_profile_path)) {
         BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] extraction failed for " << vendor_id;
@@ -1147,68 +1163,93 @@ Updates PresetUpdater::priv::get_config_updates(const Semver &old_slic3r_version
     if (!fs::exists(cache_profile_path))
         return updates;
 
-    for (auto &dir_entry : boost::filesystem::directory_iterator(cache_profile_path)) {
-        const auto &path = dir_entry.path();
-        std::string file_path = path.string();
-        if (is_json_file(file_path)) {
-            const auto path_in_vendor = vendor_path / path.filename();
-            std::string vendor_name = path.filename().string();
-            // Remove the .json suffix.
-            vendor_name.erase(vendor_name.size() - 5);
-            auto print_in_cache = (cache_profile_path / vendor_name / PRESET_PRINT_NAME);
-            auto filament_in_cache = (cache_profile_path / vendor_name / PRESET_FILAMENT_NAME);
-            auto machine_in_cache = (cache_profile_path / vendor_name / PRESET_PRINTER_NAME);
+	for (auto &dir_entry : boost::filesystem::directory_iterator(cache_profile_path)) {
+		const auto &path = dir_entry.path();
+		std::string file_path = path.string();
+		const bool is_opc_file = boost::iequals(path.extension().string(), ".opc");
+		if (!is_json_file(file_path) && !is_opc_file)
+			continue;
 
-            if (is_vendor_installed(vendor_name)
-                || fs::exists(print_in_cache)
-                || fs::exists(filament_in_cache)
-                || fs::exists(machine_in_cache)) {
-                // Orca: a vendor installed as a preset cache carries its version there.
-                Semver vendor_ver = installed_vendor_version(vendor_name);
+		const std::string vendor_name = path.stem().string();
+		auto print_in_cache = (cache_profile_path / vendor_name / PRESET_PRINT_NAME);
+		auto filament_in_cache = (cache_profile_path / vendor_name / PRESET_FILAMENT_NAME);
+		auto machine_in_cache = (cache_profile_path / vendor_name / PRESET_PRINTER_NAME);
 
-                std::map<std::string, std::string> key_values;
-                std::vector<std::string> keys(3);
-				Semver cache_ver;
-                keys[0] = BBL_JSON_KEY_VERSION;
-                keys[1] = BBL_JSON_KEY_DESCRIPTION;
-                keys[2] = BBL_JSON_KEY_FORCE_UPDATE;
-                get_values_from_json(file_path, keys, key_values);
-                std::string description = key_values[BBL_JSON_KEY_DESCRIPTION];
-                bool force_update = false;
-                if (key_values.find(BBL_JSON_KEY_FORCE_UPDATE) != key_values.end())
-                    force_update = (key_values[BBL_JSON_KEY_FORCE_UPDATE] == "1")?true:false;
-                auto config_version = Semver::parse(key_values[BBL_JSON_KEY_VERSION]);
-                if (config_version)
-                    cache_ver = *config_version;
+		if (is_vendor_installed(vendor_name)
+			|| is_opc_file
+			|| fs::exists(print_in_cache)
+			|| fs::exists(filament_in_cache)
+			|| fs::exists(machine_in_cache)) {
+			// Orca: a vendor installed as a preset cache carries its version there.
+			Semver vendor_ver = installed_vendor_version(vendor_name);
 
-                std::string changelog;
-                std::string changelog_file = (cache_profile_path / (vendor_name + ".changelog")).string();
-                boost::nowide::ifstream ifs(changelog_file);
-                if (ifs) {
-                    std::ostringstream oss;
-                    oss<< ifs.rdbuf();
-                    changelog = oss.str();
-                    ifs.close();
-                }
+			Semver cache_ver;
+			std::string description;
+			bool force_update = false;
+			if (is_opc_file) {
+				cache_ver = VendorCacheFile::usable_version(file_path, vendor_name);
+				if (!cache_ver.valid()) {
+					BOOST_LOG_TRIVIAL(warning) << "[Orca Updater]:ignoring unreadable vendor cache " << file_path;
+					continue;
+				}
+			}
+			else {
+				std::map<std::string, std::string> key_values;
+				std::vector<std::string> keys(3);
+				keys[0] = BBL_JSON_KEY_VERSION;
+				keys[1] = BBL_JSON_KEY_DESCRIPTION;
+				keys[2] = BBL_JSON_KEY_FORCE_UPDATE;
+				get_values_from_json(file_path, keys, key_values);
+				description = key_values[BBL_JSON_KEY_DESCRIPTION];
+				if (key_values.find(BBL_JSON_KEY_FORCE_UPDATE) != key_values.end())
+					force_update = (key_values[BBL_JSON_KEY_FORCE_UPDATE] == "1")?true:false;
+				auto config_version = Semver::parse(key_values[BBL_JSON_KEY_VERSION]);
+				if (config_version)
+					cache_ver = *config_version;
+			}
 
-                if (vendor_ver < cache_ver) {
-                    BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:need to update settings from " << vendor_ver.to_string()
-                                            << " to newer version " << cache_ver.to_string() << ", app version " << SLIC3R_VERSION;
-                    Version version;
-                    version.config_version = cache_ver;
-                    version.comment        = description;
-                    // Orca: update vendor.json
-                    updates.updates.emplace_back(std::move(file_path), path_in_vendor.string(), std::move(version), vendor_name, changelog, "", force_update, false);
-                    //Orca: update vendor folder
-                    updates.updates.emplace_back(cache_profile_path / vendor_name, vendor_path / vendor_name, Version(), vendor_name, "", "", force_update, true);
-                } else {
-                    BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:cached settings for " << vendor_name
-                                            << " are not newer than installed version, installed " << vendor_ver.to_string()
-                                            << ", cached " << cache_ver.to_string();
-                }
-            }
-        }
-    }
+			std::string changelog;
+			std::string changelog_file = (cache_profile_path / (vendor_name + ".changelog")).string();
+			boost::nowide::ifstream ifs(changelog_file);
+			if (ifs) {
+				std::ostringstream oss;
+				oss<< ifs.rdbuf();
+				changelog = oss.str();
+				ifs.close();
+			}
+
+			if (vendor_ver < cache_ver) {
+				BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:need to update settings from " << vendor_ver.to_string()
+				                        << " to newer version " << cache_ver.to_string() << ", app version " << SLIC3R_VERSION;
+				Version version;
+				version.config_version = cache_ver;
+				version.comment        = description;
+				if (is_opc_file) {
+					// A cache contains the vendor profile and all presets.
+					// Install it directly; Update::install removes any
+					// superseded JSON representation.
+					auto &update = updates.updates.emplace_back(
+					    std::move(file_path), vendor_path / (vendor_name + ".opc"),
+					    std::move(version), vendor_name, changelog, "", force_update, false);
+					update.is_opc = true;
+				}
+				else {
+					// JSON profile and its preset directory are installed
+					// separately, as before.
+					updates.updates.emplace_back(std::move(file_path),
+					    vendor_path / (vendor_name + ".json"), std::move(version),
+					    vendor_name, changelog, "", force_update, false);
+					updates.updates.emplace_back(cache_profile_path / vendor_name,
+					    vendor_path / vendor_name, Version(), vendor_name,
+					    "", "", force_update, true);
+				}
+			} else {
+				BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:cached settings for " << vendor_name
+				                        << " are not newer than installed version, installed " << vendor_ver.to_string()
+				                        << ", cached " << cache_ver.to_string();
+			}
+		}
+	}
 
 	return updates;
 }
