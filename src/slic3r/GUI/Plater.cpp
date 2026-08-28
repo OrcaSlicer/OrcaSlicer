@@ -1467,12 +1467,12 @@ void ExtruderGroup::update_ams()
     size_t left  = 4;
     size_t index = 0;
     for (size_t i = i4; i < ams_n4 && left > 0; ++i, ++index, left -= 2) {
-        ams[index]->Update(i < ams_4.size() ? ams_4[i] : info4);
+        ams[index]->UpdateInfo(i < ams_4.size() ? ams_4[i] : info4);
         ams[index]->Refresh();
         ams[index]->Open();
     }
     for (size_t i = i1; i < ams_n1 && left > 0; ++i, ++index, --left) {
-        ams[index]->Update(i < ams_1.size() ? ams_1[i] : info1);
+        ams[index]->UpdateInfo(i < ams_1.size() ? ams_1[i] : info1);
         ams[index]->Refresh();
         ams[index]->Open();
     }
@@ -3870,7 +3870,7 @@ bool Sidebar::reset_bed_type_combox_choices(bool is_sidebar_init)
         }
     }
     m_last_combo_bedtype_count = p->combo_printer_bed->GetCount();
-    if (!is_sidebar_init && &p->plater->get_partplate_list()) {
+    if (!is_sidebar_init) {
         p->plater->get_partplate_list().check_all_plate_local_bed_type(m_cur_combox_bed_types);
     }
     return true;
@@ -4914,7 +4914,10 @@ void Sidebar::edit_mixed_filament(size_t panel_idx)
         if (multi_colour_opt && cfg_idx < multi_colour_opt->values.size())
             multi_colour_opt->values[cfg_idx] = blended;
 
+        // The edited slot keeps its index, so nothing else refreshes the per-feature filament
+        // lists - and its blended colour and type are what they show for it.
         update_mixed_filament_list();
+        update_dynamic_filament_list();
         wxGetApp().plater()->update_project_dirty_from_presets();
         wxPostEvent(this, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, this));
     }
@@ -5286,8 +5289,11 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
     if (num_physical == choices.size()) {
         // The ctor pre-creates one combo, so a single-filament project hits this guard before
         // any layout pass has sized the scroll areas; refresh them here as well.
+        // Adding a mixed slot also lands here, since only the virtual count changed, so the
+        // per-feature filament lists - which do list mixed slots - have to be refreshed too.
         recalc_filament_scroll_sizes();
         update_mixed_filament_list();
+        update_dynamic_filament_list();
         return;
     }
 
@@ -5500,12 +5506,15 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
 
     // Mixed-color slots are kept at the tail of the filament arrays, so a new physical
     // filament has to be inserted just after the last physical one rather than appended.
-    // total == every slot (physical + mixed); insert_pos == the physical slot count.
-    size_t      total          = wxGetApp().preset_bundle->filament_presets.size();
-    size_t      insert_pos     = p->combos_filament.size();
+    // Count off filament_is_mixed, not filament_presets or the combos: the extruder-count spinner
+    // reaches this before the sidebar has rebuilt, and update_multi_material_filament_presets()
+    // can have grown filament_presets alone.
+    auto       *bundle         = wxGetApp().preset_bundle;
+    size_t      insert_pos     = bundle->num_physical_filaments();
+    size_t      total          = insert_pos + bundle->num_mixed_filaments();
     int         filament_count = (int)(total + 1);
     std::string new_color      = new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
-    wxGetApp().preset_bundle->set_num_filaments(filament_count, new_color);
+    bundle->set_num_filaments(filament_count, new_color);
 
     // Maintain physical-first ordering: rotate the new slot from end to insert_pos.
     // No mixed slots -> insert_pos == total -> every rotate below is a no-op.

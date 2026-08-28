@@ -15,8 +15,7 @@ public:
     ScrolledWindow(wxWindow *parent, wxWindowID id, wxPoint position, wxSize size, long style, int marginWidth = 0, int scrollbarWidth = 4, int tipLength = 0);
     void OnMouseWheel(wxMouseEvent &event);
     void SetTipColor(wxColour color);
-    void Refresh();
-    void SetBackgroundColour(wxColour color);
+    bool SetBackgroundColour(const wxColour &color) override;
 
     void         SetMarginColor(wxColour color);
     void         SetScrollbarColor(wxColour color);
@@ -27,7 +26,7 @@ public:
     // wxSplitterWindow* GetVerticalSplitter() { return m_verticalSplitter; }
     // wxSplitterWindow* GetHorizontalSplitter() { return m_horizontalSplitter; }
     bool         IsBothDirections() { return m_bothDirections; }
-    virtual void SetScrollbars(int pixelsPerUnitX, int pixelsPerUnitY, int noUnitsX, int noUnitsY, int xPos = 0, int yPos = 0, bool noRefresh = false);
+    virtual void SetScrollbars(int pixelsPerUnitX, int pixelsPerUnitY, int noUnitsX, int noUnitsY, int xPos = 0, int yPos = 0, bool noRefresh = false) override;
 
 private:
     wxPanel *    m_userPanel; // the panel targeted by the scrolled window
