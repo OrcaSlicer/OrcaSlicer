@@ -31,8 +31,8 @@ orcaslicer_add_cmake_project(OCCT
         -DBUILD_MODULE_ModelingAlgorithms=OFF
         -DBUILD_MODULE_ModelingData=OFF
         -DBUILD_MODULE_Visualization=OFF
-        # clang-cl cannot encode the unwind data for OCCT's large generated
-        # dispatch functions on ARM64, so TKIGES fails to assemble
+        # clang-cl fails to emit IGESAppli_GeneralModule.cxx on ARM64 with an
+        # out-of-range value error from LLVM's MC layer
         # (llvm/llvm-project#62081).
         ${DEP_FORCE_CL_ARGS}
 )
