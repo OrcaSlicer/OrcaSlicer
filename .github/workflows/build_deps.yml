@@ -75,14 +75,6 @@ jobs:
         if: runner.os == 'Windows'
         uses: microsoft/setup-msbuild@v3
 
-      - name: Set up the VC environment (Windows, Ninja)
-        # MSBuild hands its own build steps a VC environment; Ninja does not,
-        # and OpenSSL's nmake needs one.
-        if: runner.os == 'Windows' && inputs.compiler == 'clang'
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: ${{ inputs.arch == 'arm64' && 'arm64' || 'amd64' }}
-
       - name: Get the date on Ubuntu and macOS
         if: runner.os != 'Windows'
         run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
@@ -148,7 +140,16 @@ jobs:
             }
             $arch = "${{ inputs.arch }}"
             # -l selects clang-cl and -x Ninja; together they build the deps with clang.
-            $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { @() }
+            $clang = "${{ inputs.compiler }}" -eq "clang"
+            $flags = if ($clang) { "-l", "-x" } else { @() }
+            if ($clang) {
+              # OpenSSL builds with nmake, which needs a VC environment.
+              $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+              $vs = & $vswhere -latest -property installationPath
+              $devArch = if ($arch -eq "arm64") { "arm64" } else { "amd64" }
+              Import-Module "$vs\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+              Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments "-arch=$devArch"
+            }
             if ($arch -eq "arm64") {
               .\build_release_vs.bat deps arm64 @flags
               .\build_release_vs.bat pack arm64
