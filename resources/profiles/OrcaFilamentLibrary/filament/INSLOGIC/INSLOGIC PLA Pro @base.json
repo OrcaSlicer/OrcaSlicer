@@ -1,0 +1,36 @@
+{
+  "type": "filament",
+  "name": "INSLOGIC PLA Pro @base",
+  "inherits": "fdm_filament_pla",
+  "from": "system",
+  "filament_id": "INS00001",
+  "instantiation": "false",
+  "filament_vendor": [
+    "INSLOGIC"
+  ],
+  "filament_type": [
+    "PLA"
+  ],
+  "filament_density": [
+    "1.20"
+  ],
+  "filament_diameter": [
+    "1.75"
+  ],
+  "filament_max_volumetric_speed": [
+    "12"
+  ],
+  "filament_soluble": [
+    "0"
+  ],
+  "nozzle_temperature_range_low": [
+    "195"
+  ],
+  "nozzle_temperature_range_high": [
+    "220"
+  ],
+  "filament_notes": [
+    "Inslogic PLA Pro TDS (12.02.2024). Nozzle sizes 0.2/0.4/0.6mm. 195-205C at 50-100mm/s; 205-220C at 100-300mm/s. Bed 50-60C. Cooling fan 100%. Bed: Textured PEI Sheet / Cool Plate. Drying 50C for 4h. TDS linear speed is not converted to filament_max_volumetric_speed."
+  ],
+  "compatible_printers": []
+}
