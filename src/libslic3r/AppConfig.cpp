@@ -311,6 +311,11 @@ void AppConfig::set_defaults()
         set_bool("zoom_to_mouse", false);
 
 #ifdef SLIC3R_CAD
+    // Experimental parametric Design tab. Off by default: the tab is not created at all
+    // until this is turned on, so nothing it builds reaches an unsuspecting user.
+    if (get("enable_cad_feature").empty())
+        set_bool("enable_cad_feature", false);
+
     // Design tab: draw a mate connector as a face rather than as the abstract disc + roll
     // quadrant. Defaults ON — face orientation is hardwired perception, so the roll and the
     // verse read without being learned, which no abstract glyph achieves. Turning it off

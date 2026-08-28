@@ -349,6 +349,9 @@ public:
     int             OnExit() override;
     bool            initialized() const { return m_initialized; }
     inline bool     is_enable_multi_machine() { return this->app_config&& this->app_config->get("enable_multi_machine") == "true"; }
+#ifdef SLIC3R_CAD
+    inline bool     is_enable_cad_feature() { return this->app_config && this->app_config->get_bool("enable_cad_feature"); }
+#endif
 
     std::map<std::string, bool> test_url_state;
 

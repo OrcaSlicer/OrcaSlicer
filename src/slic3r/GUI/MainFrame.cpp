@@ -1025,8 +1025,11 @@ void MainFrame::update_layout()
         size_t prepare_pos = (home_idx == wxNOT_FOUND) ? 0 : static_cast<size_t>(home_idx) + 1;
 #ifdef SLIC3R_CAD
         // Design sits between Home and Prepare, so it goes in first and pushes Prepare along.
-        m_design_page->Reparent(m_tabpanel);
-        m_tabpanel->InsertPage(prepare_pos++, TAB_ID_DESIGN, m_design_page, _L("Design"), "tab_design_active");
+        // The page only exists when the experimental CAD feature is enabled.
+        if (m_design_page != nullptr) {
+            m_design_page->Reparent(m_tabpanel);
+            m_tabpanel->InsertPage(prepare_pos++, TAB_ID_DESIGN, m_design_page, _L("Design"), "tab_design_active");
+        }
 #endif
         m_tabpanel->InsertPage(prepare_pos, TAB_ID_PREPARE, m_plater, _L("Prepare"), "tab_3d_active");
         m_tabpanel->InsertPage(prepare_pos + 1, TAB_ID_PREVIEW, m_plater, _L("Preview"), "tab_preview_active");
@@ -1299,7 +1302,7 @@ void MainFrame::init_tabpanel() {
         //else if (panel == m_param_panel)
         //    m_param_panel->OnActivate();
 #ifdef SLIC3R_CAD
-        else if (panel == m_design_page) {
+        else if (m_design_page != nullptr && panel == m_design_page) {
             // Built on first activation, never at startup: the panel creates several hundred
             // controls and its own GL canvas, which a user who does not open the tab should
             // not pay for.
@@ -1351,11 +1354,15 @@ void MainFrame::init_tabpanel() {
 #ifdef SLIC3R_CAD
     // Stand-in page for the Design tab. The real DesignPanel is built into it the first time
     // the tab is selected (see the page-changed handler above), so nothing it constructs sits
-    // on the startup path.
-    m_design_page = new wxPanel(this);
-    m_design_page->SetSizer(new wxBoxSizer(wxVERTICAL));
-    m_design_page->Hide();
-    start_mcp_control_if_enabled();   // opens the MCP socket iff SNAPORCA_MCP is set
+    // on the startup path. The experimental feature is off by default, and when it is off the
+    // page is never created, so the tab does not appear at all (the preference takes effect on
+    // the next start, like the other feature toggles).
+    if (wxGetApp().is_enable_cad_feature()) {
+        m_design_page = new wxPanel(this);
+        m_design_page->SetSizer(new wxBoxSizer(wxVERTICAL));
+        m_design_page->Hide();
+        start_mcp_control_if_enabled();   // opens the MCP socket iff SNAPORCA_MCP is set
+    }
 #endif
 
     create_preset_tabs();
