@@ -4,7 +4,10 @@
 #include <cmath>
 
 #include "EncodedFilament.hpp"
+#include "FilamentBitmapUtils.hpp"
 #include "GUI_App.hpp"
+#include "libslic3r/FilamentMixer.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -28,6 +31,113 @@ void fill_gradient_rect_east(wxDC& dc, const wxRect& rect, const wxColour& from,
     }
 }
 
+static std::string to_hex(const wxColour& c)
+{
+    return wxString::Format("#%02X%02X%02X", c.Red(), c.Green(), c.Blue()).ToStdString();
+}
+
+wxColour blend_n_colors(const std::vector<wxColour>& cols, const std::vector<double>& weights)
+{
+    const size_t n = std::min(cols.size(), weights.size());
+    std::vector<std::string> hex_colors;
+    std::vector<int>         int_weights;
+    hex_colors.reserve(n);
+    int_weights.reserve(n);
+    for (size_t i = 0; i < n; ++i) {
+        hex_colors.push_back(to_hex(cols[i]));
+        // Scale double weights (e.g. 0.5) to int (5000) for blend_color_multi;
+        // only relative magnitude matters.
+        int_weights.push_back(static_cast<int>(std::lround(weights[i] * 10000.0)));
+    }
+    wxColour blended(Slic3r::blend_color_multi(hex_colors, int_weights));
+    return blended.IsOk() ? blended : wxColour(128, 128, 128);
+}
+
+std::vector<wxColour> sample_gradient_ramp(const wxColour& first,
+                                           const wxColour& second,
+                                           const Slic3r::GradientCurve& curve,
+                                           int steps)
+{
+    std::vector<wxColour> ramp;
+    if (steps <= 0 || curve.points.size() < 2) return ramp;
+
+    ramp.reserve(steps);
+    for (int i = 0; i < steps; ++i) {
+        const double t  = (steps > 1) ? (i + 0.5) / steps : 0.5;
+        const double r1 = Slic3r::sample_gradient_curve(curve, t);
+        ramp.push_back(blend_n_colors({first, second}, {r1, 1.0 - r1}));
+    }
+    return ramp;
+}
+
+// Resolve the curve a gradient slot is sampled with, mirroring the slicer's fallback in
+// ToolOrdering: a custom curve wins, otherwise a straight line between gradient_range's
+// endpoints, otherwise the 0.10 -> 0.90 default.
+static Slic3r::GradientCurve mixed_gradient_curve(const Slic3r::DynamicPrintConfig& cfg, size_t slot)
+{
+    const auto* curve_opt = cfg.option<ConfigOptionStrings>("filament_mixed_gradient_curve");
+    if (curve_opt && slot < curve_opt->values.size() && !curve_opt->values[slot].empty()) {
+        Slic3r::GradientCurve custom = Slic3r::parse_gradient_curve(curve_opt->values[slot]);
+        if (custom.points.size() >= 2) return custom;
+    }
+
+    double start = kGradientMinRatio, end = kGradientMaxRatio;
+    const auto* range_opt = cfg.option<ConfigOptionStrings>("filament_mixed_gradient_range");
+    if (range_opt && slot < range_opt->values.size() && !range_opt->values[slot].empty()) {
+        CNumericLocalesSetter c_locale_setter;
+        float v0 = 0, v1 = 0;
+        if (std::sscanf(range_opt->values[slot].c_str(), "%f,%f", &v0, &v1) == 2 &&
+            v0 > 0 && v0 < 1.0 && v1 > 0 && v1 < 1.0) {
+            start = v0;
+            end   = v1;
+        }
+    }
+
+    Slic3r::GradientCurve curve;
+    curve.points = {{0.0, start, NAN, NAN}, {1.0, end, NAN, NAN}};
+    return curve;
+}
+
+std::vector<wxColour> mixed_gradient_ramp(const Slic3r::DynamicPrintConfig& cfg, size_t slot, int steps)
+{
+    const auto* is_mixed_opt = cfg.option<ConfigOptionBools>("filament_is_mixed");
+    const auto* grad_opt     = cfg.option<ConfigOptionBools>("filament_mixed_gradient");
+    const auto* comp_opt     = cfg.option<ConfigOptionStrings>("filament_mixed_components");
+    const auto* colour_opt   = cfg.option<ConfigOptionStrings>("filament_colour");
+    if (!is_mixed_opt || !grad_opt || !comp_opt || !colour_opt) return {};
+    if (slot >= is_mixed_opt->values.size() || !is_mixed_opt->values[slot]) return {};
+    if (slot >= grad_opt->values.size() || !grad_opt->values[slot]) return {};
+    if (slot >= comp_opt->values.size()) return {};
+
+    // Only two-component slots fade; anything else stays on the plain blended swatch.
+    const auto comp_ids = Slic3r::parse_mixed_components(comp_opt->values[slot]);
+    if (comp_ids.size() != 2) return {};
+
+    auto component_colour = [&](unsigned int id) {
+        wxColour c = (id >= 1 && id <= colour_opt->values.size()) ? wxColour(colour_opt->values[id - 1]) : wxColour();
+        return c.IsOk() ? c : wxColour("#D9D9D9");
+    };
+
+    // Both gradient_range and the curve express the *first* component's ratio over Z, so
+    // the components stay in config order and the curve alone decides which end is which.
+    return sample_gradient_ramp(component_colour(comp_ids[0]), component_colour(comp_ids[1]),
+                                mixed_gradient_curve(cfg, slot), steps);
+}
+
+void fill_gradient_ramp_rect(wxDC& dc, const wxRect& rect, const std::vector<wxColour>& ramp)
+{
+    if (rect.width <= 0 || rect.height <= 0 || ramp.empty()) return;
+
+    dc.SetPen(*wxTRANSPARENT_PEN);
+    for (int y = 0; y < rect.height; ++y) {
+        // Row 0 is the top of the rect and so takes the ramp's last entry, the model's top.
+        // Mapping over height - 1 puts both ends of the ramp on screen even in a short swatch.
+        const double t = (rect.height > 1) ? (double) (rect.height - 1 - y) / (rect.height - 1) : 0.5;
+        dc.SetBrush(wxBrush(ramp[static_cast<size_t>(t * (ramp.size() - 1) + 0.5)]));
+        dc.DrawRectangle(rect.x, rect.y + y, rect.width, 1);
+    }
+}
+
 // Helper struct to hold bitmap and DC
 struct BitmapDC {
     wxBitmap bitmap;
@@ -45,6 +155,19 @@ struct BitmapDC {
 
 static BitmapDC init_bitmap_dc(const wxSize& size) {
     return BitmapDC(size);
+}
+
+wxBitmap create_gradient_ramp_bitmap(const std::vector<wxColour>& ramp, const wxSize& size)
+{
+    if (ramp.empty()) return wxNullBitmap;
+
+    BitmapDC bdc = init_bitmap_dc(size);
+    if (!bdc.dc.IsOk()) return wxNullBitmap;
+
+    fill_gradient_ramp_rect(bdc.dc, wxRect(0, 0, size.GetWidth(), size.GetHeight()), ramp);
+
+    bdc.dc.SelectObject(wxNullBitmap);
+    return bdc.bitmap;
 }
 
 // Check if a color is transparent (alpha == 0)
@@ -262,6 +385,67 @@ wxBitmap create_filament_bitmap(const std::vector<wxColour>& colors, const wxSiz
         case 3: return create_triple_filament_bitmap(sorted_colors, size);
         case 4: return create_quadruple_filament_bitmap(sorted_colors, size);
         default: return create_gradient_filament_bitmap(sorted_colors, size);
+    }
+}
+
+void recompute_mixed_slot_colors(std::vector<wxColour>& colors,
+                                 const Slic3r::DynamicPrintConfig& cfg)
+{
+    const auto* is_mixed_opt = cfg.option<ConfigOptionBools>("filament_is_mixed");
+    const auto* comp_opt     = cfg.option<ConfigOptionStrings>("filament_mixed_components");
+    const auto* ratio_opt    = cfg.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios");
+    const auto* grad_opt     = cfg.option<ConfigOptionBools>("filament_mixed_gradient");
+    if (!is_mixed_opt || !comp_opt) return;
+
+    const size_t n = is_mixed_opt->values.size();
+    if (colors.size() < n) colors.resize(n);
+
+    const auto* colour_opt = cfg.option<ConfigOptionStrings>("filament_colour");
+    const auto  kFallback  = wxColour(128, 128, 128, 255);
+
+    for (size_t i = 0; i < n; ++i) {
+        if (!is_mixed_opt->values[i]) continue;
+
+        if (i >= comp_opt->values.size()) { colors[i] = kFallback; continue; }
+        auto comp_ids = Slic3r::parse_mixed_components(comp_opt->values[i]);
+        if (comp_ids.empty()) { colors[i] = kFallback; continue; }
+
+        bool is_gradient = grad_opt && i < grad_opt->values.size() && grad_opt->values[i];
+        std::vector<unsigned int> use_ids = comp_ids;
+        std::vector<int>          weights;
+
+        if (is_gradient && comp_ids.size() >= 2) {
+            use_ids = { comp_ids.front(), comp_ids.back() };
+            weights = { 5000, 5000 };
+        } else {
+            auto ratios_d = Slic3r::parse_mixed_ratios(
+                (ratio_opt && i < ratio_opt->values.size()) ? ratio_opt->values[i] : std::string{},
+                comp_ids.size());
+            weights.reserve(comp_ids.size());
+            for (double r : ratios_d)
+                weights.push_back(static_cast<int>(std::lround(r * 10000.0)));
+        }
+
+        std::vector<std::string> hex_colors;
+        hex_colors.reserve(use_ids.size());
+        bool any_invalid = false;
+        for (unsigned int id : use_ids) {
+            if (id == 0 || id > colors.size()) { any_invalid = true; break; }
+            wxColour c = colors[id - 1];
+            if (c.IsOk() && (c.Red() > 0 || c.Green() > 0 || c.Blue() > 0)) {
+                hex_colors.push_back(to_hex(c));
+            } else if (colour_opt && (id - 1) < colour_opt->values.size()) {
+                hex_colors.push_back(colour_opt->values[id - 1]);
+            } else {
+                any_invalid = true; break;
+            }
+        }
+        if (any_invalid) { colors[i] = kFallback; continue; }
+
+        std::string hex = Slic3r::blend_color_multi(hex_colors, weights);
+        wxColour blended(hex);
+        if (!blended.IsOk()) blended = kFallback;
+        colors[i] = wxColour(blended.Red(), blended.Green(), blended.Blue(), 255);
     }
 }
 

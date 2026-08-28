@@ -3,7 +3,7 @@
 *  Description: The panel for updating hotends
 *
 *  \n class wgtDeviceNozzleRackUpdate
-//**********************************************************/
+************************************************************/
 
 #pragma once
 #include "slic3r/GUI/DeviceCore/DevNozzleRack.h"

@@ -3,7 +3,7 @@
 *  Description: The panel to select nozzle
 *
 *  \n class wgtDeviceNozzleSelect;
-//**********************************************************/
+************************************************************/
 
 #include "wgtDeviceNozzleSelect.h"
 #include "wgtDeviceNozzleRack.h"

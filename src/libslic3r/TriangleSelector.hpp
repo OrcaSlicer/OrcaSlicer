@@ -17,7 +17,9 @@ enum class EnforcerBlockerType : int8_t {
     BLOCKER   = 2,
     // For the fuzzy skin, we use just two values (NONE and FUZZY_SKIN).
     FUZZY_SKIN = ENFORCER,
-    // Maximum is 15. The value is serialized in TriangleSelector into 6 bits using a 2 bit prefix code.
+    // States 3..17 are serialized into 6 bits using a 2 bit prefix code; states 18 and above use
+    // one additional nibble (see TriangleSelector::serialize). ExtruderMax matches the last entry
+    // of CONST_FILAMENTS in Model.cpp, which encodes the same range for colored mesh imports.
     Extruder1 = ENFORCER,
     Extruder2 = BLOCKER,
     Extruder3,
@@ -34,7 +36,23 @@ enum class EnforcerBlockerType : int8_t {
     Extruder14,
     Extruder15,
     Extruder16,
-    ExtruderMax = Extruder16
+    Extruder17,
+    Extruder18,
+    Extruder19,
+    Extruder20,
+    Extruder21,
+    Extruder22,
+    Extruder23,
+    Extruder24,
+    Extruder25,
+    Extruder26,
+    Extruder27,
+    Extruder28,
+    Extruder29,
+    Extruder30,
+    Extruder31,
+    Extruder32,
+    ExtruderMax = Extruder32
 };
 
 // Type alias for the state mapping array to improve code readability
@@ -368,6 +386,9 @@ public:
 
     // For all triangles, remove the flag indicating that the triangle was selected by seed fill.
     void seed_fill_unselect_all_triangles();
+
+    // Shift all triangle states >= threshold by delta (used when inserting filaments)
+    void shift_states_above(EnforcerBlockerType threshold, int delta);
 
     // For all triangles selected by seed fill, set new EnforcerBlockerType and remove flag indicating that triangle was selected by seed fill.
     // The operation may merge split triangles if they are being assigned the same color.
