@@ -8,6 +8,7 @@
 #include "enum_bitmask.hpp"
 
 #include <memory>
+#include <map>
 #include <set>
 #include <shared_mutex>
 #include <unordered_map>
@@ -186,6 +187,11 @@ struct PublishedConfig
     // Human-readable notices of the slot material replacements performed while loading a
     // published project, for the load notification.
     std::vector<std::string>    material_replacements;
+    // Mixed-filament entries that had to be moved off their authored slot on load (a real,
+    // physical filament occupied it): maps the author's zero-based slot number to its final
+    // zero-based slot. Consumers (e.g. model extruder/color-painting remapping) use this to
+    // keep geometry references pointing at the relocated definitions.
+    std::map<int, int>          mixed_slot_relocations;
 };
 
 // Bundle of Print + Filament + Printer presets.

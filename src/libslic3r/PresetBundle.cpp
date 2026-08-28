@@ -14,6 +14,7 @@
 #include "Utils.hpp"
 #include "LocalesUtils.hpp"
 #include "Model.hpp"
+#include "TriangleSelector.hpp"
 #include "libslic3r_version.h"
 
 #include <algorithm>
@@ -4871,6 +4872,49 @@ static std::map<std::string, std::map<std::string, std::string>> filament_preset
       {{"Bambu PETG HF @BBL H2D 0.6 nozzle", "Bambu PETG HF @BBL H2D 0.8 nozzle"},
        {"Bambu ASA @BBL H2D 0.6 nozzle", "Bambu ASA @BBL H2D 0.8 nozzle"}}}};
 
+// Relocate the per-slot cells of one mixed-filament project vector inside the imported
+// config, applying every authored-slot -> destination move at once. Each move reads its
+// source cell from a frozen snapshot of the config's current cells, so relocations never
+// cross-contaminate when an earlier destination overlaps a later source (adjacent published
+// tail mixes relocate onto consecutive slots). Cells the snapshot lacks degrade to
+// empty/false defaults - the missing-data handling in the material pass reports them
+// downstream. Left-behind source cells stay as-is: nothing else consumes the imported config
+// at those indices in published mode.
+static void apply_mixed_config_relocations(DynamicPrintConfig&                            config,
+                                           const std::string&                             key,
+                                           const std::vector<std::pair<size_t, size_t>>&  moves)
+{
+    ConfigOption* opt = config.optptr(key);
+    if (opt == nullptr || moves.empty())
+        return;
+    std::unique_ptr<ConfigOption> snapshot(opt->clone());
+    switch (opt->type()) {
+    case coBools: {
+        auto*       live   = static_cast<ConfigOptionBools*>(opt);
+        const auto* frozen = static_cast<const ConfigOptionBools*>(snapshot.get());
+        for (const auto [from, to] : moves) {
+            const unsigned char cell = from < frozen->values.size() ? frozen->values[from] : 0;
+            if (live->values.size() <= to)
+                live->values.resize(to + 1, 0);
+            live->values[to] = cell;
+        }
+        break;
+    }
+    case coStrings: {
+        auto*       live   = static_cast<ConfigOptionStrings*>(opt);
+        const auto* frozen = static_cast<const ConfigOptionStrings*>(snapshot.get());
+        for (const auto [from, to] : moves) {
+            const std::string cell = from < frozen->values.size() ? frozen->values[from] : std::string();
+            if (live->values.size() <= to)
+                live->values.resize(to + 1, std::string{});
+            live->values[to] = cell;
+        }
+        break;
+    }
+    default: break;
+    }
+}
+
 // convert the old filament preset to new one after split
 static void convert_filament_preset_name(std::string& machine_name, std::string& filament_name)
 {
@@ -5379,12 +5423,87 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                 if (entry.slot >= 0)
                     grow_target = std::max(grow_target, size_t(entry.slot) + 1);
             }
+            // Mixed-filament definitions live in project-level virtual slots, so applying one
+            // positionally onto a receiver slot that holds a real, physical filament would
+            // silently convert hardware-backed state into a virtual mix. Compute each mixed
+            // entry's destination before anything consumes entry.slot (growth, seeding,
+            // de-aliasing, the overlay below):
+            //   - a definition landing on a receiver slot that already carries a mixed
+            //     definition keeps its place (a like-for-like override of a virtual slot);
+            //   - everything else goes through one monotone append counter preserving author
+            //     order: dest = max(authored, next_free). With a receiver shorter than the
+            //     publish this keeps the authored positions intact; past them (or around a
+            //     collision with a real filament) the mixes pack onto consecutive fresh slots
+            //     AFTER every positional (real-filament) territory. The definition's cells are
+            //     shifted inside the file-side per-slot mixed arrays so they stay readable
+            //     from the new index. No existing slot changes meaning.
+            //   - destinations are also capped: appends past the extruder limit are dropped
+            //     and reported instead of being forced onto a physical filament.
+            const std::set<std::string>& mixed_definitions = publish_mixed_keys();
+            auto is_mixed_definition                      = [&mixed_definitions](const PublishedMaterialEntry& entry) {
+                return std::any_of(entry.keys.begin(), entry.keys.end(), [&](const std::string& key) {
+                    return mixed_definitions.count(publish_base_key(key)) != 0;
+                });
+            };
+            size_t next_free_slot     = this->filament_presets.size();
+            bool   any_mixed_relocated = false;
+            // All authored-slot -> destination moves decided by this pass, applied to the
+            // incoming config in one batched snapshot step below (an earlier move's
+            // destination can overlap a later move's source: adjacent tail mixes relocate
+            // onto consecutive slots, so incremental in-place shifts would overwrite a
+            // definition that has not been moved yet).
+            std::vector<std::pair<size_t, size_t>> mixed_moves;
+            for (auto entry_it = published_config->material_keys.begin(); entry_it != published_config->material_keys.end();) {
+                PublishedMaterialEntry& entry = *entry_it;
+                if (entry.slot < 0 || !is_mixed_definition(entry) ||
+                    // Like-for-like override of a virtual receiver slot (bounds-checked).
+                    this->is_mixed_filament(size_t(entry.slot))) {
+                    ++entry_it;
+                    continue;
+                }
+                if (std::max(size_t(entry.slot), next_free_slot) >= size_t(EnforcerBlockerType::ExtruderMax)) {
+                    // No free virtual slot left: report instead of destroying a real filament.
+                    const std::string material_label = !entry.filament_id.empty()           ? entry.filament_id :
+                                                       !entry.publish_type_value.empty()    ? entry.publish_type_value :
+                                                                                               entry.filament_type;
+                    published_config->skipped_keys.emplace_back("material:" + material_label +
+                                                                " (mixed filament definition: filament slot limit reached)");
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": published 3MF mixed filament from slot " << entry.slot
+                                               << " could not be placed: all " << next_free_slot << " slots exhausted";
+                    entry_it = published_config->material_keys.erase(entry_it);
+                    continue;
+                }
+                const int authored_slot = entry.slot;
+                const int dest_slot     = int(std::max(size_t(authored_slot), next_free_slot));
+                next_free_slot          = size_t(dest_slot) + 1;
+                if (dest_slot == authored_slot)
+                    // Uncontended fresh tail slot: the definition is already readable there.
+                    ++entry_it;
+                else {
+                    entry.slot              = dest_slot;
+                    any_mixed_relocated     = true;
+                    mixed_moves.emplace_back(size_t(authored_slot), size_t(entry.slot));
+                    published_config->mixed_slot_relocations.emplace(authored_slot, entry.slot);
+                    published_config->material_replacements.emplace_back("slot " + std::to_string(authored_slot) + " -> slot " +
+                                                                         std::to_string(entry.slot) +
+                                                                         ": mixed filament relocated (would have replaced a physical filament)");
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF relocated mixed filament slot " << authored_slot
+                                            << " -> " << entry.slot;
+                    ++entry_it;
+                }
+            }
+            if (!mixed_moves.empty())
+                for (const std::string& mixed_key : mixed_definitions)
+                    apply_mixed_config_relocations(config, mixed_key, mixed_moves);
             if (has_published_entries) {
                 // Defensive cap: growth never exceeds the file's own filament count. The
                 // receiver's current slot count is a floor: neither the preset list nor the
                 // project vectors are ever shrunk, even when the file carries fewer filaments
-                // than the receiver has slots.
-                const size_t target_slots = std::max(this->filament_presets.size(), std::min(grow_target, num_filaments));
+                // than the receiver has slots. Relocated mixed entries legitimately land past
+                // the file's own slot count (virtual slots consume no nozzle or tray), so
+                // their destinations lift the ceiling explicitly.
+                const size_t target_slots = std::max({this->filament_presets.size(), std::min(grow_target, num_filaments),
+                                                      any_mixed_relocated ? next_free_slot : size_t(0)});
                 // Slots carrying published content, steering the initial preset selection of
                 // newly grown slots.
                 std::set<int> published_slots;
@@ -5999,9 +6118,7 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                         // A mixed-definition entry carries the mix's blended colour for the
                         // swatch only: never write it into the slot's (possibly shared) preset
                         // config, only into the project-level colour arrays.
-                        const bool is_mixed_entry = std::any_of(entry.keys.begin(), entry.keys.end(), [&](const std::string& key) {
-                            return publish_mixed_keys().count(publish_base_key(key)) != 0;
-                        });
+                        const bool is_mixed_entry = is_mixed_definition(entry);
                         if (!is_mixed_entry && recv != nullptr) {
                             // Create the key when the target preset lacks it: the colour is a
                             // requirement, not an override.

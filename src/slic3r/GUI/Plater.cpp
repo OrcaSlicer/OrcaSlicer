@@ -9053,6 +9053,17 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
                             preset_bundle->load_config_model(filename.string(), std::move(config), file_version, &published_config);
 
+                            // Mixed-filament definitions that collided with one of the
+                            // receiver's real slots were relocated during the preset load.
+                            // Re-point the freshly parsed model's extruder references and
+                            // color painting from the author's slot numbers to where each
+                            // definition landed, so volumes colored with a mix follow it.
+                            // Runs before the objects are handed over to the plater below.
+                            if (load_model && !published_config.mixed_slot_relocations.empty())
+                                Slic3r::remap_model_filament_slots(model, published_config.mixed_slot_relocations);
+
+                            // BBS: notify the user about published settings that could not be applied.
+
                             // BBS: notify the user about published settings that could not be applied.
                             if (!published_config.skipped_keys.empty()) {
                                 NotificationManager* notify_manager = q->get_notification_manager();
