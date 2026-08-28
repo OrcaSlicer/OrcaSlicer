@@ -83,5 +83,8 @@ orcaslicer_add_cmake_project(OpenCV
        -DWITH_PROTOBUF=OFF
        -DWITH_WIN32UI=OFF
        -DHAVE_WIN32UI=FALSE
+       # OpenCV's NEON HAL (carotene) is ARM64-only and uses M_PI without
+       # _USE_MATH_DEFINES, so it does not compile with clang-cl.
+       ${DEP_FORCE_CL_ARGS}
 )
 
