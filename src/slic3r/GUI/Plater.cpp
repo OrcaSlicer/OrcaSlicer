@@ -17846,7 +17846,19 @@ void Plater::merge(size_t obj_idx, std::vector<int>& vol_indeces)
     size_t last_id = p->model.objects.size() - 1;
     for (size_t i = 0; i < new_objects.size(); ++i)
     {
-        selection.add_volume((unsigned int)(last_id - i), 0, 0, i == 0);
+        const size_t loaded_idx = last_id - i;
+        // merge_volumes() puts the merged volume first, but load_model_objects()
+        // stable sorts the volumes by type, so it only stays first when nothing
+        // of an earlier type follows it. It keeps its place among its own type,
+        // so its index is the number of volumes sorting ahead of it.
+        int merged_idx = 0;
+        if (!new_objects[i]->volumes.empty()) {
+            const ModelVolumeType merged_type = new_objects[i]->volumes.front()->type();
+            for (const ModelVolume* v : p->model.objects[loaded_idx]->volumes)
+                if (v->type() < merged_type)
+                    ++merged_idx;
+        }
+        selection.add_volume((unsigned int)loaded_idx, merged_idx, 0, i == 0);
     }
 }
 

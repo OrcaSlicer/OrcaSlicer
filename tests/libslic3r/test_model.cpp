@@ -92,6 +92,38 @@ TEST_CASE("Merging keeps the part type", "[Model]")
     CHECK(merged.front()->volumes.front()->type() == ModelVolumeType::NEGATIVE_VOLUME);
 }
 
+// Plater::merge selects the merged volume after loading, and loading stable
+// sorts volumes by type, so the merged volume is only at index 0 when no
+// earlier type follows it.
+TEST_CASE("A merged part sorts after the types that precede it", "[Model]")
+{
+    Model model;
+    ModelObject* object = model.add_object();
+    object->add_volume(make_cube(10, 10, 10), ModelVolumeType::NEGATIVE_VOLUME, false);
+    ModelVolume* second = object->add_volume(make_cube(10, 10, 10), ModelVolumeType::NEGATIVE_VOLUME, false);
+    second->set_offset(Vec3d(20., 0., 0.));
+    object->add_volume(make_cube(10, 10, 10), ModelVolumeType::MODEL_PART, false);
+
+    std::vector<int> vol_indeces = {0, 1};
+    const ModelObjectPtrs merged = object->merge_volumes(vol_indeces);
+    REQUIRE(merged.size() == 1);
+
+    ModelObject* result = merged.front();
+    // merge_volumes leaves the merged volume first.
+    REQUIRE(result->volumes.front()->type() == ModelVolumeType::NEGATIVE_VOLUME);
+    const ModelVolume* merged_volume = result->volumes.front();
+
+    result->sort_volumes(true);
+
+    size_t expected = 0;
+    for (const ModelVolume* v : result->volumes)
+        if (v->type() < ModelVolumeType::NEGATIVE_VOLUME)
+            ++expected;
+    // The model part now sorts ahead of it, so index 0 would be the wrong pick.
+    CHECK(expected == 1);
+    CHECK(result->volumes[expected] == merged_volume);
+}
+
 TEST_CASE("Painting survives merging volumes", "[Model]")
 {
     Model model;
