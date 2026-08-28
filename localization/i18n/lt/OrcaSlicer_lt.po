@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-08-19 14:07-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -4728,6 +4728,23 @@ msgstr "Dabartinė kameros temperatūra yra aukštesnė už saugią medžiagos t
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "Minimali kameros temperatūra (%d℃) yra aukštesnė nei tikslinė kameros temperatūra (%d℃). Minimali vertė yra slenkstis, kurį pasiekus pradedamas spausdinimas, kol kamera vis dar kaitinama iki tikslinės temperatūros, todėl ji neturėtų viršyti tikslinės. Vertė bus apribota iki tikslinės temperatūros."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr "Sluoksnio aukštis per mažas. Jis bus nustatytas į mažiausią reikšmę (%g mm)."
+
+# AI Translated
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr "Sluoksnio aukštis yra už ribų, nurodytų Spausdintuvo nustatymai -> Ekstruderis -> Sluoksnio aukščio ribos, tai gali sukelti spausdinimo kokybės problemų."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr "Automatiškai sureguliuoti iki ribos (%g mm)?"
+
+msgid "Adjust"
+msgstr "Sureguliuoti"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4846,6 +4863,13 @@ msgstr ""
 "Automatiškai pakeisti šiuos nustatymus?\n"
 "Taip – įjungti „Arachne“ sienelių generatorių\n"
 "Ne – išjungti „Arachne“ sienelių generatorių ir nustatyti „Šiurkštaus paviršius“ režimą [Slinktis]"
+
+# AI Translated
+msgid "Brim ear radius"
+msgstr "Apvado „ausies“ spindulys"
+
+msgid "Brim width"
+msgstr "Pado apvado plotis"
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "Spiralinis režimas veikia tik tada, kai sienelės kilpų skaičius yra 1, atramos išjungtos, sulipimo aptikimas zonduojant išjungtas, viršutinių apvalkalo sluoksnių yra 0, reto užpildo tankis yra 0 %, o laiko intervalų vaizdo įrašo tipas – tradicinis."
@@ -5100,6 +5124,14 @@ msgstr "Nepavyko sugeneruoti kalibravimo G-kodo"
 
 msgid "Calibration error"
 msgstr "Kalibravimo klaida"
+
+# AI Translated
+msgid "This printer is not configured with the hardware this control needs."
+msgstr "Šiame spausdintuve nėra sukonfigūruotos įrangos, kurios reikia šiam valdikliui."
+
+# AI Translated
+msgid "This control is not supported on this printer."
+msgstr "Šis valdiklis šiame spausdintuve nepalaikomas."
 
 # AI Translated
 msgid "Network unavailable"
@@ -5961,7 +5993,7 @@ msgstr "Tūris:"
 msgid "Size:"
 msgstr "Dydis:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Rasta G-kodo trajektorijų konfliktų %d sluoksnyje, Z = %.2lfmm. Prašome labiau atskirti konfliktuojančius objektus (%s <-> %s)."
 
@@ -6141,6 +6173,10 @@ msgstr "Kelių įrenginių valdymas (Multi-device)"
 
 msgid "Project"
 msgstr "Projektas"
+
+# AI Translated
+msgid "Device (Web)"
+msgstr "Įrenginys (Web)"
 
 msgid "Yes"
 msgstr "Taip"
@@ -8239,19 +8275,19 @@ msgstr ""
 "Pakeista 3D failais iš katalogo:\n"
 "\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ Praleistas %s: tas pats failas.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ Praleistas %s: failas neegzistuoja.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ Praleistas %s: nepavyko pakeisti.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔ Pakeistas %s.\n"
 
@@ -8977,6 +9013,18 @@ msgstr "Kai įjungta ši funkcija, jūs galite siųsti užduotį keliems įrengi
 msgid "Pop up to select filament grouping mode"
 msgstr "Iššokantis langas gijų grupavimo režimui pasirinkti"
 
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "Matomi papildinių puslapiai"
+
+# AI Translated
+msgid "pages"
+msgstr "puslapiai"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "Papildinių puslapių, rodomų kaip fiksuotos kortelės, skaičius; likę puslapiai sutraukiami į išskleidžiamąjį sąrašą paskutinėje kortelėje."
+
 msgid "Behaviour"
 msgstr "Elgsena"
 
@@ -9329,6 +9377,18 @@ msgstr "Rodyti nepalaikomus profilius"
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "Rodyti nesuderinamus / nepalaikomus profilius spausdintuvų ir gijų išskleidžiamuosiuose sąrašuose. Šių profilių pasirinkti negalima."
 
+# AI Translated
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr "(Eksperimentinė) Naudoti spausdintuvo agentus vietoj spausdinimo serverių"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Nukreipia ne Bambu spausdintuvų spausdinimo užduotis per spausdintuvo papildinių agentus, o ne per klasikinį įkėlimo į spausdinimo serverį srautą.\n"
+"Kai išjungta, OrcaSlicer naudoja senąjį spausdinimo serverio veikimą."
+
 msgid "Experimental Features"
 msgstr "Eksperimentinis"
 
@@ -9590,8 +9650,24 @@ msgstr "Naudotojo profilis"
 msgid "Preset Inside Project"
 msgstr "Profilis projekto viduje"
 
+# AI Translated
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr "Nukopijuoja į šį profilį visas iš pirminio profilio paveldėtas reikšmes ir pašalina paveldėjimo ryšį. Profiliai, suderinami tik su pirminiu profiliu, gali tapti nepalaikomi."
+
 msgid "Detach from parent"
 msgstr "Atskirti nuo tėvinio profilio"
+
+# AI Translated
+msgid "Unique preset"
+msgstr "Savarankiškas profilis"
+
+# AI Translated
+msgid "Parent preset"
+msgstr "Pirminis profilis"
+
+# AI Translated
+msgid "This preset does not inherit from another preset."
+msgstr "Šis profilis nepaveldi iš kito profilio."
 
 msgid "Name is unavailable."
 msgstr "Nėra pavadinimo."
@@ -10330,24 +10406,6 @@ msgstr "Ar tikrai norite įjungti šią parinktį?"
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "Užpildymo modeliai paprastai yra suprojektuoti taip, kad automatiškai tvarkytų sukimąsi, siekiant užtikrinti tinkamą spausdinimą ir pasiekti numatytus efektus (pvz., Gyroid, Cubic). Sukant esamą retą užpildymo modelį, gali atsirasti nepakankamas atraminis paviršius. Prašome elgtis atsargiai ir atidžiai patikrinti, ar nėra galimų spausdinimo problemų. Ar tikrai norite įjungti šią parinktį?"
 
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"Per mažas sluoksnio aukštis.\n"
-"Jis bus nustatytas į min_layer_height\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "Sluoksnio aukštis viršija ribą, nurodytą Spausdintuvo nustatymai -> Ekstruderis -> Sluoksnio aukščio ribos, tai gali sukelti spausdinimo kokybės problemų."
-
-msgid "Adjust to the set range automatically?\n"
-msgstr ""
-"Sureguliuoti pagal nustatytą diapazoną automatiškai?\n"
-"\n"
-
-msgid "Adjust"
-msgstr "Sureguliuoti"
-
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "Eksperimentinė funkcija: gijos įtraukimas ir nukirpimas didesniu atstumu keičiant giją, siekiant sumažinti išvalymą (flush). Nors tai gali pastebimai sumažinti išvalymą, taip pat gali padidėti purkštuko užsikimšimo ar kitų spausdinimo komplikacijų rizika."
 
@@ -10547,6 +10605,9 @@ msgstr "Rasti rezervuoti raktažodžiai"
 msgid "Setting Overrides"
 msgstr "Nustatymų perrašymas"
 
+msgid "Retraction when switching material"
+msgstr "Įtraukimas keičiant medžiagą"
+
 msgid "Basic information"
 msgstr "Pagrindinė informacija"
 
@@ -10673,6 +10734,12 @@ msgstr "Suderinami apdorojimo profiliai"
 msgid "Printable space"
 msgstr "Erdvė spausdinimui"
 
+msgid "Printer Agent"
+msgstr "Spausdintuvo agentas"
+
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "Pasirinkite tinklo agento modulį ryšiui su spausdintuvu palaikyti. Prieinami agentai užregistruojami paleidimo metu."
+
 #. TRN: The first argument is the parameter's name; the second argument is its value.
 #, boost-format
 msgid "Invalid value provided for parameter %1%: %2%"
@@ -10797,9 +10864,6 @@ msgstr "Sluoksnio aukščio ribos"
 
 msgid "Z-Hop"
 msgstr "Z šuolis"
-
-msgid "Retraction when switching material"
-msgstr "Įtraukimas keičiant medžiagą"
 
 msgid ""
 "The Retract before wipe option could be only 100% when using the Firmware Retraction mode.\n"
@@ -12146,6 +12210,10 @@ msgstr ""
 " yra per arti sulipimo aptikimo zonos, todėl įvyks susidūrimai.\n"
 "\n"
 
+# AI Translated
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr " yra iš dalies už spausdinimo srities ribų ir negali būti atspausdintas.\n"
+
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "Pasirinktos purkštuko temperatūros yra nesuderinamos. Kiekvienos gijos purkštuko temperatūra turi patekti į kitų gijų rekomenduojamos temperatūros diapazoną. Priešingu atveju gali užsikimšti purkštukas arba sugesti spausdintuvas."
 
@@ -12458,9 +12526,6 @@ msgstr "Vietoj G-kodo naudoti 3MF"
 
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Įjunkite, jei spausdintuvas spausdinimo užduotims priima 3MF failus. Kai įjungta, „Orca Slicer“ sugeneruotą failą siunčia kaip „.gcode.3mf“, o ne kaip paprastą „.gcode“ failą."
-
-msgid "Printer Agent"
-msgstr "Spausdintuvo agentas"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "Pasirinkite tinklo agento modulį ryšiui su spausdintuvu palaikyti."
@@ -13134,9 +13199,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "Vidinių tiltelių spausdinimo greitis. Jei reikšmė nurodoma procentais, ji apskaičiuojama pagal „bridge_speed“ (tiltelių greitį). Numatytoji reikšmė – 150 %."
 
-msgid "Brim width"
-msgstr "Pado apvado plotis"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Atstumas nuo modelio iki išorinės krašto linijos"
 
@@ -13216,6 +13278,14 @@ msgid ""
 msgstr ""
 "Prieš aptinkant aštrius kampus, geometrija yra supaprastinama (decimuojama). Šis parametras nurodo minimalų nuokrypio ilgį supaprastinimui atlikti.\n"
 "Įrašykite 0, kad išjungtumėte."
+
+# AI Translated
+msgid "Brim ears outer only"
+msgstr "Apvado „ausys“ tik išorėje"
+
+# AI Translated
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr "Kuria peliukų ausis tik ant išorinio modelio kontūro, praleidžiant skyles ir uždaras sritis."
 
 msgid "upward compatible machine"
 msgstr "atgaliniu būdu suderinamas įrenginys"
@@ -14370,6 +14440,14 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Giroidas"
 
+# AI Translated
+msgid "Sparse infill smooth factor"
+msgstr "Reto užpildo glotninimo koeficientas"
+
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "Nustato, kaip stipriai suapvalinami reto užpildo kampai. 0% palieka pradinę aštrią trajektoriją, o 100% sukuria didžiausias įmanomas kreives tarp gretimų užpildo linijų."
+
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Viršutinio paviršiaus užpildo pagreitis. Naudojant mažesnę vertę gali pagerėti viršutinio paviršiaus kokybė."
 
@@ -14913,6 +14991,14 @@ msgstr "Su kokiu G kodu suderinamas spausdintuvas."
 
 msgid "Klipper"
 msgstr "Klipper"
+
+# AI Translated
+msgid "Skip G-code config block"
+msgstr "Praleisti G-code konfigūracijos bloką"
+
+# AI Translated
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr "Neįrašo CONFIG_BLOCK (pjaustyklės konfigūracijos raktų ir reikšmių porų) į G-code failą. Tai gali padėti su spausdintuvais, kurių programinė įranga stringa apdorodama šias komentarų eilutes (pvz., Anycubic go-klipper). Pastaba: G-code faile nebeliks pjaustyklės nustatymų, todėl importavus jį atgal į OrcaSlicer konfigūracija nebus atkurta."
 
 msgid "Pellet Modded Printer"
 msgstr "Modifikuotas granulinis spausdintuvas"
@@ -15955,6 +16041,14 @@ msgstr "Ilgas įtraukimas keičiant ekstruderį"
 msgid "Retraction distance when extruder change"
 msgstr "Įtraukimo atstumas keičiant ekstruderį"
 
+# AI Translated
+msgid "Retraction Length (Toolchange)"
+msgstr "Atitraukimo ilgis (Įrankio keitimas)"
+
+# AI Translated
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr "Kai atitraukimas suaktyvinamas prieš įrankio keitimą, gija atitraukiama nurodytu atstumu (ilgis matuojamas ant neapdorotos gijos, prieš jai patenkant į ekstruderį)."
+
 msgid "Z-hop height"
 msgstr "„Z-hop“ (pakėlimo) aukštis"
 
@@ -16048,6 +16142,10 @@ msgstr "Papildomas ilgis po sugrąžinimo"
 
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "Kai po judėjimo kompensuojamas gijos įtraukimas, ekstruderis papildomai išstums šį gijos kiekį. Šis nustatymas reikalingas retai."
+
+# AI Translated
+msgid "Extra length on restart (Toolchange)"
+msgstr "Papildomas ilgis po sugrąžinimo (Įrankio keitimas)"
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Kai po įrankio pakeitimo kompensuojamas gijos įtraukimas, ekstruderis papildomai išstums šį gijos kiekį."
@@ -16460,6 +16558,14 @@ msgstr "Įrankio keitimas virš valymo bokšto"
 
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "Priverstinai nukreipti spausdinimo galvutę prie valymo bokšto prieš vykdant įrankio keitimo komandą (Tx). Aktualu tik spausdintuvams su keliais ekstruderiais (keliomis galvutėmis), naudojantiems 2 tipo valymo bokštą. Pagal numatytuosius nustatymus „OrcaSlicer“ praleidžia šį judesį kelių galvučių įrenginiuose, nes galvučių sukeitimą valdo aparatinė programinė įranga, todėl Tx komanda gali būti įvykdyta virš spausdinamos detalės. Įjunkite šią parinktį, jei norite, kad įrankio keitimas visada vyktų virš valymo bokšto."
+
+# AI Translated
+msgid "Wait for temperature on wipe tower"
+msgstr "Laukti temperatūros ant valymo bokšto"
+
+# AI Translated
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr "Paima naują įrankį nelaukdamas, kol jis pasieks spausdinimo temperatūrą, nuvažiuoja prie valymo bokšto ir ten laukia temperatūros, prieš pat pravalymą. Kaitinant ištekėjusi medžiaga patenka ant bokšto, o ne ant modelio, o pervažiavimas persidengia su kaitinimu. Aktualu tik daugiaekstruderiams (kelių spausdinimo galvučių) spausdintuvams, naudojantiems 2 tipo valymo bokštą. Programinė įranga ar įrankio keitimo makrokomanda neturi pati laukti temperatūros. Kai išjungta, laukimo temperatūros komanda pateikiama iškart po įrankio keitimo komandos."
 
 msgid "No sparse layers (beta)"
 msgstr "Nėra retų sluoksnių (beta)"
@@ -19702,9 +19808,6 @@ msgstr "Fizinis spausdintuvas"
 msgid "Print Host upload"
 msgstr "Įkėlimas spausdinimui tinkle"
 
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "Pasirinkite tinklo agento modulį ryšiui su spausdintuvu palaikyti. Prieinami agentai užregistruojami paleidimo metu."
-
 msgid "Select a Flashforge printer"
 msgstr "Pasirinkite „Flashforge“ spausdintuvą"
 
@@ -20552,9 +20655,6 @@ msgstr "Bandant prisijungti įvyko kažkas netikėto. Bandykite dar kartą."
 msgid "User canceled."
 msgstr "Vartotojas atšaukė."
 
-msgid "Head diameter"
-msgstr "Galvutės skersmuo"
-
 msgid "Max angle"
 msgstr "Maksimalus kampas"
 
@@ -21335,6 +21435,24 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "Per mažas sluoksnio aukštis.\n"
+#~ "Jis bus nustatytas į min_layer_height\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "Sluoksnio aukštis viršija ribą, nurodytą Spausdintuvo nustatymai -> Ekstruderis -> Sluoksnio aukščio ribos, tai gali sukelti spausdinimo kokybės problemų."
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr ""
+#~ "Sureguliuoti pagal nustatytą diapazoną automatiškai?\n"
+#~ "\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "Galvutės skersmuo"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "Elementų spausdinimo eiliškumas vieno sluoksnio ribose."

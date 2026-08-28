@@ -155,6 +155,11 @@ std::string& get_filament_mixture_warning_text(){
     return filament_mixture_warning_text;
 }
 
+std::string& get_single_extruder_mixed_filament_warning_text(){
+    static std::string single_extruder_mixed_filament_warning_text;
+    return single_extruder_mixed_filament_warning_text;
+}
+
 
 static std::string format_number(float value)
 {
@@ -2984,6 +2989,9 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
             bool mix_pla_and_petg = cur_plate->check_mixture_of_pla_and_petg(full_config_temp);
             _set_warning_notification(EWarning::MixUsePLAAndPETG, !mix_pla_and_petg);
 
+            bool single_extruder_mixed_risk = cur_plate->check_single_extruder_mixed_filament_risk(full_config_temp, get_single_extruder_mixed_filament_warning_text());
+            _set_warning_notification(EWarning::SingleExtruderMixedFilament, single_extruder_mixed_risk);
+
             bool filament_nozzle_compatible = cur_plate->check_compatible_of_nozzle_and_filament(full_config_temp, wxGetApp().preset_bundle->filament_presets, get_nozzle_filament_incompatible_text());
             _set_warning_notification(EWarning::NozzleFilamentIncompatible, !filament_nozzle_compatible);
 
@@ -3010,6 +3018,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
            _set_warning_notification(EWarning::TPUPrintableError, false);
            _set_warning_notification(EWarning::FilamentPrintableError, false);
            _set_warning_notification(EWarning::MixUsePLAAndPETG, false);
+           _set_warning_notification(EWarning::SingleExtruderMixedFilament, false);
            _set_warning_notification(EWarning::PrimeTowerOutside, false);
            _set_warning_notification(EWarning::MultiExtruderPrintableError,false);
            _set_warning_notification(EWarning::MultiExtruderHeightOutside,false);
@@ -8902,7 +8911,10 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
                     m_sel_plate_toolbar.m_items[i]->slice_state = IMToolbarItem::SliceState::SLICE_FAILED;
             }
             else {
-                if ((!is_empty && !can_slice) || (plate_list.get_plate(i)->has_printable_instances() && !plate_list.get_plate(i)->can_slice()))
+                // A plate using a mixed filament whose components are broken cannot be sliced,
+                // so surface that on the plate toolbar the same way an unsliceable plate is.
+                if ((!is_empty && !can_slice) || (plate_list.get_plate(i)->has_printable_instances() && !plate_list.get_plate(i)->can_slice())
+                    || wxGetApp().plater()->sidebar().has_broken_mixed_filament(plate_list.get_plate(i)))
                     m_sel_plate_toolbar.m_items[i]->slice_state = IMToolbarItem::SliceState::SLICE_FAILED;
                 else {
                     if (plate_list.get_plate(i)->get_slicing_percent() < 0.0f)
@@ -9196,7 +9208,7 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
                                     view3d_canvas->get_gizmos_manager().reset_all_states(); // close all gizmos
                                     view3d_canvas->reload_scene(true);
                                 }
-                                app.mainframe->select_tab((size_t)MainFrame::TabPosition::tp3DEditor);
+                                app.mainframe->select_tab(TAB_ID_PREPARE);
                             }
                         }
                     });
@@ -9669,6 +9681,13 @@ void GLCanvas3D::_render_paint_toolbar() const
             }
         }
     }
+    // ORCA: the loop above only labels a slot whose preset was found in the preset collection,
+    // while the render loop below iterates extruder_num. Pad the label arrays so a slot without a
+    // matching preset cannot index past them; a garbage std::string crashes ImGui::CalcTextSize.
+    while (int(filament_text_first_line.size()) < extruder_num) {
+        filament_text_first_line.emplace_back();
+        filament_text_second_line.emplace_back();
+    }
 
     ImGuiWrapper& imgui = *wxGetApp().imgui();
     const float canvas_w = float(get_canvas_size().get_width());
@@ -9698,6 +9717,10 @@ void GLCanvas3D::_render_paint_toolbar() const
     bool disabled = !wxGetApp().plater()->can_fillcolor();
     ColorRGBA rgba;
 
+    // Gradient mixed filaments fade over Z, so their swatch is drawn as that fade rather than
+    // the single blended colour in `colors`. Every other slot's ramp is empty.
+    const auto& gradient_ramps = wxGetApp().plater()->get_filament_gradient_ramps();
+
     for (int i = 0; i < extruder_num; i++) {
         if (i > 0)
             ImGui::SameLine();
@@ -9711,6 +9734,8 @@ void GLCanvas3D::_render_paint_toolbar() const
             if (!ImGui::IsMouseHoveringRect(left_arrow_button.Min, left_arrow_button.Max) && !ImGui::IsMouseHoveringRect(right_arrow_button.Min, right_arrow_button.Max))
                 wxPostEvent(m_canvas, IntEvent(EVT_GLTOOLBAR_FILLCOLOR, i + 1));
         }
+        if (i < (int) gradient_ramps.size() && !gradient_ramps[i].empty())
+            ImGuiWrapper::draw_gradient_ramp(draw_list, ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), gradient_ramps[i]);
         if (ImGui::IsItemHovered() && i < 9) {
             if (!ImGui::IsMouseHoveringRect(left_arrow_button.Min, left_arrow_button.Max) && !ImGui::IsMouseHoveringRect(right_arrow_button.Min, right_arrow_button.Max)) {
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 20.0f * f_scale, 10.0f * f_scale });
@@ -9726,7 +9751,13 @@ void GLCanvas3D::_render_paint_toolbar() const
 
     const float text_offset_y = 4.0f * em_unit * f_scale;
     for (int i = 0; i < extruder_num; i++) {
-        decode_color(colors[i], rgba);
+        // A gradient slot's swatch shows its fade instead of the blended colour in `colors`, so the
+        // labels take their contrast from the colour printed at the middle of the fade they sit on.
+        if (i < (int) gradient_ramps.size() && !gradient_ramps[i].empty()) {
+            const wxColour& c = gradient_ramps[i][gradient_ramps[i].size() / 2];
+            rgba = ColorRGBA(c.Red(), c.Green(), c.Blue(), c.Alpha());
+        } else
+            decode_color(colors[i], rgba);
         float  gray       = 0.299 * rgba.r_uchar() + 0.587 * rgba.g_uchar() + 0.114 * rgba.b_uchar();
         ImVec4 text_color = gray < 80 ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0, 0, 0, 1.0f);
 
@@ -10570,6 +10601,9 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
     case EWarning::MixUsePLAAndPETG:
         text = _u8L("PLA and PETG filaments detected in the mixture. Adjust parameters according to the Wiki to ensure print quality.");
         break;
+    case EWarning::SingleExtruderMixedFilament:
+        text = get_single_extruder_mixed_filament_warning_text();
+        break;
     case EWarning::PrimeTowerOutside:
         text  = _u8L("The prime tower extends beyond the plate boundary.");
         break;
@@ -10617,6 +10651,14 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
             else{
                 notification_manager.close_slicing_customize_error_notification(NotificationType::BBLNozzleFilamentIncompatible, NotificationLevel::WarningNotificationLevel);
             }
+        }
+        else if (warning == EWarning::SingleExtruderMixedFilament) {
+            // Close by type: check_single_extruder_mixed_filament_risk() clears the shared text
+            // buffer on every call, so a close-by-text would miss once the risk is gone.
+            if (state)
+                notification_manager.push_slicing_customize_error_notification(NotificationType::BBLSingleExtruderMixedFilamentRisk, NotificationLevel::WarningNotificationLevel, text);
+            else
+                notification_manager.close_slicing_customize_error_notification(NotificationType::BBLSingleExtruderMixedFilamentRisk, NotificationLevel::WarningNotificationLevel);
         }
         else {
             if (state)

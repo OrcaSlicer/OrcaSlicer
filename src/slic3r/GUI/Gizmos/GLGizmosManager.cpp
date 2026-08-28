@@ -998,16 +998,40 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
                     keyCode = keyCode- WXK_NUMPAD0+'0';
                 }
                 if (keyCode >= '0' && keyCode <= '9') {
-                    if (keyCode == '1' && !m_timer_set_color.IsRunning()) {
+                    // The paint palette reaches EXTRUDERS_LIMIT slots (mixed-color filaments take
+                    // ordinary slots too), so any leading digit that can start a valid two-digit
+                    // number waits briefly for a second one.
+                    const int digit        = keyCode - '0';
+                    const int shortcut_max = int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT);
+                    auto can_start_two_digit = [shortcut_max](int d) { return d > 0 && d * 10 <= shortcut_max; };
+                    auto select = [mmu_seg](int number) { return number > 0 && mmu_seg->on_number_key_down(number); };
+
+                    if (m_timer_set_color.IsRunning() && m_pending_color_shortcut_tens > 0) {
+                        const int two_digit = m_pending_color_shortcut_tens * 10 + digit;
+                        const int pending   = m_pending_color_shortcut_tens;
+                        m_pending_color_shortcut_tens = 0;
+                        m_timer_set_color.Stop();
+                        if (two_digit <= shortcut_max) {
+                            processed = select(two_digit);
+                        } else {
+                            // Out of range: commit the pending digit, then treat this one as new input.
+                            processed = select(pending);
+                            if (can_start_two_digit(digit)) {
+                                m_pending_color_shortcut_tens = digit;
+                                m_timer_set_color.StartOnce(500);
+                                processed = true;
+                            } else {
+                                processed = select(digit) || processed;
+                            }
+                        }
+                    }
+                    else if (can_start_two_digit(digit)) {
+                        m_pending_color_shortcut_tens = digit;
                         m_timer_set_color.StartOnce(500);
                         processed = true;
                     }
-                    else if (keyCode < '7' && m_timer_set_color.IsRunning()) {
-                        processed = mmu_seg->on_number_key_down(keyCode - '0'+10);
-                        m_timer_set_color.Stop();
-                    }
                     else {
-                        processed = mmu_seg->on_number_key_down(keyCode - '0');
+                        processed = select(digit);
                     }
                 }
                 else if (keyCode == 'F' || keyCode == 'T' || keyCode == 'S' || keyCode == 'C' || keyCode == 'H' || keyCode == 'G') {
@@ -1054,11 +1078,15 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
 
 void GLGizmosManager::on_set_color_timer(wxTimerEvent& evt)
 {
-    if (m_current == MmSegmentation) {
+    // No second digit arrived in time: commit the pending leading digit on its own.
+    if (m_current == MmSegmentation && m_pending_color_shortcut_tens > 0) {
         GLGizmoMmuSegmentation* mmu_seg = dynamic_cast<GLGizmoMmuSegmentation*>(get_current());
-        mmu_seg->on_number_key_down(1);
-        m_parent.set_as_dirty();
+        if (mmu_seg != nullptr) {
+            mmu_seg->on_number_key_down(m_pending_color_shortcut_tens);
+            m_parent.set_as_dirty();
+        }
     }
+    m_pending_color_shortcut_tens = 0;
 }
 
 void GLGizmosManager::update_after_undo_redo(const UndoRedo::Snapshot& snapshot)

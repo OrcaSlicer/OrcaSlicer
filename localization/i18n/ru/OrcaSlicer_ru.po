@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-08-19 14:07-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -4715,6 +4715,23 @@ msgstr "Текущая температура внутри термокамер�
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "Стартовая температура внутри термокамеры (%d℃) превышает целевую (%d℃). Подразумевается, что печать начинается заранее, поэтому стартовая температура не должна превышать её. Значение будет уменьшено."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr "Высота слоя слишком мала. Будет установлено минимальное значение (%g мм)."
+
+# AI Translated
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr "Высота слоя выходит за пределы, заданные в настройках принтера → Экструдер → Ограничение высоты слоя. Это может вызвать проблемы с качеством печати."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr "Автоматически подстроить под предел (%g мм)?"
+
+msgid "Adjust"
+msgstr "Подстроиться"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4838,6 +4855,13 @@ msgid ""
 "Yes - Enable Arachne Wall Generator\n"
 "No  - Disable Arachne Wall Generator and set [Displacement] mode of the Fuzzy Skin"
 msgstr "Использовать нечёткую оболочку с движком Arachne?"
+
+# AI Translated
+msgid "Brim ear radius"
+msgstr "Радиус ушек каймы"
+
+msgid "Brim width"
+msgstr "Ширина каймы"
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr ""
@@ -5106,6 +5130,14 @@ msgstr "Не удалось сгенерировать калибровочны�
 
 msgid "Calibration error"
 msgstr "Ошибка калибровки"
+
+# AI Translated
+msgid "This printer is not configured with the hardware this control needs."
+msgstr "На этом принтере не настроено оборудование, необходимое для этого элемента управления."
+
+# AI Translated
+msgid "This control is not supported on this printer."
+msgstr "Этот элемент управления не поддерживается на этом принтере."
 
 msgid "Network unavailable"
 msgstr "Сеть недоступна"
@@ -5991,7 +6023,7 @@ msgstr "Объём:"
 msgid "Size:"
 msgstr "Размер:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "В G-коде на %d слое (z = %.2lf мм) обнаружен конфликт путей. Пожалуйста, разместите конфликтующие модели дальше друг от друга (%s <-> %s)."
 
@@ -6197,6 +6229,10 @@ msgstr "Принтеры"
 
 msgid "Project"
 msgstr "Проект"
+
+# AI Translated
+msgid "Device (Web)"
+msgstr "Принтер (веб)"
 
 msgid "Yes"
 msgstr "Да"
@@ -8299,19 +8335,19 @@ msgstr "Расположение для замены не указано"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Заменено файлами из расположения:\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ Пропущен %s: идентичный файл.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ Пропущен %s: файл не существует.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ Пропущен %s: не удалось заменить.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔ Заменён %s.\n"
 
@@ -9040,6 +9076,18 @@ msgstr "Если включено, вы сможете управлять нес
 msgid "Pop up to select filament grouping mode"
 msgstr "Всплывающее окно для выбора режима группировки материалов"
 
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "Видимые страницы плагинов"
+
+# AI Translated
+msgid "pages"
+msgstr "стр."
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "Количество страниц плагинов, отображаемых как закреплённые вкладки, прежде чем остальные страницы будут свёрнуты в выпадающий список на последней вкладке."
+
 msgid "Behaviour"
 msgstr "Автоматизация"
 
@@ -9400,6 +9448,18 @@ msgstr ""
 "\n"
 "Примечание: профили остаются недоступными для выбора."
 
+# AI Translated
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr "(Экспериментально) Использовать агентов принтера вместо хостов печати"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Отправлять задания печати для принтеров, отличных от Bambu, через агентов плагинов принтера вместо классической загрузки на хост печати.\n"
+"Если отключено, OrcaSlicer использует прежнее поведение хоста печати."
+
 msgid "Experimental Features"
 msgstr "Экспериментальные настройки"
 
@@ -9666,8 +9726,24 @@ msgstr "Пользовательский профиль"
 msgid "Preset Inside Project"
 msgstr "Профиль внутри проекта"
 
+# AI Translated
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr "Копирует в этот профиль все значения, унаследованные от родительского профиля, и удаляет связь наследования. Профили, совместимые только с родительским, могут стать неподдерживаемыми."
+
 msgid "Detach from parent"
 msgstr "Сделать независимым"
+
+# AI Translated
+msgid "Unique preset"
+msgstr "Независимый профиль"
+
+# AI Translated
+msgid "Parent preset"
+msgstr "Родительский профиль"
+
+# AI Translated
+msgid "This preset does not inherit from another preset."
+msgstr "Этот профиль не наследуется от другого профиля."
 
 msgid "Name is unavailable."
 msgstr "Имя недоступно."
@@ -9686,7 +9762,9 @@ msgstr ""
 "несовместим с текущим принтером."
 
 msgid "Please note that saving will overwrite the current preset."
-msgstr "Обратите внимание: при сохранении произойдёт\nперезапись текущего профиля."
+msgstr ""
+"Обратите внимание: при сохранении произойдёт\n"
+"перезапись текущего профиля."
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "Имя не должно совпадать с именем предустановленного профиля."
@@ -10389,22 +10467,6 @@ msgstr "Вы действительно хотите задействовать 
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "Многие шаблоны заполнения разработаны на основе автоматического поворота по определённым правилам для поддержания правильной печати и желаемого эффекта (например, «Гироид» или «Куб»). Изменение правила поворота текущего шаблона может привести к его провисанию. Будьте осторожны и внимательно проверяйте результат на наличие потенциальных проблем с печатью."
 
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"Высота слоя слишком мала.\n"
-"Будет установлено значение min_layer_height\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "Высота слоя не может превышать ограничения, установленные в настройках принтера → Экструдер → Ограничение высоты слоя. Это может вызвать проблемы с качеством печати."
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "Автоматически подстроиться под заданный в настройках диапазон?\n"
-
-msgid "Adjust"
-msgstr "Подстроиться"
-
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "[Экспериментальная функция] Втягивание и обрезка прутка на большем расстоянии во время его замены для минимизации очистки. Хотя это значительно сокращает величину очистки, это может повысить риск возникновения затора или вызвать другие проблемы при печати."
 
@@ -10604,6 +10666,9 @@ msgstr "Найдены зарезервированные ключевые сл�
 msgid "Setting Overrides"
 msgstr "Замещение настроек"
 
+msgid "Retraction when switching material"
+msgstr "Откат при смене материала"
+
 msgid "Basic information"
 msgstr "Основные"
 
@@ -10751,6 +10816,12 @@ msgstr "Совместимые настройки"
 msgid "Printable space"
 msgstr "Область печати"
 
+msgid "Printer Agent"
+msgstr "Сетевой агент"
+
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "Реализация сетевого агента для обмена информацией с принтером. Доступные реализации определяются при запуске."
+
 #. TRN: The first argument is the parameter's name; the second argument is its value.
 #, boost-format
 msgid "Invalid value provided for parameter %1%: %2%"
@@ -10878,9 +10949,6 @@ msgstr "Ограничение высоты слоя"
 # вариант.
 msgid "Z-Hop"
 msgstr "Подъём головы при откате"
-
-msgid "Retraction when switching material"
-msgstr "Откат при смене материала"
 
 msgid ""
 "The Retract before wipe option could be only 100% when using the Firmware Retraction mode.\n"
@@ -12218,6 +12286,10 @@ msgstr " находится слишком близко к области иск
 msgid " is too close to clumping detection area, and collisions will be caused.\n"
 msgstr " находится слишком близко к зоне обнаружения налипаний, столкновения неизбежны.\n"
 
+# AI Translated
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr " частично находится за пределами области печати и не может быть напечатан.\n"
+
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "Обнаружен недопустимый перепад температур. Каждый из используемых материалов должен иметь в профиле температуру печати в пределах допустимого диапазона других материалов. В противном случае сопло может забиться и повредить принтер."
 
@@ -12538,9 +12610,6 @@ msgstr "Сжатие G-кода перед отправкой"
 
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Рекомендуется для принтеров, поддерживающих печать из архивов 3MF. Файлы печати будут отправляться с расширением \".gcode.3mf\"."
-
-msgid "Printer Agent"
-msgstr "Сетевой агент"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "Реализация сетевого агента для обмена информацией с принтером."
@@ -13232,9 +13301,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "Скорость печати внутреннего моста. Можно указать процент от скорости внешнего моста (bridge_speed). По умолчанию – 150%."
 
-msgid "Brim width"
-msgstr "Ширина каймы"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Расстояние от модели до внешней линии каймы."
 
@@ -13315,6 +13381,14 @@ msgid ""
 msgstr ""
 "Геометрия модели будет упрощена перед обнаружением острых углов. Этот параметр задаёт минимальную длину отклонения для её упрощения.\n"
 "Установите 0 для отключения."
+
+# AI Translated
+msgid "Brim ears outer only"
+msgstr "Ушки каймы только снаружи"
+
+# AI Translated
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr "Создавать мышиные ушки только на внешнем контуре модели, исключая отверстия и замкнутые участки."
 
 msgid "upward compatible machine"
 msgstr "условия для совместимых принтеров"
@@ -14308,13 +14382,19 @@ msgid "Interface layer pre-extrusion distance"
 msgstr "Дистанция избыточной подачи при смене"
 
 msgid "Pre-extrusion distance for prime tower interface layer (where different materials meet)."
-msgstr "Протяжённость первичного движения прочистки после смены материала. Позволяет быстро набрать давление в сопле и сбросить перегретый материал.\n\nПримечание: фактическая длина может быть ограничена шириной башни."
+msgstr ""
+"Протяжённость первичного движения прочистки после смены материала. Позволяет быстро набрать давление в сопле и сбросить перегретый материал.\n"
+"\n"
+"Примечание: фактическая длина может быть ограничена шириной башни."
 
 msgid "Interface layer pre-extrusion length"
 msgstr "Длина прутка для избыточной подачи"
 
 msgid "Pre-extrusion length for prime tower interface layer (where different materials meet)."
-msgstr "Длина прутка, которую необходимо продавить на этапе избыточной подачи.\n\n0 – отключить этот этап."
+msgstr ""
+"Длина прутка, которую необходимо продавить на этапе избыточной подачи.\n"
+"\n"
+"0 – отключить этот этап."
 
 msgid "Tower ironing area"
 msgstr "Разглаживание кончиков"
@@ -14625,6 +14705,14 @@ msgstr "ТПМП Фишера-Коха S"
 
 msgid "Gyroid"
 msgstr "Гироид"
+
+# AI Translated
+msgid "Sparse infill smooth factor"
+msgstr "Коэффициент сглаживания заполнения"
+
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "Определяет, насколько сильно скругляются углы заполнения. 0% сохраняет исходную траекторию с острыми углами, а 100% создаёт максимально возможные скругления между соседними линиями заполнения."
 
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Ускорение на верхней поверхности. Использование меньшего значения может улучшить качество верхней поверхности."
@@ -15213,6 +15301,14 @@ msgstr "Выбор типа G-кода для совместимости с пр
 msgid "Klipper"
 msgstr "Klipper"
 
+# AI Translated
+msgid "Skip G-code config block"
+msgstr "Пропустить блок конфигурации в G-code"
+
+# AI Translated
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr "Не записывать CONFIG_BLOCK (пары ключ/значение с настройками слайсера) в файл G-code. Это может помочь с принтерами, прошивка которых аварийно завершается при разборе этих строк комментариев (например, Anycubic go-klipper). Примечание: файл G-code больше не будет содержать настройки слайсера, поэтому при обратном импорте в OrcaSlicer конфигурация не восстановится."
+
 msgid "Pellet Modded Printer"
 msgstr "Гранульная модификация принтера"
 
@@ -15396,8 +15492,7 @@ msgstr "Наклон опор"
 msgid ""
 "Controls how aggressively short or unsupported Lightning branches are pruned.\n"
 "This angle is converted internally to a per-layer distance."
-msgstr ""
-"Допустимый наклон опор молнии. Чем выше, тем быстрее и экономичнее распространяются её ветви."
+msgstr "Допустимый наклон опор молнии. Чем выше, тем быстрее и экономичнее распространяются её ветви."
 
 # "Выпрямление" здесь, вопреки первой мысли – это как раз-таки наоборот искажение шаблона по ходу печати для сокращения количества ветвей. Короче, опять путаница из-за того, что генерация ветвей происходит сверху вниз. При печати снизу вверх шаблон именно что искажается.
 msgid "Straightening angle"
@@ -16309,8 +16404,7 @@ msgid ""
 "The length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
-"Быстрый откат после очистки, выраженный в процентах от общей длины отката. В некоторых случаях позволяет значительно снизить количество «паутины»."
-"\n"
+"Быстрый откат после очистки, выраженный в процентах от общей длины отката. В некоторых случаях позволяет значительно снизить количество «паутины».\n"
 "Примечание: суммарное значение не должно превышать 100% и будет скорректировано автоматически."
 
 msgid "Retract on layer change"
@@ -16343,6 +16437,14 @@ msgstr "Длинный откат перед сменой экструдера"
 
 msgid "Retraction distance when extruder change"
 msgstr "Длина отката перед сменой экструдера"
+
+# AI Translated
+msgid "Retraction Length (Toolchange)"
+msgstr "Длина отката (смена инструмента)"
+
+# AI Translated
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr "При срабатывании отката перед сменой инструмента материал втягивается на указанную величину (длина измеряется по прутку материала до его входа в экструдер)."
 
 msgid "Z-hop height"
 msgstr "Высота подъёма"
@@ -16461,6 +16563,10 @@ msgstr "Доп. подача после отката"
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "Дополнительная длина подачи при возврате прутка после отката. Требуется крайне редко (например, для компенсации багов прошивки принтера)."
 
+# AI Translated
+msgid "Extra length on restart (Toolchange)"
+msgstr "Доп. подача после отката (смена инструмента)"
+
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Дополнительная длина подачи после смены насадки."
 
@@ -16474,7 +16580,9 @@ msgid "Deretraction speed"
 msgstr "Скорость возврата"
 
 msgid "Speed for reloading filament into the nozzle. Zero means same speed of retraction."
-msgstr "Скорость возврата материала в сопло после отката.\n0 – использовать скорость отката."
+msgstr ""
+"Скорость возврата материала в сопло после отката.\n"
+"0 – использовать скорость отката."
 
 msgid "Deretraction speed (extruder change)"
 msgstr "Скорость возврата (смена экструдера)"
@@ -16944,6 +17052,14 @@ msgstr ""
 "Перемещать печатающую голову в позицию над башней перед вызовом команды смены инструмента (T<x>). Предполагается, что прошивка принтера настроена на минимизацию подтёков над деталью при смене материала, но если это не так – данная настройка позволит принудительно перемещать сопло к черновой башне заранее.\n"
 "\n"
 "Внимание: применимо только к многоэкструдерным принтерам с черновой башней 2 типа."
+
+# AI Translated
+msgid "Wait for temperature on wipe tower"
+msgstr "Ожидание температуры на черновой башне"
+
+# AI Translated
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr "Забирает новый инструмент, не дожидаясь достижения температуры печати, перемещается к черновой башне и ждёт нагрева там, непосредственно перед прочисткой. Подтёки при нагреве попадают на башню, а не на модель, а перемещение совмещается с нагревом. Актуально только для принтеров с несколькими экструдерами (несколькими печатающими головами), использующих черновую башню типа 2. Прошивка или макрос смены инструмента не должны сами ждать нагрева. Если отключено, команда ожидания температуры выдаётся сразу после команды смены инструмента."
 
 msgid "No sparse layers (beta)"
 msgstr "Без разреженных слоёв (beta)"
@@ -17942,13 +18058,21 @@ msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. 
 msgstr "Во избежание подтёков температура сопла будет снижена на время рэмминга. Поэтому время рэмминга должно быть больше времени охлаждения. 0 значит отключено."
 
 msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
-msgstr "Максимальный объёмный расход для рэмминга перед сменой экструдера.\n-1 – использовать максимальный расход."
+msgstr ""
+"Максимальный объёмный расход для рэмминга перед сменой экструдера.\n"
+"-1 – использовать максимальный расход."
 
 msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
-msgstr "Во избежание подтёков температура сопла будет снижена на время рэмминга.\n0 – не менять температуру.\n\nПримечание: срабатывают только команда охлаждения и включение вентилятора; достижение целевой температуры не гарантируется."
+msgstr ""
+"Во избежание подтёков температура сопла будет снижена на время рэмминга.\n"
+"0 – не менять температуру.\n"
+"\n"
+"Примечание: срабатывают только команда охлаждения и включение вентилятора; достижение целевой температуры не гарантируется."
 
 msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
-msgstr "Максимальный объёмный расход для рэмминга перед сменой хотэнда.\n-1 – использовать максимальный расход."
+msgstr ""
+"Максимальный объёмный расход для рэмминга перед сменой хотэнда.\n"
+"-1 – использовать максимальный расход."
 
 msgid "length when change hotend"
 msgstr "Откат при смене хотэнда"
@@ -19414,10 +19538,14 @@ msgid "Continue anyway?"
 msgstr "Всё равно продолжить?"
 
 msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
-msgstr "Включить адаптацию к расходу для автоматического исправления?\nНет – игнорировать предупреждение."
+msgstr ""
+"Включить адаптацию к расходу для автоматического исправления?\n"
+"Нет – игнорировать предупреждение."
 
 msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
-msgstr "Включить адаптацию к соплу и расходу для автоматического исправления?\nНет – игнорировать предупреждение."
+msgstr ""
+"Включить адаптацию к соплу и расходу для автоматического исправления?\n"
+"Нет – игнорировать предупреждение."
 
 msgid "Start retraction length: "
 msgstr "Начальная длина отката: "
@@ -20341,9 +20469,6 @@ msgstr "Физический принтер"
 msgid "Print Host upload"
 msgstr "Загрузка на хост печати"
 
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "Реализация сетевого агента для обмена информацией с принтером. Доступные реализации определяются при запуске."
-
 msgid "Select a Flashforge printer"
 msgstr "Выберите принтер Flashforge"
 
@@ -21202,9 +21327,6 @@ msgstr "При попытке войти произошла какая-то ош
 msgid "User canceled."
 msgstr "Отменено пользователем."
 
-msgid "Head diameter"
-msgstr "Диаметр уха"
-
 msgid "Max angle"
 msgstr "Макс. угол"
 
@@ -21958,6 +22080,22 @@ msgid ""
 msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "Высота слоя слишком мала.\n"
+#~ "Будет установлено значение min_layer_height\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "Высота слоя не может превышать ограничения, установленные в настройках принтера → Экструдер → Ограничение высоты слоя. Это может вызвать проблемы с качеством печати."
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "Автоматически подстроиться под заданный в настройках диапазон?\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "Диаметр уха"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "Последовательность печати моделей в пределах одного слоя."
