@@ -13,7 +13,7 @@
 # The rig container is expected to be up with the app running and SNAPORCA_MCP set; bring it up
 # with scripts/gui-session.sh inside it. The corpus lives at /corpus in that container.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 
 C="${C:-snaporca-gui}"
 CORPUS="${CORPUS:-/corpus}"
@@ -28,6 +28,9 @@ step() {
     if "$@"; then echo "--- $name OK"; else echo "--- $name FAILED"; fail=1; fi
 }
 
+# SC2329: every call goes through step(), which invokes it via "$@", so shellcheck
+# cannot see the callers below.
+# shellcheck disable=SC2329
 run_in_rig() {                      # copy the script in fresh, then run it there
     docker cp "$1" "$C:/tmp/$(basename "$1")" >/dev/null || return 1
     shift
