@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Bring the headless GUI up on a VNC-served X display, ready to drive or to attach Remmina to.
 #
-# Runs INSIDE the long-lived GUI container (see the header of scripts/docker-iter-build.sh for how
+# Runs INSIDE the long-lived GUI container (see the header of scripts/CAD/build-gui-incremental.sh for how
 # that container is created). Idempotent: safe to re-run to recover a session whose app died.
 #
-#   docker exec <container> /OrcaSlicer/scripts/gui-session.sh          # launch + settle
-#   docker exec <container> /OrcaSlicer/scripts/gui-session.sh --status # report, change nothing
+#   docker exec <container> /OrcaSlicer/scripts/CAD/start-headless-gui.sh          # launch + settle
+#   docker exec <container> /OrcaSlicer/scripts/CAD/start-headless-gui.sh --status # report, change nothing
 #
 # WHY THIS EXISTS. Dismissing the first-run dialogs by computing the titlebar close box from
 # `xdotool getwindowgeometry --shell` and clicking it went wrong whenever the dialog had already

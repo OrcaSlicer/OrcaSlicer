@@ -20,7 +20,7 @@ agree, and that the engine's own operations preserve what they promise.
   MIRROR    a real closed profile, mirrored, is still exactly one closed loop
   OFFSET    a real closed profile, offset, is still closed
 
-Usage:  ladder-corpus.py [--sample N] [--corpus DIR]
+Usage:  check-sketch-engine-corpus.py [--sample N] [--corpus DIR]
 """
 
 import argparse

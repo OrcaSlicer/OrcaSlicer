@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The OFFER ladder: prove that right-click is the pivot, and that it adapts to what was clicked.
 
-The gesture ladder (scripts/gui-ladder.py) proved the TARGET — a complex closed profile, precise
+The gesture ladder (scripts/CAD/check-gui-sketching.py) proved the TARGET — a complex closed profile, precise
 in vertices, lengths, arcs and symmetry, with its voids correctly attributed. It proved it by
 arming every tool with a letter key. That leaves the goal's own MECHANISM untested: the design
 logic pivots on right-click, and the verbs offered are supposed to adapt to the element under the
@@ -20,7 +20,7 @@ This ladder drives the menu. Nothing here is asserted from pixels:
 
 Run inside the rig container, with the app launched under SNAPORCA_KEYTRACE=1:
 
-    docker exec snaporca-gui python3 /OrcaSlicer/scripts/offer-ladder.py [rung ...]
+    docker exec snaporca-gui python3 /OrcaSlicer/scripts/CAD/check-gui-context-menu.py [rung ...]
 """
 import importlib.util
 import math
@@ -34,7 +34,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # The gesture ladder owns the hand and the eye: the homography per sketch, the window lookup by
 # class, the synthetic click, the typed value, the socket. Importing it is the only way those
 # stay one implementation — a second copy would drift the first time a rig detail moved.
-_spec = importlib.util.spec_from_file_location("gui_ladder", os.path.join(HERE, "gui-ladder.py"))
+_spec = importlib.util.spec_from_file_location("gui_ladder", os.path.join(HERE, "check-gui-sketching.py"))
 G = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(G)
 
@@ -617,7 +617,7 @@ def clicked(X, Y):
 def fresh_sketch(tool):
     """Enter a sketch from a KNOWN empty state, whatever the previous rung or run left behind.
 
-    gui-ladder's enter_sketch dismisses the old session with keys, and a key is exactly what an
+    check-gui-sketching's enter_sketch dismisses the old session with keys, and a key is exactly what an
     open value field swallows — so a session that should have been cancelled survives, the four
     calibration probes land in it on top of whatever was already there, and the run dies with
     "calibration expected 4 points, got 7". Cancelling through the socket cannot be swallowed:
@@ -1196,7 +1196,7 @@ RUNGS = {"kinds": rung_kinds, "vocabulary": rung_vocabulary,
 
 def main():
     if not os.path.exists(LOG):
-        G.die(f"no {LOG} — launch the app through scripts/gui-session.sh")
+        G.die(f"no {LOG} — launch the app through scripts/CAD/start-headless-gui.sh")
     if "[OFFER]" not in open(LOG, errors="replace").read()[-400000:]:
         print(f"note: no [OFFER] lines in {LOG} yet — the app must run with SNAPORCA_KEYTRACE=1")
     want = sys.argv[1:] or list(RUNGS)

@@ -9,11 +9,11 @@
 # Read that file before debugging a configure or link failure this script reports.
 #
 # Usage:
-#   scripts/rig-build.sh              # configure + build the fork's GUI target
-#   DRY_RUN=1 scripts/rig-build.sh    # print the resolved fork identity and exit, no container
+#   scripts/CAD/build-gui.sh              # configure + build the fork's GUI target
+#   DRY_RUN=1 scripts/CAD/build-gui.sh    # print the resolved fork identity and exit, no container
 set -euo pipefail
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # Fork identity is DERIVED from the repo, never hardcoded, so this file is byte-identical in
 # both forks and cannot be mirrored into the wrong one. Pointing a fork at the other fork's
@@ -53,7 +53,7 @@ LOCK=/tmp/orca-rig-build.lock
 
 exec 9>"$LOCK"
 if ! flock -n 9; then
-    echo "another fork's rig-build holds $LOCK — waiting (this is the OOM guard, not a hang)"
+    echo "another fork's build-gui holds $LOCK — waiting (this is the OOM guard, not a hang)"
     flock 9
 fi
 
@@ -90,9 +90,9 @@ docker run --rm \
         exit \$rc
     " || rc=$?
 
-# A target-only build writes src/Release/, but this fork's gui-session.sh may default BIN to the
+# A target-only build writes src/Release/, but this fork's start-headless-gui.sh may default BIN to the
 # PACKAGED path that only build_linux.sh refreshes — launching with the default would then run a
 # stale binary. Pass BIN explicitly. See docs/rig_build_traps.md.
 echo "=== launch the rig on the binary just built ==="
-echo "  docker exec -e BIN=/OrcaSlicer/build/src/Release/$BIN ${PREFIX}-gui /OrcaSlicer/scripts/gui-session.sh"
+echo "  docker exec -e BIN=/OrcaSlicer/build/src/Release/$BIN ${PREFIX}-gui /OrcaSlicer/scripts/CAD/start-headless-gui.sh"
 exit "$rc"

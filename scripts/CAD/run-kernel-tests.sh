@@ -7,10 +7,10 @@
 # CadDocument, recompute()s it and asserts on geometry.
 #
 # Usage:
-#   scripts/kernel-test.sh                        # [CadDocument] tags, default volume
-#   scripts/kernel-test.sh --tags '[CadDocument],[Sketch]'
-#   scripts/kernel-test.sh --vol wt_mirror        # private build cache (parallel workers)
-#   scripts/kernel-test.sh --host tommaso@100.103.234.2   # build on a remote host
+#   scripts/CAD/run-kernel-tests.sh                        # [CadDocument] tags, default volume
+#   scripts/CAD/run-kernel-tests.sh --tags '[CadDocument],[Sketch]'
+#   scripts/CAD/run-kernel-tests.sh --vol wt_mirror        # private build cache (parallel workers)
+#   scripts/CAD/run-kernel-tests.sh --host tommaso@100.103.234.2   # build on a remote host
 #
 # Parallel workers MUST pass a distinct --vol: two builds sharing one cache corrupt
 # each other. A new volume pays one full build; runs after that are incremental.
@@ -22,14 +22,14 @@
 # Rig build traps already paid for once each (stale project, NLopt cache, pybind11, OCCT_LIBS, SLIC3R_CAD gate): docs/rig_build_traps.md
 set -euo pipefail
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # orcacad-deps, NOT snaporca-deps: this fork is mainline-based and needs Eigen 5.0.1,
 # CGAL 5.6.3, wx 3.3.2 and Python 3.12 Development.Embed, none of which snaporca-deps has.
 # With the wrong image CMake dies at configure, which is exactly why this fork went
 # M1-M8 without ever compiling (see commit 1633005bba).
 IMAGE="${IMAGE:-orcacad-deps}"
 # Must NOT default to snaporca_buildcache: that is the other fork's volume, and pointing
-# this fork at it makes the two silently trade build artefacts. docker-iter-build.sh had the
+# this fork at it makes the two silently trade build artefacts. build-gui-incremental.sh had the
 # identical defect and was fixed to orcacad_buildcache; this script was missed.
 VOL="${BUILD_VOL:-orcacad_kerneltest}"
 # No exclusions. Both cases that used to be quarantined now run: the solver SIGABRT on
@@ -64,7 +64,7 @@ if [[ -n "$HOST" ]]; then
     "$REPO/src" "$REPO/tests" "$REPO/resources" "$REPO/cmake" "$REPO/scripts" \
     "$REPO/CMakeLists.txt" \
     "$HOST:$REMOTE/"
-  exec ssh "$HOST" "cd $REMOTE && scripts/kernel-test.sh --vol '$VOL' --tags '$TAGS' --image '$IMAGE'"
+  exec ssh "$HOST" "cd $REMOTE && scripts/CAD/run-kernel-tests.sh --vol '$VOL' --tags '$TAGS' --image '$IMAGE'"
 fi
 
 if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
@@ -84,17 +84,17 @@ if ! docker volume inspect "$VOL" >/dev/null 2>&1; then
   docker volume create "$VOL" >/dev/null
 fi
 
-# tests/ is mounted too -- unlike docker-iter-build.sh, this script exists precisely to
+# tests/ is mounted too -- unlike build-gui-incremental.sh, this script exists precisely to
 # compile tests being edited. CMakeLists.txt and cmake/ carry the SLIC3R_CAD gate; taking
 # them from the baked image instead leaves the gate off and the CAD symbols vanish.
 
 # ---- OOM guard (2026-08-21) -------------------------------------------------------------
 # Two of these builds ran at once on 2026-08-21, each with ninja -j$(nproc)=16: ~36 cc1plus
 # holding 42 GB of a 62 GB box -> global OOM at 21:05, a 2h28m kill storm, ssh unreachable,
-# lightdm destroyed. Neither build produced a single object. scripts/rig-build.sh grew the
+# lightdm destroyed. Neither build produced a single object. scripts/CAD/build-gui.sh grew the
 # bounds first; every script that starts a compile needs the same three, or the guard is only
 # as strong as the script you happened not to use.
-#   flock    — the lock path is SHARED with rig-build.sh and the other fork on purpose, so
+#   flock    — the lock path is SHARED with build-gui.sh and the other fork on purpose, so
 #              concurrent builds serialise instead of summing.
 #   -j       — bounded parallelism; ~1.17 GB per cc1plus was the measured average.
 #   --memory — the actual guarantee: a runaway build dies in its own cgroup instead of taking

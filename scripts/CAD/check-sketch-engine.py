@@ -16,7 +16,7 @@ Every rung asserts those. Area appears only as a cross-check, never as the verdi
 Entirely 2D: sketch entities only, no extrude, revolve or any solid feature.
 
     SNAPORCA_MCP=/tmp/mcp.sock <binary>
-    python3 scripts/sketch-ladder.py [socket]
+    python3 scripts/CAD/check-sketch-engine.py [socket]
 
 Exit 0 = every rung held. Otherwise the first broken property is named and the run stops.
 """

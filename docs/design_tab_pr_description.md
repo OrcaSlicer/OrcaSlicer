@@ -46,7 +46,7 @@ is new code. The negotiable surface is the 37 modified files.
 205 `TEST_CASE` blocks across 6 new test source files. This counts assertions written, not
 assertions passed — a run needs a build.
 
-`scripts/kernel-test.sh` is the headless verification contract: it builds only
+`scripts/CAD/run-kernel-tests.sh` is the headless verification contract: it builds only
 `libslic3r_tests` (not the GUI app), needs no display, and exit 0 means the CAD suite
 passed. It now runs with **no exclusions** — both cases that used to be quarantined (the
 circle-line tangency solver abort and the internal-thread reference) are fixed.

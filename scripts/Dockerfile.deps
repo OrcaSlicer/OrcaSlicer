@@ -2,7 +2,7 @@
 # Identical system+pinned-dependency setup to scripts/Dockerfile, but STOPS after
 # `build_linux.sh -dr` (no slicer/AppImage build). Produces an image with the pinned
 # deps baked at /OrcaSlicer/deps/build/destdir, so the slicer can be rebuilt
-# incrementally via scripts/docker-iter-build.sh without re-running the long deps build.
+# incrementally via scripts/CAD/build-gui-incremental.sh without re-running the long deps build.
 #
 # Build once (rebuild only when deps/ changes, e.g. OCCT module flags):
 #   docker build -t snaporca-deps -f scripts/Dockerfile.deps .
@@ -82,7 +82,7 @@ RUN ln -sfn /OrcaSlicer/deps/build/OrcaSlicer_dep /OrcaSlicer/deps/build/destdir
 # The rig's GUI runtime. This used to arrive for free because orcacad-deps was layered on
 # snaporca-deps; that lineage is Trap 1 in docs/rig_build_traps.md (a baked project(Snapmaker_Orca)
 # tree) and building from this Dockerfile is what removes it — along with the X stack the rig
-# needs. scripts/gui-session.sh requires Xvfb and openbox (without a window manager `xdotool
+# needs. scripts/CAD/start-headless-gui.sh requires Xvfb and openbox (without a window manager `xdotool
 # windowactivate` aborts with "windowmanager claims not to support..."), drives the UI with
 # xdotool, and captures to /shots with scrot/ImageMagick. Same set snaporca-deps carries.
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \

@@ -9,7 +9,7 @@ loop: build a known profile, ask the app what it thinks it has, compare against 
 
 RUN IT AGAINST A RUNNING APP:
     SNAPORCA_MCP=/tmp/mcp.sock <binary>          # launch with the socket enabled
-    python3 scripts/mcp-sketch-smoke.py [socket] # default /tmp/mcp.sock
+    python3 scripts/CAD/check-mcp-sketch.py [socket] # default /tmp/mcp.sock
 
 Exit 0 = every assertion held. Anything else prints the first mismatch and stops.
 """

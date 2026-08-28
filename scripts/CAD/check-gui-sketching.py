@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """A ladder of sketches drawn the way a person draws them: mouse gestures and typed values.
 
-WHY THIS EXISTS, next to scripts/sketch-ladder.py. That ladder proves the ENGINE — it feeds
+WHY THIS EXISTS, next to scripts/CAD/check-sketch-engine.py. That ladder proves the ENGINE — it feeds
 geometry through the MCP socket's add_entities_scripted and grades what comes back. The socket
 path skips everything the goal actually rests on: gesture state, the auto-edit queue, snapping,
 inference at gesture tolerance, and the right-click offer. A ladder that only drives the socket
@@ -11,8 +11,8 @@ here ONLY as an instrument, never as an author.
 
 Runs INSIDE the headless rig container (Xvfb :10 + openbox + the app with SNAPORCA_MCP set):
 
-    docker cp scripts/gui-ladder.py snaporca-gui:/tmp/ && \
-    docker exec snaporca-gui python3 /tmp/gui-ladder.py [rung ...]
+    docker cp scripts/CAD/check-gui-sketching.py snaporca-gui:/tmp/ && \
+    docker exec snaporca-gui python3 /tmp/check-gui-sketching.py [rung ...]
 
 With no arguments every rung runs. Exit 0 = every property held.
 """

@@ -4005,7 +4005,7 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
     // A failure BELOW this point means the on-disk serialization format changed: some field
     // in CadFeature::save/load was reordered, retyped, or removed. Fields may only ever be
     // APPENDED at the end of both lists. Do NOT regenerate the fixture to make this pass --
-    // fix the field order instead. See scripts/kernel-test.sh and the [.regen] case.
+    // fix the field order instead. See scripts/CAD/run-kernel-tests.sh and the [.regen] case.
 
     // Field-by-field assertions against expected values.
     // Every field set to a distinctive non-default literal must be checked here.

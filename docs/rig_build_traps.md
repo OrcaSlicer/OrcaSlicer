@@ -3,16 +3,16 @@
 The build rig is two long-lived containers, `snaporca-gui` and `orcacad-gui`, one per fork. Each
 mounts only its fork's build volume (`snaporca_buildcache` / `orcacad_buildcache`) at
 `/OrcaSlicer/build`, its fork's `resources/`, and a shots directory — nothing else. They run the
-binary; they do not build it. Rebuild with `scripts/rig-build.sh`.
+binary; they do not build it. Rebuild with `scripts/CAD/build-gui.sh`.
 
 | fork repo | project() | deps image | build volume | GUI container | binary |
 |---|---|---|---|---|---|
 | `snaporca` | `Snapmaker_Orca` | `snaporca-deps` | `snaporca_buildcache` | `snaporca-gui` | `snapmaker-orca` |
 | `orca_cad` | `OrcaSlicer` | `orcacad-deps` | `orcacad_buildcache` | `orcacad-gui` | `orca-slicer` |
 
-`scripts/rig-build.sh` exists alongside `scripts/docker-iter-build.sh` for one reason: it does a
+`scripts/CAD/build-gui.sh` exists alongside `scripts/CAD/build-gui-incremental.sh` for one reason: it does a
 target-only `ninja` into the volume the GUI rig launches from, so a session can test a single
-change without a full repackage, whereas `docker-iter-build.sh` runs the full packaged build.
+change without a full repackage, whereas `build-gui-incremental.sh` runs the full packaged build.
 Both start a throwaway container from the deps image with the live repo mounted over the baked
 tree — never build inside the GUI container (Trap 1).
 
@@ -32,7 +32,7 @@ reports an unknown target, and `orca-slicer` / `OrcaSlicer` have been replaced b
 `snaporca-deps`, so even on the mainline fork the baked tree is the other fork's. A `cmake .`
 there reconfigures the shared build dir under the wrong project name.
 
-**Fix.** Build only via `scripts/rig-build.sh`, which starts a throwaway container from the deps
+**Fix.** Build only via `scripts/CAD/build-gui.sh`, which starts a throwaway container from the deps
 image with the live repo mounted over the baked tree — `src`, `resources`, `cmake`, `deps_src`,
 `localization`, `CMakeLists.txt`, `version.inc` — and writes into the same volume the rig
 launches from.
@@ -66,7 +66,7 @@ fork's root `CMakeLists.txt`, near line 948).
 **Cause.** The deps image predates that requirement. Only the mainline (`orca_cad`) fork has
 `deps_src/pybind11` and the requirement; snaporca has neither.
 
-**Fix.** Mount `deps_src` over the baked tree — `scripts/rig-build.sh` does. Corollary: mounting a
+**Fix.** Mount `deps_src` over the baked tree — `scripts/CAD/build-gui.sh` does. Corollary: mounting a
 snaporca tree into an `orcacad-deps` build reproduces this error exactly.
 
 ---
@@ -83,7 +83,7 @@ its own configure, while the consumer in the root `CMakeLists.txt` (`if (NOT OCC
 after the `TKFillet TKOffset` prepend (`src/libslic3r/CMakeLists.txt:599`) therefore links the
 previous list and drops `TKBool`/`TKOffset`.
 
-**Fix.** Configure twice. `scripts/rig-build.sh` runs `cmake .` twice for exactly this reason; if
+**Fix.** Configure twice. `scripts/CAD/build-gui.sh` runs `cmake .` twice for exactly this reason; if
 you ever configure by hand, run it twice.
 
 ---
@@ -100,7 +100,7 @@ snaporca, 319/320 in orca_cad). Every `#ifdef SLIC3R_CAD` block therefore compil
 option still reads ON.
 
 **Fix.** Always mount the live `CMakeLists.txt` and `cmake/` — never inherit them from the image.
-This is why `scripts/docker-iter-build.sh`, `scripts/kernel-test.sh` and `scripts/rig-build.sh`
+This is why `scripts/CAD/build-gui-incremental.sh`, `scripts/CAD/run-kernel-tests.sh` and `scripts/CAD/build-gui.sh`
 all mount both.
 
 ---
@@ -109,18 +109,18 @@ all mount both.
 
 `ninja <target>` writes `/OrcaSlicer/build/src/Release/<binary>`; only `build_linux.sh`
 additionally packages to `/OrcaSlicer/build/package/bin/<binary>`. `orca_cad`'s
-`scripts/gui-session.sh` defaults `BIN` to `src/Release/orca-slicer`, but snaporca's defaults to
+`scripts/CAD/start-headless-gui.sh` defaults `BIN` to `src/Release/orca-slicer`, but snaporca's defaults to
 `package/bin/snapmaker-orca`. So after a target-only rebuild on snaporca, launching
-`gui-session.sh` with its default runs the **stale packaged** binary — the change under test is
+`start-headless-gui.sh` with its default runs the **stale packaged** binary — the change under test is
 invisible and the session hunts a phantom. Pass `BIN` explicitly:
 
-    docker exec -e BIN=/OrcaSlicer/build/src/Release/snapmaker-orca snaporca-gui /OrcaSlicer/scripts/gui-session.sh
+    docker exec -e BIN=/OrcaSlicer/build/src/Release/snapmaker-orca snaporca-gui /OrcaSlicer/scripts/CAD/start-headless-gui.sh
 
-`scripts/rig-build.sh` prints the correct line for the current fork when it finishes.
+`scripts/CAD/build-gui.sh` prints the correct line for the current fork when it finishes.
 
 Note also that the GUI containers do **not** mount `scripts/`: `/OrcaSlicer/scripts` inside them
-is the baked copy, so a local edit to `gui-session.sh` has no effect until you
-`docker cp scripts/gui-session.sh <container>:/OrcaSlicer/scripts/`.
+is the baked copy, so a local edit to `start-headless-gui.sh` has no effect until you
+`docker cp scripts/CAD/start-headless-gui.sh <container>:/OrcaSlicer/scripts/`.
 
 ---
 
@@ -144,7 +144,7 @@ a real fault in your code gets past the version banner. Compare
 
 ## Trap 7 — a single-instance app plus a path-matched `pkill`
 
-`gui-session.sh` used to kill by `"$BIN"`, while its own `app_pid()` matched by BASENAME. Launch
+`start-headless-gui.sh` used to kill by `"$BIN"`, while its own `app_pid()` matched by BASENAME. Launch
 with a `BIN` that differs from the running instance's path and the old process survives, keeps
 the single-instance lock, and the new one exits seconds after loading fonts — then `status`
 reports the *stale* pid as a healthy session. Fixed by killing on the basename; `status` now also

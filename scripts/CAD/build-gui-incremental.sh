@@ -9,8 +9,8 @@
 # Result: edit -> rebuild in seconds-to-minutes instead of a full Docker rebuild.
 #
 # Usage (run on the build host, e.g. behemoth, from anywhere):
-#   scripts/docker-iter-build.sh
-#   IMAGE=orcacad-deps scripts/docker-iter-build.sh
+#   scripts/CAD/build-gui-incremental.sh
+#   IMAGE=orcacad-deps scripts/CAD/build-gui-incremental.sh
 #
 # On success the binary is inside the persistent volume at
 # /OrcaSlicer/build/package/bin/orca-slicer (copy it out with a follow-up
@@ -18,8 +18,8 @@
 # Rig build traps already paid for once each (stale project, NLopt cache, pybind11, OCCT_LIBS, SLIC3R_CAD gate): docs/rig_build_traps.md
 set -euo pipefail
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# orcacad-deps, NOT snaporca-deps: see the note in kernel-test.sh — the wrong image
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# orcacad-deps, NOT snaporca-deps: see the note in run-kernel-tests.sh — the wrong image
 # fails at CMake configure, not at link time.
 IMAGE="${IMAGE:-orcacad-deps}"
 BUILD_VOL="${BUILD_VOL:-orcacad_buildcache}"
@@ -42,10 +42,10 @@ echo "REPO=$REPO  IMAGE=$IMAGE  BUILD_VOL=$BUILD_VOL"
 # ---- OOM guard (2026-08-21) -------------------------------------------------------------
 # Two of these builds ran at once on 2026-08-21, each with ninja -j$(nproc)=16: ~36 cc1plus
 # holding 42 GB of a 62 GB box -> global OOM at 21:05, a 2h28m kill storm, ssh unreachable,
-# lightdm destroyed. Neither build produced a single object. scripts/rig-build.sh grew the
+# lightdm destroyed. Neither build produced a single object. scripts/CAD/build-gui.sh grew the
 # bounds first; every script that starts a compile needs the same three, or the guard is only
 # as strong as the script you happened not to use.
-#   flock    — the lock path is SHARED with rig-build.sh and the other fork on purpose, so
+#   flock    — the lock path is SHARED with build-gui.sh and the other fork on purpose, so
 #              concurrent builds serialise instead of summing.
 #   -j       — bounded parallelism; ~1.17 GB per cc1plus was the measured average.
 #   --memory — the actual guarantee: a runaway build dies in its own cgroup instead of taking
