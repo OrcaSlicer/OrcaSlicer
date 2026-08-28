@@ -19,6 +19,7 @@ class wxStaticText;
 class wxComboBox;
 class wxComboCtrl;
 class wxCheckBox;
+class wxButton;
 
 namespace Slic3r {
 
@@ -105,6 +106,9 @@ class Preview : public wxPanel
     bool m_only_gcode { false };
     bool m_reload_paint_after_background_process_apply{false};
 
+    wxButton* m_realistic_preview_button{nullptr};
+    size_t    m_visualization_change_subscription{0};
+
 public:
     enum class OptionType : unsigned int
     {
@@ -172,6 +176,7 @@ private:
     void update_layers_slider(const std::vector<double>& layers_z, bool keep_z_range = false);    
     void update_layers_slider_mode();
     void update_layers_slider_from_canvas(wxKeyEvent &event);
+    void refresh_visualization_action();
     //BBS: add only gcode mode
     void load_print_as_fff(bool keep_z_range = false, bool only_gcode = false);
 };

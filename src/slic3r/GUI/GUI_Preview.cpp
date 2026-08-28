@@ -17,6 +17,7 @@
 #include "Plater.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
+#include "slic3r/plugin/host/PluginVisualizations.hpp"
 
 #include <wx/listbook.h>
 #include <wx/notebook.h>
@@ -27,6 +28,7 @@
 #include <wx/combo.h>
 #include <wx/combobox.h>
 #include <wx/checkbox.h>
+#include <wx/button.h>
 
 // this include must follow the wxWidgets ones or it won't compile on Windows -> see http://trac.wxwidgets.org/ticket/2421
 #include "libslic3r/Print.hpp"
@@ -244,8 +246,7 @@ Preview::Preview(
 void Preview::update_gcode_result(GCodeProcessorResult* gcode_result)
 {
     m_gcode_result = gcode_result;
-
-    return;
+    refresh_visualization_action();
 }
 
 bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
@@ -283,7 +284,12 @@ bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
     m_canvas_widget->Bind(wxEVT_KEY_DOWN, &Preview::update_layers_slider_from_canvas, this);
 
     wxBoxSizer *main_sizer = new wxBoxSizer(wxVERTICAL);
+    m_realistic_preview_button = new wxButton(this, wxID_ANY, _L("Realistic Preview"));
+    main_sizer->Add(m_realistic_preview_button, 0, wxALL | wxALIGN_RIGHT, 5);
     main_sizer->Add(m_canvas_widget, 1, wxALL | wxEXPAND, 0);
+
+    m_visualization_change_subscription = PluginVisualizations::instance().subscribe([this] { refresh_visualization_action(); });
+    refresh_visualization_action();
 
     SetSizer(main_sizer);
     SetMinSize(GetSize());
@@ -296,6 +302,7 @@ bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
 
 Preview::~Preview()
 {
+    PluginVisualizations::instance().unsubscribe(m_visualization_change_subscription);
     unbind_event_handlers();
 
     if (m_canvas != nullptr)
@@ -328,13 +335,35 @@ void Preview::set_drop_target(wxDropTarget* target)
         SetDropTarget(target);
 }
 
+void Preview::refresh_visualization_action()
+{
+    if (m_realistic_preview_button == nullptr)
+        return;
+
+    const bool is_fff = m_process != nullptr && m_process->current_printer_technology() == ptFFF;
+    const bool show = is_fff && !PluginVisualizations::instance().capabilities().empty();
+    const Print* print = is_fff ? m_process->fff_print() : nullptr;
+    const bool has_final_result = print != nullptr && print->is_step_done(psGCodeExport) && m_gcode_result != nullptr &&
+                                  !m_gcode_result->moves.empty();
+
+    m_realistic_preview_button->Show(show);
+    m_realistic_preview_button->Disable();
+    m_realistic_preview_button->SetToolTip(has_final_result ?
+        _L("Realistic Preview geometry export is not available yet.") :
+        _L("Slice the current plate before opening Realistic Preview."));
+    Layout();
+}
+
 //BBS: add only gcode mode
 void Preview::load_print(bool keep_z_range, bool only_gcode)
 {
     PrinterTechnology tech = m_process->current_printer_technology();
     if (tech == ptFFF)
         load_print_as_fff(keep_z_range, only_gcode);
+    else
+        PluginVisualizations::instance().close_all();
 
+    refresh_visualization_action();
     Layout();
 }
 
