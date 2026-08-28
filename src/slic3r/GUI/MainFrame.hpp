@@ -391,6 +391,11 @@ public:
     // selected, so everything the Design panel builds stays off the startup path.
     wxPanel*              m_design_page { nullptr };
     DesignPanel*          m_design_panel { nullptr };
+    // Builds the Design panel if it does not exist yet and returns it (null only before the
+    // placeholder page itself exists). Main thread only -- it creates wx controls. Both the
+    // tab activation and the MCP socket go through this: the socket is driven headlessly,
+    // with nobody to click the tab, and without this every verb would answer "not ready".
+    DesignPanel*          ensure_design_panel();
 #endif
     //BBS: GUI refactor
     MonitorPanel*         m_monitor{ nullptr };

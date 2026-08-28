@@ -1245,6 +1245,19 @@ void MainFrame::show_option(bool show)
     }
 }
 
+#ifdef SLIC3R_CAD
+DesignPanel* MainFrame::ensure_design_panel()
+{
+    if (m_design_panel == nullptr && m_design_page != nullptr) {
+        wxBusyCursor busy;
+        m_design_panel = new DesignPanel(m_design_page);
+        m_design_page->GetSizer()->Add(m_design_panel, 1, wxEXPAND);
+        m_design_page->Layout();
+    }
+    return m_design_panel;
+}
+#endif
+
 void MainFrame::init_tabpanel() {
     // wxNB_NOPAGETHEME: Disable Windows Vista theme for the Notebook background. The theme performance is terrible on
     // Windows 10 with multiple high resolution displays connected.
@@ -1290,12 +1303,7 @@ void MainFrame::init_tabpanel() {
             // Built on first activation, never at startup: the panel creates several hundred
             // controls and its own GL canvas, which a user who does not open the tab should
             // not pay for.
-            if (m_design_panel == nullptr) {
-                wxBusyCursor busy;
-                m_design_panel = new DesignPanel(m_design_page);
-                m_design_page->GetSizer()->Add(m_design_panel, 1, wxEXPAND);
-                m_design_page->Layout();
-            }
+            ensure_design_panel();
             // Re-sync the Design bed to the active printer: the panel is built before the
             // printer profile is fully applied, so its bed must refresh on activation or the
             // grid (true bed) spills past the stale default bed quad.

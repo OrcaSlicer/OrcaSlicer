@@ -1990,9 +1990,12 @@ json action_set_feature_expr(DesignPanel* panel, const json& params)
 std::string handle_on_main(const std::string& method, const json& params, const json& id)
 {
     MainFrame* mf = wxGetApp().mainframe;
-    if (!mf || !mf->m_design_panel)
+    // The panel is built on first use, and in a headless session nobody clicks the tab that
+    // would build it -- so build it here rather than refusing. Safe: this runs on the main
+    // thread (see the CallAfter that dispatches us).
+    DesignPanel* panel = mf ? mf->ensure_design_panel() : nullptr;
+    if (!panel)
         return rpc_error(id, -32001, "Design panel not ready");
-    DesignPanel* panel = mf->m_design_panel;
 
     // Stale-id guard, checked here rather than in each handler.
     //
