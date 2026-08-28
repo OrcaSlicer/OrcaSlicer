@@ -6127,8 +6127,14 @@ LayerResult GCode::process_layer(
                 continue;
             }
 
-            int   plate_idx = print.get_plate_index();
-            Point wt_pos(print.config().wipe_tower_x.get_at(plate_idx), print.config().wipe_tower_y.get_at(plate_idx));
+            Point wt_pos;
+            if (has_wipe_tower) {
+                int plate_idx = print.get_plate_index();
+                wt_pos = Point(print.config().wipe_tower_x.get_at(plate_idx), print.config().wipe_tower_y.get_at(plate_idx));
+            } else {
+                // Use current extruder position as the starting point to minimize travel
+                wt_pos = Point((coord_t)(scale_(m_writer.get_position().x())), (coord_t)(scale_(m_writer.get_position().y())));
+            }
 
             // Build the instances and one tour node per non-empty island (a single node for
             // instances without chainable islands). Positions quantized to 1 mm so small
@@ -6187,7 +6193,9 @@ LayerResult GCode::process_layer(
                     node_points.emplace_back(node.pos);
                 std::vector<size_t> tour = order_points_with_strategy(node_points, print.config().print_order, &wt_pos);
                 // Chained starting near the wipe tower, reversed so the layer ends near it.
-                std::reverse(tour.begin(), tour.end());
+                if (has_wipe_tower) {
+                    std::reverse(tour.begin(), tour.end());
+                }
 
                 // Group consecutive tour stops of the same instance into visits.
                 std::vector<InstanceVisit> visits;
