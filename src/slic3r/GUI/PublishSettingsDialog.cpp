@@ -158,6 +158,43 @@ wxColour mixed_filament_blend_color(const DynamicPrintConfig& full, size_t slot)
     return slot < colors.size() ? colors[slot] : wxColour("#D9D9D9");
 }
 
+// The slot's own chip as the main GUI renders it: a curve-sampled gradient swatch for a
+// gradient mixed slot, the static blended colour otherwise. Returns wxNullBitmap when nothing
+// could be rendered (the caller falls back to a plain label).
+wxBitmap mixed_filament_chip_bitmap(const DynamicPrintConfig& full, size_t slot, int swatch_sz)
+{
+    const std::string label = std::to_string(slot + 1);
+    const auto* grad_opt    = full.opt<ConfigOptionBools>("filament_mixed_gradient");
+    const bool is_gradient  = grad_opt != nullptr && slot < grad_opt->size() && grad_opt->values[slot];
+    wxBitmap* icon          = nullptr;
+    if (is_gradient) {
+        // The same curve-sampled ramp the sidebar chips use; an empty ramp (broken definition)
+        // degrades to a plain fade between the slot's two component colours.
+        const std::vector<wxColour> ramp = mixed_gradient_ramp(full, slot, swatch_sz);
+        if (!ramp.empty()) {
+            icon = get_extruder_color_icon(std::vector<std::string>(), true, label, swatch_sz, swatch_sz, &ramp);
+        } else {
+            std::vector<std::string> hexes;
+            for (const unsigned int comp : mixed_slot_components(full, slot)) {
+                std::string hex = filament_color_hex(full, size_t(comp) - 1);
+                if (hex.empty())
+                    hex = "#D9D9D9";
+                hexes.push_back(std::move(hex));
+            }
+            if (hexes.size() >= 2)
+                icon = get_extruder_color_icon(std::move(hexes), true, label, swatch_sz, swatch_sz);
+        }
+    }
+    if (icon == nullptr) {
+        const wxColour blend = mixed_filament_blend_color(full, slot);
+        const std::string blend_hex = blend.IsOk() ?
+                                          std::string(wxString::Format("#%02X%02X%02X", blend.Red(), blend.Green(), blend.Blue()).ToUTF8()) :
+                                          std::string("#808080");
+        icon = get_extruder_color_icon(blend_hex, label, swatch_sz, swatch_sz);
+    }
+    return icon != nullptr ? *icon : wxNullBitmap;
+}
+
 // Tab-strip bitmap for a mixed slot: the mix's own chip, then its component swatches each
 // followed by their percent share (or a "->" arrow for gradients), mirroring the main GUI's
 // sidebar rows - e.g. "[3 purple]: [1 red] 50% + [2 blue] 50%". The whole composition is one
@@ -207,13 +244,10 @@ wxBitmap mixed_filament_tab_bitmap(const DynamicPrintConfig& full, size_t slot, 
     auto push_text = [&](const wxString& text) { pieces.push_back({Piece::Text, wxNullBitmap, text}); };
 
     {
-        const wxColour blend = mixed_filament_blend_color(full, slot);
-        const std::string blend_hex = blend.IsOk() ?
-                                          std::string(wxString::Format("#%02X%02X%02X", blend.Red(), blend.Green(), blend.Blue()).ToUTF8()) :
-                                          std::string("#808080");
-        const size_t before = pieces.size();
-        push_swatch(blend_hex, std::to_string(slot + 1));
-        has_lead = pieces.size() > before;
+        const wxBitmap chip = mixed_filament_chip_bitmap(full, slot, swatch_sz);
+        has_lead = chip.IsOk();
+        if (has_lead)
+            pieces.push_back({Piece::Swatch, chip, wxString()});
     }
     for (size_t ci = 0; ci < comps.size(); ++ci) {
         if (pieces.empty())
@@ -278,6 +312,83 @@ wxBitmap mixed_filament_tab_bitmap(const DynamicPrintConfig& full, size_t slot, 
 }
 
 } // namespace
+
+// Warning shown on OK when an enabled mixed-filament slot relies on a filament that would ship
+// without its material. One row per unmet dependency: the mixed slot's colour chip, the
+// component filament's colour chip, and the reason. "Cancel" is the safe choice and keeps the
+// dialog open; "Publish anyway" continues.
+class MixedFilamentWarningDialog : public MsgDialog
+{
+public:
+    MixedFilamentWarningDialog(wxWindow* parent, const DynamicPrintConfig& full, const std::vector<MixedDependencyIssue>& issues)
+        : MsgDialog(parent, _L("Warning"), wxEmptyString, wxOK | wxCANCEL | wxICON_WARNING)
+    {
+        auto* content = new wxBoxSizer(wxVERTICAL);
+
+        auto* intro = new wxStaticText(this, wxID_ANY, _L("Some mixed filaments rely on filaments that will not be published:"));
+        intro->SetFont(Label::Body_13);
+        intro->Wrap(FromDIP(400));
+        content->Add(intro, 0, wxEXPAND);
+        content->AddSpacer(FromDIP(10));
+
+        const int swatch = FromDIP(20);
+        for (const MixedDependencyIssue& issue : issues) {
+            auto* row = new wxBoxSizer(wxHORIZONTAL);
+
+            // The mixed slot as just its own chip (gradient-aware, numbered like its tab);
+            // falls back to a plain label when the chip cannot be built.
+            const wxString mix_label = wxString::Format(_L("Filament %d (mixed)"), int(issue.mixed_slot) + 1);
+            const wxBitmap mix_bmp   = mixed_filament_chip_bitmap(full, issue.mixed_slot, swatch);
+            if (mix_bmp.IsOk()) {
+                auto* bmp = new wxStaticBitmap(this, wxID_ANY, mix_bmp);
+                bmp->SetToolTip(mix_label);
+                row->Add(bmp, 0, wxALIGN_CENTER_VERTICAL);
+            } else {
+                auto* label = new wxStaticText(this, wxID_ANY, mix_label);
+                label->SetFont(Label::Body_12);
+                row->Add(label, 0, wxALIGN_CENTER_VERTICAL);
+            }
+
+            auto* needs = new wxStaticText(this, wxID_ANY, _L("needs"));
+            needs->SetFont(Label::Body_12);
+            needs->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
+            row->Add(needs, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(6));
+
+            // The component filament's colour chip, numbered like the tab strips; the slot
+            // name stays on hover to keep the row itself short.
+            std::string hex = filament_color_hex(full, issue.component_slot);
+            if (hex.empty())
+                hex = "#D9D9D9";
+            if (wxBitmap* chip = get_extruder_color_icon(hex, std::to_string(issue.component_slot + 1), swatch, swatch)) {
+                auto* comp_bmp = new wxStaticBitmap(this, wxID_ANY, *chip);
+                comp_bmp->SetToolTip(wxString::Format(_L("Filament %d"), int(issue.component_slot) + 1));
+                row->Add(comp_bmp, 0, wxALIGN_CENTER_VERTICAL);
+            }
+
+            auto* reason = new wxStaticText(this, wxID_ANY,
+                issue.reason == MixedDependencyIssue::Reason::Disabled ? _L("not enabled") : _L("material not published"));
+            reason->SetFont(Label::Body_12);
+            reason->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#989898")));
+            row->Add(reason, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+
+            content->Add(row, 0, wxLEFT, FromDIP(10));
+            content->AddSpacer(FromDIP(6));
+        }
+
+        auto* hint = new wxStaticText(this, wxID_ANY,
+            _L("To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."));
+        hint->SetFont(Label::Body_12);
+        hint->Wrap(FromDIP(380));
+        content->Add(hint, 0, wxEXPAND | wxTOP, FromDIP(4));
+
+        content_sizer->Add(content, 0, wxEXPAND);
+
+        SetButtonLabel(wxID_OK, _L("Publish anyway"));
+        SetButtonLabel(wxID_CANCEL, _L("Cancel"), true); // safe choice gets the focus
+
+        finalize();
+    }
+};
 
 PublishSettingsDialog::MixedVisualSpec PublishSettingsDialog::make_mixed_visual_spec(const DynamicPrintConfig& full, size_t slot)
 {
@@ -417,20 +528,11 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         // Publish is always allowed: no settings selected means no settings override. Warn only
-        // when an enabled mixed filament would ship without the identity of one of its
-        // components; "Proceed" accepts that and publishes anyway.
-        if (const std::vector<size_t> missing = unpublished_mixed_components(); !missing.empty()) {
-            wxString missing_list;
-            for (size_t i = 0; i < missing.size(); ++i) {
-                if (i > 0)
-                    missing_list += ", ";
-                missing_list += wxString::Format(_L("Filament %d"), int(missing[i] + 1));
-            }
-            const wxString msg = _L("The following filaments are used by published mixed filaments but will not carry their material identity:")
-                                 + wxString(" ") + missing_list;
-            MessageDialog warn(this, msg, _L("Warning"), wxICON_WARNING);
-            warn.AddButton(wxID_CANCEL, _L("Cancel"), true); // safe choice gets the focus
-            warn.AddButton(wxID_OK, _L("Proceed"), false);
+        // when an enabled mixed filament would ship without the material of one of its
+        // components; "Publish anyway" accepts that and publishes anyway.
+        if (const std::vector<MixedDependencyIssue> issues = unpublished_mixed_components(); !issues.empty()) {
+            const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
+            MixedFilamentWarningDialog warn(this, full, issues);
             if (warn.ShowModal() != wxID_OK)
                 return; // Cancel: dismiss the warning and stay in this dialog
         }
@@ -1712,9 +1814,9 @@ std::vector<std::string> PublishSettingsDialog::GetPublishedKeys() const
     return out;
 }
 
-std::vector<size_t> PublishSettingsDialog::unpublished_mixed_components() const
+std::vector<MixedDependencyIssue> PublishSettingsDialog::unpublished_mixed_components() const
 {
-    std::set<size_t> missing;
+    std::vector<MixedDependencyIssue> out;
     for (const Category& cat : m_categories) {
         if (!cat.is_mixed || cat.section != Section::Material)
             continue;
@@ -1739,7 +1841,7 @@ std::vector<size_t> PublishSettingsDialog::unpublished_mixed_components() const
             // "Full Publish" nor the "Type" requirement row checked. Colour never counts:
             // the receiver renders the mix from its own components' colours.
             if (!comp_cat->enable_check->GetValue()) {
-                missing.insert(component_slot);
+                out.push_back({cat.filament_slot, component_slot, MixedDependencyIssue::Reason::Disabled});
                 continue;
             }
             if (comp_cat->full_check != nullptr && comp_cat->full_check->GetValue())
@@ -1753,10 +1855,15 @@ std::vector<size_t> PublishSettingsDialog::unpublished_mixed_components() const
                 }
             }
             if (!type_checked)
-                missing.insert(component_slot);
+                out.push_back({cat.filament_slot, component_slot, MixedDependencyIssue::Reason::MaterialNotPublished});
         }
     }
-    return std::vector<size_t>(missing.begin(), missing.end());
+    // Deterministic order for the warning rows: by mixed slot, then component slot. The same
+    // (mix, component) pair cannot repeat: each mix's components come from a config list.
+    std::sort(out.begin(), out.end(), [](const MixedDependencyIssue& a, const MixedDependencyIssue& b) {
+        return std::tie(a.mixed_slot, a.component_slot) < std::tie(b.mixed_slot, b.component_slot);
+    });
+    return out;
 }
 
 std::vector<Slic3r::PublishedMaterialEntry> PublishSettingsDialog::GetPublishedMaterialKeys() const

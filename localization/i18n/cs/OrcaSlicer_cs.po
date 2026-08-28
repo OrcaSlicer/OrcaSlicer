@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-21 14:25+0800\n"
+"POT-Creation-Date: 2026-08-28 12:15+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -2977,6 +2977,9 @@ msgstr "Upravit"
 msgid "Merge with"
 msgstr "Sloučit s"
 
+msgid "Decompose Color"
+msgstr ""
+
 msgid "Delete this filament"
 msgstr "Smazat tento filament"
 
@@ -3278,6 +3281,9 @@ msgstr "Sestava"
 # AI Translated
 msgid "Merge parts to an object"
 msgstr "Sloučit části do objektu"
+
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr ""
 
 # AI Translated
 msgid "Add layers"
@@ -7927,6 +7933,9 @@ msgstr "Přizpůsobit aktuální desku"
 msgid "The %s nozzle can not print %s."
 msgstr "Tryska %s nemůže tisknout %s."
 
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr ""
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "Míchání %1% s %2% při tisku není doporučeno.\n"
@@ -8056,11 +8065,35 @@ msgstr "Synchronizovat seznam filamentů z AMS"
 msgid "Set filaments to use"
 msgstr "Nastavit používané filamenty"
 
+msgid "Add Mixed Filament"
+msgstr ""
+
+msgid "Mixed Filament"
+msgstr ""
+
+msgid "Remove last mixed filament"
+msgstr ""
+
+msgid "Add mixed filament"
+msgstr ""
+
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr ""
+
 msgid "Search plate, object and part."
 msgstr "Hledat desku, objekt a díl."
 
 msgid "Pellets"
 msgstr "Pelety"
+
+msgid "Mixed filament has broken component references"
+msgstr ""
+
+msgid "Edit / Delete / Merge"
+msgstr ""
+
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr ""
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -8248,6 +8281,12 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "Detekován vícedílný objekt"
+
+msgid "Matching textures to filaments"
+msgstr ""
+
+msgid "Texture Import Warning"
+msgstr ""
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Načíst tyto soubory jako jeden objekt s více částmi?\n"
@@ -8458,6 +8497,18 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "Synchronizovat nyní"
+
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr ""
+
+msgid "Applying texture colors..."
+msgstr ""
+
+msgid "Updating 3D view..."
+msgstr ""
+
+msgid "Texture colors applied."
+msgstr ""
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Upravené předvolby můžete ponechat v novém projektu nebo je zahodit"
@@ -9751,6 +9802,9 @@ msgstr "Spirálová váza"
 msgid "First layer filament sequence"
 msgstr "Pořadí filamentů v první vrstvě"
 
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr ""
+
 msgid "By Layer"
 msgstr "Podle vrstvy"
 
@@ -9797,16 +9851,56 @@ msgstr "Přejít na webovou stránku"
 msgid "Material"
 msgstr ""
 
+msgid "Mixed filament"
+msgstr ""
+
+msgid "Some mixed filaments rely on filaments that will not be published:"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Filament %d (mixed)"
+msgstr ""
+
+msgid "needs"
+msgstr ""
+
+msgid "not enabled"
+msgstr ""
+
+msgid "material not published"
+msgstr ""
+
+msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+msgstr ""
+
+msgid "Publish anyway"
+msgstr ""
+
 msgid "Publish 3MF..."
 msgstr ""
 
 msgid "Select which settings to embed in the 3MF file"
 msgstr ""
 
+msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
+msgstr ""
+
+msgid "Publish this mixed filament and enable + Full Publish its component filaments"
+msgstr ""
+
+msgid "Publish this filament slot in the 3MF file"
+msgstr ""
+
 msgid "Full Publish"
 msgstr ""
 
 msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
+msgid "Material Ratio"
+msgstr ""
+
+msgid "Model Height"
 msgstr ""
 
 msgid "Filter non-selected"
@@ -12484,6 +12578,9 @@ msgstr "Pokud chcete přesto tisknout, můžete povolit možnost v Nastavení / 
 msgid "No extrusions under current settings."
 msgstr "Při aktuálním nastavení nejsou žádné extruze."
 
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr ""
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "Plynulý režim časosběru není podporován, pokud je povoleno pořadí tisku „podle objektu“."
 
@@ -12519,6 +12616,9 @@ msgstr "Možná budete chtít zmenšit velikost modelu nebo změnit aktuální n
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "Proměnná výška vrstvy není podporována s organickými podporami."
+
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr ""
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
 msgstr "Různé průměry trysek a filamentu nemusí správně fungovat, pokud je povolena základní věž. Jedná se o velmi experimentální funkci, proto pokračujte opatrně."
@@ -14577,6 +14677,48 @@ msgstr "Podpůrný materiál"
 
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "Podpůrný materiál se běžně používá pro tisk podpěr a rozhraní podpěr."
+
+msgid "Is mixed filament"
+msgstr ""
+
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr ""
+
+msgid "Mixed filament components"
+msgstr ""
+
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr ""
+
+msgid "Mixed filament sublayer ratios"
+msgstr ""
+
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr ""
+
+msgid "Mixed filament gradient"
+msgstr ""
+
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr ""
+
+msgid "Mixed filament gradient range"
+msgstr ""
+
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr ""
+
+msgid "Mixed filament gradient curve"
+msgstr ""
+
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr ""
+
+msgid "Mixed filament per-part gradient"
+msgstr ""
+
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr ""
 
 msgid "Filament printable"
 msgstr "Tisknutelný filament"
@@ -17465,6 +17607,12 @@ msgstr ""
 "\n"
 "Nastavení hodnoty v parametru množství retrakce před očištěním níže provede případnou dodatečnou retrakci před očištěním, jinak bude provedena po něm."
 
+msgid "Mixed color sublayer"
+msgstr ""
+
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr ""
+
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Čistící věž lze použít k odstranění zbytků materiálu na trysce a ke stabilizaci tlaku v komoře trysky, aby se předešlo vizuálním vadám při tisku objektů."
 
@@ -18537,6 +18685,9 @@ msgstr "Síťování modelového souboru selhalo nebo nebyl nalezen platný tvar
 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Zadaný soubor nelze načíst, protože je prázdný."
+
+msgid "The file format is incompatible and cannot be parsed."
+msgstr ""
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Neznámý formát souboru. Vstupní soubor musí mít příponu .stl, .obj nebo .amf(.xml)."

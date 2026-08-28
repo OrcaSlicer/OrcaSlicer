@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-21 14:25+0800\n"
+"POT-Creation-Date: 2026-08-28 12:15+0800\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -2937,6 +2937,9 @@ msgstr "Redaguoti"
 msgid "Merge with"
 msgstr "Sujungti su"
 
+msgid "Decompose Color"
+msgstr ""
+
 msgid "Delete this filament"
 msgstr "Ištrinti šią giją"
 
@@ -3237,6 +3240,9 @@ msgstr "Surinkimas"
 # AI Translated
 msgid "Merge parts to an object"
 msgstr "Sujungti dalis į objektą"
+
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr ""
 
 # AI Translated
 msgid "Add layers"
@@ -7841,6 +7847,9 @@ msgstr "Individualizuoti esamą plokštę"
 msgid "The %s nozzle can not print %s."
 msgstr "%s purkštukas negali spausdinti %s."
 
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr ""
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr ""
@@ -7974,11 +7983,35 @@ msgstr "Sinchronizuoti gijų sąrašą iš AMS"
 msgid "Set filaments to use"
 msgstr "Nustatyti gijas naudojimui"
 
+msgid "Add Mixed Filament"
+msgstr ""
+
+msgid "Mixed Filament"
+msgstr ""
+
+msgid "Remove last mixed filament"
+msgstr ""
+
+msgid "Add mixed filament"
+msgstr ""
+
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr ""
+
 msgid "Search plate, object and part."
 msgstr "Plokštės, objekto ir dalies paieška."
 
 msgid "Pellets"
 msgstr "Granulės"
+
+msgid "Mixed filament has broken component references"
+msgstr ""
+
+msgid "Edit / Delete / Merge"
+msgstr ""
+
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr ""
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -8163,6 +8196,12 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "Aptiktas kelių dalių objektas"
+
+msgid "Matching textures to filaments"
+msgstr ""
+
+msgid "Texture Import Warning"
+msgstr ""
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Ar įkelti šiuos failus kaip vieną objektą su keliomis detalėmis?\n"
@@ -8377,6 +8416,18 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "Sinchronizuoti dabar"
+
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr ""
+
+msgid "Applying texture colors..."
+msgstr ""
+
+msgid "Updating 3D view..."
+msgstr ""
+
+msgid "Texture colors applied."
+msgstr ""
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Pakeistus profilius galite išsaugoti naujam projektui arba juos atmesti"
@@ -9618,6 +9669,9 @@ msgstr "Spiralinė vaza"
 msgid "First layer filament sequence"
 msgstr "Pirmojo sluoksnio gijos eiga"
 
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr ""
+
 msgid "By Layer"
 msgstr "Pagal sluoksnį"
 
@@ -9663,16 +9717,56 @@ msgstr "Pereiti į interneto puslapį"
 msgid "Material"
 msgstr ""
 
+msgid "Mixed filament"
+msgstr ""
+
+msgid "Some mixed filaments rely on filaments that will not be published:"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Filament %d (mixed)"
+msgstr ""
+
+msgid "needs"
+msgstr ""
+
+msgid "not enabled"
+msgstr ""
+
+msgid "material not published"
+msgstr ""
+
+msgid "To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."
+msgstr ""
+
+msgid "Publish anyway"
+msgstr ""
+
 msgid "Publish 3MF..."
 msgstr ""
 
 msgid "Select which settings to embed in the 3MF file"
 msgstr ""
 
+msgid "Mixed filament - published as a whole when \"Enable\" above is selected"
+msgstr ""
+
+msgid "Publish this mixed filament and enable + Full Publish its component filaments"
+msgstr ""
+
+msgid "Publish this filament slot in the 3MF file"
+msgstr ""
+
 msgid "Full Publish"
 msgstr ""
 
 msgid "Embed the entire filament of this slot in the 3MF file"
+msgstr ""
+
+msgid "Material Ratio"
+msgstr ""
+
+msgid "Model Height"
 msgstr ""
 
 msgid "Filter non-selected"
@@ -12264,6 +12358,9 @@ msgstr "Jei vis tiek norite spausdinti, galite įjungti šią parinktį skiltyje
 msgid "No extrusions under current settings."
 msgstr "Pagal dabartinius nustatymus nėra išspaudimų."
 
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr ""
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "Sklandus pakadrinio filmavimo (timelapse) režimas nepalaikomas, kai įjungta spausdinimo seka „pagal objektą“."
 
@@ -12299,6 +12396,9 @@ msgstr "Galbūt norėsite sumažinti modelio dydį arba pakeisti esamus spausdin
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "Kintamas sluoksnio aukštis nepalaikomas su \" Organinėmis atramomis\"."
+
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr ""
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
 msgstr "Skirtingo skersmens purkštukai ir skirtingo skersmens gijos gali neveikti gerai, kai įjungtas valymo bokštas. Tai labai eksperimentinė priemonė, todėl elkitės atsargiai."
@@ -14306,6 +14406,48 @@ msgstr "Atramų gija"
 
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "Atramų gija paprastai naudojama atramoms ir atramų skiriamiesiems sluoksniams spausdinti."
+
+msgid "Is mixed filament"
+msgstr ""
+
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr ""
+
+msgid "Mixed filament components"
+msgstr ""
+
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr ""
+
+msgid "Mixed filament sublayer ratios"
+msgstr ""
+
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr ""
+
+msgid "Mixed filament gradient"
+msgstr ""
+
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr ""
+
+msgid "Mixed filament gradient range"
+msgstr ""
+
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr ""
+
+msgid "Mixed filament gradient curve"
+msgstr ""
+
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr ""
+
+msgid "Mixed filament per-part gradient"
+msgstr ""
+
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr ""
 
 msgid "Filament printable"
 msgstr "Gija tinkama spausdinti"
@@ -17137,6 +17279,12 @@ msgstr ""
 "\n"
 "Jei žemiau esančiame nustatyme „Įtraukimo kiekis prieš nuvalymą“ nurodysite reikšmę, perteklinis gijos įtraukimas bus atliktas prieš nuvalymą, kitu atveju – po jo."
 
+msgid "Mixed color sublayer"
+msgstr ""
+
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr ""
+
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Valymo bokštelis (angl. \"wiping tower\") gali būti naudojamas likučiams nuo purkštuko nuvalyti ir purkštuko viduje esančiam slėgiui stabilizuoti, siekiant išvengti išvaizdos defektų spausdinant objektus."
 
@@ -18219,6 +18367,9 @@ msgstr "Nepavyko suformuoti modelio failo poligonažo arba jame nėra tinkamos g
 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Pateikto failo nepavyko nuskaityti, nes jis yra tuščias."
+
+msgid "The file format is incompatible and cannot be parsed."
+msgstr ""
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Nežinomas failo formatas: įvesties failas privalo turėti .stl, .obj arba .amf(.xml) plėtinį."

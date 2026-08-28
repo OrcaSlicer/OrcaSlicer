@@ -28,6 +28,17 @@ struct PublishMaterialIdentity
     std::string id;
 };
 
+// One unmet dependency of an enabled mixed-filament slot: the component filament the mix uses
+// would ship without its material (either the component slot is not enabled at all, or it is
+// enabled with neither "Full Publish" nor the "Type" requirement checked). Slots are 0-based.
+struct MixedDependencyIssue
+{
+    enum class Reason { Disabled, MaterialNotPublished };
+    size_t mixed_slot{0};
+    size_t component_slot{0};
+    Reason reason{Reason::Disabled};
+};
+
 // Dialog letting a model author select which settings get embedded in a 3MF. Nested tab layout
 // mirroring the Process settings (Printer / Filament / Process outer tabs, category or material
 // tabs inside each). Dirty settings are pre-checked and shown bold; on OK the print rows become
@@ -187,11 +198,11 @@ private:
     // "Enable" toggled on a material slot: reveals/hides everything below the header and, for a
     // mixed slot, auto-selects its component filaments' "Enable" + "Full Publish" toggles.
     void on_enable_toggle(size_t category_index);
-    // 0-based material slots required by enabled mixed-filament slots that would ship without
-    // their identity: "Enable" not checked, or enabled with neither "Full Publish" nor the
+    // Unmet dependencies of enabled mixed-filament slots, one record per (mix, component) pair:
+    // "Enable" not checked on the component, or enabled with neither "Full Publish" nor the
     // "Type" requirement row checked. Colour is deliberately ignored (the receiver renders the
-    // mix from its own components' colours). Sorted, deduplicated.
-    std::vector<size_t> unpublished_mixed_components() const;
+    // mix from its own components' colours). Sorted by mixed slot, then component slot.
+    std::vector<MixedDependencyIssue> unpublished_mixed_components() const;
     // Read-only visualization of a mixed slot's definition (a stacked ratio bar, or the
     // Material Ratio vs Model Height graph for a gradient), inserted above the info hint
     // inside the category's scroll area.
