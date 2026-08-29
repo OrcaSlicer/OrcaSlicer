@@ -120,11 +120,22 @@ bool spectrum_volume_extruder_keep(int id, size_t physical_n, size_t max_filamen
 // Do not use this on on_filament_count_change (that path already has the target n).
 size_t spectrum_delete_filament_mix_max(const std::string &serialized, size_t post_delete_physical);
 
-// True if applying new_serialized would change the mix (A/B/C/ratio/pattern) of any painted mix ID.
-// Mix IDs are enabled-row order; disabling a middle row shifts later IDs. No silent remap.
+// 0005 process-only → `,g` migration: when process_gradient and no row has g yet,
+// stamp gradient_enabled on pair-capable rows (c==0, empty normalized pattern),
+// including disabled editor rows. No-op if process off or any row already has g.
+void spectrum_stamp_legacy_process_gradient(std::vector<MixedFilament> &rows, bool process_gradient);
+
+// True if applying new_serialized would change the mix (A/B/C/ratio/pattern/g/p)
+// of any painted mix ID. Mix IDs are enabled-row order; disabling a middle row
+// shifts later IDs. No silent remap.
+// process_gradient default false keeps 4-arg Catch2 meaning-unchanged.
+// When process_gradient && old has no g: pair-capable g false→true is not a shift
+// (0005 stamp / manual check while already interpolating). Pair-capable painted
+// mix left untagged while new has any g is a shift. Strict g compare otherwise.
 bool mixed_filament_painted_ids_would_shift(const std::string     &old_serialized,
                                             const std::string     &new_serialized,
                                             size_t                 num_physical,
-                                            const std::vector<int> &painted_filament_ids);
+                                            const std::vector<int> &painted_filament_ids,
+                                            bool                   process_gradient = false);
 
 } // namespace Slic3r

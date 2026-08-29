@@ -439,10 +439,26 @@ size_t spectrum_delete_filament_mix_max(const std::string &serialized, size_t po
     return MixedFilamentManager::max_filament_id(serialized, post_delete_physical + 1);
 }
 
+void spectrum_stamp_legacy_process_gradient(std::vector<MixedFilament> &rows, bool process_gradient)
+{
+    if (!process_gradient)
+        return;
+    for (const MixedFilament &mf : rows) {
+        if (mf.gradient_enabled)
+            return;
+    }
+    for (MixedFilament &mf : rows) {
+        if (mf.component_c == 0 &&
+            MixedFilamentManager::normalize_manual_pattern(mf.manual_pattern).empty())
+            mf.gradient_enabled = true;
+    }
+}
+
 bool mixed_filament_painted_ids_would_shift(const std::string     &old_serialized,
                                             const std::string     &new_serialized,
                                             size_t                 num_physical,
-                                            const std::vector<int> &painted_filament_ids)
+                                            const std::vector<int> &painted_filament_ids,
+                                            bool                   process_gradient)
 {
     if (num_physical == 0 || painted_filament_ids.empty())
         return false;
@@ -452,16 +468,48 @@ bool mixed_filament_painted_ids_would_shift(const std::string     &old_serialize
     old_mgr.load_definitions(old_serialized);
     new_mgr.load_definitions(new_serialized);
 
-    auto same_mix = [](const MixedFilament *lhs, const MixedFilament *rhs) -> bool {
-        if (lhs == nullptr || rhs == nullptr)
-            return lhs == rhs;
+    bool old_any_g = false;
+    for (const MixedFilament &mf : old_mgr.mixed_filaments()) {
+        if (mf.gradient_enabled) {
+            old_any_g = true;
+            break;
+        }
+    }
+    bool new_any_g = false;
+    for (const MixedFilament &mf : new_mgr.mixed_filaments()) {
+        if (mf.gradient_enabled) {
+            new_any_g = true;
+            break;
+        }
+    }
+    const bool stamp_world = process_gradient && !old_any_g;
+
+    auto is_pair_capable = [](const MixedFilament &mf) -> bool {
+        return mf.component_c == 0 &&
+               MixedFilamentManager::normalize_manual_pattern(mf.manual_pattern).empty();
+    };
+
+    auto same_mix_core = [](const MixedFilament *lhs, const MixedFilament *rhs) -> bool {
         return lhs->component_a == rhs->component_a && lhs->component_b == rhs->component_b &&
                lhs->component_c == rhs->component_c && lhs->ratio_a == rhs->ratio_a &&
                lhs->ratio_b == rhs->ratio_b && lhs->ratio_c == rhs->ratio_c &&
-               lhs->gradient_enabled == rhs->gradient_enabled &&
                lhs->perimeter_modulation == rhs->perimeter_modulation &&
                MixedFilamentManager::normalize_manual_pattern(lhs->manual_pattern) ==
                    MixedFilamentManager::normalize_manual_pattern(rhs->manual_pattern);
+    };
+
+    auto same_mix = [&](const MixedFilament *lhs, const MixedFilament *rhs) -> bool {
+        if (lhs == nullptr || rhs == nullptr)
+            return lhs == rhs;
+        if (!same_mix_core(lhs, rhs))
+            return false;
+        if (lhs->gradient_enabled == rhs->gradient_enabled)
+            return true;
+        // 0005 stamp / manual g check while process-on and old has no g.
+        if (stamp_world && !lhs->gradient_enabled && rhs->gradient_enabled &&
+            is_pair_capable(*lhs) && is_pair_capable(*rhs))
+            return true;
+        return false;
     };
 
     for (int id : painted_filament_ids) {
@@ -471,6 +519,11 @@ bool mixed_filament_painted_ids_would_shift(const std::string     &old_serialize
         if (old_mix == nullptr)
             continue;
         const MixedFilament *new_mix = new_mgr.mixed_filament_from_id(unsigned(id), num_physical);
+        // Pair left untagged while siblings stamped: was interpolating (0005), now ratio.
+        if (stamp_world && new_any_g && new_mix != nullptr && is_pair_capable(*old_mix) &&
+            is_pair_capable(*new_mix) && !old_mix->gradient_enabled && !new_mix->gradient_enabled &&
+            same_mix_core(old_mix, new_mix))
+            return true;
         if (!same_mix(old_mix, new_mix))
             return true;
     }

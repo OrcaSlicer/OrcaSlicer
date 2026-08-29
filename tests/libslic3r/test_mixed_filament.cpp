@@ -459,6 +459,78 @@ TEST_CASE("mixed_filament_painted_ids_would_shift on C-only or rc-only edit", "[
     CHECK_FALSE(mixed_filament_painted_ids_would_shift(base, base, 4, {5}));
 }
 
+TEST_CASE("spectrum_stamp_legacy_process_gradient tags pair rows only", "[spectrum_legacy_g_stamp]")
+{
+    MixedFilament pair;
+    pair.component_a = 1;
+    pair.component_b = 2;
+    pair.ratio_a     = 1;
+    pair.ratio_b     = 1;
+
+    MixedFilament patterned = pair;
+    patterned.manual_pattern = "112";
+
+    MixedFilament c3 = pair;
+    c3.component_c = 3;
+    c3.ratio_c     = 1;
+
+    MixedFilament disabled_pair = pair;
+    disabled_pair.enabled = false;
+
+    {
+        std::vector<MixedFilament> rows{pair, patterned, c3, disabled_pair};
+        spectrum_stamp_legacy_process_gradient(rows, true);
+        REQUIRE(rows[0].gradient_enabled);
+        REQUIRE_FALSE(rows[1].gradient_enabled);
+        REQUIRE_FALSE(rows[2].gradient_enabled);
+        REQUIRE(rows[3].gradient_enabled);
+    }
+    {
+        std::vector<MixedFilament> rows{pair, patterned, c3};
+        spectrum_stamp_legacy_process_gradient(rows, false);
+        REQUIRE_FALSE(rows[0].gradient_enabled);
+        REQUIRE_FALSE(rows[1].gradient_enabled);
+        REQUIRE_FALSE(rows[2].gradient_enabled);
+    }
+    {
+        MixedFilament already_g = pair;
+        already_g.gradient_enabled = true;
+        std::vector<MixedFilament> rows{already_g, pair};
+        spectrum_stamp_legacy_process_gradient(rows, true);
+        REQUIRE(rows[0].gradient_enabled);
+        REQUIRE_FALSE(rows[1].gradient_enabled);
+    }
+}
+
+TEST_CASE("mixed_filament_painted_ids_would_shift 0005 stamp exception", "[spectrum_legacy_g_stamp]")
+{
+    // Stamp-only pair false→true is not a shift when process on and old has no g.
+    CHECK_FALSE(mixed_filament_painted_ids_would_shift("1,2,1,1,1", "1,2,1,1,1,g", 4, {5}, true));
+    // Process off / omitted 5th arg: real g add → shift.
+    CHECK(mixed_filament_painted_ids_would_shift("1,2,1,1,1", "1,2,1,1,1,g", 4, {5}, false));
+    CHECK(mixed_filament_painted_ids_would_shift("1,2,1,1,1", "1,2,1,1,1,g", 4, {5}));
+
+    // New-world: Mix 5 g off.
+    CHECK(mixed_filament_painted_ids_would_shift("1,2,1,1,1,g;1,3,1,1,1", "1,2,1,1,1;1,3,1,1,1", 4, {5},
+                                                 true));
+    // New-world: Mix 6 g on.
+    CHECK(mixed_filament_painted_ids_would_shift("1,2,1,1,1,g;1,3,1,1,1", "1,2,1,1,1,g;1,3,1,1,1,g", 4,
+                                                 {6}, true));
+
+    // Legacy leftover: Mix 6 left untagged while Mix 5 stamped.
+    CHECK(mixed_filament_painted_ids_would_shift("1,2,1,1,1;1,3,1,1,1", "1,2,1,1,1,g;1,3,1,1,1", 4, {6},
+                                                 true));
+    CHECK_FALSE(mixed_filament_painted_ids_would_shift("1,2,1,1,1;1,3,1,1,1", "1,2,1,1,1,g;1,3,1,1,1", 4,
+                                                       {5}, true));
+
+    // Stamp + ratio still shifts.
+    CHECK(mixed_filament_painted_ids_would_shift("1,2,1,1,1", "1,2,1,2,1,g", 4, {5}, true));
+
+    // Pattern sibling left untagged was never interpolating → not a shift.
+    CHECK_FALSE(mixed_filament_painted_ids_would_shift("1,2,1,1,1,112;1,3,1,1,1",
+                                                       "1,2,1,1,1,112;1,3,1,1,1,g", 4, {5}, true));
+}
+
 namespace {
 
 ColorRGB decode_hex_or_fail(const std::string &hex)

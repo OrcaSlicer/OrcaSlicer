@@ -800,20 +800,7 @@ void MixedFilamentDialog::load_from_config()
     bool process_gradient = false;
     if (const ConfigOptionBool *gr = print_cfg.option<ConfigOptionBool>("mixed_filament_gradient_mode"))
         process_gradient = gr->value;
-    bool any_row_g = false;
-    for (const MixedFilament &mf : m_rows) {
-        if (mf.gradient_enabled) {
-            any_row_g = true;
-            break;
-        }
-    }
-    if (process_gradient && !any_row_g) {
-        for (MixedFilament &mf : m_rows) {
-            if (mf.component_c == 0 &&
-                MixedFilamentManager::normalize_manual_pattern(mf.manual_pattern).empty())
-                mf.gradient_enabled = true;
-        }
-    }
+    spectrum_stamp_legacy_process_gradient(m_rows, process_gradient);
 
     refresh_list();
     load_selected_row_into_editors();
@@ -875,13 +862,18 @@ bool MixedFilamentDialog::apply_to_project()
             painted_ids.insert(painted_ids.end(), ids.begin(), ids.end());
         }
     }
-    if (mixed_filament_painted_ids_would_shift(old_serialized, serialized, num_physical, painted_ids)) {
+
+    DynamicPrintConfig &print_cfg = bundle->prints.get_edited_preset().config;
+    bool pre_process_gradient = false;
+    if (const ConfigOptionBool *gr = print_cfg.option<ConfigOptionBool>("mixed_filament_gradient_mode"))
+        pre_process_gradient = gr->value;
+
+    if (mixed_filament_painted_ids_would_shift(old_serialized, serialized, num_physical, painted_ids,
+                                               pre_process_gradient)) {
         MessageDialog(this,
             _L("Disabling a mix in the middle of the list changes Mix IDs. Painted regions using later mix IDs will follow the new enabled-row order."),
             _L("Mixed Filaments"), wxOK | wxICON_WARNING).ShowModal();
     }
-
-    DynamicPrintConfig &print_cfg = bundle->prints.get_edited_preset().config;
 
     SpectrumMixDialogUndoKeys pre;
     pre.mixed_filament_definitions = old_serialized;
@@ -891,8 +883,7 @@ bool MixedFilamentDialog::apply_to_project()
         pre.dithering_local_z_mode = lz->value;
     if (const ConfigOptionBool *fd = print_cfg.option<ConfigOptionBool>("dithering_local_z_whole_objects"))
         pre.dithering_local_z_whole_objects = fd->value;
-    if (const ConfigOptionBool *gr = print_cfg.option<ConfigOptionBool>("mixed_filament_gradient_mode"))
-        pre.mixed_filament_gradient_mode = gr->value;
+    pre.mixed_filament_gradient_mode = pre_process_gradient;
 
     bool any_enabled_g = false;
     for (const MixedFilament &mf : m_rows) {
