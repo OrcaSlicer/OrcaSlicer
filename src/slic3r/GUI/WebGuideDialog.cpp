@@ -372,10 +372,12 @@ wxString GuideFrame::SetStartPage(GuidePage startpage, bool load)
         else
             TargetUrl = guide_url + "?target=21";
     } else if (startpage == BBL_FILAMENT_ONLY) {
-        SetTitle("");
+        // ORCA: these two pages open as standalone dialogs, not as the wizard, so an
+        // empty title left them announced as a nameless "dialog" by screen readers.
+        SetTitle(_L("Select Filaments"));
         TargetUrl = guide_url + "?target=23";
     } else if (startpage == BBL_MODELS_ONLY) {
-        SetTitle("");
+        SetTitle(_L("Select Printers"));
         TargetUrl = guide_url + "?target=24";
     }
     else {
