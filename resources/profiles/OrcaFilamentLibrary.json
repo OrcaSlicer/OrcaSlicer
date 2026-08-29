@@ -997,6 +997,14 @@
 			"sub_path": "filament/Polymaker/Polymaker HT-PLA-GF @base.json"
 		},
 		{
+			"name": "School House Spools PLA @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PLA @base.json"
+		},
+		{
+			"name": "School House Spools PETG @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PETG @base.json"
+		},
+		{
 			"name": "SUNLU PLA Marble @base",
 			"sub_path": "filament/SUNLU/SUNLU Marble PLA @base.json"
 		},
@@ -1787,6 +1795,14 @@
 		{
 			"name": "Polymaker HT-PLA-GF @System",
 			"sub_path": "filament/Polymaker/Polymaker HT-PLA-GF @System.json"
+		},
+		{
+			"name": "School House Spools PLA @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PLA @System.json"
+		},
+		{
+			"name": "School House Spools PETG @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PETG @System.json"
 		},
 		{
 			"name": "SUNLU PLA Marble @System",
