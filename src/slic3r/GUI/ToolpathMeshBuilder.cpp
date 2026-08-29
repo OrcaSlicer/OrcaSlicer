@@ -77,14 +77,13 @@ public:
         libvgcode::Interval range{0, static_cast<uint32_t>(count - 1)};
         if (m_viewer && m_scope == PreviewMeshScope::Visible) {
             range = m_viewer->get_view_visible_range();
-            if (range[0] >= count || range[1] <= range[0])
-                return {};
-            range[1] = std::min<uint32_t>(range[1], static_cast<uint32_t>(count - 1));
+            if (range[0] >= count || range[1] <= range[0] || range[1] >= count)
+                range = {0, static_cast<uint32_t>(count - 1)};
             if (m_viewer->is_top_layer_only_view_range())
                 range[0] = m_viewer->get_view_full_range()[0];
         }
-        const size_t last_safe = count - 3;
-        const size_t last = std::min<size_t>(range[1], last_safe);
+
+        const size_t last = std::min<size_t>(range[1] - 1, count - 2);
         if (range[0] > last)
             return {};
         for (size_t i = range[0]; i <= last; ++i) {
@@ -100,11 +99,11 @@ public:
                 m_need_start = true;
                 continue;
             }
-            const auto& nextnext = vertex_at(i + 2);
+            const auto& nextnext = i + 2 < count ? vertex_at(i + 2) : next;
             unsigned char flags = 0;
             if (m_need_start || curr.gcode_id == next.gcode_id)
                 flags |= Flag_First;
-            if (i + 1 == range[1] || !nextnext.is_extrusion())
+            if (i == last || !nextnext.is_extrusion())
                 flags |= Flag_Last;
             emit_segment(flags, i, curr, next, nextnext);
             m_need_start = (flags & Flag_Last) != 0;

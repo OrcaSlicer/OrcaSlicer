@@ -65,3 +65,39 @@ TEST_CASE("Viewer mesh scope separates complete and visible toolpaths", "[Toolpa
     CHECK(visible.bounds.max.x() > 110.0);
     CHECK(visible.bounds.max.x() < 120.0);
 }
+
+TEST_CASE("Visible mesh stops at the selected range and preserves empty-range fallback", "[ToolpathMeshBuilder]")
+{
+    libvgcode::Viewer viewer;
+    viewer.m_impl->m_vertices = {
+        extrusion(0.0f, 1), extrusion(10.0f, 2), extrusion(20.0f, 3),
+        extrusion(30.0f, 4), extrusion(40.0f, 5), extrusion(50.0f, 6)
+    };
+    viewer.m_impl->m_view_range.set_full(0, 5);
+    viewer.m_impl->m_view_range.set_enabled(0, 5);
+    viewer.m_impl->m_view_range.set_visible(1, 3);
+
+    const auto selected = Slic3r::GUI::build_preview_triangle_mesh(
+        viewer, Slic3r::GUI::PreviewMeshScope::Visible);
+    CHECK(selected.bounds.min.x() < 10.0);
+    CHECK(selected.bounds.max.x() > 30.0);
+    CHECK(selected.bounds.max.x() < 35.0);
+
+    viewer.m_impl->m_view_range.set_visible(0, 0);
+    const auto fallback = Slic3r::GUI::build_preview_triangle_mesh(
+        viewer, Slic3r::GUI::PreviewMeshScope::Visible);
+    CHECK_FALSE(fallback.vertices.empty());
+    CHECK(fallback.bounds.max.x() > 50.0);
+}
+
+TEST_CASE("Complete mesh includes and caps a terminal extrusion segment", "[ToolpathMeshBuilder]")
+{
+    libvgcode::GCodeInputData data;
+    data.tools_colors.push_back({255, 0, 0});
+    data.vertices = {extrusion(0.0f, 1), extrusion(10.0f, 2), extrusion(20.0f, 3)};
+
+    const auto mesh = Slic3r::GUI::build_preview_triangle_mesh(data);
+    CHECK(mesh.vertices.size() == 14);
+    CHECK(mesh.indices.size() == 72);
+    CHECK(mesh.bounds.max.x() > 20.0);
+}
