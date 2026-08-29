@@ -20649,11 +20649,6 @@ PartPlateList& Plater::get_partplate_list()
     return p->partplate_list;
 }
 
-BackgroundSlicingProcess* Plater::get_background_process()
-{
-    return &p->background_process;
-}
-
 void Plater::apply_background_progress()
 {
     PartPlate* part_plate = p->partplate_list.get_curr_plate();

@@ -39,10 +39,9 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     m_canvas->allow_multisample(OpenGLManager::can_multisample());
     m_canvas->set_config(wxGetApp().plater()->config());
     m_canvas->set_model(&m_model);
-    // Reuse the editor's shared slicing process: GLCanvas3D::render() (via
-    // _max_bounding_box) dereferences the process when canvas type == View3D.
-    // Passing nullptr segfaults; this mirrors View3D/Preview/AssembleView.
-    m_canvas->set_process(wxGetApp().plater()->get_background_process());
+    // Nothing to slice here, but GLCanvas3D derefs the process unguarded every frame, so it
+    // cannot be null. Borrow the plater's, as the editor canvases do.
+    m_canvas->set_process(&wxGetApp().plater()->background_process());
     m_canvas->set_type(GLCanvas3D::ECanvasType::CanvasView3D);
 
     // CAD navigation, this canvas only: left-drag sweeps a selection rubber band, so orbit

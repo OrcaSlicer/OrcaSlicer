@@ -47,7 +47,6 @@ class Model;
 class ModelObject;
 class ModelInstance;
 class Print;
-class BackgroundSlicingProcess;
 class SLAPrint;
 //BBS: add partplatelist and SlicingStatusEvent
 class PartPlateList;
@@ -750,10 +749,6 @@ public:
 
     //BBS: partplate list related functions
     PartPlateList& get_partplate_list();
-    // Shared background slicing process (same instance View3D/Preview/AssembleView
-    // use). Exposed so the Design tab's native GLCanvas3D can be wired exactly like
-    // the editor canvases (GLCanvas3D::render() dereferences the process).
-    BackgroundSlicingProcess* get_background_process();
     void validate_current_plate(bool& model_fits, bool& validate_error);
     // Rebuild the missing-plugin sets from the active presets and (re)show/close their notifications.
     // Returns true when slicing must be blocked (a referenced plugin is still missing); sets
