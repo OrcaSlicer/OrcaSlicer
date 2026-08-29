@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Slic3r {
@@ -87,5 +88,93 @@ inline void spectrum_map_undo_drop_if_rewritten(SpectrumMapUndoRecord &record, s
 bool apply_spectrum_map_keys(DynamicPrintConfig             &project_config,
                              const SpectrumMapUndoKeys      &keys,
                              DynamicPrintConfig             *print_config = nullptr);
+
+// Sibling of SpectrumMapUndoRecord for Mixed Filaments dialog apply.
+// Dialog owns mix defs + process bools; Map still owns spectrum_paint_mapped.
+struct SpectrumMixDialogUndoKeys
+{
+    std::string mixed_filament_definitions;
+    bool        enable_prime_tower               = false;
+    bool        dithering_local_z_mode           = false;
+    bool        dithering_local_z_whole_objects  = false;
+    bool        mixed_filament_gradient_mode     = false;
+};
+
+struct SpectrumMixDialogUndoRecord
+{
+    bool                       active              = false;
+    size_t                     snapshot_timestamp  = 0;
+    SpectrumMixDialogUndoKeys  pre;
+    SpectrumMixDialogUndoKeys  post;
+};
+
+inline bool spectrum_mix_dialog_undo_is_post(const SpectrumMixDialogUndoRecord &record, size_t target_timestamp)
+{
+    return target_timestamp > record.snapshot_timestamp;
+}
+
+inline const SpectrumMixDialogUndoKeys &spectrum_mix_dialog_undo_pick(const SpectrumMixDialogUndoRecord &record,
+                                                                     size_t                            target_timestamp)
+{
+    return spectrum_mix_dialog_undo_is_post(record, target_timestamp) ? record.post : record.pre;
+}
+
+inline void spectrum_mix_dialog_undo_drop_if_rewritten(SpectrumMixDialogUndoRecord &record,
+                                                       size_t                       active_time_before_new_snapshot)
+{
+    if (record.active && active_time_before_new_snapshot <= record.snapshot_timestamp)
+        record.active = false;
+}
+
+// Compose mix defs when Map and/or dialog side-records are active.
+// Among active writers sorted by named_time ascending: latest post with named_time < T;
+// else earliest pre; else "" (both inactive — caller must not write).
+// Active + "" still writes (clears). Two history orders (Map-then-Dialog / Dialog-then-Map).
+inline std::string spectrum_mix_defs_at(const SpectrumMapUndoRecord       &map,
+                                        const SpectrumMixDialogUndoRecord &dialog,
+                                        size_t                             T)
+{
+    struct Candidate {
+        size_t      named_time = 0;
+        const std::string *pre = nullptr;
+        const std::string *post = nullptr;
+    };
+    Candidate candidates[2];
+    size_t    n = 0;
+    if (map.active) {
+        candidates[n].named_time = map.map_snapshot_timestamp;
+        candidates[n].pre        = &map.pre.mixed_filament_definitions;
+        candidates[n].post       = &map.post.mixed_filament_definitions;
+        ++n;
+    }
+    if (dialog.active) {
+        candidates[n].named_time = dialog.snapshot_timestamp;
+        candidates[n].pre        = &dialog.pre.mixed_filament_definitions;
+        candidates[n].post       = &dialog.post.mixed_filament_definitions;
+        ++n;
+    }
+    if (n == 2 && candidates[1].named_time < candidates[0].named_time)
+        std::swap(candidates[0], candidates[1]);
+
+    const std::string *latest_post = nullptr;
+    for (size_t i = 0; i < n; ++i) {
+        if (T > candidates[i].named_time)
+            latest_post = candidates[i].post;
+    }
+    if (latest_post != nullptr)
+        return *latest_post;
+    if (n > 0)
+        return *candidates[0].pre;
+    return {};
+}
+
+// Mix defs on project + print; four process bools on print only. Empty mix string clears.
+// Returns true if any value changed. Does not touch spectrum_paint_mapped.
+bool apply_spectrum_mix_dialog_keys(DynamicPrintConfig                 &project_config,
+                                    DynamicPrintConfig                 &print_config,
+                                    const SpectrumMixDialogUndoKeys    &keys);
+
+// Mapped-only project write for Map+dialog compose path.
+bool apply_spectrum_paint_mapped(DynamicPrintConfig &project_config, bool mapped);
 
 } // namespace Slic3r

@@ -610,3 +610,140 @@ TEST_CASE("spectrum map undo named_time after history lag", "[spectrum_paint_bak
     spectrum_map_undo_drop_if_rewritten(rec, 4);
     REQUIRE(rec.active);
 }
+
+TEST_CASE("spectrum mix dialog undo pick and apply_keys round-trip", "[spectrum_mix_dialog_undo]")
+{
+    // Named dialog snapshot 100; unnamed topmost after dialog is 101.
+    SpectrumMixDialogUndoRecord rec;
+    rec.active             = true;
+    rec.snapshot_timestamp = 100;
+    rec.pre.mixed_filament_definitions.clear();
+    rec.pre.enable_prime_tower              = false;
+    rec.pre.dithering_local_z_mode          = false;
+    rec.pre.dithering_local_z_whole_objects = false;
+    rec.pre.mixed_filament_gradient_mode    = false;
+    rec.post.mixed_filament_definitions     = "1,2,1,1,1";
+    rec.post.enable_prime_tower             = true;
+    rec.post.dithering_local_z_mode         = true;
+    rec.post.dithering_local_z_whole_objects = true;
+    rec.post.mixed_filament_gradient_mode   = true;
+
+    REQUIRE_FALSE(spectrum_mix_dialog_undo_is_post(rec, 100));
+    REQUIRE_FALSE(spectrum_mix_dialog_undo_is_post(rec, 50));
+    REQUIRE(spectrum_mix_dialog_undo_is_post(rec, 101));
+
+    const SpectrumMixDialogUndoKeys &at_named = spectrum_mix_dialog_undo_pick(rec, 100);
+    REQUIRE(at_named.mixed_filament_definitions.empty());
+    REQUIRE_FALSE(at_named.enable_prime_tower);
+
+    const SpectrumMixDialogUndoKeys &after = spectrum_mix_dialog_undo_pick(rec, 101);
+    REQUIRE(after.mixed_filament_definitions == "1,2,1,1,1");
+    REQUIRE(after.enable_prime_tower);
+    REQUIRE(after.dithering_local_z_mode);
+    REQUIRE(after.dithering_local_z_whole_objects);
+    REQUIRE(after.mixed_filament_gradient_mode);
+
+    DynamicPrintConfig project;
+    DynamicPrintConfig print_cfg;
+    REQUIRE(apply_spectrum_mix_dialog_keys(project, print_cfg, rec.post));
+    const auto *proj_mix = project.option<ConfigOptionString>("mixed_filament_definitions");
+    REQUIRE(proj_mix != nullptr);
+    CHECK(proj_mix->value == "1,2,1,1,1");
+    const auto *print_mix = print_cfg.option<ConfigOptionString>("mixed_filament_definitions");
+    REQUIRE(print_mix != nullptr);
+    CHECK(print_mix->value == "1,2,1,1,1");
+    const auto *tower = print_cfg.option<ConfigOptionBool>("enable_prime_tower");
+    REQUIRE(tower != nullptr);
+    CHECK(tower->value);
+    const auto *lz = print_cfg.option<ConfigOptionBool>("dithering_local_z_mode");
+    REQUIRE(lz != nullptr);
+    CHECK(lz->value);
+    const auto *fd = print_cfg.option<ConfigOptionBool>("dithering_local_z_whole_objects");
+    REQUIRE(fd != nullptr);
+    CHECK(fd->value);
+    const auto *gr = print_cfg.option<ConfigOptionBool>("mixed_filament_gradient_mode");
+    REQUIRE(gr != nullptr);
+    CHECK(gr->value);
+    REQUIRE(project.option<ConfigOptionBool>("spectrum_paint_mapped") == nullptr);
+
+    // Applying pre clears a non-empty mix-def string.
+    REQUIRE(apply_spectrum_mix_dialog_keys(project, print_cfg, rec.pre));
+    const auto *proj_mix2 = project.option<ConfigOptionString>("mixed_filament_definitions");
+    REQUIRE(proj_mix2 != nullptr);
+    CHECK(proj_mix2->value.empty());
+    const auto *print_mix2 = print_cfg.option<ConfigOptionString>("mixed_filament_definitions");
+    REQUIRE(print_mix2 != nullptr);
+    CHECK(print_mix2->value.empty());
+    REQUIRE_FALSE(print_cfg.option<ConfigOptionBool>("enable_prime_tower")->value);
+    REQUIRE_FALSE(apply_spectrum_mix_dialog_keys(project, print_cfg, rec.pre));
+}
+
+TEST_CASE("spectrum mix defs compose Map-then-Dialog", "[spectrum_mix_dialog_undo]")
+{
+    SpectrumMapUndoRecord map;
+    map.active                 = true;
+    map.map_snapshot_timestamp = 100;
+    map.pre.mapped             = false;
+    map.pre.mixed_filament_definitions  = "map-pre";
+    map.post.mapped            = true;
+    map.post.mixed_filament_definitions = "map-post";
+
+    SpectrumMixDialogUndoRecord dialog;
+    dialog.active             = true;
+    dialog.snapshot_timestamp = 110;
+    dialog.pre.mixed_filament_definitions  = "dialog-pre";
+    dialog.post.mixed_filament_definitions = "dialog-post";
+
+    // T 111 / 110 / 100 — pin named vs named+1.
+    REQUIRE(spectrum_mix_defs_at(map, dialog, 111) == "dialog-post");
+    REQUIRE(spectrum_mix_defs_at(map, dialog, 110) == "map-post");
+    REQUIRE(spectrum_mix_defs_at(map, dialog, 100) == "map-pre");
+    REQUIRE(spectrum_mix_defs_at(map, dialog, 50) == "map-pre");
+}
+
+TEST_CASE("spectrum mix defs compose Dialog-then-Map", "[spectrum_mix_dialog_undo]")
+{
+    SpectrumMixDialogUndoRecord dialog;
+    dialog.active             = true;
+    dialog.snapshot_timestamp = 100;
+    dialog.pre.mixed_filament_definitions  = "dialog-pre";
+    dialog.post.mixed_filament_definitions = "dialog-post";
+
+    SpectrumMapUndoRecord map;
+    map.active                 = true;
+    map.map_snapshot_timestamp = 110;
+    map.pre.mapped             = false;
+    map.pre.mixed_filament_definitions  = "map-pre";
+    map.post.mapped            = true;
+    map.post.mixed_filament_definitions = "map-post";
+
+    REQUIRE(spectrum_mix_defs_at(map, dialog, 111) == "map-post");
+    REQUIRE(spectrum_mix_defs_at(map, dialog, 110) == "dialog-post");
+    REQUIRE(spectrum_mix_defs_at(map, dialog, 100) == "dialog-pre");
+    REQUIRE(spectrum_mix_defs_at(map, dialog, 50) == "dialog-pre");
+}
+
+TEST_CASE("spectrum mix defs both inactive returns empty", "[spectrum_mix_dialog_undo]")
+{
+    SpectrumMapUndoRecord       map;
+    SpectrumMixDialogUndoRecord dialog;
+    REQUIRE(spectrum_mix_defs_at(map, dialog, 100).empty());
+}
+
+TEST_CASE("spectrum mix dialog undo drop_if_rewritten", "[spectrum_mix_dialog_undo]")
+{
+    SpectrumMixDialogUndoRecord rec;
+    rec.active             = true;
+    rec.snapshot_timestamp = 100;
+
+    spectrum_mix_dialog_undo_drop_if_rewritten(rec, 100);
+    REQUIRE_FALSE(rec.active);
+
+    rec.active = true;
+    spectrum_mix_dialog_undo_drop_if_rewritten(rec, 50);
+    REQUIRE_FALSE(rec.active);
+
+    rec.active = true;
+    spectrum_mix_dialog_undo_drop_if_rewritten(rec, 101);
+    REQUIRE(rec.active);
+}

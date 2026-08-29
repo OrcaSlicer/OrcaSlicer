@@ -47,6 +47,7 @@ class ModelObject;
 class ModelInstance;
 class Print;
 class SLAPrint;
+struct SpectrumMixDialogUndoKeys;
 //BBS: add partplatelist and SlicingStatusEvent
 class PartPlateList;
 class SlicingStatusEvent;
@@ -313,6 +314,8 @@ public:
     void adopt_to_zr_ultra_s_cmyk();
     void apply_rgbw_filament_colours();
     void map_painted_colors_to_cmyk_mixes();
+    void apply_mixed_filament_dialog_keys(const SpectrumMixDialogUndoKeys &pre,
+                                          const SpectrumMixDialogUndoKeys &post);
     //BBS download project by project id
     void import_model_id(wxString download_info);
     void download_project(const wxString& project_id);

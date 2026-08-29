@@ -172,4 +172,50 @@ bool apply_spectrum_map_keys(DynamicPrintConfig        &project_config,
     return changed;
 }
 
+bool apply_spectrum_paint_mapped(DynamicPrintConfig &project_config, bool mapped)
+{
+    const ConfigOptionBool *cur_mapped = project_config.option<ConfigOptionBool>("spectrum_paint_mapped");
+    if (cur_mapped != nullptr && cur_mapped->value == mapped)
+        return false;
+    project_config.set_key_value("spectrum_paint_mapped", new ConfigOptionBool(mapped));
+    return true;
+}
+
+bool apply_spectrum_mix_dialog_keys(DynamicPrintConfig              &project_config,
+                                    DynamicPrintConfig              &print_config,
+                                    const SpectrumMixDialogUndoKeys &keys)
+{
+    bool changed = false;
+
+    const ConfigOptionString *proj_mix =
+        project_config.option<ConfigOptionString>("mixed_filament_definitions");
+    if (proj_mix == nullptr || proj_mix->value != keys.mixed_filament_definitions) {
+        project_config.set_key_value("mixed_filament_definitions",
+                                     new ConfigOptionString(keys.mixed_filament_definitions));
+        changed = true;
+    }
+
+    const ConfigOptionString *print_mix =
+        print_config.option<ConfigOptionString>("mixed_filament_definitions");
+    if (print_mix == nullptr || print_mix->value != keys.mixed_filament_definitions) {
+        print_config.set_key_value("mixed_filament_definitions",
+                                   new ConfigOptionString(keys.mixed_filament_definitions));
+        changed = true;
+    }
+
+    auto apply_bool = [&](const char *key, bool value) {
+        const ConfigOptionBool *cur = print_config.option<ConfigOptionBool>(key);
+        if (cur == nullptr || cur->value != value) {
+            print_config.set_key_value(key, new ConfigOptionBool(value));
+            changed = true;
+        }
+    };
+    apply_bool("enable_prime_tower", keys.enable_prime_tower);
+    apply_bool("dithering_local_z_mode", keys.dithering_local_z_mode);
+    apply_bool("dithering_local_z_whole_objects", keys.dithering_local_z_whole_objects);
+    apply_bool("mixed_filament_gradient_mode", keys.mixed_filament_gradient_mode);
+
+    return changed;
+}
+
 } // namespace Slic3r

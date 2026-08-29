@@ -13,6 +13,7 @@
 #include "libslic3r/MixedFilament.hpp"
 #include "libslic3r/MixedFilamentCookbook.hpp"
 #include "libslic3r/MixedFilamentMatch.hpp"
+#include "libslic3r/MixedFilamentPaintBake.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
 
@@ -867,15 +868,18 @@ bool MixedFilamentDialog::apply_to_project()
             _L("Mixed Filaments"), wxOK | wxICON_WARNING).ShowModal();
     }
 
-    // Persist on both print preset and project_config (belt and suspenders).
     DynamicPrintConfig &print_cfg = bundle->prints.get_edited_preset().config;
-    print_cfg.set_key_value("mixed_filament_definitions", new ConfigOptionString(serialized));
-    bundle->project_config.set_key_value("mixed_filament_definitions", new ConfigOptionString(serialized));
 
-    if (m_enable_tower->GetValue())
-        print_cfg.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
-    print_cfg.set_key_value("dithering_local_z_mode", new ConfigOptionBool(m_local_z->GetValue()));
-    print_cfg.set_key_value("dithering_local_z_whole_objects", new ConfigOptionBool(m_full_domain->GetValue()));
+    SpectrumMixDialogUndoKeys pre;
+    pre.mixed_filament_definitions = old_serialized;
+    if (const ConfigOptionBool *ept = print_cfg.option<ConfigOptionBool>("enable_prime_tower"))
+        pre.enable_prime_tower = ept->value;
+    if (const ConfigOptionBool *lz = print_cfg.option<ConfigOptionBool>("dithering_local_z_mode"))
+        pre.dithering_local_z_mode = lz->value;
+    if (const ConfigOptionBool *fd = print_cfg.option<ConfigOptionBool>("dithering_local_z_whole_objects"))
+        pre.dithering_local_z_whole_objects = fd->value;
+    if (const ConfigOptionBool *gr = print_cfg.option<ConfigOptionBool>("mixed_filament_gradient_mode"))
+        pre.mixed_filament_gradient_mode = gr->value;
 
     bool any_enabled_g = false;
     for (const MixedFilament &mf : m_rows) {
@@ -884,7 +888,48 @@ bool MixedFilamentDialog::apply_to_project()
             break;
         }
     }
-    print_cfg.set_key_value("mixed_filament_gradient_mode", new ConfigOptionBool(any_enabled_g));
+
+    SpectrumMixDialogUndoKeys post;
+    post.mixed_filament_definitions    = serialized;
+    post.enable_prime_tower            = m_enable_tower->GetValue() ? true : pre.enable_prime_tower;
+    post.dithering_local_z_mode        = m_local_z->GetValue();
+    post.dithering_local_z_whole_objects = m_full_domain->GetValue();
+    post.mixed_filament_gradient_mode  = any_enabled_g;
+
+    const int virtual_id = (m_selected_row >= 0) ? virtual_id_for_row(size_t(m_selected_row), num_physical) : -1;
+
+    // Resolve assign target before the no-op skip so unchanged keys + checkbox-on
+    // with no volume/object selection does not create an empty undo snapshot.
+    ModelVolume *assign_volume = nullptr;
+    ModelObject *assign_object = nullptr;
+    if (m_apply_object->GetValue() && virtual_id > 0 && !plater->model().objects.empty()) {
+        if (ObjectList *list = wxGetApp().obj_list())
+            assign_volume = list->get_selected_model_volume();
+        const Selection &sel = plater->get_selection();
+        if (assign_volume == nullptr) {
+            int obj_idx = -1;
+            int vol_idx = -1;
+            assign_volume = sel.get_selected_single_volume(obj_idx, vol_idx);
+        }
+        if (assign_volume == nullptr) {
+            const int obj_idx = sel.get_object_idx();
+            if (obj_idx >= 0 && size_t(obj_idx) < plater->model().objects.size())
+                assign_object = plater->model().objects[size_t(obj_idx)];
+        }
+    }
+    const bool will_assign = assign_volume != nullptr || assign_object != nullptr;
+
+    const bool keys_unchanged =
+        pre.mixed_filament_definitions == post.mixed_filament_definitions &&
+        pre.enable_prime_tower == post.enable_prime_tower &&
+        pre.dithering_local_z_mode == post.dithering_local_z_mode &&
+        pre.dithering_local_z_whole_objects == post.dithering_local_z_whole_objects &&
+        pre.mixed_filament_gradient_mode == post.mixed_filament_gradient_mode;
+    if (keys_unchanged && !will_assign)
+        return true;
+
+    plater->apply_mixed_filament_dialog_keys(pre, post);
+
     if (any_enabled_g && (!m_local_z->GetValue() || !m_full_domain->GetValue())) {
         MessageDialog(this,
                       _L("Height gradient mixes require Subdivide Mix Layer and Full domain to slice. "
@@ -893,31 +938,13 @@ bool MixedFilamentDialog::apply_to_project()
             .ShowModal();
     }
 
-    const int virtual_id = (m_selected_row >= 0) ? virtual_id_for_row(size_t(m_selected_row), num_physical) : -1;
-
-    if (m_apply_object->GetValue() && virtual_id > 0 && !plater->model().objects.empty()) {
-        ModelVolume *volume = nullptr;
-        if (ObjectList *list = wxGetApp().obj_list())
-            volume = list->get_selected_model_volume();
-        const Selection &sel = plater->get_selection();
-        if (volume == nullptr) {
-            int obj_idx = -1;
-            int vol_idx = -1;
-            volume = sel.get_selected_single_volume(obj_idx, vol_idx);
-        }
-
-        plater->take_snapshot(std::string("Mixed filament assign"));
-        if (volume != nullptr) {
+    if (will_assign) {
+        if (assign_volume != nullptr) {
             // Palette path: assign only the selected volume. Do not touch siblings.
-            assign_extruder(volume->config, virtual_id);
-        } else {
-            ModelObject *target = nullptr;
-            const int    obj_idx = sel.get_object_idx();
-            if (obj_idx >= 0 && size_t(obj_idx) < plater->model().objects.size())
-                target = plater->model().objects[size_t(obj_idx)];
+            assign_extruder(assign_volume->config, virtual_id);
+        } else if (assign_object != nullptr) {
             // Persist mix rows even when nothing is selected. Do not assign objects.front().
-            if (target != nullptr)
-                assign_extruder(target->config, virtual_id);
+            assign_extruder(assign_object->config, virtual_id);
         }
     }
 
