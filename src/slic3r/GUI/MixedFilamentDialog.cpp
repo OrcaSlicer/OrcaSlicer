@@ -439,6 +439,8 @@ void MixedFilamentDialog::on_target_colour_changed(wxColourPickerEvent &)
     const ColorRGB rgb(static_cast<unsigned char>(c.Red()), static_cast<unsigned char>(c.Green()),
                        static_cast<unsigned char>(c.Blue()));
     m_hex_target->ChangeValue(wxString::FromUTF8(encode_color(rgb).c_str()));
+    if (spectrum_match_same_target(m_candidates_target_valid, m_candidates_target, rgb))
+        return;
     refresh_candidates();
 }
 
@@ -453,6 +455,10 @@ void MixedFilamentDialog::on_hex_target_changed()
         m_clr_target->SetColour(wxColour(target.r_uchar(), target.g_uchar(), target.b_uchar()));
         m_suppress_events = false;
     }
+    ColorRGB parsed;
+    if (parse_target_color(parsed) &&
+        spectrum_match_same_target(m_candidates_target_valid, m_candidates_target, parsed))
+        return;
     refresh_candidates();
 }
 

@@ -46,6 +46,15 @@ std::string mix_surface_label(int id_1based, const MixedFilament &mf,
 // Trim, optional '#', 6 or 8 hex digits → "#RRGGBB" / "#RRGGBBFF". Empty if invalid.
 std::string normalize_mix_match_hex(const std::string &text);
 
+// True → hex/picker commit must keep the current candidate pick (skip rebuild).
+// False → rebuild and select ranked [0].
+// Compare decoded ColorRGB (operator==), never raw hex strings.
+// cached_valid false, or parsed RGB != cached, → false.
+inline bool spectrum_match_same_target(bool cached_valid, const ColorRGB &cached, const ColorRGB &parsed)
+{
+    return cached_valid && cached == parsed;
+}
+
 // Predicted swatch for an existing mix. Same Yule-Nielsen n=3 as the lattice.
 ColorRGB predicted_swatch_for_mix(const MixedFilament          &mf,
                                   const std::vector<ColorRGB>  &physicals,

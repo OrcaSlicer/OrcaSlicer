@@ -613,6 +613,21 @@ TEST_CASE("Match #RRGGBBFF equals #RRGGBB", "[MixedFilamentMatch]")
     REQUIRE(normalize_mix_match_hex("not-hex").empty());
 }
 
+TEST_CASE("spectrum_match_same_target compares decoded ColorRGB", "[MixedFilamentMatch]")
+{
+    const ColorRGB a = decode_hex_or_fail("#CE921A");
+    const ColorRGB b = decode_hex_or_fail("#ce921a");
+    const ColorRGB c = decode_hex_or_fail("#CE921AFF");
+    const ColorRGB d = decode_hex_or_fail("#99401B");
+
+    CHECK_FALSE(spectrum_match_same_target(false, a, a));
+    CHECK(spectrum_match_same_target(true, a, a));
+    CHECK_FALSE(spectrum_match_same_target(true, a, d));
+    CHECK(spectrum_match_same_target(true, a, b));
+    CHECK(spectrum_match_same_target(true, a, c));
+    CHECK(spectrum_match_same_target(true, b, c));
+}
+
 TEST_CASE("Predicted swatch uses all live physicals not a 4-slot truncate", "[MixedFilamentMatch]")
 {
     std::vector<ColorRGB> six = panchroma_physicals();
