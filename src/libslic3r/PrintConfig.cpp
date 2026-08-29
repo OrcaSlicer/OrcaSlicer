@@ -371,6 +371,7 @@ static t_config_enum_values s_keys_map_SupportMaterialInterfacePattern {
     { "auto",           smipAuto },
     { "rectilinear",    smipRectilinear },
     { "concentric",     smipConcentric },
+    { "spiralinset",    smipSpiralInset },
     { "rectilinear_interlaced", smipRectilinearInterlaced},
     { "grid",           smipGrid }
 };
