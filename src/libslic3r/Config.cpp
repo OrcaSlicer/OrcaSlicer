@@ -893,6 +893,36 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
                     value_str += "\"";
                 }
             }
+            else if (iter.value().is_boolean() || iter.value().is_number()) {
+                // Same case as the scalar branch below, one level down: an
+                // unquoted number or boolean inside an array. Here it did not
+                // merely drop the key -- parse_str_arr returned false, and the
+                // caller treats that as a parse failure and breaks out of the
+                // loop over the whole file, so every remaining key is silently
+                // left unread. nlohmann iterates an object in sorted key order,
+                // so what survives depends on the alphabet: a bare number in
+                // "nozzle_temperature" stops "type" from ever being read, and
+                // the CLI then reports "unknown config type" for a file whose
+                // type field is present and correct.
+                if (!first)
+                    value_str += single_sep;
+                else
+                    first = false;
+                std::string scalar;
+                if (iter.value().is_boolean())
+                    scalar = iter.value().get<bool>() ? "1" : "0";
+                else if (iter.value().is_number_integer())
+                    scalar = std::to_string(iter.value().get<int64_t>());
+                else
+                    scalar = float_to_string_decimal_point(iter.value().get<double>());
+                if (!escape_string_style)
+                    value_str += scalar;
+                else {
+                    value_str += "\"";
+                    value_str += escape_string_cstyle(scalar);
+                    value_str += "\"";
+                }
+            }
             else {
                 //should not happen
                 return false;
