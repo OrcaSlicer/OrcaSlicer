@@ -631,7 +631,7 @@ void parse_metadata_rfc822(const std::string& content,
 bool is_ignored_plugin_directory(const boost::filesystem::path& path)
 {
     const std::string name = path.filename().string();
-    return name.empty() || name[0] == '.' || name.rfind("__", 0) == 0 || name == PLUGIN_SUBSCRIBED_DIR;
+    return name.empty() || name[0] == '.' || name.rfind("__", 0) == 0 || name == PLUGIN_SUBSCRIBED_DIR || name == PLUGIN_DATA_DIR;
 }
 
 bool is_safe_relative_path(const boost::filesystem::path& path)

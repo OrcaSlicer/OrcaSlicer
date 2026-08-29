@@ -522,6 +522,38 @@ bool PluginManager::try_get_plugin_descriptor_for_capability(const std::string& 
     return false;
 }
 
+std::string PluginManager::get_storage_dir(const std::string& plugin_key) const
+{
+    namespace fs = boost::filesystem;
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor))
+        throw std::runtime_error("The current plugin is not registered");
+
+    const fs::path base_storage_dir = fs::path(get_orca_plugins_dir()) / PLUGIN_DATA_DIR;
+
+    if (!descriptor.is_cloud_plugin()) {
+        const fs::path local_storage_dir = base_storage_dir / plugin_key;
+        fs::create_directories(local_storage_dir);
+        return local_storage_dir.string();
+    }
+
+    auto agent = m_cloud_service.get_cloud_agent();
+    if (!agent)
+        throw std::runtime_error("Cloud plugin storage is unavailable before networking is initialized");
+
+    const std::string user_id = agent->get_user_id();
+    if (user_id.empty())
+        throw std::runtime_error("Cloud plugin storage is unavailable without a logged-in user");
+
+    if (!is_valid_plugin_id(plugin_key))
+        throw std::runtime_error("The current cloud plugin key is not a valid folder name");
+
+    const fs::path cloud_storage_dir = base_storage_dir / PLUGIN_SUBSCRIBED_DIR / user_id / plugin_key;
+    fs::create_directories(cloud_storage_dir);
+    return cloud_storage_dir.string();
+}
+
 // ── Capability instances ────────────────────────────────────────────────────────────────────
 
 std::vector<std::shared_ptr<PluginCapabilityInterface>> PluginManager::get_plugin_capabilities(const std::string& plugin_key,

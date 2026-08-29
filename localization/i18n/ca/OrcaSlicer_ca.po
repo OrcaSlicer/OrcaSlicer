@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-08-19 14:07-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4828,6 +4828,23 @@ msgstr "La temperatura actual de la cambra és superior a la temperatura segura 
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "La temperatura mínima de la cambra (%d℃) és superior a la temperatura objectiu de la cambra (%d℃). El valor mínim és el llindar a partir del qual comença la impressió mentre la cambra continua escalfant-se cap a l'objectiu, de manera que no l'hauria de superar. Es limitarà al valor objectiu."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr "L'alçada de capa és massa petita. S'establirà al mínim (%g mm)."
+
+# AI Translated
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr "L'alçada de capa està fora dels límits establerts a Configuració de la Impressora -> Extrusora -> Límits d'alçada de la capa, això pot causar problemes de qualitat d'impressió."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr "Voleu ajustar-la automàticament al límit (%g mm)?"
+
+msgid "Adjust"
+msgstr "Ajustar"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4947,6 +4964,13 @@ msgstr ""
 "Canviar aquesta configuració automàticament?\n"
 "Sí - Activa el generador de parets Arachne\n"
 "No - Desactiva el generador de parets Arachne i estableix el mode [Desplaçament] de la pell difusa"
+
+# AI Translated
+msgid "Brim ear radius"
+msgstr "Radi de l'orella de la Vora d'Adherència"
+
+msgid "Brim width"
+msgstr "Ample de la Vora d'Adherència"
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "El mode espiral només funciona quan els bucles de paret són 1, el suport està desactivat, la detecció d'acumulació per sondeig està desactivada, les capes de la coberta superior són 0, la densitat de farciment dispers és 0 i el tipus de timelapse és tradicional."
@@ -5201,6 +5225,14 @@ msgstr "No s'ha pogut generar el gcode cali"
 
 msgid "Calibration error"
 msgstr "Error de calibratge"
+
+# AI Translated
+msgid "This printer is not configured with the hardware this control needs."
+msgstr "Aquesta impressora no està configurada amb el maquinari que necessita aquest control."
+
+# AI Translated
+msgid "This control is not supported on this printer."
+msgstr "Aquest control no és compatible amb aquesta impressora."
 
 # AI Translated
 msgid "Network unavailable"
@@ -6067,7 +6099,7 @@ msgstr "Volum:"
 msgid "Size:"
 msgstr "Mida:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "S'han trobat conflictes de rutes gcode a la capa %d, Z = %.2lfmm. Si us plau, separeu els objectes conflictius més lluny ( %s <-> %s )."
 
@@ -6247,6 +6279,10 @@ msgstr "Multidispositiu"
 
 msgid "Project"
 msgstr "Projecte"
+
+# AI Translated
+msgid "Device (Web)"
+msgstr "Dispositiu (Web)"
 
 msgid "Yes"
 msgstr "Sí"
@@ -8361,19 +8397,19 @@ msgstr "No s'ha seleccionat el directori per a la substitució"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Substituït amb fitxers 3D del directori:\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ Omès %s: mateix fitxer.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ Omès %s: el fitxer no existeix.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ Omès %s: la substitució ha fallat.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔ Substituït %s.\n"
 
@@ -9116,6 +9152,18 @@ msgstr "Amb aquesta opció habilitada, podeu enviar una tasca a diversos disposi
 msgid "Pop up to select filament grouping mode"
 msgstr "Finestra emergent per seleccionar el mode d'agrupació de filaments"
 
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "Pàgines de connectors visibles"
+
+# AI Translated
+msgid "pages"
+msgstr "pàgines"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "Nombre de pàgines de connectors que es mostren com a pestanyes fixes abans que la resta de pàgines es replegui en un desplegable a l'última pestanya."
+
 msgid "Behaviour"
 msgstr "Comportament"
 
@@ -9507,6 +9555,18 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "Mostra els perfils incompatibles o no compatibles a les llistes desplegables d'impressora i de filament. Aquests perfils no es poden seleccionar."
 
 # AI Translated
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr "(Experimental) Utilitza agents d'impressora en lloc d'amfitrions d'impressió"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Envia els treballs d'impressió de les impressores que no són Bambu a través dels agents de connector d'impressora en lloc del flux clàssic de pujada a l'amfitrió d'impressió.\n"
+"Quan està desactivat, OrcaSlicer utilitza el comportament antic de l'amfitrió d'impressió."
+
+# AI Translated
 msgid "Experimental Features"
 msgstr "Funcions experimentals"
 
@@ -9776,8 +9836,24 @@ msgstr "Perfil d'usuari"
 msgid "Preset Inside Project"
 msgstr "Perfil intern del Projecte"
 
+# AI Translated
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr "Copia en aquest perfil tots els valors heretats del perfil pare i elimina la relació d'herència. Els perfils compatibles només amb el perfil pare poden deixar de ser compatibles."
+
 msgid "Detach from parent"
 msgstr "Desvincula del pare"
+
+# AI Translated
+msgid "Unique preset"
+msgstr "Perfil únic"
+
+# AI Translated
+msgid "Parent preset"
+msgstr "Perfil pare"
+
+# AI Translated
+msgid "This preset does not inherit from another preset."
+msgstr "Aquest perfil no hereta de cap altre perfil."
 
 msgid "Name is unavailable."
 msgstr "El nom no està disponible."
@@ -10521,22 +10597,6 @@ msgstr "Estàs segur que vols activar aquesta opció?"
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "Els patrons de farciment estan dissenyats normalment per gestionar la rotació automàticament per garantir una impressió correcta i aconseguir els efectes desitjats (p. ex., Gyroid, Cúbic). Rotar el patró de farciment dispers actual pot portar a un suport insuficient. Procediu amb precaució i comproveu minuciosament qualsevol problema d'impressió potencial. Esteu segur que voleu activar aquesta opció?"
 
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"L'alçada de la capa és massa petita.\n"
-"Es posarà a min_layer_height\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "L'alçada de la capa supera el límit a Configuració de la Impressora -> Extrusora -> Límits d'alçada de la capa, això pot causar problemes de qualitat d'impressió."
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "Voleu ajustar el rang automàticament?\n"
-
-msgid "Adjust"
-msgstr "Ajustar"
-
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "Característica experimental: Retreure i tallar el filament a major distància durant els canvis de filaments per minimitzar el flux. Tot i que pot reduir notablement el flux, també pot elevar el risc d'esclops de broquets o altres complicacions d'impressió."
 
@@ -10735,6 +10795,9 @@ msgstr "Trobades paraules clau reservades"
 msgid "Setting Overrides"
 msgstr "Anul·lacions de configuració"
 
+msgid "Retraction when switching material"
+msgstr "Retracció en canviar de material"
+
 msgid "Basic information"
 msgstr "Informació bàsica"
 
@@ -10867,6 +10930,12 @@ msgstr "Perfils de processos compatibles"
 msgid "Printable space"
 msgstr "Espai imprimible"
 
+msgid "Printer Agent"
+msgstr "Agent de la impressora"
+
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "Seleccioneu la implementació de l'agent de xarxa per a la comunicació amb la impressora. Els agents disponibles es registren a l'inici."
+
 #. TRN: The first argument is the parameter's name; the second argument is its value.
 #, boost-format
 msgid "Invalid value provided for parameter %1%: %2%"
@@ -10996,9 +11065,6 @@ msgstr "Límits d'alçada de capa"
 
 msgid "Z-Hop"
 msgstr "Z-Hop"
-
-msgid "Retraction when switching material"
-msgstr "Retracció en canviar de material"
 
 # AI Translated
 msgid ""
@@ -12381,6 +12447,10 @@ msgid " is too close to clumping detection area, and collisions will be caused.\
 msgstr " és massa a prop de l'àrea de detecció d'acumulació i es causaran col·lisions.\n"
 
 # AI Translated
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr " està parcialment fora de l'àrea imprimible, i no es pot imprimir.\n"
+
+# AI Translated
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "Les temperatures de broquet seleccionades són incompatibles. La temperatura de broquet de cada filament ha d'estar dins del rang de temperatura de broquet recomanat dels altres filaments. Altrament, es pot produir una obturació del broquet o danys a la impressora."
 
@@ -12713,9 +12783,6 @@ msgstr "Utilitzar 3MF en lloc de G-code"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Activeu-ho si la impressora accepta un fitxer 3MF com a treball d'impressió. Quan està activat, Orca Slicer envia el fitxer laminat com a .gcode.3mf, en lloc d'un fitxer .gcode simple."
-
-msgid "Printer Agent"
-msgstr "Agent de la impressora"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "Seleccioneu la implementació de l'agent de xarxa per a la comunicació amb la impressora."
@@ -13402,9 +13469,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "Velocitat dels ponts interns. Si el valor s'expressa com un percentatge, es calcularà en funció de la velocitat del pont (bridge_speed). El valor per defecte és del 150%."
 
-msgid "Brim width"
-msgstr "Ample de la Vora d'Adherència"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Distància del model a la línia de la Vora d'Adherència més exterior"
 
@@ -13487,6 +13551,14 @@ msgid ""
 msgstr ""
 "La geometria es simplificarà abans de detectar angles pronunciats. Aquest paràmetre indica la longitud mínima de la desviació per a la simplificació.\n"
 "0 per desactivar"
+
+# AI Translated
+msgid "Brim ears outer only"
+msgstr "Orelles de la Vora d'Adherència només a l'exterior"
+
+# AI Translated
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr "Genera orelles de ratolí només al contorn exterior del model, excloent-ne els forats i les seccions tancades."
 
 msgid "upward compatible machine"
 msgstr "màquina compatible ascendent"
@@ -14679,6 +14751,14 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Giroide"
 
+# AI Translated
+msgid "Sparse infill smooth factor"
+msgstr "Factor de suavitzat del farciment poc dens"
+
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "Controla com s'arrodoneixen les cantonades del farciment poc dens. 0% manté el traçat original amb cantonades vives, mentre que 100% produeix les corbes més amples possibles entre línies de farciment adjacents."
+
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Acceleració del farciment superficial superior. L'ús d'un valor inferior pot millorar la qualitat de la superfície superior"
 
@@ -15231,6 +15311,14 @@ msgstr "Amb quin tipus de Codi-G és compatible la impressora."
 
 msgid "Klipper"
 msgstr "Klipper"
+
+# AI Translated
+msgid "Skip G-code config block"
+msgstr "Omet el bloc de configuració del G-code"
+
+# AI Translated
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr "No escriu el CONFIG_BLOCK (els parells clau/valor de la configuració del laminador) al fitxer G-code. Això pot ajudar amb impressores el microprogramari de les quals falla en analitzar aquestes línies de comentari (p. ex. Anycubic go-klipper). Nota: el fitxer G-code ja no contindrà la configuració del laminador, de manera que en tornar-lo a importar a OrcaSlicer no es restaurarà la configuració."
 
 msgid "Pellet Modded Printer"
 msgstr "Impressora modificada de pellets"
@@ -16321,6 +16409,14 @@ msgstr "Retracció llarga al canviar d'extrusor"
 msgid "Retraction distance when extruder change"
 msgstr "Distància de retracció al canviar d'extrusor"
 
+# AI Translated
+msgid "Retraction Length (Toolchange)"
+msgstr "Longitud de retracció (Canvi d'eina)"
+
+# AI Translated
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr "Quan s'activa la retracció abans d'un canvi d'eina, el filament es retira la quantitat especificada (la longitud es mesura sobre el filament en brut, abans d'entrar a l'extrusor)."
+
 msgid "Z-hop height"
 msgstr "Alçada Z-hop"
 
@@ -16418,6 +16514,10 @@ msgstr "Longitud addicional en reiniciar"
 
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "Quan la retracció es compensa després d'un desplaçament, l'extrusor introduirà una quantitat addicional de filament. Aquest ajustament rarament es necessita."
+
+# AI Translated
+msgid "Extra length on restart (Toolchange)"
+msgstr "Longitud addicional en reiniciar (Canvi d'eina)"
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Quan la retracció es compensa després d'un canvi d'eina, l'extrusor introduirà una quantitat addicional de filament."
@@ -16834,6 +16934,14 @@ msgstr "Canvi d'eina a la Torre de Purga"
 # AI Translated
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "Força el capçal a desplaçar-se a la Torre de Purga abans d'emetre l'ordre de canvi d'eina (Tx). Només és rellevant per a impressores multiextrusor (multicapçal) que utilitzen una Torre de Purga de tipus 2. Per defecte, Orca omet aquest desplaçament en màquines multicapçal perquè el firmware gestiona el canvi de capçal, cosa que pot fer que l'ordre Tx s'emeti sobre la peça impresa. Activeu aquesta opció si voleu que el canvi d'eina s'emeti sempre sobre la Torre de Purga."
+
+# AI Translated
+msgid "Wait for temperature on wipe tower"
+msgstr "Espera la temperatura a la Torre de Purga"
+
+# AI Translated
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr "Recull la nova eina sense esperar que arribi a la temperatura d'impressió, es desplaça a la Torre de Purga i hi espera la temperatura, just abans de purgar. El degoteig de l'escalfament cau sobre la torre en lloc del model, i el desplaçament se solapa amb l'escalfament. Només és rellevant per a impressores multiextrusor (multicapçal) que utilitzen una Torre de Purga de tipus 2. El microprogramari o la macro de canvi d'eina no han d'esperar la temperatura pel seu compte. Quan està desactivat, l'espera de temperatura s'emet just després de l'ordre de canvi d'eina."
 
 msgid "No sparse layers (beta)"
 msgstr "Sense capes poc denses( beta )"
@@ -20121,9 +20229,6 @@ msgstr "Impressora Física"
 msgid "Print Host upload"
 msgstr "Pujada al amfitrió( host ) d'impressió"
 
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "Seleccioneu la implementació de l'agent de xarxa per a la comunicació amb la impressora. Els agents disponibles es registren a l'inici."
-
 # AI Translated
 msgid "Select a Flashforge printer"
 msgstr "Seleccioneu una impressora Flashforge"
@@ -21066,9 +21171,6 @@ msgstr "Alguna cosa inesperada ha passat en intentar iniciar sessió, torneu-ho 
 msgid "User canceled."
 msgstr "Usuari cancel·lat."
 
-msgid "Head diameter"
-msgstr "Diàmetre del cap"
-
 msgid "Max angle"
 msgstr "Angle màxim"
 
@@ -21886,6 +21988,22 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "L'alçada de la capa és massa petita.\n"
+#~ "Es posarà a min_layer_height\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "L'alçada de la capa supera el límit a Configuració de la Impressora -> Extrusora -> Límits d'alçada de la capa, això pot causar problemes de qualitat d'impressió."
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "Voleu ajustar el rang automàticament?\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "Diàmetre del cap"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "Ordre d'impressió dins d'una sola capa"
