@@ -102,6 +102,8 @@ void SceneRaycaster::remove_raycaster(std::shared_ptr<SceneRaycasterItem> item)
 SceneRaycaster::HitResult SceneRaycaster::hit(const Vec2d& mouse_pos, const Camera& camera,
     const ClippingPlane* clipping_plane, SceneRaycaster::EHitMode mode) const
 {
+    // Orca: Picking may favor an already selected volume for interaction, while camera
+    // navigation must always use the geometrically closest visible scene surface.
     // helper class used to return currently selected volume as hit when overlapping with other volumes
     // to allow the user to click and drag on a selected volume
     class VolumeKeeper
@@ -112,6 +114,7 @@ SceneRaycaster::HitResult SceneRaycaster::hit(const Vec2d& mouse_pos, const Came
 
     public:
         explicit VolumeKeeper(bool enabled) {
+            // Orca: Disable selected-volume bias for SceneOnly navigation raycasts.
             if (!enabled)
                 return;
 
@@ -186,6 +189,7 @@ SceneRaycaster::HitResult SceneRaycaster::hit(const Vec2d& mouse_pos, const Came
         }
     };
 
+    // Orca: Gizmo geometry is an interaction target, not a valid depth anchor for camera movement.
     if (mode == EHitMode::Picking) {
         if (!m_gizmos.empty())
             test_raycasters(EType::Gizmo, mouse_pos, camera, ret);
