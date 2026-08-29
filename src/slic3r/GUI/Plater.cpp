@@ -12544,7 +12544,7 @@ void Plater::map_painted_colors_to_cmyk_mixes()
     if (ts_after != ts_before) {
         SpectrumMapUndoRecord rec;
         rec.active                 = true;
-        rec.map_snapshot_timestamp = ts_before;
+        rec.map_snapshot_timestamp = spectrum_map_undo_named_time(ts_before, ts_after);
         rec.pre                    = std::move(pre_keys);
         rec.post.mapped            = true;
         rec.post.mixed_filament_definitions = plan.mixed_filament_definitions;

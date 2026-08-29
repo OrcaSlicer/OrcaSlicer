@@ -586,3 +586,27 @@ TEST_CASE("spectrum map undo drop_if_rewritten", "[spectrum_paint_bake]")
     spectrum_map_undo_drop_if_rewritten(rec, 101);
     REQUIRE(rec.active);
 }
+
+TEST_CASE("spectrum map undo named_time after history lag", "[spectrum_paint_bake]")
+{
+    REQUIRE(spectrum_map_undo_named_time(100, 100) == 100);
+    REQUIRE(spectrum_map_undo_named_time(100, 101) == 100);
+    REQUIRE(spectrum_map_undo_named_time(2, 4) == 3);
+    REQUIRE(spectrum_map_undo_named_time(2, 5) == 4);
+    REQUIRE(spectrum_map_undo_named_time(10, 9) == 10);
+
+    SpectrumMapUndoRecord rec;
+    rec.active                 = true;
+    rec.map_snapshot_timestamp = spectrum_map_undo_named_time(2, 4);
+    REQUIRE(rec.map_snapshot_timestamp == 3);
+    REQUIRE_FALSE(spectrum_map_undo_is_post(rec, 3));
+    REQUIRE(spectrum_map_undo_is_post(rec, 4));
+    REQUIRE_FALSE(spectrum_map_undo_is_post(rec, 2));
+
+    spectrum_map_undo_drop_if_rewritten(rec, 3);
+    REQUIRE_FALSE(rec.active);
+
+    rec.active = true;
+    spectrum_map_undo_drop_if_rewritten(rec, 4);
+    REQUIRE(rec.active);
+}

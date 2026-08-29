@@ -47,6 +47,22 @@ struct SpectrumMapUndoRecord
     SpectrumMapUndoKeys post;
 };
 
+// Named Map snapshot time after take_snapshot.
+// Dual-emplace (UndoRedo.cpp ~954–961): named at m_current_time, then
+// unnamed topmost at ++m_current_time (= ts_after). Named is always ts_after - 1
+// after a successful Map snapshot — independent of how far ts_before lags
+// (undo may capture uncaptured topmost ~1096 and not rewind current ~1103).
+// Linear: named == ts_before == ts_after - 1.
+// After Undo: named == ts_after - 1 != ts_before.
+// ts_after <= ts_before: snapshot no-op / underflow guard; return ts_before
+// (product Map write never calls the helper on this path — Catch2 only).
+inline size_t spectrum_map_undo_named_time(size_t ts_before, size_t ts_after)
+{
+    if (ts_after <= ts_before)
+        return ts_before;
+    return ts_after - 1;
+}
+
 // Strictly >; loading the Map snapshot itself restores pre.
 inline bool spectrum_map_undo_is_post(const SpectrumMapUndoRecord &record, size_t target_timestamp)
 {
