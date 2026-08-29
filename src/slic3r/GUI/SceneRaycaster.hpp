@@ -57,7 +57,7 @@ public:
         FallbackGizmo = 2000000
     };
 
-    // Navigation needs the closest visible scene surface, without picking-specific
+    // Orca: Navigation needs the closest visible scene surface, without picking-specific
     // gizmo and selected-volume priority.
     enum class EHitMode : unsigned char
     {

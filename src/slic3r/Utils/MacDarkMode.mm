@@ -379,10 +379,11 @@ wxEvtHandler * _gestureHandler = nullptr;
         wxPanGestureEvent evt;
         const NSPoint pos = [self convertPoint:[event locationInWindow] fromView:nil];
         const wxPoint delta(-(int)[event scrollingDeltaX], -(int)[event scrollingDeltaY]);
-        // GLCanvas3D derives the anchor position as position - delta.
+        // Orca: GLCanvas3D derives the anchor position as position - delta, so synthesize
+        // the post-delta position from the native cursor coordinate.
         evt.SetPosition({(int) pos.x + delta.x, (int) pos.y + delta.y});
         evt.SetDelta(delta);
-        // Wheel events have no native gesture lifecycle, so handle each one as a complete pan.
+        // Orca: Wheel events have no native gesture lifecycle, so handle each one as a complete pan.
         evt.SetGestureStart();
         evt.SetGestureEnd();
         _gestureHandler->ProcessEvent(evt);

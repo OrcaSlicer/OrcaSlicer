@@ -334,6 +334,7 @@ class GLCanvas3D
             int move_volume_idx{ -1 };
             bool move_requires_threshold{ false };
             Point move_start_threshold_position_2D{ Invalid_2D_Point };
+            // Orca: Keep the world-space point selected at the start of a mouse pan.
             std::optional<Vec3d> camera_pan_anchor;
         };
 
@@ -535,6 +536,7 @@ private:
     wxTimer m_timer_set_color;
     LayersEditing m_layers_editing;
     Mouse m_mouse;
+    // Orca: Gesture pans have their own lifecycle and stable world-space anchor.
     std::optional<Vec3d> m_gesture_pan_anchor;
     GLGizmosManager m_gizmos;
     //BBS: GUI refactor: GLToolbar
@@ -1303,12 +1305,14 @@ private:
     // Convert the screen space coordinate to world coordinate on the bed.
     Vec3d _mouse_to_bed_3d(const Point& mouse_pos);
 
+    // Orca: Navigation type selects the legacy pivot policy used when no visible surface is hit.
     enum class ECameraNavigationType : unsigned char
     {
         Mouse,
         Gesture
     };
 
+    // Orca: These helpers keep clipping, orbit pivots, and perspective-pan depth selection consistent.
     ClippingPlane get_raycaster_clipping_plane() const;
     std::optional<Vec3d> get_camera_orbit_target(ECameraNavigationType navigation_type) const;
     Vec3d get_camera_pan_anchor(Camera& camera, ECameraNavigationType navigation_type,

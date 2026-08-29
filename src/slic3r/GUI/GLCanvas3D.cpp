@@ -113,6 +113,8 @@ namespace GUI {
 
 static void pan_camera(Camera& camera, const Vec2d& screen_delta, const Vec3d& anchor)
 {
+    // Orca: Derive world-units-per-pixel from the projection which produced the visible frame.
+    // Perspective additionally scales with the eye-space depth of the point being dragged.
     const auto& viewport = camera.get_viewport();
     const auto& projection = camera.get_projection_matrix().matrix();
     const double depth_scale = camera.get_type() == Camera::EType::Perspective ?
@@ -120,7 +122,7 @@ static void pan_camera(Camera& camera, const Vec2d& screen_delta, const Vec3d& a
     const double projection_x = projection(0, 0) * viewport[2];
     const double projection_y = projection(1, 1) * viewport[3];
 
-    // X/Y projection coefficients already include zoom. Using them directly avoids a
+    // Orca: X/Y projection coefficients already include zoom. Using them directly avoids a
     // project/unproject round-trip through window depth, whose precision depends on the scene frustum.
     if (viewport[2] > 0 && viewport[3] > 0 && anchor.allFinite() && depth_scale > EPSILON &&
         std::abs(projection_x) > EPSILON && std::abs(projection_y) > EPSILON) {
@@ -133,6 +135,7 @@ static void pan_camera(Camera& camera, const Vec2d& screen_delta, const Vec3d& a
         }
     }
 
+    // Orca: Preserve the former target-plane behavior if the projection or anchor is invalid.
     // Screen Y grows downward, and the camera moves opposite to the drag.
     camera.translate(camera.get_inv_zoom() *
         (screen_delta.y() * camera.get_dir_up() - screen_delta.x() * camera.get_dir_right()));
@@ -4141,6 +4144,8 @@ void GLCanvas3D::on_gesture(wxGestureEvent &evt)
 
     auto & camera = wxGetApp().plater()->get_camera();
     if (evt.GetEventType() == wxEVT_GESTURE_PAN) {
+        // Orca: Gesture coordinates must use framebuffer pixels, and one stable world-space
+        // anchor must be retained for the complete gesture to prevent perspective drift.
         const auto p = evt.GetPosition();
         auto d = static_cast<wxPanGestureEvent&>(evt).GetDelta();
         Vec2d screen_position(p.x, p.y);
@@ -4159,6 +4164,8 @@ void GLCanvas3D::on_gesture(wxGestureEvent &evt)
             zoom_start = camera.get_zoom();
         camera.set_zoom(zoom_start * static_cast<wxZoomGestureEvent&>(evt).GetZoomFactor());
     } else if (evt.GetEventType() == wxEVT_GESTURE_ROTATE) {
+        // Orca: Rotation starts a different navigation operation, so a previous pan anchor
+        // must not be reused; rotation and pan fallbacks share the same navigation pivot.
         m_gesture_pan_anchor.reset();
         bool rotate_limit = current_printer_technology() != ptSLA;
         static double last_rotate = 0;
@@ -4617,6 +4624,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         }
         // do not process the dragging if the left mouse was set down in another canvas
         else if (is_camera_rotate(evt, button_mappings)) {
+            // Orca: Rotation and panning use different drag coordinates and cached anchors.
+            // Clear the pan state before processing rotation or switching buttons mid-drag.
             m_mouse.set_start_position_2D_as_invalid();
             m_mouse.drag.camera_pan_anchor.reset();
 
@@ -4636,6 +4645,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 if (this->m_canvas_type == ECanvasType::CanvasAssembleView || m_gizmos.get_current_type() == GLGizmosManager::FdmSupports ||
                     m_gizmos.get_current_type() == GLGizmosManager::Seam || m_gizmos.get_current_type() == GLGizmosManager::MmSegmentation ||
                     m_gizmos.get_current_type() == GLGizmosManager::FuzzySkin) {
+                    // Orca: Reuse the centralized pivot policy for scene-oriented tools.
                     const std::optional<Vec3d> rotate_target = get_camera_orbit_target(ECameraNavigationType::Mouse);
                     if (rotate_target.has_value())
                         camera.rotate_on_sphere_with_target(rot.x(), rot.y(), false, *rotate_target);
@@ -4664,6 +4674,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                             }
                             camera.rotate_on_sphere_with_target(rot.x(), rot.y(), rotate_limit, m_rotation_center);
                         } else {
+                            // Orca: Keep regular mouse orbit and perspective-pan fallback centered
+                            // on the same selection, active-plate, or scene reference.
                             const std::optional<Vec3d> rotate_target = get_camera_orbit_target(ECameraNavigationType::Mouse);
                             if (rotate_target.has_value())
                                 camera.rotate_on_sphere_with_target(rot.x(), rot.y(), rotate_limit, *rotate_target);
@@ -4682,6 +4694,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             m_mouse.drag.start_position_3D = Vec3d((double)pos(0), (double)pos(1), 0.0);
         }
         else if (is_camera_pan(evt, button_mappings)) {
+            // Orca: Pan uses screen coordinates and must not inherit the rotation start point.
             m_mouse.set_start_position_3D_as_invalid();
 
             if (!has_mouse_capture()) // ORCA keep tracking mouse position while drag active and cursor not in window bounds
@@ -4700,6 +4713,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                         camera.recover_from_free_camera();
                 }
 
+                // Orca: Cache the surface under the initial click and apply every incremental
+                // cursor delta at that depth, so perspective zoom and camera angle stay exact.
                 const Vec2d screen_delta =
                     pos.cast<double>() - m_mouse.drag.start_position_2D.cast<double>();
                 if (!m_mouse.drag.camera_pan_anchor.has_value())
@@ -5613,6 +5628,7 @@ void GLCanvas3D::mouse_up_cleanup()
     m_mouse.drag.move_volume_idx = -1;
     m_mouse.set_start_position_3D_as_invalid();
     m_mouse.set_start_position_2D_as_invalid();
+    // Orca: A cached pan anchor is valid only for the drag which selected it.
     m_mouse.drag.camera_pan_anchor.reset();
     m_mouse.dragging = false;
     m_mouse.ignore_left_up = false;
@@ -7265,6 +7281,7 @@ void GLCanvas3D::_picking_pass()
     m_hover_volume_idxs.clear();
     m_hover_plate_idxs.clear();
 
+    // Orca: Picking and camera navigation must interpret the active gizmo clipping plane identically.
     const ClippingPlane clipping_plane = get_raycaster_clipping_plane();
     const SceneRaycaster::HitResult hit = m_scene_raycaster.hit(m_mouse.position, wxGetApp().plater()->get_camera(), &clipping_plane);
     if (hit.is_valid()) {
@@ -10317,7 +10334,8 @@ Vec3d GLCanvas3D::_mouse_to_bed_3d(const Point& mouse_pos)
 
 ClippingPlane GLCanvas3D::get_raycaster_clipping_plane() const
 {
-    // Ignore the gizmo clipping plane when the active tool does not apply it.
+    // Orca: Ignore the gizmo clipping plane when the active tool does not apply it, and
+    // invert the result into the convention expected by SceneRaycaster.
     GLGizmoBase* current_gizmo = m_gizmos.get_current();
     return ((!current_gizmo || current_gizmo->apply_clipping_plane()) ? m_gizmos.get_clipping_plane() :
                                                                        ClippingPlane::ClipsNothing())
@@ -10326,6 +10344,8 @@ ClippingPlane GLCanvas3D::get_raycaster_clipping_plane() const
 
 std::optional<Vec3d> GLCanvas3D::get_camera_orbit_target(ECameraNavigationType navigation_type) const
 {
+    // Orca: Centralize the pre-existing pivot rules so orbiting and pan fallback cannot
+    // choose different reference depths for the same canvas and active tool.
     PartPlate* current_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
     if (navigation_type == ECameraNavigationType::Gesture)
         return current_plate == nullptr ? std::nullopt :
@@ -10339,11 +10359,11 @@ std::optional<Vec3d> GLCanvas3D::get_camera_orbit_target(ECameraNavigationType n
         if (!m_selection.is_empty())
             return m_selection.get_bounding_box().center();
 
-        // Preserve the world-origin fallback used by orbit in an empty scene.
+        // Orca: Preserve the world-origin fallback used by orbit in an empty scene.
         return volumes_bounding_box().center();
     }
 
-    // Free-camera rotation uses Camera::m_target rather than a plate or selection pivot.
+    // Orca: Free-camera rotation uses Camera::m_target rather than a plate or selection pivot.
     if (wxGetApp().app_config->get_bool("use_free_camera"))
         return std::nullopt;
 
@@ -10354,7 +10374,7 @@ std::optional<Vec3d> GLCanvas3D::get_camera_orbit_target(ECameraNavigationType n
     } else if (!m_selection.is_empty()) {
         target = m_selection.get_bounding_box().center();
     } else {
-        // Match regular mouse orbit: objects on the active plate, then the plate itself.
+        // Orca: Match regular mouse orbit: objects on the active plate, then the plate itself.
         BoundingBoxf3 bbox = volumes_bounding_box(true);
         if (!bbox.defined && current_plate != nullptr)
             bbox = current_plate->get_bounding_box();
@@ -10362,19 +10382,23 @@ std::optional<Vec3d> GLCanvas3D::get_camera_orbit_target(ECameraNavigationType n
             target = bbox.center();
     }
 
-    // Preserve the existing zero sentinel used by regular mouse orbit.
+    // Orca: Preserve the existing zero sentinel used by regular mouse orbit.
     return target.isZero() ? std::nullopt : std::make_optional(target);
 }
 
 Vec3d GLCanvas3D::get_camera_pan_anchor(Camera& camera, ECameraNavigationType navigation_type,
     const Vec2d& screen_position) const
 {
+    // Orca: Reject non-finite anchors and points behind the camera before their depth is
+    // allowed to scale a perspective pan.
     const Vec3d camera_position = camera.get_position();
     const Vec3d camera_forward = camera.get_dir_forward();
     const auto is_valid_anchor = [&camera_position, &camera_forward](const Vec3d& anchor) {
         return anchor.allFinite() && (anchor - camera_position).dot(camera_forward) > EPSILON;
     };
 
+    // Orca: Prefer the nearest visible bed or volume surface and exclude gizmos and
+    // selected-volume picking priority from navigation depth selection.
     const ClippingPlane clipping_plane = get_raycaster_clipping_plane();
     const SceneRaycaster::HitResult hit = m_scene_raycaster.hit(screen_position, camera, &clipping_plane,
         SceneRaycaster::EHitMode::SceneOnly);
@@ -10384,7 +10408,7 @@ Vec3d GLCanvas3D::get_camera_pan_anchor(Camera& camera, ECameraNavigationType na
             return hit_position;
     }
 
-    // When the cursor is just outside the visible plate, use the point under it on the active
+    // Orca: When the cursor is just outside the visible plate, use the point under it on the active
     // plate plane. Using the plate center here would give it a different perspective depth.
     PartPlate* current_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
     if (current_plate != nullptr && current_plate->get_bounding_box().defined) {
@@ -10403,7 +10427,7 @@ Vec3d GLCanvas3D::get_camera_pan_anchor(Camera& camera, ECameraNavigationType na
         }
     }
 
-    // Near-horizontal rays and points outside the scene depth use the orbit reference point.
+    // Orca: Near-horizontal rays and points outside the scene depth use the orbit reference point.
     const std::optional<Vec3d> orbit_target = get_camera_orbit_target(navigation_type);
     return orbit_target.has_value() && is_valid_anchor(*orbit_target) ? *orbit_target : camera.get_target();
 }
