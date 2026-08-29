@@ -20,7 +20,9 @@ void VisualizationPluginCapability::RegisterBindings(pybind11::module_& module)
         .def_readwrite("scene_id", &VisualizationContext::scene_id)
         .def_readwrite("plate_index", &VisualizationContext::plate_index)
         .def_readwrite("geometry_path", &VisualizationContext::geometry_path)
-        .def_readwrite("metadata_json", &VisualizationContext::metadata_json);
+        .def_readwrite("geometry_format", &VisualizationContext::geometry_format)
+        .def_readwrite("geometry_major_version", &VisualizationContext::geometry_major_version)
+        .def_readwrite("geometry_minor_version", &VisualizationContext::geometry_minor_version);
 
     py::class_<VisualizationPluginCapability, PluginCapabilityInterface, PyVisualizationPluginCapabilityTrampoline,
                std::shared_ptr<VisualizationPluginCapability>>(visualization, "VisualizationPluginCapabilityBase")

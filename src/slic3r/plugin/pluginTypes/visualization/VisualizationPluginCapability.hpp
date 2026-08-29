@@ -16,7 +16,9 @@ struct VisualizationContext : PluginContext
     uint64_t    scene_id{0};
     int         plate_index{-1};
     std::string geometry_path;
-    std::string metadata_json;
+    std::string geometry_format{"ORPM"};
+    uint16_t    geometry_major_version{1};
+    uint16_t    geometry_minor_version{0};
 };
 
 class VisualizationPluginCapability : public PluginCapabilityInterface

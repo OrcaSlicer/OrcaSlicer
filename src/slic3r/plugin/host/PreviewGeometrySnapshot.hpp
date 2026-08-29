@@ -15,6 +15,7 @@ namespace GUI { struct PreviewTriangleMesh; }
 
 namespace PreviewGeometrySnapshot {
 
+constexpr char FORMAT_NAME[] = "ORPM";
 constexpr uint16_t FORMAT_MAJOR = 1;
 constexpr uint16_t FORMAT_MINOR = 0;
 constexpr uint32_t HEADER_BYTE_SIZE = 256;

@@ -83,6 +83,8 @@ const char* const VISUALIZATION_PLUGIN_SOURCE = R"PY(# /// script
 # version = "1.0"
 # type = "script"
 # ///
+from pathlib import Path
+
 import orca
 
 class DummyVisualization(orca.visualization.VisualizationPluginCapabilityBase):
@@ -94,8 +96,11 @@ class DummyVisualization(orca.visualization.VisualizationPluginCapabilityBase):
             output.write(event + "\n")
 
     def open(self, ctx):
-        self.events_path = ctx.metadata_json
-        self._record(f"open:{ctx.scene_id}")
+        self.events_path = Path(ctx.geometry_path).with_name("events.txt")
+        self._record(
+            f"open:{ctx.scene_id}:{ctx.plate_index}:{ctx.geometry_format}:"
+            f"{ctx.geometry_major_version}.{ctx.geometry_minor_version}:{ctx.orca_version}"
+        )
         return orca.ExecutionResult.success()
 
     def update(self, ctx):
@@ -218,7 +223,6 @@ TEST_CASE("Visualization sessions dispatch lifecycle calls and close when disabl
     ctx.scene_id      = 1;
     ctx.plate_index   = 0;
     ctx.geometry_path = (events_path.parent_path() / "snapshot.orpm").string();
-    ctx.metadata_json = events_path.string();
 
     PluginVisualizations& visualizations = PluginVisualizations::instance();
     CHECK(visualizations.open(capability, ctx).status == PluginResult::Success);
@@ -238,7 +242,7 @@ TEST_CASE("Visualization sessions dispatch lifecycle calls and close when disabl
 
     std::ifstream events(events_path.string());
     const std::string contents((std::istreambuf_iterator<char>(events)), std::istreambuf_iterator<char>());
-    CHECK(contents == "open:1\nupdate:2\nclose\n");
+    CHECK(contents == "open:1:0:ORPM:1.0:test\nupdate:2\nclose\n");
 }
 
 TEST_CASE("Plugin manager can initialize again after shutdown", "[PluginLifecycle][Python]")

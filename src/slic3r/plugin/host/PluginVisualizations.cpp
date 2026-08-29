@@ -8,7 +8,6 @@
 #include <boost/log/trivial.hpp>
 
 #include <algorithm>
-#include <sstream>
 #include <utility>
 
 #include <wx/app.h>
@@ -22,15 +21,6 @@ ExecutionResult recoverable_error(const PluginCapabilityId& id, const char* oper
     BOOST_LOG_TRIVIAL(error) << "Visualization capability " << id.plugin_key << "/" << id.name << " failed to " << operation << ": "
                              << error.what();
     return ExecutionResult::failure(PluginResult::RecoverableError, error.what());
-}
-
-std::string metadata_json(uint64_t scene_id, int plate_index)
-{
-    std::ostringstream json;
-    json << "{\"format\":\"ORPV\",\"major_version\":" << PreviewGeometrySnapshot::FORMAT_MAJOR
-         << ",\"minor_version\":" << PreviewGeometrySnapshot::FORMAT_MINOR
-         << ",\"scene_id\":" << scene_id << ",\"plate_index\":" << plate_index << "}";
-    return json.str();
 }
 
 } // namespace
@@ -389,7 +379,9 @@ void PluginVisualizations::dispatch_request(Request request)
             context.scene_id = request.scene_id;
             context.plate_index = request.plate_index;
             context.geometry_path = request.snapshot_path.string();
-            context.metadata_json = metadata_json(request.scene_id, request.plate_index);
+            context.geometry_format = PreviewGeometrySnapshot::FORMAT_NAME;
+            context.geometry_major_version = PreviewGeometrySnapshot::FORMAT_MAJOR;
+            context.geometry_minor_version = PreviewGeometrySnapshot::FORMAT_MINOR;
             if (request.kind == RequestKind::Open)
                 result = open(request.capability, context);
             else
