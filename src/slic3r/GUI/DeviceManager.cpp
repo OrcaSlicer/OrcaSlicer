@@ -51,6 +51,7 @@
 #include "DeviceCore/DevStatus.h"
 #include "DeviceCore/DevUpgrade.h"
 
+#include "IPrinterAgent.hpp"
 
 #define CALI_DEBUG
 #define MINUTE_30 1800000    //ms
@@ -1469,26 +1470,29 @@ int MachineObject::command_upgrade_module(std::string url, std::string module_ty
 
 int MachineObject::command_xyz_abs()
 {
-    return this->publish_gcode("G90 \n");
+    if (!m_agent) return -1;
+    int rtn = m_agent->command_xyz_abs(get_dev_id(), MachineObject::m_sequence_id++, is_lan_mode_printer());
+    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
+        show_unsupported_dlg(rtn);
+    return rtn;
 }
 
 int MachineObject::command_auto_leveling()
 {
-    return this->publish_gcode("G29 \n");
+    if (!m_agent) return -1;
+    int rtn = m_agent->command_auto_leveling(get_dev_id(), MachineObject::m_sequence_id++, is_lan_mode_printer());
+    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
+        show_unsupported_dlg(rtn);
+    return rtn;
 }
 
 int MachineObject::command_go_home()
 {
-    if (m_support_mqtt_homing)
-    {
-        json j;
-        j["print"]["command"] = "back_to_center";
-        j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-        return this->publish_json(j);
-    }
-
-    // gcode command
-    return this->is_in_printing() ? this->publish_gcode("G28 X\n") : this->publish_gcode("G28 \n");
+    if (!m_agent) return -1;
+    int rtn = m_agent->command_go_home(get_dev_id(), this->is_in_printing(), m_support_mqtt_homing, MachineObject::m_sequence_id++, is_lan_mode_printer());
+    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
+        show_unsupported_dlg(rtn);
+    return rtn;
 }
 
 int MachineObject::command_task_partskip(std::vector<int> part_ids)
@@ -1610,23 +1614,20 @@ int MachineObject::command_stop_buzzer()
 
 int MachineObject::command_set_bed(int temp)
 {
-    if (m_support_mqtt_bet_ctrl)
-    {
-        json j;
-        j["print"]["command"] = "set_bed_temp";
-        j["print"]["temp"] = temp;
-        j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-        return this->publish_json(j);
-    }
-
-    std::string gcode_str = (boost::format("M140 S%1%\n") % temp).str();
-    return this->publish_gcode(gcode_str);
+    if (!m_agent) return -1;
+    int rtn = m_agent->command_set_bed(get_dev_id(), temp, m_support_mqtt_bet_ctrl, MachineObject::m_sequence_id++, is_lan_mode_printer());
+    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
+        show_unsupported_dlg(rtn);
+    return rtn;
 }
 
 int MachineObject::command_set_nozzle(int temp)
 {
-    std::string gcode_str = (boost::format("M104 S%1%\n") % temp).str();
-    return this->publish_gcode(gcode_str);
+    if (!m_agent) return -1;
+    int rtn = m_agent->command_set_nozzle(get_dev_id(), temp, MachineObject::m_sequence_id++, is_lan_mode_printer());
+    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
+        show_unsupported_dlg(rtn);
+    return rtn;
 }
 
 int MachineObject::command_set_nozzle_new(int nozzle_id, int temp)
@@ -1731,9 +1732,11 @@ int MachineObject::command_ams_user_settings(bool start_read_opt, bool tray_read
 
 int MachineObject::command_ams_calibrate(int ams_id)
 {
-    std::string gcode_cmd = (boost::format("M620 C%1% \n") % ams_id).str();
-    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode_cmd;
-    return this->publish_gcode(gcode_cmd);
+    if (!m_agent) return -1;
+    int rtn = m_agent->command_ams_calibrate(get_dev_id(), ams_id, MachineObject::m_sequence_id++, is_lan_mode_printer());
+    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
+        show_unsupported_dlg(rtn);
+    return rtn;
 }
 
 int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max)
@@ -1771,9 +1774,11 @@ int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::s
 
 int MachineObject::command_ams_refresh_rfid(std::string tray_id)
 {
-    std::string gcode_cmd = (boost::format("M620 R%1% \n") % tray_id).str();
-    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode_cmd;
-    return this->publish_gcode(gcode_cmd);
+    if (!m_agent) return -1;
+    int rtn = m_agent->command_ams_refresh_rfid(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer());
+    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
+        show_unsupported_dlg(rtn);
+    return rtn;
 }
 
 int MachineObject::command_ams_refresh_rfid2(int ams_id,  int slot_id)
@@ -1789,9 +1794,11 @@ int MachineObject::command_ams_refresh_rfid2(int ams_id,  int slot_id)
 
 int MachineObject::command_ams_select_tray(std::string tray_id)
 {
-    std::string gcode_cmd = (boost::format("M620 P%1% \n") % tray_id).str();
-    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode_cmd;
-    return this->publish_gcode(gcode_cmd);
+    if (!m_agent) return -1;
+    int rtn = m_agent->command_ams_select_tray(get_dev_id(), tray_id, MachineObject::m_sequence_id++, is_lan_mode_printer());
+    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
+        show_unsupported_dlg(rtn);
+    return rtn;
 }
 
 int MachineObject::command_ams_control(std::string action)
@@ -1950,47 +1957,12 @@ int MachineObject::command_ams_air_print_detect(bool air_print_detect)
 
 int MachineObject::command_axis_control(std::string axis, double unit, double input_val, int speed)
 {
-    if (m_support_mqtt_axis_control)
-    {
-        int dir = input_val > 0 ? 1 : -1;
-        // i3-arch printers move the bed for Y/Z, so the on-screen direction is
-        // reversed — same negation the g-code fallback below applies.
-        if (!is_core_xy() && (axis.compare("Y") == 0 || axis.compare("Z") == 0)) {
-            dir = -dir;
-        }
-
-        json j;
-        j["print"]["command"] = "xyz_ctrl";
-        j["print"]["axis"] = axis;
-        j["print"]["dir"] = dir;
-        j["print"]["mode"] = (std::abs(input_val) >= 10) ? 1 : 0;
-        j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-        return this->publish_json(j);
-    }
-
-    double value = input_val;
-    if (!is_core_xy()) {
-        if ( axis.compare("Y") == 0
-            || axis.compare("Z")  == 0) {
-            value = -1.0 * input_val;
-        }
-    }
-
-    char cmd[256];
-    if (axis.compare("X") == 0
-        || axis.compare("Y") == 0
-        || axis.compare("Z") == 0) {
-        sprintf(cmd, "M211 S \nM211 X1 Y1 Z1\nM1002 push_ref_mode\nG91 \nG1 %s%0.1f F%d\nM1002 pop_ref_mode\nM211 R\n", axis.c_str(), value * unit, speed);
-    }
-    else if (axis.compare("E") == 0) {
-        sprintf(cmd, "M83 \nG0 %s%0.1f F%d\n", axis.c_str(), value * unit, speed);
-    }
-    else {
-        return -1;
-    }
-
-
-    return this->publish_gcode(cmd);
+    if (!m_agent) return -1;
+    int rtn = m_agent->command_axis_control(get_dev_id(), axis, unit, input_val, speed, is_core_xy(),
+                                             m_support_mqtt_axis_control, MachineObject::m_sequence_id++, is_lan_mode_printer());
+    if (rtn == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED || rtn == ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE)
+        show_unsupported_dlg(rtn);
+    return rtn;
 }
 
 int MachineObject::command_extruder_control(int nozzle_id, double val)
@@ -2628,7 +2600,7 @@ void MachineObject::set_print_state(std::string status)
 int MachineObject::connect(bool use_openssl)
 {
     if (get_dev_ip().empty()) return -1;
-    std::string username = "bblp";
+    std::string username = m_agent ? m_agent->default_lan_username() : std::string();
     std::string password = get_access_code();
 
     if (m_agent) {

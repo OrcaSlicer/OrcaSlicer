@@ -14,6 +14,8 @@
 
 #include "libslic3r/Time.hpp"
 
+#include "IPrinterAgent.hpp"
+
 using namespace nlohmann;
 
 namespace {

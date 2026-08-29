@@ -14,6 +14,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/utf8_codecvt.hpp>
+#include <slic3r/GUI/DeviceManager.hpp>
 #undef pid_t
 #include <boost/process.hpp>
 #ifdef __WIN32__
@@ -160,12 +161,12 @@ void MediaPlayCtrl::SetMachineObject(MachineObject* obj)
 
         if (DevPrinterConfigUtil::get_printer_series_str(obj->printer_type) == "series_o" && BBLNetworkPlugin::instance().use_legacy_network()) {
             // Legacy plugin cannot support remote play for H2D, force using local mode
-            m_remote_proto = MachineObject::LVR_None;
+            m_remote_proto = LiveviewRemote::LVR_None;
         }
     } else {
         m_camera_exists = false;
         m_lan_mode = false;
-        m_lan_proto = MachineObject::LVL_None;
+        m_lan_proto = LiveviewLocal::LVL_None;
         m_lan_ip.clear();
         m_lan_passwd.clear();
         m_dev_ver.clear();
@@ -283,14 +284,14 @@ void MediaPlayCtrl::Play()
     BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::Play: " << m_lan_proto << m_remote_proto << m_disable_lan;
     NetworkAgent *agent = wxGetApp().getAgent();
     std::string  agent_version = agent ? agent->get_version() : "";
-    if (m_lan_proto > MachineObject::LVL_Disable && (m_lan_mode || !m_remote_proto) && !m_disable_lan && !m_lan_ip.empty()) {
+    if (m_lan_proto > LiveviewLocal::LVL_Disable && (m_lan_mode || !m_remote_proto) && !m_disable_lan && !m_lan_ip.empty()) {
         m_disable_lan = m_remote_proto && !m_lan_mode; // try remote next time
         std::string url;
-        if (m_lan_proto == MachineObject::LVL_Local)
+        if (m_lan_proto == LiveviewLocal::LVL_Local)
             url = "bambu:///local/" + m_lan_ip + ".?port=6000&user=" + m_lan_user + "&passwd=" + m_lan_passwd;
-        else if (m_lan_proto == MachineObject::LVL_Rtsps)
+        else if (m_lan_proto == LiveviewLocal::LVL_Rtsps)
             url = "bambu:///rtsps___" + m_lan_user + ":" + m_lan_passwd + "@" + m_lan_ip + "/streaming/live/1?proto=rtsps";
-        else if (m_lan_proto == MachineObject::LVL_Rtsp)
+        else if (m_lan_proto == LiveviewLocal::LVL_Rtsp)
             url = "bambu:///rtsp___" + m_lan_user + ":" + m_lan_passwd + "@" + m_lan_ip + "/streaming/live/1?proto=rtsp";
         url += "&device=" + m_machine;
         url += "&net_ver=" + agent_version;
@@ -312,8 +313,8 @@ void MediaPlayCtrl::Play()
     // !m_lan_mode && !m_remote_proto && m_lan_proto == LVL_Disable (*)
     // !m_lan_mode && !m_remote_proto && m_lan_proto == LVL_None (x)
 
-    if (m_lan_proto <= MachineObject::LVL_Disable && (m_lan_mode || !m_remote_proto)) {
-        Stop(m_lan_proto == MachineObject::LVL_None 
+    if (m_lan_proto <= LiveviewLocal::LVL_Disable && (m_lan_mode || !m_remote_proto)) {
+        Stop(m_lan_proto == LiveviewLocal::LVL_None
             ? _L("A problem occurred. Please update the printer firmware and try again.")
             : _L("LAN Only Liveview is off. Please turn on the liveview on printer screen."));
         return;
@@ -528,13 +529,13 @@ void MediaPlayCtrl::ToggleStream()
             wxGetApp().app_config->set("not_show_vcamera_stop_prev", "1");
         if (res == wxID_CANCEL) return;
     }
-    if (m_lan_proto > MachineObject::LVL_Disable && (m_lan_mode || !m_remote_proto) && !m_disable_lan && !m_lan_ip.empty()) {
+    if (m_lan_proto > LiveviewLocal::LVL_Disable && (m_lan_mode || !m_remote_proto) && !m_disable_lan && !m_lan_ip.empty()) {
         std::string url;
-        if (m_lan_proto == MachineObject::LVL_Local)
+        if (m_lan_proto == LiveviewLocal::LVL_Local)
             url = "bambu:///local/" + m_lan_ip + ".?port=6000&user=" + m_lan_user + "&passwd=" + m_lan_passwd;
-        else if (m_lan_proto == MachineObject::LVL_Rtsps)
+        else if (m_lan_proto == LiveviewLocal::LVL_Rtsps)
             url = "bambu:///rtsps___" + m_lan_user + ":" + m_lan_passwd + "@" + m_lan_ip + "/streaming/live/1?proto=rtsps";
-        else if (m_lan_proto == MachineObject::LVL_Rtsp)
+        else if (m_lan_proto == LiveviewLocal::LVL_Rtsp)
             url = "bambu:///rtsp___" + m_lan_user + ":" + m_lan_passwd + "@" + m_lan_ip + "/streaming/live/1?proto=rtsp";
         url += "&device=" + into_u8(m_machine);
         url += "&dev_ver=" + m_dev_ver;

@@ -1,8 +1,15 @@
 #include "BBLPrinterAgent.hpp"
 #include "BBLNetworkPlugin.hpp"
+#include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
+#include "NetworkAgent.hpp"
 
+#include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
+#include <memory>
+#include <nlohmann/json.hpp>
+#include <cmath>
+#include <slic3r/GUI/DeviceManager.hpp>
 
 namespace Slic3r {
 
@@ -12,13 +19,170 @@ BBLPrinterAgent::~BBLPrinterAgent() = default;
 
 void BBLPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud)
 {
-    m_cloud_agent = cloud;
+    (void) cloud;
     // BBL DLL manages tokens internally, so this is just for interface compliance
 }
 
 // ============================================================================
 // Communication
 // ============================================================================
+
+std::string BBLPrinterAgent::ams_refresh_rfid_gcode(const std::string& tray_id)
+{
+    return (boost::format("M620 R%1% \n") % tray_id).str();
+}
+
+std::string BBLPrinterAgent::ams_calibrate_gcode(int ams_id)
+{
+    return (boost::format("M620 C%1% \n") % ams_id).str();
+}
+
+std::string BBLPrinterAgent::ams_select_tray_gcode(const std::string& tray_id)
+{
+    return (boost::format("M620 P%1% \n") % tray_id).str();
+}
+
+int BBLPrinterAgent::command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
+{
+    const std::string gcode = ams_refresh_rfid_gcode(tray_id);
+    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
+    nlohmann::json j;
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = gcode;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode)
+{
+    const std::string gcode = ams_calibrate_gcode(ams_id);
+    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
+    nlohmann::json j;
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = gcode;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
+{
+    const std::string gcode = ams_select_tray_gcode(tray_id);
+    BOOST_LOG_TRIVIAL(trace) << "ams_debug: gcode_cmd" << gcode;
+    nlohmann::json j;
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = gcode;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_xyz_abs(std::string dev_id, int sequence_id, bool lan_mode)
+{
+    nlohmann::json j;
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = "G90 \n";
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_auto_leveling(std::string dev_id, int sequence_id, bool lan_mode)
+{
+    nlohmann::json j;
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = "G29 \n";
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_go_home(std::string dev_id, bool is_printing, bool supports_mqtt_homing, int sequence_id, bool lan_mode)
+{
+    nlohmann::json j;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    if (supports_mqtt_homing) {
+        j["print"]["command"] = "back_to_center";
+        return publish(dev_id, j, lan_mode);
+    }
+
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = is_printing ? "G28 X\n" : "G28 \n";
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_set_bed(std::string dev_id, int temp, bool supports_mqtt_bed_ctrl, int sequence_id, bool lan_mode)
+{
+    nlohmann::json j;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    if (supports_mqtt_bed_ctrl) {
+        j["print"]["command"] = "set_bed_temp";
+        j["print"]["temp"] = temp;
+        return publish(dev_id, j, lan_mode);
+    }
+
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = (boost::format("M140 S%1%\n") % temp).str();
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_set_nozzle(std::string dev_id, int temp, int sequence_id, bool lan_mode)
+{
+    nlohmann::json j;
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = (boost::format("M104 S%1%\n") % temp).str();
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_axis_control(std::string dev_id, std::string axis, double unit, double input_val, int speed,
+                                           bool is_core_xy, bool supports_mqtt_axis_control, int sequence_id, bool lan_mode)
+{
+    nlohmann::json j;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+
+    if (supports_mqtt_axis_control) {
+        int dir = input_val > 0 ? 1 : -1;
+        // i3-arch printers move the bed for Y/Z, so the on-screen direction is
+        // reversed -- same negation the g-code fallback below applies.
+        if (!is_core_xy && (axis == "Y" || axis == "Z")) {
+            dir = -dir;
+        }
+
+        j["print"]["command"] = "xyz_ctrl";
+        j["print"]["axis"] = axis;
+        j["print"]["dir"] = dir;
+        j["print"]["mode"] = (std::abs(input_val) >= 10) ? 1 : 0;
+        return publish(dev_id, j, lan_mode);
+    }
+
+    double value = input_val;
+    if (!is_core_xy && (axis == "Y" || axis == "Z")) {
+        value = -1.0 * input_val;
+    }
+
+    std::string value_str = (boost::format("%.1f") % (value * unit)).str();
+    std::string gcode;
+    if (axis == "X" || axis == "Y" || axis == "Z") {
+        gcode = (boost::format("M211 S \nM211 X1 Y1 Z1\nM1002 push_ref_mode\nG91 \nG1 %1%%2% F%3%\nM1002 pop_ref_mode\nM211 R\n")
+                 % axis % value_str % speed).str();
+    } else if (axis == "E") {
+        gcode = (boost::format("M83 \nG0 %1%%2% F%3%\n") % axis % value_str % speed).str();
+    } else {
+        return -1;
+    }
+
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = gcode;
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::publish(const std::string& dev_id, const nlohmann::json& j, bool lan_mode)
+{
+    const int rtn = lan_mode ? send_message_to_printer(dev_id, j.dump(), 0, 0) : send_message(dev_id, j.dump(), 0, 0);
+    if (rtn == 0) {
+        BOOST_LOG_TRIVIAL(info) << "publish_json: " << j.dump() << " code: " << rtn;
+    } else {
+        BOOST_LOG_TRIVIAL(error) << "publish_json: " << j.dump() << " code: " << rtn;
+    }
+    return rtn;
+}
 
 int BBLPrinterAgent::send_message(std::string dev_id, std::string json_str, int qos, int flag)
 {
@@ -349,8 +513,15 @@ int BBLPrinterAgent::start_local_print_with_record(PrintParams params, OnUpdateS
 
 int BBLPrinterAgent::start_send_gcode_to_sdcard(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
-    return dispatch_start<func_start_send_gcode_to_sdcard_legacy, func_start_send_gcode_to_sdcard_0203>(
+    int result = dispatch_start<func_start_send_gcode_to_sdcard_legacy, func_start_send_gcode_to_sdcard_0203>(
         BBLNetworkPlugin::instance().get_start_send_gcode_to_sdcard(), params, update_fn, cancel_fn, wait_fn);
+    if (result != 0) {
+        BOOST_LOG_TRIVIAL(error) << "start_send_gcode_to_sdcard failed: result=" << result
+            << ", try_emmc_print=" << params.try_emmc_print
+            << ", legacy_mode=" << BBLNetworkPlugin::instance().use_legacy_network()
+            << ", dev_ip=" << params.dev_ip << ", dev_id=" << params.dev_id;
+    }
+    return result;
 }
 
 int BBLPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)

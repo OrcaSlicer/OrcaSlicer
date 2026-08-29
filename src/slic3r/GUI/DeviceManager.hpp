@@ -18,6 +18,7 @@
 #include "boost/bimap/bimap.hpp"
 #include "libslic3r/calib.hpp"
 #include "libslic3r/Utils.hpp"
+#include "slic3r/Utils/PrinterNetworkTypes.hpp"
 
 #include "DeviceCore/DevDefs.h"
 #include "DeviceCore/DevConfigUtil.h"
@@ -99,7 +100,6 @@ struct DevPrintTaskRatingInfo;
 // Returns true when filament_id (e.g. "GFA11", "GFU00") is on the stringing-prone list for the
 // given nozzle diameter (mm), bucketed per nozzle size to mirror the printer firmware.
 bool is_stringing_prone_filament(const std::string& filament_id, float nozzle_diameter);
-
 
 class MachineObject
 {
@@ -548,29 +548,10 @@ public:
     time_t  xcam_first_layer_hold_start = 0;
     std::string local_rtsp_url;
     std::string tutk_state;
-    enum LiveviewLocal {
-        LVL_None,
-        LVL_Disable,
-        LVL_Local,
-        LVL_Rtsps,
-        LVL_Rtsp
-    } liveview_local{ LVL_None };
-    enum LiveviewRemote {
-        LVR_None,
-        LVR_Tutk,
-        LVR_Agora,
-        LVR_TutkAgora
-    } liveview_remote{ LVR_None };
-    enum FileLocal {
-        FL_None,
-        FL_Local
-    } file_local{ FL_None };
-    enum FileRemote {
-        FR_None,
-        FR_Tutk,
-        FR_Agora,
-        FR_TutkAgora
-    } file_remote{ FR_None };
+    LiveviewLocal liveview_local{ LiveviewLocal::LVL_None };
+    LiveviewRemote liveview_remote{ LiveviewRemote::LVR_None};
+    FileLocal file_local{ FileLocal::FL_None };
+    FileRemote file_remote{ FileRemote::FR_None };
 
     enum PlateMakerDectect : int
     {

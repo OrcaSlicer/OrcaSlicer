@@ -11,6 +11,9 @@
 #define ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE -7020 // a translation exists; this printer lacks the capability
 #include <string>
 #include <memory>
+#include <vector>
+#include <functional>
+#include <cstdint>
 
 namespace Slic3r {
 
@@ -83,6 +86,35 @@ public:
      * Publish a JSON command to a printer through cloud relay.
      */
     virtual int send_message(std::string dev_id, std::string json_str, int qos, int flag) = 0;
+
+    // why: gcode is firmware dialect, not a waist concept - commands whose body is Bambu-dialect
+    // gcode live on the agent that speaks it; the default is an honest refusal that MachineObject's
+    // publish funnel turns into a dialog.
+    virtual int command_ams_refresh_rfid(std::string, std::string, int, bool)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_ams_calibrate(std::string, int, int, bool)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_ams_select_tray(std::string, std::string, int, bool)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_xyz_abs(std::string dev_id, int sequence_id, bool lan_mode)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_auto_leveling(std::string dev_id, int sequence_id, bool lan_mode)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_go_home(std::string dev_id, bool is_printing, bool supports_mqtt_homing, int sequence_id, bool lan_mode)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_set_bed(std::string dev_id, int temp, bool supports_mqtt_bed_ctrl, int sequence_id, bool lan_mode)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_set_nozzle(std::string dev_id, int temp, int sequence_id, bool lan_mode)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_axis_control(std::string dev_id, std::string axis, double unit, double input_val, int speed,
+                                      bool is_core_xy, bool supports_mqtt_axis_control, int sequence_id, bool lan_mode)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+
+    /**
+     * Default LAN account username for this agent's protocol, if it has a fixed one.
+     * Returns an empty string if the agent has no fixed default (e.g. caller must supply one).
+     */
+    virtual std::string default_lan_username() const { return {}; }
 
     /**
      * Establish a direct LAN connection to a printer.
