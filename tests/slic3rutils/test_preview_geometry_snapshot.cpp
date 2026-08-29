@@ -74,6 +74,7 @@ TEST_CASE("ORPM serializes authoritative indexed mesh", "[PreviewGeometrySnapsho
     const auto bytes=ORPM::serialize(sample_snapshot());const auto h=ORPM::validate(bytes);
     CHECK(h.major_version==1);CHECK(h.header_size==256);CHECK(h.vertex_count==4);CHECK(h.index_count==6);
     CHECK(h.group_count==1);CHECK(h.material_slot_count==1);CHECK(h.file_size==bytes.size());
+    CHECK(bytes == read_file(fs::path(TEST_DATA_DIR) / "orpm_v1_minimal.orpm"));
 }
 
 TEST_CASE("ORPM rejects malformed mesh", "[PreviewGeometrySnapshot]")
