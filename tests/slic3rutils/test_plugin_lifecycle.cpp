@@ -120,6 +120,32 @@ class VisualizationPackage(orca.base):
         orca.register_capability(DummyVisualization)
 )PY";
 
+const char* const SECOND_VISUALIZATION_PLUGIN_SOURCE = R"PY(# /// script
+# requires-python = ">=3.12"
+#
+# [tool.orcaslicer.plugin]
+# name = "Second Visualization Plugin"
+# version = "1.0"
+# type = "script"
+# ///
+import orca
+
+class SecondVisualization(orca.visualization.VisualizationPluginCapabilityBase):
+    def get_name(self):
+        return "Second Visualization"
+
+    def open(self, ctx):
+        return orca.ExecutionResult.success()
+
+    def update(self, ctx):
+        return orca.ExecutionResult.success()
+
+@orca.plugin
+class SecondVisualizationPackage(orca.base):
+    def register_capabilities(self):
+        orca.register_capability(SecondVisualization)
+)PY";
+
 // Writes {data_dir}/orca_plugins/<stem>/<stem>.py and returns the plugin directory.
 fs::path write_plugin(const ScopedDataDir& data_dir_guard, const std::string& stem, const std::string& source)
 {
@@ -250,6 +276,51 @@ TEST_CASE("Visualization sessions dispatch lifecycle calls and close when disabl
     std::ifstream events(events_path.string());
     const std::string contents((std::istreambuf_iterator<char>(events)), std::istreambuf_iterator<char>());
     CHECK(contents == "open:1:0:ORPM:1.0:test\nupdate:2\nclose\n");
+}
+
+TEST_CASE("Unrelated visualization plugins keep independent sessions", "[PluginLifecycle][Visualization][Python]")
+{
+    ScopedDataDir data_dir_guard("visualization-independent");
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    write_plugin(data_dir_guard, "Visualization_First", VISUALIZATION_PLUGIN_SOURCE);
+    write_plugin(data_dir_guard, "Visualization_Second", SECOND_VISUALIZATION_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    std::string error;
+    REQUIRE(load_and_wait(manager, "Visualization_First", error));
+    REQUIRE(error.empty());
+    REQUIRE(load_and_wait(manager, "Visualization_Second", error));
+    REQUIRE(error.empty());
+
+    auto first = std::dynamic_pointer_cast<VisualizationPluginCapability>(
+        manager.get_plugin_capability({PluginCapabilityType::Visualization, "Dummy Visualization", "Visualization_First"}));
+    auto second = std::dynamic_pointer_cast<VisualizationPluginCapability>(
+        manager.get_plugin_capability({PluginCapabilityType::Visualization, "Second Visualization", "Visualization_Second"}));
+    REQUIRE(first != nullptr);
+    REQUIRE(second != nullptr);
+    CHECK(PluginVisualizations::instance().capabilities().size() == 2);
+
+    VisualizationContext first_context;
+    first_context.scene_id = 1;
+    first_context.plate_index = 0;
+    first_context.geometry_path = (fs::path(manager.get_storage_dir("Visualization_First")) / "first.orpm").string();
+    VisualizationContext second_context = first_context;
+    second_context.geometry_path = (fs::path(manager.get_storage_dir("Visualization_Second")) / "second.orpm").string();
+
+    PluginVisualizations& visualizations = PluginVisualizations::instance();
+    REQUIRE(visualizations.open(first, first_context).status == PluginResult::Success);
+    REQUIRE(visualizations.open(second, second_context).status == PluginResult::Success);
+    visualizations.close(first->identity());
+    CHECK_FALSE(visualizations.is_active(first->identity()));
+    CHECK(visualizations.is_active(second->identity()));
+    visualizations.close(second->identity());
+
+    CHECK(manager.unload_plugin("Visualization_First"));
+    CHECK(manager.unload_plugin("Visualization_Second"));
 }
 
 TEST_CASE("Plugin manager can initialize again after shutdown", "[PluginLifecycle][Python]")
