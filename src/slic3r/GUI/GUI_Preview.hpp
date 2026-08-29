@@ -107,7 +107,7 @@ class Preview : public wxPanel
     bool m_only_gcode { false };
     bool m_reload_paint_after_background_process_apply{false};
 
-    wxButton* m_realistic_preview_button{nullptr};
+    wxButton* m_visualize_button{nullptr};
     size_t    m_visualization_change_subscription{0};
 
 public:
