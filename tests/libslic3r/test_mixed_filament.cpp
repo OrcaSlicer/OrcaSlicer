@@ -4,12 +4,14 @@
 #include "libslic3r/LocalZOrderOptimizer.hpp"
 #include "libslic3r/LocalZPlanner.hpp"
 #include "libslic3r/MixedFilament.hpp"
+#include "libslic3r/MixedFilamentCookbook.hpp"
 #include "libslic3r/MixedFilamentMatch.hpp"
 #include "libslic3r/Print.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -998,4 +1000,196 @@ TEST_CASE("match_printable_candidates black front equals mix Grey physical", "[M
     REQUIRE(same_match_result(cands[0], best));
     REQUIRE(cands[0].kind == MixMatchResult::Kind::Physical);
     REQUIRE(cands[0].physical_id == 4u);
+}
+
+namespace {
+
+int cookbook_period(const MixedFilament &mf)
+{
+    int p = mf.ratio_a + mf.ratio_b;
+    if (mf.component_c != 0)
+        p += mf.ratio_c;
+    return std::max(1, p);
+}
+
+std::string serialize_mix_vec(const std::vector<MixedFilament> &rows)
+{
+    std::string out;
+    for (const MixedFilament &mf : rows) {
+        std::ostringstream oss;
+        oss << mf.component_a << ',' << mf.component_b << ',' << (mf.enabled ? 1 : 0) << ',' << mf.ratio_a
+            << ',' << mf.ratio_b;
+        if (mf.component_c != 0)
+            oss << ",c" << mf.component_c << ",rc" << mf.ratio_c;
+        MixedFilamentManager one;
+        one.load_definitions(oss.str());
+        if (!out.empty())
+            out += ';';
+        out += one.serialize_definitions();
+    }
+    return out;
+}
+
+} // namespace
+
+TEST_CASE("spectrum_cookbook recipes n=4 house table", "[spectrum_cookbook]")
+{
+    const auto recipes = spectrum_cookbook_recipes(4);
+    REQUIRE(recipes.size() == 11);
+
+    std::vector<MixedFilament> first6(recipes.begin(), recipes.begin() + 6);
+    for (const MixedFilament &mf : first6) {
+        REQUIRE(mf.component_c == 0u);
+        REQUIRE(mf.ratio_c == 0);
+        REQUIRE(cookbook_period(mf) <= 4);
+    }
+    REQUIRE(serialize_mix_vec(first6) ==
+            "1,2,1,1,1;1,3,1,1,1;2,3,1,1,1;1,4,1,1,1;2,4,1,1,1;3,4,1,1,1");
+
+    REQUIRE(recipes[6].component_a == 1u);
+    REQUIRE(recipes[6].component_b == 3u);
+    REQUIRE(recipes[6].ratio_a == 1);
+    REQUIRE(recipes[6].ratio_b == 2);
+    REQUIRE(recipes[7].component_a == 2u);
+    REQUIRE(recipes[7].component_b == 3u);
+    REQUIRE(recipes[7].ratio_a == 1);
+    REQUIRE(recipes[7].ratio_b == 2);
+    REQUIRE(recipes[8].component_a == 1u);
+    REQUIRE(recipes[8].component_b == 2u);
+    REQUIRE(recipes[8].ratio_a == 1);
+    REQUIRE(recipes[8].ratio_b == 2);
+
+    REQUIRE(recipes[9].component_c == 3u);
+    REQUIRE(recipes[9].ratio_c == 1);
+    REQUIRE(recipes[10].component_c == 3u);
+    REQUIRE(recipes[10].ratio_c == 2);
+
+    for (const MixedFilament &mf : recipes)
+        REQUIRE(cookbook_period(mf) <= 4);
+
+    REQUIRE(serialize_mix_vec({recipes[9]}).find("c3,rc1") != std::string::npos);
+    REQUIRE(serialize_mix_vec({recipes[10]}).find("c3,rc2") != std::string::npos);
+}
+
+TEST_CASE("spectrum_cookbook recipes n=2/3/5 and empty", "[spectrum_cookbook]")
+{
+    REQUIRE(spectrum_cookbook_recipes(0).empty());
+    REQUIRE(spectrum_cookbook_recipes(1).empty());
+
+    const auto n2 = spectrum_cookbook_recipes(2);
+    REQUIRE(n2.size() == 2);
+    REQUIRE(n2[0].component_a == 1u);
+    REQUIRE(n2[0].component_b == 2u);
+    REQUIRE(n2[0].ratio_a == 1);
+    REQUIRE(n2[0].ratio_b == 1);
+    REQUIRE(n2[0].component_c == 0u);
+    REQUIRE(n2[1].component_a == 1u);
+    REQUIRE(n2[1].component_b == 2u);
+    REQUIRE(n2[1].ratio_a == 1);
+    REQUIRE(n2[1].ratio_b == 2);
+    REQUIRE(n2[1].component_c == 0u);
+
+    const auto n3 = spectrum_cookbook_recipes(3);
+    REQUIRE(n3.size() == 8);
+    std::vector<MixedFilament> first3(n3.begin(), n3.begin() + 3);
+    REQUIRE(serialize_mix_vec(first3) == "1,2,1,1,1;1,3,1,1,1;2,3,1,1,1");
+    for (const MixedFilament &mf : n3) {
+        REQUIRE(mf.component_a != 4u);
+        REQUIRE(mf.component_b != 4u);
+        REQUIRE(mf.component_c != 4u);
+        REQUIRE(cookbook_period(mf) <= 4);
+    }
+
+    const auto n4 = spectrum_cookbook_recipes(4);
+    const auto n5 = spectrum_cookbook_recipes(5);
+    REQUIRE(n5.size() == n4.size());
+    for (size_t i = 0; i < n4.size(); ++i) {
+        REQUIRE(spectrum_cookbook_same_recipe(n4[i], n5[i]));
+        REQUIRE(n4[i].component_a == n5[i].component_a);
+        REQUIRE(n4[i].component_b == n5[i].component_b);
+        REQUIRE(n4[i].component_c == n5[i].component_c);
+        REQUIRE(n4[i].ratio_a == n5[i].ratio_a);
+        REQUIRE(n4[i].ratio_b == n5[i].ratio_b);
+        REQUIRE(n4[i].ratio_c == n5[i].ratio_c);
+    }
+}
+
+TEST_CASE("spectrum_cookbook_same_recipe gcd and leftover ratio_c", "[spectrum_cookbook]")
+{
+    MixedFilament clean;
+    clean.component_a = 1;
+    clean.component_b = 2;
+    clean.ratio_a     = 1;
+    clean.ratio_b     = 1;
+
+    MixedFilament twotwo;
+    twotwo.component_a = 1;
+    twotwo.component_b = 2;
+    twotwo.ratio_a     = 2;
+    twotwo.ratio_b     = 2;
+    REQUIRE(spectrum_cookbook_same_recipe(clean, twotwo));
+
+    MixedFilament one_two;
+    one_two.component_a = 1;
+    one_two.component_b = 2;
+    one_two.ratio_a     = 1;
+    one_two.ratio_b     = 2;
+    REQUIRE_FALSE(spectrum_cookbook_same_recipe(clean, one_two));
+
+    MixedFilament triple;
+    triple.component_a = 1;
+    triple.component_b = 2;
+    triple.component_c = 3;
+    triple.ratio_a     = 1;
+    triple.ratio_b     = 1;
+    triple.ratio_c     = 1;
+    REQUIRE_FALSE(spectrum_cookbook_same_recipe(clean, triple));
+
+    MixedFilament leftover = clean;
+    leftover.ratio_c       = 1; // component_c still 0
+    REQUIRE(spectrum_cookbook_same_recipe(clean, leftover));
+    REQUIRE_FALSE(spectrum_cookbook_same_recipe(leftover, triple));
+}
+
+TEST_CASE("spectrum_cookbook_append dups and persist cap", "[spectrum_cookbook]")
+{
+    {
+        const auto r = spectrum_cookbook_append({}, 4);
+        REQUIRE(r.added.size() == 11);
+        REQUIRE(r.skipped_duplicate == 0);
+        REQUIRE(r.skipped_cap == 0);
+    }
+
+    {
+        MixedFilamentManager six;
+        six.load_definitions("1,2,1,1,1;1,3,1,1,1;2,3,1,1,1;1,4,1,1,1;2,4,1,1,1;3,4,1,1,1");
+        const auto r = spectrum_cookbook_append(six.mixed_filaments(), 4);
+        REQUIRE(r.added.size() == 5);
+        REQUIRE(r.skipped_duplicate == 6);
+        REQUIRE(r.skipped_cap == 0);
+    }
+
+    {
+        const auto all = spectrum_cookbook_recipes(4);
+        const auto r   = spectrum_cookbook_append(all, 4);
+        REQUIRE(r.added.empty());
+        REQUIRE(r.skipped_duplicate >= 11);
+        REQUIRE(r.skipped_cap == 0);
+    }
+
+    {
+        // 10 enabled non-cookbook rows (3:1 is not in the house table).
+        std::vector<MixedFilament> ten(10);
+        for (MixedFilament &mf : ten) {
+            mf.component_a = 1;
+            mf.component_b = 2;
+            mf.ratio_a     = 3;
+            mf.ratio_b     = 1;
+            mf.enabled     = true;
+        }
+        // Cap: 4 physical + 10 enabled = 14; room for 1 → then skipped_cap.
+        const auto r = spectrum_cookbook_append(ten, 4, SPECTRUM_PAINT_ID_PERSIST_CAP);
+        REQUIRE(r.added.size() == 1);
+        REQUIRE(r.skipped_cap >= 1);
+    }
 }

@@ -43,6 +43,7 @@ private:
     void on_list_select(wxCommandEvent &evt);
     void on_add_row(wxCommandEvent &evt);
     void on_remove_row(wxCommandEvent &evt);
+    void on_add_recommended(wxCommandEvent &evt);
     void on_create_mix_from_color(wxCommandEvent &evt);
     void on_target_colour_changed(wxColourPickerEvent &evt);
     void on_hex_target_changed();
@@ -71,6 +72,7 @@ private:
     wxListBox  *m_list{nullptr};
     wxButton   *m_btn_add{nullptr};
     wxButton   *m_btn_remove{nullptr};
+    wxButton   *m_btn_recommended{nullptr};
     wxSpinCtrl *m_spin_a{nullptr};
     wxSpinCtrl *m_spin_b{nullptr};
     wxSpinCtrl *m_spin_c{nullptr};

@@ -359,6 +359,8 @@ set(lisbslic3r_sources
     Print.hpp
     MixedFilament.cpp
     MixedFilament.hpp
+    MixedFilamentCookbook.cpp
+    MixedFilamentCookbook.hpp
     MixedFilamentMatch.cpp
     MixedFilamentMatch.hpp
     MixedFilamentPaintBake.cpp

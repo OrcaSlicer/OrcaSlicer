@@ -11,6 +11,7 @@
 
 #include "libslic3r/Color.hpp"
 #include "libslic3r/MixedFilament.hpp"
+#include "libslic3r/MixedFilamentCookbook.hpp"
 #include "libslic3r/MixedFilamentMatch.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
@@ -93,10 +94,15 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     auto *list_row = new wxBoxSizer(wxHORIZONTAL);
     m_list = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(260), FromDIP(88)));
     auto *list_btns = new wxBoxSizer(wxVERTICAL);
-    m_btn_add    = new wxButton(this, wxID_ANY, _L("Add"));
-    m_btn_remove = new wxButton(this, wxID_ANY, _L("Remove"));
+    m_btn_add          = new wxButton(this, wxID_ANY, _L("Add"));
+    m_btn_remove       = new wxButton(this, wxID_ANY, _L("Remove"));
+    m_btn_recommended  = new wxButton(this, wxID_ANY, _L("Add recommended"));
+    m_btn_recommended->SetToolTip(
+        _L("Adds missing 1:1 pairs of slots 1–4, then period-4 cookbook extras. "
+           "Skips duplicates. Stops at persist cap 15. Does not change existing rows."));
     list_btns->Add(m_btn_add, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
-    list_btns->Add(m_btn_remove, 0, wxEXPAND);
+    list_btns->Add(m_btn_remove, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
+    list_btns->Add(m_btn_recommended, 0, wxEXPAND);
     list_row->Add(m_list, 1, wxEXPAND);
     list_row->Add(list_btns, 0, wxLEFT, FromDIP(8));
     root->Add(list_row, 0, wxEXPAND | wxALL, FromDIP(12));
@@ -215,6 +221,7 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     m_list->Bind(wxEVT_LISTBOX, &MixedFilamentDialog::on_list_select, this);
     m_btn_add->Bind(wxEVT_BUTTON, &MixedFilamentDialog::on_add_row, this);
     m_btn_remove->Bind(wxEVT_BUTTON, &MixedFilamentDialog::on_remove_row, this);
+    m_btn_recommended->Bind(wxEVT_BUTTON, &MixedFilamentDialog::on_add_recommended, this);
     m_clr_target->Bind(wxEVT_COLOURPICKER_CHANGED, &MixedFilamentDialog::on_target_colour_changed, this);
     m_btn_create_mix->Bind(wxEVT_BUTTON, &MixedFilamentDialog::on_create_mix_from_color, this);
     m_candidate_list->Bind(wxEVT_LISTBOX, &MixedFilamentDialog::on_candidate_select, this);
@@ -675,6 +682,41 @@ void MixedFilamentDialog::on_remove_row(wxCommandEvent &)
     } else if (size_t(m_selected_row) >= m_rows.size()) {
         m_selected_row = int(m_rows.size()) - 1;
     }
+    refresh_list();
+    load_selected_row_into_editors();
+}
+
+void MixedFilamentDialog::on_add_recommended(wxCommandEvent &)
+{
+    store_editors_into_selected_row();
+
+    const size_t n = physical_filament_count();
+    if (n < 2) {
+        MessageDialog(this, _L("Cannot recommend mixes with fewer than two physical filaments."),
+                      _L("Mixed Filaments"), wxOK | wxICON_INFORMATION)
+            .ShowModal();
+        return;
+    }
+
+    const MixCookbookAppend r = spectrum_cookbook_append(m_rows, n);
+    if (r.added.empty()) {
+        // Cap hit with nothing added (even if some recipes were also duplicates) → persist-cap modal.
+        if (r.skipped_cap != 0) {
+            MessageDialog(this,
+                          wxString::Format(_L("Physical filaments plus enabled mixes cannot exceed %d."),
+                                           int(SPECTRUM_PAINT_ID_PERSIST_CAP)),
+                          _L("Mixed Filaments"), wxOK | wxICON_WARNING)
+                .ShowModal();
+        } else {
+            MessageDialog(this, _L("All recommended mixes are already in the list."), _L("Mixed Filaments"),
+                          wxOK | wxICON_INFORMATION)
+                .ShowModal();
+        }
+        return;
+    }
+
+    m_rows.insert(m_rows.end(), r.added.begin(), r.added.end());
+    m_selected_row = int(m_rows.size()) - 1;
     refresh_list();
     load_selected_row_into_editors();
 }
