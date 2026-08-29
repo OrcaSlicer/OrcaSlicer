@@ -44,14 +44,15 @@ TEST_CASE("ORPM rejects malformed mesh", "[PreviewGeometrySnapshot]")
     SECTION("index"){auto d=valid;put_le<uint32_t>(d,256+4*32,99);CHECK_THROWS(ORPM::validate(d));}
     SECTION("group coverage"){auto d=valid;const uint64_t groups=256+4*32+6*4;put_le<uint32_t>(d,groups+4,3);CHECK_THROWS(ORPM::validate(d));}
     SECTION("non-finite"){auto d=valid;uint32_t nan=0x7fc00000;put_le(d,256,nan);CHECK_THROWS(ORPM::validate(d));}
-    SECTION("limit"){CHECK_THROWS(ORPM::validate(valid,3));}
+    SECTION("file limit"){CHECK_THROWS(ORPM::validate(valid,3));}
 }
 
 TEST_CASE("ORPM capture preserves shared preview mesh and result metadata", "[PreviewGeometrySnapshot]")
 {
     GUI::PreviewTriangleMesh mesh;mesh.vertices={{{0,0,0},{0,0,1},{0,0}},{{1,0,0},{0,0,1},{0,0}},{{0,1,0},{0,0,1},{0,0}}};mesh.indices={0,1,2};mesh.groups={{0,3,0,1,0,0,4,{255,0,0}}};for(const auto&v:mesh.vertices)mesh.bounds.merge(v.position.cast<double>());
     GCodeProcessorResult result;result.id=77;result.printable_height=256;result.filaments_count=1;result.extruder_colors={"#123456"};result.settings_ids.filament={"filament"};
-    const auto snapshot=ORPM::capture(mesh,result,2,77);CHECK(snapshot.scene_id==77);CHECK(snapshot.vertices.size()==3);CHECK(snapshot.indices==mesh.indices);CHECK(snapshot.groups.size()==1);CHECK(snapshot.materials.size()==1);CHECK_THROWS(ORPM::capture(mesh,result,2,76));
+    const Pointfs plate={{0,0},{200,0},{200,200},{0,200}};
+    const auto snapshot=ORPM::capture(mesh,result,2,77,plate);CHECK(snapshot.scene_id==77);CHECK(snapshot.vertices.size()==3);CHECK(snapshot.indices==mesh.indices);CHECK(snapshot.groups.size()==1);CHECK(snapshot.materials.size()==1);CHECK(snapshot.printable_area.size()==plate.size());CHECK_THROWS(ORPM::capture(mesh,result,2,76));
 }
 
 TEST_CASE("shared libvgcode mesh builder emits Orca caps and no travel", "[PreviewGeometrySnapshot]")

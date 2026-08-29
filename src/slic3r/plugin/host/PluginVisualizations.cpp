@@ -236,7 +236,7 @@ bool PluginVisualizations::has_active_sessions() const
 
 void PluginVisualizations::request_open(const std::shared_ptr<VisualizationPluginCapability>& capability,
                                         std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
-                                        const GCodeProcessorResult& result, int plate_index, uint64_t scene_id,
+                                        const GCodeProcessorResult& result, const Pointfs& printable_area, int plate_index, uint64_t scene_id,
                                         std::string orca_version, Completion completion)
 {
     if (!capability || !capability->is_enabled() || !mesh) {
@@ -259,7 +259,7 @@ void PluginVisualizations::request_open(const std::shared_ptr<VisualizationPlugi
     request.completion = std::move(completion);
     try {
         request.snapshot = std::make_shared<PreviewGeometrySnapshot::Snapshot>(
-            PreviewGeometrySnapshot::capture(*mesh, result, plate_index, scene_id));
+            PreviewGeometrySnapshot::capture(*mesh, result, plate_index, scene_id, printable_area));
         request.snapshot_path = prepare_cache(request.id.plugin_key, plate_index, scene_id);
         enqueue(std::move(request));
     } catch (const std::exception& error) {
@@ -269,7 +269,7 @@ void PluginVisualizations::request_open(const std::shared_ptr<VisualizationPlugi
 }
 
 void PluginVisualizations::request_updates(std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
-                                           const GCodeProcessorResult& result, int plate_index, uint64_t scene_id,
+                                           const GCodeProcessorResult& result, const Pointfs& printable_area, int plate_index, uint64_t scene_id,
                                            std::string orca_version, Completion completion)
 {
     std::vector<std::shared_ptr<VisualizationPluginCapability>> capabilities_to_update;
@@ -290,7 +290,7 @@ void PluginVisualizations::request_updates(std::shared_ptr<const GUI::PreviewTri
     std::shared_ptr<const PreviewGeometrySnapshot::Snapshot> snapshot;
     try {
         snapshot = std::make_shared<PreviewGeometrySnapshot::Snapshot>(
-            PreviewGeometrySnapshot::capture(*mesh, result, plate_index, scene_id));
+            PreviewGeometrySnapshot::capture(*mesh, result, plate_index, scene_id, printable_area));
     } catch (const std::exception& error) {
         if (completion)
             completion(recoverable_error(capabilities_to_update.front()->identity(), "capture", error));

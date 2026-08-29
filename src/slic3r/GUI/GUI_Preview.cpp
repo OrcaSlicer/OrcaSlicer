@@ -378,7 +378,9 @@ void Preview::open_visualization()
         selected = static_cast<size_t>(picker.GetSelection());
     }
 
-    const int plate_index = wxGetApp().plater()->get_partplate_list().get_curr_plate_index();
+    auto& plate_list = wxGetApp().plater()->get_partplate_list();
+    const int plate_index = plate_list.get_curr_plate_index();
+    const Pointfs& printable_area = plate_list.get_curr_plate()->get_shape();
     SuppressBackgroundProcessingUpdate suppress_background_processing;
     std::shared_ptr<const PreviewTriangleMesh> mesh;
     try {
@@ -388,7 +390,7 @@ void Preview::open_visualization()
         return;
     }
     PluginVisualizations::instance().request_open(
-        capabilities[selected], std::move(mesh), *m_gcode_result, plate_index, m_gcode_result->id, SoftFever_VERSION,
+        capabilities[selected], std::move(mesh), *m_gcode_result, printable_area, plate_index, m_gcode_result->id, SoftFever_VERSION,
         [weak = wxWeakRef<Preview>(this)](ExecutionResult result) {
             wxGetApp().CallAfter([weak, result = std::move(result)]() mutable {
                 if (weak)
@@ -403,7 +405,9 @@ void Preview::notify_visualization_result()
         !PluginVisualizations::instance().has_active_sessions())
         return;
 
-    const int plate_index = wxGetApp().plater()->get_partplate_list().get_curr_plate_index();
+    auto& plate_list = wxGetApp().plater()->get_partplate_list();
+    const int plate_index = plate_list.get_curr_plate_index();
+    const Pointfs& printable_area = plate_list.get_curr_plate()->get_shape();
     SuppressBackgroundProcessingUpdate suppress_background_processing;
     std::shared_ptr<const PreviewTriangleMesh> mesh;
     try {
@@ -413,7 +417,7 @@ void Preview::notify_visualization_result()
         return;
     }
     PluginVisualizations::instance().request_updates(
-        std::move(mesh), *m_gcode_result, plate_index, m_gcode_result->id, SoftFever_VERSION,
+        std::move(mesh), *m_gcode_result, printable_area, plate_index, m_gcode_result->id, SoftFever_VERSION,
         [weak = wxWeakRef<Preview>(this)](ExecutionResult result) {
             wxGetApp().CallAfter([weak, result = std::move(result)]() mutable {
                 if (weak)

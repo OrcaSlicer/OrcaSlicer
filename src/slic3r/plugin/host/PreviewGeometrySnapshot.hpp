@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/filesystem/path.hpp>
+#include <libslic3r/Point.hpp>
 
 #include <array>
 #include <cstddef>
@@ -21,11 +22,7 @@ constexpr uint32_t VERTEX_RECORD_SIZE = 32;
 constexpr uint32_t GROUP_RECORD_SIZE = 24;
 constexpr uint32_t MATERIAL_RECORD_SIZE = 40;
 constexpr uint32_t POINT_RECORD_SIZE = 8;
-constexpr uint64_t DEFAULT_MAX_VERTICES = 20'000'000;
-constexpr uint64_t DEFAULT_MAX_INDICES = 60'000'000;
-constexpr uint64_t DEFAULT_MAX_GROUPS = 1'000'000;
-constexpr uint32_t DEFAULT_MAX_MATERIALS = 4096;
-constexpr uint64_t DEFAULT_MAX_FILE_SIZE = 1ull << 30;
+constexpr uint64_t DEFAULT_MAX_FILE_SIZE = 4ull << 30;
 constexpr uint32_t FLAG_SPIRAL_VASE = 1u << 0;
 constexpr uint32_t FLAG_INDEXED = 1u << 1;
 
@@ -81,14 +78,10 @@ struct Header {
 };
 
 Snapshot capture(const GUI::PreviewTriangleMesh& mesh, const GCodeProcessorResult& result,
-                 int plate_index, uint64_t expected_scene_id);
+                 int plate_index, uint64_t expected_scene_id, const Pointfs& fallback_printable_area = {});
 std::vector<uint8_t> serialize(const Snapshot& snapshot);
-Header validate(const uint8_t* data, size_t size, uint64_t max_vertices = DEFAULT_MAX_VERTICES,
-                uint64_t max_indices = DEFAULT_MAX_INDICES, uint64_t max_groups = DEFAULT_MAX_GROUPS,
-                uint64_t max_file_size = DEFAULT_MAX_FILE_SIZE);
-Header validate(const std::vector<uint8_t>& data, uint64_t max_vertices = DEFAULT_MAX_VERTICES,
-                uint64_t max_indices = DEFAULT_MAX_INDICES, uint64_t max_groups = DEFAULT_MAX_GROUPS,
-                uint64_t max_file_size = DEFAULT_MAX_FILE_SIZE);
+Header validate(const uint8_t* data, size_t size, uint64_t max_file_size = DEFAULT_MAX_FILE_SIZE);
+Header validate(const std::vector<uint8_t>& data, uint64_t max_file_size = DEFAULT_MAX_FILE_SIZE);
 void write_atomic(const Snapshot& snapshot, const boost::filesystem::path& target);
 
 } // namespace PreviewGeometrySnapshot

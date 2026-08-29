@@ -48,10 +48,10 @@ public:
     // only the atomically published snapshot path; serialization remains on the worker.
     void request_open(const std::shared_ptr<VisualizationPluginCapability>& capability,
                       std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
-                      const GCodeProcessorResult& result, int plate_index, uint64_t scene_id,
+                      const GCodeProcessorResult& result, const Pointfs& printable_area, int plate_index, uint64_t scene_id,
                       std::string orca_version, Completion completion = {});
     void request_updates(std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
-                         const GCodeProcessorResult& result, int plate_index, uint64_t scene_id,
+                         const GCodeProcessorResult& result, const Pointfs& printable_area, int plate_index, uint64_t scene_id,
                          std::string orca_version, Completion completion = {});
 
     ChangeToken subscribe(std::function<void()> callback);
