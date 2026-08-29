@@ -25,6 +25,7 @@
 #include "wx/textctrl.h"
 #include <wx/timer.h>
 
+class wxSimplebook;
 
 namespace Slic3r {
 
@@ -32,6 +33,7 @@ class NetworkAgent;
 
 namespace GUI {
 
+class OnlineModelsPanel;
 
 class WebViewPanel : public wxPanel
 {
@@ -40,6 +42,10 @@ public:
     virtual ~WebViewPanel();
 
     void load_url(wxString& url);
+    void show_home();
+    void show_online_models();
+    void msw_rescale();
+    void on_sys_color_changed();
 
     void UpdateState();
     void OnIdle(wxIdleEvent& evt);
@@ -106,6 +112,10 @@ public:
 
     void update_mode();
 private:
+
+    wxSimplebook*      m_pages { nullptr };
+    wxPanel*           m_home_page { nullptr };
+    OnlineModelsPanel* m_online_models { nullptr };
 
     wxWebView* m_browser;
     wxBoxSizer *bSizer_toolbar;

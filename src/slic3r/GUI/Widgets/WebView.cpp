@@ -6,6 +6,8 @@
 
 #include <wx/webviewarchivehandler.h>
 #include <wx/webviewfshandler.h>
+#include <wx/app.h>
+#include <wx/filename.h>
 #if wxUSE_WEBVIEW_EDGE
 #include <wx/msw/webview_edge.h>
 #elif defined(__WXMAC__)
@@ -19,6 +21,7 @@
 #ifdef __WIN32__
 #include <WebView2.h>
 #include <Shellapi.h>
+#include <wrl.h>
 #include <slic3r/Utils/Http.hpp>
 #elif defined __linux__
 #include <gtk/gtk.h>
@@ -40,6 +43,9 @@ WEBKIT_API void
 webkit_javascript_result_unref              (WebKitJavascriptResult *js_result);
 }
 #endif
+
+#include <atomic>
+#include <map>
 
 #ifdef __WIN32__
 // Run Download and Install in another thread so we don't block the UI thread
@@ -226,6 +232,202 @@ class FakeWebView : public wxWebView
     virtual void DoSetPage(const wxString& html, const wxString& baseUrl) override { }
 };
 
+namespace {
+
+class UnavailableDownloadSubscription final : public WebViewDownloadSubscription
+{
+public:
+    bool available() const override { return false; }
+    void cancel(const std::string&) override {}
+};
+
+#ifdef __WIN32__
+
+using Microsoft::WRL::Callback;
+using Microsoft::WRL::ComPtr;
+
+class EdgeDownloadSubscription final : public WebViewDownloadSubscription
+{
+    struct ActiveDownload {
+        WebViewDownloadRequest request;
+        WebViewDownloadUpdate update;
+        ComPtr<ICoreWebView2DownloadOperation> operation;
+        EventRegistrationToken bytes_token {};
+        EventRegistrationToken state_token {};
+        bool bytes_registered { false };
+        bool state_registered { false };
+        bool terminal { false };
+    };
+
+    struct SharedState {
+        bool alive { true };
+        WebViewDownloadCallbacks callbacks;
+        std::map<std::string, std::shared_ptr<ActiveDownload>> downloads;
+    };
+
+public:
+    EdgeDownloadSubscription(wxWebView* webview, WebViewDownloadCallbacks callbacks)
+        : m_state(std::make_shared<SharedState>())
+    {
+        m_state->callbacks = std::move(callbacks);
+        ICoreWebView2* native = static_cast<ICoreWebView2*>(webview->GetNativeBackend());
+        if (!native || FAILED(native->QueryInterface(IID_PPV_ARGS(&m_webview)))) {
+            notify_unavailable("WebView2 download events are unavailable.");
+            return;
+        }
+
+        std::weak_ptr<SharedState> weak = m_state;
+        auto handler = Callback<ICoreWebView2DownloadStartingEventHandler>(
+            [weak](ICoreWebView2*, ICoreWebView2DownloadStartingEventArgs* args) -> HRESULT {
+                const auto state = weak.lock();
+                if (!state || !state->alive || !args)
+                    return S_OK;
+
+                ComPtr<ICoreWebView2DownloadOperation> operation;
+                if (FAILED(args->get_DownloadOperation(&operation)) || !operation)
+                    return S_OK;
+
+                LPWSTR native_path = nullptr;
+                LPWSTR native_url = nullptr;
+                args->get_ResultFilePath(&native_path);
+                operation->get_Uri(&native_url);
+
+                static std::atomic_uint64_t next_id { 1 };
+                WebViewDownloadRequest request;
+                request.id = "webview2-" + std::to_string(next_id.fetch_add(1));
+                request.suggested_filename = native_path ? wxFileName(native_path).GetFullName() : wxString();
+                request.url = native_url ? wxString(native_url) : wxString();
+                if (native_path)
+                    CoTaskMemFree(native_path);
+                if (native_url)
+                    CoTaskMemFree(native_url);
+
+                if (!state->callbacks.select_destination)
+                    return S_OK;
+                const std::optional<wxString> destination = state->callbacks.select_destination(request);
+                if (!destination || destination->empty())
+                    return S_OK;
+                if (FAILED(args->put_ResultFilePath(destination->wc_str())))
+                    return S_OK;
+                args->put_Handled(TRUE);
+
+                auto active = std::make_shared<ActiveDownload>();
+                active->request = request;
+                active->update.id = request.id;
+                active->update.destination = *destination;
+                active->update.state = WebViewDownloadState::Started;
+                active->operation = operation;
+                operation->get_TotalBytesToReceive(&active->update.total_bytes);
+                operation->get_BytesReceived(&active->update.bytes_received);
+                state->downloads.emplace(request.id, active);
+
+                auto post_update = [weak](WebViewDownloadUpdate update) {
+                    if (!wxTheApp)
+                        return;
+                    wxTheApp->CallAfter([weak, update = std::move(update)] {
+                        const auto current = weak.lock();
+                        if (current && current->alive && current->callbacks.on_updated)
+                            current->callbacks.on_updated(update);
+                    });
+                };
+
+                auto bytes_handler = Callback<ICoreWebView2BytesReceivedChangedEventHandler>(
+                    [weak, active, post_update](ICoreWebView2DownloadOperation* sender, IUnknown*) -> HRESULT {
+                        const auto current = weak.lock();
+                        if (!current || !current->alive || active->terminal)
+                            return S_OK;
+                        sender->get_BytesReceived(&active->update.bytes_received);
+                        sender->get_TotalBytesToReceive(&active->update.total_bytes);
+                        active->update.state = WebViewDownloadState::Downloading;
+                        post_update(active->update);
+                        return S_OK;
+                    });
+                if (SUCCEEDED(operation->add_BytesReceivedChanged(bytes_handler.Get(), &active->bytes_token)))
+                    active->bytes_registered = true;
+
+                auto state_handler = Callback<ICoreWebView2StateChangedEventHandler>(
+                    [weak, active, post_update](ICoreWebView2DownloadOperation* sender, IUnknown*) -> HRESULT {
+                        const auto current = weak.lock();
+                        if (!current || !current->alive)
+                            return S_OK;
+                        COREWEBVIEW2_DOWNLOAD_STATE native_state = COREWEBVIEW2_DOWNLOAD_STATE_IN_PROGRESS;
+                        sender->get_State(&native_state);
+                        sender->get_BytesReceived(&active->update.bytes_received);
+                        sender->get_TotalBytesToReceive(&active->update.total_bytes);
+                        if (native_state == COREWEBVIEW2_DOWNLOAD_STATE_COMPLETED) {
+                            active->update.state = WebViewDownloadState::Completed;
+                            active->terminal = true;
+                        } else if (native_state == COREWEBVIEW2_DOWNLOAD_STATE_INTERRUPTED) {
+                            COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON reason = COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_NONE;
+                            sender->get_InterruptReason(&reason);
+                            active->update.state = reason == COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_USER_CANCELED
+                                ? WebViewDownloadState::Cancelled : WebViewDownloadState::Failed;
+                            if (active->update.state == WebViewDownloadState::Failed)
+                                active->update.error = wxString::Format("WebView2 error %d", static_cast<int>(reason));
+                            active->terminal = true;
+                        } else {
+                            active->update.state = WebViewDownloadState::Downloading;
+                        }
+                        post_update(active->update);
+                        return S_OK;
+                    });
+                if (SUCCEEDED(operation->add_StateChanged(state_handler.Get(), &active->state_token)))
+                    active->state_registered = true;
+
+                if (state->callbacks.on_started)
+                    state->callbacks.on_started(request, active->update);
+                return S_OK;
+            });
+
+        if (FAILED(m_webview->add_DownloadStarting(handler.Get(), &m_start_token))) {
+            m_webview.Reset();
+            notify_unavailable("WebView2 download events could not be registered.");
+            return;
+        }
+        m_start_registered = true;
+    }
+
+    ~EdgeDownloadSubscription() override
+    {
+        m_state->alive = false;
+        if (m_start_registered && m_webview)
+            m_webview->remove_DownloadStarting(m_start_token);
+        for (const auto& item : m_state->downloads) {
+            const auto& active = item.second;
+            if (active->bytes_registered)
+                active->operation->remove_BytesReceivedChanged(active->bytes_token);
+            if (active->state_registered)
+                active->operation->remove_StateChanged(active->state_token);
+        }
+        m_state->downloads.clear();
+    }
+
+    bool available() const override { return m_start_registered; }
+
+    void cancel(const std::string& id) override
+    {
+        const auto found = m_state->downloads.find(id);
+        if (found != m_state->downloads.end())
+            found->second->operation->Cancel();
+    }
+
+private:
+    void notify_unavailable(const wxString& reason)
+    {
+        if (m_state->callbacks.on_capability_unavailable)
+            m_state->callbacks.on_capability_unavailable(reason);
+    }
+
+    std::shared_ptr<SharedState> m_state;
+    ComPtr<ICoreWebView2_4> m_webview;
+    EventRegistrationToken m_start_token {};
+    bool m_start_registered { false };
+};
+
+#endif
+
+} // namespace
+
 wxDEFINE_EVENT(EVT_WEBVIEW_RECREATED, wxCommandEvent);
 
 static std::vector<wxWebView*> g_webviews;
@@ -356,6 +558,19 @@ void WebView::MarkScriptMessageHandlerAdded(wxWebView * webView)
     if (WebViewRef *ref = webview_ref(webView))
         ref->m_script_handler_added = true;
 }
+
+std::unique_ptr<WebViewDownloadSubscription>
+WebView::EnableDownloads(wxWebView* webView, WebViewDownloadCallbacks callbacks)
+{
+#ifdef __WIN32__
+    return std::make_unique<EdgeDownloadSubscription>(webView, std::move(callbacks));
+#else
+    if (callbacks.on_capability_unavailable)
+        callbacks.on_capability_unavailable("Native download handling is unavailable for this webview backend.");
+    return std::make_unique<UnavailableDownloadSubscription>();
+#endif
+}
+
 #if wxUSE_WEBVIEW_EDGE
 bool WebView::CheckWebViewRuntime()
 {

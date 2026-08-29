@@ -330,6 +330,21 @@ function OnClickOpenProject()
 	SendWXMessage( JSON.stringify(tSend) );		
 }
 
+function OnClickOnlineModels()
+{
+	var tSend={};
+	tSend['sequence_id']=Math.round(new Date() / 1000);
+	tSend['command']="homepage_online_models";
+
+	SendWXMessage( JSON.stringify(tSend) );
+}
+
+function SetOnlineModelsText(text)
+{
+	$("#OnlineModelsTitle").text(text.title);
+	$("#OnlineModelsSubtitle").text(text.subtitle);
+}
+
 function OnOpenRecentFile( strPath )
 {
 	var tSend={};

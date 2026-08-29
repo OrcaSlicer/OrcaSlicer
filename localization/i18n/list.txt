@@ -162,6 +162,7 @@ src/slic3r/GUI/NotificationManager.hpp
 src/slic3r/GUI/NotificationManager.cpp
 src/slic3r/GUI/ObjectDataViewModel.cpp
 src/slic3r/GUI/OpenGLManager.cpp
+src/slic3r/GUI/OnlineModelsPanel.cpp
 src/slic3r/GUI/OptionsGroup.cpp
 src/slic3r/GUI/PrintOptionsDialog.cpp
 src/slic3r/GUI/SafetyOptionsDialog.cpp

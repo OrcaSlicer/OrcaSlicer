@@ -399,6 +399,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/OG_CustomCtrl.hpp
     GUI/OpenGLManager.cpp
     GUI/OpenGLManager.hpp
+    GUI/OnlineModelsPanel.cpp
+    GUI/OnlineModelsPanel.hpp
     GUI/OptionsGroup.cpp
     GUI/OptionsGroup.hpp
     GUI/ParamsDialog.cpp
