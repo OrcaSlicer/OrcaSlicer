@@ -1,10 +1,12 @@
 // Milestone-3/4/5 pair-mix + 0009 3-component: virtual mixed filament → whole-layer cadence or pattern.
 // Serialization grammar (rows separated by ';'):
-//   "A,B,enabled,ratio_a,ratio_b[,pattern][,xaN][,xbN][,cN][,rcN]"
+//   "A,B,enabled,ratio_a,ratio_b[,pattern][,xaN][,xbN][,cN][,rcN][,g]"
 // Pair prefix is load-bearing. Example 1:1 mix of physical 1 and 2: "1,2,1,1,1"
 // Example pattern: "1,2,1,1,1,112" → layers T0,T0,T1 when A=1,B=2
 // Optional cN/rcN: 1,2,1,1,1,c3,rc1 → period ra+rb+rc, A then B then C.
 // Optional trailing xa/xb tokens persist component surface offsets (mm).
+// Optional [,g] flag: 2-filament height gradient (A at z_lo → B at z_hi).
+// ZR `,g` is a flag, not Snapmaker `g<component_ids>`.
 // Empty string = no mixes. Virtual IDs start at num_physical+1 for enabled rows in order.
 // Token map (1-based): '1'→component_a, '2'→component_b,
 //   '3'→component_c when set else physical 3, '4'..'9'→direct physical ID.
@@ -34,6 +36,8 @@ struct MixedFilament
     // Applied only when Local-Z does not own the layer (FS truth).
     float        component_a_surface_offset = 0.f;
     float        component_b_surface_offset = 0.f;
+    // Per-mix height gradient (A at object bottom → B at top). Compact grammar `,g`.
+    bool         gradient_enabled = false;
 };
 
 class MixedFilamentManager

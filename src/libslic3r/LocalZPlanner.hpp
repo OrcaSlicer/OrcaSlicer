@@ -150,4 +150,30 @@ inline std::vector<double> rematerialize_layer_heights(const std::vector<double>
     return out;
 }
 
+// True when this enabled mix is a 2-filament height gradient (A at z_lo → B at z_hi).
+inline bool spectrum_mix_is_height_gradient(const MixedFilament &mf,
+                                            bool process_gradient,
+                                            bool any_g_in_defs)
+{
+    if (!mf.manual_pattern.empty() || mf.component_c != 0)
+        return false;
+    if (mf.gradient_enabled)
+        return true;
+    if (any_g_in_defs)
+        return false;
+    return process_gradient;
+}
+
+// Per-layer A/B for Local-Z. Gradient → interpolate_pair_ratio_by_z(z_frac);
+// else local_z_pair_ratio(mf) (pattern/C → {0,0}).
+inline std::pair<int, int> spectrum_mix_layer_ratio(const MixedFilament &mf,
+                                                    double z_frac,
+                                                    bool process_gradient,
+                                                    bool any_g_in_defs)
+{
+    if (spectrum_mix_is_height_gradient(mf, process_gradient, any_g_in_defs))
+        return interpolate_pair_ratio_by_z(z_frac);
+    return local_z_pair_ratio(mf);
+}
+
 } // namespace Slic3r

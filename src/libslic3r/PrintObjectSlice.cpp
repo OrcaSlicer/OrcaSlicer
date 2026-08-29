@@ -1340,9 +1340,17 @@ static void build_local_z_plan(PrintObject &print_object)
         return;
 
     const double     min_h        = machine_min_layer_height(print_cfg);
-    const bool       gradient     = print_cfg.mixed_filament_gradient_mode.value;
+    const bool       process_gradient = print_cfg.mixed_filament_gradient_mode.value;
     const size_t     num_physical = print_cfg.filament_diameter.size();
     const MixedFilamentManager &mixed_mgr = print->mixed_filament_manager();
+    bool any_g = false;
+    for (const MixedFilament &row : mixed_mgr.mixed_filaments()) {
+        if (row.gradient_enabled) {
+            any_g = true;
+            break;
+        }
+    }
+    const bool use_height_gradient = spectrum_mix_is_height_gradient(*mf, process_gradient, any_g);
 
     const coordf_t z_lo_obj = print_object.get_layer(0)->print_z;
     const coordf_t z_hi_obj = print_object.get_layer(int(print_object.layer_count()) - 1)->print_z;
@@ -1363,14 +1371,10 @@ static void build_local_z_plan(PrintObject &print_object)
         interval.has_mixed_paint = true;
         interval.first_sublayer_idx = plans.size();
 
-        int ra = ratio.first;
-        int rb = ratio.second;
-        if (gradient) {
-            const double z_frac = (layer.print_z - z_lo_obj) / z_span;
-            const auto   g      = interpolate_pair_ratio_by_z(z_frac);
-            ra = g.first;
-            rb = g.second;
-        }
+        const double z_frac = (layer.print_z - z_lo_obj) / z_span;
+        const auto   layer_ratio = spectrum_mix_layer_ratio(*mf, z_frac, process_gradient, any_g);
+        const int    ra = layer_ratio.first;
+        const int    rb = layer_ratio.second;
 
         // Hold first layer whole: elephant-foot / first-layer flow stay on layer 0.
         // Remaining layers: Full-domain cube rematerialize (same XY, real heights).
@@ -1389,7 +1393,7 @@ static void build_local_z_plan(PrintObject &print_object)
             pass.z_hi            = interval.z_hi;
             pass.print_z         = layer.print_z;
             pass.flow_height     = layer.height;
-            pass.extruder_1based = gradient
+            pass.extruder_1based = use_height_gradient
                 ? gradient_fallback_extruder_1based(*mf, ra, rb, num_physical)
                 : mixed_mgr.resolve(virtual_id, num_physical, int(layer_idx));
             plans.emplace_back(pass);

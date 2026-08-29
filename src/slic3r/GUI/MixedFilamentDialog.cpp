@@ -50,6 +50,8 @@ std::string serialize_mix_row(const MixedFilament &mf)
         row += ",c" + std::to_string(mf.component_c);
         row += ",rc" + std::to_string(mf.ratio_c);
     }
+    if (mf.gradient_enabled)
+        row += ",g";
     return row;
 }
 
@@ -174,11 +176,13 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     m_enable_tower = new wxCheckBox(this, wxID_ANY, _L("Enable prime tower"));
     m_local_z      = new wxCheckBox(this, wxID_ANY, _L("Subdivide Mix Layer"));
     m_full_domain  = new wxCheckBox(this, wxID_ANY, _L("Full domain"));
-    m_gradient     = new wxCheckBox(this, wxID_ANY, _L("Height gradient (100:0 bottom → 0:100 top)"));
+    m_gradient     = new wxCheckBox(this, wxID_ANY, _L("Height gradient (A bottom → B top)"));
 
     m_local_z->SetToolTip(_L("Split mixed layers into ratio-proportional sub-layers (e.g. 0.24 mm at 2:1 → 0.16 + 0.08)."));
     m_full_domain->SetToolTip(_L("Apply Subdivide Mix Layer to the whole object when its extruder is a virtual mix (no paint required)."));
-    m_gradient->SetToolTip(_L("Requires Subdivide Mix Layer and Full domain. Interpolates pair ratio by object Z."));
+    m_gradient->SetToolTip(
+        _L("Requires Subdivide Mix Layer and Full domain. Applies to this mix only; siblings stay ratio/pattern. "
+           "Prefer layer height 0.24 mm (0.16–0.28 mm band)."));
 
     m_enabled->SetValue(true);
     m_apply_object->SetValue(true);
@@ -237,6 +241,25 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
         evt.Skip();
     });
     m_enabled->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &) {
+        store_editors_into_selected_row();
+        refresh_list_labels();
+    });
+    m_gradient->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &) {
+        if (m_suppress_events)
+            return;
+        const bool on = m_gradient->GetValue();
+        if (on) {
+            m_spin_c->SetValue(0);
+            m_pattern->SetValue(wxEmptyString);
+            if (m_selected_row >= 0 && size_t(m_selected_row) < m_rows.size()) {
+                MixedFilament &mf = m_rows[size_t(m_selected_row)];
+                mf.component_c      = 0;
+                mf.manual_pattern.clear();
+                mf.gradient_enabled = true;
+            }
+        } else if (m_selected_row >= 0 && size_t(m_selected_row) < m_rows.size()) {
+            m_rows[size_t(m_selected_row)].gradient_enabled = false;
+        }
         store_editors_into_selected_row();
         refresh_list_labels();
     });
@@ -625,6 +648,7 @@ void MixedFilamentDialog::load_selected_row_into_editors()
     m_pattern->SetValue(wxString::FromUTF8(mf.manual_pattern.c_str()));
     m_offset_a->SetValue(wxString::FromDouble(double(mf.component_a_surface_offset)));
     m_offset_b->SetValue(wxString::FromDouble(double(mf.component_b_surface_offset)));
+    m_gradient->SetValue(mf.gradient_enabled);
     refresh_predicted_swatch();
 }
 
@@ -650,6 +674,13 @@ void MixedFilamentDialog::store_editors_into_selected_row()
     m_offset_b->GetValue().ToDouble(&offset_b);
     mf.component_a_surface_offset = float(offset_a);
     mf.component_b_surface_offset = float(offset_b);
+    mf.gradient_enabled = m_gradient->GetValue();
+    if (mf.gradient_enabled) {
+        mf.component_c = 0;
+        mf.manual_pattern.clear();
+        m_spin_c->SetValue(0);
+        m_pattern->SetValue(wxEmptyString);
+    }
 }
 
 void MixedFilamentDialog::on_list_select(wxCommandEvent &)
@@ -742,8 +773,6 @@ void MixedFilamentDialog::load_from_config()
     if (m_rows.empty())
         m_rows.emplace_back();
     m_selected_row = 0;
-    refresh_list();
-    load_selected_row_into_editors();
 
     const DynamicPrintConfig &print_cfg = bundle->prints.get_edited_preset().config;
     if (const ConfigOptionBool *ept = print_cfg.option<ConfigOptionBool>("enable_prime_tower"))
@@ -752,8 +781,28 @@ void MixedFilamentDialog::load_from_config()
         m_local_z->SetValue(lz->value);
     if (const ConfigOptionBool *fd = print_cfg.option<ConfigOptionBool>("dithering_local_z_whole_objects"))
         m_full_domain->SetValue(fd->value);
+
+    // 0005 legacy: process key on with no `,g` yet → stamp pair-capable editor rows.
+    bool process_gradient = false;
     if (const ConfigOptionBool *gr = print_cfg.option<ConfigOptionBool>("mixed_filament_gradient_mode"))
-        m_gradient->SetValue(gr->value);
+        process_gradient = gr->value;
+    bool any_row_g = false;
+    for (const MixedFilament &mf : m_rows) {
+        if (mf.gradient_enabled) {
+            any_row_g = true;
+            break;
+        }
+    }
+    if (process_gradient && !any_row_g) {
+        for (MixedFilament &mf : m_rows) {
+            if (mf.component_c == 0 &&
+                MixedFilamentManager::normalize_manual_pattern(mf.manual_pattern).empty())
+                mf.gradient_enabled = true;
+        }
+    }
+
+    refresh_list();
+    load_selected_row_into_editors();
 }
 
 bool MixedFilamentDialog::apply_to_project()
@@ -827,7 +876,22 @@ bool MixedFilamentDialog::apply_to_project()
         print_cfg.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
     print_cfg.set_key_value("dithering_local_z_mode", new ConfigOptionBool(m_local_z->GetValue()));
     print_cfg.set_key_value("dithering_local_z_whole_objects", new ConfigOptionBool(m_full_domain->GetValue()));
-    print_cfg.set_key_value("mixed_filament_gradient_mode", new ConfigOptionBool(m_gradient->GetValue()));
+
+    bool any_enabled_g = false;
+    for (const MixedFilament &mf : m_rows) {
+        if (mf.enabled && mf.gradient_enabled) {
+            any_enabled_g = true;
+            break;
+        }
+    }
+    print_cfg.set_key_value("mixed_filament_gradient_mode", new ConfigOptionBool(any_enabled_g));
+    if (any_enabled_g && (!m_local_z->GetValue() || !m_full_domain->GetValue())) {
+        MessageDialog(this,
+                      _L("Height gradient mixes require Subdivide Mix Layer and Full domain to slice. "
+                         "Settings were saved; enable both process options to print the gradient."),
+                      _L("Mixed Filaments"), wxOK | wxICON_INFORMATION)
+            .ShowModal();
+    }
 
     const int virtual_id = (m_selected_row >= 0) ? virtual_id_for_row(size_t(m_selected_row), num_physical) : -1;
 

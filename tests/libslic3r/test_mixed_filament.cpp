@@ -1193,3 +1193,126 @@ TEST_CASE("spectrum_cookbook_append dups and persist cap", "[spectrum_cookbook]"
         REQUIRE(r.skipped_cap >= 1);
     }
 }
+
+TEST_CASE("spectrum gradient parse/serialize ,g and g1; g0/g2 not pattern", "[spectrum_gradient]")
+{
+    {
+        MixedFilamentManager mgr;
+        mgr.load_definitions("1,2,1,1,1,g");
+        REQUIRE(mgr.enabled_count() == 1);
+        REQUIRE(mgr.mixed_filaments().front().gradient_enabled);
+        const std::string out = mgr.serialize_definitions();
+        REQUIRE(out.find(",g") != std::string::npos);
+    }
+    {
+        MixedFilamentManager mgr;
+        mgr.load_definitions("1,2,1,1,1");
+        REQUIRE_FALSE(mgr.mixed_filaments().front().gradient_enabled);
+        REQUIRE(mgr.serialize_definitions().find(",g") == std::string::npos);
+    }
+    {
+        MixedFilamentManager mgr;
+        mgr.load_definitions("1,2,1,1,1,G1");
+        REQUIRE(mgr.mixed_filaments().front().gradient_enabled);
+    }
+    {
+        MixedFilamentManager mgr;
+        mgr.load_definitions("1,2,1,1,1,g0");
+        REQUIRE_FALSE(mgr.mixed_filaments().front().gradient_enabled);
+        REQUIRE(mgr.mixed_filaments().front().manual_pattern.empty());
+    }
+    {
+        MixedFilamentManager mgr;
+        mgr.load_definitions("1,2,1,1,1,g2");
+        REQUIRE_FALSE(mgr.mixed_filaments().front().gradient_enabled);
+        REQUIRE(mgr.mixed_filaments().front().manual_pattern.empty());
+    }
+    {
+        MixedFilamentManager mgr;
+        mgr.load_definitions("1,2,1,1,1,xa0.1,g");
+        REQUIRE(mgr.mixed_filaments().front().gradient_enabled);
+    }
+    {
+        MixedFilamentManager mgr;
+        mgr.load_definitions("1,2,1,1,1,c3,rc1,g");
+        const MixedFilament &mf = mgr.mixed_filaments().front();
+        REQUIRE(mf.gradient_enabled);
+        REQUIRE(mf.component_c == 3u);
+        REQUIRE_FALSE(spectrum_mix_is_height_gradient(mf, true, true));
+    }
+}
+
+TEST_CASE("spectrum_mix_is_height_gradient three-branch table", "[spectrum_gradient]")
+{
+    MixedFilament pair;
+    pair.component_a = 1;
+    pair.component_b = 2;
+    pair.ratio_a     = 1;
+    pair.ratio_b     = 1;
+
+    MixedFilament g_pair = pair;
+    g_pair.gradient_enabled = true;
+    REQUIRE(spectrum_mix_is_height_gradient(g_pair, false, false));
+    REQUIRE(spectrum_mix_is_height_gradient(g_pair, true, true));
+
+    REQUIRE(spectrum_mix_is_height_gradient(pair, true, false));
+    REQUIRE_FALSE(spectrum_mix_is_height_gradient(pair, true, true));
+    REQUIRE_FALSE(spectrum_mix_is_height_gradient(pair, false, false));
+
+    MixedFilament patterned = g_pair;
+    patterned.manual_pattern = "112";
+    REQUIRE_FALSE(spectrum_mix_is_height_gradient(patterned, true, true));
+
+    MixedFilament triple = g_pair;
+    triple.component_c = 3;
+    REQUIRE_FALSE(spectrum_mix_is_height_gradient(triple, true, true));
+}
+
+TEST_CASE("spectrum_mix_layer_ratio gate DoD-2", "[spectrum_gradient]")
+{
+    MixedFilament g_row;
+    g_row.component_a       = 1;
+    g_row.component_b       = 2;
+    g_row.ratio_a           = 2;
+    g_row.ratio_b           = 1;
+    g_row.gradient_enabled  = true;
+    const auto mid = spectrum_mix_layer_ratio(g_row, 0.5, false, false);
+    REQUIRE(mid.first == 50);
+    REQUIRE(mid.second == 50);
+
+    MixedFilament sibling;
+    sibling.component_a = 1;
+    sibling.component_b = 2;
+    sibling.ratio_a     = 2;
+    sibling.ratio_b     = 1;
+    const auto stay = spectrum_mix_layer_ratio(sibling, 0.5, true, true);
+    REQUIRE(stay.first == 2);
+    REQUIRE(stay.second == 1);
+
+    const auto legacy = spectrum_mix_layer_ratio(sibling, 0.5, true, false);
+    REQUIRE(legacy.first == 50);
+    REQUIRE(legacy.second == 50);
+}
+
+TEST_CASE("mix_recipe_label height gradient A->B", "[spectrum_gradient]")
+{
+    const std::vector<std::string> names{"C", "M", "Y", "K"};
+    MixedFilament                  g;
+    g.component_a       = 1;
+    g.component_b       = 3;
+    g.ratio_a           = 1;
+    g.ratio_b           = 1;
+    g.gradient_enabled  = true;
+    REQUIRE(mix_recipe_label(g, &names) == "C->Y");
+
+    MixedFilament g12 = g;
+    g12.component_b   = 2;
+    REQUIRE(mix_recipe_label(g12, nullptr) == "1->2");
+
+    MixedFilament pair;
+    pair.component_a = 1;
+    pair.component_b = 2;
+    pair.ratio_a     = 1;
+    pair.ratio_b     = 1;
+    REQUIRE(mix_recipe_label(pair, &names) == "C+M 1:1");
+}

@@ -101,6 +101,24 @@ bool parse_component_c_token(const std::string &field, MixedFilament &mf)
     return false;
 }
 
+// Claim every g/G-prefix token so typos never fall through to pattern.
+// Enable only bare g/G or g1/G1; consume-but-do-not-enable g0/g2/….
+bool parse_gradient_token(const std::string &token, MixedFilament &mf)
+{
+    if (token.empty() || (token[0] != 'g' && token[0] != 'G'))
+        return false;
+    if (token.size() == 1) {
+        mf.gradient_enabled = true;
+        return true;
+    }
+    if (token.size() == 2 && token[1] == '1') {
+        mf.gradient_enabled = true;
+        return true;
+    }
+    // Consumed, not enabled, not pattern.
+    return true;
+}
+
 std::string format_offset_token(char which, float value)
 {
     std::ostringstream oss;
@@ -227,6 +245,8 @@ void MixedFilamentManager::load_definitions(const std::string &serialized)
             }
             if (parse_component_c_token(token, mf))
                 continue;
+            if (parse_gradient_token(token, mf))
+                continue;
             if (mf.manual_pattern.empty())
                 mf.manual_pattern = normalize_manual_pattern(token);
         }
@@ -269,6 +289,8 @@ std::string MixedFilamentManager::serialize_definitions() const
             oss << ',' << format_offset_token('b', mf.component_b_surface_offset);
         if (mf.component_c != 0)
             oss << ",c" << mf.component_c << ",rc" << mf.ratio_c;
+        if (mf.gradient_enabled)
+            oss << ",g";
     }
     return oss.str();
 }
@@ -414,6 +436,7 @@ bool mixed_filament_painted_ids_would_shift(const std::string     &old_serialize
         return lhs->component_a == rhs->component_a && lhs->component_b == rhs->component_b &&
                lhs->component_c == rhs->component_c && lhs->ratio_a == rhs->ratio_a &&
                lhs->ratio_b == rhs->ratio_b && lhs->ratio_c == rhs->ratio_c &&
+               lhs->gradient_enabled == rhs->gradient_enabled &&
                MixedFilamentManager::normalize_manual_pattern(lhs->manual_pattern) ==
                    MixedFilamentManager::normalize_manual_pattern(rhs->manual_pattern);
     };

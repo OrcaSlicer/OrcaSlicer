@@ -258,7 +258,9 @@ std::string mix_recipe_label(const MixedFilament &mf, const std::vector<std::str
     };
 
     std::ostringstream oss;
-    if (mf.component_c != 0) {
+    if (mf.gradient_enabled && mf.component_c == 0) {
+        oss << slot_token(mf.component_a) << "->" << slot_token(mf.component_b);
+    } else if (mf.component_c != 0) {
         oss << slot_token(mf.component_a) << '+' << slot_token(mf.component_b) << '+'
             << slot_token(mf.component_c) << ' ' << mf.ratio_a << ':' << mf.ratio_b << ':' << mf.ratio_c;
     } else {
