@@ -97,6 +97,14 @@ ExPolygons apply_surface_offset(const ExPolygons &src, float offset_mm);
 // Missing/non-finite/≤0 nozzle → treat as 0.4 mm.
 float spectrum_perimeter_mod_magnitude_mm(float nozzle_mm);
 
+// Nozzle diameter (mm) for 1-based physical, matching ConfigOptionVector::get_at:
+// empty nozzles → 0.4f (cannot call get_at; assert on empty).
+// else i = size_t(physical_1based) - 1 (unsigned wrap: physical 0 → SIZE_MAX → front(),
+// same as Slicing.cpp ~73 get_at(size_t(-1)));
+// in-range nozzles[i], else nozzles.front().
+float spectrum_nozzle_mm_for_physical(const std::vector<double> &nozzles,
+                                      unsigned int physical_1based);
+
 // Explicit Bias xa/xb wins (either nonzero disables synthesized `,p` for both).
 // Else if perimeter_modulation: A → -mag, B → +mag, else 0.
 float spectrum_perimeter_mod_offset(const MixedFilament &mf,

@@ -1277,9 +1277,7 @@ static bool apply_mixed_component_surface_offsets(PrintObject &print_object)
                 const unsigned int physical = mixed_mgr.resolve(filament_id, num_physical, int(layer_id));
                 const MixedFilament *mf = mixed_mgr.mixed_filament_from_id(filament_id, num_physical);
                 if (mf != nullptr) {
-                    float nozzle = 0.4f;
-                    if (physical != 0 && physical <= print_cfg.nozzle_diameter.size())
-                        nozzle = float(print_cfg.nozzle_diameter.get_at(physical - 1));
+                    float nozzle = spectrum_nozzle_mm_for_physical(print_cfg.nozzle_diameter.values, physical);
                     offset_mm = spectrum_perimeter_mod_offset(*mf, physical, nozzle);
                 }
             }

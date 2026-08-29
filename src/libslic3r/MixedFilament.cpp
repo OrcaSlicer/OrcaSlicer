@@ -551,6 +551,14 @@ float spectrum_perimeter_mod_magnitude_mm(float nozzle_mm)
     return std::clamp(0.4f * n, 0.08f, 0.35f);
 }
 
+float spectrum_nozzle_mm_for_physical(const std::vector<double> &nozzles, unsigned int physical_1based)
+{
+    if (nozzles.empty())
+        return 0.4f;
+    const size_t i = size_t(physical_1based) - 1;
+    return (i < nozzles.size()) ? float(nozzles[i]) : float(nozzles.front());
+}
+
 float spectrum_perimeter_mod_offset(const MixedFilament &mf, unsigned int physical_1based, float nozzle_mm)
 {
     const float xa = mf.component_a_surface_offset;

@@ -1629,6 +1629,22 @@ TEST_CASE("spectrum perimeter mod parse/serialize ,p and helpers", "[spectrum_pe
                 Catch::Approx(0.16f));
     }
     {
+        const std::vector<double> size1{0.6};
+        REQUIRE(spectrum_nozzle_mm_for_physical(size1, 2) == Catch::Approx(0.6f));
+        REQUIRE(spectrum_nozzle_mm_for_physical(size1, 1) == Catch::Approx(0.6f));
+        REQUIRE(spectrum_nozzle_mm_for_physical(size1, 0) == Catch::Approx(0.6f));
+
+        const std::vector<double> empty;
+        REQUIRE(spectrum_nozzle_mm_for_physical(empty, 1) == Catch::Approx(0.4f));
+        REQUIRE(spectrum_nozzle_mm_for_physical(empty, 2) == Catch::Approx(0.4f));
+
+        const std::vector<double> ultra_s{0.4, 0.4, 0.4, 0.4};
+        REQUIRE(spectrum_nozzle_mm_for_physical(ultra_s, 2) == Catch::Approx(0.4f));
+
+        const std::vector<double> hetero{0.4, 0.6};
+        REQUIRE(spectrum_nozzle_mm_for_physical(hetero, 2) == Catch::Approx(0.6f));
+    }
+    {
         MixedFilament mf;
         mf.component_a            = 1;
         mf.component_b            = 2;
@@ -1636,6 +1652,15 @@ TEST_CASE("spectrum perimeter mod parse/serialize ,p and helpers", "[spectrum_pe
         REQUIRE(spectrum_perimeter_mod_offset(mf, 1, 0.4f) == Catch::Approx(-0.16f));
         REQUIRE(spectrum_perimeter_mod_offset(mf, 2, 0.4f) == Catch::Approx(0.16f));
         REQUIRE(spectrum_perimeter_mod_offset(mf, 3, 0.4f) == Catch::Approx(0.f));
+    }
+    {
+        MixedFilament mf;
+        mf.component_a            = 1;
+        mf.component_b            = 2;
+        mf.perimeter_modulation   = true;
+        const float nozzle = spectrum_nozzle_mm_for_physical(std::vector<double>{0.6}, 2);
+        REQUIRE(spectrum_perimeter_mod_offset(mf, 1, nozzle) == Catch::Approx(-0.24f));
+        REQUIRE(spectrum_perimeter_mod_offset(mf, 2, nozzle) == Catch::Approx(0.24f));
     }
     {
         MixedFilament mf;
