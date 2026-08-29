@@ -1,7 +1,6 @@
 #include "libslic3r/libslic3r.h"
 #include "GLCanvas3D.hpp"
 
-#include <igl/project.h>
 #include <igl/unproject.h>
 
 #include "libslic3r/BuildVolume.hpp"
@@ -18,6 +17,7 @@
 #include "libslic3r/AppConfig.hpp"
 #include "3DScene.hpp"
 #include "BackgroundSlicingProcess.hpp"
+#include "CameraUtils.hpp"
 #include "GLShader.hpp"
 #include "GUI.hpp"
 #include "Tab.hpp"
@@ -113,19 +113,20 @@ namespace GUI {
 
 static void pan_camera(Camera& camera, const Vec2d& screen_delta, const Vec3d& anchor)
 {
-    // Move the chosen world-space anchor by exactly the same framebuffer delta as the cursor,
-    // using the matrices which produced the currently visible frame.
-    const Vec4i32 viewport(camera.get_viewport().data());
-    if (viewport.z() > 0 && viewport.w() > 0 && anchor.allFinite()) {
-        const Vec4d viewport_d = viewport.cast<double>();
-        Vec3d shifted_screen_position = igl::project<double>(anchor, camera.get_view_matrix().matrix(),
-            camera.get_projection_matrix().matrix(), viewport_d);
-        shifted_screen_position.x() += screen_delta.x();
-        shifted_screen_position.y() -= screen_delta.y();
+    const auto& viewport = camera.get_viewport();
+    const auto& projection = camera.get_projection_matrix().matrix();
+    const double depth_scale = camera.get_type() == Camera::EType::Perspective ?
+        (anchor - camera.get_position()).dot(camera.get_dir_forward()) : 1.0;
+    const double projection_x = projection(0, 0) * viewport[2];
+    const double projection_y = projection(1, 1) * viewport[3];
 
-        const Vec3d shifted_world_position = igl::unproject<double>(shifted_screen_position,
-            camera.get_view_matrix().matrix(), camera.get_projection_matrix().matrix(), viewport_d);
-        const Vec3d displacement = anchor - shifted_world_position;
+    // X/Y projection coefficients already include zoom. Using them directly avoids a
+    // project/unproject round-trip through window depth, whose precision depends on the scene frustum.
+    if (viewport[2] > 0 && viewport[3] > 0 && anchor.allFinite() && depth_scale > EPSILON &&
+        std::abs(projection_x) > EPSILON && std::abs(projection_y) > EPSILON) {
+        const Vec3d displacement = 2.0 * depth_scale *
+            (screen_delta.y() / projection_y * camera.get_dir_up() -
+             screen_delta.x() / projection_x * camera.get_dir_right());
         if (displacement.allFinite()) {
             camera.translate(displacement);
             return;
@@ -10383,7 +10384,26 @@ Vec3d GLCanvas3D::get_camera_pan_anchor(Camera& camera, ECameraNavigationType na
             return hit_position;
     }
 
-    // Empty parts of the canvas use the same reference point as orbiting.
+    // When the cursor is just outside the visible plate, use the point under it on the active
+    // plate plane. Using the plate center here would give it a different perspective depth.
+    PartPlate* current_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
+    if (current_plate != nullptr && current_plate->get_bounding_box().defined) {
+        Vec3d ray_origin;
+        Vec3d ray_direction;
+        CameraUtils::ray_from_screen_pos(camera, screen_position, ray_origin, ray_direction);
+        const double z_direction = ray_direction.z();
+        if (ray_origin.allFinite() && ray_direction.allFinite() && std::abs(z_direction) > EPSILON) {
+            const double plate_z = current_plate->get_bounding_box().center().z();
+            const double distance = (plate_z - ray_origin.z()) / z_direction;
+            const Vec3d plate_position = ray_origin + distance * ray_direction;
+            const double eye_depth = (plate_position - camera_position).dot(camera_forward);
+            if (distance >= 0.0 && is_valid_anchor(plate_position) &&
+                eye_depth >= camera.get_near_z() && eye_depth <= camera.get_far_z())
+                return plate_position;
+        }
+    }
+
+    // Near-horizontal rays and points outside the scene depth use the orbit reference point.
     const std::optional<Vec3d> orbit_target = get_camera_orbit_target(navigation_type);
     return orbit_target.has_value() && is_valid_anchor(*orbit_target) ? *orbit_target : camera.get_target();
 }
