@@ -210,7 +210,8 @@ static Slic3r::DynamicPrintConfig two_filament_config()
         { "prime_tower_width",               "30" },
         { "extruder_clearance_height_to_rod","40" },
         { "extruder_clearance_radius",       "40" },
-        { "printable_area",                  "0x0,300x0,300x300,0x300" }
+        { "printable_area",                  "0x0,300x0,300x300,0x300" },
+        { "layer_change_gcode",              "G92 E0\n" } // validate() relative-E reset, as in test_print.cpp's build_cubes
     });
     return config;
 }
