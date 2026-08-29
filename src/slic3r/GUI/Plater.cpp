@@ -12494,13 +12494,36 @@ void Plater::apply_rgbw_filament_colours()
 
     if (ConfigOptionStrings *filament_multi =
             bundle->project_config.option<ConfigOptionStrings>("filament_multi_colour", true))
-        filament_multi->values = filament_colour->values;
+        spectrum_stamp_multi_heads(filament_multi->values, filament_colour->values);
 
-    update_filament_colors_in_full_config();
+    if (ConfigOptionStrings *filament_colour_type =
+            bundle->project_config.option<ConfigOptionStrings>("filament_colour_type", true)) {
+        if (filament_colour_type->values.size() < 4)
+            filament_colour_type->values.resize(4);
+        for (size_t i = 0; i < 4; ++i)
+            filament_colour_type->values[i] = "1";
+    }
+
+    // Clone after project_config writes; on_config_change diffs vs p->config (do not hide-diff).
+    DynamicPrintConfig new_cfg;
+    new_cfg.set_key_value("filament_colour",
+        static_cast<ConfigOptionStrings *>(bundle->project_config.option("filament_colour")->clone()));
+    new_cfg.set_key_value("filament_multi_colour",
+        static_cast<ConfigOptionStrings *>(bundle->project_config.option("filament_multi_colour")->clone()));
+    new_cfg.set_key_value("filament_colour_type",
+        static_cast<ConfigOptionStrings *>(bundle->project_config.option("filament_colour_type")->clone()));
+    on_config_change(new_cfg);
+
     sidebar().update_all_preset_comboboxes();
     for (PlaterPresetComboBox *combo : sidebar().combos_filament())
         combo->update();
     sidebar().obj_list()->update_filament_colors();
+
+    auto &ams = wxGetApp().preset_bundle->ams_multi_color_filment;
+    for (size_t i = 0; i < std::min<size_t>(4, ams.size()); ++i)
+        ams[i].clear();
+    if (wxGetApp().app_config->get("auto_calculate_flush") != "disabled")
+        sidebar().auto_calc_flushing_volumes(-1);
 }
 
 void Plater::map_painted_colors_to_cmyk_mixes()

@@ -43,6 +43,12 @@ std::array<std::string, 4> spectrum_rgbw_hexes();
 bool spectrum_stamp_slot_hexes(std::vector<std::string>        &filament_colour,
                                const std::array<std::string, 4> &hexes);
 
+// false if colour.size() < 4 (no writes).
+// Else: if multi.size() < colour.size(), resize and fill NEW indices from colour;
+// then multi[0..3] = colour[0..3]. Never shrink. Never rewrite i >= 4.
+bool spectrum_stamp_multi_heads(std::vector<std::string>       &multi,
+                                const std::vector<std::string> &colour);
+
 // Nearest printable short-stack (period <= period_cap, no 4th component) on the given physicals.
 MixMatchResult match_printable_mix(
     const ColorRGB              &target,

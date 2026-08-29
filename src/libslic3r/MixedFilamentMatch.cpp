@@ -273,6 +273,22 @@ bool spectrum_stamp_slot_hexes(std::vector<std::string>        &filament_colour,
     return true;
 }
 
+bool spectrum_stamp_multi_heads(std::vector<std::string>       &multi,
+                                const std::vector<std::string> &colour)
+{
+    if (colour.size() < 4)
+        return false;
+    if (multi.size() < colour.size()) {
+        const size_t old_size = multi.size();
+        multi.resize(colour.size());
+        for (size_t i = old_size; i < colour.size(); ++i)
+            multi[i] = colour[i];
+    }
+    for (size_t i = 0; i < 4; ++i)
+        multi[i] = colour[i];
+    return true;
+}
+
 ColorRGB predicted_swatch_for_mix(const MixedFilament         &mf,
                                   const std::vector<ColorRGB> &physicals,
                                   const std::vector<float>    *td)

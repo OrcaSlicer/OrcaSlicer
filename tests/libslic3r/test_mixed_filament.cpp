@@ -1546,6 +1546,40 @@ TEST_CASE("spectrum_stamp_slot_hexes n<4 / RGBW / append FF keeps extras", "[spe
     REQUIRE(six[5] == "#FFFFFF");
 }
 
+TEST_CASE("spectrum_stamp_multi_heads n<4 / grow / keep extras", "[spectrum_rgb]")
+{
+    {
+        std::vector<std::string> multi{"#KEEP0", "#KEEP1"};
+        const auto               multi_copy = multi;
+        const std::vector<std::string> colour{"#111111", "#222222", "#333333"};
+        REQUIRE_FALSE(spectrum_stamp_multi_heads(multi, colour));
+        REQUIRE(multi == multi_copy);
+    }
+    {
+        std::vector<std::string>       multi;
+        const std::vector<std::string> colour{"#E72F1D", "#06924D", "#003776", "#EBF7FF"};
+        REQUIRE(spectrum_stamp_multi_heads(multi, colour));
+        REQUIRE(multi.size() == 4);
+        REQUIRE(multi[0] == colour[0]);
+        REQUIRE(multi[1] == colour[1]);
+        REQUIRE(multi[2] == colour[2]);
+        REQUIRE(multi[3] == colour[3]);
+    }
+    {
+        std::vector<std::string> multi{"#OLD0", "#OLD1", "#OLD2", "#OLD3", "#KEEP4", "#AA #BB"};
+        const std::vector<std::string> colour{
+            "#E72F1DFF", "#06924DFF", "#003776FF", "#EBF7FFFF", "#EXTRA4", "#EXTRA5"};
+        REQUIRE(spectrum_stamp_multi_heads(multi, colour));
+        REQUIRE(multi.size() == 6);
+        REQUIRE(multi[0] == "#E72F1DFF");
+        REQUIRE(multi[1] == "#06924DFF");
+        REQUIRE(multi[2] == "#003776FF");
+        REQUIRE(multi[3] == "#EBF7FFFF");
+        REQUIRE(multi[4] == "#KEEP4");
+        REQUIRE(multi[5] == "#AA #BB");
+    }
+}
+
 TEST_CASE("spectrum perimeter mod parse/serialize ,p and helpers", "[spectrum_perimeter_mod]")
 {
     {
