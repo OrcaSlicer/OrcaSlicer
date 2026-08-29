@@ -3,6 +3,7 @@
 #include "Color.hpp"
 #include "MixedFilament.hpp"
 
+#include <array>
 #include <string>
 #include <vector>
 
@@ -19,11 +20,34 @@ struct MixMatchResult
     float         distance    = 1e30f; // CIE76; smaller = closer
 };
 
+// Vendor physical cards for default TD scales (hex-gated, not n==4 alone).
+struct SpectrumPhysicalCard {
+    ColorRGB hex[4];
+    float    td[4];
+};
+
+SpectrumPhysicalCard spectrum_panchroma_cmyk_card();
+SpectrumPhysicalCard spectrum_panchroma_rgbw_card();
+
+bool spectrum_physicals_match_card(const std::vector<ColorRGB> &physicals,
+                                   const SpectrumPhysicalCard  &card);
+
+// explicit td (size==n) wins; else CMYK / RGBW card match; else ones.
+std::vector<float> spectrum_default_td_scale(const std::vector<ColorRGB> &physicals,
+                                             const std::vector<float>    *td = nullptr);
+
+std::array<std::string, 4> spectrum_rgbw_hexes();
+
+// false if colour.size() < 4 (no writes). Else overwrite [0..3] only.
+// If any existing value is 9-char #RRGGBBFF, append FF to stamped hexes.
+bool spectrum_stamp_slot_hexes(std::vector<std::string>        &filament_colour,
+                               const std::array<std::string, 4> &hexes);
+
 // Nearest printable short-stack (period <= period_cap, no 4th component) on the given physicals.
 MixMatchResult match_printable_mix(
     const ColorRGB              &target,
-    const std::vector<ColorRGB> &physicals,     // C/M/Y/K; extra slots beyond 4 ignored
-    const std::vector<float>    *td = nullptr,  // optional; default Panchroma TDs when n==4
+    const std::vector<ColorRGB> &physicals,     // first four physicals; extras beyond 4 ignored
+    const std::vector<float>    *td = nullptr,  // optional; else CMYK/RGBW card TDs when hexes match
     int                          period_cap = 4);
 
 // Ranked lattice matches (CIE76, then shorter period). Dark-neutral override runs before truncate.

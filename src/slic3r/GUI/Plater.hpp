@@ -311,6 +311,7 @@ public:
     void load_project(wxString const & filename = "", wxString const & originfile = "-");
     int save_project(bool saveAs = false);
     void adopt_to_zr_ultra_s_cmyk();
+    void apply_rgbw_filament_colours();
     void map_painted_colors_to_cmyk_mixes();
     //BBS download project by project id
     void import_model_id(wxString download_info);

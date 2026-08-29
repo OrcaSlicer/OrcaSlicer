@@ -1,6 +1,7 @@
 #include "MixedFilamentMatch.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
@@ -114,21 +115,12 @@ unsigned clamp_physical_id(unsigned id, size_t n)
     return id;
 }
 
-std::vector<float> resolve_td_scale(size_t n, const std::vector<float> *td)
+ColorRGB decode_card_hex(const char *hex)
 {
-    std::vector<float> scale(n, 1.f);
-    if (td != nullptr && td->size() == n) {
-        for (size_t i = 0; i < n; ++i)
-            scale[i] = ((*td)[i] > 0.f) ? (1.f / (*td)[i]) : 1.f;
-        return scale;
-    }
-    // Default Panchroma TDs only when the live set is 4 slots.
-    if (td == nullptr && n == 4) {
-        const float panchroma_td[4] = {8.f, 7.8f, 14.f, 11.5f};
-        for (size_t i = 0; i < 4; ++i)
-            scale[i] = 1.f / panchroma_td[i];
-    }
-    return scale;
+    ColorRGB c;
+    if (!decode_color(hex, c))
+        return ColorRGB::BLACK();
+    return c;
 }
 
 int gcd_positive(int a, int b)
@@ -195,6 +187,92 @@ std::string normalize_mix_match_hex(const std::string &text)
     return std::string("#") + s;
 }
 
+SpectrumPhysicalCard spectrum_panchroma_cmyk_card()
+{
+    SpectrumPhysicalCard card;
+    card.hex[0] = decode_card_hex("#08ABFB");
+    card.hex[1] = decode_card_hex("#D93B90");
+    card.hex[2] = decode_card_hex("#F9ED3D");
+    card.hex[3] = decode_card_hex("#9199A4");
+    card.td[0]  = 8.f;
+    card.td[1]  = 7.8f;
+    card.td[2]  = 14.f;
+    card.td[3]  = 11.5f;
+    return card;
+}
+
+SpectrumPhysicalCard spectrum_panchroma_rgbw_card()
+{
+    SpectrumPhysicalCard card;
+    card.hex[0] = decode_card_hex("#E72F1D");
+    card.hex[1] = decode_card_hex("#06924D");
+    card.hex[2] = decode_card_hex("#003776");
+    card.hex[3] = decode_card_hex("#EBF7FF");
+    card.td[0]  = 1.9f;
+    card.td[1]  = 0.4f;
+    card.td[2]  = 0.3f;
+    card.td[3]  = 3.2f;
+    return card;
+}
+
+bool spectrum_physicals_match_card(const std::vector<ColorRGB> &physicals,
+                                   const SpectrumPhysicalCard  &card)
+{
+    if (physicals.size() != 4)
+        return false;
+    for (size_t i = 0; i < 4; ++i) {
+        if (physicals[i] != card.hex[i])
+            return false;
+    }
+    return true;
+}
+
+std::vector<float> spectrum_default_td_scale(const std::vector<ColorRGB> &physicals,
+                                             const std::vector<float>    *td)
+{
+    const size_t n = physicals.size();
+    std::vector<float> scale(n, 1.f);
+    if (td != nullptr && td->size() == n) {
+        for (size_t i = 0; i < n; ++i)
+            scale[i] = ((*td)[i] > 0.f) ? (1.f / (*td)[i]) : 1.f;
+        return scale;
+    }
+    const SpectrumPhysicalCard cmyk = spectrum_panchroma_cmyk_card();
+    const SpectrumPhysicalCard rgbw = spectrum_panchroma_rgbw_card();
+    const SpectrumPhysicalCard *card = nullptr;
+    if (spectrum_physicals_match_card(physicals, cmyk))
+        card = &cmyk;
+    else if (spectrum_physicals_match_card(physicals, rgbw))
+        card = &rgbw;
+    if (card != nullptr) {
+        for (size_t i = 0; i < 4; ++i)
+            scale[i] = (card->td[i] > 0.f) ? (1.f / card->td[i]) : 1.f;
+    }
+    return scale;
+}
+
+std::array<std::string, 4> spectrum_rgbw_hexes()
+{
+    return { "#E72F1D", "#06924D", "#003776", "#EBF7FF" };
+}
+
+bool spectrum_stamp_slot_hexes(std::vector<std::string>        &filament_colour,
+                               const std::array<std::string, 4> &hexes)
+{
+    if (filament_colour.size() < 4)
+        return false;
+    bool append_ff = false;
+    for (const std::string &hex : filament_colour) {
+        if (hex.size() == 9 && hex.front() == '#') {
+            append_ff = true;
+            break;
+        }
+    }
+    for (size_t i = 0; i < 4; ++i)
+        filament_colour[i] = append_ff ? hexes[i] + "FF" : hexes[i];
+    return true;
+}
+
 ColorRGB predicted_swatch_for_mix(const MixedFilament         &mf,
                                   const std::vector<ColorRGB> &physicals,
                                   const std::vector<float>    *td)
@@ -203,7 +281,7 @@ ColorRGB predicted_swatch_for_mix(const MixedFilament         &mf,
     if (n == 0)
         return ColorRGB::BLACK();
 
-    const std::vector<float> td_scale = resolve_td_scale(n, td);
+    const std::vector<float> td_scale = spectrum_default_td_scale(physicals, td);
     auto weight_for = [&](unsigned id_1based, int layers) -> float {
         if (layers <= 0)
             return 0.f;
@@ -307,7 +385,7 @@ std::vector<MixMatchResult> match_printable_candidates(const ColorRGB           
                                                        size_t                       max_results)
 {
     std::vector<MixMatchResult> out;
-    // This track's printable lattice is C/M/Y/K slots 1–4. Extra physicals are ignored.
+    // Printable lattice uses the first four physicals. Extra physicals are ignored.
     const size_t n = std::min(physicals.size(), size_t(4));
     if (n == 0 || max_results == 0)
         return out;

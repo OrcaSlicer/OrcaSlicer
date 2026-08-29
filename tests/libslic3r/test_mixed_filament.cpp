@@ -9,6 +9,7 @@
 #include "libslic3r/Print.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <set>
 #include <sstream>
@@ -473,6 +474,16 @@ std::vector<ColorRGB> panchroma_physicals()
         decode_hex_or_fail("#D93B90"), // 2 M
         decode_hex_or_fail("#F9ED3D"), // 3 Y
         decode_hex_or_fail("#9199A4"), // 4 Grey K
+    };
+}
+
+std::vector<ColorRGB> rgbw_physicals()
+{
+    return {
+        decode_hex_or_fail("#E72F1D"), // 1 R
+        decode_hex_or_fail("#06924D"), // 2 G
+        decode_hex_or_fail("#003776"), // 3 B
+        decode_hex_or_fail("#EBF7FF"), // 4 W
     };
 }
 
@@ -1315,4 +1326,149 @@ TEST_CASE("mix_recipe_label height gradient A->B", "[spectrum_gradient]")
     pair.ratio_a     = 1;
     pair.ratio_b     = 1;
     REQUIRE(mix_recipe_label(pair, &names) == "C+M 1:1");
+}
+
+TEST_CASE("spectrum cards match in order; shuffle and wrong card fail", "[spectrum_rgb]")
+{
+    const SpectrumPhysicalCard cmyk = spectrum_panchroma_cmyk_card();
+    const SpectrumPhysicalCard rgbw = spectrum_panchroma_rgbw_card();
+    REQUIRE(spectrum_physicals_match_card(panchroma_physicals(), cmyk));
+    REQUIRE_FALSE(spectrum_physicals_match_card(rgbw_physicals(), cmyk));
+    REQUIRE(spectrum_physicals_match_card(rgbw_physicals(), rgbw));
+
+    std::vector<ColorRGB> shuffled = {
+        decode_hex_or_fail("#E72F1D"),
+        decode_hex_or_fail("#003776"),
+        decode_hex_or_fail("#06924D"),
+        decode_hex_or_fail("#EBF7FF"),
+    };
+    REQUIRE_FALSE(spectrum_physicals_match_card(shuffled, rgbw));
+    const std::vector<float> shuffled_td = spectrum_default_td_scale(shuffled);
+    REQUIRE(shuffled_td.size() == 4);
+    for (float s : shuffled_td)
+        REQUIRE(s == Catch::Approx(1.f));
+}
+
+TEST_CASE("spectrum_default_td_scale CMYK RGBW random and explicit", "[spectrum_rgb]")
+{
+    const std::vector<float> cmyk_td = spectrum_default_td_scale(panchroma_physicals());
+    REQUIRE(cmyk_td.size() == 4);
+    REQUIRE(cmyk_td[2] == Catch::Approx(1.f / 14.f));
+
+    const std::vector<float> rgbw_td = spectrum_default_td_scale(rgbw_physicals());
+    REQUIRE(rgbw_td.size() == 4);
+    REQUIRE(rgbw_td[2] == Catch::Approx(1.f / 0.3f));
+    REQUIRE(rgbw_td[2] != Catch::Approx(1.f / 14.f));
+
+    const std::vector<ColorRGB> random4 = {
+        decode_hex_or_fail("#111111"),
+        decode_hex_or_fail("#111111"),
+        decode_hex_or_fail("#111111"),
+        decode_hex_or_fail("#111111"),
+    };
+    const std::vector<float> ones = spectrum_default_td_scale(random4);
+    REQUIRE(ones.size() == 4);
+    for (float s : ones)
+        REQUIRE(s == Catch::Approx(1.f));
+
+    std::vector<ColorRGB> three = panchroma_physicals();
+    three.resize(3);
+    const std::vector<float> three_td = spectrum_default_td_scale(three);
+    REQUIRE(three_td.size() == 3);
+    for (float s : three_td)
+        REQUIRE(s == Catch::Approx(1.f));
+
+    const std::vector<float> explicit_td = {2.f, 4.f, 5.f, 10.f};
+    const std::vector<float> wins = spectrum_default_td_scale(rgbw_physicals(), &explicit_td);
+    REQUIRE(wins.size() == 4);
+    REQUIRE(wins[0] == Catch::Approx(0.5f));
+    REQUIRE(wins[1] == Catch::Approx(0.25f));
+    REQUIRE(wins[2] == Catch::Approx(0.2f));
+    REQUIRE(wins[3] == Catch::Approx(0.1f));
+}
+
+TEST_CASE("Match RGBW physicals and dark-neutral Blue; CMYK black Grey", "[spectrum_rgb]")
+{
+    const std::vector<ColorRGB> rgbw = rgbw_physicals();
+    const MixMatchResult        red  = match_printable_mix(rgbw[0], rgbw);
+    REQUIRE(red.valid);
+    REQUIRE(red.kind == MixMatchResult::Kind::Physical);
+    REQUIRE(red.physical_id == 1u);
+
+    const MixMatchResult white = match_printable_mix(rgbw[3], rgbw);
+    REQUIRE(white.valid);
+    REQUIRE(white.kind == MixMatchResult::Kind::Physical);
+    REQUIRE(white.physical_id == 4u);
+
+    const MixMatchResult black_rgbw = match_printable_mix(decode_hex_or_fail("#000000"), rgbw);
+    REQUIRE(black_rgbw.valid);
+    REQUIRE(black_rgbw.kind == MixMatchResult::Kind::Physical);
+    REQUIRE(black_rgbw.physical_id == 3u);
+    REQUIRE(black_rgbw.recipe_row.empty());
+
+    const MixMatchResult black_cmyk =
+        match_printable_mix(decode_hex_or_fail("#000000"), panchroma_physicals());
+    REQUIRE(black_cmyk.valid);
+    REQUIRE(black_cmyk.kind == MixMatchResult::Kind::Physical);
+    REQUIRE(black_cmyk.physical_id == 4u);
+}
+
+TEST_CASE("Match RGBW YN midpoint 1+2 and RGBW recipe labels", "[spectrum_rgb]")
+{
+    const std::vector<ColorRGB> rgbw = rgbw_physicals();
+    MixedFilament               pair;
+    pair.component_a = 1;
+    pair.component_b = 2;
+    pair.ratio_a     = 1;
+    pair.ratio_b     = 1;
+    pair.enabled     = true;
+    const ColorRGB       yn = predicted_swatch_for_mix(pair, rgbw);
+    const MixMatchResult r  = match_printable_mix(yn, rgbw);
+    REQUIRE(r.valid);
+    REQUIRE(r.kind == MixMatchResult::Kind::Mix);
+    REQUIRE(r.mix.component_a == 1u);
+    REQUIRE(r.mix.component_b == 2u);
+    REQUIRE(r.mix.component_c == 0u);
+    REQUIRE(r.mix.ratio_a == 1);
+    REQUIRE(r.mix.ratio_b == 1);
+
+    MixedFilamentManager mgr;
+    mgr.load_definitions(r.recipe_row);
+    REQUIRE(mgr.enabled_count() == 1);
+
+    const std::vector<std::string> names{"R", "G", "B", "W"};
+    REQUIRE(mix_recipe_label(pair, &names) == "R+G 1:1");
+    REQUIRE(mix_recipe_label(pair, nullptr) == "1+2 1:1");
+}
+
+TEST_CASE("spectrum_stamp_slot_hexes n<4 / RGBW / append FF keeps extras", "[spectrum_rgb]")
+{
+    const std::array<std::string, 4> hexes = spectrum_rgbw_hexes();
+    REQUIRE(hexes[0] == "#E72F1D");
+    REQUIRE(hexes[1] == "#06924D");
+    REQUIRE(hexes[2] == "#003776");
+    REQUIRE(hexes[3] == "#EBF7FF");
+
+    std::vector<std::string> three{"#111111", "#222222", "#333333"};
+    const auto               three_copy = three;
+    REQUIRE_FALSE(spectrum_stamp_slot_hexes(three, hexes));
+    REQUIRE(three == three_copy);
+
+    std::vector<std::string> four{"#AAAAAA", "#BBBBBB", "#CCCCCC", "#DDDDDD"};
+    REQUIRE(spectrum_stamp_slot_hexes(four, hexes));
+    REQUIRE(four.size() == 4);
+    REQUIRE(four[0] == "#E72F1D");
+    REQUIRE(four[1] == "#06924D");
+    REQUIRE(four[2] == "#003776");
+    REQUIRE(four[3] == "#EBF7FF");
+
+    std::vector<std::string> six{"#AAAAAAFF", "#BBBBBB", "#CCCCCC", "#DDDDDD", "#EEEEEE", "#FFFFFF"};
+    REQUIRE(spectrum_stamp_slot_hexes(six, hexes));
+    REQUIRE(six.size() == 6);
+    REQUIRE(six[0] == "#E72F1DFF");
+    REQUIRE(six[1] == "#06924DFF");
+    REQUIRE(six[2] == "#003776FF");
+    REQUIRE(six[3] == "#EBF7FFFF");
+    REQUIRE(six[4] == "#EEEEEE");
+    REQUIRE(six[5] == "#FFFFFF");
 }

@@ -12441,6 +12441,36 @@ void Plater::adopt_to_zr_ultra_s_cmyk()
         _L("Adopt to ZR Ultra S"), wxOK | wxICON_WARNING).ShowModal();
 }
 
+void Plater::apply_rgbw_filament_colours()
+{
+    PresetBundle *bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return;
+
+    ConfigOptionStrings *filament_colour =
+        bundle->project_config.option<ConfigOptionStrings>("filament_colour", true);
+    if (filament_colour == nullptr || filament_colour->values.size() < 4) {
+        MessageDialog(this,
+            _L("Need at least four filament colour slots to apply RGB+W colours."),
+            _L("Apply RGB+W filament colours"), wxOK | wxICON_INFORMATION).ShowModal();
+        return;
+    }
+
+    // Snapshot only after guards so a failed Apply does not create an empty Undo.
+    take_snapshot(_u8L("Apply RGB+W filament colours"));
+    spectrum_stamp_slot_hexes(filament_colour->values, spectrum_rgbw_hexes());
+
+    if (ConfigOptionStrings *filament_multi =
+            bundle->project_config.option<ConfigOptionStrings>("filament_multi_colour", true))
+        filament_multi->values = filament_colour->values;
+
+    update_filament_colors_in_full_config();
+    sidebar().update_all_preset_comboboxes();
+    for (PlaterPresetComboBox *combo : sidebar().combos_filament())
+        combo->update();
+    sidebar().obj_list()->update_filament_colors();
+}
+
 void Plater::map_painted_colors_to_cmyk_mixes()
 {
     PresetBundle *bundle = wxGetApp().preset_bundle;
