@@ -767,6 +767,34 @@ int NetworkAgent::send_message(std::string dev_id, std::string json_str, int qos
     return -1;
 }
 
+int NetworkAgent::command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
+{
+    if (m_printer_agent)
+        return m_printer_agent->command_ams_refresh_rfid(dev_id, tray_id, sequence_id, lan_mode);
+    return -1;
+}
+
+int NetworkAgent::command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode)
+{
+    if (m_printer_agent)
+        return m_printer_agent->command_ams_calibrate(dev_id, ams_id, sequence_id, lan_mode);
+    return -1;
+}
+
+int NetworkAgent::command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
+{
+    if (m_printer_agent)
+        return m_printer_agent->command_ams_select_tray(dev_id, tray_id, sequence_id, lan_mode);
+    return -1;
+}
+
+int NetworkAgent::command_start_camera(std::string dev_id)
+{
+    if (m_printer_agent)
+        return m_printer_agent->command_start_camera(dev_id);
+    return -1;
+}
+
 int NetworkAgent::connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
 {
     if (m_printer_agent)
@@ -921,10 +949,10 @@ FilamentSyncMode NetworkAgent::get_filament_sync_mode() const
     return FilamentSyncMode::none;
 }
 
-bool NetworkAgent::fetch_filament_info(std::string dev_id)
+bool NetworkAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode)
 {
     if (m_printer_agent) {
-        return m_printer_agent->fetch_filament_info(dev_id);
+        return m_printer_agent->fetch_filament_info(dev_id, sync_mode);
     }
     return false;
 }

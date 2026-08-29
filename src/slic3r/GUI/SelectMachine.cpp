@@ -1125,7 +1125,10 @@ bool SelectMachineDialog::do_ams_mapping(MachineObject *obj_,bool use_ams)
 
     int filament_result = 0;
     std::vector<bool> map_opt;  //four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
-    if (nozzle_nums > 1){
+    // Orca: only do the per-physical-extruder left/right split when the device actually reports
+    // 2+ extruders. A non-BBL multi-nozzle printer (e.g. Snapmaker U1) reports a single extruder
+    // with one filament pool, so it maps as a single surface via the else branch below.
+    if (nozzle_nums > 1 && obj_->GetExtderSystem()->GetTotalExtderCount() > 1){
         //get nozzle property, the extders are same?
         if (true/*!can_hybrid_mapping(obj_get_extder_data())*/){
             std::vector<FilamentInfo>           m_ams_mapping_result_left, m_ams_mapping_result_right;
@@ -3696,10 +3699,32 @@ void SelectMachineDialog::on_send_print()
     m_print_job->on_success([this]() { finish_mode(); });
 
     m_print_job->on_check_ip_address_fail([this]() {
-        wxCommandEvent* evt = new wxCommandEvent(EVT_CLEAR_IPADDRESS);
-        wxQueueEvent(this, evt);
-        wxGetApp().show_ip_address_enter_dialog();
-     });
+        // Invoked from the PrintJob worker thread when the LAN pre-flight (file upload
+        // verification) fails. Marshal device/UI access to the main thread.
+        CallAfter([this]()
+        {
+            // Reset the dialog out of sending mode so the user can retry.
+            wxCommandEvent* evt = new wxCommandEvent(EVT_CLEAR_IPADDRESS);
+            wxQueueEvent(this, evt);
+
+            DeviceManager* dev = wxGetApp().getDeviceManager();
+            MachineObject* obj = dev ? dev->get_selected_machine() : nullptr;
+
+            if (obj && obj->is_connected())
+            {
+                // Connected: failed on file upload
+                MessageDialog dlg(this,
+                                  _L("Failed to upload the file to the printer's storage. Please try again."),
+                                  _L("Send Failed"), wxOK | wxICON_ERROR);
+                dlg.ShowModal();
+            }
+            else
+            {
+                // Not connected: reenter ip and access code
+                wxGetApp().show_ip_address_enter_dialog();
+            }
+        });
+    });
 
     // update ota version
     NetworkAgent* agent = wxGetApp().getAgent();
@@ -4529,11 +4554,13 @@ bool SelectMachineDialog::CheckErrorExtruderNozzleWithSlicing(MachineObject* obj
 
             // check nozzle data valid
             {
-                if (installed_ext_nozzle.GetNozzleType() == NozzleType::ntUndefine ||
-                    installed_ext_nozzle.GetNozzleDiameter() <= 0.0f) {
-                    show_status(PrintDialogStatus::PrintStatusNozzleDataInvalid);
-                    return false;
-                }
+                // Commented out the following as ntUndefine and 0.0f are default values
+                // (signifying that the value is not given) that should PASS, not fail
+                // if (installed_ext_nozzle.GetNozzleType() == NozzleType::ntUndefine ||
+                //     installed_ext_nozzle.GetNozzleDiameter() <= 0.0f) {
+                //     show_status(PrintDialogStatus::PrintStatusNozzleDataInvalid);
+                //     return false;
+                // }
 
                 if (obj_->is_nozzle_flow_type_supported() &&
                     installed_ext_nozzle.GetNozzleFlowType() == NozzleFlowType::NONE_FLOWTYPE) {
@@ -4562,7 +4589,10 @@ bool SelectMachineDialog::CheckErrorExtruderNozzleWithSlicing(MachineObject* obj
 
             // check nozzle diameter
             {
-                if (slicing_ext.nozzle_diameter != installed_ext_nozzle.GetNozzleDiameter()) {
+                // 0.0f is default when there is no nozzle diameter is given.
+                // In nozzle_diameter == 0.0f case, it passes and does not require a comparison
+                if (installed_ext_nozzle.GetNozzleDiameter() > 0.0f &&
+                    slicing_ext.nozzle_diameter != installed_ext_nozzle.GetNozzleDiameter()) {
                     std::vector<wxString> msg_params;
                     if (ext_sys->GetTotalExtderCount() == 2) {
                         const wxString& mismatch_nozzle_str = _get_nozzle_name(ext_sys->GetTotalExtderCount(), slicing_ext_idx);
@@ -5472,8 +5502,8 @@ void SelectMachineDialog::reset_and_sync_ams_list()
                 item = new MaterialItem(m_filament_left_panel, colour_rgb, _L(display_materials[extruder]));
                 m_sizer_ams_mapping_left->Add(item, 0, wxALL, FromDIP(5));
             }
-            else if (m_filaments_map[extruder] == 2)
-            {
+            else // map == 2, or (non-BBL multi-nozzle) 3+; update_material_item_pos() collapses
+            {    // these into the single panel when the device reports < 2 extruders.
                 item = new MaterialItem(m_filament_right_panel, colour_rgb, _L(display_materials[extruder]));
                 m_sizer_ams_mapping_right->Add(item, 0, wxALL, FromDIP(5));
             }

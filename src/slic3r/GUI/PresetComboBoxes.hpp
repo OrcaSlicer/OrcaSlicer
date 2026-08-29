@@ -205,6 +205,7 @@ public:
     void msw_rescale() override;
     void OnSelect(wxCommandEvent& evt) override;
     void update_badge_according_flag();
+    void set_sync_badge(bool show);
 
     FilamentColor get_cur_color_info();
     void show_default_color_picker();
@@ -214,6 +215,7 @@ public:
 private:
     // BBS
     wxColor m_color;
+    bool    m_sync_badge{false};
 };
 
 

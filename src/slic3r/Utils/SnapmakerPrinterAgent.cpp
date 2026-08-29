@@ -1,16 +1,27 @@
 #include "SnapmakerPrinterAgent.hpp"
 #include "Http.hpp"
+#include "IPrinterAgent.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "nlohmann/json.hpp"
 #include <boost/log/trivial.hpp>
+#include <chrono>
+#include <sstream>
+#include <thread>
 
 namespace Slic3r {
 
 namespace {
 
 constexpr const char* SNAPMAKER_AGENT_VERSION = "0.0.1";
+constexpr int64_t     CAMERA_REFRESH_INTERVAL_MS = 300'000;
+
+int64_t now_ms()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+}
 
 // Safely access a parallel array by index, returning a fallback if out of bounds.
 template<typename T>
@@ -67,6 +78,40 @@ std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection&
 
 SnapmakerPrinterAgent::SnapmakerPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}
 
+void SnapmakerPrinterAgent::start_camera_monitor()
+{
+    std::thread([this] {
+        send_ws_rpc("camera.start_monitor",
+                    {{"domain", "lan"}, {"interval", 0}, {"expect_pw", false}});
+    }).detach();
+    m_camera_last_fire_ms.store(now_ms());
+}
+
+void SnapmakerPrinterAgent::on_status_loop_tick(const std::string& dev_id)
+{
+    (void) dev_id;
+    const int64_t last = m_camera_last_fire_ms.load();
+    if (last == 0 || now_ms() - last >= CAMERA_REFRESH_INTERVAL_MS) {
+        start_camera_monitor();
+    }
+}
+
+int SnapmakerPrinterAgent::connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
+{
+    const int rtn = MoonrakerPrinterAgent::connect_printer(dev_id, dev_ip, username, password, use_ssl);
+    if (rtn == BAMBU_NETWORK_SUCCESS) {
+        start_camera_monitor();
+    }
+    return rtn;
+}
+
+int SnapmakerPrinterAgent::command_start_camera(std::string dev_id)
+{
+    (void) dev_id;
+    start_camera_monitor();
+    return BAMBU_NETWORK_SUCCESS;
+}
+
 AgentInfo SnapmakerPrinterAgent::get_agent_info_static()
 {
     return AgentInfo{"snapmaker", "Snapmaker", SNAPMAKER_AGENT_VERSION, "Snapmaker printer agent"};
@@ -102,8 +147,11 @@ std::string SnapmakerPrinterAgent::combine_filament_type(const std::string& type
     return base;
 }
 
-bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
+bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode)
 {
+    if (sync_mode != get_filament_sync_mode())
+        return false;
+
     std::string url = join_url(device_info.base_url, "/printer/objects/query?print_task_config&filament_detect");
 
     std::string response_body;
@@ -223,6 +271,13 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
 
     build_ams_payload(1, slot_count - 1, trays);
     return true;
+}
+
+FilamentSyncMode SnapmakerPrinterAgent::get_filament_sync_mode() const
+{
+    if (GUI::wxGetApp().app_config->get_bool("use_printer_agents"))
+        return FilamentSyncMode::subscription;
+    return FilamentSyncMode::pull;
 }
 
 } // namespace Slic3r

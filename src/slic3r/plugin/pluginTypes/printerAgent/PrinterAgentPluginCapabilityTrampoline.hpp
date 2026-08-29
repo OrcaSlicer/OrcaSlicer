@@ -96,7 +96,7 @@ public:
             get_filament_sync_mode);
     }
 
-    bool fetch_filament_info(std::string dev_id) override
+    bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override
     {
         ORCA_PY_OVERRIDE_AUDITED(
             ::Slic3r::PluginAuditManager::AuditMode::Loading, [] {}, PYBIND11_OVERRIDE_PURE, bool, PrinterAgentPluginCapability, fetch_filament_info, dev_id);

@@ -56,6 +56,40 @@ function(orcaslicer_discover_tests TARGET)
     catch_discover_tests(${TARGET} ADD_TAGS_AS_LABELS)
 endfunction()
 
+# Stages a private Python runtime beside TARGET's output and (on macOS) links
+# in the matching rpath, so an embedded pybind11 interpreter in TARGET can find
+# libpython/the stdlib at runtime without depending on the build machine's
+# Python install. Apply this to every test target that embeds an interpreter -
+# duplicating the WIN32/APPLE blocks by hand lets them drift out of sync.
+function(orcaslicer_stage_test_python_runtime TARGET)
+    if (WIN32)
+        add_custom_command(TARGET ${TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${TARGET}>/python"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_PREFIX_PATH}/libpython" "$<TARGET_FILE_DIR:${TARGET}>/python"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_PREFIX_PATH}/libpython/python${_bundled_python_abi}.dll"
+                "${CMAKE_PREFIX_PATH}/libpython/vcruntime140.dll"
+                "${CMAKE_PREFIX_PATH}/libpython/vcruntime140_1.dll"
+                "$<TARGET_FILE_DIR:${TARGET}>"
+            COMMENT "Copying Python runtime for ${TARGET}"
+            VERBATIM
+        )
+    elseif (APPLE)
+        target_link_options(${TARGET} PRIVATE
+            "LINKER:-rpath,@executable_path/python/lib")
+
+        add_custom_command(TARGET ${TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E rm -rf
+                "$<TARGET_FILE_DIR:${TARGET}>/python"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${CMAKE_PREFIX_PATH}/libpython"
+                "$<TARGET_FILE_DIR:${TARGET}>/python"
+            COMMENT "Copying Python runtime for ${TARGET}"
+            VERBATIM
+        )
+    endif()
+endfunction()
+
 add_subdirectory(libnest2d)
 add_subdirectory(libslic3r)
 add_subdirectory(slic3rutils)

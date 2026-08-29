@@ -12,6 +12,41 @@
 #include <string>
 #include <memory>
 
+#if 1
+
+struct OrcaProtocol
+{
+    enum CameraStreamMode { http, http_snapshot, rtsp, webrtc };
+    struct Capabilities {
+        bool has_ams;
+        struct CameraInfo {
+            CameraStreamMode available_modes;
+            std::string url;
+        };
+
+        std::vector<CameraInfo> cameras;
+
+        bool toolchanger;
+        int nozzle_count;
+    };
+
+    struct AMSInfo {
+        int slot_count;
+        std::vector<std::string> color_info;
+        std::vector<std::string> filament_id;
+    };
+
+    AMSInfo ams_info;
+
+    struct Status {
+        std::vector<int> nozzle_temps;
+        int bed_temp;
+        int chamber_temp;  
+    };
+};
+
+#endif
+
 namespace Slic3r {
 
 class ICloudServiceAgent;
@@ -83,6 +118,18 @@ public:
      * Publish a JSON command to a printer through cloud relay.
      */
     virtual int send_message(std::string dev_id, std::string json_str, int qos, int flag) = 0;
+
+    // why: gcode is firmware dialect, not a waist concept - commands whose body is Bambu-dialect
+    // gcode live on the agent that speaks it; the default is an honest refusal that MachineObject's
+    // publish funnel turns into a dialog.
+    virtual int command_ams_refresh_rfid(std::string, std::string, int, bool)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_ams_calibrate(std::string, int, int, bool)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_ams_select_tray(std::string, std::string, int, bool)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_start_camera(std::string)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
 
     /**
      * Establish a direct LAN connection to a printer.
@@ -289,7 +336,7 @@ public:
      * Should only be called when get_filament_sync_mode() returns FilamentSyncMode::pull.
      * Populates the MachineObject's DevFilaSystem with fetched filament data.
      */
-    virtual bool fetch_filament_info(std::string dev_id) { return false; }
+    virtual bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) { return false; }
 };
 
 } // namespace Slic3r

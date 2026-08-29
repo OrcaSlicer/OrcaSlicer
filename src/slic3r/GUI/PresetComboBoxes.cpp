@@ -361,7 +361,8 @@ wxString PresetComboBox::get_preset_item_name(unsigned int index)
                 return GetString(index);
             }
 
-            std::map<std::string, MachineObject *> machine_list = dev->get_my_machine_list();
+            std::map<std::string, MachineObject *> machine_list =
+                dev->get_my_machine_list(dev->get_current_printer_agent_id());
             if (machine_list.empty()) {
                 assert(false);
                 m_selected_dev_id.clear();
@@ -479,7 +480,8 @@ void PresetComboBox::add_connected_printers(std::string selected, bool alias_nam
     if (!dev)
         return;
 
-    std::map<std::string, MachineObject *> machine_list = dev->get_my_machine_list();
+    std::map<std::string, MachineObject *> machine_list =
+        dev->get_my_machine_list(dev->get_current_printer_agent_id());
     if (machine_list.empty())
         return;
 
@@ -994,7 +996,13 @@ void PlaterPresetComboBox::update_badge_according_flag() {
     auto selection   = GetSelection();
     auto select_flag = GetFlag(selection);
     auto ok          = select_flag == (int) PresetComboBox::FilamentAMSType::FROM_AMS;
-    ShowBadge(ok);
+    ShowBadge(m_sync_badge || ok);
+}
+
+void PlaterPresetComboBox::set_sync_badge(bool show)
+{
+    m_sync_badge = show;
+    ShowBadge(show);
 }
 
 bool PlaterPresetComboBox::switch_to_tab()

@@ -547,6 +547,7 @@ public:
     bool xcam_first_layer_inspector { false };
     time_t  xcam_first_layer_hold_start = 0;
     std::string local_rtsp_url;
+    std::string webcam_stream_url;
     std::string tutk_state;
     enum LiveviewLocal {
         LVL_None,
@@ -708,6 +709,8 @@ public:
     std::string  subtask_id_;
     std::string  job_id_;
     std::string  last_subtask_id_;
+    // note: printer-agent-supplied thumbnail url, empty when the agent supplies none.
+    std::string  m_agent_thumbnail_url;
     BBLSliceInfo* slice_info {nullptr};
     boost::thread* get_slice_info_thread { nullptr };
     boost::thread* get_model_task_thread { nullptr };
@@ -813,6 +816,7 @@ public:
     int command_ams_select_tray(std::string tray_id);
     int command_ams_refresh_rfid(std::string tray_id);
     int command_ams_refresh_rfid2(int ams_id, int slot_id);
+    int command_start_camera();
     int command_ams_control(std::string action);
     int command_ams_drying_stop();
     int command_start_extrusion_cali(int tray_index, int nozzle_temp, int bed_temp, float max_volumetric_speed, std::string setting_id = "");
@@ -894,6 +898,7 @@ public:
     static bool is_in_printing_status(std::string status);
 
     void set_print_state(std::string status);
+    void update_print_progress(const json& value);
 
     bool is_connected();
     bool is_connecting();
