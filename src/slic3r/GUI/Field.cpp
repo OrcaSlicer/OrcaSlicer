@@ -941,7 +941,11 @@ void TextCtrl::BUILD() {
 	temp->SetToolTip(get_tooltip_text(text_value));
 
     if (!m_opt.multiline) {
-        text_ctrl->Bind(wxEVT_TEXT_ENTER, ([this, temp](wxEvent &e)
+        text_ctrl->Bind(wxEVT_TEXT_ENTER, ([
+#if !defined(__WXGTK__)
+            temp,
+#endif // __WXGTK__
+            this](wxEvent &e)
         {
 #if !defined(__WXGTK__)
             e.Skip();
@@ -973,7 +977,11 @@ void TextCtrl::BUILD() {
 		temp->GetToolTip()->Enable(flag);
 	}), text_ctrl->GetId());
 
-	temp->Bind(wxEVT_KILL_FOCUS, ([this, temp](wxEvent &e)
+	temp->Bind(wxEVT_KILL_FOCUS, ([
+#if !defined(__WXGTK__)
+		temp,
+#endif // __WXGTK__
+		this](wxEvent &e)
 	{
 		e.Skip();
 #if !defined(__WXGTK__)
@@ -2597,7 +2605,11 @@ void ColourPicker::BUILD()
 	// 	// recast as a wxWindow to fit the calling convention
 	window = dynamic_cast<wxWindow*>(temp);
 
-	temp->Bind(wxEVT_COLOURPICKER_CHANGED, ([this,temp](wxCommandEvent e) {
+	temp->Bind(wxEVT_COLOURPICKER_CHANGED, ([
+        #ifdef __WXMSW__
+            temp,
+        #endif
+        this](wxCommandEvent e) {
         #ifdef __WXMSW__
             draw_bmp_btn(temp, temp->GetColour());
         #endif
