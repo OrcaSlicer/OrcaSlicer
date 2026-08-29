@@ -66,7 +66,7 @@ CrossSection corner_cross_section(const Vec3f& v, const SegmentLocalAxes& axes1,
 class Builder
 {
 public:
-    explicit Builder(const libvgcode::Viewer& viewer) : m_viewer(&viewer) {}
+    Builder(const libvgcode::Viewer& viewer, PreviewMeshScope scope) : m_viewer(&viewer), m_scope(scope) {}
     explicit Builder(const libvgcode::GCodeInputData& data) : m_data(&data) {}
 
     PreviewTriangleMesh build()
@@ -75,12 +75,11 @@ public:
         if (count < 3)
             return {};
         libvgcode::Interval range{0, static_cast<uint32_t>(count - 1)};
-        if (m_viewer) {
+        if (m_viewer && m_scope == PreviewMeshScope::Visible) {
             range = m_viewer->get_view_visible_range();
-            if (range[1] <= range[0] || range[1] >= count) {
-                range[0] = 0;
-                range[1] = static_cast<uint32_t>(count - 1);
-            }
+            if (range[0] >= count || range[1] <= range[0])
+                return {};
+            range[1] = std::min<uint32_t>(range[1], static_cast<uint32_t>(count - 1));
             if (m_viewer->is_top_layer_only_view_range())
                 range[0] = m_viewer->get_view_full_range()[0];
         }
@@ -116,6 +115,7 @@ public:
 private:
     const libvgcode::Viewer* m_viewer{};
     const libvgcode::GCodeInputData* m_data{};
+    PreviewMeshScope m_scope{PreviewMeshScope::Complete};
     PreviewTriangleMesh m_mesh;
     bool m_need_start{true};
 
@@ -243,9 +243,9 @@ private:
 
 } // namespace
 
-PreviewTriangleMesh build_preview_triangle_mesh(const libvgcode::Viewer& viewer)
+PreviewTriangleMesh build_preview_triangle_mesh(const libvgcode::Viewer& viewer, PreviewMeshScope scope)
 {
-    return Builder(viewer).build();
+    return Builder(viewer, scope).build();
 }
 
 PreviewTriangleMesh build_preview_triangle_mesh(const libvgcode::GCodeInputData& data)

@@ -1904,7 +1904,7 @@ void GCodeViewer::export_toolpaths_to_obj(const char* filename) const
 
     wxBusyCursor busy;
     CNumericLocalesSetter locales_setter;
-    const PreviewTriangleMesh mesh = build_preview_triangle_mesh(m_viewer);
+    const PreviewTriangleMesh mesh = build_preview_triangle_mesh(m_viewer, PreviewMeshScope::Visible);
     FilePtr geometry = boost::nowide::fopen(filename, "w");
     if (geometry.f == nullptr)
         return;
@@ -1941,7 +1941,7 @@ std::shared_ptr<const PreviewTriangleMesh> GCodeViewer::create_preview_triangle_
 {
     if (!has_data() || m_gcode_result == nullptr || m_last_result_id != m_gcode_result->id)
         return {};
-    return std::make_shared<const PreviewTriangleMesh>(build_preview_triangle_mesh(m_viewer));
+    return std::make_shared<const PreviewTriangleMesh>(build_preview_triangle_mesh(m_viewer, PreviewMeshScope::Complete));
 }
 
 void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_previewing)

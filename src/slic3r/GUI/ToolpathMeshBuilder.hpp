@@ -39,9 +39,12 @@ struct PreviewTriangleMesh
     BoundingBoxf3                      bounds;
 };
 
+enum class PreviewMeshScope : uint8_t { Visible, Complete };
+
 // Builds the same cap/corner topology used by Orca's toolpath OBJ export from the already
 // normalized libvgcode viewer. No G-code parsing or independent path tessellation occurs here.
-PreviewTriangleMesh build_preview_triangle_mesh(const libvgcode::Viewer& viewer);
+PreviewTriangleMesh build_preview_triangle_mesh(const libvgcode::Viewer& viewer, PreviewMeshScope scope);
+// Raw input data has no viewer range and is therefore always complete.
 PreviewTriangleMesh build_preview_triangle_mesh(const libvgcode::GCodeInputData& data);
 
 } // namespace Slic3r::GUI
