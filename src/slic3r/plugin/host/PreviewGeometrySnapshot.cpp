@@ -3,8 +3,12 @@
 #include "slic3r/GUI/ToolpathMeshBuilder.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#ifdef _WIN32
+#include "libslic3r/Utils.hpp"
+#endif
 
 #include <boost/filesystem.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -17,15 +21,100 @@
 namespace Slic3r::PreviewGeometrySnapshot {
 namespace {
 
-uint64_t checked_add(uint64_t a, uint64_t b) { if (b > std::numeric_limits<uint64_t>::max()-a) throw std::runtime_error("ORPM size overflow"); return a+b; }
-uint64_t checked_mul(uint64_t a, uint64_t b) { if (a && b > std::numeric_limits<uint64_t>::max()/a) throw std::runtime_error("ORPM size overflow"); return a*b; }
-void require_range(size_t size, uint64_t off, uint64_t len) { if (off > size || len > size-off) throw std::runtime_error("ORPM region out of bounds"); }
-template<class T> void put_le(std::vector<uint8_t>& d, size_t o, T v) { static_assert(std::is_integral_v<T>); using U=std::make_unsigned_t<T>; U u=static_cast<U>(v); if(o>d.size()||sizeof(T)>d.size()-o)throw std::runtime_error("ORPM writer overflow"); for(size_t i=0;i<sizeof(T);++i)d[o+i]=uint8_t(u>>(8*i)); }
-template<class T> T get_le(const uint8_t* d,size_t s,uint64_t o){static_assert(std::is_integral_v<T>);require_range(s,o,sizeof(T));using U=std::make_unsigned_t<T>;U u{};for(size_t i=0;i<sizeof(T);++i)u|=U(d[o+i])<<(8*i);return static_cast<T>(u);}
-void put_float(std::vector<uint8_t>& d,size_t o,float v){uint32_t u;std::memcpy(&u,&v,4);put_le(d,o,u);} float get_float(const uint8_t*d,size_t s,uint64_t o){uint32_t u=get_le<uint32_t>(d,s,o);float v;std::memcpy(&v,&u,4);return v;}
-void finite(float v,const char* what){if(!std::isfinite(v))throw std::runtime_error(std::string("ORPM non-finite ")+what);}
-uint8_t channel(float value){return uint8_t(std::lround(std::clamp(value,0.0f,1.0f)*255.0f));}
-uint64_t region_end(uint64_t off,uint64_t count,uint64_t stride,uint64_t size){const auto bytes=checked_mul(count,stride);if(off>size||bytes>size-off)throw std::runtime_error("ORPM section out of bounds");return off+bytes;}
+constexpr uint32_t MATERIAL_EXTRUDER_ID_OFFSET = 0;
+constexpr uint32_t MATERIAL_RGBA_OFFSET = 1;
+constexpr uint32_t MATERIAL_PREFIX_RESERVED_OFFSET = 5;
+constexpr uint32_t MATERIAL_PREFIX_RESERVED_SIZE = 3;
+constexpr uint32_t MATERIAL_PRESET_OFFSET = 8;
+constexpr uint32_t MATERIAL_PRESET_LENGTH_OFFSET = 16;
+constexpr uint32_t MATERIAL_NAME_LENGTH_OFFSET = 20;
+constexpr uint32_t MATERIAL_NAME_OFFSET = 24;
+constexpr uint32_t MATERIAL_SUFFIX_RESERVED_OFFSET = 32;
+constexpr uint32_t MATERIAL_SUFFIX_RESERVED_SIZE = 8;
+static_assert(MATERIAL_SUFFIX_RESERVED_OFFSET + MATERIAL_SUFFIX_RESERVED_SIZE == MATERIAL_RECORD_SIZE);
+
+uint64_t checked_add(uint64_t a, uint64_t b)
+{
+    if (b > std::numeric_limits<uint64_t>::max() - a)
+        throw std::runtime_error("ORPM size overflow");
+    return a + b;
+}
+
+uint64_t checked_mul(uint64_t a, uint64_t b)
+{
+    if (a != 0 && b > std::numeric_limits<uint64_t>::max() / a)
+        throw std::runtime_error("ORPM size overflow");
+    return a * b;
+}
+
+void require_range(size_t size, uint64_t offset, uint64_t length)
+{
+    if (offset > size || length > size - offset)
+        throw std::runtime_error("ORPM region out of bounds");
+}
+
+template<class T> void put_le(std::vector<uint8_t>& data, size_t offset, T value)
+{
+    static_assert(std::is_integral_v<T>);
+    using U = std::make_unsigned_t<T>;
+    if (offset > data.size() || sizeof(T) > data.size() - offset)
+        throw std::runtime_error("ORPM writer overflow");
+    const U encoded = static_cast<U>(value);
+    for (size_t i = 0; i < sizeof(T); ++i)
+        data[offset + i] = uint8_t(encoded >> (8 * i));
+}
+
+template<class T> T get_le(const uint8_t* data, size_t size, uint64_t offset)
+{
+    static_assert(std::is_integral_v<T>);
+    require_range(size, offset, sizeof(T));
+    using U = std::make_unsigned_t<T>;
+    U value{};
+    for (size_t i = 0; i < sizeof(T); ++i)
+        value |= U(data[offset + i]) << (8 * i);
+    return static_cast<T>(value);
+}
+
+void put_float(std::vector<uint8_t>& data, size_t offset, float value)
+{
+    uint32_t encoded;
+    std::memcpy(&encoded, &value, sizeof(value));
+    put_le(data, offset, encoded);
+}
+
+float get_float(const uint8_t* data, size_t size, uint64_t offset)
+{
+    const uint32_t encoded = get_le<uint32_t>(data, size, offset);
+    float value;
+    std::memcpy(&value, &encoded, sizeof(value));
+    return value;
+}
+
+void finite(float value, const char* what)
+{
+    if (!std::isfinite(value))
+        throw std::runtime_error(std::string("ORPM non-finite ") + what);
+}
+
+uint8_t channel(float value)
+{
+    return uint8_t(std::lround(std::clamp(value, 0.0f, 1.0f) * 255.0f));
+}
+
+uint64_t region_end(uint64_t offset, uint64_t count, uint64_t stride, uint64_t size)
+{
+    const uint64_t bytes = checked_mul(count, stride);
+    if (offset > size || bytes > size - offset)
+        throw std::runtime_error("ORPM section out of bounds");
+    return offset + bytes;
+}
+
+void require_reserved_zero(const uint8_t* data, size_t size, uint64_t offset, uint64_t length, const char* section)
+{
+    require_range(size, offset, length);
+    if (std::any_of(data + offset, data + offset + length, [](uint8_t value) { return value != 0; }))
+        throw std::runtime_error(std::string("ORPM reserved ") + section + " bytes are non-zero");
+}
 
 } // namespace
 
@@ -48,7 +137,7 @@ Snapshot capture(const GUI::PreviewTriangleMesh& mesh,const GCodeProcessorResult
     uint16_t max_slot=0;
     for(const auto& g:mesh.groups){out.groups.push_back({g.first_index,g.index_count,g.material_slot,g.extrusion_role,g.extruder_id,g.colour_id,g.layer_id});max_slot=std::max(max_slot,g.material_slot);}
     const size_t material_count=std::max({colors.size(),filament_ids.size(),filament_count,size_t(max_slot)+1});
-    for(size_t i=0;i<material_count;++i){MaterialSlot m;m.extruder_id=uint8_t(std::min<size_t>(i,255));ColorRGBA c=ColorRGBA::GRAY();if(i<colors.size())decode_color(colors[i],c);m.rgba={{channel(c.r()),channel(c.g()),channel(c.b()),channel(c.a())}};if(i<filament_ids.size()){m.preset_id=filament_ids[i];m.display_name=filament_ids[i];}out.materials.push_back(std::move(m));}
+    for(size_t i=0;i<material_count;++i){MaterialSlot m;m.extruder_id=uint8_t(std::min<size_t>(i,255));ColorRGBA c;if(i>=colors.size()||!decode_color(colors[i],c))c=ColorRGBA::GRAY();m.rgba={{channel(c.r()),channel(c.g()),channel(c.b()),channel(c.a())}};if(i<filament_ids.size()){m.preset_id=filament_ids[i];m.display_name=filament_ids[i];}out.materials.push_back(std::move(m));}
     if(mesh.bounds.defined){for(size_t i=0;i<3;++i){out.bounds_min[i]=mesh.bounds.min[int(i)];out.bounds_max[i]=mesh.bounds.max[int(i)];}}
     return out;
 }
@@ -66,23 +155,190 @@ std::vector<uint8_t> serialize(const Snapshot& s)
     const uint64_t eo=checked_add(po,checked_mul(s.printable_area.size(),POINT_RECORD_SIZE));
     const uint64_t so=checked_add(eo,checked_mul(s.bed_excluded_area.size()+s.wrapping_excluded_area.size(),POINT_RECORD_SIZE));
     const uint64_t fs=checked_add(so,strings.size());if(fs>DEFAULT_MAX_FILE_SIZE||fs>SIZE_MAX)throw std::runtime_error("ORPM file too large");
-    std::vector<uint8_t>d(size_t(fs),0);std::memcpy(d.data(),"ORPM",4);put_le(d,4,FORMAT_MAJOR);put_le(d,6,FORMAT_MINOR);put_le(d,8,HEADER_BYTE_SIZE);put_le(d,12,VERTEX_RECORD_SIZE);put_le(d,16,GROUP_RECORD_SIZE);put_le(d,20,POINT_RECORD_SIZE);put_le(d,24,s.scene_id);put_le(d,32,s.plate_index);put_le(d,36,s.flags|FLAG_INDEXED);put_le(d,40,uint64_t(s.vertices.size()));put_le(d,48,uint64_t(s.indices.size()));put_le(d,56,uint64_t(s.groups.size()));put_le(d,64,uint32_t(s.materials.size()));put_le(d,68,uint32_t(s.printable_area.size()));put_le(d,72,uint32_t(s.bed_excluded_area.size()+s.wrapping_excluded_area.size()));put_le(d,76,uint32_t(s.bed_excluded_area.size()));put_le(d,80,vo);put_le(d,88,io);put_le(d,96,go);put_le(d,104,mo);put_le(d,112,po);put_le(d,120,eo);put_le(d,128,so);put_le(d,136,fs);put_float(d,144,s.z_offset);put_float(d,148,s.printable_height);for(size_t i=0;i<3;++i){put_float(d,152+4*i,s.bounds_min[i]);put_float(d,164+4*i,s.bounds_max[i]);}
+    std::vector<uint8_t>d(size_t(fs),0);std::memcpy(d.data(),FORMAT_NAME,4);put_le(d,4,FORMAT_MAJOR);put_le(d,6,FORMAT_MINOR);put_le(d,8,HEADER_BYTE_SIZE);put_le(d,12,VERTEX_RECORD_SIZE);put_le(d,16,GROUP_RECORD_SIZE);put_le(d,20,POINT_RECORD_SIZE);put_le(d,24,s.scene_id);put_le(d,32,s.plate_index);put_le(d,36,s.flags|FLAG_INDEXED);put_le(d,40,uint64_t(s.vertices.size()));put_le(d,48,uint64_t(s.indices.size()));put_le(d,56,uint64_t(s.groups.size()));put_le(d,64,uint32_t(s.materials.size()));put_le(d,68,uint32_t(s.printable_area.size()));put_le(d,72,uint32_t(s.bed_excluded_area.size()+s.wrapping_excluded_area.size()));put_le(d,76,uint32_t(s.bed_excluded_area.size()));put_le(d,80,vo);put_le(d,88,io);put_le(d,96,go);put_le(d,104,mo);put_le(d,112,po);put_le(d,120,eo);put_le(d,128,so);put_le(d,136,fs);put_float(d,144,s.z_offset);put_float(d,148,s.printable_height);for(size_t i=0;i<3;++i){put_float(d,152+4*i,s.bounds_min[i]);put_float(d,164+4*i,s.bounds_max[i]);}
     size_t o=size_t(vo);for(const auto&v:s.vertices){for(float f:v.position){finite(f,"position");put_float(d,o,f);o+=4;}for(float f:v.normal){finite(f,"normal");put_float(d,o,f);o+=4;}for(float f:v.uv){finite(f,"uv");put_float(d,o,f);o+=4;}}
     o=size_t(io);for(uint32_t index:s.indices){if(index>=s.vertices.size())throw std::runtime_error("ORPM index out of range");put_le(d,o,index);o+=4;}
     o=size_t(go);uint64_t covered=0;for(const auto&g:s.groups){if(g.first_index!=covered||g.index_count==0||g.index_count%3||uint64_t(g.first_index)+g.index_count>s.indices.size()||g.material_slot>=s.materials.size())throw std::runtime_error("ORPM invalid group");put_le(d,o,g.first_index);put_le(d,o+4,g.index_count);put_le(d,o+8,g.material_slot);put_le(d,o+10,g.extrusion_role);put_le(d,o+11,g.extruder_id);put_le(d,o+12,g.colour_id);put_le(d,o+16,g.layer_id);covered+=g.index_count;o+=GROUP_RECORD_SIZE;}if(covered!=s.indices.size())throw std::runtime_error("ORPM groups do not cover indices");
-    o=size_t(mo);for(size_t i=0;i<s.materials.size();++i){const auto&m=s.materials[i];const auto&r=refs[i];d[o]=m.extruder_id;std::copy(m.rgba.begin(),m.rgba.end(),d.begin()+o+1);put_le(d,o+8,so+r.preset.off);put_le(d,o+16,r.preset.len);put_le(d,o+20,r.name.len);put_le(d,o+24,so+r.name.off);o+=MATERIAL_RECORD_SIZE;}
+    o = size_t(mo);
+    for (size_t i = 0; i < s.materials.size(); ++i) {
+        const MaterialSlot& material = s.materials[i];
+        const MRef& ref = refs[i];
+        d[o + MATERIAL_EXTRUDER_ID_OFFSET] = material.extruder_id;
+        std::copy(material.rgba.begin(), material.rgba.end(), d.begin() + o + MATERIAL_RGBA_OFFSET);
+        put_le(d, o + MATERIAL_PRESET_OFFSET, so + ref.preset.off);
+        put_le(d, o + MATERIAL_PRESET_LENGTH_OFFSET, ref.preset.len);
+        put_le(d, o + MATERIAL_NAME_LENGTH_OFFSET, ref.name.len);
+        put_le(d, o + MATERIAL_NAME_OFFSET, so + ref.name.off);
+        o += MATERIAL_RECORD_SIZE;
+    }
     auto write_points=[&](const std::vector<Point>&pts){for(const auto&p:pts){finite(p.x,"plate x");finite(p.y,"plate y");put_float(d,o,p.x);put_float(d,o+4,p.y);o+=8;}};write_points(s.printable_area);write_points(s.bed_excluded_area);write_points(s.wrapping_excluded_area);std::copy(strings.begin(),strings.end(),d.begin()+size_t(so));validate(d);return d;
 }
 
-Header validate(const uint8_t*d,size_t size,uint64_t maxfile)
+Header validate(const uint8_t* data, size_t size, uint64_t max_file_size)
 {
-    if(!d||size<HEADER_BYTE_SIZE||size>maxfile||std::memcmp(d,"ORPM",4))throw std::runtime_error("Invalid ORPM header");Header h;h.major_version=get_le<uint16_t>(d,size,4);h.minor_version=get_le<uint16_t>(d,size,6);h.header_size=get_le<uint32_t>(d,size,8);h.vertex_record_size=get_le<uint32_t>(d,size,12);h.group_record_size=get_le<uint32_t>(d,size,16);h.point_record_size=get_le<uint32_t>(d,size,20);if(h.major_version!=FORMAT_MAJOR||h.header_size<HEADER_BYTE_SIZE||h.header_size>size||h.vertex_record_size<VERTEX_RECORD_SIZE||h.group_record_size<GROUP_RECORD_SIZE||h.point_record_size<POINT_RECORD_SIZE)throw std::runtime_error("Unsupported ORPM layout");h.scene_id=get_le<uint64_t>(d,size,24);h.plate_index=get_le<int32_t>(d,size,32);h.flags=get_le<uint32_t>(d,size,36);h.vertex_count=get_le<uint64_t>(d,size,40);h.index_count=get_le<uint64_t>(d,size,48);h.group_count=get_le<uint64_t>(d,size,56);h.material_slot_count=get_le<uint32_t>(d,size,64);h.printable_area_count=get_le<uint32_t>(d,size,68);h.excluded_area_count=get_le<uint32_t>(d,size,72);h.bed_excluded_area_count=get_le<uint32_t>(d,size,76);h.vertices_offset=get_le<uint64_t>(d,size,80);h.indices_offset=get_le<uint64_t>(d,size,88);h.groups_offset=get_le<uint64_t>(d,size,96);h.materials_offset=get_le<uint64_t>(d,size,104);h.printable_area_offset=get_le<uint64_t>(d,size,112);h.excluded_area_offset=get_le<uint64_t>(d,size,120);h.strings_offset=get_le<uint64_t>(d,size,128);h.file_size=get_le<uint64_t>(d,size,136);h.z_offset=get_float(d,size,144);h.printable_height=get_float(d,size,148);for(size_t i=0;i<3;++i){h.bounds_min[i]=get_float(d,size,152+4*i);h.bounds_max[i]=get_float(d,size,164+4*i);finite(h.bounds_min[i],"bounds");finite(h.bounds_max[i],"bounds");}finite(h.z_offset,"z offset");finite(h.printable_height,"height");if(h.file_size!=size||!h.vertex_count||!h.index_count||!h.group_count||h.bed_excluded_area_count>h.excluded_area_count)throw std::runtime_error("ORPM invalid count");const auto ve=region_end(h.vertices_offset,h.vertex_count,h.vertex_record_size,size),ie=region_end(h.indices_offset,h.index_count,4,size),ge=region_end(h.groups_offset,h.group_count,h.group_record_size,size),me=region_end(h.materials_offset,h.material_slot_count,MATERIAL_RECORD_SIZE,size),pe=region_end(h.printable_area_offset,h.printable_area_count,h.point_record_size,size),ee=region_end(h.excluded_area_offset,h.excluded_area_count,h.point_record_size,size);if(h.vertices_offset<h.header_size||h.indices_offset<ve||h.groups_offset<ie||h.materials_offset<ge||h.printable_area_offset<me||h.excluded_area_offset<pe||h.strings_offset<ee||h.strings_offset>size)throw std::runtime_error("ORPM overlapping sections");for(uint64_t i=0;i<h.vertex_count;++i){const uint64_t o=h.vertices_offset+i*h.vertex_record_size;float n2=0;for(int j=0;j<8;++j){float v=get_float(d,size,o+4*j);finite(v,"vertex");if(j>=3&&j<6)n2+=v*v;}if(n2<0.25f||n2>2.25f)throw std::runtime_error("ORPM invalid normal");}for(uint64_t i=0;i<h.index_count;++i)if(get_le<uint32_t>(d,size,h.indices_offset+4*i)>=h.vertex_count)throw std::runtime_error("ORPM index out of range");uint64_t covered=0;for(uint64_t i=0;i<h.group_count;++i){const uint64_t o=h.groups_offset+i*h.group_record_size;const auto first=get_le<uint32_t>(d,size,o),count=get_le<uint32_t>(d,size,o+4);const auto mat=get_le<uint16_t>(d,size,o+8);if(first!=covered||!count||count%3||uint64_t(first)+count>h.index_count||mat>=h.material_slot_count)throw std::runtime_error("ORPM invalid group");covered+=count;}if(covered!=h.index_count)throw std::runtime_error("ORPM group coverage mismatch");return h;
+    if (data == nullptr || size < HEADER_BYTE_SIZE || size > max_file_size || std::memcmp(data, FORMAT_NAME, 4) != 0)
+        throw std::runtime_error("Invalid ORPM header");
+
+    Header header;
+    header.major_version = get_le<uint16_t>(data, size, 4);
+    header.minor_version = get_le<uint16_t>(data, size, 6);
+    header.header_size = get_le<uint32_t>(data, size, 8);
+    header.vertex_record_size = get_le<uint32_t>(data, size, 12);
+    header.group_record_size = get_le<uint32_t>(data, size, 16);
+    header.point_record_size = get_le<uint32_t>(data, size, 20);
+    if (header.major_version != FORMAT_MAJOR || header.header_size < HEADER_BYTE_SIZE || header.header_size > size ||
+        header.vertex_record_size < VERTEX_RECORD_SIZE || header.group_record_size < GROUP_RECORD_SIZE ||
+        header.point_record_size < POINT_RECORD_SIZE)
+        throw std::runtime_error("Unsupported ORPM layout");
+
+    header.scene_id = get_le<uint64_t>(data, size, 24);
+    header.plate_index = get_le<int32_t>(data, size, 32);
+    header.flags = get_le<uint32_t>(data, size, 36);
+    header.vertex_count = get_le<uint64_t>(data, size, 40);
+    header.index_count = get_le<uint64_t>(data, size, 48);
+    header.group_count = get_le<uint64_t>(data, size, 56);
+    header.material_slot_count = get_le<uint32_t>(data, size, 64);
+    header.printable_area_count = get_le<uint32_t>(data, size, 68);
+    header.excluded_area_count = get_le<uint32_t>(data, size, 72);
+    header.bed_excluded_area_count = get_le<uint32_t>(data, size, 76);
+    header.vertices_offset = get_le<uint64_t>(data, size, 80);
+    header.indices_offset = get_le<uint64_t>(data, size, 88);
+    header.groups_offset = get_le<uint64_t>(data, size, 96);
+    header.materials_offset = get_le<uint64_t>(data, size, 104);
+    header.printable_area_offset = get_le<uint64_t>(data, size, 112);
+    header.excluded_area_offset = get_le<uint64_t>(data, size, 120);
+    header.strings_offset = get_le<uint64_t>(data, size, 128);
+    header.file_size = get_le<uint64_t>(data, size, 136);
+    header.z_offset = get_float(data, size, 144);
+    header.printable_height = get_float(data, size, 148);
+    for (size_t i = 0; i < 3; ++i) {
+        header.bounds_min[i] = get_float(data, size, 152 + 4 * i);
+        header.bounds_max[i] = get_float(data, size, 164 + 4 * i);
+        finite(header.bounds_min[i], "bounds");
+        finite(header.bounds_max[i], "bounds");
+        if (header.bounds_min[i] > header.bounds_max[i])
+            throw std::runtime_error("ORPM inverted bounds");
+    }
+    finite(header.z_offset, "z offset");
+    finite(header.printable_height, "height");
+    require_reserved_zero(data, size, 176, HEADER_BYTE_SIZE - 176, "header");
+
+    if (header.file_size != size || header.vertex_count == 0 || header.index_count == 0 || header.group_count == 0 ||
+        header.material_slot_count == 0 || header.material_slot_count > uint32_t(std::numeric_limits<uint16_t>::max()) + 1 ||
+        header.bed_excluded_area_count > header.excluded_area_count || (header.flags & FLAG_INDEXED) == 0)
+        throw std::runtime_error("ORPM invalid count or flags");
+
+    const uint64_t vertices_end = region_end(header.vertices_offset, header.vertex_count, header.vertex_record_size, size);
+    const uint64_t indices_end = region_end(header.indices_offset, header.index_count, sizeof(uint32_t), size);
+    const uint64_t groups_end = region_end(header.groups_offset, header.group_count, header.group_record_size, size);
+    const uint64_t materials_end = region_end(header.materials_offset, header.material_slot_count, MATERIAL_RECORD_SIZE, size);
+    const uint64_t printable_area_end =
+        region_end(header.printable_area_offset, header.printable_area_count, header.point_record_size, size);
+    const uint64_t excluded_area_end =
+        region_end(header.excluded_area_offset, header.excluded_area_count, header.point_record_size, size);
+    if (header.vertices_offset < header.header_size || header.indices_offset < vertices_end ||
+        header.groups_offset < indices_end || header.materials_offset < groups_end ||
+        header.printable_area_offset < materials_end || header.excluded_area_offset < printable_area_end ||
+        header.strings_offset < excluded_area_end || header.strings_offset > size)
+        throw std::runtime_error("ORPM overlapping sections");
+
+    for (uint64_t i = 0; i < header.vertex_count; ++i) {
+        const uint64_t offset = header.vertices_offset + i * header.vertex_record_size;
+        float normal_length_squared = 0;
+        for (int component = 0; component < 8; ++component) {
+            const float value = get_float(data, size, offset + 4 * component);
+            finite(value, "vertex");
+            if (component >= 3 && component < 6)
+                normal_length_squared += value * value;
+        }
+        if (normal_length_squared < 0.25f || normal_length_squared > 2.25f)
+            throw std::runtime_error("ORPM invalid normal");
+    }
+
+    for (uint64_t i = 0; i < header.index_count; ++i)
+        if (get_le<uint32_t>(data, size, header.indices_offset + sizeof(uint32_t) * i) >= header.vertex_count)
+            throw std::runtime_error("ORPM index out of range");
+
+    uint64_t covered_indices = 0;
+    for (uint64_t i = 0; i < header.group_count; ++i) {
+        const uint64_t offset = header.groups_offset + i * header.group_record_size;
+        const uint32_t first_index = get_le<uint32_t>(data, size, offset);
+        const uint32_t index_count = get_le<uint32_t>(data, size, offset + 4);
+        const uint16_t material_slot = get_le<uint16_t>(data, size, offset + 8);
+        if (first_index != covered_indices || index_count == 0 || index_count % 3 != 0 ||
+            uint64_t(first_index) + index_count > header.index_count || material_slot >= header.material_slot_count)
+            throw std::runtime_error("ORPM invalid group");
+        require_reserved_zero(data, size, offset + 13, 3, "group");
+        require_reserved_zero(data, size, offset + 20, 4, "group");
+        covered_indices += index_count;
+    }
+    if (covered_indices != header.index_count)
+        throw std::runtime_error("ORPM group coverage mismatch");
+
+    const auto validate_points = [&](uint64_t offset, uint32_t count) {
+        for (uint64_t i = 0; i < count; ++i) {
+            const uint64_t point_offset = offset + i * header.point_record_size;
+            finite(get_float(data, size, point_offset), "plate x");
+            finite(get_float(data, size, point_offset + sizeof(float)), "plate y");
+        }
+    };
+    validate_points(header.printable_area_offset, header.printable_area_count);
+    validate_points(header.excluded_area_offset, header.excluded_area_count);
+
+    const auto validate_string = [&](uint64_t offset, uint32_t length) {
+        if (offset < header.strings_offset || offset > size || length > size - offset)
+            throw std::runtime_error("ORPM material string is outside the string section");
+    };
+    for (uint64_t i = 0; i < header.material_slot_count; ++i) {
+        const uint64_t offset = header.materials_offset + i * MATERIAL_RECORD_SIZE;
+        require_reserved_zero(data, size, offset + MATERIAL_PREFIX_RESERVED_OFFSET, MATERIAL_PREFIX_RESERVED_SIZE, "material");
+        require_reserved_zero(data, size, offset + MATERIAL_SUFFIX_RESERVED_OFFSET, MATERIAL_SUFFIX_RESERVED_SIZE, "material");
+        validate_string(get_le<uint64_t>(data, size, offset + MATERIAL_PRESET_OFFSET),
+                        get_le<uint32_t>(data, size, offset + MATERIAL_PRESET_LENGTH_OFFSET));
+        validate_string(get_le<uint64_t>(data, size, offset + MATERIAL_NAME_OFFSET),
+                        get_le<uint32_t>(data, size, offset + MATERIAL_NAME_LENGTH_OFFSET));
+    }
+
+    return header;
 }
-Header validate(const std::vector<uint8_t>&d,uint64_t maxfile){return validate(d.data(),d.size(),maxfile);}
-void write_atomic(const Snapshot&s,const boost::filesystem::path&target){const auto bytes=serialize(s);boost::filesystem::create_directories(target.parent_path());auto temp=target;temp += ".tmp";{std::ofstream out(temp.string(),std::ios::binary|std::ios::trunc);out.write(reinterpret_cast<const char*>(bytes.data()),std::streamsize(bytes.size()));out.flush();if(!out)throw std::runtime_error("Failed to write ORPM snapshot");}boost::system::error_code ec;
+
+Header validate(const std::vector<uint8_t>& data, uint64_t max_file_size)
+{
+    return validate(data.data(), data.size(), max_file_size);
+}
+
+void write_atomic(const Snapshot& snapshot, const boost::filesystem::path& target)
+{
+    namespace fs = boost::filesystem;
+    const std::vector<uint8_t> bytes = serialize(snapshot);
+    if (!target.parent_path().empty())
+        fs::create_directories(target.parent_path());
+
+    fs::path temp = target;
+    temp += ".tmp-" + fs::unique_path("%%%%-%%%%-%%%%").string();
+    try {
+        boost::nowide::ofstream output(temp.string(), std::ios::binary | std::ios::trunc);
+        output.write(reinterpret_cast<const char*>(bytes.data()), std::streamsize(bytes.size()));
+        output.flush();
+        output.close();
+        if (!output)
+            throw std::runtime_error("Failed to write ORPM snapshot");
+
 #ifdef _WIN32
-boost::filesystem::remove(target,ec);ec.clear();
+        const std::error_code error = rename_file(temp.string(), target.string());
+        if (error)
+            throw std::runtime_error("Failed to publish ORPM snapshot: " + error.message());
+#else
+        boost::system::error_code error;
+        fs::rename(temp, target, error);
+        if (error)
+            throw std::runtime_error("Failed to publish ORPM snapshot: " + error.message());
 #endif
-boost::filesystem::rename(temp,target,ec);if(ec){boost::filesystem::remove(temp);throw std::runtime_error("Failed to publish ORPM snapshot: "+ec.message());}}
+    } catch (...) {
+        boost::system::error_code ignored;
+        fs::remove(temp, ignored);
+        throw;
+    }
+}
 
 } // namespace Slic3r::PreviewGeometrySnapshot
