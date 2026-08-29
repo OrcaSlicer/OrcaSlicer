@@ -377,7 +377,14 @@ wxEvtHandler * _gestureHandler = nullptr;
     bool shiftDown = [event modifierFlags] & NSShiftKeyMask;
     if (_gestureHandler && shiftDown && event.hasPreciseScrollingDeltas) {
         wxPanGestureEvent evt;
-        evt.SetDelta({-(int)[event scrollingDeltaX], -	(int)[event scrollingDeltaY]});
+        const NSPoint pos = [self convertPoint:[event locationInWindow] fromView:nil];
+        const wxPoint delta(-(int)[event scrollingDeltaX], -(int)[event scrollingDeltaY]);
+        // GLCanvas3D derives the anchor position as position - delta.
+        evt.SetPosition({(int) pos.x + delta.x, (int) pos.y + delta.y});
+        evt.SetDelta(delta);
+        // Wheel events have no native gesture lifecycle, so handle each one as a complete pan.
+        evt.SetGestureStart();
+        evt.SetGestureEnd();
         _gestureHandler->ProcessEvent(evt);
     } else {
         [self scrollWheel2: event];

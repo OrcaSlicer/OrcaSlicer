@@ -7264,11 +7264,7 @@ void GLCanvas3D::_picking_pass()
     m_hover_volume_idxs.clear();
     m_hover_plate_idxs.clear();
 
-    // Orca: ignore clipping plane if not applying
-    GLGizmoBase *current_gizmo  = m_gizmos.get_current();
-    const ClippingPlane clipping_plane = ((!current_gizmo || current_gizmo->apply_clipping_plane()) ? m_gizmos.get_clipping_plane() :
-                                                                                                      ClippingPlane::ClipsNothing())
-                                             .inverted_normal();
+    const ClippingPlane clipping_plane = get_raycaster_clipping_plane();
     const SceneRaycaster::HitResult hit = m_scene_raycaster.hit(m_mouse.position, wxGetApp().plater()->get_camera(), &clipping_plane);
     if (hit.is_valid()) {
         switch (hit.type)
@@ -10318,6 +10314,15 @@ Vec3d GLCanvas3D::_mouse_to_bed_3d(const Point& mouse_pos)
     return mouse_ray(mouse_pos).intersect_plane(0.0);
 }
 
+ClippingPlane GLCanvas3D::get_raycaster_clipping_plane() const
+{
+    // Ignore the gizmo clipping plane when the active tool does not apply it.
+    GLGizmoBase* current_gizmo = m_gizmos.get_current();
+    return ((!current_gizmo || current_gizmo->apply_clipping_plane()) ? m_gizmos.get_clipping_plane() :
+                                                                       ClippingPlane::ClipsNothing())
+        .inverted_normal();
+}
+
 std::optional<Vec3d> GLCanvas3D::get_camera_orbit_target(ECameraNavigationType navigation_type) const
 {
     PartPlate* current_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
@@ -10363,13 +10368,24 @@ std::optional<Vec3d> GLCanvas3D::get_camera_orbit_target(ECameraNavigationType n
 Vec3d GLCanvas3D::get_camera_pan_anchor(Camera& camera, ECameraNavigationType navigation_type,
     const Vec2d& screen_position) const
 {
-    const SceneRaycaster::HitResult hit = m_scene_raycaster.hit(screen_position, camera, nullptr);
-    if (hit.is_valid() && hit.position.allFinite())
-        return hit.position.cast<double>();
+    const Vec3d camera_position = camera.get_position();
+    const Vec3d camera_forward = camera.get_dir_forward();
+    const auto is_valid_anchor = [&camera_position, &camera_forward](const Vec3d& anchor) {
+        return anchor.allFinite() && (anchor - camera_position).dot(camera_forward) > EPSILON;
+    };
+
+    const ClippingPlane clipping_plane = get_raycaster_clipping_plane();
+    const SceneRaycaster::HitResult hit = m_scene_raycaster.hit(screen_position, camera, &clipping_plane,
+        SceneRaycaster::EHitMode::SceneOnly);
+    if (hit.is_valid()) {
+        const Vec3d hit_position = hit.position.cast<double>();
+        if (is_valid_anchor(hit_position))
+            return hit_position;
+    }
 
     // Empty parts of the canvas use the same reference point as orbiting.
     const std::optional<Vec3d> orbit_target = get_camera_orbit_target(navigation_type);
-    return orbit_target.has_value() && orbit_target->allFinite() ? *orbit_target : camera.get_target();
+    return orbit_target.has_value() && is_valid_anchor(*orbit_target) ? *orbit_target : camera.get_target();
 }
 
 // While it looks like we can call

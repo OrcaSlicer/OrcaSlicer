@@ -1309,6 +1309,7 @@ private:
         Gesture
     };
 
+    ClippingPlane get_raycaster_clipping_plane() const;
     std::optional<Vec3d> get_camera_orbit_target(ECameraNavigationType navigation_type) const;
     Vec3d get_camera_pan_anchor(Camera& camera, ECameraNavigationType navigation_type,
         const Vec2d& screen_position) const;
