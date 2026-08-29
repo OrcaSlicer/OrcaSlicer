@@ -106,6 +106,8 @@ class DummyVisualization(orca.visualization.VisualizationPluginCapabilityBase):
     def update(self, ctx):
         if ctx.scene_id == 99:
             raise RuntimeError("dummy update failure")
+        if ctx.scene_id == 100:
+            return orca.ExecutionResult.failure(orca.PluginResult.FatalError, "dummy fatal failure")
         self._record(f"update:{ctx.scene_id}")
         return orca.ExecutionResult.success()
 
@@ -236,6 +238,11 @@ TEST_CASE("Visualization sessions dispatch lifecycle calls and close when disabl
 
     ctx.scene_id = 2;
     CHECK(visualizations.update(capability->identity(), ctx).status == PluginResult::Success);
+
+    ctx.scene_id = 100;
+    CHECK(visualizations.update(capability->identity(), ctx).status == PluginResult::FatalError);
+    CHECK_FALSE(visualizations.is_active(capability->identity()));
+
     manager.set_capability_enabled(capability->identity(), false);
     CHECK_FALSE(visualizations.is_active(capability->identity()));
     CHECK(manager.unload_plugin("Visualization_Plugin"));

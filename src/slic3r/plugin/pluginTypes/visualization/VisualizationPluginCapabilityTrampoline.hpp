@@ -5,6 +5,9 @@
 
 namespace Slic3r {
 
+// Loading mode matches the current capability policy and permits a visualizer to read its
+// published ORPM snapshot and launch a packaged renderer. The audit hook still restricts writes
+// to Orca-approved roots and blocks denied application secrets.
 class PyVisualizationPluginCapabilityTrampoline : public PyPluginCommonTrampoline<VisualizationPluginCapability>
 {
 public:

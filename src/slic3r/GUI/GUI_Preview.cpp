@@ -292,7 +292,12 @@ bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
     main_sizer->Add(m_visualize_button, 0, wxALL | wxALIGN_RIGHT, 5);
     main_sizer->Add(m_canvas_widget, 1, wxALL | wxEXPAND, 0);
 
-    m_visualization_change_subscription = PluginVisualizations::instance().subscribe([this] { refresh_visualization_action(); });
+    m_visualization_change_subscription = PluginVisualizations::instance().subscribe([weak = wxWeakRef<Preview>(this)] {
+        wxGetApp().CallAfter([weak] {
+            if (weak)
+                weak->refresh_visualization_action();
+        });
+    });
     refresh_visualization_action();
 
     SetSizer(main_sizer);

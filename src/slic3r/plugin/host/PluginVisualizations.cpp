@@ -128,6 +128,11 @@ ExecutionResult PluginVisualizations::update(const PluginCapabilityId& id, Visua
         return recoverable_error(id, "update", error);
     }
 
+    if (result.status == PluginResult::FatalError) {
+        close(id);
+        return result;
+    }
+
     boost::filesystem::path old_snapshot;
     if (result.status == PluginResult::Success) {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -421,7 +426,8 @@ boost::filesystem::path PluginVisualizations::prepare_cache(const std::string& p
         fs::remove_all(cache, ignored);
     }
     fs::create_directories(cache);
-    return cache / ("plate-" + std::to_string(plate_index) + "-scene-" + std::to_string(scene_id) + ".orpm");
+    return cache / ("plate-" + std::to_string(plate_index) + "-scene-" + std::to_string(scene_id) +
+                    fs::unique_path("-%%%%-%%%%-%%%%.orpm").string());
 }
 
 void PluginVisualizations::remove_snapshot(const boost::filesystem::path& path)
