@@ -7,7 +7,7 @@
 #include <utility>
 
 WidgetAccessible::WidgetAccessible(wxWindow* win, wxAccRole role, ExtraStateGetter extra_state)
-    : wxAccessible(win)
+    : wxWindowAccessible(win)
     , m_role(role)
     , m_extra_state(std::move(extra_state))
 {}

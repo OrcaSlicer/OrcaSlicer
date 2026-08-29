@@ -56,6 +56,9 @@ void StaticBox::SetAccessibleRole(wxAccRole role, WidgetAccessible::ExtraStateGe
     // If the OS already queried us, the cached accessible object carries the
     // previous role - replace it. Otherwise stay lazy and let wx create one
     // on the first WM_GETOBJECT query, as it does for every other window.
+    // (The wxWindowAccessible constructor already calls SetAccessible() with
+    // the new object, deleting the old one; passing it again here is a no-op
+    // because wxWindowBase::SetAccessible only deletes a *different* pointer.)
     if (GetAccessible())
         SetAccessible(CreateAccessible());
 }
