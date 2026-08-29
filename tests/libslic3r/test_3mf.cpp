@@ -4,6 +4,8 @@
 #include "libslic3r/Format/3mf.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Format/STL.hpp"
+#include "libslic3r/miniz_extension.hpp"
+#include "libslic3r/Zipper.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Semver.hpp"
 #include "libslic3r/Preset.hpp"
@@ -13,6 +15,8 @@
 #include "test_utils.hpp"
 
 #include <boost/filesystem/operations.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <algorithm>
 
 #include <catch2/catch_tostring.hpp>
 #include <Eigen/Core>
@@ -136,6 +140,292 @@ SCENARIO("Export+Import geometry to/from 3mf file cycle", "[3mf]") {
             }
             THEN("world vertices coordinates after load match") {
                 REQUIRE(res);
+            }
+        }
+    }
+}
+
+// The recipe is an opaque binary blob (CadDocument::serialize_recipe()), so both 3mf backends
+// have to carry it byte-for-byte — no XML/text mangling, embedded NULs intact.
+static std::string make_cad_recipe()
+{
+    // Built from an explicit length, not append(const char*), which would stop at the first
+    // embedded NUL — the one thing this blob exists to prove survives the archive.
+    static const char blob[] = "\x01" "RECIPE" "\0" "\xff\xfe\x00\x10" "cad-features-blob";
+    return std::string(blob, sizeof(blob) - 1);
+}
+
+static const std::string CAD_RECIPE_ENTRY        = "Metadata/orca_cad.bin";
+static const std::string LEGACY_CAD_RECIPE_ENTRY = "Metadata/SnapOrca_cad.bin";
+
+// Pulls one named entry out of a 3mf archive; false when it is absent.
+static bool read_cad_recipe_entry(const std::string& path, std::string& out,
+                                  const std::string& entry = CAD_RECIPE_ENTRY)
+{
+    mz_zip_archive zip;
+    mz_zip_zero_struct(&zip);
+    REQUIRE(open_zip_reader(&zip, path));
+    bool   found = false;
+    mz_uint n    = mz_zip_reader_get_num_files(&zip);
+    for (mz_uint i = 0; i < n; ++i) {
+        mz_zip_archive_file_stat st;
+        if (!mz_zip_reader_file_stat(&zip, i, &st)) continue;
+        std::string name(st.m_filename);
+        std::replace(name.begin(), name.end(), '\\', '/');
+        if (boost::algorithm::iequals(name, entry)) {
+            out.resize(st.m_uncomp_size);
+            found = mz_zip_reader_extract_to_mem(&zip, i, out.data(), out.size(), 0) != 0;
+            break;
+        }
+    }
+    close_zip_reader(&zip);
+    return found;
+}
+
+// Rewrites the archive at `path` with the recipe entry back under the name it had before the
+// rename, which is what every project saved by an earlier build looks like on disk. Generated
+// rather than checked in because a whole project archive is not frozen evidence the way a bare
+// recipe blob is -- it has to be whatever today's exporter writes, with only the name aged.
+// miniz cannot rename in place and open_zip_writer truncates, so the entries are held across
+// the switch.
+static void rename_cad_recipe_entry_to_legacy(const std::string& path)
+{
+    std::vector<std::pair<std::string, std::string>> entries;
+    bool renamed = false;
+    {
+        mz_zip_archive zip;
+        mz_zip_zero_struct(&zip);
+        REQUIRE(open_zip_reader(&zip, path));
+        mz_uint n = mz_zip_reader_get_num_files(&zip);
+        for (mz_uint i = 0; i < n; ++i) {
+            mz_zip_archive_file_stat st;
+            REQUIRE(mz_zip_reader_file_stat(&zip, i, &st));
+            if (st.m_is_directory) continue;
+            std::string name(st.m_filename);
+            std::replace(name.begin(), name.end(), '\\', '/');
+            std::string data((size_t) st.m_uncomp_size, '\0');
+            if (st.m_uncomp_size > 0)
+                REQUIRE(mz_zip_reader_extract_to_mem(&zip, i, data.data(), data.size(), 0));
+            if (boost::algorithm::iequals(name, CAD_RECIPE_ENTRY)) {
+                name    = LEGACY_CAD_RECIPE_ENTRY;
+                renamed = true;
+            }
+            entries.emplace_back(std::move(name), std::move(data));
+        }
+        close_zip_reader(&zip);
+    }
+    // Without this the scenario would degrade silently into re-testing the new name if the
+    // exporter's constant ever moved again: every load below would still pass.
+    REQUIRE(renamed);
+
+    Zipper out(path);
+    for (const auto& e : entries)
+        out.add_entry(e.first, e.second.data(), e.second.size());
+    out.finalize();
+}
+
+SCENARIO("CAD recipe blob survives a 3mf save/load cycle", "[3mf][CAD]") {
+    GIVEN("a model carrying a binary cad_recipe") {
+        Model src_model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &src_model));
+        src_model.add_default_instances();
+
+        const std::string recipe = make_cad_recipe();
+        src_model.cad_recipe = recipe;
+
+        WHEN("the model is saved+loaded to/from a 3mf file") {
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+            REQUIRE(store_3mf(test_file.c_str(), &src_model, nullptr, false));
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Disable };
+            REQUIRE(load_3mf(test_file.c_str(), dst_config, ctxt, &dst_model, false));
+
+            THEN("the recipe round-trips byte-for-byte") {
+                REQUIRE(dst_model.cad_recipe.size() == recipe.size());
+                REQUIRE(dst_model.cad_recipe == recipe);
+            }
+        }
+
+        WHEN("the same model is saved with no recipe") {
+            src_model.cad_recipe.clear();
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+            REQUIRE(store_3mf(test_file.c_str(), &src_model, nullptr, false));
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Disable };
+            REQUIRE(load_3mf(test_file.c_str(), dst_config, ctxt, &dst_model, false));
+
+            THEN("nothing is written and nothing is read back") {
+                REQUIRE(dst_model.cad_recipe.empty());
+            }
+        }
+    }
+}
+
+// The GUI saves/loads projects via the BBS-native 3mf backend (store_bbs_3mf / load_bbs_3mf),
+// NOT the PrusaSlicer 3mf.cpp. This locks in both halves: the archive entry is at the exact
+// path the importer looks for, and the recipe comes back through the real importer.
+SCENARIO("CAD recipe is embedded in the BBS 3mf archive", "[3mf][CAD]") {
+    GIVEN("a model carrying a binary cad_recipe") {
+        Model model;
+        std::string src = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src.c_str(), &model));
+        model.add_default_instances();
+
+        // store_bbs_3mf stages its metadata through the model's backup path; point it at a
+        // writable temp dir, as the sibling BBS scenarios do. The process-global
+        // set_temporary_dir() would leak into every test that ran afterwards.
+        ScopedTemporaryDir backup_dir("orca_cad");
+        model.set_backup_path(backup_dir.string());
+
+        const std::string recipe = make_cad_recipe();
+        model.cad_recipe = recipe;
+
+        WHEN("saved through the BBS backend (the format the GUI uses)") {
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+
+            DynamicPrintConfig cfg;
+            StoreParams sp;
+            sp.path     = test_file.c_str();
+            sp.model    = &model;
+            sp.config   = &cfg;
+            sp.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+            REQUIRE(store_bbs_3mf(sp));
+
+            THEN("the archive entry is present byte-for-byte") {
+                std::string got;
+                REQUIRE(read_cad_recipe_entry(test_file, got));
+                REQUIRE(got.size() == recipe.size());
+                REQUIRE(got == recipe);
+            }
+
+            THEN("the importer restores it onto the loaded model") {
+                Model dst_model;
+                ScopedTemporaryDir dst_backup_dir("orca_cad_dst");
+                dst_model.set_backup_path(dst_backup_dir.string());
+
+                DynamicPrintConfig dst_config;
+                ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+                PlateDataPtrs        dst_plates;
+                std::vector<Preset*> project_presets;
+                bool   is_bbl_3mf = false, is_orca_3mf = false;
+                Semver file_version;
+                REQUIRE(load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                     &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                     LoadStrategy::LoadModel | LoadStrategy::LoadConfig));
+                REQUIRE(dst_model.cad_recipe.size() == recipe.size());
+                REQUIRE(dst_model.cad_recipe == recipe);
+
+                release_PlateData_list(dst_plates);
+            }
+        }
+
+        WHEN("the same model is saved with no recipe") {
+            model.cad_recipe.clear();
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+
+            DynamicPrintConfig cfg;
+            StoreParams sp;
+            sp.path     = test_file.c_str();
+            sp.model    = &model;
+            sp.config   = &cfg;
+            sp.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+            REQUIRE(store_bbs_3mf(sp));
+
+            THEN("no entry is written at all") {
+                std::string got;
+                REQUIRE_FALSE(read_cad_recipe_entry(test_file, got));
+            }
+        }
+    }
+}
+
+// The recipe entry was renamed from Metadata/SnapOrca_cad.bin to Metadata/orca_cad.bin. Nothing
+// in the blob marks that move, so a reader that knows only the new name loads a project written
+// before it with an empty cad_recipe and no error at all — a feature tree gone with no symptom
+// but an empty Design tab. Both backends must still accept the old name; neither may write it.
+SCENARIO("a project saved under the pre-rename recipe name still loads", "[3mf][CAD]") {
+    GIVEN("a project whose recipe entry carries the old name") {
+        Model model;
+        std::string src = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src.c_str(), &model));
+        model.add_default_instances();
+        const std::string recipe = make_cad_recipe();
+        model.cad_recipe = recipe;
+
+        WHEN("it was written by the PrusaSlicer-format backend") {
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+            REQUIRE(store_3mf(test_file.c_str(), &model, nullptr, false));
+            rename_cad_recipe_entry_to_legacy(test_file);
+
+            THEN("the recipe still comes back byte-for-byte") {
+                Model dst_model;
+                DynamicPrintConfig dst_config;
+                ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Disable };
+                REQUIRE(load_3mf(test_file.c_str(), dst_config, ctxt, &dst_model, false));
+                REQUIRE(dst_model.cad_recipe == recipe);
+            }
+        }
+
+        WHEN("it was written by the BBS backend (the format the GUI uses)") {
+            ScopedTemporaryDir backup_dir("orca_cad_legacy");
+            model.set_backup_path(backup_dir.string());
+
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+            DynamicPrintConfig cfg;
+            StoreParams sp;
+            sp.path     = test_file.c_str();
+            sp.model    = &model;
+            sp.config   = &cfg;
+            sp.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+            REQUIRE(store_bbs_3mf(sp));
+            rename_cad_recipe_entry_to_legacy(test_file);
+
+            // Catch2 replays the enclosing sections per THEN, so one load here serves both.
+            Model dst_model;
+            ScopedTemporaryDir dst_backup_dir("orca_cad_legacy_dst");
+            dst_model.set_backup_path(dst_backup_dir.string());
+
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs        dst_plates;
+            std::vector<Preset*> project_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            REQUIRE(load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                 &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                 LoadStrategy::LoadModel | LoadStrategy::LoadConfig));
+            release_PlateData_list(dst_plates);
+
+            THEN("the recipe still comes back byte-for-byte") {
+                REQUIRE(dst_model.cad_recipe == recipe);
+            }
+
+            THEN("re-saving migrates it to the new name and leaves the old one behind") {
+                ScopedTemporaryFile again(".3mf");
+                const std::string resaved = again.string();
+                DynamicPrintConfig cfg2;
+                StoreParams sp2;
+                sp2.path     = resaved.c_str();
+                sp2.model    = &dst_model;
+                sp2.config   = &cfg2;
+                sp2.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+                REQUIRE(store_bbs_3mf(sp2));
+
+                std::string got;
+                REQUIRE(read_cad_recipe_entry(resaved, got));
+                REQUIRE(got == recipe);
+                REQUIRE_FALSE(read_cad_recipe_entry(resaved, got, LEGACY_CAD_RECIPE_ENTRY));
             }
         }
     }

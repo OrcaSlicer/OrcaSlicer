@@ -1,0 +1,95 @@
+# Deps-only base image for fast iteration on SnapOrca.
+# Identical system+pinned-dependency setup to scripts/Dockerfile, but STOPS after
+# `build_linux.sh -dr` (no slicer/AppImage build). Produces an image with the pinned
+# deps baked at /OrcaSlicer/deps/build/destdir, so the slicer can be rebuilt
+# incrementally via scripts/CAD/build-gui-incremental.sh without re-running the long deps build.
+#
+# Build once (rebuild only when deps/ changes, e.g. OCCT module flags):
+#   docker build -t snaporca-deps -f scripts/Dockerfile.deps .
+FROM docker.io/ubuntu:24.04
+LABEL maintainer="SnapOrca CAD iteration base"
+
+# Disable interactive package configuration
+RUN apt-get update && \
+    echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+
+# Add a deb-src
+RUN echo deb-src http://archive.ubuntu.com/ubuntu \
+    $(cat /etc/*release | grep VERSION_CODENAME | cut -d= -f2) main universe>> /etc/apt/sources.list
+
+RUN apt-get update && apt-get install  -y \
+    autoconf \
+    build-essential \
+    cmake \
+    curl \
+    eglexternalplatform-dev \
+    extra-cmake-modules \
+    file \
+    git \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-libav \
+    libcairo2-dev \
+    libcurl4-openssl-dev \
+    libdbus-1-dev \
+    libglew-dev \
+    libglu1-mesa-dev \
+    libgstreamer1.0-dev \
+    libgstreamerd-3-dev \
+    libgstreamer-plugins-base1.0-dev \
+    libgstreamer-plugins-good1.0-dev \
+    libgtk-3-dev \
+    libsecret-1-dev \
+    libsoup2.4-dev \
+    libssl3 \
+    libssl-dev \
+    libtool \
+    libudev-dev \
+    libwayland-dev \
+    libwebkit2gtk-4.1-dev \
+    libxkbcommon-dev \
+    locales \
+    locales-all \
+    m4 \
+    pkgconf \
+    sudo \
+    wayland-protocols \
+    wget
+
+ENV LC_ALL=en_US.utf8
+RUN locale-gen $LC_ALL
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+
+COPY ./ OrcaSlicer
+WORKDIR OrcaSlicer
+
+# System dependencies
+RUN ./build_linux.sh -u
+
+# Pinned dependencies in ./deps (OCCT 7.6 with ModelingAlgorithms enabled, OpenCV,
+# OpenVDB, Boost, wxWidgets, ...). This is the long step; it is baked into the image.
+# -j 12, not the default all-cores: on 2026-08-21 an unbounded deps build plus an unbounded
+# app build put 42 GB of cc1plus on a 62 GB box and OOM-killed the host for 2h28m. 12 keeps
+# the compile fast while leaving the machine usable. Pair with `docker build --memory`.
+RUN ./build_linux.sh -dr -j 12
+
+# Compatibility symlink. This deps tree installs into deps/build/OrcaSlicer_dep/, while the
+# orcacad_buildcache volume was configured against the previous image, whose prefix was
+# deps/build/destdir/. Those paths are baked as absolute strings into the app's CMakeCache, so
+# without this symlink a rebuild on the new image reconfigures from scratch — hours of compile
+# to change one directory name. Same tree, two names.
+RUN ln -sfn /OrcaSlicer/deps/build/OrcaSlicer_dep /OrcaSlicer/deps/build/destdir
+
+# The rig's GUI runtime. This used to arrive for free because orcacad-deps was layered on
+# snaporca-deps; that lineage is Trap 1 in docs/rig_build_traps.md (a baked project(Snapmaker_Orca)
+# tree) and building from this Dockerfile is what removes it — along with the X stack the rig
+# needs. scripts/CAD/start-headless-gui.sh requires Xvfb and openbox (without a window manager `xdotool
+# windowactivate` aborts with "windowmanager claims not to support..."), drives the UI with
+# xdotool, and captures to /shots with scrot/ImageMagick. Same set snaporca-deps carries.
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    imagemagick \
+    openbox \
+    scrot \
+    xauth \
+    xdotool \
+    xvfb \
+ && rm -rf /var/lib/apt/lists/*

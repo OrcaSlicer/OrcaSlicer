@@ -21,6 +21,11 @@ endif()
 option(BUILD_SHARED_LIBS "Build shared libs" OFF)
 option(USE_SLIC3R_CONSOLE_LOG "Enable console logging in RelWithDebInfo builds" OFF)
 
+# SolveSpace constraint solver (2D sketch solver backbone), built in deps/SLVS.
+if (SLIC3R_CAD)
+    find_package(SLVS REQUIRED)
+endif ()
+
 set(lisbslic3r_sources
     AABBMesh.cpp
     AABBMesh.hpp
@@ -498,6 +503,29 @@ set(lisbslic3r_sources
     FlushVolPredictor.cpp
 )
 
+# Parametric Design/CAD kernel. Needs OCCT's ModelingAlgorithms module and the
+# vendored SolveSpace solver; both are pulled in only when SLIC3R_CAD is ON.
+if (SLIC3R_CAD)
+    list(APPEND lisbslic3r_sources
+            CAD/GeometryEngine.cpp
+            CAD/GeometryEngine.hpp
+            CAD/SketchEngine.cpp
+            CAD/SketchEngine.hpp
+            CAD/SketchConstraints.cpp
+            CAD/SketchConstraints.hpp
+            CAD/SketchSolver.cpp
+            CAD/SketchSolver.hpp
+            CAD/SketchInference.cpp
+            CAD/SketchInference.hpp
+            CAD/SketchImport.cpp
+            CAD/SketchImport.hpp
+            CAD/CadDocument.cpp
+            CAD/CadDocument.hpp
+            CAD/ThreadStandards.cpp
+            CAD/ThreadStandards.hpp
+        )
+endif ()
+
 if (APPLE)
     list(APPEND lisbslic3r_sources
             MacUtils.mm
@@ -603,6 +631,30 @@ set(OCCT_LIBS
     TKMath
     TKernel
 )
+# The CAD kernel is the only consumer of OCCT's ModelingAlgorithms module: TKFillet
+# (BRepFilletAPI), TKOffset (BRepOffsetAPI) and TKBool, which the other two need.
+#
+# PREPEND, never append: this list is single-pass static link order, dependents before
+# dependencies — note TKernel, which everything needs, is deliberately last. TKOffset
+# references BRepAlgo_Loop, which TKBool defines, so TKOffset must come BEFORE TKBool.
+# Appending put it after, and a strictly single-pass linker (the Flatpak build) failed with
+#     libTKOffset.a(BRepOffset_MakeLoops.cxx.o): undefined reference to
+#     `BRepAlgo_Loop::BRepAlgo_Loop()'
+# while the ordinary Linux, macOS and Windows links resolved it anyway. Use set() rather
+# than list(PREPEND), which needs CMake 3.15 and this project supports 3.13.
+if (SLIC3R_CAD)
+    set(OCCT_LIBS TKFillet TKOffset TKBool ${OCCT_LIBS})
+    # deps is configured separately, so its SLIC3R_CAD can differ from ours. The module is
+    # all-or-nothing, so one absent toolkit proves it; fail here rather than at link time.
+    if (NOT TARGET TKFillet)
+        message(FATAL_ERROR
+            "SLIC3R_CAD is ON, but the OpenCASCADE in ${CMAKE_PREFIX_PATH} was built without "
+            "BUILD_MODULE_ModelingAlgorithms. Rebuild the dependencies with -DSLIC3R_CAD=ON, "
+            "or configure this project with -DSLIC3R_CAD=OFF.")
+    endif ()
+endif ()
+# Published for the Windows packaging step in the top-level CMakeLists.txt.
+set(OCCT_LIBS "${OCCT_LIBS}" CACHE INTERNAL "OCCT toolkits linked by libslic3r")
 
 target_link_libraries(libslic3r
     PUBLIC
@@ -654,6 +706,10 @@ endif ()
 if (TARGET OpenVDB::openvdb)
     target_link_libraries(libslic3r PRIVATE OpenVDB::openvdb)
 endif()
+
+if (SLIC3R_CAD)
+    target_link_libraries(libslic3r PUBLIC SLVS::slvs)
+endif ()
 
 if(WIN32)
     target_link_libraries(libslic3r PRIVATE Psapi.lib bcrypt.lib)

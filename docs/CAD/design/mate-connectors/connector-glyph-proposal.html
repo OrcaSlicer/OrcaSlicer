@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mate connector glyph — polarity and verse</title>
+<style>
+  :root {
+    --ground:      #eceef1;
+    --panel:       #f8f9fb;
+    --panel-edge:  #d3d8df;
+    --ink:         #171a1f;
+    --ink-soft:    #5a626e;
+    --ink-faint:   #8b93a0;
+    --viewport:    #9aa0a8;   /* the grey a CAD viewport actually is */
+    --viewport-2:  #7f858d;
+    --axis-z:      #2f6fed;
+    --axis-x:      #d94a3d;
+    --axis-y:      #3aa757;
+    --quadrant:    #e8a317;
+    --anchor:      #6b7280;
+    --driven:      #2f6fed;
+    --warn:        #c2410c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:     #14171c;
+      --panel:      #1b1f26;
+      --panel-edge: #2b313a;
+      --ink:        #e8eaee;
+      --ink-soft:   #a6aeba;
+      --ink-faint:  #6e7784;
+      --viewport:   #4a5058;
+      --viewport-2: #3a3f46;
+      --axis-z:     #6ea2ff;
+      --axis-x:     #ff7a6d;
+      --axis-y:     #5fd07f;
+      --quadrant:   #ffc247;
+      --anchor:     #9aa3b0;
+      --driven:     #6ea2ff;
+      --warn:       #fb923c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#14171c; --panel:#1b1f26; --panel-edge:#2b313a; --ink:#e8eaee;
+    --ink-soft:#a6aeba; --ink-faint:#6e7784; --viewport:#4a5058; --viewport-2:#3a3f46;
+    --axis-z:#6ea2ff; --axis-x:#ff7a6d; --axis-y:#5fd07f; --quadrant:#ffc247;
+    --anchor:#9aa3b0; --driven:#6ea2ff; --warn:#fb923c;
+  }
+  :root[data-theme="light"] {
+    --ground:#eceef1; --panel:#f8f9fb; --panel-edge:#d3d8df; --ink:#171a1f;
+    --ink-soft:#5a626e; --ink-faint:#8b93a0; --viewport:#9aa0a8; --viewport-2:#7f858d;
+    --axis-z:#2f6fed; --axis-x:#d94a3d; --axis-y:#3aa757; --quadrant:#e8a317;
+    --anchor:#6b7280; --driven:#2f6fed; --warn:#c2410c;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px 24px 72px;
+    background: var(--ground); color: var(--ink);
+    font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+  header { display: flex; flex-direction: column; gap: 6px; }
+  h1 { font-size: 26px; line-height: 1.25; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+  .sub { color: var(--ink-soft); max-width: 62ch; margin: 0; }
+  .eyebrow {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-faint); font-weight: 600;
+  }
+  h2 {
+    font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 16px 0 0; font-weight: 600;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 16px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--panel-edge);
+    border-radius: 10px; padding: 18px; flex: 1 1 220px; min-width: 220px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .card.wide { flex: 1 1 100%; }
+  .stage { display: flex; align-items: center; justify-content: center; padding: 4px 0; }
+  .name { font-weight: 650; font-size: 15px; }
+  .note { color: var(--ink-soft); font-size: 13.5px; margin: 0; }
+  .k { color: var(--ink); font-weight: 600; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--panel-edge); vertical-align: top; }
+  th { color: var(--ink-faint); font-weight: 600; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+  code { font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink-soft); }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--ink-soft); }
+  .swatch { display: inline-flex; align-items: center; gap: 7px; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">SnapOrca Design · assembly</div>
+    <h1>Mate connector glyph — polarity and verse</h1>
+    <p class="sub">
+      Onshape's core (disc + roll quadrant + Z arrow) is adopted unchanged because it is proven and
+      aligned. The addition is <span class="k">polarity</span> — which connector is anchored and
+      which one travels — which no surveyed CAD system encodes in its glyph.
+    </p>
+  </header>
+
+  <h2>The three jobs of the glyph</h2>
+  <div class="row">
+    <div class="card">
+      <div class="stage">
+        <svg width="150" height="130" viewBox="-75 -95 150 130" aria-label="Disc with origin dot">
+          <ellipse cx="0" cy="0" rx="42" ry="17" fill="none" stroke="var(--ink-soft)" stroke-width="2.5"/>
+          <circle cx="0" cy="0" r="3.6" fill="var(--ink)"/>
+        </svg>
+      </div>
+      <div class="name">Disc — the XY plane</div>
+      <p class="note">Says “I am a frame, and this is the plane I sit in.” The dot is the exact origin.</p>
+    </div>
+
+    <div class="card">
+      <div class="stage">
+        <svg width="150" height="130" viewBox="-75 -95 150 130" aria-label="Disc with one quadrant filled">
+          <path d="M0,0 L42,0 A42,17 0 0 1 0,17 Z" fill="var(--quadrant)" opacity="0.9"/>
+          <ellipse cx="0" cy="0" rx="42" ry="17" fill="none" stroke="var(--ink-soft)" stroke-width="2.5"/>
+          <circle cx="0" cy="0" r="3.6" fill="var(--ink)"/>
+        </svg>
+      </div>
+      <div class="name">Quadrant — the roll</div>
+      <p class="note">
+        The filled sector is the +X/+Y quadrant. It steps 90° with the reorient control, so the
+        clocking that Fastened and Slider lock is <em>visible</em> before you commit.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="stage">
+        <svg width="150" height="130" viewBox="-75 -95 150 130" aria-label="Z arrow drawn only upward">
+          <path d="M0,0 L42,0 A42,17 0 0 1 0,17 Z" fill="var(--quadrant)" opacity="0.9"/>
+          <ellipse cx="0" cy="0" rx="42" ry="17" fill="none" stroke="var(--ink-soft)" stroke-width="2.5"/>
+          <line x1="0" y1="0" x2="0" y2="-58" stroke="var(--axis-z)" stroke-width="3.5" stroke-linecap="round"/>
+          <polygon points="0,-80 -9.5,-56 9.5,-56" fill="var(--axis-z)"/>
+          <circle cx="0" cy="0" r="3.6" fill="var(--ink)"/>
+        </svg>
+      </div>
+      <div class="name">Arrow — the verse</div>
+      <p class="note">
+        Drawn on <span class="k">+Z only</span>. Nothing below the disc. A double-headed axis is what
+        makes people ask which way it points; a one-sided arrow cannot be misread.
+      </p>
+    </div>
+  </div>
+
+  <h2>Polarity — the part nobody else draws</h2>
+  <div class="row">
+    <div class="card">
+      <div class="stage">
+        <svg width="170" height="150" viewBox="-85 -105 170 150" aria-label="Fixed connector, open collar">
+          <path d="M0,0 L42,0 A42,17 0 0 1 0,17 Z" fill="var(--quadrant)" opacity="0.55"/>
+          <ellipse cx="0" cy="0" rx="42" ry="17" fill="none" stroke="var(--anchor)" stroke-width="2.5"/>
+          <line x1="0" y1="0" x2="0" y2="-56" stroke="var(--anchor)" stroke-width="3" stroke-linecap="round"/>
+          <polygon points="0,-80 -9.5,-56 9.5,-56" fill="none" stroke="var(--anchor)" stroke-width="3" stroke-linejoin="round"/>
+          <ellipse cx="0" cy="-56" rx="9.5" ry="3.6" fill="none" stroke="var(--anchor)" stroke-width="2.2"/>
+          <circle cx="0" cy="0" r="3.6" fill="var(--anchor)"/>
+        </svg>
+      </div>
+      <div class="name">Fixed — the socket</div>
+      <p class="note">
+        Hollow head, muted colour. This body <span class="k">does not move</span>. It receives.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="stage">
+        <svg width="170" height="150" viewBox="-85 -105 170 150" aria-label="Driven connector, solid cone">
+          <path d="M0,0 L42,0 A42,17 0 0 1 0,17 Z" fill="var(--quadrant)" opacity="0.95"/>
+          <ellipse cx="0" cy="0" rx="42" ry="17" fill="none" stroke="var(--driven)" stroke-width="2.5"/>
+          <line x1="0" y1="0" x2="0" y2="-58" stroke="var(--driven)" stroke-width="3.5" stroke-linecap="round"/>
+          <polygon points="0,-80 -9.5,-56 9.5,-56" fill="var(--driven)"/>
+          <circle cx="0" cy="0" r="3.6" fill="var(--driven)"/>
+        </svg>
+      </div>
+      <div class="name">Driven — the plug</div>
+      <p class="note">
+        Solid head, active colour. This body <span class="k">is the one that jumps</span>. It inserts.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="stage">
+        <svg width="170" height="150" viewBox="-85 -105 170 150" aria-label="Degenerate roll, hatched quadrant">
+          <defs>
+            <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="6" stroke="var(--warn)" stroke-width="2"/>
+            </pattern>
+          </defs>
+          <path d="M0,0 L42,0 A42,17 0 0 1 0,17 Z" fill="url(#hatch)" opacity="0.85"/>
+          <ellipse cx="0" cy="0" rx="42" ry="17" fill="none" stroke="var(--warn)" stroke-width="2.5" stroke-dasharray="5 4"/>
+          <line x1="0" y1="0" x2="0" y2="-58" stroke="var(--axis-z)" stroke-width="3.5" stroke-linecap="round"/>
+          <polygon points="0,-80 -9.5,-56 9.5,-56" fill="var(--axis-z)"/>
+          <circle cx="0" cy="0" r="3.6" fill="var(--ink)"/>
+        </svg>
+      </div>
+      <div class="name">Roll undefined</div>
+      <p class="note">
+        Hatched quadrant, dashed disc: a circular face or a seam gave no usable direction. Says
+        “pick a direction” without a dialog.
+      </p>
+    </div>
+  </div>
+
+  <h2>The pair reads as a magnet</h2>
+  <div class="card wide">
+    <div class="stage">
+      <svg width="620" height="230" viewBox="-310 -120 620 230" aria-label="Two connectors facing each other on two plates">
+        <!-- lower plate (fixed) -->
+        <path d="M-260,52 L-60,10 L60,44 L-140,86 Z" fill="var(--viewport)" stroke="var(--viewport-2)" stroke-width="1.5"/>
+        <!-- upper plate (driven) -->
+        <path d="M-60,-96 L140,-138 L260,-104 L60,-62 Z" fill="var(--viewport)" stroke="var(--viewport-2)" stroke-width="1.5" opacity="0.55"/>
+
+        <!-- dashed field line between origins -->
+        <line x1="-100" y1="48" x2="100" y2="-79" stroke="var(--ink-faint)" stroke-width="2" stroke-dasharray="7 6"/>
+
+        <!-- FIXED connector, pointing up (+Z out of the lower plate) -->
+        <g transform="translate(-100,48)">
+          <path d="M0,0 L38,0 A38,15 0 0 1 0,15 Z" fill="var(--quadrant)" opacity="0.5"/>
+          <ellipse cx="0" cy="0" rx="38" ry="15" fill="none" stroke="var(--anchor)" stroke-width="2.4"/>
+          <line x1="0" y1="0" x2="0" y2="-48" stroke="var(--anchor)" stroke-width="3" stroke-linecap="round"/>
+          <polygon points="0,-70 -9,-48 9,-48" fill="none" stroke="var(--anchor)" stroke-width="3" stroke-linejoin="round"/>
+          <ellipse cx="0" cy="-48" rx="9" ry="3.4" fill="none" stroke="var(--anchor)" stroke-width="2"/>
+          <circle cx="0" cy="0" r="3.4" fill="var(--anchor)"/>
+        </g>
+
+        <!-- DRIVEN connector, pointing down (+Z out of the upper plate's underside) -->
+        <g transform="translate(100,-79) rotate(180)">
+          <path d="M0,0 L38,0 A38,15 0 0 1 0,15 Z" fill="var(--quadrant)" opacity="0.9"/>
+          <ellipse cx="0" cy="0" rx="38" ry="15" fill="none" stroke="var(--driven)" stroke-width="2.4"/>
+          <line x1="0" y1="0" x2="0" y2="-50" stroke="var(--driven)" stroke-width="3.4" stroke-linecap="round"/>
+          <polygon points="0,-70 -9,-48 9,-48" fill="var(--driven)"/>
+          <circle cx="0" cy="0" r="3.4" fill="var(--driven)"/>
+        </g>
+
+        <text x="-100" y="102" text-anchor="middle" font-size="13" fill="var(--ink-soft)">fixed · receives</text>
+        <text x="100" y="-100" text-anchor="middle" font-size="13" fill="var(--ink-soft)">driven · inserts</text>
+      </svg>
+    </div>
+    <p class="note">
+      Two arrows nose to nose. Because a magnet's north seeks a south, <span class="k">“facing” is the
+      self-evident default</span> — which settles open decision D1 on visual grounds instead of a
+      convention nobody can look up. Nothing has to be remembered: the picture is the rule.
+      The dashed line is what makes the two glyphs read as one object.
+    </p>
+  </div>
+
+  <h2>States</h2>
+  <div class="card wide">
+    <table>
+      <thead>
+        <tr><th>State</th><th>Drawing</th><th>Why</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="k">Candidate</span> (hover)</td>
+          <td>small dot only</td>
+          <td>Onshape draws plain white dots at every corner and midpoint. Dots propose; the full glyph commits.</td>
+        </tr>
+        <tr>
+          <td><span class="k">Picked</span></td>
+          <td>disc + quadrant + cone</td>
+          <td>The committed frame, with roll and verse both readable.</td>
+        </tr>
+        <tr>
+          <td><span class="k">Roll undefined</span></td>
+          <td>hatched quadrant, dashed disc</td>
+          <td>Turns requirement R8 from a message nobody reads into a mark you cannot miss.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Constraints on the drawing</h2>
+  <div class="card wide">
+    <p class="note">
+      <span class="k">Do not make it a fourth RGB triad.</span> The bed-centre world triad
+      (<code>DesignCanvas.cpp:65</code>) and the move gizmo are already three coloured arrows. The disc
+      and the quadrant are what tell a connector apart from those — keep the arms short, and consider
+      drawing only Z on the committed glyph, with X and Y implied by the quadrant.
+    </p>
+    <div class="legend">
+      <span class="swatch"><i class="dot" style="background:var(--quadrant)"></i> roll quadrant</span>
+      <span class="swatch"><i class="dot" style="background:var(--axis-z)"></i> Z / driven</span>
+      <span class="swatch"><i class="dot" style="background:var(--anchor)"></i> fixed</span>
+      <span class="swatch"><i class="dot" style="background:var(--warn)"></i> roll undefined</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

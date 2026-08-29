@@ -4,6 +4,21 @@ else()
     set(library_build_type "Static")
 endif()
 
+# SLIC3R_CAD (declared in deps/CMakeLists.txt) builds OCCT's ModelingAlgorithms module
+# (fillet/offset/loft), whose only consumer is the parametric Design/CAD tab. With it OFF
+# the deps prefix matches upstream exactly.
+#
+# With it ON the delta is THREE toolkits, not two: TKFillet (7.40 MiB archive, used via
+# BRepFilletAPI), TKOffset (5.38 MiB, used via BRepOffsetAPI) and TKFeat (4.42 MiB), which
+# nothing here references but which the module flag builds anyway -- it is all-or-nothing
+# per module. The module's other nine toolkits are built either way, because DataExchange
+# (the STEP path upstream already ships) depends on them.
+#
+# On macOS/Linux OCCT links statically, so an unreferenced toolkit costs build time and no
+# shipped bytes. The Windows figure is a real DLL cost and has NOT been measured -- an
+# earlier "3.77 MiB, Windows only" note here covered only two of the three toolkits and is
+# not a number to quote. See docs/cad_dependency_weight.md.
+
 if (IN_GIT_REPO)
     set(OCCT_DIRECTORY_FLAG --directory ${BINARY_DIR_REL}/dep_OCCT-prefix/src/dep_OCCT)
 endif ()
@@ -28,7 +43,7 @@ orcaslicer_add_cmake_project(OCCT
         #-DBUILD_MODULE_DataExchange=OFF
         -DBUILD_MODULE_Draw=OFF
         -DBUILD_MODULE_FoundationClasses=OFF
-        -DBUILD_MODULE_ModelingAlgorithms=OFF
+        -DBUILD_MODULE_ModelingAlgorithms=${SLIC3R_CAD}
         -DBUILD_MODULE_ModelingData=OFF
         -DBUILD_MODULE_Visualization=OFF
 )

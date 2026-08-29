@@ -45,6 +45,17 @@ add_executable(${_TEST_NAME}_tests
     ../libnest2d/printer_parts.cpp
     )
 
+if (SLIC3R_CAD)
+    target_sources(${_TEST_NAME}_tests PRIVATE
+        test_caddocument.cpp
+        test_sketchconstraints.cpp
+        test_sketchedit.cpp
+        test_sketchprofile.cpp
+        test_sketchimport.cpp
+        test_sketchinference.cpp
+        test_slvs_constraints.cpp)
+endif ()
+
 if (TARGET OpenVDB::openvdb)
     target_sources(${_TEST_NAME}_tests PRIVATE test_hollowing.cpp)
 endif()

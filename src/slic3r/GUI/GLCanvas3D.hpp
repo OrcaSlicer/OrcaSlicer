@@ -57,6 +57,9 @@ namespace GUI {
 
 class Bed3D;
 class PartPlateList;
+#ifdef SLIC3R_CAD
+class DesignSketchTool;   // Design tab: interactive 2D sketch tool
+#endif
 
 #if ENABLE_RETINA_GL
 class RetinaHelper;
@@ -544,6 +547,17 @@ private:
     mutable Vec2i32 m_canvas_toolbar_pos = {140, 5};
     mutable float m_sc{1};
     mutable float m_paint_toolbar_width;
+    bool m_collapse_toolbar_enabled{true};
+    bool m_plate_chrome_enabled{true};
+    // Design tab: render the world-axis triad at the bed centre (= modeling origin) instead of
+    // the bed corner. Default false preserves the main editor's corner triad.
+    bool m_axes_at_bed_center{false};
+    // Design tab: draw the printer bed and its plate grid at all. Default true, so the
+    // main editor is untouched; the Design tab lets the user hide it to model without a bed.
+    bool m_show_bed{true};
+#ifdef SLIC3R_CAD
+    DesignSketchTool* m_design_sketch_tool{nullptr};
+#endif
 
     //BBS: add canvas type for assemble view usage
     ECanvasType m_canvas_type;
@@ -571,6 +585,10 @@ private:
     std::array<unsigned int, 2> m_old_size{ 0, 0 };
 
     bool m_is_touchpad_navigation{ false };
+    // CAD navigation (Design tab only): left-drag is a selection rubber band, so orbit moves
+    // to middle-drag and pan to right-drag — the Onshape/SolidWorks mapping. Off everywhere
+    // else, so Prepare/Preview keep the mouse the user already learned.
+    bool m_cad_navigation{ false };
 
     // Screen is only refreshed from the OnIdle handler if it is dirty.
     bool m_dirty;
@@ -888,6 +906,15 @@ public:
     void enable_assemble_view_toolbar(bool enable);
     void enable_return_toolbar(bool enable);
     void enable_separator_toolbar(bool enable);
+    void enable_collapse_toolbar(bool enable);
+    void enable_plate_chrome(bool enable);
+    void set_axes_at_bed_center(bool b) { m_axes_at_bed_center = b; }
+    void set_show_bed(bool b) { m_show_bed = b; }
+    bool get_show_bed() const { return m_show_bed; }
+#ifdef SLIC3R_CAD
+    void set_design_sketch_tool(DesignSketchTool* tool) { m_design_sketch_tool = tool; }
+    DesignSketchTool* get_design_sketch_tool() const { return m_design_sketch_tool; }
+#endif
     void enable_dynamic_background(bool enable) { m_dynamic_background_enabled = enable; }
     void enable_labels(bool enable) { m_labels.enable(enable); }
     void enable_slope(bool enable) { m_slope.enable(enable); }
@@ -1057,6 +1084,7 @@ public:
     bool clicked_button_matches_action(const wxMouseEvent& evt, MouseAction action, const std::map<MouseButton, MouseAction>& mappings) const;
     bool is_camera_rotate(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
     bool is_camera_pan(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
+    void set_cad_navigation(bool b) { m_cad_navigation = b; }
 
     Size get_canvas_size() const;
     Vec2d get_local_mouse_position() const;
