@@ -747,3 +747,149 @@ TEST_CASE("spectrum mix dialog undo drop_if_rewritten", "[spectrum_mix_dialog_un
     spectrum_mix_dialog_undo_drop_if_rewritten(rec, 101);
     REQUIRE(rec.active);
 }
+
+TEST_CASE("spectrum mix dialog two OKs compose mix and process", "[spectrum_mix_dialog_undo]")
+{
+    SpectrumMapUndoRecord map; // inactive
+
+    SpectrumMixDialogUndoRecord d1;
+    d1.active             = true;
+    d1.snapshot_timestamp = 100;
+    d1.pre.mixed_filament_definitions.clear();
+    d1.pre.enable_prime_tower              = false;
+    d1.pre.dithering_local_z_mode          = false;
+    d1.pre.dithering_local_z_whole_objects = false;
+    d1.pre.mixed_filament_gradient_mode    = false;
+    d1.post.mixed_filament_definitions     = "1,2,1,1,1";
+    d1.post.enable_prime_tower             = true;
+    d1.post.dithering_local_z_mode         = false;
+    d1.post.dithering_local_z_whole_objects = false;
+    d1.post.mixed_filament_gradient_mode   = false;
+
+    SpectrumMixDialogUndoRecord d2;
+    d2.active             = true;
+    d2.snapshot_timestamp = 110;
+    d2.pre                = d1.post;
+    d2.post.mixed_filament_definitions     = "1,2,1,1,1;1,3,1,1,1";
+    d2.post.enable_prime_tower             = true;
+    d2.post.dithering_local_z_mode         = true;
+    d2.post.dithering_local_z_whole_objects = false;
+    d2.post.mixed_filament_gradient_mode   = false;
+
+    const std::vector<SpectrumMixDialogUndoRecord> dialogs{d1, d2};
+
+    auto check_at = [&](size_t T, const std::string &mix, bool tower, bool local_z) {
+        REQUIRE(spectrum_mix_defs_at(map, dialogs, T) == mix);
+        SpectrumMixDialogUndoKeys keys;
+        REQUIRE(spectrum_mix_dialog_keys_at(dialogs, T, keys));
+        REQUIRE(keys.mixed_filament_definitions == mix);
+        REQUIRE(keys.enable_prime_tower == tower);
+        REQUIRE(keys.dithering_local_z_mode == local_z);
+        REQUIRE_FALSE(keys.dithering_local_z_whole_objects);
+        REQUIRE_FALSE(keys.mixed_filament_gradient_mode);
+    };
+
+    check_at(111, "1,2,1,1,1;1,3,1,1,1", true, true);
+    check_at(110, "1,2,1,1,1", true, false);
+    // Literal empty — must not equal D2 pre ("1,2,1,1,1").
+    check_at(100, "", false, false);
+    check_at(50, "", false, false);
+}
+
+TEST_CASE("spectrum mix defs compose Map plus two dialogs", "[spectrum_mix_dialog_undo]")
+{
+    SpectrumMapUndoRecord map;
+    map.active                 = true;
+    map.map_snapshot_timestamp = 90;
+    map.pre.mapped             = false;
+    map.pre.mixed_filament_definitions  = "map-pre";
+    map.post.mapped            = true;
+    map.post.mixed_filament_definitions = "map-post";
+
+    SpectrumMixDialogUndoRecord d1;
+    d1.active             = true;
+    d1.snapshot_timestamp = 100;
+    d1.pre.mixed_filament_definitions  = "d1-pre";
+    d1.pre.enable_prime_tower          = false;
+    d1.pre.dithering_local_z_mode      = false;
+    d1.pre.dithering_local_z_whole_objects = false;
+    d1.pre.mixed_filament_gradient_mode    = false;
+    d1.post.mixed_filament_definitions = "d1-post";
+    d1.post.enable_prime_tower         = true;
+    d1.post.dithering_local_z_mode     = false;
+    d1.post.dithering_local_z_whole_objects = false;
+    d1.post.mixed_filament_gradient_mode    = false;
+
+    SpectrumMixDialogUndoRecord d2;
+    d2.active             = true;
+    d2.snapshot_timestamp = 110;
+    d2.pre.mixed_filament_definitions  = "d2-pre";
+    d2.pre.enable_prime_tower          = true;
+    d2.pre.dithering_local_z_mode      = false;
+    d2.post.mixed_filament_definitions = "d2-post";
+    d2.post.enable_prime_tower         = true;
+    d2.post.dithering_local_z_mode     = true;
+    d2.post.dithering_local_z_whole_objects = false;
+    d2.post.mixed_filament_gradient_mode    = false;
+
+    const std::vector<SpectrumMixDialogUndoRecord> dialogs{d1, d2};
+
+    auto check_at = [&](size_t T, const std::string &mix, bool mapped, bool tower, bool local_z) {
+        REQUIRE(spectrum_mix_defs_at(map, dialogs, T) == mix);
+        REQUIRE(spectrum_map_undo_pick(map, T).mapped == mapped);
+        SpectrumMixDialogUndoKeys keys;
+        REQUIRE(spectrum_mix_dialog_keys_at(dialogs, T, keys));
+        REQUIRE(keys.enable_prime_tower == tower);
+        REQUIRE(keys.dithering_local_z_mode == local_z);
+    };
+
+    check_at(111, "d2-post", true, true, true);
+    check_at(110, "d1-post", true, true, false);
+    check_at(100, "map-post", true, false, false);
+    check_at(90, "map-pre", false, false, false);
+}
+
+TEST_CASE("spectrum mix dialog vector drop_if_rewritten", "[spectrum_mix_dialog_undo]")
+{
+    SpectrumMixDialogUndoRecord d1;
+    d1.active             = true;
+    d1.snapshot_timestamp = 100;
+    SpectrumMixDialogUndoRecord d2;
+    d2.active             = true;
+    d2.snapshot_timestamp = 110;
+
+    {
+        std::vector<SpectrumMixDialogUndoRecord> records{d1, d2};
+        spectrum_mix_dialog_undo_drop_if_rewritten(records, 110);
+        REQUIRE(records.size() == 1);
+        REQUIRE(records.front().snapshot_timestamp == 100);
+        REQUIRE(records.front().active);
+    }
+    {
+        std::vector<SpectrumMixDialogUndoRecord> records{d1, d2};
+        spectrum_mix_dialog_undo_drop_if_rewritten(records, 100);
+        REQUIRE(records.empty());
+    }
+    {
+        std::vector<SpectrumMixDialogUndoRecord> records{d1, d2};
+        spectrum_mix_dialog_undo_drop_if_rewritten(records, 111);
+        REQUIRE(records.size() == 2);
+        REQUIRE(records[0].active);
+        REQUIRE(records[1].active);
+    }
+}
+
+TEST_CASE("spectrum mix dialog keys_at empty vector returns false", "[spectrum_mix_dialog_undo]")
+{
+    const std::vector<SpectrumMixDialogUndoRecord> empty;
+    SpectrumMixDialogUndoKeys                      out;
+    out.mixed_filament_definitions = "sentinel";
+    out.enable_prime_tower         = true;
+    REQUIRE_FALSE(spectrum_mix_dialog_keys_at(empty, 100, out));
+
+    SpectrumMapUndoRecord map;
+    SpectrumMixDialogUndoRecord inactive;
+    inactive.active = false;
+    REQUIRE(spectrum_mix_defs_at(map, std::vector<SpectrumMixDialogUndoRecord>{inactive}, 100).empty());
+    REQUIRE(spectrum_mix_defs_at(map, empty, 100).empty());
+}

@@ -3,6 +3,7 @@
 #include "Color.hpp"
 #include "TriangleSelector.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <string>
 #include <utility>
@@ -126,46 +127,102 @@ inline void spectrum_mix_dialog_undo_drop_if_rewritten(SpectrumMixDialogUndoReco
         record.active = false;
 }
 
+inline void spectrum_mix_dialog_undo_drop_if_rewritten(std::vector<SpectrumMixDialogUndoRecord> &records,
+                                                       size_t                                    active_time_before_new_snapshot)
+{
+    for (SpectrumMixDialogUndoRecord &record : records)
+        spectrum_mix_dialog_undo_drop_if_rewritten(record, active_time_before_new_snapshot);
+    records.erase(std::remove_if(records.begin(), records.end(),
+                                 [](const SpectrumMixDialogUndoRecord &r) { return !r.active; }),
+                  records.end());
+}
+
 // Compose mix defs when Map and/or dialog side-records are active.
 // Among active writers sorted by named_time ascending: latest post with named_time < T;
-// else earliest pre; else "" (both inactive — caller must not write).
+// else earliest pre; else "" (none active — caller must not write).
 // Active + "" still writes (clears). Two history orders (Map-then-Dialog / Dialog-then-Map).
+inline std::string spectrum_mix_defs_at(const SpectrumMapUndoRecord                        &map,
+                                        const std::vector<SpectrumMixDialogUndoRecord>     &dialogs,
+                                        size_t                                              T)
+{
+    struct Candidate {
+        size_t             named_time = 0;
+        const std::string *pre        = nullptr;
+        const std::string *post       = nullptr;
+    };
+    std::vector<Candidate> candidates;
+    if (map.active) {
+        Candidate c;
+        c.named_time = map.map_snapshot_timestamp;
+        c.pre        = &map.pre.mixed_filament_definitions;
+        c.post       = &map.post.mixed_filament_definitions;
+        candidates.push_back(c);
+    }
+    for (const SpectrumMixDialogUndoRecord &dialog : dialogs) {
+        if (!dialog.active)
+            continue;
+        Candidate c;
+        c.named_time = dialog.snapshot_timestamp;
+        c.pre        = &dialog.pre.mixed_filament_definitions;
+        c.post       = &dialog.post.mixed_filament_definitions;
+        candidates.push_back(c);
+    }
+    std::stable_sort(candidates.begin(), candidates.end(),
+                     [](const Candidate &a, const Candidate &b) { return a.named_time < b.named_time; });
+
+    const std::string *latest_post = nullptr;
+    for (const Candidate &c : candidates) {
+        if (T > c.named_time)
+            latest_post = c.post;
+    }
+    if (latest_post != nullptr)
+        return *latest_post;
+    if (!candidates.empty())
+        return *candidates.front().pre;
+    return {};
+}
+
 inline std::string spectrum_mix_defs_at(const SpectrumMapUndoRecord       &map,
                                         const SpectrumMixDialogUndoRecord &dialog,
                                         size_t                             T)
 {
-    struct Candidate {
-        size_t      named_time = 0;
-        const std::string *pre = nullptr;
-        const std::string *post = nullptr;
-    };
-    Candidate candidates[2];
-    size_t    n = 0;
-    if (map.active) {
-        candidates[n].named_time = map.map_snapshot_timestamp;
-        candidates[n].pre        = &map.pre.mixed_filament_definitions;
-        candidates[n].post       = &map.post.mixed_filament_definitions;
-        ++n;
-    }
-    if (dialog.active) {
-        candidates[n].named_time = dialog.snapshot_timestamp;
-        candidates[n].pre        = &dialog.pre.mixed_filament_definitions;
-        candidates[n].post       = &dialog.post.mixed_filament_definitions;
-        ++n;
-    }
-    if (n == 2 && candidates[1].named_time < candidates[0].named_time)
-        std::swap(candidates[0], candidates[1]);
+    return spectrum_mix_defs_at(map, std::vector<SpectrumMixDialogUndoRecord>{dialog}, T);
+}
 
-    const std::string *latest_post = nullptr;
-    for (size_t i = 0; i < n; ++i) {
-        if (T > candidates[i].named_time)
-            latest_post = candidates[i].post;
+// Latest-post-else-earliest-pre over active dialog records only (Map has no process fields).
+// Returns false if none active (empty or all inactive) — caller must not write.
+inline bool spectrum_mix_dialog_keys_at(const std::vector<SpectrumMixDialogUndoRecord> &dialogs,
+                                        size_t                                          T,
+                                        SpectrumMixDialogUndoKeys                      &out)
+{
+    struct Candidate {
+        size_t                           named_time = 0;
+        const SpectrumMixDialogUndoKeys *pre        = nullptr;
+        const SpectrumMixDialogUndoKeys *post       = nullptr;
+    };
+    std::vector<Candidate> candidates;
+    for (const SpectrumMixDialogUndoRecord &dialog : dialogs) {
+        if (!dialog.active)
+            continue;
+        Candidate c;
+        c.named_time = dialog.snapshot_timestamp;
+        c.pre        = &dialog.pre;
+        c.post       = &dialog.post;
+        candidates.push_back(c);
     }
-    if (latest_post != nullptr)
-        return *latest_post;
-    if (n > 0)
-        return *candidates[0].pre;
-    return {};
+    if (candidates.empty())
+        return false;
+
+    std::stable_sort(candidates.begin(), candidates.end(),
+                     [](const Candidate &a, const Candidate &b) { return a.named_time < b.named_time; });
+
+    const SpectrumMixDialogUndoKeys *latest_post = nullptr;
+    for (const Candidate &c : candidates) {
+        if (T > c.named_time)
+            latest_post = c.post;
+    }
+    out = latest_post != nullptr ? *latest_post : *candidates.front().pre;
+    return true;
 }
 
 // Mix defs on project + print; four process bools on print only. Empty mix string clears.

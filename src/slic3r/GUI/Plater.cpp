@@ -4843,8 +4843,8 @@ struct Plater::priv
 
     // Map painted colors: restore spectrum_paint_mapped + mix defs with model undo/redo.
     SpectrumMapUndoRecord           m_spectrum_map_undo;
-    // Mixed Filaments dialog: sibling side-record (do not overwrite Map).
-    SpectrumMixDialogUndoRecord     m_spectrum_mix_dialog_undo;
+    // Mixed Filaments dialog: one side-record per successful OK (do not overwrite Map).
+    std::vector<SpectrumMixDialogUndoRecord> m_spectrum_mix_dialog_undos;
 
     //BBS: add print project related logic
     void update_fff_scene_only_shells(bool only_shells = true);
@@ -7602,7 +7602,7 @@ void Plater::priv::reset(bool apply_presets_change)
     // BBS
     m_saved_timestamp = m_backup_timestamp = size_t(-1);
     m_spectrum_map_undo = SpectrumMapUndoRecord{};
-    m_spectrum_mix_dialog_undo = SpectrumMixDialogUndoRecord{};
+    m_spectrum_mix_dialog_undos.clear();
 
     // Save window layout
     if (sidebar_layout.is_enabled) {
@@ -11696,12 +11696,12 @@ void Plater::priv::take_snapshot(const std::string& snapshot_name, const UndoRed
     if (snapshot_type == UndoRedo::SnapshotType::ProjectSeparator) {
         this->undo_redo_stack().clear();
         m_spectrum_map_undo = SpectrumMapUndoRecord{};
-        m_spectrum_mix_dialog_undo = SpectrumMixDialogUndoRecord{};
+        m_spectrum_mix_dialog_undos.clear();
     }
     if (m_undo_redo_stack_active == &m_undo_redo_stack_main) {
         const size_t active_time = this->undo_redo_stack().active_snapshot_time();
         spectrum_map_undo_drop_if_rewritten(m_spectrum_map_undo, active_time);
-        spectrum_mix_dialog_undo_drop_if_rewritten(m_spectrum_mix_dialog_undo, active_time);
+        spectrum_mix_dialog_undo_drop_if_rewritten(m_spectrum_mix_dialog_undos, active_time);
     }
     this->undo_redo_stack().take_snapshot(snapshot_name, model, get_current_canvas3D()->get_canvas_type() == GLCanvas3D::CanvasAssembleView ? assemble_view->get_canvas3d()->get_selection() : view3D->get_canvas3d()->get_selection(), gizmos, partplate_list, snapshot_data);
     if (snapshot_type == UndoRedo::SnapshotType::LeavingGizmoWithAction) {
@@ -11903,35 +11903,36 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
         }
         // Restore Map / Mixed Filaments dialog side-record keys with the loaded model snapshot.
         if (m_undo_redo_stack_active == &m_undo_redo_stack_main &&
-            (m_spectrum_map_undo.active || m_spectrum_mix_dialog_undo.active)) {
+            (m_spectrum_map_undo.active || !m_spectrum_mix_dialog_undos.empty())) {
             PresetBundle *bundle = wxGetApp().preset_bundle;
             if (bundle != nullptr) {
                 DynamicPrintConfig &print_cfg = bundle->prints.get_edited_preset().config;
                 bool                changed   = false;
                 const bool          map_on    = m_spectrum_map_undo.active;
-                const bool          dialog_on = m_spectrum_mix_dialog_undo.active;
+                const bool          dialog_on = !m_spectrum_mix_dialog_undos.empty();
                 if (map_on && !dialog_on) {
                     const SpectrumMapUndoKeys &keys =
                         spectrum_map_undo_pick(m_spectrum_map_undo, snapshot_copy.timestamp);
                     changed = apply_spectrum_map_keys(bundle->project_config, keys, &print_cfg);
                 } else if (!map_on && dialog_on) {
-                    const SpectrumMixDialogUndoKeys &keys =
-                        spectrum_mix_dialog_undo_pick(m_spectrum_mix_dialog_undo, snapshot_copy.timestamp);
-                    changed = apply_spectrum_mix_dialog_keys(bundle->project_config, print_cfg, keys);
+                    SpectrumMixDialogUndoKeys keys;
+                    if (spectrum_mix_dialog_keys_at(m_spectrum_mix_dialog_undos, snapshot_copy.timestamp, keys))
+                        changed = apply_spectrum_mix_dialog_keys(bundle->project_config, print_cfg, keys);
                 } else {
-                    // Both active: mapped from Map pick; mix defs composed; process from dialog pick.
+                    // Both active: mapped from Map pick; mix defs composed over Map+N dialogs;
+                    // process from dialog compose (keys_at false → skip dialog apply).
                     const SpectrumMapUndoKeys &map_keys =
                         spectrum_map_undo_pick(m_spectrum_map_undo, snapshot_copy.timestamp);
-                    const SpectrumMixDialogUndoKeys &dialog_keys =
-                        spectrum_mix_dialog_undo_pick(m_spectrum_mix_dialog_undo, snapshot_copy.timestamp);
-                    SpectrumMixDialogUndoKeys composed = dialog_keys;
-                    composed.mixed_filament_definitions =
-                        spectrum_mix_defs_at(m_spectrum_map_undo, m_spectrum_mix_dialog_undo,
-                                             snapshot_copy.timestamp);
                     if (apply_spectrum_paint_mapped(bundle->project_config, map_keys.mapped))
                         changed = true;
-                    if (apply_spectrum_mix_dialog_keys(bundle->project_config, print_cfg, composed))
-                        changed = true;
+                    SpectrumMixDialogUndoKeys composed;
+                    if (spectrum_mix_dialog_keys_at(m_spectrum_mix_dialog_undos, snapshot_copy.timestamp, composed)) {
+                        composed.mixed_filament_definitions =
+                            spectrum_mix_defs_at(m_spectrum_map_undo, m_spectrum_mix_dialog_undos,
+                                                 snapshot_copy.timestamp);
+                        if (apply_spectrum_mix_dialog_keys(bundle->project_config, print_cfg, composed))
+                            changed = true;
+                    }
                 }
                 if (changed)
                     q->on_config_change(bundle->full_config());
@@ -12691,9 +12692,7 @@ void Plater::apply_mixed_filament_dialog_keys(const SpectrumMixDialogUndoKeys &p
         rec.snapshot_timestamp = spectrum_map_undo_named_time(ts_before, ts_after);
         rec.pre                = pre;
         rec.post               = post;
-        p->m_spectrum_mix_dialog_undo = std::move(rec);
-    } else {
-        p->m_spectrum_mix_dialog_undo = SpectrumMixDialogUndoRecord{};
+        p->m_spectrum_mix_dialog_undos.push_back(std::move(rec));
     }
 }
 
@@ -19013,7 +19012,7 @@ void Plater::clear_undo_redo_stack_main()
 {
     p->undo_redo_stack_main().clear();
     p->m_spectrum_map_undo = SpectrumMapUndoRecord{};
-    p->m_spectrum_mix_dialog_undo = SpectrumMixDialogUndoRecord{};
+    p->m_spectrum_mix_dialog_undos.clear();
 }
 void Plater::enter_gizmos_stack() { p->enter_gizmos_stack(); }
 bool Plater::leave_gizmos_stack() { return p->leave_gizmos_stack(); } // BBS: return false if not changed
