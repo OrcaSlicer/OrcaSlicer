@@ -238,7 +238,7 @@ std::vector<ColorRGB> preview_filament_colors(
 
     std::vector<ColorRGB> out = physicals;
     if (out.size() >= cap)
-        return std::vector<ColorRGB>(out.begin(), out.begin() + int(cap));
+        return out;
 
     MixedFilamentManager mgr;
     mgr.load_definitions(mixed_filament_definitions);

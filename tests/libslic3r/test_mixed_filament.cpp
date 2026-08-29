@@ -771,6 +771,61 @@ TEST_CASE("Preview colors cap at 16 total", "[MixedFilamentMatch]")
     REQUIRE(out.size() == 16);
 }
 
+TEST_CASE("Preview colors keep all 17 physicals without mix append", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> physicals = {
+        decode_hex_or_fail("#08ABFB"),
+        decode_hex_or_fail("#D93B90"),
+        decode_hex_or_fail("#F9ED3D"),
+        decode_hex_or_fail("#9199A4"),
+        decode_hex_or_fail("#FF0000"),
+        decode_hex_or_fail("#00FF00"),
+        decode_hex_or_fail("#0000FF"),
+        decode_hex_or_fail("#FFFF00"),
+        decode_hex_or_fail("#FF00FF"),
+        decode_hex_or_fail("#00FFFF"),
+        decode_hex_or_fail("#111111"),
+        decode_hex_or_fail("#222222"),
+        decode_hex_or_fail("#333333"),
+        decode_hex_or_fail("#444444"),
+        decode_hex_or_fail("#555555"),
+        decode_hex_or_fail("#666666"),
+        decode_hex_or_fail("#777777"),
+    };
+    REQUIRE(physicals.size() == 17);
+    const std::vector<ColorRGB> out = preview_filament_colors(physicals, "1,2,1,1,1");
+    REQUIRE(out.size() == 17);
+    for (size_t i = 0; i < 17; ++i)
+        REQUIRE(out[i] == physicals[i]);
+}
+
+TEST_CASE("Preview colors keep all 16 physicals without mix append", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> physicals = {
+        decode_hex_or_fail("#08ABFB"),
+        decode_hex_or_fail("#D93B90"),
+        decode_hex_or_fail("#F9ED3D"),
+        decode_hex_or_fail("#9199A4"),
+        decode_hex_or_fail("#FF0000"),
+        decode_hex_or_fail("#00FF00"),
+        decode_hex_or_fail("#0000FF"),
+        decode_hex_or_fail("#FFFF00"),
+        decode_hex_or_fail("#FF00FF"),
+        decode_hex_or_fail("#00FFFF"),
+        decode_hex_or_fail("#111111"),
+        decode_hex_or_fail("#222222"),
+        decode_hex_or_fail("#333333"),
+        decode_hex_or_fail("#444444"),
+        decode_hex_or_fail("#555555"),
+        decode_hex_or_fail("#666666"),
+    };
+    REQUIRE(physicals.size() == 16);
+    const std::vector<ColorRGB> out = preview_filament_colors(physicals, "1,2,1,1,1");
+    REQUIRE(out.size() == 16);
+    for (size_t i = 0; i < 16; ++i)
+        REQUIRE(out[i] == physicals[i]);
+}
+
 TEST_CASE("Preview colors empty physicals is empty", "[MixedFilamentMatch]")
 {
     const std::vector<ColorRGB> out = preview_filament_colors({}, "1,2,1,1,1");

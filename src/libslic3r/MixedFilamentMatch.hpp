@@ -52,7 +52,9 @@ ColorRGB predicted_swatch_for_mix(const MixedFilament          &mf,
                                   const std::vector<float>     *td = nullptr);
 
 // physicals in order (1-based IDs 1..n), then one YN swatch per enabled mix
-// (same order as MixedFilamentManager virtual IDs). Cap total length at 16
+// (same order as MixedFilamentManager virtual IDs). Cap is a mix-append ceiling
+// (default 16 total), NOT a physical truncate: physicals are always kept in full;
+// if physicals.size() >= cap, return all physicals and append no mixes.
 // (Color Painting EXTRUDERS_LIMIT). Disabled rows are not in the manager.
 std::vector<ColorRGB> preview_filament_colors(
     const std::vector<ColorRGB> &physicals,
