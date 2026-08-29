@@ -344,7 +344,12 @@ class GLCanvas3D
         Drag drag;
         bool ignore_right_up;
 
-        void set_start_position_2D_as_invalid() { drag.start_position_2D = Drag::Invalid_2D_Point; }
+        // Orca: The screen-space start and world-space anchor describe the same pan session.
+        // Invalidating one must invalidate the other so a new drag cannot reuse stale depth.
+        void set_start_position_2D_as_invalid() {
+            drag.start_position_2D = Drag::Invalid_2D_Point;
+            drag.camera_pan_anchor.reset();
+        }
         void set_start_position_3D_as_invalid() { drag.start_position_3D = Drag::Invalid_3D_Point; }
         void set_move_start_threshold_position_2D_as_invalid() { drag.move_start_threshold_position_2D = Drag::Invalid_2D_Point; }
 

@@ -4627,7 +4627,6 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             // Orca: Rotation and panning use different drag coordinates and cached anchors.
             // Clear the pan state before processing rotation or switching buttons mid-drag.
             m_mouse.set_start_position_2D_as_invalid();
-            m_mouse.drag.camera_pan_anchor.reset();
 
             if (!has_mouse_capture()) // ORCA keep tracking mouse position while drag active and cursor not in window bounds
                 m_canvas->CaptureMouse();
@@ -5628,8 +5627,6 @@ void GLCanvas3D::mouse_up_cleanup()
     m_mouse.drag.move_volume_idx = -1;
     m_mouse.set_start_position_3D_as_invalid();
     m_mouse.set_start_position_2D_as_invalid();
-    // Orca: A cached pan anchor is valid only for the drag which selected it.
-    m_mouse.drag.camera_pan_anchor.reset();
     m_mouse.dragging = false;
     m_mouse.ignore_left_up = false;
     m_mouse.ignore_right_up = false;
@@ -10411,7 +10408,12 @@ Vec3d GLCanvas3D::get_camera_pan_anchor(Camera& camera, ECameraNavigationType na
     // Orca: When the cursor is just outside the visible plate, use the point under it on the active
     // plate plane. Using the plate center here would give it a different perspective depth.
     PartPlate* current_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
-    if (current_plate != nullptr && current_plate->get_bounding_box().defined) {
+    // Orca: An almost edge-on perspective makes intersection depth extremely sensitive to
+    // the cursor's vertical position. Use the stable orbit depth around horizontal views.
+    static constexpr double min_plate_plane_forward_z = 0.05;
+    const bool stable_plate_plane = camera.get_type() != Camera::EType::Perspective ||
+        std::abs(camera_forward.z()) >= min_plate_plane_forward_z;
+    if (stable_plate_plane && current_plate != nullptr && current_plate->get_bounding_box().defined) {
         Vec3d ray_origin;
         Vec3d ray_direction;
         CameraUtils::ray_from_screen_pos(camera, screen_position, ray_origin, ray_direction);
