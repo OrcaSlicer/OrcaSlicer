@@ -1,12 +1,14 @@
 // Milestone-3/4/5 pair-mix + 0009 3-component: virtual mixed filament → whole-layer cadence or pattern.
 // Serialization grammar (rows separated by ';'):
-//   "A,B,enabled,ratio_a,ratio_b[,pattern][,xaN][,xbN][,cN][,rcN][,g]"
+//   "A,B,enabled,ratio_a,ratio_b[,pattern][,xaN][,xbN][,cN][,rcN][,g][,p]"
 // Pair prefix is load-bearing. Example 1:1 mix of physical 1 and 2: "1,2,1,1,1"
 // Example pattern: "1,2,1,1,1,112" → layers T0,T0,T1 when A=1,B=2
 // Optional cN/rcN: 1,2,1,1,1,c3,rc1 → period ra+rb+rc, A then B then C.
 // Optional trailing xa/xb tokens persist component surface offsets (mm).
 // Optional [,g] flag: 2-filament height gradient (A at z_lo → B at z_hi).
 // ZR `,g` is a flag, not Snapmaker `g<component_ids>`.
+// Optional [,p] flag: outer-wall dither (A expand / B recess by ~0.4×nozzle).
+// ZR `,p` is a flag, not millimetres.
 // Empty string = no mixes. Virtual IDs start at num_physical+1 for enabled rows in order.
 // Token map (1-based): '1'→component_a, '2'→component_b,
 //   '3'→component_c when set else physical 3, '4'..'9'→direct physical ID.
@@ -38,6 +40,8 @@ struct MixedFilament
     float        component_b_surface_offset = 0.f;
     // Per-mix height gradient (A at object bottom → B at top). Compact grammar `,g`.
     bool         gradient_enabled = false;
+    // Outer-wall dither when Bias xa/xb unset and Local-Z off. Compact grammar `,p`.
+    bool         perimeter_modulation = false;
 };
 
 class MixedFilamentManager
@@ -88,6 +92,16 @@ private:
 // Offset mixed-region slices by a component surface bias (mm).
 // Positive contracts inward; negative expands. Empty in / failed offset → {}.
 ExPolygons apply_surface_offset(const ExPolygons &src, float offset_mm);
+
+// Synthesized outer-wall dither magnitude (mm): clamp(0.4 * nozzle, 0.08, 0.35).
+// Missing/non-finite/≤0 nozzle → treat as 0.4 mm.
+float spectrum_perimeter_mod_magnitude_mm(float nozzle_mm);
+
+// Explicit Bias xa/xb wins (either nonzero disables synthesized `,p` for both).
+// Else if perimeter_modulation: A → -mag, B → +mag, else 0.
+float spectrum_perimeter_mod_offset(const MixedFilament &mf,
+                                    unsigned int         physical_1based,
+                                    float                nozzle_mm);
 
 // Clamp/slice/gizmo persist policy. TriangleSelector 4-bit packing can encode state 16;
 // 0008 does not promise Extruder16 3mf round-trip (fold-in: cap 15).

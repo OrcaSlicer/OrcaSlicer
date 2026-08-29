@@ -53,6 +53,8 @@ std::string serialize_mix_row(const MixedFilament &mf)
     }
     if (mf.gradient_enabled)
         row += ",g";
+    if (mf.perimeter_modulation)
+        row += ",p";
     return row;
 }
 
@@ -178,12 +180,16 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     m_local_z      = new wxCheckBox(this, wxID_ANY, _L("Subdivide Mix Layer"));
     m_full_domain  = new wxCheckBox(this, wxID_ANY, _L("Full domain"));
     m_gradient     = new wxCheckBox(this, wxID_ANY, _L("Height gradient (A bottom → B top)"));
+    m_perimeter    = new wxCheckBox(this, wxID_ANY, _L("Outer-wall dither"));
 
     m_local_z->SetToolTip(_L("Split mixed layers into ratio-proportional sub-layers (e.g. 0.24 mm at 2:1 → 0.16 + 0.08)."));
     m_full_domain->SetToolTip(_L("Apply Subdivide Mix Layer to the whole object when its extruder is a virtual mix (no paint required)."));
     m_gradient->SetToolTip(
         _L("Requires Subdivide Mix Layer and Full domain. Applies to this mix only; siblings stay ratio/pattern. "
            "Prefer layer height 0.24 mm (0.16–0.28 mm band)."));
+    m_perimeter->SetToolTip(
+        _L("Expands A / recesses B by ~0.4×nozzle (max 0.35 mm). Not line-width. "
+           "Ignored when Subdivide Mix Layer is on. Typed Bias A/B mm override."));
 
     m_enabled->SetValue(true);
     m_apply_object->SetValue(true);
@@ -206,6 +212,7 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     root->Add(m_local_z, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
     root->Add(m_full_domain, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
     root->Add(m_gradient, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
+    root->Add(m_perimeter, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
 
     auto *hint = new wxStaticText(this, wxID_ANY,
         _L("Creates virtual mixes (physical count + 1, +2, …) for each enabled row. "
@@ -242,6 +249,10 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
         evt.Skip();
     });
     m_enabled->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &) {
+        store_editors_into_selected_row();
+        refresh_list_labels();
+    });
+    m_perimeter->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &) {
         store_editors_into_selected_row();
         refresh_list_labels();
     });
@@ -650,6 +661,7 @@ void MixedFilamentDialog::load_selected_row_into_editors()
     m_offset_a->SetValue(wxString::FromDouble(double(mf.component_a_surface_offset)));
     m_offset_b->SetValue(wxString::FromDouble(double(mf.component_b_surface_offset)));
     m_gradient->SetValue(mf.gradient_enabled);
+    m_perimeter->SetValue(mf.perimeter_modulation);
     refresh_predicted_swatch();
 }
 
@@ -676,6 +688,7 @@ void MixedFilamentDialog::store_editors_into_selected_row()
     mf.component_a_surface_offset = float(offset_a);
     mf.component_b_surface_offset = float(offset_b);
     mf.gradient_enabled = m_gradient->GetValue();
+    mf.perimeter_modulation = m_perimeter->GetValue();
     if (mf.gradient_enabled) {
         mf.component_c = 0;
         mf.manual_pattern.clear();

@@ -86,6 +86,7 @@ private:
     wxCheckBox *m_local_z{nullptr};
     wxCheckBox *m_full_domain{nullptr};
     wxCheckBox *m_gradient{nullptr};
+    wxCheckBox *m_perimeter{nullptr};
     wxTextCtrl *m_offset_a{nullptr};
     wxTextCtrl *m_offset_b{nullptr};
 

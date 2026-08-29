@@ -119,6 +119,24 @@ bool parse_gradient_token(const std::string &token, MixedFilament &mf)
     return true;
 }
 
+// Claim every p/P-prefix token so typos never fall through to pattern.
+// Enable only bare p/P or p1/P1; consume-but-do-not-enable p0/p2/….
+bool parse_perimeter_token(const std::string &token, MixedFilament &mf)
+{
+    if (token.empty() || (token[0] != 'p' && token[0] != 'P'))
+        return false;
+    if (token.size() == 1) {
+        mf.perimeter_modulation = true;
+        return true;
+    }
+    if (token.size() == 2 && token[1] == '1') {
+        mf.perimeter_modulation = true;
+        return true;
+    }
+    // Consumed, not enabled, not pattern.
+    return true;
+}
+
 std::string format_offset_token(char which, float value)
 {
     std::ostringstream oss;
@@ -247,6 +265,8 @@ void MixedFilamentManager::load_definitions(const std::string &serialized)
                 continue;
             if (parse_gradient_token(token, mf))
                 continue;
+            if (parse_perimeter_token(token, mf))
+                continue;
             if (mf.manual_pattern.empty())
                 mf.manual_pattern = normalize_manual_pattern(token);
         }
@@ -291,6 +311,8 @@ std::string MixedFilamentManager::serialize_definitions() const
             oss << ",c" << mf.component_c << ",rc" << mf.ratio_c;
         if (mf.gradient_enabled)
             oss << ",g";
+        if (mf.perimeter_modulation)
+            oss << ",p";
     }
     return oss.str();
 }
@@ -437,6 +459,7 @@ bool mixed_filament_painted_ids_would_shift(const std::string     &old_serialize
                lhs->component_c == rhs->component_c && lhs->ratio_a == rhs->ratio_a &&
                lhs->ratio_b == rhs->ratio_b && lhs->ratio_c == rhs->ratio_c &&
                lhs->gradient_enabled == rhs->gradient_enabled &&
+               lhs->perimeter_modulation == rhs->perimeter_modulation &&
                MixedFilamentManager::normalize_manual_pattern(lhs->manual_pattern) ==
                    MixedFilamentManager::normalize_manual_pattern(rhs->manual_pattern);
     };
@@ -465,6 +488,35 @@ ExPolygons apply_surface_offset(const ExPolygons &src, float offset_mm)
     if (!adjusted.empty() && adjusted.size() > 1)
         adjusted = union_ex(adjusted);
     return adjusted;
+}
+
+float spectrum_perimeter_mod_magnitude_mm(float nozzle_mm)
+{
+    float n = nozzle_mm;
+    if (!std::isfinite(n) || n <= 0.f)
+        n = 0.4f;
+    return std::clamp(0.4f * n, 0.08f, 0.35f);
+}
+
+float spectrum_perimeter_mod_offset(const MixedFilament &mf, unsigned int physical_1based, float nozzle_mm)
+{
+    const float xa = mf.component_a_surface_offset;
+    const float xb = mf.component_b_surface_offset;
+    if (std::abs(xa) > 1e-6f || std::abs(xb) > 1e-6f) {
+        if (physical_1based == mf.component_a)
+            return xa;
+        if (physical_1based == mf.component_b)
+            return xb;
+        return 0.f;
+    }
+    if (!mf.perimeter_modulation)
+        return 0.f;
+    const float mag = spectrum_perimeter_mod_magnitude_mm(nozzle_mm);
+    if (physical_1based == mf.component_a)
+        return -mag;
+    if (physical_1based == mf.component_b)
+        return mag;
+    return 0.f;
 }
 
 } // namespace Slic3r

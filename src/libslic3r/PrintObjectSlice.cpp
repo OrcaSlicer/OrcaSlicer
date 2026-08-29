@@ -1243,7 +1243,8 @@ static bool apply_mixed_component_surface_offsets(PrintObject &print_object)
     for (const MixedFilament &mf : mixed_mgr.mixed_filaments()) {
         if (!mf.enabled)
             continue;
-        if (std::abs(mf.component_a_surface_offset) > EPSILON || std::abs(mf.component_b_surface_offset) > EPSILON) {
+        if (mf.perimeter_modulation || std::abs(mf.component_a_surface_offset) > EPSILON ||
+            std::abs(mf.component_b_surface_offset) > EPSILON) {
             has_component_offsets = true;
             break;
         }
@@ -1271,7 +1272,17 @@ static bool apply_mixed_component_surface_offsets(PrintObject &print_object)
             if (!mixed_mgr.is_mixed(filament_id, num_physical))
                 continue;
 
-            const coordf_t offset_mm = mixed_mgr.component_surface_offset(filament_id, num_physical, int(layer_id));
+            coordf_t offset_mm = mixed_mgr.component_surface_offset(filament_id, num_physical, int(layer_id));
+            if (std::abs(offset_mm) <= EPSILON) {
+                const unsigned int physical = mixed_mgr.resolve(filament_id, num_physical, int(layer_id));
+                const MixedFilament *mf = mixed_mgr.mixed_filament_from_id(filament_id, num_physical);
+                if (mf != nullptr) {
+                    float nozzle = 0.4f;
+                    if (physical != 0 && physical <= print_cfg.nozzle_diameter.size())
+                        nozzle = float(print_cfg.nozzle_diameter.get_at(physical - 1));
+                    offset_mm = spectrum_perimeter_mod_offset(*mf, physical, nozzle);
+                }
+            }
             if (std::abs(offset_mm) <= EPSILON)
                 continue;
 

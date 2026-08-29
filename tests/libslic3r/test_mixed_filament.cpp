@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 #include <set>
 #include <sstream>
 #include <string>
@@ -1471,4 +1472,81 @@ TEST_CASE("spectrum_stamp_slot_hexes n<4 / RGBW / append FF keeps extras", "[spe
     REQUIRE(six[3] == "#EBF7FFFF");
     REQUIRE(six[4] == "#EEEEEE");
     REQUIRE(six[5] == "#FFFFFF");
+}
+
+TEST_CASE("spectrum perimeter mod parse/serialize ,p and helpers", "[spectrum_perimeter_mod]")
+{
+    {
+        MixedFilamentManager mgr;
+        mgr.load_definitions("1,2,1,1,1,p");
+        REQUIRE(mgr.enabled_count() == 1);
+        REQUIRE(mgr.mixed_filaments().front().perimeter_modulation);
+        const std::string out = mgr.serialize_definitions();
+        REQUIRE(out.find(",p") != std::string::npos);
+    }
+    {
+        MixedFilamentManager mgr;
+        mgr.load_definitions("1,2,1,1,1");
+        REQUIRE_FALSE(mgr.mixed_filaments().front().perimeter_modulation);
+        REQUIRE(mgr.serialize_definitions().find('p') == std::string::npos);
+    }
+    {
+        MixedFilamentManager mgr;
+        mgr.load_definitions("1,2,1,1,1,P1");
+        REQUIRE(mgr.mixed_filaments().front().perimeter_modulation);
+    }
+    {
+        MixedFilamentManager mgr;
+        mgr.load_definitions("1,2,1,1,1,p0");
+        REQUIRE_FALSE(mgr.mixed_filaments().front().perimeter_modulation);
+        REQUIRE(mgr.mixed_filaments().front().manual_pattern.empty());
+    }
+    {
+        MixedFilamentManager mgr;
+        mgr.load_definitions("1,2,1,1,1,p2");
+        REQUIRE_FALSE(mgr.mixed_filaments().front().perimeter_modulation);
+        REQUIRE(mgr.mixed_filaments().front().manual_pattern.empty());
+    }
+    {
+        MixedFilamentManager mgr;
+        mgr.load_definitions("1,2,1,1,1,xa0.2,g,p");
+        const MixedFilament &mf = mgr.mixed_filaments().front();
+        REQUIRE(mf.perimeter_modulation);
+        REQUIRE(mf.gradient_enabled);
+        REQUIRE(mf.component_a_surface_offset == Catch::Approx(0.2f));
+    }
+    {
+        REQUIRE(spectrum_perimeter_mod_magnitude_mm(0.4f) == Catch::Approx(0.16f));
+        REQUIRE(spectrum_perimeter_mod_magnitude_mm(1.0f) == Catch::Approx(0.35f));
+        REQUIRE(spectrum_perimeter_mod_magnitude_mm(0.f) == Catch::Approx(0.16f));
+        REQUIRE(spectrum_perimeter_mod_magnitude_mm(std::numeric_limits<float>::quiet_NaN()) ==
+                Catch::Approx(0.16f));
+    }
+    {
+        MixedFilament mf;
+        mf.component_a            = 1;
+        mf.component_b            = 2;
+        mf.perimeter_modulation   = true;
+        REQUIRE(spectrum_perimeter_mod_offset(mf, 1, 0.4f) == Catch::Approx(-0.16f));
+        REQUIRE(spectrum_perimeter_mod_offset(mf, 2, 0.4f) == Catch::Approx(0.16f));
+        REQUIRE(spectrum_perimeter_mod_offset(mf, 3, 0.4f) == Catch::Approx(0.f));
+    }
+    {
+        MixedFilament mf;
+        mf.component_a                  = 1;
+        mf.component_b                  = 2;
+        mf.perimeter_modulation         = true;
+        mf.component_a_surface_offset   = 0.2f;
+        mf.component_b_surface_offset   = 0.f;
+        REQUIRE(spectrum_perimeter_mod_offset(mf, 1, 0.4f) == Catch::Approx(0.2f));
+        REQUIRE(spectrum_perimeter_mod_offset(mf, 2, 0.4f) == Catch::Approx(0.f));
+    }
+    {
+        MixedFilament mf;
+        mf.component_a          = 1;
+        mf.component_b          = 2;
+        mf.perimeter_modulation = false;
+        REQUIRE(spectrum_perimeter_mod_offset(mf, 1, 0.4f) == Catch::Approx(0.f));
+        REQUIRE(spectrum_perimeter_mod_offset(mf, 2, 0.4f) == Catch::Approx(0.f));
+    }
 }
