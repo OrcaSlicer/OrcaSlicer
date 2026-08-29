@@ -4177,7 +4177,16 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // accident of where the user last clicked (a toolbar button, the Construction checkbox),
         // and Esc must not depend on it — request_exit() is the layered behaviour the GL-canvas
         // path already uses, so Esc means the same thing here as it does over the viewport.
-        if (key == WXK_ESCAPE && m_viewport && m_viewport->is_sketching()) {
+        // The predicate is the SESSION, not the armed tool. is_sketching() is
+        // DesignSketchTool::is_active(), true only while a draw tool is armed, and the state you
+        // are left in after committing an entity is ui_mode=Sketch with no tool armed -- so this
+        // branch used to be skipped exactly when a user reaches for Esc, and the Cancel button
+        // was the only way out ("Esc hardly ever works", exussum12 on PR #15238). Same mistake as
+        // snaporca-0ud, which gated the sketch key MAP on is_sketching() thirty lines above.
+        // request_exit() is layered and already handles the idle case, so widening the gate
+        // costs nothing: in-progress entity -> drop to Select -> exit the session.
+        if (key == WXK_ESCAPE && m_viewport
+            && (m_ui_mode == UiMode::Sketch || m_viewport->is_sketching())) {
             m_viewport->request_sketch_exit();
             return;
         }
