@@ -380,7 +380,13 @@ void Preview::open_visualization()
 
     const int plate_index = wxGetApp().plater()->get_partplate_list().get_curr_plate_index();
     SuppressBackgroundProcessingUpdate suppress_background_processing;
-    auto mesh = m_canvas->get_gcode_viewer().create_preview_triangle_mesh_snapshot();
+    std::shared_ptr<const PreviewTriangleMesh> mesh;
+    try {
+        mesh = m_canvas->get_gcode_viewer().create_preview_triangle_mesh_snapshot();
+    } catch (const std::exception& error) {
+        handle_visualization_result(ExecutionResult::failure(PluginResult::RecoverableError, error.what()));
+        return;
+    }
     PluginVisualizations::instance().request_open(
         capabilities[selected], std::move(mesh), *m_gcode_result, plate_index, m_gcode_result->id, SoftFever_VERSION,
         [weak = wxWeakRef<Preview>(this)](ExecutionResult result) {
@@ -399,7 +405,13 @@ void Preview::notify_visualization_result()
 
     const int plate_index = wxGetApp().plater()->get_partplate_list().get_curr_plate_index();
     SuppressBackgroundProcessingUpdate suppress_background_processing;
-    auto mesh = m_canvas->get_gcode_viewer().create_preview_triangle_mesh_snapshot();
+    std::shared_ptr<const PreviewTriangleMesh> mesh;
+    try {
+        mesh = m_canvas->get_gcode_viewer().create_preview_triangle_mesh_snapshot();
+    } catch (const std::exception& error) {
+        handle_visualization_result(ExecutionResult::failure(PluginResult::RecoverableError, error.what()));
+        return;
+    }
     PluginVisualizations::instance().request_updates(
         std::move(mesh), *m_gcode_result, plate_index, m_gcode_result->id, SoftFever_VERSION,
         [weak = wxWeakRef<Preview>(this)](ExecutionResult result) {

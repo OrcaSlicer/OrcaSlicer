@@ -86,18 +86,29 @@ public:
         }
         const size_t last_safe = count - 3;
         const size_t last = std::min<size_t>(range[1], last_safe);
+        if (range[0] > last)
+            return {};
         for (size_t i = range[0]; i <= last; ++i) {
             const auto& curr = vertex_at(i);
             const auto& next = vertex_at(i + 1);
-            if (!curr.is_extrusion() || !next.is_extrusion())
+            if (!curr.is_extrusion() || !next.is_extrusion()) {
+                m_need_start = true;
                 continue;
+            }
+            const Vec3f first = libvgcode::convert(curr.position);
+            const Vec3f second = libvgcode::convert(next.position);
+            if ((second - first).squaredNorm() <= Direction_Epsilon * Direction_Epsilon) {
+                m_need_start = true;
+                continue;
+            }
             const auto& nextnext = vertex_at(i + 2);
             unsigned char flags = 0;
-            if (curr.gcode_id == next.gcode_id)
+            if (m_need_start || curr.gcode_id == next.gcode_id)
                 flags |= Flag_First;
             if (i + 1 == range[1] || !nextnext.is_extrusion())
                 flags |= Flag_Last;
             emit_segment(flags, i, curr, next, nextnext);
+            m_need_start = (flags & Flag_Last) != 0;
         }
         return std::move(m_mesh);
     }
@@ -106,6 +117,7 @@ private:
     const libvgcode::Viewer* m_viewer{};
     const libvgcode::GCodeInputData* m_data{};
     PreviewTriangleMesh m_mesh;
+    bool m_need_start{true};
 
     size_t vertices_count() const { return m_viewer ? m_viewer->get_vertices_count() : m_data->vertices.size(); }
     const libvgcode::PathVertex& vertex_at(size_t index) const {

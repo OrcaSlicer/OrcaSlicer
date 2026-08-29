@@ -58,9 +58,10 @@ TEST_CASE("shared libvgcode mesh builder emits Orca caps and no travel", "[Previ
 {
     libvgcode::GCodeInputData data;data.tools_colors.push_back({255,0,0});
     libvgcode::PathVertex start;start.position={0,0,0.2f};start.width=0.45f;start.height=0.2f;start.type=libvgcode::EMoveType::Extrude;start.role=libvgcode::EGCodeExtrusionRole::Perimeter;start.gcode_id=5;
+    auto duplicate=start;
     auto end=start;end.position={10,0,0.2f};
     auto travel=end;travel.position={20,0,0.2f};travel.type=libvgcode::EMoveType::Travel;travel.gcode_id=6;
-    data.vertices={start,end,travel};
+    data.vertices={start,duplicate,end,travel};
     const auto mesh=GUI::build_preview_triangle_mesh(data);CHECK(mesh.vertices.size()==10);CHECK(mesh.indices.size()==48);CHECK(mesh.groups.size()>=1);CHECK(mesh.bounds.min.x()<0);CHECK(mesh.bounds.max.x()>10);
 }
 
