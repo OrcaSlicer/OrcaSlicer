@@ -601,6 +601,10 @@ void parse_metadata_rfc822(const std::string& content,
             break;
         }
 
+        // Strip trailing carriage return (Windows line endings).
+        if (line.back() == '\r')
+            line.pop_back();
+
         // Continuation line.
         if (line[0] == ' ' || line[0] == '\t') {
             if (!current_value.empty())
@@ -1042,6 +1046,7 @@ bool read_wheel_plugin_metadata(const boost::filesystem::path& whl_path, PluginD
         std::istringstream wstream(wheel_content);
         std::string wline;
         while (std::getline(wstream, wline)) {
+            // Strip trailing carriage return (Windows line endings).
             while (!wline.empty() && (wline.back() == '\r' || wline.back() == '\n'))
                 wline.pop_back();
             if (wline.rfind("Tag:", 0) == 0) {
@@ -1109,6 +1114,7 @@ bool read_wheel_plugin_metadata(const boost::filesystem::path& whl_path, PluginD
         std::string tl_line;
         std::vector<std::string> top_levels;
         while (std::getline(tl_stream, tl_line)) {
+            // Strip trailing carriage return (Windows line endings)
             while (!tl_line.empty() && (tl_line.back() == '\r' || tl_line.back() == '\n'))
                 tl_line.pop_back();
             if (!tl_line.empty())
