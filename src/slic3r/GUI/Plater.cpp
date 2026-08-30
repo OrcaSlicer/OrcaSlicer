@@ -9773,10 +9773,11 @@ wxString Plater::priv::get_export_file(GUI::FileType file_type)
         default: break;
     }
 
-    std::string out_dir = (boost::filesystem::path(output_file).parent_path()).string();
+    std::string out_dir = output_file.parent_path().string();
+    std::string start_dir = wxGetApp().app_config->get_last_output_dir(out_dir, false);
 
     wxFileDialog dlg(q, dlg_title,
-        is_shapes_dir(out_dir) ? from_u8(wxGetApp().app_config->get_last_dir()) : from_path(output_file.parent_path()), from_path(output_file.filename()),
+        from_u8(start_dir), from_path(output_file.filename()),
         wildcard, wxFD_SAVE | wxFD_OVERWRITE_PROMPT | wxPD_APP_MODAL);
 
     int result = dlg.ShowModal();
