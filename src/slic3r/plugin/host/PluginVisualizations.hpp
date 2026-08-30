@@ -35,24 +35,27 @@ public:
     void install_callbacks(PluginManager& manager);
 
     std::vector<std::shared_ptr<VisualizationPluginCapability>> capabilities() const;
+    std::vector<std::shared_ptr<VisualizationPluginCapability>> capabilities_for(const VisualizationInput& input) const;
 
-    ExecutionResult open(const std::shared_ptr<VisualizationPluginCapability>& capability, VisualizationContext& ctx);
-    ExecutionResult update(const PluginCapabilityId& id, VisualizationContext& ctx);
+    ExecutionResult open(const std::shared_ptr<VisualizationPluginCapability>& capability, const VisualizationContext& ctx,
+                         boost::filesystem::path owned_resource = {});
+    ExecutionResult update(const PluginCapabilityId& id, const VisualizationContext& ctx,
+                           boost::filesystem::path owned_resource = {});
     void            close(const PluginCapabilityId& id);
     void            close_plugin(const std::string& plugin_key);
     void            close_all();
     bool            is_active(const PluginCapabilityId& id) const;
     bool            has_active_sessions() const;
 
-    // The GUI hook supplies Orca's immutable authoritative preview triangle mesh. Python receives
-    // only the atomically published snapshot path; serialization remains on the worker.
-    void request_open(const std::shared_ptr<VisualizationPluginCapability>& capability,
-                      std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
-                      const GCodeProcessorResult& result, const Pointfs& printable_area, int plate_index, uint64_t scene_id,
-                      std::string orca_version, Completion completion = {});
-    void request_updates(std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
-                         const GCodeProcessorResult& result, const Pointfs& printable_area, int plate_index, uint64_t scene_id,
-                         std::string orca_version, Completion completion = {});
+    // The preview-scene producer is one adapter for the generic visualization contract. Other producers can
+    // negotiate an input and call open/update directly without depending on preview meshes.
+    void request_open_toolpath(const std::shared_ptr<VisualizationPluginCapability>& capability,
+                               std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
+                               const GCodeProcessorResult& result, const Pointfs& printable_area, int plate_index, uint64_t revision,
+                               std::string orca_version, Completion completion = {});
+    void request_toolpath_updates(std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
+                                  const GCodeProcessorResult& result, const Pointfs& printable_area, int plate_index, uint64_t revision,
+                                  std::string orca_version, Completion completion = {});
 
     ChangeToken subscribe(std::function<void()> callback);
     void        unsubscribe(ChangeToken token);
@@ -63,7 +66,7 @@ private:
     struct Session
     {
         std::shared_ptr<VisualizationPluginCapability> capability;
-        uint64_t                                       scene_id{0};
+        uint64_t                                       revision{0};
         boost::filesystem::path                        snapshot_path;
     };
 
@@ -74,7 +77,7 @@ private:
         PluginCapabilityId                             id;
         std::shared_ptr<const PreviewGeometrySnapshot::Snapshot> snapshot;
         int                                            plate_index{-1};
-        uint64_t                                       scene_id{0};
+        uint64_t                                       revision{0};
         uint64_t                                       generation{0};
         std::string                                    orca_version;
         boost::filesystem::path                        snapshot_path;
@@ -91,7 +94,7 @@ private:
     void dispatch_request(Request request);
     bool is_current_locked(const Request& request) const;
     void finish_request(const Request& request, ExecutionResult result);
-    boost::filesystem::path prepare_cache(const std::string& plugin_key, int plate_index, uint64_t scene_id);
+    boost::filesystem::path prepare_cache(const std::string& plugin_key, int plate_index, uint64_t revision);
     void remove_snapshot(const boost::filesystem::path& path);
     void notify_change();
 

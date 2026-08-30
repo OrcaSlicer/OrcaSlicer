@@ -5,26 +5,25 @@
 #include <libslic3r/GCode/GCodeProcessor.hpp>
 #include <libvgcode/include/GCodeInputData.hpp>
 #include <libvgcode/include/Viewer.hpp>
+#include <nlohmann/json.hpp>
 
 #include "test_utils.hpp"
 
 #include <boost/filesystem.hpp>
-#include <cstring>
 #include <fstream>
 #include <iterator>
-#include <limits>
 #include <string>
 #include <type_traits>
 #include <vector>
 
 using namespace Slic3r;
 namespace fs = boost::filesystem;
-namespace ORPM = PreviewGeometrySnapshot;
+namespace Preview = PreviewGeometrySnapshot;
 
 namespace {
-ORPM::Snapshot sample_snapshot()
+Preview::Snapshot sample_snapshot()
 {
-    ORPM::Snapshot snapshot;
+    Preview::Snapshot snapshot;
     snapshot.scene_id         = 42;
     snapshot.plate_index      = 3;
     snapshot.printable_height = 250;
@@ -35,17 +34,10 @@ ORPM::Snapshot sample_snapshot()
                                  {{1, 1, 0}, {0, 0, 1}, {1, 1}},
                                  {{0, 1, 0}, {0, 0, 1}, {0, 1}}};
     snapshot.indices          = {0, 1, 2, 0, 2, 3};
-    snapshot.groups           = {{0, 6, 0, 1, 0, 0, 0}};
+    snapshot.groups           = {{0, 6, 0, 1, 0, 0, 7}};
     snapshot.materials        = {{0, {{10, 20, 30, 255}}, "preset", "Preset"}};
     snapshot.printable_area   = {{0, 0}, {200, 0}, {200, 200}, {0, 200}};
     return snapshot;
-}
-template<class T> void put_le(std::vector<uint8_t>& data, size_t offset, T value)
-{
-    using U = std::make_unsigned_t<T>;
-    const U encoded = static_cast<U>(value);
-    for (size_t i = 0; i < sizeof(T); ++i)
-        data[offset + i] = uint8_t(encoded >> (8 * i));
 }
 
 template<class T> T get_le(const std::vector<uint8_t>& data, size_t offset)
@@ -57,11 +49,10 @@ template<class T> T get_le(const std::vector<uint8_t>& data, size_t offset)
     return static_cast<T>(value);
 }
 
-void put_float(std::vector<uint8_t>& data, size_t offset, float value)
+nlohmann::json glb_json(const std::vector<uint8_t>& data)
 {
-    uint32_t encoded;
-    std::memcpy(&encoded, &value, sizeof(value));
-    put_le(data, offset, encoded);
+    const uint32_t size = get_le<uint32_t>(data, 12);
+    return nlohmann::json::parse(data.begin() + 20, data.begin() + 20 + size);
 }
 
 std::vector<uint8_t> read_file(const fs::path& path)
@@ -78,136 +69,30 @@ bool has_snapshot_temp(const fs::path& directory, const std::string& target_name
             return true;
     return false;
 }
-}
+} // namespace
 
-TEST_CASE("ORPM serializes authoritative indexed mesh", "[PreviewGeometrySnapshot]")
+TEST_CASE("preview scene serializes as standard GLB 2.0", "[PreviewGeometrySnapshot]")
 {
-    const auto bytes  = ORPM::serialize(sample_snapshot());
-    const auto header = ORPM::validate(bytes);
+    const auto bytes = Preview::serialize(sample_snapshot());
+    const auto info = Preview::validate(bytes);
+    const auto document = glb_json(bytes);
 
-    CHECK(header.major_version == 1);
-    CHECK(header.header_size == 256);
-    CHECK(header.vertex_count == 4);
-    CHECK(header.index_count == 6);
-    CHECK(header.group_count == 1);
-    CHECK(header.material_slot_count == 1);
-    CHECK(header.file_size == bytes.size());
-    CHECK(bytes == read_file(fs::path(TEST_DATA_DIR) / "orpm_v1_minimal.orpm"));
+    CHECK(get_le<uint32_t>(bytes, 0) == 0x46546c67);
+    CHECK(info.version == 2);
+    CHECK(info.file_size == bytes.size());
+    CHECK(info.scene_id == 42);
+    CHECK(info.vertex_count == 4);
+    CHECK(info.index_count == 6);
+    CHECK(info.primitive_count == 1);
+    CHECK(info.material_count == 1);
+    CHECK(document["asset"]["version"] == "2.0");
+    CHECK(document["nodes"][0]["rotation"].size() == 4);
+    CHECK(document["meshes"][0]["primitives"][0]["extras"]["orca"]["layerId"] == 7);
+    CHECK(document["meshes"][0]["primitives"][1]["mode"] == 2);
+    CHECK(document["meshes"][0]["primitives"][1]["extras"]["orca"]["areaKind"] == "printable");
 }
 
-TEST_CASE("ORPM rejects malformed mesh", "[PreviewGeometrySnapshot]")
-{
-    const std::vector<uint8_t> valid = ORPM::serialize(sample_snapshot());
-
-    SECTION("bad magic")
-    {
-        auto data = valid;
-        data[0] = 'X';
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("bad major version")
-    {
-        auto data = valid;
-        put_le<uint16_t>(data, 4, ORPM::FORMAT_MAJOR + 1);
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("zero required count")
-    {
-        auto data = valid;
-        put_le<uint64_t>(data, 40, 0);
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("out of range section offset")
-    {
-        auto data = valid;
-        put_le<uint64_t>(data, 80, data.size() + 1);
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("overlapping sections")
-    {
-        auto data = valid;
-        put_le<uint64_t>(data, 88, get_le<uint64_t>(data, 80));
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("index")
-    {
-        auto data = valid;
-        put_le<uint32_t>(data, ORPM::HEADER_BYTE_SIZE + 4 * ORPM::VERTEX_RECORD_SIZE, 99);
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("group coverage")
-    {
-        auto data = valid;
-        const uint64_t groups_offset = get_le<uint64_t>(data, 96);
-        put_le<uint32_t>(data, groups_offset + 4, 3);
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("bad normal")
-    {
-        auto data = valid;
-        put_float(data, ORPM::HEADER_BYTE_SIZE + 20, 0.0f);
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("non-finite vertex")
-    {
-        auto data = valid;
-        put_le<uint32_t>(data, ORPM::HEADER_BYTE_SIZE, 0x7fc00000);
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("inverted bounds")
-    {
-        auto data = valid;
-        put_float(data, 152, 2.0f);
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("material string outside string section")
-    {
-        auto data = valid;
-        const uint64_t materials_offset = get_le<uint64_t>(data, 104);
-        const uint64_t strings_offset = get_le<uint64_t>(data, 128);
-        put_le<uint64_t>(data, materials_offset + 8, strings_offset - 1);
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("missing indexed flag")
-    {
-        auto data = valid;
-        put_le<uint32_t>(data, 36, 0);
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("non-zero reserved header bytes")
-    {
-        auto data = valid;
-        data[176] = 1;
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("non-zero reserved group bytes")
-    {
-        auto data = valid;
-        const uint64_t groups_offset = get_le<uint64_t>(data, 96);
-        data[groups_offset + 13] = 1;
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("non-zero reserved material bytes")
-    {
-        auto data = valid;
-        const uint64_t materials_offset = get_le<uint64_t>(data, 104);
-        data[materials_offset + 5] = 1;
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("non-finite printable point")
-    {
-        auto data = valid;
-        const uint64_t printable_offset = get_le<uint64_t>(data, 112);
-        put_le<uint32_t>(data, printable_offset, 0x7fc00000);
-        CHECK_THROWS(ORPM::validate(data));
-    }
-    SECTION("file limit")
-    {
-        CHECK_THROWS(ORPM::validate(valid, 3));
-    }
-}
-
-TEST_CASE("ORPM capture preserves shared preview mesh and result metadata", "[PreviewGeometrySnapshot]")
+TEST_CASE("preview capture preserves shared mesh and result metadata", "[PreviewGeometrySnapshot]")
 {
     GUI::PreviewTriangleMesh mesh;
     mesh.vertices = {{{0, 0, 0}, {0, 0, 1}, {0, 0}},
@@ -226,7 +111,7 @@ TEST_CASE("ORPM capture preserves shared preview mesh and result metadata", "[Pr
     result.settings_ids.filament = {"filament"};
 
     const Pointfs plate = {{0, 0}, {200, 0}, {200, 200}, {0, 200}};
-    const auto snapshot = ORPM::capture(mesh, result, 2, 77, plate);
+    const auto snapshot = Preview::capture(mesh, result, 2, 77, plate);
 
     CHECK(snapshot.scene_id == 77);
     CHECK(snapshot.vertices.size() == 3);
@@ -234,30 +119,28 @@ TEST_CASE("ORPM capture preserves shared preview mesh and result metadata", "[Pr
     CHECK(snapshot.groups.size() == 1);
     CHECK(snapshot.materials.size() == 1);
     CHECK(snapshot.printable_area.size() == plate.size());
-    CHECK_THROWS(ORPM::capture(mesh, result, 2, 76));
+    CHECK_THROWS(Preview::capture(mesh, result, 2, 76));
 }
 
 TEST_CASE("shared libvgcode mesh builder emits Orca caps and no travel", "[PreviewGeometrySnapshot]")
 {
     libvgcode::GCodeInputData data;
     data.tools_colors.push_back({255, 0, 0});
-
     libvgcode::PathVertex start;
     start.position = {0, 0, 0.2f};
-    start.width    = 0.45f;
-    start.height   = 0.2f;
-    start.type     = libvgcode::EMoveType::Extrude;
-    start.role     = libvgcode::EGCodeExtrusionRole::Perimeter;
+    start.width = 0.45f;
+    start.height = 0.2f;
+    start.type = libvgcode::EMoveType::Extrude;
+    start.role = libvgcode::EGCodeExtrusionRole::Perimeter;
     start.gcode_id = 5;
-
     auto duplicate = start;
-    auto end        = start;
-    end.position    = {10, 0, 0.2f};
-    auto travel     = end;
+    auto end = start;
+    end.position = {10, 0, 0.2f};
+    auto travel = end;
     travel.position = {20, 0, 0.2f};
-    travel.type     = libvgcode::EMoveType::Travel;
+    travel.type = libvgcode::EMoveType::Travel;
     travel.gcode_id = 6;
-    data.vertices   = {start, duplicate, end, travel};
+    data.vertices = {start, duplicate, end, travel};
 
     const auto mesh = GUI::build_preview_triangle_mesh(data);
     CHECK(mesh.vertices.size() == 10);
@@ -267,35 +150,34 @@ TEST_CASE("shared libvgcode mesh builder emits Orca caps and no travel", "[Previ
     CHECK(mesh.bounds.max.x() > 10);
 }
 
-TEST_CASE("ORPM snapshots replace an existing target atomically", "[PreviewGeometrySnapshot]")
+TEST_CASE("GLB previews replace an existing target atomically", "[PreviewGeometrySnapshot]")
 {
-    ScopedTemporaryDir temp("orpm-atomic");
-    const fs::path target = temp.path() / "scene.orpm";
+    ScopedTemporaryDir temp("glb-atomic");
+    const fs::path target = temp.path() / "scene.glb";
     const fs::path legacy_temp = target.string() + ".tmp";
     {
         std::ofstream sentinel(legacy_temp.string());
         sentinel << "keep";
     }
 
-    ORPM::write_atomic(sample_snapshot(), target);
+    Preview::write_atomic(sample_snapshot(), target);
     REQUIRE(fs::exists(target));
-    CHECK(ORPM::validate(read_file(target)).scene_id == 42);
-
-    ORPM::Snapshot replacement = sample_snapshot();
+    CHECK(Preview::validate(read_file(target)).scene_id == 42);
+    Preview::Snapshot replacement = sample_snapshot();
     replacement.scene_id = 43;
-    ORPM::write_atomic(replacement, target);
-    CHECK(ORPM::validate(read_file(target)).scene_id == 43);
+    Preview::write_atomic(replacement, target);
+    CHECK(Preview::validate(read_file(target)).scene_id == 43);
     CHECK(fs::exists(legacy_temp));
     CHECK_FALSE(has_snapshot_temp(temp.path(), target.filename().string()));
 }
 
-TEST_CASE("ORPM snapshot publication cleans a unique temporary file after failure", "[PreviewGeometrySnapshot]")
+TEST_CASE("GLB preview publication cleans a unique temporary file after failure", "[PreviewGeometrySnapshot]")
 {
-    ScopedTemporaryDir temp("orpm-atomic-failure");
-    const fs::path target = temp.path() / "scene.orpm";
+    ScopedTemporaryDir temp("glb-atomic-failure");
+    const fs::path target = temp.path() / "scene.glb";
     fs::create_directory(target);
 
-    CHECK_THROWS(ORPM::write_atomic(sample_snapshot(), target));
+    CHECK_THROWS(Preview::write_atomic(sample_snapshot(), target));
     CHECK(fs::is_directory(target));
     CHECK_FALSE(has_snapshot_temp(temp.path(), target.filename().string()));
 }

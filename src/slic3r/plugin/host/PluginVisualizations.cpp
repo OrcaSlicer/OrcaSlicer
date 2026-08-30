@@ -78,10 +78,22 @@ std::vector<std::shared_ptr<VisualizationPluginCapability>> PluginVisualizations
     return result;
 }
 
-ExecutionResult PluginVisualizations::open(const std::shared_ptr<VisualizationPluginCapability>& capability, VisualizationContext& ctx)
+std::vector<std::shared_ptr<VisualizationPluginCapability>> PluginVisualizations::capabilities_for(const VisualizationInput& input) const
+{
+    auto result = capabilities();
+    result.erase(std::remove_if(result.begin(), result.end(), [&input](const auto& capability) {
+        return !capability->supports(input);
+    }), result.end());
+    return result;
+}
+
+ExecutionResult PluginVisualizations::open(const std::shared_ptr<VisualizationPluginCapability>& capability, const VisualizationContext& ctx,
+                                           boost::filesystem::path owned_resource)
 {
     if (!capability || !capability->is_enabled())
         return ExecutionResult::skipped("Visualization capability is unavailable");
+    if (!capability->supports(ctx.input))
+        return ExecutionResult::skipped("Visualization capability does not support this input");
 
     const PluginCapabilityId id = capability->identity();
     {
@@ -101,12 +113,13 @@ ExecutionResult PluginVisualizations::open(const std::shared_ptr<VisualizationPl
 
     if (result.status == PluginResult::Success) {
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_sessions.emplace(id, Session{capability, ctx.scene_id, ctx.geometry_path});
+        m_sessions.emplace(id, Session{capability, ctx.revision, std::move(owned_resource)});
     }
     return result;
 }
 
-ExecutionResult PluginVisualizations::update(const PluginCapabilityId& id, VisualizationContext& ctx)
+ExecutionResult PluginVisualizations::update(const PluginCapabilityId& id, const VisualizationContext& ctx,
+                                             boost::filesystem::path owned_resource)
 {
     std::shared_ptr<VisualizationPluginCapability> capability;
     {
@@ -114,10 +127,12 @@ ExecutionResult PluginVisualizations::update(const PluginCapabilityId& id, Visua
         const auto it = m_sessions.find(id);
         if (it == m_sessions.end())
             return ExecutionResult::skipped("Visualization session is not open");
-        if (it->second.scene_id == ctx.scene_id)
+        if (it->second.revision == ctx.revision)
             return ExecutionResult::skipped("Visualization scene is unchanged");
         capability = it->second.capability;
     }
+    if (!capability->supports(ctx.input))
+        return ExecutionResult::skipped("Visualization capability does not support this input");
 
     ExecutionResult result;
     try {
@@ -134,16 +149,17 @@ ExecutionResult PluginVisualizations::update(const PluginCapabilityId& id, Visua
     }
 
     boost::filesystem::path old_snapshot;
+    const boost::filesystem::path replacement = owned_resource;
     if (result.status == PluginResult::Success) {
         std::lock_guard<std::mutex> lock(m_mutex);
         const auto it = m_sessions.find(id);
         if (it != m_sessions.end() && it->second.capability == capability) {
             old_snapshot = std::move(it->second.snapshot_path);
-            it->second.scene_id = ctx.scene_id;
-            it->second.snapshot_path = ctx.geometry_path;
+            it->second.revision = ctx.revision;
+            it->second.snapshot_path = std::move(owned_resource);
         }
     }
-    if (!old_snapshot.empty() && old_snapshot != ctx.geometry_path)
+    if (!old_snapshot.empty() && old_snapshot != replacement)
         remove_snapshot(old_snapshot);
     return result;
 }
@@ -229,10 +245,10 @@ bool PluginVisualizations::has_active_sessions() const
     return !m_sessions.empty();
 }
 
-void PluginVisualizations::request_open(const std::shared_ptr<VisualizationPluginCapability>& capability,
-                                        std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
-                                        const GCodeProcessorResult& result, const Pointfs& printable_area, int plate_index, uint64_t scene_id,
-                                        std::string orca_version, Completion completion)
+void PluginVisualizations::request_open_toolpath(const std::shared_ptr<VisualizationPluginCapability>& capability,
+                                                 std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
+                                                 const GCodeProcessorResult& result, const Pointfs& printable_area, int plate_index, uint64_t revision,
+                                                 std::string orca_version, Completion completion)
 {
     if (!capability || !capability->is_enabled() || !mesh) {
         if (completion)
@@ -249,13 +265,13 @@ void PluginVisualizations::request_open(const std::shared_ptr<VisualizationPlugi
     request.capability = capability;
     request.id = id;
     request.plate_index = plate_index;
-    request.scene_id = scene_id;
+    request.revision = revision;
     request.orca_version = std::move(orca_version);
     request.completion = std::move(completion);
     try {
         request.snapshot = std::make_shared<PreviewGeometrySnapshot::Snapshot>(
-            PreviewGeometrySnapshot::capture(*mesh, result, plate_index, scene_id, printable_area));
-        request.snapshot_path = prepare_cache(request.id.plugin_key, plate_index, scene_id);
+            PreviewGeometrySnapshot::capture(*mesh, result, plate_index, revision, printable_area));
+        request.snapshot_path = prepare_cache(request.id.plugin_key, plate_index, revision);
         enqueue(std::move(request));
     } catch (const std::exception& error) {
         if (request.completion)
@@ -263,15 +279,15 @@ void PluginVisualizations::request_open(const std::shared_ptr<VisualizationPlugi
     }
 }
 
-void PluginVisualizations::request_updates(std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
-                                           const GCodeProcessorResult& result, const Pointfs& printable_area, int plate_index, uint64_t scene_id,
-                                           std::string orca_version, Completion completion)
+void PluginVisualizations::request_toolpath_updates(std::shared_ptr<const GUI::PreviewTriangleMesh> mesh,
+                                                    const GCodeProcessorResult& result, const Pointfs& printable_area, int plate_index, uint64_t revision,
+                                                    std::string orca_version, Completion completion)
 {
     std::vector<std::shared_ptr<VisualizationPluginCapability>> capabilities_to_update;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         for (const auto& entry : m_sessions)
-            if (entry.second.scene_id != scene_id)
+            if (entry.second.revision != revision)
                 capabilities_to_update.push_back(entry.second.capability);
     }
     if (capabilities_to_update.empty())
@@ -285,7 +301,7 @@ void PluginVisualizations::request_updates(std::shared_ptr<const GUI::PreviewTri
     std::shared_ptr<const PreviewGeometrySnapshot::Snapshot> snapshot;
     try {
         snapshot = std::make_shared<PreviewGeometrySnapshot::Snapshot>(
-            PreviewGeometrySnapshot::capture(*mesh, result, plate_index, scene_id, printable_area));
+            PreviewGeometrySnapshot::capture(*mesh, result, plate_index, revision, printable_area));
     } catch (const std::exception& error) {
         if (completion)
             completion(recoverable_error(capabilities_to_update.front()->identity(), "capture", error));
@@ -299,9 +315,9 @@ void PluginVisualizations::request_updates(std::shared_ptr<const GUI::PreviewTri
         request.id = capability->identity();
         request.snapshot = snapshot;
         request.plate_index = plate_index;
-        request.scene_id = scene_id;
+        request.revision = revision;
         request.orca_version = orca_version;
-        request.snapshot_path = prepare_cache(request.id.plugin_key, plate_index, scene_id);
+        request.snapshot_path = prepare_cache(request.id.plugin_key, plate_index, revision);
         request.completion = completion;
         enqueue(std::move(request));
     }
@@ -381,16 +397,18 @@ void PluginVisualizations::dispatch_request(Request request)
 
             VisualizationContext context;
             context.orca_version = request.orca_version;
-            context.scene_id = request.scene_id;
-            context.plate_index = request.plate_index;
-            context.geometry_path = request.snapshot_path.string();
-            context.geometry_format = PreviewGeometrySnapshot::FORMAT_NAME;
-            context.geometry_major_version = PreviewGeometrySnapshot::FORMAT_MAJOR;
-            context.geometry_minor_version = PreviewGeometrySnapshot::FORMAT_MINOR;
+            context.revision = request.revision;
+            context.metadata.emplace("plate_index", std::to_string(request.plate_index));
+            context.input.kind = VisualizationInputs::TOOLPATH;
+            context.input.format = VisualizationInputs::GLTF_BINARY;
+            context.input.transport = VisualizationInputs::FILE_TRANSPORT;
+            context.input.location = request.snapshot_path.string();
+            context.input.major_version = PreviewGeometrySnapshot::FORMAT_MAJOR;
+            context.input.minor_version = PreviewGeometrySnapshot::FORMAT_MINOR;
             if (request.kind == RequestKind::Open)
-                result = open(request.capability, context);
+                result = open(request.capability, context, request.snapshot_path);
             else
-                result = update(request.id, context);
+                result = update(request.id, context, request.snapshot_path);
         } catch (const std::exception& error) {
             result = recoverable_error(request.id, request.kind == RequestKind::Open ? "open" : "update", error);
         }
@@ -412,7 +430,7 @@ void PluginVisualizations::finish_request(const Request& request, ExecutionResul
         request.completion(std::move(result));
 }
 
-boost::filesystem::path PluginVisualizations::prepare_cache(const std::string& plugin_key, int plate_index, uint64_t scene_id)
+boost::filesystem::path PluginVisualizations::prepare_cache(const std::string& plugin_key, int plate_index, uint64_t revision)
 {
     namespace fs = boost::filesystem;
     const fs::path cache = fs::path(PluginManager::instance().get_storage_dir(plugin_key)) / "preview_cache";
@@ -426,8 +444,8 @@ boost::filesystem::path PluginVisualizations::prepare_cache(const std::string& p
         fs::remove_all(cache, ignored);
     }
     fs::create_directories(cache);
-    return cache / ("plate-" + std::to_string(plate_index) + "-scene-" + std::to_string(scene_id) +
-                    fs::unique_path("-%%%%-%%%%-%%%%.orpm").string());
+    return cache / ("plate-" + std::to_string(plate_index) + "-revision-" + std::to_string(revision) +
+                    fs::unique_path("-%%%%-%%%%-%%%%.glb").string());
 }
 
 void PluginVisualizations::remove_snapshot(const boost::filesystem::path& path)

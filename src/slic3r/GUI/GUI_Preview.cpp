@@ -350,7 +350,10 @@ void Preview::refresh_visualization_action()
         return;
 
     const bool is_fff = m_process != nullptr && m_process->current_printer_technology() == ptFFF;
-    const bool show = is_fff && !PluginVisualizations::instance().capabilities().empty();
+    VisualizationInput input{VisualizationInputs::TOOLPATH, VisualizationInputs::GLTF_BINARY,
+                             VisualizationInputs::FILE_TRANSPORT, {}, PreviewGeometrySnapshot::FORMAT_MAJOR,
+                             PreviewGeometrySnapshot::FORMAT_MINOR};
+    const bool show = is_fff && !PluginVisualizations::instance().capabilities_for(input).empty();
     const Print* print = is_fff ? m_process->fff_print() : nullptr;
     const bool has_final_result = m_gcode_result != nullptr && !m_gcode_result->moves.empty() &&
                                   (m_only_gcode || (print != nullptr && print->is_step_done(psGCodeExport)));
@@ -367,7 +370,10 @@ void Preview::open_visualization()
     if (m_process == nullptr || m_gcode_result == nullptr || m_gcode_result->moves.empty())
         return;
 
-    auto capabilities = PluginVisualizations::instance().capabilities();
+    VisualizationInput input{VisualizationInputs::TOOLPATH, VisualizationInputs::GLTF_BINARY,
+                             VisualizationInputs::FILE_TRANSPORT, {}, PreviewGeometrySnapshot::FORMAT_MAJOR,
+                             PreviewGeometrySnapshot::FORMAT_MINOR};
+    auto capabilities = PluginVisualizations::instance().capabilities_for(input);
     if (capabilities.empty())
         return;
 
@@ -406,7 +412,7 @@ void Preview::open_visualization()
         handle_visualization_result(ExecutionResult::failure(PluginResult::RecoverableError, error.what()));
         return;
     }
-    PluginVisualizations::instance().request_open(
+    PluginVisualizations::instance().request_open_toolpath(
         selected, std::move(mesh), *m_gcode_result, printable_area, plate_index, m_gcode_result->id, SoftFever_VERSION,
         [weak = wxWeakRef<Preview>(this)](ExecutionResult result) {
             wxGetApp().CallAfter([weak, result = std::move(result)]() mutable {
@@ -433,7 +439,7 @@ void Preview::notify_visualization_result()
         handle_visualization_result(ExecutionResult::failure(PluginResult::RecoverableError, error.what()));
         return;
     }
-    PluginVisualizations::instance().request_updates(
+    PluginVisualizations::instance().request_toolpath_updates(
         std::move(mesh), *m_gcode_result, printable_area, plate_index, m_gcode_result->id, SoftFever_VERSION,
         [weak = wxWeakRef<Preview>(this)](ExecutionResult result) {
             wxGetApp().CallAfter([weak, result = std::move(result)]() mutable {

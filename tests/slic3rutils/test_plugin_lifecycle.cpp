@@ -91,24 +91,38 @@ class DummyVisualization(orca.visualization.VisualizationPluginCapabilityBase):
     def get_name(self):
         return "Dummy Visualization"
 
+    def get_supported_inputs(self):
+        spec = orca.visualization.VisualizationInputSpec()
+        spec.kind = orca.visualization.INPUT_TOOLPATH
+        spec.format = orca.visualization.FORMAT_GLTF_BINARY
+        spec.transport = orca.visualization.TRANSPORT_FILE
+        spec.minimum_major = 2
+        spec.maximum_major = 2
+        return [spec]
+
     def _record(self, event):
         with open(self.events_path, "a", encoding="utf-8") as output:
             output.write(event + "\n")
 
     def open(self, ctx):
-        self.events_path = Path(ctx.geometry_path).with_name("events.txt")
+        self.events_path = Path(ctx.input.location).with_name("events.txt")
+        try:
+            ctx.input.location = "plugin-controlled"
+            mutability = "mutable"
+        except AttributeError:
+            mutability = "readonly"
         self._record(
-            f"open:{ctx.scene_id}:{ctx.plate_index}:{ctx.geometry_format}:"
-            f"{ctx.geometry_major_version}.{ctx.geometry_minor_version}:{ctx.orca_version}"
+            f"open:{ctx.revision}:{ctx.metadata['plate_index']}:{ctx.input.kind}:{ctx.input.format}:"
+            f"{ctx.input.major_version}.{ctx.input.minor_version}:{ctx.orca_version}:{mutability}"
         )
         return orca.ExecutionResult.success()
 
     def update(self, ctx):
-        if ctx.scene_id == 99:
+        if ctx.revision == 99:
             raise RuntimeError("dummy update failure")
-        if ctx.scene_id == 100:
+        if ctx.revision == 100:
             return orca.ExecutionResult.failure(orca.PluginResult.FatalError, "dummy fatal failure")
-        self._record(f"update:{ctx.scene_id}")
+        self._record(f"update:{ctx.revision}")
         return orca.ExecutionResult.success()
 
     def close(self):
@@ -133,6 +147,15 @@ import orca
 class SecondVisualization(orca.visualization.VisualizationPluginCapabilityBase):
     def get_name(self):
         return "Second Visualization"
+
+    def get_supported_inputs(self):
+        spec = orca.visualization.VisualizationInputSpec()
+        spec.kind = orca.visualization.INPUT_TOOLPATH
+        spec.format = orca.visualization.FORMAT_GLTF_BINARY
+        spec.transport = orca.visualization.TRANSPORT_FILE
+        spec.minimum_major = 2
+        spec.maximum_major = 2
+        return [spec]
 
     def open(self, ctx):
         return orca.ExecutionResult.success()
@@ -248,9 +271,10 @@ TEST_CASE("Visualization sessions dispatch lifecycle calls and close when disabl
     const fs::path events_path = fs::path(manager.get_storage_dir("Visualization_Plugin")) / "events.txt";
     VisualizationContext ctx;
     ctx.orca_version  = "test";
-    ctx.scene_id      = 1;
-    ctx.plate_index   = 0;
-    ctx.geometry_path = (events_path.parent_path() / "snapshot.orpm").string();
+    ctx.revision      = 1;
+    ctx.metadata["plate_index"] = "0";
+    ctx.input = {VisualizationInputs::TOOLPATH, VisualizationInputs::GLTF_BINARY,
+                 VisualizationInputs::FILE_TRANSPORT, (events_path.parent_path() / "snapshot.glb").string(), 2, 0};
 
     PluginVisualizations& visualizations = PluginVisualizations::instance();
     CHECK(visualizations.open(capability, ctx).status == PluginResult::Success);
@@ -258,14 +282,14 @@ TEST_CASE("Visualization sessions dispatch lifecycle calls and close when disabl
 
     CHECK(visualizations.update(capability->identity(), ctx).status == PluginResult::Skipped);
 
-    ctx.scene_id = 99;
+    ctx.revision = 99;
     CHECK(visualizations.update(capability->identity(), ctx).status == PluginResult::RecoverableError);
     CHECK(visualizations.is_active(capability->identity()));
 
-    ctx.scene_id = 2;
+    ctx.revision = 2;
     CHECK(visualizations.update(capability->identity(), ctx).status == PluginResult::Success);
 
-    ctx.scene_id = 100;
+    ctx.revision = 100;
     CHECK(visualizations.update(capability->identity(), ctx).status == PluginResult::FatalError);
     CHECK_FALSE(visualizations.is_active(capability->identity()));
 
@@ -275,7 +299,7 @@ TEST_CASE("Visualization sessions dispatch lifecycle calls and close when disabl
 
     std::ifstream events(events_path.string());
     const std::string contents((std::istreambuf_iterator<char>(events)), std::istreambuf_iterator<char>());
-    CHECK(contents == "open:1:0:ORPM:1.0:test\nupdate:2\nclose\n");
+    CHECK(contents == "open:1:0:toolpath:model/gltf-binary:2.0:test:readonly\nupdate:2\nclose\n");
 }
 
 TEST_CASE("Unrelated visualization plugins keep independent sessions", "[PluginLifecycle][Visualization][Python]")
@@ -304,12 +328,22 @@ TEST_CASE("Unrelated visualization plugins keep independent sessions", "[PluginL
     REQUIRE(second != nullptr);
     CHECK(PluginVisualizations::instance().capabilities().size() == 2);
 
+    VisualizationInput toolpath_input{VisualizationInputs::TOOLPATH, VisualizationInputs::GLTF_BINARY,
+                                      VisualizationInputs::FILE_TRANSPORT, {}, 2, 0};
+    CHECK(PluginVisualizations::instance().capabilities_for(toolpath_input).size() == 2);
+    toolpath_input.major_version = 3;
+    CHECK(PluginVisualizations::instance().capabilities_for(toolpath_input).empty());
+    toolpath_input = {"model", "model/gltf-binary", "file", {}, 2, 0};
+    CHECK(PluginVisualizations::instance().capabilities_for(toolpath_input).empty());
+
     VisualizationContext first_context;
-    first_context.scene_id = 1;
-    first_context.plate_index = 0;
-    first_context.geometry_path = (fs::path(manager.get_storage_dir("Visualization_First")) / "first.orpm").string();
+    first_context.revision = 1;
+    first_context.metadata["plate_index"] = "0";
+    first_context.input = {VisualizationInputs::TOOLPATH, VisualizationInputs::GLTF_BINARY,
+                           VisualizationInputs::FILE_TRANSPORT,
+                           (fs::path(manager.get_storage_dir("Visualization_First")) / "first.glb").string(), 2, 0};
     VisualizationContext second_context = first_context;
-    second_context.geometry_path = (fs::path(manager.get_storage_dir("Visualization_Second")) / "second.orpm").string();
+    second_context.input.location = (fs::path(manager.get_storage_dir("Visualization_Second")) / "second.glb").string();
 
     PluginVisualizations& visualizations = PluginVisualizations::instance();
     REQUIRE(visualizations.open(first, first_context).status == PluginResult::Success);
