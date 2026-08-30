@@ -6,7 +6,7 @@
 *  \n class wgtDeviceNozzleRackNozzleItem;
 *  \n class wgtDeviceNozzleRackToolHead;
 *  \n class wgtDeviceNozzleRackPos;
-//**********************************************************/
+************************************************************/
 
 #pragma once
 #include "slic3r/GUI/DeviceCore/DevNozzleRack.h"

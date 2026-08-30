@@ -57,24 +57,24 @@ void ArcFitter::do_arc_fitting(const Points& points, std::vector<PathFittingData
             //BBS: can be fit as arc, then save arc data temperarily
             last_arc = target_arc;
             if (back_index == points.size() - 1) {
-                result.emplace_back(std::move(PathFittingData{ front_index,
+                result.emplace_back(PathFittingData{ front_index,
                                    back_index,
                                    last_arc.direction == ArcDirection::Arc_Dir_CCW ? EMovePathType::Arc_move_ccw : EMovePathType::Arc_move_cw,
-                                   last_arc }));
+                                   last_arc });
                 front_index = back_index;
             }
         } else {
             if (back_index - front_index > 2) {
                 //BBS: althought current point_stack can't be fit as arc,
                 //but previous must can be fit if removing the top in stack, so save last arc
-                result.emplace_back(std::move(PathFittingData{ front_index,
+                result.emplace_back(PathFittingData{ front_index,
                                    back_index - 1,
                                    last_arc.direction == ArcDirection::Arc_Dir_CCW ? EMovePathType::Arc_move_ccw : EMovePathType::Arc_move_cw,
-                                   last_arc }));
+                                   last_arc });
             } else {
                 //BBS: save the first segment as line move when 3 point-line can't be fit as arc move
                 if (result.empty() || result.back().path_type != EMovePathType::Linear_move)
-                    result.emplace_back(std::move(PathFittingData{front_index, front_index + 1, EMovePathType::Linear_move, ArcSegment()}));
+                    result.emplace_back(PathFittingData{front_index, front_index + 1, EMovePathType::Linear_move, ArcSegment()});
                 else if(result.back().path_type == EMovePathType::Linear_move)
                     result.back().end_point_index = front_index + 1;
             }
@@ -87,7 +87,7 @@ void ArcFitter::do_arc_fitting(const Points& points, std::vector<PathFittingData
 	//BBS: handle the remain data
     if (front_index != back_index) {
         if (result.empty() || result.back().path_type != EMovePathType::Linear_move)
-            result.emplace_back(std::move(PathFittingData{front_index, back_index, EMovePathType::Linear_move, ArcSegment()}));
+            result.emplace_back(PathFittingData{front_index, back_index, EMovePathType::Linear_move, ArcSegment()});
         else if (result.back().path_type == EMovePathType::Linear_move)
             result.back().end_point_index = back_index;
     }

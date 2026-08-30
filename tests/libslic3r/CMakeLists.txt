@@ -21,6 +21,7 @@ add_executable(${_TEST_NAME}_tests
     test_vendor_cache.cpp
     test_elephant_foot_compensation.cpp
     test_fill_corner_smoothing.cpp
+    test_filament_mixer.cpp
     test_fill_plane_path.cpp
     test_geometry.cpp
     test_multimaterial_segmentation.cpp
@@ -29,7 +30,9 @@ add_executable(${_TEST_NAME}_tests
     test_mutable_polygon.cpp
     test_mutable_priority_queue.cpp
     test_nozzle_volume_type.cpp
+    test_step.cpp
     test_stl.cpp
+    test_triangle_selector.cpp
     test_meshboolean.cpp
     test_marchingsquares.cpp
     test_model.cpp

@@ -180,7 +180,7 @@ public:
     SendToPrinterDialog(Plater *plater = nullptr);
     ~SendToPrinterDialog();
 
-    bool Show(bool show);
+    bool Show(bool show) override;
     bool is_timeout();
     void on_rename_click(wxCommandEvent& event);
     void on_rename_enter();
