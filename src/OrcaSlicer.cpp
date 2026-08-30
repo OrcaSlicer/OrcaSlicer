@@ -1969,7 +1969,64 @@ int CLI::run(int argc, char **argv)
         }
     }
 
-    auto load_config_file = [](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
+    std::unique_ptr<PresetBundle> cli_preset_bundle;
+    auto ensure_cli_preset_bundle = [&cli_preset_bundle, config_substitution_rule](std::string &error) -> PresetBundle * {
+        if (cli_preset_bundle)
+            return cli_preset_bundle.get();
+        try {
+            AppConfig app_config;
+            const std::string app_config_error = app_config.load();
+            if (!app_config_error.empty()) {
+                error = "Failed to load app config for preset resolution: " + app_config_error;
+                return nullptr;
+            }
+
+            auto bundle = std::make_unique<PresetBundle>();
+            std::string load_error;
+            bundle->load_presets(app_config, config_substitution_rule,
+                                 PresetBundle::PresetPreferences(), &load_error, true);
+            if (!load_error.empty()) {
+                error = "Failed to load presets for inheritance resolution: " + load_error;
+                return nullptr;
+            }
+            cli_preset_bundle = std::move(bundle);
+            return cli_preset_bundle.get();
+        } catch (const std::exception &ex) {
+            error = ex.what();
+            return nullptr;
+        }
+    };
+
+    auto resolve_inherits = [&ensure_cli_preset_bundle, config_substitution_rule](const std::string &file, DynamicPrintConfig &config,
+                                                        const std::string &config_type, const std::string &config_from,
+                                                        std::string &error) {
+        const auto *inherits = config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS);
+        if (inherits == nullptr || inherits->value.empty())
+            return true;
+
+        Preset::Type preset_type;
+        if (config_type == "process")
+            preset_type = Preset::TYPE_PRINT;
+        else if (config_type == "filament")
+            preset_type = Preset::TYPE_FILAMENT;
+        else if (config_type == "machine")
+            preset_type = Preset::TYPE_PRINTER;
+        else {
+            error = "Unsupported preset type: " + config_type;
+            return false;
+        }
+
+        if (config_from == "system") {
+            PresetBundle source_bundle;
+            return source_bundle.resolve_preset_config(config, preset_type, file, config_substitution_rule, error);
+        }
+
+        PresetBundle *bundle = ensure_cli_preset_bundle(error);
+        return bundle != nullptr && bundle->resolve_preset_config(
+            config, preset_type, file, config_substitution_rule, error, false);
+    };
+
+    auto load_config_file = [config_substitution_rule, &resolve_inherits](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
                                 std::string& config_name, std::string& filament_id, std::string& config_from) {
         if (! boost::filesystem::exists(file)) {
             boost::nowide::cerr << __FUNCTION__<< ": can not find setting file: " << file << std::endl;
@@ -2016,6 +2073,11 @@ int CLI::run(int argc, char **argv)
             }
             else {
                 boost::nowide::cerr <<__FUNCTION__ << boost::format(": unknown config type %1% of file %2% in load-settings") % config_type % file;
+                return CLI_CONFIG_FILE_ERROR;
+            }
+
+            if (!resolve_inherits(file, config, config_type, config_from, reason)) {
+                boost::nowide::cerr << __FUNCTION__ << boost::format(": can not resolve inherits for %1%: %2%") % file % reason << std::endl;
                 return CLI_CONFIG_FILE_ERROR;
             }
             config.normalize_fdm();
