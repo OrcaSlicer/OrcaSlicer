@@ -6450,7 +6450,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             if (wipe_tower_y_opt)
                                 file_wipe_tower_y = *wipe_tower_y_opt;
 
-                            {
+                            // ≤4 auto-graft must not create spectrum_source_filament_colour (Adopt/Map only).
+                            // A 4-slot file from a 1–2 tool session would otherwise trip dest_tools < n.
+                            if (!graft) {
                                 size_t dest_tools = 0;
                                 if (preset_bundle) {
                                     const auto *nozzles = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
@@ -12492,6 +12494,11 @@ void Plater::auto_graft_leq4_onto_ultra_s(const std::vector<std::string> &dest_c
         bundle->export_selections(*wxGetApp().app_config);
     if (wxGetApp().app_config && wxGetApp().app_config->get("auto_calculate_flush") != "disabled")
         sidebar().auto_calc_flushing_volumes(-1);
+
+    // Spec: auto path must not leave Adopt/Map source palette (≤4 is not a Map seed).
+    if (ConfigOptionStrings *source =
+            bundle->project_config.option<ConfigOptionStrings>("spectrum_source_filament_colour"))
+        source->values.clear();
 
     BOOST_LOG_TRIVIAL(info) << "auto-graft ≤4 onto Ultra S: printer=" << k_printer
                             << " process=" << bundle->prints.get_edited_preset().name
