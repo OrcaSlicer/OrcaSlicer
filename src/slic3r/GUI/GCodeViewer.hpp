@@ -209,7 +209,9 @@ private:
     // Belt printers: the print Z of each viewer layer, in the viewer's layer numbering.
     std::vector<double> m_belt_layer_zs;
     //BBS: save m_gcode_result as well
-    const GCodeProcessorResult* m_gcode_result;
+    const GCodeProcessorResult* m_gcode_result{ nullptr };
+    // Orca: Cache metadata availability for constructing the preview-mode menu.
+    bool m_has_overhang_metadata{ false };
     std::array<unsigned int, static_cast<size_t>(EMoveType::Count)> m_move_type_counts{};
     std::array<std::array<float, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)>, static_cast<size_t>(EMoveType::Count)> m_move_type_times{};
     std::array<float, static_cast<size_t>(EMoveType::Count)> m_move_type_distances{};

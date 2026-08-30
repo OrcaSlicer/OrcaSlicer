@@ -262,6 +262,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             //BBS
             int  object_label_id{-1};
             float print_z{0.0f};
+            // Orca: Unsupported extrusion width in percent, copied from the active G-code tag.
+            float overhang_percentage{ 0.0f };
 
             float volumetric_rate() const { return feedrate * mm3_per_mm; }
             float actual_volumetric_rate() const { return actual_feedrate * mm3_per_mm; }
@@ -315,6 +317,9 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         std::vector<ObjectMass> body_masses;
         // One per object instance, of its supports and raft.
         std::vector<ObjectMass> support_masses;
+        // Orca: Record whether the loaded G-code contains valid overhang metadata so the preview
+        // menu reflects the data being displayed rather than the current process preset.
+        bool has_overhang_metadata{ false };
         // Positions of ends of lines of the final G-code this->filename after TimeProcessor::post_process() finalizes the G-code.
         std::vector<size_t> lines_ends;
         Pointfs printable_area;
@@ -406,6 +411,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             object_masses = std::forward<Other>(other).object_masses;
             body_masses = std::forward<Other>(other).body_masses;
             support_masses = std::forward<Other>(other).support_masses;
+            has_overhang_metadata = std::forward<Other>(other).has_overhang_metadata;
             lines_ends = std::forward<Other>(other).lines_ends;
             printable_area = std::forward<Other>(other).printable_area;
             bed_exclude_area = std::forward<Other>(other).bed_exclude_area;
@@ -607,6 +613,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             Total_Cost_Placeholder,
             Total_Wipe_Tower_Cost_Placeholder,
             Total_Wipe_Tower_Filament_Placeholder,
+            // Orca: Optional percentage metadata consumed by the overhang preview.
+            Overhang,
         };
 
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
@@ -1263,6 +1271,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         float m_z_offset; // mm
 // ORCA: Add Pressure Advance visualization support
         float m_pressure_advance;
+        // Orca: Active unsupported-width percentage while parsing moves.
+        float m_overhang_percentage;
         ExtrusionRole m_extrusion_role;
         std::vector<int> m_filament_maps;
         std::vector<unsigned char> m_last_filament_id;
