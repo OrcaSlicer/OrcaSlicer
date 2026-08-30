@@ -1373,6 +1373,34 @@ void ImDrawList::AddLine(const ImVec2& p1, const ImVec2& p2, ImU32 col, float th
     PathStroke(col, 0, thickness);
 }
 
+void ImDrawList::AddLineDashed(const ImVec2& a, const ImVec2& b, ImU32 col, float thickness, unsigned int num_segments, unsigned int on_segments, unsigned int off_segments)
+{
+    if ((col >> 24) == 0)
+        return;
+    int on = 0, off = 0;
+    ImVec2 dir = (b - a) / num_segments;
+    for (int i = 0; i <= num_segments; i++)
+    {
+        ImVec2 point(a + dir * i);
+        if(on < on_segments) {
+            _Path.push_back(point);
+            on++;
+        } else if(on == on_segments && off == 0) {
+            _Path.push_back(point);
+            PathStroke(col, 0, thickness);
+            off++;
+        } else if(on == on_segments && off < off_segments) {
+            off++;
+        } else {
+            _Path.resize(0);
+            _Path.push_back(point);
+            on=1;
+            off=0;
+        }
+    }
+    PathStroke(col, 0, thickness);
+}
+
 // p_min = upper-left, p_max = lower-right
 // Note we don't render 1 pixels sized rectangles properly.
 void ImDrawList::AddRect(const ImVec2& p_min, const ImVec2& p_max, ImU32 col, float rounding, ImDrawFlags flags, float thickness)

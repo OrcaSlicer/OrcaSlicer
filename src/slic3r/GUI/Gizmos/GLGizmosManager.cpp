@@ -12,6 +12,7 @@
 #include "slic3r/GUI/Gizmos/GLGizmoMove.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoScale.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoRotate.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoRotate2.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoFlatten.hpp"
 //#include "slic3r/GUI/Gizmos/GLGizmoSlaSupports.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoFdmSupports.hpp"
@@ -204,7 +205,11 @@ bool GLGizmosManager::init()
     m_gizmos.clear();
     unsigned int sprite_id = 0;
     m_gizmos.emplace_back(new GLGizmoMove3D(m_parent, m_is_dark ? "toolbar_move_dark.svg" : "toolbar_move.svg", EType::Move, &m_object_manipulation));
-    m_gizmos.emplace_back(new GLGizmoRotate3D(m_parent, m_is_dark ? "toolbar_rotate_dark.svg" : "toolbar_rotate.svg", EType::Rotate, &m_object_manipulation));
+    if (wxGetApp().app_config->get_bool("use_new_rotate_gizmo")) {
+        m_gizmos.emplace_back(new GLGizmoRotate3D2(m_parent, m_is_dark ? "toolbar_rotate_dark.svg" : "toolbar_rotate.svg", EType::Rotate, &m_object_manipulation));
+    } else {
+        m_gizmos.emplace_back(new GLGizmoRotate3D(m_parent, m_is_dark ? "toolbar_rotate_dark.svg" : "toolbar_rotate.svg", EType::Rotate, &m_object_manipulation));
+    }
     m_gizmos.emplace_back(new GLGizmoScale3D(m_parent, m_is_dark ? "toolbar_scale_dark.svg" : "toolbar_scale.svg", EType::Scale, &m_object_manipulation));
     m_gizmos.emplace_back(new GLGizmoFlatten(m_parent, m_is_dark ? "toolbar_flatten_dark.svg" : "toolbar_flatten.svg", EType::Flatten));
     m_gizmos.emplace_back(new GLGizmoCut3D(m_parent, m_is_dark ? "toolbar_cut_dark.svg" : "toolbar_cut.svg", EType::Cut));
@@ -528,6 +533,8 @@ bool GLGizmosManager::gizmo_event(SLAGizmoEventType action, const Vec2d& mouse_p
         return dynamic_cast<GLGizmoMeshBoolean*>(m_gizmos[MeshBoolean].get())->gizmo_event(action, mouse_position, shift_down, alt_down, control_down);
     else if (m_current == BrimEars)
         return dynamic_cast<GLGizmoBrimEars*>(m_gizmos[BrimEars].get())->gizmo_event(action, mouse_position, shift_down, alt_down, control_down);
+    else if (m_current == Rotate && dynamic_cast<GLGizmoRotate3D2*>(m_gizmos[Rotate].get()))
+        return dynamic_cast<GLGizmoRotate3D2*>(m_gizmos[Rotate].get())->gizmo_event(action, mouse_position, shift_down, alt_down, control_down);
     else
         return false;
 }
@@ -946,7 +953,7 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
             // capture number key
             processed = true;
         }
-        if (m_current == Measure || m_current == Assembly) {
+        if (m_current == Measure || m_current == Assembly || m_current == Rotate) {
             if (keyCode == WXK_CONTROL)
                 gizmo_event(SLAGizmoEventType::CtrlUp, Vec2d::Zero(), evt.ShiftDown(), evt.AltDown(), evt.CmdDown());
             else if (keyCode == WXK_SHIFT)
@@ -1062,7 +1069,7 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
                 // force extra frame to automatically update window size
                 wxGetApp().imgui()->set_requires_extra_frame();
             }
-        } else if (m_current == Measure || m_current == Assembly) {
+        } else if (m_current == Measure || m_current == Assembly || m_current == Rotate) {
             if (keyCode == WXK_CONTROL)
                 gizmo_event(SLAGizmoEventType::CtrlDown, Vec2d::Zero(), evt.ShiftDown(), evt.AltDown(), evt.CmdDown());
             else if (keyCode == WXK_SHIFT)

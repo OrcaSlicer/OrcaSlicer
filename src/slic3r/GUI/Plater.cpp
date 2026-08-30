@@ -111,7 +111,6 @@
 #include "Jobs/OrientJob.hpp"
 #include "Jobs/ArrangeJob.hpp"
 #include "Jobs/FillBedJob.hpp"
-#include "Jobs/RotoptimizeJob.hpp"
 #include "Jobs/SLAImportJob.hpp"
 #include "Jobs/SLAImportDialog.hpp"
 #include "Jobs/PrintJob.hpp"

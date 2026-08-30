@@ -2039,13 +2039,6 @@ void GLCanvas3D::render(bool only_init)
         else {
             // regular picking pass
             _picking_pass();
-
-#if ENABLE_RAYCAST_PICKING_DEBUG
-            ImGuiWrapper& imgui = *wxGetApp().imgui();
-            imgui.begin(std::string("Hit result"), ImGuiWindowFlags_AlwaysAutoResize);
-            imgui.text("Picking disabled");
-            imgui.end();
-#endif // ENABLE_RAYCAST_PICKING_DEBUG
         }
     }
 
@@ -5573,10 +5566,25 @@ void GLCanvas3D::set_cursor(ECursorType type)
 {
     if ((m_canvas != nullptr) && (m_cursor_type != type))
     {
+#ifdef WIN32
+        // Restore cursor when leaving Blank state (ShowCursor uses a counter,
+        // balance each FALSE with a TRUE)
+        if (m_cursor_type == Blank)
+            ::ShowCursor(TRUE);
+#endif
+
         switch (type)
         {
         case Standard: { m_canvas->SetCursor(*wxSTANDARD_CURSOR); break; }
         case Cross: { m_canvas->SetCursor(*wxCROSS_CURSOR); break; }
+        case Blank: {
+#ifdef WIN32
+            ::ShowCursor(FALSE);
+#else
+            m_canvas->SetCursor(wxCursor(wxCURSOR_BLANK));
+#endif
+            break;
+        }
         }
 
         m_cursor_type = type;

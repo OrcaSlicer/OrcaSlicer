@@ -5,7 +5,6 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Plater.hpp"
-#include "slic3r/GUI/Jobs/RotoptimizeJob.hpp"
 
 #include "libslic3r/PresetBundle.hpp"
 
@@ -225,28 +224,6 @@ void GLGizmoRotate3D::on_render_input_window(float x, float y, float bottom_limi
     if (m_object_manipulation)
         m_object_manipulation->do_render_rotate_window(m_imgui, "Rotate", x, y, bottom_limit);
     //RotoptimzeWindow popup{m_imgui, m_rotoptimizewin_state, {x, y, bottom_limit}};
-}
-
-void GLGizmoRotate3D::load_rotoptimize_state()
-{
-    std::string accuracy_str =
-        wxGetApp().app_config->get("sla_auto_rotate", "accuracy");
-
-    std::string method_str =
-        wxGetApp().app_config->get("sla_auto_rotate", "method_id");
-
-    if (!accuracy_str.empty()) {
-        float accuracy = std::stof(accuracy_str);
-        accuracy = std::max(0.f, std::min(accuracy, 1.f));
-
-        m_rotoptimizewin_state.accuracy = accuracy;
-    }
-
-    if (!method_str.empty()) {
-        int method_id = std::stoi(method_str);
-        if (method_id < int(RotoptimizeJob::get_methods_count()))
-            m_rotoptimizewin_state.method_id = method_id;
-    }
 }
 
 void GLGizmoRotate::render_circle(const ColorRGBA& color, bool radius_changed)
@@ -521,7 +498,6 @@ GLGizmoRotate3D::GLGizmoRotate3D(GLCanvas3D& parent, const std::string& icon_fil
 	//BBS: GUI refactor: add obj manipulation
     , m_object_manipulation(obj_manipulation)
 {
-    load_rotoptimize_state();
 }
 
 bool GLGizmoRotate3D::on_mouse(const wxMouseEvent &mouse_event)
@@ -670,81 +646,6 @@ void GLGizmoRotate3D::on_unregister_raycasters_for_picking()
         g.unregister_raycasters_for_picking();
     }
     m_parent.set_raycaster_gizmos_on_top(false);
-}
-
-GLGizmoRotate3D::RotoptimzeWindow::RotoptimzeWindow(ImGuiWrapper *   imgui,
-                                                    State &          state,
-                                                    const Alignment &alignment)
-    : m_imgui{imgui}
-{
-    imgui->begin(_L("Optimize orientation"), ImGuiWindowFlags_NoMove |
-                                     ImGuiWindowFlags_AlwaysAutoResize |
-                                     ImGuiWindowFlags_NoCollapse);
-
-    // adjust window position to avoid overlap the view toolbar
-    float win_h = ImGui::GetWindowHeight();
-    float x = alignment.x, y = alignment.y;
-    y = std::min(y, alignment.bottom_limit - win_h);
-    ImGui::SetWindowPos(ImVec2(x, y), ImGuiCond_Always);
-
-    float max_text_w = 0.;
-    auto padding = ImGui::GetStyle().FramePadding;
-    padding.x *= 2.f;
-    padding.y *= 2.f;
-
-    for (size_t i = 0; i < RotoptimizeJob::get_methods_count(); ++i) {
-        float w =
-            ImGui::CalcTextSize(RotoptimizeJob::get_method_name(i).c_str()).x +
-            padding.x + ImGui::GetFrameHeight();
-        max_text_w = std::max(w, max_text_w);
-    }
-
-    ImGui::PushItemWidth(max_text_w);
-
-    if (ImGui::BeginCombo("", RotoptimizeJob::get_method_name(state.method_id).c_str())) {
-        for (size_t i = 0; i < RotoptimizeJob::get_methods_count(); ++i) {
-            if (ImGui::Selectable(RotoptimizeJob::get_method_name(i).c_str())) {
-                state.method_id = i;
-#ifdef SUPPORT_SLA_AUTO_ROTATE
-                wxGetApp().app_config->set("sla_auto_rotate",
-                                           "method_id",
-                                           std::to_string(state.method_id));
-#endif // SUPPORT_SLA_AUTO_ROTATE
-            }
-
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("%s", RotoptimizeJob::get_method_description(i).c_str());
-        }
-
-        ImGui::EndCombo();
-    }
-
-    ImVec2 sz = ImGui::GetItemRectSize();
-
-    if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("%s", RotoptimizeJob::get_method_description(state.method_id).c_str());
-
-    ImGui::Separator();
-
-    auto btn_txt = _L("Apply");
-    auto btn_txt_sz = ImGui::CalcTextSize(btn_txt.c_str());
-    ImVec2 button_sz = {btn_txt_sz.x + padding.x, btn_txt_sz.y + padding.y};
-    ImGui::SetCursorPosX(padding.x + sz.x - button_sz.x);
-
-    if (!wxGetApp().plater()->get_ui_job_worker().is_idle())
-        imgui->disabled_begin(true);
-
-    if ( imgui->button(btn_txt) ) {
-        replace_job(wxGetApp().plater()->get_ui_job_worker(),
-                    std::make_unique<RotoptimizeJob>());
-    }
-
-    imgui->disabled_end();
-}
-
-GLGizmoRotate3D::RotoptimzeWindow::~RotoptimzeWindow()
-{
-    m_imgui->end();
 }
 
 } // namespace GUI

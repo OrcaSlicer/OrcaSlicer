@@ -1824,6 +1824,12 @@ void PreferencesDialog::create_items()
     auto item_right_mouse_drag  = create_item_combobox(_L("Right Mouse Drag"), _L("Set the action that dragging the right mouse button should perform."), "right_mouse_drag_action", ButtonDragActions);
     g_sizer->Add(item_right_mouse_drag);
 
+    //// CONTROL > Gizmos
+    g_sizer->Add(create_item_title(_L("Gizmos")), 1, wxEXPAND);
+    
+    auto item_new_rotate      = create_item_checkbox(_L("Use new rotate gizmo"), _L("Use the new experimental rotate gizmo with snapping, precise mode, and ring-style interaction."), "use_new_rotate_gizmo", _L("(Requires restart)"));
+    g_sizer->Add(item_new_rotate);
+
     //// CONTROL > Clear my choice on ...
     g_sizer->Add(create_item_title(_L("Clear my choice on...")), 1, wxEXPAND);
 

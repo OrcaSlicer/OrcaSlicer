@@ -91,19 +91,6 @@ float GLGizmoBase::Grabber::get_dragging_half_size(float size) const
     return get_half_size(size) * DraggingScaleFactor;
 }
 
-PickingModel &GLGizmoBase::Grabber::get_cube()
-{
-    if (!s_cube.model.is_initialized()) {
-        // This cannot be done in constructor, OpenGL is not yet
-        // initialized at that point (on Linux at least).
-        indexed_triangle_set its = its_make_cube(1.0, 1.0, 1.0);
-        its_translate(its, -0.5f * Vec3f::Ones());
-        s_cube.model.init_from(its);
-        s_cube.mesh_raycaster = std::make_unique<MeshRaycaster>(std::make_shared<const TriangleMesh>(std::move(its)));
-    }
-    return s_cube;
-}
-
 void GLGizmoBase::Grabber::register_raycasters_for_picking(int id)
 {
     picking_id = id;

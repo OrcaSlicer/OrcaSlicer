@@ -186,6 +186,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoPainterBase.hpp
     GUI/Gizmos/GLGizmoRotate.cpp
     GUI/Gizmos/GLGizmoRotate.hpp
+    GUI/Gizmos/GLGizmoRotate2.cpp
+    GUI/Gizmos/GLGizmoRotate2.hpp
     GUI/Gizmos/GLGizmoScale.cpp
     GUI/Gizmos/GLGizmoScale.hpp
     GUI/Gizmos/GLGizmosCommon.cpp
@@ -318,8 +320,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/Jobs/PrintJob.cpp
     GUI/Jobs/PrintJob.hpp
     GUI/Jobs/ProgressIndicator.hpp
-    GUI/Jobs/RotoptimizeJob.cpp
-    GUI/Jobs/RotoptimizeJob.hpp
     GUI/Jobs/SendJob.cpp
     GUI/Jobs/SendJob.hpp
     GUI/Jobs/SLAImportDialog.hpp
