@@ -479,8 +479,9 @@ void Preview::reload_print(bool only_gcode)
     //m_loaded = false;
     m_loaded_print = nullptr;
 
-    load_print(false, only_gcode);
+    // load_print() refreshes actions whose availability depends on this mode.
     m_only_gcode = only_gcode;
+    load_print(false, only_gcode);
 }
 
 //BBS: always load shell at preview
@@ -798,6 +799,7 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
     bool directly_preview = print->is_step_done(psGCodeExport) && !m_gcode_result->moves.empty();
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": directly_preview: %1%, gcode_result moves %2%, has_layers %3%") % directly_preview % m_gcode_result->moves.size() %has_layers;
     if (wxGetApp().is_editor() && !has_layers && !directly_preview) {
+        PluginVisualizations::instance().close_all();
         show_sliders(false);
         m_canvas_widget->Refresh();
         return;
@@ -809,6 +811,10 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
     libvgcode::EViewType gcode_view_type = m_canvas->get_gcode_view_type();
     const bool gcode_preview_data_valid = !m_gcode_result->moves.empty();
     const bool is_pregcode_preview = !gcode_preview_data_valid && wxGetApp().is_editor();
+    const bool is_slice_result_valid = wxGetApp().plater()->get_partplate_list().get_curr_plate()->is_slice_result_valid();
+    const bool final_toolpath_available = gcode_preview_data_valid && (is_slice_result_valid || only_gcode);
+    if (!final_toolpath_available)
+        PluginVisualizations::instance().close_all();
 
     const std::vector<std::string> tool_colors = wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result);
     const std::vector<CustomGCode::Item>& color_print_values = wxGetApp().is_editor() ?
@@ -823,8 +829,7 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
 
     if (IsShown()) {
         m_canvas->set_selected_extruder(0);
-        bool is_slice_result_valid = wxGetApp().plater()->get_partplate_list().get_curr_plate()->is_slice_result_valid();
-        if (gcode_preview_data_valid && (is_slice_result_valid || only_gcode)) {
+        if (final_toolpath_available) {
             // Load the real G-code preview.
             //BBS: add more log
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": will load gcode_preview from result, moves count %1%") % m_gcode_result->moves.size();

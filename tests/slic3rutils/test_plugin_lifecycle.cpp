@@ -12,10 +12,13 @@
 #include <boost/filesystem.hpp>
 
 #include <algorithm>
+#include <array>
+#include <atomic>
 #include <chrono>
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <thread>
 #include <vector>
 
 using namespace Slic3r;
@@ -47,6 +50,26 @@ struct ScopedPluginManager
         PluginManager::instance().shutdown();
         PythonInterpreter::instance().shutdown();
     }
+};
+
+class ConcurrentVisualization final : public VisualizationPluginCapability
+{
+public:
+    std::string get_name() const override { return "Concurrent Visualization"; }
+    std::vector<VisualizationInputSpec> get_supported_inputs() override
+    {
+        return {{VisualizationInputs::TOOLPATH, VisualizationInputs::GLTF_BINARY,
+                 VisualizationInputs::FILE_TRANSPORT, 2, 0, 2, 0}};
+    }
+    ExecutionResult open(const VisualizationContext&) override
+    {
+        ++open_calls;
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        return ExecutionResult::success();
+    }
+    ExecutionResult update(const VisualizationContext&) override { return ExecutionResult::success(); }
+
+    std::atomic<int> open_calls{0};
 };
 
 // A minimal script plugin exposing exactly one capability, "Echo".
@@ -246,6 +269,48 @@ TEST_CASE("A discovered script plugin loads and materializes its capability", "[
     CHECK(manager.get_plugin_capability({PluginCapabilityType::Script, "Echo", "Echo_Plugin"}) == echo);
 
     manager.unload_plugin("Echo_Plugin");
+}
+
+TEST_CASE("Concurrent visualization opens create one session", "[PluginLifecycle][Visualization]")
+{
+    auto capability = std::make_shared<ConcurrentVisualization>();
+    capability->set_resolved_identity("Concurrent Visualization", PluginCapabilityType::Visualization);
+    capability->set_audit_plugin_key("concurrent-visualization");
+    capability->resolve_type_metadata();
+
+    VisualizationContext context;
+    context.revision = 1;
+    context.input = {VisualizationInputs::TOOLPATH, VisualizationInputs::GLTF_BINARY,
+                     VisualizationInputs::FILE_TRANSPORT, "snapshot.glb", 2, 0};
+
+    std::atomic<int> ready{0};
+    std::atomic<bool> start{false};
+    std::array<ExecutionResult, 2> results;
+    std::array<std::thread, 2> callers;
+    for (size_t index = 0; index < callers.size(); ++index) {
+        callers[index] = std::thread([&, index] {
+            ++ready;
+            while (!start.load(std::memory_order_acquire))
+                std::this_thread::yield();
+            results[index] = PluginVisualizations::instance().open(capability, context);
+        });
+    }
+    while (ready.load(std::memory_order_acquire) != int(callers.size()))
+        std::this_thread::yield();
+    start.store(true, std::memory_order_release);
+    for (std::thread& caller : callers)
+        caller.join();
+
+    const int successes = std::count_if(results.begin(), results.end(), [](const ExecutionResult& result) {
+        return result.status == PluginResult::Success;
+    });
+    const int skipped = std::count_if(results.begin(), results.end(), [](const ExecutionResult& result) {
+        return result.status == PluginResult::Skipped;
+    });
+    CHECK(successes == 1);
+    CHECK(skipped == 1);
+    CHECK(capability->open_calls == 1);
+    PluginVisualizations::instance().close(capability->identity());
 }
 
 TEST_CASE("Visualization sessions dispatch lifecycle calls and close when disabled", "[PluginLifecycle][Visualization][Python]")

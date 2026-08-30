@@ -96,24 +96,22 @@ ExecutionResult PluginVisualizations::open(const std::shared_ptr<VisualizationPl
         return ExecutionResult::skipped("Visualization capability does not support this input");
 
     const PluginCapabilityId id = capability->identity();
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        if (m_sessions.count(id) != 0)
-            return ExecutionResult::skipped("Visualization session is already open");
-    }
-
     ExecutionResult result;
     try {
         std::lock_guard<std::recursive_mutex> dispatch_lock(m_dispatch_mutex);
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            if (m_sessions.count(id) != 0)
+                return ExecutionResult::skipped("Visualization session is already open");
+        }
         PluginCapabilityInterface::RefCounter ref_counter(*capability);
         result = capability->open(ctx);
+        if (result.status == PluginResult::Success) {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_sessions.emplace(id, Session{capability, ctx.revision, std::move(owned_resource)});
+        }
     } catch (const std::exception& error) {
         return recoverable_error(id, "open", error);
-    }
-
-    if (result.status == PluginResult::Success) {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        m_sessions.emplace(id, Session{capability, ctx.revision, std::move(owned_resource)});
     }
     return result;
 }
@@ -122,42 +120,40 @@ ExecutionResult PluginVisualizations::update(const PluginCapabilityId& id, const
                                              boost::filesystem::path owned_resource)
 {
     std::shared_ptr<VisualizationPluginCapability> capability;
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        const auto it = m_sessions.find(id);
-        if (it == m_sessions.end())
-            return ExecutionResult::skipped("Visualization session is not open");
-        if (it->second.revision == ctx.revision)
-            return ExecutionResult::skipped("Visualization scene is unchanged");
-        capability = it->second.capability;
-    }
-    if (!capability->supports(ctx.input))
-        return ExecutionResult::skipped("Visualization capability does not support this input");
-
     ExecutionResult result;
-    try {
-        std::lock_guard<std::recursive_mutex> dispatch_lock(m_dispatch_mutex);
-        PluginCapabilityInterface::RefCounter ref_counter(*capability);
-        result = capability->update(ctx);
-    } catch (const std::exception& error) {
-        return recoverable_error(id, "update", error);
-    }
-
-    if (result.status == PluginResult::FatalError) {
-        close(id);
-        return result;
-    }
-
     boost::filesystem::path old_snapshot;
     const boost::filesystem::path replacement = owned_resource;
-    if (result.status == PluginResult::Success) {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        const auto it = m_sessions.find(id);
-        if (it != m_sessions.end() && it->second.capability == capability) {
-            old_snapshot = std::move(it->second.snapshot_path);
-            it->second.revision = ctx.revision;
-            it->second.snapshot_path = std::move(owned_resource);
+    try {
+        std::lock_guard<std::recursive_mutex> dispatch_lock(m_dispatch_mutex);
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            const auto it = m_sessions.find(id);
+            if (it == m_sessions.end())
+                return ExecutionResult::skipped("Visualization session is not open");
+            if (it->second.revision == ctx.revision)
+                return ExecutionResult::skipped("Visualization scene is unchanged");
+            capability = it->second.capability;
         }
+        if (!capability->supports(ctx.input))
+            return ExecutionResult::skipped("Visualization capability does not support this input");
+
+        PluginCapabilityInterface::RefCounter ref_counter(*capability);
+        result = capability->update(ctx);
+        if (result.status == PluginResult::FatalError) {
+            close(id);
+            return result;
+        }
+        if (result.status == PluginResult::Success) {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            const auto it = m_sessions.find(id);
+            if (it != m_sessions.end() && it->second.capability == capability) {
+                old_snapshot = std::move(it->second.snapshot_path);
+                it->second.revision = ctx.revision;
+                it->second.snapshot_path = std::move(owned_resource);
+            }
+        }
+    } catch (const std::exception& error) {
+        return recoverable_error(id, "update", error);
     }
     if (!old_snapshot.empty() && old_snapshot != replacement)
         remove_snapshot(old_snapshot);
@@ -166,6 +162,7 @@ ExecutionResult PluginVisualizations::update(const PluginCapabilityId& id, const
 
 void PluginVisualizations::close(const PluginCapabilityId& id)
 {
+    std::lock_guard<std::recursive_mutex> dispatch_lock(m_dispatch_mutex);
     std::shared_ptr<VisualizationPluginCapability> capability;
     boost::filesystem::path snapshot_path;
     {
@@ -182,7 +179,6 @@ void PluginVisualizations::close(const PluginCapabilityId& id)
     }
 
     try {
-        std::lock_guard<std::recursive_mutex> dispatch_lock(m_dispatch_mutex);
         PluginCapabilityInterface::RefCounter ref_counter(*capability);
         capability->close();
     } catch (const std::exception& error) {
