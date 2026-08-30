@@ -7,7 +7,9 @@
 
 #include "Types.hpp"
 
+#include <algorithm>
 #include <cfloat>
+#include <cmath>
 
 namespace libvgcode {
 
@@ -101,6 +103,22 @@ struct PathVertex
     // Jerk value
     //
     float jerk{ 0.0f };
+    // Orca: Unsupported extrusion width in percent (0 = fully supported, 100 = fully unsupported).
+    float overhang_percentage{ 0.0f };
+
+    // Orca: Convert the line-width-relative horizontal offset to an angle from vertical. A fully
+    // unsupported line is a ceiling because the clamped percentage no longer retains a finite offset.
+    float overhang_degree() const
+    {
+        const float percentage = std::clamp(overhang_percentage, 0.0f, 100.0f);
+        if (percentage >= 100.0f)
+            return 90.0f;
+        if (percentage <= 0.0f || width <= 0.0f || height <= 0.0f)
+            return 0.0f;
+
+        constexpr float radians_to_degrees = 57.29577951308232f;
+        return std::atan(0.01f * percentage * width / height) * radians_to_degrees;
+    }
 
     //
     // Return true if the segment is an extrusion move

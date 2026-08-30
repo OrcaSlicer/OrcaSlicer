@@ -418,6 +418,29 @@ public:
         next_curled_extrusions[object] = AABBTreeLines::LinesDistancer<CurledLine>{layer->curled_lines};
     }
 
+    // Orca: Return the unsupported part of the extrusion width for every original path segment, in percent.
+    // This uses the same signed-distance calculation as the overhang speed estimator, but deliberately
+    // does not add points to the path: collecting preview data must not alter generated toolpaths.
+    std::vector<float> estimate_overhang_percentages(const ExtrusionPath &path)
+    {
+        const size_t segments_count = path.polyline.points.size() > 1 ? path.polyline.points.size() - 1 : 0;
+        std::vector<float> percentages(segments_count, 0.0f);
+        if (segments_count == 0 || path.width <= EPSILON)
+            return percentages;
+
+        const std::vector<ExtendedPoint<3>> points =
+            estimate_points_properties<true, false, true, true>(path.polyline.points,
+                                                                 prev_layer_boundaries[current_object],
+                                                                 path.width);
+        const float width_inv = 1.0f / path.width;
+        for (size_t i = 0; i < percentages.size(); ++i) {
+            const float overlap = std::min(1.0f - points[i].distance * width_inv,
+                                           1.0f - points[i + 1].distance * width_inv);
+            percentages[i] = 100.0f * (1.0f - std::clamp(overlap, 0.0f, 1.0f));
+        }
+        return percentages;
+    }
+
     std::vector<ProcessedPoint> estimate_extrusion_quality(const ExtrusionPath                &path,
                                                            const ConfigOptionPercents         &overlaps,
                                                            const ConfigOptionFloatsOrPercents &speeds,

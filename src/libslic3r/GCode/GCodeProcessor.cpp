@@ -76,7 +76,9 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags = {
     " WIPE_TOWER_END",
     " PA_CHANGE:",
     "@PRINT_TIME_SEC@",
-    "@USED_FILAMENT_LENGTH@"
+    "@USED_FILAMENT_LENGTH@",
+    // Orca: Store the unsupported extrusion-width percentage for preview coloring.
+    " OVERHANG: "
 };
 
 const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
@@ -99,7 +101,9 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
     " WIPE_TOWER_END",
     " PA_CHANGE:",
     "@PRINT_TIME_SEC@",
-    "@USED_FILAMENT_LENGTH@"
+    "@USED_FILAMENT_LENGTH@",
+    // Orca: Keep the metadata tag compatible with non-Bambu G-code formatting.
+    "OVERHANG:"
 };
 
 
@@ -2521,6 +2525,8 @@ void GCodeProcessorResult::reset() {
     lock();
 
     moves.clear();
+    // Orca: A reset result must not advertise metadata inherited from a previously parsed G-code.
+    has_overhang_metadata = false;
     lines_ends.clear();
     printable_area = Pointfs();
     //BBS: add bed exclude area
@@ -3513,6 +3519,8 @@ void GCodeProcessor::reset()
     m_travel_dist = 0.0f;
     m_fan_speed = 0.0f;
     m_z_offset = 0.0f;
+    // Orca: Imported G-code without overhang tags is treated as fully supported.
+    m_overhang_percentage = 0.0f;
 
     m_extrusion_role = erNone;
 
@@ -4135,6 +4143,9 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
     // extrusion role tag
     if (boost::starts_with(comment, reserved_tag(ETags::Role))) {
         set_extrusion_role(ExtrusionEntity::string_to_role(comment.substr(reserved_tag(ETags::Role).length())));
+        // Orca: Prevent the last perimeter percentage from leaking into unrelated extrusion roles.
+        if (!is_perimeter(m_extrusion_role) && !is_bridge(m_extrusion_role))
+            m_overhang_percentage = 0.0f;
         if (m_extrusion_role == erExternalPerimeter)
             m_seams_detector.activate(true);
         m_processing_start_custom_gcode = (m_extrusion_role == erCustom && m_g1_line_id == 0);
@@ -4265,6 +4276,17 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         if (boost::starts_with(comment, reserved_tag(ETags::Width))) {
             if (!parse_number(comment.substr(reserved_tag(ETags::Width).size()), m_forced_width))
                 BOOST_LOG_TRIVIAL(error) << "GCodeProcessor encountered an invalid value for Width (" << comment << ").";
+            return;
+        }
+        // Orca: Parse and bound metadata before copying it to move vertices used by the preview.
+        if (boost::starts_with(comment, reserved_tag(ETags::Overhang))) {
+            if (!parse_number(comment.substr(reserved_tag(ETags::Overhang).size()), m_overhang_percentage)) {
+                BOOST_LOG_TRIVIAL(error) << "GCodeProcessor encountered an invalid value for Overhang (" << comment << ").";
+                return;
+            }
+            m_overhang_percentage = std::clamp(m_overhang_percentage, 0.0f, 100.0f);
+            // Orca: Only a successfully parsed tag enables the corresponding preview mode.
+            m_result.has_overhang_metadata = true;
             return;
         }
         // Orca: manual tool change tag
@@ -7061,7 +7083,9 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         std::max<unsigned int>(1, m_layer_id) - 1,
         internal_only,
         m_object_label_id,
-        m_print_z
+        m_print_z,
+        // Orca: Snapshot the active percentage on every move so libvgcode can split color spans.
+        m_overhang_percentage
     });
 
     if (type == EMoveType::Seam) {

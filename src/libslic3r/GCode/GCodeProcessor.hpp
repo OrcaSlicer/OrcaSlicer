@@ -243,6 +243,8 @@ class Print;
             //BBS
             int  object_label_id{-1};
             float print_z{0.0f};
+            // Orca: Unsupported extrusion width in percent, copied from the active G-code tag.
+            float overhang_percentage{ 0.0f };
 
             float volumetric_rate() const { return feedrate * mm3_per_mm; }
             float actual_volumetric_rate() const { return actual_feedrate * mm3_per_mm; }
@@ -258,6 +260,9 @@ class Print;
         std::string filename;
         unsigned int id;
         std::vector<MoveVertex> moves;
+        // Orca: Record whether the loaded G-code contains valid overhang metadata so the preview
+        // menu reflects the data being displayed rather than the current process preset.
+        bool has_overhang_metadata{ false };
         // Positions of ends of lines of the final G-code this->filename after TimeProcessor::post_process() finalizes the G-code.
         std::vector<size_t> lines_ends;
         Pointfs printable_area;
@@ -328,6 +333,9 @@ class Print;
             filename = other.filename;
             id = other.id;
             moves = other.moves;
+            // Orca: Preserve metadata availability when processor results are copied between the
+            // slicing pipeline and the preview.
+            has_overhang_metadata = other.has_overhang_metadata;
             lines_ends = other.lines_ends;
             printable_area = other.printable_area;
             bed_exclude_area = other.bed_exclude_area;
@@ -514,6 +522,8 @@ class Print;
             PA_Change,
             Print_Time_Sec_Placeholder,
             Used_Filament_Length_Placeholder,
+            // Orca: Optional percentage metadata consumed by the overhang preview.
+            Overhang,
         };
 
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
@@ -1149,6 +1159,8 @@ class Print;
         float m_z_offset; // mm
 // ORCA: Add Pressure Advance visualization support
         float m_pressure_advance;
+        // Orca: Active unsupported-width percentage while parsing moves.
+        float m_overhang_percentage;
         ExtrusionRole m_extrusion_role;
         std::vector<int> m_filament_maps;
         std::vector<unsigned char> m_last_filament_id;

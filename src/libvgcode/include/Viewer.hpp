@@ -175,6 +175,9 @@ public:
     // Valid view types are:
     // EViewType::Height
     // EViewType::Width
+    // Orca: Overhang exposes fixed percentage and angular color ranges.
+    // Orca: EViewType::OverhangPercentage
+    // Orca: EViewType::OverhangDegree
     // EViewType::Speed
     // EViewType::ActualSpeed
     // EViewType::FanSpeed
@@ -197,6 +200,9 @@ public:
     // Valid view types are:
     // EViewType::Height
     // EViewType::Width
+    // Orca: Both overhang ranges accept the same configurable palette API.
+    // Orca: EViewType::OverhangPercentage
+    // Orca: EViewType::OverhangDegree
     // EViewType::Speed
     // EViewType::ActualSpeed
     // EViewType::FanSpeed

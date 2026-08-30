@@ -2,6 +2,7 @@
 
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/GCode/ExtrusionProcessor.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
@@ -9,6 +10,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -284,6 +286,22 @@ std::string caged_overhang_gcode(const char* wall_generator)
     return gcode(print);
 }
 
+// Orca: Extract every emitted percentage without coupling the regression test to G-code line positions.
+std::vector<float> overhang_percentages(const std::string &gcode)
+{
+    std::vector<float> percentages;
+    size_t position = 0;
+    while ((position = gcode.find("OVERHANG:", position)) != std::string::npos) {
+        position += sizeof("OVERHANG:") - 1;
+        char *end = nullptr;
+        const float percentage = std::strtof(gcode.c_str() + position, &end);
+        if (end != gcode.c_str() + position)
+            percentages.push_back(percentage);
+        position = end != gcode.c_str() + position ? size_t(end - gcode.c_str()) : position;
+    }
+    return percentages;
+}
+
 // Reports the matched move count alongside the extremes, so a filter that selected nothing is
 // distinguishable from a span that simply was not slowed.
 void info_feed_rates(const char* span, const std::vector<double>& feed_rates)
@@ -296,6 +314,22 @@ void info_feed_rates(const char* span, const std::vector<double>& feed_rates)
 }
 
 } // namespace
+
+TEST_CASE("Overhang metadata availability follows valid G-code tags", "[GCodeProcessor][Overhang]")
+{
+    // Orca: Drive the streaming parser used for freshly generated G-code and verify that only a
+    // valid tag advertises the optional preview mode.
+    GCodeProcessor processor;
+    const std::string tag_prefix = GCodeProcessor::s_IsBBLPrinter ? "; OVERHANG: " : ";OVERHANG:";
+    processor.process_buffer(tag_prefix + "37.5\n");
+    CHECK(processor.get_result().has_overhang_metadata);
+
+    // Orca: Resetting the processor must hide the mode again until another valid tag is parsed.
+    processor.reset();
+    CHECK_FALSE(processor.get_result().has_overhang_metadata);
+    processor.process_buffer(tag_prefix + "invalid\n");
+    CHECK_FALSE(processor.get_result().has_overhang_metadata);
+}
 
 // Classic reproduces the endpoint-sampling bug: it emits the span as one long move whose endpoints
 // both read as supported, so endpoint-only sampling never slows it. Arachne's endpoints already read
@@ -334,6 +368,25 @@ TEST_CASE("Supported vertical walls keep their normal speed", "[ExtrusionProcess
 
     const double slowest = *std::min_element(feed_rates.begin(), feed_rates.end());
     REQUIRE(slowest >= caged_slow_speed * MM_PER_MIN);
+}
+
+// Orca: Cover both the default size-preserving path and metadata generation without speed slowdown.
+TEST_CASE("Overhang preview metadata is optional and independent of overhang speed",
+          "[ExtrusionProcessor][Regression]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    INFO("wall generator: " << wall_generator);
+
+    constexpr double ten_percent_top_offset = 0.1 * shallow_wall_width / shallow_layer_height;
+    const std::vector<float> disabled_percentages = overhang_percentages(
+        shallow_overhang_gcode(wall_generator, shallow_overhang_speed, ten_percent_top_offset, false, false));
+    const std::vector<float> percentages = overhang_percentages(
+        shallow_overhang_gcode(wall_generator, shallow_overhang_speed, ten_percent_top_offset, false, true));
+
+    REQUIRE(disabled_percentages.empty());
+    REQUIRE_FALSE(percentages.empty());
+    REQUIRE(std::all_of(percentages.begin(), percentages.end(), [](float percentage) { return percentage >= 0.f && percentage <= 100.f; }));
+    REQUIRE(std::any_of(percentages.begin(), percentages.end(), [](float percentage) { return std::abs(percentage - 10.f) <= 0.2f; }));
 }
 
 // The slope's top edge falls mid layer, so the first layer above it still stands 0.179mm proud of the layer

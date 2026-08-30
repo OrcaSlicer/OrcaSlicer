@@ -294,6 +294,9 @@ private:
     std::optional<Settings> m_settings_used_for_ranges;
     ColorRange m_height_range;
     ColorRange m_width_range;
+    // Orca: Fixed ranges keep percentage and angular overhang colors comparable across models.
+    ColorRange m_overhang_percentage_range;
+    ColorRange m_overhang_degree_range;
     ColorRange m_speed_range;
     ColorRange m_actual_speed_range;
     ColorRange m_fan_speed_range;
