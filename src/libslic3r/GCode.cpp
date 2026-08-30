@@ -2048,6 +2048,22 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             if (std::abs(gcodegen.writer().get_position().z() - m_last_wipe_tower_print_z) > EPSILON)
                 gcode += gcodegen.change_layer(m_last_wipe_tower_print_z);
             gcode += append_tcr2(gcodegen, m_final_purge, -1, m_last_wipe_tower_print_z);
+
+            // Orca: restore Z back to the real topmost layer height after the purge, mirroring the
+            // per-toolchange restore in get_path_of_change_filament() (restore_layer_z_str /
+            // deretraction_str). Without this, the physical toolhead is left at the tower's
+            // (possibly much lower) height for the rest of the print. machine_end_gcode only lifts Z
+            // for print_sequence == "by object" - the "by layer" case has no fallback move - so any
+            // end-of-print parking/bed-lowering that assumes the toolhead is near the print's top
+            // computes its target from this wrong, too-low Z instead.
+            if (std::abs(gcodegen.writer().get_position().z() - m_final_purge.print_z) > EPSILON) {
+                std::string restore_z_str = gcodegen.writer().travel_to_z(m_final_purge.print_z, "Restore layer Z after final purge", true);
+                Vec3d position{gcodegen.writer().get_position()};
+                position.z() = m_final_purge.print_z;
+                gcodegen.writer().set_position(position);
+                check_add_eol(restore_z_str);
+                gcode += restore_z_str;
+            }
         }
 
         return gcode;
