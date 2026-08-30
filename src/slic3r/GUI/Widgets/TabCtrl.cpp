@@ -17,9 +17,9 @@ END_EVENT_TABLE()
  * calling Refresh()/Update().
  */
 
-#define TAB_BUTTON_SPACE 2
-#define TAB_BUTTON_PADDING_X 2
-#define TAB_BUTTON_PADDING_Y 2
+#define TAB_LEADING_SPACE    FromDIP(5)
+#define TAB_BUTTON_PADDING_X FromDIP(8)
+#define TAB_BUTTON_PADDING_Y FromDIP(2)
 #define TAB_BUTTON_PADDING TAB_BUTTON_PADDING_X, TAB_BUTTON_PADDING_Y
 
 TabCtrl::TabCtrl(wxWindow *      parent,
@@ -37,10 +37,13 @@ TabCtrl::TabCtrl(wxWindow *      parent,
     border_width = 1;
     SetBorderColor(0xcecece);
     sizer = new wxBoxSizer(wxHORIZONTAL);
-    sizer->AddSpacer(10);
+    sizer->AddSpacer(TAB_LEADING_SPACE);
     auto hsizer = new wxBoxSizer(wxVERTICAL);
     hsizer->Add(sizer, 0, wxEXPAND | wxBOTTOM, border_width * 4);
     SetSizer(hsizer);
+
+    UpdateCompactWidth();
+
     Bind(wxEVT_COMMAND_BUTTON_CLICKED, &TabCtrl::buttonClicked, this);
     //wxString reason;
     //IsTransparentBackgroundSupported(&reason);
@@ -80,8 +83,17 @@ void TabCtrl::Unselect()
     SelectItem(-1);
 }
 
+void TabCtrl::UpdateCompactWidth()
+{
+    wxClientDC dc(this);
+    dc.SetFont(GetFont());
+    m_compact_width = dc.GetTextExtent("MM...").x + TAB_BUTTON_PADDING_X * 2;
+}
+
 void TabCtrl::Rescale()
 {
+    UpdateCompactWidth();
+
     for (auto & b : btns)
         b->Rescale();
 }
@@ -92,6 +104,9 @@ bool TabCtrl::SetFont(wxFont const& font)
     bold = font.Bold();
     for (size_t i = 0; i < btns.size(); ++i)
         btns[i]->SetFont(i == sel ? bold : font);
+
+    UpdateCompactWidth();
+
     return true;
 }
 
@@ -109,9 +124,7 @@ int TabCtrl::AppendItem(const wxString &item,
     btn->SetCornerRadius(0);
     btn->SetPaddingSize({TAB_BUTTON_PADDING});
     btns.push_back(btn);
-    if (btns.size() > 1)
-        sizer->GetItem(sizer->GetItemCount() - 1)->SetMinSize({0, 0});
-    sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, TAB_BUTTON_SPACE * 2);
+    sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL);
     sizer->AddStretchSpacer(1);
     relayout();
     return btns.size() - 1;
@@ -132,8 +145,6 @@ bool TabCtrl::DeleteItem(int item)
     btn->Destroy();
     btns.erase(btns.begin() + item);
     sizer->Remove(item * 2);
-    if (btns.size() > 1)
-        sizer->GetItem(sizer->GetItemCount() - 1)->SetMinSize({0, 0});
 
     if (selection_changed) {
         sel--;  // `relayout()` uses `sel` so we need to update this before calling `relayout()`
@@ -149,7 +160,7 @@ bool TabCtrl::DeleteItem(int item)
 void TabCtrl::DeleteAllItems()
 {
     sizer->Clear(true);
-    sizer->AddSpacer(10);
+    sizer->AddSpacer(TAB_LEADING_SPACE);
     btns.clear();
     if (sel >= 0) {
         sel = -1;
@@ -168,6 +179,7 @@ void TabCtrl::SetItemText(unsigned int item, wxString const &value)
 {
     if (item >= btns.size()) return;
     btns[item]->SetLabel(value);
+    btns[item]->SetToolTip(value); // ensure tooltip matches with tab
 }
 
 bool TabCtrl::GetItemBold(unsigned int item) const
@@ -242,40 +254,40 @@ WXLRESULT TabCtrl::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam)
 
 void TabCtrl::relayout()
 {
-    int offset = 10;
-    int item = sel + 1;
-    int first = 0;
-    for (int i = 0; i < item; ++i)
-        offset += btns[i]->GetMinSize().x + TAB_BUTTON_SPACE * 2;
-    if (item < btns.size())
-        offset += btns[item]->GetMinSize().x + TAB_BUTTON_SPACE * 2;
-    int  width = GetSize().x;
-    for (int i = 0; i < btns.size(); ++i) {
-        auto size = btns[i]->GetMinSize().x + TAB_BUTTON_SPACE * 2;
-        if (i < sel && offset > width) {
-            sizer->Show(i * 2 + 1, false);
-            sizer->Show(i * 2 + 2, false);
-            offset -= size;
-            first = i + 1;
-        } else if (i <= item) {
-            sizer->Show(i * 2 + 1, true);
-            sizer->Show(i * 2 + 2, true);
-        } else if (offset <= width) {
-            sizer->Show(i * 2 + 1, true);
-            sizer->Show(i * 2 + 2, true);
-            offset += size;
-            item = i;
-        } else {
-            sizer->Show(i * 2 + 1, false);
-            sizer->Show(i * 2 + 2, false);
-        }
-        sizer->GetItem(i * 2 + 2)->SetMinSize({0, 0});
+    const int count = (int)btns.size();
+    if (count == 0) {
+        Layout();
+        return;
     }
-    if (item >= btns.size())
-        -- item;
-    // Keep spacing 2 ~ 10 TAB_BUTTON_SPACE
-    int b = GetSize().x - offset - 10 - (item + 1 - first) * TAB_BUTTON_SPACE * 8;
-    sizer->GetItem(item * 2 + 2)->SetMinSize({b > 0 ? b : 0, 0});
+
+    const int ctrl_width = GetSize().x;
+
+    // reset size limits for all buttons first
+    for (int i = 0; i < count; ++i)
+        btns[i]->SetMaxSize(wxDefaultSize);
+
+    int total_width = TAB_LEADING_SPACE;
+
+    // calculate total width
+    for (int i = 0; i < count; ++i)
+        total_width += btns[i]->GetMinSize().x;
+
+    int btns_width = total_width;
+
+    // starting from the last button, clamp widths one by one until everything fits
+    for (int i = count - 1; i >= 0 && total_width > ctrl_width; --i) {
+        sizer->GetItem(i * 2 + 2)->SetMinSize({0, 0}); // reset all stretch spacer width
+        int btn_width = btns[i]->GetMinSize().x;
+        if (btn_width <= m_compact_width)
+            continue; // already narrow enough
+
+        total_width -= (btn_width - m_compact_width);
+        btns[i]->SetMaxSize({m_compact_width, -1});
+    }
+
+    int b = ctrl_width - (TAB_LEADING_SPACE + btns_width + count * TAB_BUTTON_PADDING_X); // keep it left aligned with resizing last stretch spacer
+    sizer->GetItem(sizer->GetItemCount() - 1)->SetMinSize({b > 0 ? b : 0, 0});
+
     Layout();
 }
 

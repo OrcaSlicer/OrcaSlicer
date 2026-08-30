@@ -79,6 +79,9 @@ private:
     // some useful events
     bool sendTabCtrlEvent(bool changing = false);
 
+    void UpdateCompactWidth();
+    int m_compact_width;
+
     DECLARE_EVENT_TABLE()
 };
 
