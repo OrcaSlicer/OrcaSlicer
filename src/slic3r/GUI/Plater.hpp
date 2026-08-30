@@ -928,6 +928,12 @@ public:
     bool is_loading_project() const { return m_loading_project; }
 
 private:
+    // Auto-graft ≤4-slot project 3mf onto Ultra S using last-session loadout (not Adopt CMYK).
+    void auto_graft_leq4_onto_ultra_s(const std::vector<std::string> &dest_colours,
+                                      const std::vector<std::string> &dest_multi,
+                                      const std::vector<std::string> &dest_filament_presets,
+                                      const std::string              &dest_process_name);
+
     struct priv;
     std::unique_ptr<priv> p;
     std::string           m_3mf_path;

@@ -66,6 +66,7 @@
 #include "libslic3r/Color.hpp"
 #include "libslic3r/MixedFilament.hpp"
 #include "libslic3r/MixedFilamentMatch.hpp"
+#include "libslic3r/SpectrumAutoGraft.hpp"
 #include "libslic3r/MixedFilamentPaintBake.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Utils.hpp"
@@ -5990,6 +5991,12 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 DynamicPrintConfig config;
                 Semver             file_version;
                 En3mfType          en_3mf_file_type = En3mfType::From_BBS;
+                // Last-session loadout for ≤4 auto-graft (capture before archive overwrites project_config).
+                std::vector<std::string> session_colours;
+                std::vector<std::string> session_multi;
+                std::vector<std::string> session_filament_presets;
+                std::string              session_process;
+                bool                     graft = false;
                 {
                     DynamicPrintConfig config_loaded;
 
@@ -5999,6 +6006,18 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     std::vector<Preset *>     project_presets;
                     // BBS: backup & restore
                     q->skip_thumbnail_invalid = true;
+                    if (load_config) {
+                        if (PresetBundle *pb = wxGetApp().preset_bundle) {
+                            if (const ConfigOptionStrings *c =
+                                    pb->project_config.option<ConfigOptionStrings>("filament_colour"))
+                                session_colours = c->values;
+                            if (const ConfigOptionStrings *m =
+                                    pb->project_config.option<ConfigOptionStrings>("filament_multi_colour"))
+                                session_multi = m->values;
+                            session_filament_presets = pb->filament_presets;
+                            session_process          = pb->prints.get_edited_preset().name;
+                        }
+                    }
                     model = Slic3r::Model::read_from_archive(path.string(), &config_loaded, &config_substitutions, en_3mf_file_type, strategy, &plate_data, &project_presets,
                                                              &file_version,
                                                              [this, &dlg, real_filename, &progress_percent, &file_percent, stage_percent, INPUT_FILES_RATIO, total_files, i,
@@ -6287,6 +6306,15 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         // Based on the printer technology field found in the loaded config, select the base for the config,
                         PrinterTechnology printer_technology = Preset::printer_technology(config_loaded);
 
+                        // Predicate before move — config_loaded is empty after += std::move.
+                        {
+                            const std::string opt = wxGetApp().app_config
+                                ? wxGetApp().app_config->get("spectrum_auto_graft_leq4")
+                                : std::string();
+                            const bool opt_on = opt.empty() || opt == "true";
+                            graft = opt_on && spectrum_should_auto_graft_leq4(config_loaded);
+                        }
+
                         config.apply(static_cast<const ConfigBase &>(FullPrintConfig::defaults()));
                         // and place the loaded config over the base.
                         config += std::move(config_loaded);
@@ -6555,6 +6583,10 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                         }
                                     }
                                 }
+                            }
+                            if (graft) {
+                                q->auto_graft_leq4_onto_ultra_s(session_colours, session_multi,
+                                                                session_filament_presets, session_process);
                             }
                             // Update filament combobox after loading config
                             wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);
@@ -12348,6 +12380,123 @@ int Plater::save_project(bool saveAs)
 
     update_title_dirty_status();
     return wxID_YES;
+}
+
+void Plater::auto_graft_leq4_onto_ultra_s(const std::vector<std::string> &dest_colours,
+                                          const std::vector<std::string> &dest_multi,
+                                          const std::vector<std::string> &dest_filament_presets,
+                                          const std::string              &dest_process_name)
+{
+    PresetBundle *bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return;
+
+    // Shared with Adopt — printer string only. Do not stamp CMYK / force 0.08 / PLA Basic.
+    static const char *k_printer = "WonderMaker ZR Ultra S 0.4 nozzle";
+
+    // Capture pre-select printer so a non-strict first-visible fallback can be undone on abort.
+    const std::string prior_printer = bundle->printers.get_edited_preset().name;
+    if (bundle->printers.find_preset(k_printer) == nullptr ||
+        !bundle->printers.select_preset_by_name(k_printer, true) ||
+        bundle->printers.get_edited_preset().name != k_printer) {
+        BOOST_LOG_TRIVIAL(warning) << "auto-graft ≤4: could not select printer preset '" << k_printer
+                                   << "'; leaving loaded project as-is";
+        if (!prior_printer.empty() && bundle->printers.get_edited_preset().name != prior_printer)
+            bundle->printers.select_preset_by_name(prior_printer, true);
+        return;
+    }
+    bundle->update_compatible(PresetSelectCompatibleType::Always);
+    wxGetApp().load_current_presets();
+
+    if (!dest_process_name.empty()) {
+        const Preset *proc = bundle->prints.find_preset(dest_process_name);
+        if (proc != nullptr && proc->is_compatible &&
+            bundle->prints.select_preset_by_name(dest_process_name, false)) {
+            // Captured session process still compatible — keep it.
+        } else {
+            BOOST_LOG_TRIVIAL(info) << "auto-graft ≤4: session process '" << dest_process_name
+                                    << "' incompatible after Ultra S; keeping update_compatible pick '"
+                                    << bundle->prints.get_edited_preset().name << "'";
+        }
+    }
+
+    if (bundle->filament_presets.size() != 4)
+        bundle->set_num_filaments(4);
+
+    std::vector<std::string> names = dest_filament_presets;
+    if (names.empty())
+        names.push_back(bundle->filaments.get_selected_preset_name());
+    while (names.size() < 4)
+        names.push_back(names.back());
+    names.resize(4);
+
+    for (size_t i = 0; i < 4; ++i) {
+        const Preset *fp = bundle->filaments.find_preset(names[i]);
+        if (fp == nullptr || !fp->is_compatible)
+            names[i] = bundle->filaments.get_selected_preset_name();
+        bundle->set_filament_preset(i, names[i]);
+    }
+    bundle->update_compatible(PresetSelectCompatibleType::Always);
+    for (size_t i = 0; i < 4; ++i) {
+        const Preset *fp = bundle->filaments.find_preset(bundle->filament_presets[i]);
+        if (fp == nullptr || !fp->is_compatible)
+            bundle->set_filament_preset(i, bundle->filaments.get_selected_preset_name());
+    }
+
+    ConfigOptionStrings *filament_colour =
+        bundle->project_config.option<ConfigOptionStrings>("filament_colour", true);
+    if (filament_colour &&
+        spectrum_restore_dest_filament_colours(filament_colour->values, dest_colours)) {
+        ConfigOptionStrings *filament_multi =
+            bundle->project_config.option<ConfigOptionStrings>("filament_multi_colour", true);
+        if (filament_multi) {
+            if (!dest_multi.empty()) {
+                filament_multi->values = dest_multi;
+            }
+            spectrum_stamp_multi_heads(filament_multi->values, filament_colour->values);
+        }
+
+        ConfigOptionStrings *filament_color_type =
+            bundle->project_config.option<ConfigOptionStrings>("filament_colour_type", true);
+        if (filament_color_type) {
+            filament_color_type->values.resize(4);
+            for (size_t i = 0; i < 4; ++i) {
+                if (filament_color_type->values[i].empty())
+                    filament_color_type->values[i] = "1";
+            }
+        }
+        ConfigOptionInts *filament_map = bundle->project_config.option<ConfigOptionInts>("filament_map", true);
+        if (filament_map) {
+            filament_map->values.resize(4, 1);
+            for (size_t i = 0; i < 4; ++i)
+                filament_map->values[i] = 1;
+        }
+
+        DynamicPrintConfig new_cfg;
+        new_cfg.set_key_value("filament_colour",
+            static_cast<ConfigOptionStrings *>(bundle->project_config.option("filament_colour")->clone()));
+        new_cfg.set_key_value("filament_multi_colour",
+            static_cast<ConfigOptionStrings *>(bundle->project_config.option("filament_multi_colour")->clone()));
+        new_cfg.set_key_value("filament_colour_type",
+            static_cast<ConfigOptionStrings *>(bundle->project_config.option("filament_colour_type")->clone()));
+        on_config_change(new_cfg);
+        update_filament_colors_in_full_config();
+    }
+
+    on_filament_count_change(4);
+    sidebar().update_all_preset_comboboxes();
+    for (PlaterPresetComboBox *combo : sidebar().combos_filament())
+        combo->update();
+    sidebar().obj_list()->update_filament_colors();
+    if (wxGetApp().app_config)
+        bundle->export_selections(*wxGetApp().app_config);
+    if (wxGetApp().app_config && wxGetApp().app_config->get("auto_calculate_flush") != "disabled")
+        sidebar().auto_calc_flushing_volumes(-1);
+
+    BOOST_LOG_TRIVIAL(info) << "auto-graft ≤4 onto Ultra S: printer=" << k_printer
+                            << " process=" << bundle->prints.get_edited_preset().name
+                            << " colours="
+                            << (filament_colour ? filament_colour->values.size() : size_t(0));
 }
 
 void Plater::adopt_to_zr_ultra_s_cmyk()
