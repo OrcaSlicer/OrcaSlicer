@@ -3,7 +3,9 @@
     #define _WIN32_WINNT 0x0502
     // The standard Windows includes.
     #define WIN32_LEAN_AND_MEAN
+    #ifndef NOMINMAX
     #define NOMINMAX
+    #endif
     #include <Windows.h>
     #include <wchar.h>
     #include <commctrl.h>
@@ -24,6 +26,8 @@
 #include <iostream>
 #include <math.h>
 #include <csignal>
+#include <atomic>
+#include <new>
 
 #if defined(__linux__) || defined(__LINUX__)
 #include <condition_variable>
@@ -7052,7 +7056,7 @@ int CLI::run(int argc, char **argv)
             gcode_viewer.render_calibration_thumbnail(*calibration_data, cali_thumbnail_width, cali_thumbnail_height,
                 calibration_params, partplate_list, opengl_mgr);
             //generate_calibration_thumbnail(*calibration_data, thumbnail_width, thumbnail_height, calibration_params);
-            //*plate_bboxes[index] = p->generate_first_layer_bbox();
+            // *plate_bboxes[index] = p->generate_first_layer_bbox();
             calibration_thumbnails.push_back(calibration_data);*/
 
             PlateBBoxData* plate_bbox = new PlateBBoxData();
@@ -7608,6 +7612,9 @@ LONG WINAPI VectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo)
 }*/
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
+// Guards against a failed allocation inside the dump re-entering the new-handler.
+static std::atomic<bool> g_dump_in_progress{false};
+
 extern "C" {
     __declspec(dllexport) int __stdcall orcaslicer_main(int argc, wchar_t **argv)
     {
@@ -7626,10 +7633,22 @@ extern "C" {
         //AddVectoredExceptionHandler(1, CBaseException::UnhandledExceptionFilter);
         SET_DEFULTER_HANDLER();
 #endif
+        // Dump before unwinding, while the stack still names what asked for the memory. Throwing
+        // std::bad_alloc is standard-permitted here and is what reaches generic_exception_handle().
         std::set_new_handler([]() {
-            int *a = nullptr;
-            *a     = 0;
-            });
+            if (!g_dump_in_progress.exchange(true)) {
+                try {
+                    // A null EXCEPTION_POINTERS walks the calling thread as it stands.
+                    CBaseException base(GetCurrentProcess(), GetCurrentProcessId(), NULL, nullptr);
+                    base.ShowCallstack();
+                } catch (...) {
+                    // A failed dump must not displace the std::bad_alloc owed to the caller.
+                }
+                // ObjParser recovers from std::bad_alloc, so let a later one dump again.
+                g_dump_in_progress = false;
+            }
+            throw std::bad_alloc();
+        });
         // Call the UTF8 main.
         return CLI().run(argc, argv_ptrs.data());
     }

@@ -354,6 +354,9 @@ public:
     bool check_filament_printable(const DynamicPrintConfig & config, wxString& error_message);
     bool check_tpu_printable_status(const DynamicPrintConfig & config, const std::vector<int> &tpu_filaments);
     bool check_mixture_of_pla_and_petg(const DynamicPrintConfig & config);
+    // Warns when a mixed-color filament is used on a single-nozzle printer, where every
+    // component switch costs a full filament change and purge.
+    bool check_single_extruder_mixed_filament_risk(const DynamicPrintConfig &config, std::string &warning_text) const;
     bool check_mixture_filament_compatible(const DynamicPrintConfig& config, std::string &error_msg);
     bool check_compatible_of_nozzle_and_filament(const DynamicPrintConfig & config, const std::vector<std::string>& filament_presets, std::string& error_msg);
 
@@ -425,6 +428,9 @@ public:
     const BoundingBox get_bounding_box_crd();
     BoundingBoxf3 get_plate_box() {return get_build_volume();}
     BoundingBoxf3 get_build_volume(bool use_share = false);
+    // Polygon counterpart of get_build_volume(true), in scaled world coordinates. The bounding box
+    // that one returns hides the corners a non-rectangular bed does not have.
+    Polygon get_shared_printable_polygon() const;
 
     const std::vector<BoundingBoxf3>& get_exclude_areas() { return m_exclude_bounding_box; }
 

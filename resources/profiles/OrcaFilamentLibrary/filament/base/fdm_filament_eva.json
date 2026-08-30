@@ -8,6 +8,9 @@
 	"filament_type": [
 		"EVA"
 	],
+	"filament_multitool_ramming_flow": [
+		"12"
+	],
 	"supertack_plate_temp": [
 		"0"
 	],

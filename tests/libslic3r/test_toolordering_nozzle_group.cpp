@@ -8,6 +8,8 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
+#include "test_utils.hpp"
+
 #include <algorithm>
 #include <map>
 #include <set>
@@ -500,6 +502,52 @@ TEST_CASE("Re-applying an unchanged config after slicing keeps the result valid"
     REQUIRE(print.is_step_done(psSlicingFinished));
 }
 
+TEST_CASE("A degenerate process variant map on a custom multi-extruder printer slices to a stable result", "[Print][Regression]")
+{
+    // Non-BBL multi-extruder printers get machine-scope variant columns synthesized on preset
+    // load (extend_extruder_variant), but nothing ships process-scope print_extruder_id /
+    // print_extruder_variant: presets and 3mf project configs carry the length-1 defaults. The
+    // apply-time expansion must synthesize the process columns from extruder_variant_list;
+    // otherwise the failed per-extruder lookups collapse the per-extruder retract overrides
+    // during slicing and the post-slice re-apply invalidates every fresh result, forever.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_num_extruders(5);
+    config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = {0.4, 0.4, 0.4, 0.4, 0.4};
+    // per-extruder machine values that a first-slot collapse would destroy
+    config.option<ConfigOptionPercents>("retract_before_wipe", true)->values = {100., 70., 70., 70., 100.};
+    config.option<ConfigOptionEnumsGeneric>("z_hop_types", true)->values = {zhtSlope, zhtNormal, zhtNormal, zhtNormal, zhtSlope};
+    // filament presets carry the nullable override twins (all-nil = "no override"); they are what
+    // routes the machine values through apply_override in the in-slice override recompute
+    config.option<ConfigOptionPercentsNullable>("filament_retract_before_wipe", true)->values =
+        std::vector<double>(5, ConfigOptionPercentsNullable::nil_value());
+    config.option<ConfigOptionEnumsGenericNullable>("filament_z_hop_types", true)->values =
+        std::vector<int>(5, ConfigOptionEnumsGenericNullable::nil_value());
+    config.option<ConfigOptionFloats>("filament_diameter", true)->values = std::vector<double>(5, 1.75);
+    config.option<ConfigOptionStrings>("filament_colour", true)->values = {"#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#00FFFF"};
+    config.option<ConfigOptionInts>("filament_map", true)->values = {1, 2, 3, 4, 1};
+
+    Model model;
+    model.add_object("cube", "", make_cube(20, 20, 20))->add_instance()->set_offset(Vec3d(100., 100., 0.));
+
+    Print print;
+    print.apply(model, config);
+    print.process();
+    REQUIRE(print.is_step_done(psSlicingFinished));
+
+    // BackgroundSlicingProcess reads the engine-computed maps back into the plate config after
+    // slicing; the next apply overlays that written-back state.
+    config.option<ConfigOptionInts>("filament_map", true)->values = print.get_filament_maps();
+    config.option<ConfigOptionInts>("filament_volume_map", true)->values = print.get_filament_volume_maps();
+    config.option<ConfigOptionInts>("filament_nozzle_map", true)->values = print.get_filament_nozzle_maps();
+
+    auto status = print.apply(model, config);
+    REQUIRE(status == PrintBase::APPLY_STATUS_UNCHANGED);
+    REQUIRE(print.is_step_done(psSlicingFinished));
+    // the per-extruder machine values must survive the in-slice override recompute
+    REQUIRE(print.config().retract_before_wipe.values == std::vector<double>({100., 70., 70., 70., 100.}));
+    REQUIRE(print.config().z_hop_types.values == std::vector<int>({zhtSlope, zhtNormal, zhtNormal, zhtNormal, zhtSlope}));
+}
+
 TEST_CASE("normalize_nozzle_map_per_layer makes per-filament assignments gap-free", "[MultiNozzle][H2C][Dynamic]")
 {
     SECTION("gaps inherit the last used nozzle, entries on used layers stay untouched") {
@@ -662,10 +710,9 @@ TEST_CASE("Sequential selector prints publish a stitched result and cache the pl
     REQUIRE(print.config().filament_self_index.values.size() >= print.config().filament_map.values.size());
 
     // Export must consume the cached plans and produce g-code without throwing.
-    boost::filesystem::path gcode_path = boost::filesystem::temp_directory_path() / "orca_seq_dynamic_publish_test.gcode";
-    REQUIRE_NOTHROW(print.export_gcode(gcode_path.string(), nullptr, nullptr));
-    REQUIRE(boost::filesystem::exists(gcode_path));
-    boost::filesystem::remove(gcode_path);
+    ScopedTemporaryFile gcode(".gcode");
+    REQUIRE_NOTHROW(print.export_gcode(gcode.string(), nullptr, nullptr));
+    REQUIRE(boost::filesystem::exists(gcode.path()));
 }
 
 TEST_CASE("Per-variant expansion gives migrating filaments one slot per variant", "[PrintConfig][H2C][Dynamic]")

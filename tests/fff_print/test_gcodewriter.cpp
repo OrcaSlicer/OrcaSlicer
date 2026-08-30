@@ -820,3 +820,30 @@ SCENARIO("Shipped dual-nozzle change_filament_gcode resolves during a real slice
         }
     }
 }
+
+TEST_CASE("Custom G-code motion limits are restored before generated moves", "[GCodeWriter]")
+{
+    const std::string gcode = Slic3r::Test::slice({ cube(20) }, {
+        { "gcode_flavor",                "marlin" },
+        { "gcode_comments",              "1" },
+        { "machine_start_gcode",         "" },
+        { "layer_change_gcode",          "M204 S5000\nm205 x5 y5\n" },
+        { "layer_height",                "0.2" },
+        { "initial_layer_print_height",  "0.2" },
+        { "initial_layer_line_width",    "0" },
+        { "z_hop",                       "0" },
+        { "default_acceleration",        "6000" },
+        { "initial_layer_acceleration",  "6000" },
+        { "outer_wall_acceleration",     "6000" },
+        { "inner_wall_acceleration",     "0" },
+        { "default_jerk",                "8" },
+        { "initial_layer_jerk",          "8" },
+        { "outer_wall_jerk",             "8" },
+        { "inner_wall_jerk",             "0" },
+    });
+
+    const size_t custom_gcode_pos = gcode.find("m205 x5 y5");
+    REQUIRE(custom_gcode_pos != std::string::npos);
+    REQUIRE(gcode.find("M204 S6000 ; adjust acceleration", custom_gcode_pos) != std::string::npos);
+    REQUIRE(gcode.find("M205 X8 Y8 ; adjust jerk", custom_gcode_pos) != std::string::npos);
+}

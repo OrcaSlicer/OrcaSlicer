@@ -2201,25 +2201,14 @@ bool CreatePrinterPresetDialog::load_system_and_user_presets_with_curr_model(Pre
     } else {
         selected_vendor_id = m_printer_preset_vendor_selected.id;
 
-        if (boost::filesystem::exists(boost::filesystem::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR / selected_vendor_id)) {
-            preset_path = (boost::filesystem::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR).string();
-        } else if (boost::filesystem::exists(boost::filesystem::path(Slic3r::resources_dir()) / "profiles" / selected_vendor_id)) {
-            preset_path = (boost::filesystem::path(Slic3r::resources_dir()) / "profiles").string();
-        }
-
-        if (preset_path.empty()) {
-            BOOST_LOG_TRIVIAL(info) << "Preset path was not found";
-            MessageDialog dlg(this, _L("Preset path was not found; please reselect vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                              wxYES_NO | wxYES_DEFAULT | wxCENTRE);
-            dlg.ShowModal();
-            return false;
-        }
-
         try {
             // Pass the app's preset bundle (which already holds OrcaFilamentLibrary) as the base
             // bundle so vendor filaments that inherit OFL bases resolve via the existing
             // cross-vendor inheritance path.
-            temp_preset_bundle.load_vendor_configs_from_json(preset_path, selected_vendor_id,
+            // Orca: served from the vendor's preset cache where one covers it — a shipped
+            // build carries that instead of the raw preset JSONs — and parsed otherwise.
+            temp_preset_bundle.load_vendor_configs_from_json((boost::filesystem::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR).string(),
+                                                             selected_vendor_id,
                                                              PresetBundle::LoadConfigBundleAttribute::LoadSystem,
                                                              ForwardCompatibilitySubstitutionRule::EnableSilent,
                                                              wxGetApp().preset_bundle);

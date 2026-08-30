@@ -572,7 +572,7 @@ int OrcaCloudServiceAgent::set_config_dir(std::string cfg_dir)
 {
     config_dir = cfg_dir;
     wxFileName fallback(wxString::FromUTF8(cfg_dir.c_str()), secret_constants::USER_SECRET_FILENAME);
-    fallback.Normalize();
+    fallback.MakeAbsolute();
     secret_fallback_path = fallback.GetFullPath().ToStdString();
     return BAMBU_NETWORK_SUCCESS;
 }
@@ -1564,7 +1564,7 @@ void OrcaCloudServiceAgent::persist_user_secret(const std::string& secret)
             return;
         }
         wxFileName path(wxString::FromUTF8(secret_fallback_path.c_str()));
-        path.Normalize();
+        path.MakeAbsolute();
         if (!wxFileName::DirExists(path.GetPath())) {
             wxFileName::Mkdir(path.GetPath(), wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
         }
@@ -2487,7 +2487,7 @@ void OrcaCloudServiceAgent::compute_fallback_path()
     if (wxTheApp == nullptr)
         return;
     wxFileName fallback(wxStandardPaths::Get().GetUserDataDir(), "orca_refresh_token.sec");
-    fallback.Normalize();
+    fallback.MakeAbsolute();
     secret_fallback_path = fallback.GetFullPath().ToStdString();
 }
 
@@ -3505,25 +3505,6 @@ int OrcaCloudServiceAgent::unsubscribe_plugins(const std::vector<std::string>& p
     return 0;
 }
 
-int OrcaCloudServiceAgent::delete_my_plugin(const std::string& plugin_uuid)
-{
-    if (plugin_uuid.empty())
-        return -1;
-
-    const std::string path = std::string(ORCA_PLUGINS_BASE) + "?ids=" + Http::url_encode(plugin_uuid);
-    std::string response_body;
-    unsigned int http_code = 0;
-
-    int result = http_delete(path, &response_body, &http_code);
-
-    if (result != 0 || (http_code != 200 && http_code != 204)) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed: http_code=" << http_code << ", response=" << response_body;
-        return http_code != 0 ? static_cast<int>(http_code) : result;
-    }
-
-    return 0;
-}
-
 int OrcaCloudServiceAgent::fetch_plugin_changelogs(const std::vector<std::string>& uuids,
                                                    std::unordered_map<std::string, std::vector<PluginChangelog>>& changelog)
 {
@@ -3600,7 +3581,7 @@ std::string OrcaCloudServiceAgent::token_lock_path() const
     if (config_dir.empty())
         return {};
     wxFileName lock(wxString::FromUTF8(config_dir.c_str()), "orca_refresh_token.lock");
-    lock.Normalize();
+    lock.MakeAbsolute();
     return lock.GetFullPath().ToStdString();
 }
 

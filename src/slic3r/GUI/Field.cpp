@@ -35,6 +35,7 @@
 #include "Widgets/TextCtrl.h"
 
 #include "../Utils/ColorSpaceConvert.hpp"
+#include "../Utils/NetworkAgentFactory.hpp"
 #ifdef __WXOSX__
 #define wxOSX true
 #else
@@ -330,8 +331,10 @@ void Field::PostInitialize()
                 }
 			    default: break;
 			    }
-			    if (tab_id >= 0)
-					wxGetApp().mainframe->select_tab(tab_id);
+			    if (tab_id >= 0) {
+					static constexpr const char* kShortcutTabIds[] = {TAB_ID_HOME, TAB_ID_PREPARE, TAB_ID_PREVIEW, TAB_ID_MONITOR};
+					wxGetApp().mainframe->select_tab(kShortcutTabIds[tab_id]);
+				}
 				if (tab_id > 0)
 					// tab panel should be focused for correct navigation between tabs
 				    wxGetApp().tab_panel()->SetFocus();
@@ -1043,14 +1046,14 @@ void TextCtrl::propagate_value()
 
 void TextCtrl::set_value(const boost::any& value, bool change_event/* = false*/) {
     m_disable_change_event = !change_event;
+
     if (m_opt.nullable) {
         const bool m_is_na_val = value.empty() || (boost::any_cast<wxString>(value) == _(L("N/A")));
         if (!m_is_na_val)
             m_last_meaningful_value = value;
-        text_ctrl()->SetValue(boost::any_cast<wxString>(value)); // BBS
     }
-    else
-        text_ctrl()->SetValue(value.empty() ? "" : boost::any_cast<wxString>(value)); // BBS // BBS: null value
+
+    text_ctrl()->SetValue(value.empty() ? wxString() : boost::any_cast<wxString>(value));
     m_disable_change_event = false;
 
     if (!change_event) {
@@ -1187,18 +1190,24 @@ void CheckBox::set_value(const boost::any& value, bool change_event)
     m_disable_change_event = !change_event;
     if (m_opt.nullable) {
         const bool is_value_unsigned_char = value.type() == typeid(unsigned char);
+        bool bool_value = false;
+
         m_is_na_val = value.empty() || (is_value_unsigned_char &&
                       boost::any_cast<unsigned char>(value) == ConfigOptionBoolsNullable::nil_value());
-        if (!m_is_na_val)
-            m_last_meaningful_value = is_value_unsigned_char ? value : static_cast<unsigned char>(boost::any_cast<bool>(value));
 
-        const auto bool_value = is_value_unsigned_char ?
-                                    boost::any_cast<unsigned char>(value) != 0 :
-                                    boost::any_cast<bool>(value);
-        dynamic_cast<::CheckBox*>(window)->SetValue(m_is_na_val ? false : bool_value); // BBS
+        if (!m_is_na_val) {
+            bool_value = is_value_unsigned_char ?
+                            boost::any_cast<unsigned char>(value) != 0 :
+                            boost::any_cast<bool>(value);
+            m_last_meaningful_value = is_value_unsigned_char ? value : static_cast<unsigned char>(bool_value);
+        }
+
+        dynamic_cast<::CheckBox*>(window)->SetValue(bool_value);
     }
-    else if (!value.empty()) // BBS: null value
+    else if (!value.empty()){ // BBS: null value
         dynamic_cast<::CheckBox*>(window)->SetValue(boost::any_cast<bool>(value)); // BBS
+    }
+
     dynamic_cast<::CheckBox*>(window)->SetHalfChecked(value.empty());
     m_disable_change_event = false;
 }
@@ -1328,27 +1337,7 @@ void SpinCtrl::BUILD() {
         if (!parsed || value < INT_MIN || value > INT_MAX)
             tmp_value = UNDEF_VALUE;
         else {
-            tmp_value = std::min(std::max((int)value, temp->GetMin()), temp->GetMax());
-#ifdef __WXOSX__
-#ifdef UNDEFINED__WXOSX__ // BBS
-            // Forcibly set the input value for SpinControl, since the value
-            // inserted from the keyboard or clipboard is not updated under OSX
-            SpinInput* spin = static_cast<SpinInput*>(window);
-            spin->SetValue(tmp_value);
-            // But in SetValue() is executed m_text_ctrl->SelectAll(), so
-            // discard this selection and set insertion point to the end of string
-            // temp->GetText()->SetInsertionPointEnd();
-#endif
-#else
-            // update value for the control only if it was changed in respect to the Min/max values
-            if (tmp_value != (int)value) {
-                temp->SetValue(tmp_value);
-                // But after SetValue() cursor ison the first position
-                // so put it to the end of string
-                // int pos = std::to_string(tmp_value).length();
-                // temp->SetSelection(pos, pos);
-            }
-#endif
+            tmp_value = (int)value;
         }
 	}), temp->GetTextCtrl()->GetId());
 
@@ -1369,6 +1358,10 @@ void SpinCtrl::propagate_value()
             on_kill_focus();
 	} else {
         auto ctrl = dynamic_cast<SpinInput *>(window);
+        tmp_value = std::min(std::max(tmp_value, ctrl->GetMin()), ctrl->GetMax());
+        if (ctrl->GetValue() != tmp_value)
+            ctrl->SetValue(tmp_value); // Clamp now when the user is done typing (kill focus / Enter / spin arrows)
+
         if (m_value.empty()
             ? !ctrl->GetTextCtrl()->GetLabel().IsEmpty()
             : ctrl->GetValue() != boost::any_cast<int>(m_value))
@@ -1412,39 +1405,6 @@ using choice_ctrl = ::ComboBox; // BBS
 #endif // __WXOSX__
 
 static std::map<std::string, DynamicList*> dynamic_lists;
-
-static bool is_plugin_printer_agent_key(const std::string& value)
-{
-    return value.rfind("plugin:", 0) == 0;
-}
-
-static int printer_agent_item_for_enum_index(const choice_ctrl* field, int enum_index)
-{
-    if (!field)
-        return -1;
-
-    const unsigned int count = field->GetCount();
-    for (unsigned int idx = 0; idx < count; ++idx) {
-        if (void* data = field->GetClientData(idx)) {
-            const int stored = static_cast<int>(reinterpret_cast<uintptr_t>(data)) - 1;
-            if (stored == enum_index)
-                return static_cast<int>(idx);
-        }
-    }
-
-    return -1;
-}
-
-static int printer_agent_enum_index_for_item(const choice_ctrl* field, int item_index, int fallback)
-{
-    if (!field || item_index < 0)
-        return fallback;
-
-    if (void* data = field->GetClientData(item_index))
-        return static_cast<int>(reinterpret_cast<uintptr_t>(data)) - 1;
-
-    return fallback;
-}
 
 void Choice::register_dynamic_list(std::string const &optname, DynamicList *list) { dynamic_lists.emplace(optname, list); }
 
@@ -1528,33 +1488,7 @@ void Choice::BUILD()
 	window = dynamic_cast<wxWindow*>(temp);
 
 	if (! m_opt.enum_labels.empty() || ! m_opt.enum_values.empty()) {
-	    if (m_opt_id == "printer_agent") {
-	        const bool has_builtin_agents = std::any_of(m_opt.enum_values.begin(), m_opt.enum_values.end(),
-	            [](const std::string& value) { return !is_plugin_printer_agent_key(value); });
-	        const bool has_plugin_agents = std::any_of(m_opt.enum_values.begin(), m_opt.enum_values.end(),
-	            [](const std::string& value) { return is_plugin_printer_agent_key(value); });
-
-	        auto append_agent_rows = [this, temp](bool plugins) {
-	            for (size_t i = 0; i < m_opt.enum_values.size(); ++i) {
-	                const bool is_plugin = is_plugin_printer_agent_key(m_opt.enum_values[i]);
-	                if (is_plugin != plugins)
-	                    continue;
-
-	                const wxString label = i < m_opt.enum_labels.size() ? _(m_opt.enum_labels[i]) : wxString(m_opt.enum_values[i]);
-	                const int item = temp->Append(label);
-	                temp->SetClientData(item, reinterpret_cast<void*>(static_cast<uintptr_t>(i + 1)));
-	            }
-	        };
-
-	        if (has_builtin_agents) {
-	            temp->Append(_L("System agents"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM | DD_ITEM_STYLE_DISABLED);
-	            append_agent_rows(false);
-	        }
-	        if (has_plugin_agents) {
-	            temp->Append(_L("Plugins"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM | DD_ITEM_STYLE_DISABLED);
-	            append_agent_rows(true);
-	        }
-	    } else if (m_opt.enum_labels.empty()) {
+	    if (m_opt.enum_labels.empty()) {
 			// Append non-localized enum_values
 			for (auto el : m_opt.enum_values)
 				temp->Append(el);
@@ -1661,7 +1595,7 @@ void Choice::set_selection()
 	switch (m_opt.type) {
 	case coEnum:{
         const int val = m_opt.default_value->getInt();
-        field->SetSelection(m_opt_id == "printer_agent" ? printer_agent_item_for_enum_index(field, val) : val);
+        field->SetSelection(val);
 		break;
 	}
 	case coFloat:
@@ -1711,12 +1645,7 @@ void Choice::set_value(const std::string& value, bool change_event)  //! Redunda
 	}
 
 	choice_ctrl* field = dynamic_cast<choice_ctrl*>(window);
-	if (m_opt_id == "printer_agent") {
-		const int enum_index = idx == m_opt.enum_values.size() ?
-			(m_opt.default_value ? m_opt.default_value->getInt() : 0) :
-			static_cast<int>(idx);
-		field->SetSelection(printer_agent_item_for_enum_index(field, enum_index));
-	} else if (idx == m_opt.enum_values.size())
+	if (idx == m_opt.enum_values.size())
 		field->SetValue(value);
 	else
 		field->SetSelection(idx);
@@ -1782,33 +1711,11 @@ void Choice::set_value(const boost::any& value, bool change_event)
 	case coEnum:
     // BBS
 	case coEnums: {
-	    auto printer_agent_index_from_key = [this](const std::string& key) {
-	        auto it = std::find(m_opt.enum_values.begin(), m_opt.enum_values.end(), key);
-	        if (it != m_opt.enum_values.end())
-	            return static_cast<int>(it - m_opt.enum_values.begin());
-	        return m_opt.default_value ? m_opt.default_value->getInt() : 0;
-	    };
-
-	    int val = 0;
-	    if (m_opt_id == "printer_agent") {
-	        if (const int* int_value = boost::any_cast<int>(&value))
-	            val = *int_value;
-	        else if (const wxString* wx_value = boost::any_cast<wxString>(&value))
-	            val = printer_agent_index_from_key(into_u8(*wx_value));
-	        else if (const std::string* string_value = boost::any_cast<std::string>(&value))
-	            val = printer_agent_index_from_key(*string_value);
-	        else {
-	            m_disable_change_event = false;
-	            return;
-	        }
-	    } else
-	        val = boost::any_cast<int>(value);
+	    int val = boost::any_cast<int>(value);
 
 	    int selection = val;
 
-	    if (m_opt_id == "printer_agent") {
-	        selection = printer_agent_item_for_enum_index(field, val);
-	    } else if (m_opt_id == "input_shaping_type") {
+	    if (m_opt_id == "input_shaping_type") {
 	        if (field != nullptr) {
 	            const unsigned int count = field->GetCount();
 	            int match_index = -1;
@@ -1930,12 +1837,6 @@ boost::any& Choice::get_value()
     {
         if (m_opt.nullable && field->GetSelection() == -1)
             m_value = ConfigOptionEnumsGenericNullable::nil_value();
-        else if (m_opt_id == "printer_agent")
-        {
-            const int selection = field->GetSelection();
-            const int fallback = m_opt.default_value ? m_opt.default_value->getInt() : 0;
-            m_value = printer_agent_enum_index_for_item(field, selection, fallback);
-        }
         else if (m_opt_id == "input_shaping_type")
         {
             int selection = field->GetSelection();
@@ -2076,6 +1977,171 @@ void Choice::msw_rescale()
 #endif
 }
 
+
+// PrinterAgentChoice
+
+void PrinterAgentChoice::reload_rows()
+{
+    auto* combo = dynamic_cast<choice_ctrl*>(window); // wxWidgets ComboBox
+    if (!combo)
+        return;
+
+    // clear ComboBox
+    combo->Clear();
+
+    // helpers
+    const auto agents = NetworkAgentFactory::get_registered_printer_agents();
+    const bool has_builtin_agents = std::any_of(agents.begin(), agents.end(),
+                                                [](const PrinterAgentInfo& a) { return !a.is_plugin(); });
+    const bool has_plugin_agents = std::any_of(agents.begin(), agents.end(),
+                                               [](const PrinterAgentInfo& a) { return a.is_plugin(); });
+
+    auto append_agent_rows = [combo](bool is_plugin)
+    {
+        const auto agents = NetworkAgentFactory::get_registered_printer_agents();
+        for (size_t i = 0; i < agents.size(); ++i)
+        {
+            if (agents[i].is_plugin() != is_plugin)
+                continue;
+            const int item = combo->Append(_(agents[i].display_name));
+            // why: carry the agent-id string on the row. alias is an owned wxString (auto-freed, never rendered)
+            combo->SetItemAlias(item, from_u8(agents[i].id));
+        }
+    };
+
+    // append rows
+    if (has_builtin_agents)
+    {
+        combo->Append(_L("System agents"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM | DD_ITEM_STYLE_DISABLED);
+        append_agent_rows(false); // append rows for agents that are not plugins
+    }
+    if (has_plugin_agents)
+    {
+        combo->Append(_L("Plugins"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM | DD_ITEM_STYLE_DISABLED);
+        append_agent_rows(true); // append rows for agents that are plugins
+    }
+}
+
+void PrinterAgentChoice::BUILD()
+{
+    wxSize size(def_width_wider() * m_em_unit, wxDefaultCoord);
+    if (m_opt.height >= 0) size.SetHeight(m_opt.height * m_em_unit);
+    if (m_opt.width >= 0) size.SetWidth(m_opt.width * m_em_unit);
+
+    static Builder<choice_ctrl> builder;
+    choice_ctrl* temp = builder.build(m_parent, wxID_ANY, wxString(""), wxDefaultPosition, size, 0, nullptr,
+                                      wxCB_READONLY);
+    temp->Clear();
+    temp->GetDropDown().SetUseContentWidth(true);
+    if (parent_is_custom_ctrl && m_opt.height < 0)
+        opt_height = (double)temp->GetTextCtrl()->GetSize().GetHeight() / m_em_unit;
+    temp->SetTextLabel(_L(m_opt.sidetext));
+    m_combine_side_text = true;
+#ifdef __WXGTK3__
+    wxSize best_sz = temp->GetBestSize();
+    if (best_sz.x > size.x) temp->SetSize(best_sz);
+#endif
+    if (!wxOSX) temp->SetBackgroundStyle(wxBG_STYLE_PAINT);
+
+    window = dynamic_cast<wxWindow*>(temp);
+
+    reload_rows();
+
+    temp->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { on_change_field(); }, temp->GetId());
+    temp->SetToolTip(get_tooltip_text(temp->GetValue()));
+}
+
+// Resolve CONFIG id string to a matching row in the live REGISTRY. "" uses the vendor default.
+// An unregistered id clears selection and shows "<id> (missing)" as free text.
+void PrinterAgentChoice::set_value(const std::string& value, bool change_event)
+{
+    m_disable_change_event = !change_event;
+
+    auto* field = dynamic_cast<choice_ctrl*>(window);
+
+    // check if any row's corresponding id matches the agent id we are attempting to set
+    const std::string effective_agent_id = wxGetApp().resolve_printer_agent_id(value);
+    const unsigned int count = field->GetCount();
+    int match = wxNOT_FOUND;
+    for (unsigned int i = 0; i < count; ++i)
+    {
+        if (into_u8(field->GetItemAlias(i)) == effective_agent_id) // if alias == id
+        {
+            match = static_cast<int>(i);
+            break;
+        }
+    }
+
+    // based on match or not, set selection and value
+    // - SetSelection and SetValue are UI to manipulate the display of the ComboBox
+    // - SetSelection automatically calls SetValue for the same value
+    // - we can also SetValue separately from SetSelection
+    if (match == wxNOT_FOUND)
+    {
+        field->SetSelection(wxNOT_FOUND); // nothing shows as selected in the dropdown
+        field->SetValue(from_u8(value + " (missing)")); // set a value not in the selection (upper display field)
+    }
+    else
+    {
+        // display name of agent shows both in upper display field and appears selected in dropdown
+        field->SetSelection(match);
+    }
+
+    m_disable_change_event = false;
+}
+
+// Accept boost::any values from callers (usually to OptionsGroup/Field parent classes) and normalize them to an agent id.
+// Then use PrinterAgentChoice::set_value(std::string& value, ...)
+void PrinterAgentChoice::set_value(const boost::any& value, bool change_event)
+{
+    m_disable_change_event = !change_event;
+
+    auto* field = dynamic_cast<choice_ctrl*>(window);
+    if (value.empty())
+    {
+        field->SetValue("");
+        m_value = value;
+        m_disable_change_event = false;
+        return;
+    }
+
+    std::string id;
+    if (const std::string* s = boost::any_cast<std::string>(&value))
+        id = *s;
+    else if (const wxString* w = boost::any_cast<wxString>(&value))
+        id = into_u8(*w);
+    set_value(id, change_event);
+}
+
+// A real row returns its alias, which is the agent id. Header rows, missing rows,
+// and no selection return empty boost::any so the custom writer leaves config unchanged.
+boost::any& PrinterAgentChoice::get_value()
+{
+    auto* field = dynamic_cast<choice_ctrl*>(window);
+    const int sel = field->GetSelection();
+    const std::string id = sel < 0 ? std::string{} : into_u8(field->GetItemAlias(sel));
+    if (id.empty())
+        m_value = boost::any{};
+    else
+        m_value = id;
+    return m_value;
+}
+
+void PrinterAgentChoice::enable() { dynamic_cast<choice_ctrl*>(window)->Enable(); }
+void PrinterAgentChoice::disable() { dynamic_cast<choice_ctrl*>(window)->Disable(); }
+
+void PrinterAgentChoice::msw_rescale()
+{
+    Field::msw_rescale();
+
+    auto* field = dynamic_cast<choice_ctrl*>(window)->GetTextCtrl();
+    wxSize size(wxDefaultSize);
+    size.SetWidth((m_opt.width > 0 ? m_opt.width : def_width_wider()) * m_em_unit);
+    field->SetMinSize(wxSize(-1, int(1.5f * field->GetFont().GetPixelSize().y + 0.5f)));
+    field->SetSize(size);
+
+    dynamic_cast<choice_ctrl*>(window)->Rescale();
+}
 
 void PluginField::BUILD()
 {

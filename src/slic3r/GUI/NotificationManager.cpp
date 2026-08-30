@@ -1918,7 +1918,7 @@ void NotificationManager::push_validate_error_notification(StringObjectException
 				wxGetApp().sidebar().jump_to_option(opt, Preset::TYPE_PRINT, L"");
 			}
 			else {
-				wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+				wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
 			}
 			return false;
 		};
@@ -1985,7 +1985,7 @@ void NotificationManager::push_validate_error_notification(StringObjectException
 				wxGetApp().sidebar().jump_to_option(opt, opt_type, L"");
 			}
 			else {
-				wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+				wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
 			}
 			return false;
 		};
@@ -2015,7 +2015,7 @@ void NotificationManager::push_slicing_error_notification(const std::string &tex
 				if (iter != objects.end()) { ovs.push_back({ *iter, nullptr }); }
 			}
 			if (!ovs.empty()) {
-				wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+				wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
 				wxGetApp().obj_list()->select_items(ovs);
 			}
 			return false;
@@ -2046,7 +2046,7 @@ void NotificationManager::push_slicing_warning_notification(const std::string& t
 			auto& objects = wxGetApp().model().objects;
 			auto iter = std::find_if(objects.begin(), objects.end(), [id](auto o) { return o->id() == id; });
 			if (iter != objects.end()) {
-				wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+				wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
 				wxGetApp().obj_list()->select_items({ {*iter, nullptr} });
 			}
 			return false;
@@ -2338,7 +2338,7 @@ void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& 
 	{
         float hyper_y     = starting_y + m_endlines.size() * shift_y + m_line_height * .5f;
 		float dont_show_y = hyper_y    + ImGui::CalcTextSize((m_hypertext + "  ").c_str()).y + m_line_height * .5f;
-		std::string dont_show_text = _u8L("Don't show again") + std::to_string(m_endlines.size());
+		std::string dont_show_text = _u8L("Don't show again");
 		ImVec2 part_size = ImGui::CalcTextSize(dont_show_text.c_str());
 
         if (!m_multiline && m_lines_count > 2) {
@@ -2693,7 +2693,7 @@ void NotificationManager::push_slicing_serious_warning_notification(const std::s
 				if (iter != objects.end()) { ovs.push_back({ *iter, nullptr }); }
 			}
 			if (!ovs.empty()) {
-				wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+				wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
 				wxGetApp().obj_list()->select_items(ovs);
 				wxGetApp().obj_list()->update_selections_on_canvas();
 			}
@@ -2777,7 +2777,7 @@ void NotificationManager::push_slicing_serious_warning_notification(const std::s
                 }
             }
             
-            wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+            wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
             
             if (!sel_items.empty()) {
                 obj_list->select_items(sel_items);

@@ -12,6 +12,7 @@
 #include <vector>
 
 #define PLUGIN_SUBSCRIBED_DIR "_subscribed"
+#define PLUGIN_DATA_DIR "plugin_data"
 
 namespace Slic3r {
 
@@ -156,8 +157,9 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
 // Convenience overload: write(dir, entry, /*enabled=*/true, /*capabilities=*/{}).
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginDescriptor& entry);
 
-// Reads only the cloud identity (uuid) back into the descriptor; plugin_key is always derived.
-void read_install_state(const boost::filesystem::path& plugin_dir, PluginDescriptor& entry);
+// Reads install state back into the descriptor; plugin_key is always derived. Returns whether the
+// sidecar was present and valid.
+bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescriptor& entry);
 // Full read of the sidecar; returns false if there is no/invalid sidecar.
 bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstallState& out);
 

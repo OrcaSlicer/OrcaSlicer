@@ -522,7 +522,7 @@ public:
     bool is_timeout();
     int  update_print_required_data(Slic3r::DynamicPrintConfig config, Slic3r::Model model, Slic3r::PlateDataPtrs plate_data_list, std::string file_name, std::string file_path);
     void set_print_type(PrintFromType type) {m_print_type = type;};
-    bool Show(bool show);
+    bool Show(bool show) override;
     void show_init();
     bool do_ams_mapping(MachineObject *obj_,bool use_ams);
     bool get_ams_mapping_result(std::string& mapping_array_str, std::string& mapping_array_str2, std::string& ams_mapping_info) const;
@@ -550,6 +550,13 @@ public:
     // Compare the slicing file's nozzle requirements (validity, flow, diameter) against the
     // printer; the rack extruder is checked against its whole inventory (mounted + rack).
     bool CheckErrorExtruderNozzleWithSlicing(MachineObject* obj_);//return true if no errors
+    // Orca: a nozzle diameter differing from the one the printer remembers is a non-blocking
+    // warning shown in the message board with an acknowledgement checkbox; Send stays disabled
+    // until the user ticks it. m_nozzle_diameter_mismatch_msg is the current mismatch text (empty
+    // when there is none), m_nozzle_diameter_ack_msg the text the user acknowledged; Send is
+    // allowed only while the two match, so a changed or cleared mismatch re-requires acknowledgement.
+    wxString m_nozzle_diameter_mismatch_msg;
+    wxString m_nozzle_diameter_ack_msg;
     // Warn (without blocking) when a mapped filament would be printed from both extruders on a
     // dual-extruder printer, so per-nozzle manual K-value can't follow it across the whole print.
     bool CheckWarningFilamentCrossExtruder(MachineObject* obj_);

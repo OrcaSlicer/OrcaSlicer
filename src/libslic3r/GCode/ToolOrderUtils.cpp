@@ -1091,6 +1091,16 @@ namespace Slic3r
             if (layer + 1 < layer_filaments.size()) next_lf = layer_filaments[layer + 1];
             std::vector<unsigned int> filament_used_next_layer = collect_filaments_in_groups<unsigned int>(filament_sets, next_lf);
 
+            // Enable inter-layer forecast: when choosing filament ordering for current layer,
+            // also consider next layer's filament set to minimize inter-layer transition flush.
+            // solve_extruder_order_with_forcast() tries all permutations of curr+next layer
+            // and picks the ordering that minimizes total flush across both layers.
+            // This avoids expensive inter-layer transitions (e.g. ending layer with F2 when
+            // next layer starts with F3, costing flush[F2→F3], instead of ending with F3
+            // which gives flush[F3→F3]=0). Limited to ≤5 filaments due to O(N!×M!) complexity.
+            // The per-nozzle base reorder does not use the inter-layer forecast. This function drives
+            // BBL multi-extruder grouping cost and H2C ordering, so keeping it false avoids perturbing
+            // existing H2D/H2C output.
             bool                      use_forcast = false;
             float                     tmp_cost = 0;
             std::vector<unsigned int> sequence;

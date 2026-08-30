@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"setting_id": "kKfybaeH6Llb3Vdc",
+	"name": "PolyLite PLA @Qidi X-Plus 5 0.2 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "PolyLite PLA@X-Plus 5-Series",
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"pressure_advance": [
+		"0.062"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.2 nozzle"
+	]
+}

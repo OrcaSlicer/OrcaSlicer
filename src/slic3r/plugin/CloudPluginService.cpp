@@ -113,39 +113,6 @@ bool CloudPluginService::request_cloud_unsubscribe(const PluginDescriptor& plugi
     return true;
 }
 
-bool CloudPluginService::request_cloud_delete(const PluginDescriptor& plugin, std::string& error) const
-{
-    if (!m_orca_agent) {
-        error = "No cloud agent.";
-        return false;
-    }
-
-    if (!plugin.is_cloud_plugin()) {
-        error = "Only cloud plugins can be deleted.";
-        return false;
-    }
-
-    const std::string cloud_uuid = plugin.cloud_uuid();
-    if (cloud_uuid.empty()) {
-        error = "Cloud plugin key is missing UUID.";
-        return false;
-    }
-
-    if (!plugin.cloud.has_value() || !plugin.cloud->is_mine) {
-        error = "Only your own plugins can be deleted from the cloud.";
-        return false;
-    }
-
-    int result = m_orca_agent->delete_my_plugin(cloud_uuid);
-
-    if (result != 0) {
-        error = "Failed to delete plugin from cloud, see logs for more info.";
-        return false;
-    }
-
-    return true;
-}
-
 bool CloudPluginService::download_cloud_plugin(PluginDescriptor& entry,
                                                const std::string& requested_version,
                                                CloudPluginDownload& download,

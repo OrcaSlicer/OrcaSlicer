@@ -1,9 +1,9 @@
-//**********************************************************/
-/* File: uiDeviceUpdateVersion.cpp
+/**********************************************************
+* File: uiDeviceUpdateVersion.cpp
 *  Description: The panel with firmware info
 *
 * \n class uiDeviceUpdateVersion
-//**********************************************************/
+**********************************************************/
 
 #include "uiDeviceUpdateVersion.h"
 

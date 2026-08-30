@@ -4,6 +4,7 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Thread.hpp"
 #include "libslic3r/Color.hpp"
+#include "FilamentBitmapUtils.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Preview.hpp"
@@ -157,7 +158,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     /*mode switch*/
      /*auto m_sizer_mode_switch = new wxBoxSizer(wxHORIZONTAL);
-     m_mode_print = new SendModeSwitchButton(scroll_area, _CTX("Print", "Verb"), true);
+     m_mode_print = new SendModeSwitchButton(scroll_area, _L_CONTEXT("Print", "Verb"), true);
      m_mode_send = new SendModeSwitchButton(scroll_area,_L("Save to printer"), false);
      m_sizer_mode_switch->Add(m_mode_print, 0, wxALIGN_CENTER, 0);
      m_sizer_mode_switch->Add(0, 0, 0, wxLEFT, FromDIP(8));
@@ -482,7 +483,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     m_link_edit_nozzle->Bind(wxEVT_LEFT_DOWN, [this](auto &e) {
 
-        if (this && this->m_is_in_sending_mode) {
+        if (m_is_in_sending_mode) {
             return;
         }
 
@@ -1088,8 +1089,8 @@ void SelectMachineDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &res
         }
     }
     relayout_nozzle_cards();
-    auto tab_index = (MainFrame::TabPosition) dynamic_cast<Notebook *>(wxGetApp().tab_panel())->GetSelection();
-    if (tab_index == MainFrame::TabPosition::tp3DEditor || tab_index == MainFrame::TabPosition::tpPreview) {
+    wxString tab_name = wxGetApp().tab_panel()->GetSelectedPageName();
+    if (tab_name == TAB_ID_PREPARE || tab_name == TAB_ID_PREVIEW) {
         updata_thumbnail_data_after_connected_printer();
     }
 }
@@ -2269,8 +2270,11 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
         Enable_Refresh_Button(true);
         Enable_Send_Button(false);
     } else if (status == PrintStatusNozzleDiameterMismatch) {
+        // Orca: overridable — a non-standard nozzle is a valid reason to differ. Send is gated on
+        // the acknowledgement checkbox added to the message board below (add_with_checkbox), which
+        // is enabled only while the user's acknowledgement still matches the current mismatch.
         Enable_Refresh_Button(true);
-        Enable_Send_Button(false);
+        Enable_Send_Button(!m_nozzle_diameter_ack_msg.empty() && m_nozzle_diameter_ack_msg == m_nozzle_diameter_mismatch_msg);
     } else if (status == PrintStatusNozzleTypeMismatch) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(false);
@@ -2470,7 +2474,19 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 
     /*enter perpare mode*/
     prepare_mode(false);
-    m_pre_print_checker.add(status, msg, tips, wiki_url);
+    if (status == PrintDialogStatus::PrintStatusNozzleDiameterMismatch) {
+        // Short label on purpose: the 420px message panel caps its width and a wxCheckBox label
+        // does not wrap; the full explanation is in the warning text above it.
+        m_pre_print_checker.add_with_checkbox(status, msg,
+            _L("I have checked the installed nozzle and want to print anyway."),
+            !m_nozzle_diameter_ack_msg.empty() && m_nozzle_diameter_ack_msg == m_nozzle_diameter_mismatch_msg,
+            [this](bool checked) {
+                m_nozzle_diameter_ack_msg = checked ? m_nozzle_diameter_mismatch_msg : wxString();
+                Enable_Send_Button(checked);
+            });
+    } else {
+        m_pre_print_checker.add(status, msg, tips, wiki_url);
+    }
 
 }
 
@@ -2831,7 +2847,7 @@ void SelectMachineDialog::on_ok_btn(wxCommandEvent &event)
             });
 
         // STUDIO-9580
-        /* use warning color if there are warning and normal messages* /
+        /* use warning color if there are warning and normal messages*/
         /* use indexes if there are several messages*/
         /* add header and ending if there are several messages or has none block warnings*/
         if (confirm_text.size() > 1 || !is_printing_block)
@@ -3614,7 +3630,7 @@ void SelectMachineDialog::on_send_print()
         BOOST_LOG_TRIVIAL(error) << "build_nozzle_info errors";
     }
 
-    m_print_job->sdcard_state = obj_->GetStorage()->get_sdcard_state();    
+    m_print_job->sdcard_state = obj_->GetStorage()->get_sdcard_state();
     m_print_job->has_sdcard =  wxGetApp().app_config->get("allow_abnormal_storage") == "true"
             ? (m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL
                || m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_ABNORMAL)
@@ -3853,12 +3869,11 @@ _compare_obj_names(MachineObject* obj1, MachineObject* obj2)
 }
 
 /*******************************************************************
-*@note   _collect_machine_list
-*@param  dev_manager -- the device manager
-*@param  sorted_machine_objs -- return the sorted machine objects
-*@param  best_one -- return the best one
-*/
-/*******************************************************************/
+* @note   _collect_machine_list
+* @param  dev_manager -- the device manager
+* @param  sorted_machine_objs -- return the sorted machine objects
+* @param  best_one -- return the best one
+*******************************************************************/
 static void
 _collect_sorted_machines(Slic3r::DeviceManager* dev_manager,
                          std::vector<MachineObject*>& sorted_machine_objs)
@@ -3898,7 +3913,7 @@ _collect_sorted_machines(Slic3r::DeviceManager* dev_manager,
     };
 
     // collect from user machine list
-    const auto& user_machine_list = dev_manager->get_my_machine_list();// user machine list
+    const auto& user_machine_list = dev_manager->get_my_machine_list(dev_manager->get_current_printer_agent_id());// user machine list
     for (const auto& elem : user_machine_list)
     {
         MachineObject* mobj = elem.second;
@@ -4565,8 +4580,14 @@ bool SelectMachineDialog::CheckErrorExtruderNozzleWithSlicing(MachineObject* obj
                     }
 
                     msg_params.emplace_back(_L("Tips: If you changed your nozzle of your printer lately, please go to 'Device -> Printer parts' to change your nozzle setting."));
+
+                    // Orca: non-blocking. A diameter that differs from the one the printer
+                    // remembers is legitimate with a non-standard nozzle, so the print is held back
+                    // only by the acknowledgement checkbox shown in the message board, not by a
+                    // disabled Send outright. Keep checking the remaining extruders.
+                    m_nozzle_diameter_mismatch_msg = msg_params.front();
                     show_status(PrintDialogStatus::PrintStatusNozzleDiameterMismatch, msg_params);
-                    return false;
+                    continue;
                 }
             }
         }
@@ -4608,6 +4629,9 @@ static wxString _get_ext_loc_str(const std::unordered_set<int>& extruders, int t
 void SelectMachineDialog::update_show_status(MachineObject* obj_)
 {
     m_pre_print_checker.clear();
+    // Orca: re-raised by CheckErrorExtruderNozzleWithSlicing() below if the mismatch is still there,
+    // so an early return from this pass cannot leave a stale warning behind.
+    m_nozzle_diameter_mismatch_msg.clear();
 
     /*agent check and printer valid check*/
     NetworkAgent* agent = Slic3r::GUI::wxGetApp().getAgent();
@@ -5670,10 +5694,15 @@ void SelectMachineDialog::clone_thumbnail_data() {
         m_preview_colors_in_thumbnail.resize(m_materialList.size());
     }
     while (iter != m_materialList.end()) {
-        int           id   = iter->first;
         Material *    item = iter->second;
         MaterialItem *m    = item->item;
-        m_preview_colors_in_thumbnail[id] = m->m_material_coloul;
+        // Orca: key the preview colours by filament slot, as m_cur_colors_in_thumbnail and
+        // SyncAmsInfoDialog already do, so recompute_mixed_slot_colors() below can look a mixed
+        // slot's component colours up by id (BBS keys this array by list position).
+        if (item->id >= m_preview_colors_in_thumbnail.size()) {
+            m_preview_colors_in_thumbnail.resize(item->id + 1);
+        }
+        m_preview_colors_in_thumbnail[item->id] = m->m_material_coloul;
         if (item->id < m_cur_colors_in_thumbnail.size()) {
             m_cur_colors_in_thumbnail[item->id] = m->m_ams_coloul;
         }
@@ -5683,6 +5712,20 @@ void SelectMachineDialog::clone_thumbnail_data() {
         }
         iter++;
     }
+
+    // Expand color arrays to cover mixed (virtual) slots and compute their blended colors
+    const auto& cfg = wxGetApp().preset_bundle->project_config;
+    size_t total = 0;
+    if (auto* opt = cfg.option<ConfigOptionBools>("filament_is_mixed"))
+        total = opt->values.size();
+    size_t target = std::max(total, m_cur_colors_in_thumbnail.size());
+    if (m_cur_colors_in_thumbnail.size() < target)
+        m_cur_colors_in_thumbnail.resize(target);
+    if (m_preview_colors_in_thumbnail.size() < target)
+        m_preview_colors_in_thumbnail.resize(target);
+    recompute_mixed_slot_colors(m_preview_colors_in_thumbnail, cfg);
+    recompute_mixed_slot_colors(m_cur_colors_in_thumbnail, cfg);
+
     //copy data
     auto &data   = m_cur_input_thumbnail_data;
     m_preview_thumbnail_data.reset();
@@ -5857,6 +5900,10 @@ void SelectMachineDialog::change_default_normal(int old_filament_id, wxColour te
             return;
         }
     }
+    // Recompute mixed slot colors after physical slot color change
+    const auto& cfg = wxGetApp().preset_bundle->project_config;
+    recompute_mixed_slot_colors(m_cur_colors_in_thumbnail, cfg);
+
     ThumbnailData& data = m_cur_input_thumbnail_data;
     ThumbnailData& no_light_data = m_cur_no_light_thumbnail_data;
     if (data.width > 0 && data.height > 0 && data.width == no_light_data.width && data.height == no_light_data.height) {

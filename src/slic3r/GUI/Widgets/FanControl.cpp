@@ -1031,13 +1031,13 @@ wxString FanControlPopupNew::get_fan_func_name(int mode, int submode, AIR_FUN fu
             L_CONTEXT("Right(Aux)", "air_duct");
             L_CONTEXT("Right(Filter)", "air_duct");
             L_CONTEXT("Left(Aux)", "air_duct");
-            return _CTX(func_text, "air_duct");
+            return _L_CONTEXT(func_text, "air_duct");
         }
     }
 
     static std::map<AIR_FUN, wxString> s_fan_func_name
     {
-        { AIR_FUN::FAN_HEAT_BREAK_0_IDX,     _L("Hotend") },
+        { AIR_FUN::FAN_HEAT_BREAK_0_IDX,     _L_CONTEXT("Hotend", "Hotend Heat Breaker Fan") },
         { AIR_FUN::FAN_COOLING_0_AIRDOOR,     _L("Parts") },
         { AIR_FUN::FAN_REMOTE_COOLING_0_IDX,  _L("Aux") },
         { AIR_FUN::FAN_CHAMBER_0_IDX,         _L("Exhaust") },
