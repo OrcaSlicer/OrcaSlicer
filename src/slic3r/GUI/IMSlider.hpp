@@ -146,7 +146,6 @@ protected:
     void render_menu();
     void render_add_menu(); //menu
     void render_edit_menu(const TickCode& tick); //menu
-    void draw_background_and_groove(const ImRect& bg_rect, const ImRect& groove);
     void draw_colored_band(const ImRect& groove, const ImRect& slideable_region);
     void draw_custom_label_block(const ImVec2 anchor, Type type);
     void draw_ticks(const ImRect& slideable_region);
@@ -201,14 +200,10 @@ private:
     void *m_one_layer_on_hover_id;
     void *m_one_layer_off_id;
     void *m_one_layer_off_hover_id;
-    void* m_one_layer_on_light_id;
-    void* m_one_layer_on_hover_light_id;
-    void* m_one_layer_off_light_id;
-    void* m_one_layer_off_hover_light_id;
-    void* m_one_layer_on_dark_id;
-    void* m_one_layer_on_hover_dark_id;
-    void* m_one_layer_off_dark_id;
-    void* m_one_layer_off_hover_dark_id;
+    void* m_track_click_active_id;
+    void* m_track_click_active_hover_id;
+    void* m_track_click_nearest_id;
+    void* m_track_click_nearest_hover_id;
     void *m_pause_icon_id;
     void *m_custom_icon_id;
     void *m_delete_icon_id;

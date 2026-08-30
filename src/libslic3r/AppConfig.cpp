@@ -310,6 +310,9 @@ void AppConfig::set_defaults()
     if (get("zoom_to_mouse").empty())
         set_bool("zoom_to_mouse", false);
 
+    if (get("gcode_slider_track_click_moves_active").empty())
+        set_bool("gcode_slider_track_click_moves_active", true);
+
 //#ifdef SUPPORT_SHOW_HINTS
     if (get("show_hints").empty())
         set_bool("show_hints", false);
