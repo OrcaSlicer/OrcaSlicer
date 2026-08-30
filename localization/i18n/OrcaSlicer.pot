@@ -3198,18 +3198,6 @@ msgstr ""
 msgid "Reset parameter"
 msgstr ""
 
-msgid "Visualize"
-msgstr ""
-
-msgid "Slice the current plate before visualizing it."
-msgstr ""
-
-msgid "Visualization"
-msgstr ""
-
-msgid "Visualization failed."
-msgstr ""
-
 msgid "Multicolor Print"
 msgstr ""
 

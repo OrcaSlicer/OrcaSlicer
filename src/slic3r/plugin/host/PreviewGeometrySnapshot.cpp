@@ -8,6 +8,7 @@
 #include "libslic3r/Format/OBJ.hpp"
 #include "libslic3r/Format/STL.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/Model.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
 #include <algorithm>
@@ -97,6 +98,27 @@ TriangleMesh make_mesh(const Snapshot& snapshot)
 }
 
 } // namespace
+
+TriangleMesh capture_model(const Model& model, const std::vector<std::pair<size_t, size_t>>& instances)
+{
+    TriangleMesh mesh;
+    for (const auto& [object_index, instance_index] : instances) {
+        if (object_index >= model.objects.size())
+            continue;
+        const ModelObject* object = model.objects[object_index];
+        if (instance_index >= object->instances.size())
+            continue;
+        for (const ModelVolume* volume : object->volumes) {
+            if (!volume->is_model_part())
+                continue;
+            TriangleMesh part(volume->mesh());
+            part.transform(volume->get_matrix(), true);
+            part.transform(object->instances[instance_index]->get_matrix(), true);
+            mesh.merge(part);
+        }
+    }
+    return mesh;
+}
 
 Snapshot capture(const GUI::PreviewTriangleMesh& mesh, const GCodeProcessorResult& result, int plate_index,
                  uint64_t expected_scene_id, const Pointfs& fallback_printable_area)
@@ -221,13 +243,22 @@ void write_atomic(const Snapshot& snapshot, const boost::filesystem::path& targe
         write_atomic(snapshot, target);
         return;
     }
+    write_atomic(make_mesh(snapshot), target, media_type);
+}
+
+void write_atomic(const TriangleMesh& source, const boost::filesystem::path& target, const std::string& media_type)
+{
+    if (media_type == VisualizationInputs::GLTF_BINARY) {
+        store_glb(target.string().c_str(), &source);
+        return;
+    }
     if (find_format(media_type) == nullptr)
         throw std::runtime_error("Unsupported visualization format: " + media_type);
 
     namespace fs = boost::filesystem;
     fs::path temp = target;
     temp += ".tmp-" + fs::unique_path("%%%%-%%%%-%%%%").string();
-    TriangleMesh mesh = make_mesh(snapshot);
+    TriangleMesh mesh(source);
     bool written = false;
     try {
         if (media_type == VisualizationInputs::STL)

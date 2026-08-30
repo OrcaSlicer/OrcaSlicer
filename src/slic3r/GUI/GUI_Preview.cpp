@@ -17,8 +17,6 @@
 #include "Plater.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
-#include "PluginPickerDialog.hpp"
-#include "slic3r/plugin/host/PluginVisualizations.hpp"
 
 #include <wx/listbook.h>
 #include <wx/notebook.h>
@@ -29,9 +27,6 @@
 #include <wx/combo.h>
 #include <wx/combobox.h>
 #include <wx/checkbox.h>
-#include <wx/button.h>
-#include <wx/msgdlg.h>
-#include <wx/weakref.h>
 
 // this include must follow the wxWidgets ones or it won't compile on Windows -> see http://trac.wxwidgets.org/ticket/2421
 #include "libslic3r/Print.hpp"
@@ -249,7 +244,8 @@ Preview::Preview(
 void Preview::update_gcode_result(GCodeProcessorResult* gcode_result)
 {
     m_gcode_result = gcode_result;
-    refresh_visualization_action();
+
+    return;
 }
 
 bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
@@ -287,18 +283,7 @@ bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
     m_canvas_widget->Bind(wxEVT_KEY_DOWN, &Preview::update_layers_slider_from_canvas, this);
 
     wxBoxSizer *main_sizer = new wxBoxSizer(wxVERTICAL);
-    m_visualize_button = new wxButton(this, wxID_ANY, _L("Visualize"));
-    m_visualize_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { open_visualization(); });
-    main_sizer->Add(m_visualize_button, 0, wxALL | wxALIGN_RIGHT, 5);
     main_sizer->Add(m_canvas_widget, 1, wxALL | wxEXPAND, 0);
-
-    m_visualization_change_subscription = PluginVisualizations::instance().subscribe([weak = wxWeakRef<Preview>(this)] {
-        wxGetApp().CallAfter([weak] {
-            if (weak)
-                weak->refresh_visualization_action();
-        });
-    });
-    refresh_visualization_action();
 
     SetSizer(main_sizer);
     SetMinSize(GetSize());
@@ -311,7 +296,6 @@ bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
 
 Preview::~Preview()
 {
-    PluginVisualizations::instance().unsubscribe(m_visualization_change_subscription);
     unbind_event_handlers();
 
     if (m_canvas != nullptr)
@@ -344,129 +328,13 @@ void Preview::set_drop_target(wxDropTarget* target)
         SetDropTarget(target);
 }
 
-void Preview::refresh_visualization_action()
-{
-    if (m_visualize_button == nullptr)
-        return;
-
-    const bool is_fff = m_process != nullptr && m_process->current_printer_technology() == ptFFF;
-    VisualizationInput input{VisualizationInputs::TOOLPATH, VisualizationInputs::GLTF_BINARY,
-                             VisualizationInputs::FILE_TRANSPORT, {}, PreviewGeometrySnapshot::FORMAT_MAJOR,
-                             PreviewGeometrySnapshot::FORMAT_MINOR};
-    const bool show = is_fff && !PluginVisualizations::instance().capabilities_for(input).empty();
-    const Print* print = is_fff ? m_process->fff_print() : nullptr;
-    const bool has_final_result = m_gcode_result != nullptr && !m_gcode_result->moves.empty() &&
-                                  (m_only_gcode || (print != nullptr && print->is_step_done(psGCodeExport)));
-
-    m_visualize_button->Show(show);
-    m_visualize_button->Enable(show && has_final_result);
-    m_visualize_button->SetToolTip(has_final_result ? wxString{} :
-        _L("Slice the current plate before visualizing it."));
-    Layout();
-}
-
-void Preview::open_visualization()
-{
-    if (m_process == nullptr || m_gcode_result == nullptr || m_gcode_result->moves.empty())
-        return;
-
-    VisualizationInput input{VisualizationInputs::TOOLPATH, VisualizationInputs::GLTF_BINARY,
-                             VisualizationInputs::FILE_TRANSPORT, {}, PreviewGeometrySnapshot::FORMAT_MAJOR,
-                             PreviewGeometrySnapshot::FORMAT_MINOR};
-    auto capabilities = PluginVisualizations::instance().capabilities_for(input);
-    if (capabilities.empty())
-        return;
-
-    std::shared_ptr<VisualizationPluginCapability> selected = capabilities.front();
-    if (capabilities.size() > 1) {
-        PluginManager& manager = PluginManager::instance();
-        std::vector<PluginPickerDialog::CapabilityEntry> entries;
-        entries.reserve(capabilities.size());
-        for (const auto& capability : capabilities) {
-            PluginDescriptor descriptor;
-            const wxString package_name = manager.try_get_plugin_descriptor(capability->audit_plugin_key(), descriptor) ?
-                from_u8(descriptor.name) : from_u8(capability->audit_plugin_key());
-            entries.push_back({capability->audit_plugin_key(), capability->name(),
-                               from_u8(capability->name()) + from_u8(" \xE2\x80\x94 ") + package_name, package_name});
-        }
-        PluginPickerDialog picker(this, _L("Visualization"), std::move(entries));
-        if (picker.ShowModal() != wxID_OK)
-            return;
-        const auto choice = picker.selected_capability();
-        const auto it = std::find_if(capabilities.begin(), capabilities.end(), [&choice](const auto& capability) {
-            return capability->audit_plugin_key() == choice.plugin_key && capability->name() == choice.name;
-        });
-        if (it == capabilities.end())
-            return;
-        selected = *it;
-    }
-
-    auto& plate_list = wxGetApp().plater()->get_partplate_list();
-    const int plate_index = plate_list.get_curr_plate_index();
-    const Pointfs& printable_area = plate_list.get_curr_plate()->get_shape();
-    SuppressBackgroundProcessingUpdate suppress_background_processing;
-    std::shared_ptr<const PreviewTriangleMesh> mesh;
-    try {
-        mesh = m_canvas->get_gcode_viewer().create_preview_triangle_mesh_snapshot();
-    } catch (const std::exception& error) {
-        handle_visualization_result(ExecutionResult::failure(PluginResult::RecoverableError, error.what()));
-        return;
-    }
-    PluginVisualizations::instance().request_open_toolpath(
-        selected, std::move(mesh), *m_gcode_result, printable_area, plate_index, m_gcode_result->id, SoftFever_VERSION,
-        [weak = wxWeakRef<Preview>(this)](ExecutionResult result) {
-            wxGetApp().CallAfter([weak, result = std::move(result)]() mutable {
-                if (weak)
-                    weak->handle_visualization_result(std::move(result));
-            });
-        });
-}
-
-void Preview::notify_visualization_result()
-{
-    if (m_gcode_result == nullptr || m_gcode_result->moves.empty() ||
-        !PluginVisualizations::instance().has_active_sessions())
-        return;
-
-    auto& plate_list = wxGetApp().plater()->get_partplate_list();
-    const int plate_index = plate_list.get_curr_plate_index();
-    const Pointfs& printable_area = plate_list.get_curr_plate()->get_shape();
-    SuppressBackgroundProcessingUpdate suppress_background_processing;
-    std::shared_ptr<const PreviewTriangleMesh> mesh;
-    try {
-        mesh = m_canvas->get_gcode_viewer().create_preview_triangle_mesh_snapshot();
-    } catch (const std::exception& error) {
-        handle_visualization_result(ExecutionResult::failure(PluginResult::RecoverableError, error.what()));
-        return;
-    }
-    PluginVisualizations::instance().request_toolpath_updates(
-        std::move(mesh), *m_gcode_result, printable_area, plate_index, m_gcode_result->id, SoftFever_VERSION,
-        [weak = wxWeakRef<Preview>(this)](ExecutionResult result) {
-            wxGetApp().CallAfter([weak, result = std::move(result)]() mutable {
-                if (weak)
-                    weak->handle_visualization_result(std::move(result));
-            });
-        });
-}
-
-void Preview::handle_visualization_result(ExecutionResult result)
-{
-    if (result.status == PluginResult::RecoverableError || result.status == PluginResult::FatalError) {
-        const wxString message = result.message.empty() ? _L("Visualization failed.") : from_u8(result.message);
-        wxMessageBox(message, _L("Visualization"), wxOK | wxICON_ERROR, this);
-    }
-}
-
 //BBS: add only gcode mode
 void Preview::load_print(bool keep_z_range, bool only_gcode)
 {
     PrinterTechnology tech = m_process->current_printer_technology();
     if (tech == ptFFF)
         load_print_as_fff(keep_z_range, only_gcode);
-    else
-        PluginVisualizations::instance().close_all();
 
-    refresh_visualization_action();
     Layout();
 }
 
@@ -479,9 +347,8 @@ void Preview::reload_print(bool only_gcode)
     //m_loaded = false;
     m_loaded_print = nullptr;
 
-    // load_print() refreshes actions whose availability depends on this mode.
-    m_only_gcode = only_gcode;
     load_print(false, only_gcode);
+    m_only_gcode = only_gcode;
 }
 
 //BBS: always load shell at preview
@@ -799,7 +666,6 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
     bool directly_preview = print->is_step_done(psGCodeExport) && !m_gcode_result->moves.empty();
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": directly_preview: %1%, gcode_result moves %2%, has_layers %3%") % directly_preview % m_gcode_result->moves.size() %has_layers;
     if (wxGetApp().is_editor() && !has_layers && !directly_preview) {
-        PluginVisualizations::instance().close_all();
         show_sliders(false);
         m_canvas_widget->Refresh();
         return;
@@ -811,10 +677,6 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
     libvgcode::EViewType gcode_view_type = m_canvas->get_gcode_view_type();
     const bool gcode_preview_data_valid = !m_gcode_result->moves.empty();
     const bool is_pregcode_preview = !gcode_preview_data_valid && wxGetApp().is_editor();
-    const bool is_slice_result_valid = wxGetApp().plater()->get_partplate_list().get_curr_plate()->is_slice_result_valid();
-    const bool final_toolpath_available = gcode_preview_data_valid && (is_slice_result_valid || only_gcode);
-    if (!final_toolpath_available)
-        PluginVisualizations::instance().close_all();
 
     const std::vector<std::string> tool_colors = wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result);
     const std::vector<CustomGCode::Item>& color_print_values = wxGetApp().is_editor() ?
@@ -829,7 +691,8 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
 
     if (IsShown()) {
         m_canvas->set_selected_extruder(0);
-        if (final_toolpath_available) {
+        bool is_slice_result_valid = wxGetApp().plater()->get_partplate_list().get_curr_plate()->is_slice_result_valid();
+        if (gcode_preview_data_valid && (is_slice_result_valid || only_gcode)) {
             // Load the real G-code preview.
             //BBS: add more log
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": will load gcode_preview from result, moves count %1%") % m_gcode_result->moves.size();
@@ -848,7 +711,6 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
             //BBS: add m_loaded_print logic
             //m_loaded = true;
             m_loaded_print = print;
-            notify_visualization_result();
         }
         else if (is_pregcode_preview) {
             // Load the initial preview based on slices, not the final G-code.

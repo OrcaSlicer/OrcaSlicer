@@ -72,6 +72,32 @@ public:
     std::atomic<int> open_calls{0};
 };
 
+class MultiResourceVisualization final : public VisualizationPluginCapability
+{
+public:
+    std::string get_name() const override { return "Multi-resource Visualization"; }
+    std::vector<VisualizationInputSpec> get_supported_inputs() override
+    {
+        return {{VisualizationInputs::TOOLPATH, VisualizationInputs::GLTF_BINARY,
+                 VisualizationInputs::FILE_TRANSPORT, 2, 0, 2, 0},
+                {VisualizationInputs::MODEL, VisualizationInputs::OBJ,
+                 VisualizationInputs::FILE_TRANSPORT, 1, 0, 1, 0}};
+    }
+    std::vector<VisualizationResourceRequest> get_requested_resources() override
+    {
+        return {{VisualizationInputs::TOOLPATH, VisualizationInputs::CURRENT_PLATE},
+                {VisualizationInputs::MODEL, VisualizationInputs::PROJECT}};
+    }
+    ExecutionResult open(const VisualizationContext& context) override
+    {
+        opened = context;
+        return ExecutionResult::success();
+    }
+    ExecutionResult update(const VisualizationContext&) override { return ExecutionResult::success(); }
+
+    VisualizationContext opened;
+};
+
 // A minimal script plugin exposing exactly one capability, "Echo".
 const char* const ECHO_PLUGIN_SOURCE = R"PY(# /// script
 # requires-python = ">=3.12"
@@ -115,13 +141,31 @@ class DummyVisualization(orca.visualization.VisualizationPluginCapabilityBase):
         return "Dummy Visualization"
 
     def get_supported_inputs(self):
-        spec = orca.visualization.VisualizationInputSpec()
-        spec.kind = orca.visualization.INPUT_TOOLPATH
-        spec.format = orca.visualization.FORMAT_GLTF_BINARY
-        spec.transport = orca.visualization.TRANSPORT_FILE
-        spec.minimum_major = 2
-        spec.maximum_major = 2
-        return [spec]
+        toolpath = orca.visualization.VisualizationInputSpec()
+        toolpath.kind = orca.visualization.INPUT_TOOLPATH
+        toolpath.format = orca.visualization.FORMAT_GLTF_BINARY
+        toolpath.transport = orca.visualization.TRANSPORT_FILE
+        toolpath.minimum_major = 2
+        toolpath.maximum_major = 2
+        model = orca.visualization.VisualizationInputSpec(
+            orca.visualization.INPUT_MODEL,
+            orca.visualization.FORMAT_OBJ,
+        )
+        model.minimum_major = 1
+        model.maximum_major = 1
+        return [toolpath, model]
+
+    def get_requested_resources(self):
+        return [
+            orca.visualization.VisualizationResourceRequest(
+                orca.visualization.INPUT_TOOLPATH,
+                orca.visualization.SCOPE_CURRENT_PLATE,
+            ),
+            orca.visualization.VisualizationResourceRequest(
+                orca.visualization.INPUT_MODEL,
+                orca.visualization.SCOPE_PROJECT,
+            ),
+        ]
 
     def _record(self, event):
         with open(self.events_path, "a", encoding="utf-8") as output:
@@ -136,7 +180,8 @@ class DummyVisualization(orca.visualization.VisualizationPluginCapabilityBase):
             mutability = "readonly"
         self._record(
             f"open:{ctx.revision}:{ctx.metadata['plate_index']}:{ctx.input.kind}:{ctx.input.format}:"
-            f"{ctx.input.major_version}.{ctx.input.minor_version}:{ctx.orca_version}:{mutability}"
+            f"{ctx.input.major_version}.{ctx.input.minor_version}:{len(ctx.resources)}:"
+            f"{ctx.resources[0].scope}:{ctx.orca_version}:{mutability}"
         )
         return orca.ExecutionResult.success()
 
@@ -313,6 +358,40 @@ TEST_CASE("Concurrent visualization opens create one session", "[PluginLifecycle
     PluginVisualizations::instance().close(capability->identity());
 }
 
+TEST_CASE("Visualization contexts carry separately scoped resources", "[PluginLifecycle][Visualization]")
+{
+    auto capability = std::make_shared<MultiResourceVisualization>();
+    capability->set_resolved_identity("Multi-resource Visualization", PluginCapabilityType::Visualization);
+    capability->set_audit_plugin_key("multi-resource-visualization");
+    capability->resolve_type_metadata();
+
+    REQUIRE(capability->requested_resources().size() == 2);
+    CHECK(capability->requested_resources()[0].kind == VisualizationInputs::TOOLPATH);
+    CHECK(capability->requested_resources()[0].scope == VisualizationInputs::CURRENT_PLATE);
+    CHECK(capability->requested_resources()[1].kind == VisualizationInputs::MODEL);
+    CHECK(capability->requested_resources()[1].scope == VisualizationInputs::PROJECT);
+
+    VisualizationContext context;
+    context.revision = 7;
+    context.resources = {
+        {VisualizationInputs::TOOLPATH, VisualizationInputs::GLTF_BINARY,
+         VisualizationInputs::FILE_TRANSPORT, "toolpath.glb", 2, 0,
+         VisualizationInputs::CURRENT_PLATE, {{"plate_index", "1"}}},
+        {VisualizationInputs::MODEL, VisualizationInputs::OBJ,
+         VisualizationInputs::FILE_TRANSPORT, "model.obj", 1, 0,
+         VisualizationInputs::PROJECT, {{"plate_index", "0"}}}
+    };
+
+    PluginVisualizations& visualizations = PluginVisualizations::instance();
+    REQUIRE(visualizations.open(capability, context).status == PluginResult::Success);
+    REQUIRE(capability->opened.resources.size() == 2);
+    CHECK(capability->opened.input.location == "toolpath.glb");
+    CHECK(capability->opened.resources[0].scope == VisualizationInputs::CURRENT_PLATE);
+    CHECK(capability->opened.resources[1].scope == VisualizationInputs::PROJECT);
+    CHECK(capability->opened.resources[1].metadata.at("plate_index") == "0");
+    visualizations.close(capability->identity());
+}
+
 TEST_CASE("Visualization sessions dispatch lifecycle calls and close when disabled", "[PluginLifecycle][Visualization][Python]")
 {
     ScopedDataDir data_dir_guard("visualization-lifecycle");
@@ -332,6 +411,10 @@ TEST_CASE("Visualization sessions dispatch lifecycle calls and close when disabl
     auto capability = std::dynamic_pointer_cast<VisualizationPluginCapability>(
         manager.get_plugin_capability({PluginCapabilityType::Visualization, "Dummy Visualization", "Visualization_Plugin"}));
     REQUIRE(capability != nullptr);
+    REQUIRE(capability->requested_resources().size() == 2);
+    CHECK(capability->requested_resources()[0].scope == VisualizationInputs::CURRENT_PLATE);
+    CHECK(capability->requested_resources()[1].kind == VisualizationInputs::MODEL);
+    CHECK(capability->requested_resources()[1].scope == VisualizationInputs::PROJECT);
 
     const fs::path events_path = fs::path(manager.get_storage_dir("Visualization_Plugin")) / "events.txt";
     VisualizationContext ctx;
@@ -364,7 +447,7 @@ TEST_CASE("Visualization sessions dispatch lifecycle calls and close when disabl
 
     std::ifstream events(events_path.string());
     const std::string contents((std::istreambuf_iterator<char>(events)), std::istreambuf_iterator<char>());
-    CHECK(contents == "open:1:0:toolpath:model/gltf-binary:2.0:test:readonly\nupdate:2\nclose\n");
+    CHECK(contents == "open:1:0:toolpath:model/gltf-binary:2.0:1:current_plate:test:readonly\nupdate:2\nclose\n");
 }
 
 TEST_CASE("Unrelated visualization plugins keep independent sessions", "[PluginLifecycle][Visualization][Python]")

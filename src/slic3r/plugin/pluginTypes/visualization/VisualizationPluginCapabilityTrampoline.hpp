@@ -24,6 +24,17 @@ public:
             get_supported_inputs);
     }
 
+    std::vector<VisualizationResourceRequest> get_requested_resources() override
+    {
+        ORCA_PY_OVERRIDE_AUDITED(
+            ::Slic3r::PluginAuditManager::AuditMode::Loading,
+            [] {},
+            PYBIND11_OVERRIDE,
+            std::vector<VisualizationResourceRequest>,
+            VisualizationPluginCapability,
+            get_requested_resources);
+    }
+
     ExecutionResult open(const VisualizationContext& ctx) override
     {
         ORCA_PY_OVERRIDE_AUDITED(

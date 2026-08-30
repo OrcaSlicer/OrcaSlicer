@@ -8,9 +8,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Slic3r {
+class Model;
+class TriangleMesh;
 struct GCodeProcessorResult;
 namespace GUI { struct PreviewTriangleMesh; }
 
@@ -77,6 +80,7 @@ struct DocumentInfo {
     size_t material_count{0};
 };
 
+TriangleMesh capture_model(const Model& model, const std::vector<std::pair<size_t, size_t>>& instances);
 Snapshot capture(const GUI::PreviewTriangleMesh& mesh, const GCodeProcessorResult& result,
                  int plate_index, uint64_t expected_scene_id, const Pointfs& fallback_printable_area = {});
 std::vector<uint8_t> serialize(const Snapshot& snapshot);
@@ -86,6 +90,7 @@ void write_atomic(const Snapshot& snapshot, const boost::filesystem::path& targe
 const std::vector<Format>& supported_formats();
 const Format* find_format(const std::string& media_type);
 void write_atomic(const Snapshot& snapshot, const boost::filesystem::path& target, const std::string& media_type);
+void write_atomic(const TriangleMesh& mesh, const boost::filesystem::path& target, const std::string& media_type);
 
 } // namespace PreviewGeometrySnapshot
 } // namespace Slic3r

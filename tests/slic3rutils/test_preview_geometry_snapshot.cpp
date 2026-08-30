@@ -3,6 +3,7 @@
 #include <slic3r/GUI/ToolpathMeshBuilder.hpp>
 #include <slic3r/plugin/host/PreviewGeometrySnapshot.hpp>
 #include <libslic3r/GCode/GCodeProcessor.hpp>
+#include <libslic3r/Model.hpp>
 #include <libvgcode/include/GCodeInputData.hpp>
 #include <libvgcode/include/Viewer.hpp>
 #include <nlohmann/json.hpp>
@@ -90,6 +91,27 @@ TEST_CASE("preview scene serializes as standard GLB 2.0", "[PreviewGeometrySnaps
     CHECK(document["meshes"][0]["primitives"][0]["extras"]["orca"]["layerId"] == 7);
     CHECK(document["meshes"][0]["primitives"][1]["mode"] == 2);
     CHECK(document["meshes"][0]["primitives"][1]["extras"]["orca"]["areaKind"] == "printable");
+}
+
+TEST_CASE("model capture applies placement and excludes modifiers", "[PreviewGeometrySnapshot]")
+{
+    Model model;
+    ModelObject* object = model.add_object();
+    ModelVolume* part = object->add_volume(make_cube(1, 2, 3), ModelVolumeType::MODEL_PART, false);
+    part->set_offset({10, 0, 0});
+    ModelVolume* modifier = object->add_volume(make_cube(20, 20, 20), ModelVolumeType::PARAMETER_MODIFIER, false);
+    modifier->set_offset({1000, 0, 0});
+    ModelInstance* instance = object->add_instance();
+    instance->set_offset({100, 5, 0});
+
+    const TriangleMesh mesh = Preview::capture_model(model, {{0, 0}});
+    const BoundingBoxf3 bounds = mesh.bounding_box();
+
+    CHECK(mesh.facets_count() == 12);
+    CHECK_THAT(bounds.min.x(), Catch::Matchers::WithinAbs(110.0, 1e-6));
+    CHECK_THAT(bounds.max.x(), Catch::Matchers::WithinAbs(111.0, 1e-6));
+    CHECK_THAT(bounds.min.y(), Catch::Matchers::WithinAbs(5.0, 1e-6));
+    CHECK_THAT(bounds.max.y(), Catch::Matchers::WithinAbs(7.0, 1e-6));
 }
 
 TEST_CASE("preview capture preserves shared mesh and result metadata", "[PreviewGeometrySnapshot]")
