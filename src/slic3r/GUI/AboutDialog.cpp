@@ -111,6 +111,7 @@ void CopyrightsDialog::fill_entries()
         { "OpenGL",                                         "",      "https://www.opengl.org" },
         { "PoEdit",                                         "",      "https://poedit.net" },
         { "PrusaSlicer",                                    "",      "https://www.prusa3d.com" },
+        { "prusa-fdm-mixer",                                "",      "https://github.com/prusa3d/prusa-fdm-mixer" },
         { "Real-Time DXT1/DXT5 C compression library",      "",      "https://github.com/Cyan4973/RygsDXTc" },
         { "SemVer",                                         "",      "https://semver.org" },
         { "Shinyprofiler",                                  "",      "https://code.google.com/p/shinyprofiler" },

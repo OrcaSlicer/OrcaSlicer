@@ -126,7 +126,7 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
                    FromDIP(8));
     m_clr_predicted = new wxColourPickerCtrl(this, wxID_ANY, wxColour(255, 255, 255));
     m_clr_predicted->Enable(false);
-    m_clr_predicted->SetToolTip(_L("Predicted printable mix colour (Yule-Nielsen)."));
+    m_clr_predicted->SetToolTip(_L("Predicted printable mix colour."));
     match_row->Add(m_clr_predicted, 0, wxALIGN_CENTER_VERTICAL);
     root->Add(match_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
 

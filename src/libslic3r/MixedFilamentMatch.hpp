@@ -85,12 +85,12 @@ inline bool spectrum_match_same_target(bool cached_valid, const ColorRGB &cached
     return cached_valid && cached == parsed;
 }
 
-// Predicted swatch for an existing mix. Same Yule-Nielsen n=3 as the lattice.
+// Predicted swatch for an existing mix via ColorMix / prusa-fdm-mixer.
 ColorRGB predicted_swatch_for_mix(const MixedFilament          &mf,
                                   const std::vector<ColorRGB>  &physicals,
                                   const std::vector<float>     *td = nullptr);
 
-// physicals in order (1-based IDs 1..n), then one YN swatch per enabled mix
+// physicals in order (1-based IDs 1..n), then one ColorMix swatch per enabled mix
 // (same order as MixedFilamentManager virtual IDs). Cap is a mix-append ceiling
 // (default 16 total), NOT a physical truncate: physicals are always kept in full;
 // if physicals.size() >= cap, return all physicals and append no mixes.

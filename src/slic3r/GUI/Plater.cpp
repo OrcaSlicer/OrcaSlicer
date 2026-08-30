@@ -17087,7 +17087,7 @@ std::vector<Slic3r::ColorRGBA> Plater::get_preview_filament_colors()
     }
 
     const std::vector<ColorRGB> preview = preview_filament_colors(physicals, mixed_defs);
-    // Keep physical ColorRGBA (preserve alpha); append only mix YN swatches.
+    // Keep physical ColorRGBA (preserve alpha); append only mix swatches.
     std::vector<ColorRGBA> out;
     out.reserve(preview.size());
     const size_t keep_physical = std::min(physical_rgba.size(), preview.size());

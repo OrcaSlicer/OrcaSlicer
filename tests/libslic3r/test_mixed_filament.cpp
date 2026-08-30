@@ -7,9 +7,11 @@
 #include "libslic3r/MixedFilamentCookbook.hpp"
 #include "libslic3r/MixedFilamentMatch.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/prusa_fdm_mixer.hpp"
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cmath>
 #include <limits>
 #include <set>
@@ -595,6 +597,49 @@ TEST_CASE("Match black maps to Grey physical not a CMY stack", "[MixedFilamentMa
     REQUIRE(r.recipe_row.empty());
 }
 
+TEST_CASE("prusa_fdm_mixer golden #009bc3+#f6b921 1:1 is #519e5f", "[MixedFilamentMatch]")
+{
+    const std::vector<prusa_fdm_mixer::Part> parts = {
+        { "#009bc3", 0.5 },
+        { "#f6b921", 0.5 },
+    };
+    const prusa_fdm_mixer::RGB rgb = prusa_fdm_mixer::mix_rgb(parts);
+    const std::string          hex = prusa_fdm_mixer::mix(parts);
+    auto lower = [](std::string s) {
+        for (char &c : s)
+            c = char(std::tolower(static_cast<unsigned char>(c)));
+        return s;
+    };
+    REQUIRE(lower(hex) == "#519e5f");
+    REQUIRE(rgb.r == 0x51);
+    REQUIRE(rgb.g == 0x9e);
+    REQUIRE(rgb.b == 0x5f);
+}
+
+TEST_CASE("prusa_fdm_mixer gradient-safe single part ratio 1.0", "[MixedFilamentMatch]")
+{
+    const std::vector<prusa_fdm_mixer::Part> parts = { { "#08ABFB", 1.0 } };
+    REQUIRE(prusa_fdm_mixer::mix(parts) == "#08abfb");
+    const prusa_fdm_mixer::RGB rgb = prusa_fdm_mixer::mix_rgb(parts);
+    REQUIRE(rgb.r == 0x08);
+    REQUIRE(rgb.g == 0xab);
+    REQUIRE(rgb.b == 0xfb);
+}
+
+TEST_CASE("Predicted A==B C+C 1:1 returns physical Cyan", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    MixedFilament               same;
+    same.component_a = 1;
+    same.component_b = 1;
+    same.ratio_a     = 1;
+    same.ratio_b     = 1;
+    same.enabled     = true;
+    const ColorRGB got = predicted_swatch_for_mix(same, phys);
+    REQUIRE(got == phys[0]);
+    REQUIRE(got == decode_hex_or_fail("#08ABFB"));
+}
+
 TEST_CASE("Match C+M 1:1 predicted serializes gcd-reduced 1,2,1,1,1", "[MixedFilamentMatch]")
 {
     const std::vector<ColorRGB> phys = panchroma_physicals();
@@ -806,7 +851,7 @@ TEST_CASE("Match 0 or 1 physical does not crash", "[MixedFilamentMatch]")
     REQUIRE(other.kind == MixMatchResult::Kind::Physical);
 }
 
-TEST_CASE("Preview colors append one YN mix after physicals", "[MixedFilamentMatch]")
+TEST_CASE("Preview colors append one ColorMix mix after physicals", "[MixedFilamentMatch]")
 {
     const std::vector<ColorRGB> phys = panchroma_physicals();
     const std::vector<ColorRGB> out  = preview_filament_colors(phys, "1,2,1,1,1");
@@ -1486,7 +1531,7 @@ TEST_CASE("Match RGBW physicals and dark-neutral Blue; CMYK black Grey", "[spect
     REQUIRE(black_cmyk.physical_id == 4u);
 }
 
-TEST_CASE("Match RGBW YN midpoint 1+2 and RGBW recipe labels", "[spectrum_rgb]")
+TEST_CASE("Match RGBW ColorMix midpoint 1+2 and RGBW recipe labels", "[spectrum_rgb]")
 {
     const std::vector<ColorRGB> rgbw = rgbw_physicals();
     MixedFilament               pair;

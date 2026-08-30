@@ -363,6 +363,9 @@ set(lisbslic3r_sources
     MixedFilamentCookbook.hpp
     MixedFilamentMatch.cpp
     MixedFilamentMatch.hpp
+    # Vendored from prusa3d/prusa-fdm-mixer @ 181708486468543defe0b6505c231dd2ab6223bc
+    prusa_fdm_mixer.cpp
+    prusa_fdm_mixer.hpp
     MixedFilamentPaintBake.cpp
     MixedFilamentPaintBake.hpp
     LocalZPlanner.hpp

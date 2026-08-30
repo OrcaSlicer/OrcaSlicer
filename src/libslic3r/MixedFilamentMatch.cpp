@@ -1,5 +1,7 @@
 #include "MixedFilamentMatch.hpp"
 
+#include "prusa_fdm_mixer.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -8,6 +10,7 @@
 #include <numeric>
 #include <set>
 #include <sstream>
+#include <stdexcept>
 #include <tuple>
 #include <utility>
 
@@ -64,44 +67,6 @@ float cie76(const ColorRGB &u, const ColorRGB &v)
     const float da = a1 - a2;
     const float db = b1 - b2;
     return std::sqrt(dL * dL + da * da + db * db);
-}
-
-float srgb_to_linear(float c)
-{
-    c = std::clamp(c, 0.f, 1.f);
-    return c <= 0.04045f ? c / 12.92f : std::pow((c + 0.055f) / 1.055f, 2.4f);
-}
-
-float linear_to_srgb(float c)
-{
-    c = std::clamp(c, 0.f, 1.f);
-    return c <= 0.0031308f ? 12.92f * c : 1.055f * std::pow(c, 1.f / 2.4f) - 0.055f;
-}
-
-ColorRGB yule_nielsen_n3(const std::vector<ColorRGB> &cols, const std::vector<float> &weights)
-{
-    if (cols.empty() || cols.size() != weights.size())
-        return ColorRGB::BLACK();
-
-    float wsum = 0.f;
-    for (float w : weights)
-        wsum += std::max(0.f, w);
-    if (wsum <= 0.f)
-        return ColorRGB::BLACK();
-
-    const float inv_n = 1.f / 3.f;
-    float lin[3] = {0.f, 0.f, 0.f};
-    for (size_t i = 0; i < cols.size(); ++i) {
-        const float w = std::max(0.f, weights[i]) / wsum;
-        if (w <= 0.f)
-            continue;
-        const float ch[3] = {cols[i].r(), cols[i].g(), cols[i].b()};
-        for (int k = 0; k < 3; ++k)
-            lin[k] += w * std::pow(srgb_to_linear(ch[k]), inv_n);
-    }
-    return ColorRGB(linear_to_srgb(std::pow(lin[0], 3.f)),
-                    linear_to_srgb(std::pow(lin[1], 3.f)),
-                    linear_to_srgb(std::pow(lin[2], 3.f)));
 }
 
 unsigned clamp_physical_id(unsigned id, size_t n)
@@ -305,21 +270,62 @@ ColorRGB predicted_swatch_for_mix(const MixedFilament         &mf,
         return float(layers) * td_scale[size_t(id - 1)];
     };
 
-    std::vector<ColorRGB> cols;
-    std::vector<float>    weights;
-    const unsigned a = clamp_physical_id(mf.component_a, n);
-    const unsigned b = clamp_physical_id(mf.component_b, n);
-    cols.push_back(physicals[size_t(a - 1)]);
-    weights.push_back(weight_for(a, mf.ratio_a));
-    cols.push_back(physicals[size_t(b - 1)]);
-    weights.push_back(weight_for(b, mf.ratio_b));
+    struct WeightedColor {
+        ColorRGB color;
+        float    weight = 0.f;
+    };
+    std::vector<WeightedColor> parts;
+    auto push_part = [&](unsigned id_1based, int layers) {
+        const float w = weight_for(id_1based, layers);
+        if (w <= 0.f)
+            return;
+        const unsigned id = clamp_physical_id(id_1based, n);
+        parts.push_back({physicals[size_t(id - 1)], w});
+    };
+    push_part(mf.component_a, mf.ratio_a);
+    push_part(mf.component_b, mf.ratio_b);
     if (mf.component_c != 0) {
-        const unsigned c = clamp_physical_id(mf.component_c, n);
-        const int      rc = (mf.ratio_c > 0) ? mf.ratio_c : 1;
-        cols.push_back(physicals[size_t(c - 1)]);
-        weights.push_back(weight_for(c, rc));
+        const int rc = (mf.ratio_c > 0) ? mf.ratio_c : 1;
+        push_part(mf.component_c, rc);
     }
-    return yule_nielsen_n3(cols, weights);
+    if (parts.empty())
+        return ColorRGB::BLACK();
+
+    // Same-hex collapse: merge identical hexes by summing weights.
+    std::vector<WeightedColor> merged;
+    for (const WeightedColor &p : parts) {
+        const std::string hex = encode_color(p.color);
+        bool              found = false;
+        for (WeightedColor &m : merged) {
+            if (encode_color(m.color) == hex) {
+                m.weight += p.weight;
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+            merged.push_back(p);
+    }
+    if (merged.size() == 1)
+        return merged.front().color;
+
+    float wsum = 0.f;
+    for (const WeightedColor &m : merged)
+        wsum += m.weight;
+    if (wsum <= 0.f)
+        return ColorRGB::BLACK();
+
+    std::vector<prusa_fdm_mixer::Part> mixer_parts;
+    mixer_parts.reserve(merged.size());
+    for (const WeightedColor &m : merged)
+        mixer_parts.push_back({encode_color(m.color), double(m.weight / wsum)});
+
+    try {
+        const prusa_fdm_mixer::RGB rgb = prusa_fdm_mixer::mix_rgb(mixer_parts);
+        return ColorRGB(rgb.r, rgb.g, rgb.b);
+    } catch (const std::invalid_argument &) {
+        return ColorRGB::BLACK();
+    }
 }
 
 std::vector<ColorRGB> preview_filament_colors(
@@ -518,7 +524,7 @@ std::vector<MixMatchResult> match_printable_candidates(const ColorRGB           
         return result_period(a) < result_period(b);
     });
 
-    // Neutral targets darker than every physical: a short CMY YN mud can beat Grey
+    // Neutral targets darker than every physical: a short CMY mud can beat Grey
     // on CIE76 for #000000. Spec still requires the nearest physical (Grey) at [0].
     if (!out.empty() && n > 0) {
         float tL = 0.f, ta = 0.f, tb = 0.f;

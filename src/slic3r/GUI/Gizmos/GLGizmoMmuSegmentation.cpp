@@ -101,7 +101,7 @@ static std::vector<ColorRGBA> paint_palette_colors(std::vector<std::string> *too
     MixedFilamentManager mgr;
     mgr.load_definitions(mixed_defs);
 
-    // Keep physical ColorRGBA (preserve alpha); append only mix YN swatches.
+    // Keep physical ColorRGBA (preserve alpha); append only mix swatches.
     std::vector<ColorRGBA> colors;
     colors.reserve(preview.size());
     const size_t keep_physical = std::min(physical.size(), preview.size());

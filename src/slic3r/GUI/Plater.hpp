@@ -565,7 +565,7 @@ public:
     void on_filament_count_change(size_t extruders_count);
     void on_filaments_delete(size_t extruders_count, size_t filament_id, int replace_filament_id = -1);
     std::vector<Slic3r::ColorRGBA> get_extruders_colors();
-    // Physical filament colours plus YN mix swatches (capped), for 3D preview only.
+    // Physical filament colours plus ColorMix mix swatches (capped), for 3D preview only.
     std::vector<Slic3r::ColorRGBA> get_preview_filament_colors();
     // BBS
     void on_bed_type_change(BedType bed_type);
