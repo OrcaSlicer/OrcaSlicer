@@ -120,3 +120,17 @@ TEST_CASE("GLB stores a scene atomically", "[GLB]")
     REQUIRE(boost::filesystem::exists(target));
     CHECK(GLB::validate(read_file(target)).vertex_count == 3);
 }
+
+TEST_CASE("GLB stores a triangle mesh", "[GLB]")
+{
+    ScopedTemporaryDir directory("glb-mesh-store");
+    const boost::filesystem::path target = directory.path() / "cube.glb";
+    TriangleMesh mesh = make_cube(10.0, 20.0, 30.0);
+
+    store_glb(target.string().c_str(), &mesh);
+
+    const GLB::DocumentInfo info = GLB::validate(read_file(target));
+    CHECK(info.vertex_count == mesh.its.indices.size() * 3);
+    CHECK(info.index_count == mesh.its.indices.size() * 3);
+    CHECK(info.primitive_count == 1);
+}

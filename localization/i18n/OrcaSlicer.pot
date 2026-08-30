@@ -19753,3 +19753,21 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Avoid warping]
 msgid "Avoid warping\nDid you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
 msgstr ""
+
+msgid "GLB files"
+msgstr ""
+
+msgid "Export GLB file:"
+msgstr ""
+
+msgid "Export as one GLB"
+msgstr ""
+
+msgid "Export as GLBs"
+msgstr ""
+
+msgid "Export all objects as one GLB"
+msgstr ""
+
+msgid "Export all objects as GLBs"
+msgstr ""

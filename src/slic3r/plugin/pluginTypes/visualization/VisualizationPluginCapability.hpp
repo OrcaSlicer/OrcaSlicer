@@ -18,6 +18,9 @@ namespace Slic3r {
 namespace VisualizationInputs {
 constexpr char TOOLPATH[] = "toolpath";
 constexpr char GLTF_BINARY[] = "model/gltf-binary";
+constexpr char STL[] = "model/stl";
+constexpr char OBJ[] = "model/obj";
+constexpr char DRACO[] = "model/vnd.google.draco";
 constexpr char FILE_TRANSPORT[] = "file";
 }
 

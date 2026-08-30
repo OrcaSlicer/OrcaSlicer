@@ -71,6 +71,9 @@ DocumentInfo validate(const std::vector<uint8_t>& data, uint64_t max_file_size =
 } // namespace Slic3r::GLB
 
 namespace Slic3r {
+class TriangleMesh;
+
 // Consistent entry point with store_stl(), store_obj(), and store_drc().
 void store_glb(const char* path, const GLB::Scene& scene);
+void store_glb(const char* path, const TriangleMesh* mesh);
 }

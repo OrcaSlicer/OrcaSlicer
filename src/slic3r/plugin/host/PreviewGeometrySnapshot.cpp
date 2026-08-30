@@ -1,9 +1,14 @@
 #include "PreviewGeometrySnapshot.hpp"
+#include "../pluginTypes/visualization/VisualizationPluginCapability.hpp"
 
 #include "slic3r/GUI/ToolpathMeshBuilder.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/Format/GLB.hpp"
+#include "libslic3r/Format/DRC.hpp"
+#include "libslic3r/Format/OBJ.hpp"
+#include "libslic3r/Format/STL.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -71,6 +76,24 @@ GLB::Scene make_scene(const Snapshot& snapshot)
     add_area(snapshot.bed_excluded_area, "bed-excluded");
     add_area(snapshot.wrapping_excluded_area, "wrapping-excluded");
     return scene;
+}
+
+TriangleMesh make_mesh(const Snapshot& snapshot)
+{
+    if (snapshot.indices.empty() || snapshot.indices.size() % 3 != 0)
+        throw std::runtime_error("Preview index buffer is not triangular");
+    indexed_triangle_set its;
+    its.vertices.reserve(snapshot.vertices.size());
+    for (const Vertex& vertex : snapshot.vertices)
+        its.vertices.emplace_back(vertex.position[0], vertex.position[1], vertex.position[2]);
+    its.indices.reserve(snapshot.indices.size() / 3);
+    for (size_t i = 0; i < snapshot.indices.size(); i += 3) {
+        if (snapshot.indices[i] >= its.vertices.size() || snapshot.indices[i + 1] >= its.vertices.size() ||
+            snapshot.indices[i + 2] >= its.vertices.size())
+            throw std::runtime_error("Preview index is out of range");
+        its.indices.emplace_back(snapshot.indices[i], snapshot.indices[i + 1], snapshot.indices[i + 2]);
+    }
+    return TriangleMesh(std::move(its));
 }
 
 } // namespace
@@ -170,6 +193,60 @@ DocumentInfo validate(const std::vector<uint8_t>& data, uint64_t max_file_size)
 void write_atomic(const Snapshot& snapshot, const boost::filesystem::path& target)
 {
     store_glb(target.string().c_str(), make_scene(snapshot));
+}
+
+const std::vector<Format>& supported_formats()
+{
+    static const std::vector<Format> formats = {
+        {VisualizationInputs::GLTF_BINARY, ".glb", GLB::FORMAT_MAJOR, GLB::FORMAT_MINOR},
+        {VisualizationInputs::STL, ".stl", 1, 0},
+        {VisualizationInputs::OBJ, ".obj", 1, 0},
+        {VisualizationInputs::DRACO, ".drc", 1, 0},
+    };
+    return formats;
+}
+
+const Format* find_format(const std::string& media_type)
+{
+    const auto& formats = supported_formats();
+    const auto it = std::find_if(formats.begin(), formats.end(), [&media_type](const Format& format) {
+        return media_type == format.media_type;
+    });
+    return it == formats.end() ? nullptr : &*it;
+}
+
+void write_atomic(const Snapshot& snapshot, const boost::filesystem::path& target, const std::string& media_type)
+{
+    if (media_type == VisualizationInputs::GLTF_BINARY) {
+        write_atomic(snapshot, target);
+        return;
+    }
+    if (find_format(media_type) == nullptr)
+        throw std::runtime_error("Unsupported visualization format: " + media_type);
+
+    namespace fs = boost::filesystem;
+    fs::path temp = target;
+    temp += ".tmp-" + fs::unique_path("%%%%-%%%%-%%%%").string();
+    TriangleMesh mesh = make_mesh(snapshot);
+    bool written = false;
+    try {
+        if (media_type == VisualizationInputs::STL)
+            written = store_stl(temp.string().c_str(), &mesh, true);
+        else if (media_type == VisualizationInputs::OBJ)
+            written = store_obj(temp.string().c_str(), &mesh);
+        else if (media_type == VisualizationInputs::DRACO)
+            written = store_drc(temp.string().c_str(), &mesh, DRC_BITS_DEFAULT);
+        if (!written)
+            throw std::runtime_error("Failed to write visualization resource");
+        boost::system::error_code error;
+        fs::rename(temp, target, error);
+        if (error)
+            throw std::runtime_error("Failed to publish visualization resource: " + error.message());
+    } catch (...) {
+        boost::system::error_code ignored;
+        fs::remove(temp, ignored);
+        throw;
+    }
 }
 
 } // namespace Slic3r::PreviewGeometrySnapshot

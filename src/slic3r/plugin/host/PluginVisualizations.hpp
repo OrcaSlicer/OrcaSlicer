@@ -68,6 +68,7 @@ private:
         std::shared_ptr<VisualizationPluginCapability> capability;
         uint64_t                                       revision{0};
         boost::filesystem::path                        snapshot_path;
+        VisualizationInput                             input;
     };
 
     struct Request
@@ -81,6 +82,7 @@ private:
         uint64_t                                       generation{0};
         std::string                                    orca_version;
         boost::filesystem::path                        snapshot_path;
+        VisualizationInput                             input;
         Completion                                     completion;
     };
 
@@ -94,7 +96,8 @@ private:
     void dispatch_request(Request request);
     bool is_current_locked(const Request& request) const;
     void finish_request(const Request& request, ExecutionResult result);
-    boost::filesystem::path prepare_cache(const std::string& plugin_key, int plate_index, uint64_t revision);
+    boost::filesystem::path prepare_cache(const std::string& plugin_key, int plate_index, uint64_t revision,
+                                          const std::string& extension = ".glb");
     void remove_snapshot(const boost::filesystem::path& path);
     void notify_change();
 

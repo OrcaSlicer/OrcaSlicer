@@ -23,6 +23,25 @@ ExecutionResult recoverable_error(const PluginCapabilityId& id, const char* oper
     return ExecutionResult::failure(PluginResult::RecoverableError, error.what());
 }
 
+bool negotiate_toolpath_input(const VisualizationPluginCapability& capability, VisualizationInput& input)
+{
+    for (const VisualizationInputSpec& spec : capability.supported_inputs()) {
+        if (spec.kind != VisualizationInputs::TOOLPATH || spec.transport != VisualizationInputs::FILE_TRANSPORT)
+            continue;
+        const PreviewGeometrySnapshot::Format* format = PreviewGeometrySnapshot::find_format(spec.format);
+        if (format == nullptr)
+            continue;
+        VisualizationInput candidate{VisualizationInputs::TOOLPATH, format->media_type,
+                                     VisualizationInputs::FILE_TRANSPORT, {},
+                                     format->major_version, format->minor_version};
+        if (capability.supports(candidate)) {
+            input = std::move(candidate);
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace
 
 PluginVisualizations& PluginVisualizations::instance()
@@ -108,7 +127,7 @@ ExecutionResult PluginVisualizations::open(const std::shared_ptr<VisualizationPl
         result = capability->open(ctx);
         if (result.status == PluginResult::Success) {
             std::lock_guard<std::mutex> lock(m_mutex);
-            m_sessions.emplace(id, Session{capability, ctx.revision, std::move(owned_resource)});
+            m_sessions.emplace(id, Session{capability, ctx.revision, std::move(owned_resource), ctx.input});
         }
     } catch (const std::exception& error) {
         return recoverable_error(id, "open", error);
@@ -150,6 +169,7 @@ ExecutionResult PluginVisualizations::update(const PluginCapabilityId& id, const
                 old_snapshot = std::move(it->second.snapshot_path);
                 it->second.revision = ctx.revision;
                 it->second.snapshot_path = std::move(owned_resource);
+                it->second.input = ctx.input;
             }
         }
     } catch (const std::exception& error) {
@@ -265,9 +285,16 @@ void PluginVisualizations::request_open_toolpath(const std::shared_ptr<Visualiza
     request.orca_version = std::move(orca_version);
     request.completion = std::move(completion);
     try {
+        if (!negotiate_toolpath_input(*capability, request.input)) {
+            if (request.completion)
+                request.completion(ExecutionResult::skipped("Visualization capability supports no host toolpath format"));
+            return;
+        }
         request.snapshot = std::make_shared<PreviewGeometrySnapshot::Snapshot>(
             PreviewGeometrySnapshot::capture(*mesh, result, plate_index, revision, printable_area));
-        request.snapshot_path = prepare_cache(request.id.plugin_key, plate_index, revision);
+        const auto* format = PreviewGeometrySnapshot::find_format(request.input.format);
+        request.snapshot_path = prepare_cache(request.id.plugin_key, plate_index, revision, format->extension);
+        request.input.location = request.snapshot_path.string();
         enqueue(std::move(request));
     } catch (const std::exception& error) {
         if (request.completion)
@@ -279,12 +306,12 @@ void PluginVisualizations::request_toolpath_updates(std::shared_ptr<const GUI::P
                                                     const GCodeProcessorResult& result, const Pointfs& printable_area, int plate_index, uint64_t revision,
                                                     std::string orca_version, Completion completion)
 {
-    std::vector<std::shared_ptr<VisualizationPluginCapability>> capabilities_to_update;
+    std::vector<std::pair<std::shared_ptr<VisualizationPluginCapability>, VisualizationInput>> capabilities_to_update;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         for (const auto& entry : m_sessions)
             if (entry.second.revision != revision)
-                capabilities_to_update.push_back(entry.second.capability);
+                capabilities_to_update.emplace_back(entry.second.capability, entry.second.input);
     }
     if (capabilities_to_update.empty())
         return;
@@ -300,11 +327,12 @@ void PluginVisualizations::request_toolpath_updates(std::shared_ptr<const GUI::P
             PreviewGeometrySnapshot::capture(*mesh, result, plate_index, revision, printable_area));
     } catch (const std::exception& error) {
         if (completion)
-            completion(recoverable_error(capabilities_to_update.front()->identity(), "capture", error));
+            completion(recoverable_error(capabilities_to_update.front().first->identity(), "capture", error));
         return;
     }
 
-    for (auto& capability : capabilities_to_update) {
+    for (auto& capability_and_input : capabilities_to_update) {
+        auto& capability = capability_and_input.first;
         Request request;
         request.kind = RequestKind::Update;
         request.capability = capability;
@@ -313,7 +341,12 @@ void PluginVisualizations::request_toolpath_updates(std::shared_ptr<const GUI::P
         request.plate_index = plate_index;
         request.revision = revision;
         request.orca_version = orca_version;
-        request.snapshot_path = prepare_cache(request.id.plugin_key, plate_index, revision);
+        request.input = capability_and_input.second;
+        const auto* format = PreviewGeometrySnapshot::find_format(request.input.format);
+        if (format == nullptr)
+            continue;
+        request.snapshot_path = prepare_cache(request.id.plugin_key, plate_index, revision, format->extension);
+        request.input.location = request.snapshot_path.string();
         request.completion = completion;
         enqueue(std::move(request));
     }
@@ -369,7 +402,7 @@ void PluginVisualizations::worker_loop()
                 if (!is_current_locked(request))
                     throw std::runtime_error("Visualization snapshot request was cancelled");
             }
-            PreviewGeometrySnapshot::write_atomic(*request.snapshot, request.snapshot_path);
+            PreviewGeometrySnapshot::write_atomic(*request.snapshot, request.snapshot_path, request.input.format);
             request.snapshot.reset();
             dispatch_request(std::move(request));
         } catch (const std::exception& error) {
@@ -395,12 +428,7 @@ void PluginVisualizations::dispatch_request(Request request)
             context.orca_version = request.orca_version;
             context.revision = request.revision;
             context.metadata.emplace("plate_index", std::to_string(request.plate_index));
-            context.input.kind = VisualizationInputs::TOOLPATH;
-            context.input.format = VisualizationInputs::GLTF_BINARY;
-            context.input.transport = VisualizationInputs::FILE_TRANSPORT;
-            context.input.location = request.snapshot_path.string();
-            context.input.major_version = PreviewGeometrySnapshot::FORMAT_MAJOR;
-            context.input.minor_version = PreviewGeometrySnapshot::FORMAT_MINOR;
+            context.input = request.input;
             if (request.kind == RequestKind::Open)
                 result = open(request.capability, context, request.snapshot_path);
             else
@@ -426,7 +454,8 @@ void PluginVisualizations::finish_request(const Request& request, ExecutionResul
         request.completion(std::move(result));
 }
 
-boost::filesystem::path PluginVisualizations::prepare_cache(const std::string& plugin_key, int plate_index, uint64_t revision)
+boost::filesystem::path PluginVisualizations::prepare_cache(const std::string& plugin_key, int plate_index, uint64_t revision,
+                                                            const std::string& extension)
 {
     namespace fs = boost::filesystem;
     const fs::path cache = fs::path(PluginManager::instance().get_storage_dir(plugin_key)) / "preview_cache";
@@ -441,7 +470,7 @@ boost::filesystem::path PluginVisualizations::prepare_cache(const std::string& p
     }
     fs::create_directories(cache);
     return cache / ("plate-" + std::to_string(plate_index) + "-revision-" + std::to_string(revision) +
-                    fs::unique_path("-%%%%-%%%%-%%%%.glb").string());
+                    fs::unique_path("-%%%%-%%%%-%%%%").string() + extension);
 }
 
 void PluginVisualizations::remove_snapshot(const boost::filesystem::path& path)

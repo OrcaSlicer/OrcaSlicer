@@ -1009,6 +1009,25 @@ void MenuFactory::append_menu_item_export_drc(wxMenu* menu, bool is_mulity_menu)
         }, m_parent);
 }
 
+void MenuFactory::append_menu_item_export_glb(wxMenu* menu, bool is_mulity_menu)
+{
+    append_menu_item(menu, wxID_ANY, _L("Export as one GLB") + dots, "",
+        [](wxCommandEvent&) { plater()->export_stl(false, true, false, FT_GLB); }, "", nullptr,
+        [is_mulity_menu]() {
+            const Selection& selection = plater()->canvas3D()->get_selection();
+            return is_mulity_menu ? selection.is_multiple_full_instance() || selection.is_multiple_full_object()
+                                  : selection.is_single_full_instance() || selection.is_single_full_object();
+        }, m_parent);
+    if (!is_mulity_menu)
+        return;
+    append_menu_item(menu, wxID_ANY, _L("Export as GLBs") + dots, "",
+        [](wxCommandEvent&) { plater()->export_stl(false, true, true, FT_GLB); }, "", nullptr,
+        []() {
+            const Selection& selection = plater()->canvas3D()->get_selection();
+            return selection.is_multiple_full_instance() || selection.is_multiple_full_object();
+        }, m_parent);
+}
+
 void MenuFactory::append_menu_item_reload_from_disk(wxMenu* menu)
 {
     append_menu_item(menu, wxID_ANY, _L("Reload from disk"), _L("Reload the selected parts from disk"),
@@ -1429,6 +1448,7 @@ void MenuFactory::create_common_object_menu(wxMenu* menu)
     append_menu_item_reload_from_disk(menu);
     append_menu_item_export_stl(menu);
     append_menu_item_export_drc(menu);
+    append_menu_item_export_glb(menu);
     // "Scale to print volume" makes a sense just for whole object
     append_menu_item_scale_selection_to_fit_print_volume(menu);
 
@@ -1521,6 +1541,7 @@ void MenuFactory::create_extra_object_menu()
     append_menu_item_replace_all_with_stl(&m_object_menu);
     append_menu_item_export_stl(&m_object_menu);
     append_menu_item_export_drc(&m_object_menu);
+    append_menu_item_export_glb(&m_object_menu);
 }
 
 void MenuFactory::create_bbl_assemble_object_menu()
@@ -1558,6 +1579,7 @@ void MenuFactory::create_part_menu()
     append_menu_item_reload_from_disk(menu);
     append_menu_item_export_stl(menu);
     append_menu_item_export_drc(menu);
+    append_menu_item_export_glb(menu);
     append_menu_item_fix_through_cgal(menu);
     append_menu_items_mirror(menu);
     append_menu_item_merge_parts_to_single_part(menu);
@@ -1963,6 +1985,7 @@ wxMenu* MenuFactory::multi_selection_menu()
         menu->AppendSeparator();
         append_menu_item_export_stl(menu, true);
         append_menu_item_export_drc(menu, true);
+        append_menu_item_export_glb(menu, true);
     }
     else {
         append_menu_item_center(menu);

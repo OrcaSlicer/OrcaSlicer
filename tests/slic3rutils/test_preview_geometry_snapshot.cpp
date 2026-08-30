@@ -181,3 +181,20 @@ TEST_CASE("GLB preview publication cleans a unique temporary file after failure"
     CHECK(fs::is_directory(target));
     CHECK_FALSE(has_snapshot_temp(temp.path(), target.filename().string()));
 }
+
+TEST_CASE("Preview snapshots use one contract for every supported mesh format", "[PreviewGeometrySnapshot]")
+{
+    ScopedTemporaryDir temp("preview-formats");
+    const auto& formats = Preview::supported_formats();
+    REQUIRE(formats.size() == 4);
+
+    for (const Preview::Format& format : formats) {
+        CAPTURE(format.media_type);
+        const fs::path target = temp.path() / (std::string("scene") + format.extension);
+        Preview::write_atomic(sample_snapshot(), target, format.media_type);
+        CHECK(fs::is_regular_file(target));
+        CHECK(fs::file_size(target) > 0);
+        CHECK(Preview::find_format(format.media_type) == &format);
+    }
+    CHECK(Preview::find_format("model/unsupported") == nullptr);
+}

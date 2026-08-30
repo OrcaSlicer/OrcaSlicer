@@ -63,6 +63,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Format/STL.hpp"
 #include "libslic3r/Format/DRC.hpp"
+#include "libslic3r/Format/GLB.hpp"
 #include "libslic3r/Format/STEP.hpp"
 #include "libslic3r/Format/AMF.hpp"
 //#include "libslic3r/Format/3mf.hpp"
@@ -9724,6 +9725,7 @@ wxString Plater::priv::get_export_file(GUI::FileType file_type)
     switch (file_type) {
         case FT_STL:
         case FT_DRC:
+        case FT_GLB:
         case FT_AMF:
         case FT_3MF:
         case FT_GCODE:
@@ -9749,6 +9751,12 @@ wxString Plater::priv::get_export_file(GUI::FileType file_type)
         {
             output_file.replace_extension("drc");
             dlg_title = _L("Export Draco file:");
+            break;
+        }
+        case FT_GLB:
+        {
+            output_file.replace_extension("glb");
+            dlg_title = _L("Export GLB file:");
             break;
         }
         case FT_AMF:
@@ -18342,6 +18350,7 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
         switch (file_type) {
         case FT_STL: ext = ".stl"; break;
         case FT_DRC: ext = ".drc"; break;
+        case FT_GLB: ext = ".glb"; break;
         }
 
         auto path = dir + name + ext;
@@ -18383,6 +18392,7 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
                 switch (file_type) {
                 case FT_STL: Slic3r::store_stl(get_save_file(path_u8, object->name).c_str(), &mesh, true); break;
                 case FT_DRC: Slic3r::store_drc(get_save_file(path_u8, object->name).c_str(), &mesh, quality); break;
+                case FT_GLB: Slic3r::store_glb(get_save_file(path_u8, object->name).c_str(), &mesh); break;
                 }
             }
             return;
@@ -18400,6 +18410,7 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
             switch (file_type) {
             case FT_STL: Slic3r::store_stl(get_save_file(path_u8, o->name).c_str(), &mesh, true); break;
             case FT_DRC: Slic3r::store_drc(get_save_file(path_u8, o->name).c_str(), &mesh, quality); break;
+            case FT_GLB: Slic3r::store_glb(get_save_file(path_u8, o->name).c_str(), &mesh); break;
             }
         }
         return;
@@ -18408,6 +18419,7 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
     switch (file_type) {
     case FT_STL: Slic3r::store_stl(path_u8.c_str(), &mesh, true); break;
     case FT_DRC: Slic3r::store_drc(path_u8.c_str(), &mesh, quality); break;
+    case FT_GLB: Slic3r::store_glb(path_u8.c_str(), &mesh); break;
     }
 }
 

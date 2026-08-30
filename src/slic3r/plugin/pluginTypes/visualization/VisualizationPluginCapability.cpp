@@ -51,9 +51,12 @@ void VisualizationPluginCapability::RegisterBindings(pybind11::module_& module)
     auto visualization = module.def_submodule(
         "visualization",
         "Negotiated visualization API. Capabilities declare acceptable inputs once at load time; "
-        "the host dispatches only compatible immutable resources.");
+        "the host dispatches GLB, STL, OBJ, and Draco through the same immutable resource contract.");
     visualization.attr("INPUT_TOOLPATH") = VisualizationInputs::TOOLPATH;
     visualization.attr("FORMAT_GLTF_BINARY") = VisualizationInputs::GLTF_BINARY;
+    visualization.attr("FORMAT_STL") = VisualizationInputs::STL;
+    visualization.attr("FORMAT_OBJ") = VisualizationInputs::OBJ;
+    visualization.attr("FORMAT_DRACO") = VisualizationInputs::DRACO;
     visualization.attr("TRANSPORT_FILE") = VisualizationInputs::FILE_TRANSPORT;
 
     py::class_<VisualizationInputSpec>(
@@ -69,7 +72,7 @@ void VisualizationPluginCapability::RegisterBindings(pybind11::module_& module)
         .def_readwrite("kind", &VisualizationInputSpec::kind,
                        "Semantic kind, such as INPUT_TOOLPATH or a plugin-defined identifier.")
         .def_readwrite("format", &VisualizationInputSpec::format,
-                       "Media/serialization identifier, such as FORMAT_GLTF_BINARY.")
+                       "Media type such as FORMAT_GLTF_BINARY, FORMAT_STL, FORMAT_OBJ, or FORMAT_DRACO.")
         .def_readwrite("transport", &VisualizationInputSpec::transport,
                        "Delivery mechanism, such as TRANSPORT_FILE.")
         .def_readwrite("minimum_major", &VisualizationInputSpec::minimum_major, "Inclusive minimum major version.")
