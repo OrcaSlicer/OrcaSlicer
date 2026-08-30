@@ -159,3 +159,66 @@ TEST_CASE("slvs: a sketch past the solver's unknown limit still solves", "[slvs]
     auto res3 = sketch_solve(ents, cons);
     CHECK_FALSE(res3.ok);
 }
+
+TEST_CASE("slvs: equal radius drives two circles to one radius", "[slvs][CadDocument]")
+{
+    std::vector<SketchEntity> ents = { circle({0, 0}, 5.0), circle({10, 0}, 12.0) };
+    std::vector<SketchEntityConstraintDef> cons = {
+        con(CT::EqualRadius, 0, R::P0, 1, R::P0),
+    };
+    auto res = sketch_solve(ents, cons);
+    REQUIRE(res.ok);
+    CHECK(ents[0].radius == Approx(ents[1].radius).margin(1e-9));
+    CHECK(ents[0].radius > 1e-6);   // equal-at-zero would satisfy the line above trivially
+}
+
+TEST_CASE("slvs: equal radius plus a radius dimension pins both", "[slvs][CadDocument]")
+{
+    std::vector<SketchEntity> ents = { circle({0, 0}, 5.0), circle({10, 0}, 12.0) };
+    std::vector<SketchEntityConstraintDef> cons = {
+        con(CT::EqualRadius, 0, R::P0, 1, R::P0),
+        con(CT::Radius, 0, R::P0, -1, R::P0, 8.0),
+    };
+    auto res = sketch_solve(ents, cons);
+    REQUIRE(res.ok);
+    CHECK(ents[0].radius == Approx(8.0).margin(1e-9));
+    CHECK(ents[1].radius == Approx(8.0).margin(1e-9));
+}
+
+TEST_CASE("slvs: collinear makes two offset lines share one line", "[slvs][CadDocument]")
+{
+    std::vector<SketchEntity> ents = { line({0, 0}, {10, 0}), line({0, 4}, {10, 4}) };
+    std::vector<SketchEntityConstraintDef> cons = {
+        con(CT::Collinear, 0, R::P0, 1, R::P0),
+    };
+    auto res = sketch_solve(ents, cons);
+    REQUIRE(res.ok);
+    const Vec2d& a0 = ents[0].p0;
+    const Vec2d  ad = ents[0].p1 - ents[0].p0;
+    for (int k = 0; k <= 1; ++k) {
+        const Vec2d& pk = (k == 0) ? ents[1].p0 : ents[1].p1;
+        const double cross = ad.x() * (pk.y() - a0.y()) - ad.y() * (pk.x() - a0.x());
+        CHECK(cross == Approx(0.0).margin(1e-9));
+    }
+    // A line collapsed to a point is trivially collinear with anything, so the cross
+    // products above would pass on a degenerate solve. Both lines must survive intact.
+    CHECK(ad.norm() == Approx(10.0).margin(1e-9));
+    CHECK((ents[1].p1 - ents[1].p0).norm() == Approx(10.0).margin(1e-9));
+}
+
+TEST_CASE("slvs: collinear on already-collinear lines moves nothing", "[slvs][CadDocument]")
+{
+    std::vector<SketchEntity> ents = { line({0, 0}, {10, 0}), line({20, 0}, {30, 0}) };
+    std::vector<SketchEntityConstraintDef> cons = {
+        con(CT::Collinear, 0, R::P0, 1, R::P0),
+    };
+    std::vector<SketchEntity> before = ents;
+    auto res = sketch_solve(ents, cons);
+    REQUIRE(res.ok);
+    for (size_t i = 0; i < ents.size(); ++i) {         // already satisfied: nothing may move
+        CHECK(ents[i].p0.x() == Approx(before[i].p0.x()).margin(1e-9));
+        CHECK(ents[i].p0.y() == Approx(before[i].p0.y()).margin(1e-9));
+        CHECK(ents[i].p1.x() == Approx(before[i].p1.x()).margin(1e-9));
+        CHECK(ents[i].p1.y() == Approx(before[i].p1.y()).margin(1e-9));
+    }
+}

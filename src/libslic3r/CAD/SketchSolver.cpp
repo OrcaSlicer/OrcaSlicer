@@ -173,6 +173,9 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
             ref_ok = ptOf(c.ea, c.ra) && ptOf(c.eb, c.rb) && primOf(c.ec); break;
         case CT::PointOnLine: case CT::PointOnObject:
             ref_ok = ptOf(c.ea, c.ra) && primOf(c.eb); break;
+        case CT::EqualRadius:
+        case CT::Collinear:
+            ref_ok = primOf(c.ea) && primOf(c.eb); break;
         }
         if (!ref_ok) continue;
         switch (c.type) {
@@ -279,6 +282,20 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
                 b.C(SLVS_C_PT_ON_CIRCLE, 0, ptOf(c.ea, c.ra), 0, primOf(c.eb), 0);
             else
                 b.C(SLVS_C_PT_ON_LINE, 0, ptOf(c.ea, c.ra), 0, primOf(c.eb), 0);
+            break;
+        case CT::EqualRadius:
+            b.C(SLVS_C_EQUAL_RADIUS, 0, 0, 0, primOf(c.ea), primOf(c.eb));
+            break;
+        case CT::Collinear:
+            // libslvs has no collinear code. Two lines are collinear iff they are parallel
+            // AND a point of one lies on the other's infinite line — emit both.
+            b.C(SLVS_C_PARALLEL, 0, 0, 0, primOf(c.ea), primOf(c.eb));
+            // Point-on-infinite-line via PT_LINE_DISTANCE=0 rather than PT_ON_LINE: the
+            // latter creates an internal `valP` param that this port's Slvs_Solve leaves at
+            // 0 in the working set (ModifyToSatisfy only updates SK.param), so an already
+            // collinear pair drifts. PT_LINE_DISTANCE=0 is the same condition with no extra
+            // parameter, so an already-satisfied solve is a clean no-op.
+            b.C(SLVS_C_PT_LINE_DISTANCE, 0, ptOf(c.eb, Role::P0), 0, primOf(c.ea), 0);
             break;
         }
     }

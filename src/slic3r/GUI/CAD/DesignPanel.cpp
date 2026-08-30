@@ -1520,6 +1520,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         cbtn("design_c_perpendicular", _L("Perpendicular"), SketchConstraintType::Perpendicular);
         cbtn("design_c_coincident",    _L("Coincident"),    SketchConstraintType::Coincident);
         cbtn("design_c_equal",         _L("Equal length"),  SketchConstraintType::EqualLength);
+        cbtn("design_c_equal_radius", _L("Equal radius"), SketchConstraintType::EqualRadius);
+        cbtn("design_c_collinear",    _L("Collinear"),    SketchConstraintType::Collinear);
         cbtn("design_c_concentric",    _L("Concentric"),    SketchConstraintType::Concentric);
         cbtn("design_c_tangent",       _L("Tangent"),       SketchConstraintType::Tangent);
         cbtn("design_c_midpoint",      _L("Midpoint"),      SketchConstraintType::Midpoint);
@@ -7717,18 +7719,27 @@ void DesignPanel::apply_entity_constraint(SketchConstraintType type)
     };
 
     CadFeature& feat = m_doc.features[m_constrain_feat];
+
+    auto is_round = [](const SketchEntity& e) {
+        return e.type == SketchEntity::Type::Circle || e.type == SketchEntity::Type::Arc; };
+
+    // One Equal button, two meanings: lines get equal length, curves equal radius.
+    if (type == T::EqualLength && e0 >= 0 && e1 >= 0 &&
+        e0 < int(feat.entities.size()) && e1 < int(feat.entities.size()) &&
+        is_round(feat.entities[e0]) && is_round(feat.entities[e1]))
+        type = T::EqualRadius;
+
     const bool needs_two = (type == T::Parallel || type == T::Perpendicular ||
                             type == T::EqualLength || type == T::Coincident ||
                             type == T::Concentric || type == T::Tangent ||
                             type == T::Angle || type == T::Midpoint ||
-                            type == T::Symmetric);
+                            type == T::Symmetric || type == T::EqualRadius ||
+                            type == T::Collinear);
     if (e0 < 0 || e0 >= int(feat.entities.size()) ||
         (needs_two && (e1 < 0 || e1 >= int(feat.entities.size())))) {
         fail(needs_two ? _L("Pick two entities first") : _L("Pick an entity first"));
         return;
     }
-    auto is_round = [](const SketchEntity& e) {
-        return e.type == SketchEntity::Type::Circle || e.type == SketchEntity::Type::Arc; };
 
     SketchEntityConstraintDef def;
     def.type  = type;
@@ -7831,6 +7842,21 @@ void DesignPanel::apply_entity_constraint(SketchConstraintType type)
         else { fail(_L("Symmetric needs two points or two lines + an axis")); return; }
         commit_entity_constraints(defs);
         return;   // multi-def commit done here
+    }
+    case T::EqualRadius: {
+        if (!is_round(feat.entities[e0]) || !is_round(feat.entities[e1])) {
+            fail(_L("Equal radius needs two circles or arcs")); return;
+        }
+        def.ea = e0; def.eb = e1;
+        break;
+    }
+    case T::Collinear: {
+        using ET = SketchEntity::Type;
+        if (feat.entities[e0].type != ET::Line || feat.entities[e1].type != ET::Line) {
+            fail(_L("Collinear needs two lines")); return;
+        }
+        def.ea = e0; def.eb = e1;
+        break;
     }
     case T::Fix: {
         // Anchor the picked entity's reference point to its current coordinate (the

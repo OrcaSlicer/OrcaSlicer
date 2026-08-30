@@ -13,9 +13,16 @@
 # The rig container is expected to be up with the app running and SNAPORCA_MCP set; bring it up
 # with scripts/CAD/start-headless-gui.sh inside it. The corpus lives at /corpus in that container.
 set -uo pipefail
-cd "$(dirname "$0")/.." || exit 1
+# ../.. -- this script lives in scripts/CAD/, so one level up is scripts/, not the repo
+# root. It was scripts/ladder-all.sh when it was written; the move fixed the three sibling
+# scripts and missed this one, which left every rung looking for its own path under
+# scripts/scripts/ and reporting instant failures that were all the same typo.
+cd "$(dirname "${BASH_SOURCE[0]}")/../.." || exit 1
 
-C="${C:-snaporca-gui}"
+# orcacad-gui, NOT snaporca-gui: that is the other fork's rig, and defaulting to it makes
+# this gate verify the wrong fork's binary while reporting green. run-kernel-tests.sh
+# carries the same warning about the build volume, where the defect was found first.
+C="${C:-orcacad-gui}"
 CORPUS="${CORPUS:-/corpus}"
 STEP="${STEP:-20}"
 [ -n "${FULL:-}" ] && STEP=1

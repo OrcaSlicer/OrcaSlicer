@@ -84,7 +84,11 @@ enum class SketchConstraintType {
     Tangent, Midpoint, Symmetric, Angle,
     Radius, Diameter,
     PointOnLine,  // a point lies on a line (or at signed perpendicular distance `value`)
-    PointOnObject // a point lies on an entity edge (line -> PT_ON_LINE, circle -> PT_ON_CIRCLE)
+    PointOnObject, // a point lies on an entity edge (line -> PT_ON_LINE, circle -> PT_ON_CIRCLE)
+    // Append-only: cereal serializes this enum positionally as its underlying int, so
+    // inserting anywhere but the end reinterprets every constraint in every saved recipe.
+    EqualRadius,
+    Collinear
 };
 
 // Constraint on a SketchProfile, referencing profile point indices (a,b,c,d).
