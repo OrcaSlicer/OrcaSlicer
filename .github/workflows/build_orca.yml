@@ -385,6 +385,13 @@ jobs:
           dir "C:/Program Files (x86)/Windows Kits/10/Include"
           choco install nsis
 
+      - name: Install pkg-config
+        # FFmpeg is discovered via pkg-config (pkg_check_modules LIBAV in
+        # src/slic3r/CMakeLists.txt); the Windows runners don't ship it.
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        run: |
+          choco install pkgconfiglite -y
+
       - name: Build slicer Win
         if: runner.os == 'Windows'
         working-directory: ${{ github.workspace }}
