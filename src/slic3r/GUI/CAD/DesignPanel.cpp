@@ -1530,6 +1530,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         cbtn("design_c_radius",        _L("Radius"),        SketchConstraintType::Radius);
         cbtn("design_c_diameter",      _L("Diameter"),      SketchConstraintType::Diameter);
         cbtn("design_c_fix",           _L("Fix point (anchor in place)"), SketchConstraintType::Fix);
+        cbtn("design_c_dist_x", _L("Horizontal distance"), SketchConstraintType::DistanceX);
+        cbtn("design_c_dist_y", _L("Vertical distance"),   SketchConstraintType::DistanceY);
         // Trim/Extend are now standalone SKETCH scissors (Mode::Trim/Extend) in the sketch
         // toolbar, NOT Constrain buttons. The other edit ops (Mirror/Offset/Fillet/Chamfer/
         // Move/…) are first-class sketch tools too. Done constraining = the action-bar ✓.
@@ -7734,7 +7736,8 @@ void DesignPanel::apply_entity_constraint(SketchConstraintType type)
                             type == T::Concentric || type == T::Tangent ||
                             type == T::Angle || type == T::Midpoint ||
                             type == T::Symmetric || type == T::EqualRadius ||
-                            type == T::Collinear);
+                            type == T::Collinear ||
+                            type == T::DistanceX || type == T::DistanceY);
     if (e0 < 0 || e0 >= int(feat.entities.size()) ||
         (needs_two && (e1 < 0 || e1 >= int(feat.entities.size())))) {
         fail(needs_two ? _L("Pick two entities first") : _L("Pick an entity first"));
@@ -7771,6 +7774,41 @@ void DesignPanel::apply_entity_constraint(SketchConstraintType type)
             }
         def.ea = e0; def.ra = ra; def.eb = e1; def.rb = rb;
         break;
+    }
+    case T::DistanceX:
+    case T::DistanceY: {
+        // Axis-projected distance between the closest endpoint pair of the two picked
+        // entities. Typed in-canvas pre-filled with the current projection, committed on
+        // the typed value (same deferred pattern as Angle).
+        const SketchEntity& A = feat.entities[e0];
+        const SketchEntity& B = feat.entities[e1];
+        const std::pair<R, Vec2d> aps[2] = {{R::P0, A.p0}, {R::P1, A.p1}};
+        const std::pair<R, Vec2d> bps[2] = {{R::P0, B.p0}, {R::P1, B.p1}};
+        R ra = R::P1, rb = R::P0;
+        Vec2d pa = A.p1, pb = B.p0;
+        double best = 1e30;
+        for (const auto& ap : aps)
+            for (const auto& bp : bps) {
+                const double d = (ap.second - bp.second).squaredNorm();
+                if (d < best) { best = d; ra = ap.first; rb = bp.first; pa = ap.second; pb = bp.second; }
+            }
+        // The constraint is SIGNED: PROJ_PT_DISTANCE fixes (pB - pA).dot(axis), not its
+        // magnitude. Showing |delta| while the current signed delta is negative would mean
+        // that opening the dimension and simply accepting the number on screen flips the
+        // point to the other side of its anchor. Opening a dimension and accepting its own
+        // value must be a no-op, so order the two refs to make the shown value the positive
+        // one -- which is also how a dimension ought to read.
+        int a = e0, b = e1;
+        double delta = (type == T::DistanceX) ? (pb.x() - pa.x()) : (pb.y() - pa.y());
+        if (delta < 0.0) { std::swap(a, b); std::swap(ra, rb); delta = -delta; }
+        const double cur = delta;
+        const T tt = type;
+        m_viewport->open_inline_value(cur, [this, a, b, ra, rb, tt](double v) {
+            SketchEntityConstraintDef d;
+            d.type = tt; d.ea = a; d.ra = ra; d.eb = b; d.rb = rb; d.value = v;
+            commit_entity_constraint(d);
+        });
+        return;   // deferred: commit runs on the typed value
     }
     case T::Concentric: {
         // Two circles/arcs: make their centres coincide.

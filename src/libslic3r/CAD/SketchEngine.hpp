@@ -88,7 +88,9 @@ enum class SketchConstraintType {
     // Append-only: cereal serializes this enum positionally as its underlying int, so
     // inserting anywhere but the end reinterprets every constraint in every saved recipe.
     EqualRadius,
-    Collinear
+    Collinear,
+    DistanceX,     // |dx| between two points, projected onto the sketch X axis
+    DistanceY      // |dy| between two points, projected onto the sketch Y axis
 };
 
 // Constraint on a SketchProfile, referencing profile point indices (a,b,c,d).

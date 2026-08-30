@@ -73,6 +73,15 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
                    b.P(G_FIXED, qw), b.P(G_FIXED, qx), b.P(G_FIXED, qy), b.P(G_FIXED, qz)));
     b.wp = b.E(Slvs_MakeWorkplane(++b.eh, G_FIXED, origin, b.normal));
 
+    // Unit direction references for the axis-projected distance constraints. Both live in
+    // G_FIXED, so they are held constant and add no DOF to the system.
+    // libslvs defines a LINE_SEGMENT's direction as point[0] - point[1] (entity.cpp
+    // VectorGetExprs), so the unit vector's head is listed first to yield +X / +Y.
+    const Slvs_hEntity dir_x [[maybe_unused]] = b.E(Slvs_MakeLineSegment(++b.eh, G_FIXED, b.wp,
+                                                       b.pt2d(G_FIXED, 1.0, 0.0), b.pt2d(G_FIXED, 0.0, 0.0)));
+    const Slvs_hEntity dir_y [[maybe_unused]] = b.E(Slvs_MakeLineSegment(++b.eh, G_FIXED, b.wp,
+                                                       b.pt2d(G_FIXED, 0.0, 1.0), b.pt2d(G_FIXED, 0.0, 0.0)));
+
     // ---- Entities -------------------------------------------------------------------
     std::vector<Slots> slot(entities.size());
     for (size_t i = 0; i < entities.size(); ++i) {
@@ -158,6 +167,9 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
         switch (c.type) {
         case CT::Coincident: case CT::Horizontal: case CT::Vertical: case CT::Distance:
             ref_ok = ptOf(c.ea, c.ra) && ptOf(c.eb, c.rb); break;
+        case CT::DistanceX:
+        case CT::DistanceY:
+            ref_ok = ptOf(c.ea, c.ra) && ptOf(c.eb, c.rb); break;
         case CT::Concentric:
             ref_ok = ptOf(c.ea, Role::Center) && ptOf(c.eb, Role::Center); break;
         case CT::Fix: case CT::LockX: case CT::LockY:
@@ -193,6 +205,14 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
             break;
         case CT::Distance:
             b.C(SLVS_C_PT_PT_DISTANCE, c.value, ptOf(c.ea, c.ra), ptOf(c.eb, c.rb), 0, 0);
+            break;
+        case CT::DistanceX:
+            // Distance between the two points measured along X only: project the vector
+            // between them onto the fixed unit X direction.
+            b.C(SLVS_C_PROJ_PT_DISTANCE, c.value, ptOf(c.ea, c.ra), ptOf(c.eb, c.rb), dir_x, 0);
+            break;
+        case CT::DistanceY:
+            b.C(SLVS_C_PROJ_PT_DISTANCE, c.value, ptOf(c.ea, c.ra), ptOf(c.eb, c.rb), dir_y, 0);
             break;
         case CT::Fix: {
             const Vec2d p = coordOf(c.ea, c.ra);
