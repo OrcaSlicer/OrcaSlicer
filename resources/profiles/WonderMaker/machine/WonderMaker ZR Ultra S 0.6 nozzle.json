@@ -9,6 +9,9 @@
 	"default_print_profile": "0.30mm Standard @WonderMaker ZR Ultra 0.6 nozzle",
 	"printer_variant": "0.6",
 	"nozzle_diameter": [
+		"0.6",
+		"0.6",
+		"0.6",
 		"0.6"
 	],
 	"max_layer_height": [
