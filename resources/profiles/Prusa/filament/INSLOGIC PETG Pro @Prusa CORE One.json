@@ -1,21 +1,21 @@
 {
   "type": "filament",
-  "name": "INSLOGIC PA6-66 @Prusa CORE One",
-  "inherits": "INSLOGIC PA6-66 @base",
+  "name": "INSLOGIC PETG Pro @Prusa CORE One",
+  "inherits": "INSLOGIC PETG Pro @base",
   "from": "system",
-  "setting_id": "Kuv4zCw8jhxYOzhB",
+  "setting_id": "DxVWszI3sTZnNuYv",
   "instantiation": "true",
   "hot_plate_temp": [
-    "40"
+    "65"
   ],
   "hot_plate_temp_initial_layer": [
-    "40"
+    "65"
   ],
   "textured_plate_temp": [
-    "40"
+    "65"
   ],
   "textured_plate_temp_initial_layer": [
-    "40"
+    "65"
   ],
   "enable_overhang_bridge_fan": [
     "1"
@@ -132,7 +132,7 @@
     "nil"
   ],
   "nozzle_temperature_initial_layer": [
-    "265"
+    "250"
   ],
   "full_fan_speed_layer": [
     "0"
@@ -156,7 +156,7 @@
     ""
   ],
   "nozzle_temperature": [
-    "265"
+    "250"
   ],
   "compatible_printers": [
     "Prusa CORE One 0.4 nozzle",

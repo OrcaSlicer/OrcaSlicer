@@ -1,27 +1,27 @@
 {
   "type": "filament",
-  "name": "INSLOGIC PA6-CF @Prusa CORE One",
-  "inherits": "INSLOGIC PA6-CF @base",
+  "name": "INSLOGIC PLA Pro @Prusa CORE One",
+  "inherits": "INSLOGIC PLA Pro @base",
   "from": "system",
-  "setting_id": "ZCYSMR6VCj0IrYAF",
+  "setting_id": "98Xu9SBXvZLjniQZ",
   "instantiation": "true",
   "hot_plate_temp": [
-    "60"
+    "55"
   ],
   "hot_plate_temp_initial_layer": [
-    "60"
+    "55"
   ],
   "textured_plate_temp": [
-    "60"
+    "55"
   ],
   "textured_plate_temp_initial_layer": [
-    "60"
+    "55"
   ],
   "enable_overhang_bridge_fan": [
     "1"
   ],
   "overhang_fan_speed": [
-    "30"
+    "100"
   ],
   "chamber_minimal_temperature": [
     "0"
@@ -132,7 +132,7 @@
     "nil"
   ],
   "nozzle_temperature_initial_layer": [
-    "280"
+    "210"
   ],
   "full_fan_speed_layer": [
     "0"
@@ -141,10 +141,10 @@
     "170"
   ],
   "fan_max_speed": [
-    "30"
+    "100"
   ],
   "fan_min_speed": [
-    "30"
+    "100"
   ],
   "slow_down_min_speed": [
     "20"
@@ -156,7 +156,7 @@
     ""
   ],
   "nozzle_temperature": [
-    "280"
+    "210"
   ],
   "compatible_printers": [
     "Prusa CORE One 0.4 nozzle",

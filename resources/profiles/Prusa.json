@@ -1,6 +1,6 @@
 {
 	"name": "Prusa",
-	"version": "02.04.00.03",
+	"version": "02.04.00.04",
 	"force_update": "0",
 	"description": "Prusa configurations",
 	"machine_model_list": [
@@ -2483,6 +2483,22 @@
 		{
 			"name": "Prusa Generic PLA Silk @MK4S 0.8",
 			"sub_path": "filament/Prusa Generic PLA Silk @MK4S 0.8.json"
+		},
+		{
+			"name": "INSLOGIC PLA Pro @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC PLA Pro @Prusa CORE One.json"
+		},
+		{
+			"name": "INSLOGIC PETG Pro @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC PETG Pro @Prusa CORE One.json"
+		},
+		{
+			"name": "INSLOGIC PA6-CF @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC PA6-CF @Prusa CORE One.json"
+		},
+		{
+			"name": "INSLOGIC PA6-66 @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC PA6-66 @Prusa CORE One.json"
 		}
 	],
 	"machine_list": [
