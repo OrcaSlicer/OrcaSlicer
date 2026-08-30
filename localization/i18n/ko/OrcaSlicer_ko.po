@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-08-19 14:07-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -4763,6 +4763,23 @@ msgstr "현재 챔버 온도가 재료의 안전 온도보다 높으므로 재�
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "최소 챔버 온도(%d℃)가 목표 챔버 온도(%d℃)보다 높습니다. 최소값은 챔버가 목표 온도까지 계속 가열되는 동안 출력을 시작하는 기준값이므로 목표값을 초과해서는 안 됩니다. 이 값은 목표값으로 제한됩니다."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr "레이어 높이가 너무 작습니다. 최솟값(%g mm)으로 설정됩니다."
+
+# AI Translated
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr "레이어 높이가 프린터 설정 -> 압출기 -> 레이어 높이 한도에서 설정한 범위를 벗어났습니다. 출력 품질 문제가 발생할 수 있습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr "한도(%g mm)에 맞게 자동으로 조정할까요?"
+
+msgid "Adjust"
+msgstr "조정"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4883,6 +4900,13 @@ msgstr ""
 "이 설정을 자동으로 변경하시겠습니까?\n"
 "예 - 아라크네 벽 생성기 활성화\n"
 "아니오 - 아라크네 벽 생성기 비활성화 및 퍼지 스킨 [변위] 모드 설정"
+
+# AI Translated
+msgid "Brim ear radius"
+msgstr "브림 귀 반경"
+
+msgid "Brim width"
+msgstr "브림 너비"
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "나선형 모드는 벽 루프가 1이고, 서포트가 비활성화되고, 프로빙에 의한 클럼핑 감지가 비활성화되고, 상단 셸 레이어가 0이고, 희소 인필 밀도가 0이고 타임랩스 유형이 전통적인 경우에만 작동합니다."
@@ -5137,6 +5161,14 @@ msgstr "교정 Gcode를 생성하지 못했습니다"
 
 msgid "Calibration error"
 msgstr "교정 오류"
+
+# AI Translated
+msgid "This printer is not configured with the hardware this control needs."
+msgstr "이 프린터에는 이 컨트롤에 필요한 하드웨어가 구성되어 있지 않습니다."
+
+# AI Translated
+msgid "This control is not supported on this printer."
+msgstr "이 컨트롤은 이 프린터에서 지원되지 않습니다."
 
 # AI Translated
 msgid "Network unavailable"
@@ -6001,7 +6033,7 @@ msgstr "용량:"
 msgid "Size:"
 msgstr "크기:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "레이어 %d, Z = %.2lf mm에서 Gcode 경로 충돌이 발견되었습니다. 충돌하는 객체를 더 멀리 분리하세요 (%s <-> %s)."
 
@@ -6177,6 +6209,10 @@ msgstr "멀티 디바이스"
 
 msgid "Project"
 msgstr "프로젝트"
+
+# AI Translated
+msgid "Device (Web)"
+msgstr "장치 (웹)"
 
 msgid "Yes"
 msgstr "예"
@@ -8288,22 +8324,22 @@ msgid "Replaced with 3D files from directory:\n"
 msgstr "다음 디렉터리의 3D 파일로 교체했습니다:\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ 건너뜀 %s: 동일한 파일입니다.\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ 건너뜀 %s: 파일이 존재하지 않습니다.\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ 건너뜀 %s: 교체하지 못했습니다.\n"
 
 # AI Translated
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔ %s을(를) 교체했습니다.\n"
 
@@ -9078,6 +9114,18 @@ msgid "Pop up to select filament grouping mode"
 msgstr "필라멘트 그룹화 모드를 선택하기 위한 팝업"
 
 # AI Translated
+msgid "Visible plugin pages"
+msgstr "표시할 플러그인 페이지"
+
+# AI Translated
+msgid "pages"
+msgstr "페이지"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "고정 탭으로 표시되는 플러그인 페이지 수입니다. 나머지 페이지는 마지막 탭의 드롭다운으로 묶입니다."
+
+# AI Translated
 msgid "Behaviour"
 msgstr "동작"
 
@@ -9492,6 +9540,18 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "프린터 및 필라멘트 드롭다운 목록에 호환되지 않거나 지원되지 않는 사전 설정을 표시합니다. 이러한 사전 설정은 선택할 수 없습니다."
 
 # AI Translated
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr "(실험적) 출력 호스트 대신 프린터 에이전트 사용"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Bambu 이외의 프린터 출력 작업을 기존 출력 호스트 업로드 방식 대신 프린터 플러그인 에이전트를 통해 전달합니다.\n"
+"비활성화하면 OrcaSlicer는 기존 출력 호스트 동작을 사용합니다."
+
+# AI Translated
 msgid "Experimental Features"
 msgstr "실험적 기능"
 
@@ -9763,8 +9823,24 @@ msgid "Preset Inside Project"
 msgstr "프로젝트 내부 사전 설정"
 
 # AI Translated
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr "상위 사전 설정에서 상속한 모든 값을 이 사전 설정으로 복사하고 상속 관계를 제거합니다. 상위 사전 설정에서만 호환되는 사전 설정은 지원되지 않을 수 있습니다."
+
+# AI Translated
 msgid "Detach from parent"
 msgstr "상위 항목에서 분리"
+
+# AI Translated
+msgid "Unique preset"
+msgstr "독립 사전 설정"
+
+# AI Translated
+msgid "Parent preset"
+msgstr "상위 사전 설정"
+
+# AI Translated
+msgid "This preset does not inherit from another preset."
+msgstr "이 사전 설정은 다른 사전 설정을 상속하지 않습니다."
 
 msgid "Name is unavailable."
 msgstr "이름을 사용할 수 없습니다."
@@ -10519,22 +10595,6 @@ msgstr "이 옵션을 사용하시겠습니까?"
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "채우기 패턴은 일반적으로 올바른 출력과 의도한 효과를 위해 회전을 자동으로 처리하도록 설계되어 있습니다(예: 자이로이드, 큐빅). 현재 드문 채우기 패턴을 회전시키면 지지력이 부족해질 수 있습니다. 신중하게 진행하고 출력 문제가 발생하지 않는지 충분히 확인하십시오. 이 옵션을 활성화하시겠습니까?"
 
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"레이어 높이가 너무 작습니다.\n"
-"min_layer_height로 설정됩니다.\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "레이어 높이가 프린터 설정 -> 압출기 -> 레이어의 제한을 초과합니다.높이 제한으로 인해 출력 품질 문제가 발생할 수 있습니다."
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "설정 범위에 자동으로 맞춰지나요?\n"
-
-msgid "Adjust"
-msgstr "조정"
-
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "실험적 기능: 플러시를 최소화하기 위해 필라멘트 교체 중에 더 먼 거리에서 필라멘트를 집어넣고 절단합니다. 플러시를 눈에 띄게 줄일 수 있지만 노즐 막힘이나 기타 출력 문제의 위험이 높아질 수도 있습니다."
 
@@ -10728,6 +10788,9 @@ msgstr "예약어를 찾았습니다"
 msgid "Setting Overrides"
 msgstr "설정 덮어쓰기"
 
+msgid "Retraction when switching material"
+msgstr "재료 전환 시 후퇴"
+
 msgid "Basic information"
 msgstr "기본 정보"
 
@@ -10861,6 +10924,14 @@ msgstr "호환 프로세스 사전설정"
 msgid "Printable space"
 msgstr "출력 가능 공간"
 
+# AI Translated
+msgid "Printer Agent"
+msgstr "프린터 에이전트"
+
+# AI Translated
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "프린터 통신에 사용할 네트워크 에이전트 구현을 선택합니다. 사용 가능한 에이전트는 시작 시 등록됩니다."
+
 #. TRN: The first argument is the parameter's name; the second argument is its value.
 #, boost-format
 msgid "Invalid value provided for parameter %1%: %2%"
@@ -10992,9 +11063,6 @@ msgstr "레이어 높이 한도"
 
 msgid "Z-Hop"
 msgstr "Z올리기"
-
-msgid "Retraction when switching material"
-msgstr "재료 전환 시 후퇴"
 
 # AI Translated
 msgid ""
@@ -12389,6 +12457,10 @@ msgid " is too close to clumping detection area, and collisions will be caused.\
 msgstr " 뭉침 감지 영역에 너무 가까워 충돌이 발생할 수 있습니다.\n"
 
 # AI Translated
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr " 이(가) 출력 가능 영역을 일부 벗어나 출력할 수 없습니다.\n"
+
+# AI Translated
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "선택한 노즐 온도가 서로 호환되지 않습니다. 각 필라멘트의 노즐 온도는 다른 필라멘트의 권장 노즐 온도 범위 안에 있어야 합니다. 그렇지 않으면 노즐 막힘이나 프린터 손상이 발생할 수 있습니다."
 
@@ -12731,10 +12803,6 @@ msgstr "G-code 대신 3MF 사용"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "프린터가 출력 작업으로 3MF 파일을 허용하는 경우 이 옵션을 활성화하십시오. 활성화하면 Orca Slicer가 슬라이스된 파일을 일반 .gcode 파일 대신 .gcode.3mf로 전송합니다."
-
-# AI Translated
-msgid "Printer Agent"
-msgstr "프린터 에이전트"
 
 # AI Translated
 msgid "Select the network agent implementation for printer communication."
@@ -13446,9 +13514,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "내부 브릿지의 속도. 값을 백분율로 표현하면 bridge_speed를 기준으로 계산됩니다. 기본값은 150%입니다."
 
-msgid "Brim width"
-msgstr "브림 너비"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "모델과 가장 바깥쪽 브림 선까지의 거리"
 
@@ -13532,6 +13597,14 @@ msgid ""
 msgstr ""
 "날카로운 각도를 감지하기 전에 형상이 무시됩니다. 이 매개변수는 무시하는 형상의 최소 길이를 나타냅니다.\n"
 "0으로 비활성화합니다"
+
+# AI Translated
+msgid "Brim ears outer only"
+msgstr "브림 귀를 바깥쪽에만"
+
+# AI Translated
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr "구멍과 닫힌 영역을 제외하고 모델의 바깥쪽 윤곽에만 생쥐 귀를 생성합니다."
 
 msgid "upward compatible machine"
 msgstr "상향 호환 장치"
@@ -14729,6 +14802,14 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "자이로이드"
 
+# AI Translated
+msgid "Sparse infill smooth factor"
+msgstr "드문 채우기 부드러움 계수"
+
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "드문 채우기의 모서리를 얼마나 둥글게 할지 조절합니다. 0%는 원래의 날카로운 경로를 유지하고, 100%는 인접한 채우기 선 사이에 가능한 가장 큰 곡선을 만듭니다."
+
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "상단 표면 가속도. 낮은 값을 사용하면 상단 표면 품질이 향상될 수 있습니다"
 
@@ -15290,6 +15371,14 @@ msgstr "프린터와 호환되는 Gcode 종류"
 
 msgid "Klipper"
 msgstr "Klipper"
+
+# AI Translated
+msgid "Skip G-code config block"
+msgstr "G-code 설정 블록 생략"
+
+# AI Translated
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr "CONFIG_BLOCK(슬라이서 설정의 키/값 쌍)을 G-code 파일에 기록하지 않습니다. 이 주석 줄을 해석할 때 펌웨어가 중단되는 프린터(예: Anycubic go-klipper)에 도움이 될 수 있습니다. 참고: G-code 파일에 슬라이서 설정이 더 이상 포함되지 않으므로, 이 파일을 OrcaSlicer로 다시 가져와도 설정이 복원되지 않습니다."
 
 msgid "Pellet Modded Printer"
 msgstr "펠릿 프린터"
@@ -16400,6 +16489,14 @@ msgstr "압출기 교체 시 긴 수축"
 msgid "Retraction distance when extruder change"
 msgstr "압출기 교체 시 수축 거리"
 
+# AI Translated
+msgid "Retraction Length (Toolchange)"
+msgstr "후퇴 길이 (툴 체인지)"
+
+# AI Translated
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr "툴 체인지 전에 후퇴가 실행되면 지정한 양만큼 필라멘트가 뒤로 당겨집니다 (길이는 압출기에 들어가기 전의 원래 필라멘트를 기준으로 측정됩니다)."
+
 msgid "Z-hop height"
 msgstr "Z올리기 높이"
 
@@ -16497,6 +16594,10 @@ msgstr "재 시작 시 추가 길이"
 
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "이동 후 후퇴가 보상되면 압출기는 이 추가 양의 필라멘트를 밀어냅니다. 이 설정은 거의 필요하지 않습니다."
+
+# AI Translated
+msgid "Extra length on restart (Toolchange)"
+msgstr "재 시작 시 추가 길이 (툴 체인지)"
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "툴 체인지 후 후퇴가 보상되면 압출기는 이 추가 양의 필라멘트를 밀어냅니다."
@@ -16921,6 +17022,14 @@ msgstr "프라임 타워에서 툴 체인지"
 # AI Translated
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "툴 체인지 명령(Tx)을 실행하기 전에 툴헤드가 반드시 프라임 타워로 이동하도록 합니다. 유형 2 프라임 타워를 사용하는 다중 압출기(멀티 툴헤드) 프린터에만 해당됩니다. 기본적으로 Orca는 멀티 툴헤드 장비에서 펌웨어가 헤드 교체를 처리하므로 이동을 생략하는데, 이 때문에 Tx 명령이 출력물 위에서 실행될 수 있습니다. 툴 체인지가 항상 프라임 타워 위에서 실행되도록 하려면 이 옵션을 활성화하십시오."
+
+# AI Translated
+msgid "Wait for temperature on wipe tower"
+msgstr "프라임 타워에서 온도 대기"
+
+# AI Translated
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr "출력 온도에 도달할 때까지 기다리지 않고 새 툴을 집은 뒤 프라임 타워로 이동하여, 퍼지 직전에 그곳에서 온도를 기다립니다. 가열 중 흘러나온 재료는 모델이 아닌 타워에 떨어지고, 이동 시간이 가열 시간과 겹칩니다. 타입 2 프라임 타워를 사용하는 다중 압출기(다중 툴헤드) 프린터에만 해당합니다. 펌웨어나 툴 체인지 매크로가 직접 온도를 기다려서는 안 됩니다. 비활성화하면 툴 체인지 명령 직후에 온도 대기가 실행됩니다."
 
 msgid "No sparse layers (beta)"
 msgstr "희소 레이어 없음(베타)"
@@ -20262,10 +20371,6 @@ msgid "Print Host upload"
 msgstr "출력 호스트 업로드"
 
 # AI Translated
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "프린터 통신에 사용할 네트워크 에이전트 구현을 선택합니다. 사용 가능한 에이전트는 시작 시 등록됩니다."
-
-# AI Translated
 msgid "Select a Flashforge printer"
 msgstr "Flashforge 프린터 선택"
 
@@ -21217,9 +21322,6 @@ msgstr "로그인을 시도하는 동안 예기치 않은 문제가 발생했습
 msgid "User canceled."
 msgstr "사용자가 취소했습니다."
 
-msgid "Head diameter"
-msgstr "헤드 직경"
-
 msgid "Max angle"
 msgstr "최대 각도"
 
@@ -22056,6 +22158,22 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "레이어 높이가 너무 작습니다.\n"
+#~ "min_layer_height로 설정됩니다.\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "레이어 높이가 프린터 설정 -> 압출기 -> 레이어의 제한을 초과합니다.높이 제한으로 인해 출력 품질 문제가 발생할 수 있습니다."
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "설정 범위에 자동으로 맞춰지나요?\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "헤드 직경"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "단일 레이어 내의 출력 순서"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-08-19 14:07-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -4739,6 +4739,23 @@ msgstr "A kamra aktuális hőmérséklete magasabb az anyag biztonságos hőmér
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "A minimális kamrahőmérséklet (%d℃) magasabb a cél kamrahőmérsékletnél (%d℃). A minimális érték az a küszöb, amelynél a nyomtatás elindul, miközben a kamra tovább melegszik a célérték felé, ezért nem haladhatja meg azt. Az érték a célértékre lesz korlátozva."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr "A rétegmagasság túl kicsi. A minimumra lesz állítva (%g mm)."
+
+# AI Translated
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr "A rétegmagasság a Nyomtatóbeállítások -> Extruder -> Rétegmagasság limitek menüpontban megadott határértékeken kívül esik, ez minőségbeli problémákat okozhat a nyomtatás során."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr "Szeretnéd automatikusan a határértékre (%g mm) igazítani?"
+
+msgid "Adjust"
+msgstr "Módosítás"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4857,6 +4874,13 @@ msgstr ""
 "Automatikusan módosítsuk ezeket a beállításokat?\n"
 "Igen - Engedélyezd az Arachne falgenerátort\n"
 "Nem - Tiltsd le az Arachne falgenerátort, majd állítsd a barázdált felületet [Eltolás] módra"
+
+# AI Translated
+msgid "Brim ear radius"
+msgstr "Peremfül sugara"
+
+msgid "Brim width"
+msgstr "Perem szélessége"
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "A spirál mód csak akkor működik, ha a falhurkok száma 1, a támasz és a szondázásos csomósodásészlelés ki van kapcsolva, a felső héjrétegek száma 0, a kitöltés sűrűsége 0, a Timelapse típusa pedig hagyományos."
@@ -5111,6 +5135,14 @@ msgstr "Nem sikerült létrehozni a kalibrációs G-kódot"
 
 msgid "Calibration error"
 msgstr "Kalibrációs hiba"
+
+# AI Translated
+msgid "This printer is not configured with the hardware this control needs."
+msgstr "Ez a nyomtató nincs felszerelve a vezérlőelemhez szükséges hardverrel."
+
+# AI Translated
+msgid "This control is not supported on this printer."
+msgstr "Ez a vezérlőelem nem támogatott ezen a nyomtatón."
 
 # AI Translated
 msgid "Network unavailable"
@@ -5971,7 +6003,7 @@ msgstr "Térfogat:"
 msgid "Size:"
 msgstr "Méret:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "G-kód útvonalütközés található a(z) %d. rétegen, Z = %.2lfmm. Helyezd távolabb egymástól az ütköző objektumokat (%s <-> %s)."
 
@@ -6152,6 +6184,10 @@ msgstr "Több eszköz"
 
 msgid "Project"
 msgstr "Projekt"
+
+# AI Translated
+msgid "Device (Web)"
+msgstr "Nyomtató (Web)"
 
 msgid "Yes"
 msgstr "Igen"
@@ -8244,19 +8280,19 @@ msgstr "A cseréhez nem lett mappa kiválasztva"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Cserélve a mappából származó 3D fájlokra:\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ %s kihagyva: azonos fájl.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ %s kihagyva: a fájl nem létezik.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ %s kihagyva: a csere sikertelen.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔%s lecserélve.\n"
 
@@ -8993,6 +9029,18 @@ msgstr "Ezzel az opcióval egyszerre több eszközre küldhetsz feladatot és t�
 msgid "Pop up to select filament grouping mode"
 msgstr "Felugró ablak a filamentcsoportosítási mód kiválasztásához"
 
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "Látható bővítményoldalak"
+
+# AI Translated
+msgid "pages"
+msgstr "oldal"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "A rögzített fülként megjelenő bővítményoldalak száma; a fennmaradó oldalak az utolsó fülön lenyíló listába kerülnek."
+
 msgid "Behaviour"
 msgstr "Viselkedés"
 
@@ -9363,6 +9411,18 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "Megjeleníti a nem kompatibilis vagy nem támogatott beállításokat a nyomtató- és filamentlegördülő listákban. Ezek a beállítások nem választhatók ki."
 
 # AI Translated
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr "(Kísérleti) Nyomtatóügynökök használata nyomtatókiszolgálók helyett"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"A nem Bambu nyomtatók nyomtatási feladatait a nyomtató bővítményügynökein keresztül továbbítja a klasszikus nyomtatókiszolgálóra való feltöltés helyett.\n"
+"Ha ki van kapcsolva, az OrcaSlicer a régi nyomtatókiszolgáló-viselkedést használja."
+
+# AI Translated
 msgid "Experimental Features"
 msgstr "Kísérleti funkciók"
 
@@ -9632,8 +9692,24 @@ msgstr "Felhasználói beállítás"
 msgid "Preset Inside Project"
 msgstr "Projekt a beállításon belül"
 
+# AI Translated
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr "Az összes örökölt értéket átmásolja a szülő előbeállításból ebbe az előbeállításba, és megszünteti az öröklési kapcsolatot. A csak a szülővel kompatibilis előbeállítások támogatása megszűnhet."
+
 msgid "Detach from parent"
 msgstr "Leválasztás a szülőről"
+
+# AI Translated
+msgid "Unique preset"
+msgstr "Önálló előbeállítás"
+
+# AI Translated
+msgid "Parent preset"
+msgstr "Szülő előbeállítás"
+
+# AI Translated
+msgid "This preset does not inherit from another preset."
+msgstr "Ez az előbeállítás nem örököl másik előbeállításból."
 
 msgid "Name is unavailable."
 msgstr "A név nem elérhető."
@@ -10376,22 +10452,6 @@ msgstr "Biztos, hogy engedélyezed ezt az opciót?"
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "A kitöltési minták általában maguk kezelik a forgatást a megfelelő nyomtatás és a kívánt hatás elérése érdekében (pl. Gyroid, Cubic). A jelenlegi kitöltési minta elforgatása elégtelen alátámasztáshoz vezethet. Kérlek, járj el körültekintően, és alaposan ellenőrizd a lehetséges nyomtatási problémákat. Biztos, hogy engedélyezed ezt a beállítást?"
 
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"A rétegmagasság túl kicsi.\n"
-"A rendszer a min_layer_height értékre állítja.\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "A rétegmagasság meghaladja a Nyomtatóbeállítások -> Extruder -> Rétegmagasság limitek menüpontban megadott értéket, ez minőségbeli problémákat okozhat a nyomtatás során."
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "Szeretnéd az értéket automatikusan a beállított tartományhoz igazítani?\n"
-
-msgid "Adjust"
-msgstr "Módosítás"
-
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "Kísérleti funkció: Filamentcsere közben nagyobb távolságon történő visszahúzás és elvágás az öblítés minimalizálása érdekében. Bár ez jelentősen csökkentheti az öblítés mértékét, növelheti a fúvóka eltömődésének vagy más nyomtatási problémák kockázatát."
 
@@ -10587,6 +10647,9 @@ msgstr "Foglalt kulcsszavakat találtunk"
 msgid "Setting Overrides"
 msgstr "Beállítások felülbírálása"
 
+msgid "Retraction when switching material"
+msgstr "Visszahúzás anyagváltáskor"
+
 msgid "Basic information"
 msgstr "Alapinformációk"
 
@@ -10720,6 +10783,12 @@ msgstr "Kompatibilis folyamatprofilok"
 msgid "Printable space"
 msgstr "Nyomtatási terület"
 
+msgid "Printer Agent"
+msgstr "Nyomtatóügynök"
+
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "Válaszd ki a nyomtatóval való kommunikációhoz használt hálózati ügynököt. Az elérhető ügynököket indításkor regisztrálja a rendszer."
+
 #. TRN: The first argument is the parameter's name; the second argument is its value.
 #, boost-format
 msgid "Invalid value provided for parameter %1%: %2%"
@@ -10844,9 +10913,6 @@ msgstr "Rétegmagasság limitek"
 
 msgid "Z-Hop"
 msgstr "Z-emelés"
-
-msgid "Retraction when switching material"
-msgstr "Visszahúzás anyagváltáskor"
 
 # AI Translated
 msgid ""
@@ -12200,6 +12266,10 @@ msgstr " túl közel van a tiltott területhez, a nyomtatás során előfordulha
 msgid " is too close to clumping detection area, and collisions will be caused.\n"
 msgstr " túl közel van a csomósodásészlelési területhez, és ez ütközést fog okozni.\n"
 
+# AI Translated
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr " részben a nyomtatható területen kívül esik, ezért nem nyomtatható ki.\n"
+
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "A kiválasztott fúvóka hőmérsékletek nem kompatibilisek. Mindegyik filament fúvóka hőmérsékletének a többi filament ajánlott fúvóka hőmérsékleti tartományába kell esnie. Ellenkező esetben a fúvóka eltömődhet vagy a nyomtató megsérülhet."
 
@@ -12529,9 +12599,6 @@ msgstr "3MF használata G-kód helyett"
 # AI Translated
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Kapcsold be, ha a nyomtató 3MF fájlt fogad el nyomtatási feladatként. Bekapcsolva az Orca Slicer a szeletelt fájlt .gcode.3mf formátumban küldi el egyszerű .gcode fájl helyett."
-
-msgid "Printer Agent"
-msgstr "Nyomtatóügynök"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "Válaszd ki a nyomtató kommunikációjához használt hálózati ügynök implementációját."
@@ -13220,9 +13287,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "A belső hidak sebessége. Ha az érték százalékban van megadva, a bridge_speed alapján lesz kiszámítva. Az alapértelmezett érték 150%."
 
-msgid "Brim width"
-msgstr "Perem szélessége"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "A modell és a legkülső peremvonal közötti távolság"
 
@@ -13301,6 +13365,14 @@ msgid ""
 msgstr ""
 "Az éles szögek észlelése előtt a geometria egyszerűsítve lesz. Ez a paraméter a leegyszerűsítésnél figyelembe vett eltérés minimális hosszát adja meg.\n"
 "0 értékkel kikapcsolható."
+
+# AI Translated
+msgid "Brim ears outer only"
+msgstr "Peremfülek csak kívül"
+
+# AI Translated
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr "Egérfüleket csak a modell külső kontúrján hoz létre, a furatokat és a zárt szakaszokat kihagyva."
 
 msgid "upward compatible machine"
 msgstr "felfelé kompatibilis gép"
@@ -14475,6 +14547,14 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Gyroid"
 
+# AI Translated
+msgid "Sparse infill smooth factor"
+msgstr "Kitöltés simítási tényezője"
+
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "Azt szabályozza, hogy a kitöltés sarkai mennyire legyenek lekerekítve. A 0% megtartja az eredeti éles útvonalat, a 100% pedig a lehető legnagyobb íveket hozza létre a szomszédos kitöltővonalak között."
+
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "A felső felületi kitöltés gyorsulása. Alacsonyabb érték használata javíthatja a felső felület minőségét"
 
@@ -15016,6 +15096,14 @@ msgstr "Milyen G-kóddal kompatibilis a nyomtató."
 
 msgid "Klipper"
 msgstr "Klipper"
+
+# AI Translated
+msgid "Skip G-code config block"
+msgstr "G-code konfigurációs blokk kihagyása"
+
+# AI Translated
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr "Nem írja a CONFIG_BLOCK blokkot (a szeletelő beállításainak kulcs/érték párjait) a G-code fájlba. Ez segíthet azoknál a nyomtatóknál, amelyek firmware-e összeomlik ezeknek a megjegyzéssoroknak a feldolgozásakor (pl. Anycubic go-klipper). Megjegyzés: a G-code fájl így már nem tartalmazza a szeletelő beállításait, ezért az OrcaSlicerbe való visszaimportálás nem állítja vissza a konfigurációt."
 
 msgid "Pellet Modded Printer"
 msgstr "Granulátumos módosított nyomtató"
@@ -16079,6 +16167,14 @@ msgstr "Hosszú visszahúzás extruderváltáskor"
 msgid "Retraction distance when extruder change"
 msgstr "Visszahúzási távolság extruderváltáskor"
 
+# AI Translated
+msgid "Retraction Length (Toolchange)"
+msgstr "Visszahúzás hossza (Eszközváltás)"
+
+# AI Translated
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr "Amikor a visszahúzás eszközváltás előtt aktiválódik, a filament a megadott értékkel húzódik vissza (a hossz a nyers filamenten mérve, mielőtt az az extruderbe kerülne)."
+
 msgid "Z-hop height"
 msgstr "Z-emelés magassága"
 
@@ -16171,6 +16267,10 @@ msgstr "Extra hossz újraindításkor"
 
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "Amikor a visszahúzás kompenzálásra kerül utazási mozgás után, az extruder ezt a további szálmennyiséget nyomja előre. Erre a beállításra ritkán van szükség."
+
+# AI Translated
+msgid "Extra length on restart (Toolchange)"
+msgstr "Extra hossz újraindításkor (Eszközváltás)"
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Amikor a visszahúzás kompenzálásra kerül szerszámváltás után, az extruder ezt a további szálmennyiséget nyomja előre."
@@ -16587,6 +16687,14 @@ msgstr "Szerszámcsere a törlőtoronyban"
 
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "A szerszámcsere parancs (Tx) kiadása előtt a törlőtoronyhoz mozgatja a szerszámfejet. Csak a 2-es típusú törlőtornyot használó többextruderes (több szerszámfejes) nyomtatóknál van jelentősége. Az Orca alapértelmezés szerint kihagyja ezt a mozgást a több szerszámfejes gépeknél, mert a fejcserét a firmware kezeli. Emiatt azonban előfordulhat, hogy a Tx parancsot a nyomtatott tárgy felett adja ki. Kapcsold be ezt a beállítást, ha azt szeretnéd, hogy a szerszámcsere mindig a törlőtorony felett történjen."
+
+# AI Translated
+msgid "Wait for temperature on wipe tower"
+msgstr "Várakozás a hőmérsékletre a törlőtornyon"
+
+# AI Translated
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr "Felveszi az új szerszámot anélkül, hogy megvárná a nyomtatási hőmérséklet elérését, a törlőtoronyhoz áll, és ott várja meg a hőmérsékletet, közvetlenül az öblítés előtt. A felfűtés közben kiszivárgó anyag a toronyra kerül a modell helyett, a mozgás pedig átfedésben van a fűtéssel. Csak több extruderes (több szerszámfejes) nyomtatóknál releváns, amelyek 2-es típusú törlőtornyot használnak. A firmware vagy a szerszámváltó makró nem várhat magától a hőmérsékletre. Ha ki van kapcsolva, a hőmérsékletre várakozás közvetlenül a szerszámváltó parancs után kerül kiadásra."
 
 msgid "No sparse layers (beta)"
 msgstr "Nincsenek ritka rétegek (béta)"
@@ -19847,9 +19955,6 @@ msgstr "Fizikai nyomtató"
 msgid "Print Host upload"
 msgstr "Feltöltés a nyomtatóra"
 
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "Válaszd ki a nyomtatóval való kommunikációhoz használt hálózati ügynököt. Az elérhető ügynököket indításkor regisztrálja a rendszer."
-
 # AI Translated
 msgid "Select a Flashforge printer"
 msgstr "Válassz egy Flashforge nyomtatót"
@@ -20791,9 +20896,6 @@ msgstr "Bejelentkezés közben váratlan hiba történt, próbáld újra."
 msgid "User canceled."
 msgstr "Felhasználó által megszakítva."
 
-msgid "Head diameter"
-msgstr "Fej átmérő"
-
 msgid "Max angle"
 msgstr "Maximális szög"
 
@@ -21606,6 +21708,22 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "A rétegmagasság túl kicsi.\n"
+#~ "A rendszer a min_layer_height értékre állítja.\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "A rétegmagasság meghaladja a Nyomtatóbeállítások -> Extruder -> Rétegmagasság limitek menüpontban megadott értéket, ez minőségbeli problémákat okozhat a nyomtatás során."
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "Szeretnéd az értéket automatikusan a beállított tartományhoz igazítani?\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "Fej átmérő"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "Nyomtatási sorrend egyetlen rétegen belül."

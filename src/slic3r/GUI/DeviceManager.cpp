@@ -3,6 +3,7 @@
 #include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "GuiColor.hpp"
 
 #include "GUI_App.hpp"
@@ -458,11 +459,41 @@ void MachineObject::set_access_code(std::string code, bool only_refresh)
     if (only_refresh) {
         AppConfig* config = GUI::wxGetApp().app_config;
         if (config) {
-            if (!code.empty()) {
-                GUI::wxGetApp().app_config->set_str("access_code", get_dev_id(), code);
-                DeviceManager::update_local_machine(*this);
+            if (is_lan_mode_printer()) {
+                // why: LAN codes are scoped via BBLocalMachine::access_code, keyed by dev_id and
+                // scoped by that record's own printer_agent_id field - see the matching comment
+                // on get_access_code_with_legacy_fallback() in DevManager.cpp - so binding this
+                // device under one printer agent doesn't silently read as already-bound under a
+                // different, independent one. Cloud devices (the else branch below) aren't
+                // scoped this way: they're never recalled from a stale local cache across a
+                // session boundary, since parse_user_print_info() always overwrites their code
+                // fresh from the cloud API's current response, so there's no cross-agent leakage
+                // risk to guard against there.
+                if (!code.empty()) {
+                    DeviceManager::update_local_machine(*this);
+                } else {
+                    // Only patch an existing record's code - don't persist a brand-new
+                    // never-bound entry just because set_access_code("") was called on it.
+                    const auto& machines = config->get_local_machines();
+                    auto        it       = machines.find(get_dev_id());
+                    if (it != machines.end()) {
+                        BBLocalMachine local_machine = it->second;
+                        local_machine.access_code    = "";
+                        config->update_local_machine(local_machine);
+                    }
+                    // Also clear the pre-scoping flat legacy key when unbinding under BBL, so an
+                    // old BBL-era code can't silently "re-bind" this device again via
+                    // get_access_code_with_legacy_fallback()'s legacy fallback.
+                    if (printer_agent_id == BBL_PRINTER_AGENT_ID || printer_agent_id.empty()) {
+                        config->erase("access_code", get_dev_id());
+                        config->erase("user_access_code", get_dev_id());
+                    }
+                }
             } else {
-                GUI::wxGetApp().app_config->erase("access_code", get_dev_id());
+                if (!code.empty())
+                    config->set_str("access_code", get_dev_id(), code);
+                else
+                    config->erase("access_code", get_dev_id());
             }
         }
     }
