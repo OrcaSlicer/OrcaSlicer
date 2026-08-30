@@ -286,6 +286,68 @@ std::string caged_overhang_gcode(const char* wall_generator)
     return gcode(print);
 }
 
+constexpr double shallow_layer_height = 0.02;
+constexpr double shallow_wall_width = 0.23;
+constexpr double shallow_outer_wall_speed = 60.;
+constexpr double shallow_overhang_speed = 30.;
+
+// A 10 x 10 x 1mm prism whose front face moves outwards by top_offset over its height,
+// while the back face remains vertical and fully supported.
+TriangleMesh shallow_overhang_mesh(double top_offset = 0.5)
+{
+    const float top_y = -float(top_offset);
+    return TriangleMesh(
+        {
+            {0.f, 0.f, 0.f},    {10.f, 0.f, 0.f},   {10.f, 10.f, 0.f}, {0.f, 10.f, 0.f},
+            {0.f, top_y, 1.f},  {10.f, top_y, 1.f}, {10.f, 10.f, 1.f}, {0.f, 10.f, 1.f},
+        },
+        {
+            {0, 2, 1}, {0, 3, 2}, {4, 5, 6}, {4, 6, 7},
+            {0, 1, 5}, {0, 5, 4}, {1, 2, 6}, {1, 6, 5},
+            {2, 3, 7}, {2, 7, 6}, {3, 0, 4}, {3, 4, 7},
+        });
+}
+
+// Orca: Let the fixture independently toggle speed handling and optional preview metadata.
+std::string shallow_overhang_gcode(const char *wall_generator, double mild_overhang_speed, double top_offset = 0.5,
+                                   bool enable_overhang_speed = true, bool gcode_overhangs = false)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"nozzle_diameter", "0.2"},
+        {"initial_layer_print_height", shallow_layer_height},
+        {"layer_height", shallow_layer_height},
+        {"line_width", shallow_wall_width},
+        {"outer_wall_line_width", shallow_wall_width},
+        {"inner_wall_line_width", shallow_wall_width},
+        {"wall_loops", "1"},
+        {"wall_generator", wall_generator},
+        {"sparse_infill_density", "0%"},
+        {"top_shell_layers", "1"},
+        {"bottom_shell_layers", "1"},
+        {"detect_overhang_wall", "1"},
+        {"enable_overhang_speed", enable_overhang_speed ? "1" : "0"},
+        {"gcode_overhangs", gcode_overhangs ? "1" : "0"},
+        {"slowdown_for_curled_perimeters", "0"},
+        {"zaa_enabled", "0"},
+        {"outer_wall_speed", shallow_outer_wall_speed},
+        {"inner_wall_speed", shallow_outer_wall_speed},
+        {"overhang_0_4_speed", mild_overhang_speed},
+        {"overhang_1_4_speed", "0"},
+        {"overhang_2_4_speed", "0"},
+        {"overhang_3_4_speed", "0"},
+        {"overhang_4_4_speed", "0"},
+        {"filament_max_volumetric_speed", "5"},
+        {"slow_down_for_layer_cooling", "0"},
+        {"slow_down_layers", "0"},
+    });
+
+    Print print;
+    Model model;
+    init_print({shallow_overhang_mesh(top_offset)}, print, model, config, nullptr, false);
+    return gcode(print);
+}
+
 // Orca: Extract every emitted percentage without coupling the regression test to G-code line positions.
 std::vector<float> overhang_percentages(const std::string &gcode)
 {

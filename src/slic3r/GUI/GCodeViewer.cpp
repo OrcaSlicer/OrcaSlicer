@@ -4011,18 +4011,18 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     }
     case libvgcode::EViewType::Height:                   { append_range(m_viewer.get_color_range(libvgcode::EViewType::Height), 2); break; }
     case libvgcode::EViewType::Width:                    { append_range(m_viewer.get_color_range(libvgcode::EViewType::Width), 2); break; }
-    // Orca: Default to the angular scale, with a Percentage option using the existing legend toggle layout.
+    // Orca: Default to the angular scale, with a Show as percentage option using the existing legend toggle layout.
     case libvgcode::EViewType::Overhang:
     {
         append_range(m_viewer.get_color_range(libvgcode::EViewType::Overhang), 0);
         ImGui::Spacing();
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
-        offsets = calculate_offsets({ { _u8L("Options"), { _u8L("Percentage") } }, { _u8L("Display"), { "" } } }, icon_size);
+        offsets = calculate_offsets({ { _u8L("Options"), { _u8L("Show as percentage") } }, { _u8L("Display"), { "" } } }, icon_size);
         append_headers({ { _u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1] } });
         const bool percentage = m_viewer.is_overhang_percentage();
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 3.f));
-        append_item(EItemType::None, ColorRGBA::WHITE(), { { _u8L("Percentage"), offsets[0] } },
+        append_item(EItemType::None, ColorRGBA::WHITE(), { { _u8L("Show as percentage"), offsets[0] } },
             true, predictable_icon_pos, percentage, [this, &imgui, percentage]() {
                 // Orca: Recolor without reslicing and request another frame to refresh the legend and marker too.
                 m_viewer.set_overhang_percentage(!percentage);
