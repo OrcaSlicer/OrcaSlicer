@@ -193,7 +193,6 @@ src/slic3r/GUI/ObjColorDialog.cpp
 src/slic3r/GUI/SyncAmsInfoDialog.cpp
 src/slic3r/GUI/WipeTowerDialog.cpp
 src/slic3r/GUI/wxExtensions.cpp
-src/slic3r/GUI/wxMediaCtrl2.cpp
 src/slic3r/GUI/WebUserLoginDialog.cpp
 src/slic3r/GUI/WebGuideDialog.cpp
 src/slic3r/GUI/KBShortcutsDialog.hpp

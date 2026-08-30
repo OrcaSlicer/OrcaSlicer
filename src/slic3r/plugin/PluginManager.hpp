@@ -143,6 +143,10 @@ public:
     bool try_get_plugin_descriptor_for_capability(const std::string& capability_name,
                                                   PluginCapabilityType type,
                                                   PluginDescriptor& out) const;
+    // Per-plugin storage directory under orca_plugins/plugin_data, created if missing. Throws
+    // std::runtime_error if the plugin is unregistered, the key is invalid, or (cloud plugins)
+    // no user is logged in yet.
+    std::string get_storage_dir(const std::string& plugin_key) const;
 
     std::vector<std::shared_ptr<PluginCapabilityInterface>> get_plugin_capabilities(
         const std::string& plugin_key = "",                            // "" => all plugins
