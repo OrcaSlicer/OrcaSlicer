@@ -12,7 +12,7 @@
 #include <vector>
 #include <functional>
 
-#include <boost/process.hpp>
+#include <boost/process/v1.hpp>
 
 namespace Slic3r { namespace GUI {
 
@@ -79,10 +79,10 @@ private:
     std::mutex       m_output_mutex;
     std::vector<OutputLine> m_output_queue;
 
-    std::unique_ptr<boost::process::child> m_process;
-    std::unique_ptr<boost::process::ipstream> m_stdout_pipe;
-    std::unique_ptr<boost::process::ipstream> m_stderr_pipe;
-    std::unique_ptr<boost::process::opstream> m_stdin_pipe;
+    std::unique_ptr<boost::process::v1::child> m_process;
+    std::unique_ptr<boost::process::v1::ipstream> m_stdout_pipe;
+    std::unique_ptr<boost::process::v1::ipstream> m_stderr_pipe;
+    std::unique_ptr<boost::process::v1::opstream> m_stdin_pipe;
 
     OutputCallback m_on_output;
     DoneCallback m_on_done;

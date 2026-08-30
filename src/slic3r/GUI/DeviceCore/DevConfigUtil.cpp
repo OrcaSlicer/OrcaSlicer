@@ -1,6 +1,7 @@
 #include "DevConfigUtil.h"
 
 #include <wx/dir.h>
+#include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
 #include "../I18N.hpp"
 
@@ -274,7 +275,7 @@ std::map<std::string, std::vector<std::string>> DevPrinterConfigUtil::get_all_su
         for (const auto& entry : boost::filesystem::directory_iterator(from_dir))
         {
             const boost::filesystem::path& file_path = entry.path();
-            if (boost::filesystem::is_regular_file(file_path) && file_path.extension() == ".json")
+        if (boost::filesystem::is_regular_file(file_path) && file_path.extension() == ".json")
             {
                 try
                 {

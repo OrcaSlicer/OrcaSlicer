@@ -17,8 +17,8 @@
 // For starting another OrcaSlicer instance on OSX.
 // Fails to compile on Windows on the build server.
 #ifdef __APPLE__
-    #include <boost/process/spawn.hpp>
-    #include <boost/process/args.hpp>
+    #include <boost/process/v1/spawn.hpp>
+    #include <boost/process/v1/args.hpp>
 #endif
 
 #include <wx/stdpaths.h>
@@ -76,7 +76,7 @@ static void start_new_slicer_or_gcodeviewer(const NewSlicerInstanceType instance
 				args.emplace_back("--gcodeviewer");
 			if (instance_type == NewSlicerInstanceType::Slicer && single_instance)
 				args.emplace_back("--single-instance");
-			boost::process::spawn(bin_path, args);
+			boost::process::v2::spawn(bin_path, args);
 		}
 		catch (const std::exception& ex) {
 			BOOST_LOG_TRIVIAL(error) << "Failed to spawn a new slicer \"" << bin_path.string() << "\": " << ex.what();

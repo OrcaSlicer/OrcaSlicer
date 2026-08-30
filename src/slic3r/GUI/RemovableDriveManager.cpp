@@ -22,7 +22,9 @@
 #include <pwd.h>
 #include <boost/filesystem.hpp>
 #include <boost/system/error_code.hpp>
-#include <boost/process.hpp>
+#include <boost/process/v1/child.hpp>
+#include <boost/process/v1/search_path.hpp>
+#include <boost/process/v1/io.hpp>
 #endif
 
 namespace Slic3r {
@@ -302,15 +304,15 @@ void RemovableDriveManager::eject_drive()
 		// but neither triggers "succesful safe removal messege"
 		
 		BOOST_LOG_TRIVIAL(info) << "Ejecting started";
-		boost::process::ipstream istd_err;
-    	boost::process::child child(
+		boost::process::v1::ipstream istd_err;
+		boost::process::v1::child child(
 #if __APPLE__		
-			boost::process::search_path("diskutil"), "eject", correct_path.c_str(), (boost::process::std_out & boost::process::std_err) > istd_err);
+			boost::process::v1::search_path("diskutil"), "eject", correct_path.c_str(), (boost::process::v1::std_out & boost::process::v1::std_err) > istd_err);
 		//Another option how to eject at mac. Currently not working.
 		//used insted of system() command;
 		//this->eject_device(correct_path);
 #else
-    		boost::process::search_path("umount"), correct_path.c_str(), (boost::process::std_out & boost::process::std_err) > istd_err);
+		boost::process::v1::search_path("umount"), correct_path.c_str(), (boost::process::v1::std_out & boost::process::v1::std_err) > istd_err);
 #endif
 		std::string line;
 		while (child.running() && std::getline(istd_err, line)) {
@@ -324,7 +326,7 @@ void RemovableDriveManager::eject_drive()
             // The wait call can fail
             // It can happen even in cases where the eject is sucessful, but better report it as failed.
             // We did not find a way to reliably retrieve the exit code of the process.
-			BOOST_LOG_TRIVIAL(error) << "boost::process::child::wait() failed during Ejection. State of Ejection is unknown. Error code: " << ec.value();
+			BOOST_LOG_TRIVIAL(error) << "boost::process::v1::child::wait() failed during Ejection. State of Ejection is unknown. Error code: " << ec.value();
 		} else {
 			int err = child.exit_code();
 	    	if (err) {

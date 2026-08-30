@@ -731,7 +731,7 @@ if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
 set(Boost_NO_SYSTEM_PATHS TRUE)
-find_package(Boost 1.83.0 REQUIRED COMPONENTS system filesystem thread log log_setup locale regex chrono atomic date_time iostreams program_options nowide)
+find_package(Boost 1.91.0 REQUIRED COMPONENTS system filesystem thread log log_setup locale regex chrono atomic date_time iostreams program_options nowide process)
 
 # Find and configure Eigen3
 find_package(Eigen3 5.0.1 REQUIRED)

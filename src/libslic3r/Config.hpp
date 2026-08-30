@@ -343,6 +343,7 @@ public:
 
     // Warning mitigation: Indicate that virtual serialize() is not forgotten
     using ConfigOption::serialize;
+     using ConfigOption::operator ==;
 private:
 	friend class cereal::access;
 	template<class Archive> void serialize(Archive & ar) { ar(this->value); }
@@ -1029,6 +1030,8 @@ public:
         return *this;
     }
 
+    using ConfigOptionSingle<int>::operator ==;
+
 private:
 	friend class cereal::access;
 	template<class Archive> void serialize(Archive &ar) { ar(cereal::base_class<ConfigOptionSingle<int>>(this)); }
@@ -1109,6 +1112,7 @@ public:
         return true;
     }
 
+    using ConfigOptionVector<int>::operator==;
 private:
 	void serialize_single_value(std::ostringstream &ss, const int v) const {
 			if (v == nil_value()) {
@@ -1151,6 +1155,8 @@ public:
         UNUSED(append);
         return unescape_string_cstyle(str, this->value);
     }
+
+    using  ConfigOptionSingle<std::string>::operator==;
 
 private:
 	friend class cereal::access;
@@ -1200,6 +1206,7 @@ public:
         return unescape_strings_cstyle(str, this->values);
     }
 
+    using ConfigOptionVector<std::string>::operator==;
 private:
 	friend class cereal::access;
 	template<class Archive> void serialize(Archive &ar) { ar(cereal::base_class<ConfigOptionVector<std::string>>(this)); }
@@ -1238,6 +1245,7 @@ public:
         return !iss.fail();
     }
 
+    using ConfigOptionFloat::operator==;
 private:
 	friend class cereal::access;
 	template<class Archive> void serialize(Archive &ar) { ar(cereal::base_class<ConfigOptionFloat>(this)); }
@@ -1291,6 +1299,7 @@ public:
     // The float's deserialize function shall ignore the trailing optional %.
     // bool deserialize(const std::string &str, bool append = false) override;
 
+    using ConfigOptionFloatsTempl<NULLABLE>::operator==;
 private:
 	friend class cereal::access;
 	template<class Archive> void serialize(Archive &ar) { ar(cereal::base_class<ConfigOptionFloatsTempl<NULLABLE>>(this)); }
@@ -1522,6 +1531,7 @@ public:
                sscanf(str.data(), " %lf x %lf %c", &this->value(0), &this->value(1), &dummy) == 2;
     }
 
+    using ConfigOptionSingle<Vec2d>::operator==;
 private:
 	friend class cereal::access;
 	template<class Archive> void serialize(Archive &ar) { ar(cereal::base_class<ConfigOptionSingle<Vec2d>>(this)); }
@@ -1592,6 +1602,7 @@ public:
         return true;
     }
 
+    using ConfigOptionVector<Vec2d>::operator==;
 private:
 	friend class cereal::access;
 	template<class Archive> void save(Archive& archive) const {
@@ -1640,6 +1651,7 @@ public:
                sscanf(str.data(), " %lf x %lf x %lf %c", &this->value(0), &this->value(1), &this->value(2), &dummy) == 3;
     }
 
+    using ConfigOptionSingle<Vec3d>::operator==;
 private:
 	friend class cereal::access;
 	template<class Archive> void serialize(Archive &ar) { ar(cereal::base_class<ConfigOptionSingle<Vec3d>>(this)); }
@@ -1891,6 +1903,7 @@ public:
         return false;
     }
 
+    using ConfigOptionSingle<bool>::operator==;
 private:
 	friend class cereal::access;
 	template<class Archive> void serialize(Archive &ar) { ar(cereal::base_class<ConfigOptionSingle<bool>>(this)); }
@@ -1990,6 +2003,7 @@ public:
     	return this->deserialize_with_substitutions(str, append, ConfigHelpers::DeserializationSubstitution::Disabled) == ConfigHelpers::DeserializationResult::Loaded;
     }
 
+    using ConfigOptionVector<unsigned char>::operator==;
 protected:
 	void serialize_single_value(std::ostringstream &ss, const unsigned char v) const {
         	if (v == nil_value()) {
@@ -2230,6 +2244,7 @@ public:
         return true;
     }
 
+    using ConfigOptionInts::operator==;
 private:
     void serialize_single_value(std::ostringstream& ss, const int v) const
     {
