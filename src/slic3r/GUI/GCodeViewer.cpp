@@ -73,11 +73,9 @@ static std::string get_view_type_string(libvgcode::EViewType view_type)
         return _u8L("Layer Height");
     else if (view_type == libvgcode::EViewType::Width)
         return _u8L("Line Width");
-    // Orca: Distinguish the raw percentage and derived angular representations in the selector.
-    else if (view_type == libvgcode::EViewType::OverhangPercentage)
-        return _u8L("Overhang") + " (%)";
-    else if (view_type == libvgcode::EViewType::OverhangDegree)
-        return _u8L("Overhang") + " (°)";
+    // Orca: Keep one menu entry; the legend option selects its units and color scale.
+    else if (view_type == libvgcode::EViewType::Overhang)
+        return _u8L("Overhang");
     else if (view_type == libvgcode::EViewType::Speed)
         return _u8L("Speed");
     else if (view_type == libvgcode::EViewType::ActualSpeed)
@@ -384,17 +382,12 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 else
                     sprintf(detail_buf, "%s%s", _u8L("Width: ").c_str(), NA_CSTR);
                 break;
-            // Orca: Report the raw percentage at the sequential marker for extrusion moves only.
-            case libvgcode::EViewType::OverhangPercentage:
+            // Orca: Match the active legend units at the sequential marker; non-extrusion moves have no overhang.
+            case libvgcode::EViewType::Overhang:
                 if (is_extrusion)
-                    sprintf(detail_buf, "%s%.1f %%", _u8L("Overhang: ").c_str(), vertex.overhang_percentage);
-                else
-                    sprintf(detail_buf, "%s%s", _u8L("Overhang: ").c_str(), NA_CSTR);
-                break;
-            // Orca: Report the angle derived from the same metadata, width, and height.
-            case libvgcode::EViewType::OverhangDegree:
-                if (is_extrusion)
-                    sprintf(detail_buf, "%s%.1f %s", _u8L("Overhang: ").c_str(), vertex.overhang_degree(), "°");
+                    sprintf(detail_buf, "%s%.1f %s", _u8L("Overhang: ").c_str(),
+                        viewer->is_overhang_percentage() ? vertex.overhang_percentage : vertex.overhang_degree(),
+                        viewer->is_overhang_percentage() ? "%" : "°");
                 else
                     sprintf(detail_buf, "%s%s", _u8L("Overhang: ").c_str(), NA_CSTR);
                 break;
@@ -1137,7 +1130,7 @@ void GCodeViewer::set_scale(float scale)
 void GCodeViewer::update_by_mode(ConfigOptionMode mode)
 {
     // Orca: Preserve the selected semantic view while rebuilding the menu; indices shift when the
-    // optional overhang entries appear or disappear.
+    // optional overhang entry appears or disappears.
     const libvgcode::EViewType selected_view_type =
         m_view_type_sel >= 0 && static_cast<size_t>(m_view_type_sel) < view_type_items_str.size() ?
             view_type_items[m_view_type_sel] : libvgcode::EViewType::FeatureType;
@@ -1156,11 +1149,9 @@ void GCodeViewer::update_by_mode(ConfigOptionMode mode)
     view_type_items.push_back(libvgcode::EViewType::Jerk);
     view_type_items.push_back(libvgcode::EViewType::Height);
     view_type_items.push_back(libvgcode::EViewType::Width);
-    // Orca: Expose both overhang representations only when the loaded G-code supplies their source data.
-    if (m_has_overhang_metadata) {
-        view_type_items.push_back(libvgcode::EViewType::OverhangPercentage);
-        view_type_items.push_back(libvgcode::EViewType::OverhangDegree);
-    }
+    // Orca: Expose the unified overhang view only when loaded G-code supplies its source data.
+    if (m_has_overhang_metadata)
+        view_type_items.push_back(libvgcode::EViewType::Overhang);
     view_type_items.push_back(libvgcode::EViewType::VolumetricFlowRate);
     view_type_items.push_back(libvgcode::EViewType::ActualVolumetricFlowRate);
     view_type_items.push_back(libvgcode::EViewType::LayerTimeLinear);
@@ -2480,9 +2471,9 @@ void GCodeViewer::render_toolpaths()
 
             add_range_property_row("height range", m_viewer.get_color_range(libvgcode::EViewType::Height).get_range());
             add_range_property_row("width range", m_viewer.get_color_range(libvgcode::EViewType::Width).get_range());
-            // Orca: Surface both fixed overhang bounds in the developer diagnostics table.
-            add_range_property_row("overhang percentage range", m_viewer.get_color_range(libvgcode::EViewType::OverhangPercentage).get_range());
-            add_range_property_row("overhang degree range", m_viewer.get_color_range(libvgcode::EViewType::OverhangDegree).get_range());
+            // Orca: Identify the currently selected overhang range in developer diagnostics.
+            add_range_property_row(m_viewer.is_overhang_percentage() ? "overhang percentage range" : "overhang degree range",
+                m_viewer.get_color_range(libvgcode::EViewType::Overhang).get_range());
             add_range_property_row("speed range", m_viewer.get_color_range(libvgcode::EViewType::Speed).get_range());
             add_range_property_row("acceleration range", m_viewer.get_color_range(libvgcode::EViewType::Acceleration).get_range());
             add_range_property_row("jerk range", m_viewer.get_color_range(libvgcode::EViewType::Jerk).get_range());
@@ -3791,9 +3782,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     }
     case libvgcode::EViewType::Height:         { imgui.title(_u8L("Layer height (mm)")); break; }
     case libvgcode::EViewType::Width:          { imgui.title(_u8L("Line width (mm)")); break; }
-    // Orca: Label each overhang legend with the unit represented by its fixed range.
-    case libvgcode::EViewType::OverhangPercentage: { imgui.title(_u8L("Overhang") + " (%)"); break; }
-    case libvgcode::EViewType::OverhangDegree:     { imgui.title(_u8L("Overhang") + " (°)"); break; }
+    // Orca: Show the units of the selected overhang color scale in the legend title.
+    case libvgcode::EViewType::Overhang: { imgui.title(_u8L("Overhang") + (m_viewer.is_overhang_percentage() ? " (%)" : " (°)")); break; }
     case libvgcode::EViewType::Speed:
     {
         imgui.title(_u8L("Speed (mm/s)"));
@@ -4021,9 +4011,27 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     }
     case libvgcode::EViewType::Height:                   { append_range(m_viewer.get_color_range(libvgcode::EViewType::Height), 2); break; }
     case libvgcode::EViewType::Width:                    { append_range(m_viewer.get_color_range(libvgcode::EViewType::Width), 2); break; }
-    // Orca: Render integer stops for both fixed overhang legends.
-    case libvgcode::EViewType::OverhangPercentage: { append_range(m_viewer.get_color_range(libvgcode::EViewType::OverhangPercentage), 0); break; }
-    case libvgcode::EViewType::OverhangDegree:     { append_range(m_viewer.get_color_range(libvgcode::EViewType::OverhangDegree), 0); break; }
+    // Orca: Default to the angular scale, with a Percentage option using the existing legend toggle layout.
+    case libvgcode::EViewType::Overhang:
+    {
+        append_range(m_viewer.get_color_range(libvgcode::EViewType::Overhang), 0);
+        ImGui::Spacing();
+        ImGui::Dummy({ window_padding, window_padding });
+        ImGui::SameLine();
+        offsets = calculate_offsets({ { _u8L("Options"), { _u8L("Percentage") } }, { _u8L("Display"), { "" } } }, icon_size);
+        append_headers({ { _u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1] } });
+        const bool percentage = m_viewer.is_overhang_percentage();
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 3.f));
+        append_item(EItemType::None, ColorRGBA::WHITE(), { { _u8L("Percentage"), offsets[0] } },
+            true, predictable_icon_pos, percentage, [this, &imgui, percentage]() {
+                // Orca: Recolor without reslicing and request another frame to refresh the legend and marker too.
+                m_viewer.set_overhang_percentage(!percentage);
+                imgui.set_requires_extra_frame();
+                wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
+            });
+        ImGui::PopStyleVar(1);
+        break;
+    }
     case libvgcode::EViewType::Speed:       {
         append_range(m_viewer.get_color_range(libvgcode::EViewType::Speed), 0);
         ImGui::Spacing();

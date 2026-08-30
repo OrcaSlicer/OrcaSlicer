@@ -99,9 +99,8 @@ enum class EViewType : uint8_t
     // ORCA: Add Jerk visualization support
     Jerk,
     Tool,
-    // Orca: Offer both the raw unsupported-width percentage and its geometric angle from vertical.
-    OverhangPercentage,
-    OverhangDegree,
+    // Orca: Use one overhang view with selectable angular or percentage units.
+    Overhang,
     COUNT
 };
 

@@ -1351,6 +1351,15 @@ void ViewerImpl::set_view_type(EViewType type)
     m_settings.update_colors = true;
 }
 
+// Orca: Changing overhang units only recolors existing vertices; metadata and geometry stay unchanged.
+void ViewerImpl::set_overhang_percentage(bool value)
+{
+    if (m_settings.overhang_percentage == value)
+        return;
+    m_settings.overhang_percentage = value;
+    m_settings.update_colors = true;
+}
+
 void ViewerImpl::set_time_mode(ETimeMode mode)
 {
     m_settings.time_mode = mode;
@@ -1542,17 +1551,12 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     {
         return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_width_range.get_color_at(v.width);
     }
-    // Orca: The percentage view colors the raw metadata stored in each extrusion vertex.
-    case EViewType::OverhangPercentage:
+    // Orca: Color the same metadata by percentage or its geometric angle, preserving travel colors.
+    case EViewType::Overhang:
     {
         return v.is_travel() ? get_option_color(move_type_to_option(v.type)) :
-            m_overhang_percentage_range.get_color_at(v.overhang_percentage);
-    }
-    // Orca: The degree view derives a physical angle from the same metadata, width, and layer height.
-    case EViewType::OverhangDegree:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) :
-            m_overhang_degree_range.get_color_at(v.overhang_degree());
+            get_color_range(EViewType::Overhang).get_color_at(
+                m_settings.overhang_percentage ? v.overhang_percentage : v.overhang_degree());
     }
     case EViewType::Speed:
     {
@@ -1670,9 +1674,8 @@ const ColorRange& ViewerImpl::get_color_range(EViewType type) const
     {
     case EViewType::Height:                   { return m_height_range; }
     case EViewType::Width:                    { return m_width_range; }
-    // Orca: Expose both fixed overhang ranges through the public viewer API.
-    case EViewType::OverhangPercentage:       { return m_overhang_percentage_range; }
-    case EViewType::OverhangDegree:           { return m_overhang_degree_range; }
+    // Orca: The legend and toolpaths must use the same fixed range for the selected units.
+    case EViewType::Overhang:                { return m_settings.overhang_percentage ? m_overhang_percentage_range : m_overhang_degree_range; }
     case EViewType::Speed:                    { return m_speed_range; }
     case EViewType::ActualSpeed:              { return m_actual_speed_range; }
     case EViewType::FanSpeed:                 { return m_fan_speed_range; }
@@ -1697,9 +1700,13 @@ void ViewerImpl::set_color_range_palette(EViewType type, const Palette& palette)
     {
     case EViewType::Height:                   { m_height_range.set_palette(palette);          break; }
     case EViewType::Width:                    { m_width_range.set_palette(palette);           break; }
-    // Orca: Allow callers to customize both overhang palettes like other scalar views.
-    case EViewType::OverhangPercentage:       { m_overhang_percentage_range.set_palette(palette); break; }
-    case EViewType::OverhangDegree:           { m_overhang_degree_range.set_palette(palette);     break; }
+    // Orca: Keep the unified view's palette consistent when switching units.
+    case EViewType::Overhang:
+    {
+        m_overhang_percentage_range.set_palette(palette);
+        m_overhang_degree_range.set_palette(palette);
+        break;
+    }
     case EViewType::Speed:                    { m_speed_range.set_palette(palette);           break; }
     case EViewType::ActualSpeed:              { m_actual_speed_range.set_palette(palette);    break; }
     case EViewType::FanSpeed:                 { m_fan_speed_range.set_palette(palette);       break; }

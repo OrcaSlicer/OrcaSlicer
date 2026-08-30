@@ -75,6 +75,10 @@ public:
     EViewType get_view_type() const { return m_settings.view_type; }
     void set_view_type(EViewType type);
 
+    // Orca: Share the active overhang units with legend and marker rendering.
+    bool is_overhang_percentage() const { return m_settings.overhang_percentage; }
+    void set_overhang_percentage(bool value);
+
     ETimeMode get_time_mode() const { return m_settings.time_mode; }
     void set_time_mode(ETimeMode mode);
 
