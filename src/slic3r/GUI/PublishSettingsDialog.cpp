@@ -986,13 +986,13 @@ size_t PublishSettingsDialog::category_index_for(
             page_sizer->Add(header_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
 
             // Line 2: the "Full Publish" toggle, on its own line below the title (hidden until
-            // the slot is enabled).
+            // the slot is enabled), aligned with the colour chip above it.
             auto* full_sizer    = new wxBoxSizer(wxHORIZONTAL);
             category.full_check = new wxCheckBox(category.page, wxID_ANY, _L("Full Publish"));
             category.full_check->SetFont(Label::Body_13);
             category.full_check->SetToolTip(_L("Embed the entire filament of this slot in the 3MF file"));
             full_sizer->Add(category.full_check, 0, wxALIGN_CENTER_VERTICAL);
-            category.full_line_item = page_sizer->Add(full_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(2));
+            category.full_line_item = page_sizer->Add(full_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
         }
     }
 
