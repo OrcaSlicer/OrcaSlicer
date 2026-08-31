@@ -1054,6 +1054,11 @@ private:
 	bool m_is_dark = false;
 	// set by init(), until false notifications are only added not updated and frame is not requested after push
 	bool m_initialized{ false };
+	// set by render_notifications() on the first rendered frame. m_initialized only proves the
+	// manager exists, not that the ImGui context can measure text: the font atlas is built lazily
+	// in ImGuiWrapper::new_frame() on the first GL render, so updating a notification before that
+	// (PopNotification::init -> count_spaces -> ImGui::CalcTextSize) dereferences a null font.
+	bool m_imgui_ready{ false };
 	// Target for wxWidgets events sent by clicking on the hyperlink available at some notifications.
 	wxEvtHandler*                m_evt_handler;
 	// Cache of IDs to identify and reuse ImGUI windows.

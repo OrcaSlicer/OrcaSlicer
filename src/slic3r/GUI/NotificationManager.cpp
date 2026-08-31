@@ -3083,7 +3083,7 @@ bool NotificationManager::push_notification_data(std::unique_ptr<NotificationMan
     }
 	bool retval = false;
 	if (this->activate_existing(notification.get())) {
-		if (m_initialized) { // ignore update action - it cant be initialized if canvas and imgui context is not ready
+		if (m_initialized && m_imgui_ready) {
 			if (notification->get_type() == NotificationType::SlicingWarning) {
 				m_pop_notifications.back()->append(notification->get_data().ori_text);
 			} else {
@@ -3129,6 +3129,10 @@ void NotificationManager::stop_delayed_notifications_of_type(const NotificationT
 
 void NotificationManager::render_notifications(GLCanvas3D &canvas, float overlay_width, float bottom_margin, float right_margin)
 {
+	// Notifications render inside an ImGui frame, so the font atlas is built from this point on
+	// and pushed notifications may safely measure their text.
+	m_imgui_ready = true;
+
 	sort_notifications();
 
 	float bottom_up_last_y = bottom_margin; // ORCA dont scale margins
