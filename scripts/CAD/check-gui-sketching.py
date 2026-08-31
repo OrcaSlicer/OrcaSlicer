@@ -209,7 +209,19 @@ def leave_sketch():
 TREE_ROW0 = (300, 215)
 
 
-DESIGN_TAB = (128, 29)
+# EVERY absolute chrome coordinate below is written in the Snapmaker fork's layout and then
+# shifted by CHROME_DY, because this fork keeps mainline OrcaSlicer's top row (File / save /
+# undo / redo / Calibration, with the document title) which that fork does not have. The whole
+# chrome — tab strip, sketch toolbar, confirm button — sits 26 px lower here.
+#
+# Getting this wrong does not look like a coordinate problem. At the unshifted y the Design tab
+# click landed in that toolbar, the app stayed on the Home page, and the first rung reported
+# "no sketch opened after plane click + Shift+S"; the unshifted Construction checkbox reported
+# "0 construction axis". Both name the wrong subsystem. Canvas coordinates are immune because
+# clickmm() derives them from the live canvas geometry — only the chrome constants need this.
+CHROME_DY = int(os.environ.get("SNAPORCA_CHROME_DY", "26"))
+
+DESIGN_TAB = (128, 29 + CHROME_DY)
 
 
 def go_design():
@@ -677,7 +689,7 @@ def corner_pair(ents):
     die("no adjacent pair in what should be a rectangle")
 
 
-CONSTRUCTION_CHECKBOX = (419, 75)
+CONSTRUCTION_CHECKBOX = (419, 75 + CHROME_DY)
 
 
 def draw_line(x0, y0, x1, y1, length, angle):
@@ -794,10 +806,22 @@ def rung_extend():
 # has not constrained anything, it has only nudged it.
 
 # Constrain-mode toolbar, measured off the rig at 1920x1080 (icon centres, 42 px apart).
-CON_BTN_Y = 76
+#
+# THIS LIST MIRRORS THE cbtn() SEQUENCE IN DesignPanel.cpp AND HAS TO BE UPDATED WHEN A BUTTON
+# IS INSERTED. Positions are computed by index, so inserting a button shifts every entry after
+# it and the map silently points at the wrong icon -- a rung then applies some OTHER constraint
+# and fails with a geometric message that says nothing about buttons.
+#
+# It has already happened once, undetected: equal_radius and collinear (after "equal"), sym_v
+# and sym_h (after "symmetric") and dist_x and dist_y (after "fix") were added while this list
+# still had 14 names. Everything from index 6 on was wrong in both forks. Nothing caught it
+# because the ladder only ever clicks "perpendicular" (3) and "equal" (5), both of which sit
+# before the first insertion. The next rung to use "tangent" would have clicked "collinear".
+CON_BTN_Y = 76 + CHROME_DY
 CON_BTN = {n: (449 + 42 * i, CON_BTN_Y) for i, n in enumerate(
     ["horizontal", "vertical", "parallel", "perpendicular", "coincident", "equal",
-     "concentric", "tangent", "midpoint", "symmetric", "angle", "radius", "diameter", "fix"])}
+     "equal_radius", "collinear", "concentric", "tangent", "midpoint", "symmetric",
+     "sym_v", "sym_h", "angle", "radius", "diameter", "fix", "dist_x", "dist_y"])}
 
 
 def draw_rect_undimensioned():
@@ -826,7 +850,7 @@ def rung_dimension():
     leave_sketch()
 
 
-CONFIRM_BTN = (1751, 75)
+CONFIRM_BTN = (1751, 75 + CHROME_DY)
 
 
 def confirm_and_reopen():

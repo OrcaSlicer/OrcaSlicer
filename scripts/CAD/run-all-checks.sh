@@ -38,17 +38,26 @@ step() {
 # SC2329: every call goes through step(), which invokes it via "$@", so shellcheck
 # cannot see the callers below.
 # shellcheck disable=SC2329
+# This fork's rig runs Xvfb on :11, the other fork's on :10, and the check scripts default
+# to ":10" when DISPLAY is unset -- which docker exec leaves unset. The rungs that drive the
+# GUI therefore looked for a window on a display that does not exist here and reported
+# "FATAL no app window on :10", which reads like a dead app rather than a wrong display.
+RIG_DISPLAY="${RIG_DISPLAY:-:11}"
+
 run_in_rig() {                      # copy the script in fresh, then run it there
     docker cp "$1" "$C:/tmp/$(basename "$1")" >/dev/null || return 1
     shift
-    docker exec "$C" python3 "$@"
+    docker exec -e DISPLAY="$RIG_DISPLAY" "$C" python3 "$@"
 }
 
 # FIRST, and it needs no rig: the offer table the menu is compiled from must be what the atlas
 # says. The header calls itself GENERATED and had been hand-edited anyway — which cost four rows
 # that existed only in the header, one row wired to the wrong action, and a count of 91 for a
 # 92-row array, so the last verb was unreachable (snaporca-z8rs, snaporca-ziam).
-step "offer table matches the atlas" python3 docs/ux/mockups/gen_offer_table.py --check
+# docs/CAD/, not docs/: SoftFever moved the design docs into the CAD subfolder
+# (bbd1989e1e) and this line kept the old path, so the rung failed on a missing file
+# rather than on anything about the table. The other fork still has docs/ux/.
+step "offer table matches the atlas" python3 docs/CAD/ux/mockups/gen_offer_table.py --check
 
 step "kernel suite" scripts/CAD/run-kernel-tests.sh --vol "${KVOL:-snaporca_kerneltest}"
 

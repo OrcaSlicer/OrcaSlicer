@@ -16,7 +16,12 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 UX = os.path.dirname(HERE)
-REPO = os.path.dirname(os.path.dirname(UX))
+# One dirname more than you would expect: this generator lives at docs/CAD/ux/mockups/,
+# not docs/ux/mockups/, since the design docs moved into the CAD subfolder (bbd1989e1e).
+# With the old count REPO resolved to docs/, so OUT pointed at docs/src/.../DesignOffer.hpp,
+# which does not exist -- and --check then diffed the real generated table against an empty
+# file and reported the whole 189-line header as a difference.
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(UX)))
 ATLAS = os.path.join(UX, "tool_atlas.json")
 OUT = os.path.join(REPO, "src", "slic3r", "GUI", "CAD", "DesignOffer.hpp")
 
