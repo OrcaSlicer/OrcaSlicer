@@ -293,6 +293,8 @@ constexpr double shallow_layer_height = 0.02;
 constexpr double shallow_wall_width = 0.23;
 constexpr double shallow_outer_wall_speed = 60.;
 constexpr double shallow_overhang_speed = 30.;
+// Orca: Exercise the existing 10-25% slowdown band without depending on a mild-overhang option.
+constexpr double shallow_slowed_top_offset = 0.2 * shallow_wall_width / shallow_layer_height;
 
 // A 10 x 10 x 1mm prism whose front face moves outwards by top_offset over its height,
 // while the back face remains vertical and fully supported.
@@ -312,8 +314,7 @@ TriangleMesh shallow_overhang_mesh(double top_offset = 0.5)
 }
 
 // Orca: Share the print settings between fixed-height and adaptive-height overhang regressions.
-DynamicPrintConfig shallow_overhang_config(const char *wall_generator, double mild_overhang_speed,
-                                          bool enable_overhang_speed, bool gcode_overhangs)
+DynamicPrintConfig shallow_overhang_config(const char *wall_generator, bool enable_overhang_speed, bool gcode_overhangs)
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
@@ -335,8 +336,7 @@ DynamicPrintConfig shallow_overhang_config(const char *wall_generator, double mi
         {"zaa_enabled", "0"},
         {"outer_wall_speed", shallow_outer_wall_speed},
         {"inner_wall_speed", shallow_outer_wall_speed},
-        {"overhang_0_4_speed", mild_overhang_speed},
-        {"overhang_1_4_speed", "0"},
+        {"overhang_1_4_speed", shallow_overhang_speed},
         {"overhang_2_4_speed", "0"},
         {"overhang_3_4_speed", "0"},
         {"overhang_4_4_speed", "0"},
@@ -349,13 +349,13 @@ DynamicPrintConfig shallow_overhang_config(const char *wall_generator, double mi
 }
 
 // Orca: Let the fixture independently toggle speed handling and optional preview metadata.
-std::string shallow_overhang_gcode(const char *wall_generator, double mild_overhang_speed, double top_offset = 0.5,
+std::string shallow_overhang_gcode(const char *wall_generator, double top_offset = 0.5,
                                   bool enable_overhang_speed = true, bool gcode_overhangs = false)
 {
     Print print;
     Model model;
     init_print({shallow_overhang_mesh(top_offset)}, print, model,
-        shallow_overhang_config(wall_generator, mild_overhang_speed, enable_overhang_speed, gcode_overhangs), nullptr, false);
+        shallow_overhang_config(wall_generator, enable_overhang_speed, gcode_overhangs), nullptr, false);
     return gcode(print);
 }
 
@@ -566,8 +566,11 @@ TEST_CASE("Overhang arc profiles preserve interior peaks on short arcs", "[GCode
 // an arc or carry a previous profile across an intervening command or a parser reset.
 TEST_CASE("Overhang arc profiles reject invalid chunks and stale associations", "[GCodeProcessor][Overhang][ArcFitting][Regression]")
 {
+    // Orca: Empty headers and samples must be invalid with both std::from_chars and the legacy
+    // floating-point backend used by older macOS standard libraries, not silently become zero.
     const std::string data = GENERATE("", "3", "3,0", "1,0,0", "65537,0,0", "3,-1,0", "3,1,50,100", "3,0,0,nan,100", "3,0,0,inf,100",
         "3,0,0,101,100", "3,0,0,-1,100", "3,0,0,50,100junk", "3,0,0,50,100,", "3,0,0,50", "3,0,0,,100",
+        ",0,0,50,100", "3,,0,50,100", "3,0,,50,100",
         "3,0,0,50,100,0", "3,0,0,50,100\nM400", "3,0,0,50,100\nG2 X1 Y1 E1");
     CAPTURE(data);
     GCodeProcessor processor;
@@ -616,7 +619,8 @@ TEST_CASE("Overhang metadata availability follows valid G-code tags", "[GCodePro
 // Orca: Malformed or non-finite percentages must neither enable the view nor leak into its color lookup.
 TEST_CASE("Overhang percentages reject malformed and non-finite metadata", "[GCodeProcessor][Overhang][Regression]")
 {
-    const std::string value = GENERATE("nan", "inf", "-inf", "37.5garbage", "invalid");
+    // Orca: An empty scalar tag must not advertise metadata, just like an empty arc sample.
+    const std::string value = GENERATE("", "nan", "inf", "-inf", "37.5garbage", "invalid");
     const bool preceding_valid_tag = GENERATE(false, true);
     CAPTURE(value, preceding_valid_tag);
     GCodeProcessor processor;
@@ -746,8 +750,14 @@ TEST_CASE("Overhang metadata leaves printer commands unchanged", "[ExtrusionProc
 {
     const bool overhang_speed = GENERATE(false, true);
     const char *wall_generator = GENERATE("classic", "arachne");
-    const std::string without_metadata = shallow_overhang_gcode(wall_generator, shallow_overhang_speed, 0.5, overhang_speed, false);
-    const std::string with_metadata = shallow_overhang_gcode(wall_generator, shallow_overhang_speed, 0.5, overhang_speed, true);
+    const std::string without_metadata = shallow_overhang_gcode(wall_generator, shallow_slowed_top_offset, overhang_speed, false);
+    const std::string with_metadata = shallow_overhang_gcode(wall_generator, shallow_slowed_top_offset, overhang_speed, true);
+    // Orca: Ensure the enabled case really exercises variable-speed output on this branch.
+    const auto slope_speeds = shallow_face_feed_rates(without_metadata, true);
+    REQUIRE_FALSE(slope_speeds.empty());
+    CHECK(std::any_of(slope_speeds.begin(), slope_speeds.end(), [](double feed_rate) {
+        return feed_rate / MM_PER_MIN < shallow_outer_wall_speed - 1.0;
+    }) == overhang_speed);
     REQUIRE_FALSE(overhang_percentages(with_metadata).empty());
     REQUIRE(overhang_percentages(without_metadata).empty());
     CHECK(printer_commands(with_metadata) == printer_commands(without_metadata));
@@ -763,12 +773,12 @@ TEST_CASE("Overhang metadata preserves printer commands across height modifier t
     std::vector<std::string> baseline_commands;
     for (bool enabled : {false, true}) {
         CAPTURE(enabled);
-        DynamicPrintConfig config = shallow_overhang_config(wall_generator, 20.0, initial_slowdown, enabled);
+        DynamicPrintConfig config = shallow_overhang_config(wall_generator, initial_slowdown, enabled);
         // Orca: Disable overhang cooling so it cannot populate the cache while slowdown is disabled.
         config.set_deserialize_strict("enable_overhang_bridge_fan", "0");
         Print print;
         Model model;
-        init_print({shallow_overhang_mesh()}, print, model, config, nullptr, false);
+        init_print({shallow_overhang_mesh(shallow_slowed_top_offset)}, print, model, config, nullptr, false);
         DynamicPrintConfig range_config;
         range_config.set_key_value("layer_height", new ConfigOptionFloat(shallow_layer_height));
         range_config.set_deserialize_strict("enable_overhang_speed", initial_slowdown ? "0" : "1");
@@ -776,6 +786,12 @@ TEST_CASE("Overhang metadata preserves printer commands across height modifier t
         print.apply(model, config);
         const std::string exported = gcode(print);
         CHECK(overhang_percentages(exported).empty() == !enabled);
+        // Orca: The height modifier must exercise both slowed and normal-speed slope segments.
+        const auto slope_speeds = shallow_face_feed_rates(exported, true);
+        REQUIRE_FALSE(slope_speeds.empty());
+        const auto extremes = std::minmax_element(slope_speeds.begin(), slope_speeds.end());
+        CHECK(*extremes.first / MM_PER_MIN < shallow_outer_wall_speed - 1.0);
+        CHECK_THAT(*extremes.second / MM_PER_MIN, Catch::Matchers::WithinAbs(shallow_outer_wall_speed, 0.1));
         // Orca: Equality alone could accept identical stale caches. The vertical back wall must also
         // retain its configured speed on the first layer after each transition, not a false slowdown.
         const auto supported_speeds = shallow_face_feed_rates(exported, false);
@@ -882,7 +898,7 @@ TEST_CASE("Fitted cylindrical walls keep zero overhang on identical layers", "[E
     const bool arc_fitting = GENERATE(false, true);
     const char *wall_generator = GENERATE("classic", "arachne");
     CAPTURE(arc_fitting, wall_generator);
-    DynamicPrintConfig config = shallow_overhang_config(wall_generator, 0.0, false, true);
+    DynamicPrintConfig config = shallow_overhang_config(wall_generator, false, true);
     config.set_deserialize_strict({{"enable_arc_fitting", arc_fitting ? "1" : "0"}, {"resolution", "0.012"},
         {"enable_overhang_bridge_fan", "0"}, {"wall_loops", "3"}});
     // Orca: Supply a complete nozzle definition for the exporter's hardware validation.
@@ -974,7 +990,7 @@ TEST_CASE("Overhang angles use slice spacing rather than extrusion height", "[Ex
 TEST_CASE("Overhang reference spacing follows variable layer heights", "[ExtrusionProcessor][Overhang][Regression]")
 {
     const bool enabled = GENERATE(false, true);
-    DynamicPrintConfig config = shallow_overhang_config("classic", 0.0, false, enabled);
+    DynamicPrintConfig config = shallow_overhang_config("classic", false, enabled);
     // Orca: File import also validates nozzle hardness. Recreate the nullable enum from its definition
     // (static defaults lack its name map), and avoid relying on installed nozzle-hardness resources.
     config.erase("nozzle_type");
@@ -1090,9 +1106,9 @@ TEST_CASE("Overhang preview metadata is optional and independent of overhang spe
 
     constexpr double ten_percent_top_offset = 0.1 * shallow_wall_width / shallow_layer_height;
     const std::vector<float> disabled_percentages = overhang_percentages(
-        shallow_overhang_gcode(wall_generator, shallow_overhang_speed, ten_percent_top_offset, false, false));
+        shallow_overhang_gcode(wall_generator, ten_percent_top_offset, false, false));
     const std::vector<float> percentages = overhang_percentages(
-        shallow_overhang_gcode(wall_generator, shallow_overhang_speed, ten_percent_top_offset, false, true));
+        shallow_overhang_gcode(wall_generator, ten_percent_top_offset, false, true));
 
     REQUIRE(disabled_percentages.empty());
     REQUIRE_FALSE(percentages.empty());

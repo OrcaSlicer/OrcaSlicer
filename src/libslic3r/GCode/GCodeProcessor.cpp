@@ -681,6 +681,11 @@ void GCodeProcessor::TimeProcessor::reset()
 template<typename T>
 [[nodiscard]] static inline bool parse_number(const std::string_view sv, T &out)
 {
+    // Orca: The legacy floating-point converter consumes zero characters for empty fields and
+    // returns zero. Reject them before either backend so missing metadata is never a valid number.
+    if (sv.empty())
+        return false;
+
     // https://www.bfilipek.com/2019/07/detect-overload-from-chars.html#example-stdfromchars
 #if __has_include(<charconv>)
     // Visual Studio 19 supports from_chars all right.
