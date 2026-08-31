@@ -7,6 +7,7 @@
 #include <memory>
 #include <vector>
 
+#include "libslic3r/Color.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
@@ -22,6 +23,17 @@ struct TextureDisplacementPreviewInput
     std::vector<TextureDisplacementLayer> layers;
     TextureDisplacementFacetsData         facets_data;
     TextureDisplacementOptions            options;
+    // Empty unless a layer is colouring, in which case the preview reports the filament per triangle
+    // alongside the mesh, so the Normal view shows what the bake will produce - interleaving included.
+    TextureColorSettings                  color;
+};
+
+// A preview result: the displaced mesh, and - when the input carried a palette - one filament index
+// per triangle (an EnforcerBlockerType value; 0 means "no colour from the texture").
+struct TextureDisplacementPreviewResult
+{
+    indexed_triangle_set  mesh;
+    std::vector<uint8_t>  triangle_color;
 };
 
 // Computes the true (unbaked) displaced-mesh preview in the background. With several painted
@@ -49,7 +61,7 @@ public:
     // order: without it, a Bake queued behind a handful of stale previews waits for every one of them.
     TextureDisplacementPreviewJob(TextureDisplacementPreviewInput &&input, uint64_t generation,
                                    std::shared_ptr<const std::atomic<uint64_t>> current_generation,
-                                   std::function<void(indexed_triangle_set, uint64_t)> on_finished);
+                                   std::function<void(TextureDisplacementPreviewResult, uint64_t)> on_finished);
 
     void process(Ctl &ctl) override;
     void finalize(bool canceled, std::exception_ptr &eptr) override;
@@ -58,8 +70,8 @@ private:
     TextureDisplacementPreviewInput                    m_input;
     uint64_t                                            m_generation;
     std::shared_ptr<const std::atomic<uint64_t>>        m_current_generation;
-    indexed_triangle_set                                m_result;
-    std::function<void(indexed_triangle_set, uint64_t)> m_on_finished;
+    TextureDisplacementPreviewResult                    m_result;
+    std::function<void(TextureDisplacementPreviewResult, uint64_t)> m_on_finished;
 };
 
 } // namespace Slic3r::GUI

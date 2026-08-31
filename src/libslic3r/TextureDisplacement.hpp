@@ -274,6 +274,17 @@ struct TextureDisplacementLayer
     // it as the "Base" layer and hides the control).
     TextureBlendMode blend_mode = TextureBlendMode::Add;
 
+    // Colour this layer's painted area from the texture's own colours, on top of displacing by its
+    // height. Only meaningful when the texture actually has colour (DecodedHeightTexture::has_color()):
+    // the shipped library is grayscale, so this does nothing there.
+    //
+    // Colour lands in the volume's mmu_segmentation_facets - the same per-triangle filament assignment
+    // the MMU paint gizmo writes - so its resolution is the *mesh's*, not the image's, and a triangle
+    // gets exactly one filament. That is why the adaptive subdivision has a colour criterion of its
+    // own (see subdivide_mesh_adaptive()): without triangles along a colour boundary there is nothing
+    // for the boundary to be drawn on.
+    bool color_enabled = false;
+
     bool empty() const { return !image_data || image_data->empty(); }
 
     template<class Archive> void save(Archive &ar) const
@@ -283,7 +294,7 @@ struct TextureDisplacementLayer
            static_cast<int>(tile_method), static_cast<int>(projection_method), lscm_seam_angle_deg, islands,
            static_cast<int>(blend_mode), midlevel, island_padding_mm, lscm_seam_edges, view_project_right,
            view_project_up, smoothing, edge_smoothing, edge_smoothing_amount, auto_connect_islands, island_groups,
-           lscm_uv_overrides, view_project_projective, view_project_matrix);
+           lscm_uv_overrides, view_project_projective, view_project_matrix, color_enabled);
     }
     template<class Archive> void load(Archive &ar)
     {
@@ -295,12 +306,28 @@ struct TextureDisplacementLayer
            tile_method_int, projection_method_int, lscm_seam_angle_deg, islands, blend_mode_int, midlevel,
            island_padding_mm, lscm_seam_edges, view_project_right, view_project_up, smoothing, edge_smoothing,
            edge_smoothing_amount, auto_connect_islands, island_groups, lscm_uv_overrides, view_project_projective,
-           view_project_matrix);
+           view_project_matrix, color_enabled);
         image_data        = blob.empty() ? nullptr : std::make_shared<std::vector<unsigned char>>(blob.begin(), blob.end());
         tile_method       = static_cast<TextureTileMethod>(tile_method_int);
         projection_method = static_cast<TextureProjectionMethod>(projection_method_int);
         blend_mode        = static_cast<TextureBlendMode>(blend_mode_int);
     }
+};
+
+// How a *mixed* palette entry - one that names two filaments rather than one - is turned into real
+// per-facet paint. An MMU extrudes one filament at a time, so an intermediate colour exists only by
+// interleaving two of them finely enough that the eye does the blending.
+enum class ColorMixMode : int
+{
+    // Horizontal bands: which of the two filaments a point takes depends on its height, so
+    // consecutive print layers alternate. This is how filament-blend prints actually work, and on a
+    // vertical-ish surface it reads as a genuinely smooth colour. On a near-horizontal surface a whole
+    // layer is one band, so the blend disappears - that is what XYDither is for.
+    ZBands   = 0,
+    // An ordered (Bayer) checkerboard across the surface, at any orientation. Independent of layer
+    // height, but its cell is around the size of one facet, so a fine mix can read as texture rather
+    // than as a clean blend.
+    XYDither = 1,
 };
 
 // Settings that apply to the whole layer stack rather than to one layer, held per ModelVolume next
@@ -338,32 +365,117 @@ struct TextureDisplacementOptions
     // deliberately (which is a blunter version of the per-layer edge-smoothing falloff).
     bool  smooth_skip_border = true;
 
+    // Colour, all of which belongs to the stack rather than to any one layer: it is about how the
+    // printer will realise the colours, not about which image they came from.
+
+    // Interleave pairs of filaments to get colours between them - so four loaded filaments offer far
+    // more than four colours. Off means every triangle takes one of the loaded filaments exactly.
+    bool         color_mix_enabled = true;
+    ColorMixMode color_mix_mode    = ColorMixMode::ZBands;
+    // Majority-filter passes over the assigned colours. See TextureColorRequest::despeckle_passes -
+    // this is the control for it, and 2 is enough to clear the salt-and-pepper an image with detail
+    // finer than the mesh leaves behind, without eating features that are genuinely a facet wide.
+    int          color_despeckle   = 2;
+
     template<class Archive> void serialize(Archive &ar)
     {
-        ar(displace_border, smooth_enabled, smooth_strength, smooth_iterations, smooth_skip_border);
+        int mix_mode = int(color_mix_mode);
+        ar(displace_border, smooth_enabled, smooth_strength, smooth_iterations, smooth_skip_border,
+           color_mix_enabled, mix_mode, color_despeckle);
+        color_mix_mode = ColorMixMode(mix_mode);
     }
 };
 
-// Decoded 8-bit grayscale height sample, independent of any GUI/OpenGL texture object so it can
-// be evaluated from a background bake Job as well as from GUI-side preview code.
+// Decoded height (and, for a colour source image, colour) samples, independent of any GUI/OpenGL
+// texture object so they can be evaluated from a background bake Job as well as from GUI-side
+// preview code.
 struct DecodedHeightTexture
 {
-    std::vector<uint8_t> pixels; // row-major, top-to-bottom, one byte per pixel
+    std::vector<uint8_t> pixels; // height: row-major, top-to-bottom, one byte per pixel
+    // Colour: the same grid, three bytes per pixel, or empty when the source image was grayscale.
+    // A grayscale height map has no colour to give - `pixels` is not a colour, it is a height - so
+    // has_color() is what the whole colour feature keys off: a layer set to colour a model with a
+    // grayscale texture on it simply colours nothing.
+    std::vector<uint8_t> rgb;
     int width  = 0;
     int height = 0;
 
     bool empty() const { return width <= 0 || height <= 0 || pixels.empty(); }
+    bool has_color() const { return !empty() && rgb.size() == size_t(width) * size_t(height) * 3; }
     // Bilinearly sampled height in [0, 1] at a normalized uv coordinate. When tile_enabled is false,
     // a uv outside [0, 1) samples as 0 - the texture simply is not there, rather than its border
     // row/column being smeared outward forever (which is what clamping the coordinate would do, and
     // was a real reported bug). Callers rely on this to get a hard edge: it is how the projection
     // frame's border becomes the edge of the displacement.
     float sample(const Vec2f &uv, bool tile_enabled = true, TextureTileMethod tile_method = TextureTileMethod::Repeat) const;
+    // The same sample, in colour: linear RGB components in [0, 1]. Outside a non-tiled placement, and
+    // for a grayscale source, this is (0, 0, 0) - callers pair it with has_color() and with the
+    // height's own coverage rather than trying to read "no texture here" out of the colour itself.
+    Vec3f sample_color(const Vec2f &uv, bool tile_enabled = true,
+                       TextureTileMethod tile_method = TextureTileMethod::Repeat) const;
+
+    // Where a uv lands on the texel grid: the four texels of the bilinear tap and their weights.
+    // Shared by sample() and sample_color(), so a layer's height and its colour can never end up
+    // read from different places in the image. False means the uv is outside a non-tiled placement -
+    // no texture there at all (see sample()).
+    struct TexelTap
+    {
+        int   x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+        float tx = 0.f, ty = 0.f;
+    };
+    bool texel_tap(const Vec2f &uv, bool tile_enabled, TextureTileMethod tile_method, TexelTap &out) const;
 };
 
-// Decode a layer's raw image bytes into sampleable grayscale height data. Returns an empty
-// DecodedHeightTexture if image_data is empty or is not an 8-bit grayscale PNG.
+// Decode a layer's raw image bytes into sampleable height data, plus colour when the source has any.
+// Both 8-bit grayscale PNGs (the shipped library, and anything imported before colour was kept) and
+// colour PNGs are accepted; for a colour source the height is its luminance, using the same
+// coefficients wxImage::ConvertToGreyscale() uses, so a texture imported as colour displaces exactly
+// as it did when the importer flattened it to grey on the way in. Returns an empty
+// DecodedHeightTexture if image_data is empty or is not a PNG at all.
 DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer);
+
+// Maps a linear RGB colour in [0, 1] to an index into the caller's palette, or -1 for "no colour".
+//
+// Deliberately a callback rather than a function here: matching a colour to a filament is a
+// *perceptual* question (CIEDE2000 over CIELAB), and that machinery - slic3r/Utils/ColorSpaceConvert
+// and GuiColor - lives on the GUI side along with the list of filaments actually loaded. libslic3r
+// samples the image and decides *where* colour changes; the GUI decides *which* filament each colour
+// is. See GLGizmoTextureDisplacement::make_palette_quantizer().
+using ColorQuantizeFn = std::function<int(const Vec3f &)>;
+
+// Resolves a palette index plus a surface position to the filament index that position should print
+// in. A pure entry ignores the position; a mixed one interleaves its two filaments per ColorMixMode.
+//
+// Deliberately separate from ColorQuantizeFn, and deliberately *not* used by the subdivision's colour
+// criterion: that criterion asks where the **perceived** colour changes, and must not see the
+// interleaving. Refining on every band or dither-cell boundary would spend the whole triangle budget
+// drawing a pattern the eye is supposed to blend away.
+using ColorResolveFn = std::function<int(int palette_index, const Vec3f &pos)>;
+
+// One printable colour: either a loaded filament on its own, or a blend of two of them realised by
+// interleaving (see ColorMixMode). Plain data, so it can be captured into a background job.
+struct PrintableColor
+{
+    Vec3f rgb   = Vec3f::Zero(); // what it looks like; for a mix, the perceptual average of the two
+    int   a     = 0;             // filament index
+    int   b     = 0;             // the second filament; == a for a pure entry
+    int   num   = 1;             // a's share of the interleave, out of `den`
+    int   den   = 1;
+    bool  is_mix() const { return a != b; }
+};
+
+// Everything needed to colour a mesh, captured on the main thread and handed to a job. An empty
+// palette means nothing is colouring, which is the state every one of these paths starts in.
+struct TextureColorSettings
+{
+    std::vector<PrintableColor> palette;
+    ColorMixMode                mix_mode         = ColorMixMode::ZBands;
+    float                       layer_height     = 0.2f; // sizes the Z bands
+    float                       dither_cell_mm   = 0.4f; // sizes the XY dither cells
+    int                         despeckle_passes = 2;
+
+    bool empty() const { return palette.empty(); }
+};
 
 // Raw dominant-axis planar projection of `position` (in mm, not yet scaled/rotated/offset by any
 // layer), dropping the axis position that best aligns with `normal`. Exposed on its own (rather
@@ -408,6 +520,16 @@ float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisp
                           const Vec3f &position, const Vec3f &normal,
                           const Vec3f &patch_center = Vec3f::Zero(), const Vec3f &patch_axis = Vec3f::UnitZ(),
                           const Vec2f *lscm_uv = nullptr);
+
+// The same sample, in colour, through the identical projection/tiling/placement path - so a layer's
+// colour lands on the model exactly where its relief does, whatever projection it is using. Returns
+// false (leaving `out` untouched) when the texture has no colour, or when the point falls outside a
+// non-tiled placement, or behind a projective "from view" projector: all three mean "this layer does
+// not colour this point", which is different from "this layer colours it black".
+bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDisplacementLayer &layer,
+                        const Vec3f &position, const Vec3f &normal, Vec3f &out,
+                        const Vec3f &patch_center = Vec3f::Zero(), const Vec3f &patch_axis = Vec3f::UnitZ(),
+                        const Vec2f *lscm_uv = nullptr);
 
 // Area-weighted centroid and average normal of a layer's currently painted patch, in mesh-local
 // coordinates - the same measurements build_texture_displacement() uses to pick its dominant
@@ -551,11 +673,38 @@ using TextureDisplacementFacetsData = std::array<TriangleSelector::TriangleSplit
 // committed. It exists because this is the one call in the feature that can take seconds on a
 // subdivided mesh, and without it the progress notification the Job framework puts on screen sits at
 // 0% for the whole run and offers no way to close it (its close button only appears at 100%).
+//
+// `color`, when given, also reports which filament each triangle should print in - see
+// TextureColorRequest.
+struct TextureColorRequest
+{
+    // RGB -> palette index. Supplied by the GUI, which owns both the perceptual matching and the list
+    // of filaments actually loaded (see ColorQuantizeFn).
+    ColorQuantizeFn quantize;
+    // Palette index + position -> filament. Optional: without it a palette index is taken to be a
+    // filament index directly, which is the no-mixing case.
+    ColorResolveFn  resolve;
+    // Majority-filter passes over the *perceived* colour, before any interleaving is resolved.
+    //
+    // Sampling a detailed image once per triangle leaves salt-and-pepper wherever the image's own
+    // detail is finer than the mesh: two neighbouring facets land either side of some contour and flip
+    // colour independently. Replacing each facet's colour with the most common one among itself and
+    // its edge neighbours removes exactly that, and leaves any feature wider than a facet alone. 0
+    // turns it off.
+    int             despeckle_passes = 0;
+    // Filled per *base mesh* triangle (the bake is topology-preserving, so this indexes the returned
+    // mesh too): the quantize callback's index plus one, or 0 for "this triangle takes no colour from
+    // the texture". The +1 is not arbitrary - it lines up with EnforcerBlockerType, where 0 is NONE
+    // ("use the volume's own filament") and 1..16 are Extruder1..16, so the caller can hand these
+    // straight to a TriangleSelector without a second mapping table.
+    std::vector<uint8_t> *out_triangle = nullptr;
+};
 indexed_triangle_set build_texture_displacement(const indexed_triangle_set                  &base_mesh,
                                                  const std::vector<TextureDisplacementLayer> &layers,
                                                  const TextureDisplacementFacetsData         &facets_data,
                                                  const TextureDisplacementOptions            &options = {},
-                                                 const DisplacementProgressFn                &progress = {});
+                                                 const DisplacementProgressFn                &progress = {},
+                                                 const TextureColorRequest                   *color = nullptr);
 
 // Convenience overload for main-thread callers: extracts the mesh/layers/paint data/options from
 // `volume` and forwards to the overload above.
@@ -591,6 +740,22 @@ using HeightFieldSampler = std::function<float(const Vec3f &pos, const Vec3f &no
 // and edge-smoothing's boundary falloff is ignored. LSCM layers have no per-point UV and are skipped.
 // Returns a null sampler (bool false) when no layer can be sampled - the caller then falls back to
 // uniform adaptive subdivision.
+// Which filament the texture stack would put at a point, as a palette index (or -1 for "no colour
+// here"). The colour analogue of HeightFieldSampler, and used the same way: to decide where the
+// adaptive subdivision needs triangles. Colour lands per *facet*, so a colour boundary is a step the
+// mesh can only draw if there are edges along it - the chord-error test that drives the height
+// refinement is blind to it, exactly as it is blind to the paint's own border.
+using ColorFieldSampler = std::function<int(const Vec3f &pos, const Vec3f &normal)>;
+
+// The colour counterpart of make_combined_displacement_sampler(), over the same layers, and skipping
+// the same ones (LSCM has no per-point UV). Layers without color_enabled, and layers whose texture is
+// grayscale, contribute nothing; a higher slot wins over a lower one where they overlap, matching the
+// bake. Returns null when no layer can colour anything, in which case there is nothing to refine for.
+ColorFieldSampler make_combined_color_sampler(const indexed_triangle_set                  &base_mesh,
+                                              const std::vector<TextureDisplacementLayer> &layers,
+                                              const TextureDisplacementFacetsData         &facets_data,
+                                              ColorQuantizeFn                              quantize);
+
 HeightFieldSampler make_combined_displacement_sampler(const indexed_triangle_set                  &base_mesh,
                                                       const std::vector<TextureDisplacementLayer> &layers,
                                                       const TextureDisplacementFacetsData         &facets_data);
@@ -678,6 +843,15 @@ indexed_triangle_set subdivide_mesh_uniform(const indexed_triangle_set &mesh, fl
 // plain edge length is bounded (it is a thin ring, and a length target always terminates) and needs
 // no paint-aware sampler.
 //
+// `color`, with a positive `color_edge_length_mm`, adds a third criterion inside the painted area: a
+// triangle whose corners, edge midpoints and centroid do not all map to the *same* filament straddles
+// a colour boundary, and is refined by plain edge length down to that target. Length rather than any
+// error measure, for the same reason the border band uses length - the thing being fixed is the size
+// of the triangles spanning a step, not the curvature of anything - and because a step's error never
+// falls however fine the mesh gets, so only a length target (floored by min_edge_length_mm) is
+// guaranteed to terminate. Without this a colour boundary lands on whatever triangles the *height*
+// happened to need, which on a flat surface is none at all.
+//
 // `progress`, when given, is called with a 0..100 percentage of the triangle budget spent; returning
 // false stops the refinement early. What it hands back then is still a complete, conformal mesh - the
 // loop only ever finishes whole bisections - so a caller that wants to discard it has to do so itself.
@@ -688,7 +862,9 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
                                              const HeightFieldSampler &sampler = nullptr,
                                              float chord_tolerance_mm = 0.f, float min_edge_length_mm = 0.f,
                                              float border_edge_length_mm = 0.f,
-                                             const DisplacementProgressFn &progress = nullptr);
+                                             const DisplacementProgressFn &progress = nullptr,
+                                             const ColorFieldSampler &color = nullptr,
+                                             float color_edge_length_mm = 0.f);
 
 // The recipe for getting a mesh ready to receive displacement: even out the triangle density, then
 // refine it where the texture bends. Either stage is skipped when its target is <= 0. Pure data, and
@@ -709,6 +885,10 @@ struct TextureDisplacementPrepareParams
     float subdiv_border_mm       = 0.f; // "Edge detail": the band straddling the paint's edge, 0 = off
     bool  subdiv_feature         = false; // follow texture curvature, not just edge length
     int   subdiv_added_triangles = 0;     // budget, *added* to the mesh's own count
+    // Edge length triangles straddling a *colour* boundary are refined to, 0 = do not look at colour.
+    // Separate from the height criteria because colour lands per facet: a flat surface carrying a
+    // sharp colour edge needs triangles along that edge even though its height is perfectly smooth.
+    float subdiv_color_edge_mm   = 0.f;
 };
 
 // What a preparation run produced. An empty `mesh` means there was nothing to do and the caller must

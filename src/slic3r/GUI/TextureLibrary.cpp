@@ -10,6 +10,7 @@
 #include <boost/system/error_code.hpp>
 
 #include <wx/image.h>
+#include <wx/mstream.h>
 
 #include "libslic3r/PNGReadWrite.hpp"
 #include "libslic3r/Utils.hpp"
@@ -45,6 +46,52 @@ void scan_dir(const boost::filesystem::path &dir, bool is_user, std::vector<Text
     }
     std::sort(out.begin() + first, out.end(),
               [](const TextureLibraryEntry &a, const TextureLibraryEntry &b) { return a.name < b.name; });
+}
+
+// True if the image carries any colour at all, i.e. some pixel's channels are not all equal. A
+// photo saved as RGB but actually grey should still be stored as a grayscale PNG - it is a third of
+// the bytes, and the colour feature keys off has_color(), so storing a grey image as RGB would offer
+// the user a "colour" that is a row of identical greys.
+bool image_has_color(const wxImage &image)
+{
+    const unsigned char *rgb = image.GetData();
+    if (rgb == nullptr)
+        return false;
+    const size_t n = size_t(image.GetWidth()) * size_t(image.GetHeight());
+    for (size_t i = 0; i < n; ++i)
+        if (rgb[i * 3] != rgb[i * 3 + 1] || rgb[i * 3 + 1] != rgb[i * 3 + 2])
+            return true;
+    return false;
+}
+
+// Colour images are stored as-is (as an RGB PNG) so the texture can colour the model as well as
+// displace it; decode_height_texture() takes the height from their luminance, with the same
+// coefficients ConvertToGreyscale() uses, so the relief is identical either way. wxImage writes the
+// PNG here rather than Slic3r::png, which only encodes grayscale.
+bool encode_color_png_bytes(const wxImage &image, std::vector<unsigned char> &out, std::string &error)
+{
+    if (image.GetWidth() <= 0 || image.GetHeight() <= 0) {
+        error = _u8L("The selected image is empty.");
+        return false;
+    }
+    wxMemoryOutputStream stream;
+    // Alpha would be lost on the way into DecodedHeightTexture anyway, and a partly transparent
+    // texture reading as black relief is worse than reading as its own colour over the background.
+    wxImage opaque = image;
+    if (opaque.HasAlpha())
+        opaque.ClearAlpha();
+    if (!opaque.SaveFile(stream, wxBITMAP_TYPE_PNG)) {
+        error = _u8L("Failed to prepare the texture for use.");
+        return false;
+    }
+    const size_t size = size_t(stream.GetLength());
+    out.resize(size);
+    stream.CopyTo(out.data(), size);
+    if (out.empty()) {
+        error = _u8L("Failed to prepare the texture for use.");
+        return false;
+    }
+    return true;
 }
 
 // Slic3r::png only writes PNGs to a file, so the encode round-trips through a temp file rather than
@@ -87,14 +134,22 @@ bool encode_gray_png_bytes(const wxImage &image, std::vector<unsigned char> &out
     return true;
 }
 
+// Grayscale in, grayscale out; colour in, colour out.
+bool encode_png_bytes(const wxImage &image, std::vector<unsigned char> &out, std::string &error)
+{
+    return image_has_color(image) ? encode_color_png_bytes(image, out, error)
+                                  : encode_gray_png_bytes(image, out, error);
+}
+
 std::vector<unsigned char> read_file_bytes(const std::string &path)
 {
     std::ifstream ifs(path, std::ios::binary);
     return std::vector<unsigned char>(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
 }
 
-// True if these bytes are already the 8-bit grayscale PNG libslic3r can decode, i.e. can be stored
-// on a layer as-is. Mirrors exactly what decode_height_texture() accepts.
+// True if these bytes are a PNG libslic3r can decode, i.e. can be stored on a layer as-is. Mirrors
+// exactly what decode_height_texture() accepts: 8-bit grayscale, or colour (whose luminance is the
+// height and whose RGB is available to colour the model).
 bool is_supported_height_map(const std::vector<unsigned char> &bytes)
 {
     if (bytes.empty())
@@ -102,8 +157,12 @@ bool is_supported_height_map(const std::vector<unsigned char> &bytes)
     const png::ReadBuf rbuf{ bytes.data(), bytes.size() };
     if (!png::is_png(rbuf))
         return false;
-    png::ImageGreyscale img;
-    return png::decode_png(rbuf, img) && img.cols > 0 && img.rows > 0;
+    png::ImageGreyscale gray;
+    if (png::decode_png(rbuf, gray) && gray.cols > 0 && gray.rows > 0)
+        return true;
+    png::ImageColorscale color;
+    return png::decode_colored_png(rbuf, color) && color.cols > 0 && color.rows > 0 &&
+           color.bytes_per_pixel >= 3;
 }
 
 std::vector<TextureLibraryEntry> g_library;
@@ -153,7 +212,7 @@ std::optional<TextureLibraryEntry> import_texture_to_library(const std::string &
     }
 
     std::vector<unsigned char> bytes;
-    if (!encode_gray_png_bytes(image, bytes, error))
+    if (!encode_png_bytes(image, bytes, error))
         return std::nullopt;
 
     // Never overwrite an existing texture (the user's or, if they picked the same name twice, their
@@ -192,15 +251,15 @@ std::shared_ptr<std::vector<unsigned char>> load_texture_image_data(const std::s
     if (is_supported_height_map(bytes))
         return std::make_shared<std::vector<unsigned char>>(std::move(bytes));
 
-    // Not an 8-bit grayscale PNG (a colour image somebody copied into the folder by hand, say):
-    // convert it the same way an import would, but leave the file on disk alone.
+    // Not a PNG at all (a jpg somebody copied into the folder by hand, say): convert it the same way
+    // an import would - keeping its colour if it has any - but leave the file on disk alone.
     wxImage image;
     if (!image.LoadFile(from_u8(path)) || !image.IsOk()) {
         error = _u8L("Could not load the selected image.");
         return nullptr;
     }
     std::vector<unsigned char> converted;
-    if (!encode_gray_png_bytes(image, converted, error))
+    if (!encode_png_bytes(image, converted, error))
         return nullptr;
     return std::make_shared<std::vector<unsigned char>>(std::move(converted));
 }

@@ -7,6 +7,7 @@
 
 #include "Job.hpp"
 
+#include "libslic3r/Color.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -43,6 +44,10 @@ struct TextureDisplacementPrepareInput
     TextureDisplacementFacetsData         masks;
     std::vector<TextureDisplacementLayer> layers;
     TextureDisplacementPrepareParams      params;
+    // Captured on the main thread. Empty when no layer is colouring, in which case the refinement
+    // skips the colour criterion entirely. Only the *quantizer* is used here: refinement follows
+    // perceived colour, never the interleaving that realises a mix.
+    TextureColorSettings                  color;
     // The undo step the commit opens. Standard mode's Bake names it after the bake, because the
     // displacement job that follows commits into this same step rather than pushing its own.
     std::string                           snapshot_name;

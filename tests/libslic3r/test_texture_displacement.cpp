@@ -634,3 +634,216 @@ TEST_CASE("TextureDisplacement: feature-adaptive subdivision follows curvature, 
         CHECK(worst <= 0.03f);
     }
 }
+
+// A 2x2 truecolour PNG: red, green / blue, white. Written out as bytes rather than encoded here
+// because libslic3r only *writes* grayscale PNGs (png::write_gray_to_file) - which is also exactly
+// why the colour path exists: the GUI importer stores colour images through wxImage instead.
+static std::shared_ptr<std::vector<unsigned char>> make_rgb_png_2x2()
+{
+    static const unsigned char bytes[] = {
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02,
+        0x08, 0x02, 0x00, 0x00, 0x00, 0xfd, 0xd4, 0x9a, 0x73, 0x00, 0x00, 0x00,
+        0x14, 0x49, 0x44, 0x41, 0x54, 0x78, 0xda, 0x63, 0xf8, 0xcf, 0xc0, 0xc0,
+        0x00, 0xc2, 0x0c, 0xff, 0xff, 0xff, 0xff, 0x0f, 0x00, 0x1f, 0xee, 0x05,
+        0xfb, 0x60, 0x6c, 0x70, 0xf2, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e,
+        0x44, 0xae, 0x42, 0x60, 0x82,
+    };
+    return std::make_shared<std::vector<unsigned char>>(std::begin(bytes), std::end(bytes));
+}
+
+TEST_CASE("TextureDisplacement: a colour texture decodes to both colour and height", "[TextureDisplacement]")
+{
+    TextureDisplacementLayer layer;
+    layer.slot       = 0;
+    layer.image_data = make_rgb_png_2x2();
+
+    const DecodedHeightTexture tex = decode_height_texture(layer);
+    REQUIRE_FALSE(tex.empty());
+    REQUIRE(tex.has_color());
+    REQUIRE(tex.width == 2);
+    REQUIRE(tex.height == 2);
+    REQUIRE(tex.rgb.size() == 2 * 2 * 3);
+
+    // Row-major, top-to-bottom: red, green / blue, white.
+    CHECK(tex.rgb[0] == 255);  CHECK(tex.rgb[1] == 0);    CHECK(tex.rgb[2] == 0);
+    CHECK(tex.rgb[3] == 0);    CHECK(tex.rgb[4] == 255);  CHECK(tex.rgb[5] == 0);
+    CHECK(tex.rgb[6] == 0);    CHECK(tex.rgb[7] == 0);    CHECK(tex.rgb[8] == 255);
+    CHECK(tex.rgb[9] == 255);  CHECK(tex.rgb[10] == 255); CHECK(tex.rgb[11] == 255);
+
+    // Height is the luminance, with wxImage::ConvertToGreyscale()'s coefficients - which is what
+    // makes a texture displace identically whether it was imported before or after colour was kept.
+    CHECK(int(tex.pixels[0]) == int(std::lround(0.299 * 255))); // red
+    CHECK(int(tex.pixels[1]) == int(std::lround(0.587 * 255))); // green
+    CHECK(int(tex.pixels[2]) == int(std::lround(0.114 * 255))); // blue
+    CHECK(int(tex.pixels[3]) == 255);                           // white
+}
+
+TEST_CASE("TextureDisplacement: a grayscale texture reports no colour", "[TextureDisplacement]")
+{
+    // The shipped library is all grayscale, and has_color() is what the whole colour feature keys
+    // off - a height map must never look like it has colours to apply.
+    TextureDisplacementLayer layer;
+    layer.slot       = 0;
+    layer.image_data = make_flat_gray_png(128);
+
+    const DecodedHeightTexture tex = decode_height_texture(layer);
+    REQUIRE_FALSE(tex.empty());
+    CHECK_FALSE(tex.has_color());
+    CHECK(tex.rgb.empty());
+
+    Vec3f out(9.f, 9.f, 9.f);
+    CHECK_FALSE(sample_layer_color(tex, layer, Vec3f::Zero(), Vec3f::UnitZ(), out));
+    CHECK(out.x() == 9.f); // left untouched on a false return
+}
+
+// Two triangles making a 10x10 quad in the z=0 plane.
+static indexed_triangle_set color_test_quad()
+{
+    indexed_triangle_set quad;
+    quad.vertices = { Vec3f(0, 0, 0), Vec3f(10, 0, 0), Vec3f(10, 10, 0), Vec3f(0, 10, 0) };
+    quad.indices  = { { 0, 1, 2 }, { 0, 2, 3 } };
+    return quad;
+}
+
+TEST_CASE("TextureDisplacement: colour is reported per triangle and only where painted", "[TextureDisplacement]")
+{
+    const indexed_triangle_set quad = color_test_quad();
+
+    TextureDisplacementLayer layer;
+    layer.slot              = 0;
+    layer.image_data        = make_rgb_png_2x2();
+    layer.color_enabled     = true;
+    layer.depth_mm          = 0.f; // colour only, so this isolates the colour path from the geometry
+    layer.tiling_scale      = 100.f;
+    layer.projection_method = TextureProjectionMethod::Triplanar;
+
+    TriangleMesh     mesh(quad);
+    TriangleSelector selector(mesh);
+    selector.set_facet(0, EnforcerBlockerType::ENFORCER); // only the first triangle
+
+    TextureDisplacementFacetsData facets;
+    facets[0] = selector.serialize();
+
+    // A three-entry palette matched in plain RGB: all this test needs is *an* index. The perceptual
+    // matching is the GUI's (make_palette_quantizer), and is deliberately not under test here.
+    const std::array<Vec3f, 3> palette = { Vec3f(1, 0, 0), Vec3f(0, 1, 0), Vec3f(0, 0, 1) };
+    TextureColorRequest        request;
+    std::vector<uint8_t>       triangle_color;
+    request.out_triangle = &triangle_color;
+    request.quantize     = [&palette](const Vec3f &rgb) {
+        int   best = 0;
+        float bd   = std::numeric_limits<float>::max();
+        for (int i = 0; i < 3; ++i)
+            if (const float d = (palette[size_t(i)] - rgb).squaredNorm(); d < bd) {
+                bd   = d;
+                best = i;
+            }
+        return best;
+    };
+
+    const indexed_triangle_set out = build_texture_displacement(quad, { layer }, facets, {}, {}, &request);
+
+    REQUIRE_FALSE(out.indices.empty());
+    REQUIRE(triangle_color.size() == quad.indices.size());
+    // The painted triangle takes a filament; the unpainted one is left at 0, which is
+    // EnforcerBlockerType::NONE - "use the volume's own filament". That is what confines the effect
+    // to the painted area without having to invent a colour for everything outside it.
+    CHECK(triangle_color[0] != 0);
+    CHECK(triangle_color[1] == 0);
+}
+
+TEST_CASE("TextureDisplacement: a layer that is not colouring reports no colours", "[TextureDisplacement]")
+{
+    const indexed_triangle_set quad = color_test_quad();
+
+    TextureDisplacementLayer layer;
+    layer.slot          = 0;
+    layer.image_data    = make_rgb_png_2x2();
+    layer.color_enabled = false; // the checkbox is off: colour stays off even on a colour texture
+    layer.depth_mm      = 1.f;
+
+    TriangleMesh     mesh(quad);
+    TriangleSelector selector(mesh);
+    selector.set_facet(0, EnforcerBlockerType::ENFORCER);
+    selector.set_facet(1, EnforcerBlockerType::ENFORCER);
+
+    TextureDisplacementFacetsData facets;
+    facets[0] = selector.serialize();
+
+    TextureColorRequest  request;
+    std::vector<uint8_t> triangle_color;
+    request.out_triangle = &triangle_color;
+    request.quantize     = [](const Vec3f &) { return 0; };
+
+    build_texture_displacement(quad, { layer }, facets, {}, {}, &request);
+
+    REQUIRE(triangle_color.size() == quad.indices.size());
+    CHECK(triangle_color[0] == 0);
+    CHECK(triangle_color[1] == 0);
+}
+
+TEST_CASE("TextureDisplacement: subdivision refines a colour boundary a flat height field hides",
+          "[TextureDisplacement]")
+{
+    // A cube with a flat height field, so *nothing* in the height criteria has any reason to refine
+    // it - which is exactly the case the colour criterion exists for. Closed, so every_edge_used_twice()
+    // is an exact crack detector: the colour criterion goes through the same conformal bisection as
+    // everything else and must not be able to open one.
+    const indexed_triangle_set cube = its_make_cube(10., 10., 10.);
+    const std::vector<uint8_t> region(cube.indices.size(), REFINE_PAINTED);
+
+    auto longest_edge = [](const indexed_triangle_set &its, const stl_triangle_vertex_indices &t) {
+        float m = 0.f;
+        for (int e = 0; e < 3; ++e)
+            m = std::max(m, (its.vertices[t[e]] - its.vertices[t[(e + 1) % 3]]).norm());
+        return m;
+    };
+
+    // One filament on each side of x = 5: a step, with no gradient anywhere for a chord test to see.
+    ColorFieldSampler split_at_five = [](const Vec3f &p, const Vec3f &) { return p.x() < 5.f ? 0 : 1; };
+    ColorFieldSampler all_one       = [](const Vec3f &, const Vec3f &) { return 0; };
+
+    SECTION("a colour boundary gets triangles")
+    {
+        const indexed_triangle_set out =
+            subdivide_mesh_adaptive(cube, region, /*max edge*/ 0.f, 200000, nullptr, nullptr, 0.f,
+                                    /*min_edge*/ 0.05f, /*border*/ 0.f, nullptr, split_at_five,
+                                    /*colour edge*/ 0.5f);
+
+        CHECK(out.indices.size() > cube.indices.size());
+        CHECK(every_edge_used_twice(out)); // still watertight
+
+        // Every triangle still straddling the boundary must be down at the target.
+        for (const auto &t : out.indices) {
+            bool straddles = false;
+            for (int i = 1; i < 3; ++i)
+                if ((out.vertices[t[i]].x() < 5.f) != (out.vertices[t[0]].x() < 5.f))
+                    straddles = true;
+            if (straddles)
+                CHECK(longest_edge(out, t) <= 0.5f + 1e-4f);
+        }
+    }
+
+    SECTION("a uniform colour adds nothing")
+    {
+        const indexed_triangle_set out =
+            subdivide_mesh_adaptive(cube, region, /*max edge*/ 0.f, 200000, nullptr, nullptr, 0.f,
+                                    /*min_edge*/ 0.05f, /*border*/ 0.f, nullptr, all_one,
+                                    /*colour edge*/ 0.5f);
+
+        CHECK(out.indices.size() == cube.indices.size());
+    }
+
+    SECTION("no colour sampler leaves the mesh alone")
+    {
+        // The regression this guards: the colour criterion must be inert when nothing is colouring,
+        // or every bake would start refining geometry for no reason.
+        const indexed_triangle_set out =
+            subdivide_mesh_adaptive(cube, region, /*max edge*/ 0.f, 200000, nullptr, nullptr, 0.f,
+                                    /*min_edge*/ 0.05f, /*border*/ 0.f, nullptr, nullptr,
+                                    /*colour edge*/ 0.5f);
+
+        CHECK(out.indices.size() == cube.indices.size());
+    }
+}

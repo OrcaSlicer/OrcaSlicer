@@ -21,6 +21,15 @@ const vec3 LIGHT_FRONT_DIR = vec3(0.6985074, 0.1397015, 0.6985074);
 const vec3 ZERO = vec3(0.0, 0.0, 0.0);
 
 uniform vec4 uniform_color;
+// The printable palette, in **CIELAB** as well as RGB, and how many entries are real. Lab because the
+// match has to be perceptual - the same reason the CPU side uses CIEDE2000 - and converting the
+// palette once on the CPU is what lets the fragment shader match with a plain squared distance.
+// Count 0 means nothing is colouring, and every fragment falls back to uniform_color as before.
+uniform vec3      palette_lab[64];
+uniform vec3      palette_rgb[64];
+uniform int       palette_count;
+uniform sampler2D color_tex;     // the layer's colour image, sampled at the same uv as the height
+uniform bool      has_color_tex;
 uniform bool volume_mirrored;
 
 uniform mat4 view_model_matrix;
@@ -79,6 +88,47 @@ vec2 project_uv(vec3 p, vec3 n)
     return r + uv_offset;
 }
 
+// sRGB -> CIELAB, matching slic3r/Utils/ColorSpaceConvert's RGB2Lab so this picks the same entry the
+// bake does.
+vec3 srgb_to_lab(vec3 c)
+{
+    vec3 v = vec3(c.r > 0.04045 ? pow((c.r + 0.055) / 1.055, 2.4) : c.r / 12.92,
+                  c.g > 0.04045 ? pow((c.g + 0.055) / 1.055, 2.4) : c.g / 12.92,
+                  c.b > 0.04045 ? pow((c.b + 0.055) / 1.055, 2.4) : c.b / 12.92);
+    vec3 xyz = vec3(dot(v, vec3(0.4124, 0.3576, 0.1805)) / 0.95047,
+                    dot(v, vec3(0.2126, 0.7152, 0.0722)),
+                    dot(v, vec3(0.0193, 0.1192, 0.9505)) / 1.08883);
+    vec3 f   = vec3(xyz.x > 0.008856 ? pow(xyz.x, 1.0 / 3.0) : (7.787 * xyz.x) + 16.0 / 116.0,
+                    xyz.y > 0.008856 ? pow(xyz.y, 1.0 / 3.0) : (7.787 * xyz.y) + 16.0 / 116.0,
+                    xyz.z > 0.008856 ? pow(xyz.z, 1.0 / 3.0) : (7.787 * xyz.z) + 16.0 / 116.0);
+    return vec3(116.0 * f.y - 16.0, 500.0 * (f.x - f.y), 200.0 * (f.y - f.z));
+}
+
+// Nearest printable colour to a sampled one. Quantizing per *fragment* rather than per facet is the
+// whole point of this path: it shows the image at the texture's resolution instead of the mesh's,
+// which is what you need while choosing a texture and placing it. The Normal view is where the
+// facet-resolution truth - what actually bakes - is shown.
+//
+// Squared distance in Lab (CIE76) rather than the CPU's CIEDE2000: the two agree except on near-ties,
+// and CIEDE2000 per fragment across 64 entries is not worth its cost in a preview.
+vec3 quantize_to_palette(vec3 rgb)
+{
+    vec3  lab  = srgb_to_lab(rgb);
+    int   best = 0;
+    float bd   = 1.0e20;
+    for (int i = 0; i < 64; ++i) {
+        if (i >= palette_count)
+            break;
+        vec3  d  = lab - palette_lab[i];
+        float d2 = dot(d, d);
+        if (d2 < bd) {
+            bd   = d2;
+            best = i;
+        }
+    }
+    return palette_rgb[best];
+}
+
 void main()
 {
     if (any(lessThan(clipping_planes_dots, ZERO)))
@@ -88,6 +138,12 @@ void main()
     if (volume_mirrored)
         triangle_normal = -triangle_normal;
 
+    // Where the colour is read from. Both branches below already compute the uv this fragment's
+    // *height* came from - including the parallax-marched one on the triplanar path - and the colour
+    // has to follow it exactly, or the colour would slide off the relief as the camera orbits.
+    vec2 color_uv    = vec2(0.0);
+    bool have_uv     = false;
+
     if (use_vertex_uv) {
         // Mikkelsen surface-gradient bump; see the 140 variant for the full rationale. Scale-exact
         // for a conformal LSCM map (no global 1/tiling assumption), and gated by the paint weight
@@ -95,6 +151,8 @@ void main()
         vec2 uv = (island_active > 0.5)
                     ? vec2(dot(island_delta_lin.xy, vertex_uv), dot(island_delta_lin.zw, vertex_uv)) + island_delta_tr
                     : vertex_uv;
+        color_uv = uv;
+        have_uv  = true;
         float h = texture2D(height_tex, uv).r;
         float k = (invert ? -1.0 : 1.0) * depth_mm * clamp(weight, 0.0, 1.0);
         vec3  sigmaS = dFdx(model_pos.xyz);
@@ -151,6 +209,9 @@ void main()
             }
         }
 
+        color_uv = uv; // after the parallax march, so colour and relief stay registered
+        have_uv  = true;
+
         float hL = texture2D(height_tex, uv - vec2(height_tex_texel.x, 0.0)).r;
         float hR = texture2D(height_tex, uv + vec2(height_tex_texel.x, 0.0)).r;
         float hD = texture2D(height_tex, uv - vec2(0.0, height_tex_texel.y)).r;
@@ -183,5 +244,11 @@ void main()
     NdotL = max(dot(eye_normal, LIGHT_FRONT_DIR), 0.0);
     intensity.x += NdotL * LIGHT_FRONT_DIFFUSE;
 
-    gl_FragColor = vec4(vec3(intensity.y) + uniform_color.rgb * intensity.x, uniform_color.a);
+    // Diffuse albedo: the image's colour at this fragment, snapped to the nearest printable colour.
+    // Only the albedo - the specular term (intensity.y) stays white - so a coloured fragment reads as
+    // the same material under the same light, and the relief this preview exists to show is unaffected.
+    vec3 albedo = uniform_color.rgb;
+    if (palette_count > 0 && has_color_tex && have_uv && weight > 0.0)
+        albedo = quantize_to_palette(texture2D(color_tex, color_uv).rgb);
+    gl_FragColor = vec4(vec3(intensity.y) + albedo * intensity.x, uniform_color.a);
 }

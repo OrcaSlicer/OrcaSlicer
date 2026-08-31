@@ -4,6 +4,7 @@
 #include <functional>
 #include <vector>
 
+#include "libslic3r/Color.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -22,6 +23,10 @@ struct TextureDisplacementBakeInput
     std::vector<TextureDisplacementLayer> layers;
     TextureDisplacementFacetsData         facets_data;
     TextureDisplacementOptions            options;
+    // Captured on the main thread. Empty unless some layer is colouring, in which case the bake also
+    // writes the volume's mmu_segmentation_facets - the same per-triangle filament assignment the MMU
+    // paint gizmo writes - alongside the displaced geometry.
+    TextureColorSettings                  color;
     // Whether this job pushes its own undo step when it commits. False when the caller has already
     // taken one that is meant to cover the displacement as well - Standard mode's Bake, which remeshes
     // and subdivides first and has to undo as a single action.
@@ -42,6 +47,9 @@ public:
 private:
     TextureDisplacementBakeInput m_input;
     TriangleMesh                 m_result;
+    // Per triangle of m_result: the filament to print it in, as an EnforcerBlockerType value
+    // (0 = leave alone). Empty unless a layer asked for colour. See TextureColorRequest.
+    std::vector<uint8_t>         m_triangle_color;
     std::function<void()>        m_on_finished;
 };
 
@@ -49,8 +57,8 @@ private:
 // the app's UI job worker. `on_finished` is always called once the job settles (success, failure,
 // or cancellation), so the caller can clear its own "bake in progress" UI state. Must be called
 // from the main thread.
-void queue_texture_displacement_bake(const ModelVolume &volume, std::function<void()> on_finished,
-                                     bool take_snapshot = true);
+void queue_texture_displacement_bake(const ModelVolume &volume, const TextureColorSettings &color,
+                                     std::function<void()> on_finished, bool take_snapshot = true);
 
 } // namespace Slic3r::GUI
 

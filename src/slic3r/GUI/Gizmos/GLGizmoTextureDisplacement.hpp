@@ -45,10 +45,79 @@ public:
                                                          const TextureDisplacementFacetsData         &masks,
                                                          const std::vector<TextureDisplacementLayer> &layers,
                                                          const TextureDisplacementPrepareParams      &params,
+                                                         const std::vector<PrintableColor>           &palette,
                                                          const DisplacementProgressFn                &progress);
     // The volume's eight texture-displacement masks, gathered into the array every pure function here
     // (and every job input) takes.
     static TextureDisplacementFacetsData facets_data_of(const ModelVolume &mv);
+
+    using PaletteEntry = PrintableColor;
+
+    // The printable palette: the loaded filaments (clamped to the sixteen mmu_segmentation_facets can
+    // address), plus - when `mixing` - every pair of them at evenly spaced ratios.
+    //
+    // Mixes are averaged in **CIELAB**, not RGB and not subtractively: two filaments interleaved too
+    // finely to resolve are averaged by the eye, which is what a perceptual space models. Yellow and
+    // blue banded together read as a desaturated grey-green, and that is what the preview must promise
+    // - blending them subtractively would show a green the printer cannot produce this way.
+    //
+    // How many ratios depends on how many filaments there are, so the palette stays bounded: the
+    // quantizer's lookup cube costs one DeltaE00 per cell per entry to fill, and with sixteen
+    // filaments there are already plenty of colours without mixing any of them.
+    static std::vector<PaletteEntry> make_palette(const std::vector<ColorRGBA> &filaments, bool mixing);
+
+    // Maps an image colour to the closest entry of `palette`, perceptually (CIEDE2000 over CIELAB - a
+    // plain RGB distance picks visibly wrong filaments, most obviously between a saturated colour and
+    // a grey of similar brightness).
+    //
+    // Precomputed into a lookup cube rather than matched per call: the subdivision's colour criterion
+    // samples up to seven points per triangle and re-samples both children of every split, so a live
+    // match would dominate the refinement. The returned closure owns the cube, so it is safe to hand
+    // to a worker thread and outlives the palette it was built from.
+    static ColorQuantizeFn make_palette_quantizer(const std::vector<PaletteEntry> &palette);
+
+    // Turns a palette index plus a position into the filament to print there, interleaving the two
+    // filaments of a mixed entry per `mode`. `layer_height` sizes the Z bands; `cell_mm` the dither
+    // cells. See ColorResolveFn for why this is separate from the quantizer.
+    static ColorResolveFn make_mix_resolver(const std::vector<PaletteEntry> &palette, ColorMixMode mode,
+                                            float layer_height, float cell_mm);
+
+    // Everything the jobs need to colour with, for the current volume: palette, mix mode, layer
+    // height, despeckle. Empty when no layer is actually colouring.
+    TextureColorSettings color_settings_for(const ModelVolume &mv);
+
+    // The printable palette for the current filaments and mixing setting, rebuilt only when either
+    // actually changes - see the definition for why that caching is not optional.
+    const std::vector<PaletteEntry> &cached_palette();
+    std::vector<PaletteEntry>  m_palette_cache;
+    std::vector<ColorRGBA>     m_palette_filaments;
+    bool                       m_palette_mixing = false;
+    ColorQuantizeFn            m_palette_quantizer;
+
+    // The loaded filaments, clamped to the sixteen mmu_segmentation_facets can address.
+    static std::vector<ColorRGBA> filament_palette();
+    // The print's layer height, which sizes ColorMixMode::ZBands. Falls back to 0.2 mm if it cannot be
+    // read - a wrong band size is a cosmetic error, not a reason to refuse to colour anything.
+    static float print_layer_height();
+
+    // The Normal preview's triangles, grouped by the filament they will print in. Colour is per facet
+    // and there are at most sixteen filaments, so the mesh is uploaded once with its index buffer
+    // sorted by colour and drawn as one GLModel::render(range) per group - which needs no per-vertex
+    // colour attribute, and so no change to GLModel's vertex layouts.
+    //
+    // The *index buffer* is what gets reordered, never m_preview_its: the paint overlay and the
+    // wireframe index into that by the volume's own triangle numbering (the bake is
+    // topology-preserving), and permuting it would silently misplace both.
+    struct PreviewColorRun
+    {
+        std::pair<size_t, size_t> range; // into the GLModel's index buffer, in elements
+        ColorRGBA                 color;
+    };
+    std::vector<PreviewColorRun> m_preview_color_runs;
+    // True if any of the volume's layers would actually colour something: colour turned on, and a
+    // texture that has colour to give. What decides whether a palette is captured into a job at all,
+    // and so whether the colour criterion and the mmu write ever run.
+    static bool any_layer_colors(const ModelVolume &mv);
 
     void render_painter_gizmo() override;
 
@@ -214,6 +283,9 @@ private:
     // The same texture at full resolution, for the fast-preview shader. One slot, shared by whichever
     // layer is active, because that is the only one the bump shader ever shades.
     GLTexture *get_layer_height_texture(const TextureDisplacementLayer &layer);
+    // The layer's colour texture for the fast preview's per-fragment quantization. Null when the
+    // layer is not colouring or its texture is grayscale.
+    GLTexture *get_layer_color_texture(const TextureDisplacementLayer &layer);
 
     // A texture from the picker's library (see slic3r/GUI/TextureLibrary.hpp), read and uploaded
     // once and then kept for the gizmo's lifetime. The decoded bytes are held alongside the GPU
@@ -423,6 +495,13 @@ private:
     // transition keeps the input's density and the rim of an unpainted island comes out as a ring of
     // large, steeply tilted triangles. See collect_paint_region() and subdivide_mesh_adaptive().
     float m_subdivide_border_mm   = 0.4f;
+    // Edge length triangles straddling a *colour* boundary are refined to (0 = ignore colour). Its own
+    // control rather than a share of "Detail (mm)" because the two measure different things: Detail is
+    // a chord error in mm of surface deviation, this is a triangle size in mm along a step the chord
+    // test cannot see at all - the height field is perfectly smooth across a change of filament, so
+    // without this a colour boundary lands on whatever triangles the relief happened to need, which on
+    // a flat surface is none. Only ever costs anything where a boundary actually runs.
+    float m_subdivide_color_mm    = 0.3f;
     // How many thousand triangles refinement may *add* (the mesh's own count is added on before it is
     // passed as subdivide_mesh_adaptive()'s absolute cap, so the control still means something on a
     // dense model). Refinement is worst-error-first, so hitting the budget still yields the best mesh
@@ -504,6 +583,12 @@ private:
     // Whether the current bump mesh carries a precomputed per-vertex uv (LSCM) that the shader
     // should sample at directly, rather than projecting in-shader. Set by rebuild_bump_preview_mesh().
     bool    m_bump_preview_uses_vertex_uv = false;
+    // The palette the fast preview's per-triangle filament indices were built against, captured when
+    // the mesh was. Empty when the active layer is not colouring, which is what tells the shader to
+    // fall back to the model's own colour. Held rather than re-read at draw time so the indices baked
+    // into the mesh can never be resolved against a different set of filaments than they were computed
+    // from - loading a filament mid-session would otherwise recolour a stale preview at random.
+    std::vector<PaletteEntry> m_bump_preview_palette;
 
     // GPU island drag: while an island is dragged in the UV editor, the bump mesh is baked once (with
     // the dragged island's vertices flagged, v_normal.y = 1) and then moved purely through the shader's
@@ -620,6 +705,12 @@ private:
     std::unique_ptr<GLTexture> m_height_tex;
     const void                *m_height_tex_source    = nullptr;
     float                      m_height_tex_smoothing = -1.f;
+
+    // The same, for the layer's *colour*, which the fast preview quantizes per fragment so it shows
+    // the image at texel resolution rather than at the mesh's. Null for a grayscale texture.
+    std::unique_ptr<GLTexture> m_color_tex;
+    const void                *m_color_tex_source    = nullptr;
+    float                      m_color_tex_smoothing = -1.f;
 
     // Library textures the picker has shown at least once, keyed by file path (see LibraryTexture).
     std::map<std::string, LibraryTexture> m_library_textures;

@@ -23,10 +23,11 @@
 
 namespace Slic3r {
 
-float DecodedHeightTexture::sample(const Vec2f &uv, bool tile_enabled, TextureTileMethod tile_method) const
+bool DecodedHeightTexture::texel_tap(const Vec2f &uv, bool tile_enabled, TextureTileMethod tile_method,
+                                     TexelTap &tap) const
 {
     if (empty())
-        return 0.f;
+        return false;
 
     auto repeat01 = [](float x) {
         x = std::fmod(x, 1.f);
@@ -43,7 +44,7 @@ float DecodedHeightTexture::sample(const Vec2f &uv, bool tile_enabled, TextureTi
         // Outside the single, non-repeating placement entirely: no texture there, not "smeared
         // edge pixel" - clamping the *coordinate* to [0, 1] would otherwise keep returning the
         // border row/column's height forever in every direction, stretching it out to infinity.
-        return 0.f;
+        return false;
 
     float u, v;
     if (!tile_enabled) {
@@ -59,19 +60,46 @@ float DecodedHeightTexture::sample(const Vec2f &uv, bool tile_enabled, TextureTi
 
     const float fx = u * float(width);
     const float fy = v * float(height);
-    int x0 = std::clamp(int(std::floor(fx)), 0, width - 1);
-    int y0 = std::clamp(int(std::floor(fy)), 0, height - 1);
+    const int   x0 = std::clamp(int(std::floor(fx)), 0, width - 1);
+    const int   y0 = std::clamp(int(std::floor(fy)), 0, height - 1);
     // Neighbour for bilinear filtering: wrap for tiling methods, clamp at the edge otherwise (a
     // repeating neighbour would incorrectly blend against the opposite edge of the image).
-    const int   x1 = tile_enabled ? (x0 + 1) % width  : std::min(x0 + 1, width - 1);
-    const int   y1 = tile_enabled ? (y0 + 1) % height : std::min(y0 + 1, height - 1);
-    const float tx = fx - std::floor(fx);
-    const float ty = fy - std::floor(fy);
+    tap.x0 = x0;
+    tap.y0 = y0;
+    tap.x1 = tile_enabled ? (x0 + 1) % width  : std::min(x0 + 1, width - 1);
+    tap.y1 = tile_enabled ? (y0 + 1) % height : std::min(y0 + 1, height - 1);
+    tap.tx = fx - std::floor(fx);
+    tap.ty = fy - std::floor(fy);
+    return true;
+}
+
+float DecodedHeightTexture::sample(const Vec2f &uv, bool tile_enabled, TextureTileMethod tile_method) const
+{
+    TexelTap tap;
+    if (!texel_tap(uv, tile_enabled, tile_method, tap))
+        return 0.f;
+    const int   x0 = tap.x0, y0 = tap.y0, x1 = tap.x1, y1 = tap.y1;
+    const float tx = tap.tx, ty = tap.ty;
 
     auto at = [this](int x, int y) { return float(pixels[size_t(y) * size_t(width) + size_t(x)]) / 255.f; };
     const float top    = at(x0, y0) * (1.f - tx) + at(x1, y0) * tx;
     const float bottom = at(x0, y1) * (1.f - tx) + at(x1, y1) * tx;
     return top * (1.f - ty) + bottom * ty;
+}
+
+Vec3f DecodedHeightTexture::sample_color(const Vec2f &uv, bool tile_enabled, TextureTileMethod tile_method) const
+{
+    TexelTap tap;
+    if (!has_color() || !texel_tap(uv, tile_enabled, tile_method, tap))
+        return Vec3f::Zero();
+
+    auto at = [this](int x, int y) {
+        const size_t i = (size_t(y) * size_t(width) + size_t(x)) * 3;
+        return Vec3f(float(rgb[i]) / 255.f, float(rgb[i + 1]) / 255.f, float(rgb[i + 2]) / 255.f);
+    };
+    const Vec3f top    = at(tap.x0, tap.y0) * (1.f - tap.tx) + at(tap.x1, tap.y0) * tap.tx;
+    const Vec3f bottom = at(tap.x0, tap.y1) * (1.f - tap.tx) + at(tap.x1, tap.y1) * tap.tx;
+    return top * (1.f - tap.ty) + bottom * tap.ty;
 }
 
 namespace {
@@ -156,18 +184,40 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
     if (!have_raw) {
         const png::ReadBuf rbuf{ layer.image_data->data(), layer.image_data->size() };
         if (!png::is_png(rbuf))
-            // Only 8-bit grayscale PNG height maps are supported. The GUI is responsible for
-            // converting any imported image (jpg, color png, ...) to that format on import, so this
-            // code never needs a dependency on wxWidgets/libjpeg to decode arbitrary user images.
+            // PNG only. The GUI converts any other imported format (jpg, bmp, ...) on import, so this
+            // code needs no dependency on wxWidgets/libjpeg to read arbitrary user images.
             return result;
 
         png::ImageGreyscale img;
-        if (!png::decode_png(rbuf, img) || img.cols == 0 || img.rows == 0)
-            return result;
+        if (png::decode_png(rbuf, img) && img.cols > 0 && img.rows > 0) {
+            // The shipped library, and anything imported before colour was kept.
+            result.width  = int(img.cols);
+            result.height = int(img.rows);
+            result.pixels = std::move(img.buf);
+        } else {
+            // A colour source: keep the colour, and take the height from its luminance. The
+            // coefficients are wxImage::ConvertToGreyscale()'s, which is what the importer used to
+            // apply on the way in - so a texture that used to be flattened to grey at import time
+            // displaces identically now that its colour is preserved.
+            png::ImageColorscale col;
+            if (!png::decode_colored_png(rbuf, col) || col.cols == 0 || col.rows == 0 ||
+                col.bytes_per_pixel < 3)
+                return result;
 
-        result.width  = int(img.cols);
-        result.height = int(img.rows);
-        result.pixels = std::move(img.buf);
+            const size_t n   = size_t(col.cols) * size_t(col.rows);
+            const size_t bpp = size_t(col.bytes_per_pixel);
+            result.width  = int(col.cols);
+            result.height = int(col.rows);
+            result.pixels.resize(n);
+            result.rgb.resize(n * 3);
+            for (size_t i = 0; i < n; ++i) {
+                const uint8_t r = col.buf[i * bpp], g = col.buf[i * bpp + 1], b = col.buf[i * bpp + 2];
+                result.rgb[i * 3]     = r;
+                result.rgb[i * 3 + 1] = g;
+                result.rgb[i * 3 + 2] = b;
+                result.pixels[i] = uint8_t(std::lround(0.299 * r + 0.587 * g + 0.114 * b));
+            }
+        }
 
         std::lock_guard<std::mutex> lock(g_decoded_texture_cache.mutex);
         // Opportunistically drop entries for image_data that no longer exists anywhere, so the
@@ -184,6 +234,20 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
         const int max_radius = std::clamp(int(std::lround(0.02f * std::min(result.width, result.height))), 1, 32);
         const int radius     = std::max(1, int(std::lround(layer.smoothing * float(max_radius))));
         smooth_height_pixels(result.pixels, result.width, result.height, radius);
+        // Colour gets the same blur, per channel. It is the same knob for the same reason: detail in
+        // the image finer than the mesh can carry is noise either way, and low-passing it here is the
+        // cheapest place to remove it - one blur of the texture, rather than a fight per triangle.
+        if (result.has_color()) {
+            const size_t         n = size_t(result.width) * size_t(result.height);
+            std::vector<uint8_t> channel(n);
+            for (int c = 0; c < 3; ++c) {
+                for (size_t i = 0; i < n; ++i)
+                    channel[i] = result.rgb[i * 3 + size_t(c)];
+                smooth_height_pixels(channel, result.width, result.height, radius);
+                for (size_t i = 0; i < n; ++i)
+                    result.rgb[i * 3 + size_t(c)] = channel[i];
+            }
+        }
     }
     return result;
 }
@@ -1029,6 +1093,109 @@ float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisp
            w.z() * sample_at(Vec2f(position.x(), position.y()));
 }
 
+bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDisplacementLayer &layer,
+                        const Vec3f &position, const Vec3f &normal, Vec3f &out, const Vec3f &patch_center,
+                        const Vec3f &patch_axis, const Vec2f *lscm_uv)
+{
+    if (!texture.has_color())
+        return false;
+
+    // Deliberately a transcription of sample_layer_height()'s dispatch rather than a shared template:
+    // the two differ in what "nothing here" means. Height returns 0, which is a perfectly good height
+    // (no displacement); colour has no such neutral value - black is a colour - so every path that
+    // returns 0 there has to report false here instead, and the caller leaves the triangle uncoloured.
+    const float aspect = (texture.height > 0) ? float(texture.width) / float(texture.height) : 1.f;
+    auto sample_at = [&](const Vec2f &planar) {
+        return texture.sample_color(apply_uv_transform(planar, layer, aspect), layer.tile_enabled,
+                                    layer.tile_method);
+    };
+    // Outside a non-tiled placement there is no texture at all - the same hard edge sample() gives the
+    // height. Checked explicitly because sample_color() reports it as black, which is a real colour.
+    auto covered = [&](const Vec2f &planar) {
+        if (layer.tile_enabled)
+            return true;
+        const Vec2f uv = apply_uv_transform(planar, layer, aspect);
+        return uv.x() >= 0.f && uv.x() < 1.f && uv.y() >= 0.f && uv.y() < 1.f;
+    };
+
+    if (lscm_uv != nullptr) {
+        if (!covered(*lscm_uv))
+            return false;
+        out = sample_at(*lscm_uv);
+        return true;
+    }
+
+    switch (layer.projection_method) {
+    case TextureProjectionMethod::Cylindrical: {
+        const Vec2f p = project_cylindrical(position, patch_center, patch_axis);
+        if (!covered(p))
+            return false;
+        out = sample_at(p);
+        return true;
+    }
+    case TextureProjectionMethod::Spherical: {
+        const Vec2f p = project_spherical(position, patch_center);
+        if (!covered(p))
+            return false;
+        out = sample_at(p);
+        return true;
+    }
+    case TextureProjectionMethod::ViewProjected:
+        if (layer.view_project_projective) {
+            // The frame's own rectangle is the placement, so no apply_uv_transform() - see
+            // sample_layer_height(). A point behind the projector has no uv, hence no colour.
+            Vec2f uv;
+            if (!project_uv_projective(layer.view_project_matrix, position, uv))
+                return false;
+            if (!layer.tile_enabled && (uv.x() < 0.f || uv.x() >= 1.f || uv.y() < 0.f || uv.y() >= 1.f))
+                return false;
+            out = texture.sample_color(uv, layer.tile_enabled, layer.tile_method);
+            return true;
+        } else {
+            const Vec2f p(position.dot(layer.view_project_right), position.dot(layer.view_project_up));
+            if (!covered(p))
+                return false;
+            out = sample_at(p);
+            return true;
+        }
+    case TextureProjectionMethod::LSCM: // no usable unwrap for this patch - fall back to Triplanar
+    case TextureProjectionMethod::Triplanar:
+    default: break;
+    }
+
+    // Blended tri-planar, weighted exactly as the height is, so colour and relief stay registered
+    // across the cross-fade band at a 90-degree edge.
+    Vec3f w = normal.cwiseAbs();
+    w       = Vec3f(std::pow(w.x(), TRIPLANAR_BLEND_SHARPNESS), std::pow(w.y(), TRIPLANAR_BLEND_SHARPNESS),
+                    std::pow(w.z(), TRIPLANAR_BLEND_SHARPNESS));
+    const float w_sum = w.x() + w.y() + w.z();
+    if (w_sum < 1e-8f) {
+        const Vec2f p(position.x(), position.y());
+        if (!covered(p))
+            return false;
+        out = sample_at(p);
+        return true;
+    }
+    w /= w_sum;
+
+    // A blend of three planes is only "not covered" where *every* contributing plane is outside the
+    // placement; where some are, the covered ones are renormalised so the colour does not fade toward
+    // black at the edge of an untiled tri-planar layer.
+    const std::array<Vec2f, 3> planes = { Vec2f(position.y(), position.z()), Vec2f(position.x(), position.z()),
+                                          Vec2f(position.x(), position.y()) };
+    Vec3f acc     = Vec3f::Zero();
+    float acc_w   = 0.f;
+    for (int i = 0; i < 3; ++i)
+        if (w[i] > 0.f && covered(planes[size_t(i)])) {
+            acc   += w[i] * sample_at(planes[size_t(i)]);
+            acc_w += w[i];
+        }
+    if (acc_w <= 0.f)
+        return false;
+    out = acc / acc_w;
+    return true;
+}
+
 indexed_triangle_set extract_painted_patch(const indexed_triangle_set                    &base_mesh,
                                             const TriangleSelector::TriangleSplittingData &facet_data)
 {
@@ -1135,11 +1302,71 @@ std::vector<float> patch_boundary_distance(const indexed_triangle_set &patch, co
 }
 } // namespace
 
+namespace {
+// Majority filter over face adjacency: each triangle takes the most common colour among itself and
+// the (up to three) triangles across its edges. Ties, and a triangle whose own colour is already the
+// most common, keep what they had - so the filter only ever removes a facet that disagrees with its
+// whole neighbourhood, and cannot drift a large region.
+//
+// Read from a snapshot of the previous pass, so the result does not depend on triangle order.
+// Uncoloured triangles (-1) neither vote nor get voted on: the paint boundary is not noise.
+void despeckle_triangle_colors(const indexed_triangle_set &mesh, std::vector<int> &color, int passes)
+{
+    if (passes <= 0 || color.size() != mesh.indices.size())
+        return;
+    const std::vector<Vec3i32> neighbors = its_face_neighbors(mesh);
+    if (neighbors.size() != mesh.indices.size())
+        return;
+
+    std::vector<int> prev;
+    for (int pass = 0; pass < passes; ++pass) {
+        prev = color;
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, color.size()),
+                          [&](const tbb::blocked_range<size_t> &range) {
+            for (size_t i = range.begin(); i < range.end(); ++i) {
+                if (prev[i] < 0)
+                    continue;
+                // At most four candidates (self plus three neighbours), so counting by a linear scan
+                // is cheaper than any map.
+                int  cand[4]  = { prev[i], -1, -1, -1 };
+                int  count[4] = { 1, 0, 0, 0 };
+                int  n        = 1;
+                for (int e = 0; e < 3; ++e) {
+                    const int nb = neighbors[i][e];
+                    if (nb < 0 || size_t(nb) >= prev.size() || prev[size_t(nb)] < 0)
+                        continue;
+                    const int c = prev[size_t(nb)];
+                    int       k = 0;
+                    for (; k < n; ++k)
+                        if (cand[k] == c) {
+                            ++count[k];
+                            break;
+                        }
+                    if (k == n && n < 4) {
+                        cand[n]  = c;
+                        count[n] = 1;
+                        ++n;
+                    }
+                }
+                // Strictly greater, so a tie leaves the triangle alone.
+                int best = 0;
+                for (int k = 1; k < n; ++k)
+                    if (count[k] > count[best])
+                        best = k;
+                if (count[best] > count[0])
+                    color[i] = cand[best];
+            }
+        });
+    }
+}
+} // namespace
+
 indexed_triangle_set build_texture_displacement(const indexed_triangle_set                  &base_mesh,
                                                  const std::vector<TextureDisplacementLayer> &layers,
                                                  const TextureDisplacementFacetsData         &facets_data,
                                                  const TextureDisplacementOptions            &options,
-                                                 const DisplacementProgressFn                &progress)
+                                                 const DisplacementProgressFn                &progress,
+                                                 const TextureColorRequest                   *color)
 {
     // Returns true to keep going. An aborted run returns {} (see the header): an empty mesh is the
     // one result no caller can mistake for a finished bake and commit onto the volume.
@@ -1223,6 +1450,19 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
     std::vector<bool>  on_patch_border(mesh.vertices.size(), false);
     bool               any_displacement = false;
 
+    // Colour is accumulated per *triangle*, not per vertex: it ends up in the volume's
+    // mmu_segmentation_facets, which assigns one filament to a whole facet. Layers are visited in
+    // ascending slot order, so a higher layer simply overwrites a lower one's colour where they
+    // overlap - the painter's-algorithm reading of a layer stack, and the one that matches how the
+    // panel lists them.
+    const bool       want_color = color != nullptr && color->out_triangle != nullptr && bool(color->quantize);
+    // Palette indices, not filament indices: -1 for "no colour here". Kept in perceived-colour space
+    // for the whole pass so the despeckle filter below operates on what the eye sees, and the
+    // interleaving that turns a mixed entry into two real filaments happens once, at the very end.
+    std::vector<int> triangle_palette;
+    if (want_color)
+        triangle_palette.assign(mesh.indices.size(), -1);
+
     const TriangleMesh selector_mesh(mesh);
     // One selector for the whole stack, re-deserialized per layer. Its constructor computes
     // its_face_neighbors() and its_face_normals() over the *entire* mesh, which on a subdivided model
@@ -1251,7 +1491,10 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
         selector.deserialize(data, selector_dirty);
         selector_dirty = true;
 
-        const indexed_triangle_set patch = selector.get_facets_strict(EnforcerBlockerType::ENFORCER);
+        const bool       color_this_layer = want_color && layer->color_enabled;
+        std::vector<int> patch_source; // sub-triangle -> base mesh triangle, only built when colouring
+        const indexed_triangle_set patch =
+            selector.get_facets_strict(EnforcerBlockerType::ENFORCER, color_this_layer ? &patch_source : nullptr);
         if (patch.indices.empty())
             continue;
         // get_facets_strict() returns the same vertex array whichever state is asked for (only the
@@ -1308,6 +1551,65 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
         const std::vector<Vec2f> lscm_uvs = (layer->projection_method == TextureProjectionMethod::LSCM) ?
                                                  compute_lscm_uvs(patch, *layer) :
                                                  std::vector<Vec2f>{};
+
+        // Colour, if this layer carries any. Area-weighted over each base triangle's *painted* part,
+        // so a triangle the brush only clipped a corner off takes the colour of that corner rather
+        // than of the whole triangle's worth of texture - and so a triangle straddling a colour
+        // boundary lands on whichever side covers more of it, instead of on whichever sub-triangle
+        // happened to be emitted first. One quantize call per triangle, after the averaging.
+        if (color_this_layer) {
+            const DecodedHeightTexture &tex = height;
+            if (tex.has_color()) {
+                std::vector<Vec3f> sum(mesh.indices.size(), Vec3f::Zero());
+                std::vector<float> sum_area(mesh.indices.size(), 0.f);
+                for (size_t j = 0; j < patch.indices.size() && j < patch_source.size(); ++j) {
+                    const size_t S = size_t(patch_source[j]);
+                    if (S >= mesh.indices.size())
+                        continue;
+                    const stl_triangle_vertex_indices &t = patch.indices[j];
+                    const Vec3f &pa = patch.vertices[size_t(t[0])];
+                    const Vec3f &pb = patch.vertices[size_t(t[1])];
+                    const Vec3f &pc = patch.vertices[size_t(t[2])];
+                    const float  area2 = (pb - pa).cross(pc - pa).norm();
+                    if (area2 <= 0.f)
+                        continue;
+                    const Vec3f centroid = (pa + pb + pc) / 3.f;
+
+                    // The normal the triplanar blend weights by, and the unwrap coordinate the LSCM
+                    // path needs, both averaged over the sub-triangle's corners - the same quantities
+                    // the per-vertex height sampling uses, evaluated at the centroid instead.
+                    Vec3f n = Vec3f::Zero();
+                    Vec2f uv = Vec2f::Zero();
+                    bool  have_uv = !lscm_uvs.empty();
+                    for (int k = 0; k < 3; ++k) {
+                        const int vi = t[k];
+                        if (vi < int(vertex_normals.size()))
+                            n += vertex_normals[size_t(vi)];
+                        if (have_uv && size_t(vi) < lscm_uvs.size())
+                            uv += lscm_uvs[size_t(vi)];
+                        else
+                            have_uv = false;
+                    }
+                    n = (n.norm() > 1e-8f) ? Vec3f(n.normalized()) : average_normal;
+                    uv /= 3.f;
+
+                    Vec3f rgb;
+                    if (sample_layer_color(tex, *layer, centroid, n, rgb, patch_centroid, patch_axis,
+                                           have_uv ? &uv : nullptr)) {
+                        sum[S]      += area2 * rgb;
+                        sum_area[S] += area2;
+                    }
+                }
+                for (size_t i = 0; i < mesh.indices.size(); ++i)
+                    if (sum_area[i] > 0.f) {
+                        const int idx = color->quantize(sum[i] / sum_area[i]);
+                        // A quantizer that declines this colour leaves whatever a lower layer put
+                        // there, rather than punching a hole in it.
+                        if (idx >= 0)
+                            triangle_palette[i] = idx;
+                    }
+            }
+        }
 
         // Edge smoothing: a per-vertex weight in [0, 1] that fades the displacement to zero toward the
         // patch boundary. amount->0 leaves only the very edge softened; amount->1 fades the whole patch
@@ -1424,6 +1726,29 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
 
     if (!report(99))
         return {};
+    if (want_color) {
+        // Despeckle in perceived-colour space, then resolve each entry to a real filament. The order
+        // matters both ways round: filtering after the interleave would erase the bands it is supposed
+        // to keep, and interleaving before the filter would have the filter treat two halves of one
+        // blended colour as a disagreement.
+        despeckle_triangle_colors(mesh, triangle_palette, color->despeckle_passes);
+
+        std::vector<uint8_t> out_color(mesh.indices.size(), 0);
+        for (size_t i = 0; i < mesh.indices.size(); ++i) {
+            if (triangle_palette[i] < 0)
+                continue;
+            const stl_triangle_vertex_indices &t = mesh.indices[i];
+            const Vec3f centroid = (mesh.vertices[size_t(t[0])] + mesh.vertices[size_t(t[1])] +
+                                    mesh.vertices[size_t(t[2])]) / 3.f;
+            const int filament = color->resolve ? color->resolve(triangle_palette[i], centroid)
+                                                : triangle_palette[i];
+            if (filament >= 0)
+                out_color[i] = uint8_t(std::min(filament + 1, 255));
+        }
+        // Handed over only on a run that completed: every early return above is a cancellation, and
+        // the caller must not commit a half-computed colouring any more than a half-displaced mesh.
+        *color->out_triangle = std::move(out_color);
+    }
     return mesh;
 }
 
@@ -1495,22 +1820,26 @@ void smooth_mesh_vertices(indexed_triangle_set &mesh, const std::vector<uint8_t>
     }
 }
 
-HeightFieldSampler make_combined_displacement_sampler(const indexed_triangle_set                  &base_mesh,
-                                                      const std::vector<TextureDisplacementLayer> &layers,
-                                                      const TextureDisplacementFacetsData         &facets_data)
+namespace {
+// One decoded texture + placement per sampleable layer, in blend (slot) order. Held by shared_ptr so
+// the returned closure owns it for as long as the subdivider keeps calling back.
+struct PreparedLayer {
+    DecodedHeightTexture     tex;
+    TextureDisplacementLayer layer;  // a copy of the params (depth/tiling/rotation/offset/blend/...)
+    Vec3f                    center; // patch centroid, for Cylindrical/Spherical
+    Vec3f                    axis;   // cylinder axis, for Cylindrical
+};
+
+// Shared by both point samplers, so the height field and the colour field can never disagree about
+// where a layer is placed. `need_color` additionally drops layers that cannot contribute colour.
+std::shared_ptr<std::vector<PreparedLayer>> prepare_sampleable_layers(
+    const indexed_triangle_set &base_mesh, const std::vector<TextureDisplacementLayer> &layers,
+    const TextureDisplacementFacetsData &facets_data, bool need_color)
 {
-    // One decoded texture + placement per sampleable layer, in blend (slot) order. Held by shared_ptr
-    // so the returned closure owns it for as long as the subdivider keeps calling back.
-    struct Prepared {
-        DecodedHeightTexture     tex;
-        TextureDisplacementLayer layer;  // a copy of the params (depth/tiling/rotation/offset/blend/...)
-        Vec3f                    center; // patch centroid, for Cylindrical/Spherical
-        Vec3f                    axis;   // cylinder axis, for Cylindrical
-    };
-    auto prepared = std::make_shared<std::vector<Prepared>>();
+    auto prepared = std::make_shared<std::vector<PreparedLayer>>();
 
     if (base_mesh.indices.empty())
-        return nullptr;
+        return prepared;
 
     std::vector<const TextureDisplacementLayer *> ordered;
     for (const TextureDisplacementLayer &l : layers)
@@ -1525,11 +1854,13 @@ HeightFieldSampler make_combined_displacement_sampler(const indexed_triangle_set
     for (const TextureDisplacementLayer *layer : ordered) {
         if (layer->projection_method == TextureProjectionMethod::LSCM)
             continue; // no per-point UV -> not sampleable here (caller falls back to uniform for these)
+        if (need_color && !layer->color_enabled)
+            continue;
         const TriangleSelector::TriangleSplittingData &data = facets_data[size_t(layer->slot)];
         if (data.triangles_to_split.empty())
             continue;
         const DecodedHeightTexture tex = decode_height_texture(*layer);
-        if (tex.empty())
+        if (tex.empty() || (need_color && !tex.has_color()))
             continue;
 
         TriangleSelector selector(selector_mesh);
@@ -1563,14 +1894,47 @@ HeightFieldSampler make_combined_displacement_sampler(const indexed_triangle_set
 
         prepared->push_back({ tex, *layer, centroid, axis });
     }
+    return prepared;
+}
+} // namespace
 
+ColorFieldSampler make_combined_color_sampler(const indexed_triangle_set                  &base_mesh,
+                                              const std::vector<TextureDisplacementLayer> &layers,
+                                              const TextureDisplacementFacetsData         &facets_data,
+                                              ColorQuantizeFn                              quantize)
+{
+    if (!quantize)
+        return nullptr;
+    auto prepared = prepare_sampleable_layers(base_mesh, layers, facets_data, /* need_color */ true);
+    if (prepared->empty())
+        return nullptr;
+
+    return [prepared, quantize = std::move(quantize)](const Vec3f &pos, const Vec3f &normal) -> int {
+        // Last one wins: `prepared` is in ascending slot order and the bake lets a higher layer
+        // overwrite a lower one's colour, so the sampler has to resolve overlaps the same way.
+        int result = -1;
+        for (const PreparedLayer &p : *prepared) {
+            Vec3f rgb;
+            if (sample_layer_color(p.tex, p.layer, pos, normal, rgb, p.center, p.axis, nullptr))
+                if (const int idx = quantize(rgb); idx >= 0)
+                    result = idx;
+        }
+        return result;
+    };
+}
+
+HeightFieldSampler make_combined_displacement_sampler(const indexed_triangle_set                  &base_mesh,
+                                                      const std::vector<TextureDisplacementLayer> &layers,
+                                                      const TextureDisplacementFacetsData         &facets_data)
+{
+    auto prepared = prepare_sampleable_layers(base_mesh, layers, facets_data, /* need_color */ false);
     if (prepared->empty())
         return nullptr;
 
     return [prepared](const Vec3f &pos, const Vec3f &normal) -> float {
         float total = 0.f;
         bool  any   = false;
-        for (const Prepared &p : *prepared) {
+        for (const PreparedLayer &p : *prepared) {
             const float h        = sample_layer_height(p.tex, p.layer, pos, normal, p.center, p.axis, nullptr);
             const float sign     = p.layer.invert ? -1.f : 1.f;
             const float signed_h = (h - p.layer.midlevel) * p.layer.depth_mm * sign;
@@ -1646,7 +2010,8 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
                                              std::vector<int> *out_source, const HeightFieldSampler &sampler,
                                              float chord_tolerance_mm, float min_edge_length_mm,
                                              float border_edge_length_mm,
-                                             const DisplacementProgressFn &progress)
+                                             const DisplacementProgressFn &progress,
+                                             const ColorFieldSampler &color, float color_edge_length_mm)
 {
     // Neighbour slots that are not a triangle index.
     constexpr int NB_BOUNDARY    = -1; // open edge: terminal on its own, bisected from this side alone
@@ -1682,6 +2047,8 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
     // Feature-adaptive when a sampler and a positive tolerance are supplied; otherwise refinement is
     // driven by the length baseline alone.
     const bool  feature_mode = bool(sampler) && chord_tolerance_mm > 0.f;
+    const bool  color_mode   = bool(color) && color_edge_length_mm > 0.f;
+    const float color_sq     = color_edge_length_mm > 0.f ? color_edge_length_mm * color_edge_length_mm : 0.f;
     const float min_floor_sq = min_edge_length_mm > 0.f ? min_edge_length_mm * min_edge_length_mm : 0.f;
     const float target_sq    = target_edge_length_mm > 0.f ? target_edge_length_mm * target_edge_length_mm : 0.f;
     const float border_sq    = border_edge_length_mm > 0.f ? border_edge_length_mm * border_edge_length_mm : 0.f;
@@ -1690,7 +2057,7 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
     // (children inherit their parent's src), so a wrong size would be an out-of-bounds read. Guard it.
     if (refine_region.size() != mesh.indices.size() || int(tris.size()) + 2 > max_triangles)
         return emit();
-    if (!feature_mode && target_sq <= 0.f && border_sq <= 0.f)
+    if (!feature_mode && !color_mode && target_sq <= 0.f && border_sq <= 0.f)
         return emit(); // no criterion at all
     if (std::none_of(refine_region.begin(), refine_region.end(), [](uint8_t v) { return v != 0; }))
         return emit(); // nothing flagged: no-op
@@ -1757,6 +2124,34 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
         return vheight[v];
     };
 
+    // Per-vertex filament index, sampled lazily and cached the same way the heights are. Needs the
+    // vertex normals, which feature mode also builds - so colour mode builds them when it is on alone.
+    std::vector<int>     vcolor;
+    std::vector<uint8_t> vcolor_valid;
+    if (color_mode) {
+        if (vnormal.empty()) {
+            vnormal.assign(verts.size(), Vec3f::Zero());
+            for (const Tri &t : tris) {
+                const Vec3f fn = (verts[t.v[1]] - verts[t.v[0]]).cross(verts[t.v[2]] - verts[t.v[0]]);
+                for (int i = 0; i < 3; ++i)
+                    vnormal[t.v[i]] += fn;
+            }
+            for (Vec3f &n : vnormal) {
+                const float l = n.norm();
+                n = (l > 1e-12f) ? Vec3f(n / l) : Vec3f(Vec3f::UnitZ());
+            }
+        }
+        vcolor.assign(verts.size(), -2); // -2 = not sampled yet; -1 = sampled, no colour there
+        vcolor_valid.assign(verts.size(), 0);
+    }
+    auto color_of = [&](int v) -> int {
+        if (!vcolor_valid[v]) {
+            vcolor[v]       = color(verts[v], vnormal[v]);
+            vcolor_valid[v] = 1;
+        }
+        return vcolor[v];
+    };
+
     auto elen_sq = [&](int a, int b) -> float { return (verts[a] - verts[b]).squaredNorm(); };
 
     // The one edge of a triangle taken as its "longest": greatest squared length, exact ties broken by
@@ -1788,6 +2183,38 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
     std::vector<float> tri_err;
     if (feature_mode)
         tri_err.assign(tris.size(), -1.f);
+    // True when this triangle straddles a colour boundary: its corners, its edge midpoints and its
+    // centroid do not all take the same filament. The midpoints and centroid matter for the same
+    // reason they do in detail_error() - a boundary can cross a triangle without separating any two of
+    // its corners. Cached per triangle; a split invalidates both children.
+    std::vector<uint8_t> tri_color_split; // 0 = unknown, 1 = straddles, 2 = uniform
+    if (color_mode)
+        tri_color_split.assign(tris.size(), 0);
+    auto straddles_color = [&](int ti) -> bool {
+        if (tri_color_split[ti] != 0)
+            return tri_color_split[ti] == 1;
+        const Tri  &t  = tris[ti];
+        const Vec3f pa = verts[t.v[0]], pb = verts[t.v[1]], pc = verts[t.v[2]];
+        const Vec3f na = vnormal[t.v[0]], nb = vnormal[t.v[1]], nc = vnormal[t.v[2]];
+        const int   ca = color_of(t.v[0]);
+        bool        split = color_of(t.v[1]) != ca || color_of(t.v[2]) != ca;
+        if (!split) {
+            static const float BARY[4][3] = { { 0.5f, 0.5f, 0.f }, { 0.f, 0.5f, 0.5f },
+                                              { 0.5f, 0.f, 0.5f }, { 1.f / 3, 1.f / 3, 1.f / 3 } };
+            for (const auto &w : BARY) {
+                Vec3f       n  = w[0] * na + w[1] * nb + w[2] * nc;
+                const float nl = n.norm();
+                n = (nl > 1e-12f) ? Vec3f(n / nl) : na;
+                if (color(w[0] * pa + w[1] * pb + w[2] * pc, n) != ca) {
+                    split = true;
+                    break;
+                }
+            }
+        }
+        tri_color_split[ti] = split ? 1 : 2;
+        return split;
+    };
+
     auto detail_error = [&](int ti) -> float {
         if (tri_err[ti] >= 0.f)
             return tri_err[ti];
@@ -1828,6 +2255,10 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
             p = (target_sq > 0.f) ? ll / target_sq : 0.f;
             if (feature_mode)
                 p = std::max(p, detail_error(ti) / chord_tolerance_mm);
+            // Colour is per facet, so a colour boundary can only be drawn where there are edges along
+            // it. Length target, floored by min_edge_length_mm above, exactly like the border band.
+            if (color_mode && straddles_color(ti))
+                p = std::max(p, ll / color_sq);
         }
         // The band straddling the paint's edge, refined by plain edge length. Deliberately *not* run
         // through detail_error(): outside the paint the sampler still reports full relief (it has no
@@ -1878,12 +2309,18 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
 
         const int m = int(verts.size());
         verts.push_back(0.5f * (verts[a] + verts[b]));
-        if (feature_mode) {
+        if (feature_mode || color_mode) {
             const Vec3f mn = vnormal[a] + vnormal[b];
             const float ml = mn.norm();
             vnormal.push_back(ml > 1e-12f ? Vec3f(mn / ml) : vnormal[a]);
+        }
+        if (feature_mode) {
             vheight.push_back(0.f);
             vheight_valid.push_back(0);
+        }
+        if (color_mode) {
+            vcolor.push_back(-2);
+            vcolor_valid.push_back(0);
         }
 
         // Near side: ti becomes (a, m, c), the new triangle is (m, b, c). Both keep the original
@@ -1902,6 +2339,10 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
         if (feature_mode) {
             tri_err.push_back(-1.f);
             tri_err[ti] = -1.f;
+        }
+        if (color_mode) {
+            tri_color_split.push_back(0);
+            tri_color_split[ti] = 0;
         }
         touched.assign({ ti, t2 });
 
@@ -1925,6 +2366,10 @@ indexed_triangle_set subdivide_mesh_adaptive(const indexed_triangle_set &mesh,
         if (feature_mode) {
             tri_err.push_back(-1.f);
             tri_err[n] = -1.f;
+        }
+        if (color_mode) {
+            tri_color_split.push_back(0);
+            tri_color_split[n] = 0;
         }
 
         // Stitch the two sides back together: whichever far child holds `a` borders the near child
