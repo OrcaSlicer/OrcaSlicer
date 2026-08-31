@@ -1,0 +1,60 @@
+{
+	"type": "filament",
+	"name": "Lulzbot 2.85mm ABS @Mini 1",
+	"inherits": "Generic ABS @System",
+	"from": "system",
+	"setting_id": "XBiZFBKTKbEPjTTj",
+	"filament_id": "GFB99",
+	"filament_vendor": [
+		"Lulzbot"
+	],
+	"instantiation": "true",
+	"filament_diameter": [
+		"2.85"
+	],
+	"filament_density": [
+		"1.06"
+	],
+	"filament_max_volumetric_speed": [
+		"6"
+	],
+	"nozzle_temperature": [
+		"240"
+	],
+	"nozzle_temperature_initial_layer": [
+		"245"
+	],
+	"cool_plate_temp": [
+		"110"
+	],
+	"cool_plate_temp_initial_layer": [
+		"110"
+	],
+	"eng_plate_temp": [
+		"110"
+	],
+	"eng_plate_temp_initial_layer": [
+		"110"
+	],
+	"hot_plate_temp": [
+		"110"
+	],
+	"hot_plate_temp_initial_layer": [
+		"110"
+	],
+	"textured_plate_temp": [
+		"110"
+	],
+	"textured_plate_temp_initial_layer": [
+		"110"
+	],
+	"fan_min_speed": [
+		"40"
+	],
+	"fan_max_speed": [
+		"60"
+	],
+	"compatible_printers": [
+		"Lulzbot Mini 1 0.5 nozzle"
+	]
+}
