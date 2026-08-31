@@ -3762,6 +3762,153 @@ TEST_CASE("project round-trip serialization", "[CadDocument][project]")
     }
 }
 
+TEST_CASE("Use/Convert Entities: box top-face edges land as construction geometry", "[CadDocument][project]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Ext");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int top_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[0].shape, i);
+        if (GeometryEngine::face_normal_world(fc).z() > 0.9) { top_face = i; break; }
+    }
+    REQUIRE(top_face >= 0);
+
+    int target = doc.add_sketch_entities({}, SketchPlane::XY(), "Use");
+    REQUIRE(target >= 0);
+
+    int appended = doc.project_edges_into_sketch(target, 0, {}, top_face);
+    REQUIRE(appended == 4);
+
+    const auto& ents = doc.features[target].entities;
+    REQUIRE(ents.size() == 4);
+    for (const auto& e : ents) {
+        REQUIRE(e.type == SketchEntity::Type::Line);
+        REQUIRE(e.construction == true);
+    }
+}
+
+TEST_CASE("Use/Convert Entities: construction references never become solid", "[CadDocument][project]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Ext");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int top_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[0].shape, i);
+        if (GeometryEngine::face_normal_world(fc).z() > 0.9) { top_face = i; break; }
+    }
+    REQUIRE(top_face >= 0);
+
+    const size_t body_count_before = doc.bodies.size();
+    const double volume_before     = doc.body_mass_properties(0).volume;
+
+    int target   = doc.add_sketch_entities({}, SketchPlane::XY(), "Use");
+    int appended = doc.project_edges_into_sketch(target, 0, {}, top_face);
+    REQUIRE(appended == 4);
+
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == body_count_before);
+    REQUIRE_THAT(doc.body_mass_properties(0).volume, WithinRel(volume_before, 1e-9));
+}
+
+TEST_CASE("Use/Convert Entities: bad references return -1 and change nothing", "[CadDocument][project]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Ext");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int target = doc.add_sketch_entities({}, SketchPlane::XY(), "Use");
+    REQUIRE(target >= 0);
+
+    REQUIRE(doc.project_edges_into_sketch(-1, 0, {}, -1) == -1);
+    REQUIRE(doc.project_edges_into_sketch(999, 0, {}, -1) == -1);
+    REQUIRE(doc.project_edges_into_sketch(target, -1, {}, -1) == -1);
+    REQUIRE(doc.project_edges_into_sketch(target, 999, {}, -1) == -1);
+    REQUIRE(doc.features[target].entities.empty());
+}
+
+TEST_CASE("Use/Convert Entities: cylinder edge arrives as a Circle, not a polyline", "[CadDocument][project]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    SketchEntity c;
+    c.type   = SketchEntity::Type::Circle;
+    c.center = Vec2d(0, 0);
+    c.radius = 6.0;
+    int sk = doc.add_sketch_entities({c}, SketchPlane::XY(), "Circ");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Cyl");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int n_edges = GeometryEngine::edge_count(doc.bodies[0].shape);
+    int top_edge = -1;
+    for (int i = 0; i < n_edges; ++i) {
+        TopoDS_Edge e = GeometryEngine::edge_by_index(doc.bodies[0].shape, i);
+        auto pts = GeometryEngine::sample_edge_world(e);
+        if (pts.empty()) continue;
+        Vec3d mid = Vec3d::Zero();
+        for (const auto& p : pts) mid += p;
+        mid /= double(pts.size());
+        if (mid.z() > 9.0) {
+            BRepAdaptor_Curve ac(e);
+            if (ac.GetType() == GeomAbs_Circle) { top_edge = i; break; }
+        }
+    }
+    REQUIRE(top_edge >= 0);
+
+    int target   = doc.add_sketch_entities({}, SketchPlane::XY(), "Use");
+    int appended = doc.project_edges_into_sketch(target, 0, {top_edge}, -1);
+    REQUIRE(appended == 1);
+
+    const auto& ents = doc.features[target].entities;
+    REQUIRE(ents.size() == 1);
+    REQUIRE(ents[0].type == SketchEntity::Type::Circle);
+    REQUIRE(ents[0].construction == true);
+    REQUIRE_THAT(ents[0].radius, WithinRel(6.0, 1e-6));
+}
+
+TEST_CASE("Project feature still emits non-construction entities (regression guard)", "[CadDocument][project]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Ext");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int top_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[0].shape, i);
+        if (GeometryEngine::face_normal_world(fc).z() > 0.9) { top_face = i; break; }
+    }
+    REQUIRE(top_face >= 0);
+
+    int proj = doc.add_project_edges(0, {}, top_face, SketchPlane::XY(), "ProjTop");
+    REQUIRE(proj >= 0);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    const auto& pf = doc.features[proj];
+    REQUIRE(pf.entities.size() == 4);
+    for (const auto& e : pf.entities)
+        REQUIRE(e.construction == false);
+}
+
 // --- Golden recipe fixture (v1 format tripwire) ---
 
 static CadDocument make_golden_doc_v1()

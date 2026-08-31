@@ -481,6 +481,13 @@ public:
     // entities are (re)derived on every recompute.
     int  add_project_edges(int source_body, const std::vector<int>& edge_ids, int face,
                            const SketchPlane& plane, const std::string& name);
+    // Onshape's "Use" / SolidWorks' "Convert Entities": project a body's edges onto the plane of
+    // an EXISTING sketch feature and append them to that sketch as CONSTRUCTION entities, so new
+    // geometry can be constrained to them. Returns the number of entities appended, or -1 if the
+    // sketch or body reference is invalid. Unlike add_project_edges this creates no feature: the
+    // references become part of the sketch that borrows them.
+    int  project_edges_into_sketch(int sketch_feature, int source_body,
+                                   const std::vector<int>& edge_ids, int face);
     // Append a bridging BSpline entity connecting endpoint `end_a` of entity `ent_a` to
     // endpoint `end_b` of entity `ent_b`, both within sketch feature `sketch_ref`. Returns
     // the new entity's index within that sketch's entities vector. Non-parametric: computed

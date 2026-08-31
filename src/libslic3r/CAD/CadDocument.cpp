@@ -1238,6 +1238,11 @@ int CadDocument::add_surface_offset(int target_body, double offset, const std::s
     return int(features.size()) - 1;
 }
 
+static void project_edges_to_entities(const std::vector<TopoDS_Edge>& edges,
+                                      const SketchPlane& plane,
+                                      bool construction,
+                                      std::vector<SketchEntity>& out);
+
 int CadDocument::add_project_edges(int source_body, const std::vector<int>& edge_ids, int face,
                                    const SketchPlane& plane, const std::string& name)
 {
@@ -1250,6 +1255,37 @@ int CadDocument::add_project_edges(int source_body, const std::vector<int>& edge
     f.plane               = plane;
     features.push_back(f);
     return int(features.size()) - 1;
+}
+
+int CadDocument::project_edges_into_sketch(int sketch_feature, int source_body,
+                                           const std::vector<int>& edge_ids, int face)
+{
+    if (sketch_feature < 0 || sketch_feature >= int(features.size())) return -1;
+    CadFeature& sk = features[sketch_feature];
+    if (sk.type != CadFeatureType::Sketch && sk.type != CadFeatureType::Project) return -1;
+    if (source_body < 0 || source_body >= int(bodies.size())
+        || bodies[source_body].shape.IsNull()) return -1;
+    const TopoDS_Shape& shape = bodies[source_body].shape;
+
+    std::vector<TopoDS_Edge> edges;
+    if (!edge_ids.empty()) {
+        for (int id : edge_ids) {
+            TopoDS_Edge e = GeometryEngine::edge_by_index(shape, id);
+            if (e.IsNull()) return -1;
+            edges.push_back(e);
+        }
+    } else if (face >= 0) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(shape, face);
+        if (fc.IsNull()) return -1;
+        edges = GeometryEngine::edges_of_face(fc);
+    } else {
+        edges = GeometryEngine::edges_of(shape);
+    }
+    if (edges.empty()) return -1;
+
+    const size_t before = sk.entities.size();
+    project_edges_to_entities(edges, sk.plane, /*construction=*/true, sk.entities);
+    return int(sk.entities.size() - before);
 }
 
 int CadDocument::add_bridge(int sketch_ref, int ent_a, int end_a, int ent_b, int end_b,
@@ -3098,6 +3134,78 @@ void CadDocument::apply_surface_offset(std::vector<CadBody>& bodies, const CadFe
     bodies.push_back({off_shape, f.name.empty() ? std::string("SurfaceOffset") : f.name});
 }
 
+// Project `edges` of a shape onto `plane`, appending the resulting 2D entities to `out`.
+// `construction` marks them as guides rather than built geometry. This is the body of the
+// Project feature's conversion loop, factored out so a sketch can borrow the same geometry.
+static void project_edges_to_entities(const std::vector<TopoDS_Edge>& edges,
+                                      const SketchPlane& plane,
+                                      bool construction,
+                                      std::vector<SketchEntity>& out)
+{
+    auto to2d = [&](const gp_Pnt& p) -> Vec2d {
+        Vec3d d(p.X() - plane.origin.x(), p.Y() - plane.origin.y(), p.Z() - plane.origin.z());
+        return Vec2d(d.dot(plane.x_axis), d.dot(plane.y_axis));
+    };
+
+    // A segment whose endpoints coincide after projection carries no geometry: that is what
+    // an edge perpendicular to the target plane becomes. Emitting it as a zero-length line
+    // would poison the sketch downstream, so drop it here.
+    auto push_line = [&](const Vec2d& a, const Vec2d& b) {
+        if ((b - a).norm() < 1e-7) return;
+        SketchEntity se; se.type = SketchEntity::Type::Line;
+        se.p0 = a; se.p1 = b;
+        se.construction = construction;
+        out.push_back(se);
+    };
+
+    for (const TopoDS_Edge& e : edges) {
+        BRepAdaptor_Curve ac(e);
+        const GeomAbs_CurveType ct = ac.GetType();
+        if (ct == GeomAbs_Line) {
+            gp_Pnt a = ac.Value(ac.FirstParameter());
+            gp_Pnt b = ac.Value(ac.LastParameter());
+            push_line(to2d(a), to2d(b));
+        } else if (ct == GeomAbs_Circle) {
+            gp_Circ c = ac.Circle();
+            gp_Dir cn = c.Axis().Direction();
+            Vec3d cnv(cn.X(), cn.Y(), cn.Z());
+            const double par = std::abs(cnv.dot(plane.normal));
+            const bool full = BRep_Tool::IsClosed(e) ||
+                std::abs((ac.LastParameter() - ac.FirstParameter()) - 2.0 * M_PI) < 1e-6;
+            if (par > 0.999) {
+                Vec2d ctr = to2d(c.Location());
+                if (full) {
+                    SketchEntity se; se.type = SketchEntity::Type::Circle;
+                    se.center = ctr; se.radius = c.Radius();
+                    se.construction = construction;
+                    out.push_back(se);
+                } else {
+                    gp_Pnt a = ac.Value(ac.FirstParameter());
+                    gp_Pnt b = ac.Value(ac.LastParameter());
+                    Vec2d a2 = to2d(a), b2 = to2d(b);
+                    SketchEntity se; se.type = SketchEntity::Type::Arc;
+                    se.center = ctr; se.radius = c.Radius();
+                    se.p0 = a2; se.p1 = b2;
+                    se.start_angle = std::atan2(a2.y() - ctr.y(), a2.x() - ctr.x());
+                    se.end_angle   = std::atan2(b2.y() - ctr.y(), b2.x() - ctr.x());
+                    se.construction = construction;
+                    out.push_back(se);
+                }
+                continue;
+            }
+            std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
+            for (size_t i = 1; i < pts.size(); ++i)
+                push_line(to2d(gp_Pnt(pts[i-1].x(), pts[i-1].y(), pts[i-1].z())),
+                          to2d(gp_Pnt(pts[i].x(),   pts[i].y(),   pts[i].z())));
+        } else {
+            std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
+            for (size_t i = 1; i < pts.size(); ++i)
+                push_line(to2d(gp_Pnt(pts[i-1].x(), pts[i-1].y(), pts[i-1].z())),
+                          to2d(gp_Pnt(pts[i].x(),   pts[i].y(),   pts[i].z())));
+        }
+    }
+}
+
 void CadDocument::apply_project(const std::vector<CadBody>& bodies, CadFeature& f) const
 {
     f.entities.clear();
@@ -3128,65 +3236,8 @@ void CadDocument::apply_project(const std::vector<CadBody>& bodies, CadFeature& 
     }
     if (edges.empty()) throw std::runtime_error("project: no edges to project");
 
-    auto to2d = [&](const gp_Pnt& p) -> Vec2d {
-        Vec3d d(p.X() - f.plane.origin.x(), p.Y() - f.plane.origin.y(), p.Z() - f.plane.origin.z());
-        return Vec2d(d.dot(f.plane.x_axis), d.dot(f.plane.y_axis));
-    };
+    project_edges_to_entities(edges, f.plane, /*construction=*/false, f.entities);
 
-    // A segment whose endpoints coincide after projection carries no geometry: that is what
-    // an edge perpendicular to the target plane becomes. Emitting it as a zero-length line
-    // would poison the sketch downstream, so drop it here.
-    auto push_line = [&](const Vec2d& a, const Vec2d& b) {
-        if ((b - a).norm() < 1e-7) return;
-        SketchEntity se; se.type = SketchEntity::Type::Line;
-        se.p0 = a; se.p1 = b;
-        f.entities.push_back(se);
-    };
-
-    for (const TopoDS_Edge& e : edges) {
-        BRepAdaptor_Curve ac(e);
-        const GeomAbs_CurveType ct = ac.GetType();
-        if (ct == GeomAbs_Line) {
-            gp_Pnt a = ac.Value(ac.FirstParameter());
-            gp_Pnt b = ac.Value(ac.LastParameter());
-            push_line(to2d(a), to2d(b));
-        } else if (ct == GeomAbs_Circle) {
-            gp_Circ c = ac.Circle();
-            gp_Dir cn = c.Axis().Direction();
-            Vec3d cnv(cn.X(), cn.Y(), cn.Z());
-            const double par = std::abs(cnv.dot(f.plane.normal));
-            const bool full = BRep_Tool::IsClosed(e) ||
-                std::abs((ac.LastParameter() - ac.FirstParameter()) - 2.0 * M_PI) < 1e-6;
-            if (par > 0.999) {
-                Vec2d ctr = to2d(c.Location());
-                if (full) {
-                    SketchEntity se; se.type = SketchEntity::Type::Circle;
-                    se.center = ctr; se.radius = c.Radius();
-                    f.entities.push_back(se);
-                } else {
-                    gp_Pnt a = ac.Value(ac.FirstParameter());
-                    gp_Pnt b = ac.Value(ac.LastParameter());
-                    Vec2d a2 = to2d(a), b2 = to2d(b);
-                    SketchEntity se; se.type = SketchEntity::Type::Arc;
-                    se.center = ctr; se.radius = c.Radius();
-                    se.p0 = a2; se.p1 = b2;
-                    se.start_angle = std::atan2(a2.y() - ctr.y(), a2.x() - ctr.x());
-                    se.end_angle   = std::atan2(b2.y() - ctr.y(), b2.x() - ctr.x());
-                    f.entities.push_back(se);
-                }
-                continue;
-            }
-            std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
-            for (size_t i = 1; i < pts.size(); ++i)
-                push_line(to2d(gp_Pnt(pts[i-1].x(), pts[i-1].y(), pts[i-1].z())),
-                          to2d(gp_Pnt(pts[i].x(),   pts[i].y(),   pts[i].z())));
-        } else {
-            std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
-            for (size_t i = 1; i < pts.size(); ++i)
-                push_line(to2d(gp_Pnt(pts[i-1].x(), pts[i-1].y(), pts[i-1].z())),
-                          to2d(gp_Pnt(pts[i].x(),   pts[i].y(),   pts[i].z())));
-        }
-    }
     if (f.entities.empty()) throw std::runtime_error("project: produced no entities");
 }
 
