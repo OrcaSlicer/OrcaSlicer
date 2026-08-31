@@ -3870,7 +3870,7 @@ bool Sidebar::reset_bed_type_combox_choices(bool is_sidebar_init)
         }
     }
     m_last_combo_bedtype_count = p->combo_printer_bed->GetCount();
-    if (!is_sidebar_init && &p->plater->get_partplate_list()) {
+    if (!is_sidebar_init) {
         p->plater->get_partplate_list().check_all_plate_local_bed_type(m_cur_combox_bed_types);
     }
     return true;
@@ -21635,7 +21635,7 @@ void Plater::show_object_info()
     auto mesh_errors = p->sidebar->obj_list()->get_mesh_errors_info(&info_manifold, &non_manifold_edges);
 
         if (non_manifold_edges > 0) {
-            info_manifold += into_u8("\n" + _L("Tips:") + "\n" + _L("Use \"Fix Model\" to repair the mesh."));
+            info_manifold += "\n" + _L("Tips:") + "\n" + _L("Use \"Fix Model\" to repair the mesh.");
         }
 
     info_manifold = "<Error>" + info_manifold + "</Error>";
