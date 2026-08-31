@@ -5,6 +5,7 @@
 #include "Point.hpp"
 #include "Model.hpp"
 
+#include <atomic>
 #include <vector>
 
 namespace Slic3r {
@@ -27,7 +28,15 @@ class Cut {
     void post_process(ModelObject* upper_object, ModelObject* lower_object, ModelObjectPtrs& objects);
     void finalize(const ModelObjectPtrs& objects, const std::vector<std::optional<TriangleSelector::SavedPainting>>& saved_paintings);
 
+    const std::atomic<bool> *m_cancel{nullptr};
+
+    bool cancel_requested() const {
+        return m_cancel != nullptr && m_cancel->load(std::memory_order_relaxed);
+    }
+
 public:
+
+    void set_cancel(const std::atomic<bool> *cancel) { m_cancel = cancel; }
 
     Cut(const ModelObject* object, int instance, const Transform3d& cut_matrix, 
         ModelObjectCutAttributes attributes = ModelObjectCutAttribute::KeepUpper |

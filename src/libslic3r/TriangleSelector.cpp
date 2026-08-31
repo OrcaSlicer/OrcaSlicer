@@ -2,6 +2,7 @@
 #include "Model.hpp"
 #include "AABBTreeIndirect.hpp"
 
+#include <atomic>
 #include <boost/container/small_vector.hpp>
 #include <boost/log/trivial.hpp>
 #include <cstddef>
@@ -13,6 +14,13 @@
 #endif // NDEBUG
 
 namespace Slic3r {
+
+namespace {
+bool cancel_requested(const std::atomic<bool> *cancel)
+{
+    return cancel != nullptr && cancel->load(std::memory_order_relaxed);
+}
+}
 
 // Check if the line is whole inside the sphere, or it is partially inside (intersecting) the sphere.
 // Inspired by Christer Ericson's Real-Time Collision Detection, pp. 177-179.
@@ -280,7 +288,7 @@ int TriangleSelector::select_unsplit_triangle(const Vec3f &hit, int facet_idx) c
     return this->select_unsplit_triangle(hit, facet_idx, neighbors);
 }
 
-void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&cursor, EnforcerBlockerType new_state, const Transform3d& trafo_no_translate, bool triangle_splitting, float highlight_by_angle_deg, const bool select_partially)
+void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&cursor, EnforcerBlockerType new_state, const Transform3d& trafo_no_translate, bool triangle_splitting, float highlight_by_angle_deg, const bool select_partially, const std::atomic<bool> *cancel)
 {
     assert(facet_start < m_orig_size_indices);
 
@@ -311,6 +319,8 @@ void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&c
     HeightRange* hr_cursor = dynamic_cast<HeightRange*>(m_cursor.get());
     if (hr_cursor) {
         for (int facet_id = 0; facet_id < m_orig_size_indices; facet_id++) {
+            if (cancel_requested(cancel))
+                return;
             const Triangle& tr = m_triangles[facet_id];
             if (m_cursor->is_edge_inside_cursor(tr, m_vertices)) {
                 start_facets.push_back(facet_id);
@@ -325,6 +335,8 @@ void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&c
     std::vector<bool> visited(m_orig_size_indices, false);
 
     for (int i = 0; i < start_facets.size(); i++) {
+        if (cancel_requested(cancel))
+            return;
         int start_facet_id = start_facets[i];
         if (visited[start_facet_id])
             continue;
@@ -338,6 +350,8 @@ void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&c
         // Head of the bread-first facets_to_check FIFO.
         int facet_idx = 0;
         while (facet_idx < int(facets_to_check.size())) {
+            if (cancel_requested(cancel))
+                return;
             int          facet = facets_to_check[facet_idx];
             const Vec3f& facet_normal = m_face_normals[m_triangles[facet].source_triangle];
             Matrix3f     normal_matrix = static_cast<Matrix3f>(trafo_no_translate.matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>());
@@ -2413,10 +2427,11 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
     const TriangleSplittingData& source_painting,
     const indexed_triangle_set& target_its,
     const Transform3d& target_transform,
-    const std::optional<std::reference_wrapper<const TriangleSplittingData>>& existing_painting)
+    const std::optional<std::reference_wrapper<const TriangleSplittingData>>& existing_painting,
+    const std::atomic<bool> *cancel)
 {
     TriangleSelector::TriangleSplittingData result;
-    if (source_painting.bitstream.empty())
+    if (source_painting.bitstream.empty() || cancel_requested(cancel))
         return result;
 
     // 1. Deserialize source painting
@@ -2433,10 +2448,12 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
         }
     }
 
-    if (painted_triangles.empty())
+    if (painted_triangles.empty() || cancel_requested(cancel))
         return result;
 
     // 3. Build AABB tree of target mesh so we could find nearest face quickly
+    if (cancel_requested(cancel))
+        return result;
     TriangleMesh target_mesh(target_its);
     target_mesh.transform(target_transform);
     AABBTreeIndirect::Tree3f target_tree = AABBTreeIndirect::build_aabb_tree_over_indexed_triangle_set(target_mesh.its.vertices, target_mesh.its.indices);
@@ -2482,12 +2499,18 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
     };
 
     // 4. For each painted face, we find the nearest target face, and apply the TriangleCursor to paint it
+    if (cancel_requested(cancel))
+        return result;
     TriangleSelector target_selector(target_mesh);
     if (existing_painting) {
         // Restore existing painting first, if given
         target_selector.deserialize(existing_painting->get(), false);
     }
+    size_t painted_i = 0;
+    constexpr size_t poll_every = 64;
     for (auto tri_ref : painted_triangles) {
+        if ((painted_i++ % poll_every) == 0 && cancel_requested(cancel))
+            return result;
         const Triangle& tri = tri_ref.get();
         const Vec3f& pv0    = source_selector.m_vertices[tri.verts_idxs[0]].v;
         const Vec3f& pv1    = source_selector.m_vertices[tri.verts_idxs[1]].v;
@@ -2503,6 +2526,8 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
         pt_bbox.max() += Eigen::Vector3f::Constant(TriangleCursor::tolerance);
 
         AABBTreeIndirect::traverse(target_tree, AABBTreeIndirect::intersecting(pt_bbox), [&](const AABBTreeIndirect::Tree3f::Node& node) -> bool {
+            if (cancel_requested(cancel))
+                return false;
             size_t face_idx = node.idx;
             if (face_idx >= target_mesh.its.indices.size())
                 return true;
@@ -2518,12 +2543,16 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
             if (TriangleCursor::check_normal(norm_b, -norm_a) && check_overlap(pv0, pv1, pv2, ta, tb, tc)) {
                 // Paint this face
                 target_selector.select_patch(face_idx, TriangleCursor::build_cursor(source_selector, tri), tri.get_state(),
-                                             Transform3d::Identity(), true, 0.f, true);
+                                             Transform3d::Identity(), true, 0.f, true, cancel);
             }
             return true; // continue traversal
         });
+        if (cancel_requested(cancel))
+            return result;
     }
 
+    if (cancel_requested(cancel))
+        return result;
     return target_selector.serialize();
 }
 

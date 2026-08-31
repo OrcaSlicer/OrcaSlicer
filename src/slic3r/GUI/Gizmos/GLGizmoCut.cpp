@@ -3608,6 +3608,7 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                 condition.notify_all();
 
                 cut = std::make_unique<Cut>(cut_mo, instance_idx, cut_matrix, attributes);
+                cut->set_cancel(&canceled);
                 const ModelObjectPtrs &result = cut_by_contour ?
                     cut->perform_by_contour(mo, captured_parts, dowels_count) :
                     cut_with_groove ?

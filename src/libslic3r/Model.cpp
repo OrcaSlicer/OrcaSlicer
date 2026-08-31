@@ -1996,7 +1996,7 @@ std::optional<TriangleSelector::SavedPainting> ModelVolume::save_painting() cons
     return {};
 }
 
-void ModelVolume::restore_painting(const std::optional<TriangleSelector::SavedPainting>& saved, const bool keep_existing_paint)
+void ModelVolume::restore_painting(const std::optional<TriangleSelector::SavedPainting>& saved, const bool keep_existing_paint, const std::atomic<bool> *cancel)
 {
     if (!keep_existing_paint) {
         reset_extra_facets();
@@ -2006,6 +2006,9 @@ void ModelVolume::restore_painting(const std::optional<TriangleSelector::SavedPa
         return;
     }
 
+    auto canceled = [cancel]() {
+        return cancel != nullptr && cancel->load(std::memory_order_relaxed);
+    };
     auto remap_one = [&](const TriangleSelector::TriangleSplittingData& src_data,
                          FacetsAnnotation& target_facets) {
         if (src_data.bitstream.empty())
@@ -2014,13 +2017,20 @@ void ModelVolume::restore_painting(const std::optional<TriangleSelector::SavedPa
             TriangleSelector::remap_painting(saved->mesh.its, src_data, mesh().its, Geometry::translation_transform(mesh().get_init_shift()),
                                              keep_existing_paint ?
                                                  std::optional<std::reference_wrapper<const TriangleSelector::TriangleSplittingData>>{std::ref(target_facets.get_data())} :
-                                                 std::optional<std::reference_wrapper<const TriangleSelector::TriangleSplittingData>>{});
+                                                 std::optional<std::reference_wrapper<const TriangleSelector::TriangleSplittingData>>{},
+                                             cancel);
         if (!result.bitstream.empty())
             target_facets.set_data(std::move(result));
     };
     remap_one(saved->supported, supported_facets);
+    if (canceled())
+        return;
     remap_one(saved->seam,      seam_facets);
+    if (canceled())
+        return;
     remap_one(saved->mmu,       mmu_segmentation_facets);
+    if (canceled())
+        return;
     remap_one(saved->fuzzy,     fuzzy_skin_facets);
 }
 

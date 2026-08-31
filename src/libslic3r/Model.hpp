@@ -28,6 +28,7 @@
 #include "Format/STL.hpp"
 #include "Format/OBJ.hpp"
 
+#include <atomic>
 #include <map>
 #include <memory>
 #include <string>
@@ -885,7 +886,7 @@ public:
     std::optional<TriangleSelector::SavedPainting> save_painting() const;
     
     // Remap painting data from previous saved source to this mesh
-    void restore_painting(const std::optional<TriangleSelector::SavedPainting>& saved, bool keep_existing_paint = false);
+    void restore_painting(const std::optional<TriangleSelector::SavedPainting>& saved, bool keep_existing_paint = false, const std::atomic<bool> *cancel = nullptr);
 
     // BBS: quick access for volume extruders, 1 based
     mutable std::vector<int> mmuseg_extruders;

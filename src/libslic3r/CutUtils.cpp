@@ -283,11 +283,17 @@ void Cut::finalize(const ModelObjectPtrs& objects, const std::vector<std::option
 {
     // Paint volumes
     for (const auto& saved_painting : saved_paintings) {
+        if (cancel_requested())
+            break;
         if (saved_painting) {
             for (const auto object : objects) {
+                if (cancel_requested())
+                    break;
                 for (const auto volume : object->volumes) {
+                    if (cancel_requested())
+                        break;
                     if (volume->is_model_part() && !volume->is_cut_connector()) {
-                    volume->restore_painting(saved_painting, true);
+                        volume->restore_painting(saved_painting, true, m_cancel);
                     }
                 }
             }
@@ -335,6 +341,8 @@ const ModelObjectPtrs& Cut::perform_with_plane()
 
     std::vector<std::optional<TriangleSelector::SavedPainting>> saved_paintings;
     for (ModelVolume* volume : mo->volumes) {
+        if (cancel_requested())
+            break;
         // Save painting data before reset_extra_facets() discards it.
         if (m_attributes.has(ModelObjectCutAttribute::KeepPaint)) {
             saved_paintings.emplace_back(volume->save_painting());
@@ -399,7 +407,7 @@ const ModelObjectPtrs& Cut::perform_with_plane()
         }
     }
 
-    finalize(cut_object_ptrs, saved_paintings);
+    finalize(cut_object_ptrs, cancel_requested() ? std::vector<std::optional<TriangleSelector::SavedPainting>>{} : saved_paintings);
 
     BOOST_LOG_TRIVIAL(trace) << "ModelObject::cut - end";
 
@@ -474,6 +482,8 @@ const ModelObjectPtrs& Cut::perform_by_contour(const ModelObject* src_object, st
     if (m_attributes.has(ModelObjectCutAttribute::KeepPaint)) {
         const auto instance_matrix = src_object->instances[m_instance]->get_transformation().get_matrix_no_offset();
         for (const auto volume : src_object->volumes) {
+            if (cancel_requested())
+                break;
             saved_paintings.emplace_back(volume->save_painting());
             if (saved_paintings.back()) {
                 // Transform mesh to cut space (same transform as process_volume_cut applies)
@@ -511,7 +521,7 @@ const ModelObjectPtrs& Cut::perform_by_contour(const ModelObject* src_object, st
         merge_solid_parts_inside_object(cut_object_ptrs);
 
         // replace initial objects in model with cut object 
-        finalize(cut_object_ptrs, saved_paintings);
+        finalize(cut_object_ptrs, cancel_requested() ? std::vector<std::optional<TriangleSelector::SavedPainting>>{} : saved_paintings);
     }
     else if (volumes.size() > cut_parts_cnt) {
         // Means that object is cut with connectors
@@ -524,6 +534,7 @@ const ModelObjectPtrs& Cut::perform_by_contour(const ModelObject* src_object, st
 
         // Perform cut just to get connectors
         Cut cut(cut_mo, m_instance, m_cut_matrix, m_attributes);
+        cut.set_cancel(m_cancel);
         const ModelObjectPtrs& cut_connectors_obj = cut.perform_with_plane();
         assert(dowels_count > 0 ? cut_connectors_obj.size() >= 3 : cut_connectors_obj.size() == 2);
 
@@ -542,7 +553,7 @@ const ModelObjectPtrs& Cut::perform_by_contour(const ModelObject* src_object, st
         merge_solid_parts_inside_object(cut_object_ptrs);
 
         // replace initial objects in model with cut object
-        finalize(cut_object_ptrs, saved_paintings);
+        finalize(cut_object_ptrs, cancel_requested() ? std::vector<std::optional<TriangleSelector::SavedPainting>>{} : saved_paintings);
 
         // Add Dowel-connectors as separate objects to model
         if (cut_connectors_obj.size() >= 3)
@@ -579,6 +590,8 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove&       groove,
     if (m_attributes.has(ModelObjectCutAttribute::KeepPaint)) {
         const auto instance_matrix = cut_mo->instances[m_instance]->get_transformation().get_matrix_no_offset();
         for (const auto volume : cut_mo->volumes) {
+            if (cancel_requested())
+                break;
             saved_paintings.emplace_back(volume->save_painting());
             if (saved_paintings.back()) {
                 // Transform mesh to cut space (same transform as process_volume_cut applies)
@@ -610,6 +623,7 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove&       groove,
     auto cut = [this, add_volumes_from_cut]
                 (ModelObject* object, const Transform3d& cut_matrix, const ModelObjectCutAttribute add_volumes_attribute, Model& tmp_model_for_cut) {
         Cut cut(object, m_instance, cut_matrix);
+        cut.set_cancel(m_cancel);
 
         tmp_model_for_cut = Model();
         tmp_model_for_cut.add_object(*cut.perform_with_plane().front());
@@ -760,7 +774,7 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove&       groove,
         merge_solid_parts_inside_object(cut_object_ptrs);
     }
 
-    finalize(cut_object_ptrs, saved_paintings);
+    finalize(cut_object_ptrs, cancel_requested() ? std::vector<std::optional<TriangleSelector::SavedPainting>>{} : saved_paintings);
 
     return m_model.objects;
 }
