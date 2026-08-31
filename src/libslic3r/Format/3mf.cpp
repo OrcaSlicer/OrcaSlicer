@@ -73,10 +73,6 @@ const std::string THUMBNAIL_FILE = "Metadata/thumbnail.png";
 const std::string PRINT_CONFIG_FILE = "Metadata/Slic3r_PE.config";
 const std::string MODEL_CONFIG_FILE = "Metadata/Slic3r_PE_model.config";
 const std::string LAYER_HEIGHTS_PROFILE_FILE = "Metadata/Slic3r_PE_layer_heights_profile.txt";
-const std::string CAD_RECIPE_FILE = "Metadata/orca_cad.bin";
-// Read-only: the recipe entry's pre-rename name. A reader that knows only the new one drops the
-// feature tree of every project written before the move, without a word. Never written.
-const std::string LEGACY_CAD_RECIPE_FILE = "Metadata/SnapOrca_cad.bin";
 const std::string LAYER_CONFIG_RANGES_FILE = "Metadata/Prusa_Slicer_layer_config_ranges.xml";
 const std::string SLA_SUPPORT_POINTS_FILE = "Metadata/Slic3r_PE_sla_support_points.txt";
 const std::string SLA_DRAIN_HOLES_FILE = "Metadata/Slic3r_PE_sla_drain_holes.txt";
@@ -807,18 +803,6 @@ ModelVolumeType type_from_string(const std::string &s)
                         close_zip_reader(&archive);
                         add_error("Archive does not contain a valid model config");
                         return false;
-                    }
-                }
-                if (boost::algorithm::iequals(name, CAD_RECIPE_FILE)
-                 || boost::algorithm::iequals(name, LEGACY_CAD_RECIPE_FILE)) {
-                    if (stat.m_uncomp_size > 0) {
-                        std::string buffer((size_t)stat.m_uncomp_size, 0);
-                        if (mz_zip_reader_extract_file_to_mem(&archive, stat.m_filename,
-                                (void*)buffer.data(), (size_t)stat.m_uncomp_size, 0) != 0) {
-                            model.cad_recipe = std::move(buffer);
-                        } else {
-                            add_error("Error while reading CAD recipe data");
-                        }
                     }
                 }
             }
@@ -2333,7 +2317,6 @@ ModelVolumeType type_from_string(const std::string &s)
         bool _add_mesh_to_object_stream(mz_zip_writer_staged_context &context, ModelObject& object, VolumeToOffsetsMap& volumes_offsets);
         bool _add_build_to_model_stream(std::stringstream& stream, const BuildItemsList& build_items);
         bool _add_layer_height_profile_file_to_archive(mz_zip_archive& archive, Model& model);
-        bool _add_cad_recipe_file_to_archive(mz_zip_archive& archive, Model& model);
         bool _add_layer_config_ranges_file_to_archive(mz_zip_archive& archive, Model& model);
         bool _add_sla_support_points_file_to_archive(mz_zip_archive& archive, Model& model);
         bool _add_sla_drain_holes_file_to_archive(mz_zip_archive& archive, Model& model);
@@ -2399,13 +2382,6 @@ ModelVolumeType type_from_string(const std::string &s)
         // All layer height profiles of all ModelObjects are stored here, indexed by 1 based index of the ModelObject in Model.
         // The index differes from the index of an object ID of an object instance of a 3MF file!
         if (!_add_layer_height_profile_file_to_archive(archive, model)) {
-            close_zip_writer(&archive);
-            boost::filesystem::remove(filename);
-            return false;
-        }
-
-        // Adds CAD recipe file ("Metadata/orca_cad.bin").
-        if (!_add_cad_recipe_file_to_archive(archive, model)) {
             close_zip_writer(&archive);
             boost::filesystem::remove(filename);
             return false;
@@ -2940,19 +2916,6 @@ ModelVolumeType type_from_string(const std::string &s)
             }
         }
 
-        return true;
-    }
-
-    bool _3MF_Exporter::_add_cad_recipe_file_to_archive(mz_zip_archive& archive, Model& model)
-    {
-        if (model.cad_recipe.empty())
-            return true;
-        if (!mz_zip_writer_add_mem(&archive, CAD_RECIPE_FILE.c_str(),
-                (const void*)model.cad_recipe.data(), model.cad_recipe.length(),
-                MZ_DEFAULT_COMPRESSION)) {
-            add_error("Unable to add CAD recipe file to archive");
-            return false;
-        }
         return true;
     }
 

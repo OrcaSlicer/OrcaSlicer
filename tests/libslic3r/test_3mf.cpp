@@ -145,8 +145,8 @@ SCENARIO("Export+Import geometry to/from 3mf file cycle", "[3mf]") {
     }
 }
 
-// The recipe is an opaque binary blob (CadDocument::serialize_recipe()), so both 3mf backends
-// have to carry it byte-for-byte — no XML/text mangling, embedded NULs intact.
+// The recipe is an opaque binary blob (CadDocument::serialize_recipe()), so the 3mf backend has
+// to carry it byte-for-byte — no XML/text mangling, embedded NULs intact.
 static std::string make_cad_recipe()
 {
     // Built from an explicit length, not append(const char*), which would stop at the first
@@ -224,53 +224,11 @@ static void rename_cad_recipe_entry_to_legacy(const std::string& path)
     out.finalize();
 }
 
-SCENARIO("CAD recipe blob survives a 3mf save/load cycle", "[3mf][CAD]") {
-    GIVEN("a model carrying a binary cad_recipe") {
-        Model src_model;
-        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
-        REQUIRE(load_stl(src_file.c_str(), &src_model));
-        src_model.add_default_instances();
-
-        const std::string recipe = make_cad_recipe();
-        src_model.cad_recipe = recipe;
-
-        WHEN("the model is saved+loaded to/from a 3mf file") {
-            ScopedTemporaryFile temp(".3mf");
-            const std::string test_file = temp.string();
-            REQUIRE(store_3mf(test_file.c_str(), &src_model, nullptr, false));
-
-            Model dst_model;
-            DynamicPrintConfig dst_config;
-            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Disable };
-            REQUIRE(load_3mf(test_file.c_str(), dst_config, ctxt, &dst_model, false));
-
-            THEN("the recipe round-trips byte-for-byte") {
-                REQUIRE(dst_model.cad_recipe.size() == recipe.size());
-                REQUIRE(dst_model.cad_recipe == recipe);
-            }
-        }
-
-        WHEN("the same model is saved with no recipe") {
-            src_model.cad_recipe.clear();
-            ScopedTemporaryFile temp(".3mf");
-            const std::string test_file = temp.string();
-            REQUIRE(store_3mf(test_file.c_str(), &src_model, nullptr, false));
-
-            Model dst_model;
-            DynamicPrintConfig dst_config;
-            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Disable };
-            REQUIRE(load_3mf(test_file.c_str(), dst_config, ctxt, &dst_model, false));
-
-            THEN("nothing is written and nothing is read back") {
-                REQUIRE(dst_model.cad_recipe.empty());
-            }
-        }
-    }
-}
-
-// The GUI saves/loads projects via the BBS-native 3mf backend (store_bbs_3mf / load_bbs_3mf),
-// NOT the PrusaSlicer 3mf.cpp. This locks in both halves: the archive entry is at the exact
-// path the importer looks for, and the recipe comes back through the real importer.
+// The recipe lives only in the BBS-native backend, because that is the only one that runs:
+// store_bbs_3mf is the sole exporter the app calls, and 3mf.cpp's load_3mf is reached only for
+// files fingerprinted as PrusaSlicer's, which never carry a recipe. This locks in both halves:
+// the archive entry is at the exact path the importer looks for, and the recipe comes back
+// through the real importer.
 SCENARIO("CAD recipe is embedded in the BBS 3mf archive", "[3mf][CAD]") {
     GIVEN("a model carrying a binary cad_recipe") {
         Model model;
@@ -351,7 +309,8 @@ SCENARIO("CAD recipe is embedded in the BBS 3mf archive", "[3mf][CAD]") {
 // The recipe entry was renamed from Metadata/SnapOrca_cad.bin to Metadata/orca_cad.bin. Nothing
 // in the blob marks that move, so a reader that knows only the new name loads a project written
 // before it with an empty cad_recipe and no error at all — a feature tree gone with no symptom
-// but an empty Design tab. Both backends must still accept the old name; neither may write it.
+// but an empty Design tab. The importer must still accept the old name; the exporter may never
+// write it.
 SCENARIO("a project saved under the pre-rename recipe name still loads", "[3mf][CAD]") {
     GIVEN("a project whose recipe entry carries the old name") {
         Model model;
@@ -361,22 +320,7 @@ SCENARIO("a project saved under the pre-rename recipe name still loads", "[3mf][
         const std::string recipe = make_cad_recipe();
         model.cad_recipe = recipe;
 
-        WHEN("it was written by the PrusaSlicer-format backend") {
-            ScopedTemporaryFile temp(".3mf");
-            const std::string test_file = temp.string();
-            REQUIRE(store_3mf(test_file.c_str(), &model, nullptr, false));
-            rename_cad_recipe_entry_to_legacy(test_file);
-
-            THEN("the recipe still comes back byte-for-byte") {
-                Model dst_model;
-                DynamicPrintConfig dst_config;
-                ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Disable };
-                REQUIRE(load_3mf(test_file.c_str(), dst_config, ctxt, &dst_model, false));
-                REQUIRE(dst_model.cad_recipe == recipe);
-            }
-        }
-
-        WHEN("it was written by the BBS backend (the format the GUI uses)") {
+        WHEN("it was written by the BBS backend") {
             ScopedTemporaryDir backup_dir("orca_cad_legacy");
             model.set_backup_path(backup_dir.string());
 
