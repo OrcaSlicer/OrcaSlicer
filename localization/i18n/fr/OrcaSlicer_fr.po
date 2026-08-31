@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n==0 || n==1) ? 0 : 1;\n"
-"X-Generator: Poedit 3.6\n"
+"X-Generator: Poedit 3.9\n"
 
 # AI Translated
 msgid "Main Extruder"
@@ -10707,7 +10707,7 @@ msgid "Acceleration limitation"
 msgstr "Limitation d'accélération"
 
 msgid "Jerk limitation"
-msgstr "Limitation des secousses"
+msgstr "Limitation du jerk"
 
 msgid "Single extruder multi-material setup"
 msgstr "Configuration multi-matériaux pour extrudeur unique"
@@ -12226,7 +12226,7 @@ msgid "Plate %d: %s does not support filament %s"
 msgstr "Plaque %d : %s ne prend pas en charge le filament %s"
 
 msgid "Setting the jerk speed too low could lead to artifacts on curved surfaces"
-msgstr "Un réglage trop bas de la vitesse de saccade peut entraîner des artefacts sur les surfaces courbes"
+msgstr "Un réglage trop bas de la vitesse de jerk peut entraîner des artefacts sur les surfaces courbes"
 
 msgid ""
 "The jerk setting exceeds the printer's maximum jerk (machine_max_jerk_x/machine_max_jerk_y).\n"
@@ -21188,8 +21188,7 @@ msgstr ""
 "Divisez vos impressions en plateaux\n"
 "Saviez-vous que vous pouvez diviser un modèle comportant de nombreuses pièces en plateaux individuels prêts à être imprimés ? Cela simplifie le processus de suivi de toutes les pièces."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -21261,8 +21260,7 @@ msgstr ""
 "Améliorer la solidité\n"
 "Saviez-vous que vous pouvez définir un plus grand nombre de périmètre et une densité de remplissage plus élevée pour améliorer la résistance du modèle ?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
