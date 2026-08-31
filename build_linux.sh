@@ -8,7 +8,7 @@ SCRIPT_PATH=$(dirname "$(readlink -f "${0}")")
 pushd "${SCRIPT_PATH}" > /dev/null
 
 function usage() {
-    echo "Usage: ./${SCRIPT_NAME} [-1][-b][-c][-d][-D][-e][-F][-g][-h][-i][-j N][-p][-r][-s][-t][-u][-l][-L]"
+    echo "Usage: ./${SCRIPT_NAME} [-1][-b][-c][-d][-D][-e][-F][-g][-h][-i][-j N][-p][-r][-s][-t][-u][-l][-L][-M]"
     echo "   -1: limit builds to one core (where possible)"
     echo "   -j N: limit builds to N cores (where possible)"
     echo "   -b: build in Debug mode"
@@ -28,6 +28,7 @@ function usage() {
     echo "   -u: install system dependencies (asks for sudo password; build prerequisite)"
     echo "   -l: use Clang instead of GCC (default: GCC)"
     echo "   -L: use ld.lld as linker (if available)"
+    echo "   -M: use mold as linker (if available)"
     echo "For a first use, you want to './${SCRIPT_NAME} -u'"
     echo "   and then './${SCRIPT_NAME} -dsi'"
     echo "For a GitHub Actions-like Linux build locally, use './${SCRIPT_NAME} -g -istrlL'"
@@ -41,7 +42,7 @@ unset name
 BUILD_DIR=build
 BUILD_CONFIG=Release
 FORWARDED_ARGS=()
-while getopts ":1j:bcCdDeFghiprstulL" opt ; do
+while getopts ":1j:bcCdDeFghiprstulLM" opt ; do
   case ${opt} in
     1 )
         export CMAKE_BUILD_PARALLEL_LEVEL=1
@@ -118,6 +119,10 @@ while getopts ":1j:bcCdDeFghiprstulL" opt ; do
         USE_LLD="1"
         FORWARDED_ARGS+=("-L")
         ;;
+    M )
+        USE_MOLD="1"
+        FORWARDED_ARGS+=("-M")
+        ;;
     * )
 	echo "Unknown argument '${opt}', aborting."
 	exit 1
@@ -132,6 +137,11 @@ fi
 
 if [[ -n "${CLEAN_DOCKER_IMAGE}" ]] && [[ -z "${USE_DOCKER}" ]] ; then
     echo "Error: -F requires -g."
+    exit 1
+fi
+
+if [[ -n "${USE_LLD}" ]] && [[ -n "${USE_MOLD}" ]] ; then
+    echo "Error: -L and -M are mutually exclusive."
     exit 1
 fi
 
@@ -504,6 +514,18 @@ if [[ -n "${USE_LLD}" ]] ; then
     fi
 fi
 
+# Configure use of mold as the linker when requested
+export CMAKE_MOLD_LINKER_ARGS=()
+if [[ -n "${USE_MOLD}" ]] ; then
+    if command -v mold >/dev/null 2>&1 ; then
+        MOLD_BIN=$(command -v mold)
+        export CMAKE_MOLD_LINKER_ARGS=(-DCMAKE_LINKER="${MOLD_BIN}" -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=mold -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=mold -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=mold)
+    else
+        echo "Error: mold not found. Please install the 'mold' package or omit -M."
+        exit 1
+    fi
+fi
+
 export CMAKE_CCACHE_ARGS=()
 CMAKE_CCACHE=${CMAKE_CCACHE:-}
 if [ -n "$CMAKE_CCACHE" ]; then
@@ -536,7 +558,7 @@ if [[ -n "${BUILD_DEPS}" ]] ; then
         BUILD_ARGS+=(-DCMAKE_BUILD_TYPE="${BUILD_CONFIG}")
     fi
 
-    print_and_run cmake -S deps -B deps/$BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" "${CMAKE_CCACHE_ARGS[@]}" -G Ninja "${COLORED_OUTPUT}" "${BUILD_ARGS[@]}"
+    print_and_run cmake -S deps -B deps/$BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" "${CMAKE_MOLD_LINKER_ARGS[@]}" "${CMAKE_CCACHE_ARGS[@]}" -G Ninja "${COLORED_OUTPUT}" "${BUILD_ARGS[@]}"
     print_and_run cmake --build deps/$BUILD_DIR -j1
 fi
 
@@ -556,7 +578,7 @@ if [[ -n "${BUILD_ORCA}" ]] || [[ -n "${BUILD_TESTS}" ]] ; then
         BUILD_ARGS+=(-DORCA_UPDATER_SIG_KEY="${ORCA_UPDATER_SIG_KEY}")
     fi
 
-    print_and_run cmake -S . -B $BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" "${CMAKE_CCACHE_ARGS[@]}" -G "Ninja Multi-Config" \
+    print_and_run cmake -S . -B $BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" "${CMAKE_MOLD_LINKER_ARGS[@]}" "${CMAKE_CCACHE_ARGS[@]}" -G "Ninja Multi-Config" \
 -DSLIC3R_PCH=${SLIC3R_PRECOMPILED_HEADERS} \
 -DORCA_TOOLS=ON \
 "${COLORED_OUTPUT}" \
