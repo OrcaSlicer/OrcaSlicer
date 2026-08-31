@@ -8,6 +8,7 @@
 #include <limits>
 #include <vector>
 #include <string>
+#include <utility>
 #include <unordered_set>
 #include <regex>
 #include <future>
@@ -5996,6 +5997,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 std::vector<std::string> session_multi;
                 std::vector<std::string> session_filament_presets;
                 std::string              session_process;
+                std::vector<std::string> source_filament_types;
                 bool                     graft = false;
                 {
                     DynamicPrintConfig config_loaded;
@@ -6316,6 +6318,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             graft = opt_on &&
                                     spectrum_auto_graft_load_is_project_open(load_model, load_config, is_restore) &&
                                     spectrum_should_auto_graft_leq4(config_loaded);
+                            if (const ConfigOptionStrings *ft =
+                                    config_loaded.option<ConfigOptionStrings>("filament_type"))
+                                source_filament_types = ft->values;
                         }
 
                         config.apply(static_cast<const ConfigBase &>(FullPrintConfig::defaults()));
@@ -6591,7 +6596,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             }
                             if (graft) {
                                 q->auto_graft_leq4_onto_ultra_s(session_colours, session_multi,
-                                                                session_filament_presets, session_process);
+                                                                session_filament_presets, session_process,
+                                                                source_filament_types);
                             }
                             // Update filament combobox after loading config
                             wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);
@@ -12390,7 +12396,8 @@ int Plater::save_project(bool saveAs)
 void Plater::auto_graft_leq4_onto_ultra_s(const std::vector<std::string> &dest_colours,
                                           const std::vector<std::string> &dest_multi,
                                           const std::vector<std::string> &dest_filament_presets,
-                                          const std::string              &dest_process_name)
+                                          const std::string              &dest_process_name,
+                                          const std::vector<std::string> &source_filament_types)
 {
     PresetBundle *bundle = wxGetApp().preset_bundle;
     if (bundle == nullptr)
@@ -12435,7 +12442,22 @@ void Plater::auto_graft_leq4_onto_ultra_s(const std::vector<std::string> &dest_c
         names.push_back(names.back());
     names.resize(4);
 
+    std::vector<std::pair<std::string, std::string>> name_and_type;
+    for (const Preset &fp : bundle->filaments) {
+        if (!fp.is_visible || !fp.is_compatible || fp.is_external)
+            continue;
+        std::string ftype;
+        if (fp.config.has("filament_type"))
+            ftype = fp.config.opt_string("filament_type", 0u);
+        name_and_type.emplace_back(fp.name, ftype);
+    }
+
     for (size_t i = 0; i < 4; ++i) {
+        const std::string wanted = spectrum_filament_type_at(source_filament_types, i);
+        const std::string picked =
+            spectrum_pick_filament_name_for_type(wanted, names[i], name_and_type);
+        if (!picked.empty())
+            names[i] = picked;
         const Preset *fp = bundle->filaments.find_preset(names[i]);
         if (fp == nullptr || !fp->is_compatible)
             names[i] = bundle->filaments.get_selected_preset_name();

@@ -932,7 +932,8 @@ private:
     void auto_graft_leq4_onto_ultra_s(const std::vector<std::string> &dest_colours,
                                       const std::vector<std::string> &dest_multi,
                                       const std::vector<std::string> &dest_filament_presets,
-                                      const std::string              &dest_process_name);
+                                      const std::string              &dest_process_name,
+                                      const std::vector<std::string> &source_filament_types);
 
     struct priv;
     std::unique_ptr<priv> p;

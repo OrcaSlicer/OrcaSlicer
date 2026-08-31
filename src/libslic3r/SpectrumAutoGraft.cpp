@@ -61,4 +61,29 @@ bool spectrum_restore_dest_filament_colours(std::vector<std::string>       &colo
     return true;
 }
 
+std::string spectrum_filament_type_at(const std::vector<std::string> &types, size_t i)
+{
+    if (types.empty())
+        return {};
+    return types[std::min(i, types.size() - 1)];
+}
+
+std::string spectrum_pick_filament_name_for_type(
+    const std::string                                       &wanted,
+    const std::string                                       &session_name,
+    const std::vector<std::pair<std::string, std::string>> &name_and_type)
+{
+    if (wanted.empty())
+        return session_name;
+    for (const auto &pair : name_and_type) {
+        if (pair.first == session_name && pair.second == wanted)
+            return session_name;
+    }
+    for (const auto &pair : name_and_type) {
+        if (pair.second == wanted)
+            return pair.first;
+    }
+    return {};
+}
+
 } // namespace Slic3r

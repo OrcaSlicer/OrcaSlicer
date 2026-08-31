@@ -3,6 +3,7 @@
 #include "PrintConfig.hpp"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Slic3r {
@@ -22,5 +23,15 @@ bool spectrum_auto_graft_load_is_project_open(bool load_model, bool load_config,
 // dest size 1–3 pads with last hex; dest ≥4 copies first four.
 bool spectrum_restore_dest_filament_colours(std::vector<std::string>       &colour,
                                            const std::vector<std::string> &dest);
+
+// Empty types → ""; else types[min(i, size-1)] (pad last like hex restore).
+std::string spectrum_filament_type_at(const std::vector<std::string> &types, size_t i);
+
+// Exact type ==. Empty wanted → session_name. Prefer session_name if that pair
+// matches wanted; else first pair with type==wanted; else "".
+std::string spectrum_pick_filament_name_for_type(
+    const std::string                                       &wanted,
+    const std::string                                       &session_name,
+    const std::vector<std::pair<std::string, std::string>> &name_and_type);
 
 } // namespace Slic3r

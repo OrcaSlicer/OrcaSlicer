@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "libslic3r/PrintConfig.hpp"
@@ -128,4 +129,65 @@ TEST_CASE("restore dest empty does not write", "[spectrum_auto_graft]")
     CHECK(colour[1] == "#KEEP1");
     CHECK(colour[2] == "#KEEP2");
     CHECK(colour[3] == "#KEEP3");
+}
+
+TEST_CASE("pick PETG when session is WonderMaker PLA Basic", "[spectrum_auto_graft]")
+{
+    const std::vector<std::pair<std::string, std::string>> name_and_type = {
+        {"WonderMaker PLA Basic", "PLA"},
+        {"WonderMaker PETG Basic", "PETG"},
+    };
+    CHECK(spectrum_pick_filament_name_for_type("PETG", "WonderMaker PLA Basic", name_and_type) ==
+          "WonderMaker PETG Basic");
+}
+
+TEST_CASE("pick prefers session name when already PETG Basic", "[spectrum_auto_graft]")
+{
+    const std::vector<std::pair<std::string, std::string>> name_and_type = {
+        {"WonderMaker PLA Basic", "PLA"},
+        {"WonderMaker PETG Basic", "PETG"},
+        {"Other PETG", "PETG"},
+    };
+    CHECK(spectrum_pick_filament_name_for_type("PETG", "WonderMaker PETG Basic", name_and_type) ==
+          "WonderMaker PETG Basic");
+}
+
+TEST_CASE("wanted PET-CF does not return PETG", "[spectrum_auto_graft]")
+{
+    const std::vector<std::pair<std::string, std::string>> name_and_type = {
+        {"WonderMaker PLA Basic", "PLA"},
+        {"WonderMaker PETG Basic", "PETG"},
+    };
+    CHECK(spectrum_pick_filament_name_for_type("PET-CF", "WonderMaker PLA Basic", name_and_type).empty());
+}
+
+TEST_CASE("empty wanted returns session name", "[spectrum_auto_graft]")
+{
+    const std::vector<std::pair<std::string, std::string>> name_and_type = {
+        {"WonderMaker PLA Basic", "PLA"},
+        {"WonderMaker PETG Basic", "PETG"},
+    };
+    CHECK(spectrum_pick_filament_name_for_type("", "WonderMaker PLA Basic", name_and_type) ==
+          "WonderMaker PLA Basic");
+}
+
+TEST_CASE("no type match returns empty string", "[spectrum_auto_graft]")
+{
+    const std::vector<std::pair<std::string, std::string>> name_and_type = {
+        {"WonderMaker PLA Basic", "PLA"},
+    };
+    CHECK(spectrum_pick_filament_name_for_type("PETG", "WonderMaker PLA Basic", name_and_type).empty());
+}
+
+TEST_CASE("filament_type_at pads last and empty types", "[spectrum_auto_graft]")
+{
+    CHECK(spectrum_filament_type_at({}, 0).empty());
+    CHECK(spectrum_filament_type_at({}, 3).empty());
+    const std::vector<std::string> one{"PETG"};
+    CHECK(spectrum_filament_type_at(one, 0) == "PETG");
+    CHECK(spectrum_filament_type_at(one, 3) == "PETG");
+    const std::vector<std::string> mixed{"PETG", "PLA"};
+    CHECK(spectrum_filament_type_at(mixed, 0) == "PETG");
+    CHECK(spectrum_filament_type_at(mixed, 1) == "PLA");
+    CHECK(spectrum_filament_type_at(mixed, 3) == "PLA");
 }
