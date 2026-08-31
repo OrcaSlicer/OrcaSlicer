@@ -2411,6 +2411,39 @@ void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad, doub
     if (!try_add_constraints(axes))
         for (const auto& c : axes) try_add_constraints({ c });
 
+    // 3) Relational constraints on the new entities (parallel/perpendicular on connected
+    //    lines, equal radius, tangent). Same batch-then-one-at-a-time fallback as above:
+    //    try_add_constraints rolls a conflicting batch back, so a single rejected relation
+    //    never costs the others. Every rule only pins a relation that is ALREADY true, so
+    //    nothing the user drew is moved by this.
+    //    A SCRIPTED ADD IS NOT A DRAWN GESTURE — the rule this function already states at its
+    //    bulk call site, which passes zero tolerances for exactly that reason (snaporca-8xg1).
+    //    Relational inference must obey it too, and for a second reason beyond tolerance:
+    //    EqualRadius couples entities that are geometrically far apart, so on a real drawing it
+    //    merges independent connected components into one huge system and defeats the
+    //    component partitioning that makes large sketches solvable at all (snaporca-yww4).
+    //    Measured 2026-08-31 on the corpus rung: geometry stayed correct (32/32 sheets clean)
+    //    but seven of the largest sheets hit main-thread timeout — MPD681 among them, the very
+    //    sheet named in the comment at the bulk call site. Exact-equality would not save it
+    //    either: patterned holes in real drawings ARE exactly equal.
+    //    So: relations only for batches the size of a human gesture. A polyline segment is 1, a
+    //    rectangle 4, a polygon a dozen; a scripted or imported add is hundreds.
+    constexpr int kRelInferMaxBatch = 16;
+    std::vector<SketchEntityConstraintDef> rels;
+    if (n - base <= kRelInferMaxBatch) {
+        const double rel_len_tol = ang_tol_rad > 0.0 ? 0.01 : 0.0;   // exact-only when the caller asked for exact
+        for (int i = base; i < n; ++i) {
+            auto r = infer_relations(m_entities, i, ang_tol_rad, rel_len_tol);
+            rels.insert(rels.end(), r.begin(), r.end());
+        }
+    }
+    // NO one-at-a-time fallback here, unlike the two batches above. Relations are a
+    // convenience: nothing is incorrect without them. The fallback costs one SOLVE PER
+    // CONSTRAINT, which is what the warning on the axes batch is about, and paying it for
+    // optional constraints is how a bulk add pins the app at 100% CPU with the MCP socket
+    // unresponsive (measured 2026-08-31). If the batch conflicts, drop the batch.
+    if (!rels.empty()) try_add_constraints(rels);
+
     resolve_live();
 }
 

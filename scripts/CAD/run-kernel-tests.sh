@@ -36,7 +36,17 @@ VOL="${BUILD_VOL:-orcacad_kerneltest}"
 # circle-line tangency is fixed (snaporca-tkz), and the internal-thread case turned out to have
 # correct geometry and a wrong reference in the test (snaporca-kzy). A green run here now means
 # the whole CAD suite passed, not "everything except the two we gave up on".
-TAGS="${TAGS:-[CadDocument]}"
+#
+# ...and that claim was still not true, because the default tag was [CadDocument] alone while
+# four CAD test files carry their own tags and NOTHING ELSE selected them. test_sketchinference
+# ([inference], 15), test_sketchedit ([SketchEdit], 23), test_sketchconstraints
+# ([SketchConstraints], 8) and test_sketchimport ([SketchImport], 4) never ran here, nor did the
+# older [slvs]-only cases in test_slvs_constraints. Measured 2026-08-31: the default reported
+# 2624 assertions / 206 cases, the full set 7648 / 264 -- so the gate was speaking for about a
+# third of the assertions, and a whole file could be added, tagged by its own convention, and
+# stay dark while the suite printed green. All 58 were passing; the coverage was simply never
+# exercised. Adding a tag here is now part of adding a test file.
+TAGS="${TAGS:-[CadDocument],[inference],[SketchEdit],[SketchConstraints],[SketchImport],[slvs]}"
 HOST=""
 
 while [[ $# -gt 0 ]]; do

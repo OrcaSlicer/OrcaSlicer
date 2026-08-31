@@ -39,6 +39,17 @@ InferenceSnap infer_point_snap(const std::vector<SketchEntity>& entities,
 std::optional<SketchConstraintType>
 infer_axis_constraint(const Vec2d& anchor, const Vec2d& tip, double ang_tol_rad = 3.0 * M_PI / 180.0);
 
+// Relational constraints to auto-emit for a newly drawn entity `new_ei` against the
+// entities already in the sketch. Pure, no GUI/GL dependencies, unit-testable.
+//
+// Deliberately conservative: every rule requires the relation to be ALREADY TRUE within
+// tolerance, so an inferred constraint never moves geometry the user drew — it only pins a
+// relation that is visibly there. Returns an empty vector when nothing qualifies.
+std::vector<SketchEntityConstraintDef>
+infer_relations(const std::vector<SketchEntity>& entities, int new_ei,
+                double ang_tol_rad = 2.0 * M_PI / 180.0,
+                double len_tol_frac = 0.01);
+
 } // namespace Slic3r
 
 #endif // slic3r_SketchInference_hpp_

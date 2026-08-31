@@ -76,3 +76,99 @@ TEST_CASE("inference: axis inference flags horizontal / vertical segments", "[in
     CHECK_FALSE(infer_axis_constraint({0, 0}, {10, 10}).has_value());   // 45 deg
     CHECK_FALSE(infer_axis_constraint({0, 0}, {0, 0}).has_value());     // degenerate
 }
+
+TEST_CASE("inference: perpendicular inferred for a connected square corner", "[inference]")
+{
+    std::vector<SketchEntity> ents = { line({0, 0}, {10, 0}), line({10, 0}, {10, 7}) };
+    auto r = infer_relations(ents, 1);
+    REQUIRE(r.size() == 1);
+    CHECK(r[0].type == SketchConstraintType::Perpendicular);
+    CHECK(r[0].ea == 0);
+    CHECK(r[0].eb == 1);
+}
+
+TEST_CASE("inference: parallel inferred for connected collinear-ish lines", "[inference]")
+{
+    std::vector<SketchEntity> ents = { line({0, 0}, {10, 0}), line({10, 0}, {21, 0.1}) };
+    auto r = infer_relations(ents, 1);
+    REQUIRE(r.size() == 1);
+    CHECK(r[0].type == SketchConstraintType::Parallel);
+    CHECK(r[0].ea == 0);
+    CHECK(r[0].eb == 1);
+}
+
+TEST_CASE("inference: two unconnected parallel lines infer nothing", "[inference]")
+{
+    std::vector<SketchEntity> ents = { line({0, 0}, {10, 0}), line({0, 5}, {10, 5}) };
+    auto r = infer_relations(ents, 1);
+    CHECK(r.empty());
+}
+
+TEST_CASE("inference: a corner outside tolerance infers nothing", "[inference]")
+{
+    std::vector<SketchEntity> ents = { line({0, 0}, {10, 0}), line({10, 0}, {15, 7}) };
+    auto r = infer_relations(ents, 1);
+    CHECK(r.empty());
+}
+
+TEST_CASE("inference: equal radius inferred for near-equal circles", "[inference]")
+{
+    auto r = infer_relations({ circle({0, 0}, 5.0), circle({30, 0}, 5.02) }, 1);
+    REQUIRE(r.size() == 1);
+    CHECK(r[0].type == SketchConstraintType::EqualRadius);
+    CHECK(r[0].ea == 0);
+    CHECK(r[0].eb == 1);
+
+    auto r2 = infer_relations({ circle({0, 0}, 5.0), circle({30, 0}, 6.0) }, 1);
+    CHECK(r2.empty());
+}
+
+TEST_CASE("inference: tangent inferred for a line meeting a circle tangentially", "[inference]")
+{
+    std::vector<SketchEntity> ents = { circle({0, 0}, 5.0), line({0, 5}, {10, 5}) };
+    auto r = infer_relations(ents, 1);
+    REQUIRE(r.size() == 1);
+    CHECK(r[0].type == SketchConstraintType::Tangent);
+    CHECK(r[0].ea == 0);
+    CHECK(r[0].eb == 1);
+
+    std::vector<SketchEntity> off = { circle({0, 0}, 5.0), line({0, 5}, {10, 9}) };
+    CHECK(infer_relations(off, 1).empty());
+}
+
+TEST_CASE("inference: nothing inferred against a higher index", "[inference]")
+{
+    std::vector<SketchEntity> ents = { line({0, 0}, {10, 0}), line({10, 0}, {10, 7}) };
+    auto r = infer_relations(ents, 0);
+    CHECK(r.empty());
+}
+
+TEST_CASE("inference: degenerate entities are ignored", "[inference]")
+{
+    std::vector<SketchEntity> ents = { line({0, 0}, {10, 0}), line({10, 0}, {10, 0}) };
+    auto r = infer_relations(ents, 1);
+    CHECK(r.empty());
+}
+
+// The cap that keeps infer_relations linear rather than quadratic. Without it a drawing with
+// many equal holes yields a constraint per PAIR: 200 equal circles produced ~20000 candidates,
+// the batch was rejected as over-constrained, and the caller's one-at-a-time fallback then ran
+// a solve per constraint -- which pinned the app at 95% of a core with the MCP socket
+// unresponsive, and is what the corpus rung caught.
+TEST_CASE("inference: at most one relation per rule per new entity", "[inference]")
+{
+    // 40 circles of the same radius; the 41st must not produce 40 EqualRadius constraints.
+    std::vector<SketchEntity> ents;
+    for (int i = 0; i < 41; ++i) {
+        SketchEntity c;
+        c.type = SketchEntity::Type::Circle;
+        c.center = Vec2d(i * 20.0, 0.0);
+        c.p0 = c.center;
+        c.radius = 5.0;
+        ents.push_back(c);
+    }
+    auto rels = infer_relations(ents, 40);
+    CHECK(rels.size() == 1);
+    CHECK(rels[0].type == SketchConstraintType::EqualRadius);
+    CHECK(rels[0].eb == 40);
+}

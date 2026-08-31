@@ -1,5 +1,6 @@
 #include "libslic3r/CAD/SketchInference.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 namespace Slic3r {
@@ -121,6 +122,113 @@ infer_axis_constraint(const Vec2d& anchor, const Vec2d& tip, double ang_tol_rad)
     if (ang <= ang_tol_rad)                 return SketchConstraintType::Horizontal;
     if (ang >= M_PI / 2.0 - ang_tol_rad)    return SketchConstraintType::Vertical;
     return std::nullopt;
+}
+
+// Unsigned angle between two (unnormalized) direction vectors, in [0, pi]. 0 = same
+// direction, pi = opposite, pi/2 = perpendicular. Inputs must be non-degenerate.
+// static: this is a file-local helper, not part of the module's interface -- at namespace
+// scope with external linkage it would be a link-time collision waiting to happen.
+static double unsigned_angle(const Vec2d& a, const Vec2d& b)
+{
+    const double cross = a.x() * b.y() - a.y() * b.x();
+    const double dot   = a.x() * b.x() + a.y() * b.y();
+    return std::atan2(std::abs(cross), dot);
+}
+
+std::vector<SketchEntityConstraintDef>
+infer_relations(const std::vector<SketchEntity>& entities, int new_ei,
+                double ang_tol_rad, double len_tol_frac)
+{
+    std::vector<SketchEntityConstraintDef> out;
+    if (new_ei <= 0 || new_ei >= int(entities.size())) return out;
+
+    // AT MOST ONE constraint per rule per new entity, not one per PAIR. Without this the
+    // function is quadratic in the sketch: a drawing with 200 equal holes yields ~20000
+    // EqualRadius candidates, the batch is rejected as over-constrained, and the caller's
+    // one-at-a-time fallback then runs a solve per constraint. Measured 2026-08-31: that
+    // pinned the app at 95% of a core with the MCP socket unresponsive -- the same failure
+    // the axes batch above already carries a warning about. Keep the best candidate only.
+    int    best_ang_j = -1, best_rad_j = -1, best_tan_j = -1;
+    double best_ang_err = 1e30, best_rad_err = 1e30, best_tan_err = 1e30;
+    SketchConstraintType best_ang_type = SketchConstraintType::Parallel;
+
+    const SketchEntity& n = entities[new_ei];
+    const bool n_line  = n.type == SketchEntity::Type::Line;
+    const bool n_curve = n.type == SketchEntity::Type::Arc || n.type == SketchEntity::Type::Circle;
+    if (!n_line && !n_curve) return out;                       // not a Line / Arc / Circle
+    if (n_line  && (n.p1 - n.p0).squaredNorm() < 1e-18) return out; // degenerate
+    if (n_curve && n.radius < 1e-9)                      return out;
+
+    for (int j = 0; j < new_ei; ++j) {
+        const SketchEntity& o = entities[j];
+        const bool o_line  = o.type == SketchEntity::Type::Line;
+        const bool o_curve = o.type == SketchEntity::Type::Arc || o.type == SketchEntity::Type::Circle;
+        if (!o_line && !o_curve) continue;
+        if (o_line  && (o.p1 - o.p0).squaredNorm() < 1e-18) continue;
+        if (o_curve && o.radius < 1e-9)                      continue;
+
+        if (n_line && o_line) {
+            // R1 — parallel / perpendicular, restricted to CONNECTED lines. Connection is
+            // what keeps this from firing on every distant line that is roughly parallel.
+            const bool connected = (n.p0 - o.p0).squaredNorm() <= 1e-14 ||
+                                   (n.p0 - o.p1).squaredNorm() <= 1e-14 ||
+                                   (n.p1 - o.p0).squaredNorm() <= 1e-14 ||
+                                   (n.p1 - o.p1).squaredNorm() <= 1e-14;
+            if (!connected) continue;
+            const double ang = unsigned_angle(n.p1 - n.p0, o.p1 - o.p0);
+            const double par_err = std::min(ang, M_PI - ang);
+            const double per_err = std::abs(ang - M_PI / 2.0);
+            if (par_err <= ang_tol_rad && par_err < best_ang_err) {
+                best_ang_err = par_err; best_ang_j = j;
+                best_ang_type = SketchConstraintType::Parallel;
+            } else if (per_err <= ang_tol_rad && per_err < best_ang_err) {
+                best_ang_err = per_err; best_ang_j = j;
+                best_ang_type = SketchConstraintType::Perpendicular;
+            }
+        } else if (n_curve && o_curve) {
+            // R2 — equal radius between circles / arcs, relative to the larger.
+            const double larger = n.radius > o.radius ? n.radius : o.radius;
+            const double err = std::abs(n.radius - o.radius) / larger;
+            if (err <= len_tol_frac && err < best_rad_err) { best_rad_err = err; best_rad_j = j; }
+        } else {
+            // R3 — tangent where a line meets a circle / arc at a shared endpoint, and only
+            // when the line is ALREADY perpendicular to the radius at that point.
+            const SketchEntity& ln = n_line ? n : o;
+            const SketchEntity& cv = n_line ? o : n;
+            const Vec2d ldir = ln.p1 - ln.p0;
+            bool tangent = false;
+            const Vec2d le[2] = { ln.p0, ln.p1 };
+            for (int k = 0; k < 2 && !tangent; ++k) {
+                if (cv.type == SketchEntity::Type::Arc) {
+                    const Vec2d ce[2] = { cv.p0, cv.p1 };
+                    for (int m = 0; m < 2; ++m) {
+                        if ((le[k] - ce[m]).squaredNorm() > 1e-14) continue;
+                        const Vec2d r = ce[m] - cv.center;
+                        if (r.squaredNorm() < 1e-18) continue;
+                        tangent = std::abs(unsigned_angle(ldir, r) - M_PI / 2.0) <= ang_tol_rad;
+                        if (tangent) break;
+                    }
+                } else { // Circle: shared point is a line endpoint on the rim.
+                    const Vec2d r = le[k] - cv.center;
+                    if (std::abs(r.norm() - cv.radius) > 1e-7) continue;
+                    if (r.squaredNorm() < 1e-18) continue;
+                    tangent = std::abs(unsigned_angle(ldir, r) - M_PI / 2.0) <= ang_tol_rad;
+                }
+            }
+            if (tangent && best_tan_err > 0.0) { best_tan_err = 0.0; best_tan_j = j; }
+        }
+    }
+
+    auto emit = [&](SketchConstraintType t, int j) {
+        if (j < 0) return;
+        SketchEntityConstraintDef c;
+        c.type = t; c.ea = j; c.eb = new_ei;
+        out.push_back(c);
+    };
+    emit(best_ang_type, best_ang_j);                       // R1
+    emit(SketchConstraintType::EqualRadius, best_rad_j);   // R2
+    emit(SketchConstraintType::Tangent,     best_tan_j);   // R3
+    return out;
 }
 
 } // namespace Slic3r
