@@ -662,10 +662,10 @@ PrinterFileSystem::File const &PrinterFileSystem::GetFile(size_t index, bool &se
 void PrinterFileSystem::Attached()
 {
     boost::unique_lock lock(m_mutex);
-    m_recv_thread = std::move(boost::thread([w = weak_from_this()] {
+    m_recv_thread = boost::thread([w = weak_from_this()] {
         boost::shared_ptr<PrinterFileSystem> s = w.lock();
         if (s) s->RecvMessageThread();
-    }));
+    });
 }
 
 void PrinterFileSystem::Start()
