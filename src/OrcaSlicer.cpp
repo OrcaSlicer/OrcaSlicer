@@ -1865,7 +1865,9 @@ int CLI::run(int argc, char **argv)
                         //default not orient for all, if need to orient use the action
                         //orients_requirement.insert(std::pair<size_t, bool>(o->id().id, false));
                         BOOST_LOG_TRIVIAL(info) << "object "<<o->name <<", id :"  << o->id().id << ", from stl or other 3mf\n";
-                        o->ensure_on_bed();
+                        if (m_config.opt_bool("ensure_on_bed")) {
+                            o->ensure_on_bed();
+                        }
                     }
                 }
                 first_file = false;
