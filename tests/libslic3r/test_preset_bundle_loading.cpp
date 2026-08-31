@@ -2932,6 +2932,302 @@ TEST_CASE("Published 3MF relocates a mixed filament instead of overwriting a phy
     }
 }
 
+// The receiver's printer gates how many PHYSICAL filament slots a published 3MF may add: a
+// non-SEMM tool-changer feeds filament N from nozzle N, so a published slot past the nozzle
+// count cannot become a physical filament. It becomes an empty mixed-filament placeholder
+// instead - a virtual tail slot the GUI flags (broken mix) and the user fills with components
+// from their own filaments. SEMM receivers keep the ungated behaviour.
+TEST_CASE("Published 3MF turns a surplus slot past the printer's filament capacity into an empty mixed placeholder", "[Preset][Bundle][Published]")
+{
+    // An author project with <num_author_slots> physical slots, no mixed ones.
+    auto make_file_config = [](size_t num_author_slots) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        std::vector<double> diameters(num_author_slots, 1.75);
+        std::vector<int> self_index;
+        std::vector<std::string> variants;
+        for (size_t i = 0; i < num_author_slots; ++i) {
+            self_index.push_back(int(i + 1));
+            variants.emplace_back("Direct Drive Standard");
+        }
+        config.opt<ConfigOptionFloats>("filament_diameter")->values          = diameters;
+        config.opt<ConfigOptionInts>("filament_self_index")->values          = self_index;
+        config.opt<ConfigOptionStrings>("filament_extruder_variant")->values = variants;
+        config.opt<ConfigOptionStrings>("filament_colour")->values.resize(num_author_slots, "#808080");
+        config.opt<ConfigOptionStrings>("filament_type")->values.assign(num_author_slots, "PLA");
+        config.opt<ConfigOptionStrings>("filament_vendor")->values.assign(num_author_slots, "Generic");
+        config.opt<ConfigOptionStrings>("filament_ids")->values.resize(num_author_slots);
+        return config;
+    };
+    // A non-SEMM receiver with <nozzles> nozzles running <slots> copies of one preset.
+    auto make_receiver = [](PresetBundle &bundle, size_t nozzles, size_t slots) {
+        Preset &pla = add_inmemory_preset(bundle.filaments, "My PLA");
+        pla.config.opt_string("filament_type", 0u) = "PLA";
+        bundle.filament_presets.assign(slots, "My PLA");
+        bundle.set_num_filaments(slots, "#123456");
+        auto &printer_config                                    = bundle.printers.get_edited_preset().config;
+        printer_config.opt<ConfigOptionBool>("single_extruder_multi_material", true)->value = false;
+        printer_config.opt<ConfigOptionFloats>("nozzle_diameter", true)->values.assign(nozzles, 0.4);
+    };
+    auto make_physical_entry = [](int slot, const char *color) {
+        PublishedMaterialEntry entry;
+        entry.slot            = slot;
+        entry.filament_type   = "PLA";
+        entry.filament_vendor = "Generic";
+        entry.publish_color   = true;
+        entry.color           = color;
+        return entry;
+    };
+
+    // The reported case: an author publishes with a filament on slot 5; the receiver is a
+    // 4-filament tool-changer. The receiver keeps its four physical slots and the surplus
+    // material lands as an empty mixed placeholder at the tail.
+    {
+        PresetBundle bundle;
+        make_receiver(bundle, 4, 4);
+        const std::vector<std::string> receiver_colours =
+            bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values;
+
+        PublishedConfig pub;
+        pub.published     = true;
+        pub.material_keys = { make_physical_entry(4, "#ABCDEF") };
+        DynamicPrintConfig config = make_file_config(5);
+        Preset::normalize(config);
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        // The receiver grew by exactly one virtual slot, not a fifth physical one.
+        REQUIRE(bundle.filament_presets.size() == 5);
+        const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
+        REQUIRE(is_mixed.size() == 5);
+        for (size_t i = 0; i < 4; ++i)
+            CHECK_FALSE(is_mixed[i]);
+        CHECK(is_mixed[4]);
+        // The placeholder carries no definition: the GUI's integrity check flags it and
+        // blocks slicing until the user assigns components.
+        const auto &components = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values;
+        REQUIRE(components.size() == 5);
+        CHECK(components[4].empty());
+        // The four physical slots kept their meaning and colours.
+        CHECK(std::equal(receiver_colours.begin(), receiver_colours.end(),
+                         bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values.begin()));
+        CHECK(bundle.filament_presets[0] == "My PLA");
+        CHECK(bundle.filament_presets[3] == "My PLA");
+        // The published colour seeds the placeholder's swatch.
+        CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values[4] == "#ABCDEF");
+        // The conversion is surfaced through the post-import notice.
+        bool placeholder_reported = false;
+        for (const std::string &message : pub.material_replacements)
+            if (message.find("unassigned mixed filament") != std::string::npos)
+                placeholder_reported = true;
+        CHECK(placeholder_reported);
+        CHECK(pub.skipped_keys.empty());
+        CHECK(pub.mixed_slot_relocations.empty());
+    }
+
+    // Two surplus slots (5 and 6) become two consecutive empty placeholders.
+    {
+        PresetBundle bundle;
+        make_receiver(bundle, 4, 4);
+
+        PublishedConfig pub;
+        pub.published     = true;
+        pub.material_keys = { make_physical_entry(4, "#ABCDEF"), make_physical_entry(5, "#F0F0F0") };
+        DynamicPrintConfig config = make_file_config(6);
+        Preset::normalize(config);
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        REQUIRE(bundle.filament_presets.size() == 6);
+        const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
+        REQUIRE(is_mixed.size() == 6);
+        for (size_t i = 0; i < 4; ++i)
+            CHECK_FALSE(is_mixed[i]);
+        CHECK(is_mixed[4]);
+        CHECK(is_mixed[5]);
+        const auto &components = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values;
+        REQUIRE(components.size() == 6);
+        CHECK(components[4].empty());
+        CHECK(components[5].empty());
+        const auto &colour = bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values;
+        REQUIRE(colour.size() == 6);
+        CHECK(colour[4] == "#ABCDEF");
+        CHECK(colour[5] == "#F0F0F0");
+        CHECK(pub.skipped_keys.empty());
+        CHECK(pub.mixed_slot_relocations.empty());
+    }
+
+    // A surplus slot past both the receiver's list and the capacity packs onto the next free
+    // tail slot (never max(authored, next_free), which would grow filler physical slots past
+    // the capacity), and the relocation is recorded for the model-reference remapping.
+    {
+        PresetBundle bundle;
+        make_receiver(bundle, 2, 2);
+
+        PublishedConfig pub;
+        pub.published     = true;
+        pub.material_keys = { make_physical_entry(3, "#ABCDEF") };
+        DynamicPrintConfig config = make_file_config(4);
+        Preset::normalize(config);
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        REQUIRE(bundle.filament_presets.size() == 3);
+        const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
+        REQUIRE(is_mixed.size() == 3);
+        CHECK_FALSE(is_mixed[0]);
+        CHECK_FALSE(is_mixed[1]);
+        CHECK(is_mixed[2]);
+        const auto &components = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values;
+        REQUIRE(components.size() == 3);
+        CHECK(components[2].empty());
+        REQUIRE(pub.mixed_slot_relocations.size() == 1);
+        CHECK(pub.mixed_slot_relocations.at(3) == 2);
+        bool relocation_reported = false;
+        for (const std::string &message : pub.material_replacements)
+            if (message.find("slot 3 -> slot 2") != std::string::npos &&
+                message.find("unassigned mixed filament") != std::string::npos)
+                relocation_reported = true;
+        CHECK(relocation_reported);
+        CHECK(pub.skipped_keys.empty());
+    }
+
+    // A Full Publish entry past the capacity becomes a placeholder too: no standalone
+    // detached copy is created for a material that got no physical slot.
+    {
+        PresetBundle bundle;
+        make_receiver(bundle, 4, 4);
+
+        PublishedMaterialEntry entry = make_physical_entry(4, "#ABCDEF");
+        entry.full                   = true;
+        entry.preset_name            = "Generic PLA @System";
+        entry.filament_id            = "GFL99";
+        entry.full_keys              = { "filament_retraction_length" };
+
+        PublishedConfig pub;
+        pub.published     = true;
+        pub.material_keys = { entry };
+        DynamicPrintConfig config = make_file_config(5);
+        Preset::normalize(config);
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        REQUIRE(bundle.filament_presets.size() == 5);
+        const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
+        REQUIRE(is_mixed.size() == 5);
+        CHECK(is_mixed[4]);
+        // No detached copy under the stripped name or its uniquified forms.
+        CHECK(bundle.filaments.find_preset("Generic PLA", false, true) == nullptr);
+        CHECK(bundle.filaments.find_preset("Generic PLA (Published)", false, true) == nullptr);
+        CHECK(pub.skipped_keys.empty());
+    }
+
+    // A SEMM receiver (the default printer preset) sizes its slot list by hand: the published
+    // slot past the nozzle count still grows physically, as before the capacity gate.
+    {
+        PresetBundle bundle;
+        Preset &pla = add_inmemory_preset(bundle.filaments, "My PLA");
+        pla.config.opt_string("filament_type", 0u) = "PLA";
+        bundle.filament_presets = { "My PLA", "My PLA", "My PLA", "My PLA" };
+        bundle.set_num_filaments(4, "#123456");
+
+        PublishedConfig pub;
+        pub.published     = true;
+        pub.material_keys = { make_physical_entry(4, "#ABCDEF") };
+        DynamicPrintConfig config = make_file_config(5);
+        Preset::normalize(config);
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        REQUIRE(bundle.filament_presets.size() == 5);
+        const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
+        REQUIRE(is_mixed.size() == 5);
+        for (size_t i = 0; i < 5; ++i)
+            CHECK_FALSE(is_mixed[i]);
+        CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values[4] == "#ABCDEF");
+        CHECK(pub.skipped_keys.empty());
+    }
+
+    // A pre-existing oversized slot list is never shrunk: a published entry pointing at one
+    // of its slots is applied positionally even though the list exceeds the nozzle count.
+    {
+        PresetBundle bundle;
+        make_receiver(bundle, 4, 5);
+
+        PublishedConfig pub;
+        pub.published     = true;
+        pub.material_keys = { make_physical_entry(4, "#ABCDEF") };
+        DynamicPrintConfig config = make_file_config(5);
+        Preset::normalize(config);
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        REQUIRE(bundle.filament_presets.size() == 5);
+        const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
+        REQUIRE(is_mixed.size() == 5);
+        for (size_t i = 0; i < 5; ++i)
+            CHECK_FALSE(is_mixed[i]);
+        // The published colour reached the addressed slot's (shared) preset in place.
+        CHECK(bundle.filaments.find_preset("My PLA", false, true)->config.opt<ConfigOptionStrings>("filament_colour")->values ==
+              std::vector<std::string>{ "#ABCDEF" });
+        CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values[4] == "#ABCDEF");
+        CHECK(pub.skipped_keys.empty());
+    }
+
+    // On a single-physical-slot receiver an empty mix could never be edited (the sidebar's
+    // mixed section needs two physical filaments), so the surplus entry is dropped and
+    // reported instead of becoming an unfixable placeholder.
+    {
+        PresetBundle bundle;
+        make_receiver(bundle, 1, 1);
+
+        PublishedConfig pub;
+        pub.published     = true;
+        pub.material_keys = { make_physical_entry(1, "#ABCDEF") };
+        DynamicPrintConfig config = make_file_config(2);
+        Preset::normalize(config);
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        CHECK(bundle.filament_presets.size() == 1);
+        const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
+        REQUIRE(is_mixed.size() == 1);
+        CHECK_FALSE(is_mixed[0]);
+        REQUIRE(pub.skipped_keys.size() == 1);
+        CHECK(pub.skipped_keys.front().find("printer supports only 1") != std::string::npos);
+    }
+
+    // A payload mixed definition is exempt from the capacity gate: mixes are virtual slots
+    // that consume no nozzle, so a published mix past the nozzle count still lands.
+    {
+        PresetBundle bundle;
+        make_receiver(bundle, 4, 4);
+
+        PublishedMaterialEntry mix;
+        mix.slot          = 4;
+        mix.publish_color = true;
+        mix.color         = "#800080";
+        mix.keys          = { "filament_is_mixed", "filament_mixed_components", "filament_mixed_sublayer_ratios" };
+
+        PublishedConfig pub;
+        pub.published     = true;
+        pub.material_keys = { mix };
+        DynamicPrintConfig config = make_file_config(5);
+        config.opt<ConfigOptionBools>("filament_is_mixed")->values.assign(5, 0);
+        config.opt<ConfigOptionStrings>("filament_mixed_components")->values.assign(5, "");
+        config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values.assign(5, "");
+        config.opt<ConfigOptionBools>("filament_is_mixed")->values[4]                = 1;
+        config.opt<ConfigOptionStrings>("filament_mixed_components")->values[4]      = "1,2";
+        config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values[4] = "0.6,0.4";
+        Preset::normalize(config);
+        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+        REQUIRE(bundle.filament_presets.size() == 5);
+        const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
+        REQUIRE(is_mixed.size() == 5);
+        CHECK(is_mixed[4]);
+        const auto &components = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values;
+        REQUIRE(components.size() == 5);
+        CHECK(components[4] == "1,2");
+        const auto &ratios = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values;
+        REQUIRE(ratios.size() == 5);
+        CHECK(ratios[4] == "0.6,0.4");
+        CHECK(pub.skipped_keys.empty());
+    }
+}
+
 // A single-extruder receiver collapses the author's per-extruder printer slots onto its single
 // slot: the first serialized variant of a base key is applied, the remaining variants of that
 // base key are reported as skipped.

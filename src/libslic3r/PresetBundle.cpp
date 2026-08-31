@@ -5407,6 +5407,11 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
         //     preset no other slot references wins on equal scores; with no replacement
         //     available the receiver's material is kept and the keys are reported as skipped;
         //   - colour: applied to the slot regardless of the type gate.
+        //   - capacity: on a non-SEMM receiver whose printer has fewer nozzles than the
+        //     authored slot needs, the entry becomes an empty mixed-filament placeholder
+        //     appended at the tail (the GUI flags it; the user assigns components from their
+        //     own filaments); on a single-physical-slot receiver it is dropped and reported
+        //     instead, since an empty mix could never be edited there.
         // Applied partial values land on the collection's edited layer when the slot references
         // it and that layer survives the load (visible as a modification, revertible, the user's
         // unsaved edits preserved), otherwise on the stored preset in place.
@@ -5417,11 +5422,38 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
             // Grow the receiver's slots only as far as the highest published slot (never
             // shrink, never pull filler materials for unpublished slots).
             bool has_published_entries = false;
-            size_t grow_target         = 0;
+            // Physical filament capacity of the receiver's printer: a non-SEMM tool-changer
+            // feeds filament N from nozzle N, so the nozzle count is the hard limit; a SEMM
+            // printer (single_extruder_multi_material) sizes its slot list by hand, so only
+            // the global slot limit applies (same condition as GUI_App::load_current_presets).
+            // Published entries that would need a NEW physical slot past this capacity are
+            // appended as empty mixed-filament placeholders instead of growing the list.
+            size_t physical_capacity = size_t(EnforcerBlockerType::ExtruderMax);
+            {
+                const Preset& receiver_printer = this->printers.get_edited_preset();
+                if (receiver_printer.printer_technology() == ptFFF &&
+                    !receiver_printer.config.opt_bool("single_extruder_multi_material")) {
+                    if (const auto* nozzle_diameter = receiver_printer.config.option<ConfigOptionFloats>("nozzle_diameter");
+                        nozzle_diameter != nullptr && !nozzle_diameter->values.empty())
+                        physical_capacity = nozzle_diameter->values.size();
+                }
+            }
+            const std::set<std::string>& mixed_definitions = publish_mixed_keys();
+            auto is_mixed_definition                      = [&mixed_definitions](const PublishedMaterialEntry& entry) {
+                return std::any_of(entry.keys.begin(), entry.keys.end(), [&](const std::string& key) {
+                    return mixed_definitions.count(publish_base_key(key)) != 0;
+                });
+            };
+            size_t grow_target = 0;
             for (const PublishedMaterialEntry& entry : published_config->material_keys) {
                 has_published_entries = true;
-                if (entry.slot >= 0)
-                    grow_target = std::max(grow_target, size_t(entry.slot) + 1);
+                if (entry.slot < 0)
+                    continue;
+                // A physical entry past the capacity becomes a tail placeholder below; its
+                // growth is covered by the append counter, not the positional target.
+                if (!is_mixed_definition(entry) && size_t(entry.slot) >= physical_capacity)
+                    continue;
+                grow_target = std::max(grow_target, size_t(entry.slot) + 1);
             }
             // Mixed-filament definitions live in project-level virtual slots, so applying one
             // positionally onto a receiver slot that holds a real, physical filament would
@@ -5439,13 +5471,12 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
             //     from the new index. No existing slot changes meaning.
             //   - destinations are also capped: appends past the extruder limit are dropped
             //     and reported instead of being forced onto a physical filament.
-            const std::set<std::string>& mixed_definitions = publish_mixed_keys();
-            auto is_mixed_definition                      = [&mixed_definitions](const PublishedMaterialEntry& entry) {
-                return std::any_of(entry.keys.begin(), entry.keys.end(), [&](const std::string& key) {
-                    return mixed_definitions.count(publish_base_key(key)) != 0;
-                });
-            };
-            size_t next_free_slot     = this->filament_presets.size();
+            // Physical entries past the printer's capacity join the same append counter
+            // (dest = next_free, packed consecutively at the tail - never max(authored,
+            // next_free), which would grow filler physical slots past the capacity) and are
+            // flagged mixed_placeholder: they become empty mixed-filament placeholders the
+            // GUI flags for the user to assign components to.
+            size_t next_free_slot      = this->filament_presets.size();
             bool   any_mixed_relocated = false;
             // All authored-slot -> destination moves decided by this pass, applied to the
             // incoming config in one batched snapshot step below (an earlier move's
@@ -5455,42 +5486,95 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
             std::vector<std::pair<size_t, size_t>> mixed_moves;
             for (auto entry_it = published_config->material_keys.begin(); entry_it != published_config->material_keys.end();) {
                 PublishedMaterialEntry& entry = *entry_it;
-                if (entry.slot < 0 || !is_mixed_definition(entry) ||
-                    // Like-for-like override of a virtual receiver slot (bounds-checked).
-                    this->is_mixed_filament(size_t(entry.slot))) {
+                if (entry.slot < 0) {
                     ++entry_it;
                     continue;
                 }
+                const bool is_payload_mix = is_mixed_definition(entry);
+                // Does this entry need a tail slot at all? A payload mixed definition does,
+                // except when it like-for-like overrides a receiver slot that is already a
+                // mix (bounds-checked). A physical entry only becomes a placeholder when it
+                // would need a NEW physical slot: an authored position the receiver's list
+                // already covers is applied positionally as before, even when that list sits
+                // above the printer's capacity (pre-existing state is never shrunk).
+                bool keep_place = false;
+                if (is_payload_mix)
+                    keep_place = this->is_mixed_filament(size_t(entry.slot));
+                else
+                    keep_place = size_t(entry.slot) < this->filament_presets.size() ||
+                                 size_t(entry.slot) < physical_capacity;
+                if (keep_place) {
+                    ++entry_it;
+                    continue;
+                }
+                const std::string material_label = !entry.filament_id.empty()        ? entry.filament_id :
+                                                   !entry.publish_type_value.empty() ? entry.publish_type_value :
+                                                                                       entry.filament_type;
                 if (std::max(size_t(entry.slot), next_free_slot) >= size_t(EnforcerBlockerType::ExtruderMax)) {
                     // No free virtual slot left: report instead of destroying a real filament.
-                    const std::string material_label = !entry.filament_id.empty()           ? entry.filament_id :
-                                                       !entry.publish_type_value.empty()    ? entry.publish_type_value :
-                                                                                               entry.filament_type;
                     // The local skipped_keys is published wholesale at the end of the pass;
                     // writing published_config->skipped_keys here would be clobbered by it.
-                    skipped_keys.emplace_back("material:" + material_label +
-                                              " (mixed filament definition: filament slot limit reached)");
-                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": published 3MF mixed filament from slot " << entry.slot
-                                               << " could not be placed: all " << next_free_slot << " slots exhausted";
+                    skipped_keys.emplace_back("material:" + material_label + (is_payload_mix ?
+                                                                                  " (mixed filament definition: filament slot limit reached)" :
+                                                                                  " (filament slot limit reached)"));
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": published 3MF " << (is_payload_mix ? "mixed filament definition" : "material")
+                                               << " from slot " << entry.slot << " could not be placed: all " << next_free_slot
+                                               << " slots exhausted";
+                    entry_it = published_config->material_keys.erase(entry_it);
+                    continue;
+                }
+                if (!is_payload_mix && physical_capacity < 2) {
+                    // A single physical slot can never host a mixed-filament editor (the
+                    // sidebar's mixed section needs two physical filaments to mix), so a
+                    // placeholder would be invisible and unfixable: drop the entry and
+                    // report it like any other unappliable input.
+                    skipped_keys.emplace_back("material:" + material_label + " (printer supports only " +
+                                              std::to_string(physical_capacity) + " filament)");
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": published 3MF material from slot " << entry.slot
+                                               << " dropped: printer supports only " << physical_capacity << " filament";
                     entry_it = published_config->material_keys.erase(entry_it);
                     continue;
                 }
                 const int authored_slot = entry.slot;
-                const int dest_slot     = int(std::max(size_t(authored_slot), next_free_slot));
+                const int dest_slot     = is_payload_mix ? int(std::max(size_t(authored_slot), next_free_slot)) : int(next_free_slot);
                 next_free_slot          = size_t(dest_slot) + 1;
-                if (dest_slot == authored_slot)
-                    // Uncontended fresh tail slot: the definition is already readable there.
-                    ++entry_it;
-                else {
-                    entry.slot              = dest_slot;
+                if (is_payload_mix) {
+                    if (dest_slot == authored_slot)
+                        // Uncontended fresh tail slot: the definition is already readable there.
+                        ++entry_it;
+                    else {
+                        entry.slot              = dest_slot;
+                        any_mixed_relocated     = true;
+                        mixed_moves.emplace_back(size_t(authored_slot), size_t(entry.slot));
+                        published_config->mixed_slot_relocations.emplace(authored_slot, entry.slot);
+                        published_config->material_replacements.emplace_back("slot " + std::to_string(authored_slot) + " -> slot " +
+                                                                             std::to_string(entry.slot) +
+                                                                             ": mixed filament relocated (would have replaced a physical filament)");
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF relocated mixed filament slot " << authored_slot
+                                                << " -> " << entry.slot;
+                        ++entry_it;
+                    }
+                } else {
+                    // Surplus published material beyond the printer's capacity: become an
+                    // empty mixed-filament placeholder at the next free tail slot. The flag
+                    // routes the entry to the placeholder finalize below; the slot's
+                    // definition stays empty until the user assigns components.
+                    entry.mixed_placeholder = true;
                     any_mixed_relocated     = true;
-                    mixed_moves.emplace_back(size_t(authored_slot), size_t(entry.slot));
-                    published_config->mixed_slot_relocations.emplace(authored_slot, entry.slot);
-                    published_config->material_replacements.emplace_back("slot " + std::to_string(authored_slot) + " -> slot " +
-                                                                         std::to_string(entry.slot) +
-                                                                         ": mixed filament relocated (would have replaced a physical filament)");
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF relocated mixed filament slot " << authored_slot
-                                            << " -> " << entry.slot;
+                    if (dest_slot != authored_slot) {
+                        entry.slot = dest_slot;
+                        mixed_moves.emplace_back(size_t(authored_slot), size_t(dest_slot));
+                        published_config->mixed_slot_relocations.emplace(authored_slot, dest_slot);
+                    }
+                    published_config->material_replacements.emplace_back(
+                        (dest_slot != authored_slot ?
+                             "slot " + std::to_string(authored_slot) + " -> slot " + std::to_string(dest_slot) :
+                             "slot " + std::to_string(dest_slot)) +
+                        ": " + material_label + " placed as an unassigned mixed filament (printer supports only " +
+                        std::to_string(physical_capacity) + " filaments)");
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF material from slot " << authored_slot
+                                            << " placed as an unassigned mixed filament at slot " << dest_slot
+                                            << " (printer supports only " << physical_capacity << " filaments)";
                     ++entry_it;
                 }
             }
@@ -5501,9 +5585,10 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                 // Defensive cap: growth never exceeds the file's own filament count. The
                 // receiver's current slot count is a floor: neither the preset list nor the
                 // project vectors are ever shrunk, even when the file carries fewer filaments
-                // than the receiver has slots. Relocated mixed entries legitimately land past
-                // the file's own slot count (virtual slots consume no nozzle or tray), so
-                // their destinations lift the ceiling explicitly.
+                // than the receiver has slots. Relocated mixed entries and capacity
+                // placeholders legitimately land past the file's own slot count (virtual
+                // slots consume no nozzle or tray), so their append destinations lift the
+                // ceiling explicitly.
                 const size_t target_slots = std::max({this->filament_presets.size(), std::min(grow_target, num_filaments),
                                                       any_mixed_relocated ? next_free_slot : size_t(0)});
                 // Slots carrying published content, steering the initial preset selection of
@@ -5884,12 +5969,14 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                                                   this->filament_presets.front() == this->filaments.get_edited_preset().name;
                 // Final layout for mix-definition validation: every slot that will hold a
                 // mixed definition once this load completes - the receiver's own virtual
-                // slots plus each published mixed entry's final (possibly relocated) slot.
-                // Mix components are 1-based slot numbers, so a component is valid only
-                // when the slot it names exists and does not itself hold a mixed filament.
+                // slots, each published mixed entry's final (possibly relocated) slot, and
+                // each capacity placeholder (they become mixes in the finalize below, before
+                // this loop's is_mixed_filament scan would see them). Mix components are
+                // 1-based slot numbers, so a component is valid only when the slot it names
+                // exists and does not itself hold a mixed filament.
                 std::set<int> mixed_final_slots;
                 for (const PublishedMaterialEntry& mix_entry : published_config->material_keys)
-                    if (mix_entry.slot >= 0 && is_mixed_definition(mix_entry))
+                    if (mix_entry.slot >= 0 && (is_mixed_definition(mix_entry) || mix_entry.mixed_placeholder))
                         mixed_final_slots.insert(mix_entry.slot);
                 for (size_t i = 0; i < this->filament_presets.size(); ++i)
                     if (this->is_mixed_filament(i))
@@ -5903,6 +5990,22 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                     if (entry.slot < 0 || size_t(entry.slot) >= this->filament_presets.size())
                         continue; // out of range: nothing to do for this slot
                     const size_t slot = size_t(entry.slot);
+
+                    // Surplus published material beyond the printer's capacity: finalize the
+                    // tail placeholder - mark the slot virtual with an intentionally empty
+                    // definition. The GUI flags the empty mix (check_mixed_filament_integrity)
+                    // and blocks slicing until the user assigns components from their own
+                    // filaments. The entry's keys are deliberately not applied and no preset
+                    // is detached: the placeholder carries no material of its own. The colour
+                    // was already seeded into the project arrays by the growth pass above.
+                    if (entry.mixed_placeholder) {
+                        if (ConfigOptionBools* is_mixed_opt = this->project_config.opt<ConfigOptionBools>("filament_is_mixed");
+                            is_mixed_opt != nullptr && slot < is_mixed_opt->values.size())
+                            is_mixed_opt->values[slot] = true;
+                        material_applied = true;
+                        continue;
+                    }
+
                     // Resolve the stored preset itself (real=true), never the edited snapshot:
                     // find_preset would return &m_edited_preset for the selected slot. The
                     // overlay target below decides between the edited layer and this preset.

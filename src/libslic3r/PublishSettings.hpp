@@ -80,6 +80,13 @@ struct PublishedMaterialEntry {
     // Required filament colour, applied on load regardless of the type match.
     bool publish_color{false};
     std::string color;
+    // Import-side only, never serialized: the entry's authored slot sits past the receiver
+    // printer's physical filament capacity, so instead of growing a physical slot the entry
+    // is appended as an empty mixed-filament placeholder (virtual tail slot; the GUI flags
+    // it and the user assigns components from their own filaments). The flag also keeps the
+    // entry out of the payload mixed-definition validation and the value-apply passes,
+    // which only make sense for a slot that carries a real material.
+    bool mixed_placeholder{false};
 };
 
 // "PLA High Speed" -> "PLA" (strip a space modifier); dash types like "PA-CF" are kept intact.
