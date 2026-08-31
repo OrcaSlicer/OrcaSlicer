@@ -160,9 +160,9 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
         m_status_hud->Hide();
     }
     // A floating frame does not follow its parent, so the anchor has to be recomputed whenever
-    // the canvas changes size. The readout HUD gets away without this because it is transient;
-    // the status line is on screen almost permanently and would visibly detach. The wxEVT_SIZE
-    // bind that does it lives BELOW bind_event_handlers() and not here — see the note there.
+    // the canvas changes size (that bind is below bind_event_handlers(), for the reason given
+    // there). The readout HUD gets away without this because it is transient; the status line is
+    // on screen almost permanently and would visibly detach.
     // ...and it does not follow the WINDOW either. A popup is override-redirect: the window
     // manager does not own it, so minimising the app leaves the chip sitting on the bare desktop
     // (seen on the rig: whole screen black, chip still there), and it stacks above other
@@ -171,19 +171,17 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     // the same case one step weaker: the chip belongs to a viewport the user is no longer
     // looking at. Showing it back is safe because a popup cannot take focus, so neither event
     // can be re-triggered by our own Show().
+    // Members rather than lambdas so unbind_canvas_event_handlers() can Unbind them: these sit on
+    // a frame that OUTLIVES this canvas, and a lambda cannot be unbound.
     if (wxWindow* top = wxGetTopLevelParent(m_canvas_widget)) {
-        top->Bind(wxEVT_ICONIZE, [this](wxIconizeEvent& e) {
-            show_status_hud(!e.IsIconized()); e.Skip();
-        });
-        top->Bind(wxEVT_ACTIVATE, [this](wxActivateEvent& e) {
-            show_status_hud(e.GetActive()); e.Skip();
-        });
+        top->Bind(wxEVT_ICONIZE,  &DesignCanvas::on_frame_iconize,  this);
+        top->Bind(wxEVT_ACTIVATE, &DesignCanvas::on_frame_activate, this);
         // The anchor is an ABSOLUTE SCREEN position (ClientToScreen below), so moving the window
         // moves the canvas out from under a chip that stays where it was. Dragging the frame by
         // its title bar left the chip stranded mid-viewport until the next size, status or tab
         // change happened to re-place it. Nothing on the canvas fires for a move that does not
         // also resize, so it has to come from the frame.
-        top->Bind(wxEVT_MOVE, [this](wxMoveEvent& e) { place_status_hud(); e.Skip(); });
+        top->Bind(wxEVT_MOVE,     &DesignCanvas::on_status_hud_reanchor, this);
     }
 
     refresh_bed();
@@ -200,13 +198,11 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     // running first, which is only true while this call stays ahead of them.
     m_canvas->bind_event_handlers();
 
-    // The status-chip re-anchor promised further up, bound here for exactly that reason: above
-    // this line the lambda never ran at all, so the chip kept a stale screen anchor and a stale
-    // wrap width after every resize that did not also move the frame or change the status text
-    // (dragging the right or bottom edge, a splitter move). The e.Skip() is load-bearing the
-    // other way: wx clears the skip flag before each handler and stops only on one that leaves
-    // it clear, so skipping falls through to on_size and the canvas is still marked dirty.
-    m_canvas_widget->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) { place_status_hud(); e.Skip(); });
+    // The status-chip re-anchor promised above, bound AFTER the call so it runs first — ahead of
+    // it the handler never ran at all, leaving a stale anchor and wrap width after any resize
+    // that did not also move the frame or change the text. Its e.Skip() is load-bearing the
+    // other way: it falls through to on_size, which is what still marks the canvas dirty.
+    m_canvas_widget->Bind(wxEVT_SIZE, &DesignCanvas::on_status_hud_reanchor, this);
 
     // The Design GL canvas only receives key events (Esc to exit/enter Select, Ctrl+Z undo)
     // while it holds keyboard focus. Clicking a side-panel button steals focus, after which
@@ -225,6 +221,29 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     sizer->Add(m_canvas_widget, 1, wxEXPAND);
     SetSizer(sizer);
     SetMinSize(wxSize(300, 300));
+}
+
+// Both are idempotent, and neither destroys anything: the destructor still owns that.
+void DesignCanvas::unbind_canvas_event_handlers()
+{
+    if (wxWindow* top = wxGetTopLevelParent(m_canvas_widget)) {
+        top->Unbind(wxEVT_ICONIZE,  &DesignCanvas::on_frame_iconize,      this);
+        top->Unbind(wxEVT_ACTIVATE, &DesignCanvas::on_frame_activate,     this);
+        top->Unbind(wxEVT_MOVE,     &DesignCanvas::on_status_hud_reanchor, this);
+    }
+    // Before the popups go down, or a resize still in flight re-places and re-shows the chip.
+    if (m_canvas_widget)
+        m_canvas_widget->Unbind(wxEVT_SIZE, &DesignCanvas::on_status_hud_reanchor, this);
+    // A popup is override-redirect: it does not go down with the frame, so one left showing sits
+    // on the bare desktop for however long the teardown takes.
+    show_status_hud(false);
+    if (m_hud) m_hud->Hide();
+    if (m_canvas) m_canvas->unbind_event_handlers();
+}
+
+void DesignCanvas::reset_canvas_volumes()
+{
+    if (m_canvas) m_canvas->reset_volumes();
 }
 
 DesignCanvas::~DesignCanvas()
@@ -1188,6 +1207,26 @@ void DesignCanvas::place_status_hud()
     // the only thing between them was the first status update showing this window.
     if (!m_status_hud->IsShown()) m_status_hud->Show();   // Show before Move (GTK ignores pre-map Move)
     m_status_hud->Move(bl);
+}
+
+void DesignCanvas::on_frame_iconize(wxIconizeEvent& e)
+{
+    show_status_hud(!e.IsIconized());
+    e.Skip();
+}
+
+void DesignCanvas::on_frame_activate(wxActivateEvent& e)
+{
+    show_status_hud(e.GetActive());
+    e.Skip();
+}
+
+// wxEvent& so one handler serves both events that invalidate the anchor: the frame moving out
+// from under the chip, and the canvas resizing under it.
+void DesignCanvas::on_status_hud_reanchor(wxEvent& e)
+{
+    place_status_hud();
+    e.Skip();
 }
 
 void DesignCanvas::show_status_hud(bool on)

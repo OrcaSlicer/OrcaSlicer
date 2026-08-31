@@ -77,6 +77,8 @@ public:
     // own view across a tab switch.
     void enter_viewport();
     void leave_viewport();
+    void unbind_canvas_event_handlers();   // app close / language switch, from the plater's teardown
+    void reset_canvas_volumes();
     void set_show_bed(bool b);   // view option: draw the printer bed + plate grid, or not
     void cancel_sketch();
     void set_on_sketch_commit(std::function<void(const SketchProfile&, const SketchPlane&)> cb);
@@ -385,6 +387,10 @@ private:
     wxColour      m_status_hud_colour;
     void place_status_hud();          // re-anchors to the canvas corner (also on resize)
     void apply_status_label();        // SetLabel + Wrap to the canvas width + Fit, always together
+    // On the top-level frame, which outlives this canvas — members so they can be unbound.
+    void on_frame_iconize(wxIconizeEvent& e);
+    void on_frame_activate(wxActivateEvent& e);
+    void on_status_hud_reanchor(wxEvent& e);   // frame wxEVT_MOVE and canvas wxEVT_SIZE
     std::function<void(const SketchProfile&, const SketchPlane&)> m_on_sketch_commit;
     std::function<void(const std::vector<SketchEntity>&,
                        const std::vector<SketchEntityConstraintDef>&,

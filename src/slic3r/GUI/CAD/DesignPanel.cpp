@@ -6991,6 +6991,17 @@ void DesignPanel::on_tab_shown()
     if (m_viewport) m_viewport->force_repaint();   // the page was just re-shown: paint it for real
 }
 
+// Application close / language switch, from the plater's canvas teardown.
+void DesignPanel::unbind_canvas_event_handlers()
+{
+    if (m_viewport) m_viewport->unbind_canvas_event_handlers();
+}
+
+void DesignPanel::reset_canvas_volumes()
+{
+    if (m_viewport) m_viewport->reset_canvas_volumes();
+}
+
 // Match Prepare's sidebar width instead of hardcoding one. Design used a fixed 264 px against
 // Prepare's ~467, so the canvas edge jumped sideways on every tab switch; reading the live width
 // also means the two stay aligned if Orca ever changes its sidebar.
