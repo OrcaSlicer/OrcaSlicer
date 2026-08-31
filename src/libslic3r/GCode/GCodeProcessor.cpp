@@ -80,7 +80,9 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags = {
     // Orca: Store the unsupported extrusion-width percentage for preview coloring.
     " OVERHANG: ",
     // Orca: Preserve the reference-plane spacing independently of the extrusion's HEIGHT tag.
-    " OVERHANG_Z_DISTANCE: "
+    " OVERHANG_Z_DISTANCE: ",
+    // Orca: Chunked local overhang samples for the next fitted arc.
+    " OVERHANG_ARC: "
 };
 
 const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
@@ -107,7 +109,9 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
     // Orca: Keep the metadata tag compatible with non-Bambu G-code formatting.
     "OVERHANG:",
     // Orca: Use the corresponding compact tag for non-Bambu G-code.
-    "OVERHANG_Z_DISTANCE:"
+    "OVERHANG_Z_DISTANCE:",
+    // Orca: Compact spelling for non-Bambu output.
+    "OVERHANG_ARC:"
 };
 
 
@@ -3527,6 +3531,9 @@ void GCodeProcessor::reset()
     m_overhang_percentage = 0.0f;
     // Orca: Legacy files and reused processors start without a slice-plane spacing override.
     m_overhang_z_distance = 0.0f;
+    // Orca: A reused parser must not apply an unfinished profile from another file.
+    m_overhang_arc_percentages.clear();
+    m_overhang_arc_samples = 0;
 
     m_extrusion_role = erNone;
 
@@ -3918,6 +3925,12 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
     m_start_position = m_end_position;
 
     const std::string_view cmd = line.cmd();
+    // Orca: Only the next G2/G3 may consume a profile. Allow non-motion fan/progress commands that
+    // postprocessing may insert; other commands, including moves and coordinate changes, invalidate it.
+    if (!cmd.empty() && cmd != "G2" && cmd != "G3" && cmd != "M106" && cmd != "M107" && cmd != "M73") {
+        m_overhang_arc_percentages.clear();
+        m_overhang_arc_samples = 0;
+    }
     if (m_flavor == gcfKlipper)
     {
         if (boost::iequals(cmd, "SET_VELOCITY_LIMIT"))
@@ -3943,6 +3956,9 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
         {
             std::string comment_content = comment.substr(1); // only format like ";V{cmd}" is valid
             if (comment_content[0] == 'V' || comment_content[0] == 'v') {
+                // Orca: Virtual commands also break the association with a pending arc profile.
+                m_overhang_arc_percentages.clear();
+                m_overhang_arc_samples = 0;
                 GCodeReader reader;
                 GCodeReader::GCodeLine new_line;
                 reader.parse_line(comment_content, [&new_line](const auto& greader, const auto& gline) {
@@ -4300,6 +4316,9 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         // Orca: Validate a temporary value before publishing it: parsing can partially succeed, and
         // clamping alone does not reject NaN. Clear invalid readings so they cannot poison preview colors.
         if (boost::starts_with(comment, reserved_tag(ETags::Overhang))) {
+            // Orca: A new scalar reading supersedes any pending profile from preceding metadata.
+            m_overhang_arc_percentages.clear();
+            m_overhang_arc_samples = 0;
             float percentage = 0.0f;
             if (!parse_number(comment.substr(reserved_tag(ETags::Overhang).size()), percentage) || !std::isfinite(percentage)) {
                 m_overhang_percentage = 0.0f;
@@ -4309,6 +4328,43 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
             m_overhang_percentage = std::clamp(percentage, 0.0f, 100.0f);
             // Orca: Only a successfully parsed tag enables the corresponding preview mode.
             m_result.has_overhang_metadata = true;
+            return;
+        }
+        // Orca: Uniform arc samples arrive as total,offset,percentages... in contiguous chunks.
+        // Validate complete numbers, bounds and ordering before allowing a profile into the preview.
+        if (boost::starts_with(comment, reserved_tag(ETags::Overhang_Arc))) {
+            std::string_view data = comment.substr(reserved_tag(ETags::Overhang_Arc).size());
+            const auto next_token = [&data]() {
+                const size_t comma = data.find(',');
+                const std::string_view token = data.substr(0, comma);
+                data = comma == std::string_view::npos ? std::string_view{} : data.substr(comma + 1);
+                return token;
+            };
+            // Orca: The legacy numeric parser supports int, not size_t. Keep the bounded header portable
+            // and reject missing fields before calling converters that require a nonempty string.
+            int total = 0;
+            int offset = 0;
+            bool valid = !data.empty() && data.back() != ',' && parse_number(next_token(), total) &&
+                !data.empty() && parse_number(next_token(), offset) && !data.empty() &&
+                total >= 2 && total <= MAX_OVERHANG_ARC_SAMPLES && offset >= 0;
+            if (valid && offset == 0) {
+                m_overhang_arc_percentages.clear();
+                m_overhang_arc_samples = total;
+            }
+            valid = valid && total == m_overhang_arc_samples && offset == m_overhang_arc_percentages.size();
+            while (valid && !data.empty()) {
+                float percentage = 0.0f;
+                valid = m_overhang_arc_percentages.size() < total && parse_number(next_token(), percentage) &&
+                    std::isfinite(percentage) && percentage >= 0.0f && percentage <= 100.0f;
+                if (valid)
+                    m_overhang_arc_percentages.push_back(percentage);
+            }
+            if (!valid) {
+                m_overhang_arc_percentages.clear();
+                m_overhang_arc_samples = 0;
+                BOOST_LOG_TRIVIAL(error) << "GCodeProcessor encountered an invalid overhang arc profile (" << comment << ").";
+            } else if (m_overhang_arc_percentages.size() == total)
+                m_result.has_overhang_metadata = true;
             return;
         }
         // Orca: manual tool change tag
@@ -5674,6 +5730,14 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
 
 void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool clockwise)
 {
+    // Orca: Consume metadata even if the arc is invalid or returns early. Missing chunks leave the
+    // existing scalar fallback untouched, and a profile must never leak to a subsequent move.
+    std::vector<float> overhang_profile;
+    overhang_profile.swap(m_overhang_arc_percentages);
+    if (overhang_profile.size() != m_overhang_arc_samples)
+        overhang_profile.clear();
+    m_overhang_arc_samples = 0;
+
     enum class EFitting { None, IJ, R };
     std::string_view axis_pos_I;
     std::string_view axis_pos_J;
@@ -5822,8 +5886,9 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
         return ret;
     };
 
-    auto internal_only_g1_line = [this](const AxisCoords& target, bool has_z, const std::optional<float>& feedrate,
-        const std::optional<float>& extrusion, const std::optional<unsigned int>& remaining_internal_g1_lines = std::nullopt) {
+    auto internal_only_g1_line = [this, &overhang_profile](const AxisCoords& target, bool has_z, const std::optional<float>& feedrate,
+        const std::optional<float>& extrusion, double start_fraction, double end_fraction,
+        const std::optional<unsigned int>& remaining_internal_g1_lines = std::nullopt) {
           std::array<std::optional<double>, 4> g1_axes = { target[X], target[Y], std::nullopt, std::nullopt };
           std::optional<double> g1_feedrate = std::nullopt;
           if (has_z)
@@ -5832,7 +5897,25 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
               g1_axes[E] = target[E];
           if (feedrate.has_value())
               g1_feedrate = (double)*feedrate / MMMIN_TO_MMSEC;
+          // Orca: Reuse the existing timing/geometry tessellation exactly. Each preview segment gets
+          // its local maximum, including interior profile samples so narrow unsupported patches survive.
+          // Interpolate boundary readings because profile spacing need not match firmware segmentation.
+          const float fallback = m_overhang_percentage;
+          if (overhang_profile.size() >= 2) {
+              const double last = double(overhang_profile.size() - 1);
+              const double begin = std::clamp(start_fraction, 0.0, 1.0) * last;
+              const double end = std::clamp(end_fraction, 0.0, 1.0) * last;
+              const auto interpolate = [&overhang_profile](double position) {
+                  const size_t i = size_t(position);
+                  const size_t next = std::min(i + 1, overhang_profile.size() - 1);
+                  return overhang_profile[i] + float(position - i) * (overhang_profile[next] - overhang_profile[i]);
+              };
+              m_overhang_percentage = std::max(interpolate(begin), interpolate(end));
+              for (size_t i = size_t(std::ceil(begin)); i <= size_t(end); ++i)
+                  m_overhang_percentage = std::max(m_overhang_percentage, overhang_profile[i]);
+          }
           process_G1(g1_axes, g1_feedrate, G1DiscretizationOrigin::G2G3, remaining_internal_g1_lines);
+          m_overhang_percentage = fallback;
     };
 
     if (m_flavor == gcfMarlinFirmware) {
@@ -5894,14 +5977,15 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
 
                 m_start_position = m_end_position; // this is required because we are skipping the call to process_gcode_line()
                 internal_only_g1_line(adjust_target(arc_target, prev_target), z_per_segment != 0.0, (i == 1) ? feedrate : std::nullopt,
-                    extrusion, segments - i);
+                    extrusion, double(i - 1) / segments, double(i) / segments, segments - i);
                 prev_target = arc_target;
             }
         }
 
         // Ensure last segment arrives at target location.
         m_start_position = m_end_position; // this is required because we are skipping the call to process_gcode_line()
-        internal_only_g1_line(adjust_target(end_position, prev_target), arc.delta_z() != 0.0, (segments == 1) ? feedrate : std::nullopt, extrusion);
+        internal_only_g1_line(adjust_target(end_position, prev_target), arc.delta_z() != 0.0, (segments == 1) ? feedrate : std::nullopt,
+            extrusion, double(segments - 1) / segments, 1.0);
     }
     else {
         // calculate arc segments
@@ -5961,13 +6045,14 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
 
             m_start_position = m_end_position; // this is required because we are skipping the call to process_gcode_line()
             internal_only_g1_line(adjust_target(arc_target, prev_target), z_per_segment != 0.0, (i == 1) ? feedrate : std::nullopt,
-                extrusion, segments - i);
+                extrusion, double(i - 1) / segments, double(i) / segments, segments - i);
             prev_target = arc_target;
         }
 
         // Ensure last segment arrives at target location.
         m_start_position = m_end_position; // this is required because we are skipping the call to process_gcode_line()
-        internal_only_g1_line(adjust_target(end_position, prev_target), arc.delta_z() != 0.0, (segments == 1) ? feedrate : std::nullopt, extrusion);
+        internal_only_g1_line(adjust_target(end_position, prev_target), arc.delta_z() != 0.0, (segments == 1) ? feedrate : std::nullopt,
+            extrusion, double(segments - 1) / segments, 1.0);
     }
 }
 

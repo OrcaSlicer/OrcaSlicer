@@ -528,8 +528,12 @@ class Print;
             Overhang,
             // Orca: Optional reference-plane spacing for converting percentages to angles on adaptive layers.
             Overhang_Z_Distance,
+            // Orca: Uniform point samples for the next G2/G3 only, carried in bounded comment chunks.
+            Overhang_Arc,
         };
 
+        // Orca: Bound both exported profiles and untrusted imported metadata, independently of arc length.
+        static constexpr size_t MAX_OVERHANG_ARC_SAMPLES = 65536;
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
         // checks the given gcode for reserved tags and returns true when finding the 1st (which is returned into found_tag) 
         static bool contains_reserved_tag(const std::string& gcode, std::string& found_tag);
@@ -1167,6 +1171,9 @@ class Print;
         float m_overhang_percentage;
         // Orca: Snapshot the active slice-plane spacing alongside each move's percentage.
         float m_overhang_z_distance;
+        // Orca: Collect contiguous chunks; incomplete profiles fall back to the scalar OVERHANG tag.
+        std::vector<float> m_overhang_arc_percentages;
+        size_t m_overhang_arc_samples{ 0 };
         ExtrusionRole m_extrusion_role;
         std::vector<int> m_filament_maps;
         std::vector<unsigned char> m_last_filament_id;

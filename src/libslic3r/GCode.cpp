@@ -8705,13 +8705,32 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                         const double arc_length = fitting_result[fitting_index].arc_data.length * SCALING_FACTOR;
                         if (arc_length < EPSILON)
                             continue;
-                        // Orca: One fitted arc covers several source segments, so display their worst overhang.
+                        // Orca: Preserve G2/G3 verbatim, but sample the fitted geometry for local preview colors.
+                        // A scalar maximum remains available to older readers and for constant profiles.
                         if (emit_overhangs) {
-                            float arc_overhang = 0.0f;
-                            for (size_t segment_id = fitting_result[fitting_index].start_point_index;
-                                 segment_id < fitting_result[fitting_index].end_point_index; ++segment_id)
-                                arc_overhang = std::max(arc_overhang, original_segment_overhang(segment_id));
-                            append_overhang_percentage(arc_overhang);
+                            std::vector<float> profile;
+                            if (can_estimate_overhang) {
+                                const size_t intervals = size_t(std::clamp(std::ceil(arc_length / std::max(0.1, double(path.width))),
+                                    1.0, double(GCodeProcessor::MAX_OVERHANG_ARC_SAMPLES - 1)));
+                                profile = m_extrusion_quality_estimator.estimate_overhang_arc_percentages(arc, path.width, intervals);
+                                for (float &percentage : profile)
+                                    percentage = std::round(percentage * 10.0f) * 0.1f;
+                            }
+                            append_overhang_percentage(profile.empty() ? 0.0f : *std::max_element(profile.begin(), profile.end()));
+                            // Orca: Format: total,offset,p0,...; point i lies at i/(total-1) of the arc.
+                            // Sixteen values keep comment lines short for firmware buffers. Skip uniform data.
+                            if (!profile.empty() && std::any_of(profile.begin(), profile.end(), [&](float p) { return p != profile.front(); })) {
+                                constexpr size_t chunk_size = 16;
+                                for (size_t offset = 0; offset < profile.size(); offset += chunk_size) {
+                                    gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc) +
+                                        std::to_string(profile.size()) + "," + std::to_string(offset);
+                                    for (size_t i = offset; i < std::min(offset + chunk_size, profile.size()); ++i) {
+                                        sprintf(buf, ",%.1f", profile[i]);
+                                        gcode += buf;
+                                    }
+                                    gcode += '\n';
+                                }
+                            }
                         }
                         const Vec2d center_offset = this->point_to_gcode(arc.center) - this->point_to_gcode(arc.start_point);
                         auto dE = e_per_mm * arc_length;

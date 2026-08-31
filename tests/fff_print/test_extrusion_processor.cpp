@@ -386,7 +386,199 @@ void info_feed_rates(const char* span, const std::vector<double>& feed_rates)
     }
 }
 
+// Orca: Compare executable output independently of optional preview comments, including arc parameters.
+std::vector<std::string> printer_commands(const std::string &gcode)
+{
+    std::vector<std::string> result;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        if (!line.cmd().empty())
+            result.push_back(line.raw().substr(0, line.raw().find(';')));
+    });
+    return result;
+}
+
 } // namespace
+
+// Orca: The middle of a quarter-circle is not the middle of its chord. Check both directions
+// against an analytic vertical support edge to catch sampling of the pre-fitting polyline instead.
+TEST_CASE("Overhang arc samples follow fitted geometry in both directions", "[ExtrusionProcessor][Overhang][ArcFitting][Regression]")
+{
+    const bool clockwise = GENERATE(false, true);
+    Print print;
+    Model model;
+    init_print({cube(1.0)}, print, model);
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
+    Layer *upper = object->add_layer(1, 0.2, 0.4, 0.3);
+    lower->lslices = {ExPolygon(Polygon{Point::new_scale(-20, -20), Point::new_scale(7, -20),
+        Point::new_scale(7, 20), Point::new_scale(-20, 20)})};
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_new_layer(object, lower);
+    estimator.prepare_for_new_layer(object, upper);
+    ArcSegment arc(Point::new_scale(0, 0), scale_(10.0),
+        Point::new_scale(clockwise ? 0 : 10, clockwise ? 10 : 0),
+        Point::new_scale(clockwise ? 10 : 0, clockwise ? 0 : 10),
+        clockwise ? ArcDirection::Arc_Dir_CW : ArcDirection::Arc_Dir_CCW);
+    const auto samples = estimator.estimate_overhang_arc_percentages(arc, 0.4f, 40);
+    REQUIRE(samples.size() == 41);
+    for (size_t i = 0; i < samples.size(); ++i) {
+        const double angle = (clockwise ? 40 - i : i) * PI / 80.0;
+        const double expected = 100.0 * std::clamp((10.0 * std::cos(angle) - 7.0 + 0.2) / 0.4, 0.0, 1.0);
+        CHECK_THAT(samples[i], Catch::Matchers::WithinAbs(expected, 1e-3));
+    }
+    CHECK(samples[20] > 50.0f);
+}
+
+// Orca: The mid-chord sagitta of a faceted cylinder is approximation error, not overhang. A genuine
+// radial contour shift of only 0.001 mm must survive even though it is much smaller than resolution.
+TEST_CASE("Fitted arc correction preserves small real overhangs and supported inner walls", "[ExtrusionProcessor][Overhang][ArcFitting][Regression]")
+{
+    const double shift = GENERATE(0.0, 0.001, 0.08, 1.0);
+    const bool inner_wall = GENERATE(false, true);
+    CAPTURE(shift, inner_wall);
+    constexpr size_t facets = 96;
+    constexpr double radius = 10.0;
+    constexpr float width = 0.4f;
+    const auto contour = [](double r) {
+        Polygon polygon;
+        for (size_t i = 0; i < facets; ++i) {
+            const double angle = 2.0 * PI * i / facets;
+            polygon.points.push_back(Point::new_scale(r * std::cos(angle), r * std::sin(angle)));
+        }
+        return ExPolygon(polygon);
+    };
+    Print print;
+    Model model;
+    init_print({cube(1.0)}, print, model);
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->add_layer(0, 0.02, 0.02, 0.01);
+    Layer *upper = object->add_layer(1, 0.02, 0.04, 0.03);
+    lower->lslices = {contour(radius - shift)};
+    upper->lslices = {contour(radius)};
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_new_layer(object, lower);
+    estimator.prepare_for_new_layer(object, upper);
+    const double arc_radius = radius - (inner_wall ? 1.5 : 0.5) * width;
+    const double end_angle = 2.0 * PI / facets;
+    ArcSegment arc(Point::new_scale(0, 0), scale_(arc_radius), Point::new_scale(arc_radius, 0),
+        Point::new_scale(arc_radius * std::cos(end_angle), arc_radius * std::sin(end_angle)), ArcDirection::Arc_Dir_CCW);
+    const auto samples = estimator.estimate_overhang_arc_percentages(arc, width, 2);
+    REQUIRE(samples.size() == 3);
+    // Orca: Parallel polygon edges shift by shift*cos(half-angle); at mid-arc this is the exact
+    // unsupported outer-wall width. The deeper inner wall stays supported until the 1 mm shift.
+    const double expected = inner_wall ? (shift >= 1.0 ? 100.0 : 0.0) :
+        100.0 * std::clamp(shift * std::cos(PI / facets) / width, 0.0, 1.0);
+    CHECK_THAT(samples[1], Catch::Matchers::WithinAbs(expected, 1e-3));
+}
+
+// Orca: Both firmware tessellations retain their original move count and timing inputs. A monotone
+// profile has an exact local maximum at one segment endpoint, independent of its geometric direction.
+TEST_CASE("Overhang arc profiles color local segments without changing motion", "[GCodeProcessor][Overhang][ArcFitting][Regression]")
+{
+    const auto flavor = GENERATE(gcfMarlinFirmware, gcfKlipper);
+    const bool clockwise = GENERATE(false, true);
+    const bool decreasing = GENERATE(false, true);
+    FullPrintConfig config;
+    config.gcode_flavor.value = flavor;
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    const std::string setup = "G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n" +
+        tag(GCodeProcessor::ETags::Height, "0.2") + tag(GCodeProcessor::ETags::Width, "0.4") +
+        tag(GCodeProcessor::ETags::Overhang_Z_Distance, "0.2") + tag(GCodeProcessor::ETags::Overhang, "100");
+    const std::string arc = std::string(clockwise ? "G2" : "G3") + " X0 Y10 I-10 J0 E1 F600\n";
+    // Orca: Postprocessing may place non-motion fan/progress commands between a profile and its arc.
+    const std::string control = "M106 S128\nM73 P50\nM107\n";
+    GCodeProcessor baseline;
+    baseline.apply_config(config);
+    baseline.process_buffer(setup + control + arc);
+    GCodeProcessor profiled;
+    profiled.apply_config(config);
+    profiled.process_buffer(setup);
+    // Orca: Chunk boundaries may coincide with streaming-buffer boundaries.
+    profiled.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, decreasing ? "5,0,100,75,50" : "5,0,0,25,50"));
+    profiled.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, decreasing ? "5,3,25,0" : "5,3,75,100") + control + arc);
+    const auto &original = baseline.get_result().moves;
+    const auto &moves = profiled.get_result().moves;
+    REQUIRE(moves.size() == original.size());
+    // Orca: Timing may insert extra speed markers; profile progress follows the original arc segments.
+    const size_t count = std::count_if(moves.begin(), moves.end(), [](const auto &move) {
+        return move.type == EMoveType::Extrude && !move.internal_only;
+    });
+    REQUIRE(count > 2);
+    size_t segment = 0;
+    for (size_t i = 0; i < moves.size(); ++i) {
+        CHECK_THAT((moves[i].position - original[i].position).norm(), Catch::Matchers::WithinAbs(0.0, 1e-6));
+        CHECK_THAT(moves[i].delta_extruder, Catch::Matchers::WithinAbs(original[i].delta_extruder, 1e-6));
+        CHECK_THAT(moves[i].feedrate, Catch::Matchers::WithinAbs(original[i].feedrate, 1e-6));
+        if (moves[i].type == EMoveType::Extrude && !moves[i].internal_only) {
+            const double expected = 100.0 * (decreasing ? count - segment : segment + 1) / count;
+            ++segment;
+            CHECK_THAT(moves[i].overhang_percentage, Catch::Matchers::WithinAbs(expected, 1e-3));
+            CHECK_THAT(moves[i].overhang_z_distance, Catch::Matchers::WithinAbs(0.2, 1e-6));
+        }
+    }
+    // Orca: Neither the next line nor the next untagged arc may inherit the local profile.
+    profiled.process_buffer("G1 X1 Y10 E1\n");
+    CHECK_THAT(profiled.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(100.0, 1e-6));
+    profiled.process_buffer("G3 X11 Y0 I10 J0 E1\n");
+    CHECK_THAT(profiled.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(100.0, 1e-6));
+}
+
+// Orca: A tiny arc becomes one preview segment, but an unsupported interior sample must still survive
+// even when both endpoints are fully supported. The following move keeps the independent scalar value.
+TEST_CASE("Overhang arc profiles preserve interior peaks on short arcs", "[GCodeProcessor][Overhang][ArcFitting][Regression]")
+{
+    FullPrintConfig config;
+    config.gcode_flavor.value = gcfMarlinFirmware;
+    GCodeProcessor processor;
+    processor.apply_config(config);
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    processor.process_buffer("G90\nM83\nT0\nG1 X0.05 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "33") +
+        tag(GCodeProcessor::ETags::Overhang_Arc, "5,0,0,0,100,0,0") + "G3 X0 Y0.05 I-0.05 J0 E0.01\n");
+    const auto &moves = processor.get_result().moves;
+    REQUIRE(std::count_if(moves.begin(), moves.end(), [](const auto &move) { return move.type == EMoveType::Extrude; }) == 1);
+    CHECK_THAT(moves.back().overhang_percentage, Catch::Matchers::WithinAbs(100.0, 1e-6));
+    processor.process_buffer("G1 X10 E1\n");
+    CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
+}
+
+// Orca: Corrupt, incomplete or stale chunks must fall back to the scalar tag, never partially color
+// an arc or carry a previous profile across an intervening command or a parser reset.
+TEST_CASE("Overhang arc profiles reject invalid chunks and stale associations", "[GCodeProcessor][Overhang][ArcFitting][Regression]")
+{
+    const std::string data = GENERATE("", "3", "3,0", "1,0,0", "65537,0,0", "3,-1,0", "3,1,50,100", "3,0,0,nan,100", "3,0,0,inf,100",
+        "3,0,0,101,100", "3,0,0,-1,100", "3,0,0,50,100junk", "3,0,0,50,100,", "3,0,0,50", "3,0,0,,100",
+        "3,0,0,50,100,0", "3,0,0,50,100\nM400", "3,0,0,50,100\nG2 X1 Y1 E1");
+    CAPTURE(data);
+    GCodeProcessor processor;
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    const auto setup = [&]() {
+        processor.apply_config(FullPrintConfig());
+        processor.process_buffer("G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "33"));
+    };
+    setup();
+    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, data) + "G3 X0 Y10 I-10 J0 E1\n");
+    size_t checked = 0;
+    for (const auto &move : processor.get_result().moves)
+        if (move.type == EMoveType::Extrude) {
+            CHECK_THAT(move.overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
+            ++checked;
+        }
+    REQUIRE(checked > 1);
+    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, "3,0,0,50,100"));
+    processor.reset();
+    setup();
+    processor.process_buffer("G3 X0 Y10 I-10 J0 E1\n");
+    CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
+}
 
 TEST_CASE("Overhang metadata availability follows valid G-code tags", "[GCodeProcessor][Overhang]")
 {
@@ -490,20 +682,141 @@ TEST_CASE("Overhang metadata leaves printer commands unchanged", "[ExtrusionProc
 {
     const bool overhang_speed = GENERATE(false, true);
     const char *wall_generator = GENERATE("classic", "arachne");
-    const auto commands = [](const std::string &gcode) {
-        std::vector<std::string> result;
-        GCodeReader reader;
-        reader.parse_buffer(gcode, [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
-            if (!line.cmd().empty())
-                result.push_back(line.raw().substr(0, line.raw().find(';')));
-        });
-        return result;
-    };
     const std::string without_metadata = shallow_overhang_gcode(wall_generator, shallow_overhang_speed, 0.5, overhang_speed, false);
     const std::string with_metadata = shallow_overhang_gcode(wall_generator, shallow_overhang_speed, 0.5, overhang_speed, true);
     REQUIRE_FALSE(overhang_percentages(with_metadata).empty());
     REQUIRE(overhang_percentages(without_metadata).empty());
-    CHECK(commands(with_metadata) == commands(without_metadata));
+    CHECK(printer_commands(with_metadata) == printer_commands(without_metadata));
+}
+
+// Orca: A sheared cylinder has fitted circular walls with support changing along each layer.
+// Verify the real exporter, timing and reopened preview without changing a single printer command.
+TEST_CASE("Fitted arc overhang profiles round trip without changing printer commands", "[ExtrusionProcessor][Overhang][ArcFitting][Regression]")
+{
+    TriangleMesh mesh = make_cylinder(4.0, 1.2);
+    for (auto &vertex : mesh.its.vertices)
+        vertex.x() += 0.5f * vertex.z();
+    DynamicPrintConfig config = caged_overhang_config("classic");
+    config.set_deserialize_strict({{"enable_arc_fitting", "1"}, {"enable_overhang_speed", "0"},
+        {"enable_overhang_bridge_fan", "0"}, {"wall_loops", "1"}, {"sparse_infill_density", "0%"},
+        {"top_shell_layers", "1"}, {"bottom_shell_layers", "1"}});
+    // Orca: Import requires a complete nozzle enum, including its name map, and a known hardness.
+    config.erase("nozzle_type");
+    config.set_deserialize_strict({{"nozzle_type", "stainless_steel"}, {"nozzle_hrc", "20"}});
+    std::vector<std::string> baseline_commands;
+    float baseline_time = 0.0f;
+    for (bool enabled : {false, true}) {
+        config.set_deserialize_strict("gcode_overhangs", enabled ? "1" : "0");
+        Print print;
+        Model model;
+        init_print({mesh}, print, model, config, nullptr, false);
+        // Orca: Exercise arc profiles across variable-height transitions as well as constant layers.
+        DynamicPrintConfig range_config;
+        range_config.set_key_value("layer_height", new ConfigOptionFloat(0.1));
+        model.objects.front()->layer_config_ranges[{0.4, 0.8}].assign_config(std::move(range_config));
+        print.apply(model, config);
+        print.set_status_silent();
+        print.process();
+        ScopedTemporaryFile file(".gcode");
+        GCodeProcessorResult result;
+        print.export_gcode(file.string(), &result);
+        std::ifstream stream(file.string());
+        const std::string exported((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+        const auto commands = printer_commands(exported);
+        REQUIRE(std::any_of(commands.begin(), commands.end(), [](const std::string &command) {
+            return command.find("G2 ") == 0 || command.find("G3 ") == 0;
+        }));
+        CHECK((exported.find("OVERHANG_ARC:") != std::string::npos) == enabled);
+        CHECK(result.has_overhang_metadata == enabled);
+        const float time = result.print_statistics.modes[size_t(PrintEstimatedStatistics::ETimeMode::Normal)].time;
+        if (!enabled) {
+            baseline_commands = commands;
+            baseline_time = time;
+            continue;
+        }
+        CHECK(commands == baseline_commands);
+        CHECK_THAT(time, Catch::Matchers::WithinAbs(baseline_time, 1e-5));
+        // Orca: Keep metadata lines short even when many samples are needed for a single arc.
+        GCodeReader reader;
+        reader.parse_buffer(exported, [](GCodeReader &, const GCodeReader::GCodeLine &line) {
+            if (line.comment().find("OVERHANG_ARC:") != std::string_view::npos)
+                CHECK(line.raw().size() < 160);
+        });
+        GCodeProcessor imported;
+        imported.process_file(file.string());
+        REQUIRE(imported.get_result().has_overhang_metadata);
+        std::vector<std::pair<float, float>> generated_metadata;
+        std::vector<std::pair<float, float>> imported_metadata;
+        bool saw_local_variation = false;
+        const GCodeProcessorResult::MoveVertex *previous = nullptr;
+        for (const auto &move : result.moves) {
+            if (move.type != EMoveType::Extrude || move.internal_only)
+                continue;
+            generated_metadata.emplace_back(move.overhang_percentage, move.overhang_z_distance);
+            // Orca: A single G-code arc must produce several distinct local preview readings.
+            if (previous != nullptr && move.gcode_id == previous->gcode_id &&
+                move.overhang_percentage != previous->overhang_percentage)
+                saw_local_variation = true;
+            previous = &move;
+        }
+        for (const auto &move : imported.get_result().moves)
+            if (move.type == EMoveType::Extrude && !move.internal_only)
+                imported_metadata.emplace_back(move.overhang_percentage, move.overhang_z_distance);
+        REQUIRE(saw_local_variation);
+        REQUIRE(imported_metadata.size() == generated_metadata.size());
+        for (size_t i = 0; i < generated_metadata.size(); ++i) {
+            CHECK_THAT(imported_metadata[i].first, Catch::Matchers::WithinAbs(generated_metadata[i].first, 1e-5));
+            CHECK_THAT(imported_metadata[i].second, Catch::Matchers::WithinAbs(generated_metadata[i].second, 1e-5));
+        }
+    }
+}
+
+// Orca: Identical cylindrical layers have no geometric overhang, including with fitted arcs.
+// Thin layers expose tiny arc-versus-polygon errors as visible angles at the reported resolution.
+TEST_CASE("Fitted cylindrical walls keep zero overhang on identical layers", "[ExtrusionProcessor][Overhang][ArcFitting][Regression]")
+{
+    const bool arc_fitting = GENERATE(false, true);
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(arc_fitting, wall_generator);
+    DynamicPrintConfig config = shallow_overhang_config(wall_generator, 0.0, false, true);
+    config.set_deserialize_strict({{"enable_arc_fitting", arc_fitting ? "1" : "0"}, {"resolution", "0.012"},
+        {"enable_overhang_bridge_fan", "0"}, {"wall_loops", "3"}});
+    // Orca: Supply a complete nozzle definition for the exporter's hardware validation.
+    config.erase("nozzle_type");
+    config.set_deserialize_strict({{"nozzle_type", "stainless_steel"}, {"nozzle_hrc", "20"}});
+    Print print;
+    Model model;
+    init_print({make_cylinder(10.0, 0.12)}, print, model, config, nullptr, false);
+    print.set_status_silent();
+    print.process();
+    ScopedTemporaryFile file(".gcode");
+    GCodeProcessorResult result;
+    print.export_gcode(file.string(), &result);
+    std::ifstream stream(file.string());
+    const std::string exported((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+    const auto commands = printer_commands(exported);
+    const bool has_arcs = std::any_of(commands.begin(), commands.end(), [](const std::string &command) {
+        return command.find("G2 ") == 0 || command.find("G3 ") == 0;
+    });
+    REQUIRE(has_arcs == arc_fitting);
+    float maximum_percentage = 0.0f;
+    float maximum_angle = 0.0f;
+    size_t checked = 0;
+    for (const auto &move : result.moves) {
+        if (move.type != EMoveType::Extrude || !is_perimeter(move.extrusion_role) || move.position.z() <= shallow_layer_height + EPSILON)
+            continue;
+        maximum_percentage = std::max(maximum_percentage, move.overhang_percentage);
+        libvgcode::PathVertex vertex;
+        vertex.height = move.height;
+        vertex.width = move.width;
+        vertex.overhang_percentage = move.overhang_percentage;
+        vertex.overhang_z_distance = move.overhang_z_distance;
+        maximum_angle = std::max(maximum_angle, vertex.overhang_degree());
+        ++checked;
+    }
+    REQUIRE(checked > 0);
+    CAPTURE(maximum_percentage, maximum_angle);
+    CHECK_THAT(maximum_percentage, Catch::Matchers::WithinAbs(0.0, 0.05));
 }
 
 // Orca: A 0.2 mm contour offset over a 0.2 mm slice-plane gap remains 45 degrees even when

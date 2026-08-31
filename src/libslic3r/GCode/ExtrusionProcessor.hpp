@@ -15,6 +15,7 @@
 #include "../ClipperUtils.hpp"
 #include "../Flow.hpp"
 #include "../Config.hpp"
+#include "../Circle.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -407,6 +408,14 @@ class ExtrusionQualityEstimator
     std::unordered_map<const PrintObject *, AABBTreeLines::LinesDistancer<CurledLine>> next_curled_extrusions;
     const PrintObject                                                            *current_object;
 
+    // Orca: Share the signed-distance formula between original line segments and fitted arc samples.
+    // Arc sampling may compensate an outward approximation error before clamping the unsupported width.
+    float overhang_percentage_at(const Vec3d &position, float width, double approximation_error = 0.0)
+    {
+        const double distance = prev_layer_boundaries[current_object].distance_from_lines<true>(position);
+        return float(100.0 * std::clamp((distance + 0.5 * width - approximation_error) / width, 0.0, 1.0));
+    }
+
 public:
     void set_current_object(const PrintObject *object) { current_object = object; }
 
@@ -423,7 +432,7 @@ public:
     // Orca: Return the unsupported part of the extrusion width for every original path segment, in percent.
     // This uses the same signed-distance calculation as the overhang speed estimator. Probe interiors too:
     // supported endpoints can hide a recessed support contour. Each unchanged segment gets its largest
-    // sampled percentage, just as a fitted arc does; collecting metadata must not split printer moves.
+    // sampled percentage; collecting metadata must not split printer moves.
     std::vector<float> estimate_overhang_percentages(const ExtrusionPath &path)
     {
         const size_t segments_count = path.polyline.points.size() > 1 ? path.polyline.points.size() - 1 : 0;
@@ -431,10 +440,8 @@ public:
         if (segments_count == 0 || path.width <= EPSILON)
             return percentages;
 
-        const auto &boundary = prev_layer_boundaries[current_object];
-        const auto percentage_at = [&boundary, &path](const Vec3d &position) {
-            const double distance = boundary.distance_from_lines<true>(position);
-            return float(100.0 * std::clamp((distance + 0.5 * path.width) / path.width, 0.0, 1.0));
+        const auto percentage_at = [this, &path](const Vec3d &position) {
+            return overhang_percentage_at(position, path.width);
         };
         // Orca: Width-scale probes detect narrow unsupported pockets while reusing endpoint readings.
         // Query the existing distance tree directly; preview-only sampling needs no curvature calculation.
@@ -451,6 +458,33 @@ public:
             percentages[i] = maximum;
             start = end;
             start_percentage = end_percentage;
+        }
+        return percentages;
+    }
+
+    // Orca: Sample the fitted circle itself, not its source chords. Samples include both endpoints
+    // and are uniformly spaced in arc progress, so they can be mapped onto any preview tessellation.
+    // The caller bounds the interval count; sampling must never modify the fitted printer move.
+    std::vector<float> estimate_overhang_arc_percentages(const ArcSegment &arc, float width, size_t intervals)
+    {
+        if (!arc.is_valid() || width <= EPSILON || intervals == 0)
+            return {};
+        std::vector<float> percentages(intervals + 1);
+        const Vec2d center = unscaled(arc.center);
+        const double radius = arc.radius * SCALING_FACTOR;
+        // Orca: This cache contains the current layer's original polygonal contour, whereas the previous
+        // cache contains the support contour. Compare both at the same arc point to cancel the apparent
+        // protrusion caused by replacing chords with a curve. Identical layers must remain at zero.
+        const auto &current_boundary = next_layer_boundaries[current_object];
+        for (size_t i = 0; i <= intervals; ++i) {
+            const double angle = arc.polar_start_theta + arc.angle_radians * (double(i) / intervals);
+            const Vec3d position(center.x() + radius * std::cos(angle), center.y() + radius * std::sin(angle), 0.0);
+            const double current_distance = current_boundary.distance_from_lines<true>(position);
+            // Orca: Remove only excess beyond the nominal half-width inset, not an arbitrary resolution
+            // threshold. This preserves small real contour shifts and leaves deeper inner walls unchanged.
+            // A missing current contour retains the uncorrected estimate, including fully unsupported arcs.
+            const double approximation_error = std::isfinite(current_distance) ? std::max(0.0, current_distance + 0.5 * width) : 0.0;
+            percentages[i] = overhang_percentage_at(position, width, approximation_error);
         }
         return percentages;
     }
