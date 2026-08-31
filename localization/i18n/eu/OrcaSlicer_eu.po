@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 17:40-0300\n"
+"POT-Creation-Date: 2026-08-19 14:07-0300\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -4606,6 +4606,23 @@ msgstr "Uneko ganberako tenperatura materialaren tenperatura segurua baino handi
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "Ganberako gutxieneko tenperatura (%d ℃) helburuko ganbera-tenperatura (%d ℃) baino altuagoa da. Gutxieneko balioa inprimaketa hasten den atalasea da, ganberak helbururantz berotzen jarraitzen duen bitartean; beraz, ez luke helburua gainditu behar. Helburuko baliora mugatuko da."
 
+# AI Translated
+#, c-format, boost-format
+msgid "Layer height is too small. It will be set to the minimum (%g mm)."
+msgstr "Geruza-altuera txikiegia da. Gutxienekora ezarriko da (%g mm)."
+
+# AI Translated
+msgid "Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+msgstr "Geruza-altuera Inprimagailuaren ezarpenak -> Estrusorea -> Geruza-altueraren mugak atalean ezarritako mugetatik kanpo dago; horrek inprimatze-kalitateko arazoak sor ditzake."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Adjust it to the limit (%g mm) automatically?"
+msgstr "Automatikoki mugara (%g mm) doitu nahi duzu?"
+
+msgid "Adjust"
+msgstr "Doitu"
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4724,6 +4741,13 @@ msgstr ""
 "Ezarpen hauek automatikoki aldatu?\n"
 "Bai - Gaitu Arachne horma-sorgailua\n"
 "Ez  - Desgaitu Arachne horma-sorgailua eta ezarri gainazal zimurraren [Desplazamendua] modua"
+
+# AI Translated
+msgid "Brim ear radius"
+msgstr "Ertz-belarriaren erradioa"
+
+msgid "Brim width"
+msgstr "Itsaspen ertzaren zabalera"
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "Espiral moduak baldintza hauetan bakarrik funtzionatzen du: horma-begiztak 1 izatea, euskarriak desgaituta egotea, haztatze bidezko material-metaketa detektatzea desgaituta egotea, goiko estalki-geruzak 0 izatea, dentsitate baxuko betegarriaren dentsitatea 0 izatea eta timelapse mota tradizionala izatea."
@@ -4978,6 +5002,14 @@ msgstr "Hutsegitea gertatu da kalibrazioko G-Code-a sortzean"
 
 msgid "Calibration error"
 msgstr "Kalibrazio akatsa"
+
+# AI Translated
+msgid "This printer is not configured with the hardware this control needs."
+msgstr "Inprimagailu honek ez dauka kontrol honek behar duen hardwarea konfiguratuta."
+
+# AI Translated
+msgid "This control is not supported on this printer."
+msgstr "Kontrol hau ez da bateragarria inprimagailu honekin."
 
 # AI Translated
 msgid "Network unavailable"
@@ -5828,7 +5860,7 @@ msgstr "Bolumena:"
 msgid "Size:"
 msgstr "Tamaina:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "G-code ibilbideen gatazkak aurkitu dira %d geruzan, Z = %.2lf mm. Urrundu gehiago gatazkan dauden objektuak (%s <-> %s)."
 
@@ -6004,6 +6036,10 @@ msgstr "Gailu anitz"
 
 msgid "Project"
 msgstr "Proiektua"
+
+# AI Translated
+msgid "Device (Web)"
+msgstr "Gailua (Web)"
 
 msgid "Yes"
 msgstr "Bai"
@@ -8064,19 +8100,19 @@ msgstr "Ez da ordezkatzeko direktoriorik hautatu"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Direktorio honetako 3D fitxategiekin ordeztuta:\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: same file.\n"
 msgstr "✖ %s saltatu da: fitxategi bera.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: file does not exist.\n"
 msgstr "✖ %s saltatu da: fitxategia ez da existitzen.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✖ Skipped %s: failed to replace.\n"
 msgstr "✖ %s saltatu da: ezin izan da ordeztu.\n"
 
-#, c-format
+#, c-format, boost-format
 msgid "✔ Replaced %s.\n"
 msgstr "✔ %s ordezkatu da.\n"
 
@@ -8790,6 +8826,18 @@ msgstr "Aukera hau gaituta, zeregin bat hainbat gailutara bidali eta hainbat gai
 msgid "Pop up to select filament grouping mode"
 msgstr "Erakutsi filamentuak taldekatzeko modua hautatzeko leihoa"
 
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "Ikusgai dauden plugin-orriak"
+
+# AI Translated
+msgid "pages"
+msgstr "orri"
+
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "Fitxa finko gisa erakusten diren plugin-orrien kopurua; gainerako orriak azken fitxako goitibeherako zerrendan bilduko dira."
+
 msgid "Behaviour"
 msgstr "Jokabidea"
 
@@ -9142,6 +9190,18 @@ msgstr "Erakutsi onartzen ez diren aurrezarpenak"
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "Erakutsi bateraezinak edo onartu gabeak diren aurrezarpenak inprimagailuaren eta filamentuaren goitibeherako zerrendetan. Aurrezarpen hauek ezin dira hautatu."
 
+# AI Translated
+msgid "(Experimental) Use printer agents instead of print hosts"
+msgstr "(Esperimentala) Erabili inprimagailu-agenteak inprimatze-hostenen ordez"
+
+# AI Translated
+msgid ""
+"Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\n"
+"When disabled, OrcaSlicer uses the legacy print-host behavior."
+msgstr ""
+"Bideratu Bambu ez diren inprimagailuen inprimatze-lanak inprimagailuaren plugin-agenteen bidez, inprimatze-hostera igotzeko fluxu klasikoaren ordez.\n"
+"Desgaituta dagoenean, OrcaSlicer-ek inprimatze-hostaren aurreko portaera erabiltzen du."
+
 msgid "Experimental Features"
 msgstr "Ezaugarri esperimentalak"
 
@@ -9402,8 +9462,24 @@ msgstr "Erabiltzailearen aurrezarpena"
 msgid "Preset Inside Project"
 msgstr "Proiektu barruko aurrezarpena"
 
+# AI Translated
+msgid "Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."
+msgstr "Aurrezarpen honetara gurasoaren balio heredatu guztiak kopiatzen ditu eta gurasoarekiko lotura kentzen du. Gurasoarekin soilik bateragarriak diren aurrezarpenak bateraezin gera daitezke."
+
 msgid "Detach from parent"
 msgstr "Bereizi gurasotik"
+
+# AI Translated
+msgid "Unique preset"
+msgstr "Aurrezarpen bakarra"
+
+# AI Translated
+msgid "Parent preset"
+msgstr "Guraso-aurrezarpena"
+
+# AI Translated
+msgid "This preset does not inherit from another preset."
+msgstr "Aurrezarpen honek ez du beste aurrezarpen batetik heredatzen."
 
 msgid "Name is unavailable."
 msgstr "Izena ez dago erabilgarri."
@@ -10124,22 +10200,6 @@ msgstr "Ziur aukera hau gaitu nahi duzula?"
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
 msgstr "Betegarri-patroiak normalean biraketa automatikoki kudeatzeko diseinatuta daude, behar bezala inprimatzeko eta nahi den efektua lortzeko (adibidez, Giroidea edo Kubikoa). Uneko dentsitate baxuko betegarri-patroia biratzeak euskarri eskasa eragin dezake. Kontuz jarraitu eta egiaztatu arretaz inprimatze-arazorik sor daitekeen. Ziur zaude aukera hau gaitu nahi duzula?"
 
-msgid ""
-"Layer height is too small.\n"
-"It will set to min_layer_height\n"
-msgstr ""
-"Geruza-altuera txikiegia da.\n"
-"min_layer_height baliora ezarriko da\n"
-
-msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "Geruza-altuerak Inprimagailuaren ezarpenak -> Estrusorea -> Geruza-altueraren mugak ataleko muga gainditzen du; horrek inprimatze-kalitateko arazoak sor ditzake."
-
-msgid "Adjust to the set range automatically?\n"
-msgstr "Doitu automatikoki ezarritako barrutira?\n"
-
-msgid "Adjust"
-msgstr "Doitu"
-
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "Funtzio esperimentala: filamentu aldaketetan distantzia handiagoan atzera egitea eta moztea, purgatzea minimizatzeko. Purgatzea nabarmen murriztu dezakeen arren, pitaren buxadurak edo bestelako inprimatze-arazoak izateko arriskua ere handitu dezake."
 
@@ -10333,6 +10393,9 @@ msgstr "Erreserbatutako gako-hitzak aurkitu dira"
 msgid "Setting Overrides"
 msgstr "Ezarpenen gainidazketak"
 
+msgid "Retraction when switching material"
+msgstr "Atzera-egitea materiala aldatzean"
+
 msgid "Basic information"
 msgstr "Oinarrizko informazioa"
 
@@ -10459,6 +10522,12 @@ msgstr "Prozesu-profil bateragarriak"
 msgid "Printable space"
 msgstr "Inprimatzeko espazioa"
 
+msgid "Printer Agent"
+msgstr "Inprimagailu-agentea"
+
+msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
+msgstr "Hautatu sare-agentearen inplementazioa inprimagailuarekin komunikatzeko. Erabilgarri dauden agenteak abioan erregistratzen dira."
+
 #. TRN: The first argument is the parameter's name; the second argument is its value.
 #, boost-format
 msgid "Invalid value provided for parameter %1%: %2%"
@@ -10583,9 +10652,6 @@ msgstr "Geruza-altueraren mugak"
 
 msgid "Z-Hop"
 msgstr "Z jauzia"
-
-msgid "Retraction when switching material"
-msgstr "Atzera-egitea materiala aldatzean"
 
 msgid ""
 "The Retract before wipe option could be only 100% when using the Firmware Retraction mode.\n"
@@ -11912,6 +11978,10 @@ msgstr " bazterketa-eremu batetik gertuegi dago, eta talkak eragingo ditu.\n"
 msgid " is too close to clumping detection area, and collisions will be caused.\n"
 msgstr " material-metaketa detektatzeko eremutik gertuegi dago, eta talkak eragingo ditu.\n"
 
+# AI Translated
+msgid " is partially outside the printable area, and it cannot be printed.\n"
+msgstr " inprimagarri den eremutik kanpo dago partzialki, eta ezin da inprimatu.\n"
+
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr "Hautatutako pita-tenperaturak ez dira bateragarriak. Filamentu bakoitzaren pita-tenperaturak gainerako filamentuen gomendatutako pita-tenperatura tartean egon behar du. Bestela, pita buxatu edo inprimagailua kaltetu daiteke."
 
@@ -12227,9 +12297,6 @@ msgstr "Erabili 3MF G-codearen ordez"
 
 msgid "Enable this if the printer accepts a 3MF file as the print job. When enabled, Orca Slicer sends the sliced file as a .gcode.3mf, instead of a plain .gcode file."
 msgstr "Gaitu aukera hau inprimagailuak 3MF fitxategi bat inprimatze-lan gisa onartzen badu. Gaituta dagoenean, OrcaSlicerrek xerratutako fitxategia .gcode.3mf gisa bidaltzen du, .gcode fitxategi arrunt baten ordez."
-
-msgid "Printer Agent"
-msgstr "Inprimagailu-agentea"
 
 msgid "Select the network agent implementation for printer communication."
 msgstr "Hautatu inprimagailuarekin komunikatzeko sare-agentearen inplementazioa."
@@ -12905,9 +12972,6 @@ msgstr ""
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "Barru-zubien abiadura. Balioa ehuneko gisa adierazten bada, Zubien abiadura-ren arabera kalkulatuko da. Lehenetsitako balioa % 150ekoa da."
 
-msgid "Brim width"
-msgstr "Itsaspen ertzaren zabalera"
-
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Hau da modelotik itsaspen ertzaren kanporen lerrora dagoen distantzia."
 
@@ -12986,6 +13050,14 @@ msgid ""
 msgstr ""
 "Geometria sinplifikatu egingo da angelu zorrotzak detektatu aurretik. Parametro honek sinplifikaziorako desbideratzearen gutxieneko luzera adierazten du.\n"
 "0, desaktibatzeko."
+
+# AI Translated
+msgid "Brim ears outer only"
+msgstr "Ertz-belarriak kanpoaldean soilik"
+
+# AI Translated
+msgid "Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections."
+msgstr "Sortu saguaren belarriak modeloaren kanpoko ingeradan soilik, zuloak eta itxitako atalak baztertuta."
 
 msgid "upward compatible machine"
 msgstr "gorantz bateragarria den makina"
@@ -14137,6 +14209,14 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Giroidea"
 
+# AI Translated
+msgid "Sparse infill smooth factor"
+msgstr "Dentsitate baxuko betegarriaren leuntze-faktorea"
+
+# AI Translated
+msgid "Controls how strongly sparse infill corners are rounded. 0% keeps the original sharp path, while 100% produces the largest possible curves between adjacent infill lines."
+msgstr "Dentsitate baxuko betegarriaren izkinak zenbateraino biribiltzen diren kontrolatzen du. 0% balioak jatorrizko ibilbide zorrotza mantentzen du, eta 100% balioak ondoz ondoko betegarri-lerroen arteko kurbarik zabalenak sortzen ditu."
+
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Hau da goiko gainazaleko betegarriaren azelerazioa. Balio txikiago batek goiko gainazalaren kalitatea hobetu dezake."
 
@@ -14675,6 +14755,14 @@ msgstr "Inprimagailua zer G-code motarekin den bateragarria."
 
 msgid "Klipper"
 msgstr "Klipper"
+
+# AI Translated
+msgid "Skip G-code config block"
+msgstr "Saltatu G-code-aren konfigurazio-blokea"
+
+# AI Translated
+msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr "Ez idatzi CONFIG_BLOCK (xerragailuaren konfigurazioko gako/balio bikoteak) G-code fitxategian. Lagungarria izan daiteke firmwareak iruzkin-lerro horiek prozesatzean huts egiten duen inprimagailuetan (adib. Anycubic go-klipper). Oharra: G-code fitxategiak ez ditu jada xerragailuaren ezarpenak edukiko; beraz, OrcaSlicer-era berriro inportatzeak ez du konfigurazioa berreskuratuko."
 
 msgid "Pellet Modded Printer"
 msgstr "Pelletekin moldatutako inprimagailua"
@@ -15719,6 +15807,14 @@ msgstr "Atzera-egite luzea estrusorea aldatzean"
 msgid "Retraction distance when extruder change"
 msgstr "Atzera-egite distantzia estrusorea aldatzean"
 
+# AI Translated
+msgid "Retraction Length (Toolchange)"
+msgstr "Atzera-egitearen luzera (Erreminta aldaketa)"
+
+# AI Translated
+msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
+msgstr "Erreminta aldatu aurretik atzera-egitea abiarazten denean, filamentua zehaztutako kopurua atzeratzen da (luzera filamentu gordinean neurtzen da, estrusorean sartu aurretik)."
+
 msgid "Z-hop height"
 msgstr "Z jauziaren altuera"
 
@@ -15811,6 +15907,10 @@ msgstr "Berrabiaraztean luzera gehigarria"
 
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "Mugimenduaren ondoren atzera-egitea konpentsatzen denean, estrusoreak filamentu kantitate gehigarri hau bultzatuko du. Ezarpen hau gutxitan behar da."
+
+# AI Translated
+msgid "Extra length on restart (Toolchange)"
+msgstr "Berrabiaraztean luzera gehigarria (Erreminta aldaketa)"
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Tresna aldatu ondoren atzera-egitea konpentsatzen denean, estrusoreak filamentu kantitate gehigarri hau bultzatuko du."
@@ -16219,6 +16319,14 @@ msgstr "Tresna-aldaketa purgatze-dorrean"
 
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "Behartu inprimatze-burua purgatze-dorrera joatera tresna aldatzeko agindua (Tx) eman aurretik. 2. motako purgatze-dorrea erabiltzen duten estrusore anitzeko (inprimatze-buru anitzeko) inprimagailuetarako bakarrik da garrantzitsua. Lehenespenez, Orcak ez du joan-etorria egiten inprimatze-buru anitzeko makinetan, firmwareak buruaren aldaketa kudeatzen duelako; horren ondorioz, Tx agindua inprimatutako piezaren gainean eman daiteke. Gaitu aukera hau tresna-aldaketa beti purgatze-dorrearen gainean egin dadin."
+
+# AI Translated
+msgid "Wait for temperature on wipe tower"
+msgstr "Itxaron tenperatura purgatze-dorrean"
+
+# AI Translated
+msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr "Hartu erreminta berria inprimatze-tenperaturara iritsi arte itxaron gabe, joan purgatze-dorrera eta itxaron han tenperatura, purgatu aurretik. Berotzeak eragindako jarioa dorrean erortzen da modeloan beharrean, eta desplazamendua berotzearekin gainjartzen da. Estrusore anitzeko (inprimatze-buru anitzeko) inprimagailuetan soilik da baliagarria, 2. motako purgatze-dorrea erabiltzen dutenean. Firmwareak edo erreminta aldaketaren makroak ez du tenperaturaren zain egon behar. Desgaituta dagoenean, tenperaturaren zain egoteko agindua erreminta aldaketaren komandoaren ondoren bidaltzen da."
 
 msgid "No sparse layers (beta)"
 msgstr "Geruza bakandurik ez (beta)"
@@ -19429,9 +19537,6 @@ msgstr "Inprimagailu fisikoa"
 msgid "Print Host upload"
 msgstr "Inprimatze-ostalariaren karga"
 
-msgid "Select the network agent implementation for printer communication. Available agents are registered at startup."
-msgstr "Hautatu sare-agentearen inplementazioa inprimagailuarekin komunikatzeko. Erabilgarri dauden agenteak abioan erregistratzen dira."
-
 msgid "Select a Flashforge printer"
 msgstr "Hautatu Flashforge inprimagailu bat"
 
@@ -20278,9 +20383,6 @@ msgstr "Ustekabeko zerbait gertatu da saioa hasten saiatzean; saiatu berriro."
 msgid "User canceled."
 msgstr "Erabiltzaileak bertan behera utzi du."
 
-msgid "Head diameter"
-msgstr "Buruaren diametroa"
-
 msgid "Max angle"
 msgstr "Gehieneko angelua"
 
@@ -21015,6 +21117,22 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
+
+#~ msgid ""
+#~ "Layer height is too small.\n"
+#~ "It will set to min_layer_height\n"
+#~ msgstr ""
+#~ "Geruza-altuera txikiegia da.\n"
+#~ "min_layer_height baliora ezarriko da\n"
+
+#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
+#~ msgstr "Geruza-altuerak Inprimagailuaren ezarpenak -> Estrusorea -> Geruza-altueraren mugak ataleko muga gainditzen du; horrek inprimatze-kalitateko arazoak sor ditzake."
+
+#~ msgid "Adjust to the set range automatically?\n"
+#~ msgstr "Doitu automatikoki ezarritako barrutira?\n"
+
+#~ msgid "Head diameter"
+#~ msgstr "Buruaren diametroa"
 
 #~ msgid "Print order within a single layer."
 #~ msgstr "Geruza bakarreko inprimatze-ordena."

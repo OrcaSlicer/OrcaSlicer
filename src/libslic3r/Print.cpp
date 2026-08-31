@@ -5,6 +5,7 @@
 #include "Brim.hpp"
 #include "ClipperUtils.hpp"
 #include "Extruder.hpp"
+#include "FilamentMixer.hpp"
 #include "Flow.hpp"
 #include "Geometry/ConvexHull.hpp"
 #include "I18N.hpp"
@@ -565,7 +566,7 @@ std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
 
     // If a wipe tower filament is explicitly set, ensure it participates in tool ordering.
     if (has_wipe_tower() && config().wipe_tower_filament != 0 && extruders.size() > 1) {
-        assert(config().wipe_tower_filament > 0 && config().wipe_tower_filament < int(config().nozzle_diameter.size()));
+        assert(config().wipe_tower_filament > 0 && config().wipe_tower_filament <= int(config().filament_diameter.size()));
         extruders.emplace_back(config().wipe_tower_filament - 1); // config value is 1-based
     }
 
@@ -1327,6 +1328,19 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
     if (extruders.empty())
         return { L("No extrusions under current settings.") };
 
+    // Orca: a gradient mixed filament only renders its gradient with "Mixed color sublayer" on;
+    // without it ToolOrdering::resolve_mixed_filaments prints one whole component per layer and
+    // the gradient is dropped silently. extruders() already covers painting, height ranges,
+    // per-feature filament ids and supports, and still lists mixed slots under their own id here.
+    if (!m_config.enable_mixed_color_sublayer.value) {
+        const auto &is_mixed = m_config.filament_is_mixed.values;
+        const auto &gradient = m_config.filament_mixed_gradient.values;
+        if (std::any_of(extruders.begin(), extruders.end(), [&](unsigned int e) {
+                return e < is_mixed.size() && is_mixed[e] && e < gradient.size() && gradient[e]; }))
+            warn(L("A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."),
+                 "enable_mixed_color_sublayer");
+    }
+
     if (nozzles < 2 && extruders.size() > 1) {
         auto ret = check_multi_filament_valid(*this);
         if (!ret.string.empty())
@@ -1388,6 +1402,13 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         // #4043
         if (total_copies_count > 1 && m_config.print_sequence != PrintSequence::ByObject)
             return {L("Please select \"By object\" print sequence to print multiple objects in spiral vase mode."), nullptr, "spiral_mode"};
+        // A mixed (virtual) filament always resolves to multiple physical components, which
+        // spiral vase cannot print.
+        const auto &is_mixed = m_config.filament_is_mixed.values;
+        for (const PrintObject *object : m_objects)
+            for (unsigned int ext : object->object_extruders())
+                if (ext < is_mixed.size() && is_mixed[ext])
+                    return {L("Spiral (vase) mode does not work when an object contains more than one material."), nullptr, "spiral_mode"};
         assert(m_objects.size() == 1);
         const auto all_regions = m_objects.front()->all_regions();
         if (all_regions.size() > 1) {
@@ -1464,6 +1485,17 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         }
 
     if (this->has_wipe_tower() && ! m_objects.empty()) {
+        // Orca: wipe_tower_filament (issue #10971) is inserted into the tool order after
+        // resolve_mixed_filaments has expanded every mixed (virtual) slot, so a mixed slot here
+        // would reach the G-code as a tool change to a slot no nozzle carries. The GUI hides
+        // mixed slots from the option; this guards loaded projects and the CLI.
+        if (m_config.wipe_tower_filament > 0) {
+            const auto  &is_mixed = m_config.filament_is_mixed.values;
+            const size_t wipe_idx = size_t(m_config.wipe_tower_filament - 1);
+            if (wipe_idx < is_mixed.size() && is_mixed[wipe_idx])
+                return { L("The wipe tower filament cannot be a mixed filament."), nullptr, "wipe_tower_filament" };
+        }
+
         // Make sure all extruders use same diameter filament and have the same nozzle diameter
         // EPSILON comparison is used for nozzles and 10 % tolerance is used for filaments
         double first_nozzle_diam = m_config.nozzle_diameter.get_at(extruders.front());
@@ -2585,18 +2617,31 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         std::vector<const PrintInstance*>::const_iterator 	print_object_instance_sequential_active;
         std::vector<std::pair<coordf_t, std::vector<GCode::LayerToPrint>>> layers_to_print = GCode::collect_layers_to_print(*this);
         std::vector<unsigned int> printExtruders;
+        // Per-object first-layer mixed-slot resolutions for the by-object remap below
+        // (BBS reads them from m_sequential_print_data->object_tool_ordering_map).
+        std::map<ObjectID, std::map<unsigned int, unsigned int>> seq_mixed_resolution;
         // Cleared on every process so a print-sequence or selector-mode change can never leave
         // stale object pointers behind; repopulated below only by the sequential selector path.
         m_sequential_dynamic_orderings.clear();
         if (this->config().print_sequence == PrintSequence::ByObject) {
             // Order object instances for sequential print.
             print_object_instances_ordering = sort_object_instances_by_model_order(*this);
+            // A mixed slot is virtual; only its components reach a nozzle. These per-object orderings
+            // are unsorted (no resolve_mixed_filaments), so expand the slots here for the grouping, the
+            // unprintable sets and the slice-used lists. Because the expansion happens here rather than
+            // on the sorted orderings, the first-layer used set lists every component of a mixed slot,
+            // not just the one layer 0 resolves to. No-op without mixed filaments.
+            const auto &is_mixed  = m_config.filament_is_mixed.values;
+            const auto &comp_strs = m_config.filament_mixed_components.values;
+            const bool  has_mixed = has_any_mixed_filament(is_mixed);
             std::vector<unsigned int> first_layer_used_filaments;
             std::vector<std::vector<unsigned int>> all_filaments;
             for (print_object_instance_sequential_active = print_object_instances_ordering.begin(); print_object_instance_sequential_active != print_object_instances_ordering.end(); ++print_object_instance_sequential_active) {
                 tool_ordering = ToolOrdering(*(*print_object_instance_sequential_active)->print_object, initial_extruder_id);
                 for (size_t idx = 0; idx < tool_ordering.layer_tools().size(); ++idx) {
-                    auto& layer_filament = tool_ordering.layer_tools()[idx].extruders;
+                    auto layer_filament = tool_ordering.layer_tools()[idx].extruders;
+                    if (has_mixed)
+                        layer_filament = expand_mixed_filaments(layer_filament, is_mixed, comp_strs);
                     all_filaments.emplace_back(layer_filament);
                     if (idx == 0)
                         first_layer_used_filaments.insert(first_layer_used_filaments.end(), layer_filament.begin(), layer_filament.end());
@@ -2608,6 +2653,8 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
             auto physical_unprintables = this->get_physical_unprintable_filaments(used_filaments);
             auto geometric_unprintables = this->get_geometric_unprintable_filaments();
+            if (has_mixed)
+                expand_mixed_slots_in_unprintables(geometric_unprintables, is_mixed, comp_strs);
             auto filament_unprintable_volumes = this->get_filament_unprintable_flow(used_filaments);
             // Selector (per-layer regroup) prints skip the static grouping: their print-wide result
             // is stitched from the per-object plans after the ordering loop below.
@@ -2659,6 +2706,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             std::vector<std::vector<int>>          nozzle_map_per_layer;
             std::vector<std::vector<unsigned int>> stitched_layer_filaments;
             print_object_instance_sequential_active = print_object_instances_ordering.begin();
+            std::vector<unsigned int> used_mixed_filaments;
             for (; print_object_instance_sequential_active != print_object_instances_ordering.end(); ++print_object_instance_sequential_active) {
                 const PrintObject *print_object = (*print_object_instance_sequential_active)->print_object;
                 if (dynamic_reorder) {
@@ -2687,11 +2735,18 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 } else {
                     tool_ordering = ToolOrdering(*print_object, initial_extruder_id);
                     tool_ordering.sort_and_build_data(*print_object, initial_extruder_id);
+                    if (!tool_ordering.layer_tools().empty())
+                        seq_mixed_resolution[print_object->id()] = tool_ordering.layer_tools().front().mixed_filament_resolution;
                 }
+                // Only sorted orderings have run resolve_mixed_filaments, so only they know which
+                // mixed slots actually print.
+                append(used_mixed_filaments, tool_ordering.used_mixed_filaments());
                 if ((initial_extruder_id = tool_ordering.first_extruder()) != static_cast<unsigned int>(-1)) {
                     append(printExtruders, tool_ordering.tools_for_layer(layers_to_print.front().first).extruders);
                 }
             }
+            sort_remove_duplicates(used_mixed_filaments);
+            this->set_slice_used_mixed_filaments(used_mixed_filaments);
             if (dynamic_reorder && m_objects.size() > 1) {
                 // Stitch the per-object plans into one print-wide selector result. A single-object
                 // sequential print publishes (and writes back) from its own ordering instead: the
@@ -2712,6 +2767,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 first_layer_used_filaments = tool_ordering.layer_tools().front().extruders;
 
             this->set_slice_used_filaments(first_layer_used_filaments, tool_ordering.all_extruders());
+            this->set_slice_used_mixed_filaments(tool_ordering.used_mixed_filaments());
             has_wipe_tower = this->has_wipe_tower() && tool_ordering.has_wipe_tower();
             initial_extruder_id = tool_ordering.first_extruder();
             print_object_instances_ordering = chain_print_object_instances(*this);
@@ -2719,6 +2775,28 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
 
         auto objectExtruderMap = getObjectExtruderMap(*this);
+        // Resolve mixed filament virtual slots to physical components so brim
+        // extruder matching works correctly (mixed slot IDs are not present
+        // in printExtruders after ToolOrdering::resolve_mixed_filaments).
+        {
+            const LayerTools *first_lt = nullptr;
+            if (m_config.print_sequence != PrintSequence::ByObject && !tool_ordering.layer_tools().empty())
+                first_lt = &tool_ordering.layer_tools().front();
+            for (auto &[obj_id, ext_1based] : objectExtruderMap) {
+                if (ext_1based == 0)
+                    continue;
+                const std::map<unsigned int, unsigned int> *resolution = nullptr;
+                if (first_lt)
+                    resolution = &first_lt->mixed_filament_resolution;
+                else if (auto obj_it = seq_mixed_resolution.find(obj_id); obj_it != seq_mixed_resolution.end())
+                    resolution = &obj_it->second;
+                if (resolution) {
+                    auto it = resolution->find(ext_1based - 1);
+                    if (it != resolution->end())
+                        ext_1based = it->second + 1;
+                }
+            }
+        }
         std::vector<std::pair<ObjectID, unsigned int>> objPrintVec;
         for (const PrintInstance* instance : print_object_instances_ordering) {
             const ObjectID& print_object_ID = instance->print_object->id();
@@ -3712,7 +3790,7 @@ std::vector<Polygons> Print::get_extruder_printable_polygons() const
         Polygons ploys = {Polygon::new_scale(e_printable_area)};
         extruder_printable_polys.emplace_back(ploys);
     }
-    return std::move(extruder_printable_polys);
+    return extruder_printable_polys;
 }
 
 std::vector<Polygons> Print::get_extruder_unprintable_polygons() const
@@ -3725,7 +3803,7 @@ std::vector<Polygons> Print::get_extruder_unprintable_polygons() const
         Polygons ploys = diff(printable_poly, Polygon::new_scale(e_printable_area));
         extruder_unprintable_polys.emplace_back(ploys);
     }
-    return std::move(extruder_unprintable_polys);
+    return extruder_unprintable_polys;
 }
 
 size_t Print::get_extruder_id(unsigned int filament_id) const
@@ -3776,6 +3854,14 @@ bool Print::is_dynamic_group_reorder() const
     const bool  enabled = opt && opt->value;
     if (!enabled || m_config.filament_map_mode != FilamentMapMode::fmmAutoForFlush || m_config.nozzle_diameter.size() <= 1)
         return false;
+
+    // Dynamic regrouping and mixed-color slots are incompatible: a mixed slot is resolved to
+    // different physical components per layer, so a group assignment made up-front would be wrong.
+    const auto &is_mixed = m_config.filament_is_mixed.values;
+    for (unsigned int filament_id : extruders()) {
+        if (filament_id < is_mixed.size() && is_mixed[filament_id])
+            return false;
+    }
     return true;
 }
 
@@ -3999,38 +4085,36 @@ void Print::_make_wipe_tower()
         return;
 
     // Check whether there are any layers in m_tool_ordering, which are marked with has_wipe_tower,
-    // they print neither object, nor support. These layers are above the raft and below the object, and they
-    // shall be added to the support layers to be printed.
-    // see https://github.com/prusa3d/PrusaSlicer/issues/607
+    // they print neither object, nor support. Each such layer needs a virtual support layer
+    // counterpart in m_objects.front() so that GCode::collect_layers_to_print picks it up and the
+    // wipe tower G-code is actually emitted for that z. Such layers appear in two scenarios:
+    //   - above the raft, between raft top and the first real object layer
+    //     (see https://github.com/prusa3d/PrusaSlicer/issues/607);
+    //   - between two real wipe-tower layers, when one object is fully floating above another and
+    //     the support_top_z_distance / support_bottom_z_distance gap leaves interior z values with
+    //     neither object nor support (continuity fill in ToolOrdering::fill_wipe_tower_partitions).
+    // The previous implementation only handled the first contiguous run starting at the first
+    // virtual layer, which made the second scenario silently produce empty wipe-tower layers.
     {
-        size_t idx_begin = size_t(-1);
-        size_t idx_end   = m_wipe_tower_data.tool_ordering.layer_tools().size();
-        // Find the first wipe tower layer, which does not have a counterpart in an object or a support layer.
+        auto &support_layers = m_objects.front()->support_layers();
+        auto it_layer = support_layers.begin();
+        const size_t idx_end = m_wipe_tower_data.tool_ordering.layer_tools().size();
         for (size_t i = 0; i < idx_end; ++ i) {
-            const LayerTools &lt = m_wipe_tower_data.tool_ordering.layer_tools()[i];
-            if (lt.has_wipe_tower && ! lt.has_object && ! lt.has_support) {
-                idx_begin = i;
-                break;
-            }
-        }
-        if (idx_begin != size_t(-1)) {
-            // Find the position in m_objects.first()->support_layers to insert these new support layers.
-            double wipe_tower_new_layer_print_z_first = m_wipe_tower_data.tool_ordering.layer_tools()[idx_begin].print_z;
-            auto it_layer = m_objects.front()->support_layers().begin();
-            auto it_end   = m_objects.front()->support_layers().end();
-            for (; it_layer != it_end && (*it_layer)->print_z - EPSILON < wipe_tower_new_layer_print_z_first; ++ it_layer);
-            // Find the stopper of the sequence of wipe tower layers, which do not have a counterpart in an object or a support layer.
-            for (size_t i = idx_begin; i < idx_end; ++ i) {
-                LayerTools &lt = const_cast<LayerTools&>(m_wipe_tower_data.tool_ordering.layer_tools()[i]);
-                if (! (lt.has_wipe_tower && ! lt.has_object && ! lt.has_support))
-                    break;
-                lt.has_support = true;
-                // Insert the new support layer.
-                double height    = lt.print_z - (i == 0 ? 0. : m_wipe_tower_data.tool_ordering.layer_tools()[i-1].print_z);
-                //FIXME the support layer ID is set to -1, as Vojtech hopes it is not being used anyway.
-                it_layer = m_objects.front()->insert_support_layer(it_layer, -1, 0, height, lt.print_z, lt.print_z - 0.5 * height);
+            LayerTools &lt = const_cast<LayerTools&>(m_wipe_tower_data.tool_ordering.layer_tools()[i]);
+            if (! (lt.has_wipe_tower && ! lt.has_object && ! lt.has_support))
+                continue;
+            while (it_layer != support_layers.end() && (*it_layer)->print_z + EPSILON < lt.print_z)
                 ++ it_layer;
+            if (it_layer != support_layers.end() && std::abs((*it_layer)->print_z - lt.print_z) < EPSILON) {
+                lt.has_support = true;
+                ++ it_layer;
+                continue;
             }
+            lt.has_support = true;
+            double height = lt.print_z - (i == 0 ? 0. : m_wipe_tower_data.tool_ordering.layer_tools()[i-1].print_z);
+            //FIXME the support layer ID is set to -1, as Vojtech hopes it is not being used anyway.
+            it_layer = m_objects.front()->insert_support_layer(it_layer, -1, 0, height, lt.print_z, lt.print_z - 0.5 * height);
+            ++ it_layer;
         }
     }
     this->throw_if_canceled();
@@ -5827,7 +5911,7 @@ BoundingBoxf3 PrintInstance::get_bounding_box() const {
 
 Polygon PrintInstance::get_convex_hull_2d() {
     Polygon poly = print_object->model_object()->convex_hull_2d(model_instance->get_matrix());
-    poly.douglas_peucker(0.1);
+    poly.douglas_peucker(scale_(0.1));
     return poly;
 }
 

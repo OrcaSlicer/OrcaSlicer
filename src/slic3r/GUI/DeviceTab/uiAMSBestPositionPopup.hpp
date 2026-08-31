@@ -2,7 +2,7 @@
 /* File: uiAMSBestPositionPopup.hpp
 *  Description: The popup with suggest best ams position
 *
-//**********************************************************/
+************************************************************/
 
 #pragma once
 #include "slic3r/GUI/Widgets/AMSItem.hpp"
