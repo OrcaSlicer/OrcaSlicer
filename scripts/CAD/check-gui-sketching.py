@@ -308,6 +308,48 @@ def calibrate_here():
 PACE = 1.0
 
 
+def field_win():
+    """The open in-canvas value field as (x, y, w, h) in SCREEN pixels, or None.
+
+    It is a top-level window of its own, not a child of the canvas (a native child cannot be
+    composited over the double-buffered wxGLCanvas), so it is found by enumerating windows rather
+    than by looking inside the app's frame. Two other small top-levels exist: the status chip,
+    which lives on the bottom edge, and 1x1/10x10 helpers.
+    """
+    _, X, Y, W, H = win()
+    for w in sh(f"DISPLAY={DISP} xdotool search --onlyvisible --class '.'").split():
+        g = dict(l.split("=", 1) for l in
+                 sh(f"DISPLAY={DISP} xdotool getwindowgeometry --shell {w}").strip().splitlines()
+                 if "=" in l)
+        if "WIDTH" not in g:
+            continue
+        x, y, ww, hh = int(g["X"]), int(g["Y"]), int(g["WIDTH"]), int(g["HEIGHT"])
+        if ww >= W or hh < 24 or hh > 120 or ww < 40:
+            continue
+        if y > Y + H - 80:                 # the status chip, pinned to the bottom edge
+            continue
+        return (x, y, ww, hh)
+    return None
+
+
+def focus_field():
+    """Put the keyboard in the value field, by clicking it.
+
+    WITHOUT THIS THE TYPED VALUE IS SILENTLY DISCARDED. The field is shown and raised but the
+    window manager does not give it the keyboard, so xdotool's digits go to the canvas and Return
+    commits the value the field opened with — the pre-filled as-drawn number. The failure is
+    invisible from the outside: a constraint IS created, the solve succeeds, and the sketch simply
+    holds the dimension you did not ask for (typed 40, got 54.94). One click fixes it.
+    """
+    r = field_win()
+    if r is None:
+        return False
+    x, y, w, h = r
+    xdo(f"mousemove {x + w // 2} {y + h // 2} click --delay 120 1")
+    time.sleep(0.3)
+    return True
+
+
 def value(v, pause=0.6):
     """Type one number into the open in-canvas field and commit it.
 
@@ -316,6 +358,7 @@ def value(v, pause=0.6):
     appended to it.
     """
     time.sleep(0.25 * PACE)
+    focus_field()
     key("ctrl+a", 0.15)
     typ(str(v), 0.25)
     key("Return", pause * PACE)
@@ -941,6 +984,194 @@ def angle_between(a, b):
 # =================================================================== DURABILITY
 # Exactness that does not survive an undo or a save is not exactness.
 
+def rim(e, deg=135.0):
+    """A point on a circle's rim, away from +X.
+
+    NOT the +X point: a click there grabs the RADIUS GRIP instead of selecting the circle,
+    and a grip click REPLACES the selection with that one entity — so the second pick of a
+    two-entity constraint silently discards the first.
+    """
+    a = math.radians(deg)
+    return (e["center"][0] + e["radius"] * math.cos(a),
+            e["center"][1] + e["radius"] * math.sin(a))
+
+
+def rung_equal_radius():
+    reset_document()
+    print("\nD4  constrain — Equal on two CIRCLES means equal radius, not equal length")
+    # The dead end this fixed: two circles + Equal used to emit EQUAL_LENGTH_LINES, which
+    # constrains nothing on a curve. The user got a silent no-op with no error and no way to
+    # tell why. One Equal button, two meanings — lines get length, curves get radius.
+    # NOT dimensioned: a typed radius is a DRIVING Radius constraint, and EqualRadius on two
+    # circles pinned to 15 and 25 is genuinely inconsistent -- the kernel refuses the addition
+    # and is right to. Draw them at different sizes and leave the radius free.
+    enter_sketch("c")
+    clickmm(-35, 0); clickmm(-20, 0); key("Escape", 0.7)
+    key("c", 0.6)
+    clickmm(35, 0); clickmm(60, 0); key("Escape", 0.7)
+    d0 = describe()
+    cs = [e for e in d0["entities"] if e["type"] == "circle"]
+    check("ARC", len(cs) == 2 and not near(cs[0]["radius"], cs[1]["radius"], 1e-6),
+          f"they start unequal: {[round(c['radius'], 6) for c in cs]}")
+    key("k", 1.5)
+    d1 = describe()
+    cs = [e for e in d1["entities"] if e["type"] == "circle"]
+    ia, ib = d1["entities"].index(cs[0]), d1["entities"].index(cs[1])
+    clickmm(*rim(cs[0])); clickmm(*rim(cs[1]))
+    click(*CON_BTN["equal"])          # the SHARED Equal button, not design_c_equal_radius
+    time.sleep(1.0)
+    d = describe()
+    ra, rb = d["entities"][ia]["radius"], d["entities"][ib]["radius"]
+    check("ARC", near(ra, rb, 1e-9), f"the two radii are now equal: {ra:.9f} and {rb:.9f}")
+    check("ARC", ra > 1e-6, f"and not equal at zero: {ra:.9f}")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["solve_ok"] and d2["constraints"] > 0,
+          f"{d2['constraints']} constraints survived the commit")
+    rs = sorted(round(e["radius"], 9) for e in d2["entities"] if e["type"] == "circle")
+    check("ARC", len(rs) == 2 and near(rs[0], rs[-1], 1e-9),
+          f"still equal after the round trip: {rs}")
+    leave_sketch()
+
+
+def rung_collinear():
+    reset_document()
+    print("\nD5  constrain — two offset lines brought onto one infinite line")
+    # Oblique on purpose: axis-aligned segments pick up an auto Horizontal at draw time, and
+    # this rung is about Collinear, not about interacting with inference.
+    enter_sketch("l")
+    clickmm(-60, -14); clickmm(-12, -6)
+    key("Escape", 0.7); key("Escape", 0.7)
+    key("l", 0.6)
+    clickmm(12, 14); clickmm(60, 22)
+    key("Escape", 0.7); key("Escape", 0.7)
+    d0 = describe()
+    ls = [e for e in d0["entities"] if e["type"] == "line"]
+    check("VERTEX", len(ls) == 2 and abs(ls[0]["p0"][1] - ls[1]["p0"][1]) > 1.0,
+          f"they start on different lines, dy = {abs(ls[0]['p0'][1] - ls[1]['p0'][1]):.6f}")
+    key("k", 1.5)
+    d1 = describe()
+    ls = [e for e in d1["entities"] if e["type"] == "line"]
+    ia, ib = d1["entities"].index(ls[0]), d1["entities"].index(ls[1])
+    clickmm(*mid(ls[0])); clickmm(*mid(ls[1]))
+    click(*CON_BTN["collinear"])
+    time.sleep(1.0)
+    d = describe()
+    A, B = d["entities"][ia], d["entities"][ib]
+    ax, ay = A["p0"]
+    dx, dy = A["p1"][0] - ax, A["p1"][1] - ay
+    cross = [dx * (q[1] - ay) - dy * (q[0] - ax) for q in (B["p0"], B["p1"])]
+    check("VERTEX", all(abs(c) < 1e-6 for c in cross),
+          f"both ends of the second line lie on the first: cross {[round(c, 9) for c in cross]}")
+    # A line collapsed to a point is trivially collinear with anything, so the cross products
+    # above pass on a degenerate solve. Both lines have to survive.
+    check("LENGTH", A["length"] > 1.0 and B["length"] > 1.0,
+          f"neither line collapsed: {A['length']:.6f}, {B['length']:.6f}")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["solve_ok"] and d2["constraints"] > 0,
+          f"{d2['constraints']} constraints survived the commit")
+    leave_sketch()
+
+
+def rung_distance_xy():
+    reset_document()
+    print("\nD6  constrain — horizontal distance, and accepting its own value moves nothing")
+    enter_sketch("p")
+    clickmm(-30, -20)
+    key("p", 0.6)
+    clickmm(25, 18)
+    # A THIRD point, placed now while the point tool is still armed. The typed half of this rung
+    # needs a pair that carries no dimension yet, and pressing "p" again once the constrain tool
+    # has taken over does not re-arm the point tool -- the click is consumed as a pick and no
+    # point appears, which read as an IndexError three lines later rather than as what it was.
+    key("p", 0.6)
+    clickmm(5, 5)
+    d0 = describe()
+    ps = [e for e in d0["entities"] if e["type"] == "point"]
+    check("VERTEX", len(ps) == 3, f"three points placed: {len(ps)}")
+    key("k", 1.5)
+    d1 = describe()
+    ps = [e for e in d1["entities"] if e["type"] == "point"]
+    ia, ib = d1["entities"].index(ps[0]), d1["entities"].index(ps[1])
+    ic = d1["entities"].index(ps[2])
+
+    # THE NO-OP PROPERTY, which is the one a unit test cannot reach: the field opens pre-filled
+    # with the current projected gap, and pressing Return must change nothing. The constraint is
+    # SIGNED — (pB - pA).dot(axis) — so if the refs were ordered to show |delta| while the real
+    # delta is negative, accepting the number on screen teleports the point across its anchor.
+    before = [list(d1["entities"][ia]["p"]), list(d1["entities"][ib]["p"])]
+    clickmm(*ps[0]["p"]); clickmm(*ps[1]["p"])
+    click(*CON_BTN["dist_x"])
+    time.sleep(0.8)
+    key("Return", 1.2)                 # accept the pre-filled value, type nothing
+    d = describe()
+    after = [list(d["entities"][ia]["p"]), list(d["entities"][ib]["p"])]
+    moved = max(abs(a - b) for pa, pb in zip(before, after) for a, b in zip(pa, pb))
+    # 5 microns, not zero: the field shows two decimals, so accepting what it shows commits a
+    # ROUNDED value and the geometry legitimately shifts by up to half a displayed unit. The
+    # defect this guards is a sign flip, which moves the point by twice the gap — tens of
+    # millimetres. A 1e-6 tolerance here failed on a 0.96 micron rounding step, which is the
+    # instrument disagreeing with the display, not the app misbehaving.
+    check("VERTEX", moved < 5e-3,
+          f"accepting the shown value moved nothing (max {moved:.9f})")
+    # "nothing moved" passes just as happily when the constraint was never applied at all --
+    # which is exactly how the phantom-endpoint bug hid. The gap has to be REAL and driveable,
+    # so prove the mechanism works before trusting the no-op above.
+    check("LENGTH", abs(d["entities"][ib]["p"][0] - d["entities"][ia]["p"][0]) > 1.0,
+          "and the two points still have a real horizontal gap to dimension")
+
+    # Now drive it with a TYPED value, on a FRESH pair. Not on the pair just dimensioned: that
+    # one already carries its DistanceX, the button rightly refuses to dimension it twice, and no
+    # field opens — so the digits went nowhere and the gap kept the value the no-op step had
+    # accepted. A green "gap is 54.94" for a rung that typed 40 is the rung's fault, not the app's.
+    dy_before = d["entities"][ic]["p"][1] - d["entities"][ia]["p"][1]
+    clickmm(*d["entities"][ia]["p"]); clickmm(*d["entities"][ic]["p"])
+    click(*CON_BTN["dist_x"])
+    time.sleep(0.8)
+    values(40)
+    d = describe()
+    gx = abs(d["entities"][ic]["p"][0] - d["entities"][ia]["p"][0])
+    gy = d["entities"][ic]["p"][1] - d["entities"][ia]["p"][1]
+    check("LENGTH", near(gx, 40.0, 1e-6), f"horizontal gap driven to {gx:.9f}")
+    check("VERTEX", near(gy, dy_before, 1e-6),
+          f"the vertical gap is untouched at {gy:.9f} — this is not a straight-line distance")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["solve_ok"] and d2["constraints"] > 0,
+          f"{d2['constraints']} constraints survived the commit")
+    leave_sketch()
+
+
+def rung_symmetric_axis():
+    reset_document()
+    print("\nD7  constrain — symmetric about the vertical axis, with no construction line")
+    # Plain Symmetric needs a third pick for the mirror axis, so being symmetric about the
+    # sketch's own vertical axis used to mean drawing a construction line first. This button
+    # uses the implicit axis: two picks, no axis entity.
+    enter_sketch("p")
+    clickmm(-40, 15)
+    key("p", 0.6)
+    clickmm(12, 15)
+    key("k", 1.5)
+    d1 = describe()
+    ps = [e for e in d1["entities"] if e["type"] == "point"]
+    ia, ib = d1["entities"].index(ps[0]), d1["entities"].index(ps[1])
+    check("VERTEX", not near(abs(ps[0]["p"][0]), abs(ps[1]["p"][0]), 1e-3),
+          f"they start unmirrored: x = {ps[0]['p'][0]:.6f}, {ps[1]['p'][0]:.6f}")
+    clickmm(*ps[0]["p"]); clickmm(*ps[1]["p"])
+    click(*CON_BTN["sym_v"])
+    time.sleep(1.0)
+    d = describe()
+    xa, xb = d["entities"][ia]["p"][0], d["entities"][ib]["p"][0]
+    ya, yb = d["entities"][ia]["p"][1], d["entities"][ib]["p"][1]
+    check("VERTEX", near(xa, -xb, 1e-9), f"mirrored across x = 0: {xa:.9f} and {xb:.9f}")
+    # Both collapsing onto the axis satisfies the mirror trivially.
+    check("VERTEX", abs(xa) > 1e-6, f"and not both collapsed onto the axis: |x| = {abs(xa):.9f}")
+    check("VERTEX", near(ya, yb, 1e-6), f"y untouched on both: {ya:.6f}, {yb:.6f}")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["solve_ok"] and d2["constraints"] > 0,
+          f"{d2['constraints']} constraints survived the commit")
+    leave_sketch()
+
+
 def rung_undo():
     print("\nE1  undo — the last entity goes, the rest do not move")
     enter_sketch("l")
@@ -1203,7 +1434,10 @@ RUNGS = {"rect": rung_rect, "circle": rung_circle, "line": rung_line, "arc": run
          "fillet": rung_fillet, "chamfer": rung_chamfer, "offset": rung_offset,
          "mirror": rung_mirror, "mirror_arcs": rung_mirror_arcs, "trim": rung_trim, "extend": rung_extend,
          "dimension": rung_dimension, "constrain": rung_constrain,
-         "perpendicular": rung_perpendicular, "undo": rung_undo,
+         "perpendicular": rung_perpendicular,
+         "equal_radius": rung_equal_radius, "collinear": rung_collinear,
+         "distance_xy": rung_distance_xy, "symmetric_axis": rung_symmetric_axis,
+         "undo": rung_undo,
          "feature_undo": rung_feature_undo, "roundtrip": rung_roundtrip,
          "scale": rung_scale}
 

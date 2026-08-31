@@ -7785,15 +7785,41 @@ void DesignPanel::apply_entity_constraint(SketchConstraintType type)
         // the typed value (same deferred pattern as Angle).
         const SketchEntity& A = feat.entities[e0];
         const SketchEntity& B = feat.entities[e1];
-        const std::pair<R, Vec2d> aps[2] = {{R::P0, A.p0}, {R::P1, A.p1}};
-        const std::pair<R, Vec2d> bps[2] = {{R::P0, B.p0}, {R::P1, B.p1}};
-        R ra = R::P1, rb = R::P0;
-        Vec2d pa = A.p1, pb = B.p0;
+        // ONLY the roles an entity actually exposes. A Point's p1 is unused and reads (0,0),
+        // and a Circle's likewise -- enumerate {P0,p0},{P1,p1} blindly and the closest-pair
+        // search below picks those two phantom origins, distance 0. The field then opens
+        // pre-filled 0.00 and the solver drops the whole constraint, because ptOf(Point, P1)
+        // resolves to no handle and ref_ok fails. Nothing errors; the dimension just does
+        // nothing. Same role set as roles_of() in DesignSketchTool::heal_coincidences.
+        auto ends_of = [](const SketchEntity& e, std::pair<R, Vec2d> out[2]) -> int {
+            using ET = SketchEntity::Type;
+            switch (e.type) {
+            case ET::Line: case ET::Arc: case ET::BSpline: case ET::EllipseArc:
+                out[0] = {R::P0, e.p0}; out[1] = {R::P1, e.p1}; return 2;
+            case ET::Point:
+                out[0] = {R::P0, e.p0}; return 1;
+            case ET::Circle: case ET::Ellipse:
+                out[0] = {R::Center, e.center}; return 1;
+            }
+            return 0;
+        };
+        std::pair<R, Vec2d> aps[2], bps[2];
+        const int na = ends_of(A, aps), nb = ends_of(B, bps);
+        if (na == 0 || nb == 0) {
+            fail(_L("This dimension needs two entities with a point to measure between"));
+            return;
+        }
+        R ra = aps[0].first, rb = bps[0].first;
+        Vec2d pa = aps[0].second, pb = bps[0].second;
         double best = 1e30;
-        for (const auto& ap : aps)
-            for (const auto& bp : bps) {
-                const double d = (ap.second - bp.second).squaredNorm();
-                if (d < best) { best = d; ra = ap.first; rb = bp.first; pa = ap.second; pb = bp.second; }
+        for (int i = 0; i < na; ++i)
+            for (int j = 0; j < nb; ++j) {
+                const double d = (aps[i].second - bps[j].second).squaredNorm();
+                if (d < best) {
+                    best = d;
+                    ra = aps[i].first; rb = bps[j].first;
+                    pa = aps[i].second; pb = bps[j].second;
+                }
             }
         // The constraint is SIGNED: PROJ_PT_DISTANCE fixes (pB - pA).dot(axis), not its
         // magnitude. Showing |delta| while the current signed delta is negative would mean

@@ -31,6 +31,13 @@ LOG="${LOG:-/tmp/gui-session.log}"
 
 export DISPLAY="$DISP" HOME=/root
 export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
+# The ladders read the document back through the MCP socket, and the offer ladder's only
+# instrument is the [OFFER] keytrace. Neither is on by default, and a session launched without
+# them comes up looking perfectly healthy: the window is there, status says app up, and every
+# ladder then dies on "Connection refused" — which reads as a dead app rather than a rig that was
+# started without its instrument. The script that launches the rig is where they belong.
+export SNAPORCA_MCP="${SNAPORCA_MCP:-/tmp/mcp.sock}"
+export SNAPORCA_KEYTRACE="${SNAPORCA_KEYTRACE:-1}"
 export LD_LIBRARY_PATH="$LIBPY:$LIBPY2:${LD_LIBRARY_PATH:-}"
 mkdir -p /root/.config          # startup dies in boost::filesystem::create_directory without this
 
@@ -121,7 +128,11 @@ close_dialog() {
     sleep 2
     return 0
 }
-for name in "Setup Wizard" "New version"; do
+# "Restore" is not a first-RUN dialog, it is a second-run one: killing the app mid-session leaves
+# unsaved items behind, and the next launch asks whether to restore them. It sits over the tab bar
+# with a modal grab, so every synthetic click afterwards lands on it and the ladder reports
+# geometry that never got drawn — that is the "success with no log" shape twice already.
+for name in "Setup Wizard" "New version" "Restore"; do
     for _ in 1 2 3; do close_dialog "$name" || break; done
 done
 
