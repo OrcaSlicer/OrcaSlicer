@@ -436,3 +436,43 @@ TEST_CASE("saving a preset writes only keys its type owns", "[PresetCompatibilit
     CHECK(reason.empty());
     CHECK_FALSE(reloaded.has("extruder_nozzle_stats"));
 }
+
+// The printer dropdown collapses a custom printer's variants under its family root's name. That is
+// only correct when the root is the custom printer itself: a copy saved without detaching roots at a
+// system profile, and must keep its own name rather than be listed under that profile's.
+TEST_CASE("only a detached printer roots at a user preset", "[PresetCompatibility]")
+{
+    PresetBundle bundle;
+
+    const auto add_printer = [&](const std::string &name, const std::string &inherits, bool is_system) {
+        DynamicPrintConfig config(bundle.printers.default_preset().config);
+        config.set_key_value("printer_model", new ConfigOptionString("Elegoo OrangeStorm Giga"));
+        Preset::inherits(config) = inherits;
+        bundle.printers.load_preset(std::string(), name, config, /*select=*/false).is_system = is_system;
+    };
+    add_printer("fdm_elegoo_common", "", /*is_system=*/true);
+    add_printer("Elegoo OrangeStorm Giga 0.4 nozzle", "fdm_elegoo_common", true);
+    add_printer("Elegoo OrangeStorm Giga 0.6 nozzle", "Elegoo OrangeStorm Giga 0.4 nozzle", true);
+    add_printer("Giga 1.2 custom", "Elegoo OrangeStorm Giga 0.6 nozzle", /*is_system=*/false);
+    add_printer("Detached Giga", "", /*is_system=*/false);
+    add_printer("Detached Giga 0.8", "Detached Giga", false);
+
+    auto &printers = bundle.printers;
+    const auto root_of = [&](const std::string &name) {
+        const Preset *preset = printers.find_preset(name, false, /*real=*/true);
+        REQUIRE(preset != nullptr);
+        return printers.find_preset(printers.family_root_name(*preset), false, true);
+    };
+
+    // A copy that still inherits roots at a system profile, so it is not collapsed and keeps its name.
+    const Preset *inheriting_root = root_of("Giga 1.2 custom");
+    REQUIRE(inheriting_root != nullptr);
+    CHECK(inheriting_root->name == "fdm_elegoo_common");
+    CHECK_FALSE(inheriting_root->is_user());
+
+    // A detached printer roots at itself, and its variants root at it, so they collapse together.
+    const Preset *detached_root = root_of("Detached Giga 0.8");
+    REQUIRE(detached_root != nullptr);
+    CHECK(detached_root->name == "Detached Giga");
+    CHECK(detached_root->is_user());
+}

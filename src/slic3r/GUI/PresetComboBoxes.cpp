@@ -1317,8 +1317,13 @@ void PlaterPresetComboBox::update()
             // ORCA: collapse a custom printer's nozzle variants into one entry, as the system branch
             // above collapses by printer_model. Variants share an inheritance root, so each family is
             // listed once under its root's name; unrelated custom printers of one model stay apart.
-            if (m_type == Preset::TYPE_PRINTER) {
-                const std::string family      = m_collection->family_root_name(preset);
+            const Preset *family_root = m_type == Preset::TYPE_PRINTER
+                                            ? m_collection->find_preset(m_collection->family_root_name(preset), false, true)
+                                            : nullptr;
+            // Only a detached printer forms a family of its own. A copy that still inherits roots at
+            // a system profile, and must keep its own name rather than borrow that profile's.
+            if (family_root != nullptr && family_root->is_user()) {
+                const std::string family      = family_root->name;
                 const wxString    family_name = from_u8(is_selected && preset.is_dirty ? Preset::suffix_modified() + family : family);
                 if (user_printer_families.count(family) == 0) {
                     preset_aliases[family_name] = family;
