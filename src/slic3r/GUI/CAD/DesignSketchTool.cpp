@@ -939,7 +939,11 @@ void DesignSketchTool::set_point(int ei, SketchPointRole role, const Vec2d& v)
         e.p0 = v;
         break;
     case SketchEntity::Type::Circle:
-        if (role == SketchPointRole::Center)  e.center = v;
+        // p0 mirrors the centre for circles, which is the convention the solver both writes
+        // (SketchSolver.cpp:110) and restores after every solve (:421). Moving only e.center
+        // left the two disagreeing for the whole duration of a live drag, so anything reading
+        // p0 in that window saw the pre-drag position.
+        if (role == SketchPointRole::Center)  { e.center = v; e.p0 = v; }
         break;
     case SketchEntity::Type::Arc:
     case SketchEntity::Type::EllipseArc:
@@ -2359,6 +2363,12 @@ void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad, doub
         switch (e.type) {
         case SketchEntity::Type::Line:   out[0] = SketchPointRole::P0; out[1] = SketchPointRole::P1; return 2;
         case SketchEntity::Type::Arc:    out[0] = SketchPointRole::P0; out[1] = SketchPointRole::P1; return 2;
+        // EllipseArc was missing here while the otherwise identical roles_of in
+        // heal_coincidences (below) has it, so an ellipse arc's endpoints could be WELDED by the
+        // healer but never auto-inferred coincident at draw time -- the same gesture behaved
+        // differently depending on which path ran. Two copies of one rule is how that happens.
+        case SketchEntity::Type::EllipseArc:
+                                         out[0] = SketchPointRole::P0; out[1] = SketchPointRole::P1; return 2;
         case SketchEntity::Type::BSpline:out[0] = SketchPointRole::P0; out[1] = SketchPointRole::P1; return 2;
         case SketchEntity::Type::Point:  out[0] = SketchPointRole::P0; return 1;
         default: return 0;   // circle: centre coincidence handled by Concentric, not here

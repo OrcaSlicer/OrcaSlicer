@@ -1155,6 +1155,43 @@ def rung_distance_xy():
     leave_sketch()
 
 
+def rung_coincident_points():
+    reset_document()
+    print("\nD8  constrain — Coincident on two POINTS actually joins them")
+    # The regression this exists for: the closest-pair search used to enumerate {P0,p0},{P1,p1}
+    # on both entities, and a Point's p1 reads (0,0). For two points the phantom pair is at
+    # distance 0, which ALWAYS wins, so the constraint was added against a role the solver
+    # cannot resolve and dropped in silence -- constraints=0, the points never moved, no error.
+    # Two points is the simplest possible use of the button and it did nothing on every press.
+    enter_sketch("p")
+    clickmm(-30, -20)
+    key("p", 0.6)
+    clickmm(25, 18)
+    key("k", 1.5)
+    d1 = describe()
+    ps = [e for e in d1["entities"] if e["type"] == "point"]
+    ia, ib = d1["entities"].index(ps[0]), d1["entities"].index(ps[1])
+    gap0 = math.dist(ps[0]["p"], ps[1]["p"])
+    check("VERTEX", gap0 > 1.0, f"they start apart: {gap0:.6f}")
+    clickmm(*ps[0]["p"]); clickmm(*ps[1]["p"])
+    click(*CON_BTN["coincident"])
+    time.sleep(1.2)
+    d = describe()
+    gap = math.dist(d["entities"][ia]["p"], d["entities"][ib]["p"])
+    check("VERTEX", gap < 1e-6, f"and are now joined: gap {gap:.9f}")
+    # The count has to be read AFTER the round trip, never during the session: while
+    # constraining, sketch_describe reports the LIVE tool's constraints, which the constrain
+    # session never touches -- it writes the committed feature's entity_constraints. Reading it
+    # here says 0 for a constraint that really did land. Same trap the D2 rung documents.
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["solve_ok"] and d2["constraints"] > 0,
+          f"{d2['constraints']} constraints survived the commit — a dropped one leaves this at 0")
+    ps2 = [e for e in d2["entities"] if e["type"] == "point"]
+    check("VERTEX", math.dist(ps2[0]["p"], ps2[1]["p"]) < 1e-6,
+          "and they are still joined after the round trip")
+    leave_sketch()
+
+
 def rung_symmetric_axis():
     reset_document()
     print("\nD7  constrain — symmetric about the vertical axis, with no construction line")
@@ -1184,6 +1221,56 @@ def rung_symmetric_axis():
     d2 = confirm_and_reopen()
     check("CLOSED", d2["solve_ok"] and d2["constraints"] > 0,
           f"{d2['constraints']} constraints survived the commit")
+    leave_sketch()
+
+
+def rung_type_guards():
+    reset_document()
+    print("\nD9  constrain — a button that cannot apply must SAY so, not store a dead constraint")
+    # Both halves were live defects found by reviewing the DistanceX/Y fix for its class.
+    #
+    # Horizontal on a lone Point: P1 is a role the solver cannot resolve, so the constraint was
+    # dropped at ref_ok -- but still STORED. Measured before the fix: constraints 0 -> 1 after the
+    # commit, point unmoved. A constraint listed in the panel that can never do anything is worse
+    # than a refusal, because the panel then claims the sketch is constrained when it is not.
+    enter_sketch("p")
+    clickmm(-30, -20)
+    key("k", 1.5)
+    d = describe()
+    ps = [e for e in d["entities"] if e["type"] == "point"]
+    ia = d["entities"].index(ps[0])
+    clickmm(*ps[0]["p"])
+    click(*CON_BTN["horizontal"])
+    time.sleep(1.0)
+    d = describe()
+    check("VERTEX", near(d["entities"][ia]["p"][0], ps[0]["p"][0], 1e-9) and
+                    near(d["entities"][ia]["p"][1], ps[0]["p"][1], 1e-9),
+          "Horizontal on a point moved nothing, as it must")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["constraints"] == 0,
+          f"and stored NO constraint: {d2['constraints']} (a dead stored one reads 1)")
+    leave_sketch()
+
+    # Angle on two circles: p1-p0 on a circle is (0,0)-centre, so the field used to pre-fill with
+    # the angle between the two centre POSITION VECTORS -- 178.83 deg for two circles on the x
+    # axis -- and committing it fed SLVS_C_ANGLE two circle prims, which are not directions.
+    reset_document()
+    enter_sketch("c")
+    clickmm(-35, 0); clickmm(-20, 0); key("Escape", 0.7)
+    key("c", 0.6)
+    clickmm(35, 0); clickmm(60, 0); key("Escape", 0.7)
+    key("k", 1.5)
+    d = describe()
+    cs = [e for e in d["entities"] if e["type"] == "circle"]
+    clickmm(*rim(cs[0])); clickmm(*rim(cs[1]))
+    click(*CON_BTN["angle"])
+    time.sleep(1.0)
+    check("ANGLE", field_win() is None,
+          "Angle on two circles opened no value field")
+    key("Escape", 0.6)
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["constraints"] == 0,
+          f"and stored no angle: {d2['constraints']}")
     leave_sketch()
 
 
@@ -1452,6 +1539,8 @@ RUNGS = {"rect": rung_rect, "circle": rung_circle, "line": rung_line, "arc": run
          "perpendicular": rung_perpendicular,
          "equal_radius": rung_equal_radius, "collinear": rung_collinear,
          "distance_xy": rung_distance_xy, "symmetric_axis": rung_symmetric_axis,
+         "coincident_points": rung_coincident_points,
+         "type_guards": rung_type_guards,
          "undo": rung_undo,
          "feature_undo": rung_feature_undo, "roundtrip": rung_roundtrip,
          "scale": rung_scale}

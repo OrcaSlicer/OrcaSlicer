@@ -7720,6 +7720,62 @@ void DesignPanel::on_begin_constrain(int sel_override)
     m_status->Refresh();
 }
 
+// The point roles an entity ACTUALLY exposes, for the closest-pair searches below.
+//
+// Enumerating {P0,p0},{P1,p1} blindly is a silent-no-op generator: a Point's p1 is unused and
+// reads (0,0) (SketchEngine.hpp:32), as does a Circle's, so the search picks those two phantom
+// origins at distance 0 -- which for a pair of Points ALWAYS wins, being the smallest distance
+// there is. The constraint is then added against a role the solver cannot resolve
+// (ptOf(Point,P1) -> s.p1 -> 0), ref_ok fails, and it is dropped. Nothing errors: the button
+// just does nothing, on every press. Measured on both the DistanceX/Y and the Coincident paths.
+//
+// Returns the number of roles written, 0 for a type with no usable point. Same role set as
+// roles_of() in DesignSketchTool::heal_coincidences (the copy at 9348 -- the one inside
+// infer_auto_constraints omits EllipseArc), plus the circle centre, which is a real solver
+// handle for BOTH Circle (SketchSolver.cpp:109) and Ellipse (:126), and the only sensible thing
+// a round entity can be coincident with or measured from.
+//
+// Every one of the seven types returns at least one role today, so the callers' "no usable
+// point" branch is unreachable and their message cannot currently fire. It is kept for the
+// eighth type, not as protection against the defect above -- that one was never a missing role,
+// it was a role the solver silently refused.
+static int entity_ends(const SketchEntity& e, std::pair<SketchPointRole, Vec2d> out[2])
+{
+    using ET = SketchEntity::Type;
+    using R  = SketchPointRole;
+    switch (e.type) {
+    case ET::Line: case ET::Arc: case ET::BSpline: case ET::EllipseArc:
+        out[0] = {R::P0, e.p0}; out[1] = {R::P1, e.p1}; return 2;
+    case ET::Point:
+        out[0] = {R::P0, e.p0}; return 1;
+    case ET::Circle: case ET::Ellipse:
+        out[0] = {R::Center, e.center}; return 1;
+    }
+    return 0;
+}
+
+// The closest (role, role) pair between two entities, over the roles each really exposes.
+// Returns false when either side has none, so the caller can say so instead of going quiet.
+static bool closest_ends(const SketchEntity& A, const SketchEntity& B,
+                         SketchPointRole& ra, SketchPointRole& rb, Vec2d& pa, Vec2d& pb)
+{
+    std::pair<SketchPointRole, Vec2d> aps[2], bps[2];
+    const int na = entity_ends(A, aps), nb = entity_ends(B, bps);
+    if (na == 0 || nb == 0) return false;
+    double best = 1e30;
+    ra = aps[0].first; rb = bps[0].first; pa = aps[0].second; pb = bps[0].second;
+    for (int i = 0; i < na; ++i)
+        for (int j = 0; j < nb; ++j) {
+            const double d = (aps[i].second - bps[j].second).squaredNorm();
+            if (d < best) {
+                best = d;
+                ra = aps[i].first; rb = bps[j].first;
+                pa = aps[i].second; pb = bps[j].second;
+            }
+        }
+    return true;
+}
+
 void DesignPanel::apply_entity_constraint(SketchConstraintType type)
 {
     using R = SketchPointRole;
@@ -7764,7 +7820,16 @@ void DesignPanel::apply_entity_constraint(SketchConstraintType type)
     switch (type) {
     case T::Horizontal:
     case T::Vertical:
-        // One line: level/plumb its own two endpoints.
+        // One line: level/plumb its own two endpoints. The type check is not pedantry -- with a
+        // Point or a Circle picked, P1 is a role the solver cannot resolve, so the constraint is
+        // dropped at ref_ok (SketchSolver.cpp:184) while still being STORED in the feature. It
+        // then sits in the Constraints list, permanently doing nothing, which is worse than the
+        // button refusing: the panel says the sketch is constrained when it is not. Measured on
+        // the rig: Horizontal on a lone Point commits, constraints goes 0 -> 1, nothing moves.
+        if (feat.entities[e0].type != SketchEntity::Type::Line) {
+            fail(_L("Horizontal and Vertical apply to a line"));
+            return;
+        }
         def.ea = e0; def.ra = R::P0;
         def.eb = e0; def.rb = R::P1;
         break;
@@ -7774,18 +7839,14 @@ void DesignPanel::apply_entity_constraint(SketchConstraintType type)
         def.ea = e0; def.eb = e1;   // two whole line segments (roles unused)
         break;
     case T::Coincident: {
-        // Join the closest endpoint pair of the two picked lines.
-        const SketchEntity& A = feat.entities[e0];
-        const SketchEntity& B = feat.entities[e1];
-        const std::pair<R, Vec2d> aps[2] = {{R::P0, A.p0}, {R::P1, A.p1}};
-        const std::pair<R, Vec2d> bps[2] = {{R::P0, B.p0}, {R::P1, B.p1}};
-        R ra = R::P1, rb = R::P0;
-        double best = 1e30;
-        for (const auto& ap : aps)
-            for (const auto& bp : bps) {
-                const double d = (ap.second - bp.second).squaredNorm();
-                if (d < best) { best = d; ra = ap.first; rb = bp.first; }
-            }
+        // Join the closest point pair of the two picked entities. NOT {p0,p1} on both: see
+        // entity_ends above -- two Points always resolved to their phantom (0,0) p1s, so
+        // Coincident on a pair of points did nothing at all, on every press.
+        R ra, rb; Vec2d pa, pb;
+        if (!closest_ends(feat.entities[e0], feat.entities[e1], ra, rb, pa, pb)) {
+            fail(_L("This constraint needs two entities with a point to join"));
+            return;
+        }
         def.ea = e0; def.ra = ra; def.eb = e1; def.rb = rb;
         break;
     }
@@ -7794,44 +7855,12 @@ void DesignPanel::apply_entity_constraint(SketchConstraintType type)
         // Axis-projected distance between the closest endpoint pair of the two picked
         // entities. Typed in-canvas pre-filled with the current projection, committed on
         // the typed value (same deferred pattern as Angle).
-        const SketchEntity& A = feat.entities[e0];
-        const SketchEntity& B = feat.entities[e1];
-        // ONLY the roles an entity actually exposes. A Point's p1 is unused and reads (0,0),
-        // and a Circle's likewise -- enumerate {P0,p0},{P1,p1} blindly and the closest-pair
-        // search below picks those two phantom origins, distance 0. The field then opens
-        // pre-filled 0.00 and the solver drops the whole constraint, because ptOf(Point, P1)
-        // resolves to no handle and ref_ok fails. Nothing errors; the dimension just does
-        // nothing. Same role set as roles_of() in DesignSketchTool::heal_coincidences.
-        auto ends_of = [](const SketchEntity& e, std::pair<R, Vec2d> out[2]) -> int {
-            using ET = SketchEntity::Type;
-            switch (e.type) {
-            case ET::Line: case ET::Arc: case ET::BSpline: case ET::EllipseArc:
-                out[0] = {R::P0, e.p0}; out[1] = {R::P1, e.p1}; return 2;
-            case ET::Point:
-                out[0] = {R::P0, e.p0}; return 1;
-            case ET::Circle: case ET::Ellipse:
-                out[0] = {R::Center, e.center}; return 1;
-            }
-            return 0;
-        };
-        std::pair<R, Vec2d> aps[2], bps[2];
-        const int na = ends_of(A, aps), nb = ends_of(B, bps);
-        if (na == 0 || nb == 0) {
+        // Only over the roles each entity really exposes -- see entity_ends above.
+        R ra, rb; Vec2d pa, pb;
+        if (!closest_ends(feat.entities[e0], feat.entities[e1], ra, rb, pa, pb)) {
             fail(_L("This dimension needs two entities with a point to measure between"));
             return;
         }
-        R ra = aps[0].first, rb = bps[0].first;
-        Vec2d pa = aps[0].second, pb = bps[0].second;
-        double best = 1e30;
-        for (int i = 0; i < na; ++i)
-            for (int j = 0; j < nb; ++j) {
-                const double d = (aps[i].second - bps[j].second).squaredNorm();
-                if (d < best) {
-                    best = d;
-                    ra = aps[i].first; rb = bps[j].first;
-                    pa = aps[i].second; pb = bps[j].second;
-                }
-            }
         // The constraint is SIGNED: PROJ_PT_DISTANCE fixes (pB - pA).dot(axis), not its
         // magnitude. Showing |delta| while the current signed delta is negative would mean
         // that opening the dimension and simply accepting the number on screen flips the
@@ -7870,6 +7899,16 @@ void DesignPanel::apply_entity_constraint(SketchConstraintType type)
     case T::Angle: {
         // Angle between two line segments; typed in-canvas at the cursor (no card),
         // pre-filled with the current angle between the picked lines.
+        //
+        // "Line segments" was an assumption, not a check. p1-p0 on a Circle is (0,0)-centre, so
+        // picking two circles pre-filled the field with the angle between their centre POSITION
+        // VECTORS -- measured on the rig: two circles on the x axis opened at 178.83 deg. Accept
+        // that and SLVS_C_ANGLE is emitted on two circle prims, which are not directions.
+        if (feat.entities[e0].type != SketchEntity::Type::Line ||
+            feat.entities[e1].type != SketchEntity::Type::Line) {
+            fail(_L("Angle applies between two lines"));
+            return;
+        }
         const int a = e0, b = e1;
         const Vec2d da = feat.entities[a].p1 - feat.entities[a].p0;
         const Vec2d db = feat.entities[b].p1 - feat.entities[b].p0;
