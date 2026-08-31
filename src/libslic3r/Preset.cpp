@@ -26,6 +26,8 @@
 
 #include <algorithm>
 #include <fstream>
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
 #include <unordered_map>
 #include <boost/format.hpp>
@@ -668,6 +670,16 @@ void Preset::remove_files(bool cloud_already_deleted)
     }
     // Erase the preset file.
     boost::nowide::remove(this->file.c_str());
+    // Orca: and the artwork copied beside a detached printer, which would otherwise be orphaned.
+    if (this->type == TYPE_PRINTER && !this->file.empty()) {
+        boost::system::error_code ec;
+        const fs::path    stem   = fs::path(this->file).replace_extension();
+        const std::string prefix = stem.filename().string();
+        for (const std::string &suffix : {"_bed_model", "_bed_texture", "_cover"})
+            for (fs::directory_iterator it(stem.parent_path(), ec), end; !ec && it != end; it.increment(ec))
+                if (boost::starts_with(it->path().filename().string(), prefix + suffix + "."))
+                    boost::nowide::remove(it->path().string().c_str());
+    }
     fs::path idx_path(this->file);
     idx_path.replace_extension(".info");
     if (fs::exists(idx_path)) {
@@ -817,10 +829,15 @@ bool is_compatible_with_parent_printer(const PresetWithVendorProfile& preset, co
 {
     auto *compatible_printers     = dynamic_cast<const ConfigOptionStrings*>(preset.preset.config.option("compatible_printers"));
     bool  has_compatible_printers = compatible_printers != nullptr && ! compatible_printers->values.empty();
+    if (! has_compatible_printers)
+        return false;
     //BBS: FIXME only check the parent now, but should check grand-parent as well.
-    return has_compatible_printers &&
-           std::find(compatible_printers->values.begin(), compatible_printers->values.end(), active_printer.preset.inherits()) !=
-               compatible_printers->values.end();
+    // Orca: a detached printer has no parent, but is a copy of the one named in "cloned_from".
+    const auto lists_printer = [compatible_printers](const std::string &name) {
+        return ! name.empty() &&
+               std::find(compatible_printers->values.begin(), compatible_printers->values.end(), name) != compatible_printers->values.end();
+    };
+    return lists_printer(active_printer.preset.inherits()) || lists_printer(active_printer.preset.cloned_from());
 }
 
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer, const DynamicPrintConfig *extra_config)
@@ -833,9 +850,12 @@ bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const Pre
     // Orca: check excluded printers
     if (preset.vendor != nullptr && preset.preset.type == Preset::TYPE_FILAMENT) {
         const auto& excluded_printers = preset.preset.m_excluded_from;
+        // Orca: a detached copy references its source through "cloned_from" instead of "inherits".
         const auto  excluded         = preset.vendor->name == PresetBundle::ORCA_FILAMENT_LIBRARY &&
                               (excluded_printers.find(active_printer.preset.name) != excluded_printers.end() ||
-                               excluded_printers.find(active_printer.preset.inherits()) != excluded_printers.end());
+                               excluded_printers.find(active_printer.preset.inherits()) != excluded_printers.end() ||
+                               (!active_printer.preset.cloned_from().empty() &&
+                                excluded_printers.find(active_printer.preset.cloned_from()) != excluded_printers.end()));
         if (excluded)
             return false;
     }
@@ -1427,7 +1447,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "printer_model", "printer_variant", "printer_extruder_id", "printer_extruder_variant", "extruder_variant_list", "default_nozzle_volume_type",
     "printable_height", "extruder_printable_height", "extruder_clearance_radius", "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod",
     "nozzle_height", "master_extruder_id",
-    "default_print_profile", "inherits",
+    "default_print_profile", "inherits", "cloned_from",
     "silent_mode",
     "scan_first_layer", "enable_power_loss_recovery", "wrapping_detection_layers", "wrapping_exclude_area", "machine_load_filament_time", "machine_unload_filament_time", "machine_tool_change_time", "time_cost", "machine_pause_gcode", "template_custom_gcode",
     "nozzle_type", "nozzle_hrc","auxiliary_fan", "fan_direction", "nozzle_volume","upward_compatible_machine", "z_hop_types", "travel_slope", "retract_lift_enforce","support_chamber_temp_control","support_air_filtration","support_cooling_filter","cooling_filter_enabled","printer_structure","farthest_point_timelapse",
@@ -3392,14 +3412,37 @@ std::string PresetCollection::filament_id_by_type(const std::string& filament_ty
     return preset(first_visible_idx_by_type(filament_type)).filament_id;
 }
 
+std::string PresetCollection::family_root_name(const Preset &preset)
+{
+    const Preset          *current = &preset;
+    std::set<std::string>  seen;
+    while (!current->inherits().empty() && seen.insert(current->name).second) {
+        const Preset *parent = this->find_preset(current->inherits());
+        if (parent == nullptr)
+            break;
+        current = parent;
+    }
+    return current->name;
+}
+
 std::vector<std::string> PresetCollection::diameters_of_selected_printer()
 {
     std::set<std::string> diameters;
     auto printer_model = m_edited_preset.config.opt_string("printer_model");
+    // Orca: a custom printer offers only the sizes its own family has. Listing every size of the
+    // model would offer ones it lacks, and picking those switches to a system profile.
+    const bool        family_scoped = m_edited_preset.is_user();
+    const std::string family        = family_scoped ? this->family_root_name(m_edited_preset) : std::string();
     for (auto &preset : m_presets) {
-        if (preset.config.opt_string("printer_model") == printer_model)
-            diameters.insert(preset.config.opt_string("printer_variant"));
+        if (preset.config.opt_string("printer_model") != printer_model)
+            continue;
+        if (family_scoped && (preset.is_system || this->family_root_name(preset) != family))
+            continue;
+        diameters.insert(preset.config.opt_string("printer_variant"));
     }
+    // The edited preset is a copy held outside m_presets, so make sure its own size is offered.
+    diameters.insert(m_edited_preset.config.opt_string("printer_variant"));
+    diameters.erase(std::string());
     return std::vector<std::string>{diameters.begin(), diameters.end()};
 }
 
@@ -4007,6 +4050,21 @@ const Preset* PrinterPresetCollection::find_system_preset_by_model_and_variant(c
     return it != cend() ? &*it : nullptr;
 }
 
+const Preset *PrinterPresetCollection::find_system_preset_by_model_and_nozzle(const std::string &model_id, double nozzle_diameter) const
+{
+    if (model_id.empty())
+        return nullptr;
+
+    const auto it = std::find_if(cbegin(), cend(), [&](const Preset &preset) {
+        if (!preset.is_system || preset.config.opt_string("printer_model") != model_id)
+            return false;
+        const auto *nozzle = preset.config.opt<ConfigOptionFloats>("nozzle_diameter");
+        return nozzle != nullptr && !nozzle->values.empty() && std::abs(nozzle->values.front() - nozzle_diameter) < EPSILON;
+    });
+
+    return it != cend() ? &*it : nullptr;
+}
+
 const Preset *PrinterPresetCollection::find_custom_preset_by_model_and_variant(const std::string &model_id, const std::string &variant) const
 {
     if (model_id.empty()) { return nullptr; }
@@ -4590,6 +4648,46 @@ namespace PresetUtils {
                 out = Slic3r::resources_dir() + "/profiles/" + preset.vendor->id + "/" + pm->bed_texture;
         }
         return out;
+    }
+
+    static std::string asset_beside_preset(const Preset& preset, const std::string& suffix)
+    {
+        if (preset.file.empty())
+            return {};
+        boost::system::error_code ec;
+        const boost::filesystem::path stem = boost::filesystem::path(preset.file).replace_extension();
+        const std::string prefix = stem.filename().string() + suffix + ".";
+        for (boost::filesystem::directory_iterator it(stem.parent_path(), ec), end; !ec && it != end; it.increment(ec))
+            if (boost::starts_with(it->path().filename().string(), prefix))
+                return it->path().string();
+        return {};
+    }
+
+    std::string nozzle_variant_string(double nozzle_diameter)
+    {
+        std::ostringstream stream; // 2 decimals so 0.25 / 0.15 survive, then trim trailing zeros
+        stream << std::fixed << std::setprecision(2) << nozzle_diameter;
+        std::string s = stream.str();
+        if (s.find('.') != std::string::npos) {
+            s.erase(s.find_last_not_of('0') + 1);
+            if (s.back() == '.') s += '0'; // "1." -> "1.0"
+        }
+        return s;
+    }
+
+    std::string detached_printer_asset(PresetCollection &printers, const Preset& preset, const std::string& suffix)
+    {
+        const Preset          *current = &preset;
+        std::set<std::string>  seen;
+        while (current != nullptr && seen.insert(current->name).second) {
+            const std::string found = asset_beside_preset(*current, suffix);
+            if (!found.empty())
+                return found;
+            if (current->inherits().empty())
+                break;
+            current = printers.find_preset(current->inherits());
+        }
+        return {};
     }
 
     std::string system_printer_hotend_model(const Preset& preset)

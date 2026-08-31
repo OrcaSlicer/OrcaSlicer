@@ -1172,6 +1172,7 @@ void PlaterPresetComboBox::update()
     std::map<wxString, wxBitmap *> system_presets;
     std::map<wxString, wxBitmap *>  uncompatible_presets;
     std::unordered_set<std::string> system_printer_models;
+    std::unordered_set<std::string> user_printer_families; // ORCA: one entry per custom printer family
     std::map<wxString, wxString>   preset_descriptions;
     std::map<wxString, std::string> preset_filament_vendors;
     std::map<wxString, std::string> preset_filament_types;
@@ -1313,6 +1314,29 @@ void PlaterPresetComboBox::update()
         }
         else
         {
+            // ORCA: collapse a custom printer's nozzle variants into one entry, as the system branch
+            // above collapses by printer_model. Variants share an inheritance root, so each family is
+            // listed once under its root's name; unrelated custom printers of one model stay apart.
+            if (m_type == Preset::TYPE_PRINTER) {
+                const std::string family      = m_collection->family_root_name(preset);
+                const wxString    family_name = from_u8(is_selected && preset.is_dirty ? Preset::suffix_modified() + family : family);
+                if (user_printer_families.count(family) == 0) {
+                    preset_aliases[family_name] = family;
+                    nonsys_presets.emplace(family_name, bmp);
+                    user_printer_families.insert(family);
+                } else if (is_selected) {
+                    const wxString alternate_name = from_u8(preset.is_dirty ? family : Preset::suffix_modified() + family);
+                    if (nonsys_presets.erase(alternate_name))
+                        nonsys_presets.emplace(family_name, bmp);
+                    preset_aliases.erase(alternate_name);
+                    preset_aliases[family_name] = family;
+                }
+                if (is_selected) {
+                    selected_user_preset = family_name;
+                    tooltip = get_tooltip(preset);
+                }
+                continue;
+            }
             nonsys_presets.emplace(name, bmp);
             if (is_selected) {
                 selected_user_preset = name;

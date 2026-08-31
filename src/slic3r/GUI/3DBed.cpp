@@ -445,8 +445,10 @@ std::tuple<Bed3D::Type, std::string, std::string> Bed3D::detect_type(const Point
                     if (curr->is_system)
                         model_filename = PresetUtils::system_printer_bed_model(*curr);
                     else {
+                        // Orca: a detached copy owns its bed model, so it survives its vendor being removed.
+                        model_filename = PresetUtils::detached_printer_asset(bundle->printers, *curr, "_bed_model");
                         auto *printer_model = curr->config.opt<ConfigOptionString>("printer_model");
-                        if (printer_model != nullptr && ! printer_model->value.empty()) {
+                        if (model_filename.empty() && printer_model != nullptr && ! printer_model->value.empty()) {
                             model_filename = bundle->get_stl_model_for_printer_model(printer_model->value);
                         }
                     }
