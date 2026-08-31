@@ -5843,7 +5843,8 @@ LayerResult GCode::process_layer(
                 std::any_of(m_config.enable_overhang_bridge_fan.values.begin(),
                             m_config.enable_overhang_bridge_fan.values.end(),
                             [](unsigned char value) { return value != 0; });
-            // Orca: Overhang metadata needs the same previous-layer boundary cache as speed and fan estimation.
+            // Orca: Prepare geometry only when needed. The estimator resolves the actual lower layer even
+            // after skipped layers, keeping speed and cooling independent of optional preview metadata.
             if (enable_overhang_speed || enable_overhang_fan || (has_extrusions && m_config.gcode_overhangs)) {
                 m_extrusion_quality_estimator.prepare_for_new_layer(layer_to_print.original_object,
                                                                     layer_to_print.object_layer);

@@ -406,6 +406,8 @@ class ExtrusionQualityEstimator
     std::unordered_map<const PrintObject*, AABBTreeLines::LinesDistancer<Linef3>>      next_layer_boundaries;
     std::unordered_map<const PrintObject *, AABBTreeLines::LinesDistancer<CurledLine>> prev_curled_extrusions;
     std::unordered_map<const PrintObject *, AABBTreeLines::LinesDistancer<CurledLine>> next_curled_extrusions;
+    // Orca: Preparation can skip layers when speed, cooling and preview metadata are all disabled.
+    std::unordered_map<const PrintObject *, const Layer *> last_prepared_layers;
     const PrintObject                                                            *current_object;
 
     // Orca: Share the signed-distance formula between original line segments and fitted arc samples.
@@ -423,10 +425,23 @@ public:
     {
         if (layer == nullptr) return;
         const PrintObject *object = obj;
+        // Orca: Reuse the cached trees only if they belong to the actual lower layer. A height modifier
+        // may enable estimation for the first time or resume it after a gap; in either case, rebuild
+        // the missing support reference so gcode_overhangs cannot change speed or curled-edge cooling.
+        const Layer *lower = layer->lower_layer;
+        if (last_prepared_layers[object] != lower) {
+            next_layer_boundaries[object] = lower != nullptr ?
+                AABBTreeLines::LinesDistancer<Linef3>{to_unscaled_linesf3(lower->lslices)} :
+                AABBTreeLines::LinesDistancer<Linef3>{};
+            next_curled_extrusions[object] = lower != nullptr ?
+                AABBTreeLines::LinesDistancer<CurledLine>{lower->curled_lines} :
+                AABBTreeLines::LinesDistancer<CurledLine>{};
+        }
         prev_layer_boundaries[object] = next_layer_boundaries[object];
         next_layer_boundaries[object]  = AABBTreeLines::LinesDistancer<Linef3>{to_unscaled_linesf3(layer->lslices)};
         prev_curled_extrusions[object] = next_curled_extrusions[object];
         next_curled_extrusions[object] = AABBTreeLines::LinesDistancer<CurledLine>{layer->curled_lines};
+        last_prepared_layers[object] = layer;
     }
 
     // Orca: Return the unsupported part of the extrusion width for every original path segment, in percent.
