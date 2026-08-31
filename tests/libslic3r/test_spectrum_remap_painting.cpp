@@ -129,3 +129,34 @@ TEST_CASE("Cut perform_with_plane KeepPaint vs not timing", "[spectrum_remap_pai
         REQUIRE_FALSE(result.empty());
     }
 }
+
+TEST_CASE("Cut KeepPaint remaps paint onto result volumes", "[spectrum_remap_painting]")
+{
+    Model        model;
+    ModelVolume *vol = add_fully_painted_sphere(model, 2. * PI / 20.);
+    REQUIRE(vol->get_object() != nullptr);
+    ModelObject *object = vol->get_object();
+
+    const ModelObjectCutAttributes attrs = ModelObjectCutAttribute::KeepUpper |
+                                           ModelObjectCutAttribute::KeepLower |
+                                           ModelObjectCutAttribute::KeepPaint;
+    Cut cut(object, 0, Geometry::translation_transform(1.0 * Vec3d::UnitZ()), attrs);
+    const ModelObjectPtrs &result = cut.perform_with_plane();
+    REQUIRE_FALSE(result.empty());
+
+    bool paint_survived = false;
+    for (const ModelObject *obj : result) {
+        REQUIRE(obj != nullptr);
+        for (const ModelVolume *v : obj->volumes) {
+            if (!v->is_model_part() || v->is_cut_connector())
+                continue;
+            if (!v->mmu_segmentation_facets.get_data().bitstream.empty()) {
+                paint_survived = true;
+                break;
+            }
+        }
+        if (paint_survived)
+            break;
+    }
+    REQUIRE(paint_survived);
+}

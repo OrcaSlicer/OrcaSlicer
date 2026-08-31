@@ -4,6 +4,13 @@
 #include <glad/gl.h>
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
@@ -11,6 +18,7 @@
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Thread.hpp"
 #include "libslic3r/TriangleMeshSlicer.hpp"
 #include "GLGizmoUtils.hpp"
 
@@ -3551,8 +3559,6 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
         // update connectors pos as offset of its center before cut performing
         apply_connectors_in_model(cut_mo , dowels_count);
 
-        wxBusyCursor wait;
-
         const bool keep_painting = GUI::wxGetApp().app_config->get_bool("keep_painting");
         ModelObjectCutAttributes attributes = only_if(has_connectors ? true : m_keep_upper, ModelObjectCutAttribute::KeepUpper) |
                                               only_if(has_connectors ? true : m_keep_lower, ModelObjectCutAttribute::KeepLower) |
@@ -3568,10 +3574,74 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
         // update cut_id for the cut object in respect to the attributes
         update_object_cut_id(cut_mo->cut_id, attributes, dowels_count);
 
-        Cut cut(cut_mo, instance_idx, get_cut_matrix(selection), attributes);
-        const ModelObjectPtrs& new_objects = cut_by_contour    ? cut.perform_by_contour(mo, m_part_selection.get_cut_parts(), dowels_count):
-                                             cut_with_groove   ? cut.perform_with_groove(m_groove, m_rotation_m, m_groove_count, m_groove_gap, m_radius) :
-                                                                 cut.perform_with_plane();
+        const Transform3d          cut_matrix = get_cut_matrix(selection);
+        const std::vector<Cut::Part> captured_parts = m_part_selection.get_cut_parts();
+        const Cut::Groove          captured_groove = m_groove;
+        const Transform3d          captured_rotation_m = m_rotation_m;
+        const int                  captured_groove_count = m_groove_count;
+        const float                captured_groove_gap = m_groove_gap;
+        const float                captured_radius = float(m_radius);
+
+        std::mutex              mtx;
+        std::condition_variable condition;
+        struct Progress {
+            std::string message;
+            int         percent  = 0;
+            bool        updated  = false;
+        } progress;
+        std::atomic<bool> canceled{false};
+        std::atomic<bool> finished{false};
+        bool              success = false;
+        std::string       cut_error;
+        std::unique_ptr<Cut> cut;
+        ModelObjectPtrs      new_objects;
+
+        auto worker_thread = std::thread([&]() {
+            try {
+                set_current_thread_name("cut_perform");
+                {
+                    std::unique_lock<std::mutex> lock(mtx);
+                    progress.message = "Cutting...";
+                    progress.percent = 50;
+                    progress.updated = true;
+                }
+                condition.notify_all();
+
+                cut = std::make_unique<Cut>(cut_mo, instance_idx, cut_matrix, attributes);
+                const ModelObjectPtrs &result = cut_by_contour ?
+                    cut->perform_by_contour(mo, captured_parts, dowels_count) :
+                    cut_with_groove ?
+                    cut->perform_with_groove(captured_groove, captured_rotation_m, captured_groove_count, captured_groove_gap, captured_radius) :
+                    cut->perform_with_plane();
+                new_objects = result;
+                success     = true;
+            } catch (const std::exception &ex) {
+                success   = false;
+                cut_error = ex.what();
+            }
+            finished = true;
+            condition.notify_all();
+        });
+
+        ProgressDialog progress_dlg(_L("Cutting"), "", 100, find_toplevel_parent(plater),
+                                    wxPD_AUTO_HIDE | wxPD_APP_MODAL | wxPD_CAN_ABORT, true);
+        while (!finished) {
+            std::unique_lock<std::mutex> lock(mtx);
+            condition.wait_for(lock, std::chrono::milliseconds(250), [&progress] { return progress.updated; });
+            if (!progress_dlg.Update(std::max<int>(0, progress.percent - 1), _L("Cutting")))
+                canceled = true;
+            else
+                progress_dlg.Fit();
+            progress.updated = false;
+        }
+        if (worker_thread.joinable())
+            worker_thread.join();
+
+        if (canceled || !success || !cut) {
+            if (!canceled && !cut_error.empty())
+                WarningDialog(plater, from_u8(cut_error)).ShowModal();
+            return;
+        }
 
         // fix_non_manifold_edges
         {
