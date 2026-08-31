@@ -1,0 +1,70 @@
+# Adds assimp to the orcacad-deps image.
+#
+# WHY THIS EXISTS. OrcaSlicer mainline gained `find_package(assimp REQUIRED)` in
+# src/libslic3r/CMakeLists.txt (glTF/GLB/FBX import for texture-to-colour), and the baked
+# orcacad-deps image predates it: the image's deps/ tree has no Assimp directory at all, and
+# nothing named assimp exists anywhere in it. On the host, deps/build/dep_Assimp-prefix has
+# only `patch` and `update` stamps -- no build, no install -- so the dependency was fetched
+# and then never built, in the image or out of it.
+#
+# The consequence was that scripts/CAD/run-kernel-tests.sh failed at CMake CONFIGURE time,
+# before a single source file compiled, so THIS FORK'S KERNEL SUITE COULD NOT RUN AT ALL.
+# Every kernel change ported here was parity-checked against snaporca and never independently
+# tested (snaporca-w80c). The Snapmaker fork does not hit this: its base requires neither
+# assimp nor OpenCV.
+#
+# WHY A LAYER AND NOT A FULL DEPS REBUILD. Rebuilding every dependency takes hours and would
+# rewrite artifacts that are currently working. This adds exactly the one missing package on
+# top of the existing image, and it is a Dockerfile rather than a `docker commit` so that what
+# was done is reviewable and repeatable instead of being an undocumented mutation.
+#
+# The flags below are copied from the project's own recipe (deps/Assimp/Assimp.cmake) plus the
+# standard superbuild arguments from orcaslicer_add_cmake_project (deps/CMakeLists.txt:158) and
+# DEP_CMAKE_OPTS (deps/deps-linux.cmake). Keep them in step with that recipe: this file is a
+# stand-in for the superbuild, not an independent opinion about how to build assimp.
+#
+#   BUILD (from the repo root, tarball already in deps/DL_CACHE/Assimp/):
+#     docker build -f scripts/Dockerfile.deps-assimp -t orcacad-deps .
+#
+#   VERIFY:
+#     docker run --rm orcacad-deps sh -c \
+#       'ls /OrcaSlicer/deps/build/destdir/usr/local/lib/cmake/assimp*'
+#     scripts/CAD/run-kernel-tests.sh
+#
+FROM orcacad-deps
+
+# v5.4.3 is the version deps/Assimp/Assimp.cmake selects for CMake >= 3.22 (the image has
+# 3.28.3). The SHA256 is that recipe's URL_HASH, verified against the cached tarball before
+# this file was written -- an unverified archive is not a dependency, it is whatever was
+# sitting in the cache.
+ARG ASSIMP_SHA256=66dfbaee288f2bc43172440a55d0235dfc7bf885dda6435c038e8000e79582cb
+COPY deps/DL_CACHE/Assimp/v5.4.3.tar.gz /tmp/assimp.tar.gz
+
+RUN set -eux; \
+    echo "${ASSIMP_SHA256}  /tmp/assimp.tar.gz" | sha256sum -c -; \
+    mkdir -p /tmp/assimp-src && \
+    tar -xzf /tmp/assimp.tar.gz -C /tmp/assimp-src --strip-components=1; \
+    DESTDIR=/OrcaSlicer/deps/build/destdir/usr/local; \
+    cmake -S /tmp/assimp-src -B /tmp/assimp-build -G Ninja \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="$DESTDIR" \
+        -DCMAKE_PREFIX_PATH="$DESTDIR" \
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DASSIMP_BUILD_USE_CCACHE=OFF \
+        -DASSIMP_BUILD_TESTS=OFF \
+        -DASSIMP_BUILD_SAMPLES=OFF \
+        -DASSIMP_BUILD_ASSIMP_TOOLS=OFF \
+        -DASSIMP_INSTALL_PDB=OFF \
+        -DASSIMP_NO_EXPORT=ON \
+        -DASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT=OFF \
+        -DASSIMP_BUILD_GLTF_IMPORTER=ON \
+        -DASSIMP_BUILD_OBJ_IMPORTER=ON \
+        -DASSIMP_BUILD_FBX_IMPORTER=ON \
+        -DASSIMP_BUILD_ZLIB=ON \
+        -DASSIMP_WARNINGS_AS_ERRORS=OFF \
+        -DBUILD_WITH_STATIC_CRT=OFF; \
+    cmake --build /tmp/assimp-build --target install -- -j"$(nproc)"; \
+    rm -rf /tmp/assimp-src /tmp/assimp-build /tmp/assimp.tar.gz; \
+    test -n "$(ls "$DESTDIR"/lib/cmake/assimp* 2>/dev/null)"
