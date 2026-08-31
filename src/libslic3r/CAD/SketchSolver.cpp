@@ -82,6 +82,15 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
     const Slvs_hEntity dir_y [[maybe_unused]] = b.E(Slvs_MakeLineSegment(++b.eh, G_FIXED, b.wp,
                                                        b.pt2d(G_FIXED, 0.0, 1.0), b.pt2d(G_FIXED, 0.0, 0.0)));
 
+    // Implicit sketch references (origin, X axis, Y axis), addressable by the negative
+    // sentinels in SketchEngine.hpp. G_FIXED: held constant, zero added DOF. The axis lines
+    // are built head-first so their direction reads +X / +Y, matching dir_x / dir_y.
+    const Slvs_hEntity ref_origin_pt = b.pt2d(G_FIXED, 0.0, 0.0);
+    const Slvs_hEntity ref_axis_x = b.E(Slvs_MakeLineSegment(++b.eh, G_FIXED, b.wp,
+                                    b.pt2d(G_FIXED, 1.0, 0.0), ref_origin_pt));
+    const Slvs_hEntity ref_axis_y = b.E(Slvs_MakeLineSegment(++b.eh, G_FIXED, b.wp,
+                                    b.pt2d(G_FIXED, 0.0, 1.0), ref_origin_pt));
+
     // ---- Entities -------------------------------------------------------------------
     std::vector<Slots> slot(entities.size());
     for (size_t i = 0; i < entities.size(); ++i) {
@@ -138,6 +147,8 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
 
     auto valid = [&](int ei) { return ei >= 0 && ei < int(entities.size()); };
     auto ptOf  = [&](int ei, Role r) -> Slvs_hEntity {
+        if (ei == kSketchRefOrigin) return ref_origin_pt;
+        if (ei == kSketchRefAxisX || ei == kSketchRefAxisY) return ref_origin_pt;  // axes pass through it
         if (!valid(ei)) return 0;
         const Slots& s = slot[ei];
         switch (r) {
@@ -147,8 +158,13 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
         }
         return 0;
     };
-    auto primOf = [&](int ei) -> Slvs_hEntity { return valid(ei) ? slot[ei].prim : 0; };
+    auto primOf = [&](int ei) -> Slvs_hEntity {
+        if (ei == kSketchRefAxisX) return ref_axis_x;
+        if (ei == kSketchRefAxisY) return ref_axis_y;
+        return valid(ei) ? slot[ei].prim : 0;      // origin has no prim: it is a point
+    };
     auto coordOf = [&](int ei, Role r) -> Vec2d {
+        if (is_sketch_ref(ei)) return Vec2d(0, 0);   // all three pass through the origin
         if (!valid(ei)) return Vec2d(0, 0);
         const SketchEntity& e = entities[ei];
         switch (r) { case Role::P0: return e.p0; case Role::P1: return e.p1; case Role::Center: return e.center; }
@@ -183,6 +199,8 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
             ref_ok = ptOf(c.ea, c.ra) && primOf(c.eb); break;
         case CT::Symmetric:
             ref_ok = ptOf(c.ea, c.ra) && ptOf(c.eb, c.rb) && primOf(c.ec); break;
+        case CT::SymmetricAboutY: case CT::SymmetricAboutX:
+            ref_ok = ptOf(c.ea, c.ra) && ptOf(c.eb, c.rb); break;
         case CT::PointOnLine: case CT::PointOnObject:
             ref_ok = ptOf(c.ea, c.ra) && primOf(c.eb); break;
         case CT::EqualRadius:
@@ -244,6 +262,12 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
         case CT::Symmetric:
             // ptA, ptB symmetric about the axis line (ec).
             b.C(SLVS_C_SYMMETRIC_LINE, 0, ptOf(c.ea, c.ra), ptOf(c.eb, c.rb), primOf(c.ec), 0);
+            break;
+        case CT::SymmetricAboutY:
+            b.C(SLVS_C_SYMMETRIC_LINE, 0, ptOf(c.ea, c.ra), ptOf(c.eb, c.rb), primOf(kSketchRefAxisY), 0);
+            break;
+        case CT::SymmetricAboutX:
+            b.C(SLVS_C_SYMMETRIC_LINE, 0, ptOf(c.ea, c.ra), ptOf(c.eb, c.rb), primOf(kSketchRefAxisX), 0);
             break;
         case CT::Angle:
             // model stores radians; slvs angle is in degrees.

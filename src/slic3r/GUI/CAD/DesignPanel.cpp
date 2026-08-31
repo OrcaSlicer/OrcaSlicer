@@ -1526,6 +1526,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         cbtn("design_c_tangent",       _L("Tangent"),       SketchConstraintType::Tangent);
         cbtn("design_c_midpoint",      _L("Midpoint"),      SketchConstraintType::Midpoint);
         cbtn("design_c_symmetric",     _L("Symmetric"),     SketchConstraintType::Symmetric);
+        cbtn("design_c_sym_v", _L("Symmetric about the vertical axis"),   SketchConstraintType::SymmetricAboutY);
+        cbtn("design_c_sym_h", _L("Symmetric about the horizontal axis"), SketchConstraintType::SymmetricAboutX);
         cbtn("design_c_angle",         _L("Angle"),         SketchConstraintType::Angle);
         cbtn("design_c_radius",        _L("Radius"),        SketchConstraintType::Radius);
         cbtn("design_c_diameter",      _L("Diameter"),      SketchConstraintType::Diameter);
@@ -7737,6 +7739,7 @@ void DesignPanel::apply_entity_constraint(SketchConstraintType type)
                             type == T::Angle || type == T::Midpoint ||
                             type == T::Symmetric || type == T::EqualRadius ||
                             type == T::Collinear ||
+                            type == T::SymmetricAboutY || type == T::SymmetricAboutX ||
                             type == T::DistanceX || type == T::DistanceY);
     if (e0 < 0 || e0 >= int(feat.entities.size()) ||
         (needs_two && (e1 < 0 || e1 >= int(feat.entities.size())))) {
@@ -7878,6 +7881,27 @@ void DesignPanel::apply_entity_constraint(SketchConstraintType type)
         if (ta == ET::Point && tb == ET::Point) { mk(R::P0, R::P0); }
         else if (ta == ET::Line && tb == ET::Line) { mk(R::P0, R::P0); mk(R::P1, R::P1); }
         else { fail(_L("Symmetric needs two points or two lines + an axis")); return; }
+        commit_entity_constraints(defs);
+        return;   // multi-def commit done here
+    }
+    case T::SymmetricAboutY:
+    case T::SymmetricAboutX: {
+        // Two entities made symmetric about the sketch's vertical/horizontal axis, which
+        // is implicit (no picked axis line). Picks: slot0=A, slot1=B. Two Points -> one
+        // pair; two Lines -> endpoint pairs. The axis is a negative sentinel in ec.
+        using ET = SketchEntity::Type;
+        const int axis = (type == T::SymmetricAboutY) ? kSketchRefAxisY : kSketchRefAxisX;
+        const ET ta = feat.entities[e0].type, tb = feat.entities[e1].type;
+        std::vector<SketchEntityConstraintDef> defs;
+        auto mk = [&](R ra, R rb) {
+            SketchEntityConstraintDef d;
+            d.type = type;
+            d.ea = e0; d.ra = ra; d.eb = e1; d.rb = rb; d.ec = axis;
+            defs.push_back(d);
+        };
+        if (ta == ET::Point && tb == ET::Point) { mk(R::P0, R::P0); }
+        else if (ta == ET::Line && tb == ET::Line) { mk(R::P0, R::P0); mk(R::P1, R::P1); }
+        else { fail(_L("Symmetric needs two points or two lines")); return; }
         commit_entity_constraints(defs);
         return;   // multi-def commit done here
     }
@@ -8050,6 +8074,10 @@ wxString DesignPanel::constraint_label(const SketchEntityConstraintDef& d) const
     case T::Midpoint:      return two(_L("Midpoint"));
     case T::Symmetric:     return wxString::Format(_L("Symmetric %s — %s / %s"),
                                                    tag(d.ea, d.ra), tag(d.eb, d.rb), tag(d.ec, d.rc));
+    case T::SymmetricAboutY: return wxString::Format(_L("Symmetric about Y axis %s — %s"),
+                                                     tag(d.ea, d.ra), tag(d.eb, d.rb));
+    case T::SymmetricAboutX: return wxString::Format(_L("Symmetric about X axis %s — %s"),
+                                                     tag(d.ea, d.ra), tag(d.eb, d.rb));
     case T::Angle:         return wxString::Format("%s = %s°", two(_L("Angle")), en_format(d.value * 180.0 / M_PI, 1));
     case T::Radius:        return wxString::Format("%s %s = %s", _L("Radius"),   tag(d.ea, d.ra), en_format(d.value));
     case T::Diameter:      return wxString::Format("%s %s = %s", _L("Diameter"), tag(d.ea, d.ra), en_format(d.value));

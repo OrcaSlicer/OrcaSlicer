@@ -90,7 +90,9 @@ enum class SketchConstraintType {
     EqualRadius,
     Collinear,
     DistanceX,     // |dx| between two points, projected onto the sketch X axis
-    DistanceY      // |dy| between two points, projected onto the sketch Y axis
+    DistanceY,     // |dy| between two points, projected onto the sketch Y axis
+    SymmetricAboutY, // mirror across the sketch's vertical axis (x = 0); axis is implicit
+    SymmetricAboutX  // mirror across the sketch's horizontal axis (y = 0); axis is implicit
 };
 
 // Constraint on a SketchProfile, referencing profile point indices (a,b,c,d).
@@ -124,6 +126,16 @@ struct SketchEntityConstraintDef {
     SketchPointRole rc{SketchPointRole::P0};            // role within ec
     template<class Archive> void serialize(Archive& ar) { ar(type, ea, eb, ra, rb, value, ec, rc); }
 };
+
+// Implicit references every sketch has, addressable from a constraint's ea/eb/ec without
+// existing as SketchEntity objects. NEGATIVE so they cannot collide with an entity index;
+// -1 is already "unset" and stays that way. Values are serialized inside existing int
+// fields, so they are append-only in spirit: never renumber these.
+constexpr int kSketchRefOrigin = -2;   // the sketch origin point (0,0)
+constexpr int kSketchRefAxisX  = -3;   // the sketch X axis, through the origin, +X
+constexpr int kSketchRefAxisY  = -4;   // the sketch Y axis, through the origin, +Y
+
+inline bool is_sketch_ref(int ei) { return ei <= kSketchRefOrigin; }
 
 // Solve a bare entity list in place against entity-form constraints. Shared by
 // CadDocument::solve_sketch_feature (committed features) and the in-session GUI

@@ -300,3 +300,102 @@ TEST_CASE("slvs: applying a point's own distance-x is a no-op", "[slvs][CadDocum
     CHECK(ents[0].p1.x() == Approx(-4.0).margin(1e-9));   // stayed left, did not flip to +4
     CHECK(ents[0].p1.y() == Approx(7.0).margin(1e-9));
 }
+
+static SketchEntity point(Vec2d p)
+{
+    SketchEntity e; e.type = SketchEntity::Type::Point; e.p0 = p; return e;
+}
+
+TEST_CASE("slvs: coincident onto the origin sentinel pins a point", "[slvs][CadDocument]")
+{
+    std::vector<SketchEntity> ents = { point({5, 5}) };
+    std::vector<SketchEntityConstraintDef> cons = {
+        con(CT::Coincident, 0, R::P0, kSketchRefOrigin, R::P0),
+    };
+    auto res = sketch_solve(ents, cons);
+    REQUIRE(res.ok);
+    CHECK(ents[0].p0.x() == Approx(0.0).margin(1e-9));
+    CHECK(ents[0].p0.y() == Approx(0.0).margin(1e-9));
+}
+
+// NOTE on why these pin the free direction instead of asserting "the other coordinate is
+// left alone". sys.dragged[] is populated only while a drag is in progress, so a plain
+// sketch_solve of an UNDER-constrained system is free to move any parameter -- solvespace
+// runs a Newton iteration, it does not minimise movement. PointOnLine alone is one equation
+// in two unknowns, and the point measurably slides along the axis (from (7,4) to (4,0)).
+// That is legal, not a defect, so the well-posed test states both coordinates.
+TEST_CASE("slvs: point-on-line onto the X axis, located along it from the origin", "[slvs][CadDocument]")
+{
+    std::vector<SketchEntity> ents = { point({7, 4}) };
+    std::vector<SketchEntityConstraintDef> cons = {
+        con(CT::PointOnLine, 0, R::P0, kSketchRefAxisX, R::P0),
+        con(CT::DistanceX,   kSketchRefOrigin, R::P0, 0, R::P0, 7.0),   // both sentinels at once
+    };
+    auto res = sketch_solve(ents, cons);
+    REQUIRE(res.ok);
+    CHECK(ents[0].p0.y() == Approx(0.0).margin(1e-9));   // driven onto the X axis
+    CHECK(ents[0].p0.x() == Approx(7.0).margin(1e-9));   // and located along it
+}
+
+TEST_CASE("slvs: point-on-line onto the Y axis, located along it from the origin", "[slvs][CadDocument]")
+{
+    std::vector<SketchEntity> ents = { point({4, 7}) };
+    std::vector<SketchEntityConstraintDef> cons = {
+        con(CT::PointOnLine, 0, R::P0, kSketchRefAxisY, R::P0),
+        con(CT::DistanceY,   kSketchRefOrigin, R::P0, 0, R::P0, 7.0),
+    };
+    auto res = sketch_solve(ents, cons);
+    REQUIRE(res.ok);
+    CHECK(ents[0].p0.x() == Approx(0.0).margin(1e-9));   // driven onto the Y axis
+    CHECK(ents[0].p0.y() == Approx(7.0).margin(1e-9));   // and located along it
+}
+
+TEST_CASE("slvs: parallel to the X axis levels a line without collapsing it", "[slvs][CadDocument]")
+{
+    std::vector<SketchEntity> ents = { line({0, 0}, {10, 3}) };
+    std::vector<SketchEntityConstraintDef> cons = {
+        con(CT::Fix,      0, R::P0, 0, R::P0),
+        con(CT::Parallel, 0, R::P0, kSketchRefAxisX, R::P0),
+    };
+    auto res = sketch_solve(ents, cons);
+    REQUIRE(res.ok);
+    CHECK(ents[0].p1.y() == Approx(0.0).margin(1e-9));   // leveled onto y = 0
+    // A bare Parallel leaves length free; the solver preserves the endpoint's free
+    // x-coordinate, so the line lands at (10,0) — length 10, not the original sqrt(109).
+    // Assert that free coordinate rather than abs(): a flipped/collapsed line would not
+    // land exactly here.
+    CHECK(ents[0].p1.x() == Approx(10.0).margin(1e-9));
+    CHECK((ents[0].p1 - ents[0].p0).norm() == Approx(10.0).margin(1e-6));   // did not collapse
+}
+
+TEST_CASE("slvs: symmetric-about-Y mirrors two points across x = 0", "[slvs][CadDocument]")
+{
+    std::vector<SketchEntity> ents = { point({3, 5}), point({9, 5}) };
+    std::vector<SketchEntityConstraintDef> cons = {
+        con(CT::SymmetricAboutY, 0, R::P0, 1, R::P0),
+    };
+    auto res = sketch_solve(ents, cons);
+    REQUIRE(res.ok);
+    CHECK(ents[0].p0.x() == Approx(-ents[1].p0.x()).margin(1e-9));   // mirror across x = 0
+    // Neither x may be 0: a both-collapsed-to-the-axis solution also satisfies the mirror
+    // trivially. Squared, not abs(), so a near-zero x still fails cleanly.
+    CHECK(ents[0].p0.x() * ents[0].p0.x() > 1e-12);
+    CHECK(ents[1].p0.x() * ents[1].p0.x() > 1e-12);
+    CHECK(ents[0].p0.y() == Approx(5.0).margin(1e-9));   // Y values untouched
+    CHECK(ents[1].p0.y() == Approx(5.0).margin(1e-9));
+}
+
+TEST_CASE("slvs: reference-based constraint adds no degrees of freedom", "[slvs][CadDocument]")
+{
+    // A free line with Fix on P0 and Parallel to the X axis: 4 DoF - 2 (fix) - 1 (angle)
+    // = 1 (length still free). If the G_FIXED reference entities leaked unknowns into the
+    // solved group, this figure would be wrong.
+    std::vector<SketchEntity> ents = { line({0, 0}, {3, 4}) };
+    std::vector<SketchEntityConstraintDef> cons = {
+        con(CT::Fix,      0, R::P0, 0, R::P0),
+        con(CT::Parallel, 0, R::P0, kSketchRefAxisX, R::P0),
+    };
+    auto res = sketch_solve(ents, cons);
+    REQUIRE(res.ok);
+    CHECK(res.dof == 1);
+}
