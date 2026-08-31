@@ -129,7 +129,9 @@ void cut_mesh(
     float                            z,
     indexed_triangle_set            *upper,
     indexed_triangle_set            *lower,
-    bool                             triangulate_caps = true);
+    bool                             triangulate_caps = true,
+    std::vector<int>                *upper_source_face = nullptr,
+    std::vector<int>                *lower_source_face = nullptr);
 
 } // namespace Slic3r
 

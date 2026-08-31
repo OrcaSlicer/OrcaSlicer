@@ -2556,4 +2556,56 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
     return target_selector.serialize();
 }
 
+TriangleSelector::TriangleSplittingData TriangleSelector::inherit_painting(
+    const indexed_triangle_set& source_its,
+    const TriangleSplittingData& source_painting,
+    const indexed_triangle_set& dest_its,
+    const std::vector<int>& source_face_ids,
+    const std::atomic<bool> *cancel)
+{
+    TriangleSplittingData result;
+    if (source_painting.bitstream.empty() || dest_its.indices.empty() || cancel_requested(cancel))
+        return result;
+    if (source_face_ids.size() != dest_its.indices.size())
+        return result;
+
+    TriangleMesh source_mesh(source_its);
+    TriangleSelector source_selector(source_mesh);
+    source_selector.deserialize(source_painting, false);
+
+    TriangleMesh dest_mesh(dest_its);
+    TriangleSelector dest_selector(dest_mesh);
+
+    constexpr size_t poll_every = 4096;
+    for (size_t i = 0; i < dest_its.indices.size(); ++i) {
+        if ((i % poll_every) == 0 && cancel_requested(cancel))
+            return {};
+        const int src_id = source_face_ids[i];
+        if (src_id < 0 || src_id >= source_selector.m_orig_size_indices)
+            continue;
+
+        const Triangle& src_orig = source_selector.m_triangles[src_id];
+        if (!src_orig.valid())
+            continue;
+
+        EnforcerBlockerType state = EnforcerBlockerType::NONE;
+        if (!src_orig.is_split()) {
+            state = src_orig.get_state();
+        } else {
+            const Vec3i32& face = dest_its.indices[i];
+            const Vec3f centroid = (dest_its.vertices[face(0)] + dest_its.vertices[face(1)] + dest_its.vertices[face(2)]) / 3.f;
+            const int leaf = source_selector.select_unsplit_triangle(centroid, src_id);
+            if (leaf < 0)
+                continue;
+            state = source_selector.m_triangles[leaf].get_state();
+        }
+        if (state != EnforcerBlockerType::NONE)
+            dest_selector.set_facet(int(i), state);
+    }
+
+    if (cancel_requested(cancel))
+        return {};
+    return dest_selector.serialize();
+}
+
 } // namespace Slic3r

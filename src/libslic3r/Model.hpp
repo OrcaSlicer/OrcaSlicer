@@ -888,6 +888,10 @@ public:
     // Remap painting data from previous saved source to this mesh
     void restore_painting(const std::optional<TriangleSelector::SavedPainting>& saved, bool keep_existing_paint = false, const std::atomic<bool> *cancel = nullptr);
 
+    // Cut KeepPaint: inherit succeeded on this result volume; finalize skips restore_painting.
+    // Not serialized (Cut-local scratch).
+    bool skip_restore_painting{false};
+
     // BBS: quick access for volume extruders, 1 based
     mutable std::vector<int> mmuseg_extruders;
     mutable Timestamp        mmuseg_ts;

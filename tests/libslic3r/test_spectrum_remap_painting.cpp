@@ -11,6 +11,7 @@
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/TriangleMeshSlicer.hpp"
 #include "libslic3r/TriangleSelector.hpp"
 
 using namespace Slic3r;
@@ -240,4 +241,97 @@ TEST_CASE("Cut KeepPaint cancel joins quickly", "[spectrum_remap_painting][spect
     if (ms > 500)
         WARN("Cut cancel join exceeded 500 ms: " << ms);
     REQUIRE(ms < 2000);
+}
+
+TEST_CASE("cut_mesh source-face ids match indices and caps are -1", "[spectrum_remap_painting][spectrum_cut_provenance]")
+{
+    TriangleMesh cube = make_cube(20., 20., 20.);
+    indexed_triangle_set upper, lower;
+    std::vector<int> upper_ids, lower_ids;
+    cut_mesh(cube.its, 1.0f, &upper, &lower, true, &upper_ids, &lower_ids);
+
+    REQUIRE(upper_ids.size() == upper.indices.size());
+    REQUIRE(lower_ids.size() == lower.indices.size());
+    const int nsrc = int(cube.its.indices.size());
+    for (int id : upper_ids) {
+        REQUIRE(id >= -1);
+        REQUIRE(id < nsrc);
+    }
+    for (int id : lower_ids) {
+        REQUIRE(id >= -1);
+        REQUIRE(id < nsrc);
+    }
+    bool upper_has_cap = false;
+    for (int id : upper_ids) {
+        if (id == -1) {
+            upper_has_cap = true;
+            break;
+        }
+    }
+    bool lower_has_cap = false;
+    for (int id : lower_ids) {
+        if (id == -1) {
+            lower_has_cap = true;
+            break;
+        }
+    }
+    REQUIRE(upper_has_cap);
+    REQUIRE(lower_has_cap);
+}
+
+TEST_CASE("Cut KeepPaint inherit preserves Mix 5 and Mix 6", "[spectrum_remap_painting][spectrum_cut_provenance]")
+{
+    Model        model;
+    ModelVolume *vol = add_painted_cube(model, {{0, 5}, {1, 6}});
+    REQUIRE(vol->get_object() != nullptr);
+    ModelObject *object = vol->get_object();
+
+    const ModelObjectCutAttributes attrs = ModelObjectCutAttribute::KeepUpper |
+                                           ModelObjectCutAttribute::KeepLower |
+                                           ModelObjectCutAttribute::KeepPaint;
+    Cut cut(object, 0, Geometry::translation_transform(1.0 * Vec3d::UnitZ()), attrs);
+    const ModelObjectPtrs &result = cut.perform_with_plane();
+    REQUIRE_FALSE(result.empty());
+
+    bool saw_mix5 = false;
+    bool saw_mix6 = false;
+    for (const ModelObject *obj : result) {
+        REQUIRE(obj != nullptr);
+        for (const ModelVolume *v : obj->volumes) {
+            if (!v->is_model_part() || v->is_cut_connector())
+                continue;
+            const auto &data = v->mmu_segmentation_facets.get_data();
+            if (data.used_states.size() > 6) {
+                if (data.used_states[5])
+                    saw_mix5 = true;
+                if (data.used_states[6])
+                    saw_mix6 = true;
+            }
+        }
+    }
+    REQUIRE(saw_mix5);
+    REQUIRE(saw_mix6);
+}
+
+TEST_CASE("Cut KeepPaint inherit is faster than remap", "[spectrum_remap_painting][spectrum_cut_provenance]")
+{
+    Model        model;
+    ModelVolume *vol = add_fully_painted_sphere(model, 2. * PI / 90.);
+    REQUIRE(vol->get_object() != nullptr);
+    ModelObject *object = vol->get_object();
+    const size_t n      = vol->mesh().its.indices.size();
+
+    const ModelObjectCutAttributes attrs = ModelObjectCutAttribute::KeepUpper |
+                                           ModelObjectCutAttribute::KeepLower |
+                                           ModelObjectCutAttribute::KeepPaint;
+    Cut cut(object, 0, Geometry::translation_transform(1.0 * Vec3d::UnitZ()), attrs);
+    const auto t0 = std::chrono::steady_clock::now();
+    const ModelObjectPtrs &result = cut.perform_with_plane();
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now() - t0)
+                        .count();
+
+    WARN("faces=" << n << " inherit_cut_ms=" << ms);
+    REQUIRE_FALSE(result.empty());
+    REQUIRE(ms < 1000);
 }

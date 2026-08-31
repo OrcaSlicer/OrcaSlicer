@@ -8,6 +8,7 @@
 #include "ObjectID.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <utility>
 
 namespace Slic3r {
 
@@ -45,10 +46,10 @@ static void apply_tolerance(ModelVolume* vol)
     vol->set_offset(vol->get_offset() + rot_norm * z_offset);
 }
 
-static void add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelVolume* src_volume, const Transform3d& cut_matrix, const std::string& suffix = {}, ModelVolumeType type = ModelVolumeType::MODEL_PART)
+static ModelVolume* add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelVolume* src_volume, const Transform3d& cut_matrix, const std::string& suffix = {}, ModelVolumeType type = ModelVolumeType::MODEL_PART)
 {
     if (mesh.empty())
-        return;
+        return nullptr;
 
     mesh.transform(cut_matrix);
     ModelVolume* vol = object->add_volume(mesh);
@@ -61,10 +62,14 @@ static void add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelV
     assert(vol->config.id() != src_volume->config.id());
     vol->set_material(src_volume->material_id(), *src_volume->material());
     vol->cut_info = src_volume->cut_info;
+    return vol;
 }
 
 static void process_volume_cut( const ModelVolume* volume, const Transform3d& instance_matrix, const Transform3d& cut_matrix,
-                                ModelObjectCutAttributes attributes, TriangleMesh& upper_mesh, TriangleMesh& lower_mesh)
+                                ModelObjectCutAttributes attributes, TriangleMesh& upper_mesh, TriangleMesh& lower_mesh,
+                                TriangleMesh *cut_space_source = nullptr,
+                                std::vector<int> *upper_source_face = nullptr,
+                                std::vector<int> *lower_source_face = nullptr)
 {
     const auto volume_matrix = volume->get_matrix();
 
@@ -77,7 +82,9 @@ static void process_volume_cut( const ModelVolume* volume, const Transform3d& in
     mesh.transform(invert_cut_matrix * instance_matrix * volume_matrix, true);
 
     indexed_triangle_set upper_its, lower_its;
-    cut_mesh(mesh.its, 0.0f, &upper_its, &lower_its);
+    cut_mesh(mesh.its, 0.0f, &upper_its, &lower_its, true, upper_source_face, lower_source_face);
+    if (cut_space_source)
+        *cut_space_source = std::move(mesh);
     if (attributes.has(ModelObjectCutAttribute::KeepUpper))
         upper_mesh = TriangleMesh(upper_its);
     if (attributes.has(ModelObjectCutAttribute::KeepLower))
@@ -178,29 +185,99 @@ static void process_modifier_cut(ModelVolume* volume, const Transform3d& instanc
         lower->add_volume(*volume);
 }
 
-static void process_solid_part_cut(const ModelVolume* volume, const Transform3d& instance_matrix, const Transform3d& cut_matrix,
-                            ModelObjectCutAttributes attributes, ModelObject* upper, ModelObject* lower)
+static bool compute_inherited_painting(const TriangleSelector::SavedPainting& saved,
+                                       const indexed_triangle_set& source_its,
+                                       const indexed_triangle_set& dest_its,
+                                       const std::vector<int>& ids,
+                                       const std::atomic<bool>* cancel,
+                                       TriangleSelector::TriangleSplittingData& supported,
+                                       TriangleSelector::TriangleSplittingData& seam,
+                                       TriangleSelector::TriangleSplittingData& mmu,
+                                       TriangleSelector::TriangleSplittingData& fuzzy)
 {
-    // Perform cut
-    TriangleMesh upper_mesh, lower_mesh;
-    process_volume_cut(volume, instance_matrix, cut_matrix, attributes, upper_mesh, lower_mesh);
+    if (ids.size() != dest_its.indices.size())
+        return false;
+    auto canceled = [cancel]() {
+        return cancel != nullptr && cancel->load(std::memory_order_relaxed);
+    };
+    supported = TriangleSelector::inherit_painting(source_its, saved.supported, dest_its, ids, cancel);
+    if (canceled())
+        return false;
+    seam = TriangleSelector::inherit_painting(source_its, saved.seam, dest_its, ids, cancel);
+    if (canceled())
+        return false;
+    mmu = TriangleSelector::inherit_painting(source_its, saved.mmu, dest_its, ids, cancel);
+    if (canceled())
+        return false;
+    fuzzy = TriangleSelector::inherit_painting(source_its, saved.fuzzy, dest_its, ids, cancel);
+    return !canceled();
+}
 
-    // Add required cut parts to the objects
+static void apply_inherited_painting(ModelVolume& dest,
+                                     TriangleSelector::TriangleSplittingData&& supported,
+                                     TriangleSelector::TriangleSplittingData&& seam,
+                                     TriangleSelector::TriangleSplittingData&& mmu,
+                                     TriangleSelector::TriangleSplittingData&& fuzzy)
+{
+    if (!supported.bitstream.empty())
+        dest.supported_facets.set_data(std::move(supported));
+    if (!seam.bitstream.empty())
+        dest.seam_facets.set_data(std::move(seam));
+    if (!mmu.bitstream.empty())
+        dest.mmu_segmentation_facets.set_data(std::move(mmu));
+    if (!fuzzy.bitstream.empty())
+        dest.fuzzy_skin_facets.set_data(std::move(fuzzy));
+    dest.skip_restore_painting = true;
+}
+
+static void process_solid_part_cut(const ModelVolume* volume, const Transform3d& instance_matrix, const Transform3d& cut_matrix,
+                            ModelObjectCutAttributes attributes, ModelObject* upper, ModelObject* lower,
+                            const std::optional<TriangleSelector::SavedPainting>* saved,
+                            const std::atomic<bool>* cancel)
+{
+    TriangleMesh upper_mesh, lower_mesh;
+    TriangleMesh cut_space_source;
+    std::vector<int> upper_ids, lower_ids;
+    const bool keep_paint = attributes.has(ModelObjectCutAttribute::KeepPaint) && saved && saved->has_value();
+    process_volume_cut(volume, instance_matrix, cut_matrix, attributes, upper_mesh, lower_mesh,
+                       keep_paint ? &cut_space_source : nullptr,
+                       keep_paint ? &upper_ids : nullptr,
+                       keep_paint ? &lower_ids : nullptr);
+
+    auto inherit_side = [&](ModelVolume* dest, const indexed_triangle_set& dest_cut_its, const std::vector<int>& ids) {
+        if (!dest || !keep_paint)
+            return;
+        TriangleSelector::TriangleSplittingData supported, seam, mmu, fuzzy;
+        if (!compute_inherited_painting(**saved, cut_space_source.its, dest_cut_its, ids, cancel, supported, seam, mmu, fuzzy))
+            return;
+        apply_inherited_painting(*dest, std::move(supported), std::move(seam), std::move(mmu), std::move(fuzzy));
+    };
 
     if (attributes.has(ModelObjectCutAttribute::KeepAsParts)) {
-        add_cut_volume(upper_mesh, upper, volume, cut_matrix, "_A");
+        const indexed_triangle_set upper_cut_its = upper_mesh.its;
+        ModelVolume* u = add_cut_volume(upper_mesh, upper, volume, cut_matrix, "_A");
+        inherit_side(u, upper_cut_its, upper_ids);
         if (!lower_mesh.empty()) {
-            add_cut_volume(lower_mesh, upper, volume, cut_matrix, "_B");
-            upper->volumes.back()->cut_info.is_from_upper = false;
+            const indexed_triangle_set lower_cut_its = lower_mesh.its;
+            ModelVolume* l = add_cut_volume(lower_mesh, upper, volume, cut_matrix, "_B");
+            if (l)
+                l->cut_info.is_from_upper = false;
+            inherit_side(l, lower_cut_its, lower_ids);
         }
         return;
     }
 
-    if (attributes.has(ModelObjectCutAttribute::KeepUpper))
-        add_cut_volume(upper_mesh, upper, volume, cut_matrix);
+    if (attributes.has(ModelObjectCutAttribute::KeepUpper)) {
+        const indexed_triangle_set upper_cut_its = upper_mesh.its;
+        ModelVolume* u = add_cut_volume(upper_mesh, upper, volume, cut_matrix);
+        inherit_side(u, upper_cut_its, upper_ids);
+    }
 
-    if (attributes.has(ModelObjectCutAttribute::KeepLower) && !lower_mesh.empty())
-        add_cut_volume(lower_mesh, lower, volume, cut_matrix);
+    if (attributes.has(ModelObjectCutAttribute::KeepLower) && !lower_mesh.empty()) {
+        const indexed_triangle_set lower_cut_its = lower_mesh.its;
+        ModelVolume* l = add_cut_volume(lower_mesh, lower, volume, cut_matrix);
+        inherit_side(l, lower_cut_its, lower_ids);
+    }
 }
 
 static void reset_instance_transformation(ModelObject* object, size_t src_instance_idx, 
@@ -293,6 +370,8 @@ void Cut::finalize(const ModelObjectPtrs& objects, const std::vector<std::option
                     if (cancel_requested())
                         break;
                     if (volume->is_model_part() && !volume->is_cut_connector()) {
+                        if (volume->skip_restore_painting)
+                            continue;
                         volume->restore_painting(saved_painting, true, m_cancel);
                     }
                 }
@@ -360,8 +439,12 @@ const ModelObjectPtrs& Cut::perform_with_plane()
             else
                 process_connector_cut(volume, instance_matrix, m_cut_matrix, m_attributes, upper, lower, dowels);
         }
-        else if (!volume->mesh().empty())
-            process_solid_part_cut(volume, instance_matrix, m_cut_matrix, m_attributes, upper, lower);
+        else if (!volume->mesh().empty()) {
+            const std::optional<TriangleSelector::SavedPainting>* saved_ptr = nullptr;
+            if (m_attributes.has(ModelObjectCutAttribute::KeepPaint) && !saved_paintings.empty())
+                saved_ptr = &saved_paintings.back();
+            process_solid_part_cut(volume, instance_matrix, m_cut_matrix, m_attributes, upper, lower, saved_ptr, m_cancel);
+        }
     }
 
     // Post-process cut parts

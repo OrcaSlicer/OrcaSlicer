@@ -6,6 +6,7 @@
 
 #include <atomic>
 #include <cfloat>
+#include <vector>
 #include "Point.hpp"
 #include "TriangleMesh.hpp"
 
@@ -395,6 +396,15 @@ public:
         const indexed_triangle_set& target_its,
         const Transform3d& target_transform,
         const std::optional<std::reference_wrapper<const TriangleSplittingData>>& existing_painting,
+        const std::atomic<bool> *cancel = nullptr);
+
+    // Inherit painting onto dest faces using source-face ids from cut_mesh.
+    // `source_face_ids[i] < 0` stays NONE. Caps / unknown ids are not painted.
+    static TriangleSplittingData inherit_painting(
+        const indexed_triangle_set& source_its,
+        const TriangleSplittingData& source_painting,
+        const indexed_triangle_set& dest_its,
+        const std::vector<int>& source_face_ids,
         const std::atomic<bool> *cancel = nullptr);
 
 protected:
