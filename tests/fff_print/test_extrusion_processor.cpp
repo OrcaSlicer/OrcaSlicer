@@ -5,8 +5,11 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+// Orca: Exercise the inline preview conversion with metadata produced by the real G-code pipeline.
+#include "libvgcode/include/PathVertex.hpp"
 
 #include "test_helpers.hpp"
+#include "test_utils.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -308,9 +311,9 @@ TriangleMesh shallow_overhang_mesh(double top_offset = 0.5)
         });
 }
 
-// Orca: Let the fixture independently toggle speed handling and optional preview metadata.
-std::string shallow_overhang_gcode(const char *wall_generator, double mild_overhang_speed, double top_offset = 0.5,
-                                   bool enable_overhang_speed = true, bool gcode_overhangs = false)
+// Orca: Share the print settings between fixed-height and adaptive-height overhang regressions.
+DynamicPrintConfig shallow_overhang_config(const char *wall_generator, double mild_overhang_speed,
+                                          bool enable_overhang_speed, bool gcode_overhangs)
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
@@ -342,9 +345,17 @@ std::string shallow_overhang_gcode(const char *wall_generator, double mild_overh
         {"slow_down_layers", "0"},
     });
 
+    return config;
+}
+
+// Orca: Let the fixture independently toggle speed handling and optional preview metadata.
+std::string shallow_overhang_gcode(const char *wall_generator, double mild_overhang_speed, double top_offset = 0.5,
+                                  bool enable_overhang_speed = true, bool gcode_overhangs = false)
+{
     Print print;
     Model model;
-    init_print({shallow_overhang_mesh(top_offset)}, print, model, config, nullptr, false);
+    init_print({shallow_overhang_mesh(top_offset)}, print, model,
+        shallow_overhang_config(wall_generator, mild_overhang_speed, enable_overhang_speed, gcode_overhangs), nullptr, false);
     return gcode(print);
 }
 
@@ -383,6 +394,9 @@ TEST_CASE("Overhang metadata availability follows valid G-code tags", "[GCodePro
     // valid tag advertises the optional preview mode.
     GCodeProcessor processor;
     const std::string tag_prefix = GCodeProcessor::s_IsBBLPrinter ? "; OVERHANG: " : ";OVERHANG:";
+    // Orca: Reference spacing alone is not sufficient to offer the Overhang view.
+    processor.process_buffer(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Z_Distance) + "0.2\n");
+    CHECK_FALSE(processor.get_result().has_overhang_metadata);
     processor.process_buffer(tag_prefix + "37.5\n");
     CHECK(processor.get_result().has_overhang_metadata);
 
@@ -391,6 +405,102 @@ TEST_CASE("Overhang metadata availability follows valid G-code tags", "[GCodePro
     CHECK_FALSE(processor.get_result().has_overhang_metadata);
     processor.process_buffer(tag_prefix + "invalid\n");
     CHECK_FALSE(processor.get_result().has_overhang_metadata);
+}
+
+// Orca: A 0.2 mm contour offset over a 0.2 mm slice-plane gap remains 45 degrees even when
+// the current extrusion is 0.1 or 0.3 mm tall. Missing metadata retains the old height-based estimate.
+TEST_CASE("Overhang angles use slice spacing rather than extrusion height", "[ExtrusionProcessor][Overhang][Regression]")
+{
+    const float height = GENERATE(0.1f, 0.3f);
+    GCodeProcessor processor;
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    const auto setup = [&]() {
+        processor.apply_config(FullPrintConfig());
+        processor.process_buffer("G90\nM83\nT0\n" + tag(GCodeProcessor::ETags::Height, std::to_string(height)) +
+            tag(GCodeProcessor::ETags::Width, "0.4") + tag(GCodeProcessor::ETags::Overhang, "50"));
+    };
+    setup();
+    const auto check_angle = [&](float expected_distance, double expected_angle) {
+        const auto &move = processor.get_result().moves.back();
+        REQUIRE(move.type == EMoveType::Extrude);
+        CHECK_THAT(move.overhang_z_distance, Catch::Matchers::WithinAbs(expected_distance, 1e-6));
+        libvgcode::PathVertex vertex;
+        vertex.height = move.height;
+        vertex.width = move.width;
+        vertex.overhang_percentage = move.overhang_percentage;
+        vertex.overhang_z_distance = move.overhang_z_distance;
+        CHECK_THAT(vertex.overhang_degree(), Catch::Matchers::WithinAbs(expected_angle, 1e-4));
+    };
+    const double legacy_angle = std::atan(0.2 / height) * 180.0 / PI;
+    processor.process_buffer("G1 X10 Z0.3 E1 F600\n");
+    check_angle(0.0f, legacy_angle);
+    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Z_Distance, "0.2") + "G1 X20 E1\n");
+    check_angle(0.2f, 45.0);
+
+    // Orca: Explicit zero, malformed values and non-finite values must not retain a preceding override.
+    for (const std::string &value : {"0", "-0.1", "nan", "inf", "invalid"}) {
+        processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Z_Distance, "0.2"));
+        processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Z_Distance, value) + "G91\nG1 X10 E1\n");
+        check_angle(0.0f, legacy_angle);
+    }
+    // Orca: Reusing a parser for legacy G-code must clear a valid override from its previous input.
+    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Z_Distance, "0.2"));
+    processor.reset();
+    setup();
+    processor.process_buffer("G1 X10 Z0.3 E1 F600\n");
+    check_angle(0.0f, legacy_angle);
+}
+
+// Orca: Check exported and parsed metadata against the actual sliced object, including both directions
+// of a thickness transition. Disabling metadata must leave every spacing unset and hide Overhang.
+TEST_CASE("Overhang reference spacing follows variable layer heights", "[ExtrusionProcessor][Overhang][Regression]")
+{
+    const bool enabled = GENERATE(false, true);
+    const DynamicPrintConfig config = shallow_overhang_config("classic", 0.0, false, enabled);
+    Print print;
+    Model model;
+    init_print({shallow_overhang_mesh()}, print, model, config, nullptr, false);
+    DynamicPrintConfig range_config;
+    range_config.set_key_value("layer_height", new ConfigOptionFloat(0.08));
+    model.objects.front()->layer_config_ranges[{0.3, 0.7}].assign_config(std::move(range_config));
+    print.apply(model, config);
+    print.set_status_silent();
+    print.process();
+    ScopedTemporaryFile file(".gcode");
+    GCodeProcessorResult result;
+    print.export_gcode(file.string(), &result);
+    CHECK(result.has_overhang_metadata == enabled);
+    // Orca: The opt-out must omit even zero-valued spacing comments, not merely leave parsed fields at zero.
+    std::ifstream stream(file.string());
+    const std::string exported((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+    CHECK((exported.find("OVERHANG_Z_DISTANCE:") != std::string::npos) == enabled);
+
+    bool saw_increase = false;
+    bool saw_decrease = false;
+    size_t checked_moves = 0;
+    for (const auto &move : result.moves) {
+        if (move.type != EMoveType::Extrude || !is_perimeter(move.extrusion_role))
+            continue;
+        const auto &layers = print.objects().front()->layers();
+        const auto layer_it = std::find_if(layers.begin(), layers.end(), [&](const Layer *layer) {
+            return std::abs(layer->print_z - move.position.z()) < 1e-4;
+        });
+        REQUIRE(layer_it != layers.end());
+        const Layer *layer = *layer_it;
+        const Layer *lower = layer->lower_layer;
+        const double expected = enabled && lower != nullptr ? layer->slice_z - lower->slice_z : 0.0;
+        CHECK_THAT(move.overhang_z_distance, Catch::Matchers::WithinAbs(expected, 1e-5));
+        if (lower != nullptr) {
+            saw_increase |= layer->height > lower->height + EPSILON;
+            saw_decrease |= layer->height < lower->height - EPSILON;
+        }
+        ++checked_moves;
+    }
+    REQUIRE(checked_moves > 0);
+    REQUIRE(saw_increase);
+    REQUIRE(saw_decrease);
 }
 
 // Classic reproduces the endpoint-sampling bug: it emits the span as one long move whose endpoints

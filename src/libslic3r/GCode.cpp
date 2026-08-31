@@ -2928,6 +2928,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     m_last_width = 0.f;
     // Orca: Reset the cached overhang tag so each export starts with deterministic metadata state.
     m_last_overhang_percentage = 0.f;
+    // Orca: Each export must establish its own reference-plane spacing, including zero on the first layer.
+    m_last_overhang_z_distance = -1.0f;
     m_last_layer_accumulated_mass = 0.0;
     m_is_role_based_fan_on.fill(false);
     m_role_based_fan_marker_layer.fill(-1);
@@ -8354,6 +8356,19 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         m_last_height = effective_height;
         sprintf(buf, ";%s%g\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height).c_str(), m_last_height);
         gcode += buf;
+    }
+
+    // Orca: The contour offset is measured between slice planes, not extrusion tops. Export their actual
+    // spacing per object so adaptive layers, differing object profiles and shifted slicing planes retain
+    // the correct angular denominator. Zero marks a missing reference and enables the legacy fallback.
+    if (emit_overhangs) {
+        const float z_distance = m_layer != nullptr && m_layer->lower_layer != nullptr ?
+            static_cast<float>(std::max(0.0, m_layer->slice_z - m_layer->lower_layer->slice_z)) : 0.0f;
+        if (std::abs(z_distance - m_last_overhang_z_distance) > EPSILON) {
+            sprintf(buf, ";%s%g\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Z_Distance).c_str(), z_distance);
+            gcode += buf;
+            m_last_overhang_z_distance = z_distance;
+        }
     }
 
     // Orca: Round percentages to one decimal and emit only changes to limit metadata growth.
