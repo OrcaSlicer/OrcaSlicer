@@ -266,6 +266,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             float print_z{0.0f};
             // Orca: Unsupported extrusion width in percent, copied from the active G-code tag.
             float overhang_percentage{ 0.0f };
+            // Orca: Distance between the contours' slicing planes in mm; zero means unavailable in legacy G-code.
+            float overhang_z_distance{ 0.0f };
 
             float volumetric_rate() const { return feedrate * mm3_per_mm; }
             float actual_volumetric_rate() const { return actual_feedrate * mm3_per_mm; }
@@ -661,6 +663,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             Outer_Overhang_Wall,
             // Orca: Optional percentage metadata consumed by the overhang preview.
             Overhang,
+            // Orca: Optional reference-plane spacing for converting percentages to angles on adaptive layers.
+            Overhang_Z_Distance,
         };
 
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
@@ -1356,6 +1360,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         float m_pressure_advance;
         // Orca: Active unsupported-width percentage while parsing moves.
         float m_overhang_percentage;
+        // Orca: Snapshot the active slice-plane spacing alongside each move's percentage.
+        float m_overhang_z_distance;
         ExtrusionRole m_extrusion_role;
         std::vector<int> m_filament_maps;
         std::vector<unsigned char> m_last_filament_id;
