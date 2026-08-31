@@ -26,6 +26,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/filesystem.hpp>
 #include "libslic3r/libslic3r.h"
 #include "slic3r/GUI/OptionsGroup.hpp"
 #include "wxExtensions.hpp"
@@ -7349,6 +7350,90 @@ void Tab::transfer_options(const std::string &name_from, const std::string &name
     load_current_preset();
 }
 
+namespace {
+
+// Orca: keep "printer_variant" matching the configured nozzle, and re-point "cloned_from" at the
+// system profile for that nozzle. The variant must not depend on any other preset being loaded:
+// the nozzle dropdown lists variants, so a stale one collapses the list to a single size.
+void sync_variant_and_cloned_from(Preset &preset)
+{
+    const auto *nozzle = preset.config.opt<ConfigOptionFloats>("nozzle_diameter");
+    if (nozzle == nullptr || nozzle->values.empty())
+        return;
+
+    const std::string variant = PresetUtils::nozzle_variant_string(nozzle->values.front());
+    if (!variant.empty())
+        preset.config.option<ConfigOptionString>("printer_variant", true)->value = variant;
+
+    // Without a system sibling the copy keeps the profiles of the variant it came from.
+    PresetBundle *bundle      = wxGetApp().preset_bundle;
+    std::string  &cloned_from = Preset::cloned_from(preset.config);
+    if (bundle == nullptr || cloned_from.empty())
+        return;
+    const Preset *sibling = bundle->printers.find_system_preset_by_model_and_nozzle(
+        preset.config.opt_string("printer_model"), nozzle->values.front());
+    if (sibling != nullptr && sibling->name != cloned_from)
+        cloned_from = sibling->name;
+}
+
+// Orca: bed model, bed texture and cover of a printer, resolved while its vendor is still installed.
+struct BedAssets { std::string bed_model, bed_texture, cover; };
+
+BedAssets resolve_bed_assets(const Preset &source)
+{
+    BedAssets assets;
+    PresetBundle *bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return assets;
+
+    const std::string model_name = source.config.opt_string("printer_model");
+    // A system source resolves through its own vendor; a user source has none, so go by model name.
+    assets.bed_model   = source.vendor ? PresetUtils::system_printer_bed_model(source)
+                                       : bundle->get_stl_model_for_printer_model(model_name);
+    assets.bed_texture = source.vendor ? PresetUtils::system_printer_bed_texture(source)
+                                       : bundle->get_texture_for_printer_model(model_name);
+
+    if (model_name.empty())
+        return assets;
+    for (const auto &vendor : bundle->vendors)
+        for (const auto &vendor_model : vendor.second.models)
+            if (vendor_model.name == model_name) {
+                const boost::filesystem::path cover = boost::filesystem::path(resources_dir()) / "profiles" /
+                                                      vendor.second.id / (model_name + "_cover.png");
+                if (boost::filesystem::exists(cover))
+                    assets.cover = cover.string();
+            }
+    return assets;
+}
+
+// Orca: a detached printer has to own its artwork - the vendor folder it came from is deleted when
+// that vendor is uninstalled. Copied beside the preset and found by name, so no absolute paths end
+// up in the profile. See PresetUtils::detached_printer_asset().
+void copy_bed_assets_to_preset(const BedAssets &assets, Preset &target)
+{
+    namespace fs = boost::filesystem;
+    if (target.file.empty())
+        return;
+
+    const fs::path stem = fs::path(target.file).replace_extension();
+    const auto copy_asset = [&stem](const std::string &from, const std::string &suffix) {
+        boost::system::error_code ec;
+        if (from.empty() || !fs::exists(from, ec))
+            return;
+        const fs::path to = stem.string() + suffix + fs::path(from).extension().string();
+        fs::create_directories(to.parent_path(), ec);
+        fs::copy_file(from, to, fs::copy_option::overwrite_if_exists, ec);
+        if (ec)
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to copy " << from << " -> " << to << ": " << ec.message();
+    };
+
+    copy_asset(assets.bed_model, "_bed_model");
+    copy_asset(assets.bed_texture, "_bed_texture");
+    copy_asset(assets.cover, "_cover");
+}
+
+} // namespace
+
 // Save the current preset into file.
 // This removes the "dirty" flag of the preset, possibly creates a new preset under a new name,
 // and activates the new preset.
@@ -7366,7 +7451,7 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
     // focus currently.is there anything better than this ?
 //!	m_tabctrl->OnSetFocus();
     if (from_input) {
-        SavePresetDialog dlg(m_parent, m_type, m_mode, detach ? _u8L("Detached") : "");
+        SavePresetDialog dlg(m_parent, m_type, detach ? _u8L("Detached") : "");
         dlg.Show(false);
         dlg.input_name_from_other(input_name);
         wxCommandEvent evt(wxEVT_TEXT, GetId());
@@ -7377,7 +7462,7 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
     }
 
     if (name.empty()) {
-        SavePresetDialog dlg(m_parent, m_type, m_mode, detach ? _u8L("Detached") : "");
+        SavePresetDialog dlg(m_parent, m_type, detach ? _u8L("Detached") : "");
         if (!m_just_edit) {
             if (dlg.ShowModal() != wxID_OK)
                 return;
@@ -7407,6 +7492,18 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
         if (nullptr != _curr_printer && compatible_printers && compatible_printers->values.empty())
             compatible_printers->values.push_back(_curr_printer->name);
     }
+    // Orca: "Detach from parent" saves a full copy with no "inherits", so the parent can never
+    // rebase it. It is still the same machine, so remember the parent in "cloned_from" to keep its
+    // process and filament profiles compatible. An already detached preset keeps its own origin.
+    const bool detaching_printer = detach && m_type == Preset::TYPE_PRINTER;
+    // Resolved here, while the source is still the edited preset and its vendor still installed.
+    const BedAssets detach_assets = detaching_printer ? resolve_bed_assets(edited_preset) : BedAssets();
+    if (m_type == Preset::TYPE_PRINTER) {
+        std::string &cloned_from = Preset::cloned_from(edited_preset.config);
+        if (detach && cloned_from.empty())
+            cloned_from = edited_preset.is_system ? edited_preset.name : edited_preset.inherits();
+        sync_variant_and_cloned_from(edited_preset);
+    }
     // Save the preset into Slic3r::data_dir / presets / section_name / preset_name.json
     m_presets->save_current_preset(name, detach, save_to_project, nullptr);
 
@@ -7417,6 +7514,10 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
         BOOST_LOG_TRIVIAL(info) << "create new preset failed";
         return;
     }
+
+    //BBS: the preset file only exists after the save, so the artwork is copied beside it here.
+    if (detaching_printer)
+        copy_bed_assets_to_preset(detach_assets, *new_preset);
 
     // set sync_info for sync service
     if (exist_preset) {

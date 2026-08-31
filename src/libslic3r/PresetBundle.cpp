@@ -258,6 +258,8 @@ DynamicPrintConfig PresetBundle::construct_full_config(
     out.erase("compatible_printers");
     out.erase("compatible_printers_condition");
     out.erase("inherits");
+    // Orca: printer-only bookkeeping, never part of the sliced config.
+    out.erase("cloned_from");
     // BBS: add logic for settings check between different system presets
     out.erase("different_settings_to_system");
 
@@ -4282,7 +4284,7 @@ std::vector<std::vector<std::vector<float>>> PresetBundle::get_full_flush_matrix
 }
 
 const std::set<std::string> ignore_settings_list ={
-    "inherits",
+    "inherits", "cloned_from",
     "print_settings_id", "filament_settings_id", "printer_settings_id"
 };
 
@@ -4546,6 +4548,8 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     out.erase("compatible_printers");
     out.erase("compatible_printers_condition");
     out.erase("inherits");
+    // Orca: printer-only bookkeeping, never part of the sliced config.
+    out.erase("cloned_from");
     //BBS: add logic for settings check between different system presets
     out.erase("different_settings_to_system");
 
@@ -4623,6 +4627,8 @@ DynamicPrintConfig PresetBundle::full_sla_config() const
     out.erase("compatible_printers");
     out.erase("compatible_printers_condition");
     out.erase("inherits");
+    // Orca: printer-only bookkeeping, never part of the sliced config.
+    out.erase("cloned_from");
 
     out.option<ConfigOptionString >("sla_print_settings_id",    true)->value  = this->sla_prints.get_selected_preset_name();
     out.option<ConfigOptionString >("sla_material_settings_id", true)->value  = this->sla_materials.get_selected_preset_name();
