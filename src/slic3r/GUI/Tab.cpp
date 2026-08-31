@@ -7530,7 +7530,7 @@ void Tab::delete_preset()
         for (auto &preset2 : *m_presets)
             if (preset2.inherits() == current_preset.name) {
                 ++count;
-                presets += "\n - " + preset2.name;
+                presets += "\n - " + from_u8(preset2.name);
             }
         if (count > 0) {
             msg = _L("Presets inherited by other presets cannot be deleted!");

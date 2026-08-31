@@ -86,7 +86,6 @@ private:
     boost::thread   m_thread;
     // Mutex and condition variable to synchronize m_thread with the UI thread.
     std::mutex      m_mutex;
-    int m_generate_count;
 
     // This map holds all translated description texts, so they can be easily referenced during layout calculations
     // etc. When language changes, GUI is recreated and this class constructed again, so the change takes effect.
