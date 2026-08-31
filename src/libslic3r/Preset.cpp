@@ -3440,13 +3440,15 @@ std::vector<std::string> PresetCollection::diameters_of_selected_printer()
     std::set<std::string> diameters;
     auto printer_model = m_edited_preset.config.opt_string("printer_model");
     // Orca: a custom printer offers only the sizes its own family has. Listing every size of the
-    // model would offer ones it lacks, and picking those switches to a system profile.
+    // model would offer ones it lacks, and picking those switches to a different printer. A copy
+    // that still inherits shares the system profiles' root, so it keeps being offered all of them;
+    // only a detached copy, which roots at itself, is narrowed to its own variants.
     const bool        family_scoped = m_edited_preset.is_user();
     const std::string family        = family_scoped ? this->family_root_name(m_edited_preset) : std::string();
     for (auto &preset : m_presets) {
         if (preset.config.opt_string("printer_model") != printer_model)
             continue;
-        if (family_scoped && (preset.is_system || this->family_root_name(preset) != family))
+        if (family_scoped && this->family_root_name(preset) != family)
             continue;
         diameters.insert(preset.config.opt_string("printer_variant"));
     }

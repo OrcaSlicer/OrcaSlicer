@@ -326,8 +326,11 @@ TEST_CASE("the nozzle list is scoped to the selected printer's family", "[Preset
         Preset::inherits(config) = inherits;
         bundle.printers.load_preset(std::string(), name, config, /*select=*/false).is_system = is_system;
     };
-    for (const char *v : {"0.4", "0.6", "0.8", "1.0"})
-        add_printer(std::string("Elegoo OrangeStorm Giga ") + v + " nozzle", "", v, /*is_system=*/true);
+    // As the shipped profiles are arranged: one base variant, the rest inheriting from it.
+    add_printer("Elegoo OrangeStorm Giga 0.4 nozzle", "", "0.4", /*is_system=*/true);
+    for (const char *v : {"0.6", "0.8", "1.0"})
+        add_printer(std::string("Elegoo OrangeStorm Giga ") + v + " nozzle",
+                    "Elegoo OrangeStorm Giga 0.4 nozzle", v, /*is_system=*/true);
     add_printer("SirPrintALot", "", "0.6", /*is_system=*/false);
     add_printer("SirPrintALot 0.8", "SirPrintALot", "0.8", false);
 
@@ -335,6 +338,14 @@ TEST_CASE("the nozzle list is scoped to the selected printer's family", "[Preset
         bundle.printers.select_preset_by_name("SirPrintALot", true);
         const auto diameters = bundle.printers.diameters_of_selected_printer();
         CHECK(diameters == std::vector<std::string>{"0.6", "0.8"});
+    }
+    SECTION("a copy that still inherits keeps every size of the system family") {
+        // Not detached: it chains up to the same root as the system variants, so narrowing to the
+        // family must not hide them - it is one of them, with an extra nozzle size.
+        add_printer("Giga 1.2 custom", "Elegoo OrangeStorm Giga 0.6 nozzle", "1.2", /*is_system=*/false);
+        bundle.printers.select_preset_by_name("Giga 1.2 custom", true);
+        const auto diameters = bundle.printers.diameters_of_selected_printer();
+        CHECK(diameters == std::vector<std::string>{"0.4", "0.6", "0.8", "1.0", "1.2"});
     }
     SECTION("a system printer still offers every size of its model") {
         bundle.printers.select_preset_by_name("Elegoo OrangeStorm Giga 0.6 nozzle", true);
