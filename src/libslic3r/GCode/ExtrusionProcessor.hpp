@@ -495,9 +495,11 @@ class ExtrusionQualityEstimator
     using Boundaries   = AABBTreeLines::LinesDistancer<Linef3>;
     using CurledLines  = AABBTreeLines::LinesDistancer<CurledLine>;
     std::unordered_map<const PrintObject*, std::shared_ptr<const Boundaries>>  prev_layer_boundaries;
+    std::unordered_map<const PrintObject*, std::shared_ptr<const Boundaries>>  next_layer_boundaries;
     std::unordered_map<const PrintObject*, std::shared_ptr<const CurledLines>> prev_curled_extrusions;
-    // The layers the trees above are built from.
+    // The layers the trees above are built from, and the layers prepared last.
     std::unordered_map<const PrintObject*, const Layer*>                      prev_layer_sources;
+    std::unordered_map<const PrintObject*, const Layer*>                      last_prepared_layers;
     std::vector<PrecomputedOverhangLayer>                                     precomputed_layers;
     const PrintObject                                                        *current_object;
 
@@ -514,11 +516,21 @@ class ExtrusionQualityEstimator
         return tree ? *tree : empty;
     }
 
+    // Build the current contour only when opt-in preview metadata needs it.
+    const Boundaries &current_boundaries()
+    {
+        auto &tree = next_layer_boundaries[current_object];
+        const Layer *layer = last_prepared_layers[current_object];
+        if (!tree && layer != nullptr)
+            tree = std::make_shared<const Boundaries>(to_unscaled_linesf3(layer->lslices));
+        return or_empty(tree);
+    }
+
     // Orca: Share the signed-distance formula between original line segments and fitted arc samples.
     // Arc sampling may compensate an outward approximation error before clamping the unsupported width.
     float overhang_percentage_at(const Vec3d &position, float width, double approximation_error = 0.0)
     {
-        const double distance = prev_layer_boundaries[current_object].distance_from_lines<true>(position);
+        const double distance = or_empty(prev_layer_boundaries[current_object]).distance_from_lines<true>(position);
         return float(100.0 * std::clamp((distance + 0.5 * width - approximation_error) / width, 0.0, 1.0));
     }
 
@@ -535,6 +547,8 @@ public:
         if (layer == nullptr) return;
         const PrintObject *object = obj;
         const Layer *prev = layer->lower_layer;
+        last_prepared_layers[object] = layer;
+        next_layer_boundaries[object].reset();
         prev_layer_sources[object] = prev;
         const PrecomputedOverhangLayer *precomputed = precomputed_for(object);
         if (prev == nullptr) {
