@@ -31,6 +31,7 @@
 #include <memory>
 #include <numeric>
 #include <tuple>
+#include <utility>
 
 namespace Slic3r { namespace GUI {
 namespace {
@@ -423,7 +424,7 @@ PublishSettingsDialog::MixedVisualSpec PublishSettingsDialog::make_mixed_visual_
             spec.tri_weights = spec.ratios; // the picker's barycentric shares
     } else {
         const Slic3r::GradientCurve curve = mixed_gradient_curve(full, slot);
-        constexpr int kSamples            = 64;
+        constexpr int kSamples            = 256;
         for (int i = 0; i <= kSamples; ++i) {
             const double t = double(i) / kSamples;
             spec.gradient_samples.emplace_back(t, sample_gradient_curve(curve, t));
@@ -894,9 +895,9 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
         section.mixed_tabs = new TabCtrl(section.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, s_tab_style);
         section.mixed_tabs->SetFont(Label::Body_14);
         section.mixed_tabs->SetBackgroundColour(GetBackgroundColour());
-        // The mixed tabs carry full swatch compositions: give them extra room to breathe so
-        // neighbouring compositions do not read as one long row (must precede AppendItem).
-        section.mixed_tabs->SetItemSpace(FromDIP(5));
+        // The mixed tabs carry full swatch compositions: give them a touch more room than the
+        // filament tabs so neighbouring compositions stay distinguishable (must precede AppendItem).
+        section.mixed_tabs->SetItemSpace(FromDIP(3));
         page_sizer->Add(section.mixed_tabs, 0, wxEXPAND | wxTOP, FromDIP(2));
         section.mixed_tabs->Hide();
     }
@@ -1180,18 +1181,10 @@ void PublishSettingsDialog::add_mixed_visual(size_t category_index, const MixedV
 
     auto* viz = new wxPanel(category.page, wxID_ANY);
     viz->SetBackgroundStyle(wxBG_STYLE_PAINT);
-    // Per-panel fill-bitmap cache for the ternary branch; rebuilt only when size or colours
-    // change (shared_ptr keeps the lifetime independent of this method's locals).
-    struct TriCache
-    {
-        wxBitmap bmp;
-        wxSize sz{0, 0};
-        wxColour c0, c1, c2;
-    };
-    auto tri_cache = std::make_shared<TriCache>();
     // Theme colours and DIP metrics are resolved inside the paint handler so dark-mode toggles
-    // and DPI changes are picked up on the next repaint without any explicit listener.
-    viz->Bind(wxEVT_PAINT, [this, panel = viz, spec, tri_cache](wxPaintEvent&) {
+    // and DPI changes are picked up on the next repaint without any explicit listener. The
+    // ternary fill cache lives inside the shared triangle painter (FilamentBitmapUtils).
+    viz->Bind(wxEVT_PAINT, [this, panel = viz, spec](wxPaintEvent&) {
         const wxColour bg = StateColor::darkModeColorFor(*wxWHITE);
         wxBufferedPaintDC pdc(panel);
         pdc.SetBackground(wxBrush(bg));
@@ -1203,236 +1196,117 @@ void PublishSettingsDialog::add_mixed_visual(size_t category_index, const MixedV
         const size_t n = spec.component_colours.size();
 
         if (spec.tri_weights.size() == 3 && n == 3 && !spec.is_gradient) {
-            // Ternary mix: a read-only miniature of the MixedFilamentDialog's triangle picker.
-            // Per-pixel barycentric fill is cached into a bitmap keyed on size + colours; the
-            // marker and labels are redrawn on top every paint.
-            const wxColour tri_bg   = StateColor::darkModeColorFor(*wxWHITE);
-            const wxColour outline  = StateColor::darkModeColorFor(wxColour("#CECECE"));
-            const wxColour ring     = StateColor::darkModeColorFor(wxColour("#262E30"));
-            const wxColour label_c  = StateColor::darkModeColorFor(wxColour(107, 107, 107)); // grey 700
-            const double margin_dip = 24.0;
-            auto& cache             = *tri_cache;
-
-            auto vertices_for = [&](const wxSize& sz) -> std::tuple<TriPoint, TriPoint, TriPoint> {
-                const double pw = sz.GetWidth(), ph = sz.GetHeight();
-                const int margin   = FromDIP(int(margin_dip));
-                const double avail = std::min(pw, ph) - 2.0 * margin;
-                const double side  = avail;
-                const double tri_h = side * std::sqrt(3.0) / 2.0;
-                const double cx    = pw / 2.0;
-                const double top_y = (ph - tri_h) / 2.0;
-                return {{cx, top_y}, {cx - side / 2.0, top_y + tri_h}, {cx + side / 2.0, top_y + tri_h}};
-            };
-
-            pdc.SetFont(::Label::Body_12);
-            const wxColour& c0 = spec.component_colours[0];
-            const wxColour& c1 = spec.component_colours[1];
-            const wxColour& c2 = spec.component_colours[2];
-
-            if (!cache.bmp.IsOk() || cache.sz != rc.GetSize() || cache.c0 != c0 || cache.c1 != c1 || cache.c2 != c2) {
-                auto [v0, v1, v2] = vertices_for(rc.GetSize());
-                cache.bmp         = wxBitmap(rc.width, rc.height, 32);
-                wxMemoryDC mdc(cache.bmp);
-                mdc.SetBrush(wxBrush(tri_bg));
-                mdc.SetPen(*wxTRANSPARENT_PEN);
-                mdc.DrawRectangle(0, 0, rc.width, rc.height);
-
-                const int min_y = int(std::min({v0.y, v1.y, v2.y}));
-                const int max_y = int(std::max({v0.y, v1.y, v2.y}));
-                const int min_x = int(std::min({v0.x, v1.x, v2.x}));
-                const int max_x = int(std::max({v0.x, v1.x, v2.x}));
-                for (int py = min_y; py <= max_y; ++py)
-                    for (int px = min_x; px <= max_x; ++px) {
-                        const TriPoint p = {double(px), double(py)};
-                        if (!tri_contains(p, v0, v1, v2))
-                            continue;
-                        double w0, w1, w2;
-                        tri_barycentric(p, v0, v1, v2, w0, w1, w2);
-                        unsigned char mr, mg, mb;
-                        if (w0 + w1 > 1e-6) {
-                            float t01 = static_cast<float>(w1 / (w0 + w1));
-                            Slic3r::filament_mixer_lerp(c0.Red(), c0.Green(), c0.Blue(), c1.Red(), c1.Green(), c1.Blue(), t01, &mr, &mg,
-                                                        &mb);
-                            Slic3r::filament_mixer_lerp(mr, mg, mb, c2.Red(), c2.Green(), c2.Blue(), static_cast<float>(w2), &mr, &mg, &mb);
-                        } else {
-                            mr = c2.Red();
-                            mg = c2.Green();
-                            mb = c2.Blue();
-                        }
-                        mdc.SetPen(wxPen(wxColour(mr, mg, mb)));
-                        mdc.DrawPoint(px, py);
-                    }
-
-                mdc.SetPen(wxPen(outline, 1));
-                mdc.SetBrush(*wxTRANSPARENT_BRUSH);
-                const wxPoint pts[3] = {{int(v0.x), int(v0.y)}, {int(v1.x), int(v1.y)}, {int(v2.x), int(v2.y)}};
-                mdc.DrawPolygon(3, pts);
-                mdc.SelectObject(wxNullBitmap);
-
-                cache.sz = rc.GetSize();
-                cache.c0 = c0;
-                cache.c1 = c1;
-                cache.c2 = c2;
-            }
-            pdc.DrawBitmap(cache.bmp, 0, 0);
-
-            // Published-ratio marker (read-only twin of the editor's drag handle).
-            {
-                auto [v0, v1, v2] = vertices_for(rc.GetSize());
-                const double w0 = spec.tri_weights[0], w1 = spec.tri_weights[1], w2 = spec.tri_weights[2];
-                const int hx = int(w0 * v0.x + w1 * v1.x + w2 * v2.x);
-                const int hy = int(w0 * v0.y + w1 * v1.y + w2 * v2.y);
-                pdc.SetBrush(*wxWHITE_BRUSH);
-                pdc.SetPen(wxPen(ring, FromDIP(2)));
-                pdc.DrawCircle(hx, hy, FromDIP(5));
-
-                // Percent label beside each vertex.
-                for (int i = 0; i < 3; ++i) {
-                    const wxString text = wxString::Format("%d%%", int(std::lround(spec.tri_weights[i] * 100.0)));
+            // Ternary mix: read-only miniature of the MixedFilamentDialog's triangle picker.
+            const MixedTriangleTheme tri_theme{StateColor::darkModeColorFor(*wxWHITE),
+                                               StateColor::darkModeColorFor(wxColour("#CECECE")),
+                                               StateColor::darkModeColorFor(wxColour("#262E30")),
+                                               StateColor::darkModeColorFor(wxColour(107, 107, 107))};
+            draw_mixed_triangle_picker(pdc, rc.GetSize(), {spec.component_colours[0], spec.component_colours[1], spec.component_colours[2]},
+                                       {spec.tri_weights[0], spec.tri_weights[1], spec.tri_weights[2]}, tri_theme);
+            draw_mixed_triangle_labels(pdc, rc.GetSize(), {spec.tri_weights[0], spec.tri_weights[1], spec.tri_weights[2]}, tri_theme);
+        } else if (!spec.is_gradient) {
+            // Ratio bar. A 2-component slot matches the MixedFilamentDialog's continuous blend +
+            // divider (with its two end labels); wider non-gradient mixes (rare) fall back to one
+            // solid segment per component.
+            if (n == 2) {
+                const int bar_h = FromDIP(27);
+                draw_mixed_ratio_blend_bar(pdc, wxRect(rc.x, rc.y, rc.width, bar_h), spec.component_colours[0],
+                                           spec.component_colours[1], spec.ratios[1]);
+                // Read-only twin of the dialog's left/right percentage labels.
+                pdc.SetFont(::Label::Body_12);
+                pdc.SetTextForeground(StateColor::darkModeColorFor(wxColour(107, 107, 107)));
+                const wxString la = wxString::Format("%d%%", int(std::lround(spec.ratios[0] * 100.0)));
+                const wxString lb = wxString::Format("%d%%", int(std::lround(spec.ratios[1] * 100.0)));
+                const int lab_y = rc.y + bar_h + FromDIP(2);
+                pdc.DrawText(la, rc.x, lab_y);
+                pdc.DrawText(lb, rc.x + rc.width - pdc.GetTextExtent(lb).GetWidth(), lab_y);
+            } else {
+                draw_mixed_ratio_segments(pdc, rc, spec.component_colours, spec.ratios);
+                // Percent label centred in each segment wide enough to hold it.
+                std::vector<double> shares = spec.ratios;
+                double total = 0.0;
+                for (double r : shares)
+                    total += r;
+                if (total <= 0.0) {
+                    shares.assign(n, 1.0 / n);
+                    total = 1.0;
+                }
+                pdc.SetFont(::Label::Body_12);
+                int x0 = rc.x;
+                for (size_t i = 0; i < n; ++i) {
+                    const int x1 = (i + 1 < n)
+                                       ? rc.x + int(std::lround(std::accumulate(shares.begin(), shares.begin() + i + 1, 0.0) / total * double(rc.width)))
+                                       : rc.x + rc.width;
+                    const int w = std::max(1, x1 - x0);
+                    const wxString text = wxString::Format("%d%%", int(std::lround(shares[i] / total * 100.0)));
                     const wxSize tsz    = pdc.GetTextExtent(text);
-                    const TriPoint vtx  = (i == 0) ? v0 : (i == 1) ? v1 : v2;
-                    int lx              = int(vtx.x - tsz.GetWidth() / 2.0);
-                    int ly              = (i == 0) ? int(vtx.y - tsz.GetHeight()) : int(vtx.y + FromDIP(3));
-                    ly                  = std::clamp(ly, 0, rc.height - tsz.GetHeight());
-                    lx                  = std::clamp(lx, 0, rc.width - tsz.GetWidth());
-                    pdc.SetTextForeground(label_c);
-                    pdc.DrawText(text, lx, ly);
+                    if (tsz.GetWidth() + FromDIP(4) <= w) {
+                        const wxColour& c = spec.component_colours[i];
+                        const double lum  = 0.299 * c.Red() + 0.587 * c.Green() + 0.114 * c.Blue();
+                        pdc.SetTextForeground(lum > 140 ? wxColour("#262E30") : *wxWHITE);
+                        pdc.DrawText(text, x0 + (w - tsz.GetWidth()) / 2, rc.y + (rc.height - tsz.GetHeight()) / 2);
+                    }
+                    x0 = x1;
                 }
             }
-        } else if (!spec.is_gradient) {
-            // Stacked ratio bar: one solid segment per component, widths proportional to the
-            // published shares. Integer widths accumulate left to right; the last segment takes
-            // the rounding remainder so the bar always fills exactly.
-            std::vector<double> shares = spec.ratios;
-            double total               = 0.0;
-            for (double r : shares)
-                total += r;
-            if (shares.size() != n || total <= 0.0) {
-                shares.assign(n, 1.0 / n);
-                total = 1.0;
-            }
-            auto share_to_px = [&](double share_sum) { return rc.x + int(std::lround(share_sum / total * double(rc.width))); };
-            std::vector<wxRect> segs(n);
-            int x0 = rc.x;
-            for (size_t i = 0; i < n; ++i) {
-                int x1 = rc.x + rc.width;
-                if (i + 1 < n)
-                    x1 = share_to_px(std::accumulate(shares.begin(), shares.begin() + i + 1, 0.0));
-                segs[i] = wxRect(x0, rc.y, std::max(1, x1 - x0), rc.height);
-                x0      = segs[i].GetRight() + 1;
-            }
-
-            for (size_t i = 0; i < n; ++i) {
-                pdc.SetPen(*wxTRANSPARENT_PEN);
-                pdc.SetBrush(wxBrush(spec.component_colours[i]));
-                pdc.DrawRectangle(segs[i]);
-            }
-            pdc.SetBrush(*wxTRANSPARENT_BRUSH);
-            pdc.SetPen(wxPen(StateColor::darkModeColorFor(wxColour("#ACACAC")), 1));
-            pdc.DrawRectangle(rc);
-
-            // Percent label centred in each segment wide enough to hold it.
-            pdc.SetFont(::Label::Body_12);
-            for (size_t i = 0; i < n; ++i) {
-                const wxString text = wxString::Format("%d%%", int(std::lround(shares[i] / total * 100.0)));
-                const wxSize tsz    = pdc.GetTextExtent(text);
-                if (tsz.GetWidth() + FromDIP(4) > segs[i].GetWidth())
-                    continue;
-                // Label contrast follows the swatch itself, not the theme.
-                const wxColour& c = spec.component_colours[i];
-                const double lum  = 0.299 * c.Red() + 0.587 * c.Green() + 0.114 * c.Blue();
-                pdc.SetTextForeground(lum > 140 ? wxColour("#262E30") : *wxWHITE);
-                pdc.DrawText(text, segs[i].x + (segs[i].GetWidth() - tsz.GetWidth()) / 2, rc.y + (rc.height - tsz.GetHeight()) / 2);
-            }
         } else {
-            // Gradient: compact "Material Ratio" over "Model Height" graph, a read-only
-            // miniature of the GradientCurveEditor plot. Component order matches the config;
-            // the second component's curve is the mirror of the first's.
-            const wxColour grid_color  = StateColor::darkModeColorFor(wxColour(238, 238, 238)); // grey 300
-            const wxColour axis_color  = StateColor::darkModeColorFor(wxColour(107, 107, 107)); // grey 700
-            const wxColour label_muted = StateColor::darkModeColorFor(wxColour(107, 107, 107));
-            const wxColour point_fill  = StateColor::darkModeColorFor(*wxWHITE);
-
-            const int pad_left   = FromDIP(34);
-            const int pad_right  = FromDIP(10);
-            const int pad_top    = FromDIP(18);
-            const int pad_bottom = FromDIP(16);
-            const wxRect plot(rc.x + pad_left, rc.y + pad_top, std::max(1, rc.width - pad_left - pad_right),
-                              std::max(1, rc.height - pad_top - pad_bottom));
-
-            constexpr int kGridDivisions = 5;
-            pdc.SetPen(wxPen(grid_color, 1));
-            for (int i = 0; i <= kGridDivisions; ++i) {
-                const int gx = plot.x + plot.width * i / kGridDivisions;
-                const int gy = plot.y + plot.height * i / kGridDivisions;
-                pdc.DrawLine(gx, plot.y, gx, plot.y + plot.height);
-                pdc.DrawLine(plot.x, gy, plot.x + plot.width, gy);
-            }
-
-            // Axes with small filled arrowheads along the plot's left and bottom edges.
-            const int arrow_len  = FromDIP(7);
-            const int arrow_half = FromDIP(3);
-            pdc.SetPen(wxPen(axis_color, 1));
-            pdc.SetBrush(wxBrush(axis_color));
-            pdc.DrawLine(plot.x, plot.y + plot.height, plot.x, plot.y);
-            {
-                wxPoint tri[3] = {wxPoint(plot.x, plot.y - arrow_len), wxPoint(plot.x - arrow_half, plot.y),
-                                  wxPoint(plot.x + arrow_half, plot.y)};
-                pdc.DrawPolygon(3, tri);
-            }
-            pdc.DrawLine(plot.x, plot.y + plot.height, plot.x + plot.width, plot.y + plot.height);
-            {
-                wxPoint tri[3] = {wxPoint(plot.x + plot.width + arrow_len, plot.y + plot.height),
-                                  wxPoint(plot.x + plot.width, plot.y + plot.height - arrow_half),
-                                  wxPoint(plot.x + plot.width, plot.y + plot.height + arrow_half)};
-                pdc.DrawPolygon(3, tri);
-            }
-
-            wxFont label_font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
-            label_font.SetPointSize(std::max(7, label_font.GetPointSize() - 1));
-            pdc.SetFont(label_font);
-            pdc.SetTextForeground(label_muted);
-            pdc.DrawText(_L("Material Ratio"), plot.x + FromDIP(4), plot.y - pdc.GetTextExtent(_L("Material Ratio")).GetHeight());
-            const wxString height_title = _L("Model Height");
-            pdc.DrawText(height_title, plot.x + plot.width - pdc.GetTextExtent(height_title).GetWidth(), plot.y + plot.height + FromDIP(2));
-
+            // Gradient: read-only miniature of the GradientCurveEditor plot, drawn through the
+            // shared painter so it anti-aliases and keeps the square proportions and labels.
+            const MixedGradientTheme grad_theme{StateColor::darkModeColorFor(*wxWHITE),
+                                                StateColor::darkModeColorFor(wxColour(238, 238, 238)),
+                                                StateColor::darkModeColorFor(wxColour(107, 107, 107)),
+                                                StateColor::darkModeColorFor(wxColour(107, 107, 107)),
+                                                StateColor::darkModeColorFor(wxColour(38, 46, 48)),
+                                                StateColor::darkModeColorFor(wxColour(172, 172, 172)),
+                                                StateColor::darkModeColorFor(*wxWHITE)};
+            std::vector<MixedGradientCurve> curves;
+            std::vector<wxPoint2DDouble>    anchors;
             if (spec.gradient_samples.size() >= 2 && n >= 2) {
-                auto curve_point = [&](double t, double ratio) {
-                    return wxPoint(plot.x + int(std::lround(t * plot.width)), plot.y + int(std::lround((1.0 - ratio) * plot.height)));
+                const wxRect plot = mixed_gradient_plot_rect(rc.GetSize());
+                auto lift_alpha = [](wxColour c) {
+                    if (c.Alpha() == 0)
+                        c.Set(c.Red(), c.Green(), c.Blue(), 150);
+                    return c;
                 };
-                // First component's ratio solid, its mirror dashed-free twin for the other.
-                const wxColour& col_a = spec.component_colours[0];
-                const wxColour& col_b = spec.component_colours[1];
-                std::vector<wxPoint> pts_a, pts_b;
+                // First component's ratio solid, its mirror twin for the other.
+                const wxColour col_a = lift_alpha(spec.component_colours[0]);
+                const wxColour col_b = lift_alpha(spec.component_colours[1]);
+                std::vector<wxPoint2DDouble> pts_a, pts_b;
                 pts_a.reserve(spec.gradient_samples.size());
                 pts_b.reserve(spec.gradient_samples.size());
                 for (const auto& [t, r] : spec.gradient_samples) {
-                    pts_a.push_back(curve_point(t, r));
-                    pts_b.push_back(curve_point(t, 1.0 - r));
+                    pts_a.push_back({plot.x + t * plot.width, plot.y + (1.0 - r) * plot.height});
+                    pts_b.push_back({plot.x + t * plot.width, plot.y + r * plot.height});
                 }
-                pdc.SetPen(wxPen(col_b, 2));
-                for (size_t i = 0; i + 1 < pts_b.size(); ++i)
-                    pdc.DrawLine(pts_b[i], pts_b[i + 1]);
-                pdc.SetPen(wxPen(col_a, 2));
-                for (size_t i = 0; i + 1 < pts_a.size(); ++i)
-                    pdc.DrawLine(pts_a[i], pts_a[i + 1]);
-
                 // Control-point anchors of the stored curve on the first component's line.
-                pdc.SetBrush(wxBrush(point_fill));
-                pdc.SetPen(wxPen(col_a, 1));
-                for (const auto& [t, r] : spec.gradient_anchors) {
-                    const wxPoint c = curve_point(t, r);
-                    pdc.DrawCircle(c, FromDIP(3));
-                }
+                anchors.reserve(spec.gradient_anchors.size());
+                for (const auto& [t, r] : spec.gradient_anchors)
+                    anchors.push_back({plot.x + t * plot.width, plot.y + (1.0 - r) * plot.height});
+                curves.push_back({std::move(pts_a), col_a, 4});
+                curves.push_back({std::move(pts_b), col_b, 2});
             }
+            draw_mixed_gradient_plot(pdc, rc.GetSize(), curves, anchors, grad_theme);
         }
     });
 
     // Fixed DIP size, left-aligned: the visualization keeps its proportions no matter how the
     // dialog is resized (the paint handler draws into whatever client rect the panel ends up
-    // with, so nothing else has to change).
-    const int viz_h = spec.is_gradient ? 150 : (spec.tri_weights.size() == 3 ? 180 : 30);
-    const wxSize viz_sz(FromDIP(240), FromDIP(viz_h));
+    // with, so nothing else has to change). Sizes mirror the MixedFilamentDialog controls: the
+    // gradient plot and triangle picker match the editor's 260x200 / 160x160, the ratio bar is
+    // the dialog's 27px bar plus its label line.
+    int      viz_h;
+    int      viz_w;
+    if (spec.is_gradient) {
+        viz_w = 260;
+        viz_h = 200;
+    } else if (spec.tri_weights.size() == 3 && spec.component_colours.size() == 3) {
+        viz_w = 160;
+        viz_h = 160;
+    } else {
+        viz_w = 240;
+        viz_h = spec.component_colours.size() == 2 ? 50 : 30;
+    }
+    const wxSize viz_sz(FromDIP(viz_w), FromDIP(viz_h));
     viz->SetMinSize(viz_sz);
     viz->SetMaxSize(viz_sz);
     // Parented to the page right above the scroll area, so it is always shown with the tab:

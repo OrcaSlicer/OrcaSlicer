@@ -92,7 +92,7 @@ int TabCtrl::AppendItem(const wxString& item, int image, int selImage, void* cli
     btn->Create(this, item, "", wxBORDER_NONE);
     btn->SetFont(GetFont());
     btn->SetTextColor(
-        StateColor(std::make_pair(0x6B6B6C, (int) StateColor::NotChecked), std::make_pair(*wxLIGHT_GREY, (int) StateColor::Normal)));
+        StateColor(std::make_pair(0x6B6B6C, (int) StateColor::NotChecked), std::make_pair(wxColour("#262E30"), (int) StateColor::Normal)));
     btn->SetBackgroundColor(StateColor());
     btn->SetCornerRadius(0);
     btn->SetPaddingSize({TAB_BUTTON_PADDING});

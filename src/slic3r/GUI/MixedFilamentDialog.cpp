@@ -847,23 +847,8 @@ wxBoxSizer* MixedFilamentDialog::create_ratio_slider()
     m_ratio_bar->Bind(wxEVT_PAINT, [this](wxPaintEvent&) {
         wxBufferedPaintDC dc(m_ratio_bar);
         wxSize sz = m_ratio_bar->GetClientSize();
-
-        wxColour col_a = comp_colour(0), col_b = comp_colour(1);
-
-        for (int x = 0; x < sz.GetWidth(); ++x) {
-            double t = (double)x / sz.GetWidth();
-            wxColour c = blend_colors(col_a, col_b, 1.0 - t);
-            dc.SetPen(wxPen(c));
-            dc.DrawLine(x, 0, x, sz.GetHeight());
-        }
-
-        int div_x = (int)(ratio(1) / 100.0 * sz.GetWidth());
-        // Fixed in both themes, like the triangle picker's drag handle: the divider is drawn over
-        // blended filament colour, so it has to keep its contrast against data rather than chrome.
-        dc.SetPen(wxPen(wxColour(80, 80, 80), FromDIP(4)));
-        dc.DrawLine(div_x, 0, div_x, sz.GetHeight());
-        dc.SetPen(wxPen(*wxWHITE, FromDIP(2)));
-        dc.DrawLine(div_x, 0, div_x, sz.GetHeight());
+        draw_mixed_ratio_blend_bar(dc, wxRect(0, 0, sz.GetWidth(), sz.GetHeight()),
+                                   comp_colour(0), comp_colour(1), ratio(1) / 100.0);
     });
 
     m_ratio_bar->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
@@ -954,72 +939,15 @@ wxBoxSizer* MixedFilamentDialog::create_triangle_picker()
         wxSize sz = m_triangle_panel->GetClientSize();
         auto [v0, v1, v2] = get_vertices();
 
-        wxColour tri_bg = StateColor::darkModeColorFor(*wxWHITE);
-        dc.SetBrush(wxBrush(tri_bg));
-        dc.SetPen(*wxTRANSPARENT_PEN);
-        dc.DrawRectangle(0, 0, sz.GetWidth(), sz.GetHeight());
-
-        wxColour c0 = comp_colour(0), c1 = comp_colour(1), c2 = comp_colour(2);
-
-        const bool cache_valid = m_tri_cache_bmp.IsOk() &&
-            m_tri_cache_size == sz &&
-            m_tri_cache_c0 == c0 && m_tri_cache_c1 == c1 && m_tri_cache_c2 == c2;
-
-        if (!cache_valid) {
-            int min_y = (int)std::min({v0.y, v1.y, v2.y});
-            int max_y = (int)std::max({v0.y, v1.y, v2.y});
-            int min_x = (int)std::min({v0.x, v1.x, v2.x});
-            int max_x = (int)std::max({v0.x, v1.x, v2.x});
-
-            m_tri_cache_bmp = wxBitmap(sz.GetWidth(), sz.GetHeight(), 24);
-            wxMemoryDC mdc(m_tri_cache_bmp);
-            mdc.SetBrush(wxBrush(tri_bg));
-            mdc.SetPen(*wxTRANSPARENT_PEN);
-            mdc.DrawRectangle(0, 0, sz.GetWidth(), sz.GetHeight());
-
-            for (int py = min_y; py <= max_y; ++py) {
-                for (int px = min_x; px <= max_x; ++px) {
-                    TriPoint p = {(double)px, (double)py};
-                    if (!tri_contains(p, v0, v1, v2)) continue;
-                    double w0, w1, w2;
-                    tri_barycentric(p, v0, v1, v2, w0, w1, w2);
-                    unsigned char mr, mg, mb;
-                    if (w0 + w1 > 1e-6) {
-                        float t01 = static_cast<float>(w1 / (w0 + w1));
-                        Slic3r::filament_mixer_lerp(c0.Red(), c0.Green(), c0.Blue(),
-                                                    c1.Red(), c1.Green(), c1.Blue(),
-                                                    t01, &mr, &mg, &mb);
-                        float t2 = static_cast<float>(w2);
-                        Slic3r::filament_mixer_lerp(mr, mg, mb,
-                                                    c2.Red(), c2.Green(), c2.Blue(),
-                                                    t2, &mr, &mg, &mb);
-                    } else {
-                        mr = c2.Red(); mg = c2.Green(); mb = c2.Blue();
-                    }
-                    mdc.SetPen(wxPen(wxColour(mr, mg, mb)));
-                    mdc.DrawPoint(px, py);
-                }
-            }
-
-            mdc.SetPen(wxPen(StateColor::darkModeColorFor(wxColour("#CECECE")), 1));
-            mdc.SetBrush(*wxTRANSPARENT_BRUSH);
-            wxPoint pts[3] = {{(int)v0.x, (int)v0.y}, {(int)v1.x, (int)v1.y}, {(int)v2.x, (int)v2.y}};
-            mdc.DrawPolygon(3, pts);
-
-            mdc.SelectObject(wxNullBitmap);
-            m_tri_cache_c0 = c0; m_tri_cache_c1 = c1; m_tri_cache_c2 = c2;
-            m_tri_cache_size = sz;
-        }
-
-        dc.DrawBitmap(m_tri_cache_bmp, 0, 0);
-
-        // Drag handle (always redrawn on top of cached bitmap)
-        double hx = m_tri_wx * v0.x + m_tri_wy * v1.x + m_tri_wz * v2.x;
-        double hy = m_tri_wx * v0.y + m_tri_wy * v1.y + m_tri_wz * v2.y;
-        int handle_r = FromDIP(5);
-        dc.SetBrush(*wxWHITE_BRUSH);
-        dc.SetPen(wxPen(wxColour("#262E30"), FromDIP(2)));
-        dc.DrawCircle((int)hx, (int)hy, handle_r);
+        // Draw the background, cached barycentric fill, outline and drag-handle marker through the
+        // shared picker painter (same geometry the read-only Publish preview uses).
+        draw_mixed_triangle_picker(dc, sz,
+                                   {comp_colour(0), comp_colour(1), comp_colour(2)},
+                                   {m_tri_wx, m_tri_wy, m_tri_wz},
+                                   {StateColor::darkModeColorFor(*wxWHITE),
+                                    StateColor::darkModeColorFor(wxColour("#CECECE")),
+                                    StateColor::darkModeColorFor(wxColour("#262E30")),
+                                    StateColor::darkModeColorFor(COLOR_LABEL_MUTED)});
 
         if (m_result.ratios.size() >= 3) {
             dc.SetFont(::Label::Body_10);
