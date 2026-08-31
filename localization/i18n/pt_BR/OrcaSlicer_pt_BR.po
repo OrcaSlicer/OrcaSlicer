@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-28 12:15+0800\n"
+"POT-Creation-Date: 2026-08-31 11:46+0800\n"
 "PO-Revision-Date: 2026-07-26 11:14-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -7939,7 +7939,7 @@ msgstr "Predefinição Personalizada"
 msgid "Some published settings could not be applied:"
 msgstr ""
 
-msgid "Some filament slots were changed to match the published materials:"
+msgid "Some filament slots were changed:"
 msgstr ""
 
 msgid "Component name(s) inside step file not in UTF8 format!"
@@ -11386,27 +11386,6 @@ msgstr "Volumes de purga para troca de filamento"
 
 msgid "Please choose the filament colour"
 msgstr "Escolha a cor do filamento"
-
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "A visualização ao vivo nativa do Wayland requer o receptor de vídeo GTK do GStreamer. Instale o plugin gtksink para GStreamer e reinicie o OrcaSlicer."
-
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "Falha ao inicializar o receptor de vídeo nativo do Wayland GStreamer. Verifique a instalação do plugin GStreamer GTK."
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "O Windows Media Player é necessário para esta tarefa! Você quer habilitar o 'Windows Media Player' para seu sistema operacional?"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource não foi registrado corretamente para reprodução de mídia! Pressione Sim para registrá-lo novamente. Você será promovido duas vezes"
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "Componente BambuSource registrado para reprodução de mídia não encontrado! Por favor, reinstale o OrcaSlicer ou procure ajuda da comunidade."
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "Usando um BambuSource de uma instalação diferente, a reprodução de vídeo pode não funcionar corretamente! Pressione Sim para consertar."
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "Seu sistema não possui codecs H.264 para o GStreamer, que são necessários para reproduzir vídeos. (Tente instalar os pacotes gstreamer1.0-plugins-bad ou gstreamer1.0-libav e depois reinicie o OrcaSlicer?)"
 
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
 msgstr "O agente na nuvem não está disponível. Reinicie o OrcaSlicer e tente novamente."
@@ -21235,6 +21214,27 @@ msgid ""
 msgstr ""
 "Evitar empenamento\n"
 "Você sabia que ao imprimir materiais propensos ao empenamento como ABS, aumentar adequadamente a temperatura da mesa aquecida pode reduzir a probabilidade de empenamento?"
+
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "A visualização ao vivo nativa do Wayland requer o receptor de vídeo GTK do GStreamer. Instale o plugin gtksink para GStreamer e reinicie o OrcaSlicer."
+
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "Falha ao inicializar o receptor de vídeo nativo do Wayland GStreamer. Verifique a instalação do plugin GStreamer GTK."
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "O Windows Media Player é necessário para esta tarefa! Você quer habilitar o 'Windows Media Player' para seu sistema operacional?"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource não foi registrado corretamente para reprodução de mídia! Pressione Sim para registrá-lo novamente. Você será promovido duas vezes"
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "Componente BambuSource registrado para reprodução de mídia não encontrado! Por favor, reinstale o OrcaSlicer ou procure ajuda da comunidade."
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "Usando um BambuSource de uma instalação diferente, a reprodução de vídeo pode não funcionar corretamente! Pressione Sim para consertar."
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "Seu sistema não possui codecs H.264 para o GStreamer, que são necessários para reproduzir vídeos. (Tente instalar os pacotes gstreamer1.0-plugins-bad ou gstreamer1.0-libav e depois reinicie o OrcaSlicer?)"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"

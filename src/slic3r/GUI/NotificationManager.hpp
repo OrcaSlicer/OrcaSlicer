@@ -378,7 +378,9 @@ public:
     void bbl_close_plateinfo_notification();
 
     //BBS-- 3mf warning
-    void bbl_show_3mf_warn_notification(const std::string &text);
+    // level defaults to the historical error styling; callers reporting informational
+    // 3MF load notices (published settings) pass WarningNotificationLevel instead.
+    void bbl_show_3mf_warn_notification(const std::string &text, NotificationLevel level = NotificationLevel::ErrorNotificationLevel);
     void bbl_close_3mf_warn_notification();
 
     //BBS--preview only mode

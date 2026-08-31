@@ -3931,7 +3931,7 @@ bool Sidebar::reset_bed_type_combox_choices(bool is_sidebar_init)
         }
     }
     m_last_combo_bedtype_count = p->combo_printer_bed->GetCount();
-    if (!is_sidebar_init && &p->plater->get_partplate_list()) {
+    if (!is_sidebar_init) {
         p->plater->get_partplate_list().check_all_plate_local_bed_type(m_cur_combox_bed_types);
     }
     return true;
@@ -9063,24 +9063,24 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 Slic3r::remap_model_filament_slots(model, published_config.mixed_slot_relocations);
 
                             // BBS: notify the user about published settings that could not be applied.
-
-                            // BBS: notify the user about published settings that could not be applied.
                             if (!published_config.skipped_keys.empty()) {
                                 NotificationManager* notify_manager = q->get_notification_manager();
                                 std::string message                 = _u8L("Some published settings could not be applied:");
                                 for (const std::string& key : published_config.skipped_keys)
                                     message += "\n-" + key;
-                                notify_manager->bbl_show_3mf_warn_notification(message);
+                                // Informational: the load succeeded, these keys were skipped.
+                                notify_manager->bbl_show_3mf_warn_notification(message, NotificationManager::NotificationLevel::WarningNotificationLevel);
                             }
 
                             // BBS: notify the user about slot materials that were replaced while
                             // loading a published project (type mismatch / no same-type match).
                             if (!published_config.material_replacements.empty()) {
                                 NotificationManager* notify_manager = q->get_notification_manager();
-                                std::string message = _u8L("Some filament slots were changed to match the published materials:");
+                                std::string message                 = _u8L("Some filament slots were changed:");
                                 for (const std::string& replacement : published_config.material_replacements)
                                     message += "\n-" + replacement;
-                                notify_manager->bbl_show_3mf_warn_notification(message);
+                                // Informational: the load succeeded, the slots were adapted.
+                                notify_manager->bbl_show_3mf_warn_notification(message, NotificationManager::NotificationLevel::WarningNotificationLevel);
                             }
 
                             ConfigOption* bed_type_opt = preset_bundle->project_config.option("curr_bed_type");
@@ -21869,9 +21869,9 @@ void Plater::show_object_info()
     int non_manifold_edges = 0;
     auto mesh_errors       = p->sidebar->obj_list()->get_mesh_errors_info(&info_manifold, &non_manifold_edges);
 
-    if (non_manifold_edges > 0) {
-        info_manifold += into_u8("\n" + _L("Tips:") + "\n" + _L("Use \"Fix Model\" to repair the mesh."));
-    }
+        if (non_manifold_edges > 0) {
+            info_manifold += "\n" + _L("Tips:") + "\n" + _L("Use \"Fix Model\" to repair the mesh.");
+        }
 
     info_manifold = "<Error>" + info_manifold + "</Error>";
     info_text += into_u8(info_manifold);

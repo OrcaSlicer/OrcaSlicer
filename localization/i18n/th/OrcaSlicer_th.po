@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-28 12:15+0800\n"
+"POT-Creation-Date: 2026-08-31 11:46+0800\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -8116,7 +8116,7 @@ msgstr "ค่าที่ตั้งไว้ล่วงหน้าที่
 msgid "Some published settings could not be applied:"
 msgstr ""
 
-msgid "Some filament slots were changed to match the published materials:"
+msgid "Some filament slots were changed:"
 msgstr ""
 
 msgid "Component name(s) inside step file not in UTF8 format!"
@@ -11600,27 +11600,6 @@ msgstr "ปริมาณการไล่เส้นชิ่งสำหร
 
 msgid "Please choose the filament colour"
 msgstr "กรุณาเลือกสีเส้นพลาสติก"
-
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "Native Wayland liveview ต้องใช้ GStreamer GTK video sink โปรดติดตั้งปลั๊กอิน gtksink สำหรับ GStreamer จากนั้นรีสตาร์ท OrcaSlicer"
-
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "ไม่สามารถเริ่มต้น sink วิดีโอ Wayland GStreamer ดั้งเดิมได้ โปรดตรวจสอบการติดตั้งปลั๊กอิน GStreamer GTK ของคุณ"
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "งานนี้ต้องใช้ Windows Media Player! คุณต้องการเปิดใช้งาน 'Windows Media Player' สำหรับระบบปฏิบัติการของคุณหรือไม่?"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource ยังไม่ได้รับการลงทะเบียนอย่างถูกต้องสำหรับการเล่นสื่อ! กดใช่เพื่อลงทะเบียนใหม่ คุณจะได้รับการเลื่อนตำแหน่งสองครั้ง"
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "ไม่มีส่วนประกอบ BambuSource ที่ลงทะเบียนสำหรับการเล่นสื่อ! โปรดติดตั้ง OrcaSlicer ใหม่หรือขอความช่วยเหลือจากชุมชน"
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "การใช้ BambuSource จากการติดตั้งอื่น การเล่นวิดีโออาจทำงานไม่ถูกต้อง! กดใช่เพื่อแก้ไข"
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "ระบบของคุณไม่มีตัวแปลงสัญญาณ H.264 สำหรับ GStreamer ซึ่งจำเป็นในการเล่นวิดีโอ (ลองติดตั้งแพ็คเกจ gstreamer1.0-plugins-bad หรือ gstreamer1.0-libav จากนั้นรีสตาร์ท Orca Slicer หรือไม่)"
 
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
 msgstr "ตัวแทนระบบคลาวด์ไม่พร้อมใช้งาน โปรดรีสตาร์ท OrcaSlicer แล้วลองอีกครั้ง"
@@ -21651,6 +21630,27 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "Native Wayland liveview ต้องใช้ GStreamer GTK video sink โปรดติดตั้งปลั๊กอิน gtksink สำหรับ GStreamer จากนั้นรีสตาร์ท OrcaSlicer"
+
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "ไม่สามารถเริ่มต้น sink วิดีโอ Wayland GStreamer ดั้งเดิมได้ โปรดตรวจสอบการติดตั้งปลั๊กอิน GStreamer GTK ของคุณ"
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "งานนี้ต้องใช้ Windows Media Player! คุณต้องการเปิดใช้งาน 'Windows Media Player' สำหรับระบบปฏิบัติการของคุณหรือไม่?"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource ยังไม่ได้รับการลงทะเบียนอย่างถูกต้องสำหรับการเล่นสื่อ! กดใช่เพื่อลงทะเบียนใหม่ คุณจะได้รับการเลื่อนตำแหน่งสองครั้ง"
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "ไม่มีส่วนประกอบ BambuSource ที่ลงทะเบียนสำหรับการเล่นสื่อ! โปรดติดตั้ง OrcaSlicer ใหม่หรือขอความช่วยเหลือจากชุมชน"
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "การใช้ BambuSource จากการติดตั้งอื่น การเล่นวิดีโออาจทำงานไม่ถูกต้อง! กดใช่เพื่อแก้ไข"
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "ระบบของคุณไม่มีตัวแปลงสัญญาณ H.264 สำหรับ GStreamer ซึ่งจำเป็นในการเล่นวิดีโอ (ลองติดตั้งแพ็คเกจ gstreamer1.0-plugins-bad หรือ gstreamer1.0-libav จากนั้นรีสตาร์ท Orca Slicer หรือไม่)"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"

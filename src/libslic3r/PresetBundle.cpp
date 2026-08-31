@@ -5548,8 +5548,7 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                         mixed_moves.emplace_back(size_t(authored_slot), size_t(entry.slot));
                         published_config->mixed_slot_relocations.emplace(authored_slot, entry.slot);
                         published_config->material_replacements.emplace_back("slot " + std::to_string(authored_slot) + " -> slot " +
-                                                                             std::to_string(entry.slot) +
-                                                                             ": mixed filament relocated (would have replaced a physical filament)");
+                                                                             std::to_string(entry.slot) + ": mixed filament");
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF relocated mixed filament slot " << authored_slot
                                                 << " -> " << entry.slot;
                         ++entry_it;
@@ -5570,8 +5569,7 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                         (dest_slot != authored_slot ?
                              "slot " + std::to_string(authored_slot) + " -> slot " + std::to_string(dest_slot) :
                              "slot " + std::to_string(dest_slot)) +
-                        ": " + material_label + " placed as an unassigned mixed filament (printer supports only " +
-                        std::to_string(physical_capacity) + " filaments)");
+                        ": unassigned mixed filament (printer supports only " + std::to_string(physical_capacity) + " filaments)");
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF material from slot " << authored_slot
                                             << " placed as an unassigned mixed filament at slot " << dest_slot
                                             << " (printer supports only " << physical_capacity << " filaments)";
@@ -5715,8 +5713,7 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                                                         << entry.preset_name << "\", type \"" << entry.publish_type_value << "\")";
                             if (best_score >= 0 && best_score < 2 && (!entry.filament_id.empty() || !entry.filament_vendor.empty()))
                                 published_config->material_replacements.emplace_back("slot " + std::to_string(new_slot_idx) + ": " +
-                                                                                     initial_preset +
-                                                                                     " (substitute: no exact material match)");
+                                                                                     initial_preset + " (substitute)");
                             break;
                         }
                         // ...otherwise any visible preset not already used by another slot,
@@ -5845,7 +5842,7 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                     material_applied               = true;
                     // The re-point used to be silent; surface it like the other slot changes.
                     published_config->material_replacements.emplace_back("slot " + std::to_string(slot) + ": " + aliased_name + " -> " +
-                                                                         replacement + " (de-aliased: shared profile)");
+                                                                         replacement);
                 }
                 // Grow the per-slot colour/type/map project vectors to the new slot count and
                 // seed the new entries so the slots render with colours instead of blank chips
@@ -6118,7 +6115,7 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                         this->filament_presets[slot] = new_name;
                         material_applied             = true;
                         published_config->material_replacements.emplace_back("slot " + std::to_string(slot) + ": " + old_name + " -> " +
-                                                                             new_name + " (published material imported)");
+                                                                             new_name);
                         // Colour is slot-scoped and project-visible: sync into project_config
                         // (the copy already baked it, this makes the chips render).
                         if (entry.publish_color && !entry.color.empty()) {
@@ -6241,7 +6238,7 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                                 // A pick that is not the exact published material is a substitute;
                                 // an entry without identity fields cannot be judged, so it stays plain.
                                 if (score < 2 && (!entry.filament_id.empty() || !entry.filament_vendor.empty()))
-                                    replacement_line += " (substitute: no exact material match)";
+                                    replacement_line += " (substitute)";
                                 published_config->material_replacements.emplace_back(std::move(replacement_line));
                             } else {
                                 // Partial publish with no replacement: keep the receiver's

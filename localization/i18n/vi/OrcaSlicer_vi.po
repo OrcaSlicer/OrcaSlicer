@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-28 12:15+0800\n"
+"POT-Creation-Date: 2026-08-31 11:46+0800\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -8627,7 +8627,7 @@ msgstr "Preset tùy chỉnh"
 msgid "Some published settings could not be applied:"
 msgstr ""
 
-msgid "Some filament slots were changed to match the published materials:"
+msgid "Some filament slots were changed:"
 msgstr ""
 
 msgid "Component name(s) inside step file not in UTF8 format!"
@@ -12397,29 +12397,6 @@ msgstr "Khối lượng xả khi thay filament"
 # AI Translated
 msgid "Please choose the filament colour"
 msgstr "Vui lòng chọn màu filament"
-
-# AI Translated
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "Xem trực tiếp trên Wayland thuần cần GStreamer GTK video sink. Vui lòng cài đặt plugin gtksink cho GStreamer, sau đó khởi động lại OrcaSlicer."
-
-# AI Translated
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "Khởi tạo GStreamer video sink trên Wayland thuần thất bại. Vui lòng kiểm tra việc cài đặt plugin GStreamer GTK của bạn."
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "Windows Media Player là cần thiết cho tác vụ này! Bạn có muốn bật 'Windows Media Player' cho hệ điều hành của bạn?"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource chưa được đăng ký chính xác để phát media! Nhấn Có để đăng ký lại. Bạn sẽ được nhắc hai lần"
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "Thiếu thành phần BambuSource đã đăng ký để phát media! Vui lòng cài đặt lại OrcaSlicer hoặc tìm kiếm sự giúp đỡ từ cộng đồng."
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "Đang sử dụng BambuSource từ cài đặt khác, phát video có thể không hoạt động đúng! Nhấn Có để sửa nó."
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "Hệ thống của bạn thiếu codec H.264 cho GStreamer, cần thiết để phát video. (Hãy thử cài đặt gói gstreamer1.0-plugins-bad hoặc gstreamer1.0-libav, sau đó khởi động lại Orca Slicer?)"
 
 # AI Translated
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
@@ -22992,6 +22969,29 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+# AI Translated
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "Xem trực tiếp trên Wayland thuần cần GStreamer GTK video sink. Vui lòng cài đặt plugin gtksink cho GStreamer, sau đó khởi động lại OrcaSlicer."
+
+# AI Translated
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "Khởi tạo GStreamer video sink trên Wayland thuần thất bại. Vui lòng kiểm tra việc cài đặt plugin GStreamer GTK của bạn."
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "Windows Media Player là cần thiết cho tác vụ này! Bạn có muốn bật 'Windows Media Player' cho hệ điều hành của bạn?"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource chưa được đăng ký chính xác để phát media! Nhấn Có để đăng ký lại. Bạn sẽ được nhắc hai lần"
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "Thiếu thành phần BambuSource đã đăng ký để phát media! Vui lòng cài đặt lại OrcaSlicer hoặc tìm kiếm sự giúp đỡ từ cộng đồng."
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "Đang sử dụng BambuSource từ cài đặt khác, phát video có thể không hoạt động đúng! Nhấn Có để sửa nó."
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "Hệ thống của bạn thiếu codec H.264 cho GStreamer, cần thiết để phát video. (Hãy thử cài đặt gói gstreamer1.0-plugins-bad hoặc gstreamer1.0-libav, sau đó khởi động lại Orca Slicer?)"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"

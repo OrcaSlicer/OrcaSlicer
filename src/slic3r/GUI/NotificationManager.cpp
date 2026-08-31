@@ -3360,9 +3360,9 @@ void NotificationManager::bbl_close_3mf_warn_notification()
         }
 }
 
-void NotificationManager::bbl_show_3mf_warn_notification(const std::string &text)
+void NotificationManager::bbl_show_3mf_warn_notification(const std::string &text, NotificationLevel level)
 {
-    NotificationData data{NotificationType::BBL3MFInfo, NotificationLevel::ErrorNotificationLevel, BBL_NOTICE_MAX_INTERVAL, text};
+    NotificationData data{NotificationType::BBL3MFInfo, level, BBL_NOTICE_MAX_INTERVAL, text};
 
     for (std::unique_ptr<PopNotification> &notification : m_pop_notifications) {
         if (notification->get_type() == NotificationType::BBL3MFInfo) {

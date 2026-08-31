@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-28 12:15+0800\n"
+"POT-Creation-Date: 2026-08-31 11:46+0800\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -8193,7 +8193,7 @@ msgstr "사용자 정의 프리셋"
 msgid "Some published settings could not be applied:"
 msgstr ""
 
-msgid "Some filament slots were changed to match the published materials:"
+msgid "Some filament slots were changed:"
 msgstr ""
 
 # AI Translated
@@ -11854,30 +11854,6 @@ msgstr "필라멘트 교체를 위한 버리기 볼륨"
 
 msgid "Please choose the filament colour"
 msgstr "필라멘트 색상을 선택하세요"
-
-# AI Translated
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "네이티브 Wayland 실시간 보기에는 GStreamer GTK 비디오 싱크가 필요합니다. GStreamer용 gtksink 플러그인을 설치한 후 OrcaSlicer를 다시 시작하십시오."
-
-# AI Translated
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "네이티브 Wayland GStreamer 비디오 싱크를 초기화하지 못했습니다. GStreamer GTK 플러그인 설치 상태를 확인하십시오."
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "이 작업에는 Windows Media Player가 필요합니다! 운영 체제에서 Windows Media Player를 활성화하시겠습니까?"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "뱀부소스가 미디어 재생에 올바르게 등록되지 않았습니다! 다시 등록하려면 예를 누르세요. 두 번 승격됩니다"
-
-# AI Translated
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "미디어 재생용으로 등록된 BambuSource 구성 요소가 없습니다! OrcaSlicer를 다시 설치하거나 커뮤니티에 도움을 요청하십시오."
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "다른 설치 버전의 뱀부소스를 사용하면 동영상 재생이 제대로 작동하지 않을 수 있습니다! 예를 눌러 문제를 해결하세요."
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "시스템에 동영상 재생을 위해 필요한 GStreamer용 H.264 코덱이 존재하지 않습니다. (gstreamer1.0-plugins-bad 또는 gstreamer1.0-libav 패키지를 설치한 다음 Orca Slicer를 다시 실행하십시오.)"
 
 # AI Translated
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
@@ -22347,6 +22323,30 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+# AI Translated
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "네이티브 Wayland 실시간 보기에는 GStreamer GTK 비디오 싱크가 필요합니다. GStreamer용 gtksink 플러그인을 설치한 후 OrcaSlicer를 다시 시작하십시오."
+
+# AI Translated
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "네이티브 Wayland GStreamer 비디오 싱크를 초기화하지 못했습니다. GStreamer GTK 플러그인 설치 상태를 확인하십시오."
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "이 작업에는 Windows Media Player가 필요합니다! 운영 체제에서 Windows Media Player를 활성화하시겠습니까?"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "뱀부소스가 미디어 재생에 올바르게 등록되지 않았습니다! 다시 등록하려면 예를 누르세요. 두 번 승격됩니다"
+
+# AI Translated
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "미디어 재생용으로 등록된 BambuSource 구성 요소가 없습니다! OrcaSlicer를 다시 설치하거나 커뮤니티에 도움을 요청하십시오."
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "다른 설치 버전의 뱀부소스를 사용하면 동영상 재생이 제대로 작동하지 않을 수 있습니다! 예를 눌러 문제를 해결하세요."
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "시스템에 동영상 재생을 위해 필요한 GStreamer용 H.264 코덱이 존재하지 않습니다. (gstreamer1.0-plugins-bad 또는 gstreamer1.0-libav 패키지를 설치한 다음 Orca Slicer를 다시 실행하십시오.)"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"

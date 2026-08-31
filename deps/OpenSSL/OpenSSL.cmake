@@ -17,10 +17,20 @@ else()
 endif()
 
 if(WIN32)
-    set(_conf_cmd perl Configure )
+    set(_openssl_msvc_env CC=cl CXX=cl RC=rc CL=/FS)
+    # OpenSSL's perl Configure honors the CC environment variable, but the
+    # VC-WIN64A makefile only works with cl (an unquoted clang-cl path with
+    # spaces, e.g. exported by CLion, silently produces no .obj files and the
+    # lib step fails with LNK1181). Pin the upstream toolchain.
+    # Keep rc.exe resolved from the MSVC developer environment as well. The
+    # absolute Windows SDK path contains spaces and OpenSSL 1.1.1 writes it to
+    # the generated nmake file without quoting, which skips .res generation.
+    # /FS serializes access to OpenSSL's shared generated PDB when cl is
+    # driven through nmake from a Ninja configure step.
+    set(_conf_cmd ${CMAKE_COMMAND} -E env ${_openssl_msvc_env} perl Configure )
     set(_cross_comp_prefix_line "")
-    set(_make_cmd nmake)
-    set(_install_cmd nmake install_sw )
+    set(_make_cmd ${CMAKE_COMMAND} -E env ${_openssl_msvc_env} nmake)
+    set(_install_cmd ${CMAKE_COMMAND} -E env ${_openssl_msvc_env} nmake install_sw )
 else()
     if(APPLE)
         set(_conf_cmd export MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET} && ./Configure -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})

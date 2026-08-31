@@ -99,7 +99,7 @@ int TabCtrl::AppendItem(const wxString& item, int image, int selImage, void* cli
     btns.push_back(btn);
     if (btns.size() > 1)
         sizer->GetItem(sizer->GetItemCount() - 1)->SetMinSize({0, 0});
-    sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, item_space * 2);
+    sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, item_space);
     sizer->AddStretchSpacer(1);
     relayout();
     return btns.size() - 1;
@@ -223,8 +223,9 @@ bool TabCtrl::IsVisible(unsigned int item) const { return true; }
 
 void TabCtrl::DoSetSize(int x, int y, int width, int height, int sizeFlags)
 {
+    auto size = GetSize();
     wxWindow::DoSetSize(x, y, width, height, sizeFlags);
-    if (sizeFlags & wxSIZE_USE_EXISTING)
+    if (size == GetSize())
         return;
     relayout();
 }

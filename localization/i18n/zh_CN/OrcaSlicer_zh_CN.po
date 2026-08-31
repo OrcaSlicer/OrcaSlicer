@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-28 12:15+0800\n"
+"POT-Creation-Date: 2026-08-31 11:46+0800\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -7947,7 +7947,7 @@ msgstr "自定义的预设"
 msgid "Some published settings could not be applied:"
 msgstr ""
 
-msgid "Some filament slots were changed to match the published materials:"
+msgid "Some filament slots were changed:"
 msgstr ""
 
 msgid "Component name(s) inside step file not in UTF8 format!"
@@ -11389,27 +11389,6 @@ msgstr "耗材丝更换时的冲刷体积"
 
 msgid "Please choose the filament colour"
 msgstr "请选择耗材丝颜色"
-
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "原生 Wayland 实时画面需要 GStreamer GTK 视频接收器。请安装 GStreamer 的 gtksink 插件，然后重启 OrcaSlicer。"
-
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "原生 Wayland GStreamer 视频接收器初始化失败。请检查您的 GStreamer GTK 插件安装情况。"
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "此任务需要 Windows Media Player！您是否要为您的操作系统启用'Windows Media Player'？"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource 未正确注册用于媒体播放！按是重新注册它。您将被提示两次"
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "缺少用于媒体播放的已注册 BambuSource 组件！请重新安装 OrcaSlicer 或寻求社区帮助。"
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "使用来自不同安装的 BambuSource，视频播放可能无法正常工作！按是修复它。"
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "您的系统缺少 GStreamer 所需的 H.264 编解码器，这是播放视频所必需的。（尝试安装 gstreamer1.0-plugins-bad 或 gstreamer1.0-libav 软件包，然后重新启动 Orca Slicer？）"
 
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
 msgstr "云代理不可用。请重启 OrcaSlicer 后重试。"
@@ -21399,6 +21378,27 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "原生 Wayland 实时画面需要 GStreamer GTK 视频接收器。请安装 GStreamer 的 gtksink 插件，然后重启 OrcaSlicer。"
+
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "原生 Wayland GStreamer 视频接收器初始化失败。请检查您的 GStreamer GTK 插件安装情况。"
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "此任务需要 Windows Media Player！您是否要为您的操作系统启用'Windows Media Player'？"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource 未正确注册用于媒体播放！按是重新注册它。您将被提示两次"
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "缺少用于媒体播放的已注册 BambuSource 组件！请重新安装 OrcaSlicer 或寻求社区帮助。"
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "使用来自不同安装的 BambuSource，视频播放可能无法正常工作！按是修复它。"
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "您的系统缺少 GStreamer 所需的 H.264 编解码器，这是播放视频所必需的。（尝试安装 gstreamer1.0-plugins-bad 或 gstreamer1.0-libav 软件包，然后重新启动 Orca Slicer？）"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"

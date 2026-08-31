@@ -1000,7 +1000,7 @@ TEST_CASE("Published 3MF full-published slots are imported as standalone detache
         check_double_vector(bundle.filaments.find_preset("My PLA", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.5 });
         CHECK(pub.skipped_keys.empty());
         REQUIRE(pub.material_replacements.size() == 1);
-        CHECK(pub.material_replacements[0] == "slot 0: My PLA -> PLA (published material imported)");
+        CHECK(pub.material_replacements[0] == "slot 0: My PLA -> PLA");
     }
 
     SECTION("type mismatch also detaches: a fresh same-type copy replaces the slot") {
@@ -1031,7 +1031,7 @@ TEST_CASE("Published 3MF full-published slots are imported as standalone detache
         check_double_vector(bundle.filaments.find_preset("My PLA", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.5 });
         CHECK(pub.skipped_keys.empty());
         REQUIRE(pub.material_replacements.size() == 1);
-        CHECK(pub.material_replacements[0] == "slot 0: My PLA -> ABS (published material imported)");
+        CHECK(pub.material_replacements[0] == "slot 0: My PLA -> ABS");
     }
 
     SECTION("the author's identity rides on the copy when the type has no library match") {
@@ -1071,7 +1071,7 @@ TEST_CASE("Published 3MF full-published slots are imported as standalone detache
         check_double_vector(bundle.filaments.find_preset("Other PLA", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.7 });
         CHECK(pub.skipped_keys.empty());
         REQUIRE(pub.material_replacements.size() == 1);
-        CHECK(pub.material_replacements[0] == "slot 0: My PLA -> ABS (published material imported)");
+        CHECK(pub.material_replacements[0] == "slot 0: My PLA -> ABS");
     }
 }
 
@@ -1137,7 +1137,7 @@ TEST_CASE("Published 3MF imports a full material under the author's stripped nam
         check_double_vector(bundle.filaments.find_preset("Generic PLA @System", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.5 });
         check_double_vector(bundle.filaments.find_preset("My PETG", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.6 });
         REQUIRE(pub.material_replacements.size() == 1);
-        CHECK(pub.material_replacements[0] == "slot 0: My PETG -> Generic PLA (published material imported)");
+        CHECK(pub.material_replacements[0] == "slot 0: My PETG -> Generic PLA");
         CHECK(pub.skipped_keys.empty());
     }
 
@@ -1168,7 +1168,7 @@ TEST_CASE("Published 3MF imports a full material under the author's stripped nam
         CHECK(bundle.filament_presets[0] == "Generic PLA");
         check_double_vector(bundle.filaments.find_preset("Bambu PLA Basic @System", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.5 });
         REQUIRE(pub.material_replacements.size() == 1);
-        CHECK(pub.material_replacements[0] == "slot 0: My PETG -> Generic PLA (published material imported)");
+        CHECK(pub.material_replacements[0] == "slot 0: My PETG -> Generic PLA");
         CHECK(pub.skipped_keys.empty());
     }
 
@@ -1217,7 +1217,7 @@ TEST_CASE("Published 3MF imports a full material under the author's stripped nam
         check_double_vector(bundle.filaments.find_preset("Generic PLA", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.8 });
         check_double_vector(bundle.filaments.find_preset("Generic PLA @System", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.5 });
         REQUIRE(pub.material_replacements.size() == 1);
-        CHECK(pub.material_replacements[0] == "slot 1: Generic PLA @System -> Generic PLA (published material imported)");
+        CHECK(pub.material_replacements[0] == "slot 1: Generic PLA @System -> Generic PLA");
         CHECK(pub.skipped_keys.empty());
     }
 }
@@ -1271,7 +1271,7 @@ TEST_CASE("Published 3MF uniquifies an imported full material name on collision"
     check_double_vector(bundle.filaments.find_preset("Generic PLA @Qidi Q2 0.4 nozzle", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.5 });
     check_double_vector(bundle.filaments.find_preset("Generic PLA @System", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.5 });
     REQUIRE(pub.material_replacements.size() == 1);
-    CHECK(pub.material_replacements[0] == "slot 0: My PETG -> Generic PLA (Published) (published material imported)");
+    CHECK(pub.material_replacements[0] == "slot 0: My PETG -> Generic PLA (Published)");
     CHECK(pub.skipped_keys.empty());
 }
 
@@ -1413,7 +1413,7 @@ TEST_CASE("Published 3MF imports a full material as a detached project-embedded 
     check_double_vector(bundle.filaments.find_preset("Spare PLA", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.4 });
     CHECK(pub.skipped_keys.empty());
     REQUIRE(pub.material_replacements.size() == 1);
-    CHECK(pub.material_replacements[0] == "slot 0: My PETG -> Author PLA (published material imported)");
+    CHECK(pub.material_replacements[0] == "slot 0: My PETG -> Author PLA");
 }
 
 // Compatibility restrictions riding on the receiver's baseline preset must not leak onto the
@@ -1516,8 +1516,8 @@ TEST_CASE("Published 3MF shares one imported copy between identical full slots",
     check_double_vector(bundle.filaments.find_preset("Author PLA", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.9 });
     // Both slots reported, same target; originals untouched.
     REQUIRE(pub.material_replacements.size() == 2);
-    CHECK(pub.material_replacements[0] == "slot 0: My PETG -> Author PLA (published material imported)");
-    CHECK(pub.material_replacements[1] == "slot 1: Other PETG -> Author PLA (published material imported)");
+    CHECK(pub.material_replacements[0] == "slot 0: My PETG -> Author PLA");
+    CHECK(pub.material_replacements[1] == "slot 1: Other PETG -> Author PLA");
     check_double_vector(bundle.filaments.find_preset("My PETG", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.6 });
     check_double_vector(bundle.filaments.find_preset("Other PETG", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.65 });
     CHECK(pub.skipped_keys.empty());
@@ -1642,7 +1642,7 @@ TEST_CASE("Re-importing a published full material uniquifies the second copy", "
             check_double_vector(bundle.filaments.find_preset("Author PLA (Published)", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.9 });
             check_double_vector(bundle.filaments.find_preset("Author PLA", false, true)->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.9 });
             REQUIRE(pub.material_replacements.size() == 1);
-            CHECK(pub.material_replacements[0] == "slot 0: Author PLA -> Author PLA (Published) (published material imported)");
+            CHECK(pub.material_replacements[0] == "slot 0: Author PLA -> Author PLA (Published)");
         }
         CHECK(pub.skipped_keys.empty());
     }
@@ -2496,7 +2496,7 @@ TEST_CASE("Published 3MF de-aliases an aliased slot by published identity withou
     REQUIRE(target != nullptr);
     check_double_vector(target->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values, { 0.9 });
     REQUIRE(pub.material_replacements.size() == 1);
-    CHECK(pub.material_replacements[0].find("(de-aliased") != std::string::npos);
+    CHECK(pub.material_replacements[0] == "slot 1: My PLA -> Zzz PLA");
     CHECK(pub.skipped_keys.empty());
 }
 
@@ -3877,7 +3877,7 @@ TEST_CASE("Published 3MF scores a grown slot's material by identity tiers", "[Pr
         CHECK(bundle.filament_presets[2] == "Aaa PLA");
         // ...and since it is not an exact material match, the load says so.
         REQUIRE(pub.material_replacements.size() == 1);
-        CHECK(pub.material_replacements[0] == "slot 2: Aaa PLA (substitute: no exact material match)");
+        CHECK(pub.material_replacements[0] == "slot 2: Aaa PLA (substitute)");
     }
 }
 
@@ -3985,7 +3985,7 @@ TEST_CASE("Published 3MF uniquifies a second imported full material as (Publishe
                             ->config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->values,
                         { 0.5 });
     REQUIRE(pub.material_replacements.size() == 1);
-    CHECK(pub.material_replacements[0] == "slot 0: My PETG -> Generic PLA (Published 2) (published material imported)");
+    CHECK(pub.material_replacements[0] == "slot 0: My PETG -> Generic PLA (Published 2)");
     CHECK(pub.skipped_keys.empty());
 }
 
