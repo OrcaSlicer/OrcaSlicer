@@ -3054,6 +3054,16 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
         final_inherits = inherits;
         unlock();
     }
+    // Orca: keep only the keys this preset type owns. A full copy - written when detaching - would
+    // otherwise carry runtime keys such as "extruder_nozzle_stats" that load_presets() strips again
+    // through remove_invalid_keys(), logging an error for the preset on every start. Done before the
+    // selection below, so the cleaned config is what gets copied into the edited preset.
+    if (auto it = this->find_preset_internal(new_name); it != m_presets.end() && it->name == new_name) {
+        const std::string dropped = Preset::remove_invalid_keys(it->config, this->default_preset_for(it->config).config);
+        if (!dropped.empty())
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": " << it->name << " dropped keys not owned by a "
+                                     << Preset::get_type_string(m_type) << " preset: " << dropped;
+    }
     // 2) Activate the saved preset.
     this->select_preset_by_name(new_name, true);
     // 2) Store the active preset to disk.
