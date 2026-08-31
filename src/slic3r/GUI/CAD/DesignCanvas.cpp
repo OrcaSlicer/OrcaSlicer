@@ -161,8 +161,8 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     }
     // A floating frame does not follow its parent, so the anchor has to be recomputed whenever
     // the canvas changes size. The readout HUD gets away without this because it is transient;
-    // the status line is on screen almost permanently and would visibly detach.
-    m_canvas_widget->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) { place_status_hud(); e.Skip(); });
+    // the status line is on screen almost permanently and would visibly detach. The wxEVT_SIZE
+    // bind that does it lives BELOW bind_event_handlers() and not here — see the note there.
     // ...and it does not follow the WINDOW either. A popup is override-redirect: the window
     // manager does not own it, so minimising the app leaves the chip sitting on the bare desktop
     // (seen on the rig: whole screen black, chip still there), and it stacks above other
@@ -193,11 +193,20 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     m_parked_camera = wxGetApp().plater()->get_camera();
 
     // Before any of this class's own Binds below: wx calls dynamically bound handlers in
-    // reverse order of binding, and GLCanvas3D::on_mouse takes wxEVT_RIGHT_UP / ENTER_WINDOW
-    // without skipping them — so whatever is bound last is the only handler that sees them.
+    // reverse order of binding, and GLCanvas3D swallows several events without skipping them —
+    // wxEVT_RIGHT_UP and wxEVT_ENTER_WINDOW in on_mouse, and wxEVT_SIZE in on_size, which is
+    // just `m_dirty = true;`. For those, whatever is bound LAST is the only handler that runs.
     // The context menu, the focus-follows-mouse and the status-chip re-anchor all depend on
     // running first, which is only true while this call stays ahead of them.
     m_canvas->bind_event_handlers();
+
+    // The status-chip re-anchor promised further up, bound here for exactly that reason: above
+    // this line the lambda never ran at all, so the chip kept a stale screen anchor and a stale
+    // wrap width after every resize that did not also move the frame or change the status text
+    // (dragging the right or bottom edge, a splitter move). The e.Skip() is load-bearing the
+    // other way: wx clears the skip flag before each handler and stops only on one that leaves
+    // it clear, so skipping falls through to on_size and the canvas is still marked dirty.
+    m_canvas_widget->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) { place_status_hud(); e.Skip(); });
 
     // The Design GL canvas only receives key events (Esc to exit/enter Select, Ctrl+Z undo)
     // while it holds keyboard focus. Clicking a side-panel button steals focus, after which
