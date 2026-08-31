@@ -481,6 +481,10 @@ public:
     int  add_entities_scripted(const std::vector<SketchEntity>& ents);
     // Replace the selection with these entity indices (out-of-range ones are ignored).
     bool select_indices(const std::vector<int>& idx);
+    // Append candidates, live-solve, and roll back the batch if it turns the system
+    // inconsistent. Returns true when the batch was kept. Public so the panel's live-constraint
+    // path can commit a plan through the SAME append→solve→keep-or-rollback the gestures use.
+    bool try_add_constraints(const std::vector<SketchEntityConstraintDef>& cands);
 
     // The loop report: what is CLOSED, what its internal voids are, and where a chain is still
     // open. This is the answer to "is my profile buildable", and it is the one question the
@@ -610,6 +614,9 @@ public:
     // Feature mode). Layered: an in-progress entity or a non-Select draw tool is dropped
     // first; a second Esc exits the session.
     std::function<void()> on_exit;
+    // Esc refusal: request_exit() declined to destroy a sketch that still has geometry. The
+    // panel owns the status line, so the tool reports through this instead of writing text itself.
+    std::function<void()> on_exit_refused;
     std::function<void()> on_move_exit;   // right-click finished the move-body gizmo
     void request_exit();
     // Ctrl+Z / Ctrl+Shift+Z (Ctrl+Y) while the Design canvas is focused: undo/redo the
@@ -641,9 +648,6 @@ private:
     InferenceSnap infer_at(GLCanvas3D& canvas, const wxMouseEvent& evt, const Vec2d& raw) const;
     // True if m_constraints already holds an equivalent Coincident between the two refs.
     bool has_coincident(int ea, SketchPointRole ra, int eb, SketchPointRole rb) const;
-    // Append candidates, live-solve, and roll back the batch if it turns the system
-    // inconsistent. Returns true when the batch was kept.
-    bool try_add_constraints(const std::vector<SketchEntityConstraintDef>& cands);
     // After entities [base, end) were committed, auto-emit the constraints that make
     // the new geometry stick: Coincident between co-located endpoints (so loops close
     // on their own) and Horizontal/Vertical on axis-aligned new segments.
@@ -1153,6 +1157,10 @@ private:
                             double& edge_d, int& face_feat, int& face_reg) const;
     bool m_right_consumed{false};          // last RightDown was a gesture terminator, not a menu
     bool m_escalate_repick{true};          // re-picking the same sub-element takes the whole body
+    // One-shot exit confirmation: request_exit() refused once because the sketch has unsaved
+    // geometry. The NEXT exit request (with nothing in between) is allowed through; any other
+    // action re-arms the refusal, so the warning is never a permanent block.
+    bool m_exit_refused{false};
     void render_solid_highlight();
     // The shared body of the above: one highlight from explicit arguments, so the committed
     // selection and the hover pre-highlight cannot drift apart in how they look.

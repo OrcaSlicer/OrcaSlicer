@@ -111,6 +111,18 @@ def click(px, py, pause=0.45, btn=1):
     time.sleep(pause)
 
 
+def click_ctrl(px, py, pause=0.45):
+    """Ctrl+click: EXTEND the sketch selection instead of replacing it.
+
+    A plain second click clears the first pick (DesignSketchTool's Select branch only keeps
+    one entity unless `extend` is set), so a two-entity constraint driven by two plain clicks
+    silently arrives with one pick and is rejected for the wrong reason.
+    """
+    _, X, Y, _, _ = win()
+    xdo(f"keydown ctrl mousemove {X+int(px)} {Y+int(py)} click --delay 120 1 keyup ctrl")
+    time.sleep(pause)
+
+
 def move(px, py, pause=0.2):
     _, X, Y, _, _ = win()
     xdo(f"mousemove {X+int(px)} {Y+int(py)}")
@@ -870,6 +882,16 @@ CON_BTN = {n: (449 + 42 * i, CON_BTN_Y) for i, n in enumerate(
      "equal_radius", "collinear", "concentric", "tangent", "midpoint", "symmetric",
      "sym_v", "sym_h", "angle", "radius", "diameter", "fix", "dist_x", "dist_y"])}
 
+# The SAME twenty buttons, at their SKETCH-mode x. Constraining during a sketch put the group
+# after the (wide) sketch toolbar instead of at the start of an otherwise empty row, so every
+# button sits 228 px further right. Measured, not derived: the strip was screenshotted in sketch
+# mode and the icon columns detected — first centre 677, pitch 42, twenty of them. Deriving it
+# from the Constrain-mode map is exactly how this table drifted the last time.
+CON_BTN_SKETCH = {n: (677 + 42 * i, CON_BTN_Y) for i, n in enumerate(
+    ["horizontal", "vertical", "parallel", "perpendicular", "coincident", "equal",
+     "equal_radius", "collinear", "concentric", "tangent", "midpoint", "symmetric",
+     "sym_v", "sym_h", "angle", "radius", "diameter", "fix", "dist_x", "dist_y"])}
+
 
 def draw_rect_undimensioned():
     """A rectangle by two clicks, with both queued value fields dismissed (Esc keeps it as drawn)."""
@@ -994,6 +1016,75 @@ def angle_between(a, b):
     vb = (b["p1"][0] - b["p0"][0], b["p1"][1] - b["p0"][1])
     c = (va[0] * vb[0] + va[1] * vb[1]) / (math.hypot(*va) * math.hypot(*vb))
     return math.degrees(math.acos(max(-1.0, min(1.0, c))))
+
+
+def parallel_gap(a, b):
+    """How far from parallel, in degrees. Parallel reads 0 or 180; both mean parallel."""
+    ang = angle_between(a, b)
+    return min(ang, 180.0 - ang)
+
+
+def rung_parallel():
+    reset_document()
+    print("\nD10 constrain — two divergent lines made parallel (the button had no rung at all)")
+    enter_sketch("l")
+    clickmm(-50, -30); clickmm(30, -18)
+    key("Escape", 0.7); key("Escape", 0.7)
+    key("l", 0.6)
+    # Well outside inference's 3 deg snap, for the same reason D3 starts at 56: a pair that
+    # arrives already parallel would let a dead button pass the rung.
+    clickmm(30, -18); clickmm(55, 35)
+    key("Escape", 0.7); key("Escape", 0.7)
+    d0 = describe()
+    g0 = parallel_gap(d0["entities"][0], d0["entities"][1])
+    check("ANGLE", g0 > 1e-3, f"they start {g0:.6f} deg from parallel")
+    key("k", 1.5)
+    d1 = describe()
+    clickmm(*mid(d1["entities"][0])); clickmm(*mid(d1["entities"][1]))
+    click(*CON_BTN["parallel"])
+    time.sleep(1.0)
+    d = describe()
+    g = parallel_gap(d["entities"][0], d["entities"][1])
+    check("ANGLE", near(g, 0.0, 1e-6), f"now {g:.9f} deg from parallel")
+    check("LENGTH", d["entities"][0]["length"] > 1.0 and d["entities"][1]["length"] > 1.0,
+          f"neither line collapsed: {d['entities'][0]['length']:.6f}, {d['entities'][1]['length']:.6f}")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["constraints"] > 0 and d2["solve_ok"],
+          f"{d2['constraints']} constraints survived the commit, dof {d2['dof']}")
+    leave_sketch()
+
+
+def rung_live_constrain():
+    reset_document()
+    print("\nD11 constrain WHILE SKETCHING — no commit, no tree pick, no padlock")
+    enter_sketch("l")
+    clickmm(-50, -30); clickmm(30, -18)
+    key("Escape", 0.7); key("Escape", 0.7)
+    key("l", 0.6)
+    clickmm(30, -18); clickmm(55, 35)
+    # Two Escapes only: the first clears the polyline's pending point, the second drops the
+    # tool to Select. The session stays LIVE -- that is the whole point of this rung.
+    key("Escape", 0.7); key("Escape", 0.7)
+    d0 = describe()
+    check("VERTEX", len(d0["entities"]) == 2, f"{len(d0['entities'])} entities in the live sketch")
+    g0 = parallel_gap(d0["entities"][0], d0["entities"][1])
+    check("ANGLE", g0 > 1e-3, f"they start {g0:.6f} deg from parallel")
+    # Pick both in the LIVE session, then press the button. No "k": pressing Constrain is
+    # exactly the step this rung exists to prove is no longer necessary.
+    clickmm(*mid(d0["entities"][0]))
+    cx, cy = mid(d0["entities"][1])
+    click_ctrl(*px(cx, cy))
+    click(*CON_BTN_SKETCH["parallel"])
+    time.sleep(1.2)
+    d = describe()
+    g = parallel_gap(d["entities"][0], d["entities"][1])
+    check("ANGLE", near(g, 0.0, 1e-6), f"parallel without ever leaving the sketch: {g:.9f} deg")
+    check("LENGTH", d["entities"][0]["length"] > 1.0 and d["entities"][1]["length"] > 1.0,
+          f"neither line collapsed: {d['entities'][0]['length']:.6f}, {d['entities'][1]['length']:.6f}")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["constraints"] > 0 and d2["solve_ok"],
+          f"{d2['constraints']} constraints survived the commit, dof {d2['dof']}")
+    leave_sketch()
 
 
 # =================================================================== DURABILITY
@@ -1541,6 +1632,7 @@ RUNGS = {"rect": rung_rect, "circle": rung_circle, "line": rung_line, "arc": run
          "distance_xy": rung_distance_xy, "symmetric_axis": rung_symmetric_axis,
          "coincident_points": rung_coincident_points,
          "type_guards": rung_type_guards,
+         "parallel": rung_parallel, "live_constrain": rung_live_constrain,
          "undo": rung_undo,
          "feature_undo": rung_feature_undo, "roundtrip": rung_roundtrip,
          "scale": rung_scale}

@@ -1900,4 +1900,300 @@ SketchEntity SketchEngine::make_bridge(const SketchEntity& a, int a_end,
     return e;
 }
 
+// ---- entity-constraint planning (Fase 4.2) ----
+// Pure kernel port of DesignPanel::apply_entity_constraint's decision logic, so the GUI
+// and the live-sketch tool share ONE legality/role/value decision instead of each carrying
+// its own copy. The Coincident phantom-p1 defect was fixed in one branch and stayed alive
+// in the next one down precisely because the logic lived in a wx method that could not be
+// unit-tested. No wx, no translation: the caller maps ConstraintReject to a string.
+
+int sketch_entity_ends(const SketchEntity& e, std::pair<SketchPointRole, Vec2d> out[2])
+{
+    using ET = SketchEntity::Type;
+    using R  = SketchPointRole;
+    switch (e.type) {
+    case ET::Line: case ET::Arc: case ET::BSpline: case ET::EllipseArc:
+        out[0] = {R::P0, e.p0}; out[1] = {R::P1, e.p1}; return 2;
+    case ET::Point:
+        out[0] = {R::P0, e.p0}; return 1;
+    case ET::Circle: case ET::Ellipse:
+        out[0] = {R::Center, e.center}; return 1;
+    }
+    return 0;
+}
+
+bool sketch_closest_ends(const SketchEntity& A, const SketchEntity& B,
+                         SketchPointRole& ra, SketchPointRole& rb, Vec2d& pa, Vec2d& pb)
+{
+    std::pair<SketchPointRole, Vec2d> aps[2], bps[2];
+    const int na = sketch_entity_ends(A, aps), nb = sketch_entity_ends(B, bps);
+    if (na == 0 || nb == 0) return false;
+    double best = 1e30;
+    ra = aps[0].first; rb = bps[0].first; pa = aps[0].second; pb = bps[0].second;
+    for (int i = 0; i < na; ++i)
+        for (int j = 0; j < nb; ++j) {
+            const double d = (aps[i].second - bps[j].second).squaredNorm();
+            if (d < best) {
+                best = d;
+                ra = aps[i].first; rb = bps[j].first;
+                pa = aps[i].second; pb = bps[j].second;
+            }
+        }
+    return true;
+}
+
+ConstraintPlan plan_entity_constraint(const std::vector<SketchEntity>& ents,
+                                      int e0, int e1, int e2, SketchConstraintType type)
+{
+    using R  = SketchPointRole;
+    using T  = SketchConstraintType;
+    const int n = int(ents.size());
+
+    ConstraintPlan plan;
+
+    auto is_round = [](const SketchEntity& e) {
+        return e.type == SketchEntity::Type::Circle || e.type == SketchEntity::Type::Arc; };
+
+    // One Equal button, two meanings: lines get equal length, curves equal radius.
+    if (type == T::EqualLength && e0 >= 0 && e1 >= 0 && e0 < n && e1 < n &&
+        is_round(ents[e0]) && is_round(ents[e1]))
+        type = T::EqualRadius;
+
+    const bool needs_two = (type == T::Parallel || type == T::Perpendicular ||
+                            type == T::EqualLength || type == T::Coincident ||
+                            type == T::Concentric || type == T::Tangent ||
+                            type == T::Angle || type == T::Midpoint ||
+                            type == T::Symmetric || type == T::EqualRadius ||
+                            type == T::Collinear ||
+                            type == T::SymmetricAboutY || type == T::SymmetricAboutX ||
+                            type == T::DistanceX || type == T::DistanceY);
+    if (e0 < 0 || e0 >= n || (needs_two && (e1 < 0 || e1 >= n))) {
+        plan.kind   = ConstraintPlan::Kind::Reject;
+        plan.reason = needs_two ? ConstraintReject::NeedTwoEntities : ConstraintReject::NeedOneEntity;
+        return plan;
+    }
+
+    plan.kind = ConstraintPlan::Kind::Apply;
+    SketchEntityConstraintDef def;
+    def.type  = type;
+    def.value = 0.0;
+    switch (type) {
+    case T::Horizontal:
+    case T::Vertical:
+        // One line: level/plumb its own two endpoints. Not pedantry -- with a Point or
+        // Circle picked, P1 is a role the solver silently drops while STORING the
+        // constraint, so the sketch claims to be constrained when it is not.
+        if (ents[e0].type != SketchEntity::Type::Line) {
+            plan.kind = ConstraintPlan::Kind::Reject;
+            plan.reason = ConstraintReject::NeedALine;
+            return plan;
+        }
+        def.ea = e0; def.ra = R::P0;
+        def.eb = e0; def.rb = R::P1;
+        break;
+    case T::Parallel:
+    case T::Perpendicular:
+    case T::EqualLength:
+        // Two whole line segments (roles unused). Guard ADDED here (the GUI does not check
+        // this yet): a non-line pick produced a def the solver drops, the same silent no-op
+        // as Horizontal on a Point above.
+        if (ents[e0].type != SketchEntity::Type::Line ||
+            ents[e1].type != SketchEntity::Type::Line) {
+            plan.kind = ConstraintPlan::Kind::Reject;
+            plan.reason = ConstraintReject::NeedTwoLines;
+            return plan;
+        }
+        def.ea = e0; def.eb = e1;
+        break;
+    case T::Coincident: {
+        // Join the closest point pair, NOT {p0,p1} on both -- two Points would otherwise
+        // resolve to their phantom (0,0) p1s and the constraint would do nothing at all.
+        R ra, rb; Vec2d pa, pb;
+        if (!sketch_closest_ends(ents[e0], ents[e1], ra, rb, pa, pb)) {
+            plan.kind = ConstraintPlan::Kind::Reject;
+            plan.reason = ConstraintReject::NeedJoinablePoints;
+            return plan;
+        }
+        def.ea = e0; def.ra = ra; def.eb = e1; def.rb = rb;
+        break;
+    }
+    case T::DistanceX:
+    case T::DistanceY: {
+        R ra, rb; Vec2d pa, pb;
+        if (!sketch_closest_ends(ents[e0], ents[e1], ra, rb, pa, pb)) {
+            plan.kind = ConstraintPlan::Kind::Reject;
+            plan.reason = ConstraintReject::NeedMeasurablePoints;
+            return plan;
+        }
+        // The constraint is SIGNED (fixes (pB - pA).dot(axis)). Order the refs so the shown
+        // value is the positive one -- accepting a dimension must be a no-op, not a flip.
+        int a = e0, b = e1;
+        double delta = (type == T::DistanceX) ? (pb.x() - pa.x()) : (pb.y() - pa.y());
+        if (delta < 0.0) { std::swap(a, b); std::swap(ra, rb); delta = -delta; }
+        plan.kind    = ConstraintPlan::Kind::AskValue;
+        def.ea  = a; def.ra = ra;
+        def.eb  = b; def.rb = rb;
+        plan.prefill = delta;
+        break;
+    }
+    case T::Concentric:
+        if (!is_round(ents[e0]) || !is_round(ents[e1])) {
+            plan.kind = ConstraintPlan::Kind::Reject;
+            plan.reason = ConstraintReject::NeedTwoRounds;
+            return plan;
+        }
+        def.ea = e0; def.ra = R::Center; def.eb = e1; def.rb = R::Center;
+        break;
+    case T::Tangent: {
+        // line+round or round+round; the kernel detects the entity types.
+        const bool ok = (is_round(ents[e0]) && ents[e1].type == SketchEntity::Type::Line) ||
+                        (is_round(ents[e1]) && ents[e0].type == SketchEntity::Type::Line) ||
+                        (is_round(ents[e0]) && is_round(ents[e1]));
+        if (!ok) {
+            plan.kind = ConstraintPlan::Kind::Reject;
+            plan.reason = ConstraintReject::NeedTangentPair;
+            return plan;
+        }
+        def.ea = e0; def.eb = e1;
+        break;
+    }
+    case T::Angle: {
+        // Angle between two line segments. "Line segments" is a check, not an assumption:
+        // p1-p0 on a Circle is (0,0)-centre, so two circles used to pre-fill with the angle
+        // between their centre POSITION vectors.
+        if (ents[e0].type != SketchEntity::Type::Line ||
+            ents[e1].type != SketchEntity::Type::Line) {
+            plan.kind = ConstraintPlan::Kind::Reject;
+            plan.reason = ConstraintReject::NeedTwoLines;
+            return plan;
+        }
+        const int a = e0, b = e1;
+        const Vec2d da = ents[a].p1 - ents[a].p0;
+        const Vec2d db = ents[b].p1 - ents[b].p0;
+        double cur = 90.0;
+        const double na = da.norm(), nb = db.norm();
+        if (na > 1e-9 && nb > 1e-9) {
+            const double c = std::max(-1.0, std::min(1.0, da.dot(db) / (na * nb)));
+            cur = std::acos(c) * 180.0 / M_PI;
+        }
+        plan.kind    = ConstraintPlan::Kind::AskValue;
+        def.ea  = a; def.eb = b;
+        plan.prefill = cur;   // degrees; the caller converts to radians on commit
+        break;
+    }
+    case T::Midpoint: {
+        // One pick is a Point, the other a Line: the point is the line's midpoint.
+        const SketchEntity& A = ents[e0];
+        const SketchEntity& B = ents[e1];
+        int pt = -1, ln = -1;
+        if (A.type == SketchEntity::Type::Point && B.type == SketchEntity::Type::Line) { pt = e0; ln = e1; }
+        else if (B.type == SketchEntity::Type::Point && A.type == SketchEntity::Type::Line) { pt = e1; ln = e0; }
+        else {
+            plan.kind = ConstraintPlan::Kind::Reject;
+            plan.reason = ConstraintReject::NeedPointAndLine;
+            return plan;
+        }
+        def.ea = pt; def.ra = R::P0; def.eb = ln;
+        break;
+    }
+    case T::Symmetric: {
+        // Two entities made symmetric about a third (axis) line: slot0=A, slot1=B, e2=axis.
+        // Two Points -> one pair; two Lines -> two endpoint pairs (P0/P0 and P1/P1), exactly
+        // the defs DesignPanel builds today.
+        const int axis = e2;
+        if (axis < 0 || axis >= n || ents[axis].type != SketchEntity::Type::Line) {
+            plan.kind = ConstraintPlan::Kind::Reject;
+            plan.reason = ConstraintReject::NeedAxisLine;
+            return plan;
+        }
+        using ET = SketchEntity::Type;
+        const ET ta = ents[e0].type, tb = ents[e1].type;
+        if (!((ta == ET::Point && tb == ET::Point) || (ta == ET::Line && tb == ET::Line))) {
+            plan.kind = ConstraintPlan::Kind::Reject;
+            plan.reason = ConstraintReject::NeedTwoPointsOrLines;
+            return plan;
+        }
+        auto mk = [&](R ra, R rb) {
+            SketchEntityConstraintDef d;
+            d.type = T::Symmetric;
+            d.ea = e0; d.ra = ra; d.eb = e1; d.rb = rb; d.ec = axis;
+            plan.defs.push_back(d);
+        };
+        if (ta == ET::Point) { mk(R::P0, R::P0); }
+        else                 { mk(R::P0, R::P0); mk(R::P1, R::P1); }
+        return plan;
+    }
+    case T::SymmetricAboutY:
+    case T::SymmetricAboutX: {
+        // Two entities made symmetric about the sketch's vertical/horizontal axis, which is
+        // implicit (no picked axis line): e2 is ignored and the axis is a negative sentinel
+        // in ec.
+        using ET = SketchEntity::Type;
+        const ET ta = ents[e0].type, tb = ents[e1].type;
+        if (!((ta == ET::Point && tb == ET::Point) || (ta == ET::Line && tb == ET::Line))) {
+            plan.kind = ConstraintPlan::Kind::Reject;
+            plan.reason = ConstraintReject::NeedTwoPointsOrLines;
+            return plan;
+        }
+        const int axis = (type == T::SymmetricAboutY) ? kSketchRefAxisY : kSketchRefAxisX;
+        auto mk = [&](R ra, R rb) {
+            SketchEntityConstraintDef d;
+            d.type = type;
+            d.ea = e0; d.ra = ra; d.eb = e1; d.rb = rb; d.ec = axis;
+            plan.defs.push_back(d);
+        };
+        if (ta == ET::Point) { mk(R::P0, R::P0); }
+        else                 { mk(R::P0, R::P0); mk(R::P1, R::P1); }
+        return plan;
+    }
+    case T::EqualRadius:
+        if (!is_round(ents[e0]) || !is_round(ents[e1])) {
+            plan.kind = ConstraintPlan::Kind::Reject;
+            plan.reason = ConstraintReject::NeedTwoRounds;
+            return plan;
+        }
+        def.ea = e0; def.eb = e1;
+        break;
+    case T::Collinear:
+        if (ents[e0].type != SketchEntity::Type::Line || ents[e1].type != SketchEntity::Type::Line) {
+            plan.kind = ConstraintPlan::Kind::Reject;
+            plan.reason = ConstraintReject::NeedTwoLines;
+            return plan;
+        }
+        def.ea = e0; def.eb = e1;
+        break;
+    case T::Fix: {
+        // Anchor the picked entity's reference point to its current coordinate. A single
+        // point -- not both endpoints -- so it composes with an existing H/V/length
+        // constraint instead of duplicating it.
+        using ET = SketchEntity::Type;
+        const ET et = ents[e0].type;
+        def.ea = e0;
+        def.ra = (et == ET::Circle || et == ET::Ellipse ||
+                  et == ET::Arc    || et == ET::EllipseArc) ? R::Center : R::P0;
+        break;
+    }
+    case T::Radius:
+    case T::Diameter: {
+        if (!is_round(ents[e0])) {
+            plan.kind = ConstraintPlan::Kind::Reject;
+            plan.reason = ConstraintReject::NeedRound;
+            return plan;
+        }
+        plan.kind    = ConstraintPlan::Kind::AskValue;
+        def.ea  = e0; def.ra = R::Center;
+        plan.prefill = (type == T::Diameter) ? 2.0 * ents[e0].radius : ents[e0].radius;
+        break;
+    }
+    default:
+        // Distance / LockX / LockY / PointOnLine / PointOnObject (and any future type) have
+        // no entity-constraint binding; the GUI's own switch falls to "Unsupported".
+        plan.kind   = ConstraintPlan::Kind::Reject;
+        plan.reason = ConstraintReject::Unsupported;
+        return plan;
+    }
+    plan.defs.push_back(def);
+    return plan;
+}
+
 } // namespace Slic3r

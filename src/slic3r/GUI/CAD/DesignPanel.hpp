@@ -223,6 +223,7 @@ private:
     bool enter_constrain_inline();
     void apply_constraint(SketchConstraintType type);
     void apply_entity_constraint(SketchConstraintType type);  // Fase 4.2 entity path
+    void apply_live_constraint(SketchConstraintType type);    // Fase 4.2 live-sketch path (no commit needed)
     enum class EditOp { Mirror, Offset, Fillet, Trim, Extend, Array, Move, Chamfer, Rotate, Scale, PolarArray }; // Fase 4.4/4.5/4.6 sketch edit ops
     void apply_edit_op(EditOp op);                            // mutate selected sketch entities
     // Onshape-style docked value entry (replaces wxGetTextFromUser popups for
@@ -233,7 +234,6 @@ private:
                        std::function<void()> on_cancel = nullptr);
     void confirm_value();
     void cancel_value();
-    void commit_entity_constraint(const SketchEntityConstraintDef& def); // shared solve/refresh tail
     void commit_entity_constraints(const std::vector<SketchEntityConstraintDef>& defs); // multi-def (Symmetric)
 
     // Constraint manager (C3.4): a docked list of the constrained sketch's
@@ -441,7 +441,9 @@ private:
     wxScrolledWindow* m_toolbar{nullptr};   // horizontally scrollable so the action bar stays reachable on narrow windows
     wxSizer*  m_tb_feature{nullptr};
     wxSizer*  m_tb_sketch{nullptr};
-    wxSizer*  m_tb_constrain{nullptr};
+    // The 20 constraint icon buttons, shown during BOTH Sketch and Constrain (Fase 4.2 live
+    // path: a constraint must be applicable while drawing, not only after committing).
+    wxSizer*  m_tb_relations{nullptr};
     // Unified Confirm/Cancel action bar (right end of the ribbon). Shown whenever any
     // tool or mode is active; the single confirm/cancel surface for the whole tab.
     wxSizer*  m_tb_action{nullptr};

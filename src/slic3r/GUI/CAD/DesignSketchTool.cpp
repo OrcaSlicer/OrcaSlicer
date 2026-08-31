@@ -214,6 +214,7 @@ void DesignSketchTool::rebuild_features_from_entities()
 
 void DesignSketchTool::set_tool(Mode mode)
 {
+    m_exit_refused = false;                 // any new action re-arms the one-shot exit refusal
     // A READY edit-op carries the user's typed or dragged value, so switching tools commits it
     // rather than dropping it — the same rule Tab follows in the dimension editor. Discarding it
     // here is most of why Fillet looked like it simply did not work: every documented route (type
@@ -331,7 +332,20 @@ void DesignSketchTool::request_exit()
     // Drop any pending edit-op BEFORE the downgrade: set_tool commits a ready one, and Esc must
     // cancel it, never apply it. Right-click already discards it through its own branch.
     if (m_mode != Mode::Select) { reset_op(); set_tool(Mode::Select); return; }
-    if (on_exit) on_exit(); else cancel();
+    if (on_exit) {
+        // This is the layer that would destroy a drawn-but-uncommitted sketch. That is the one
+        // thing Esc must not do silently: refuse the FIRST time work exists, and only let a
+        // second consecutive Esc through. The panel reports the refusal; the tool only decides.
+        if (live_sketch_has_work() && !m_exit_refused) {
+            m_exit_refused = true;
+            if (on_exit_refused) on_exit_refused();
+            return;
+        }
+        m_exit_refused = false;
+        on_exit();
+    } else {
+        cancel();
+    }
 }
 
 void DesignSketchTool::request_undo_redo(bool redo)
@@ -350,6 +364,7 @@ void DesignSketchTool::clear_selection()
 void DesignSketchTool::delete_selected()
 {
     if (m_selection.empty()) return;
+    m_exit_refused = false;                 // deleting is an action; re-arm the exit refusal
     const int n = int(m_entities.size());
     std::vector<bool> del(n, false);
     for (int i : m_selection)
@@ -7442,12 +7457,17 @@ void DesignSketchTool::build_constraint_glyphs(double unit_per_px,
 
 void DesignSketchTool::draw_entities_preview(const std::vector<SketchEntity>& ents, const ColorRGBA& color)
 {
+    std::vector<Vec2d> point_markers;
     for (const SketchEntity& e : ents) {
-        if (e.type == SketchEntity::Type::Point) continue;
+        // A Point has no polyline (entity_polyline returns nothing), so the strip path below
+        // cannot draw it; render it as a vertex marker, the same way the live session does.
+        if (e.type == SketchEntity::Type::Point) { point_markers.push_back(e.p0); continue; }
         bool closed = false;
         std::vector<Vec2d> poly = entity_polyline(e, closed);
         draw_quad_strip(m_highlight_model, poly, closed, color);
     }
+    if (!point_markers.empty())
+        draw_vertices(m_highlight_model, point_markers, color);
 }
 
 // ---- In-canvas edit-op gizmo (Fillet/Chamfer/Offset/Mirror toolbar tools) ----------
@@ -8448,15 +8468,28 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
                     for (int h : loops[m_display_pick_region].holes) mark(h);
                 }
             }
+            std::vector<Vec2d> point_markers, sel_point_markers;
             for (int i = 0; i < int(ds.entities.size()); ++i) {
                 const SketchEntity& e = ds.entities[i];
-                if (e.type == SketchEntity::Type::Point) continue;
+                // A Point has no polyline to strip; draw it as a vertex marker so a committed
+                // point stays visible (it vanished on commit). Selection colouring keeps working:
+                // sel_ent[] stays index-aligned with ds.entities, untouched for the other types.
+                if (e.type == SketchEntity::Type::Point) {
+                    (sel_ent[i] ? sel_point_markers : point_markers).push_back(e.p0);
+                    continue;
+                }
                 bool closed = false;
                 std::vector<Vec2d> poly = entity_polyline(e, closed);
                 const ColorRGBA* hlc = sketch_hl_color(ds.feature);
                 ColorRGBA wc = sel_ent[i] ? swire : (hlc ? *hlc : dwire);
                 draw_quad_strip(m_line_model, poly, closed, wc);
             }
+            if (!point_markers.empty()) {
+                const ColorRGBA* hlc = sketch_hl_color(ds.feature);
+                draw_vertices(m_vertex_model, point_markers, hlc ? *hlc : dwire);
+            }
+            if (!sel_point_markers.empty())
+                draw_vertices(m_highlight_model, sel_point_markers, swire);
         }
         m_plane = saved_plane;
     }
@@ -9525,6 +9558,10 @@ bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
 
 bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
 {
+    // Re-arm the one-shot exit refusal on a BUTTON press only, never on motion: moving the
+    // mouse between the two Esc presses is what anyone would do, and re-arming there would
+    // make the second Esc refuse again — an Esc that can never exit while the hand moves.
+    if (evt.LeftDown() || evt.RightDown() || evt.MiddleDown()) m_exit_refused = false;
     // Track the cursor in canvas client px so the in-canvas value editor can open right
     // where the user clicked (Onshape places the field at the click, not via a camera
     // projection — the design canvas's viewport isn't valid outside its own paint).

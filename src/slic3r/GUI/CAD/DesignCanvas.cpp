@@ -1014,6 +1014,11 @@ void DesignCanvas::set_on_sketch_exit(std::function<void()> cb)
     m_sketch_tool.on_exit = std::move(cb);
 }
 
+void DesignCanvas::set_on_sketch_exit_refused(std::function<void()> cb)
+{
+    m_sketch_tool.on_exit_refused = std::move(cb);
+}
+
 void DesignCanvas::set_on_move_exit(std::function<void()> cb)
 {
     m_sketch_tool.on_move_exit = std::move(cb);
@@ -1472,6 +1477,21 @@ int DesignCanvas::sketch_selection_count() const
 bool DesignCanvas::sketch_first_selected_type(SketchEntity::Type& out) const
 {
     return m_sketch_tool.first_selected_type(out);
+}
+
+const std::vector<int>& DesignCanvas::sketch_selection() const
+{
+    return m_sketch_tool.selection();
+}
+
+const std::vector<SketchEntity>& DesignCanvas::sketch_entities() const
+{
+    return m_sketch_tool.entities();
+}
+
+bool DesignCanvas::try_add_sketch_constraints(const std::vector<SketchEntityConstraintDef>& defs)
+{
+    return m_sketch_tool.try_add_constraints(defs);
 }
 
 bool DesignCanvas::selected_constrain_entities(int& e0, int& e1) const

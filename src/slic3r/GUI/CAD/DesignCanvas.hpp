@@ -209,6 +209,7 @@ public:
     void clear_base_pick();
     void set_on_datum_base_picked(std::function<void(int)> cb);
     void set_on_sketch_exit(std::function<void()> cb);           // Esc -> exit the tool
+    void set_on_sketch_exit_refused(std::function<void()> cb);   // Esc declined: sketch has work
     void set_on_undo_redo(std::function<void(bool /*redo*/)> cb); // Ctrl+Z / Ctrl+Shift+Z
     // Persistently draw committed sketches (un-consumed ones stay visible).
     void set_display_sketches(std::vector<DesignSketchTool::DisplaySketch> ds);
@@ -293,6 +294,12 @@ public:
     // one is. Returns 0 when nothing is selected.
     int  sketch_selection_count() const;
     bool sketch_first_selected_type(SketchEntity::Type& out) const;
+    // Live sketch session (Fase 4.2 live constraint path): the panel reads the in-session
+    // selection and entities, and commits a planned constraint through the tool's
+    // append->solve->keep-or-rollback, rather than reaching into mcp_sketch_tool().
+    const std::vector<int>&             sketch_selection() const;
+    const std::vector<SketchEntity>&    sketch_entities() const;
+    bool try_add_sketch_constraints(const std::vector<SketchEntityConstraintDef>& defs);
 
     // In-canvas bbox transform of imported Text/SVG art (replaces the Move/Scale dialog).
     void begin_imported_transform(int feat,

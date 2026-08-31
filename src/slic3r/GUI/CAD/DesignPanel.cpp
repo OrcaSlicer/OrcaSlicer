@@ -1505,9 +1505,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
     }
 
     // --- Constrain group: geometric constraints + dimensions + edit ops + Done
-    m_tb_constrain = new wxBoxSizer(wxHORIZONTAL);
-    auto cadd = [this](wxWindow* w) { m_tb_constrain->Add(w, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 2); };
-    m_tb_constrain->Add(caption(_L("CONSTRAIN")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+    // Fase 4.2 live path: these buttons are shown during a SKETCH too, not only in Constrain
+    // mode, so a constraint applies to the live selection without committing first. The caption
+    // travels with them; the session's Confirm/Cancel stay in m_tb_action (mode-appropriate).
+    m_tb_relations = new wxBoxSizer(wxHORIZONTAL);
+    auto cadd = [this](wxWindow* w) { m_tb_relations->Add(w, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 2); };
+    m_tb_relations->Add(caption(_L("CONSTRAIN")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
     {
         auto cbtn = [&](const char* icon, const wxString& tip, SketchConstraintType type) {
             auto* b = icon_btn(icon, tip);
@@ -1689,7 +1692,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     add_sep(tbrow);
     tbrow->Add(m_tb_feature,   0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, 5);
     tbrow->Add(m_tb_sketch,    0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, 5);
-    tbrow->Add(m_tb_constrain, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, 5);
+    tbrow->Add(m_tb_relations, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, 5);
     tbrow->AddStretchSpacer();
     tbrow->Add(m_tb_commit,    0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, 5);
     tbrow->Add(m_tb_action,    0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, 5);
@@ -4124,6 +4127,16 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_status->Refresh();
     });
 
+    // The tool refuses the exit layer of Esc when the sketch still has unsaved geometry (a
+    // second consecutive Esc is let through). The refusal lives in the tool's request_exit();
+    // only the STATUS LINE lives here, so the tool reports via this callback instead of
+    // writing text itself.
+    m_viewport->set_on_sketch_exit_refused([this]() {
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        set_status(_L("Sketch has unsaved geometry — use Confirm to keep it, or Cancel to discard"));
+        m_status->Refresh();
+    });
+
     // Ctrl+Z / Ctrl+Shift+Z (Ctrl+Y) from the viewport → feature-history undo/redo.
     m_viewport->set_on_undo_redo([this](bool redo) { do_undo_redo(redo); });
 
@@ -4418,7 +4431,9 @@ void DesignPanel::set_ui_mode(UiMode m)
     wxSizer* s = m_toolbar->GetSizer();
     s->Show(m_tb_feature,   m == UiMode::Feature,   true);
     s->Show(m_tb_sketch,    m == UiMode::Sketch,    true);
-    s->Show(m_tb_constrain, m == UiMode::Constrain, true);
+    // Constraint buttons are live in BOTH Sketch and Constrain (Fase 4.2 live path); the
+    // Confirm/Cancel action bar (m_tb_action) is already mode-appropriate and stays untouched.
+    s->Show(m_tb_relations, m == UiMode::Sketch || m == UiMode::Constrain, true);
     m_toolbar->Layout();
     m_toolbar->FitInside();   // refresh the horizontal scroll range for the new group widths
     set_active_tool_btn(nullptr);   // no tool selected right after a mode switch
@@ -7720,68 +7735,57 @@ void DesignPanel::on_begin_constrain(int sel_override)
     m_status->Refresh();
 }
 
-// The point roles an entity ACTUALLY exposes, for the closest-pair searches below.
-//
-// Enumerating {P0,p0},{P1,p1} blindly is a silent-no-op generator: a Point's p1 is unused and
-// reads (0,0) (SketchEngine.hpp:32), as does a Circle's, so the search picks those two phantom
-// origins at distance 0 -- which for a pair of Points ALWAYS wins, being the smallest distance
-// there is. The constraint is then added against a role the solver cannot resolve
-// (ptOf(Point,P1) -> s.p1 -> 0), ref_ok fails, and it is dropped. Nothing errors: the button
-// just does nothing, on every press. Measured on both the DistanceX/Y and the Coincident paths.
-//
-// Returns the number of roles written, 0 for a type with no usable point. Same role set as
-// roles_of() in DesignSketchTool::heal_coincidences (the copy at 9348 -- the one inside
-// infer_auto_constraints omits EllipseArc), plus the circle centre, which is a real solver
-// handle for BOTH Circle (SketchSolver.cpp:109) and Ellipse (:126), and the only sensible thing
-// a round entity can be coincident with or measured from.
-//
-// Every one of the seven types returns at least one role today, so the callers' "no usable
-// point" branch is unreachable and their message cannot currently fire. It is kept for the
-// eighth type, not as protection against the defect above -- that one was never a missing role,
-// it was a role the solver silently refused.
-static int entity_ends(const SketchEntity& e, std::pair<SketchPointRole, Vec2d> out[2])
+// Why an entity-constraint pick was refused, as a localized string. The kernel's
+// ConstraintReject is coarse on purpose (one reason covers several constraint types whose
+// BUTTONS wear different words), so `type` disambiguates the wording without touching the
+// kernel. Reuses today's exact strings so nothing regresses for a user or the ladder.
+static wxString constraint_reject_text(ConstraintReject reason, SketchConstraintType type)
 {
-    using ET = SketchEntity::Type;
-    using R  = SketchPointRole;
-    switch (e.type) {
-    case ET::Line: case ET::Arc: case ET::BSpline: case ET::EllipseArc:
-        out[0] = {R::P0, e.p0}; out[1] = {R::P1, e.p1}; return 2;
-    case ET::Point:
-        out[0] = {R::P0, e.p0}; return 1;
-    case ET::Circle: case ET::Ellipse:
-        out[0] = {R::Center, e.center}; return 1;
+    using T = SketchConstraintType;
+    switch (reason) {
+    case ConstraintReject::NeedOneEntity:        return _L("Pick an entity first");
+    case ConstraintReject::NeedTwoEntities:      return _L("Pick two entities first");
+    case ConstraintReject::NeedALine:            return _L("Horizontal and Vertical apply to a line");
+    case ConstraintReject::NeedTwoLines:
+        if (type == T::Angle)     return _L("Angle applies between two lines");
+        if (type == T::Collinear) return _L("Collinear needs two lines");
+        return _L("Parallel, perpendicular and equal length apply to two lines");
+    case ConstraintReject::NeedTwoRounds:
+        if (type == T::EqualRadius) return _L("Equal radius needs two circles or arcs");
+        return _L("Concentric needs two circles or arcs");
+    case ConstraintReject::NeedTangentPair:      return _L("Tangent needs a line and a circle/arc, or two circles/arcs");
+    case ConstraintReject::NeedJoinablePoints:   return _L("This constraint needs two entities with a point to join");
+    case ConstraintReject::NeedMeasurablePoints: return _L("This dimension needs two entities with a point to measure between");
+    case ConstraintReject::NeedPointAndLine:     return _L("Midpoint needs a point and a line");
+    case ConstraintReject::NeedTwoPointsOrLines:
+        if (type == T::Symmetric) return _L("Symmetric needs two points or two lines + an axis");
+        return _L("Symmetric needs two points or two lines");
+    case ConstraintReject::NeedAxisLine:         return _L("Symmetric: pick two entities, then an axis line");
+    case ConstraintReject::NeedRound:            return _L("Radius/Diameter needs a circle or arc");
+    case ConstraintReject::Unsupported:          return _L("Unsupported constraint");
+    case ConstraintReject::None:
+    default:                                     return wxString();
     }
-    return 0;
 }
 
-// The closest (role, role) pair between two entities, over the roles each really exposes.
-// Returns false when either side has none, so the caller can say so instead of going quiet.
-static bool closest_ends(const SketchEntity& A, const SketchEntity& B,
-                         SketchPointRole& ra, SketchPointRole& rb, Vec2d& pa, Vec2d& pb)
+// Write the typed value into every planned def. The planner returns the prefill in DISPLAY
+// units and leaves def.value = 0; Angle is the one type whose stored value is not the number
+// the user sees (it is radians), so the conversion lives here, exactly as the old
+// apply_entity_constraint did on its Angle branch.
+static void write_plan_value(std::vector<SketchEntityConstraintDef>& defs, double v)
 {
-    std::pair<SketchPointRole, Vec2d> aps[2], bps[2];
-    const int na = entity_ends(A, aps), nb = entity_ends(B, bps);
-    if (na == 0 || nb == 0) return false;
-    double best = 1e30;
-    ra = aps[0].first; rb = bps[0].first; pa = aps[0].second; pb = bps[0].second;
-    for (int i = 0; i < na; ++i)
-        for (int j = 0; j < nb; ++j) {
-            const double d = (aps[i].second - bps[j].second).squaredNorm();
-            if (d < best) {
-                best = d;
-                ra = aps[i].first; rb = bps[j].first;
-                pa = aps[i].second; pb = bps[j].second;
-            }
-        }
-    return true;
+    for (auto& d : defs)
+        d.value = (d.type == SketchConstraintType::Angle) ? v * M_PI / 180.0 : v;
 }
 
 void DesignPanel::apply_entity_constraint(SketchConstraintType type)
 {
-    using R = SketchPointRole;
-    using T = SketchConstraintType;
     int e0 = -1, e1 = -1;
     m_viewport->selected_constrain_entities(e0, e1);
+    const int e2 = m_viewport->selected_constrain_axis();   // Symmetric axis pick, -1 otherwise
+
+    CadFeature& feat = m_doc.features[m_constrain_feat];
+    const ConstraintPlan plan = plan_entity_constraint(feat.entities, e0, e1, e2, type);
 
     auto fail = [this](const wxString& msg) {
         m_status->SetForegroundColour(wxColour(235, 110, 110));
@@ -7789,252 +7793,72 @@ void DesignPanel::apply_entity_constraint(SketchConstraintType type)
         m_status->Refresh();
     };
 
-    CadFeature& feat = m_doc.features[m_constrain_feat];
-
-    auto is_round = [](const SketchEntity& e) {
-        return e.type == SketchEntity::Type::Circle || e.type == SketchEntity::Type::Arc; };
-
-    // One Equal button, two meanings: lines get equal length, curves equal radius.
-    if (type == T::EqualLength && e0 >= 0 && e1 >= 0 &&
-        e0 < int(feat.entities.size()) && e1 < int(feat.entities.size()) &&
-        is_round(feat.entities[e0]) && is_round(feat.entities[e1]))
-        type = T::EqualRadius;
-
-    const bool needs_two = (type == T::Parallel || type == T::Perpendicular ||
-                            type == T::EqualLength || type == T::Coincident ||
-                            type == T::Concentric || type == T::Tangent ||
-                            type == T::Angle || type == T::Midpoint ||
-                            type == T::Symmetric || type == T::EqualRadius ||
-                            type == T::Collinear ||
-                            type == T::SymmetricAboutY || type == T::SymmetricAboutX ||
-                            type == T::DistanceX || type == T::DistanceY);
-    if (e0 < 0 || e0 >= int(feat.entities.size()) ||
-        (needs_two && (e1 < 0 || e1 >= int(feat.entities.size())))) {
-        fail(needs_two ? _L("Pick two entities first") : _L("Pick an entity first"));
+    switch (plan.kind) {
+    case ConstraintPlan::Kind::Reject:
+        fail(constraint_reject_text(plan.reason, type));
+        return;
+    case ConstraintPlan::Kind::AskValue:
+        m_viewport->open_inline_value(plan.prefill, [this, plan](double v) {
+            std::vector<SketchEntityConstraintDef> defs = plan.defs;
+            write_plan_value(defs, v);
+            commit_entity_constraints(defs);
+        });
+        return;   // deferred: commit runs on the typed value
+    case ConstraintPlan::Kind::Apply:
+        commit_entity_constraints(plan.defs);
         return;
     }
-
-    SketchEntityConstraintDef def;
-    def.type  = type;
-    def.value = 0.0;
-    switch (type) {
-    case T::Horizontal:
-    case T::Vertical:
-        // One line: level/plumb its own two endpoints. The type check is not pedantry -- with a
-        // Point or a Circle picked, P1 is a role the solver cannot resolve, so the constraint is
-        // dropped at ref_ok (SketchSolver.cpp:184) while still being STORED in the feature. It
-        // then sits in the Constraints list, permanently doing nothing, which is worse than the
-        // button refusing: the panel says the sketch is constrained when it is not. Measured on
-        // the rig: Horizontal on a lone Point commits, constraints goes 0 -> 1, nothing moves.
-        if (feat.entities[e0].type != SketchEntity::Type::Line) {
-            fail(_L("Horizontal and Vertical apply to a line"));
-            return;
-        }
-        def.ea = e0; def.ra = R::P0;
-        def.eb = e0; def.rb = R::P1;
-        break;
-    case T::Parallel:
-    case T::Perpendicular:
-    case T::EqualLength:
-        def.ea = e0; def.eb = e1;   // two whole line segments (roles unused)
-        break;
-    case T::Coincident: {
-        // Join the closest point pair of the two picked entities. NOT {p0,p1} on both: see
-        // entity_ends above -- two Points always resolved to their phantom (0,0) p1s, so
-        // Coincident on a pair of points did nothing at all, on every press.
-        R ra, rb; Vec2d pa, pb;
-        if (!closest_ends(feat.entities[e0], feat.entities[e1], ra, rb, pa, pb)) {
-            fail(_L("This constraint needs two entities with a point to join"));
-            return;
-        }
-        def.ea = e0; def.ra = ra; def.eb = e1; def.rb = rb;
-        break;
-    }
-    case T::DistanceX:
-    case T::DistanceY: {
-        // Axis-projected distance between the closest endpoint pair of the two picked
-        // entities. Typed in-canvas pre-filled with the current projection, committed on
-        // the typed value (same deferred pattern as Angle).
-        // Only over the roles each entity really exposes -- see entity_ends above.
-        R ra, rb; Vec2d pa, pb;
-        if (!closest_ends(feat.entities[e0], feat.entities[e1], ra, rb, pa, pb)) {
-            fail(_L("This dimension needs two entities with a point to measure between"));
-            return;
-        }
-        // The constraint is SIGNED: PROJ_PT_DISTANCE fixes (pB - pA).dot(axis), not its
-        // magnitude. Showing |delta| while the current signed delta is negative would mean
-        // that opening the dimension and simply accepting the number on screen flips the
-        // point to the other side of its anchor. Opening a dimension and accepting its own
-        // value must be a no-op, so order the two refs to make the shown value the positive
-        // one -- which is also how a dimension ought to read.
-        int a = e0, b = e1;
-        double delta = (type == T::DistanceX) ? (pb.x() - pa.x()) : (pb.y() - pa.y());
-        if (delta < 0.0) { std::swap(a, b); std::swap(ra, rb); delta = -delta; }
-        const double cur = delta;
-        const T tt = type;
-        m_viewport->open_inline_value(cur, [this, a, b, ra, rb, tt](double v) {
-            SketchEntityConstraintDef d;
-            d.type = tt; d.ea = a; d.ra = ra; d.eb = b; d.rb = rb; d.value = v;
-            commit_entity_constraint(d);
-        });
-        return;   // deferred: commit runs on the typed value
-    }
-    case T::Concentric: {
-        // Two circles/arcs: make their centres coincide.
-        if (!is_round(feat.entities[e0]) || !is_round(feat.entities[e1])) {
-            fail(_L("Concentric needs two circles or arcs")); return;
-        }
-        def.ea = e0; def.ra = R::Center; def.eb = e1; def.rb = R::Center;
-        break;
-    }
-    case T::Tangent: {
-        // line+round or round+round; the kernel detects the entity types.
-        const bool ok = (is_round(feat.entities[e0]) && feat.entities[e1].type == SketchEntity::Type::Line) ||
-                        (is_round(feat.entities[e1]) && feat.entities[e0].type == SketchEntity::Type::Line) ||
-                        (is_round(feat.entities[e0]) && is_round(feat.entities[e1]));
-        if (!ok) { fail(_L("Tangent needs a line and a circle/arc, or two circles/arcs")); return; }
-        def.ea = e0; def.eb = e1;
-        break;
-    }
-    case T::Angle: {
-        // Angle between two line segments; typed in-canvas at the cursor (no card),
-        // pre-filled with the current angle between the picked lines.
-        //
-        // "Line segments" was an assumption, not a check. p1-p0 on a Circle is (0,0)-centre, so
-        // picking two circles pre-filled the field with the angle between their centre POSITION
-        // VECTORS -- measured on the rig: two circles on the x axis opened at 178.83 deg. Accept
-        // that and SLVS_C_ANGLE is emitted on two circle prims, which are not directions.
-        if (feat.entities[e0].type != SketchEntity::Type::Line ||
-            feat.entities[e1].type != SketchEntity::Type::Line) {
-            fail(_L("Angle applies between two lines"));
-            return;
-        }
-        const int a = e0, b = e1;
-        const Vec2d da = feat.entities[a].p1 - feat.entities[a].p0;
-        const Vec2d db = feat.entities[b].p1 - feat.entities[b].p0;
-        double cur = 90.0;
-        const double na = da.norm(), nb = db.norm();
-        if (na > 1e-9 && nb > 1e-9) {
-            const double c = std::max(-1.0, std::min(1.0, da.dot(db) / (na * nb)));
-            cur = std::acos(c) * 180.0 / M_PI;
-        }
-        m_viewport->open_inline_value(cur, [this, a, b](double deg) {
-            SketchEntityConstraintDef d;
-            d.type = T::Angle; d.ea = a; d.eb = b;
-            d.value = deg * M_PI / 180.0;
-            commit_entity_constraint(d);
-        });
-        return;   // deferred: commit runs on the typed value
-    }
-    case T::Midpoint: {
-        // One pick is a Point, the other a Line: the point is the line's midpoint.
-        const SketchEntity& A = feat.entities[e0];
-        const SketchEntity& B = feat.entities[e1];
-        int pt = -1, ln = -1;
-        if (A.type == SketchEntity::Type::Point && B.type == SketchEntity::Type::Line) { pt = e0; ln = e1; }
-        else if (B.type == SketchEntity::Type::Point && A.type == SketchEntity::Type::Line) { pt = e1; ln = e0; }
-        else { fail(_L("Midpoint needs a point and a line")); return; }
-        def.ea = pt; def.ra = R::P0; def.eb = ln;
-        break;
-    }
-    case T::Symmetric: {
-        // Two entities made symmetric about a third (axis) line. Picks: slot0=A,
-        // slot1=B, slot2=axis. Two Points -> one pair; two Lines -> endpoint pairs.
-        using ET = SketchEntity::Type;
-        const int axis = m_viewport->selected_constrain_axis();
-        if (axis < 0 || axis >= int(feat.entities.size()) ||
-            feat.entities[axis].type != ET::Line) {
-            fail(_L("Symmetric: pick two entities, then an axis line")); return;
-        }
-        const ET ta = feat.entities[e0].type, tb = feat.entities[e1].type;
-        std::vector<SketchEntityConstraintDef> defs;
-        auto mk = [&](R ra, R rb) {
-            SketchEntityConstraintDef d;
-            d.type = T::Symmetric;
-            d.ea = e0; d.ra = ra; d.eb = e1; d.rb = rb; d.ec = axis;
-            defs.push_back(d);
-        };
-        if (ta == ET::Point && tb == ET::Point) { mk(R::P0, R::P0); }
-        else if (ta == ET::Line && tb == ET::Line) { mk(R::P0, R::P0); mk(R::P1, R::P1); }
-        else { fail(_L("Symmetric needs two points or two lines + an axis")); return; }
-        commit_entity_constraints(defs);
-        return;   // multi-def commit done here
-    }
-    case T::SymmetricAboutY:
-    case T::SymmetricAboutX: {
-        // Two entities made symmetric about the sketch's vertical/horizontal axis, which
-        // is implicit (no picked axis line). Picks: slot0=A, slot1=B. Two Points -> one
-        // pair; two Lines -> endpoint pairs. The axis is a negative sentinel in ec.
-        using ET = SketchEntity::Type;
-        const int axis = (type == T::SymmetricAboutY) ? kSketchRefAxisY : kSketchRefAxisX;
-        const ET ta = feat.entities[e0].type, tb = feat.entities[e1].type;
-        std::vector<SketchEntityConstraintDef> defs;
-        auto mk = [&](R ra, R rb) {
-            SketchEntityConstraintDef d;
-            d.type = type;
-            d.ea = e0; d.ra = ra; d.eb = e1; d.rb = rb; d.ec = axis;
-            defs.push_back(d);
-        };
-        if (ta == ET::Point && tb == ET::Point) { mk(R::P0, R::P0); }
-        else if (ta == ET::Line && tb == ET::Line) { mk(R::P0, R::P0); mk(R::P1, R::P1); }
-        else { fail(_L("Symmetric needs two points or two lines")); return; }
-        commit_entity_constraints(defs);
-        return;   // multi-def commit done here
-    }
-    case T::EqualRadius: {
-        if (!is_round(feat.entities[e0]) || !is_round(feat.entities[e1])) {
-            fail(_L("Equal radius needs two circles or arcs")); return;
-        }
-        def.ea = e0; def.eb = e1;
-        break;
-    }
-    case T::Collinear: {
-        using ET = SketchEntity::Type;
-        if (feat.entities[e0].type != ET::Line || feat.entities[e1].type != ET::Line) {
-            fail(_L("Collinear needs two lines")); return;
-        }
-        def.ea = e0; def.eb = e1;
-        break;
-    }
-    case T::Fix: {
-        // Anchor the picked entity's reference point to its current coordinate (the
-        // kernel pins it to a fixed reference). A single point — not both endpoints —
-        // so it composes with any existing Horizontal/Vertical/length constraint
-        // instead of duplicating it (pinning both endpoints of an already-horizontal
-        // line is redundant → over-constrained). Removes 2 DoF (the entity's position);
-        // combine with H/V + a dimension to reach fully constrained.
-        using ET = SketchEntity::Type;
-        const ET et = feat.entities[e0].type;
-        def.ea = e0;
-        def.ra = (et == ET::Circle || et == ET::Ellipse ||
-                  et == ET::Arc    || et == ET::EllipseArc) ? R::Center : R::P0;
-        break;
-    }
-    case T::Radius:
-    case T::Diameter: {
-        const SketchEntity& A = feat.entities[e0];
-        if (!is_round(A)) { fail(_L("Radius/Diameter needs a circle or arc")); return; }
-        const double cur = (type == T::Diameter) ? 2.0 * A.radius : A.radius;
-        const int a = e0; const T tt = type;
-        // Typed in-canvas at the cursor (no docked card), pre-filled with the current value.
-        m_viewport->open_inline_value(cur, [this, a, tt](double v) {
-            SketchEntityConstraintDef d;
-            d.type = tt; d.ea = a; d.ra = R::Center; d.value = v;
-            commit_entity_constraint(d);
-        });
-        return;   // deferred: commit runs on the typed value
-    }
-    default:
-        fail(_L("Unsupported constraint"));
-        return;
-    }
-
-    commit_entity_constraint(def);
 }
 
-void DesignPanel::commit_entity_constraint(const SketchEntityConstraintDef& def)
+void DesignPanel::apply_live_constraint(SketchConstraintType type)
 {
-    commit_entity_constraints({ def });
+    // The in-session selection is the pick: first three indices, e2 being the axis Symmetric
+    // needs. Fewer than the type needs are left at -1 so plan_entity_constraint — the ONE
+    // place that knows how many picks a type takes — rejects them rather than this site
+    // guessing. Known limitation (comment, not solved): a constraint added to a LIVE sketch
+    // is not on the document undo stack — that stack holds committed features — so Ctrl+Z
+    // will not take it back until the sketch is committed.
+    const std::vector<int>& sel  = m_viewport->sketch_selection();
+    const int e0 = sel.size() > 0 ? sel[0] : -1;
+    const int e1 = sel.size() > 1 ? sel[1] : -1;
+    const int e2 = sel.size() > 2 ? sel[2] : -1;
+
+    const ConstraintPlan plan = plan_entity_constraint(
+        m_viewport->sketch_entities(), e0, e1, e2, type);
+
+    auto fail = [this](const wxString& msg) {
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        set_status(msg);
+        m_status->Refresh();
+    };
+    // Shared commit: try_add_constraints appends→solves→keeps-or-rolls-back and leaves the
+    // geometry untouched on failure, so the same over-constrained message the committed path
+    // uses is the correct failure report here too.
+    auto commit = [this, fail](std::vector<SketchEntityConstraintDef> defs, double v) {
+        write_plan_value(defs, v);
+        if (!m_viewport->try_add_sketch_constraints(defs)) {
+            fail(_L("Constraint rejected (over-constrained)"));
+            return;
+        }
+        m_viewport->request_repaint();
+        m_status->SetForegroundColour(wxNullColour);
+        set_status(_L("Applied constraint"));
+        m_status->Refresh();
+    };
+
+    switch (plan.kind) {
+    case ConstraintPlan::Kind::Reject:
+        fail(constraint_reject_text(plan.reason, type));
+        return;
+    case ConstraintPlan::Kind::AskValue:
+        m_viewport->open_inline_value(plan.prefill, [this, plan, commit](double v) {
+            commit(plan.defs, v);
+        });
+        return;
+    case ConstraintPlan::Kind::Apply:
+        commit(plan.defs, 0.0);
+        return;
+    }
 }
 
 void DesignPanel::commit_entity_constraints(const std::vector<SketchEntityConstraintDef>& defs)
@@ -9050,6 +8874,18 @@ void DesignPanel::cancel_value()
 
 void DesignPanel::apply_constraint(SketchConstraintType type)
 {
+    // 1. LIVE sketch session: constrain the in-session selection while drawing. The
+    // discriminator must exclude BOTH constrain modes — begin_constrain_entities AND
+    // begin_constrain both set m_active, so is_sketching() alone is true during a committed
+    // Constrain session; without the guards this new path hijacks those and breaks every
+    // existing constraint rung. !is_constraining() also covers is_constraining_entities()
+    // (both require Mode::Constrain); it is spelled out for the two reasons a reader expects.
+    if (m_viewport && m_viewport->is_sketching() &&
+        !m_viewport->is_constraining() && !m_viewport->is_constraining_entities()) {
+        apply_live_constraint(type);
+        return;
+    }
+
     if (m_constrain_feat < 0 || m_constrain_feat >= int(m_doc.features.size()) ||
         m_viewport == nullptr) {
         m_status->SetForegroundColour(wxColour(235, 110, 110));
@@ -9058,12 +8894,13 @@ void DesignPanel::apply_constraint(SketchConstraintType type)
         return;
     }
 
-    // Entity sketches (Fase 4.2) route through the entity-constraint path.
+    // 2. Entity sketches (Fase 4.2) route through the entity-constraint path.
     if (m_viewport->is_constraining_entities()) {
         apply_entity_constraint(type);
         return;
     }
 
+    // 3. Legacy profile path.
     if (!m_viewport->is_constraining()) {
         m_status->SetForegroundColour(wxColour(235, 110, 110));
         set_status(_L("Press Constrain on a sketch first"));

@@ -11,6 +11,7 @@
 #include <TopoDS_Shape.hxx>
 #include <TopoDS_Face.hxx>
 #include <vector>
+#include <utility>
 
 namespace Slic3r {
 
@@ -136,6 +137,43 @@ constexpr int kSketchRefAxisX  = -3;   // the sketch X axis, through the origin,
 constexpr int kSketchRefAxisY  = -4;   // the sketch Y axis, through the origin, +Y
 
 inline bool is_sketch_ref(int ei) { return ei <= kSketchRefOrigin; }
+
+// How many real endpoints a type exposes, and which roles they are. p1 is UNUSED for
+// Circle/Point/Ellipse (SketchEntity::p1 above) and reads (0,0) — walking {P0,P1} blindly
+// over those invents a phantom endpoint at the origin, which for a pair of Points always
+// wins a closest-pair search at distance 0 and binds a role the solver silently refuses.
+int  sketch_entity_ends(const SketchEntity& e, std::pair<SketchPointRole, Vec2d> out[2]);
+bool sketch_closest_ends(const SketchEntity& A, const SketchEntity& B,
+                         SketchPointRole& ra, SketchPointRole& rb, Vec2d& pa, Vec2d& pb);
+
+// Why an entity-constraint pick is refused. The caller maps a reason to a localized string;
+// the planner itself stays translation-free.
+enum class ConstraintReject {
+    None, NeedOneEntity, NeedTwoEntities, NeedALine, NeedTwoLines,
+    NeedTwoRounds, NeedTangentPair, NeedJoinablePoints, NeedMeasurablePoints,
+    // The following are not in the GUI's current switch but are the faithful outcomes of
+    // its remaining branches; they need a reason too or the caller cannot tell them apart.
+    NeedPointAndLine,     // Midpoint: one Point + one Line
+    NeedTwoPointsOrLines, // Symmetric / SymmetricAboutX/Y: two Points or two Lines
+    NeedAxisLine,         // Symmetric: e2 must be a Line to act as the axis
+    NeedRound,            // Radius/Diameter: a Circle or Arc
+    Unsupported           // entity-constraint path has no binding for this type
+};
+
+struct ConstraintPlan {
+    enum class Kind { Reject, Apply, AskValue };
+    Kind                                   kind{Kind::Reject};
+    ConstraintReject                       reason{ConstraintReject::None};
+    // Apply/AskValue only: the defs to commit. One element for every ordinary type, TWO for
+    // Symmetric/SymmetricAboutX/Y on two lines (P0/P0 and P1/P1), matching the GUI's builds.
+    std::vector<SketchEntityConstraintDef> defs{};
+    double                                 prefill{0.0};   // AskValue only: the value to show pre-filled
+};
+
+// Pure: no wx, no translation, no UI. The caller maps `reason` to a localized string.
+// e2 is the axis-line pick Symmetric needs (def.ec); every other type ignores it.
+ConstraintPlan plan_entity_constraint(const std::vector<SketchEntity>& ents,
+                                      int e0, int e1, int e2, SketchConstraintType type);
 
 // Solve a bare entity list in place against entity-form constraints. Shared by
 // CadDocument::solve_sketch_feature (committed features) and the in-session GUI
