@@ -128,7 +128,9 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags = {
     "@TOTAL_WIPE_TOWER_COST@",
     "@TOTAL_WIPE_TOWER_FILAMENT@",
     // Orca: Store the unsupported extrusion-width percentage for preview coloring.
-    " OVERHANG: "
+    " OVERHANG: ",
+    // Orca: Preserve the reference-plane spacing independently of the extrusion's HEIGHT tag.
+    " OVERHANG_Z_DISTANCE: "
 };
 
 const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
@@ -163,7 +165,9 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
     "@TOTAL_WIPE_TOWER_COST@",
     "@TOTAL_WIPE_TOWER_FILAMENT@",
     // Orca: Keep the metadata tag compatible with non-Bambu G-code formatting.
-    "OVERHANG:"
+    "OVERHANG:",
+    // Orca: Use the corresponding compact tag for non-Bambu G-code.
+    "OVERHANG_Z_DISTANCE:"
 };
 
 
@@ -3652,6 +3656,8 @@ void GCodeProcessor::reset()
     m_z_offset = 0.0f;
     // Orca: Imported G-code without overhang tags is treated as fully supported.
     m_overhang_percentage = 0.0f;
+    // Orca: Legacy files and reused processors start without a slice-plane spacing override.
+    m_overhang_z_distance = 0.0f;
 
     m_extrusion_role = erNone;
 
@@ -4441,6 +4447,19 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         if (boost::starts_with(comment, reserved_tag(ETags::Width))) {
             if (!parse_number(comment.substr(reserved_tag(ETags::Width).size()), m_forced_width))
                 BOOST_LOG_TRIVIAL(error) << "GCodeProcessor encountered an invalid value for Width (" << comment << ").";
+            return;
+        }
+        // Orca: Accept only finite, nonnegative spacing. Invalid tags clear a stale override, and this
+        // auxiliary tag alone must not advertise overhang data when no percentages were provided.
+        if (boost::starts_with(comment, reserved_tag(ETags::Overhang_Z_Distance))) {
+            float z_distance = 0.0f;
+            if (!parse_number(comment.substr(reserved_tag(ETags::Overhang_Z_Distance).size()), z_distance) ||
+                !std::isfinite(z_distance) || z_distance < 0.0f) {
+                m_overhang_z_distance = 0.0f;
+                BOOST_LOG_TRIVIAL(error) << "GCodeProcessor encountered an invalid Overhang Z distance (" << comment << ").";
+                return;
+            }
+            m_overhang_z_distance = z_distance;
             return;
         }
         // Orca: Parse and bound metadata before copying it to move vertices used by the preview.
@@ -7273,7 +7292,9 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         m_object_label_id,
         m_print_z,
         // Orca: Snapshot the active percentage on every move so libvgcode can split color spans.
-        m_overhang_percentage
+        m_overhang_percentage,
+        // Orca: Preserve the reference-plane spacing through move buffering and arc discretization.
+        m_overhang_z_distance
     });
 
     if (type == EMoveType::Seam) {
