@@ -19,6 +19,15 @@ DynamicPrintConfig make_cfg_with_colours(const std::vector<std::string> &hexes)
 
 } // namespace
 
+TEST_CASE("load-is-project-open is true only for model+config without restore", "[spectrum_auto_graft]")
+{
+    CHECK(spectrum_auto_graft_load_is_project_open(true, true, false));
+    CHECK_FALSE(spectrum_auto_graft_load_is_project_open(false, true, false));
+    CHECK_FALSE(spectrum_auto_graft_load_is_project_open(true, false, false));
+    CHECK_FALSE(spectrum_auto_graft_load_is_project_open(true, true, true));
+    CHECK_FALSE(spectrum_auto_graft_load_is_project_open(false, false, false));
+}
+
 TEST_CASE("n=4 X1C-like should auto-graft", "[spectrum_auto_graft]")
 {
     DynamicPrintConfig cfg = make_cfg_with_colours(

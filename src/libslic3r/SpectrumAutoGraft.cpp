@@ -40,6 +40,11 @@ bool spectrum_should_auto_graft_leq4(const DynamicPrintConfig &cfg)
     return !spectrum_is_zr_ultra_s_dest(cfg);
 }
 
+bool spectrum_auto_graft_load_is_project_open(bool load_model, bool load_config, bool is_restore)
+{
+    return load_model && load_config && !is_restore;
+}
+
 bool spectrum_restore_dest_filament_colours(std::vector<std::string>       &colour,
                                            const std::vector<std::string> &dest)
 {

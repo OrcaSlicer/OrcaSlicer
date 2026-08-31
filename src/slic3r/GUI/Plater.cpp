@@ -6312,7 +6312,10 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 ? wxGetApp().app_config->get("spectrum_auto_graft_leq4")
                                 : std::string();
                             const bool opt_on = opt.empty() || opt == "true";
-                            graft = opt_on && spectrum_should_auto_graft_leq4(config_loaded);
+                            const bool is_restore = strategy & LoadStrategy::Restore;
+                            graft = opt_on &&
+                                    spectrum_auto_graft_load_is_project_open(load_model, load_config, is_restore) &&
+                                    spectrum_should_auto_graft_leq4(config_loaded);
                         }
 
                         config.apply(static_cast<const ConfigBase &>(FullPrintConfig::defaults()));
