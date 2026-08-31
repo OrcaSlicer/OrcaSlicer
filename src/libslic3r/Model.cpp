@@ -261,7 +261,7 @@ static void add_textured_mesh_to_model(Model& model, const TexturedMesh& tex_mes
     its_remove_degenerate_faces(its);
     its_compactify_vertices(its);
 
-    model.add_object(object_name.c_str(), input_file.c_str(), std::move(TriangleMesh(std::move(its))));
+    model.add_object(object_name.c_str(), input_file.c_str(), TriangleMesh(std::move(its)));
 }
 
 Model Model::read_from_file(const std::string&                                  input_file,

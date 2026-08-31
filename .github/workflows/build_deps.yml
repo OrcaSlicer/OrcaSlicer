@@ -149,7 +149,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
             if [ -z "${{ vars.SELF_HOSTED }}" ]; then
-              brew install automake texinfo libtool
+              brew install automake texinfo libtool pkgconf yasm nasm
             fi
             ./build_release_macos.sh -dx ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15
             (cd "${{ github.workspace }}/deps/build/${{ inputs.arch }}" && \
