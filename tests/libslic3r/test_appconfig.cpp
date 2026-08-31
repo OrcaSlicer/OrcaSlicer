@@ -43,3 +43,14 @@ TEST_CASE("AppConfig network version helpers", "[AppConfig]") {
         REQUIRE(config.is_network_version_skipped("02.01.01.52"));
     }
 }
+
+TEST_CASE("keep_painting defaults on when unset and honors stored false", "[AppConfig]")
+{
+    AppConfig config;
+    REQUIRE(config.get_bool("keep_painting"));
+
+    config.set_bool("keep_painting", false);
+    REQUIRE_FALSE(config.get_bool("keep_painting"));
+    config.set_defaults();
+    REQUIRE_FALSE(config.get_bool("keep_painting"));
+}

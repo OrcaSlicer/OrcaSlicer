@@ -128,6 +128,9 @@ void AppConfig::set_defaults()
         if (get("drop_project_action").empty())
             set_bool("drop_project_action", true);
 
+        if (get("keep_painting").empty())
+            set_bool("keep_painting", true);
+
 #ifdef _WIN32
         if (get("associate_3mf").empty())
             set_bool("associate_3mf", false);
