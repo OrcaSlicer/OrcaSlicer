@@ -91,14 +91,20 @@ TEST_CASE("remap_painting identity timing on fully painted sphere", "[spectrum_r
         const auto  &its = vol->mesh().its;
         const size_t n   = its.indices.size();
 
+        TriangleSelector::RemapBuckets buckets;
         const auto t0 = std::chrono::steady_clock::now();
         const TriangleSelector::TriangleSplittingData result = TriangleSelector::remap_painting(
-            its, src, its, Transform3d::Identity(), std::nullopt);
+            its, src, its, Transform3d::Identity(), std::nullopt, nullptr, &buckets);
         const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
                             std::chrono::steady_clock::now() - t0)
                             .count();
 
         WARN("faces=" << n << " remap_ms=" << ms);
+        if (n == 7920) {
+            WARN("aabb_build_ms=" << buckets.aabb_build_ms
+                 << " collect_ms=" << buckets.collect_ms
+                 << " apply_ms=" << buckets.apply_ms);
+        }
         REQUIRE(result.used_states.size() > 1);
         REQUIRE(result.used_states[1]);
         REQUIRE_FALSE(result.bitstream.empty());

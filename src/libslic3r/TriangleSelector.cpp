@@ -5,6 +5,7 @@
 #include <atomic>
 #include <boost/container/small_vector.hpp>
 #include <boost/log/trivial.hpp>
+#include <chrono>
 #include <cstddef>
 #include <functional>
 #include <tbb/parallel_for.h>
@@ -2428,11 +2429,16 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
     const indexed_triangle_set& target_its,
     const Transform3d& target_transform,
     const std::optional<std::reference_wrapper<const TriangleSplittingData>>& existing_painting,
-    const std::atomic<bool> *cancel)
+    const std::atomic<bool> *cancel,
+    RemapBuckets *buckets)
 {
     TriangleSelector::TriangleSplittingData result;
     if (source_painting.bitstream.empty() || cancel_requested(cancel))
         return result;
+
+    auto elapsed_ms = [](const std::chrono::steady_clock::time_point& t0) {
+        return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+    };
 
     // 1. Deserialize source painting
     TriangleMesh source_mesh(source_its);
@@ -2456,12 +2462,15 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
         return result;
     TriangleMesh target_mesh(target_its);
     target_mesh.transform(target_transform);
+    const auto t_aabb = std::chrono::steady_clock::now();
     AABBTreeIndirect::Tree3f target_tree = AABBTreeIndirect::build_aabb_tree_over_indexed_triangle_set(target_mesh.its.vertices, target_mesh.its.indices);
+    if (buckets)
+        buckets->aabb_build_ms = elapsed_ms(t_aabb);
     
     // Helper: check overlap between a paint triangle and a target triangle.
     // Uses 3D barycentric point-in-triangle tests and dominant-axis 2D projection
     // for edge-edge intersection to handle all triangle orientations correctly.
-    auto check_overlap = [&](const Vec3f& pa, const Vec3f& pb, const Vec3f& pc,
+    auto check_overlap = [](const Vec3f& pa, const Vec3f& pb, const Vec3f& pc,
                              const Vec3f& ta, const Vec3f& tb, const Vec3f& tc) -> bool {
         // Check if any target vertex is inside the paint triangle
         if (is_point_inside_triangle(ta, pa, pb, pc)) return true;
@@ -2498,7 +2507,7 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
         return false;
     };
 
-    // 4. For each painted face, we find the nearest target face, and apply the TriangleCursor to paint it
+    // 4. Collect dest hits (AABB + overlap + normal) then serial select_patch.
     if (cancel_requested(cancel))
         return result;
     TriangleSelector target_selector(target_mesh);
@@ -2506,50 +2515,73 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
         // Restore existing painting first, if given
         target_selector.deserialize(existing_painting->get(), false);
     }
-    size_t painted_i = 0;
+
+    struct Hit {
+        size_t dest_face_idx;
+        size_t src_i;
+    };
+    const size_t n = painted_triangles.size();
+    std::vector<std::vector<Hit>> hits(n);
     constexpr size_t poll_every = 64;
-    for (auto tri_ref : painted_triangles) {
-        if ((painted_i++ % poll_every) == 0 && cancel_requested(cancel))
-            return result;
-        const Triangle& tri = tri_ref.get();
-        const Vec3f& pv0    = source_selector.m_vertices[tri.verts_idxs[0]].v;
-        const Vec3f& pv1    = source_selector.m_vertices[tri.verts_idxs[1]].v;
-        const Vec3f& pv2    = source_selector.m_vertices[tri.verts_idxs[2]].v;
-
-        // Find ALL target faces whose bounding boxes overlap with the paint
-        // triangle's bounding box, not just the nearest one.
-        Eigen::AlignedBox3f pt_bbox;
-        pt_bbox.extend(pv0);
-        pt_bbox.extend(pv1);
-        pt_bbox.extend(pv2);
-        pt_bbox.min() -= Eigen::Vector3f::Constant(TriangleCursor::tolerance);
-        pt_bbox.max() += Eigen::Vector3f::Constant(TriangleCursor::tolerance);
-
-        AABBTreeIndirect::traverse(target_tree, AABBTreeIndirect::intersecting(pt_bbox), [&](const AABBTreeIndirect::Tree3f::Node& node) -> bool {
+    const auto t_collect = std::chrono::steady_clock::now();
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t>& range) {
+        for (size_t i = range.begin(); i != range.end(); ++i) {
             if (cancel_requested(cancel))
-                return false;
-            size_t face_idx = node.idx;
-            if (face_idx >= target_mesh.its.indices.size())
+                continue;
+            const Triangle& tri = painted_triangles[i].get();
+            const Vec3f& pv0    = source_selector.m_vertices[tri.verts_idxs[0]].v;
+            const Vec3f& pv1    = source_selector.m_vertices[tri.verts_idxs[1]].v;
+            const Vec3f& pv2    = source_selector.m_vertices[tri.verts_idxs[2]].v;
+
+            Eigen::AlignedBox3f pt_bbox;
+            pt_bbox.extend(pv0);
+            pt_bbox.extend(pv1);
+            pt_bbox.extend(pv2);
+            pt_bbox.min() -= Eigen::Vector3f::Constant(TriangleCursor::tolerance);
+            pt_bbox.max() += Eigen::Vector3f::Constant(TriangleCursor::tolerance);
+
+            AABBTreeIndirect::traverse(target_tree, AABBTreeIndirect::intersecting(pt_bbox), [&](const AABBTreeIndirect::Tree3f::Node& node) -> bool {
+                if (cancel_requested(cancel))
+                    return false;
+                size_t face_idx = node.idx;
+                if (face_idx >= target_mesh.its.indices.size())
+                    return true;
+
+                const Vec3f& norm_a = source_selector.m_face_normals[tri.source_triangle];
+                const Vec3f& norm_b = target_selector.m_face_normals[face_idx];
+
+                const Vec3i32& face = target_mesh.its.indices[face_idx];
+                const Vec3f& ta     = target_mesh.its.vertices[face(0)];
+                const Vec3f& tb     = target_mesh.its.vertices[face(1)];
+                const Vec3f& tc     = target_mesh.its.vertices[face(2)];
+
+                if (TriangleCursor::check_normal(norm_b, -norm_a) && check_overlap(pv0, pv1, pv2, ta, tb, tc))
+                    hits[i].push_back(Hit{face_idx, i});
                 return true;
+            });
+        }
+    });
+    if (buckets)
+        buckets->collect_ms = elapsed_ms(t_collect);
 
-            const Vec3f& norm_a = source_selector.m_face_normals[tri.source_triangle];
-            const Vec3f& norm_b = target_selector.m_face_normals[face_idx];
+    if (cancel_requested(cancel))
+        return result;
 
-            const Vec3i32& face = target_mesh.its.indices[face_idx];
-            const Vec3f& ta     = target_mesh.its.vertices[face(0)];
-            const Vec3f& tb     = target_mesh.its.vertices[face(1)];
-            const Vec3f& tc     = target_mesh.its.vertices[face(2)];
-
-            if (TriangleCursor::check_normal(norm_b, -norm_a) && check_overlap(pv0, pv1, pv2, ta, tb, tc)) {
-                // Paint this face
-                target_selector.select_patch(face_idx, TriangleCursor::build_cursor(source_selector, tri), tri.get_state(),
-                                             Transform3d::Identity(), true, 0.f, true, cancel);
-            }
-            return true; // continue traversal
-        });
-        if (cancel_requested(cancel))
-            return result;
+    const auto t_apply = std::chrono::steady_clock::now();
+    for (size_t i = 0; i < n; ++i) {
+        if ((i % poll_every) == 0 && cancel_requested(cancel))
+            return {};
+        for (const Hit& hit : hits[i]) {
+            const Triangle& tri = painted_triangles[hit.src_i].get();
+            target_selector.select_patch(int(hit.dest_face_idx),
+                TriangleCursor::build_cursor(source_selector, tri), tri.get_state(),
+                Transform3d::Identity(), true, 0.f, true, cancel);
+            if (cancel_requested(cancel))
+                return {};
+        }
     }
+    if (buckets)
+        buckets->apply_ms = elapsed_ms(t_apply);
 
     if (cancel_requested(cancel))
         return result;

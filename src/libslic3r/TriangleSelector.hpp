@@ -387,6 +387,13 @@ public:
         TriangleSplittingData fuzzy;
     };
 
+    // Optional timers for remap_painting collect-then-commit (Catch2 / review).
+    struct RemapBuckets {
+        double aabb_build_ms{0};
+        double collect_ms{0};
+        double apply_ms{0};
+    };
+
     // Remap painting data from source mesh to target mesh using spatial mapping.
     // `target_transform` should transform the target mesh into source's coordinate space.
     // If `existing_painting` is present, the result will be a combine of `existing_painting` and remapped `source_painting`.
@@ -396,7 +403,8 @@ public:
         const indexed_triangle_set& target_its,
         const Transform3d& target_transform,
         const std::optional<std::reference_wrapper<const TriangleSplittingData>>& existing_painting,
-        const std::atomic<bool> *cancel = nullptr);
+        const std::atomic<bool> *cancel = nullptr,
+        RemapBuckets *buckets = nullptr);
 
     // Inherit painting onto dest faces using source-face ids from cut_mesh.
     // `source_face_ids[i] < 0` stays NONE. Caps / unknown ids are not painted.
