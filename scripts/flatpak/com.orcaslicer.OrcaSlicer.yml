@@ -318,6 +318,12 @@ modules:
         sha256: 0ba163956f2d468b19a91b96c5aba66ee9610843ea41dda628ea44cdafde7db7
         dest: external-packages/wxInspector
 
+      # FFmpeg n7.0.3
+      - type: file
+        url: https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n7.0.3.tar.gz
+        sha256: deedcabe339165214a3637df4c86a507aef0d793cf8774ff68735f4737e8ddbc
+        dest: external-packages/FFMPEG
+
       # ---------------------------------------------------------------
       # Fallback archives for deps normally provided by the GNOME SDK.
       # These are only used if find_package() fails to locate them.
