@@ -475,3 +475,41 @@ TEST_CASE("switching nozzle works when the preset name has no nozzle size in it"
         CHECK(target->name == "SirPrintALot");
     }
 }
+
+// A detached copy is written as a full config, so any runtime key sitting on the edited preset would
+// land in the file. load_presets() strips those again via remove_invalid_keys() and logs an error
+// for the preset on every start, so the save has to keep to the keys the preset type owns.
+TEST_CASE("saving a preset writes only keys its type owns", "[PresetCompatibility]")
+{
+    ScopedTemporaryDir         temp_dir;
+    PresetBundle               bundle;
+    PresetsConfigSubstitutions substitutions;
+
+    bundle.printers.load_presets(temp_dir.path().string(), PRESET_PRINTER_NAME, substitutions,
+                                 ForwardCompatibilitySubstitutionRule::Disable);
+
+    DynamicPrintConfig source_config(bundle.printers.default_preset().config);
+    source_config.set_key_value("printable_height", new ConfigOptionFloat(123.0));
+    Preset &source = bundle.printers.load_preset(std::string(), "Source Printer 0.4 nozzle", source_config, /*select=*/true);
+    source.is_system = true;
+    // A registered option that is not a printer preset key, as the app leaves on the edited preset.
+    bundle.printers.get_edited_preset().config.set_key_value("extruder_nozzle_stats", new ConfigOptionStrings{"Standard#1"});
+
+    bundle.printers.save_current_preset("My Printer", /*detach=*/true, /*save_to_project=*/false);
+
+    const Preset *copy = bundle.printers.find_preset("My Printer");
+    REQUIRE(copy != nullptr);
+    // find_preset() yields the edited preset for the selected index, so this also covers that copy.
+    CHECK_FALSE(copy->config.has("extruder_nozzle_stats"));
+    // The full copy is still complete: a printer key carried over from the source survives.
+    CHECK_THAT(copy->config.opt_float("printable_height"), Catch::Matchers::WithinAbs(123.0, 1e-9));
+    CHECK(copy->inherits().empty());
+
+    // And the file on disk carries neither, so it loads without a remove_invalid_keys() error.
+    std::map<std::string, std::string> key_values;
+    std::string                        reason;
+    DynamicPrintConfig                 reloaded;
+    reloaded.load_from_json(copy->file, ForwardCompatibilitySubstitutionRule::Disable, key_values, reason);
+    CHECK(reason.empty());
+    CHECK_FALSE(reloaded.has("extruder_nozzle_stats"));
+}
