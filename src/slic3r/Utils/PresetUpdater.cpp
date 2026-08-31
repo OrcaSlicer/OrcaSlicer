@@ -10,6 +10,7 @@
 #include <set>
 #include <string>
 #include <thread>
+#include <mutex>
 #include <unordered_map>
 #include <ostream>
 #include <utility>
@@ -129,10 +130,9 @@ struct Update
 	//BBS: add directory support
 	void install() const
 	{
-	    if (is_directory) {
+        if (is_directory) {
             copy_directory_recursively(source, target, file_filter);
-        }
-        else {
+        } else {
             copy_file_fix(source, target);
 
             // A vendor must be installed in exactly one form. Remove the
@@ -147,7 +147,7 @@ struct Update
                 fs::remove(target.parent_path() / (vendor + ".opc"), ec);
             }
         }
-	}
+    }
 
 	friend std::ostream& operator<<(std::ostream& os, const Update &self)
 	{
@@ -195,6 +195,8 @@ struct Updates
 	std::vector<Update> updates;
 };
 
+static bool reload_configs_update_gui();
+
 
 wxDEFINE_EVENT(EVT_SLIC3R_VERSION_ONLINE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SLIC3R_EXPERIMENTAL_VERSION_ONLINE, wxCommandEvent);
@@ -222,6 +224,10 @@ struct PresetUpdater::priv
 
     // Per-vendor update checking
     std::set<std::string> checked_vendors;
+    // Orca (PR #130): changelog text for each vendor, captured in memory during
+    // sync_vendor_config()/check_new_vendors() instead of written beside the cache.
+    std::unordered_map<std::string, std::string> vendor_changelogs;
+    mutable std::mutex vendor_changelogs_mutex;
     std::vector<std::thread> vendor_check_threads;
     std::atomic<bool> vendor_check_cancel{false};
 
@@ -246,6 +252,8 @@ struct PresetUpdater::priv
 	void parse_version_string(const std::string& body) const;
     void sync_resources(std::string http_url, std::map<std::string, Resource> &resources, bool check_patch = false,  std::string current_version="", std::string changelog_file="");
     void sync_vendor_config(const std::string& vendor_id);
+    void check_new_vendors(const std::set<std::string>& system_vendors,
+                            std::function<void(std::vector<std::string>, bool)> callback);
     void sync_tooltip(std::string http_url, std::string language);
     void sync_plugins(std::string http_url, std::string plugin_version);
     void sync_printer_config(std::string http_url);
@@ -686,6 +694,9 @@ void PresetUpdater::priv::sync_vendor_config(const std::string& vendor_id)
 
     std::string online_version_str; // this represents the PROFILE VERSION, not ORCA VERSION
     std::string download_url_str;
+    std::string changelog;
+
+    BOOST_LOG_TRIVIAL(info) << "[Orca Updater] fetching vendor update status from " << url;
 
     Http::get(url)
         .timeout_connect(5)
@@ -698,9 +709,12 @@ void PresetUpdater::priv::sync_vendor_config(const std::string& vendor_id)
             if (http_status != 200) return;
             try {
                 json j = json::parse(body);
+                BOOST_LOG_TRIVIAL(info) << "[Orca Updater] url: " << url << " returned:" << body;
+
                 if (j.contains("vendor_version") && j.contains("download_url")) {
                     online_version_str = j["vendor_version"].get<std::string>();
                     download_url_str = j["download_url"].get<std::string>();
+                    changelog        = j.value("changelog", std::string());
                 }
             } catch (const std::exception& e) {
                 BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] vendor check JSON parse failed: " << e.what();
@@ -722,8 +736,11 @@ void PresetUpdater::priv::sync_vendor_config(const std::string& vendor_id)
     boost::system::error_code ec;
     fs::remove_all(cache_profile_path / vendor_id, ec);
     fs::remove(cache_profile_path / (vendor_id + ".json"), ec);
-    fs::remove(cache_profile_path / (vendor_id + ".changelog"), ec);
+    // Orca: the OPC cache is the vendor's whole installation in one file; clear it too.
     fs::remove(cache_profile_path / (vendor_id + ".opc"), ec);
+    // Best-effort cleanup of the legacy on-disk changelog written by older builds
+    // (changelogs are now kept in memory - see vendor_changelogs).
+    fs::remove(cache_profile_path / (vendor_id + ".changelog"), ec);
 
     // Download the zip
     BOOST_LOG_TRIVIAL(info) << "[Orca Updater] downloading update for " << vendor_id
@@ -760,6 +777,23 @@ void PresetUpdater::priv::sync_vendor_config(const std::string& vendor_id)
     fs::remove(download_file, ec);
 
     if (cancel || vendor_check_cancel) return;
+
+    const fs::path cached_vendor_json = cache_profile_path / (vendor_id + ".json");
+    const fs::path cached_vendor_folder = cache_profile_path / vendor_id;
+    if (!fs::is_regular_file(cached_vendor_json) || !fs::is_directory(cached_vendor_folder) ||
+        fs::is_empty(cached_vendor_folder)) {
+        BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] rejected update for " << vendor_id
+                                   << ": expected " << vendor_id << ".json and a non-empty "
+                                   << vendor_id << " directory";
+        fs::remove_all(cached_vendor_folder, ec);
+        fs::remove(cached_vendor_json, ec);
+        return;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(vendor_changelogs_mutex);
+        vendor_changelogs[vendor_id] = std::move(changelog);
+    }
 
     BOOST_LOG_TRIVIAL(info) << "[Orca Updater] vendor " << vendor_id << " update cached, notifying UI";
     GUI::wxGetApp().CallAfter([] {
@@ -1167,6 +1201,14 @@ Updates PresetUpdater::priv::get_config_updates(const Semver &old_slic3r_version
     if (!fs::exists(cache_profile_path))
         return updates;
 
+	// Orca (PR #130): vendor changelogs are captured in memory during
+	// sync_vendor_config()/check_new_vendors(), not written beside the cache.
+	std::unordered_map<std::string, std::string> changelogs;
+	{
+		std::lock_guard<std::mutex> lock(vendor_changelogs_mutex);
+		changelogs = vendor_changelogs;
+	}
+
 	for (auto &dir_entry : boost::filesystem::directory_iterator(cache_profile_path)) {
 		const auto &path = dir_entry.path();
 		std::string file_path = path.string();
@@ -1178,6 +1220,21 @@ Updates PresetUpdater::priv::get_config_updates(const Semver &old_slic3r_version
 		auto print_in_cache = (cache_profile_path / vendor_name / PRESET_PRINT_NAME);
 		auto filament_in_cache = (cache_profile_path / vendor_name / PRESET_FILAMENT_NAME);
 		auto machine_in_cache = (cache_profile_path / vendor_name / PRESET_PRINTER_NAME);
+
+		// Orca (PR #130): a JSON cache entry is only meaningful next to a non-empty
+		// <vendor>/ preset directory; a stray or half-downloaded <vendor>.json is
+		// skipped. An .opc cache is a single self-contained file (validated below),
+		// so this check does not apply to it.
+		if (!is_opc_file) {
+			const auto vendor_folder_in_cache = cache_profile_path / vendor_name;
+			if (!fs::is_regular_file(path) || !fs::is_directory(vendor_folder_in_cache) ||
+			    fs::is_empty(vendor_folder_in_cache)) {
+				BOOST_LOG_TRIVIAL(warning) << "[Orca Updater]:ignoring invalid cached update for "
+				                           << vendor_name << ": expected " << vendor_name
+				                           << ".json and a non-empty " << vendor_name << " directory";
+				continue;
+			}
+		}
 
 		if (is_vendor_installed(vendor_name)
 			|| is_opc_file
@@ -1212,15 +1269,9 @@ Updates PresetUpdater::priv::get_config_updates(const Semver &old_slic3r_version
 					cache_ver = *config_version;
 			}
 
-			std::string changelog;
-			std::string changelog_file = (cache_profile_path / (vendor_name + ".changelog")).string();
-			boost::nowide::ifstream ifs(changelog_file);
-			if (ifs) {
-				std::ostringstream oss;
-				oss<< ifs.rdbuf();
-				changelog = oss.str();
-				ifs.close();
-			}
+			// Orca (PR #130): changelog for this vendor was captured in memory at sync time.
+			const auto changelog_it = changelogs.find(vendor_name);
+			std::string changelog = changelog_it != changelogs.end() ? changelog_it->second : std::string();
 
 			if (vendor_ver < cache_ver) {
 				BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:need to update settings from " << vendor_ver.to_string()
@@ -1362,6 +1413,9 @@ void PresetUpdater::sync(std::string http_url, std::string language, std::string
 			// after the startup printer preset has been restored.
             this->p->sync_plugins(http_url, plugin_version);
             this->p->sync_printer_config(http_url);
+            // Orca (PR #130): the filament library is always installed, so refresh it
+            // from the updater on every startup sync rather than deferring to check_vendor_update().
+            this->p->sync_vendor_config(PresetBundle::ORCA_FILAMENT_LIBRARY);
 			//if (p->cancel)
 			//	return;
 			//remove the tooltip currently
@@ -1394,6 +1448,302 @@ void PresetUpdater::check_vendor_update(const std::string& vendor_id)
     });
 }
 
+// Orca: ask the server which vendors from `system_vendors` have a profile bundle available that
+// isn't installed yet (or is newer than what's installed). Request body maps vendor id -> currently
+// installed profile version (unknown/not-yet-installed vendors report "0.0.0"). Response maps
+// vendor id -> {version, download_url, changelog} for each vendor the server has an update for.
+// Any such vendor is downloaded and cached under ota/profiles the same way sync_vendor_config()
+// does; the caller's check_config_updates_from_updater() -> get_config_updates()/perform_updates()
+// flow then installs the cached profiles into data_dir()/system.
+//
+// Mirrors check_vendor_update()/sync_vendor_config(): the network query and the download/extract
+// work run on a background thread (vendor_check_threads), never on the calling (UI) thread. Only
+// the confirmation dialog (which must run on the UI thread) and the final callback are marshaled
+// back via CallAfter().
+void PresetUpdater::priv::check_new_vendors(const std::set<std::string>& system_vendors,
+                                             std::function<void(std::vector<std::string>, bool)> callback)
+{
+    vendor_check_threads.emplace_back([this, system_vendors, callback]() {
+        AppConfig* app_config = GUI::wxGetApp().app_config;
+        std::string url       = app_config->profile_update_url() + "/new?orcaslicer_version=" + Http::url_encode(SoftFever_VERSION);
+
+        auto check_cancel = [this](Http::Progress, bool& cancel_http) {
+            if (cancel || vendor_check_cancel)
+                cancel_http = true;
+        };
+
+        json request_body = json::object();
+        BOOST_LOG_TRIVIAL(info) << "[Orca Updater] checking new vendors for:";
+        for (const auto& vendor_id : system_vendors) {
+            // Orca: installed_vendor_version() reads whichever form the vendor is
+            // installed as - the .json profile or the .opc preset cache stamp -
+            // so a cache-only vendor is not reported as version 0.0.0 and then
+            // endlessly re-offered by the server.
+            Semver installed_ver = installed_vendor_version(vendor_id);
+            request_body[vendor_id] = installed_ver.to_string();
+            BOOST_LOG_TRIVIAL(info) << vendor_id << " (installed version " << installed_ver.to_string() << ")";
+        }
+        BOOST_LOG_TRIVIAL(info) << "[Orca Updater] new vendor check request url: " << url;
+        BOOST_LOG_TRIVIAL(info) << "[Orca Updater] new vendor check request body: " << request_body.dump(2);
+
+        json response_json;
+        bool got_response = false;
+
+        auto post = Http::post(url);
+
+        post.timeout_connect(5);
+        post.on_progress(check_cancel);
+        post.header("Content-Type", "application/json");
+        post.on_error([](std::string body, std::string error, unsigned http_status) {
+                BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] new vendor check HTTP error: " << error;
+            })
+            .on_complete([&response_json, &got_response](std::string body, unsigned http_status) {
+                if (http_status != 200)
+                    return;
+                try {
+                    json j = json::parse(body);
+                    if (j.is_object()) {
+                        response_json = std::move(j);
+                        got_response  = true;
+                    }
+                } catch (const std::exception& e) {
+                    BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] new vendor check JSON parse failed: " << e.what();
+                }
+            });
+
+        post.set_post_body(request_body.dump());
+        post.perform_sync();
+
+        if (cancel || vendor_check_cancel)
+            return;
+
+        if (!got_response) {
+            GUI::wxGetApp().CallAfter([callback]() { callback({}, false); });
+            return;
+        }
+
+        // Collect candidates before touching the filesystem or network again.
+        struct NewVendorCandidate
+        {
+            std::string vendor_id;
+            Semver      version;
+            std::string download_url;
+            std::string changelog;
+        };
+        std::vector<NewVendorCandidate> candidates;
+        for (auto it = response_json.begin(); it != response_json.end(); ++it) {
+            const json& entry = it.value();
+            if (!entry.is_object())
+                continue;
+            std::string download_url_str = entry.value("download_url", std::string());
+            if (download_url_str.empty())
+                continue;
+
+            NewVendorCandidate candidate;
+            candidate.vendor_id     = it.key();
+            auto parsed_ver         = Semver::parse(entry.value("version", std::string()));
+            candidate.version       = parsed_ver ? *parsed_ver : Semver();
+            candidate.download_url  = std::move(download_url_str);
+            candidate.changelog     = entry.value("changelog", std::string());
+            candidates.push_back(std::move(candidate));
+        }
+
+        if (candidates.empty()) {
+            GUI::wxGetApp().CallAfter([callback]() { callback({}, false); });
+            return;
+        }
+
+        // Orca: the confirmation dialog must run on the UI thread; if confirmed, the actual
+        // download/install work is dispatched back onto a new background thread from there,
+        // same as check_vendor_update() does for a single vendor.
+        GUI::wxGetApp().CallAfter([this, candidates, callback]() {
+            std::vector<GUI::MsgUpdateConfig::Update> updates_msg;
+            for (const auto& candidate : candidates)
+                updates_msg.emplace_back(candidate.vendor_id, candidate.version, std::string(), candidate.changelog);
+
+            GUI::MsgUpdateConfig dlg(updates_msg);
+            if (dlg.ShowModal() != wxID_OK) {
+                BOOST_LOG_TRIVIAL(info) << "[Orca Updater] user declined installing new vendors";
+                callback({}, true);
+                return;
+            }
+
+            // Orca: the actual download runs on a background thread below (so it doesn't block the
+            // UI), but that also means nothing visibly happens for the several seconds it can take
+            // (longer still if a retry kicks in) — push a notification so it's clear work is
+            // ongoing rather than looking hung.
+            {
+                std::string vendor_list;
+                for (const auto& candidate : candidates) {
+                    if (!vendor_list.empty())
+                        vendor_list += ", ";
+                    vendor_list += candidate.vendor_id;
+                }
+                GUI::wxGetApp().plater()->get_notification_manager()->push_notification(
+                    _u8L("Downloading new vendor profile(s): ") + vendor_list + _u8L("..."));
+            }
+
+            vendor_check_threads.emplace_back([this, candidates, callback]() {
+                auto check_cancel = [this](Http::Progress, bool& cancel_http) {
+                    if (cancel || vendor_check_cancel)
+                        cancel_http = true;
+                };
+
+                std::vector<std::string> new_vendor_ids;
+                std::vector<std::string> failed_vendor_ids;
+                auto                     cache_profile_path = cache_path / "profiles";
+                fs::create_directories(cache_profile_path);
+                boost::system::error_code ec;
+
+                for (const auto& candidate : candidates) {
+                    if (cancel || vendor_check_cancel)
+                        break;
+
+                    const std::string& vendor_id        = candidate.vendor_id;
+                    const std::string& download_url_str = candidate.download_url;
+                    std::string        changelog         = candidate.changelog;
+
+                    BOOST_LOG_TRIVIAL(info) << "[Orca Updater] downloading new vendor " << vendor_id << " version " << candidate.version.to_string();
+
+                    // Clear only this vendor's cached data, same as sync_vendor_config().
+                    fs::remove_all(cache_profile_path / vendor_id, ec);
+                    fs::remove(cache_profile_path / (vendor_id + ".json"), ec);
+
+                    fs::path download_file = cache_path / (vendor_id + TMP_EXTENSION);
+                    bool     download_ok   = false;
+
+                    // Orca: same retry pattern as Plater.cpp's project download — a single-shot
+                    // 5s connect timeout against GitHub's redirect chain is prone to transient
+                    // failures (DNS/connect hiccups) that succeed a moment later, so retry a few
+                    // times before giving up rather than failing the whole vendor on one blip.
+                    int        retry_count = 0;
+                    const int  max_retries = 3;
+                    bool       keep_trying = true;
+                    while (keep_trying && retry_count < max_retries) {
+                        retry_count++;
+                        Http::get(download_url_str)
+                            .timeout_connect(5)
+                            .on_progress(check_cancel)
+                            .on_error([&vendor_id, &retry_count, max_retries](std::string body, std::string error, unsigned http_status) {
+                                BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] download failed for new vendor " << vendor_id
+                                                           << " (attempt " << retry_count << "/" << max_retries << "): " << error;
+                            })
+                            .on_complete([&](std::string body, unsigned http_status) {
+                                if (http_status != 200)
+                                    return;
+                                fs::fstream file(download_file, std::ios::out | std::ios::binary | std::ios::trunc);
+                                if (!file.good())
+                                    return;
+                                file.write(body.c_str(), body.size());
+                                file.close();
+                                if (file.good())
+                                    download_ok = true;
+                            })
+                            .perform_sync();
+
+                        keep_trying = !download_ok && !(cancel || vendor_check_cancel);
+                    }
+
+                    if (!download_ok || cancel || vendor_check_cancel) {
+                        if (!download_ok)
+                            failed_vendor_ids.push_back(vendor_id);
+                        continue;
+                    }
+
+                    BOOST_LOG_TRIVIAL(info) << "[Orca Updater] extracting new vendor " << vendor_id;
+                    if (!extract_file(download_file, cache_profile_path)) {
+                        BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] extraction failed for new vendor " << vendor_id;
+                        fs::remove(download_file, ec);
+                        failed_vendor_ids.push_back(vendor_id);
+                        continue;
+                    }
+                    fs::remove(download_file, ec);
+
+                    const fs::path cached_vendor_json   = cache_profile_path / (vendor_id + ".json");
+                    const fs::path cached_vendor_folder = cache_profile_path / vendor_id;
+                    if (!fs::is_regular_file(cached_vendor_json) || !fs::is_directory(cached_vendor_folder) ||
+                        fs::is_empty(cached_vendor_folder)) {
+                        BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] rejected new vendor " << vendor_id << ": expected " << vendor_id
+                                                   << ".json and a non-empty " << vendor_id << " directory";
+                        fs::remove_all(cached_vendor_folder, ec);
+                        fs::remove(cached_vendor_json, ec);
+                        failed_vendor_ids.push_back(vendor_id);
+                        continue;
+                    }
+
+                    {
+                        std::lock_guard<std::mutex> lock(vendor_changelogs_mutex);
+                        vendor_changelogs[vendor_id] = std::move(changelog);
+                    }
+
+                    new_vendor_ids.push_back(vendor_id);
+                }
+
+                if (!new_vendor_ids.empty()) {
+                    // Orca: the user already confirmed via the dialog above, so install right away
+                    // instead of routing through check_config_updates_from_updater(), which only
+                    // queues a passive notification (meant for the silent background per-vendor
+                    // check) requiring yet another click + confirmation before anything is copied
+                    // into data_dir()/system.
+                    GUI::wxGetApp().CallAfter([this, new_vendor_ids] {
+                        AppConfig* app_config = GUI::wxGetApp().app_config;
+                        Updates    updates    = get_config_updates(app_config->orig_version());
+
+                        // Only install the vendors just confirmed; leave any other unrelated
+                        // pending cached update (from a background sync_vendor_config()) alone,
+                        // still gated behind its own notification/confirmation.
+                        std::set<std::string> confirmed(new_vendor_ids.begin(), new_vendor_ids.end());
+                        Updates                filtered;
+                        for (auto& update : updates.updates)
+                            if (confirmed.count(update.vendor))
+                                filtered.updates.push_back(std::move(update));
+
+                        if (filtered.updates.empty()) {
+                            BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] new vendors cached but no updates detected";
+                            return;
+                        }
+
+                        if (!perform_updates(std::move(filtered)) || !reload_configs_update_gui()) {
+                            BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] failed to install new vendors";
+                            return;
+                        }
+
+                        BOOST_LOG_TRIVIAL(info) << "[Orca Updater] new vendors installed";
+                        for (const auto& vendor_id : new_vendor_ids) {
+                            Semver cur_ver = GUI::wxGetApp().preset_bundle->get_vendor_profile_version(vendor_id);
+                            GUI::wxGetApp().plater()->get_notification_manager()->push_notification(
+                                GUI::NotificationType::PresetUpdateFinished,
+                                GUI::NotificationManager::NotificationLevel::ImportantNotificationLevel,
+                                _u8L("Configuration package: ") + vendor_id + _u8L(" updated to ") + cur_ver.to_string());
+                        }
+                    });
+                }
+
+                if (!failed_vendor_ids.empty()) {
+                    GUI::wxGetApp().CallAfter([failed_vendor_ids] {
+                        std::string vendor_list;
+                        for (const auto& vendor_id : failed_vendor_ids) {
+                            if (!vendor_list.empty())
+                                vendor_list += ", ";
+                            vendor_list += vendor_id;
+                        }
+                        GUI::wxGetApp().plater()->get_notification_manager()->push_notification(
+                            _u8L("Failed to download vendor profile(s): ") + vendor_list);
+                    });
+                }
+
+                GUI::wxGetApp().CallAfter([callback, new_vendor_ids]() { callback(new_vendor_ids, false); });
+            });
+        });
+    });
+}
+
+void PresetUpdater::check_new_vendors(const std::set<std::string>& system_vendors,
+                                       std::function<void(std::vector<std::string>, bool)> callback)
+{
+    p->check_new_vendors(system_vendors, std::move(callback));
+}
+
 void PresetUpdater::slic3r_update_notify()
 {
 	if (! p->enabled_version_check)
@@ -1415,9 +1765,8 @@ static bool reload_configs_update_gui()
 	GUI::wxGetApp().load_current_presets();
 	GUI::wxGetApp().plater()->set_bed_shape();
 
-	return true;
+    return true;
 }
-
 
 PresetUpdater::UpdateResult PresetUpdater::config_update(const Semver& old_slic3r_version, UpdateParams params) const
 {
