@@ -1,22 +1,22 @@
 on:
-    workflow_call:
-      inputs:
-        cache-key:
-          required: false
-          type: string
-        cache-path:
-          required: false
-          type: string
-        os:
-          required: true
-          type: string
-        arch:
-          required: false
-          type: string
-        macos-combine-only:
-          required: false
-          type: boolean
-          default: false
+  workflow_call:
+    inputs:
+      cache-key:
+        required: false
+        type: string
+      cache-path:
+        required: false
+        type: string
+      os:
+        required: true
+        type: string
+      arch:
+        required: false
+        type: string
+      macos-combine-only:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build_orca:
@@ -26,8 +26,8 @@ jobs:
       date:
       ver:
       ver_pure:
-      ubuntu-ver: '2404'
-      ubuntu-ver-str: '_Ubuntu2404'
+      ubuntu-ver: "2404"
+      ubuntu-ver-str: "_Ubuntu2404"
       ORCA_UPDATER_SIG_KEY: ${{ secrets.ORCA_UPDATER_SIG_KEY }}
       # Branches whose builds are published to the nightly release. The
       # belt-printer branch ships alongside main but its assets carry a `_belt`
@@ -39,7 +39,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          lfs: 'false'
+          lfs: "false"
 
       - name: load cached deps
         if: ${{ !(runner.os == 'macOS' && inputs.macos-combine-only) }}
@@ -53,8 +53,8 @@ jobs:
         # The windows-11-arm runner needs CMake <= 3.31 (handled in the next step).
         if: ${{ !(runner.os == 'Windows' && inputs.arch == 'arm64') }}
         with:
-          cmakeVersion: "~4.3.0"  # use most recent 4.3.x version
-          useLocalCache: true         # <--= Use the local cache (default is 'false').
+          cmakeVersion: "~4.3.0" # use most recent 4.3.x version
+          useLocalCache: true # <--= Use the local cache (default is 'false').
           useCloudCache: true
 
       - name: Install CMake 3.31.x (Windows ARM64)
@@ -120,7 +120,7 @@ jobs:
           echo "date: ${{ env.date }} version: ${{ env.ver }}"
         shell: pwsh
 
-#   Mac
+      #   Mac
       - name: Install tools mac
         if: runner.os == 'macOS' && !inputs.macos-combine-only
         run: |
@@ -206,7 +206,7 @@ jobs:
         run: |
           ./build_release_macos.sh -u -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a universal -t 10.15
 
- # Thanks to RaySajuuk, it's working now
+      # Thanks to RaySajuuk, it's working now
       - name: Sign app and notary
         if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/belt-printer' || startsWith(github.ref, 'refs/heads/release/')) && runner.os == 'macOS' && inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
@@ -265,7 +265,7 @@ jobs:
           if [ -f "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ]; then
             sign_app "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app"
           fi
-          
+
           # Create main OrcaSlicer DMG without the profile validator helper
           mkdir -p ${{ github.workspace }}/build/universal/OrcaSlicer_dmg
           rm -rf ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/*
@@ -273,7 +273,7 @@ jobs:
           ln -sfn /Applications ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/Applications
           retry hdiutil create -volname "OrcaSlicer" -srcfolder ${{ github.workspace }}/build/universal/OrcaSlicer_dmg -ov -format UDZO OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
           codesign --deep --force --verbose --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$CERTIFICATE_ID" OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
-          
+
           # Create separate OrcaSlicer_profile_validator DMG if the app exists
           if [ -f "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ]; then
             mkdir -p ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg
@@ -283,7 +283,7 @@ jobs:
             retry hdiutil create -volname "OrcaSlicer Profile Validator" -srcfolder ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg -ov -format UDZO OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg
             codesign --deep --force --verbose --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$CERTIFICATE_ID" OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg
           fi
-          
+
           # Notarize main DMG
           xcrun notarytool submit "OrcaSlicer_Mac_universal_${{ env.ver }}.dmg" --apple-id "${{ secrets.APPLE_DEV_ACCOUNT }}" --team-id "${{ secrets.TEAM_ID }}" --password "${{ secrets.APP_PWD }}" --wait
           xcrun stapler staple OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
@@ -305,7 +305,7 @@ jobs:
           cp -R ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/
           ln -sfn /Applications ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/Applications
           retry hdiutil create -volname "OrcaSlicer" -srcfolder ${{ github.workspace }}/build/universal/OrcaSlicer_dmg -ov -format UDZO OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
-          
+
           # Create separate OrcaSlicer_profile_validator DMG if the app exists
           if [ -f "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ]; then
             mkdir -p ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg
@@ -362,7 +362,7 @@ jobs:
           asset_content_type: application/octet-stream
           max_releases: 1
 
-# Windows
+      # Windows
       - name: Set Windows build variables
         if: runner.os == 'Windows'
         shell: pwsh
@@ -529,7 +529,7 @@ jobs:
           name: OrcaSlicer_Windows_MSIX_${{ env.ver }}${{ env.ARCH_SUFFIX }}
           path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer_Windows_MSIX_${{ env.ver }}${{ env.ARCH_SUFFIX }}.msix
 
-# Ubuntu
+      # Ubuntu
       - name: Apt-Install Dependencies
         if: runner.os == 'Linux' && !vars.SELF_HOSTED
         uses: ./.github/actions/apt-install-deps
@@ -596,7 +596,7 @@ jobs:
         run: |
           test_repo_dir="${{ runner.temp }}/orca-test-repo"
           rm -rf "$test_repo_dir"
-          git clone --depth 1 https://github.com/OrcaSlicer/orca-test-repo.git "$test_repo_dir"
+          git clone --depth 1 --branch cli-test-suite https://github.com/OrcaSlicer/orca-test-repo.git "$test_repo_dir"
           python3 "$test_repo_dir/run_test.py" "${{ github.workspace }}/build/package/bin/orca-slicer"
 
       - name: Build orca_custom_preset_tests
@@ -620,7 +620,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: OrcaSlicer_profile_validator_Linux_ubuntu_${{ env.ubuntu-ver }}_${{ env.ver }}
-          path: './build/src/Release/OrcaSlicer_profile_validator'
+          path: "./build/src/Release/OrcaSlicer_profile_validator"
 
       - name: Deploy Ubuntu release
         if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' && ! env.ACT && env.deploy_nightly == 'true' && runner.os == 'Linux' && !vars.SELF_HOSTED }}
