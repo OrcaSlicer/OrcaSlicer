@@ -26,6 +26,11 @@ if(EXISTS "${PYTHON_SOURCE_DIR}/LICENSE" AND NOT EXISTS "${PYTHON_BUILD_DIR}/LIC
     configure_file("${PYTHON_SOURCE_DIR}/LICENSE" "${PYTHON_BUILD_DIR}/LICENSE.txt" COPYONLY)
 endif()
 
+set(PYTHON_DEBUG_FLAG "")
+if(PYTHON_DEBUG)
+    set(PYTHON_DEBUG_FLAG "--debug")
+endif()
+
 execute_process(
     COMMAND
         "${CMAKE_COMMAND}" -E env
@@ -33,6 +38,7 @@ execute_process(
             "PYTHONPATH=${PYTHON_SOURCE_DIR}/Lib"
             "${_python_exe}"
             "${PYTHON_SOURCE_DIR}/PC/layout"
+            ${PYTHON_DEBUG_FLAG}
             --source "${PYTHON_SOURCE_DIR}"
             --build "${PYTHON_BUILD_DIR}"
             --arch "${PYTHON_LAYOUT_ARCH}"
