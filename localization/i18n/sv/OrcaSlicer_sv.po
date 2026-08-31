@@ -6971,11 +6971,11 @@ msgid "Load a model"
 msgstr "Ladda modell"
 
 # AI Translated
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Importera ZIP-arkiv"
 
 # AI Translated
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Läs in modeller som finns i ett ZIP-arkiv"
 
 msgid "Import Configs"
@@ -8952,8 +8952,8 @@ msgstr "Bekräfta att G-koderna i dessa inställningar är säkra för att förh
 msgid "Customized Preset"
 msgstr "Anpassad inställning"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "Komponent namnet i STEP filen är inte UTF8 format!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "Komponent namnet i STEP filen är inte UTF-8 format!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "På grund av textkodning som inte stöds så kan skräptecken visas!"
@@ -8974,7 +8974,7 @@ msgstr "Objektet är utan volym"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "Objektets fil %s är för litet, det är kanske i meter eller inches.\n"
 "Skala om till millimeter?"
@@ -12190,12 +12190,12 @@ msgid "No modifications need to be copied."
 msgstr "Inga ändringar behöver kopieras."
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Kopiera parametrar"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "Ändra parametrar för %s"
 
 # AI Translated
@@ -14012,23 +14012,27 @@ msgstr "mm eller %"
 msgid "Other layers"
 msgstr "Andra lager"
 
-# AI Translated
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+#, fuzzy
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Byggplattans temperatur för alla lager utom det första. Värdet 0 innebär att filamentet inte stöder utskrift på Cool Plate SuperTack."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Detta är byggplattans temperatur för lager förutom det första. Värdet 0 betyder att filamentet inte stöder utskrift på Cool Plate."
 
-# AI Translated
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Detta är byggplattans temperatur för lager förutom det första. Värdet 0 betyder att filamentet inte stöder utskrift på Textured Cool Plate."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Detta är byggplattans temperatur för lager förutom det första. Ett värde på 0 betyder att filamentet inte stöder utskrift på Engineering Plate."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Detta är byggplattans temperatur för lager förutom det första. Värdet 0 betyder att filamentet inte stöder utskrift på High Temp Plate."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Byggplattans temperatur efter det första lagret. 0 betyder att filamentet inte stöds på den texturerade PEI-plattan."
 
@@ -17720,8 +17724,8 @@ msgid "Reduce infill retraction"
 msgstr "Minska ifyllnads retraktionen"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "Dra inte tillbaka när förflyttningen är helt i ett utfyllnadsområde. Det betyder att läckage av filament inte kan ses. Detta kan minska tiderna för indragning för komplexa modeller och spara utskriftstid, men gör beredning och generering av G-kod långsammare. Observera att z-hop inte heller utförs i områden där retraktionen hoppas över."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr "Dra inte tillbaka när förflyttningen är helt i ett utfyllnadsområde. Det betyder att läckage av filament inte kan ses. Detta kan minska tiderna för indragning för komplexa modeller och spara utskriftstid, men gör beredning och generering av G-kod långsammare. Observera att Z-hop inte heller utförs i områden där retraktionen hoppas över."
 
 # AI Translated
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -17913,7 +17917,7 @@ msgstr "Reduktionsmängd efter avtorkning"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "Längden på den snabba reduktionen efter avtorkning, i förhållande till reduktionslängden.\n"
@@ -17968,7 +17972,7 @@ msgstr "När reduktionen utlöses före ett verktygsbyte dras filamentet tillbak
 msgid "Z-hop height"
 msgstr "Z-hop-höjd"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "När det är en retraktion lyfts nozzel en aning för att skapa ett spel mellan nozzel och utskriften. Detta förhindrar att nozzel träffar utskriften när den förflyttas. Att använda spirallinjer för att lyfta z kan förhindra strängning"
 
 msgid "Z-hop lower boundary"
@@ -22041,19 +22045,19 @@ msgstr "Endast printer med ändringar av inställningar för printer, filament o
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Visa endast filament namnen vid ändringar av filament inställningar."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Endast printer namn med inställningar för printer visas, och varje inställning du väljer exporteras som zip-fil."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Endast filament namn med inställningar för användar filament visas, \n"
 "och alla inställningar för användar filament i varje filament namn du väljer exporteras som en zip-fil."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Endast printer namn med ändrade process inställningar visas, \n"
 "och alla användarprocess inställningar i varje printer namn som du väljer exporteras som zip-fil."
@@ -22312,7 +22316,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "Vi behöver information för att diagnostisera orsaken till problemet. Se wiki-sidan för en detaljerad guide."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "Paketera-knappen samlar projektfilen och loggarna från den aktuella sessionen i en zip-fil."
 
 # AI Translated
@@ -22368,7 +22372,7 @@ msgid "Stored logs"
 msgstr "Sparade loggar"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Paketerar alla sparade loggar i en zip-fil."
 
 # AI Translated
@@ -22456,7 +22460,7 @@ msgid "Authorizing..."
 msgstr "Auktoriserar..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Fel. Det går inte att hämta api-token för auktorisering"
 
 # AI Translated

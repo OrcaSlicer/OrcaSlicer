@@ -3867,14 +3867,14 @@ void ExportConfigsDialog::select_curr_radiobox(std::vector<std::pair<RadioBox *,
                     m_preset_sizer->Add(create_checkbox(m_presets_window, preset.second, printer_name, m_preset), 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT,
                                         FromDIP(5));
                 }
-                m_serial_text->SetLabel(_L("Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."));
+                m_serial_text->SetLabel(_L("Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."));
             } else if (export_type == m_exprot_type.filament_preset) {
                 for (std::pair<std::string, std::vector<std::pair<std::string, Preset *>>> filament_name_to_preset : m_filament_name_to_presets) {
                     if (filament_name_to_preset.second.empty()) continue;
                     wxString filament_name = wxString::FromUTF8(filament_name_to_preset.first);
                     m_preset_sizer->Add(create_checkbox(m_presets_window, filament_name, m_printer_name), 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(5));
                 }
-                m_serial_text->SetLabel(_L("Only the filament names with user filament presets will be displayed, \nand all user filament presets in each filament name you select will be exported as a zip."));
+                m_serial_text->SetLabel(_L("Only the filament names with user filament presets will be displayed, \nand all user filament presets in each filament name you select will be exported as a ZIP archive."));
             } else if (export_type == m_exprot_type.process_preset) {
                 for (std::pair<std::string, std::vector<Preset *>> presets : m_process_presets) {
                     Preset *      printer_preset = preset_bundle->printers.find_preset(presets.first, false);
@@ -3890,7 +3890,7 @@ void ExportConfigsDialog::select_curr_radiobox(std::vector<std::pair<RadioBox *,
                     }
 
                 }
-                m_serial_text->SetLabel(_L("Only printer names with changed process presets will be displayed, \nand all user process presets in each printer name you select will be exported as a zip."));
+                m_serial_text->SetLabel(_L("Only printer names with changed process presets will be displayed, \nand all user process presets in each printer name you select will be exported as a ZIP archive."));
             }
             //m_presets_window->SetSizerAndFit(m_preset_sizer);
             m_presets_window->Layout();

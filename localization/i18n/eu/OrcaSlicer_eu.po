@@ -6174,10 +6174,10 @@ msgstr "Inportatu 3MF/STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "Modeloa kargatu"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Inportatu ZIP fitxategia"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Kargatu ZIP fitxategi baten barnean dauden modeloak"
 
 msgid "Import Configs"
@@ -7945,7 +7945,7 @@ msgstr "Berretsi aurrezarpen hauetako G-codea segurua dela, makinari kalterik ez
 msgid "Customized Preset"
 msgstr "Aurrezarpen pertsonalizatua"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "STEP fitxategiko osagai-izena(k) ez dago/daude UTF-8 formatuan!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -7967,10 +7967,10 @@ msgstr "Objektuaren bolumena zero da"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "%s fitxategiko objektua txikiegia da, eta baliteke metrotan edo hazbetetan egotea.\n"
-" Milimetroetara eskalatu nahi duzu?"
+"Milimetroetara eskalatu nahi duzu?"
 
 msgid "Object too small"
 msgstr "Objektua txikiegia da"
@@ -10765,11 +10765,11 @@ msgstr "%s: %s"
 msgid "No modifications need to be copied."
 msgstr "Ez dago kopiatu beharreko aldaketarik."
 
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Kopiatu parametroak"
 
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "Aldatu %s-(r)en parametroak"
 
 #, c-format, boost-format
@@ -12379,8 +12379,8 @@ msgstr "mm edo %"
 msgid "Other layers"
 msgstr "Beste geruzak"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
-msgstr "Hasierakoa ez den geruzetarako ohearen tenperatura. 0 balioak filamentuak SuperTack Plaka hotzaren gainean inprimatzea ez duela onartzen esan nahi du."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgstr "Hau da lehenengoa ez den geruzetarako ohearen tenperatura. 0 balioak filamentuak SuperTack Plaka hotzaren gainean inprimatzea ez duela onartzen esan nahi du."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Hau da lehenengoa ez den geruzetarako ohearen tenperatura. 0 balioak filamentuak Plaka hotzaren gainean inprimatzea ez duela onartzen esan nahi du."
@@ -15606,8 +15606,8 @@ msgstr "Mozteko eremutik hondakin-ontzira doazen hasierako eta amaierako puntuak
 msgid "Reduce infill retraction"
 msgstr "Murriztu betegarriaren atzera-egitea"
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "Ez egin atzera-egiterik mugimendua guztiz betegarriaren eremuan dagoenean. Horrek esan nahi du jarioa ez dela ikusiko. Honek modelo konplexuetan atzera-egite kopurua murriztu eta inprimatze-denbora aurreztu dezake, baina xerraketa eta G-codearen sorrera motelduko ditu. Kontuan izan z-hop mugimendua ez dela egiten atzera-egitea saihesten den eremuetan."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr "Ez egin atzera-egiterik mugimendua guztiz betegarriaren eremuan dagoenean. Horrek esan nahi du jarioa ez dela ikusiko. Honek modelo konplexuetan atzera-egite kopurua murriztu eta inprimatze-denbora aurreztu dezake, baina xerraketa eta G-codearen sorrera motelduko ditu. Kontuan izan Z-hop mugimendua ez dela egiten atzera-egitea saihesten den eremuetan."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Aukera honek aktibo ez dauden estrusoreen tenperatura jaitsiko du, jarioa saihesteko."
@@ -15771,7 +15771,7 @@ msgstr "Garbitu ondorengo atzera-egite kantitatea"
 
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "Garbiketa-mugimenduaren ondorengo atzera-egite azkarraren luzera, atzera-egitearen luzerari dagokionez.\n"
@@ -15818,7 +15818,7 @@ msgstr "Erreminta aldatu aurretik atzera-egitea abiarazten denean, filamentua ze
 msgid "Z-hop height"
 msgstr "Z jauziaren altuera"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Atzera-egite bakoitzean pita apur bat altxatzen da pitaren eta inprimaketaren artean tartea sortzeko. Horrela, mugimenduetan pitak pieza jotzea saihesten da. Z altxatzeko espiral-lerroak erabiltzeak hariak sortzea murriztu dezake."
 
 msgid "Z-hop lower boundary"
@@ -19379,19 +19379,19 @@ msgstr "Inprimagailuaren, filamentuen edo prozesuen aurrezarpenetan aldaketak di
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Bistaratu soilik filamentu-aurrezarpenetan aldaketak dituzten filamentu-izenak."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Erabiltzailearen inprimagailu-aurrezarpenak dituzten inprimagailu-izenak soilik bistaratuko dira, eta hautatzen duzun aurrezarpen bakoitza zip gisa esportatuko da."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Erabiltzailearen filamentu-aurrezarpenak dituzten filamentu-izenak soilik bistaratuko dira, \n"
 "eta hautatzen duzun filamentu-izen bakoitzeko erabiltzailearen filamentu-aurrezarpen guztiak zip gisa esportatuko dira."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Prozesu-aurrezarpen aldatuak dituzten inprimagailu-izenak soilik bistaratuko dira, \n"
 "eta hautatzen duzun inprimagailu-izen bakoitzeko erabiltzailearen prozesu-aurrezarpen guztiak zip gisa esportatuko dira."
@@ -19620,7 +19620,7 @@ msgstr "Kopiatu sistemaren informazioa arbelera"
 msgid "We need information for diagnosing source of the issue. Check wiki page for detailed guide."
 msgstr "Arazoaren jatorria diagnostikatzeko informazioa behar dugu. Begiratu wiki-orria gida xehatua ikusteko."
 
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "Paketatu botoiak proiektu-fitxategia eta uneko saioko erregistroak ZIP fitxategi batean biltzen ditu."
 
 msgid "Any additional visual examples like images or screen recordings might be helpful while reporting the issue."
@@ -19662,7 +19662,7 @@ msgstr "Erregistro-maila"
 msgid "Stored logs"
 msgstr "Gordetako erregistroak"
 
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Gordetako erregistro guztiak ZIP fitxategi batean paketatzen ditu."
 
 msgid "Profiles"
@@ -19729,7 +19729,7 @@ msgstr "Ez da inprimagailu mota aurkitu; hautatu eskuz."
 msgid "Authorizing..."
 msgstr "Baimena ematen..."
 
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Errorea. Ezin da baimenerako API tokena lortu"
 
 msgid "Could not parse server response."
@@ -22259,19 +22259,11 @@ msgstr ""
 #~ msgid "The 3mf has the following customized filament or printer presets:"
 #~ msgstr "3mf-ak pertsonalizatutako filamentuen edo inprimagailuaren aurrezarpen hauek dauzka:"
 
-#~ msgid "Name of components inside step file is not UTF8 format!"
-#~ msgstr "Step fitxategiko osagaien izena ez dago UTF8 formatuan!"
+#~ msgid "Name of components inside step file is not UTF-8 format!"
+#~ msgstr "Step fitxategiko osagaien izena ez dago UTF-8 formatuan!"
 
 #~ msgid "The name may show garbage characters!"
 #~ msgstr "Izenak karaktere ulergaitzak erakuts ditzake!"
-
-#, c-format, boost-format
-#~ msgid ""
-#~ "The object from file %s is too small, and maybe in meters or inches.\n"
-#~ " Do you want to scale to millimeters?"
-#~ msgstr ""
-#~ "%s fitxategiko objektua txikiegia da, eta baliteke metroetan edo hazbetetan egotea.\n"
-#~ " Milimetrotara eskalatu nahi duzu?"
 
 #~ msgid ""
 #~ "This file contains several objects positioned at multiple heights.\n"
@@ -23123,22 +23115,27 @@ msgstr ""
 #~ msgid "Maximum detour distance for avoiding crossing wall. Don't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. Zero to disable."
 #~ msgstr "Hormak gurutzatzea saihesteko gehieneko desbideratze-distantzia. Ez desbideratu distantzia balio hau baino handiagoa bada. Desbideratze-luzera balio absolutu gisa edo lekualdatze-ibilbide zuzenaren ehuneko gisa zehaztu daiteke (adibidez, 50%). Zero, desgaitzeko."
 
-#~ msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate."
+#~ #,fuzzy
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 #~ msgstr "Ohearen tenperatura hasierakoa ez diren geruzetarako. 0 balioak esan nahi du filamentuak ez duela plaka hotzean inprimatzea onartzen."
 
 #~ msgid "°C"
 #~ msgstr "°C"
 
-#~ msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
+#~ #,fuzzy
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 #~ msgstr "Ohearen tenperatura hasierakoa ez diren geruzetarako. 0 balioak esan nahi du filamentuak ez duela testuradun plaka hotzean inprimatzea onartzen."
 
-#~ msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Engineering Plate."
+#~ #,fuzzy
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 #~ msgstr "Ohearen tenperatura hasierakoa ez diren geruzetarako. 0 balioak esan nahi du filamentuak ez duela ingeniaritza-plakan inprimatzea onartzen."
 
-#~ msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the High Temp Plate."
+#~ #,fuzzy
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 #~ msgstr "Ohearen tenperatura hasierakoa ez diren geruzetarako. 0 balioak esan nahi du filamentuak ez duela tenperatura altuko plakan inprimatzea onartzen."
 
-#~ msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
+#~ #,fuzzy
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 #~ msgstr "Ohearen tenperatura hasierakoa ez diren geruzetarako. 0 balioak esan nahi du filamentuak ez duela testuradun PEI plakan inprimatzea onartzen."
 
 #~ msgid "Initial layer"

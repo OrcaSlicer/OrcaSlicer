@@ -6467,10 +6467,10 @@ msgstr "Importuj 3MF/STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "Wczytaj model"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Importuj archiwum ZIP"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Wczytaj modele zawarte w archiwum ZIP"
 
 msgid "Import Configs"
@@ -8309,8 +8309,8 @@ msgstr "Proszę potwierdź, że G-code w tych profilach jest bezpieczny, aby zap
 msgid "Customized Preset"
 msgstr "Dostosowany profil"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "Nazwa komponentów w pliku step nie jest w formacie UTF8!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "Nazwa komponentów w pliku step nie jest w formacie UTF-8!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "Nazwa może zawierać nieczytelne znaki!"
@@ -8331,10 +8331,10 @@ msgstr "Objętość tego obiektu wynosi zero"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "Obiekt z pliku %s jest zbyt mały i możliwe, że jest określony w metrach lub calach.\n"
-" Czy przeskalować na milimetry?"
+"Czy przeskalować na milimetry?"
 
 msgid "Object too small"
 msgstr "Zbyt mały obiekt"
@@ -11363,12 +11363,12 @@ msgid "No modifications need to be copied."
 msgstr "Nie ma modyfikacji do skopiowania."
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Kopiuj parametry"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "Zmodyfikuj parametry %s"
 
 # AI Translated
@@ -13060,22 +13060,27 @@ msgstr "mm lub %"
 msgid "Other layers"
 msgstr "Pozostałe warstwy"
 
-# AI Translated
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+#, fuzzy
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Temperatura stołu dla warstw poza pierwszą. Wartość 0 oznacza, że filament nie obsługuje druku na Cool Plate SuperTack."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Temperatura stołu dla warstw poza pierwszą. Wartość 0 oznacza, że filament nie obsługuje drukowania na Cool Plate."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Temperatura stołu dla warstw, z wyjątkiem pierwszej. Wartość 0 oznacza, że filament nie nadaje się do druku na Textured Cool Plate."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Temperatura stołu dla warstw poza pierwszą. Wartość 0 oznacza, że filament nie obsługuje drukowania na Engineering Plate."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Temperatura stołu dla warstw poza pierwszą. Wartość 0 oznacza, że filament nie obsługuje drukowania na High Temp Plate."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Temperatura stołu dla warstw poza pierwszą. Wartość 0 oznacza, że filament nie obsługuje drukowania na Textured PEI Plate."
 
@@ -16448,7 +16453,7 @@ msgstr "Punkty początkowe i końcowe, od obszaru cięcia do kanału wyrzutowego
 msgid "Reduce infill retraction"
 msgstr "Zmniejszanie retrakcji wypełnienia"
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr "Nie wykonuj retrakcji, gdy ruch odbywa się całkowicie w obszarze wypełnienia. Oznacza to, że wyciek nie będzie widoczny. Może to zmniejszyć liczbę retrakcji dla skomplikowanego modelu i zaoszczędzić czas druku, ale spowolnić krojenie i generowanie G-code"
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -16624,7 +16629,7 @@ msgstr "Wartość retrakcji po czyszczeniu"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "Długość szybkiej retrakcji po czyszczeniu, względem długości retrakcji.\n"
@@ -16671,7 +16676,7 @@ msgstr "Gdy retrakcja jest wyzwalana przed zmianą narzędzia, filament zostaje 
 msgid "Z-hop height"
 msgstr "Wysokość Z-hop"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Zawsze gdy wykonana jest retrakcja, dysza jest nieco podnoszona, aby stworzyć odstęp między dyszą a wydrukiem. Zapobiega to uderzeniu dyszy w wydruk podczas przemieszczania. Użycie linii spiralnej do podniesienia Z może zapobiec powstawaniu strun"
 
 msgid "Z-hop lower boundary"
@@ -18504,7 +18509,7 @@ msgid "Current Z-hop"
 msgstr "Bieżący Z-hop"
 
 msgid "Contains Z-hop present at the beginning of the custom G-code block."
-msgstr "Zawiera z-hop obecny na początku bloku niestandardowego G-code"
+msgstr "Zawiera Z-hop obecny na początku bloku niestandardowego G-code"
 
 msgid "Position of the extruder at the beginning of the custom G-code block. If the custom G-code travels somewhere else, it should write to this variable so OrcaSlicer knows where it travels from when it gets control back."
 msgstr "Pozycja ekstrudera na początku bloku niestandardowego G-kodu. Jeśli niestandardowy G-code przemieszcza się gdzieś indziej, powinien zostać zapisany do tej zmiennej, aby OrcaSlicer wiedział, skąd się przemieszcza, gdy odzyska kontrolę."
@@ -20394,19 +20399,19 @@ msgstr "Wyświetlane są jedynie drukarki ze zmienionymi profilami drukarki, fil
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Wyświetlone są jedynie nazwy filamentów, które zostały zmodyfikowane w ustawieniach."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Wyświetlane są tylko nazwy drukarek z ustawieniami użytkownika, wybrany zestaw zostanie wyeksportowany jako plik zip."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Na liście widoczne są tylko nazwy filamentów ze zmodyfikowanymi ustawieniami, \n"
 "a dla każdej wybranej nazwy filamentu zostaną wyeksportowane wszystkie ustawienia jako archiwum zip."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Na liście widoczne są tylko nazwy drukarek ze zmodyfikowanymi ustawieniami procesu, \n"
 "a dla każdej wybranej nazwy drukarki zostaną wyeksportowane wszystkie \n"
@@ -20653,7 +20658,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "Potrzebujemy informacji do zdiagnozowania źródła problemu. Szczegółowy przewodnik znajdziesz na stronie wiki."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "Przycisk Spakuj zbiera plik projektu i dzienniki bieżącej sesji do pliku zip."
 
 # AI Translated
@@ -20709,7 +20714,7 @@ msgid "Stored logs"
 msgstr "Zapisane dzienniki"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Pakuje wszystkie zapisane dzienniki do pliku zip."
 
 # AI Translated
@@ -20797,7 +20802,7 @@ msgid "Authorizing..."
 msgstr "Autoryzowanie..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Błąd. Nie można uzyskać tokenu API do autoryzacji"
 
 # AI Translated

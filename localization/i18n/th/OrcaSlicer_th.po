@@ -6302,10 +6302,10 @@ msgstr "นำเข้า 3MF/STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "โหลดโมเดล"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "นำเข้าไฟล์ Zip"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "โหลดโมเดลที่มีอยู่ในไฟล์ zip"
 
 msgid "Import Configs"
@@ -8074,8 +8074,8 @@ msgstr "โปรดยืนยันว่ารหัส G ภายในค
 msgid "Customized Preset"
 msgstr "ค่าที่ตั้งไว้ล่วงหน้าที่กำหนดเอง"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "ชื่อของส่วนประกอบภายในไฟล์ STEP ไม่ใช่รูปแบบ UTF8!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "ชื่อของส่วนประกอบภายในไฟล์ STEP ไม่ใช่รูปแบบ UTF-8!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "ชื่ออาจแสดงตัวอักษรขยะ!"
@@ -8096,7 +8096,7 @@ msgstr "ปริมาตรของวัตถุเป็นศูนย์
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "วัตถุจากไฟล์ %s มีขนาดเล็กเกินไป และอาจมีหน่วยเป็นเมตรหรือนิ้ว\n"
 " คุณต้องการขยายขนาดเป็นมิลลิเมตรหรือไม่?"
@@ -10948,12 +10948,12 @@ msgid "No modifications need to be copied."
 msgstr "ไม่มีการแก้ไขที่ต้องคัดลอก"
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "คัดลอกพารามิเตอร์"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "แก้ไขพารามิเตอร์ของ %s"
 
 # AI Translated
@@ -12578,7 +12578,7 @@ msgstr "มม. หรือ %"
 msgid "Other layers"
 msgstr "ชั้นอื่นๆ"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "อุณหภูมิฐานพิมพ์สำหรับชั้นต่างๆ ยกเว้นอุณหภูมิเริ่มต้น ค่า 0 หมายความว่าเส้นพลาสติกไม่รองรับการพิมพ์บน Cool Plate SuperTack"
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -15827,8 +15827,8 @@ msgstr "จุดเริ่มต้นและจุดสิ้นสุด
 msgid "Reduce infill retraction"
 msgstr "ลดการดึงกลับในไส้ใน"
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "อย่าถอยกลับเมื่อการเดินทางอยู่ภายในพื้นที่ที่ไส้ในเข้าไปทั้งหมด นั่นหมายความว่าไม่สามารถมองเห็นการรั่วไหลได้ วิธีนี้จะช่วยลดเวลาในการดึงกลับสำหรับโมเดลที่ซับซ้อนและประหยัดเวลาในการพิมพ์ แต่จะทำให้การแบ่งส่วนและการสร้าง G-code ช้าลง โปรดทราบว่า z-hop จะไม่ดำเนินการในพื้นที่ที่มีการข้ามการถอนกลับ"
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr "อย่าถอยกลับเมื่อการเดินทางอยู่ภายในพื้นที่ที่ไส้ในเข้าไปทั้งหมด นั่นหมายความว่าไม่สามารถมองเห็นการรั่วไหลได้ วิธีนี้จะช่วยลดเวลาในการดึงกลับสำหรับโมเดลที่ซับซ้อนและประหยัดเวลาในการพิมพ์ แต่จะทำให้การแบ่งส่วนและการสร้าง G-code ช้าลง โปรดทราบว่า Z-hop จะไม่ดำเนินการในพื้นที่ที่มีการข้ามการถอนกลับ"
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "ตัวเลือกนี้จะทำให้อุณหภูมิของชุดดันเส้นที่ไม่ใช้งานลดลงเพื่อป้องกันการไหลซึม"
@@ -15997,7 +15997,7 @@ msgstr "ปริมาณการดึงกลับหลังเช็ด
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "ความยาวของการดึงกลับอย่างเร็วหลังเช็ดหัว สัมพันธ์กับความยาวการดึงกลับ\n"
@@ -16044,7 +16044,7 @@ msgstr "เมื่อการดึงกลับทำงานก่อน
 msgid "Z-hop height"
 msgstr "ความสูงยกแกน Z"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "เมื่อใดก็ตามที่การดึงกลับเสร็จสิ้น หัวฉีดจะถูกยกขึ้นเล็กน้อยเพื่อสร้างระยะห่างระหว่างหัวฉีดและงานพิมพ์ ป้องกันไม่ให้หัวฉีดชนกับงานพิมพ์ขณะเคลื่อนตัว การใช้เส้นเกลียวเพื่อยก Z สามารถป้องกันการร้อยสายได้"
 
 msgid "Z-hop lower boundary"
@@ -19632,19 +19632,19 @@ msgstr "แสดงเฉพาะชื่อเครื่องพิมพ
 msgid "Only display the filament names with changes to filament presets."
 msgstr "แสดงเฉพาะชื่อเส้นพลาสติกที่มีการเปลี่ยนแปลงการตั้งค่าล่วงหน้าของเส้นพลาสติก"
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "เฉพาะชื่อเครื่องพิมพ์ที่มีการตั้งค่าเครื่องพิมพ์ล่วงหน้าของผู้ใช้เท่านั้นที่จะแสดง และการตั้งค่าล่วงหน้าแต่ละรายการที่คุณเลือกจะถูกส่งออกเป็นไฟล์ ZIP"
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "เฉพาะชื่อเส้นพลาสติกที่มีการตั้งค่าล่วงหน้าของเส้นพลาสติกผู้ใช้เท่านั้นที่จะถูกแสดง \n"
 "และค่าฟิลาเมนต์ของผู้ใช้ทั้งหมดที่กำหนดไว้ล่วงหน้าในแต่ละชื่อฟิลาเมนต์ที่คุณเลือกจะถูกส่งออกเป็นไฟล์ ZIP"
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "เฉพาะชื่อเครื่องพิมพ์ที่มีการตั้งค่าล่วงหน้าของกระบวนการที่เปลี่ยนแปลงเท่านั้นที่จะปรากฏขึ้น \n"
 "และกระบวนการของผู้ใช้ที่ตั้งไว้ล่วงหน้าในชื่อเครื่องพิมพ์แต่ละเครื่องที่คุณเลือกจะถูกส่งออกเป็นไฟล์ ZIP"
@@ -19885,7 +19885,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "เราต้องการข้อมูลเพื่อวินิจฉัยแหล่งที่มาของปัญหา ตรวจสอบหน้า wiki สำหรับคำแนะนำโดยละเอียด"
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "ปุ่ม Pack จะรวบรวมไฟล์โปรเจกต์และบันทึกของเซสชันปัจจุบันลงในไฟล์ zip"
 
 # AI Translated
@@ -19941,7 +19941,7 @@ msgid "Stored logs"
 msgstr "บันทึกที่จัดเก็บ"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "รวมบันทึกที่จัดเก็บทั้งหมดลงในไฟล์ zip"
 
 # AI Translated
@@ -20021,7 +20021,7 @@ msgstr "ไม่พบประเภทเครื่องพิมพ์ �
 msgid "Authorizing..."
 msgstr "กำลังอนุญาต..."
 
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "ข้อผิดพลาด ไม่สามารถรับโทเคน API สำหรับการอนุญาตได้"
 
 msgid "Could not parse server response."

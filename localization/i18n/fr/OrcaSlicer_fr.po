@@ -6221,10 +6221,10 @@ msgstr "Importer des fichiers 3MF/STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "Charger un modèle"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Importer une archive Zip"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Charger les modèles contenus dans une archive zip"
 
 msgid "Import Configs"
@@ -8000,7 +8000,7 @@ msgstr "Veuillez vous assurer que les G-codes de ces préréglages sont sûrs af
 msgid "Customized Preset"
 msgstr "Préréglage personnalisé"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "Le nom des composants dans le fichier STEP n'est pas au format UTF-8 !"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -8022,10 +8022,10 @@ msgstr "Le volume de l'objet est nul"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "L’objet du fichier %s est trop petit, et est peut-être en mètres ou en pouces.\n"
-" Voulez-vous le mettre à l’échelle en millimètres ?"
+"Voulez-vous le mettre à l’échelle en millimètres ?"
 
 msgid "Object too small"
 msgstr "Objet trop petit"
@@ -10854,11 +10854,11 @@ msgstr "%s : %s"
 msgid "No modifications need to be copied."
 msgstr "Aucune modification à copier."
 
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Copier les paramètres"
 
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "Modifier les paramètres de %s"
 
 #, c-format, boost-format
@@ -12475,21 +12475,27 @@ msgstr "mm ou %"
 msgid "Other layers"
 msgstr "Autres couches"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+#, fuzzy
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Température du plateau pour les couches sauf la première. Une valeur de 0 signifie que le filament ne prend pas en charge l'impression sur la Cool Plate SuperTack."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Il s'agit de la température du plateau pour toutes les couches à l'exception de la première. Une valeur à 0 signifie que ce filament ne peut pas être imprimé sur la plaque \"Cool plate\"."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Température du plateau pour les couches à l’exception de la couche initiale. La valeur 0 signifie que le filament ne peut pas être imprimé sur la plaque Cool Plate texturée."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Il s'agit de la température du plateau pour toutes les couches à l'exception de la première. Une valeur à 0 signifie que ce filament ne peut pas être imprimé sur la plaque Engineering."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Il s'agit de la température du plateau pour toutes les couches à l'exception de la première. Une valeur à 0 signifie que ce filament ne peut pas être imprimé sur le plateau haute température (\"High Temp plate\")."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Température du plateau après la première couche. 0 signifie que le filament ne peut pas être imprimé sur la plaque PEI texturée."
 
@@ -15703,7 +15709,7 @@ msgstr "Les points de départ et d'arrivée qui se situent entre la zone de coup
 msgid "Reduce infill retraction"
 msgstr "Réduire la rétraction du remplissage"
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr "Ne pas effectuer de rétraction lors de déplacement en zone de remplissage car même si l’extrudeur suinte, les coulures ne seraient pas visibles. Cela peut réduire les rétractions pour les modèles complexes et économiser du temps d’impression, mais ralentit la découpe et la génération du G-code"
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -15873,7 +15879,7 @@ msgstr "Quantité de rétraction après essuyage"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "La longueur de la rétraction rapide après l'essuyage, relative à la longueur de rétraction.\n"
@@ -15920,7 +15926,7 @@ msgstr "Lorsque la rétraction est déclenchée avant un changement d’outil, l
 msgid "Z-hop height"
 msgstr "Hauteur du saut en Z"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Chaque fois que la rétraction est effectuée, la buse est légèrement soulevée pour créer un espace entre la buse et l'impression. Il empêche la buse de toucher l'impression lors du déplacement. L'utilisation d'une ligne en spirale pour soulever z peut empêcher l'enfilage"
 
 msgid "Z-hop lower boundary"
@@ -19492,19 +19498,19 @@ msgstr "N’afficher que les noms d’imprimantes avec les modifications apport�
 msgid "Only display the filament names with changes to filament presets."
 msgstr "N’affichez que les noms des filaments lorsque vous modifiez les préréglages des filaments."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Seuls les noms d’imprimantes avec des préréglages d’imprimante utilisateur seront affichés, et chaque préréglage que vous choisissez sera exporté sous forme de fichier zip."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Seuls les noms de filaments contenant des préréglages de filaments utilisateur seront affichés, \n"
 "et tous les préréglages de filament d’utilisateur dans chaque nom de filament que vous sélectionnez seront exportés sous forme de fichier zip."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Seuls les noms d’imprimantes dont les préréglages de traitement ont été modifiés seront affichés, \n"
 "et tous les préréglages de processus de l’utilisateur dans chaque nom d’imprimante que vous sélectionnez seront exportés sous forme de fichier zip."
@@ -19733,7 +19739,7 @@ msgstr "Copier les informations système dans le presse-papiers"
 msgid "We need information for diagnosing source of the issue. Check wiki page for detailed guide."
 msgstr "Nous avons besoin d’informations pour diagnostiquer l’origine du problème. Consultez la page wiki pour un guide détaillé."
 
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "Le bouton Compresser rassemble le fichier de projet et les journaux de la session actuelle dans un fichier ZIP."
 
 msgid "Any additional visual examples like images or screen recordings might be helpful while reporting the issue."
@@ -19775,7 +19781,7 @@ msgstr "Niveau de journalisation"
 msgid "Stored logs"
 msgstr "Journaux stockés"
 
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Compresse tous les journaux stockés dans un fichier ZIP."
 
 msgid "Profiles"
@@ -19842,7 +19848,7 @@ msgstr "Type d’imprimante introuvable, veuillez le sélectionner manuellement.
 msgid "Authorizing..."
 msgstr "Autorisation en cours…"
 
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Erreur : impossible d’obtenir le jeton d’API pour l’autorisation"
 
 msgid "Could not parse server response."
@@ -22161,8 +22167,8 @@ msgstr ""
 #~ msgid "The 3mf has the following customized filament or printer presets:"
 #~ msgstr "Le 3mf dispose de filaments personnalisés ou de préréglages d'imprimante :"
 
-#~ msgid "Name of components inside step file is not UTF8 format!"
-#~ msgstr "Le nom des composants à l'intérieur du fichier .step n'est pas au format UTF8 !"
+#~ msgid "Name of components inside step file is not UTF-8 format!"
+#~ msgstr "Le nom des composants à l'intérieur du fichier .step n'est pas au format UTF-8 !"
 
 #~ msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
 #~ msgstr "Les paramètres de l’imprimante/du filament/du processus doivent-ils être chargés lors de l’ouverture d’un fichier .3mf ?"

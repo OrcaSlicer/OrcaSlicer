@@ -6339,10 +6339,10 @@ msgstr "Імпорт 3MF/STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "Завантажте модель"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Імпорт Zip-архіву"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Завантажити моделі, що містяться в zip-архіві"
 
 msgid "Import Configs"
@@ -8180,8 +8180,8 @@ msgid "Customized Preset"
 msgstr "Пристосований пресет"
 
 # AI Translated
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "Назви компонентів усередині файлу STEP не у форматі UTF8!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "Назви компонентів усередині файлу STEP не у форматі UTF-8!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "Через непідтримуване кодування тексту можуть зʼявлятися непотрібні символи!"
@@ -8202,7 +8202,7 @@ msgstr "Обʼєм обʼєкта дорівнює нулю"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "Обʼєкт із файлу %s занадто малий, можливо, в метрах або дюймах.\n"
 "Ви хочете масштабувати до міліметрів?"
@@ -11173,12 +11173,12 @@ msgstr "%s: %s"
 msgid "No modifications need to be copied."
 msgstr "Немає змін для копіювання."
 
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Параметри копіювання"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "Змінити параметри %s"
 
 # AI Translated
@@ -12881,8 +12881,7 @@ msgstr "мм або %"
 msgid "Other layers"
 msgstr "Інші шари"
 
-# AI Translated
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Температура столу для всіх шарів, крім першого. Значення 0 означає, що філамент не підтримує друк на Cool Plate SuperTack."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -16313,8 +16312,8 @@ msgid "Reduce infill retraction"
 msgstr "Зменшити втягування заповнення"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "Не втягувати, коли переміщення повністю проходить у зоні заповнення. Це означає, що витікання не буде видно. Це може зменшити кількість втягувань для складних моделей і заощадити час друку, але сповільнює нарізку та генерацію G-коду. Зверніть увагу, що z-hop також не виконується в зонах, де втягування пропускається."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr "Не втягувати, коли переміщення повністю проходить у зоні заповнення. Це означає, що витікання не буде видно. Це може зменшити кількість втягувань для складних моделей і заощадити час друку, але сповільнює нарізку та генерацію G-коду. Зверніть увагу, що Z-hop також не виконується в зонах, де втягування пропускається."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Цей параметр знижує температуру неактивних екструдерів, щоб запобігти підтіканням."
@@ -16489,7 +16488,7 @@ msgstr "Величина втягування після протирання"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "Довжина швидкого втягування після протирання, відносно довжини втягування.\n"
@@ -16538,7 +16537,7 @@ msgstr "Коли втягування спрацьовує перед зміно
 msgid "Z-hop height"
 msgstr "Висота Z-підйому"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Під час кожного втягування сопло трохи піднімається, щоб створити зазор між соплом та об’єктом друку. Це запобігає зіткненню сопла з об’єктом друку під час переміщення. Використання спіральної лінії підняття по осі Z може запобігти появі ниток"
 
 msgid "Z-hop lower boundary"
@@ -20244,12 +20243,12 @@ msgstr "Показувати лише назви принтерів зі змі�
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Показувати лише назви філаментів зі змінами у пресетах філаменту."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Будуть відображатися лише назви принтерів з пресетами принтера користувача, і кожен обраний пресет буде експортовано у форматі ZIP."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Будуть відображатися лише назви філаментів з налаштуваннями філаменту користувача, \n"
 "і всі налаштування філаменту користувача для кожної вибраної назви філаменту \n"
@@ -20257,7 +20256,7 @@ msgstr ""
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Будуть відображатися лише назви принтерів зі зміненими налаштуваннями процесу, \n"
 "і всі налаштування процесу користувача для кожної вибраної назви принтера будуть \n"
@@ -20499,7 +20498,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "Нам потрібна інформація для встановлення джерела проблеми. Докладний посібник дивіться на сторінці wiki."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "Кнопка «Пакувати» збирає файл проєкту та журнали поточного сеансу в один zip-файл."
 
 # AI Translated
@@ -20543,7 +20542,7 @@ msgstr "Рівень журналу"
 msgid "Stored logs"
 msgstr "Збережені логи"
 
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Запаковує всі збережені логи у файл zip."
 
 msgid "Profiles"
@@ -20610,7 +20609,7 @@ msgstr "Тип принтера не знайдено, будь ласка ви�
 msgid "Authorizing..."
 msgstr "Авторизування..."
 
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Помилка. Не вдалося отримати api-токен для авторизування"
 
 msgid "Could not parse server response."

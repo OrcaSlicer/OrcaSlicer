@@ -6687,10 +6687,10 @@ msgstr "Nhập 3MF/STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "Tải model"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Nhập lưu trữ Zip"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Tải các model chứa trong lưu trữ zip"
 
 msgid "Import Configs"
@@ -8585,8 +8585,8 @@ msgstr "Vui lòng xác nhận G-code trong các preset này an toàn để ngăn
 msgid "Customized Preset"
 msgstr "Preset tùy chỉnh"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "Tên của các thành phần bên trong file STEP không phải định dạng UTF8!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "Tên của các thành phần bên trong file STEP không phải định dạng UTF-8!"
 
 # AI Translated
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -8608,10 +8608,10 @@ msgstr "Thể tích của đối tượng bằng không"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "Đối tượng từ file %s quá nhỏ, và có thể đang ở đơn vị mét hoặc inch.\n"
-" Bạn có muốn chuyển đổi sang milimét?"
+"Bạn có muốn chuyển đổi sang milimét?"
 
 msgid "Object too small"
 msgstr "Đối tượng quá nhỏ"
@@ -11692,12 +11692,12 @@ msgid "No modifications need to be copied."
 msgstr "Không có thay đổi nào cần sao chép."
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Sao chép tham số"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "Sửa tham số của %s"
 
 # AI Translated
@@ -13449,7 +13449,7 @@ msgstr "mm hoặc %"
 msgid "Other layers"
 msgstr "Lớp khác"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Nhiệt độ bàn cho các lớp ngoại trừ lớp đầu tiên. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Cool SuperTack."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -16846,8 +16846,8 @@ msgid "Reduce infill retraction"
 msgstr "Giảm rút infill"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "Không rút khi di chuyển ở vùng infill hoàn toàn. Điều đó có nghĩa là chảy nhựa không thể nhìn thấy. Điều này có thể giảm số lần rút cho model phức tạp và tiết kiệm thời gian in, nhưng làm cho slice và tạo G-code chậm hơn. Lưu ý rằng z-hop cũng không được thực hiện ở những vùng bỏ qua việc rút."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr "Không rút khi di chuyển ở vùng infill hoàn toàn. Điều đó có nghĩa là chảy nhựa không thể nhìn thấy. Điều này có thể giảm số lần rút cho model phức tạp và tiết kiệm thời gian in, nhưng làm cho slice và tạo G-code chậm hơn. Lưu ý rằng Z-hop cũng không được thực hiện ở những vùng bỏ qua việc rút."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Tùy chọn này sẽ giảm nhiệt độ của các extruder không hoạt động để ngăn chảy nhựa."
@@ -17022,7 +17022,7 @@ msgstr "Lượng rút sau khi lau"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "Độ dài rút nhanh sau khi lau, tương đối so với độ dài rút.\n"
@@ -17071,7 +17071,7 @@ msgstr "Khi rút được kích hoạt trước khi đổi công cụ, filament 
 msgid "Z-hop height"
 msgstr "Chiều cao Z-hop"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Bất cứ khi nào rút được thực hiện, đầu phun được nâng lên một chút để tạo khoảng trống giữa đầu phun và bản in. Nó ngăn đầu phun va vào bản in khi di chuyển. Sử dụng đường xoắn ốc để nâng Z có thể ngăn dây kéo."
 
 msgid "Z-hop lower boundary"
@@ -20793,19 +20793,19 @@ msgstr "Chỉ hiển thị tên máy in có thay đổi đối với cài đặt
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Chỉ hiển thị tên filament có thay đổi đối với cài đặt sẵn filament."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Chỉ tên máy in có cài đặt sẵn máy in người dùng sẽ được hiển thị, và mỗi cài đặt sẵn bạn chọn sẽ được xuất dưới dạng zip."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Chỉ tên filament có cài đặt sẵn filament người dùng sẽ được hiển thị, \n"
 "và tất cả cài đặt sẵn filament người dùng trong mỗi tên filament bạn chọn sẽ được xuất dưới dạng zip."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Chỉ tên máy in có cài đặt sẵn quy trình đã thay đổi sẽ được hiển thị, \n"
 "và tất cả cài đặt sẵn quy trình người dùng trong mỗi tên máy in bạn chọn sẽ được xuất dưới dạng zip."
@@ -21057,7 +21057,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "Chúng tôi cần thông tin để chẩn đoán nguồn gốc vấn đề. Hãy xem trang wiki để có hướng dẫn chi tiết."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "Nút Đóng gói thu thập file dự án và nhật ký của phiên hiện tại vào một file zip."
 
 # AI Translated
@@ -21113,7 +21113,7 @@ msgid "Stored logs"
 msgstr "Nhật ký đã lưu"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Đóng gói toàn bộ nhật ký đã lưu vào một file zip."
 
 # AI Translated
@@ -21201,7 +21201,7 @@ msgid "Authorizing..."
 msgstr "Đang xác thực..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Lỗi. Không lấy được token api để xác thực"
 
 # AI Translated

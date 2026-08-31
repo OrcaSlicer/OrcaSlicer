@@ -6334,10 +6334,10 @@ msgstr "3MF/STL/STEP/SVG/OBJ/AMFをインポート"
 msgid "Load a model"
 msgstr "モデルを読み込む"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "ZIPアーカイブをインポート"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "ZIPアーカイブ内のモデルをロード"
 
 msgid "Import Configs"
@@ -8133,8 +8133,8 @@ msgstr "これらのプリセット内のG-codeがマシンに損傷を与えな
 msgid "Customized Preset"
 msgstr "カスタマイズされたプリセット"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "ファイルのエンコーディング方式はUTF8形式ではありません"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "ファイルのエンコーディング方式はUTF-8形式ではありません"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "文字化けがあるようです、ご確認ください"
@@ -8155,7 +8155,7 @@ msgstr "オブジェクトの体積が0です"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "ファイル %s 中のオブジェクトが小さいすぎます、ファイルの単位をご確認ください。\n"
 "mm単位に変換しますか？"
@@ -11068,12 +11068,12 @@ msgid "No modifications need to be copied."
 msgstr "コピーが必要な変更はありません。"
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "パラメータをコピー"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "%sのパラメータを変更"
 
 # AI Translated
@@ -12756,23 +12756,27 @@ msgstr "mm 或は %"
 msgid "Other layers"
 msgstr "他の層"
 
-# AI Translated
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+#, fuzzy
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "1層目を除く各層のベッド温度です。0の場合、そのフィラメントはCool Plate SuperTackでの印刷に対応していません。"
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "ベッドの温度です（1層目以外）。値が0の場合、フィラメントが常温プレートで使用できないという意味です。"
 
-# AI Translated
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "1層目を除く各層のベッド温度です。0の場合、そのフィラメントはTextured Cool Plateでの印刷に対応していません。"
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "ベッドの温度です（1層目以外）。値が0の場合、フィラメントがエンジニアリング プレートで使用できないという意味です。"
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "ベッドの温度です（1層目以外）。値が0の場合、フィラメントが高温プレートで使用できないという意味です。"
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "1層目以外のベッド温度。値が0の場合、フィラメントがPEIプレートをサポートしない意味をします。"
 
@@ -16238,7 +16242,7 @@ msgstr "カッター領域から廃料排出口までの終始点"
 msgid "Reduce infill retraction"
 msgstr "ｲﾝﾌｨﾙのﾘﾄﾗｸｼｮﾝ低減"
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr "インフィル領域内の移動はリトラクションしません。造形時間を節約できます。"
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -16423,7 +16427,7 @@ msgstr "ワイプ後のリトラクション量"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "ワイプ後の高速リトラクションの長さで、リトラクション長に対する割合です。\n"
@@ -16474,7 +16478,7 @@ msgstr "ツール交換の前にリトラクションが行われるとき、指
 msgid "Z-hop height"
 msgstr "Zホップの高さ"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "リトラクション時に、ノズルを少し上げてから移動します。この動作でモデルとの衝突を回避できます。"
 
 # AI Translated
@@ -18439,10 +18443,10 @@ msgid "Allow 3MF with newer version to be sliced."
 msgstr "新しいバージョンの3MFのスライスを許可します。"
 
 msgid "Current Z-hop"
-msgstr "現在のz-hop"
+msgstr "現在のZ-hop"
 
 msgid "Contains Z-hop present at the beginning of the custom G-code block."
-msgstr "カスタムGコードブロックの先頭に存在するz-hopを含む。"
+msgstr "カスタムGコードブロックの先頭に存在するZ-hopを含む。"
 
 msgid "Position of the extruder at the beginning of the custom G-code block. If the custom G-code travels somewhere else, it should write to this variable so OrcaSlicer knows where it travels from when it gets control back."
 msgstr "カスタム G コード ブロックの先頭のエクストルーダーのモーターの位置。 カスタム G コードで動かしたとき、PrusaSlicer が制御を取り戻したときにどこから移動したかを認識できるように、この変数に書き込む必要があります。"
@@ -20340,19 +20344,19 @@ msgstr "プリンタ、フィラメント、加工プリセットに変更があ
 msgid "Only display the filament names with changes to filament presets."
 msgstr "フィラメントプリセットを変更したフィラメント名のみを表示します。"
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "ユーザープリンタプリセットを持つプリンタ名のみが表示され、選択した各プリセットがZIPとしてエクスポートされます。"
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "ユーザーフィラメントプリセットを含むフィラメント名のみが表示されます、 \n"
 "選択した各フィラメント名に含まれるすべてのユーザーフィラメントプリセットがZIP形式でエクスポートされます。"
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr "変更されたプロセスプリセットがあるプリンタ名のみが表示され、選択した各プリンタ名にあるすべてのユーザープロセスプリセットがZIP形式でエクスポートされます。"
 
 msgid "Please select at least one printer or filament."
@@ -20596,7 +20600,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "問題の原因を特定するために情報が必要です。詳しい手順はWikiページをご覧ください。"
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "「パック」ボタンは、現在のセッションのプロジェクトファイルとログをzipファイルにまとめます。"
 
 # AI Translated
@@ -20652,7 +20656,7 @@ msgid "Stored logs"
 msgstr "保存されたログ"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "保存されたすべてのログをzipファイルにまとめます。"
 
 # AI Translated
@@ -20740,7 +20744,7 @@ msgid "Authorizing..."
 msgstr "認証中..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "エラー。認証用のAPIトークンを取得できません"
 
 # AI Translated

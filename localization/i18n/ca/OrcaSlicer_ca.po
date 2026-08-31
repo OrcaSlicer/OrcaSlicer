@@ -6419,10 +6419,10 @@ msgstr "Importar 3MF STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "Carregar un model"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Importar fitxer ZIP"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Carregar models continguts dins d'un arxiu zip"
 
 msgid "Import Configs"
@@ -8232,8 +8232,8 @@ msgid "Customized Preset"
 msgstr "Perfil personalitzat"
 
 # AI Translated
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "Els noms dels components dins del fitxer STEP no tenen format UTF8!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "Els noms dels components dins del fitxer STEP no tenen format UTF-8!"
 
 # AI Translated
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -8255,10 +8255,10 @@ msgstr "El volum de l'objecte és zero"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "L'objecte del fitxer %s és massa petit, i potser en metres o polzades.\n"
-" Vols escalar a mil·límetres?"
+"Vols escalar a mil·límetres?"
 
 msgid "Object too small"
 msgstr "Objecte massa petit"
@@ -11189,12 +11189,12 @@ msgid "No modifications need to be copied."
 msgstr "No cal copiar cap modificació."
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Copiar els paràmetres"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "Modificar els paràmetres de %s"
 
 # AI Translated
@@ -12868,8 +12868,8 @@ msgstr "mm o %"
 msgid "Other layers"
 msgstr "Altres capes"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
-msgstr "Temperatura del llit per a les capes excepte la primera. Un valor de 0 significa que el filament no admet la impressió sobre el Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgstr "Temperatura del llit de les capes excepte la inicial. Un valor de 0 significa que el filament no admet la impressió sobre el Cool Plate SuperTack."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Temperatura del llit de les capes excepte la inicial. El valor 0 significa que el filament no admet imprimir a una Base Freda."
@@ -16197,7 +16197,7 @@ msgid "Reduce infill retraction"
 msgstr "Reduir la retracció de farciment"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr "No retrau quan el desplaçament està totalment a la zona de farciment. Això vol dir que l'oozing( goteig ) queda amagat. Això pot reduir els temps de retracció per a models complexos i estalviar temps d'impressió, però fer que el laminat i la generació de Codi-G siguin més lents. Tingueu en compte que el salt en Z tampoc es realitza a les zones on s'omet la retracció."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -16373,7 +16373,7 @@ msgstr "Quantitat de retracció després de netejar"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "Longitud de la retracció ràpida després de netejar, relativa a la longitud de retracció.\n"
@@ -16420,7 +16420,7 @@ msgstr "Quan s'activa la retracció abans d'un canvi d'eina, el filament es reti
 msgid "Z-hop height"
 msgstr "Alçada Z-hop"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Cade vegada que es fa una retracció, s'aixeca una mica el broquet per crear espai lliure entre el broquet i la impressió. Evita que el broquet colpegi la impressió en els desplaçaments. L'ús de la línia espiral per aixecar z pot evitar l'aparició de fils"
 
 msgid "Z-hop lower boundary"
@@ -20071,19 +20071,19 @@ msgstr "Mostrar només els noms de les impressores amb canvis als perfils d'impr
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Mostrar només els noms dels filaments amb canvis en els perfils de filament."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Només es mostraran els noms de les impressores amb perfils d'impressora d'usuari i cada perfil que trieu s'exportarà com a fitxer zip."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Només es mostraran els noms dels filaments amb perfils de filament d'usuari, \n"
 "i tots els perfils de filament d'usuari de cada nom de filament que seleccioneu s'exportaran com a zip."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Només es mostraran els noms de les impressores amb perfils de processament modificats, \n"
 "I tots els valors perfils del procés d'usuari de cada nom d'impressora que seleccioneu s'exportaran com a ZIP."
@@ -20328,7 +20328,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "Necessitem informació per diagnosticar l'origen del problema. Consulteu la pàgina wiki per a una guia detallada."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "El botó Empaquetar recull el fitxer del projecte i els registres de la sessió actual en un fitxer zip."
 
 # AI Translated
@@ -20384,7 +20384,7 @@ msgid "Stored logs"
 msgstr "Registres emmagatzemats"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Empaqueta tots els registres emmagatzemats en un fitxer zip."
 
 # AI Translated
@@ -20472,7 +20472,7 @@ msgid "Authorizing..."
 msgstr "Autoritzant..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Error. No es pot obtenir el testimoni d'api per a l'autorització"
 
 # AI Translated

@@ -6143,11 +6143,11 @@ msgstr "Importar 3MF/STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "Carregar um modelo"
 
-msgid "Import Zip Archive"
-msgstr "Importar Arquivo Zip"
+msgid "Import ZIP Archive"
+msgstr "Importar Arquivo ZIP"
 
-msgid "Load models contained within a zip archive"
-msgstr "Carregar modelos contidos em um arquivo zip"
+msgid "Load models contained within a ZIP archive"
+msgstr "Carregar modelos contidos em um arquivo ZIP"
 
 msgid "Import Configs"
 msgstr "Importar Configurações"
@@ -7897,7 +7897,7 @@ msgstr "Por favor, confirme se o G-code dentro dessas predefinições é seguro 
 msgid "Customized Preset"
 msgstr "Predefinição Personalizada"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "Os nomes dos componentes dentro do arquivo STEP não estão no formato UTF-8!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -7919,7 +7919,7 @@ msgstr "O volume do objeto é zero"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "O objeto do arquivo %s é muito pequeno, e pode estar em metros ou polegadas.\n"
 "Deseja redimensioná-lo para milímetros?"
@@ -10740,11 +10740,11 @@ msgstr "%s: %s"
 msgid "No modifications need to be copied."
 msgstr "Nenhuma modificação precisa ser copiada."
 
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Copiar parâmetros"
 
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "Modificar parâmetros de %s"
 
 #, c-format, boost-format
@@ -12355,7 +12355,7 @@ msgstr "mm ou %"
 msgid "Other layers"
 msgstr "Outras camadas"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Essa é a temperatura da mesa para camadas exceto a inicial. O valor 0 significa que o filamento não suporta a impressão na Placa Fria SuperTack."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -15252,7 +15252,6 @@ msgstr "Massa da mesa do eixo Y"
 msgid "The machine bed mass load of Y axis"
 msgstr "A carga de massa da mesa do equipamento no eixo Y"
 
-# AI Translated
 msgid "g"
 msgstr "g"
 
@@ -15565,7 +15564,7 @@ msgstr "Os pontos de início e fim que vão da área do cortador até a calha de
 msgid "Reduce infill retraction"
 msgstr "Reduzir retração durante o preenchimento"
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr "Não retrair quando o movimento está completamente na área de preenchimento. Isso significa que o vazamento não pode ser visto. Isso pode reduzir o número de retratações para modelos complexos e economizar tempo de impressão, mas torna a geração de fatiamento e G-code mais lenta. Note que o Z-Hop também não é realizado em áreas onde a retração é omitida."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -15730,7 +15729,7 @@ msgstr "Quantidade de retração depois da limpeza"
 
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "Este é o comprimento da retração rápida antes de uma limpeza, em relação ao comprimento da retração.\n"
@@ -15766,18 +15765,16 @@ msgstr "Retração longa na troca de extrusora"
 msgid "Retraction distance when extruder change"
 msgstr "Distância de retração na troca de extrusora"
 
-# AI Translated
 msgid "Retraction Length (Toolchange)"
-msgstr "Comprimento da retração (Troca de ferramenta)"
+msgstr "Comprimento da Retração (Troca de ferramenta)"
 
-# AI Translated
 msgid "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder)."
 msgstr "Quando a retração é acionada antes da troca de ferramenta, o filamento é puxado de volta na quantidade especificada (o comprimento é medido no filamento bruto, antes de entrar na extrusora)."
 
 msgid "Z-hop height"
 msgstr "Altura de Z-hop"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Sempre que há uma retração, o bico é levantado um pouco para criar folga entre o bico e a impressão. Isso evita que o bico atinja a impressão ao se mover. Usar linhas em espiral para levantar Z pode evitar stringing."
 
 msgid "Z-hop lower boundary"
@@ -15867,9 +15864,8 @@ msgstr "Comprimento extra na retração"
 msgid "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed."
 msgstr "Quando a retração é compensada após o movimento de deslocamento, a extrusora empurrará essa quantidade adicional de filamento. Esta configuração é raramente necessária."
 
-# AI Translated
 msgid "Extra length on restart (Toolchange)"
-msgstr "Comprimento extra na retração (Troca de ferramenta)"
+msgstr "Comprimento extra no reinício (Troca de ferramenta)"
 
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Quando a retração é compensada após a troca de ferramenta, a extrusora empurrará essa quantidade adicional de filamento."
@@ -16279,13 +16275,11 @@ msgstr "Troca de ferramenta na torre de purga"
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr "Força o cabeçote de impressão a se deslocar até a torre de purga antes de emitir o comando de troca de ferramenta (Tx). Relevante apenas para impressoras com múltiplas extrusoras (múltiplos cabeçotes de impressão) que utilizam uma torre de purga Tipo 2. Por padrão, o Orca ignora o deslocamento em máquinas com múltiplos cabeçotes de impressão, pois o firmware gerencia a troca do cabeçote, o que pode resultar na emissão do comando Tx acima da peça impressa. Habilite esta opção se desejar que a troca de ferramenta seja sempre emitida acima da torre de purga."
 
-# AI Translated
 msgid "Wait for temperature on wipe tower"
 msgstr "Aguardar a temperatura na torre de purga"
 
-# AI Translated
 msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
-msgstr "Pega a nova ferramenta sem esperar que ela atinja a temperatura de impressão, desloca-se até a torre de purga e aguarda a temperatura ali, logo antes de purgar. O vazamento causado pelo aquecimento cai na torre em vez do modelo, e o deslocamento acontece durante o aquecimento. Relevante apenas para impressoras multiextrusora (multicabeça) que usam uma torre de purga do tipo 2. O firmware ou a macro de troca de ferramenta não devem aguardar a temperatura por conta própria. Quando desativado, a espera de temperatura é emitida logo após o comando de troca de ferramenta."
+msgstr "Pega a nova ferramenta sem esperar que ela atinja a temperatura de impressão, desloca-se até a torre de purga e aguarda a temperatura ali, logo antes de purgar. O vazamento causado pelo aquecimento cai na torre em vez do modelo, e o deslocamento acontece junto com o aquecimento. Relevante apenas para impressoras multiextrusora (multicabeça) que usam uma torre de purga do Tipo 2. O firmware ou a macro de troca de ferramenta não devem aguardar a temperatura por conta própria. Quando desativado, a espera de temperatura é emitida logo após o comando de troca de ferramenta."
 
 msgid "No sparse layers (beta)"
 msgstr "Sem camadas esparsas (beta)"
@@ -19315,19 +19309,19 @@ msgstr "Apenas impressoras com alterações nas predefinições de impressora, f
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Exibir apenas os nomes dos filamentos com alterações nas predefinições de filamento."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Apenas os nomes das impressoras com predefinições de impressora do usuário serão exibidos, e cada predefinição escolhida será exportada como um arquivo zip."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Apenas os nomes dos filamentos com predefinições de filamento do usuário serão exibidos, \n"
 "e todas as predefinições de filamento do usuário em cada nome de filamento selecionadas serão exportadas como um arquivo zip."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Apenas os nomes das impressoras com predefinições de processo alterados serão exibidos, \n"
 "e todas os predefinições de processo do usuário em cada nome de impressora selecionadas serão exportados como um arquivo zip."
@@ -19556,7 +19550,7 @@ msgstr "Copiar informações do sistema para a área de transferência"
 msgid "We need information for diagnosing source of the issue. Check wiki page for detailed guide."
 msgstr "Precisamos de informações para diagnosticar a origem do problema. Consulte a página da wiki para obter um guia detalhado."
 
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "O botão \"Empacotar\" reúne o arquivo do projeto e os logs da sessão atual em um arquivo ZIP."
 
 msgid "Any additional visual examples like images or screen recordings might be helpful while reporting the issue."
@@ -19598,7 +19592,7 @@ msgstr "Nível de log"
 msgid "Stored logs"
 msgstr "Logs armazenados"
 
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Compacta todos os logs armazenados em um arquivo ZIP."
 
 msgid "Profiles"
@@ -19665,7 +19659,7 @@ msgstr "Tipo de impressora não encontrado, selecione manualmente."
 msgid "Authorizing..."
 msgstr "Autorizando…"
 
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Erro. ​​Não foi possível obter o token de API para autorização"
 
 msgid "Could not parse server response."

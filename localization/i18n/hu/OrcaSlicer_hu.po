@@ -6323,10 +6323,10 @@ msgstr "Importálás 3MF/STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "Modell betöltése"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Zip archívum importálása"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Zip archívumban található modellek betöltése"
 
 msgid "Import Configs"
@@ -8115,7 +8115,7 @@ msgstr "Kérlek, győződj meg arról, hogy a beállításokban található G-k�
 msgid "Customized Preset"
 msgstr "Egyedi beállítás"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
 msgstr "A STEP fájlon belüli komponens neve nem UTF-8 formátumban van!"
 
 # AI Translated
@@ -8139,10 +8139,10 @@ msgstr "Az objektum térfogata nulla"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "A(z) %s fájlból származó objektum túl kicsi, lehet, hogy méterben vagy hüvelykben lett létrehozva.\n"
-" Szeretnéd milliméterre méretezni?"
+"Szeretnéd milliméterre méretezni?"
 
 msgid "Object too small"
 msgstr "Objektum túl kicsi"
@@ -11030,12 +11030,12 @@ msgid "No modifications need to be copied."
 msgstr "Nincs másolandó módosítás."
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Paraméterek másolása"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "A(z) %s paramétereinek módosítása"
 
 # AI Translated
@@ -12685,7 +12685,7 @@ msgstr "mm vagy %"
 msgid "Other layers"
 msgstr "Többi réteg"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "A kezdőréteg utáni asztalhőmérséklet. A 0 azt jelenti, hogy a filament nem nyomtatható a SuperTack hűvös tálcára."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -15957,7 +15957,7 @@ msgid "Reduce infill retraction"
 msgstr "Csökkentett visszahúzás kitöltésnél"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr "Nem történik visszahúzás, amikor a fej csak kitöltés felett halad el, mert az itt történő szivárgás egyébként sem látható. Ez az opció lerövidítheti a nyomtatási időt a visszahúzások csökkentésével komplex modelleknél, de egyúttal lassabbá teszi a szeletelést és a G-kód generálást. Vedd figyelembe, hogy a Z-emelés sem történik meg azokon a területeken, ahol a visszahúzás ki van hagyva."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -16131,7 +16131,7 @@ msgstr "Visszahúzás mértéke törlés után"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "A törlés utáni gyors visszahúzás hossza a visszahúzási hosszhoz viszonyítva.\n"
@@ -16178,7 +16178,7 @@ msgstr "Amikor a visszahúzás eszközváltás előtt aktiválódik, a filament 
 msgid "Z-hop height"
 msgstr "Z-emelés magassága"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Visszahúzáskor a fúvóka egy kicsit megemelkedik, hogy a fúvóka és a nyomtatott tárgy között rés keletkezzen. Ez megakadályozza, hogy a fúvóka nagyobb mozgás közben a tárgynak ütközzön. A Z tengely emelésekor használt körkörös mozgás megelőzheti a szálazást."
 
 msgid "Z-hop lower boundary"
@@ -19796,19 +19796,19 @@ msgstr "Csak azok a nyomtatók jelennek meg, amelyeknél változtak a nyomtató-
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Csak azok a filamentnevek jelennek meg, ahol változtak a filamentbeállítások."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Csak azok a nyomtatónevek jelennek meg, amelyekhez tartoznak felhasználói beállítások. A kiválasztott beállítások ZIP fájlként kerülnek exportálásra."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Csak azok a filamentnevek jelennek meg, amelyekhez tartoznak felhasználói filamentbeállítások,\n"
 "és a kiválasztott filamentnevekhez tartozó összes felhasználói filamentbeállítás ZIP-fájlként lesz exportálva."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Csak azok a nyomtatónevek jelennek meg, amelyekhez módosított folyamatbeállítások tartoznak,\n"
 "és a kiválasztott nyomtatónevekhez tartozó összes felhasználói folyamatbeállítás ZIP-fájlként lesz exportálva."
@@ -20054,7 +20054,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "Információra van szükségünk a probléma forrásának feltárásához. A részletes útmutatót a wiki oldalon találod."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "A Csomagolás gomb egy zip fájlba gyűjti a projektfájlt és az aktuális munkamenet naplóit."
 
 # AI Translated
@@ -20110,7 +20110,7 @@ msgid "Stored logs"
 msgstr "Tárolt naplók"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Az összes tárolt naplót egy zip fájlba csomagolja."
 
 # AI Translated
@@ -20198,7 +20198,7 @@ msgid "Authorizing..."
 msgstr "Engedélyezés..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Hiba. Nem sikerült API-tokent szerezni az engedélyezéshez"
 
 # AI Translated

@@ -6157,10 +6157,10 @@ msgstr "导入 3MF/STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "加载模型"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "导入 ZIP 压缩文件"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "从 ZIP 压缩文件中导入一个或多个模型"
 
 msgid "Import Configs"
@@ -7905,8 +7905,8 @@ msgstr "请确认这些预设中的G-codes是否安全，以防止对机器造�
 msgid "Customized Preset"
 msgstr "自定义的预设"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "STEP 文件中的部件名称不是 UTF8 格式！"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "STEP 文件中的部件名称不是 UTF-8 格式！"
 
 # AI Translated
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -7928,7 +7928,7 @@ msgstr "对象的体积为零"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "文件 %s 中对象的尺寸过小，似乎是以米（m）或者英寸（inch）为单位定义的。\n"
 "OrcaSlicer的内部单位为毫米（mm）。是否要转换成毫米（mm）？"
@@ -10738,12 +10738,12 @@ msgid "No modifications need to be copied."
 msgstr "没有需要复制的修改。"
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "复制参数"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "修改 %s 的参数"
 
 # AI Translated
@@ -12374,7 +12374,8 @@ msgstr "mm 或 %"
 msgid "Other layers"
 msgstr "其它层"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+#, fuzzy
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "除首层外的其他层的热床温度。0值表示该耗材丝不支持在Cool Plate SuperTack上打印。"
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -15583,7 +15584,7 @@ msgstr "从切割区域到垃圾桶的起始和结束点。"
 msgid "Reduce infill retraction"
 msgstr "减小填充回抽"
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr "当空驶完全在填充区域内时不触发回抽。这意味着即使漏料也是不可见的。对于复杂模型，该设置能够减少回抽次数以及打印时长，但是会造成G-code生成变慢"
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -15754,7 +15755,7 @@ msgstr "擦拭后的回抽量"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "擦拭后快速回抽的长度，相对于回抽长度。\n"
@@ -15801,7 +15802,7 @@ msgstr "在换工具头之前触发回抽时，耗材丝会按指定的长度回
 msgid "Z-hop height"
 msgstr "Z抬升高度"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "回抽完成之后，喷嘴轻微抬升，和打印件之间产生一定间隙。这能够避免空驶时喷嘴和打印件剐蹭和碰撞。使用螺旋线抬升z能够减少拉丝。"
 
 msgid "Z-hop lower boundary"
@@ -19386,17 +19387,17 @@ msgstr "仅显示对打印机、耗材和工艺预设有改动的打印机名称
 msgid "Only display the filament names with changes to filament presets."
 msgstr "仅显示对耗材预设有改动的耗材名称。"
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "只显示带有用户打印机预设的打印机名称，并且您选择的每个预设都将导出为一个 ZIP 文件。"
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr "只显示带有用户耗材预设的耗材名称，您选择的每个耗材名称中的所有用户耗材预设都将导出为一个 ZIP 文件。"
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr "只显示带有更改的工艺预设的打印机名称，您选择的每个打印机名称中的所有用户工艺预设都将导出为一个 ZIP 文件。"
 
 msgid "Please select at least one printer or filament."
@@ -19635,7 +19636,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "我们需要相关信息来诊断问题的根源。请查看 wiki 页面获取详细指南。"
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "“打包”按钮会将当前会话的项目文件和日志收集到一个 zip 文件中。"
 
 # AI Translated
@@ -19691,7 +19692,7 @@ msgid "Stored logs"
 msgstr "已存储的日志"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "将所有已存储的日志打包到一个 zip 文件中。"
 
 # AI Translated
@@ -19771,7 +19772,7 @@ msgstr "未找到打印机类型，请手动选择。"
 msgid "Authorizing..."
 msgstr "正在授权..."
 
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "错误。无法获取用于授权的 API 令牌"
 
 msgid "Could not parse server response."

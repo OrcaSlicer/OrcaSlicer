@@ -6272,10 +6272,10 @@ msgstr "Importiere 3MF/STL/STEP/SVG/OBJ/AMF"
 msgid "Load a model"
 msgstr "Lade ein Modell"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Zip-Archiv importieren"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Modelle aus einem Zip-Archiv laden"
 
 msgid "Import Configs"
@@ -8063,8 +8063,8 @@ msgstr "Bitte bestätigen Sie, dass die G-Codes innerhalb dieser Profile sicher 
 msgid "Customized Preset"
 msgstr "Benutzerdefinierte Profile"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "Der Name der Komponenten in der Step-Datei ist nicht im UTF8-Format!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "Der Name der Komponenten in der Step-Datei ist nicht im UTF-8-Format!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "Aufgrund der nicht unterstützten Textkodierung können unbrauchbare Zeichen erscheinen!"
@@ -8085,10 +8085,10 @@ msgstr "Das Volumen des Objekts ist Null"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "Das Objekt aus der Datei %s ist zu klein und vielleicht in Metern oder Zoll angeben.\n"
-" Möchten Sie auf Millimeter skalieren?"
+"Möchten Sie auf Millimeter skalieren?"
 
 msgid "Object too small"
 msgstr "Objekt zu klein"
@@ -10940,11 +10940,11 @@ msgstr "%s: %s"
 msgid "No modifications need to be copied."
 msgstr "Es müssen keine Änderungen kopiert werden."
 
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Parameter kopieren"
 
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "Parameter von %s ändern"
 
 #, c-format, boost-format
@@ -12570,7 +12570,7 @@ msgstr "mm o. %"
 msgid "Other layers"
 msgstr "Andere Schichten"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Dies ist die Betttemperatur für Schichten mit Ausnahme der Ersten. Ein Wert von 0 bedeutet, dass das Filament auf der kalten Druckplatte SuperTack nicht unterstützt wird."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -15802,7 +15802,7 @@ msgstr "Die Start- und Endpunkte, vom Schnittbereich bis zum Auswurfschacht."
 msgid "Reduce infill retraction"
 msgstr "Rückzug bei der Füllung verringern"
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr "Kein Rückzug, wenn sich die Bewegung des Druckkopfes vollständig in einem Füllbereich befindet. Das bedeutet, dass das herauslaufen des Filaments nicht zu sehen ist. Dies kann die Zeit für das zurückziehen des Filaments bei komplexeren Modellen verkürzen und Druckzeit sparen, verlangsamt aber das Slicen und die G-Code Generierung."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -15972,7 +15972,7 @@ msgstr "Rückzugsmenge nach dem Wischen"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "Die Länge des schnellen Rückzugs nach dem Wischen, relativ zur Rückzugslänge.\n"
@@ -16019,7 +16019,7 @@ msgstr "Wenn vor einem Werkzeugwechsel ein Rückzug ausgelöst wird, wird das Fi
 msgid "Z-hop height"
 msgstr "Z-Hub-Höhe"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Bei jedem Rückzug wird die Düse ein wenig angehoben, um einen Abstand zwischen Düse und Druck zu schaffen. Dadurch wird verhindert, dass die Düse bei der Verfahrbewegung gegen den Druck stößt. Die Verwendung einer Spirallinie zum Anheben von z kann Fadenbildung verhindern."
 
 msgid "Z-hop lower boundary"
@@ -19600,19 +19600,19 @@ msgstr "Nur Druckernamen mit Änderungen an Drucker-, Filament- und Prozessprofi
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Nur die Filamentnamen mit Änderungen an den Filamentprofilen werden angezeigt."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Nur Druckernamen mit Benutzerdruckerprofilen  werden angezeigt, und jedes Profil, das Sie auswählen, wird als ZIP exportiert."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Nur die Filamentnamen mit Benutzerfilamentvorlagen werden angezeigt, \n"
 "und alle Benutzerfilamentvorlagen in jedem Filamentnamen, den Sie auswählen, "
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Nur Druckernamen mit geänderten Prozessvorlagen werden angezeigt, \n"
 "und alle Benutzerprozessvorlagen in jedem Druckernamen, den Sie auswählen, werden als ZIP exportiert."
@@ -19841,7 +19841,7 @@ msgstr "Systeminformationen in die Zwischenablage kopieren"
 msgid "We need information for diagnosing source of the issue. Check wiki page for detailed guide."
 msgstr "Wir benötigen Informationen zur Diagnose der Ursache des Problems. Überprüfen Sie die Wiki-Seite für eine detaillierte Anleitung."
 
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "Die Schaltfläche „Packen“ sammelt die Projektdatei und Protokolle der aktuellen Sitzung in einer ZIP-Datei."
 
 msgid "Any additional visual examples like images or screen recordings might be helpful while reporting the issue."
@@ -19883,7 +19883,7 @@ msgstr "Protokollstufe"
 msgid "Stored logs"
 msgstr "Gespeicherte Protokolle"
 
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Packt alle gespeicherten Protokolle in eine ZIP-Datei."
 
 msgid "Profiles"
@@ -19950,7 +19950,7 @@ msgstr "Druckertyp nicht gefunden, bitte manuell auswählen."
 msgid "Authorizing..."
 msgstr "Autorisierung..."
 
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Fehler. Kann kein API-Token für die Autorisierung erhalten"
 
 msgid "Could not parse server response."

@@ -1130,8 +1130,7 @@ void PrintConfigDef::init_fff_params()
     // BBS
     def = this->add("supertack_plate_temp", coInts);
     def->label = L("Other layers");
-    def->tooltip = L("Bed temperature for layers except the initial one. "
-                     "A value of 0 means the filament does not support printing on the Cool Plate SuperTack.");
+    def->tooltip = L("This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Bed temperature");
     def->min = 0;
@@ -5481,7 +5480,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("reduce_infill_retraction", coBool);
     def->label = L("Reduce infill retraction");
-    def->tooltip = L("Don\'t retract when the travel is entirely within an infill area. That means the oozing can\'t been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped.");
+    def->tooltip = L("Don\'t retract when the travel is entirely within an infill area. That means the oozing can\'t been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5736,7 +5735,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("retract_after_wipe", coPercents);
     def->label = L("Retract amount after wipe");
     // xgettext:no-c-format, no-boost-format
-    def->tooltip = L("The length of fast retraction after wipe, relative to retraction length.\n"
+    def->tooltip = L("This is the length of fast retraction after wipe, relative to retraction length.\n"
                      "The value will be clamped by 100% minus the retract amount before the wipe value.");
     def->sidetext = "%";
     def->mode = comExpert;
@@ -5802,7 +5801,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("z_hop", coFloats);
     def->label = L("Z-hop height");
-    def->tooltip = L("Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing.");
+    def->tooltip = L("Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comSimple;
     def->min = 0;

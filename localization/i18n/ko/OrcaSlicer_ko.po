@@ -6348,10 +6348,10 @@ msgstr "3MF/STL/STEP/SVG/OBJ/AMF 가져오기"
 msgid "Load a model"
 msgstr "모델 불러오기"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "ZIP 압축파일 가져오기"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "ZIP 압축파일에 포함된 모델 로드"
 
 msgid "Import Configs"
@@ -8152,8 +8152,8 @@ msgid "Customized Preset"
 msgstr "사용자 정의 프리셋"
 
 # AI Translated
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "STEP 파일 내부의 구성 요소 이름이 UTF8 형식이 아닙니다!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "STEP 파일 내부의 구성 요소 이름이 UTF-8 형식이 아닙니다!"
 
 # AI Translated
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -8175,7 +8175,7 @@ msgstr "물체의 부피는 0입니다"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "%s 파일의 객체가 너무 작습니다. 단위가 미터나 인치일 수 있습니다.\n"
 " mm 단위로 확장하시겠습니까?"
@@ -11188,12 +11188,12 @@ msgid "No modifications need to be copied."
 msgstr "복사할 변경 사항이 없습니다."
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "매개변수 복사"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "%s의 매개변수 수정"
 
 # AI Translated
@@ -12889,22 +12889,27 @@ msgstr "mm 또는 %"
 msgid "Other layers"
 msgstr "다른 레이어"
 
-# AI Translated
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+#, fuzzy
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "초기 레이어를 제외한 레이어의 베드 온도입니다. 값이 0이면 해당 필라멘트가 쿨 플레이트 슈퍼택에서의 출력을 지원하지 않음을 의미합니다."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "초기 레이어를 제외한 레이어의 베드 온도. 값 0은 필라멘트가 쿨 플레이트 출력을 지원하지 않음을 의미합니다."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "초기 레이어를 제외한 레이어의 베드 온도입니다. 값 0은 필라멘트가 텍스처드 쿨 플레이트에서 출력를 지원하지 않음을 의미합니다."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "초기 레이어를 제외한 레이어의 베드 온도. 값 0은 필라멘트가 엔지니어링 플레이트 출력을 지원하지 않음을 의미합니다."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "초기 레이어를 제외한 레이어의 베드 온도. 값 0은 필라멘트가 고온 플레이트 출력을 지원하지 않음을 의미합니다."
 
+#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "초기 레이어를 제외한 레이어의 베드 온도. 값 0은 필라멘트가 텍스처 PEI 플레이트 출력을 지원하지 않음을 의미합니다."
 
@@ -16276,7 +16281,7 @@ msgid "Reduce infill retraction"
 msgstr "채우기 후퇴 감소"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
 msgstr "이동 경로가 완전히 채우기 영역 안에 있으면 후퇴하지 않습니다. 흘러내림이 보이지 않기 때문입니다. 복잡한 모델에서 후퇴 횟수를 줄여 출력 시간을 절약할 수 있지만 슬라이싱과 G-code 생성 속도는 느려집니다. 후퇴를 건너뛴 영역에서는 Z 올리기도 수행되지 않습니다."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
@@ -16453,7 +16458,7 @@ msgstr "노즐 청소 후 후퇴량"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "노즐 청소 후 빠른 후퇴의 길이로, 후퇴 길이를 기준으로 합니다.\n"
@@ -16500,7 +16505,7 @@ msgstr "툴 체인지 전에 후퇴가 실행되면 지정한 양만큼 필라�
 msgid "Z-hop height"
 msgstr "Z올리기 높이"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "후퇴가 완료될 때마다 노즐이 약간 올라가서 노즐과 출력물 사이에 간격이 생깁니다. 이동 시 노즐이 출력물에 닿는 것을 방지합니다. 나선형 선을 사용하여 z를 들어 올리면 스트링 현상을 방지할 수 있습니다"
 
 msgid "Z-hop lower boundary"
@@ -20213,19 +20218,19 @@ msgstr "프린터, 필라멘트 및 프로세스 사전 설정이 변경된 경�
 msgid "Only display the filament names with changes to filament presets."
 msgstr "필라멘트 사전 설정이 변경된 경우에만 필라멘트 이름을 표시합니다."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "사용자 프린터 사전 설정이 있는 프린터 이름만 표시되며, 선택한 각 사전 설정은 zip으로 내보내집니다."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "사용자 필라멘트 사전 설정이 있는 필라멘트 이름만 표시됩니다.\n"
 "선택한 각 필라멘트 이름의 모든 사용자 필라멘트 사전 설정은 zip으로 내보내집니다."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "프로세스 사전 설정이 변경된 프린터 이름만 표시됩니다.\n"
 "선택한 각 프린터 이름의 모든 사용자 프로세스 사전 설정은 zip으로 내보내집니다."
@@ -20469,7 +20474,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "문제의 원인을 진단하려면 정보가 필요합니다. 자세한 안내는 위키 페이지를 확인하십시오."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "패키지 버튼은 현재 세션의 프로젝트 파일과 로그를 zip 파일로 모읍니다."
 
 # AI Translated
@@ -20525,7 +20530,7 @@ msgid "Stored logs"
 msgstr "저장된 로그"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "저장된 모든 로그를 zip 파일로 묶습니다."
 
 # AI Translated
@@ -20613,7 +20618,7 @@ msgid "Authorizing..."
 msgstr "인증 중..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "오류. 인증용 API 토큰을 가져올 수 없습니다"
 
 # AI Translated

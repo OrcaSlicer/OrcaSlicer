@@ -6370,10 +6370,10 @@ msgstr "3MF/STL/STEP/SVG/OBJ/AMF'yi içe aktar"
 msgid "Load a model"
 msgstr "Model yükle"
 
-msgid "Import Zip Archive"
+msgid "Import ZIP Archive"
 msgstr "Zip Arşivini İçe Aktar"
 
-msgid "Load models contained within a zip archive"
+msgid "Load models contained within a ZIP archive"
 msgstr "Zip arşivindeki modelleri yükle"
 
 msgid "Import Configs"
@@ -8171,8 +8171,8 @@ msgstr "Lütfen bu ön ayarlar içindeki G-code'larının makineye herhangi bir 
 msgid "Customized Preset"
 msgstr "Özel Ayar"
 
-msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "Step dosyasındaki bileşenlerin adı UTF8 formatında değil!"
+msgid "Component name(s) inside step file not in UTF-8 format!"
+msgstr "Step dosyasındaki bileşenlerin adı UTF-8 formatında değil!"
 
 # AI Translated
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -8194,10 +8194,10 @@ msgstr "Cismin hacmi sıfır"
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
-" Do you want to scale to millimeters?"
+"Do you want to scale to millimeters?"
 msgstr ""
 "%s dosyasındaki nesne çok küçük; metre veya inç cinsinden olabilir.\n"
-" Milimetreye ölçeklendirmek istiyor musunuz?"
+"Milimetreye ölçeklendirmek istiyor musunuz?"
 
 msgid "Object too small"
 msgstr "Nesne çok küçük"
@@ -11128,12 +11128,12 @@ msgid "No modifications need to be copied."
 msgstr "Kopyalanması gereken değişiklik yok."
 
 # AI Translated
-msgid "Copy paramters"
+msgid "Copy parameters"
 msgstr "Parametreleri kopyala"
 
 # AI Translated
 #, c-format, boost-format
-msgid "Modify paramters of %s"
+msgid "Modify parameters of %s"
 msgstr "%s parametrelerini değiştir"
 
 # AI Translated
@@ -12805,7 +12805,7 @@ msgstr "mm veya %"
 msgid "Other layers"
 msgstr "Diğer katmanlar"
 
-msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
+msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "İlk katman hariç tüm katmanlar için yatak sıcaklığı. 0 değeri, filamentin Cool Plate SuperTack üzerine baskıyı desteklemediği anlamına gelir."
 
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
@@ -16129,8 +16129,8 @@ msgid "Reduce infill retraction"
 msgstr "Dolguda geri çekmeyi azalt"
 
 # AI Translated
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "Hareket tamamen dolgu alanı içindeyken geri çekme yapılmaz. Bu, sızıntının görülemeyeceği anlamına gelir. Bu, karmaşık modellerde geri çekme sayısını azaltabilir ve yazdırma süresinden tasarruf sağlayabilir, ancak dilimlemeyi ve G-code oluşturmayı yavaşlatır. Geri çekmenin atlandığı alanlarda z-hop'un da uygulanmadığını unutmayın."
+msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr "Hareket tamamen dolgu alanı içindeyken geri çekme yapılmaz. Bu, sızıntının görülemeyeceği anlamına gelir. Bu, karmaşık modellerde geri çekme sayısını azaltabilir ve yazdırma süresinden tasarruf sağlayabilir, ancak dilimlemeyi ve G-code oluşturmayı yavaşlatır. Geri çekmenin atlandığı alanlarda Z-hop'un da uygulanmadığını unutmayın."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Bu seçenek sızıntıyı önlemek için aktif olmayan ekstrüderlerin sıcaklığını düşürecektir."
@@ -16305,7 +16305,7 @@ msgstr "Silme sonrası geri çekme miktarı"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"The length of fast retraction after wipe, relative to retraction length.\n"
+"This is the length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 "Silme sonrasındaki hızlı geri çekmenin uzunluğu; geri çekme uzunluğuna göredir.\n"
@@ -16352,7 +16352,7 @@ msgstr "Takım değişiminden önce geri çekme tetiklendiğinde, filament belir
 msgid "Z-hop height"
 msgstr "Z-Sıçrama yüksekliği"
 
-msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
+msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift Z can prevent stringing."
 msgstr "Geri çekme işlemi her yapıldığında, nozul ile baskı arasında açıklık oluşturmak için nozul biraz kaldırılır. Hareket halindeyken nozulun baskıya çarpmasını önler. Z'yi kaldırmak için spiral çizgi kullanmak çekmeyi önleyebilir."
 
 msgid "Z-hop lower boundary"
@@ -18155,10 +18155,10 @@ msgid "Allow 3MF with newer version to be sliced."
 msgstr "Daha yeni sürüme sahip 3mf’nin dilimlenmesine izin ver."
 
 msgid "Current Z-hop"
-msgstr "Mevcut z-hop"
+msgstr "Mevcut Z-hop"
 
 msgid "Contains Z-hop present at the beginning of the custom G-code block."
-msgstr "Özel G-code bloğunun başında bulunan z-hop'u içerir."
+msgstr "Özel G-code bloğunun başında bulunan Z-hop'u içerir."
 
 msgid "Position of the extruder at the beginning of the custom G-code block. If the custom G-code travels somewhere else, it should write to this variable so OrcaSlicer knows where it travels from when it gets control back."
 msgstr "Ekstruderin özel G-code bloğunun başlangıcındaki konumu. Özel G-code başka bir yere seyahat ederse, Slicer'ın kontrolü geri aldığında nereden seyahat ettiğini bilmesi için bu değişkene yazması gerekir."
@@ -20003,19 +20003,19 @@ msgstr "Yazıcı adlarını yalnızca yazıcı, filament ve işlem ön ayarları
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Filament adlarını yalnızca filament ön ayarlarında yapılan değişikliklerle görüntüleyin."
 
-msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a zip."
+msgid "Only printer names with user printer presets will be displayed, and each preset you choose will be exported as a ZIP archive."
 msgstr "Yalnızca kullanıcı yazıcı ön ayarlarına sahip yazıcı adları görüntülenecek ve seçtiğiniz her ön ayar zip olarak dışa aktarılacaktır."
 
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
-"and all user filament presets in each filament name you select will be exported as a zip."
+"and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
 "Yalnızca kullanıcı filamenti ön ayarlarına sahip filament adları \n"
 "görüntülenecek ve seçtiğiniz her filament adındaki tüm kullanıcı filamenti ön ayarları zip olarak dışa aktarılacaktır."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
-"and all user process presets in each printer name you select will be exported as a zip."
+"and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
 "Yalnızca işlem ön ayarları değiştirilen yazıcı adları görüntülenecek \n"
 "ve seçtiğiniz her yazıcı adındaki tüm kullanıcı işlem ön ayarları zip olarak dışa aktarılacaktır."
@@ -20260,7 +20260,7 @@ msgid "We need information for diagnosing source of the issue. Check wiki page f
 msgstr "Sorunun kaynağını teşhis etmek için bilgiye ihtiyacımız var. Ayrıntılı kılavuz için wiki sayfasına bakın."
 
 # AI Translated
-msgid "Pack button collects project file and logs of current session onto a zip file."
+msgid "Pack button collects project file and logs of current session onto a ZIP archive."
 msgstr "Paketle düğmesi, geçerli oturumun proje dosyasını ve günlüklerini bir zip dosyasında toplar."
 
 # AI Translated
@@ -20316,7 +20316,7 @@ msgid "Stored logs"
 msgstr "Saklanan günlükler"
 
 # AI Translated
-msgid "Packs all stored logs onto a zip file."
+msgid "Packs all stored logs onto a ZIP archive."
 msgstr "Saklanan tüm günlükleri bir zip dosyasında paketler."
 
 # AI Translated
@@ -20402,7 +20402,7 @@ msgid "Authorizing..."
 msgstr "Yetkilendiriliyor..."
 
 # AI Translated
-msgid "Error. Can't get api token for authorization"
+msgid "Error. Can't get API token for authorization"
 msgstr "Hata. Yetkilendirme için api belirteci alınamıyor"
 
 # AI Translated
