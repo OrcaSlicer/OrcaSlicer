@@ -395,6 +395,8 @@ struct ProcessedPoint
     Point3 p;
     float speed = 1.0f;
     float overlap = 1.0f;
+    // Orca: Preview geometry must not include the artificial curled-edge distance used for speed and cooling.
+    float overhang_percentage = 0.0f;
 };
 
 class ExtrusionQualityEstimator
@@ -419,8 +421,9 @@ public:
     }
 
     // Orca: Return the unsupported part of the extrusion width for every original path segment, in percent.
-    // This uses the same signed-distance calculation as the overhang speed estimator, but deliberately
-    // does not add points to the path: collecting preview data must not alter generated toolpaths.
+    // This uses the same signed-distance calculation as the overhang speed estimator. Probe interiors too:
+    // supported endpoints can hide a recessed support contour. Each unchanged segment gets its largest
+    // sampled percentage, just as a fitted arc does; collecting metadata must not split printer moves.
     std::vector<float> estimate_overhang_percentages(const ExtrusionPath &path)
     {
         const size_t segments_count = path.polyline.points.size() > 1 ? path.polyline.points.size() - 1 : 0;
@@ -428,15 +431,26 @@ public:
         if (segments_count == 0 || path.width <= EPSILON)
             return percentages;
 
-        const std::vector<ExtendedPoint<3>> points =
-            estimate_points_properties<true, false, true, true>(path.polyline.points,
-                                                                 prev_layer_boundaries[current_object],
-                                                                 path.width);
-        const float width_inv = 1.0f / path.width;
+        const auto &boundary = prev_layer_boundaries[current_object];
+        const auto percentage_at = [&boundary, &path](const Vec3d &position) {
+            const double distance = boundary.distance_from_lines<true>(position);
+            return float(100.0 * std::clamp((distance + 0.5 * path.width) / path.width, 0.0, 1.0));
+        };
+        // Orca: Width-scale probes detect narrow unsupported pockets while reusing endpoint readings.
+        // Query the existing distance tree directly; preview-only sampling needs no curvature calculation.
+        const double probe_spacing = std::max(0.1, double(path.width));
+        Vec3d start = unscaled(path.polyline.points.front());
+        float start_percentage = percentage_at(start);
         for (size_t i = 0; i < percentages.size(); ++i) {
-            const float overlap = std::min(1.0f - points[i].distance * width_inv,
-                                           1.0f - points[i + 1].distance * width_inv);
-            percentages[i] = 100.0f * (1.0f - std::clamp(overlap, 0.0f, 1.0f));
+            const Vec3d end = unscaled(path.polyline.points[i + 1]);
+            const float end_percentage = percentage_at(end);
+            float maximum = std::max(start_percentage, end_percentage);
+            const size_t intervals = size_t(std::ceil((end - start).norm() / probe_spacing));
+            for (size_t sample = 1; sample < intervals && maximum < 100.0f; ++sample)
+                maximum = std::max(maximum, percentage_at(start + (end - start) * (double(sample) / intervals)));
+            percentages[i] = maximum;
+            start = end;
+            start_percentage = end_percentage;
         }
         return percentages;
     }
@@ -583,7 +597,10 @@ public:
             
             float overlap = std::min(1 - (curr.distance+artificial_distance_to_curled_lines) * width_inv, 1 - (next.distance+artificial_distance_to_curled_lines) * width_inv);
 
-            processed_points.push_back({Point3(scaled(curr.position)), extrusion_speed, overlap});
+            // Orca: Keep the existing speed/fan overlap untouched, but publish the purely geometric
+            // unsupported width separately so curled-edge slowdown cannot change the displayed angle.
+            const float overhang_percentage = 100.0f * std::clamp(std::max(curr.distance, next.distance) * width_inv, 0.0f, 1.0f);
+            processed_points.push_back({Point3(scaled(curr.position)), extrusion_speed, overlap, overhang_percentage});
         }
         return processed_points;
     }

@@ -407,6 +407,105 @@ TEST_CASE("Overhang metadata availability follows valid G-code tags", "[GCodePro
     CHECK_FALSE(processor.get_result().has_overhang_metadata);
 }
 
+// Orca: Malformed or non-finite percentages must neither enable the view nor leak into its color lookup.
+TEST_CASE("Overhang percentages reject malformed and non-finite metadata", "[GCodeProcessor][Overhang][Regression]")
+{
+    const std::string value = GENERATE("nan", "inf", "-inf", "37.5garbage", "invalid");
+    const bool preceding_valid_tag = GENERATE(false, true);
+    CAPTURE(value, preceding_valid_tag);
+    GCodeProcessor processor;
+    processor.apply_config(FullPrintConfig());
+    const std::string tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang);
+    processor.process_buffer("G90\nM83\nT0\n");
+    if (preceding_valid_tag)
+        processor.process_buffer(tag + "50\n");
+    processor.process_buffer(tag + value + "\nG1 X10 Z0.2 E1 F600\n");
+    CHECK(processor.get_result().has_overhang_metadata == preceding_valid_tag);
+    REQUIRE_FALSE(processor.get_result().moves.empty());
+    CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-6));
+}
+
+// Orca: Both ends of an unsplit wall are supported, but a recessed contour leaves half its width
+// unsupported inside the span. Sampling for metadata must find that pocket without editing the path.
+TEST_CASE("Overhang metadata detects unsupported interiors without changing the path", "[ExtrusionProcessor][Overhang][Regression]")
+{
+    const double pocket_start = GENERATE(10.0, 18.0);
+    Print print;
+    Model model;
+    init_print({cube(1.0)}, print, model);
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
+    Layer *upper = object->add_layer(1, 0.2, 0.4, 0.3);
+    lower->lslices = {ExPolygon(Slic3r::Polygon{
+        Point::new_scale(0, 0), Point::new_scale(pocket_start, 0),
+        Point::new_scale(pocket_start, 0.2), Point::new_scale(pocket_start + 4, 0.2),
+        Point::new_scale(pocket_start + 4, 0), Point::new_scale(40, 0),
+        Point::new_scale(40, 10), Point::new_scale(0, 10)})};
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_new_layer(object, lower);
+    estimator.prepare_for_new_layer(object, upper);
+    ExtrusionPath path(erExternalPerimeter, 0.08, 0.4f, 0.2f);
+    path.polyline.points = {Point3::new_scale(1, 0.2, 0), Point3::new_scale(39, 0.2, 0)};
+    const auto original_points = path.polyline.points;
+    const auto percentages = estimator.estimate_overhang_percentages(path);
+    REQUIRE(percentages.size() == 1);
+    CHECK_THAT(percentages.front(), Catch::Matchers::WithinAbs(50.0, 1e-3));
+    CHECK(path.polyline.points == original_points);
+}
+
+// Orca: A curled edge may require slower motion and extra cooling even on a supported vertical wall.
+// Its artificial slowdown distance must not be exported as geometric overhang metadata.
+TEST_CASE("Overhang geometry is independent of curled edge slowdown", "[ExtrusionProcessor][Overhang][Regression]")
+{
+    const bool curled_slowdown = GENERATE(false, true);
+    Print print;
+    Model model;
+    init_print({cube(1.0)}, print, model);
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
+    Layer *upper = object->add_layer(1, 0.2, 0.4, 0.3);
+    lower->lslices = {ExPolygon(Slic3r::Polygon{Point::new_scale(0, 0), Point::new_scale(40, 0),
+        Point::new_scale(40, 10), Point::new_scale(0, 10)})};
+    lower->curled_lines = {CurledLine(Point::new_scale(1, 0.2), Point::new_scale(39, 0.2), 1.0f)};
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_new_layer(object, lower);
+    estimator.prepare_for_new_layer(object, upper);
+    ExtrusionPath path(erExternalPerimeter, 0.08, 0.4f, 0.2f);
+    path.polyline.points = {Point3::new_scale(1, 0.2, 0), Point3::new_scale(39, 0.2, 0)};
+    const auto points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
+        ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
+        100.0f, 100.0f, curled_slowdown);
+    REQUIRE(points.size() >= 2);
+    CHECK((points.front().speed < 99.0f) == curled_slowdown);
+    CHECK((points.front().overlap < 0.99f) == curled_slowdown);
+    for (const auto &point : points)
+        CHECK_THAT(point.overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-3));
+}
+
+// Orca: Metadata may add comments, but neither fixed-speed nor variable-speed export may change a
+// printer command. This includes extrusion amounts, feed rates, cooling and acceleration commands.
+TEST_CASE("Overhang metadata leaves printer commands unchanged", "[ExtrusionProcessor][Overhang][Regression]")
+{
+    const bool overhang_speed = GENERATE(false, true);
+    const char *wall_generator = GENERATE("classic", "arachne");
+    const auto commands = [](const std::string &gcode) {
+        std::vector<std::string> result;
+        GCodeReader reader;
+        reader.parse_buffer(gcode, [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
+            if (!line.cmd().empty())
+                result.push_back(line.raw().substr(0, line.raw().find(';')));
+        });
+        return result;
+    };
+    const std::string without_metadata = shallow_overhang_gcode(wall_generator, shallow_overhang_speed, 0.5, overhang_speed, false);
+    const std::string with_metadata = shallow_overhang_gcode(wall_generator, shallow_overhang_speed, 0.5, overhang_speed, true);
+    REQUIRE_FALSE(overhang_percentages(with_metadata).empty());
+    REQUIRE(overhang_percentages(without_metadata).empty());
+    CHECK(commands(with_metadata) == commands(without_metadata));
+}
+
 // Orca: A 0.2 mm contour offset over a 0.2 mm slice-plane gap remains 45 degrees even when
 // the current extrusion is 0.1 or 0.3 mm tall. Missing metadata retains the old height-based estimate.
 TEST_CASE("Overhang angles use slice spacing rather than extrusion height", "[ExtrusionProcessor][Overhang][Regression]")
@@ -458,7 +557,11 @@ TEST_CASE("Overhang angles use slice spacing rather than extrusion height", "[Ex
 TEST_CASE("Overhang reference spacing follows variable layer heights", "[ExtrusionProcessor][Overhang][Regression]")
 {
     const bool enabled = GENERATE(false, true);
-    const DynamicPrintConfig config = shallow_overhang_config("classic", 0.0, false, enabled);
+    DynamicPrintConfig config = shallow_overhang_config("classic", 0.0, false, enabled);
+    // Orca: File import also validates nozzle hardness. Recreate the nullable enum from its definition
+    // (static defaults lack its name map), and avoid relying on installed nozzle-hardness resources.
+    config.erase("nozzle_type");
+    config.set_deserialize_strict({{"nozzle_type", "stainless_steel"}, {"nozzle_hrc", "20"}});
     Print print;
     Model model;
     init_print({shallow_overhang_mesh()}, print, model, config, nullptr, false);
@@ -476,6 +579,25 @@ TEST_CASE("Overhang reference spacing follows variable layer heights", "[Extrusi
     std::ifstream stream(file.string());
     const std::string exported((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
     CHECK((exported.find("OVERHANG_Z_DISTANCE:") != std::string::npos) == enabled);
+
+    // Orca: Reopening the final file takes the producer-aware parser path, unlike live preview.
+    // Both paths must preserve the same per-extrusion metadata on adaptive layers.
+    GCodeProcessor imported;
+    imported.process_file(file.string());
+    CHECK(imported.get_result().has_overhang_metadata == enabled);
+    std::vector<std::pair<float, float>> generated_metadata;
+    std::vector<std::pair<float, float>> imported_metadata;
+    for (const auto &move : result.moves)
+        if (move.type == EMoveType::Extrude && !move.internal_only)
+            generated_metadata.emplace_back(move.overhang_percentage, move.overhang_z_distance);
+    for (const auto &move : imported.get_result().moves)
+        if (move.type == EMoveType::Extrude && !move.internal_only)
+            imported_metadata.emplace_back(move.overhang_percentage, move.overhang_z_distance);
+    REQUIRE(imported_metadata.size() == generated_metadata.size());
+    for (size_t i = 0; i < generated_metadata.size(); ++i) {
+        CHECK_THAT(imported_metadata[i].first, Catch::Matchers::WithinAbs(generated_metadata[i].first, 1e-5));
+        CHECK_THAT(imported_metadata[i].second, Catch::Matchers::WithinAbs(generated_metadata[i].second, 1e-5));
+    }
 
     bool saw_increase = false;
     bool saw_decrease = false;

@@ -8261,7 +8261,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     }
 
     // Orca: Keep visualization independent of the speed/fan options. When no variable-speed path is emitted,
-    // sample only the original path vertices so preview metadata cannot change the toolpath geometry.
+    // sample each original segment without changing the toolpath geometry.
     std::vector<float> overhang_percentages;
     if (emit_overhangs && !variable_speed && can_estimate_overhang)
         overhang_percentages = m_extrusion_quality_estimator.estimate_overhang_percentages(path);
@@ -8784,11 +8784,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             const double line_length = (p - prev).norm();
             if(line_length < EPSILON)
                 continue;
-            // Orca: Variable-speed paths already carry Orca's overlap estimate; reuse it without resampling.
-            if (emit_overhangs) {
-                const float segment_overhang = 100.0f * (1.0f - std::clamp(pre_processed_point.overlap, 0.0f, 1.0f));
-                append_overhang_percentage(segment_overhang);
-            }
+            // Orca: Reuse the geometric reading, not the speed/fan overlap inflated for curled edges.
+            if (emit_overhangs)
+                append_overhang_percentage(pre_processed_point.overhang_percentage);
             path_length += line_length;
             double new_speed = pre_processed_point.speed * 60.0;
             

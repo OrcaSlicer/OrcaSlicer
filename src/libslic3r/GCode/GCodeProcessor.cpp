@@ -4297,13 +4297,16 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
             m_overhang_z_distance = z_distance;
             return;
         }
-        // Orca: Parse and bound metadata before copying it to move vertices used by the preview.
+        // Orca: Validate a temporary value before publishing it: parsing can partially succeed, and
+        // clamping alone does not reject NaN. Clear invalid readings so they cannot poison preview colors.
         if (boost::starts_with(comment, reserved_tag(ETags::Overhang))) {
-            if (!parse_number(comment.substr(reserved_tag(ETags::Overhang).size()), m_overhang_percentage)) {
+            float percentage = 0.0f;
+            if (!parse_number(comment.substr(reserved_tag(ETags::Overhang).size()), percentage) || !std::isfinite(percentage)) {
+                m_overhang_percentage = 0.0f;
                 BOOST_LOG_TRIVIAL(error) << "GCodeProcessor encountered an invalid value for Overhang (" << comment << ").";
                 return;
             }
-            m_overhang_percentage = std::clamp(m_overhang_percentage, 0.0f, 100.0f);
+            m_overhang_percentage = std::clamp(percentage, 0.0f, 100.0f);
             // Orca: Only a successfully parsed tag enables the corresponding preview mode.
             m_result.has_overhang_metadata = true;
             return;
