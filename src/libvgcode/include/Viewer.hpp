@@ -78,6 +78,9 @@ public:
     // Orca: Select percentage coloring and legend units for Overhang; false uses angles from vertical.
     bool is_overhang_percentage() const;
     void set_overhang_percentage(bool value);
+    // Orca: Apply a zero-safe logarithmic scale to Overhang colors and legend stops in either unit mode.
+    bool is_overhang_logarithmic() const;
+    void set_overhang_logarithmic(bool value);
     //
     // Time mode
     // See: ETimeMode

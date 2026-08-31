@@ -78,6 +78,9 @@ public:
     // Orca: Share the active overhang units with legend and marker rendering.
     bool is_overhang_percentage() const { return m_settings.overhang_percentage; }
     void set_overhang_percentage(bool value);
+    // Orca: The logarithmic toggle is shared by both overhang unit modes.
+    bool is_overhang_logarithmic() const { return m_settings.overhang_logarithmic; }
+    void set_overhang_logarithmic(bool value);
 
     ETimeMode get_time_mode() const { return m_settings.time_mode; }
     void set_time_mode(ETimeMode mode);
@@ -313,7 +316,8 @@ private:
     ColorRange m_jerk_range;
     ColorRange m_volumetric_rate_range;
     ColorRange m_actual_volumetric_rate_range;
-    std::array<ColorRange, COLOR_RANGE_TYPES_COUNT> m_layer_time_range{
+    // Orca: Layer Time still has exactly two modes; the zero-safe logarithm is exclusive to Overhang.
+    std::array<ColorRange, 2> m_layer_time_range{
         ColorRange(EColorRangeType::Linear), ColorRange(EColorRangeType::Logarithmic)
     };
     Palette m_tool_colors;

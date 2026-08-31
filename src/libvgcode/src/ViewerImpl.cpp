@@ -1360,6 +1360,18 @@ void ViewerImpl::set_overhang_percentage(bool value)
     m_settings.update_colors = true;
 }
 
+// Orca: Preserve bounds and palettes while switching both unit modes; only cached colors need rebuilding.
+void ViewerImpl::set_overhang_logarithmic(bool value)
+{
+    if (m_settings.overhang_logarithmic == value)
+        return;
+    m_settings.overhang_logarithmic = value;
+    const EColorRangeType type = value ? EColorRangeType::LogarithmicWithZero : EColorRangeType::Linear;
+    m_overhang_percentage_range.set_type(type);
+    m_overhang_degree_range.set_type(type);
+    m_settings.update_colors = true;
+}
+
 void ViewerImpl::set_time_mode(ETimeMode mode)
 {
     m_settings.time_mode = mode;
@@ -1765,7 +1777,8 @@ size_t ViewerImpl::get_used_cpu_memory() const
     ret += m_jerk_range.size_in_bytes_cpu();
     ret += m_volumetric_rate_range.size_in_bytes_cpu();
     ret += m_actual_volumetric_rate_range.size_in_bytes_cpu();
-    for (size_t i = 0; i < COLOR_RANGE_TYPES_COUNT; ++i) {
+    // Orca: Count only the actual Layer Time ranges, independent of the available color scale types.
+    for (size_t i = 0; i < m_layer_time_range.size(); ++i) {
         ret += m_layer_time_range[i].size_in_bytes_cpu();
     }
     ret += STDVEC_MEMSIZE(m_tool_colors, Color);

@@ -204,6 +204,8 @@ enum class EColorRangeType : uint8_t
 {
     Linear,
     Logarithmic,
+    // Orca: Use log(1 + x) for nonnegative ranges that include zero, without changing Layer Time's logarithm.
+    LogarithmicWithZero,
     COUNT
 };
 
