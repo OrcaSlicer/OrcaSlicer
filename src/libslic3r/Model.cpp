@@ -2014,7 +2014,7 @@ void ModelVolume::restore_painting(const std::optional<TriangleSelector::SavedPa
         if (src_data.bitstream.empty())
             return;
         auto result =
-            TriangleSelector::remap_painting(saved->mesh.its, src_data, mesh().its, Geometry::translation_transform(mesh().get_init_shift()),
+            TriangleSelector::classify_painting(saved->mesh.its, src_data, mesh().its, Geometry::translation_transform(mesh().get_init_shift()),
                                              keep_existing_paint ?
                                                  std::optional<std::reference_wrapper<const TriangleSelector::TriangleSplittingData>>{std::ref(target_facets.get_data())} :
                                                  std::optional<std::reference_wrapper<const TriangleSelector::TriangleSplittingData>>{},

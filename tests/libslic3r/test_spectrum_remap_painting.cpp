@@ -18,9 +18,9 @@ using namespace Slic3r;
 
 namespace {
 
-ModelVolume *add_painted_cube(Model &model, const std::vector<std::pair<int, int>> &facet_states)
+ModelVolume *add_painted_cube(Model &model, const std::vector<std::pair<int, int>> &facet_states, double size = 20.)
 {
-    ModelObject *obj = model.add_object("remap_paint_cube", "", make_cube(20., 20., 20.));
+    ModelObject *obj = model.add_object("remap_paint_cube", "", make_cube(size, size, size));
     REQUIRE(obj != nullptr);
     obj->add_instance();
     REQUIRE_FALSE(obj->volumes.empty());
@@ -340,4 +340,113 @@ TEST_CASE("Cut KeepPaint inherit is faster than remap", "[spectrum_remap_paintin
     WARN("faces=" << n << " inherit_cut_ms=" << ms);
     REQUIRE_FALSE(result.empty());
     REQUIRE(ms < 1000);
+}
+
+TEST_CASE("classify_painting identity keeps Mix 5 and Mix 6", "[spectrum_remap_painting][spectrum_paint_field]")
+{
+    Model        model;
+    ModelVolume *vol = add_painted_cube(model, {{0, 5}, {1, 6}});
+    const auto  &src  = vol->mmu_segmentation_facets.get_data();
+    const auto  &its  = vol->mesh().its;
+
+    const TriangleSelector::TriangleSplittingData result = TriangleSelector::classify_painting(
+        its, src, its, Transform3d::Identity(), std::nullopt);
+
+    REQUIRE(result.used_states.size() > 6);
+    REQUIRE(result.used_states[5]);
+    REQUIRE(result.used_states[6]);
+    REQUIRE_FALSE(result.bitstream.empty());
+}
+
+TEST_CASE("classify_painting thin cube keeps Mix 5 and Mix 6", "[spectrum_remap_painting][spectrum_paint_field]")
+{
+    Model        model;
+    ModelVolume *vol = add_painted_cube(model, {{0, 5}, {1, 6}}, 2.);
+    const auto  &src  = vol->mmu_segmentation_facets.get_data();
+    const auto  &its  = vol->mesh().its;
+
+    const TriangleSelector::TriangleSplittingData result = TriangleSelector::classify_painting(
+        its, src, its, Transform3d::Identity(), std::nullopt);
+
+    REQUIRE(result.used_states.size() > 6);
+    REQUIRE(result.used_states[5]);
+    REQUIRE(result.used_states[6]);
+    REQUIRE_FALSE(result.bitstream.empty());
+}
+
+TEST_CASE("classify_painting far translation does not flood Mix IDs", "[spectrum_remap_painting][spectrum_paint_field]")
+{
+    Model        model;
+    ModelVolume *vol = add_painted_cube(model, {{0, 5}, {1, 6}});
+    const auto  &src  = vol->mmu_segmentation_facets.get_data();
+    const auto  &its  = vol->mesh().its;
+    const Transform3d xf = Geometry::translation_transform(Vec3d(1000., 0., 0.));
+
+    const TriangleSelector::TriangleSplittingData result = TriangleSelector::classify_painting(
+        its, src, its, xf, std::nullopt);
+
+    REQUIRE(result.bitstream.empty());
+}
+
+TEST_CASE("classify_painting identity Mix 1 covers dest original faces", "[spectrum_remap_painting][spectrum_paint_field]")
+{
+    Model        model;
+    ModelObject *obj = model.add_object("classify_paint_cube", "", make_cube(20., 20., 20.));
+    REQUIRE(obj != nullptr);
+    obj->add_instance();
+    REQUIRE_FALSE(obj->volumes.empty());
+    ModelVolume *vol = obj->volumes.front();
+    TriangleSelector src_sel(vol->mesh());
+    const int n = int(vol->mesh().its.indices.size());
+    REQUIRE(n > 0);
+    for (int i = 0; i < n; ++i)
+        src_sel.set_facet(i, EnforcerBlockerType(1));
+    REQUIRE(vol->mmu_segmentation_facets.set(src_sel));
+
+    const auto &src = vol->mmu_segmentation_facets.get_data();
+    const auto &its = vol->mesh().its;
+    const TriangleSelector::TriangleSplittingData result = TriangleSelector::classify_painting(
+        its, src, its, Transform3d::Identity(), std::nullopt);
+    REQUIRE_FALSE(result.bitstream.empty());
+
+    TriangleSelector dest_sel(vol->mesh());
+    dest_sel.deserialize(result, false);
+    REQUIRE(dest_sel.num_facets(EnforcerBlockerType(1)) == n);
+}
+
+TEST_CASE("classify_painting 7920 faces is faster than a second", "[spectrum_remap_painting][spectrum_paint_field]")
+{
+    Model        model;
+    ModelVolume *vol = add_fully_painted_sphere(model, 2. * PI / 90.);
+    const auto  &src = vol->mmu_segmentation_facets.get_data();
+    const auto  &its = vol->mesh().its;
+    const size_t n   = its.indices.size();
+    REQUIRE(n == 7920);
+
+    const auto t0 = std::chrono::steady_clock::now();
+    const TriangleSelector::TriangleSplittingData result = TriangleSelector::classify_painting(
+        its, src, its, Transform3d::Identity(), std::nullopt);
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now() - t0)
+                        .count();
+
+    WARN("faces=" << n << " classify_ms=" << ms);
+    REQUIRE(ms < 1000);
+    REQUIRE(result.used_states.size() > 1);
+    REQUIRE(result.used_states[1]);
+    REQUIRE_FALSE(result.bitstream.empty());
+}
+
+TEST_CASE("classify_painting already canceled returns empty", "[spectrum_remap_painting][spectrum_paint_field]")
+{
+    Model        model;
+    ModelVolume *vol = add_fully_painted_sphere(model, 2. * PI / 90.);
+    const auto  &src = vol->mmu_segmentation_facets.get_data();
+    const auto  &its = vol->mesh().its;
+    std::atomic<bool> canceled{true};
+
+    const TriangleSelector::TriangleSplittingData result = TriangleSelector::classify_painting(
+        its, src, its, Transform3d::Identity(), std::nullopt, &canceled);
+
+    REQUIRE(result.bitstream.empty());
 }

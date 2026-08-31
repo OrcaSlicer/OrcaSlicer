@@ -406,6 +406,16 @@ public:
         const std::atomic<bool> *cancel = nullptr,
         RemapBuckets *buckets = nullptr);
 
+    // Classify dest original faces from an ephemeral Mix-ID hash field (no select_patch).
+    // Same source/target/transform/existing_painting/cancel shape as remap_painting.
+    static TriangleSplittingData classify_painting(
+        const indexed_triangle_set& source_its,
+        const TriangleSplittingData& source_painting,
+        const indexed_triangle_set& target_its,
+        const Transform3d& target_transform,
+        const std::optional<std::reference_wrapper<const TriangleSplittingData>>& existing_painting,
+        const std::atomic<bool> *cancel = nullptr);
+
     // Inherit painting onto dest faces using source-face ids from cut_mesh.
     // `source_face_ids[i] < 0` stays NONE. Caps / unknown ids are not painted.
     static TriangleSplittingData inherit_painting(

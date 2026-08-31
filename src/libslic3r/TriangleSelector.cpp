@@ -6,9 +6,11 @@
 #include <boost/container/small_vector.hpp>
 #include <boost/log/trivial.hpp>
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <functional>
 #include <tbb/parallel_for.h>
+#include <unordered_map>
 
 #ifndef NDEBUG
 //    #define EXPENSIVE_DEBUG_CHECKS
@@ -2585,6 +2587,137 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
 
     if (cancel_requested(cancel))
         return result;
+    return target_selector.serialize();
+}
+
+namespace {
+
+constexpr float kMixFieldCellMm = 1.0f;
+
+struct MixFieldCellHash {
+    std::size_t operator()(const Eigen::Vector3i &c) const noexcept
+    {
+        std::size_t h = std::hash<int>{}(c.x());
+        h ^= std::hash<int>{}(c.y()) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= std::hash<int>{}(c.z()) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        return h;
+    }
+};
+
+struct MixFieldCell {
+    EnforcerBlockerType state{EnforcerBlockerType::NONE};
+    Vec3f               src_n{Vec3f::Zero()};
+};
+
+Eigen::Vector3i mix_field_cell(const Vec3f &p, float cell_mm)
+{
+    return Eigen::Vector3i(int(std::floor(double(p.x()) / double(cell_mm))),
+                           int(std::floor(double(p.y()) / double(cell_mm))),
+                           int(std::floor(double(p.z()) / double(cell_mm))));
+}
+
+} // namespace
+
+// Classify dest original faces from an ephemeral Mix-ID hash field (no select_patch).
+TriangleSelector::TriangleSplittingData TriangleSelector::classify_painting(
+    const indexed_triangle_set& source_its,
+    const TriangleSplittingData& source_painting,
+    const indexed_triangle_set& target_its,
+    const Transform3d& target_transform,
+    const std::optional<std::reference_wrapper<const TriangleSplittingData>>& existing_painting,
+    const std::atomic<bool> *cancel)
+{
+    TriangleSplittingData result;
+    if (source_painting.bitstream.empty() || target_its.indices.empty() || cancel_requested(cancel))
+        return result;
+
+    TriangleMesh source_mesh(source_its);
+    TriangleSelector source_selector(source_mesh);
+    source_selector.deserialize(source_painting, false);
+
+    std::vector<std::reference_wrapper<const Triangle>> painted_triangles;
+    painted_triangles.reserve(source_selector.m_triangles.size());
+    for (const Triangle& tr : source_selector.m_triangles) {
+        if (tr.valid() && !tr.is_split() && tr.get_state() != EnforcerBlockerType::NONE)
+            painted_triangles.push_back(std::ref(tr));
+    }
+
+    if (painted_triangles.empty() || cancel_requested(cancel))
+        return result;
+
+    std::unordered_map<Eigen::Vector3i, MixFieldCell, MixFieldCellHash> field;
+    constexpr size_t stamp_poll_every = 4096;
+    for (size_t i = 0; i < painted_triangles.size(); ++i) {
+        if ((i % stamp_poll_every) == 0 && cancel_requested(cancel))
+            return {};
+        const Triangle& tri = painted_triangles[i].get();
+        const Vec3f& v0 = source_selector.m_vertices[tri.verts_idxs[0]].v;
+        const Vec3f& v1 = source_selector.m_vertices[tri.verts_idxs[1]].v;
+        const Vec3f& v2 = source_selector.m_vertices[tri.verts_idxs[2]].v;
+        const Vec3f centroid = (v0 + v1 + v2) / 3.f;
+        const MixFieldCell cell{tri.get_state(), source_selector.m_face_normals[tri.source_triangle]};
+        field[mix_field_cell(v0, kMixFieldCellMm)]       = cell;
+        field[mix_field_cell(v1, kMixFieldCellMm)]       = cell;
+        field[mix_field_cell(v2, kMixFieldCellMm)]       = cell;
+        field[mix_field_cell(centroid, kMixFieldCellMm)] = cell;
+    }
+
+    if (cancel_requested(cancel))
+        return {};
+
+    TriangleMesh target_mesh(target_its);
+    target_mesh.transform(target_transform);
+    TriangleSelector target_selector(target_mesh);
+    if (existing_painting)
+        target_selector.deserialize(existing_painting->get(), false);
+
+    const size_t n = target_mesh.its.indices.size();
+    std::vector<EnforcerBlockerType> states(n, EnforcerBlockerType::NONE);
+    constexpr size_t dest_poll_every = 64;
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t>& range) {
+        for (size_t i = range.begin(); i != range.end(); ++i) {
+            if ((i % dest_poll_every) == 0 && cancel_requested(cancel))
+                continue;
+            if (cancel_requested(cancel))
+                continue;
+
+            const Vec3i32& face = target_mesh.its.indices[i];
+            const Vec3f& dv0 = target_mesh.its.vertices[face(0)];
+            const Vec3f& dv1 = target_mesh.its.vertices[face(1)];
+            const Vec3f& dv2 = target_mesh.its.vertices[face(2)];
+            const Vec3f centroid = (dv0 + dv1 + dv2) / 3.f;
+            const Vec3f& dest_n = target_selector.m_face_normals[i];
+            const Eigen::Vector3i keys[4] = {
+                mix_field_cell(centroid, kMixFieldCellMm),
+                mix_field_cell(dv0, kMixFieldCellMm),
+                mix_field_cell(dv1, kMixFieldCellMm),
+                mix_field_cell(dv2, kMixFieldCellMm),
+            };
+            for (const Eigen::Vector3i& key : keys) {
+                auto it = field.find(key);
+                if (it == field.end())
+                    continue;
+                if (TriangleCursor::check_normal(dest_n, -it->second.src_n)) {
+                    states[i] = it->second.state;
+                    break;
+                }
+            }
+        }
+    });
+
+    if (cancel_requested(cancel))
+        return {};
+
+    constexpr size_t apply_poll_every = 4096;
+    for (size_t i = 0; i < n; ++i) {
+        if ((i % apply_poll_every) == 0 && cancel_requested(cancel))
+            return {};
+        if (states[i] != EnforcerBlockerType::NONE)
+            target_selector.set_facet(int(i), states[i]);
+    }
+
+    if (cancel_requested(cancel))
+        return {};
     return target_selector.serialize();
 }
 
