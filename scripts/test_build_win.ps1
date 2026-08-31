@@ -22,12 +22,21 @@
         Match       regexes; each must match at least one output line
         NotMatch    regexes; none may match any output line
 
+.PARAMETER Name
+    Run only the cases whose name matches this regex. Headings with no
+    matching case are not printed, and a pattern that matches nothing is a
+    failure rather than an empty pass.
+
 .EXAMPLE
     powershell -File scripts/test_build_win.ps1
+
+.EXAMPLE
+    powershell -File scripts/test_build_win.ps1 -Name solution
 #>
 [CmdletBinding()]
 param(
-    [string] $Script
+    [string] $Script,
+    [string] $Name
 )
 
 $ErrorActionPreference = 'Stop'
@@ -234,8 +243,8 @@ $cases = @(
        Contains = @('-DBUILD_TESTS=ON') }
     @{ Name = '-a enables ASAN for the slicer'; Args = @('-s', '-a')
        Contains = @('-DSLIC3R_ASAN=ON') }
-    @{ Name = 'the slicer build runs gettext and installs'; Args = @('-s')
-       Contains = @('run_gettext.bat', '--target install') }
+    @{ Name = 'the slicer build runs gettext'; Args = @('-s')
+       Contains = @('run_gettext.bat') }
     # tools\7z.exe needs a 7z.dll beside it, which the repo does not carry,
     # so the pack falls back to the bsdtar Windows ships. Either is correct;
     # what matters is that one is chosen and handed the right names.
@@ -274,11 +283,26 @@ $cases = @(
        Contains = @('cmake --build "deps/build"')
        NotContains = @('cmake -S deps') }
     @{ Name = '--no-gettext skips the translation step'; Args = @('-s', '--no-gettext')
-       Contains = @('--target install')
+       Contains = @('cmake --build "build"')
        NotContains = @('run_gettext') }
-    @{ Name = '--no-install skips the install step'; Args = @('-s', '--no-install')
+    # Installing copies the whole tree again for a layout only releases need,
+    # so it is asked for rather than assumed.
+    @{ Name = 'nothing is installed unless asked'; Args = @('-s')
        Contains = @('run_gettext')
        NotContains = @('--target install') }
+    @{ Name = '-i adds the install step'; Args = @('-s', '-i')
+       Contains = @('--target install') }
+    # install(TARGETS OrcaSlicer) has no OPTIONAL, so this would fail partway
+    # through a build instead of before it.
+    @{ Name = 'installing a tree with no executable is refused'; Args = @('-s', '-i', '--slicer-target', 'glad'); ExpectExit = 1
+       Contains = @('--install needs the executable')
+       NotContains = @('cmake --build') }
+    # Without -s there is no install step, so there is nothing to refuse.
+    @{ Name = 'the same flags without a slicer build are left alone'; Args = @('-d', '-i', '--slicer-target', 'glad')
+       Contains = @('cmake -S deps')
+       NotContains = @('--install needs the executable') }
+    @{ Name = 'naming the executable target is allowed'; Args = @('-s', '-i', '--slicer-target', 'OrcaSlicer')
+       Contains = @('--target install') }
     # Ninja counts compilers, so -j goes on the command line. MSBuild's -j
     # counts projects while /MP still runs one cl per core inside each, so the
     # cap goes to CL_MPCount in the environment instead. A dry run can only
@@ -299,7 +323,7 @@ $cases = @(
        Contains = @('Invalid --jobs value') }
     @{ Name = 'a zero -j is rejected'; Args = @('-s', '-j', '0'); ExpectExit = 1
        Contains = @('Invalid --jobs value') }
-    @{ Name = 'the loop options combine into a single build command'; Args = @('-s', '-x', '--no-configure', '--no-gettext', '--no-install', '--slicer-target', 'libslic3r_tests', '-j', '8')
+    @{ Name = 'the loop options combine into a single build command'; Args = @('-s', '-x', '--no-configure', '--no-gettext', '--slicer-target', 'libslic3r_tests', '-j', '8')
        Contains = @('--target libslic3r_tests -j 8')
        NotContains = @('cmake -B "build" ', 'run_gettext', '--target install') }
 
@@ -347,22 +371,6 @@ $cases = @(
        Contains = @('cmake -B "C:\Program Files\tree" ') }
     @{ Name = 'the default build names no deps tree'; Args = @('-s')
        NotContains = @('DEP_BUILD_DIR') }
-
-    'pointing at the solution'
-    @{ Name = 'the VS generator says where the solution is'; Args = @('-s')
-       Match = @('^Solution: .*\\build\\OrcaSlicer\.sln$') }
-    @{ Name = 'the solution path follows the configuration'; Args = @('-s', '--config', 'debug')
-       Match = @('^Solution: .*\\build-dbg\\OrcaSlicer\.sln$') }
-    @{ Name = 'Ninja leaves no solution to point at'; Args = @('-s', '-x')
-       NotContains = @('Solution:') }
-    @{ Name = 'the solution line survives --no-install'; Args = @('-s', '--no-install')
-       Contains = @('Solution:') }
-    # The path is resolved, not pasted onto the repository root, so it is
-    # right whether --build-dir came absolute or with forward slashes.
-    @{ Name = 'a moved build still prints one real path'; Args = @('-s', '--build-dir', 'out/build/x64-clang')
-       Match = @('^Solution: [A-Za-z]:\\[^/]+\\OrcaSlicer\.sln$') }
-    @{ Name = 'an absolute --build-dir is not glued onto the repo root'; Args = @('-s', '--build-dir', 'D:\tree')
-       Contains = @('Solution: D:\tree\OrcaSlicer.sln') }
 
     'saying what mode and toolchain are in play'
     @{ Name = 'a dry run announces itself before the first command'; Args = @('-u')
@@ -443,7 +451,7 @@ $cases = @(
        Contains = @('Microsoft.VisualStudio.Component.VC.Tools.x86.x64')
        NotContains = @('VC.Tools.ARM64') }
 
-    'destructive options stay behind --dry-run'
+    'dry run changes nothing'
     # clean_tree resolves the path before removing it, so the line echoed is
     # absolute. It is the last thing printed before a directory goes.
     @{ Name = '-c echoes the deps rmdir rather than running it'; Args = @('-d', '-c')
@@ -484,14 +492,25 @@ $cases = @(
        DryRun = $false; ExpectExit = 1
        Env = @{ PATH = $stubPath }
        Contains = @('Failed to install:', 'CMake', 'Perl', 'Git')
-       NotContains = @('System dependencies are in place') }
+       NotContains = @('Installed the prerequisites') }
+    # The reason belongs inside the frame. Every command this path ran had
+    # already succeeded, so naming the last one would point at the wrong thing.
+    @{ Name = 'a failed install names the reason, not the last command'; Args = @('-u')
+       DryRun = $false; ExpectExit = 1
+       Env = @{ PATH = $stubPath }
+       Contains = @('####', 'Failed to install:')
+       NotContains = @('Failed: winget') }
     @{ Name = 'a dry run does not claim the install happened'; Args = @('-u')
        Contains = @('Dry run: nothing was installed.')
        NotContains = @('are in place') }
-    @{ Name = '-u with a build says where the build went'; Args = @('-u', '-d')
-       Contains = @('Run the build again in the new shell.') }
-    @{ Name = '-u on its own has no build to defer'; Args = @('-u')
-       NotContains = @('Run the build again') }
+    @{ Name = '-u with a build defers that build, not a fuller one'; Args = @('-u', '-d')
+       Contains = @('build_win.bat -d')
+       NotContains = @('build_win.bat -ds') }
+    @{ Name = '-u on its own suggests the whole build'; Args = @('-u')
+       Contains = @('build_win.bat -ds') }
+    @{ Name = 'a dry run only echoes, it never configures'; Args = @('-d')
+       Contains = @('+ cmake')
+       NotContains = @('CMake Error', 'Configuring done') }
 
     'extra configure arguments'
     # --deps-args and --slicer-args are declared "rawstring", so a value that
@@ -548,13 +567,128 @@ $cases = @(
     # successful one.
     @{ Name = 'a failure inside a build block reaches the caller'; Args = @('-p', '--deps-dir', 'Z:\nope')
        DryRun = $false; ExpectExit = 1
-       Contains = @('Exiting script with code 1')
-       NotContains = @('Build completed') }
+       Contains = @('Exit code 1.', '####')
+       NotContains = @('Build completed', 'Try') }
+    # The retry follows the stage that failed. Offering it for the whole run
+    # would clean a dependency tree that was not at fault.
+    @{ Name = 'a failure names a retry scoped to the stage that failed'; Args = @('-d', '-s', '--deps-dir', 'Z:\nope')
+       DryRun = $false; ExpectExit = 1
+       Contains = @('build_win.bat -d --deps-dir "Z:\nope" -c')
+       NotContains = @('build_win.bat -ds') }
+    # CMake's own failure here is hundreds of lines about package resolution.
+    @{ Name = 'a missing dependency tree is named, not left to CMake'; Args = @('-s', '--deps-dir', 'Z:\nope')
+       DryRun = $false; ExpectExit = 1
+       Contains = @('Dependencies not found at', 'Build them with -d')
+       NotContains = @('cmake -B', 'Try') }
+    # A dry run configures nothing, so it must not depend on which trees happen
+    # to exist on the machine running the suite.
+    @{ Name = 'a dry run does not check for the deps tree'; Args = @('-s', '--deps-dir', 'Z:\nope')
+       Contains = @('cmake -B "build"')
+       NotContains = @('Dependencies not found') }
+    # -d is about to build them, so there is nothing to report yet.
+    @{ Name = 'building the deps in the same run skips the check'; Args = @('-d', '-s', '--deps-dir', 'Z:\nope')
+       DryRun = $false; ExpectExit = 1
+       NotContains = @('Dependencies not found') }
+    # A configure fails before any compiler runs, so -v has nothing to show.
+    @{ Name = 'a configure failure is not offered a verbose rebuild'; Args = @('-d', '--deps-dir', 'Z:\nope')
+       DryRun = $false; ExpectExit = 1
+       Contains = @('-c     discard that tree')
+       NotContains = @('-v     show the failing') }
+    @{ Name = 'a build failure is'; Args = @('-s', '--no-configure')
+       DryRun = $false; ExpectExit = 1
+       Contains = @('-v     show the failing') }
+    # --build-dir names the slicer tree, which a deps failure has nothing to do
+    # with. --deps-dir stays, because that is the tree that failed.
+    @{ Name = 'a deps retry leaves out the slicer tree'; Args = @('-d', '-s', '--deps-dir', 'Z:\nope', '--build-dir', 'D:\b')
+       DryRun = $false; ExpectExit = 1
+       Contains = @('build_win.bat -d --deps-dir "Z:\nope" -c')
+       NotContains = @('--build-dir') }
+    @{ Name = 'an unknown configuration stays a single line'; Args = @('-s', '--config', 'bogus'); ExpectExit = 1
+       Contains = @('Unknown configuration')
+       NotContains = @('####', 'Try') }
+    @{ Name = 'a bad --jobs value is not framed either'; Args = @('-s', '-j', 'x'); ExpectExit = 1
+       Contains = @('Invalid --jobs value')
+       NotContains = @('####') }
 
-    'dry run side effects'
-    @{ Name = 'a dry run only echoes, it never configures'; Args = @('-d')
-       Contains = @('+ cmake')
-       NotContains = @('CMake Error', 'Configuring done') }
+    'the summary says what to do next'
+    # Every suggested command carries the flags that reproduce this run.
+    @{ Name = 'a deps build points at the slicer build'; Args = @('-d', '-l')
+       Contains = @('Build the slicer      build_win.bat -s -l')
+       NotContains = @('Run it') }
+    @{ Name = 'a ninja slicer build offers a single target'; Args = @('-s', '-l', '-x')
+       Contains = @('Rebuild after edits   build_win.bat -s -l -x --no-configure', 'Rebuild one target')
+       NotContains = @('Solution', 'Open in Visual Studio') }
+    @{ Name = 'a visual studio build names the solution instead'; Args = @('-s')
+       Contains = @('Solution      ', 'Open in Visual Studio build\OrcaSlicer.sln',
+                    'Rebuild after edits   build_win.bat -s --no-configure')
+       NotContains = @('Rebuild one target') }
+    @{ Name = 'the configuration and architecture come back'; Args = @('-s', '-l', '-x', '--config', 'debug', '--arch', 'arm64')
+       Contains = @('build_win.bat -s -l -x --config debug --arch arm64 --no-configure') }
+    @{ Name = 'the tree overrides come back quoted'; Args = @('-s', '--deps-dir', 'D:\d', '--build-dir', 'D:\b')
+       Contains = @('--deps-dir "D:\d" --build-dir "D:\b"') }
+    @{ Name = 'a pinned visual studio release comes back'; Args = @('-s', '--vs', '2022')
+       Contains = @('build_win.bat -s --vs 2022 --no-configure') }
+    # Autodetection writes what it found into the same variable, so a detected
+    # release must not come back as though it had been asked for.
+    @{ Name = 'a detected release does not'; Args = @('-s')
+       NotContains = @('--vs') }
+    @{ Name = 'the binary is named in the build tree it was built in'; Args = @('-s', '-l', '-x')
+       Contains = @('build-clang\src\Release\orca-slicer.exe') }
+    @{ Name = 'installing names the installed copy instead'; Args = @('-s', '-l', '-x', '-i')
+       Contains = @('build-clang\OrcaSlicer\orca-slicer.exe') }
+    # -i changes where the binary lands, so a rebuild that dropped it would
+    # leave the path above pointing at a stale copy.
+    @{ Name = 'the rebuild suggestion keeps -i'; Args = @('-s', '-l', '-x', '-i')
+       Contains = @('Rebuild after edits   build_win.bat -s -l -x -i --no-configure') }
+    # A deps retry has no install step to repeat.
+    @{ Name = 'a deps retry drops it'; Args = @('-d', '-s', '-i', '--deps-dir', 'Z:\nope')
+       DryRun = $false; ExpectExit = 1
+       Contains = @('build_win.bat -d --deps-dir "Z:\nope" -c')
+       NotContains = @('-d -i') }
+    # Naming a target builds it and its dependencies, not its dependents, so
+    # the binary on disk is whatever the last full build left there.
+    @{ Name = 'a single-target build does not claim the whole binary'; Args = @('-s', '-l', '-x', '--slicer-target', 'glad')
+       Contains = @('Target        glad', 'Relink the binary     build_win.bat -s -l -x --no-configure')
+       NotContains = @('Run it', 'orca-slicer.exe', 'Rebuild after edits') }
+    # The executable has a target of its own, and naming that one does relink.
+    @{ Name = 'naming the executable target still claims the binary'; Args = @('-s', '-l', '-x', '--slicer-target', 'OrcaSlicer')
+       Contains = @('Run it', 'orca-slicer.exe', 'Rebuild after edits')
+       NotContains = @('Target        OrcaSlicer', 'Relink the binary') }
+    @{ Name = '--run-tests offers the ctest line'; Args = @('-s', '-l', '-x', '--run-tests')
+       Contains = @('Re-run the tests      ctest --test-dir build-clang/tests -C Release') }
+    @{ Name = 'packing names the bundle and how to use it'; Args = @('-p', '-l')
+       Contains = @('Bundle        ', 'Share the bundle') }
+    # The line supplies its own tree, so the one this run used must not ride
+    # along and contradict it.
+    @{ Name = 'the bundle line names one tree, not two'; Args = @('-s', '-p', '-l', '-x', '--deps-dir', 'D:\shared')
+       Contains = @('then build_win.bat -s -l -x --deps-dir <path>')
+       NotContains = @('--deps-dir "D:\shared" --deps-dir') }
+    @{ Name = 'installing prerequisites suggests the build that follows'; Args = @('-u', '-l')
+       Contains = @('Restart this shell', 'build_win.bat -ds -l')
+       NotContains = @('Run it') }
+    # Everything below the header line is worked out the same way in either
+    # run, which is why a dry run can cover it.
+    @{ Name = 'a dry run does not claim a build happened'; Args = @('-s', '-l', '-x')
+       Contains = @('Dry run: nothing was built.')
+       NotContains = @('Build completed in') }
+    # --no-configure is the iteration loop and still gets the block; four
+    # lines after a rebuild is not enough to be worth suppressing.
+    @{ Name = '--no-configure still gets the summary'; Args = @('-s', '-l', '-x', '--no-configure')
+       Contains = @('Next', 'Rebuild after edits') }
+
+    'pointing at the solution'
+    @{ Name = 'the VS generator says where the solution is'; Args = @('-s')
+       Match = @('^  Solution      .*\\build\\OrcaSlicer\.sln$') }
+    @{ Name = 'the solution path follows the configuration'; Args = @('-s', '--config', 'debug')
+       Match = @('^  Solution      .*\\build-dbg\\OrcaSlicer\.sln$') }
+    @{ Name = 'the solution line survives an install'; Args = @('-s', '-i')
+       Contains = @('  Solution      ') }
+    # The path is resolved, not pasted onto the repository root, so it is
+    # right whether --build-dir came absolute or with forward slashes.
+    @{ Name = 'a moved build still prints one real path'; Args = @('-s', '--build-dir', 'out/build/x64-clang')
+       Match = @('^  Solution      [A-Za-z]:\\[^/]+\\OrcaSlicer\.sln$') }
+    @{ Name = 'an absolute --build-dir is not glued onto the repo root'; Args = @('-s', '--build-dir', 'D:\tree')
+       Contains = @('Solution      D:\tree\OrcaSlicer.sln') }
 )
 
 function Invoke-BuildScript {
@@ -640,12 +774,19 @@ function Test-Case {
 
 $pass = 0
 $failed = @()
+# Held back so a filtered run does not print headings for groups it skipped.
+$heading = $null
 
 foreach ($case in $cases) {
     if ($case -is [string]) {
-        Write-Host ''
-        Write-Host $case -ForegroundColor Cyan
+        $heading = $case
         continue
+    }
+    if ($Name -and $case['Name'] -notmatch $Name) { continue }
+    if ($heading) {
+        Write-Host ''
+        Write-Host $heading -ForegroundColor Cyan
+        $heading = $null
     }
 
     $problems = Test-Case -Case $case
@@ -663,6 +804,12 @@ foreach ($case in $cases) {
 Remove-Item -Recurse -Force $fixtures -ErrorAction SilentlyContinue
 
 Write-Host ''
+# A pattern that matched nothing has proved nothing, so do not report it as
+# a clean run.
+if ($Name -and $pass -eq 0 -and $failed.Count -eq 0) {
+    Write-Host "no case matched /$Name/" -ForegroundColor Red
+    exit 1
+}
 Write-Host "$pass passed, $($failed.Count) failed"
 if ($failed.Count -gt 0) {
     foreach ($name in $failed) { Write-Host "  failed: $name" -ForegroundColor Red }

@@ -29,7 +29,7 @@ REM Every use of it is inside a parenthesised block, and an exit /b there
 REM ends the script but leaves the process exit code at zero, so a failed
 REM build reported success. goto unwinds the block first.
 set "repeat_error=if not ^!errorlevel^! == 0 exit /b ^!errorlevel^!"
-set "error_check=if not ^!errorlevel^! == 0 (set rc=^!errorlevel^! & goto :die)"
+set "error_check=if not ^!errorlevel^! == 0 (set rc=^!errorlevel^!& goto :die)"
 
 set VSWHERE="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 
@@ -52,6 +52,7 @@ call :add_arg target_arch string "" arch "x64 or arm64 (default: the host archit
 call :add_arg slicer_asan bool a asan "Build the slicer with ASAN enabled"
 call :add_arg build_tests bool "" tests "Build the unit tests"
 call :add_arg run_tests bool "" run-tests "Build the unit tests and run them"
+call :add_arg install_slicer bool i install "Install into the build tree's OrcaSlicer folder"
 
 call :add_section "Toolchain"
 call :add_arg use_clang_cl bool l clang-cl "Use clang-cl as the compiler"
@@ -66,7 +67,6 @@ call :add_arg slicer_target string "" slicer-target "Build one slicer target ins
 call :add_arg deps_target string t deps-target "Build one dependency instead of all, e.g. dep_Boost"
 call :add_arg no_configure bool "" no-configure "Build the existing tree without configuring"
 call :add_arg no_gettext bool "" no-gettext "Skip regenerating the translations"
-call :add_arg no_install bool "" no-install "Skip the install step"
 call :add_arg jobs string j jobs "Limit the build to N parallel jobs"
 call :add_arg clean bool c clean "Remove the trees this run builds, deps with -d, slicer with -s"
 
@@ -199,8 +199,17 @@ if not "%install_vs%" == "" (
         exit /b 1
     )
 )
+REM Autodetection overwrites vs_version, so snapshot whether it was pinned.
+set "vs_pinned=%vs_version%"
+
 if not "%vs_version%" == "" if "%use_ninja%" == "ON" (
     echo --vs and --ninja select different generators.
+    exit /b 1
+)
+REM install(TARGETS OrcaSlicer) carries no OPTIONAL, so installing a tree
+REM whose executable was never built fails. Say so before the build starts.
+if "%build_slicer%" == "ON" if "%install_slicer%" == "ON" if not "%slicer_target%" == "" if /I not "%slicer_target%" == "OrcaSlicer" (
+    echo --install needs the executable, but --slicer-target names "%slicer_target%".
     exit /b 1
 )
 if not "%vs_version%" == "" if "!vs_gen_%vs_version%!" == "" (
@@ -275,21 +284,38 @@ if "%install_deps%" == "ON" (
     call :note_failed Git !errorlevel!
 
     if defined install_failed (
-        echo Failed to install:!install_failed!
+        set "die_reason=Failed to install:!install_failed!"
         set rc=1
         goto :die
     )
 
+    REM Flags to repeat back in the deferred build command.
+    set "next_flags="
+    if "%use_clang_cl%" == "ON" set "next_flags=!next_flags! -l"
+    if "%use_ninja%" == "ON" set "next_flags=!next_flags! -x"
+    if not "%target_arch%" == "" set "next_flags=!next_flags! --arch %target_arch%"
+
+    REM Name the build that was deferred, not a fuller one.
+    set "next_actions="
+    if "%build_deps%" == "ON" set "next_actions=!next_actions!d"
+    if "%build_slicer%" == "ON" set "next_actions=!next_actions!s"
+    if "%pack_deps%" == "ON" set "next_actions=!next_actions!p"
+    if "!next_actions!" == "" set "next_actions=ds"
+
+    echo.
+    echo -------------------------------------------------------------
     REM A dry run installed nothing, so do not report that it did.
     if "%dry_run%" == "ON" (
         echo Dry run: nothing was installed.
     ) else (
-        echo System dependencies are in place. Restart the shell to reload the environment.
+        echo Installed the prerequisites.
     )
-
-    REM The new PATH cannot reach this shell, so a build asked for alongside
-    REM the install has to run in the next one. Say so instead of dropping it.
-    if not "%build_deps%%build_slicer%%pack_deps%" == "" echo Run the build again in the new shell.
+    echo.
+    echo Next
+    REM The new PATH cannot reach this shell, so the build runs in the next one.
+    echo     Restart this shell so the new PATH takes effect, then
+    echo     build_win.bat -!next_actions!!next_flags!
+    echo -------------------------------------------------------------
     exit /b 0
 )
 
@@ -496,6 +522,25 @@ if "%using_ninja%" == "ON" (
 echo Parallel jobs: %jobs%
 :jobs_ready
 
+REM The flags that reproduce this run, for the commands the summary suggests.
+REM Kept in three parts because they are not all relevant everywhere: a deps
+REM retry has no use for --build-dir, and the bundle line names its own tree.
+set "recall_tc="
+if "%use_clang_cl%" == "ON" set "recall_tc=!recall_tc! -l"
+if "%using_ninja%" == "ON" set "recall_tc=!recall_tc! -x"
+if /I not "%config%" == "%cfg_default%" set "recall_tc=!recall_tc! --config %config%"
+if not "%target_arch%" == "" set "recall_tc=!recall_tc! --arch %target_arch%"
+if not "%vs_pinned%" == "" set "recall_tc=!recall_tc! --vs %vs_pinned%"
+if not "%clang_path%" == "" set "recall_tc=!recall_tc! --clang-path "%clang_path%""
+
+set "recall_i="
+if "%install_slicer%" == "ON" set "recall_i= -i"
+set "recall_dd="
+if not "%deps_dir%" == "" set "recall_dd= --deps-dir "%deps_dir%""
+set "recall_bd="
+if not "%slicer_dir%" == "" set "recall_bd= --build-dir "%slicer_dir%""
+set "recall=!recall_tc!!recall_i!!recall_dd!!recall_bd!"
+
 REM ===========================================================================
 REM  Running the build
 REM ===========================================================================
@@ -506,6 +551,9 @@ set CMAKE_POLICY_VERSION_MINIMUM=3.5
 set _START_TIME=%TIME%
 
 if "%build_deps%" == "ON" (
+    REM Which stage is running, so a failure can name it and suggest a
+    REM retry scoped to it rather than to the whole run.
+    set "stage=d"
     echo Building the dependencies...
 
     if "%clean%" == "ON" (
@@ -523,6 +571,7 @@ if "%build_deps%" == "ON" (
 )
 
 if "%pack_deps%" == "ON" (
+    set "stage=p"
     setlocal ENABLEDELAYEDEXPANSION
     call :print_and_run cd /d "!DEP_TREE_PACK!"
     %error_check%
@@ -535,7 +584,7 @@ if "%pack_deps%" == "ON" (
     set "build_date="
     for /f %%d in ('!ps! -NoProfile -Command "Get-Date -Format yyyyMMdd"') do set "build_date=%%d"
     if "!build_date!" == "" (
-        echo Could not read the date from !ps!.
+        set "die_reason=Could not read the date from !ps!."
         set rc=1
         goto :die
     )
@@ -549,28 +598,29 @@ if "%pack_deps%" == "ON" (
     set "dep_variant=!dep_variant!!dep_flavour!"
     echo Packing the dependencies: OrcaSlicer_dep_win-!dep_variant!_!build_date!.zip
 
-    REM tools\7z.exe loads its codecs from a 7z.dll beside it, and the repo
-    REM does not carry one, so it can only archive on a machine that has
-    REM 7-Zip installed. Windows has shipped bsdtar in System32 since 10
-    REM 1803 and it writes an ordinary deflate zip, so fall back to that
-    REM rather than failing on a machine that has everything it needs.
+    REM tools\7z.exe loads its codecs from a 7z.dll, and the repo does not
+    REM carry one, so it can only archive on a machine that has 7-Zip
+    REM installed. Windows has shipped bsdtar in System32 since 10 1803 and
+    REM it writes an ordinary deflate zip, so fall back to that rather than
+    REM failing on a machine that has everything it needs.
     set "zipper="
     if exist "%WP%\tools\7z.dll" set "zipper=%WP%/tools/7z.exe a"
     if not defined zipper if exist "%SystemRoot%\System32\tar.exe" set "zipper=%SystemRoot%\System32\tar.exe -a -c -f"
     if not defined zipper (
-        echo No archiver. tools\7z.exe needs a 7z.dll beside it, and this
-        echo Windows has no System32\tar.exe. Install 7-Zip, or copy its
-        echo 7z.dll into tools\.
+        set "die_reason=No archiver. tools\7z.exe needs a 7z.dll, and this Windows has no System32\tar.exe."
+        set "die_hint=Install 7-Zip, or copy its 7z.dll into tools\."
         set rc=1
         goto :die
     )
 
     call :print_and_run !zipper! OrcaSlicer_dep_win-!dep_variant!_!build_date!.zip OrcaSlicer_dep
     %error_check%
-    endlocal
+    REM endlocal is about to discard the name, so carry the path out with it.
+    for %%z in ("!DEP_TREE_PACK!\OrcaSlicer_dep_win-!dep_variant!_!build_date!.zip") do endlocal & set "bundle=%%~fz"
 )
 
 if "%build_slicer%" == "ON" (
+    set "stage=s"
     echo Building OrcaSlicer...
 
     if "%clean%" == "ON" (
@@ -580,6 +630,17 @@ if "%build_slicer%" == "ON" (
 
     if "%slicer_asan%" == "ON" (
         set "slicer_args=!slicer_args! -DSLIC3R_ASAN=ON"
+    )
+
+    REM Configuring against a tree that was never built fails deep inside
+    REM package resolution. Name it here instead. Skipped when -d is about to
+    REM build it in this same run, and under a dry run, which configures
+    REM nothing and must not depend on what happens to be on the machine.
+    if not "%dry_run%" == "ON" if not "%no_configure%" == "ON" if not "%build_deps%" == "ON" if not exist "!DEP_TREE!\OrcaSlicer_dep\usr\local\" (
+        for %%p in ("!DEP_TREE!") do set "die_reason=Dependencies not found at %%~fp"
+        set "die_hint=Build them with -d, or point at another tree with --deps-dir."
+        set rc=1
+        goto :die
     )
 
     if not "%no_configure%" == "ON" (
@@ -600,13 +661,10 @@ if "%build_slicer%" == "ON" (
         %error_check%
     )
 
-    if not "%no_install%" == "ON" (
+    if "%install_slicer%" == "ON" (
         call :print_and_run cmake --build "%build_dir%" --target install --config %build_type%
         %error_check%
     )
-
-    REM The Visual Studio generator leaves a solution behind; say where.
-    if not "%using_ninja%" == "ON" echo Solution: %build_full%\OrcaSlicer.sln
 )
 
 REM Elapsed wall clock. The 1%%a-100 trick strips a leading zero, which set /A
@@ -620,19 +678,87 @@ set /a "_hours=_elapsed / 3600"
 set /a "_remainder=_elapsed - _hours * 3600"
 set /a "_mins=_remainder / 60"
 set /a "_secs=_remainder - _mins * 60"
-echo.
-echo Build completed in %_hours%h %_mins%m %_secs%s
-
+call :summary
 exit /b 0
 
 REM Reached only by error_check, from the top level, where exit /b works.
+REM The hash block is what CMakeLists already uses for a build that cannot
+REM continue, so it means the same thing here.
 :die
-echo Exiting script with code %rc%
+echo.
+echo #############################################################
+REM The paths that set die_reason had no command fail, so last_cmd there
+REM names one that succeeded.
+if defined die_reason echo !die_reason!
+if not defined die_reason if defined last_cmd echo Failed: !last_cmd!
+if defined die_hint echo !die_hint!
+echo Exit code %rc%.
+REM -v only makes the build verbose, so it has nothing to offer a configure
+REM that failed before any compiler ran.
+set "failed_configure="
+if "!last_cmd:~0,9!" == "cmake -B " set "failed_configure=ON"
+if "!last_cmd:~0,9!" == "cmake -S " set "failed_configure=ON"
+REM Scoped to the stage that failed. Offering -c for the whole run would
+REM discard a dependency tree that was not at fault, and neither flag does
+REM anything for a failed pack. A named reason already carries its own advice.
+if "!stage!" == "d" set "recall=!recall_tc!!recall_dd!"
+if not defined die_reason if defined stage if not "!stage!" == "p" (
+    echo.
+    echo Try
+    if not defined failed_configure echo     build_win.bat -!stage!!recall! -v     show the failing compiler command line
+    echo     build_win.bat -!stage!!recall! -c     discard that tree and configure from scratch
+)
+echo #############################################################
 exit /b %rc%
 
 REM ===========================================================================
 REM  Function definitions
 REM ===========================================================================
+
+REM summary - what was produced, and what to do with it next. A dry run says
+REM so rather than claiming the files exist, but every line below that is
+REM worked out the same way in either run.
+:summary
+    for %%p in ("!DEP_TREE!") do set "dep_full=%%~fp"
+    REM The binary only leaves the build tree when it is installed.
+    set "slicer_exe=%build_dir%\src\%build_type%\orca-slicer.exe"
+    if "%install_slicer%" == "ON" set "slicer_exe=%build_dir%\OrcaSlicer\orca-slicer.exe"
+    for %%p in ("!slicer_exe!") do set "slicer_full=%%~fp"
+    REM Naming a target builds it and its dependencies, not its dependents,
+    REM so only a full build or the executable's own target relinks.
+    set "linked=ON"
+    if not "%slicer_target%" == "" set "linked="
+    if /I "%slicer_target%" == "OrcaSlicer" set "linked=ON"
+
+    echo.
+    echo -------------------------------------------------------------
+    if "%dry_run%" == "ON" (
+        echo Dry run: nothing was built. A real run would report:
+    ) else (
+        echo Build completed in %_hours%h %_mins%m %_secs%s
+    )
+
+    if "%build_deps%" == "ON" echo   Dependencies  !dep_full!
+    if "%build_slicer%" == "ON" if "%linked%" == "ON" echo   OrcaSlicer    !slicer_full!
+    if "%build_slicer%" == "ON" if not "%linked%" == "ON" echo   Target        %slicer_target%
+    if "%build_slicer%" == "ON" if not "%using_ninja%" == "ON" echo   Solution      %build_full%\OrcaSlicer.sln
+    if "%pack_deps%" == "ON" if defined bundle echo   Bundle        !bundle!
+
+    echo.
+    echo Next
+    if "%build_slicer%" == "ON" (
+        if "%linked%" == "ON" echo     Run it                !slicer_exe!
+        if not "%using_ninja%" == "ON" echo     Open in Visual Studio %build_dir%\OrcaSlicer.sln
+        if "%linked%" == "ON" echo     Rebuild after edits   build_win.bat -s!recall! --no-configure
+        if not "%linked%" == "ON" echo     Relink the binary     build_win.bat -s!recall! --no-configure
+        if "%linked%" == "ON" if "%using_ninja%" == "ON" echo     Rebuild one target    build_win.bat -s!recall! --no-configure --slicer-target libslic3r
+        if "%run_tests%" == "ON" echo     Re-run the tests      ctest --test-dir %build_dir%/tests -C %build_type% --output-on-failure
+    ) else (
+        if "%build_deps%" == "ON" echo     Build the slicer      build_win.bat -s!recall!
+    )
+    if "%pack_deps%" == "ON" echo     Share the bundle      unzip it elsewhere, then build_win.bat -s!recall_tc! --deps-dir ^<path^>
+    echo -------------------------------------------------------------
+    exit /b 0
 
 :debug_msg
     if "%debugscript%" == "ON" echo %*
@@ -991,6 +1117,9 @@ REM A drive root keeps its own: "C:\" is not the same place as "C:".
 REM print_and_run <command...>
 :print_and_run
     echo + %*
+    REM Recorded before the command runs. A set afterwards would clear the
+    REM errorlevel the next line returns, reporting every failure as a pass.
+    set "last_cmd=%*"
     if not "%dry_run%" == "ON" (
         %*
         exit /b !errorlevel!
