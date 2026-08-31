@@ -413,7 +413,7 @@ static std::string to_string(libvgcode::EGCodeExtrusionRole role)
     }
 }
 
-void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type)
+void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type, bool has_overhang_metadata)
 {
     static bool properties_shown = false;
     
@@ -532,11 +532,14 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             add_row(_u8L("Line Type"), is_extrusion ? _u8L(to_string(vertex.role)) : NA_TXT);
             if (is_extrusion) sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), vertex.width); else strcpy(buff, NA_CSTR);
             add_row(_u8L("Width"), buff);
-            // Orca: Include both the stored percentage and derived angle in the expanded table.
-            if (is_extrusion) sprintf(buff, "%.1f %%", vertex.overhang_percentage); else strcpy(buff, NA_CSTR);
-            add_row(_u8L("Overhang") + " (%)", buff);
-            if (is_extrusion) sprintf(buff, "%.1f %s", vertex.overhang_degree(), "°"); else strcpy(buff, NA_CSTR);
-            add_row(_u8L("Overhang") + " (°)", buff);
+            // Orca: Missing metadata is not evidence of a fully supported wall. Match the selector's
+            // availability rule, but retain both representations for files that actually provide them.
+            if (has_overhang_metadata) {
+                if (is_extrusion) sprintf(buff, "%.1f %%", vertex.overhang_percentage); else strcpy(buff, NA_CSTR);
+                add_row(_u8L("Overhang") + " (%)", buff);
+                if (is_extrusion) sprintf(buff, "%.1f %s", vertex.overhang_degree(), "°"); else strcpy(buff, NA_CSTR);
+                add_row(_u8L("Overhang") + " (°)", buff);
+            }
             if (is_extrusion) sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), vertex.height); else strcpy(buff, NA_CSTR);
             add_row(_u8L("Height"), buff);
             // ORCA: Length of the move ending at the current vertex. Arc moves (G2/G3) are discretized
@@ -1126,10 +1129,10 @@ void GCodeViewer::SequentialView::render_marker(const bool has_render_path, int 
     }
 }
 
-void GCodeViewer::SequentialView::render_overlay(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type)
+void GCodeViewer::SequentialView::render_overlay(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type, bool has_overhang_metadata)
 {
     if (has_render_path && m_show_marker)
-        marker.render_position_window(viewer, canvas_width, canvas_height, view_type);
+        marker.render_position_window(viewer, canvas_width, canvas_height, view_type, has_overhang_metadata);
 
     //float bottom = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size().get_height();
     // BBS
@@ -2575,7 +2578,7 @@ void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_
         m_user_mode = wxGetApp().get_mode();
     }
 
-    m_sequential_view.render_overlay(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, sequential_view_height(canvas_height), right_margin * m_scale, m_viewer.get_view_type());
+    m_sequential_view.render_overlay(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, sequential_view_height(canvas_height), right_margin * m_scale, m_viewer.get_view_type(), m_has_overhang_metadata);
 
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     if (is_legend_shown()) {
