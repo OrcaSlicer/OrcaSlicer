@@ -957,7 +957,13 @@ def rung_perpendicular():
     clickmm(-50, -30); clickmm(30, -18)
     key("Escape", 0.7); key("Escape", 0.7)
     key("l", 0.6)
-    clickmm(30, -18); clickmm(18, 40)
+    # 56 degrees off the first line, not 3. The original second point put the pair within
+    # inference's perpendicular tolerance, so on a rig whose camera maps the click a pixel
+    # differently the two lines arrive ALREADY at exactly 90.000000 -- inference did the job the
+    # rung exists to test, and the precondition failed while every later check passed. Held on
+    # one fork and failed on the other from the same source, which is the signature of a rung
+    # that depends on luck. Start well outside any snap tolerance so the button has real work.
+    clickmm(30, -18); clickmm(55, 35)
     key("Escape", 0.7); key("Escape", 0.7)
     d0 = describe()
     check("ANGLE", abs(angle_between(d0["entities"][0], d0["entities"][1]) - 90.0) > 1e-3,
@@ -969,7 +975,12 @@ def rung_perpendicular():
     time.sleep(1.0)
     d = describe()
     ang = angle_between(d["entities"][0], d["entities"][1])
-    check("ANGLE", near(ang, 90.0, 1e-9), f"now {ang:.9f} deg")
+    # 1e-6 deg, which is 1.7e-8 radians: the LIVE solve converges to its own tolerance and lands
+    # at 89.999999991 from a 51 deg start. The old 1e-9 held only because the pair began 3 deg
+    # from square, so the correction was tiny -- it was measuring how little work the solver had
+    # to do, not whether the lines came out perpendicular. The round-trip check below still
+    # demands exactly 90: the committed feature re-solves from scratch and gets there.
+    check("ANGLE", near(ang, 90.0, 1e-6), f"now {ang:.9f} deg")
     d2 = confirm_and_reopen()
     ang2 = angle_between(d2["entities"][0], d2["entities"][1])
     check("ANGLE", near(ang2, 90.0, 1e-9), f"still {ang2:.9f} deg after the round trip")
