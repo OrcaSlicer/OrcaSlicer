@@ -1,5 +1,6 @@
 
 #include "libslic3r/Model.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/Format/3mf.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Format/STL.hpp"
@@ -495,5 +496,97 @@ SCENARIO("Nozzle-group metadata .3mf round-trip", "[3mf][MultiNozzle]") {
             release_PlateData_list(dst_plates);
         }
         delete plate;
+    }
+}
+
+
+// A mixed-color filament occupies an ordinary filament slot, and painting with it stores an
+// ordinary extruder state: a project saved by BambuStudio encodes filament 5 of a 5-slot setup
+// as paint state 5, with the mix described by the parallel filament_mixed_* project arrays.
+SCENARIO("Mixed-color filament setup and painting round-trip through a .3mf", "[3mf][MixedFilament]") {
+    GIVEN("a painted model whose project config describes a mixed filament in the last slot") {
+        Model model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+
+        // Both the exporter and the importer stage Metadata/project_settings.config through the
+        // model's backup path; point them at writable temp dirs.
+        ScopedTemporaryDir backup_dir("orca_mixed_src");
+        model.set_backup_path(backup_dir.string());
+
+        ModelVolume* mv = model.objects.front()->volumes.front();
+        {
+            TriangleSelector selector(mv->mesh());
+            selector.set_facet(0, EnforcerBlockerType::Extruder5); // the mixed slot
+            selector.set_facet(1, EnforcerBlockerType::Extruder2);
+            REQUIRE(mv->mmu_segmentation_facets.set(selector));
+        }
+
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_key_value("filament_colour", new ConfigOptionStrings(
+            { "#00AE42", "#FFFF00", "#FF0000", "#0000FF", "#FF6A26" }));
+        config.set_key_value("filament_is_mixed", new ConfigOptionBools(
+            { false, false, false, false, true }));
+        config.set_key_value("filament_mixed_components", new ConfigOptionStrings(
+            { "", "", "", "", "3,2" }));
+        config.set_key_value("filament_mixed_sublayer_ratios", new ConfigOptionStrings(
+            { "", "", "", "", "0.4200,0.5800" }));
+
+        WHEN("stored to and reloaded from a .3mf") {
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
+
+            PlateData* plate = new PlateData();
+            plate->plate_index = 0;
+
+            StoreParams store_params;
+            store_params.path     = test_file.c_str();
+            store_params.model    = &model;
+            store_params.config   = &config;
+            store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+            store_params.plate_data_list.push_back(plate);
+            REQUIRE(store_bbs_3mf(store_params));
+
+            Model dst_model;
+            ScopedTemporaryDir dst_backup_dir("orca_mixed_dst");
+            dst_model.set_backup_path(dst_backup_dir.string());
+            DynamicPrintConfig dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs        dst_plates;
+            std::vector<Preset*> project_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            REQUIRE(load_bbs_3mf(test_file.c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                 &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                 LoadStrategy::LoadModel | LoadStrategy::LoadConfig));
+
+            THEN("the mixed-filament project keys survive") {
+                auto* is_mixed = dst_config.option<ConfigOptionBools>("filament_is_mixed");
+                REQUIRE(is_mixed != nullptr);
+                REQUIRE(is_mixed->values == std::vector<unsigned char>({ 0, 0, 0, 0, 1 }));
+
+                auto* components = dst_config.option<ConfigOptionStrings>("filament_mixed_components");
+                REQUIRE(components != nullptr);
+                REQUIRE(components->values.size() == 5);
+                REQUIRE(components->values[4] == "3,2");
+
+                auto* ratios = dst_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios");
+                REQUIRE(ratios != nullptr);
+                REQUIRE(ratios->values.size() == 5);
+                REQUIRE(ratios->values[4] == "0.4200,0.5800");
+            }
+
+            THEN("the painted facets survive, including the one painted with the mixed slot") {
+                REQUIRE(dst_model.objects.size() == 1);
+                ModelVolume* dst_mv = dst_model.objects.front()->volumes.front();
+                REQUIRE_FALSE(dst_mv->mmu_segmentation_facets.empty());
+                REQUIRE(dst_mv->mmu_segmentation_facets.has_facets(*dst_mv, EnforcerBlockerType::Extruder2));
+                REQUIRE(dst_mv->mmu_segmentation_facets.has_facets(*dst_mv, EnforcerBlockerType::Extruder5));
+            }
+
+            release_PlateData_list(dst_plates);
+            delete plate; // store_bbs_3mf does not take ownership of the source plate
+        }
     }
 }

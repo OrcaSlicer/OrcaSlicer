@@ -6,7 +6,7 @@
 *  \n class wgtDeviceNozzleRackNozzleItem;
 *  \n class wgtDeviceNozzleRackToolHead;
 *  \n class wgtDeviceNozzleRackPos;
-//**********************************************************/
+************************************************************/
 
 #include "wgtDeviceNozzleRack.h"
 #include "wgtDeviceNozzleRackUpdate.h"

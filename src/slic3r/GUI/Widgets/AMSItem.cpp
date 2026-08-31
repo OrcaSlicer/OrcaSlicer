@@ -325,7 +325,7 @@ AMSrefresh::AMSrefresh(wxWindow *parent, std::string ams_id, wxString can_id, Ca
     m_can_id = can_id.ToStdString();
     create(parent, wxID_ANY, pos, size);
 
-    Update(ams_id, info);
+    UpdateInfo(ams_id, info);
 }
 
 AMSrefresh::AMSrefresh(wxWindow *parent, std::string ams_id, int can_id, Caninfo info, const wxPoint &pos, const wxSize &size) : AMSrefresh()
@@ -333,7 +333,7 @@ AMSrefresh::AMSrefresh(wxWindow *parent, std::string ams_id, int can_id, Caninfo
     m_can_id = wxString::Format("%d", can_id).ToStdString();
     create(parent, wxID_ANY, pos, size);
 
-    Update(ams_id, info);
+    UpdateInfo(ams_id, info);
 }
 
  AMSrefresh::~AMSrefresh()
@@ -482,7 +482,7 @@ void AMSrefresh::paintEvent(wxPaintEvent &evt)
     dc.DrawText(m_refresh_id, pot);
 }
 
-void AMSrefresh::Update(std::string ams_id, Caninfo info)
+void AMSrefresh::UpdateInfo(std::string ams_id, Caninfo info)
 {
     if (m_ams_id == ams_id && m_info == info)
     {
@@ -945,7 +945,7 @@ AMSLib::AMSLib(wxWindow *parent, std::string ams_idx, Caninfo info, AMSModelOrig
     Bind(wxEVT_LEAVE_WINDOW, &AMSLib::on_leave_window, this);
     Bind(wxEVT_LEFT_DOWN, &AMSLib::on_left_down, this);
 
-    Update(info, ams_idx, false);
+    UpdateInfo(info, ams_idx, false);
 }
 
 AMSLib::~AMSLib()
@@ -1730,7 +1730,7 @@ void AMSLib::on_pass_road(bool pass)
     }
 }
 
-void AMSLib::Update(Caninfo info, std::string ams_idx, bool refresh)
+void AMSLib::UpdateInfo(Caninfo info, std::string ams_idx, bool refresh)
 {
     DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (!dev) return;
@@ -1868,7 +1868,7 @@ AMSRoad::AMSRoad(wxWindow *parent, wxWindowID id, Caninfo info, int canindex, in
 
 void AMSRoad::create(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size) { wxWindow::Create(parent, id, pos, size); }
 
-void AMSRoad::Update(AMSinfo amsinfo, Caninfo info, int canindex, int maxcan)
+void AMSRoad::UpdateInfo(AMSinfo amsinfo, Caninfo info, int canindex, int maxcan)
 {
     m_amsinfo = amsinfo;
     m_info     = info;
@@ -2083,9 +2083,6 @@ void AMSRoad::OnPassRoad(std::vector<AMSPassRoadMode> prord_list)
     }
 }
 
-/*
-
-
 /*************************************************
 Description:AMSRoadUpPart
 **************************************************/
@@ -2124,7 +2121,7 @@ void AMSRoadUpPart::create(wxWindow* parent, wxWindowID id, const wxPoint& pos, 
     Refresh();
 }
 
-void AMSRoadUpPart::Update(AMSinfo amsinfo)
+void AMSRoadUpPart::UpdateInfo(AMSinfo amsinfo)
 {
     if (m_amsinfo != amsinfo)
     {
@@ -2616,7 +2613,7 @@ void AMSPreview::Close()
     Hide();
 }
 
-void AMSPreview::Update(AMSinfo amsinfo)
+void AMSPreview::UpdateInfo(AMSinfo amsinfo)
 {
     if (m_amsinfo == amsinfo)
     {
@@ -2954,7 +2951,7 @@ AMSHumidity::AMSHumidity(wxWindow* parent, wxWindowID id, AMSinfo info, const wx
         }
         });
 
-    Update(info);
+    UpdateInfo(info);
 }
 
 void AMSHumidity::create(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size) {
@@ -2963,7 +2960,7 @@ void AMSHumidity::create(wxWindow* parent, wxWindowID id, const wxPoint& pos, co
 }
 
 
-void AMSHumidity::Update(AMSinfo amsinfo)
+void AMSHumidity::UpdateInfo(AMSinfo amsinfo)
 {
     if (m_amsinfo != amsinfo)
     {
@@ -3380,7 +3377,7 @@ void AmsItem::AddLiteCan(Caninfo caninfo, int canindex, wxGridSizer* sizer)
     //m_can_road_list[caninfo.can_id] = m_panel_road;
 }
 
-void AmsItem::Update(AMSinfo info)
+void AmsItem::UpdateInfo(AMSinfo info)
 {
     if (m_info == info)
     {
@@ -3392,7 +3389,7 @@ void AmsItem::Update(AMSinfo info)
 
     if (m_humidity)
     {
-        m_humidity->Update(m_info);
+        m_humidity->UpdateInfo(m_info);
     }
 
     for (int i = 0; i < m_can_count; i++) {
@@ -3401,7 +3398,7 @@ void AmsItem::Update(AMSinfo info)
 
         auto refresh = it->second;
         if (refresh != nullptr){
-            refresh->Update(info.ams_id, info.cans[i]);
+            refresh->UpdateInfo(info.ams_id, info.cans[i]);
             refresh->Show();
         }
     }
@@ -3410,7 +3407,7 @@ void AmsItem::Update(AMSinfo info)
         AMSLib* lib = m_can_lib_list[std::to_string(i)];
         if (lib != nullptr){
             if (i < m_can_count){
-                lib->Update(info.cans[i], info.ams_id);
+                lib->UpdateInfo(info.cans[i], info.ams_id);
                 lib->Show();
             }
             else{
@@ -3419,12 +3416,7 @@ void AmsItem::Update(AMSinfo info)
         }
     }
     if (m_panel_road != nullptr){
-        m_panel_road->Update(m_info);
-    }
-
-    if (true || m_ams_model == AMSModel::GENERIC_AMS) {
-        /*m_panel_road->Update(m_info, info.cans[0]);
-        m_panel_road->Show();*/
+        m_panel_road->UpdateInfo(m_info);
     }
 
     Layout();
