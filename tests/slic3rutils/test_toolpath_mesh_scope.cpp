@@ -101,3 +101,25 @@ TEST_CASE("Complete mesh includes and caps a terminal extrusion segment", "[Tool
     CHECK(mesh.indices.size() == 72);
     CHECK(mesh.bounds.max.x() > 20.0);
 }
+
+TEST_CASE("Complete mesh supports vertical extrusion segments", "[ToolpathMeshBuilder][Regression]")
+{
+    libvgcode::GCodeInputData data;
+    data.tools_colors.push_back({255, 0, 0});
+    auto bottom = extrusion(0.0f, 1);
+    auto middle = extrusion(0.0f, 2);
+    auto top = extrusion(0.0f, 3);
+    bottom.position = {0.0f, 0.0f, 0.0f};
+    middle.position = {0.0f, 0.0f, 10.0f};
+    top.position = {0.0f, 0.0f, 20.0f};
+    data.vertices = {bottom, middle, top};
+
+    const auto mesh = Slic3r::GUI::build_preview_triangle_mesh(data);
+    REQUIRE_FALSE(mesh.vertices.empty());
+    for (const auto& vertex : mesh.vertices) {
+        CHECK(vertex.position.allFinite());
+        CHECK(vertex.normal.allFinite());
+    }
+    CHECK(mesh.bounds.min.z() < 0.0);
+    CHECK(mesh.bounds.max.z() > 20.0);
+}

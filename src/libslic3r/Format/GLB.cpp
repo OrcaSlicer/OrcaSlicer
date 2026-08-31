@@ -375,9 +375,15 @@ void Slic3r::store_glb(const char* path, const TriangleMesh* mesh)
         const Vec3f& a = mesh->its.vertices[size_t(face[0])];
         const Vec3f& b = mesh->its.vertices[size_t(face[1])];
         const Vec3f& c = mesh->its.vertices[size_t(face[2])];
+        if (!a.allFinite() || !b.allFinite() || !c.allFinite())
+            throw std::invalid_argument("GLB input mesh contains a non-finite position");
         Vec3f normal = (b - a).cross(c - a);
-        if (normal.squaredNorm() > 0.0f)
-            normal.normalize();
+        const float normal_length_squared = normal.squaredNorm();
+        if (!std::isfinite(normal_length_squared))
+            throw std::invalid_argument("GLB input mesh contains an invalid face");
+        if (normal_length_squared == 0.0f)
+            continue;
+        normal /= std::sqrt(normal_length_squared);
         for (size_t corner = 0; corner < 3; ++corner) {
             const Vec3f& position = mesh->its.vertices[size_t(face[int(corner)])];
             scene.vertices.push_back({{{position.x(), position.y(), position.z()}},
@@ -385,9 +391,15 @@ void Slic3r::store_glb(const char* path, const TriangleMesh* mesh)
             scene.indices.push_back(uint32_t(scene.indices.size()));
         }
     }
-    const auto bounds = mesh->bounding_box();
-    scene.bounds_min = {{float(bounds.min.x()), float(bounds.min.y()), float(bounds.min.z())}};
-    scene.bounds_max = {{float(bounds.max.x()), float(bounds.max.y()), float(bounds.max.z())}};
+    if (scene.vertices.empty())
+        throw std::invalid_argument("GLB input mesh contains no non-degenerate faces");
+    scene.bounds_min = scene.vertices.front().position;
+    scene.bounds_max = scene.vertices.front().position;
+    for (const GLB::Vertex& vertex : scene.vertices)
+        for (size_t axis = 0; axis < 3; ++axis) {
+            scene.bounds_min[axis] = std::min(scene.bounds_min[axis], vertex.position[axis]);
+            scene.bounds_max[axis] = std::max(scene.bounds_max[axis], vertex.position[axis]);
+        }
     scene.primitives.push_back({0, uint32_t(scene.indices.size()), -1, {}});
     store_glb(path, scene);
 }

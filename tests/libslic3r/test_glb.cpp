@@ -134,3 +134,29 @@ TEST_CASE("GLB stores a triangle mesh", "[GLB]")
     CHECK(info.index_count == mesh.its.indices.size() * 3);
     CHECK(info.primitive_count == 1);
 }
+
+TEST_CASE("GLB skips degenerate triangle mesh facets", "[GLB][Regression]")
+{
+    ScopedTemporaryDir directory("glb-degenerate-facet");
+    const boost::filesystem::path target = directory.path() / "mesh.glb";
+    TriangleMesh mesh({{0.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+                      {{0, 1, 2}, {0, 1, 1}});
+
+    store_glb(target.string().c_str(), &mesh);
+
+    const GLB::DocumentInfo info = GLB::validate(read_file(target));
+    CHECK(info.vertex_count == 3);
+    CHECK(info.index_count == 3);
+}
+
+TEST_CASE("GLB rejects triangle meshes without exportable facets", "[GLB][Regression]")
+{
+    ScopedTemporaryDir directory("glb-empty-mesh");
+    const boost::filesystem::path target = directory.path() / "mesh.glb";
+    TriangleMesh empty;
+    TriangleMesh degenerate({{0.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}, {{0, 1, 1}});
+
+    CHECK_THROWS_AS(store_glb(target.string().c_str(), &empty), std::invalid_argument);
+    CHECK_THROWS_AS(store_glb(target.string().c_str(), &degenerate), std::invalid_argument);
+    CHECK_FALSE(boost::filesystem::exists(target));
+}

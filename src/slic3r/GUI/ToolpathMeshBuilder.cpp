@@ -29,7 +29,10 @@ SegmentLocalAxes segment_local_axes(const Vec3f& v1, const Vec3f& v2)
     if (delta.squaredNorm() <= Direction_Epsilon * Direction_Epsilon)
         throw std::runtime_error("Degenerate libvgcode extrusion segment");
     axes.forward = delta.normalized();
-    axes.right = axes.forward.cross(Vec3f::UnitZ()).normalized();
+    axes.right = axes.forward.cross(Vec3f::UnitZ());
+    if (axes.right.squaredNorm() <= Direction_Epsilon * Direction_Epsilon)
+        axes.right = axes.forward.cross(Vec3f::UnitY());
+    axes.right.normalize();
     axes.up = axes.right.cross(axes.forward);
     return axes;
 }
