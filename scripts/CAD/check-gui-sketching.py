@@ -203,12 +203,6 @@ def leave_sketch():
     time.sleep(0.5)
 
 
-# Feature-tree rows, measured on the rig at 1920x1080: first row centre, then 23 px apart.
-# x=300, not the label: a second click ON the label opens the inline rename, and Delete then
-# edits the text instead of removing the feature.
-TREE_ROW0 = (300, 215)
-
-
 # EVERY absolute chrome coordinate below is written in the Snapmaker fork's layout and then
 # shifted by CHROME_DY, because this fork keeps mainline OrcaSlicer's top row (File / save /
 # undo / redo / Calibration, with the document title) which that fork does not have. The whole
@@ -222,6 +216,16 @@ TREE_ROW0 = (300, 215)
 CHROME_DY = int(os.environ.get("SNAPORCA_CHROME_DY", "26"))
 
 DESIGN_TAB = (128, 29 + CHROME_DY)
+
+# Feature-tree rows, measured on the rig at 1920x1080: first row centre, then 23 px apart.
+# x=300, not the label: a second click ON the label opens the inline rename, and Delete then
+# edits the text instead of removing the feature.
+#
+# CHROME_DY applies here too, and this was the one chrome constant that did not carry it. The
+# unshifted click lands 26 px BELOW the first row -- just past its 23 px height -- so the row is
+# never selected, Delete does nothing, and reset_document spends 40 rounds on it before dying
+# with "could not empty the feature tree". That names the feature tree, which is not the fault.
+TREE_ROW0 = (300, 215 + CHROME_DY)
 
 
 def go_design():
