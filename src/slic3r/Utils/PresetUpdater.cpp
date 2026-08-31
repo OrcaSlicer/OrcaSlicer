@@ -283,7 +283,7 @@ void PresetUpdater::priv::set_download_prefs(AppConfig *app_config)
 	version_check_url = app_config->version_check_url();
 
 	auto profile_update_url = app_config->profile_update_url();
-	if (!profile_update_url.empty())
+	if (!profile_update_url.empty() && app_config->get_bool("enable_ota"))
 		enabled_config_update = true;
 	else
 		enabled_config_update = false;
@@ -1055,6 +1055,10 @@ void PresetUpdater::priv::check_installed_vendor_profiles() const
     BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:Checking whether the profile from resource is newer";
 
     AppConfig *app_config = GUI::wxGetApp().app_config;
+
+    if (!app_config->get_bool("enable_ota"))
+        return;
+
     const auto enabled_vendors = app_config->vendors();
 
     std::set<std::string> bundles;
