@@ -3,7 +3,6 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
@@ -23114,29 +23113,6 @@ msgstr ""
 
 #~ msgid "Maximum detour distance for avoiding crossing wall. Don't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. Zero to disable."
 #~ msgstr "Hormak gurutzatzea saihesteko gehieneko desbideratze-distantzia. Ez desbideratu distantzia balio hau baino handiagoa bada. Desbideratze-luzera balio absolutu gisa edo lekualdatze-ibilbide zuzenaren ehuneko gisa zehaztu daiteke (adibidez, 50%). Zero, desgaitzeko."
-
-#~ #,fuzzy
-msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
-#~ msgstr "Ohearen tenperatura hasierakoa ez diren geruzetarako. 0 balioak esan nahi du filamentuak ez duela plaka hotzean inprimatzea onartzen."
-
-#~ msgid "°C"
-#~ msgstr "°C"
-
-#~ #,fuzzy
-msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
-#~ msgstr "Ohearen tenperatura hasierakoa ez diren geruzetarako. 0 balioak esan nahi du filamentuak ez duela testuradun plaka hotzean inprimatzea onartzen."
-
-#~ #,fuzzy
-msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
-#~ msgstr "Ohearen tenperatura hasierakoa ez diren geruzetarako. 0 balioak esan nahi du filamentuak ez duela ingeniaritza-plakan inprimatzea onartzen."
-
-#~ #,fuzzy
-msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
-#~ msgstr "Ohearen tenperatura hasierakoa ez diren geruzetarako. 0 balioak esan nahi du filamentuak ez duela tenperatura altuko plakan inprimatzea onartzen."
-
-#~ #,fuzzy
-msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
-#~ msgstr "Ohearen tenperatura hasierakoa ez diren geruzetarako. 0 balioak esan nahi du filamentuak ez duela testuradun PEI plakan inprimatzea onartzen."
 
 #~ msgid "Initial layer"
 #~ msgstr "Hasierako geruza"

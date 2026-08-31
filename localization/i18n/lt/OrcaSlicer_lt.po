@@ -3,7 +3,6 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
@@ -22600,26 +22599,6 @@ msgstr ""
 
 #~ msgid "Maximum detour distance for avoiding crossing wall. Don't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. Zero to disable."
 #~ msgstr "Maksimalus apylankos atstumas sienelių kirtimui išvengti. Apylanka nedaroma, jei jos atstumas viršija šią reikšmę. Apylankos ilgis gali būti nurodomas absoliučia verte arba procentais (pavyzdžiui, 50 %) nuo tiesioginio judėjimo trajektorijos. Įrašius 0 – funkcija išjungiama."
-
-#~ #,fuzzy
-msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
-#~ msgstr "Pagrindo temperatūra visiems sluoksniams, išskyrus pirmąjį. Reikšmė 0 reiškia, kad ši gija nepritaikyta spausdinti ant šalto pagrindo (Cool Plate)."
-
-#~ #,fuzzy
-msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
-#~ msgstr "Pagrindo temperatūra visiems sluoksniams, išskyrus pirmąjį. Reikšmė 0 reiškia, kad ši gija nepritaikyta spausdinti ant tekstūruoto šalto pagrindo (Textured Cool Plate)."
-
-#~ #,fuzzy
-msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
-#~ msgstr "Pagrindo temperatūra visiems sluoksniams, išskyrus pirmąjį. Reikšmė 0 reiškia, kad ši gija nepritaikyta spausdinti ant inžinerinio pagrindo (Engineering Plate)."
-
-#~ #,fuzzy
-msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
-#~ msgstr "Pagrindo temperatūra visiems sluoksniams, išskyrus pirmąjį. Reikšmė 0 reiškia, kad ši gija nepritaikyta spausdinti ant aukštos temperatūros pagrindo (High Temp Plate)."
-
-#~ #,fuzzy
-msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
-#~ msgstr "Pagrindo temperatūra visiems sluoksniams, išskyrus pirmąjį. Reikšmė 0 reiškia, kad ši gija nepritaikyta spausdinti ant tekstūruoto PEI pagrindo (Textured PEI Plate)."
 
 #~ msgid "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 #~ msgstr "Pirmojo sluoksnio pagrindo temperatūra. Reikšmė 0 reiškia, kad ši gija nepritaikyta spausdinti ant „Cool Plate SuperTack“ pagrindo."
