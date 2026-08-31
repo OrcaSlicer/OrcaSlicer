@@ -4124,15 +4124,29 @@ Preset *PresetBundle::get_similar_printer_preset(std::string printer_model, std:
         boost::replace_all(prefer_printer, printer_variant_old, printer_variant);
     else if (auto n = prefer_printer.find(printer_variant_old); n != std::string::npos)
         prefer_printer = printer_model + " " + printer_variant_old + prefer_printer.substr(n + printer_variant_old.length());
-    if (auto iter = printer_presets.find(prefer_printer); iter != printer_presets.end()) {
+    // Orca: the substitution above is a no-op when the name carries no variant - custom printers are
+    // rarely named after a nozzle - and the lookup then returns the preset already selected, making
+    // the switch do nothing. Only take this shortcut when it really found the requested nozzle.
+    if (auto iter = printer_presets.find(prefer_printer); iter != printer_presets.end() &&
+        (printer_variant.empty() || iter->second->config.opt_string("printer_variant") == printer_variant)) {
         return iter->second;
     }
     if (printer_variant.empty())
         printer_variant = printer_variant_old;
-    for (auto& preset : printer_presets) {
-        if (preset.second->config.opt_string("printer_variant") == printer_variant)
+    // Orca: prefer the printer's own family. Matching purely on the variant picks by name order,
+    // which sends a custom printer to the system profile it was cloned from.
+    const std::string family = printers.family_root_name(printers.get_selected_preset());
+    Preset           *other_family = nullptr;
+    for (auto &preset : printer_presets) {
+        if (preset.second->config.opt_string("printer_variant") != printer_variant)
+            continue;
+        if (printers.family_root_name(*preset.second) == family)
             return preset.second;
+        if (other_family == nullptr)
+            other_family = preset.second;
     }
+    if (other_family != nullptr)
+        return other_family;
     return printer_presets.begin()->second;
 }
 
