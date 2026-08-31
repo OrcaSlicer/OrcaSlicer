@@ -5979,6 +5979,22 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                     if (this->is_mixed_filament(i))
                         mixed_final_slots.insert(int(i));
                 const size_t mixed_final_slot_count = this->filament_presets.size();
+                // Finalize a slot as an empty mixed-filament placeholder: mark it virtual with
+                // an intentionally empty definition, and add it to the final-layout set so a
+                // later entry's components validate against the new state. Used by the capacity
+                // placeholders and by any mixed definition that has to be rejected after its
+                // slot was already grown and seeded - without it such a slot would keep the
+                // seeded preset and masquerade as a real filament. No definition is written:
+                // the placeholder carries no material of its own (the GUI flags the empty mix
+                // via check_mixed_filament_integrity and blocks slicing until components are
+                // assigned). The slot's colour was already seeded by the growth pass above.
+                auto finalize_mixed_placeholder = [&](size_t slot_idx) {
+                    if (ConfigOptionBools* is_mixed_opt = this->project_config.opt<ConfigOptionBools>("filament_is_mixed");
+                        is_mixed_opt != nullptr && slot_idx < is_mixed_opt->values.size())
+                        is_mixed_opt->values[slot_idx] = true;
+                    mixed_final_slots.insert(int(slot_idx));
+                    material_applied = true;
+                };
                 // Full Publish within-load dedup: identical Full materials (same setting_id
                 // + preset_name identity) share one created instance, so an author who
                 // pointed two slots at one preset yields one standalone copy here.
@@ -5996,10 +6012,7 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                     // is detached: the placeholder carries no material of its own. The colour
                     // was already seeded into the project arrays by the growth pass above.
                     if (entry.mixed_placeholder) {
-                        if (ConfigOptionBools* is_mixed_opt = this->project_config.opt<ConfigOptionBools>("filament_is_mixed");
-                            is_mixed_opt != nullptr && slot < is_mixed_opt->values.size())
-                            is_mixed_opt->values[slot] = true;
-                        material_applied = true;
+                        finalize_mixed_placeholder(slot);
                         continue;
                     }
 
@@ -6007,8 +6020,19 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                     // find_preset would return &m_edited_preset for the selected slot. The
                     // overlay target below decides between the edited layer and this preset.
                     Preset* recv = this->filaments.find_preset(this->filament_presets[slot], false, true);
-                    if (recv == nullptr)
+                    if (recv == nullptr) {
+                        // Defensive: the slot exists (grown and seeded above) but its preset
+                        // could not be resolved. A mixed definition left unapplied on such a
+                        // slot would keep the seeded preset and look like a real filament:
+                        // finalize it as an empty placeholder instead, like a rejected
+                        // definition below.
+                        if (is_mixed_definition(entry) && !this->is_mixed_filament(slot)) {
+                            finalize_mixed_placeholder(slot);
+                            published_config->material_replacements.emplace_back("slot " + std::to_string(slot) +
+                                                                                 ": mixed filament definition could not be imported");
+                        }
                         continue;
+                    }
 
                     const std::string material_label = entry.filament_id.empty() ?
                                                            (entry.publish_type_value.empty() ? entry.filament_type :
@@ -6045,6 +6069,23 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                             skipped_keys.emplace_back("material:" + material_label + " (mixed filament definition: " + mix_error + ")");
                             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": published 3MF mixed filament from slot " << entry.slot
                                                        << " rejected: " << mix_error;
+                            // Degradation, not silent corruption: the slot was already grown and
+                            // seeded by the pass above, so skipping the definition alone would
+                            // leave it holding the seeded preset and looking like a real
+                            // filament that carries the mix identity but no mix.
+                            //  - a slot that was NOT already a receiver mix is finalized as an
+                            //    empty mixed placeholder (consistent with the capacity
+                            //    placeholders; the user assigns components there);
+                            //  - a like-for-like override of the receiver's own mix leaves that
+                            //    valid definition untouched: nothing was applied, so the
+                            //    receiver's cells are intact and only the author's definition
+                            //    is reported as skipped above.
+                            if (!this->is_mixed_filament(slot)) {
+                                finalize_mixed_placeholder(slot);
+                                published_config->material_replacements.emplace_back("slot " + std::to_string(slot) +
+                                                                                     ": mixed filament definition could not be imported (" +
+                                                                                     mix_error + ")");
+                            }
                             continue;
                         }
                     }
@@ -6247,6 +6288,16 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                                 for (const std::string& key : entry.keys)
                                     skipped_keys.emplace_back("material:" + material_label + " (" + key + ")");
                                 apply_slot = false;
+                                // A mixed definition left unapplied here would keep the grown
+                                // slot's seeded preset and masquerade as a real filament:
+                                // finalize it as an empty placeholder like a rejected
+                                // definition (a like-for-like override of the receiver's own
+                                // mix is left untouched).
+                                if (is_mixed_definition(entry) && !this->is_mixed_filament(slot)) {
+                                    finalize_mixed_placeholder(slot);
+                                    published_config->material_replacements.emplace_back("slot " + std::to_string(slot) +
+                                                                                         ": mixed filament definition could not be imported");
+                                }
                             }
                         }
                     }

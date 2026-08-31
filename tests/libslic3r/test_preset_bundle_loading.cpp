@@ -11,6 +11,7 @@
 #include "test_utils.hpp"
 
 #include <algorithm>
+#include <iostream>
 #include <initializer_list>
 
 using namespace Slic3r;
@@ -3671,9 +3672,11 @@ TEST_CASE("Published 3MF rejects a mixed filament definition with impossible com
         Preset::normalize(config);
         bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
 
-        // The definition was rejected, not applied: the slot stays a plain (grown) slot.
+        // The definition was rejected, not applied: the grown slot is finalized as an empty
+        // mixed placeholder instead of keeping the seeded preset and masquerading as a real
+        // filament.
         REQUIRE(bundle.filament_presets.size() == 3);
-        CHECK_FALSE(bundle.is_mixed_filament(2));
+        CHECK(bundle.is_mixed_filament(2));
         CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values[2].empty());
         CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values[2].empty());
         // Reported through the shared rejection channel.
@@ -3681,11 +3684,117 @@ TEST_CASE("Published 3MF rejects a mixed filament definition with impossible com
             CHECK(contains_key(pub.skipped_keys, "material:GFL99 (mixed filament definition: needs at least two components)"));
         else
             CHECK(contains_key(pub.skipped_keys, "material:GFL99 (mixed filament definition: components reference missing slots)"));
+        // The slot change was surfaced like the other slot adaptations.
+        REQUIRE(pub.material_replacements.size() == 1);
+        CHECK(pub.material_replacements[0].find("slot 2: mixed filament definition could not be imported") != std::string::npos);
         // The blended colour was not written into the (shared) slot preset either.
         CHECK(bundle.filaments.find_preset("My PLA", false, true)->config.opt<ConfigOptionStrings>("filament_colour")->values ==
               std::vector<std::string>{ "#123456" });
-        CHECK(pub.material_replacements.empty());
     }
+}
+
+// The reported scenario: an author publishes two mixed filaments whose components are
+// full-published physical slots; the receiver is a smaller tool-changer, so some of those
+// component slots become empty mixed placeholders. A mix whose component turned into a
+// placeholder can never be valid (mixes cannot reference mixes): it is rejected, and its
+// grown slot must be finalized as an empty mixed placeholder too - not keep the seeded
+// preset and masquerade as a real filament carrying the mix identity.
+TEST_CASE("Published 3MF finalizes a mixed filament rejected over a placeholder component as an empty placeholder", "[Preset][Bundle][Published]")
+{
+    // An author project: six physical slots plus two tail mixes, the second referencing the
+    // sixth physical slot (H2C-style: slot 7 = 1+2, slot 8 = 2+6).
+    auto make_file_config = [] {
+        DynamicPrintConfig config                                              = DynamicPrintConfig::full_print_config();
+        config.opt<ConfigOptionFloats>("filament_diameter")->values            = std::vector<double>(8, 1.75);
+        config.opt<ConfigOptionInts>("filament_self_index")->values            = { 1, 2, 3, 4, 5, 6, 7, 8 };
+        config.opt<ConfigOptionStrings>("filament_extruder_variant")->values   = std::vector<std::string>(8, "Direct Drive Standard");
+        config.opt<ConfigOptionStrings>("filament_colour")->values             = { "#FF0000", "#00FF00", "#0000FF", "#FFFF00",
+                                                                                   "#FF00FF", "#00FFFF", "#800080", "#804000" };
+        config.opt<ConfigOptionStrings>("filament_type")->values.assign(8, "PLA");
+        config.opt<ConfigOptionStrings>("filament_vendor")->values.assign(8, "Generic");
+        config.opt<ConfigOptionBools>("filament_is_mixed")->values             = { 0, 0, 0, 0, 0, 0, 1, 1 };
+        config.opt<ConfigOptionStrings>("filament_mixed_components")->values   = { "", "", "", "", "", "", "1,2", "2,6" };
+        config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values = { "", "", "", "", "", "", "0.6,0.4", "0.5,0.5" };
+        // The export always serializes all seven masked mixed arrays, not just the ones in
+        // use; the unused gradient arrays ride along as defaults.
+        config.opt<ConfigOptionBools>("filament_mixed_gradient")->values       = { 0, 0, 0, 0, 0, 0, 0, 0 };
+        config.opt<ConfigOptionStrings>("filament_mixed_gradient_range")->values.assign(8, "");
+        config.opt<ConfigOptionStrings>("filament_mixed_gradient_curve")->values.assign(8, "");
+        config.opt<ConfigOptionBools>("filament_mixed_gradient_per_part")->values = { 0, 0, 0, 0, 0, 0, 0, 0 };
+        return config;
+    };
+    // A non-SEMM receiver with four nozzles and four slots (tool-changer style).
+    PresetBundle bundle;
+    Preset &pla = add_inmemory_preset(bundle.filaments, "My PLA");
+    pla.config.opt_string("filament_type", 0u) = "PLA";
+    bundle.filament_presets.assign(4, "My PLA");
+    bundle.set_num_filaments(4, "#123456");
+    auto &printer_config = bundle.printers.get_edited_preset().config;
+    printer_config.opt<ConfigOptionBool>("single_extruder_multi_material", true)->value = false;
+    printer_config.opt<ConfigOptionFloats>("nozzle_diameter", true)->values.assign(4, 0.4);
+
+    auto make_full_entry = [](int slot) {
+        PublishedMaterialEntry entry;
+        entry.slot            = slot;
+        entry.filament_type   = "PLA";
+        entry.filament_vendor = "Generic";
+        entry.full            = true;
+        entry.full_keys       = { "filament_retraction_length" };
+        return entry;
+    };
+    auto make_mix_entry = [](int slot, const char *color) {
+        PublishedMaterialEntry entry;
+        entry.slot            = slot;
+        entry.filament_type   = "PLA";
+        entry.filament_vendor = "Generic";
+        entry.publish_color   = true;
+        entry.color           = color;
+        entry.keys            = { "filament_is_mixed",       "filament_mixed_components",
+                                  "filament_mixed_sublayer_ratios", "filament_mixed_gradient",
+                                  "filament_mixed_gradient_range",  "filament_mixed_gradient_curve",
+                                  "filament_mixed_gradient_per_part" };
+        return entry;
+    };
+
+    // The dialog's emit order: the full-published physical slots (1, 2, 5, 6) and both mixes.
+    PublishedConfig pub;
+    pub.published     = true;
+    pub.material_keys = { make_full_entry(0), make_full_entry(1), make_full_entry(4), make_full_entry(5),
+                          make_mix_entry(6, "#800080"), make_mix_entry(7, "#804000") };
+    DynamicPrintConfig config = make_file_config();
+    Preset::normalize(config);
+    bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
+
+    // The receiver grew to the author's slot count, all virtual territory at the tail.
+    REQUIRE(bundle.filament_presets.size() == 8);
+    const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
+    REQUIRE(is_mixed.size() == 8);
+    // Slots 0-3 stayed physical; authored slots 5 and 6 (0-based 4 and 5) became capacity
+    // placeholders.
+    for (size_t i = 0; i < 4; ++i)
+        CHECK_FALSE(is_mixed[i]);
+    CHECK(is_mixed[4]);
+    CHECK(is_mixed[5]);
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values[4].empty());
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values[5].empty());
+    // The first mix applied onto its uncontended tail slot.
+    CHECK(is_mixed[6]);
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values[6] == "1,2");
+    // The second mix was rejected - its second component (authored slot 6) turned into a
+    // placeholder - and its slot was finalized as an empty mixed placeholder instead of
+    // keeping the seeded preset as a phantom real filament.
+    CHECK(is_mixed[7]);
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values[7].empty());
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values[7].empty());
+    REQUIRE(pub.skipped_keys.size() == 1);
+    CHECK(pub.skipped_keys[0] == "material:PLA (mixed filament definition: components reference missing slots)");
+    // Two Full Publish detach lines (slots 0-1), two capacity placeholder lines (slots 4-5),
+    // and the rejected mix's finalization line (slot 7).
+    REQUIRE(pub.material_replacements.size() == 5);
+    CHECK(std::any_of(pub.material_replacements.begin(), pub.material_replacements.end(),
+                      [](const std::string &line) {
+                          return line.find("slot 7: mixed filament definition could not be imported") != std::string::npos;
+                      }));
 }
 
 // The relocation shifts cells inside the file's per-slot mixed arrays; a payload too short to
@@ -3734,15 +3843,17 @@ TEST_CASE("Published 3MF reports a relocated mixed filament whose payload cells 
     // The mix was relocated past the physical territory...
     REQUIRE(pub.mixed_slot_relocations.size() == 1);
     CHECK(pub.mixed_slot_relocations.at(3) == 5);
-    REQUIRE(pub.material_replacements.size() == 1);
+    REQUIRE(pub.material_replacements.size() == 2);
     CHECK(pub.material_replacements[0].find("slot 3 -> slot 5") != std::string::npos);
     // ...and the receiver grew to hold the destination slot, but the definition itself was
-    // rejected: the relocated cells degraded to empty defaults and were reported.
+    // rejected: the relocated cells degraded to empty defaults, the slot was finalized as an
+    // empty mixed placeholder (not a real filament), and both facts were reported.
     REQUIRE(bundle.filament_presets.size() == 6);
-    CHECK_FALSE(bundle.is_mixed_filament(5));
+    CHECK(bundle.is_mixed_filament(5));
     CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values[5].empty());
     CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values[5].empty());
     CHECK(contains_key(pub.skipped_keys, "material:GFL99 (mixed filament definition: needs at least two components)"));
+    CHECK(pub.material_replacements[1].find("slot 5: mixed filament definition could not be imported") != std::string::npos);
     // The five real slots kept their colours.
     CHECK(std::equal(receiver_colours.begin(), receiver_colours.end(),
                      bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values.begin()));
