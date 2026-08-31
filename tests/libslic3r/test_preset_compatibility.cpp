@@ -339,3 +339,139 @@ TEST_CASE("only a detached printer narrows the nozzle list", "[PresetCompatibili
         CHECK(bundle.printers.diameters_of_selected_printer() == std::vector<std::string>{"0.6", "0.8"});
     }
 }
+
+// Switching nozzle size from the sidebar has to stay within the printer you are on. A custom printer
+// has no alias (save_current_preset clears it), so the name-based match in get_similar_printer_preset
+// always misses for one and used to fall through to the first matching variant by name - which sorts
+// the system profile ahead of a custom one and silently switched printers.
+TEST_CASE("switching nozzle size stays within the same printer family", "[PresetCompatibility]")
+{
+    PresetBundle bundle;
+
+    const auto add_printer = [&](const std::string &name, const std::string &inherits,
+                                 const std::string &variant, double nozzle, bool is_system) {
+        DynamicPrintConfig config(bundle.printers.default_preset().config);
+        config.set_key_value("printer_model", new ConfigOptionString("Elegoo OrangeStorm Giga"));
+        config.set_key_value("printer_variant", new ConfigOptionString(variant));
+        config.set_key_value("nozzle_diameter", new ConfigOptionFloats{nozzle});
+        Preset::inherits(config) = inherits;
+        Preset &preset = bundle.printers.load_preset(std::string(), name, config, /*select=*/false);
+        preset.is_system = is_system;
+        // Only system presets carry an alias; save_current_preset clears it for user copies.
+        preset.alias = is_system ? name : std::string();
+    };
+
+    // System variants, and a detached custom printer with its own 0.8 child. "Elegoo..." sorts
+    // before "SirPrintALot", so an alphabetical fallback picks the system profile.
+    add_printer("Elegoo OrangeStorm Giga 0.6 nozzle", "", "0.6", 0.6, /*is_system=*/true);
+    add_printer("Elegoo OrangeStorm Giga 0.8 nozzle", "Elegoo OrangeStorm Giga 0.6 nozzle", "0.8", 0.8, true);
+    add_printer("SirPrintALot", "", "0.6", 0.6, /*is_system=*/false);
+    add_printer("SirPrintALot 0.8", "SirPrintALot", "0.8", 0.8, false);
+
+    SECTION("from a custom printer it picks the custom variant, not the system one") {
+        bundle.printers.select_preset_by_name("SirPrintALot 0.8", true);
+        Preset *target = bundle.get_similar_printer_preset({}, "0.6");
+        REQUIRE(target != nullptr);
+        CHECK(target->name == "SirPrintALot");
+    }
+    SECTION("the other direction works too, custom 0.6 -> custom 0.8") {
+        bundle.printers.select_preset_by_name("SirPrintALot", true);
+        Preset *target = bundle.get_similar_printer_preset({}, "0.8");
+        REQUIRE(target != nullptr);
+        CHECK(target->name == "SirPrintALot 0.8");
+    }
+    SECTION("from a system printer it still picks the system variant") {
+        bundle.printers.select_preset_by_name("Elegoo OrangeStorm Giga 0.8 nozzle", true);
+        Preset *target = bundle.get_similar_printer_preset({}, "0.6");
+        REQUIRE(target != nullptr);
+        CHECK(target->name == "Elegoo OrangeStorm Giga 0.6 nozzle");
+    }
+}
+
+// The nozzle dropdown lists sizes for the selected printer. On a custom printer it has to list only
+// the sizes that family actually has: offering a size it lacks means picking it necessarily switches
+// to the system profile the printer was cloned from.
+TEST_CASE("the nozzle list is scoped to the selected printer's family", "[PresetCompatibility]")
+{
+    PresetBundle bundle;
+
+    const auto add_printer = [&](const std::string &name, const std::string &inherits,
+                                 const std::string &variant, bool is_system) {
+        DynamicPrintConfig config(bundle.printers.default_preset().config);
+        config.set_key_value("printer_model", new ConfigOptionString("Elegoo OrangeStorm Giga"));
+        config.set_key_value("printer_variant", new ConfigOptionString(variant));
+        Preset::inherits(config) = inherits;
+        bundle.printers.load_preset(std::string(), name, config, /*select=*/false).is_system = is_system;
+    };
+    // As the shipped profiles are arranged: one base variant, the rest inheriting from it.
+    add_printer("Elegoo OrangeStorm Giga 0.4 nozzle", "", "0.4", /*is_system=*/true);
+    for (const char *v : {"0.6", "0.8", "1.0"})
+        add_printer(std::string("Elegoo OrangeStorm Giga ") + v + " nozzle",
+                    "Elegoo OrangeStorm Giga 0.4 nozzle", v, /*is_system=*/true);
+    add_printer("SirPrintALot", "", "0.6", /*is_system=*/false);
+    add_printer("SirPrintALot 0.8", "SirPrintALot", "0.8", false);
+
+    SECTION("a custom printer offers only its own family's sizes") {
+        bundle.printers.select_preset_by_name("SirPrintALot", true);
+        const auto diameters = bundle.printers.diameters_of_selected_printer();
+        CHECK(diameters == std::vector<std::string>{"0.6", "0.8"});
+    }
+    SECTION("a copy that still inherits keeps every size of the system family") {
+        // Not detached: it chains up to the same root as the system variants, so narrowing to the
+        // family must not hide them - it is one of them, with an extra nozzle size.
+        add_printer("Giga 1.2 custom", "Elegoo OrangeStorm Giga 0.6 nozzle", "1.2", /*is_system=*/false);
+        bundle.printers.select_preset_by_name("Giga 1.2 custom", true);
+        const auto diameters = bundle.printers.diameters_of_selected_printer();
+        CHECK(diameters == std::vector<std::string>{"0.4", "0.6", "0.8", "1.0", "1.2"});
+    }
+    SECTION("a system printer still offers every size of its model") {
+        bundle.printers.select_preset_by_name("Elegoo OrangeStorm Giga 0.6 nozzle", true);
+        const auto diameters = bundle.printers.diameters_of_selected_printer();
+        CHECK(diameters == std::vector<std::string>{"0.4", "0.6", "0.8", "1.0"});
+    }
+}
+
+// "printer_variant" is compared as a string against the nozzle dropdown's entries, so the spelling
+// has to match exactly. It also has to be derived from the nozzle alone: the source vendor may be
+// uninstalled, and a variant that silently stays at the parent's value collapses the nozzle list.
+TEST_CASE("nozzle variant strings match the dropdown spelling", "[PresetCompatibility]")
+{
+    CHECK(PresetUtils::nozzle_variant_string(0.4) == "0.4");
+    CHECK(PresetUtils::nozzle_variant_string(0.8) == "0.8");
+    CHECK(PresetUtils::nozzle_variant_string(0.25) == "0.25"); // 2 decimals survive
+    CHECK(PresetUtils::nozzle_variant_string(1.0) == "1.0");   // never bare "1"
+    CHECK(PresetUtils::nozzle_variant_string(0.6) == "0.6");
+}
+
+// get_similar_printer_preset guesses the target preset's NAME by substituting the variant string
+// into the current one. A custom printer named "SirPrintALot" rather than "SirPrintALot 0.6"
+// contains no "0.6" to substitute, so the guess resolves to the preset already selected and the
+// switch silently does nothing - but only in the direction where that name matches.
+TEST_CASE("switching nozzle works when the preset name has no nozzle size in it", "[PresetCompatibility]")
+{
+    PresetBundle bundle;
+
+    const auto add_printer = [&](const std::string &name, const std::string &inherits, const std::string &variant) {
+        DynamicPrintConfig config(bundle.printers.default_preset().config);
+        config.set_key_value("printer_model", new ConfigOptionString("Elegoo OrangeStorm Giga"));
+        config.set_key_value("printer_variant", new ConfigOptionString(variant));
+        Preset::inherits(config) = inherits;
+        Preset &preset = bundle.printers.load_preset(std::string(), name, config, /*select=*/false);
+        preset.alias   = name; // what makes the name-substitution shortcut fire
+    };
+    add_printer("SirPrintALot", "", "0.6");            // root: name carries no nozzle size
+    add_printer("SirPrintALot 0.8", "SirPrintALot", "0.8");
+
+    SECTION("0.6 -> 0.8, the direction the name guess breaks") {
+        bundle.printers.select_preset_by_name("SirPrintALot", true);
+        Preset *target = bundle.get_similar_printer_preset({}, "0.8");
+        REQUIRE(target != nullptr);
+        CHECK(target->name == "SirPrintALot 0.8");
+    }
+    SECTION("0.8 -> 0.6 still works") {
+        bundle.printers.select_preset_by_name("SirPrintALot 0.8", true);
+        Preset *target = bundle.get_similar_printer_preset({}, "0.6");
+        REQUIRE(target != nullptr);
+        CHECK(target->name == "SirPrintALot");
+    }
+}
