@@ -708,7 +708,6 @@ wxArrayString NewCalibrationHistoryDialog::get_all_filaments(const MachineObject
 
     wxArrayString         filament_items;
     std::set<std::string> filament_id_set;
-    std::set<std::string> printer_names;
     std::ostringstream    stream;
     // If the machine didn't report a nozzle diameter (0.0 = unknown), fall back to the currently
     // selected printer preset so the filament list isn't empty.
@@ -720,67 +719,21 @@ wxArrayString NewCalibrationHistoryDialog::get_all_filaments(const MachineObject
     stream << std::fixed << std::setprecision(1) << machine_diameter;
     std::string nozzle_diameter_str = stream.str();
 
-    for (auto printer_it = preset_bundle->printers.begin(); printer_it != preset_bundle->printers.end(); printer_it++) {
-        // filter by system preset
-        if (!printer_it->is_system)
-            continue;
-        // get printer_model
-        ConfigOption *      printer_model_opt = printer_it->config.option("printer_model");
-        ConfigOptionString *printer_model_str = dynamic_cast<ConfigOptionString *>(printer_model_opt);
-        if (!printer_model_str)
-            continue;
-
-        // use printer_model as printer type
-        if (printer_model_str->value != DevPrinterConfigUtil::get_printer_display_name(obj->printer_type))
-            continue;
-
-        if (printer_it->name.find(nozzle_diameter_str) != std::string::npos)
-            printer_names.insert(printer_it->name);
-    }
-
     if (preset_bundle) {
         BOOST_LOG_TRIVIAL(trace) << "system_preset_bundle filament number=" << preset_bundle->filaments.size();
-        for (auto filament_it = preset_bundle->filaments.begin(); filament_it != preset_bundle->filaments.end(); filament_it++) {
-            // filter by system preset
-            Preset &preset = *filament_it;
-            /*The situation where the user preset is not displayed is as follows:
-                1. Not a root preset
-                2. Not system preset and the printer firmware does not support user preset */
-            if (preset_bundle->filaments.get_preset_base(*filament_it) != &preset || (!filament_it->is_system && ! obj->is_support_user_preset)) { continue; }
+        for (Preset *filament_it : preset_bundle->get_filament_presets_for_machine(
+                 DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str, obj->is_support_user_preset)) {
+            if (!filament_id_set.insert(filament_it->filament_id).second)
+                continue;
+            const std::string alias = preset_bundle->filaments.get_preset_alias(*filament_it, true);
+            if (alias.empty())
+                continue;
 
-            ConfigOption *       printer_opt  = filament_it->config.option("compatible_printers");
-            ConfigOptionStrings *printer_strs = dynamic_cast<ConfigOptionStrings *>(printer_opt);
-            for (auto printer_str : printer_strs->values) {
-                if (printer_names.find(printer_str) != printer_names.end()) {
-                    if (filament_id_set.find(filament_it->filament_id) != filament_id_set.end()) {
-                        continue;
-                    } else {
-                        filament_id_set.insert(filament_it->filament_id);
-                        // name matched
-                        if (filament_it->is_system) {
-                            filament_items.push_back(filament_it->alias);
-                            FilamentInfos filament_infos;
-                            filament_infos.filament_id             = filament_it->filament_id;
-                            filament_infos.setting_id              = filament_it->setting_id;
-                            map_filament_items[filament_it->alias] = filament_infos;
-                        } else {
-                            char   target = '@';
-                            size_t pos    = filament_it->name.find(target);
-                            if (pos != std::string::npos) {
-                                std::string user_preset_alias    = filament_it->name.substr(0, pos - 1);
-                                wxString    wx_user_preset_alias = wxString(user_preset_alias.c_str(), wxConvUTF8);
-                                user_preset_alias                = wx_user_preset_alias.ToStdString();
-
-                                filament_items.push_back(user_preset_alias);
-                                FilamentInfos filament_infos;
-                                filament_infos.filament_id            = filament_it->filament_id;
-                                filament_infos.setting_id             = filament_it->setting_id;
-                                map_filament_items[user_preset_alias] = filament_infos;
-                            }
-                        }
-                    }
-                }
-            }
+            filament_items.push_back(alias);
+            FilamentInfos filament_infos;
+            filament_infos.filament_id = filament_it->filament_id;
+            filament_infos.setting_id  = filament_it->setting_id;
+            map_filament_items[alias]  = filament_infos;
         }
     }
     return filament_items;

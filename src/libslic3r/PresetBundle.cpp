@@ -4054,6 +4054,9 @@ std::vector<std::vector<DynamicPrintConfig>> PresetBundle::get_extruder_filament
     return filament_infos;
 }
 
+// ORCA TODO: currently, this function assumes the printer name follows the pattern of "<printer_model> <nozzle_diameter>", e.g.
+// printer_type: "Bambu Lab X2D", nozzle_diameter_str: "0.4 nozzle" => printer_name: "Bambu Lab X2D 0.4 nozzle". If the printer name does
+// not follow this pattern, the function may not work correctly.
 std::set<std::string> PresetBundle::get_printer_names_by_printer_type_and_nozzle(const std::string &printer_type, std::string nozzle_diameter_str, bool system_only)
 {
     std::set<std::string> printer_names;
@@ -4082,6 +4085,40 @@ std::set<std::string> PresetBundle::get_printer_names_by_printer_type_and_nozzle
     }
 
     return printer_names;
+}
+
+std::vector<Preset *> PresetBundle::get_filament_presets_for_machine(const std::string &printer_type,
+                                                                    const std::string &nozzle_diameter_str,
+                                                                    bool               include_user_presets)
+{
+    // Printer model plus nozzle diameter is expected to resolve to a single system printer preset;
+    // get_printer_names_by_printer_type_and_nozzle asserts as much in debug builds.
+    const std::set<std::string> printer_names = get_printer_names_by_printer_type_and_nozzle(printer_type, nozzle_diameter_str);
+    const Preset *printer = printer_names.empty() ? nullptr : printers.find_preset(*printer_names.begin());
+    if (printer == nullptr)
+        return {};
+
+    // Preset::is_visible is deliberately not consulted: it tracks what the Configuration Wizard
+    // installed, while the caller identifies a physically connected machine the user may never
+    // have installed - gating on it would empty the list for exactly those machines.
+    const PresetWithVendorProfile active_printer = printers.get_preset_with_vendor_profile(*printer);
+    // Loop invariant - the two argument is_compatible_with_printer() would rebuild it per preset.
+    DynamicPrintConfig printer_config;
+    printer_config.set_key_value("printer_preset", new ConfigOptionString(printer->name));
+    if (const ConfigOption *opt = printer->config.option("nozzle_diameter"))
+        printer_config.set_key_value("num_extruders", new ConfigOptionInt((int) static_cast<const ConfigOptionFloats *>(opt)->values.size()));
+
+    std::vector<Preset *> compatible;
+    for (Preset &preset : filaments) {
+        /* The situation where the preset is not offered is as follows:
+            1. Not a root preset
+            2. Not a system preset and the printer firmware does not support user presets */
+        if (filaments.get_preset_base(preset) != &preset || (!preset.is_system && !include_user_presets))
+            continue;
+        if (is_compatible_with_printer(filaments.get_preset_with_vendor_profile(preset), active_printer, &printer_config))
+            compatible.push_back(&preset);
+    }
+    return compatible;
 }
 
 bool PresetBundle::check_filament_temp_equation_by_printer_type_and_nozzle_for_mas_tray(

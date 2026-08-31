@@ -1594,39 +1594,21 @@ int AMSDryCtrWin::update_filament_list(DevAms* dev_ams, MachineObject* obj)
         }
         stream << std::fixed << std::setprecision(1) << obj->GetExtderSystem()->GetNozzleDiameter(extruder_id);
         std::string nozzle_diameter_str = stream.str();
-        std::set<std::string> printer_names = preset_bundle->get_printer_names_by_printer_type_and_nozzle(
-            DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str);
 
-        for (auto filament_it = filaments.begin(); filament_it != filaments.end(); ++filament_it) {
-            Preset& preset = *filament_it;
-            // Filter by system preset: root preset and (system preset or user preset is supported)
-            if (filaments.get_preset_base(*filament_it) != &preset || (!filament_it->is_system && !obj->is_support_user_preset)) {
+        for (Preset *filament_it : preset_bundle->get_filament_presets_for_machine(
+                 DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str, obj->is_support_user_preset)) {
+            if (!filament_id_set.insert(filament_it->filament_id).second)
                 continue;
-            }
+            const std::string filament_alias = filaments.get_preset_alias(*filament_it, true);
+            if (filament_alias.empty())
+                continue;
+            auto opt_info = preset_bundle->get_filament_by_filament_id(filament_it->filament_id);
+            if (!opt_info.has_value())
+                continue;
 
-            ConfigOption *       printer_opt  = filament_it->config.option("compatible_printers");
-            ConfigOptionStrings *printer_strs = dynamic_cast<ConfigOptionStrings *>(printer_opt);
-            if (!printer_strs) continue;
-
-            for (auto printer_str : printer_strs->values) {
-                if (printer_names.find(printer_str) != printer_names.end()) {
-                    if (filament_id_set.find(filament_it->filament_id) != filament_id_set.end()) {
-                        continue;
-                    }
-
-                    filament_id_set.insert(filament_it->filament_id);
-                    auto filament_alias = filaments.get_preset_alias(*filament_it, true);
-                    if (!filament_alias.empty()) {
-                        auto opt_info = preset_bundle->get_filament_by_filament_id(filament_it->filament_id);
-                        if (opt_info.has_value()) {
-                            auto real_info = opt_info.value();
-                            real_info.filament_name = filament_alias;
-                            m_tray_ids.push_back(std::move(real_info));
-                            m_trays_combo->Append(wxString::FromUTF8(filament_alias));
-                        }
-                    }
-                }
-            }
+            opt_info->filament_name = filament_alias;
+            m_tray_ids.push_back(std::move(*opt_info));
+            m_trays_combo->Append(wxString::FromUTF8(filament_alias));
         }
 
         if (m_tray_ids.empty()) {

@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
 #include <boost/filesystem.hpp>
 #include <fstream>
 
@@ -564,6 +565,88 @@ TEST_CASE("A printer specific filament supersedes the generic library filament w
     const PresetWithVendorProfile generic_lib(*generic, &library);
     CHECK_FALSE(is_compatible_with_printer(generic_lib, PresetWithVendorProfile(*printer_a, nullptr)));
     CHECK(is_compatible_with_printer(generic_lib, PresetWithVendorProfile(*printer_c, nullptr)));
+}
+
+
+namespace {
+
+// One system printer plus the filament presets a machine facing dialog has to choose between:
+// an Orca Filament Library generic with no compatible_printers, a same alias vendor filament
+// that names the printer, a library filament with no vendor twin, and a vendor filament that
+// belongs to a different printer.
+struct MachineFilaments
+{
+    PresetBundle  bundle;
+    VendorProfile library{PresetBundle::ORCA_FILAMENT_LIBRARY};
+    VendorProfile vendor{"Vendor"};
+
+    MachineFilaments()
+    {
+        // VendorProfile's constructor takes an id; the library rule keys off the name.
+        library.name = PresetBundle::ORCA_FILAMENT_LIBRARY;
+        vendor.name  = "Vendor";
+
+        Preset &printer = add_inmemory_preset(bundle.printers, "Printer A 0.4 nozzle");
+        printer.is_system = true;
+        printer.vendor    = &vendor;
+        printer.config.option<ConfigOptionString>("printer_model", true)->value = "Printer A";
+
+        add_filament(library, "Generic ABS @System",    "Generic ABS", {});
+        add_filament(vendor,  "Generic ABS @Printer A", "Generic ABS", { "Printer A 0.4 nozzle" });
+        add_filament(library, "FilAr ABS @System",      "FilAr ABS",   {});
+        add_filament(vendor,  "Vendor PLA @Printer B",  "Vendor PLA",  { "Printer B 0.4 nozzle" });
+
+        // update_library_profile_excluded_from() is protected and has its own test above; record
+        // the exclusion it derives from the same alias vendor filament.
+        Preset *shadowed = bundle.filaments.find_preset("Generic ABS @System");
+        REQUIRE(shadowed != nullptr);
+        shadowed->m_excluded_from.insert("Printer A 0.4 nozzle");
+    }
+
+    void add_filament(const VendorProfile &owner, const std::string &name, const std::string &alias,
+                      std::vector<std::string> compatible_printers)
+    {
+        Preset &preset = add_inmemory_preset(bundle.filaments, name);
+        preset.is_system = true;
+        preset.alias     = alias;
+        preset.vendor    = &owner;
+        compatible_list(bundle.filaments, name, "compatible_printers") = std::move(compatible_printers);
+    }
+
+    bool offers(const std::string &preset_name, bool include_user_presets = false)
+    {
+        const std::vector<Preset *> offered =
+            bundle.get_filament_presets_for_machine("Printer A", "0.4", include_user_presets);
+        return std::any_of(offered.begin(), offered.end(),
+                           [&preset_name](const Preset *p) { return p->name == preset_name; });
+    }
+};
+
+} // namespace
+
+TEST_CASE("Filaments offered for a machine follow the app's compatibility rule", "[Preset][Bundle]")
+{
+    MachineFilaments f;
+
+    SECTION("a library filament with no compatible_printers is offered") {
+        CHECK(f.offers("FilAr ABS @System"));
+    }
+
+    SECTION("a same alias vendor filament shadows the library generic") {
+        CHECK(f.offers("Generic ABS @Printer A"));
+        CHECK_FALSE(f.offers("Generic ABS @System"));
+    }
+
+    SECTION("a filament naming a different printer is not offered") {
+        CHECK_FALSE(f.offers("Vendor PLA @Printer B"));
+    }
+
+    SECTION("a user filament is offered only when the printer supports user presets") {
+        add_inmemory_preset(f.bundle.filaments, "My PLA");
+
+        CHECK_FALSE(f.offers("My PLA", /*include_user_presets=*/false));
+        CHECK(f.offers("My PLA", /*include_user_presets=*/true));
+    }
 }
 
 
