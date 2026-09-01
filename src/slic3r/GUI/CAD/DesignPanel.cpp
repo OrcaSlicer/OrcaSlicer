@@ -3591,6 +3591,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
         on_sketch_step(int(mode), step, picks);
     });
 
+    // A live constraint appeared or went away: refill the rows. CallAfter, not a direct call —
+    // one of the callers is the ✗ button's own click handler, and rebuild_constraint_list
+    // destroys those buttons; deleting the window whose handler is still on the stack is a
+    // use-after-free. Deferring to the next event-loop turn lets the handler return first.
+    m_viewport->set_on_sketch_constraints_changed([this]() {
+        CallAfter([this]() { rebuild_constraint_list(); });
+    });
+
     // DoF feedback (P3): after each live solve, report constraint state on its own
     // line. Green = fully constrained, red = conflicting, neutral = N remaining DoF.
     m_viewport->set_on_solve_state([this](int dof, bool ok, bool has_constraints) {
@@ -4448,8 +4456,8 @@ void DesignPanel::set_ui_mode(UiMode m)
     }
     // Constraint-manager card follows Constrain mode; rebuilt from the active feature.
     if (m_box_constraints != nullptr && m_form != nullptr && m_cards->GetSizer() != nullptr) {
-        if (m == UiMode::Constrain)
-            rebuild_constraint_list();
+        if (m == UiMode::Constrain || m == UiMode::Sketch)
+            rebuild_constraint_list();   // Sketch too: a live session has its own constraints
         else
             m_cards->GetSizer()->Show(m_box_constraints, false, true);
         update_cards_frame(); m_form->Layout();
@@ -8002,7 +8010,16 @@ wxString DesignPanel::constraint_label(const SketchEntityConstraintDef& d) const
     return _L("Constraint");
 }
 
-// Rebuild the constraint-row list from the constrained feature's entity_constraints.
+bool DesignPanel::live_constraint_scope() const
+{
+    return m_viewport != nullptr && m_viewport->is_sketching() &&
+           !m_viewport->is_constraining() && !m_viewport->is_constraining_entities();
+}
+
+// Rebuild the constraint-row list. Source depends on scope: a LIVE sketch session owns its
+// constraints inside the sketch tool and has no committed feature yet, so the list read only
+// the feature's and stayed empty for the whole session — constraints applied while drawing had
+// no row, no ✗, and no name anywhere in the UI.
 void DesignPanel::rebuild_constraint_list()
 {
     if (m_constraint_rows == nullptr || m_form == nullptr)
@@ -8010,10 +8027,12 @@ void DesignPanel::rebuild_constraint_list()
     m_constraint_rows->Clear(true /* delete windows */);
     m_constraint_sel = -1;
 
+    const bool live   = live_constraint_scope();
     const bool active = (m_constrain_feat >= 0 && m_constrain_feat < int(m_doc.features.size()));
     const std::vector<SketchEntityConstraintDef> empty;
     const std::vector<SketchEntityConstraintDef>& cons =
-        active ? m_doc.features[m_constrain_feat].entity_constraints : empty;
+        live   ? m_viewport->sketch_constraints()
+      : active ? m_doc.features[m_constrain_feat].entity_constraints : empty;
 
     if (m_hdr_constraints)
         m_hdr_constraints->SetLabel(wxString::Format(_L("Constraints (%d)"), int(cons.size())));
@@ -8044,7 +8063,8 @@ void DesignPanel::rebuild_constraint_list()
     if (m_viewport)
         m_viewport->set_constraint_glyphs(cons);
 
-    m_cards->GetSizer()->Show(m_box_constraints, m_ui_mode == UiMode::Constrain, true);
+    m_cards->GetSizer()->Show(m_box_constraints,
+                              m_ui_mode == UiMode::Constrain || live, true);
     update_cards_frame(); m_form->Layout();
     m_form->FitInside();
 }
@@ -8053,9 +8073,13 @@ void DesignPanel::rebuild_constraint_list()
 // highlight (toggle off if the same row is clicked again).
 void DesignPanel::highlight_constraint_entities(int idx)
 {
-    if (!m_viewport || m_constrain_feat < 0 || m_constrain_feat >= int(m_doc.features.size()))
+    if (!m_viewport)
         return;
-    const auto& cons = m_doc.features[m_constrain_feat].entity_constraints;
+    const bool live = live_constraint_scope();
+    if (!live && (m_constrain_feat < 0 || m_constrain_feat >= int(m_doc.features.size())))
+        return;
+    const auto& cons = live ? m_viewport->sketch_constraints()
+                            : m_doc.features[m_constrain_feat].entity_constraints;
     if (idx < 0 || idx >= int(cons.size()))
         return;
     if (m_constraint_sel == idx) {     // second click clears
@@ -8074,6 +8098,18 @@ void DesignPanel::highlight_constraint_entities(int idx)
 // Drop constraint `idx`, re-solve the feature, and refresh viewport + list + DoF.
 void DesignPanel::delete_constraint(int idx)
 {
+    // Live session: the constraint lives in the sketch tool, not in any feature. Removing it
+    // re-solves and fires on_constraints_changed, which rebuilds these rows — so this branch
+    // deliberately does NOT call rebuild_constraint_list() itself (it would run twice, and the
+    // second run would delete the wxButton whose click handler is still on the stack).
+    if (live_constraint_scope()) {
+        if (!m_viewport->remove_sketch_constraint(idx))
+            return;
+        m_status->SetForegroundColour(wxNullColour);
+        set_status(_L("Constraint deleted"));
+        m_status->Refresh();
+        return;
+    }
     if (m_constrain_feat < 0 || m_constrain_feat >= int(m_doc.features.size()) || !m_viewport)
         return;
     CadFeature& feat = m_doc.features[m_constrain_feat];

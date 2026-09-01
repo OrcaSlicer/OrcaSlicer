@@ -1494,6 +1494,23 @@ int DesignCanvas::sketch_constraint_count() const
     return int(m_sketch_tool.constraints().size());
 }
 
+const std::vector<SketchEntityConstraintDef>& DesignCanvas::sketch_constraints() const
+{
+    return m_sketch_tool.constraints();
+}
+
+bool DesignCanvas::remove_sketch_constraint(int idx)
+{
+    const bool removed = m_sketch_tool.remove_constraint(idx);
+    if (removed) request_repaint();
+    return removed;
+}
+
+void DesignCanvas::set_on_sketch_constraints_changed(std::function<void()> cb)
+{
+    m_sketch_tool.on_constraints_changed = std::move(cb);
+}
+
 bool DesignCanvas::try_add_sketch_constraints(const std::vector<SketchEntityConstraintDef>& defs)
 {
     return m_sketch_tool.try_add_constraints(defs);

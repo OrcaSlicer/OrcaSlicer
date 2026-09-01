@@ -2359,8 +2359,10 @@ bool DesignSketchTool::try_add_constraints(const std::vector<SketchEntityConstra
     if (cands.empty()) return true;
     const size_t mark = m_constraints.size();
     for (const auto& c : cands) m_constraints.push_back(c);
-    if (solve_sketch_entities(m_entities, m_constraints))
+    if (solve_sketch_entities(m_entities, m_constraints)) {
+        if (on_constraints_changed) on_constraints_changed();
         return true;
+    }
     m_constraints.resize(mark);                 // roll back the conflicting batch
     // No re-solve to "restore": a failed solve no longer touches the geometry
     // (SketchSolver.cpp only writes back on success), so m_entities still holds the
@@ -2381,13 +2383,20 @@ bool DesignSketchTool::remove_constraint_near(const Vec2d& p)
         if (d < best_d && g.con >= 0 && g.con < int(m_constraints.size())) { best_d = d; best = g.con; }
     }
     if (best < 0) return false;
-    m_constraints.erase(m_constraints.begin() + best);
+    return remove_constraint(best);
+}
+
+bool DesignSketchTool::remove_constraint(int idx)
+{
+    if (idx < 0 || idx >= int(m_constraints.size())) return false;
+    m_constraints.erase(m_constraints.begin() + idx);
     // resolve_live(), not a bare solve: it is the path that recomputes the DoF, clears the
     // per-entity conflict flags and fires on_solve_state. Solving directly would relax the
     // geometry while leaving the DoF readout and any red over-constrained tint stale — the
     // readout would still describe the constraint that was just deleted.
     resolve_live();
     m_glyph_hits.clear();       // stale until the next render rebuilds them
+    if (on_constraints_changed) on_constraints_changed();
     return true;
 }
 

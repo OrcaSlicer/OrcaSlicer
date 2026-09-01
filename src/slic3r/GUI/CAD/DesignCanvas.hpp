@@ -302,6 +302,9 @@ public:
     // How many constraints the LIVE session holds. Only a count: the hint line needs to know
     // whether any badge is on screen to talk about, nothing more.
     int                                 sketch_constraint_count() const;
+    const std::vector<SketchEntityConstraintDef>& sketch_constraints() const;
+    bool                                remove_sketch_constraint(int idx);
+    void set_on_sketch_constraints_changed(std::function<void()> cb);
     bool try_add_sketch_constraints(const std::vector<SketchEntityConstraintDef>& defs);
 
     // In-canvas bbox transform of imported Text/SVG art (replaces the Move/Scale dialog).

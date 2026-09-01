@@ -240,6 +240,11 @@ private:
     // entity-constraints with per-row select (highlight the referenced entities in
     // the viewport) and delete (drop the constraint + re-solve). Shown in Constrain
     // mode only; operates on m_doc.features[m_constrain_feat].entity_constraints.
+    // True when the constraint UI must address the LIVE sketch session rather than a committed
+    // feature. Same discriminator apply_constraint uses to choose apply_live_constraint: both
+    // Constrain modes set m_active too, so is_sketching() alone would claim the live scope while
+    // the committed manager is open.
+    bool live_constraint_scope() const;
     void rebuild_constraint_list();                                      // refill m_constraint_rows
     void delete_constraint(int idx);                                     // erase + re-solve + refresh
     void highlight_constraint_entities(int idx);                         // push referenced entities to viewport

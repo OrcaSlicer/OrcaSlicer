@@ -442,6 +442,10 @@ public:
     // already down (Mirror: 0 = no axis, 1 = axis down, 2 = ready to apply); picks = size of the
     // set the gesture accumulates (mirror targets, transform targets, Select's selection).
     std::function<void(Mode mode, int step, int picks)> on_step_changed;
+    // Fired when the live constraint SET changes (one added or removed), never on a re-solve.
+    // The panel rebuilds its constraint rows from this; binding it to on_solve_state instead
+    // would rebuild the whole list on every frame of a drag.
+    std::function<void()> on_constraints_changed;
 
     // DoF feedback (P3): solver state after each live solve. dof>0 = under-constrained,
     // dof==0 = fully constrained, ok==false = conflicting/inconsistent constraints.
@@ -488,6 +492,9 @@ public:
     // Click-to-delete on a constraint badge: drop the constraint whose glyph sits under `p`
     // and re-solve. Returns true if one was removed (the caller then repaints).
     bool remove_constraint_near(const Vec2d& p);
+    // Drop constraint `idx` from the live session and re-solve. Same operation the badge click
+    // performs, addressed by index instead of by position — the panel list needs the index form.
+    bool remove_constraint(int idx);
 
     // The loop report: what is CLOSED, what its internal voids are, and where a chain is still
     // open. This is the answer to "is my profile buildable", and it is the one question the
