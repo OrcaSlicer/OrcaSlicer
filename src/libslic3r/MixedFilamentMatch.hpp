@@ -96,13 +96,17 @@ ColorRGB predicted_swatch_for_mix(const MixedFilament          &mf,
                                   const std::vector<float>     *td = nullptr);
 
 // physicals in order (1-based IDs 1..n), then one ColorMix swatch per enabled mix
-// (same order as MixedFilamentManager virtual IDs). Cap is a mix-append ceiling
-// (default 16 total), NOT a physical truncate: physicals are always kept in full;
+// (same order as MixedFilamentManager virtual IDs). Cap is a mix-append ceiling,
+// NOT a physical truncate: physicals are always kept in full;
 // if physicals.size() >= cap, return all physicals and append no mixes.
-// (Color Painting EXTRUDERS_LIMIT). Disabled rows are not in the manager.
+// Default cap 0 resolves to spectrum_preview_color_cap(n) = n + SPECTRUM_MIX_ENABLED_CAP
+// BEFORE the never-slice early-return (a leftover 0 would make size() >= cap always true).
+// Color Painting passes EXTRUDERS_LIMIT (16) explicitly — not the sentinel.
+// ColorMix swatch is not Snapmaker printed LUT / Z-stack.
+// Disabled rows are not in the manager.
 std::vector<ColorRGB> preview_filament_colors(
     const std::vector<ColorRGB> &physicals,
     const std::string           &mixed_filament_definitions,
-    size_t                       cap = 16);
+    size_t                       cap = 0);
 
 } // namespace Slic3r

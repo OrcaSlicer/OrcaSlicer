@@ -127,6 +127,15 @@ inline bool spectrum_mix_enabled_fits(size_t enabled_now,
     return enabled_now + adding <= cap;
 }
 
+// Prepare / wipe-tower / plate thumbnails: physicals plus one ColorMix swatch per
+// enabled mix, up to SPECTRUM_MIX_ENABLED_CAP mixes. Not the mix-row authoring
+// inequality (that stays spectrum_mix_enabled_fits without num_physical).
+// ColorMix swatch ≠ Snapmaker printed LUT / Z-stack.
+inline size_t spectrum_preview_color_cap(size_t physical_n)
+{
+    return physical_n + SPECTRUM_MIX_ENABLED_CAP;
+}
+
 // Shared paint-ID clamp for update_extruder_count and the delete-filament sibling.
 // min(16, max(physical_n, max_filament_id, source_palette_size)) via SPECTRUM_PAINT_ID_PERSIST_CAP.
 size_t spectrum_paint_id_limit(size_t physical_n, size_t max_filament_id, size_t source_palette_size);

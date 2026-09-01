@@ -570,6 +570,17 @@ int mix_period(const MixedFilament &mf)
     return p;
 }
 
+std::string n_pair_defs(int n)
+{
+    std::string defs;
+    for (int i = 0; i < n; ++i) {
+        if (!defs.empty())
+            defs += ';';
+        defs += "1,2,1,1,1";
+    }
+    return defs;
+}
+
 } // namespace
 
 TEST_CASE("Match pure C and Grey are Physical slots", "[MixedFilamentMatch]")
@@ -907,13 +918,7 @@ TEST_CASE("Preview colors 3-component mix is not a first-component clone", "[Mix
 TEST_CASE("Preview colors cap at 16 total", "[MixedFilamentMatch]")
 {
     const std::vector<ColorRGB> phys = panchroma_physicals();
-    std::string defs;
-    for (int i = 0; i < 12; ++i) {
-        if (!defs.empty())
-            defs += ';';
-        defs += "1,2,1,1,1";
-    }
-    const std::vector<ColorRGB> out = preview_filament_colors(phys, defs);
+    const std::vector<ColorRGB> out  = preview_filament_colors(phys, n_pair_defs(12), 16);
     REQUIRE(out.size() == 16);
 }
 
@@ -939,8 +944,36 @@ TEST_CASE("Preview colors keep all 17 physicals without mix append", "[MixedFila
         decode_hex_or_fail("#777777"),
     };
     REQUIRE(physicals.size() == 17);
-    const std::vector<ColorRGB> out = preview_filament_colors(physicals, "1,2,1,1,1");
+    const std::vector<ColorRGB> out = preview_filament_colors(physicals, "1,2,1,1,1", 16);
     REQUIRE(out.size() == 17);
+    for (size_t i = 0; i < 17; ++i)
+        REQUIRE(out[i] == physicals[i]);
+}
+
+TEST_CASE("Preview colors default appends mix after 17 physicals", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> physicals = {
+        decode_hex_or_fail("#08ABFB"),
+        decode_hex_or_fail("#D93B90"),
+        decode_hex_or_fail("#F9ED3D"),
+        decode_hex_or_fail("#9199A4"),
+        decode_hex_or_fail("#FF0000"),
+        decode_hex_or_fail("#00FF00"),
+        decode_hex_or_fail("#0000FF"),
+        decode_hex_or_fail("#FFFF00"),
+        decode_hex_or_fail("#FF00FF"),
+        decode_hex_or_fail("#00FFFF"),
+        decode_hex_or_fail("#111111"),
+        decode_hex_or_fail("#222222"),
+        decode_hex_or_fail("#333333"),
+        decode_hex_or_fail("#444444"),
+        decode_hex_or_fail("#555555"),
+        decode_hex_or_fail("#666666"),
+        decode_hex_or_fail("#777777"),
+    };
+    REQUIRE(physicals.size() == 17);
+    const std::vector<ColorRGB> out = preview_filament_colors(physicals, "1,2,1,1,1");
+    REQUIRE(out.size() == 18);
     for (size_t i = 0; i < 17; ++i)
         REQUIRE(out[i] == physicals[i]);
 }
@@ -966,8 +999,35 @@ TEST_CASE("Preview colors keep all 16 physicals without mix append", "[MixedFila
         decode_hex_or_fail("#666666"),
     };
     REQUIRE(physicals.size() == 16);
-    const std::vector<ColorRGB> out = preview_filament_colors(physicals, "1,2,1,1,1");
+    const std::vector<ColorRGB> out = preview_filament_colors(physicals, "1,2,1,1,1", 16);
     REQUIRE(out.size() == 16);
+    for (size_t i = 0; i < 16; ++i)
+        REQUIRE(out[i] == physicals[i]);
+}
+
+TEST_CASE("Preview colors default appends mix after 16 physicals", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> physicals = {
+        decode_hex_or_fail("#08ABFB"),
+        decode_hex_or_fail("#D93B90"),
+        decode_hex_or_fail("#F9ED3D"),
+        decode_hex_or_fail("#9199A4"),
+        decode_hex_or_fail("#FF0000"),
+        decode_hex_or_fail("#00FF00"),
+        decode_hex_or_fail("#0000FF"),
+        decode_hex_or_fail("#FFFF00"),
+        decode_hex_or_fail("#FF00FF"),
+        decode_hex_or_fail("#00FFFF"),
+        decode_hex_or_fail("#111111"),
+        decode_hex_or_fail("#222222"),
+        decode_hex_or_fail("#333333"),
+        decode_hex_or_fail("#444444"),
+        decode_hex_or_fail("#555555"),
+        decode_hex_or_fail("#666666"),
+    };
+    REQUIRE(physicals.size() == 16);
+    const std::vector<ColorRGB> out = preview_filament_colors(physicals, "1,2,1,1,1");
+    REQUIRE(out.size() == 17);
     for (size_t i = 0; i < 16; ++i)
         REQUIRE(out[i] == physicals[i]);
 }
@@ -2005,6 +2065,47 @@ static const char *k_palette26_snapmaker_excerpt =
     "1,2,1,1,67,0,g,w,m2,d0,o0,u61,223;1,2,1,1,67,0,g,w,m2,d0,o0,u62,224;1,2,1,1,33,0,g,w,m2,d0,o0,u63,233;"
     "1,2,1,1,33,0,g,w,m2,d0,o0,u64,234;1,2,1,1,33,0,g,w,m2,d0,o0,u65,244;1,2,1,1,0,0,g,w,m2,d0,o0,u66,334;"
     "1,2,1,1,0,0,g,w,m2,d0,o0,u67,344";
+
+TEST_CASE("Preview colors Palette26 excerpt default size 26 Mix 17 not slot 1", "[MixedFilamentMatch]")
+{
+    REQUIRE(spectrum_preview_color_cap(4) == 68);
+
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    const std::vector<ColorRGB> out  = preview_filament_colors(phys, k_palette26_snapmaker_excerpt);
+    REQUIRE(out.size() == 26);
+    REQUIRE(out[16] != out[0]);
+
+    MixedFilamentManager mgr;
+    mgr.load_definitions(k_palette26_snapmaker_excerpt);
+    REQUIRE(mgr.enabled_count() == 22);
+    REQUIRE(MixedFilamentManager::normalize_manual_pattern(
+                mgr.mixed_filaments()[12].manual_pattern) == "133");
+}
+
+TEST_CASE("Preview colors Palette26 excerpt explicit cap 16", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    const std::vector<ColorRGB> out  = preview_filament_colors(phys, k_palette26_snapmaker_excerpt, 16);
+    REQUIRE(out.size() == 16);
+}
+
+TEST_CASE("Preview colors mix-append ceiling is n plus SPECTRUM_MIX_ENABLED_CAP", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+
+    SECTION("34 dummy pairs") {
+        const std::vector<ColorRGB> out = preview_filament_colors(phys, n_pair_defs(34));
+        REQUIRE(out.size() == 38);
+    }
+    SECTION("64 dummy pairs") {
+        const std::vector<ColorRGB> out = preview_filament_colors(phys, n_pair_defs(64));
+        REQUIRE(out.size() == 68);
+    }
+    SECTION("65 dummy pairs still 68") {
+        const std::vector<ColorRGB> out = preview_filament_colors(phys, n_pair_defs(65));
+        REQUIRE(out.size() == 68);
+    }
+}
 
 TEST_CASE("Snapmaker FullSpec excerpt translates to ZR pair+pattern rows", "[MixedFilament]")
 {

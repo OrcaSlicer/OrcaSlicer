@@ -383,6 +383,9 @@ std::vector<ColorRGB> preview_filament_colors(
     if (physicals.empty())
         return {};
 
+    if (cap == 0)
+        cap = spectrum_preview_color_cap(physicals.size());
+
     std::vector<ColorRGB> out = physicals;
     if (out.size() >= cap)
         return out;
