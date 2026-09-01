@@ -511,28 +511,10 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
 
     wxBoxSizer* w_sizer = new wxBoxSizer(wxVERTICAL);
 
-    wxStaticText* msg = new wxStaticText(this, wxID_ANY, _L("Select which settings to embed in the 3MF file"));
+    wxStaticText* msg = new wxStaticText(this, wxID_ANY, _L("Select which settings to be published in the 3MF file"));
     msg->SetFont(Label::Body_13);
     msg->Wrap(-1);
     w_sizer->Add(msg, 0, wxRIGHT | wxLEFT | wxTOP, FromDIP(10));
-
-    // Guide link: opens the (still WIP) Publish 3MF docs in a new window/tab, keeping the dialog open.
-    wxStaticText* guide_link = new wxStaticText(this, wxID_ANY, _L("Publish 3MF Wiki Guide"));
-    guide_link->SetFont(Label::Body_13);
-    guide_link->SetForegroundColour(wxColour(0x1F, 0x8E, 0xEA));
-    guide_link->SetCursor(wxCURSOR_HAND);
-    guide_link->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent&) {
-        wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/publishing_3mf/publish_3mf.html", wxBROWSER_NEW_WINDOW);
-    });
-    w_sizer->Add(guide_link, 0, wxRIGHT | wxLEFT | wxTOP, FromDIP(10));
-
-    // Placeholder guide link: a Publish 3MF video URL, right below the wiki guide link.
-    wxStaticText* video_link = new wxStaticText(this, wxID_ANY, _L("Publish 3MF YouTube Video (Placeholder)"));
-    video_link->SetFont(Label::Body_13);
-    video_link->SetForegroundColour(wxColour(0x1F, 0x8E, 0xEA));
-    video_link->SetCursor(wxCURSOR_HAND);
-    video_link->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent&) { wxLaunchDefaultBrowser("https://www.youtube.com", wxBROWSER_NEW_WINDOW); });
-    w_sizer->Add(video_link, 0, wxRIGHT | wxLEFT | wxTOP, FromDIP(10));
 
     w_sizer->Add(f_bar, 0, wxRIGHT | wxLEFT | wxTOP | wxEXPAND, FromDIP(10));
     w_sizer->Add(m_outer_tabs, 0, wxRIGHT | wxLEFT | wxTOP | wxEXPAND, FromDIP(10));
@@ -556,7 +538,26 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
     });
     dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
 
-    w_sizer->Add(dlg_btns, 0, wxEXPAND);
+    // Guide links, bottom-left, sharing the footer row with the OK/Cancel buttons (pushed right).
+    auto make_link = [this](const wxString& label, const char* url) {
+        wxStaticText* link = new wxStaticText(this, wxID_ANY, label);
+        link->SetFont(Label::Body_13);
+        link->SetForegroundColour(wxColour(0x1F, 0x8E, 0xEA));
+        link->SetCursor(wxCURSOR_HAND);
+        link->Bind(wxEVT_LEFT_DOWN, [url](wxMouseEvent&) { wxLaunchDefaultBrowser(url, wxBROWSER_NEW_WINDOW); });
+        return link;
+    };
+    wxBoxSizer* links_sizer = new wxBoxSizer(wxVERTICAL);
+    links_sizer->Add(make_link(_L("Publish 3MF Wiki Guide"), "https://www.orcaslicer.com/wiki/publishing_3mf/publish_3mf.html"), 0,
+                     wxALIGN_LEFT);
+    links_sizer->Add(make_link(_L("Publish 3MF YouTube Video (Placeholder)"), "https://www.youtube.com"), 0, wxTOP | wxALIGN_LEFT,
+                     FromDIP(4));
+
+    wxBoxSizer* footer = new wxBoxSizer(wxHORIZONTAL);
+    footer->Add(links_sizer, 0, wxALIGN_CENTER_VERTICAL);
+    footer->AddStretchSpacer();
+    footer->Add(dlg_btns, 0, wxALIGN_CENTER_VERTICAL);
+    w_sizer->Add(footer, 0, wxRIGHT | wxLEFT | wxBOTTOM | wxEXPAND, FromDIP(10));
 
     SetSizerAndFit(w_sizer);
     fit_to_content(); // initial size only; the dialog is resizable
