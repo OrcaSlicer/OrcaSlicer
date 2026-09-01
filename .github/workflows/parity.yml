@@ -28,6 +28,10 @@ on:
         description: "branch whose latest successful build_all artifact to slice with"
         required: false
         default: "main"
+      cli_presets:
+        description: "lane C preset handling: flat = flatten inherits (clean parity), raw = leaf as-is (measures the CLI's unresolved-inherits behavior, expect large divergence on unfixed builds)"
+        required: false
+        default: "flat"
 
 permissions:
   contents: read
@@ -109,6 +113,7 @@ jobs:
           done
           python3 orca-test-repo/parity/run_parity.py \
             --slicer-root "$ORCA_SLICER_ROOT" --bin "$ORCA_BIN" \
+            --cli-presets "${{ github.event.inputs.cli_presets || 'flat' }}" \
             --out "$PWD/parity-out" $fixtures
 
       - name: Publish job summary
