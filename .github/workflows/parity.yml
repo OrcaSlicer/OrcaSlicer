@@ -92,9 +92,11 @@ jobs:
       - name: Install display tooling for the GUI lanes
         run: |
           sudo apt-get update
+          # the AppImage's orca-slicer-env preflight requires host OpenGL and
+          # WebKitGTK 4.1 runtimes; everything else ships in the AppImage
           sudo apt-get install -y --no-install-recommends \
             xvfb xdotool imagemagick openbox mesa-utils \
-            libopengl0 libglu1-mesa libgl1 libegl1
+            libopengl0 libglu1-mesa libgl1 libegl1 libwebkit2gtk-4.1-0
 
       - name: Run the parity harness
         id: run
