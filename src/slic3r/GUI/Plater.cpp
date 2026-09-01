@@ -8354,7 +8354,6 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     const float LOAD_MODEL_RATIO             = 0.9;
 
     for (size_t i = 0; i < input_files.size(); ++i) {
-        int file_percent = 0;
 
 #ifdef _WIN32
         auto path = input_files[i];

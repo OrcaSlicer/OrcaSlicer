@@ -135,7 +135,6 @@ void PrintJob::process(Ctl &ctl)
 {
     /* display info */
     std::string msg;
-    wxString error_str;
     int curr_percent = 10;
     NetworkAgent* m_agent = wxGetApp().getAgent();
     AppConfig* config = wxGetApp().app_config;
