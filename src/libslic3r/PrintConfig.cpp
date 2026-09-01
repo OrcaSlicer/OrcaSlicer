@@ -1369,10 +1369,10 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBools{ true });
 
     def = this->add("overhang_fan_speed", coInts);
-    def->label = L("Overhangs and external bridges fan speed");
-    def->tooltip = L("Use this part cooling fan speed when printing bridges or overhang walls with an overhang threshold that exceeds "
+    def->label = L("Overhangs fan speed");
+    def->tooltip = L("Use this part cooling fan speed when printing overhang walls with an overhang threshold that exceeds "
                      "the value set in the 'Overhangs cooling threshold' parameter above. Increasing the cooling specifically for overhangs "
-                     "and bridges can improve the overall print quality of these features.\n\n"
+                     "and improve the overall print quality of these features.\n\n"
                      "Please note, this fan speed is clamped on the lower end by the minimum fan speed threshold set above. It is also adjusted "
                      "upwards up to the maximum fan speed threshold when the minimum layer time threshold is not met.");
     def->sidetext = "%";
@@ -1381,10 +1381,30 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInts { 100 });
 
+    def = this->add("overhang_fan_speed_max", coInts);
+    def->label = L("Maximum fan speed for overhang");
+    def->tooltip = L("Force part cooling fan to be this speed when printing overhang wall which is about 100%. "
+                     "Forcing cooling for overhang or external wall can get better quality for these parts");
+    def->sidetext = L("%");
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInts { 100 });
+
+    def = this->add("bridge_fan_speed", coInts);
+    def->label = L("External bridges fan speed");
+    def->tooltip = L("The part cooling fan speed used for all external bridges. "
+                     "Forcing cooling for bridge can get better quality for these parts");
+    def->sidetext = L("%");
+    def->min = -1;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInts { -1 });
+
     def = this->add("overhang_fan_threshold", coEnums);
     def->label = L("Overhang cooling activation threshold");
     // xgettext:no-c-format, no-boost-format
-    def->tooltip = L("When the overhang exceeds this specified threshold, force the cooling fan to run at the 'Overhang Fan Speed' set below. "
+    def->tooltip = L("When the overhang exceeds this specified threshold, force the cooling fan speed to be interpolated between fan speed for overhang and fan speed for bridges (and rounded to 10%) when overhang value goes from threshold up to bridge. "
                      "This threshold is expressed as a percentage, indicating the portion of each line's width that is unsupported by the layer "
                      "beneath it. Setting this value to 0% forces the cooling fan to run for all outer walls, regardless of the overhang degree.");
     //def->sidetext = "";
@@ -8966,8 +8986,6 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "prime_tower_brim_width";
     } else if (opt_key == "tool_change_gcode") {
         opt_key = "change_filament_gcode";
-    } else if (opt_key == "bridge_fan_speed") {
-        opt_key = "overhang_fan_speed";
     } else if (opt_key == "infill_extruder" || opt_key == "sparse_infill_filament") {
         // ORCA: legacy feature-filament selector. Pre-2.4.0-dev these keys were 1-based and the
         // default value "1" meant "the first/active filament". The current scheme uses a dedicated

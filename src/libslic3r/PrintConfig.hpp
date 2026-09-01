@@ -1771,7 +1771,9 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionInts,               hot_plate_temp_initial_layer)) // hot is short for high temperature
     ((ConfigOptionInts,               textured_plate_temp_initial_layer))
     ((ConfigOptionBools,              enable_overhang_bridge_fan))
+    ((ConfigOptionInts,               bridge_fan_speed))
     ((ConfigOptionInts,               overhang_fan_speed))
+    ((ConfigOptionInts,               overhang_fan_speed_max))
     ((ConfigOptionEnumsGeneric,       overhang_fan_threshold))
     ((ConfigOptionEnum<PrintSequence>,print_sequence))
     ((ConfigOptionEnum<PrintOrder>,   print_order))
