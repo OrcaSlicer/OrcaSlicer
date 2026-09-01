@@ -2368,6 +2368,25 @@ bool DesignSketchTool::try_add_constraints(const std::vector<SketchEntityConstra
     return false;
 }
 
+// Delete the constraint whose badge is under `p`. Removing a constraint can only FREE degrees
+// of freedom, so the re-solve cannot fail for over-constraint -- but it is still run, because
+// the geometry must relax back to what the remaining system allows.
+bool DesignSketchTool::remove_constraint_near(const Vec2d& p)
+{
+    if (m_glyph_hits.empty() || m_glyph_r <= 0.0) return false;
+    int best = -1;
+    double best_d = m_glyph_r;
+    for (const GlyphHit& g : m_glyph_hits) {
+        const double d = (g.c - p).norm();
+        if (d < best_d && g.con >= 0 && g.con < int(m_constraints.size())) { best_d = d; best = g.con; }
+    }
+    if (best < 0) return false;
+    m_constraints.erase(m_constraints.begin() + best);
+    solve_sketch_entities(m_entities, m_constraints);
+    m_glyph_hits.clear();       // stale until the next render rebuilds them
+    return true;
+}
+
 void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad, double weld_tol)
 {
     const int n = int(m_entities.size());
@@ -7380,9 +7399,11 @@ void DesignSketchTool::render_live_quotes(double unit_per_px)
 // on-screen size and translated to the anchor; badges on the same entity stack
 // upward so multiple constraints stay legible.
 void DesignSketchTool::build_constraint_glyphs(double unit_per_px,
-                                               std::vector<std::pair<Vec2d, Vec2d>>& out) const
+                                               const std::vector<SketchEntityConstraintDef>& cons,
+                                               std::vector<std::pair<Vec2d, Vec2d>>& out)
 {
-    if (m_constrain_cons.empty() || m_entities.empty()) return;
+    m_glyph_hits.clear();
+    if (cons.empty() || m_entities.empty()) return;
     using T = SketchConstraintType;
     const double s = std::max(11.0 * unit_per_px, 1e-4);   // glyph cell size in plane units
     const double step = s * 1.5;                           // vertical stacking step
@@ -7444,10 +7465,13 @@ void DesignSketchTool::build_constraint_glyphs(double unit_per_px,
     // Stack count per entity so successive badges step upward.
     std::vector<int> stack(m_entities.size(), 0);
     const Vec2d up(0.0, 1.0);     // plane-space up; offset so badge sits off the geometry
-    for (const SketchEntityConstraintDef& d : m_constrain_cons) {
+    m_glyph_r = 0.6 * s;
+    for (size_t ci = 0; ci < cons.size(); ++ci) {
+        const SketchEntityConstraintDef& d = cons[ci];
         if (d.ea < 0 || d.ea >= int(m_entities.size())) continue;
         const int k = stack[d.ea]++;
         const Vec2d center = anchor_of(d.ea) + up * (step * (1.0 + k));
+        m_glyph_hits.push_back({center, int(ci)});
         std::vector<std::pair<Vec2d, Vec2d>> cell;
         unit_glyph(d.type, cell);
         for (auto& sgp : cell)
@@ -8558,7 +8582,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
             {
                 const double upp = 1.0 / std::max(camera.get_zoom(), 1e-6);
                 std::vector<std::pair<Vec2d, Vec2d>> glyphs;
-                build_constraint_glyphs(upp, glyphs);
+                build_constraint_glyphs(upp, m_constrain_cons, glyphs);
                 if (!glyphs.empty()) {
                     const ColorRGBA badge(0.45f, 0.95f, 0.70f, 1.0f);   // CAD teal-green
                     draw_strokes(m_fill_model, glyphs, std::max(0.9 * upp, 1e-4), badge);
@@ -8671,6 +8695,19 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         draw_vertices(m_vertex_model, point_markers, yellow);
     if (!sel_point_markers.empty())
         draw_vertices(m_highlight_model, sel_point_markers, sel_col);
+
+    // Constraint badges during a LIVE sketch. They used to render only inside Mode::Constrain
+    // on a COMMITTED feature, so every constraint applied while drawing — which is the path the
+    // Constrain buttons take during a session — was invisible and unremovable: you could not
+    // tell whether Parallel had been applied, nor take it back. Same glyphs, same teal, sourced
+    // from this session's m_constraints; click one to delete it (remove_constraint_near).
+    if (!m_constraints.empty()) {
+        std::vector<std::pair<Vec2d, Vec2d>> glyphs;
+        build_constraint_glyphs(upp_dash, m_constraints, glyphs);
+        if (!glyphs.empty())
+            draw_strokes(m_fill_model, glyphs, std::max(0.9 * upp_dash, 1e-4),
+                         ColorRGBA(0.45f, 0.95f, 0.70f, 1.0f));   // CAD teal-green
+    }
 
     // Endpoint / centre handles so individual points are visible and pickable in the
     // Select and Dimension tools (a line = a segment + 2 points). Selected ones cyan.
@@ -10224,6 +10261,19 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
     if (m_mode == Mode::Select) {
         if (update_hover(canvas, evt)) return true;   // repaint when the hovered handle changes
         const bool extend = evt.ShiftDown() || evt.ControlDown();
+
+        // A constraint badge is a click target: clicking it DELETES that constraint. Existing or
+        // not is the whole of a constraint's state, so this click is the toggle. Checked before
+        // entity picking because badges sit clear of the geometry (offset along +Y), so a hit
+        // here is unambiguous; plain click only, so Shift/Ctrl multi-select is never eaten.
+        if (evt.LeftDown() && !extend) {
+            Vec2d gp;
+            if (screen_to_plane(canvas, evt, gp) && remove_constraint_near(gp)) {
+                if (on_selection_changed)
+                    on_selection_changed(int(m_selection.size() + m_point_sel.size()));
+                return true;
+            }
+        }
 
         // Live point drag: once an endpoint/centre was grabbed on LeftDown, dragging
         // moves it (re-solving constraints live) until the button is released. When

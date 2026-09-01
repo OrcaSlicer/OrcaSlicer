@@ -485,6 +485,9 @@ public:
     // inconsistent. Returns true when the batch was kept. Public so the panel's live-constraint
     // path can commit a plan through the SAME append→solve→keep-or-rollback the gestures use.
     bool try_add_constraints(const std::vector<SketchEntityConstraintDef>& cands);
+    // Click-to-delete on a constraint badge: drop the constraint whose glyph sits under `p`
+    // and re-solve. Returns true if one was removed (the caller then repaints).
+    bool remove_constraint_near(const Vec2d& p);
 
     // The loop report: what is CLOSED, what its internal voids are, and where a chain is still
     // open. This is the answer to "is my profile buildable", and it is the one question the
@@ -831,7 +834,9 @@ private:
     // Iconic constraint badges (C3.4b): for each m_constrain_cons entry, append a
     // small screen-constant glyph (H, V, ∥, ⊥, =, ○, …) near its primary entity into
     // `out`; glyphs touching the same entity stack so they don't overlap.
-    void build_constraint_glyphs(double unit_per_px, std::vector<std::pair<Vec2d, Vec2d>>& out) const;
+    void build_constraint_glyphs(double unit_per_px,
+                                 const std::vector<SketchEntityConstraintDef>& cons,
+                                 std::vector<std::pair<Vec2d, Vec2d>>& out);
     void draw_strokes(GLModel& model, const std::vector<std::pair<Vec2d, Vec2d>>& segs,
                       double hw, const ColorRGBA& color);
     void draw_text(GLModel& model, const std::string& s, const Vec2d& center,
@@ -1099,6 +1104,11 @@ private:
     Vec2d               m_pick0_pt{0,0}; // plane-coords of the slot-0 pick (trim/extend)
     std::vector<int>    m_constraint_hl; // entities highlighted by the constraint manager
     std::vector<SketchEntityConstraintDef> m_constrain_cons; // for glyph badges (C3.4b)
+    // Where each badge landed, so a click can find the constraint it stands for. Rebuilt by
+    // build_constraint_glyphs on every render, which is always the frame the user clicked on.
+    struct GlyphHit { Vec2d c{0,0}; int con{-1}; };
+    std::vector<GlyphHit> m_glyph_hits;
+    double                m_glyph_r{0.0};   // badge half-size in plane units (hit radius)
     GLModel             m_line_model;
     GLModel             m_vertex_model;
     GLModel             m_highlight_model;
