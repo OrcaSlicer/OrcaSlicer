@@ -5166,7 +5166,8 @@ int CLI::run(int argc, char **argv)
 
                             Vec3d wipe_tower_size = cur_plate->estimate_wipe_tower_size(m_print_config, w, v, new_extruder_count, filaments_cnt, false, enable_wrapping);
                             Vec3d plate_origin = cur_plate->get_origin();
-                            int plate_width, plate_depth, plate_height;
+                            int plate_width, plate_depth;
+                            double plate_height;
                             partplate_list.get_plate_size(plate_width, plate_depth, plate_height);
                             float depth = wipe_tower_size(1);
                             float margin = 15.f, wp_brim_width = 0.f;
