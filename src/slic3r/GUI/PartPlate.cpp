@@ -2402,23 +2402,34 @@ arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const Dynamic
 	float w = dynamic_cast<const ConfigOptionFloat*>(config.option("prime_tower_width"))->value;
 	//float a = dynamic_cast<const ConfigOptionFloat*>(config.option("wipe_tower_rotation_angle"))->value;
 	float v = dynamic_cast<const ConfigOptionFloat*>(config.option("prime_volume"))->value;
-    float tower_brim_width = dynamic_cast<const ConfigOptionFloat*>(config.option("prime_tower_brim_width"))->value;
     const ConfigOptionBool * wrapping_opt = dynamic_cast<const ConfigOptionBool *>(config.option("enable_wrapping_detection"));
 	bool enable_wrapping = (wrapping_opt != nullptr) && wrapping_opt->value;
 	wt_size = estimate_wipe_tower_size(config, w, v, extruder_count, plate_extruder_size, use_global_objects, enable_wrapping);
 	int plate_width=m_width, plate_depth=m_depth;
 	w = wt_size(0); // effective width; differs from prime_tower_width when the rib wall squares the tower
 	float depth = wt_size(1);
-	float margin = WIPE_TOWER_MARGIN + tower_brim_width, wp_brim_width = 0.f;
+
+	float wp_brim_width = 0.f;
 	const ConfigOption* wipe_tower_brim_width_opt = config.option("prime_tower_brim_width");
 	if (wipe_tower_brim_width_opt) {
 		wp_brim_width = wipe_tower_brim_width_opt->getFloat();
         if (wp_brim_width < 0) wp_brim_width = WipeTower::get_auto_brim_by_height((float) wt_size.z());
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: wp_brim_width %1%") % wp_brim_width;
 	}
+	// In rib-wall mode the wavy silhouette extends past the nominal body square before the
+	// brim is added, so fold rib_width into the same offset the margin/clamp/polygon all share.
+	const ConfigOptionEnum<WipeTowerWallType>* wall_type_opt = config.option<ConfigOptionEnum<WipeTowerWallType>>("wipe_tower_wall_type");
+	if (wall_type_opt && wall_type_opt->value == WipeTowerWallType::wtwRib) {
+		const ConfigOption* rib_width_opt = config.option("wipe_tower_rib_width");
+		if (rib_width_opt) wp_brim_width += rib_width_opt->getFloat();
+	}
+	float margin = WIPE_TOWER_MARGIN + wp_brim_width;
 
-	x = std::clamp(x, margin, (float)plate_width - w - margin - wp_brim_width);
-    y = std::clamp(y, margin, (float)plate_depth - depth - margin - wp_brim_width);
+	// std::clamp is UB if lo > hi, which a large tower can trigger here; keep hi >= lo.
+	float x_hi = std::max(margin, (float) plate_width - w - margin);
+	float y_hi = std::max(margin, (float) plate_depth - depth - margin);
+	x = std::clamp(x, margin, x_hi);
+    y = std::clamp(y, margin, y_hi);
     wt_pos(0) = x;
     wt_pos(1) = y;
     wt_pos(2) = 0.f;

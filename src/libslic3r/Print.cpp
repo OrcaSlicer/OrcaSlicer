@@ -1036,7 +1036,7 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     //float               v            = config.wiping_volume.value;
 
     float        depth                     = print.wipe_tower_data(filaments_count).depth;
-    //float        brim_width                = print.wipe_tower_data(filaments_count).brim_width;
+    float        brim_width                = print.wipe_tower_data(filaments_count).brim_width;
 
     if (config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib)
         width = depth;
@@ -1075,20 +1075,18 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     if (print_config.enable_wrapping_detection.value && !intersection({wrapping_poly}, convex_hulls_temp).empty()) {
         return {L("Prime Tower") + L(" is too close to clumping detection area, and collisions will be caused.\n")};
     }
-    // Skip the containment check for towers that will never be printed (single-filament
-    // prints without smooth timelapse keep the config's tower position but emit nothing).
-    // Pre-generation only the body square is tested — the auto-brim estimate can overshoot
-    // the generated brim by several mm and must not hard-fail a print that physically fits.
-    // Post-generation the mesh bottom already includes the real brim, so the exact
-    // footprint is tested.
+    // Single-filament prints without smooth timelapse keep the config's tower position but
+    // never emit one, so skip the check for them.
     if (filaments_count > 1 || print.enable_timelapse_print()) {
-        // The shared printable polygon is plate-local, while the tower polygons above are
-        // already shifted by the plate origin.
+        // Pre-generation, grow the body by the brim to match what WipeTower2 actually draws;
+        // post-generation the mesh already includes it.
         Polygons    printable_polys = print.get_extruder_shared_printable_polygon();
         const Point plate_shift(scale_(plate_origin.x()), scale_(plate_origin.y()));
         for (Polygon &p : printable_polys)
             p.translate(plate_shift);
-        if (!diff(convex_hulls_temp, printable_polys).empty())
+        Polygons tower_polys_with_brim = print.is_step_done(psWipeTower) ?
+            convex_hulls_temp : offset(convex_hulls_temp, float(scale_(brim_width)));
+        if (!diff(tower_polys_with_brim, printable_polys).empty())
             return {L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n")};
     }
     return {};
