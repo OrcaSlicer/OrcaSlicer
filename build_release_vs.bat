@@ -135,6 +135,15 @@ cd %build_dir%
 set "SIG_FLAG="
 if defined ORCA_UPDATER_SIG_KEY set "SIG_FLAG=-DORCA_UPDATER_SIG_KEY=%ORCA_UPDATER_SIG_KEY%"
 
+@REM Compiler cache (sccache/ccache); effective only on the -x (Ninja) path.
+set "CCACHE_TOOL="
+if defined CMAKE_CCACHE set "CCACHE_TOOL=%CMAKE_CCACHE%"
+if not defined CCACHE_TOOL ( where sccache >nul 2>nul && set "CCACHE_TOOL=sccache" )
+if not defined CCACHE_TOOL ( where ccache  >nul 2>nul && set "CCACHE_TOOL=ccache" )
+set "CCACHE_ARG="
+if defined CCACHE_TOOL set "CCACHE_ARG=-DCMAKE_C_COMPILER_LAUNCHER=%CCACHE_TOOL% -DCMAKE_CXX_COMPILER_LAUNCHER=%CCACHE_TOOL%"
+if defined CCACHE_TOOL echo Using compiler cache: %CCACHE_TOOL%
+
 if "%1"=="slicer" (
     GOTO :slicer
 )
@@ -145,7 +154,7 @@ echo on
 REM Set minimum CMake policy to avoid <3.5 errors
 set CMAKE_POLICY_VERSION_MINIMUM=3.5
 if "%USE_NINJA%"=="1" (
-    cmake ../ -G %CMAKE_GENERATOR% %CLANG_ARG% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake ../ -G %CMAKE_GENERATOR% %CLANG_ARG% %CCACHE_ARG% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target deps
 ) else (
     cmake ../ -G %CMAKE_GENERATOR% -A %arch% -DCMAKE_BUILD_TYPE=%build_type%
@@ -164,7 +173,7 @@ cd %build_dir%
 echo on
 set CMAKE_POLICY_VERSION_MINIMUM=3.5
 if "%USE_NINJA%"=="1" (
-    cmake .. -G %CMAKE_GENERATOR% %CLANG_ARG% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake .. -G %CMAKE_GENERATOR% %CLANG_ARG% %CCACHE_ARG% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target all
 ) else (
     cmake .. -G %CMAKE_GENERATOR% -A %arch% %TOOLSET_ARG% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
