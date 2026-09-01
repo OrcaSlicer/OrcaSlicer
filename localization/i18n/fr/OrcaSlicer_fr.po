@@ -12234,7 +12234,7 @@ msgid ""
 "You can adjust the maximum jerk setting in your printer's configuration to get higher speeds."
 msgstr ""
 "Le réglage du jerk dépasse le jerk maximum de l’imprimante (machine_max_jerk_x/machine_max_jerk_y).\n"
-"Orca plafonne automatiquement la vitesse de l’impulsion pour s’assurer qu’elle ne dépasse pas les capacités de l’imprimante.\n"
+"Orca plafonne automatiquement la vitesse du jerk pour s’assurer qu’elle ne dépasse pas les capacités de l’imprimante.\n"
 "Vous pouvez ajuster le réglage du jerk maximum dans la configuration de votre imprimante pour obtenir des vitesses plus élevées."
 
 msgid ""
