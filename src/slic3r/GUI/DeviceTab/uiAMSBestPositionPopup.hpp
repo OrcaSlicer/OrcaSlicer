@@ -199,7 +199,6 @@ private:
     void OnRefreshButton(wxCommandEvent& event);
 
 private:
-    int saveTimes{0};
     wxBoxSizer* mainSizer{nullptr};
     wxPanel* textPanel{nullptr};
     wxBoxSizer* textSizer{nullptr};
