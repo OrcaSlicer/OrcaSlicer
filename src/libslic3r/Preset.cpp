@@ -1735,8 +1735,9 @@ void PresetCollection::load_presets(
                         preset.filament_id = key_values[BBL_JSON_KEY_FILAMENT_ID];
                     if (key_values.find(BBL_JSON_KEY_DESCRIPTION) != key_values.end())
                         preset.description = key_values[BBL_JSON_KEY_DESCRIPTION];
-                    if (key_values.find(BBL_JSON_KEY_INSTANTIATION) != key_values.end())
+                    if (key_values.find(BBL_JSON_KEY_INSTANTIATION) != key_values.end()) {
                         preset.is_visible = key_values[BBL_JSON_KEY_INSTANTIATION] != "false";
+		    }
 
                     //Orca: find and use the inherit config as the base
                     Preset* inherit_preset = nullptr;
