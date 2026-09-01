@@ -1489,6 +1489,11 @@ const std::vector<SketchEntity>& DesignCanvas::sketch_entities() const
     return m_sketch_tool.entities();
 }
 
+int DesignCanvas::sketch_constraint_count() const
+{
+    return int(m_sketch_tool.constraints().size());
+}
+
 bool DesignCanvas::try_add_sketch_constraints(const std::vector<SketchEntityConstraintDef>& defs)
 {
     return m_sketch_tool.try_add_constraints(defs);

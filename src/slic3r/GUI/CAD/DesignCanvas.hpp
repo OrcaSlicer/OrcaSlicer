@@ -299,6 +299,9 @@ public:
     // append->solve->keep-or-rollback, rather than reaching into mcp_sketch_tool().
     const std::vector<int>&             sketch_selection() const;
     const std::vector<SketchEntity>&    sketch_entities() const;
+    // How many constraints the LIVE session holds. Only a count: the hint line needs to know
+    // whether any badge is on screen to talk about, nothing more.
+    int                                 sketch_constraint_count() const;
     bool try_add_sketch_constraints(const std::vector<SketchEntityConstraintDef>& defs);
 
     // In-canvas bbox transform of imported Text/SVG art (replaces the Move/Scale dialog).

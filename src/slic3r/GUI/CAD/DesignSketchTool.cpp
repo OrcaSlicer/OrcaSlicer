@@ -2382,7 +2382,11 @@ bool DesignSketchTool::remove_constraint_near(const Vec2d& p)
     }
     if (best < 0) return false;
     m_constraints.erase(m_constraints.begin() + best);
-    solve_sketch_entities(m_entities, m_constraints);
+    // resolve_live(), not a bare solve: it is the path that recomputes the DoF, clears the
+    // per-entity conflict flags and fires on_solve_state. Solving directly would relax the
+    // geometry while leaving the DoF readout and any red over-constrained tint stale — the
+    // readout would still describe the constraint that was just deleted.
+    resolve_live();
     m_glyph_hits.clear();       // stale until the next render rebuilds them
     return true;
 }

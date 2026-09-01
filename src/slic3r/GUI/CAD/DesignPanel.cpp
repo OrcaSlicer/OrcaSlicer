@@ -6329,6 +6329,12 @@ void DesignPanel::on_sketch_step(int mode, int step, int picks)
     if (step == 0 && picks == 0 && DesignSketchTool::Mode(mode) != DesignSketchTool::Mode::Select
         && !text.IsEmpty())
         text += _L("  ·  Esc goes back to Select");
+    // Badges are clickable and nothing said so — a glyph reads as decoration until something
+    // tells you it is a target. Only in Select mode (the only mode where the click is wired) and
+    // only once a constraint exists, so it never advertises a badge that is not on screen.
+    if (DesignSketchTool::Mode(mode) == DesignSketchTool::Mode::Select && m_viewport != nullptr &&
+        m_viewport->sketch_constraint_count() > 0 && !text.IsEmpty())
+        text += _L("  ·  click a constraint badge to remove it");
     m_sketch_step = text;
     if (text.IsEmpty() || m_status == nullptr) return;
     m_status->SetForegroundColour(wxNullColour);
@@ -7842,7 +7848,9 @@ void DesignPanel::apply_live_constraint(SketchConstraintType type)
         }
         m_viewport->request_repaint();
         m_status->SetForegroundColour(wxNullColour);
-        set_status(_L("Applied constraint"));
+        // Say where it went and how to undo it, here at the moment of applying: the hint line
+        // only refreshes when the step tuple changes, which applying a constraint does not.
+        set_status(_L("Applied constraint  ·  its badge is on the sketch — click the badge to remove it"));
         m_status->Refresh();
     };
 
