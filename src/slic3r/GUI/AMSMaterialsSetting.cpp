@@ -681,6 +681,19 @@ void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
     }
 
 
+    // Orca: log the tray payload this dialog hands the printer, so the filament_id resolved from the
+    // dropdown selection can be checked against the tray_info_idx the AMS actually receives. A
+    // BBL-tagged (RFID) tray is read-only here, so nothing is published for it.
+    BOOST_LOG_TRIVIAL(info) << "ams_materials_setting: " << (m_is_third ? "sending" : "NOT sending (BBL RFID tray, read-only)")
+                            << ", ams_id = " << ams_id << ", slot_id = " << slot_id
+                            << ", selected = " << m_comboBox_filament->GetValue().ToStdString()
+                            << ", tray_info_idx (filament_id) = " << ams_filament_id
+                            << ", setting_id = " << ams_setting_id
+                            << ", tray_type = " << m_filament_type
+                            << ", tray_color = " << col_buf
+                            << ", nozzle_temp_min = " << nozzle_temp_min_int
+                            << ", nozzle_temp_max = " << nozzle_temp_max_int;
+
     // set filament
     if (m_is_third) {
         obj->command_ams_filament_settings(ams_id, slot_id, ams_filament_id, ams_setting_id, std::string(col_buf), m_filament_type, nozzle_temp_min_int, nozzle_temp_max_int);
