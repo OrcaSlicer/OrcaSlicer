@@ -93,7 +93,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            xvfb xdotool imagemagick openbox mesa-utils
+            xvfb xdotool imagemagick openbox mesa-utils \
+            libopengl0 libglu1-mesa libgl1 libegl1
 
       - name: Run the parity harness
         id: run
