@@ -5538,7 +5538,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Print unsupported walls last");
     def->category = L("Quality");
     def->tooltip = L("Wall loops that lie entirely in mid air are printed once something can hold them:\n"
-                     "they are extruded after the other walls of their island, innermost first, whatever the wall order is\n"
+                     "they are extruded after the other walls of their island, innermost first, whatever the wall order is.\n"
                      "A loop that only the bridges of this layer can anchor waits until those bridges are printed, while a loop running "
                      "alongside a supported wall keeps its place before the infill, which needs it as an anchor.");
     def->mode = comAdvanced;
