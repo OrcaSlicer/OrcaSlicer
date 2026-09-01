@@ -2,12 +2,14 @@
 #include "Model.hpp"
 #include "AABBTreeIndirect.hpp"
 
+#include <array>
 #include <atomic>
 #include <boost/container/small_vector.hpp>
 #include <boost/log/trivial.hpp>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <tbb/parallel_for.h>
 #include <unordered_map>
@@ -2615,6 +2617,58 @@ Eigen::Vector3i mix_field_cell(const Vec3f &p, float cell_mm)
                            int(std::floor(double(p.z()) / double(cell_mm))));
 }
 
+struct RegionSample {
+    EnforcerBlockerType state{EnforcerBlockerType::NONE};
+    Vec3f centroid{Vec3f::Zero()};
+};
+struct RegionCell {
+    std::array<RegionSample, 16> samples{};
+    uint8_t n{0};
+};
+constexpr uint8_t kRegionSampleCap = 16; // raised from 8 after thin Mix 5/6 per-face FAIL
+// After cap 16, 1 mm cells still share Mix 6's centroid with cube original 9 (d2≈0.89).
+// Halve region cells once so those centroids separate; classify_painting stays 1 mm.
+constexpr float kRegionCellMm = 0.5f;
+
+struct RegionUnionFind {
+    std::vector<int> parent;
+    explicit RegionUnionFind(int n) : parent(n)
+    {
+        for (int i = 0; i < n; ++i)
+            parent[i] = i;
+    }
+    int find(int x)
+    {
+        int r = x;
+        while (parent[r] != r)
+            r = parent[r];
+        while (parent[x] != r) {
+            const int nxt = parent[x];
+            parent[x]     = r;
+            x             = nxt;
+        }
+        return r;
+    }
+    void unite(int a, int b)
+    {
+        a = find(a);
+        b = find(b);
+        if (a != b)
+            parent[b] = a;
+    }
+};
+
+void region_cell_try_push(RegionCell &cell, EnforcerBlockerType state, const Vec3f &centroid)
+{
+    for (uint8_t i = 0; i < cell.n; ++i) {
+        if (cell.samples[i].state == state)
+            return;
+    }
+    if (cell.n >= kRegionSampleCap)
+        return;
+    cell.samples[cell.n++] = RegionSample{state, centroid};
+}
+
 } // namespace
 
 // Classify dest original faces from an ephemeral Mix-ID hash field (no select_patch).
@@ -2698,6 +2752,147 @@ TriangleSelector::TriangleSplittingData TriangleSelector::classify_painting(
                 states[i] = it->second.state;
                 break;
             }
+        }
+    });
+
+    if (cancel_requested(cancel))
+        return {};
+
+    constexpr size_t apply_poll_every = 4096;
+    for (size_t i = 0; i < n; ++i) {
+        if ((i % apply_poll_every) == 0 && cancel_requested(cancel))
+            return {};
+        if (states[i] != EnforcerBlockerType::NONE)
+            target_selector.set_facet(int(i), states[i]);
+    }
+
+    if (cancel_requested(cancel))
+        return {};
+    return target_selector.serialize();
+}
+
+// Classify dest original faces from ephemeral Mix-ID islands (closest centroid, no select_patch).
+TriangleSelector::TriangleSplittingData TriangleSelector::classify_region_painting(
+    const indexed_triangle_set& source_its,
+    const TriangleSplittingData& source_painting,
+    const indexed_triangle_set& target_its,
+    const Transform3d& target_transform,
+    const std::optional<std::reference_wrapper<const TriangleSplittingData>>& existing_painting,
+    const std::atomic<bool> *cancel)
+{
+    TriangleSplittingData result;
+    if (source_painting.bitstream.empty() || target_its.indices.empty() || cancel_requested(cancel))
+        return result;
+
+    TriangleMesh source_mesh(source_its);
+    TriangleSelector source_selector(source_mesh);
+    source_selector.deserialize(source_painting, false);
+
+    std::vector<int> painted_leaves;
+    painted_leaves.reserve(source_selector.m_triangles.size());
+    for (int i = 0; i < int(source_selector.m_triangles.size()); ++i) {
+        const Triangle &tr = source_selector.m_triangles[i];
+        if (tr.valid() && !tr.is_split() && tr.get_state() != EnforcerBlockerType::NONE)
+            painted_leaves.push_back(i);
+    }
+
+    if (painted_leaves.empty() || cancel_requested(cancel))
+        return result;
+
+    const auto adj = source_selector.precompute_all_neighbors().first;
+    RegionUnionFind uf(int(source_selector.m_triangles.size()));
+    std::vector<char> is_painted_leaf(source_selector.m_triangles.size(), 0);
+    for (int leaf : painted_leaves)
+        is_painted_leaf[size_t(leaf)] = 1;
+
+    constexpr size_t uf_poll_every = 4096;
+    for (size_t i = 0; i < painted_leaves.size(); ++i) {
+        if ((i % uf_poll_every) == 0 && cancel_requested(cancel))
+            return {};
+        const int leaf = painted_leaves[i];
+        const EnforcerBlockerType state = source_selector.m_triangles[leaf].get_state();
+        const Vec3i32 &nbs = adj[leaf];
+        for (int k = 0; k < 3; ++k) {
+            const int nb = nbs[k];
+            if (nb < 0 || size_t(nb) >= is_painted_leaf.size() || !is_painted_leaf[size_t(nb)])
+                continue;
+            if (source_selector.m_triangles[nb].get_state() == state)
+                uf.unite(leaf, nb);
+        }
+    }
+
+    if (cancel_requested(cancel))
+        return {};
+
+    std::vector<int> island_root(painted_leaves.size());
+    for (size_t i = 0; i < painted_leaves.size(); ++i)
+        island_root[i] = uf.find(painted_leaves[i]);
+
+    std::unordered_map<Eigen::Vector3i, RegionCell, MixFieldCellHash> field;
+    constexpr size_t stamp_poll_every = 4096;
+    for (size_t i = 0; i < painted_leaves.size(); ++i) {
+        if ((i % stamp_poll_every) == 0 && cancel_requested(cancel))
+            return {};
+        const int leaf = painted_leaves[i];
+        const Triangle &tri = source_selector.m_triangles[leaf];
+        const EnforcerBlockerType state = source_selector.m_triangles[island_root[i]].get_state();
+        const Vec3f &v0 = source_selector.m_vertices[tri.verts_idxs[0]].v;
+        const Vec3f &v1 = source_selector.m_vertices[tri.verts_idxs[1]].v;
+        const Vec3f &v2 = source_selector.m_vertices[tri.verts_idxs[2]].v;
+        const Vec3f centroid = (v0 + v1 + v2) / 3.f;
+        const Eigen::Vector3i keys[4] = {
+            mix_field_cell(centroid, kRegionCellMm),
+            mix_field_cell(v0, kRegionCellMm),
+            mix_field_cell(v1, kRegionCellMm),
+            mix_field_cell(v2, kRegionCellMm),
+        };
+        for (const Eigen::Vector3i &key : keys)
+            region_cell_try_push(field[key], state, centroid);
+    }
+
+    if (cancel_requested(cancel))
+        return {};
+
+    TriangleMesh target_mesh(target_its);
+    target_mesh.transform(target_transform);
+    TriangleSelector target_selector(target_mesh);
+    if (existing_painting)
+        target_selector.deserialize(existing_painting->get(), false);
+
+    const size_t n = target_mesh.its.indices.size();
+    std::vector<EnforcerBlockerType> states(n, EnforcerBlockerType::NONE);
+    constexpr size_t dest_poll_every = 64;
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t>& range) {
+        for (size_t i = range.begin(); i != range.end(); ++i) {
+            if ((i % dest_poll_every) == 0 && cancel_requested(cancel))
+                continue;
+            if (cancel_requested(cancel))
+                continue;
+
+            const Vec3i32 &face = target_mesh.its.indices[i];
+            const Vec3f &dv0 = target_mesh.its.vertices[face(0)];
+            const Vec3f &dv1 = target_mesh.its.vertices[face(1)];
+            const Vec3f &dv2 = target_mesh.its.vertices[face(2)];
+            const Vec3f centroid = (dv0 + dv1 + dv2) / 3.f;
+            const Eigen::Vector3i centroid_key = mix_field_cell(centroid, kRegionCellMm);
+            bool found = false;
+            float best_d2 = 0.f;
+            EnforcerBlockerType best = EnforcerBlockerType::NONE;
+            // Vertex cells pick up shared cube corners (thin Mix 5/6 → 5 dest faces).
+            // Closest sample in the dest centroid cell is the island tie-break; verts still stamp.
+            auto it = field.find(centroid_key);
+            if (it != field.end()) {
+                const RegionCell &cell = it->second;
+                for (uint8_t s = 0; s < cell.n; ++s) {
+                    const float d2 = (centroid - cell.samples[s].centroid).squaredNorm();
+                    if (!found || d2 < best_d2) {
+                        found = true;
+                        best_d2 = d2;
+                        best = cell.samples[s].state;
+                    }
+                }
+            }
+            states[i] = found ? best : EnforcerBlockerType::NONE;
         }
     });
 
