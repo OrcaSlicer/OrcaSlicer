@@ -1358,6 +1358,7 @@ int CLI::run(int argc, char **argv)
     float old_max_radius = 0.f, old_height_to_rod = 0.f, old_height_to_lid = 0.f;
     std::vector<double> old_max_layer_height, old_min_layer_height;
     std::string outfile_dir              =  m_config.opt_string("outputdir", true);
+    const bool                                  strict_config              = m_config.opt_bool("strict_config");
     const std::vector<std::string>              &load_configs               = m_config.option<ConfigOptionStrings>("load_settings", true)->values;
     const std::vector<std::string>              &uptodate_configs          = m_config.option<ConfigOptionStrings>("uptodate_settings", true)->values;
     const std::vector<std::string>              &uptodate_filaments          = m_config.option<ConfigOptionStrings>("uptodate_filaments", true)->values;
@@ -1969,7 +1970,7 @@ int CLI::run(int argc, char **argv)
         }
     }
 
-    auto load_config_file = [config_substitution_rule](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
+    auto load_config_file = [config_substitution_rule, strict_config](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
                                 std::string& config_name, std::string& filament_id, std::string& config_from) {
         if (! boost::filesystem::exists(file)) {
             boost::nowide::cerr << __FUNCTION__<< ": can not find setting file: " << file << std::endl;
@@ -1981,10 +1982,42 @@ int CLI::run(int argc, char **argv)
             std::map<std::string, std::string> key_values;
             std::string reason;
 
-            config_substitutions = config.load_from_json(file, config_substitution_rule, key_values, reason);
-            if (!reason.empty()) {
+            // Keep the substitution context rather than only its result:
+            // unrecogized_keys is the sole record of settings the file named
+            // and this build does not know, and it is otherwise dropped
+            // without a word.
+            ConfigSubstitutionContext subst_ctxt(config_substitution_rule);
+            int json_ret = config.load_from_json(file, subst_ctxt, true, key_values, reason);
+            config_substitutions = std::move(subst_ctxt.substitutions);
+            if (json_ret != 0 || !reason.empty()) {
                 BOOST_LOG_TRIVIAL(error) <<__FUNCTION__<<  ":Can not load config from file "<<file<<"\n";
                 return CLI_CONFIG_FILE_ERROR;
+            }
+            if (! subst_ctxt.unrecogized_keys.empty()) {
+                // Two very different things end up in this list, because
+                // handle_legacy() clears the key for both: settings this
+                // version retired on purpose, and settings whose name is
+                // simply wrong.  Only the second is worth saying anything
+                // about -- the shipped profiles still carry retired keys, and
+                // warning about those would be noise on Orca's own data.
+                //
+                // A misspelled key is not a harmless no-op: the setting its
+                // author meant to change does not change, and a scripted
+                // pipeline has no way to find that out.
+                std::vector<std::string> unknown;
+                for (const std::string &k : subst_ctxt.unrecogized_keys)
+                    if (! PrintConfigDef::is_obsolete_key(k))
+                        unknown.push_back(k);
+                for (const std::string &k : unknown)
+                    boost::nowide::cerr << "warning: " << file
+                        << ": unknown setting \"" << k << "\", ignored"
+                        << std::endl;
+                if (strict_config && ! unknown.empty()) {
+                    boost::nowide::cerr << __FUNCTION__
+                        << ": refusing to slice with unknown settings"
+                           " (--strict-config)" << std::endl;
+                    return CLI_CONFIG_FILE_ERROR;
+                }
             }
 
             config_name = key_values[BBL_JSON_KEY_NAME];
