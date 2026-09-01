@@ -476,8 +476,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # WIN10SDK_PATH is used to point CMake to the WIN10 SDK installation directory.
 # We pick it from environment if it is not defined in another way
 # ORCA: Removed Netfabb STL fixing service support in favor of CGAL.
-if(WIN32)
-    find_package(PkgConfig REQUIRED)
+# if(WIN32)
 #     if(NOT DEFINED WIN10SDK_PATH)
 #         if(DEFINED ENV{WIN10SDK_PATH})
 #                 set(WIN10SDK_PATH "$ENV{WIN10SDK_PATH}")
@@ -513,7 +512,7 @@ if(WIN32)
 #     else()
 #         message("Building without Win10 Netfabb STL fixing service support")
 #     endif()
-endif()
+# endif()
 
 if (APPLE)
     message("OS X SDK Path: ${CMAKE_OSX_SYSROOT}")

@@ -99,8 +99,8 @@ jobs:
       # SELF_HOSTED skips arm64 (the self-hosted Windows server is x64-only).
       matrix:
         include: ${{ fromJSON(vars.SELF_HOSTED
-          && '[{"arch":"x64","os":"orca-win-server"}]'
-          || '[{"arch":"x64","os":"windows-latest"},{"arch":"arm64","os":"windows-11-arm"}]') }}
+          && '[{"arch":"x64","os":"orca-win-server","compiler":"clang"}]'
+          || '[{"arch":"x64","os":"windows-latest","compiler":"clang"},{"arch":"arm64","os":"windows-11-arm","compiler":"clang"}]') }}
     needs: check_build_script
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
@@ -108,6 +108,7 @@ jobs:
     with:
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
+      compiler: ${{ matrix.compiler }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
