@@ -7,6 +7,11 @@
 name: GUI-CLI Parity
 
 on:
+  # temporary, for pre-merge branch testing: workflow_dispatch only works once
+  # the workflow exists on the default branch, but push events run the
+  # workflow from the pushed ref. Remove this trigger when merging to main.
+  push:
+    branches: ["hanif/parity-harness"]
   schedule:
     - cron: "30 18 * * *"
   workflow_dispatch:
@@ -51,7 +56,9 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: OrcaSlicer/orca-test-repo
-          ref: ${{ github.event.inputs.test_repo_ref || 'cli-test-suite' }}
+          # temporary fallback for push-triggered branch testing (inputs are
+          # empty on push): restore to 'cli-test-suite' when merging to main
+          ref: ${{ github.event.inputs.test_repo_ref || 'hanif/parity-harness' }}
           path: orca-test-repo
 
       # the AppImage ships only packed .opc preset caches, no profile JSONs,
