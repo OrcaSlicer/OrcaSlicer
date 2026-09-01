@@ -3951,9 +3951,7 @@ int CLI::run(int argc, char **argv)
         ConfigOptionFloats *wipe_x_option = dynamic_cast<ConfigOptionFloats *>(print_config.option("wipe_tower_x"));
         ConfigOptionFloats *wipe_y_option = dynamic_cast<ConfigOptionFloats *>(print_config.option("wipe_tower_y"));
 
-        // get_at() clamps an out-of-range index to entry 0 instead of erroring, which
-        // would silently reuse another plate's wipe tower position here. Warn so a mismatched
-        // wipe_tower_x/y array (e.g. from a project saved before this plate was added) is visible.
+        // get_at() silently clamps an out-of-range index to entry 0 - make the reuse visible
         if (static_cast<size_t>(plate_index) >= wipe_x_option->values.size() || static_cast<size_t>(plate_index) >= wipe_y_option->values.size()) {
             BOOST_LOG_TRIVIAL(warning) << boost::format("plate %1%: wipe_tower_x/y only has %2%/%3% entries, reusing entry 0's position")
                     %(plate_index+1) %wipe_x_option->values.size() %wipe_y_option->values.size();
@@ -5548,11 +5546,8 @@ int CLI::run(int argc, char **argv)
                 }
                 finished_arrange = true;
             }
-            // CLI has no m_plater, so PartPlateList::create_plate() never backfills
-            // wipe_tower_x/y for plates created here during arrange overflow (unlike GUI's
-            // set_default_wipe_tower_pos_for_plate()). Keep both arrays sized to the actual
-            // plate count so a later per-plate get_at() never silently reuses another plate's
-            // wipe tower position via ConfigOptionVector's out-of-range clamp.
+            // CLI-created overflow plates get no wipe_tower_x/y backfill (that is GUI-only) -
+            // keep the arrays sized to the plate count so per-plate get_at() stays in range.
             {
                 int final_plate_count = partplate_list.get_plate_count();
                 ConfigOptionFloats* wipe_x_opt = m_print_config.option<ConfigOptionFloats>("wipe_tower_x");
