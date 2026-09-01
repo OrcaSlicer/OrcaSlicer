@@ -3142,16 +3142,19 @@ int CLI::run(int argc, char **argv)
         ConfigOptionInts* filament_self_index_opt = m_print_config.option<ConfigOptionInts>("filament_self_index");
         bool need_regenerate_self_index = !filament_self_index_opt;
         if (filament_self_index_opt) {
-            // a filament_self_index carried over from a project with a different
-            // filament_count can imply more distinct filament groups than currently exist.
-            // old_start_indice/old_variant_counts below are sized to filament_count, so an
-            // unreconciled index walks old_start_indice[++k] past its bounds (heap corruption).
-            int max_self_index = 0;
-            for (int v : filament_self_index_opt->values)
+            // a filament_self_index carried over from a stale project can disagree with the
+            // current filament_count. old_start_indice/old_variant_counts below are sized to
+            // filament_count and walked with 1-based group indices, so an index above
+            // filament_count overruns old_start_indice[++k], and a non-positive first index
+            // writes old_variant_counts[-1] - both heap corruption.
+            int max_self_index = 0, min_self_index = 1;
+            for (int v : filament_self_index_opt->values) {
                 max_self_index = std::max(max_self_index, v);
-            if (max_self_index > filament_count) {
-                BOOST_LOG_TRIVIAL(warning) << boost::format("filament_self_index implies %1% filament groups but filament_count is %2%, regenerating")
-                        % max_self_index % filament_count;
+                min_self_index = std::min(min_self_index, v);
+            }
+            if (max_self_index > filament_count || min_self_index < 1) {
+                BOOST_LOG_TRIVIAL(warning) << boost::format("filament_self_index range [%1%, %2%] is invalid for filament_count %3%, regenerating")
+                        % min_self_index % max_self_index % filament_count;
                 need_regenerate_self_index = true;
             }
         }
