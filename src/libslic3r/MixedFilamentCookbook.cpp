@@ -126,7 +126,7 @@ bool spectrum_cookbook_same_recipe(const MixedFilament &a, const MixedFilament &
 MixCookbookAppend spectrum_cookbook_append(
     const std::vector<MixedFilament> &existing,
     size_t                            num_physical,
-    size_t                            persist_cap)
+    size_t                            mix_enabled_cap)
 {
     MixCookbookAppend result;
     const auto        recipes = spectrum_cookbook_recipes(num_physical);
@@ -152,7 +152,7 @@ MixCookbookAppend spectrum_cookbook_append(
             ++result.skipped_duplicate;
             continue;
         }
-        if (num_physical + enabled + 1 > persist_cap) {
+        if (!spectrum_mix_enabled_fits(enabled, 1, mix_enabled_cap)) {
             ++result.skipped_cap;
             break;
         }

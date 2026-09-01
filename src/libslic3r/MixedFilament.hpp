@@ -115,6 +115,18 @@ float spectrum_perimeter_mod_offset(const MixedFilament &mf,
 // (prefix 11 + 4 bits of n−3). 0008 promised 15; 0046 promises Extruder16. 32-state still OOS.
 constexpr size_t SPECTRUM_PAINT_ID_PERSIST_CAP = 16;
 
+// Enabled mix rows (not paint IDs). PeggyPalette-class: 34 mixes + 4 physicals = 38 volume IDs.
+// Paint dest Map stays SPECTRUM_PAINT_ID_PERSIST_CAP. Volume Mix N ≠ paint Map dest count;
+// opaque K kills chroma; nested walls ≠ 25%×4.
+constexpr size_t SPECTRUM_MIX_ENABLED_CAP = 64;
+
+inline bool spectrum_mix_enabled_fits(size_t enabled_now,
+                                      size_t adding = 1,
+                                      size_t cap = SPECTRUM_MIX_ENABLED_CAP)
+{
+    return enabled_now + adding <= cap;
+}
+
 // Shared paint-ID clamp for update_extruder_count and the delete-filament sibling.
 // min(16, max(physical_n, max_filament_id, source_palette_size)) via SPECTRUM_PAINT_ID_PERSIST_CAP.
 size_t spectrum_paint_id_limit(size_t physical_n, size_t max_filament_id, size_t source_palette_size);

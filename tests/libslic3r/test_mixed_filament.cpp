@@ -1280,7 +1280,7 @@ TEST_CASE("spectrum_cookbook_same_recipe gcd and leftover ratio_c", "[spectrum_c
     REQUIRE_FALSE(spectrum_cookbook_same_recipe(leftover, triple));
 }
 
-TEST_CASE("spectrum_cookbook_append dups and persist cap", "[spectrum_cookbook]")
+TEST_CASE("spectrum_cookbook_append dups and mix-row cap", "[spectrum_cookbook]")
 {
     {
         const auto r = spectrum_cookbook_append({}, 4);
@@ -1316,11 +1316,118 @@ TEST_CASE("spectrum_cookbook_append dups and persist cap", "[spectrum_cookbook]"
             mf.ratio_b     = 1;
             mf.enabled     = true;
         }
-        // Cap: 4 physical + 10 enabled = 14; room for 2 → then skipped_cap.
-        const auto r = spectrum_cookbook_append(ten, 4, SPECTRUM_PAINT_ID_PERSIST_CAP);
+        // After enabled-only semantics, 10 existing + cap 12 → room for 2.
+        const auto r = spectrum_cookbook_append(ten, 4, 12);
         REQUIRE(r.added.size() == 2);
         REQUIRE(r.skipped_cap >= 1);
     }
+}
+
+TEST_CASE("spectrum mix rows unglue from paint persist 16", "[spectrum_mix_rows]")
+{
+    REQUIRE(SPECTRUM_MIX_ENABLED_CAP == 64);
+    REQUIRE(SPECTRUM_PAINT_ID_PERSIST_CAP == 16);
+    REQUIRE(spectrum_mix_enabled_fits(34));
+    REQUIRE(spectrum_mix_enabled_fits(64, 0));
+    REQUIRE_FALSE(spectrum_mix_enabled_fits(64, 1));
+    REQUIRE_FALSE(spectrum_mix_enabled_fits(65, 0));
+    REQUIRE(spectrum_mix_enabled_fits(10, 1, 12));
+    REQUIRE_FALSE(spectrum_mix_enabled_fits(12, 1, 12));
+
+    static const unsigned pair_a[] = {1, 1, 1, 2, 2, 3};
+    static const unsigned pair_b[] = {2, 3, 4, 3, 4, 4};
+    static const int      pair_ratios[][2] = {{1, 1}, {2, 1}, {1, 2}, {3, 1}, {1, 3}};
+
+    std::vector<MixedFilament> rows;
+    rows.reserve(34);
+    for (size_t p = 0; p < 6; ++p) {
+        for (size_t r = 0; r < 5; ++r) {
+            MixedFilament mf;
+            mf.component_a = pair_a[p];
+            mf.component_b = pair_b[p];
+            mf.component_c = 0;
+            mf.ratio_a     = pair_ratios[r][0];
+            mf.ratio_b     = pair_ratios[r][1];
+            mf.ratio_c     = 0;
+            mf.enabled     = true;
+            rows.push_back(mf);
+        }
+    }
+    const struct Triple {
+        unsigned a, b, c;
+        int      ra, rb, rc;
+    } triples[] = {
+        {1, 2, 3, 1, 1, 1},
+        {1, 2, 3, 1, 1, 2},
+        {1, 2, 4, 1, 1, 1},
+        {1, 3, 4, 1, 1, 1},
+    };
+    for (const Triple &t : triples) {
+        MixedFilament mf;
+        mf.component_a = t.a;
+        mf.component_b = t.b;
+        mf.component_c = t.c;
+        mf.ratio_a     = t.ra;
+        mf.ratio_b     = t.rb;
+        mf.ratio_c     = t.rc;
+        mf.enabled     = true;
+        REQUIRE(mf.component_c != mf.component_a);
+        REQUIRE(mf.component_c != mf.component_b);
+        REQUIRE(mf.ratio_a + mf.ratio_b + mf.ratio_c <= 4);
+        rows.push_back(mf);
+    }
+    REQUIRE(rows.size() == 34);
+
+    for (size_t i = 0; i < rows.size(); ++i) {
+        for (size_t j = i + 1; j < rows.size(); ++j) {
+            REQUIRE_FALSE(spectrum_cookbook_same_recipe(rows[i], rows[j]));
+        }
+    }
+
+    std::ostringstream oss;
+    for (size_t i = 0; i < rows.size(); ++i) {
+        if (i)
+            oss << ';';
+        const MixedFilament &mf = rows[i];
+        oss << mf.component_a << ',' << mf.component_b << ",1," << mf.ratio_a << ',' << mf.ratio_b;
+        if (mf.component_c != 0)
+            oss << ",c" << mf.component_c << ",rc" << mf.ratio_c;
+    }
+    const std::string ser = oss.str();
+    MixedFilamentManager mgr;
+    mgr.load_definitions(ser);
+    const std::string round = mgr.serialize_definitions();
+    MixedFilamentManager loaded;
+    loaded.load_definitions(round);
+    REQUIRE(MixedFilamentManager::max_filament_id(round, 4) == 38);
+    REQUIRE(loaded.enabled_count() == 34);
+
+    const MixedFilament *mix20 = loaded.mixed_filament_from_id(20, 4);
+    const MixedFilament *mix38 = loaded.mixed_filament_from_id(38, 4);
+    REQUIRE(mix20 != nullptr);
+    REQUIRE(mix38 != nullptr);
+    REQUIRE_FALSE(spectrum_cookbook_same_recipe(*mix20, *mix38));
+    const bool mix20_layers_differ = loaded.resolve(20, 4, 0) != loaded.resolve(20, 4, 1);
+    const bool mix38_layers_differ = loaded.resolve(38, 4, 0) != loaded.resolve(38, 4, 1);
+    REQUIRE((mix20_layers_differ || mix38_layers_differ));
+
+    REQUIRE(spectrum_volume_extruder_keep(38, 4, 38));
+    REQUIRE(spectrum_paint_id_limit(4, 38, 0) == 16);
+
+    // SHOULD: pattern 1234 cycles physicals 1–4 (token 4 is not covered by existing [MixedFilament] cases).
+    MixedFilamentManager pat;
+    std::string          pad;
+    for (int i = 0; i < 33; ++i) {
+        if (i)
+            pad += ';';
+        pad += "1,2,1,1,1";
+    }
+    pad += ";1,2,1,1,1,1234";
+    pat.load_definitions(pad);
+    REQUIRE(pat.resolve(38, 4, 0) == 1);
+    REQUIRE(pat.resolve(38, 4, 1) == 2);
+    REQUIRE(pat.resolve(38, 4, 2) == 3);
+    REQUIRE(pat.resolve(38, 4, 3) == 4);
 }
 
 TEST_CASE("spectrum gradient parse/serialize ,g and g1; g0/g2 not pattern", "[spectrum_gradient]")

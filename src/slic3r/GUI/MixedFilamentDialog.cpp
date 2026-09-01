@@ -97,15 +97,16 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     auto *root = new wxBoxSizer(wxVERTICAL);
 
     auto *list_row = new wxBoxSizer(wxHORIZONTAL);
-    m_list = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(260), FromDIP(88)));
+    m_list = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(260), FromDIP(220)));
     auto *list_btns = new wxBoxSizer(wxVERTICAL);
     m_btn_add          = new wxButton(this, wxID_ANY, _L("Add"));
     m_btn_remove       = new wxButton(this, wxID_ANY, _L("Remove"));
     m_btn_recommended  = new wxButton(this, wxID_ANY, _L("Add recommended"));
     m_btn_recommended->SetToolTip(
         wxString::Format(_L("Adds missing 1:1 pairs of slots 1–4, then period-4 cookbook extras. "
-                            "Skips duplicates. Stops at persist cap %d. Does not change existing rows."),
-                         int(SPECTRUM_PAINT_ID_PERSIST_CAP)));
+                            "Skips duplicates. Stops at enabled-mix cap %d. Does not change existing rows. "
+                            "PeggyPalette-class is volume Mix N; paint Map still 16 dest IDs."),
+                         int(SPECTRUM_MIX_ENABLED_CAP)));
     list_btns->Add(m_btn_add, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
     list_btns->Add(m_btn_remove, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
     list_btns->Add(m_btn_recommended, 0, wxEXPAND);
@@ -250,6 +251,24 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
         evt.Skip();
     });
     m_enabled->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &) {
+        if (m_suppress_events)
+            return;
+        if (m_selected_row >= 0 && size_t(m_selected_row) < m_rows.size()) {
+            const bool currently_on = m_rows[size_t(m_selected_row)].enabled;
+            if (!currently_on && m_enabled->GetValue()) {
+                if (!spectrum_mix_enabled_fits(enabled_mix_count())) {
+                    m_suppress_events = true;
+                    m_enabled->SetValue(false);
+                    m_suppress_events = false;
+                    MessageDialog(this,
+                                  wxString::Format(_L("Enabled mixes cannot exceed %d."),
+                                                   int(SPECTRUM_MIX_ENABLED_CAP)),
+                                  _L("Mixed Filaments"), wxOK | wxICON_WARNING)
+                        .ShowModal();
+                    return;
+                }
+            }
+        }
         store_editors_into_selected_row();
         refresh_list_labels();
     });
@@ -571,11 +590,10 @@ void MixedFilamentDialog::on_create_mix_from_color(wxCommandEvent &)
         return;
     }
 
-    const size_t num_physical = physical_filament_count();
-    if (num_physical + enabled_mix_count() + 1 > SPECTRUM_PAINT_ID_PERSIST_CAP) {
+    if (!spectrum_mix_enabled_fits(enabled_mix_count())) {
         MessageDialog(this,
-                      wxString::Format(_L("Physical filaments plus enabled mixes cannot exceed %d."),
-                                       int(SPECTRUM_PAINT_ID_PERSIST_CAP)),
+                      wxString::Format(_L("Enabled mixes cannot exceed %d."),
+                                       int(SPECTRUM_MIX_ENABLED_CAP)),
                       _L("Mixed Filaments"), wxOK | wxICON_WARNING)
             .ShowModal();
         return;
@@ -712,6 +730,14 @@ void MixedFilamentDialog::on_list_select(wxCommandEvent &)
 void MixedFilamentDialog::on_add_row(wxCommandEvent &)
 {
     store_editors_into_selected_row();
+    if (!spectrum_mix_enabled_fits(enabled_mix_count())) {
+        MessageDialog(this,
+                      wxString::Format(_L("Enabled mixes cannot exceed %d."),
+                                       int(SPECTRUM_MIX_ENABLED_CAP)),
+                      _L("Mixed Filaments"), wxOK | wxICON_WARNING)
+            .ShowModal();
+        return;
+    }
     m_rows.emplace_back();
     m_selected_row = int(m_rows.size()) - 1;
     refresh_list();
@@ -746,11 +772,11 @@ void MixedFilamentDialog::on_add_recommended(wxCommandEvent &)
 
     const MixCookbookAppend r = spectrum_cookbook_append(m_rows, n);
     if (r.added.empty()) {
-        // Cap hit with nothing added (even if some recipes were also duplicates) → persist-cap modal.
+        // Cap hit with nothing added (even if some recipes were also duplicates) → mix-row cap modal.
         if (r.skipped_cap != 0) {
             MessageDialog(this,
-                          wxString::Format(_L("Physical filaments plus enabled mixes cannot exceed %d."),
-                                           int(SPECTRUM_PAINT_ID_PERSIST_CAP)),
+                          wxString::Format(_L("Enabled mixes cannot exceed %d."),
+                                           int(SPECTRUM_MIX_ENABLED_CAP)),
                           _L("Mixed Filaments"), wxOK | wxICON_WARNING)
                 .ShowModal();
         } else {
@@ -815,11 +841,10 @@ bool MixedFilamentDialog::apply_to_project()
         return false;
 
     store_editors_into_selected_row();
-    const size_t num_physical_now = physical_filament_count();
-    if (num_physical_now + enabled_mix_count() > SPECTRUM_PAINT_ID_PERSIST_CAP) {
+    if (!spectrum_mix_enabled_fits(enabled_mix_count(), 0)) {
         MessageDialog(this,
-                      wxString::Format(_L("Physical filaments plus enabled mixes cannot exceed %d."),
-                                       int(SPECTRUM_PAINT_ID_PERSIST_CAP)),
+                      wxString::Format(_L("Enabled mixes cannot exceed %d."),
+                                       int(SPECTRUM_MIX_ENABLED_CAP)),
                       _L("Mixed Filaments"), wxOK | wxICON_WARNING)
             .ShowModal();
         return false;

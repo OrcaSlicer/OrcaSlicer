@@ -22,11 +22,12 @@ struct MixCookbookAppend {
 };
 
 // Walk recipes in order. Skip same-recipe vs any existing row.
-// Stop proposing when num_physical + enabled(existing+already-added) + 1
-// would exceed persist_cap (default SPECTRUM_PAINT_ID_PERSIST_CAP).
+// Stop proposing when enabled(existing+already-added) + 1 would exceed
+// mix_enabled_cap (default SPECTRUM_MIX_ENABLED_CAP). Physical count is not
+// part of this gate (volume Mix N is independent of paint persist 16).
 MixCookbookAppend spectrum_cookbook_append(
     const std::vector<MixedFilament> &existing,
     size_t num_physical,
-    size_t persist_cap = SPECTRUM_PAINT_ID_PERSIST_CAP);
+    size_t mix_enabled_cap = SPECTRUM_MIX_ENABLED_CAP);
 
 } // namespace Slic3r
