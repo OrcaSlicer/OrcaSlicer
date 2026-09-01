@@ -670,20 +670,20 @@ TEST_CASE("Match C+M 1:1 predicted serializes gcd-reduced 1,2,1,1,1", "[MixedFil
     REQUIRE(std::abs(yn.r() - avg.r()) + std::abs(yn.g() - avg.g()) + std::abs(yn.b() - avg.b()) > 1e-4f);
 }
 
-TEST_CASE("Match linear C+M midpoint is a pair of 1+2 without cN", "[MixedFilamentMatch]")
+TEST_CASE("Match linear C+M midpoint is a Mix using 1 and 2", "[MixedFilamentMatch]")
 {
     const std::vector<ColorRGB> phys = panchroma_physicals();
     const ColorRGB              mid  = lerp(phys[0], phys[1], 0.5f);
     const MixMatchResult        r    = match_printable_mix(mid, phys);
     REQUIRE(r.valid);
     REQUIRE(r.kind == MixMatchResult::Kind::Mix);
-    REQUIRE(r.mix.component_c == 0u);
-    REQUIRE(r.recipe_row.find('c') == std::string::npos);
-    const bool pair_12 = (r.mix.component_a == 1u && r.mix.component_b == 2u) ||
-                         (r.mix.component_a == 2u && r.mix.component_b == 1u);
-    REQUIRE(pair_12);
+    std::set<unsigned> ids = {r.mix.component_a, r.mix.component_b};
+    if (r.mix.component_c != 0)
+        ids.insert(r.mix.component_c);
+    REQUIRE(ids.count(1u) == 1);
+    REQUIRE(ids.count(2u) == 1);
     REQUIRE(mix_period(r.mix) >= 2);
-    REQUIRE(mix_period(r.mix) <= 3);
+    REQUIRE(mix_period(r.mix) <= 4);
 }
 
 TEST_CASE("Match brown is a short CMY mix that round-trips", "[MixedFilamentMatch]")
@@ -1068,11 +1068,14 @@ TEST_CASE("match_printable_candidates #CE921A ranked list and equals mix front",
     for (size_t i = 1; i < cands.size(); ++i) {
         REQUIRE(cands[i - 1].distance <= cands[i].distance);
         if (cands[i - 1].distance == cands[i].distance) {
-            const int p0 = (cands[i - 1].kind == MixMatchResult::Kind::Physical)
-                               ? 1
-                               : mix_period(cands[i - 1].mix);
-            const int p1 = (cands[i].kind == MixMatchResult::Kind::Physical) ? 1 : mix_period(cands[i].mix);
-            REQUIRE(p0 <= p1);
+            auto period_key = [](const MixMatchResult &r) {
+                if (r.kind == MixMatchResult::Kind::Physical)
+                    return 1;
+                const int pattern_len =
+                    int(MixedFilamentManager::normalize_manual_pattern(r.mix.manual_pattern).size());
+                return std::max(mix_period(r.mix), pattern_len);
+            };
+            REQUIRE(period_key(cands[i - 1]) <= period_key(cands[i]));
         }
     }
 
@@ -1129,6 +1132,161 @@ TEST_CASE("match_printable_candidates black front equals mix Grey physical", "[M
     REQUIRE(same_match_result(cands[0], best));
     REQUIRE(cands[0].kind == MixMatchResult::Kind::Physical);
     REQUIRE(cands[0].physical_id == 4u);
+}
+
+namespace {
+
+float mixer_delta_e00_swatch(const ColorRGB &u, const ColorRGB &v)
+{
+    const prusa_fdm_mixer::RGB ru{u.r_uchar(), u.g_uchar(), u.b_uchar()};
+    const prusa_fdm_mixer::RGB rv{v.r_uchar(), v.g_uchar(), v.b_uchar()};
+    return float(prusa_fdm_mixer::delta_e_2000(prusa_fdm_mixer::rgb_to_lab(ru),
+                                               prusa_fdm_mixer::rgb_to_lab(rv)));
+}
+
+float cie76_mixer_lab(const ColorRGB &u, const ColorRGB &v)
+{
+    const prusa_fdm_mixer::LAB a = prusa_fdm_mixer::rgb_to_lab({u.r_uchar(), u.g_uchar(), u.b_uchar()});
+    const prusa_fdm_mixer::LAB b = prusa_fdm_mixer::rgb_to_lab({v.r_uchar(), v.g_uchar(), v.b_uchar()});
+    const double               dL = a.L - b.L;
+    const double               da = a.a - b.a;
+    const double               db = a.b - b.b;
+    return float(std::sqrt(dL * dL + da * da + db * db));
+}
+
+MixedFilament pattern_1234_mix()
+{
+    MixedFilament mf;
+    mf.component_a    = 1;
+    mf.component_b    = 2;
+    mf.component_c    = 0;
+    mf.ratio_a        = 1;
+    mf.ratio_b        = 1;
+    mf.ratio_c        = 0;
+    mf.enabled        = true;
+    mf.manual_pattern = "1234";
+    return mf;
+}
+
+MixedFilament pair_11_ab()
+{
+    MixedFilament mf;
+    mf.component_a = 1;
+    mf.component_b = 2;
+    mf.component_c = 0;
+    mf.ratio_a     = 1;
+    mf.ratio_b     = 1;
+    mf.ratio_c     = 0;
+    mf.enabled     = true;
+    return mf;
+}
+
+bool is_ratio_31_mix(const MixMatchResult &c)
+{
+    if (c.kind != MixMatchResult::Kind::Mix)
+        return false;
+    if (c.mix.component_c != 0)
+        return false;
+    return (c.mix.ratio_a == 3 && c.mix.ratio_b == 1) || (c.mix.ratio_a == 1 && c.mix.ratio_b == 3);
+}
+
+} // namespace
+
+TEST_CASE("predicted_swatch_for_mix 1234 is not pair 1:1 A+B", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys     = panchroma_physicals();
+    const ColorRGB              pattern  = predicted_swatch_for_mix(pattern_1234_mix(), phys);
+    const ColorRGB              pair     = predicted_swatch_for_mix(pair_11_ab(), phys);
+    REQUIRE(pattern != pair);
+}
+
+TEST_CASE("1234 candidate recipe_row includes pattern and is not pair 1:1", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys   = panchroma_physicals();
+    const ColorRGB              target = predicted_swatch_for_mix(pattern_1234_mix(), phys);
+    const auto                  cands  = match_printable_candidates(target, phys, nullptr, 4, 25, 64);
+    REQUIRE_FALSE(cands.empty());
+
+    const MixMatchResult *found_1234 = nullptr;
+    const MixMatchResult *found_pair = nullptr;
+    for (const MixMatchResult &c : cands) {
+        if (c.kind != MixMatchResult::Kind::Mix)
+            continue;
+        const std::string pattern = MixedFilamentManager::normalize_manual_pattern(c.mix.manual_pattern);
+        if (pattern == "1234")
+            found_1234 = &c;
+        else if (c.mix.component_a == 1u && c.mix.component_b == 2u && c.mix.component_c == 0u &&
+                 c.mix.ratio_a == 1 && c.mix.ratio_b == 1 && pattern.empty())
+            found_pair = &c;
+    }
+    REQUIRE(found_1234 != nullptr);
+    REQUIRE_FALSE(found_1234->recipe_row.empty());
+    REQUIRE(found_1234->recipe_row.find("1234") != std::string::npos);
+    REQUIRE(found_1234->recipe_row != "1,2,1,1,1");
+    if (found_pair != nullptr)
+        REQUIRE(found_1234->recipe_row != found_pair->recipe_row);
+
+    MixedFilamentManager mgr;
+    mgr.load_definitions(found_1234->recipe_row);
+    REQUIRE(mgr.enabled_count() == 1);
+    REQUIRE(MixedFilamentManager::normalize_manual_pattern(mgr.mixed_filaments().front().manual_pattern) ==
+            "1234");
+    REQUIRE(mgr.serialize_definitions() == found_1234->recipe_row);
+}
+
+TEST_CASE("Match ranking distance is mixer delta_e_2000", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys   = panchroma_physicals();
+    const ColorRGB              target = decode_hex_or_fail("#CE921A");
+    const auto                  cands  = match_printable_candidates(target, phys, nullptr, 4, 25, 64);
+    REQUIRE_FALSE(cands.empty());
+
+    bool checked_mix = false;
+    for (const MixMatchResult &c : cands) {
+        if (c.kind != MixMatchResult::Kind::Mix)
+            continue;
+        REQUIRE_THAT(c.distance, Catch::Matchers::WithinAbs(mixer_delta_e00_swatch(c.predicted, target), 1e-3f));
+        checked_mix = true;
+        break;
+    }
+    REQUIRE(checked_mix);
+
+    bool disagreed = false;
+    for (size_t i = 0; i < cands.size() && !disagreed; ++i) {
+        for (size_t j = i + 1; j < cands.size(); ++j) {
+            const float cie_i = cie76_mixer_lab(cands[i].predicted, target);
+            const float cie_j = cie76_mixer_lab(cands[j].predicted, target);
+            const float de_i  = mixer_delta_e00_swatch(cands[i].predicted, target);
+            const float de_j  = mixer_delta_e00_swatch(cands[j].predicted, target);
+            if ((cie_i < cie_j) != (de_i < de_j) && de_i != de_j) {
+                disagreed = true;
+                REQUIRE(cands[i].distance <= cands[j].distance);
+                break;
+            }
+        }
+    }
+}
+
+TEST_CASE("Create-mix default max-share 100 still contains 3:1", "[MixedFilamentMatch]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    MixedFilament               r31;
+    r31.component_a = 1;
+    r31.component_b = 3;
+    r31.ratio_a     = 3;
+    r31.ratio_b     = 1;
+    r31.enabled     = true;
+    const ColorRGB target = predicted_swatch_for_mix(r31, phys);
+    const auto     cands  = match_printable_candidates(target, phys, nullptr, 4, 25, 12);
+    REQUIRE_FALSE(cands.empty());
+    bool saw_31 = false;
+    for (const MixMatchResult &c : cands) {
+        if (is_ratio_31_mix(c)) {
+            saw_31 = true;
+            break;
+        }
+    }
+    REQUIRE(saw_31);
 }
 
 namespace {

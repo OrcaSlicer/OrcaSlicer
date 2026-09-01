@@ -4,6 +4,7 @@
 #include "MixedFilamentMatch.hpp"
 #include "Model.hpp"
 #include "PrintConfig.hpp"
+#include "prusa_fdm_mixer.hpp"
 
 #include <boost/log/trivial.hpp>
 
@@ -11,6 +12,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace Slic3r {
 
@@ -49,10 +51,8 @@ SpectrumPaintBakePlan plan_spectrum_paint_bake(
         slots.push_back(physicals[i]);
 
     std::vector<std::string> recipe_rows;
-    std::unordered_map<std::string, unsigned> recipe_to_mix_id;
-    recipe_to_mix_id.reserve(source_hexes.size());
-    // Delay Mix dest writes into slot_map until persist-cap is known-ok.
-    std::vector<unsigned> pending_mix_dest(source_hexes.size() + 1, 0);
+    std::unordered_map<std::string, std::vector<size_t>> recipe_sources;
+    recipe_sources.reserve(source_hexes.size());
 
     for (size_t src = 1; src <= source_hexes.size(); ++src) {
         const std::string normalized = normalize_mix_match_hex(source_hexes[src - 1]);
@@ -66,7 +66,7 @@ SpectrumPaintBakePlan plan_spectrum_paint_bake(
             continue;
         }
 
-        const MixMatchResult match = match_printable_mix(target, slots, nullptr);
+        const MixMatchResult match = match_printable_mix(target, slots, nullptr, 4, 70);
         if (!match.valid || (match.kind == MixMatchResult::Kind::Mix && match.recipe_row.empty())) {
             BOOST_LOG_TRIVIAL(warning) << "spectrum paint bake: match failed for source index " << src
                                        << "; mapping to physical 1";
@@ -86,32 +86,78 @@ SpectrumPaintBakePlan plan_spectrum_paint_bake(
             continue;
         }
 
-        const auto found = recipe_to_mix_id.find(match.recipe_row);
-        unsigned dest_id = 0;
-        if (found != recipe_to_mix_id.end()) {
-            dest_id = found->second;
-        } else {
-            dest_id = unsigned(mix_base + recipe_rows.size() + 1);
-            recipe_to_mix_id.emplace(match.recipe_row, dest_id);
+        auto found = recipe_sources.find(match.recipe_row);
+        if (found == recipe_sources.end()) {
             recipe_rows.push_back(match.recipe_row);
+            recipe_sources.emplace(match.recipe_row, std::vector<size_t>{src});
+        } else {
+            found->second.push_back(src);
         }
-        pending_mix_dest[src] = dest_id;
+    }
+
+    // Snapmaker V2.3.6 Color Mixing Match Mapping approximates many source colours
+    // onto four physicals. Fifteen unique sources cannot map 1:1 onto twelve dest
+    // Mix IDs (paint persist 16 with four physicals). Collapse nearest Mix dests
+    // by ColorMix ΔE00 until mix_base + unique Mix rows <= SPECTRUM_PAINT_ID_PERSIST_CAP.
+    // Serialized rows stay ZR pair-prefix grammar — no Snapmaker keys.
+    auto predicted_of_row = [&](const std::string &row) -> ColorRGB {
+        MixedFilamentManager mgr;
+        mgr.load_definitions(row);
+        if (mgr.enabled_count() == 0)
+            return ColorRGB::BLACK();
+        return predicted_swatch_for_mix(mgr.mixed_filaments().front(), slots, nullptr);
+    };
+    auto mixer_de00 = [](const ColorRGB &a, const ColorRGB &b) -> float {
+        const prusa_fdm_mixer::RGB ra{a.r_uchar(), a.g_uchar(), a.b_uchar()};
+        const prusa_fdm_mixer::RGB rb{b.r_uchar(), b.g_uchar(), b.b_uchar()};
+        return float(prusa_fdm_mixer::delta_e_2000(prusa_fdm_mixer::rgb_to_lab(ra),
+                                                   prusa_fdm_mixer::rgb_to_lab(rb)));
+    };
+
+    while (mix_base + recipe_rows.size() > SPECTRUM_PAINT_ID_PERSIST_CAP && recipe_rows.size() >= 2) {
+        size_t best_i = 0;
+        size_t best_j = 1;
+        float  best_d = 1e30f;
+        for (size_t i = 0; i < recipe_rows.size(); ++i) {
+            const ColorRGB pi = predicted_of_row(recipe_rows[i]);
+            for (size_t j = i + 1; j < recipe_rows.size(); ++j) {
+                const float d = mixer_de00(pi, predicted_of_row(recipe_rows[j]));
+                if (d < best_d) {
+                    best_d = d;
+                    best_i = i;
+                    best_j = j;
+                }
+            }
+        }
+        size_t keep = best_i;
+        size_t drop = best_j;
+        if (recipe_sources[recipe_rows[best_j]].size() > recipe_sources[recipe_rows[best_i]].size()) {
+            keep = best_j;
+            drop = best_i;
+        }
+        const std::string keep_row = recipe_rows[keep];
+        const std::string drop_row = recipe_rows[drop];
+        auto             &keep_srcs = recipe_sources[keep_row];
+        const auto       &drop_srcs = recipe_sources[drop_row];
+        keep_srcs.insert(keep_srcs.end(), drop_srcs.begin(), drop_srcs.end());
+        recipe_sources.erase(drop_row);
+        recipe_rows.erase(recipe_rows.begin() + int(drop));
     }
 
     plan.mix_count = recipe_rows.size();
-    if (mix_base + plan.mix_count > SPECTRUM_PAINT_ID_PERSIST_CAP) {
-        plan.error = "Physical filaments plus unique mixes exceed the persist cap of " +
-                     std::to_string(SPECTRUM_PAINT_ID_PERSIST_CAP) + ".";
-        plan.mix_count             = 0;
-        plan.physical_mapped_count = 0;
-        plan.mixed_filament_definitions.clear();
-        fill_identity(plan.slot_map);
-        return plan;
-    }
 
-    for (size_t src = 1; src <= source_hexes.size(); ++src) {
-        if (pending_mix_dest[src] != 0)
-            plan.slot_map[src] = EnforcerBlockerType(pending_mix_dest[src]);
+    std::unordered_map<std::string, unsigned> recipe_to_mix_id;
+    recipe_to_mix_id.reserve(recipe_rows.size());
+    for (size_t i = 0; i < recipe_rows.size(); ++i)
+        recipe_to_mix_id.emplace(recipe_rows[i], unsigned(mix_base + i + 1));
+
+    for (const auto &kv : recipe_sources) {
+        const auto dest_it = recipe_to_mix_id.find(kv.first);
+        if (dest_it == recipe_to_mix_id.end())
+            continue;
+        const unsigned dest_id = dest_it->second;
+        for (size_t src : kv.second)
+            plan.slot_map[src] = EnforcerBlockerType(dest_id);
     }
 
     for (size_t j = 1; j <= size_t(EnforcerBlockerType::ExtruderMax); ++j) {

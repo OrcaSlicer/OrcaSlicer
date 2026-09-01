@@ -94,7 +94,7 @@ std::vector<std::string> unique_mix_source_hexes(size_t n, const std::vector<Col
                 ColorRGB c;
                 if (!decode_color(buf, c))
                     continue;
-                const MixMatchResult m = match_printable_mix(c, phys, nullptr);
+                const MixMatchResult m = match_printable_mix(c, phys, nullptr, 4, 70);
                 if (!m.valid || m.kind != MixMatchResult::Kind::Mix || m.recipe_row.empty())
                     continue;
                 if (!recipes.insert(m.recipe_row).second)
@@ -107,7 +107,7 @@ std::vector<std::string> unique_mix_source_hexes(size_t n, const std::vector<Col
 }
 
 // 0010 pair-ratio lattice: 6 pairs × {1:1, 2:1, 1:2, 3:1, 1:3}. Used when the RGB
-// stride helper cannot produce n unique Mix recipes (do not drop the 13-refuse case).
+// stride helper cannot produce n unique Mix recipes (13-unique collapse fixture).
 std::vector<std::string> unique_mix_hexes_from_pair_lattice(size_t n, const std::vector<ColorRGB> &phys)
 {
     std::vector<std::string> out;
@@ -127,7 +127,7 @@ std::vector<std::string> unique_mix_hexes_from_pair_lattice(size_t n, const std:
             mf.ratio_c     = 0;
             mf.enabled     = true;
             const ColorRGB       pred = predicted_swatch_for_mix(mf, phys);
-            const MixMatchResult m    = match_printable_mix(pred, phys, nullptr);
+            const MixMatchResult m    = match_printable_mix(pred, phys, nullptr, 4, 70);
             if (!m.valid || m.kind != MixMatchResult::Kind::Mix || m.recipe_row.empty())
                 continue;
             if (!recipes.insert(m.recipe_row).second)
@@ -136,6 +136,21 @@ std::vector<std::string> unique_mix_hexes_from_pair_lattice(size_t n, const std:
         }
     }
     return out;
+}
+
+void require_contiguous_mix_dests(const SpectrumPaintBakePlan &plan, size_t mix_base, size_t source_count)
+{
+    std::vector<unsigned> mix_dests;
+    for (size_t src = 1; src <= source_count; ++src) {
+        const unsigned dest = unsigned(plan.slot_map[src]);
+        if (dest > unsigned(mix_base))
+            mix_dests.push_back(dest);
+    }
+    std::sort(mix_dests.begin(), mix_dests.end());
+    mix_dests.erase(std::unique(mix_dests.begin(), mix_dests.end()), mix_dests.end());
+    REQUIRE(mix_dests.size() == plan.mix_count);
+    for (size_t i = 0; i < mix_dests.size(); ++i)
+        REQUIRE(mix_dests[i] == unsigned(mix_base + i + 1));
 }
 
 } // namespace
@@ -166,6 +181,7 @@ TEST_CASE("mountain 8 hexes bake to Grey physical 4 and several mixes", "[spectr
     mgr.load_definitions(plan.mixed_filament_definitions);
     REQUIRE(mgr.enabled_count() == plan.mix_count);
     REQUIRE(mgr.serialize_definitions() == plan.mixed_filament_definitions);
+    require_contiguous_mix_dests(plan, 4, k_mountain_hexes.size());
 }
 
 TEST_CASE("duplicate source hexes share dest Mix ID", "[spectrum_paint_bake]")
@@ -213,9 +229,11 @@ TEST_CASE("twelve unique Mix recipes plus four physicals bake within persist cap
     const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(hexes, phys, 4);
     REQUIRE(plan.valid);
     REQUIRE(plan.error.empty());
+    REQUIRE(plan.mix_count <= 12);
+    require_contiguous_mix_dests(plan, 4, hexes.size());
 }
 
-TEST_CASE("thirteen unique Mix recipes plus four physicals refuse persist cap", "[spectrum_paint_bake]")
+TEST_CASE("thirteen unique Mix recipes plus four physicals collapse within persist cap", "[spectrum_paint_bake]")
 {
     const std::vector<ColorRGB> phys = panchroma_physicals();
     std::vector<std::string> hexes = unique_mix_source_hexes(13, phys);
@@ -226,8 +244,11 @@ TEST_CASE("thirteen unique Mix recipes plus four physicals refuse persist cap", 
          << (helper_size < 13 ? " (pair-ratio lattice fallback)" : " (RGB stride helper)"));
     REQUIRE(hexes.size() == 13);
     const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(hexes, phys, 4);
-    REQUIRE_FALSE(plan.valid);
-    REQUIRE_FALSE(plan.error.empty());
+    REQUIRE(plan.valid);
+    REQUIRE(plan.error.empty());
+    REQUIRE(plan.mix_count <= 12);
+    REQUIRE(4 + plan.mix_count <= SPECTRUM_PAINT_ID_PERSIST_CAP);
+    require_contiguous_mix_dests(plan, 4, hexes.size());
 }
 
 TEST_CASE("apply remaps painted 1-8 including Grey physical 4", "[spectrum_paint_bake]")

@@ -69,6 +69,15 @@ float cie76(const ColorRGB &u, const ColorRGB &v)
     return std::sqrt(dL * dL + da * da + db * db);
 }
 
+// Mixer Lab ΔE00. Do not pipe Match's float rgb_to_lab into mixer delta_e_2000.
+float mixer_delta_e00(const ColorRGB &u, const ColorRGB &v)
+{
+    const prusa_fdm_mixer::RGB ru{u.r_uchar(), u.g_uchar(), u.b_uchar()};
+    const prusa_fdm_mixer::RGB rv{v.r_uchar(), v.g_uchar(), v.b_uchar()};
+    return float(prusa_fdm_mixer::delta_e_2000(prusa_fdm_mixer::rgb_to_lab(ru),
+                                               prusa_fdm_mixer::rgb_to_lab(rv)));
+}
+
 unsigned clamp_physical_id(unsigned id, size_t n)
 {
     if (n == 0)
@@ -78,6 +87,20 @@ unsigned clamp_physical_id(unsigned id, size_t n)
     if (id > n)
         return unsigned(n);
     return id;
+}
+
+// Same token map as MixedFilament.cpp physical_from_pattern_token (file-local there).
+unsigned physical_from_pattern_token_local(char token, const MixedFilament &mf, size_t n)
+{
+    if (token == '1')
+        return clamp_physical_id(mf.component_a, n);
+    if (token == '2')
+        return clamp_physical_id(mf.component_b, n);
+    if (token == '3' && mf.component_c != 0)
+        return clamp_physical_id(mf.component_c, n);
+    if (token >= '3' && token <= '9')
+        return clamp_physical_id(unsigned(token - '0'), n);
+    return clamp_physical_id(mf.component_a, n);
 }
 
 ColorRGB decode_card_hex(const char *hex)
@@ -110,6 +133,9 @@ std::string serialize_mix_recipe(const MixedFilament &mf)
     std::ostringstream oss;
     oss << mf.component_a << ',' << mf.component_b << ',' << (mf.enabled ? 1 : 0)
         << ',' << mf.ratio_a << ',' << mf.ratio_b;
+    const std::string pattern = MixedFilamentManager::normalize_manual_pattern(mf.manual_pattern);
+    if (!pattern.empty())
+        oss << ',' << pattern;
     if (mf.component_c != 0)
         oss << ",c" << mf.component_c << ",rc" << mf.ratio_c;
     MixedFilamentManager mgr;
@@ -127,6 +153,14 @@ int result_period(const MixMatchResult &r)
     if (r.mix.component_c != 0)
         p += r.mix.ratio_c;
     return std::max(1, p);
+}
+
+int result_period_key(const MixMatchResult &r)
+{
+    int pattern_len = 0;
+    if (r.kind == MixMatchResult::Kind::Mix)
+        pattern_len = int(MixedFilamentManager::normalize_manual_pattern(r.mix.manual_pattern).size());
+    return std::max(result_period(r), pattern_len);
 }
 
 } // namespace
@@ -282,11 +316,24 @@ ColorRGB predicted_swatch_for_mix(const MixedFilament         &mf,
         const unsigned id = clamp_physical_id(id_1based, n);
         parts.push_back({physicals[size_t(id - 1)], w});
     };
-    push_part(mf.component_a, mf.ratio_a);
-    push_part(mf.component_b, mf.ratio_b);
-    if (mf.component_c != 0) {
-        const int rc = (mf.ratio_c > 0) ? mf.ratio_c : 1;
-        push_part(mf.component_c, rc);
+    const std::string pattern = MixedFilamentManager::normalize_manual_pattern(mf.manual_pattern);
+    if (!pattern.empty()) {
+        std::vector<int> counts(n, 0);
+        for (char token : pattern) {
+            const unsigned id = physical_from_pattern_token_local(token, mf, n);
+            counts[size_t(id - 1)]++;
+        }
+        for (size_t i = 0; i < n; ++i) {
+            if (counts[i] > 0)
+                push_part(unsigned(i + 1), counts[i]);
+        }
+    } else {
+        push_part(mf.component_a, mf.ratio_a);
+        push_part(mf.component_b, mf.ratio_b);
+        if (mf.component_c != 0) {
+            const int rc = (mf.ratio_c > 0) ? mf.ratio_c : 1;
+            push_part(mf.component_c, rc);
+        }
     }
     if (parts.empty())
         return ColorRGB::BLACK();
@@ -390,11 +437,43 @@ int mix_min_component_share_percent(const MixedFilament &mf)
     return (mn * 100) / period;
 }
 
+int mix_max_component_share_percent(const MixedFilament &mf)
+{
+    const std::string pattern = MixedFilamentManager::normalize_manual_pattern(mf.manual_pattern);
+    if (!pattern.empty()) {
+        int counts[10] = {};
+        for (char token : pattern) {
+            if (token >= '1' && token <= '9')
+                counts[token - '0']++;
+        }
+        int mx = 0;
+        for (int c : counts)
+            mx = std::max(mx, c);
+        return (mx * 100) / int(pattern.size());
+    }
+    int period = mf.ratio_a + mf.ratio_b;
+    int mx     = std::max(mf.ratio_a, mf.ratio_b);
+    if (mf.component_c != 0) {
+        period += mf.ratio_c;
+        mx = std::max(mx, mf.ratio_c);
+    }
+    if (period <= 0)
+        return 0;
+    return (mx * 100) / period;
+}
+
 bool passes_min_component_percent(const MixMatchResult &r, int min_component_percent)
 {
     if (r.kind == MixMatchResult::Kind::Physical)
         return true;
     return mix_min_component_share_percent(r.mix) >= min_component_percent;
+}
+
+bool passes_max_component_percent(const MixMatchResult &r, int max_component_percent)
+{
+    if (r.kind == MixMatchResult::Kind::Physical)
+        return true;
+    return mix_max_component_share_percent(r.mix) <= max_component_percent;
 }
 
 } // namespace
@@ -404,7 +483,8 @@ std::vector<MixMatchResult> match_printable_candidates(const ColorRGB           
                                                        const std::vector<float>    *td,
                                                        int                          period_cap,
                                                        int                          min_component_percent,
-                                                       size_t                       max_results)
+                                                       size_t                       max_results,
+                                                       int                          max_component_percent)
 {
     std::vector<MixMatchResult> out;
     // Printable lattice uses the first four physicals. Extra physicals are ignored.
@@ -432,7 +512,7 @@ std::vector<MixMatchResult> match_printable_candidates(const ColorRGB           
         cand.kind        = MixMatchResult::Kind::Physical;
         cand.physical_id = id_1based;
         cand.predicted   = slots[size_t(id_1based - 1)];
-        cand.distance    = cie76(cand.predicted, target);
+        cand.distance    = mixer_delta_e00(cand.predicted, target);
         all.push_back(std::move(cand));
     };
 
@@ -443,7 +523,7 @@ std::vector<MixMatchResult> match_printable_candidates(const ColorRGB           
         cand.mix        = mf;
         cand.recipe_row = serialize_mix_recipe(mf);
         cand.predicted  = predicted_swatch_for_mix(mf, slots, td_use);
-        cand.distance   = cie76(cand.predicted, target);
+        cand.distance   = mixer_delta_e00(cand.predicted, target);
         all.push_back(std::move(cand));
     };
 
@@ -513,19 +593,35 @@ std::vector<MixMatchResult> match_printable_candidates(const ColorRGB           
         }
     }
 
+    // n>=4 cycle: A=1,B=2 pair prefix. Not inserted into ratio `seen` (would collide with 1:1).
+    if (n >= 4) {
+        MixedFilament mf;
+        mf.component_a    = 1;
+        mf.component_b    = 2;
+        mf.component_c    = 0;
+        mf.ratio_a        = 1;
+        mf.ratio_b        = 1;
+        mf.ratio_c        = 0;
+        mf.enabled        = true;
+        mf.manual_pattern = "1234";
+        push_mix(mf);
+    }
+
     for (MixMatchResult &cand : all) {
-        if (passes_min_component_percent(cand, min_component_percent))
+        if (passes_min_component_percent(cand, min_component_percent) &&
+            passes_max_component_percent(cand, max_component_percent))
             out.push_back(std::move(cand));
     }
 
     std::sort(out.begin(), out.end(), [](const MixMatchResult &a, const MixMatchResult &b) {
         if (a.distance != b.distance)
             return a.distance < b.distance;
-        return result_period(a) < result_period(b);
+        return result_period_key(a) < result_period_key(b);
     });
 
     // Neutral targets darker than every physical: a short CMY mud can beat Grey
     // on CIE76 for #000000. Spec still requires the nearest physical (Grey) at [0].
+    // Ranking distance is mixer ΔE00; this override keeps CIE76 for Physical pick.
     if (!out.empty() && n > 0) {
         float tL = 0.f, ta = 0.f, tb = 0.f;
         rgb_to_lab(target, &tL, &ta, &tb);
@@ -538,11 +634,15 @@ std::vector<MixMatchResult> match_printable_candidates(const ColorRGB           
         }
         if (tchroma < 8.f && tL + 1.f < min_L) {
             MixMatchResult phys_best;
+            float          best_cie = 1e30f;
             for (const MixMatchResult &cand : out) {
                 if (cand.kind != MixMatchResult::Kind::Physical)
                     continue;
-                if (!phys_best.valid || cand.distance < phys_best.distance)
+                const float d = cie76(cand.predicted, target);
+                if (!phys_best.valid || d < best_cie) {
                     phys_best = cand;
+                    best_cie  = d;
+                }
             }
             if (!phys_best.valid) {
                 for (size_t i = 0; i < n; ++i) {
@@ -555,6 +655,8 @@ std::vector<MixMatchResult> match_printable_candidates(const ColorRGB           
                     if (!phys_best.valid || cand.distance < phys_best.distance)
                         phys_best = std::move(cand);
                 }
+            } else {
+                phys_best.distance = best_cie;
             }
             if (phys_best.valid) {
                 out.erase(std::remove_if(out.begin(), out.end(),
@@ -576,10 +678,11 @@ std::vector<MixMatchResult> match_printable_candidates(const ColorRGB           
 MixMatchResult match_printable_mix(const ColorRGB              &target,
                                    const std::vector<ColorRGB> &physicals,
                                    const std::vector<float>    *td,
-                                   int                          period_cap)
+                                   int                          period_cap,
+                                   int                          max_component_percent)
 {
     const std::vector<MixMatchResult> cands =
-        match_printable_candidates(target, physicals, td, period_cap, 25, 1);
+        match_printable_candidates(target, physicals, td, period_cap, 25, 1, max_component_percent);
     if (cands.empty())
         return {};
     return cands.front();

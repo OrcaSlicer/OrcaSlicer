@@ -17,7 +17,7 @@ struct MixMatchResult
     MixedFilament mix;         // if Mix; empty-ish if Physical
     std::string   recipe_row;  // manager-serializable row, or empty if Physical
     ColorRGB      predicted;   // honesty swatch
-    float         distance    = 1e30f; // CIE76; smaller = closer
+    float         distance    = 1e30f; // mixer ΔE00 (CIEDE2000); smaller = closer
 };
 
 // Vendor physical cards for default TD scales (hex-gated, not n==4 alone).
@@ -50,21 +50,26 @@ bool spectrum_stamp_multi_heads(std::vector<std::string>       &multi,
                                 const std::vector<std::string> &colour);
 
 // Nearest printable short-stack (period <= period_cap, no 4th component) on the given physicals.
+// Mix rows whose largest component share * 100 > max_component_percent are dropped; Physicals always pass.
 MixMatchResult match_printable_mix(
     const ColorRGB              &target,
     const std::vector<ColorRGB> &physicals,     // first four physicals; extras beyond 4 ignored
     const std::vector<float>    *td = nullptr,  // optional; else CMYK/RGBW card TDs when hexes match
-    int                          period_cap = 4);
+    int                          period_cap = 4,
+    int                          max_component_percent = 100);
 
-// Ranked lattice matches (CIE76, then shorter period). Dark-neutral override runs before truncate.
+// Ranked lattice matches (mixer ΔE00, then shorter max(period, pattern_len)).
+// Dark-neutral override runs before truncate and keeps CIE76 for Physical distance.
 // Mix rows with integer min-share < min_component_percent are dropped; Physicals always pass.
+// Mix rows whose largest component share * 100 > max_component_percent are dropped.
 std::vector<MixMatchResult> match_printable_candidates(
     const ColorRGB              &target,
     const std::vector<ColorRGB> &physicals,
     const std::vector<float>    *td = nullptr,
     int                          period_cap = 4,
     int                          min_component_percent = 25,
-    size_t                       max_results = 12);
+    size_t                       max_results = 12,
+    int                          max_component_percent = 100);
 
 // Pair "A+B ra:rb" / triple "A+B+C ra:rb:rc". Names by 1-based id when provided; else digits.
 std::string mix_recipe_label(const MixedFilament &mf, const std::vector<std::string> *slot_names = nullptr);
