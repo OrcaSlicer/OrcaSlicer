@@ -234,6 +234,7 @@ def load_vendor_filaments(profiles_dir, vendor):
             "compatible_printers": data.get("compatible_printers") or [],
             "filament_vendor": data.get("filament_vendor"),
             "filament_type": data.get("filament_type"),
+            "renamed_from": data.get("renamed_from"),
         }
     return presets, errors
 
@@ -378,6 +379,7 @@ def analyze_tree(profiles_dir):
     triples = {}                # fid -> set of triples of its non-island declarers
     declarer_triples = []       # (vendor, rec, fid, triple) per non-island declarer
     family_triples = {}         # (vendor, family) -> {triple: [declarer names]}
+    renamed_claims = {}         # "Vendor/OldFamily" -> set of ids the rename now carries
 
     for vendor, filaments in vendors.items():
         occurring = vendor_ids.setdefault(vendor, set())
@@ -411,6 +413,13 @@ def analyze_tree(profiles_dir):
                 continue
             occurring.add(eff)
             ids.setdefault(eff, set()).add(f"{vendor}/{base_name(rec['name'])}")
+            # A renamed preset keeps voting under the names it used to have, so
+            # the id its old family carried retires to the id the rename minted.
+            renamed = rec.get("renamed_from")
+            for old in (renamed if isinstance(renamed, str) else "").split(";"):
+                if old.strip():
+                    renamed_claims.setdefault(
+                        f"{vendor}/{base_name(old.strip())}", set()).add(eff)
             if rec.get("filament_id"):
                 instantiated_with_id.append(f"{vendor}/{rec['name']}")
             if vendor != OFL and rec["ofl_entry"] and eff in ofl_declared:
@@ -459,6 +468,7 @@ def analyze_tree(profiles_dir):
         "vendors": vendors,
         "read_errors": read_errors,
         "ids": {fid: sorted(claims) for fid, claims in ids.items()},
+        "renamed_claims": {claim: sorted(fids) for claim, fids in renamed_claims.items()},
         "vendor_ids": vendor_ids,
         "declared_ids": declared_ids,
         "instantiated_with_id": sorted(instantiated_with_id),
@@ -529,11 +539,18 @@ def write_ledger(path, obj):
 
 
 def claim_effective_ids(analysis):
-    """Reverse of analysis["ids"]: claim "Vendor/Family" -> set of effective ids."""
+    """Reverse of analysis["ids"]: claim "Vendor/Family" -> set of effective ids.
+
+    A preset's "renamed_from" names count as claims of that preset too, so an id
+    whose family was renamed still finds a successor in the claim vote.
+    """
     claim_ids = {}
     for fid, claims in analysis["ids"].items():
         for claim in claims:
             claim_ids.setdefault(claim, set()).add(fid)
+    for claim, fids in analysis.get("renamed_claims", {}).items():
+        if claim not in claim_ids:
+            claim_ids[claim] = set(fids)
     return claim_ids
 
 

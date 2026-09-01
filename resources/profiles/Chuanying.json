@@ -1,7 +1,7 @@
 {
 	"name": "Chuanying",
 	"url": "",
-	"version": "02.04.00.03",
+	"version": "02.04.00.04",
 	"force_update": "0",
 	"description": "Chuanying configurations",
 	"machine_model_list": [
@@ -70,36 +70,36 @@
 			"sub_path": "filament/Generic PLA-Silk @Chuanying.json"
 		},
 		{
-			"name": "Chuanying ABS @Chuanying X1 0.25 Nozzle",
-			"sub_path": "filament/Chuanying ABS @Chuanying X1 0.25 Nozzle.json"
+			"name": "Generic ABS @Chuanying X1 0.25 Nozzle",
+			"sub_path": "filament/Generic ABS @Chuanying X1 0.25 Nozzle.json"
 		},
 		{
 			"name": "Generic HIPS @Chuanying",
 			"sub_path": "filament/Generic HIPS @Chuanying.json"
 		},
 		{
-			"name": "Chuanying ASA @Chuanying X1 0.25 Nozzle",
-			"sub_path": "filament/Chuanying ASA @Chuanying X1 0.25 Nozzle.json"
+			"name": "Generic ASA @Chuanying X1 0.25 Nozzle",
+			"sub_path": "filament/Generic ASA @Chuanying X1 0.25 Nozzle.json"
 		},
 		{
-			"name": "Chuanying HS PLA @Chuanying X1 0.25 Nozzle",
-			"sub_path": "filament/Chuanying HS PLA @Chuanying X1 0.25 Nozzle.json"
+			"name": "Generic HS PLA @Chuanying X1 0.25 Nozzle",
+			"sub_path": "filament/Generic HS PLA @Chuanying X1 0.25 Nozzle.json"
 		},
 		{
-			"name": "Chuanying PETG @Chuanying X1 0.25 Nozzle",
-			"sub_path": "filament/Chuanying PETG @Chuanying X1 0.25 Nozzle.json"
+			"name": "Generic PETG @Chuanying X1 0.25 Nozzle",
+			"sub_path": "filament/Generic PETG @Chuanying X1 0.25 Nozzle.json"
 		},
 		{
 			"name": "Generic PVA @Chuanying",
 			"sub_path": "filament/Generic PVA @Chuanying.json"
 		},
 		{
-			"name": "Chuanying PLA @Chuanying X1 0.25 Nozzle",
-			"sub_path": "filament/Chuanying PLA @Chuanying X1 0.25 Nozzle.json"
+			"name": "Generic PLA @Chuanying X1 0.25 Nozzle",
+			"sub_path": "filament/Generic PLA @Chuanying X1 0.25 Nozzle.json"
 		},
 		{
-			"name": "Chuanying PLA-SILK @Chuanying X1 0.25 Nozzle",
-			"sub_path": "filament/Chuanying PLA-SILK @Chuanying X1 0.25 Nozzle.json"
+			"name": "Generic PLA-Silk @Chuanying X1 0.25 Nozzle",
+			"sub_path": "filament/Generic PLA-Silk @Chuanying X1 0.25 Nozzle.json"
 		},
 		{
 			"name": "Generic PETG-CF10 @Chuanying",

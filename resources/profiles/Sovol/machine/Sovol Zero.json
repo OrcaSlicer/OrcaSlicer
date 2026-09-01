@@ -8,5 +8,5 @@
 	"bed_model": "sovol_zero_buildplate_model.stl",
 	"bed_texture": "sovol_zero_buildplate_texture.svg",
 	"hotend_model": "",
-	"default_materials": "Sovol Zero PLA Basic;Sovol Zero PLA Basic HS Nozzle;Sovol Zero PLA Silk;Sovol Zero PLA Silk HS Nozzle;Sovol Zero ABS;Sovol Zero PETG;Sovol Zero PETG HS Nozzle;Sovol Zero TPU;Sovol Zero PC"
+	"default_materials": "Generic PLA @Sovol Zero;Sovol Zero PLA Basic HS Nozzle;Generic PLA Silk @Sovol Zero;Sovol Zero PLA Silk HS Nozzle;Generic ABS @Sovol Zero;Generic PETG @Sovol Zero;Sovol Zero PETG HS Nozzle;Generic TPU @Sovol Zero;Generic PC @Sovol Zero"
 }

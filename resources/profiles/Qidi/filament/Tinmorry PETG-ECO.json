@@ -4,7 +4,7 @@
 	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "uVa250OrqClMz41k",
-	"filament_id": "OFpBV2Ma",
+	"filament_id": "OFYE7YZw",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [
 		"1"
@@ -52,7 +52,7 @@
 		"235"
 	],
 	"filament_vendor": [
-		"Generic"
+		"Tinmorry"
 	],
 	"compatible_printers": [
 		"Qidi X-Plus 0.4 nozzle",

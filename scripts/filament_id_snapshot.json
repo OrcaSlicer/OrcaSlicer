@@ -71,38 +71,15 @@
   "Flashforge/Generic TPU-90A @FF C5P",
   "Flashforge/Generic TPU-95A @FF C5",
   "Flashforge/Generic TPU-95A @FF C5P",
-  "Lulzbot/Lulzbot 2.85mm ABS",
-  "Lulzbot/Lulzbot 2.85mm PETG",
-  "Lulzbot/Lulzbot 2.85mm PLA",
   "Snapmaker/PolyTerra Dual PLA @0.2 nozzle",
   "Snapmaker/PolyTerra J1 PLA",
   "Snapmaker/PolyTerra J1 PLA @0.2 nozzle",
   "Sovol/Generic PLA Silk @Sovol SV08 MAX",
   "Sovol/Polymaker PETG @Sovol SV08 MAX",
   "Sovol/SUNLU PETG @Sovol SV08 MAX",
-  "Sovol/Sovol SV06 ACE ABS",
-  "Sovol/Sovol SV06 ACE PETG",
-  "Sovol/Sovol SV06 ACE PLA",
-  "Sovol/Sovol SV06 ACE TPU",
-  "Sovol/Sovol SV06 Plus ACE ABS",
-  "Sovol/Sovol SV06 Plus ACE PETG",
-  "Sovol/Sovol SV06 Plus ACE PLA",
-  "Sovol/Sovol SV06 Plus ACE TPU",
-  "Sovol/Sovol SV07 PLA",
-  "Sovol/Sovol SV08 ABS",
-  "Sovol/Sovol SV08 PETG",
-  "Sovol/Sovol SV08 PLA",
-  "Sovol/Sovol SV08 PLA @SV08 0.2 nozzle",
-  "Sovol/Sovol SV08 TPU",
-  "Sovol/Sovol Zero ABS",
-  "Sovol/Sovol Zero PC",
-  "Sovol/Sovol Zero PETG",
   "Sovol/Sovol Zero PETG HS Nozzle",
-  "Sovol/Sovol Zero PLA Basic",
   "Sovol/Sovol Zero PLA Basic HS Nozzle",
-  "Sovol/Sovol Zero PLA Silk",
-  "Sovol/Sovol Zero PLA Silk HS Nozzle",
-  "Sovol/Sovol Zero TPU"
+  "Sovol/Sovol Zero PLA Silk HS Nozzle"
  ],
  "id_overrides": [
   "Anycubic/Anycubic ASA @Anycubic Kobra 3 0.4 nozzle",
@@ -188,14 +165,11 @@
   "BBL/addnorth TPU EasyFlex",
   "BBL/addnorth TPU Pro Matte 85A",
   "BBL/addnorth TPU Pro Matte 95A",
-  "Chuanying/Chuanying ABS @Chuanying X1 0.25 Nozzle",
-  "Chuanying/Chuanying PETG @Chuanying X1 0.25 Nozzle",
   "Chuanying/Generic HIPS @Chuanying",
   "Chuanying/Generic PVA @Chuanying",
   "Co Print/Generic ABS @CoPrint",
   "Co Print/Generic PETG @CoPrint",
   "Co Print/Generic TPU @CoPrint",
-  "Comgrow/Comgrow T300 PLA",
   "Creality/Generic ASA-CF @Creality Hi-all",
   "Creality/Generic PETG-CF @Creality Hi-all",
   "Creality/Generic PLA High Speed @Creality Ender-3V3-all",
@@ -273,18 +247,6 @@
   "Elegoo/Generic PETG PRO @Elegoo",
   "Elegoo/Generic PETG-CF @Elegoo Centauri",
   "Elegoo/Generic PLA Matte @Elegoo",
-  "FLSun/FLSun S1 ABS",
-  "FLSun/FLSun S1 ASA",
-  "FLSun/FLSun S1 PETG",
-  "FLSun/FLSun S1 PLA High Speed",
-  "FLSun/FLSun S1 PLA Silk",
-  "FLSun/FLSun S1 TPU",
-  "FLSun/FLSun T1 ABS",
-  "FLSun/FLSun T1 ASA",
-  "FLSun/FLSun T1 PETG",
-  "FLSun/FLSun T1 PLA High Speed",
-  "FLSun/FLSun T1 PLA Silk",
-  "FLSun/FLSun T1 TPU",
   "Flashforge/FlashForge PC @FF G4 0.6 HF nozzle",
   "Flashforge/FlashForge PC @FF G4 0.6 nozzle",
   "Flashforge/FlashForge PC @FF G4 0.8 HF nozzle",
@@ -777,9 +739,6 @@
   "Flashforge/Polymaker CoPA @FF G4P 0.6 nozzle",
   "Flashforge/Polymaker CoPA @FF G4P 0.8 HF nozzle",
   "Flashforge/Polymaker S1",
-  "Lulzbot/Lulzbot 2.85mm ABS",
-  "Lulzbot/Lulzbot 2.85mm PETG",
-  "Lulzbot/Lulzbot 2.85mm PLA",
   "OrcaFilamentLibrary/AliZ PETG-CF @base",
   "OrcaFilamentLibrary/AliZ PETG-Metal @base",
   "OrcaFilamentLibrary/Elegoo ASA-CF @base",
@@ -917,29 +876,9 @@
   "Sovol/Generic PLA Silk @Sovol SV08 MAX",
   "Sovol/Polymaker PETG @Sovol SV08 MAX",
   "Sovol/SUNLU PETG @Sovol SV08 MAX",
-  "Sovol/Sovol SV06 ACE ABS",
-  "Sovol/Sovol SV06 ACE PETG",
-  "Sovol/Sovol SV06 ACE PLA",
-  "Sovol/Sovol SV06 ACE TPU",
-  "Sovol/Sovol SV06 Plus ACE ABS",
-  "Sovol/Sovol SV06 Plus ACE PETG",
-  "Sovol/Sovol SV06 Plus ACE PLA",
-  "Sovol/Sovol SV06 Plus ACE TPU",
-  "Sovol/Sovol SV07 PLA",
-  "Sovol/Sovol SV08 ABS",
-  "Sovol/Sovol SV08 PETG",
-  "Sovol/Sovol SV08 PLA",
-  "Sovol/Sovol SV08 PLA @SV08 0.2 nozzle",
-  "Sovol/Sovol SV08 TPU",
-  "Sovol/Sovol Zero ABS",
-  "Sovol/Sovol Zero PC",
-  "Sovol/Sovol Zero PETG",
   "Sovol/Sovol Zero PETG HS Nozzle",
-  "Sovol/Sovol Zero PLA Basic",
   "Sovol/Sovol Zero PLA Basic HS Nozzle",
-  "Sovol/Sovol Zero PLA Silk",
   "Sovol/Sovol Zero PLA Silk HS Nozzle",
-  "Sovol/Sovol Zero TPU",
   "Wanhao France/YUMI PETG",
   "Wanhao France/YUMI PLA Bowden",
   "Wanhao France/YUMI PLA Direct Drive",
@@ -1571,9 +1510,6 @@
   "GF_ANXPH": [
    "BBL/addnorth PLA X-PLA High Speed"
   ],
-  "OF016CJw": [
-   "Sovol/Sovol SV08 ABS"
-  ],
   "OF02UAVh": [
    "Creality/Soleyin Ultra PLA"
   ],
@@ -1846,9 +1782,6 @@
   "OF66KUAN": [
    "Creality/PolySonic PLA"
   ],
-  "OF67EdL5": [
-   "Sovol/Sovol SV06 ACE ABS"
-  ],
   "OF6ATsCF": [
    "Snapmaker/Snapmaker Dual PLA-CF"
   ],
@@ -1868,21 +1801,12 @@
    "Elegoo/Generic PET",
    "Flashforge/Generic PET"
   ],
-  "OF6O67Xk": [
-   "Lulzbot/Lulzbot 2.85mm ABS"
-  ],
   "OF6TuVAg": [
    "Snapmaker/Snapmaker Breakaway Support For PLA",
    "Snapmaker/Snapmaker J1 PVA"
   ],
-  "OF6VgL2U": [
-   "Phrozen/Phrozen PLA"
-  ],
   "OF6kj4jI": [
    "iQ/Fiberthree PACF Pro P2"
-  ],
-  "OF6ooviO": [
-   "FLSun/FLSun S1 TPU"
   ],
   "OF6rdQ6M": [
    "Creality/Generic PPS-CF",
@@ -1890,9 +1814,6 @@
   ],
   "OF6ueBwd": [
    "Flashforge/Flashforge PLA  Pro"
-  ],
-  "OF6zAVFj": [
-   "Sovol/Sovol Zero TPU"
   ],
   "OF70zbGS": [
    "Creality/Hyper L-W PLA"
@@ -1915,9 +1836,6 @@
   ],
   "OF7SliVn": [
    "Snapmaker/PolyLite J1 PLA"
-  ],
-  "OF7VJMYM": [
-   "Sovol/Sovol Zero PLA Basic"
   ],
   "OF7c9fln": [
    "Anycubic/Anycubic PLA Translucent"
@@ -1956,9 +1874,6 @@
   ],
   "OF8dCquh": [
    "Snapmaker/Snapmaker J1 ABS Benchy"
-  ],
-  "OF8eQjjt": [
-   "Lulzbot/Lulzbot 2.85mm PETG"
   ],
   "OF8eaY7j": [
    "Creality/Generic PA612-CF"
@@ -2001,9 +1916,6 @@
   ],
   "OF9emAI9": [
    "Ratrig/RatRig PunkFil PETG"
-  ],
-  "OF9z5LZ9": [
-   "FLSun/FLSun S1 PETG"
   ],
   "OFA026vt": [
    "OrcaArena/Arena PA-CF"
@@ -2080,9 +1992,6 @@
    "OrcaFilamentLibrary/Generic EVA",
    "Tiertime/Generic EVA"
   ],
-  "OFCEA7Nt": [
-   "Sovol/Sovol SV06 Plus ACE ABS"
-  ],
   "OFCIUsWh": [
    "OrcaFilamentLibrary/Panchroma PLA Translucent",
    "Snapmaker/Panchroma PLA Translucent"
@@ -2156,7 +2065,6 @@
    "Artillery/Generic PLA",
    "Blocks/Generic PLA",
    "CONSTRUCT3D/Generic PLA",
-   "Chuanying/Chuanying PLA",
    "Chuanying/Generic PLA",
    "Co Print/Generic PLA",
    "CoLiDo/Generic PLA",
@@ -2173,9 +2081,11 @@
    "Ginger Additive/Generic PLA",
    "InfiMech/Generic PLA",
    "LONGER/Generic PLA",
+   "Lulzbot/Generic PLA",
    "OrcaArena/Generic PLA",
    "OrcaFilamentLibrary/Generic PLA",
    "Peopoly/Generic PLA",
+   "Phrozen/Generic PLA",
    "Prusa/Generic PLA",
    "Qidi/Generic PLA",
    "RH3D/Generic PLA",
@@ -2240,9 +2150,6 @@
   ],
   "OFEMfQsX": [
    "Flashforge/Flashforge PETG Basic"
-  ],
-  "OFENzGSm": [
-   "FLSun/FLSun T1 TPU"
   ],
   "OFEOnBj6": [
    "Snapmaker/Snapmaker PLA Lite"
@@ -2384,9 +2291,6 @@
   "OFHAccHz": [
    "OrcaFilamentLibrary/FilAr PLA Blanco Antartida"
   ],
-  "OFHTVfaU": [
-   "Sovol/Sovol Zero PETG"
-  ],
   "OFHWSM21": [
    "OrcaFilamentLibrary/Fiberon PET-CF"
   ],
@@ -2418,9 +2322,6 @@
   ],
   "OFIE3vOf": [
    "Anycubic/Anycubic PLA Matte"
-  ],
-  "OFIK0xFa": [
-   "FLSun/FLSun S1 ASA"
   ],
   "OFIKZxPF": [
    "Creality/Generic PLA Wood"
@@ -2461,9 +2362,6 @@
   "OFJ3HRsR": [
    "OrcaArena/Arena ABS"
   ],
-  "OFJ80y1e": [
-   "FLSun/FLSun T1 PETG"
-  ],
   "OFJHBEGD": [],
   "OFJNeELv": [
    "OrcaFilamentLibrary/FILL3D PA"
@@ -2475,17 +2373,11 @@
   "OFJQDUk3": [
    "OrcaFilamentLibrary/FilAr PETG Cristal"
   ],
-  "OFJVFpJz": [
-   "Sovol/Sovol Zero PLA Silk"
-  ],
   "OFJWKoYG": [
    "iQ/Material4Print ABS Natur P1"
   ],
   "OFJYpVAQ": [
    "Flashforge/Generic TPU-90A"
-  ],
-  "OFJfv07m": [
-   "Sovol/Sovol SV06 ACE TPU"
   ],
   "OFJgijky": [
    "Snapmaker/PolyLite CosPLA"
@@ -2551,9 +2443,6 @@
    "OrcaFilamentLibrary/Panchroma PLA Marble",
    "Snapmaker/Panchroma PLA Marble"
   ],
-  "OFKo87c6": [
-   "Snapmaker/Snapmaker TPU 95A"
-  ],
   "OFKpQTJI": [
    "Flashforge/Flashforge TPU 65D"
   ],
@@ -2579,7 +2468,6 @@
    "Anycubic/Generic ASA",
    "Artillery/Generic ASA",
    "Blocks/Generic ASA",
-   "Chuanying/Chuanying ASA",
    "Chuanying/Generic ASA",
    "Creality/Generic ASA",
    "Custom/Generic ASA",
@@ -2717,17 +2605,8 @@
   "OFNU9YIW": [
    "OrcaFilamentLibrary/FilAr PETG Azul Boreal"
   ],
-  "OFNWcJsM": [
-   "Comgrow/Comgrow T300 PLA"
-  ],
   "OFNWnx2c": [
    "Flashforge/Flashforge TPU-95A"
-  ],
-  "OFNX8GI1": [
-   "Sovol/Sovol Zero ABS"
-  ],
-  "OFNZjrLo": [
-   "Sovol/Sovol SV06 Plus ACE PLA"
   ],
   "OFNemJM6": [
    "OrcaFilamentLibrary/FilAr PLA Cobre"
@@ -2834,9 +2713,6 @@
   "OFPqX3x2": [
    "OrcaFilamentLibrary/FilAr PLA Rosa Amaranto"
   ],
-  "OFPryWt5": [
-   "Lulzbot/Lulzbot 2.85mm PLA"
-  ],
   "OFQ1KzO8": [
    "Snapmaker/Snapmaker J1 PLA Silk"
   ],
@@ -2848,9 +2724,6 @@
   ],
   "OFQ40XeN": [
    "Qidi/QIDI PETG Tough"
-  ],
-  "OFQ9qnkd": [
-   "FLSun/FLSun T1 PLA High Speed"
   ],
   "OFQEGL7z": [
    "FlyingBear/FlyingBear PA-CF"
@@ -2925,9 +2798,6 @@
   "OFRhCTUg": [
    "Anycubic/Anycubic PET-CF"
   ],
-  "OFRi7v0b": [
-   "Sovol/Sovol SV08 PETG"
-  ],
   "OFRiFnfQ": [
    "OrcaFilamentLibrary/Eolas Prints PETG Transition"
   ],
@@ -2962,9 +2832,6 @@
   "OFS8lTQt": [
    "OrcaFilamentLibrary/Panchroma PLA Silk",
    "Snapmaker/Panchroma PLA Silk"
-  ],
-  "OFSStjay": [
-   "FLSun/FLSun S1 PLA Silk"
   ],
   "OFSa39yP": [
    "Snapmaker/Snapmaker J1 PLA"
@@ -3015,9 +2882,6 @@
   "OFTsHNQi": [
    "Qidi/QIDI ASA"
   ],
-  "OFTvvox9": [
-   "Sovol/Sovol SV06 ACE PLA"
-  ],
   "OFU1zPxE": [
    "Elegoo/Elegoo PLA Galaxy",
    "OrcaFilamentLibrary/Elegoo PLA Galaxy"
@@ -3055,9 +2919,6 @@
   "OFUyDDNv": [
    "Elegoo/Elegoo PC",
    "OrcaFilamentLibrary/Elegoo PC"
-  ],
-  "OFV0KrAG": [
-   "FLSun/FLSun T1 ABS"
   ],
   "OFV5Q7j2": [
    "Snapmaker/Snapmaker J1 TPE"
@@ -3223,6 +3084,7 @@
    "Flashforge/Generic ABS",
    "FlyingBear/Generic ABS",
    "InfiMech/Generic ABS",
+   "Lulzbot/Generic ABS",
    "OrcaArena/Generic ABS",
    "OrcaFilamentLibrary/Generic ABS",
    "Peopoly/Generic ABS",
@@ -3235,6 +3097,9 @@
    "Tiertime/Generic ABS",
    "Vzbot/Generic ABS",
    "Z-Bolt/Generic ABS"
+  ],
+  "OFYE7YZw": [
+   "Qidi/Tinmorry PETG-ECO"
   ],
   "OFYEtXuk": [
    "Snapmaker/Snapmaker J1 PA-CF"
@@ -3263,6 +3128,7 @@
    "Ginger Additive/Generic PETG",
    "InfiMech/Generic PETG",
    "LONGER/Generic PETG",
+   "Lulzbot/Generic PETG",
    "OrcaArena/Generic PETG",
    "OrcaFilamentLibrary/Generic PETG",
    "Peopoly/Generic PETG",
@@ -3330,9 +3196,6 @@
   "OFaEuvNF": [
    "Anycubic/Anycubic PAHT-CF"
   ],
-  "OFaFNP2U": [
-   "Sovol/Sovol SV07 PLA"
-  ],
   "OFaHjk1V": [
    "Volumic/Volumic PC"
   ],
@@ -3381,9 +3244,6 @@
   "OFbh7HcA": [
    "Eryone/Eryone PP-CF"
   ],
-  "OFbjtPQy": [
-   "FLSun/FLSun T1 ASA"
-  ],
   "OFc3xdm9": [
    "OrcaFilamentLibrary/Overture PLA",
    "Qidi/Overture PLA"
@@ -3394,9 +3254,6 @@
   "OFcBJQcC": [
    "Snapmaker/Snapmaker Dual TPU High-Flow"
   ],
-  "OFcJ7AKd": [
-   "Sovol/Sovol SV08 PLA"
-  ],
   "OFcJDtTx": [
    "Artillery/Artillery TPU"
   ],
@@ -3405,9 +3262,6 @@
   ],
   "OFcVLpNA": [
    "Flashforge/FusRock PAHT-GF"
-  ],
-  "OFcdqaWI": [
-   "Sovol/Sovol Zero PC"
   ],
   "OFcfQk4h": [
    "BBL/Overture Air PLA",
@@ -3470,9 +3324,6 @@
   "OFe6sfXS": [
    "Flashforge/FlashForge PC"
   ],
-  "OFe7Sx5B": [
-   "Sovol/Sovol SV06 ACE PETG"
-  ],
   "OFe8tuNb": [
    "Tiertime/Tiertime PA6-CF"
   ],
@@ -3509,6 +3360,7 @@
   "OFesA6rF": [
    "Anker/Generic PLA Silk",
    "Creality/Generic PLA Silk",
+   "FLSun/Generic PLA Silk",
    "Flashforge/Generic PLA Silk",
    "OrcaArena/Generic PLA Silk",
    "OrcaFilamentLibrary/Generic PLA Silk",
@@ -3760,7 +3612,6 @@
    "Creality/eSUN PLA-LW"
   ],
   "OFi6PfUM": [
-   "Chuanying/Chuanying PLA-SILK",
    "Chuanying/Generic PLA-Silk",
    "Creality/Generic PLA-Silk",
    "Flashforge/Generic PLA-Silk"
@@ -3879,9 +3730,6 @@
   "OFkR8E2c": [
    "Prusa/Prusament PETG"
   ],
-  "OFkWaWRo": [
-   "Sovol/Sovol SV06 Plus ACE TPU"
-  ],
   "OFkf1HHw": [
    "Flashforge/Generic PLA-SILK"
   ],
@@ -3914,9 +3762,6 @@
   "OFkzr35f": [
    "OrcaFilamentLibrary/Eolas Prints PLA Antibacterial"
   ],
-  "OFl7nOAf": [
-   "Sovol/Sovol SV06 Plus ACE PETG"
-  ],
   "OFlBoEfL": [
    "Snapmaker/Snapmaker J1 TPU High-Flow"
   ],
@@ -3932,9 +3777,6 @@
   ],
   "OFlSNkhc": [
    "OrcaFilamentLibrary/Eolas Prints ASA"
-  ],
-  "OFlXJxX1": [
-   "Chuanying/Chuanying PETG"
   ],
   "OFllmFhT": [
    "Elegoo/Generic PETG PRO"
@@ -4011,6 +3853,7 @@
   ],
   "OFmpMwxS": [
    "Creality/Generic PLA High Speed",
+   "FLSun/Generic PLA High Speed",
    "Flashforge/Generic PLA High Speed",
    "OrcaFilamentLibrary/Generic PLA High Speed",
    "Qidi/Generic PLA High Speed",
@@ -4114,9 +3957,6 @@
   "OFoiVqVM": [
    "OrcaFilamentLibrary/Bambu PLA Basic"
   ],
-  "OFoqrHTw": [
-   "FLSun/FLSun S1 PLA High Speed"
-  ],
   "OForhBi4": [
    "Cubicon/Cubicon ABSk"
   ],
@@ -4131,9 +3971,6 @@
   ],
   "OFp9wdmf": [
    "Eryone/Eryone PA-CF"
-  ],
-  "OFpBV2Ma": [
-   "Qidi/Tinmorry PETG-ECO"
   ],
   "OFpBlrvY": [
    "OrcaFilamentLibrary/Valment PLA Silk"
@@ -4220,9 +4057,6 @@
   "OFryjl35": [
    "Elegoo/Elegoo ASA-CF",
    "OrcaFilamentLibrary/Elegoo ASA-CF"
-  ],
-  "OFs1sNLz": [
-   "Chuanying/Chuanying ABS"
   ],
   "OFsB2lxm": [
    "Elegoo/Elegoo PLA Matte",
@@ -4343,9 +4177,6 @@
   "OFuO0cAP": [
    "OrcaArena/Arena PETG-CF"
   ],
-  "OFuUJyRx": [
-   "FLSun/FLSun T1 PLA Silk"
-  ],
   "OFuUuIhR": [
    "Elegoo/Elegoo PETG-CF",
    "OrcaFilamentLibrary/Elegoo PETG-CF"
@@ -4410,6 +4241,9 @@
    "Elegoo/Elegoo PLA",
    "OrcaFilamentLibrary/Elegoo PLA"
   ],
+  "OFvmwTZE": [
+   "Snapmaker/Snapmaker TPU 95A"
+  ],
   "OFvrXuV7": [
    "OrcaFilamentLibrary/PolyLite ASA"
   ],
@@ -4417,7 +4251,6 @@
    "Snapmaker/Fiberon PA12-CF10"
   ],
   "OFvxghTE": [
-   "Chuanying/Chuanying HS PLA",
    "Chuanying/Generic HS PLA",
    "Flashforge/Generic HS PLA",
    "TwoTrees/Generic HS PLA"
@@ -4505,9 +4338,6 @@
   "OFy8tYJE": [
    "Cubicon/Cubicon ABS-A100"
   ],
-  "OFyCToOV": [
-   "Sovol/Sovol SV08 TPU"
-  ],
   "OFyFyLIp": [
    "SeeMeCNC/SeeMeCNC TPU"
   ],
@@ -4585,9 +4415,6 @@
   ],
   "OFzyIxba": [
    "OrcaFilamentLibrary/Bambu PVA"
-  ],
-  "OFzzmK2Q": [
-   "FLSun/FLSun S1 ABS"
   ]
  },
  "instantiated_with_id": [
@@ -4847,8 +4674,6 @@
   "CONSTRUCT3D/Generic High Flow PETG @C1",
   "CONSTRUCT3D/Generic PETG @C1",
   "CONSTRUCT3D/Generic PLA @C1",
-  "Chuanying/Chuanying ABS @Chuanying X1 0.25 Nozzle",
-  "Chuanying/Chuanying PETG @Chuanying X1 0.25 Nozzle",
   "Chuanying/Generic ABS @Chuanying",
   "Chuanying/Generic ASA @Chuanying",
   "Chuanying/Generic HIPS @Chuanying",
@@ -4877,7 +4702,6 @@
   "CoLiDo/Generic PLA @CoLiDo X16",
   "CoLiDo/Generic TPU @CoLiDo DIY 4.0",
   "CoLiDo/Generic TPU @CoLiDo X16",
-  "Comgrow/Comgrow T300 PLA",
   "Comgrow/Generic ABS @Comgrow",
   "Comgrow/Generic PETG @Comgrow",
   "Comgrow/Generic PLA @Comgrow",
@@ -5459,18 +5283,6 @@
   "Eryone/Eryone PP-CF",
   "Eryone/Eryone Silk PLA",
   "Eryone/Eryone TPU",
-  "FLSun/FLSun S1 ABS",
-  "FLSun/FLSun S1 ASA",
-  "FLSun/FLSun S1 PETG",
-  "FLSun/FLSun S1 PLA High Speed",
-  "FLSun/FLSun S1 PLA Silk",
-  "FLSun/FLSun S1 TPU",
-  "FLSun/FLSun T1 ABS",
-  "FLSun/FLSun T1 ASA",
-  "FLSun/FLSun T1 PETG",
-  "FLSun/FLSun T1 PLA High Speed",
-  "FLSun/FLSun T1 PLA Silk",
-  "FLSun/FLSun T1 TPU",
   "FLSun/Generic ABS @FLSun",
   "FLSun/Generic ASA @FLSun",
   "FLSun/Generic PA @FLSun",
@@ -6090,9 +5902,6 @@
   "LONGER/Generic PETG @LONGER LK10 Plus",
   "LONGER/Generic PLA @LONGER LK10",
   "LONGER/Generic PLA @LONGER LK10 Plus",
-  "Lulzbot/Lulzbot 2.85mm ABS",
-  "Lulzbot/Lulzbot 2.85mm PETG",
-  "Lulzbot/Lulzbot 2.85mm PLA",
   "MagicMaker/Generic PEEK @MM",
   "OrcaArena/Generic PA @OrcaArena",
   "OrcaArena/Generic PA-CF @OrcaArena",
@@ -6208,7 +6017,6 @@
   "Peopoly/Peopoly Lancer PET-CF",
   "Peopoly/Peopoly Lancer PETG-C",
   "Peopoly/Peopoly Lancer PLA-C",
-  "Phrozen/Phrozen PLA @Phrozen Arco 0.4 nozzle",
   "Prusa/Generic ABS @Prusa CORE One",
   "Prusa/Generic ABS @Prusa CORE One 0.6",
   "Prusa/Generic ABS @Prusa CORE One 0.8",
@@ -7029,29 +6837,9 @@
   "Sovol/Generic PLA Silk @Sovol SV08 MAX",
   "Sovol/Polymaker PETG @Sovol SV08 MAX",
   "Sovol/SUNLU PETG @Sovol SV08 MAX",
-  "Sovol/Sovol SV06 ACE ABS",
-  "Sovol/Sovol SV06 ACE PETG",
-  "Sovol/Sovol SV06 ACE PLA",
-  "Sovol/Sovol SV06 ACE TPU",
-  "Sovol/Sovol SV06 Plus ACE ABS",
-  "Sovol/Sovol SV06 Plus ACE PETG",
-  "Sovol/Sovol SV06 Plus ACE PLA",
-  "Sovol/Sovol SV06 Plus ACE TPU",
-  "Sovol/Sovol SV07 PLA",
-  "Sovol/Sovol SV08 ABS",
-  "Sovol/Sovol SV08 PETG",
-  "Sovol/Sovol SV08 PLA",
-  "Sovol/Sovol SV08 PLA @SV08 0.2 nozzle",
-  "Sovol/Sovol SV08 TPU",
-  "Sovol/Sovol Zero ABS",
-  "Sovol/Sovol Zero PC",
-  "Sovol/Sovol Zero PETG",
   "Sovol/Sovol Zero PETG HS Nozzle",
-  "Sovol/Sovol Zero PLA Basic",
   "Sovol/Sovol Zero PLA Basic HS Nozzle",
-  "Sovol/Sovol Zero PLA Silk",
   "Sovol/Sovol Zero PLA Silk HS Nozzle",
-  "Sovol/Sovol Zero TPU",
   "Tiertime/Generic ABS @Tiertime",
   "Tiertime/Generic ABS @Tiertime 300HS",
   "Tiertime/Generic ASA @Tiertime",
@@ -7221,13 +7009,6 @@
  ],
  "triple_exceptions": [],
  "triples": {
-  "OF016CJw": [
-   [
-    "Generic",
-    "ABS",
-    "Sovol SV08 ABS"
-   ]
-  ],
   "OF02UAVh": [
    [
     "Creality",
@@ -7830,13 +7611,6 @@
     "PolySonic PLA"
    ]
   ],
-  "OF67EdL5": [
-   [
-    "Generic",
-    "ABS",
-    "Sovol SV06 ACE ABS"
-   ]
-  ],
   "OF6ATsCF": [
    [
     "Snapmaker",
@@ -7872,13 +7646,6 @@
     "Generic PET"
    ]
   ],
-  "OF6O67Xk": [
-   [
-    "Generic",
-    "ABS",
-    "Lulzbot 2.85mm ABS"
-   ]
-  ],
   "OF6TuVAg": [
    [
     "Snapmaker",
@@ -7886,25 +7653,11 @@
     "Snapmaker J1 PVA"
    ]
   ],
-  "OF6VgL2U": [
-   [
-    "Generic",
-    "PLA",
-    "Phrozen PLA"
-   ]
-  ],
   "OF6kj4jI": [
    [
     "iQ Materials",
     "PACF Pro",
     "Fiberthree PACF Pro P2"
-   ]
-  ],
-  "OF6ooviO": [
-   [
-    "Generic",
-    "TPU",
-    "FLSun S1 TPU"
    ]
   ],
   "OF6rdQ6M": [
@@ -7919,13 +7672,6 @@
     "Generic",
     "PLA",
     "Flashforge PLA  Pro"
-   ]
-  ],
-  "OF6zAVFj": [
-   [
-    "Generic",
-    "TPU",
-    "Sovol Zero TPU"
    ]
   ],
   "OF70zbGS": [
@@ -7975,13 +7721,6 @@
     "Polymaker",
     "PLA",
     "PolyLite J1 PLA"
-   ]
-  ],
-  "OF7VJMYM": [
-   [
-    "Generic",
-    "PLA",
-    "Sovol Zero PLA Basic"
    ]
   ],
   "OF7c9fln": [
@@ -8066,13 +7805,6 @@
     "Snapmaker",
     "ABS",
     "Snapmaker J1 ABS Benchy"
-   ]
-  ],
-  "OF8eQjjt": [
-   [
-    "Generic",
-    "PETG",
-    "Lulzbot 2.85mm PETG"
    ]
   ],
   "OF8eaY7j": [
@@ -8171,13 +7903,6 @@
     "RatRig",
     "PETG",
     "RatRig PunkFil PETG"
-   ]
-  ],
-  "OF9z5LZ9": [
-   [
-    "Generic",
-    "PETG",
-    "FLSun S1 PETG"
    ]
   ],
   "OFA026vt": [
@@ -8346,13 +8071,6 @@
     "Generic",
     "EVA",
     "Generic EVA"
-   ]
-  ],
-  "OFCEA7Nt": [
-   [
-    "Generic",
-    "ABS",
-    "Sovol SV06 Plus ACE ABS"
    ]
   ],
   "OFCIUsWh": [
@@ -8598,13 +8316,6 @@
     "Generic",
     "PETG",
     "Flashforge PETG Basic"
-   ]
-  ],
-  "OFENzGSm": [
-   [
-    "Generic",
-    "TPU",
-    "FLSun T1 TPU"
    ]
   ],
   "OFEOnBj6": [
@@ -8929,13 +8640,6 @@
     "FilAr PLA Blanco Antartida"
    ]
   ],
-  "OFHTVfaU": [
-   [
-    "Generic",
-    "PETG",
-    "Sovol Zero PETG"
-   ]
-  ],
   "OFHWSM21": [
    [
     "Polymaker",
@@ -9004,13 +8708,6 @@
     "Anycubic",
     "PLA",
     "Anycubic PLA Matte"
-   ]
-  ],
-  "OFIK0xFa": [
-   [
-    "Generic",
-    "ASA",
-    "FLSun S1 ASA"
    ]
   ],
   "OFIKZxPF": [
@@ -9104,13 +8801,6 @@
     "Arena ABS"
    ]
   ],
-  "OFJ80y1e": [
-   [
-    "Generic",
-    "PETG",
-    "FLSun T1 PETG"
-   ]
-  ],
   "OFJHBEGD": [
    [
     "DREMC",
@@ -9139,13 +8829,6 @@
     "FilAr PETG Cristal"
    ]
   ],
-  "OFJVFpJz": [
-   [
-    "Generic",
-    "PLA",
-    "Sovol Zero PLA Silk"
-   ]
-  ],
   "OFJWKoYG": [
    [
     "iQ Materials",
@@ -9158,13 +8841,6 @@
     "Generic",
     "TPU-90A",
     "Generic TPU-90A"
-   ]
-  ],
-  "OFJfv07m": [
-   [
-    "Generic",
-    "TPU",
-    "Sovol SV06 ACE TPU"
    ]
   ],
   "OFJgijky": [
@@ -9312,13 +8988,6 @@
     "Polymaker",
     "PLA",
     "Panchroma PLA Marble"
-   ]
-  ],
-  "OFKo87c6": [
-   [
-    "Generic",
-    "TPU",
-    "Snapmaker TPU 95A"
    ]
   ],
   "OFKpQTJI": [
@@ -9608,32 +9277,11 @@
     "FilAr PETG Azul Boreal"
    ]
   ],
-  "OFNWcJsM": [
-   [
-    "Generic",
-    "PLA",
-    "Comgrow T300 PLA"
-   ]
-  ],
   "OFNWnx2c": [
    [
     "Generic",
     "TPU-95A",
     "Flashforge TPU-95A"
-   ]
-  ],
-  "OFNX8GI1": [
-   [
-    "Generic",
-    "ABS",
-    "Sovol Zero ABS"
-   ]
-  ],
-  "OFNZjrLo": [
-   [
-    "Generic",
-    "PLA",
-    "Sovol SV06 Plus ACE PLA"
    ]
   ],
   "OFNemJM6": [
@@ -9860,13 +9508,6 @@
     "FilAr PLA Rosa Amaranto"
    ]
   ],
-  "OFPryWt5": [
-   [
-    "Generic",
-    "PLA",
-    "Lulzbot 2.85mm PLA"
-   ]
-  ],
   "OFQ1KzO8": [
    [
     "Snapmaker",
@@ -9893,13 +9534,6 @@
     "QIDI",
     "PETG",
     "QIDI PETG Tough"
-   ]
-  ],
-  "OFQ9qnkd": [
-   [
-    "Generic",
-    "PLA",
-    "FLSun T1 PLA High Speed"
    ]
   ],
   "OFQEGL7z": [
@@ -10035,13 +9669,6 @@
     "Anycubic PET-CF"
    ]
   ],
-  "OFRi7v0b": [
-   [
-    "Generic",
-    "PETG",
-    "Sovol SV08 PETG"
-   ]
-  ],
   "OFRiFnfQ": [
    [
     "Eolas Prints",
@@ -10117,13 +9744,6 @@
     "Polymaker",
     "PLA",
     "Panchroma PLA Silk"
-   ]
-  ],
-  "OFSStjay": [
-   [
-    "Generic",
-    "PLA",
-    "FLSun S1 PLA Silk"
    ]
   ],
   "OFSa39yP": [
@@ -10245,13 +9865,6 @@
     "QIDI ASA"
    ]
   ],
-  "OFTvvox9": [
-   [
-    "Generic",
-    "PLA",
-    "Sovol SV06 ACE PLA"
-   ]
-  ],
   "OFU1zPxE": [
    [
     "Elegoo",
@@ -10334,13 +9947,6 @@
     "Elegoo",
     "PC",
     "Elegoo PC"
-   ]
-  ],
-  "OFV0KrAG": [
-   [
-    "Generic",
-    "ABS",
-    "FLSun T1 ABS"
    ]
   ],
   "OFV5Q7j2": [
@@ -10644,6 +10250,13 @@
     "Generic ABS"
    ]
   ],
+  "OFYE7YZw": [
+   [
+    "Tinmorry",
+    "PETG",
+    "Tinmorry PETG-ECO"
+   ]
+  ],
   "OFYEtXuk": [
    [
     "Snapmaker",
@@ -10791,13 +10404,6 @@
     "Anycubic PAHT-CF"
    ]
   ],
-  "OFaFNP2U": [
-   [
-    "Generic",
-    "PLA",
-    "Sovol SV07 PLA"
-   ]
-  ],
   "OFaHjk1V": [
    [
     "Volumic",
@@ -10910,13 +10516,6 @@
     "Eryone PP-CF"
    ]
   ],
-  "OFbjtPQy": [
-   [
-    "Generic",
-    "ASA",
-    "FLSun T1 ASA"
-   ]
-  ],
   "OFc3xdm9": [
    [
     "Overture",
@@ -10938,13 +10537,6 @@
     "Snapmaker Dual TPU High-Flow"
    ]
   ],
-  "OFcJ7AKd": [
-   [
-    "Generic",
-    "PLA",
-    "Sovol SV08 PLA"
-   ]
-  ],
   "OFcJDtTx": [
    [
     "Artillery",
@@ -10964,13 +10556,6 @@
     "FusRock",
     "PAHT-GF",
     "FusRock PAHT-GF"
-   ]
-  ],
-  "OFcdqaWI": [
-   [
-    "Generic",
-    "PC",
-    "Sovol Zero PC"
    ]
   ],
   "OFcfQk4h": [
@@ -11104,13 +10689,6 @@
     "Generic",
     "PC",
     "FlashForge PC"
-   ]
-  ],
-  "OFe7Sx5B": [
-   [
-    "Generic",
-    "PETG",
-    "Sovol SV06 ACE PETG"
    ]
   ],
   "OFe8tuNb": [
@@ -11918,13 +11496,6 @@
     "Prusament PETG"
    ]
   ],
-  "OFkWaWRo": [
-   [
-    "Generic",
-    "TPU",
-    "Sovol SV06 Plus ACE TPU"
-   ]
-  ],
   "OFkf1HHw": [
    [
     "Generic",
@@ -11995,13 +11566,6 @@
     "Eolas Prints PLA Antibacterial"
    ]
   ],
-  "OFl7nOAf": [
-   [
-    "Generic",
-    "PETG",
-    "Sovol SV06 Plus ACE PETG"
-   ]
-  ],
   "OFlBoEfL": [
    [
     "Snapmaker",
@@ -12035,13 +11599,6 @@
     "Eolas Prints",
     "ASA",
     "Eolas Prints ASA"
-   ]
-  ],
-  "OFlXJxX1": [
-   [
-    "Generic",
-    "PETG",
-    "Chuanying PETG"
    ]
   ],
   "OFllmFhT": [
@@ -12401,13 +11958,6 @@
     "Bambu PLA Basic"
    ]
   ],
-  "OFoqrHTw": [
-   [
-    "Generic",
-    "PLA",
-    "FLSun S1 PLA High Speed"
-   ]
-  ],
   "OForhBi4": [
    [
     "Cubicon",
@@ -12441,13 +11991,6 @@
     "Eryone",
     "PA-CF",
     "Eryone PA-CF"
-   ]
-  ],
-  "OFpBV2Ma": [
-   [
-    "Generic",
-    "PETG",
-    "Tinmorry PETG-ECO"
    ]
   ],
   "OFpBlrvY": [
@@ -12630,13 +12173,6 @@
     "Elegoo",
     "ASA",
     "Elegoo ASA-CF"
-   ]
-  ],
-  "OFs1sNLz": [
-   [
-    "Generic",
-    "ABS",
-    "Chuanying ABS"
    ]
   ],
   "OFsB2lxm": [
@@ -12898,13 +12434,6 @@
     "Arena PETG-CF"
    ]
   ],
-  "OFuUJyRx": [
-   [
-    "Generic",
-    "PLA",
-    "FLSun T1 PLA Silk"
-   ]
-  ],
   "OFuUuIhR": [
    [
     "Elegoo",
@@ -13043,6 +12572,13 @@
     "Elegoo",
     "PLA",
     "Elegoo PLA"
+   ]
+  ],
+  "OFvmwTZE": [
+   [
+    "Snapmaker",
+    "TPU",
+    "Snapmaker TPU 95A"
    ]
   ],
   "OFvrXuV7": [
@@ -13255,13 +12791,6 @@
     "Cubicon ABS-A100"
    ]
   ],
-  "OFyCToOV": [
-   [
-    "Generic",
-    "TPU",
-    "Sovol SV08 TPU"
-   ]
-  ],
   "OFyFyLIp": [
    [
     "SeeMeCNC",
@@ -13442,13 +12971,6 @@
     "Bambu Lab",
     "PVA",
     "Bambu PVA"
-   ]
-  ],
-  "OFzzmK2Q": [
-   [
-    "Generic",
-    "ABS",
-    "FLSun S1 ABS"
    ]
   ]
  }

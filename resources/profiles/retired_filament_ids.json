@@ -2322,6 +2322,12 @@
    ],
    "successor": "OFmhJs5V"
   },
+  "OF016CJw": {
+   "claims": [
+    "Sovol/Sovol SV08 ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
   "OF0GIkJm": {
    "claims": [
     "Tiertime/Tiertime Generic PLA Silk"
@@ -2457,6 +2463,12 @@
    ],
    "successor": "OFDSrzZ8"
   },
+  "OF67EdL5": {
+   "claims": [
+    "Sovol/Sovol SV06 ACE ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
   "OF6Fpw1E": {
    "claims": [
     "Comgrow/Comgrow Generic PETG"
@@ -2475,11 +2487,29 @@
    ],
    "successor": "OFDSrzZ8"
   },
+  "OF6O67Xk": {
+   "claims": [
+    "Lulzbot/Lulzbot 2.85mm ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OF6VgL2U": {
+   "claims": [
+    "Phrozen/Phrozen PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
   "OF6WddJ1": {
    "claims": [
     "Flashforge/FusRock S-PAHT"
    ],
    "successor": "OFCn83wF"
+  },
+  "OF6ooviO": {
+   "claims": [
+    "FLSun/FLSun S1 TPU"
+   ],
+   "successor": "OFgbpcy9"
   },
   "OF6rMr3U": {
    "claims": [
@@ -2505,6 +2535,18 @@
    ],
    "successor": "OFLakOUI"
   },
+  "OF6zAVFj": {
+   "claims": [
+    "Sovol/Sovol Zero TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OF7VJMYM": {
+   "claims": [
+    "Sovol/Sovol Zero PLA Basic"
+   ],
+   "successor": "OFDSrzZ8"
+  },
   "OF7g2vYQ": {
    "claims": [
     "Co Print/CoPrint Generic TPU"
@@ -2529,6 +2571,12 @@
    ],
    "successor": "OFQLcbps"
   },
+  "OF8eQjjt": {
+   "claims": [
+    "Lulzbot/Lulzbot 2.85mm PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
   "OF97ru74": {
    "claims": [
     "Prusa/Prusa Generic PC"
@@ -2540,6 +2588,12 @@
     "Vzbot/Vzbot Generic PC"
    ],
    "successor": "OFLakOUI"
+  },
+  "OF9z5LZ9": {
+   "claims": [
+    "FLSun/FLSun S1 PETG"
+   ],
+   "successor": "OFYPdQJh"
   },
   "OFACSw9O": {
    "claims": [
@@ -2608,6 +2662,12 @@
    ],
    "successor": "OFgbpcy9"
   },
+  "OFCEA7Nt": {
+   "claims": [
+    "Sovol/Sovol SV06 Plus ACE ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
   "OFCVUEaV": {
    "claims": [
     "Tiertime/Tiertime Generic TPU"
@@ -2651,6 +2711,12 @@
   "OFEE1Dld": {
    "claims": [
     "Artillery/Artillery Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFENzGSm": {
+   "claims": [
+    "FLSun/FLSun T1 TPU"
    ],
    "successor": "OFgbpcy9"
   },
@@ -2732,6 +2798,12 @@
    ],
    "successor": "OFQLcbps"
   },
+  "OFHTVfaU": {
+   "claims": [
+    "Sovol/Sovol Zero PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
   "OFHUnLY2": {
    "claims": [
     "Vzbot/Vzbot Generic PETG"
@@ -2747,6 +2819,12 @@
   "OFI80Hct": {
    "claims": [
     "Anycubic/Anycubic Generic ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OFIK0xFa": {
+   "claims": [
+    "FLSun/FLSun S1 ASA"
    ],
    "successor": "OFLPAxz3"
   },
@@ -2782,6 +2860,12 @@
    ],
    "successor": "OFg8ndtj"
   },
+  "OFJ80y1e": {
+   "claims": [
+    "FLSun/FLSun T1 PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
   "OFJJpaLS": {
    "claims": [
     "FLSun/FLSun Generic PETG"
@@ -2793,6 +2877,18 @@
     "FLSun/FLSun Generic PLA"
    ],
    "successor": "OFDSrzZ8"
+  },
+  "OFJVFpJz": {
+   "claims": [
+    "Sovol/Sovol Zero PLA Silk"
+   ],
+   "successor": "OFesA6rF"
+  },
+  "OFJfv07m": {
+   "claims": [
+    "Sovol/Sovol SV06 ACE TPU"
+   ],
+   "successor": "OFgbpcy9"
   },
   "OFK01afJ": {
    "claims": [
@@ -2811,6 +2907,12 @@
     "Qidi/Qidi Generic PETG"
    ],
    "successor": "OFYPdQJh"
+  },
+  "OFKo87c6": {
+   "claims": [
+    "Snapmaker/Snapmaker TPU 95A"
+   ],
+   "successor": "OFvmwTZE"
   },
   "OFKuTr12": {
    "claims": [
@@ -2928,6 +3030,18 @@
    ],
    "successor": "OFIKZxPF"
   },
+  "OFNWcJsM": {
+   "claims": [
+    "Comgrow/Comgrow T300 PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFNX8GI1": {
+   "claims": [
+    "Sovol/Sovol Zero ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
   "OFNYewRS": {
    "claims": [
     "Blocks/Blocks Generic PLA"
@@ -2939,6 +3053,12 @@
     "Qidi/Qidi Generic PVA"
    ],
    "successor": "OFDvXujf"
+  },
+  "OFNZjrLo": {
+   "claims": [
+    "Sovol/Sovol SV06 Plus ACE PLA"
+   ],
+   "successor": "OFDSrzZ8"
   },
   "OFNcdCrm": {
    "claims": [
@@ -2976,6 +3096,12 @@
    ],
    "successor": "OFKW5hEW"
   },
+  "OFPryWt5": {
+   "claims": [
+    "Lulzbot/Lulzbot 2.85mm PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
   "OFPy0Ogq": {
    "claims": [
     "Qidi/Qidi Generic PA-CF"
@@ -2987,6 +3113,12 @@
     "Prusa/Prusa Generic PLA-CF"
    ],
    "successor": "OFWbdGsC"
+  },
+  "OFQ9qnkd": {
+   "claims": [
+    "FLSun/FLSun T1 PLA High Speed"
+   ],
+   "successor": "OFmpMwxS"
   },
   "OFQC8Vna": {
    "claims": [
@@ -3023,6 +3155,12 @@
     "Flashforge/Flashforge Generic ASA"
    ],
    "successor": "OFLPAxz3"
+  },
+  "OFRi7v0b": {
+   "claims": [
+    "Sovol/Sovol SV08 PETG"
+   ],
+   "successor": "OFYPdQJh"
   },
   "OFRiyes1": {
    "claims": [
@@ -3074,6 +3212,12 @@
    ],
    "successor": "OF8tPByX"
   },
+  "OFSStjay": {
+   "claims": [
+    "FLSun/FLSun S1 PLA Silk"
+   ],
+   "successor": "OFesA6rF"
+  },
   "OFSTCno1": {
    "claims": [
     "re3D/re3D Greengate rPETG"
@@ -3085,6 +3229,12 @@
     "Tiertime/Tiertime Generic PCTG"
    ],
    "successor": "OFu1evlr"
+  },
+  "OFTvvox9": {
+   "claims": [
+    "Sovol/Sovol SV06 ACE PLA"
+   ],
+   "successor": "OFDSrzZ8"
   },
   "OFU0n0zW": {
    "claims": [
@@ -3139,6 +3289,12 @@
     "Artillery/Artillery Generic PLA-CF"
    ],
    "successor": "OFWbdGsC"
+  },
+  "OFV0KrAG": {
+   "claims": [
+    "FLSun/FLSun T1 ABS"
+   ],
+   "successor": "OFY9muEs"
   },
   "OFVKADz5": {
    "claims": [
@@ -3304,6 +3460,12 @@
    ],
    "successor": "OFCn83wF"
   },
+  "OFaFNP2U": {
+   "claims": [
+    "Sovol/Sovol SV07 PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
   "OFaU2JxD": {
    "claims": [
     "Dremel/Dremel Generic PLA"
@@ -3328,6 +3490,12 @@
    ],
    "successor": "OFgbpcy9"
   },
+  "OFbjtPQy": {
+   "claims": [
+    "FLSun/FLSun T1 ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
   "OFbt04e0": {
    "claims": [
     "DeltaMaker/DeltaMaker Generic TPU"
@@ -3345,6 +3513,18 @@
     "Prusa/Prusa Generic PVA"
    ],
    "successor": "OFDvXujf"
+  },
+  "OFcJ7AKd": {
+   "claims": [
+    "Sovol/Sovol SV08 PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFcdqaWI": {
+   "claims": [
+    "Sovol/Sovol Zero PC"
+   ],
+   "successor": "OFLakOUI"
   },
   "OFctbSkL": {
    "claims": [
@@ -3394,6 +3574,12 @@
     "CoLiDo/CoLiDo Generic TPU"
    ],
    "successor": "OFgbpcy9"
+  },
+  "OFe7Sx5B": {
+   "claims": [
+    "Sovol/Sovol SV06 ACE PETG"
+   ],
+   "successor": "OFYPdQJh"
   },
   "OFe8UJXH": {
    "claims": [
@@ -3524,6 +3710,12 @@
    ],
    "successor": "OFd0Fv0k"
   },
+  "OFkWaWRo": {
+   "claims": [
+    "Sovol/Sovol SV06 Plus ACE TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
   "OFkYkQGO": {
    "claims": [
     "Tiertime/Tiertime Generic PP-GF"
@@ -3542,6 +3734,12 @@
    ],
    "successor": "OFZr862X"
   },
+  "OFl7nOAf": {
+   "claims": [
+    "Sovol/Sovol SV06 Plus ACE PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
   "OFlLmUeV": {
    "claims": [
     "Ginger Additive/Ginger Generic PLA"
@@ -3553,6 +3751,12 @@
     "Flashforge/Flashforge Generic PETG-CF10"
    ],
    "successor": "OFO5djrM"
+  },
+  "OFlXJxX1": {
+   "claims": [
+    "Chuanying/Chuanying PETG"
+   ],
+   "successor": "OFYPdQJh"
   },
   "OFlx52rn": {
    "claims": [
@@ -3634,6 +3838,12 @@
    ],
    "successor": "OFmpMwxS"
   },
+  "OFoqrHTw": {
+   "claims": [
+    "FLSun/FLSun S1 PLA High Speed"
+   ],
+   "successor": "OFmpMwxS"
+  },
   "OFp8gtPH": {
    "claims": [
     "Creality/Creality Generic PLA Silk"
@@ -3645,6 +3855,12 @@
     "Creality/Creality Generic ASA"
    ],
    "successor": "OFLPAxz3"
+  },
+  "OFpBV2Ma": {
+   "claims": [
+    "Qidi/Tinmorry PETG-ECO"
+   ],
+   "successor": "OFYE7YZw"
   },
   "OFpSYJLI": {
    "claims": [
@@ -3717,6 +3933,12 @@
     "Flashforge/Flashforge Generic PLA-SILK"
    ],
    "successor": "OFkf1HHw"
+  },
+  "OFs1sNLz": {
+   "claims": [
+    "Chuanying/Chuanying ABS"
+   ],
+   "successor": "OFY9muEs"
   },
   "OFs2ReMr": {
    "claims": [
@@ -3796,6 +4018,12 @@
    ],
    "successor": "OFDSrzZ8"
   },
+  "OFuUJyRx": {
+   "claims": [
+    "FLSun/FLSun T1 PLA Silk"
+   ],
+   "successor": "OFesA6rF"
+  },
   "OFupq0tY": {
    "claims": [
     "Blocks/Blocks Generic PLA-CF"
@@ -3868,6 +4096,12 @@
    ],
    "successor": "OFesA6rF"
   },
+  "OFyCToOV": {
+   "claims": [
+    "Sovol/Sovol SV08 TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
   "OFyFRojy": {
    "claims": [
     "Ratrig/RatRig Generic ABS"
@@ -3903,6 +4137,12 @@
     "FlyingBear/FlyingBear Generic PETG"
    ],
    "successor": "OFYPdQJh"
+  },
+  "OFzzmK2Q": {
+   "claims": [
+    "FLSun/FLSun S1 ABS"
+   ],
+   "successor": "OFY9muEs"
   },
   "OGFA00": {
    "claims": [

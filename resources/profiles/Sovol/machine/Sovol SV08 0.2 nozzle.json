@@ -108,6 +108,6 @@
 	"machine_end_gcode": "END_PRINT\n",
 	"machine_pause_gcode": "PAUSE",
 	"default_filament_profile": [
-		"Sovol SV08 PLA @SV08 0.2 nozzle"
+		"Generic PLA @Sovol SV08 0.2 nozzle"
 	]
 }

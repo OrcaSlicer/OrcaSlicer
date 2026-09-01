@@ -1,6 +1,6 @@
 {
 	"name": "Comgrow",
-	"version": "02.04.00.04",
+	"version": "02.04.00.05",
 	"force_update": "0",
 	"description": "Comgrow configurations",
 	"machine_model_list": [
@@ -117,8 +117,8 @@
 			"sub_path": "filament/Generic PLA @Comgrow.json"
 		},
 		{
-			"name": "Comgrow T300 PLA",
-			"sub_path": "filament/Comgrow T300 PLA.json"
+			"name": "Generic PLA @Comgrow T300",
+			"sub_path": "filament/Generic PLA @Comgrow T300.json"
 		}
 	],
 	"machine_list": [
