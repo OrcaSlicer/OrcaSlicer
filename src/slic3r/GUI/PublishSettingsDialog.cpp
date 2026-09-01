@@ -93,8 +93,12 @@ wxString material_title(size_t slot, const PresetBundle* bundle, const DynamicPr
 {
     if (slot < bundle->filament_presets.size()) {
         const Preset* preset = bundle->filaments.find_preset(bundle->filament_presets[slot]);
-        if (preset != nullptr && !preset->name.empty())
-            return from_u8(material_display_name(preset->name));
+        if (preset != nullptr && !preset->name.empty()) {
+            // Display the name the sidebar does: the alias (already bare-name + variant-tail
+            // stripped for root filament presets).
+            const std::string& display = preset->alias.empty() ? get_preset_bare_name(preset->name) : preset->alias;
+            return from_u8(material_display_name(display));
+        }
     }
     const PublishMaterialIdentity identity = material_identity(slot, full);
     if (!identity.type.empty())
@@ -250,7 +254,7 @@ wxBitmap mixed_filament_tab_bitmap(const DynamicPrintConfig& full, size_t slot, 
 
     {
         const wxBitmap chip = mixed_filament_chip_bitmap(full, slot, swatch_sz);
-        has_lead = chip.IsOk();
+        has_lead            = chip.IsOk();
         if (has_lead)
             pieces.push_back({Piece::Swatch, chip, wxString()});
     }
@@ -357,7 +361,8 @@ public:
             }
 
             auto* reason = new wxStaticText(this, wxID_ANY,
-                issue.reason == MixedDependencyIssue::Reason::Disabled ? _L("not enabled") : _L("material not published"));
+                                            issue.reason == MixedDependencyIssue::Reason::Disabled ? _L("not enabled") :
+                                                                                                     _L("material not published"));
             reason->SetFont(Label::Body_12);
             reason->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#989898")));
             row->Add(reason, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
@@ -366,7 +371,8 @@ public:
             content->AddSpacer(FromDIP(6));
         }
 
-        auto* hint = new wxStaticText(this, wxID_ANY,
+        auto* hint = new wxStaticText(
+            this, wxID_ANY,
             _L("To publish a mixed filament, enable every filament it uses and choose Full Publish or check its Type requirement."));
         hint->SetFont(Label::Body_12);
         hint->Wrap(FromDIP(380));
@@ -1024,7 +1030,7 @@ size_t PublishSettingsDialog::category_index_for(
             // bitmap; the text is empty because a TabCtrl item cannot interleave images into
             // its text.
             const DynamicPrintConfig full_cfg = wxGetApp().preset_bundle->full_config();
-            const wxBitmap tab_bmp            = mixed_filament_tab_bitmap(full_cfg, source_index, FromDIP(20), target->GetBackgroundColour());
+            const wxBitmap tab_bmp = mixed_filament_tab_bitmap(full_cfg, source_index, FromDIP(20), target->GetBackgroundColour());
             if (tab_bmp.IsOk())
                 target->AppendItem(wxString(), tab_bmp);
             else
@@ -1191,8 +1197,7 @@ void PublishSettingsDialog::add_mixed_visual(size_t category_index, const MixedV
 
         if (spec.tri_weights.size() == 3 && n == 3 && !spec.is_gradient) {
             // Ternary mix: read-only miniature of the MixedFilamentDialog's triangle picker.
-            const MixedTriangleTheme tri_theme{StateColor::darkModeColorFor(*wxWHITE),
-                                               StateColor::darkModeColorFor(wxColour("#CECECE")),
+            const MixedTriangleTheme tri_theme{StateColor::darkModeColorFor(*wxWHITE), StateColor::darkModeColorFor(wxColour("#CECECE")),
                                                StateColor::darkModeColorFor(wxColour("#262E30")),
                                                StateColor::darkModeColorFor(wxColour(107, 107, 107))};
             draw_mixed_triangle_picker(pdc, rc.GetSize(), {spec.component_colours[0], spec.component_colours[1], spec.component_colours[2]},
@@ -1204,21 +1209,21 @@ void PublishSettingsDialog::add_mixed_visual(size_t category_index, const MixedV
             // solid segment per component.
             if (n == 2) {
                 const int bar_h = FromDIP(27);
-                draw_mixed_ratio_blend_bar(pdc, wxRect(rc.x, rc.y, rc.width, bar_h), spec.component_colours[0],
-                                           spec.component_colours[1], spec.ratios[1]);
+                draw_mixed_ratio_blend_bar(pdc, wxRect(rc.x, rc.y, rc.width, bar_h), spec.component_colours[0], spec.component_colours[1],
+                                           spec.ratios[1]);
                 // Read-only twin of the dialog's left/right percentage labels.
                 pdc.SetFont(::Label::Body_12);
                 pdc.SetTextForeground(StateColor::darkModeColorFor(wxColour(107, 107, 107)));
                 const wxString la = wxString::Format("%d%%", int(std::lround(spec.ratios[0] * 100.0)));
                 const wxString lb = wxString::Format("%d%%", int(std::lround(spec.ratios[1] * 100.0)));
-                const int lab_y = rc.y + bar_h + FromDIP(2);
+                const int lab_y   = rc.y + bar_h + FromDIP(2);
                 pdc.DrawText(la, rc.x, lab_y);
                 pdc.DrawText(lb, rc.x + rc.width - pdc.GetTextExtent(lb).GetWidth(), lab_y);
             } else {
                 draw_mixed_ratio_segments(pdc, rc, spec.component_colours, spec.ratios);
                 // Percent label centred in each segment wide enough to hold it.
                 std::vector<double> shares = spec.ratios;
-                double total = 0.0;
+                double total               = 0.0;
                 for (double r : shares)
                     total += r;
                 if (total <= 0.0) {
@@ -1228,10 +1233,10 @@ void PublishSettingsDialog::add_mixed_visual(size_t category_index, const MixedV
                 pdc.SetFont(::Label::Body_12);
                 int x0 = rc.x;
                 for (size_t i = 0; i < n; ++i) {
-                    const int x1 = (i + 1 < n)
-                                       ? rc.x + int(std::lround(std::accumulate(shares.begin(), shares.begin() + i + 1, 0.0) / total * double(rc.width)))
-                                       : rc.x + rc.width;
-                    const int w = std::max(1, x1 - x0);
+                    const int x1 = (i + 1 < n) ? rc.x + int(std::lround(std::accumulate(shares.begin(), shares.begin() + i + 1, 0.0) /
+                                                                        total * double(rc.width))) :
+                                                 rc.x + rc.width;
+                    const int w  = std::max(1, x1 - x0);
                     const wxString text = wxString::Format("%d%%", int(std::lround(shares[i] / total * 100.0)));
                     const wxSize tsz    = pdc.GetTextExtent(text);
                     if (tsz.GetWidth() + FromDIP(4) <= w) {
@@ -1254,10 +1259,10 @@ void PublishSettingsDialog::add_mixed_visual(size_t category_index, const MixedV
                                                 StateColor::darkModeColorFor(wxColour(172, 172, 172)),
                                                 StateColor::darkModeColorFor(*wxWHITE)};
             std::vector<MixedGradientCurve> curves;
-            std::vector<wxPoint2DDouble>    anchors;
+            std::vector<wxPoint2DDouble> anchors;
             if (spec.gradient_samples.size() >= 2 && n >= 2) {
                 const wxRect plot = mixed_gradient_plot_rect(rc.GetSize());
-                auto lift_alpha = [](wxColour c) {
+                auto lift_alpha   = [](wxColour c) {
                     if (c.Alpha() == 0)
                         c.Set(c.Red(), c.Green(), c.Blue(), 150);
                     return c;
@@ -1288,8 +1293,8 @@ void PublishSettingsDialog::add_mixed_visual(size_t category_index, const MixedV
     // with, so nothing else has to change). Sizes mirror the MixedFilamentDialog controls: the
     // gradient plot and triangle picker match the editor's 260x200 / 160x160, the ratio bar is
     // the dialog's 27px bar plus its label line.
-    int      viz_h;
-    int      viz_w;
+    int viz_h;
+    int viz_w;
     if (spec.is_gradient) {
         viz_w = 260;
         viz_h = 200;
@@ -1890,7 +1895,7 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
         if (wxBitmap* chip = get_extruder_color_icon(filament_color_hex(full, category.filament_slot),
                                                      std::to_string(category.filament_slot + 1), FromDIP(20), FromDIP(20))) {
             const SectionGroup& section = m_sections[category.group];
-            const auto iter = std::find(section.categories.begin(), section.categories.end(), category_index);
+            const auto iter             = std::find(section.categories.begin(), section.categories.end(), category_index);
             if (iter != section.categories.end())
                 m_sections[category.group].tabs->SetItemBitmap(static_cast<unsigned int>(iter - section.categories.begin()), *chip);
         }
