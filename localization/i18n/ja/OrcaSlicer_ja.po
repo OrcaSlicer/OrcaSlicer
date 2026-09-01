@@ -10617,7 +10617,7 @@ msgid "Junction Deviation"
 msgstr "接合偏差"
 
 msgid "Jerk(XY)"
-msgstr "ジャーク(XY)"
+msgstr "Jerk(XY)"
 
 msgid "Raft"
 msgstr "ラフト"
@@ -10914,7 +10914,7 @@ msgid "Acceleration limitation"
 msgstr "加速制限"
 
 msgid "Jerk limitation"
-msgstr "振動特性"
+msgstr "Jerk制限"
 
 msgid "Single extruder multi-material setup"
 msgstr "シングルエクストルーダー マルチマテリアル設定"
@@ -12485,7 +12485,7 @@ msgid "Plate %d: %s does not support filament %s"
 msgstr "プレート %d: %s がフィラメント %s を使用できません"
 
 msgid "Setting the jerk speed too low could lead to artifacts on curved surfaces"
-msgstr "ジャーク速度を低く設定しすぎると曲面にアーティファクトが発生する可能性があります"
+msgstr "Jerk速度を低く設定しすぎると曲面にアーティファクトが発生する可能性があります"
 
 # AI Translated
 msgid ""
@@ -14750,7 +14750,7 @@ msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration.
 msgstr "Klipperのmax_accel_to_decelが、加速度のこの%%に調整されます。"
 
 msgid "Default jerk."
-msgstr "デフォルトジャーク。"
+msgstr "デフォルトのJerkです。"
 
 # AI Translated
 msgid "Marlin Firmware Junction Deviation (replaces the traditional XY Jerk setting)."
@@ -15841,28 +15841,28 @@ msgid "Maximum acceleration of the E axis"
 msgstr "E軸最大加速度"
 
 msgid "Maximum jerk X"
-msgstr "最大振動 X"
+msgstr "最大Jerk X"
 
 msgid "Maximum jerk Y"
-msgstr "最大振動 Y"
+msgstr "最大Jerk Y"
 
 msgid "Maximum jerk Z"
-msgstr "最大振動 Z"
+msgstr "最大Jerk Z"
 
 msgid "Maximum jerk E"
-msgstr "最大振動 E"
+msgstr "最大Jerk E"
 
 msgid "Maximum jerk of the X axis"
-msgstr "最大振動 X"
+msgstr "X軸最大Jerk"
 
 msgid "Maximum jerk of the Y axis"
-msgstr "最大振動 Y"
+msgstr "Y軸最大Jerk"
 
 msgid "Maximum jerk of the Z axis"
-msgstr "最大振動 Z"
+msgstr "Z軸最大Jerk"
 
 msgid "Maximum jerk of the E axis"
-msgstr "最大振動 E"
+msgstr "E軸最大Jerk"
 
 msgid "Maximum Junction Deviation"
 msgstr "最大接合偏差"
