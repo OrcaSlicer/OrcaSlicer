@@ -9,5 +9,5 @@
 	"bed_texture": "creality_k1_buildplate_texture.svg",
 	"hotend_model": "",
 	"default_bed_type": "Textured PEI Plate",
-	"default_materials": "Generic ABS @Creality;Generic ASA @Creality;Generic PC @Creality K1-all;Generic PLA @Creality;Generic PLA @Creality HF;Generic Speed PLA @Creality HF;Generic PLA High Speed @Creality K1-all;Generic PLA Matte @Creality K1-all;Generic PLA Silk @Creality K1-all;Generic PETG @Creality;Generic TPU @Creality"
+	"default_materials": "Generic ABS @Creality;Generic ASA @Creality;Generic PC @Creality K1-all;Generic PLA @Creality;Generic PLA HF @Creality;Generic Speed PLA @Creality HF;Generic PLA High Speed @Creality K1-all;Generic PLA Matte @Creality K1-all;Generic PLA Silk @Creality K1-all;Generic PETG @Creality;Generic TPU @Creality"
 }
