@@ -5040,7 +5040,7 @@ msgstr ""
 "\n"
 "Giá trị sẽ được đặt lại về 0."
 
-msgid "Alternate extra wall does't work well when ensure vertical shell thickness is set to All."
+msgid "Alternate extra wall doesn't work well when ensure vertical shell thickness is set to All."
 msgstr "Luân phiên wall phụ không hoạt động tốt khi đảm bảo độ dày shell dọc được đặt thành Tất cả."
 
 msgid ""
@@ -5086,7 +5086,7 @@ msgstr ""
 "NO  - Giữ chiều cao lớp support độc lập"
 
 msgid ""
-"seam_slope_start_height need to be smaller than layer_height.\n"
+"seam_slope_start_height needs to be smaller than layer_height.\n"
 "Reset to 0."
 msgstr ""
 "seam_slope_start_height cần nhỏ hơn layer_height.\n"
@@ -5094,7 +5094,7 @@ msgstr ""
 
 #, no-c-format, no-boost-format
 msgid ""
-"Lock depth should smaller than skin depth.\n"
+"Lock depth should be smaller than skin depth.\n"
 "Reset to 50% of skin depth."
 msgstr ""
 "Độ sâu khóa phải nhỏ hơn độ sâu skin.\n"

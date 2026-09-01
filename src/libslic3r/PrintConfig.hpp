@@ -1538,6 +1538,14 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             filament_colour))
     ((ConfigOptionStrings,             filament_vendor))
     ((ConfigOptionBools,               filament_is_support))
+    // Mixed-color filament: a virtual slot realized from 2-3 physical filaments.
+    ((ConfigOptionBools,               filament_is_mixed))
+    ((ConfigOptionStrings,             filament_mixed_components))
+    ((ConfigOptionStrings,             filament_mixed_sublayer_ratios))
+    ((ConfigOptionBools,               filament_mixed_gradient))
+    ((ConfigOptionStrings,             filament_mixed_gradient_range))
+    ((ConfigOptionStrings,             filament_mixed_gradient_curve))
+    ((ConfigOptionBools,               filament_mixed_gradient_per_part))
     ((ConfigOptionInts,                filament_printable))
     ((ConfigOptionInts,                filament_extruder_compatibility))
     ((ConfigOptionFloats,              filament_change_length))
@@ -1838,6 +1846,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionInts,               nozzle_temperature_range_low))
     ((ConfigOptionInts,               nozzle_temperature_range_high))
     ((ConfigOptionFloats,             wipe_distance))
+    ((ConfigOptionBool,               enable_mixed_color_sublayer))
     ((ConfigOptionBool,               enable_prime_tower))
     ((ConfigOptionBool,               prime_tower_enable_framework))
     // BBS: change wipe_tower_x and wipe_tower_y data type to floats to add partplate logic
@@ -2488,7 +2497,8 @@ namespace cereal {
             archive(serialization_key_ordinal);
             assert(serialization_key_ordinal > 0);
             auto it = Slic3r::print_config_def.by_serialization_key_ordinal.find(serialization_key_ordinal);
-            assert(it != Slic3r::print_config_def.by_serialization_key_ordinal.end());
+            if (it == Slic3r::print_config_def.by_serialization_key_ordinal.end())
+                throw std::runtime_error("VendorCache: unknown serialization_key_ordinal " + std::to_string(serialization_key_ordinal) + " - cache is stale");
             config.set_key_value(it->second->opt_key, it->second->load_option_from_archive(archive));
         }
     }

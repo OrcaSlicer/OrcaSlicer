@@ -32,10 +32,10 @@ public:
     PrintHostPostUploadActions get_post_upload_actions() const override;
 protected:
 #ifdef WIN32
-    virtual bool upload_inner_with_resolved_ip(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn, const boost::asio::ip::address& resolved_addr) const;
+    virtual bool upload_inner_with_resolved_ip(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn, const boost::asio::ip::address& resolved_addr) const override;
 #endif
-    virtual bool validate_version_text(const boost::optional<std::string> &version_text) const;
-    virtual bool upload_inner_with_host(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const;
+    virtual bool validate_version_text(const boost::optional<std::string> &version_text) const override;
+    virtual bool upload_inner_with_host(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const override;
 
 #ifdef WIN32
     virtual bool test_with_resolved_ip(wxString& curl_msg) const override;

@@ -2,6 +2,7 @@
 #include "PrintConfigConstants.hpp"
 #include "ClipperUtils.hpp"
 #include "Config.hpp"
+#include "FilamentMixer.hpp"
 #include "MaterialType.hpp"
 #include "I18N.hpp"
 #include "format.hpp"
@@ -3266,6 +3267,62 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Support material is commonly used to print supports and support interfaces.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBools { false });
+
+    // Mixed-color filament. A slot flagged here is virtual: it is not loaded into any
+    // physical extruder, but resolved at slicing time into the physical filaments listed
+    // in filament_mixed_components, blended either by splitting each layer into
+    // sub-layers or by alternating whole layers (see enable_mixed_color_sublayer).
+    def          = this->add("filament_is_mixed", coBools);
+    def->label   = L("Is mixed filament");
+    def->tooltip = L("Whether this filament slot is a mixed filament composed of multiple physical filaments");
+    def->mode    = comDevelop;
+    def->set_default_value(new ConfigOptionBools{false});
+
+    def          = this->add("filament_mixed_components", coStrings);
+    def->label   = L("Mixed filament components");
+    def->tooltip = L("Comma-separated 1-based indices of component filaments, e.g. \"1,3\"");
+    def->mode    = comDevelop;
+    def->set_default_value(new ConfigOptionStrings{""});
+
+    def          = this->add("filament_mixed_sublayer_ratios", coStrings);
+    def->label   = L("Mixed filament sublayer ratios");
+    def->tooltip = L("Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\"");
+    def->mode    = comDevelop;
+    def->set_default_value(new ConfigOptionStrings{""});
+
+    def          = this->add("filament_mixed_gradient", coBools);
+    def->label   = L("Mixed filament gradient");
+    def->tooltip = L("Enable Z-direction gradient mode for mixed filament sub-layers. "
+                     "When enabled, the sub-layer ratios vary linearly across layers.");
+    def->mode    = comDevelop;
+    def->set_default_value(new ConfigOptionBools{false});
+
+    def          = this->add("filament_mixed_gradient_range", coStrings);
+    def->label   = L("Mixed filament gradient range");
+    def->tooltip = L("Start and end ratios for the first component in gradient mode. "
+                     "Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%.");
+    def->mode    = comDevelop;
+    def->set_default_value(new ConfigOptionStrings{""});
+
+    def          = this->add("filament_mixed_gradient_curve", coStrings);
+    def->label   = L("Mixed filament gradient curve");
+    def->tooltip = L("Optional Photoshop-style custom curve mapping Z progress to the first "
+                     "component ratio. Encoded as pipe-separated control points, "
+                     "either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override "
+                     "is needed (empty token or \"nan\" means use PCHIP default). "
+                     "x in [0,1]; y is clamped to the configured ratio range, "
+                     "e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear "
+                     "gradient_range is used instead.");
+    def->mode    = comDevelop;
+    def->set_default_value(new ConfigOptionStrings{""});
+
+    def          = this->add("filament_mixed_gradient_per_part", coBools);
+    def->label   = L("Mixed filament per-part gradient");
+    def->tooltip = L("When gradient mode is enabled, apply the gradient to each part of an "
+                     "assembly independently rather than treating the whole assembly as one "
+                     "Z range.");
+    def->mode    = comDevelop;
+    def->set_default_value(new ConfigOptionBools{false});
 
     // defined in bits
     // 0 means cannot support, 1 means support
@@ -7408,6 +7465,14 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 1. });
 
+    def = this->add("enable_mixed_color_sublayer", coBool);
+    def->label = L("Mixed color sublayer");
+    def->tooltip = L("Enable mixed color sublayer splitting. When enabled, layers containing mixed color "
+                     "filaments will be split into sub-layers to achieve color mixing effects.");
+    def->category = L("Quality");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("enable_prime_tower", coBool);
     def->label = L("Enable");
     def->tooltip = L("The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects.");
@@ -9611,7 +9676,15 @@ t_config_option_keys DynamicPrintConfig::normalize_fdm_2(int num_objects, int us
         ConfigOptionBool *enable_wrapping_opt = this->option<ConfigOptionBool>("enable_wrapping_detection");
         bool enable_wrapping = enable_wrapping_opt != nullptr && enable_wrapping_opt->value;
 
-        if (!is_smooth_timelapse && !enable_wrapping && (used_filaments == 1 || (ps_opt->value == PrintSequence::ByObject && num_objects > 1))) {
+        bool has_mixed_filament = false;
+        {
+            auto *mixed_opt = this->option<ConfigOptionBools>("filament_is_mixed");
+            if (mixed_opt)
+                has_mixed_filament = has_any_mixed_filament(mixed_opt->values);
+        }
+        if (!is_smooth_timelapse && !enable_wrapping
+            && (  (used_filaments == 1 && !has_mixed_filament)
+                || (ps_opt->value == PrintSequence::ByObject && num_objects > 1))) {
             if (ept_opt->value) {
                 ept_opt->value = false;
                 changed_keys.push_back("enable_prime_tower");
@@ -10024,6 +10097,10 @@ int DynamicPrintConfig::update_values_from_single_to_multi(DynamicPrintConfig& m
 
                     for (int index = 0; index < variant_count; index++)
                     {
+                        //variant_count is the variant column width, src_opt the value array;
+                        //they disagree when the source was authored at a different width
+                        if (index >= (int)src_opt->values.size())
+                            break;
                         if (opt->values[index] > src_opt->values[index])
                             opt->values[index] = src_opt->values[index];
                     }
@@ -10041,6 +10118,8 @@ int DynamicPrintConfig::update_values_from_single_to_multi(DynamicPrintConfig& m
 
                     for (int index = 0; index < variant_count; index++)
                     {
+                        if (index >= (int)src_opt->values.size())
+                            break;
                         if (opt->values[index].value > src_opt->values[index].value)
                             opt->values[index] = src_opt->values[index];
                     }
@@ -10235,6 +10314,10 @@ int DynamicPrintConfig::update_values_from_multi_to_multi(DynamicPrintConfig& ne
 
                     for(auto idx : variant_indices){
                         assert(idx < old_count);
+                        //the counts come from the variant columns, the arrays from the options;
+                        //they disagree when a config was authored at a different variant width
+                        if (idx >= old_count || new_variant_index >= (int)opt->values.size())
+                            continue;
                         if (old_values[idx] < opt->values[new_variant_index])
                             opt->values[new_variant_index] = old_values[idx];
                     }
@@ -10265,6 +10348,10 @@ int DynamicPrintConfig::update_values_from_multi_to_multi(DynamicPrintConfig& ne
 
                     for(auto idx : variant_indices){
                         assert(idx < old_count);
+                        //the counts come from the variant columns, the arrays from the options;
+                        //they disagree when a config was authored at a different variant width
+                        if (idx >= old_count || new_variant_index >= (int)opt->values.size())
+                            continue;
                         if (old_values[idx] < opt->values[new_variant_index])
                             opt->values[new_variant_index] = old_values[idx];
                     }
@@ -10295,6 +10382,8 @@ int DynamicPrintConfig::update_values_from_multi_to_multi(DynamicPrintConfig& ne
 
                     for(auto idx : variant_indices){
                         assert(idx < old_count);
+                        if (idx >= old_count || new_variant_index >= (int)opt->values.size())
+                            continue;
                         if (old_values[idx]) //enabled
                             opt->values[new_variant_index] = old_values[idx];
                     }
@@ -10335,6 +10424,15 @@ int DynamicPrintConfig::update_values_from_multi_to_multi_2(const std::vector<st
         same_variant_indices.emplace_back(indices);
     }
 
+    //dst_values below is the destination PRINT preset's per-variant row, sized to its own
+    //print_extruder_variant; dst_extruder_variants is the PRINTER's list. They disagree until
+    //the print preset is re-selected, so size the row to the variant count before indexing it.
+    const size_t dst_variant_count = dst_extruder_variants.size();
+    if (dst_variant_count == 0) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", Line %1%: empty destination variant list")%__LINE__;
+        return -1;
+    }
+
     t_config_option_keys keys = this->keys();
     for(auto& key : keys){
         if(key_sets.find(key) == key_sets.end())
@@ -10350,7 +10448,13 @@ int DynamicPrintConfig::update_values_from_multi_to_multi_2(const std::vector<st
             {
                 ConfigOptionFloatsNullable* opt = this->option<ConfigOptionFloatsNullable>(key);
                 auto src_values = opt->values;
-                auto dst_values = dst_config.option<ConfigOptionFloatsNullable>(key) ->values;
+                const auto* dst_opt = dst_config.option<ConfigOptionFloatsNullable>(key);
+                if(!dst_opt){
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: %2% missing from destination config")%__LINE__%key;
+                    break;
+                }
+                auto dst_values = dst_opt->values;
+                dst_values.resize(dst_variant_count, ConfigOptionFloatsNullable::nil_value());
                 for(size_t dst_idx =0; dst_idx < same_variant_indices.size(); ++dst_idx){
                     auto& indices = same_variant_indices[dst_idx];
                     if(indices.empty())
@@ -10358,7 +10462,7 @@ int DynamicPrintConfig::update_values_from_multi_to_multi_2(const std::vector<st
                     bool has_value = false;
                     double target_value = std::numeric_limits<double>::max();
                     for(auto idx : indices){
-                        if(opt && idx < opt->values.size() && !opt->is_nil(idx)){
+                        if(idx < (int)opt->values.size() && !opt->is_nil(idx)){
                             has_value = true;
                             target_value = std::min(target_value, src_values[idx]);
                         }
@@ -10374,7 +10478,13 @@ int DynamicPrintConfig::update_values_from_multi_to_multi_2(const std::vector<st
             {
                 ConfigOptionFloatsOrPercentsNullable* opt = this->option<ConfigOptionFloatsOrPercentsNullable>(key);
                 auto src_values = opt->values;
-                auto dst_values = dst_config.option<ConfigOptionFloatsOrPercentsNullable>(key) ->values;
+                const auto* dst_opt = dst_config.option<ConfigOptionFloatsOrPercentsNullable>(key);
+                if(!dst_opt){
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: %2% missing from destination config")%__LINE__%key;
+                    break;
+                }
+                auto dst_values = dst_opt->values;
+                dst_values.resize(dst_variant_count, ConfigOptionFloatsOrPercentsNullable::nil_value());
                 for(size_t dst_idx =0; dst_idx < same_variant_indices.size(); ++dst_idx){
                     auto& indices = same_variant_indices[dst_idx];
                     if(indices.empty())
@@ -10382,7 +10492,7 @@ int DynamicPrintConfig::update_values_from_multi_to_multi_2(const std::vector<st
                     bool has_value = false;
                     FloatOrPercent target_value{9999.f, true};
                     for(auto idx : indices){
-                        if(opt && !opt->is_nil(idx)){
+                        if(idx < (int)opt->values.size() && !opt->is_nil(idx)){
                             has_value = true;
                             target_value = src_values[idx].value < target_value.value ? src_values[idx] : target_value;
                         }
@@ -10398,15 +10508,21 @@ int DynamicPrintConfig::update_values_from_multi_to_multi_2(const std::vector<st
             {
                 ConfigOptionBoolsNullable* opt = this->option<ConfigOptionBoolsNullable>(key);
                 auto src_values = opt->values;
-                auto dst_values = dst_config.option<ConfigOptionBoolsNullable>(key) ->values;
+                const auto* dst_opt = dst_config.option<ConfigOptionBoolsNullable>(key);
+                if(!dst_opt){
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: %2% missing from destination config")%__LINE__%key;
+                    break;
+                }
+                auto dst_values = dst_opt->values;
+                dst_values.resize(dst_variant_count, ConfigOptionBoolsNullable::nil_value());
                 for(size_t dst_idx =0; dst_idx < same_variant_indices.size(); ++dst_idx){
                     auto indices = same_variant_indices[dst_idx];
                     if(indices.empty())
                         continue;
                     bool has_value = false;
-                    bool target_value;
+                    bool target_value = false;
                     for(auto idx : indices){
-                        if(opt && !opt->is_nil(idx)){
+                        if(idx < (int)opt->values.size() && !opt->is_nil(idx)){
                             has_value = true;
                             target_value = src_values[idx];
                             break;
@@ -11757,6 +11873,23 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
                 error_message.emplace(opt_key, opt->serialize() + L(" not in range ") +"[" + std::to_string(optdef->min) + "," + std::to_string(optdef->max) + "]");
             //return std::string("Value out of range: " + opt_key);
         }
+    }
+
+    // Mixed-color (混色) parameter validation.
+    {
+        const auto &is_mixed       = cfg.filament_is_mixed.values;
+        const auto &comp_strs      = cfg.filament_mixed_components.values;
+        const auto &ratio_strs     = cfg.filament_mixed_sublayer_ratios.values;
+        const auto &gradient_flags = cfg.filament_mixed_gradient.values;
+        const auto &range_strs     = cfg.filament_mixed_gradient_range.values;
+        const auto &curve_strs     = cfg.filament_mixed_gradient_curve.values;
+
+        std::map<std::string, std::string> mixed_errors = validate_mixed_filament_params(
+            is_mixed, comp_strs, ratio_strs, gradient_flags,
+            range_strs, curve_strs);
+        for (const auto &kv : mixed_errors)
+            if (error_message.find(kv.first) == error_message.end())
+                error_message.emplace(kv.first, kv.second);
     }
 
     // The configuration is valid.

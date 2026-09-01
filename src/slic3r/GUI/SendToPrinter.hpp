@@ -62,7 +62,6 @@ private:
     bool                                m_is_in_sending_mode{ false };
     bool                                m_is_rename_mode{ false };
     bool                                enable_prepare_mode{ true };
-    bool                                m_need_adaptation_screen{ false };
     bool                                m_export_3mf_cancel{ false };
     bool                                m_is_canceled{ false };
     bool                                m_tcp_try_connect{true};
@@ -81,7 +80,6 @@ private:
     wxStaticBitmap*                     m_staticbitmap{ nullptr };
     ThumbnailPanel*                     m_thumbnailPanel{ nullptr };
     ComboBox*                           m_comboBox_printer{ nullptr };
-    ComboBox*                           m_comboBox_bed{ nullptr };
     Button*                             m_rename_button{ nullptr };
     Button*                             m_button_refresh{ nullptr };
     Button*                             m_button_ensure{ nullptr };
@@ -180,7 +178,7 @@ public:
     SendToPrinterDialog(Plater *plater = nullptr);
     ~SendToPrinterDialog();
 
-    bool Show(bool show);
+    bool Show(bool show) override;
     bool is_timeout();
     void on_rename_click(wxCommandEvent& event);
     void on_rename_enter();

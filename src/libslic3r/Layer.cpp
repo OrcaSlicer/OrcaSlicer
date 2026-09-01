@@ -210,6 +210,12 @@ void Layer::make_perimeters()
 	            if (! (*it)->slices.empty()) {
 		            LayerRegion* other_layerm = *it;
 		            const PrintRegion &other_region = other_layerm->region();
+                    // Per-part gradient tags a region with its owning ModelVolume; merging two
+                    // differently-tagged regions would collapse volumes that need independent
+                    // gradient runs. Both tags are invalid unless per-part gradient is on, so
+                    // this is a no-op for every other configuration.
+                    if (this_region.gradient_volume_id() != other_region.gradient_volume_id())
+                        continue;
                     if (is_perimeter_compatible(*m_object->print(), this_region, other_region))
 		            {
 			 			other_layerm->perimeters.clear();

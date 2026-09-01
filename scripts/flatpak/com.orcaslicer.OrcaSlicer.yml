@@ -276,6 +276,12 @@ modules:
         sha256: 27b72ba2d5ff3d0a9814ad40d4cb88f8dc89a35491c0866d952473f8f9416b77
         dest: external-packages/Draco
 
+      # Assimp 5.4.3
+      - type: file
+        url: https://github.com/assimp/assimp/archive/refs/tags/v5.4.3.tar.gz
+        sha256: 66dfbaee288f2bc43172440a55d0235dfc7bf885dda6435c038e8000e79582cb
+        dest: external-packages/Assimp
+
       # OpenSSL 1.1.1w (GNOME SDK has 3.x; OrcaSlicer requires 1.1.x)
       - type: file
         url: https://github.com/openssl/openssl/archive/OpenSSL_1_1_1w.tar.gz
@@ -312,6 +318,12 @@ modules:
         sha256: 0ba163956f2d468b19a91b96c5aba66ee9610843ea41dda628ea44cdafde7db7
         dest: external-packages/wxInspector
 
+      # FFmpeg n7.0.3
+      - type: file
+        url: https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n7.0.3.tar.gz
+        sha256: deedcabe339165214a3637df4c86a507aef0d793cf8774ff68735f4737e8ddbc
+        dest: external-packages/FFMPEG
+
       # ---------------------------------------------------------------
       # Fallback archives for deps normally provided by the GNOME SDK.
       # These are only used if find_package() fails to locate them.
@@ -347,6 +359,7 @@ modules:
       - |
         cmake . -B build_flatpak \
           -DFLATPAK=ON \
+          -DORCA_TOOLS=ON \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_PREFIX_PATH=/app \
           -DCMAKE_INSTALL_PREFIX=/app \
@@ -356,6 +369,13 @@ modules:
       - cmake --build build_flatpak --target OrcaSlicer -j$FLATPAK_BUILDER_N_JOBS
       - ./scripts/run_gettext.sh
       - cmake --build build_flatpak --target install -j$FLATPAK_BUILDER_N_JOBS
+
+      # Per-vendor preset caches. On the other platforms CI runs this script
+      # itself; the flatpak is built inside flatpak-builder and the generator
+      # only exists in here, so the swap is a build step instead, against the
+      # profiles the install above copied into /app.
+      - cmake --build build_flatpak --target generate_system_cache -j$FLATPAK_BUILDER_N_JOBS
+      - ./scripts/build_preset_cache.sh -n -b build_flatpak /app/share/OrcaSlicer/profiles
 
     cleanup:
       - /include
@@ -402,6 +422,9 @@ modules:
         path: ../../version.inc
       - type: file
         path: ../run_gettext.sh
+        dest: scripts
+      - type: file
+        path: ../build_preset_cache.sh
         dest: scripts
 
       # AppData metainfo for GNOME Software & Co.

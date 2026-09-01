@@ -229,6 +229,16 @@ public:
 
     //PRINTER_TYPE printer_type = PRINTER_3DPrinter_UKNOWN;
     std::string printer_type;       /* model_id */
+
+    // id of the IPrinterAgent that was used to discover or bind this device (IPrinterAgent::get_agent_info().id,
+    // e.g. "bbl"), stamped at creation time — not derived from get_agent(), since m_agent is a single
+    // process-wide NetworkAgent shared by every MachineObject and gets repointed on agent swap
+    // (see DeviceManager::set_agent()), so it can't tell which agent originally found this device.
+    // We persist this as well so that when the printer agent is swapped, we don't show unrelated devices,
+    // e.g. if the current printer agent is elegoo, we shouldn't show printers connected by BBL printer agent
+    // under local machines.
+    std::string printer_agent_id;
+
     std::string   get_show_printer_type() const;
     PrinterSeries get_printer_series() const;
     PrinterArch get_printer_arch() const;

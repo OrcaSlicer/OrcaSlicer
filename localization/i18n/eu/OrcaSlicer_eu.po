@@ -4670,7 +4670,7 @@ msgstr ""
 "\n"
 "Balioa 0ra berrezarriko da."
 
-msgid "Alternate extra wall does't work well when ensure vertical shell thickness is set to All."
+msgid "Alternate extra wall doesn't work well when ensure vertical shell thickness is set to All."
 msgstr "Horma gehigarri txandakatuak ez du ondo funtzionatzen \"Bermatu oskolaren lodiera bertikala\" Guztiak gisa ezarrita dagoenean."
 
 msgid ""
@@ -4716,7 +4716,7 @@ msgstr ""
 "NO - 'Euskarrien Geruza-Altuera Independentea' mantendu"
 
 msgid ""
-"seam_slope_start_height need to be smaller than layer_height.\n"
+"seam_slope_start_height needs to be smaller than layer_height.\n"
 "Reset to 0."
 msgstr ""
 "seam_slope_start_height txigiagoa izan behar da layer_height baino.\n"
@@ -4724,7 +4724,7 @@ msgstr ""
 
 #, no-c-format, no-boost-format
 msgid ""
-"Lock depth should smaller than skin depth.\n"
+"Lock depth should be smaller than skin depth.\n"
 "Reset to 50% of skin depth."
 msgstr ""
 "Blokeo-sakonera gainazalaren sakonera baino txikiagoa izan behar da.\n"

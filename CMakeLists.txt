@@ -59,6 +59,13 @@ if (APPLE)
     message(STATUS "CMAKE_OSX_DEPLOYMENT_TARGET: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif ()
 
+# Keep MSVC's default /W3 out of CMAKE_<LANG>_FLAGS so it can be applied to our own
+# targets only. Silencing a bundled target would otherwise override a warning level,
+# which cl reports as D9025 for every file it compiles.
+if (POLICY CMP0092)
+    cmake_policy(SET CMP0092 NEW)
+endif ()
+
 project(OrcaSlicer)
 
 # Backward compatibility for old CMake versions
@@ -126,6 +133,8 @@ option(SLIC3R_GUI               "Compile OrcaSlicer with GUI components (OpenGL,
 option(SLIC3R_FHS               "Assume OrcaSlicer is to be installed in a FHS directory structure" 0)
 option(SLIC3R_PROFILE           "Compile OrcaSlicer with an invasive Shiny profiler" 0)
 option(SLIC3R_PCH               "Use precompiled headers" 1)
+option(SLIC3R_WARNINGS          "Emit compiler warnings for OrcaSlicer sources" 1)
+option(SLIC3R_BUNDLED_WARNINGS  "Emit compiler warnings for bundled third-party sources" 0)
 option(SLIC3R_MSVC_COMPILE_PARALLEL "Compile on Visual Studio in parallel" 1)
 option(SLIC3R_MSVC_PDB          "Generate PDB files on MSVC in Release mode" 1)
 option(SLIC3R_ASAN              "Enable ASan on Clang and GCC" 0)
@@ -289,6 +298,8 @@ if (APPLE)
     SET(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.orcaslicer.OrcaSlicer")
 
     message(STATUS "Orca: IS_CROSS_COMPILE: ${IS_CROSS_COMPILE}")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CMAKE_INSTALL_RPATH "$ORIGIN")
 endif ()
 
 # Proposal for C++ unit tests and sandboxes
@@ -335,15 +346,20 @@ if (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
 
     # clang-cl can interpret SYSTEM header paths if -imsvc is used
     set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-imsvc")
-
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall \
-        -Wno-old-style-cast -Wno-reserved-id-macro -Wno-c++98-compat-pedantic")
 else ()
     set(IS_CLANG_CL FALSE)
 endif ()
 
 if (MSVC)
-    if (SLIC3R_MSVC_COMPILE_PARALLEL AND NOT IS_CLANG_CL)
+    # CMP0092 only applies when the cache is created; an existing tree keeps its /W3,
+    # which a silenced bundled target would then override (D9025, once per file).
+    string(REGEX REPLACE "/W[0-4]" "" CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}")
+    string(REGEX REPLACE "/W[0-4]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+    # /MP only matters for the VS generators, where CMake turns it into the
+    # MultiProcessorCompilation property. Ninja parallelises on its own, and
+    # clang-cl warns "argument unused" if the flag reaches it.
+    if (SLIC3R_MSVC_COMPILE_PARALLEL AND CMAKE_GENERATOR MATCHES "Visual Studio")
            add_compile_options(/MP)
     endif ()
     # /bigobj (Increase Number of Sections in .Obj file)
@@ -523,8 +539,15 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUXX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fext-numeric-literals" )
 endif()
 
-if (NOT MSVC AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
-    if (NOT MINGW)
+if ((NOT MSVC OR IS_CLANG_CL) AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
+    if (IS_CLANG_CL)
+        # clang-cl reads -Wall as MSVC /Wall, which clang maps to -Weverything. /W4 is
+        # its -Wall -Wextra and, unlike /clang:-Wall, is ordered with the -Wno-* below
+        # instead of after them. The -Wextra-only warnings are dropped again so the set
+        # matches what -Wall gives the GNU/Clang builds.
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4" )
+        add_compile_options(-Wno-unused-parameter -Wno-ignored-qualifiers -Wno-missing-field-initializers)
+    elseif (NOT MINGW)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall" )
     endif ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-reorder" )
@@ -1044,6 +1067,10 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
             ${CMAKE_PREFIX_PATH}/bin/occt/TKXDESTEP.dll
             ${CMAKE_PREFIX_PATH}/bin/occt/TKXSBase.dll
             ${CMAKE_PREFIX_PATH}/bin/freetype.dll
+            ${CMAKE_PREFIX_PATH}/bin/avcodec-61.dll
+            ${CMAKE_PREFIX_PATH}/bin/swresample-5.dll
+            ${CMAKE_PREFIX_PATH}/bin/swscale-8.dll
+            ${CMAKE_PREFIX_PATH}/bin/avutil-59.dll
          DESTINATION ${_out_dir})
 
     set(${output_dlls}
@@ -1079,15 +1106,110 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
         ${_out_dir}/TKXSBase.dll
 
         ${_out_dir}/freetype.dll
-
+        ${_out_dir}/avcodec-61.dll
+        ${_out_dir}/swresample-5.dll
+        ${_out_dir}/swscale-8.dll
+        ${_out_dir}/avutil-59.dll
         PARENT_SCOPE
     )
 
 endfunction()
 
+function(orcaslicer_copy_sos target config postfix output_sos)
+
+    get_property(_is_multi GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+    get_target_property(_alt_out_dir ${target} RUNTIME_OUTPUT_DIRECTORY)
+
+    if (_alt_out_dir)
+        set(_out_dir "${_alt_out_dir}")
+    elseif (_is_multi)
+        set(_out_dir "${CMAKE_CURRENT_BINARY_DIR}/${config}")
+    else ()
+        set(_out_dir "${CMAKE_CURRENT_BINARY_DIR}")
+    endif ()
+
+    file(COPY ${CMAKE_PREFIX_PATH}/lib/libavcodec.so
+            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61
+            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61.3.100
+            ${CMAKE_PREFIX_PATH}/lib/libavutil.so
+            ${CMAKE_PREFIX_PATH}/lib/libavutil.so.59
+            ${CMAKE_PREFIX_PATH}/lib/libavutil.so.59.8.100
+            ${CMAKE_PREFIX_PATH}/lib/libswscale.so
+            ${CMAKE_PREFIX_PATH}/lib/libswscale.so.8
+            ${CMAKE_PREFIX_PATH}/lib/libswscale.so.8.1.100
+            ${CMAKE_PREFIX_PATH}/lib/libswresample.so
+            ${CMAKE_PREFIX_PATH}/lib/libswresample.so.5
+            ${CMAKE_PREFIX_PATH}/lib/libswresample.so.5.1.100
+         DESTINATION ${_out_dir})
+
+    set(${output_sos}
+        ${_out_dir}/libavcodec.so
+        ${_out_dir}/libavcodec.so.61
+        ${_out_dir}/libavcodec.so.61.3.100
+        ${_out_dir}/libavutil.so
+        ${_out_dir}/libavutil.so.59
+        ${_out_dir}/libavutil.so.59.8.100
+        ${_out_dir}/libswscale.so
+        ${_out_dir}/libswscale.so.8
+        ${_out_dir}/libswscale.so.8.1.100
+        ${_out_dir}/libswresample.so
+        ${_out_dir}/libswresample.so.5
+        ${_out_dir}/libswresample.so.5.1.100
+        PARENT_SCOPE
+    )
+endfunction()
+
+# Bundled sources set their own warning flags, and a plain -Wall there means /Wall
+# (= -Weverything) under clang-cl. Target options are applied after the ones a target
+# set on itself, so these win. Targets are discovered rather than listed so a newly
+# bundled library needs no maintenance here.
+function(orcaslicer_silence_third_party_warnings _dir)
+    get_property(_subdirs DIRECTORY "${_dir}" PROPERTY SUBDIRECTORIES)
+    foreach (_subdir IN LISTS _subdirs)
+        orcaslicer_silence_third_party_warnings("${_subdir}")
+    endforeach ()
+    get_property(_targets DIRECTORY "${_dir}" PROPERTY BUILDSYSTEM_TARGETS)
+    foreach (_target IN LISTS _targets)
+        get_target_property(_type ${_target} TYPE)
+        if (NOT _type STREQUAL "INTERFACE_LIBRARY" AND NOT _type STREQUAL "UTILITY")
+            if (MSVC AND NOT IS_CLANG_CL)
+                # Drop any level the target set for itself, or -w overrides it and cl
+                # reports D9025 once per file.
+                get_target_property(_opts ${_target} COMPILE_OPTIONS)
+                if (_opts)
+                    string(REGEX REPLACE "/W[0-4]|/Wall" "" _opts "${_opts}")
+                    string(REGEX REPLACE ";;+" ";" _opts "${_opts}")
+                    set_target_properties(${_target} PROPERTIES COMPILE_OPTIONS "${_opts}")
+                endif ()
+                # CMake maps a level into the VS generator's WarningLevel element, while a
+                # bare -w stays on the command line and trips D9025 there, once per file.
+                target_compile_options(${_target} PRIVATE /W0)
+            else ()
+                target_compile_options(${_target} PRIVATE -w)
+            endif ()
+        endif ()
+    endforeach ()
+endfunction()
+
 
 # libslic3r, OrcaSlicer GUI and the OrcaSlicer executable.
 add_subdirectory(deps_src)
+
+if (NOT SLIC3R_BUNDLED_WARNINGS)
+    orcaslicer_silence_third_party_warnings("${CMAKE_CURRENT_SOURCE_DIR}/deps_src")
+endif ()
+
+# Warning level for the targets added below: our sources, plus glad and libvgcode,
+# which are vendored but live under src/. The deps_src libraries were configured just
+# above. CMP0092 left MSVC without a default level, so it is set here.
+if (NOT SLIC3R_WARNINGS)
+    add_compile_options(-w)
+elseif (MSVC AND NOT IS_CLANG_CL)
+    # /we4715 is C4715, no return from a non-void function, matching the
+    # -Werror=return-type the GNU/Clang builds apply.
+    add_compile_options(/W3 /we4715)
+endif ()
+
 add_subdirectory(src)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT OrcaSlicer_app_gui)
 
@@ -1099,6 +1221,10 @@ endif()
 
 if(BUILD_TESTS)
     add_subdirectory(tests)
+    if (NOT SLIC3R_BUNDLED_WARNINGS)
+        # Catch2 is vendored under tests/ and sets its own warning flags too.
+        orcaslicer_silence_third_party_warnings("${CMAKE_CURRENT_SOURCE_DIR}/tests/catch2")
+    endif ()
 endif()
 
 if (NOT WIN32 AND NOT APPLE)
@@ -1141,6 +1267,20 @@ else ()
     if(ORCA_BUNDLED_UV_EXECUTABLE)
         install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "${CMAKE_INSTALL_PREFIX}/resources/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
     endif()
+endif ()
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(LIBRARY_FILES
+    ${LIBDIR_BIN}/libavcodec.so.61
+    ${LIBDIR_BIN}/libavcodec.so.61.3.100
+    ${LIBDIR_BIN}/libavutil.so.59
+    ${LIBDIR_BIN}/libavutil.so.59.8.100
+    ${LIBDIR_BIN}/libswresample.so.5
+    ${LIBDIR_BIN}/libswresample.so.5.1.100
+    ${LIBDIR_BIN}/libswscale.so.8
+    ${LIBDIR_BIN}/libswscale.so.8.1.100
+    )
+    install(FILES ${LIBRARY_FILES} DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 endif ()
 
 install(FILES ${CMAKE_SOURCE_DIR}/LICENSE.txt DESTINATION ".")

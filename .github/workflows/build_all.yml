@@ -14,6 +14,7 @@ on:
      - 'localization/**'
      - 'resources/**'
      - ".github/workflows/build_*.yml"
+     - 'scripts/build_preset_cache.*'
      - 'scripts/flatpak/**'
      - 'scripts/msix/**'
      - 'tests/**'
@@ -32,7 +33,10 @@ on:
      - 'build_linux.sh'
      - 'build_release_vs.bat'
      - 'build_release_vs2022.bat'
+     - 'build_win.bat'
+     - 'scripts/test_build_win.ps1'
      - 'build_release_macos.sh'
+     - 'scripts/build_preset_cache.*'
      - 'scripts/flatpak/**'
      - 'scripts/msix/**'
      - 'tests/**'
@@ -54,6 +58,22 @@ concurrency:
   
 
 jobs:
+  # build_win.bat ships a test suite. Run it before the Windows builds.
+  check_build_script:
+    name: Windows build script tests
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: 'false'
+
+      # Windows PowerShell rather than pwsh: the suite drives build_win.bat
+      # through cmd, and the two differ in how they quote native arguments.
+      - name: Run the build script test suite
+        shell: powershell
+        run: .\scripts\test_build_win.ps1
+
   build_linux:
     strategy:
       fail-fast: false
@@ -79,14 +99,16 @@ jobs:
       # SELF_HOSTED skips arm64 (the self-hosted Windows server is x64-only).
       matrix:
         include: ${{ fromJSON(vars.SELF_HOSTED
-          && '[{"arch":"x64","os":"orca-win-server"}]'
-          || '[{"arch":"x64","os":"windows-latest"},{"arch":"arm64","os":"windows-11-arm"}]') }}
+          && '[{"arch":"x64","os":"orca-win-server","compiler":"clang"}]'
+          || '[{"arch":"x64","os":"windows-latest","compiler":"clang"},{"arch":"arm64","os":"windows-11-arm","compiler":"clang"}]') }}
+    needs: check_build_script
     # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: ${{ !cancelled() && needs.check_build_script.result == 'success' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
+      compiler: ${{ matrix.compiler }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
