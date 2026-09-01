@@ -200,8 +200,12 @@ wxBitmap mixed_filament_chip_bitmap(const DynamicPrintConfig& full, size_t slot,
 // followed by their percent share (or a "->" arrow for gradients), mirroring the main GUI's
 // sidebar rows - e.g. "[3 purple]: [1 red] 50% + [2 blue] 50%". The whole composition is one
 // bitmap because a TabCtrl item cannot interleave images into its text; the tab's text is
-// therefore empty. Transparent background like the other chips.
-wxBitmap mixed_filament_tab_bitmap(const DynamicPrintConfig& full, size_t slot, int swatch_sz)
+// therefore empty. The bitmap is opaque and bakes tab_bg (the tab strip's background colour):
+// its texts are rasterized with plain GDI on that solid ground, like the sidebar rows and the
+// color chips. Text on a transparent bitmap has to go through the graphics-context route, and
+// on MSW that degrades into jagged ClearType-fallback glyphs with fringe halos - the same
+// reason draw_mixed_gradient_plot renders into an opaque buffer (FilamentBitmapUtils.cpp).
+wxBitmap mixed_filament_tab_bitmap(const DynamicPrintConfig& full, size_t slot, int swatch_sz, const wxColour& tab_bg)
 {
     const std::vector<unsigned int> comps = mixed_slot_components(full, slot);
     if (comps.empty())
@@ -272,40 +276,26 @@ wxBitmap mixed_filament_tab_bitmap(const DynamicPrintConfig& full, size_t slot, 
     for (const Piece& p : pieces)
         width += (p.kind == Piece::Swatch ? swatch_sz : measure_dc.GetTextExtent(p.text).x + gap);
 
-    // Phase 2 (draw): transparent background like the page-header chips.
+    // Phase 2 (draw): opaque, filled with the tab strip's background colour. Text goes through
+    // the plain DC on every platform (see the function comment for why the alpha route is
+    // avoided); chip bitmaps keep their own alpha and composite cleanly onto the fill.
     wxBitmap composite(width, swatch_sz);
     wxMemoryDC memdc;
-#ifdef __WXOSX__
-    composite.UseAlpha();
     memdc.SelectObject(composite);
-#else
-    {
-        wxImage img(width, swatch_sz);
-        img.InitAlpha();
-        memset(img.GetAlpha(), 0, width * swatch_sz);
-        composite = wxBitmap(std::move(img));
-    }
-    memdc.SelectObject(composite);
-#endif
-    {
-#ifdef __WXMSW__
-        wxGCDC dc(memdc);
-#else
-        wxDC& dc = memdc;
-#endif
-        dc.SetBackgroundMode(wxTRANSPARENT);
-        dc.SetFont(::Label::Body_12);
-        dc.SetTextForeground(StateColor::darkModeColorFor(wxColour("#262E30")));
-        int x = 0;
-        for (const Piece& p : pieces) {
-            if (p.kind == Piece::Swatch) {
-                dc.DrawBitmap(p.bmp, x, 0);
-                x += swatch_sz;
-            } else {
-                const wxSize tsz = measure_dc.GetTextExtent(p.text);
-                dc.DrawText(p.text, x + gap / 2, (swatch_sz - tsz.y) / 2);
-                x += tsz.x + gap;
-            }
+    memdc.SetBackground(wxBrush(tab_bg));
+    memdc.Clear();
+    memdc.SetBackgroundMode(wxTRANSPARENT);
+    memdc.SetFont(::Label::Body_12);
+    memdc.SetTextForeground(StateColor::darkModeColorFor(wxColour("#262E30")));
+    int x = 0;
+    for (const Piece& p : pieces) {
+        if (p.kind == Piece::Swatch) {
+            memdc.DrawBitmap(p.bmp, x, 0, true);
+            x += swatch_sz;
+        } else {
+            const wxSize tsz = measure_dc.GetTextExtent(p.text);
+            memdc.DrawText(p.text, x + gap / 2, (swatch_sz - tsz.y) / 2);
+            x += tsz.x + gap;
         }
     }
     memdc.SelectObject(wxNullBitmap);
@@ -546,6 +536,10 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
     SetSizerAndFit(w_sizer);
     fit_to_content(); // initial size only; the dialog is resizable
     wxGetApp().UpdateDlgDarkUI(this);
+    // The dark-UI walk re-colours the tab strips after the compositions were baked; rebuild so
+    // they carry the theme-resolved background (the sidebar resolves its colours at paint time,
+    // this dialog bakes, so the bake has to happen after the walk).
+    refresh_mixed_tab_bitmaps();
 }
 
 // Size the window to its content: width follows the widest tab strip so no filament tab is
@@ -1030,7 +1024,7 @@ size_t PublishSettingsDialog::category_index_for(
             // bitmap; the text is empty because a TabCtrl item cannot interleave images into
             // its text.
             const DynamicPrintConfig full_cfg = wxGetApp().preset_bundle->full_config();
-            const wxBitmap tab_bmp            = mixed_filament_tab_bitmap(full_cfg, source_index, FromDIP(20));
+            const wxBitmap tab_bmp            = mixed_filament_tab_bitmap(full_cfg, source_index, FromDIP(20), target->GetBackgroundColour());
             if (tab_bmp.IsOk())
                 target->AppendItem(wxString(), tab_bmp);
             else
@@ -1891,27 +1885,45 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
 
     for (size_t category_index = 0; category_index < m_categories.size(); ++category_index) {
         const Category& category = m_categories[category_index];
-        if (category.section != Section::Material)
+        if (category.section != Section::Material || category.is_mixed)
             continue;
-        const SectionGroup& section = m_sections[category.group];
-        if (category.is_mixed) {
-            // The tab carries the full composition bitmap (mix chip + components + percents);
-            // the page header has no chip/title to refresh.
-            const wxBitmap tab_bmp = mixed_filament_tab_bitmap(full, category.filament_slot, FromDIP(20));
-            if (tab_bmp.IsOk()) {
-                const auto iter = std::find(section.mixed_categories.begin(), section.mixed_categories.end(), category_index);
-                if (iter != section.mixed_categories.end() && section.mixed_tabs != nullptr)
-                    section.mixed_tabs->SetItemBitmap(static_cast<unsigned int>(iter - section.mixed_categories.begin()), tab_bmp);
-            }
-        } else if (wxBitmap* chip = get_extruder_color_icon(filament_color_hex(full, category.filament_slot),
-                                                            std::to_string(category.filament_slot + 1), FromDIP(20), FromDIP(20))) {
+        if (wxBitmap* chip = get_extruder_color_icon(filament_color_hex(full, category.filament_slot),
+                                                     std::to_string(category.filament_slot + 1), FromDIP(20), FromDIP(20))) {
+            const SectionGroup& section = m_sections[category.group];
             const auto iter = std::find(section.categories.begin(), section.categories.end(), category_index);
             if (iter != section.categories.end())
                 m_sections[category.group].tabs->SetItemBitmap(static_cast<unsigned int>(iter - section.categories.begin()), *chip);
         }
     }
+    refresh_mixed_tab_bitmaps();
 
     fit_to_content(); // tab buttons' min widths grew with the DPI: re-fit (incl. resize floor)
+    Refresh();
+}
+
+void PublishSettingsDialog::refresh_mixed_tab_bitmaps()
+{
+    // The mixed-tab composition bitmaps bake the tab strip's background colour and DPI-scaled
+    // text, so both a theme flip and a DPI change have to rebuild them.
+    const DynamicPrintConfig full = wxGetApp().preset_bundle->full_config();
+    for (SectionGroup& section : m_sections) {
+        if (section.mixed_tabs == nullptr)
+            continue;
+        const wxColour tab_bg = section.mixed_tabs->GetBackgroundColour();
+        for (size_t i = 0; i < section.mixed_categories.size(); ++i) {
+            const Category& category = m_categories[section.mixed_categories[i]];
+            const wxBitmap tab_bmp   = mixed_filament_tab_bitmap(full, category.filament_slot, FromDIP(20), tab_bg);
+            if (tab_bmp.IsOk())
+                section.mixed_tabs->SetItemBitmap(static_cast<unsigned int>(i), tab_bmp);
+        }
+    }
+}
+
+void PublishSettingsDialog::on_sys_color_changed()
+{
+    // The mixed-tab compositions bake the tab strip's background colour: rebuild them when the
+    // theme changes (on_dpi_changed covers rescales).
+    refresh_mixed_tab_bitmaps();
     Refresh();
 }
 

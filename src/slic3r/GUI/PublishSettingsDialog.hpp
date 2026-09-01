@@ -58,9 +58,11 @@ public:
 
 protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;
+    void on_sys_color_changed() override;
 
 private:
     void fit_to_content();
+    void refresh_mixed_tab_bitmaps();
 
     // Which part of the settings the row/category came from.
     enum class Section { Print, Printer, Material };
