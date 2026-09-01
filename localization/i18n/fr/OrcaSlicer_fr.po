@@ -4707,7 +4707,7 @@ msgstr ""
 "\n"
 "La valeur sera remise à 0."
 
-msgid "Alternate extra wall does't work well when ensure vertical shell thickness is set to All."
+msgid "Alternate extra wall doesn't work well when ensure vertical shell thickness is set to All."
 msgstr "La paroi supplémentaire alternée ne fonctionne pas bien lorsque le paramètre Assurer l’épaisseur de la coque verticale est réglée sur Tous."
 
 msgid ""
@@ -4753,7 +4753,7 @@ msgstr ""
 "NON - Conserver la hauteur de la couche de support indépendante"
 
 msgid ""
-"seam_slope_start_height need to be smaller than layer_height.\n"
+"seam_slope_start_height needs to be smaller than layer_height.\n"
 "Reset to 0."
 msgstr ""
 "seam_slope_start_height doit être inférieur à la hauteur de couche.\n"
@@ -4761,7 +4761,7 @@ msgstr ""
 
 #, no-c-format, no-boost-format
 msgid ""
-"Lock depth should smaller than skin depth.\n"
+"Lock depth should be smaller than skin depth.\n"
 "Reset to 50% of skin depth."
 msgstr ""
 "La profondeur de verrouillage doit être inférieure à la profondeur de la peau.\n"

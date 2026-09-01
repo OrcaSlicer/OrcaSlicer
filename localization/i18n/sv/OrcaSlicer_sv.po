@@ -5279,7 +5279,7 @@ msgstr ""
 "Värdet kommer att återställas till 0."
 
 # AI Translated
-msgid "Alternate extra wall does't work well when ensure vertical shell thickness is set to All."
+msgid "Alternate extra wall doesn't work well when ensure vertical shell thickness is set to All."
 msgstr "Alternerande extra vägg fungerar inte bra när säkerställ vertikal skaltjocklek är inställt på Alla."
 
 # AI Translated
@@ -5327,7 +5327,7 @@ msgstr ""
 
 # AI Translated
 msgid ""
-"seam_slope_start_height need to be smaller than layer_height.\n"
+"seam_slope_start_height needs to be smaller than layer_height.\n"
 "Reset to 0."
 msgstr ""
 "seam_slope_start_height måste vara mindre än layer_height.\n"
@@ -5336,7 +5336,7 @@ msgstr ""
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"Lock depth should smaller than skin depth.\n"
+"Lock depth should be smaller than skin depth.\n"
 "Reset to 50% of skin depth."
 msgstr ""
 "Låsdjupet bör vara mindre än ytskiktets djup.\n"

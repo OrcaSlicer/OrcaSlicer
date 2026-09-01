@@ -4780,7 +4780,7 @@ msgstr ""
 "\n"
 "Значение будет сброшено до 0."
 
-msgid "Alternate extra wall does't work well when ensure vertical shell thickness is set to All."
+msgid "Alternate extra wall doesn't work well when ensure vertical shell thickness is set to All."
 msgstr "Чередующаяся дополнительная стенка не работает, если для «Сохранение толщины вертикальной оболочки» установлено значение «Все»."
 
 msgid ""
@@ -4833,7 +4833,7 @@ msgstr ""
 "Нет – отключить черновую башню"
 
 msgid ""
-"seam_slope_start_height need to be smaller than layer_height.\n"
+"seam_slope_start_height needs to be smaller than layer_height.\n"
 "Reset to 0."
 msgstr ""
 "Начальная высота не должна превышать высоту слоя.\n"
@@ -4841,7 +4841,7 @@ msgstr ""
 
 #, no-c-format, no-boost-format
 msgid ""
-"Lock depth should smaller than skin depth.\n"
+"Lock depth should be smaller than skin depth.\n"
 "Reset to 50% of skin depth."
 msgstr ""
 "Перекрытие должно быть меньше внутренней оболочки.\n"
