@@ -9903,6 +9903,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                         const double arc_length = fitting_result[fitting_index].arc_data.length * SCALING_FACTOR;
                         if (arc_length < EPSILON)
                             continue;
+                        bool has_overhang_arc_profile = false;
                         // Orca: Preserve G2/G3 verbatim, but sample the fitted geometry for local preview colors.
                         // A scalar maximum remains available to older readers and for constant profiles.
                         if (emit_overhangs) {
@@ -9918,6 +9919,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                             // Orca: Format: total,offset,p0,...; point i lies at i/(total-1) of the arc.
                             // Sixteen values keep comment lines short for firmware buffers. Skip uniform data.
                             if (!profile.empty() && std::any_of(profile.begin(), profile.end(), [&](float p) { return p != profile.front(); })) {
+                                has_overhang_arc_profile = true;
                                 constexpr size_t chunk_size = 16;
                                 for (size_t offset = 0; offset < profile.size(); offset += chunk_size) {
                                     gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc) +
@@ -9940,12 +9942,19 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                                 flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, arc_length);
                             }
                         }
+                        const size_t arc_start = gcode.size();
                         m_writer.extrude_arc_to_xy(gcode,
                             this->point_to_gcode(arc.end_point),
                             center_offset,
                             dE,
                             arc.direction == ArcDirection::Arc_Dir_CCW,
                             flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
+                        // Bind the metadata to the arc even when ordinary comments are disabled.
+                        if (has_overhang_arc_profile) {
+                            assert(gcode.size() > arc_start && gcode.back() == '\n');
+                            gcode.insert(gcode.size() - 1,
+                                ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc_Apply));
+                        }
                         check_and_insert_timelapse(arc.end_point); // Inline farthest-point snapshot
                         break;
                     }
