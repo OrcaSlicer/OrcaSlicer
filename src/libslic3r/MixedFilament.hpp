@@ -140,6 +140,12 @@ bool spectrum_volume_extruder_keep(int id, size_t physical_n, size_t max_filamen
 // Do not use this on on_filament_count_change (that path already has the target n).
 size_t spectrum_delete_filament_mix_max(const std::string &serialized, size_t post_delete_physical);
 
+// True if any comma/semicolon token is Snapmaker stable_id `uN` (`^u[0-9]+$`),
+// or the string has both `^m[0-9]+$` and `^o[0-9]+$` (older FullSpec exports
+// without u). ZR serialize never emits uN / mN / oN. Empty and cookbook
+// `"1,2,1,1,1"` are false.
+bool spectrum_mix_looks_like_snapmaker_custom_entries(const std::string &serialized);
+
 // 0005 process-only → `,g` migration: when process_gradient and no row has g yet,
 // stamp gradient_enabled on pair-capable rows (c==0, empty normalized pattern),
 // including disabled editor rows. No-op if process off or any row already has g.

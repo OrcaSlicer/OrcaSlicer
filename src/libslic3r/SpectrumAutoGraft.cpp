@@ -1,4 +1,5 @@
 #include "SpectrumAutoGraft.hpp"
+#include "MixedFilament.hpp"
 
 #include <algorithm>
 
@@ -66,6 +67,11 @@ std::string spectrum_filament_type_at(const std::vector<std::string> &types, siz
     if (types.empty())
         return {};
     return types[std::min(i, types.size() - 1)];
+}
+
+bool spectrum_keep_imported_filament_colours(const std::string &mixed_filament_definitions)
+{
+    return spectrum_mix_looks_like_snapmaker_custom_entries(mixed_filament_definitions);
 }
 
 std::string spectrum_pick_filament_name_for_type(

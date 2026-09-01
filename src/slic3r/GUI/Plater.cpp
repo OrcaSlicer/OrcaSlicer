@@ -12472,12 +12472,21 @@ void Plater::auto_graft_leq4_onto_ultra_s(const std::vector<std::string> &dest_c
 
     ConfigOptionStrings *filament_colour =
         bundle->project_config.option<ConfigOptionStrings>("filament_colour", true);
-    if (filament_colour &&
-        spectrum_restore_dest_filament_colours(filament_colour->values, dest_colours)) {
+    std::string project_mix;
+    if (const ConfigOptionString *mix_opt =
+            bundle->project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+        project_mix = mix_opt->value;
+    // FullSpec Snapmaker mix: keep file M/Y/C/W. Skip session hex restore only;
+    // still stamp multi-heads from the kept filament_colour.
+    const bool keep_imported = spectrum_keep_imported_filament_colours(project_mix);
+    const bool have_colours  = filament_colour &&
+        (keep_imported ? !filament_colour->values.empty()
+                       : spectrum_restore_dest_filament_colours(filament_colour->values, dest_colours));
+    if (have_colours) {
         ConfigOptionStrings *filament_multi =
             bundle->project_config.option<ConfigOptionStrings>("filament_multi_colour", true);
         if (filament_multi) {
-            if (!dest_multi.empty()) {
+            if (!keep_imported && !dest_multi.empty()) {
                 filament_multi->values = dest_multi;
             }
             spectrum_stamp_multi_heads(filament_multi->values, filament_colour->values);

@@ -5,6 +5,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
+#include <numeric>
 #include <sstream>
 
 namespace Slic3r {
@@ -190,6 +191,193 @@ int safe_mod(int value, int modulus)
     return r;
 }
 
+bool parse_int_full(const std::string &s, int &out)
+{
+    const std::string t = trim_copy(s);
+    if (t.empty())
+        return false;
+    char *end = nullptr;
+    long  v   = std::strtol(t.c_str(), &end, 10);
+    if (end == t.c_str() || *end != '\0')
+        return false;
+    out = int(v);
+    return true;
+}
+
+bool is_prefixed_int_token(const std::string &tok, char lower)
+{
+    if (tok.size() < 2)
+        return false;
+    const char c = tok[0];
+    if (c != lower && c != char(std::toupper(static_cast<unsigned char>(lower))))
+        return false;
+    for (size_t i = 1; i < tok.size(); ++i) {
+        if (!std::isdigit(static_cast<unsigned char>(tok[i])))
+            return false;
+    }
+    return true;
+}
+
+// FullSpec 3mf recipes use Snapmaker custom-entry grammar (uN / mN / oN).
+// Translate on load to ZR pair+pattern rows; persist remains ZR-only
+// (no mix_b_percent, gradient_component_ids, or uN).
+bool parse_snapmaker_row_to_zr(const std::string &row, MixedFilament &out)
+{
+    std::vector<std::string> tokens;
+    for (const std::string &raw : split_char(row, ','))
+        tokens.push_back(trim_copy(raw));
+    if (tokens.size() < 5)
+        return false;
+
+    int values[5] = {0, 0, 1, 1, 50};
+    for (size_t i = 0; i < 5; ++i) {
+        if (!parse_int_full(tokens[i], values[i]))
+            return false;
+    }
+    if (values[0] <= 0 || values[1] <= 0)
+        return false;
+
+    const bool enabled = values[2] != 0;
+    int        mix_b   = values[4];
+    if (mix_b < 0)
+        mix_b = 0;
+    if (mix_b > 100)
+        mix_b = 100;
+
+    bool                     deleted = false;
+    std::string              gradient_ids;
+    std::vector<std::string> pattern_tokens;
+
+    size_t token_idx = 5;
+    if (tokens.size() >= 6) {
+        // Snapmaker v2.3.5 parse_row_definition token[5] branch:
+        // "0"/"1" = pointillism (consume, drop); empty/g/m/r = metadata start; else pattern.
+        const std::string &legacy = tokens[5];
+        if (legacy == "0" || legacy == "1") {
+            token_idx = 6;
+        } else if (legacy.empty() || legacy[0] == 'g' || legacy[0] == 'G' ||
+                   legacy[0] == 'm' || legacy[0] == 'M' ||
+                   legacy[0] == 'r' || legacy[0] == 'R') {
+            token_idx = 5;
+        } else {
+            pattern_tokens.push_back(legacy);
+            token_idx = 6;
+        }
+    }
+
+    for (size_t i = token_idx; i < tokens.size(); ++i) {
+        const std::string &tok = tokens[i];
+        if (tok.empty())
+            continue;
+        const char c0 = tok[0];
+        if (c0 == 'g' || c0 == 'G') {
+            gradient_ids = tok.substr(1);
+            continue;
+        }
+        if (c0 == 'w' || c0 == 'W')
+            continue;
+        if (c0 == 'm' || c0 == 'M')
+            continue;
+        if (c0 == 'z' || c0 == 'Z')
+            continue;
+        if ((c0 == 'x' || c0 == 'X') && tok.size() >= 2) {
+            const char component = char(std::tolower(static_cast<unsigned char>(tok[1])));
+            if (component == 'a' || component == 'b')
+                continue;
+        }
+        if (c0 == 'd' || c0 == 'D') {
+            int parsed = 0;
+            if (parse_int_full(tok.substr(1), parsed))
+                deleted = parsed != 0;
+            continue;
+        }
+        if (c0 == 'o' || c0 == 'O')
+            continue;
+        if (c0 == 'u' || c0 == 'U')
+            continue;
+        if ((c0 == 'c' || c0 == 'C') && tok.size() >= 3 && (tok[1] == 'm' || tok[1] == 'M'))
+            continue;
+        if (c0 == 'r' || c0 == 'R')
+            continue;
+        pattern_tokens.push_back(tok);
+    }
+
+    if (!enabled || deleted)
+        return false;
+
+    MixedFilament mf;
+    mf.component_a      = unsigned(values[0]);
+    mf.component_b      = unsigned(values[1]);
+    mf.enabled          = true;
+    mf.gradient_enabled = false;
+
+    if (!pattern_tokens.empty()) {
+        std::ostringstream joined;
+        for (size_t i = 0; i < pattern_tokens.size(); ++i) {
+            if (i)
+                joined << ',';
+            joined << pattern_tokens[i];
+        }
+        mf.manual_pattern = MixedFilamentManager::normalize_manual_pattern(joined.str());
+    }
+
+    // SHOULD: non-empty g{ids} with no pattern → single-digit ids 1–9 as a pattern.
+    // Decline 1% weights / BlendLUT.
+    if (mf.manual_pattern.empty() && !gradient_ids.empty()) {
+        std::string from_g;
+        from_g.reserve(gradient_ids.size());
+        for (char ch : gradient_ids) {
+            if (ch >= '1' && ch <= '9')
+                from_g.push_back(ch);
+        }
+        mf.manual_pattern = MixedFilamentManager::normalize_manual_pattern(from_g);
+    }
+
+    if (!mf.manual_pattern.empty()) {
+        mf.ratio_a = 1;
+        mf.ratio_b = 1;
+    } else {
+        int       ra = 100 - mix_b;
+        int       rb = mix_b;
+        const int g  = int(std::gcd(unsigned(std::abs(ra)), unsigned(std::abs(rb))));
+        const int d  = g == 0 ? 1 : g;
+        ra /= d;
+        rb /= d;
+        if (ra == 0 && rb == 0) {
+            ra = 1;
+            rb = 1;
+        }
+        mf.ratio_a = ra;
+        mf.ratio_b = rb;
+    }
+
+    out = mf;
+    return true;
+}
+
+std::string translate_snapmaker_custom_entries_to_zr(const std::string &serialized)
+{
+    std::ostringstream oss;
+    bool               first = true;
+    for (const std::string &row_raw : split_char(serialized, ';')) {
+        const std::string row = trim_copy(row_raw);
+        if (row.empty())
+            continue;
+        MixedFilament mf;
+        if (!parse_snapmaker_row_to_zr(row, mf))
+            continue;
+        if (first)
+            first = false;
+        else
+            oss << ';';
+        oss << mf.component_a << ',' << mf.component_b << ",1," << mf.ratio_a << ',' << mf.ratio_b;
+        const std::string pattern = MixedFilamentManager::normalize_manual_pattern(mf.manual_pattern);
+        if (!pattern.empty())
+            oss << ',' << pattern;
+    }
+    return oss.str();
+}
+
 } // namespace
 
 std::string MixedFilamentManager::normalize_manual_pattern(const std::string &pattern)
@@ -229,13 +417,52 @@ void MixedFilamentManager::clear()
     m_mixed.clear();
 }
 
+bool spectrum_mix_looks_like_snapmaker_custom_entries(const std::string &serialized)
+{
+    if (serialized.empty())
+        return false;
+    bool        saw_u = false;
+    bool        saw_m = false;
+    bool        saw_o = false;
+    std::string cur;
+    auto        consider = [&](std::string tok) {
+        tok = trim_copy(tok);
+        if (is_prefixed_int_token(tok, 'u'))
+            saw_u = true;
+        else if (is_prefixed_int_token(tok, 'm'))
+            saw_m = true;
+        else if (is_prefixed_int_token(tok, 'o'))
+            saw_o = true;
+    };
+    for (char c : serialized) {
+        if (c == ',' || c == ';') {
+            consider(std::move(cur));
+            cur.clear();
+        } else {
+            cur.push_back(c);
+        }
+    }
+    consider(std::move(cur));
+    return saw_u || (saw_m && saw_o);
+}
+
 void MixedFilamentManager::load_definitions(const std::string &serialized)
 {
     m_mixed.clear();
     if (serialized.empty())
         return;
 
-    for (const std::string &row_raw : split_char(serialized, ';')) {
+    // Snapmaker FullSpec 3mf: translate custom-entry grammar, then parse ZR.
+    std::string        translated;
+    const std::string *src = &serialized;
+    if (spectrum_mix_looks_like_snapmaker_custom_entries(serialized)) {
+        translated = translate_snapmaker_custom_entries_to_zr(serialized);
+        src        = &translated;
+        if (src->empty())
+            return;
+    }
+
+    for (const std::string &row_raw : split_char(*src, ';')) {
         const std::string row = trim_copy(row_raw);
         if (row.empty())
             continue;

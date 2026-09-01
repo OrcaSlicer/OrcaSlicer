@@ -6,6 +6,7 @@
 
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/SpectrumAutoGraft.hpp"
+#include "libslic3r/MixedFilament.hpp"
 
 using namespace Slic3r;
 
@@ -190,4 +191,31 @@ TEST_CASE("filament_type_at pads last and empty types", "[spectrum_auto_graft]")
     CHECK(spectrum_filament_type_at(mixed, 0) == "PETG");
     CHECK(spectrum_filament_type_at(mixed, 1) == "PLA");
     CHECK(spectrum_filament_type_at(mixed, 3) == "PLA");
+}
+
+// Inspected PaletteSpheres26 mix string (not the 3mf zip).
+static const char *k_palette26_snapmaker_excerpt_graft =
+    "1,2,0,0,50,0,g,w,m2,d1,o1,u1;1,3,0,0,50,0,g,w,m2,d1,o1,u2;1,4,0,0,50,0,g,w,m2,d1,o1,u3;"
+    "2,3,0,0,50,0,g,w,m2,d1,o1,u4;2,4,0,0,50,0,g,w,m2,d1,o1,u5;3,4,0,0,50,0,g,w,m2,d1,o1,u6;"
+    "1,2,1,1,50,0,g,w,m2,d0,o0,u29,12;1,2,1,1,0,0,g,w,m2,d0,o0,u47,13;1,2,1,1,0,0,g,w,m2,d0,o0,u48,14;"
+    "1,2,1,1,50,0,g,w,m2,d0,o0,u49,23;1,2,1,1,50,0,g,w,m2,d0,o0,u50,24;1,2,1,1,0,0,g,w,m2,d0,o0,u51,34;"
+    "1,2,1,1,33,0,g,w,m2,d0,o0,u52,112;1,2,1,1,0,0,g,w,m2,d0,o0,u53,113;1,2,1,1,0,0,g,w,m2,d0,o0,u54,114;"
+    "1,2,1,1,67,0,g,w,m2,d0,o0,u55,122;1,2,1,1,33,0,g,w,m2,d0,o0,u56,123;1,2,1,1,33,0,g,w,m2,d0,o0,u57,124;"
+    "1,2,1,1,0,0,g,w,m2,d0,o0,u58,133;1,2,1,1,0,0,g,w,m2,d0,o0,u59,134;1,2,1,1,0,0,g,w,m2,d0,o0,u60,144;"
+    "1,2,1,1,67,0,g,w,m2,d0,o0,u61,223;1,2,1,1,67,0,g,w,m2,d0,o0,u62,224;1,2,1,1,33,0,g,w,m2,d0,o0,u63,233;"
+    "1,2,1,1,33,0,g,w,m2,d0,o0,u64,234;1,2,1,1,33,0,g,w,m2,d0,o0,u65,244;1,2,1,1,0,0,g,w,m2,d0,o0,u66,334;"
+    "1,2,1,1,0,0,g,w,m2,d0,o0,u67,344";
+
+TEST_CASE("Snapmaker mix helper true only for custom-entry grammar", "[spectrum_auto_graft]")
+{
+    REQUIRE(spectrum_mix_looks_like_snapmaker_custom_entries(k_palette26_snapmaker_excerpt_graft));
+    REQUIRE(spectrum_mix_looks_like_snapmaker_custom_entries("1,2,1,1,50,0,g,w,m2,d0,o0,u29,12"));
+    REQUIRE(spectrum_mix_looks_like_snapmaker_custom_entries("1,2,1,1,50,0,g,w,m2,d0,o0,12"));
+    REQUIRE_FALSE(spectrum_mix_looks_like_snapmaker_custom_entries(""));
+    REQUIRE_FALSE(spectrum_mix_looks_like_snapmaker_custom_entries("1,2,1,1,1"));
+
+    REQUIRE(spectrum_keep_imported_filament_colours(k_palette26_snapmaker_excerpt_graft));
+    REQUIRE(spectrum_keep_imported_filament_colours("1,2,1,1,50,0,g,w,m2,d0,o0,u29,12"));
+    REQUIRE_FALSE(spectrum_keep_imported_filament_colours(""));
+    REQUIRE_FALSE(spectrum_keep_imported_filament_colours("1,2,1,1,1"));
 }

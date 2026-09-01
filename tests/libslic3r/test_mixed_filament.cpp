@@ -1991,3 +1991,68 @@ TEST_CASE("spectrum perimeter mod parse/serialize ,p and helpers", "[spectrum_pe
         REQUIRE(spectrum_perimeter_mod_offset(mf, 2, 0.4f) == Catch::Approx(0.f));
     }
 }
+
+// Inspected PaletteSpheres26 mixed_filament_definitions string (not the 3mf zip).
+// 6 deleted autos (enabled=0 + d1) + 22 customs. Mix 5 = first kept row = "12".
+static const char *k_palette26_snapmaker_excerpt =
+    "1,2,0,0,50,0,g,w,m2,d1,o1,u1;1,3,0,0,50,0,g,w,m2,d1,o1,u2;1,4,0,0,50,0,g,w,m2,d1,o1,u3;"
+    "2,3,0,0,50,0,g,w,m2,d1,o1,u4;2,4,0,0,50,0,g,w,m2,d1,o1,u5;3,4,0,0,50,0,g,w,m2,d1,o1,u6;"
+    "1,2,1,1,50,0,g,w,m2,d0,o0,u29,12;1,2,1,1,0,0,g,w,m2,d0,o0,u47,13;1,2,1,1,0,0,g,w,m2,d0,o0,u48,14;"
+    "1,2,1,1,50,0,g,w,m2,d0,o0,u49,23;1,2,1,1,50,0,g,w,m2,d0,o0,u50,24;1,2,1,1,0,0,g,w,m2,d0,o0,u51,34;"
+    "1,2,1,1,33,0,g,w,m2,d0,o0,u52,112;1,2,1,1,0,0,g,w,m2,d0,o0,u53,113;1,2,1,1,0,0,g,w,m2,d0,o0,u54,114;"
+    "1,2,1,1,67,0,g,w,m2,d0,o0,u55,122;1,2,1,1,33,0,g,w,m2,d0,o0,u56,123;1,2,1,1,33,0,g,w,m2,d0,o0,u57,124;"
+    "1,2,1,1,0,0,g,w,m2,d0,o0,u58,133;1,2,1,1,0,0,g,w,m2,d0,o0,u59,134;1,2,1,1,0,0,g,w,m2,d0,o0,u60,144;"
+    "1,2,1,1,67,0,g,w,m2,d0,o0,u61,223;1,2,1,1,67,0,g,w,m2,d0,o0,u62,224;1,2,1,1,33,0,g,w,m2,d0,o0,u63,233;"
+    "1,2,1,1,33,0,g,w,m2,d0,o0,u64,234;1,2,1,1,33,0,g,w,m2,d0,o0,u65,244;1,2,1,1,0,0,g,w,m2,d0,o0,u66,334;"
+    "1,2,1,1,0,0,g,w,m2,d0,o0,u67,344";
+
+TEST_CASE("Snapmaker FullSpec excerpt translates to ZR pair+pattern rows", "[MixedFilament]")
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions(k_palette26_snapmaker_excerpt);
+
+    // Already true on HEAD (enabled=0 autos dropped). Not a translator red.
+    REQUIRE(mgr.enabled_count() == 22);
+    REQUIRE(mgr.mixed_filaments().size() == 22);
+
+    const MixedFilament &mix5 = mgr.mixed_filaments().front();
+    REQUIRE(MixedFilamentManager::normalize_manual_pattern(mix5.manual_pattern) == "12");
+    REQUIRE(mgr.resolve(5, 4, 0) == 1);
+    REQUIRE(mix5.gradient_enabled == false);
+    REQUIRE(mix5.ratio_b != 50);
+
+    // u52 row is the 7th kept custom → Mix 11 (4 physicals).
+    REQUIRE(mgr.resolve(11, 4, 0) == 1);
+    REQUIRE(mgr.resolve(11, 4, 1) == 1);
+    REQUIRE(mgr.resolve(11, 4, 2) == 2);
+    REQUIRE(MixedFilamentManager::normalize_manual_pattern(
+                mgr.mixed_filaments()[6].manual_pattern) == "112");
+    REQUIRE(MixedFilamentManager::normalize_manual_pattern(
+                mgr.mixed_filaments().back().manual_pattern) == "344");
+
+    const std::string ser = mgr.serialize_definitions();
+    REQUIRE(ser.find("u29") == std::string::npos);
+    REQUIRE(ser.find("m2") == std::string::npos);
+    REQUIRE(ser.find("mix_b_percent") == std::string::npos);
+    REQUIRE(ser.find("gradient_component_ids") == std::string::npos);
+}
+
+TEST_CASE("ZR cookbook string is unchanged by Snapmaker mix translator", "[MixedFilament]")
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions("1,2,1,1,1");
+    REQUIRE(mgr.enabled_count() == 1);
+    REQUIRE(mgr.resolve(3, 2, 0) == 1);
+}
+
+TEST_CASE("older FullSpec mN+oN without u still translates pattern", "[MixedFilament]")
+{
+    MixedFilamentManager mgr;
+    mgr.load_definitions("1,2,1,1,50,0,g,w,m2,d0,o0,12");
+    REQUIRE(mgr.enabled_count() == 1);
+    REQUIRE(MixedFilamentManager::normalize_manual_pattern(
+                mgr.mixed_filaments().front().manual_pattern) == "12");
+    REQUIRE(mgr.resolve(5, 4, 0) == 1);
+    REQUIRE(mgr.mixed_filaments().front().gradient_enabled == false);
+    REQUIRE(mgr.mixed_filaments().front().ratio_b != 50);
+}

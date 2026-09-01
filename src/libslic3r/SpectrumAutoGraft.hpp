@@ -27,6 +27,11 @@ bool spectrum_restore_dest_filament_colours(std::vector<std::string>       &colo
 // Empty types → ""; else types[min(i, size-1)] (pad last like hex restore).
 std::string spectrum_filament_type_at(const std::vector<std::string> &types, size_t i);
 
+// Skip session hex restore when the loaded mix string is Snapmaker FullSpec
+// custom-entry grammar — keep file filament_colour (M/Y/C/W). Thin wrapper
+// around spectrum_mix_looks_like_snapmaker_custom_entries.
+bool spectrum_keep_imported_filament_colours(const std::string &mixed_filament_definitions);
+
 // Exact type ==. Empty wanted → session_name. Prefer session_name if that pair
 // matches wanted; else first pair with type==wanted; else "".
 std::string spectrum_pick_filament_name_for_type(
