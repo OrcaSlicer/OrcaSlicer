@@ -1032,7 +1032,7 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
     m_y_shift(0.f),
     m_z_pos(0.f),
     m_bridging(float(config.wipe_tower_bridging)),
-    m_no_sparse_layers(config.wipe_tower_no_sparse_layers),
+    m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(config)),
     m_gcode_flavor(config.gcode_flavor),
     m_travel_speed(config.travel_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
     m_infill_speed(default_region_config.sparse_infill_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
@@ -1730,7 +1730,7 @@ void WipeTower2::toolchange_Change(
         } else if (m_wall_type == (int)wtwCone) {
             const double support_scale = get_wipe_tower_cone_base(m_wipe_tower_width, m_wipe_tower_height, m_wipe_tower_depth,
                                                                   m_wipe_tower_cone_angle).second;
-            const double z = m_no_sparse_layers ? (m_current_height + m_layer_info->height) : m_layer_info->z;
+            const double z = m_sparse_layers_skipped ? (m_current_height + m_layer_info->height) : m_layer_info->z;
             const double r = std::tan(Geometry::deg2rad(m_wipe_tower_cone_angle / 2.f)) * (m_wipe_tower_height - z);
             const double w = m_layer_info->depth + m_perimeter_width;
             if (r > 0.5 * w + 0.01) { // same guard as generate_support_cone_wall
@@ -1872,7 +1872,7 @@ void WipeTower2::toolchange_Wipe(
     // All the calculations in all other places take the spacing into account for all the layers.
 
 	// If spare layers are excluded->if 1 or less toolchange has been done, it must be sill the first layer, too.So slow down.
-    const float target_speed = is_first_layer() || (m_num_tool_changes <= 1 && m_no_sparse_layers) ? m_first_layer_speed * 60.f : std::min(m_wipe_tower_max_purge_speed * 60.f, m_infill_speed * 60.f);
+    const float target_speed = is_first_layer() || (m_num_tool_changes <= 1 && m_sparse_layers_skipped) ? m_first_layer_speed * 60.f : std::min(m_wipe_tower_max_purge_speed * 60.f, m_infill_speed * 60.f);
     float wipe_speed = 0.33f * target_speed;
 
     // if there is less than 2.5*line_width to the edge, advance straightaway (there is likely a blob anyway)
@@ -1970,7 +1970,7 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
 
     // Slow down on the 1st layer.
     // If spare layers are excluded -> if 1 or less toolchange has been done, it must be still the first layer, too. So slow down.
-    bool first_layer = is_first_layer() || (m_num_tool_changes <= 1 && m_no_sparse_layers);
+    bool first_layer = is_first_layer() || (m_num_tool_changes <= 1 && m_sparse_layers_skipped);
     float                      feedrate      = first_layer ? m_first_layer_speed * 60.f : std::min(m_wipe_tower_max_purge_speed * 60.f, m_infill_speed * 60.f);
     if (m_enable_tower_interface_features && m_prev_layer_had_interface)
         feedrate = std::min(feedrate, 20.f * 60.f);
@@ -2103,7 +2103,7 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
 
     // Ask our writer about how much material was consumed.
     // Skip this in case the layer is sparse and config option to not print sparse layers is enabled.
-    if (! m_no_sparse_layers || toolchanges_on_layer || first_layer) {
+    if (! m_sparse_layers_skipped || toolchanges_on_layer || first_layer) {
         if (m_current_tool < m_used_filament_length.size())
             m_used_filament_length[m_current_tool] += writer.get_and_reset_used_filament_length();
         m_current_height += m_layer_info->height;
@@ -2209,7 +2209,7 @@ void WipeTower2::plan_toolchange(float z_par, float layer_height_par, unsigned i
 	if (m_plan.empty() || m_plan.back().z + WT_EPSILON < z_par) // if we moved to a new layer, we'll add it to m_plan first
 		m_plan.push_back(WipeTowerInfo(z_par, layer_height_par));
 
-    if (m_first_layer_idx == size_t(-1) && (! m_no_sparse_layers || old_tool != new_tool || m_plan.size() == 1))
+    if (m_first_layer_idx == size_t(-1) && (! m_sparse_layers_skipped || old_tool != new_tool || m_plan.size() == 1))
         m_first_layer_idx = m_plan.size() - 1;
 
     if (old_tool == new_tool)	// new layer without toolchanges - we are done
@@ -2635,7 +2635,7 @@ Polygon WipeTower2::generate_support_cone_wall(
     const auto [R, support_scale] = get_wipe_tower_cone_base(m_wipe_tower_width, m_wipe_tower_height, m_wipe_tower_depth,
                                                              m_wipe_tower_cone_angle);
 
-    double z = m_no_sparse_layers ?
+    double z = m_sparse_layers_skipped ?
                    (m_current_height + m_layer_info->height) :
                    m_layer_info->z; // the former should actually work in both cases, but let's stay on the safe side (the 2.6.0 is close)
 

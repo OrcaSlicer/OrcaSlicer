@@ -4327,6 +4327,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 if (can_sequential_clearance_show_in_gizmo())
                     update_sequential_clearance();
             } else {
+                // Orca: by-layer counterpart, for a prime tower compacted by "No sparse layers".
+                if (current_printer_technology() == ptFFF && can_sequential_clearance_show_in_gizmo())
+                    update_compacted_wipe_tower_clearance();
                 if (c == GLGizmosManager::EType::Move ||
                     c == GLGizmosManager::EType::Scale ||
                     c == GLGizmosManager::EType::Rotate)
@@ -4559,8 +4562,12 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 TransformationType trafo_type;
                 trafo_type.set_relative();
                 m_selection.translate(cur_pos - m_mouse.drag.start_position_3D, trafo_type);
-                if (current_printer_technology() == ptFFF && (fff_print()->config().print_sequence == PrintSequence::ByObject))
-                    update_sequential_clearance();
+                if (current_printer_technology() == ptFFF) {
+                    if (fff_print()->config().print_sequence == PrintSequence::ByObject)
+                        update_sequential_clearance();
+                    else
+                        update_compacted_wipe_tower_clearance();
+                }
                 // BBS
                 //wxGetApp().obj_manipul()->set_dirty();
                 m_dirty = true;
@@ -5608,6 +5615,101 @@ bool GLCanvas3D::can_sequential_clearance_show_in_gizmo() {
     }
     }
     return false;
+}
+
+// Live preview of the compacted prime tower clearance, the by-layer counterpart of
+// update_sequential_clearance(). Called while the user drags a volume / gizmo; idle visibility
+// matches sequential print (hidden when valid, filled when Print::validate reports a collision).
+// Print::compacted_wipe_tower_clearance_valid() answers the same question authoritatively, but it
+// reads the tower position from the config, which only catches up once do_move() writes it back on
+// mouse release. Recomputing from the volumes here is what makes the keep-out zone follow the tower
+// while it is still under the cursor.
+void GLCanvas3D::update_compacted_wipe_tower_clearance()
+{
+    if (current_printer_technology() != ptFFF)
+        return;
+    const Print *print = fff_print();
+    if (print == nullptr)
+        return;
+    const PrintConfig &config = print->config();
+    if (config.print_sequence != PrintSequence::ByLayer || ! wipe_tower_sparse_layers_skipped(config) || ! print->has_wipe_tower())
+        return;
+
+    PartPlateList &plate_list = wxGetApp().plater()->get_partplate_list();
+    PartPlate     *plate      = plate_list.get_curr_plate();
+    if (plate == nullptr)
+        return;
+    const int plate_id = plate_list.get_curr_plate_index();
+
+    // Once the tower has been generated the scene shows its real mesh with the brim merged in,
+    // otherwise it is a bare estimated cube with no brim at all. Only the latter needs the brim added
+    // here, and the width comes from WipeTowerData, the same source the preview box is sized from, so
+    // the zone cannot be padded against a brim the preview was not built with.
+    const bool   preview_carries_brim = print->is_step_done(psWipeTower) && print->wipe_tower_data().wipe_tower_mesh_data.has_value();
+    const double brim                 = preview_carries_brim ? 0. : double(print->wipe_tower_data(print->extruders().size()).brim_width);
+    const double padding              = compacted_tower_footprint_padding(config, brim);
+
+    // Tower footprint straight from the volume the user sees, so that dragging either the tower or an
+    // object updates the zone on the very next frame.
+    Polygon tower_footprint;
+    for (const GLVolume *v : m_volumes.volumes) {
+        if (! v->is_wipe_tower || v->object_idx() - 1000 != plate_id)
+            continue;
+        const BoundingBoxf3 bbox = v->transformed_convex_hull_bounding_box();
+        tower_footprint = Polygon({ Point(scale_(bbox.min.x() - padding), scale_(bbox.min.y() - padding)),
+                                    Point(scale_(bbox.max.x() + padding), scale_(bbox.min.y() - padding)),
+                                    Point(scale_(bbox.max.x() + padding), scale_(bbox.max.y() + padding)),
+                                    Point(scale_(bbox.min.x() - padding), scale_(bbox.max.y() + padding)) });
+        break;
+    }
+
+    const CompactedTowerZone zone = compacted_wipe_tower_zone(config, tower_footprint);
+    if (zone.empty()) {
+        reset_sequential_print_clearance();
+        return;
+    }
+
+    // While dragging, outline every on-plate instance next to the tower ring, the way sequential print
+    // outlines every object. Both carry half of the clearance, so the two outlines meeting is precisely
+    // the moment that object goes over its limit - which is what makes the pair worth drawing at all.
+    // The tier is per object, so a short object gets the narrow nozzle outline rather than the wide
+    // body one it is not subject to; without that, a 3 mm object parked beside the tower would be drawn
+    // deep inside the keep-out ring while passing the check. Only the instances that already exceed
+    // allowed_rise also get a height limit plane.
+    Polygons                               outlines;
+    std::vector<std::pair<Polygon, float>> height_polygons;
+    bool                                   body_tier_used = false;
+    const BoundingBox                      plate_bb       = plate->get_bounding_box_crd();
+    for (const ModelObject *model_object : m_model->objects) {
+        for (size_t i = 0; i < model_object->instances.size(); ++i) {
+            Geometry::Transformation trafo(model_object->instances[i]->get_transformation());
+            const Vec3d              offset = trafo.get_offset();
+            trafo.set_offset(Vec3d(offset.x(), offset.y(), 0.0));
+            const Polygon inst_hull = model_object->convex_hull_2d(trafo.get_matrix());
+            if (inst_hull.points.empty() || ! plate_bb.overlap(inst_hull.bounding_box()))
+                continue;
+
+            // Same tiers and the same rise measured from the plate as
+            // Print::compacted_wipe_tower_clearance_valid(), so that the preview and the validation
+            // that follows it never contradict each other.
+            const double                  object_top = model_object->get_instance_max_z(i);
+            const CompactedTowerClearance clearance  = compacted_wipe_tower_clearance(config, zone, inst_hull, object_top);
+            body_tier_used                           = body_tier_used || compacted_tower_body_tier(clearance);
+
+            const Polygon outline = compacted_wipe_tower_offender_outline(inst_hull, clearance.body_clearance);
+            outlines.emplace_back(outline);
+            if (object_top <= clearance.allowed_rise + EPSILON)
+                continue;
+            height_polygons.emplace_back(outline, float(clearance.allowed_rise));
+        }
+    }
+
+    Polygons polygons = compacted_wipe_tower_rings(zone, body_tier_used);
+    append(polygons, outlines);
+
+    set_sequential_print_clearance_visible(true);
+    set_sequential_print_clearance_render_fill(false);
+    set_sequential_print_clearance_polygons(polygons, height_polygons);
 }
 
 void GLCanvas3D::update_sequential_clearance()

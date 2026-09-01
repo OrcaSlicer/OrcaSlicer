@@ -1156,6 +1156,8 @@ public:
 
     //BBS
     static StringObjectException sequential_print_clearance_valid(const Print &print, Polygons *polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr);
+    // Orca: pre-slice clearance check for a prime tower compacted by "No sparse layers".
+    static StringObjectException compacted_wipe_tower_clearance_valid(const Print &print, Polygons *polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr);
     ConflictResultOpt            get_conflict_result() const { return m_conflict_result; }
 
     // Return 4 wipe tower corners in the world coordinates (shifted and rotated), including the wipe tower brim.
@@ -1170,6 +1172,8 @@ public:
     void set_calib_params(const Calib_Params& params);
     const Calib_Params& calib_params() const { return m_calib_params; }
     Vec2d translate_to_print_space(const Vec2d &point) const;
+    // Orca: precise counterpart of compacted_wipe_tower_clearance_valid(), run once the tower exists.
+    void                validate_compacted_wipe_tower_clearance() const;
     float               get_wipe_tower_depth() const { return m_wipe_tower_data.depth; }
     BoundingBoxf        get_wipe_tower_bbx() const { return m_wipe_tower_data.bbx; }
     Vec2f               get_rib_offset() const { return m_wipe_tower_data.rib_offset; }
@@ -1389,6 +1393,89 @@ public:
     //static float min_skirt_length;
 };
 
+
+// ---------------------------------------------------------------------------------------------
+// Clearance rule for a prime tower compacted by wipe_tower_no_sparse_layers. Shared by the precise
+// check that runs on the real extrusions, the pre-slice estimate that feeds the plater with collision
+// polygons, and the plater's own live preview while the user drags the tower or an object around.
+// Keeping the rule in one place is what stops those three from drifting apart and reporting different
+// things for the same plate.
+// ---------------------------------------------------------------------------------------------
+
+// Half of a clearance distance, the share each of the two outlines carries. Sequential printing splits
+// extruder_clearance_radius between the two object hulls this way; the tower checks split their
+// clearances between the tower ring and the instance hull for the same reason, so that the two
+// outlines the plater draws touch precisely when the check trips. The 0.2 mm comes off first: it is
+// the rounding slack the sequential check applies, 0.1 mm per side.
+inline double compacted_tower_half_clearance(double clearance) { return 0.5 * (clearance - 0.2); }
+
+// Keep-out geometry a compacted tower projects onto the plate, derived from its bare footprint.
+struct CompactedTowerZone
+{
+    // Footprint the checks work on: the raw outline grown by the spiral Z-hop envelope.
+    Polygon     hull;
+    // hull grown by half the toolhead radius; an object whose own half-grown hull reaches into it is
+    // hit by the head body. This is also the ring the plater draws.
+    Polygons    grown_body;
+    // hull grown by half the bare nozzle cone radius, the innermost tier.
+    Polygons    grown_nozzle;
+    // hull bounding box, the Y band the rod sweeps.
+    BoundingBox bbox_rod;
+    // Full body clearance, of which grown_body carries half. Which of the two tiers applies is decided
+    // per object rather than here; see compacted_wipe_tower_clearance().
+    double      body_radius { 0. };
+
+    bool empty() const { return hull.points.empty(); }
+};
+
+// Per-side padding a bare wipe tower outline needs before the clearance checks may treat it as the
+// tower's footprint. Callers whose outline already carries the first-layer brim pass zero for it.
+// Shared by the pre-slice estimate and the plater's live preview: both start from an outline that
+// falls short of the printed tower in the same two ways, and padding them by different amounts is
+// exactly how the preview and the validation behind it would end up disagreeing.
+double compacted_tower_footprint_padding(const PrintConfig &config, double brim_width);
+
+// Grow a bare tower footprint (bed frame, scaled) into its keep-out zone.
+CompactedTowerZone compacted_wipe_tower_zone(const PrintConfig &config, const Polygon &tower_footprint);
+
+// How far an object may rise above the compacted tower base before the toolhead hits it.
+struct CompactedTowerClearance
+{
+    // Height the object may reach above the tower base. Zero means it may not rise at all.
+    double allowed_rise;
+    // Clearance that applies once the object stands clear of the toolhead in XY, i.e. rod or lid.
+    double far_clearance;
+    // The object sits within the toolhead radius, so the head body limits it rather than the rod.
+    bool   near_body;
+    // Horizontal clearance this particular object has to keep from the tower: the full toolhead
+    // radius once it rises past the nozzle cone, the bare cone while it stays below. It is what the
+    // error message quotes and what the plater grows the object outline by.
+    double body_clearance;
+};
+
+// object_rise is the height above the tower base that the caller is going to compare against
+// allowed_rise. It also selects the horizontal tier, so the two cannot disagree.
+CompactedTowerClearance compacted_wipe_tower_clearance(const PrintConfig &config, const CompactedTowerZone &zone,
+                                                      const Polygon &inst_hull, double object_rise);
+
+// This object was judged on a tier reaching past the bare nozzle cone, so the wide ring is the one its
+// outline has to be drawn against.
+inline bool compacted_tower_body_tier(const CompactedTowerClearance &clearance)
+{
+    return clearance.body_clearance > double(MAX_OUTER_NOZZLE_DIAMETER);
+}
+
+// Keep-out rings to draw around the tower. The nozzle one always applies; the wide body one is drawn
+// only when some object on the plate is actually measured against it, otherwise it would show a
+// keep-out zone no object can violate.
+Polygons compacted_wipe_tower_rings(const CompactedTowerZone &zone, bool any_body_tier);
+
+// Outline to hand the plater for an offending object: the instance hull grown by the same half
+// clearance the check grew it by, which is CompactedTowerClearance::body_clearance for that object.
+// Sequential printing reports its hulls the same way, and it doubles as the fix for the bare hull
+// being unusable on screen, where drawn flat it hides under the object and drawn at the height limit
+// it ends up buried inside the mesh.
+Polygon compacted_wipe_tower_offender_outline(const Polygon &inst_hull, double body_clearance);
 
 } /* slic3r_Print_hpp_ */
 
