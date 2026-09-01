@@ -8706,6 +8706,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                         const double arc_length = fitting_result[fitting_index].arc_data.length * SCALING_FACTOR;
                         if (arc_length < EPSILON)
                             continue;
+                        bool has_overhang_arc_profile = false;
                         // Orca: Preserve G2/G3 verbatim, but sample the fitted geometry for local preview colors.
                         // A scalar maximum remains available to older readers and for constant profiles.
                         if (emit_overhangs) {
@@ -8721,6 +8722,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                             // Orca: Format: total,offset,p0,...; point i lies at i/(total-1) of the arc.
                             // Sixteen values keep comment lines short for firmware buffers. Skip uniform data.
                             if (!profile.empty() && std::any_of(profile.begin(), profile.end(), [&](float p) { return p != profile.front(); })) {
+                                has_overhang_arc_profile = true;
                                 constexpr size_t chunk_size = 16;
                                 for (size_t offset = 0; offset < profile.size(); offset += chunk_size) {
                                     gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc) +
@@ -8743,12 +8745,20 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                                 tempDescription += Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, arc_length);
                             }
                         }
-                        gcode += m_writer.extrude_arc_to_xy(
+                        std::string arc_gcode = m_writer.extrude_arc_to_xy(
                             this->point_to_gcode(arc.end_point),
                             center_offset,
                             dE,
                             arc.direction == ArcDirection::Arc_Dir_CCW,
                             GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                        // Orca: Bind the chunks to this exact command even when normal G-code comments are
+                        // disabled. A separate semicolon keeps the marker machine-readable after a description.
+                        if (has_overhang_arc_profile) {
+                            assert(!arc_gcode.empty() && arc_gcode.back() == '\n');
+                            arc_gcode.insert(arc_gcode.size() - 1,
+                                ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc_Apply));
+                        }
+                        gcode += arc_gcode;
                         check_and_insert_timelapse(arc.end_point); // Inline farthest-point snapshot
                         break;
                     }

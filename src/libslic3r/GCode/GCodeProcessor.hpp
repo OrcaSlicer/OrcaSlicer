@@ -528,8 +528,10 @@ class Print;
             Overhang,
             // Orca: Optional reference-plane spacing for converting percentages to angles on adaptive layers.
             Overhang_Z_Distance,
-            // Orca: Uniform point samples for the next G2/G3 only, carried in bounded comment chunks.
+            // Orca: Uniform point samples assembled from bounded comment chunks.
             Overhang_Arc,
+            // Orca: Inline marker binding the assembled samples to this exact G2/G3 command.
+            Overhang_Arc_Apply,
         };
 
         // Orca: Bound both exported profiles and untrusted imported metadata, independently of arc length.
@@ -1171,7 +1173,7 @@ class Print;
         float m_overhang_percentage;
         // Orca: Snapshot the active slice-plane spacing alongside each move's percentage.
         float m_overhang_z_distance;
-        // Orca: Collect contiguous chunks; incomplete profiles fall back to the scalar OVERHANG tag.
+        // Orca: Collect ordered chunks; only an inline marker may bind a complete profile to an arc.
         std::vector<float> m_overhang_arc_percentages;
         size_t m_overhang_arc_samples{ 0 };
         ExtrusionRole m_extrusion_role;

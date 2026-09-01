@@ -20,6 +20,7 @@
 
 #include <float.h>
 #include <assert.h>
+#include <cctype>
 #include <regex>
 #include <sstream>
 #include <charconv>
@@ -81,8 +82,10 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags = {
     " OVERHANG: ",
     // Orca: Preserve the reference-plane spacing independently of the extrusion's HEIGHT tag.
     " OVERHANG_Z_DISTANCE: ",
-    // Orca: Chunked local overhang samples for the next fitted arc.
-    " OVERHANG_ARC: "
+    // Orca: Chunked local overhang samples for a fitted arc.
+    " OVERHANG_ARC: ",
+    // Orca: Inline marker binding the preceding samples to this exact arc command.
+    " OVERHANG_ARC_APPLY"
 };
 
 const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
@@ -111,7 +114,9 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
     // Orca: Use the corresponding compact tag for non-Bambu G-code.
     "OVERHANG_Z_DISTANCE:",
     // Orca: Compact spelling for non-Bambu output.
-    "OVERHANG_ARC:"
+    "OVERHANG_ARC:",
+    // Orca: Compact inline marker for non-Bambu output.
+    "OVERHANG_ARC_APPLY"
 };
 
 
@@ -3930,12 +3935,6 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
     m_start_position = m_end_position;
 
     const std::string_view cmd = line.cmd();
-    // Orca: Only the next G2/G3 may consume a profile. Allow non-motion fan/progress commands that
-    // postprocessing may insert; other commands, including moves and coordinate changes, invalidate it.
-    if (!cmd.empty() && cmd != "G2" && cmd != "G3" && cmd != "M106" && cmd != "M107" && cmd != "M73") {
-        m_overhang_arc_percentages.clear();
-        m_overhang_arc_samples = 0;
-    }
     if (m_flavor == gcfKlipper)
     {
         if (boost::iequals(cmd, "SET_VELOCITY_LIMIT"))
@@ -3950,7 +3949,6 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
             return;
         }
     }
-
     if (cmd.length() > 1) {
         // process command lines
         m_command_processor.process_comand(cmd, line);
@@ -3961,9 +3959,6 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
         {
             std::string comment_content = comment.substr(1); // only format like ";V{cmd}" is valid
             if (comment_content[0] == 'V' || comment_content[0] == 'v') {
-                // Orca: Virtual commands also break the association with a pending arc profile.
-                m_overhang_arc_percentages.clear();
-                m_overhang_arc_samples = 0;
                 GCodeReader reader;
                 GCodeReader::GCodeLine new_line;
                 reader.parse_line(comment_content, [&new_line](const auto& greader, const auto& gline) {
@@ -4335,7 +4330,7 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
             m_result.has_overhang_metadata = true;
             return;
         }
-        // Orca: Uniform arc samples arrive as total,offset,percentages... in contiguous chunks.
+        // Orca: Uniform arc samples arrive as total,offset,percentages... in ordered chunks.
         // Validate complete numbers, bounds and ordering before allowing a profile into the preview.
         if (boost::starts_with(comment, reserved_tag(ETags::Overhang_Arc))) {
             std::string_view data = comment.substr(reserved_tag(ETags::Overhang_Arc).size());
@@ -4368,8 +4363,7 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
                 m_overhang_arc_percentages.clear();
                 m_overhang_arc_samples = 0;
                 BOOST_LOG_TRIVIAL(error) << "GCodeProcessor encountered an invalid overhang arc profile (" << comment << ").";
-            } else if (m_overhang_arc_percentages.size() == total)
-                m_result.has_overhang_metadata = true;
+            }
             return;
         }
         // Orca: manual tool change tag
@@ -5735,12 +5729,38 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
 
 void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool clockwise)
 {
-    // Orca: Consume metadata even if the arc is invalid or returns early. Missing chunks leave the
-    // existing scalar fallback untouched, and a profile must never leak to a subsequent move.
+    // Orca: A profile is inert until an exact standalone marker in this arc's inline comment binds it.
+    // Splitting on semicolons supports both an existing human-readable comment and the appended marker.
+    const auto trim = [](std::string_view value) {
+        while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front())))
+            value.remove_prefix(1);
+        while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back())))
+            value.remove_suffix(1);
+        return value;
+    };
+    const std::string_view marker = trim(reserved_tag(ETags::Overhang_Arc_Apply));
+    std::string_view comment = line.comment();
+    bool apply_overhang_profile = false;
+    while (!comment.empty()) {
+        const size_t separator = comment.find(';');
+        if (trim(comment.substr(0, separator)) == marker) {
+            apply_overhang_profile = true;
+            break;
+        }
+        comment = separator == std::string_view::npos ? std::string_view{} : comment.substr(separator + 1);
+    }
+
+    // Orca: Every arc consumes the candidate, marked or not. Missing chunks or a missing marker leave
+    // the scalar fallback untouched, so removed/reordered G-code can never color a later unrelated arc.
     std::vector<float> overhang_profile;
-    overhang_profile.swap(m_overhang_arc_percentages);
-    if (overhang_profile.size() != m_overhang_arc_samples)
+    if (apply_overhang_profile)
+        overhang_profile.swap(m_overhang_arc_percentages);
+    else
+        m_overhang_arc_percentages.clear();
+    if (!apply_overhang_profile || overhang_profile.size() != m_overhang_arc_samples)
         overhang_profile.clear();
+    else
+        m_result.has_overhang_metadata = true;
     m_overhang_arc_samples = 0;
 
     enum class EFitting { None, IJ, R };

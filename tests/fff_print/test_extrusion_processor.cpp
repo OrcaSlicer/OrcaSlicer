@@ -408,6 +408,15 @@ std::vector<std::string> printer_commands(const std::string &gcode)
     return result;
 }
 
+// Orca: Attach the same standalone inline marker emitted by GCode.cpp without coupling tests to
+// comment spacing. Callers may retain an existing description before the added semicolon-delimited field.
+std::string bind_overhang_arc_profile(std::string arc)
+{
+    assert(!arc.empty() && arc.back() == '\n');
+    arc.insert(arc.size() - 1, ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc_Apply));
+    return arc;
+}
+
 } // namespace
 
 // Orca: The middle of a quarter-circle is not the middle of its chord. Check both directions
@@ -503,9 +512,13 @@ TEST_CASE("Overhang arc profiles color local segments without changing motion", 
     const std::string setup = "G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n" +
         tag(GCodeProcessor::ETags::Height, "0.2") + tag(GCodeProcessor::ETags::Width, "0.4") +
         tag(GCodeProcessor::ETags::Overhang_Z_Distance, "0.2") + tag(GCodeProcessor::ETags::Overhang, "100");
-    const std::string arc = std::string(clockwise ? "G2" : "G3") + " X0 Y10 I-10 J0 E1 F600\n";
-    // Orca: Postprocessing may place non-motion fan/progress commands between a profile and its arc.
-    const std::string control = "M106 S128\nM73 P50\nM107\n";
+    const std::string arc = std::string(clockwise ? "G2" : "G3") + " X0 Y10 I-10 J0 E1 F600 ; arc description\n";
+    const std::string marked_arc = bind_overhang_arc_profile(arc);
+    // Orca: Arbitrary non-motion commands may appear between chunks and the explicitly marked arc;
+    // they require no whitelist. A lower-case Klipper command also exercises case-insensitive handling.
+    const std::string control = "M106 S128\nM73 P50\nM107\nG4 P1\nM104 S200\nM204 S1000\nM400\n;VM104 S200\n" +
+        std::string(flavor == gcfKlipper ?
+            "set_velocity_limit SQUARE_CORNER_VELOCITY=5\nSET_PRESSURE_ADVANCE ADVANCE=0.04\nRESPOND TYPE=echo MSG=preview\n" : "");
     GCodeProcessor baseline;
     baseline.apply_config(config);
     baseline.process_buffer(setup + control + arc);
@@ -514,7 +527,7 @@ TEST_CASE("Overhang arc profiles color local segments without changing motion", 
     profiled.process_buffer(setup);
     // Orca: Chunk boundaries may coincide with streaming-buffer boundaries.
     profiled.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, decreasing ? "5,0,100,75,50" : "5,0,0,25,50"));
-    profiled.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, decreasing ? "5,3,25,0" : "5,3,75,100") + control + arc);
+    profiled.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, decreasing ? "5,3,25,0" : "5,3,75,100") + control + marked_arc);
     const auto &original = baseline.get_result().moves;
     const auto &moves = profiled.get_result().moves;
     REQUIRE(moves.size() == original.size());
@@ -554,11 +567,17 @@ TEST_CASE("Overhang arc profiles preserve interior peaks on short arcs", "[GCode
         return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
     };
     processor.process_buffer("G90\nM83\nT0\nG1 X0.05 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "33") +
-        tag(GCodeProcessor::ETags::Overhang_Arc, "5,0,0,0,100,0,0") + "G3 X0 Y0.05 I-0.05 J0 E0.01\n");
+        tag(GCodeProcessor::ETags::Overhang_Arc, "5,0,0,0,100,0,0") +
+        bind_overhang_arc_profile("G3 X0 Y0.05 I-0.05 J0 E0.01\n"));
     const auto &moves = processor.get_result().moves;
     REQUIRE(std::count_if(moves.begin(), moves.end(), [](const auto &move) { return move.type == EMoveType::Extrude; }) == 1);
     CHECK_THAT(moves.back().overhang_percentage, Catch::Matchers::WithinAbs(100.0, 1e-6));
     processor.process_buffer("G1 X10 E1\n");
+    CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
+    // Orca: Complete samples without a standalone marker must not color or leak past an unrelated arc;
+    // merely mentioning the marker inside human-readable text is intentionally insufficient.
+    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, "3,0,0,50,100") +
+        "G3 X9.95 Y0 I-0.05 J0 E0.01 ; do not apply OVERHANG_ARC_APPLY here\n");
     CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
 }
 
@@ -571,7 +590,7 @@ TEST_CASE("Overhang arc profiles reject invalid chunks and stale associations", 
     const std::string data = GENERATE("", "3", "3,0", "1,0,0", "65537,0,0", "3,-1,0", "3,1,50,100", "3,0,0,nan,100", "3,0,0,inf,100",
         "3,0,0,101,100", "3,0,0,-1,100", "3,0,0,50,100junk", "3,0,0,50,100,", "3,0,0,50", "3,0,0,,100",
         ",0,0,50,100", "3,,0,50,100", "3,0,,50,100",
-        "3,0,0,50,100,0", "3,0,0,50,100\nM400", "3,0,0,50,100\nG2 X1 Y1 E1");
+        "3,0,0,50,100,0", "3,0,0,50,100\nG2 X1 Y1 E1");
     CAPTURE(data);
     GCodeProcessor processor;
     const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
@@ -582,7 +601,8 @@ TEST_CASE("Overhang arc profiles reject invalid chunks and stale associations", 
         processor.process_buffer("G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "33"));
     };
     setup();
-    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, data) + "G3 X0 Y10 I-10 J0 E1\n");
+    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, data) +
+        bind_overhang_arc_profile("G3 X0 Y10 I-10 J0 E1\n"));
     size_t checked = 0;
     for (const auto &move : processor.get_result().moves)
         if (move.type == EMoveType::Extrude) {
@@ -614,6 +634,15 @@ TEST_CASE("Overhang metadata availability follows valid G-code tags", "[GCodePro
     CHECK_FALSE(processor.get_result().has_overhang_metadata);
     processor.process_buffer(tag_prefix + "invalid\n");
     CHECK_FALSE(processor.get_result().has_overhang_metadata);
+
+    // Orca: Complete samples alone remain inert; only the inline marker on their exact arc publishes them.
+    processor.reset();
+    processor.apply_config(FullPrintConfig());
+    processor.process_buffer("G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n;" +
+        GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc) + "3,0,0,50,100\n");
+    CHECK_FALSE(processor.get_result().has_overhang_metadata);
+    processor.process_buffer(bind_overhang_arc_profile("G3 X0 Y10 I-10 J0 E1\n"));
+    CHECK(processor.get_result().has_overhang_metadata);
 }
 
 // Orca: Malformed or non-finite percentages must neither enable the view nor leak into its color lookup.
@@ -819,7 +848,7 @@ TEST_CASE("Fitted arc overhang profiles round trip without changing printer comm
     DynamicPrintConfig config = caged_overhang_config("classic");
     config.set_deserialize_strict({{"enable_arc_fitting", "1"}, {"enable_overhang_speed", "0"},
         {"enable_overhang_bridge_fan", "0"}, {"wall_loops", "1"}, {"sparse_infill_density", "0%"},
-        {"top_shell_layers", "1"}, {"bottom_shell_layers", "1"}});
+        {"top_shell_layers", "1"}, {"bottom_shell_layers", "1"}, {"gcode_comments", "0"}});
     // Orca: Import requires a complete nozzle enum, including its name map, and a known hardness.
     config.erase("nozzle_type");
     config.set_deserialize_strict({{"nozzle_type", "stainless_steel"}, {"nozzle_hrc", "20"}});
@@ -847,6 +876,7 @@ TEST_CASE("Fitted arc overhang profiles round trip without changing printer comm
             return command.find("G2 ") == 0 || command.find("G3 ") == 0;
         }));
         CHECK((exported.find("OVERHANG_ARC:") != std::string::npos) == enabled);
+        CHECK((exported.find("OVERHANG_ARC_APPLY") != std::string::npos) == enabled);
         CHECK(result.has_overhang_metadata == enabled);
         const float time = result.print_statistics.modes[size_t(PrintEstimatedStatistics::ETimeMode::Normal)].time;
         if (!enabled) {
@@ -858,10 +888,16 @@ TEST_CASE("Fitted arc overhang profiles round trip without changing printer comm
         CHECK_THAT(time, Catch::Matchers::WithinAbs(baseline_time, 1e-5));
         // Orca: Keep metadata lines short even when many samples are needed for a single arc.
         GCodeReader reader;
-        reader.parse_buffer(exported, [](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        size_t marker_count = 0;
+        reader.parse_buffer(exported, [&marker_count](GCodeReader &, const GCodeReader::GCodeLine &line) {
             if (line.comment().find("OVERHANG_ARC:") != std::string_view::npos)
                 CHECK(line.raw().size() < 160);
+            if (line.comment().find("OVERHANG_ARC_APPLY") != std::string_view::npos) {
+                ++marker_count;
+                CHECK((line.cmd() == "G2") != (line.cmd() == "G3"));
+            }
         });
+        REQUIRE(marker_count > 0);
         GCodeProcessor imported;
         imported.process_file(file.string());
         REQUIRE(imported.get_result().has_overhang_metadata);
