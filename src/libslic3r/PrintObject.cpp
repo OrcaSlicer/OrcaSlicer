@@ -1953,7 +1953,11 @@ void PrintObject::detect_surfaces_type()
             // Phase 2: write pass — each iteration mutates only m_layers[i+1]->slices.surfaces
             // and reads its bridge polygons from the precomputed cache. Different iterations
             // never share a write target, so there is no aliasing between worker threads.
-            tbb::parallel_for( tbb::blocked_range<size_t>(0, last), [this, region_id, &bridge_polys_per_layer](const tbb::blocked_range<size_t> &range) {
+            //
+            // Record the (layer, region) pairs the cross-region fallback reclassifies, so only
+            // those get re-clipped later, not every layer of every other region.
+            tbb::concurrent_vector<std::pair<size_t, size_t>> cross_region_dirty;
+            tbb::parallel_for( tbb::blocked_range<size_t>(0, last), [this, region_id, &bridge_polys_per_layer, &cross_region_dirty](const tbb::blocked_range<size_t> &range) {
                 for (size_t i = range.begin(); i < range.end(); ++i) {
                     m_print->throw_if_canceled();
 
@@ -1983,6 +1987,12 @@ void PrintObject::detect_surfaces_type()
                     // Also applies the same-layer-top guard (see ORCA comment inside the lambda)
                     // to avoid spurious second bridge layers on top surfaces.
                     auto apply_extra_bridge = [&](Surfaces &target_surfs) -> bool {
+                        // No stInternal here: return before touching target_surfs so the
+                        // cross-region fallback still sees the original surfaces.
+                        if (std::none_of(target_surfs.begin(), target_surfs.end(),
+                                         [](const Surface &s) { return s.surface_type == stInternal; }))
+                            return false;
+
                         // ORCA: Same-layer-top guard.
                         //
                         // Collect every stTop polygon present in this target region and expand
@@ -2016,7 +2026,6 @@ void PrintObject::detect_surfaces_type()
                                 same_layer_top_expanded = offset_ex(same_layer_top, offset_distance);
                         }
 
-                        bool found_internal = false;
                         Surfaces new_surfaces;
                         new_surfaces.reserve(target_surfs.size());
                         for (Surface &s_up : target_surfs) {
@@ -2024,7 +2033,6 @@ void PrintObject::detect_surfaces_type()
                                 new_surfaces.push_back(std::move(s_up));
                                 continue;
                             }
-                            found_internal = true;
                             Polygons p_up = to_polygons(s_up);
                             ExPolygons overlap = intersection_ex(p_up, polygons_bridge, ApplySafetyOffset::Yes);
                             overlap = offset_ex(shrink_ex(overlap, offset_distance), offset_distance);
@@ -2042,9 +2050,8 @@ void PrintObject::detect_surfaces_type()
                             for (auto &ex_overlap : unified_overlap)
                                 new_surfaces.emplace_back(stInternalAfterExternalBridge, ex_overlap);
                         }
-                        if (found_internal)
-                            target_surfs = std::move(new_surfaces);
-                        return found_internal;
+                        target_surfs = std::move(new_surfaces);
+                        return true;
                     };
 
                     // Try same region first (the common single-material case).
@@ -2057,8 +2064,10 @@ void PrintObject::detect_surfaces_type()
                             if (other_id == region_id)
                                 continue;
                             Surfaces &other_top = m_layers[i + 1]->m_regions[other_id]->slices.surfaces;
-                            if (apply_extra_bridge(other_top))
+                            if (apply_extra_bridge(other_top)) {
+                                cross_region_dirty.emplace_back(i + 1, other_id);
                                 break;
+                            }
                         }
                     }
                 }
@@ -2082,17 +2091,17 @@ void PrintObject::detect_surfaces_type()
                 }
               );
             }
-            // Cross-region modifications may have changed other regions' slices.surfaces
-            // after their slices_to_fill_surfaces_clipped() already ran. Re-clip those
-            // regions so fill_surfaces reflects the new stBottomBridge surfaces.
-            if (this->num_printing_regions() > 1) {
+            // The cross-region fallback changed other regions after their fill_surfaces were
+            // already clipped. Re-clip just the touched (layer, region) pairs; each is distinct,
+            // so running them in parallel is race-free.
+            if (!cross_region_dirty.empty()) {
                 tbb::parallel_for(
-                    tbb::blocked_range<size_t>(0, m_layers.size()),
-                    [this, region_id](const tbb::blocked_range<size_t> &range) {
-                        for (size_t idx = range.begin(); idx < range.end(); ++idx)
-                            for (size_t rid = 0; rid < m_layers[idx]->region_count(); ++rid)
-                                if (rid != region_id)
-                                    m_layers[idx]->m_regions[rid]->slices_to_fill_surfaces_clipped();
+                    tbb::blocked_range<size_t>(0, cross_region_dirty.size()),
+                    [this, &cross_region_dirty](const tbb::blocked_range<size_t> &range) {
+                        for (size_t k = range.begin(); k < range.end(); ++k)
+                            m_layers[cross_region_dirty[k].first]
+                                ->m_regions[cross_region_dirty[k].second]
+                                ->slices_to_fill_surfaces_clipped();
                     }
                 );
             }
