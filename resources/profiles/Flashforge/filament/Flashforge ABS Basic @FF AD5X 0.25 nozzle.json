@@ -4,10 +4,10 @@
 	"inherits": "Flashforge ABS @FF AD5M 0.25 Nozzle",
 	"from": "system",
 	"setting_id": "gmkc6fRLMI73Iut8",
-	"filament_id": "OFShw1X8",
+	"filament_id": "OFibWuBd",
 	"instantiation": "true",
 	"filament_vendor": [
-		"Generic"
+		"Flashforge"
 	],
 	"cool_plate_temp": [
 		"0"

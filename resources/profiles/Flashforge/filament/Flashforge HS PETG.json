@@ -4,7 +4,10 @@
 	"inherits": "Generic PETG @Flashforge",
 	"from": "system",
 	"setting_id": "H9uwlPw6m6Nf7qH5",
-	"filament_id": "OF5w29Kq",
+	"filament_id": "OFDxxTpW",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge HS PETG"

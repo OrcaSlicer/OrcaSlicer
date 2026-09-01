@@ -2,9 +2,13 @@
 	"type": "filament",
 	"name": "Flashforge HS PLA Burnt Ti@FF G4 0.8 HF nozzle",
 	"inherits": "Generic PLA @Flashforge G3U 0.6 Nozzle",
+	"renamed_from": "Flashforge PLA Buint Ti @FF G4 0.8 nozzle;Flashforge PLA Buint Ti FF G4 0.8 nozzle",
 	"from": "system",
 	"setting_id": "Qt3huWxoYpMEqEN6",
-	"filament_id": "OFmQkb3c",
+	"filament_id": "OF8O09RG",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

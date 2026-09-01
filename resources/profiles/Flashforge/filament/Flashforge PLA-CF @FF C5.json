@@ -4,7 +4,10 @@
 	"inherits": "Generic PLA-CF @System",
 	"from": "system",
 	"setting_id": "rBm25DRY1PAkEJ4r",
-	"filament_id": "OF2bZtyg",
+	"filament_id": "OF9cAwMK",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

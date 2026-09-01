@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "FusRock PAHT-CF @FF C5P",
 	"inherits": "Generic PA-CF @System",
+	"renamed_from": "Flashforge PAHT-CF @FF C5P;Flashforge PAHT-CF FF C5P",
 	"from": "system",
 	"setting_id": "nJF1lCOavNNh4yHs",
 	"filament_id": "OFKW5hEW",

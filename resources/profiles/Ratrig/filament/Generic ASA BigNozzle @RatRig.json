@@ -1,46 +1,17 @@
 {
 	"type": "filament",
-	"name": "RatRig BigNozzle PCTG",
-	"inherits": "fdm_filament_pet",
+	"name": "Generic ASA BigNozzle @RatRig",
+	"inherits": "fdm_filament_asa",
+	"renamed_from": "RatRig BigNozzle ASA",
 	"from": "system",
-	"setting_id": "uCKZhFAPvEa2wKnA",
-	"filament_id": "OFFC0VqZ",
+	"setting_id": "n2V9gkhbqWJzsQBK",
+	"filament_id": "OF4GM5qX",
 	"instantiation": "true",
-	"reduce_fan_stop_start_freq": [
-		"1"
-	],
-	"slow_down_for_layer_cooling": [
-		"1"
-	],
-	"fan_cooling_layer_time": [
-		"30"
-	],
-	"overhang_fan_speed": [
-		"90"
-	],
-	"overhang_fan_threshold": [
-		"25%"
-	],
-	"fan_max_speed": [
-		"50"
-	],
-	"fan_min_speed": [
-		"15"
-	],
-	"slow_down_min_speed": [
-		"10"
-	],
-	"slow_down_layer_time": [
-		"8"
-	],
 	"filament_flow_ratio": [
 		"0.92"
 	],
-	"filament_density": [
-		"1.29"
-	],
 	"filament_max_volumetric_speed": [
-		"12"
+		"19"
 	],
 	"filament_z_hop": [
 		"0"
@@ -49,22 +20,37 @@
 		"1"
 	],
 	"pressure_advance": [
-		"0.045"
+		"0.033"
+	],
+	"hot_plate_temp_initial_layer": [
+		"108"
 	],
 	"nozzle_temperature_initial_layer": [
-		"280"
+		"270"
 	],
 	"nozzle_temperature": [
-		"275"
-	],
-	"nozzle_temperature_range_high": [
-		"300"
+		"265"
 	],
 	"nozzle_temperature_range_low": [
 		"240"
 	],
-	"temperature_vitrification": [
-		"90"
+	"nozzle_temperature_range_high": [
+		"290"
+	],
+	"close_fan_the_first_x_layers": [
+		"2"
+	],
+	"fan_cooling_layer_time": [
+		"10"
+	],
+	"fan_max_speed": [
+		"30"
+	],
+	"fan_min_speed": [
+		"10"
+	],
+	"overhang_fan_speed": [
+		"28"
 	],
 	"compatible_printers": [
 		"RatRig V-Core 3 200 0.4 nozzle",

@@ -19,8 +19,6 @@
   "Flashforge/Flashforge HS PLA @FF C5P",
   "Flashforge/Flashforge PA-CF @FF C5",
   "Flashforge/Flashforge PA-CF @FF C5P",
-  "Flashforge/Flashforge PAHT-CF @FF C5",
-  "Flashforge/Flashforge PAHT-CF @FF C5P",
   "Flashforge/Flashforge PET-CF @FF C5",
   "Flashforge/Flashforge PET-CF @FF C5P",
   "Flashforge/Flashforge PETG Pro @FF C5",
@@ -29,12 +27,6 @@
   "Flashforge/Flashforge PETG Transparent @FF C5P",
   "Flashforge/Flashforge PETG-CF @FF C5",
   "Flashforge/Flashforge PETG-CF @FF C5P",
-  "Flashforge/Flashforge PLA  Matte @FF C5",
-  "Flashforge/Flashforge PLA  Matte @FF C5P",
-  "Flashforge/Flashforge PLA  Metal @FF C5",
-  "Flashforge/Flashforge PLA  Metal @FF C5P",
-  "Flashforge/Flashforge PLA  Pro @FF C5",
-  "Flashforge/Flashforge PLA  Pro @FF C5P",
   "Flashforge/Flashforge PLA Basic @FF C5",
   "Flashforge/Flashforge PLA Basic @FF C5P",
   "Flashforge/Flashforge PLA Color Change @FF C5",
@@ -43,6 +35,12 @@
   "Flashforge/Flashforge PLA Galaxy @FF C5P",
   "Flashforge/Flashforge PLA Luminous @FF C5",
   "Flashforge/Flashforge PLA Luminous @FF C5P",
+  "Flashforge/Flashforge PLA Matte @FF C5",
+  "Flashforge/Flashforge PLA Matte @FF C5P",
+  "Flashforge/Flashforge PLA Metal @FF C5",
+  "Flashforge/Flashforge PLA Metal @FF C5P",
+  "Flashforge/Flashforge PLA Pro @FF C5",
+  "Flashforge/Flashforge PLA Pro @FF C5P",
   "Flashforge/Flashforge PLA Silk @FF C5",
   "Flashforge/Flashforge PLA Silk @FF C5P",
   "Flashforge/Flashforge PLA-CF @FF C5",
@@ -247,20 +245,6 @@
   "Elegoo/Generic PETG PRO @Elegoo",
   "Elegoo/Generic PETG-CF @Elegoo Centauri",
   "Elegoo/Generic PLA Matte @Elegoo",
-  "Flashforge/FlashForge PC @FF G4 0.6 HF nozzle",
-  "Flashforge/FlashForge PC @FF G4 0.6 nozzle",
-  "Flashforge/FlashForge PC @FF G4 0.8 HF nozzle",
-  "Flashforge/FlashForge PC @FF G4P 0.6 HF nozzle",
-  "Flashforge/FlashForge PC @FF G4P 0.6 nozzle",
-  "Flashforge/FlashForge PC @FF G4P 0.8 HF nozzle",
-  "Flashforge/FlashForge PPS @FF G4 0.6 HF nozzle",
-  "Flashforge/FlashForge PPS @FF G4 0.6 nozzle",
-  "Flashforge/FlashForge PPS @FF G4 0.8 HF nozzle",
-  "Flashforge/FlashForge PPS @FF G4P 0.6 HF nozzle",
-  "Flashforge/FlashForge PPS @FF G4P 0.6 nozzle",
-  "Flashforge/FlashForge PPS @FF G4P 0.8 HF nozzle",
-  "Flashforge/FlashForge PPS-CF @FF G4 0.6 nozzle",
-  "Flashforge/FlashForge PPS-CF @FF G4P 0.6 nozzle",
   "Flashforge/Flashforge ABS @FF AD5M 0.25 Nozzle",
   "Flashforge/Flashforge ABS Basic",
   "Flashforge/Flashforge ABS Basic @FF AD5M 0.25 nozzle",
@@ -389,10 +373,12 @@
   "Flashforge/Flashforge PA12-CF",
   "Flashforge/Flashforge PA6-CF",
   "Flashforge/Flashforge PA66-CF",
-  "Flashforge/Flashforge PAHT-CF @FF C5",
-  "Flashforge/Flashforge PAHT-CF @FF C5P",
-  "Flashforge/Flashforge PAHT-CF @FF G4",
-  "Flashforge/Flashforge PAHT-CF @FF G4P",
+  "Flashforge/Flashforge PC @FF G4 0.6 HF nozzle",
+  "Flashforge/Flashforge PC @FF G4 0.6 nozzle",
+  "Flashforge/Flashforge PC @FF G4 0.8 HF nozzle",
+  "Flashforge/Flashforge PC @FF G4P 0.6 HF nozzle",
+  "Flashforge/Flashforge PC @FF G4P 0.6 nozzle",
+  "Flashforge/Flashforge PC @FF G4P 0.8 HF nozzle",
   "Flashforge/Flashforge PET-CF",
   "Flashforge/Flashforge PET-CF @FF C5",
   "Flashforge/Flashforge PET-CF @FF C5P",
@@ -449,12 +435,6 @@
   "Flashforge/Flashforge PETG-CF @FF G4 0.6 nozzle",
   "Flashforge/Flashforge PETG-CF @FF G4P",
   "Flashforge/Flashforge PETG-CF @FF G4P 0.6 nozzle",
-  "Flashforge/Flashforge PLA  Matte @FF C5",
-  "Flashforge/Flashforge PLA  Matte @FF C5P",
-  "Flashforge/Flashforge PLA  Metal @FF C5",
-  "Flashforge/Flashforge PLA  Metal @FF C5P",
-  "Flashforge/Flashforge PLA  Pro @FF C5",
-  "Flashforge/Flashforge PLA  Pro @FF C5P",
   "Flashforge/Flashforge PLA Basic",
   "Flashforge/Flashforge PLA Basic @FF AD5M 0.25 nozzle",
   "Flashforge/Flashforge PLA Basic @FF AD5X",
@@ -475,8 +455,6 @@
   "Flashforge/Flashforge PLA Basic @FF G4P 0.6 nozzle",
   "Flashforge/Flashforge PLA Basic @FF G4P 0.8 HF nozzle",
   "Flashforge/Flashforge PLA Basic @FF G4P HF",
-  "Flashforge/Flashforge PLA Buint Ti @FF G4 0.8 nozzle",
-  "Flashforge/Flashforge PLA Buint Ti @FF G4P 0.8 nozzle",
   "Flashforge/Flashforge PLA Color Change",
   "Flashforge/Flashforge PLA Color Change @FF AD5M 0.25 nozzle",
   "Flashforge/Flashforge PLA Color Change @FF AD5X",
@@ -541,6 +519,8 @@
   "Flashforge/Flashforge PLA Matte @FF AD5X 0.25 nozzle",
   "Flashforge/Flashforge PLA Matte @FF AD5X 0.6 nozzle",
   "Flashforge/Flashforge PLA Matte @FF AD5X 0.8 nozzle",
+  "Flashforge/Flashforge PLA Matte @FF C5",
+  "Flashforge/Flashforge PLA Matte @FF C5P",
   "Flashforge/Flashforge PLA Matte @FF G4",
   "Flashforge/Flashforge PLA Matte @FF G4 0.25 nozzle",
   "Flashforge/Flashforge PLA Matte @FF G4 0.6 HF nozzle",
@@ -559,6 +539,8 @@
   "Flashforge/Flashforge PLA Metal @FF AD5X 0.25 nozzle",
   "Flashforge/Flashforge PLA Metal @FF AD5X 0.6 nozzle",
   "Flashforge/Flashforge PLA Metal @FF AD5X 0.8 nozzle",
+  "Flashforge/Flashforge PLA Metal @FF C5",
+  "Flashforge/Flashforge PLA Metal @FF C5P",
   "Flashforge/Flashforge PLA Metal @FF G4",
   "Flashforge/Flashforge PLA Metal @FF G4 0.25 nozzle",
   "Flashforge/Flashforge PLA Metal @FF G4 0.6 HF nozzle",
@@ -577,6 +559,8 @@
   "Flashforge/Flashforge PLA Pro @FF AD5X 0.25 nozzle",
   "Flashforge/Flashforge PLA Pro @FF AD5X 0.6 nozzle",
   "Flashforge/Flashforge PLA Pro @FF AD5X 0.8 nozzle",
+  "Flashforge/Flashforge PLA Pro @FF C5",
+  "Flashforge/Flashforge PLA Pro @FF C5P",
   "Flashforge/Flashforge PLA Pro @FF G4",
   "Flashforge/Flashforge PLA Pro @FF G4 0.25 nozzle",
   "Flashforge/Flashforge PLA Pro @FF G4 0.6 HF nozzle",
@@ -641,12 +625,20 @@
   "Flashforge/Flashforge PPA-CF @FF C5P",
   "Flashforge/Flashforge PPA-GF",
   "Flashforge/Flashforge PPS @FF G4",
+  "Flashforge/Flashforge PPS @FF G4 0.6 HF nozzle",
+  "Flashforge/Flashforge PPS @FF G4 0.6 nozzle",
+  "Flashforge/Flashforge PPS @FF G4 0.8 HF nozzle",
   "Flashforge/Flashforge PPS @FF G4P",
+  "Flashforge/Flashforge PPS @FF G4P 0.6 HF nozzle",
+  "Flashforge/Flashforge PPS @FF G4P 0.6 nozzle",
+  "Flashforge/Flashforge PPS @FF G4P 0.8 HF nozzle",
   "Flashforge/Flashforge PPS-CF",
   "Flashforge/Flashforge PPS-CF @FF C5",
   "Flashforge/Flashforge PPS-CF @FF C5P",
   "Flashforge/Flashforge PPS-CF @FF G4",
+  "Flashforge/Flashforge PPS-CF @FF G4 0.6 nozzle",
   "Flashforge/Flashforge PPS-CF @FF G4P",
+  "Flashforge/Flashforge PPS-CF @FF G4P 0.6 nozzle",
   "Flashforge/Flashforge PVA @FF C5",
   "Flashforge/Flashforge PVA @FF C5P",
   "Flashforge/Flashforge TPU 65D @FF G4 0.6 HF nozzle",
@@ -1592,9 +1584,6 @@
   "OF1W7c76": [
    "Qidi/QIDI ASA-CF"
   ],
-  "OF1bQyX2": [
-   "Flashforge/Flashforge PLA Matte"
-  ],
   "OF1d7c3A": [
    "Snapmaker/Snapmaker ASA"
   ],
@@ -1627,9 +1616,6 @@
   ],
   "OF2Z1nT5": [
    "OrcaFilamentLibrary/FilAr PETG Azul Imperial"
-  ],
-  "OF2bZtyg": [
-   "Flashforge/Flashforge PLA-CF"
   ],
   "OF2hfMcG": [
    "OrcaArena/Arena PLA-CF"
@@ -1671,9 +1657,6 @@
   "OF3ydJTT": [
    "InfiMech/InfiMech PLA Hyper"
   ],
-  "OF41jaTh": [
-   "Flashforge/Flashforge TPU-90A"
-  ],
   "OF43Raws": [
    "Snapmaker/PolyTerra J1 PLA"
   ],
@@ -1685,6 +1668,9 @@
   ],
   "OF4APyxe": [
    "Creality/Hyper PAHT-CF"
+  ],
+  "OF4GM5qX": [
+   "Ratrig/Generic ASA BigNozzle"
   ],
   "OF4KsW72": [],
   "OF4Nhggz": [
@@ -1732,9 +1718,6 @@
    "Qidi/PolyLite PLA",
    "Snapmaker/PolyLite PLA"
   ],
-  "OF5NQFKI": [
-   "Flashforge/Flashforge PLA Galaxy"
-  ],
   "OF5NqBfC": [
    "Wanhao France/YUMI PETG"
   ],
@@ -1767,14 +1750,14 @@
    "Snapmaker/Polymaker PLA Pro"
   ],
   "OF5rnhjh": [],
+  "OF5tX6va": [
+   "Ratrig/Generic TPU BigNozzle"
+  ],
   "OF5umxxT": [
    "Snapmaker/PolyLite PLA Glow"
   ],
   "OF5vgi2G": [
    "OrcaFilamentLibrary/FilAr PLA-mate Azul"
-  ],
-  "OF5w29Kq": [
-   "Flashforge/Flashforge HS PETG"
   ],
   "OF65InrS": [
    "Snapmaker/Snapmaker TPU"
@@ -1808,12 +1791,12 @@
   "OF6kj4jI": [
    "iQ/Fiberthree PACF Pro P2"
   ],
+  "OF6qAuyi": [
+   "Flashforge/Flashforge PLA Matte"
+  ],
   "OF6rdQ6M": [
    "Creality/Generic PPS-CF",
    "Tiertime/Generic PPS-CF"
-  ],
-  "OF6ueBwd": [
-   "Flashforge/Flashforge PLA  Pro"
   ],
   "OF70zbGS": [
    "Creality/Hyper L-W PLA"
@@ -1859,11 +1842,17 @@
   "OF8GnyFU": [
    "Creality/Hyper ABS"
   ],
+  "OF8GtyKJ": [
+   "Flashforge/Flashforge TPU-64D"
+  ],
   "OF8Hx3Pi": [
    "Cubicon/Cubicon PETG"
   ],
   "OF8Jl6NT": [
    "Snapmaker/Snapmaker J1 PET"
+  ],
+  "OF8O09RG": [
+   "Flashforge/Flashforge HS PLA Burnt Ti"
   ],
   "OF8Tlg47": [
    "OrcaFilamentLibrary/Generic PPA-GF",
@@ -1891,9 +1880,6 @@
   "OF8wE5l7": [
    "Artillery/Artillery PETG Basic"
   ],
-  "OF995YXg": [
-   "Flashforge/Flashforge TPU-64D"
-  ],
   "OF99UMPq": [
    "BBL/COEX ABS",
    "OrcaFilamentLibrary/COEX ABS"
@@ -1913,6 +1899,9 @@
   ],
   "OF9UJOGF": [
    "Anycubic/Anycubic PETG-CF"
+  ],
+  "OF9cAwMK": [
+   "Flashforge/Flashforge PLA-CF"
   ],
   "OF9emAI9": [
    "Ratrig/RatRig PunkFil PETG"
@@ -1938,8 +1927,8 @@
   "OFAZllAN": [
    "Artillery/Artillery PLA-CF"
   ],
-  "OFAf9pJF": [
-   "Flashforge/Flashforge TPU 95A"
+  "OFAebKg8": [
+   "Flashforge/Flashforge PLA Metal"
   ],
   "OFAnyRUI": [
    "OrcaFilamentLibrary/Bambu Support For PLA"
@@ -1955,9 +1944,6 @@
   ],
   "OFBJAdLw": [
    "LH/LHS PCTG"
-  ],
-  "OFBK6zAi": [
-   "Flashforge/Flashforge PETG-CF"
   ],
   "OFBLktDy": [
    "Creality/Soleyin Basic PETG"
@@ -2141,15 +2127,15 @@
   "OFDxfPgH": [
    "OrcaFilamentLibrary/Bambu PLA Sparkle"
   ],
+  "OFDxxTpW": [
+   "Flashforge/Flashforge HS PETG"
+  ],
   "OFE0NFRh": [
    "BBL/COEX TPU 60A",
    "OrcaFilamentLibrary/COEX TPU 60A"
   ],
   "OFEGNJD4": [
    "OrcaFilamentLibrary/Bambu PLA Silk"
-  ],
-  "OFEMfQsX": [
-   "Flashforge/Flashforge PETG Basic"
   ],
   "OFEOnBj6": [
    "Snapmaker/Snapmaker PLA Lite"
@@ -2190,6 +2176,9 @@
   "OFEswT5W": [
    "OrcaFilamentLibrary/Bambu PLA-CF"
   ],
+  "OFEvEfw5": [
+   "Flashforge/Flashforge PA"
+  ],
   "OFEwRwmL": [
    "Cubicon/Cubicon PLA"
   ],
@@ -2206,8 +2195,8 @@
   "OFFAWVf0": [
    "Qidi/QIDI PC-ABS-FR"
   ],
-  "OFFC0VqZ": [
-   "Ratrig/RatRig BigNozzle PCTG"
+  "OFFFg2Pf": [
+   "Flashforge/Flashforge ASA Basic"
   ],
   "OFFNYwWR": [
    "OrcaFilamentLibrary/Bambu PA-CF"
@@ -2250,7 +2239,6 @@
   "OFGVwfK0": [
    "OrcaFilamentLibrary/FilAr PLA-mate Gris"
   ],
-  "OFGc282l": [],
   "OFGcLA5R": [
    "OrcaFilamentLibrary/FilAr PLA-mate Beige"
   ],
@@ -2273,17 +2261,14 @@
   "OFGxC8gB": [
    "Creality/CR-Wood"
   ],
+  "OFGxuI0n": [
+   "Flashforge/Flashforge PA-CF"
+  ],
   "OFH2nN08": [
    "OrcaFilamentLibrary/Eolas Prints PLA INGEO 850"
   ],
   "OFH57ibH": [
    "Snapmaker/Polymaker Silk PLA Family"
-  ],
-  "OFH5UH6P": [
-   "Flashforge/Flashforge ABS-GF"
-  ],
-  "OFH6Pjxe": [
-   "Flashforge/Flashforge PLA  Matte"
   ],
   "OFH7b12v": [
    "Creality/Generic PAHT-CF"
@@ -2323,6 +2308,9 @@
   "OFIE3vOf": [
    "Anycubic/Anycubic PLA Matte"
   ],
+  "OFIK2H3G": [
+   "Flashforge/Flashforge HS PLA"
+  ],
   "OFIKZxPF": [
    "Creality/Generic PLA Wood"
   ],
@@ -2356,13 +2344,16 @@
   "OFIxOuOu": [
    "Snapmaker/PolyLite PLA Starlight"
   ],
-  "OFIxitiU": [
+  "OFJ3F2jm": [
    "Flashforge/Flashforge PLA Basic"
   ],
   "OFJ3HRsR": [
    "OrcaArena/Arena ABS"
   ],
   "OFJHBEGD": [],
+  "OFJJ0Ar3": [
+   "Flashforge/Flashforge PLA Galaxy"
+  ],
   "OFJNeELv": [
    "OrcaFilamentLibrary/FILL3D PA"
   ],
@@ -2373,6 +2364,7 @@
   "OFJQDUk3": [
    "OrcaFilamentLibrary/FilAr PETG Cristal"
   ],
+  "OFJS560n": [],
   "OFJWKoYG": [
    "iQ/Material4Print ABS Natur P1"
   ],
@@ -2396,9 +2388,6 @@
   ],
   "OFJxSqO4": [
    "Wanhao France/YUMI PLA Direct Drive"
-  ],
-  "OFK74HJD": [
-   "Flashforge/Flashforge PLA Pro"
   ],
   "OFK8XHPn": [
    "Qidi/Overture ABS"
@@ -2442,9 +2431,6 @@
   "OFKiSMWR": [
    "OrcaFilamentLibrary/Panchroma PLA Marble",
    "Snapmaker/Panchroma PLA Marble"
-  ],
-  "OFKpQTJI": [
-   "Flashforge/Flashforge TPU 65D"
   ],
   "OFL9aRjN": [
    "Snapmaker/Snapmaker PETG HF"
@@ -2490,9 +2476,6 @@
   "OFLXvuMr": [
    "Elegoo/Elegoo Rapid PETG",
    "OrcaFilamentLibrary/Elegoo Rapid PETG"
-  ],
-  "OFLYDIb8": [
-   "Flashforge/Flashforge PLA Silk"
   ],
   "OFLYDngx": [
    "Qidi/Bambu PETG"
@@ -2549,9 +2532,6 @@
   "OFMDHOcT": [
    "Qidi/QIDI TPU-Aero"
   ],
-  "OFMIma8C": [
-   "Flashforge/Flashforge PLA Luminous"
-  ],
   "OFMK5gVo": [
    "WonderMaker/WonderMaker PLA Basic"
   ],
@@ -2575,6 +2555,9 @@
   "OFMjtqTC": [
    "OrcaFilamentLibrary/Bambu PLA Wood"
   ],
+  "OFMkAW6r": [
+   "Flashforge/Flashforge PLA Color Change"
+  ],
   "OFMpxamb": [
    "Flashforge/Flashforge PETG"
   ],
@@ -2583,9 +2566,6 @@
   ],
   "OFMuXBmO": [
    "OrcaFilamentLibrary/Elas PLA Basic"
-  ],
-  "OFMyLYV8": [
-   "Flashforge/Flashforge PETG Transparent"
   ],
   "OFN9fefN": [
    "Cubicon/Cubicon ABS-A100"
@@ -2604,9 +2584,6 @@
   ],
   "OFNU9YIW": [
    "OrcaFilamentLibrary/FilAr PETG Azul Boreal"
-  ],
-  "OFNWnx2c": [
-   "Flashforge/Flashforge TPU-95A"
   ],
   "OFNemJM6": [
    "OrcaFilamentLibrary/FilAr PLA Cobre"
@@ -2681,9 +2658,6 @@
   ],
   "OFPHLnoe": [
    "Creality/HP-ASA"
-  ],
-  "OFPQfNAf": [
-   "Flashforge/Flashforge PETG Pro"
   ],
   "OFPWPlSC": [
    "OrcaFilamentLibrary/FILL3D PP"
@@ -2764,9 +2738,6 @@
   "OFQYaiGg": [
    "Snapmaker/Snapmaker PET"
   ],
-  "OFQZeyZv": [
-   "Flashforge/Flashforge PLA Buint Ti"
-  ],
   "OFQbjX3s": [
    "OrcaFilamentLibrary/FILL3D PETG"
   ],
@@ -2776,9 +2747,6 @@
   ],
   "OFQe7sAx": [
    "Anycubic/Anycubic PA6-CF"
-  ],
-  "OFQiq4fb": [
-   "Flashforge/Flashforge PVA"
   ],
   "OFQyyO0l": [
    "Flashforge/Polymaker CoPA"
@@ -2833,14 +2801,17 @@
    "OrcaFilamentLibrary/Panchroma PLA Silk",
    "Snapmaker/Panchroma PLA Silk"
   ],
+  "OFSDfduA": [
+   "Flashforge/Flashforge TPU 65D"
+  ],
   "OFSa39yP": [
    "Snapmaker/Snapmaker J1 PLA"
   ],
   "OFSbGfsz": [
    "OrcaArena/Arena PLA Basic"
   ],
-  "OFShw1X8": [
-   "Flashforge/Flashforge ABS Basic"
+  "OFSqIcJC": [
+   "Flashforge/Flashforge TPU 95A"
   ],
   "OFSwbBWS": [],
   "OFT2jon4": [
@@ -2892,9 +2863,6 @@
   "OFU7CKZt": [
    "Volumic/Volumic ASA Ultra (Performance)"
   ],
-  "OFUCpLaL": [
-   "Flashforge/FlashForge PPS"
-  ],
   "OFUF7oA4": [
    "Creality/Hyper PC"
   ],
@@ -2923,6 +2891,9 @@
   "OFV5Q7j2": [
    "Snapmaker/Snapmaker J1 TPE"
   ],
+  "OFV5c8hG": [
+   "Flashforge/Flashforge PLA Sparkle"
+  ],
   "OFV5tNw6": [
    "Elegoo/Elegoo PET-CF",
    "OrcaFilamentLibrary/Elegoo PET-CF"
@@ -2930,6 +2901,7 @@
   "OFV5wEMe": [
    "Afinia/Afinia ABS"
   ],
+  "OFV8Mxqx": [],
   "OFVBlUFH": [],
   "OFVCkX5w": [
    "OrcaFilamentLibrary/Bambu TPU 95A"
@@ -2967,6 +2939,9 @@
   "OFWTRJ1K": [
    "OrcaFilamentLibrary/FilAr PLA Bronce"
   ],
+  "OFWXCbVF": [
+   "Flashforge/Flashforge PC"
+  ],
   "OFWYtgCa": [
    "Elegoo/Elegoo PLA Wood",
    "OrcaFilamentLibrary/Elegoo PLA Wood"
@@ -2998,9 +2973,6 @@
   "OFWgFOjn": [
    "Snapmaker/Snapmaker PLA Silk"
   ],
-  "OFWnSvGu": [
-   "Flashforge/Flashforge ASA-GF"
-  ],
   "OFWwF7K7": [
    "OrcaFilamentLibrary/FilAr PLA Cafe con Leche"
   ],
@@ -3031,6 +3003,9 @@
   ],
   "OFXi59OX": [
    "Afinia/Afinia Value ABS"
+  ],
+  "OFXiArjA": [
+   "Flashforge/Flashforge PETG Pro"
   ],
   "OFXk1emJ": [
    "Artillery/Artillery PLA Basic"
@@ -3142,9 +3117,18 @@
    "Vzbot/Generic PETG",
    "Z-Bolt/Generic PETG"
   ],
+  "OFYTIMbj": [
+   "Flashforge/Flashforge ABS-CF"
+  ],
+  "OFYYeMyQ": [
+   "Flashforge/Flashforge PETG Basic"
+  ],
   "OFYd5uS3": [],
   "OFYezc6s": [
    "FlyingBear/FlyingBear TPU"
+  ],
+  "OFYfAcLY": [
+   "Ratrig/Generic PCTG BigNozzle"
   ],
   "OFYuowge": [
    "FlyingBear/Other ABS",
@@ -3181,9 +3165,6 @@
   "OFZtkHRq": [
    "Anycubic/Anycubic PC"
   ],
-  "OFaBwRvT": [
-   "Flashforge/Flashforge ASA Basic"
-  ],
   "OFaDOaNt": [
    "OrcaFilamentLibrary/FilAr PLA Celeste Cielo"
   ],
@@ -3211,6 +3192,9 @@
   "OFaYz8iE": [
    "OrcaFilamentLibrary/Elas PLA Pro"
   ],
+  "OFaaddbQ": [
+   "Flashforge/Flashforge PVA"
+  ],
   "OFaeIx7W": [
    "iQ/Polymaker PETG Polymax black P1"
   ],
@@ -3222,9 +3206,6 @@
   ],
   "OFausr3F": [
    "OrcaFilamentLibrary/FilAr PLA-mate Rosa"
-  ],
-  "OFaz8VoR": [
-   "Flashforge/Flashforge HIPS"
   ],
   "OFb5EEM3": [
    "Artillery/Artillery PET"
@@ -3309,6 +3290,9 @@
   "OFdkWDiy": [
    "Cubicon/Cubicon PLAi21"
   ],
+  "OFdqkWtz": [
+   "Flashforge/Flashforge PLA Luminous"
+  ],
   "OFdrYBmI": [
    "Tiertime/Tiertime ASA"
   ],
@@ -3320,9 +3304,6 @@
   ],
   "OFe61n6v": [
    "Ratrig/RatRig PunkFil PETG CF"
-  ],
-  "OFe6sfXS": [
-   "Flashforge/FlashForge PC"
   ],
   "OFe8tuNb": [
    "Tiertime/Tiertime PA6-CF"
@@ -3344,9 +3325,6 @@
   ],
   "OFeVzkSU": [
    "Snapmaker/Fiberon PPS-GF20"
-  ],
-  "OFec7Qiw": [
-   "Flashforge/Flashforge PLA Sparkle"
   ],
   "OFeelsSM": [
    "Qidi/HATCHBOX PLA"
@@ -3509,17 +3487,14 @@
    "Tiertime/Generic TPU",
    "Vzbot/Generic TPU"
   ],
-  "OFgcryz4": [
-   "Ratrig/RatRig BigNozzle ASA"
-  ],
   "OFgdaBOt": [
    "Snapmaker/Polymaker Tough PLA Family"
   ],
   "OFgeM7nD": [
    "Flashforge/Flashforge PA12-CF"
   ],
-  "OFgf4gZa": [
-   "Flashforge/Flashforge PA"
+  "OFgjgN35": [
+   "Flashforge/Flashforge PLA Silk"
   ],
   "OFglhKLM": [
    "Qidi/QIDI PLA Rapido 0.8 nozzle"
@@ -3616,9 +3591,6 @@
    "Creality/Generic PLA-Silk",
    "Flashforge/Generic PLA-Silk"
   ],
-  "OFi7Bf0F": [
-   "Flashforge/Flashforge ABS-CF"
-  ],
   "OFi90KlM": [
    "Volumic/Volumic NYLON Ultra (Performance)"
   ],
@@ -3630,6 +3602,9 @@
   ],
   "OFiWaoqD": [
    "OrcaFilamentLibrary/DREMC PPA-CF"
+  ],
+  "OFibWuBd": [
+   "Flashforge/Flashforge ABS Basic"
   ],
   "OFilAA3b": [
    "Eryone/Eryone PLA-CF"
@@ -3645,9 +3620,6 @@
   ],
   "OFitS8al": [
    "Snapmaker/PolyLite PLA Neon"
-  ],
-  "OFiuJSmy": [
-   "Ratrig/RatRig BigNozzle PLA"
   ],
   "OFiwEbze": [
    "Volumic/PETG ESD (Performance)"
@@ -3753,9 +3725,6 @@
   "OFks6esg": [
    "Creality/EN-PLA+"
   ],
-  "OFkwIWwc": [
-   "Flashforge/Flashforge PLA Color Change"
-  ],
   "OFkx5MEe": [
    "Artillery/Artillery PVA"
   ],
@@ -3777,6 +3746,9 @@
   ],
   "OFlSNkhc": [
    "OrcaFilamentLibrary/Eolas Prints ASA"
+  ],
+  "OFlgMgNM": [
+   "Flashforge/Flashforge PPS"
   ],
   "OFllmFhT": [
    "Elegoo/Generic PETG PRO"
@@ -3800,6 +3772,9 @@
    "Elegoo/Elegoo PLA Basic",
    "OrcaFilamentLibrary/Elegoo PLA Basic"
   ],
+  "OFm4SivL": [
+   "Flashforge/Flashforge PLA Pro"
+  ],
   "OFm4ysMO": [
    "FlyingBear/FlyingBear ABS"
   ],
@@ -3821,9 +3796,6 @@
   "OFmKU2Ha": [
    "Eryone/Eryone PLA"
   ],
-  "OFmQkb3c": [
-   "Flashforge/Flashforge HS PLA Burnt Ti"
-  ],
   "OFmY0l6t": [
    "Creality/Generic PLA Matte",
    "Elegoo/Generic PLA Matte",
@@ -3834,9 +3806,6 @@
   ],
   "OFmaeU4a": [
    "OrcaFilamentLibrary/FilAr PLA-mate Naranja"
-  ],
-  "OFmexHIS": [
-   "Ratrig/RatRig BigNozzle PETG"
   ],
   "OFmfizbq": [
    "OrcaArena/Arena PLA Silk"
@@ -3876,9 +3845,6 @@
   "OFnHc3D6": [
    "Creality/eSUN PLA-CF"
   ],
-  "OFnMv3W5": [
-   "Flashforge/Flashforge HS PLA"
-  ],
   "OFnO4wnf": [
    "Prusa/Prusament PLA"
   ],
@@ -3914,6 +3880,9 @@
   ],
   "OFnmp6rt": [
    "Anycubic/Anycubic PLA+"
+  ],
+  "OFnyHfcv": [
+   "Ratrig/Generic ABS BigNozzle"
   ],
   "OFo15hcT": [
    "Qidi/QIDI PAHT-GF"
@@ -3951,11 +3920,11 @@
    "BBL/AliZ PETG",
    "OrcaFilamentLibrary/AliZ PETG"
   ],
-  "OFogbnCb": [
-   "Flashforge/FlashForge PPS-CF"
-  ],
   "OFoiVqVM": [
    "OrcaFilamentLibrary/Bambu PLA Basic"
+  ],
+  "OFojbdhR": [
+   "Flashforge/Flashforge ABS-GF"
   ],
   "OForhBi4": [
    "Cubicon/Cubicon ABSk"
@@ -4005,6 +3974,9 @@
    "Creality/Generic PPS",
    "Tiertime/Generic PPS"
   ],
+  "OFqFRiLb": [
+   "Ratrig/Generic PLA BigNozzle"
+  ],
   "OFqGRZyH": [
    "OrcaFilamentLibrary/Numakers PLA+"
   ],
@@ -4042,14 +4014,14 @@
    "OrcaFilamentLibrary/Panchroma PLA Matte",
    "Snapmaker/Panchroma PLA Matte"
   ],
+  "OFrZDhVt": [
+   "Flashforge/Flashforge ASA-GF"
+  ],
   "OFrdZ0cK": [
    "Creality/eSUN PETG+HS"
   ],
   "OFrjacXf": [
    "Flashforge/Flashforge PET-CF"
-  ],
-  "OFrnkURQ": [
-   "Flashforge/Flashforge PLA  Metal"
   ],
   "OFrr67nG": [
    "OrcaArena/Arena PC"
@@ -4080,9 +4052,6 @@
   ],
   "OFsHSVZc": [
    "OrcaFilamentLibrary/Bambu Support W"
-  ],
-  "OFsNJjpc": [
-   "Ratrig/RatRig BigNozzle TPU"
   ],
   "OFsP8PKH": [
    "Z-Bolt/Generic ABS HT"
@@ -4130,16 +4099,12 @@
   "OFtRn8X8": [
    "OrcaFilamentLibrary/FDplast SBS"
   ],
-  "OFtTYl9Q": [],
   "OFtefokm": [
    "OrcaFilamentLibrary/FilAr PLA-mate Blanco"
   ],
   "OFtpXCCv": [
    "BBL/COEX ASA PRIME",
    "OrcaFilamentLibrary/COEX ASA PRIME"
-  ],
-  "OFtplX8o": [
-   "Ratrig/RatRig BigNozzle ABS"
   ],
   "OFtr8eZw": [
    "OrcaFilamentLibrary/FDplast PLA"
@@ -4165,11 +4130,8 @@
    "Ratrig/Generic PCTG",
    "Tiertime/Generic PCTG"
   ],
-  "OFuFqYyG": [
-   "Flashforge/Flashforge PAHT-CF"
-  ],
-  "OFuGRMNV": [
-   "Flashforge/Flashforge PA-CF"
+  "OFuFEtKX": [
+   "Flashforge/Flashforge PETG-CF"
   ],
   "OFuJ49uH": [
    "Qidi/QIDI PETG Basic"
@@ -4212,6 +4174,9 @@
   "OFuxH0Uz": [
    "Volumic/Volumic FLEX93 Ultra"
   ],
+  "OFvD0Qqt": [
+   "Ratrig/Generic PETG BigNozzle"
+  ],
   "OFvDbkFq": [
    "Prusa/Prusament PC Blend"
   ],
@@ -4228,11 +4193,11 @@
    "BBL/COEX PETG",
    "OrcaFilamentLibrary/COEX PETG"
   ],
-  "OFvVxvzZ": [
-   "Flashforge/Flashforge PLA Metal"
-  ],
   "OFvVy7yo": [
    "OrcaFilamentLibrary/Eolas Prints TPU D60 UV Resistant"
+  ],
+  "OFvaLVML": [
+   "Flashforge/Flashforge HIPS"
   ],
   "OFvdZ2bx": [
    "Qidi/QIDI WOOD Rapido"
@@ -4284,6 +4249,12 @@
   "OFwhLMs4": [
    "Snapmaker/Snapmaker PLA SnapSpeed"
   ],
+  "OFwjMiKL": [
+   "Flashforge/Flashforge PETG Transparent"
+  ],
+  "OFwlZ7gH": [
+   "Flashforge/Flashforge TPU-90A"
+  ],
   "OFwu7IAG": [
    "BBL/COEX PCTG PRIME",
    "OrcaFilamentLibrary/COEX PCTG PRIME"
@@ -4293,6 +4264,9 @@
   ],
   "OFwyt1xt": [
    "Eryone/Eryone ASA-CF"
+  ],
+  "OFx0WlzS": [
+   "Flashforge/Flashforge TPU-95A"
   ],
   "OFx8Lmsd": [
    "OrcaFilamentLibrary/Eolas Prints PETG UV Resistant"
@@ -4305,9 +4279,6 @@
   ],
   "OFxJRuVF": [
    "Anycubic/Anycubic PC-GF"
-  ],
-  "OFxMGIPt": [
-   "Flashforge/Flashforge PPS"
   ],
   "OFxOHhZw": [
    "Elegoo/Elegoo ABS",
@@ -5295,20 +5266,6 @@
   "FLSun/Generic PLA-CF @FLSun",
   "FLSun/Generic PVA @FLSun",
   "FLSun/Generic TPU @FLSun",
-  "Flashforge/FlashForge PC @FF G4 0.6 HF nozzle",
-  "Flashforge/FlashForge PC @FF G4 0.6 nozzle",
-  "Flashforge/FlashForge PC @FF G4 0.8 HF nozzle",
-  "Flashforge/FlashForge PC @FF G4P 0.6 HF nozzle",
-  "Flashforge/FlashForge PC @FF G4P 0.6 nozzle",
-  "Flashforge/FlashForge PC @FF G4P 0.8 HF nozzle",
-  "Flashforge/FlashForge PPS @FF G4 0.6 HF nozzle",
-  "Flashforge/FlashForge PPS @FF G4 0.6 nozzle",
-  "Flashforge/FlashForge PPS @FF G4 0.8 HF nozzle",
-  "Flashforge/FlashForge PPS @FF G4P 0.6 HF nozzle",
-  "Flashforge/FlashForge PPS @FF G4P 0.6 nozzle",
-  "Flashforge/FlashForge PPS @FF G4P 0.8 HF nozzle",
-  "Flashforge/FlashForge PPS-CF @FF G4 0.6 nozzle",
-  "Flashforge/FlashForge PPS-CF @FF G4P 0.6 nozzle",
   "Flashforge/Flashforge ABS",
   "Flashforge/Flashforge ABS Basic",
   "Flashforge/Flashforge ABS Basic @FF AD5M 0.25 nozzle",
@@ -5436,10 +5393,12 @@
   "Flashforge/Flashforge PA12-CF",
   "Flashforge/Flashforge PA6-CF",
   "Flashforge/Flashforge PA66-CF",
-  "Flashforge/Flashforge PAHT-CF @FF C5",
-  "Flashforge/Flashforge PAHT-CF @FF C5P",
-  "Flashforge/Flashforge PAHT-CF @FF G4",
-  "Flashforge/Flashforge PAHT-CF @FF G4P",
+  "Flashforge/Flashforge PC @FF G4 0.6 HF nozzle",
+  "Flashforge/Flashforge PC @FF G4 0.6 nozzle",
+  "Flashforge/Flashforge PC @FF G4 0.8 HF nozzle",
+  "Flashforge/Flashforge PC @FF G4P 0.6 HF nozzle",
+  "Flashforge/Flashforge PC @FF G4P 0.6 nozzle",
+  "Flashforge/Flashforge PC @FF G4P 0.8 HF nozzle",
   "Flashforge/Flashforge PET-CF",
   "Flashforge/Flashforge PET-CF @FF C5",
   "Flashforge/Flashforge PET-CF @FF C5P",
@@ -5497,12 +5456,6 @@
   "Flashforge/Flashforge PETG-CF @FF G4P",
   "Flashforge/Flashforge PETG-CF @FF G4P 0.6 nozzle",
   "Flashforge/Flashforge PLA",
-  "Flashforge/Flashforge PLA  Matte @FF C5",
-  "Flashforge/Flashforge PLA  Matte @FF C5P",
-  "Flashforge/Flashforge PLA  Metal @FF C5",
-  "Flashforge/Flashforge PLA  Metal @FF C5P",
-  "Flashforge/Flashforge PLA  Pro @FF C5",
-  "Flashforge/Flashforge PLA  Pro @FF C5P",
   "Flashforge/Flashforge PLA Basic",
   "Flashforge/Flashforge PLA Basic @FF AD5M 0.25 nozzle",
   "Flashforge/Flashforge PLA Basic @FF AD5X",
@@ -5523,8 +5476,6 @@
   "Flashforge/Flashforge PLA Basic @FF G4P 0.6 nozzle",
   "Flashforge/Flashforge PLA Basic @FF G4P 0.8 HF nozzle",
   "Flashforge/Flashforge PLA Basic @FF G4P HF",
-  "Flashforge/Flashforge PLA Buint Ti @FF G4 0.8 nozzle",
-  "Flashforge/Flashforge PLA Buint Ti @FF G4P 0.8 nozzle",
   "Flashforge/Flashforge PLA Color Change",
   "Flashforge/Flashforge PLA Color Change @FF AD5M 0.25 nozzle",
   "Flashforge/Flashforge PLA Color Change @FF AD5X",
@@ -5589,6 +5540,8 @@
   "Flashforge/Flashforge PLA Matte @FF AD5X 0.25 nozzle",
   "Flashforge/Flashforge PLA Matte @FF AD5X 0.6 nozzle",
   "Flashforge/Flashforge PLA Matte @FF AD5X 0.8 nozzle",
+  "Flashforge/Flashforge PLA Matte @FF C5",
+  "Flashforge/Flashforge PLA Matte @FF C5P",
   "Flashforge/Flashforge PLA Matte @FF G4",
   "Flashforge/Flashforge PLA Matte @FF G4 0.25 nozzle",
   "Flashforge/Flashforge PLA Matte @FF G4 0.6 HF nozzle",
@@ -5607,6 +5560,8 @@
   "Flashforge/Flashforge PLA Metal @FF AD5X 0.25 nozzle",
   "Flashforge/Flashforge PLA Metal @FF AD5X 0.6 nozzle",
   "Flashforge/Flashforge PLA Metal @FF AD5X 0.8 nozzle",
+  "Flashforge/Flashforge PLA Metal @FF C5",
+  "Flashforge/Flashforge PLA Metal @FF C5P",
   "Flashforge/Flashforge PLA Metal @FF G4",
   "Flashforge/Flashforge PLA Metal @FF G4 0.25 nozzle",
   "Flashforge/Flashforge PLA Metal @FF G4 0.6 HF nozzle",
@@ -5625,6 +5580,8 @@
   "Flashforge/Flashforge PLA Pro @FF AD5X 0.25 nozzle",
   "Flashforge/Flashforge PLA Pro @FF AD5X 0.6 nozzle",
   "Flashforge/Flashforge PLA Pro @FF AD5X 0.8 nozzle",
+  "Flashforge/Flashforge PLA Pro @FF C5",
+  "Flashforge/Flashforge PLA Pro @FF C5P",
   "Flashforge/Flashforge PLA Pro @FF G4",
   "Flashforge/Flashforge PLA Pro @FF G4 0.25 nozzle",
   "Flashforge/Flashforge PLA Pro @FF G4 0.6 HF nozzle",
@@ -5688,12 +5645,20 @@
   "Flashforge/Flashforge PPA-CF @FF C5P",
   "Flashforge/Flashforge PPA-GF",
   "Flashforge/Flashforge PPS @FF G4",
+  "Flashforge/Flashforge PPS @FF G4 0.6 HF nozzle",
+  "Flashforge/Flashforge PPS @FF G4 0.6 nozzle",
+  "Flashforge/Flashforge PPS @FF G4 0.8 HF nozzle",
   "Flashforge/Flashforge PPS @FF G4P",
+  "Flashforge/Flashforge PPS @FF G4P 0.6 HF nozzle",
+  "Flashforge/Flashforge PPS @FF G4P 0.6 nozzle",
+  "Flashforge/Flashforge PPS @FF G4P 0.8 HF nozzle",
   "Flashforge/Flashforge PPS-CF",
   "Flashforge/Flashforge PPS-CF @FF C5",
   "Flashforge/Flashforge PPS-CF @FF C5P",
   "Flashforge/Flashforge PPS-CF @FF G4",
+  "Flashforge/Flashforge PPS-CF @FF G4 0.6 nozzle",
   "Flashforge/Flashforge PPS-CF @FF G4P",
+  "Flashforge/Flashforge PPS-CF @FF G4P 0.6 nozzle",
   "Flashforge/Flashforge PVA @FF C5",
   "Flashforge/Flashforge PVA @FF C5P",
   "Flashforge/Flashforge TPU 65D @FF G4 0.6 HF nozzle",
@@ -6761,22 +6726,22 @@
   "RH3D/Generic PLA @E3NG v1.2S",
   "RH3D/Generic TPU @E3NG v1.2S",
   "Ratrig/Generic ABS @RatRig",
+  "Ratrig/Generic ABS BigNozzle @RatRig",
   "Ratrig/Generic ASA @RatRig",
+  "Ratrig/Generic ASA BigNozzle @RatRig",
   "Ratrig/Generic PA @RatRig",
   "Ratrig/Generic PA-CF @RatRig",
   "Ratrig/Generic PC @RatRig",
   "Ratrig/Generic PCTG @RatRig",
+  "Ratrig/Generic PCTG BigNozzle @RatRig",
   "Ratrig/Generic PETG @RatRig",
+  "Ratrig/Generic PETG BigNozzle @RatRig",
   "Ratrig/Generic PLA @RatRig",
+  "Ratrig/Generic PLA BigNozzle @RatRig",
   "Ratrig/Generic PLA-CF @RatRig",
   "Ratrig/Generic PVA @RatRig",
   "Ratrig/Generic TPU @RatRig",
-  "Ratrig/RatRig BigNozzle ABS",
-  "Ratrig/RatRig BigNozzle ASA",
-  "Ratrig/RatRig BigNozzle PCTG",
-  "Ratrig/RatRig BigNozzle PETG",
-  "Ratrig/RatRig BigNozzle PLA",
-  "Ratrig/RatRig BigNozzle TPU",
+  "Ratrig/Generic TPU BigNozzle @RatRig",
   "Ratrig/RatRig PunkFil ABS",
   "Ratrig/RatRig PunkFil PETG",
   "Ratrig/RatRig PunkFil PETG CF",
@@ -7177,13 +7142,6 @@
     "QIDI ASA-CF"
    ]
   ],
-  "OF1bQyX2": [
-   [
-    "Generic",
-    "PLA",
-    "Flashforge PLA Matte"
-   ]
-  ],
   "OF1d7c3A": [
    [
     "Snapmaker",
@@ -7252,13 +7210,6 @@
     "FilAr",
     "PETG",
     "FilAr PETG Azul Imperial"
-   ]
-  ],
-  "OF2bZtyg": [
-   [
-    "Generic",
-    "PLA-CF",
-    "Flashforge PLA-CF"
    ]
   ],
   "OF2hfMcG": [
@@ -7352,13 +7303,6 @@
     "InfiMech PLA Hyper"
    ]
   ],
-  "OF41jaTh": [
-   [
-    "Generic",
-    "TPU-90A",
-    "Flashforge TPU-90A"
-   ]
-  ],
   "OF43Raws": [
    [
     "Polymaker",
@@ -7385,6 +7329,13 @@
     "Creality",
     "PA-CF",
     "Hyper PAHT-CF"
+   ]
+  ],
+  "OF4GM5qX": [
+   [
+    "Generic",
+    "ASA",
+    "Generic ASA BigNozzle"
    ]
   ],
   "OF4KsW72": [
@@ -7492,13 +7443,6 @@
     "PolyLite PLA"
    ]
   ],
-  "OF5NQFKI": [
-   [
-    "Generic",
-    "PLA",
-    "Flashforge PLA Galaxy"
-   ]
-  ],
   "OF5NqBfC": [
    [
     "Yumi",
@@ -7576,6 +7520,13 @@
     "FilAr PETG"
    ]
   ],
+  "OF5tX6va": [
+   [
+    "Generic",
+    "TPU",
+    "Generic TPU BigNozzle"
+   ]
+  ],
   "OF5umxxT": [
    [
     "Polymaker",
@@ -7588,13 +7539,6 @@
     "FilAr",
     "PLA",
     "FilAr PLA-mate Azul"
-   ]
-  ],
-  "OF5w29Kq": [
-   [
-    "Generic",
-    "PETG",
-    "Flashforge HS PETG"
    ]
   ],
   "OF65InrS": [
@@ -7660,18 +7604,18 @@
     "Fiberthree PACF Pro P2"
    ]
   ],
+  "OF6qAuyi": [
+   [
+    "Flashforge",
+    "PLA",
+    "Flashforge PLA Matte"
+   ]
+  ],
   "OF6rdQ6M": [
    [
     "Generic",
     "PPS-CF",
     "Generic PPS-CF"
-   ]
-  ],
-  "OF6ueBwd": [
-   [
-    "Generic",
-    "PLA",
-    "Flashforge PLA  Pro"
    ]
   ],
   "OF70zbGS": [
@@ -7772,6 +7716,13 @@
     "Hyper ABS"
    ]
   ],
+  "OF8GtyKJ": [
+   [
+    "Flashforge",
+    "TPU-64D",
+    "Flashforge TPU-64D"
+   ]
+  ],
   "OF8Hx3Pi": [
    [
     "Cubicon",
@@ -7784,6 +7735,13 @@
     "Snapmaker",
     "PET",
     "Snapmaker J1 PET"
+   ]
+  ],
+  "OF8O09RG": [
+   [
+    "Flashforge",
+    "PLA",
+    "Flashforge HS PLA Burnt Ti"
    ]
   ],
   "OF8Tlg47": [
@@ -7842,13 +7800,6 @@
     "Artillery PETG Basic"
    ]
   ],
-  "OF995YXg": [
-   [
-    "Generic",
-    "TPU-64D",
-    "Flashforge TPU-64D"
-   ]
-  ],
   "OF99UMPq": [
    [
     "COEX 3D",
@@ -7896,6 +7847,13 @@
     "Anycubic",
     "PETG-CF",
     "Anycubic PETG-CF"
+   ]
+  ],
+  "OF9cAwMK": [
+   [
+    "Flashforge",
+    "PLA-CF",
+    "Flashforge PLA-CF"
    ]
   ],
   "OF9emAI9": [
@@ -7954,11 +7912,11 @@
     "Artillery PLA-CF"
    ]
   ],
-  "OFAf9pJF": [
+  "OFAebKg8": [
    [
-    "Generic",
-    "TPU",
-    "Flashforge TPU 95A"
+    "Flashforge",
+    "PLA",
+    "Flashforge PLA Metal"
    ]
   ],
   "OFAnyRUI": [
@@ -7994,13 +7952,6 @@
     "LH Stinger",
     "PCTG",
     "LHS PCTG"
-   ]
-  ],
-  "OFBK6zAi": [
-   [
-    "Generic",
-    "PETG-CF",
-    "Flashforge PETG-CF"
    ]
   ],
   "OFBLktDy": [
@@ -8297,6 +8248,13 @@
     "Bambu PLA Sparkle"
    ]
   ],
+  "OFDxxTpW": [
+   [
+    "Flashforge",
+    "PETG",
+    "Flashforge HS PETG"
+   ]
+  ],
   "OFE0NFRh": [
    [
     "COEX 3D",
@@ -8309,13 +8267,6 @@
     "Bambu Lab",
     "PLA",
     "Bambu PLA Silk"
-   ]
-  ],
-  "OFEMfQsX": [
-   [
-    "Generic",
-    "PETG",
-    "Flashforge PETG Basic"
    ]
   ],
   "OFEOnBj6": [
@@ -8409,6 +8360,13 @@
     "Bambu PLA-CF"
    ]
   ],
+  "OFEvEfw5": [
+   [
+    "Flashforge",
+    "PA",
+    "Flashforge PA"
+   ]
+  ],
   "OFEwRwmL": [
    [
     "Cubicon",
@@ -8444,11 +8402,11 @@
     "QIDI PC-ABS-FR"
    ]
   ],
-  "OFFC0VqZ": [
+  "OFFFg2Pf": [
    [
-    "Generic",
-    "PETG",
-    "RatRig BigNozzle PCTG"
+    "Flashforge",
+    "ASA",
+    "Flashforge ASA Basic"
    ]
   ],
   "OFFNYwWR": [
@@ -8542,13 +8500,6 @@
     "FilAr PLA-mate Gris"
    ]
   ],
-  "OFGc282l": [
-   [
-    "Generic",
-    "PLA",
-    "Flashforge PLA-SILK"
-   ]
-  ],
   "OFGcLA5R": [
    [
     "FilAr",
@@ -8598,6 +8549,13 @@
     "CR-Wood"
    ]
   ],
+  "OFGxuI0n": [
+   [
+    "Flashforge",
+    "PA-CF",
+    "Flashforge PA-CF"
+   ]
+  ],
   "OFH2nN08": [
    [
     "Eolas Prints",
@@ -8610,20 +8568,6 @@
     "Polymaker",
     "PLA",
     "Polymaker Silk PLA Family"
-   ]
-  ],
-  "OFH5UH6P": [
-   [
-    "Generic",
-    "ABS-GF",
-    "Flashforge ABS-GF"
-   ]
-  ],
-  "OFH6Pjxe": [
-   [
-    "Generic",
-    "PLA",
-    "Flashforge PLA  Matte"
    ]
   ],
   "OFH7b12v": [
@@ -8710,6 +8654,13 @@
     "Anycubic PLA Matte"
    ]
   ],
+  "OFIK2H3G": [
+   [
+    "Flashforge",
+    "PLA",
+    "Flashforge HS PLA"
+   ]
+  ],
   "OFIKZxPF": [
    [
     "Generic",
@@ -8787,9 +8738,9 @@
     "PolyLite PLA Starlight"
    ]
   ],
-  "OFIxitiU": [
+  "OFJ3F2jm": [
    [
-    "Generic",
+    "Flashforge",
     "PLA",
     "Flashforge PLA Basic"
    ]
@@ -8806,6 +8757,13 @@
     "DREMC",
     "PLA",
     "DREMC PLA+ HS"
+   ]
+  ],
+  "OFJJ0Ar3": [
+   [
+    "Flashforge",
+    "PLA",
+    "Flashforge PLA Galaxy"
    ]
   ],
   "OFJNeELv": [
@@ -8827,6 +8785,13 @@
     "FilAr",
     "PETG",
     "FilAr PETG Cristal"
+   ]
+  ],
+  "OFJS560n": [
+   [
+    "Flashforge",
+    "ASA",
+    "Flashforge ASA"
    ]
   ],
   "OFJWKoYG": [
@@ -8883,13 +8848,6 @@
     "Yumi",
     "PLA",
     "YUMI PLA Direct Drive"
-   ]
-  ],
-  "OFK74HJD": [
-   [
-    "Generic",
-    "PLA",
-    "Flashforge PLA Pro"
    ]
   ],
   "OFK8XHPn": [
@@ -8990,13 +8948,6 @@
     "Panchroma PLA Marble"
    ]
   ],
-  "OFKpQTJI": [
-   [
-    "Generic",
-    "TPU",
-    "Flashforge TPU 65D"
-   ]
-  ],
   "OFL9aRjN": [
    [
     "Snapmaker",
@@ -9058,13 +9009,6 @@
     "Elegoo",
     "PETG",
     "Elegoo Rapid PETG"
-   ]
-  ],
-  "OFLYDIb8": [
-   [
-    "Generic",
-    "PLA",
-    "Flashforge PLA Silk"
    ]
   ],
   "OFLYDngx": [
@@ -9151,13 +9095,6 @@
     "QIDI TPU-Aero"
    ]
   ],
-  "OFMIma8C": [
-   [
-    "Generic",
-    "PLA",
-    "Flashforge PLA Luminous"
-   ]
-  ],
   "OFMK5gVo": [
    [
     "WonderMaker",
@@ -9207,6 +9144,13 @@
     "Bambu PLA Wood"
    ]
   ],
+  "OFMkAW6r": [
+   [
+    "Flashforge",
+    "PLA",
+    "Flashforge PLA Color Change"
+   ]
+  ],
   "OFMpxamb": [
    [
     "Flashforge",
@@ -9226,13 +9170,6 @@
     "Elas",
     "PLA",
     "Elas PLA Basic"
-   ]
-  ],
-  "OFMyLYV8": [
-   [
-    "Generic",
-    "PETG",
-    "Flashforge PETG Transparent"
    ]
   ],
   "OFN9fefN": [
@@ -9275,13 +9212,6 @@
     "FilAr",
     "PETG",
     "FilAr PETG Azul Boreal"
-   ]
-  ],
-  "OFNWnx2c": [
-   [
-    "Generic",
-    "TPU-95A",
-    "Flashforge TPU-95A"
    ]
   ],
   "OFNemJM6": [
@@ -9445,13 +9375,6 @@
     "HP-ASA"
    ]
   ],
-  "OFPQfNAf": [
-   [
-    "Generic",
-    "PETG",
-    "Flashforge PETG Pro"
-   ]
-  ],
   "OFPWPlSC": [
    [
     "FILL3D",
@@ -9592,13 +9515,6 @@
     "Snapmaker PET"
    ]
   ],
-  "OFQZeyZv": [
-   [
-    "Generic",
-    "PLA",
-    "Flashforge PLA Buint Ti"
-   ]
-  ],
   "OFQbjX3s": [
    [
     "FILL3D",
@@ -9618,13 +9534,6 @@
     "Anycubic",
     "PA6-CF",
     "Anycubic PA6-CF"
-   ]
-  ],
-  "OFQiq4fb": [
-   [
-    "Generic",
-    "PVA",
-    "Flashforge PVA"
    ]
   ],
   "OFQyyO0l": [
@@ -9746,6 +9655,13 @@
     "Panchroma PLA Silk"
    ]
   ],
+  "OFSDfduA": [
+   [
+    "Flashforge",
+    "TPU",
+    "Flashforge TPU 65D"
+   ]
+  ],
   "OFSa39yP": [
    [
     "Snapmaker",
@@ -9760,11 +9676,11 @@
     "Arena PLA Basic"
    ]
   ],
-  "OFShw1X8": [
+  "OFSqIcJC": [
    [
-    "Generic",
-    "ABS",
-    "Flashforge ABS Basic"
+    "Flashforge",
+    "TPU",
+    "Flashforge TPU 95A"
    ]
   ],
   "OFSwbBWS": [
@@ -9886,13 +9802,6 @@
     "Volumic ASA Ultra (Performance)"
    ]
   ],
-  "OFUCpLaL": [
-   [
-    "Generic",
-    "PPS",
-    "FlashForge PPS"
-   ]
-  ],
   "OFUF7oA4": [
    [
     "Creality",
@@ -9956,6 +9865,13 @@
     "Snapmaker J1 TPE"
    ]
   ],
+  "OFV5c8hG": [
+   [
+    "Flashforge",
+    "PLA",
+    "Flashforge PLA Sparkle"
+   ]
+  ],
   "OFV5tNw6": [
    [
     "Elegoo",
@@ -9968,6 +9884,13 @@
     "Afinia",
     "ABS",
     "Afinia ABS"
+   ]
+  ],
+  "OFV8Mxqx": [
+   [
+    "Flashforge",
+    "PLA",
+    "Flashforge PLA-SILK"
    ]
   ],
   "OFVBlUFH": [
@@ -10054,6 +9977,13 @@
     "FilAr PLA Bronce"
    ]
   ],
+  "OFWXCbVF": [
+   [
+    "Flashforge",
+    "PC",
+    "Flashforge PC"
+   ]
+  ],
   "OFWYtgCa": [
    [
     "Elegoo",
@@ -10087,13 +10017,6 @@
     "Snapmaker",
     "PLA",
     "Snapmaker PLA Silk"
-   ]
-  ],
-  "OFWnSvGu": [
-   [
-    "Generic",
-    "ASA-GF",
-    "Flashforge ASA-GF"
    ]
   ],
   "OFWwF7K7": [
@@ -10164,6 +10087,13 @@
     "Afinia",
     "ABS",
     "Afinia Value ABS"
+   ]
+  ],
+  "OFXiArjA": [
+   [
+    "Flashforge",
+    "PETG",
+    "Flashforge PETG Pro"
    ]
   ],
   "OFXk1emJ": [
@@ -10278,6 +10208,20 @@
     "Generic PETG"
    ]
   ],
+  "OFYTIMbj": [
+   [
+    "Flashforge",
+    "ABS-CF",
+    "Flashforge ABS-CF"
+   ]
+  ],
+  "OFYYeMyQ": [
+   [
+    "Flashforge",
+    "PETG",
+    "Flashforge PETG Basic"
+   ]
+  ],
   "OFYd5uS3": [
    [
     "DREMC",
@@ -10290,6 +10234,13 @@
     "FlyingBear",
     "TPU",
     "FlyingBear TPU"
+   ]
+  ],
+  "OFYfAcLY": [
+   [
+    "Generic",
+    "PETG",
+    "Generic PCTG BigNozzle"
    ]
   ],
   "OFYuowge": [
@@ -10369,13 +10320,6 @@
     "Anycubic PC"
    ]
   ],
-  "OFaBwRvT": [
-   [
-    "Generic",
-    "ASA",
-    "Flashforge ASA Basic"
-   ]
-  ],
   "OFaDOaNt": [
    [
     "FilAr",
@@ -10439,6 +10383,13 @@
     "Elas PLA Pro"
    ]
   ],
+  "OFaaddbQ": [
+   [
+    "Flashforge",
+    "PVA",
+    "Flashforge PVA"
+   ]
+  ],
   "OFaeIx7W": [
    [
     "iQ Materials",
@@ -10465,13 +10416,6 @@
     "FilAr",
     "PLA",
     "FilAr PLA-mate Rosa"
-   ]
-  ],
-  "OFaz8VoR": [
-   [
-    "Generic",
-    "HIPS",
-    "Flashforge HIPS"
    ]
   ],
   "OFb5EEM3": [
@@ -10656,6 +10600,13 @@
     "Cubicon PLAi21"
    ]
   ],
+  "OFdqkWtz": [
+   [
+    "Flashforge",
+    "PLA",
+    "Flashforge PLA Luminous"
+   ]
+  ],
   "OFdrYBmI": [
    [
     "Tiertime",
@@ -10682,13 +10633,6 @@
     "RatRig",
     "PETG-CF10",
     "RatRig PunkFil PETG CF"
-   ]
-  ],
-  "OFe6sfXS": [
-   [
-    "Generic",
-    "PC",
-    "FlashForge PC"
    ]
   ],
   "OFe8tuNb": [
@@ -10738,13 +10682,6 @@
     "Polymaker",
     "ABS",
     "Fiberon PPS-GF20"
-   ]
-  ],
-  "OFec7Qiw": [
-   [
-    "Generic",
-    "PLA",
-    "Flashforge PLA Sparkle"
    ]
   ],
   "OFeelsSM": [
@@ -11006,13 +10943,6 @@
     "Generic TPU"
    ]
   ],
-  "OFgcryz4": [
-   [
-    "Generic",
-    "ASA",
-    "RatRig BigNozzle ASA"
-   ]
-  ],
   "OFgdaBOt": [
    [
     "Polymaker",
@@ -11027,11 +10957,11 @@
     "Flashforge PA12-CF"
    ]
   ],
-  "OFgf4gZa": [
+  "OFgjgN35": [
    [
-    "Generic",
-    "PA",
-    "Flashforge PA"
+    "Flashforge",
+    "PLA",
+    "Flashforge PLA Silk"
    ]
   ],
   "OFglhKLM": [
@@ -11237,13 +11167,6 @@
     "Generic PLA-Silk"
    ]
   ],
-  "OFi7Bf0F": [
-   [
-    "Generic",
-    "ABS-CF",
-    "Flashforge ABS-CF"
-   ]
-  ],
   "OFi90KlM": [
    [
     "Volumic",
@@ -11270,6 +11193,13 @@
     "DREMC",
     "PPA-CF",
     "DREMC PPA-CF"
+   ]
+  ],
+  "OFibWuBd": [
+   [
+    "Flashforge",
+    "ABS",
+    "Flashforge ABS Basic"
    ]
   ],
   "OFilAA3b": [
@@ -11305,13 +11235,6 @@
     "Polymaker",
     "PLA",
     "PolyLite PLA Neon"
-   ]
-  ],
-  "OFiuJSmy": [
-   [
-    "Generic",
-    "PLA",
-    "RatRig BigNozzle PLA"
    ]
   ],
   "OFiwEbze": [
@@ -11545,13 +11468,6 @@
     "EN-PLA+"
    ]
   ],
-  "OFkwIWwc": [
-   [
-    "Generic",
-    "PLA",
-    "Flashforge PLA Color Change"
-   ]
-  ],
   "OFkx5MEe": [
    [
     "Artillery",
@@ -11601,6 +11517,13 @@
     "Eolas Prints ASA"
    ]
   ],
+  "OFlgMgNM": [
+   [
+    "Flashforge",
+    "PPS",
+    "Flashforge PPS"
+   ]
+  ],
   "OFllmFhT": [
    [
     "Generic",
@@ -11641,6 +11564,13 @@
     "Elegoo",
     "PLA",
     "Elegoo PLA Basic"
+   ]
+  ],
+  "OFm4SivL": [
+   [
+    "Flashforge",
+    "PLA",
+    "Flashforge PLA Pro"
    ]
   ],
   "OFm4ysMO": [
@@ -11692,13 +11622,6 @@
     "Eryone PLA"
    ]
   ],
-  "OFmQkb3c": [
-   [
-    "Generic",
-    "PLA",
-    "Flashforge HS PLA Burnt Ti"
-   ]
-  ],
   "OFmY0l6t": [
    [
     "Generic",
@@ -11718,13 +11641,6 @@
     "FilAr",
     "PLA",
     "FilAr PLA-mate Naranja"
-   ]
-  ],
-  "OFmexHIS": [
-   [
-    "Generic",
-    "PETG",
-    "RatRig BigNozzle PETG"
    ]
   ],
   "OFmfizbq": [
@@ -11795,13 +11711,6 @@
     "eSUN",
     "PLA-CF",
     "eSUN PLA-CF"
-   ]
-  ],
-  "OFnMv3W5": [
-   [
-    "Generic",
-    "PLA",
-    "Flashforge HS PLA"
    ]
   ],
   "OFnO4wnf": [
@@ -11888,6 +11797,13 @@
     "Anycubic PLA+"
    ]
   ],
+  "OFnyHfcv": [
+   [
+    "Generic",
+    "ABS",
+    "Generic ABS BigNozzle"
+   ]
+  ],
   "OFo15hcT": [
    [
     "QIDI",
@@ -11944,18 +11860,18 @@
     "AliZ PETG"
    ]
   ],
-  "OFogbnCb": [
-   [
-    "Generic",
-    "PPS-CF",
-    "FlashForge PPS-CF"
-   ]
-  ],
   "OFoiVqVM": [
    [
     "Bambu Lab",
     "PLA",
     "Bambu PLA Basic"
+   ]
+  ],
+  "OFojbdhR": [
+   [
+    "Flashforge",
+    "ABS-GF",
+    "Flashforge ABS-GF"
    ]
   ],
   "OForhBi4": [
@@ -12063,6 +11979,13 @@
     "Generic PPS"
    ]
   ],
+  "OFqFRiLb": [
+   [
+    "Generic",
+    "PLA",
+    "Generic PLA BigNozzle"
+   ]
+  ],
   "OFqGRZyH": [
    [
     "Numakers",
@@ -12140,6 +12063,13 @@
     "Panchroma PLA Matte"
    ]
   ],
+  "OFrZDhVt": [
+   [
+    "Flashforge",
+    "ASA-GF",
+    "Flashforge ASA-GF"
+   ]
+  ],
   "OFrdZ0cK": [
    [
     "eSUN",
@@ -12152,13 +12082,6 @@
     "Flashforge",
     "PET-CF",
     "Flashforge PET-CF"
-   ]
-  ],
-  "OFrnkURQ": [
-   [
-    "Generic",
-    "PLA",
-    "Flashforge PLA  Metal"
    ]
   ],
   "OFrr67nG": [
@@ -12215,13 +12138,6 @@
     "Bambu Lab",
     "PLA",
     "Bambu Support W"
-   ]
-  ],
-  "OFsNJjpc": [
-   [
-    "Generic",
-    "TPU",
-    "RatRig BigNozzle TPU"
    ]
   ],
   "OFsP8PKH": [
@@ -12329,13 +12245,6 @@
     "FDplast SBS"
    ]
   ],
-  "OFtTYl9Q": [
-   [
-    "Generic",
-    "ASA",
-    "Flashforge ASA"
-   ]
-  ],
   "OFtefokm": [
    [
     "FilAr",
@@ -12348,13 +12257,6 @@
     "COEX 3D",
     "ASA",
     "COEX ASA PRIME"
-   ]
-  ],
-  "OFtplX8o": [
-   [
-    "Generic",
-    "ABS",
-    "RatRig BigNozzle ABS"
    ]
   ],
   "OFtr8eZw": [
@@ -12406,18 +12308,11 @@
     "Generic PCTG"
    ]
   ],
-  "OFuFqYyG": [
+  "OFuFEtKX": [
    [
-    "Generic",
-    "PAHT-CF",
-    "Flashforge PAHT-CF"
-   ]
-  ],
-  "OFuGRMNV": [
-   [
-    "Generic",
-    "PA-CF",
-    "Flashforge PA-CF"
+    "Flashforge",
+    "PETG-CF",
+    "Flashforge PETG-CF"
    ]
   ],
   "OFuJ49uH": [
@@ -12511,6 +12406,13 @@
     "Volumic FLEX93 Ultra"
    ]
   ],
+  "OFvD0Qqt": [
+   [
+    "Generic",
+    "PETG",
+    "Generic PETG BigNozzle"
+   ]
+  ],
   "OFvDbkFq": [
    [
     "Prusa Polymers",
@@ -12546,18 +12448,18 @@
     "COEX PETG"
    ]
   ],
-  "OFvVxvzZ": [
-   [
-    "Generic",
-    "PLA",
-    "Flashforge PLA Metal"
-   ]
-  ],
   "OFvVy7yo": [
    [
     "Eolas Prints",
     "TPU",
     "Eolas Prints TPU D60 UV Resistant"
+   ]
+  ],
+  "OFvaLVML": [
+   [
+    "Flashforge",
+    "HIPS",
+    "Flashforge HIPS"
    ]
   ],
   "OFvdZ2bx": [
@@ -12672,6 +12574,20 @@
     "Snapmaker PLA SnapSpeed"
    ]
   ],
+  "OFwjMiKL": [
+   [
+    "Flashforge",
+    "PETG",
+    "Flashforge PETG Transparent"
+   ]
+  ],
+  "OFwlZ7gH": [
+   [
+    "Flashforge",
+    "TPU-90A",
+    "Flashforge TPU-90A"
+   ]
+  ],
   "OFwu7IAG": [
    [
     "COEX 3D",
@@ -12691,6 +12607,13 @@
     "Eryone",
     "ASA-CF",
     "Eryone ASA-CF"
+   ]
+  ],
+  "OFx0WlzS": [
+   [
+    "Flashforge",
+    "TPU-95A",
+    "Flashforge TPU-95A"
    ]
   ],
   "OFx8Lmsd": [
@@ -12719,13 +12642,6 @@
     "Anycubic",
     "PC-GF",
     "Anycubic PC-GF"
-   ]
-  ],
-  "OFxMGIPt": [
-   [
-    "Generic",
-    "PPS",
-    "Flashforge PPS"
    ]
   ],
   "OFxOHhZw": [

@@ -4,7 +4,10 @@
 	"inherits": "Generic ASA @Flashforge",
 	"from": "system",
 	"setting_id": "SU6r879TbQMUFCij",
-	"filament_id": "OFaBwRvT",
+	"filament_id": "OFFFg2Pf",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge ASA Basic"

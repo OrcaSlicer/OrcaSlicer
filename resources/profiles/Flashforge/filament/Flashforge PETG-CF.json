@@ -4,7 +4,10 @@
 	"inherits": "Generic PETG-CF10 @Flashforge",
 	"from": "system",
 	"setting_id": "MpG61mwVUtJ7t602",
-	"filament_id": "OFBK6zAi",
+	"filament_id": "OFuFEtKX",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PETG-CF"

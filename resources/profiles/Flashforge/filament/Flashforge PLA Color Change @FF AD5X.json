@@ -4,7 +4,10 @@
 	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "yEDfsOsogfZbNBVX",
-	"filament_id": "OFkwIWwc",
+	"filament_id": "OFMkAW6r",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"45"

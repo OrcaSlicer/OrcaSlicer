@@ -1,18 +1,25 @@
 {
 	"type": "filament",
-	"name": "Flashforge PLA  Matte @FF C5",
+	"name": "Flashforge PLA Metal @FF C5P",
 	"inherits": "Generic PLA @System",
+	"renamed_from": "Flashforge PLA  Metal @FF C5P;Flashforge PLA  Metal FF C5P",
 	"from": "system",
-	"setting_id": "UQF0kAaXnZgJGK4o",
-	"filament_id": "OFH6Pjxe",
+	"setting_id": "k0AQO2dGbk0qvxzO",
+	"filament_id": "OFAebKg8",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
+	"activate_air_filtration": [
+		"1"
+	],
 	"additional_cooling_fan_speed": [
 		"40"
 	],
 	"compatible_printers": [
-		"Flashforge Creator 5 0.4 nozzle",
-		"Flashforge Creator 5 0.6 nozzle",
-		"Flashforge Creator 5 0.8 nozzle"
+		"Flashforge Creator 5 Pro 0.4 nozzle",
+		"Flashforge Creator 5 Pro 0.6 nozzle",
+		"Flashforge Creator 5 Pro 0.8 nozzle"
 	],
 	"complete_print_exhaust_fan_speed": [
 		"40"
@@ -30,10 +37,10 @@
 		"1"
 	],
 	"eng_plate_temp": [
-		"65"
+		"55"
 	],
 	"eng_plate_temp_initial_layer": [
-		"65"
+		"55"
 	],
 	"fan_max_speed": [
 		"70"
@@ -45,19 +52,10 @@
 		"18"
 	],
 	"filament_settings_id": [
-		"Flashforge PLA  Matte @FF C5"
+		"Flashforge PLA Metal @FF C5P"
 	],
 	"filament_start_gcode": [
 		"; filament start gcode"
-	],
-	"hot_plate_temp": [
-		"65"
-	],
-	"hot_plate_temp_initial_layer": [
-		"65"
-	],
-	"nozzle_temperature": [
-		"210"
 	],
 	"pressure_advance": [
 		"0.025"
@@ -73,11 +71,5 @@
 	],
 	"supertack_plate_temp_initial_layer": [
 		"40"
-	],
-	"textured_plate_temp": [
-		"65"
-	],
-	"textured_plate_temp_initial_layer": [
-		"65"
 	]
 }

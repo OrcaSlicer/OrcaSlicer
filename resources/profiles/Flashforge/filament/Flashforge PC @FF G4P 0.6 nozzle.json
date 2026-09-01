@@ -1,25 +1,20 @@
 {
 	"type": "filament",
-	"name": "Flashforge PAHT-CF @FF G4",
-	"inherits": "Generic PLA-CF10 @Flashforge",
+	"name": "Flashforge PC @FF G4P 0.6 nozzle",
+	"inherits": "FusRock S-PAHT @G3U 0.6 Nozzle",
+	"renamed_from": "FlashForge PC @FF G4P 0.6 nozzle;FlashForge PC FF G4P 0.6 nozzle",
 	"from": "system",
-	"setting_id": "ZlpBAM9uaS01sWAJ",
-	"filament_id": "OFuFqYyG",
+	"setting_id": "XjAM4PMXLCBwdgQf",
+	"filament_id": "OFWXCbVF",
 	"instantiation": "true",
-	"activate_chamber_temp_control": [
-		"1"
-	],
-	"additional_cooling_fan_speed": [
-		"0"
-	],
-	"chamber_temperature": [
-		"60"
+	"filament_vendor": [
+		"Flashforge"
 	],
 	"close_fan_the_first_x_layers": [
 		"3"
 	],
 	"complete_print_exhaust_fan_speed": [
-		"50"
+		"40"
 	],
 	"cool_plate_temp": [
 		"0"
@@ -31,78 +26,75 @@
 		"40"
 	],
 	"eng_plate_temp": [
-		"100"
+		"110"
 	],
 	"eng_plate_temp_initial_layer": [
-		"100"
+		"110"
 	],
 	"fan_cooling_layer_time": [
-		"5"
-	],
-	"fan_max_speed": [
-		"60"
-	],
-	"fan_min_speed": [
 		"30"
 	],
 	"filament_density": [
-		"1.06"
-	],
-	"filament_flow_ratio": [
-		"0.95"
+		"1.04"
 	],
 	"filament_max_volumetric_speed": [
-		"8"
+		"18"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
 	],
 	"filament_settings_id": [
-		"Flashforge PAHT-CF @FF G4"
+		"Flashforge PC @FF G4P 0.6 nozzle"
 	],
 	"filament_start_gcode": [
-		"; filament start gcode\n;right_extruder_material:PA-CF\n"
+		"; filament start gcode\n;right_extruder_material:PC"
 	],
 	"filament_type": [
-		"PAHT-CF"
+		"PC"
 	],
 	"compatible_printers": [
-		"Flashforge Guider4 0.4 nozzle"
+		"Flashforge Guider4 Pro 0.6 nozzle"
 	],
 	"hot_plate_temp": [
-		"100"
+		"110"
 	],
 	"hot_plate_temp_initial_layer": [
-		"100"
-	],
-	"nozzle_temperature": [
-		"290"
+		"110"
 	],
 	"nozzle_temperature_initial_layer": [
-		"290"
+		"265"
 	],
 	"nozzle_temperature_range_high": [
-		"300"
+		"290"
 	],
 	"nozzle_temperature_range_low": [
-		"260"
+		"250"
 	],
 	"overhang_fan_speed": [
-		"60"
-	],
-	"pressure_advance": [
-		"0.02"
+		"50"
 	],
 	"slow_down_layer_time": [
-		"2"
+		"12"
+	],
+	"slow_down_min_speed": [
+		"20"
 	],
 	"support_material_interface_fan_speed": [
-		"60"
+		"50"
 	],
 	"temperature_vitrification": [
-		"180"
+		"120"
+	],
+	"textured_cool_plate_temp": [
+		"0"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"0"
 	],
 	"textured_plate_temp": [
-		"100"
+		"110"
 	],
 	"textured_plate_temp_initial_layer": [
-		"100"
+		"110"
 	]
 }

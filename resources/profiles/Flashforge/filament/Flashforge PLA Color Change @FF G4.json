@@ -4,7 +4,10 @@
 	"inherits": "Generic HS PLA @Flashforge",
 	"from": "system",
 	"setting_id": "mGj8VEyOnnogpkmF",
-	"filament_id": "OFkwIWwc",
+	"filament_id": "OFMkAW6r",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

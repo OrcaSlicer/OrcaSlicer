@@ -3,7 +3,10 @@
 	"name": "Flashforge PLA-SILK @FF AD5M 0.25 Nozzle",
 	"inherits": "Generic PLA-Silk @Flashforge",
 	"from": "system",
-	"filament_id": "OFGc282l",
+	"filament_id": "OFV8Mxqx",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "false",
 	"compatible_printers": [
 		"Flashforge Adventurer 5M 0.25 Nozzle",

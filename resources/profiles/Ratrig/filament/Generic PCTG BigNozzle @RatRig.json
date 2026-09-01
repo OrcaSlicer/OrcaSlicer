@@ -1,10 +1,11 @@
 {
 	"type": "filament",
-	"name": "RatRig BigNozzle PETG",
+	"name": "Generic PCTG BigNozzle @RatRig",
 	"inherits": "fdm_filament_pet",
+	"renamed_from": "RatRig BigNozzle PCTG",
 	"from": "system",
-	"setting_id": "bf3YMNVRSE1i1E8N",
-	"filament_id": "OFmexHIS",
+	"setting_id": "HPaol79uY9NdhasQ",
+	"filament_id": "OFYfAcLY",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [
 		"1"
@@ -13,19 +14,19 @@
 		"1"
 	],
 	"fan_cooling_layer_time": [
-		"10"
+		"30"
 	],
 	"overhang_fan_speed": [
-		"100"
+		"90"
 	],
 	"overhang_fan_threshold": [
 		"25%"
 	],
 	"fan_max_speed": [
-		"90"
+		"50"
 	],
 	"fan_min_speed": [
-		"40"
+		"15"
 	],
 	"slow_down_min_speed": [
 		"10"
@@ -35,6 +36,9 @@
 	],
 	"filament_flow_ratio": [
 		"0.92"
+	],
+	"filament_density": [
+		"1.29"
 	],
 	"filament_max_volumetric_speed": [
 		"12"
@@ -49,16 +53,19 @@
 		"0.045"
 	],
 	"nozzle_temperature_initial_layer": [
-		"260"
-	],
-	"nozzle_temperature": [
-		"255"
-	],
-	"nozzle_temperature_range_high": [
 		"280"
 	],
+	"nozzle_temperature": [
+		"275"
+	],
+	"nozzle_temperature_range_high": [
+		"300"
+	],
 	"nozzle_temperature_range_low": [
-		"230"
+		"240"
+	],
+	"temperature_vitrification": [
+		"90"
 	],
 	"compatible_printers": [
 		"RatRig V-Core 3 200 0.4 nozzle",

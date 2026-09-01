@@ -4,7 +4,10 @@
 	"inherits": "Generic TPU @Flashforge",
 	"from": "system",
 	"setting_id": "zLMgsyDmdoXHhqFv",
-	"filament_id": "OFAf9pJF",
+	"filament_id": "OFSqIcJC",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"45"

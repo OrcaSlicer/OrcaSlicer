@@ -4,7 +4,10 @@
 	"inherits": "Generic ABS @Flashforge G3U 0.6 Nozzle",
 	"from": "system",
 	"setting_id": "HXGUlYY4X5IHhL3R",
-	"filament_id": "OFaz8VoR",
+	"filament_id": "OFvaLVML",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

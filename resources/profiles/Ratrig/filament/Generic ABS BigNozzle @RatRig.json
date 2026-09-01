@@ -1,16 +1,17 @@
 {
 	"type": "filament",
-	"name": "RatRig BigNozzle ASA",
-	"inherits": "fdm_filament_asa",
+	"name": "Generic ABS BigNozzle @RatRig",
+	"inherits": "fdm_filament_abs",
+	"renamed_from": "RatRig BigNozzle ABS",
 	"from": "system",
-	"setting_id": "GGkbwdd79jAXnwuf",
-	"filament_id": "OFgcryz4",
+	"setting_id": "4GJ4GHOuApWBbQoS",
+	"filament_id": "OFnyHfcv",
 	"instantiation": "true",
 	"filament_flow_ratio": [
-		"0.92"
+		"0.94"
 	],
 	"filament_max_volumetric_speed": [
-		"19"
+		"18"
 	],
 	"filament_z_hop": [
 		"0"
@@ -19,7 +20,7 @@
 		"1"
 	],
 	"pressure_advance": [
-		"0.033"
+		"0.03"
 	],
 	"hot_plate_temp_initial_layer": [
 		"108"
@@ -49,7 +50,7 @@
 		"10"
 	],
 	"overhang_fan_speed": [
-		"28"
+		"30"
 	],
 	"compatible_printers": [
 		"RatRig V-Core 3 200 0.4 nozzle",

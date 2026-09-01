@@ -4,7 +4,10 @@
 	"inherits": "Generic PLA Silk @System",
 	"from": "system",
 	"setting_id": "xxeZ6VPjRFevxDnK",
-	"filament_id": "OFLYDIb8",
+	"filament_id": "OFgjgN35",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

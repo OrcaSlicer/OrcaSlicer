@@ -4,7 +4,10 @@
 	"inherits": "Generic ABS @Flashforge G3U",
 	"from": "system",
 	"setting_id": "UxMNNil2KnWvAJ4q",
-	"filament_id": "OFvVxvzZ",
+	"filament_id": "OFAebKg8",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

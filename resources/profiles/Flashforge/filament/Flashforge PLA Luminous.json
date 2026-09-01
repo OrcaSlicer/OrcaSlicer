@@ -4,7 +4,10 @@
 	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "s620OFLTgFT4Ds2A",
-	"filament_id": "OFMIma8C",
+	"filament_id": "OFdqkWtz",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PLA Luminous"

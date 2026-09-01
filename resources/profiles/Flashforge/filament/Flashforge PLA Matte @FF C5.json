@@ -1,17 +1,30 @@
 {
 	"type": "filament",
-	"name": "Flashforge PAHT-CF @FF C5",
-	"inherits": "Generic PA-CF @System",
+	"name": "Flashforge PLA Matte @FF C5",
+	"inherits": "Generic PLA @System",
+	"renamed_from": "Flashforge PLA  Matte @FF C5;Flashforge PLA  Matte FF C5",
 	"from": "system",
-	"setting_id": "8ZR8o3MKYxXLd70k",
-	"filament_id": "OFuFqYyG",
+	"setting_id": "ct3nO6w9j58gqDI0",
+	"filament_id": "OF6qAuyi",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"40"
+	],
 	"compatible_printers": [
 		"Flashforge Creator 5 0.4 nozzle",
 		"Flashforge Creator 5 0.6 nozzle",
 		"Flashforge Creator 5 0.8 nozzle"
 	],
 	"complete_print_exhaust_fan_speed": [
+		"40"
+	],
+	"cool_plate_temp": [
+		"40"
+	],
+	"cool_plate_temp_initial_layer": [
 		"40"
 	],
 	"during_print_exhaust_fan_speed": [
@@ -21,63 +34,54 @@
 		"1"
 	],
 	"eng_plate_temp": [
-		"80"
+		"65"
 	],
 	"eng_plate_temp_initial_layer": [
-		"80"
-	],
-	"fan_cooling_layer_time": [
-		"5"
+		"65"
 	],
 	"fan_max_speed": [
-		"40"
+		"70"
 	],
 	"fan_min_speed": [
-		"10"
-	],
-	"filament_flow_ratio": [
-		"0.96"
+		"70"
 	],
 	"filament_max_volumetric_speed": [
-		"7"
+		"18"
 	],
 	"filament_settings_id": [
-		"Flashforge PAHT-CF @FF C5"
+		"Flashforge PLA Matte @FF C5"
 	],
 	"filament_start_gcode": [
 		"; filament start gcode"
 	],
-	"filament_type": [
-		"PAHT-CF"
-	],
 	"hot_plate_temp": [
-		"80"
+		"65"
 	],
 	"hot_plate_temp_initial_layer": [
-		"80"
+		"65"
 	],
 	"nozzle_temperature": [
-		"310"
+		"210"
 	],
-	"nozzle_temperature_initial_layer": [
-		"310"
+	"pressure_advance": [
+		"0.025"
 	],
-	"nozzle_temperature_range_high": [
-		"320"
+	"slow_down_layer_time": [
+		"8"
 	],
-	"nozzle_temperature_range_low": [
-		"300"
+	"slow_down_min_speed": [
+		"20"
 	],
-	"textured_cool_plate_temp": [
-		"0"
+	"supertack_plate_temp": [
+		"40"
 	],
-	"textured_cool_plate_temp_initial_layer": [
-		"0"
+	"supertack_plate_temp_initial_layer": [
+		"40"
 	],
 	"textured_plate_temp": [
-		"80"
+		"65"
 	],
 	"textured_plate_temp_initial_layer": [
-		"80"
+		"65"
 	]
 }

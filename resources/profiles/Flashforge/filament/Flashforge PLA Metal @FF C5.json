@@ -1,10 +1,14 @@
 {
 	"type": "filament",
-	"name": "Flashforge PLA  Pro @FF C5",
+	"name": "Flashforge PLA Metal @FF C5",
 	"inherits": "Generic PLA @System",
+	"renamed_from": "Flashforge PLA  Metal @FF C5;Flashforge PLA  Metal FF C5",
 	"from": "system",
-	"setting_id": "47Q7YXoJ7rD7Vu21",
-	"filament_id": "OF6ueBwd",
+	"setting_id": "AdjRSTc9RZG6mJ1e",
+	"filament_id": "OFAebKg8",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"
@@ -45,7 +49,7 @@
 		"18"
 	],
 	"filament_settings_id": [
-		"Flashforge PLA  Pro @FF C5"
+		"Flashforge PLA Metal @FF C5"
 	],
 	"filament_start_gcode": [
 		"; filament start gcode"
@@ -55,9 +59,6 @@
 	],
 	"hot_plate_temp_initial_layer": [
 		"65"
-	],
-	"nozzle_temperature": [
-		"210"
 	],
 	"pressure_advance": [
 		"0.025"

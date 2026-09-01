@@ -1,16 +1,44 @@
 {
 	"type": "filament",
-	"name": "RatRig BigNozzle PLA",
-	"inherits": "fdm_filament_pla",
+	"name": "Generic PETG BigNozzle @RatRig",
+	"inherits": "fdm_filament_pet",
+	"renamed_from": "RatRig BigNozzle PETG",
 	"from": "system",
-	"setting_id": "dyG3zLuhX2qe8XJP",
-	"filament_id": "OFiuJSmy",
+	"setting_id": "pRM6IVX5T3y6Ywj4",
+	"filament_id": "OFvD0Qqt",
 	"instantiation": "true",
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"fan_cooling_layer_time": [
+		"10"
+	],
+	"overhang_fan_speed": [
+		"100"
+	],
+	"overhang_fan_threshold": [
+		"25%"
+	],
+	"fan_max_speed": [
+		"90"
+	],
+	"fan_min_speed": [
+		"40"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
 	"filament_flow_ratio": [
-		"0.94"
+		"0.92"
 	],
 	"filament_max_volumetric_speed": [
-		"20"
+		"12"
 	],
 	"filament_z_hop": [
 		"0"
@@ -19,22 +47,19 @@
 		"1"
 	],
 	"pressure_advance": [
-		"0.05"
-	],
-	"slow_down_layer_time": [
-		"8"
+		"0.045"
 	],
 	"nozzle_temperature_initial_layer": [
-		"230"
-	],
-	"nozzle_temperature": [
-		"235"
-	],
-	"nozzle_temperature_range_high": [
 		"260"
 	],
+	"nozzle_temperature": [
+		"255"
+	],
+	"nozzle_temperature_range_high": [
+		"280"
+	],
 	"nozzle_temperature_range_low": [
-		"210"
+		"230"
 	],
 	"compatible_printers": [
 		"RatRig V-Core 3 200 0.4 nozzle",

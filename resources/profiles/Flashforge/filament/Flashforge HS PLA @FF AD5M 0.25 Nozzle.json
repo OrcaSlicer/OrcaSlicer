@@ -4,7 +4,10 @@
 	"inherits": "Generic HS PLA @Flashforge",
 	"from": "system",
 	"setting_id": "OmDped3weZ4uHAtY",
-	"filament_id": "OFnMv3W5",
+	"filament_id": "OFIK2H3G",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Adventurer 5M 0.25 Nozzle",

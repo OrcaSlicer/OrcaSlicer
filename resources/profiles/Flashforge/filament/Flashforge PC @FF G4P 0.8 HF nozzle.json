@@ -1,13 +1,14 @@
 {
 	"type": "filament",
-	"name": "FlashForge PC @FF G4P 0.6 nozzle",
+	"name": "Flashforge PC @FF G4P 0.8 HF nozzle",
 	"inherits": "FusRock S-PAHT @G3U 0.6 Nozzle",
+	"renamed_from": "FlashForge PC @FF G4P 0.8 HF nozzle;FlashForge PC FF G4P 0.8 HF nozzle",
 	"from": "system",
-	"setting_id": "mPJMPfFCyfWdKzMO",
-	"filament_id": "OFe6sfXS",
+	"setting_id": "icAIkgRCZAjz6apM",
+	"filament_id": "OFWXCbVF",
 	"instantiation": "true",
 	"filament_vendor": [
-		"Generic"
+		"Flashforge"
 	],
 	"close_fan_the_first_x_layers": [
 		"3"
@@ -43,7 +44,7 @@
 		"15"
 	],
 	"filament_settings_id": [
-		"FlashForge PC @FF G4P 0.6 nozzle"
+		"Flashforge PC @FF G4P 0.8 HF nozzle"
 	],
 	"filament_start_gcode": [
 		"; filament start gcode\n;right_extruder_material:PC"
@@ -52,7 +53,7 @@
 		"PC"
 	],
 	"compatible_printers": [
-		"Flashforge Guider4 Pro 0.6 nozzle"
+		"Flashforge Guider4 Pro 0.8 HF nozzle"
 	],
 	"hot_plate_temp": [
 		"110"

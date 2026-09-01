@@ -1,10 +1,14 @@
 {
 	"type": "filament",
-	"name": "Flashforge PLA  Pro @FF C5P",
+	"name": "Flashforge PLA Matte @FF C5P",
 	"inherits": "Generic PLA @System",
+	"renamed_from": "Flashforge PLA  Matte @FF C5P;Flashforge PLA  Matte FF C5P",
 	"from": "system",
-	"setting_id": "v7vYsiPVka4c1CUW",
-	"filament_id": "OF6ueBwd",
+	"setting_id": "Bn2BaG7f1tkvlyYI",
+	"filament_id": "OF6qAuyi",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
@@ -48,7 +52,7 @@
 		"18"
 	],
 	"filament_settings_id": [
-		"Flashforge PLA  Pro @FF C5P"
+		"Flashforge PLA Matte @FF C5P"
 	],
 	"filament_start_gcode": [
 		"; filament start gcode"

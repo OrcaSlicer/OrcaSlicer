@@ -4,7 +4,10 @@
 	"inherits": "Generic ABS @Flashforge",
 	"from": "system",
 	"setting_id": "i7PUPYxy0Z9weyyA",
-	"filament_id": "OFaBwRvT",
+	"filament_id": "OFFFg2Pf",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"0"

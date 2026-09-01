@@ -4,7 +4,10 @@
 	"inherits": "Generic PLA @System",
 	"from": "system",
 	"setting_id": "FmUnckQofjunAtwr",
-	"filament_id": "OFIxitiU",
+	"filament_id": "OFJ3F2jm",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

@@ -1,10 +1,11 @@
 {
 	"type": "filament",
-	"name": "RatRig BigNozzle TPU",
+	"name": "Generic TPU BigNozzle @RatRig",
 	"inherits": "fdm_filament_tpu",
+	"renamed_from": "RatRig BigNozzle TPU",
 	"from": "system",
-	"setting_id": "wLJ3X05Jnz1EqeOI",
-	"filament_id": "OFsNJjpc",
+	"setting_id": "9UWg2cO61XFdlWxo",
+	"filament_id": "OF5tX6va",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"5"

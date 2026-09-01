@@ -1,13 +1,14 @@
 {
 	"type": "filament",
-	"name": "FlashForge PPS @FF G4P 0.6 nozzle",
+	"name": "Flashforge PPS @FF G4P 0.8 HF nozzle",
 	"inherits": "FusRock PET-CF @G3U 0.6 Nozzle",
+	"renamed_from": "FlashForge PPS @FF G4P 0.8 HF nozzle;FlashForge PPS FF G4P 0.8 HF nozzle",
 	"from": "system",
-	"setting_id": "xa22FD8bRVGsLiPJ",
-	"filament_id": "OFUCpLaL",
+	"setting_id": "SsK15iSJxrQWI5wy",
+	"filament_id": "OFlgMgNM",
 	"instantiation": "true",
 	"filament_vendor": [
-		"Generic"
+		"Flashforge"
 	],
 	"activate_chamber_temp_control": [
 		"1"
@@ -61,7 +62,7 @@
 		"15"
 	],
 	"filament_settings_id": [
-		"FlashForge PPS @FF G4P 0.6 nozzle"
+		"Flashforge PPS @FF G4P 0.8 HF nozzle"
 	],
 	"filament_start_gcode": [
 		"; filament start gcode\n;right_extruder_material:PPS"
@@ -70,7 +71,7 @@
 		"PPS"
 	],
 	"compatible_printers": [
-		"Flashforge Guider4 Pro 0.6 nozzle"
+		"Flashforge Guider4 Pro 0.8 HF nozzle"
 	],
 	"hot_plate_temp": [
 		"110"
@@ -82,7 +83,7 @@
 		"315"
 	],
 	"nozzle_temperature_initial_layer": [
-		"320"
+		"315"
 	],
 	"nozzle_temperature_range_high": [
 		"320"
