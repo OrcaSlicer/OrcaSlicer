@@ -1,12 +1,21 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Dremel 3D45 all",
-	"inherits": "Generic PLA @Dremel",
+	"inherits": "fdm_filament_pla",
 	"renamed_from": "Dremel Generic PLA @3D45 all;Dremel Generic PLA 3D45 all",
 	"from": "system",
 	"setting_id": "qEeBb3Pix2iDT3SD",
 	"filament_id": "OFDSrzZ8",
 	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
 	"slow_down_min_speed": "10",
 	"close_fan_the_first_x_layers": "3",
 	"filament_loading_speed_start": "3",

@@ -3001,6 +3001,9 @@
   "OFXTPuqV": [
    "OrcaFilamentLibrary/Elas PETG Basic"
   ],
+  "OFXW4CDh": [
+   "Ratrig/Generic PCTG BigNozzle"
+  ],
   "OFXi59OX": [
    "Afinia/Afinia Value ABS"
   ],
@@ -3126,9 +3129,6 @@
   "OFYd5uS3": [],
   "OFYezc6s": [
    "FlyingBear/FlyingBear TPU"
-  ],
-  "OFYfAcLY": [
-   "Ratrig/Generic PCTG BigNozzle"
   ],
   "OFYuowge": [
    "FlyingBear/Other ABS",
@@ -5227,7 +5227,6 @@
   "DeltaMaker/Generic PETG @DeltaMaker",
   "DeltaMaker/Generic PLA @DeltaMaker",
   "DeltaMaker/Generic TPU @DeltaMaker",
-  "Dremel/Generic PLA @Dremel",
   "Dremel/Generic PLA @Dremel 3D20 all",
   "Dremel/Generic PLA @Dremel 3D40 all",
   "Dremel/Generic PLA @Dremel 3D45 all",
@@ -10082,6 +10081,13 @@
     "Elas PETG Basic"
    ]
   ],
+  "OFXW4CDh": [
+   [
+    "Generic",
+    "PCTG",
+    "Generic PCTG BigNozzle"
+   ]
+  ],
   "OFXi59OX": [
    [
     "Afinia",
@@ -10234,13 +10240,6 @@
     "FlyingBear",
     "TPU",
     "FlyingBear TPU"
-   ]
-  ],
-  "OFYfAcLY": [
-   [
-    "Generic",
-    "PETG",
-    "Generic PCTG BigNozzle"
    ]
   ],
   "OFYuowge": [

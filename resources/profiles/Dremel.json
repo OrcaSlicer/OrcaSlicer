@@ -1,6 +1,6 @@
 {
 	"name": "Dremel",
-	"version": "02.04.00.02",
+	"version": "02.04.00.03",
 	"force_update": "0",
 	"description": "Dremel configurations",
 	"machine_model_list": [
@@ -87,10 +87,6 @@
 		{
 			"name": "fdm_filament_pla",
 			"sub_path": "filament/fdm_filament_pla.json"
-		},
-		{
-			"name": "Generic PLA @Dremel",
-			"sub_path": "filament/Generic PLA @Dremel.json"
 		},
 		{
 			"name": "Generic PLA @Dremel 3D20 all",

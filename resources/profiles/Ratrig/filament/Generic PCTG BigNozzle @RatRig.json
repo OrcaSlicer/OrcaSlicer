@@ -1,11 +1,11 @@
 {
 	"type": "filament",
 	"name": "Generic PCTG BigNozzle @RatRig",
-	"inherits": "fdm_filament_pet",
+	"inherits": "fdm_filament_pctg",
 	"renamed_from": "RatRig BigNozzle PCTG",
 	"from": "system",
 	"setting_id": "HPaol79uY9NdhasQ",
-	"filament_id": "OFYfAcLY",
+	"filament_id": "OFXW4CDh",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [
 		"1"

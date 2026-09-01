@@ -1,12 +1,15 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Dremel 3D40 all",
-	"inherits": "Generic PLA @Dremel",
+	"inherits": "fdm_filament_pla",
 	"renamed_from": "Dremel Generic PLA @3D40 all;Dremel Generic PLA 3D40 all",
 	"from": "system",
 	"setting_id": "VUOtsWfy46cvAyBT",
 	"filament_id": "OFDSrzZ8",
 	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.98"
+	],
 	"filament_max_volumetric_speed": [
 		"9"
 	],

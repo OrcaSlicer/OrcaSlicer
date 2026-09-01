@@ -1,6 +1,6 @@
 {
 	"name": "RatRig",
-	"version": "02.04.00.04",
+	"version": "02.04.00.05",
 	"force_update": "0",
 	"description": "RatRig configurations",
 	"machine_model_list": [
@@ -276,42 +276,6 @@
 		}
 	],
 	"filament_list": [
-		{
-			"name": "fdm_filament_common",
-			"sub_path": "filament/fdm_filament_common.json"
-		},
-		{
-			"name": "fdm_filament_abs",
-			"sub_path": "filament/fdm_filament_abs.json"
-		},
-		{
-			"name": "fdm_filament_asa",
-			"sub_path": "filament/fdm_filament_asa.json"
-		},
-		{
-			"name": "fdm_filament_pa",
-			"sub_path": "filament/fdm_filament_pa.json"
-		},
-		{
-			"name": "fdm_filament_pc",
-			"sub_path": "filament/fdm_filament_pc.json"
-		},
-		{
-			"name": "fdm_filament_pet",
-			"sub_path": "filament/fdm_filament_pet.json"
-		},
-		{
-			"name": "fdm_filament_pla",
-			"sub_path": "filament/fdm_filament_pla.json"
-		},
-		{
-			"name": "fdm_filament_pva",
-			"sub_path": "filament/fdm_filament_pva.json"
-		},
-		{
-			"name": "fdm_filament_tpu",
-			"sub_path": "filament/fdm_filament_tpu.json"
-		},
 		{
 			"name": "Generic ABS BigNozzle @RatRig",
 			"sub_path": "filament/Generic ABS BigNozzle @RatRig.json"

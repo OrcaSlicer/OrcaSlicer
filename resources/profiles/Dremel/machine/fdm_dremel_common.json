@@ -123,9 +123,6 @@
 	"wipe": [
 		"1"
 	],
-	"default_filament_profile": [
-		"Generic PLA @Dremel"
-	],
 	"bed_exclude_area": [
 		"0x0"
 	],
