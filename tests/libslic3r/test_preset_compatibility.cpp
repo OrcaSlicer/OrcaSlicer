@@ -513,3 +513,51 @@ TEST_CASE("saving a preset writes only keys its type owns", "[PresetCompatibilit
     CHECK(reason.empty());
     CHECK_FALSE(reloaded.has("extruder_nozzle_stats"));
 }
+
+// A detached printer keeps working once its source vendor is uninstalled only if it owns the
+// process profiles too: "cloned_from" makes the source's ones compatible, but they are deleted with
+// the vendor. Tab::save_preset copies them through clone_presets_for_printer(), and skips the ones
+// it already copied by predicting their name with cloned_preset_name().
+TEST_CASE("a detached printer takes a copy of its process profiles", "[PresetCompatibility]")
+{
+    ScopedTemporaryDir         temp_dir;
+    PresetBundle               bundle;
+    PresetsConfigSubstitutions substitutions;
+
+    bundle.prints.load_presets(temp_dir.path().string(), PRESET_PRINT_NAME, substitutions,
+                               ForwardCompatibilitySubstitutionRule::Disable);
+
+    // A system process profile of the source printer, with one value the copy has to bring over.
+    DynamicPrintConfig process_config(bundle.prints.default_preset().config);
+    process_config.set_key_value("compatible_printers", new ConfigOptionStrings{"Source Printer 0.4 nozzle"});
+    process_config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    Preset &system_process = bundle.prints.load_preset(std::string(), "0.20mm Standard @Source", process_config, /*select=*/false);
+    system_process.is_system = true;
+
+    const std::string copy_name = PresetCollection::cloned_preset_name(system_process.name, "My Printer");
+    CHECK(copy_name == "0.20mm Standard @My Printer");
+
+    std::vector<std::string> failures;
+    REQUIRE(bundle.prints.clone_presets_for_printer({&system_process}, failures, "My Printer", nullptr));
+
+    const Preset *copy = bundle.prints.find_preset(copy_name);
+    REQUIRE(copy != nullptr);
+    // Standalone, like the printer it belongs to: nothing left to resolve once the vendor is gone.
+    CHECK(copy->inherits().empty());
+    CHECK_FALSE(copy->is_system);
+    CHECK(copy->vendor == nullptr);
+    CHECK_THAT(copy->config.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.2, 1e-9));
+    // Bound to the detached printer by name, so it no longer depends on "cloned_from" either.
+    CHECK(copy->config.option<ConfigOptionStrings>("compatible_printers")->values == std::vector<std::string>{"My Printer"});
+    CHECK(compatible(*copy, make_printer("My Printer", "", "Source Printer 0.4 nozzle")));
+    CHECK(boost::filesystem::exists(copy->file));
+
+    // Saving the detached printer again must not overwrite a copy the user has edited since. That
+    // relies on cloned_preset_name() naming the very preset the clone would write.
+    failures.clear();
+    // Cloning inserted into the collection, so look the source up again rather than reusing it.
+    const Preset *source = bundle.prints.find_preset("0.20mm Standard @Source");
+    REQUIRE(source != nullptr);
+    CHECK_FALSE(bundle.prints.clone_presets_for_printer({source}, failures, "My Printer", nullptr));
+    CHECK(failures == std::vector<std::string>{copy_name});
+}

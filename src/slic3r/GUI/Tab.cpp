@@ -24,6 +24,7 @@
 #include <wx/settings.h>
 #include <wx/filedlg.h>
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
@@ -7432,6 +7433,21 @@ void copy_bed_assets_to_preset(const BedAssets &assets, Preset &target)
     copy_asset(assets.cover, "_cover");
 }
 
+// Orca: the process profiles a detached printer has to take a copy of. "cloned_from" keeps the
+// source printer's ones compatible, but they live in its vendor folder and are deleted when that
+// vendor is uninstalled, leaving the copy with no process profile at all. Only the installed ones
+// are copied, and only where the copy does not exist yet, so re-saving a detached printer never
+// overwrites a copy the user has edited since.
+std::vector<const Preset *> system_prints_to_clone(PresetCollection &prints, const std::string &printer_name)
+{
+    std::vector<const Preset *> sources;
+    for (const Preset &preset : prints)
+        if (preset.is_system && preset.is_visible && preset.is_compatible &&
+            prints.find_preset(PresetCollection::cloned_preset_name(preset.name, printer_name)) == nullptr)
+            sources.push_back(&preset);
+    return sources;
+}
+
 } // namespace
 
 // Save the current preset into file.
@@ -7498,6 +7514,9 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
     const bool detaching_printer = detach && m_type == Preset::TYPE_PRINTER;
     // Resolved here, while the source is still the edited preset and its vendor still installed.
     const BedAssets detach_assets = detaching_printer ? resolve_bed_assets(edited_preset) : BedAssets();
+    // Likewise the process profiles: their "is_compatible" flag still refers to the source printer.
+    const std::vector<const Preset *> detach_prints = detaching_printer ? system_prints_to_clone(m_preset_bundle->prints, name)
+                                                                       : std::vector<const Preset *>();
     if (m_type == Preset::TYPE_PRINTER) {
         std::string &cloned_from = Preset::cloned_from(edited_preset.config);
         if (detach && cloned_from.empty())
@@ -7518,6 +7537,18 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
     //BBS: the preset file only exists after the save, so the artwork is copied beside it here.
     if (detaching_printer)
         copy_bed_assets_to_preset(detach_assets, *new_preset);
+
+    // Orca: give the detached printer its own process profiles, flattened into user presets bound to
+    // it - the same copy the "Create Printer" wizard makes. Done after the save, so the printer they
+    // name exists. create_filament_id is only called for filament presets, hence unused here.
+    if (!detach_prints.empty()) {
+        std::vector<std::string> failures;
+        if (m_preset_bundle->prints.clone_presets_for_printer(detach_prints, failures, new_preset->name, nullptr))
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": copied " << detach_prints.size() << " process profiles to " << new_preset->name;
+        else
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": could not copy the process profiles of " << new_preset->name << ": "
+                                     << boost::algorithm::join(failures, ", ");
+    }
 
     // set sync_info for sync service
     if (exist_preset) {
@@ -7540,6 +7571,15 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
 
     // Update the selection boxes at the plater.
     on_presets_changed();
+
+    // Orca: on_presets_changed() only refreshes this tab's own list, so the copies made above have
+    // to be pushed into the process list of the print tab and of the sidebar.
+    if (!detach_prints.empty()) {
+        if (Tab *print_tab = wxGetApp().get_tab(Preset::TYPE_PRINT))
+            print_tab->update_tab_ui();
+        if (wxGetApp().plater() != nullptr)
+            wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_PRINT);
+    }
 
     //BBS if create a new prset name, preset changed from preset name to new preset name
     if (!exist_preset) {
