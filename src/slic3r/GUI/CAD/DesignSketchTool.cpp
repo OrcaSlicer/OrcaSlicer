@@ -8614,8 +8614,12 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     // Committed entities of this session. DoF feedback (P3): a fully-constrained
     // sketch (dof==0, consistent) paints green; entities touched by a conflicting
     // constraint paint red; otherwise the under-constrained default (orange / grey
-    // construction). Selected entities always override to white.
-    const ColorRGBA white(1.0f, 1.0f, 1.0f, 1.0f);
+    // construction). Selected entities always override to the shared selection colour.
+    // NOT white: the Design tab now paints a bed grid, and white-on-grid made a freshly
+    // drawn (hence auto-selected) line invisible against it. design_selection_color() is
+    // the same cyan the solid picks already wear, so "selected" reads the same everywhere.
+    const ColorRGBA white(1.0f, 1.0f, 1.0f, 1.0f);   // hover handle only
+    const ColorRGBA sel_col = design_selection_color();
     const ColorRGBA green(0.30f, 0.85f, 0.42f, 1.0f);
     const ColorRGBA conflict(1.0f, 0.22f, 0.22f, 1.0f);
     const ColorRGBA opref(0.80f, 0.45f, 1.0f, 1.0f);     // violet: the edit-op's reference pick
@@ -8645,7 +8649,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         ColorRGBA col;
         if (editing_this)        col = editing;
         else if (op_ref)         col = opref;
-        else if (selected)       col = white;
+        else if (selected)       col = sel_col;
         else if (bad)            col = conflict;
         else if (e.construction) col = grey;
         else                     col = fully ? green : orange;
@@ -8666,10 +8670,10 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     if (!point_markers.empty())
         draw_vertices(m_vertex_model, point_markers, yellow);
     if (!sel_point_markers.empty())
-        draw_vertices(m_highlight_model, sel_point_markers, white);
+        draw_vertices(m_highlight_model, sel_point_markers, sel_col);
 
     // Endpoint / centre handles so individual points are visible and pickable in the
-    // Select and Dimension tools (a line = a segment + 2 points). Selected ones white.
+    // Select and Dimension tools (a line = a segment + 2 points). Selected ones cyan.
     m_show_handles = (m_mode == Mode::Select || m_mode == Mode::Dimension);
     if (m_show_handles) {
         std::vector<Vec2d> handles, sel_handles;
@@ -8704,7 +8708,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
             }
         }
         if (!handles.empty())     draw_vertices(m_vertex_model, handles, ColorRGBA(0.65f, 0.65f, 0.30f, 1.0f));
-        if (!sel_handles.empty()) draw_vertices(m_highlight_model, sel_handles, white);
+        if (!sel_handles.empty()) draw_vertices(m_highlight_model, sel_handles, sel_col);
 
         // Midpoint of every segment, drawn smaller and cooler than the endpoint handles
         // (snaporca-te8v). Without it the Midpoint snap is invisible: it exists in the

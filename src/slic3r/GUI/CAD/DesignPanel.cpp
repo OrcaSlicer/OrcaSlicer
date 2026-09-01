@@ -7848,7 +7848,14 @@ void DesignPanel::apply_live_constraint(SketchConstraintType type)
 
     switch (plan.kind) {
     case ConstraintPlan::Kind::Reject:
-        fail(constraint_reject_text(plan.reason, type));
+        // "I applied Parallel and NOTHING HAPPENS" is this branch. The text named the
+        // REQUIREMENT ("applies to two lines") but never the CURRENT PICK, and a creation
+        // tool auto-selects only the entity it just drew — so after drawing two lines exactly
+        // one is selected and the button correctly refuses. Say how many are picked, or the
+        // refusal is indistinguishable from a dead button.
+        fail(wxString::Format(_L("%s  —  %d selected. Press Esc for the Select tool, click one "
+                                 "line, then Shift- or Ctrl-click the other."),
+                              constraint_reject_text(plan.reason, type), int(sel.size())));
         return;
     case ConstraintPlan::Kind::AskValue:
         m_viewport->open_inline_value(plan.prefill, [this, plan, commit](double v) {
