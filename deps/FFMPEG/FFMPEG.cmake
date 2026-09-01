@@ -31,6 +31,9 @@ else ()
         # in software (swscale), and the auto-detected HW objects would drag in
         # system frameworks that the static libs would then depend on.
         set(_link_cmd --enable-static --disable-shared --disable-videotoolbox --disable-audiotoolbox)
+        # Native macOS: route through the launcher. The cross build below sets
+        # its own _cc_cmd with the target arch.
+        set(_cc_cmd "--cc=${DEP_CC}")
         if (IS_CROSS_COMPILE)
             set(_cross_cmd --enable-cross-compile)
             set(_pic_cmd --enable-pic)
