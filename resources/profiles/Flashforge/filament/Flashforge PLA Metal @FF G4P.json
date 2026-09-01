@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Metal @FF G4P",
-	"inherits": "Flashforge Generic HS PLA",
+	"inherits": "Generic HS PLA @Flashforge",
 	"from": "system",
 	"setting_id": "UFWWrhfgS7N36Y8W",
 	"filament_id": "OFvVxvzZ",

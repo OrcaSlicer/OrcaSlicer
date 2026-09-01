@@ -1,11 +1,14 @@
 {
 	"type": "filament",
 	"name": "FusRock PAHT-CF @FF G4P",
-	"inherits": "Flashforge Generic PLA-CF10",
+	"inherits": "Generic PLA-CF10 @Flashforge",
 	"from": "system",
 	"setting_id": "wmWMf3MfmbfZx2o8",
-	"filament_id": "OFYtS9zg",
+	"filament_id": "OFKW5hEW",
 	"instantiation": "true",
+	"filament_vendor": [
+		"FusRock"
+	],
 	"additional_cooling_fan_speed": [
 		"0"
 	],

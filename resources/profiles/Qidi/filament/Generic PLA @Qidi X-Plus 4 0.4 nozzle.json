@@ -1,0 +1,31 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @Qidi X-Plus 4 0.4 nozzle",
+	"inherits": "Generic PLA @Qidi",
+	"renamed_from": "Qidi Generic PLA @Qidi X-Plus 4 0.4 nozzle;Qidi Generic PLA Qidi X-Plus 4 0.4 nozzle",
+	"from": "system",
+	"setting_id": "SU5XqpfPO5g87dfL",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"14"
+	],
+	"pressure_advance": [
+		"0.034"
+	],
+	"filament_settings_id": [
+		"Generic PLA @Qidi X-Plus 4 0.4 nozzle"
+	],
+	"full_fan_speed_layer": [
+		"3"
+	],
+	"nozzle_temperature": [
+		"210"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 4 0.4 nozzle"
+	]
+}

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "FLSun T1 PETG",
-	"inherits": "FLSun Generic PETG",
+	"inherits": "Generic PETG @FLSun",
 	"from": "system",
 	"setting_id": "A2aA7xcmqgz8ERyY",
 	"filament_id": "OFJ80y1e",

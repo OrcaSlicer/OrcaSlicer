@@ -3,6 +3,9 @@
 	"name": "Generic PP-GF @base",
 	"inherits": "fdm_filament_pp",
 	"from": "system",
-	"filament_id": "OFNiSLfL",
-	"instantiation": "false"
+	"filament_id": "OFsijjtH",
+	"instantiation": "false",
+	"filament_type": [
+		"PP-GF"
+	]
 }

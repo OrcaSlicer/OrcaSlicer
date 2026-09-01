@@ -2,7 +2,7 @@
 	"type": "filament",
 	"name": "Generic ASA @Flashforge AD4",
 	"renamed_from": "Generic ASA @AD4",
-	"inherits": "Flashforge Generic ASA",
+	"inherits": "Generic ASA @Flashforge",
 	"from": "system",
 	"setting_id": "tq7YmJohYaNiPplE",
 	"filament_id": "OFLPAxz3",

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge ASA-CF @FF G4P",
-	"inherits": "Flashforge Generic ABS",
+	"inherits": "Generic ABS @Flashforge",
 	"from": "system",
 	"setting_id": "kZXg6odPm5iW79Qn",
 	"filament_id": "OFq0TY7C",

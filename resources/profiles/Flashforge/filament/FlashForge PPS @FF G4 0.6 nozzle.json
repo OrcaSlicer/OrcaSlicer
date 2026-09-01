@@ -1,11 +1,14 @@
 {
 	"type": "filament",
 	"name": "FlashForge PPS @FF G4 0.6 nozzle",
-	"inherits": "FusRock Generic PET-CF @G3U 0.6 Nozzle",
+	"inherits": "FusRock PET-CF @G3U 0.6 Nozzle",
 	"from": "system",
 	"setting_id": "owHbDqY55rFtSegz",
 	"filament_id": "OFUCpLaL",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Generic"
+	],
 	"activate_chamber_temp_control": [
 		"1"
 	],

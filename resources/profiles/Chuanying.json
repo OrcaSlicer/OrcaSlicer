@@ -1,7 +1,7 @@
 {
 	"name": "Chuanying",
 	"url": "",
-	"version": "02.04.00.02",
+	"version": "02.04.00.03",
 	"force_update": "0",
 	"description": "Chuanying configurations",
 	"machine_model_list": [
@@ -46,36 +46,36 @@
 	],
 	"filament_list": [
 		{
-			"name": "Chuanying Generic ABS",
-			"sub_path": "filament/Chuanying Generic ABS.json"
+			"name": "Generic ABS @Chuanying",
+			"sub_path": "filament/Generic ABS @Chuanying.json"
 		},
 		{
-			"name": "Chuanying Generic ASA",
-			"sub_path": "filament/Chuanying Generic ASA.json"
+			"name": "Generic ASA @Chuanying",
+			"sub_path": "filament/Generic ASA @Chuanying.json"
 		},
 		{
-			"name": "Chuanying Generic HS PLA",
-			"sub_path": "filament/Chuanying Generic HS PLA.json"
+			"name": "Generic HS PLA @Chuanying",
+			"sub_path": "filament/Generic HS PLA @Chuanying.json"
 		},
 		{
-			"name": "Chuanying Generic PETG",
-			"sub_path": "filament/Chuanying Generic PETG.json"
+			"name": "Generic PETG @Chuanying",
+			"sub_path": "filament/Generic PETG @Chuanying.json"
 		},
 		{
-			"name": "Chuanying Generic PLA",
-			"sub_path": "filament/Chuanying Generic PLA.json"
+			"name": "Generic PLA @Chuanying",
+			"sub_path": "filament/Generic PLA @Chuanying.json"
 		},
 		{
-			"name": "Chuanying Generic PLA-Silk",
-			"sub_path": "filament/Chuanying Generic PLA-Silk.json"
+			"name": "Generic PLA-Silk @Chuanying",
+			"sub_path": "filament/Generic PLA-Silk @Chuanying.json"
 		},
 		{
 			"name": "Chuanying ABS @Chuanying X1 0.25 Nozzle",
 			"sub_path": "filament/Chuanying ABS @Chuanying X1 0.25 Nozzle.json"
 		},
 		{
-			"name": "Chuanying Generic HIPS",
-			"sub_path": "filament/Chuanying Generic HIPS.json"
+			"name": "Generic HIPS @Chuanying",
+			"sub_path": "filament/Generic HIPS @Chuanying.json"
 		},
 		{
 			"name": "Chuanying ASA @Chuanying X1 0.25 Nozzle",
@@ -90,8 +90,8 @@
 			"sub_path": "filament/Chuanying PETG @Chuanying X1 0.25 Nozzle.json"
 		},
 		{
-			"name": "Chuanying Generic PVA",
-			"sub_path": "filament/Chuanying Generic PVA.json"
+			"name": "Generic PVA @Chuanying",
+			"sub_path": "filament/Generic PVA @Chuanying.json"
 		},
 		{
 			"name": "Chuanying PLA @Chuanying X1 0.25 Nozzle",
@@ -102,16 +102,16 @@
 			"sub_path": "filament/Chuanying PLA-SILK @Chuanying X1 0.25 Nozzle.json"
 		},
 		{
-			"name": "Chuanying Generic PETG-CF10",
-			"sub_path": "filament/Chuanying Generic PETG-CF10.json"
+			"name": "Generic PETG-CF10 @Chuanying",
+			"sub_path": "filament/Generic PETG-CF10 @Chuanying.json"
 		},
 		{
-			"name": "Chuanying Generic PLA-CF10",
-			"sub_path": "filament/Chuanying Generic PLA-CF10.json"
+			"name": "Generic PLA-CF10 @Chuanying",
+			"sub_path": "filament/Generic PLA-CF10 @Chuanying.json"
 		},
 		{
-			"name": "Chuanying Generic TPU",
-			"sub_path": "filament/Chuanying Generic TPU.json"
+			"name": "Generic TPU @Chuanying",
+			"sub_path": "filament/Generic TPU @Chuanying.json"
 		}
 	],
 	"machine_list": [

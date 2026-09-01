@@ -4,8 +4,11 @@
 	"inherits": "Generic PA-CF @System",
 	"from": "system",
 	"setting_id": "0i7VkquM4n0uFaXH",
-	"filament_id": "OF6WddJ1",
+	"filament_id": "OFCn83wF",
 	"instantiation": "true",
+	"filament_vendor": [
+		"FusRock"
+	],
 	"activate_chamber_temp_control": [
 		"1"
 	],
@@ -57,7 +60,7 @@
 		"; filament start gcode"
 	],
 	"filament_type": [
-		"S-PAHT"
+		"PAHT"
 	],
 	"hot_plate_temp": [
 		"80"

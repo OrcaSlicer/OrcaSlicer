@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Matte @FF AD5X 0.6 nozzle",
-	"inherits": "Flashforge Generic PLA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "BVmVfNCuy8HDhcEI",
 	"filament_id": "OF1bQyX2",

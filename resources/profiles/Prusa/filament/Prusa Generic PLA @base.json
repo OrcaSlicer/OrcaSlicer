@@ -1,8 +1,0 @@
-{
-	"type": "filament",
-	"name": "Prusa Generic PLA @base",
-	"inherits": "fdm_filament_pla",
-	"from": "system",
-	"filament_id": "OFiCHnso",
-	"instantiation": "false"
-}

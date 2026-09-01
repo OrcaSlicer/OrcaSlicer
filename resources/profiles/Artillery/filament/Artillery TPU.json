@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Artillery TPU",
-	"inherits": "Artillery Generic PLA",
+	"inherits": "Generic PLA @Artillery",
 	"from": "system",
 	"setting_id": "IcV1jLJaS5rmdNOY",
 	"filament_id": "OFcJDtTx",

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @Anycubic Kobra 3 0.4 nozzle",
-	"inherits": "Anycubic Generic TPU",
+	"inherits": "Generic TPU @Anycubic",
 	"from": "system",
 	"setting_id": "kHB2rrxkyz4Clu3N",
 	"filament_id": "OFgbpcy9",

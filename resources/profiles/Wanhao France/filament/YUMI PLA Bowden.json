@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "YUMI PLA Bowden",
-	"inherits": "Yumi Generic PLA",
+	"inherits": "Generic PLA @Yumi",
 	"from": "system",
 	"setting_id": "zQSSA2QZi27ESyQK",
 	"filament_id": "OFZ2LuAi",

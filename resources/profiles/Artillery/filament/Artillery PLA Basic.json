@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Artillery PLA Basic",
-	"inherits": "Artillery Generic PLA",
+	"inherits": "Generic PLA @Artillery",
 	"from": "system",
 	"setting_id": "DcGBMRjdcgLx6pWG",
 	"filament_id": "OFXk1emJ",

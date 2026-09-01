@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Artillery PETG @Artillery M1 Pro 0.4 nozzle",
-	"inherits": "Artillery Generic PLA",
+	"inherits": "Generic PLA @Artillery",
 	"from": "system",
 	"setting_id": "g7UIfJTOPzMQzfrH",
 	"filament_id": "OFilnglt",

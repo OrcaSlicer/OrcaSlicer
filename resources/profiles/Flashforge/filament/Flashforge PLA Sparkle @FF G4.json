@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Sparkle @FF G4",
-	"inherits": "Flashforge Generic HS PLA",
+	"inherits": "Generic HS PLA @Flashforge",
 	"from": "system",
 	"setting_id": "YsyGGOGqUVkEqkIr",
 	"filament_id": "OFec7Qiw",

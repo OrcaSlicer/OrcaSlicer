@@ -1,0 +1,28 @@
+{
+	"type": "filament",
+	"name": "Generic PLA HF @Prusa MK3.5",
+	"inherits": "fdm_filament_pla",
+	"renamed_from": "Prusa Generic PLA HF @MK3.5;Prusa Generic PLA HF MK3.5",
+	"from": "system",
+	"setting_id": "4N82rUxi9Bbm2Cdd",
+	"filament_id": "OFZr862X",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"1"
+	],
+	"filament_max_volumetric_speed": [
+		"24"
+	],
+	"slow_down_layer_time": [
+		"10"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.035"
+	],
+	"compatible_printers": [
+		"Prusa MK3.5 0.4 nozzle"
+	]
+}

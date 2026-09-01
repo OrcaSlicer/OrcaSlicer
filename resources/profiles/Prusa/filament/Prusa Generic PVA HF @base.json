@@ -1,8 +1,0 @@
-{
-	"type": "filament",
-	"name": "Prusa Generic PVA HF @base",
-	"inherits": "fdm_filament_pva",
-	"from": "system",
-	"filament_id": "OFoT8F7Y",
-	"instantiation": "false"
-}

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge HS PETG @FF G4P 0.8 HF nozzle",
-	"inherits": "Flashforge Generic PETG @G3U 0.6 Nozzle",
+	"inherits": "Generic PETG @Flashforge G3U 0.6 Nozzle",
 	"from": "system",
 	"setting_id": "cx99AH0C575XxAj9",
 	"filament_id": "OF5w29Kq",

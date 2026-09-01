@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Color Change @FF G4 HF",
-	"inherits": "Flashforge Generic ABS @G3U",
+	"inherits": "Generic ABS @Flashforge G3U",
 	"from": "system",
 	"setting_id": "5hwNJvvLtb75XBBg",
 	"filament_id": "OFkwIWwc",

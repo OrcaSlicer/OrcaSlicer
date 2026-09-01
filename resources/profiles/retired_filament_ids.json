@@ -2322,17 +2322,1587 @@
    ],
    "successor": "OFmhJs5V"
   },
+  "OF0GIkJm": {
+   "claims": [
+    "Tiertime/Tiertime Generic PLA Silk"
+   ],
+   "successor": "OFesA6rF"
+  },
+  "OF0zx94L": {
+   "claims": [
+    "Vzbot/Vzbot Generic PA"
+   ],
+   "successor": "OFg8ndtj"
+  },
+  "OF1Id239": {
+   "claims": [
+    "Prusa/Prusa Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OF1OZujR": {
+   "claims": [
+    "Flashforge/Flashforge Generic PVA"
+   ],
+   "successor": "OFDvXujf"
+  },
+  "OF1daEUW": {
+   "claims": [
+    "Anker/Anker Generic PETG-CF"
+   ],
+   "successor": "OFoYSJKi"
+  },
+  "OF1uR1t2": {
+   "claims": [
+    "Tiertime/Tiertime Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OF2RjrWH": {
+   "claims": [
+    "Flashforge/FusRock Generic PAHT-GF"
+   ],
+   "successor": "OFcVLpNA"
+  },
+  "OF2mgDsI": {
+   "claims": [
+    "Vzbot/Vzbot Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OF3P0BQA": {
+   "claims": [
+    "Anker/Anker Generic ABS",
+    "Anker/Anker Generic ABS 0.2 nozzle",
+    "Anker/Anker Generic ABS 0.25 nozzle"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OF3s929u": {
+   "claims": [
+    "Tiertime/Tiertime Generic PP"
+   ],
+   "successor": "OF1UNk9P"
+  },
+  "OF3wxlw9": {
+   "claims": [
+    "CoLiDo/CoLiDo Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OF42ZDpN": {
+   "claims": [
+    "Flashforge/FusRock PAHT"
+   ],
+   "successor": "OF7pjCsO"
+  },
+  "OF48L671": {
+   "claims": [
+    "Ratrig/RatRig Generic ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OF4Mf5Gz": {
+   "claims": [
+    "Creality/Creality Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OF4XAUnp": {
+   "claims": [
+    "Vzbot/Vzbot Generic ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OF4oCRKe": {
+   "claims": [
+    "DeltaMaker/DeltaMaker Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OF4xhTuK": {
+   "claims": [
+    "OrcaArena/OrcaArena Generic PA-CF"
+   ],
+   "successor": "OFQLcbps"
+  },
+  "OF4zzGwp": {
+   "claims": [
+    "Flashforge/FusRock Generic PET-GF"
+   ],
+   "successor": "OFzwA5Z9"
+  },
+  "OF51XQar": {
+   "claims": [
+    "CONSTRUCT3D/C1 Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OF5E5KNA": {
+   "claims": [
+    "SecKit/SecKit Generic PC"
+   ],
+   "successor": "OFLakOUI"
+  },
+  "OF5Zk4e1": {
+   "claims": [
+    "Anycubic/Anycubic Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OF5vzBhb": {
+   "claims": [
+    "Chuanying/Chuanying Generic PLA",
+    "Chuanying/Chuanying PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OF6Fpw1E": {
+   "claims": [
+    "Comgrow/Comgrow Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OF6K467o": {
+   "claims": [
+    "InfiMech/InfiMech Generic PA-CF"
+   ],
+   "successor": "OFQLcbps"
+  },
+  "OF6KELDx": {
+   "claims": [
+    "Co Print/CoPrint Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OF6WddJ1": {
+   "claims": [
+    "Flashforge/FusRock S-PAHT"
+   ],
+   "successor": "OFCn83wF"
+  },
+  "OF6rMr3U": {
+   "claims": [
+    "Flashforge/FusRock Generic S-Multi"
+   ],
+   "successor": "OF0AquDh"
+  },
+  "OF6tKa1Z": {
+   "claims": [
+    "Anker/Anker Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OF6vKLaU": {
+   "claims": [
+    "Artillery/Artillery Generic ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OF6xLvYg": {
+   "claims": [
+    "InfiMech/InfiMech Generic PC"
+   ],
+   "successor": "OFLakOUI"
+  },
+  "OF7g2vYQ": {
+   "claims": [
+    "Co Print/CoPrint Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OF7uE5KB": {
+   "claims": [
+    "Anker/Anker Generic PA-CF"
+   ],
+   "successor": "OFQLcbps"
+  },
+  "OF8CXrvm": {
+   "claims": [
+    "SecKit/SecKit Generic PA"
+   ],
+   "successor": "OFg8ndtj"
+  },
+  "OF8bLDu7": {
+   "claims": [
+    "Blocks/Blocks Generic PA-CF"
+   ],
+   "successor": "OFQLcbps"
+  },
+  "OF97ru74": {
+   "claims": [
+    "Prusa/Prusa Generic PC"
+   ],
+   "successor": "OFLakOUI"
+  },
+  "OF9fOPpd": {
+   "claims": [
+    "Vzbot/Vzbot Generic PC"
+   ],
+   "successor": "OFLakOUI"
+  },
+  "OFACSw9O": {
+   "claims": [
+    "Creality/Creality Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFB09fpe": {
+   "claims": [
+    "Ratrig/RatRig Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFB0a3hT": {
+   "claims": [
+    "Anker/Anker Generic PLA-CF"
+   ],
+   "successor": "OFWbdGsC"
+  },
+  "OFB1Tv1E": {
+   "claims": [
+    "Anycubic/Anycubic Generic PA"
+   ],
+   "successor": "OFg8ndtj"
+  },
+  "OFB8wSps": {
+   "claims": [
+    "Flashforge/FusRock PET-CF"
+   ],
+   "successor": "OFDu1qE7"
+  },
+  "OFB9dx27": {
+   "claims": [
+    "Blocks/Blocks Generic ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OFBC32Wb": {
+   "claims": [
+    "Flashforge/FusRock PET"
+   ],
+   "successor": "OFKTGKJU"
+  },
+  "OFBIadjM": {
+   "claims": [
+    "Chuanying/Chuanying ASA",
+    "Chuanying/Chuanying Generic ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OFBpcB0a": {
+   "claims": [
+    "TwoTrees/TwoTrees Generic HS PLA"
+   ],
+   "successor": "OFvxghTE"
+  },
+  "OFBtlI8M": {
+   "claims": [
+    "FlyingBear/FlyingBear Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFC20UMj": {
+   "claims": [
+    "Flashforge/Flashforge Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFCVUEaV": {
+   "claims": [
+    "Tiertime/Tiertime Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFCaJHAA": {
+   "claims": [
+    "Flashforge/FusRock Generic S-PAHT"
+   ],
+   "successor": "OFCn83wF"
+  },
+  "OFCcsYtf": {
+   "claims": [
+    "FLSun/FLSun Generic ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OFCu3jES": {
+   "claims": [],
+   "successor": null
+  },
+  "OFD2JNS1": {
+   "claims": [
+    "Dremel/Dremel Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFD6kN7F": {
+   "claims": [
+    "OrcaArena/OrcaArena Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFDeTsJw": {
+   "claims": [
+    "Chuanying/Chuanying Generic HIPS"
+   ],
+   "successor": "OFsFon5l"
+  },
+  "OFEE1Dld": {
+   "claims": [
+    "Artillery/Artillery Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFETFWx7": {
+   "claims": [
+    "SecKit/SecKit Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFEZNNw1": {
+   "claims": [
+    "Ratrig/RatRig Generic PA"
+   ],
+   "successor": "OFg8ndtj"
+  },
+  "OFF73Bvp": {
+   "claims": [
+    "SecKit/SecKit Generic PLA-CF"
+   ],
+   "successor": "OFWbdGsC"
+  },
+  "OFFZ0BBL": {
+   "claims": [
+    "FlyingBear/FlyingBear Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFFxZ7hZ": {
+   "claims": [
+    "Chuanying/Chuanying Generic PLA-CF10"
+   ],
+   "successor": "OFX2zcrM"
+  },
+  "OFGDaEHO": {
+   "claims": [
+    "Tiertime/Tiertime Generic BVOH"
+   ],
+   "successor": "OFo2UF2C"
+  },
+  "OFGGyAgJ": {
+   "claims": [
+    "Vzbot/Vzbot Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFGKLoUm": {
+   "claims": [
+    "Anycubic/Anycubic Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFGLeiNL": {
+   "claims": [],
+   "successor": null
+  },
+  "OFGPJxnt": {
+   "claims": [
+    "Anker/Anker Generic PC",
+    "Anker/Anker Generic PC 0.2 nozzle",
+    "Anker/Anker Generic PC 0.25 nozzle"
+   ],
+   "successor": "OFLakOUI"
+  },
+  "OFGzUNbm": {
+   "claims": [
+    "Tiertime/Tiertime Generic PPS-CF"
+   ],
+   "successor": "OF6rdQ6M"
+  },
+  "OFHFZ1Te": {
+   "claims": [
+    "Prusa/Prusa Generic PLA Silk"
+   ],
+   "successor": "OFesA6rF"
+  },
+  "OFHQUAoZ": {
+   "claims": [
+    "FLSun/FLSun Generic PA-CF"
+   ],
+   "successor": "OFQLcbps"
+  },
+  "OFHUnLY2": {
+   "claims": [
+    "Vzbot/Vzbot Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFHa3RZT": {
+   "claims": [
+    "Tiertime/Tiertime Generic PA-CF"
+   ],
+   "successor": "OFQLcbps"
+  },
+  "OFI80Hct": {
+   "claims": [
+    "Anycubic/Anycubic Generic ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OFIYTy8S": {
+   "claims": [
+    "Anker/Anker Generic PLA+",
+    "Anker/Anker Generic PLA+ 0.2 nozzle",
+    "Anker/Anker Generic PLA+ 0.25 nozzle"
+   ],
+   "successor": "OFEWYR89"
+  },
+  "OFIda816": {
+   "claims": [
+    "Vzbot/Vzbot Generic PVA"
+   ],
+   "successor": "OFDvXujf"
+  },
+  "OFIeCuXj": {
+   "claims": [
+    "Peopoly/Peopoly Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFIieIka": {
+   "claims": [
+    "Flashforge/Polymaker CoPA"
+   ],
+   "successor": "OFQyyO0l"
+  },
+  "OFIy3kLw": {
+   "claims": [
+    "Prusa/Prusa Generic PA"
+   ],
+   "successor": "OFg8ndtj"
+  },
+  "OFJJpaLS": {
+   "claims": [
+    "FLSun/FLSun Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFJSksUs": {
+   "claims": [
+    "FLSun/FLSun Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFK01afJ": {
+   "claims": [
+    "Qidi/Qidi Generic PC"
+   ],
+   "successor": "OFLakOUI"
+  },
+  "OFK4LdYI": {
+   "claims": [
+    "Prusa/Prusa Generic ASA HF"
+   ],
+   "successor": "OFzRtFM9"
+  },
+  "OFKNAhls": {
+   "claims": [
+    "Qidi/Qidi Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFKuTr12": {
+   "claims": [
+    "Tiertime/Tiertime Generic PE"
+   ],
+   "successor": "OFPklMI1"
+  },
+  "OFKyCgaK": {
+   "claims": [
+    "Anycubic/Anycubic Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFLBUkwC": {
+   "claims": [
+    "Vzbot/Vzbot Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFLDSqqi": {
+   "claims": [
+    "Flashforge/Flashforge Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
   "OFLSBS99": {
    "claims": [
     "OrcaFilamentLibrary/Generic SBS"
    ],
    "successor": "OFhQfUQY"
   },
+  "OFLrdHse": {
+   "claims": [
+    "Flashforge/Flashforge Generic HS PLA"
+   ],
+   "successor": "OFvxghTE"
+  },
+  "OFLuczRG": {
+   "claims": [
+    "Creality/Creality Generic ASA-CF"
+   ],
+   "successor": "OF53eLVD"
+  },
+  "OFM87w9T": {
+   "claims": [
+    "Tiertime/Tiertime Generic SBS"
+   ],
+   "successor": "OFhQfUQY"
+  },
+  "OFMEbuBE": {
+   "claims": [
+    "Blocks/Blocks Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFMIurFh": {
+   "claims": [
+    "Creality/Creality HF Generic Speed PLA"
+   ],
+   "successor": "OFXmv5p0"
+  },
+  "OFMTBcnz": {
+   "claims": [
+    "Tiertime/Tiertime Generic PP-CF"
+   ],
+   "successor": "OFXkm8q1"
+  },
+  "OFMZAoqa": {
+   "claims": [
+    "Tiertime/Tiertime Generic PVA"
+   ],
+   "successor": "OFDvXujf"
+  },
+  "OFMgJQCZ": {
+   "claims": [
+    "Anker/Anker Generic PA",
+    "Anker/Anker Generic PA 0.2 nozzle",
+    "Anker/Anker Generic PA 0.25 nozzle"
+   ],
+   "successor": "OFg8ndtj"
+  },
+  "OFMoLF46": {
+   "claims": [
+    "FLSun/FLSun Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFMqYusc": {
+   "claims": [
+    "Creality/Creality Generic PA"
+   ],
+   "successor": "OFg8ndtj"
+  },
+  "OFN7aNHe": {
+   "claims": [
+    "Tiertime/Tiertime Generic PC"
+   ],
+   "successor": "OFLakOUI"
+  },
+  "OFNLXV8X": {
+   "claims": [
+    "Tiertime/Tiertime Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFNOxcYl": {
+   "claims": [
+    "Ratrig/RatRig Generic PA-CF"
+   ],
+   "successor": "OFQLcbps"
+  },
+  "OFNW4ZTC": {
+   "claims": [
+    "Creality/Creality Generic PLA Wood"
+   ],
+   "successor": "OFIKZxPF"
+  },
+  "OFNYewRS": {
+   "claims": [
+    "Blocks/Blocks Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFNZYgLA": {
+   "claims": [
+    "Qidi/Qidi Generic PVA"
+   ],
+   "successor": "OFDvXujf"
+  },
+  "OFNcdCrm": {
+   "claims": [
+    "Anycubic/Anycubic Generic PLA-CF"
+   ],
+   "successor": "OFWbdGsC"
+  },
+  "OFNiSLfL": {
+   "claims": [
+    "OrcaFilamentLibrary/Generic PP-GF"
+   ],
+   "successor": "OFsijjtH"
+  },
+  "OFNn21yM": {
+   "claims": [
+    "Vzbot/Vzbot Generic PA-CF"
+   ],
+   "successor": "OFQLcbps"
+  },
+  "OFOKYhi6": {
+   "claims": [
+    "Prusa/Prusa Generic PETG HF"
+   ],
+   "successor": "OF7lOgYF"
+  },
+  "OFPdhDlK": {
+   "claims": [
+    "Anycubic/Anycubic Generic PA-CF"
+   ],
+   "successor": "OFQLcbps"
+  },
+  "OFPjOUtz": {
+   "claims": [
+    "Flashforge/FusRock Generic PAHT-CF"
+   ],
+   "successor": "OFKW5hEW"
+  },
+  "OFPy0Ogq": {
+   "claims": [
+    "Qidi/Qidi Generic PA-CF"
+   ],
+   "successor": "OFQLcbps"
+  },
+  "OFQ7I5vC": {
+   "claims": [
+    "Prusa/Prusa Generic PLA-CF"
+   ],
+   "successor": "OFWbdGsC"
+  },
+  "OFQC8Vna": {
+   "claims": [
+    "Flashforge/Flashforge Generic PETG-CF"
+   ],
+   "successor": "OFoYSJKi"
+  },
+  "OFQTrLXB": {
+   "claims": [
+    "Qidi/Qidi Generic PLA-CF"
+   ],
+   "successor": "OFWbdGsC"
+  },
+  "OFQbqeN7": {
+   "claims": [
+    "Qidi/Qidi Generic PA"
+   ],
+   "successor": "OFg8ndtj"
+  },
+  "OFQswlnF": {
+   "claims": [
+    "Tiertime/Tiertime Generic PA"
+   ],
+   "successor": "OFg8ndtj"
+  },
+  "OFRDLNM9": {
+   "claims": [
+    "Peopoly/Peopoly Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFRPEs5o": {
+   "claims": [
+    "Flashforge/Flashforge Generic ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OFRiyes1": {
+   "claims": [
+    "Anker/Anker Generic ASA",
+    "Anker/Anker Generic ASA 0.2 nozzle",
+    "Anker/Anker Generic ASA 0.25 nozzle"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OFRujL0v": {
+   "claims": [
+    "Flashforge/FusRock Generic PET-CF"
+   ],
+   "successor": "OFDu1qE7"
+  },
+  "OFRusgEn": {
+   "claims": [
+    "Chuanying/Chuanying Generic PVA"
+   ],
+   "successor": "OFDvXujf"
+  },
+  "OFRzsaDK": {
+   "claims": [
+    "FlyingBear/FlyingBear Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFS8JF3S": {
+   "claims": [
+    "Qidi/Qidi Generic PLA High Speed"
+   ],
+   "successor": "OFmpMwxS"
+  },
+  "OFSDFYs4": {
+   "claims": [
+    "Creality/Creality Generic PLA-CF"
+   ],
+   "successor": "OFWbdGsC"
+  },
+  "OFSGbf2I": {
+   "claims": [
+    "Anycubic/Anycubic Generic PVA"
+   ],
+   "successor": "OFDvXujf"
+  },
+  "OFSPdsuW": {
+   "claims": [
+    "Tiertime/Tiertime Generic PPA-CF"
+   ],
+   "successor": "OF8tPByX"
+  },
   "OFSTCno1": {
    "claims": [
     "re3D/re3D Greengate rPETG"
    ],
    "successor": "OFmCOW2Y"
+  },
+  "OFTKFAZ4": {
+   "claims": [
+    "Tiertime/Tiertime Generic PCTG"
+   ],
+   "successor": "OFu1evlr"
+  },
+  "OFU0n0zW": {
+   "claims": [
+    "FLSun/FLSun T1 PLA Generic"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFU3zwPc": {
+   "claims": [
+    "Prusa/Prusa Generic TPU HF"
+   ],
+   "successor": "OFnT7Qpb"
+  },
+  "OFU5N9jI": {
+   "claims": [
+    "OrcaArena/OrcaArena Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFU6fjbi": {
+   "claims": [
+    "Co Print/CoPrint Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFUScM0D": {
+   "claims": [
+    "Flashforge/FusRock S-Multi"
+   ],
+   "successor": "OF0AquDh"
+  },
+  "OFUWRqwb": {
+   "claims": [
+    "Creality/Creality Generic PA-CF"
+   ],
+   "successor": "OFQLcbps"
+  },
+  "OFUaVAdj": {
+   "claims": [
+    "Tiertime/Tiertime Generic ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OFUrStd6": {
+   "claims": [
+    "Ratrig/RatRig Generic PCTG"
+   ],
+   "successor": "OFu1evlr"
+  },
+  "OFUtGagr": {
+   "claims": [
+    "Artillery/Artillery Generic PLA-CF"
+   ],
+   "successor": "OFWbdGsC"
+  },
+  "OFVKADz5": {
+   "claims": [
+    "Comgrow/Comgrow Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFVqZ2H0": {
+   "claims": [
+    "FLSun/FLSun Generic PC"
+   ],
+   "successor": "OFLakOUI"
+  },
+  "OFW9uIkE": {
+   "claims": [
+    "Tiertime/Tiertime Generic HIPS"
+   ],
+   "successor": "OFsFon5l"
+  },
+  "OFWIr7ZE": {
+   "claims": [
+    "CoLiDo/CoLiDo Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFWY6vBh": {
+   "claims": [
+    "Anycubic/Anycubic Generic PC"
+   ],
+   "successor": "OFLakOUI"
+  },
+  "OFWadebJ": {
+   "claims": [
+    "Tiertime/Tiertime Generic PETG-CF"
+   ],
+   "successor": "OFoYSJKi"
+  },
+  "OFWbbuRY": {
+   "claims": [
+    "InfiMech/InfiMech Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFWof1Ap": {
+   "claims": [
+    "FLSun/FLSun Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFWukXja": {
+   "claims": [
+    "Qidi/Qidi Generic TPU 95A"
+   ],
+   "successor": "OFjiXpyf"
+  },
+  "OFWzr7m0": {
+   "claims": [
+    "Anycubic/Anycubic Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFXXUHSG": {
+   "claims": [
+    "Chuanying/Chuanying Generic PETG-CF10"
+   ],
+   "successor": "OFO5djrM"
+  },
+  "OFXhZ3uY": {
+   "claims": [
+    "OrcaArena/OrcaArena Generic PC"
+   ],
+   "successor": "OFLakOUI"
+  },
+  "OFXuwtnq": {
+   "claims": [
+    "Co Print/CoPrint Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFXyyfX6": {
+   "claims": [
+    "Anker/Anker Generic PLA Silk",
+    "Anker/Anker Generic PLA Silk 0.2 nozzle",
+    "Anker/Anker Generic PLA Silk 0.25 nozzle"
+   ],
+   "successor": "OFesA6rF"
+  },
+  "OFYHzKyS": {
+   "claims": [
+    "Vzbot/Vzbot Generic PLA-CF"
+   ],
+   "successor": "OFWbdGsC"
+  },
+  "OFYPdJ7t": {
+   "claims": [
+    "Creality/Creality Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFYl0c8v": {
+   "claims": [
+    "Flashforge/Flashforge Generic HIPS"
+   ],
+   "successor": "OFsFon5l"
+  },
+  "OFYlZMmy": {
+   "claims": [
+    "Chuanying/Chuanying Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFYlthXI": {
+   "claims": [
+    "Flashforge/Flashforge Generic PLA-CF"
+   ],
+   "successor": "OFWbdGsC"
+  },
+  "OFYtS9zg": {
+   "claims": [
+    "Flashforge/FusRock PAHT-CF"
+   ],
+   "successor": "OFKW5hEW"
+  },
+  "OFYvSO1W": {
+   "claims": [
+    "Flashforge/Flashforge Generic PLA-Silk"
+   ],
+   "successor": "OFi6PfUM"
+  },
+  "OFZ1hANN": {
+   "claims": [
+    "Flashforge/FusRock Generic NexPA-CF25"
+   ],
+   "successor": "OFjt8dDO"
+  },
+  "OFZ4fTO8": {
+   "claims": [
+    "CONSTRUCT3D/C1 Generic High Flow PETG"
+   ],
+   "successor": "OFNjku08"
+  },
+  "OFZHgTVI": {
+   "claims": [
+    "Flashforge/Flashforge Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFZPlCck": {
+   "claims": [
+    "Chuanying/Chuanying Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFZsChIG": {
+   "claims": [
+    "Qidi/Qidi Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFa9X7yl": {
+   "claims": [
+    "Flashforge/FusRock S-PAHT"
+   ],
+   "successor": "OFCn83wF"
+  },
+  "OFaU2JxD": {
+   "claims": [
+    "Dremel/Dremel Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFahE7HP": {
+   "claims": [
+    "Blocks/Blocks Generic PC"
+   ],
+   "successor": "OFLakOUI"
+  },
+  "OFbeeFkl": {
+   "claims": [
+    "OrcaArena/OrcaArena Generic PLA Silk"
+   ],
+   "successor": "OFesA6rF"
+  },
+  "OFbenYUK": {
+   "claims": [
+    "Prusa/Prusa Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFbt04e0": {
+   "claims": [
+    "DeltaMaker/DeltaMaker Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFc0xiCz": {
+   "claims": [
+    "InfiMech/InfiMech Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFcCzEkS": {
+   "claims": [
+    "Prusa/Prusa Generic PVA"
+   ],
+   "successor": "OFDvXujf"
+  },
+  "OFctbSkL": {
+   "claims": [
+    "Blocks/Blocks Generic ASA-CF"
+   ],
+   "successor": "OF53eLVD"
+  },
+  "OFd10YeG": {
+   "claims": [
+    "Ratrig/RatRig Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFdEIwxy": {
+   "claims": [
+    "Flashforge/Flashforge Generic PLA-CF10"
+   ],
+   "successor": "OFX2zcrM"
+  },
+  "OFdHsxB4": {
+   "claims": [
+    "TwoTrees/TwoTrees Generic 95A TPU"
+   ],
+   "successor": "OF6MMR8P"
+  },
+  "OFdLdGgJ": {
+   "claims": [
+    "OrcaArena/OrcaArena Generic PVA"
+   ],
+   "successor": "OFDvXujf"
+  },
+  "OFdOWhCa": {
+   "claims": [
+    "Ratrig/RatRig Generic PC"
+   ],
+   "successor": "OFLakOUI"
+  },
+  "OFdXgp2K": {
+   "claims": [
+    "Chuanying/Chuanying Generic HS PLA",
+    "Chuanying/Chuanying HS PLA"
+   ],
+   "successor": "OFvxghTE"
+  },
+  "OFdlGycb": {
+   "claims": [
+    "CoLiDo/CoLiDo Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFe8UJXH": {
+   "claims": [
+    "Creality/Creality Generic PC"
+   ],
+   "successor": "OFLakOUI"
+  },
+  "OFeDfaCh": {
+   "claims": [
+    "CoLiDo/CoLiDo Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFeJjoKF": {
+   "claims": [
+    "FLSun/FLSun Generic PA"
+   ],
+   "successor": "OFg8ndtj"
+  },
+  "OFeK2vkS": {
+   "claims": [
+    "Chuanying/Chuanying Generic PLA-Silk",
+    "Chuanying/Chuanying PLA-SILK"
+   ],
+   "successor": "OFi6PfUM"
+  },
+  "OFetENFF": {
+   "claims": [
+    "OrcaArena/OrcaArena Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFfZ0lTS": {
+   "claims": [
+    "Qidi/Qidi Generic PETG-CF"
+   ],
+   "successor": "OFoYSJKi"
+  },
+  "OFfegVpA": {
+   "claims": [
+    "Flashforge/Polymaker Generic S1"
+   ],
+   "successor": "OFaDsTE0"
+  },
+  "OFfxFQf9": {
+   "claims": [
+    "Chuanying/Chuanying Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFfznI0Q": {
+   "claims": [
+    "Prusa/Prusa Generic PA-CF"
+   ],
+   "successor": "OFQLcbps"
+  },
+  "OFgSEwOZ": {
+   "claims": [
+    "OrcaArena/OrcaArena Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFgSPtDn": {
+   "claims": [
+    "MagicMaker/MM Generic PEEK"
+   ],
+   "successor": "OFz5oHgf"
+  },
+  "OFgVJhVt": {
+   "claims": [
+    "Tiertime/Tiertime Generic PLA-CF"
+   ],
+   "successor": "OFWbdGsC"
+  },
+  "OFgvOmM2": {
+   "claims": [
+    "Anker/Anker Generic PETG",
+    "Anker/Anker Generic PETG 0.2 nozzle",
+    "Anker/Anker Generic PETG 0.25 nozzle"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFhcrFw9": {
+   "claims": [
+    "Creality/Creality Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFiCHnso": {
+   "claims": [
+    "Prusa/Prusa Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFiUSDih": {
+   "claims": [
+    "Blocks/Blocks Generic PA"
+   ],
+   "successor": "OFg8ndtj"
+  },
+  "OFifxPW1": {
+   "claims": [
+    "DeltaMaker/DeltaMaker Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFiorRtJ": {
+   "claims": [
+    "Blocks/Blocks Generic PVA"
+   ],
+   "successor": "OFDvXujf"
+  },
+  "OFixgF4N": {
+   "claims": [
+    "Flashforge/FusRock S-Multi"
+   ],
+   "successor": "OF0AquDh"
+  },
+  "OFjoIVZ6": {
+   "claims": [
+    "FlyingBear/FlyingBear Generic PA-CF"
+   ],
+   "successor": "OFQLcbps"
+  },
+  "OFkUaDnU": {
+   "claims": [
+    "Tiertime/Tiertime Generic PE-CF"
+   ],
+   "successor": "OFd0Fv0k"
+  },
+  "OFkYkQGO": {
+   "claims": [
+    "Tiertime/Tiertime Generic PP-GF"
+   ],
+   "successor": "OFsijjtH"
+  },
+  "OFl2SXmv": {
+   "claims": [
+    "Prusa/Prusa Generic FLEX"
+   ],
+   "successor": "OFbPuPKY"
+  },
+  "OFl4ItvQ": {
+   "claims": [
+    "Prusa/Prusa Generic PLA HF"
+   ],
+   "successor": "OFZr862X"
+  },
+  "OFlLmUeV": {
+   "claims": [
+    "Ginger Additive/Ginger Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFlNWVr5": {
+   "claims": [
+    "Flashforge/Flashforge Generic PETG-CF10"
+   ],
+   "successor": "OFO5djrM"
+  },
+  "OFlx52rn": {
+   "claims": [
+    "Ratrig/RatRig Generic PLA-CF"
+   ],
+   "successor": "OFWbdGsC"
+  },
+  "OFma52eS": {
+   "claims": [
+    "Blocks/Blocks Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFmhWhEf": {
+   "claims": [
+    "Creality/Creality HF Generic PLA"
+   ],
+   "successor": "OFZr862X"
+  },
+  "OFmnJNqY": {
+   "claims": [
+    "OrcaArena/OrcaArena Generic PA"
+   ],
+   "successor": "OFg8ndtj"
+  },
+  "OFmzftED": {
+   "claims": [
+    "OrcaArena/OrcaArena Generic ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OFndmfJ1": {
+   "claims": [
+    "Anker/Anker Generic PLA",
+    "Anker/Anker Generic PLA 0.2 nozzle",
+    "Anker/Anker Generic PLA 0.25 nozzle"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFnfBvn5": {
+   "claims": [
+    "Artillery/Artillery Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFnh79eM": {
+   "claims": [
+    "SecKit/SecKit Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFoDgVnY": {
+   "claims": [
+    "FLSun/FLSun S1 PLA Generic"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFoJcr46": {
+   "claims": [
+    "Prusa/Prusa Generic ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OFoT8F7Y": {
+   "claims": [
+    "Prusa/Prusa Generic PVA HF"
+   ],
+   "successor": "OFDwBwO5"
+  },
+  "OFoVZg32": {
+   "claims": [
+    "SecKit/SecKit Generic TPU"
+   ],
+   "successor": "OFgbpcy9"
+  },
+  "OFodPDxO": {
+   "claims": [
+    "Tiertime/Tiertime Generic PLA High Speed"
+   ],
+   "successor": "OFmpMwxS"
+  },
+  "OFp8gtPH": {
+   "claims": [
+    "Creality/Creality Generic PLA Silk"
+   ],
+   "successor": "OFesA6rF"
+  },
+  "OFpAaY6w": {
+   "claims": [
+    "Creality/Creality Generic ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OFpSYJLI": {
+   "claims": [
+    "Creality/Creality Generic PLA Matte"
+   ],
+   "successor": "OFmY0l6t"
+  },
+  "OFptvi3F": {
+   "claims": [
+    "Tiertime/Tiertime Generic PPA-GF"
+   ],
+   "successor": "OF8Tlg47"
+  },
+  "OFq5QANf": {
+   "claims": [
+    "Prusa/Prusa Generic PC HF"
+   ],
+   "successor": "OFwwAQnA"
+  },
+  "OFqKmLJe": {
+   "claims": [
+    "Creality/Creality Generic PETG-CF"
+   ],
+   "successor": "OFoYSJKi"
+  },
+  "OFqOk9Ww": {
+   "claims": [
+    "Peopoly/Peopoly Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFqS8fzK": {
+   "claims": [
+    "SecKit/SecKit Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFrO2zyn": {
+   "claims": [
+    "Creality/Creality Generic PLA High Speed"
+   ],
+   "successor": "OFmpMwxS"
+  },
+  "OFrQqCwL": {
+   "claims": [
+    "InfiMech/InfiMech Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFrgGex8": {
+   "claims": [
+    "Blocks/Blocks Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFrh4bBH": {
+   "claims": [
+    "SecKit/SecKit Generic ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OFrnJJEa": {
+   "claims": [
+    "Tiertime/Tiertime Generic EVA"
+   ],
+   "successor": "OFCD8qiU"
+  },
+  "OFrrMLDw": {
+   "claims": [
+    "Flashforge/Flashforge Generic PLA-SILK"
+   ],
+   "successor": "OFkf1HHw"
+  },
+  "OFs2ReMr": {
+   "claims": [
+    "InfiMech/InfiMech Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFsCbVbN": {
+   "claims": [
+    "Anker/Anker Generic PVA"
+   ],
+   "successor": "OFDvXujf"
+  },
+  "OFsF96Gt": {
+   "claims": [
+    "FLSun/FLSun Generic PLA-CF"
+   ],
+   "successor": "OFWbdGsC"
+  },
+  "OFsGqI4y": {
+   "claims": [
+    "Ginger Additive/Ginger Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFsXOMoX": {
+   "claims": [
+    "Qidi/Qidi Generic PLA+"
+   ],
+   "successor": "OFEWYR89"
+  },
+  "OFsoQ12i": {
+   "claims": [
+    "Comgrow/Comgrow Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFsxRSwr": {
+   "claims": [
+    "Ratrig/RatRig Generic PVA"
+   ],
+   "successor": "OFDvXujf"
+  },
+  "OFsxlLdo": {
+   "claims": [
+    "Qidi/Qidi Generic ASA"
+   ],
+   "successor": "OFLPAxz3"
+  },
+  "OFtP1rqJ": {
+   "claims": [
+    "FLSun/FLSun Generic PVA"
+   ],
+   "successor": "OFDvXujf"
+  },
+  "OFtTHNTj": {
+   "claims": [
+    "Flashforge/Flashforge Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFtsVp4v": {
+   "claims": [
+    "SecKit/SecKit Generic PA-CF"
+   ],
+   "successor": "OFQLcbps"
+  },
+  "OFu79SUH": {
+   "claims": [
+    "Qidi/Qidi Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFuSwKgm": {
+   "claims": [
+    "Tiertime/Tiertime Generic PLA"
+   ],
+   "successor": "OFDSrzZ8"
+  },
+  "OFupq0tY": {
+   "claims": [
+    "Blocks/Blocks Generic PLA-CF"
+   ],
+   "successor": "OFWbdGsC"
+  },
+  "OFv4VZCd": {
+   "claims": [
+    "Qidi/Qidi Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFvGc67v": {
+   "claims": [
+    "Prusa/Prusa Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFvPomQf": {
+   "claims": [
+    "Tiertime/Tiertime Generic PPS"
+   ],
+   "successor": "OFq9svOz"
+  },
+  "OFwMFLAm": {
+   "claims": [
+    "Artillery/Artillery Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFwpkvqf": {
+   "claims": [
+    "OrcaArena/OrcaArena Generic PETG-CF"
+   ],
+   "successor": "OFoYSJKi"
+  },
+  "OFwxpmHM": {
+   "claims": [
+    "Flashforge/Polymaker Generic CoPA"
+   ],
+   "successor": "OFQyyO0l"
+  },
+  "OFx0ZzFV": {
+   "claims": [
+    "OrcaArena/OrcaArena Generic PLA-CF"
+   ],
+   "successor": "OFWbdGsC"
+  },
+  "OFxTMg1d": {
+   "claims": [
+    "FlyingBear/FlyingBear Generic PC"
+   ],
+   "successor": "OFLakOUI"
+  },
+  "OFxg7n2G": {
+   "claims": [
+    "Ratrig/RatRig Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFxvKuYW": {
+   "claims": [
+    "Tiertime/Tiertime Generic PHA"
+   ],
+   "successor": "OF74KeQR"
+  },
+  "OFy4ajVZ": {
+   "claims": [
+    "Qidi/Qidi Generic PLA Silk"
+   ],
+   "successor": "OFesA6rF"
+  },
+  "OFyFRojy": {
+   "claims": [
+    "Ratrig/RatRig Generic ABS"
+   ],
+   "successor": "OFY9muEs"
+  },
+  "OFyK5Lt9": {
+   "claims": [
+    "Artillery/Artillery Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFyeSq8A": {
+   "claims": [
+    "Prusa/Prusa Generic ABS HF"
+   ],
+   "successor": "OF55jHAJ"
+  },
+  "OFyySVby": {
+   "claims": [
+    "SecKit/SecKit Generic PVA"
+   ],
+   "successor": "OFDvXujf"
+  },
+  "OFz3q5Xz": {
+   "claims": [
+    "CONSTRUCT3D/C1 Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
+  },
+  "OFzXURfo": {
+   "claims": [
+    "FlyingBear/FlyingBear Generic PETG"
+   ],
+   "successor": "OFYPdQJh"
   },
   "OGFA00": {
    "claims": [

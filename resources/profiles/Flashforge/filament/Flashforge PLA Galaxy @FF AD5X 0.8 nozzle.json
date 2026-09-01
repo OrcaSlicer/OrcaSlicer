@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Galaxy @FF AD5X 0.8 nozzle",
-	"inherits": "Flashforge Generic PLA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "qju0AMvvq0B5Glny",
 	"filament_id": "OF5NQFKI",

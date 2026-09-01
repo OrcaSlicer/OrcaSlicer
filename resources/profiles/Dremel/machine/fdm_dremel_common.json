@@ -124,7 +124,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"Dremel Generic PLA"
+		"Generic PLA @Dremel"
 	],
 	"bed_exclude_area": [
 		"0x0"

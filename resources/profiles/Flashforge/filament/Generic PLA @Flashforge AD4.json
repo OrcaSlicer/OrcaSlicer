@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Flashforge AD4",
-	"inherits": "Flashforge Generic PLA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "48NJ34G6Uo7VgzD4",
 	"filament_id": "OFDSrzZ8",

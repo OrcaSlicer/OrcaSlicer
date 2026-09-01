@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Luminous @FF AD5X 0.6 nozzle",
-	"inherits": "Flashforge Generic PLA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "GdvXL8SrKrYHxSgZ",
 	"filament_id": "OFMIma8C",

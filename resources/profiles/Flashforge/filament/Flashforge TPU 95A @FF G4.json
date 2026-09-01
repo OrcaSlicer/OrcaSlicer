@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge TPU 95A @FF G4",
-	"inherits": "Flashforge Generic TPU",
+	"inherits": "Generic TPU @Flashforge",
 	"from": "system",
 	"setting_id": "4FIGiheSGvSJPw3s",
 	"filament_id": "OFAf9pJF",

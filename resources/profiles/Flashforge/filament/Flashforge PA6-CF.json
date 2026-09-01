@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PA6-CF",
-	"inherits": "FusRock Generic PET-CF",
+	"inherits": "FusRock PET-CF",
 	"from": "system",
 	"setting_id": "NGbZ8pQVTRKw28kp",
 	"filament_id": "OFZtOQtl",

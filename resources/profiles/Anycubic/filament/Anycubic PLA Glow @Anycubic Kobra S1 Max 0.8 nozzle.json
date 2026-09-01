@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Anycubic PLA Glow @Anycubic Kobra S1 Max 0.8 nozzle",
-	"inherits": "Anycubic Generic PLA",
+	"inherits": "Generic PLA @Anycubic",
 	"from": "system",
 	"setting_id": "rsOyKXt6G37Ze51l",
 	"filament_id": "OF5PtjTp",

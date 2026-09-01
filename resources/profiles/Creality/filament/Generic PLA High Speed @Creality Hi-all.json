@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "Generic PLA High Speed @Creality Hi-all",
+	"inherits": "Creality Generic PLA @Hi-all",
+	"renamed_from": "Creality Generic PLA High Speed @Hi-all;Creality Generic PLA High Speed Hi-all",
+	"from": "system",
+	"setting_id": "KJZ1ztg3jL2Cg4fi",
+	"filament_id": "OFmpMwxS",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"filament_max_volumetric_speed": [
+		"23"
+	],
+	"compatible_printers": [
+		"Creality Hi 0.4 nozzle",
+		"Creality Hi 0.6 nozzle"
+	]
+}

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Chuanying PLA @Chuanying X1 0.25 Nozzle",
-	"inherits": "Chuanying Generic PLA",
+	"inherits": "Generic PLA @Chuanying",
 	"from": "system",
 	"setting_id": "3WDFe1uKTOTiRtPE",
 	"instantiation": "true",

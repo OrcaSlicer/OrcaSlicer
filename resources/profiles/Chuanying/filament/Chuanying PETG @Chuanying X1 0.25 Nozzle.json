@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Chuanying PETG @Chuanying X1 0.25 Nozzle",
-	"inherits": "Chuanying Generic PETG",
+	"inherits": "Generic PETG @Chuanying",
 	"from": "system",
 	"setting_id": "9xxP8YWj4hnWQoVZ",
 	"filament_id": "OFlXJxX1",

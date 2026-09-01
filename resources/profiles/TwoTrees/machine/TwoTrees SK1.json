@@ -8,5 +8,5 @@
 	"bed_model": "TwoTrees SK1_buildplate_model.stl",
 	"bed_texture": "TwoTrees SK1_buildplate_texture.svg",
 	"hotend_model": "",
-	"default_materials": "TwoTrees Generic 95A TPU @SK1;TwoTrees Generic PETG @SK1;TwoTrees Generic HS PLA @SK1;TwoTrees Generic PLA @SK1;TwoTrees Generic PLA-CF @SK1;TwoTrees Generic PLA Matte @SK1;TwoTrees Generic PLA Silk @SK1"
+	"default_materials": "Generic 95A TPU @TwoTrees SK1;TwoTrees Generic PETG @SK1;Generic HS PLA @TwoTrees SK1;TwoTrees Generic PLA @SK1;TwoTrees Generic PLA-CF @SK1;TwoTrees Generic PLA Matte @SK1;TwoTrees Generic PLA Silk @SK1"
 }

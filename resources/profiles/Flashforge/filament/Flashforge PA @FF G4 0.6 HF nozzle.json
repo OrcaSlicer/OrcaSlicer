@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PA @FF G4 0.6 HF nozzle",
-	"inherits": "Flashforge Generic PLA @G3U 0.6 Nozzle",
+	"inherits": "Generic PLA @Flashforge G3U 0.6 Nozzle",
 	"from": "system",
 	"setting_id": "u7rolQaTQz9U6veH",
 	"filament_id": "OFgf4gZa",

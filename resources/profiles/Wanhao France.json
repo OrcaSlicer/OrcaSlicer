@@ -1,6 +1,6 @@
 {
 	"name": "Wanhao France",
-	"version": "02.04.00.02",
+	"version": "02.04.00.03",
 	"force_update": "0",
 	"description": "Wanhao France D12 configurations",
 	"machine_model_list": [
@@ -177,12 +177,12 @@
 			"sub_path": "filament/fdm_filament_tpu.json"
 		},
 		{
-			"name": "Yumi Generic PETG",
-			"sub_path": "filament/Yumi Generic PETG.json"
+			"name": "Generic PETG @Yumi",
+			"sub_path": "filament/Generic PETG @Yumi.json"
 		},
 		{
-			"name": "Yumi Generic PLA",
-			"sub_path": "filament/Yumi Generic PLA.json"
+			"name": "Generic PLA @Yumi",
+			"sub_path": "filament/Generic PLA @Yumi.json"
 		},
 		{
 			"name": "YUMI PETG",

@@ -1,8 +1,0 @@
-{
-	"type": "filament",
-	"name": "Anker Generic PLA @base",
-	"inherits": "fdm_filament_pla",
-	"from": "system",
-	"filament_id": "OFndmfJ1",
-	"instantiation": "false"
-}

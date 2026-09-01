@@ -1,0 +1,30 @@
+{
+	"type": "filament",
+	"name": "Generic PLA-CF @Prusa MINIIS",
+	"inherits": "Generic PLA-CF @Prusa base",
+	"renamed_from": "Prusa Generic PLA-CF @MINIIS;Prusa Generic PLA-CF MINIIS",
+	"from": "system",
+	"setting_id": "cNZereL1ltFYG5FZ",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"1"
+	],
+	"filament_type": [
+		"PLA-CF"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"slow_down_layer_time": [
+		"10"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.27"
+	],
+	"compatible_printers": [
+		"Prusa MINIIS 0.4 nozzle"
+	]
+}

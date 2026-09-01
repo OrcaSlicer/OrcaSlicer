@@ -123,7 +123,7 @@
 	"change_filament_gcode": "PAUSE",
 	"machine_pause_gcode": "PAUSE",
 	"default_filament_profile": [
-		"Creality Generic PLA @Ender-3V3-all"
+		"Generic PLA @Creality Ender-3V3-all"
 	],
 	"machine_start_gcode": "M140 S0\nM104 S0\nSTART_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]",
 	"machine_end_gcode": "END_PRINT",

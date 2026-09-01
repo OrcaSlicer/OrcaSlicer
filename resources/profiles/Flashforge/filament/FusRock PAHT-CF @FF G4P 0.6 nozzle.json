@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "FusRock PAHT-CF @FF G4P 0.6 nozzle",
-	"inherits": "FusRock Generic PAHT-CF @G3U 0.6 Nozzle",
+	"inherits": "FusRock PAHT-CF @G3U 0.6 Nozzle",
 	"from": "system",
 	"setting_id": "yok12IOGZzGot5Ll",
-	"filament_id": "OFYtS9zg",
+	"filament_id": "OFKW5hEW",
 	"instantiation": "true",
 	"close_fan_the_first_x_layers": [
 		"2"

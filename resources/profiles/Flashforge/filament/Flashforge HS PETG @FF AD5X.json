@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge HS PETG @FF AD5X",
-	"inherits": "Flashforge Generic PETG",
+	"inherits": "Generic PETG @Flashforge",
 	"from": "system",
 	"setting_id": "o4B1kAToVny7jw0M",
 	"filament_id": "OF5w29Kq",

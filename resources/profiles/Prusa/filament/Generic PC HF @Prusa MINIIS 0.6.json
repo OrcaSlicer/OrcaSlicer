@@ -1,0 +1,24 @@
+{
+	"type": "filament",
+	"name": "Generic PC HF @Prusa MINIIS 0.6",
+	"inherits": "Generic PC HF @Prusa base",
+	"renamed_from": "Prusa Generic PC HF @MINIIS 0.6;Prusa Generic PC HF MINIIS 0.6",
+	"from": "system",
+	"setting_id": "W3G94E0IQo6Kaq8G",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"35"
+	],
+	"filament_flow_ratio": [
+		"1"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.1"
+	],
+	"compatible_printers": [
+		"Prusa MINIIS 0.6 nozzle"
+	]
+}

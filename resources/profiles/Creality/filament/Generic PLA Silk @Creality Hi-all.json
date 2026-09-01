@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "Generic PLA Silk @Creality Hi-all",
+	"inherits": "Creality Generic PLA @Hi-all",
+	"renamed_from": "Creality Generic PLA Silk @Hi-all;Creality Generic PLA Silk Hi-all",
+	"from": "system",
+	"setting_id": "k1ofgUXqhHGSPDPY",
+	"filament_id": "OFesA6rF",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.97"
+	],
+	"filament_max_volumetric_speed": [
+		"7.5"
+	],
+	"compatible_printers": [
+		"Creality Hi 0.4 nozzle",
+		"Creality Hi 0.6 nozzle"
+	]
+}

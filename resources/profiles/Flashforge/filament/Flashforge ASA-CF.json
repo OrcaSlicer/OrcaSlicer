@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge ASA-CF",
-	"inherits": "FusRock Generic PAHT-CF",
+	"inherits": "FusRock PAHT-CF",
 	"from": "system",
 	"setting_id": "CI5dvVrCNk2XTU82",
 	"filament_id": "OFq0TY7C",

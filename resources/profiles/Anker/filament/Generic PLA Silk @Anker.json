@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Generic PLA Silk @Anker",
+	"inherits": "Generic PLA Silk @Anker base",
+	"renamed_from": "Anker Generic PLA Silk",
+	"from": "system",
+	"setting_id": "URRIeNXIiIPjxbKL",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Anker M5 0.4 nozzle",
+		"Anker M5 0.6 nozzle",
+		"Anker M5 All-Metal 0.4 nozzle",
+		"Anker M5 All-Metal 0.6 nozzle",
+		"Anker M5C 0.4 nozzle",
+		"Anker M5C 0.6 nozzle"
+	]
+}

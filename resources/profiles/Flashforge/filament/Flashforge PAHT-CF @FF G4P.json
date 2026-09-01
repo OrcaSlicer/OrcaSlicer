@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PAHT-CF @FF G4P",
-	"inherits": "Flashforge Generic PLA-CF10",
+	"inherits": "Generic PLA-CF10 @Flashforge",
 	"from": "system",
 	"setting_id": "9DaSYBA2OI7Jj5zS",
 	"filament_id": "OFuFqYyG",

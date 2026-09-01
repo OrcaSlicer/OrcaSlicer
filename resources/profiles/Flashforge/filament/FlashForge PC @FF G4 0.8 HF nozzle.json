@@ -1,11 +1,14 @@
 {
 	"type": "filament",
 	"name": "FlashForge PC @FF G4 0.8 HF nozzle",
-	"inherits": "FusRock Generic S-PAHT @G3U 0.6 Nozzle",
+	"inherits": "FusRock S-PAHT @G3U 0.6 Nozzle",
 	"from": "system",
 	"setting_id": "JqgkmxnjlnQ3uw1u",
 	"filament_id": "OFe6sfXS",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Generic"
+	],
 	"close_fan_the_first_x_layers": [
 		"3"
 	],

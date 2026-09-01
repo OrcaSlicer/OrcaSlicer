@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PLA @Hi-all",
-	"inherits": "Creality Generic PLA",
+	"inherits": "Generic PLA @Creality",
 	"from": "system",
 	"setting_id": "3gf0CImK4nJwfXrB",
 	"instantiation": "true",

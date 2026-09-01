@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "FLSun T1 PLA High Speed",
-	"inherits": "FLSun Generic PLA",
+	"inherits": "Generic PLA @FLSun",
 	"from": "system",
 	"setting_id": "E4lpSLLlAxUW04ik",
 	"filament_id": "OFQ9qnkd",

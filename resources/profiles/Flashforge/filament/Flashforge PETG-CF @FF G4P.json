@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PETG-CF @FF G4P",
-	"inherits": "Flashforge Generic PETG",
+	"inherits": "Generic PETG @Flashforge",
 	"from": "system",
 	"setting_id": "d5OleuNNZBJK9vxH",
 	"filament_id": "OFBK6zAi",

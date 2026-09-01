@@ -4,8 +4,11 @@
 	"inherits": "Generic PA-CF @System",
 	"from": "system",
 	"setting_id": "nJF1lCOavNNh4yHs",
-	"filament_id": "OFYtS9zg",
+	"filament_id": "OFKW5hEW",
 	"instantiation": "true",
+	"filament_vendor": [
+		"FusRock"
+	],
 	"activate_chamber_temp_control": [
 		"1"
 	],

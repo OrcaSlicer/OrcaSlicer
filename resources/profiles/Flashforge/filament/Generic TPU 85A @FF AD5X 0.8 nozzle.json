@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Generic TPU 85A @FF AD5X 0.8 nozzle",
-	"inherits": "Flashforge Generic TPU",
+	"inherits": "Generic TPU @Flashforge",
 	"from": "system",
 	"setting_id": "qRqhbOYn5TMfccem",
 	"filament_id": "OFulOdT2",

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Color Change @FF AD5X 0.6 nozzle",
-	"inherits": "Flashforge Generic PLA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "TF6BeOl0patjpPaa",
 	"filament_id": "OFkwIWwc",

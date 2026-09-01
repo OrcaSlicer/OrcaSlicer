@@ -1,6 +1,6 @@
 {
 	"name": "MagicMaker",
-	"version": "02.04.00.02",
+	"version": "02.04.00.03",
 	"force_update": "0",
 	"description": "MagicMaker configurations",
 	"machine_model_list": [
@@ -141,8 +141,8 @@
 			"sub_path": "filament/fdm_filament_peek.json"
 		},
 		{
-			"name": "MM Generic PEEK",
-			"sub_path": "filament/MM Generic PEEK.json"
+			"name": "Generic PEEK @MM",
+			"sub_path": "filament/Generic PEEK @MM.json"
 		}
 	],
 	"machine_list": [

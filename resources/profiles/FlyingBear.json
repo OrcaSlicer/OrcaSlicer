@@ -1,6 +1,6 @@
 {
 	"name": "FlyingBear",
-	"version": "02.04.00.02",
+	"version": "02.04.00.03",
 	"force_update": "1",
 	"description": "FlyingBear configurations",
 	"machine_model_list": [
@@ -245,32 +245,32 @@
 			"sub_path": "filament/S1/fdm_filament_tpu_other @S1.json"
 		},
 		{
-			"name": "FlyingBear Generic ABS",
-			"sub_path": "filament/FlyingBear Generic ABS.json"
+			"name": "Generic ABS @FlyingBear",
+			"sub_path": "filament/Generic ABS @FlyingBear.json"
 		},
 		{
-			"name": "FlyingBear Generic PA-CF",
-			"sub_path": "filament/FlyingBear Generic PA-CF.json"
+			"name": "Generic PA-CF @FlyingBear",
+			"sub_path": "filament/Generic PA-CF @FlyingBear.json"
 		},
 		{
-			"name": "FlyingBear Generic PC",
-			"sub_path": "filament/FlyingBear Generic PC.json"
+			"name": "Generic PC @FlyingBear",
+			"sub_path": "filament/Generic PC @FlyingBear.json"
 		},
 		{
-			"name": "FlyingBear Generic PETG",
-			"sub_path": "filament/FlyingBear Generic PETG.json"
+			"name": "Generic PETG @FlyingBear",
+			"sub_path": "filament/Generic PETG @FlyingBear.json"
 		},
 		{
-			"name": "FlyingBear Generic PLA",
-			"sub_path": "filament/FlyingBear Generic PLA.json"
+			"name": "Generic PLA @FlyingBear",
+			"sub_path": "filament/Generic PLA @FlyingBear.json"
 		},
 		{
 			"name": "FlyingBear PLA Hyper",
 			"sub_path": "filament/FlyingBear PLA Hyper.json"
 		},
 		{
-			"name": "FlyingBear Generic TPU",
-			"sub_path": "filament/FlyingBear Generic TPU.json"
+			"name": "Generic TPU @FlyingBear",
+			"sub_path": "filament/Generic TPU @FlyingBear.json"
 		},
 		{
 			"name": "FlyingBear ABS @Ghost7",

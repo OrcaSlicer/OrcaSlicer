@@ -1,0 +1,44 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @CoLiDo X16",
+	"inherits": "fdm_filament_abs",
+	"renamed_from": "CoLiDo Generic ABS @CoLiDo X16;CoLiDo Generic ABS CoLiDo X16",
+	"from": "system",
+	"setting_id": "LE7jeYUNsBZEKQpJ",
+	"filament_id": "OFY9muEs",
+	"instantiation": "true",
+	"fan_max_speed": [
+		"20"
+	],
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"filament_max_volumetric_speed": [
+		"16"
+	],
+	"filament_vendor": [
+		"Generic"
+	],
+	"hot_plate_temp": [
+		"95"
+	],
+	"hot_plate_temp_initial_layer": [
+		"95"
+	],
+	"reduce_fan_stop_start_freq": [
+		"0"
+	],
+	"slow_down_layer_time": [
+		"12"
+	],
+	"textured_plate_temp": [
+		"100"
+	],
+	"textured_plate_temp_initial_layer": [
+		"100"
+	],
+	"compatible_printers": [
+		"CoLiDo X16 0.4 nozzle",
+		"CoLiDo 160 V2 0.4 nozzle"
+	]
+}

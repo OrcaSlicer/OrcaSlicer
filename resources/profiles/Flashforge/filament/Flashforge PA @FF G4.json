@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PA @FF G4",
-	"inherits": "Flashforge Generic TPU",
+	"inherits": "Generic TPU @Flashforge",
 	"from": "system",
 	"setting_id": "wAkuJRTLWxGyBU0b",
 	"filament_id": "OFgf4gZa",

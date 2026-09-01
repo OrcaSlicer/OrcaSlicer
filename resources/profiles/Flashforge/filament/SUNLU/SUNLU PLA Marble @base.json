@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"name": "SUNLU PLA Marble @base",
-	"renamed_from": "SUNLU Marble PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"filament_id": "OFxUwUeW",

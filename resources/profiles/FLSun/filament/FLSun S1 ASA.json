@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "FLSun S1 ASA",
-	"inherits": "FLSun Generic ASA",
+	"inherits": "Generic ASA @FLSun",
 	"from": "system",
 	"setting_id": "C5oyaWw3YVEz0CgE",
 	"filament_id": "OFIK0xFa",

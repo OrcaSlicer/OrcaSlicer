@@ -8,5 +8,5 @@
 	"bed_model": "creality_cr10v2_buildplate_model.stl",
 	"bed_texture": "creality_cr10v2_buildplate_texture.svg",
 	"hotend_model": "",
-	"default_materials": "Creality Generic PLA;Creality Generic PETG;Creality Generic ABS"
+	"default_materials": "Generic PLA @Creality;Generic PETG @Creality;Generic ABS @Creality"
 }

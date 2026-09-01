@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Artillery PLA Matte",
-	"inherits": "Artillery Generic PLA",
+	"inherits": "Generic PLA @Artillery",
 	"from": "system",
 	"setting_id": "kt8uKXpMqxrFrHaG",
 	"filament_id": "OFAC7Wyu",

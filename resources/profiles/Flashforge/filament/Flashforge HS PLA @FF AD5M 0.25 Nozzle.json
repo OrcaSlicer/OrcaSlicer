@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge HS PLA @FF AD5M 0.25 nozzle",
-	"inherits": "Flashforge Generic HS PLA",
+	"inherits": "Generic HS PLA @Flashforge",
 	"from": "system",
 	"setting_id": "OmDped3weZ4uHAtY",
 	"filament_id": "OFnMv3W5",

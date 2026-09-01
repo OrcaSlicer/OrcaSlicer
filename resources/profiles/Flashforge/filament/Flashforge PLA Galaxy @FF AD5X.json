@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Galaxy @FF AD5X",
-	"inherits": "Flashforge Generic PLA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "o8gGBOEcNvlbZxGW",
 	"filament_id": "OF5NQFKI",

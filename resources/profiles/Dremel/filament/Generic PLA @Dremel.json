@@ -1,0 +1,24 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @Dremel",
+	"inherits": "fdm_filament_pla",
+	"renamed_from": "Dremel Generic PLA",
+	"from": "system",
+	"setting_id": "jYydSWbyE3JzoKnQ",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"compatible_printers": [
+		"Dremel 3D45 0.4 nozzle",
+		"Dremel 3D40 0.4 nozzle",
+		"Dremel 3D20 0.4 nozzle"
+	]
+}

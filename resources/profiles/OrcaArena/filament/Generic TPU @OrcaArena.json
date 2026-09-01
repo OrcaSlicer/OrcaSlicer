@@ -1,0 +1,21 @@
+{
+	"type": "filament",
+	"name": "Generic TPU @OrcaArena",
+	"inherits": "fdm_filament_tpu",
+	"renamed_from": "OrcaArena Generic TPU",
+	"from": "system",
+	"setting_id": "GBRnBtqYf9H8pQKU",
+	"filament_id": "OFgbpcy9",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"3.2"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n{if (bed_temperature[current_extruder] >35)||(bed_temperature_initial_layer[current_extruder] >35)}M106 P3 S255\n{elsif (bed_temperature[current_extruder] >30)||(bed_temperature_initial_layer[current_extruder] >30)}M106 P3 S180\n{endif}"
+	],
+	"compatible_printers": [
+		"Orca Arena X1 Carbon 0.4 nozzle",
+		"Orca Arena X1 Carbon 0.6 nozzle",
+		"Orca Arena X1 Carbon 0.8 nozzle"
+	]
+}

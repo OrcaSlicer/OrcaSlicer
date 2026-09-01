@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PETG @FF AD5M 0.25 Nozzle",
-	"inherits": "Flashforge Generic PETG",
+	"inherits": "Generic PETG @Flashforge",
 	"from": "system",
 	"filament_id": "OFMpxamb",
 	"instantiation": "false",

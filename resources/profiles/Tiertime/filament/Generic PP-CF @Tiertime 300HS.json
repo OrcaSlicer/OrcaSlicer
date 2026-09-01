@@ -1,0 +1,28 @@
+{
+	"type": "filament",
+	"name": "Generic PP-CF @Tiertime 300HS",
+	"inherits": "fdm_filament_pp",
+	"renamed_from": "Tiertime Generic PP-CF@300HS;Tiertime Generic PP-CF300HS",
+	"from": "system",
+	"setting_id": "u1Sqh9bCLFQvJxoS",
+	"filament_id": "OFXkm8q1",
+	"instantiation": "true",
+	"filament_cost": [
+		"77.99"
+	],
+	"filament_density": [
+		"1.01"
+	],
+	"filament_max_volumetric_speed": [
+		"6"
+	],
+	"filament_type": [
+		"PP-CF"
+	],
+	"compatible_printers": [
+		"Tiertime UP300 HS 0.4 nozzle",
+		"Tiertime UP600 HS 0.4 nozzle",
+		"Tiertime UP600 HS 0.6 nozzle",
+		"Tiertime UP600 HS 0.8 nozzle"
+	]
+}

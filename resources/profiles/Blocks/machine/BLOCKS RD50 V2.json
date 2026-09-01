@@ -8,5 +8,5 @@
 	"bed_model": "RD50 V2 HotBed model.stl",
 	"bed_texture": "RD50 V2 HotBed texture.svg",
 	"hotend_model": "BLOCKS PrintCore.stl",
-	"default_materials": "Blocks Generic PLA;Blocks Generic PETG;Blocks Generic TPU"
+	"default_materials": "Generic PLA @Blocks;Generic PETG @Blocks;Generic TPU @Blocks"
 }

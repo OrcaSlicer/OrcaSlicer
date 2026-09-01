@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge HIPS @FF G4 HF",
-	"inherits": "Flashforge Generic ABS @G3U",
+	"inherits": "Generic ABS @Flashforge G3U",
 	"from": "system",
 	"setting_id": "tEohTtyHofD6l6o3",
 	"filament_id": "OFaz8VoR",

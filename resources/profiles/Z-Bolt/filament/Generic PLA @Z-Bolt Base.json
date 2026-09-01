@@ -2,7 +2,6 @@
 	"type": "filament",
 	"name": "Generic PLA @Z-Bolt Base",
 	"inherits": "fdm_filament_pla",
-	"renamed_from": "Z-Bolt PLA;Generic PLA @Z-Bolt",
 	"from": "system",
 	"filament_id": "OFDSrzZ8",
 	"instantiation": "false",

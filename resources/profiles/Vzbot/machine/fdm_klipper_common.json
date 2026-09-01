@@ -125,7 +125,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"Vzbot Generic ABS"
+		"Generic ABS @Vzbot"
 	],
 	"default_print_profile": "0.20mm Standard @Vzbot",
 	"bed_exclude_area": [

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge ABS Basic @FF AD5X 0.8 nozzle",
-	"inherits": "Flashforge Generic ABS",
+	"inherits": "Generic ABS @Flashforge",
 	"from": "system",
 	"setting_id": "cIxbQMVdG5K85rJr",
 	"filament_id": "OFShw1X8",

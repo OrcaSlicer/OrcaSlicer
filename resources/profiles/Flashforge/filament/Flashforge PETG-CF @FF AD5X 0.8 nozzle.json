@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PETG-CF @FF AD5X 0.8 nozzle",
-	"inherits": "Flashforge Generic PETG-CF10",
+	"inherits": "Generic PETG-CF10 @Flashforge",
 	"from": "system",
 	"setting_id": "CnFKOi7fFyS8QlKK",
 	"filament_id": "OFBK6zAi",

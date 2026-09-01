@@ -1,11 +1,14 @@
 {
 	"type": "filament",
 	"name": "FusRock PET-CF @FF G4",
-	"inherits": "Flashforge Generic TPU",
+	"inherits": "Generic TPU @Flashforge",
 	"from": "system",
 	"setting_id": "Iy5lHY4ihEKPgJ5x",
-	"filament_id": "OFB8wSps",
+	"filament_id": "OFDu1qE7",
 	"instantiation": "true",
+	"filament_vendor": [
+		"FusRock"
+	],
 	"additional_cooling_fan_speed": [
 		"0"
 	],

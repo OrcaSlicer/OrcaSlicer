@@ -1,8 +1,0 @@
-{
-	"type": "filament",
-	"name": "Prusa Generic PC HF @base",
-	"inherits": "fdm_filament_pc",
-	"from": "system",
-	"filament_id": "OFq5QANf",
-	"instantiation": "false"
-}

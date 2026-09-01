@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PPS-CF",
-	"inherits": "FusRock Generic PAHT-CF",
+	"inherits": "FusRock PAHT-CF",
 	"from": "system",
 	"setting_id": "l3dYtVM52X0UMRix",
 	"filament_id": "OFTSXxzE",

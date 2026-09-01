@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Silk @FF AD5X 0.8 nozzle",
-	"inherits": "Flashforge Generic PLA-Silk",
+	"inherits": "Generic PLA-Silk @Flashforge",
 	"from": "system",
 	"setting_id": "IfAieG0OAG807xlu",
 	"filament_id": "OFLYDIb8",

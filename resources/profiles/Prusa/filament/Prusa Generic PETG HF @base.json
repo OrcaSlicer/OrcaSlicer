@@ -1,8 +1,0 @@
-{
-	"type": "filament",
-	"name": "Prusa Generic PETG HF @base",
-	"inherits": "fdm_filament_pet",
-	"from": "system",
-	"filament_id": "OFOKYhi6",
-	"instantiation": "false"
-}

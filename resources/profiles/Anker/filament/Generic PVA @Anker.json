@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Generic PVA @Anker",
+	"inherits": "Generic PVA @Anker base",
+	"renamed_from": "Anker Generic PVA",
+	"from": "system",
+	"setting_id": "HXERDaP3AgzWtmiu",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Anker M5 0.4 nozzle",
+		"Anker M5 0.6 nozzle",
+		"Anker M5 All-Metal 0.4 nozzle",
+		"Anker M5 All-Metal 0.6 nozzle",
+		"Anker M5C 0.4 nozzle",
+		"Anker M5C 0.6 nozzle"
+	]
+}

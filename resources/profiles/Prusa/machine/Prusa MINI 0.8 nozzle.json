@@ -9,7 +9,7 @@
 	"printer_model": "Prusa MINI",
 	"printer_variant": "0.8",
 	"default_filament_profile": [
-		"Prusa Generic PLA"
+		"Generic PLA @Prusa"
 	],
 	"default_print_profile": "0.20mm Standard @MINI 0.8",
 	"nozzle_diameter": [

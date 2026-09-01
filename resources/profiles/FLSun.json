@@ -1,6 +1,6 @@
 {
 	"name": "FLSun",
-	"version": "02.04.00.02",
+	"version": "02.04.00.03",
 	"force_update": "0",
 	"description": "FLSun configurations",
 	"machine_model_list": [
@@ -177,44 +177,44 @@
 			"sub_path": "filament/fdm_filament_tpu.json"
 		},
 		{
-			"name": "FLSun Generic ABS",
-			"sub_path": "filament/FLSun Generic ABS.json"
+			"name": "Generic ABS @FLSun",
+			"sub_path": "filament/Generic ABS @FLSun.json"
 		},
 		{
-			"name": "FLSun Generic ASA",
-			"sub_path": "filament/FLSun Generic ASA.json"
+			"name": "Generic ASA @FLSun",
+			"sub_path": "filament/Generic ASA @FLSun.json"
 		},
 		{
-			"name": "FLSun Generic PA",
-			"sub_path": "filament/FLSun Generic PA.json"
+			"name": "Generic PA @FLSun",
+			"sub_path": "filament/Generic PA @FLSun.json"
 		},
 		{
-			"name": "FLSun Generic PA-CF",
-			"sub_path": "filament/FLSun Generic PA-CF.json"
+			"name": "Generic PA-CF @FLSun",
+			"sub_path": "filament/Generic PA-CF @FLSun.json"
 		},
 		{
-			"name": "FLSun Generic PC",
-			"sub_path": "filament/FLSun Generic PC.json"
+			"name": "Generic PC @FLSun",
+			"sub_path": "filament/Generic PC @FLSun.json"
 		},
 		{
-			"name": "FLSun Generic PETG",
-			"sub_path": "filament/FLSun Generic PETG.json"
+			"name": "Generic PETG @FLSun",
+			"sub_path": "filament/Generic PETG @FLSun.json"
 		},
 		{
-			"name": "FLSun Generic PLA",
-			"sub_path": "filament/FLSun Generic PLA.json"
+			"name": "Generic PLA @FLSun",
+			"sub_path": "filament/Generic PLA @FLSun.json"
 		},
 		{
-			"name": "FLSun Generic PLA-CF",
-			"sub_path": "filament/FLSun Generic PLA-CF.json"
+			"name": "Generic PLA-CF @FLSun",
+			"sub_path": "filament/Generic PLA-CF @FLSun.json"
 		},
 		{
-			"name": "FLSun Generic PVA",
-			"sub_path": "filament/FLSun Generic PVA.json"
+			"name": "Generic PVA @FLSun",
+			"sub_path": "filament/Generic PVA @FLSun.json"
 		},
 		{
-			"name": "FLSun Generic TPU",
-			"sub_path": "filament/FLSun Generic TPU.json"
+			"name": "Generic TPU @FLSun",
+			"sub_path": "filament/Generic TPU @FLSun.json"
 		},
 		{
 			"name": "FLSun S1 ABS",
@@ -241,8 +241,8 @@
 			"sub_path": "filament/FLSun T1 PETG.json"
 		},
 		{
-			"name": "FLSun S1 PLA Generic",
-			"sub_path": "filament/FLSun S1 PLA Generic.json"
+			"name": "Generic PLA @FLSun S1",
+			"sub_path": "filament/Generic PLA @FLSun S1.json"
 		},
 		{
 			"name": "FLSun S1 PLA High Speed",
@@ -253,8 +253,8 @@
 			"sub_path": "filament/FLSun S1 PLA Silk.json"
 		},
 		{
-			"name": "FLSun T1 PLA Generic",
-			"sub_path": "filament/FLSun T1 PLA Generic.json"
+			"name": "Generic PLA @FLSun T1",
+			"sub_path": "filament/Generic PLA @FLSun T1.json"
 		},
 		{
 			"name": "FLSun T1 PLA High Speed",

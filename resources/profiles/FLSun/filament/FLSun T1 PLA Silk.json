@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "FLSun T1 PLA Silk",
-	"inherits": "FLSun Generic PLA",
+	"inherits": "Generic PLA @FLSun",
 	"from": "system",
 	"setting_id": "gElUb4GnCoEfVlEd",
 	"filament_id": "OFuUJyRx",

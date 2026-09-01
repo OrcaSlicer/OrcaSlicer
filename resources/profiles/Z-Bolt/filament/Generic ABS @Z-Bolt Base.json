@@ -2,7 +2,6 @@
 	"type": "filament",
 	"name": "Generic ABS @Z-Bolt Base",
 	"inherits": "fdm_filament_abs",
-	"renamed_from": "Z-Bolt ABS;Generic ABS @Z-Bolt",
 	"from": "system",
 	"filament_id": "OFY9muEs",
 	"instantiation": "false",
