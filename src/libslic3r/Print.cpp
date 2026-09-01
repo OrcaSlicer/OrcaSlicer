@@ -1046,6 +1046,7 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     const WipeTowerData &wipe_tower_estimate = print.wipe_tower_data(filaments_count);
     float                width               = wipe_tower_estimate.width;
     float                depth               = wipe_tower_estimate.depth;
+    float                brim_width          = wipe_tower_estimate.brim_width;
 
     Polygons convex_hulls_temp;
     if (print.has_wipe_tower()) {
@@ -1084,17 +1085,15 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     // No gate on "is there a tower": one that is not printed estimates to zero, so the hull
     // is degenerate and every check passes. Re-deriving it here missed the wrapping-detection
     // tower on a single-filament plate.
-    // Pre-generation only the body square is tested — the auto-brim estimate can overshoot
-    // the generated brim by several mm and must not hard-fail a print that physically fits.
-    // Post-generation the mesh bottom already includes the real brim, so the exact
-    // footprint is tested.
-    // The shared printable polygon is plate-local, while the tower polygons above are
-    // already shifted by the plate origin.
+    // Pre-generation, grow the body by the brim to match what the generator draws;
+    // post-generation the mesh already includes it.
     Polygons    printable_polys = print.get_extruder_shared_printable_polygon();
     const Point plate_shift(scale_(plate_origin.x()), scale_(plate_origin.y()));
     for (Polygon &p : printable_polys)
         p.translate(plate_shift);
-    if (!diff(convex_hulls_temp, printable_polys).empty())
+    Polygons tower_polys_with_brim = print.is_step_done(psWipeTower) ?
+        convex_hulls_temp : offset(convex_hulls_temp, float(scale_(brim_width)));
+    if (!diff(tower_polys_with_brim, printable_polys).empty())
         return {L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n")};
     return {};
 }
@@ -5961,8 +5960,8 @@ void WipeTowerData::construct_mesh(float width, float depth, float height, float
         wipe_tower_mesh_data->real_wipe_tower_mesh = make_cube(width, depth, height);
         wipe_tower_mesh_data->real_brim_mesh       = make_cube(width + 2 * brim_width, depth + 2 * brim_width, first_layer_height);
         wipe_tower_mesh_data->real_brim_mesh.translate({-brim_width, -brim_width, 0});
-        wipe_tower_mesh_data->bottom = {scaled(Vec2f{-brim_width, -brim_width}), scaled(Vec2f{width + brim_width, 0}), scaled(Vec2f{width + brim_width, depth + brim_width}),
-                                        scaled(Vec2f{0, depth})};
+        wipe_tower_mesh_data->bottom = {scaled(Vec2f{-brim_width, -brim_width}), scaled(Vec2f{width + brim_width, -brim_width}),
+                                        scaled(Vec2f{width + brim_width, depth + brim_width}), scaled(Vec2f{-brim_width, depth + brim_width})};
     } else {
         wipe_tower_mesh_data->real_wipe_tower_mesh = WipeTower::its_make_rib_tower(width, depth, height, rib_length, rib_width, fillet_wall);
         wipe_tower_mesh_data->bottom               = WipeTower::rib_section(width, depth, rib_length, rib_width, fillet_wall);
