@@ -106,6 +106,38 @@ std::vector<std::string> unique_mix_source_hexes(size_t n, const std::vector<Col
     return out;
 }
 
+// 0010 pair-ratio lattice: 6 pairs × {1:1, 2:1, 1:2, 3:1, 1:3}. Used when the RGB
+// stride helper cannot produce n unique Mix recipes (do not drop the 13-refuse case).
+std::vector<std::string> unique_mix_hexes_from_pair_lattice(size_t n, const std::vector<ColorRGB> &phys)
+{
+    std::vector<std::string> out;
+    std::set<std::string>    recipes;
+    static const int k_pairs[][2]  = {{1, 2}, {1, 3}, {1, 4}, {2, 3}, {2, 4}, {3, 4}};
+    static const int k_ratios[][2] = {{1, 1}, {2, 1}, {1, 2}, {3, 1}, {1, 3}};
+    for (const auto &pair : k_pairs) {
+        for (const auto &ratio : k_ratios) {
+            if (out.size() >= n)
+                return out;
+            MixedFilament mf;
+            mf.component_a = unsigned(pair[0]);
+            mf.component_b = unsigned(pair[1]);
+            mf.component_c = 0;
+            mf.ratio_a     = ratio[0];
+            mf.ratio_b     = ratio[1];
+            mf.ratio_c     = 0;
+            mf.enabled     = true;
+            const ColorRGB       pred = predicted_swatch_for_mix(mf, phys);
+            const MixMatchResult m    = match_printable_mix(pred, phys, nullptr);
+            if (!m.valid || m.kind != MixMatchResult::Kind::Mix || m.recipe_row.empty())
+                continue;
+            if (!recipes.insert(m.recipe_row).second)
+                continue;
+            out.push_back(encode_color(pred));
+        }
+    }
+    return out;
+}
+
 } // namespace
 
 TEST_CASE("mountain 8 hexes bake to Grey physical 4 and several mixes", "[spectrum_paint_bake]")
@@ -162,17 +194,37 @@ TEST_CASE("empty source is invalid", "[spectrum_paint_bake]")
 
 TEST_CASE("source palette larger than persist cap is refused", "[spectrum_paint_bake]")
 {
-    std::vector<std::string> too_many(16, "#08ABFB");
+    std::vector<std::string> at_cap(16, "#08ABFB");
+    const SpectrumPaintBakePlan plan_at_cap = plan_spectrum_paint_bake(at_cap, panchroma_physicals(), 4);
+    REQUIRE(plan_at_cap.valid);
+    REQUIRE(plan_at_cap.error.empty());
+
+    std::vector<std::string> too_many(17, "#08ABFB");
     const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(too_many, panchroma_physicals(), 4);
     REQUIRE_FALSE(plan.valid);
     REQUIRE_FALSE(plan.error.empty());
 }
 
-TEST_CASE("twelve unique Mix recipes plus four physicals refuse persist cap", "[spectrum_paint_bake]")
+TEST_CASE("twelve unique Mix recipes plus four physicals bake within persist cap", "[spectrum_paint_bake]")
 {
     const std::vector<ColorRGB> phys = panchroma_physicals();
     const std::vector<std::string> hexes = unique_mix_source_hexes(12, phys);
     REQUIRE(hexes.size() == 12);
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(hexes, phys, 4);
+    REQUIRE(plan.valid);
+    REQUIRE(plan.error.empty());
+}
+
+TEST_CASE("thirteen unique Mix recipes plus four physicals refuse persist cap", "[spectrum_paint_bake]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    std::vector<std::string> hexes = unique_mix_source_hexes(13, phys);
+    const size_t helper_size = hexes.size();
+    if (hexes.size() < 13)
+        hexes = unique_mix_hexes_from_pair_lattice(13, phys);
+    INFO("unique-mix 13 helper_size=" << helper_size
+         << (helper_size < 13 ? " (pair-ratio lattice fallback)" : " (RGB stride helper)"));
+    REQUIRE(hexes.size() == 13);
     const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(hexes, phys, 4);
     REQUIRE_FALSE(plan.valid);
     REQUIRE_FALSE(plan.error.empty());

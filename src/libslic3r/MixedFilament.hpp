@@ -111,12 +111,12 @@ float spectrum_perimeter_mod_offset(const MixedFilament &mf,
                                     unsigned int         physical_1based,
                                     float                nozzle_mm);
 
-// Clamp/slice/gizmo persist policy. TriangleSelector 4-bit packing can encode state 16;
-// 0008 does not promise Extruder16 3mf round-trip (fold-in: cap 15).
-constexpr size_t SPECTRUM_PAINT_ID_PERSIST_CAP = 15;
+// Clamp/slice/gizmo persist policy. TriangleSelector bitstream already encodes state 16
+// (prefix 11 + 4 bits of n−3). 0008 promised 15; 0046 promises Extruder16. 32-state still OOS.
+constexpr size_t SPECTRUM_PAINT_ID_PERSIST_CAP = 16;
 
 // Shared paint-ID clamp for update_extruder_count and the delete-filament sibling.
-// min(15, max(physical_n, max_filament_id, source_palette_size)).
+// min(16, max(physical_n, max_filament_id, source_palette_size)) via SPECTRUM_PAINT_ID_PERSIST_CAP.
 size_t spectrum_paint_id_limit(size_t physical_n, size_t max_filament_id, size_t source_palette_size);
 
 // Volume/object `extruder` keep: 1..physical_n and mix IDs physical_n+1 … max_filament_id.

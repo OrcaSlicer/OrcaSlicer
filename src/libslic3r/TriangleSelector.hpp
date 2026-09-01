@@ -19,7 +19,7 @@ enum class EnforcerBlockerType : int8_t {
     BLOCKER   = 2,
     // For the fuzzy skin, we use just two values (NONE and FUZZY_SKIN).
     FUZZY_SKIN = ENFORCER,
-    // Maximum is 15. The value is serialized in TriangleSelector into 6 bits using a 2 bit prefix code.
+    // Maximum is 16 (2-bit prefix 11 + 4 bits of n−3).
     Extruder1 = ENFORCER,
     Extruder2 = BLOCKER,
     Extruder3,

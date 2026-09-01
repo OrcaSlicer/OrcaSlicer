@@ -1316,9 +1316,9 @@ TEST_CASE("spectrum_cookbook_append dups and persist cap", "[spectrum_cookbook]"
             mf.ratio_b     = 1;
             mf.enabled     = true;
         }
-        // Cap: 4 physical + 10 enabled = 14; room for 1 → then skipped_cap.
+        // Cap: 4 physical + 10 enabled = 14; room for 2 → then skipped_cap.
         const auto r = spectrum_cookbook_append(ten, 4, SPECTRUM_PAINT_ID_PERSIST_CAP);
-        REQUIRE(r.added.size() == 1);
+        REQUIRE(r.added.size() == 2);
         REQUIRE(r.skipped_cap >= 1);
     }
 }

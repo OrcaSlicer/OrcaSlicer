@@ -8,6 +8,7 @@
 #include <boost/log/trivial.hpp>
 
 #include <algorithm>
+#include <string>
 #include <unordered_map>
 #include <utility>
 
@@ -36,7 +37,8 @@ SpectrumPaintBakePlan plan_spectrum_paint_bake(
         return plan;
     }
     if (source_hexes.size() > SPECTRUM_PAINT_ID_PERSIST_CAP) {
-        plan.error = "Source palette has more than 15 colours; mapping refused.";
+        plan.error = "Source palette has more than " + std::to_string(SPECTRUM_PAINT_ID_PERSIST_CAP) +
+                     " colours; mapping refused.";
         return plan;
     }
 
@@ -98,7 +100,8 @@ SpectrumPaintBakePlan plan_spectrum_paint_bake(
 
     plan.mix_count = recipe_rows.size();
     if (mix_base + plan.mix_count > SPECTRUM_PAINT_ID_PERSIST_CAP) {
-        plan.error = "Physical filaments plus unique mixes exceed the persist cap of 15.";
+        plan.error = "Physical filaments plus unique mixes exceed the persist cap of " +
+                     std::to_string(SPECTRUM_PAINT_ID_PERSIST_CAP) + ".";
         plan.mix_count             = 0;
         plan.physical_mapped_count = 0;
         plan.mixed_filament_definitions.clear();

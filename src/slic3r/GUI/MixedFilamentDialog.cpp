@@ -103,8 +103,9 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow *parent)
     m_btn_remove       = new wxButton(this, wxID_ANY, _L("Remove"));
     m_btn_recommended  = new wxButton(this, wxID_ANY, _L("Add recommended"));
     m_btn_recommended->SetToolTip(
-        _L("Adds missing 1:1 pairs of slots 1–4, then period-4 cookbook extras. "
-           "Skips duplicates. Stops at persist cap 15. Does not change existing rows."));
+        wxString::Format(_L("Adds missing 1:1 pairs of slots 1–4, then period-4 cookbook extras. "
+                            "Skips duplicates. Stops at persist cap %d. Does not change existing rows."),
+                         int(SPECTRUM_PAINT_ID_PERSIST_CAP)));
     list_btns->Add(m_btn_add, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
     list_btns->Add(m_btn_remove, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
     list_btns->Add(m_btn_recommended, 0, wxEXPAND);
