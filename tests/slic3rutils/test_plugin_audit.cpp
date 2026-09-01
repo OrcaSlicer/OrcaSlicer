@@ -184,6 +184,43 @@ TEST_CASE("Plugin audit deny beats a plugin's own scoped root", "[audit]")
     }
 }
 
+TEST_CASE("Plugin audit allows an allowed root below a configuration directory", "[audit][Regression]")
+{
+    ScopedDataDir data_dir_guard("plugin-audit-config-parent");
+    seed_denied_names();
+    seed_denied_keywords();
+
+    // This mirrors Linux's default ~/.config/OrcaSlicer layout without depending on the host's
+    // actual home directory or XDG_CONFIG_HOME setting.
+    const fs::path linux_data_dir = data_dir_guard.dir / ".config" / "OrcaSlicer";
+    const fs::path plugin_storage = linux_data_dir / "orca_plugins" / "plugin_data" / "test_plugin";
+    fs::create_directories(plugin_storage);
+    set_data_dir(linux_data_dir.string());
+
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+    mgr.add_global_allowed_root(data_dir());
+    ScopedPluginAuditContext ctx("test_plugin", "");
+
+    SECTION("plugin storage remains accessible")
+    {
+        CHECK(mgr.check_open((plugin_storage / "state.json").string(), "w").allowed);
+    }
+
+    SECTION("all plugin storage names remain accessible")
+    {
+        CHECK(mgr.check_open((plugin_storage / "config" / "settings.json").string(), "r").allowed);
+        CHECK(mgr.check_open((plugin_storage / "secret" / "token.txt").string(), "w").allowed);
+        CHECK(mgr.check_open((plugin_storage / (SLIC3R_APP_KEY ".conf")).string(), "r").allowed);
+    }
+
+    SECTION("host-owned protected files remain denied")
+    {
+        const AuditDecision decision = mgr.check_open((linux_data_dir / (SLIC3R_APP_KEY ".conf")).string(), "r");
+        CHECK_FALSE(decision.allowed);
+        CHECK(decision.reason == "denied filename");
+    }
+}
+
 TEST_CASE("Plugin audit does not constrain non-plugin code", "[audit]")
 {
     ScopedDataDir data_dir_guard("plugin-audit-noplugin");

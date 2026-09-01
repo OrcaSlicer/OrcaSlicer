@@ -367,6 +367,65 @@ bool PluginAuditManager::is_denied_path_keyword(const boost::filesystem::path& c
     return false;
 }
 
+bool PluginAuditManager::is_denied_path_keyword_below_root(const boost::filesystem::path& candidate,
+                                                            const boost::filesystem::path& allowed_root) const
+{
+    namespace fs = boost::filesystem;
+
+    boost::system::error_code ec;
+    fs::path canon_candidate = fs::weakly_canonical(candidate, ec);
+    if (ec) {
+        canon_candidate = fs::absolute(candidate, ec).lexically_normal();
+        if (ec)
+            canon_candidate = candidate;
+    }
+
+    fs::path canon_root = fs::weakly_canonical(allowed_root, ec);
+    if (ec) {
+        canon_root = fs::absolute(allowed_root, ec).lexically_normal();
+        if (ec)
+            canon_root = allowed_root;
+    }
+
+    auto cand_it  = canon_candidate.begin();
+    const auto cand_end = canon_candidate.end();
+    auto root_it  = canon_root.begin();
+    const auto root_end = canon_root.end();
+    const auto same_component = [](const fs::path& lhs, const fs::path& rhs) {
+#ifdef _WIN32
+        return boost::algorithm::iequals(lhs.native(), rhs.native());
+#else
+        return lhs == rhs;
+#endif
+    };
+
+    while (root_it != root_end && cand_it != cand_end && same_component(*root_it, *cand_it)) {
+        ++root_it;
+        ++cand_it;
+    }
+
+    // This is normally guaranteed by the caller. Falling back to the complete path keeps this
+    // helper safe if a future caller passes a root that does not contain the candidate.
+    if (root_it != root_end)
+        cand_it = canon_candidate.begin();
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_denied_path_keywords.empty())
+        return false;
+
+    for (auto component = cand_it; component != cand_end; ++component) {
+        std::string name = component->string();
+        if (name.empty())
+            continue;
+        std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return std::tolower(c); });
+        for (const auto& keyword : m_denied_path_keywords) {
+            if (name.find(keyword) != std::string::npos)
+                return true;
+        }
+    }
+    return false;
+}
+
 bool PluginAuditManager::is_denied_path(const boost::filesystem::path& candidate) const
 {
     return is_denied_filename(candidate) || is_denied_path_keyword(candidate);
@@ -385,21 +444,6 @@ AuditDecision PluginAuditManager::check_path_access(const boost::filesystem::pat
     if (plugin_key.empty())
         return {true, ""}; // not running inside a plugin context
 
-    // Denied filenames/keywords are checked before the allowed roots.  The app config and the
-    // cloud refresh token live directly inside data_dir(), which is a global allowed root, and
-    // the bundled TLS client cert lives inside resources_dir(), a read-only global allowed
-    // root, so a deny placed any lower would be unreachable.
-    if (is_denied_filename(path)) {
-        BOOST_LOG_TRIVIAL(warning) << "[AUDIT] block path=" << path.string() << " is_write=" << is_write
-                                   << " plugin=" << plugin_key << " reason=denied filename";
-        return {false, "denied filename"};
-    }
-    if (is_denied_path_keyword(path)) {
-        BOOST_LOG_TRIVIAL(warning) << "[AUDIT] block path=" << path.string() << " is_write=" << is_write
-                                   << " plugin=" << plugin_key << " reason=denied path keyword";
-        return {false, "denied path keyword"};
-    }
-
     namespace fs = boost::filesystem;
     fs::path candidate = path;
 
@@ -411,22 +455,58 @@ AuditDecision PluginAuditManager::check_path_access(const boost::filesystem::pat
             candidate = absolute_candidate;
     }
 
-    // A root that doesn't allow writes only matches a read-shaped request; a write/create/
-    // delete-shaped one falls through to "outside allowed root" for that root even though the
-    // path is physically inside it.
-    for (const auto& root : m_scoped_allowed_roots) {
-        if ((!is_write || root.allow_write) && is_inside_allowed_root(candidate, root.path)) {
-            return {true, ""};
+    // A plugin's storage is its private application data. It may use any filenames and
+    // directory names there, including names that match the broad secret/config/certificate
+    // keyword rules. The storage container is below data_dir(), but is checked explicitly so
+    // this exemption also bypasses the exact host-filename deny list.
+    const fs::path plugin_storage_root = fs::path(get_orca_plugins_dir()) / "plugin_data";
+    if (is_inside_allowed_root(candidate, plugin_storage_root))
+        return {true, ""};
+
+    // Host-owned protected files remain denied even though data_dir() is a global allowed root.
+    if (is_denied_filename(candidate)) {
+        BOOST_LOG_TRIVIAL(warning) << "[AUDIT] block path=" << path.string() << " is_write=" << is_write
+                                   << " plugin=" << plugin_key << " reason=denied filename";
+        return {false, "denied filename"};
+    }
+
+    // Find the most-specific matching root. A root that doesn't allow writes only matches a
+    // read-shaped request; a write/create/delete-shaped one falls through for that root even
+    // though the path is physically inside it.
+    bool     has_allowed_root = false;
+    fs::path matched_root;
+    const auto consider_root = [&](const AllowedRoot& root) {
+        if ((!is_write || root.allow_write) && is_inside_allowed_root(candidate, root.path) &&
+            (!has_allowed_root || is_inside_allowed_root(root.path, matched_root))) {
+            has_allowed_root = true;
+            matched_root     = root.path;
         }
+    };
+
+    for (const auto& root : m_scoped_allowed_roots) {
+        consider_root(root);
     }
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         for (const auto& root : m_global_allowed_roots) {
-            if ((!is_write || root.allow_write) && is_inside_allowed_root(candidate, root.path)) {
-                return {true, ""};
-            }
+            consider_root(root);
         }
+    }
+
+    if (has_allowed_root) {
+        if (is_denied_path_keyword_below_root(candidate, matched_root)) {
+            BOOST_LOG_TRIVIAL(warning) << "[AUDIT] block path=" << path.string() << " is_write=" << is_write
+                                       << " plugin=" << plugin_key << " reason=denied path keyword";
+            return {false, "denied path keyword"};
+        }
+        return {true, ""};
+    }
+
+    if (is_denied_path_keyword(candidate)) {
+        BOOST_LOG_TRIVIAL(warning) << "[AUDIT] block path=" << path.string() << " is_write=" << is_write
+                                   << " plugin=" << plugin_key << " reason=denied path keyword";
+        return {false, "denied path keyword"};
     }
 
     BOOST_LOG_TRIVIAL(warning) << "[AUDIT] block path=" << candidate.string() << " is_write=" << is_write
@@ -896,15 +976,17 @@ int PluginAuditManager::audit_hook(const char* event, PyObject* args, void* user
     const bool                      fs_category = is_fs_category(event_type);
     const std::vector<std::string>  targets      = PluginAuditDetail::audit_targets(event_name, event_type, args);
 
-    // A denied path (secrets, certificates, config files -- see is_denied_path) is an
-    // unconditional block: checked before the ancestor-cascade check below, so a cascade
-    // approval recorded for an unrelated action can never launder access to one, and before
-    // the allowed-root shortcut further down, so an allowed root (e.g. the read-only resources
-    // folder) cannot make a denied path underneath it reachable.
+    // Host-owned protected filenames and keyword matches below an allowed root are unconditional
+    // blocks: checked before the ancestor-cascade check below, so a cascade approval recorded
+    // for an unrelated action can never launder access to one. Plugin storage is exempted by
+    // check_path_access because it is the plugin's own application-data tree.
     if (fs_category) {
+        const bool is_write = event_type != AuditEventCategory::FsRead;
         for (const auto& target : targets) {
-            if (mgr->is_denied_path(boost::filesystem::path(target)))
-                return PluginAuditDetail::report_denied(*mgr, event_name, {false, "denied path"});
+            const AuditDecision decision = mgr->check_path_access(boost::filesystem::path(target), is_write);
+            if (!decision.allowed &&
+                (decision.reason == "denied filename" || decision.reason == "denied path keyword"))
+                return PluginAuditDetail::report_denied(*mgr, event_name, decision);
         }
     }
 
@@ -975,10 +1057,10 @@ void PluginAuditManager::install_hook()
     for (const auto& name : default_denied_filenames())
         add_denied_filename(name);
 
-    // Categorical denies on top of the exact-name list above: no path a plugin can reach may
-    // contain a "secret", "cert"(ificate), or "conf"(ig) path component, regardless of which
-    // allowed root it happens to sit inside. default_denied_path_keywords() is the single
-    // source of this list; the tests seed from it too.
+    // Categorical denies on top of the exact-name list above: host-owned paths below an allowed
+    // root may not contain a "secret", "cert"(ificate), or "conf"(ig) path component. Parent
+    // components of the allowed root are trusted, and plugin storage is fully exempt.
+    // default_denied_path_keywords() is the single source of this list; the tests seed from it too.
     for (const auto& keyword : default_denied_path_keywords())
         add_denied_path_keyword(keyword);
 

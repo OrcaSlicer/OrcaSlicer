@@ -125,9 +125,9 @@ public:
     bool is_denied_path(const boost::filesystem::path& candidate) const;
 
     // --- policy checks ---
-    // Shared core for every audited filesystem event.  The deny checks are consulted above the
-    // allowed roots, so a denied path is blocked even when it sits inside an allowed root (e.g.
-    // data_dir(), which is a global allowed root).
+    // Shared core for every audited filesystem event. A plugin's own storage tree is fully
+    // trusted; host-owned protected files remain denied, and broad keyword denies are evaluated
+    // below the most-specific allowed root so Linux's .config parent does not block that root.
     AuditDecision check_path_access(const boost::filesystem::path& candidate, bool is_write);
     AuditDecision check_open(const std::string& path, const std::string& mode);
 
@@ -162,6 +162,12 @@ private:
     PluginAuditManager() = default;
 
     static int audit_hook(const char* event, PyObject* args, void* user_data);
+
+    // Check keyword denies while ignoring the components that make up an already-approved root.
+    // This keeps a root such as ~/.config/OrcaSlicer usable while still denying config/secret/
+    // certificate-like paths below that root.
+    bool is_denied_path_keyword_below_root(const boost::filesystem::path& candidate,
+                                           const boost::filesystem::path& allowed_root) const;
 
     static thread_local std::string                   m_current_plugin_key;
     static thread_local std::string                   m_current_capability_name;
