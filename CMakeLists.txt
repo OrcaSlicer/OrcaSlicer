@@ -298,6 +298,8 @@ if (APPLE)
     SET(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.orcaslicer.OrcaSlicer")
 
     message(STATUS "Orca: IS_CROSS_COMPILE: ${IS_CROSS_COMPILE}")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CMAKE_INSTALL_RPATH "$ORIGIN")
 endif ()
 
 # Proposal for C++ unit tests and sandboxes
@@ -1065,6 +1067,10 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
             ${CMAKE_PREFIX_PATH}/bin/occt/TKXDESTEP.dll
             ${CMAKE_PREFIX_PATH}/bin/occt/TKXSBase.dll
             ${CMAKE_PREFIX_PATH}/bin/freetype.dll
+            ${CMAKE_PREFIX_PATH}/bin/avcodec-61.dll
+            ${CMAKE_PREFIX_PATH}/bin/swresample-5.dll
+            ${CMAKE_PREFIX_PATH}/bin/swscale-8.dll
+            ${CMAKE_PREFIX_PATH}/bin/avutil-59.dll
          DESTINATION ${_out_dir})
 
     set(${output_dlls}
@@ -1100,12 +1106,58 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
         ${_out_dir}/TKXSBase.dll
 
         ${_out_dir}/freetype.dll
-
+        ${_out_dir}/avcodec-61.dll
+        ${_out_dir}/swresample-5.dll
+        ${_out_dir}/swscale-8.dll
+        ${_out_dir}/avutil-59.dll
         PARENT_SCOPE
     )
 
 endfunction()
 
+function(orcaslicer_copy_sos target config postfix output_sos)
+
+    get_property(_is_multi GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+    get_target_property(_alt_out_dir ${target} RUNTIME_OUTPUT_DIRECTORY)
+
+    if (_alt_out_dir)
+        set(_out_dir "${_alt_out_dir}")
+    elseif (_is_multi)
+        set(_out_dir "${CMAKE_CURRENT_BINARY_DIR}/${config}")
+    else ()
+        set(_out_dir "${CMAKE_CURRENT_BINARY_DIR}")
+    endif ()
+
+    file(COPY ${CMAKE_PREFIX_PATH}/lib/libavcodec.so
+            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61
+            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61.3.100
+            ${CMAKE_PREFIX_PATH}/lib/libavutil.so
+            ${CMAKE_PREFIX_PATH}/lib/libavutil.so.59
+            ${CMAKE_PREFIX_PATH}/lib/libavutil.so.59.8.100
+            ${CMAKE_PREFIX_PATH}/lib/libswscale.so
+            ${CMAKE_PREFIX_PATH}/lib/libswscale.so.8
+            ${CMAKE_PREFIX_PATH}/lib/libswscale.so.8.1.100
+            ${CMAKE_PREFIX_PATH}/lib/libswresample.so
+            ${CMAKE_PREFIX_PATH}/lib/libswresample.so.5
+            ${CMAKE_PREFIX_PATH}/lib/libswresample.so.5.1.100
+         DESTINATION ${_out_dir})
+
+    set(${output_sos}
+        ${_out_dir}/libavcodec.so
+        ${_out_dir}/libavcodec.so.61
+        ${_out_dir}/libavcodec.so.61.3.100
+        ${_out_dir}/libavutil.so
+        ${_out_dir}/libavutil.so.59
+        ${_out_dir}/libavutil.so.59.8.100
+        ${_out_dir}/libswscale.so
+        ${_out_dir}/libswscale.so.8
+        ${_out_dir}/libswscale.so.8.1.100
+        ${_out_dir}/libswresample.so
+        ${_out_dir}/libswresample.so.5
+        ${_out_dir}/libswresample.so.5.1.100
+        PARENT_SCOPE
+    )
+endfunction()
 
 # Bundled sources set their own warning flags, and a plain -Wall there means /Wall
 # (= -Weverything) under clang-cl. Target options are applied after the ones a target
@@ -1215,6 +1267,20 @@ else ()
     if(ORCA_BUNDLED_UV_EXECUTABLE)
         install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "${CMAKE_INSTALL_PREFIX}/resources/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
     endif()
+endif ()
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(LIBRARY_FILES
+    ${LIBDIR_BIN}/libavcodec.so.61
+    ${LIBDIR_BIN}/libavcodec.so.61.3.100
+    ${LIBDIR_BIN}/libavutil.so.59
+    ${LIBDIR_BIN}/libavutil.so.59.8.100
+    ${LIBDIR_BIN}/libswresample.so.5
+    ${LIBDIR_BIN}/libswresample.so.5.1.100
+    ${LIBDIR_BIN}/libswscale.so.8
+    ${LIBDIR_BIN}/libswscale.so.8.1.100
+    )
+    install(FILES ${LIBRARY_FILES} DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 endif ()
 
 install(FILES ${CMAKE_SOURCE_DIR}/LICENSE.txt DESTINATION ".")

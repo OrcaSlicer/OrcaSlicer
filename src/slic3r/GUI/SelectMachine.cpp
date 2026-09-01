@@ -483,7 +483,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     m_link_edit_nozzle->Bind(wxEVT_LEFT_DOWN, [this](auto &e) {
 
-        if (this && this->m_is_in_sending_mode) {
+        if (m_is_in_sending_mode) {
             return;
         }
 
@@ -2847,7 +2847,7 @@ void SelectMachineDialog::on_ok_btn(wxCommandEvent &event)
             });
 
         // STUDIO-9580
-        /* use warning color if there are warning and normal messages* /
+        /* use warning color if there are warning and normal messages*/
         /* use indexes if there are several messages*/
         /* add header and ending if there are several messages or has none block warnings*/
         if (confirm_text.size() > 1 || !is_printing_block)

@@ -704,3 +704,189 @@ TEST_CASE("Sizing the filament list to a multi-tool nozzle count keeps mixed slo
         CHECK(bundle.num_mixed_filaments() == 0);
     }
 }
+
+// The nozzle-count top-up in update_multi_material_filament_presets() grows filament_presets on
+// its own, so a physical count derived from that list reports a slot no per-filament array has
+// yet. That is what made the extruder-count handler conclude there was nothing to add and leave
+// the new sidebar combo with no colour to draw.
+TEST_CASE("The physical filament count is not fooled by a lone filament_presets top-up", "[Preset][Bundle][FilamentMixer]")
+{
+    PresetBundle bundle;
+
+    SECTION("no mixed slots") {
+        bundle.set_num_filaments(4u, std::string("#FF0000"));
+        bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter", true)->values =
+            { 0.4, 0.4, 0.4, 0.4, 0.4 };
+        bundle.update_multi_material_filament_presets();
+
+        REQUIRE(bundle.filament_presets.size() == 5);   // the top-up moved this list on its own
+        REQUIRE(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 4);
+        CHECK(bundle.num_physical_filaments() == 4);
+    }
+
+    SECTION("behind a mixed tail") {
+        bundle.set_num_filaments(5u, std::string("#FF0000"));
+        bundle.project_config.option<ConfigOptionBools>("filament_is_mixed")->values =
+            { false, false, false, false, true };
+        bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter", true)->values =
+            { 0.4, 0.4, 0.4, 0.4, 0.4, 0.4 };
+        bundle.update_multi_material_filament_presets();
+
+        REQUIRE(bundle.filament_presets.size() == 6);
+        REQUIRE(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 5);
+        CHECK(bundle.num_physical_filaments() == 4);
+        CHECK(bundle.num_mixed_filaments() == 1);
+    }
+}
+
+// Which slots are new is a fact about the per-filament arrays, not about filament_presets, for the
+// same reason. Keyed off the wrong one, a freshly opened slot silently keeps filament 1's colour.
+TEST_CASE("New filament colours are placed by array position", "[Preset][Bundle][FilamentMixer]")
+{
+    PresetBundle bundle;
+    bundle.set_num_filaments(4u, std::string("#FF0000"));
+    bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter", true)->values =
+        { 0.4, 0.4, 0.4, 0.4, 0.4 };
+    bundle.update_multi_material_filament_presets();
+    REQUIRE(bundle.filament_presets.size() == 5);
+    REQUIRE(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 4);
+
+    // The call Sidebar::add_custom_filament makes once the extruder count opens a slot.
+    bundle.set_num_filaments(5u, std::string("#00FF00"));
+
+    const auto &colours = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
+    REQUIRE(colours.size() == 5);
+    CHECK(colours[4] == "#00FF00");   // not colours[0], which resize() would have padded with
+}
+
+// The mixed-slot flags are written into the app config on exit and read back on the next start.
+// If the read side loses them the slots survive as filaments but stop being mixes, so the project
+// comes back with the mix showing as an ordinary physical filament.
+TEST_CASE("A saved mix is still a mix after an app restart", "[Preset][Bundle][FilamentMixer]")
+{
+    AppConfig app_config;
+
+    // Last session: a 4-tool project carrying one mix of filaments 2 and 3 at the tail.
+    {
+        PresetBundle bundle;
+        add_inmemory_preset(bundle.printers, "Test Printer");
+        bundle.printers.select_preset_by_name("Test Printer", true);
+        add_inmemory_preset(bundle.filaments, "Test Filament");
+        bundle.filaments.select_preset_by_name("Test Filament", true);
+        bundle.set_num_filaments(5u, std::string("#FF0000"));
+        bundle.filament_presets.assign(5, "Test Filament");
+        bundle.project_config.option<ConfigOptionBools>("filament_is_mixed")->values =
+            { false, false, false, false, true };
+        bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components")->values =
+            { "", "", "", "", "2,3" };
+        bundle.export_selections(app_config);
+
+        REQUIRE(app_config.get_printer_setting("Test Printer", "filament_is_mixed") == "0,0,0,0,1");
+    }
+
+    // This session.
+    PresetBundle bundle;
+    add_inmemory_preset(bundle.printers, "Test Printer");
+    add_inmemory_preset(bundle.filaments, "Test Filament");
+    bundle.load_selections(app_config);
+
+    CHECK(bundle.filament_presets.size() == 5);
+    CHECK(bundle.num_mixed_filaments() == 1);
+    CHECK(bundle.is_mixed_filament(4));
+    CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components")->values[4] == "2,3");
+}
+
+// The same restart, on the printer shape that actually shows the bug: a 4-tool changer whose
+// saved filament list is one longer than its nozzle count, because the extra slot is the mix.
+TEST_CASE("A saved mix survives a restart on a multi-tool printer", "[Preset][Bundle][FilamentMixer]")
+{
+    auto make_toolchanger = [](PresetBundle &bundle) -> Preset & {
+        Preset &p = add_inmemory_preset(bundle.printers, "Tool Changer");
+        p.config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = { 0.4, 0.4, 0.4, 0.4 };
+        p.config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = false;
+        return p;
+    };
+
+    AppConfig app_config;
+    {
+        PresetBundle bundle;
+        make_toolchanger(bundle);
+        bundle.printers.select_preset_by_name("Tool Changer", true);
+        add_inmemory_preset(bundle.filaments, "Test Filament");
+        bundle.filaments.select_preset_by_name("Test Filament", true);
+        bundle.set_num_filaments(5u, std::string("#FF0000"));
+        bundle.filament_presets.assign(5, "Test Filament");
+        bundle.project_config.option<ConfigOptionBools>("filament_is_mixed")->values =
+            { false, false, false, false, true };
+        bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components")->values =
+            { "", "", "", "", "1,2" };
+        bundle.export_selections(app_config);
+        REQUIRE(app_config.get_printer_setting("Tool Changer", "filament_is_mixed") == "0,0,0,0,1");
+    }
+
+    PresetBundle bundle;
+    make_toolchanger(bundle);
+    add_inmemory_preset(bundle.filaments, "Test Filament");
+    bundle.load_selections(app_config);
+
+    CHECK(bundle.filament_presets.size() == 5);
+    CHECK(bundle.num_mixed_filaments() == 1);
+    CHECK(bundle.is_mixed_filament(4));
+
+    SECTION("and through the GUI startup calls that follow it") {
+        // GUI_App::load_current_presets sizes the list for a non-SEMM printer, growing only.
+        const size_t target = 4u + bundle.num_mixed_filaments();
+        if (target > bundle.filament_presets.size())
+            bundle.set_num_filaments(target);
+        CHECK(bundle.num_mixed_filaments() == 1);
+
+        // TabPrinter::extruders_count_changed.
+        bundle.on_extruders_count_changed(4);
+        CHECK(bundle.num_mixed_filaments() == 1);
+
+        // Tab::select_preset re-reads the snapshot when remember_printer_config is on.
+        bundle.update_selections(app_config);
+        CHECK(bundle.filament_presets.size() == 5);
+        CHECK(bundle.num_mixed_filaments() == 1);
+        CHECK(bundle.is_mixed_filament(4));
+    }
+}
+
+// The startup sizing in GUI_App::load_current_presets targets the nozzle count plus the mixes.
+// That is a floor, never a ceiling: set_num_filaments() trims at the raw tail, which is exactly
+// where the mixes live, so applying the target to a longer list deletes them. A list longer than
+// the target is reachable - raising the extruder count without saving the printer preset leaves
+// the extra physical slot behind on the next start - so the startup sizing must only ever grow.
+TEST_CASE("Sizing down to the nozzle count plus mixes is what eats the mixed tail", "[Preset][Bundle][FilamentMixer]")
+{
+    // 5 physical + 1 mix, on a printer preset still reporting 4 nozzles.
+    const size_t nozzle_count = 4;
+    PresetBundle bundle;
+    bundle.set_num_filaments(6u, std::string("#FF0000"));
+    bundle.project_config.option<ConfigOptionBools>("filament_is_mixed")->values =
+        { false, false, false, false, false, true };
+    bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components")->values =
+        { "", "", "", "", "", "1,2" };
+    REQUIRE(bundle.num_physical_filaments() == 5);
+
+    const size_t target = nozzle_count + bundle.num_mixed_filaments();
+    REQUIRE(target < bundle.filament_presets.size());
+
+    SECTION("applied as written, the mix is gone and every slot reads physical") {
+        bundle.set_num_filaments(target);
+
+        CHECK(bundle.filament_presets.size() == target);
+        CHECK(bundle.num_mixed_filaments() == 0);
+        CHECK(bundle.num_physical_filaments() == target);
+    }
+
+    SECTION("applied as a floor, the mix is left alone") {
+        if (target > bundle.filament_presets.size())
+            bundle.set_num_filaments(target);
+
+        CHECK(bundle.filament_presets.size() == 6);
+        CHECK(bundle.num_mixed_filaments() == 1);
+        CHECK(bundle.is_mixed_filament(5));
+        CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components")->values[5] == "1,2");
+    }
+}
