@@ -240,6 +240,12 @@ public:
                                const std::string &source_file,
                                ForwardCompatibilitySubstitutionRule compatibility_rule,
                                std::string &error, bool allow_source_manifest = true);
+    // Resolve a source file whose JSON omits `type`. Succeeds only when exactly
+    // one FFF preset collection owns the file and returns that collection's type.
+    bool resolve_preset_config_type(DynamicPrintConfig &config, Preset::Type &type,
+                                    const std::string &source_file,
+                                    ForwardCompatibilitySubstitutionRule compatibility_rule,
+                                    std::string &error, bool allow_source_manifest = true);
 
     // Load selections (current print, current filaments, current printer) from config.ini
     // This is done just once on application start up.

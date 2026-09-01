@@ -536,6 +536,82 @@ TEST_CASE("Read-only user preset loading does not create or delete files", "[Pre
     CHECK(fs::exists(malformed));
 }
 
+TEST_CASE("Typeless preset resolution probes loaded FFF collections", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      source_file = dir.path() / "typeless-process.json";
+    std::ofstream(source_file.string()) << R"({"name":"Typeless Process","from":"User"})";
+
+    PresetBundle bundle;
+    Preset      &process = add_inmemory_preset(bundle.prints, "Typeless Process");
+    process.file = source_file.string();
+    process.config.option<ConfigOptionFloats>("travel_speed", true)->values = {321.0};
+
+    DynamicPrintConfig raw;
+    Preset::Type       resolved_type = Preset::TYPE_INVALID;
+    std::string        error;
+    REQUIRE(bundle.resolve_preset_config_type(raw, resolved_type, source_file.string(),
+                                              ForwardCompatibilitySubstitutionRule::EnableSilent, error, false));
+    CHECK(error.empty());
+    CHECK(resolved_type == Preset::TYPE_PRINT);
+    REQUIRE(raw.option<ConfigOptionFloats>("travel_speed")->values.size() == 1);
+    CHECK_THAT(raw.option<ConfigOptionFloats>("travel_speed")->values.front(), Catch::Matchers::WithinAbs(321.0, 1e-6));
+}
+
+TEST_CASE("Typeless preset resolution preserves duplicate identity ambiguity", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      source_file = dir.path() / "duplicate-process.json";
+    std::ofstream(source_file.string()) << "{}";
+
+    PresetBundle bundle;
+    add_inmemory_preset(bundle.prints, "First Process Identity").file  = source_file.string();
+    add_inmemory_preset(bundle.prints, "Second Process Identity").file = source_file.string();
+
+    DynamicPrintConfig raw;
+    Preset::Type       resolved_type = Preset::TYPE_INVALID;
+    std::string        error;
+    CHECK_FALSE(bundle.resolve_preset_config_type(raw, resolved_type, source_file.string(),
+                                                  ForwardCompatibilitySubstitutionRule::EnableSilent, error, false));
+    CHECK(error == "Preset identity is ambiguous");
+    CHECK(resolved_type == Preset::TYPE_INVALID);
+}
+
+TEST_CASE("Typeless preset resolution rejects cross-type ambiguity", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      source_file = dir.path() / "ambiguous.json";
+    std::ofstream(source_file.string()) << "{}";
+
+    PresetBundle bundle;
+    add_inmemory_preset(bundle.prints, "Process Identity").file       = source_file.string();
+    add_inmemory_preset(bundle.filaments, "Filament Identity").file = source_file.string();
+
+    DynamicPrintConfig raw;
+    Preset::Type       resolved_type = Preset::TYPE_INVALID;
+    std::string        error;
+    CHECK_FALSE(bundle.resolve_preset_config_type(raw, resolved_type, source_file.string(),
+                                                  ForwardCompatibilitySubstitutionRule::EnableSilent, error, false));
+    CHECK(error == "Preset type is ambiguous");
+    CHECK(resolved_type == Preset::TYPE_INVALID);
+}
+
+TEST_CASE("Typeless preset resolution rejects a missing type candidate", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path      source_file = dir.path() / "unknown.json";
+    std::ofstream(source_file.string()) << "{}";
+
+    PresetBundle       bundle;
+    DynamicPrintConfig raw;
+    Preset::Type       resolved_type = Preset::TYPE_INVALID;
+    std::string        error;
+    CHECK_FALSE(bundle.resolve_preset_config_type(raw, resolved_type, source_file.string(),
+                                                  ForwardCompatibilitySubstitutionRule::EnableSilent, error, false));
+    CHECK(error == "Preset type could not be resolved");
+    CHECK(resolved_type == Preset::TYPE_INVALID);
+}
+
 TEST_CASE("Exact file resolution rejects multiple preset identities", "[Preset][Bundle][Regression]")
 {
     ScopedTemporaryDir dir;

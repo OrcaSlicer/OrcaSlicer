@@ -570,6 +570,41 @@ bool PresetBundle::resolve_preset_config(DynamicPrintConfig &config, Preset::Typ
     return false;
 }
 
+bool PresetBundle::resolve_preset_config_type(DynamicPrintConfig &config, Preset::Type &type,
+                                              const std::string &source_file,
+                                              ForwardCompatibilitySubstitutionRule compatibility_rule,
+                                              std::string &error, bool allow_source_manifest)
+{
+    std::optional<std::pair<Preset::Type, DynamicPrintConfig>> resolved;
+    for (Preset::Type candidate_type : types_list(ptFFF)) {
+        DynamicPrintConfig candidate_config(config);
+        std::string        candidate_error;
+        if (!resolve_preset_config(candidate_config, candidate_type, source_file, compatibility_rule,
+                                   candidate_error, allow_source_manifest)) {
+            if (candidate_error == "Preset identity is ambiguous") {
+                error = std::move(candidate_error);
+                return false;
+            }
+            continue;
+        }
+        if (resolved) {
+            error = "Preset type is ambiguous";
+            return false;
+        }
+        resolved.emplace(candidate_type, std::move(candidate_config));
+    }
+
+    if (!resolved) {
+        error = "Preset type could not be resolved";
+        return false;
+    }
+
+    type   = resolved->first;
+    config = std::move(resolved->second);
+    error.clear();
+    return true;
+}
+
 PresetBundle::PresetBundle(const PresetBundle &rhs)
 {
     *this = rhs;
