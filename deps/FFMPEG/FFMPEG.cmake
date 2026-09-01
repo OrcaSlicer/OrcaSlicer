@@ -44,6 +44,9 @@ else ()
         endif()
     else ()
         set(_link_cmd --enable-shared)
+        # FFmpeg drives its own compiler, so route it through the launcher (also
+        # honors -l/Clang) instead of falling back to the default cc.
+        set(_cc_cmd "--cc=${DEP_CC}")
     endif ()
 
     set(_build_j -j)
