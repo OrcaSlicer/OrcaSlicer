@@ -9079,7 +9079,7 @@ bool GCode::needs_retraction(const Polyline &travel, ExtrusionRole role, LiftTyp
                     continue;
 
                 Polygons temp;
-                temp.emplace_back(std::move(instance_bbox.polygon()));
+                temp.emplace_back(instance_bbox.polygon());
                 if (intersection_pl(travel, temp).empty())
                     continue;
 

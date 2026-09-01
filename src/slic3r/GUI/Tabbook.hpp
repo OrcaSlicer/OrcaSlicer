@@ -36,7 +36,6 @@ public:
     TabButton*                      pageButton;
 
 private:
-    wxWindow*                       m_parent;
     wxFlexGridSizer*                m_buttons_sizer;
     wxBoxSizer*                     m_sizer;
     ScalableBitmap                  m_arrow_img;
@@ -399,8 +398,6 @@ private:
 
     unsigned m_showTimeout,
              m_hideTimeout;
-
-    TabButtonsListCtrl *m_ctrl{nullptr};
 
 };
 //#endif // _WIN32

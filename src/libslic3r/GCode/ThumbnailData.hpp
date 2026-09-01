@@ -78,7 +78,7 @@ struct PlateBBoxData
     int first_extruder = 0;
     float nozzle_diameter = 0.4;
     std::string bed_type;
-    float first_layer_time;
+    float first_layer_time = 0.0f;
     // version 1: use view type ColorPrint (filament color)
     // version 2: use view type FilamentId (filament id)
     int version = 2;

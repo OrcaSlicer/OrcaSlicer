@@ -31,6 +31,9 @@ REQUIRED_DEV_PACKAGES=(
     webkit2gtk4.1-devel
     wget
     libcurl-devel
+    pkgconf
+    yasm
+    nasm
 )
 
 if [[ -n "$UPDATE_LIB" ]]

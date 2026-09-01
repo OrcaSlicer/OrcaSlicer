@@ -55,9 +55,9 @@ bool load_obj(const char *path, TriangleMesh *meshptr, ObjInfo& obj_info, std::s
                 boost::filesystem::path temp_mtl_path(mtl_file);
                 mtl_path = temp_mtl_path;
             }
-            auto    _mtl_path = mtl_name_is_path ? mtl_abs_path.string().c_str() : mtl_path.string().c_str();
+            const std::string _mtl_path = (mtl_name_is_path ? mtl_abs_path : mtl_path).string();
             if (boost::filesystem::exists(mtl_name_is_path ? mtl_abs_path : mtl_path)) {
-                if (!ObjParser::mtlparse(_mtl_path, mtl_data)) {
+                if (!ObjParser::mtlparse(_mtl_path.c_str(), mtl_data)) {
                     BOOST_LOG_TRIVIAL(error) << "load_obj:load_mtl: failed to parse " << _mtl_path;
                     message = _L("load mtl in obj: failed to parse");
                     return false;
