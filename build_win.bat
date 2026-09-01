@@ -40,6 +40,8 @@ REM ===========================================================================
 call :add_section "Actions"
 call :add_arg build_deps bool d deps "Download and build the dependencies, needed before -s"
 call :add_arg build_slicer bool s slicer "Build OrcaSlicer"
+call :add_arg build_tests bool "" tests "Build the unit tests"
+call :add_arg run_tests bool "" run-tests "Build the unit tests and run them"
 call :add_arg pack_deps bool p pack "Bundle the built dependencies into a zip file"
 call :add_arg install_deps bool u install-deps "Install or update CMake, Perl and Git with WinGet"
 call :add_arg install_vs string "" install-vs "Also install Visual Studio: buildtools or ide"
@@ -50,9 +52,6 @@ call :add_section "Build configuration"
 call :add_arg config string "" config "release, debug, relwithdebinfo or minsizerel (default: release)"
 call :add_arg target_arch string "" arch "x64 or arm64 (default: the host architecture)"
 call :add_arg slicer_asan bool a asan "Build the slicer with ASAN enabled"
-call :add_arg build_tests bool "" tests "Build the unit tests"
-call :add_arg run_tests bool "" run-tests "Build the unit tests and run them"
-call :add_arg install_slicer bool i install "Install into the build tree's OrcaSlicer folder"
 
 call :add_section "Toolchain"
 call :add_arg use_clang_cl bool l clang-cl "Use clang-cl as the compiler"
@@ -67,12 +66,13 @@ call :add_arg slicer_target string "" slicer-target "Build one slicer target ins
 call :add_arg deps_target string t deps-target "Build one dependency instead of all, e.g. dep_Boost"
 call :add_arg no_configure bool "" no-configure "Build the existing tree without configuring"
 call :add_arg no_gettext bool "" no-gettext "Skip regenerating the translations"
+call :add_arg install_slicer bool i install "Install into the build tree's OrcaSlicer folder"
 call :add_arg jobs string j jobs "Limit the build to N parallel jobs"
 call :add_arg clean bool c clean "Remove the trees this run builds, deps with -d, slicer with -s"
 
 call :add_section "Paths and extra arguments"
-call :add_arg deps_dir string "" deps-dir "Dependency tree to build in or use, instead of deps/"
-call :add_arg slicer_dir string "" build-dir "Slicer build directory instead of build/"
+call :add_arg deps_dir string "" deps-dir "Dependency tree to build in or use, instead of the one named for this build"
+call :add_arg slicer_dir string "" build-dir "Slicer build directory, instead of the one named for this build"
 call :add_arg deps_args rawstring "" deps-args "Extra arguments for the deps configure, quoted"
 call :add_arg slicer_args rawstring "" slicer-args "Extra arguments for the slicer configure, quoted"
 
@@ -168,16 +168,24 @@ REM Say so before the first + line scrolls past.
 if "%dry_run%" == "ON" echo Dry run: printing commands without running them.
 
 if "%kill_jobs%" == "ON" (
-	call :print_and_run taskkill /F /IM MSBuild.exe
-	call :print_and_run taskkill /F /IM ninja.exe
-	call :print_and_run taskkill /F /IM cl.exe
-	call :print_and_run taskkill /F /IM clang-cl.exe
+	echo Stopping build processes.
+	call :kill_image MSBuild.exe
+	call :kill_image ninja.exe
+	call :kill_image cl.exe
+	call :kill_image clang-cl.exe
 	exit /b 0
 )
 
-REM Options like --config or --tests only shape a build. Without one of
-REM the actions there is nothing for them to shape, so say so rather than
-REM resolving a whole build and reporting that it took no time.
+REM Neither test option can happen without building the slicer, so asking for
+REM one asks for that, unless another action was already named.
+if "%build_deps%%build_slicer%%pack_deps%%install_deps%%install_vs%" == "" (
+    if "%build_tests%" == "ON" set "build_slicer=ON"
+    if "%run_tests%" == "ON" set "build_slicer=ON"
+)
+
+REM Options like --config or -j only shape a build. Without one of the actions
+REM there is nothing for them to shape, so say so rather than resolving a whole
+REM build and reporting it took no time. The block above may have added one.
 if "%build_deps%%build_slicer%%pack_deps%%install_deps%%install_vs%" == "" (
     echo Nothing to do. Pick an action: -d, -s, -p or -u. Run -h for the full list.
     exit /b 1
@@ -638,7 +646,9 @@ if "%build_slicer%" == "ON" (
     REM nothing and must not depend on what happens to be on the machine.
     if not "%dry_run%" == "ON" if not "%no_configure%" == "ON" if not "%build_deps%" == "ON" if not exist "!DEP_TREE!\OrcaSlicer_dep\usr\local\" (
         for %%p in ("!DEP_TREE!") do set "die_reason=Dependencies not found at %%~fp"
-        set "die_hint=Build them with -d, or point at another tree with --deps-dir."
+        set "die_hint=Build them with build_win.bat -d!recall!."
+        REM Only worth suggesting to someone who did not name a tree.
+        if "%deps_dir%" == "" set "die_hint=Build them with build_win.bat -d!recall!, or point --deps-dir at an existing tree."
         set rc=1
         goto :die
     )
@@ -850,6 +860,7 @@ REM get_str_len <string> -> length in %ret%
     echo    %script_name% -s -l -x                  Rebuild the slicer with clang-cl and Ninja
     echo    %script_name% -s --no-configure -j 8    Rebuild quickly while iterating
     echo    %script_name% -s --slicer-target glad   Compile one target to check the toolchain
+    echo    %script_name% -l -x --run-tests         Test that toolchain's build, not the default one
     echo.
     echo Environment:
     echo    ORCA_DEPS_CMAKE_ARGS      Extra arguments for the deps configure
@@ -859,10 +870,11 @@ REM get_str_len <string> -> length in %ret%
     echo    NINJA_STATUS              Ninja progress format, if you want your own
     echo    debugscript               Set to ON to trace this script
     echo.
-    echo       set ORCA_SLICER_CMAKE_ARGS=-DSLIC3R_ASAN=ON -DCMAKE_UNITY_BUILD=ON
-    echo       $env:ORCA_SLICER_CMAKE_ARGS = '-DSLIC3R_ASAN=ON'      (PowerShell)
+    echo       set ORCA_SLICER_CMAKE_ARGS=-DSLIC3R_PCH=OFF -DSLIC3R_MSVC_PDB=OFF
+    echo       $env:ORCA_SLICER_CMAKE_ARGS = '-DSLIC3R_PCH=OFF'      (PowerShell)
     echo.
-    echo    Use these for a value containing spaces. Ampersands are not supported.
+    echo    --deps-args and --slicer-args cannot carry a value with spaces; use
+    echo    these instead. Neither form supports a value containing an ampersand.
     endlocal
     exit /b 0
 
@@ -1112,6 +1124,31 @@ REM A drive root keeps its own: "C:\" is not the same place as "C:".
     if not "!trim_value:~-1!" == "\" exit /b 0
     if "!trim_value:~-2!" == ":\" exit /b 0
     set "%~1=!trim_value:~0,-1!"
+    exit /b 0
+
+REM kill_image <name> - stop every process of one image. The count is printed
+REM first because taskkill can take a while and says nothing until it returns.
+REM Never fails, so one stubborn image cannot stop the rest.
+:kill_image
+    setlocal
+    REM A dry run does not count, so it prints the same on every machine.
+    if "%dry_run%" == "ON" (
+        call :print_and_run taskkill /F /IM %~1
+        endlocal
+        exit /b 0
+    )
+    set "img_count=0"
+    for /f "tokens=1" %%a in ('tasklist /nh /fi "IMAGENAME eq %~1" 2^>nul') do (
+        if /I "%%a" == "%~1" set /a img_count+=1
+    )
+    if "!img_count!" == "0" (
+        echo    %~1: none running
+        endlocal
+        exit /b 0
+    )
+    echo    %~1: stopping !img_count!
+    call :print_and_run taskkill /F /IM %~1
+    endlocal
     exit /b 0
 
 REM print_and_run <command...>

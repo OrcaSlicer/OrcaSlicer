@@ -21,6 +21,7 @@
         NotContains literal strings it must not have
         Match       regexes; each must match at least one output line
         NotMatch    regexes; none may match any output line
+        NotExists   paths that must not exist after the case runs
 
 .PARAMETER Name
     Run only the cases whose name matches this regex. Headings with no
@@ -102,7 +103,7 @@ $cases = @(
                     'Examples:', 'Environment:')  }
     @{ Name = 'the environment section shows what to set'; Args = @('--help'); DryRun = $false
        Contains = @('ORCA_DEPS_CMAKE_ARGS', 'ORCA_SLICER_CMAKE_ARGS', 'ORCA_UPDATER_SIG_KEY', 'NINJA_STATUS',
-                    'set ORCA_SLICER_CMAKE_ARGS=-DSLIC3R_ASAN=ON', '(PowerShell)', 'debugscript') }
+                    'set ORCA_SLICER_CMAKE_ARGS=-DSLIC3R_PCH=OFF', '(PowerShell)', 'debugscript') }
     @{ Name = 'section headers do not widen the flag column'; Args = @('--help'); DryRun = $false
        Match = @('^   -d, --deps  +Download') }
     # Windows Terminal opens at 120 columns and wraps at 120, so 119 is the
@@ -385,10 +386,22 @@ $cases = @(
        NotContains = @('Detected Visual Studio') }
 
     'an action has to be asked for'
+    # Neither can happen without building the slicer, so they stand alone the
+    # way --install-vs does.
+    @{ Name = '--run-tests is an action on its own'; Args = @('--run-tests')
+       Contains = @('-DBUILD_TESTS=ON', 'ctest --test-dir')
+       NotContains = @('Nothing to do') }
+    @{ Name = '--tests is too'; Args = @('--tests')
+       Contains = @('-DBUILD_TESTS=ON')
+       NotContains = @('Nothing to do', 'ctest --test-dir') }
+    # Naming an action means that action, not a fuller build.
+    @{ Name = 'they do not add a slicer build to one already asked for'; Args = @('-d', '--tests')
+       Contains = @('cmake -S deps')
+       NotContains = @('cmake -B "build"') }
     @{ Name = 'shaping options alone are not an action'; Args = @('--config', 'debug'); ExpectExit = 1
        Contains = @('Nothing to do.')
        NotContains = @('Build completed') }
-    @{ Name = '--run-tests alone is not an action either'; Args = @('--run-tests'); ExpectExit = 1
+    @{ Name = '-j alone is not an action either'; Args = @('-j', '4'); ExpectExit = 1
        Contains = @('Nothing to do.') }
     @{ Name = '--install-vs counts as an action on its own'; Args = @('--install-vs', 'ide')
        NotContains = @('Nothing to do.') }
@@ -539,7 +552,7 @@ $cases = @(
        Env = @{ ORCA_DEPS_CMAKE_ARGS = '-DDEPSONLY=1' }
        NotContains = @('-DDEPSONLY=1') }
     @{ Name = 'the help points at the environment for a spaced argument'; Args = @('--help'); DryRun = $false
-       Contains = @('Ampersands are not supported') }
+       Contains = @('Neither form supports a value containing an ampersand') }
     @{ Name = 'the help lists the environment overrides'; Args = @('--help'); DryRun = $false
        Contains = @('Environment:', 'ORCA_DEPS_CMAKE_ARGS', 'ORCA_SLICER_CMAKE_ARGS') }
 
@@ -578,8 +591,14 @@ $cases = @(
     # CMake's own failure here is hundreds of lines about package resolution.
     @{ Name = 'a missing dependency tree is named, not left to CMake'; Args = @('-s', '--deps-dir', 'Z:\nope')
        DryRun = $false; ExpectExit = 1
-       Contains = @('Dependencies not found at', 'Build them with -d')
+       Contains = @('Dependencies not found at', 'Build them with build_win.bat -d --deps-dir "Z:\nope"')
        NotContains = @('cmake -B', 'Try') }
+    # Every other suggestion carries the flags that reproduce the run; a bare
+    # -d would point at the MSVC tree after a clang build.
+    @{ Name = 'the missing-deps hint names this toolchain'; Args = @('-s', '-l', '-x', '--deps-dir', 'deps/not-built')
+       DryRun = $false; ExpectExit = 1
+       Contains = @('Build them with build_win.bat -d -l -x --deps-dir "deps/not-built"')
+       NotExists = @('deps/not-built') }
     # A dry run configures nothing, so it must not depend on which trees happen
     # to exist on the machine running the suite.
     @{ Name = 'a dry run does not check for the deps tree'; Args = @('-s', '--deps-dir', 'Z:\nope')
@@ -594,9 +613,12 @@ $cases = @(
        DryRun = $false; ExpectExit = 1
        Contains = @('-c     discard that tree')
        NotContains = @('-v     show the failing') }
-    @{ Name = 'a build failure is'; Args = @('-s', '--no-configure')
+    # A bare --no-configure succeeds on a machine that already has a usable
+    # build tree, so name one that cannot exist instead.
+    @{ Name = 'a build failure is'; Args = @('-s', '--no-configure', '--build-dir', 'deps/no-such-tree')
        DryRun = $false; ExpectExit = 1
-       Contains = @('-v     show the failing') }
+       Contains = @('-v     show the failing')
+       NotExists = @('deps/no-such-tree') }
     # --build-dir names the slicer tree, which a deps failure has nothing to do
     # with. --deps-dir stays, because that is the tree that failed.
     @{ Name = 'a deps retry leaves out the slicer tree'; Args = @('-d', '-s', '--deps-dir', 'Z:\nope', '--build-dir', 'D:\b')
@@ -723,7 +745,7 @@ function Invoke-BuildScript {
 
 $knownFields = @(
     'Name', 'Args', 'ExpectExit', 'DryRun', 'First', 'Env',
-    'Contains', 'NotContains', 'Match', 'NotMatch'
+    'Contains', 'NotContains', 'Match', 'NotMatch', 'NotExists'
 )
 
 function Test-Case {
@@ -767,6 +789,13 @@ function Test-Case {
     foreach ($pattern in $Case['NotMatch']) {
         foreach ($line in @($lines | Where-Object { $_ -match $pattern })) {
             $problems += "line matches /$pattern/: $line"
+        }
+    }
+    # Output cannot show what a run did not create.
+    foreach ($path in $Case['NotExists']) {
+        $full = Join-Path (Split-Path -Parent $Script) $path
+        if (Test-Path $full) {
+            $problems += "created '$path'"
         }
     }
     return ,$problems
