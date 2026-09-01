@@ -2081,6 +2081,11 @@ void GLCanvas3D::render(bool only_init)
         no_partplate = true;
     else if (gizmo_type == GLGizmosManager::BrimEars && !camera.is_looking_downward())
         show_grid = false;
+    if (m_axes_at_bed_center)
+        // Design tab: the plate grid is generated from the plate's front-left corner, so it
+        // floats mid-cell under the modeling-origin triad. Suppress it here; a CAD grid centred
+        // on the origin is rendered in its place (see _render_cad_grid).
+        show_grid = false;
 
     /* view3D render*/
     int hover_id = (m_hover_plate_idxs.size() > 0)?m_hover_plate_idxs.front():-1;
@@ -2091,6 +2096,9 @@ void GLCanvas3D::render(bool only_init)
             _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
         if (!no_partplate && m_show_bed) //BBS: add outline logic
             _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, only_body, hover_id, true, show_grid);
+        if (m_axes_at_bed_center && m_show_bed && !no_partplate)
+            // Design tab: replace the plate's corner-origin grid with the origin-centred CAD grid.
+            _render_cad_grid(camera.get_view_matrix(), camera.get_projection_matrix());
         
         //BBS: add outline logic
         // Depth pass for object-on-object and self shadows; consumed by the gouraud shader below.
@@ -8082,6 +8090,99 @@ void GLCanvas3D::_render_bed(const Transform3d& view_matrix, const Transform3d& 
 void GLCanvas3D::_render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body, int hover_id, bool render_cali, bool show_grid)
 {
     wxGetApp().plater()->get_partplate_list().render(view_matrix, projection_matrix, bottom, only_current, only_body, hover_id, render_cali, show_grid, !m_plate_chrome_enabled);
+}
+
+// Design tab: CAD grid on the bed plane, drawn in place of the plate's corner-origin grid.
+// Generated from the bed centre (= modeling origin) so a grid line passes exactly through the
+// triad in both axes. Minor lines every 10 mm, major every 50 mm; the two GLModels are built
+// once and rebuilt only when the bed shape changes, not per frame.
+void GLCanvas3D::_render_cad_grid(const Transform3d& view_matrix, const Transform3d& projection_matrix)
+{
+    const BuildVolume& build_volume = m_bed.build_volume();
+    if (!build_volume.valid())
+        return;
+
+    const Vec2d        center = build_volume.bed_center();
+    const BoundingBoxf bb     = build_volume.bounding_volume2d();
+    if (!m_cad_grid_valid || m_cad_grid_center != center || m_cad_grid_bb != bb) {
+        m_cad_grid_center = center;
+        m_cad_grid_bb     = bb;
+        m_cad_grid_valid  = true;
+
+        // Same z as PartPlate::GROUND_Z_GRIDLINE (-0.26f): just below the bed fill (GROUND_Z =
+        // -0.03f, which is drawn with the depth mask disabled) and above the physical bed model
+        // (offset z = -0.41), so the grid never z-fights the bed quad. Chosen by construction,
+        // not by magic number: it is the exact z the plate grid already uses on the shared bed.
+        const float z = -0.26f;
+
+        auto build_grid = [&z, &center, &bb](double step, GLModel& model) {
+            std::vector<std::pair<Vec2d, Vec2d>> segs;
+            // Constant-x (vertical on screen) lines, both directions from the centre so the
+            // centre column itself is always present. Clipped to the bed bounding box so nothing
+            // spills past the bed quad.
+            for (double x = center.x(); x >= bb.min.x(); x -= step)
+                segs.emplace_back(Vec2d(x, bb.min.y()), Vec2d(x, bb.max.y()));
+            for (double x = center.x() + step; x <= bb.max.x(); x += step)
+                segs.emplace_back(Vec2d(x, bb.min.y()), Vec2d(x, bb.max.y()));
+            // Constant-y (horizontal on screen) lines, same centre-first convention.
+            for (double y = center.y(); y >= bb.min.y(); y -= step)
+                segs.emplace_back(Vec2d(bb.min.x(), y), Vec2d(bb.max.x(), y));
+            for (double y = center.y() + step; y <= bb.max.y(); y += step)
+                segs.emplace_back(Vec2d(bb.min.x(), y), Vec2d(bb.max.x(), y));
+
+            GLModel::Geometry data;
+            data.format = { GLModel::Geometry::EPrimitiveType::Lines, GLModel::Geometry::EVertexLayout::P3 };
+            data.reserve_vertices(2 * segs.size());
+            data.reserve_indices(2 * segs.size());
+            for (const auto& s : segs) {
+                data.add_vertex(Vec3f(float(s.first.x()), float(s.first.y()), z));
+                data.add_vertex(Vec3f(float(s.second.x()), float(s.second.y()), z));
+                const unsigned int vc = static_cast<unsigned int>(data.vertices_count());
+                data.add_line(vc - 2, vc - 1);
+            }
+            model.init_from(std::move(data));
+        };
+
+        m_cad_grid_minor.reset();
+        m_cad_grid_major.reset();
+        build_grid(10.0, m_cad_grid_minor);
+        build_grid(50.0, m_cad_grid_major);
+    }
+
+    if (!m_cad_grid_minor.is_initialized() || !m_cad_grid_major.is_initialized())
+        return;
+
+    GLShaderProgram* shader = wxGetApp().get_shader("flat");
+    if (shader == nullptr)
+        return;
+
+    shader->start_using();
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    shader->set_uniform("view_model_matrix", view_matrix);
+    shader->set_uniform("projection_matrix", projection_matrix);
+
+    // White every 5 cm, grey every 1 cm — the SAME in both themes, deliberately. There is no
+    // "white bed" to vanish against: the plate is dark grey either way, DEFAULT_MODEL_COLOR
+    // {0.326,0.337,0.337} on light and DEFAULT_MODEL_COLOR_DARK {0.255,0.255,0.283} on dark
+    // (3DBed.cpp:185-186), a difference of 0.07. A per-theme palette here would be a branch
+    // that buys nothing and one more thing to keep in step.
+    //
+    // For contrast with what this replaces: the plate's own grid uses LINE_TOP_DARK_COLOR, a
+    // 0.43 grey, for BOTH its thin and its bold family — which is most of why the stock grid
+    // reads as a flat mesh with no scale to it.
+    const ColorRGBA minor_color(0.40f, 0.40f, 0.42f, 1.0f);
+    const ColorRGBA major_color(0.90f, 0.90f, 0.90f, 1.0f);
+
+    glsafe(::glLineWidth(1.0f));
+    m_cad_grid_minor.set_color(minor_color);
+    m_cad_grid_minor.render();
+
+    glsafe(::glLineWidth(2.0f));
+    m_cad_grid_major.set_color(major_color);
+    m_cad_grid_major.render();
+
+    glsafe(::glDisable(GL_BLEND));
 }
 
 void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform3d& projection_matrix)

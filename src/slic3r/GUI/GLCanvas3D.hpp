@@ -555,6 +555,16 @@ private:
     // Design tab: draw the printer bed and its plate grid at all. Default true, so the
     // main editor is untouched; the Design tab lets the user hide it to model without a bed.
     bool m_show_bed{true};
+    // Design tab: CAD grid drawn on the bed plane in place of the plate's corner-origin grid.
+    // Two GLModels (10 mm minor / 50 mm major) generated from the bed centre so a line passes
+    // exactly through the modeling origin; built once and rebuilt only when the bed shape changes.
+    GLModel m_cad_grid_minor;
+    GLModel m_cad_grid_major;
+    // Geometry the CAD grid models were last built from, so they are rebuilt on bed-shape change
+    // rather than every frame.
+    BoundingBoxf m_cad_grid_bb;
+    Vec2d        m_cad_grid_center;
+    bool         m_cad_grid_valid{false};
 #ifdef SLIC3R_CAD
     DesignSketchTool* m_design_sketch_tool{nullptr};
 #endif
@@ -1297,6 +1307,10 @@ private:
     void _render_shadows(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add part plate related logic
     void _render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
+    // Design tab: draw the CAD grid (minor 10 mm + major 50 mm) in place of the plate's
+    // corner-origin grid when the axes sit at the bed centre (modeling origin). Rebuilds its
+    // GLModels lazily, only when the bed shape changed.
+    void _render_cad_grid(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add outline drawing logic
     void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true);
     void _render_wireframe_overlay();
