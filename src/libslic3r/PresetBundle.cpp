@@ -5666,81 +5666,10 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                     const size_t new_slot_idx = this->filament_presets.size();
                     std::string initial_preset;
                     if (published_slots.count(static_cast<int>(new_slot_idx)) != 0) {
-                        // Prefer the best distinct candidate for the slot's published material
-                        // (exact id, then vendor+type, then type only), searching compatible
-                        // presets first and falling back to incompatible ones only when no
-                        // compatible candidate exists...
-                        for (const PublishedMaterialEntry& entry : published_config->material_keys) {
-                            // Scored for every entry with an identity (name / ids / family),
-                            // not only when a Type requirement was checked; candidate_score's
-                            // family tiers fall back to the entry's own filament_type.
-                            if (entry.slot != static_cast<int>(new_slot_idx))
-                                continue;
-                            const std::string resolved_name = resolved_name_for(entry.slot);
-                            int best_score                  = -1;
-                            auto scan                       = [&](bool compatible_only) -> std::pair<int, std::string> {
-                                int best_score = -1;
-                                std::string best_name;
-                                for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
-                                    const Preset& candidate = this->filaments.preset(i);
-                                    if (compatible_only && !candidate.is_compatible)
-                                        continue;
-                                    const int score = candidate_score(candidate, entry, resolved_name);
-                                    if (score > best_score) {
-                                        // Exact identity tiers (name / setting_id) win even when the
-                                        // preset is hidden or already referenced by another slot; the
-                                        // alias re-pointing pass below still de-aliases afterwards.
-                                        if (score < 3 && (!candidate.is_visible || used_preset_names.count(candidate.name) != 0))
-                                            continue;
-                                        best_score = score;
-                                        best_name  = candidate.name;
-                                    }
-                                }
-                                return {best_score, best_name};
-                            };
-                            const auto [compat_score, compat_name] = scan(true);
-                            const auto [any_score, any_name]       = scan(false);
-                            if (compat_score >= 0) {
-                                best_score     = compat_score;
-                                initial_preset = compat_name;
-                            } else if (any_score >= 0) {
-                                best_score     = any_score;
-                                initial_preset = any_name;
-                            }
-                            if (best_score >= 0)
-                                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF grew slot " << new_slot_idx << " with "
-                                                        << initial_preset << " (score " << best_score << ", preset_name \""
-                                                        << entry.preset_name << "\", type \"" << entry.publish_type_value << "\")";
-                            if (best_score >= 0 && best_score < 2 && (!entry.filament_id.empty() || !entry.filament_vendor.empty()))
-                                published_config->material_replacements.emplace_back("slot " + std::to_string(new_slot_idx) + ": " +
-                                                                                     initial_preset + " (substitute)");
-                            break;
-                        }
-                        // ...otherwise any visible preset not already used by another slot,
-                        // preferring the published material's own family when it is known.
-                        if (initial_preset.empty()) {
-                            std::string slot_family;
-                            for (const PublishedMaterialEntry& entry : published_config->material_keys)
-                                if (entry.slot == static_cast<int>(new_slot_idx)) {
-                                    slot_family = !entry.publish_type_value.empty() ? entry.publish_type_value :
-                                                                                      normalize_filament_type(entry.filament_type);
-                                    break;
-                                }
-                            for (size_t i = first_candidate; i < this->filaments.size(); ++i) {
-                                const Preset& candidate = this->filaments.preset(i);
-                                if (!candidate.is_visible || used_preset_names.count(candidate.name) != 0)
-                                    continue;
-                                if (!slot_family.empty()) {
-                                    const ConfigOptionStrings* types = candidate.config.opt<ConfigOptionStrings>("filament_type");
-                                    const std::string cand_type      = (types != nullptr && !types->values.empty()) ? types->get_at(0) :
-                                                                                                                      std::string();
-                                    if (normalize_filament_type(cand_type) != slot_family)
-                                        continue;
-                                }
-                                initial_preset = candidate.name;
-                                break;
-                            }
-                        }
+                        // Grow the slot the way the sidebar "add filament" does: seed it with
+                        // the receiver's last preset.
+                        if (!this->filament_presets.empty())
+                            initial_preset = this->filament_presets.back();
                     }
                     if (initial_preset.empty())
                         // Unpublished filler slot, or every visible preset is already used:
@@ -5763,6 +5692,26 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                 };
                 for (size_t slot = 1; slot < this->filament_presets.size(); ++slot) {
                     if (published_slots.count(static_cast<int>(slot)) == 0 || !referenced_elsewhere(this->filament_presets[slot], slot))
+                        continue;
+                    // A slot whose published entry writes nothing into a shared preset in place
+                    // keeps its own preset: de-aliasing would needlessly swap the material. Only
+                    // keys routed to the slot's preset can leak across an aliased slot (colour is
+                    // slot-scoped via project_config; a type requirement is handled by the
+                    // type-gate below; full detaches separately). Mixed-definition keys go to the
+                    // per-slot project arrays, never the preset.
+                    bool writes_preset_keys = false;
+                    for (const PublishedMaterialEntry& entry : published_config->material_keys) {
+                        if (entry.slot != static_cast<int>(slot))
+                            continue;
+                        for (const std::string& key : entry.keys)
+                            if (mixed_definitions.count(publish_base_key(key)) == 0) {
+                                writes_preset_keys = true;
+                                break;
+                            }
+                        if (writes_preset_keys)
+                            break;
+                    }
+                    if (!writes_preset_keys)
                         continue;
                     // Prefer the best distinct candidate for the slot's published material
                     // (exact id, then vendor+type, then type only), compatible presets first...
