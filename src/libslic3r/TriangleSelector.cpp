@@ -2606,7 +2606,6 @@ struct MixFieldCellHash {
 
 struct MixFieldCell {
     EnforcerBlockerType state{EnforcerBlockerType::NONE};
-    Vec3f               src_n{Vec3f::Zero()};
 };
 
 Eigen::Vector3i mix_field_cell(const Vec3f &p, float cell_mm)
@@ -2655,7 +2654,7 @@ TriangleSelector::TriangleSplittingData TriangleSelector::classify_painting(
         const Vec3f& v1 = source_selector.m_vertices[tri.verts_idxs[1]].v;
         const Vec3f& v2 = source_selector.m_vertices[tri.verts_idxs[2]].v;
         const Vec3f centroid = (v0 + v1 + v2) / 3.f;
-        const MixFieldCell cell{tri.get_state(), source_selector.m_face_normals[tri.source_triangle]};
+        const MixFieldCell cell{tri.get_state()};
         field[mix_field_cell(v0, kMixFieldCellMm)]       = cell;
         field[mix_field_cell(v1, kMixFieldCellMm)]       = cell;
         field[mix_field_cell(v2, kMixFieldCellMm)]       = cell;
@@ -2686,7 +2685,6 @@ TriangleSelector::TriangleSplittingData TriangleSelector::classify_painting(
             const Vec3f& dv1 = target_mesh.its.vertices[face(1)];
             const Vec3f& dv2 = target_mesh.its.vertices[face(2)];
             const Vec3f centroid = (dv0 + dv1 + dv2) / 3.f;
-            const Vec3f& dest_n = target_selector.m_face_normals[i];
             const Eigen::Vector3i keys[4] = {
                 mix_field_cell(centroid, kMixFieldCellMm),
                 mix_field_cell(dv0, kMixFieldCellMm),
@@ -2697,10 +2695,8 @@ TriangleSelector::TriangleSplittingData TriangleSelector::classify_painting(
                 auto it = field.find(key);
                 if (it == field.end())
                     continue;
-                if (TriangleCursor::check_normal(dest_n, -it->second.src_n)) {
-                    states[i] = it->second.state;
-                    break;
-                }
+                states[i] = it->second.state;
+                break;
             }
         }
     });

@@ -48,6 +48,48 @@ ModelVolume *add_fully_painted_sphere(Model &model, double fa)
     return vol;
 }
 
+bool its_contains_vertex_triple(const indexed_triangle_set &its, const Vec3f &a, const Vec3f &b, const Vec3f &c)
+{
+    auto same = [](const Vec3f &p, const Vec3f &q) {
+        return (p - q).squaredNorm() < 1e-8f;
+    };
+    for (const Vec3i32 &f : its.indices) {
+        const Vec3f &v0 = its.vertices[f(0)];
+        const Vec3f &v1 = its.vertices[f(1)];
+        const Vec3f &v2 = its.vertices[f(2)];
+        int hits = 0;
+        for (const Vec3f *want : {&a, &b, &c}) {
+            if (same(v0, *want) || same(v1, *want) || same(v2, *want))
+                ++hits;
+        }
+        if (hits == 3)
+            return true;
+    }
+    return false;
+}
+
+void require_mix_not_on_cube_top(const TriangleSelector::TriangleSplittingData &result, const indexed_triangle_set &src_its)
+{
+    REQUIRE(src_its.indices.size() > 3);
+    TriangleMesh mesh(src_its);
+    TriangleSelector dest(mesh);
+    dest.deserialize(result, false);
+    const auto f5 = dest.get_facets(EnforcerBlockerType(5));
+    const auto f6 = dest.get_facets(EnforcerBlockerType(6));
+    const Vec3i32 &o2 = src_its.indices[2];
+    const Vec3i32 &o3 = src_its.indices[3];
+    const Vec3f &a2 = src_its.vertices[o2(0)];
+    const Vec3f &b2 = src_its.vertices[o2(1)];
+    const Vec3f &c2 = src_its.vertices[o2(2)];
+    const Vec3f &a3 = src_its.vertices[o3(0)];
+    const Vec3f &b3 = src_its.vertices[o3(1)];
+    const Vec3f &c3 = src_its.vertices[o3(2)];
+    REQUIRE_FALSE(its_contains_vertex_triple(f5, a2, b2, c2));
+    REQUIRE_FALSE(its_contains_vertex_triple(f5, a3, b3, c3));
+    REQUIRE_FALSE(its_contains_vertex_triple(f6, a2, b2, c2));
+    REQUIRE_FALSE(its_contains_vertex_triple(f6, a3, b3, c3));
+}
+
 } // namespace
 
 TEST_CASE("remap_painting identity keeps Mix 5 and Mix 6", "[spectrum_remap_painting]")
@@ -306,6 +348,7 @@ TEST_CASE("Cut KeepPaint inherit preserves Mix 5 and Mix 6", "[spectrum_remap_pa
         for (const ModelVolume *v : obj->volumes) {
             if (!v->is_model_part() || v->is_cut_connector())
                 continue;
+            REQUIRE(v->skip_restore_painting);
             const auto &data = v->mmu_segmentation_facets.get_data();
             if (data.used_states.size() > 6) {
                 if (data.used_states[5])
@@ -356,6 +399,7 @@ TEST_CASE("classify_painting identity keeps Mix 5 and Mix 6", "[spectrum_remap_p
     REQUIRE(result.used_states[5]);
     REQUIRE(result.used_states[6]);
     REQUIRE_FALSE(result.bitstream.empty());
+    require_mix_not_on_cube_top(result, its);
 }
 
 TEST_CASE("classify_painting thin cube keeps Mix 5 and Mix 6", "[spectrum_remap_painting][spectrum_paint_field]")
@@ -372,6 +416,7 @@ TEST_CASE("classify_painting thin cube keeps Mix 5 and Mix 6", "[spectrum_remap_
     REQUIRE(result.used_states[5]);
     REQUIRE(result.used_states[6]);
     REQUIRE_FALSE(result.bitstream.empty());
+    require_mix_not_on_cube_top(result, its);
 }
 
 TEST_CASE("classify_painting far translation does not flood Mix IDs", "[spectrum_remap_painting][spectrum_paint_field]")
@@ -435,6 +480,32 @@ TEST_CASE("classify_painting 7920 faces is faster than a second", "[spectrum_rem
     REQUIRE(result.used_states.size() > 1);
     REQUIRE(result.used_states[1]);
     REQUIRE_FALSE(result.bitstream.empty());
+}
+
+TEST_CASE("classify_painting r=2 mm 7920 Mix 1 covers dest original faces", "[spectrum_remap_painting][spectrum_paint_field]")
+{
+    Model        model;
+    ModelObject *obj = model.add_object("classify_paint_sphere_r2", "", make_sphere(2., 2. * PI / 90.));
+    REQUIRE(obj != nullptr);
+    obj->add_instance();
+    REQUIRE_FALSE(obj->volumes.empty());
+    ModelVolume *vol = obj->volumes.front();
+    TriangleSelector src_sel(vol->mesh());
+    const size_t n = vol->mesh().its.indices.size();
+    REQUIRE(n == 7920);
+    for (size_t i = 0; i < n; ++i)
+        src_sel.set_facet(int(i), EnforcerBlockerType(1));
+    REQUIRE(vol->mmu_segmentation_facets.set(src_sel));
+
+    const auto &src = vol->mmu_segmentation_facets.get_data();
+    const auto &its = vol->mesh().its;
+    const TriangleSelector::TriangleSplittingData result = TriangleSelector::classify_painting(
+        its, src, its, Transform3d::Identity(), std::nullopt);
+    REQUIRE_FALSE(result.bitstream.empty());
+
+    TriangleSelector dest_sel(vol->mesh());
+    dest_sel.deserialize(result, false);
+    REQUIRE(dest_sel.num_facets(EnforcerBlockerType(1)) == int(n));
 }
 
 TEST_CASE("classify_painting already canceled returns empty", "[spectrum_remap_painting][spectrum_paint_field]")
