@@ -828,3 +828,35 @@ SCENARIO("ConfigOptionVector::set_to_index throws on incompatible type", "[Confi
         }
     }
 }
+
+TEST_CASE("read_cli applies valid values and collects non-option arguments", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--nozzle-temperature", "210,190", "--reduce-crossing-wall=1", "model.3mf"};
+    REQUIRE(config.read_cli(5, argv, &extra, &keys));
+    REQUIRE(config.opt<ConfigOptionInts>("nozzle_temperature")->values == std::vector<int>{210, 190});
+    REQUIRE(config.opt<ConfigOptionBool>("reduce_crossing_wall")->value);
+    REQUIRE(extra == t_config_option_keys{"model.3mf"});
+    REQUIRE(keys == t_config_option_keys{"nozzle_temperature", "reduce_crossing_wall"});
+}
+
+TEST_CASE("read_cli rejects nil for a non-nullable vector option", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--nozzle-temperature", "nil"};
+    REQUIRE_FALSE(config.read_cli(3, argv, &extra, &keys));
+}
+
+TEST_CASE("read_cli rejects an invalid boolean value", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--reduce-crossing-wall=maybe"};
+    REQUIRE_FALSE(config.read_cli(2, argv, &extra, &keys));
+}
+
+TEST_CASE("read_cli rejects an invalid scalar numeric value", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--top-shell-layers", "several"};
+    REQUIRE_FALSE(config.read_cli(3, argv, &extra, &keys));
+}
