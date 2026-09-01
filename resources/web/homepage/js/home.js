@@ -219,15 +219,18 @@ function ShowRecentFileList( pList )
 		let sImg=OneFile["image"] || sImages[sPath];
 		let sTime=OneFile['time'];
 		let sName=OneFile['project_name'];
+		let sPublished=OneFile['published'] == '1';
 		sImages[sPath] = sImg;
 		
 		//let index=sPath.lastIndexOf('\\')>0?sPath.lastIndexOf('\\'):sPath.lastIndexOf('\/');
 		//let sShortName=sPath.substring(index+1,sPath.length);
 		
+		let sBadge=sPublished? '<span class="FilePublishedBadge">PUB</span>':'';
+
 		let TmpHtml='<div class="FileItem"  fpath="'+sPath+'"  >'+
 				'<a class="FileTip" title="'+sPath+'"></a>'+
 				'<div class="FileImg" ><img src="'+sImg+'" onerror="this.onerror=null;this.src=\'img/d.png\';"  alt="No Image"  /></div>'+
-				'<div class="FileName TextS1">'+sName+'</div>'+
+				'<div class="FileNamePack">'+sBadge+'<div class="FileName TextS1">'+sName+'</div></div>'+
 				'<div class="FileDate">'+sTime+'</div>'+
 			    '</div>';
 		

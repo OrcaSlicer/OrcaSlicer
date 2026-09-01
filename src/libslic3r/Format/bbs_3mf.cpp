@@ -9205,6 +9205,56 @@ std::string bbs_3mf_get_thumbnail(const char *path)
     return data;
 }
 
+bool bbs_3mf_is_published(const std::string &path)
+{
+    mz_zip_archive archive;
+    mz_zip_zero_struct(&archive);
+
+    struct close_lock
+    {
+        mz_zip_archive *archive;
+        void            close()
+        {
+            if (archive) {
+                close_zip_reader(archive);
+                archive = nullptr;
+            }
+        }
+        ~close_lock() { close(); }
+    } lock{&archive};
+
+    if (!open_zip_reader(&archive, path))
+        return false;
+
+    // Read just the model XML and locate the published metadata node; no geometry parsing.
+    int index = mz_zip_reader_locate_file(&archive, MODEL_FILE.c_str(), nullptr, 0);
+    if (index < 0)
+        return false;
+    mz_zip_archive_file_stat stat;
+    if (!mz_zip_reader_file_stat(&archive, index, &stat))
+        return false;
+    std::string xml(stat.m_uncomp_size, '\0');
+    if (!mz_zip_reader_extract_to_mem(&archive, index, xml.data(), xml.size(), 0))
+        return false;
+
+    const std::string needle = std::string("<metadata name=\"") + ORCA_PUBLISHED_TAG + "\">";
+    size_t pos = xml.find(needle);
+    if (pos == std::string::npos)
+        return false;
+    pos += needle.size();
+    size_t end = xml.find("</metadata>", pos);
+    if (end == std::string::npos)
+        return false;
+
+    size_t value_begin = pos, value_end = end;
+    while (value_begin < value_end && (xml[value_begin] == ' ' || xml[value_begin] == '\t' || xml[value_begin] == '\n' || xml[value_begin] == '\r'))
+        ++value_begin;
+    while (value_end > value_begin && (xml[value_end - 1] == ' ' || xml[value_end - 1] == '\t' || xml[value_end - 1] == '\n' || xml[value_end - 1] == '\r'))
+        --value_end;
+
+    return is_published_3mf_flag(xml.substr(value_begin, value_end - value_begin));
+}
+
 bool load_gcode_3mf_from_stream(std::istream &data, DynamicPrintConfig *config, Model *model, PlateDataPtrs *plate_data_list, Semver *file_version)
 {
     CNumericLocalesSetter locales_setter;

@@ -4237,15 +4237,23 @@ std::wstring MainFrame::FileHistory::GetThumbnailUrl(int index) const
     return wss.str();
 }
 
+bool MainFrame::FileHistory::GetPublished(int index) const
+{
+    return index >= 0 && index < static_cast<int>(m_published_files.size()) && m_published_files[index];
+}
+
 void MainFrame::FileHistory::AddFileToHistory(const wxString &file)
 {
     if (this->m_fileMaxFiles == 0)
         return;
     wxFileHistory::AddFileToHistory(file);
-    if (m_load_called)
+    if (m_load_called) {
         m_thumbnails.push_front(bbs_3mf_get_thumbnail(into_u8(file).c_str()));
-    else
+        m_published_files.push_front(bbs_3mf_is_published(into_u8(file)));
+    } else {
         m_thumbnails.push_front("");
+        m_published_files.push_front(false);
+    }
 }
 
 void MainFrame::FileHistory::RemoveFileFromHistory(size_t i)
@@ -4254,6 +4262,7 @@ void MainFrame::FileHistory::RemoveFileFromHistory(size_t i)
         return;
     wxFileHistory::RemoveFileFromHistory(i);
     m_thumbnails.erase(m_thumbnails.begin() + i);
+    m_published_files.erase(m_published_files.begin() + i);
 }
 
 size_t MainFrame::FileHistory::FindFileInHistory(const wxString & file)
@@ -4269,6 +4278,7 @@ void MainFrame::FileHistory::LoadThumbnails()
             if (!thumbnail.empty()) {
                 m_thumbnails[i] = thumbnail;
             }
+            m_published_files[i] = bbs_3mf_is_published(into_u8(GetHistoryFile(i)));
         }
     });
     m_load_called = true;
@@ -4289,6 +4299,7 @@ void MainFrame::get_recent_projects(boost::property_tree::wptree &tree, int imag
         std::wstring proj = m_recent_projects.GetHistoryFile(i).ToStdWstring();
         item.put(L"project_name", proj.substr(proj.find_last_of(L"/\\") + 1));
         item.put(L"path", proj);
+        item.put(L"published", m_recent_projects.GetPublished(i) ? L"1" : L"0");
         boost::system::error_code ec;
         std::time_t t = boost::filesystem::last_write_time(proj, ec);
         if (!ec) {

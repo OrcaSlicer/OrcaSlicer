@@ -293,6 +293,9 @@ extern bool load_bbs_3mf(const char* path, DynamicPrintConfig* config, ConfigSub
 
 extern std::string bbs_3mf_get_thumbnail(const char * path);
 
+// Lightweight check: does this 3mf carry the "published" (orca_published == "1") marker? Only reads the 3D/3dmodel.model metadata node
+extern bool bbs_3mf_is_published(const std::string &path);
+
 extern bool load_gcode_3mf_from_stream(std::istream & data, DynamicPrintConfig* config, Model* model, PlateDataPtrs* plate_data_list,
        Semver* file_version);
 

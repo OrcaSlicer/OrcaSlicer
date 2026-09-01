@@ -5596,11 +5596,11 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
     // Count off filament_is_mixed, not filament_presets or the combos: the extruder-count spinner
     // reaches this before the sidebar has rebuilt, and update_multi_material_filament_presets()
     // can have grown filament_presets alone.
-    auto       *bundle         = wxGetApp().preset_bundle;
-    size_t      insert_pos     = bundle->num_physical_filaments();
-    size_t      total          = insert_pos + bundle->num_mixed_filaments();
-    int         filament_count = (int)(total + 1);
-    std::string new_color      = new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
+    auto* bundle          = wxGetApp().preset_bundle;
+    size_t insert_pos     = bundle->num_physical_filaments();
+    size_t total          = insert_pos + bundle->num_mixed_filaments();
+    int filament_count    = (int) (total + 1);
+    std::string new_color = new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
     bundle->set_num_filaments(filament_count, new_color);
 
     // Maintain physical-first ordering: rotate the new slot from end to insert_pos.
@@ -7018,7 +7018,7 @@ struct Plater::priv
     void handle_textured_mesh_import(Slic3r::Model& model, const std::vector<size_t>& obj_idxs, std::function<bool()> cancel_callback = {});
 
     fs::path get_export_file_path(GUI::FileType file_type);
-    wxString get_export_file(GUI::FileType file_type, const wxString& title = {});
+    wxString get_export_file(GUI::FileType file_type, const wxString& title = {}, bool published = false);
 
     // BBS
     void load_auxiliary_files();
@@ -9069,7 +9069,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 for (const std::string& key : published_config.skipped_keys)
                                     message += "\n-" + key;
                                 // Informational: the load succeeded, these keys were skipped.
-                                notify_manager->bbl_show_3mf_warn_notification(message, NotificationManager::NotificationLevel::WarningNotificationLevel);
+                                notify_manager
+                                    ->bbl_show_3mf_warn_notification(message,
+                                                                     NotificationManager::NotificationLevel::WarningNotificationLevel);
                             }
 
                             // BBS: notify the user about slot materials that were replaced while
@@ -9080,7 +9082,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 for (const std::string& replacement : published_config.material_replacements)
                                     message += "\n-" + replacement;
                                 // Informational: the load succeeded, the slots were adapted.
-                                notify_manager->bbl_show_3mf_warn_notification(message, NotificationManager::NotificationLevel::WarningNotificationLevel);
+                                notify_manager
+                                    ->bbl_show_3mf_warn_notification(message,
+                                                                     NotificationManager::NotificationLevel::WarningNotificationLevel);
                             }
 
                             ConfigOption* bed_type_opt = preset_bundle->project_config.option("curr_bed_type");
@@ -10026,7 +10030,7 @@ fs::path Plater::priv::get_export_file_path(GUI::FileType file_type)
     return output_file;
 }
 
-wxString Plater::priv::get_export_file(GUI::FileType file_type, const wxString& title)
+wxString Plater::priv::get_export_file(GUI::FileType file_type, const wxString& title, bool published)
 {
     wxString wildcard;
     switch (file_type) {
@@ -10060,7 +10064,10 @@ wxString Plater::priv::get_export_file(GUI::FileType file_type, const wxString& 
         break;
     }
     case FT_3MF: {
-        output_file.replace_extension("3mf");
+        // A published export is suggested as "<name>.published.3mf" so the role is visible in the
+        // dialog and in the recent-files list. This is only a pre-filled suggestion; the user's
+        // typed filename wins, keeping a plain ".3mf" output fully valid.
+        output_file.replace_extension(published ? "published.3mf" : "3mf");
         dlg_title = title.empty() ? _L("Save file as") : title;
         break;
     }
@@ -18262,7 +18269,7 @@ void Plater::export_core_3mf()
 int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
                                  const std::vector<Slic3r::PublishedMaterialEntry>& material_keys)
 {
-    wxString path = p->get_export_file(FT_3MF, _L("Publish 3MF file as:"));
+    wxString path = p->get_export_file(FT_3MF, _L("Publish 3MF file as:"), true);
     if (path.empty() || path == "<cancel>")
         return wxID_CANCEL;
 
@@ -18397,6 +18404,10 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
         return wxID_CANCEL;
     }
     restore_now();
+
+    // Register the exported file in the "Recently opened" list
+    wxGetApp().mainframe->add_to_recent_projects(path);
+
     return wxID_YES;
 }
 
@@ -21869,9 +21880,9 @@ void Plater::show_object_info()
     int non_manifold_edges = 0;
     auto mesh_errors       = p->sidebar->obj_list()->get_mesh_errors_info(&info_manifold, &non_manifold_edges);
 
-        if (non_manifold_edges > 0) {
-            info_manifold += "\n" + _L("Tips:") + "\n" + _L("Use \"Fix Model\" to repair the mesh.");
-        }
+    if (non_manifold_edges > 0) {
+        info_manifold += "\n" + _L("Tips:") + "\n" + _L("Use \"Fix Model\" to repair the mesh.");
+    }
 
     info_manifold = "<Error>" + info_manifold + "</Error>";
     info_text += into_u8(info_manifold);

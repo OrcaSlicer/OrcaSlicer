@@ -20,6 +20,7 @@
 
 #include <boost/algorithm/string/trim.hpp>
 #include <wx/display.h>
+#include <wx/utils.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcmemory.h>
 #include <wx/dcgraph.h>
@@ -514,6 +515,24 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent)
     msg->SetFont(Label::Body_13);
     msg->Wrap(-1);
     w_sizer->Add(msg, 0, wxRIGHT | wxLEFT | wxTOP, FromDIP(10));
+
+    // Guide link: opens the (still WIP) Publish 3MF docs in a new window/tab, keeping the dialog open.
+    wxStaticText* guide_link = new wxStaticText(this, wxID_ANY, _L("Publish 3MF Wiki Guide"));
+    guide_link->SetFont(Label::Body_13);
+    guide_link->SetForegroundColour(wxColour(0x1F, 0x8E, 0xEA));
+    guide_link->SetCursor(wxCURSOR_HAND);
+    guide_link->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent&) {
+        wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/publishing_3mf/publish_3mf.html", wxBROWSER_NEW_WINDOW);
+    });
+    w_sizer->Add(guide_link, 0, wxRIGHT | wxLEFT | wxTOP, FromDIP(10));
+
+    // Placeholder guide link: a Publish 3MF video URL, right below the wiki guide link.
+    wxStaticText* video_link = new wxStaticText(this, wxID_ANY, _L("Publish 3MF YouTube Video (Placeholder)"));
+    video_link->SetFont(Label::Body_13);
+    video_link->SetForegroundColour(wxColour(0x1F, 0x8E, 0xEA));
+    video_link->SetCursor(wxCURSOR_HAND);
+    video_link->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent&) { wxLaunchDefaultBrowser("https://www.youtube.com", wxBROWSER_NEW_WINDOW); });
+    w_sizer->Add(video_link, 0, wxRIGHT | wxLEFT | wxTOP, FromDIP(10));
 
     w_sizer->Add(f_bar, 0, wxRIGHT | wxLEFT | wxTOP | wxEXPAND, FromDIP(10));
     w_sizer->Add(m_outer_tabs, 0, wxRIGHT | wxLEFT | wxTOP | wxEXPAND, FromDIP(10));

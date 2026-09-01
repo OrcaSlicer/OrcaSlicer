@@ -572,6 +572,35 @@ body
     word-break: break-all;	
 }
 
+.FileNamePack
+{
+	display: flex;
+	align-items: center;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.FileNamePack .FileName
+{
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.FilePublishedBadge
+{
+	flex: 0 0 auto;
+	margin-right: 4px;
+	padding: 0 4px;
+	height: 16px;
+	line-height: 16px;
+	font-size: 10px;
+	font-weight: 600;
+	color: #FFFFFF;
+	background-color: #00AE42;
+	border-radius: 2px;
+	white-space: nowrap;
+}
+
 .FileDate
 {
 	color: #A8A8A8;
