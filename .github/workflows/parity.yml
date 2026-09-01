@@ -1,0 +1,125 @@
+# GUI-vs-CLI parity check. Runs the parity harness from
+# OrcaSlicer/orca-test-repo (parity/) against the latest successful Linux
+# AppImage build of this repo. Metrics-only: the job never gates - its
+# product is scorecard.json / report.md, with the count of NEW divergences
+# (differences not in the harness's known-differences ledger) as the
+# headline number in the job summary.
+name: GUI-CLI Parity
+
+on:
+  schedule:
+    - cron: "30 18 * * *"
+  workflow_dispatch:
+    inputs:
+      fixtures:
+        description: "space-separated fixture ids (empty = all)"
+        required: false
+        default: ""
+      test_repo_ref:
+        description: "orca-test-repo ref to run"
+        required: false
+        default: "cli-test-suite"
+      build_branch:
+        description: "branch whose latest successful build_all artifact to slice with"
+        required: false
+        default: "main"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Find the latest successful Linux build
+        id: build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh run list --workflow build_all.yml \
+            --branch "${{ github.event.inputs.build_branch || 'main' }}" \
+            --status success --limit 1 --json databaseId,headSha \
+            --jq '"run_id=\(.[0].databaseId)\nhead_sha=\(.[0].headSha)"' \
+            >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+
+      - name: Check out the parity test suite
+        uses: actions/checkout@v5
+        with:
+          repository: OrcaSlicer/orca-test-repo
+          ref: ${{ github.event.inputs.test_repo_ref || 'cli-test-suite' }}
+          path: orca-test-repo
+
+      # the AppImage ships only packed .opc preset caches, no profile JSONs,
+      # so resources/profiles must come from the source tree at the SAME sha
+      # the artifact was built from
+      - name: Check out OrcaSlicer sources at the build's sha
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.build.outputs.head_sha }}
+          path: slicer
+
+      - name: Download and extract the Linux AppImage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh run download "${{ steps.build.outputs.run_id }}" --dir appimage \
+            --pattern "OrcaSlicer_Linux_ubuntu_2404*"
+          # prefer the x86_64 artifact (amd64 is historically unsuffixed)
+          appimage=$(find appimage -name "*.AppImage" ! -name "*aarch64*" | head -1)
+          [ -n "$appimage" ] || { echo "no AppImage found"; ls -R appimage; exit 1; }
+          chmod +x "$appimage"
+          "$appimage" --appimage-extract > /dev/null
+          # the bare binary misses bundled libs (libavcodec etc.) - use AppRun,
+          # which sets up the AppImage's library paths and forwards arguments
+          [ -x squashfs-root/AppRun ] || { echo "no AppRun in AppImage"; exit 1; }
+          echo "ORCA_BIN=$PWD/squashfs-root/AppRun" >> "$GITHUB_ENV"
+          echo "ORCA_SLICER_ROOT=$PWD/slicer" >> "$GITHUB_ENV"
+
+      - name: Install display tooling for the GUI lanes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb xdotool imagemagick openbox mesa-utils
+
+      - name: Run the parity harness
+        id: run
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          fixtures=""
+          for f in ${{ github.event.inputs.fixtures || '' }}; do
+            fixtures="$fixtures --fixture $f"
+          done
+          python3 orca-test-repo/parity/run_parity.py \
+            --slicer-root "$ORCA_SLICER_ROOT" --bin "$ORCA_BIN" \
+            --out "$PWD/parity-out" $fixtures
+
+      - name: Publish job summary
+        if: always()
+        run: |
+          if [ -f parity-out/report.md ]; then
+            cat parity-out/report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "harness produced no report (see logs)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Prune bulky per-lane state before upload
+        if: always()
+        run: |
+          rm -rf parity-out/*/seed parity-out/*/datadir-* || true
+
+      - name: Upload scorecard and evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: parity-scorecard-${{ github.run_id }}
+          path: parity-out/
+          if-no-files-found: warn
+          retention-days: 30
