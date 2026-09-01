@@ -887,6 +887,10 @@ CON_BTN = {n: (449 + 42 * i, CON_BTN_Y) for i, n in enumerate(
 # button sits 228 px further right. Measured, not derived: the strip was screenshotted in sketch
 # mode and the icon columns detected — first centre 677, pitch 42, twenty of them. Deriving it
 # from the Constrain-mode map is exactly how this table drifted the last time.
+# NOTE FOR THIS FORK: 677 was measured on the OTHER fork's rig. Y is safe (it rides CON_BTN_Y,
+# which already carries CHROME_DY), but the X start depends on how wide the sketch toolbar to the
+# left of this group renders, and this fork keeps mainline's top row. Re-measure before trusting
+# D11 here: screenshot in sketch mode and detect the icon columns, do not derive it by offset.
 CON_BTN_SKETCH = {n: (677 + 42 * i, CON_BTN_Y) for i, n in enumerate(
     ["horizontal", "vertical", "parallel", "perpendicular", "coincident", "equal",
      "equal_radius", "collinear", "concentric", "tangent", "midpoint", "symmetric",
@@ -1085,6 +1089,378 @@ def rung_live_constrain():
     check("CLOSED", d2["constraints"] > 0 and d2["solve_ok"],
           f"{d2['constraints']} constraints survived the commit, dof {d2['dof']}")
     leave_sketch()
+
+
+# ---- the eleven buttons no rung had ever pressed ------------------------------------------
+# Twenty constraint buttons, nine of them exercised. The other eleven were "implemented" in the
+# sense that the kernel builds the right def for them -- which is exactly what was true of
+# Parallel this morning, right up until a user pressed it. What a kernel test cannot see: that
+# the BUTTON is wired to the index its name claims. CON_BTN is 449 + 42*i over a hand-written
+# name list and it has drifted once already, unnoticed for months, because nothing pressed
+# anything past index 5. These rungs press the rest.
+
+def rung_vertical():
+    reset_document()
+    print("\nD12 constrain — Vertical on one line, from a line that is not")
+    enter_sketch("l")
+    clickmm(-20, -35); clickmm(5, 30)
+    key("Escape", 0.7); key("Escape", 0.7)
+    d0 = describe()
+    dx0 = abs(d0["entities"][0]["p1"][0] - d0["entities"][0]["p0"][0])
+    check("VERTEX", dx0 > 1.0, f"it starts off-plumb by {dx0:.6f} mm")
+    key("k", 1.5)
+    d1 = describe()
+    clickmm(*mid(d1["entities"][0]))
+    click(*CON_BTN["vertical"])
+    time.sleep(1.0)
+    d = describe()
+    e = d["entities"][0]
+    dx = abs(e["p1"][0] - e["p0"][0])
+    check("VERTEX", near(dx, 0.0, 1e-6), f"now plumb: dx = {dx:.9f}")
+    check("LENGTH", e["length"] > 1.0, f"and it did not collapse: {e['length']:.6f}")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["solve_ok"] and d2["constraints"] > 0,
+          f"{d2['constraints']} constraints survived the commit")
+    leave_sketch()
+
+
+def rung_equal_radius_button():
+    reset_document()
+    print("\nD13 constrain — the equal_radius button ITSELF (index 6: past where the map drifted)")
+    # D4 proves the SHARED Equal button promotes on two circles. This presses design_c_equal_radius,
+    # the first button after the six that were once inserted without updating this table.
+    enter_sketch("c")
+    clickmm(-35, 0); clickmm(-20, 0); key("Escape", 0.7)
+    key("c", 0.6)
+    clickmm(35, 0); clickmm(60, 0); key("Escape", 0.7)
+    d0 = describe()
+    cs = [e for e in d0["entities"] if e["type"] == "circle"]
+    check("ARC", len(cs) == 2 and not near(cs[0]["radius"], cs[1]["radius"], 1e-6),
+          f"they start unequal: {[round(c['radius'], 6) for c in cs]}")
+    key("k", 1.5)
+    d1 = describe()
+    cs = [e for e in d1["entities"] if e["type"] == "circle"]
+    ia, ib = d1["entities"].index(cs[0]), d1["entities"].index(cs[1])
+    clickmm(*rim(cs[0])); clickmm(*rim(cs[1]))
+    click(*CON_BTN["equal_radius"])
+    time.sleep(1.0)
+    d = describe()
+    ra, rb = d["entities"][ia]["radius"], d["entities"][ib]["radius"]
+    check("ARC", near(ra, rb, 1e-9), f"equal by the dedicated button: {ra:.9f} and {rb:.9f}")
+    check("ARC", ra > 1e-6, f"and not equal at zero: {ra:.9f}")
+    leave_sketch()
+
+
+def rung_concentric():
+    reset_document()
+    print("\nD14 constrain — Concentric puts two circles on one centre, radii untouched")
+    enter_sketch("c")
+    clickmm(-30, -10); clickmm(-14, -10); key("Escape", 0.7)
+    key("c", 0.6)
+    clickmm(28, 14); clickmm(52, 14); key("Escape", 0.7)
+    d0 = describe()
+    cs = [e for e in d0["entities"] if e["type"] == "circle"]
+    gap0 = math.dist(cs[0]["center"], cs[1]["center"])
+    r_before = sorted(round(c["radius"], 9) for c in cs)
+    check("ARC", gap0 > 1.0, f"centres start {gap0:.6f} mm apart")
+    key("k", 1.5)
+    d1 = describe()
+    cs = [e for e in d1["entities"] if e["type"] == "circle"]
+    ia, ib = d1["entities"].index(cs[0]), d1["entities"].index(cs[1])
+    clickmm(*rim(cs[0])); clickmm(*rim(cs[1]))
+    click(*CON_BTN["concentric"])
+    time.sleep(1.0)
+    d = describe()
+    gap = math.dist(d["entities"][ia]["center"], d["entities"][ib]["center"])
+    check("ARC", near(gap, 0.0, 1e-6), f"centres now coincide: {gap:.9f} mm apart")
+    # Concentric is about centres only. A solve that also equalised the radii would be wrong.
+    r_after = sorted(round(d["entities"][i]["radius"], 9) for i in (ia, ib))
+    check("ARC", all(near(a, b, 1e-6) for a, b in zip(r_before, r_after)),
+          f"radii untouched: {r_before} -> {r_after}")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["solve_ok"] and d2["constraints"] > 0,
+          f"{d2['constraints']} constraints survived the commit")
+    leave_sketch()
+
+
+def rung_tangent():
+    reset_document()
+    print("\nD15 constrain — Tangent brings a line to touch a circle exactly once")
+    enter_sketch("c")
+    clickmm(0, 0); clickmm(20, 0); key("Escape", 0.7)
+    key("l", 0.6)
+    # A line that clearly MISSES the circle: its perpendicular distance from the centre is well
+    # above the radius, so tangency has real work to do in the direction of shrinking the gap.
+    clickmm(-45, 38); clickmm(45, 44)
+    key("Escape", 0.7); key("Escape", 0.7)
+    d0 = describe()
+    c0 = next(e for e in d0["entities"] if e["type"] == "circle")
+    l0 = next(e for e in d0["entities"] if e["type"] == "line")
+    d_before = point_line_distance(c0["center"], l0)
+    check("ARC", d_before > c0["radius"] + 1.0,
+          f"the line misses by {d_before - c0['radius']:.6f} mm")
+    key("k", 1.5)
+    d1 = describe()
+    c1 = next(e for e in d1["entities"] if e["type"] == "circle")
+    l1 = next(e for e in d1["entities"] if e["type"] == "line")
+    ic, il = d1["entities"].index(c1), d1["entities"].index(l1)
+    clickmm(*rim(c1)); clickmm(*mid(l1))
+    click(*CON_BTN["tangent"])
+    time.sleep(1.2)
+    d = describe()
+    cc, ll = d["entities"][ic], d["entities"][il]
+    dist = point_line_distance(cc["center"], ll)
+    check("ARC", near(dist, cc["radius"], 1e-6),
+          f"centre-to-line {dist:.9f} == radius {cc['radius']:.9f}")
+    check("ARC", cc["radius"] > 1e-6, f"and the circle did not collapse: r = {cc['radius']:.9f}")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["solve_ok"] and d2["constraints"] > 0,
+          f"{d2['constraints']} constraints survived the commit")
+    leave_sketch()
+
+
+def rung_midpoint():
+    reset_document()
+    print("\nD16 constrain — Midpoint drops a free point onto the middle of a line")
+    enter_sketch("l")
+    clickmm(-50, -20); clickmm(40, 26)
+    key("Escape", 0.7); key("Escape", 0.7)
+    key("p", 0.6)
+    clickmm(10, -35)
+    d0 = describe()
+    l0 = next(e for e in d0["entities"] if e["type"] == "line")
+    p0 = next(e for e in d0["entities"] if e["type"] == "point")
+    mid0 = ((l0["p0"][0] + l0["p1"][0]) / 2.0, (l0["p0"][1] + l0["p1"][1]) / 2.0)
+    check("VERTEX", math.dist(p0["p"], mid0) > 1.0,
+          f"the point starts {math.dist(p0['p'], mid0):.6f} mm off the midpoint")
+    key("k", 1.5)
+    d1 = describe()
+    l1 = next(e for e in d1["entities"] if e["type"] == "line")
+    p1 = next(e for e in d1["entities"] if e["type"] == "point")
+    il, ip = d1["entities"].index(l1), d1["entities"].index(p1)
+    # Point first, then the line: Midpoint binds a POINT role on ea and a whole segment on eb.
+    clickmm(*p1["p"]); clickmm(*mid(l1))
+    click(*CON_BTN["midpoint"])
+    time.sleep(1.2)
+    d = describe()
+    ll, pp = d["entities"][il], d["entities"][ip]
+    m = ((ll["p0"][0] + ll["p1"][0]) / 2.0, (ll["p0"][1] + ll["p1"][1]) / 2.0)
+    check("VERTEX", near(math.dist(pp["p"], m), 0.0, 1e-6),
+          f"the point sits on the midpoint: off by {math.dist(pp['p'], m):.9f}")
+    check("LENGTH", ll["length"] > 1.0, f"and the line did not collapse: {ll['length']:.6f}")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["solve_ok"] and d2["constraints"] > 0,
+          f"{d2['constraints']} constraints survived the commit")
+    leave_sketch()
+
+
+def rung_symmetric_line_axis():
+    reset_document()
+    print("\nD17 constrain — Symmetric about a PICKED axis line (the three-pick form)")
+    # D7 covers the implicit-axis buttons. This is the plain Symmetric: two entities AND an axis
+    # entity, three picks, the only constraint on the bar that needs a third.
+    enter_sketch("l")
+    clickmm(0, -40); clickmm(0, 40)          # the axis: a real line on x = 0
+    key("Escape", 0.7); key("Escape", 0.7)
+    key("p", 0.6)
+    clickmm(-38, 12)
+    key("p", 0.6)
+    clickmm(14, 12)
+    d0 = describe()
+    ps = [e for e in d0["entities"] if e["type"] == "point"]
+    check("VERTEX", not near(abs(ps[0]["p"][0]), abs(ps[1]["p"][0]), 1e-3),
+          f"they start unmirrored: x = {ps[0]['p'][0]:.6f}, {ps[1]['p'][0]:.6f}")
+    key("k", 1.5)
+    d1 = describe()
+    ps = [e for e in d1["entities"] if e["type"] == "point"]
+    ax = next(e for e in d1["entities"] if e["type"] == "line")
+    ia, ib = d1["entities"].index(ps[0]), d1["entities"].index(ps[1])
+    iax = d1["entities"].index(ax)
+    clickmm(*ps[0]["p"]); clickmm(*ps[1]["p"]); clickmm(*mid(ax))
+    click(*CON_BTN["symmetric"])
+    time.sleep(1.2)
+    d = describe()
+    # Measure against the axis WHERE IT NOW IS, not against x = 0. All three entities are free,
+    # so the solver is entitled to satisfy the mirror by moving the AXIS instead of the points --
+    # and it does: the pair came out symmetric about x = -8.18, which is a correct solution and
+    # which an "xa == -xb" assertion calls a failure. That was this rung being wrong, not the app.
+    ax_now = d["entities"][iax]
+    sa = signed_point_line_distance(d["entities"][ia]["p"], ax_now)
+    sb = signed_point_line_distance(d["entities"][ib]["p"], ax_now)
+    ya, yb = d["entities"][ia]["p"][1], d["entities"][ib]["p"][1]
+    check("VERTEX", near(sa, -sb, 1e-6),
+          f"mirrored about the picked line: {sa:.9f} and {sb:.9f} from it")
+    check("VERTEX", abs(sa) > 1e-6, f"and not both collapsed onto it: |d| = {abs(sa):.9f}")
+    check("VERTEX", near(ya, yb, 1e-6), f"y untouched on both: {ya:.6f}, {yb:.6f}")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["solve_ok"] and d2["constraints"] > 0,
+          f"{d2['constraints']} constraints survived the commit")
+    leave_sketch()
+
+
+def rung_symmetric_h():
+    reset_document()
+    print("\nD18 constrain — symmetric about the HORIZONTAL axis (sym_h, the twin of D7)")
+    enter_sketch("p")
+    clickmm(20, -34)
+    key("p", 0.6)
+    clickmm(20, 9)
+    d0 = describe()
+    ps = [e for e in d0["entities"] if e["type"] == "point"]
+    check("VERTEX", not near(abs(ps[0]["p"][1]), abs(ps[1]["p"][1]), 1e-3),
+          f"they start unmirrored: y = {ps[0]['p'][1]:.6f}, {ps[1]['p'][1]:.6f}")
+    key("k", 1.5)
+    d1 = describe()
+    ps = [e for e in d1["entities"] if e["type"] == "point"]
+    ia, ib = d1["entities"].index(ps[0]), d1["entities"].index(ps[1])
+    clickmm(*ps[0]["p"]); clickmm(*ps[1]["p"])
+    click(*CON_BTN["sym_h"])
+    time.sleep(1.0)
+    d = describe()
+    xa, xb = d["entities"][ia]["p"][0], d["entities"][ib]["p"][0]
+    ya, yb = d["entities"][ia]["p"][1], d["entities"][ib]["p"][1]
+    check("VERTEX", near(ya, -yb, 1e-9), f"mirrored across y = 0: {ya:.9f} and {yb:.9f}")
+    check("VERTEX", abs(ya) > 1e-6, f"and not both collapsed onto the axis: |y| = {abs(ya):.9f}")
+    check("VERTEX", near(xa, xb, 1e-6), f"x untouched on both: {xa:.6f}, {xb:.6f}")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["solve_ok"] and d2["constraints"] > 0,
+          f"{d2['constraints']} constraints survived the commit")
+    leave_sketch()
+
+
+def rung_radius():
+    reset_document()
+    print("\nD19 constrain — a typed Radius drives the circle to exactly that radius")
+    enter_sketch("c")
+    clickmm(0, 0); clickmm(31, 0); key("Escape", 0.7)
+    d0 = describe()
+    c0 = next(e for e in d0["entities"] if e["type"] == "circle")
+    check("ARC", not near(c0["radius"], 22.0, 1e-3), f"it starts at r = {c0['radius']:.6f}")
+    key("k", 1.5)
+    d1 = describe()
+    c1 = next(e for e in d1["entities"] if e["type"] == "circle")
+    ic = d1["entities"].index(c1)
+    ctr = list(c1["center"])
+    clickmm(*rim(c1))
+    click(*CON_BTN["radius"])
+    time.sleep(0.8)
+    values(22)
+    d = describe()
+    cc = d["entities"][ic]
+    check("ARC", near(cc["radius"], 22.0, 1e-6), f"radius driven to {cc['radius']:.9f}")
+    # A Radius constraint moves the RIM, never the centre.
+    check("ARC", near(math.dist(cc["center"], ctr), 0.0, 1e-6),
+          f"and the centre stayed put: moved {math.dist(cc['center'], ctr):.9f}")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["solve_ok"] and d2["constraints"] > 0,
+          f"{d2['constraints']} constraints survived the commit")
+    leave_sketch()
+
+
+def rung_diameter():
+    reset_document()
+    print("\nD20 constrain — a typed Diameter is a diameter, not a radius")
+    # The failure this exists for is a factor of two: Diameter wired to the Radius handler gives
+    # a circle of r = 30 for a typed 30, and nothing about the sketch looks wrong.
+    enter_sketch("c")
+    clickmm(0, 0); clickmm(19, 0); key("Escape", 0.7)
+    key("k", 1.5)
+    d1 = describe()
+    c1 = next(e for e in d1["entities"] if e["type"] == "circle")
+    ic = d1["entities"].index(c1)
+    clickmm(*rim(c1))
+    click(*CON_BTN["diameter"])
+    time.sleep(0.8)
+    values(30)
+    d = describe()
+    r = d["entities"][ic]["radius"]
+    check("ARC", near(r, 15.0, 1e-6), f"typed diameter 30 gives radius {r:.9f}, not 30")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["solve_ok"] and d2["constraints"] > 0,
+          f"{d2['constraints']} constraints survived the commit")
+    leave_sketch()
+
+
+def rung_fix():
+    reset_document()
+    print("\nD21 constrain — Fix anchors a point, and the anchor is what the solver moves around")
+    # Fix on its own is unfalsifiable: nothing moved, so nothing proves it did anything. The
+    # property only becomes observable when a SECOND constraint would otherwise have moved the
+    # fixed point -- so drive the pair apart and see which end travels.
+    enter_sketch("p")
+    clickmm(-25, 0)
+    key("p", 0.6)
+    clickmm(15, 0)
+    key("k", 1.5)
+    d1 = describe()
+    ps = [e for e in d1["entities"] if e["type"] == "point"]
+    ia, ib = d1["entities"].index(ps[0]), d1["entities"].index(ps[1])
+    anchor = list(ps[0]["p"])
+    clickmm(*ps[0]["p"])
+    click(*CON_BTN["fix"])
+    time.sleep(1.0)
+    d = describe()
+    check("VERTEX", near(math.dist(d["entities"][ia]["p"], anchor), 0.0, 1e-9),
+          "the fixed point did not move when it was fixed")
+    # Now demand a horizontal gap far from the current one. Only the FREE point may travel.
+    clickmm(*d["entities"][ia]["p"]); clickmm(*d["entities"][ib]["p"])
+    click(*CON_BTN["dist_x"])
+    time.sleep(0.8)
+    values(70)
+    d = describe()
+    moved_a = math.dist(d["entities"][ia]["p"], anchor)
+    gap = abs(d["entities"][ib]["p"][0] - d["entities"][ia]["p"][0])
+    check("LENGTH", near(gap, 70.0, 1e-6), f"the gap was driven to {gap:.9f}")
+    check("VERTEX", near(moved_a, 0.0, 1e-6),
+          f"and the anchored point held station: moved {moved_a:.9f}")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["solve_ok"] and d2["constraints"] > 1,
+          f"{d2['constraints']} constraints survived the commit")
+    leave_sketch()
+
+
+def rung_distance_y():
+    reset_document()
+    print("\nD22 constrain — vertical distance, and it is not the straight-line one either")
+    enter_sketch("p")
+    clickmm(-22, -18)
+    key("p", 0.6)
+    clickmm(19, 24)
+    key("k", 1.5)
+    d1 = describe()
+    ps = [e for e in d1["entities"] if e["type"] == "point"]
+    ia, ib = d1["entities"].index(ps[0]), d1["entities"].index(ps[1])
+    dx_before = d1["entities"][ib]["p"][0] - d1["entities"][ia]["p"][0]
+    clickmm(*ps[0]["p"]); clickmm(*ps[1]["p"])
+    click(*CON_BTN["dist_y"])
+    time.sleep(0.8)
+    values(35)
+    d = describe()
+    gy = abs(d["entities"][ib]["p"][1] - d["entities"][ia]["p"][1])
+    gx = d["entities"][ib]["p"][0] - d["entities"][ia]["p"][0]
+    check("LENGTH", near(gy, 35.0, 1e-6), f"vertical gap driven to {gy:.9f}")
+    check("VERTEX", near(gx, dx_before, 1e-6),
+          f"the horizontal gap is untouched at {gx:.9f} — this is not a straight-line distance")
+    d2 = confirm_and_reopen()
+    check("CLOSED", d2["solve_ok"] and d2["constraints"] > 0,
+          f"{d2['constraints']} constraints survived the commit")
+    leave_sketch()
+
+
+def signed_point_line_distance(p, line):
+    """Perpendicular distance with a SIGN, so the two sides of a mirror are distinguishable."""
+    x0, y0 = line["p0"]; x1, y1 = line["p1"]
+    dx, dy = x1 - x0, y1 - y0
+    n = math.hypot(dx, dy)
+    return (dy * (p[0] - x0) - dx * (p[1] - y0)) / n
+
+
+def point_line_distance(p, line):
+    """Perpendicular distance from a point to the INFINITE line through a segment."""
+    x0, y0 = line["p0"]; x1, y1 = line["p1"]
+    dx, dy = x1 - x0, y1 - y0
+    n = math.hypot(dx, dy)
+    return abs(dy * (p[0] - x0) - dx * (p[1] - y0)) / n
 
 
 # =================================================================== DURABILITY
@@ -1633,6 +2009,11 @@ RUNGS = {"rect": rung_rect, "circle": rung_circle, "line": rung_line, "arc": run
          "coincident_points": rung_coincident_points,
          "type_guards": rung_type_guards,
          "parallel": rung_parallel, "live_constrain": rung_live_constrain,
+         "vertical": rung_vertical, "equal_radius_button": rung_equal_radius_button,
+         "concentric": rung_concentric, "tangent": rung_tangent, "midpoint": rung_midpoint,
+         "symmetric_line_axis": rung_symmetric_line_axis, "symmetric_h": rung_symmetric_h,
+         "radius": rung_radius, "diameter": rung_diameter, "fix": rung_fix,
+         "distance_y": rung_distance_y,
          "undo": rung_undo,
          "feature_undo": rung_feature_undo, "roundtrip": rung_roundtrip,
          "scale": rung_scale}
