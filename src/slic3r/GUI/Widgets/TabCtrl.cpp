@@ -171,6 +171,14 @@ void TabCtrl::SetItemBitmap(unsigned int item, const wxBitmap& bitmap)
     relayout();
 }
 
+void TabCtrl::SetItemIndicator(unsigned int item, bool on)
+{
+    if (item >= btns.size())
+        return;
+    btns[item]->SetIndicator(on);
+    relayout();
+}
+
 bool TabCtrl::GetItemBold(unsigned int item) const
 {
     if (item >= btns.size())

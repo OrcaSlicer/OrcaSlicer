@@ -4,6 +4,7 @@
 #include "../wxExtensions.hpp"
 #include "StaticBox.hpp"
 #include <wx/tipwin.h>
+#include <wx/colour.h>
 
 class ButtonProps
 {
@@ -44,6 +45,8 @@ class Button : public StaticBox
     bool canFocus    = true;
     bool isCenter    = true;
     bool vertical    = false;
+    bool m_show_indicator = false;
+    wxColour m_indicator_color = wxColour("#009688");
 
     static const int buttonWidth  = 200;
     static const int buttonHeight = 50;
@@ -74,6 +77,10 @@ public:
     void SetTextColorNormal(wxColor const& color);
 
     void SetSelected(bool selected = true) { m_selected = selected; }
+
+    // Show a small coloured dot to the right of the label (used by TabCtrl tabs to flag that
+    // the tab's category has a selected/toggled setting).
+    void SetIndicator(bool on);
 
     // Only meant to be used by inspector, not public API
     ButtonStyle GetStyle() const { return m_style; }

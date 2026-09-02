@@ -213,6 +213,11 @@ private:
     // "Enable" toggled on a material slot: reveals/hides everything below the header and, for a
     // mixed slot, auto-selects its component filaments' "Enable" + "Full Publish" toggles.
     void on_enable_toggle(size_t category_index);
+    // Whether a category currently publishes something, driving its tab's indicator dot.
+    // Print/Printer: any row checked. Material: the slot's "Enable" is on.
+    bool category_has_selection(const Category& cat) const;
+    // Recompute the indicator dot on every outer/inner tab from the current selection state.
+    void refresh_tab_indicators();
     // Unmet dependencies of enabled mixed-filament slots, one record per (mix, component) pair:
     // "Enable" not checked on the component, or enabled with neither "Full Publish" nor the
     // "Type" requirement row checked. Colour is deliberately ignored (the receiver renders the

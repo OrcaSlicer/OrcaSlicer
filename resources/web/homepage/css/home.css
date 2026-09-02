@@ -552,7 +552,8 @@ body
 	background-color: #E4E4E4;
 	border-radius: 8px;
 	width: 184px;
-	height: 184px;	
+	height: 184px;
+	position: relative;	
 }
 
 .FileItem img
@@ -562,6 +563,19 @@ body
 	border-radius: 8px;
 	display: inline-block;
 	object-fit: cover;
+}
+
+.FileImg .FileLogoBadge
+{
+	position: absolute;
+	top: 8px;
+	left: 8px;
+	width: 26px;
+	height: 26px;
+	padding: 2px;
+	box-sizing: border-box;
+	background-color: rgba(255,255,255,0.85);
+	border-radius: 50%;
 }
 
 .FileName

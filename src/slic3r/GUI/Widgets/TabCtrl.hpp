@@ -46,6 +46,9 @@ public:
     void SetItemText(unsigned int item, wxString const& value);
     void SetItemBitmap(unsigned int item, const wxBitmap& bitmap);
 
+    // Show/hide the small "has selection" dot next to a tab's text.
+    void SetItemIndicator(unsigned int item, bool on);
+
     bool GetItemBold(unsigned int item) const;
     void SetItemBold(unsigned int item, bool bold);
 

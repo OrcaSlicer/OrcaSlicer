@@ -162,6 +162,15 @@ void Button::SetCenter(bool isCenter)
 {
     this->isCenter = isCenter; }
 
+void Button::SetIndicator(bool on)
+{
+    if (m_show_indicator == on)
+        return;
+    m_show_indicator = on;
+    messureSize();
+    Refresh();
+}
+
 void Button::SetVertical(bool vertical)
 {
     this->vertical = vertical;
@@ -324,6 +333,13 @@ void Button::render(wxDC& dc)
             szContent.x -= d;
         }
     }
+    if (m_show_indicator) {
+        const int dot = FromDIP(6);
+        if (vertical)
+            szContent.y += dot + FromDIP(6);
+        else
+            szContent.x += dot + FromDIP(6);
+    }
     // move to center
     wxRect rcContent = { {0, 0}, size };
     if (isCenter) {
@@ -364,6 +380,17 @@ void Button::render(wxDC& dc)
 #endif
         dc.DrawText(text, pt);
     }
+    if (m_show_indicator) {
+        const int dot = FromDIP(6); // diameter
+        wxPoint dot_pt;
+        dot_pt.x = pt.x + (text.IsEmpty() ? 0 : textSize.x) + FromDIP(6) + dot / 2;
+        // Centre on the content vertically; a bitmap-only (empty-label) tab has no text row.
+        dot_pt.y = text.IsEmpty() ? rcContent.y + rcContent.height / 2 : pt.y + textSize.y / 2;
+        const wxColour c = StateColor::darkModeColorFor(m_indicator_color);
+        dc.SetBrush(wxBrush(c));
+        dc.SetPen(wxPen(c));
+        dc.DrawCircle(dot_pt, dot / 2);
+    }
 }
 
 void Button::messureSize()
@@ -387,6 +414,14 @@ void Button::messureSize()
             szContent.x += szIcon.x;
             if (szIcon.y > szContent.y) szContent.y = szIcon.y;
         }
+    }
+    if (m_show_indicator) {
+        // Indicator dot sits to the right of the label: its diameter plus the gap from the text.
+        const int dot = FromDIP(6);
+        if (vertical)
+            szContent.y += dot + FromDIP(6);
+        else
+            szContent.x += dot + FromDIP(6);
     }
     wxSize size = szContent + paddingSize * 2;
     if (minSize.GetHeight() > 0)

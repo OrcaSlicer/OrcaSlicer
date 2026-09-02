@@ -881,6 +881,7 @@ void PublishSettingsDialog::build_option_model()
         m_outer_tabs->SelectItem(0);
         show_outer_page(0);
     }
+    refresh_tab_indicators();
 }
 
 size_t PublishSettingsDialog::section_group_for(Section kind)
@@ -1127,6 +1128,7 @@ void PublishSettingsDialog::add_row_ui(const std::string& key,
     Row& current  = m_rows[row_index];
     current.check = new wxCheckBox(category.scroll, wxID_ANY, label);
     current.check->SetFont(Label::Body_13);
+    current.check->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { refresh_tab_indicators(); });
     auto* row_sizer = new wxBoxSizer(wxHORIZONTAL);
     row_sizer->Add(current.check, 0, wxALIGN_CENTER_VERTICAL);
     // The value is read-only text (incl. the Type row: the published type is the slot's
@@ -1161,6 +1163,7 @@ void PublishSettingsDialog::on_full_toggle(size_t category_index)
     const bool full = cat.full_check->GetValue();
     for (size_t r : cat.rows)
         m_rows[r].check->Enable(!full);
+    refresh_tab_indicators();
 }
 
 void PublishSettingsDialog::on_enable_toggle(size_t category_index)
@@ -1195,6 +1198,7 @@ void PublishSettingsDialog::on_enable_toggle(size_t category_index)
     apply_visibility();
     if (cat.page != nullptr)
         cat.page->GetSizer()->Layout();
+    refresh_tab_indicators();
 }
 
 void PublishSettingsDialog::add_mixed_visual(size_t category_index, const MixedVisualSpec& spec)
@@ -1606,6 +1610,7 @@ void PublishSettingsDialog::select_all(bool value)
         if (m_categories[c].section == Section::Material)
             on_enable_toggle(c);
     apply_visibility();
+    refresh_tab_indicators();
 }
 
 bool PublishSettingsDialog::row_is_visible(const Row& row) const
@@ -1637,6 +1642,7 @@ void PublishSettingsDialog::select_visible(bool value)
         m_filter_ctrl->ChangeValue("");
         apply_filter(""); // resync visibility and the All/None bar
     }
+    refresh_tab_indicators();
 }
 
 void PublishSettingsDialog::show_menu(wxMouseEvent& evt)
@@ -1778,6 +1784,7 @@ void PublishSettingsDialog::apply_selection(const std::vector<std::string>& publ
     }
 
     apply_visibility();
+    refresh_tab_indicators();
 }
 
 std::vector<std::string> PublishSettingsDialog::GetPublishedKeys() const
@@ -1930,6 +1937,38 @@ std::vector<Slic3r::PublishedMaterialEntry> PublishSettingsDialog::GetPublishedM
             out.push_back(std::move(entry));
     }
     return out;
+}
+
+bool PublishSettingsDialog::category_has_selection(const Category& cat) const
+{
+    // A material slot publishes (or not) as a whole, gated by "Enable".
+    if (cat.section == Section::Material)
+        return cat.enable_check != nullptr && cat.enable_check->GetValue();
+    // Print/Printer categories have no gate: any checked row counts.
+    for (const size_t r : cat.rows)
+        if (m_rows[r].check->GetValue())
+            return true;
+    return false;
+}
+
+void PublishSettingsDialog::refresh_tab_indicators()
+{
+    for (size_t s = 0; s < m_sections.size(); ++s) {
+        SectionGroup& section = m_sections[s];
+        bool any              = false;
+        for (size_t i = 0; i < section.categories.size(); ++i) {
+            const bool on = category_has_selection(m_categories[section.categories[i]]);
+            section.tabs->SetItemIndicator(static_cast<unsigned int>(i), on);
+            any = any || on;
+        }
+        if (section.mixed_tabs != nullptr)
+            for (size_t i = 0; i < section.mixed_categories.size(); ++i) {
+                const bool on = category_has_selection(m_categories[section.mixed_categories[i]]);
+                section.mixed_tabs->SetItemIndicator(static_cast<unsigned int>(i), on);
+                any = any || on;
+            }
+        m_outer_tabs->SetItemIndicator(static_cast<unsigned int>(s), any);
+    }
 }
 
 std::vector<std::string> PublishSettingsDialog::full_keys_for_slot() const
