@@ -85,6 +85,18 @@ foreach ($v in @{ old = '1.11.1'; new = '1.12.0' }.GetEnumerator()) {
     $ninjaPaths[$v.Key] = "$d;$env:PATH"
 }
 
+# A clang-cl earlier on PATH than the Visual Studio one, which is what the
+# compiler used to resolve to. Nothing runs it; the script only locates it.
+$clangDir = Join-Path $fixtures 'clang'
+New-Item -ItemType Directory -Force -Path $clangDir | Out-Null
+Copy-Item "$env:SystemRoot\System32\where.exe" (Join-Path $clangDir 'clang-cl.exe') -Force
+$clangOnPath = "$clangDir;$env:PATH"
+
+# ProgramFiles(x86) is where the script looks for vswhere, so an empty one
+# stands in for a machine whose Visual Studio has no clang toolset.
+$noVs = Join-Path $fixtures 'no-vs'
+New-Item -ItemType Directory -Force -Path $noVs | Out-Null
+
 # The pack stamp is checked against real dates, so a locale-dependent parse
 # in the script cannot pass by looking date-shaped. Yesterday is accepted too,
 # so a run that crosses midnight does not flake.
@@ -131,7 +143,36 @@ $cases = @(
        Contains = @('-G "Ninja Multi-Config"')
        NotContains = @('clang-cl', '-A x64') }
     @{ Name = '-l -x builds with clang-cl under Ninja'; Args = @('-d', '-l', '-x')
-       Contains = @('-G "Ninja Multi-Config"', '-DCMAKE_C_COMPILER=clang-cl.exe', '-DCMAKE_CXX_COMPILER=clang-cl.exe') }
+       Contains = @('-G "Ninja Multi-Config"')
+       Match = @('-DCMAKE_C_COMPILER="[^"]+/clang-cl\.exe"', '-DCMAKE_CXX_COMPILER="[^"]+/clang-cl\.exe"') }
+    # PATH order used to decide the compiler. VsDevCmd appends the Visual
+    # Studio LLVM directory to the end of PATH, so a standalone LLVM already
+    # there was resolved instead, and an old one failed the compiler check.
+    @{ Name = 'the compiler is resolved from Visual Studio, not PATH'; Args = @('-s', '-l', '-x')
+       Env = @{ PATH = $clangOnPath }
+       Match = @('^Compiler: .*/VC/Tools/Llvm/[^/]+/bin/clang-cl\.exe$') }
+    @{ Name = 'msvc names no compiler, having resolved none'; Args = @('-s')
+       NotContains = @('Compiler: ') }
+    @{ Name = '-l without -x names none either, the toolset picks it'; Args = @('-s', '-l')
+       NotContains = @('Compiler: ') }
+    # An empty ProgramFiles(x86) puts vswhere out of reach, which is a machine
+    # whose Visual Studio has no clang toolset.
+    @{ Name = 'without a Visual Studio clang the one on PATH is used and named'; Args = @('-s', '-l', '-x')
+       Env = @{ 'ProgramFiles(x86)' = $noVs; PATH = $clangOnPath }
+       Contains = @('Visual Studio has no clang-cl')
+       Match = @('^Compiler: .*/clang/clang-cl\.exe$') }
+    @{ Name = 'no clang-cl anywhere stops before configuring'; Args = @('-s', '-l', '-x'); ExpectExit = 1
+       Env = @{ 'ProgramFiles(x86)' = $noVs; PATH = 'C:\Windows\system32;C:\Windows' }
+       Contains = @('No clang-cl found', '--install-vs ide -l')
+       NotContains = @('cmake -B') }
+    # Only a configure passes the compiler to CMake, so an action that does
+    # not configure resolves none, and cannot start needing one installed.
+    @{ Name = 'packing resolves no compiler'; Args = @('-p', '-l', '-x')
+       Contains = @('Packing the dependencies')
+       NotContains = @('Compiler: ') }
+    @{ Name = '--no-configure resolves none either'; Args = @('-s', '-l', '-x', '--no-configure')
+       Contains = @('cmake --build "build-clang"')
+       NotContains = @('Compiler: ') }
     @{ Name = '-l alone uses the ClangCL toolset on the VS generator'; Args = @('-d', '-l')
        Contains = @('-G "Visual Studio', '-T ClangCL')
        NotContains = @('-DCMAKE_C_COMPILER') }
@@ -148,11 +189,13 @@ $cases = @(
        NotContains = @('clang-cl') }
     @{ Name = '--msbuild with -l gives the VS generator and the ClangCL toolset'; Args = @('-d', '--msbuild', '-l')
        Contains = @('-G "Visual Studio', '-T ClangCL') }
-    # A developer with a standalone LLVM points at it; the VS-bundled clang
-    # is what a bare clang-cl.exe resolves to after the dev shell runs.
+    # A developer with a standalone LLVM points at it, and the path is passed
+    # with forward slashes so CMake cannot read a backslash as an escape.
     @{ Name = '--clang-path names the compiler, quoted for its spaces'; Args = @('-d', '-x', '--clang-path', 'C:\Program Files\LLVM\bin\clang-cl.exe')
-       Contains = @('-DCMAKE_C_COMPILER="C:\Program Files\LLVM\bin\clang-cl.exe"',
-                    '-DCMAKE_CXX_COMPILER="C:\Program Files\LLVM\bin\clang-cl.exe"') }
+       Contains = @('-DCMAKE_C_COMPILER="C:/Program Files/LLVM/bin/clang-cl.exe"',
+                    '-DCMAKE_CXX_COMPILER="C:/Program Files/LLVM/bin/clang-cl.exe"') }
+    @{ Name = '--clang-path beats the Visual Studio clang'; Args = @('-s', '-x', '--clang-path', 'C:\Program Files\LLVM\bin\clang-cl.exe')
+       Contains = @('Compiler: C:/Program Files/LLVM/bin/clang-cl.exe') }
     @{ Name = '--clang-path is a clang request on its own'; Args = @('-d', '-x', '--clang-path', 'C:\Program Files\LLVM\bin\clang-cl.exe')
        Contains = @('deps/build-clang') }
     @{ Name = '--clang-path needs Ninja to take effect'; Args = @('-d', '--clang-path', 'C:\Program Files\LLVM\bin\clang-cl.exe'); ExpectExit = 1
@@ -195,7 +238,8 @@ $cases = @(
     @{ Name = 'the architecture is matched case-insensitively'; Args = @('-d', '--arch', 'ARM64')
        Contains = @('-A ARM64', 'deps/build-arm64') }
     @{ Name = 'arm64 under Ninja has no -A but keeps the arm64 tree'; Args = @('-d', '--arch', 'arm64', '-x', '-l')
-       Contains = @('deps/build-clang-arm64', '-DCMAKE_C_COMPILER=clang-cl.exe')
+       Contains = @('deps/build-clang-arm64')
+       Match = @('-DCMAKE_C_COMPILER="[^"]+/clang-cl\.exe"')
        NotContains = @('-A ') }
 
     'build configurations'
