@@ -111,9 +111,13 @@ jobs:
           for f in ${{ github.event.inputs.fixtures || '' }}; do
             fixtures="$fixtures --fixture $f"
           done
+          # 2 concurrent GUI displays: measured ~1.5 cores peak / ~1.9 GB on
+          # this 4-vCPU / 16 GB runner (3+ would contend); each fixture is
+          # fully isolated so this is correctness-neutral
           python3 orca-test-repo/parity/run_parity.py \
             --slicer-root "$ORCA_SLICER_ROOT" --bin "$ORCA_BIN" \
             --cli-presets "${{ github.event.inputs.cli_presets || 'flat' }}" \
+            --gui-workers 2 \
             --out "$PWD/parity-out" $fixtures
 
       - name: Publish job summary
