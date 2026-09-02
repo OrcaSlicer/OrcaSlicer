@@ -3,6 +3,7 @@
 # module.
 #
 # Usage: make_deps_tar.sh
+#        Requires GNU tar. On macOS, brew install gnu-tar.
 #
 # The archive is byte-reproducible. Member order, mtimes, ownership and the
 # group/other write bits are pinned, so identical deps/ contents always produce
@@ -17,13 +18,21 @@ if [ "$#" -ne 0 ]; then
     exit 2
 fi
 
+tar_bin=$(command -v gtar || command -v tar || true)
+tar_version=$([ -n "$tar_bin" ] && "$tar_bin" --version 2>/dev/null || true)
+case $tar_version in
+    *"GNU tar"*) ;;
+    *) echo "${0##*/}: needs GNU tar; on macOS run 'brew install gnu-tar'" >&2
+       exit 2 ;;
+esac
+
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd "$script_dir/../.." && pwd)
 out=$script_dir/deps.tar
 tmp=$out.tmp
 trap 'rm -f "$tmp"' EXIT
 
-tar --format=gnu \
+"$tar_bin" --format=gnu \
     --sort=name \
     --mtime=@0 \
     --owner=0 --group=0 --numeric-owner \
@@ -35,4 +44,12 @@ tar --format=gnu \
 
 mv -f "$tmp" "$out"
 
-echo "Wrote $out ($(du -h "$out" | cut -f1), sha256 $(sha256sum "$out" | cut -d' ' -f1))"
+if command -v sha256sum >/dev/null 2>&1; then
+    sum=$(sha256sum "$out" | cut -d' ' -f1)
+elif command -v shasum >/dev/null 2>&1; then
+    sum=$(shasum -a 256 "$out" | cut -d' ' -f1)
+else
+    sum=unavailable
+fi
+
+echo "Wrote $out ($(du -h "$out" | cut -f1), sha256 $sum)"

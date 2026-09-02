@@ -7,8 +7,6 @@
 #
 # Exits 0 when none are found, 1 when any are, listing them as file:line, and
 # 2 when the manifest is missing or has no orca_deps module.
-#
-# Matches block-style `- type: dir` entries only, not flow style.
 
 set -euo pipefail
 
@@ -16,6 +14,7 @@ anchor=orca_deps
 manifest=${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/com.orcaslicer.OrcaSlicer.yml}
 
 module_re='^  - name: '
+dir_re='(^|[-{,[:space:]])type:[[:space:]]*dir([,}[:space:]]|$)'
 
 if [ ! -f "$manifest" ]; then
     echo "$manifest: no such file" >&2
@@ -33,10 +32,11 @@ anchor_end=$(grep -n "$module_re" "$manifest" | cut -d: -f1 |
              awk -v s="$anchor_start" '$1 > s { print $1; exit }')
 [ -n "$anchor_end" ] || anchor_end=$(awk 'END { print NR + 1 }' "$manifest")
 
-violations=$(awk -v e="$anchor_end" -v f="$manifest" -v mre="$module_re" '
+violations=$(awk -v e="$anchor_end" -v f="$manifest" -v mre="$module_re" -v dre="$dir_re" '
     { sub(/\r$/, "") }
+    /^[[:space:]]*#/ { next }
     $0 ~ mre { module = $3 }
-    NR < e && /^[[:space:]]*-?[[:space:]]*type:[[:space:]]*dir[[:space:]]*$/ {
+    NR < e && $0 ~ dre {
         printf "%s:%d: %s (module %s)\n", f, NR, $0, module
     }' "$manifest")
 
