@@ -13,6 +13,7 @@
 #include <nlohmann/json.hpp>
 
 namespace Slic3r {
+class Http;
 
 class MoonrakerPrinterAgent : public IPrinterAgent
 {
@@ -87,6 +88,8 @@ protected:
         std::string version;
         std::string klippy_state;
         bool        use_ssl = false;
+        std::string ca_file;                       // printhost_cafile
+        bool        ssl_revoke_best_effort = false; // printhost_ssl_ignore_revoke
     } device_info;
 
     // Tray data for AMS payload building
@@ -150,6 +153,8 @@ private:
     int send_version_info(const std::string& dev_id);
     int send_access_code(const std::string& dev_id);
 
+    // Auth + TLS options for one request, from device_info (see Moonraker::set_auth in the printhost layer).
+    void set_auth(Http& http, const std::string& api_key) const;
     bool fetch_object_list(const std::string& base_url, const std::string& api_key, std::set<std::string>& objects, std::string& error) const;
     bool query_printer_status(const std::string& base_url, const std::string& api_key, nlohmann::json& status, std::string& error) const;
     bool send_gcode(const std::string& dev_id, const std::string& gcode) const;
