@@ -69,10 +69,10 @@ struct CubeModel
     Model model;
     ModelInstance *instance {nullptr};
 
-    explicit CubeModel(const Vec3d &offset = Vec3d::Zero())
+    explicit CubeModel(const Vec3d &offset = Vec3d::Zero(), const Vec3d &size = Vec3d(20.0, 20.0, 20.0))
     {
         ModelObject *object = model.add_object();
-        object->add_volume(make_cube(20.0, 20.0, 20.0));
+        object->add_volume(make_cube(size.x(), size.y(), size.z()));
         instance = object->add_instance();
         instance->set_offset(offset);
     }
@@ -268,8 +268,9 @@ TEST_CASE("Exact model intersection respects XY Z and preview collection", "[Exc
 {
     CubeModel cube(Vec3d(30.0, 40.0, 0.0));
 
-    // Cross the cube's outer surface rather than placing the prism wholly
-    // inside the solid; the preview is built from clipped surface triangles.
+    // Cross the cube's outer surface so this case can also verify the red
+    // preview, which is built from clipped surface triangles. The enclosed
+    // prism topology is covered separately below.
     const BedExcludeRegion crossing = region(45.0, 45.0, 55.0, 55.0, 5.0, 15.0);
     const BedExcludeRegion above    = region(45.0, 45.0, 55.0, 55.0, 25.0, 30.0);
     const BedExcludeRegion outside  = region(60.0, 70.0, 70.0, 80.0, 0.0, 20.0);
@@ -293,4 +294,33 @@ TEST_CASE("Exact model intersection follows instance and volume transforms", "[E
 
     CHECK(cube.instance->intersects_bed_exclude_region(region(50.0, 50.0, 55.0, 55.0, 0.0, 20.0)));
     CHECK_FALSE(cube.instance->intersects_bed_exclude_region(region(100.0, 100.0, 110.0, 110.0, 0.0, 20.0)));
+}
+
+TEST_CASE("Exact model intersection detects an exclusion prism enclosed by a solid", "[ExclusionVolume][Model]")
+{
+    // A surface-only test misses this topology: the exclusion prism is fully
+    // enclosed, so none of the block's surface triangles enters the prism.
+    CubeModel block(Vec3d(200.0, 300.0, 0.0), Vec3d(100.0, 100.0, 60.0));
+    const BedExcludeRegion enclosed  = region(230.0, 330.0, 260.0, 358.0, 8.0, 22.0);
+    const BedExcludeRegion enclosing = region(190.0, 290.0, 310.0, 410.0, -5.0, 65.0);
+    const BedExcludeRegion above     = region(230.0, 330.0, 260.0, 358.0, 65.0, 75.0);
+
+    CHECK(block.instance->intersects_bed_exclude_region(enclosed));
+    CHECK_FALSE(block.instance->intersects_bed_exclude_region(above));
+
+    indexed_triangle_set preview;
+    CHECK(block.instance->intersects_bed_exclude_region(enclosed, &preview));
+    // There is no model surface inside a fully enclosed prism from which to
+    // build the usual red clipped-surface preview.
+    CHECK(preview.empty());
+
+    // Pin the opposite containment topology too. Here the model surface lies
+    // inside the prism, so the existing clipped preview remains available.
+    CHECK(block.instance->intersects_bed_exclude_region(enclosing, &preview));
+    CHECK_FALSE(preview.empty());
+
+    // The multi-region wrapper must preserve the collision result even when
+    // that optional surface preview is empty.
+    CHECK(block.instance->intersects_bed_exclude_regions({above, enclosed}, &preview));
+    CHECK(preview.empty());
 }

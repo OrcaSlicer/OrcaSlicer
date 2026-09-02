@@ -1,5 +1,6 @@
 #include "Model.hpp"
 #include "libslic3r.h"
+#include "AABBMesh.hpp"
 #include "BuildVolume.hpp"
 #include "TexturePainting.hpp"
 #include "Format/AssimpImport.hpp"
@@ -3613,6 +3614,7 @@ bool ModelInstance::intersects_bed_exclude_region(const BedExcludeRegion &region
             continue;
 
         const Transform3d volume_matrix = instance_matrix * volume->get_matrix();
+        bool volume_surface_intersects = false;
         for (const stl_triangle_vertex_indices &face : its.indices) {
             const Vec3d p0 = volume_matrix * its.vertices[face[0]].cast<double>();
             const Vec3d p1 = volume_matrix * its.vertices[face[1]].cast<double>();
@@ -3631,11 +3633,34 @@ bool ModelInstance::intersects_bed_exclude_region(const BedExcludeRegion &region
                 if (polygon_3d_area2(clipped) <= 1e-8)
                     continue;
 
+                volume_surface_intersects = true;
                 intersects = true;
                 if (intersection_mesh == nullptr)
                     return true;
 
                 append_clipped_polygon(*intersection_mesh, clipped);
+            }
+        }
+
+        if (!volume_surface_intersects && !intersects) {
+            // Surface clipping cannot detect a prism wholly enclosed by a
+            // solid. In that topology, with no boundary crossing, one point
+            // inside the connected prism is sufficient to test containment.
+            const ExclusionPrismFootprintTriangle &footprint = footprints.front();
+            const Vec2d probe_xy = (footprint.vertices[0] + footprint.vertices[1] + footprint.vertices[2]) / 3.0;
+            const Vec3d probe_world(probe_xy.x(), probe_xy.y(), z_min + 0.5 * (z_max - z_min));
+            const Vec3d probe_local = volume_matrix.inverse() * probe_world;
+
+            // Avoid constructing the spatial index for the common case where
+            // the probe is plainly outside this model part.
+            if (volume->mesh().bounding_box().contains(probe_local)) {
+                const AABBMesh mesh(its);
+                if (!mesh.query_ray_hit(probe_local, Vec3d::UnitX()).is_inside())
+                    continue;
+
+                intersects = true;
+                if (intersection_mesh == nullptr)
+                    return true;
             }
         }
     }
@@ -3665,9 +3690,10 @@ bool ModelInstance::intersects_bed_exclude_regions(
         }
 
         indexed_triangle_set region_intersection;
-        if (intersects_bed_exclude_region(region, &region_intersection) && !region_intersection.empty()) {
+        if (intersects_bed_exclude_region(region, &region_intersection)) {
             intersects = true;
-            its_merge(*intersection_mesh, region_intersection);
+            if (!region_intersection.empty())
+                its_merge(*intersection_mesh, region_intersection);
         }
     }
     return intersects;
