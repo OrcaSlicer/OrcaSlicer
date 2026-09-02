@@ -675,16 +675,6 @@ public:
                 offset = Vec2d(0, 0);
             }
 
-            TexturePart(const TexturePart& part) {
-                this->x = part.x;
-                this->y = part.y;
-                this->w = part.w;
-                this->h = part.h;
-                this->offset = part.offset;
-                this->buffer    = part.buffer;
-                this->filename  = part.filename;
-                this->texture   = part.texture;
-            }
             void update_pos(float xx, float yy, float ww, float hh) {
                 x = xx;
                 y = yy;

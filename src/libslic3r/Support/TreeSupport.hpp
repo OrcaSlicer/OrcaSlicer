@@ -204,8 +204,9 @@ public:
         clear_nodes();
     }
 
-    TreeSupportData(TreeSupportData&&) = default;
-    TreeSupportData& operator=(TreeSupportData&&) = default;
+    // Deleted by the tbb::spin_mutex member.
+    TreeSupportData(TreeSupportData&&) = delete;
+    TreeSupportData& operator=(TreeSupportData&&) = delete;
 
     TreeSupportData(const TreeSupportData&) = delete;
     TreeSupportData& operator=(const TreeSupportData&) = delete;
