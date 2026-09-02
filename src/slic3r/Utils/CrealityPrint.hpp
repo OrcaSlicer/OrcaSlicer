@@ -31,6 +31,7 @@ public:
     PrintHostPostUploadActions         get_post_upload_actions() const override;
     bool upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const override;
     bool supports_multi_color_print() const;
+    bool model_query_failed() const { return m_model_query_failed; }
     std::string query_boxes_info() const;
     std::string model_name() const;
 
@@ -44,6 +45,7 @@ private:
     std::string m_web_ui;
     bool        m_ssl_revoke_best_effort;
     mutable std::string m_model;
+    mutable bool        m_model_query_failed = false;
 
     std::string make_url(const std::string& path) const;
     bool start_print(wxString& msg, const std::string& filename, const std::map<std::string, std::string>& extended_info) const;
