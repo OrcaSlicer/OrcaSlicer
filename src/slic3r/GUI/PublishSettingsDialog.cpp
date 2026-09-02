@@ -434,7 +434,8 @@ PublishSettingsDialog::MixedVisualSpec PublishSettingsDialog::make_mixed_visual_
     return spec;
 }
 
-PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent, const std::vector<std::string>* published_keys,
+PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
+                                             const std::vector<std::string>* published_keys,
                                              const std::vector<Slic3r::PublishedMaterialEntry>* material_keys)
     : DPIDialog(parent ? parent : static_cast<wxWindow*>(wxGetApp().mainframe),
                 wxID_ANY,
@@ -554,10 +555,9 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent, const std::vector
         return link;
     };
     wxBoxSizer* links_sizer = new wxBoxSizer(wxVERTICAL);
-    links_sizer->Add(make_link(_L("Publish 3MF Wiki Guide"), "https://www.orcaslicer.com/wiki/publishing_3mf/publish_3mf.html"), 0,
-                     wxALIGN_LEFT);
-    links_sizer->Add(make_link(_L("Publish 3MF YouTube Video (Placeholder)"), "https://www.youtube.com"), 0, wxTOP | wxALIGN_LEFT,
-                     FromDIP(4));
+    links_sizer->Add(make_link(_L("Publish 3MF Wiki"), "https://www.orcaslicer.com/wiki/publishing_3mf/publish_3mf.html"), 0, wxALIGN_LEFT);
+    links_sizer->Add(make_link(_L("Publish 3MF Video Guide"), "https://www.youtube.com/@OfficialOrcaSlicer/videos"), 0,
+                     wxTOP | wxALIGN_LEFT, FromDIP(4));
 
     wxBoxSizer* footer = new wxBoxSizer(wxHORIZONTAL);
     footer->Add(links_sizer, 0, wxALIGN_CENTER_VERTICAL);
