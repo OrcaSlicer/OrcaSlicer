@@ -136,11 +136,11 @@ jobs:
             }
             $arch = "${{ inputs.arch }}"
             if ($arch -eq "arm64") {
-              .\build_release_vs.bat deps arm64
-              .\build_release_vs.bat pack arm64
+              .\scripts\release\build_release_vs.bat deps arm64
+              .\scripts\release\build_release_vs.bat pack arm64
             } else {
-              .\build_release_vs.bat deps
-              .\build_release_vs.bat pack
+              .\scripts\release\build_release_vs.bat deps
+              .\scripts\release\build_release_vs.bat pack
             }
         shell: pwsh
 
@@ -151,7 +151,7 @@ jobs:
             if [ -z "${{ vars.SELF_HOSTED }}" ]; then
               brew install automake texinfo libtool
             fi
-            ./build_release_macos.sh -dx ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15
+            ./scripts/pipeline-helpers/build_release_macos.sh -dx ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15
             (cd "${{ github.workspace }}/deps/build/${{ inputs.arch }}" && \
             find . -mindepth 1 -maxdepth 1 ! -name 'OrcaSlicer_dep' -exec rm -rf {} +)
 
@@ -165,7 +165,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
             mkdir -p ${{ github.workspace }}/deps/build/destdir
-            ./build_linux.sh -drlL
+            ./scripts/pipeline-helpers/build_linux.sh -drlL
             cd deps/build
             tar -czvf OrcaSlicer_dep_ubuntu_$(date +"%Y%m%d").tar.gz destdir
 

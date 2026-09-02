@@ -4,8 +4,13 @@ SECONDS=0
 
 SCRIPT_NAME=$(basename "$0")
 SCRIPT_PATH=$(dirname "$(readlink -f "${0}")")
+if [[ "$(basename "$(dirname "${SCRIPT_PATH}")")" == "scripts" ]] ; then
+    REPO_ROOT="$(cd "${SCRIPT_PATH}/../.." && pwd)"
+else
+    REPO_ROOT="${SCRIPT_PATH}"
+fi
 
-pushd "${SCRIPT_PATH}" > /dev/null
+pushd "${REPO_ROOT}" > /dev/null
 
 function usage() {
     echo "Usage: ./${SCRIPT_NAME} [-1][-b][-c][-d][-D][-e][-F][-g][-h][-i][-j N][-p][-r][-s][-t][-u][-l][-L]"
@@ -211,7 +216,7 @@ function get_docker_runner_image() {
 
     base_image="${ORCA_DOCKER_BASE_IMAGE:-ubuntu:24.04}"
     docker_cmake_version="${ORCA_DOCKER_CMAKE_VERSION-4.3.0}"
-    recipe_hash=$(find "${SCRIPT_PATH}/build_linux.sh" "${SCRIPT_PATH}/scripts/linux.d" -type f -print0 | sort -z | xargs -0 cat | sha256sum | cut -c1-12)
+    recipe_hash=$(find "${SCRIPT_PATH}/build_linux.sh" "${REPO_ROOT}/scripts/linux.d" -type f -print0 | sort -z | xargs -0 cat | sha256sum | cut -c1-12)
     sanitized_base_image=$(echo "${base_image}" | tr '/:@' '---' | tr -cs 'A-Za-z0-9_.-' '-')
     sanitized_cmake_version=$(echo "${docker_cmake_version:-system}" | tr -cs 'A-Za-z0-9_.-' '-')
     echo "orcaslicer-linux-builder:${sanitized_base_image}-cmake-${sanitized_cmake_version}-${recipe_hash}"
@@ -229,7 +234,7 @@ SHELL ["/bin/bash", "-c"]
 
 RUN apt-get update && apt-get install -y sudo ca-certificates curl tar
 
-COPY build_linux.sh /tmp/orcaslicer/build_linux.sh
+COPY scripts/pipeline-helpers/build_linux.sh /tmp/orcaslicer/build_linux.sh
 COPY scripts/linux.d /tmp/orcaslicer/scripts/linux.d
 
 WORKDIR /tmp/orcaslicer
@@ -303,7 +308,7 @@ function ensure_docker_runner_image() {
     if [[ "${force_rebuild}" == "1" ]] ; then
         build_cmd+=(--no-cache)
     fi
-    build_cmd+=(-f - "${SCRIPT_PATH}")
+    build_cmd+=(-f - "${REPO_ROOT}")
 
     printf '%q ' "${build_cmd[@]}"
     echo
@@ -359,7 +364,7 @@ function run_in_docker() {
     ensure_docker_runner_image "${container_cli}" "${runner_image}"
 
     printf '%q ' "${container_cli}" run --rm -i \
-        -v "${SCRIPT_PATH}:${container_workspace}" \
+        -v "${REPO_ROOT}:${container_workspace}" \
         -w "${container_workspace}" \
         "${container_env[@]}" \
         "${runner_image}" \
@@ -370,7 +375,7 @@ function run_in_docker() {
     fi
 
     "${container_cli}" run --rm -i \
-        -v "${SCRIPT_PATH}:${container_workspace}" \
+        -v "${REPO_ROOT}:${container_workspace}" \
         -w "${container_workspace}" \
         "${container_env[@]}" \
         "${runner_image}" \
@@ -427,7 +432,7 @@ sudo -H -u "${HOST_USER}" env \
         set -e
         cd "${GITHUB_WORKSPACE}"
         if [[ "$#" -gt 0 ]] ; then
-            ./build_linux.sh "$@"
+            ./scripts/pipeline-helpers/build_linux.sh "$@"
         else
             echo "No build steps were requested after container setup."
         fi

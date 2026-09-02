@@ -18,6 +18,8 @@ on:
      - 'scripts/flatpak/**'
      - 'scripts/msix/**'
      - 'tests/**'
+     - '*.sh'
+     - 'scripts/pipeline-helpers/*.sh'
 
   pull_request:
     branches:
@@ -30,14 +32,16 @@ on:
      - '**/CMakeLists.txt'
      - 'version.inc'
      - ".github/workflows/build_*.yml"
-     - 'build_linux.sh'
-     - 'build_release_vs.bat'
-     - 'build_release_vs2022.bat'
-     - 'build_release_macos.sh'
+     - 'scripts/pipeline-helpers/build_linux.sh'
+     - 'scripts/pipeline-helpers/build_release_vs.bat'
+     - 'scripts/pipeline-helpers/build_release_vs2022.bat'
+     - 'scripts/pipeline-helpers/build_release_macos.sh'
      - 'scripts/build_preset_cache.*'
      - 'scripts/flatpak/**'
      - 'scripts/msix/**'
      - 'tests/**'
+     - '*.sh'
+     - 'scripts/pipeline-helpers/*.sh'
 
 
   schedule:

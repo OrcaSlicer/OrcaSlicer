@@ -3,7 +3,7 @@
 apt update
 apt upgrade -y          
 
-build_linux="./build_linux.sh -u"
+build_linux="./scripts/pipeline-helpers/build_linux.sh -u"
 echo "-----------------------------------------"	
 echo "Running ${build_linux}..."
 echo "-----------------------------------------"	

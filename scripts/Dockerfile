@@ -64,17 +64,17 @@ WORKDIR OrcaSlicer
 
 # These can run together, but we run them separate for podman caching
 # Update System dependencies
-RUN ./build_linux.sh -u
+RUN ./scripts/pipeline-helpers/build_linux.sh -u
 
 # Build dependencies in ./deps
-RUN ./build_linux.sh -dr
+RUN ./scripts/pipeline-helpers/build_linux.sh -dr
 
 # Build slic3r
-RUN ./build_linux.sh -sr
+RUN ./scripts/pipeline-helpers/build_linux.sh -sr
 
 # Build AppImage
 ENV container podman
-RUN ./build_linux.sh -ir
+RUN ./scripts/pipeline-helpers/build_linux.sh -ir
 
 # It's easier to run Orca Slicer as the same username,
 # UID and GID as your workstation.  Since we bind mount

@@ -15,9 +15,9 @@ Rules for writing tests under `tests/`. [CATCH2.md](CATCH2.md) is the Catch2 ref
 
 Tests are off by default, so the build has to be told to include them.
 
-- Windows: `build_release_vs.bat tests`, then `ctest --test-dir build/tests -C Release`
-- macOS: `./build_release_macos.sh -s -a arm64 -T`, which builds and runs them
-- Linux: `./build_linux.sh -t`, then `ctest --test-dir build/tests`
+- Windows: `scripts\release\build_release_vs.bat tests`, then `ctest --test-dir build/tests -C Release`
+- macOS: `./scripts/pipeline-helpers/build_release_macos.sh -s -a arm64 -T`, which builds and runs them
+- Linux: `./scripts/pipeline-helpers/build_linux.sh -t`, then `ctest --test-dir build/tests`
 
 Rebuild a single suite with `cmake --build build --config Release --target <suite>_tests`. Visual Studio and Xcode are multi-configuration generators, so `ctest` needs `-C` there; on Linux it does not.
 

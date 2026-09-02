@@ -7,5 +7,5 @@ runs:
       shell: bash
       run: |
         mkdir -p ${{ github.workspace }}/deps/build/destdir
-        sudo env "ORCA_UPDATER_SIG_KEY=$ORCA_UPDATER_SIG_KEY" ./build_linux.sh -ur
+        sudo env "ORCA_UPDATER_SIG_KEY=$ORCA_UPDATER_SIG_KEY" ./scripts/pipeline-helpers/build_linux.sh -ur
         sudo chown $USER -R ./
