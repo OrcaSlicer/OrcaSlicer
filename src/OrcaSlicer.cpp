@@ -1194,9 +1194,21 @@ static void load_downward_settings_list_from_config(std::string config_file, std
 //      for BBL; for any other vendor — Prusa, Elegoo, Anycubic, Custom, ... —
 //      grandparent values were silently defaulted to schema zeros, which bit
 //      slicer-chat 2026-08-08 with chamber_temperature=[20] getting served as 0).
-static std::string cli_find_preset_json(const std::string &name, const std::string &preset_type)
+static std::string cli_find_preset_json(const std::string &name, const std::string &preset_type,
+                                        const std::string &preferred_vendor_dir = std::string())
 {
     namespace fs = boost::filesystem;
+    //ORCA: prefer the vendor directory that supplied the previous hop of the chain.
+    //      Base profile names are NOT unique across vendors: fdm_process_common.json ships
+    //      in 61 bundled vendors with 43 distinct contents. The scan below returns whichever
+    //      vendor directory_iterator yields first, which is filesystem order and has nothing
+    //      to do with the leaf's vendor -- so a Prusa chain could resolve its base against
+    //      another vendor's same-named file and silently pick up that vendor's values.
+    //      Staying inside one vendor while walking removes the ordering dependency.
+    if (!preferred_vendor_dir.empty()) {
+        fs::path candidate = fs::path(preferred_vendor_dir) / preset_type / (name + ".json");
+        if (fs::exists(candidate)) return candidate.string();
+    }
     const std::vector<std::string> roots = {
         Slic3r::data_dir() + "/user",
         Slic3r::data_dir() + "/system",
@@ -1231,14 +1243,18 @@ static void cli_resolve_inherits_chain(DynamicPrintConfig &config,
 
     std::vector<DynamicPrintConfig> ancestors; // parent, grandparent, ...
     std::string next = inherits_opt->value;
+    std::string vendor_dir; //ORCA: vendor directory that supplied the previous hop, preferred for the next
     for (int depth = 0; depth < 8 && !next.empty(); ++depth) {
-        const std::string parent_path = cli_find_preset_json(next, preset_type);
+        const std::string parent_path = cli_find_preset_json(next, preset_type, vendor_dir);
         if (parent_path.empty()) {
             BOOST_LOG_TRIVIAL(warning)
                 << "cli inherits: could not find parent preset '" << next
                 << "' (type " << preset_type << "); chain walk stopped, downstream keys will fall back to schema defaults";
             break;
         }
+        //ORCA: parent_path is <vendor_dir>/<preset_type>/<name>.json -- keep <vendor_dir> so the
+        //      next hop resolves within the same vendor before falling back to the global scan.
+        vendor_dir = boost::filesystem::path(parent_path).parent_path().parent_path().string();
         DynamicPrintConfig parent;
         std::map<std::string, std::string> kv;
         std::string reason;
