@@ -1975,7 +1975,7 @@ int CLI::run(int argc, char **argv)
             return cli_preset_bundle.get();
         try {
             AppConfig app_config;
-            const std::string app_config_error = app_config.load();
+            const std::string app_config_error = app_config.load_if_exists();
             if (!app_config_error.empty()) {
                 error = "Failed to load app config for preset resolution: " + app_config_error;
                 return nullptr;

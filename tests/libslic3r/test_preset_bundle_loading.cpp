@@ -515,6 +515,14 @@ struct LibraryFilamentTestCollection : public PresetCollection
 
 } // namespace
 
+TEST_CASE("Missing app config is accepted as default CLI state", "[Preset][Bundle][Regression]")
+{
+    ScopedTemporaryDir dir;
+    AppConfig app_config;
+    app_config.set_loading_path((dir.path() / "missing.conf").string());
+    CHECK(app_config.load_if_exists().empty());
+}
+
 TEST_CASE("Read-only user preset loading does not create or delete files", "[Preset][Bundle][Regression]")
 {
     ScopedTemporaryDir dir;
