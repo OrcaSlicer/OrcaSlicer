@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-09-02 09:39-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -2942,6 +2942,9 @@ msgstr "แก้ไข"
 msgid "Merge with"
 msgstr "รวมกับ"
 
+msgid "Decompose Color"
+msgstr ""
+
 msgid "Delete this filament"
 msgstr "ลบเส้นพลาสติกนี้"
 
@@ -3236,6 +3239,9 @@ msgstr "การประกอบ"
 # AI Translated
 msgid "Merge parts to an object"
 msgstr "รวมชิ้นส่วนเป็นวัตถุเดียว"
+
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr ""
 
 # AI Translated
 msgid "Add layers"
@@ -7807,6 +7813,9 @@ msgstr "ปรับแต่งแผ่นปัจจุบัน"
 msgid "The %s nozzle can not print %s."
 msgstr "หัวฉีด %s ไม่สามารถพิมพ์ %s ได้"
 
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr ""
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "ไม่แนะนำให้ผสม %1% กับ %2% ในการพิมพ์\n"
@@ -7932,11 +7941,35 @@ msgstr "ประสานรายการเส้นพลาสติกจ
 msgid "Set filaments to use"
 msgstr "ตั้งค่าเส้นพลาสติกที่จะใช้"
 
+msgid "Add Mixed Filament"
+msgstr ""
+
+msgid "Mixed Filament"
+msgstr ""
+
+msgid "Remove last mixed filament"
+msgstr ""
+
+msgid "Add mixed filament"
+msgstr ""
+
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr ""
+
 msgid "Search plate, object and part."
 msgstr "ค้นหาจาน วัตถุ และชิ้นส่วน"
 
 msgid "Pellets"
 msgstr "เม็ด"
+
+msgid "Mixed filament has broken component references"
+msgstr ""
+
+msgid "Edit / Delete / Merge"
+msgstr ""
+
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr ""
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -8115,6 +8148,12 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "ตรวจพบวัตถุที่มีหลายส่วน"
+
+msgid "Matching textures to filaments"
+msgstr ""
+
+msgid "Texture Import Warning"
+msgstr ""
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "โหลดไฟล์เหล่านี้เป็นออบเจ็กต์เดียวที่มีหลายส่วนใช่ไหม\n"
@@ -8325,6 +8364,18 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "ซิงค์เลย"
+
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr ""
+
+msgid "Applying texture colors..."
+msgstr ""
+
+msgid "Updating 3D view..."
+msgstr ""
+
+msgid "Texture colors applied."
+msgstr ""
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "คุณสามารถเก็บค่าที่ตั้งไว้ล่วงหน้าที่แก้ไขแล้วไว้ในโปรเจ็กต์ใหม่หรือทิ้งก็ได้"
@@ -9567,6 +9618,9 @@ msgstr "แจกันเกลียว"
 
 msgid "First layer filament sequence"
 msgstr "ลำดับเส้นพลาสติกชั้นแรก"
+
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr ""
 
 msgid "By Layer"
 msgstr "โดยเลเยอร์"
@@ -11469,27 +11523,6 @@ msgstr "ปริมาณการไล่เส้นชิ่งสำหร
 msgid "Please choose the filament colour"
 msgstr "กรุณาเลือกสีเส้นพลาสติก"
 
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "Native Wayland liveview ต้องใช้ GStreamer GTK video sink โปรดติดตั้งปลั๊กอิน gtksink สำหรับ GStreamer จากนั้นรีสตาร์ท OrcaSlicer"
-
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "ไม่สามารถเริ่มต้น sink วิดีโอ Wayland GStreamer ดั้งเดิมได้ โปรดตรวจสอบการติดตั้งปลั๊กอิน GStreamer GTK ของคุณ"
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "งานนี้ต้องใช้ Windows Media Player! คุณต้องการเปิดใช้งาน 'Windows Media Player' สำหรับระบบปฏิบัติการของคุณหรือไม่?"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource ยังไม่ได้รับการลงทะเบียนอย่างถูกต้องสำหรับการเล่นสื่อ! กดใช่เพื่อลงทะเบียนใหม่ คุณจะได้รับการเลื่อนตำแหน่งสองครั้ง"
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "ไม่มีส่วนประกอบ BambuSource ที่ลงทะเบียนสำหรับการเล่นสื่อ! โปรดติดตั้ง OrcaSlicer ใหม่หรือขอความช่วยเหลือจากชุมชน"
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "การใช้ BambuSource จากการติดตั้งอื่น การเล่นวิดีโออาจทำงานไม่ถูกต้อง! กดใช่เพื่อแก้ไข"
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "ระบบของคุณไม่มีตัวแปลงสัญญาณ H.264 สำหรับ GStreamer ซึ่งจำเป็นในการเล่นวิดีโอ (ลองติดตั้งแพ็คเกจ gstreamer1.0-plugins-bad หรือ gstreamer1.0-libav จากนั้นรีสตาร์ท Orca Slicer หรือไม่)"
-
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
 msgstr "ตัวแทนระบบคลาวด์ไม่พร้อมใช้งาน โปรดรีสตาร์ท OrcaSlicer แล้วลองอีกครั้ง"
 
@@ -12193,6 +12226,9 @@ msgstr "หากคุณยังต้องการพิมพ์ คุ�
 msgid "No extrusions under current settings."
 msgstr "ไม่มีการอัดขึ้นรูปภายใต้การตั้งค่าปัจจุบัน"
 
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr ""
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "ไม่รองรับโหมดไทม์แลปส์แบบราบรื่นเมื่อเปิดใช้งานลำดับ \"ตามวัตถุ\""
 
@@ -12228,6 +12264,9 @@ msgstr "คุณอาจต้องการลดขนาดแบบจำ
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "ไม่รองรับความสูงของเลเยอร์ที่แปรผันได้ด้วยการรองรับแบบออร์แกนิก"
+
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr ""
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
 msgstr "เส้นผ่านศูนย์กลางของหัวฉีดที่แตกต่างกันและเส้นผ่านศูนย์กลางของเส้นพลาสติกที่แตกต่างกันอาจทำงานได้ไม่ดีนักเมื่อเปิดใช้งาน Prime Tower ยังเป็นการทดลองอยู่มาก ดังนั้นโปรดดำเนินการด้วยความระมัดระวัง"
@@ -13941,8 +13980,9 @@ msgstr "เวลาเลเยอร์"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "พัดลมระบายความร้อนบางส่วนจะถูกเปิดใช้งานสำหรับเลเยอร์ที่เวลาโดยประมาณสั้นกว่าค่านี้ ความเร็วพัดลมจะถูกประมาณค่าระหว่างความเร็วพัดลมขั้นต่ำและสูงสุดตามเวลาการพิมพ์เลเยอร์"
 
+msgctxt "second"
 msgid "s"
-msgstr "วินาที"
+msgstr ""
 
 msgid "Default color"
 msgstr "สีเริ่มต้น"
@@ -14247,6 +14287,48 @@ msgstr "วัสดุส่วนรองรับ"
 
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "วัสดุรองรับมักใช้ในการพิมพ์ส่วนรองรับและอินเทอร์เฟซรองรับ"
+
+msgid "Is mixed filament"
+msgstr ""
+
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr ""
+
+msgid "Mixed filament components"
+msgstr ""
+
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr ""
+
+msgid "Mixed filament sublayer ratios"
+msgstr ""
+
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr ""
+
+msgid "Mixed filament gradient"
+msgstr ""
+
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr ""
+
+msgid "Mixed filament gradient range"
+msgstr ""
+
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr ""
+
+msgid "Mixed filament gradient curve"
+msgstr ""
+
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr ""
+
+msgid "Mixed filament per-part gradient"
+msgstr ""
+
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr ""
 
 msgid "Filament printable"
 msgstr "พิมพ์เส้นพลาสติกได้"
@@ -15501,9 +15583,9 @@ msgstr "แรงสูงสุดของแกน Y"
 msgid "The allowed maximum output force of Y axis"
 msgstr "แรงขับออกสูงสุดที่อนุญาตของแกน Y"
 
-# AI Translated
+msgctxt "Newton"
 msgid "N"
-msgstr "N"
+msgstr ""
 
 # AI Translated
 msgid "Bed mass of the Y axis"
@@ -15513,9 +15595,9 @@ msgstr "มวลฐานของแกน Y"
 msgid "The machine bed mass load of Y axis"
 msgstr "ภาระมวลฐานของเครื่องบนแกน Y"
 
-# AI Translated
+msgctxt "gram"
 msgid "g"
-msgstr "g"
+msgstr ""
 
 # AI Translated
 msgid "The allowed max printed mass"
@@ -17088,6 +17170,12 @@ msgstr ""
 "\n"
 "การตั้งค่าในจำนวนการถอนก่อนการล้างการตั้งค่าด้านล่างจะทำการถอนส่วนที่เกินก่อนการล้าง มิฉะนั้นจะดำเนินการหลังจากนั้น"
 
+msgid "Mixed color sublayer"
+msgstr ""
+
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr ""
+
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Wipe Tower สามารถใช้เพื่อทำความสะอาดสิ่งตกค้างบนหัวฉีด และทำให้แรงดันในห้องภายในหัวฉีดคงที่ เพื่อหลีกเลี่ยงข้อบกพร่องในลักษณะที่ปรากฏเมื่อพิมพ์วัตถุ"
 
@@ -18170,6 +18258,9 @@ msgstr "การประสานไฟล์โมเดลล้มเหล
 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "ไม่สามารถอ่านไฟล์ที่ให้มาได้เนื่องจากไฟล์ว่างเปล่า"
+
+msgid "The file format is incompatible and cannot be parsed."
+msgstr ""
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "รูปแบบไฟล์ที่ไม่รู้จัก ไฟล์อินพุตต้องมีนามสกุล .stl, .obj, .amf(.xml)"
@@ -20472,9 +20563,8 @@ msgstr "ลบออก"
 msgid "Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"
 msgstr "เปิดใช้การกำหนดเส้นพลาสติกอัจฉริยะ: กำหนดเส้นพลาสติกหนึ่งชนิดให้กับหัวฉีดหลายตัวเพื่อประหยัดสูงสุด"
 
-# AI Translated
-msgid "Fila Saving"
-msgstr "การประหยัดเส้นพลาสติก"
+msgid "File Saving"
+msgstr ""
 
 msgid "Don't remind me again"
 msgstr "ไม่ต้องเตือนฉันอีก"
@@ -20838,6 +20928,9 @@ msgstr "เริ่มใหม่ตอนนี้"
 
 msgid "NO RAMMING AT ALL"
 msgstr "ไม่มีการกระแทกเลย"
+
+msgid "s"
+msgstr "วินาที"
 
 msgid "Volumetric speed"
 msgstr "ความเร็วปริมาตร"
@@ -21462,6 +21555,39 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "Native Wayland liveview ต้องใช้ GStreamer GTK video sink โปรดติดตั้งปลั๊กอิน gtksink สำหรับ GStreamer จากนั้นรีสตาร์ท OrcaSlicer"
+
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "ไม่สามารถเริ่มต้น sink วิดีโอ Wayland GStreamer ดั้งเดิมได้ โปรดตรวจสอบการติดตั้งปลั๊กอิน GStreamer GTK ของคุณ"
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "งานนี้ต้องใช้ Windows Media Player! คุณต้องการเปิดใช้งาน 'Windows Media Player' สำหรับระบบปฏิบัติการของคุณหรือไม่?"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource ยังไม่ได้รับการลงทะเบียนอย่างถูกต้องสำหรับการเล่นสื่อ! กดใช่เพื่อลงทะเบียนใหม่ คุณจะได้รับการเลื่อนตำแหน่งสองครั้ง"
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "ไม่มีส่วนประกอบ BambuSource ที่ลงทะเบียนสำหรับการเล่นสื่อ! โปรดติดตั้ง OrcaSlicer ใหม่หรือขอความช่วยเหลือจากชุมชน"
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "การใช้ BambuSource จากการติดตั้งอื่น การเล่นวิดีโออาจทำงานไม่ถูกต้อง! กดใช่เพื่อแก้ไข"
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "ระบบของคุณไม่มีตัวแปลงสัญญาณ H.264 สำหรับ GStreamer ซึ่งจำเป็นในการเล่นวิดีโอ (ลองติดตั้งแพ็คเกจ gstreamer1.0-plugins-bad หรือ gstreamer1.0-libav จากนั้นรีสตาร์ท Orca Slicer หรือไม่)"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+# AI Translated
+#~ msgid "g"
+#~ msgstr "g"
+
+# AI Translated
+#~ msgid "Fila Saving"
+#~ msgstr "การประหยัดเส้นพลาสติก"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"

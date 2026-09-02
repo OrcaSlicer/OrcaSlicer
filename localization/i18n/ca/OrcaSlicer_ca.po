@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-09-02 09:39-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3015,6 +3015,9 @@ msgstr "Editar"
 msgid "Merge with"
 msgstr "Fusiona amb"
 
+msgid "Decompose Color"
+msgstr ""
+
 msgid "Delete this filament"
 msgstr "Elimina aquest filament"
 
@@ -3315,6 +3318,9 @@ msgstr "Muntatge"
 # AI Translated
 msgid "Merge parts to an object"
 msgstr "Fusionar les peces en un objecte"
+
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr ""
 
 # AI Translated
 msgid "Add layers"
@@ -7956,6 +7962,9 @@ msgstr "Personalitzar la placa actual"
 msgid "The %s nozzle can not print %s."
 msgstr "El broquet %s no pot imprimir %s."
 
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr ""
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "No es recomana barrejar %1% amb %2% en la impressió.\n"
@@ -8081,12 +8090,36 @@ msgstr "Sincronitzar la llista de filaments des d'AMS"
 msgid "Set filaments to use"
 msgstr "Configurar els filaments a utilitzar"
 
+msgid "Add Mixed Filament"
+msgstr ""
+
+msgid "Mixed Filament"
+msgstr ""
+
+msgid "Remove last mixed filament"
+msgstr ""
+
+msgid "Add mixed filament"
+msgstr ""
+
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr ""
+
 msgid "Search plate, object and part."
 msgstr "Cercar placa, objecte i peça."
 
 # AI Translated
 msgid "Pellets"
 msgstr "Pèl·lets"
+
+msgid "Mixed filament has broken component references"
+msgstr ""
+
+msgid "Edit / Delete / Merge"
+msgstr ""
+
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr ""
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -8274,6 +8307,12 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "Objecte de múltiples peces detectat"
+
+msgid "Matching textures to filaments"
+msgstr ""
+
+msgid "Texture Import Warning"
+msgstr ""
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Carregar aquests fitxers com un sol objecte amb diverses peces?\n"
@@ -8487,6 +8526,18 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "Sincronitza ara"
+
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr ""
+
+msgid "Applying texture colors..."
+msgstr ""
+
+msgid "Updating 3D view..."
+msgstr ""
+
+msgid "Texture colors applied."
+msgstr ""
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Podeu mantenir els perfils modificats al projecte nou o descartar-los"
@@ -9779,6 +9830,9 @@ msgstr "Gerro en Espiral"
 
 msgid "First layer filament sequence"
 msgstr "Seqüència d'impressió de la primera capa"
+
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr ""
 
 msgid "By Layer"
 msgstr "Per Capa"
@@ -11716,29 +11770,6 @@ msgid "Please choose the filament colour"
 msgstr "Trieu el color del filament"
 
 # AI Translated
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "La visualització en directe nativa de Wayland requereix el sink de vídeo GTK de GStreamer. Instal·leu el connector gtksink per a GStreamer i reinicieu l'OrcaSlicer."
-
-# AI Translated
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "No s'ha pogut inicialitzar el sink de vídeo natiu de GStreamer per a Wayland. Comproveu la instal·lació del connector GTK de GStreamer."
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "El Windows Media Player és necessari per a aquesta tasca. Voleu habilitar el \"Windows Media Player\" per al vostre sistema operatiu?"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "BambuSource no s'ha registrat correctament per a la reproducció multimèdia! Premeu Sí per tornar-lo a registrar. Seràs promocionat dues vegades"
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "Falta el component BambuSource registrat per a la reproducció multimèdia! Reinstal·leu OrcaSlicer o cerqueu ajuda a la comunitat."
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "Utilitzar un BambuSource des d'una instal·lació diferent, la reproducció de vídeo pot no funcionar correctament! Premeu Sí per solucionar-ho."
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "Al vostre sistema li falten còdecs H.264 per al GStreamer, necessaris per reproduir vídeo. (Proveu d'instal·lar els paquets gstreamer1.0-plugins-bad o gstreamer1.0-libav i, a continuació, reinicieu Orca Slicer?)"
-
-# AI Translated
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
 msgstr "L'agent del núvol no està disponible. Reinicieu l'OrcaSlicer i torneu-ho a provar."
 
@@ -12465,6 +12496,9 @@ msgstr "Si tot i així voleu imprimir, podeu activar l'opció a Preferències / 
 msgid "No extrusions under current settings."
 msgstr "No hi ha extrusions a la configuració actual."
 
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr ""
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "El mode suau de timelapse no està permès quan la seqüència \"Per objecte\" està habilitada."
 
@@ -12500,6 +12534,9 @@ msgstr "Potser voleu reduir la mida del model o canviar la configuració d'impre
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "Alçada de Capa Variable no és compatible amb suports Orgànics."
+
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr ""
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
 msgstr "És possible que els diferents diàmetres de broquet i els diferents diàmetres de filament no funcionin bé quan la torre principal està activada. És molt experimental, així que si us plau, procediu amb precaució."
@@ -14263,8 +14300,9 @@ msgstr "Temps de capa"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "S'habilitarà el ventilador de refrigeració de peces per a capes el temps estimat de les quals sigui inferior a aquest valor. La velocitat del ventilador s'interpola entre les velocitats mínima i màxima del ventilador segons el temps d'impressió per capes"
 
+msgctxt "second"
 msgid "s"
-msgstr "s"
+msgstr ""
 
 msgid "Default color"
 msgstr "Color predeterminat"
@@ -14571,6 +14609,48 @@ msgstr "Material de suport"
 
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "El material de suport s'utilitza habitualment per imprimir interfície de suport i suport"
+
+msgid "Is mixed filament"
+msgstr ""
+
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr ""
+
+msgid "Mixed filament components"
+msgstr ""
+
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr ""
+
+msgid "Mixed filament sublayer ratios"
+msgstr ""
+
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr ""
+
+msgid "Mixed filament gradient"
+msgstr ""
+
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr ""
+
+msgid "Mixed filament gradient range"
+msgstr ""
+
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr ""
+
+msgid "Mixed filament gradient curve"
+msgstr ""
+
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr ""
+
+msgid "Mixed filament per-part gradient"
+msgstr ""
+
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr ""
 
 msgid "Filament printable"
 msgstr "Filament imprimible"
@@ -15859,9 +15939,9 @@ msgstr "Força màxima de l'eix Y"
 msgid "The allowed maximum output force of Y axis"
 msgstr "Força de sortida màxima permesa de l'eix Y"
 
-# AI Translated
+msgctxt "Newton"
 msgid "N"
-msgstr "N"
+msgstr ""
 
 # AI Translated
 msgid "Bed mass of the Y axis"
@@ -15871,9 +15951,9 @@ msgstr "Massa del llit de l'eix Y"
 msgid "The machine bed mass load of Y axis"
 msgstr "Càrrega de massa del llit de la màquina a l'eix Y"
 
-# AI Translated
+msgctxt "gram"
 msgid "g"
-msgstr "g"
+msgstr ""
 
 # AI Translated
 msgid "The allowed max printed mass"
@@ -17482,6 +17562,12 @@ msgstr ""
 "\n"
 "L'establiment d'un valor en la quantitat de retractació abans de l'esborrat es realitzarà qualsevol retracció en excés abans de la neteja, sinó es realitzarà després."
 
+msgid "Mixed color sublayer"
+msgstr ""
+
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr ""
+
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "La Torre de Purga es pot utilitzar per netejar els residus al broquet i estabilitzar la pressió de la cambra dins del broquet, per tal d'evitar defectes d'aparença en imprimir objectes."
 
@@ -18572,6 +18658,9 @@ msgstr "La generació de malla del fitxer del model ha fallat o la forma no és 
 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "El fitxer subministrat no s'ha pogut llegir perquè està buit"
+
+msgid "The file format is incompatible and cannot be parsed."
+msgstr ""
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Format de fitxer desconegut. El fitxer d'entrada ha de tenir extensió .stl, .obj, .amf( .xml )."
@@ -20927,9 +21016,8 @@ msgstr "Eliminat"
 msgid "Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"
 msgstr "Activar l'assignació intel·ligent de filament: assigna un filament a diversos broquets per maximitzar l'estalvi"
 
-# AI Translated
-msgid "Fila Saving"
-msgstr "Estalvi de filament"
+msgid "File Saving"
+msgstr ""
 
 msgid "Don't remind me again"
 msgstr "No m'ho recordis més"
@@ -21337,6 +21425,9 @@ msgstr "Reinicia ara"
 
 msgid "NO RAMMING AT ALL"
 msgstr "SENSE EMPENTA"
+
+msgid "s"
+msgstr "s"
 
 msgid "Volumetric speed"
 msgstr "Velocitat volumètrica"
@@ -21988,6 +22079,41 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+# AI Translated
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "La visualització en directe nativa de Wayland requereix el sink de vídeo GTK de GStreamer. Instal·leu el connector gtksink per a GStreamer i reinicieu l'OrcaSlicer."
+
+# AI Translated
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "No s'ha pogut inicialitzar el sink de vídeo natiu de GStreamer per a Wayland. Comproveu la instal·lació del connector GTK de GStreamer."
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "El Windows Media Player és necessari per a aquesta tasca. Voleu habilitar el \"Windows Media Player\" per al vostre sistema operatiu?"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "BambuSource no s'ha registrat correctament per a la reproducció multimèdia! Premeu Sí per tornar-lo a registrar. Seràs promocionat dues vegades"
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "Falta el component BambuSource registrat per a la reproducció multimèdia! Reinstal·leu OrcaSlicer o cerqueu ajuda a la comunitat."
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "Utilitzar un BambuSource des d'una instal·lació diferent, la reproducció de vídeo pot no funcionar correctament! Premeu Sí per solucionar-ho."
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "Al vostre sistema li falten còdecs H.264 per al GStreamer, necessaris per reproduir vídeo. (Proveu d'instal·lar els paquets gstreamer1.0-plugins-bad o gstreamer1.0-libav i, a continuació, reinicieu Orca Slicer?)"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+# AI Translated
+#~ msgid "g"
+#~ msgstr "g"
+
+# AI Translated
+#~ msgid "Fila Saving"
+#~ msgstr "Estalvi de filament"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 14:07-0300\n"
+"POT-Creation-Date: 2026-09-02 09:39-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2948,6 +2948,9 @@ msgstr "Szerkesztés"
 msgid "Merge with"
 msgstr "Egyesítés ezzel"
 
+msgid "Decompose Color"
+msgstr ""
+
 msgid "Delete this filament"
 msgstr "Filament törlése"
 
@@ -3246,6 +3249,9 @@ msgstr "Összeállítás"
 # AI Translated
 msgid "Merge parts to an object"
 msgstr "Tárgyak egyesítése egy objektummá"
+
+msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
+msgstr ""
 
 # AI Translated
 msgid "Add layers"
@@ -7847,6 +7853,9 @@ msgstr "Aktuális tálca testreszabása"
 msgid "The %s nozzle can not print %s."
 msgstr "A(z) %s fúvóka nem tudja nyomtatni ezt: %s."
 
+msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
+msgstr ""
+
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "A(z) %1% és %2% keverése nyomtatás közben nem ajánlott.\n"
@@ -7972,11 +7981,35 @@ msgstr "Filamentlista szinkronizálása az AMS-ből"
 msgid "Set filaments to use"
 msgstr "Használni kívánt filament beállítása"
 
+msgid "Add Mixed Filament"
+msgstr ""
+
+msgid "Mixed Filament"
+msgstr ""
+
+msgid "Remove last mixed filament"
+msgstr ""
+
+msgid "Add mixed filament"
+msgstr ""
+
+msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
+msgstr ""
+
 msgid "Search plate, object and part."
 msgstr "Tálca, objektum és tárgy keresése."
 
 msgid "Pellets"
 msgstr "Pelletek"
+
+msgid "Mixed filament has broken component references"
+msgstr ""
+
+msgid "Edit / Delete / Merge"
+msgstr ""
+
+msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
+msgstr ""
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
@@ -8159,6 +8192,12 @@ msgstr ""
 
 msgid "Multi-part object detected"
 msgstr "Több részből álló objektum észlelve"
+
+msgid "Matching textures to filaments"
+msgstr ""
+
+msgid "Texture Import Warning"
+msgstr ""
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Betöltöd ezeket a fájlokat több részből álló egyetlen objektumként?\n"
@@ -8370,6 +8409,18 @@ msgstr ""
 
 msgid "Sync now"
 msgstr "Szinkronizálás most"
+
+msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
+msgstr ""
+
+msgid "Applying texture colors..."
+msgstr ""
+
+msgid "Updating 3D view..."
+msgstr ""
+
+msgid "Texture colors applied."
+msgstr ""
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Megtarthatod az új projekt módosított beállításait, vagy elvetheted őket"
@@ -9632,6 +9683,9 @@ msgstr "Spirál (váza)"
 
 msgid "First layer filament sequence"
 msgstr "Kezdőréteg filament sorrendje"
+
+msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
+msgstr ""
 
 # AI Translated
 msgid "By Layer"
@@ -11552,27 +11606,6 @@ msgstr "Filamentcsere öblítési mennyisége"
 msgid "Please choose the filament colour"
 msgstr "Kérlek, válaszd ki a filament színét"
 
-msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "A natív Wayland élőképhez a GStreamer GTK videonyelő szükséges. Telepítsd a gtksink beépülő modult a GStreamerhez, majd indítsd újra az OrcaSlicert."
-
-msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-msgstr "Nem sikerült inicializálni a natív Wayland GStreamer videonyelőt. Ellenőrizd a GStreamer GTK bővítmény telepítését."
-
-msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-msgstr "Ehhez a művelethez Windows Media Player szükséges. Szeretnéd engedélyezni a \"Windows Media Player\"-t az operációs rendszerben?"
-
-msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-msgstr "A BambuSource nincs megfelelően regisztrálva médialejátszáshoz. Kattints az Igen gombra az újbóli regisztráláshoz. Kétszer kapsz majd megerősítési kérést."
-
-msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-msgstr "A médialejátszáshoz szükséges BambuSource-összetevő hiányzik. Kérlek, telepítsd újra az OrcaSlicert, vagy kérj segítséget a közösségtől."
-
-msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-msgstr "Ha egy másik telepítésből származó BambuSource van használatban, előfordulhat, hogy a videólejátszás nem működik megfelelően. Kattints az Igen gombra a javításhoz."
-
-msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-msgstr "A rendszerből hiányoznak a GStreamer H.264 kodekjei, amelyek szükségesek a videolejátszáshoz. (Próbáld telepíteni a gstreamer1.0-plugins-bad vagy a gstreamer1.0-libav csomagokat, majd indítsd újra az Orca Slicert.)"
-
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
 msgstr "A felhőszolgáltatás nem érhető el. Indítsd újra az OrcaSlicert, majd próbáld újra."
 
@@ -12282,6 +12315,9 @@ msgstr "Ha továbbra is szeretnél nyomtatni, engedélyezheted az opciót itt: B
 msgid "No extrusions under current settings."
 msgstr "A jelenlegi beállításokkal nincsenek extrudálások."
 
+msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
+msgstr ""
+
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "A sima Timelapse nem használható, ha a nyomtatási sorrend \"Tárgyanként\"."
 
@@ -12317,6 +12353,9 @@ msgstr "Próbáld meg csökkenteni a modell méretét vagy módosítani a jelenl
 
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "A változó rétegmagasság nem működik az organikus támaszokkal."
+
+msgid "The wipe tower filament cannot be a mixed filament."
+msgstr ""
 
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
 msgstr "Eltérő fúvókaátmérők és eltérő filamentátmérők mellett a törlőtorony nem biztos, hogy megfelelően működik. Ez nagyon kísérleti funkció, ezért körültekintően használd."
@@ -14063,8 +14102,9 @@ msgstr "Rétegidő"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "A tárgyhűtő ventilátor azon rétegek esetében lesz engedélyezve, amelyek becsült ideje rövidebb ennél az értéknél. A ventilátor fordulatszáma a rétegnyomtatási időnek megfelelően skálázódik a minimális és maximális ventilátor fordulatszám között"
 
+msgctxt "second"
 msgid "s"
-msgstr "mp"
+msgstr ""
 
 msgid "Default color"
 msgstr "Alapértelmezett szín"
@@ -14369,6 +14409,48 @@ msgstr "Támaszanyag"
 
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "A támaszanyagot általában a támaszok és azok érintkező felületeinek nyomtatására használják."
+
+msgid "Is mixed filament"
+msgstr ""
+
+msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
+msgstr ""
+
+msgid "Mixed filament components"
+msgstr ""
+
+msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
+msgstr ""
+
+msgid "Mixed filament sublayer ratios"
+msgstr ""
+
+msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
+msgstr ""
+
+msgid "Mixed filament gradient"
+msgstr ""
+
+msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
+msgstr ""
+
+msgid "Mixed filament gradient range"
+msgstr ""
+
+msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
+msgstr ""
+
+msgid "Mixed filament gradient curve"
+msgstr ""
+
+msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
+msgstr ""
+
+msgid "Mixed filament per-part gradient"
+msgstr ""
+
+msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
+msgstr ""
 
 msgid "Filament printable"
 msgstr "Filament nyomtatható"
@@ -15632,9 +15714,9 @@ msgstr "Az Y tengely maximális ereje"
 msgid "The allowed maximum output force of Y axis"
 msgstr "Az Y tengely megengedett maximális kimeneti ereje"
 
-# AI Translated
+msgctxt "Newton"
 msgid "N"
-msgstr "N"
+msgstr ""
 
 msgid "Bed mass of the Y axis"
 msgstr "Az Y tengely asztaltömege"
@@ -15642,9 +15724,9 @@ msgstr "Az Y tengely asztaltömege"
 msgid "The machine bed mass load of Y axis"
 msgstr "Az Y tengely gépasztaltömeg-terhelése"
 
-# AI Translated
+msgctxt "gram"
 msgid "g"
-msgstr "g"
+msgstr ""
 
 msgid "The allowed max printed mass"
 msgstr "A megengedett maximális nyomtatott tömeg"
@@ -17233,6 +17315,12 @@ msgstr ""
 "\n"
 "Ha az alábbi \"visszahúzási mennyiség törlés előtt\" beállításban értéket adsz meg, akkor az esetleges többletvisszahúzás a törlés előtt történik meg, különben utána."
 
+msgid "Mixed color sublayer"
+msgstr ""
+
+msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
+msgstr ""
+
 # AI Translated
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "A törlőtorony a fúvókán lévő maradék eltávolítására és a fúvóka belsejében lévő nyomás stabilizálására szolgál, hogy elkerülhetők legyenek a megjelenésbeli hibák az objektumok nyomtatásakor."
@@ -18305,6 +18393,9 @@ msgstr "A modellfájl hálósítása sikertelen volt, vagy nincs érvényes alak
 
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "A megadott fájl nem olvasható be, mert üres"
+
+msgid "The file format is incompatible and cannot be parsed."
+msgstr ""
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Ismeretlen fájlformátum. A bemeneti fájlnak .stl, .obj vagy .amf(.xml) kiterjesztésűnek kell lennie."
@@ -20653,9 +20744,8 @@ msgstr "Eltávolítva"
 msgid "Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"
 msgstr "Intelligens filament-hozzárendelés bekapcsolása: egy filament több fúvókához rendelése a megtakarítás maximalizálásához"
 
-# AI Translated
-msgid "Fila Saving"
-msgstr "Filamentmegtakarítás"
+msgid "File Saving"
+msgstr ""
 
 msgid "Don't remind me again"
 msgstr "Ne emlékeztessen újra"
@@ -21057,6 +21147,9 @@ msgstr "Újraindítás most"
 
 msgid "NO RAMMING AT ALL"
 msgstr "EGYÁLTALÁN NINCS TÖMÖRÍTÉS"
+
+msgid "s"
+msgstr "mp"
 
 msgid "Volumetric speed"
 msgstr "Volumetrikus sebesség"
@@ -21708,6 +21801,39 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+#~ msgstr "A natív Wayland élőképhez a GStreamer GTK videonyelő szükséges. Telepítsd a gtksink beépülő modult a GStreamerhez, majd indítsd újra az OrcaSlicert."
+
+#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
+#~ msgstr "Nem sikerült inicializálni a natív Wayland GStreamer videonyelőt. Ellenőrizd a GStreamer GTK bővítmény telepítését."
+
+#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
+#~ msgstr "Ehhez a művelethez Windows Media Player szükséges. Szeretnéd engedélyezni a \"Windows Media Player\"-t az operációs rendszerben?"
+
+#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
+#~ msgstr "A BambuSource nincs megfelelően regisztrálva médialejátszáshoz. Kattints az Igen gombra az újbóli regisztráláshoz. Kétszer kapsz majd megerősítési kérést."
+
+#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
+#~ msgstr "A médialejátszáshoz szükséges BambuSource-összetevő hiányzik. Kérlek, telepítsd újra az OrcaSlicert, vagy kérj segítséget a közösségtől."
+
+#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
+#~ msgstr "Ha egy másik telepítésből származó BambuSource van használatban, előfordulhat, hogy a videólejátszás nem működik megfelelően. Kattints az Igen gombra a javításhoz."
+
+#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
+#~ msgstr "A rendszerből hiányoznak a GStreamer H.264 kodekjei, amelyek szükségesek a videolejátszáshoz. (Próbáld telepíteni a gstreamer1.0-plugins-bad vagy a gstreamer1.0-libav csomagokat, majd indítsd újra az Orca Slicert.)"
+
+# AI Translated
+#~ msgid "N"
+#~ msgstr "N"
+
+# AI Translated
+#~ msgid "g"
+#~ msgstr "g"
+
+# AI Translated
+#~ msgid "Fila Saving"
+#~ msgstr "Filamentmegtakarítás"
 
 #~ msgid ""
 #~ "Layer height is too small.\n"
