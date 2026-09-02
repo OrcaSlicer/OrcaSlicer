@@ -854,6 +854,37 @@ TEST_CASE("read_cli rejects an invalid boolean value", "[Config]") {
     REQUIRE_FALSE(config.read_cli(2, argv, &extra, &keys));
 }
 
+TEST_CASE("read_cli accepts the common spellings of a boolean value", "[Config]") {
+    const auto [text, expected] = GENERATE(table<const char*, bool>({
+        {"--reduce-crossing-wall=1",        true },
+        {"--reduce-crossing-wall=true",     true },
+        {"--reduce-crossing-wall=Yes",      true },
+        {"--reduce-crossing-wall=on",       true },
+        {"--reduce-crossing-wall=enabled",  true },
+        {"--reduce-crossing-wall=0",        false},
+        {"--reduce-crossing-wall=false",    false},
+        {"--reduce-crossing-wall=No",       false},
+        {"--reduce-crossing-wall=off",      false},
+        {"--reduce-crossing-wall=disabled", false},
+    }));
+
+    DYNAMIC_SECTION(text) {
+        Slic3r::DynamicPrintConfig config;
+        t_config_option_keys extra, keys;
+        const char* argv[] = {"orca-slicer", text};
+        REQUIRE(config.read_cli(2, argv, &extra, &keys));
+        REQUIRE(config.opt<ConfigOptionBool>("reduce_crossing_wall")->value == expected);
+    }
+}
+
+TEST_CASE("read_cli accepts the common boolean spellings inside a bools vector", "[Config]") {
+    Slic3r::DynamicPrintConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--filament-soluble=true,no,1"};
+    REQUIRE(config.read_cli(2, argv, &extra, &keys));
+    REQUIRE(config.opt<ConfigOptionBools>("filament_soluble")->values == std::vector<unsigned char>{1, 0, 1});
+}
+
 TEST_CASE("read_cli rejects an invalid scalar numeric value", "[Config]") {
     Slic3r::DynamicPrintConfig config;
     t_config_option_keys extra, keys;
@@ -921,6 +952,15 @@ TEST_CASE("read_cli parses a points vector in the NxM coordinate form", "[Config
     REQUIRE_THAT(points[1].y(), Catch::Matchers::WithinAbs(0.0, 1e-9));
     REQUIRE_THAT(points[3].x(), Catch::Matchers::WithinAbs(0.0, 1e-9));
     REQUIRE_THAT(points[3].y(), Catch::Matchers::WithinAbs(200.0, 1e-9));
+}
+
+// logfile is a CLI-only option, so it needs the config type whose def pulls in cli_misc_config_def.
+TEST_CASE("read_cli stores the log file path as a string", "[Config]") {
+    Slic3r::DynamicPrintAndCLIConfig config;
+    t_config_option_keys extra, keys;
+    const char* argv[] = {"orca-slicer", "--logfile", "orca.log"};
+    REQUIRE(config.read_cli(3, argv, &extra, &keys));
+    REQUIRE(config.opt<ConfigOptionString>("logfile")->value == "orca.log");
 }
 
 TEST_CASE("read_cli accepts nil entries for a nullable vector option", "[Config]") {
