@@ -866,10 +866,12 @@ SCENARIO("Minimal published 3MF omits project config, preset dumps and slicer ta
     }
 }
 
-// A "full publish" entry carries the whole slot's key list: its vector options keep only the
-// author's slot value, the other slots are masked to their defaults so a slot-1 full publish
-// does not leak slot 0's data into the file.
-SCENARIO("Full-publish entries filter the whole slot and mask the other slots", "[3mf]") {
+// An entry masks the non-published slots to their defaults so publishing slot 1 never leaks slot
+// 0's value into the file. Both a full entry (the whole-slot key list) and a partial entry (a
+// per-slot key) go through the same masking path in filter_published_config (keys and full_keys
+// are filtered identically), so the two forms are exercised together.
+SCENARIO("Published entries mask the other slots to their defaults", "[3mf]") {
+    const bool full = GENERATE(true, false);
     GIVEN("a full print configuration with two filament slots") {
         DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
         full_cfg.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75 };
@@ -878,45 +880,18 @@ SCENARIO("Full-publish entries filter the whole slot and mask the other slots", 
         // mask can restore it on the non-published slot.
         full_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio", true)->values = { 1.02, 0.98 };
 
-        PublishedMaterialEntry full_entry;
-        full_entry.slot      = 1;
-        full_entry.full      = true;
-        full_entry.full_keys = { "filament_flow_ratio" };
-
-        WHEN("filtering with a full entry for slot 1") {
-            DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, {}, { full_entry });
-
-            THEN("the full key list is present with the author's slot value") {
-                REQUIRE(filtered_cfg.option("filament_flow_ratio") != nullptr);
-                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[1], Catch::Matchers::WithinAbs(0.98, 1e-6));
+        WHEN("filtering with a published entry for slot 1") {
+            PublishedMaterialEntry entry;
+            entry.slot = 1;
+            if (full) {
+                entry.full      = true;
+                entry.full_keys = { "filament_flow_ratio" };
+            } else {
+                entry.keys = { "filament_flow_ratio" };
             }
-            THEN("the non-published slot is masked to its default") {
-                REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[0], Catch::Matchers::WithinAbs(1.0, 1e-6));
-            }
-            THEN("the identity keys stay present") {
-                REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
-            }
-        }
-    }
-}
+            DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, {}, { entry });
 
-// A partial-publish entry (per-slot keys) is masked to the author's slot exactly like a full
-// entry, so publishing one slot's retraction does not ship the other slots' values in the file.
-SCENARIO("Partial-publish entries mask the other slots like full entries", "[3mf]") {
-    GIVEN("a full print configuration with two filament slots") {
-        DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
-        full_cfg.opt<ConfigOptionFloats>("filament_diameter")->values = { 1.75, 1.75 };
-        full_cfg.opt<ConfigOptionStrings>("filament_colour")->values = { "#111111", "#222222" };
-        full_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio", true)->values = { 1.02, 0.98 };
-
-        PublishedMaterialEntry partial_entry;
-        partial_entry.slot = 1;
-        partial_entry.keys = { "filament_flow_ratio" };
-
-        WHEN("filtering with a partial entry for slot 1") {
-            DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, {}, { partial_entry });
-
-            THEN("the partial key is present with the author's slot value") {
+            THEN("the selected key is present with the author's slot value") {
                 REQUIRE(filtered_cfg.option("filament_flow_ratio") != nullptr);
                 REQUIRE_THAT(filtered_cfg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values[1], Catch::Matchers::WithinAbs(0.98, 1e-6));
             }
@@ -1070,6 +1045,90 @@ SCENARIO("Published mixed-filament keys are masked to the author's slot", "[3mf]
             }
             THEN("the identity keys stay present") {
                 REQUIRE(filtered_cfg.option("filament_colour") != nullptr);
+            }
+        }
+    }
+}
+
+// The published flag is gated on the exact string "1": any other serialized value means "not
+// published", so a receiver never treats a file as published on a loose truthiness check.
+TEST_CASE("is_published_3mf_flag accepts only the literal \"1\"", "[3mf]") {
+    CHECK(is_published_3mf_flag("1"));
+    CHECK_FALSE(is_published_3mf_flag("0"));
+    CHECK_FALSE(is_published_3mf_flag("false"));
+    CHECK_FALSE(is_published_3mf_flag("true"));
+    CHECK_FALSE(is_published_3mf_flag(""));
+    CHECK_FALSE(is_published_3mf_flag("YES"));
+}
+
+// bbs_3mf_is_published is the lightweight metadata probe used to decide whether a file was
+// produced by the publish feature (GUI "recently published" tracking). It must return true only
+// for a file whose metadata carries the flag set to "1", and false for legacy files and for a
+// file whose flag is present but not "1" (which loads as a normal, non-published 3MF).
+SCENARIO("bbs_3mf_is_published detects only genuinely published 3MFs", "[3mf]") {
+    auto store_model = [](const std::string &path, const std::string &flag_value, const std::string &keys_value) {
+        Model model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        REQUIRE(load_stl(src_file.c_str(), &model));
+        model.add_default_instances();
+        model.model_info = std::make_shared<ModelInfo>();
+        // An empty flag_value means "don't write the flag at all" (a legacy file).
+        if (!flag_value.empty())
+            model.model_info->metadata_items[ORCA_PUBLISHED_TAG] = flag_value;
+        model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG] = keys_value;
+        ScopedTemporaryDir backup_dir("orca_is_pub");
+        model.set_backup_path(backup_dir.string());
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        StoreParams store_params;
+        store_params.path     = path.c_str();
+        store_params.model    = &model;
+        store_params.config   = &config;
+        store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+        REQUIRE(store_bbs_3mf(store_params));
+    };
+
+    GIVEN("a minimal published 3MF whose flag is \"1\"") {
+        ScopedTemporaryFile temp(".3mf");
+        store_model(temp.string(), "1", R"(["layer_height"])");
+        WHEN("probed by bbs_3mf_is_published") {
+            THEN("it is recognized as published") {
+                CHECK(bbs_3mf_is_published(temp.string()));
+            }
+        }
+    }
+    GIVEN("a legacy 3MF without any published flag") {
+        ScopedTemporaryFile temp(".3mf");
+        store_model(temp.string(), "", R"(["layer_height"])");
+        WHEN("probed by bbs_3mf_is_published") {
+            THEN("it is not recognized as published") {
+                CHECK_FALSE(bbs_3mf_is_published(temp.string()));
+            }
+        }
+    }
+    GIVEN("a 3MF carrying the flag set to \"0\"") {
+        ScopedTemporaryFile temp(".3mf");
+        store_model(temp.string(), "0", R"(["layer_height"])");
+        WHEN("probed and loaded") {
+            THEN("it is not recognized as published") {
+                CHECK_FALSE(bbs_3mf_is_published(temp.string()));
+            }
+            THEN("it loads as a normal, non-published 3MF") {
+                Model dst_model;
+                DynamicPrintConfig dst_config;
+                ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+                PlateDataPtrs        dst_plates;
+                std::vector<Preset*> project_presets;
+                bool   is_bbl_3mf = false, is_orca_3mf = false;
+                Semver file_version;
+                REQUIRE(load_bbs_3mf(temp.string().c_str(), &dst_config, &ctxt, &dst_model, &dst_plates,
+                                     &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                     LoadStrategy::LoadModel | LoadStrategy::LoadConfig));
+                REQUIRE(dst_model.model_info != nullptr);
+                // The key is present but not "1", so nothing treats the file as published; the
+                // stored keys still round-trip verbatim.
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_TAG] == "0");
+                REQUIRE(dst_model.model_info->metadata_items[ORCA_PUBLISHED_KEYS_TAG] == R"(["layer_height"])");
+                release_PlateData_list(dst_plates);
             }
         }
     }

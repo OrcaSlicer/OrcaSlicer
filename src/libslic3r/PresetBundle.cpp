@@ -5595,6 +5595,12 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                 for (const PublishedMaterialEntry& entry : published_config->material_keys)
                     if (entry.slot >= 0)
                         published_slots.insert(entry.slot);
+                // Grown slots the receiver creates that carry no published content of their own
+                // (e.g. an unpublished mixed slot left as a gap by a published mix's authored
+                // position) at or beyond the receiver's physical capacity. They must not become
+                // physical filaments (that would overflow the nozzle count): finalized as empty
+                // mixed placeholders below, like the surplus-material placeholders.
+                std::set<int> virtual_gap_slots;
                 // Exact-name resolution of each published slot's preset through the collection's
                 // own name machinery: find_preset2 follows renamed_from (vendor profile renames)
                 // and canonical bundle names, and auto-matches removed vendor-generic profiles
@@ -5665,6 +5671,10 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                 while (this->filament_presets.size() < target_slots) {
                     const size_t new_slot_idx = this->filament_presets.size();
                     std::string initial_preset;
+                    if (new_slot_idx >= physical_capacity && published_slots.count(static_cast<int>(new_slot_idx)) == 0)
+                        // An unpublished grown slot past the printer's physical capacity cannot
+                        // host a real filament: finalize it as a virtual placeholder below.
+                        virtual_gap_slots.insert(static_cast<int>(new_slot_idx));
                     if (published_slots.count(static_cast<int>(new_slot_idx)) != 0) {
                         // Grow the slot the way the sidebar "add filament" does: seed it with
                         // the receiver's last preset.
@@ -5927,6 +5937,10 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                 for (size_t i = 0; i < this->filament_presets.size(); ++i)
                     if (this->is_mixed_filament(i))
                         mixed_final_slots.insert(int(i));
+                // Unpublished gap slots past the capacity are virtual too: count them in the
+                // final layout so a published mix whose components collide with one is caught.
+                for (int gap_slot : virtual_gap_slots)
+                    mixed_final_slots.insert(gap_slot);
                 const size_t mixed_final_slot_count = this->filament_presets.size();
                 // Finalize a slot as an empty mixed-filament placeholder: mark it virtual with
                 // an intentionally empty definition, and add it to the final-layout set so a
@@ -6320,6 +6334,17 @@ void PresetBundle::load_config_file_config(const std::string& name_or_path,
                         apply_slot_keys(write_config, preset_keys, entry.slot, material_label);
                     }
                 }
+                // Unpublished gap slots past the printer's physical capacity: the receiver grew
+                // them only to reach a published definition, so they must not become physical
+                // filaments (that would overflow the nozzle count). Finalize each as an empty
+                // mixed placeholder, exactly like the surplus-material placeholders above.
+                for (int gap_slot : virtual_gap_slots)
+                    if (!this->is_mixed_filament(size_t(gap_slot))) {
+                        finalize_mixed_placeholder(size_t(gap_slot));
+                        published_config->material_replacements.emplace_back(
+                            "slot " + std::to_string(gap_slot) +
+                            ": unassigned mixed filament (printer supports only " + std::to_string(physical_capacity) + " filaments)");
+                    }
             }
         }
 
