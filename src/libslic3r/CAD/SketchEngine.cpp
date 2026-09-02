@@ -5,6 +5,7 @@
 #include <limits>
 
 #include <BRepBuilderAPI_MakeWire.hxx>
+#include <BRepBuilderAPI_MakeVertex.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepGProp.hxx>
@@ -599,8 +600,12 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
         return true;
     };
 
-    const double EPS = 1e-6;
-    auto same = [&](const Vec2d& p, const Vec2d& q) { return (p - q).norm() < EPS; };
+    // Sketch weld tolerance. Nothing legitimate in a mm-scale sketch is 0.1 um apart, so two
+    // endpoints within this distance count as one joint. The union-find grouping and the wire
+    // build below MUST use the SAME number, or a joint can be united into a loop and then
+    // rejected by the wire builder (which silently drops the edge — see the wire build).
+    static constexpr double kSketchWeldTol = 1e-4; // mm
+    auto same = [&](const Vec2d& p, const Vec2d& q) { return (p - q).norm() < kSketchWeldTol; };
 
     // Union-find over the valid index list: chain entities sharing an endpoint belong to one loop.
     std::vector<int> parent(valid.size());
@@ -679,19 +684,81 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
             }
             wm.Add(e);
         } else {
+            // loop.members is in ENTITY-CREATION order, not loop-traversal order. A partial
+            // wire rejects an out-of-order edge even for a perfectly closed sketch, so first
+            // weld every endpoint into a shared node, then traverse the chain in order. Each
+            // endpoint snaps to an existing node when within kSketchWeldTol, and every edge
+            // touching a node shares ONE TopoDS_Vertex: the wire builder then sees vertex
+            // identity, not geometric proximity, so a joint open by a few um (larger than
+            // OCCT's default 1e-7 vertex tolerance) still connects.
+            struct Member { size_t v; int a; int b; };  // v = index into `valid`, a/b = node ids
+            std::vector<Vec2d> node_pt;                 // welded sketch point per node
+            std::vector<int>   node_deg;                // endpoint count per node
+            auto node_id = [&](const Vec2d& p) -> int {
+                for (size_t i = 0; i < node_pt.size(); ++i)
+                    if ((node_pt[i] - p).norm() < kSketchWeldTol) return int(i);
+                node_pt.push_back(p);
+                node_deg.push_back(0);
+                return int(node_pt.size()) - 1;
+            };
+            std::vector<Member> ms;
+            ms.reserve(loop.members.size());
             for (size_t m : loop.members) {
-                const SketchEntity* e = valid[m].e;
+                Vec2d p0, p1;
+                if (!endpoints(*valid[m].e, p0, p1)) return {};
+                int a = node_id(p0), b = node_id(p1);
+                node_deg[a]++; node_deg[b]++;
+                ms.push_back({m, a, b});
+            }
+
+            // Traverse: begin at a degree-1 node for an open chain, else at any member, then
+            // repeatedly take the unused member sharing the current open node.
+            std::vector<size_t> order;
+            order.reserve(ms.size());
+            std::vector<char> used(ms.size(), 0);
+            size_t start = 0;
+            for (size_t i = 0; i < ms.size(); ++i)
+                if (node_deg[ms[i].a] == 1 || node_deg[ms[i].b] == 1) { start = i; break; }
+            int open = (node_deg[ms[start].a] == 1) ? ms[start].a
+                     : (node_deg[ms[start].b] == 1) ? ms[start].b
+                     : ms[start].a;
+            for (;;) {
+                size_t next = ms.size();
+                for (size_t k = 0; k < ms.size(); ++k) {
+                    if (used[k]) continue;
+                    if (ms[k].a == open || ms[k].b == open) { next = k; break; }
+                }
+                if (next == ms.size()) break;
+                order.push_back(next);
+                used[next] = 1;
+                open = (ms[next].a == open) ? ms[next].b : ms[next].a;
+            }
+            if (order.size() != ms.size()) return {};
+
+            // One TopoDS_Vertex per node at the welded world point. Tolerance widened to
+            // kSketchWeldTol because MakeEdge(curve, va, vb) projects each vertex onto the
+            // curve within the vertex tolerance (BRepLib_MakeEdge::Init), and a welded node
+            // can be up to the weld gap off another entity's curve.
+            std::vector<TopoDS_Vertex> verts(node_pt.size());
+            BRep_Builder B;
+            for (size_t i = 0; i < node_pt.size(); ++i) {
+                Vec3d w = plane.to_world(node_pt[i]);
+                verts[i] = BRepBuilderAPI_MakeVertex(gp_Pnt(w.x(), w.y(), w.z())).Vertex();
+                B.UpdateVertex(verts[i], kSketchWeldTol);
+            }
+
+            for (size_t o : order) {
+                const Member& mm = ms[o];
+                const SketchEntity* e = valid[mm.v].e;
+                const TopoDS_Vertex& va = verts[mm.a];
+                const TopoDS_Vertex& vb = verts[mm.b];
                 if (e->type == SketchEntity::Type::Line) {
-                    Vec3d  p0 = plane.to_world(e->p0);
-                    Vec3d  p1 = plane.to_world(e->p1);
-                    gp_Pnt pa(p0.x(), p0.y(), p0.z());
-                    gp_Pnt pb(p1.x(), p1.y(), p1.z());
-                    wm.Add(BRepBuilderAPI_MakeEdge(pa, pb).Edge());
+                    wm.Add(BRepBuilderAPI_MakeEdge(va, vb).Edge());
                 } else if (e->type == SketchEntity::Type::EllipseArc) {
                     if (e->radius <= 1e-9 || e->rminor <= 1e-9) return {};
                     GC_MakeArcOfEllipse arc_maker(make_elips(*e), e->start_angle, e->end_angle, Standard_True);
                     if (!arc_maker.IsDone()) return {};
-                    wm.Add(BRepBuilderAPI_MakeEdge(arc_maker.Value()).Edge());
+                    wm.Add(BRepBuilderAPI_MakeEdge(arc_maker.Value(), va, vb).Edge());
                 } else if (e->type == SketchEntity::Type::Arc) {
                     Vec3d  p0 = plane.to_world(e->p0);
                     Vec3d  p1 = plane.to_world(e->p1);
@@ -705,17 +772,25 @@ std::vector<TopoDS_Wire> SketchEngine::entities_to_wires(const std::vector<Sketc
                     GC_MakeArcOfCircle arc_maker(pa, pm, pb);
                     if (!arc_maker.IsDone()) return {};
                     Handle(Geom_TrimmedCurve) curve = arc_maker.Value();
-                    wm.Add(BRepBuilderAPI_MakeEdge(curve).Edge());
+                    wm.Add(BRepBuilderAPI_MakeEdge(curve, va, vb).Edge());
                 } else if (e->type == SketchEntity::Type::BSpline) {
                     Handle(Geom_BSplineCurve) crv = make_bspline(*e);
                     if (crv.IsNull()) return {};
-                    wm.Add(BRepBuilderAPI_MakeEdge(crv).Edge());
+                    wm.Add(BRepBuilderAPI_MakeEdge(crv, va, vb).Edge());
                 }
             }
         }
         wm.Build();
+        // IsDone() reflects only the LAST Add: BRepLib_MakeWire::Add sets BRepLib_DisconnectedWire
+        // + NotDone() and returns on a disconnected edge (dropping it), but every successful Add
+        // finishes with BRepLib_WireDone + Done(), overwriting that failure (BRepLib_MakeWire.cxx).
+        // So dropped edges go unnoticed — count the edges actually in the wire instead.
         if (!wm.IsDone()) return {};
-        out.push_back(wm.Wire());
+        const TopoDS_Wire wire = wm.Wire();
+        size_t edge_count = 0;
+        for (TopExp_Explorer ex(wire, TopAbs_EDGE); ex.More(); ex.Next()) ++edge_count;
+        if (edge_count != (loop.closed_single ? 1 : loop.members.size())) return {};
+        out.push_back(wire);
     }
     return out;
 }

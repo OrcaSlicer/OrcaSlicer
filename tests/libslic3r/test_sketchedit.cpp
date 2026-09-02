@@ -1,6 +1,8 @@
 #include <catch2/catch_all.hpp>   // mainline OrcaSlicer ships Catch2 v3 (v2 was catch2/catch.hpp)
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include <cmath>
+#include <TopExp_Explorer.hxx>
+#include <TopAbs.hxx>
 
 using namespace Slic3r;
 
@@ -498,4 +500,58 @@ TEST_CASE("Trim arc with no crossing returns false", "[SketchEdit]")
     cut.p1   = Vec2d(20, 5);
 
     REQUIRE_FALSE(SketchEngine::trim_entity(e, {cut}, Vec2d(5 * std::cos(M_PI/4), 5 * std::sin(M_PI/4))));
+}
+
+// Regression guard: BEFORE the weld fix this test failed with 4 edges instead of 6.
+// BRepLib_MakeWire::Add silently DROPS a disconnected edge (BRepLib_DisconnectedWire + NotDone)
+// yet every successful Add ends with BRepLib_WireDone + Done(), so IsDone() reported only whether
+// the LAST edge connected. This sketch is a real user loop (2 arcs + 4 lines) given in
+// creation order, which is NOT traversal order, and its joint between the 3rd and 4th entity
+// below is open by 2.28e-5 mm — larger than OCCT's default vertex tolerance.
+TEST_CASE("entities_to_wires keeps every edge of a loop drawn out of order", "[SketchEngine]")
+{
+    std::vector<SketchEntity> ents(6);
+
+    ents[0].type = SketchEntity::Type::Line;
+    ents[0].p0   = Vec2d(-0.537697713190522, -0.0009077462579133498);
+    ents[0].p1   = Vec2d(99.46230228680926, -0.0009141694814321626);
+
+    ents[1].type        = SketchEntity::Type::Arc;
+    ents[1].p0          = Vec2d(-0.537697713190522, -0.0009077462579133498);
+    ents[1].p1          = Vec2d(-100.14602636660666, -0.27673132181233495);
+    ents[1].center      = Vec2d(-50.313868583115394, -10.248112903179617);
+    ents[1].radius      = 50.81999999999999;
+    ents[1].start_angle = 0.20302922018398933;
+    ents[1].end_angle   = 2.944101582158999;
+
+    ents[2].type = SketchEntity::Type::Line;
+    ents[2].p0   = Vec2d(99.46228668626469, -39.22091416947833);
+    ents[2].p1   = Vec2d(-0.537864366432629, -39.22420589376945);
+
+    ents[3].type        = SketchEntity::Type::Arc;
+    ents[3].p0          = Vec2d(-100.14602636694521, -38.94673132181234);
+    ents[3].p1          = Vec2d(-0.5378420354900413, -39.22421049164698);
+    ents[3].center      = Vec2d(-50.31377078666179, -28.975499083790503);
+    ents[3].radius      = 50.82006659345552;
+    ents[3].start_angle = -2.944104841286737;
+    ents[3].end_angle   = -0.20305921095748136;
+
+    ents[4].type = SketchEntity::Type::Line;
+    ents[4].p0   = Vec2d(99.46228668626469, -39.22091416947833);
+    ents[4].p1   = Vec2d(99.46230228680926, -0.0009141694814321626);
+
+    ents[5].type = SketchEntity::Type::Line;
+    ents[5].p0   = Vec2d(-100.14602636694521, -38.94673132181234);
+    ents[5].p1   = Vec2d(-100.14602636660666, -0.27673132181233495);
+
+    auto wires = SketchEngine::entities_to_wires(ents, SketchPlane::XY());
+
+    REQUIRE(wires.size() == 1);
+
+    int edge_count = 0;
+    for (TopExp_Explorer ex(wires[0], TopAbs_EDGE); ex.More(); ex.Next())
+        ++edge_count;
+    REQUIRE(edge_count == 6);
+
+    REQUIRE(wires[0].Closed());
 }
