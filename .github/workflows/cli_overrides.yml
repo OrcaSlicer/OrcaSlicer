@@ -1,0 +1,120 @@
+# CLI override sweep (orca-test-repo test_cli_overrides.py) against the
+# latest successful Linux AppImage build of this repo. Verifies every CLI
+# config option lands in the merged config and the sliced G-code's
+# CONFIG_BLOCK, then re-slices each landed option individually to classify
+# it effective/inert (--effect-full). Headless CLI only - no display stack.
+name: CLI Override Sweep
+
+on:
+  # temporary, for pre-merge branch testing: workflow_dispatch only works once
+  # the workflow exists on the default branch, but push events run the
+  # workflow from the pushed ref. Remove this trigger when merging to main.
+  push:
+    branches: ["hanif/parity-harness"]
+  workflow_dispatch:
+    inputs:
+      test_repo_ref:
+        description: "orca-test-repo ref to run"
+        required: false
+        default: "cli-test-suite"
+      build_branch:
+        description: "branch whose latest successful build_all artifact to test"
+        required: false
+        default: "main"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  overrides:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Find the latest successful Linux build
+        id: build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh run list --workflow build_all.yml \
+            --branch "${{ github.event.inputs.build_branch || 'main' }}" \
+            --status success --limit 1 --json databaseId,headSha \
+            --jq '"run_id=\(.[0].databaseId)\nhead_sha=\(.[0].headSha)"' \
+            >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+
+      - name: Check out the test suite
+        uses: actions/checkout@v5
+        with:
+          repository: OrcaSlicer/orca-test-repo
+          # temporary fallback for push-triggered branch testing (inputs are
+          # empty on push): restore to 'cli-test-suite' when merging to main
+          ref: ${{ github.event.inputs.test_repo_ref || 'hanif/parity-harness' }}
+          path: orca-test-repo
+
+      # the AppImage ships only packed .opc preset caches, no profile JSONs,
+      # so resources/ (and the option-surface source) must come from the
+      # source tree at the SAME sha the artifact was built from
+      - name: Check out OrcaSlicer sources at the build's sha
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.build.outputs.head_sha }}
+          path: slicer
+
+      - name: Download and extract the Linux AppImage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh run download "${{ steps.build.outputs.run_id }}" --dir appimage \
+            --pattern "OrcaSlicer_Linux_ubuntu_2404*"
+          appimage=$(find appimage -name "*.AppImage" ! -name "*aarch64*" | head -1)
+          [ -n "$appimage" ] || { echo "no AppImage found"; ls -R appimage; exit 1; }
+          chmod +x "$appimage"
+          "$appimage" --appimage-extract > /dev/null
+          [ -x squashfs-root/AppRun ] || { echo "no AppRun in AppImage"; exit 1; }
+          echo "ORCA_BIN=$PWD/squashfs-root/AppRun" >> "$GITHUB_ENV"
+          echo "ORCA_SOURCE=$PWD/slicer" >> "$GITHUB_ENV"
+
+      - name: Install the AppImage's host runtime dependencies
+        run: |
+          # orca-slicer-env's two preflight gates: OpenGL and WebKitGTK 4.1
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libopengl0 libglu1-mesa libgl1 libegl1 libwebkit2gtk-4.1-0
+
+      - name: Install suite dependencies
+        run: pip install -r orca-test-repo/requirements.txt
+
+      - name: Run the override sweep (full effect stage)
+        id: run
+        continue-on-error: true
+        working-directory: orca-test-repo
+        run: |
+          python -m pytest test_cli_overrides.py -c pytest.ini -v --effect-full \
+            --orca-bin "$ORCA_BIN" --orca-source "$ORCA_SOURCE" \
+            2>&1 | tee ../sweep.log
+
+      - name: Publish job summary
+        if: always()
+        run: |
+          {
+            echo "## CLI override sweep"
+            grep -E "\[override sweep" sweep.log || echo "no stage summaries (see log)"
+            echo
+            grep -E "^(=+ )?[0-9]+ (passed|failed)" sweep.log | tail -1 || true
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the override report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: override-report-${{ github.run_id }}
+          path: |
+            orca-test-repo/.pytest_cache/override_report.json
+            sweep.log
+          if-no-files-found: warn
+          retention-days: 30
