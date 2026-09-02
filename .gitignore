@@ -1,6 +1,7 @@
 Build
 Build.bat
 /build*/
+/out/
 CMakeLists.txt.user
 CMakeUserPresets.json
 **/CMakeLists.txt.autosave
@@ -51,3 +52,4 @@ internal_docs/
 __pycache__/
 *.pyc
 *.opc
+/.test/

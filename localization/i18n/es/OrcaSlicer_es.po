@@ -4629,7 +4629,7 @@ msgstr ""
 "\n"
 "El valor se restablecerá a 0."
 
-msgid "Alternate extra wall does't work well when ensure vertical shell thickness is set to All."
+msgid "Alternate extra wall doesn't work well when ensure vertical shell thickness is set to All."
 msgstr "Perímetro adicional alternado no funciona bien cuando \"Garantizar el grosor vertical de las cubiertas\" se establece en Todos."
 
 msgid ""
@@ -4675,7 +4675,7 @@ msgstr ""
 "NO - Mantener la altura de capa de soportes independiente"
 
 msgid ""
-"seam_slope_start_height need to be smaller than layer_height.\n"
+"seam_slope_start_height needs to be smaller than layer_height.\n"
 "Reset to 0."
 msgstr ""
 "seam_slope_start_height debe ser menor que layer_height.\n"
@@ -4683,7 +4683,7 @@ msgstr ""
 
 #, no-c-format, no-boost-format
 msgid ""
-"Lock depth should smaller than skin depth.\n"
+"Lock depth should be smaller than skin depth.\n"
 "Reset to 50% of skin depth."
 msgstr ""
 "La profundidad de bloqueo debe ser menor que la profundidad de piel.\n"
