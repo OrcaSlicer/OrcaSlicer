@@ -1708,6 +1708,17 @@ void TriangleSelector::get_seed_fill_contour_recursive(const int facet_idx, cons
     }
 }
 
+namespace {
+
+template<typename NextNibble>
+int decode_leaf_state(NextNibble &&next_nibble)
+{
+    const int nibble = next_nibble();
+    return nibble == 0b1111 ? next_nibble() + 18 : nibble + 3;
+}
+
+} // namespace
+
 TriangleSelector::TriangleSplittingData TriangleSelector::serialize() const {
     // Each original triangle of the mesh is assigned a number encoding its state
     // or how it is split. Each triangle is encoded by 4 bits (xxyy) or 8 bits (zzzzxxyy):
@@ -1755,13 +1766,22 @@ TriangleSelector::TriangleSplittingData TriangleSelector::serialize() const {
                     data.used_states[n] = true;
 
                 if (n >= 3) {
-                    assert(n <= 16);
-                    if (n <= 16) {
-                        // Store "11" plus 4 bits of (n-3).
-                        data.bitstream.insert(data.bitstream.end(), { true, true });
-                        n -= 3;
+                    assert(n <= int(EnforcerBlockerType::ExtruderMax));
+                    // Store "11" plus 4 bits of (n-3), which covers states 3..17. State 18 and
+                    // above set that nibble to 0b1111 and store (n-18) in a second nibble. This is
+                    // the encoding the CONST_FILAMENTS table in Model.cpp already writes for
+                    // colored mesh imports.
+                    data.bitstream.insert(data.bitstream.end(), { true, true });
+                    auto &bitstream = data.bitstream;
+                    auto push_nibble = [&bitstream](int value) {
                         for (size_t bit_idx = 0; bit_idx < 4; ++bit_idx)
-                            data.bitstream.push_back(n & (uint64_t(0b0001) << bit_idx));
+                            bitstream.push_back(value & (uint64_t(0b0001) << bit_idx));
+                    };
+                    if (n <= 17) {
+                        push_nibble(n - 3);
+                    } else {
+                        push_nibble(0b1111);
+                        push_nibble(n - 18);
                     }
                 } else {
                     // Simple case, compatible with PrusaSlicer 2.3.1 and older for storing paint on supports and seams.
@@ -1839,7 +1859,10 @@ void TriangleSelector::deserialize(const TriangleSplittingData &data,
             int num_of_children = num_of_split_sides == 0 ? 0 : num_of_split_sides + 1;
             bool is_split = num_of_children != 0;
             // Only valid if not is_split. Value of the second nibble was subtracted by 3, so it is added back.
-            auto state = is_split ? EnforcerBlockerType::NONE : EnforcerBlockerType((code & 0b1100) == 0b1100 ? next_nibble() + 3 : code >> 2);
+            auto state = EnforcerBlockerType::NONE;
+            if (!is_split)
+                state = (code & 0b1100) == 0b1100 ? EnforcerBlockerType(decode_leaf_state(next_nibble))
+                                                  : EnforcerBlockerType(code >> 2);
 
             // BBS
             if (state == to_delete_filament)
@@ -1938,7 +1961,11 @@ void TriangleSelector::TriangleSplittingData::update_used_states(const size_t bi
         if (const bool is_split = (code & 0b11) != 0; is_split)
             continue;
 
-        const uint8_t facet_state = (code & 0b1100) == 0b1100 ? read_next_nibble() + 3 : code >> 2;
+        uint8_t facet_state;
+        if ((code & 0b1100) == 0b1100)
+            facet_state = uint8_t(decode_leaf_state(read_next_nibble));
+        else
+            facet_state = uint8_t(code >> 2);
         assert(facet_state < this->used_states.size());
         if (facet_state >= this->used_states.size())
             continue;
@@ -1968,9 +1995,11 @@ bool TriangleSelector::has_facets(const TriangleSplittingData &data, const Enfor
         auto num_children_or_state = [&next_nibble]() -> int {
             int code               = next_nibble();
             int num_of_split_sides = code & 0b11;
-            return num_of_split_sides == 0 ?
-                ((code & 0b1100) == 0b1100 ? next_nibble() + 3 : code >> 2) :
-                - num_of_split_sides - 1;
+            if (num_of_split_sides != 0)
+                return - num_of_split_sides - 1;
+            if ((code & 0b1100) != 0b1100)
+                return code >> 2;
+            return decode_leaf_state(next_nibble);
         };
 
         int state = num_children_or_state();

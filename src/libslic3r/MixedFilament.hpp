@@ -111,9 +111,10 @@ float spectrum_perimeter_mod_offset(const MixedFilament &mf,
                                     unsigned int         physical_1based,
                                     float                nozzle_mm);
 
-// Clamp/slice/gizmo persist policy. TriangleSelector bitstream already encodes state 16
-// (prefix 11 + 4 bits of n−3). 0008 promised 15; 0046 promises Extruder16. 32-state still OOS.
-constexpr size_t SPECTRUM_PAINT_ID_PERSIST_CAP = 16;
+// Clamp/slice/gizmo persist policy. Bitstream: states 3–17 = prefix 11 + (n−3);
+// 18–32 = prefix 11 + nibble 0b1111 + (n−18). 0046 was Extruder16; this track is Extruder32.
+// Mix-row cap stays SPECTRUM_MIX_ENABLED_CAP (64). Volume Mix N ≠ paint Map dest count.
+constexpr size_t SPECTRUM_PAINT_ID_PERSIST_CAP = 32;
 
 // Enabled mix rows (not paint IDs). PeggyPalette-class: 34 mixes + 4 physicals = 38 volume IDs.
 // Paint dest Map stays SPECTRUM_PAINT_ID_PERSIST_CAP. Volume Mix N ≠ paint Map dest count;
@@ -137,7 +138,7 @@ inline size_t spectrum_preview_color_cap(size_t physical_n)
 }
 
 // Shared paint-ID clamp for update_extruder_count and the delete-filament sibling.
-// min(16, max(physical_n, max_filament_id, source_palette_size)) via SPECTRUM_PAINT_ID_PERSIST_CAP.
+// min(persist cap, max(physical_n, max_filament_id, source_palette_size)) via SPECTRUM_PAINT_ID_PERSIST_CAP.
 size_t spectrum_paint_id_limit(size_t physical_n, size_t max_filament_id, size_t source_palette_size);
 
 // Volume/object `extruder` keep: 1..physical_n and mix IDs physical_n+1 … max_filament_id.

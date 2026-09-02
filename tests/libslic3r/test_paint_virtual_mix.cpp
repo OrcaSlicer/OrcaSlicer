@@ -62,6 +62,75 @@ void cleanup_bbs(std::vector<Preset *> &presets, PlateDataPtrs &plates)
         delete plate;
 }
 
+void roundtrip_painted_state_bbs_3mf(int state, const char *tmp_prefix)
+{
+    const boost::filesystem::path tmp_path =
+        boost::filesystem::temp_directory_path() /
+        boost::filesystem::unique_path(std::string(tmp_prefix) + "-%%%%-%%%%.3mf");
+    const std::string out_path = tmp_path.string();
+    struct RemoveTemp {
+        boost::filesystem::path path;
+        ~RemoveTemp()
+        {
+            boost::system::error_code ec;
+            boost::filesystem::remove(path, ec);
+        }
+    } guard{tmp_path};
+
+    DynamicPrintConfig          config;
+    Model                       model;
+    PlateDataPtrs               plates;
+    std::vector<Preset *>       project_presets;
+
+    ModelObject *obj = model.add_object("paint_state_cube", "", make_cube(20., 20., 20.));
+    obj->add_instance();
+    obj->instances[0]->set_offset(Vec3d(100., 80., 0.));
+    ModelVolume *vol = obj->volumes.front();
+    TriangleSelector sel(vol->mesh());
+    sel.set_facet(0, EnforcerBlockerType(state));
+    REQUIRE(vol->mmu_segmentation_facets.set(sel));
+    REQUIRE(used_paint_state(*vol, size_t(state)));
+
+    auto *colours = config.option<ConfigOptionStrings>("filament_colour", true);
+    REQUIRE(colours != nullptr);
+    colours->values = {"#08ABFBFF", "#D93B90FF", "#F9ED3DFF", "#9199A4FF"};
+    config.set_key_value("enable_prime_tower", new ConfigOptionBool(false));
+
+    auto *plate = new PlateData();
+    plate->plate_index = 0;
+    plate->objects_and_instances.emplace_back(0, 0);
+    plates.push_back(plate);
+
+    StoreParams store;
+    store.path            = out_path.c_str();
+    store.model           = &model;
+    store.config          = &config;
+    store.plate_data_list = plates;
+    store.project_presets = project_presets;
+    store.strategy        = SaveStrategy::Zip64 | SaveStrategy::Silence | SaveStrategy::SplitModel;
+    REQUIRE(store_bbs_3mf(store));
+
+    DynamicPrintConfig        config2;
+    ConfigSubstitutionContext ctxt2{ForwardCompatibilitySubstitutionRule::Enable};
+    Model                     model2;
+    PlateDataPtrs             plates2;
+    std::vector<Preset *>     presets2;
+    bool                      is_bbl2  = false;
+    bool                      is_orca2 = false;
+    Semver                    file_version2;
+    REQUIRE(load_bbs_3mf(out_path.c_str(), &config2, &ctxt2, &model2, &plates2, &presets2,
+                         &is_bbl2, &is_orca2, &file_version2, nullptr,
+                         LoadStrategy::LoadModel | LoadStrategy::LoadConfig));
+
+    REQUIRE_FALSE(model2.objects.empty());
+    REQUIRE_FALSE(model2.objects.front()->volumes.empty());
+    const ModelVolume *vol2 = model2.objects.front()->volumes.front();
+    REQUIRE(used_paint_state(*vol2, size_t(state)));
+
+    cleanup_bbs(project_presets, plates);
+    cleanup_bbs(presets2, plates2);
+}
+
 } // namespace
 
 TEST_CASE("spectrum_paint_id_limit caps persistable IDs at persist cap", "[paint_mix]")
@@ -70,9 +139,9 @@ TEST_CASE("spectrum_paint_id_limit caps persistable IDs at persist cap", "[paint
     CHECK(spectrum_paint_id_limit(4, 6, 0) == 6);
     CHECK(spectrum_paint_id_limit(4, 0, 8) == 8);
     CHECK(spectrum_paint_id_limit(4, 6, 8) == 8);
-    CHECK(spectrum_paint_id_limit(16, 16, 16) == SPECTRUM_PAINT_ID_PERSIST_CAP);
-    CHECK(SPECTRUM_PAINT_ID_PERSIST_CAP == 16);
     CHECK(spectrum_paint_id_limit(16, 16, 16) == 16);
+    CHECK(SPECTRUM_PAINT_ID_PERSIST_CAP == 32);
+    CHECK(spectrum_paint_id_limit(32, 32, 32) == 32);
 }
 
 TEST_CASE("encode/decode Mix 5-6 via FacetsAnnotation string", "[paint_mix]")
@@ -126,7 +195,7 @@ TEST_CASE("hex state 15 and 16 round-trip; clamp keeps 16", "[paint_mix]")
     ModelVolume *vol16_rt = obj16_rt->volumes.front();
     vol16_rt->mmu_segmentation_facets.set_triangle_from_string(0, encoded16);
     CHECK(used_paint_state(*vol16_rt, 16));
-    CHECK(spectrum_paint_id_limit(16, 16, 16) == SPECTRUM_PAINT_ID_PERSIST_CAP);
+    CHECK(spectrum_paint_id_limit(16, 16, 16) == 16);
     vol16_rt->update_extruder_count(16, 16, 16);
     REQUIRE(used_paint_state(*vol16_rt, 16));
     vol16->update_extruder_count(16, 16, 16);
@@ -474,4 +543,14 @@ TEST_CASE("3mf round-trip keeps painted state 16", "[paint_mix]")
 
     cleanup_bbs(project_presets, plates);
     cleanup_bbs(presets2, plates2);
+}
+
+TEST_CASE("3mf round-trip keeps painted Mix 17", "[paint_mix]")
+{
+    roundtrip_painted_state_bbs_3mf(17, "orca_paint_mix17");
+}
+
+TEST_CASE("3mf round-trip keeps painted state 32", "[paint_mix]")
+{
+    roundtrip_painted_state_bbs_3mf(32, "orca_paint_state32");
 }

@@ -1541,10 +1541,10 @@ TEST_CASE("spectrum_cookbook_append dups and mix-row cap", "[spectrum_cookbook]"
     }
 }
 
-TEST_CASE("spectrum mix rows unglue from paint persist 16", "[spectrum_mix_rows]")
+TEST_CASE("spectrum mix rows unglue from paint persist 32", "[spectrum_mix_rows]")
 {
     REQUIRE(SPECTRUM_MIX_ENABLED_CAP == 64);
-    REQUIRE(SPECTRUM_PAINT_ID_PERSIST_CAP == 16);
+    REQUIRE(SPECTRUM_PAINT_ID_PERSIST_CAP == 32);
     REQUIRE(spectrum_mix_enabled_fits(34));
     REQUIRE(spectrum_mix_enabled_fits(64, 0));
     REQUIRE_FALSE(spectrum_mix_enabled_fits(64, 1));
@@ -1630,7 +1630,7 @@ TEST_CASE("spectrum mix rows unglue from paint persist 16", "[spectrum_mix_rows]
     REQUIRE((mix20_layers_differ || mix38_layers_differ));
 
     REQUIRE(spectrum_volume_extruder_keep(38, 4, 38));
-    REQUIRE(spectrum_paint_id_limit(4, 38, 0) == 16);
+    REQUIRE(spectrum_paint_id_limit(4, 38, 0) == 32);
 
     // SHOULD: pattern 1234 cycles physicals 1–4 (token 4 is not covered by existing [MixedFilament] cases).
     MixedFilamentManager pat;

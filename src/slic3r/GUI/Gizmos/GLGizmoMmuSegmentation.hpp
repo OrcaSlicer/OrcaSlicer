@@ -76,11 +76,9 @@ public:
 
     void data_changed(bool is_serializing) override;
 
-    // TriangleSelector::serialization/deserialization has a limit to store 19 different states.
-    // EXTRUDER_LIMIT + 1 states are used to storing the painting because also uncolored triangles are stored.
-    // When increasing EXTRUDER_LIMIT, it needs to ensure that TriangleSelector::serialization/deserialization
-    // will be also extended to support additional states, requiring at least one state to remain free out of 19 states.
-    static const constexpr size_t EXTRUDERS_LIMIT = 16;
+    // TriangleSelector serialize: states 3..17 = "11" + one nibble of (n-3); 18..32 = "11" + 0b1111 + (n-18).
+    // EXTRUDERS_LIMIT follows EnforcerBlockerType::ExtruderMax (paint persist). Uncolored is extra.
+    static const constexpr size_t EXTRUDERS_LIMIT = static_cast<size_t>(EnforcerBlockerType::ExtruderMax);
 
     const float get_cursor_radius_min() const override { return CursorRadiusMin; }
 

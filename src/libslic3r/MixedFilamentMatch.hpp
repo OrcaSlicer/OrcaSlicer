@@ -101,7 +101,7 @@ ColorRGB predicted_swatch_for_mix(const MixedFilament          &mf,
 // if physicals.size() >= cap, return all physicals and append no mixes.
 // Default cap 0 resolves to spectrum_preview_color_cap(n) = n + SPECTRUM_MIX_ENABLED_CAP
 // BEFORE the never-slice early-return (a leftover 0 would make size() >= cap always true).
-// Color Painting passes EXTRUDERS_LIMIT (16) explicitly — not the sentinel.
+// Color Painting passes EXTRUDERS_LIMIT (persist cap / ExtruderMax) explicitly — not the sentinel.
 // ColorMix swatch is not Snapmaker printed LUT / Z-stack.
 // Disabled rows are not in the manager.
 std::vector<ColorRGB> preview_filament_colors(

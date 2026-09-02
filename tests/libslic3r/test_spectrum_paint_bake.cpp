@@ -113,27 +113,42 @@ std::vector<std::string> unique_mix_hexes_from_pair_lattice(size_t n, const std:
     std::vector<std::string> out;
     std::set<std::string>    recipes;
     static const int k_pairs[][2]  = {{1, 2}, {1, 3}, {1, 4}, {2, 3}, {2, 4}, {3, 4}};
-    static const int k_ratios[][2] = {{1, 1}, {2, 1}, {1, 2}, {3, 1}, {1, 3}};
+    static const int k_ratios[][2] = {
+        {1, 1}, {2, 1}, {1, 2}, {3, 1}, {1, 3}, {4, 1}, {1, 4}, {3, 2}, {2, 3},
+        {5, 1}, {1, 5}, {5, 2}, {2, 5}, {4, 3}, {3, 4},
+    };
+    auto try_row = [&](unsigned a, unsigned b, unsigned c, int ra, int rb, int rc) {
+        if (out.size() >= n)
+            return;
+        MixedFilament mf;
+        mf.component_a = a;
+        mf.component_b = b;
+        mf.component_c = c;
+        mf.ratio_a     = ra;
+        mf.ratio_b     = rb;
+        mf.ratio_c     = rc;
+        mf.enabled     = true;
+        const ColorRGB       pred = predicted_swatch_for_mix(mf, phys);
+        const MixMatchResult m    = match_printable_mix(pred, phys, nullptr, 4, 70);
+        if (!m.valid || m.kind != MixMatchResult::Kind::Mix || m.recipe_row.empty())
+            return;
+        if (!recipes.insert(m.recipe_row).second)
+            return;
+        out.push_back(encode_color(pred));
+    };
     for (const auto &pair : k_pairs) {
-        for (const auto &ratio : k_ratios) {
-            if (out.size() >= n)
-                return out;
-            MixedFilament mf;
-            mf.component_a = unsigned(pair[0]);
-            mf.component_b = unsigned(pair[1]);
-            mf.component_c = 0;
-            mf.ratio_a     = ratio[0];
-            mf.ratio_b     = ratio[1];
-            mf.ratio_c     = 0;
-            mf.enabled     = true;
-            const ColorRGB       pred = predicted_swatch_for_mix(mf, phys);
-            const MixMatchResult m    = match_printable_mix(pred, phys, nullptr, 4, 70);
-            if (!m.valid || m.kind != MixMatchResult::Kind::Mix || m.recipe_row.empty())
-                continue;
-            if (!recipes.insert(m.recipe_row).second)
-                continue;
-            out.push_back(encode_color(pred));
-        }
+        for (const auto &ratio : k_ratios)
+            try_row(unsigned(pair[0]), unsigned(pair[1]), 0, ratio[0], ratio[1], 0);
+    }
+    static const int k_triples[][3] = {{1, 2, 3}, {1, 2, 4}, {1, 3, 4}, {2, 3, 4}};
+    static const int k_tri_ratios[][3] = {
+        {1, 1, 1}, {2, 1, 1}, {1, 2, 1}, {1, 1, 2}, {3, 1, 1}, {1, 3, 1}, {1, 1, 3},
+        {2, 2, 1}, {2, 1, 2}, {1, 2, 2}, {3, 2, 1}, {3, 1, 2}, {2, 3, 1},
+    };
+    for (const auto &trip : k_triples) {
+        for (const auto &ratio : k_tri_ratios)
+            try_row(unsigned(trip[0]), unsigned(trip[1]), unsigned(trip[2]),
+                    ratio[0], ratio[1], ratio[2]);
     }
     return out;
 }
@@ -210,12 +225,12 @@ TEST_CASE("empty source is invalid", "[spectrum_paint_bake]")
 
 TEST_CASE("source palette larger than persist cap is refused", "[spectrum_paint_bake]")
 {
-    std::vector<std::string> at_cap(16, "#08ABFB");
+    std::vector<std::string> at_cap(SPECTRUM_PAINT_ID_PERSIST_CAP, "#08ABFB");
     const SpectrumPaintBakePlan plan_at_cap = plan_spectrum_paint_bake(at_cap, panchroma_physicals(), 4);
     REQUIRE(plan_at_cap.valid);
     REQUIRE(plan_at_cap.error.empty());
 
-    std::vector<std::string> too_many(17, "#08ABFB");
+    std::vector<std::string> too_many(SPECTRUM_PAINT_ID_PERSIST_CAP + 1, "#08ABFB");
     const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(too_many, panchroma_physicals(), 4);
     REQUIRE_FALSE(plan.valid);
     REQUIRE_FALSE(plan.error.empty());
@@ -233,7 +248,7 @@ TEST_CASE("twelve unique Mix recipes plus four physicals bake within persist cap
     require_contiguous_mix_dests(plan, 4, hexes.size());
 }
 
-TEST_CASE("thirteen unique Mix recipes plus four physicals collapse within persist cap", "[spectrum_paint_bake]")
+TEST_CASE("thirteen unique Mix recipes plus four physicals bake without collapse", "[spectrum_paint_bake]")
 {
     const std::vector<ColorRGB> phys = panchroma_physicals();
     std::vector<std::string> hexes = unique_mix_source_hexes(13, phys);
@@ -246,7 +261,25 @@ TEST_CASE("thirteen unique Mix recipes plus four physicals collapse within persi
     const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(hexes, phys, 4);
     REQUIRE(plan.valid);
     REQUIRE(plan.error.empty());
-    REQUIRE(plan.mix_count <= 12);
+    REQUIRE(plan.mix_count == 13);
+    REQUIRE(4 + plan.mix_count <= SPECTRUM_PAINT_ID_PERSIST_CAP);
+    require_contiguous_mix_dests(plan, 4, hexes.size());
+}
+
+TEST_CASE("twenty-nine unique Mix recipes plus four physicals collapse within persist cap", "[spectrum_paint_bake]")
+{
+    const std::vector<ColorRGB> phys = panchroma_physicals();
+    std::vector<std::string> hexes = unique_mix_source_hexes(29, phys);
+    const size_t helper_size = hexes.size();
+    if (hexes.size() < 29)
+        hexes = unique_mix_hexes_from_pair_lattice(29, phys);
+    INFO("unique-mix 29 helper_size=" << helper_size
+         << (helper_size < 29 ? " (pair-ratio lattice fallback)" : " (RGB stride helper)"));
+    REQUIRE(hexes.size() == 29);
+    const SpectrumPaintBakePlan plan = plan_spectrum_paint_bake(hexes, phys, 4);
+    REQUIRE(plan.valid);
+    REQUIRE(plan.error.empty());
+    REQUIRE(plan.mix_count <= 28);
     REQUIRE(4 + plan.mix_count <= SPECTRUM_PAINT_ID_PERSIST_CAP);
     require_contiguous_mix_dests(plan, 4, hexes.size());
 }
