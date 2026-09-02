@@ -3289,8 +3289,9 @@ msgstr "Redigera"
 msgid "Merge with"
 msgstr "Slå ihop med"
 
+# AI Translated
 msgid "Decompose Color"
-msgstr ""
+msgstr "Dela upp färg"
 
 # AI Translated
 msgid "Delete this filament"
@@ -3613,8 +3614,9 @@ msgstr "Montering"
 msgid "Merge parts to an object"
 msgstr "Slå ihop delar till ett objekt"
 
+# AI Translated
 msgid "Using variable layer height together with mixed color sublayer may result in poor color mixing quality."
-msgstr ""
+msgstr "Att använda variabel lagerhöjd tillsammans med underlager med blandad färg kan ge sämre färgblandningskvalitet."
 
 # AI Translated
 msgid "Add layers"
@@ -8650,8 +8652,9 @@ msgstr "Anpassa aktuell platta"
 msgid "The %s nozzle can not print %s."
 msgstr "Nozzeln %s kan inte skriva ut %s."
 
+# AI Translated
 msgid "Printing mixed-color filament on a single-extruder printer requires frequent filament changes and flushing, which may significantly increase waste and the risk of nozzle / waste-chute clogging."
-msgstr ""
+msgstr "Att skriva ut filament med blandad färg på en skrivare med en enda extruder kräver täta filamentbyten och rensningar, vilket kan öka spillet och risken för stopp i nozzeln eller avfallsrännan avsevärt."
 
 # AI Translated
 #, boost-format
@@ -8796,20 +8799,25 @@ msgstr "Synkronisera filament listan från AMS"
 msgid "Set filaments to use"
 msgstr "Ställ in filament som ska användas"
 
+# AI Translated
 msgid "Add Mixed Filament"
-msgstr ""
+msgstr "Lägg till blandat filament"
 
+# AI Translated
 msgid "Mixed Filament"
-msgstr ""
+msgstr "Blandat filament"
 
+# AI Translated
 msgid "Remove last mixed filament"
-msgstr ""
+msgstr "Ta bort det senaste blandade filamentet"
 
+# AI Translated
 msgid "Add mixed filament"
-msgstr ""
+msgstr "Lägg till blandat filament"
 
+# AI Translated
 msgid "Mixed filament has invalid or mismatched components. Please re-edit affected entries."
-msgstr ""
+msgstr "Det blandade filamentet har ogiltiga eller inkompatibla komponenter. Redigera de berörda posterna igen."
 
 msgid "Search plate, object and part."
 msgstr "Sök platta, objekt och del."
@@ -8818,14 +8826,17 @@ msgstr "Sök platta, objekt och del."
 msgid "Pellets"
 msgstr "Pellets"
 
+# AI Translated
 msgid "Mixed filament has broken component references"
-msgstr ""
+msgstr "Det blandade filamentet har trasiga komponentreferenser"
 
+# AI Translated
 msgid "Edit / Delete / Merge"
-msgstr ""
+msgstr "Redigera / Radera / Slå ihop"
 
+# AI Translated
 msgid "The target mixed filament uses this physical filament as a component. Merging will remove this physical filament and may invalidate the mixed filament. Continue?"
-msgstr ""
+msgstr "Det blandade målfilamentet använder detta fysiska filament som komponent. Sammanslagningen tar bort det fysiska filamentet och kan göra det blandade filamentet ogiltigt. Fortsätt?"
 
 # AI Translated
 #, c-format, boost-format
@@ -9027,11 +9038,13 @@ msgstr ""
 msgid "Multi-part object detected"
 msgstr "Objekt i flera delar har upptäckts"
 
+# AI Translated
 msgid "Matching textures to filaments"
-msgstr ""
+msgstr "Matchar texturer mot filament"
 
+# AI Translated
 msgid "Texture Import Warning"
-msgstr ""
+msgstr "Varning vid texturimport"
 
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Ladda dessa filer som ett enkelt objekt med multipla delar?\n"
@@ -9262,17 +9275,21 @@ msgstr ""
 msgid "Sync now"
 msgstr "Synkronisera nu"
 
+# AI Translated
 msgid "Texture import failed. The model appears to contain texture data, but the texture import process could not be completed. The model will be imported as geometry only."
-msgstr ""
+msgstr "Texturimporten misslyckades. Modellen verkar innehålla texturdata, men importprocessen kunde inte slutföras. Modellen importeras endast som geometri."
 
+# AI Translated
 msgid "Applying texture colors..."
-msgstr ""
+msgstr "Tillämpar texturfärger..."
 
+# AI Translated
 msgid "Updating 3D view..."
-msgstr ""
+msgstr "Uppdaterar 3D-vyn..."
 
+# AI Translated
 msgid "Texture colors applied."
-msgstr ""
+msgstr "Texturfärger tillämpade."
 
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Fortsätt med redigerings inställningarna till nytt projekt eller avfärda dem"
@@ -10692,8 +10709,9 @@ msgstr "Spiral vas"
 msgid "First layer filament sequence"
 msgstr "Första lagrets filament sekvens"
 
+# AI Translated
 msgid "The filament list contains mixed filaments. Custom filament sequence will not take effect."
-msgstr ""
+msgstr "Filamentlistan innehåller blandade filament. Den anpassade filamentordningen får ingen effekt."
 
 msgid "By Layer"
 msgstr "Per lager"
@@ -13599,8 +13617,9 @@ msgstr "Om du ändå vill skriva ut kan du aktivera alternativet i Inställninga
 msgid "No extrusions under current settings."
 msgstr "Nuvarande inställning har ingen extrudering."
 
+# AI Translated
 msgid "A gradient mixed filament is used, but 'Mixed color sublayer' is disabled. The gradient will not be printed."
-msgstr ""
+msgstr "Ett blandat filament med gradient används, men 'Underlager med blandad färg' är inaktiverat. Gradienten kommer inte att skrivas ut."
 
 msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is enabled."
 msgstr "Smooth läge för timelapse stöds inte när ”per objekt” -sekvens är aktiverad."
@@ -13644,8 +13663,9 @@ msgstr "Du kan behöva minska modellens storlek eller ändra de aktuella utskrif
 msgid "Variable layer height is not supported with Organic supports."
 msgstr "Variabel lagerhöjd stöds inte med organiska support."
 
+# AI Translated
 msgid "The wipe tower filament cannot be a mixed filament."
-msgstr ""
+msgstr "Filamentet för prime tornet kan inte vara ett blandat filament."
 
 # AI Translated
 msgid "Different nozzle diameters and different filament diameters may not work well when the prime tower is enabled. It's very experimental, so please proceed with caution."
@@ -14045,27 +14065,21 @@ msgstr "mm eller %"
 msgid "Other layers"
 msgstr "Andra lager"
 
-#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Byggplattans temperatur för alla lager utom det första. Värdet 0 innebär att filamentet inte stöder utskrift på Cool Plate SuperTack."
 
-#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Detta är byggplattans temperatur för lager förutom det första. Värdet 0 betyder att filamentet inte stöder utskrift på Cool Plate."
 
-#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Detta är byggplattans temperatur för lager förutom det första. Värdet 0 betyder att filamentet inte stöder utskrift på Textured Cool Plate."
 
-#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Detta är byggplattans temperatur för lager förutom det första. Ett värde på 0 betyder att filamentet inte stöder utskrift på Engineering Plate."
 
-#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Detta är byggplattans temperatur för lager förutom det första. Värdet 0 betyder att filamentet inte stöder utskrift på High Temp Plate."
 
-#, fuzzy
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Byggplattans temperatur efter det första lagret. 0 betyder att filamentet inte stöds på den texturerade PEI-plattan."
 
@@ -15571,9 +15585,10 @@ msgstr "Lager tid"
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "Del kylfläkten kommer att aktiveras för lager vars beräknade tid är kortare än detta värde. Fläkthastigheten interpoleras mellan den lägsta och högsta fläkthastigheten enligt utskriftstiden för lager"
 
+# AI Translated
 msgctxt "second"
 msgid "s"
-msgstr ""
+msgstr "s"
 
 msgid "Default color"
 msgstr "Standardfärg"
@@ -15950,47 +15965,61 @@ msgstr "Supportmaterial"
 msgid "Support material is commonly used to print supports and support interfaces."
 msgstr "Support material används ofta för att skriva ut support och stödja gränssnittet"
 
+# AI Translated
 msgid "Is mixed filament"
-msgstr ""
+msgstr "Är blandat filament"
 
+# AI Translated
 msgid "Whether this filament slot is a mixed filament composed of multiple physical filaments"
-msgstr ""
+msgstr "Anger om denna filamentplats är ett blandat filament som består av flera fysiska filament"
 
+# AI Translated
 msgid "Mixed filament components"
-msgstr ""
+msgstr "Komponenter i blandat filament"
 
+# AI Translated
 msgid "Comma-separated 1-based indices of component filaments, e.g. \"1,3\""
-msgstr ""
+msgstr "Kommaseparerade index för komponentfilamenten, med start på 1, t.ex. \"1,3\""
 
+# AI Translated
 msgid "Mixed filament sublayer ratios"
-msgstr ""
+msgstr "Underlagerandelar för blandat filament"
 
+# AI Translated
 msgid "Comma-separated ratio values summing to 1.0, e.g. \"0.7,0.3\""
-msgstr ""
+msgstr "Kommaseparerade andelsvärden vars summa är 1.0, t.ex. \"0.7,0.3\""
 
+# AI Translated
 msgid "Mixed filament gradient"
-msgstr ""
+msgstr "Gradient för blandat filament"
 
+# AI Translated
 msgid "Enable Z-direction gradient mode for mixed filament sub-layers. When enabled, the sub-layer ratios vary linearly across layers."
-msgstr ""
+msgstr "Aktiverar gradientläge i Z-riktningen för det blandade filamentets underlager. När det är aktiverat varierar underlagrens andelar linjärt över lagren."
 
+# AI Translated
 msgid "Mixed filament gradient range"
-msgstr ""
+msgstr "Gradientintervall för blandat filament"
 
+# AI Translated
 msgid "Start and end ratios for the first component in gradient mode. Comma-separated pair, e.g. \"0.10,0.90\" means 10% to 90%."
-msgstr ""
+msgstr "Start- och slutandel för den första komponenten i gradientläge. Kommaseparerat par, t.ex. \"0.10,0.90\" betyder 10% till 90%."
 
+# AI Translated
 msgid "Mixed filament gradient curve"
-msgstr ""
+msgstr "Gradientkurva för blandat filament"
 
+# AI Translated
 msgid "Optional Photoshop-style custom curve mapping Z progress to the first component ratio. Encoded as pipe-separated control points, either \"x,y\" (legacy) or \"x,y,m_in,m_out\" when a tangent override is needed (empty token or \"nan\" means use PCHIP default). x in [0,1]; y is clamped to the configured ratio range, e.g. \"0,0.15|0.5,0.50|1,0.85\". When empty, the linear gradient_range is used instead."
-msgstr ""
+msgstr "Valfri anpassad kurva i Photoshop-stil som mappar Z-förloppet till den första komponentens andel. Kodas som kontrollpunkter separerade med lodstreck, antingen \"x,y\" (äldre format) eller \"x,y,m_in,m_out\" när tangenten behöver åsidosättas (ett tomt värde eller \"nan\" använder PCHIP-standarden). x ligger i [0,1]; y begränsas till det konfigurerade andelsintervallet, t.ex. \"0,0.15|0.5,0.50|1,0.85\". Om fältet är tomt används det linjära gradient_range i stället."
 
+# AI Translated
 msgid "Mixed filament per-part gradient"
-msgstr ""
+msgstr "Gradient per del för blandat filament"
 
+# AI Translated
 msgid "When gradient mode is enabled, apply the gradient to each part of an assembly independently rather than treating the whole assembly as one Z range."
-msgstr ""
+msgstr "När gradientläget är aktiverat tillämpas gradienten på varje del i en montering separat i stället för att behandla hela monteringen som ett enda Z-intervall."
 
 # AI Translated
 msgid "Filament printable"
@@ -17438,9 +17467,10 @@ msgstr "Maximal kraft för Y-axeln"
 msgid "The allowed maximum output force of Y axis"
 msgstr "Den maximalt tillåtna utgående kraften för Y-axeln"
 
+# AI Translated
 msgctxt "Newton"
 msgid "N"
-msgstr ""
+msgstr "N"
 
 msgid "Bed mass of the Y axis"
 msgstr "Y-axelns bäddmassa"
@@ -17448,9 +17478,10 @@ msgstr "Y-axelns bäddmassa"
 msgid "The machine bed mass load of Y axis"
 msgstr "Maskinbäddens massbelastning på Y-axeln"
 
+# AI Translated
 msgctxt "gram"
 msgid "g"
-msgstr ""
+msgstr "g"
 
 msgid "The allowed max printed mass"
 msgstr "Den maximalt tillåtna tryckta massan"
@@ -19248,11 +19279,13 @@ msgstr ""
 "\n"
 "Om du anger ett värde i inställningen reduktionsmängd före avtorkning nedan utförs eventuell överskjutande reduktion före avtorkningen, annars utförs den efteråt."
 
+# AI Translated
 msgid "Mixed color sublayer"
-msgstr ""
+msgstr "Underlager med blandad färg"
 
+# AI Translated
 msgid "Enable mixed color sublayer splitting. When enabled, layers containing mixed color filaments will be split into sub-layers to achieve color mixing effects."
-msgstr ""
+msgstr "Aktiverar uppdelning i underlager med blandad färg. När det är aktiverat delas lager som innehåller filament med blandad färg upp i underlager för att skapa färgblandningseffekter."
 
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Avstryknings tornet kan användas för att avlägsna rester på munstycket och stabilisera kammartrycket inuti munstycket för att undvika utseendefel vid utskrift av objekt."
@@ -20527,8 +20560,9 @@ msgstr "Det gick inte att skapa mesh från modellfilen, eller så saknas en gilt
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Den medföljande filen kunde inte läsas eftersom den är tom."
 
+# AI Translated
 msgid "The file format is incompatible and cannot be parsed."
-msgstr ""
+msgstr "Filformatet är inkompatibelt och kan inte tolkas."
 
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Okänt filformat: indata filen måste ha tillägget .stl, .obj eller .amf(.xml)."
@@ -23105,8 +23139,9 @@ msgstr "Borttagen"
 msgid "Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"
 msgstr "Aktivera smart filamenttilldelning: Tilldela ett filament till flera nozzlar för att maximera besparingen"
 
+# AI Translated
 msgid "File Saving"
-msgstr ""
+msgstr "Filsparande"
 
 # AI Translated
 msgid "Don't remind me again"
