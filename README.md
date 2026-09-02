@@ -197,6 +197,8 @@ All updated build instructions for Windows, macOS, and Linux are now available o
 
 Please refer to the wiki to ensure you're following the latest and most accurate steps for your platform.
 
+Alternatively, for a quick dev loop, run `./dev-build_and_run.sh [--no-kill] [file.3mf]` (`bash dev-build_and_run.sh` on Windows). It builds and launches the app, installing dependencies first if needed.
+
 # Klipper Note
 
 If you're running Klipper, it's recommended to add the following configuration to your `printer.cfg` file.
