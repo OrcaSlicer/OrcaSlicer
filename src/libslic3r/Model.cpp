@@ -1,6 +1,6 @@
 #include "Model.hpp"
 #include "libslic3r.h"
-#include "AABBMesh.hpp"
+#include "AABBTreeIndirect.hpp"
 #include "BuildVolume.hpp"
 #include "TexturePainting.hpp"
 #include "Format/AssimpImport.hpp"
@@ -3577,6 +3577,34 @@ static void append_clipped_polygon(indexed_triangle_set &out, const std::vector<
     }
 }
 
+static bool mesh_contains_point_linear(const indexed_triangle_set &its, const Vec3d &point)
+{
+    constexpr double ray_epsilon = 1e-6;
+    const Vec3d ray_direction = Vec3d::UnitX();
+    double nearest_hit_distance = std::numeric_limits<double>::infinity();
+    size_t nearest_face = size_t(-1);
+
+    for (size_t face_id = 0; face_id < its.indices.size(); ++face_id) {
+        const stl_triangle_vertex_indices &face = its.indices[face_id];
+        double distance;
+        double u;
+        double v;
+        if (AABBTreeIndirect::detail::intersect_triangle(
+                point, ray_direction,
+                its.vertices[face[0]], its.vertices[face[1]], its.vertices[face[2]],
+                distance, u, v, ray_epsilon) &&
+            distance > 0.0 && distance < nearest_hit_distance) {
+            nearest_hit_distance = distance;
+            nearest_face = face_id;
+        }
+    }
+
+    // This matches AABBMesh::hit_result::is_inside(): for a consistently
+    // oriented closed mesh, the nearest face points along a ray leaving it.
+    return nearest_face != size_t(-1) &&
+           its_unnormalized_normal(its, nearest_face).cast<double>().dot(ray_direction) > 0.0;
+}
+
 } // namespace
 
 bool ModelInstance::intersects_bed_exclude_region(const BedExcludeRegion &region, indexed_triangle_set *intersection_mesh) const
@@ -3651,13 +3679,9 @@ bool ModelInstance::intersects_bed_exclude_region(const BedExcludeRegion &region
             const Vec3d probe_world(probe_xy.x(), probe_xy.y(), z_min + 0.5 * (z_max - z_min));
             const Vec3d probe_local = volume_matrix.inverse() * probe_world;
 
-            // Avoid constructing the spatial index for the common case where
-            // the probe is plainly outside this model part.
-            if (volume->mesh().bounding_box().contains(probe_local)) {
-                const AABBMesh mesh(its);
-                if (!mesh.query_ray_hit(probe_local, Vec3d::UnitX()).is_inside())
-                    continue;
-
+            // A linear ray scan keeps this one-off fallback O(n) without
+            // adding ray tests to the usual surface-intersection path.
+            if (volume->mesh().bounding_box().contains(probe_local) && mesh_contains_point_linear(its, probe_local)) {
                 intersects = true;
                 if (intersection_mesh == nullptr)
                     return true;
