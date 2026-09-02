@@ -6335,6 +6335,32 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<DraftShield>(dsDisabled));
 
+    def = this->add("ooze_shield", coBool);
+    def->label = L("Ooze shield");
+    def->tooltip = L("Generates a single-wall shroud that follows the 3D contour of the model at a fixed offset. "
+                     "The shield is printed before each layer's features so the toolhead can wipe residual nozzle pressure "
+                     "after a tool change or wipe-tower purge. Tree supports may pass through the shield.\n\n"
+                     "Only active on multi-material prints.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("ooze_shield_distance", coFloat);
+    def->label = L("Ooze shield distance");
+    def->tooltip = L("Horizontal offset between the model outline and the ooze shield wall.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(2.));
+
+    def = this->add("ooze_shield_angle", coFloat);
+    def->label = L("Ooze shield angle");
+    def->tooltip = L("Maximum overhang angle of the ooze shield wall. Lower values widen the shield on steep model sides to reduce collapse.");
+    def->sidetext = u8"°";
+    def->min = 0;
+    def->max = 89;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(60.));
+
     def = this->add("skirt_type", coEnum);
     def->label = L("Skirt type");
     def->full_label = L("Skirt type");

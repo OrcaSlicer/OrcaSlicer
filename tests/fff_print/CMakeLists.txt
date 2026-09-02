@@ -17,6 +17,7 @@ add_executable(${_TEST_NAME}_tests
 	test_printobject.cpp
 	test_mixed_filament.cpp
 	test_skirt_brim.cpp
+	test_ooze_shield.cpp
 	test_slicing_pipeline_hook.cpp
 	test_support_material.cpp
 	test_trianglemesh.cpp

@@ -83,6 +83,8 @@ set(lisbslic3r_sources
     Brim.cpp
     BrimEarsPoint.hpp
     Brim.hpp
+    OozeShield.cpp
+    OozeShield.hpp
     BuildVolume.cpp
     BuildVolume.hpp
     calib.cpp

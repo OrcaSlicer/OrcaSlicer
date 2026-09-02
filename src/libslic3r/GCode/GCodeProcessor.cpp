@@ -4557,7 +4557,7 @@ bool GCodeProcessor::process_simplify3d_tags(const std::string_view comment)
     // ; ooze shield
     pos = cmt.find(" ooze shield");
     if (pos == 0) {
-        set_extrusion_role(erNone); // Missing mapping
+        set_extrusion_role(erSkirt);
         return true;
     }
 

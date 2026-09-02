@@ -3,6 +3,7 @@
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "Brim.hpp"
+#include "OozeShield.hpp"
 #include "ClipperUtils.hpp"
 #include "Extruder.hpp"
 #include "FilamentMixer.hpp"
@@ -277,6 +278,9 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "min_skirt_length"
             || opt_key == "single_loop_draft_shield"
             || opt_key == "draft_shield"
+            || opt_key == "ooze_shield"
+            || opt_key == "ooze_shield_distance"
+            || opt_key == "ooze_shield_angle"
             || opt_key == "skirt_distance"
             || opt_key == "skirt_start_angle"
             || opt_key == "ooze_prevention"
@@ -606,6 +610,11 @@ bool Print::has_infinite_skirt() const
     // return (m_config.draft_shield == dsEnabled && m_config.skirt_loops > 0) || (m_config.ooze_prevention && this->extruders().size() > 1);
 
     return (m_config.draft_shield == dsEnabled && m_config.skirt_loops > 0);
+}
+
+bool Print::has_ooze_shield() const
+{
+    return m_config.ooze_shield && this->extruders().size() > 1;
 }
 
 bool Print::has_skirt() const
@@ -2603,6 +2612,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
         m_skirt.clear();
         m_skirt_brim_groups.clear();
+        m_ooze_shield.clear();
         m_has_shared_per_object_skirt = false;
         m_skirt_convex_hull.clear();
         m_objectBrimAreasByInstance.clear();
@@ -2835,6 +2845,9 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 throw Slic3r::SlicingError(L("Per-object skirts cannot fit between the objects in By object print sequence.\n\nMove the objects farther apart, reduce brim/skirt size, switch Skirt type to Combined, or switch Print sequence to By layer."));
             }
         }
+
+        if (has_ooze_shield())
+            _make_ooze_shield();
 
         this->finalize_first_layer_convex_hull();
         this->set_done(psSkirtBrim);
@@ -3283,6 +3296,23 @@ void Print::_make_skirt()
             if (!group_skirt.empty() || !group_brims.empty())
                 m_skirt_brim_groups.push_back({ std::move(group_skirt), std::move(group.instances), std::move(group_brims) });
         }
+    }
+}
+
+void Print::_make_ooze_shield()
+{
+    m_ooze_shield.clear();
+    if (!has_ooze_shield())
+        return;
+
+    const std::vector<Polygons> layer_polygons = OozeShield::generate_layer_polygons(*this);
+    const Flow flow = this->skirt_flow();
+
+    m_ooze_shield.reserve(layer_polygons.size());
+    for (const Polygons &polygons : layer_polygons) {
+        ExtrusionEntityCollection layer_shield;
+        OozeShield::polygons_to_extrusion_entities(polygons, layer_shield, flow);
+        m_ooze_shield.emplace_back(std::move(layer_shield));
     }
 }
 

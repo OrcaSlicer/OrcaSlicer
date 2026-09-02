@@ -956,6 +956,7 @@ public:
     bool                has_infinite_skirt() const;
     bool                has_skirt() const;
     bool                has_brim() const;
+    bool                has_ooze_shield() const;
     //BBS
     bool                has_auto_brim() const    {
         return std::any_of(m_objects.begin(), m_objects.end(), [](PrintObject* object) { return object->config().brim_type == btAutoBrim; });
@@ -1014,6 +1015,7 @@ public:
 
     const ExtrusionEntityCollection& skirt() const { return m_skirt; }
     const std::vector<SkirtBrimGroup>& skirt_brim_groups() const { return m_skirt_brim_groups; }
+    const std::vector<ExtrusionEntityCollection>& ooze_shield() const { return m_ooze_shield; }
     bool has_shared_per_object_skirt() const { return m_has_shared_per_object_skirt; }
     // Convex hull of the 1st layer extrusions, for bed leveling and placing the initial purge line.
     // It encompasses the object extrusions, support extrusions, skirt, brim, wipe tower.
@@ -1278,6 +1280,7 @@ private:
     bool                invalidate_state_by_config_options(const ConfigOptionResolver &new_config, const std::vector<t_config_option_key> &opt_keys);
 
     void                _make_skirt();
+    void                _make_ooze_shield();
     void                _make_wipe_tower();
     void                finalize_first_layer_convex_hull();
     void                update_filament_self_index_cache();
@@ -1313,6 +1316,7 @@ private:
     // Ordered collections of extrusion paths to build skirt loops and brim.
     ExtrusionEntityCollection               m_skirt;
     std::vector<SkirtBrimGroup>             m_skirt_brim_groups;
+    std::vector<ExtrusionEntityCollection>  m_ooze_shield;
     bool                                    m_has_shared_per_object_skirt { false };
     // Orca: Object-keyed brim paths kept for existing code.
     std::map<ObjectID, ExtrusionEntityCollection>         m_brimMap;

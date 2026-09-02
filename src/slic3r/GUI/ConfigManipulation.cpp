@@ -1019,6 +1019,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool have_ooze_prevention = config->opt_bool("ooze_prevention");
     toggle_line("standby_temperature_delta", have_ooze_prevention);
     toggle_line("preheat_time", have_ooze_prevention);
+    const bool have_multi_extruder = config->opt_float("nozzle_diameter", 0) > 0 && config->option<ConfigOptionFloats>("nozzle_diameter")->size() > 1;
+    toggle_line("ooze_shield", have_multi_extruder || config->opt_bool("single_extruder_multi_material"));
+    toggle_line("ooze_shield_distance", config->opt_bool("ooze_shield"));
+    toggle_line("ooze_shield_angle", config->opt_bool("ooze_shield"));
     int preheat_steps = config->opt_int("preheat_steps");
     toggle_line("preheat_steps", have_ooze_prevention && (preheat_steps > 0));
 

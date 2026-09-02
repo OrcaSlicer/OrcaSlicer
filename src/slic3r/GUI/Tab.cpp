@@ -3012,6 +3012,9 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Ooze prevention"), L"param_ooze_prevention");
         optgroup->append_single_option_line("ooze_prevention", "multimaterial_settings_ooze_prevention");
+        optgroup->append_single_option_line("ooze_shield", "multimaterial_settings_ooze_prevention#ooze-shield");
+        optgroup->append_single_option_line("ooze_shield_distance", "multimaterial_settings_ooze_prevention#ooze-shield-distance");
+        optgroup->append_single_option_line("ooze_shield_angle", "multimaterial_settings_ooze_prevention#ooze-shield-angle");
         optgroup->append_single_option_line("standby_temperature_delta", "multimaterial_settings_ooze_prevention#temperature-variation");
         optgroup->append_single_option_line("preheat_time", "multimaterial_settings_ooze_prevention#preheat-time");
         optgroup->append_single_option_line("preheat_steps", "multimaterial_settings_ooze_prevention#preheat-steps");

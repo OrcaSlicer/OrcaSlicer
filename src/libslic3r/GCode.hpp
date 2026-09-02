@@ -370,6 +370,10 @@ private:
         const PrintObject &object,
         size_t instance_id,
         bool first_layer);
+    std::string generate_ooze_shield(const Print &print,
+        const LayerTools &layer_tools,
+        const Layer &layer,
+        unsigned int extruder_id);
 
     LayerResult process_layer(
         const Print                     &print,

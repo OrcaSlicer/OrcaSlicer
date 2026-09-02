@@ -5114,6 +5114,46 @@ std::string GCode::generate_object_skirt_group(const Print &print,
                           object_skirt_tools, layer, extruder_id, m_skirt_group_done[group_idx]);
 }
 
+std::string GCode::generate_ooze_shield(
+    const Print &print,
+    const LayerTools &layer_tools,
+    const Layer &layer,
+    unsigned int extruder_id)
+{
+    if (!print.has_ooze_shield() || !layer_tools.has_object)
+        return {};
+
+    const size_t layer_id = layer.id();
+    const std::vector<ExtrusionEntityCollection> &shield_layers = print.ooze_shield();
+    if (layer_id >= shield_layers.size() || shield_layers[layer_id].empty())
+        return {};
+
+    // Print the shield with the active extruder immediately after its tool change so
+    // ooze is wiped before travelling into model features.
+    if (layer_tools.extruders.empty()
+        || std::find(layer_tools.extruders.begin(), layer_tools.extruders.end(), extruder_id) == layer_tools.extruders.end())
+        return {};
+
+    std::string gcode;
+    const Flow layer_flow = print.skirt_flow().with_height(float(layer.height));
+    const double mm3_per_mm = layer_flow.mm3_per_mm();
+
+    m_avoid_crossing_perimeters.use_external_mp();
+    for (const ExtrusionEntity *entity : shield_layers[layer_id].entities) {
+        const ExtrusionLoop *loop = dynamic_cast<const ExtrusionLoop *>(entity);
+        if (loop == nullptr)
+            continue;
+        ExtrusionLoop extrusion_loop = *loop;
+        for (ExtrusionPath &path : extrusion_loop.paths) {
+            path.height = layer_flow.height();
+            path.mm3_per_mm = mm3_per_mm;
+        }
+        gcode += this->extrude_loop(extrusion_loop, "ooze shield", NOZZLE_CONFIG(support_speed));
+    }
+    m_avoid_crossing_perimeters.use_external_mp(false);
+    return gcode;
+}
+
 std::string GCode::generate_object_brim(const Print &print, const PrintObject &object, size_t instance_id, bool first_layer)
 {
     if (!first_layer)
@@ -6384,6 +6424,9 @@ LayerResult GCode::process_layer(
         }
         
         gcode += std::move(gcode_toolchange);
+
+        if (object_layer != nullptr)
+            gcode += generate_ooze_shield(print, layer_tools, *object_layer, extruder_id);
 
         // let analyzer tag generator aware of a role type change
         if (layer_tools.has_wipe_tower && m_wipe_tower)
