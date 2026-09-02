@@ -38,7 +38,10 @@ jobs:
               'profile',
               'QoL',
               'UI/UX',
-              'dependencies'
+              'dependencies',
+              'build',
+              'optimization',
+              'test'
             ];
             const pr = context.payload.pull_request;
             const labelsList = `${allowedLabels
@@ -188,7 +191,10 @@ jobs:
               'profile',
               'QoL',
               'UI/UX',
-              'dependencies'
+              'dependencies',
+              'build',
+              'optimization',
+              'test'
             ];
 
             const issue = context.payload.issue;
