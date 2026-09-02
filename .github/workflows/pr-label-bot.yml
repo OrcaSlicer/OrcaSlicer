@@ -42,6 +42,8 @@ jobs:
               'build',
               'optimization',
               'test'
+              'documentation'
+              'crash'
             ];
             const pr = context.payload.pull_request;
             const labelsList = `${allowedLabels
@@ -195,6 +197,8 @@ jobs:
               'build',
               'optimization',
               'test'
+              'documentation'
+              'crash'
             ];
 
             const issue = context.payload.issue;
